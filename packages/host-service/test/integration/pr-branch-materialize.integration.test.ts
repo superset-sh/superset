@@ -9,7 +9,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
-import { materializePrBranch } from "../../src/trpc/router/workspace-creation/utils/pr-branch-materialize";
+import {
+	deleteMaterializedPrBranchIfSafe,
+	getSyntheticPrVerifiedRef,
+	materializePrBranch,
+} from "../../src/trpc/router/workspace-creation/utils/pr-branch-materialize";
 import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
 
 interface BareRemoteFixture {
@@ -106,6 +110,14 @@ describe("materializePrBranch (real git)", () => {
 			},
 		});
 		expect(materialized.sourceKind).toBe("synthetic-pr-ref");
+		expect(materialized.startPoint).toBe(
+			getSyntheticPrVerifiedRef({
+				number: 5252,
+				headRefName: "feature/pr-lockfile",
+				headRefOid: scenario.prHeadOid,
+				isCrossRepository: true,
+			}),
+		);
 
 		const oldFlowPath = realpathSync(
 			mkdtempSync(join(tmpdir(), "host-service-old-pr-worktree-")),
@@ -170,5 +182,52 @@ describe("materializePrBranch (real git)", () => {
 				.catch(() => {});
 			rmSync(worktreePath, { recursive: true, force: true });
 		}
+	});
+
+	test("safe cleanup deletes only branches still at the verified PR head", async () => {
+		await materializePrBranch({
+			git: scenario.local.git,
+			branch: "contributor/cleanup-pr-lockfile",
+			remoteName: "origin",
+			pr: {
+				number: 5252,
+				headRefName: "feature/pr-lockfile",
+				headRefOid: scenario.prHeadOid,
+				isCrossRepository: true,
+			},
+		});
+
+		await expect(
+			deleteMaterializedPrBranchIfSafe({
+				git: scenario.local.git,
+				branch: "contributor/cleanup-pr-lockfile",
+				expectedHeadOid: "1111111111111111111111111111111111111111",
+			}),
+		).resolves.toBe(false);
+		const branchHeadBeforeCleanup = (
+			await scenario.local.git.raw([
+				"rev-parse",
+				"--verify",
+				"refs/heads/contributor/cleanup-pr-lockfile",
+			])
+		).trim();
+		expect(branchHeadBeforeCleanup).toBe(scenario.prHeadOid);
+
+		await expect(
+			deleteMaterializedPrBranchIfSafe({
+				git: scenario.local.git,
+				branch: "contributor/cleanup-pr-lockfile",
+				expectedHeadOid: scenario.prHeadOid,
+			}),
+		).resolves.toBe(true);
+		const branchStillExists = await scenario.local.git
+			.raw([
+				"rev-parse",
+				"--verify",
+				"refs/heads/contributor/cleanup-pr-lockfile",
+			])
+			.then(() => true)
+			.catch(() => false);
+		expect(branchStillExists).toBe(false);
 	});
 });

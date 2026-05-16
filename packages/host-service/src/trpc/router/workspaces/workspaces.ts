@@ -34,7 +34,11 @@ import {
 } from "../workspace-creation/utils/ai-workspace-names";
 import type { ExecGh } from "../workspace-creation/utils/exec-gh";
 import { listBranchNames } from "../workspace-creation/utils/list-branch-names";
-import { materializePrBranch } from "../workspace-creation/utils/pr-branch-materialize";
+import {
+	deleteMaterializedPrBranchIfSafe,
+	type MaterializePrBranchResult,
+	materializePrBranch,
+} from "../workspace-creation/utils/pr-branch-materialize";
 import { derivePrLocalBranchName } from "../workspace-creation/utils/pr-branch-name";
 import { resolveStartPoint } from "../workspace-creation/utils/resolve-start-point";
 import { deduplicateBranchName } from "../workspace-creation/utils/sanitize-branch";
@@ -637,8 +641,9 @@ export const workspacesRouter = router({
 							}
 						} else {
 							let attemptedWorktreeAdd = false;
+							let materialized: MaterializePrBranchResult | null = null;
 							try {
-								const materialized = await materializePrBranch({
+								materialized = await materializePrBranch({
 									git,
 									branch: resolvedBranch,
 									remoteName: localProject.remoteName ?? "origin",
@@ -657,6 +662,18 @@ export const workspacesRouter = router({
 							} catch (err) {
 								if (attemptedWorktreeAdd) {
 									await rollbackWorktree();
+								}
+								if (materialized?.createdBranch) {
+									await deleteMaterializedPrBranchIfSafe({
+										git,
+										branch: resolvedBranch,
+										expectedHeadOid: prMetadata.headRefOid,
+									}).catch((cleanupErr) => {
+										console.warn(
+											"[workspaces.create] failed to rollback PR branch",
+											{ branch: resolvedBranch, err: cleanupErr },
+										);
+									});
 								}
 								throw new TRPCError({
 									code: "CONFLICT",

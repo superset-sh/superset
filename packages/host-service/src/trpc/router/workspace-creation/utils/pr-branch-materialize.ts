@@ -40,6 +40,10 @@ export function getSyntheticPrHeadRef(prNumber: number): string {
 	return `refs/pull/${prNumber}/head`;
 }
 
+export function getSyntheticPrVerifiedRef(pr: PrBranchMetadata): string {
+	return `refs/superset/pr-fetch/${pr.number}/${normalizeOid(pr.headRefOid)}`;
+}
+
 function normalizeOid(oid: string): string {
 	return oid.trim().toLowerCase();
 }
@@ -117,21 +121,22 @@ async function fetchSyntheticPrBranch(args: {
 	warning?: string;
 }): Promise<PrBranchSource> {
 	const syntheticRef = getSyntheticPrHeadRef(args.pr.number);
+	const verifiedRef = getSyntheticPrVerifiedRef(args.pr);
 	await args.git.raw([
 		"fetch",
 		"--no-tags",
 		"--quiet",
 		args.remoteName,
-		syntheticRef,
+		`+${syntheticRef}:${verifiedRef}`,
 	]);
 	await assertRefMatchesExpectedOid({
 		git: args.git,
-		ref: "FETCH_HEAD",
+		ref: verifiedRef,
 		expectedHeadOid: args.pr.headRefOid,
 	});
 	return {
 		kind: "synthetic-pr-ref",
-		startPoint: "FETCH_HEAD",
+		startPoint: verifiedRef,
 		mergeRef: syntheticRef,
 		warning: args.warning,
 	};
@@ -157,6 +162,20 @@ export async function configurePrBranchTracking(args: {
 			args.pushRemote,
 		]);
 	}
+}
+
+export async function deleteMaterializedPrBranchIfSafe(args: {
+	git: GitClient;
+	branch: string;
+	expectedHeadOid: string;
+}): Promise<boolean> {
+	const localOid = await getLocalBranchHead(args.git, args.branch);
+	if (localOid === null) return false;
+	if (normalizeOid(localOid) !== normalizeOid(args.expectedHeadOid)) {
+		return false;
+	}
+	await args.git.raw(["branch", "-D", "--", args.branch]);
+	return true;
 }
 
 export async function materializePrBranch(args: {
@@ -217,19 +236,28 @@ export async function materializePrBranch(args: {
 		};
 	}
 
-	await args.git.raw([
-		"branch",
-		"--no-track",
-		"--",
-		args.branch,
-		source.startPoint,
-	]);
-	await configurePrBranchTracking({
-		git: args.git,
-		branch: args.branch,
-		remoteName: args.remoteName,
-		mergeRef: source.mergeRef,
-	});
+	try {
+		await args.git.raw([
+			"branch",
+			"--no-track",
+			"--",
+			args.branch,
+			source.startPoint,
+		]);
+		await configurePrBranchTracking({
+			git: args.git,
+			branch: args.branch,
+			remoteName: args.remoteName,
+			mergeRef: source.mergeRef,
+		});
+	} catch (err) {
+		await deleteMaterializedPrBranchIfSafe({
+			git: args.git,
+			branch: args.branch,
+			expectedHeadOid: args.pr.headRefOid,
+		}).catch(() => {});
+		throw err;
+	}
 
 	return {
 		branch: args.branch,

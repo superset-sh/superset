@@ -1,6 +1,10 @@
 import { describe, expect, mock, test } from "bun:test";
 import type { GitClient } from "../shared/types";
-import { materializePrBranch } from "./pr-branch-materialize";
+import {
+	deleteMaterializedPrBranchIfSafe,
+	getSyntheticPrVerifiedRef,
+	materializePrBranch,
+} from "./pr-branch-materialize";
 
 const EXPECTED_HEAD_OID = "c4ecea7dec8c6d09cf54fe0ad2f9edb8a24fd45a";
 
@@ -72,23 +76,25 @@ describe("materializePrBranch", () => {
 
 	test("cross-repo PR fetches the synthetic PR ref and configures it as the merge ref", async () => {
 		const { git, raw } = createMockGit();
+		const pr = {
+			number: 456,
+			headRefName: "feature/x",
+			headRefOid: EXPECTED_HEAD_OID,
+			isCrossRepository: true,
+		};
+		const verifiedRef = getSyntheticPrVerifiedRef(pr);
 
 		const result = await materializePrBranch({
 			git,
 			branch: "alice/feature/x",
 			remoteName: "origin",
-			pr: {
-				number: 456,
-				headRefName: "feature/x",
-				headRefOid: EXPECTED_HEAD_OID,
-				isCrossRepository: true,
-			},
+			pr,
 		});
 
 		expect(result).toMatchObject({
 			createdBranch: true,
 			sourceKind: "synthetic-pr-ref",
-			startPoint: "FETCH_HEAD",
+			startPoint: verifiedRef,
 			trackingRemote: "origin",
 			trackingMergeRef: "refs/pull/456/head",
 		});
@@ -97,19 +103,70 @@ describe("materializePrBranch", () => {
 			"--no-tags",
 			"--quiet",
 			"origin",
-			"refs/pull/456/head",
+			`+refs/pull/456/head:${verifiedRef}`,
 		]);
 		expect(raw).toHaveBeenNthCalledWith(4, [
 			"branch",
 			"--no-track",
 			"--",
 			"alice/feature/x",
-			"FETCH_HEAD",
+			verifiedRef,
 		]);
 		expect(raw).toHaveBeenNthCalledWith(6, [
 			"config",
 			"branch.alice/feature/x.merge",
 			"refs/pull/456/head",
+		]);
+	});
+
+	test("deletes a materialized branch only when it still points at the verified PR head", async () => {
+		const raw = mock(async (args: string[]) => {
+			if (args[0] === "rev-parse") {
+				return `${EXPECTED_HEAD_OID}\n`;
+			}
+			return "";
+		});
+		const git = { raw } as unknown as GitClient;
+
+		await expect(
+			deleteMaterializedPrBranchIfSafe({
+				git,
+				branch: "alice/feature/x",
+				expectedHeadOid: EXPECTED_HEAD_OID,
+			}),
+		).resolves.toBe(true);
+
+		expect(raw).toHaveBeenNthCalledWith(2, [
+			"branch",
+			"-D",
+			"--",
+			"alice/feature/x",
+		]);
+	});
+
+	test("does not delete a branch that moved away from the verified PR head", async () => {
+		const raw = mock(async (args: string[]) => {
+			if (args[0] === "rev-parse") {
+				return "1111111111111111111111111111111111111111\n";
+			}
+			return "";
+		});
+		const git = { raw } as unknown as GitClient;
+
+		await expect(
+			deleteMaterializedPrBranchIfSafe({
+				git,
+				branch: "alice/feature/x",
+				expectedHeadOid: EXPECTED_HEAD_OID,
+			}),
+		).resolves.toBe(false);
+
+		expect(raw).toHaveBeenCalledTimes(1);
+		expect(raw).not.toHaveBeenCalledWith([
+			"branch",
+			"-D",
+			"--",
+			"alice/feature/x",
 		]);
 	});
 
