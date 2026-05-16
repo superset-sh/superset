@@ -148,19 +148,6 @@ function measureAndResize(runtime: TerminalRuntime): boolean {
 	return terminal.cols !== prevCols || terminal.rows !== prevRows;
 }
 
-function recoverTerminalRenderer(
-	runtime: TerminalRuntime,
-	onResize?: () => void,
-) {
-	if (!hostIsVisible(runtime.container)) return;
-	try {
-		runtime.terminal.clearTextureAtlas();
-	} catch {}
-	const changed = measureAndResize(runtime);
-	if (changed) onResize?.();
-	runtime.terminal.refresh(0, Math.max(0, runtime.terminal.rows - 1));
-}
-
 function createResizeScheduler(
 	runtime: TerminalRuntime,
 	onResize?: () => void,
@@ -271,7 +258,7 @@ export function attachToContainer(
 
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	recoverTerminalRenderer(runtime, onResize);
+	if (measureAndResize(runtime)) onResize?.();
 
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
@@ -313,7 +300,7 @@ export function updateRuntimeAppearance(
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
 		if (hostIsVisible(runtime.container)) {
-			recoverTerminalRenderer(runtime);
+			measureAndResize(runtime);
 		}
 	}
 }
