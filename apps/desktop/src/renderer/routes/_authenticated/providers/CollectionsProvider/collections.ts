@@ -128,19 +128,25 @@ export interface WorkspaceCreateInsertMetadata extends Record<string, unknown> {
 	result?: HostWorkspaceCreateResult;
 }
 
+function isWorkspaceCreateInsertMetadata(
+	value: unknown,
+): value is WorkspaceCreateInsertMetadata {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"hostUrl" in value &&
+		typeof value.hostUrl === "string" &&
+		"input" in value &&
+		typeof value.input === "object" &&
+		value.input !== null
+	);
+}
+
 function getWorkspaceCreateInsertMetadata(
 	metadata: unknown,
 ): WorkspaceCreateInsertMetadata {
-	if (
-		typeof metadata === "object" &&
-		metadata !== null &&
-		"hostUrl" in metadata &&
-		typeof metadata.hostUrl === "string" &&
-		"input" in metadata &&
-		typeof metadata.input === "object" &&
-		metadata.input !== null
-	) {
-		return metadata as WorkspaceCreateInsertMetadata;
+	if (isWorkspaceCreateInsertMetadata(metadata)) {
+		return metadata;
 	}
 	throw new Error("v2Workspaces.insert requires workspace create metadata");
 }
@@ -466,14 +472,18 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				const result = await client.workspaces.create.mutate(metadata.input);
 				metadata.result = result;
 
-				if (result.workspace.id !== mutation.modified.id) {
-					if (typeof result.workspace.txid === "number") {
-						await collection.utils.awaitTxId(result.workspace.txid);
+				const { txid } = result.workspace;
+				const idChanged = result.workspace.id !== mutation.modified.id;
+
+				if (idChanged) {
+					if (typeof txid === "number") {
+						await collection.utils.awaitTxId(txid);
 					}
 					throw new Error(WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID);
 				}
-				if (typeof result.workspace.txid === "number") {
-					return { txid: result.workspace.txid };
+
+				if (typeof txid === "number") {
+					return { txid };
 				}
 			},
 			onUpdate: async ({ transaction }) => {

@@ -155,13 +155,11 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				try {
 					await tx.isPersisted.promise;
 				} catch (error) {
-					if (
-						!(
-							error instanceof Error &&
-							error.message === WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID &&
-							metadata.result
-						)
-					) {
+					const isExpectedRollback =
+						error instanceof Error &&
+						error.message === WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID &&
+						metadata.result;
+					if (!isExpectedRollback) {
 						throw error;
 					}
 				}

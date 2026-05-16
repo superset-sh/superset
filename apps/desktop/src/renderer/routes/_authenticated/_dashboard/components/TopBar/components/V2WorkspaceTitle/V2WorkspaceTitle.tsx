@@ -21,9 +21,9 @@ export function V2WorkspaceTitle({ workspaceId }: V2WorkspaceTitleProps) {
 				})),
 		[collections, workspaceId],
 	);
-	const syncedWorkspace = workspaces[0] ?? null;
-	const name = syncedWorkspace?.name ?? null;
-	const branch = syncedWorkspace?.branch ?? null;
+	const workspace = workspaces[0];
+	const name = workspace?.name ?? null;
+	const branch = workspace?.branch ?? null;
 
 	if (!name && !branch) {
 		return null;

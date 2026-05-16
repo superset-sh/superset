@@ -29,14 +29,32 @@ function V2WorkspaceLayout() {
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
-				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
+				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? ""))
+				.select(({ v2Workspaces }) => ({
+					id: v2Workspaces.id,
+					organizationId: v2Workspaces.organizationId,
+					projectId: v2Workspaces.projectId,
+					hostId: v2Workspaces.hostId,
+					name: v2Workspaces.name,
+					branch: v2Workspaces.branch,
+					type: v2Workspaces.type,
+					createdByUserId: v2Workspaces.createdByUserId,
+					taskId: v2Workspaces.taskId,
+					createdAt: v2Workspaces.createdAt,
+					updatedAt: v2Workspaces.updatedAt,
+					isSynced: v2Workspaces.$synced,
+				})),
 		[collections, workspaceId],
 	);
 	const workspace = workspaces?.[0] ?? null;
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!workspace || lastEnsuredWorkspaceIdRef.current === workspace.id)
+		if (
+			!workspace ||
+			!workspace.isSynced ||
+			lastEnsuredWorkspaceIdRef.current === workspace.id
+		)
 			return;
 		lastEnsuredWorkspaceIdRef.current = workspace.id;
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
