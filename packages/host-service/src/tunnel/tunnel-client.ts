@@ -8,7 +8,10 @@ import type {
 } from "./types";
 
 const RECONNECT_BASE_MS = 1_000;
-const RECONNECT_MAX_MS = 30_000;
+// 5s ceiling rather than 30s. Under a sustained outage this means slightly
+// more retry traffic, but under transient relay restarts (the common case)
+// it ensures we don't sit idle for 30s while the relay is back online.
+const RECONNECT_MAX_MS = 5_000;
 const INBOUND_SILENCE_TIMEOUT_MS = 75_000;
 const WATCHDOG_INTERVAL_MS = 10_000;
 const CONNECT_TIMEOUT_MS = 20_000;
@@ -130,6 +133,18 @@ export class TunnelClient {
 							`[host-service:tunnel] relay rejected connection (code=${event.code}, reason=${event.reason ?? ""}); retrying`,
 						);
 					}
+					// App-defined "relay draining for deploy" close code
+					// (4001). Distinct from 1001 ("Going Away") which the
+					// ping-timeout / dispose paths use — only reset on 4001 so
+					// a mass ping-timeout doesn't trigger a thundering-herd of
+					// instant reconnects. After reset, next attempt fires at
+					// the base delay instead of the 5s ceiling.
+					if (event.code === 4001) {
+						this.reconnectAttempts = 0;
+						console.log(
+							"[host-service:tunnel] relay draining; reconnecting immediately",
+						);
+					}
 				} catch (err) {
 					console.warn(
 						"[host-service:tunnel] error during onclose cleanup",
@@ -188,6 +203,24 @@ export class TunnelClient {
 		switch (message.type) {
 			case "ping":
 				this.send({ type: "pong" });
+				break;
+			case "drain":
+				// In-band drain signal from the relay before it
+				// SIGINT-shuts-down. Reset backoff and tear the socket
+				// down ourselves so the next reconnect attempt fires at
+				// the base delay — far more reliable than waiting for
+				// the WS close frame to arrive (which game-day testing
+				// showed sometimes doesn't, leaving the host idle until
+				// its 75s inactivity watchdog).
+				console.log(
+					`[host-service:tunnel] relay drain notice received${message.reason ? ` (${message.reason})` : ""}; reconnecting immediately`,
+				);
+				this.reconnectAttempts = 0;
+				try {
+					this.socket?.close();
+				} catch {
+					// onclose handler will schedule the reconnect
+				}
 				break;
 			case "http":
 				await this.handleHttpRequest(message);

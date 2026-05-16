@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
+# Deploy the relay to the staging Fly app (superset-relay-staging). Mirrors
+# deploy.sh but targets fly.staging.toml + the staging app, so we can iterate
+# on multi-region without risking prod. Edit REGIONS to grow the fleet.
 set -euo pipefail
 
-APP=superset-relay
-REGIONS=(sjc)
+APP=superset-relay-staging
+REGIONS=(sjc iad fra)
 COUNT=${#REGIONS[@]}
 REGION_LIST=$(IFS=, ; echo "${REGIONS[*]}")
 
 cd "$(git rev-parse --show-toplevel)"
 
-echo "==> fly deploy"
+echo "==> fly deploy ($APP)"
 fly deploy \
-  --config apps/relay/fly.toml \
+  --config apps/relay/fly.staging.toml \
   --dockerfile apps/relay/Dockerfile \
   --app "$APP" \
   .
