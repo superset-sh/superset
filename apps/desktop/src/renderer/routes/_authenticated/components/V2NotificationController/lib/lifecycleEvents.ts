@@ -4,7 +4,6 @@ import type {
 	TerminalLifecyclePayload,
 } from "@superset/workspace-client";
 import { playRingtone } from "renderer/lib/ringtones/play";
-import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useRingtoneStore } from "renderer/stores/ringtone";
@@ -70,7 +69,6 @@ export function handleV2AgentLifecycleEvent({
 		workspaceId,
 		workspaceName,
 		target,
-		paneLayout,
 	});
 }
 
@@ -146,24 +144,15 @@ function showNativeNotification({
 	workspaceId,
 	workspaceName,
 	target,
-	paneLayout,
 }: {
 	payload: AgentLifecyclePayload;
 	workspaceId: string;
 	workspaceName: string;
 	target: V2NotificationTarget;
-	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 }): void {
-	const terminalTitle =
-		terminalRuntimeRegistry
-			.getTitle(target.terminalId, target.paneId)
-			?.trim() || terminalRuntimeRegistry.getTitle(target.terminalId)?.trim();
 	const { title, body } = getV2NativeNotificationContent({
 		workspaceName,
 		payload,
-		target,
-		paneLayout,
-		terminalTitle,
 	});
 
 	void electronTrpcClient.notifications.showNative

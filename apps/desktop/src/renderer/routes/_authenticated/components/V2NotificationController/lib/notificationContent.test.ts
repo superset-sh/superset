@@ -1,30 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { WorkspaceState } from "@superset/panes";
 import type { AgentLifecyclePayload } from "@superset/workspace-client";
-import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { getV2NativeNotificationContent } from "./notificationContent";
-
-const layout: WorkspaceState<PaneViewerData> = {
-	version: 1,
-	activeTabId: "tab-1",
-	tabs: [
-		{
-			id: "tab-1",
-			titleOverride: "Backend",
-			createdAt: 1,
-			activePaneId: "pane-1",
-			layout: { type: "pane", paneId: "pane-1" },
-			panes: {
-				"pane-1": {
-					id: "pane-1",
-					kind: "terminal",
-					titleOverride: "Test runner",
-					data: { terminalId: "terminal-1" },
-				},
-			},
-		},
-	],
-};
 
 function payload(
 	overrides: Partial<AgentLifecyclePayload>,
@@ -38,24 +14,17 @@ function payload(
 }
 
 describe("getV2NativeNotificationContent", () => {
-	it("includes agent, workspace, pane, and tab labels for completion", () => {
+	it("uses the agent label in the title and workspace label in the body", () => {
 		expect(
 			getV2NativeNotificationContent({
 				workspaceName: "Improve notifications",
 				payload: payload({
 					agent: { agentId: "codex", sessionId: "session-1" },
 				}),
-				target: {
-					workspaceId: "workspace-1",
-					tabId: "tab-1",
-					paneId: "pane-1",
-					terminalId: "terminal-1",
-				},
-				paneLayout: layout,
 			}),
 		).toEqual({
 			title: "Agent Complete - Codex",
-			body: "Workspace: Improve notifications | Pane: Test runner | Tab: Backend",
+			body: "Workspace: Improve notifications",
 		});
 	});
 
@@ -67,50 +36,32 @@ describe("getV2NativeNotificationContent", () => {
 					eventType: "PermissionRequest",
 					agent: { agentId: "claude" },
 				}),
-				target: {
-					workspaceId: "workspace-1",
-					tabId: "tab-1",
-					paneId: "pane-1",
-					terminalId: "terminal-1",
-				},
-				paneLayout: layout,
 			}),
 		).toMatchObject({
 			title: "Agent Needs Input - Claude",
-			body: "Workspace: Improve notifications | Pane: Test runner | Tab: Backend",
+			body: "Workspace: Improve notifications",
 		});
 	});
 
-	it("falls back to runtime terminal title and short terminal id", () => {
+	it("falls back to generic labels", () => {
 		expect(
 			getV2NativeNotificationContent({
 				workspaceName: " ",
 				payload: payload({ agent: { agentId: "droid" } }),
-				target: {
-					workspaceId: "workspace-1",
-					terminalId: "terminal-long-id",
-				},
-				paneLayout: null,
-				terminalTitle: "deploy script",
 			}),
 		).toEqual({
 			title: "Agent Complete - Droid",
-			body: "Workspace: Workspace | Pane: deploy script",
+			body: "Workspace: Workspace",
 		});
 
 		expect(
 			getV2NativeNotificationContent({
 				workspaceName: "",
 				payload: payload({ agent: undefined }),
-				target: {
-					workspaceId: "workspace-1",
-					terminalId: "terminal-long-id",
-				},
-				paneLayout: null,
 			}),
 		).toMatchObject({
 			title: "Agent Complete",
-			body: "Workspace: Workspace | Pane: Terminal long-id",
+			body: "Workspace: Workspace",
 		});
 	});
 });

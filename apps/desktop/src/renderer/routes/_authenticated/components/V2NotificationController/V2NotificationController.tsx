@@ -123,9 +123,7 @@ function groupWorkspacesByHostUrl({
 		group.push({
 			workspaceId: workspace.workspaceId,
 			workspaceName:
-				workspace.name.trim() ||
-				workspace.branch.trim() ||
-				workspace.workspaceId,
+				workspace.name.trim() || workspace.branch.trim() || "Workspace",
 			paneLayout: paneLayoutsByWorkspaceId.get(workspace.workspaceId) ?? null,
 		});
 		groups.set(hostUrl, group);
