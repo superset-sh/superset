@@ -3,9 +3,6 @@ import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
-import hostServicePackageJson from "@superset/host-service/package.json" with {
-	type: "json",
-};
 import type { ApiClient } from "../api-client";
 import { env } from "../env";
 import {
@@ -17,7 +14,6 @@ import { getRelayUrl } from "./relay-url";
 
 const HEALTH_POLL_INTERVAL_MS = 200;
 const HEALTH_POLL_TIMEOUT_MS = 10_000;
-const HOST_SERVICE_VERSION: string = hostServicePackageJson.version;
 
 export interface SpawnHostOptions {
 	organizationId: string;
@@ -119,7 +115,6 @@ export async function spawnHostService(
 			PORT: String(port),
 			HOST_SERVICE_PORT: String(port),
 			HOST_SERVICE_SECRET: secret,
-			HOST_SERVICE_VERSION,
 			HOST_DB_PATH: hostDbPath(options.organizationId),
 			HOST_MIGRATIONS_FOLDER: migrationsFolder,
 		},
@@ -143,7 +138,6 @@ export async function spawnHostService(
 		authToken: secret,
 		startedAt: Date.now(),
 		organizationId: options.organizationId,
-		hostServiceVersion: HOST_SERVICE_VERSION,
 	};
 	writeManifest(manifest);
 

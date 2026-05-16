@@ -16,12 +16,6 @@ export interface HostServiceManifest {
 	startedAt: number;
 	organizationId: string;
 	/**
-	 * Version of the bundled @superset/host-service package that wrote this
-	 * manifest. Desktop uses this as the compatibility gate for adoption after
-	 * updates.
-	 */
-	hostServiceVersion: string;
-	/**
 	 * Desktop app version that spawned this host-service. Desktop uses this to
 	 * replace the detached host-service after an app update even when the
 	 * host-service package version was not bumped.
@@ -78,9 +72,6 @@ export function readManifest(
 		// signaling any PID.
 		if (typeof data.spawnedByAppVersion !== "string") {
 			data.spawnedByAppVersion = "";
-		}
-		if (typeof data.hostServiceVersion !== "string") {
-			data.hostServiceVersion = "";
 		}
 
 		return data as HostServiceManifest;

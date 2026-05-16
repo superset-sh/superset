@@ -10,12 +10,8 @@ import {
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
-import hostServicePackageJson from "@superset/host-service/package.json" with {
-	type: "json",
-};
 
 const APP_VERSION = "1.2.3";
-const HOST_SERVICE_VERSION: string = hostServicePackageJson.version;
 let killedPids: Array<{ pid: number; signal: NodeJS.Signals | number }> = [];
 let killProcessError: NodeJS.ErrnoException | null = null;
 
@@ -26,7 +22,6 @@ const manifestStore: {
 		authToken: string;
 		startedAt: number;
 		organizationId: string;
-		hostServiceVersion: string;
 		spawnedByAppVersion: string;
 	} | null;
 } = { current: null };
@@ -109,7 +104,6 @@ const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
 	authToken: "manifest-secret",
 	startedAt: 0,
 	organizationId: "org-1",
-	hostServiceVersion: HOST_SERVICE_VERSION,
 	spawnedByAppVersion: APP_VERSION,
 });
 
@@ -203,55 +197,6 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 
 		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
 		expect(killedPids).toContainEqual({ pid: 5555, signal: "SIGKILL" });
-		expect(removeManifestMock).toHaveBeenCalledTimes(1);
-		expect(spawnMock).toHaveBeenCalledTimes(1);
-		expect(conn.port).toBe(60000);
-		expect(conn.secret).toBe("fresh-secret");
-	});
-
-	test("kills and respawns when host-service version changed even if the service is healthy", async () => {
-		manifestStore.current = {
-			...baseManifest(5554),
-			hostServiceVersion: "0.8.5",
-		};
-
-		const conn = await coordinator.start("org-1", spawnConfig);
-
-		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
-		expect(killedPids).toContainEqual({ pid: 5554, signal: "SIGKILL" });
-		expect(removeManifestMock).toHaveBeenCalledTimes(1);
-		expect(spawnMock).toHaveBeenCalledTimes(1);
-		expect(conn.port).toBe(60000);
-		expect(conn.secret).toBe("fresh-secret");
-	});
-
-	test("removes stale manifest without killing when version mismatch does not health-verify", async () => {
-		manifestStore.current = {
-			...baseManifest(5560),
-			hostServiceVersion: "0.8.5",
-		};
-		pollHealthCheckMock.mockImplementationOnce(() => Promise.resolve(false));
-
-		const conn = await coordinator.start("org-1", spawnConfig);
-
-		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
-		expect(killedPids).toHaveLength(0);
-		expect(removeManifestMock).toHaveBeenCalledTimes(1);
-		expect(spawnMock).toHaveBeenCalledTimes(1);
-		expect(conn.port).toBe(60000);
-		expect(conn.secret).toBe("fresh-secret");
-	});
-
-	test("kills and respawns a pre-upgrade manifest with no recorded host-service version", async () => {
-		manifestStore.current = {
-			...baseManifest(5559),
-			hostServiceVersion: "",
-		};
-
-		const conn = await coordinator.start("org-1", spawnConfig);
-
-		expect(pollHealthCheckMock).toHaveBeenCalledTimes(1);
-		expect(killedPids).toContainEqual({ pid: 5559, signal: "SIGKILL" });
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);

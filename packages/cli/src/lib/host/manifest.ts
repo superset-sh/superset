@@ -20,8 +20,6 @@ export interface HostServiceManifest {
 	authToken: string;
 	startedAt: number;
 	organizationId: string;
-	hostServiceVersion: string;
-	spawnedByAppVersion?: string;
 }
 
 function manifestDir(organizationId: string): string {
@@ -53,11 +51,7 @@ export function readManifest(
 	const path = manifestPath(organizationId);
 	if (!existsSync(path)) return null;
 	try {
-		const data = JSON.parse(readFileSync(path, "utf-8"));
-		if (typeof data.hostServiceVersion !== "string") {
-			data.hostServiceVersion = "";
-		}
-		return data as HostServiceManifest;
+		return JSON.parse(readFileSync(path, "utf-8")) as HostServiceManifest;
 	} catch {
 		return null;
 	}

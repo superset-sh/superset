@@ -3,9 +3,6 @@ import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import path from "node:path";
-import hostServicePackageJson from "@superset/host-service/package.json" with {
-	type: "json",
-};
 import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app } from "electron";
@@ -60,7 +57,6 @@ interface HostServiceProcess {
 }
 
 const ADOPTED_LIVENESS_INTERVAL = 5_000;
-const CURRENT_HOST_SERVICE_VERSION: string = hostServicePackageJson.version;
 
 /**
  * Cap how long an adoption health check can take before we decide the adopted
@@ -371,26 +367,15 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	private getStaleManifestReason(manifest: HostServiceManifest): string | null {
-		const reasons: string[] = [];
 		const currentAppVersion = app.getVersion();
 
 		if (manifest.spawnedByAppVersion !== currentAppVersion) {
-			reasons.push(
-				manifest.spawnedByAppVersion
-					? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
-					: "no recorded app version (pre-upgrade manifest)",
-			);
+			return manifest.spawnedByAppVersion
+				? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
+				: "no recorded app version (pre-upgrade manifest)";
 		}
 
-		if (manifest.hostServiceVersion !== CURRENT_HOST_SERVICE_VERSION) {
-			reasons.push(
-				manifest.hostServiceVersion
-					? `host-service ${manifest.hostServiceVersion} != current ${CURRENT_HOST_SERVICE_VERSION}`
-					: `no recorded host-service version; current ${CURRENT_HOST_SERVICE_VERSION}`,
-			);
-		}
-
-		return reasons.length > 0 ? reasons.join("; ") : null;
+		return null;
 	}
 
 	private checkManifestHealth(manifest: HostServiceManifest): Promise<boolean> {
@@ -593,8 +578,6 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			SUPERSET_APP_VERSION: app.getVersion(),
-			// Used by host-service terminal env for TERM_PROGRAM_VERSION.
-			HOST_SERVICE_VERSION: CURRENT_HOST_SERVICE_VERSION,
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_API_URL: config.cloudApiUrl,
 		});
