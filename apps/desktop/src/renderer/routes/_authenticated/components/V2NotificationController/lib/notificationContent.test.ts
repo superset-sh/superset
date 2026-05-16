@@ -23,12 +23,12 @@ describe("getV2NativeNotificationContent", () => {
 				}),
 			}),
 		).toEqual({
-			title: "Agent Complete - Codex",
+			title: "Codex - Complete",
 			body: "Improve notifications",
 		});
 	});
 
-	it("uses needs-input copy for permission requests", () => {
+	it("uses needs-attention copy for permission requests", () => {
 		expect(
 			getV2NativeNotificationContent({
 				workspaceName: "Improve notifications",
@@ -38,7 +38,7 @@ describe("getV2NativeNotificationContent", () => {
 				}),
 			}),
 		).toMatchObject({
-			title: "Agent Needs Input - Claude",
+			title: "Claude - Needs Attention",
 			body: "Improve notifications",
 		});
 	});
@@ -50,7 +50,7 @@ describe("getV2NativeNotificationContent", () => {
 				payload: payload({ agent: { agentId: "droid" } }),
 			}),
 		).toEqual({
-			title: "Agent Complete - Droid",
+			title: "Droid - Complete",
 			body: "Workspace",
 		});
 
@@ -60,7 +60,7 @@ describe("getV2NativeNotificationContent", () => {
 				payload: payload({ agent: undefined }),
 			}),
 		).toMatchObject({
-			title: "Agent Complete",
+			title: "Agent - Complete",
 			body: "Workspace",
 		});
 	});
