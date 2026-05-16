@@ -184,16 +184,12 @@ export async function createWorkspaceFromExternalWorktree({
 		}
 
 		const worktreeCreatedAt = getWorktreeCreatedAt(externalMatch.path);
-		const refreshedCreatedAt =
-			existingWorktreeByPath && existingWorktreeByPath.branch !== branch
-				? worktreeCreatedAt
-				: undefined;
 		const worktree = existingWorktreeByPath
 			? {
 					...existingWorktreeByPath,
 					branch,
 					baseBranch: compareBaseBranch,
-					createdAt: refreshedCreatedAt ?? existingWorktreeByPath.createdAt,
+					createdAt: worktreeCreatedAt,
 					gitStatus: null,
 					githubStatus: null,
 					createdBySuperset: false,
@@ -218,9 +214,7 @@ export async function createWorkspaceFromExternalWorktree({
 				.set({
 					branch,
 					baseBranch: compareBaseBranch,
-					...(refreshedCreatedAt !== undefined
-						? { createdAt: refreshedCreatedAt }
-						: {}),
+					createdAt: worktreeCreatedAt,
 					gitStatus: null,
 					githubStatus: null,
 					createdBySuperset: false,
@@ -414,6 +408,18 @@ export async function openExternalWorktree({
 				},
 				githubStatus: null,
 				createdBySuperset: false,
+			};
+		}
+
+		if (existingWorktree.createdAt !== worktreeCreatedAt) {
+			localDb
+				.update(worktrees)
+				.set({ createdAt: worktreeCreatedAt })
+				.where(eq(worktrees.id, existingWorktree.id))
+				.run();
+			existingWorktree = {
+				...existingWorktree,
+				createdAt: worktreeCreatedAt,
 			};
 		}
 

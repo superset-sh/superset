@@ -26,17 +26,35 @@ export class NotGitRepoError extends Error {
 	}
 }
 
+function getPathCreatedAt(path: string): number | null {
+	const stats = statSync(path);
+	const birthtimeMs = Math.trunc(stats.birthtimeMs);
+	if (Number.isFinite(birthtimeMs) && birthtimeMs > 0) {
+		return birthtimeMs;
+	}
+
+	const ctimeMs = Math.trunc(stats.ctimeMs);
+	if (Number.isFinite(ctimeMs) && ctimeMs > 0) {
+		return ctimeMs;
+	}
+
+	return null;
+}
+
 export function getWorktreeCreatedAt(worktreePath: string): number {
 	try {
-		const stats = statSync(worktreePath);
-		const birthtimeMs = Math.trunc(stats.birthtimeMs);
-		if (Number.isFinite(birthtimeMs) && birthtimeMs > 0) {
-			return birthtimeMs;
+		const gitMetadataCreatedAt = getPathCreatedAt(join(worktreePath, ".git"));
+		if (gitMetadataCreatedAt !== null) {
+			return gitMetadataCreatedAt;
 		}
+	} catch {
+		// Fall back to the worktree directory for non-standard layouts.
+	}
 
-		const ctimeMs = Math.trunc(stats.ctimeMs);
-		if (Number.isFinite(ctimeMs) && ctimeMs > 0) {
-			return ctimeMs;
+	try {
+		const worktreeDirectoryCreatedAt = getPathCreatedAt(worktreePath);
+		if (worktreeDirectoryCreatedAt !== null) {
+			return worktreeDirectoryCreatedAt;
 		}
 	} catch (error) {
 		console.warn("[git] Failed to read worktree created time", {
