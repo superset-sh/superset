@@ -24,15 +24,14 @@ import {
 	cpSync,
 	existsSync,
 	mkdirSync,
-	readdirSync,
 	readFileSync,
-	realpathSync,
 	renameSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { collectRuntimePackages } from "./collect-runtime-deps";
 
 type Target = "darwin-arm64" | "darwin-x64" | "linux-x64" | "linux-arm64";
 
@@ -61,9 +60,9 @@ const NATIVE_PACKAGES = [
 ] as const;
 
 /**
- * Platform-specific native bindings that live in optional dependencies
+ * Platform-specific native bindings that live in `optionalDependencies`
  * of their parent package and are only installed for the matching host.
- * `copyPackageWithDeps` only walks `dependencies`, so these need to be
+ * The dependency walker skips `optionalDependencies`, so these need to be
  * listed explicitly per target. Linux variants pin glibc (gnu) — we don't
  * ship musl builds.
  */
@@ -202,92 +201,19 @@ async function downloadAndExtractNode(
 	return destBinary;
 }
 
-function findPackagePath(
-	packageName: string,
-	startDir: string,
-	repoRoot: string,
-): string | null {
-	let current = startDir;
-	while (current.startsWith(repoRoot)) {
-		const candidate = join(current, "node_modules", packageName);
-		if (existsSync(candidate)) return realpathSync(candidate);
-		const parent = dirname(current);
-		if (parent === current) break;
-		current = parent;
-	}
-	const fallbacks = [
-		join(repoRoot, "packages", "host-service", "node_modules", packageName),
-		join(repoRoot, "packages", "workspace-fs", "node_modules", packageName),
-		join(repoRoot, "node_modules", packageName),
-	];
-	for (const fallback of fallbacks) {
-		if (existsSync(fallback)) return realpathSync(fallback);
-	}
-	// Bun isolated store fallback: node_modules/.bun/<encoded>@<ver>/node_modules/<name>
-	// where scoped names have `/` encoded as `+` in the store directory.
-	// If multiple versions exist, error rather than silently picking one —
-	// the walker is meant to be deterministic for reproducible tarballs.
-	const bunStore = join(repoRoot, "node_modules", ".bun");
-	if (existsSync(bunStore)) {
-		const encoded = packageName.replace("/", "+");
-		const prefix = `${encoded}@`;
-		const matches = readdirSync(bunStore)
-			.filter((entry) => entry.startsWith(prefix))
-			.map((entry) => join(bunStore, entry, "node_modules", packageName))
-			.filter((candidate) => existsSync(candidate));
-		if (matches.length === 1) return realpathSync(matches[0] as string);
-		if (matches.length > 1) {
-			throw new Error(
-				`Ambiguous Bun store matches for ${packageName}: ${matches.join(", ")}`,
-			);
-		}
-	}
-	return null;
-}
-
-function copyPackageWithDeps(
-	packageName: string,
-	startDir: string,
-	repoRoot: string,
-	destModules: string,
-	copied: Set<string>,
-): void {
-	if (copied.has(packageName)) return;
-	copied.add(packageName);
-
-	const sourcePath = findPackagePath(packageName, startDir, repoRoot);
-	if (!sourcePath) {
-		throw new Error(
-			`Package not found: ${packageName}. Run 'bun install' first.`,
-		);
-	}
-
-	const destPath = join(destModules, packageName);
-	mkdirSync(dirname(destPath), { recursive: true });
-	cpSync(sourcePath, destPath, { recursive: true, dereference: true });
-
-	// Recursively copy runtime dependencies
-	const packageJsonPath = join(sourcePath, "package.json");
-	if (existsSync(packageJsonPath)) {
-		const pkg = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-		const deps = Object.keys(pkg.dependencies ?? {});
-		for (const dep of deps) {
-			copyPackageWithDeps(dep, sourcePath, repoRoot, destModules, copied);
-		}
-	}
-}
-
 function copyNativePackages(libDir: string, target: Target): void {
 	const repoRoot = resolve(import.meta.dir, "../../..");
 	const destModules = join(libDir, "node_modules");
 	mkdirSync(destModules, { recursive: true });
-	const copied = new Set<string>();
 
 	const hostServiceDir = join(repoRoot, "packages", "host-service");
-	const packages = [...NATIVE_PACKAGES, ...TARGET_NATIVE_PACKAGES[target]];
-	for (const pkg of packages) {
-		console.log(`[build-dist]   copying ${pkg} (+ deps)`);
-		copyPackageWithDeps(pkg, hostServiceDir, repoRoot, destModules, copied);
+	const seeds = [...NATIVE_PACKAGES, ...TARGET_NATIVE_PACKAGES[target]];
+	const packages = collectRuntimePackages(seeds, hostServiceDir, repoRoot);
+	for (const { name, sourcePath } of packages) {
+		console.log(`[build-dist]   copying ${name}`);
+		const destPath = join(destModules, name);
+		mkdirSync(dirname(destPath), { recursive: true });
+		cpSync(sourcePath, destPath, { recursive: true, dereference: true });
 	}
 }
 
