@@ -1090,7 +1090,6 @@ ${sanitizeText(truncatedBody)}`;
 					openExternalWorktree.mutateAsync({
 						projectId,
 						worktreePath: action.worktreePath,
-						branch: action.branch,
 					}),
 					{
 						loading: "Opening worktree...",

@@ -12,7 +12,7 @@ import {
 	touchWorkspace,
 	updateActiveWorkspaceIfRemoved,
 } from "./db-helpers";
-import { listExternalWorktrees, worktreeExists } from "./git";
+import { getWorktreeCreatedAt, listExternalWorktrees } from "./git";
 import { resolveWorktreePath } from "./resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
 
@@ -167,20 +167,61 @@ export async function createWorkspaceFromExternalWorktree({
 			)
 			.get();
 
-		const worktree =
-			existingWorktreeByPath ??
-			localDb
-				.insert(worktrees)
-				.values({
-					projectId,
-					path: externalMatch.path,
+		const activeWorkspaceForExistingWorktree = existingWorktreeByPath
+			? localDb
+					.select()
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.worktreeId, existingWorktreeByPath.id),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.get()
+			: undefined;
+		if (activeWorkspaceForExistingWorktree) {
+			throw new Error("Worktree already has an active workspace");
+		}
+
+		const worktreeCreatedAt = getWorktreeCreatedAt(externalMatch.path);
+		const worktree = existingWorktreeByPath
+			? {
+					...existingWorktreeByPath,
 					branch,
 					baseBranch: compareBaseBranch,
-					gitStatus: null, // Will be populated by refresh pipeline
-					createdBySuperset: false, // Mark as external
+					createdAt: worktreeCreatedAt,
+					gitStatus: null,
+					githubStatus: null,
+					createdBySuperset: false,
+				}
+			: localDb
+					.insert(worktrees)
+					.values({
+						projectId,
+						path: externalMatch.path,
+						branch,
+						baseBranch: compareBaseBranch,
+						createdAt: worktreeCreatedAt,
+						gitStatus: null, // Will be populated by refresh pipeline
+						createdBySuperset: false, // Mark as external
+					})
+					.returning()
+					.get();
+
+		if (existingWorktreeByPath) {
+			localDb
+				.update(worktrees)
+				.set({
+					branch,
+					baseBranch: compareBaseBranch,
+					createdAt: worktreeCreatedAt,
+					gitStatus: null,
+					githubStatus: null,
+					createdBySuperset: false,
 				})
-				.returning()
-				.get();
+				.where(eq(worktrees.id, existingWorktreeByPath.id))
+				.run();
+		}
 
 		worktreeId = worktree.id;
 
@@ -259,7 +300,6 @@ export async function createWorkspaceFromExternalWorktree({
 export interface OpenExternalWorktreeParams {
 	projectId: string;
 	worktreePath: string;
-	branch: string;
 }
 
 export interface OpenExternalWorktreeResult {
@@ -277,7 +317,6 @@ export interface OpenExternalWorktreeResult {
 export async function openExternalWorktree({
 	projectId,
 	worktreePath,
-	branch,
 }: OpenExternalWorktreeParams): Promise<OpenExternalWorktreeResult> {
 	const project = localDb
 		.select()
@@ -289,12 +328,20 @@ export async function openExternalWorktree({
 		throw new Error(`Project ${projectId} not found`);
 	}
 
-	const exists = await worktreeExists(project.mainRepoPath, worktreePath);
-	if (!exists) {
+	const liveWorktrees = await listExternalWorktrees(project.mainRepoPath);
+	const liveWorktree = liveWorktrees.find(
+		(worktree) => worktree.path === worktreePath,
+	);
+	if (!liveWorktree) {
 		throw new Error("Worktree no longer exists on disk");
 	}
+	if (liveWorktree.isBare || liveWorktree.isDetached || !liveWorktree.branch) {
+		throw new Error("Worktree is not importable");
+	}
+	const branch = liveWorktree.branch;
+	const worktreeCreatedAt = getWorktreeCreatedAt(worktreePath);
 
-	const existingWorktree = localDb
+	let existingWorktree = localDb
 		.select()
 		.from(worktrees)
 		.where(
@@ -303,6 +350,79 @@ export async function openExternalWorktree({
 		.get();
 
 	if (existingWorktree) {
+		let refreshedBaseBranch: string | undefined;
+		const existingWorkspace = localDb
+			.select()
+			.from(workspaces)
+			.where(
+				and(
+					eq(workspaces.worktreeId, existingWorktree.id),
+					isNull(workspaces.deletingAt),
+				),
+			)
+			.get();
+
+		if (existingWorktree.branch !== branch) {
+			if (existingWorkspace) {
+				throw new Error(
+					"Worktree already has an active workspace on a different branch",
+				);
+			}
+
+			const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
+			refreshedBaseBranch = resolveWorkspaceBaseBranch({
+				workspaceBaseBranch: project.workspaceBaseBranch,
+				defaultBranch: project.defaultBranch,
+				knownBranches,
+			});
+
+			localDb
+				.update(worktrees)
+				.set({
+					branch,
+					baseBranch: refreshedBaseBranch,
+					createdAt: worktreeCreatedAt,
+					gitStatus: {
+						branch,
+						needsRebase: false,
+						ahead: 0,
+						behind: 0,
+						lastRefreshed: Date.now(),
+					},
+					githubStatus: null,
+					createdBySuperset: false,
+				})
+				.where(eq(worktrees.id, existingWorktree.id))
+				.run();
+			existingWorktree = {
+				...existingWorktree,
+				branch,
+				baseBranch: refreshedBaseBranch,
+				createdAt: worktreeCreatedAt,
+				gitStatus: {
+					branch,
+					needsRebase: false,
+					ahead: 0,
+					behind: 0,
+					lastRefreshed: Date.now(),
+				},
+				githubStatus: null,
+				createdBySuperset: false,
+			};
+		}
+
+		if (existingWorktree.createdAt !== worktreeCreatedAt) {
+			localDb
+				.update(worktrees)
+				.set({ createdAt: worktreeCreatedAt })
+				.where(eq(worktrees.id, existingWorktree.id))
+				.run();
+			existingWorktree = {
+				...existingWorktree,
+				createdAt: worktreeCreatedAt,
+			};
+		}
+
 		// Failed init can leave gitStatus null, which shows "Setup incomplete" UI
 		if (!existingWorktree.gitStatus) {
 			localDb
@@ -319,17 +439,6 @@ export async function openExternalWorktree({
 				.where(eq(worktrees.id, existingWorktree.id))
 				.run();
 		}
-
-		const existingWorkspace = localDb
-			.select()
-			.from(workspaces)
-			.where(
-				and(
-					eq(workspaces.worktreeId, existingWorktree.id),
-					isNull(workspaces.deletingAt),
-				),
-			)
-			.get();
 
 		if (existingWorkspace) {
 			touchWorkspace(existingWorkspace.id);
@@ -367,6 +476,15 @@ export async function openExternalWorktree({
 			projectId: project.id,
 		});
 
+		if (refreshedBaseBranch !== undefined) {
+			await setBranchBaseConfig({
+				repoPath: project.mainRepoPath,
+				branch: existingWorktree.branch,
+				compareBaseBranch: refreshedBaseBranch,
+				isExplicit: false,
+			});
+		}
+
 		track("workspace_opened", {
 			workspace_id: workspace.id,
 			project_id: project.id,
@@ -397,6 +515,7 @@ export async function openExternalWorktree({
 			path: worktreePath,
 			branch,
 			baseBranch: compareBaseBranch,
+			createdAt: worktreeCreatedAt,
 			gitStatus: {
 				branch,
 				needsRebase: false,

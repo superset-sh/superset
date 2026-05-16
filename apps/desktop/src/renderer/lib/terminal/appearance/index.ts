@@ -13,6 +13,16 @@ export interface TerminalAppearance {
 	fontSize: number;
 }
 
+export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =
+	"--superset-terminal-font-family";
+
+export function applyTerminalFontFamilyCssVariable(
+	element: HTMLElement,
+	fontFamily: string,
+): void {
+	element.style.setProperty(TERMINAL_FONT_FAMILY_CSS_VARIABLE, fontFamily);
+}
+
 const GENERIC_FONT_FAMILIES = new Set([
 	"serif",
 	"sans-serif",

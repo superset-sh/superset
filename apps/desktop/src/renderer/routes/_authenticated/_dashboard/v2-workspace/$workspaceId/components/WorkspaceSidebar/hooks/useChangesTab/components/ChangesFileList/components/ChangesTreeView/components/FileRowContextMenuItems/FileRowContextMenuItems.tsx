@@ -11,7 +11,10 @@ import {
 	Trash2,
 	Undo2,
 } from "lucide-react";
-import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
+import {
+	modifierLabel,
+	useChangesSidebarFilePolicy,
+} from "renderer/lib/clickPolicy";
 import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
@@ -52,9 +55,10 @@ export function FileRowContextMenuItems({
 	const canDiscard = sectionKind === "unstaged";
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 
-	const policy = useSidebarFilePolicy();
-	const newTabTier = policy.tierForAction("newTab");
-	const externalTier = policy.tierForAction("external");
+	const policy = useChangesSidebarFilePolicy();
+	const diffNewTabTier = policy.tierForIntent("diffNewTab");
+	const fileTier = policy.tierForIntent("file");
+	const externalTier = policy.tierForIntent("external");
 
 	return (
 		<>
@@ -65,9 +69,9 @@ export function FileRowContextMenuItems({
 			<DropdownMenuItem onSelect={() => onSelectFile?.(file.path, true)}>
 				<SquarePlus />
 				Open Diff in New Tab
-				{newTabTier && (
+				{diffNewTabTier && (
 					<DropdownMenuShortcut>
-						{modifierLabel(newTabTier)}
+						{modifierLabel(diffNewTabTier)}
 					</DropdownMenuShortcut>
 				)}
 			</DropdownMenuItem>
@@ -77,6 +81,9 @@ export function FileRowContextMenuItems({
 			>
 				<FileText />
 				Open File
+				{fileTier && (
+					<DropdownMenuShortcut>{modifierLabel(fileTier)}</DropdownMenuShortcut>
+				)}
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => absolutePath && onOpenFile?.(absolutePath, true)}
