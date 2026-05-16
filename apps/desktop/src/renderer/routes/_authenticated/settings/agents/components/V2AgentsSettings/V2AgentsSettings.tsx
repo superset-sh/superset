@@ -13,6 +13,7 @@ import {
 	useV2AgentConfigs,
 } from "renderer/hooks/useV2AgentConfigs";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { AgentDetail } from "./components/AgentDetail";
 import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
@@ -39,7 +40,8 @@ interface V2AgentsSettingsProps {
 export function V2AgentsSettings({
 	initialAgentPresetId,
 }: V2AgentsSettingsProps = {}) {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const queryClient = useQueryClient();
 
 	const configsQuery = useV2AgentConfigs(activeHostUrl);
@@ -61,7 +63,13 @@ export function V2AgentsSettings({
 
 	const addMutation = useMutation({
 		mutationFn: (preset: HostAgentPreset) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "add an agent",
+					}),
+				);
+			}
 			const { description: _description, ...body } = preset;
 			return getHostServiceClientByUrl(
 				activeHostUrl,
@@ -77,7 +85,13 @@ export function V2AgentsSettings({
 
 	const reorderMutation = useMutation({
 		mutationFn: (ids: string[]) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "reorder agents",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.reorder.mutate({ ids });
@@ -110,7 +124,13 @@ export function V2AgentsSettings({
 
 	const resetMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "reset agents",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.resetToDefaults.mutate();
@@ -127,6 +147,10 @@ export function V2AgentsSettings({
 	const installedPresetIds = new Set(configs.map((row) => row.presetId));
 	const addablePresets = KNOWN_PRESETS.filter(
 		(preset) => !installedPresetIds.has(preset.presetId),
+	);
+	const hostServiceUnavailableMessage = getHostServiceUnavailableMessage(
+		hostService,
+		{ action: "load agent settings" },
 	);
 
 	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -161,7 +185,7 @@ export function V2AgentsSettings({
 				Couldn't load agent settings:{" "}
 				{configsQuery.error instanceof Error
 					? configsQuery.error.message
-					: "host service unavailable"}
+					: hostServiceUnavailableMessage}
 			</div>
 		);
 	}

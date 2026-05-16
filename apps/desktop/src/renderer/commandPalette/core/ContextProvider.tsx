@@ -25,7 +25,13 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 	const matchRoute = useMatchRoute();
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const { activeHostUrl, machineId } = useLocalHostService();
+	const {
+		activeHostUrl,
+		activeOrganizationId,
+		activeOrganizationName,
+		hostServiceStatus,
+		machineId,
+	} = useLocalHostService();
 
 	const navigateTo = useCallback(
 		(path: string) => {
@@ -83,6 +89,9 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 					}
 				: null,
 			activeHostUrl,
+			activeOrganizationId,
+			activeOrganizationName,
+			hostServiceStatus,
 			localMachineId: machineId ?? null,
 			notificationSoundsMuted,
 			navigate: navigateTo,
@@ -92,6 +101,9 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			v2Workspace,
 			preferredOpenInApp,
 			activeHostUrl,
+			activeOrganizationId,
+			activeOrganizationName,
+			hostServiceStatus,
 			machineId,
 			notificationSoundsMuted,
 			navigateTo,

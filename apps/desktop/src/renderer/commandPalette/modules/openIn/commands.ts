@@ -6,6 +6,7 @@ import {
 	type OpenInExternalAppOption,
 } from "renderer/components/OpenInExternalDropdown/constants";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useSetPreferredOpenInAppIntent } from "renderer/stores/set-preferred-open-in-app-intent";
 import type {
@@ -16,7 +17,15 @@ import type {
 
 async function resolvePath(context: CommandContext): Promise<string | null> {
 	if (!context.activeHostUrl) {
-		toast.error("Host service is not available");
+		showHostServiceUnavailableToast(
+			{
+				activeOrganizationId: context.activeOrganizationId,
+				activeOrganizationName: context.activeOrganizationName,
+				hostServiceStatus: context.hostServiceStatus,
+				machineId: context.localMachineId,
+			},
+			{ action: "resolve the workspace path" },
+		);
 		return null;
 	}
 	if (!context.workspace) return null;

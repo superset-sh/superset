@@ -29,6 +29,7 @@ import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { PLATFORM } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { useNewWorkspacePromptContext } from "renderer/stores/new-workspace-prompt-context";
@@ -76,7 +77,8 @@ export function PromptGroup({
 	const { closeModal, draft, updateDraft } = useDashboardNewWorkspaceDraft();
 	const navigate = useNavigate();
 	const attachments = useProviderAttachments();
-	const { activeHostUrl, machineId } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl, machineId } = hostService;
 	const relayUrl = useRelayUrl();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
@@ -273,11 +275,26 @@ export function PromptGroup({
 			return;
 		}
 		if (submitBlocker) {
-			toast.error(submitBlocker);
+			if ((draft.hostId ?? machineId) === machineId && !activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "create the workspace",
+				});
+			} else {
+				toast.error(submitBlocker);
+			}
 			return;
 		}
 		void createWorkspace();
-	}, [createWorkspace, handleGoToSetup, needsSetup, submitBlocker]);
+	}, [
+		activeHostUrl,
+		createWorkspace,
+		draft.hostId,
+		handleGoToSetup,
+		hostService,
+		machineId,
+		needsSetup,
+		submitBlocker,
+	]);
 
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;

@@ -14,6 +14,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ClickablePath } from "../../../../../../components/ClickablePath";
@@ -36,7 +37,8 @@ export function ProjectLocationSection({
 	repoCloneUrl,
 	onChanged,
 }: ProjectLocationSectionProps) {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const navigate = useNavigate();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
@@ -48,7 +50,9 @@ export function ProjectLocationSection({
 
 	const runSetup = async (repoPath: string, allowRelocate: boolean) => {
 		if (!activeHostUrl) {
-			toast.error("Host service not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: allowRelocate ? "relocate the project" : "set up the project",
+			});
 			return false;
 		}
 		try {
@@ -77,7 +81,9 @@ export function ProjectLocationSection({
 
 	const runClone = async (parentDir: string) => {
 		if (!activeHostUrl) {
-			toast.error("Host service not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "clone the project",
+			});
 			return false;
 		}
 		try {
@@ -102,7 +108,9 @@ export function ProjectLocationSection({
 
 	const pickPath = async (title: string) => {
 		if (!activeHostUrl) {
-			toast.error("Host service not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "choose a project path",
+			});
 			return null;
 		}
 		try {
@@ -122,7 +130,9 @@ export function ProjectLocationSection({
 		const path = await pickPath("Select project location");
 		if (!path) return;
 		if (!activeHostUrl) {
-			toast.error("Host service not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "check the project location",
+			});
 			return;
 		}
 		setIsSubmitting(true);
@@ -165,7 +175,9 @@ export function ProjectLocationSection({
 			return;
 		}
 		if (!activeHostUrl) {
-			toast.error("Host service not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "check the project location",
+			});
 			return;
 		}
 		try {

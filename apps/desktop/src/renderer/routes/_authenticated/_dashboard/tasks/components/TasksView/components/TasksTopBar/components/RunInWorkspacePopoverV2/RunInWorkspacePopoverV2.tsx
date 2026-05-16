@@ -19,6 +19,7 @@ import { env } from "renderer/env.renderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { authClient } from "renderer/lib/auth-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
@@ -57,7 +58,8 @@ export function RunInWorkspacePopoverV2({
 	onComplete,
 }: RunInWorkspacePopoverV2Props) {
 	const collections = useCollections();
-	const { machineId, activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { machineId, activeHostUrl } = hostService;
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -215,7 +217,13 @@ export function RunInWorkspacePopoverV2({
 	const handleRun = () => {
 		if (!selectedProjectId || !hostId) return;
 		if (submitBlocker) {
-			toast.error(submitBlocker);
+			if (hostId === machineId && !activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "run tasks in workspaces",
+				});
+			} else {
+				toast.error(submitBlocker);
+			}
 			return;
 		}
 
@@ -244,8 +252,11 @@ export function RunInWorkspacePopoverV2({
 		const promise = Promise.all(submissions).then((results) => {
 			const failed = results.filter((r) => !r.ok).length;
 			if (failed > 0) {
+				const firstFailure = results.find((result) => !result.ok);
+				const details =
+					firstFailure && !firstFailure.ok ? `: ${firstFailure.error}` : "";
 				throw new Error(
-					`${results.length - failed} of ${results.length} succeeded`,
+					`${results.length - failed} of ${results.length} succeeded${details}`,
 				);
 			}
 			return results.length;

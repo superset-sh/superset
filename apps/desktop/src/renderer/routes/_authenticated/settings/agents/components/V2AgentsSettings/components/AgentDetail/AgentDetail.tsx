@@ -19,6 +19,7 @@ import {
 	parseCommandString,
 } from "renderer/lib/argv";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface AgentDetailProps {
@@ -34,7 +35,8 @@ export function AgentDetail({
 	onChanged,
 	onDeleted,
 }: AgentDetailProps) {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const isDark = useIsDarkTheme();
 	const icon = getPresetIcon(config.presetId, isDark);
 
@@ -70,7 +72,13 @@ export function AgentDetail({
 				>["settings"]["agentConfigs"]["update"]["mutate"]
 			>[0]["patch"],
 		) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "save the agent",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.update.mutate({ id: config.id, patch });
@@ -82,7 +90,13 @@ export function AgentDetail({
 
 	const removeMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "remove the agent",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.remove.mutate({ id: config.id });

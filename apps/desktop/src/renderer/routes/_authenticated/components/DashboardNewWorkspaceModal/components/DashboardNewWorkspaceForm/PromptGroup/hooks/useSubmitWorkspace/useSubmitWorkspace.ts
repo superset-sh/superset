@@ -139,7 +139,9 @@ export function useSubmitWorkspace(
 			.then((result) => {
 				if (!result.ok) {
 					if (isViewingOptimisticWorkspace()) {
-						toast.error("Workspace creation failed");
+						toast.error("Workspace creation failed", {
+							description: result.error,
+						});
 					}
 					return;
 				}
@@ -162,7 +164,9 @@ export function useSubmitWorkspace(
 					error,
 				);
 				if (isViewingOptimisticWorkspace()) {
-					toast.error("Workspace creation failed");
+					toast.error("Workspace creation failed", {
+						description: error instanceof Error ? error.message : String(error),
+					});
 				}
 			});
 	}, [

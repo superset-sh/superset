@@ -14,6 +14,7 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface DeleteProjectSectionProps {
@@ -26,13 +27,16 @@ export function DeleteProjectSection({
 	projectName,
 }: DeleteProjectSectionProps) {
 	const navigate = useNavigate();
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleDelete = async () => {
 		if (!activeHostUrl) {
-			toast.error("Host service not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "delete the project",
+			});
 			return;
 		}
 		setIsDeleting(true);

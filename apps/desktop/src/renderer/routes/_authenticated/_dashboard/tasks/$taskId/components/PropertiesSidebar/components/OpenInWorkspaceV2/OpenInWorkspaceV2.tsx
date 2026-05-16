@@ -16,6 +16,7 @@ import { env } from "renderer/env.renderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { authClient } from "renderer/lib/auth-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
@@ -51,7 +52,8 @@ function readStoredAgent(): SelectedAgent {
 export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const { machineId, activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { machineId, activeHostUrl } = hostService;
 	const { otherHosts } = useWorkspaceHostOptions();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -213,7 +215,13 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 
 	const handleOpen = () => {
 		if (submitBlocker) {
-			toast.error(submitBlocker);
+			if (hostId === machineId && !activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "open the task in a workspace",
+				});
+			} else {
+				toast.error(submitBlocker);
+			}
 			return;
 		}
 		if (!selectedProjectId || !hostId) return;
