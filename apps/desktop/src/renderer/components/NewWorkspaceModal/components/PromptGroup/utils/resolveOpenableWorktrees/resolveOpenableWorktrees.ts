@@ -13,7 +13,7 @@ export interface ExternalWorktree {
 
 export type OpenableWorktreeAction =
 	| { type: "tracked"; worktreeId: string }
-	| { type: "external"; worktreePath: string; branch: string };
+	| { type: "external"; worktreePath: string };
 
 /**
  * Given tracked and external worktrees, builds a map from branch name to the
@@ -35,7 +35,6 @@ export function resolveOpenableWorktrees(
 		result.set(wt.branch, {
 			type: "external",
 			worktreePath: wt.path,
-			branch: wt.branch,
 		});
 	}
 

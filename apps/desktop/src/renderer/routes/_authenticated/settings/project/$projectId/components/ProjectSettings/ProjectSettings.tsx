@@ -238,7 +238,6 @@ export function ProjectSettings({
 			openExternalWorktree.mutateAsync({
 				projectId,
 				worktreePath: path,
-				branch,
 			}),
 			{
 				loading: "Importing worktree...",

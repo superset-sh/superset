@@ -73,7 +73,6 @@ describe("resolveOpenableWorktrees", () => {
 		expect(result.get("hotfix/payment-bug")).toEqual({
 			type: "external",
 			worktreePath: "/repos/project/.worktrees/hotfix-1",
-			branch: "hotfix/payment-bug",
 		});
 	});
 
@@ -128,7 +127,6 @@ describe("resolveOpenableWorktrees", () => {
 		expect(result.get("feature/b")).toEqual({
 			type: "external",
 			worktreePath: "/repos/project/.worktrees/b",
-			branch: "feature/b",
 		});
 	});
 

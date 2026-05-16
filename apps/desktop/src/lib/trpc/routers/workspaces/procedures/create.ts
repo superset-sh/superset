@@ -801,14 +801,12 @@ export const createCreateProcedures = () => {
 				z.object({
 					projectId: z.string(),
 					worktreePath: z.string(),
-					branch: z.string(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				return openExternalWorktree({
 					projectId: input.projectId,
 					worktreePath: input.worktreePath,
-					branch: input.branch,
 				});
 			}),
 

@@ -296,7 +296,6 @@ export async function createWorkspaceFromExternalWorktree({
 export interface OpenExternalWorktreeParams {
 	projectId: string;
 	worktreePath: string;
-	branch: string;
 }
 
 export interface OpenExternalWorktreeResult {
@@ -314,7 +313,6 @@ export interface OpenExternalWorktreeResult {
 export async function openExternalWorktree({
 	projectId,
 	worktreePath,
-	branch: _requestedBranch,
 }: OpenExternalWorktreeParams): Promise<OpenExternalWorktreeResult> {
 	const project = localDb
 		.select()
