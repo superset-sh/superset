@@ -13,7 +13,6 @@ import {
 	updateActiveWorkspaceIfRemoved,
 } from "./db-helpers";
 import { listExternalWorktrees } from "./git";
-import { pruneStaleTrackedWorktrees } from "./reconcile-tracked-worktrees";
 import { resolveWorktreePath } from "./resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
 
@@ -112,10 +111,6 @@ export async function createWorkspaceFromExternalWorktree({
 
 	// Check for external worktree (exists on disk but not tracked in DB)
 	const externalWorktrees = await listExternalWorktrees(project.mainRepoPath);
-	pruneStaleTrackedWorktrees({
-		projectId,
-		liveWorktrees: externalWorktrees,
-	});
 
 	// Filter candidates: exclude main repo, bare, and detached
 	const candidates = externalWorktrees.filter(
@@ -172,20 +167,41 @@ export async function createWorkspaceFromExternalWorktree({
 			)
 			.get();
 
-		const worktree =
-			existingWorktreeByPath ??
-			localDb
-				.insert(worktrees)
-				.values({
-					projectId,
-					path: externalMatch.path,
+		const worktree = existingWorktreeByPath
+			? {
+					...existingWorktreeByPath,
 					branch,
 					baseBranch: compareBaseBranch,
-					gitStatus: null, // Will be populated by refresh pipeline
-					createdBySuperset: false, // Mark as external
+					gitStatus: null,
+					githubStatus: null,
+					createdBySuperset: false,
+				}
+			: localDb
+					.insert(worktrees)
+					.values({
+						projectId,
+						path: externalMatch.path,
+						branch,
+						baseBranch: compareBaseBranch,
+						gitStatus: null, // Will be populated by refresh pipeline
+						createdBySuperset: false, // Mark as external
+					})
+					.returning()
+					.get();
+
+		if (existingWorktreeByPath) {
+			localDb
+				.update(worktrees)
+				.set({
+					branch,
+					baseBranch: compareBaseBranch,
+					gitStatus: null,
+					githubStatus: null,
+					createdBySuperset: false,
 				})
-				.returning()
-				.get();
+				.where(eq(worktrees.id, existingWorktreeByPath.id))
+				.run();
+		}
 
 		worktreeId = worktree.id;
 
@@ -301,12 +317,8 @@ export async function openExternalWorktree({
 	if (!exists) {
 		throw new Error("Worktree no longer exists on disk");
 	}
-	pruneStaleTrackedWorktrees({
-		projectId,
-		liveWorktrees,
-	});
 
-	const existingWorktree = localDb
+	let existingWorktree = localDb
 		.select()
 		.from(worktrees)
 		.where(
@@ -315,6 +327,38 @@ export async function openExternalWorktree({
 		.get();
 
 	if (existingWorktree) {
+		if (existingWorktree.branch !== branch) {
+			localDb
+				.update(worktrees)
+				.set({
+					branch,
+					gitStatus: {
+						branch,
+						needsRebase: false,
+						ahead: 0,
+						behind: 0,
+						lastRefreshed: Date.now(),
+					},
+					githubStatus: null,
+					createdBySuperset: false,
+				})
+				.where(eq(worktrees.id, existingWorktree.id))
+				.run();
+			existingWorktree = {
+				...existingWorktree,
+				branch,
+				gitStatus: {
+					branch,
+					needsRebase: false,
+					ahead: 0,
+					behind: 0,
+					lastRefreshed: Date.now(),
+				},
+				githubStatus: null,
+				createdBySuperset: false,
+			};
+		}
+
 		// Failed init can leave gitStatus null, which shows "Setup incomplete" UI
 		if (!existingWorktree.gitStatus) {
 			localDb

@@ -36,7 +36,6 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
-import { pruneStaleTrackedWorktrees } from "../utils/reconcile-tracked-worktrees";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
@@ -49,6 +48,68 @@ import { initializeWorkspaceWorktree } from "../utils/workspace-init";
 
 function getPrWorkspaceName(prInfo: PullRequestInfo): string {
 	return prInfo.title || `PR #${prInfo.number}`;
+}
+
+function createFreshGitStatus(branch: string) {
+	return {
+		branch,
+		needsRebase: false,
+		ahead: 0,
+		behind: 0,
+		lastRefreshed: Date.now(),
+	};
+}
+
+function upsertImportedExternalWorktree({
+	projectId,
+	path,
+	branch,
+	baseBranch,
+	existingWorktree,
+}: {
+	projectId: string;
+	path: string;
+	branch: string;
+	baseBranch: string | null;
+	existingWorktree?: typeof worktrees.$inferSelect;
+}) {
+	const gitStatus = createFreshGitStatus(branch);
+
+	if (existingWorktree) {
+		localDb
+			.update(worktrees)
+			.set({
+				branch,
+				baseBranch,
+				gitStatus,
+				githubStatus: null,
+				createdBySuperset: false,
+			})
+			.where(eq(worktrees.id, existingWorktree.id))
+			.run();
+
+		return {
+			...existingWorktree,
+			branch,
+			baseBranch,
+			gitStatus,
+			githubStatus: null,
+			createdBySuperset: false,
+		};
+	}
+
+	return localDb
+		.insert(worktrees)
+		.values({
+			projectId,
+			path,
+			branch,
+			baseBranch,
+			gitStatus,
+			createdBySuperset: false,
+		})
+		.returning()
+		.get();
 }
 
 interface PrWorkspaceResult {
@@ -827,10 +888,9 @@ export const createCreateProcedures = () => {
 				const allExternalWorktrees = await listExternalWorktrees(
 					project.mainRepoPath,
 				);
-				pruneStaleTrackedWorktrees({
-					projectId: input.projectId,
-					liveWorktrees: allExternalWorktrees,
-				});
+				const liveWorktreeByPath = new Map(
+					allExternalWorktrees.map((worktree) => [worktree.path, worktree]),
+				);
 
 				// 1. Import closed worktrees (tracked in DB but no active workspace)
 				const projectWorktrees = localDb
@@ -853,8 +913,15 @@ export const createCreateProcedures = () => {
 
 					if (existingWorkspace) continue;
 
-					const exists = await worktreeExists(project.mainRepoPath, wt.path);
-					if (!exists) continue;
+					const liveWorktree = liveWorktreeByPath.get(wt.path);
+					if (
+						!liveWorktree ||
+						liveWorktree.isBare ||
+						liveWorktree.isDetached ||
+						liveWorktree.branch !== wt.branch
+					) {
+						continue;
+					}
 
 					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					localDb
@@ -874,35 +941,28 @@ export const createCreateProcedures = () => {
 				}
 
 				// 2. Import external worktrees (on disk, not tracked in DB)
-				const trackedPaths = new Set(projectWorktrees.map((wt) => wt.path));
-
 				const externalWorktrees = selectExternalWorktreesForImport(
 					allExternalWorktrees,
-					{ mainRepoPath: project.mainRepoPath, trackedPaths },
+					{
+						mainRepoPath: project.mainRepoPath,
+						trackedWorktrees: projectWorktrees,
+					},
 				);
 
 				for (const ext of externalWorktrees) {
 					// biome-ignore lint/style/noNonNullAssertion: filtered above
 					const branch = ext.branch!;
+					const existingWorktree = projectWorktrees.find(
+						(wt) => wt.path === ext.path,
+					);
 
-					const worktree = localDb
-						.insert(worktrees)
-						.values({
-							projectId: input.projectId,
-							path: ext.path,
-							branch,
-							baseBranch: compareBaseBranch,
-							gitStatus: {
-								branch,
-								needsRebase: false,
-								ahead: 0,
-								behind: 0,
-								lastRefreshed: Date.now(),
-							},
-							createdBySuperset: false, // External worktree
-						})
-						.returning()
-						.get();
+					const worktree = upsertImportedExternalWorktree({
+						projectId: input.projectId,
+						path: ext.path,
+						branch,
+						baseBranch: compareBaseBranch,
+						existingWorktree,
+					});
 
 					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					localDb
@@ -960,23 +1020,18 @@ export const createCreateProcedures = () => {
 				const allExternalWorktrees = await listExternalWorktrees(
 					project.mainRepoPath,
 				);
-				pruneStaleTrackedWorktrees({
-					projectId: input.projectId,
-					liveWorktrees: allExternalWorktrees,
-				});
 
 				const projectWorktrees = localDb
-					.select({ path: worktrees.path })
+					.select()
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
-				const trackedPaths = new Set(projectWorktrees.map((wt) => wt.path));
 
 				const externalWorktrees = selectExternalWorktreesForImport(
 					allExternalWorktrees,
 					{
 						mainRepoPath: project.mainRepoPath,
-						trackedPaths,
+						trackedWorktrees: projectWorktrees,
 						requested: new Set(input.paths),
 					},
 				);
@@ -985,25 +1040,17 @@ export const createCreateProcedures = () => {
 				for (const ext of externalWorktrees) {
 					// biome-ignore lint/style/noNonNullAssertion: filtered above
 					const branch = ext.branch!;
+					const existingWorktree = projectWorktrees.find(
+						(wt) => wt.path === ext.path,
+					);
 
-					const worktree = localDb
-						.insert(worktrees)
-						.values({
-							projectId: input.projectId,
-							path: ext.path,
-							branch,
-							baseBranch: compareBaseBranch,
-							gitStatus: {
-								branch,
-								needsRebase: false,
-								ahead: 0,
-								behind: 0,
-								lastRefreshed: Date.now(),
-							},
-							createdBySuperset: false,
-						})
-						.returning()
-						.get();
+					const worktree = upsertImportedExternalWorktree({
+						projectId: input.projectId,
+						path: ext.path,
+						branch,
+						baseBranch: compareBaseBranch,
+						existingWorktree,
+					});
 
 					const maxTabOrder = getMaxProjectChildTabOrder(input.projectId);
 					localDb

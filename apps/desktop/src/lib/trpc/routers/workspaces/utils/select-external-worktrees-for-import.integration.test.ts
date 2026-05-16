@@ -88,7 +88,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
+			trackedWorktrees: [],
 		});
 		expect(result.map((w) => w.path).sort()).toEqual([wtA, wtB, wtC].sort());
 		expect(result.map((w) => w.branch).sort()).toEqual(
@@ -101,7 +101,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
+			trackedWorktrees: [],
 			requested: new Set([wtA, wtC]),
 		});
 		expect(result.map((w) => w.path).sort()).toEqual([wtA, wtC].sort());
@@ -112,7 +112,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set([wtB]),
+			trackedWorktrees: [{ path: wtB, branch: "feat-b" }],
 			requested: new Set([wtA, wtB, wtC]),
 		});
 		expect(result.map((w) => w.path).sort()).toEqual([wtA, wtC].sort());
@@ -124,7 +124,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
+			trackedWorktrees: [],
 			requested: new Set([wtA, ghostPath]),
 		});
 		expect(result.map((w) => w.path)).toEqual([wtA]);
@@ -141,7 +141,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
+			trackedWorktrees: [],
 			requested: new Set([wtA, wtDetached]),
 		});
 		expect(result.map((w) => w.path)).toEqual([wtA]);
@@ -152,7 +152,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
+			trackedWorktrees: [],
 			requested: new Set(),
 		});
 		expect(result).toEqual([]);
@@ -163,7 +163,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
+			trackedWorktrees: [],
 			requested: new Set([mainRepoPath, wtA]),
 		});
 		expect(result.map((w) => w.path)).toEqual([wtA]);
@@ -175,7 +175,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 		// First pass: import wtA only
 		const firstPass = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
+			trackedWorktrees: [],
 			requested: new Set([wtA]),
 		});
 		expect(firstPass.map((w) => w.path)).toEqual([wtA]);
@@ -184,7 +184,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 		// should return only wtB and wtC.
 		const secondPass = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set([wtA]),
+			trackedWorktrees: [{ path: wtA, branch: "feat-a" }],
 			requested: new Set([wtA, wtB, wtC]),
 		});
 		expect(secondPass.map((w) => w.path).sort()).toEqual([wtB, wtC].sort());

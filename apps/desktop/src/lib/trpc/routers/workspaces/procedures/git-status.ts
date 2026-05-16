@@ -25,7 +25,6 @@ import {
 	type PullRequestCommentsTarget,
 	resolveReviewThread,
 } from "../utils/github";
-import { getTrackedPathsExcludingStaleWorktrees } from "../utils/reconcile-tracked-worktrees";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { getWorkspacePath } from "../utils/worktree";
 
@@ -348,14 +347,15 @@ export const createGitStatusProcedures = () => {
 				}
 
 				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
-				const trackedPaths = getTrackedPathsExcludingStaleWorktrees({
-					projectId: input.projectId,
-					liveWorktrees: allWorktrees,
-				});
+				const trackedWorktrees = localDb
+					.select({ path: worktrees.path, branch: worktrees.branch })
+					.from(worktrees)
+					.where(eq(worktrees.projectId, input.projectId))
+					.all();
 
 				return selectExternalWorktreesForImport(allWorktrees, {
 					mainRepoPath: project.mainRepoPath,
-					trackedPaths,
+					trackedWorktrees,
 				}).map((wt) => ({
 					path: wt.path,
 					// biome-ignore lint/style/noNonNullAssertion: filtered above
