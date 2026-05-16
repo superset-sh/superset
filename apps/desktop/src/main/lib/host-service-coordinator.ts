@@ -328,13 +328,29 @@ export class HostServiceCoordinator extends EventEmitter {
 		const url = new URL(manifest.endpoint);
 		const port = Number(url.port);
 
-		const staleManifestReason = this.getStaleManifestReason(manifest);
-		if (staleManifestReason) {
-			await this.rejectStaleManifest(
-				organizationId,
-				manifest,
-				staleManifestReason,
+		const currentAppVersion = app.getVersion();
+		if (manifest.spawnedByAppVersion !== currentAppVersion) {
+			const reason = manifest.spawnedByAppVersion
+				? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
+				: "no recorded app version (pre-upgrade manifest)";
+			const verified = await pollHealthCheck(
+				manifest.endpoint,
+				manifest.authToken,
+				ADOPT_HEALTH_CHECK_TIMEOUT_MS,
 			);
+
+			if (verified) {
+				log.info(
+					`[host-service:${organizationId}] Refusing to adopt stale service (${reason}); killing and respawning`,
+				);
+				this.killManifestProcess(organizationId, manifest, "stale");
+			} else {
+				log.warn(
+					`[host-service:${organizationId}] Stale manifest (${reason}) did not verify on ${manifest.endpoint}; removing manifest and respawning without kill`,
+				);
+				removeManifest(organizationId);
+			}
+
 			return null;
 		}
 
@@ -342,7 +358,11 @@ export class HostServiceCoordinator extends EventEmitter {
 		// be hung on migrations, deadlocked, or no longer bound to the recorded
 		// port. Without this check the renderer's `getConnection` keeps handing
 		// out a dead port forever, which is the failure mode in superset-sh/superset#4299.
-		const healthy = await this.checkManifestHealth(manifest);
+		const healthy = await pollHealthCheck(
+			manifest.endpoint,
+			manifest.authToken,
+			ADOPT_HEALTH_CHECK_TIMEOUT_MS,
+		);
 		if (!healthy) {
 			log.info(
 				`[host-service:${organizationId}] Adopted pid=${manifest.pid} did not respond on ${manifest.endpoint}, killing and respawning`,
@@ -364,46 +384,6 @@ export class HostServiceCoordinator extends EventEmitter {
 		);
 		this.emitStatus(organizationId, "running", null);
 		return { port, secret: manifest.authToken, machineId: this.machineId };
-	}
-
-	private getStaleManifestReason(manifest: HostServiceManifest): string | null {
-		const currentAppVersion = app.getVersion();
-
-		if (manifest.spawnedByAppVersion !== currentAppVersion) {
-			return manifest.spawnedByAppVersion
-				? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
-				: "no recorded app version (pre-upgrade manifest)";
-		}
-
-		return null;
-	}
-
-	private checkManifestHealth(manifest: HostServiceManifest): Promise<boolean> {
-		return pollHealthCheck(
-			manifest.endpoint,
-			manifest.authToken,
-			ADOPT_HEALTH_CHECK_TIMEOUT_MS,
-		);
-	}
-
-	private async rejectStaleManifest(
-		organizationId: string,
-		manifest: HostServiceManifest,
-		reason: string,
-	): Promise<void> {
-		const verified = await this.checkManifestHealth(manifest);
-		if (verified) {
-			log.info(
-				`[host-service:${organizationId}] Refusing to adopt stale service (${reason}); killing and respawning`,
-			);
-			this.killManifestProcess(organizationId, manifest, "stale");
-			return;
-		}
-
-		log.warn(
-			`[host-service:${organizationId}] Stale manifest (${reason}) did not verify on ${manifest.endpoint}; removing manifest and respawning without kill`,
-		);
-		removeManifest(organizationId);
 	}
 
 	private readAndValidateManifest(
