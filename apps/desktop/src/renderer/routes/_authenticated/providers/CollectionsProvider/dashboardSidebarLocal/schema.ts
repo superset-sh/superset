@@ -195,12 +195,39 @@ const DEFAULT_LINK_TIER_MAP: LinkTierMap = {
 	metaShift: "external",
 };
 
-const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
+const LEGACY_SIDEBAR_FILE_LINKS: LinkTierMap = {
 	plain: "pane",
 	shift: "newTab",
 	meta: "external",
 	metaShift: "external",
 };
+
+const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
+	plain: "pane",
+	shift: "newTab",
+	meta: "pane",
+	metaShift: "external",
+};
+
+function isSameLinkTierMap(a: LinkTierMap, b: LinkTierMap): boolean {
+	return (
+		a.plain === b.plain &&
+		a.shift === b.shift &&
+		a.meta === b.meta &&
+		a.metaShift === b.metaShift
+	);
+}
+
+function isCompleteLinkTierMap(
+	value: Partial<LinkTierMap>,
+): value is LinkTierMap {
+	return (
+		"plain" in value &&
+		"shift" in value &&
+		"meta" in value &&
+		"metaShift" in value
+	);
+}
 
 export const v2UserPreferencesSchema = z.object({
 	id: z.literal("preferences"),
@@ -273,14 +300,23 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 	const r = (
 		raw && typeof raw === "object" ? raw : {}
 	) as Partial<V2UserPreferencesRow>;
+	const sidebarFileLinks = r.sidebarFileLinks
+		? {
+				...DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
+				...r.sidebarFileLinks,
+			}
+		: DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks;
+	const shouldMigrateLegacySidebarFileLinks =
+		r.sidebarFileLinks &&
+		isCompleteLinkTierMap(r.sidebarFileLinks) &&
+		isSameLinkTierMap(r.sidebarFileLinks, LEGACY_SIDEBAR_FILE_LINKS);
 	return {
 		...DEFAULT_V2_USER_PREFERENCES,
 		...r,
 		fileLinks: { ...DEFAULT_V2_USER_PREFERENCES.fileLinks, ...r.fileLinks },
 		urlLinks: { ...DEFAULT_V2_USER_PREFERENCES.urlLinks, ...r.urlLinks },
-		sidebarFileLinks: {
-			...DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
-			...r.sidebarFileLinks,
-		},
+		sidebarFileLinks: shouldMigrateLegacySidebarFileLinks
+			? DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks
+			: sidebarFileLinks,
 	};
 }
