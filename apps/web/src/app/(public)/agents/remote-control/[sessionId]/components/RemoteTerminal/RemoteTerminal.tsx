@@ -12,8 +12,8 @@ import type { ITheme } from "@xterm/xterm";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MobileTerminalInput } from "../../../../../../../components/MobileTerminalInput";
 import { trpcClient } from "../../../../../../../trpc/client";
-import { MobileToolbar } from "./components/MobileToolbar";
 
 // Mirrors apps/desktop/src/shared/themes/built-in/ember.ts (id "dark")
 // so the browser viewer renders the same palette as the desktop default
@@ -342,6 +342,13 @@ export function RemoteTerminal({ sessionId, token }: RemoteTerminalProps) {
 		[sendClientMessage],
 	);
 
+	const sendInputText = useCallback(
+		(sequence: string) => {
+			sendInputBytes(new TextEncoder().encode(sequence));
+		},
+		[sendInputBytes],
+	);
+
 	const onCopyLink = useCallback(async () => {
 		try {
 			await navigator.clipboard.writeText(window.location.href);
@@ -483,7 +490,13 @@ export function RemoteTerminal({ sessionId, token }: RemoteTerminalProps) {
 			>
 				<div ref={containerRef} className="absolute inset-0" />
 			</div>
-			{isFull && <MobileToolbar onSend={sendInputBytes} />}
+			{isFull && (
+				<MobileTerminalInput
+					focusTargetRef={containerRef}
+					onFocusTerminal={() => termRef.current?.focus()}
+					onSend={sendInputText}
+				/>
+			)}
 		</div>
 	);
 }

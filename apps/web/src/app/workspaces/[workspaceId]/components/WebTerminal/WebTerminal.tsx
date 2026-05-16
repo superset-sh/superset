@@ -5,6 +5,7 @@ import type { ITheme } from "@xterm/xterm";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MobileTerminalInput } from "../../../../../components/MobileTerminalInput";
 import { getAuthToken } from "../../../../../trpc/auth-token";
 import { getRelayUrl } from "../../../../../trpc/relay-url";
 
@@ -35,17 +36,6 @@ const TERMINAL_THEME: ITheme = {
 const TERMINAL_FONT_FAMILY =
 	'"JetBrains Mono", "MesloLGS NF", "Menlo", "Monaco", "Courier New", monospace';
 
-const KEY_BUTTONS: Array<{ label: string; sequence: string }> = [
-	{ label: "Tab", sequence: "\t" },
-	{ label: "Esc", sequence: "\x1b" },
-	{ label: "Ctrl-C", sequence: "\x03" },
-	{ label: "Ctrl-D", sequence: "\x04" },
-	{ label: "↑", sequence: "\x1b[A" },
-	{ label: "↓", sequence: "\x1b[B" },
-	{ label: "←", sequence: "\x1b[D" },
-	{ label: "→", sequence: "\x1b[C" },
-];
-
 interface WebTerminalProps {
 	workspaceId: string;
 	terminalId: string;
@@ -69,6 +59,7 @@ export function WebTerminal({
 	routingKey,
 }: WebTerminalProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
+	const terminalRef = useRef<Terminal | null>(null);
 	const socketRef = useRef<WebSocket | null>(null);
 	const [state, setState] = useState<ConnectionState>("connecting");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -139,6 +130,7 @@ export function WebTerminal({
 				fitAddon = new FitAddon();
 				terminal.loadAddon(fitAddon);
 				terminal.open(container);
+				terminalRef.current = terminal;
 				try {
 					fitAddon.fit();
 				} catch {
@@ -226,6 +218,7 @@ export function WebTerminal({
 				// best-effort
 			}
 			terminal?.dispose();
+			terminalRef.current = null;
 			socketRef.current = null;
 		};
 	}, [workspaceId, terminalId, routingKey]);
@@ -247,22 +240,12 @@ export function WebTerminal({
 					</div>
 				)}
 			</div>
-			<div
-				className="flex flex-wrap gap-1 border-t p-1"
-				style={{ borderColor: "#2a2827", backgroundColor: "#1a1716" }}
-			>
-				{KEY_BUTTONS.map((button) => (
-					<button
-						key={button.label}
-						type="button"
-						onClick={() => sendSequence(button.sequence)}
-						className="rounded border px-2 py-1 text-xs"
-						style={{ borderColor: "#2a2827", color: "#eae8e6" }}
-					>
-						{button.label}
-					</button>
-				))}
-			</div>
+			<MobileTerminalInput
+				focusTargetRef={containerRef}
+				onFocusTerminal={() => terminalRef.current?.focus()}
+				onSend={sendSequence}
+				toolbarVisibility="always"
+			/>
 		</div>
 	);
 }
