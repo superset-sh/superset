@@ -12,7 +12,7 @@ import {
 	Undo2,
 } from "lucide-react";
 import { modifierLabel, useSidebarFilePolicy } from "renderer/lib/clickPolicy";
-import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
+import { PathActionsDropdownMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsDropdownMenuItems";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 
@@ -100,7 +100,7 @@ export function FileRowContextMenuItems({
 			{absolutePath && (
 				<>
 					<DropdownMenuSeparator />
-					<PathActionsMenuItems
+					<PathActionsDropdownMenuItems
 						absolutePath={absolutePath}
 						relativePath={file.path}
 					/>

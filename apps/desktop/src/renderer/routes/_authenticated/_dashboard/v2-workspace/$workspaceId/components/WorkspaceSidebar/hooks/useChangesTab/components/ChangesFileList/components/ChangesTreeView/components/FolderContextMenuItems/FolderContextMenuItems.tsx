@@ -3,7 +3,7 @@ import {
 	DropdownMenuSeparator,
 } from "@superset/ui/dropdown-menu";
 import { ExternalLink } from "lucide-react";
-import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
+import { PathActionsDropdownMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsDropdownMenuItems";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 
 interface FolderContextMenuItemsProps {
@@ -39,7 +39,7 @@ export function FolderContextMenuItems({
 			{absolutePath && (
 				<>
 					<DropdownMenuSeparator />
-					<PathActionsMenuItems
+					<PathActionsDropdownMenuItems
 						absolutePath={absolutePath}
 						relativePath={relativePath}
 					/>
