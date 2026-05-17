@@ -246,7 +246,7 @@ app.on("before-quit", async (event) => {
  */
 async function runFullQuitCleanup(): Promise<void> {
 	const coordinator = getHostServiceCoordinator();
-	coordinator.teardownKnownManifests();
+	await coordinator.teardownKnownManifests();
 	coordinator.stopAll();
 	try {
 		await getTerminalHostClient().shutdownIfRunning({ killSessions: true });

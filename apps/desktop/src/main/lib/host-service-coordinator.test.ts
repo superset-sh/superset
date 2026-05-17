@@ -364,7 +364,7 @@ describe("HostServiceCoordinator.teardownKnownManifests", () => {
 		}
 	});
 
-	test("kills and removes manifest-backed services without adopting or spawning", () => {
+	test("health-verifies manifest-backed services before killing", async () => {
 		listManifestsMock.mockImplementationOnce(() => [
 			baseManifest(9001),
 			{
@@ -372,15 +372,18 @@ describe("HostServiceCoordinator.teardownKnownManifests", () => {
 				organizationId: "org-2",
 			},
 		]);
+		pollHealthCheckMock
+			.mockImplementationOnce(() => Promise.resolve(true))
+			.mockImplementationOnce(() => Promise.resolve(false));
 
-		coordinator.teardownKnownManifests();
+		await coordinator.teardownKnownManifests();
 
 		expect(killedPids).toContainEqual({ pid: 9001, signal: "SIGKILL" });
-		expect(killedPids).toContainEqual({ pid: 9002, signal: "SIGKILL" });
+		expect(killedPids).not.toContainEqual({ pid: 9002, signal: "SIGKILL" });
 		expect(removeManifestMock).toHaveBeenCalledWith("org-1");
 		expect(removeManifestMock).toHaveBeenCalledWith("org-2");
 		expect(readManifestMock).not.toHaveBeenCalled();
-		expect(pollHealthCheckMock).not.toHaveBeenCalled();
+		expect(pollHealthCheckMock).toHaveBeenCalledTimes(2);
 	});
 });
 

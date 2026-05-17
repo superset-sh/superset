@@ -153,19 +153,18 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 	}
 
-	teardownKnownManifests(): void {
+	async teardownKnownManifests(): Promise<void> {
 		for (const manifest of listManifests()) {
-			if (isProcessAlive(manifest.pid)) {
-				try {
-					killProcess(manifest.pid, "SIGKILL");
-				} catch (error) {
-					log.warn(
-						`[host-service:${manifest.organizationId}] teardown: SIGKILL of pid=${manifest.pid} failed`,
-						error,
-					);
-				}
+			const verified = await pollHealthCheck(
+				manifest.endpoint,
+				manifest.authToken,
+				ADOPT_HEALTH_CHECK_TIMEOUT_MS,
+			);
+			if (verified) {
+				this.killManifestProcess(manifest.organizationId, manifest, "stale");
+			} else {
+				removeManifest(manifest.organizationId);
 			}
-			removeManifest(manifest.organizationId);
 		}
 	}
 
