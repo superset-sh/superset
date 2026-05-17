@@ -187,7 +187,6 @@ describe("materializePrBranch", () => {
 			headRepositoryOwner: "alice",
 			headRepositoryName: "fork",
 		};
-		const fetchRef = getSyntheticPrFetchRef(pr.number);
 
 		const result = await normalizePrBranchTracking({
 			git,
@@ -208,7 +207,7 @@ describe("materializePrBranch", () => {
 			"--no-track",
 			"--",
 			"alice/feature/x",
-			fetchRef,
+			EXPECTED_HEAD_OID,
 		]);
 		expect(raw).toHaveBeenCalledWith([
 			"config",
