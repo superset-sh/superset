@@ -78,6 +78,7 @@ export function useReviewTab({
 
 	const content = (
 		<ReviewTabContent
+			workspaceId={workspaceId}
 			pr={pr}
 			comments={comments}
 			isLoading={prQuery.isLoading}

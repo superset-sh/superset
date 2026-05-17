@@ -12,12 +12,16 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Skeleton } from "@superset/ui/skeleton";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { workspaceTrpc } from "@superset/workspace-client";
 import {
+	CheckCheck,
 	ChevronDown,
 	Copy as CopyIcon,
 	ExternalLink,
 	GitCompare,
+	LoaderCircle,
 	MessageSquare,
 	SquarePlus,
 } from "lucide-react";
@@ -30,6 +34,7 @@ import type { CommentPaneData } from "../../../../../../types";
 import type { NormalizedComment } from "../../types";
 
 interface CommentsSectionProps {
+	workspaceId: string;
 	comments: NormalizedComment[];
 	isLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
@@ -37,6 +42,7 @@ interface CommentsSectionProps {
 }
 
 export function CommentsSection({
+	workspaceId,
 	comments,
 	isLoading,
 	onOpenComment,
@@ -45,8 +51,12 @@ export function CommentsSection({
 	const [commentsOpen, setCommentsOpen] = useState(true);
 	const [resolvedOpen, setResolvedOpen] = useState(false);
 	const [copiedActionKey, setCopiedActionKey] = useState<string | null>(null);
+	const [isResolvingAll, setIsResolvingAll] = useState(false);
 	const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const isMountedRef = useRef(true);
+	const utils = workspaceTrpc.useUtils();
+	const setReviewThreadResolution =
+		workspaceTrpc.git.setReviewThreadResolution.useMutation();
 
 	const copyToClipboard = useCallback(
 		(text: string) => electronTrpcClient.external.copyText.mutate(text),
@@ -63,6 +73,16 @@ export function CommentsSection({
 	const activeComments = useMemo(
 		() => comments.filter((c) => !c.isResolved),
 		[comments],
+	);
+	const resolvableThreadIds = useMemo(
+		() => [
+			...new Set(
+				activeComments
+					.map((comment) => comment.threadId)
+					.filter((threadId): threadId is string => Boolean(threadId)),
+			),
+		],
+		[activeComments],
 	);
 	const resolvedComments = useMemo(
 		() => comments.filter((c) => c.isResolved),
@@ -124,6 +144,43 @@ export function CommentsSection({
 			});
 	}, [copyToClipboard, activeComments, markCopied]);
 
+	const handleResolveAll = useCallback(async () => {
+		if (resolvableThreadIds.length === 0) return;
+
+		setIsResolvingAll(true);
+		try {
+			const results = await Promise.allSettled(
+				resolvableThreadIds.map((threadId) =>
+					setReviewThreadResolution.mutateAsync({
+						workspaceId,
+						threadId,
+						resolved: true,
+					}),
+				),
+			);
+
+			if (results.some((result) => result.status === "fulfilled")) {
+				await utils.git.getPullRequestThreads.invalidate({ workspaceId });
+			}
+
+			const failedCount = results.filter(
+				(result) => result.status === "rejected",
+			).length;
+			if (failedCount > 0) {
+				toast.error(
+					`Failed to resolve ${failedCount} thread${failedCount === 1 ? "" : "s"}`,
+				);
+			}
+		} finally {
+			if (isMountedRef.current) setIsResolvingAll(false);
+		}
+	}, [
+		resolvableThreadIds,
+		setReviewThreadResolution,
+		utils.git.getPullRequestThreads,
+		workspaceId,
+	]);
+
 	const commentsCountLabel = isLoading ? "..." : comments.length;
 	const copyAllLabel =
 		copiedActionKey === "comments:all" ? "Copied" : "Copy all";
@@ -155,6 +212,21 @@ export function CommentsSection({
 					</CollapsibleTrigger>
 					{activeComments.length > 0 && (
 						<div className="mr-1.5 flex items-center gap-1">
+							{resolvableThreadIds.length > 0 && (
+								<button
+									type="button"
+									className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground disabled:opacity-50"
+									onClick={() => void handleResolveAll()}
+									disabled={isResolvingAll}
+								>
+									{isResolvingAll ? (
+										<LoaderCircle className="size-3 animate-spin" />
+									) : (
+										<CheckCheck className="size-3" />
+									)}
+									<span>Resolve all</span>
+								</button>
+							)}
 							<button
 								type="button"
 								className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
