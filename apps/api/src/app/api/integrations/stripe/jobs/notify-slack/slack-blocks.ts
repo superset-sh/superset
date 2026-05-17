@@ -15,6 +15,29 @@ export interface DiscountInfo {
 	amountOff: number | null;
 }
 
+export const cancellationFeedbackValues = [
+	"customer_service",
+	"low_quality",
+	"missing_features",
+	"other",
+	"switched_service",
+	"too_complex",
+	"too_expensive",
+	"unused",
+] as const;
+
+export const cancellationReasonValues = [
+	"cancellation_requested",
+	"payment_disputed",
+	"payment_failed",
+] as const;
+
+export interface CancellationDetails {
+	comment?: string | null;
+	feedback?: (typeof cancellationFeedbackValues)[number] | null;
+	reason?: (typeof cancellationReasonValues)[number] | null;
+}
+
 export function getDiscountInfo(
 	stripeSub: Stripe.Subscription,
 ): DiscountInfo | null {
@@ -85,6 +108,7 @@ export interface EnrichedSubscription {
 	interval: "monthly" | "yearly";
 	discount: DiscountInfo | null;
 	accessEndsAt: Date | null;
+	cancellationDetails: CancellationDetails | null;
 }
 
 // --- Shared field builders ---
@@ -112,6 +136,44 @@ function totalField(enriched: EnrichedSubscription): string {
 		return `*Total:*\n${formatPrice(total)}/${suffix} (was ${formatPrice(subtotal)}/${suffix})`;
 	}
 	return `*Total:*\n${formatPrice(total)}/${suffix}`;
+}
+
+const cancellationFeedbackLabels = {
+	customer_service: "Customer service",
+	low_quality: "Low quality",
+	missing_features: "Missing features",
+	other: "Other",
+	switched_service: "Switched service",
+	too_complex: "Too complex",
+	too_expensive: "Too expensive",
+	unused: "Unused",
+} satisfies Record<NonNullable<CancellationDetails["feedback"]>, string>;
+
+const cancellationReasonLabels = {
+	cancellation_requested: "Cancellation requested",
+	payment_disputed: "Payment disputed",
+	payment_failed: "Payment failed",
+} satisfies Record<NonNullable<CancellationDetails["reason"]>, string>;
+
+function cancellationDetailsBlock(
+	cancellationDetails: CancellationDetails | null,
+): unknown {
+	const feedback = cancellationDetails?.feedback
+		? cancellationFeedbackLabels[cancellationDetails.feedback]
+		: "N/A";
+	const reason = cancellationDetails?.reason
+		? cancellationReasonLabels[cancellationDetails.reason]
+		: "N/A";
+	const comment = cancellationDetails?.comment?.trim() || "N/A";
+
+	return {
+		type: "section",
+		fields: [
+			{ type: "mrkdwn", text: `*Cancellation reason:*\n${feedback}` },
+			{ type: "mrkdwn", text: `*Stripe reason:*\n${reason}` },
+			{ type: "mrkdwn", text: `*Comment:*\n${comment}` },
+		],
+	};
 }
 
 /**
@@ -178,6 +240,7 @@ export function formatSubscriptionCancelled(
 			type: "section",
 			text: { type: "mrkdwn", text: `*Access ends:*\n${endsAtStr}` },
 		},
+		cancellationDetailsBlock(enriched.cancellationDetails),
 		stripeDashboardButtons(
 			enriched.stripeCustomerId,
 			enriched.stripeSubscriptionId,

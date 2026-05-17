@@ -9,6 +9,8 @@ import { z } from "zod";
 import { env } from "@/env";
 
 import {
+	cancellationFeedbackValues,
+	cancellationReasonValues,
 	type EnrichedSubscription,
 	formatPaymentFailed,
 	formatPaymentSucceeded,
@@ -37,9 +39,20 @@ const basePayload = z.object({
 	stripeSubscriptionId: z.string(),
 });
 
+const cancellationDetailsSchema = z
+	.object({
+		comment: z.string().nullable().optional(),
+		feedback: z.enum(cancellationFeedbackValues).nullable().optional(),
+		reason: z.enum(cancellationReasonValues).nullable().optional(),
+	})
+	.nullable();
+
 const payloadSchema = z.discriminatedUnion("eventType", [
 	basePayload.extend({ eventType: z.literal("subscription_started") }),
-	basePayload.extend({ eventType: z.literal("subscription_cancelled") }),
+	basePayload.extend({
+		eventType: z.literal("subscription_cancelled"),
+		cancellationDetails: cancellationDetailsSchema.optional(),
+	}),
 	basePayload.extend({
 		eventType: z.literal("seat_added"),
 		memberName: z.string(),
@@ -111,6 +124,7 @@ async function enrichFromSubscription(
 		interval,
 		discount: getDiscountInfo(stripeSub),
 		accessEndsAt: dbSub?.periodEnd ?? null,
+		cancellationDetails: stripeSub.cancellation_details,
 	};
 }
 
@@ -157,7 +171,11 @@ export async function POST(request: Request) {
 			blocks = formatSubscriptionStarted(enriched);
 			break;
 		case "subscription_cancelled":
-			blocks = formatSubscriptionCancelled(enriched);
+			blocks = formatSubscriptionCancelled({
+				...enriched,
+				cancellationDetails:
+					payload.cancellationDetails ?? enriched.cancellationDetails,
+			});
 			break;
 		case "seat_added":
 			blocks = formatSeatAdded(
