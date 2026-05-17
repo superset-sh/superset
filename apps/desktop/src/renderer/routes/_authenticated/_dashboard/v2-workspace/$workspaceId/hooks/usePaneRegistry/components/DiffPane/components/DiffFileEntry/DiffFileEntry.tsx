@@ -73,7 +73,8 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 
 	const [expandUnchanged, setExpandUnchanged] = useState(false);
 	const reason = deferReason(file);
-	const showFullDiff = expanded;
+	const hasFocusRequest = focusLine != null && focusTick != null;
+	const showFullDiff = expanded || hasFocusRequest;
 
 	const handleToggleCollapsed = useCallback(
 		() => onSetCollapsed(file.path, !collapsed),
@@ -186,7 +187,9 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 		);
 	}
 
-	const shouldMount = reason ? showFullDiff : hasBeenNearRef.current;
+	const shouldMount = reason
+		? showFullDiff
+		: hasBeenNearRef.current || hasFocusRequest;
 	const header = (
 		<DiffFileHeader
 			path={file.path}
@@ -221,7 +224,7 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 					oldPath={file.oldPath}
 					source={file.source}
 					diffStyle={diffStyle}
-					expandUnchanged={expandUnchanged}
+					expandUnchanged={expandUnchanged || hasFocusRequest}
 					collapsed={collapsed}
 					focusLine={focusLine}
 					focusSide={focusSide}

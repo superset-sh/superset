@@ -11,6 +11,8 @@ import { DiffFileEntry } from "./components/DiffFileEntry";
 
 type DiffFocusSide = DiffPaneData["focusSide"];
 const MAX_LINE_FOCUS_ATTEMPTS = 180;
+const ESTIMATED_DIFF_HEADER_HEIGHT_PX = 44;
+const ESTIMATED_DIFF_LINE_HEIGHT_PX = 20;
 
 function ScrollToFile({
 	path,
@@ -50,26 +52,19 @@ function ScrollToFile({
 			) as HTMLElement | null;
 			if (!entry || !header) return;
 
-			const offset = v.getOffsetInScrollContainer(header);
-			scrollContainer.scrollTo({ top: offset });
-			lastScrolledPath.current = path;
-			if (focusTick != null) lastFocusTick.current = focusTick;
-
 			// Only seek to the line on a *new* focus request — without this
 			// a path-only change would scroll to a stale focusLine.
 			if (focusLine != null && tickChanged) {
 				// Pierre's virtualizer mounts file content lazily; retry a
-				// few frames so the annotation slot has time to render.
+				// few frames so the target row has time to render.
 				let attempts = 0;
+				let estimatedScrollDone = false;
 				const tryScroll = () => {
 					const lineEl = findLineElement(entry, focusLine, focusSide);
 					if (lineEl) {
-						const lineOffset = v.getOffsetInScrollContainer(lineEl);
-						const lineHeight = lineEl.getBoundingClientRect().height;
-						scrollContainer.scrollTo({
-							top:
-								lineOffset - scrollContainer.clientHeight / 2 + lineHeight / 2,
-						});
+						centerElementInScrollContainer(scrollContainer, v, lineEl);
+						lastScrolledPath.current = path;
+						lastFocusTick.current = focusTick;
 						debugReviewDiffJump("focused line", {
 							path,
 							focusLine,
@@ -78,10 +73,23 @@ function ScrollToFile({
 						});
 						return;
 					}
+					if (!estimatedScrollDone && attempts >= 2) {
+						scrollToEstimatedLine(scrollContainer, v, header, focusLine);
+						estimatedScrollDone = true;
+						lastScrolledPath.current = path;
+						debugReviewDiffJump("estimated line scroll", {
+							path,
+							focusLine,
+							focusSide,
+						});
+					}
 					if (attempts++ < MAX_LINE_FOCUS_ATTEMPTS) {
 						requestAnimationFrame(tryScroll);
 						return;
 					}
+					scrollToHeader(scrollContainer, v, header);
+					lastScrolledPath.current = path;
+					lastFocusTick.current = focusTick;
 					debugReviewDiffJump("line target not found", {
 						path,
 						focusLine,
@@ -89,11 +97,59 @@ function ScrollToFile({
 					});
 				};
 				requestAnimationFrame(tryScroll);
+				return;
 			}
+
+			scrollToHeader(scrollContainer, v, header);
+			lastScrolledPath.current = path;
+			if (focusTick != null) lastFocusTick.current = focusTick;
 		});
 	}, [path, focusLine, focusSide, focusTick, virtualizer]);
 
 	return null;
+}
+
+type DiffVirtualizerApi = {
+	getScrollContainerElement: () => HTMLElement | undefined;
+	getOffsetInScrollContainer: (el: HTMLElement) => number;
+};
+
+function scrollToHeader(
+	scrollContainer: HTMLElement,
+	virtualizer: DiffVirtualizerApi,
+	header: HTMLElement,
+) {
+	scrollContainer.scrollTo({
+		top: virtualizer.getOffsetInScrollContainer(header),
+	});
+}
+
+function scrollToEstimatedLine(
+	scrollContainer: HTMLElement,
+	virtualizer: DiffVirtualizerApi,
+	header: HTMLElement,
+	lineNumber: number,
+) {
+	const headerOffset = virtualizer.getOffsetInScrollContainer(header);
+	const estimatedLineOffset =
+		headerOffset +
+		ESTIMATED_DIFF_HEADER_HEIGHT_PX +
+		Math.max(0, lineNumber - 1) * ESTIMATED_DIFF_LINE_HEIGHT_PX;
+	scrollContainer.scrollTo({
+		top: estimatedLineOffset - scrollContainer.clientHeight / 2,
+	});
+}
+
+function centerElementInScrollContainer(
+	scrollContainer: HTMLElement,
+	virtualizer: DiffVirtualizerApi,
+	element: HTMLElement,
+) {
+	const elementOffset = virtualizer.getOffsetInScrollContainer(element);
+	const elementHeight = element.getBoundingClientRect().height;
+	scrollContainer.scrollTo({
+		top: elementOffset - scrollContainer.clientHeight / 2 + elementHeight / 2,
+	});
 }
 
 function findLineElement(
@@ -270,7 +326,11 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 					file={file}
 					workspaceId={workspaceId}
 					diffStyle={diffStyle}
-					collapsed={collapsedSet.has(file.path)}
+					collapsed={
+						file.path === data.path && data.focusLine != null
+							? false
+							: collapsedSet.has(file.path)
+					}
 					onSetCollapsed={setCollapsed}
 					expanded={expandedSet.has(file.path)}
 					onSetExpanded={setExpanded}
