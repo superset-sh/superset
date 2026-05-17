@@ -1,16 +1,11 @@
-import { Button } from "@superset/ui/button";
+import { Skeleton } from "@superset/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
-import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	HiArrowTopRightOnSquare,
-	HiCheckCircle,
-	HiDocumentArrowUp,
-} from "react-icons/hi2";
+import { HiCheckCircle } from "react-icons/hi2";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { EXTERNAL_LINKS } from "shared/constants";
+import { ScriptField } from "./components/ScriptField";
 
 interface V2ScriptsEditorProps {
 	hostUrl: string;
@@ -283,50 +278,53 @@ export function V2ScriptsEditor({
 
 	if (isLoading) {
 		return (
-			<div className={cn("space-y-3", className)}>
-				<div className="h-24 bg-muted/30 rounded-lg animate-pulse" />
+			<div className={cn("space-y-3", className)} aria-busy="true">
+				<div className="flex h-9 items-center gap-5 border-b border-border px-2">
+					<Skeleton className="h-3 w-10" />
+					<Skeleton className="h-3 w-14" />
+					<Skeleton className="h-3 w-8" />
+				</div>
+				<Skeleton className="h-24 w-full rounded-md" />
 			</div>
 		);
 	}
 
 	return (
 		<div className={cn("space-y-3", className)}>
-			<div className="flex items-center justify-between gap-2">
-				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					{saveStatus === "saving" && (
-						<span className="flex items-center gap-1">
-							<span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-							Saving…
-						</span>
-					)}
-					{saveStatus === "saved" && (
-						<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-							<HiCheckCircle className="h-3.5 w-3.5" />
-							Saved
-						</span>
-					)}
-				</div>
-				<Button variant="ghost" size="sm" className="h-7" asChild>
-					<a
-						href={EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS}
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						Docs
-						<HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
-					</a>
-				</Button>
-			</div>
-
 			<Tabs defaultValue="setup">
-				<TabsList>
-					<TabsTrigger value="setup">Setup</TabsTrigger>
-					<TabsTrigger value="teardown">Teardown</TabsTrigger>
-					<TabsTrigger value="run">Run</TabsTrigger>
-				</TabsList>
+				<div className="flex items-center justify-between gap-2 border-b border-border">
+					<TabsList className="h-auto gap-0 rounded-none bg-transparent p-0">
+						<TabsTrigger
+							value="setup"
+							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+						>
+							Setup
+						</TabsTrigger>
+						<TabsTrigger
+							value="teardown"
+							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+						>
+							Teardown
+						</TabsTrigger>
+						<TabsTrigger
+							value="run"
+							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+						>
+							Run
+						</TabsTrigger>
+					</TabsList>
+					<div className="flex h-5 items-center pb-1.5 text-xs text-muted-foreground">
+						{saveStatus === "saving" && <span>Saving…</span>}
+						{saveStatus === "saved" && (
+							<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+								<HiCheckCircle className="h-3.5 w-3.5" />
+								Saved
+							</span>
+						)}
+					</div>
+				</div>
 				<TabsContent value="setup">
 					<ScriptField
-						description="Runs when a new workspace is created. Multiple lines run as one chain — failures short-circuit."
 						placeholder="bun install&#10;bun run db:migrate"
 						value={setupValue}
 						onChange={(value) => handleChange("setup", value)}
@@ -338,7 +336,6 @@ export function V2ScriptsEditor({
 				</TabsContent>
 				<TabsContent value="teardown">
 					<ScriptField
-						description="Runs when a workspace is deleted."
 						placeholder="docker compose down"
 						value={teardownValue}
 						onChange={(value) => handleChange("teardown", value)}
@@ -350,7 +347,6 @@ export function V2ScriptsEditor({
 				</TabsContent>
 				<TabsContent value="run">
 					<ScriptField
-						description="Runs from the workspace Run button."
 						placeholder="bun dev"
 						value={runValue}
 						onChange={(value) => handleChange("run", value)}
@@ -361,115 +357,6 @@ export function V2ScriptsEditor({
 					/>
 				</TabsContent>
 			</Tabs>
-		</div>
-	);
-}
-
-interface ScriptFieldProps {
-	description: string;
-	placeholder: string;
-	value: string;
-	onChange: (value: string) => void;
-	onFocus: () => void;
-	onBlur: () => void;
-}
-
-function ScriptField({
-	description,
-	placeholder,
-	value,
-	onChange,
-	onFocus,
-	onBlur,
-}: ScriptFieldProps) {
-	const [isDragOver, setIsDragOver] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
-
-	const importFirstFile = useCallback(
-		async (files: File[]) => {
-			const scriptFile = files.find((file) =>
-				file.name.match(/\.(sh|bash|zsh|command)$/i),
-			);
-			if (!scriptFile) return;
-			try {
-				onChange(await scriptFile.text());
-			} catch (error) {
-				console.error("[v2-scripts/import] failed to read file", error);
-			}
-		},
-		[onChange],
-	);
-
-	return (
-		<div className="space-y-2">
-			<p className="text-xs text-muted-foreground">{description}</p>
-
-			{/* biome-ignore lint/a11y/useSemanticElements: drop zone wrapper */}
-			<div
-				role="region"
-				aria-label="Script editor with file drop support"
-				className={cn(
-					"relative rounded-md border transition-colors",
-					isDragOver
-						? "ring-2 ring-primary/40 border-primary/60"
-						: "border-input",
-				)}
-				onDragOver={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					setIsDragOver(true);
-				}}
-				onDragLeave={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					setIsDragOver(false);
-				}}
-				onDrop={async (e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					setIsDragOver(false);
-					await importFirstFile(Array.from(e.dataTransfer.files));
-				}}
-			>
-				<Textarea
-					value={value}
-					onChange={(e) => onChange(e.target.value)}
-					onFocus={onFocus}
-					onBlur={onBlur}
-					placeholder={placeholder}
-					rows={4}
-					className="font-mono text-sm border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 resize-y"
-				/>
-				{isDragOver && (
-					<div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-primary/10">
-						<div className="flex items-center gap-2 text-primary text-sm font-medium">
-							<HiDocumentArrowUp className="h-5 w-5" />
-							Drop to import
-						</div>
-					</div>
-				)}
-			</div>
-
-			<Button
-				variant="ghost"
-				size="sm"
-				className="h-7 gap-1.5 text-muted-foreground"
-				onClick={() => fileInputRef.current?.click()}
-			>
-				<HiDocumentArrowUp className="h-3.5 w-3.5" />
-				Import file
-			</Button>
-			<input
-				ref={fileInputRef}
-				type="file"
-				accept=".sh,.bash,.zsh,.command"
-				className="hidden"
-				onChange={async (e) => {
-					const files = e.target.files ? Array.from(e.target.files) : [];
-					await importFirstFile(files);
-					e.target.value = "";
-				}}
-			/>
 		</div>
 	);
 }

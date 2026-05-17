@@ -24,17 +24,17 @@ export default command({
 		),
 	},
 	run: async ({ ctx, args, options }) => {
+		if (options.project !== undefined && args.id !== undefined) {
+			throw new CLIError(
+				"Project ID specified twice",
+				"Use either --project <projectId> or the positional project ID, not both.",
+			);
+		}
 		const projectId = (options.project ?? args.id) as string | undefined;
 		if (!projectId) {
 			throw new CLIError(
 				"Project ID required",
 				"Pass --project <projectId>, or provide the project ID as the first argument.",
-			);
-		}
-		if (options.project && args.id && options.project !== args.id) {
-			throw new CLIError(
-				"Project ID specified twice",
-				"Use either --project <projectId> or the positional project ID, not both.",
 			);
 		}
 		const organizationId = ctx.config.organizationId;
