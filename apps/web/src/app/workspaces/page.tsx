@@ -11,6 +11,31 @@ interface WorkspaceRow {
 	projectId: string;
 	projectName: string;
 	hostId: string;
+	createdAt: Date;
+}
+
+type SortBy = "recent" | "oldest" | "name";
+type CreatedWithin = "all" | "7d" | "30d" | "90d";
+
+const CREATED_WITHIN_DAYS: Record<Exclude<CreatedWithin, "all">, number> = {
+	"7d": 7,
+	"30d": 30,
+	"90d": 90,
+};
+
+function formatRelative(date: Date): string {
+	const diffMs = Date.now() - date.getTime();
+	const minutes = Math.floor(diffMs / 60_000);
+	if (minutes < 1) return "just now";
+	if (minutes < 60) return `${minutes}m ago`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	if (days < 30) return `${days}d ago`;
+	const months = Math.floor(days / 30);
+	if (months < 12) return `${months}mo ago`;
+	const years = Math.floor(months / 12);
+	return `${years}y ago`;
 }
 
 interface ProjectRow {
@@ -44,6 +69,8 @@ export default function WorkspacesPage() {
 	const [search, setSearch] = useState("");
 	const [projectFilter, setProjectFilter] = useState("");
 	const [hostFilter, setHostFilter] = useState("");
+	const [sortBy, setSortBy] = useState<SortBy>("recent");
+	const [createdWithin, setCreatedWithin] = useState<CreatedWithin>("all");
 
 	const loadWorkspaces = useCallback(async (organization: string) => {
 		const rows = await trpcClient.v2Workspace.list.query({
@@ -57,6 +84,7 @@ export default function WorkspacesPage() {
 				projectId: row.projectId,
 				projectName: row.projectName,
 				hostId: row.hostId,
+				createdAt: new Date(row.createdAt),
 			})),
 		);
 	}, []);
@@ -100,25 +128,37 @@ export default function WorkspacesPage() {
 
 	const visibleWorkspaces = useMemo(() => {
 		const query = search.trim().toLowerCase();
-		return (workspaces ?? [])
-			.filter((workspace) => {
-				if (projectFilter && workspace.projectId !== projectFilter) {
-					return false;
-				}
-				if (hostFilter && workspace.hostId !== hostFilter) {
-					return false;
-				}
-				if (!query) return true;
-				return (
-					workspace.name.toLowerCase().includes(query) ||
-					workspace.branch.toLowerCase().includes(query) ||
-					workspace.projectName.toLowerCase().includes(query)
-				);
-			})
-			.sort((a, b) =>
-				a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+		const cutoff =
+			createdWithin === "all"
+				? null
+				: Date.now() - CREATED_WITHIN_DAYS[createdWithin] * 24 * 60 * 60 * 1000;
+		const filtered = (workspaces ?? []).filter((workspace) => {
+			if (projectFilter && workspace.projectId !== projectFilter) {
+				return false;
+			}
+			if (hostFilter && workspace.hostId !== hostFilter) {
+				return false;
+			}
+			if (cutoff !== null && workspace.createdAt.getTime() < cutoff) {
+				return false;
+			}
+			if (!query) return true;
+			return (
+				workspace.name.toLowerCase().includes(query) ||
+				workspace.branch.toLowerCase().includes(query) ||
+				workspace.projectName.toLowerCase().includes(query)
 			);
-	}, [workspaces, search, projectFilter, hostFilter]);
+		});
+		return filtered.sort((a, b) => {
+			if (sortBy === "recent") {
+				return b.createdAt.getTime() - a.createdAt.getTime();
+			}
+			if (sortBy === "oldest") {
+				return a.createdAt.getTime() - b.createdAt.getTime();
+			}
+			return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+		});
+	}, [workspaces, search, projectFilter, hostFilter, sortBy, createdWithin]);
 
 	const canCreate =
 		!!organizationId &&
@@ -251,6 +291,27 @@ export default function WorkspacesPage() {
 							</option>
 						))}
 					</select>
+					<select
+						value={createdWithin}
+						onChange={(event) =>
+							setCreatedWithin(event.target.value as CreatedWithin)
+						}
+						className="rounded-md border bg-transparent px-3 py-2 text-sm"
+					>
+						<option value="all">Any time</option>
+						<option value="7d">Last 7 days</option>
+						<option value="30d">Last 30 days</option>
+						<option value="90d">Last 90 days</option>
+					</select>
+					<select
+						value={sortBy}
+						onChange={(event) => setSortBy(event.target.value as SortBy)}
+						className="rounded-md border bg-transparent px-3 py-2 text-sm"
+					>
+						<option value="recent">Recently created</option>
+						<option value="oldest">Oldest first</option>
+						<option value="name">Name (A–Z)</option>
+					</select>
 				</div>
 				{workspaces === null ? (
 					<p className="text-muted-foreground mt-3 text-sm">Loading…</p>
@@ -270,7 +331,8 @@ export default function WorkspacesPage() {
 								>
 									<div className="text-sm font-medium">{workspace.name}</div>
 									<div className="text-muted-foreground mt-0.5 text-xs">
-										{workspace.projectName} · {workspace.branch}
+										{workspace.projectName} · {workspace.branch} · created{" "}
+										{formatRelative(workspace.createdAt)}
 									</div>
 								</Link>
 							</li>

@@ -33,7 +33,35 @@ export function MobileTerminalInput({
 
 	const focusKeyboardInput = useCallback(() => {
 		if (!enabled) return;
+		const scrollingElement =
+			document.scrollingElement ?? document.documentElement;
+		const savedScrollTop = scrollingElement?.scrollTop ?? 0;
+		const savedScrollLeft = scrollingElement?.scrollLeft ?? 0;
+		const savedWindowY = window.scrollY;
+		const savedWindowX = window.scrollX;
 		textareaRef.current?.focus({ preventScroll: true });
+		// iOS Safari ignores preventScroll when focusing an input that sits
+		// under the soft keyboard — it scrolls the page to bring the caret
+		// into view, which on a viewport-height page yanks everything to
+		// the top. Restore the prior scroll across the next few frames in
+		// case the OS scroll fires after our focus call.
+		const restore = () => {
+			if (scrollingElement) {
+				if (scrollingElement.scrollTop !== savedScrollTop) {
+					scrollingElement.scrollTop = savedScrollTop;
+				}
+				if (scrollingElement.scrollLeft !== savedScrollLeft) {
+					scrollingElement.scrollLeft = savedScrollLeft;
+				}
+			}
+			if (window.scrollY !== savedWindowY || window.scrollX !== savedWindowX) {
+				window.scrollTo(savedWindowX, savedWindowY);
+			}
+		};
+		requestAnimationFrame(() => {
+			restore();
+			requestAnimationFrame(restore);
+		});
 	}, [enabled]);
 
 	useEffect(() => {
@@ -90,7 +118,7 @@ export function MobileTerminalInput({
 				autoCapitalize="none"
 				autoComplete="off"
 				autoCorrect="off"
-				className="fixed bottom-0 left-0 h-px w-px resize-none opacity-0"
+				className="pointer-events-none fixed top-0 left-0 h-px w-px resize-none opacity-0"
 				enterKeyHint="enter"
 				inputMode="text"
 				onBeforeInput={(event) => {
