@@ -3,7 +3,10 @@ import { type Options, useHotkeys } from "react-hotkeys-hook";
 import { formatHotkeyDisplay } from "../../display";
 import type { HotkeyId } from "../../registry";
 import { PLATFORM } from "../../registry";
-import { useEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
+import {
+	useEffectiveLayoutId,
+	useEffectiveLayoutMap,
+} from "../../stores/keyboardPreferencesStore";
 import type { HotkeyDisplay } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
 import { useBinding } from "../useBinding";
@@ -25,7 +28,8 @@ export function useHotkey(
 ): HotkeyDisplay {
 	const binding = useBinding(id);
 	const layoutMap = useEffectiveLayoutMap();
-	const chord = bindingToDispatchChord(binding, layoutMap);
+	const layoutId = useEffectiveLayoutId();
+	const chord = bindingToDispatchChord(binding, layoutMap, layoutId);
 	const callbackRef = useRef(callback);
 	callbackRef.current = callback;
 	const callerIgnore = options?.ignoreEventWhen;
@@ -47,5 +51,5 @@ export function useHotkey(
 		},
 		[chord],
 	);
-	return formatHotkeyDisplay(chord, PLATFORM, layoutMap);
+	return formatHotkeyDisplay(chord, PLATFORM, layoutMap, layoutId);
 }

@@ -4,6 +4,7 @@
  */
 
 import type { HotkeyDisplay, Platform } from "./types";
+import { metaRevertsToQwerty } from "./utils/layoutQuirks";
 import { normalizeToken } from "./utils/resolveHotkeyFromEvent";
 
 const MODIFIER_DISPLAY: Record<Platform, Record<string, string>> = {
@@ -96,11 +97,17 @@ const isModifier = (p: string): p is Modifier =>
  * so the displayed glyph matches what the user sees on their physical key
  * — e.g. `meta+z` shows `⌘Y` on a German QWERTZ keyboard. When null, falls
  * back to the US-ANSI glyph table.
+ *
+ * `layoutId` gates the special case for layouts where ⌘ reverts to QWERTY
+ * (issue #4674): on macOS "Dvorak - QWERTY ⌘", `⌘S` is displayed with the
+ * QWERTY letter the user is about to press, not the Dvorak glyph at the
+ * KeyS position.
  */
 export function formatHotkeyDisplay(
 	keys: string | null,
 	platform: Platform,
 	layoutMap: ReadonlyMap<string, string> | null = null,
+	layoutId: string | null = null,
 ): HotkeyDisplay {
 	if (!keys) return { keys: ["Unassigned"], text: "Unassigned" };
 
@@ -117,12 +124,19 @@ export function formatHotkeyDisplay(
 	const modSymbols = MODIFIER_ORDER.filter((m) => modifiers.includes(m)).map(
 		(m) => MODIFIER_DISPLAY[platform][m],
 	);
+	// Suppress layout-map glyph lookup for meta chords on layouts where ⌘
+	// reverts to QWERTY — the user sees the QWERTY letter their physical
+	// key is labeled with, not the Dvorak glyph at that scan code.
+	const skipLayoutGlyph =
+		modifiers.includes("meta") && metaRevertsToQwerty(layoutId);
 	// Order matters: layoutMap wins for printable keys (so QWERTZ shows the
 	// user's printed glyph for `KeyZ`), KEY_DISPLAY wins for special keys
 	// (Enter, arrows, etc. — glyphForCode returns null for these because
 	// PRINTABLE_TO_SCAN_CODE doesn't include them).
 	const keyDisplay =
-		glyphForCode(key, layoutMap) ?? KEY_DISPLAY[key] ?? key.toUpperCase();
+		(skipLayoutGlyph ? null : glyphForCode(key, layoutMap)) ??
+		KEY_DISPLAY[key] ??
+		key.toUpperCase();
 	const displayKeys = [...modSymbols, keyDisplay];
 	const separator = platform === "mac" ? "" : "+";
 	return { keys: displayKeys, text: displayKeys.join(separator) };
