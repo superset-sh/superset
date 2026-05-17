@@ -8,7 +8,9 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
+import { useEffect } from "react";
 import stripAnsi from "strip-ansi";
+import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
 import { formatTeardownReason } from "./formatTeardownReason";
 
 interface TeardownFailedPaneProps {
@@ -29,6 +31,19 @@ export function TeardownFailedPane({
 	const reason = formatTeardownReason(cause);
 	// Strip ANSI so raw PTY bytes render readably in the <pre>.
 	const cleanTail = stripAnsi(cause.outputTail ?? "");
+
+	useEffect(() => {
+		if (!open) return;
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (!shouldConfirmDeleteDialogKey(event)) return;
+			event.preventDefault();
+			onForceDelete();
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [onForceDelete, open]);
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>

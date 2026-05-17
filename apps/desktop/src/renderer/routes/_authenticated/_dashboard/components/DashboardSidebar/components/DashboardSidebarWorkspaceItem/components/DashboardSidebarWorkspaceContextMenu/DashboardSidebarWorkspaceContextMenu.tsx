@@ -3,6 +3,7 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuSub,
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
@@ -23,6 +24,7 @@ import {
 	LuTrash2,
 	LuX,
 } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
 
@@ -32,6 +34,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	isLocalWorkspace: boolean;
 	isPinned?: boolean;
 	isUnread: boolean;
+	showDeleteHotkey?: boolean;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
 	onOpenInFinder: () => void;
@@ -50,6 +53,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	isLocalWorkspace,
 	isPinned = false,
 	isUnread,
+	showDeleteHotkey = false,
 	onCreateSection,
 	onMoveToSection,
 	onOpenInFinder,
@@ -63,6 +67,9 @@ export function DashboardSidebarWorkspaceContextMenu({
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
 	const { setContextMenuOpen } = useDashboardSidebarHover();
+	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
+	const showDeleteShortcut =
+		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
 	const { data: sections = [] } = useLiveQuery(
 		(q) =>
 			q
@@ -174,6 +181,9 @@ export function DashboardSidebarWorkspaceContextMenu({
 					>
 						<LuTrash2 className="size-4 mr-2 text-destructive" />
 						Delete
+						{showDeleteShortcut && (
+							<ContextMenuShortcut>{deleteHotkeyText}</ContextMenuShortcut>
+						)}
 					</ContextMenuItem>
 				) : null}
 			</ContextMenuContent>

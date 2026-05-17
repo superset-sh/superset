@@ -3,6 +3,7 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuSub,
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
@@ -28,6 +29,7 @@ import {
 	LuPencil,
 	LuX,
 } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import {
 	useCreateSectionFromWorkspaces,
 	useMoveWorkspacesToSection,
@@ -45,6 +47,7 @@ interface WorkspaceContextMenuProps {
 	name: string;
 	isBranchWorkspace: boolean;
 	isUnread: boolean;
+	showDeleteHotkey?: boolean;
 	workspaceStatus: string | null | undefined;
 	sections: { id: string; name: string }[];
 	onRename: () => void;
@@ -64,6 +67,7 @@ export function WorkspaceContextMenu({
 	name,
 	isBranchWorkspace,
 	isUnread,
+	showDeleteHotkey = false,
 	workspaceStatus,
 	sections,
 	onRename,
@@ -85,6 +89,9 @@ export function WorkspaceContextMenu({
 	const moveToSection = useMoveWorkspaceToSection();
 	const bulkMoveToSection = useMoveWorkspacesToSection();
 	const createSectionFromWorkspaces = useCreateSectionFromWorkspaces();
+	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
+	const showDeleteShortcut =
+		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
 	const deleteDialogCoordinator = useMemo(
 		() => createContextMenuDeleteDialogCoordinator(onDelete),
 		[onDelete],
@@ -206,6 +213,9 @@ export function WorkspaceContextMenu({
 			>
 				<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				{isBranchWorkspace ? "Close Workspace" : "Close Worktree"}
+				{showDeleteShortcut && (
+					<ContextMenuShortcut>{deleteHotkeyText}</ContextMenuShortcut>
+				)}
 			</ContextMenuItem>
 		</>
 	);
