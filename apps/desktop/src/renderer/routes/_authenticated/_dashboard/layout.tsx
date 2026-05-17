@@ -1,3 +1,5 @@
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createFileRoute,
 	Outlet,
@@ -10,7 +12,10 @@ import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
+import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
@@ -30,10 +35,26 @@ export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
 });
 
+type DeleteTarget =
+	| {
+			version: "v1";
+			workspaceId: string;
+			workspaceName: string;
+			workspaceType: "worktree" | "branch";
+	  }
+	| {
+			version: "v2";
+			workspaceId: string;
+			workspaceName: string;
+			open: boolean;
+	  };
+
 function DashboardLayout() {
 	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const collections = useCollections();
+	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
 	useDevSeedV2Sidebar();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
@@ -47,6 +68,8 @@ function DashboardLayout() {
 		to: "/v2-workspace/$workspaceId",
 		fuzzy: true,
 	});
+	const currentV2WorkspaceId =
+		v2WorkspaceMatch !== false ? v2WorkspaceMatch.workspaceId : null;
 	const onV1WorkspaceRoute = currentWorkspaceMatch !== false;
 	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
 	const versionMismatch =
@@ -57,6 +80,18 @@ function DashboardLayout() {
 		{ id: currentWorkspaceId ?? "" },
 		{ enabled: !!currentWorkspaceId },
 	);
+
+	const { data: currentV2Workspaces = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ workspaces: collections.v2Workspaces })
+				.where(({ workspaces }) =>
+					eq(workspaces.id, currentV2WorkspaceId ?? ""),
+				),
+		[collections, currentV2WorkspaceId],
+	);
+	const currentV2Workspace =
+		currentV2WorkspaceId != null ? (currentV2Workspaces[0] ?? null) : null;
 
 	const {
 		isOpen: isWorkspaceSidebarOpen,
@@ -83,11 +118,7 @@ function DashboardLayout() {
 		openNewWorkspaceModal(currentWorkspace?.projectId),
 	);
 
-	const [deleteTarget, setDeleteTarget] = useState<{
-		workspaceId: string;
-		workspaceName: string;
-		workspaceType: "worktree" | "branch";
-	} | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
 	useHotkey(
 		"CLOSE_WORKSPACE",
@@ -97,10 +128,31 @@ function DashboardLayout() {
 					workspaceId: currentWorkspaceId,
 					workspaceName: currentWorkspace.name,
 					workspaceType: currentWorkspace.type,
+					version: "v1",
+				});
+				return;
+			}
+
+			if (
+				currentV2WorkspaceId &&
+				currentV2Workspace &&
+				currentV2Workspace.type !== "main"
+			) {
+				setDeleteTarget({
+					workspaceId: currentV2WorkspaceId,
+					workspaceName: currentV2Workspace.name || currentV2Workspace.branch,
+					version: "v2",
+					open: true,
 				});
 			}
 		},
-		{ enabled: !!currentWorkspaceId },
+		{
+			enabled:
+				(!!currentWorkspaceId && !!currentWorkspace) ||
+				(!!currentV2WorkspaceId &&
+					!!currentV2Workspace &&
+					currentV2Workspace.type !== "main"),
+		},
 	);
 
 	const sidebarPanel = isWorkspaceSidebarOpen && (
@@ -152,7 +204,7 @@ function DashboardLayout() {
 			</div>
 			<div id="workspace-right-sidebar-slot" className="flex h-full shrink-0" />
 			<AddRepositoryModals />
-			{deleteTarget && (
+			{deleteTarget?.version === "v1" && (
 				<DeleteWorkspaceDialog
 					workspaceId={deleteTarget.workspaceId}
 					workspaceName={deleteTarget.workspaceName}
@@ -160,6 +212,22 @@ function DashboardLayout() {
 					open={true}
 					onOpenChange={(open) => {
 						if (!open) setDeleteTarget(null);
+					}}
+				/>
+			)}
+			{deleteTarget?.version === "v2" && (
+				<DashboardSidebarDeleteDialog
+					workspaceId={deleteTarget.workspaceId}
+					workspaceName={deleteTarget.workspaceName}
+					open={deleteTarget.open}
+					onOpenChange={(open) => {
+						setDeleteTarget((target) =>
+							target?.version === "v2" ? { ...target, open } : target,
+						);
+					}}
+					onDeleted={() => {
+						removeWorkspaceFromSidebar(deleteTarget.workspaceId);
+						setDeleteTarget(null);
 					}}
 				/>
 			)}

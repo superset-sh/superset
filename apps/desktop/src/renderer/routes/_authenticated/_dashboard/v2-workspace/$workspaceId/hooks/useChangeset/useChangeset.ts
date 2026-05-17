@@ -83,14 +83,6 @@ export function useChangeset({
 
 		if (ref.kind === "uncommitted") {
 			return [
-				...status.staged.map<ChangesetFile>((file) => ({
-					path: file.path,
-					oldPath: file.oldPath,
-					status: file.status as FileStatus,
-					additions: file.additions,
-					deletions: file.deletions,
-					source: { kind: "staged" },
-				})),
 				...status.unstaged.map<ChangesetFile>((file) => ({
 					path: file.path,
 					oldPath: file.oldPath,
@@ -99,25 +91,33 @@ export function useChangeset({
 					deletions: file.deletions,
 					source: { kind: "unstaged" },
 				})),
+				...status.staged.map<ChangesetFile>((file) => ({
+					path: file.path,
+					oldPath: file.oldPath,
+					status: file.status as FileStatus,
+					additions: file.additions,
+					deletions: file.deletions,
+					source: { kind: "staged" },
+				})),
 			];
 		}
 
-		// against-base: merge committed + dirty, last-wins by path, each file
-		// tagged with its actual source so downstream getDiff fetches the right
-		// bucket (dirty files show their working-tree diff; purely committed
-		// files show the base-branch diff).
+		// against-base: merge committed + dirty by path in the same order the
+		// sidebar renders sections. Dirty files win over committed files so
+		// downstream getDiff fetches the right bucket.
 		const seen = new Map<string, ChangesetFile>();
-		for (const file of status.againstBase) {
+		for (const file of status.unstaged) {
 			seen.set(file.path, {
 				path: file.path,
 				oldPath: file.oldPath,
 				status: file.status as FileStatus,
 				additions: file.additions,
 				deletions: file.deletions,
-				source: { kind: "against-base", baseBranch: ref.baseBranch },
+				source: { kind: "unstaged" },
 			});
 		}
 		for (const file of status.staged) {
+			if (seen.has(file.path)) continue;
 			seen.set(file.path, {
 				path: file.path,
 				oldPath: file.oldPath,
@@ -127,14 +127,15 @@ export function useChangeset({
 				source: { kind: "staged" },
 			});
 		}
-		for (const file of status.unstaged) {
+		for (const file of status.againstBase) {
+			if (seen.has(file.path)) continue;
 			seen.set(file.path, {
 				path: file.path,
 				oldPath: file.oldPath,
 				status: file.status as FileStatus,
 				additions: file.additions,
 				deletions: file.deletions,
-				source: { kind: "unstaged" },
+				source: { kind: "against-base", baseBranch: ref.baseBranch },
 			});
 		}
 		return Array.from(seen.values());

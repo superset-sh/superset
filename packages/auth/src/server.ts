@@ -48,6 +48,26 @@ const desktopDevOrigins =
 			]
 		: [];
 
+function serializeCancellationDetails(
+	cancellationDetails?: Stripe.Subscription.CancellationDetails | null,
+) {
+	try {
+		if (!cancellationDetails) return undefined;
+
+		return {
+			comment: cancellationDetails.comment,
+			feedback: cancellationDetails.feedback,
+			reason: cancellationDetails.reason,
+		};
+	} catch (error) {
+		console.error(
+			"[stripe/subscription-cancel] Failed to serialize cancellation details:",
+			error,
+		);
+		return undefined;
+	}
+}
+
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
 	secret: env.BETTER_AUTH_SECRET,
@@ -920,7 +940,11 @@ export const auth = betterAuth({
 					}
 				},
 
-				onSubscriptionCancel: async ({ subscription, stripeSubscription }) => {
+				onSubscriptionCancel: async ({
+					subscription,
+					stripeSubscription,
+					cancellationDetails,
+				}) => {
 					const org = await db.query.organizations.findFirst({
 						where: eq(authSchema.organizations.id, subscription.referenceId),
 					});
@@ -957,6 +981,10 @@ export const auth = betterAuth({
 							body: {
 								eventType: "subscription_cancelled",
 								stripeSubscriptionId: stripeSubscription.id,
+								cancellationDetails: serializeCancellationDetails(
+									cancellationDetails ??
+										stripeSubscription.cancellation_details,
+								),
 							},
 							retries: 3,
 						});

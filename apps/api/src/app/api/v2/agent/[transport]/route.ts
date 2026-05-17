@@ -8,6 +8,7 @@ import {
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
 import { getOAuthProtectedResourceMetadataUrl } from "@/lib/oauth-metadata";
+import { getRelayUrl } from "@/lib/relay-url";
 
 function unauthorizedResponse(req: Request, message: string): Response {
 	return new Response(
@@ -35,6 +36,8 @@ async function handle(req: Request): Promise<Response> {
 		}
 		throw error;
 	}
+
+	ctx.relayUrl = await getRelayUrl(ctx.userId);
 
 	const server = createMcpServer({
 		onToolCall: (event) => {

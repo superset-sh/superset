@@ -3,6 +3,7 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
@@ -14,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type RefObject, useMemo, useState } from "react";
 import { LuCopy, LuGitBranch, LuX } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
@@ -69,6 +71,8 @@ export function CollapsedWorkspaceItem({
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
 		null,
 	);
+	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
+	const showDeleteShortcut = isActive && deleteHotkeyText !== "Unassigned";
 
 	const collapsedButton = (
 		<button
@@ -163,6 +167,9 @@ export function CollapsedWorkspaceItem({
 						>
 							<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Close Workspace
+							{showDeleteShortcut && (
+								<ContextMenuShortcut>{deleteHotkeyText}</ContextMenuShortcut>
+							)}
 						</ContextMenuItem>
 					</ContextMenuContent>
 				</ContextMenu>
