@@ -36,6 +36,7 @@ export function TeardownFailedPane({
 		if (!open) return;
 
 		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.target instanceof HTMLButtonElement) return;
 			if (!shouldConfirmDeleteDialogKey(event)) return;
 			event.preventDefault();
 			onForceDelete();

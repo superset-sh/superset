@@ -46,6 +46,7 @@ export function DestroyConfirmPane({
 		if (!open || !canConfirm) return;
 
 		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.target instanceof HTMLButtonElement) return;
 			if (!shouldConfirmDeleteDialogKey(event)) return;
 			event.preventDefault();
 			onConfirm();

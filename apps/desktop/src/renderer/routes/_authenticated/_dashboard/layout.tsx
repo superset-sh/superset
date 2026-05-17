@@ -221,9 +221,14 @@ function DashboardLayout() {
 					workspaceName={deleteTarget.workspaceName}
 					open={deleteTarget.open}
 					onOpenChange={(open) => {
-						setDeleteTarget((target) =>
-							target?.version === "v2" ? { ...target, open } : target,
-						);
+						setDeleteTarget((target) => {
+							if (target?.version === "v2") {
+								return open ? { ...target, open: true } : null;
+							}
+							if (open && target === null)
+								return { ...deleteTarget, open: true };
+							return target;
+						});
 					}}
 					onDeleted={() => {
 						removeWorkspaceFromSidebar(deleteTarget.workspaceId);

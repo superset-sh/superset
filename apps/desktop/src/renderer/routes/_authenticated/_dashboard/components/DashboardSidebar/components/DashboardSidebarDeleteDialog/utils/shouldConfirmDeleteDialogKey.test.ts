@@ -21,6 +21,12 @@ describe("shouldConfirmDeleteDialogKey", () => {
 		expect(
 			shouldConfirmDeleteDialogKey({ ...plainEnter, shiftKey: true }),
 		).toBe(false);
+		expect(shouldConfirmDeleteDialogKey({ ...plainEnter, ctrlKey: true })).toBe(
+			false,
+		);
+		expect(shouldConfirmDeleteDialogKey({ ...plainEnter, altKey: true })).toBe(
+			false,
+		);
 	});
 
 	test("rejects composition and non-Enter keys", () => {
