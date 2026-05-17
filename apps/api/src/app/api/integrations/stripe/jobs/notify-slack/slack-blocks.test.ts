@@ -47,4 +47,43 @@ describe("formatSubscriptionCancelled", () => {
 			"*Comment:*\\nMissing an admin approval workflow.",
 		);
 	});
+
+	test("renders unknown Stripe cancellation values without throwing", () => {
+		const blocks = formatSubscriptionCancelled(
+			createEnrichedSubscription({
+				cancellationDetails: {
+					comment: null,
+					feedback: "pricing_changed",
+					reason: "account_closed",
+				},
+			}),
+		);
+
+		const serializedBlocks = JSON.stringify(blocks);
+
+		expect(serializedBlocks).toContain(
+			"*Cancellation reason:*\\nPricing changed",
+		);
+		expect(serializedBlocks).toContain("*Stripe reason:*\\nAccount closed");
+	});
+
+	test("escapes and truncates cancellation comments for Slack", () => {
+		const longComment = `<!channel> & <https://example.com|link> ${"a".repeat(510)}`;
+		const blocks = formatSubscriptionCancelled(
+			createEnrichedSubscription({
+				cancellationDetails: {
+					comment: longComment,
+					feedback: "other",
+					reason: "cancellation_requested",
+				},
+			}),
+		);
+
+		const serializedBlocks = JSON.stringify(blocks);
+
+		expect(serializedBlocks).toContain("&lt;!channel&gt;");
+		expect(serializedBlocks).toContain("&amp;");
+		expect(serializedBlocks).toContain("&lt;https://example.com|link&gt;");
+		expect(serializedBlocks).toContain("...");
+	});
 });

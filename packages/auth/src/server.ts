@@ -51,13 +51,21 @@ const desktopDevOrigins =
 function serializeCancellationDetails(
 	cancellationDetails?: Stripe.Subscription.CancellationDetails | null,
 ) {
-	if (!cancellationDetails) return undefined;
+	try {
+		if (!cancellationDetails) return undefined;
 
-	return {
-		comment: cancellationDetails.comment,
-		feedback: cancellationDetails.feedback,
-		reason: cancellationDetails.reason,
-	};
+		return {
+			comment: cancellationDetails.comment,
+			feedback: cancellationDetails.feedback,
+			reason: cancellationDetails.reason,
+		};
+	} catch (error) {
+		console.error(
+			"[stripe/subscription-cancel] Failed to serialize cancellation details:",
+			error,
+		);
+		return undefined;
+	}
 }
 
 export const auth = betterAuth({

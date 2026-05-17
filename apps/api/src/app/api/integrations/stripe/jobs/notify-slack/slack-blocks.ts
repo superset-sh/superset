@@ -34,8 +34,8 @@ export const cancellationReasonValues = [
 
 export interface CancellationDetails {
 	comment?: string | null;
-	feedback?: (typeof cancellationFeedbackValues)[number] | null;
-	reason?: (typeof cancellationReasonValues)[number] | null;
+	feedback?: string | null;
+	reason?: string | null;
 }
 
 export function getDiscountInfo(
@@ -147,24 +147,61 @@ const cancellationFeedbackLabels = {
 	too_complex: "Too complex",
 	too_expensive: "Too expensive",
 	unused: "Unused",
-} satisfies Record<NonNullable<CancellationDetails["feedback"]>, string>;
+} satisfies Record<(typeof cancellationFeedbackValues)[number], string>;
 
 const cancellationReasonLabels = {
 	cancellation_requested: "Cancellation requested",
 	payment_disputed: "Payment disputed",
 	payment_failed: "Payment failed",
-} satisfies Record<NonNullable<CancellationDetails["reason"]>, string>;
+} satisfies Record<(typeof cancellationReasonValues)[number], string>;
+
+const maxCancellationCommentLength = 500;
+
+function escapeSlackMrkdwn(text: string): string {
+	return text
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;");
+}
+
+function humanizeStripeValue(
+	value: string | null | undefined,
+	labels: Record<string, string>,
+): string {
+	if (!value) return "N/A";
+
+	const fallback = value.split("_").filter(Boolean).join(" ");
+
+	return (
+		labels[value] ?? `${fallback.charAt(0).toUpperCase()}${fallback.slice(1)}`
+	);
+}
+
+function formatCancellationComment(comment: string | null | undefined): string {
+	const trimmed = comment?.trim();
+	if (!trimmed) return "N/A";
+
+	const normalized = trimmed.replace(/\s+/g, " ");
+	const truncated =
+		normalized.length > maxCancellationCommentLength
+			? `${normalized.slice(0, maxCancellationCommentLength - 3)}...`
+			: normalized;
+
+	return escapeSlackMrkdwn(truncated);
+}
 
 function cancellationDetailsBlock(
 	cancellationDetails: CancellationDetails | null,
 ): unknown {
-	const feedback = cancellationDetails?.feedback
-		? cancellationFeedbackLabels[cancellationDetails.feedback]
-		: "N/A";
-	const reason = cancellationDetails?.reason
-		? cancellationReasonLabels[cancellationDetails.reason]
-		: "N/A";
-	const comment = cancellationDetails?.comment?.trim() || "N/A";
+	const feedback = humanizeStripeValue(
+		cancellationDetails?.feedback,
+		cancellationFeedbackLabels,
+	);
+	const reason = humanizeStripeValue(
+		cancellationDetails?.reason,
+		cancellationReasonLabels,
+	);
+	const comment = formatCancellationComment(cancellationDetails?.comment);
 
 	return {
 		type: "section",
@@ -174,6 +211,20 @@ function cancellationDetailsBlock(
 			{ type: "mrkdwn", text: `*Comment:*\n${comment}` },
 		],
 	};
+}
+
+function safeCancellationDetailsBlock(
+	cancellationDetails: CancellationDetails | null,
+): unknown {
+	try {
+		return cancellationDetailsBlock(cancellationDetails);
+	} catch (error) {
+		console.error(
+			"[stripe/notify-slack] Failed to format cancellation details:",
+			error,
+		);
+		return cancellationDetailsBlock(null);
+	}
 }
 
 /**
@@ -240,7 +291,7 @@ export function formatSubscriptionCancelled(
 			type: "section",
 			text: { type: "mrkdwn", text: `*Access ends:*\n${endsAtStr}` },
 		},
-		cancellationDetailsBlock(enriched.cancellationDetails),
+		safeCancellationDetailsBlock(enriched.cancellationDetails),
 		stripeDashboardButtons(
 			enriched.stripeCustomerId,
 			enriched.stripeSubscriptionId,
