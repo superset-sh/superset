@@ -185,6 +185,14 @@ export function RemoteTerminal({ sessionId, token }: RemoteTerminalProps) {
 		}
 		termRef.current = term;
 		fitRef.current = fit;
+		if (window.matchMedia("(pointer: coarse)").matches) {
+			const xtermInput = term.textarea;
+			if (xtermInput) {
+				xtermInput.readOnly = true;
+				xtermInput.inputMode = "none";
+				xtermInput.tabIndex = -1;
+			}
+		}
 
 		const url = `${meta.wsUrl}?${REMOTE_CONTROL_TOKEN_PARAM}=${encodeURIComponent(token)}`;
 		const ws = new WebSocket(url);
@@ -490,13 +498,7 @@ export function RemoteTerminal({ sessionId, token }: RemoteTerminalProps) {
 			>
 				<div ref={containerRef} className="absolute inset-0" />
 			</div>
-			{isFull && (
-				<MobileTerminalInput
-					focusTargetRef={containerRef}
-					onFocusTerminal={() => termRef.current?.focus()}
-					onSend={sendInputText}
-				/>
-			)}
+			{isFull && <MobileTerminalInput onSend={sendInputText} />}
 		</div>
 	);
 }

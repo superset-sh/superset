@@ -1,6 +1,6 @@
 "use client";
 
-import { type RefObject, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const KEY_BUTTONS: Array<{ label: string; sequence: string }> = [
 	{ label: "Tab", sequence: "\t" },
@@ -14,78 +14,28 @@ const KEY_BUTTONS: Array<{ label: string; sequence: string }> = [
 ];
 
 interface MobileTerminalInputProps {
-	focusTargetRef: RefObject<HTMLElement | null>;
 	onSend: (sequence: string) => void;
-	onFocusTerminal?: () => void;
-	enabled?: boolean;
-	toolbarVisibility?: "always" | "mobile";
+	visibility?: "always" | "mobile";
 }
 
 export function MobileTerminalInput({
-	focusTargetRef,
 	onSend,
-	onFocusTerminal,
-	enabled = true,
-	toolbarVisibility = "mobile",
+	visibility = "mobile",
 }: MobileTerminalInputProps) {
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const isComposingRef = useRef(false);
-
-	const focusKeyboardInput = useCallback(() => {
-		if (!enabled) return;
-		const scrollingElement =
-			document.scrollingElement ?? document.documentElement;
-		const savedScrollTop = scrollingElement?.scrollTop ?? 0;
-		const savedScrollLeft = scrollingElement?.scrollLeft ?? 0;
-		const savedWindowY = window.scrollY;
-		const savedWindowX = window.scrollX;
-		textareaRef.current?.focus({ preventScroll: true });
-		// iOS Safari ignores preventScroll when focusing an input that sits
-		// under the soft keyboard — it scrolls the page to bring the caret
-		// into view, which on a viewport-height page yanks everything to
-		// the top. Restore the prior scroll across the next few frames in
-		// case the OS scroll fires after our focus call.
-		const restore = () => {
-			if (scrollingElement) {
-				if (scrollingElement.scrollTop !== savedScrollTop) {
-					scrollingElement.scrollTop = savedScrollTop;
-				}
-				if (scrollingElement.scrollLeft !== savedScrollLeft) {
-					scrollingElement.scrollLeft = savedScrollLeft;
-				}
-			}
-			if (window.scrollY !== savedWindowY || window.scrollX !== savedWindowX) {
-				window.scrollTo(savedWindowX, savedWindowY);
-			}
-		};
-		requestAnimationFrame(() => {
-			restore();
-			requestAnimationFrame(restore);
-		});
-	}, [enabled]);
+	const [focused, setFocused] = useState(false);
+	const [coarsePointer, setCoarsePointer] = useState(false);
 
 	useEffect(() => {
-		const target = focusTargetRef.current;
-		if (!target) return;
-
-		const onPointerDown = (event: PointerEvent) => {
-			if (event.pointerType === "mouse") {
-				onFocusTerminal?.();
-				return;
-			}
-			focusKeyboardInput();
+		const query = window.matchMedia("(pointer: coarse)");
+		setCoarsePointer(query.matches);
+		const onChange = (event: MediaQueryListEvent) => {
+			setCoarsePointer(event.matches);
 		};
-		const onTouchStart = () => {
-			focusKeyboardInput();
-		};
-
-		target.addEventListener("pointerdown", onPointerDown, { passive: true });
-		target.addEventListener("touchstart", onTouchStart, { passive: true });
-		return () => {
-			target.removeEventListener("pointerdown", onPointerDown);
-			target.removeEventListener("touchstart", onTouchStart);
-		};
-	}, [focusKeyboardInput, focusTargetRef, onFocusTerminal]);
+		query.addEventListener("change", onChange);
+		return () => query.removeEventListener("change", onChange);
+	}, []);
 
 	const flushTextareaValue = useCallback(
 		(textarea: HTMLTextAreaElement) => {
@@ -99,28 +49,42 @@ export function MobileTerminalInput({
 
 	const sendButtonSequence = useCallback(
 		(sequence: string) => {
-			focusKeyboardInput();
+			textareaRef.current?.focus({ preventScroll: true });
 			onSend(sequence);
 		},
-		[focusKeyboardInput, onSend],
+		[onSend],
 	);
 
-	const toolbarClassName =
-		toolbarVisibility === "mobile"
-			? "border-t px-2 py-1 sm:hidden"
-			: "border-t p-1";
+	if (visibility === "mobile" && !coarsePointer) return null;
 
 	return (
-		<>
+		<div
+			className="flex flex-col gap-2 border-t px-2 py-2"
+			style={{
+				borderColor: "#2a2827",
+				backgroundColor: "#1a1716",
+				paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))",
+			}}
+		>
 			<textarea
 				ref={textareaRef}
 				aria-label="Terminal input"
 				autoCapitalize="none"
 				autoComplete="off"
 				autoCorrect="off"
-				className="pointer-events-none fixed top-0 left-0 h-px w-px resize-none opacity-0"
+				className="w-full resize-none overflow-hidden rounded border px-3 py-2 text-sm outline-none"
 				enterKeyHint="enter"
 				inputMode="text"
+				placeholder={focused ? undefined : "Type here to send to the terminal"}
+				rows={1}
+				spellCheck={false}
+				style={{
+					borderColor: focused ? "#e07850" : "#2a2827",
+					backgroundColor: "#151110",
+					color: "#eae8e6",
+				}}
+				onBlur={() => setFocused(false)}
+				onFocus={() => setFocused(true)}
 				onBeforeInput={(event) => {
 					const nativeEvent = event.nativeEvent as InputEvent;
 					switch (nativeEvent.inputType) {
@@ -205,26 +169,21 @@ export function MobileTerminalInput({
 					event.currentTarget.value = "";
 					onSend(text);
 				}}
-				spellCheck={false}
 			/>
-			<div
-				className={toolbarClassName}
-				style={{ borderColor: "#2a2827", backgroundColor: "#1a1716" }}
-			>
-				<div className="flex flex-wrap gap-1">
-					{KEY_BUTTONS.map((button) => (
-						<button
-							key={button.label}
-							type="button"
-							onClick={() => sendButtonSequence(button.sequence)}
-							className="rounded border px-2 py-1 text-xs"
-							style={{ borderColor: "#2a2827", color: "#eae8e6" }}
-						>
-							{button.label}
-						</button>
-					))}
-				</div>
+			<div className="flex flex-wrap gap-1">
+				{KEY_BUTTONS.map((button) => (
+					<button
+						key={button.label}
+						type="button"
+						onPointerDown={(event) => event.preventDefault()}
+						onClick={() => sendButtonSequence(button.sequence)}
+						className="rounded border px-2 py-1 text-xs"
+						style={{ borderColor: "#2a2827", color: "#eae8e6" }}
+					>
+						{button.label}
+					</button>
+				))}
 			</div>
-		</>
+		</div>
 	);
 }

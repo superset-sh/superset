@@ -39,7 +39,10 @@ export default function WorkspaceTerminalPage({
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [creating, setCreating] = useState(false);
 	const [runningPresetId, setRunningPresetId] = useState<string | null>(null);
-	const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+	const [viewport, setViewport] = useState<{
+		height: number;
+		offsetTop: number;
+	} | null>(null);
 
 	const loadTerminals = useCallback(
 		async (key: string) => {
@@ -112,7 +115,11 @@ export default function WorkspaceTerminalPage({
 	useEffect(() => {
 		const visualViewport = window.visualViewport;
 		if (!visualViewport) return;
-		const update = () => setViewportHeight(visualViewport.height);
+		const update = () =>
+			setViewport({
+				height: visualViewport.height,
+				offsetTop: visualViewport.offsetTop,
+			});
 		const scrollListenerOptions = { passive: true };
 		const visualViewportTarget = visualViewport as EventTarget;
 		update();
@@ -161,8 +168,11 @@ export default function WorkspaceTerminalPage({
 
 	return (
 		<div
-			className="flex flex-col overflow-hidden bg-[#151110] text-[#eae8e6]"
-			style={{ height: viewportHeight ? `${viewportHeight}px` : "100dvh" }}
+			className="fixed inset-x-0 flex flex-col overflow-hidden bg-[#151110] text-[#eae8e6]"
+			style={{
+				top: viewport ? `${viewport.offsetTop}px` : 0,
+				height: viewport ? `${viewport.height}px` : "100dvh",
+			}}
 		>
 			<header
 				className="flex flex-wrap items-center gap-2 border-b px-3 py-2 text-sm"

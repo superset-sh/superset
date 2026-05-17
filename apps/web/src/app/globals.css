@@ -7,3 +7,8 @@
 	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 	--font-family-sans: var(--font-inter), ui-sans-serif, sans-serif;
 }
+
+.xterm-viewport {
+	touch-action: pan-y;
+	overscroll-behavior: contain;
+}

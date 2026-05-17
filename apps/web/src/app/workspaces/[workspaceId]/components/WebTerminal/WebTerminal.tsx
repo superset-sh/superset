@@ -59,7 +59,6 @@ export function WebTerminal({
 	routingKey,
 }: WebTerminalProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
-	const terminalRef = useRef<Terminal | null>(null);
 	const socketRef = useRef<WebSocket | null>(null);
 	const [state, setState] = useState<ConnectionState>("connecting");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -130,7 +129,14 @@ export function WebTerminal({
 				fitAddon = new FitAddon();
 				terminal.loadAddon(fitAddon);
 				terminal.open(container);
-				terminalRef.current = terminal;
+				if (window.matchMedia("(pointer: coarse)").matches) {
+					const xtermInput = terminal.textarea;
+					if (xtermInput) {
+						xtermInput.readOnly = true;
+						xtermInput.inputMode = "none";
+						xtermInput.tabIndex = -1;
+					}
+				}
 				try {
 					fitAddon.fit();
 				} catch {
@@ -218,7 +224,6 @@ export function WebTerminal({
 				// best-effort
 			}
 			terminal?.dispose();
-			terminalRef.current = null;
 			socketRef.current = null;
 		};
 	}, [workspaceId, terminalId, routingKey]);
@@ -240,12 +245,7 @@ export function WebTerminal({
 					</div>
 				)}
 			</div>
-			<MobileTerminalInput
-				focusTargetRef={containerRef}
-				onFocusTerminal={() => terminalRef.current?.focus()}
-				onSend={sendSequence}
-				toolbarVisibility="always"
-			/>
+			<MobileTerminalInput onSend={sendSequence} visibility="always" />
 		</div>
 	);
 }
