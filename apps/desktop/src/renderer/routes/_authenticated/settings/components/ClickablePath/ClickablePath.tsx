@@ -69,7 +69,9 @@ export function ClickablePath({
 						className,
 					)}
 				>
-					<span className={truncate ? "truncate" : undefined}>{path}</span>
+					<span className={truncate ? "min-w-0 truncate" : undefined}>
+						{path}
+					</span>
 					<LuExternalLink className="size-3.5 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
 				</button>
 			</DropdownMenuTrigger>

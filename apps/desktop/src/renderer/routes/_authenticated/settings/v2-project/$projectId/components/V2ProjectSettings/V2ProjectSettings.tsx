@@ -1,4 +1,3 @@
-import { Label } from "@superset/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -10,7 +9,7 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { type ReactNode, useMemo } from "react";
+import { useMemo } from "react";
 import { HiOutlineComputerDesktop, HiOutlineServer } from "react-icons/hi2";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -22,6 +21,7 @@ import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
+import { SettingsRow } from "./components/SettingsRow";
 import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
 
 interface V2ProjectSettingsProps {
@@ -34,30 +34,6 @@ interface ProjectSettingsHostOption {
 	name: string;
 	isLocal: boolean;
 	isOnline: boolean;
-}
-
-function SettingsRow({
-	label,
-	hint,
-	htmlFor,
-	children,
-}: {
-	label: string;
-	hint?: ReactNode;
-	htmlFor?: string;
-	children: ReactNode;
-}) {
-	return (
-		<div className="flex items-center justify-between gap-8 py-2.5">
-			<div className="min-w-0 flex-1">
-				<Label htmlFor={htmlFor} className="text-sm font-medium">
-					{label}
-				</Label>
-				{hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
-			</div>
-			<div className="shrink-0">{children}</div>
-		</div>
-	);
 }
 
 export function V2ProjectSettings({

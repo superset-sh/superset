@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { LuFolderOpen } from "react-icons/lu";
+import { RemotePathPicker } from "renderer/components/RemotePathPicker";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -55,6 +56,7 @@ export function ProjectLocationSection({
 	const [conflict, setConflict] = useState<BackfillConflict | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [setupOpen, setSetupOpen] = useState(false);
+	const [changeBrowseOpen, setChangeBrowseOpen] = useState(false);
 
 	const pickPath = async (title: string) => {
 		if (!hostUrl) {
@@ -74,9 +76,7 @@ export function ProjectLocationSection({
 		}
 	};
 
-	const handleChange = async () => {
-		const path = await pickPath("Select new project location");
-		if (!path) return;
+	const proposeRelocate = async (path: string) => {
 		if (path === currentPath) {
 			toast.info("Project is already at that location");
 			return;
@@ -100,6 +100,16 @@ export function ProjectLocationSection({
 			return;
 		}
 		setPendingPath(path);
+	};
+
+	const handleChange = async () => {
+		if (isRemoteTarget) {
+			setChangeBrowseOpen(true);
+			return;
+		}
+		const path = await pickPath("Select new project location");
+		if (!path) return;
+		await proposeRelocate(path);
 	};
 
 	const handleConfirmRelocate = async () => {
@@ -181,6 +191,20 @@ export function ProjectLocationSection({
 				isRemoteTarget={isRemoteTarget}
 				onChanged={onChanged}
 				onConflict={setConflict}
+			/>
+
+			<RemotePathPicker
+				open={changeBrowseOpen}
+				onOpenChange={setChangeBrowseOpen}
+				hostUrl={hostUrl}
+				hostName={hostName}
+				initialPath={currentPath ?? undefined}
+				title="Change project location"
+				description={`Pick the new project folder on ${hostName}.`}
+				confirmLabel="Use this folder"
+				onPick={(path) => {
+					void proposeRelocate(path);
+				}}
 			/>
 
 			<AlertDialog
