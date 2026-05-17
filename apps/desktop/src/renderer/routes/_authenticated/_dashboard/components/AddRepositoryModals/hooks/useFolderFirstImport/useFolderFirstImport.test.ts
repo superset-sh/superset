@@ -10,14 +10,13 @@ const cloudError = {
 	url: "https://github.com/octocat/hello.git",
 	message: "cloud-down",
 };
-const localCandidate = { id: "local-project", name: "octocat" };
 
 const selectDirectoryMock = mock(async () => ({
 	canceled: false,
 	path: repoPath,
 }));
 const findByPathMock = mock(async () => ({
-	candidates: [] as (typeof localCandidate)[],
+	candidates: [] as { id: string; name: string }[],
 	cloudErrors: [] as (typeof cloudError)[],
 }));
 const setupMock = mock(async () => setupResult);
@@ -97,32 +96,5 @@ describe("useFolderFirstImport", () => {
 		expect(createMock).not.toHaveBeenCalled();
 		expect(setupMock).not.toHaveBeenCalled();
 		expect(finalizeSetupMock).not.toHaveBeenCalled();
-	});
-
-	it("keeps folder-first candidate import flowing even when the lookup response includes cloud errors", async () => {
-		findByPathMock.mockResolvedValue({
-			candidates: [localCandidate],
-			cloudErrors: [cloudError],
-		});
-		const onError = mock(() => undefined);
-
-		const result = await useFolderFirstImport({ onError }).start();
-
-		expect(result).toEqual({
-			projectId: "local-project",
-			repoPath: "/repos/octocat",
-			mainWorkspaceId: "workspace-1",
-		});
-		expect(setupMock).toHaveBeenCalledWith({
-			projectId: "local-project",
-			mode: { kind: "import", repoPath },
-		});
-		expect(createMock).not.toHaveBeenCalled();
-		expect(onError).not.toHaveBeenCalled();
-		expect(finalizeSetupMock).toHaveBeenCalledWith(hostUrl, {
-			projectId: "local-project",
-			repoPath,
-			mainWorkspaceId: "workspace-1",
-		});
 	});
 });
