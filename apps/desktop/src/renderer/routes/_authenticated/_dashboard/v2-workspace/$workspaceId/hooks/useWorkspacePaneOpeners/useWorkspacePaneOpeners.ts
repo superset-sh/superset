@@ -11,6 +11,19 @@ import type {
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
+function debugReviewDiffJump(
+	message: string,
+	details: Record<string, unknown>,
+) {
+	if (
+		typeof window === "undefined" ||
+		window.localStorage.getItem("superset:review-diff-debug") !== "1"
+	) {
+		return;
+	}
+	console.debug(`[review-diff-jump] ${message}`, details);
+}
+
 export function useWorkspacePaneOpeners({
 	store,
 	launcher,
@@ -36,6 +49,12 @@ export function useWorkspacePaneOpeners({
 			line?: number,
 			focusSide?: DiffPaneData["focusSide"],
 		) => {
+			debugReviewDiffJump("open diff requested", {
+				filePath,
+				openInNewTab,
+				line,
+				focusSide,
+			});
 			const state = store.getState();
 			// Bump tick on every request so ScrollToFile re-fires on repeat
 			// clicks; clear when no line is given so reused panes don't jump

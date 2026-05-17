@@ -9,6 +9,9 @@ import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
 import { DiffFileEntry } from "./components/DiffFileEntry";
 
+type DiffFocusSide = DiffPaneData["focusSide"];
+const MAX_LINE_FOCUS_ATTEMPTS = 180;
+
 function ScrollToFile({
 	path,
 	focusLine,
@@ -61,10 +64,29 @@ function ScrollToFile({
 				const tryScroll = () => {
 					const lineEl = findLineElement(entry, focusLine, focusSide);
 					if (lineEl) {
-						lineEl.scrollIntoView({ block: "center" });
+						const lineOffset = v.getOffsetInScrollContainer(lineEl);
+						const lineHeight = lineEl.getBoundingClientRect().height;
+						scrollContainer.scrollTo({
+							top:
+								lineOffset - scrollContainer.clientHeight / 2 + lineHeight / 2,
+						});
+						debugReviewDiffJump("focused line", {
+							path,
+							focusLine,
+							focusSide,
+							attempts,
+						});
 						return;
 					}
-					if (attempts++ < 20) requestAnimationFrame(tryScroll);
+					if (attempts++ < MAX_LINE_FOCUS_ATTEMPTS) {
+						requestAnimationFrame(tryScroll);
+						return;
+					}
+					debugReviewDiffJump("line target not found", {
+						path,
+						focusLine,
+						focusSide,
+					});
 				};
 				requestAnimationFrame(tryScroll);
 			}
@@ -77,17 +99,24 @@ function ScrollToFile({
 function findLineElement(
 	root: HTMLElement,
 	lineNumber: number,
-	focusSide?: DiffPaneData["focusSide"],
+	focusSide?: DiffFocusSide,
 ): HTMLElement | null {
-	// Prefer the Pierre annotation slot (`annotation-${side}-${line}`) —
-	// it's in light DOM and sits exactly where the comment renders.
-	// Fall back to the diff line itself when comments are hidden.
-	if (focusSide) {
-		const slotted = root.querySelector(
-			`[slot="annotation-${focusSide}-${lineNumber}"]`,
-		) as HTMLElement | null;
-		if (slotted) return slotted;
+	// Pierre renders rows inside the diffs-container shadow root. Prefer the
+	// rendered annotation row there; scrolling the light-DOM slotted React
+	// wrapper can land on the host instead of the visual row.
+	for (const container of root.querySelectorAll("diffs-container")) {
+		const shadowRoot = container.shadowRoot;
+		if (!shadowRoot) continue;
+
+		const shadowTarget = findShadowLineElement(
+			shadowRoot,
+			lineNumber,
+			focusSide,
+		);
+		if (shadowTarget) return shadowTarget;
 	}
+
+	// Light-DOM fallback for prerendered or future non-shadow renderers.
 	const slotted = root.querySelector(
 		`[slot$="-${lineNumber}"][slot^="annotation-"]`,
 	) as HTMLElement | null;
@@ -107,6 +136,56 @@ function findLineElement(
 	return root.querySelector(
 		`[data-line="${lineNumber}"]`,
 	) as HTMLElement | null;
+}
+
+function findShadowLineElement(
+	shadowRoot: ShadowRoot,
+	lineNumber: number,
+	focusSide?: DiffFocusSide,
+): HTMLElement | null {
+	const line = String(lineNumber);
+	const slotSelector = focusSide
+		? `slot[name="annotation-${focusSide}-${line}"]`
+		: `slot[name$="-${line}"][name^="annotation-"]`;
+	const slot = shadowRoot.querySelector(slotSelector);
+	const annotationRow = slot?.closest("[data-line-annotation]");
+	if (annotationRow instanceof HTMLElement) return annotationRow;
+
+	if (focusSide) {
+		const sideLine = shadowRoot.querySelector(
+			`[data-${focusSide}] [data-line="${line}"]`,
+		);
+		if (sideLine instanceof HTMLElement) return sideLine;
+	}
+
+	const lineType =
+		focusSide === "deletions"
+			? "change-deletion"
+			: focusSide === "additions"
+				? "change-addition"
+				: null;
+	if (lineType) {
+		const typedLine = shadowRoot.querySelector(
+			`[data-line="${line}"][data-line-type="${lineType}"]`,
+		);
+		if (typedLine instanceof HTMLElement) return typedLine;
+	}
+
+	const lineElement = shadowRoot.querySelector(`[data-line="${line}"]`);
+	return lineElement instanceof HTMLElement ? lineElement : null;
+}
+
+function debugReviewDiffJump(
+	message: string,
+	details: Record<string, unknown>,
+) {
+	if (
+		typeof window === "undefined" ||
+		window.localStorage.getItem("superset:review-diff-debug") !== "1"
+	) {
+		return;
+	}
+	console.debug(`[review-diff-jump] ${message}`, details);
 }
 
 interface DiffPaneProps {

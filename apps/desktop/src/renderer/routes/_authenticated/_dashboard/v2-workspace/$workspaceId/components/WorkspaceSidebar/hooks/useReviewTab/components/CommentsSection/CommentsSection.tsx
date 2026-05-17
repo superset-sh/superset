@@ -35,6 +35,19 @@ import type { NormalizedComment } from "../../types";
 
 type DiffFocusSide = "deletions" | "additions";
 
+function debugReviewDiffJump(
+	message: string,
+	details: Record<string, unknown>,
+) {
+	if (
+		typeof window === "undefined" ||
+		window.localStorage.getItem("superset:review-diff-debug") !== "1"
+	) {
+		return;
+	}
+	console.debug(`[review-diff-jump] ${message}`, details);
+}
+
 interface CommentsSectionProps {
 	workspaceId: string;
 	comments: NormalizedComment[];
@@ -475,6 +488,14 @@ function CommentRow({
 		// standalone comment pane when there's no file anchor (conversation
 		// comments) or no diff handler wired up.
 		if (comment.kind === "review" && diffPath && onOpenInDiff) {
+			debugReviewDiffJump("review comment clicked", {
+				path: comment.path,
+				diffPath,
+				line: comment.line,
+				focusSide,
+				threadId: comment.threadId,
+				isOutdated: comment.isOutdated,
+			});
 			onOpenInDiff(diffPath, comment.line, false, focusSide);
 			return;
 		}
