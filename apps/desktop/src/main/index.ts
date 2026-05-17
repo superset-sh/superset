@@ -247,11 +247,7 @@ app.on("before-quit", async (event) => {
  */
 async function runDevQuitCleanup(): Promise<void> {
 	const coordinator = getHostServiceCoordinator();
-	try {
-		await coordinator.discoverAll();
-	} catch (err) {
-		console.warn("[main] host-service discovery before shutdown failed:", err);
-	}
+	coordinator.teardownKnownManifests();
 	coordinator.stopAll();
 	try {
 		await getTerminalHostClient().shutdownIfRunning({ killSessions: true });

@@ -36,6 +36,9 @@ const removeManifestMock = mock(() => {
 	manifestStore.current = null;
 });
 const isProcessAliveMock = mock(() => true);
+const listManifestsMock = mock(
+	() => [] as NonNullable<typeof manifestStore.current>[],
+);
 const killProcessMock = mock((pid: number, signal: NodeJS.Signals | number) => {
 	if (killProcessError) {
 		const error = killProcessError;
@@ -52,7 +55,7 @@ mock.module("./host-service-manifest", () => ({
 	removeManifest: removeManifestMock,
 	isProcessAlive: isProcessAliveMock,
 	killProcess: killProcessMock,
-	listManifests: mock(() => []),
+	listManifests: listManifestsMock,
 	manifestDir: (orgId: string) => path.join(testManifestRoot, orgId),
 }));
 
@@ -118,6 +121,7 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		readManifestMock.mockClear();
 		removeManifestMock.mockClear();
 		isProcessAliveMock.mockClear();
+		listManifestsMock.mockClear();
 		killProcessMock.mockClear();
 		pollHealthCheckMock.mockClear();
 
@@ -181,6 +185,7 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 
 		const conn = await coordinator.start("org-1", spawnConfig);
 
+		expect(killProcessMock).toHaveBeenCalledWith(7777, "SIGKILL");
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
@@ -262,6 +267,7 @@ describe("HostServiceCoordinator.reset", () => {
 		readManifestMock.mockClear();
 		removeManifestMock.mockClear();
 		isProcessAliveMock.mockClear();
+		listManifestsMock.mockClear();
 		killProcessMock.mockClear();
 		pollHealthCheckMock.mockClear();
 
@@ -328,6 +334,53 @@ describe("HostServiceCoordinator.reset", () => {
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
+	});
+});
+
+describe("HostServiceCoordinator.teardownKnownManifests", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+
+	beforeEach(() => {
+		manifestStore.current = null;
+		readManifestMock.mockClear();
+		removeManifestMock.mockClear();
+		isProcessAliveMock.mockClear();
+		listManifestsMock.mockClear();
+		killProcessMock.mockClear();
+		pollHealthCheckMock.mockClear();
+
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+
+		killedPids = [];
+		killProcessError = null;
+		coordinator = new HostServiceCoordinator();
+	});
+
+	afterEach(() => {
+		coordinator.releaseAll();
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("kills and removes manifest-backed services without adopting or spawning", () => {
+		listManifestsMock.mockImplementationOnce(() => [
+			baseManifest(9001),
+			{
+				...baseManifest(9002),
+				organizationId: "org-2",
+			},
+		]);
+
+		coordinator.teardownKnownManifests();
+
+		expect(killedPids).toContainEqual({ pid: 9001, signal: "SIGKILL" });
+		expect(killedPids).toContainEqual({ pid: 9002, signal: "SIGKILL" });
+		expect(removeManifestMock).toHaveBeenCalledWith("org-1");
+		expect(removeManifestMock).toHaveBeenCalledWith("org-2");
+		expect(readManifestMock).not.toHaveBeenCalled();
+		expect(pollHealthCheckMock).not.toHaveBeenCalled();
 	});
 });
 

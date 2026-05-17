@@ -153,6 +153,22 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 	}
 
+	teardownKnownManifests(): void {
+		for (const manifest of listManifests()) {
+			if (isProcessAlive(manifest.pid)) {
+				try {
+					killProcess(manifest.pid, "SIGKILL");
+				} catch (error) {
+					log.warn(
+						`[host-service:${manifest.organizationId}] teardown: SIGKILL of pid=${manifest.pid} failed`,
+						error,
+					);
+				}
+			}
+			removeManifest(manifest.organizationId);
+		}
+	}
+
 	async restart(
 		organizationId: string,
 		config: SpawnConfig,
