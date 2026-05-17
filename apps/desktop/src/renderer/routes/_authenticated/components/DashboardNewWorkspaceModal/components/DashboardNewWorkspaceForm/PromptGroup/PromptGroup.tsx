@@ -103,8 +103,11 @@ export function PromptGroup({
 		void navigate({
 			to: "/settings/projects/$projectId",
 			params: { projectId: targetProjectId },
+			search: {
+				hostId: draft.hostId ?? machineId ?? undefined,
+			},
 		});
-	}, [closeModal, navigate, selectedProject?.id]);
+	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
 	const {
 		baseBranch,
 		hostId,

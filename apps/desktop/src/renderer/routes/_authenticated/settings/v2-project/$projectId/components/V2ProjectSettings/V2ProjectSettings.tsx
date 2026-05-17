@@ -1,6 +1,8 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -15,11 +17,17 @@ import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
 
 interface V2ProjectSettingsProps {
 	projectId: string;
+	hostId: string | null;
 }
 
-export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
+export function V2ProjectSettings({
+	projectId,
+	hostId,
+}: V2ProjectSettingsProps) {
 	const collections = useCollections();
-	const { activeHostUrl } = useLocalHostService();
+	const { machineId } = useLocalHostService();
+	const targetHostUrl = useHostUrl(hostId);
+	const targetHostId = hostId ?? machineId;
 
 	const { data: v2Project } = useLiveQuery(
 		(q) =>
@@ -30,12 +38,32 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 		[collections, projectId],
 	);
 
+	const { data: hostRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ hosts: collections.v2Hosts })
+				.where(({ hosts }) => eq(hosts.machineId, targetHostId ?? ""))
+				.select(({ hosts }) => ({
+					machineId: hosts.machineId,
+					name: hosts.name,
+				})),
+		[collections, targetHostId],
+	);
+	const targetHostName = useMemo(() => {
+		if (hostRows[0]?.name) return hostRows[0].name;
+		if (!targetHostId || targetHostId === machineId) return "this device";
+		return targetHostId;
+	}, [hostRows, machineId, targetHostId]);
+	const isRemoteTarget = Boolean(
+		targetHostId && machineId && targetHostId !== machineId,
+	);
+
 	const { data: hostProject, refetch: refetchHostProject } = useQuery({
-		queryKey: ["host-project", "get", activeHostUrl, projectId],
-		enabled: !!activeHostUrl,
+		queryKey: ["host-project", "get", targetHostUrl, projectId],
+		enabled: !!targetHostUrl,
 		queryFn: async () => {
-			if (!activeHostUrl) return null;
-			const client = getHostServiceClientByUrl(activeHostUrl);
+			if (!targetHostUrl) return null;
+			const client = getHostServiceClientByUrl(targetHostUrl);
 			return client.project.get.query({ projectId });
 		},
 	});
@@ -61,12 +89,15 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 
 				<SettingsSection
 					title="Project location"
-					description="Where this project lives on disk on this device."
+					description={`Where this project lives on disk on ${targetHostName}.`}
 				>
 					<ProjectLocationSection
 						projectId={projectId}
 						currentPath={hostProject?.repoPath ?? null}
 						repoCloneUrl={project.repoCloneUrl}
+						hostUrl={targetHostUrl}
+						hostName={targetHostName}
+						isRemoteTarget={isRemoteTarget}
 						onChanged={() => refetchHostProject()}
 					/>
 				</SettingsSection>
@@ -82,12 +113,12 @@ export function V2ProjectSettings({ projectId }: V2ProjectSettingsProps) {
 					/>
 				</SettingsSection>
 
-				{activeHostUrl && (
+				{targetHostUrl && (
 					<SettingsSection
 						title="Scripts"
 						description="Runs in a terminal for setup, teardown, and the workspace Run button. Saved to .superset/config.json in the main repo."
 					>
-						<V2ScriptsEditor hostUrl={activeHostUrl} projectId={projectId} />
+						<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
 					</SettingsSection>
 				)}
 

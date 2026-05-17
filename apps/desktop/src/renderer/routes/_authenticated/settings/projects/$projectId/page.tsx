@@ -17,10 +17,14 @@ export const Route = createFileRoute(
 )({
 	component: ProjectDetailPage,
 	notFoundComponent: NotFound,
+	validateSearch: (search: Record<string, unknown>): { hostId?: string } => ({
+		hostId: typeof search.hostId === "string" ? search.hostId : undefined,
+	}),
 });
 
 function ProjectDetailPage() {
 	const { projectId } = Route.useParams();
+	const { hostId } = Route.useSearch();
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const searchQuery = useSettingsSearchQuery();
@@ -49,7 +53,7 @@ function ProjectDetailPage() {
 	}, [searchQuery]);
 
 	if (v2Match.length > 0) {
-		return <V2ProjectSettings projectId={projectId} />;
+		return <V2ProjectSettings projectId={projectId} hostId={hostId ?? null} />;
 	}
 	return <ProjectSettings projectId={projectId} visibleItems={visibleItems} />;
 }
