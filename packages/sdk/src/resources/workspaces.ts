@@ -161,7 +161,7 @@ export interface WorkspaceCreateParams {
 	name: string;
 	/** Git branch the workspace tracks. Required unless `pr` is set. */
 	branch?: string;
-	/** Pull request number — server runs `gh pr checkout` and derives the branch. */
+	/** Pull request number — server checks out the verified PR head and derives the branch. */
 	pr?: number;
 	/** Branch to fork from when `branch` does not exist. Ignored with `pr`. */
 	baseBranch?: string;
@@ -202,6 +202,7 @@ export interface WorkspaceCreateResult {
 	terminals: Array<{ terminalId: string; label?: string }>;
 	agents: WorkspaceCreateAgentResult[];
 	alreadyExists: boolean;
+	warnings: string[];
 }
 
 export interface WorkspaceUpdateParams {

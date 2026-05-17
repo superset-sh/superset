@@ -1,4 +1,5 @@
 import type { WorkspaceState } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -138,6 +139,9 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				// callers redirect there.
 				if (result.alreadyExists && result.workspace.id !== workspaceId) {
 					useWorkspaceCreatesStore.getState().remove(workspaceId);
+				}
+				for (const warning of result.warnings ?? []) {
+					toast.warning(warning);
 				}
 				return {
 					ok: true,
