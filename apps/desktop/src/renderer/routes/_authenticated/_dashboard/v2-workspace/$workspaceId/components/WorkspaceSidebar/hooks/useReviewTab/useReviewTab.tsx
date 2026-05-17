@@ -92,7 +92,7 @@ export function useReviewTab({
 		id: "review",
 		label: "Review",
 		icon: LuMessageSquare,
-		badge: openCommentCount,
+		badge: openCommentCount > 0 ? openCommentCount : undefined,
 		content,
 	};
 }
