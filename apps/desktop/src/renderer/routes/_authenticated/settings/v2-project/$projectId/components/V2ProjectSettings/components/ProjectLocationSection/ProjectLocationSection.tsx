@@ -10,6 +10,13 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
@@ -56,6 +63,9 @@ export function ProjectLocationSection({
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [remoteImportPath, setRemoteImportPath] = useState("");
 	const [remoteCloneParentDir, setRemoteCloneParentDir] = useState("");
+	const [remoteMode, setRemoteMode] = useState<"clone" | "import">(
+		repoCloneUrl ? "clone" : "import",
+	);
 
 	const runSetup = async (repoPath: string, allowRelocate: boolean) => {
 		if (!hostUrl) {
@@ -252,122 +262,117 @@ export function ProjectLocationSection({
 
 	return (
 		<>
-			<div className="flex items-center gap-2">
+			{currentPath ? (
 				<div className="relative w-96">
-					<div
-						className={`flex h-9 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30 ${currentPath ? "pr-9" : ""}`}
-					>
-						{currentPath ? (
-							<ClickablePath
-								path={currentPath}
-								className="max-w-none shrink-0"
-							/>
-						) : (
-							<span className="shrink-0 text-sm text-muted-foreground">
-								Not set up on {hostName}
-							</span>
-						)}
+					<div className="flex h-9 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 pr-9 dark:bg-input/30">
+						<ClickablePath path={currentPath} className="max-w-none shrink-0" />
 					</div>
-					{currentPath && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									type="button"
-									variant="ghost"
-									size="icon"
-									className="absolute right-1 top-1 size-7 text-muted-foreground hover:text-foreground"
-									onClick={handleChange}
-									disabled={selectDirectory.isPending || isSubmitting}
-									aria-label="Change location"
-								>
-									<LuFolderOpen className="size-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>Change location</TooltipContent>
-						</Tooltip>
-					)}
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="absolute right-1 top-1 size-7 text-muted-foreground hover:text-foreground"
+								onClick={handleChange}
+								disabled={selectDirectory.isPending || isSubmitting}
+								aria-label="Change location"
+							>
+								<LuFolderOpen className="size-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Change location</TooltipContent>
+					</Tooltip>
 				</div>
-				{!currentPath && (
-					<div className="flex items-center gap-2 shrink-0">
-						{isRemoteTarget ? (
-							<div className="flex flex-col gap-2 min-w-80">
-								<div className="flex items-center gap-2">
-									<Input
-										value={remoteImportPath}
-										onChange={(event) =>
-											setRemoteImportPath(event.currentTarget.value)
-										}
-										placeholder={`Existing repo path on ${hostName}`}
-										className="h-8"
-									/>
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										onClick={handleImport}
-										disabled={!hostUrl || isSubmitting}
-									>
-										Import
-									</Button>
-								</div>
-								<div className="flex items-center gap-2">
-									<Input
-										value={remoteCloneParentDir}
-										onChange={(event) =>
-											setRemoteCloneParentDir(event.currentTarget.value)
-										}
-										placeholder={`Parent directory on ${hostName}`}
-										className="h-8"
-										disabled={!repoCloneUrl}
-									/>
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										onClick={handleClone}
-										disabled={!hostUrl || !repoCloneUrl || isSubmitting}
-										title={
-											repoCloneUrl
-												? undefined
-												: "Link a GitHub repository first to enable cloning"
-										}
-									>
-										Clone
-									</Button>
-								</div>
-							</div>
-						) : (
-							<>
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									onClick={handleClone}
-									disabled={
-										!repoCloneUrl || selectDirectory.isPending || isSubmitting
-									}
-									title={
-										repoCloneUrl
-											? undefined
-											: "Link a GitHub repository first to enable cloning"
-									}
-								>
-									Clone here…
-								</Button>
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									onClick={handleImport}
-									disabled={selectDirectory.isPending || isSubmitting}
-								>
-									Import existing…
-								</Button>
-							</>
-						)}
-					</div>
-				)}
-			</div>
+			) : isRemoteTarget ? (
+				<div className="flex items-center gap-2">
+					<Select
+						value={remoteMode}
+						onValueChange={(value) =>
+							setRemoteMode(value as "clone" | "import")
+						}
+					>
+						<SelectTrigger size="sm" className="w-28">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem
+								value="clone"
+								disabled={!repoCloneUrl}
+								title={
+									repoCloneUrl
+										? undefined
+										: "Link a GitHub repository first to enable cloning"
+								}
+							>
+								Clone
+							</SelectItem>
+							<SelectItem value="import">Import</SelectItem>
+						</SelectContent>
+					</Select>
+					{remoteMode === "clone" ? (
+						<Input
+							value={remoteCloneParentDir}
+							onChange={(event) =>
+								setRemoteCloneParentDir(event.currentTarget.value)
+							}
+							placeholder={`Parent directory on ${hostName}`}
+							className="w-72"
+							disabled={!repoCloneUrl}
+						/>
+					) : (
+						<Input
+							value={remoteImportPath}
+							onChange={(event) =>
+								setRemoteImportPath(event.currentTarget.value)
+							}
+							placeholder={`Existing repo path on ${hostName}`}
+							className="w-72"
+						/>
+					)}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={remoteMode === "clone" ? handleClone : handleImport}
+						disabled={
+							!hostUrl ||
+							isSubmitting ||
+							(remoteMode === "clone" && !repoCloneUrl)
+						}
+					>
+						Set up
+					</Button>
+				</div>
+			) : (
+				<div className="flex items-center gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={handleClone}
+						disabled={
+							!repoCloneUrl || selectDirectory.isPending || isSubmitting
+						}
+						title={
+							repoCloneUrl
+								? undefined
+								: "Link a GitHub repository first to enable cloning"
+						}
+					>
+						Clone here…
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={handleImport}
+						disabled={selectDirectory.isPending || isSubmitting}
+					>
+						Import existing…
+					</Button>
+				</div>
+			)}
 
 			<AlertDialog
 				open={conflict !== null}
