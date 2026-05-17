@@ -14,6 +14,7 @@ import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import simpleGit, { type SimpleGit } from "simple-git";
 import { workspaces } from "../../src/db/schema";
+import { safeResolveWorktreePath } from "../../src/trpc/router/workspace-creation/shared/worktree-paths";
 import { cloudFlows } from "../helpers/cloud-fakes";
 import { createProjectScenario } from "../helpers/scenarios";
 
@@ -203,6 +204,208 @@ describe("workspaces.create PR checkout integration", () => {
 			])
 		).trim();
 		expect(lockStatus).toContain("package-lock.json");
+	});
+
+	test("normalizes fork push config when adopting an existing matching local PR branch", async () => {
+		const prNumber = 6061;
+		let prHeadOid = "";
+
+		const scenario = await createProjectScenario({
+			hostOptions: {
+				apiOverrides: cloudFlows.workspaceCreateOk(),
+				execGh: async (args) => {
+					if (args[0] === "pr" && args[1] === "view") {
+						return {
+							number: prNumber,
+							url: `https://github.com/octocat/hello/pull/${prNumber}`,
+							title: "Adopt local fork branch",
+							headRefName: "feature/adopt-local",
+							headRefOid: prHeadOid,
+							baseRefName: "main",
+							headRepositoryOwner: { login: "Contributor" },
+							headRepository: { name: "hello-fork" },
+							isCrossRepository: true,
+							state: "OPEN",
+						};
+					}
+					return {};
+				},
+			},
+		});
+		const bare = await createBareRemote();
+		const forkBare = await createBareRemote();
+		let worktreePath: string | undefined;
+		dispose = async () => {
+			if (worktreePath) {
+				await removeWorktree(scenario.repo.git, worktreePath);
+			}
+			forkBare.dispose();
+			bare.dispose();
+			await scenario.dispose();
+		};
+
+		await scenario.repo.commit("main", { "README.md": "main\n" });
+		await scenario.repo.git.addRemote("origin", bare.bareRepoPath);
+		await scenario.repo.git.raw([
+			"config",
+			`url.${forkBare.bareRepoPath}.insteadOf`,
+			"https://github.com/Contributor/hello-fork.git",
+		]);
+		await scenario.repo.git.push("origin", "main", ["--set-upstream"]);
+		await scenario.repo.git.checkoutBranch(
+			"contributor/feature/adopt-local",
+			"main",
+		);
+		prHeadOid = await scenario.repo.commit("local branch at PR head", {
+			"feature.txt": "from adopted branch\n",
+		});
+		await scenario.repo.git.raw([
+			"push",
+			forkBare.bareRepoPath,
+			`${prHeadOid}:refs/heads/feature/adopt-local`,
+		]);
+		await scenario.repo.git.raw([
+			"push",
+			"origin",
+			`${prHeadOid}:refs/pull/${prNumber}/head`,
+		]);
+		await scenario.repo.git.checkout("main");
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "Adopted PR workspace",
+			pr: prNumber,
+		});
+
+		const expectedBranch = "contributor/feature/adopt-local";
+		expect(result.workspace.branch).toBe(expectedBranch);
+		worktreePath = getWorkspaceRow(scenario, expectedBranch)?.worktreePath;
+		expect(worktreePath).toBeTruthy();
+		if (!worktreePath) throw new Error("expected adopted worktree path");
+		expect(
+			(
+				await scenario.repo.git.raw([
+					"config",
+					`branch.${expectedBranch}.remote`,
+				])
+			).trim(),
+		).toBe(`superset-pr-${prNumber}`);
+		expect(
+			(
+				await scenario.repo.git.raw([
+					"config",
+					`branch.${expectedBranch}.pushRemote`,
+				])
+			).trim(),
+		).toBe(`superset-pr-${prNumber}`);
+		expect(
+			(
+				await scenario.repo.git.raw([
+					"config",
+					`remote.superset-pr-${prNumber}.push`,
+				])
+			).trim(),
+		).toBe("HEAD:refs/heads/feature/adopt-local");
+		expect(await simpleGit(worktreePath).raw(["push", "--dry-run"])).toEqual(
+			expect.any(String),
+		);
+	});
+
+	test("removes a materialized PR branch when registration fails after worktree add", async () => {
+		const prNumber = 6062;
+		let prHeadOid = "";
+
+		const scenario = await createProjectScenario({
+			hostOptions: {
+				apiOverrides: {
+					"host.ensure.mutate": () => ({ machineId: "test-machine-1" }),
+					"v2Workspace.create.mutate": (input: unknown) => {
+						const i = input as {
+							id?: string;
+							projectId: string;
+							branch: string;
+							name: string;
+							type?: "main";
+						};
+						if (i.type === "main") {
+							return {
+								id: i.id ?? randomUUID(),
+								projectId: i.projectId,
+								branch: i.branch,
+								name: i.name,
+								type: "main" as const,
+							};
+						}
+						throw new Error("cloud workspace create failed");
+					},
+				},
+				execGh: async (args) => {
+					if (args[0] === "pr" && args[1] === "view") {
+						return {
+							number: prNumber,
+							url: `https://github.com/octocat/hello/pull/${prNumber}`,
+							title: "Rollback PR",
+							headRefName: "feature/rollback",
+							headRefOid: prHeadOid,
+							baseRefName: "main",
+							headRepositoryOwner: { login: "Contributor" },
+							headRepository: { name: "hello-fork" },
+							isCrossRepository: true,
+							state: "OPEN",
+						};
+					}
+					return {};
+				},
+			},
+		});
+		const bare = await createBareRemote();
+		const expectedBranch = "contributor/feature/rollback";
+		const expectedWorktreePath = safeResolveWorktreePath(
+			scenario.projectId,
+			expectedBranch,
+		);
+		dispose = async () => {
+			await removeWorktree(scenario.repo.git, expectedWorktreePath);
+			bare.dispose();
+			await scenario.dispose();
+		};
+
+		await scenario.repo.commit("main", { "README.md": "main\n" });
+		await scenario.repo.git.addRemote("origin", bare.bareRepoPath);
+		await scenario.repo.git.push("origin", "main", ["--set-upstream"]);
+		await scenario.repo.git.checkoutBranch("feature/rollback", "main");
+		prHeadOid = await scenario.repo.commit("rollback PR head", {
+			"feature.txt": "rollback\n",
+		});
+		await scenario.repo.git.raw([
+			"push",
+			"origin",
+			`${prHeadOid}:refs/pull/${prNumber}/head`,
+		]);
+		await scenario.repo.git.checkout("main");
+		await scenario.repo.git.deleteLocalBranch("feature/rollback", true);
+
+		const error = await scenario.host.trpc.workspaces.create
+			.mutate({
+				projectId: scenario.projectId,
+				name: "Rollback PR workspace",
+				pr: prNumber,
+			})
+			.catch((err: unknown) => err);
+
+		expect(error).toBeInstanceOf(TRPCClientError);
+		expect(String((error as Error).message)).toContain(
+			"cloud workspace create failed",
+		);
+		expect(getWorkspaceRow(scenario, expectedBranch)).toBeUndefined();
+		expect(existsSync(expectedWorktreePath)).toBe(false);
+		const branchStillExists = await scenario.repo.git
+			.raw(["rev-parse", "--verify", `refs/heads/${expectedBranch}`])
+			.then(
+				() => true,
+				() => false,
+			);
+		expect(branchStillExists).toBe(false);
 	});
 
 	test("reports PR head verification failures as internal errors", async () => {

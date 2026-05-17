@@ -4,6 +4,7 @@ import {
 	deleteMaterializedPrBranchIfSafe,
 	getSyntheticPrVerifiedRef,
 	materializePrBranch,
+	normalizePrBranchTracking,
 } from "./pr-branch-materialize";
 
 const EXPECTED_HEAD_OID = "c4ecea7dec8c6d09cf54fe0ad2f9edb8a24fd45a";
@@ -168,6 +169,58 @@ describe("materializePrBranch", () => {
 			trackingMergeRef: "refs/pull/456/head",
 		});
 		expect(result.warning).toContain("Plain git push may require");
+	});
+
+	test("normalizes fork push defaults for an existing matching branch", async () => {
+		const raw = mock(async (args: string[]) => {
+			if (args[0] === "rev-parse") {
+				return `${EXPECTED_HEAD_OID}\n`;
+			}
+			return "";
+		});
+		const git = { raw } as unknown as GitClient;
+		const pr = {
+			number: 456,
+			headRefName: "feature/x",
+			headRefOid: EXPECTED_HEAD_OID,
+			isCrossRepository: true,
+			headRepositoryOwner: "alice",
+			headRepositoryName: "fork",
+		};
+		const verifiedRef = getSyntheticPrVerifiedRef(pr);
+
+		const result = await normalizePrBranchTracking({
+			git,
+			branch: "alice/feature/x",
+			remoteName: "origin",
+			pr,
+		});
+
+		expect(result).toMatchObject({
+			createdBranch: false,
+			sourceKind: "synthetic-pr-ref",
+			startPoint: verifiedRef,
+			trackingRemote: "superset-pr-456",
+			trackingMergeRef: "refs/heads/feature/x",
+		});
+		expect(raw).not.toHaveBeenCalledWith([
+			"branch",
+			"--no-track",
+			"--",
+			"alice/feature/x",
+			verifiedRef,
+		]);
+		expect(raw).toHaveBeenCalledWith([
+			"config",
+			"branch.alice/feature/x.pushRemote",
+			"superset-pr-456",
+		]);
+		expect(raw).toHaveBeenCalledWith([
+			"config",
+			"--replace-all",
+			"remote.superset-pr-456.push",
+			"HEAD:refs/heads/feature/x",
+		]);
 	});
 
 	test("deletes a materialized branch only when it still points at the verified PR head", async () => {

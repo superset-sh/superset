@@ -297,62 +297,99 @@ export async function deleteMaterializedPrBranchIfSafe(args: {
 	return true;
 }
 
+async function resolvePrBranchSource(args: {
+	git: GitClient;
+	remoteName: string;
+	pr: PrBranchMetadata;
+}): Promise<PrBranchSource> {
+	if (args.pr.isCrossRepository) {
+		return await fetchSyntheticPrBranch({
+			git: args.git,
+			remoteName: args.remoteName,
+			pr: args.pr,
+		});
+	}
+
+	try {
+		return await fetchSameRepoPrBranch({
+			git: args.git,
+			remoteName: args.remoteName,
+			pr: args.pr,
+		});
+	} catch (err) {
+		if (!(err instanceof SameRepoBranchFetchError)) {
+			throw err;
+		}
+		return await fetchSyntheticPrBranch({
+			git: args.git,
+			remoteName: args.remoteName,
+			pr: args.pr,
+			warning: `The PR head branch "${args.pr.headRefName}" was unavailable from ${args.remoteName}, so Superset fetched ${getSyntheticPrHeadRef(args.pr.number)} instead. Original error: ${err.originalError instanceof Error ? err.originalError.message : String(err.originalError)}`,
+		});
+	}
+}
+
+async function configureTrackingFromSource(args: {
+	git: GitClient;
+	branch: string;
+	source: PrBranchSource;
+	createdBranch: boolean;
+}): Promise<MaterializePrBranchResult> {
+	const trackingRemote = await configurePrBranchTracking({
+		git: args.git,
+		branch: args.branch,
+		remoteName: args.source.trackingRemote,
+		mergeRef: args.source.mergeRef,
+		remoteUrl: args.source.remoteUrl,
+		pushRemote: args.source.pushRemote,
+		pushRef: args.source.pushRef,
+		remoteTrackingBranch: args.source.remoteTrackingBranch,
+		remoteTrackingOid: args.source.remoteTrackingOid,
+	});
+	return {
+		branch: args.branch,
+		createdBranch: args.createdBranch,
+		sourceKind: args.source.kind,
+		startPoint: args.source.startPoint,
+		trackingRemote,
+		trackingMergeRef: args.source.mergeRef,
+		warning: args.source.warning,
+	};
+}
+
+export async function normalizePrBranchTracking(args: {
+	git: GitClient;
+	branch: string;
+	remoteName: string;
+	pr: PrBranchMetadata;
+}): Promise<MaterializePrBranchResult> {
+	const source = await resolvePrBranchSource(args);
+	const existingOid = await getLocalBranchHead(args.git, args.branch);
+	if (existingOid === null) {
+		throw new PrBranchConflictError(
+			`Local branch "${args.branch}" no longer exists while preparing PR #${args.pr.number}`,
+		);
+	}
+	if (normalizeOid(existingOid) !== normalizeOid(args.pr.headRefOid)) {
+		throw new PrBranchConflictError(
+			`Local branch "${args.branch}" exists and points at ${existingOid}, not PR head ${args.pr.headRefOid}`,
+		);
+	}
+	return await configureTrackingFromSource({
+		git: args.git,
+		branch: args.branch,
+		source,
+		createdBranch: false,
+	});
+}
+
 export async function materializePrBranch(args: {
 	git: GitClient;
 	branch: string;
 	remoteName: string;
 	pr: PrBranchMetadata;
 }): Promise<MaterializePrBranchResult> {
-	let source: PrBranchSource;
-
-	if (args.pr.isCrossRepository) {
-		source = await fetchSyntheticPrBranch({
-			git: args.git,
-			remoteName: args.remoteName,
-			pr: args.pr,
-		});
-	} else {
-		try {
-			source = await fetchSameRepoPrBranch({
-				git: args.git,
-				remoteName: args.remoteName,
-				pr: args.pr,
-			});
-		} catch (err) {
-			if (!(err instanceof SameRepoBranchFetchError)) {
-				throw err;
-			}
-			source = await fetchSyntheticPrBranch({
-				git: args.git,
-				remoteName: args.remoteName,
-				pr: args.pr,
-				warning: `The PR head branch "${args.pr.headRefName}" was unavailable from ${args.remoteName}, so Superset fetched ${getSyntheticPrHeadRef(args.pr.number)} instead. Original error: ${err.originalError instanceof Error ? err.originalError.message : String(err.originalError)}`,
-			});
-		}
-	}
-
-	const configureTracking = async (createdBranch: boolean) => {
-		const trackingRemote = await configurePrBranchTracking({
-			git: args.git,
-			branch: args.branch,
-			remoteName: source.trackingRemote,
-			mergeRef: source.mergeRef,
-			remoteUrl: source.remoteUrl,
-			pushRemote: source.pushRemote,
-			pushRef: source.pushRef,
-			remoteTrackingBranch: source.remoteTrackingBranch,
-			remoteTrackingOid: source.remoteTrackingOid,
-		});
-		return {
-			branch: args.branch,
-			createdBranch,
-			sourceKind: source.kind,
-			startPoint: source.startPoint,
-			trackingRemote,
-			trackingMergeRef: source.mergeRef,
-			warning: source.warning,
-		};
-	};
+	const source = await resolvePrBranchSource(args);
 
 	const existingOid = await getLocalBranchHead(args.git, args.branch);
 	if (existingOid !== null) {
@@ -361,7 +398,12 @@ export async function materializePrBranch(args: {
 				`Local branch "${args.branch}" exists and points at ${existingOid}, not PR head ${args.pr.headRefOid}`,
 			);
 		}
-		return await configureTracking(false);
+		return await configureTrackingFromSource({
+			git: args.git,
+			branch: args.branch,
+			source,
+			createdBranch: false,
+		});
 	}
 
 	let branchCreated = false;
@@ -374,13 +416,23 @@ export async function materializePrBranch(args: {
 			source.startPoint,
 		]);
 		branchCreated = true;
-		return await configureTracking(true);
+		return await configureTrackingFromSource({
+			git: args.git,
+			branch: args.branch,
+			source,
+			createdBranch: true,
+		});
 	} catch (err) {
 		if (!branchCreated) {
 			const concurrentOid = await getLocalBranchHead(args.git, args.branch);
 			if (concurrentOid !== null) {
 				if (normalizeOid(concurrentOid) === normalizeOid(args.pr.headRefOid)) {
-					return await configureTracking(false);
+					return await configureTrackingFromSource({
+						git: args.git,
+						branch: args.branch,
+						source,
+						createdBranch: false,
+					});
 				}
 				throw new PrBranchConflictError(
 					`Local branch "${args.branch}" exists and points at ${concurrentOid}, not PR head ${args.pr.headRefOid}`,

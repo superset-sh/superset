@@ -38,6 +38,7 @@ import {
 	deleteMaterializedPrBranchIfSafe,
 	type MaterializePrBranchResult,
 	materializePrBranch,
+	normalizePrBranchTracking,
 	PrBranchConflictError,
 } from "../workspace-creation/utils/pr-branch-materialize";
 import { derivePrLocalBranchName } from "../workspace-creation/utils/pr-branch-name";
@@ -568,7 +569,6 @@ export const workspacesRouter = router({
 			let worktreePath: string;
 			let alreadyExists = false;
 			let workspaceRow: CloudWorkspace;
-			let prMetadata: PrMetadata | null = null;
 			const warnings: string[] = [];
 
 			if (input.pr !== undefined) {
@@ -576,7 +576,7 @@ export const workspacesRouter = router({
 					`pr:${input.projectId}:${input.pr}`,
 				);
 				try {
-					prMetadata = await fetchPrMetadata({
+					const prMetadata = await fetchPrMetadata({
 						cwd: localProject.repoPath,
 						prNumber: input.pr,
 						execGh: ctx.execGh,
@@ -604,6 +604,37 @@ export const workspacesRouter = router({
 						const existingWorktreePath = (
 							await listWorktreeBranches(git)
 						).worktreeMap.get(resolvedBranch);
+						const recordMaterializedWarning = (
+							materialized: MaterializePrBranchResult,
+						) => {
+							if (materialized.warning) {
+								console.warn(`[workspaces.create] ${materialized.warning}`);
+								warnings.push(materialized.warning);
+							}
+						};
+						const normalizeExistingPrBranch = async () => {
+							try {
+								recordMaterializedWarning(
+									await normalizePrBranchTracking({
+										git,
+										branch: resolvedBranch,
+										remoteName: localProject.remoteName ?? "origin",
+										pr: prMetadata,
+									}),
+								);
+							} catch (err) {
+								throw new TRPCError({
+									code:
+										err instanceof PrBranchConflictError
+											? "CONFLICT"
+											: "INTERNAL_SERVER_ERROR",
+									message:
+										err instanceof Error
+											? err.message
+											: "Failed to prepare existing PR branch",
+								});
+							}
+						};
 
 						if (localOid !== null && !adoptLocalBranch) {
 							const cleanupHint = existingWorktreePath
@@ -616,6 +647,7 @@ export const workspacesRouter = router({
 						}
 
 						if (adoptLocalBranch && existingWorktreePath) {
+							await normalizeExistingPrBranch();
 							worktreePath = existingWorktreePath;
 							const result = await adoptExistingWorktree({
 								ctx,
@@ -658,8 +690,10 @@ export const workspacesRouter = router({
 									);
 								}
 							};
+							let rollbackCreatedWorktree = rollbackWorktree;
 
 							if (adoptLocalBranch) {
+								await normalizeExistingPrBranch();
 								try {
 									await git.raw([
 										"worktree",
@@ -679,28 +713,8 @@ export const workspacesRouter = router({
 							} else {
 								let worktreeAddStarted = false;
 								let materialized: MaterializePrBranchResult | null = null;
-								try {
-									materialized = await materializePrBranch({
-										git,
-										branch: resolvedBranch,
-										remoteName: localProject.remoteName ?? "origin",
-										pr: prMetadata,
-									});
-									if (materialized.warning) {
-										console.warn(`[workspaces.create] ${materialized.warning}`);
-										warnings.push(materialized.warning);
-									}
-									worktreeAddStarted = true;
-									await git.raw([
-										"worktree",
-										"add",
-										worktreePath,
-										resolvedBranch,
-									]);
-								} catch (err) {
-									if (worktreeAddStarted) {
-										await rollbackWorktree();
-									}
+								const rollbackPreparedPr = async () => {
+									await rollbackWorktree();
 									if (materialized?.createdBranch) {
 										await deleteMaterializedPrBranchIfSafe({
 											git,
@@ -712,6 +726,27 @@ export const workspacesRouter = router({
 												{ branch: resolvedBranch, err: cleanupErr },
 											);
 										});
+									}
+								};
+								rollbackCreatedWorktree = rollbackPreparedPr;
+								try {
+									materialized = await materializePrBranch({
+										git,
+										branch: resolvedBranch,
+										remoteName: localProject.remoteName ?? "origin",
+										pr: prMetadata,
+									});
+									recordMaterializedWarning(materialized);
+									worktreeAddStarted = true;
+									await git.raw([
+										"worktree",
+										"add",
+										worktreePath,
+										resolvedBranch,
+									]);
+								} catch (err) {
+									if (worktreeAddStarted || materialized?.createdBranch) {
+										await rollbackPreparedPr();
 									}
 									throw new TRPCError({
 										code:
@@ -726,11 +761,16 @@ export const workspacesRouter = router({
 								}
 							}
 
-							await enablePushAutoSetupRemote(
-								git,
-								worktreePath,
-								"[workspaces.create]",
-							);
+							try {
+								await enablePushAutoSetupRemote(
+									git,
+									worktreePath,
+									"[workspaces.create]",
+								);
+							} catch (err) {
+								await rollbackCreatedWorktree();
+								throw err;
+							}
 
 							workspaceRow = await registerCloudAndLocal({
 								ctx,
@@ -740,7 +780,7 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
-								rollbackWorktree,
+								rollbackWorktree: rollbackCreatedWorktree,
 								hostPromise,
 							});
 
