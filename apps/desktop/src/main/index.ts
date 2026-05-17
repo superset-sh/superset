@@ -225,7 +225,7 @@ app.on("before-quit", async (event) => {
 	isQuitting = true;
 	try {
 		if (isDev || forceFullCleanup || isUpdateReadyToInstall()) {
-			await runDevQuitCleanup();
+			await runFullQuitCleanup();
 		} else {
 			// Prod: leave services running so the next launch re-adopts via manifest.
 			getHostServiceCoordinator().releaseAll();
@@ -241,11 +241,10 @@ app.on("before-quit", async (event) => {
 });
 
 /**
- * Full cleanup — kill host-service + terminal-host children. Used in dev (where
- * they'd reparent to init without an explicit stop) and on the tray's
- * "Quit Superset Completely" path in prod.
+ * Full cleanup — kill host-service + terminal-host children. Used in dev, on
+ * update installs, and on the tray's "Quit Superset Completely" path in prod.
  */
-async function runDevQuitCleanup(): Promise<void> {
+async function runFullQuitCleanup(): Promise<void> {
 	const coordinator = getHostServiceCoordinator();
 	coordinator.teardownKnownManifests();
 	coordinator.stopAll();
@@ -274,9 +273,10 @@ if (process.env.NODE_ENV === "development") {
 		if (signalHandled) return;
 		signalHandled = true;
 		console.log(`[main] Received ${signal}, quitting...`);
-		void Promise.allSettled([runDevQuitCleanup(), stopNetworkLogger()]).finally(
-			() => app.exit(0),
-		);
+		void Promise.allSettled([
+			runFullQuitCleanup(),
+			stopNetworkLogger(),
+		]).finally(() => app.exit(0));
 	};
 
 	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
