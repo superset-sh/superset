@@ -1,23 +1,28 @@
+import type { SelectV2Workspace } from "@superset/db/schema";
+import type { AppRouter } from "@superset/host-service";
 import type { WorkspaceState } from "@superset/panes";
+import type { inferRouterInputs } from "@trpc/server";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID,
+	type WorkspaceCreateInsertMetadata,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
+import {
 	getPrependTabOrder,
 	isSidebarWorkspaceVisible,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { waitForSyncedWorkspaceRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/workspaceSyncWaits";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { appendLaunchesToPaneLayout } from "./appendLaunchesToPaneLayout";
-import {
-	type InFlightEntry,
-	useWorkspaceCreatesStore,
-	type WorkspacesCreateInput,
-} from "./store";
+
+export type WorkspacesCreateInput =
+	inferRouterInputs<AppRouter>["workspaces"]["create"];
 
 export interface SubmitArgs {
 	hostId: string;
@@ -29,33 +34,26 @@ export type SubmitResult =
 	| { ok: false; error: string };
 
 export interface UseWorkspaceCreatesApi {
-	entries: InFlightEntry[];
 	submit: (args: SubmitArgs) => Promise<SubmitResult>;
-	retry: (workspaceId: string) => Promise<void>;
-	dismiss: (workspaceId: string) => void;
 }
 
 export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
-	const entries = useWorkspaceCreatesStore((s) => s.entries);
 	const hostService = useLocalHostService();
 	const { machineId, activeHostUrl } = hostService;
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId;
+	const userId = session?.user?.id ?? null;
 	const collections = useCollections();
 	const relayUrl = useRelayUrl();
 
-	const dispatch = useCallback(
+	const submit = useCallback(
 		async (args: SubmitArgs): Promise<SubmitResult> => {
 			const workspaceId = args.snapshot.id;
 			if (!workspaceId) {
-				throw new Error(
-					"workspaces.create requires `id` for in-flight tracking",
-				);
+				throw new Error("workspaces.create requires `id`");
 			}
 			if (!organizationId) {
-				const error = "No active organization";
-				useWorkspaceCreatesStore.getState().markError(workspaceId, error);
-				return { ok: false, error };
+				return { ok: false, error: "No active organization" };
 			}
 			const hostUrl = resolveHostUrl({
 				hostId: args.hostId,
@@ -65,27 +63,19 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				relayUrl,
 			});
 			if (!hostUrl) {
-				const error = getHostServiceUnavailableMessage(hostService, {
-					action: "create the workspace",
-				});
-				useWorkspaceCreatesStore.getState().markError(workspaceId, error);
-				return { ok: false, error };
+				return {
+					ok: false,
+					error: getHostServiceUnavailableMessage(hostService, {
+						action: "create the workspace",
+					}),
+				};
 			}
-			try {
-				const client = getHostServiceClientByUrl(hostUrl);
-				const result = await client.workspaces.create.mutate(args.snapshot);
 
-				// Cache the cloud row on the in-flight entry so the workspace
-				// detail layout can render the workspace immediately, without
-				// waiting for Electric to deliver the synced row. Manager.tsx
-				// removes the entry once the row appears in collections.
-				useWorkspaceCreatesStore
-					.getState()
-					.markCloudRow(result.workspace.id, result.workspace);
-
-				const existing = collections.v2WorkspaceLocalState.get(
-					result.workspace.id,
-				);
+			const writeWorkspaceLocalState = (
+				result: NonNullable<WorkspaceCreateInsertMetadata["result"]>,
+			) => {
+				const { workspace } = result;
+				const existing = collections.v2WorkspaceLocalState.get(workspace.id);
 				const paneLayout = appendLaunchesToPaneLayout({
 					existing: existing?.paneLayout as
 						| WorkspaceState<PaneViewerData>
@@ -94,14 +84,11 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					agents: result.agents,
 				});
 				if (existing) {
-					collections.v2WorkspaceLocalState.update(
-						result.workspace.id,
-						(draft) => {
-							draft.paneLayout = paneLayout;
-						},
-					);
+					collections.v2WorkspaceLocalState.update(workspace.id, (draft) => {
+						draft.paneLayout = paneLayout;
+					});
 				} else {
-					const projectId = result.workspace.projectId;
+					const projectId = workspace.projectId;
 					const topLevelItems = [
 						...Array.from(collections.v2WorkspaceLocalState.state.values())
 							.filter(
@@ -116,7 +103,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 							.map((item) => ({ tabOrder: item.tabOrder })),
 					];
 					collections.v2WorkspaceLocalState.insert({
-						workspaceId: result.workspace.id,
+						workspaceId: workspace.id,
 						createdAt: new Date(),
 						sidebarState: {
 							projectId,
@@ -131,22 +118,74 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						recentlyViewedFiles: [],
 					});
 				}
-				// On alreadyExists the server returns the canonical workspace id,
-				// which can differ from our optimistic snapshot id. The in-flight
-				// entry is still keyed by snapshot id and won't ever resolve, so
-				// drop it — the canonical workspace now lives in collections and
-				// callers redirect there.
-				if (result.alreadyExists && result.workspace.id !== workspaceId) {
-					useWorkspaceCreatesStore.getState().remove(workspaceId);
+			};
+
+			try {
+				const existingWorkspace = collections.v2Workspaces.get(workspaceId);
+				if (existingWorkspace) {
+					if (existingWorkspace.$synced !== true) {
+						await waitForSyncedWorkspaceRow(
+							collections.v2Workspaces,
+							workspaceId,
+						);
+					}
+					return {
+						ok: true,
+						workspaceId,
+						alreadyExists: true,
+					};
 				}
+
+				const metadata: WorkspaceCreateInsertMetadata = {
+					hostUrl,
+					input: args.snapshot,
+				};
+
+				const now = new Date();
+				const tx = collections.v2Workspaces.insert(
+					{
+						id: workspaceId,
+						organizationId,
+						projectId: args.snapshot.projectId,
+						hostId: args.hostId,
+						name: args.snapshot.name ?? args.snapshot.branch ?? "New workspace",
+						branch:
+							args.snapshot.branch ?? args.snapshot.name ?? "New workspace",
+						type: "worktree",
+						createdByUserId: userId,
+						taskId: args.snapshot.taskId ?? null,
+						createdAt: now,
+						updatedAt: now,
+					} satisfies SelectV2Workspace,
+					{ metadata },
+				);
+
+				try {
+					await tx.isPersisted.promise;
+				} catch (error) {
+					const isExpectedRollback =
+						error instanceof Error &&
+						error.message === WORKSPACE_CREATE_ROLLBACK_TO_CANONICAL_ID &&
+						metadata.result;
+					if (!isExpectedRollback) {
+						throw error;
+					}
+				}
+				if (!metadata.result) {
+					throw new Error("Workspace creation did not return a result");
+				}
+				await waitForSyncedWorkspaceRow(
+					collections.v2Workspaces,
+					metadata.result.workspace.id,
+				);
+				writeWorkspaceLocalState(metadata.result);
 				return {
 					ok: true,
-					workspaceId: result.workspace.id,
-					alreadyExists: result.alreadyExists,
+					workspaceId: metadata.result.workspace.id,
+					alreadyExists: metadata.result.alreadyExists,
 				};
 			} catch (err) {
 				const error = err instanceof Error ? err.message : String(err);
-				useWorkspaceCreatesStore.getState().markError(workspaceId, error);
 				return { ok: false, error };
 			}
 		},
@@ -154,45 +193,11 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			machineId,
 			activeHostUrl,
 			organizationId,
+			userId,
 			collections,
 			relayUrl,
 			hostService,
 		],
 	);
-
-	const submit = useCallback(
-		async (args: SubmitArgs): Promise<SubmitResult> => {
-			const workspaceId = args.snapshot.id;
-			if (!workspaceId) {
-				throw new Error(
-					"workspaces.create requires `id` for in-flight tracking",
-				);
-			}
-			useWorkspaceCreatesStore.getState().add({
-				hostId: args.hostId,
-				snapshot: args.snapshot,
-				state: "creating",
-			});
-			return await dispatch(args);
-		},
-		[dispatch],
-	);
-
-	const retry = useCallback(
-		async (workspaceId: string) => {
-			const entry = useWorkspaceCreatesStore
-				.getState()
-				.entries.find((e) => e.snapshot.id === workspaceId);
-			if (!entry) return;
-			useWorkspaceCreatesStore.getState().markCreating(workspaceId);
-			await dispatch({ hostId: entry.hostId, snapshot: entry.snapshot });
-		},
-		[dispatch],
-	);
-
-	const dismiss = useCallback((workspaceId: string) => {
-		useWorkspaceCreatesStore.getState().remove(workspaceId);
-	}, []);
-
-	return { entries, submit, retry, dismiss };
+	return { submit };
 }

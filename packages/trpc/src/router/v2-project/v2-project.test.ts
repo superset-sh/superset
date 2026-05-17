@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 
-const getCurrentTxidMock = mock(async () => "txid-123");
+const getCurrentTxidMock = mock(async () => 123);
 
 const uploadImageMock = mock(async () => "https://blob.example/new-icon.png");
 const generateImagePathnameMock = mock(
@@ -38,6 +38,7 @@ let githubReposFindResults: unknown[] = [];
 let membersFindManyResults: unknown[] = [];
 let dbInsertReturningResults: unknown[][] = [];
 let dbUpdateReturningResults: unknown[][] = [];
+let txInsertReturningResults: unknown[][] = [];
 let txUpdateReturningResults: unknown[][] = [];
 
 const v2ProjectsFindFirst = mock(
@@ -70,7 +71,12 @@ const txUpdateReturning = mock(
 const txUpdateWhere = mock(() => ({ returning: txUpdateReturning }));
 const txUpdateSet = mock(() => ({ where: txUpdateWhere }));
 const txUpdate = mock(() => ({ set: txUpdateSet }));
-const tx = { update: txUpdate };
+const txInsertReturning = mock(
+	async () => txInsertReturningResults.shift() ?? [],
+);
+const txInsertValues = mock(() => ({ returning: txInsertReturning }));
+const txInsert = mock(() => ({ values: txInsertValues }));
+const tx = { update: txUpdate, insert: txInsert };
 
 const transactionMock = mock(async (cb: (tx: unknown) => unknown) => cb(tx));
 
@@ -249,6 +255,7 @@ beforeEach(() => {
 	membersFindManyResults = [];
 	dbInsertReturningResults = [];
 	dbUpdateReturningResults = [];
+	txInsertReturningResults = [];
 	txUpdateReturningResults = [];
 
 	v2ProjectsFindFirst.mockClear();
@@ -267,10 +274,13 @@ beforeEach(() => {
 	txUpdateSet.mockClear();
 	txUpdateWhere.mockClear();
 	txUpdateReturning.mockClear();
+	txInsert.mockClear();
+	txInsertValues.mockClear();
+	txInsertReturning.mockClear();
 	transactionMock.mockClear();
 
 	getCurrentTxidMock.mockReset();
-	getCurrentTxidMock.mockImplementation(async () => "txid-123");
+	getCurrentTxidMock.mockImplementation(async () => 123);
 
 	uploadImageMock.mockReset();
 	uploadImageMock.mockImplementation(
@@ -398,7 +408,7 @@ describe("v2Project.uploadIcon", () => {
 		expect(result).toMatchObject({
 			id: PROJECT_ID,
 			iconUrl: "https://blob.example/new-icon.png",
-			txid: "txid-123",
+			txid: 123,
 		});
 	});
 
@@ -502,7 +512,7 @@ describe("v2Project.resetIconToGitHub", () => {
 		expect(result).toMatchObject({
 			id: PROJECT_ID,
 			iconUrl: "https://blob.example/avatar.png",
-			txid: "txid-123",
+			txid: 123,
 		});
 	});
 
@@ -658,7 +668,7 @@ describe("v2Project.removeIcon", () => {
 		expect(result).toMatchObject({
 			id: PROJECT_ID,
 			iconUrl: null,
-			txid: "txid-123",
+			txid: 123,
 		});
 	});
 
@@ -711,7 +721,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 
 	it("does not call avatar fetch when no repoCloneUrl is supplied", async () => {
 		setMembershipForCreate();
-		dbInsertReturningResults.push([
+		txInsertReturningResults.push([
 			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
 		]);
 
@@ -719,7 +729,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 		const result = await caller.v2Project.create(baseInput);
 
 		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-		expect(result).toMatchObject({ id: PROJECT_ID });
+		expect(result).toMatchObject({ id: PROJECT_ID, txid: 123 });
 	});
 
 	it("rejects with BAD_REQUEST when repoCloneUrl is unparseable, before insert", async () => {
@@ -755,7 +765,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 	it("returns the inserted project immediately and kicks off background avatar hydration", async () => {
 		setMembershipForCreate();
 		githubReposFindResults.push(null);
-		dbInsertReturningResults.push([
+		txInsertReturningResults.push([
 			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
 		]);
 
@@ -768,7 +778,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 		// The mutation must not block on the GitHub fetch — it returns the
 		// inserted row immediately with iconUrl: null. Electric will sync the
 		// icon to the client once the background hydration lands.
-		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null, txid: 123 });
 
 		await flushMicrotasks();
 
@@ -785,7 +795,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 	it("does not write iconUrl in the background when GitHub avatar fetch returns null", async () => {
 		setMembershipForCreate();
 		githubReposFindResults.push(null);
-		dbInsertReturningResults.push([
+		txInsertReturningResults.push([
 			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
 		]);
 		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => null);
@@ -800,13 +810,13 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 
 		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledTimes(1);
 		expect(dbUpdate).not.toHaveBeenCalled();
-		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null, txid: 123 });
 	});
 
 	it("does not crash the mutation when background avatar hydration throws", async () => {
 		setMembershipForCreate();
 		githubReposFindResults.push(null);
-		dbInsertReturningResults.push([
+		txInsertReturningResults.push([
 			{ id: PROJECT_ID, organizationId: ORG_ID, iconUrl: null },
 		]);
 		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => {
@@ -822,7 +832,7 @@ describe("v2Project.create — GitHub avatar auto-hydration", () => {
 
 		await flushMicrotasks();
 
-		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
+		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null, txid: 123 });
 		expect(consoleWarnSpy).toHaveBeenCalled();
 
 		consoleWarnSpy.mockRestore();

@@ -15,6 +15,7 @@ import {
 } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { CommandContext } from "./types";
 
@@ -32,6 +33,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 		hostServiceStatus,
 		machineId,
 	} = useLocalHostService();
+	const { isDeleting } = useDeletingWorkspaces();
 
 	const navigateTo = useCallback(
 		(path: string) => {
@@ -54,10 +56,16 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 					projectId: workspaces.projectId,
 					type: workspaces.type,
 					hostId: workspaces.hostId,
+					isSynced: workspaces.$synced,
 				})),
 		[collections, v2WorkspaceId],
 	);
-	const v2Workspace = v2WorkspaceId ? (v2WorkspaceRows[0] ?? null) : null;
+	const v2Workspace =
+		v2WorkspaceId &&
+		v2WorkspaceRows[0]?.isSynced === true &&
+		!isDeleting(v2WorkspaceId)
+			? v2WorkspaceRows[0]
+			: null;
 	const projectId = v2Workspace?.projectId ?? null;
 
 	const { data: preferredAppRows = [] } = useLiveQuery(

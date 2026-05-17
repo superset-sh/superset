@@ -89,7 +89,7 @@ type CloudWorkspace = NonNullable<
 	Awaited<
 		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
 	>
->;
+> & { txid?: number | null };
 
 async function findExistingWorkspaceByBranch(
 	ctx: HostServiceContext,

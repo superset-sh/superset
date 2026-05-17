@@ -20,6 +20,7 @@ export interface DestroyWorkspaceSuccess {
 	worktreeRemoved: boolean;
 	branchDeleted: boolean;
 	cloudDeleted: boolean;
+	cloudDeleteTxid: number | null;
 	warnings: string[];
 }
 

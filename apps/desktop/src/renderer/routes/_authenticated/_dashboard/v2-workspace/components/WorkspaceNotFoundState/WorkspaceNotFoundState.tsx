@@ -21,7 +21,7 @@ export function WorkspaceNotFoundState({
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
 						Workspace not found
 					</h1>
-					<p className="text-[13px] leading-relaxed text-muted-foreground">
+					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
 						This workspace may have been removed, or you no longer have access
 						to it.
 					</p>

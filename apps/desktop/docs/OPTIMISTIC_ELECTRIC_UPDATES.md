@@ -38,7 +38,7 @@ These collections have Electric mutation handlers in `CollectionsProvider/collec
 | --- | --- | --- | --- |
 | `tasks` | insert, update, delete | `useOptimisticCollectionActions().tasks` for update/delete; create dialog still uses `task.createFromUi` directly | Optimistic for task edits/deletes; collection handlers return `{ txid }`. |
 | `v2Projects` | update | `useOptimisticCollectionActions().v2Projects` for rename/repository updates | Optimistic for project row edits; create/delete remain API-confirmed. |
-| `v2Workspaces` | update | `useOptimisticCollectionActions().v2Workspaces` for rename-style updates | Optimistic for workspace row edits; create/delete remain host-service sagas. |
+| `v2Workspaces` | insert, update | `useOptimisticCollectionActions().v2Workspaces` for rename-style updates; `useWorkspaceCreates().submit` for optimistic insert | Optimistic for workspace creation and row edits; delete remains host-service saga. The `onInsert` handler calls host-service `workspaces.create`, returns `{ txid }`, and rolls back to the canonical ID when the server assigns a different one. |
 | `chatSessions` | delete | `useOptimisticCollectionActions().chatSessions` for chat session deletion | Optimistic delete; create remains server-confirmed because the chat runtime coordinates session creation. |
 | `agentCommands` | update | `useCommandWatcher` | Background optimistic update; caller awaits `tx.isPersisted.promise` and retries on failure. |
 
@@ -65,12 +65,11 @@ These are Electric-backed in the renderer but have no collection mutation handle
 - `automations`
 - `automationRuns`
 
-Workspace create/delete flows do not use `collections.v2Workspaces.insert/delete`. They go through host-service or tRPC APIs and then Electric streams the confirmed row back:
+Workspace create now uses `collections.v2Workspaces.insert` with an `onInsert` handler that calls host-service `workspaces.create`. The renderer does an optimistic insert, the handler persists through host-service, returns `{ txid }`, and the caller awaits `waitForSyncedWorkspaceRow` before navigating. If the server assigns a different canonical ID, the handler awaits the txid then throws a rollback sentinel so TanStack DB replaces the optimistic row with the canonical one.
 
-- workspace create/checkout/adopt writes a local `pendingWorkspaces` row, then the pending page calls host-service
-- workspace delete calls host-service `workspaceCleanup.destroy`; the sidebar hides the row through `DeletingWorkspacesProvider` while the saga runs
+Workspace delete still calls host-service `workspaceCleanup.destroy`; the sidebar hides the row through `DeletingWorkspacesProvider` while the saga runs.
 
-Workspace rename does use `collections.v2Workspaces.update` via `useOptimisticCollectionActions().v2Workspaces`, backed by `v2Workspace.update` returning `{ txid }` from the same Postgres transaction.
+Workspace rename uses `collections.v2Workspaces.update` via `useOptimisticCollectionActions().v2Workspaces`, backed by `v2Workspace.update` returning `{ txid }` from the same Postgres transaction.
 
 ### LocalStorage collections
 
@@ -80,7 +79,7 @@ These are client-local TanStack DB collections. They are synchronous local persi
 - `v2WorkspaceLocalState` — sidebar placement, pane layout, viewed files, changes tab
 - `v2SidebarSections` — user-created sidebar sections and ordering
 - `v2TerminalPresets` — local terminal presets
-- `pendingWorkspaces` — durable local bus for workspace creation progress and launch handoff
+- `pendingWorkspaces` — legacy; previously used for workspace creation progress (now handled by `v2Workspaces` optimistic insert)
 - `v2UserPreferences` — local v2 preferences such as link behavior and delete-branch default
 
 LocalStorage mutations can still throw for schema/storage errors, but they do not have remote persistence confirmation or Electric rollback semantics.

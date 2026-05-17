@@ -13,6 +13,7 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
@@ -220,6 +221,7 @@ export function useAccessibleV2Workspaces(
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
+	const { isDeleting } = useDeletingWorkspaces();
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -280,6 +282,7 @@ export function useAccessibleV2Workspaces(
 						type: workspaces.type,
 						createdAt: workspaces.createdAt,
 						createdByUserId: workspaces.createdByUserId,
+						isSynced: workspaces.$synced,
 						createdByName: creators?.name ?? null,
 						createdByImage: creators?.image ?? null,
 						projectId: projects.id,
@@ -365,6 +368,7 @@ export function useAccessibleV2Workspaces(
 	const enriched = useMemo<AccessibleV2Workspace[]>(() => {
 		const deduped = new Map<string, AccessibleV2Workspace>();
 		for (const row of rows) {
+			if (!row.isSynced || isDeleting(row.id)) continue;
 			if (deduped.has(row.id)) continue;
 			const hostType: V2WorkspaceHostType =
 				row.hostId === machineId ? "local-device" : "remote-device";
@@ -405,7 +409,7 @@ export function useAccessibleV2Workspaces(
 		return Array.from(deduped.values()).sort(
 			(a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
 		);
-	}, [rows, machineId, currentUserId, prsByRepoBranch]);
+	}, [rows, machineId, currentUserId, prsByRepoBranch, isDeleting]);
 
 	const searchFiltered = useMemo(
 		() =>

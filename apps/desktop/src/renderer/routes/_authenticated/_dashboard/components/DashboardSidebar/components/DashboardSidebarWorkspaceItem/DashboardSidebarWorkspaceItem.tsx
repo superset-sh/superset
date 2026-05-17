@@ -4,7 +4,6 @@ import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/h
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
-import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
@@ -36,7 +35,6 @@ export function DashboardSidebarWorkspaceItem({
 		hostIsOnline,
 		name,
 		branch,
-		creationStatus,
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
@@ -77,15 +75,9 @@ export function DashboardSidebarWorkspaceItem({
 	const handleAfterBranchRename = (newBranchName: string) => {
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
-	const isPending = !!creationStatus;
-	const isFailedInFlight = creationStatus === "failed";
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
 	const isDeleting = useDeletingWorkspaces().isDeleting(id);
-
-	const handleDismissInFlight = useCallback(() => {
-		useWorkspaceCreatesStore.getState().remove(id);
-	}, [id]);
 
 	const {
 		hoveredId: hoverHoveredId,
@@ -94,20 +86,18 @@ export function DashboardSidebarWorkspaceItem({
 		syncIfHovered: hoverSyncIfHovered,
 	} = useDashboardSidebarHover();
 	const rowRef = useRef<HTMLDivElement>(null);
-	const hoverEligible = !isPending;
 	const hoverPayload = useMemo(
 		() => ({ workspace, onEditBranchClick: setRenameBranchTarget }),
 		[workspace],
 	);
 
 	const handleMouseEnter = useCallback(() => {
-		if (!hoverEligible || !rowRef.current) return;
+		if (!rowRef.current) return;
 		hoverRequestOpen(id, rowRef.current, hoverPayload);
-	}, [hoverEligible, hoverRequestOpen, id, hoverPayload]);
+	}, [hoverRequestOpen, id, hoverPayload]);
 	const handleMouseLeave = useCallback(() => {
-		if (!hoverEligible) return;
 		hoverRequestClose(id);
-	}, [hoverEligible, hoverRequestClose, id]);
+	}, [hoverRequestClose, id]);
 
 	const isHovered = hoverHoveredId === id;
 	useEffect(() => {
@@ -142,11 +132,7 @@ export function DashboardSidebarWorkspaceItem({
 					isActive={isActive}
 					workspaceStatus={workspaceStatus}
 					onClick={handleClick}
-					creationStatus={creationStatus}
 					pullRequestState={pullRequest?.state ?? null}
-					aria-label={
-						creationStatus ? `Creating workspace: ${name}` : undefined
-					}
 				/>
 			</div>
 		);
@@ -154,35 +140,31 @@ export function DashboardSidebarWorkspaceItem({
 		return (
 			<>
 				<div hidden={isDeleting}>
-					{isPending ? (
-						content
-					) : (
-						<DashboardSidebarWorkspaceContextMenu
-							projectId={projectId}
-							isInSection={isInSection}
-							isUnread={isUnread}
-							isLocalWorkspace={hostType === "local-device"}
-							isPinned={isMainWorkspace && hostType === "local-device"}
-							onCreateSection={handleCreateSection}
-							onMoveToSection={(targetSectionId) =>
-								moveWorkspaceToSection(id, projectId, targetSectionId)
-							}
-							onOpenInFinder={handleOpenInFinder}
-							onCopyPath={handleCopyPath}
-							onCopyBranchName={handleCopyBranchName}
-							onRemoveFromSidebar={handleRemoveFromSidebar}
-							onRename={startRename}
-							onDelete={
-								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
-							}
-							onToggleUnread={handleToggleUnread}
-						>
-							{content}
-						</DashboardSidebarWorkspaceContextMenu>
-					)}
+					<DashboardSidebarWorkspaceContextMenu
+						projectId={projectId}
+						isInSection={isInSection}
+						isUnread={isUnread}
+						isLocalWorkspace={hostType === "local-device"}
+						isPinned={isMainWorkspace && hostType === "local-device"}
+						onCreateSection={handleCreateSection}
+						onMoveToSection={(targetSectionId) =>
+							moveWorkspaceToSection(id, projectId, targetSectionId)
+						}
+						onOpenInFinder={handleOpenInFinder}
+						onCopyPath={handleCopyPath}
+						onCopyBranchName={handleCopyBranchName}
+						onRemoveFromSidebar={handleRemoveFromSidebar}
+						onRename={startRename}
+						onDelete={
+							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+						}
+						onToggleUnread={handleToggleUnread}
+					>
+						{content}
+					</DashboardSidebarWorkspaceContextMenu>
 				</div>
 
-				{!isPending && !isMainWorkspace && (
+				{!isMainWorkspace && (
 					<DashboardSidebarDeleteDialog
 						workspaceId={id}
 						workspaceName={name || branch}
@@ -219,17 +201,13 @@ export function DashboardSidebarWorkspaceItem({
 				isRenaming={isRenaming}
 				renameValue={renameValue}
 				shortcutLabel={shortcutLabel}
-				diffStats={isPending ? null : diffStats}
+				diffStats={diffStats}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
 				onClick={handleClick}
-				onDoubleClick={isPending ? undefined : startRename}
+				onDoubleClick={startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
-				onCloseWorkspaceClick={
-					isFailedInFlight
-						? handleDismissInFlight
-						: () => setIsDeleteDialogOpen(true)
-				}
+				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
@@ -240,35 +218,31 @@ export function DashboardSidebarWorkspaceItem({
 	return (
 		<>
 			<div hidden={isDeleting}>
-				{isPending ? (
-					expandedContent
-				) : (
-					<DashboardSidebarWorkspaceContextMenu
-						projectId={projectId}
-						isInSection={isInSection}
-						isUnread={isUnread}
-						onCreateSection={handleCreateSection}
-						onMoveToSection={(targetSectionId) =>
-							moveWorkspaceToSection(id, projectId, targetSectionId)
-						}
-						isLocalWorkspace={hostType === "local-device"}
-						isPinned={isMainWorkspace && hostType === "local-device"}
-						onOpenInFinder={handleOpenInFinder}
-						onCopyPath={handleCopyPath}
-						onCopyBranchName={handleCopyBranchName}
-						onRemoveFromSidebar={handleRemoveFromSidebar}
-						onRename={startRename}
-						onDelete={
-							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
-						}
-						onToggleUnread={handleToggleUnread}
-					>
-						{expandedContent}
-					</DashboardSidebarWorkspaceContextMenu>
-				)}
+				<DashboardSidebarWorkspaceContextMenu
+					projectId={projectId}
+					isInSection={isInSection}
+					isUnread={isUnread}
+					onCreateSection={handleCreateSection}
+					onMoveToSection={(targetSectionId) =>
+						moveWorkspaceToSection(id, projectId, targetSectionId)
+					}
+					isLocalWorkspace={hostType === "local-device"}
+					isPinned={isMainWorkspace && hostType === "local-device"}
+					onOpenInFinder={handleOpenInFinder}
+					onCopyPath={handleCopyPath}
+					onCopyBranchName={handleCopyBranchName}
+					onRemoveFromSidebar={handleRemoveFromSidebar}
+					onRename={startRename}
+					onDelete={
+						isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
+					}
+					onToggleUnread={handleToggleUnread}
+				>
+					{expandedContent}
+				</DashboardSidebarWorkspaceContextMenu>
 			</div>
 
-			{!isPending && !isMainWorkspace && (
+			{!isMainWorkspace && (
 				<DashboardSidebarDeleteDialog
 					workspaceId={id}
 					workspaceName={name || branch}

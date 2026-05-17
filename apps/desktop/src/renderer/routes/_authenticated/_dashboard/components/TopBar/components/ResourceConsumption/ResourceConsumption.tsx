@@ -30,6 +30,7 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { AppResourceSection } from "./components/AppResourceSection";
 import { MetricBadge } from "./components/MetricBadge";
@@ -172,6 +173,7 @@ function ResourceConsumptionContent({
 	const setActiveTab = useTabsStore((state) => state.setActiveTab);
 	const setFocusedPane = useTabsStore((state) => state.setFocusedPane);
 	const collections = useCollections();
+	const { isDeleting } = useDeletingWorkspaces();
 	const isV2 = surface === "v2";
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? undefined;
@@ -241,6 +243,7 @@ function ResourceConsumptionContent({
 						id: workspace.id,
 						projectId: workspace.projectId,
 						name: workspace.name,
+						isSynced: workspace.$synced,
 					})),
 			[collections],
 		);
@@ -288,29 +291,36 @@ function ResourceConsumptionContent({
 			rawV2Projects.map((project) => [project.id, project]),
 		);
 		const workspaceById = new Map(
-			rawV2Workspaces.map((workspace) => [workspace.id, workspace]),
+			rawV2Workspaces
+				.filter(
+					(workspace) =>
+						workspace.isSynced === true && !isDeleting(workspace.id),
+				)
+				.map((workspace) => [workspace.id, workspace]),
 		);
 
 		return {
 			...normalized,
-			workspaces: normalized.workspaces.map((workspace) => {
-				const v2Workspace = workspaceById.get(workspace.workspaceId);
-				const projectId = v2Workspace?.projectId ?? workspace.projectId;
-				const project = projectById.get(projectId);
-				return {
-					...workspace,
-					projectId,
-					projectName: project?.name ?? workspace.projectName,
-					workspaceName: v2Workspace?.name ?? workspace.workspaceName,
-					sessions: workspace.sessions.map((session) => ({
-						...session,
-						title:
-							terminalTitleOverrides.get(session.paneId) ??
-							session.title ??
-							null,
-					})),
-				};
-			}),
+			workspaces: normalized.workspaces
+				.filter((workspace) => workspaceById.has(workspace.workspaceId))
+				.map((workspace) => {
+					const v2Workspace = workspaceById.get(workspace.workspaceId);
+					const projectId = v2Workspace?.projectId ?? workspace.projectId;
+					const project = projectById.get(projectId);
+					return {
+						...workspace,
+						projectId,
+						projectName: project?.name ?? workspace.projectName,
+						workspaceName: v2Workspace?.name ?? workspace.workspaceName,
+						sessions: workspace.sessions.map((session) => ({
+							...session,
+							title:
+								terminalTitleOverrides.get(session.paneId) ??
+								session.title ??
+								null,
+						})),
+					};
+				}),
 		};
 	}, [
 		snapshot,
@@ -319,6 +329,7 @@ function ResourceConsumptionContent({
 		rawV2Projects,
 		rawV2Workspaces,
 		terminalTitleOverrides,
+		isDeleting,
 	]);
 
 	const getPaneName = (session: SessionMetrics): string => {

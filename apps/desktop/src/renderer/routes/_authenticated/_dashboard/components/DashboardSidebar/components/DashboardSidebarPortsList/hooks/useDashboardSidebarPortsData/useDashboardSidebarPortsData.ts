@@ -9,6 +9,7 @@ import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	applyPortEventsToHostPortsResult,
@@ -36,6 +37,7 @@ export function useDashboardSidebarPortsData(): {
 	const collections = useCollections();
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
+	const { isDeleting } = useDeletingWorkspaces();
 	const relayUrl = useRelayUrl();
 
 	const { data: hosts = [] } = useLiveQuery(
@@ -56,8 +58,17 @@ export function useDashboardSidebarPortsData(): {
 					id: workspaces.id,
 					name: workspaces.name,
 					hostId: workspaces.hostId,
+					isSynced: workspaces.$synced,
 				})),
 		[collections],
+	);
+
+	const queryableWorkspaces = useMemo(
+		() =>
+			workspaces.filter(
+				(workspace) => workspace.isSynced === true && !isDeleting(workspace.id),
+			),
+		[workspaces, isDeleting],
 	);
 
 	const hostsToQuery = useMemo(
@@ -67,9 +78,9 @@ export function useDashboardSidebarPortsData(): {
 				hosts,
 				machineId,
 				relayUrl,
-				workspaces,
+				workspaces: queryableWorkspaces,
 			}),
-		[activeHostUrl, hosts, machineId, relayUrl, workspaces],
+		[activeHostUrl, hosts, machineId, relayUrl, queryableWorkspaces],
 	);
 
 	const queries = useQueries({
@@ -154,9 +165,9 @@ export function useDashboardSidebarPortsData(): {
 		() =>
 			groupDashboardSidebarPorts({
 				hostPortResults: queries.map((query) => query.data),
-				workspaces,
+				workspaces: queryableWorkspaces,
 			}),
-		[queries, workspaces],
+		[queries, queryableWorkspaces],
 	);
 
 	const totalPortCount = workspacePortGroups.reduce(

@@ -41,7 +41,7 @@ export interface DashboardSidebarWorkspace {
 	createdAt: Date;
 	updatedAt: Date;
 	taskId: string | null;
-	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
+	isSynced: boolean;
 }
 
 export interface DashboardSidebarSection {

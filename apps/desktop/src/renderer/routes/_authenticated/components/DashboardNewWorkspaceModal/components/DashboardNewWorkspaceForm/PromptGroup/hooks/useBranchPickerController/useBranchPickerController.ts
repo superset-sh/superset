@@ -71,8 +71,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 
 	// Server's `workspaces.create` resolves all three cases (open tracked,
 	// adopt foreign worktree, fresh create). Await + navigate to the canonical
-	// id — the existing-row and adoption paths can return an id different from
-	// the optimistic snapshot id, which would otherwise 404.
+	// id; existing-row and adoption paths can return a different id.
 	const onOpenWorkspace = useCallback(
 		async (target: OpenWorkspaceTarget) => {
 			if (!projectId) {
@@ -103,8 +102,6 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 					params: { workspaceId: result.workspaceId },
 				});
 			} else {
-				// `submit` records the failure for the in-flight tracker but
-				// doesn't toast; surface it here so the closed modal isn't silent.
 				toast.error(result.error || "Failed to open workspace");
 			}
 		},

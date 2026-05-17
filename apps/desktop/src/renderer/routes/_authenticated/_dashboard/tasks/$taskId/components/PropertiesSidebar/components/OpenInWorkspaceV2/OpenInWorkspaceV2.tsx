@@ -238,15 +238,6 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 						},
 					];
 
-		// Navigate optimistically — the host service uses our supplied id for new
-		// workspaces, so the route is correct in the common case. If the server
-		// found an existing workspace under a different id, the success handler
-		// replaces the URL.
-		void navigate({
-			to: "/v2-workspace/$workspaceId",
-			params: { workspaceId: snapshotId },
-		});
-
 		const promise = submit({
 			hostId,
 			snapshot: {
@@ -259,22 +250,12 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 			},
 		}).then((result) => {
 			if (!result.ok) {
-				// We optimistically navigated to the snapshot URL — bounce back to
-				// the task on failure so the user isn't stranded on a dead route.
-				void navigate({
-					to: "/tasks/$taskId",
-					params: { taskId: task.id },
-					replace: true,
-				});
 				throw new Error(result.error);
 			}
-			if (result.workspaceId !== snapshotId) {
-				void navigate({
-					to: "/v2-workspace/$workspaceId",
-					params: { workspaceId: result.workspaceId },
-					replace: true,
-				});
-			}
+			void navigate({
+				to: "/v2-workspace/$workspaceId",
+				params: { workspaceId: result.workspaceId },
+			});
 			return result;
 		});
 

@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -23,7 +23,6 @@ export function useSubmitWorkspace(
 	promptContext: NewWorkspacePromptContextApi,
 ) {
 	const navigate = useNavigate();
-	const matchRoute = useMatchRoute();
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
@@ -92,11 +91,9 @@ export function useSubmitWorkspace(
 				]
 			: undefined;
 
-		// PR path supplies a name (PR title) so the in-flight UI has
-		// something to show immediately. Branch path leaves both `name`
-		// and `branch` undefined when the user didn't type — the server
-		// generates a friendly random and AI-renames whichever side(s)
-		// the user didn't supply.
+		// PR path supplies a name from the PR title. Branch path leaves both
+		// `name` and `branch` undefined when the user didn't type; the server
+		// fills friendly random names and AI-renames whichever side(s) need it.
 		const prName = isPrCheckout
 			? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
 			: undefined;
@@ -119,61 +116,32 @@ export function useSubmitWorkspace(
 		};
 
 		closeAndResetDraft();
-		void navigate({
-			to: "/v2-workspace/$workspaceId",
-			params: { workspaceId },
-		}).catch((error) => {
-			console.error("[useSubmitWorkspace] failed to open workspace", error);
-		});
 
-		const isViewingOptimisticWorkspace = () => {
-			const workspaceMatch = matchRoute({
-				to: "/v2-workspace/$workspaceId",
-			});
-			return (
-				workspaceMatch !== false && workspaceMatch.workspaceId === workspaceId
-			);
-		};
-
-		void submit({ hostId, snapshot })
-			.then((result) => {
-				if (!result.ok) {
-					if (isViewingOptimisticWorkspace()) {
-						toast.error("Workspace creation failed", {
-							description: result.error,
-						});
-					}
-					return;
-				}
-				if (result.workspaceId === workspaceId) return;
-				if (!isViewingOptimisticWorkspace()) return;
-				void navigate({
-					to: "/v2-workspace/$workspaceId",
-					params: { workspaceId: result.workspaceId },
-					replace: true,
-				}).catch((error) => {
-					console.error(
-						"[useSubmitWorkspace] failed to redirect workspace",
-						error,
-					);
+		try {
+			const result = await submit({ hostId, snapshot });
+			if (!result.ok) {
+				toast.error("Workspace creation failed", {
+					description: result.error,
 				});
-			})
-			.catch((error) => {
-				console.error(
-					"[useSubmitWorkspace] workspace creation failed unexpectedly",
-					error,
-				);
-				if (isViewingOptimisticWorkspace()) {
-					toast.error("Workspace creation failed", {
-						description: error instanceof Error ? error.message : String(error),
-					});
-				}
+				return;
+			}
+			await navigate({
+				to: "/v2-workspace/$workspaceId",
+				params: { workspaceId: result.workspaceId },
 			});
+		} catch (error) {
+			console.error(
+				"[useSubmitWorkspace] workspace creation failed unexpectedly",
+				error,
+			);
+			toast.error("Workspace creation failed", {
+				description: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}, [
 		activeOrganizationId,
 		closeAndResetDraft,
 		draft,
-		matchRoute,
 		machineId,
 		navigate,
 		projectId,

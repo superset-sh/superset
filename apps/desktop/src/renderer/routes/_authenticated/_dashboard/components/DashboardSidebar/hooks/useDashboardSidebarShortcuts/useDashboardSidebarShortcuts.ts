@@ -55,9 +55,9 @@ export function useDashboardSidebarShortcuts(
 		useDashboardSidebarState();
 	const flattenedWorkspaces = useMemo(
 		() =>
-			groups
-				.flatMap((project) => getProjectChildrenWorkspaces(project.children))
-				.filter((workspace) => !workspace.creationStatus),
+			groups.flatMap((project) =>
+				getProjectChildrenWorkspaces(project.children),
+			),
 		[groups],
 	);
 	const workspaceShortcutLabels =

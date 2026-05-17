@@ -9,7 +9,7 @@ export type AdoptedWorkspace = NonNullable<
 	Awaited<
 		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
 	>
->;
+> & { txid?: number | null };
 
 export interface AdoptExistingWorktreeArgs {
 	ctx: HostServiceContext;
