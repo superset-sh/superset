@@ -7,6 +7,7 @@ import {
 	mock,
 	test,
 } from "bun:test";
+import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
@@ -85,7 +86,9 @@ mock.module("./local-db", () => ({
 	},
 }));
 
-const { HostServiceCoordinator } = await import("./host-service-coordinator");
+const { HostServiceCoordinator, pipeWithPrefix } = await import(
+	"./host-service-coordinator"
+);
 
 const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
 	pid,
@@ -340,6 +343,96 @@ describe("HostServiceCoordinator.reset", () => {
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
+	});
+});
+
+class FakeSource extends EventEmitter {
+	emitChunk(buf: Buffer): void {
+		this.emit("data", buf);
+	}
+	emitEnd(): void {
+		this.emit("end");
+	}
+}
+
+class FakeTarget {
+	chunks: string[] = [];
+	write(chunk: string | Buffer): boolean {
+		this.chunks.push(
+			typeof chunk === "string" ? chunk : chunk.toString("utf8"),
+		);
+		return true;
+	}
+	combined(): string {
+		return this.chunks.join("");
+	}
+}
+
+const REPLACEMENT = "�";
+
+describe("pipeWithPrefix", () => {
+	test("preserves multi-byte UTF-8 codepoints split across chunk boundaries", () => {
+		const source = new FakeSource();
+		const target = new FakeTarget();
+		pipeWithPrefix(source, target as unknown as NodeJS.WritableStream, "[tag]");
+
+		// U+1F527 ("🔧") = F0 9F 94 A7. Split the 4-byte sequence mid-codepoint:
+		// before the fix, each half decoded to U+FFFD, producing garbled output.
+		const emoji = Buffer.from("🔧", "utf8");
+		expect(emoji.length).toBe(4);
+
+		source.emitChunk(
+			Buffer.concat([Buffer.from("hello ", "utf8"), emoji.subarray(0, 2)]),
+		);
+		source.emitChunk(
+			Buffer.concat([emoji.subarray(2), Buffer.from(" world\n", "utf8")]),
+		);
+
+		const out = target.combined();
+		expect(out).toBe("[tag] hello 🔧 world\n");
+		expect(out).not.toContain(REPLACEMENT);
+	});
+
+	test("does not garble CJK characters split across chunks", () => {
+		const source = new FakeSource();
+		const target = new FakeTarget();
+		pipeWithPrefix(source, target as unknown as NodeJS.WritableStream, "[tag]");
+
+		// U+4E2D ("中") = E4 B8 AD (3 bytes).
+		const han = Buffer.from("中", "utf8");
+		expect(han.length).toBe(3);
+
+		source.emitChunk(
+			Buffer.concat([Buffer.from("a", "utf8"), han.subarray(0, 1)]),
+		);
+		source.emitChunk(
+			Buffer.concat([han.subarray(1), Buffer.from("b\n", "utf8")]),
+		);
+
+		const out = target.combined();
+		expect(out).toBe("[tag] a中b\n");
+		expect(out).not.toContain(REPLACEMENT);
+	});
+
+	test("prefixes each line in a multi-line chunk", () => {
+		const source = new FakeSource();
+		const target = new FakeTarget();
+		pipeWithPrefix(source, target as unknown as NodeJS.WritableStream, "[hs]");
+
+		source.emitChunk(Buffer.from("one\ntwo\nthree\n", "utf8"));
+
+		expect(target.chunks).toEqual(["[hs] one\n", "[hs] two\n", "[hs] three\n"]);
+	});
+
+	test("flushes trailing partial line on end", () => {
+		const source = new FakeSource();
+		const target = new FakeTarget();
+		pipeWithPrefix(source, target as unknown as NodeJS.WritableStream, "[hs]");
+
+		source.emitChunk(Buffer.from("no-newline-here", "utf8"));
+		source.emitEnd();
+
+		expect(target.combined()).toBe("[hs] no-newline-here\n");
 	});
 });
 

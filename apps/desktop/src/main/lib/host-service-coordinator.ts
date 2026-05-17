@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import path from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app } from "electron";
@@ -602,15 +603,19 @@ export class HostServiceCoordinator extends EventEmitter {
  * Forward child stdout/stderr to a parent stream with a per-line prefix.
  * Plain `chunk => parent.write(`${tag} ${chunk}`)` only prefixes the first
  * line in a chunk and breaks visual scanning when child output bursts.
+ *
+ * Uses StringDecoder so multi-byte UTF-8 codepoints split across chunk
+ * boundaries don't decode to U+FFFD replacement characters.
  */
-function pipeWithPrefix(
+export function pipeWithPrefix(
 	source: NodeJS.ReadableStream,
 	target: NodeJS.WritableStream,
 	tag: string,
 ): void {
+	const decoder = new StringDecoder("utf8");
 	let pending = "";
 	source.on("data", (chunk: Buffer) => {
-		const text = pending + chunk.toString("utf8");
+		const text = pending + decoder.write(chunk);
 		const lines = text.split("\n");
 		// Last element is a partial line if input doesn't end with \n;
 		// stash it for the next chunk.
@@ -620,7 +625,8 @@ function pipeWithPrefix(
 		}
 	});
 	source.on("end", () => {
-		if (pending) target.write(`${tag} ${pending}\n`);
+		const tail = pending + decoder.end();
+		if (tail) target.write(`${tag} ${tail}\n`);
 		pending = "";
 	});
 }
