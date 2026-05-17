@@ -365,10 +365,17 @@ export const v2WorkspaceRouter = {
 				}
 			}
 			const txid = await dbWs.transaction(async (tx) => {
-				await tx
+				const [updated] = await tx
 					.update(v2Workspaces)
 					.set({ taskId: input.taskId })
-					.where(eq(v2Workspaces.id, input.workspaceId));
+					.where(eq(v2Workspaces.id, input.workspaceId))
+					.returning({ id: v2Workspaces.id });
+				if (!updated) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Workspace not found",
+					});
+				}
 				return getCurrentTxid(tx);
 			});
 			return { success: true as const, txid };
@@ -579,9 +586,16 @@ export const v2WorkspaceRouter = {
 				});
 			}
 			const txid = await dbWs.transaction(async (tx) => {
-				await tx.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
+				const [deleted] = await tx
+					.delete(v2Workspaces)
+					.where(eq(v2Workspaces.id, workspace.id))
+					.returning({ id: v2Workspaces.id });
+				if (!deleted) return null;
 				return getCurrentTxid(tx);
 			});
+			if (txid === null) {
+				return { success: true, alreadyGone: true as const, txid };
+			}
 
 			posthog.capture({
 				distinctId: ctx.userId,
@@ -636,9 +650,16 @@ export const v2WorkspaceRouter = {
 				});
 			}
 			const txid = await dbWs.transaction(async (tx) => {
-				await tx.delete(v2Workspaces).where(eq(v2Workspaces.id, workspace.id));
+				const [deleted] = await tx
+					.delete(v2Workspaces)
+					.where(eq(v2Workspaces.id, workspace.id))
+					.returning({ id: v2Workspaces.id });
+				if (!deleted) return null;
 				return getCurrentTxid(tx);
 			});
+			if (txid === null) {
+				return { success: true, alreadyGone: true as const, txid };
+			}
 			return { success: true, alreadyGone: false as const, txid };
 		}),
 } satisfies TRPCRouterRecord;

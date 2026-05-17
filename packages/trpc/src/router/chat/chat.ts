@@ -163,6 +163,7 @@ export const chatRouter = {
 					)
 					.returning({ id: chatSessions.id });
 
+				if (!deleted) return { deleted, txid: null };
 				const txid = await getCurrentTxid(tx);
 
 				return { deleted, txid };

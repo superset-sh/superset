@@ -7,6 +7,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type {
 	DashboardSidebarProject,
@@ -125,6 +126,7 @@ function useStableDashboardSidebarProjects(
 export function useDashboardSidebarData() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
+	const { isDeleting } = useDeletingWorkspaces();
 	const relayUrl = useRelayUrl();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
 	const queryClient = useQueryClient();
@@ -285,6 +287,7 @@ export function useDashboardSidebarData() {
 		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
 			(workspace) =>
 				workspace.isSynced &&
+				!isDeleting(workspace.id) &&
 				!localStateWorkspaceIds.has(workspace.id) &&
 				workspace.hostId === machineId &&
 				sidebarProjectIds.has(workspace.projectId),
@@ -292,9 +295,12 @@ export function useDashboardSidebarData() {
 
 		return [
 			...autoLocalMainWorkspaces,
-			...sidebarWorkspaces.filter((workspace) => workspace.isSynced),
+			...sidebarWorkspaces.filter(
+				(workspace) => workspace.isSynced && !isDeleting(workspace.id),
+			),
 		];
 	}, [
+		isDeleting,
 		localMainWorkspaces,
 		localStateWorkspaceIds,
 		machineId,
