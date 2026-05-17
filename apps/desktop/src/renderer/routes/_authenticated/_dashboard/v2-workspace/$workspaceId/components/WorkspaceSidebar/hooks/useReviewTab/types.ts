@@ -30,5 +30,6 @@ export interface NormalizedComment {
 	/** "LEFT" = deletions side, "RIGHT" = additions. Only set for review threads. */
 	diffSide?: "LEFT" | "RIGHT";
 	isResolved: boolean;
+	isOutdated?: boolean;
 	threadId?: string;
 }
