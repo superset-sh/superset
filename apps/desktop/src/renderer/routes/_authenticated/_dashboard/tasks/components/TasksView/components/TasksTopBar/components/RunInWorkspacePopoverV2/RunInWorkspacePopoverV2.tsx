@@ -1,3 +1,4 @@
+import { deriveBranchName } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -29,7 +30,6 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { MOCK_ORG_ID } from "shared/constants";
-import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchName";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2TaskBatchAgent";
