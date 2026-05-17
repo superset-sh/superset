@@ -11,8 +11,10 @@ import { DiffFileEntry } from "./components/DiffFileEntry";
 
 type DiffFocusSide = DiffPaneData["focusSide"];
 const MAX_LINE_FOCUS_ATTEMPTS = 180;
+const LINE_FOCUS_ESTIMATE_WAIT_ATTEMPTS = 12;
 const ESTIMATED_DIFF_HEADER_HEIGHT_PX = 44;
 const ESTIMATED_DIFF_LINE_HEIGHT_PX = 20;
+const FOCUS_RENDERED_LINE_INDEX_ATTR = "data-focus-rendered-line-index";
 
 function ScrollToFile({
 	path,
@@ -58,7 +60,8 @@ function ScrollToFile({
 				// Pierre's virtualizer mounts file content lazily; retry a
 				// few frames so the target row has time to render.
 				let attempts = 0;
-				let estimatedScrollDone = false;
+				let fallbackEstimateDone = false;
+				let estimatedRenderedLineIndex: number | undefined;
 				const tryScroll = () => {
 					const lineEl = findLineElement(entry, focusLine, focusSide);
 					if (lineEl) {
@@ -73,14 +76,35 @@ function ScrollToFile({
 						});
 						return;
 					}
-					if (!estimatedScrollDone && attempts >= 2) {
-						scrollToEstimatedLine(scrollContainer, v, header, focusLine);
-						estimatedScrollDone = true;
+					const renderedLineIndex = getFocusRenderedLineIndex(entry);
+					const shouldUseRenderedEstimate =
+						renderedLineIndex != null &&
+						renderedLineIndex !== estimatedRenderedLineIndex;
+					const shouldUseFallbackEstimate =
+						renderedLineIndex == null &&
+						!fallbackEstimateDone &&
+						attempts >= LINE_FOCUS_ESTIMATE_WAIT_ATTEMPTS;
+					if (shouldUseRenderedEstimate || shouldUseFallbackEstimate) {
+						scrollToEstimatedLine(
+							scrollContainer,
+							v,
+							header,
+							focusLine,
+							renderedLineIndex,
+						);
+						if (renderedLineIndex == null) {
+							fallbackEstimateDone = true;
+						} else {
+							estimatedRenderedLineIndex = renderedLineIndex;
+						}
 						lastScrolledPath.current = path;
 						debugReviewDiffJump("estimated line scroll", {
 							path,
 							focusLine,
 							focusSide,
+							renderedLineIndex,
+							estimateSource:
+								renderedLineIndex == null ? "source-line" : "rendered-index",
 						});
 					}
 					if (attempts++ < MAX_LINE_FOCUS_ATTEMPTS) {
@@ -129,15 +153,29 @@ function scrollToEstimatedLine(
 	virtualizer: DiffVirtualizerApi,
 	header: HTMLElement,
 	lineNumber: number,
+	renderedLineIndex?: number,
 ) {
 	const headerOffset = virtualizer.getOffsetInScrollContainer(header);
+	const estimatedLineIndex = renderedLineIndex ?? Math.max(0, lineNumber - 1);
 	const estimatedLineOffset =
 		headerOffset +
 		ESTIMATED_DIFF_HEADER_HEIGHT_PX +
-		Math.max(0, lineNumber - 1) * ESTIMATED_DIFF_LINE_HEIGHT_PX;
+		estimatedLineIndex * ESTIMATED_DIFF_LINE_HEIGHT_PX;
 	scrollContainer.scrollTo({
 		top: estimatedLineOffset - scrollContainer.clientHeight / 2,
 	});
+}
+
+function getFocusRenderedLineIndex(entry: HTMLElement): number | undefined {
+	const target = entry.querySelector(
+		`[${FOCUS_RENDERED_LINE_INDEX_ATTR}]`,
+	) as HTMLElement | null;
+	if (!target) return undefined;
+	const value = Number.parseInt(
+		target.getAttribute(FOCUS_RENDERED_LINE_INDEX_ATTR) ?? "",
+		10,
+	);
+	return Number.isFinite(value) ? value : undefined;
 }
 
 function centerElementInScrollContainer(
