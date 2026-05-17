@@ -1,5 +1,6 @@
 "use client";
 
+import { Laptop } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { trpcClient } from "../../trpc/client";
@@ -11,6 +12,7 @@ interface WorkspaceRow {
 	projectId: string;
 	projectName: string;
 	hostId: string;
+	type: "main" | "worktree";
 	createdAt: Date;
 }
 
@@ -84,6 +86,7 @@ export default function WorkspacesPage() {
 				projectId: row.projectId,
 				projectName: row.projectName,
 				hostId: row.hostId,
+				type: row.type,
 				createdAt: new Date(row.createdAt),
 			})),
 		);
@@ -329,7 +332,15 @@ export default function WorkspacesPage() {
 									href={`/workspaces/${workspace.id}`}
 									className="hover:bg-muted/50 block rounded-lg border px-4 py-3"
 								>
-									<div className="text-sm font-medium">{workspace.name}</div>
+									<div className="flex items-center gap-1.5 text-sm font-medium">
+										{workspace.type === "main" && (
+											<Laptop
+												aria-label="Main workspace"
+												className="text-muted-foreground size-3.5 shrink-0"
+											/>
+										)}
+										<span>{workspace.name}</span>
+									</div>
 									<div className="text-muted-foreground mt-0.5 text-xs">
 										{workspace.projectName} · {workspace.branch} · created{" "}
 										{formatRelative(workspace.createdAt)}
