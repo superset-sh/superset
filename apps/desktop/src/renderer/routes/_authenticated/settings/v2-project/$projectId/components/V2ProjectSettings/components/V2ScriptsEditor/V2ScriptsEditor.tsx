@@ -24,6 +24,14 @@ interface ParsedConfig {
 	run: string;
 }
 
+type ScriptFieldName = keyof ParsedConfig;
+
+interface ScriptPayload {
+	setup: string[];
+	teardown: string[];
+	run: string[];
+}
+
 function parseConfigContent(content: string | null): ParsedConfig {
 	if (!content) return { setup: "", teardown: "", run: "" };
 	try {
@@ -60,6 +68,30 @@ function arraysEqual(a: string[], b: string[]): boolean {
 	return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
+function buildPayload(values: ParsedConfig): ScriptPayload {
+	return {
+		setup: toCommandsArray(values.setup),
+		teardown: toCommandsArray(values.teardown),
+		run: toCommandsArray(values.run),
+	};
+}
+
+function payloadsEqual(a: ScriptPayload, b: ScriptPayload): boolean {
+	return (
+		arraysEqual(a.setup, b.setup) &&
+		arraysEqual(a.teardown, b.teardown) &&
+		arraysEqual(a.run, b.run)
+	);
+}
+
+function trimScriptValue(value: string): string {
+	return value
+		.split("\n")
+		.map((line) => line.trim())
+		.join("\n")
+		.replace(/^\n+|\n+$/g, "");
+}
+
 type SaveStatus = "idle" | "saving" | "saved";
 
 export function V2ScriptsEditor({
@@ -88,34 +120,43 @@ export function V2ScriptsEditor({
 	const [teardownValue, setTeardownValue] = useState("");
 	const [runValue, setRunValue] = useState("");
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-	const focusedRef = useRef<"setup" | "teardown" | "run" | null>(null);
-	const lastSavedRef = useRef<{
-		setup: string[];
-		teardown: string[];
-		run: string[];
-	}>({
+	const focusedRef = useRef<ScriptFieldName | null>(null);
+	const latestValuesRef = useRef<ParsedConfig>({
+		setup: "",
+		teardown: "",
+		run: "",
+	});
+	const lastSavedRef = useRef<ScriptPayload>({
 		setup: [],
 		teardown: [],
 		run: [],
 	});
-	const savedTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const saveInFlightRef = useRef(false);
+	const queuedPayloadRef = useRef<ScriptPayload | null>(null);
 
 	useEffect(() => {
 		// Don't clobber an in-progress edit when the server-side query refetches.
-		if (focusedRef.current) return;
+		if (
+			focusedRef.current ||
+			debounceTimerRef.current ||
+			saveInFlightRef.current ||
+			queuedPayloadRef.current
+		) {
+			return;
+		}
 		const parsed = parseConfigContent(configData?.content ?? null);
 		setSetupValue(parsed.setup);
 		setTeardownValue(parsed.teardown);
 		setRunValue(parsed.run);
-		lastSavedRef.current = {
-			setup: toCommandsArray(parsed.setup),
-			teardown: toCommandsArray(parsed.teardown),
-			run: toCommandsArray(parsed.run),
-		};
+		latestValuesRef.current = parsed;
+		lastSavedRef.current = buildPayload(parsed);
 	}, [configData?.content]);
 
 	useEffect(() => {
 		return () => {
+			if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 			if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
 		};
 	}, []);
@@ -133,12 +174,13 @@ export function V2ScriptsEditor({
 	});
 
 	const flushSave = useCallback(
-		async (next: { setup: string[]; teardown: string[]; run: string[] }) => {
-			if (
-				arraysEqual(next.setup, lastSavedRef.current.setup) &&
-				arraysEqual(next.teardown, lastSavedRef.current.teardown) &&
-				arraysEqual(next.run, lastSavedRef.current.run)
-			) {
+		async (next: ScriptPayload = buildPayload(latestValuesRef.current)) => {
+			if (payloadsEqual(next, lastSavedRef.current)) {
+				return;
+			}
+
+			if (saveInFlightRef.current) {
+				queuedPayloadRef.current = next;
 				return;
 			}
 
@@ -148,9 +190,21 @@ export function V2ScriptsEditor({
 			}
 
 			setSaveStatus("saving");
+			saveInFlightRef.current = true;
 			try {
-				await updateMutation.mutateAsync({ projectId, ...next });
-				lastSavedRef.current = next;
+				let payloadToSave: ScriptPayload | null = next;
+
+				while (payloadToSave) {
+					queuedPayloadRef.current = null;
+
+					if (!payloadsEqual(payloadToSave, lastSavedRef.current)) {
+						await updateMutation.mutateAsync({ projectId, ...payloadToSave });
+						lastSavedRef.current = payloadToSave;
+					}
+
+					payloadToSave = queuedPayloadRef.current;
+				}
+
 				setSaveStatus("saved");
 				savedTimerRef.current = setTimeout(() => {
 					setSaveStatus("idle");
@@ -159,42 +213,65 @@ export function V2ScriptsEditor({
 			} catch (error) {
 				console.error("[v2-scripts/save] failed", error);
 				setSaveStatus("idle");
+			} finally {
+				saveInFlightRef.current = false;
 			}
 		},
 		[projectId, updateMutation],
 	);
 
+	const scheduleSave = useCallback(
+		(nextValues: ParsedConfig) => {
+			latestValuesRef.current = nextValues;
+
+			if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+			debounceTimerRef.current = setTimeout(() => {
+				debounceTimerRef.current = null;
+				void flushSave(buildPayload(latestValuesRef.current));
+			}, 500);
+		},
+		[flushSave],
+	);
+
+	const handleChange = useCallback(
+		(field: ScriptFieldName, value: string) => {
+			const nextValues = { ...latestValuesRef.current, [field]: value };
+			latestValuesRef.current = nextValues;
+
+			if (field === "setup") setSetupValue(value);
+			if (field === "teardown") setTeardownValue(value);
+			if (field === "run") setRunValue(value);
+
+			scheduleSave(nextValues);
+		},
+		[scheduleSave],
+	);
+
 	const handleBlur = useCallback(
-		async (field: "setup" | "teardown" | "run") => {
+		async (_field: ScriptFieldName) => {
 			focusedRef.current = null;
 
-			const trimmedSetup = setupValue
-				.split("\n")
-				.map((line) => line.trim())
-				.join("\n")
-				.replace(/^\n+|\n+$/g, "");
-			const trimmedTeardown = teardownValue
-				.split("\n")
-				.map((line) => line.trim())
-				.join("\n")
-				.replace(/^\n+|\n+$/g, "");
-			const trimmedRun = runValue
-				.split("\n")
-				.map((line) => line.trim())
-				.join("\n")
-				.replace(/^\n+|\n+$/g, "");
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current);
+				debounceTimerRef.current = null;
+			}
 
-			if (trimmedSetup !== setupValue) setSetupValue(trimmedSetup);
-			if (trimmedTeardown !== teardownValue) setTeardownValue(trimmedTeardown);
-			if (trimmedRun !== runValue) setRunValue(trimmedRun);
+			const trimmedValues = {
+				setup: trimScriptValue(latestValuesRef.current.setup),
+				teardown: trimScriptValue(latestValuesRef.current.teardown),
+				run: trimScriptValue(latestValuesRef.current.run),
+			};
+			latestValuesRef.current = trimmedValues;
 
-			await flushSave({
-				setup: toCommandsArray(field === "setup" ? trimmedSetup : setupValue),
-				teardown: toCommandsArray(
-					field === "teardown" ? trimmedTeardown : teardownValue,
-				),
-				run: toCommandsArray(field === "run" ? trimmedRun : runValue),
-			});
+			if (trimmedValues.setup !== setupValue)
+				setSetupValue(trimmedValues.setup);
+			if (trimmedValues.teardown !== teardownValue) {
+				setTeardownValue(trimmedValues.teardown);
+			}
+			if (trimmedValues.run !== runValue) setRunValue(trimmedValues.run);
+
+			await flushSave(buildPayload(trimmedValues));
 		},
 		[flushSave, runValue, setupValue, teardownValue],
 	);
@@ -248,7 +325,7 @@ export function V2ScriptsEditor({
 						description="Runs when a new workspace is created. Multiple lines run as one chain — failures short-circuit."
 						placeholder="bun install&#10;bun run db:migrate"
 						value={setupValue}
-						onChange={setSetupValue}
+						onChange={(value) => handleChange("setup", value)}
 						onFocus={() => {
 							focusedRef.current = "setup";
 						}}
@@ -261,7 +338,7 @@ export function V2ScriptsEditor({
 						description="Runs when a workspace is deleted."
 						placeholder="docker compose down"
 						value={teardownValue}
-						onChange={setTeardownValue}
+						onChange={(value) => handleChange("teardown", value)}
 						onFocus={() => {
 							focusedRef.current = "teardown";
 						}}
@@ -274,7 +351,7 @@ export function V2ScriptsEditor({
 						description="Runs from the workspace Run button."
 						placeholder="bun dev"
 						value={runValue}
-						onChange={setRunValue}
+						onChange={(value) => handleChange("run", value)}
 						onFocus={() => {
 							focusedRef.current = "run";
 						}}
@@ -287,7 +364,7 @@ export function V2ScriptsEditor({
 }
 
 interface ScriptFieldProps {
-	field: "setup" | "teardown" | "run";
+	field: ScriptFieldName;
 	description: string;
 	placeholder: string;
 	value: string;
