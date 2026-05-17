@@ -381,7 +381,7 @@ export function ProjectLocationSection({
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Repository already linked</AlertDialogTitle>
-						<AlertDialogDescription>
+						<AlertDialogDescription className="select-text cursor-text">
 							This repository is already linked to project "
 							{conflict?.name ?? ""}" in this organization. Open that project to
 							set it up on {hostName}.
@@ -419,7 +419,7 @@ export function ProjectLocationSection({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Relocate project?</AlertDialogTitle>
 						<AlertDialogDescription asChild>
-							<div className="space-y-3 text-sm">
+							<div className="space-y-3 text-sm select-text cursor-text">
 								<div>
 									<div className="text-muted-foreground text-xs">From</div>
 									<div className="font-mono break-all">{currentPath}</div>

@@ -25,17 +25,28 @@ export default command({
 			host: options.host ?? undefined,
 			local: options.local ?? undefined,
 		});
-		const target = resolveHostTarget({
-			requestedHostId: hostId,
-			organizationId,
-			userJwt: ctx.bearer,
-		});
-		const hostProjects = await target.client.project.list.query();
-		const hostProjectById = new Map(
-			hostProjects.map((project) => [project.id, project]),
-		);
+		const hostExplicit = options.host !== undefined || options.local === true;
+
+		let hostProjectById: Map<string, { id: string; repoPath: string }> | null =
+			null;
+		try {
+			const target = resolveHostTarget({
+				requestedHostId: hostId,
+				organizationId,
+				userJwt: ctx.bearer,
+			});
+			const hostProjects = await target.client.project.list.query();
+			hostProjectById = new Map(
+				hostProjects.map((project) => [project.id, project]),
+			);
+		} catch (err) {
+			if (hostExplicit) throw err;
+		}
 
 		return projects.map((project) => {
+			if (!hostProjectById) {
+				return { ...project, setUp: "?", path: "-" };
+			}
 			const hostProject = hostProjectById.get(project.id);
 			return {
 				...project,
