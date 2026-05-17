@@ -22,6 +22,7 @@ export function useWorkspacePaneOpeners({
 		filePath: string,
 		openInNewTab?: boolean,
 		line?: number,
+		focusSide?: DiffPaneData["focusSide"],
 	) => void;
 	addTerminalTab: () => Promise<void>;
 	addChatTab: () => void;
@@ -29,15 +30,24 @@ export function useWorkspacePaneOpeners({
 	openCommentPane: (comment: CommentPaneData) => void;
 } {
 	const openDiffPane = useCallback(
-		(filePath: string, openInNewTab?: boolean, line?: number) => {
+		(
+			filePath: string,
+			openInNewTab?: boolean,
+			line?: number,
+			focusSide?: DiffPaneData["focusSide"],
+		) => {
 			const state = store.getState();
 			// Bump tick on every request so ScrollToFile re-fires on repeat
 			// clicks; clear when no line is given so reused panes don't jump
 			// to a stale focus.
 			const focusFields =
 				line != null
-					? { focusLine: line, focusTick: Date.now() }
-					: { focusLine: undefined, focusTick: undefined };
+					? { focusLine: line, focusSide, focusTick: Date.now() }
+					: {
+							focusLine: undefined,
+							focusSide: undefined,
+							focusTick: undefined,
+						};
 			if (openInNewTab) {
 				state.addTab({
 					panes: [

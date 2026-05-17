@@ -13,7 +13,12 @@ interface ReviewTabContentProps {
 	isError: boolean;
 	isCommentsLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
+	onOpenInDiff?: (
+		path: string,
+		line?: number,
+		openInNewTab?: boolean,
+		focusSide?: "deletions" | "additions",
+	) => void;
 }
 
 export const ReviewTabContent = memo(function ReviewTabContent({

@@ -12,10 +12,12 @@ import { DiffFileEntry } from "./components/DiffFileEntry";
 function ScrollToFile({
 	path,
 	focusLine,
+	focusSide,
 	focusTick,
 }: {
 	path: string;
 	focusLine?: number;
+	focusSide?: DiffPaneData["focusSide"];
 	focusTick?: number;
 }) {
 	const virtualizer = useVirtualizer();
@@ -57,7 +59,7 @@ function ScrollToFile({
 				// few frames so the annotation slot has time to render.
 				let attempts = 0;
 				const tryScroll = () => {
-					const lineEl = findLineElement(entry, focusLine);
+					const lineEl = findLineElement(entry, focusLine, focusSide);
 					if (lineEl) {
 						lineEl.scrollIntoView({ block: "center" });
 						return;
@@ -67,7 +69,7 @@ function ScrollToFile({
 				requestAnimationFrame(tryScroll);
 			}
 		});
-	}, [path, focusLine, focusTick, virtualizer]);
+	}, [path, focusLine, focusSide, focusTick, virtualizer]);
 
 	return null;
 }
@@ -75,14 +77,33 @@ function ScrollToFile({
 function findLineElement(
 	root: HTMLElement,
 	lineNumber: number,
+	focusSide?: DiffPaneData["focusSide"],
 ): HTMLElement | null {
 	// Prefer the Pierre annotation slot (`annotation-${side}-${line}`) —
 	// it's in light DOM and sits exactly where the comment renders.
 	// Fall back to the diff line itself when comments are hidden.
+	if (focusSide) {
+		const slotted = root.querySelector(
+			`[slot="annotation-${focusSide}-${lineNumber}"]`,
+		) as HTMLElement | null;
+		if (slotted) return slotted;
+	}
 	const slotted = root.querySelector(
 		`[slot$="-${lineNumber}"][slot^="annotation-"]`,
 	) as HTMLElement | null;
 	if (slotted) return slotted;
+	const lineType =
+		focusSide === "deletions"
+			? "change-deletion"
+			: focusSide === "additions"
+				? "change-addition"
+				: null;
+	if (lineType) {
+		const sideLine = root.querySelector(
+			`[data-line="${lineNumber}"][data-line-type="${lineType}"]`,
+		) as HTMLElement | null;
+		if (sideLine) return sideLine;
+	}
 	return root.querySelector(
 		`[data-line="${lineNumber}"]`,
 	) as HTMLElement | null;
@@ -161,6 +182,7 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 			<ScrollToFile
 				path={data.path}
 				focusLine={data.focusLine}
+				focusSide={data.focusSide}
 				focusTick={data.focusTick}
 			/>
 			{files.map((file) => (
@@ -178,6 +200,7 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 					onOpenFile={onOpenFile}
 					onOpenInExternalEditor={openInExternalEditor}
 					focusLine={file.path === data.path ? data.focusLine : undefined}
+					focusSide={file.path === data.path ? data.focusSide : undefined}
 					focusTick={file.path === data.path ? data.focusTick : undefined}
 				/>
 			))}

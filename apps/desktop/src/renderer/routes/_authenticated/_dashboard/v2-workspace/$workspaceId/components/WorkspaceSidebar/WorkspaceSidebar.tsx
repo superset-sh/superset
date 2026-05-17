@@ -42,6 +42,7 @@ interface WorkspaceSidebarProps {
 		path: string,
 		openInNewTab?: boolean,
 		line?: number,
+		focusSide?: "deletions" | "additions",
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onOpenChat?: OpenChatFn;
@@ -142,10 +143,10 @@ export function WorkspaceSidebar({
 		workspaceId,
 		onOpenComment,
 		onOpenInDiff: onSelectDiffFile
-			? (path, line, openInNewTab) => {
+			? (path, line, openInNewTab, focusSide) => {
 					// Force annotations on so the user lands on the comment, not an empty line.
 					useSettings.getState().update("showDiffComments", true);
-					onSelectDiffFile(path, openInNewTab ?? false, line);
+					onSelectDiffFile(path, openInNewTab ?? false, line, focusSide);
 				}
 			: undefined,
 	});

@@ -33,12 +33,19 @@ import { getMarkdownPreviewText } from "renderer/utils/markdownPreview";
 import type { CommentPaneData } from "../../../../../../types";
 import type { NormalizedComment } from "../../types";
 
+type DiffFocusSide = "deletions" | "additions";
+
 interface CommentsSectionProps {
 	workspaceId: string;
 	comments: NormalizedComment[];
 	isLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
+	onOpenInDiff?: (
+		path: string,
+		line?: number,
+		openInNewTab?: boolean,
+		focusSide?: DiffFocusSide,
+	) => void;
 }
 
 export function CommentsSection({
@@ -421,6 +428,19 @@ function formatShortAge(isoDate?: string): string | null {
 	return `${Math.round(hours / 24)}d`;
 }
 
+function getCommentDiffPath(comment: NormalizedComment): string | undefined {
+	return comment.diffPath ?? comment.path;
+}
+
+function getCommentFocusSide(
+	comment: NormalizedComment,
+): DiffFocusSide | undefined {
+	if (comment.kind !== "review") return undefined;
+	if (comment.diffSide === "LEFT") return "deletions";
+	if (comment.diffSide === "RIGHT") return "additions";
+	return undefined;
+}
+
 // ---------------------------------------------------------------------------
 // CommentRow
 // ---------------------------------------------------------------------------
@@ -430,7 +450,12 @@ interface CommentRowProps {
 	copiedActionKey: string | null;
 	onCopy: (comment: NormalizedComment) => void;
 	onOpen?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
+	onOpenInDiff?: (
+		path: string,
+		line?: number,
+		openInNewTab?: boolean,
+		focusSide?: DiffFocusSide,
+	) => void;
 }
 
 function CommentRow({
@@ -442,13 +467,15 @@ function CommentRow({
 }: CommentRowProps) {
 	const age = formatShortAge(comment.createdAt);
 	const isCopied = copiedActionKey === `comment:${comment.id}`;
+	const diffPath = getCommentDiffPath(comment);
+	const focusSide = getCommentFocusSide(comment);
 
 	const handleClick = () => {
 		// Default click jumps to the comment in the diff. Fall back to the
 		// standalone comment pane when there's no file anchor (conversation
 		// comments) or no diff handler wired up.
-		if (comment.kind === "review" && comment.path && onOpenInDiff) {
-			onOpenInDiff(comment.path, comment.line);
+		if (comment.kind === "review" && diffPath && onOpenInDiff) {
+			onOpenInDiff(diffPath, comment.line, false, focusSide);
 			return;
 		}
 		onOpen?.({
@@ -531,11 +558,11 @@ function CommentRow({
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-56">
-						{comment.kind === "review" && comment.path && onOpenInDiff ? (
+						{comment.kind === "review" && diffPath && onOpenInDiff ? (
 							<>
 								<DropdownMenuItem
 									onSelect={() =>
-										onOpenInDiff(comment.path as string, comment.line)
+										onOpenInDiff(diffPath, comment.line, false, focusSide)
 									}
 								>
 									<GitCompare />
@@ -543,7 +570,7 @@ function CommentRow({
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onSelect={() =>
-										onOpenInDiff(comment.path as string, comment.line, true)
+										onOpenInDiff(diffPath, comment.line, true, focusSide)
 									}
 								>
 									<SquarePlus />

@@ -1,4 +1,4 @@
-import { MultiFileDiff } from "@pierre/diffs/react";
+import { type DiffLineAnnotation, MultiFileDiff } from "@pierre/diffs/react";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useQuery } from "@tanstack/react-query";
 import { memo, useCallback, useMemo } from "react";
@@ -15,25 +15,31 @@ import {
 	useDiffAnnotations,
 } from "./hooks/useDiffAnnotations";
 
+type DiffFocusSide = "deletions" | "additions";
+
 interface WorkspaceDiffProps {
 	workspaceId: string;
 	path: string;
+	oldPath?: string;
 	source: DiffFileSource;
 	diffStyle: "split" | "unified";
 	expandUnchanged: boolean;
 	collapsed: boolean;
 	focusLine?: number;
+	focusSide?: DiffFocusSide;
 	focusTick?: number;
 }
 
 export const WorkspaceDiff = memo(function WorkspaceDiff({
 	workspaceId,
 	path,
+	oldPath,
 	source,
 	diffStyle,
 	expandUnchanged,
 	collapsed,
 	focusLine,
+	focusSide,
 	focusTick,
 }: WorkspaceDiffProps) {
 	const activeTheme = useResolvedTheme();
@@ -89,24 +95,27 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 		staleTime: Number.POSITIVE_INFINITY,
 	});
 
-	const lineAnnotations = useDiffAnnotations({ workspaceId, path });
+	const lineAnnotations = useDiffAnnotations({ workspaceId, path, oldPath });
 	const renderAnnotation = useCallback(
-		(annotation: { lineNumber: number; metadata: DiffCommentThread }) => (
-			<CommentThread
-				workspaceId={workspaceId}
-				threadId={annotation.metadata.threadId}
-				isResolved={annotation.metadata.isResolved}
-				isOutdated={annotation.metadata.isOutdated}
-				url={annotation.metadata.url}
-				comments={annotation.metadata.comments}
-				focusTick={
-					focusLine != null && annotation.lineNumber === focusLine
-						? focusTick
-						: undefined
-				}
-			/>
-		),
-		[workspaceId, focusLine, focusTick],
+		(annotation: DiffLineAnnotation<DiffCommentThread>) => {
+			const shouldFocus =
+				focusLine != null &&
+				annotation.lineNumber === focusLine &&
+				(focusSide == null || annotation.side === focusSide);
+
+			return (
+				<CommentThread
+					workspaceId={workspaceId}
+					threadId={annotation.metadata.threadId}
+					isResolved={annotation.metadata.isResolved}
+					isOutdated={annotation.metadata.isOutdated}
+					url={annotation.metadata.url}
+					comments={annotation.metadata.comments}
+					focusTick={shouldFocus ? focusTick : undefined}
+				/>
+			);
+		},
+		[workspaceId, focusLine, focusSide, focusTick],
 	);
 
 	return (

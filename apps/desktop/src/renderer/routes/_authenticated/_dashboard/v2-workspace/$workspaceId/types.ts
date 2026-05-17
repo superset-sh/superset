@@ -47,6 +47,7 @@ export interface DiffPaneData {
 	/** Line to scroll to within `path`. `focusTick` bumps on each request
 	 *  so repeated clicks of the same line still re-scroll. */
 	focusLine?: number;
+	focusSide?: "deletions" | "additions";
 	focusTick?: number;
 }
 

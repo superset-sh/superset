@@ -22,6 +22,7 @@ export interface DiffCommentThread {
 interface UseDiffAnnotationsOptions {
 	workspaceId: string;
 	path: string;
+	oldPath?: string;
 }
 
 const EMPTY_ANNOTATIONS: DiffLineAnnotation<DiffCommentThread>[] = [];
@@ -35,6 +36,7 @@ function parseTimestamp(value: string | undefined): number | undefined {
 export function useDiffAnnotations({
 	workspaceId,
 	path,
+	oldPath,
 }: UseDiffAnnotationsOptions): DiffLineAnnotation<DiffCommentThread>[] {
 	const showDiffComments = useSettings((s) => s.showDiffComments);
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
@@ -71,7 +73,7 @@ export function useDiffAnnotations({
 
 		const annotations: DiffLineAnnotation<DiffCommentThread>[] = [];
 		for (const thread of threads) {
-			if (thread.path !== path) continue;
+			if (thread.path !== path && thread.path !== oldPath) continue;
 			if (thread.line == null) continue;
 
 			const firstDbId = thread.comments[0]?.databaseId;
@@ -105,5 +107,5 @@ export function useDiffAnnotations({
 		}
 
 		return annotations;
-	}, [showDiffComments, hasPR, threadsQuery.data, path, prUrl]);
+	}, [showDiffComments, hasPR, threadsQuery.data, path, oldPath, prUrl]);
 }

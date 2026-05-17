@@ -3,6 +3,8 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { LuMessageSquare } from "react-icons/lu";
+import { useChangeset } from "../../../../hooks/useChangeset";
+import { useSidebarDiffRef } from "../../../../hooks/useSidebarDiffRef";
 import type { CommentPaneData } from "../../../../types";
 import {
 	coerceCheckStatus,
@@ -18,7 +20,12 @@ type V2ThreadsData = RouterOutputs["git"]["getPullRequestThreads"];
 interface UseReviewTabParams {
 	workspaceId: string;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
+	onOpenInDiff?: (
+		path: string,
+		line?: number,
+		openInNewTab?: boolean,
+		focusSide?: "deletions" | "additions",
+	) => void;
 }
 
 export function useReviewTab({
@@ -74,7 +81,25 @@ export function useReviewTab({
 		return normalizeThreadsToComments(data);
 	}, [threadsQuery.data]);
 
-	const openReviewCount = comments.filter(
+	const ref = useSidebarDiffRef(workspaceId);
+	const { files } = useChangeset({ workspaceId, ref });
+	const commentsWithDiffPaths = useMemo<NormalizedComment[]>(() => {
+		const diffPathByReviewPath = new Map<string, string>();
+		for (const file of files) {
+			diffPathByReviewPath.set(file.path, file.path);
+			if (file.oldPath && !diffPathByReviewPath.has(file.oldPath)) {
+				diffPathByReviewPath.set(file.oldPath, file.path);
+			}
+		}
+
+		return comments.map((comment) => {
+			if (comment.kind !== "review" || !comment.path) return comment;
+			const diffPath = diffPathByReviewPath.get(comment.path) ?? comment.path;
+			return diffPath === comment.path ? comment : { ...comment, diffPath };
+		});
+	}, [comments, files]);
+
+	const openReviewCount = commentsWithDiffPaths.filter(
 		(c) => c.kind === "review" && !c.isResolved,
 	).length;
 
@@ -82,7 +107,7 @@ export function useReviewTab({
 		<ReviewTabContent
 			workspaceId={workspaceId}
 			pr={pr}
-			comments={comments}
+			comments={commentsWithDiffPaths}
 			isLoading={prQuery.isLoading}
 			isError={prQuery.isError}
 			isCommentsLoading={threadsQuery.isLoading}
