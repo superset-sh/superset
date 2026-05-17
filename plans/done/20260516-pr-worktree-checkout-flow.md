@@ -221,8 +221,8 @@ For same-repo PRs:
    ```
 
 3. Verify `refs/remotes/<remote>/<headRefName>` equals `headRefOid`.
-4. Create or update the local branch to that verified commit if it does not
-   already exist.
+4. Create the local branch from the verified commit OID if it does not already
+   exist.
 5. Configure upstream to `<remote>/<headRefName>`.
 
 For cross-repo PRs or deleted head branches:
@@ -230,13 +230,14 @@ For cross-repo PRs or deleted head branches:
 1. Fetch GitHub's synthetic PR head ref from the base remote:
 
    ```text
-   git fetch --no-tags --quiet <remote> +refs/pull/<number>/head:refs/superset/pr-fetch/<number>/<headRefOid>
+   git fetch --no-tags --quiet <remote> +refs/pull/<number>/head:refs/superset/pr-fetch/<number>/head
    ```
 
-2. Verify `refs/superset/pr-fetch/<number>/<headRefOid>^{commit}` equals
+2. Verify `refs/superset/pr-fetch/<number>/head^{commit}` equals
    `headRefOid`. This avoids `FETCH_HEAD`, which is shared across concurrent
    fetches in the same clone.
-3. Create the local branch from the verified named ref.
+3. Create the local branch from the verified commit OID, not the mutable
+   internal ref.
 4. Configure:
    - `branch.<branch>.remote = <remote or Superset-managed fork remote>`
    - `branch.<branch>.merge = refs/pull/<number>/head` for synthetic-ref fallback,
@@ -299,8 +300,9 @@ Then update only the new-branch PR path in
 1. Replace `git worktree add --detach` plus `gh pr checkout` with
    `materializePrBranch(...)`.
 2. Run `git worktree add <path> <resolvedBranch>`.
-3. Keep existing workspace registration, base-branch config, `push.autoSetupRemote`,
-   and rollback behavior.
+3. Keep existing workspace registration, base-branch config, and rollback
+   behavior. PR workspaces should rely on explicit branch tracking/push config
+   instead of `push.autoSetupRemote`.
 4. Remove or narrow `recoverPrCheckoutAfterGhFailure` usage. The useful
    synthetic-ref fetch and OID verification logic should move into the normal
    materialization path.
@@ -349,6 +351,10 @@ Implemented for the canonical v2 host-service path:
   mock GitHub CLI behavior.
 - Cross-repo PRs with `headRepository` metadata get a Superset-managed fork
   remote plus a push refspec so plain `git push` targets the contributor branch.
+- Same-repo and synthetic PR fetches create branches from the verified commit
+  OID instead of from mutable refs. Synthetic fetches reuse
+  `refs/superset/pr-fetch/<number>/head` instead of accumulating one ref per
+  force-pushed OID.
 - Materialization warnings are returned from `workspaces.create` and surfaced by
   the desktop workspace-create flow.
 - Regression coverage now includes command-level helper tests, real-git
@@ -358,8 +364,6 @@ Implemented for the canonical v2 host-service path:
 Remaining follow-ups:
 
 - Decide whether to backport the same shape to legacy v1 desktop code.
-- Add a small prune/sweep for stale `refs/superset/pr-fetch/*` verified refs
-  from old PR force-pushes.
 - Add richer fork permission handling (`maintainerCanModify`, deleted forks,
   inaccessible forks) if we need exact GitHub CLI parity for every fork push
   edge case.

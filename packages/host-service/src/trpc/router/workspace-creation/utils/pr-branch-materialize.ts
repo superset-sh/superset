@@ -55,8 +55,8 @@ export function getSyntheticPrHeadRef(prNumber: number): string {
 	return `refs/pull/${prNumber}/head`;
 }
 
-export function getSyntheticPrVerifiedRef(pr: PrBranchMetadata): string {
-	return `refs/superset/pr-fetch/${pr.number}/${normalizeOid(pr.headRefOid)}`;
+export function getSyntheticPrFetchRef(prNumber: number): string {
+	return `refs/superset/pr-fetch/${prNumber}/head`;
 }
 
 function normalizeOid(oid: string): string {
@@ -170,14 +170,14 @@ async function fetchSameRepoPrBranch(args: {
 			err,
 		);
 	}
-	await assertRefMatchesExpectedOid({
+	const actualOid = await assertRefMatchesExpectedOid({
 		git: args.git,
 		ref: remoteTrackingRef,
 		expectedHeadOid: args.pr.headRefOid,
 	});
 	return {
 		kind: "head-branch",
-		startPoint: remoteTrackingRef,
+		startPoint: actualOid,
 		trackingRemote: args.remoteName,
 		mergeRef: `refs/heads/${args.pr.headRefName}`,
 	};
@@ -190,17 +190,17 @@ async function fetchSyntheticPrBranch(args: {
 	warning?: string;
 }): Promise<PrBranchSource> {
 	const syntheticRef = getSyntheticPrHeadRef(args.pr.number);
-	const verifiedRef = getSyntheticPrVerifiedRef(args.pr);
+	const fetchRef = getSyntheticPrFetchRef(args.pr.number);
 	await args.git.raw([
 		"fetch",
 		"--no-tags",
 		"--quiet",
 		args.remoteName,
-		`+${syntheticRef}:${verifiedRef}`,
+		`+${syntheticRef}:${fetchRef}`,
 	]);
-	await assertRefMatchesExpectedOid({
+	const actualOid = await assertRefMatchesExpectedOid({
 		git: args.git,
-		ref: verifiedRef,
+		ref: fetchRef,
 		expectedHeadOid: args.pr.headRefOid,
 	});
 	const forkRemoteUrl = args.pr.isCrossRepository
@@ -209,7 +209,7 @@ async function fetchSyntheticPrBranch(args: {
 	const forkRemoteName = getForkRemoteName(args.pr.number);
 	return {
 		kind: "synthetic-pr-ref",
-		startPoint: verifiedRef,
+		startPoint: actualOid,
 		trackingRemote: forkRemoteUrl ? forkRemoteName : args.remoteName,
 		mergeRef: forkRemoteUrl
 			? `refs/heads/${args.pr.headRefName}`

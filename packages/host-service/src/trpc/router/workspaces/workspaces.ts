@@ -663,11 +663,6 @@ export const workspacesRouter = router({
 							});
 							workspaceRow = result.workspace;
 							alreadyExists = result.alreadyExists;
-							await enablePushAutoSetupRemote(
-								git,
-								worktreePath,
-								"[workspaces.create]",
-							);
 						} else {
 							worktreePath = safeResolveWorktreePath(
 								localProject.id,
@@ -759,17 +754,6 @@ export const workspacesRouter = router({
 												: "Failed to prepare PR worktree",
 									});
 								}
-							}
-
-							try {
-								await enablePushAutoSetupRemote(
-									git,
-									worktreePath,
-									"[workspaces.create]",
-								);
-							} catch (err) {
-								await rollbackCreatedWorktree();
-								throw err;
 							}
 
 							workspaceRow = await registerCloudAndLocal({

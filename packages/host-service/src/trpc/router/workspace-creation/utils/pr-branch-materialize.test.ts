@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from "bun:test";
 import type { GitClient } from "../shared/types";
 import {
 	deleteMaterializedPrBranchIfSafe,
-	getSyntheticPrVerifiedRef,
+	getSyntheticPrFetchRef,
 	materializePrBranch,
 	normalizePrBranchTracking,
 } from "./pr-branch-materialize";
@@ -45,7 +45,7 @@ describe("materializePrBranch", () => {
 		expect(result).toMatchObject({
 			createdBranch: true,
 			sourceKind: "head-branch",
-			startPoint: "refs/remotes/upstream/feature/x",
+			startPoint: EXPECTED_HEAD_OID,
 			trackingRemote: "upstream",
 			trackingMergeRef: "refs/heads/feature/x",
 		});
@@ -61,7 +61,7 @@ describe("materializePrBranch", () => {
 			"--no-track",
 			"--",
 			"feature/x",
-			"refs/remotes/upstream/feature/x",
+			EXPECTED_HEAD_OID,
 		]);
 		expect(raw).toHaveBeenNthCalledWith(5, [
 			"config",
@@ -85,7 +85,7 @@ describe("materializePrBranch", () => {
 			headRepositoryOwner: "alice",
 			headRepositoryName: "fork",
 		};
-		const verifiedRef = getSyntheticPrVerifiedRef(pr);
+		const fetchRef = getSyntheticPrFetchRef(pr.number);
 
 		const result = await materializePrBranch({
 			git,
@@ -97,7 +97,7 @@ describe("materializePrBranch", () => {
 		expect(result).toMatchObject({
 			createdBranch: true,
 			sourceKind: "synthetic-pr-ref",
-			startPoint: verifiedRef,
+			startPoint: EXPECTED_HEAD_OID,
 			trackingRemote: "superset-pr-456",
 			trackingMergeRef: "refs/heads/feature/x",
 		});
@@ -106,14 +106,14 @@ describe("materializePrBranch", () => {
 			"--no-tags",
 			"--quiet",
 			"origin",
-			`+refs/pull/456/head:${verifiedRef}`,
+			`+refs/pull/456/head:${fetchRef}`,
 		]);
 		expect(raw).toHaveBeenNthCalledWith(4, [
 			"branch",
 			"--no-track",
 			"--",
 			"alice/feature/x",
-			verifiedRef,
+			EXPECTED_HEAD_OID,
 		]);
 		expect(raw).toHaveBeenNthCalledWith(6, [
 			"remote",
@@ -187,7 +187,7 @@ describe("materializePrBranch", () => {
 			headRepositoryOwner: "alice",
 			headRepositoryName: "fork",
 		};
-		const verifiedRef = getSyntheticPrVerifiedRef(pr);
+		const fetchRef = getSyntheticPrFetchRef(pr.number);
 
 		const result = await normalizePrBranchTracking({
 			git,
@@ -199,7 +199,7 @@ describe("materializePrBranch", () => {
 		expect(result).toMatchObject({
 			createdBranch: false,
 			sourceKind: "synthetic-pr-ref",
-			startPoint: verifiedRef,
+			startPoint: EXPECTED_HEAD_OID,
 			trackingRemote: "superset-pr-456",
 			trackingMergeRef: "refs/heads/feature/x",
 		});
@@ -208,7 +208,7 @@ describe("materializePrBranch", () => {
 			"--no-track",
 			"--",
 			"alice/feature/x",
-			verifiedRef,
+			fetchRef,
 		]);
 		expect(raw).toHaveBeenCalledWith([
 			"config",

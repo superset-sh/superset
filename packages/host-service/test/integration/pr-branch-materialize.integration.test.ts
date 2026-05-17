@@ -11,7 +11,7 @@ import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
 import {
 	deleteMaterializedPrBranchIfSafe,
-	getSyntheticPrVerifiedRef,
+	getSyntheticPrFetchRef,
 	materializePrBranch,
 } from "../../src/trpc/router/workspace-creation/utils/pr-branch-materialize";
 import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
@@ -110,14 +110,7 @@ describe("materializePrBranch (real git)", () => {
 			},
 		});
 		expect(materialized.sourceKind).toBe("synthetic-pr-ref");
-		expect(materialized.startPoint).toBe(
-			getSyntheticPrVerifiedRef({
-				number: 5252,
-				headRefName: "feature/pr-lockfile",
-				headRefOid: scenario.prHeadOid,
-				isCrossRepository: true,
-			}),
-		);
+		expect(materialized.startPoint).toBe(scenario.prHeadOid);
 
 		const oldFlowPath = realpathSync(
 			mkdtempSync(join(tmpdir(), "host-service-old-pr-worktree-")),
@@ -182,6 +175,114 @@ describe("materializePrBranch (real git)", () => {
 				.catch(() => {});
 			rmSync(worktreePath, { recursive: true, force: true });
 		}
+	});
+
+	test("synthetic PR fetch uses a stable ref while branches start from verified OIDs", async () => {
+		const prMetadata = {
+			number: 5252,
+			headRefName: "feature/pr-lockfile",
+			headRefOid: scenario.prHeadOid,
+			isCrossRepository: true,
+		};
+		const stableRef = getSyntheticPrFetchRef(prMetadata.number);
+
+		const first = await materializePrBranch({
+			git: scenario.local.git,
+			branch: "contributor/stable-pr-lockfile-one",
+			remoteName: "origin",
+			pr: prMetadata,
+		});
+
+		expect(stableRef).toBe("refs/superset/pr-fetch/5252/head");
+		expect(first.startPoint).toBe(scenario.prHeadOid);
+		expect(
+			(
+				await scenario.local.git.raw([
+					"rev-parse",
+					"--verify",
+					"refs/heads/contributor/stable-pr-lockfile-one",
+				])
+			).trim(),
+		).toBe(scenario.prHeadOid);
+		expect(
+			(
+				await scenario.local.git.raw([
+					"for-each-ref",
+					"--format=%(refname)",
+					"refs/superset/pr-fetch/5252",
+				])
+			)
+				.trim()
+				.split("\n")
+				.filter(Boolean),
+		).toEqual([stableRef]);
+
+		await scenario.local.git.checkoutBranch(
+			"feature/pr-lockfile-force-push",
+			"main",
+		);
+		const nextPrHeadOid = await scenario.local.commit("force-pushed PR head", {
+			"package-lock.json": "force pushed lockfile\n",
+			"feature.txt": "from the updated PR\n",
+		});
+		await scenario.local.git.raw([
+			"push",
+			"--force",
+			"origin",
+			`${nextPrHeadOid}:refs/pull/5252/head`,
+		]);
+		await scenario.local.git.checkout("main");
+		await scenario.local.git.deleteLocalBranch(
+			"feature/pr-lockfile-force-push",
+			true,
+		);
+
+		const second = await materializePrBranch({
+			git: scenario.local.git,
+			branch: "contributor/stable-pr-lockfile-two",
+			remoteName: "origin",
+			pr: {
+				...prMetadata,
+				headRefOid: nextPrHeadOid,
+			},
+		});
+
+		expect(second.startPoint).toBe(nextPrHeadOid);
+		expect(
+			(
+				await scenario.local.git.raw([
+					"for-each-ref",
+					"--format=%(refname)",
+					"refs/superset/pr-fetch/5252",
+				])
+			)
+				.trim()
+				.split("\n")
+				.filter(Boolean),
+		).toEqual([stableRef]);
+		expect(
+			(
+				await scenario.local.git.raw(["rev-parse", "--verify", stableRef])
+			).trim(),
+		).toBe(nextPrHeadOid);
+		expect(
+			(
+				await scenario.local.git.raw([
+					"rev-parse",
+					"--verify",
+					"refs/heads/contributor/stable-pr-lockfile-one",
+				])
+			).trim(),
+		).toBe(scenario.prHeadOid);
+		expect(
+			(
+				await scenario.local.git.raw([
+					"rev-parse",
+					"--verify",
+					"refs/heads/contributor/stable-pr-lockfile-two",
+				])
+			).trim(),
+		).toBe(nextPrHeadOid);
 	});
 
 	test("safe cleanup deletes only branches still at the verified PR head", async () => {
