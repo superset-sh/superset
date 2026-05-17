@@ -83,6 +83,29 @@ const createInputSchema = z
 		message: "`worktreePath` and `pr` cannot both be set",
 	});
 
+const workspaceCreateLocks = new Map<string, Promise<void>>();
+
+async function acquireWorkspaceCreateLock(key: string): Promise<() => void> {
+	const previous = workspaceCreateLocks.get(key) ?? Promise.resolve();
+	let releaseCurrent!: () => void;
+	const current = new Promise<void>((resolve) => {
+		releaseCurrent = resolve;
+	});
+	const entry = previous.catch(() => {}).then(() => current);
+	workspaceCreateLocks.set(key, entry);
+	await previous.catch(() => {});
+
+	let released = false;
+	return () => {
+		if (released) return;
+		released = true;
+		releaseCurrent();
+		if (workspaceCreateLocks.get(key) === entry) {
+			workspaceCreateLocks.delete(key);
+		}
+	};
+}
+
 type AgentLaunchResult =
 	| ({ ok: true } & AgentRunResult)
 	| { ok: false; error: string };
@@ -549,178 +572,190 @@ export const workspacesRouter = router({
 			const warnings: string[] = [];
 
 			if (input.pr !== undefined) {
-				prMetadata = await fetchPrMetadata({
-					cwd: localProject.repoPath,
-					prNumber: input.pr,
-					execGh: ctx.execGh,
-				});
-				resolvedBranch = derivePrLocalBranchName(prMetadata);
-
-				const existing = await findExistingWorkspaceByBranch(
-					ctx,
-					input.projectId,
-					resolvedBranch,
+				const releaseCreateLock = await acquireWorkspaceCreateLock(
+					`pr:${input.projectId}:${input.pr}`,
 				);
-				if (existing) {
-					workspaceRow = existing;
-					alreadyExists = true;
-				} else {
-					const localOid = await getLocalBranchHead(git, resolvedBranch);
-					const adoptLocalBranch =
-						localOid !== null &&
-						localOid.toLowerCase() ===
-							prMetadata.headRefOid.trim().toLowerCase();
-					// If the local branch already lives in a worktree somewhere,
-					// `git worktree add` will refuse. Look it up first so the
-					// OID-mismatch error can point at the actual worktree, and
-					// the matching-OID case can adopt instead of duplicating.
-					const existingWorktreePath = (
-						await listWorktreeBranches(git)
-					).worktreeMap.get(resolvedBranch);
+				try {
+					prMetadata = await fetchPrMetadata({
+						cwd: localProject.repoPath,
+						prNumber: input.pr,
+						execGh: ctx.execGh,
+					});
+					resolvedBranch = derivePrLocalBranchName(prMetadata);
 
-					if (localOid !== null && !adoptLocalBranch) {
-						const cleanupHint = existingWorktreePath
-							? `Inspect with \`git log ${resolvedBranch}\`, then \`git worktree remove ${existingWorktreePath}\` and \`git branch -D ${resolvedBranch}\` if safe.`
-							: `Inspect with \`git log ${resolvedBranch}\`, then \`git branch -D ${resolvedBranch}\` if safe.`;
-						throw new TRPCError({
-							code: "CONFLICT",
-							message: `Local branch "${resolvedBranch}" exists outside Superset and points at a different commit than PR #${input.pr} (local ${localOid.slice(0, 7)}, PR ${prMetadata.headRefOid.slice(0, 7)}). ${cleanupHint}`,
-						});
-					}
-
-					if (adoptLocalBranch && existingWorktreePath) {
-						worktreePath = existingWorktreePath;
-						const result = await adoptExistingWorktree({
-							ctx,
-							git,
-							projectId: input.projectId,
-							branch: resolvedBranch,
-							worktreePath,
-							workspaceName: input.name ?? prMetadata.title ?? resolvedBranch,
-							baseBranch: prMetadata.baseRefName,
-							idempotencyId: input.id,
-							taskId: input.taskId,
-							hostPromise,
-						});
-						workspaceRow = result.workspace;
-						alreadyExists = result.alreadyExists;
-						await enablePushAutoSetupRemote(
-							git,
-							worktreePath,
-							"[workspaces.create]",
-						);
+					const existing = await findExistingWorkspaceByBranch(
+						ctx,
+						input.projectId,
+						resolvedBranch,
+					);
+					if (existing) {
+						workspaceRow = existing;
+						alreadyExists = true;
 					} else {
-						worktreePath = safeResolveWorktreePath(
-							localProject.id,
-							resolvedBranch,
-						);
-						mkdirSync(dirname(worktreePath), { recursive: true });
+						const localOid = await getLocalBranchHead(git, resolvedBranch);
+						const adoptLocalBranch =
+							localOid !== null &&
+							localOid.toLowerCase() ===
+								prMetadata.headRefOid.trim().toLowerCase();
+						// If the local branch already lives in a worktree somewhere,
+						// `git worktree add` will refuse. Look it up first so the
+						// OID-mismatch error can point at the actual worktree, and
+						// the matching-OID case can adopt instead of duplicating.
+						const existingWorktreePath = (
+							await listWorktreeBranches(git)
+						).worktreeMap.get(resolvedBranch);
 
-						const rollbackWorktree = async () => {
-							try {
-								await git.raw(["worktree", "remove", "--force", worktreePath]);
-							} catch (err) {
-								console.warn(
-									"[workspaces.create] failed to rollback PR worktree",
-									{ worktreePath, err },
-								);
-							}
-						};
-
-						if (adoptLocalBranch) {
-							try {
-								await git.raw([
-									"worktree",
-									"add",
-									worktreePath,
-									resolvedBranch,
-								]);
-							} catch (err) {
-								throw new TRPCError({
-									code: "CONFLICT",
-									message:
-										err instanceof Error
-											? err.message
-											: "Failed to add worktree for existing branch",
-								});
-							}
-						} else {
-							let worktreeAddStarted = false;
-							let materialized: MaterializePrBranchResult | null = null;
-							try {
-								materialized = await materializePrBranch({
-									git,
-									branch: resolvedBranch,
-									remoteName: localProject.remoteName ?? "origin",
-									pr: prMetadata,
-								});
-								if (materialized.warning) {
-									console.warn(`[workspaces.create] ${materialized.warning}`);
-									warnings.push(materialized.warning);
-								}
-								worktreeAddStarted = true;
-								await git.raw([
-									"worktree",
-									"add",
-									worktreePath,
-									resolvedBranch,
-								]);
-							} catch (err) {
-								if (worktreeAddStarted) {
-									await rollbackWorktree();
-								}
-								if (materialized?.createdBranch) {
-									await deleteMaterializedPrBranchIfSafe({
-										git,
-										branch: resolvedBranch,
-										expectedHeadOid: prMetadata.headRefOid,
-									}).catch((cleanupErr) => {
-										console.warn(
-											"[workspaces.create] failed to rollback PR branch",
-											{ branch: resolvedBranch, err: cleanupErr },
-										);
-									});
-								}
-								throw new TRPCError({
-									code:
-										worktreeAddStarted || err instanceof PrBranchConflictError
-											? "CONFLICT"
-											: "INTERNAL_SERVER_ERROR",
-									message:
-										err instanceof Error
-											? err.message
-											: "Failed to prepare PR worktree",
-								});
-							}
-						}
-
-						await enablePushAutoSetupRemote(
-							git,
-							worktreePath,
-							"[workspaces.create]",
-						);
-
-						workspaceRow = await registerCloudAndLocal({
-							ctx,
-							id: input.id,
-							projectId: input.projectId,
-							name: input.name ?? prMetadata.title ?? resolvedBranch,
-							branch: resolvedBranch,
-							worktreePath,
-							taskId: input.taskId,
-							rollbackWorktree,
-							hostPromise,
-						});
-
-						if (prMetadata.baseRefName) {
-							await recordBaseBranchConfig({
-								git,
-								worktreePath,
-								branch: resolvedBranch,
-								baseBranch: prMetadata.baseRefName,
+						if (localOid !== null && !adoptLocalBranch) {
+							const cleanupHint = existingWorktreePath
+								? `Inspect with \`git log ${resolvedBranch}\`, then \`git worktree remove ${existingWorktreePath}\` and \`git branch -D ${resolvedBranch}\` if safe.`
+								: `Inspect with \`git log ${resolvedBranch}\`, then \`git branch -D ${resolvedBranch}\` if safe.`;
+							throw new TRPCError({
+								code: "CONFLICT",
+								message: `Local branch "${resolvedBranch}" exists outside Superset and points at a different commit than PR #${input.pr} (local ${localOid.slice(0, 7)}, PR ${prMetadata.headRefOid.slice(0, 7)}). ${cleanupHint}`,
 							});
 						}
+
+						if (adoptLocalBranch && existingWorktreePath) {
+							worktreePath = existingWorktreePath;
+							const result = await adoptExistingWorktree({
+								ctx,
+								git,
+								projectId: input.projectId,
+								branch: resolvedBranch,
+								worktreePath,
+								workspaceName: input.name ?? prMetadata.title ?? resolvedBranch,
+								baseBranch: prMetadata.baseRefName,
+								idempotencyId: input.id,
+								taskId: input.taskId,
+								hostPromise,
+							});
+							workspaceRow = result.workspace;
+							alreadyExists = result.alreadyExists;
+							await enablePushAutoSetupRemote(
+								git,
+								worktreePath,
+								"[workspaces.create]",
+							);
+						} else {
+							worktreePath = safeResolveWorktreePath(
+								localProject.id,
+								resolvedBranch,
+							);
+							mkdirSync(dirname(worktreePath), { recursive: true });
+
+							const rollbackWorktree = async () => {
+								try {
+									await git.raw([
+										"worktree",
+										"remove",
+										"--force",
+										worktreePath,
+									]);
+								} catch (err) {
+									console.warn(
+										"[workspaces.create] failed to rollback PR worktree",
+										{ worktreePath, err },
+									);
+								}
+							};
+
+							if (adoptLocalBranch) {
+								try {
+									await git.raw([
+										"worktree",
+										"add",
+										worktreePath,
+										resolvedBranch,
+									]);
+								} catch (err) {
+									throw new TRPCError({
+										code: "CONFLICT",
+										message:
+											err instanceof Error
+												? err.message
+												: "Failed to add worktree for existing branch",
+									});
+								}
+							} else {
+								let worktreeAddStarted = false;
+								let materialized: MaterializePrBranchResult | null = null;
+								try {
+									materialized = await materializePrBranch({
+										git,
+										branch: resolvedBranch,
+										remoteName: localProject.remoteName ?? "origin",
+										pr: prMetadata,
+									});
+									if (materialized.warning) {
+										console.warn(`[workspaces.create] ${materialized.warning}`);
+										warnings.push(materialized.warning);
+									}
+									worktreeAddStarted = true;
+									await git.raw([
+										"worktree",
+										"add",
+										worktreePath,
+										resolvedBranch,
+									]);
+								} catch (err) {
+									if (worktreeAddStarted) {
+										await rollbackWorktree();
+									}
+									if (materialized?.createdBranch) {
+										await deleteMaterializedPrBranchIfSafe({
+											git,
+											branch: resolvedBranch,
+											expectedHeadOid: prMetadata.headRefOid,
+										}).catch((cleanupErr) => {
+											console.warn(
+												"[workspaces.create] failed to rollback PR branch",
+												{ branch: resolvedBranch, err: cleanupErr },
+											);
+										});
+									}
+									throw new TRPCError({
+										code:
+											worktreeAddStarted || err instanceof PrBranchConflictError
+												? "CONFLICT"
+												: "INTERNAL_SERVER_ERROR",
+										message:
+											err instanceof Error
+												? err.message
+												: "Failed to prepare PR worktree",
+									});
+								}
+							}
+
+							await enablePushAutoSetupRemote(
+								git,
+								worktreePath,
+								"[workspaces.create]",
+							);
+
+							workspaceRow = await registerCloudAndLocal({
+								ctx,
+								id: input.id,
+								projectId: input.projectId,
+								name: input.name ?? prMetadata.title ?? resolvedBranch,
+								branch: resolvedBranch,
+								worktreePath,
+								taskId: input.taskId,
+								rollbackWorktree,
+								hostPromise,
+							});
+
+							if (prMetadata.baseRefName) {
+								await recordBaseBranchConfig({
+									git,
+									worktreePath,
+									branch: resolvedBranch,
+									baseBranch: prMetadata.baseRefName,
+								});
+							}
+						}
 					}
+				} finally {
+					releaseCreateLock();
 				}
 			} else if (input.worktreePath) {
 				// Read the branch from git rather than trusting `input.branch`
