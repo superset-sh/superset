@@ -477,9 +477,11 @@ function CommentRow({
 					<span className="truncate text-xs font-medium text-foreground">
 						{comment.authorLogin}
 					</span>
-					<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
-						{comment.kind === "review" ? "Review" : "Comment"}
-					</span>
+					{comment.kind === "review" && comment.isOutdated ? (
+						<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
+							Outdated
+						</span>
+					) : null}
 					<span className="flex-1" />
 					{age ? (
 						<span className="shrink-0 text-[10px] text-muted-foreground">

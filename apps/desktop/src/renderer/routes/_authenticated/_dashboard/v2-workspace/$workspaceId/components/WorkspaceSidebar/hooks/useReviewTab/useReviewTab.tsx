@@ -143,6 +143,7 @@ function normalizeThreadsToComments(data: V2ThreadsData): NormalizedComment[] {
 			line: thread.line ?? undefined,
 			diffSide: thread.diffSide,
 			isResolved: thread.isResolved,
+			isOutdated: thread.isOutdated,
 			threadId: thread.id,
 		});
 	}
