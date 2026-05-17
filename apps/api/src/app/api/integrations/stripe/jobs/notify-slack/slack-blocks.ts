@@ -161,7 +161,8 @@ function escapeSlackMrkdwn(text: string): string {
 	return text
 		.replaceAll("&", "&amp;")
 		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;");
+		.replaceAll(">", "&gt;")
+		.replaceAll("@", "@\u200B");
 }
 
 function humanizeStripeValue(
@@ -171,10 +172,10 @@ function humanizeStripeValue(
 	if (!value) return "N/A";
 
 	const fallback = value.split("_").filter(Boolean).join(" ");
+	const humanized =
+		labels[value] ?? `${fallback.charAt(0).toUpperCase()}${fallback.slice(1)}`;
 
-	return (
-		labels[value] ?? `${fallback.charAt(0).toUpperCase()}${fallback.slice(1)}`
-	);
+	return escapeSlackMrkdwn(humanized);
 }
 
 function formatCancellationComment(comment: string | null | undefined): string {

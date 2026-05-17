@@ -67,6 +67,25 @@ describe("formatSubscriptionCancelled", () => {
 		expect(serializedBlocks).toContain("*Stripe reason:*\\nAccount closed");
 	});
 
+	test("escapes unknown cancellation feedback and reason values", () => {
+		const blocks = formatSubscriptionCancelled(
+			createEnrichedSubscription({
+				cancellationDetails: {
+					comment: null,
+					feedback: "<@U123>",
+					reason: "<!subteam^S123>",
+				},
+			}),
+		);
+
+		const serializedBlocks = JSON.stringify(blocks);
+
+		expect(serializedBlocks).not.toContain("<@U123>");
+		expect(serializedBlocks).not.toContain("<!subteam^S123>");
+		expect(serializedBlocks).toContain(`&lt;@${"\u200B"}U123&gt;`);
+		expect(serializedBlocks).toContain("&lt;!subteam^S123&gt;");
+	});
+
 	test("escapes and truncates cancellation comments for Slack", () => {
 		const longComment = `<!channel> & <https://example.com|link> ${"a".repeat(510)}`;
 		const blocks = formatSubscriptionCancelled(
