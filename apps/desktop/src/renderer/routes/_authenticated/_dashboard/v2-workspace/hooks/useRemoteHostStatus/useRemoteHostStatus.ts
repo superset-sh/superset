@@ -14,6 +14,11 @@ export type RemoteHostStatus =
 	| { status: "skip" }
 	| { status: "loading" }
 	| {
+			status: "offline";
+			hostId: string;
+			hostName: string;
+	  }
+	| {
 			status: "incompatible";
 			hostName: string;
 			hostVersion: string;
@@ -47,6 +52,7 @@ export function useRemoteHostStatus(
 				)
 				.select(({ hosts }) => ({
 					name: hosts.name,
+					isOnline: hosts.isOnline,
 				})),
 		[collections, organizationId, filterMachineId],
 	);
@@ -60,7 +66,8 @@ export function useRemoteHostStatus(
 	const infoQuery = useQuery({
 		queryKey: ["remoteHostInfo", organizationId, hostId],
 		queryFn: () => getHostServiceClientByUrl(hostUrl).host.info.query(),
-		enabled: workspace != null && !isLocal,
+		enabled:
+			workspace != null && !isLocal && isReady && hostRow?.isOnline !== false,
 		staleTime: HOST_INFO_STALE_MS,
 		retry: false,
 	});
@@ -68,6 +75,13 @@ export function useRemoteHostStatus(
 	if (!workspace) return { status: "loading" };
 	if (isLocal) return { status: "skip" };
 	if (!isReady) return { status: "loading" };
+	if (hostRow?.isOnline === false) {
+		return {
+			status: "offline",
+			hostId,
+			hostName: hostRow.name,
+		};
+	}
 
 	if (infoQuery.isSuccess) {
 		const hostVersion = infoQuery.data.version;
