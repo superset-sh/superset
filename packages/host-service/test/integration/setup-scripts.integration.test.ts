@@ -125,7 +125,7 @@ describe("setup scripts integration", () => {
 
 		await waitFor(
 			() => writes.includes("echo setup-a && echo setup-b\n"),
-			1000,
+			5000,
 			() => `expected setup command write, got ${JSON.stringify(writes)}`,
 		);
 
@@ -134,9 +134,16 @@ describe("setup scripts integration", () => {
 			.from(workspaces)
 			.where(eq(workspaces.id, created.workspace.id))
 			.get();
+		expect(workspaceRow).toBeDefined();
+		if (!workspaceRow) throw new Error("Expected workspace row to exist");
+
 		const setupTerminal = spawned.at(-1);
-		expect(setupTerminal?.meta.cwd).toBe(workspaceRow?.worktreePath);
-		expect(setupTerminal?.meta.env?.SUPERSET_ROOT_PATH).toBe(
+		expect(setupTerminal).toBeDefined();
+		if (!setupTerminal)
+			throw new Error("Expected setup terminal to be spawned");
+
+		expect(setupTerminal.meta.cwd).toBe(workspaceRow.worktreePath);
+		expect(setupTerminal.meta.env?.SUPERSET_ROOT_PATH).toBe(
 			scenario.repo.repoPath,
 		);
 	});

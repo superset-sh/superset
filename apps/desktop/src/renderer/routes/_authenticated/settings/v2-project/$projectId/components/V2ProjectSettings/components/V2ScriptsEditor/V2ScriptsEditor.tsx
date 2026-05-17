@@ -212,7 +212,16 @@ export function V2ScriptsEditor({
 				}, 2000);
 			} catch (error) {
 				console.error("[v2-scripts/save] failed", error);
+				queuedPayloadRef.current =
+					queuedPayloadRef.current ?? buildPayload(latestValuesRef.current);
 				setSaveStatus("idle");
+				if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+				debounceTimerRef.current = setTimeout(() => {
+					debounceTimerRef.current = null;
+					const payloadToRetry = queuedPayloadRef.current;
+					queuedPayloadRef.current = null;
+					if (payloadToRetry) void flushSave(payloadToRetry);
+				}, 1000);
 			} finally {
 				saveInFlightRef.current = false;
 			}
@@ -248,33 +257,29 @@ export function V2ScriptsEditor({
 		[scheduleSave],
 	);
 
-	const handleBlur = useCallback(
-		async (_field: ScriptFieldName) => {
-			focusedRef.current = null;
+	const handleBlur = useCallback(async () => {
+		focusedRef.current = null;
 
-			if (debounceTimerRef.current) {
-				clearTimeout(debounceTimerRef.current);
-				debounceTimerRef.current = null;
-			}
+		if (debounceTimerRef.current) {
+			clearTimeout(debounceTimerRef.current);
+			debounceTimerRef.current = null;
+		}
 
-			const trimmedValues = {
-				setup: trimScriptValue(latestValuesRef.current.setup),
-				teardown: trimScriptValue(latestValuesRef.current.teardown),
-				run: trimScriptValue(latestValuesRef.current.run),
-			};
-			latestValuesRef.current = trimmedValues;
+		const trimmedValues = {
+			setup: trimScriptValue(latestValuesRef.current.setup),
+			teardown: trimScriptValue(latestValuesRef.current.teardown),
+			run: trimScriptValue(latestValuesRef.current.run),
+		};
+		latestValuesRef.current = trimmedValues;
 
-			if (trimmedValues.setup !== setupValue)
-				setSetupValue(trimmedValues.setup);
-			if (trimmedValues.teardown !== teardownValue) {
-				setTeardownValue(trimmedValues.teardown);
-			}
-			if (trimmedValues.run !== runValue) setRunValue(trimmedValues.run);
+		if (trimmedValues.setup !== setupValue) setSetupValue(trimmedValues.setup);
+		if (trimmedValues.teardown !== teardownValue) {
+			setTeardownValue(trimmedValues.teardown);
+		}
+		if (trimmedValues.run !== runValue) setRunValue(trimmedValues.run);
 
-			await flushSave(buildPayload(trimmedValues));
-		},
-		[flushSave, runValue, setupValue, teardownValue],
-	);
+		await flushSave(buildPayload(trimmedValues));
+	}, [flushSave, runValue, setupValue, teardownValue]);
 
 	if (isLoading) {
 		return (
@@ -321,7 +326,6 @@ export function V2ScriptsEditor({
 				</TabsList>
 				<TabsContent value="setup">
 					<ScriptField
-						field="setup"
 						description="Runs when a new workspace is created. Multiple lines run as one chain — failures short-circuit."
 						placeholder="bun install&#10;bun run db:migrate"
 						value={setupValue}
@@ -329,12 +333,11 @@ export function V2ScriptsEditor({
 						onFocus={() => {
 							focusedRef.current = "setup";
 						}}
-						onBlur={() => handleBlur("setup")}
+						onBlur={() => handleBlur()}
 					/>
 				</TabsContent>
 				<TabsContent value="teardown">
 					<ScriptField
-						field="teardown"
 						description="Runs when a workspace is deleted."
 						placeholder="docker compose down"
 						value={teardownValue}
@@ -342,12 +345,11 @@ export function V2ScriptsEditor({
 						onFocus={() => {
 							focusedRef.current = "teardown";
 						}}
-						onBlur={() => handleBlur("teardown")}
+						onBlur={() => handleBlur()}
 					/>
 				</TabsContent>
 				<TabsContent value="run">
 					<ScriptField
-						field="run"
 						description="Runs from the workspace Run button."
 						placeholder="bun dev"
 						value={runValue}
@@ -355,7 +357,7 @@ export function V2ScriptsEditor({
 						onFocus={() => {
 							focusedRef.current = "run";
 						}}
-						onBlur={() => handleBlur("run")}
+						onBlur={() => handleBlur()}
 					/>
 				</TabsContent>
 			</Tabs>
@@ -364,7 +366,6 @@ export function V2ScriptsEditor({
 }
 
 interface ScriptFieldProps {
-	field: ScriptFieldName;
 	description: string;
 	placeholder: string;
 	value: string;
