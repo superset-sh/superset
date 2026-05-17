@@ -1,13 +1,22 @@
+import { Label } from "@superset/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { type ReactNode, useMemo } from "react";
+import { HiOutlineComputerDesktop, HiOutlineServer } from "react-icons/hi2";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { SettingsSection } from "../../../../project/$projectId/components/ProjectSettings";
-import { ProjectSettingsHeader } from "../../../../project/$projectId/components/ProjectSettingsHeader";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
@@ -20,12 +29,46 @@ interface V2ProjectSettingsProps {
 	hostId: string | null;
 }
 
+interface ProjectSettingsHostOption {
+	id: string;
+	name: string;
+	isLocal: boolean;
+	isOnline: boolean;
+}
+
+function SettingsRow({
+	label,
+	hint,
+	htmlFor,
+	children,
+}: {
+	label: string;
+	hint?: ReactNode;
+	htmlFor?: string;
+	children: ReactNode;
+}) {
+	return (
+		<div className="flex items-center justify-between gap-8 py-2.5">
+			<div className="min-w-0 flex-1">
+				<Label htmlFor={htmlFor} className="text-sm font-medium">
+					{label}
+				</Label>
+				{hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
+			</div>
+			<div className="shrink-0">{children}</div>
+		</div>
+	);
+}
+
 export function V2ProjectSettings({
 	projectId,
 	hostId,
 }: V2ProjectSettingsProps) {
+	const navigate = useNavigate();
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
+	const { currentDeviceName, localHostId, otherHosts } =
+		useWorkspaceHostOptions();
 	const targetHostUrl = useHostUrl(hostId);
 	const targetHostId = hostId ?? machineId;
 
@@ -38,22 +81,45 @@ export function V2ProjectSettings({
 		[collections, projectId],
 	);
 
-	const { data: hostRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ hosts: collections.v2Hosts })
-				.where(({ hosts }) => eq(hosts.machineId, targetHostId ?? ""))
-				.select(({ hosts }) => ({
-					machineId: hosts.machineId,
-					name: hosts.name,
-				})),
-		[collections, targetHostId],
+	const hostOptions = useMemo<ProjectSettingsHostOption[]>(() => {
+		const options: ProjectSettingsHostOption[] = [];
+		if (localHostId) {
+			options.push({
+				id: localHostId,
+				name: currentDeviceName ?? "This device",
+				isLocal: true,
+				isOnline: true,
+			});
+		}
+		for (const host of otherHosts) {
+			options.push({
+				id: host.id,
+				name: host.name,
+				isLocal: false,
+				isOnline: host.isOnline,
+			});
+		}
+		if (targetHostId && !options.some((option) => option.id === targetHostId)) {
+			options.push({
+				id: targetHostId,
+				name: targetHostId === machineId ? "This device" : targetHostId,
+				isLocal: targetHostId === machineId,
+				isOnline: targetHostId === machineId,
+			});
+		}
+		return options;
+	}, [currentDeviceName, localHostId, machineId, otherHosts, targetHostId]);
+
+	const selectedHost = useMemo(
+		() => hostOptions.find((option) => option.id === targetHostId) ?? null,
+		[hostOptions, targetHostId],
 	);
 	const targetHostName = useMemo(() => {
-		if (hostRows[0]?.name) return hostRows[0].name;
+		if (selectedHost?.name) return selectedHost.name;
 		if (!targetHostId || targetHostId === machineId) return "this device";
 		return targetHostId;
-	}, [hostRows, machineId, targetHostId]);
+	}, [machineId, selectedHost, targetHostId]);
+	const hasMultipleHosts = hostOptions.length > 1;
 	const isRemoteTarget = Boolean(
 		targetHostId && machineId && targetHostId !== machineId,
 	);
@@ -73,61 +139,122 @@ export function V2ProjectSettings({
 
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
-			<ProjectSettingsHeader title={project.name} />
-
-			<div className="space-y-6">
-				<SettingsSection title="Name">
-					<NameSection projectId={projectId} currentName={project.name} />
-				</SettingsSection>
-
-				<SettingsSection title="Repository">
-					<RepositorySection
-						projectId={projectId}
-						currentRepoCloneUrl={project.repoCloneUrl}
-					/>
-				</SettingsSection>
-
-				<SettingsSection
-					title="Project location"
-					description={`Where this project lives on disk on ${targetHostName}.`}
-				>
-					<ProjectLocationSection
-						projectId={projectId}
-						currentPath={hostProject?.repoPath ?? null}
-						repoCloneUrl={project.repoCloneUrl}
-						hostUrl={targetHostUrl}
-						hostName={targetHostName}
-						isRemoteTarget={isRemoteTarget}
-						onChanged={() => refetchHostProject()}
-					/>
-				</SettingsSection>
-
-				<SettingsSection
-					title="Appearance"
-					description="A custom icon shown next to this project in the sidebar. PNG, JPEG, or WebP up to 4.5MB."
-				>
+			<header className="mb-8 flex items-center justify-between gap-4">
+				<div className="flex min-w-0 items-center gap-3">
 					<IconUploadField
 						projectId={projectId}
 						iconUrl={project.iconUrl ?? null}
 						hasGitHubRepo={project.repoCloneUrl != null}
 					/>
-				</SettingsSection>
-
-				{targetHostUrl && (
-					<SettingsSection
-						title="Scripts"
-						description="Runs in a terminal for setup, teardown, and the workspace Run button. Saved to .superset/config.json in the main repo."
+					<h2 className="truncate text-xl font-semibold">{project.name}</h2>
+				</div>
+				{hasMultipleHosts && targetHostId ? (
+					<Select
+						value={targetHostId}
+						onValueChange={(nextHostId) => {
+							void navigate({
+								to: "/settings/projects/$projectId",
+								params: { projectId },
+								search: { hostId: nextHostId },
+								replace: true,
+							});
+						}}
 					>
-						<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
-					</SettingsSection>
-				)}
+						<SelectTrigger
+							size="sm"
+							className="h-8 gap-1.5 px-2 text-foreground"
+						>
+							<SelectValue>
+								<span className="flex items-center gap-1.5">
+									<span className="truncate">
+										{selectedHost?.isLocal
+											? "This device"
+											: (selectedHost?.name ?? targetHostId)}
+									</span>
+									{selectedHost && !selectedHost.isLocal && (
+										<span
+											title={selectedHost.isOnline ? "Online" : "Offline"}
+											className={
+												selectedHost.isOnline
+													? "size-1.5 shrink-0 rounded-full bg-emerald-500"
+													: "size-1.5 shrink-0 rounded-full bg-muted-foreground/60"
+											}
+										/>
+									)}
+								</span>
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent align="end">
+							{hostOptions.map((option) => (
+								<SelectItem key={option.id} value={option.id}>
+									<span className="flex items-center gap-2">
+										{option.isLocal ? (
+											<HiOutlineComputerDesktop className="size-4 text-muted-foreground" />
+										) : (
+											<HiOutlineServer className="size-4 text-muted-foreground" />
+										)}
+										<span className="truncate">
+											{option.isLocal ? "This device" : option.name}
+										</span>
+										{!option.isLocal && !option.isOnline && (
+											<span className="text-xs text-muted-foreground">
+												offline
+											</span>
+										)}
+									</span>
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				) : null}
+			</header>
 
-				<div className="pt-2 border-t border-border">
+			<div className="space-y-10">
+				<section>
+					<SettingsRow label="Name" htmlFor="project-name">
+						<NameSection projectId={projectId} currentName={project.name} />
+					</SettingsRow>
+					<SettingsRow label="Repository" htmlFor="project-repo">
+						<RepositorySection
+							projectId={projectId}
+							currentRepoCloneUrl={project.repoCloneUrl}
+						/>
+					</SettingsRow>
+				</section>
+
+				<section>
+					<SettingsRow label="Location">
+						<ProjectLocationSection
+							projectId={projectId}
+							currentPath={hostProject?.repoPath ?? null}
+							repoCloneUrl={project.repoCloneUrl}
+							hostId={targetHostId ?? null}
+							hostUrl={targetHostUrl}
+							hostName={targetHostName}
+							isRemoteTarget={isRemoteTarget}
+							onChanged={() => refetchHostProject()}
+						/>
+					</SettingsRow>
+					{targetHostUrl && (
+						<div className="pt-4">
+							<div className="mb-3">
+								<h3 className="text-sm font-medium">Scripts</h3>
+								<p className="mt-0.5 text-xs text-muted-foreground">
+									Runs in a terminal for setup, teardown, and the workspace Run
+									button.
+								</p>
+							</div>
+							<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
+						</div>
+					)}
+				</section>
+
+				<section>
 					<DeleteProjectSection
 						projectId={projectId}
 						projectName={project.name}
 					/>
-				</div>
+				</section>
 			</div>
 		</div>
 	);

@@ -1,16 +1,11 @@
-import { Button } from "@superset/ui/button";
+import { Skeleton } from "@superset/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	HiArrowTopRightOnSquare,
-	HiCheckCircle,
-	HiDocumentArrowUp,
-} from "react-icons/hi2";
+import { HiCheckCircle, HiDocumentArrowUp } from "react-icons/hi2";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { EXTERNAL_LINKS } from "shared/constants";
 
 interface V2ScriptsEditorProps {
 	hostUrl: string;
@@ -283,50 +278,53 @@ export function V2ScriptsEditor({
 
 	if (isLoading) {
 		return (
-			<div className={cn("space-y-3", className)}>
-				<div className="h-24 bg-muted/30 rounded-lg animate-pulse" />
+			<div className={cn("space-y-3", className)} aria-busy="true">
+				<div className="flex h-9 items-center gap-5 border-b border-border px-2">
+					<Skeleton className="h-3 w-10" />
+					<Skeleton className="h-3 w-14" />
+					<Skeleton className="h-3 w-8" />
+				</div>
+				<Skeleton className="h-24 w-full rounded-md" />
 			</div>
 		);
 	}
 
 	return (
 		<div className={cn("space-y-3", className)}>
-			<div className="flex items-center justify-between gap-2">
-				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					{saveStatus === "saving" && (
-						<span className="flex items-center gap-1">
-							<span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-							Saving…
-						</span>
-					)}
-					{saveStatus === "saved" && (
-						<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-							<HiCheckCircle className="h-3.5 w-3.5" />
-							Saved
-						</span>
-					)}
-				</div>
-				<Button variant="ghost" size="sm" className="h-7" asChild>
-					<a
-						href={EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS}
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						Docs
-						<HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
-					</a>
-				</Button>
-			</div>
-
 			<Tabs defaultValue="setup">
-				<TabsList>
-					<TabsTrigger value="setup">Setup</TabsTrigger>
-					<TabsTrigger value="teardown">Teardown</TabsTrigger>
-					<TabsTrigger value="run">Run</TabsTrigger>
-				</TabsList>
+				<div className="flex items-center justify-between gap-2 border-b border-border">
+					<TabsList className="h-auto gap-0 rounded-none bg-transparent p-0">
+						<TabsTrigger
+							value="setup"
+							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+						>
+							Setup
+						</TabsTrigger>
+						<TabsTrigger
+							value="teardown"
+							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+						>
+							Teardown
+						</TabsTrigger>
+						<TabsTrigger
+							value="run"
+							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+						>
+							Run
+						</TabsTrigger>
+					</TabsList>
+					<div className="flex h-5 items-center pb-1.5 text-xs text-muted-foreground">
+						{saveStatus === "saving" && <span>Saving…</span>}
+						{saveStatus === "saved" && (
+							<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+								<HiCheckCircle className="h-3.5 w-3.5" />
+								Saved
+							</span>
+						)}
+					</div>
+				</div>
 				<TabsContent value="setup">
 					<ScriptField
-						description="Runs when a new workspace is created. Multiple lines run as one chain — failures short-circuit."
 						placeholder="bun install&#10;bun run db:migrate"
 						value={setupValue}
 						onChange={(value) => handleChange("setup", value)}
@@ -338,7 +336,6 @@ export function V2ScriptsEditor({
 				</TabsContent>
 				<TabsContent value="teardown">
 					<ScriptField
-						description="Runs when a workspace is deleted."
 						placeholder="docker compose down"
 						value={teardownValue}
 						onChange={(value) => handleChange("teardown", value)}
@@ -350,7 +347,6 @@ export function V2ScriptsEditor({
 				</TabsContent>
 				<TabsContent value="run">
 					<ScriptField
-						description="Runs from the workspace Run button."
 						placeholder="bun dev"
 						value={runValue}
 						onChange={(value) => handleChange("run", value)}
@@ -366,7 +362,6 @@ export function V2ScriptsEditor({
 }
 
 interface ScriptFieldProps {
-	description: string;
 	placeholder: string;
 	value: string;
 	onChange: (value: string) => void;
@@ -375,7 +370,6 @@ interface ScriptFieldProps {
 }
 
 function ScriptField({
-	description,
 	placeholder,
 	value,
 	onChange,
@@ -401,9 +395,7 @@ function ScriptField({
 	);
 
 	return (
-		<div className="space-y-2">
-			<p className="text-xs text-muted-foreground">{description}</p>
-
+		<>
 			{/* biome-ignore lint/a11y/useSemanticElements: drop zone wrapper */}
 			<div
 				role="region"
@@ -440,6 +432,15 @@ function ScriptField({
 					rows={4}
 					className="font-mono text-sm border-0 shadow-none focus-visible:ring-0 focus-visible:border-0 resize-y"
 				/>
+				<button
+					type="button"
+					onClick={() => fileInputRef.current?.click()}
+					title="Import from file"
+					className="absolute bottom-2 right-2 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+				>
+					<HiDocumentArrowUp className="h-3.5 w-3.5" />
+					Import
+				</button>
 				{isDragOver && (
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-primary/10">
 						<div className="flex items-center gap-2 text-primary text-sm font-medium">
@@ -449,16 +450,6 @@ function ScriptField({
 					</div>
 				)}
 			</div>
-
-			<Button
-				variant="ghost"
-				size="sm"
-				className="h-7 gap-1.5 text-muted-foreground"
-				onClick={() => fileInputRef.current?.click()}
-			>
-				<HiDocumentArrowUp className="h-3.5 w-3.5" />
-				Import file
-			</Button>
 			<input
 				ref={fileInputRef}
 				type="file"
@@ -470,6 +461,6 @@ function ScriptField({
 					e.target.value = "";
 				}}
 			/>
-		</div>
+		</>
 	);
 }

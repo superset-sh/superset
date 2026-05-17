@@ -11,8 +11,10 @@ import {
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { LuFolderOpen } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -27,6 +29,7 @@ interface ProjectLocationSectionProps {
 	projectId: string;
 	currentPath: string | null;
 	repoCloneUrl: string | null;
+	hostId: string | null;
 	hostUrl: string | null;
 	hostName: string;
 	isRemoteTarget: boolean;
@@ -37,6 +40,7 @@ export function ProjectLocationSection({
 	projectId,
 	currentPath,
 	repoCloneUrl,
+	hostId,
 	hostUrl,
 	hostName,
 	isRemoteTarget,
@@ -248,27 +252,42 @@ export function ProjectLocationSection({
 
 	return (
 		<>
-			<div className="flex items-center gap-4">
-				<div className="flex-1 min-w-0">
-					{currentPath ? (
-						<ClickablePath path={currentPath} />
-					) : (
-						<span className="text-sm text-muted-foreground">
-							Not set up on {hostName}.
-						</span>
+			<div className="flex items-center gap-2">
+				<div className="relative w-96">
+					<div
+						className={`flex h-9 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30 ${currentPath ? "pr-9" : ""}`}
+					>
+						{currentPath ? (
+							<ClickablePath
+								path={currentPath}
+								className="max-w-none shrink-0"
+							/>
+						) : (
+							<span className="shrink-0 text-sm text-muted-foreground">
+								Not set up on {hostName}
+							</span>
+						)}
+					</div>
+					{currentPath && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									className="absolute right-1 top-1 size-7 text-muted-foreground hover:text-foreground"
+									onClick={handleChange}
+									disabled={selectDirectory.isPending || isSubmitting}
+									aria-label="Change location"
+								>
+									<LuFolderOpen className="size-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Change location</TooltipContent>
+						</Tooltip>
 					)}
 				</div>
-				{currentPath ? (
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						onClick={handleChange}
-						disabled={selectDirectory.isPending || isSubmitting}
-					>
-						Change…
-					</Button>
-				) : (
+				{!currentPath && (
 					<div className="flex items-center gap-2 shrink-0">
 						{isRemoteTarget ? (
 							<div className="flex flex-col gap-2 min-w-80">
@@ -380,6 +399,7 @@ export function ProjectLocationSection({
 								navigate({
 									to: "/settings/projects/$projectId",
 									params: { projectId: target.id },
+									search: { hostId: hostId ?? undefined },
 								});
 							}}
 						>
