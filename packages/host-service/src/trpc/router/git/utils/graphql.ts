@@ -12,7 +12,11 @@ export const REVIEW_THREADS_QUERY = `
 					nodes {
 						id
 						isResolved
+						isOutdated
 						diffSide
+						path
+						line
+						originalLine
 						comments(first: 100) {
 							nodes {
 								id
@@ -39,7 +43,11 @@ export interface GraphQLThreadsResult {
 				nodes: Array<{
 					id: string;
 					isResolved: boolean;
+					isOutdated: boolean;
 					diffSide: string;
+					path: string;
+					line: number | null;
+					originalLine: number | null;
 					comments: {
 						nodes: Array<{
 							id: string;
@@ -63,18 +71,16 @@ export function parseGraphQLThreads(
 ): PullRequestReviewThread[] {
 	return result.repository.pullRequest.reviewThreads.nodes.map((thread) => {
 		const firstComment = thread.comments.nodes[0];
-		// GitHub clears `line` (keeping only `originalLine`) when a thread's
-		// anchor moved or was rewritten in a later commit — that's the
-		// "Outdated" signal in the Files Changed view.
-		const isOutdated =
-			firstComment?.line == null && firstComment?.originalLine != null;
 		return {
 			id: thread.id,
 			isResolved: thread.isResolved,
-			isOutdated,
+			isOutdated: thread.isOutdated,
 			diffSide: (thread.diffSide === "LEFT" ? "LEFT" : "RIGHT") as DiffSide,
-			line: firstComment?.line ?? firstComment?.originalLine ?? null,
-			path: firstComment?.path ?? "",
+			// `line` is the current diff anchor. Keep outdated/original-only
+			// threads out of diff annotations; they still appear in the sidebar.
+			line: thread.line,
+			originalLine: thread.originalLine ?? firstComment?.originalLine ?? null,
+			path: thread.path || firstComment?.path || "",
 			comments: thread.comments.nodes.map(
 				(c): PullRequestReviewComment => ({
 					id: c.id,

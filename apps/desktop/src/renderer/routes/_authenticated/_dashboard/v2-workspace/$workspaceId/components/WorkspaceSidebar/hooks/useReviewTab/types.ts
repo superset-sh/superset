@@ -28,6 +28,7 @@ export interface NormalizedComment {
 	path?: string;
 	diffPath?: string;
 	line?: number;
+	originalLine?: number;
 	/** "LEFT" = deletions side, "RIGHT" = additions. Only set for review threads. */
 	diffSide?: "LEFT" | "RIGHT";
 	isResolved: boolean;

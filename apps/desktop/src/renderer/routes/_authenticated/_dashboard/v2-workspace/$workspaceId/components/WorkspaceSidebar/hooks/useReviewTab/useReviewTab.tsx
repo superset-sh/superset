@@ -166,6 +166,7 @@ function normalizeThreadsToComments(data: V2ThreadsData): NormalizedComment[] {
 			kind: "review",
 			path: thread.path || undefined,
 			line: thread.line ?? undefined,
+			originalLine: thread.originalLine ?? undefined,
 			diffSide: thread.diffSide,
 			isResolved: thread.isResolved,
 			isOutdated: thread.isOutdated,

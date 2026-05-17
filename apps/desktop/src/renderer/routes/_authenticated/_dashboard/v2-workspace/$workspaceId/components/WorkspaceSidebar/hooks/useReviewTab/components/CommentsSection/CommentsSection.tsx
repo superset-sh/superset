@@ -393,9 +393,10 @@ export function CommentsSection({
 function buildCommentsClipboardText(comments: NormalizedComment[]): string {
 	return comments
 		.map((c) => {
+			const line = getCommentDisplayLine(c);
 			const location = c.path
-				? c.line
-					? `${c.path}:${c.line}`
+				? line
+					? `${c.path}:${line}`
 					: c.path
 				: c.kind === "conversation"
 					? "Conversation"
@@ -454,6 +455,19 @@ function getCommentFocusSide(
 	return undefined;
 }
 
+function canOpenCommentInDiff(comment: NormalizedComment): boolean {
+	return (
+		comment.kind === "review" &&
+		!comment.isOutdated &&
+		getCommentDiffPath(comment) != null &&
+		comment.line != null
+	);
+}
+
+function getCommentDisplayLine(comment: NormalizedComment): number | undefined {
+	return comment.line ?? comment.originalLine;
+}
+
 // ---------------------------------------------------------------------------
 // CommentRow
 // ---------------------------------------------------------------------------
@@ -482,12 +496,13 @@ function CommentRow({
 	const isCopied = copiedActionKey === `comment:${comment.id}`;
 	const diffPath = getCommentDiffPath(comment);
 	const focusSide = getCommentFocusSide(comment);
+	const canOpenInDiff = canOpenCommentInDiff(comment);
 
 	const handleClick = () => {
 		// Default click jumps to the comment in the diff. Fall back to the
 		// standalone comment pane when there's no file anchor (conversation
-		// comments) or no diff handler wired up.
-		if (comment.kind === "review" && diffPath && onOpenInDiff) {
+		// comments), no diff handler, or no current diff anchor.
+		if (canOpenInDiff && diffPath && onOpenInDiff) {
 			debugReviewDiffJump("review comment clicked", {
 				path: comment.path,
 				diffPath,
@@ -506,7 +521,7 @@ function CommentRow({
 			body: comment.body,
 			url: comment.url,
 			path: comment.path,
-			line: comment.line,
+			line: getCommentDisplayLine(comment),
 		});
 	};
 
@@ -579,7 +594,7 @@ function CommentRow({
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-56">
-						{comment.kind === "review" && diffPath && onOpenInDiff ? (
+						{canOpenInDiff && diffPath && onOpenInDiff ? (
 							<>
 								<DropdownMenuItem
 									onSelect={() =>
@@ -610,7 +625,7 @@ function CommentRow({
 										body: comment.body,
 										url: comment.url,
 										path: comment.path,
-										line: comment.line,
+										line: getCommentDisplayLine(comment),
 									})
 								}
 							>

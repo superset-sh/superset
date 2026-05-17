@@ -75,6 +75,7 @@ export interface PullRequestReviewThread {
 	isOutdated: boolean;
 	diffSide: DiffSide;
 	line: number | null;
+	originalLine: number | null;
 	path: string;
 	comments: PullRequestReviewComment[];
 }
