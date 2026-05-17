@@ -74,7 +74,9 @@ export function useReviewTab({
 		return normalizeThreadsToComments(data);
 	}, [threadsQuery.data]);
 
-	const openCommentCount = comments.filter((c) => !c.isResolved).length;
+	const openReviewCount = comments.filter(
+		(c) => c.kind === "review" && !c.isResolved,
+	).length;
 
 	const content = (
 		<ReviewTabContent
@@ -93,7 +95,7 @@ export function useReviewTab({
 		id: "review",
 		label: "Review",
 		icon: LuMessageSquare,
-		badge: openCommentCount > 0 ? openCommentCount : undefined,
+		badge: openReviewCount > 0 ? openReviewCount : undefined,
 		content,
 	};
 }

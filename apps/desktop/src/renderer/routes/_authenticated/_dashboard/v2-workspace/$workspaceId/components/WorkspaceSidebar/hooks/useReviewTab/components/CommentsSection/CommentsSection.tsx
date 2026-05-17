@@ -49,6 +49,7 @@ export function CommentsSection({
 	onOpenInDiff,
 }: CommentsSectionProps) {
 	const [commentsOpen, setCommentsOpen] = useState(true);
+	const [reviewOpen, setReviewOpen] = useState(true);
 	const [resolvedOpen, setResolvedOpen] = useState(false);
 	const [copiedActionKey, setCopiedActionKey] = useState<string | null>(null);
 	const [isResolvingAll, setIsResolvingAll] = useState(false);
@@ -70,22 +71,26 @@ export function CommentsSection({
 		};
 	}, []);
 
-	const activeComments = useMemo(
-		() => comments.filter((c) => !c.isResolved),
+	const conversationComments = useMemo(
+		() => comments.filter((c) => c.kind === "conversation"),
+		[comments],
+	);
+	const openReviewComments = useMemo(
+		() => comments.filter((c) => c.kind === "review" && !c.isResolved),
 		[comments],
 	);
 	const resolvableThreadIds = useMemo(
 		() => [
 			...new Set(
-				activeComments
+				openReviewComments
 					.map((comment) => comment.threadId)
 					.filter((threadId): threadId is string => Boolean(threadId)),
 			),
 		],
-		[activeComments],
+		[openReviewComments],
 	);
 	const resolvedComments = useMemo(
-		() => comments.filter((c) => c.isResolved),
+		() => comments.filter((c) => c.kind === "review" && c.isResolved),
 		[comments],
 	);
 
@@ -113,36 +118,27 @@ export function CommentsSection({
 		[copyToClipboard, markCopied],
 	);
 
-	const handleCopyAll = useCallback(() => {
-		const text = activeComments
-			.map((c) => {
-				const location = c.path
-					? c.line
-						? `${c.path}:${c.line}`
-						: c.path
-					: c.kind === "conversation"
-						? "Conversation"
-						: null;
-				const meta = [
-					c.authorLogin,
-					c.kind === "review" ? "Review" : "Comment",
-					location,
-				]
-					.filter(Boolean)
-					.join(" \u2022 ");
-				return [meta, c.body.trim() || "No comment body"]
-					.filter(Boolean)
-					.join("\n");
-			})
-			.join("\n\n---\n\n");
-		void copyToClipboard(text)
-			.then(() => {
-				markCopied("comments:all");
-			})
-			.catch((err) => {
-				console.warn("Failed to copy comments", err);
-			});
-	}, [copyToClipboard, activeComments, markCopied]);
+	const copyCommentList = useCallback(
+		(list: NormalizedComment[], actionKey: string) => {
+			const text = buildCommentsClipboardText(list);
+			void copyToClipboard(text)
+				.then(() => {
+					markCopied(actionKey);
+				})
+				.catch((err) => {
+					console.warn("Failed to copy comments", err);
+				});
+		},
+		[copyToClipboard, markCopied],
+	);
+
+	const handleCopyConversationComments = useCallback(() => {
+		copyCommentList(conversationComments, "comments:conversation");
+	}, [copyCommentList, conversationComments]);
+
+	const handleCopyReviewComments = useCallback(() => {
+		copyCommentList(openReviewComments, "comments:review");
+	}, [copyCommentList, openReviewComments]);
 
 	const handleResolveAll = useCallback(async () => {
 		if (resolvableThreadIds.length === 0) return;
@@ -181,9 +177,16 @@ export function CommentsSection({
 		workspaceId,
 	]);
 
-	const commentsCountLabel = isLoading ? "..." : comments.length;
-	const copyAllLabel =
-		copiedActionKey === "comments:all" ? "Copied" : "Copy all";
+	const conversationCommentsCountLabel = isLoading
+		? "..."
+		: conversationComments.length;
+	const reviewCommentsCountLabel = isLoading
+		? "..."
+		: openReviewComments.length;
+	const conversationCopyAllLabel =
+		copiedActionKey === "comments:conversation" ? "Copied" : "Copy all";
+	const reviewCopyAllLabel =
+		copiedActionKey === "comments:review" ? "Copied" : "Copy all";
 
 	return (
 		<>
@@ -207,10 +210,72 @@ export function CommentsSection({
 						/>
 						<span className="truncate text-xs font-medium">Comments</span>
 						<span className="shrink-0 text-[10px] text-muted-foreground">
-							{commentsCountLabel}
+							{conversationCommentsCountLabel}
 						</span>
 					</CollapsibleTrigger>
-					{activeComments.length > 0 && (
+					{conversationComments.length > 0 && (
+						<div className="mr-1.5 flex items-center gap-1">
+							<button
+								type="button"
+								className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+								onClick={handleCopyConversationComments}
+							>
+								{copiedActionKey === "comments:conversation" ? (
+									<LuCheck className="size-3" />
+								) : (
+									<LuCopy className="size-3" />
+								)}
+								<span>{conversationCopyAllLabel}</span>
+							</button>
+						</div>
+					)}
+				</div>
+				<CollapsibleContent className="min-w-0 overflow-hidden px-0.5 pb-1">
+					{isLoading ? (
+						renderCommentSkeletons()
+					) : conversationComments.length === 0 ? (
+						<div className="px-1.5 py-1 text-xs text-muted-foreground">
+							No comments yet.
+						</div>
+					) : (
+						conversationComments.map((comment) => (
+							<CommentRow
+								key={comment.id}
+								comment={comment}
+								copiedActionKey={copiedActionKey}
+								onCopy={handleCopySingle}
+								onOpen={onOpenComment}
+								onOpenInDiff={onOpenInDiff}
+							/>
+						))
+					)}
+				</CollapsibleContent>
+			</Collapsible>
+
+			<Collapsible
+				open={reviewOpen}
+				onOpenChange={setReviewOpen}
+				className="min-w-0"
+			>
+				<div className="flex min-w-0 items-center">
+					<CollapsibleTrigger
+						className={cn(
+							"flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1.5 text-left",
+							"cursor-pointer transition-colors hover:bg-accent/30",
+						)}
+					>
+						<VscChevronRight
+							className={cn(
+								"size-3 shrink-0 text-muted-foreground transition-transform duration-150",
+								reviewOpen && "rotate-90",
+							)}
+						/>
+						<span className="truncate text-xs font-medium">Review</span>
+						<span className="shrink-0 text-[10px] text-muted-foreground">
+							{reviewCommentsCountLabel}
+						</span>
+					</CollapsibleTrigger>
+					{openReviewComments.length > 0 && (
 						<div className="mr-1.5 flex items-center gap-1">
 							{resolvableThreadIds.length > 0 && (
 								<button
@@ -230,31 +295,27 @@ export function CommentsSection({
 							<button
 								type="button"
 								className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
-								onClick={handleCopyAll}
+								onClick={handleCopyReviewComments}
 							>
-								{copiedActionKey === "comments:all" ? (
+								{copiedActionKey === "comments:review" ? (
 									<LuCheck className="size-3" />
 								) : (
 									<LuCopy className="size-3" />
 								)}
-								<span>{copyAllLabel}</span>
+								<span>{reviewCopyAllLabel}</span>
 							</button>
 						</div>
 					)}
 				</div>
 				<CollapsibleContent className="min-w-0 overflow-hidden px-0.5 pb-1">
 					{isLoading ? (
-						<div className="space-y-1 px-1">
-							<Skeleton className="h-11 w-full rounded-sm" />
-							<Skeleton className="h-11 w-full rounded-sm" />
-							<Skeleton className="h-11 w-full rounded-sm" />
-						</div>
-					) : comments.length === 0 ? (
+						renderCommentSkeletons()
+					) : openReviewComments.length === 0 ? (
 						<div className="px-1.5 py-1 text-xs text-muted-foreground">
-							No comments yet.
+							No open review comments.
 						</div>
 					) : (
-						activeComments.map((comment) => (
+						openReviewComments.map((comment) => (
 							<CommentRow
 								key={comment.id}
 								comment={comment}
@@ -306,6 +367,40 @@ export function CommentsSection({
 				</Collapsible>
 			)}
 		</>
+	);
+}
+
+function buildCommentsClipboardText(comments: NormalizedComment[]): string {
+	return comments
+		.map((c) => {
+			const location = c.path
+				? c.line
+					? `${c.path}:${c.line}`
+					: c.path
+				: c.kind === "conversation"
+					? "Conversation"
+					: null;
+			const meta = [
+				c.authorLogin,
+				c.kind === "review" ? "Review" : "Comment",
+				location,
+			]
+				.filter(Boolean)
+				.join(" \u2022 ");
+			return [meta, c.body.trim() || "No comment body"]
+				.filter(Boolean)
+				.join("\n");
+		})
+		.join("\n\n---\n\n");
+}
+
+function renderCommentSkeletons() {
+	return (
+		<div className="space-y-1 px-1">
+			<Skeleton className="h-11 w-full rounded-sm" />
+			<Skeleton className="h-11 w-full rounded-sm" />
+			<Skeleton className="h-11 w-full rounded-sm" />
+		</div>
 	);
 }
 
