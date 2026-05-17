@@ -17,7 +17,6 @@ const LARGE_PLACEHOLDER_HEIGHT_PX = 260;
 const DELETED_PLACEHOLDER_HEIGHT_PX = 160;
 
 type DeferReason = "large" | "deleted";
-type DiffFocusSide = "deletions" | "additions";
 
 function deferReason(file: ChangesetFile): DeferReason | null {
 	if (file.status === "deleted") return "deleted";
@@ -46,7 +45,6 @@ interface DiffFileEntryProps {
 	/** Line + tick forwarded only to the focused file so the matching
 	 *  CommentThread bubble can auto-expand on jump-to-line. */
 	focusLine?: number;
-	focusSide?: DiffFocusSide;
 	focusTick?: number;
 }
 
@@ -63,7 +61,6 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	onOpenFile,
 	onOpenInExternalEditor,
 	focusLine,
-	focusSide,
 	focusTick,
 }: DiffFileEntryProps) {
 	const wrapperRef = useRef<HTMLDivElement>(null);
@@ -73,8 +70,7 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 
 	const [expandUnchanged, setExpandUnchanged] = useState(false);
 	const reason = deferReason(file);
-	const hasFocusRequest = focusLine != null && focusTick != null;
-	const showFullDiff = expanded || hasFocusRequest;
+	const showFullDiff = expanded;
 
 	const handleToggleCollapsed = useCallback(
 		() => onSetCollapsed(file.path, !collapsed),
@@ -187,9 +183,7 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 		);
 	}
 
-	const shouldMount = reason
-		? showFullDiff
-		: hasBeenNearRef.current || hasFocusRequest;
+	const shouldMount = reason ? showFullDiff : hasBeenNearRef.current;
 	const header = (
 		<DiffFileHeader
 			path={file.path}
@@ -221,13 +215,11 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 				<WorkspaceDiff
 					workspaceId={workspaceId}
 					path={file.path}
-					oldPath={file.oldPath}
 					source={file.source}
 					diffStyle={diffStyle}
-					expandUnchanged={expandUnchanged || hasFocusRequest}
+					expandUnchanged={expandUnchanged}
 					collapsed={collapsed}
 					focusLine={focusLine}
-					focusSide={focusSide}
 					focusTick={focusTick}
 				/>
 			) : null}

@@ -1,7 +1,7 @@
-import { type DiffLineAnnotation, MultiFileDiff } from "@pierre/diffs/react";
+import { MultiFileDiff } from "@pierre/diffs/react";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useQuery } from "@tanstack/react-query";
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	getDiffsTheme,
@@ -14,33 +14,26 @@ import {
 	type DiffCommentThread,
 	useDiffAnnotations,
 } from "./hooks/useDiffAnnotations";
-import { getRenderedDiffLineIndex } from "./utils/getRenderedDiffLineIndex";
-
-type DiffFocusSide = "deletions" | "additions";
 
 interface WorkspaceDiffProps {
 	workspaceId: string;
 	path: string;
-	oldPath?: string;
 	source: DiffFileSource;
 	diffStyle: "split" | "unified";
 	expandUnchanged: boolean;
 	collapsed: boolean;
 	focusLine?: number;
-	focusSide?: DiffFocusSide;
 	focusTick?: number;
 }
 
 export const WorkspaceDiff = memo(function WorkspaceDiff({
 	workspaceId,
 	path,
-	oldPath,
 	source,
 	diffStyle,
 	expandUnchanged,
 	collapsed,
 	focusLine,
-	focusSide,
 	focusTick,
 }: WorkspaceDiffProps) {
 	const activeTheme = useResolvedTheme();
@@ -95,55 +88,29 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 	const diffQuery = workspaceTrpc.git.getDiff.useQuery(diffInput, {
 		staleTime: Number.POSITIVE_INFINITY,
 	});
-	const focusRenderedLineIndex = useMemo(() => {
-		if (!diffQuery.data || focusLine == null) return undefined;
-		return getRenderedDiffLineIndex({
-			oldFile: diffQuery.data.oldFile,
-			newFile: diffQuery.data.newFile,
-			lineNumber: focusLine,
-			side: focusSide,
-			diffStyle,
-		});
-	}, [diffQuery.data, diffStyle, focusLine, focusSide]);
-	useEffect(() => {
-		if (focusRenderedLineIndex == null) return;
-		debugReviewDiffJump("computed rendered line index", {
-			path,
-			focusLine,
-			focusSide,
-			diffStyle,
-			focusRenderedLineIndex,
-		});
-	}, [diffStyle, focusLine, focusRenderedLineIndex, focusSide, path]);
 
-	const lineAnnotations = useDiffAnnotations({ workspaceId, path, oldPath });
+	const lineAnnotations = useDiffAnnotations({ workspaceId, path });
 	const renderAnnotation = useCallback(
-		(annotation: DiffLineAnnotation<DiffCommentThread>) => {
-			const shouldFocus =
-				focusLine != null &&
-				annotation.lineNumber === focusLine &&
-				(focusSide == null || annotation.side === focusSide);
-
-			return (
-				<CommentThread
-					workspaceId={workspaceId}
-					threadId={annotation.metadata.threadId}
-					isResolved={annotation.metadata.isResolved}
-					isOutdated={annotation.metadata.isOutdated}
-					url={annotation.metadata.url}
-					comments={annotation.metadata.comments}
-					focusTick={shouldFocus ? focusTick : undefined}
-				/>
-			);
-		},
-		[workspaceId, focusLine, focusSide, focusTick],
+		(annotation: { lineNumber: number; metadata: DiffCommentThread }) => (
+			<CommentThread
+				workspaceId={workspaceId}
+				threadId={annotation.metadata.threadId}
+				isResolved={annotation.metadata.isResolved}
+				isOutdated={annotation.metadata.isOutdated}
+				url={annotation.metadata.url}
+				comments={annotation.metadata.comments}
+				focusTick={
+					focusLine != null && annotation.lineNumber === focusLine
+						? focusTick
+						: undefined
+				}
+			/>
+		),
+		[workspaceId, focusLine, focusTick],
 	);
 
 	return (
-		<div
-			className="flex flex-col"
-			data-focus-rendered-line-index={focusRenderedLineIndex}
-		>
+		<div className="flex flex-col">
 			{diffQuery.data ? (
 				<MultiFileDiff<DiffCommentThread>
 					oldFile={diffQuery.data.oldFile}
@@ -188,16 +155,3 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 		</div>
 	);
 });
-
-function debugReviewDiffJump(
-	message: string,
-	details: Record<string, unknown>,
-) {
-	if (
-		typeof window === "undefined" ||
-		window.localStorage.getItem("superset:review-diff-debug") !== "1"
-	) {
-		return;
-	}
-	console.debug(`[review-diff-jump] ${message}`, details);
-}

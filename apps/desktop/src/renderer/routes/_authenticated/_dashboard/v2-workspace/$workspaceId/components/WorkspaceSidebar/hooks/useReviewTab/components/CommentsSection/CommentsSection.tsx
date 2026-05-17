@@ -33,32 +33,12 @@ import { getMarkdownPreviewText } from "renderer/utils/markdownPreview";
 import type { CommentPaneData } from "../../../../../../types";
 import type { NormalizedComment } from "../../types";
 
-type DiffFocusSide = "deletions" | "additions";
-
-function debugReviewDiffJump(
-	message: string,
-	details: Record<string, unknown>,
-) {
-	if (
-		typeof window === "undefined" ||
-		window.localStorage.getItem("superset:review-diff-debug") !== "1"
-	) {
-		return;
-	}
-	console.debug(`[review-diff-jump] ${message}`, details);
-}
-
 interface CommentsSectionProps {
 	workspaceId: string;
 	comments: NormalizedComment[];
 	isLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (
-		path: string,
-		line?: number,
-		openInNewTab?: boolean,
-		focusSide?: DiffFocusSide,
-	) => void;
+	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
 }
 
 export function CommentsSection({
@@ -393,10 +373,9 @@ export function CommentsSection({
 function buildCommentsClipboardText(comments: NormalizedComment[]): string {
 	return comments
 		.map((c) => {
-			const line = getCommentDisplayLine(c);
 			const location = c.path
-				? line
-					? `${c.path}:${line}`
+				? c.line
+					? `${c.path}:${c.line}`
 					: c.path
 				: c.kind === "conversation"
 					? "Conversation"
@@ -442,32 +421,6 @@ function formatShortAge(isoDate?: string): string | null {
 	return `${Math.round(hours / 24)}d`;
 }
 
-function getCommentDiffPath(comment: NormalizedComment): string | undefined {
-	return comment.diffPath ?? comment.path;
-}
-
-function getCommentFocusSide(
-	comment: NormalizedComment,
-): DiffFocusSide | undefined {
-	if (comment.kind !== "review") return undefined;
-	if (comment.diffSide === "LEFT") return "deletions";
-	if (comment.diffSide === "RIGHT") return "additions";
-	return undefined;
-}
-
-function canOpenCommentInDiff(comment: NormalizedComment): boolean {
-	return (
-		comment.kind === "review" &&
-		!comment.isOutdated &&
-		getCommentDiffPath(comment) != null &&
-		comment.line != null
-	);
-}
-
-function getCommentDisplayLine(comment: NormalizedComment): number | undefined {
-	return comment.line ?? comment.originalLine;
-}
-
 // ---------------------------------------------------------------------------
 // CommentRow
 // ---------------------------------------------------------------------------
@@ -477,12 +430,7 @@ interface CommentRowProps {
 	copiedActionKey: string | null;
 	onCopy: (comment: NormalizedComment) => void;
 	onOpen?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (
-		path: string,
-		line?: number,
-		openInNewTab?: boolean,
-		focusSide?: DiffFocusSide,
-	) => void;
+	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
 }
 
 function CommentRow({
@@ -494,24 +442,13 @@ function CommentRow({
 }: CommentRowProps) {
 	const age = formatShortAge(comment.createdAt);
 	const isCopied = copiedActionKey === `comment:${comment.id}`;
-	const diffPath = getCommentDiffPath(comment);
-	const focusSide = getCommentFocusSide(comment);
-	const canOpenInDiff = canOpenCommentInDiff(comment);
 
 	const handleClick = () => {
 		// Default click jumps to the comment in the diff. Fall back to the
 		// standalone comment pane when there's no file anchor (conversation
-		// comments), no diff handler, or no current diff anchor.
-		if (canOpenInDiff && diffPath && onOpenInDiff) {
-			debugReviewDiffJump("review comment clicked", {
-				path: comment.path,
-				diffPath,
-				line: comment.line,
-				focusSide,
-				threadId: comment.threadId,
-				isOutdated: comment.isOutdated,
-			});
-			onOpenInDiff(diffPath, comment.line, false, focusSide);
+		// comments) or no diff handler wired up.
+		if (comment.kind === "review" && comment.path && onOpenInDiff) {
+			onOpenInDiff(comment.path, comment.line);
 			return;
 		}
 		onOpen?.({
@@ -521,7 +458,7 @@ function CommentRow({
 			body: comment.body,
 			url: comment.url,
 			path: comment.path,
-			line: getCommentDisplayLine(comment),
+			line: comment.line,
 		});
 	};
 
@@ -594,11 +531,11 @@ function CommentRow({
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-56">
-						{canOpenInDiff && diffPath && onOpenInDiff ? (
+						{comment.kind === "review" && comment.path && onOpenInDiff ? (
 							<>
 								<DropdownMenuItem
 									onSelect={() =>
-										onOpenInDiff(diffPath, comment.line, false, focusSide)
+										onOpenInDiff(comment.path as string, comment.line)
 									}
 								>
 									<GitCompare />
@@ -606,7 +543,7 @@ function CommentRow({
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onSelect={() =>
-										onOpenInDiff(diffPath, comment.line, true, focusSide)
+										onOpenInDiff(comment.path as string, comment.line, true)
 									}
 								>
 									<SquarePlus />
@@ -625,7 +562,7 @@ function CommentRow({
 										body: comment.body,
 										url: comment.url,
 										path: comment.path,
-										line: getCommentDisplayLine(comment),
+										line: comment.line,
 									})
 								}
 							>
