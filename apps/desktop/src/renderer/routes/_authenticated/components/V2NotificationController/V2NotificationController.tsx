@@ -2,7 +2,7 @@ import type { WorkspaceState } from "@superset/panes";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -15,6 +15,8 @@ interface WorkspaceHostRow {
 	workspaceId: string;
 	organizationId: string;
 	hostId: string;
+	name: string;
+	branch: string;
 }
 
 interface HostNotificationSubscriberGroup {
@@ -34,6 +36,7 @@ interface HostNotificationSubscriberGroup {
 export function V2NotificationController() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
+	const relayUrl = useRelayUrl();
 	const { data: workspaceHosts = [] } = useLiveQuery(
 		(q) =>
 			q
@@ -42,6 +45,8 @@ export function V2NotificationController() {
 					workspaceId: v2Workspaces.id,
 					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
+					name: v2Workspaces.name,
+					branch: v2Workspaces.branch,
 				})),
 		[collections],
 	);
@@ -62,8 +67,9 @@ export function V2NotificationController() {
 				localWorkspaceRows,
 				machineId,
 				activeHostUrl,
+				relayUrl,
 			}),
-		[workspaceHosts, localWorkspaceRows, machineId, activeHostUrl],
+		[workspaceHosts, localWorkspaceRows, machineId, activeHostUrl, relayUrl],
 	);
 
 	return (
@@ -84,6 +90,7 @@ function groupWorkspacesByHostUrl({
 	localWorkspaceRows,
 	machineId,
 	activeHostUrl,
+	relayUrl,
 }: {
 	workspaceHosts: WorkspaceHostRow[];
 	localWorkspaceRows: Array<{
@@ -92,6 +99,7 @@ function groupWorkspacesByHostUrl({
 	}>;
 	machineId: string | null;
 	activeHostUrl: string | null;
+	relayUrl: string;
 }): HostNotificationSubscriberGroup[] {
 	const paneLayoutsByWorkspaceId = new Map(
 		localWorkspaceRows.map((row) => [
@@ -107,12 +115,15 @@ function groupWorkspacesByHostUrl({
 			hostId: workspace.hostId,
 			machineId,
 			activeHostUrl,
+			relayUrl,
 		});
 		if (!hostUrl) continue;
 
 		const group = groups.get(hostUrl) ?? [];
 		group.push({
 			workspaceId: workspace.workspaceId,
+			workspaceName:
+				workspace.name.trim() || workspace.branch.trim() || "Workspace",
 			paneLayout: paneLayoutsByWorkspaceId.get(workspace.workspaceId) ?? null,
 		});
 		groups.set(hostUrl, group);
@@ -129,14 +140,16 @@ function getHostUrlForWorkspace({
 	hostId,
 	machineId,
 	activeHostUrl,
+	relayUrl,
 }: {
 	organizationId: string;
 	hostId: string;
 	machineId: string | null;
 	activeHostUrl: string | null;
+	relayUrl: string;
 }): string | null {
 	if (machineId && hostId === machineId) {
 		return activeHostUrl;
 	}
-	return `${env.RELAY_URL}/hosts/${buildHostRoutingKey(organizationId, hostId)}`;
+	return `${relayUrl}/hosts/${buildHostRoutingKey(organizationId, hostId)}`;
 }

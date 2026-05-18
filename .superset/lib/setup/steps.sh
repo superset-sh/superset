@@ -216,6 +216,28 @@ SQL
   return 0
 }
 
+step_prepare_electric() {
+  WORKSPACE_NAME="${WORKSPACE_NAME:-$(basename "$PWD")}"
+
+  # Sanitize workspace name for Docker (valid chars only, max 64 chars)
+  local container_suffix
+  container_suffix=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+  ELECTRIC_CONTAINER=$(echo "superset-electric-$container_suffix" | cut -c1-64)
+  ELECTRIC_SECRET="${ELECTRIC_SECRET:-local_electric_dev_secret}"
+
+  # Step 7 allocates SUPERSET_PORT_BASE; Electric must use that reserved port.
+  if [ -z "${SUPERSET_PORT_BASE:-}" ]; then
+    error "SUPERSET_PORT_BASE not set before preparing Electric"
+    return 1
+  fi
+
+  ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
+  ELECTRIC_URL="http://localhost:$ELECTRIC_PORT/v1/shape"
+
+  export ELECTRIC_CONTAINER ELECTRIC_PORT ELECTRIC_URL ELECTRIC_SECRET
+  return 0
+}
+
 step_start_electric() {
   echo "⚡ Starting Electric SQL container..."
 
@@ -229,13 +251,11 @@ step_start_electric() {
     return 1
   fi
 
-  WORKSPACE_NAME="${WORKSPACE_NAME:-$(basename "$PWD")}"
-
-  # Sanitize workspace name for Docker (valid chars only, max 64 chars)
-  local container_suffix
-  container_suffix=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
-  ELECTRIC_CONTAINER=$(echo "superset-electric-$container_suffix" | cut -c1-64)
-  ELECTRIC_SECRET="${ELECTRIC_SECRET:-local_electric_dev_secret}"
+  if [ -z "${ELECTRIC_CONTAINER:-}" ] || [ -z "${ELECTRIC_PORT:-}" ] || [ -z "${ELECTRIC_URL:-}" ]; then
+    if ! step_prepare_electric; then
+      return 1
+    fi
+  fi
 
   # Stop and remove existing container if it exists
   if docker ps -a --format '{{.Names}}' | grep -q "^${ELECTRIC_CONTAINER}$"; then
@@ -244,14 +264,12 @@ step_start_electric() {
     docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
   fi
 
-  # Step 6 allocates SUPERSET_PORT_BASE; Electric must use that reserved port.
-  if [ -z "${SUPERSET_PORT_BASE:-}" ]; then
-    error "SUPERSET_PORT_BASE not set before starting Electric"
+  if lsof -nP -iTCP:"$ELECTRIC_PORT" -sTCP:LISTEN &> /dev/null; then
+    error "Electric port $ELECTRIC_PORT is already in use"
     return 1
   fi
 
   local port_flag
-  ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
   port_flag="-p $ELECTRIC_PORT:3000"
 
   echo "  Clearing stale Electric replication sessions..."
@@ -295,13 +313,10 @@ step_start_electric() {
 
   if [ "$ready" = false ]; then
     error "Electric failed to become active within 60s (last status: $health_status). Check logs: docker logs $ELECTRIC_CONTAINER"
+    echo "  Stopping inactive Electric container to free port $ELECTRIC_PORT..."
+    docker stop "$ELECTRIC_CONTAINER" &> /dev/null || true
     return 1
   fi
-
-  ELECTRIC_URL="http://localhost:$ELECTRIC_PORT/v1/shape"
-
-  # Export for use in other steps
-  export ELECTRIC_CONTAINER ELECTRIC_PORT ELECTRIC_URL ELECTRIC_SECRET
 
   success "Electric SQL running at $ELECTRIC_URL"
   return 0
@@ -472,7 +487,7 @@ step_write_env() {
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
     #          +10 caddy (HTTP/2 reverse proxy for API electric endpoint), +11 code inspector,
-    #          +12 desktop automation (CDP), +13 wrangler (electric-proxy worker)
+    #          +12 wrangler (electric-proxy worker), +13 relay
     local BASE=$SUPERSET_PORT_BASE
 
     # App ports (fixed offsets from base)
@@ -488,9 +503,8 @@ step_write_env() {
     local ELECTRIC_PORT=$((BASE + 9))
     local CADDY_ELECTRIC_PORT=$((BASE + 10))
     local CODE_INSPECTOR_PORT=$((BASE + 11))
-    local DESKTOP_AUTOMATION_PORT=$((BASE + 12))
-    local WRANGLER_PORT=$((BASE + 13))
-    local RELAY_PORT=$((BASE + 14))
+    local WRANGLER_PORT=$((BASE + 12))
+    local RELAY_PORT=$((BASE + 13))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -507,7 +521,6 @@ step_write_env() {
     write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
     write_env_var "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
-    write_env_var "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
     write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
     echo ""
@@ -518,9 +531,11 @@ step_write_env() {
     write_env_var "NEXT_PUBLIC_ADMIN_URL" "http://localhost:$ADMIN_PORT"
     write_env_var "NEXT_PUBLIC_DOCS_URL" "http://localhost:$DOCS_PORT"
     write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
+    write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
     write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
+    write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
     echo ""
     echo "# Streams URLs (overrides from root .env)"

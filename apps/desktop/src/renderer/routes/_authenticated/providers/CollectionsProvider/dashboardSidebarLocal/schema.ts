@@ -28,6 +28,28 @@ const changesFilterSchema = z.discriminatedUnion("kind", [
 
 export type ChangesFilter = z.infer<typeof changesFilterSchema>;
 
+export type ChangesViewMode = "folders" | "tree";
+
+const workspaceRunStateSchema = z.enum([
+	"running",
+	"stopped-by-user",
+	"stopped-by-exit",
+]);
+
+export const workspaceRunTerminalStateSchema = z.object({
+	terminalId: z.string(),
+	workspaceId: z.string().uuid(),
+	state: workspaceRunStateSchema,
+	command: z.string(),
+	definitionSource: z.enum(["project-config", "terminal-preset"]),
+	definitionId: z.string().optional(),
+	startedAt: z.number(),
+	stoppedAt: z.number().optional(),
+	exitCode: z.number().optional(),
+	signal: z.number().optional(),
+	stopRequestedAt: z.number().optional(),
+});
+
 export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
 	createdAt: persistedDateSchema,
@@ -36,6 +58,7 @@ export const workspaceLocalStateSchema = z.object({
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
+		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
 		activeTab: z.enum(["changes", "files", "review"]).default("changes"),
 		isHidden: z.boolean().default(false),
 	}),
@@ -50,6 +73,9 @@ export const workspaceLocalStateSchema = z.object({
 			}),
 		)
 		.default([]),
+	workspaceRunTerminals: z
+		.record(z.string(), workspaceRunTerminalStateSchema)
+		.default({}),
 });
 
 // Defaults for fields heal can synthesize. Identity fields (workspaceId,
@@ -59,6 +85,7 @@ const SIDEBAR_STATE_DEFAULTS = {
 	tabOrder: 0,
 	sectionId: null,
 	changesFilter: { kind: "all" },
+	changesViewMode: "folders",
 	activeTab: "changes",
 	isHidden: false,
 } as const;
@@ -70,6 +97,10 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 		absolutePath: string;
 		lastAccessedAt: number;
 	}>,
+	workspaceRunTerminals: {} as Record<
+		string,
+		z.infer<typeof workspaceRunTerminalStateSchema>
+	>,
 };
 
 export const dashboardSidebarSectionSchema = z.object({
@@ -98,14 +129,15 @@ export const v2TerminalPresetSchema = z.object({
 	commands: z.array(z.string()).default([]),
 	projectIds: z.array(z.string()).nullable().default(null),
 	pinnedToBar: z.boolean().optional(),
+	useAsWorkspaceRun: z.boolean().optional(),
 	applyOnWorkspaceCreated: z.boolean().optional(),
 	applyOnNewTab: z.boolean().optional(),
 	executionMode: v2ExecutionModeSchema.default("new-tab"),
 	tabOrder: z.number().int().default(0),
 	createdAt: persistedDateSchema,
-	// When set, the preset is live-linked to a builtin/custom agent definition.
-	// The launcher and editor look up the agent's current command via
-	// settings.getAgentPresets; the stored `commands` array is a snapshot
+	// When set, the preset is live-linked to a host-service agent config id.
+	// Older rows may still contain a builtin preset id; the launcher/editor
+	// support that as a fallback. The stored `commands` array is a snapshot
 	// fallback for when the agent is missing or disabled.
 	agentId: z.string().optional(),
 });
@@ -114,6 +146,10 @@ export type DashboardSidebarProjectRow = z.infer<
 	typeof dashboardSidebarProjectSchema
 >;
 export type WorkspaceLocalStateRow = z.infer<typeof workspaceLocalStateSchema>;
+export type WorkspaceRunState = z.infer<typeof workspaceRunStateSchema>;
+export type WorkspaceRunTerminalState = z.infer<
+	typeof workspaceRunTerminalStateSchema
+>;
 export type DashboardSidebarSectionRow = z.infer<
 	typeof dashboardSidebarSectionSchema
 >;
@@ -159,18 +195,46 @@ const DEFAULT_LINK_TIER_MAP: LinkTierMap = {
 	metaShift: "external",
 };
 
-const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
+const LEGACY_SIDEBAR_FILE_LINKS: LinkTierMap = {
 	plain: "pane",
 	shift: "newTab",
 	meta: "external",
 	metaShift: "external",
 };
 
+const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
+	plain: "pane",
+	shift: "newTab",
+	meta: "pane",
+	metaShift: "external",
+};
+
+function isSameLinkTierMap(a: LinkTierMap, b: LinkTierMap): boolean {
+	return (
+		a.plain === b.plain &&
+		a.shift === b.shift &&
+		a.meta === b.meta &&
+		a.metaShift === b.metaShift
+	);
+}
+
+function isCompleteLinkTierMap(
+	value: Partial<LinkTierMap>,
+): value is LinkTierMap {
+	return (
+		"plain" in value &&
+		"shift" in value &&
+		"meta" in value &&
+		"metaShift" in value
+	);
+}
+
 export const v2UserPreferencesSchema = z.object({
 	id: z.literal("preferences"),
 	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
 	urlLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
 	sidebarFileLinks: linkTierMapSchema.default(DEFAULT_SIDEBAR_FILE_LINKS),
+	terminalPresetsInitialized: z.boolean().default(false),
 	rightSidebarOpen: z.boolean().default(true),
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
 	rightSidebarWidth: z.number().default(340),
@@ -187,6 +251,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	fileLinks: DEFAULT_LINK_TIER_MAP,
 	urlLinks: DEFAULT_LINK_TIER_MAP,
 	sidebarFileLinks: DEFAULT_SIDEBAR_FILE_LINKS,
+	terminalPresetsInitialized: false,
 	rightSidebarOpen: true,
 	rightSidebarTab: "changes",
 	rightSidebarWidth: 340,
@@ -214,6 +279,9 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		recentlyViewedFiles:
 			r.recentlyViewedFiles ??
 			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.recentlyViewedFiles,
+		workspaceRunTerminals:
+			r.workspaceRunTerminals ??
+			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.workspaceRunTerminals,
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,
@@ -232,14 +300,23 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 	const r = (
 		raw && typeof raw === "object" ? raw : {}
 	) as Partial<V2UserPreferencesRow>;
+	const sidebarFileLinks = r.sidebarFileLinks
+		? {
+				...DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
+				...r.sidebarFileLinks,
+			}
+		: DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks;
+	const shouldMigrateLegacySidebarFileLinks =
+		r.sidebarFileLinks &&
+		isCompleteLinkTierMap(r.sidebarFileLinks) &&
+		isSameLinkTierMap(r.sidebarFileLinks, LEGACY_SIDEBAR_FILE_LINKS);
 	return {
 		...DEFAULT_V2_USER_PREFERENCES,
 		...r,
 		fileLinks: { ...DEFAULT_V2_USER_PREFERENCES.fileLinks, ...r.fileLinks },
 		urlLinks: { ...DEFAULT_V2_USER_PREFERENCES.urlLinks, ...r.urlLinks },
-		sidebarFileLinks: {
-			...DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
-			...r.sidebarFileLinks,
-		},
+		sidebarFileLinks: shouldMigrateLegacySidebarFileLinks
+			? DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks
+			: sidebarFileLinks,
 	};
 }

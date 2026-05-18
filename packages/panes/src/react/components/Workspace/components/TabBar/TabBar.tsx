@@ -33,6 +33,7 @@ interface TabBarProps<TData> {
 	onMovePaneToNewTab: (paneId: string, toIndex: number) => void;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
+	renderTabBarTrailing?: () => ReactNode;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
 }
 
@@ -82,6 +83,7 @@ export function TabBar<TData>({
 	onMovePaneToNewTab,
 	renderTabIcon,
 	renderAddTabMenu,
+	renderTabBarTrailing,
 	renderTabAccessory,
 }: TabBarProps<TData>) {
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
@@ -173,6 +175,11 @@ export function TabBar<TData>({
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
 				<div className="flex min-w-0 flex-1 items-stretch" />
+				{renderTabBarTrailing && (
+					<div className="flex h-full shrink-0 items-center px-1">
+						{renderTabBarTrailing()}
+					</div>
+				)}
 			</div>
 		);
 	}
@@ -226,6 +233,11 @@ export function TabBar<TData>({
 			{hasHorizontalOverflow && (
 				<div className="flex h-full w-10 shrink-0 items-center justify-center bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
+				</div>
+			)}
+			{renderTabBarTrailing && (
+				<div className="flex h-full shrink-0 items-center px-1">
+					{renderTabBarTrailing()}
 				</div>
 			)}
 		</div>

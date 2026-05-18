@@ -8,6 +8,7 @@ import { useEffect, useEffectEvent, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useV2AgentBindingStore } from "renderer/stores/v2-agent-bindings";
 import {
 	handleV2AgentLifecycleEvent,
 	handleV2TerminalLifecycleEvent,
@@ -15,6 +16,7 @@ import {
 
 export interface HostNotificationWorkspaceState {
 	workspaceId: string;
+	workspaceName: string;
 	paneLayout: WorkspaceState<PaneViewerData> | null;
 }
 
@@ -39,10 +41,20 @@ export function HostNotificationSubscriber({
 
 	const handleAgentLifecycle = useEffectEvent(
 		(workspaceId: string, payload: AgentLifecyclePayload) => {
+			if (payload.eventType === "Detached") {
+				useV2AgentBindingStore.getState().clearBinding(payload.terminalId);
+			} else if (payload.agent) {
+				useV2AgentBindingStore
+					.getState()
+					.setBinding(payload.terminalId, payload.agent, payload.occurredAt);
+			} else {
+				useV2AgentBindingStore.getState().clearBinding(payload.terminalId);
+			}
 			const workspace = workspacesById.get(workspaceId);
 			if (!workspace) return;
 			handleV2AgentLifecycleEvent({
 				workspaceId,
+				workspaceName: workspace.workspaceName,
 				payload,
 				paneLayout: workspace.paneLayout,
 				volume,
@@ -53,6 +65,9 @@ export function HostNotificationSubscriber({
 
 	const handleTerminalLifecycle = useEffectEvent(
 		(workspaceId: string, payload: TerminalLifecyclePayload) => {
+			if (payload.eventType === "exit") {
+				useV2AgentBindingStore.getState().clearBinding(payload.terminalId);
+			}
 			const workspace = workspacesById.get(workspaceId);
 			if (!workspace) return;
 			handleV2TerminalLifecycleEvent({

@@ -1,7 +1,8 @@
+import { Memory } from "@mastra/memory";
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { initTRPC } from "@trpc/server";
-import { createAuthStorage, createMastraCode } from "mastracode";
+import { createMastraCode } from "mastracode";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
 import {
@@ -85,28 +86,6 @@ function respondToQuestionWithOptimisticState(
 	return responsePromise;
 }
 
-function resolveOmModelFromAuth(): string | undefined {
-	if (process.env.GOOGLE_GENERATIVE_AI_API_KEY)
-		return "google/gemini-2.5-flash";
-	const authStorage = createAuthStorage();
-	authStorage.reload();
-	const anthropic = authStorage.get("anthropic");
-	if (
-		anthropic?.type === "oauth" ||
-		(anthropic?.type === "api_key" && anthropic.key.trim())
-	) {
-		return "anthropic/claude-haiku-4-5";
-	}
-	const openai = authStorage.get("openai-codex");
-	if (
-		openai?.type === "oauth" ||
-		(openai?.type === "api_key" && openai.key.trim())
-	) {
-		return "openai/gpt-4.1-nano";
-	}
-	return undefined;
-}
-
 export interface ChatRuntimeServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
 	apiUrl: string;
@@ -165,18 +144,11 @@ export class ChatRuntimeService {
 					this.opts.apiUrl,
 				);
 
-				const omModel = resolveOmModelFromAuth();
-
 				const runtime = await createMastraCode({
 					cwd: runtimeCwd,
 					extraTools,
 					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
-					...(omModel && {
-						initialState: {
-							observerModelId: omModel,
-							reflectorModelId: omModel,
-						},
-					}),
+					memory: new Memory({ options: { observationalMemory: false } }),
 				});
 				runtime.hookManager?.setSessionId(sessionId);
 				await runtime.harness.init();

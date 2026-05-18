@@ -1,4 +1,5 @@
 import { CLIError, table } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../lib/command";
 
 export default command({
@@ -16,10 +17,11 @@ export default command({
 		}
 
 		const rows = await ctx.api.host.list.query({ organizationId });
+		const localHostId = getHostId();
 		return rows.map((row) => ({
 			id: row.id,
 			name: row.name,
-			online: row.online ? "yes" : "no",
+			online: row.online ? "yes" : row.id === localHostId ? "local" : "no",
 		}));
 	},
 });

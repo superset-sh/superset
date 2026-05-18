@@ -12,6 +12,7 @@ export interface SetupConfig {
 	setup?: string[];
 	teardown?: string[];
 	run?: string[];
+	cwd?: string;
 }
 
 interface LocalScriptMerge {
@@ -55,6 +56,15 @@ function validateSetupConfig(
 	}
 	const obj = parsed as Record<string, unknown>;
 	const result: SetupConfig = {};
+	if (obj.cwd !== undefined) {
+		if (typeof obj.cwd !== "string" || obj.cwd.trim().length === 0) {
+			console.error(
+				`Invalid setup config at ${source}: 'cwd' must be a non-empty string`,
+			);
+			return null;
+		}
+		result.cwd = obj.cwd.trim();
+	}
 	for (const key of SCRIPT_KEYS) {
 		const value = obj[key];
 		if (value === undefined) continue;
@@ -128,6 +138,7 @@ function mergeBaseConfigs(
 		setup: override.setup ?? base.setup,
 		teardown: override.teardown ?? base.teardown,
 		run: override.run ?? base.run,
+		cwd: override.cwd ?? base.cwd,
 	};
 }
 

@@ -36,9 +36,24 @@ mock.module("main/index", () => ({
 	setSkipQuitConfirmation: mock(() => {}),
 }));
 
+// host-service-coordinator.test.ts mocks electron-log/main without transports;
+// mock.module leaks across files in bun's CI runner, so install a complete
+// shape here defensively to avoid order-dependent breakage.
+mock.module("electron-log/main", () => ({
+	default: {
+		info: mock(() => {}),
+		warn: mock(() => {}),
+		error: mock(() => {}),
+		transports: { file: { level: "info" } },
+	},
+}));
+
+const realSharedConstants = await import("../../shared/constants");
+
 // auto-updater short-circuits setupAutoUpdater on non-mac/linux hosts, so
 // pin the platform here to keep the tests portable across CI runners.
 mock.module("shared/constants", () => ({
+	...realSharedConstants,
 	PLATFORM: { IS_MAC: true, IS_WINDOWS: false, IS_LINUX: false },
 }));
 
@@ -62,6 +77,7 @@ describe("installUpdate", () => {
 		expect(autoUpdater.getUpdateStatus().status).not.toBe(
 			AUTO_UPDATE_STATUS.READY,
 		);
+		expect(autoUpdater.isUpdateReadyToInstall()).toBe(false);
 
 		autoUpdater.installUpdate();
 
@@ -71,6 +87,7 @@ describe("installUpdate", () => {
 	test("collapses repeat install clicks into a single quitAndInstall call", () => {
 		fakeAutoUpdater.emit("update-downloaded", { version: "9.9.9" });
 		expect(autoUpdater.getUpdateStatus().status).toBe(AUTO_UPDATE_STATUS.READY);
+		expect(autoUpdater.isUpdateReadyToInstall()).toBe(true);
 
 		autoUpdater.installUpdate();
 		autoUpdater.installUpdate();
@@ -85,6 +102,7 @@ describe("installUpdate", () => {
 		expect(fakeAutoUpdater.quitAndInstall).toHaveBeenCalledTimes(1);
 
 		fakeAutoUpdater.emit("error", new Error("squirrel failed"));
+		expect(autoUpdater.isUpdateReadyToInstall()).toBe(false);
 		fakeAutoUpdater.emit("update-downloaded", { version: "9.9.9" });
 		autoUpdater.installUpdate();
 

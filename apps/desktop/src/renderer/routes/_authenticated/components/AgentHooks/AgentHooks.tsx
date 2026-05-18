@@ -1,6 +1,6 @@
-import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useCommandWatcher } from "./hooks/useCommandWatcher";
+import { useDefaultV2TerminalPresets } from "./hooks/useDefaultV2TerminalPresets";
 import { useDevicePresence } from "./hooks/useDevicePresence";
 
 /**
@@ -11,9 +11,8 @@ export function AgentHooks() {
 	const { activeHostUrl } = useLocalHostService();
 	useDevicePresence();
 	useCommandWatcher();
-	// Warm v2 agent cache for the local host so Settings doesn't refetch on
-	// first navigation. Remote-host caches populate lazily when the modal
-	// targets a different device.
-	useV2AgentConfigs(activeHostUrl);
+	// Seeds the default v2 terminal presets and warms the local host's agent
+	// config cache for Settings.
+	useDefaultV2TerminalPresets(activeHostUrl);
 	return null;
 }

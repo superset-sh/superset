@@ -18,6 +18,7 @@ export interface SessionMetrics extends UsageValues {
 	sessionId: string;
 	paneId: string;
 	pid: number;
+	title?: string | null;
 }
 
 export interface WorkspaceMetrics extends UsageValues {

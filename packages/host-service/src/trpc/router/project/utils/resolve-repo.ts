@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
-import simpleGit from "simple-git";
+import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import {
 	findMatchingRemote,
 	getGitHubRemotes,
@@ -87,7 +87,7 @@ function asInitialCommitTrpcError(err: unknown): TRPCError {
 
 /** `git init --initial-branch=main` with a fallback for older git versions. */
 async function gitInitMainBranch(targetPath: string): Promise<void> {
-	const git = simpleGit(targetPath);
+	const git = createUserSimpleGit(targetPath);
 	try {
 		await git.init(["--initial-branch=main"]);
 	} catch {
@@ -97,7 +97,9 @@ async function gitInitMainBranch(targetPath: string): Promise<void> {
 
 async function revParseGitRoot(path: string): Promise<string> {
 	try {
-		return (await simpleGit(path).revparse(["--show-toplevel"])).trim();
+		return (
+			await createUserSimpleGit(path).revparse(["--show-toplevel"])
+		).trim();
 	} catch {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -116,7 +118,7 @@ export async function resolveLocalRepo(
 ): Promise<ResolvedRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
-	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
+	const remotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
 	const originParsed = remotes.get("origin");
 	if (originParsed) {
 		return { repoPath: gitRoot, remoteName: "origin", parsed: originParsed };
@@ -142,7 +144,7 @@ export async function resolveMatchingSlug(
 ): Promise<ResolvedGitHubRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
-	const remotes = await getGitHubRemotes(simpleGit(gitRoot));
+	const remotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
 	const remoteName = findMatchingRemote(remotes, expectedSlug);
 	if (!remoteName) {
 		const found = [...remotes.entries()]
@@ -191,7 +193,7 @@ export async function initEmptyRepo(
 	try {
 		await gitInitMainBranch(targetPath);
 		try {
-			await simpleGit(targetPath).raw([
+			await createUserSimpleGit(targetPath).raw([
 				"commit",
 				"--allow-empty",
 				"-m",
@@ -232,11 +234,11 @@ export async function cloneTemplateInto(
 
 	try {
 		// --depth=1 since we're throwing away the template's history anyway.
-		await simpleGit().clone(templateUrl, targetPath, ["--depth=1"]);
+		await createUserSimpleGit().clone(templateUrl, targetPath, ["--depth=1"]);
 		rmSync(join(targetPath, ".git"), { recursive: true, force: true });
 
 		await gitInitMainBranch(targetPath);
-		const git = simpleGit(targetPath);
+		const git = createUserSimpleGit(targetPath);
 		await git.add(".");
 		try {
 			await git.raw(["commit", "-m", "Initial commit"]);
@@ -290,7 +292,7 @@ export async function cloneRepoInto(
 	claimEmptyTargetDir(targetPath);
 
 	try {
-		await simpleGit().clone(repoCloneUrl, targetPath);
+		await createUserSimpleGit().clone(repoCloneUrl, targetPath);
 	} catch (err) {
 		rmSync(targetPath, { recursive: true, force: true });
 		throw new TRPCError({

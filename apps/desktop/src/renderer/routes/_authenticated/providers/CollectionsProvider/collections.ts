@@ -14,6 +14,8 @@ import type {
 	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
+	SelectTeam,
+	SelectTeamMember,
 	SelectUser,
 	SelectV2Client,
 	SelectV2Host,
@@ -23,6 +25,7 @@ import type {
 	SelectWorkspace,
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
+import { BasicIndex } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
 	createElectronSQLitePersistence,
@@ -33,7 +36,6 @@ import type {
 	LocalStorageCollectionUtils,
 } from "@tanstack/react-db";
 import {
-	BasicIndex,
 	createCollection,
 	localStorageCollectionOptions,
 } from "@tanstack/react-db";
@@ -70,6 +72,7 @@ const indexDefaults = {
 	autoIndex: "eager",
 	defaultIndexType: BasicIndex,
 } as const;
+const basicIndexConfig = { indexType: BasicIndex } as const;
 
 const createIndexedCollection = ((
 	config: Parameters<typeof createCollection>[0],
@@ -119,6 +122,8 @@ export interface OrgCollections {
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
 	invitations: Collection<SelectInvitation>;
+	teams: Collection<SelectTeam>;
+	teamMembers: Collection<SelectTeamMember>;
 	agentCommands: Collection<SelectAgentCommand>;
 	integrationConnections: Collection<IntegrationConnectionDisplay>;
 	subscriptions: Collection<SelectSubscription>;
@@ -299,6 +304,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			},
 		}),
 	);
+	v2Projects.createIndex(
+		(project) => project.githubRepositoryId,
+		basicIndexConfig,
+	);
 
 	const v2Hosts = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Host>({
@@ -315,8 +324,20 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			// Composite PK on (organization_id, machine_id); within an
 			// org-scoped collection, machineId alone is unique.
 			getKey: (item) => item.machineId,
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				if (changes.name === undefined) {
+					throw new Error("Only name updates are supported on v2_hosts");
+				}
+				const result = await apiClient.v2Host.rename.mutate({
+					hostId: original.machineId,
+					name: changes.name,
+				});
+				return { txid: result.txid };
+			},
 		}),
 	);
+	v2Hosts.createIndex((host) => host.machineId, basicIndexConfig);
 
 	const v2Clients = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Client>({
@@ -380,6 +401,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			},
 		}),
 	);
+	v2UsersHosts.createIndex((userHost) => userHost.hostId, basicIndexConfig);
+	v2UsersHosts.createIndex((userHost) => userHost.userId, basicIndexConfig);
 
 	const v2Workspaces = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Workspace>({
@@ -396,17 +419,24 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
-				const { branch, hostId, name } = changes;
+				const { branch, hostId, name, taskId } = changes;
 				const result = await apiClient.v2Workspace.update.mutate({
 					id: original.id,
 					branch,
 					hostId,
 					name,
+					taskId,
 				});
 				return { txid: result.txid };
 			},
 		}),
 	);
+	v2Workspaces.createIndex((workspace) => workspace.hostId, basicIndexConfig);
+	v2Workspaces.createIndex(
+		(workspace) => workspace.projectId,
+		basicIndexConfig,
+	);
+	v2Workspaces.createIndex((workspace) => workspace.type, basicIndexConfig);
 
 	const workspaces = createPersistedElectricCollection(
 		electricCollectionOptions<SelectWorkspace>({
@@ -463,6 +493,38 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				url: electricUrl,
 				params: {
 					table: "auth.invitations",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const teams = createPersistedElectricCollection(
+		electricCollectionOptions<SelectTeam>({
+			id: `teams-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "auth.teams",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const teamMembers = createPersistedElectricCollection(
+		electricCollectionOptions<SelectTeamMember>({
+			id: `team-members-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "auth.team_members",
 					organizationId,
 				},
 				headers: electricHeaders,
@@ -642,6 +704,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			getKey: (item) => item.projectId,
 		}),
 	);
+	v2SidebarProjects.createIndex(
+		(sidebarProject) => sidebarProject.tabOrder,
+		basicIndexConfig,
+	);
 
 	const v2WorkspaceLocalState = createIndexedCollection(
 		localStorageCollectionOptions(
@@ -658,6 +724,18 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			),
 		),
 	);
+	v2WorkspaceLocalState.createIndex(
+		(localState) => localState.sidebarState.projectId,
+		basicIndexConfig,
+	);
+	v2WorkspaceLocalState.createIndex(
+		(localState) => localState.sidebarState.sectionId,
+		basicIndexConfig,
+	);
+	v2WorkspaceLocalState.createIndex(
+		(localState) => localState.sidebarState.tabOrder,
+		basicIndexConfig,
+	);
 
 	const v2SidebarSections = createIndexedCollection(
 		localStorageCollectionOptions({
@@ -666,6 +744,14 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			schema: dashboardSidebarSectionSchema,
 			getKey: (item) => item.sectionId,
 		}),
+	);
+	v2SidebarSections.createIndex(
+		(section) => section.projectId,
+		basicIndexConfig,
+	);
+	v2SidebarSections.createIndex(
+		(section) => section.tabOrder,
+		basicIndexConfig,
 	);
 
 	const v2TerminalPresets = createIndexedCollection(
@@ -708,6 +794,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		members,
 		users,
 		invitations,
+		teams,
+		teamMembers,
 		agentCommands,
 		integrationConnections,
 		subscriptions,

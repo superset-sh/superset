@@ -9,7 +9,13 @@ import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useState } from "react";
-import { LuChevronRight, LuExternalLink, LuLoaderCircle } from "react-icons/lu";
+import {
+	LuCheck,
+	LuChevronRight,
+	LuCopy,
+	LuExternalLink,
+	LuLoaderCircle,
+} from "react-icons/lu";
 import { CommentMarkdown } from "renderer/components/CommentMarkdown";
 import "./comment-thread.css";
 
@@ -43,6 +49,26 @@ export function CommentThread({
 	focusTick,
 }: CommentThreadProps) {
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
+	const [isCopied, setIsCopied] = useState(false);
+	useEffect(() => {
+		if (!isCopied) return;
+		const timer = setTimeout(() => setIsCopied(false), 2000);
+		return () => clearTimeout(timer);
+	}, [isCopied]);
+	const handleCopy = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		const text =
+			comments.length === 1
+				? comments[0].body
+				: comments.map((c) => `@${c.authorLogin}:\n${c.body}`).join("\n\n");
+		navigator.clipboard
+			.writeText(text)
+			.then(() => setIsCopied(true))
+			.catch((err) => {
+				console.error("[CommentThread/copy] Failed to copy:", err);
+				toast.error("Couldn't copy comment");
+			});
+	};
 	// Auto-collapse on resolve/outdated (matches GitHub).
 	useEffect(() => {
 		if (isResolved || isOutdated) setOpen(false);
@@ -71,7 +97,7 @@ export function CommentThread({
 			open={open}
 			onOpenChange={setOpen}
 			className={cn(
-				"diff-comment my-1 overflow-hidden rounded-md border border-border bg-card text-card-foreground",
+				"diff-comment mx-3 my-1 overflow-hidden rounded-md border border-border bg-card text-card-foreground",
 				isResolved && "opacity-70",
 			)}
 		>
@@ -102,6 +128,24 @@ export function CommentThread({
 						</span>
 					)}
 				</CollapsibleTrigger>
+				<button
+					type="button"
+					onClick={handleCopy}
+					className="shrink-0 text-muted-foreground hover:text-foreground"
+					aria-label={
+						isCopied
+							? "Copied"
+							: comments.length === 1
+								? "Copy comment"
+								: "Copy comments"
+					}
+				>
+					{isCopied ? (
+						<LuCheck className="size-3 text-green-500" />
+					) : (
+						<LuCopy className="size-3" />
+					)}
+				</button>
 				{url && (
 					<a
 						href={url}

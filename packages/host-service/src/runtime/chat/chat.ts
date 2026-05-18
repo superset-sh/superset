@@ -1,12 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { Memory } from "@mastra/memory";
 import {
 	getSlashCommands as getSlashCommandsFromCwd,
 	resolveSlashCommand as resolveSlashCommandFromCwd,
 } from "@superset/chat/server/desktop";
 import { eq } from "drizzle-orm";
-import { createAuthStorage, createMastraCode } from "mastracode";
+import { createMastraCode } from "mastracode";
 import type { HostDb } from "../../db";
 import { workspaces } from "../../db/schema";
 import type { ModelProviderRuntimeResolver } from "../../providers/model-providers";
@@ -279,35 +280,6 @@ function toRuntimeErrorMessage(error: unknown): string {
 	return "Unexpected chat error";
 }
 
-/**
- * Pick the model mastra should use for observational-memory reflection
- * (a background task that runs after each turn). Mastra's default is
- * google/gemini-2.5-flash, which fails when GOOGLE_GENERATIVE_AI_API_KEY
- * is unset — we fall back to whichever provider the user has actually
- * authenticated with so reflection just uses those credentials.
- */
-function resolveOmModelFromAuth(): string | undefined {
-	if (process.env.GOOGLE_GENERATIVE_AI_API_KEY)
-		return "google/gemini-2.5-flash";
-	const authStorage = createAuthStorage();
-	authStorage.reload();
-	const anthropic = authStorage.get("anthropic");
-	if (
-		anthropic?.type === "oauth" ||
-		(anthropic?.type === "api_key" && anthropic.key.trim())
-	) {
-		return "anthropic/claude-haiku-4-5";
-	}
-	const openai = authStorage.get("openai-codex");
-	if (
-		openai?.type === "oauth" ||
-		(openai?.type === "api_key" && openai.key.trim())
-	) {
-		return "openai/gpt-4.1-nano";
-	}
-	return undefined;
-}
-
 async function getRuntimeMemoryStore(
 	runtime: RuntimeSession,
 ): Promise<RuntimeMemoryStore> {
@@ -491,16 +463,10 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		this.ensureGlobalAgentInstructions();
 		await this.runtimeResolver.prepareRuntimeEnv();
 
-		const omModel = resolveOmModelFromAuth();
 		const runtime = await createMastraCode({
 			cwd,
 			disableMcp: true,
-			...(omModel && {
-				initialState: {
-					observerModelId: omModel,
-					reflectorModelId: omModel,
-				},
-			}),
+			memory: new Memory({ options: { observationalMemory: false } }),
 		});
 		runtime.hookManager?.setSessionId(sessionId);
 		await runtime.harness.init();

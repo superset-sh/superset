@@ -159,21 +159,23 @@ export function TabItem<TData>({
 										<OverflowFadeText className="flex-1">
 											{title}
 										</OverflowFadeText>
-										{accessory && (
-											<span className="shrink-0 leading-none">{accessory}</span>
-										)}
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom" showArrow={false}>
 									{title}
 								</TooltipContent>
 							</Tooltip>
-							<div className="flex h-full w-7 shrink-0 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+							<div className="relative flex h-full w-7 shrink-0 items-center justify-center">
+								{accessory && (
+									<span className="pointer-events-none absolute inset-0 flex items-center justify-center leading-none opacity-100 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+										{accessory}
+									</span>
+								)}
 								<Tooltip delayDuration={500}>
 									<TooltipTrigger asChild>
 										<Button
 											className={cn(
-												"size-5 cursor-pointer text-current",
+												"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
 												isActive ? "hover:bg-foreground/10" : "hover:bg-muted",
 											)}
 											onClick={(event) => {

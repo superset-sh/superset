@@ -10,6 +10,7 @@ interface SortableWorkspaceItemProps {
 	isInSection?: boolean;
 	onHoverCardOpen?: () => void;
 	shortcutLabel?: string;
+	disabled?: boolean;
 }
 
 export function SortableWorkspaceItem({
@@ -19,6 +20,7 @@ export function SortableWorkspaceItem({
 	isInSection,
 	onHoverCardOpen,
 	shortcutLabel,
+	disabled,
 }: SortableWorkspaceItemProps) {
 	const {
 		setNodeRef,
@@ -27,7 +29,7 @@ export function SortableWorkspaceItem({
 		isDragging,
 		transform,
 		transition,
-	} = useSortable({ id: sortableId });
+	} = useSortable({ id: sortableId, disabled });
 
 	return (
 		<div

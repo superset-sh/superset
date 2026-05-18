@@ -5,8 +5,8 @@ import { useId } from "react";
 import { LuCheck, LuCopy, LuUndo2 } from "react-icons/lu";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
+import { FileIcon } from "renderer/lib/fileIcons";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
 import { GIT_STAT_TEXT_CLASSES } from "../../utils/gitDecorationColors";
 
 interface DiffFileHeaderProps {
@@ -52,7 +52,10 @@ export function DiffFileHeader({
 	const name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
 
 	return (
-		<div className="group/diff-file-header @container/diff-file-header sticky top-0 z-10 flex min-w-0 flex-nowrap items-center gap-1 bg-card px-3 py-2">
+		<div
+			data-diff-entry-header-path={path}
+			className="group/diff-file-header @container/diff-file-header sticky top-0 z-10 flex min-w-0 flex-nowrap items-center gap-1 bg-card px-3 py-2"
+		>
 			<button
 				type="button"
 				onClick={onToggleCollapsed}

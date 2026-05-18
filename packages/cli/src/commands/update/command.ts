@@ -9,7 +9,6 @@ import {
 	rmSync,
 	statSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -186,7 +185,10 @@ export default command({
 		}
 
 		const installRoot = resolveInstallRoot();
-		const tempDir = mkdtempSync(join(tmpdir(), "superset-update-"));
+		// Stage as a sibling of the install root so the final renameSync()
+		// is an intra-filesystem move. tmpdir() is frequently a separate
+		// mount (tmpfs on Linux) — renaming across it fails with EXDEV.
+		const tempDir = mkdtempSync(`${installRoot}.update-`);
 
 		try {
 			await downloadAndExtract(tarballUrl(target, pinnedVersion), tempDir);

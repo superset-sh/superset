@@ -1,10 +1,22 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	useCallback,
+	useDeferredValue,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useTasksFilterStore } from "../../stores/tasks-filter-state";
+import {
+	tasksSearchFromFilters,
+	useTasksFilterStore,
+} from "../../stores/tasks-filter-state";
 import { BoardContent } from "./components/BoardContent";
-import { GitHubIssuesContent } from "./components/GitHubIssuesContent";
+import {
+	GitHubIssuesContent,
+	type SelectedIssue,
+} from "./components/GitHubIssuesContent";
 import { LinearCTA } from "./components/LinearCTA";
 import { PullRequestsContent } from "./components/PullRequestsContent";
 import { TableContent } from "./components/TableContent";
@@ -30,6 +42,7 @@ export function TasksView({
 	const collections = useCollections();
 	const currentTab: TabValue = initialTab ?? "all";
 	const [searchQuery, setSearchQuery] = useState(initialSearch ?? "");
+	const deferredSearchQuery = useDeferredValue(searchQuery);
 	const assigneeFilter = initialAssignee ?? null;
 	const typeTab = initialType ?? "tasks";
 	const projectFilter = initialProject ?? null;
@@ -53,24 +66,18 @@ export function TasksView({
 			search?: string;
 			type?: "tasks" | "prs" | "issues";
 			project?: string | null;
-		}) => {
-			const tab = overrides.tab ?? currentTab;
-			const assignee =
-				overrides.assignee !== undefined ? overrides.assignee : assigneeFilter;
-			const query =
-				overrides.search !== undefined ? overrides.search : searchQuery;
-			const type = overrides.type ?? typeTab;
-			const project =
-				overrides.project !== undefined ? overrides.project : projectFilter;
-
-			const search: Record<string, string> = {};
-			if (tab !== "all") search.tab = tab;
-			if (assignee) search.assignee = assignee;
-			if (query) search.search = query;
-			if (type !== "tasks") search.type = type;
-			if (project) search.project = project;
-			return search;
-		},
+		}) =>
+			tasksSearchFromFilters({
+				tab: overrides.tab ?? currentTab,
+				assignee:
+					overrides.assignee !== undefined
+						? overrides.assignee
+						: assigneeFilter,
+				search: overrides.search !== undefined ? overrides.search : searchQuery,
+				typeTab: overrides.type ?? typeTab,
+				projectFilter:
+					overrides.project !== undefined ? overrides.project : projectFilter,
+			}),
 		[currentTab, assigneeFilter, searchQuery, typeTab, projectFilter],
 	);
 
@@ -139,8 +146,9 @@ export function TasksView({
 	);
 
 	useEffect(() => {
-		if (projectFilter) return;
-		const firstProject = v2Projects?.[0];
+		if (!v2Projects) return;
+		if (projectFilter && v2Projects.some((p) => p.id === projectFilter)) return;
+		const firstProject = v2Projects[0];
 		if (!firstProject) return;
 		navigate({
 			to: "/tasks",
@@ -187,6 +195,21 @@ export function TasksView({
 		clearSelectionRef.current?.();
 	}, []);
 
+	const [selectedIssues, setSelectedIssues] = useState<SelectedIssue[]>([]);
+	const clearIssueSelectionRef = useRef<(() => void) | null>(null);
+
+	const handleIssueSelectionChange = useCallback(
+		(issues: SelectedIssue[], clearSelection: () => void) => {
+			setSelectedIssues(issues);
+			clearIssueSelectionRef.current = clearSelection;
+		},
+		[],
+	);
+
+	const handleClearIssueSelection = useCallback(() => {
+		clearIssueSelectionRef.current?.();
+	}, []);
+
 	const handleTaskClick = (task: TaskWithStatus) => {
 		navigate({
 			to: "/tasks/$taskId",
@@ -214,6 +237,8 @@ export function TasksView({
 					onAssigneeFilterChange={handleAssigneeFilterChange}
 					selectedTasks={selectedTasks}
 					onClearSelection={handleClearSelection}
+					selectedIssues={selectedIssues}
+					onClearIssueSelection={handleClearIssueSelection}
 					viewMode={viewMode}
 					onViewModeChange={setViewMode}
 					typeTab={typeTab}
@@ -231,14 +256,14 @@ export function TasksView({
 						(viewMode === "board" ? (
 							<BoardContent
 								filterTab={currentTab}
-								searchQuery={searchQuery}
+								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
 								onTaskClick={handleTaskClick}
 							/>
 						) : (
 							<TableContent
 								filterTab={currentTab}
-								searchQuery={searchQuery}
+								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
 								onTaskClick={handleTaskClick}
 								onSelectionChange={handleSelectionChange}
@@ -247,13 +272,14 @@ export function TasksView({
 					{showPRs && (
 						<PullRequestsContent
 							projectFilter={projectFilter}
-							searchQuery={searchQuery}
+							searchQuery={deferredSearchQuery}
 						/>
 					)}
 					{showIssues && (
 						<GitHubIssuesContent
 							projectFilter={projectFilter}
-							searchQuery={searchQuery}
+							searchQuery={deferredSearchQuery}
+							onSelectionChange={handleIssueSelectionChange}
 						/>
 					)}
 				</div>

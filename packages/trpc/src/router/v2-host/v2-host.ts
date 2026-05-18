@@ -65,6 +65,57 @@ async function requireOrgMember(userId: string, organizationId: string) {
 }
 
 export const v2HostRouter = {
+	list: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = requireActiveOrgId(ctx);
+		return db
+			.select({ machineId: v2Hosts.machineId, name: v2Hosts.name })
+			.from(v2Hosts)
+			.innerJoin(
+				v2UsersHosts,
+				and(
+					eq(v2UsersHosts.organizationId, v2Hosts.organizationId),
+					eq(v2UsersHosts.hostId, v2Hosts.machineId),
+				),
+			)
+			.where(
+				and(
+					eq(v2Hosts.organizationId, organizationId),
+					eq(v2UsersHosts.userId, ctx.session.user.id),
+				),
+			);
+	}),
+
+	rename: protectedProcedure
+		.input(
+			z.object({
+				hostId: z.string().min(1),
+				name: z
+					.string()
+					.max(120)
+					.transform((value) => value.trim())
+					.pipe(z.string().min(1, "Host name cannot be empty")),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = requireActiveOrgId(ctx);
+			await requireHostOwner(ctx.session.user.id, input.hostId, organizationId);
+
+			const txid = await dbWs.transaction(async (tx) => {
+				await tx
+					.update(v2Hosts)
+					.set({ name: input.name })
+					.where(
+						and(
+							eq(v2Hosts.organizationId, organizationId),
+							eq(v2Hosts.machineId, input.hostId),
+						),
+					);
+				return await getCurrentTxid(tx);
+			});
+
+			return { success: true, txid };
+		}),
+
 	addMember: protectedProcedure
 		.input(
 			z.object({

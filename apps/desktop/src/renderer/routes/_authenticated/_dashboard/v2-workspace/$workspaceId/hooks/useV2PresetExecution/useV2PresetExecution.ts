@@ -1,3 +1,4 @@
+import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -29,6 +30,17 @@ function resolveTarget(executionMode: V2TerminalPresetRow["executionMode"]) {
 	return executionMode === "split-pane" ? "active-tab" : "new-tab";
 }
 
+function findLinkedAgent(
+	agents: HostAgentConfig[],
+	agentId: string,
+): HostAgentConfig | null {
+	return (
+		agents.find((agent) => agent.id === agentId) ??
+		agents.find((agent) => agent.presetId === agentId) ??
+		null
+	);
+}
+
 interface UseV2PresetExecutionArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
@@ -56,31 +68,29 @@ export function useV2PresetExecution({
 	const { activeHostUrl } = useLocalHostService();
 	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
 
-	// Map presetId → command (first match wins if the user has multiple
-	// host configs for the same preset).
-	const agentCommandsById = useMemo(() => {
-		const map = new Map<string, string>();
-		for (const agent of agents) {
-			if (agent.command.trim().length === 0) continue;
-			if (map.has(agent.presetId)) continue;
-			map.set(agent.presetId, buildAgentLaunchCommand(agent));
-		}
-		return map;
-	}, [agents]);
-
 	const matchedPresets = useMemo(
 		() => filterMatchingPresetsForProject(allPresets, projectId),
 		[allPresets, projectId],
 	);
 
+	// `useV2AgentConfigs` is the cached source of truth for agent configs
+	// (`staleTime: Infinity`, invalidated on every Settings → Agents mutation),
+	// so resolving against the in-memory `agents` array is correct and
+	// synchronous. Re-fetching via the host-service client on every call would
+	// duplicate that query and pin this function async, which forced the
+	// previous consumer (`useV2WorkspaceRun`) into a re-render cycle.
 	const resolvePresetCommands = useCallback(
 		(preset: V2TerminalPresetRow): string[] => {
 			if (!preset.agentId) return preset.commands;
-			const live = agentCommandsById.get(preset.agentId);
+			const linkedAgent = findLinkedAgent(agents, preset.agentId);
+			const live =
+				linkedAgent && linkedAgent.command.trim().length > 0
+					? buildAgentLaunchCommand(linkedAgent)
+					: undefined;
 			if (live) return [live];
 			return preset.commands;
 		},
-		[agentCommandsById],
+		[agents],
 	);
 
 	const executePreset = useCallback(
@@ -183,5 +193,5 @@ export function useV2PresetExecution({
 		[store, launcher, resolvePresetCommands],
 	);
 
-	return { matchedPresets, executePreset };
+	return { matchedPresets, executePreset, resolvePresetCommands };
 }

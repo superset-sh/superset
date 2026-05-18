@@ -37,6 +37,7 @@ export function DashboardSidebarWorkspaceItem({
 		name,
 		branch,
 		creationStatus,
+		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
@@ -142,6 +143,7 @@ export function DashboardSidebarWorkspaceItem({
 					workspaceStatus={workspaceStatus}
 					onClick={handleClick}
 					creationStatus={creationStatus}
+					pullRequestState={pullRequest?.state ?? null}
 					aria-label={
 						creationStatus ? `Creating workspace: ${name}` : undefined
 					}
@@ -160,7 +162,9 @@ export function DashboardSidebarWorkspaceItem({
 							isInSection={isInSection}
 							isUnread={isUnread}
 							isLocalWorkspace={hostType === "local-device"}
+							isPinned={isMainWorkspace && hostType === "local-device"}
 							onCreateSection={handleCreateSection}
+							showDeleteHotkey={isActive}
 							onMoveToSection={(targetSectionId) =>
 								moveWorkspaceToSection(id, projectId, targetSectionId)
 							}
@@ -249,7 +253,9 @@ export function DashboardSidebarWorkspaceItem({
 							moveWorkspaceToSection(id, projectId, targetSectionId)
 						}
 						isLocalWorkspace={hostType === "local-device"}
+						isPinned={isMainWorkspace && hostType === "local-device"}
 						onOpenInFinder={handleOpenInFinder}
+						showDeleteHotkey={isActive}
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}

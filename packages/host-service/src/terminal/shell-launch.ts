@@ -10,13 +10,17 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import {
+	type ResolveConfiguredShellOptions,
+	resolveConfiguredShell,
+} from "./user-shell.ts";
 
 /** Does not default to /bin/zsh — falls back to /bin/sh (POSIX-guaranteed). */
-export function resolveLaunchShell(baseEnv: Record<string, string>): string {
-	if (process.platform === "win32") {
-		return baseEnv.COMSPEC || "cmd.exe";
-	}
-	return baseEnv.SHELL || "/bin/sh";
+export function resolveLaunchShell(
+	baseEnv: Record<string, string>,
+	options?: ResolveConfiguredShellOptions,
+): string {
+	return resolveConfiguredShell(baseEnv, options);
 }
 
 export function getSupersetShellPaths(supersetHomeDir: string): {

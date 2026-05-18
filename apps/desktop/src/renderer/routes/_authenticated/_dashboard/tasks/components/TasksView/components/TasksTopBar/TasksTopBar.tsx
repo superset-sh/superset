@@ -15,12 +15,14 @@ import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import type { TypeTab, ViewMode } from "../../../../stores/tasks-filter-state";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
+import type { SelectedIssue } from "../GitHubIssuesContent";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
 import { AssigneeFilter } from "./components/AssigneeFilter";
 import { CreateTaskDialog } from "./components/CreateTaskDialog";
 import { ProjectFilter } from "./components/ProjectFilter";
 import { RunInWorkspacePopover } from "./components/RunInWorkspacePopover";
 import { RunInWorkspacePopoverV2 } from "./components/RunInWorkspacePopoverV2";
+import { RunIssuesInWorkspacePopover } from "./components/RunIssuesInWorkspacePopover";
 import { StatusFilter } from "./components/StatusFilter";
 
 export type TabValue = "all" | "active" | "backlog";
@@ -34,6 +36,8 @@ interface TasksTopBarProps {
 	onAssigneeFilterChange: (value: string | null) => void;
 	selectedTasks?: TaskWithStatus[];
 	onClearSelection?: () => void;
+	selectedIssues?: SelectedIssue[];
+	onClearIssueSelection?: () => void;
 	viewMode: ViewMode;
 	onViewModeChange: (mode: ViewMode) => void;
 	typeTab: TypeTab;
@@ -57,6 +61,8 @@ export function TasksTopBar({
 	onAssigneeFilterChange,
 	selectedTasks = [],
 	onClearSelection,
+	selectedIssues = [],
+	onClearIssueSelection,
 	viewMode,
 	onViewModeChange,
 	typeTab,
@@ -65,7 +71,10 @@ export function TasksTopBar({
 	onProjectFilterChange,
 }: TasksTopBarProps) {
 	const showTaskOnlyControls = typeTab === "tasks";
-	const selectedCount = selectedTasks.length;
+	const showIssues = typeTab === "issues";
+	const taskSelectedCount = selectedTasks.length;
+	const issueSelectedCount = selectedIssues.length;
+	const selectedCount = showIssues ? issueSelectedCount : taskSelectedCount;
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
@@ -91,7 +100,7 @@ export function TasksTopBar({
 							<Button
 								variant="ghost"
 								size="icon-xs"
-								onClick={onClearSelection}
+								onClick={showIssues ? onClearIssueSelection : onClearSelection}
 								aria-label="Clear selection"
 							>
 								<HiXMark />
@@ -100,7 +109,13 @@ export function TasksTopBar({
 								{selectedCount} selected
 							</span>
 							<div className="h-4 w-px bg-border" />
-							{isV2CloudEnabled ? (
+							{showIssues ? (
+								<RunIssuesInWorkspacePopover
+									issues={selectedIssues}
+									projectFilter={projectFilter}
+									onComplete={onClearIssueSelection ?? (() => {})}
+								/>
+							) : isV2CloudEnabled ? (
 								<RunInWorkspacePopoverV2
 									tasks={selectedTasks}
 									onComplete={onClearSelection ?? (() => {})}

@@ -10,7 +10,6 @@ import {
 import { useResolvedTheme, useTerminalTheme } from "renderer/stores/theme";
 import type { DiffFileSource } from "../../../../../useChangeset";
 import { CommentThread } from "../CommentThread";
-import { DiffFileHeader } from "../DiffFileHeader";
 import {
 	type DiffCommentThread,
 	useDiffAnnotations,
@@ -19,20 +18,10 @@ import {
 interface WorkspaceDiffProps {
 	workspaceId: string;
 	path: string;
-	status: string;
 	source: DiffFileSource;
-	additions: number;
-	deletions: number;
 	diffStyle: "split" | "unified";
 	expandUnchanged: boolean;
-	onToggleExpandUnchanged: () => void;
 	collapsed: boolean;
-	onToggleCollapsed: () => void;
-	viewed: boolean;
-	onToggleViewed: () => void;
-	onOpenFile?: (openInNewTab?: boolean) => void;
-	onOpenInExternalEditor?: () => void;
-	onDiscard?: () => void;
 	focusLine?: number;
 	focusTick?: number;
 }
@@ -40,20 +29,10 @@ interface WorkspaceDiffProps {
 export const WorkspaceDiff = memo(function WorkspaceDiff({
 	workspaceId,
 	path,
-	status,
 	source,
-	additions,
-	deletions,
 	diffStyle,
 	expandUnchanged,
-	onToggleExpandUnchanged,
 	collapsed,
-	onToggleCollapsed,
-	viewed,
-	onToggleViewed,
-	onOpenFile,
-	onOpenInExternalEditor,
-	onDiscard,
 	focusLine,
 	focusTick,
 }: WorkspaceDiffProps) {
@@ -132,21 +111,6 @@ export const WorkspaceDiff = memo(function WorkspaceDiff({
 
 	return (
 		<div className="flex flex-col">
-			<DiffFileHeader
-				path={path}
-				status={status}
-				additions={additions}
-				deletions={deletions}
-				expandUnchanged={expandUnchanged}
-				onToggleExpandUnchanged={onToggleExpandUnchanged}
-				collapsed={collapsed}
-				onToggleCollapsed={onToggleCollapsed}
-				viewed={viewed}
-				onToggleViewed={onToggleViewed}
-				onOpenFile={onOpenFile}
-				onOpenInExternalEditor={onOpenInExternalEditor}
-				onDiscard={onDiscard}
-			/>
 			{diffQuery.data ? (
 				<MultiFileDiff<DiffCommentThread>
 					oldFile={diffQuery.data.oldFile}

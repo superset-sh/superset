@@ -19,12 +19,13 @@ import {
 	parseCommandString,
 } from "renderer/lib/argv";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface AgentDetailProps {
 	config: HostAgentConfig;
 	description: string;
-	onChanged: () => void;
+	onChanged: (updated: HostAgentConfig) => void;
 	onDeleted: () => void;
 }
 
@@ -34,7 +35,8 @@ export function AgentDetail({
 	onChanged,
 	onDeleted,
 }: AgentDetailProps) {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const isDark = useIsDarkTheme();
 	const icon = getPresetIcon(config.presetId, isDark);
 
@@ -70,19 +72,31 @@ export function AgentDetail({
 				>["settings"]["agentConfigs"]["update"]["mutate"]
 			>[0]["patch"],
 		) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "save the agent",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.update.mutate({ id: config.id, patch });
 		},
-		onSuccess: () => onChanged(),
+		onSuccess: (updated) => onChanged(updated),
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to save"),
 	});
 
 	const removeMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "remove the agent",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.remove.mutate({ id: config.id });
@@ -166,7 +180,7 @@ export function AgentDetail({
 							value={commandText}
 							onChange={(e) => setCommandText(e.target.value)}
 							onBlur={handleCommandBlur}
-							placeholder="claude --permission-mode acceptEdits"
+							placeholder="claude --dangerously-skip-permissions"
 						/>
 					</StackedField>
 

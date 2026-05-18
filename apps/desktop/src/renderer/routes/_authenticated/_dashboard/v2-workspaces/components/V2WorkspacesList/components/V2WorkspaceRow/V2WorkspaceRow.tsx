@@ -30,6 +30,7 @@ import type {
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
+import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { V2_WORKSPACES_ROW_GRID } from "../../constants";
 
 interface V2WorkspaceRowProps {
@@ -47,11 +48,7 @@ export function V2WorkspaceRow({
 }: V2WorkspaceRowProps) {
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
-	const {
-		ensureWorkspaceInSidebar,
-		hideWorkspaceInSidebar,
-		removeWorkspaceFromSidebar,
-	} = useDashboardSidebarState();
+	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const isMainWorkspace = workspace.type === "main";
 
 	const HostIcon = hostIconFor(workspace.hostType);
@@ -95,18 +92,18 @@ export function V2WorkspaceRow({
 				event.preventDefault();
 				return;
 			}
-			if (isMainWorkspace) {
-				hideWorkspaceInSidebar(workspace.id, workspace.projectId);
-				return;
-			}
-			removeWorkspaceFromSidebar(workspace.id);
+			useRemoveFromSidebarIntent.getState().request({
+				workspaceId: workspace.id,
+				workspaceName: workspace.name,
+				projectId: workspace.projectId,
+				isMain: isMainWorkspace,
+			});
 		},
 		[
-			hideWorkspaceInSidebar,
 			isCurrentRoute,
 			isMainWorkspace,
-			removeWorkspaceFromSidebar,
 			workspace.id,
+			workspace.name,
 			workspace.projectId,
 		],
 	);

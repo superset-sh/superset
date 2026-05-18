@@ -1,4 +1,4 @@
-export interface GraphQLCheckRunNode {
+export interface GitHubCheckRunNode {
 	__typename: "CheckRun";
 	name: string;
 	conclusion: string | null;
@@ -13,7 +13,7 @@ export interface GraphQLCheckRunNode {
 	} | null;
 }
 
-export interface GraphQLStatusContextNode {
+export interface GitHubStatusContextNode {
 	__typename: "StatusContext";
 	context: string;
 	state: string;
@@ -21,12 +21,12 @@ export interface GraphQLStatusContextNode {
 	createdAt: string | null;
 }
 
-export type GraphQLCheckContextNode =
-	| GraphQLCheckRunNode
-	| GraphQLStatusContextNode
+export type GitHubCheckContextNode =
+	| GitHubCheckRunNode
+	| GitHubStatusContextNode
 	| null;
 
-export interface GraphQLPullRequestNode {
+export interface GitHubPullRequestNode {
 	number: number;
 	title: string;
 	url: string;
@@ -37,19 +37,17 @@ export interface GraphQLPullRequestNode {
 	isCrossRepository: boolean;
 	headRepositoryOwner: { login: string } | null;
 	headRepository: { name: string } | null;
-	reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
 	updatedAt: string;
-	statusCheckRollup: {
-		contexts: {
-			nodes: GraphQLCheckContextNode[];
-		} | null;
-	} | null;
 }
 
-export interface PullRequestsGraphQLResult {
-	repository?: {
-		pullRequests?: {
-			nodes?: Array<GraphQLPullRequestNode | null>;
-		};
-	} | null;
+export type GitHubPullRequestReviewDecision =
+	| "APPROVED"
+	| "CHANGES_REQUESTED"
+	| "REVIEW_REQUIRED"
+	| null;
+
+export interface GitHubPullRequestHeadRef {
+	owner: string;
+	repo: string;
+	branch: string;
 }

@@ -74,6 +74,13 @@ PLATFORM.IS_WINDOWS &&
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
 
+if (env.NODE_ENV === "development" && process.env.RENDERER_REMOTE_DEBUG_PORT) {
+	app.commandLine.appendSwitch(
+		"remote-debugging-port",
+		process.env.RENDERER_REMOTE_DEBUG_PORT,
+	);
+}
+
 // Each xterm pane holds one WebGL context. v2 parking keeps panes alive
 // across workspace switches, so cumulative contexts can reach the low
 // hundreds — past Chromium's default cap of 16, Blink force-evicts the
@@ -81,13 +88,3 @@ app.commandLine.appendSwitch("force-color-profile", "srgb");
 // while staying bounded enough that a runaway leak still surfaces (Tabby
 // raises this to 9000, which masks leaks).
 app.commandLine.appendSwitch("max-active-webgl-contexts", "256");
-
-// Only expose CDP in development when a port is explicitly configured.
-const cdpPort =
-	env.NODE_ENV === "development"
-		? process.env.DESKTOP_AUTOMATION_PORT
-		: undefined;
-if (cdpPort) {
-	app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
-	app.commandLine.appendSwitch("remote-allow-origins", "*");
-}

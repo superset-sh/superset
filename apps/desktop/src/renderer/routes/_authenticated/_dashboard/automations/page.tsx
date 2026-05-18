@@ -48,8 +48,9 @@ import {
 	LuPlus,
 	LuSearchX,
 	LuSparkles,
+	LuTerminal,
 	LuTrash2,
-	LuZap,
+	LuX,
 } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -86,6 +87,7 @@ function AutomationsPage() {
 	const [initialTemplate, setInitialTemplate] =
 		useState<AutomationTemplate | null>(null);
 	const [scope, setScope] = useState<Scope>("mine");
+	const [cliHintDismissed, setCliHintDismissed] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<SelectAutomation | null>(
 		null,
 	);
@@ -121,7 +123,11 @@ function AutomationsPage() {
 				.select(({ a }) => ({ ...a })),
 		[collections.automations],
 	);
-	const automations = automationRows as SelectAutomation[];
+	// Live queries can briefly surface nullish rows while syncing.
+	const automations = useMemo(
+		() => automationRows.filter((automation) => automation != null),
+		[automationRows],
+	);
 
 	const { data: userRows = [] } = useLiveQuery(
 		(q) =>
@@ -148,37 +154,36 @@ function AutomationsPage() {
 		[collections.v2Hosts],
 	);
 
+	// Live queries can briefly surface nullish rows while syncing (see #4519).
 	const usersById = useMemo(
 		() =>
 			new Map(
-				(userRows as Pick<SelectUser, "id" | "name" | "email">[]).map((u) => [
-					u.id,
-					u,
-				]),
+				(userRows as Pick<SelectUser, "id" | "name" | "email">[])
+					.filter((u) => u != null)
+					.map((u) => [u.id, u]),
 			),
 		[userRows],
 	);
 	const projectsById = useMemo(
-		() => new Map(recentProjects.map((p) => [p.id, p])),
+		() =>
+			new Map(recentProjects.filter((p) => p != null).map((p) => [p.id, p])),
 		[recentProjects],
 	);
 	const workspacesById = useMemo(
 		() =>
 			new Map(
-				(workspaceRows as Pick<SelectV2Workspace, "id" | "name">[]).map((w) => [
-					w.id,
-					w,
-				]),
+				(workspaceRows as Pick<SelectV2Workspace, "id" | "name">[])
+					.filter((w) => w != null)
+					.map((w) => [w.id, w]),
 			),
 		[workspaceRows],
 	);
 	const hostsById = useMemo(
 		() =>
 			new Map(
-				(hostRows as Pick<SelectV2Host, "machineId" | "name">[]).map((h) => [
-					h.machineId,
-					h,
-				]),
+				(hostRows as Pick<SelectV2Host, "machineId" | "name">[])
+					.filter((h) => h != null)
+					.map((h) => [h.machineId, h]),
 			),
 		[hostRows],
 	);
@@ -274,8 +279,59 @@ function AutomationsPage() {
 				</div>
 			</header>
 
+			{!cliHintDismissed && (
+				<div className="shrink-0 px-4 pt-3">
+					<div className="relative flex items-start gap-3 rounded-lg border border-border bg-gradient-to-b from-accent/40 to-accent/10 py-3 pl-3.5 pr-10">
+						<div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground shadow-sm">
+							<LuTerminal className="size-4" />
+						</div>
+						<div className="min-w-0 space-y-1">
+							<p className="text-sm font-medium text-foreground">
+								Supercharge automations with the{" "}
+								<code className="select-text cursor-text rounded bg-background/80 px-1 py-0.5 font-mono text-[13px]">
+									superset
+								</code>{" "}
+								CLI
+							</p>
+							<p className="text-sm leading-relaxed text-muted-foreground">
+								It&apos;s available in every Superset terminal. Tell the agent
+								to use it to spin up workspaces, run tasks, or manage other
+								automations.{" "}
+								<a
+									href={`${COMPANY.DOCS_URL}/cli/getting-started`}
+									target="_blank"
+									rel="noreferrer"
+									className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80"
+								>
+									Getting started
+								</a>{" "}
+								·{" "}
+								<a
+									href={`${COMPANY.DOCS_URL}/cli/cli-reference`}
+									target="_blank"
+									rel="noreferrer"
+									className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80"
+								>
+									CLI reference
+								</a>
+							</p>
+						</div>
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon-sm"
+							onClick={() => setCliHintDismissed(true)}
+							aria-label="Dismiss"
+							className="absolute right-2 top-2 size-6 text-muted-foreground hover:text-foreground"
+						>
+							<LuX className="size-3.5" />
+						</Button>
+					</div>
+				</div>
+			)}
+
 			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				{!automationsReady ? null : automations.length === 0 ? (
+				{!automationsReady ? null : visible.length === 0 && scope === "mine" ? (
 					<div className="flex-1 overflow-y-auto px-8 py-8">
 						<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
 					</div>
@@ -286,17 +342,11 @@ function AutomationsPage() {
 								variant="icon"
 								className="size-14 [&_svg:not([class*='size-'])]:size-7"
 							>
-								{scope === "mine" ? <LuZap /> : <LuSearchX />}
+								<LuSearchX />
 							</EmptyMedia>
-							<EmptyTitle>
-								{scope === "mine"
-									? "No automations yet"
-									: "No team automations"}
-							</EmptyTitle>
+							<EmptyTitle>No team automations</EmptyTitle>
 							<EmptyDescription>
-								{scope === "mine"
-									? "Create one to run an agent on a schedule."
-									: "Nobody on your team has shared automations yet."}
+								Nobody on your team has shared automations yet.
 							</EmptyDescription>
 						</EmptyHeader>
 					</Empty>
@@ -357,7 +407,7 @@ function AutomationsPage() {
 										}}
 										className={cn(
 											rowGrid,
-											"group/row min-w-0 cursor-pointer border-b border-border/50 px-4 py-2.5 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
+											"group/row h-10 min-w-0 cursor-pointer border-b border-border/50 px-4 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
 										)}
 									>
 										<span className="flex min-w-0 items-center gap-2">
@@ -434,8 +484,8 @@ function AutomationsPage() {
 
 										<span className="min-w-0 text-xs text-muted-foreground">
 											<AgentCell
-												agentId={automation.agentConfig.id}
-												label={automation.agentConfig.label}
+												agentId={automation.agent}
+												hostId={automation.targetHostId ?? null}
 											/>
 										</span>
 

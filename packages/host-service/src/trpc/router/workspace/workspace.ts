@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -20,7 +21,10 @@ export const workspaceRouter = router({
 				});
 			}
 
-			return localWorkspace;
+			return {
+				...localWorkspace,
+				worktreeExists: existsSync(localWorkspace.worktreePath),
+			};
 		}),
 
 	cloudList: protectedProcedure.query(async ({ ctx }) => {

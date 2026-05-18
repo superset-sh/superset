@@ -37,12 +37,15 @@ function ScrollToFile({
 			const scrollContainer = v.getScrollContainerElement();
 			if (!scrollContainer) return;
 
-			const target = scrollContainer.querySelector(
+			const entry = scrollContainer.querySelector(
 				`[data-diff-path="${CSS.escape(path)}"]`,
-			);
-			if (!target) return;
+			) as HTMLElement | null;
+			const header = scrollContainer.querySelector(
+				`[data-diff-entry-header-path="${CSS.escape(path)}"]`,
+			) as HTMLElement | null;
+			if (!entry || !header) return;
 
-			const offset = v.getOffsetInScrollContainer(target as HTMLElement);
+			const offset = v.getOffsetInScrollContainer(header);
 			scrollContainer.scrollTo({ top: offset });
 			lastScrolledPath.current = path;
 			if (focusTick != null) lastFocusTick.current = focusTick;
@@ -54,7 +57,7 @@ function ScrollToFile({
 				// few frames so the annotation slot has time to render.
 				let attempts = 0;
 				const tryScroll = () => {
-					const lineEl = findLineElement(target as HTMLElement, focusLine);
+					const lineEl = findLineElement(entry, focusLine);
 					if (lineEl) {
 						lineEl.scrollIntoView({ block: "center" });
 						return;

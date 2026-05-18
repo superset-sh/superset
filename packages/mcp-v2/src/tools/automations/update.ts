@@ -11,13 +11,14 @@ export function register(server: McpServer): void {
 		inputSchema: {
 			id: z.string().uuid().describe("Automation UUID."),
 			name: z.string().min(1).max(200).optional(),
-			agentConfig: z
-				.object({
-					id: z.string().min(1),
-					kind: z.enum(["terminal", "chat"]),
-				})
-				.passthrough()
-				.optional(),
+			agent: z
+				.string()
+				.min(1)
+				.max(200)
+				.optional()
+				.describe(
+					"Host agent instance id (UUID from /settings/agents) or presetId. Use 'superset' for the built-in chat agent.",
+				),
 			targetHostId: z.string().min(1).nullish(),
 			v2ProjectId: z.string().uuid().optional(),
 			v2WorkspaceId: z.string().uuid().nullish(),

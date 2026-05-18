@@ -347,22 +347,55 @@ export const createGitStatusProcedures = () => {
 				}
 
 				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
-
 				const trackedWorktrees = localDb
-					.select({ path: worktrees.path })
+					.select({
+						id: worktrees.id,
+						path: worktrees.path,
+						branch: worktrees.branch,
+					})
 					.from(worktrees)
 					.where(eq(worktrees.projectId, input.projectId))
 					.all();
-				const trackedPaths = new Set(trackedWorktrees.map((wt) => wt.path));
+				const activeWorkspaceRows = localDb
+					.select({ id: workspaces.id, worktreeId: workspaces.worktreeId })
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, input.projectId),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.all();
+				const activeWorktreeIds = new Set(
+					activeWorkspaceRows
+						.map((workspace) => workspace.worktreeId)
+						.filter((worktreeId): worktreeId is string => Boolean(worktreeId)),
+				);
 
 				return selectExternalWorktreesForImport(allWorktrees, {
 					mainRepoPath: project.mainRepoPath,
-					trackedPaths,
-				}).map((wt) => ({
-					path: wt.path,
-					// biome-ignore lint/style/noNonNullAssertion: filtered above
-					branch: wt.branch!,
-				}));
+				}).map((wt) => {
+					const trackedWorktree =
+						trackedWorktrees.find((worktree) => worktree.path === wt.path) ??
+						null;
+					const activeWorkspace = trackedWorktree
+						? activeWorkspaceRows.find(
+								(workspace) => workspace.worktreeId === trackedWorktree.id,
+							)
+						: null;
+
+					return {
+						path: wt.path,
+						// biome-ignore lint/style/noNonNullAssertion: filtered above
+						branch: wt.branch!,
+						trackedWorktreeId: trackedWorktree?.id ?? null,
+						trackedBranch: trackedWorktree?.branch ?? null,
+						activeWorkspaceId: activeWorkspace?.id ?? null,
+						hasActiveWorkspace: trackedWorktree
+							? activeWorktreeIds.has(trackedWorktree.id)
+							: false,
+					};
+				});
 			}),
 	});
 };

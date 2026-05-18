@@ -84,15 +84,20 @@ function V2WorkspaceLayout() {
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
 	}
 
-	if (hostStatus.status === "offline") {
-		return <WorkspaceHostOfflineState hostName={hostStatus.hostName} />;
-	}
 	if (hostStatus.status === "incompatible") {
 		return (
 			<WorkspaceHostIncompatibleState
 				hostName={hostStatus.hostName}
 				hostVersion={hostStatus.hostVersion}
 				minVersion={hostStatus.minVersion}
+			/>
+		);
+	}
+	if (hostStatus.status === "offline") {
+		return (
+			<WorkspaceHostOfflineState
+				hostId={hostStatus.hostId}
+				hostName={hostStatus.hostName}
 			/>
 		);
 	}

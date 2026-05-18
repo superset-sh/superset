@@ -1,4 +1,4 @@
-import type { UsageClasses, UsageSeverity, UsageValues } from "../types";
+import type { UsageSeverity, UsageValues } from "../types";
 
 const KB = 1024;
 const MB = KB * 1024;
@@ -36,21 +36,6 @@ export function getUsageSeverity(
 	if (isElevatedShare) return "elevated";
 
 	return "normal";
-}
-
-export function getUsageClasses(
-	_severity: UsageSeverity,
-	nested = false,
-): UsageClasses {
-	const normalRowClass = nested ? "bg-muted/30" : "";
-	const normalHoverClass = nested ? "hover:bg-muted/60" : "hover:bg-muted/50";
-
-	return {
-		rowClass: normalRowClass,
-		hoverClass: normalHoverClass,
-		labelClass: "",
-		metricClass: "text-muted-foreground",
-	};
 }
 
 export function getTrackedHostMemorySeverity(

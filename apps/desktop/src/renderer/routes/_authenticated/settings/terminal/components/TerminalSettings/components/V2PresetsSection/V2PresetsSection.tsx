@@ -3,10 +3,7 @@ import {
 	normalizeExecutionMode,
 	type TerminalPreset,
 } from "@superset/local-db";
-import {
-	AGENT_PRESET_DESCRIPTIONS,
-	type AgentType,
-} from "@superset/shared/agent-command";
+import { HOST_AGENT_PRESETS } from "@superset/shared/host-agent-presets";
 import { Button } from "@superset/ui/button";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -27,6 +24,10 @@ import {
 } from "../PresetsSection/components/QuickAddPresets";
 import type { AutoApplyField } from "../PresetsSection/constants";
 import type { PresetProjectOption } from "../PresetsSection/preset-project-options";
+
+const DESCRIPTION_BY_PRESET_ID = new Map<string, string>(
+	HOST_AGENT_PRESETS.map((preset) => [preset.presetId, preset.description]),
+);
 
 interface V2PresetsSectionProps {
 	showPresets: boolean;
@@ -186,22 +187,19 @@ export function V2PresetsSection({
 		[serverPresets],
 	);
 
-	// Quick-add lists every host-configured agent. We dedupe by presetId
-	// (= our preset's `agentId`) so a user with multiple Claude configs gets
-	// one pill and so deleting a preset frees the pill again.
+	// One pill per host-agent config — agent.id is unique, so multiple
+	// Claude/Codex configs each get their own pill.
 	const quickAddPills = useMemo<QuickAddAgentPill[]>(() => {
-		const seen = new Set<string>();
 		const pills: QuickAddAgentPill[] = [];
 		for (const agent of agents) {
-			if (seen.has(agent.presetId) || agent.command.trim().length === 0) {
+			if (agent.command.trim().length === 0) {
 				continue;
 			}
-			seen.add(agent.presetId);
 			pills.push({
-				agentId: agent.presetId,
+				agentId: agent.id,
+				iconId: agent.presetId,
 				label: agent.label,
-				description:
-					AGENT_PRESET_DESCRIPTIONS[agent.presetId as AgentType] ?? "",
+				description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId) ?? "",
 				commands: [buildAgentLaunchCommand(agent)],
 			});
 		}
@@ -221,6 +219,7 @@ export function V2PresetsSection({
 			commands: string[];
 			projectIds?: string[] | null;
 			pinnedToBar?: boolean;
+			useAsWorkspaceRun?: boolean;
 			executionMode?: ExecutionMode;
 			agentId?: string;
 		}) => {
@@ -236,6 +235,7 @@ export function V2PresetsSection({
 				commands: input.commands,
 				projectIds: input.projectIds ?? null,
 				pinnedToBar: input.pinnedToBar,
+				useAsWorkspaceRun: input.useAsWorkspaceRun,
 				executionMode: input.executionMode ?? "new-tab",
 				tabOrder: maxTabOrder + 1,
 				createdAt: new Date(),
@@ -258,6 +258,27 @@ export function V2PresetsSection({
 		},
 		[collections.v2TerminalPresets],
 	);
+
+	// Migrate legacy rows whose agentId still holds a presetId. Skip when the
+	// presetId resolves to multiple configs — we can't pick one safely.
+	useEffect(() => {
+		if (agents.length === 0 || serverPresets.length === 0) return;
+
+		for (const preset of serverPresets) {
+			const row = preset as V2TerminalPresetRow;
+			if (!row.agentId) continue;
+			if (agents.some((agent) => agent.id === row.agentId)) continue;
+
+			const legacyMatches = agents.filter(
+				(agent) => agent.presetId === row.agentId,
+			);
+			if (legacyMatches.length !== 1) continue;
+			const legacyMatch = legacyMatches[0];
+			if (!legacyMatch) continue;
+
+			updateV2Preset(row.id, { agentId: legacyMatch.id });
+		}
+	}, [agents, serverPresets, updateV2Preset]);
 
 	const deleteV2Preset = useCallback(
 		(id: string) => {
@@ -438,6 +459,13 @@ export function V2PresetsSection({
 		[updateV2Preset],
 	);
 
+	const handleToggleWorkspaceRun = useCallback(
+		(presetId: string, enabled: boolean) => {
+			updateV2Preset(presetId, { useAsWorkspaceRun: enabled });
+		},
+		[updateV2Preset],
+	);
+
 	const handleToggleVisibility = useCallback(
 		(presetId: string, visible: boolean) => {
 			updateV2Preset(presetId, { pinnedToBar: visible });
@@ -475,6 +503,7 @@ export function V2PresetsSection({
 	}, [editingRowIndex, handleDeleteRow, setEditingPreset]);
 
 	const isWorkspaceCreation = !!editingPreset?.applyOnWorkspaceCreated;
+	const isWorkspaceRun = !!editingPreset?.useAsWorkspaceRun;
 	const isNewTab = !!editingPreset?.applyOnNewTab;
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
 	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
@@ -559,6 +588,14 @@ export function V2PresetsSection({
 		[editingPreset, handleToggleAutoApply],
 	);
 
+	const handleEditorWorkspaceRunToggle = useCallback(
+		(enabled: boolean) => {
+			if (!editingPreset) return;
+			handleToggleWorkspaceRun(editingPreset.id, enabled);
+		},
+		[editingPreset, handleToggleWorkspaceRun],
+	);
+
 	return (
 		<div>
 			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
@@ -575,6 +612,7 @@ export function V2PresetsSection({
 							<QuickAddPresets
 								pills={quickAddPills}
 								isDark={isDark}
+								keepOpenOnAdd
 								isPillAdded={isPillAdded}
 								onAddPill={handleAddPill}
 							/>
@@ -593,6 +631,7 @@ export function V2PresetsSection({
 						presets={localPresets}
 						isLoading={false}
 						projectOptionsById={projectOptionsById}
+						agents={agents}
 						presetsContainerRef={presetsContainerRef}
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
@@ -618,8 +657,10 @@ export function V2PresetsSection({
 				onCommandsBlur={handleEditorCommandsBlur}
 				onModeChange={handleEditorModeChange}
 				onToggleAutoApply={handleEditorAutoApplyToggle}
+				onToggleWorkspaceRun={handleEditorWorkspaceRunToggle}
 				modeValue={modeValue}
 				hasMultipleCommands={hasMultipleCommands}
+				isWorkspaceRun={isWorkspaceRun}
 				isWorkspaceCreation={isWorkspaceCreation}
 				isNewTab={isNewTab}
 			/>

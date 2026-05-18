@@ -87,6 +87,19 @@ increment_major() {
     echo "$((major + 1)).0.0"
 }
 
+# Patch-bump packages/host-service/package.json under the given repo root, echo new version.
+bump_host_service_patch() {
+    local repo_root="$1"
+    local pkg="${repo_root}/packages/host-service/package.json"
+    local current new tmp
+    current=$(jq -r .version "${pkg}")
+    new=$(increment_patch "${current}")
+    tmp=$(mktemp)
+    jq ".version = \"${new}\"" "${pkg}" > "${tmp}" && mv "${tmp}" "${pkg}"
+    (cd "${repo_root}" && bunx biome format --write "packages/host-service/package.json" >/dev/null)
+    echo "${new}"
+}
+
 # Parse arguments
 VERSION=""
 COMMIT_INPUT=""
@@ -305,9 +318,11 @@ if [ -n "$COMMIT_INPUT" ]; then
         TMP_FILE=$(mktemp)
         jq ".version = \"${VERSION}\"" "${DESKTOP_DIR}/package.json" > "${TMP_FILE}" && mv "${TMP_FILE}" "${DESKTOP_DIR}/package.json"
         bunx biome format --write "${DESKTOP_DIR}/package.json"
-        git add "${DESKTOP_DIR}/package.json"
-        git commit -m "chore(desktop): bump version to ${VERSION}"
-        success "Committed version bump ${WORKTREE_VERSION} -> ${VERSION} on top of ${SHORT_SHA}"
+        HOST_SERVICE_OLD=$(jq -r .version "packages/host-service/package.json")
+        HOST_SERVICE_NEW=$(bump_host_service_patch "${WORKTREE_DIR}")
+        git add "${DESKTOP_DIR}/package.json" "packages/host-service/package.json"
+        git commit -m "chore(desktop): bump version to ${VERSION} (host-service ${HOST_SERVICE_OLD} -> ${HOST_SERVICE_NEW})"
+        success "Committed version bump ${WORKTREE_VERSION} -> ${VERSION} (host-service ${HOST_SERVICE_OLD} -> ${HOST_SERVICE_NEW}) on top of ${SHORT_SHA}"
     fi
 
     info "Pushing temp branch ${TEMP_BRANCH}..."
@@ -337,9 +352,16 @@ else
         bunx biome format --write package.json
         success "Updated package.json from ${CURRENT_VERSION} to ${VERSION}"
 
+        # Patch-bump host-service alongside the desktop bump so detached
+        # host-service auto-updates ship with each desktop release.
+        REPO_ROOT_FOR_HS=$(git rev-parse --show-toplevel)
+        HOST_SERVICE_OLD=$(jq -r .version "${REPO_ROOT_FOR_HS}/packages/host-service/package.json")
+        HOST_SERVICE_NEW=$(bump_host_service_patch "${REPO_ROOT_FOR_HS}")
+        success "Updated host-service from ${HOST_SERVICE_OLD} to ${HOST_SERVICE_NEW}"
+
         # Commit the version change
-        git add package.json
-        git commit -m "chore(desktop): bump version to ${VERSION}"
+        git add package.json "${REPO_ROOT_FOR_HS}/packages/host-service/package.json"
+        git commit -m "chore(desktop): bump version to ${VERSION} (host-service ${HOST_SERVICE_OLD} -> ${HOST_SERVICE_NEW})"
         success "Committed version change"
     fi
 

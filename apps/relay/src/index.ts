@@ -12,7 +12,28 @@ import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
 import { TunnelManager } from "./tunnel";
 
+// Bearer tokens we never want in stdout. The remote-control viewer must
+// put its token on the WS upgrade URL because browser WebSockets can't
+// send custom headers, and Hono's default `logger()` echoes the full
+// query string. Mask the values before they reach the log sink so the
+// raw token doesn't end up in Fly logs / Sentry breadcrumbs.
+const SENSITIVE_QUERY_RE = /([?&])(remoteControlToken|token)=[^&\s]+/g;
+const redactingLogger = logger((message, ...rest) => {
+	const redacted =
+		typeof message === "string"
+			? message.replace(SENSITIVE_QUERY_RE, "$1$2=REDACTED")
+			: message;
+	console.log(redacted, ...rest);
+});
+
 initSentry();
+
+process.on("uncaughtException", (err) => {
+	console.error("[relay] uncaughtException (suppressed)", err);
+});
+process.on("unhandledRejection", (reason) => {
+	console.error("[relay] unhandledRejection (suppressed)", reason);
+});
 
 type AppContext = {
 	Variables: {
@@ -26,8 +47,53 @@ const app = new Hono<AppContext>();
 const tunnelManager = new TunnelManager();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
-app.use("*", logger());
+// Graceful drain on Fly's pre-stop signal. Fly's init sends SIGINT (not
+// SIGTERM) to the main process during rolling deploys; listen on both to
+// also cover hand-rolled `fly machine stop` and local Ctrl-C. Without this,
+// deploys kill the process while tunnels are open and host-services see
+// TCP-RST'd sockets, triggering their long exponential backoff.
+//
+// Sequence: stop accepting new TCP connections (server.close), then close
+// every open tunnel with the app-defined drain code so hosts reconnect
+// promptly, and clear this machine's directory ownership before process exit.
+// server is assigned at the bottom of this file — by signal time, the closure
+// has it.
+let server: ReturnType<typeof serve> | null = null;
+let draining = false;
+const handleDrain = async (signal: string) => {
+	if (draining) return;
+	draining = true;
+	console.log(`[relay] ${signal} received, draining tunnels`);
+	try {
+		server?.close();
+		const cleared = await tunnelManager.drain({
+			clearDirectory: () =>
+				directory.clearStaleEntriesForMachine(
+					env.FLY_REGION,
+					env.FLY_MACHINE_ID,
+				),
+		});
+		if (cleared > 0) {
+			console.log(`[relay] cleared ${cleared} directory entries during drain`);
+		}
+	} catch (err) {
+		console.error("[relay] drain failed", err);
+	}
+	process.exit(0);
+};
+process.on("SIGINT", () => void handleDrain("SIGINT"));
+process.on("SIGTERM", () => void handleDrain("SIGTERM"));
+
+app.use("*", redactingLogger);
 app.use("*", cors());
+
+app.onError((err, c) => {
+	captureSentryException(err, {
+		op: "hono.onError",
+		path: new URL(c.req.url).pathname,
+	});
+	return c.json({ error: "Internal server error" }, 500);
+});
 
 app.get("/health", (c) => c.json({ ok: true, region: env.FLY_REGION }));
 
@@ -94,7 +160,7 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 		return c.json({ error: "Host not connected" }, 503);
 	}
 
-	const hasAccess = await checkHostAccess(token, hostId);
+	const hasAccess = await checkHostAccess(auth, token, hostId);
 	if (!hasAccess) return c.json({ error: "Forbidden" }, 403);
 
 	c.set("auth", auth);
@@ -115,6 +181,11 @@ app.get(
 
 		return {
 			onOpen: async (_event, ws) => {
+				if (draining) {
+					ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
+					return;
+				}
+
 				if (!hostId || !token) {
 					ws.close(1008, "Missing hostId or token");
 					return;
@@ -126,9 +197,14 @@ app.get(
 					return;
 				}
 
-				const hasAccess = await checkHostAccess(token, hostId);
+				const hasAccess = await checkHostAccess(auth, token, hostId);
 				if (!hasAccess) {
 					ws.close(1008, "Forbidden");
+					return;
+				}
+
+				if (draining) {
+					ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
 					return;
 				}
 
@@ -175,8 +251,35 @@ app.get("/hosts/:hostId/_whoowns", async (c) => {
 });
 
 // ── Host proxy (auth required) ──────────────────────────────────────
+//
+// Remote-control viewer WebSockets (`/hosts/:hostId/remote-control/*`)
+// authenticate via a per-session HMAC `remoteControlToken` query param
+// that is verified by the host-service, not by us. Skip the user-JWT
+// gate for those paths only — the HMAC is the credential the cloud
+// hands to viewers, who may not have a Superset user JWT in the URL.
+//
+// We must still run the tunnel-presence + maybeReplay logic that
+// `authMiddleware` does, otherwise viewer links break in multi-region
+// Fly deployments whenever the load balancer lands a request on a
+// relay instance that doesn't own the destination tunnel.
 
-app.use("/hosts/:hostId/*", authMiddleware);
+app.use("/hosts/:hostId/*", async (c, next) => {
+	const path = new URL(c.req.url).pathname;
+	const hostId = c.req.param("hostId") ?? "";
+	if (!hostId) return c.json({ error: "Missing hostId" }, 400);
+	const prefix = `/hosts/${hostId}`;
+	const rest = path.slice(prefix.length);
+	if (rest.startsWith("/remote-control/")) {
+		if (!tunnelManager.hasTunnel(hostId)) {
+			const replay = await maybeReplay(hostId);
+			if (replay) return c.body(null, 200, replay.header);
+			return c.json({ error: "Host not connected" }, 503);
+		}
+		c.set("hostId", hostId);
+		return next();
+	}
+	return authMiddleware(c, next);
+});
 
 app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const hostId = c.get("hostId");
@@ -263,7 +366,25 @@ if (env.RELAY_SYNTHETIC_JWT) {
 
 // ── Start ───────────────────────────────────────────────────────────
 
-const server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
+// Clear any directory entries our previous process generation left behind
+// (SIGKILL, drain race, etc.) before we begin accepting connections, so
+// fly-replay doesn't route cross-region requests at us for tunnels we no
+// longer have. Best-effort: relay still boots if Upstash is unreachable.
+try {
+	const cleared = await directory.clearStaleEntriesForMachine(
+		env.FLY_REGION,
+		env.FLY_MACHINE_ID,
+	);
+	if (cleared > 0) {
+		console.log(
+			`[relay] cleared ${cleared} stale directory entries on startup`,
+		);
+	}
+} catch (err) {
+	console.error("[relay] startup cleanup failed", err);
+}
+
+server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
 	console.log(
 		`[relay] listening on http://localhost:${info.port} (region=${env.FLY_REGION} machine=${env.FLY_MACHINE_ID})`,
 	);

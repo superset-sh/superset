@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 export interface EnsureV2ProjectResult {
@@ -13,12 +14,17 @@ export function useEnsureV2Project(): (args: {
 	repoPath: string;
 	name: string;
 }) => Promise<EnsureV2ProjectResult> {
-	const { activeHostUrl } = useLocalHostService();
+	const hostServiceContext = useLocalHostService();
+	const { activeHostUrl } = hostServiceContext;
 
 	return useCallback(
 		async ({ repoPath, name }) => {
 			if (!activeHostUrl) {
-				throw new Error("No active host service");
+				throw new Error(
+					getHostServiceUnavailableMessage(hostServiceContext, {
+						action: "import the project",
+					}),
+				);
 			}
 			const hostService = getHostServiceClientByUrl(activeHostUrl);
 
@@ -61,6 +67,6 @@ export function useEnsureV2Project(): (args: {
 				mainWorkspaceId: created.mainWorkspaceId,
 			};
 		},
-		[activeHostUrl],
+		[activeHostUrl, hostServiceContext],
 	);
 }

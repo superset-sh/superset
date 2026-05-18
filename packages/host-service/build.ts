@@ -17,6 +17,9 @@ const result = await Bun.build({
 	outdir,
 	naming: "host-service.js",
 	format: "esm",
+	define: {
+		"process.env.NODE_ENV": JSON.stringify("production"),
+	},
 	external: [
 		"better-sqlite3",
 		"node-pty",
@@ -28,6 +31,15 @@ const result = await Bun.build({
 		"@anush008/tokenizers-linux-x64-gnu",
 		"@anush008/tokenizers-linux-arm64-gnu",
 		"@anush008/tokenizers-win32-x64-msvc",
+		"@mastra/duckdb",
+		"@duckdb/node-api",
+		"@duckdb/node-bindings",
+		"@duckdb/node-bindings-darwin-arm64",
+		"@duckdb/node-bindings-darwin-x64",
+		"@duckdb/node-bindings-linux-x64",
+		"@duckdb/node-bindings-linux-arm64",
+		"@duckdb/node-bindings-win32-x64",
+		"@duckdb/node-bindings-win32-arm64",
 	],
 });
 

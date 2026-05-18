@@ -74,6 +74,13 @@ function getPortCacheKey(
 	return `${port.workspaceId}:${port.terminalId}:${port.port}`;
 }
 
+function mergeSortedWorkspaceIds(
+	left: readonly string[],
+	right: readonly string[],
+): string[] {
+	return Array.from(new Set([...left, ...right])).sort();
+}
+
 export function applyPortEventsToHostPortsResult(
 	result: HostPortsResult | undefined,
 	events: PortChangedPayload[],
@@ -137,6 +144,9 @@ export function deriveHostPortQueryTargets({
 	for (const workspaceIds of workspaceIdsByHostId.values()) {
 		workspaceIds.sort();
 	}
+	const allWorkspaceIds = workspaces
+		.map((workspace) => workspace.id)
+		.sort((a, b) => a.localeCompare(b));
 
 	const targets = hosts.flatMap((host) => {
 		const workspaceIds = workspaceIdsByHostId.get(host.machineId);
@@ -162,22 +172,30 @@ export function deriveHostPortQueryTargets({
 		];
 	});
 
-	// If the local v2Hosts row hasn't synced via Electric, the loop above won't
-	// include the local machine — which would hide its ports. Synthesize a
-	// local target from machineId + activeHostUrl whenever workspaces with
-	// hostId === machineId exist.
-	if (
-		machineId &&
-		activeHostUrl &&
-		!targets.some((target) => target.machineId === machineId)
-	) {
-		const localWorkspaceIds = workspaceIdsByHostId.get(machineId);
-		if (localWorkspaceIds && localWorkspaceIds.length > 0) {
+	// v1 asked the local port manager for every tracked port. Keep v2's host
+	// fan-out for remote ports, but make the active local host tolerant of
+	// stale/missing Electric host mappings by allowing every known workspace id.
+	if (machineId && activeHostUrl && allWorkspaceIds.length > 0) {
+		const localTargetIndex = targets.findIndex(
+			(target) => target.machineId === machineId,
+		);
+		if (localTargetIndex >= 0) {
+			const localTarget = targets[localTargetIndex];
+			if (localTarget) {
+				targets[localTargetIndex] = {
+					...localTarget,
+					workspaceIds: mergeSortedWorkspaceIds(
+						localTarget.workspaceIds,
+						allWorkspaceIds,
+					),
+				};
+			}
+		} else {
 			targets.push({
 				machineId,
 				hostType: "local-device",
 				hostUrl: activeHostUrl,
-				workspaceIds: localWorkspaceIds,
+				workspaceIds: allWorkspaceIds,
 			});
 		}
 	}
@@ -187,11 +205,9 @@ export function deriveHostPortQueryTargets({
 
 export function groupDashboardSidebarPorts({
 	hostPortResults,
-	machineId,
 	workspaces,
 }: {
 	hostPortResults: Array<HostPortsResult | undefined>;
-	machineId: string | null;
 	workspaces: DashboardSidebarWorkspaceRow[];
 }): DashboardSidebarPortGroup[] {
 	const workspacesById = new Map(
@@ -199,11 +215,6 @@ export function groupDashboardSidebarPorts({
 			workspace.id,
 			{
 				name: workspace.name,
-				hostId: workspace.hostId,
-				hostType:
-					workspace.hostId === machineId
-						? ("local-device" as const)
-						: ("remote-device" as const),
 			},
 		]),
 	);
@@ -215,7 +226,6 @@ export function groupDashboardSidebarPorts({
 		for (const port of result.ports) {
 			const workspace = workspacesById.get(port.workspaceId);
 			if (!workspace) continue;
-			if (workspace.hostId !== result.hostId) continue;
 
 			const dashboardPort: DashboardSidebarPort = {
 				...port,
@@ -231,7 +241,7 @@ export function groupDashboardSidebarPorts({
 				groupMap.set(port.workspaceId, {
 					workspaceId: port.workspaceId,
 					workspaceName: workspace.name,
-					hostType: workspace.hostType,
+					hostType: result.hostType,
 					ports: [dashboardPort],
 				});
 			}

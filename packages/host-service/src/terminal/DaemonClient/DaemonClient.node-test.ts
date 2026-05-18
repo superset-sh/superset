@@ -7,6 +7,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { Server } from "@superset/pty-daemon";
+import { CURRENT_PROTOCOL_VERSION } from "@superset/pty-daemon/protocol";
 import { DaemonClient } from "./DaemonClient.ts";
 
 const sockPath = path.join(
@@ -31,7 +32,7 @@ test("connect + handshake exposes daemon version", async () => {
 	const c = new DaemonClient({ socketPath: sockPath });
 	await c.connect();
 	assert.equal(c.version, "0.0.0-host-test");
-	assert.equal(c.protocol, 1);
+	assert.equal(c.protocol, CURRENT_PROTOCOL_VERSION);
 	assert.ok(c.isConnected);
 	await c.dispose();
 });

@@ -110,6 +110,7 @@ export const terminalPresetSchema = z.object({
 	commands: z.array(z.string()),
 	projectIds: z.array(z.string()).nullable().optional(),
 	pinnedToBar: z.boolean().optional(),
+	useAsWorkspaceRun: z.boolean().optional(),
 	applyOnWorkspaceCreated: z.boolean().optional(),
 	applyOnNewTab: z.boolean().optional(),
 	executionMode: z.enum(EXECUTION_MODES).optional(),

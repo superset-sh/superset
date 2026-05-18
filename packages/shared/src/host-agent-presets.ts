@@ -37,7 +37,7 @@ export const HOST_AGENT_PRESETS = [
 		description:
 			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
 		command: "claude",
-		args: ["--permission-mode", "acceptEdits"],
+		args: ["--dangerously-skip-permissions"],
 		promptTransport: "argv",
 		promptArgs: [],
 		env: {},
@@ -59,18 +59,7 @@ export const HOST_AGENT_PRESETS = [
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
 		command: "codex",
-		args: [
-			"-c",
-			'model_reasoning_effort="high"',
-			"-c",
-			'model_reasoning_summary="detailed"',
-			"-c",
-			"model_supports_reasoning_summaries=true",
-			"--sandbox",
-			"workspace-write",
-			"--ask-for-approval",
-			"never",
-		],
+		args: ["--dangerously-bypass-approvals-and-sandbox"],
 		promptTransport: "argv",
 		promptArgs: ["--"],
 		env: {},

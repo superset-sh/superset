@@ -131,6 +131,46 @@ end
 return removed
 `;
 
+// Called on relay startup. Removes any directory entries the prior process
+// generation left behind (SIGKILL / crash / drain race) before we begin
+// accepting connections. The owner value includes the Fly machineId, which
+// stays the same across restarts of a given VM — so any pre-existing entry
+// with our owner string is necessarily stale.
+//
+// Batched as a single Lua eval so startup time stays bounded at one Redis
+// round-trip regardless of how many tunnels the previous generation owned;
+// per-host serial unregister calls would scale with directory size and eat
+// directly into deploy recovery.
+const CLEAR_STALE_SCRIPT = `
+local owner = ARGV[1]
+local entries = redis.call('HGETALL', KEYS[1])
+local cleared = 0
+for i = 1, #entries, 2 do
+  local hostId = entries[i]
+  local current = entries[i + 1]
+  if current == owner then
+    redis.call('HDEL', KEYS[1], hostId)
+    redis.call('HDEL', KEYS[2], hostId)
+    redis.call('ZREM', KEYS[3], hostId)
+    cleared = cleared + 1
+  end
+end
+return cleared
+`;
+
+export async function clearStaleEntriesForMachine(
+	region: string,
+	machineId: string,
+): Promise<number> {
+	const myOwner = encodeOwner(region, machineId);
+	const result = await redis.eval(
+		CLEAR_STALE_SCRIPT,
+		[OWNER_KEY, META_KEY, TTL_KEY],
+		[myOwner],
+	);
+	return typeof result === "number" ? result : 0;
+}
+
 export async function sweepStale(): Promise<number> {
 	const now = Date.now();
 	const result = await redis.eval(

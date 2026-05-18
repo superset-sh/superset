@@ -9,7 +9,8 @@ import {
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
-import { useId } from "react";
+import { useEffect, useId } from "react";
+import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
 
 interface DestroyConfirmPaneProps {
 	open: boolean;
@@ -40,6 +41,20 @@ export function DestroyConfirmPane({
 }: DestroyConfirmPaneProps) {
 	const checkboxId = useId();
 	const hasWarnings = hasChanges || hasUnpushedCommits;
+
+	useEffect(() => {
+		if (!open || !canConfirm) return;
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (!shouldConfirmDeleteDialogKey(event)) return;
+			event.preventDefault();
+			onConfirm();
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [canConfirm, onConfirm, open]);
+
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent className="max-w-[340px] gap-0 p-0">

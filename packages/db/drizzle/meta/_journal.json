@@ -337,6 +337,48 @@
       "when": 1778189803548,
       "tag": "0047_backfill_slack_model_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1778450275874,
+      "tag": "0048_integration_connections_active_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1778468182416,
+      "tag": "0049_add_teams",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1778492040993,
+      "tag": "0050_add_v2_remote_control_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1778615137962,
+      "tag": "0051_replace_automation_agent_config_with_agent_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1778640788987,
+      "tag": "0052_electric_proxy_shape_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1778777338910,
+      "tag": "0053_invitations_team_id_and_session_active_team_id",
+      "breakpoints": true
     }
   ]
 }

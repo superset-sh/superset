@@ -89,6 +89,54 @@ describe("resolveV2AgentStatusTransition", () => {
 		});
 	});
 
+	it("does not change pane status on session Attached", () => {
+		expect(
+			resolveV2AgentStatusTransition({
+				workspaceId: WORKSPACE_ID,
+				payload: payload({ eventType: "Attached", terminalId: "terminal-1" }),
+				statuses: {},
+				targetVisible: false,
+			}),
+		).toEqual({ clearSources: [], setStatus: null });
+	});
+
+	it("clears transient pane status on session Detached", () => {
+		for (const status of ["working", "permission"] as const) {
+			expect(
+				resolveV2AgentStatusTransition({
+					workspaceId: WORKSPACE_ID,
+					payload: payload({ eventType: "Detached", terminalId: "terminal-1" }),
+					statuses: {
+						"terminal:terminal-1": {
+							workspaceId: WORKSPACE_ID,
+							status,
+						},
+					},
+					targetVisible: false,
+				}),
+			).toEqual({
+				clearSources: [{ type: "terminal", id: "terminal-1" }],
+				setStatus: null,
+			});
+		}
+	});
+
+	it("does not clear review pane status on session Detached", () => {
+		expect(
+			resolveV2AgentStatusTransition({
+				workspaceId: WORKSPACE_ID,
+				payload: payload({ eventType: "Detached", terminalId: "terminal-1" }),
+				statuses: {
+					"terminal:terminal-1": {
+						workspaceId: WORKSPACE_ID,
+						status: "review",
+					},
+				},
+				targetVisible: false,
+			}),
+		).toEqual({ clearSources: [], setStatus: null });
+	});
+
 	it("ignores permission state from a different workspace", () => {
 		expect(
 			resolveV2AgentStatusTransition({

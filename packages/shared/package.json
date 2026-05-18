@@ -8,6 +8,10 @@
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
 		},
+		"./v2-only-user": {
+			"types": "./src/v2-only-user.ts",
+			"default": "./src/v2-only-user.ts"
+		},
 		"./names": {
 			"types": "./src/names/index.ts",
 			"default": "./src/names/index.ts"
@@ -35,6 +39,10 @@
 		"./agent-catalog": {
 			"types": "./src/agent-catalog.ts",
 			"default": "./src/agent-catalog.ts"
+		},
+		"./agent-identity": {
+			"types": "./src/agent-identity.ts",
+			"default": "./src/agent-identity.ts"
 		},
 		"./host-agent-presets": {
 			"types": "./src/host-agent-presets.ts",
@@ -104,6 +112,10 @@
 			"types": "./src/github-remote.ts",
 			"default": "./src/github-remote.ts"
 		},
+		"./simple-git-options": {
+			"types": "./src/simple-git-options.ts",
+			"default": "./src/simple-git-options.ts"
+		},
 		"./shell-ready-scanner": {
 			"types": "./src/shell-ready-scanner.ts",
 			"default": "./src/shell-ready-scanner.ts"
@@ -115,6 +127,10 @@
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
+		},
+		"./remote-control-protocol": {
+			"types": "./src/remote-control-protocol.ts",
+			"default": "./src/remote-control-protocol.ts"
 		}
 	},
 	"scripts": {
@@ -123,15 +139,15 @@
 		"test": "bun test"
 	},
 	"dependencies": {
-		"@date-fns/tz": "^1.4.1",
-		"friendly-words": "^1.3.1",
-		"rrule": "^2.8.1",
-		"zod": "^4.3.5"
+		"@date-fns/tz": "1.4.1",
+		"friendly-words": "1.3.1",
+		"rrule": "2.8.1",
+		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@types/friendly-words": "^1.2.2",
-		"bun-types": "^1.3.1",
-		"typescript": "^5.9.3"
+		"@types/friendly-words": "1.2.2",
+		"bun-types": "1.3.11",
+		"typescript": "5.9.3"
 	}
 }

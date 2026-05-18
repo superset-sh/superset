@@ -169,6 +169,7 @@ export function buildV2TerminalEnv(
 	Object.assign(env, getShellBootstrapEnv({ shell, baseEnv, supersetHomeDir }));
 
 	env.TERM = "xterm-256color";
+	env.SHELL = shell;
 	// claude-code and similar chat TUIs only parse kitty CSI-u (e.g. Shift+Enter
 	// → \x1b[13;2u) when TERM_PROGRAM ∈ {ghostty, kitty, iTerm.app, WezTerm,
 	// WarpTerminal}. xterm.js already emits the right bytes — claim kitty so

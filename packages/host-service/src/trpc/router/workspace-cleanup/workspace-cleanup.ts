@@ -255,7 +255,10 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 
 	// 3a. PTYs
 	try {
-		const killed = disposeSessionsByWorkspaceId(input.workspaceId, ctx.db);
+		const killed = await disposeSessionsByWorkspaceId(
+			input.workspaceId,
+			ctx.db,
+		);
 		if (killed.failed > 0) {
 			warnings.push(`${killed.failed} terminal(s) may still be running`);
 		}
@@ -291,6 +294,7 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 				if (
 					message.includes("is not a working tree") ||
 					message.includes("No such file or directory") ||
+					message.includes("does not exist") ||
 					message.includes("ENOENT")
 				) {
 					worktreeRemoved = true;

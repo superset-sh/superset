@@ -14,6 +14,7 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface DeleteProjectSectionProps {
@@ -26,13 +27,16 @@ export function DeleteProjectSection({
 	projectName,
 }: DeleteProjectSectionProps) {
 	const navigate = useNavigate();
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleDelete = async () => {
 		if (!activeHostUrl) {
-			toast.error("Host service not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "delete the project",
+			});
 			return;
 		}
 		setIsDeleting(true);
@@ -50,13 +54,9 @@ export function DeleteProjectSection({
 	};
 
 	return (
-		<div className="flex items-center justify-between gap-8">
+		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="min-w-0 flex-1">
 				<div className="text-sm font-medium">Delete project</div>
-				<p className="text-xs text-muted-foreground mt-0.5">
-					Removes the project from the organization. Workspaces and local clones
-					on any host are not affected.
-				</p>
 			</div>
 			<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
 				<AlertDialogTrigger asChild>

@@ -327,6 +327,16 @@ export function PresetsSection({
 		[setPresetAutoApply],
 	);
 
+	const handleToggleWorkspaceRun = useCallback(
+		(presetId: string, enabled: boolean) => {
+			updatePreset.mutate({
+				id: presetId,
+				patch: { useAsWorkspaceRun: enabled },
+			});
+		},
+		[updatePreset],
+	);
+
 	const handleToggleVisibility = useCallback(
 		(presetId: string, visible: boolean) => {
 			updatePreset.mutate({
@@ -367,6 +377,7 @@ export function PresetsSection({
 	}, [editingRowIndex, handleDeleteRow, setEditingPreset]);
 
 	const isWorkspaceCreation = !!editingPreset?.applyOnWorkspaceCreated;
+	const isWorkspaceRun = !!editingPreset?.useAsWorkspaceRun;
 	const isNewTab = !!editingPreset?.applyOnNewTab;
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
 	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
@@ -457,6 +468,14 @@ export function PresetsSection({
 		[editingPreset, handleToggleAutoApply],
 	);
 
+	const handleEditorWorkspaceRunToggle = useCallback(
+		(enabled: boolean) => {
+			if (!editingPreset) return;
+			handleToggleWorkspaceRun(editingPreset.id, enabled);
+		},
+		[editingPreset, handleToggleWorkspaceRun],
+	);
+
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
@@ -522,8 +541,10 @@ export function PresetsSection({
 				onCommandsBlur={handleEditorCommandsBlur}
 				onModeChange={handleEditorModeChange}
 				onToggleAutoApply={handleEditorAutoApplyToggle}
+				onToggleWorkspaceRun={handleEditorWorkspaceRunToggle}
 				modeValue={modeValue}
 				hasMultipleCommands={hasMultipleCommands}
+				isWorkspaceRun={isWorkspaceRun}
 				isWorkspaceCreation={isWorkspaceCreation}
 				isNewTab={isNewTab}
 			/>

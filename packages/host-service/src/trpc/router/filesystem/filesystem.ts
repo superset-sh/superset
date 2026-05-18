@@ -1,9 +1,28 @@
-import { stat } from "node:fs/promises";
-import { isAbsolute, join, normalize, resolve } from "node:path";
+import { readdir, stat } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname, isAbsolute, join, normalize, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+
+function expandTildeAbsolute(input: string): string {
+	const trimmed = input.trim();
+	if (trimmed.startsWith("~")) {
+		const home = homedir();
+		const rest = trimmed.slice(1);
+		if (rest === "" || rest.startsWith("/") || rest.startsWith("\\")) {
+			return normalize(join(home, rest));
+		}
+	}
+	if (!isAbsolute(trimmed)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Path must be absolute or start with ~",
+		});
+	}
+	return normalize(trimmed);
+}
 
 function getFilesystemService(ctx: HostServiceContext, workspaceId: string) {
 	try {
@@ -51,6 +70,87 @@ const writeFileContentSchema = z.union([
 ]);
 
 export const filesystemRouter = router({
+	/**
+	 * Browse any directory on the host filesystem. Unlike `listDirectory`,
+	 * this is not scoped to a workspace — used by the project setup flow to
+	 * pick a parent/repo path on a host that doesn't yet have a workspace.
+	 *
+	 * Path handling: absolute paths or ~-prefixed paths only. Returns the
+	 * normalized absolute path along with subdirectory entries, sorted with
+	 * dotfiles last.
+	 */
+	browseHost: protectedProcedure
+		.input(
+			z.object({
+				path: z.string().optional(),
+				includeHidden: z.boolean().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			const targetPath = input.path
+				? expandTildeAbsolute(input.path)
+				: homedir();
+
+			let stats: Awaited<ReturnType<typeof stat>>;
+			try {
+				stats = await stat(targetPath);
+			} catch {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Path not found: ${targetPath}`,
+				});
+			}
+			if (!stats.isDirectory()) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Not a directory: ${targetPath}`,
+				});
+			}
+
+			let rawEntries: Array<{
+				name: string;
+				isDirectory: boolean;
+				isSymlink: boolean;
+			}>;
+			try {
+				const dirents = await readdir(targetPath, {
+					withFileTypes: true,
+					encoding: "utf8",
+				});
+				rawEntries = dirents.map((d) => ({
+					name: d.name,
+					isDirectory: d.isDirectory(),
+					isSymlink: d.isSymbolicLink(),
+				}));
+			} catch (err) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						err instanceof Error
+							? err.message
+							: `Cannot read directory: ${targetPath}`,
+				});
+			}
+
+			const entries = rawEntries
+				.filter((e) => input.includeHidden || !e.name.startsWith("."))
+				.sort((a, b) => {
+					const aHidden = a.name.startsWith(".");
+					const bHidden = b.name.startsWith(".");
+					if (aHidden !== bHidden) return aHidden ? 1 : -1;
+					if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+					return a.name.localeCompare(b.name);
+				});
+
+			const parent = dirname(targetPath);
+			return {
+				path: targetPath,
+				parentPath: parent === targetPath ? null : parent,
+				homePath: homedir(),
+				entries,
+			};
+		}),
+
 	listDirectory: queryProcedure
 		.input(
 			z.object({

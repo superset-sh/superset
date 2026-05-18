@@ -52,7 +52,7 @@ export function TerminalLogsButton({
 								"rounded p-1 transition-colors",
 								hasError
 									? "text-destructive/70 hover:text-destructive"
-									: "text-amber-500/70 hover:text-amber-500",
+									: "text-muted-foreground hover:text-foreground",
 							)}
 						>
 							<AlertTriangle className="size-3.5" />

@@ -213,8 +213,9 @@ Authenticate via browser OAuth and store a session token locally.
 | Option | Required | Description |
 | --- | --- | --- |
 | `--organization <idOrSlug>` | When stdout is non-TTY and the user belongs to multiple orgs | Selects the active organization without prompting. Optional but supported when stdout is a TTY (skips the picker). |
+| `--api-key <key>` | No | Store a Superset API key (`sk_live_…`) at `~/.superset/config.json` instead of running the OAuth flow. Validates via `user.me` before writing. Mutually exclusive with the OAuth flow — passing this clears any stored `auth` session. |
 
-Flow:
+Flow (OAuth):
 
 1. Loopback callback server on `127.0.0.1:51789` or `51790`.
 2. Opens `${WEB_URL}/cli/authorize?...`. `WEB_URL` is a build-time constant
@@ -222,8 +223,17 @@ Flow:
 3. Web posts to `/api/cli/create-code`.
 4. CLI receives the code on the loopback callback (5-minute timeout).
 5. CLI exchanges via `/api/cli/exchange`.
-6. CLI stores `auth.accessToken` and `auth.expiresAt`.
+6. CLI stores `auth.accessToken` and `auth.expiresAt`, clears `apiKey`.
 7. CLI calls `user.me`, `user.myOrganizations`.
+
+Flow (`--api-key`):
+
+1. CLI validates the supplied key by calling `user.me` with the key in the
+   `x-api-key` header.
+2. On success, CLI writes `apiKey` to `~/.superset/config.json` and
+   deletes any stored OAuth `auth`. On failure, CLI exits 1 without
+   writing.
+3. CLI continues with the same org-selection rules as the OAuth flow.
 
 Org selection rules:
 
@@ -243,13 +253,16 @@ Output:
 }
 ```
 
-Side effects: writes `~/.superset/config.json` with `auth` and
-`organizationId`. Spinner is guarded by `process.stdout.isTTY`.
+Side effects: writes `~/.superset/config.json`. The OAuth flow writes
+`auth` (and clears any stored `apiKey`); the `--api-key` flow writes
+`apiKey` (and clears any stored `auth`). Both write `organizationId`
+when an org is selected. Spinner is guarded by `process.stdout.isTTY`.
 
 ### `superset auth logout`
 
-Clear `auth` from `~/.superset/config.json`. Does not call the API. Does not
-clear `organizationId` — the user's preferred org persists across re-logins.
+Clear `auth` and `apiKey` from `~/.superset/config.json`. Does not call
+the API. Does not clear `organizationId` — the user's preferred org
+persists across re-logins.
 
 Output:
 
@@ -272,7 +285,7 @@ Output:
   name: string;
   organizationId: string;
   organizationName: string;
-  authSource: "flag" | "env" | "oauth";
+  authSource: "override" | "config" | "oauth";
 }
 ```
 
@@ -589,8 +602,7 @@ Output: `Automation` (with `recentRuns` omitted — use
 | `--workspace <workspaceId>` | one of workspace/project | Reuse an existing workspace; project is derived server-side. |
 | `--project <projectId>` | one of workspace/project | New-workspace-per-run mode. |
 | `--host <hostId>` | no | Target host for runs. Default: owner's online host. |
-| `--agent <presetId>` | no | Default: `claude`. |
-| `--agent-config-file <path>` | no | Full ResolvedAgentConfig JSON; overrides `--agent`. |
+| `--agent <agent>` | no | Host agent presetId, `HostAgentConfig` instance UUID, or `superset` for built-in chat. Default: `claude`. |
 
 Exactly one of `--prompt` or `--prompt-file` must be provided. Exactly one
 of `--workspace` or `--project` must be provided. Both constraints are
@@ -598,7 +610,7 @@ enforced at parse time and shown as `(required, one of: ...)` in help.
 
 tRPC: `automation.create`.
 
-Output: `Automation` (raw, including `id`, `nextRunAt`, `agentConfig`).
+Output: `Automation` (raw, including `id`, `nextRunAt`, `agent`).
 
 ### `superset automations update <id>`
 
@@ -615,8 +627,7 @@ update semantics (see Backend Prerequisites).
 | `--timezone <iana>` | |
 | `--dtstart <iso8601>` | |
 | `--host <hostId>` | Preserves the existing host when omitted. |
-| `--agent <presetId>` | Preserves the existing agent config when omitted. |
-| `--agent-config-file <path>` | Overrides `--agent` when both provided. |
+| `--agent <agent>` | Host agent presetId, instance UUID, or `superset`. Preserves the existing value when omitted. |
 | `--enabled` / `--no-enabled` | Calls `automation.setEnabled` first. |
 
 tRPC:
@@ -799,8 +810,8 @@ These changes must land in the API/server before the v1 CLI ships:
 - **`automation.create` workspace-only mode** — when `v2WorkspaceId` is
   provided, derive `v2ProjectId` server-side instead of requiring both.
 - **`automation.update` partial semantics** — treat `undefined` fields as
-  "no change" for `targetHostId` and `agentConfig`. The CLI will rely on
-  this to fix the silent-clobber bug (CLI-CURRENT-010, CLI-CURRENT-028).
+  "no change" for `targetHostId` and `agent`. The CLI will rely on this to
+  fix the silent-clobber bug (CLI-CURRENT-010, CLI-CURRENT-028).
 - **`host.list`** on cloud — new tRPC procedure for the
   `superset hosts list` discovery command. Returns hosts with
   `id = machineId` (the consolidated identifier — see below).

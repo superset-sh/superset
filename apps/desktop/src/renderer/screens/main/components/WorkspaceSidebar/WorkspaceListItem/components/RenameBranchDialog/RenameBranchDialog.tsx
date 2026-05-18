@@ -13,6 +13,7 @@ import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface RenameBranchDialogProps {
@@ -33,7 +34,8 @@ export function RenameBranchDialog({
 	const [value, setValue] = useState(currentBranchName);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const electronUtils = electronTrpc.useUtils();
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 
 	useEffect(() => {
 		if (open) setValue(currentBranchName);
@@ -46,7 +48,9 @@ export function RenameBranchDialog({
 	const handleSubmit = async () => {
 		if (isInvalid || isSubmitting) return;
 		if (!activeHostUrl) {
-			toast.error("Host service is not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "rename the branch",
+			});
 			return;
 		}
 

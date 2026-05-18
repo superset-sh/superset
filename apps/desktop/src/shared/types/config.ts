@@ -2,6 +2,7 @@ export interface SetupConfig {
 	setup?: string[];
 	teardown?: string[];
 	run?: string[];
+	cwd?: string;
 }
 
 export interface LocalScriptMerge {

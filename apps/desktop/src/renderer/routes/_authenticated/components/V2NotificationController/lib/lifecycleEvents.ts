@@ -12,6 +12,7 @@ import {
 	useV2NotificationStore,
 	type V2NotificationSourceInput,
 } from "renderer/stores/v2-notifications";
+import { getV2NativeNotificationContent } from "./notificationContent";
 import {
 	isV2NotificationTargetVisible,
 	resolveV2NotificationTarget,
@@ -20,27 +21,21 @@ import {
 import { resolveV2AgentStatusTransition } from "./statusTransitions";
 
 /**
- * Handles v2 lifecycle events received by V2NotificationController. Updates
- * pane status indicators (working/review/permission/idle) and plays the
- * selected ringtone in the renderer.
- *
- * Mirrors the v1 electron-main playback path
- * (apps/desktop/src/main/lib/notifications/notification-manager.ts) plus the
- * v1 sidebar-status path (renderer/stores/tabs/useAgentHookListener.ts), but
- * runs client-side so it works when host-service is off-machine.
- *
- * Keeps v1 behavior: skip `Start` for sound, suppress when the event's
- * pane is visible and the window is focused, and honor the existing
- * mute/volume settings.
+ * Updates pane status indicators (working/review/permission/idle) and plays
+ * the completion chime client-side, so the playback path works when
+ * host-service runs off-machine. The chime is suppressed when the target
+ * pane is visible and the window is focused.
  */
 export function handleV2AgentLifecycleEvent({
 	workspaceId,
+	workspaceName,
 	payload,
 	paneLayout,
 	volume,
 	muted,
 }: {
 	workspaceId: string;
+	workspaceName: string;
 	payload: AgentLifecyclePayload;
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 	volume: number;
@@ -53,13 +48,28 @@ export function handleV2AgentLifecycleEvent({
 	});
 	updatePaneStatus(workspaceId, payload, target, paneLayout);
 
-	if (payload.eventType === "Start") return;
+	// Only Stop and PermissionRequest deserve sound. Start fires per-prompt
+	// (the working spinner is feedback enough); Attached/Detached fire on
+	// agent boot and clean exit, neither of which is a "your agent finished"
+	// moment.
+	if (
+		payload.eventType === "Start" ||
+		payload.eventType === "Attached" ||
+		payload.eventType === "Detached"
+	) {
+		return;
+	}
 	if (shouldSuppress(target, paneLayout)) return;
 
 	const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
 	void playRingtone({ ringtoneId, volume, muted });
 
-	showNativeNotification({ payload, workspaceId, target });
+	showNativeNotification({
+		payload,
+		workspaceId,
+		workspaceName,
+		target,
+	});
 }
 
 export function handleV2TerminalLifecycleEvent({
@@ -75,15 +85,6 @@ export function handleV2TerminalLifecycleEvent({
 	]);
 }
 
-/**
- * Writes agent-lifecycle status into the v2 notification store so workspace,
- * tab, and pane UI can derive attention from the same terminal source.
- *
- * The Stop transition mirrors v1 (useAgentHookListener.ts), but uses the v2
- * pane layout instead of workspace-level guessing: clear to idle when the
- * exact target pane is visible, otherwise mark review so the sidebar surfaces
- * it.
- */
 function updatePaneStatus(
 	workspaceId: string,
 	payload: AgentLifecyclePayload,
@@ -116,9 +117,7 @@ function updatePaneStatus(
 
 function getCurrentWorkspaceId(): string | null {
 	try {
-		// Matches both v1 `/workspace/<id>` and v2 `/v2-workspace/<id>`
-		// routes. Notifications are layout-level, so either can be active
-		// while an event arrives.
+		// Matches both `/workspace/<id>` and `/v2-workspace/<id>` route shapes.
 		const match = window.location.hash.match(/\/(?:v2-)?workspace\/([^/?#]+)/);
 		return match ? decodeURIComponent(match[1] ?? "") : null;
 	} catch {
@@ -143,17 +142,18 @@ function shouldSuppress(
 function showNativeNotification({
 	payload,
 	workspaceId,
+	workspaceName,
 	target,
 }: {
 	payload: AgentLifecyclePayload;
 	workspaceId: string;
+	workspaceName: string;
 	target: V2NotificationTarget;
 }): void {
-	const isPermission = payload.eventType === "PermissionRequest";
-	const title = isPermission ? "Awaiting Response" : "Agent Complete";
-	const body = isPermission
-		? "Your agent needs input"
-		: "Your agent has finished";
+	const { title, body } = getV2NativeNotificationContent({
+		workspaceName,
+		payload,
+	});
 
 	void electronTrpcClient.notifications.showNative
 		.mutate({

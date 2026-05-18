@@ -8,7 +8,6 @@ export {
 	type PromptTransport,
 } from "./agents";
 export {
-	type AgentConfig,
 	type Automation,
 	type AutomationCreateParams,
 	type AutomationListResponse,

@@ -157,6 +157,10 @@ mock.module("@vercel/blob", () => ({
 	put: mock(),
 }));
 
+mock.module("../../lib/analytics", () => ({
+	posthog: { capture: mock(() => {}) },
+}));
+
 mock.module("../../lib/github-avatar", () => ({
 	fetchAndStoreGitHubAvatar: fetchAndStoreGitHubAvatarMock,
 }));

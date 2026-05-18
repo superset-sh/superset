@@ -13,6 +13,7 @@ import {
 	useV2AgentConfigs,
 } from "renderer/hooks/useV2AgentConfigs";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { AgentDetail } from "./components/AgentDetail";
 import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
@@ -39,17 +40,36 @@ interface V2AgentsSettingsProps {
 export function V2AgentsSettings({
 	initialAgentPresetId,
 }: V2AgentsSettingsProps = {}) {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const queryClient = useQueryClient();
 
 	const configsQuery = useV2AgentConfigs(activeHostUrl);
+	const queryKey = [...QUERY_KEY, activeHostUrl] as const;
+	const queryFamily = { queryKey: QUERY_KEY };
 
-	const invalidate = () =>
-		queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, activeHostUrl] });
+	const invalidate = () => {
+		void queryClient.invalidateQueries(queryFamily);
+		void queryClient.refetchQueries(queryFamily);
+	};
+
+	const updateCachedConfig = (updated: HostAgentConfig) => {
+		queryClient.setQueriesData<HostAgentConfig[]>(queryFamily, (current) =>
+			current?.map((config) =>
+				config.id === updated.id ? { ...config, ...updated } : config,
+			),
+		);
+	};
 
 	const addMutation = useMutation({
 		mutationFn: (preset: HostAgentPreset) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "add an agent",
+					}),
+				);
+			}
 			const { description: _description, ...body } = preset;
 			return getHostServiceClientByUrl(
 				activeHostUrl,
@@ -65,7 +85,13 @@ export function V2AgentsSettings({
 
 	const reorderMutation = useMutation({
 		mutationFn: (ids: string[]) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "reorder agents",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.reorder.mutate({ ids });
@@ -74,10 +100,7 @@ export function V2AgentsSettings({
 			await queryClient.cancelQueries({
 				queryKey: [...QUERY_KEY, activeHostUrl],
 			});
-			const previous = queryClient.getQueryData<HostAgentConfig[]>([
-				...QUERY_KEY,
-				activeHostUrl,
-			]);
+			const previous = queryClient.getQueryData<HostAgentConfig[]>(queryKey);
 			if (previous) {
 				const byId = new Map(previous.map((row) => [row.id, row]));
 				const next = ids
@@ -86,13 +109,13 @@ export function V2AgentsSettings({
 						return row ? { ...row, order: index } : null;
 					})
 					.filter((row): row is HostAgentConfig => row !== null);
-				queryClient.setQueryData([...QUERY_KEY, activeHostUrl], next);
+				queryClient.setQueryData(queryKey, next);
 			}
 			return { previous };
 		},
 		onError: (err, _ids, ctx) => {
 			if (ctx?.previous) {
-				queryClient.setQueryData([...QUERY_KEY, activeHostUrl], ctx.previous);
+				queryClient.setQueryData(queryKey, ctx.previous);
 			}
 			toast.error(err instanceof Error ? err.message : "Failed to reorder");
 		},
@@ -101,7 +124,13 @@ export function V2AgentsSettings({
 
 	const resetMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "reset agents",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.resetToDefaults.mutate();
@@ -118,6 +147,10 @@ export function V2AgentsSettings({
 	const installedPresetIds = new Set(configs.map((row) => row.presetId));
 	const addablePresets = KNOWN_PRESETS.filter(
 		(preset) => !installedPresetIds.has(preset.presetId),
+	);
+	const hostServiceUnavailableMessage = getHostServiceUnavailableMessage(
+		hostService,
+		{ action: "load agent settings" },
 	);
 
 	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -152,7 +185,7 @@ export function V2AgentsSettings({
 				Couldn't load agent settings:{" "}
 				{configsQuery.error instanceof Error
 					? configsQuery.error.message
-					: "host service unavailable"}
+					: hostServiceUnavailableMessage}
 			</div>
 		);
 	}
@@ -183,7 +216,10 @@ export function V2AgentsSettings({
 							DESCRIPTION_BY_PRESET_ID.get(selectedAgent.presetId) ??
 							"Terminal agent launch configuration"
 						}
-						onChanged={invalidate}
+						onChanged={(updated) => {
+							updateCachedConfig(updated);
+							invalidate();
+						}}
 						onDeleted={() => {
 							setSelectedAgentId(null);
 							invalidate();
