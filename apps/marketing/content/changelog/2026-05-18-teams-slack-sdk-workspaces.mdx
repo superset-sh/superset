@@ -1,0 +1,100 @@
+---
+title: Automations, CLI, and mobile in internal testing
+date: 2026-05-18
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Header image — /workspaces page with the live terminal viewer */}
+
+Three weeks rolled into one post. The headline is that Superset is now usable from a lot more places than the desktop app: a fleshed-out CLI and TypeScript SDK, a Slack agent that spins up workspaces on its own, a web `/workspaces` page with a live terminal viewer, and a mobile app heading into internal review.
+
+## Automations
+
+Automations got the biggest functional upgrade of the quarter.
+
+- **Prompt version history** <PRBadge url="https://github.com/superset-sh/superset/pull/3996" /> — every change to an automation's prompt is now snapshotted. Browse previous versions and restore any of them, so an accidental edit is no longer a one-way door.
+- **Redesigned automations tab** <PRBadge url="https://github.com/superset-sh/superset/pull/4225" /> — new layout that matches Linear's design language, easier to scan a queue of runs at a glance.
+- **Mine vs. Team filter** <PRBadge url="https://github.com/superset-sh/superset/pull/4403" /> — automations now belong to a team. Filter the runs view between **Mine** and **Team** to see only what you ran vs. everything your team kicked off.
+- **`automations prompt get` / `prompt set` in the CLI** <PRBadge url="https://github.com/superset-sh/superset/pull/3966" /> — manage automation prompts from your shell or from CI without opening the app. Pairs cleanly with the new prompt history.
+- **`--name` filter on `automations list`** <PRBadge url="https://github.com/superset-sh/superset/pull/3959" /> — scope listings without piping through `grep`.
+
+Combined with off-schedule dispatch via the SDK (`client.automations.run('<id>')`), automations are now drivable end-to-end from outside the app.
+
+## Superset CLI
+
+The `superset` CLI grew real project and workspace commands and a cross-device login flow.
+
+**New commands:**
+
+- `superset projects create` <PRBadge url="https://github.com/superset-sh/superset/pull/4355" /> — scaffold a new Superset project from your shell.
+- `superset projects setup` <PRBadge url="https://github.com/superset-sh/superset/pull/4356" /> — link an existing local repo to a Superset project.
+- `superset workspaces open` <PRBadge url="https://github.com/superset-sh/superset/pull/4258" /> — open a workspace directly from the terminal.
+- `superset auth login` <PRBadge url="https://github.com/superset-sh/superset/pull/3965" /> — now uses OAuth device code + PKCE, so it works on headless servers and across devices.
+
+**Setting it up:**
+
+```bash
+# install
+curl -fsSL https://superset.sh/cli/install.sh | sh
+# or: brew install superset-sh/tap/superset
+# or: it's already bundled with the desktop app at ~/.superset/bin/superset
+
+# sign in (opens a browser, or prints a code for a second device)
+superset auth login
+
+# scaffold a project and open a workspace
+superset projects create
+superset workspaces open
+```
+
+The accompanying **TypeScript SDK** <PRBadge url="https://github.com/superset-sh/superset/pull/3937" /> (`@superset_sh/sdk`) mirrors the CLI 1:1 — same procedures, same shapes — so anything you can do from your shell, you can do from a script, a CI job, or an internal tool.
+
+```bash
+npm install @superset_sh/sdk
+```
+
+```ts
+import Superset from '@superset_sh/sdk';
+const client = new Superset(); // reads SUPERSET_API_KEY / SUPERSET_ORGANIZATION_ID
+await client.automations.run('<automation-id>');
+```
+
+Linux `superset start` and `superset update` are now fixed <PRBadge url="https://github.com/superset-sh/superset/pull/4635" />.
+
+## Proactive Slack agent
+
+The Slack agent no longer needs an explicit "spin up a workspace" command <PRBadge url="https://github.com/superset-sh/superset/pull/4660" />. When you mention the bot or DM it with a task, it decides on its own whether a workspace is needed, creates and attaches one, and reports back in-thread.
+
+**Setting it up:**
+
+1. In the dashboard, go to **Integrations → Slack**.
+2. Click **Connect** to install the Superset Slack app into your workspace (OAuth).
+3. Mention `@superset` in any channel or DM the bot with a task — that's it. The agent handles workspace creation when the task warrants it.
+
+If you already had Slack connected before this release, no action needed — proactive workspace creation is on by default.
+
+## `/workspaces` page with live terminal viewer
+
+A new `/workspaces` route on the web app <PRBadge url="https://github.com/superset-sh/superset/pull/4647" /> lets you browse every workspace across every host in one place, with a **live terminal viewer** powered by host-service so you can watch what an agent is doing without opening the desktop app.
+
+{/* TODO: Screenshot of /workspaces page with terminal viewer + main workspace badge visible */}
+
+- **Main workspaces called out** <PRBadge url="https://github.com/superset-sh/superset/pull/4659" /> — your primary workspace per project gets a clear badge so it's easy to find.
+- **Date filter** <PRBadge url="https://github.com/superset-sh/superset/pull/4655" /> — narrow the list to the last 7, 30, or 90 days.
+- **Sort by recent / oldest / name** — same workspace metadata you see in desktop.
+- **Delete hotkey** <PRBadge url="https://github.com/superset-sh/superset/pull/4673" />.
+- **Offline host gating** <PRBadge url="https://github.com/superset-sh/superset/pull/4672" /> — workspaces on an offline host get a clear indicator instead of silently failing.
+
+## Mobile: internal review
+
+The mobile app is in **internal review**. Core flows — workspaces list, task triage, agent chat, and the live terminal viewer — are wired up against the same APIs as web and desktop. We're dogfooding on-device now ahead of a wider beta. If you want early access, ping us.
+
+## Also in this batch
+
+- **Teams as a first-class primitive** <PRBadge url="https://github.com/superset-sh/superset/pull/4403" /> — assign members, workspaces, and automations to a team. Powers the Mine/Team automations split above.
+- **Terminal sessions survive app updates** <PRBadge url="https://github.com/superset-sh/superset/pull/3971" /> — the PTY daemon hands off file descriptors on upgrade, so running shells stay alive when Superset auto-updates.
+- **Web terminal presets** <PRBadge url="https://github.com/superset-sh/superset/pull/4653" /> — run your common commands with a single click in the web terminal, same as desktop.
+
+## Minor updates
+
+V2 changes tab gained inline stage/unstage/discard controls <PRBadge url="https://github.com/superset-sh/superset/pull/4022" /> and diff comments gained a copy action <PRBadge url="https://github.com/superset-sh/superset/pull/4389" />. Workspaces can be started with a preset for repeatable agent runs <PRBadge url="https://github.com/superset-sh/superset/pull/4335" />. The relay server now drains tunnel connections cleanly on shutdown ahead of the multi-region rollout <PRBadge url="https://github.com/superset-sh/superset/pull/4594" />. Theme search in the command palette <PRBadge url="https://github.com/superset-sh/superset/pull/4573" />. macOS notifications now include workspace and project context <PRBadge url="https://github.com/superset-sh/superset/pull/4614" />. MCP OAuth access token TTL bumped to 7 days <PRBadge url="https://github.com/superset-sh/superset/pull/4365" />.
