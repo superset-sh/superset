@@ -59,17 +59,23 @@ await client.automations.run('<automation-id>');
 
 Linux `superset start` and `superset update` are now fixed <PRBadge url="https://github.com/superset-sh/superset/pull/4635" />.
 
-## Proactive Slack agent
+## Slack bot
 
-The Slack agent no longer needs an explicit "spin up a workspace" command <PRBadge url="https://github.com/superset-sh/superset/pull/4660" />. When you mention the bot or DM it with a task, it decides on its own whether a workspace is needed, creates and attaches one, and reports back in-thread.
+`@superset` in Slack is now an actual agent, not a task-filer. Mention it in a channel or DM it from anywhere, and it can:
+
+- **Create, update, search, and triage tasks** from the conversation it's standing in — pulling assignees, statuses, and priorities from your team's Linear/Superset setup.
+- **Spin up a cloud workspace and launch a coding agent** to actually do the work. For code-change requests (e.g. "@superset bump our Sentry SDK to v9 across all apps"), it now defaults to spawning a workspace and agent rather than just filing a ticket <PRBadge url="https://github.com/superset-sh/superset/pull/4660" />.
+- **Read the thread or channel history** on its own to gather context — no need to copy-paste the prior messages.
+- **Search the web with citations** when a request needs up-to-date info.
+- **Unfurl Superset task and workspace links** with rich previews when they're shared in a channel.
 
 **Setting it up:**
 
 1. In the dashboard, go to **Integrations → Slack**.
 2. Click **Connect** to install the Superset Slack app into your workspace (OAuth).
-3. Mention `@superset` in any channel or DM the bot with a task — that's it. The agent handles workspace creation when the task warrants it.
+3. Mention `@superset` in any channel, or open a DM with the bot, and describe what you want done.
 
-If you already had Slack connected before this release, no action needed — proactive workspace creation is on by default.
+If Slack was already connected before this release, no action needed — proactive workspace creation is on by default.
 
 ## Mobile: internal review
 
