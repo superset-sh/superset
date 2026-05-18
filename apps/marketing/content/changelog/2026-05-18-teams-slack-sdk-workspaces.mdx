@@ -8,15 +8,49 @@ Three weeks rolled into one post. The headline is that Superset is now usable fr
 
 ## Automations
 
-Automations got the biggest functional upgrade of the quarter.
+**Automations are cron jobs for agent sessions.** Pick a project, write a prompt, set a schedule — and Superset dispatches an agent run against a fresh workspace every time it fires. The output is a live workspace you can open, review, and continue interactively.
 
-- **Prompt version history** <PRBadge url="https://github.com/superset-sh/superset/pull/3996" /> — every change to an automation's prompt is now snapshotted. Browse previous versions and restore any of them, so an accidental edit is no longer a one-way door.
-- **Redesigned automations tab** <PRBadge url="https://github.com/superset-sh/superset/pull/4225" /> — new layout that matches Linear's design language, easier to scan a queue of runs at a glance.
+Typical uses:
+
+- **Nightly standups** — summarize PRs, issues, and activity from the last 24 hours
+- **Release notes** — draft from merged commits each week
+- **Security & dependency sweeps** — scan for vulnerable packages or deprecated APIs every morning
+- **Long-running refactors** — "bump TypeScript to 5.7 in the next un-migrated package" on a daily cadence
+
+This batch brings automations into their own as a first-class workflow:
+
+- **Prompt version history** <PRBadge url="https://github.com/superset-sh/superset/pull/3996" /> — every edit to an automation's prompt is snapshotted. Browse previous versions and restore any of them, so an accidental change is no longer a one-way door.
+- **Redesigned automations tab** <PRBadge url="https://github.com/superset-sh/superset/pull/4225" /> — new layout that makes a queue of runs easier to scan at a glance.
 - **Mine vs. Team filter** <PRBadge url="https://github.com/superset-sh/superset/pull/4403" /> — automations now belong to a team. Filter the runs view between **Mine** and **Team** to see only what you ran vs. everything your team kicked off.
-- **`automations prompt get` / `prompt set` in the CLI** <PRBadge url="https://github.com/superset-sh/superset/pull/3966" /> — manage automation prompts from your shell or from CI without opening the app. Pairs cleanly with the new prompt history.
-- **`--name` filter on `automations list`** <PRBadge url="https://github.com/superset-sh/superset/pull/3959" /> — scope listings without piping through `grep`.
 
-Combined with off-schedule dispatch via the SDK (`client.automations.run('<id>')`), automations are now drivable end-to-end from outside the app.
+### Drive them from the CLI
+
+Everything you can do in the UI is now scriptable. New in this batch: `prompt get` / `prompt set` <PRBadge url="https://github.com/superset-sh/superset/pull/3966" /> and the `--name` filter on list <PRBadge url="https://github.com/superset-sh/superset/pull/3959" />.
+
+```bash
+# create a recurring run from a prompt file
+superset automations create \
+  --name "Nightly audit" \
+  --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" \
+  --project <projectId> \
+  --agent claude \
+  --prompt-file prompt.md
+
+# manage the queue
+superset automations list --name "Nightly"
+superset automations pause <id>
+superset automations resume <id>
+
+# iterate on the prompt (backed by the new version history)
+superset automations prompt get <id> > prompt.md
+$EDITOR prompt.md
+superset automations prompt set <id> --file prompt.md
+
+# fire one off-schedule (also works from the SDK / Slack bot / MCP)
+superset automations run <id>
+```
+
+`superset automations run` is also exposed via the **TypeScript SDK** and **MCP**, so you can dispatch runs from a CI job, an internal admin panel, or a Slack slash command. See the [Automations docs](https://docs.superset.sh/docs/automations) for the full surface.
 
 ## Superset CLI
 
