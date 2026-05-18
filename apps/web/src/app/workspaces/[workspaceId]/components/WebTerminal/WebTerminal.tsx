@@ -6,8 +6,7 @@ import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileTerminalInput } from "../../../../../components/MobileTerminalInput";
-import { getAuthToken } from "../../../../../trpc/auth-token";
-import { getRelayUrl } from "../../../../../trpc/relay-url";
+import { TerminalConnection } from "./TerminalConnection";
 
 const TERMINAL_THEME: ITheme = {
 	background: "#151110",
@@ -42,16 +41,12 @@ interface WebTerminalProps {
 	routingKey: string;
 }
 
-type ConnectionState = "connecting" | "open" | "error" | "exited";
-
-// Wire protocol mirrors the desktop's terminal transport
-// (apps/desktop/src/renderer/lib/terminal/terminal-ws-transport.ts): binary
-// frames are raw PTY bytes, control messages are JSON.
-type TerminalServerMessage =
-	| { type: "attached"; terminalId: string }
-	| { type: "title"; title: string | null }
-	| { type: "error"; message: string }
-	| { type: "exit"; exitCode: number; signal: number };
+type ConnectionState =
+	| "connecting"
+	| "open"
+	| "reconnecting"
+	| "error"
+	| "exited";
 
 export function WebTerminal({
 	workspaceId,
@@ -59,48 +54,59 @@ export function WebTerminal({
 	routingKey,
 }: WebTerminalProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
-	const socketRef = useRef<WebSocket | null>(null);
+	const connectionRef = useRef<TerminalConnection | null>(null);
 	const [state, setState] = useState<ConnectionState>("connecting");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 	const sendSequence = useCallback((sequence: string) => {
-		const socket = socketRef.current;
-		if (!socket || socket.readyState !== WebSocket.OPEN) return;
-		socket.send(JSON.stringify({ type: "input", data: sequence }));
+		connectionRef.current?.send({ type: "input", data: sequence });
 	}, []);
 
 	useEffect(() => {
-		let cancelled = false;
-		let terminal: Terminal | null = null;
-		let fitAddon: FitAddon | null = null;
-		let socket: WebSocket | null = null;
-		let resizeObserver: ResizeObserver | null = null;
+		const container = containerRef.current;
+		if (!container) return;
+
 		let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 		const visualViewport = window.visualViewport;
 
-		const sendResize = () => {
-			const activeSocket = socketRef.current;
-			if (
-				!terminal ||
-				!activeSocket ||
-				activeSocket.readyState !== WebSocket.OPEN
-			) {
-				return;
+		const terminal = new Terminal({
+			cursorBlink: true,
+			cursorStyle: "block",
+			fontFamily: TERMINAL_FONT_FAMILY,
+			fontSize: 14,
+			scrollback: 5000,
+			theme: TERMINAL_THEME,
+			allowProposedApi: true,
+		});
+		const fitAddon = new FitAddon();
+		terminal.loadAddon(fitAddon);
+		terminal.open(container);
+		if (window.matchMedia("(pointer: coarse)").matches) {
+			const xtermInput = terminal.textarea;
+			if (xtermInput) {
+				xtermInput.readOnly = true;
+				xtermInput.inputMode = "none";
+				xtermInput.tabIndex = -1;
 			}
-			activeSocket.send(
-				JSON.stringify({
-					type: "resize",
-					cols: terminal.cols,
-					rows: terminal.rows,
-				}),
-			);
+		}
+		try {
+			fitAddon.fit();
+		} catch {
+			// container may not be sized yet
+		}
+
+		const sendResize = () => {
+			connectionRef.current?.send({
+				type: "resize",
+				cols: terminal.cols,
+				rows: terminal.rows,
+			});
 		};
 
 		// Refit on every layout change; the visualViewport listeners are what
 		// keep the prompt above the soft keyboard on mobile, since the keyboard
 		// resizes the visual viewport rather than the layout viewport.
 		const refit = () => {
-			if (!fitAddon) return;
 			try {
 				fitAddon.fit();
 			} catch {
@@ -110,63 +116,19 @@ export function WebTerminal({
 			resizeTimer = setTimeout(sendResize, 150);
 		};
 
-		(async () => {
-			try {
-				const token = await getAuthToken();
-				if (cancelled) return;
-				const container = containerRef.current;
-				if (!container) return;
-
-				terminal = new Terminal({
-					cursorBlink: true,
-					cursorStyle: "block",
-					fontFamily: TERMINAL_FONT_FAMILY,
-					fontSize: 14,
-					scrollback: 5000,
-					theme: TERMINAL_THEME,
-					allowProposedApi: true,
-				});
-				fitAddon = new FitAddon();
-				terminal.loadAddon(fitAddon);
-				terminal.open(container);
-				if (window.matchMedia("(pointer: coarse)").matches) {
-					const xtermInput = terminal.textarea;
-					if (xtermInput) {
-						xtermInput.readOnly = true;
-						xtermInput.inputMode = "none";
-						xtermInput.tabIndex = -1;
-					}
-				}
-				try {
-					fitAddon.fit();
-				} catch {
-					// container may not be sized yet
-				}
-
-				const wsBase = getRelayUrl().replace(/^http/, "ws").replace(/\/$/, "");
-				const url = `${wsBase}/hosts/${routingKey}/terminal/${encodeURIComponent(terminalId)}?workspaceId=${encodeURIComponent(workspaceId)}&themeType=dark&token=${encodeURIComponent(token)}`;
-				socket = new WebSocket(url);
-				socket.binaryType = "arraybuffer";
-				socketRef.current = socket;
-
-				socket.onmessage = (event) => {
-					if (event.data instanceof ArrayBuffer) {
-						terminal?.write(new Uint8Array(event.data));
-						return;
-					}
-					let message: TerminalServerMessage;
-					try {
-						message = JSON.parse(String(event.data)) as TerminalServerMessage;
-					} catch {
-						return;
-					}
+		const connection = new TerminalConnection(
+			{ workspaceId, terminalId, routingKey },
+			{
+				onBinary: (bytes) => terminal.write(bytes),
+				onControl: (message) => {
 					switch (message.type) {
 						case "attached":
+							setErrorMessage(null);
 							setState("open");
 							sendResize();
 							return;
 						case "exit":
-							terminal?.write(
+							terminal.write(
 								`\r\n\x1b[33m[process exited code=${message.exitCode}]\x1b[0m\r\n`,
 							);
 							setState("exited");
@@ -178,53 +140,30 @@ export function WebTerminal({
 						default:
 							return;
 					}
-				};
+				},
+				onStateChange: (next) => setState(next),
+			},
+		);
+		connectionRef.current = connection;
+		connection.start();
 
-				socket.onclose = () => {
-					setState((previous) =>
-						previous === "open" || previous === "connecting"
-							? "error"
-							: previous,
-					);
-				};
+		terminal.onData((data) => {
+			connectionRef.current?.send({ type: "input", data });
+		});
 
-				socket.onerror = () => {
-					setErrorMessage("WebSocket connection failed.");
-				};
-
-				terminal.onData((data) => {
-					const activeSocket = socketRef.current;
-					if (activeSocket?.readyState === WebSocket.OPEN) {
-						activeSocket.send(JSON.stringify({ type: "input", data }));
-					}
-				});
-
-				resizeObserver = new ResizeObserver(refit);
-				resizeObserver.observe(container);
-				visualViewport?.addEventListener("resize", refit);
-				visualViewport?.addEventListener("scroll", refit);
-			} catch (caught) {
-				if (cancelled) return;
-				setErrorMessage(
-					caught instanceof Error ? caught.message : String(caught),
-				);
-				setState("error");
-			}
-		})();
+		const resizeObserver = new ResizeObserver(refit);
+		resizeObserver.observe(container);
+		visualViewport?.addEventListener("resize", refit);
+		visualViewport?.addEventListener("scroll", refit);
 
 		return () => {
-			cancelled = true;
 			if (resizeTimer !== null) clearTimeout(resizeTimer);
-			resizeObserver?.disconnect();
+			resizeObserver.disconnect();
 			visualViewport?.removeEventListener("resize", refit);
 			visualViewport?.removeEventListener("scroll", refit);
-			try {
-				socket?.close();
-			} catch {
-				// best-effort
-			}
-			terminal?.dispose();
-			socketRef.current = null;
+			connection.dispose();
+			connectionRef.current = null;
+			terminal.dispose();
 		};
 	}, [workspaceId, terminalId, routingKey]);
 
@@ -239,9 +178,11 @@ export function WebTerminal({
 					>
 						{state === "connecting"
 							? "Connecting…"
-							: state === "exited"
-								? "Process exited."
-								: (errorMessage ?? "Disconnected.")}
+							: state === "reconnecting"
+								? "Reconnecting…"
+								: state === "exited"
+									? "Process exited."
+									: (errorMessage ?? "Disconnected.")}
 					</div>
 				)}
 			</div>
