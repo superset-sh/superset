@@ -4,7 +4,7 @@ import { Label } from "@superset/ui/label";
 import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { env } from "renderer/env.renderer";
-import { authClient, setAuthToken } from "renderer/lib/auth-client";
+import { setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 const DEV_EMAIL = "admin@local.test";
@@ -32,7 +32,7 @@ async function postAuth(
 	const res = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		credentials: "include",
+		credentials: "omit",
 		body: JSON.stringify(body),
 	});
 	const data = (await res.json().catch(() => ({}))) as
@@ -44,7 +44,6 @@ async function postAuth(
 export function LocalDevAuthForm() {
 	const navigate = useNavigate();
 	const persistToken = electronTrpc.auth.persistToken.useMutation();
-	const { refetch } = authClient.useSession();
 	const [email, setEmail] = useState(DEV_EMAIL);
 	const [password, setPassword] = useState(DEV_PASSWORD);
 	const [error, setError] = useState<string | null>(null);
@@ -99,7 +98,6 @@ export function LocalDevAuthForm() {
 			const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString();
 			await persistToken.mutateAsync({ token, expiresAt });
 			setAuthToken(token);
-			await refetch();
 			await navigate({ to: "/workspace", replace: true });
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Sign-in failed");
