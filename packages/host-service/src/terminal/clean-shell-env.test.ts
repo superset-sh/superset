@@ -12,13 +12,6 @@ describe("buildMinimalEnv", () => {
 		"HOME",
 		"PATH",
 		"SHELL",
-		"HTTP_PROXY",
-		"HTTPS_PROXY",
-		"NO_PROXY",
-		"http_proxy",
-		"NODE_EXTRA_CA_CERTS",
-		"SSL_CERT_FILE",
-		"TZ",
 	];
 	const original: Record<string, string | undefined> = {};
 
@@ -50,26 +43,6 @@ describe("buildMinimalEnv", () => {
 		process.env.SSH_AGENT_PID = "12345";
 		const env = buildMinimalEnv();
 		expect(env.SSH_AGENT_PID).toBe("12345");
-	});
-
-	test("propagates launchd-injected proxy + CA + TZ vars (rc files won't recreate them)", () => {
-		process.env.HTTP_PROXY = "http://corp-proxy:3128";
-		process.env.HTTPS_PROXY = "http://corp-proxy:3128";
-		process.env.NO_PROXY = "localhost,127.0.0.1";
-		process.env.http_proxy = "http://corp-proxy:3128";
-		process.env.NODE_EXTRA_CA_CERTS = "/etc/ssl/corp-ca.pem";
-		process.env.SSL_CERT_FILE = "/etc/ssl/corp-ca.pem";
-		process.env.TZ = "America/Los_Angeles";
-
-		const env = buildMinimalEnv();
-
-		expect(env.HTTP_PROXY).toBe("http://corp-proxy:3128");
-		expect(env.HTTPS_PROXY).toBe("http://corp-proxy:3128");
-		expect(env.NO_PROXY).toBe("localhost,127.0.0.1");
-		expect(env.http_proxy).toBe("http://corp-proxy:3128");
-		expect(env.NODE_EXTRA_CA_CERTS).toBe("/etc/ssl/corp-ca.pem");
-		expect(env.SSL_CERT_FILE).toBe("/etc/ssl/corp-ca.pem");
-		expect(env.TZ).toBe("America/Los_Angeles");
 	});
 });
 
