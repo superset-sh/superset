@@ -54,7 +54,9 @@ On first launch in the `local` profile (when `SUPERSET_PROFILE=local` is set), t
 - **Email:** `admin@local.test`
 - **Password:** `supersetdev`
 
-If the user doesn't exist, it's created and a personal organization is provisioned automatically (`Local Admin's Team`). The encrypted auth token lands in that worktree's local desktop state directory, for example `~/.superset-local-dev-flax-soda-a1b2c3/auth-token.enc`. The renderer hydrates this token like a real OAuth user — there's no special dev-only code path in the renderer.
+If the user doesn't exist, it's created and a personal organization is provisioned automatically (`Local Admin's Team`). The encrypted auth token lands in that worktree's local desktop state directory, for example `~/.superset-local-dev-flax-soda-a1b2c3/auth-token.enc`. The renderer hydrates this token like a real OAuth user.
+
+If auto-sign-in does not complete, the desktop sign-in screen shows the same email/password fields in the `local` profile.
 
 ### Deployment profiles
 

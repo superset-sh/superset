@@ -44,6 +44,7 @@ const envSchema = z.object({
 	NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 	NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
 	SENTRY_DSN_DESKTOP: z.string().optional(),
+	SUPERSET_PROFILE: z.enum(["cloud", "local", "ci", "internal"]).optional(),
 	RELAY_URL: z
 		.url()
 		.default(
@@ -73,6 +74,7 @@ const rawEnv = {
 		| string
 		| undefined,
 	SENTRY_DSN_DESKTOP: import.meta.env.SENTRY_DSN_DESKTOP as string | undefined,
+	SUPERSET_PROFILE: process.env.SUPERSET_PROFILE,
 	RELAY_URL: process.env.RELAY_URL,
 };
 

@@ -188,6 +188,10 @@ export default defineConfig({
 				process.env.SKIP_ENV_VALIDATION,
 				"",
 			),
+			"process.env.SUPERSET_PROFILE": defineEnv(
+				process.env.SUPERSET_PROFILE,
+				"",
+			),
 			"process.platform": defineEnv(process.platform),
 			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
 				devOrProdUrl(
