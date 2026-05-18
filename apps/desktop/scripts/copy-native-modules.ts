@@ -400,6 +400,94 @@ function copyLibsqlDependencies(nodeModulesDir: string): void {
 	}
 }
 
+function copyDuckDbPlatformPackages(nodeModulesDir: string): void {
+	const bindingsPath = join(nodeModulesDir, "@duckdb", "node-bindings");
+	const bindingsPkgJsonPath = join(bindingsPath, "package.json");
+	if (!existsSync(bindingsPkgJsonPath)) return;
+
+	type DuckDbPackageJson = {
+		optionalDependencies?: Record<string, string>;
+	};
+	const bindingsPkg = JSON.parse(
+		readFileSync(bindingsPkgJsonPath, "utf8"),
+	) as DuckDbPackageJson;
+	const optionalDeps = bindingsPkg.optionalDependencies ?? {};
+	const platformPackages = Object.entries(optionalDeps)
+		.filter(([name]) => name.startsWith("@duckdb/node-bindings-"))
+		.map(([name, version]) => ({ name, version }));
+
+	if (platformPackages.length === 0) return;
+
+	console.log("\nPreparing duckdb platform package...");
+
+	// Map TARGET_PLATFORM/TARGET_ARCH to the @duckdb/node-bindings-<suffix>
+	// naming. DuckDB uses platform-arch directly (e.g. darwin-x64), matching
+	// `process.platform` values, so a simple suffix join works.
+	const targetSuffix = `${TARGET_PLATFORM}-${TARGET_ARCH}`;
+	const targetPkg = platformPackages.find((pkg) =>
+		pkg.name.endsWith(targetSuffix),
+	);
+
+	const bunStoreDir = getBunStoreDir(nodeModulesDir);
+	let resolvedTargetPackage = false;
+
+	for (const platformPkg of platformPackages) {
+		const isTargetPkg = targetPkg && platformPkg.name === targetPkg.name;
+		const destPath = join(nodeModulesDir, platformPkg.name);
+
+		if (existsSync(destPath)) {
+			const copied = copyModuleIfSymlink(
+				nodeModulesDir,
+				platformPkg.name,
+				false,
+			);
+			if (isTargetPkg && copied) resolvedTargetPackage = true;
+			continue;
+		}
+
+		const bunStoreFolderName = findBunStoreFolderName(
+			bunStoreDir,
+			platformPkg.name,
+			platformPkg.version,
+		);
+		if (bunStoreFolderName) {
+			const sourcePath = join(
+				bunStoreDir,
+				bunStoreFolderName,
+				"node_modules",
+				platformPkg.name,
+			);
+			if (existsSync(sourcePath)) {
+				console.log(`  ${platformPkg.name}: copying from Bun store`);
+				mkdirSync(dirname(destPath), { recursive: true });
+				cpSync(sourcePath, destPath, { recursive: true });
+				if (isTargetPkg) resolvedTargetPackage = true;
+				continue;
+			}
+		}
+
+		// Cross-compile: target binding wasn't installed by bun (optional dep
+		// only resolves for the host arch). Fetch the tarball from npm.
+		if (isTargetPkg) {
+			if (fetchNpmPackage(platformPkg.name, platformPkg.version, destPath)) {
+				resolvedTargetPackage = true;
+				continue;
+			}
+		}
+
+		console.warn(
+			`  ${platformPkg.name}: not found in Bun store or node_modules`,
+		);
+	}
+
+	if (!resolvedTargetPackage) {
+		console.error(
+			`  [ERROR] Target platform package ${targetPkg?.name ?? `@duckdb/node-bindings-${targetSuffix}`} was not materialized`,
+		);
+		process.exit(1);
+	}
+}
+
 function copyParcelWatcherPlatformPackages(nodeModulesDir: string): void {
 	const watcherPath = join(nodeModulesDir, "@parcel", "watcher");
 	const watcherPkgJsonPath = join(watcherPath, "package.json");
@@ -488,6 +576,7 @@ function prepareNativeModules() {
 	copyAstGrepPlatformPackages(nodeModulesDir);
 	copyParcelWatcherPlatformPackages(nodeModulesDir);
 	copyLibsqlDependencies(nodeModulesDir);
+	copyDuckDbPlatformPackages(nodeModulesDir);
 
 	console.log("\nDone!");
 }

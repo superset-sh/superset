@@ -79,6 +79,24 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 		],
 		asarUnpackGlobs: ["**/node_modules/@libsql/**/*"],
 	},
+	// DuckDB ships via mastracode → @mastra/duckdb → @duckdb/node-api →
+	// @duckdb/node-bindings → @duckdb/node-bindings-<platform>-<arch>. The
+	// terminal binding is an optionalDependencies entry, so bun only installs
+	// the one matching the host arch. Cross-compiling x64 on arm64 (or vice
+	// versa) drops it, and the app crashes at launch with
+	// `Cannot find module '@duckdb/node-bindings-<platform>-<arch>/duckdb.node'`.
+	// Materializing the parent + copying the whole @duckdb scope packages
+	// whatever bun installed; `copy-native-modules.ts` fetches the target-arch
+	// binding from npm for cross-compile builds.
+	{
+		specifier: "@duckdb/node-api",
+		materialize: ["@duckdb/node-bindings"],
+		packagedCopies: [
+			copyWholeModule("@duckdb"),
+			copyWholeModule("@mastra/duckdb"),
+		],
+		asarUnpackGlobs: ["**/node_modules/@duckdb/**/*"],
+	},
 ];
 
 const packagedSupportModules = [
