@@ -10,9 +10,14 @@ export async function POST(request: Request) {
 	const eventType = request.headers.get("x-github-event");
 	const deliveryId = request.headers.get("x-github-delivery");
 
+	// Strip null bytes (\u0000) before parsing — PostgreSQL's json/jsonb types reject
+	// null bytes and will throw json_errsave_error when storing payloads that contain
+	// them (e.g. code-review comments with certain Unicode escape sequences).
+	const sanitizedBody = body.replace(/\u0000/g, "");
+
 	let payload: unknown;
 	try {
-		payload = JSON.parse(body);
+		payload = JSON.parse(sanitizedBody);
 	} catch {
 		console.error("[github/webhook] Invalid JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
