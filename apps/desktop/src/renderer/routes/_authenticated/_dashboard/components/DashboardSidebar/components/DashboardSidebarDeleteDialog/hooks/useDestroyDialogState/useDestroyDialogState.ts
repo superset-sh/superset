@@ -10,6 +10,8 @@ import {
 } from "renderer/hooks/host-service/useDestroyWorkspace";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { waitForWorkspaceDeleted } from "renderer/routes/_authenticated/providers/CollectionsProvider/workspaceSyncWaits";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 
 interface UseDestroyDialogStateOptions {
@@ -34,6 +36,7 @@ export function useDestroyDialogState({
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
+	const collections = useCollections();
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
@@ -109,6 +112,7 @@ export function useDestroyDialogState({
 		async (force: boolean) => {
 			if (inFlight.current) return;
 			inFlight.current = true;
+			let keepDeleting = false;
 
 			setError(null);
 			onOpenChange(false);
@@ -136,6 +140,20 @@ export function useDestroyDialogState({
 						throw firstErr;
 					}
 				}
+				try {
+					await waitForWorkspaceDeleted(collections.v2Workspaces, workspaceId);
+				} catch (syncErr) {
+					keepDeleting = true;
+					onDeleted?.();
+					console.warn("[workspace-delete] delete synced slowly", {
+						workspaceId,
+						err: syncErr,
+					});
+					toast.warning(
+						`Deleted ${workspaceName}, but sync is taking longer than expected.`,
+					);
+					return;
+				}
 				for (const warning of result.warnings) toast.warning(warning);
 				onDeleted?.();
 			} catch (err) {
@@ -151,7 +169,9 @@ export function useDestroyDialogState({
 					);
 				}
 			} finally {
-				clearDeleting(workspaceId);
+				if (!keepDeleting) {
+					clearDeleting(workspaceId);
+				}
 				inFlight.current = false;
 			}
 		},
@@ -165,6 +185,7 @@ export function useDestroyDialogState({
 			markDeleting,
 			clearDeleting,
 			navigateAwayFromWorkspace,
+			collections,
 		],
 	);
 

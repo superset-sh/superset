@@ -8,7 +8,6 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -21,9 +20,6 @@ import {
 	type PullRequestQueryTarget,
 } from "./derivePullRequestQueryTargets";
 
-// Sits above every real workspace so the pending row lines up with the real one,
-// which is inserted via getPrependTabOrder.
-const PENDING_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
 
 type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
@@ -133,33 +129,6 @@ export function useDashboardSidebarData() {
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
 	const queryClient = useQueryClient();
 
-	// In-flight workspace.create operations. These don't have a backing DB row
-	// — they're kept in renderer memory until the real v2Workspaces row arrives
-	// via Electric sync (or until error/dismiss). Entries that have already
-	// resolved on the host service carry `cloudRow`; those are surfaced as
-	// real synced rows below so the sidebar doesn't stick on "creating" when
-	// Electric is slow.
-	const inFlightEntries = useWorkspaceCreatesStore((store) => store.entries);
-	const inFlightSidebarRows = useMemo(
-		() =>
-			inFlightEntries
-				.filter((entry) => entry.snapshot.id !== undefined)
-				// Entries with a cloudRow are rendered via the synced fallback below.
-				.filter((entry) => !(entry.state === "creating" && entry.cloudRow))
-				.map((entry) => ({
-					id: entry.snapshot.id as string,
-					projectId: entry.snapshot.projectId,
-					name: entry.snapshot.name ?? "New workspace",
-					branchName:
-						entry.snapshot.branch ?? entry.snapshot.name ?? "New workspace",
-					status:
-						entry.state === "creating"
-							? ("creating" as const)
-							: ("failed" as const),
-				})),
-		[inFlightEntries],
-	);
-
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
 			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
@@ -253,6 +222,7 @@ export function useDashboardSidebarData() {
 					taskId: workspaces.taskId,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
+					isSynced: workspaces.$synced,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
@@ -293,6 +263,7 @@ export function useDashboardSidebarData() {
 					taskId: workspaces.taskId,
 					createdAt: workspaces.createdAt,
 					updatedAt: workspaces.updatedAt,
+					isSynced: workspaces.$synced,
 					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
 					sectionId: null as string | null,
 				})),
@@ -307,42 +278,6 @@ export function useDashboardSidebarData() {
 		[hostsByMachineId, rawLocalMainWorkspaces],
 	);
 
-	// Cloud-row fallback: when workspaces.create has resolved on the host
-	// service but Electric hasn't yet delivered the v2Workspaces row, surface
-	// the cloud row cached on the in-flight entry so the sidebar renders the
-	// workspace as fully synced. Manager.tsx removes the entry once Electric
-	// catches up, at which point the live query takes over seamlessly.
-	const cloudRowFallbackWorkspaces = useMemo(() => {
-		if (inFlightEntries.length === 0) return [];
-		const rows = inFlightEntries.flatMap((entry) => {
-			const cloudRow = entry.cloudRow;
-			if (!cloudRow) return [];
-			// Electric already delivered; let the live query own this row.
-			if (localStateWorkspaceIds.has(cloudRow.id)) return [];
-			const localState = collections.v2WorkspaceLocalState.get(cloudRow.id);
-			const host = hostsByMachineId.get(cloudRow.hostId);
-			return [
-				{
-					id: cloudRow.id,
-					projectId: localState?.sidebarState.projectId ?? cloudRow.projectId,
-					hostId: cloudRow.hostId,
-					type: cloudRow.type,
-					hostIsOnline: host?.isOnline ?? false,
-					name: cloudRow.name,
-					branch: cloudRow.branch,
-					taskId: cloudRow.taskId,
-					createdAt: cloudRow.createdAt,
-					updatedAt: cloudRow.updatedAt,
-					tabOrder:
-						localState?.sidebarState.tabOrder ?? PENDING_WORKSPACE_TAB_ORDER,
-					sectionId: localState?.sidebarState.sectionId ?? null,
-					isHidden: localState?.sidebarState.isHidden ?? false,
-				},
-			];
-		});
-		return getVisibleSidebarWorkspaces(rows);
-	}, [collections, hostsByMachineId, inFlightEntries, localStateWorkspaceIds]);
-
 	const visibleSidebarWorkspaces = useMemo(() => {
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
@@ -354,13 +289,8 @@ export function useDashboardSidebarData() {
 				sidebarProjectIds.has(workspace.projectId),
 		);
 
-		return [
-			...autoLocalMainWorkspaces,
-			...sidebarWorkspaces,
-			...cloudRowFallbackWorkspaces,
-		];
+		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
 	}, [
-		cloudRowFallbackWorkspaces,
 		localMainWorkspaces,
 		localStateWorkspaceIds,
 		machineId,
@@ -504,6 +434,7 @@ export function useDashboardSidebarData() {
 				createdAt: workspace.createdAt,
 				updatedAt: workspace.updatedAt,
 				taskId: workspace.taskId,
+				isSynced: workspace.isSynced,
 			};
 
 			if (workspace.sectionId) {
@@ -522,47 +453,6 @@ export function useDashboardSidebarData() {
 				child: {
 					type: "workspace",
 					workspace: sidebarWorkspace,
-				},
-			});
-		}
-
-		// Inject in-flight workspaces (creating / failed) from the renderer-side
-		// in-flight store.
-		for (const pw of inFlightSidebarRows) {
-			if (localStateWorkspaceIds.has(pw.id)) continue;
-			const project = projectsById.get(pw.projectId);
-			if (!project) continue;
-
-			const pendingItem: DashboardSidebarWorkspace = {
-				id: pw.id,
-				projectId: pw.projectId,
-				hostId: "",
-				hostType: "local-device",
-				type: "worktree",
-				hostIsOnline: null,
-				accentColor: null,
-				name: pw.name,
-				branch: pw.branchName,
-				pullRequest: null,
-				repoUrl:
-					project.githubOwner && project.githubRepoName
-						? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
-						: null,
-				branchExistsOnRemote: false,
-				previewUrl: null,
-				needsRebase: null,
-				behindCount: null,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-				taskId: null,
-				creationStatus: pw.status,
-			};
-
-			project.childEntries.push({
-				tabOrder: PENDING_WORKSPACE_TAB_ORDER,
-				child: {
-					type: "workspace",
-					workspace: pendingItem,
 				},
 			});
 		}
@@ -617,8 +507,6 @@ export function useDashboardSidebarData() {
 	}, [
 		machineId,
 		pullRequestsByWorkspaceId,
-		inFlightSidebarRows,
-		localStateWorkspaceIds,
 		sidebarProjects,
 		sidebarSections,
 		visibleSidebarWorkspaces,

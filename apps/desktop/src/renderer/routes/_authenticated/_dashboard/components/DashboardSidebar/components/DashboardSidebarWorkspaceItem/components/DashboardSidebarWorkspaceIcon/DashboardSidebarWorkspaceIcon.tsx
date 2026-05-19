@@ -1,6 +1,5 @@
 import { cn } from "@superset/ui/utils";
 import { CgLaptop } from "react-icons/cg";
-import { HiExclamationTriangle } from "react-icons/hi2";
 import {
 	LuGitMerge,
 	LuGitPullRequest,
@@ -25,7 +24,7 @@ interface DashboardSidebarWorkspaceIconProps {
 	isActive: boolean;
 	variant: "collapsed" | "expanded";
 	workspaceStatus?: ActivePaneStatus | null;
-	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
+	isSynced: boolean;
 	pullRequestState?: DashboardSidebarWorkspacePullRequest["state"] | null;
 }
 
@@ -55,7 +54,7 @@ export function DashboardSidebarWorkspaceIcon({
 	isActive,
 	variant,
 	workspaceStatus = null,
-	creationStatus,
+	isSynced,
 	pullRequestState = null,
 }: DashboardSidebarWorkspaceIconProps) {
 	const overlayPosition = OVERLAY_POSITION[variant];
@@ -103,9 +102,7 @@ export function DashboardSidebarWorkspaceIcon({
 
 	return (
 		<>
-			{creationStatus === "failed" ? (
-				<HiExclamationTriangle className="size-4 text-destructive" />
-			) : creationStatus || workspaceStatus === "working" ? (
+			{!isSynced || workspaceStatus === "working" ? (
 				<AsciiSpinner className="text-base" />
 			) : (
 				renderPrimaryIcon()

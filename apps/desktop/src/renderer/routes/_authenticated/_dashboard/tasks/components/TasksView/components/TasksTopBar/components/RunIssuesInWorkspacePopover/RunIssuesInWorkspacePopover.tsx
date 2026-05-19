@@ -226,7 +226,7 @@ export function RunIssuesInWorkspacePopover({
 
 		setLastProjectId(selectedProjectId);
 
-		const submissions = issues.map((issue) =>
+		const handles = issues.map((issue) =>
 			submit({
 				hostId,
 				snapshot: {
@@ -250,18 +250,20 @@ export function RunIssuesInWorkspacePopover({
 			}),
 		);
 
-		const promise = Promise.all(submissions).then((results) => {
-			const failed = results.filter((r) => !r.ok).length;
-			if (failed > 0) {
-				const firstFailure = results.find((result) => !result.ok);
-				const details =
-					firstFailure && !firstFailure.ok ? `: ${firstFailure.error}` : "";
-				throw new Error(
-					`${results.length - failed} of ${results.length} succeeded${details}`,
-				);
-			}
-			return results.length;
-		});
+		const promise = Promise.all(handles.map((handle) => handle.completed)).then(
+			(outcomes) => {
+				const failed = outcomes.filter((outcome) => !outcome.ok).length;
+				if (failed > 0) {
+					const firstFailure = outcomes.find((outcome) => !outcome.ok);
+					const details =
+						firstFailure && !firstFailure.ok ? `: ${firstFailure.error}` : "";
+					throw new Error(
+						`${outcomes.length - failed} of ${outcomes.length} succeeded${details}`,
+					);
+				}
+				return outcomes.length;
+			},
+		);
 
 		toast.promise(promise, {
 			loading: `Creating ${issues.length} workspace${issues.length === 1 ? "" : "s"}...`,

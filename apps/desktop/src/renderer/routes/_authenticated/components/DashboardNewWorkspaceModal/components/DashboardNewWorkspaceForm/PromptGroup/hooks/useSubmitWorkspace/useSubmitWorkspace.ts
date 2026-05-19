@@ -119,6 +119,7 @@ export function useSubmitWorkspace(
 		};
 
 		closeAndResetDraft();
+		const { completed } = submit({ hostId, snapshot });
 		void navigate({
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId },
@@ -135,40 +136,21 @@ export function useSubmitWorkspace(
 			);
 		};
 
-		void submit({ hostId, snapshot })
-			.then((result) => {
-				if (!result.ok) {
-					if (isViewingOptimisticWorkspace()) {
-						toast.error("Workspace creation failed", {
-							description: result.error,
-						});
-					}
-					return;
-				}
-				if (result.workspaceId === workspaceId) return;
-				if (!isViewingOptimisticWorkspace()) return;
-				void navigate({
-					to: "/v2-workspace/$workspaceId",
-					params: { workspaceId: result.workspaceId },
-					replace: true,
-				}).catch((error) => {
-					console.error(
-						"[useSubmitWorkspace] failed to redirect workspace",
-						error,
-					);
-				});
-			})
-			.catch((error) => {
+		void completed.then((outcome) => {
+			if (!outcome.ok) return;
+			if (outcome.workspaceId === workspaceId) return;
+			if (!isViewingOptimisticWorkspace()) return;
+			void navigate({
+				to: "/v2-workspace/$workspaceId",
+				params: { workspaceId: outcome.workspaceId },
+				replace: true,
+			}).catch((error) => {
 				console.error(
-					"[useSubmitWorkspace] workspace creation failed unexpectedly",
+					"[useSubmitWorkspace] failed to redirect workspace",
 					error,
 				);
-				if (isViewingOptimisticWorkspace()) {
-					toast.error("Workspace creation failed", {
-						description: error instanceof Error ? error.message : String(error),
-					});
-				}
 			});
+		});
 	}, [
 		activeOrganizationId,
 		closeAndResetDraft,

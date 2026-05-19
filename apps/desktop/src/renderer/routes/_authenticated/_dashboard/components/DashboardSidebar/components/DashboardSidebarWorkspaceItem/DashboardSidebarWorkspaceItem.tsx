@@ -4,7 +4,6 @@ import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/h
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
-import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
@@ -36,7 +35,7 @@ export function DashboardSidebarWorkspaceItem({
 		hostIsOnline,
 		name,
 		branch,
-		creationStatus,
+		isSynced,
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
@@ -77,15 +76,10 @@ export function DashboardSidebarWorkspaceItem({
 	const handleAfterBranchRename = (newBranchName: string) => {
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
-	const isPending = !!creationStatus;
-	const isFailedInFlight = creationStatus === "failed";
+	const isPending = !isSynced;
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
 	const isDeleting = useDeletingWorkspaces().isDeleting(id);
-
-	const handleDismissInFlight = useCallback(() => {
-		useWorkspaceCreatesStore.getState().remove(id);
-	}, [id]);
 
 	const {
 		hoveredId: hoverHoveredId,
@@ -142,11 +136,9 @@ export function DashboardSidebarWorkspaceItem({
 					isActive={isActive}
 					workspaceStatus={workspaceStatus}
 					onClick={handleClick}
-					creationStatus={creationStatus}
+					isSynced={isSynced}
 					pullRequestState={pullRequest?.state ?? null}
-					aria-label={
-						creationStatus ? `Creating workspace: ${name}` : undefined
-					}
+					aria-label={isPending ? `Creating workspace: ${name}` : undefined}
 				/>
 			</div>
 		);
@@ -226,11 +218,7 @@ export function DashboardSidebarWorkspaceItem({
 				onClick={handleClick}
 				onDoubleClick={isPending ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
-				onCloseWorkspaceClick={
-					isFailedInFlight
-						? handleDismissInFlight
-						: () => setIsDeleteDialogOpen(true)
-				}
+				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}

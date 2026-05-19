@@ -4,7 +4,6 @@ import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
@@ -35,52 +34,50 @@ function V2WorkspaceLayout() {
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
 		[collections, workspaceId],
 	);
-	const syncedWorkspace = workspaces?.[0] ?? null;
-	const inFlight = useWorkspaceCreatesStore((store) =>
-		workspaceId
-			? store.entries.find((entry) => entry.snapshot.id === workspaceId)
-			: undefined,
+	const { data: failedEntries } = useLiveQuery(
+		(q) =>
+			q
+				.from({ failed: collections.failedWorkspaceCreates })
+				.where(({ failed }) => eq(failed.id, workspaceId ?? "")),
+		[collections, workspaceId],
 	);
-	// Fall back to the cloud row cached on the in-flight entry while
-	// Electric hasn't yet delivered the synced row. The cloud has already
-	// confirmed the workspace at this point — no need to block on sync.
-	const workspace = syncedWorkspace ?? inFlight?.cloudRow ?? null;
+	const workspace = workspaces?.[0] ?? null;
+	const failedEntry = failedEntries?.[0] ?? null;
+	const isSynced = workspace?.$synced === true;
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!workspace || lastEnsuredWorkspaceIdRef.current === workspace.id)
+		if (
+			!workspace ||
+			!isSynced ||
+			lastEnsuredWorkspaceIdRef.current === workspace.id
+		)
 			return;
 		lastEnsuredWorkspaceIdRef.current = workspace.id;
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
-	}, [ensureWorkspaceInSidebar, workspace]);
+	}, [ensureWorkspaceInSidebar, workspace, isSynced]);
 
-	const hostStatus = useRemoteHostStatus(workspace);
+	const hostStatus = useRemoteHostStatus(isSynced ? workspace : null);
 
 	if (!workspaceId || !isReady || !workspaces) {
 		return <div className="flex h-full w-full" />;
 	}
 
 	if (!workspace) {
-		if (inFlight?.state === "creating") {
-			return (
-				<WorkspaceCreatingState
-					name={inFlight.snapshot.name}
-					branch={inFlight.snapshot.branch}
-					startedAt={inFlight.startedAt}
-				/>
-			);
-		}
-		if (inFlight?.state === "error") {
-			return (
-				<WorkspaceCreateErrorState
-					workspaceId={workspaceId}
-					name={inFlight.snapshot.name}
-					branch={inFlight.snapshot.branch}
-					error={inFlight.error ?? "Unknown error"}
-				/>
-			);
+		if (failedEntry) {
+			return <WorkspaceCreateErrorState entry={failedEntry} />;
 		}
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
+	}
+
+	if (!isSynced) {
+		return (
+			<WorkspaceCreatingState
+				name={workspace.name}
+				branch={workspace.branch}
+				startedAt={new Date(workspace.createdAt).getTime()}
+			/>
+		);
 	}
 
 	if (hostStatus.status === "incompatible") {

@@ -220,7 +220,7 @@ function AdoptWorktreesContent({
 				for (const path of paths) {
 					const wt = projectResult.worktrees.find((w) => w.path === path);
 					if (!wt) continue;
-					const result = await submit({
+					const { completed } = submit({
 						hostId: machineId,
 						snapshot: {
 							id: crypto.randomUUID(),
@@ -230,11 +230,12 @@ function AdoptWorktreesContent({
 							worktreePath: wt.path,
 						},
 					});
-					if (result.ok) {
+					const outcome = await completed;
+					if (outcome.ok) {
 						totalImported++;
-						ensureWorkspaceInSidebar(result.workspaceId, v2ProjectId);
+						ensureWorkspaceInSidebar(outcome.workspaceId, v2ProjectId);
 					} else {
-						toast.error(`Failed to import ${wt.branch}: ${result.error}`);
+						toast.error(`Failed to import ${wt.branch}: ${outcome.error}`);
 					}
 					setProgress({ current: totalImported, total: totalToImport });
 				}
