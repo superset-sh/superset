@@ -7,10 +7,12 @@ import {
 	LuFile,
 	LuGitCompareArrows,
 	LuShrink,
+	LuTerminal,
 	LuX,
 } from "react-icons/lu";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { TerminalSidebar } from "../ContentView/TabsContent/TerminalSidebar";
 import {
 	RightSidebarTab,
 	SidebarMode,
@@ -87,6 +89,7 @@ export function RightSidebar() {
 	const isExpanded = currentMode === SidebarMode.Changes;
 	const compactTabs = sidebarWidth < 250;
 	const showChangesTab = !!worktreePath;
+ 	const showSessionsTab = currentMode !== SidebarMode.Changes;
 
 	const handleExpandToggle = () => {
 		setMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
@@ -177,6 +180,15 @@ export function RightSidebar() {
 						label="Files"
 						compact={compactTabs}
 					/>
+					{showSessionsTab && (
+						<TabButton
+							isActive={rightSidebarTab === RightSidebarTab.Sessions}
+							onClick={() => setRightSidebarTab(RightSidebarTab.Sessions)}
+							icon={<LuTerminal className="size-3.5" />}
+							label="Sessions"
+							compact={compactTabs}
+						/>
+					)}
 				</div>
 				<div className="flex-1" />
 				<div className="flex items-center h-10 pr-2 gap-0.5">
@@ -241,7 +253,11 @@ export function RightSidebar() {
 						: "flex-1 min-h-0 flex flex-col overflow-hidden"
 				}
 			>
-				<FilesView />
+				{rightSidebarTab === RightSidebarTab.Sessions ? (
+					<TerminalSidebar embedded className="border-0 bg-background" />
+				) : (
+					<FilesView />
+				)}
 			</div>
 		</aside>
 	);
