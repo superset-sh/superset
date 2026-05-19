@@ -16,6 +16,7 @@ import { TerminalKilledError } from "../errors";
 import { portManager } from "../port-manager";
 import type { CreateSessionParams, SessionResult } from "../types";
 import {
+	COLD_RESTORE_INPUT_MODE_RESET,
 	CREATE_OR_ATTACH_CONCURRENCY,
 	DEBUG_TERMINAL,
 	MAX_KILLED_SESSION_TOMBSTONES,
@@ -389,7 +390,8 @@ export class DaemonTerminalManager extends EventEmitter {
 						isColdRestore: true,
 						previousCwd: stickyRestore.previousCwd,
 						snapshot: {
-							snapshotAnsi: stickyRestore.scrollback,
+							snapshotAnsi:
+								stickyRestore.scrollback + COLD_RESTORE_INPUT_MODE_RESET,
 							rehydrateSequences: "",
 							cwd: stickyRestore.previousCwd || null,
 							modes: {},
@@ -606,7 +608,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			isColdRestore: true,
 			previousCwd: metadata.cwd,
 			snapshot: {
-				snapshotAnsi: scrollback,
+				snapshotAnsi: scrollback + COLD_RESTORE_INPUT_MODE_RESET,
 				rehydrateSequences: "",
 				cwd: metadata.cwd,
 				modes: {},
