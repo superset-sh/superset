@@ -1,5 +1,8 @@
 import { mermaid } from "@streamdown/mermaid";
-import type { ReactNode } from "react";
+import { Button } from "@superset/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@superset/ui/dialog";
+import { Maximize2 } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
 	oneDark,
@@ -55,13 +58,14 @@ export function CommentCodeBlock({
 }: CommentCodeBlockProps) {
 	const theme = useTheme();
 	const isDark = theme?.type !== "light";
+	const [isExpanded, setIsExpanded] = useState(false);
 
 	const match = /language-(\w+)/.exec(className || "");
 	const language = match ? match[1] : undefined;
 	const codeString = String(children).replace(/\n$/, "");
 
 	if (language === "mermaid") {
-		return (
+		const diagram = (
 			<Streamdown
 				mode="static"
 				plugins={mermaidPlugins}
@@ -74,6 +78,32 @@ export function CommentCodeBlock({
 			>
 				{`\`\`\`mermaid\n${codeString}\n\`\`\``}
 			</Streamdown>
+		);
+
+		return (
+			<>
+				<div className="group relative">
+					{diagram}
+					<Button
+						type="button"
+						size="icon-sm"
+						variant="secondary"
+						onClick={() => setIsExpanded(true)}
+						aria-label="Expand diagram"
+						className="absolute top-2 right-2 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+					>
+						<Maximize2 className="size-4" />
+					</Button>
+				</div>
+				<Dialog open={isExpanded} onOpenChange={setIsExpanded}>
+					<DialogContent className="!max-w-[95vw] !w-[95vw] h-[90vh] overflow-auto p-6">
+						<DialogTitle className="sr-only">Diagram preview</DialogTitle>
+						<div className="flex h-full w-full items-center justify-center [&_svg]:!max-w-none [&_svg]:!h-auto [&_svg]:!w-full">
+							{diagram}
+						</div>
+					</DialogContent>
+				</Dialog>
+			</>
 		);
 	}
 
