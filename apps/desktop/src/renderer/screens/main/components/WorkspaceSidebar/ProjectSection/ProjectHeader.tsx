@@ -16,6 +16,7 @@ import { useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuFolderOpen,
+	LuHardDrive,
 	LuImage,
 	LuImageOff,
 	LuListPlus,
@@ -27,6 +28,7 @@ import {
 import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
+import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
 import { STROKE_WIDTH } from "../constants";
@@ -49,6 +51,7 @@ interface ProjectHeaderProps {
 	onToggleCollapse: () => void;
 	workspaceCount: number;
 	onNewWorkspace: () => void;
+	hasBranchWorkspace: boolean;
 }
 
 export function ProjectHeader({
@@ -64,6 +67,7 @@ export function ProjectHeader({
 	onToggleCollapse,
 	workspaceCount,
 	onNewWorkspace,
+	hasBranchWorkspace,
 }: ProjectHeaderProps) {
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
@@ -155,6 +159,15 @@ export function ProjectHeader({
 			toast.error(`Failed to create section: ${error.message}`),
 	});
 
+	const openMainRepoWorkspace = useOpenMainRepoWorkspace({
+		onError: (error) =>
+			toast.error(`Failed to open local workspace: ${error.message}`),
+	});
+
+	const handleOpenLocalWorkspace = () => {
+		openMainRepoWorkspace.mutate({ projectId });
+	};
+
 	const handleNewSection = () => {
 		createSection.mutate({ projectId, name: "New Section" });
 	};
@@ -213,6 +226,18 @@ export function ProjectHeader({
 							<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Rename
 						</ContextMenuItem>
+						{!hasBranchWorkspace && (
+							<ContextMenuItem
+								onSelect={handleOpenLocalWorkspace}
+								disabled={openMainRepoWorkspace.isPending}
+							>
+								<LuHardDrive
+									className="size-4 mr-2"
+									strokeWidth={STROKE_WIDTH}
+								/>
+								Open Local Workspace
+							</ContextMenuItem>
+						)}
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={handleOpenInFinder}>
 							<LuFolderOpen
@@ -346,6 +371,15 @@ export function ProjectHeader({
 						<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Rename
 					</ContextMenuItem>
+					{!hasBranchWorkspace && (
+						<ContextMenuItem
+							onSelect={handleOpenLocalWorkspace}
+							disabled={openMainRepoWorkspace.isPending}
+						>
+							<LuHardDrive className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Open Local Workspace
+						</ContextMenuItem>
+					)}
 					<ContextMenuSeparator />
 					<ContextMenuItem onSelect={handleOpenInFinder}>
 						<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />

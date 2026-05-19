@@ -78,6 +78,10 @@ export function ProjectSection({
 		workspaces.length +
 		sections.reduce((sum, s) => sum + s.workspaces.length, 0);
 
+	const hasBranchWorkspace =
+		workspaces.some((w) => w.type === "branch") ||
+		sections.some((s) => s.workspaces.some((w) => w.type === "branch"));
+
 	const { orderedWorkspaceIds, topLevelChildren } = useMemo(() => {
 		const topLevelWorkspacesById = new Map(
 			workspaces.map((workspace) => [workspace.id, workspace]),
@@ -247,6 +251,7 @@ export function ProjectSection({
 						onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 						workspaceCount={totalWorkspaceCount}
 						onNewWorkspace={handleNewWorkspace}
+						hasBranchWorkspace={hasBranchWorkspace}
 					/>
 				</div>
 				<AnimatePresence initial={false}>
@@ -349,6 +354,7 @@ export function ProjectSection({
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 					workspaceCount={totalWorkspaceCount}
 					onNewWorkspace={handleNewWorkspace}
+					hasBranchWorkspace={hasBranchWorkspace}
 				/>
 			</div>
 
