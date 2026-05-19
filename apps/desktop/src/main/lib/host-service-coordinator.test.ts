@@ -22,7 +22,6 @@ const manifestStore: {
 		authToken: string;
 		startedAt: number;
 		organizationId: string;
-		spawnedByAppVersion: string;
 	} | null;
 } = { current: null };
 
@@ -100,7 +99,6 @@ const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
 	authToken: "manifest-secret",
 	startedAt: 0,
 	organizationId: "org-1",
-	spawnedByAppVersion: APP_VERSION,
 });
 
 const spawnConfig = { authToken: "token", cloudApiUrl: "https://api.example" };

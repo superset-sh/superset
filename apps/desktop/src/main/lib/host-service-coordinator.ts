@@ -236,14 +236,6 @@ export class HostServiceCoordinator extends EventEmitter {
 		return this.instances.get(organizationId)?.status ?? "stopped";
 	}
 
-	hasActiveInstances(): boolean {
-		for (const instance of this.instances.values()) {
-			if (instance.status === "running" || instance.status === "starting")
-				return true;
-		}
-		return this.pendingStarts.size > 0;
-	}
-
 	getActiveOrganizationIds(): string[] {
 		return [...this.instances.entries()]
 			.filter(([, i]) => i.status !== "stopped")
@@ -474,7 +466,6 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_HOME_DIR: SUPERSET_HOME_DIR,
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
-			SUPERSET_APP_VERSION: app.getVersion(),
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_API_URL: config.cloudApiUrl,
 			// Read by the child's parent watchdog so it can self-exit if
