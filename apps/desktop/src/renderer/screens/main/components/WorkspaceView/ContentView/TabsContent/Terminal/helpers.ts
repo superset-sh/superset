@@ -10,6 +10,7 @@ import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import type { DetectedLink } from "renderer/lib/terminal/links";
+import { getTerminalRendererPreference } from "renderer/lib/terminal/renderer-preference";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
@@ -131,7 +132,10 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 
 	// Defer WebGL to rAF to avoid racing xterm's post-open viewport sync.
 	const rafId = requestAnimationFrame(() => {
-		if (disposed || suggestedRendererType === "dom") return;
+		if (disposed) return;
+		const preference = getTerminalRendererPreference();
+		if (preference === "dom") return;
+		if (preference !== "webgl" && suggestedRendererType === "dom") return;
 
 		try {
 			webglAddon = new WebglAddon();
