@@ -3,6 +3,10 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo } from "react";
 import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	type CollectionLike,
+	updateCollectionItemSafely,
+} from "./utils/updateCollectionItemSafely";
 
 export type PersistableTransaction = {
 	isPersisted: {
@@ -22,6 +26,24 @@ interface V2WorkspacePatch {
 	branch?: string;
 	hostId?: string;
 	taskId?: string | null;
+}
+
+interface V2ProjectDraft {
+	name: string;
+	slug: string;
+	repoCloneUrl: string | null;
+	githubRepositoryId: string | null;
+}
+
+interface V2WorkspaceDraft {
+	name: string;
+	branch: string;
+	hostId: string;
+	taskId: string | null;
+}
+
+interface V2HostDraft {
+	name: string;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -148,57 +170,87 @@ export function useOptimisticCollectionActions() {
 			v2Projects: {
 				updateProject: (projectId: string, patch: V2ProjectPatch) =>
 					runProjectMutation("Failed to update project", () =>
-						collections.v2Projects.update(projectId, (draft) => {
-							if (patch.name !== undefined) {
-								draft.name = patch.name;
-							}
-							if (patch.slug !== undefined) {
-								draft.slug = patch.slug;
-							}
-							if (patch.repoCloneUrl !== undefined) {
-								draft.repoCloneUrl = patch.repoCloneUrl;
-							}
-							if (patch.githubRepositoryId !== undefined) {
-								draft.githubRepositoryId = patch.githubRepositoryId;
-							}
+						updateCollectionItemSafely({
+							collection:
+								collections.v2Projects as CollectionLike<V2ProjectDraft>,
+							key: projectId,
+							resourceLabel: "Project",
+							mutate: (draft) => {
+								if (patch.name !== undefined) {
+									draft.name = patch.name;
+								}
+								if (patch.slug !== undefined) {
+									draft.slug = patch.slug;
+								}
+								if (patch.repoCloneUrl !== undefined) {
+									draft.repoCloneUrl = patch.repoCloneUrl;
+								}
+								if (patch.githubRepositoryId !== undefined) {
+									draft.githubRepositoryId = patch.githubRepositoryId;
+								}
+							},
 						}),
 					),
 				renameProject: (projectId: string, name: string) =>
 					runProjectMutation("Failed to rename project", () =>
-						collections.v2Projects.update(projectId, (draft) => {
-							draft.name = name;
+						updateCollectionItemSafely({
+							collection:
+								collections.v2Projects as CollectionLike<V2ProjectDraft>,
+							key: projectId,
+							resourceLabel: "Project",
+							mutate: (draft) => {
+								draft.name = name;
+							},
 						}),
 					),
 				updateRepository: (projectId: string, repoCloneUrl: string | null) =>
 					runProjectMutation("Failed to update project repository", () =>
-						collections.v2Projects.update(projectId, (draft) => {
-							draft.repoCloneUrl = repoCloneUrl;
-							draft.githubRepositoryId = null;
+						updateCollectionItemSafely({
+							collection:
+								collections.v2Projects as CollectionLike<V2ProjectDraft>,
+							key: projectId,
+							resourceLabel: "Project",
+							mutate: (draft) => {
+								draft.repoCloneUrl = repoCloneUrl;
+								draft.githubRepositoryId = null;
+							},
 						}),
 					),
 			},
 			v2Workspaces: {
 				updateWorkspace: (workspaceId: string, patch: V2WorkspacePatch) =>
 					runWorkspaceMutation("Failed to update workspace", () =>
-						collections.v2Workspaces.update(workspaceId, (draft) => {
-							if (patch.name !== undefined) {
-								draft.name = patch.name;
-							}
-							if (patch.branch !== undefined) {
-								draft.branch = patch.branch;
-							}
-							if (patch.hostId !== undefined) {
-								draft.hostId = patch.hostId;
-							}
-							if (patch.taskId !== undefined) {
-								draft.taskId = patch.taskId;
-							}
+						updateCollectionItemSafely({
+							collection:
+								collections.v2Workspaces as CollectionLike<V2WorkspaceDraft>,
+							key: workspaceId,
+							resourceLabel: "Workspace",
+							mutate: (draft) => {
+								if (patch.name !== undefined) {
+									draft.name = patch.name;
+								}
+								if (patch.branch !== undefined) {
+									draft.branch = patch.branch;
+								}
+								if (patch.hostId !== undefined) {
+									draft.hostId = patch.hostId;
+								}
+								if (patch.taskId !== undefined) {
+									draft.taskId = patch.taskId;
+								}
+							},
 						}),
 					),
 				renameWorkspace: (workspaceId: string, name: string) =>
 					runWorkspaceMutation("Failed to rename workspace", () =>
-						collections.v2Workspaces.update(workspaceId, (draft) => {
-							draft.name = name;
+						updateCollectionItemSafely({
+							collection:
+								collections.v2Workspaces as CollectionLike<V2WorkspaceDraft>,
+							key: workspaceId,
+							resourceLabel: "Workspace",
+							mutate: (draft) => {
+								draft.name = name;
+							},
 						}),
 					),
 			},
@@ -214,8 +266,13 @@ export function useOptimisticCollectionActions() {
 			v2Hosts: {
 				renameHost: (hostId: string, name: string) =>
 					runHostsMutation("Failed to rename host", () =>
-						collections.v2Hosts.update(hostId, (draft) => {
-							draft.name = name;
+						updateCollectionItemSafely({
+							collection: collections.v2Hosts as CollectionLike<V2HostDraft>,
+							key: hostId,
+							resourceLabel: "Host",
+							mutate: (draft) => {
+								draft.name = name;
+							},
 						}),
 					),
 			},
