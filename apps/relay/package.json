@@ -7,7 +7,7 @@
 		"dev": "bun run --env-file=../../.env --hot src/index.ts",
 		"start": "bun run src/index.ts",
 		"deploy": "./scripts/deploy.sh",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsgo --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
 		"@hono/node-server": "1.19.13",

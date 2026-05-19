@@ -3,7 +3,6 @@
 	"compilerOptions": {
 		"strict": true,
 		"skipLibCheck": true,
-		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./*"],
 			"@superset/tab-bar": ["./modules/tab-bar/src/index.tsx"]

@@ -18,7 +18,7 @@
 		"dev": "NEXT_PUBLIC_MARKETING_URL=$(grep NEXT_PUBLIC_MARKETING_URL ../../.env | cut -d '=' -f2) email dev --dir src/emails",
 		"export": "email export --dir src/emails",
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsgo --noEmit"
 	},
 	"type": "module",
 	"dependencies": {

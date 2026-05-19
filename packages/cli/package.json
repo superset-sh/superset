@@ -10,7 +10,7 @@
 		"build:linux-x64": "cli-framework build --target=bun-linux-x64 --outfile=./dist/superset-linux-x64",
 		"build:all": "bun run build:darwin-arm64 && bun run build:linux-x64",
 		"build:dist": "bun run scripts/build-dist.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsgo --noEmit"
 	},
 	"dependencies": {
 		"@clack/prompts": "0.10.1",

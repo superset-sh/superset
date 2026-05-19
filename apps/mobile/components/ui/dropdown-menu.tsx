@@ -118,7 +118,9 @@ function DropdownMenuContent({
 			<FullWindowOverlay>
 				<DropdownMenuPrimitive.Overlay
 					style={Platform.select({
-						web: overlayStyle ?? undefined,
+						web: (overlayStyle ?? undefined) as
+							| typeof StyleSheet.absoluteFill
+							| undefined,
 						native: overlayStyle
 							? StyleSheet.flatten([
 									StyleSheet.absoluteFill,

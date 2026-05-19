@@ -26,7 +26,7 @@
 		}
 	},
 	"scripts": {
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"typecheck": "tsgo --noEmit --emitDeclarationOnly false",
 		"test": "bun test --pass-with-no-tests",
 		"bench": "bun test src/cache-and-paths-memory.bench.ts"
 	},

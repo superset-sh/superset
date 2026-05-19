@@ -7,7 +7,7 @@
 		"build": "fumadocs-mdx && next build",
 		"dev": "dotenv -e ../../.env -- sh -c 'exec next dev --port ${DOCS_PORT:-3004}'",
 		"start": "next start",
-		"typecheck": "fumadocs-mdx && next typegen && tsc --noEmit",
+		"typecheck": "fumadocs-mdx && next typegen && tsgo --noEmit",
 		"postinstall": "fumadocs-mdx"
 	},
 	"dependencies": {

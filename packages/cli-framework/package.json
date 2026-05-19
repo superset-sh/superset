@@ -12,7 +12,7 @@
 		}
 	},
 	"scripts": {
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsgo --noEmit"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

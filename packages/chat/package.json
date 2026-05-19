@@ -30,7 +30,7 @@
 		}
 	},
 	"scripts": {
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"typecheck": "tsgo --noEmit --emitDeclarationOnly false",
 		"test": "bun test --pass-with-no-tests"
 	},
 	"dependencies": {
