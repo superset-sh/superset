@@ -180,8 +180,14 @@ export function useTerminalColdRestore({
 			});
 		});
 
-		// Add visual separator
-		xterm.write("\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n");
+		// Visual separator: state what we know for certain right now. The
+		// previous session's process has terminated and only its on-disk
+		// scrollback is restored. "New shell started" is written later, from
+		// the success callback — writing it here would lie if createOrAttach
+		// fails downstream.
+		xterm.write(
+			"\r\n\x1b[90m─── Scrollback restored · previous session ended ───\x1b[0m\r\n\r\n",
+		);
 
 		// Reset state for new session
 		isStreamReadyRef.current = false;
@@ -205,6 +211,14 @@ export function useTerminalColdRestore({
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
+					// Shell is confirmed live — now it's safe to tell the user.
+					const currentXterm = xtermRef.current;
+					if (currentXterm) {
+						currentXterm.write(
+							"\x1b[90m─── New shell started ───\x1b[0m\r\n\r\n",
+						);
+					}
+
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
 
