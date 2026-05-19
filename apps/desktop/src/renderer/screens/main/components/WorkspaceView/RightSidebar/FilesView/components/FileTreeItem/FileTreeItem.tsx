@@ -4,6 +4,7 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
@@ -87,11 +88,6 @@ export function FileTreeItem({
 		}
 	};
 
-	const handleDoubleClick = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		onOpenInEditor(entry);
-	};
-
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter") {
 			e.preventDefault();
@@ -125,7 +121,6 @@ export function FileTreeItem({
 				item.isSelected() && "bg-accent",
 			)}
 			onClick={handleClick}
-			onDoubleClick={handleDoubleClick}
 			onKeyDown={handleKeyDown}
 		>
 			<span className="flex items-center justify-center w-4 h-4 shrink-0">
@@ -182,6 +177,7 @@ export function FileTreeItem({
 				<ContextMenuItem onClick={openInEditor}>
 					<LuExternalLink className="mr-2 size-4" />
 					Open in Editor
+					<ContextMenuShortcut>⌘+Click</ContextMenuShortcut>
 				</ContextMenuItem>
 
 				<ContextMenuSeparator />
