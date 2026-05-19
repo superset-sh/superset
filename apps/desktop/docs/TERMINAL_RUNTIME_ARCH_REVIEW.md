@@ -15,6 +15,19 @@ Superset Desktop is an Electron app that provides:
 
 Today, terminals can run locally and (optionally) persist via a background “terminal host” daemon. In the future, we want to support executing terminals in the cloud / on a remote runner while keeping the same “Superset UX primitives” (worktrees, changes/diff, agent status, etc.).
 
+## Recent product decision
+
+For local desktop runtime UX, the current preferred direction is:
+
+- a background supervisor process owns tray and desktop lifecycle policy
+- `HostService` remains headless and owns long-lived local runtime state
+- the UI process is disposable and relaunchable
+- closing the last window does not mean "quit everything"
+- `Quit` from the tray should kill all running local services and exit
+
+We still want architectural critique, but proposals should respect that
+high-level UX target unless they argue convincingly for changing it.
+
 ## Why we’re asking for review now
 
 We have a working implementation of terminal persistence, but it adds a lot of complexity and “mode branching” (daemon vs in-process) across layers (main process, tRPC router, renderer).
@@ -27,10 +40,17 @@ We’re planning a rewrite/refactor to:
 
 ## Current state (high-level)
 
-- Electron main process owns terminal backends:
+- Legacy v1 local stack:
+  - Electron main process owns terminal backends.
   - **In-process backend:** PTYs owned directly in main process.
   - **Daemon backend:** PTYs owned by a separate “terminal host” process; main connects via a local socket.
-- Renderer talks to main via tRPC (IPC), including a terminal stream subscription.
+- Emerging v2 local stack:
+  - local workspaces are moving toward `HostService` as the runtime boundary
+  - terminal identity and pane identity are being separated
+  - renderer attaches more directly to workspace-host routes
+- Renderer still talks through multiple seams today:
+  - legacy v1 routes use main-process tRPC/IPC
+  - v2 local routes increasingly talk to workspace-host boundaries
 - Terminals have “attach/detach” semantics and “cold restore” (disk-backed scrollback restore) for daemon persistence.
 
 ## Known constraints (technical + product)
@@ -60,10 +80,15 @@ These are constraints we currently operate under; if you think any should change
 
 We have a separate cloud plan doc that describes the intended product direction (cloud as source of truth, SSH terminals, tmux persistence, optional local sync for IDE users).
 
+One extra migration constraint matters here:
+
+- v2 local is the primary target for the new runtime model
+- v1 is a compatibility tail, not the architecture we want to optimize forever
+
 ## What we want from you
 
 1. A critique of our abstraction boundaries: what’s missing, what’s over-coupled, what’s in the wrong place.
-2. Alternative architectures that could reduce complexity and improve long-term extensibility.
+2. Alternative architectures that could reduce complexity and improve long-term extensibility within the supervisor + headless-host-service direction.
 3. The biggest failure modes/risk areas you see (especially ordering/lifecycle bugs) and how you’d design to prevent them.
 4. A suggested “migration plan” that minimizes regressions while moving from today’s implementation to a cleaner architecture.
 
@@ -75,6 +100,11 @@ We have a separate cloud plan doc that describes the intended product direction 
 - Where should backend selection happen so it doesn’t leak across the codebase?
 - How would you structure the “terminal runtime” so it can support local + daemon + future remote backends without constant branching?
 - Should “terminal runtime” be its own concept, or should it be a sub-component of a broader “workspace runtime/provider”? Where should the seam be?
+- Given the chosen UX, what is the cleanest boundary between:
+  - background supervisor
+  - `HostService`
+  - UI process
+  - renderer
 
 ### 2) Contracts, identity, and lifecycle
 
