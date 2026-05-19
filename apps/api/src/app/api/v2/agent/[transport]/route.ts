@@ -10,6 +10,12 @@ import { posthog } from "@/lib/analytics";
 import { getOAuthProtectedResourceMetadataUrl } from "@/lib/oauth-metadata";
 import { getRelayUrl } from "@/lib/relay-url";
 
+// MCP uses long-lived SSE/streaming connections. Without an explicit
+// maxDuration, Vercel kills the function after the plan default (300 s),
+// causing "Task timed out after 300 seconds" for any session > ~5 min.
+// Set to the Pro plan maximum (800 s).
+export const maxDuration = 800;
+
 function unauthorizedResponse(req: Request, message: string): Response {
 	return new Response(
 		JSON.stringify({ error: { code: "UNAUTHORIZED", message } }),
