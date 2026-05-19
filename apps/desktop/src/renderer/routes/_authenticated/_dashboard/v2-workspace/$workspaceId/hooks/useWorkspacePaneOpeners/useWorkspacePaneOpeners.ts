@@ -1,5 +1,5 @@
 import type { WorkspaceStore } from "@superset/panes";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
@@ -10,6 +10,7 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import { createInFlightGuard } from "../useV2TerminalLauncher/inFlightGuard";
 
 export function useWorkspacePaneOpeners({
 	store,
@@ -93,17 +94,25 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addTerminalTab = useCallback(async () => {
-		const terminalId = await launcher.create();
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "terminal",
-					data: { terminalId } as TerminalPaneData,
-				},
-			],
-		});
-	}, [store, launcher]);
+	// Drop rapid `addTerminalTab` invocations while one is pending so users
+	// who mash Cmd+T / "New Terminal" during the cold-start daemon bootstrap
+	// don't queue up several creations that all unblock together (#4384).
+	const addTerminalGuardRef = useRef(createInFlightGuard());
+	const addTerminalTab = useCallback(
+		() =>
+			addTerminalGuardRef.current.run(async () => {
+				const terminalId = await launcher.create();
+				store.getState().addTab({
+					panes: [
+						{
+							kind: "terminal",
+							data: { terminalId } as TerminalPaneData,
+						},
+					],
+				});
+			}),
+		[store, launcher],
+	);
 
 	const addChatTab = useCallback(() => {
 		store.getState().addTab({
