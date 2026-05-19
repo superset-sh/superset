@@ -496,10 +496,37 @@ export const organizationRouter = {
 				});
 			}
 
-			const leaveResult = await ctx.auth.api.leaveOrganization({
-				body: { organizationId: input.organizationId },
-				headers: ctx.headers,
-			});
+			let leaveResult: Awaited<
+				ReturnType<typeof ctx.auth.api.leaveOrganization>
+			>;
+			try {
+				leaveResult = await ctx.auth.api.leaveOrganization({
+					body: { organizationId: input.organizationId },
+					headers: ctx.headers,
+				});
+			} catch (error) {
+				// BetterAuth throws an APIError with statusCode 400 when the user is
+				// the sole owner of the organization. Surface this as a BAD_REQUEST
+				// so the client receives a meaningful error instead of a 500.
+				if (
+					error instanceof Error &&
+					"statusCode" in error &&
+					(error as { statusCode: number }).statusCode === 400
+				) {
+					const body = (error as { body?: { message?: string } }).body;
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							body?.message ??
+							"You cannot leave the organization. Transfer ownership first.",
+					});
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to leave organization",
+					cause: error,
+				});
+			}
 
 			if (!leaveResult) {
 				throw new TRPCError({
