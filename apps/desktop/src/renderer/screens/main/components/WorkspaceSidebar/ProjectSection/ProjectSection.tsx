@@ -3,13 +3,16 @@ import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
+import { useWorkspaceShortcutModifiers } from "renderer/hooks/useWorkspaceShortcutModifiers";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { useWorkspaceSidebarStore } from "renderer/stores";
+import { useModifierKeyStateStore } from "renderer/stores/modifier-key-state";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
+import { MAX_KEYBOARD_SHORTCUT_INDEX } from "../WorkspaceListItem/constants";
 import { WorkspaceSection } from "../WorkspaceSection";
 import { ProjectHeader } from "./ProjectHeader";
 
@@ -124,6 +127,31 @@ export function ProjectSection({
 			topLevelChildren: renderables,
 		};
 	}, [shortcutBaseIndex, sections, topLevelItems, workspaces]);
+
+	const isModifierHeld = useModifierKeyStateStore((s) => s.isModifierHeld);
+	const { shortcutLabels } = useWorkspaceShortcutModifiers();
+
+	// Collect shortcut labels for this project's workspaces (for collapsed header badges)
+	const projectShortcutLabels = useMemo(() => {
+		const labels: string[] = [];
+		for (const child of topLevelChildren) {
+			if (child.kind === "workspace") {
+				if (child.shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX) {
+					const label = shortcutLabels.get(child.shortcutIndex);
+					if (label) labels.push(label);
+				}
+			} else {
+				for (let i = 0; i < child.section.workspaces.length; i++) {
+					const idx = child.shortcutBaseIndex + i;
+					if (idx < MAX_KEYBOARD_SHORTCUT_INDEX) {
+						const label = shortcutLabels.get(idx);
+						if (label) labels.push(label);
+					}
+				}
+			}
+		}
+		return labels;
+	}, [topLevelChildren, shortcutLabels]);
 
 	const topUngroupedDropZone = useSectionDropZone({
 		canAccept: (item) =>
@@ -247,6 +275,9 @@ export function ProjectSection({
 						onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 						workspaceCount={totalWorkspaceCount}
 						onNewWorkspace={handleNewWorkspace}
+						shortcutLabels={
+							isCollapsed && isModifierHeld ? projectShortcutLabels : []
+						}
 					/>
 				</div>
 				<AnimatePresence initial={false}>
@@ -349,6 +380,9 @@ export function ProjectSection({
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 					workspaceCount={totalWorkspaceCount}
 					onNewWorkspace={handleNewWorkspace}
+					shortcutLabels={
+						isCollapsed && isModifierHeld ? projectShortcutLabels : []
+					}
 				/>
 			</div>
 
