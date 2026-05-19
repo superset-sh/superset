@@ -19,8 +19,6 @@ const DEFAULT_PATHS: ShellWrapperPaths = {
 	BASH_DIR,
 };
 
-const modeDiagnosticsLogged = new Set<string>();
-
 function getShellName(shell: string): string {
 	return shell.split("/").pop() || shell;
 }
@@ -45,10 +43,10 @@ function quoteShellLiteral(value: string): string {
 	return `'${value.replaceAll("'", `'"'"'`)}'`;
 }
 
+// Emit per call (no process-level dedup): the daemon log is the primary debug
+// surface for "did agent-setup run for this session?", and a missing line for
+// later sessions was misread as a skipped setup in #4583.
 function logModeDiagnostics(shellName: string): void {
-	const key = `${shellName}:native`;
-	if (modeDiagnosticsLogged.has(key)) return;
-	modeDiagnosticsLogged.add(key);
 	console.debug(
 		`[agent-setup] shell integration mode=native shell=${shellName}`,
 	);
