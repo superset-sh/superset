@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
@@ -167,6 +168,12 @@ export class Session {
 	private shellReadyTimeoutId: ReturnType<typeof setTimeout> | null = null;
 	// OSC 133;A scanner state — shared with v2 host-service via @superset/shared
 	private scanState: ShellReadyScanState = createScanState();
+
+	// Buffers partial UTF-8 codepoints across PTY chunk boundaries. Without
+	// this, a multi-byte codepoint split across two `Data` frames (common when
+	// streaming output from CLIs like Claude Code) decodes to U+FFFD on both
+	// sides of the boundary.
+	private utf8Decoder = new StringDecoder("utf8");
 
 	private emulatorWriteQueue: string[] = [];
 	private emulatorWriteQueuedBytes = 0;
@@ -376,16 +383,17 @@ export class Session {
 				}
 
 				if (bytes.length === 0) break;
-				// v1's emulator + IPC consumers want a string. UTF-8 decode the
-				// stripped bytes here. Boundary mangling is still possible at
-				// chunk edges (v1 has no per-session StringDecoder), but v1 is
-				// sunset — the v2 daemon-backed path is the supported one and
-				// it's clean end-to-end.
-				const data = Buffer.from(
-					bytes.buffer,
-					bytes.byteOffset,
-					bytes.byteLength,
-				).toString("utf8");
+				// v1's emulator + IPC consumers want a string. Decode with a
+				// per-session StringDecoder so partial UTF-8 codepoints that
+				// straddle chunk boundaries are buffered until the trailing
+				// bytes arrive — otherwise they decode to U+FFFD on both
+				// sides of the split.
+				const chunk =
+					bytes instanceof Buffer
+						? bytes
+						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+				const data = this.utf8Decoder.write(chunk);
+				if (data.length === 0) break;
 
 				this.enqueueEmulatorWrite(data);
 
