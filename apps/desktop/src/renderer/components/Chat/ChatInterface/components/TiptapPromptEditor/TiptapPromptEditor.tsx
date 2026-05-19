@@ -38,6 +38,7 @@ import {
 import type { ModelOption } from "../../types";
 import { SlashCommandMenu } from "../SlashCommandMenu";
 import { FileMentionNode } from "./FileMentionNode";
+import { handleEnterKeyDown } from "./handleEnterKeyDown";
 import { parseTextToEditorContent } from "./parseTextToEditorContent";
 import { SlashCommandNode } from "./SlashCommandNode";
 import {
@@ -198,34 +199,14 @@ export function TiptapPromptEditor({
 			FileMentionNode,
 			SlashCommandNode,
 
-			// Chat-input keyboard shortcuts
+			// Chat-input keyboard shortcuts.
+			// Enter / Shift+Enter are handled in `editorProps.handleKeyDown` below
+			// so the submit path is gated by an explicit `event.shiftKey` check
+			// (see issue #4202: Shift+Enter must insert a newline, not submit).
 			Extension.create({
 				name: "chatInputKeyboard",
 				addKeyboardShortcuts() {
 					return {
-						Enter: () => {
-							// Guard: IME composition in progress
-							if (isComposingRef.current) return false;
-							// Guard: a suggestion menu is open and handling this key
-							if (isSlashOpenRef.current) return false;
-							if (mentionStateRef.current !== null) return false;
-							// Find the enclosing form and submit it
-							const dom = this.editor.view.dom;
-							const form = dom.closest("form");
-							if (!form) return false;
-							const submitBtn = form.querySelector<HTMLButtonElement>(
-								'button[type="submit"]',
-							);
-							// If the submit button is disabled, consume key but don't submit
-							if (submitBtn?.disabled) return true;
-							form.requestSubmit();
-							return true;
-						},
-
-						"Shift-Enter": () => {
-							return this.editor.commands.setHardBreak();
-						},
-
 						Backspace: () => {
 							const { state } = this.editor;
 							// Only remove attachment when editor is completely empty
@@ -542,6 +523,18 @@ export function TiptapPromptEditor({
 			attributes: {
 				"data-slot": "input-group-control",
 				class: "tiptap-chat-input focus-visible:outline-none",
+			},
+
+			// Runs before keymap plugins, so we can gate the submit path on
+			// `event.shiftKey` directly (see issue #4202). Shift+Enter falls
+			// through to the HardBreak extension's default keymap.
+			handleKeyDown: (view, event) => {
+				return handleEnterKeyDown(event, {
+					getEditorDom: () => view.dom,
+					isComposing: () => isComposingRef.current,
+					isSlashOpen: () => isSlashOpenRef.current,
+					isMentionOpen: () => mentionStateRef.current !== null,
+				});
 			},
 
 			handleDOMEvents: {
