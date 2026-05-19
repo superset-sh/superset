@@ -349,3 +349,125 @@ describe("Session shell-ready: supported shells", () => {
 		});
 	}
 });
+
+describe("Session terminal-query response duplication (#4013)", () => {
+	// Build regexes via string composition — Biome forbids \x1b control chars
+	// in literal regex syntax, so we avoid /\x1b.../ here.
+	const ESC_RE = "\\u001b";
+	// CPR response shape: ESC [ <row> ; <col> R
+	const cprResponseRe = new RegExp(`${ESC_RE}\\[\\d+;\\d+R`, "g");
+	// DA1 response shape: ESC [ ? <params> c
+	const da1ResponseRe = new RegExp(`${ESC_RE}\\[\\?[\\d;]+c`);
+
+	/**
+	 * Wait for the emulator write queue (setImmediate-scheduled) to drain AND
+	 * for xterm's async parser to finish processing it. Calling emulator.flush()
+	 * via the same callback xterm uses internally guarantees both the write
+	 * queue has been pumped and the parser has emitted any onData responses.
+	 */
+	const flushEmulator = async (
+		session: InstanceType<typeof Session>,
+	): Promise<void> => {
+		const emulator = (
+			session as unknown as { emulator: { flush(): Promise<void> } }
+		).emulator;
+		// Tick once to let processEmulatorWriteQueue run, then flush xterm.
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		await emulator.flush();
+		// One more tick so any onData → sendWriteToSubprocess is observable.
+		await new Promise<void>((resolve) => setImmediate(resolve));
+	};
+
+	/** Mark a renderer client as attached without driving the full attach flow. */
+	const attachFakeClient = (session: InstanceType<typeof Session>): void => {
+		const attachedClients = (
+			session as unknown as {
+				attachedClients: Map<
+					unknown,
+					{ socket: unknown; attachedAt: number; attachToken: symbol }
+				>;
+			}
+		).attachedClients;
+		const socket = {
+			write: () => true,
+			off: () => {},
+			once: () => {},
+		};
+		attachedClients.set(socket, {
+			socket,
+			attachedAt: Date.now(),
+			attachToken: Symbol("attach"),
+		});
+	};
+
+	it("does not duplicate CPR responses when shell is ready and a renderer is attached", async () => {
+		const { session, proc } = createTestSession("/bin/zsh");
+		spawnAndReady(session, proc);
+		attachFakeClient(session);
+
+		// Move past the pending phase. After OSC 133;A, the renderer's xterm
+		// query responses pass through to the PTY (see write() filter logic),
+		// so the headless emulator must NOT also forward its own responses.
+		sendData(proc, SHELL_READY_MARKER);
+
+		// Simulate a foreground process (e.g. termenv/lipgloss) sending an
+		// OSC 11 background-color query immediately followed by a CSI 6n
+		// cursor-position query — exactly the sequence in the bug report.
+		sendData(proc, "\x1b]11;?\x1b\\\x1b[6n");
+		await flushEmulator(session);
+
+		// Capture what the headless emulator forwarded before the renderer
+		// chimes in — this is what causes the duplication in #4013.
+		const headlessOnlyJoined = getWrittenData(proc).join("");
+		const headlessCprMatches = headlessOnlyJoined.match(cprResponseRe) ?? [];
+
+		// Simulate the renderer's xterm replying to both queries via the
+		// write() path (this is what the renderer would do once shellReady=true).
+		session.write("\x1b]11;rgb:1515/1111/1010\x1b\\");
+		session.write("\x1b[1;1R");
+
+		const writtenJoined = getWrittenData(proc).join("");
+		const cprMatches = writtenJoined.match(cprResponseRe) ?? [];
+
+		// Headless must NOT forward a CPR response once a renderer is
+		// attached and the shell is ready — the renderer is authoritative
+		// for query responses. Forwarding the duplicate leaks `[1;1R` into
+		// shell input after the next prompt.
+		expect(headlessCprMatches.length).toBe(0);
+
+		// And the total in the PTY stdin must contain exactly one CPR (the
+		// renderer's), not two.
+		expect(cprMatches.length).toBe(1);
+	});
+
+	it("still forwards headless responses when shell is ready but no renderer is attached", async () => {
+		const { session, proc } = createTestSession("/bin/zsh");
+		spawnAndReady(session, proc);
+
+		sendData(proc, SHELL_READY_MARKER);
+
+		// With no renderer attached, the headless emulator is the only
+		// possible responder. It must keep answering CPR so apps that send
+		// queries against a backgrounded session still receive replies.
+		sendData(proc, "\x1b[6n");
+		await flushEmulator(session);
+
+		const writtenJoined = getWrittenData(proc).join("");
+		expect(writtenJoined).toMatch(new RegExp(`${ESC_RE}\\[\\d+;\\d+R`));
+	});
+
+	it("still forwards headless emulator responses while shell is pending (preserves fish DA1 behavior)", async () => {
+		const { session, proc } = createTestSession("/bin/zsh");
+		spawnAndReady(session, proc);
+
+		// During pending, renderer responses are dropped (they look like typed
+		// text), so the headless emulator must answer terminal queries the
+		// shell sends at startup. Without this, fish hangs ~10s on DA1.
+		sendData(proc, "\x1b[c");
+		await flushEmulator(session);
+
+		const writtenJoined = getWrittenData(proc).join("");
+		// xterm answers DA1 with a "?...c" response — make sure it reaches the PTY.
+		expect(writtenJoined).toMatch(da1ResponseRe);
+	});
+});
