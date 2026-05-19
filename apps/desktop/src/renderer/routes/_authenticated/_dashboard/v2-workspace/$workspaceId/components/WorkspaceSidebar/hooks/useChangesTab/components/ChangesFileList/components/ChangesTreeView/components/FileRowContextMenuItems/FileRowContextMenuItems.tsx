@@ -110,6 +110,7 @@ export function FileRowContextMenuItems({
 					<PathActionsMenuItems
 						absolutePath={absolutePath}
 						relativePath={file.path}
+						menuType="dropdown"
 					/>
 				</>
 			)}
