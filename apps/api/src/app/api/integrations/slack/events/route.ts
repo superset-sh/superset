@@ -148,16 +148,15 @@ export async function POST(request: Request) {
 
 		if (event.type === "app_home_opened") {
 			const appHomeEvent = event as { user?: string; tab?: string };
-			if (
-				typeof appHomeEvent.user !== "string" ||
-				typeof appHomeEvent.tab !== "string"
-			) {
+			// Slack omits `tab` in some delivery contexts (e.g. notification-triggered opens).
+			// Only `user` is required; `tab` is unused by processAppHomeOpened.
+			if (typeof appHomeEvent.user !== "string") {
 				console.error("[slack/events] Invalid app home opened payload shape");
 				return new Response("ok", { status: 200 });
 			}
 
 			processAppHomeOpened({
-				event: { user: appHomeEvent.user, tab: appHomeEvent.tab },
+				event: { user: appHomeEvent.user, tab: appHomeEvent.tab ?? "" },
 				teamId: team_id,
 				eventId: event_id,
 			}).catch((err: unknown) => {
