@@ -26,15 +26,6 @@ export interface CachedTerminal {
 	wrapper: HTMLDivElement;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
-	/**
-	 * Clears the WebGL texture atlas to discard stale/corrupted glyph
-	 * textures (no-op if WebGL is unavailable). The macOS GPU compositor
-	 * can drop or corrupt atlas pages without firing `onContextLoss`,
-	 * which manifests as garbled "RTL-looking" glyphs across an otherwise
-	 * working terminal (issue #4010, #3504). Must be called before
-	 * `xterm.refresh()` so the repaint rebuilds glyphs from scratch.
-	 */
-	clearTextureAtlas: () => void;
 	/** Last known dimensions — used to skip no-op resize events. */
 	lastCols: number;
 	lastRows: number;
@@ -103,7 +94,10 @@ function fitAndRefresh(
 
 	const dimensionsChanged = xterm.cols !== prevCols || xterm.rows !== prevRows;
 	if (options.clearAtlas || dimensionsChanged) {
-		entry.clearTextureAtlas();
+		// xterm no-ops this when WebGL isn't the active renderer.
+		try {
+			xterm.clearTextureAtlas();
+		} catch {}
 	}
 
 	xterm.refresh(0, Math.max(0, xterm.rows - 1));
@@ -130,7 +124,7 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, wrapper, clearTextureAtlas, cleanup } =
+	const { xterm, fitAddon, searchAddon, wrapper, cleanup } =
 		createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
@@ -139,7 +133,6 @@ export function getOrCreate(
 		searchAddon,
 		wrapper,
 		cleanupCreation: cleanup,
-		clearTextureAtlas,
 		subscription: null,
 		streamReady: false,
 		pendingStreamEvents: [],
@@ -181,7 +174,7 @@ export function attachToContainer(
 	scheduleFontSettleRefit(
 		entry.xterm,
 		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
-		() => fitAndRefresh(entry, { clearAtlas: true }),
+		() => fitAndRefresh(entry),
 		onResize,
 	);
 
@@ -244,7 +237,7 @@ export function updateAppearance(
 	scheduleFontSettleRefit(
 		xterm,
 		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
-		() => fitAndRefresh(entry, { clearAtlas: true }),
+		() => fitAndRefresh(entry),
 		onDeferredResize
 			? () => onDeferredResize({ cols: xterm.cols, rows: xterm.rows })
 			: undefined,

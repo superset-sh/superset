@@ -267,12 +267,7 @@ export function attachToContainer(
 	scheduleFontSettleRefit(
 		runtime.terminal,
 		() => hostIsVisible(runtime.container),
-		() => {
-			try {
-				runtime.terminal.clearTextureAtlas();
-			} catch {}
-			return measureAndResize(runtime);
-		},
+		() => measureAndResize(runtime),
 		onResize,
 	);
 
@@ -325,12 +320,7 @@ export function updateRuntimeAppearance(
 		scheduleFontSettleRefit(
 			runtime.terminal,
 			() => hostIsVisible(runtime.container),
-			() => {
-				try {
-					runtime.terminal.clearTextureAtlas();
-				} catch {}
-				return measureAndResize(runtime);
-			},
+			() => measureAndResize(runtime),
 			onResize,
 		);
 	}
