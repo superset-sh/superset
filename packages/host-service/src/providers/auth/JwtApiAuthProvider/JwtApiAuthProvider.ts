@@ -5,10 +5,12 @@ import {
 	AuthRefreshFailedError,
 	type AuthRefreshFailureReason,
 } from "../../../errors";
-import type { ApiAuthProvider } from "../types";
+import { SESSION_EXPIRED_HINT } from "../hint";
+import type { ApiAuthProvider, AuthSessionEventPublisher } from "../types";
 
 const JWT_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const JWT_CACHE_DURATION_MS = 55 * 60 * 1000;
+const TRANSIENT_RETRY_INTERVAL_MS = 60 * 1000;
 
 interface SupersetAuthConfig {
 	accessToken: string;
@@ -28,6 +30,23 @@ interface RefreshFailureClassification {
 	statusCode?: number;
 }
 
+export type JwtApiAuthProviderExpiredState =
+	| {
+			kind: "expired_permanent";
+			reason: "invalid_grant";
+			statusCode?: number;
+	  }
+	| {
+			kind: "expired_transient";
+			reason: "network_error" | "http_error";
+			lastFailureAt: number;
+			statusCode?: number;
+	  };
+
+export type JwtApiAuthProviderAuthState =
+	| { kind: "healthy" }
+	| JwtApiAuthProviderExpiredState;
+
 export interface JwtApiAuthProviderOptions {
 	/**
 	 * Returns the current session/api-key/JWT token to authenticate with.
@@ -37,6 +56,7 @@ export interface JwtApiAuthProviderOptions {
 	getSessionToken: () => Promise<string>;
 	apiUrl: string;
 	authConfigPath?: string;
+	eventBus?: AuthSessionEventPublisher;
 }
 
 function looksLikeJwt(token: string): boolean {
@@ -92,12 +112,25 @@ function readStatusCode(error: unknown): number | undefined {
 	return Number.parseInt(match[1], 10);
 }
 
+function errorIndicatesInvalidGrant(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	const suggestion =
+		isObject(error) && typeof error.suggestion === "string"
+			? error.suggestion
+			: "";
+	return /\binvalid_grant\b/i.test(`${message}\n${suggestion}`);
+}
+
 function reasonForRefreshError(error: unknown): RefreshFailureClassification {
 	const statusCode = readStatusCode(error);
 	if (statusCode === undefined) {
 		return { reason: "network_error" };
 	}
-	if (statusCode === 400 || statusCode === 401 || statusCode === 403) {
+	if (
+		statusCode === 401 ||
+		((statusCode === 400 || statusCode === 403) &&
+			errorIndicatesInvalidGrant(error))
+	) {
 		return { reason: "invalid_grant", statusCode };
 	}
 	return { reason: "http_error", statusCode };
@@ -131,16 +164,19 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 	private readonly loadSessionToken: () => Promise<string>;
 	private readonly apiUrl: string;
 	private readonly authConfigPath: string | undefined;
+	private eventBus: AuthSessionEventPublisher | undefined;
 	private cachedJwt: string | null = null;
 	private cachedJwtSessionToken: string | null = null;
 	private cachedJwtExpiresAt = 0;
 	private currentCredential: SupersetAuthConfig | null = null;
 	private inflightRefresh: Promise<string> | null = null;
+	private expired: JwtApiAuthProviderExpiredState | null = null;
 
 	constructor(options: JwtApiAuthProviderOptions) {
 		this.loadSessionToken = options.getSessionToken;
 		this.apiUrl = options.apiUrl;
 		this.authConfigPath = options.authConfigPath;
+		this.eventBus = options.eventBus;
 	}
 
 	async getHeaders(): Promise<Record<string, string>> {
@@ -155,9 +191,43 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 		this.currentCredential = null;
 	}
 
+	setEventBus(eventBus: AuthSessionEventPublisher): void {
+		this.eventBus = eventBus;
+	}
+
+	isInAnyExpiredState(): boolean {
+		return this.expired !== null;
+	}
+
+	isInExpiredState(): boolean {
+		return this.isInAnyExpiredState();
+	}
+
+	getAuthState(): JwtApiAuthProviderAuthState {
+		if (!this.expired) return { kind: "healthy" };
+		return { ...this.expired };
+	}
+
 	async getSessionToken(): Promise<string> {
 		if (!this.authConfigPath) {
 			return this.loadSessionToken();
+		}
+
+		if (this.expired?.kind === "expired_permanent") {
+			throw new AuthRefreshFailedError({
+				reason: this.expired.reason,
+				statusCode: this.expired.statusCode,
+			});
+		}
+
+		if (this.expired?.kind === "expired_transient") {
+			const elapsedMs = Date.now() - this.expired.lastFailureAt;
+			if (elapsedMs < TRANSIENT_RETRY_INTERVAL_MS) {
+				throw new AuthRefreshFailedError({
+					reason: this.expired.reason,
+					statusCode: this.expired.statusCode,
+				});
+			}
 		}
 
 		const credential = this.currentCredential ?? this.readCurrentCredential();
@@ -167,7 +237,10 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 		this.currentCredential = credential;
 
 		const expiresAt = readJwtExp(credential.accessToken);
-		if (expiresAt === null || expiresAt - Date.now() > JWT_REFRESH_BUFFER_MS) {
+		const needsRefresh =
+			this.expired !== null ||
+			(expiresAt !== null && expiresAt - Date.now() <= JWT_REFRESH_BUFFER_MS);
+		if (!needsRefresh) {
 			return credential.accessToken;
 		}
 
@@ -226,10 +299,23 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 		credential: SupersetAuthConfig,
 	): Promise<string> {
 		if (!credential.refreshToken) {
+			this.transitionToPermanent({ reason: "invalid_grant" });
+			this.wipeRefreshToken();
 			throw new AuthRefreshFailedError({ reason: "invalid_grant" });
 		}
 
-		const refreshed = await this.runRefresh(credential.refreshToken);
+		let refreshed: SupersetAuthConfig;
+		try {
+			refreshed = await this.runRefresh(credential.refreshToken);
+		} catch (error) {
+			const failure =
+				error instanceof AuthRefreshFailedError
+					? { reason: error.reason, statusCode: error.statusCode }
+					: reasonForRefreshError(error);
+			this.handleRefreshFailure(failure);
+			throw new AuthRefreshFailedError(failure);
+		}
+
 		const nextCredential: SupersetAuthConfig = {
 			accessToken: refreshed.accessToken,
 			refreshToken: refreshed.refreshToken ?? credential.refreshToken,
@@ -248,21 +334,96 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 		this.cachedJwt = null;
 		this.cachedJwtSessionToken = null;
 		this.cachedJwtExpiresAt = 0;
+		this.transitionToHealthy();
 		return nextCredential.accessToken;
 	}
 
 	private async runRefresh(refreshToken: string): Promise<SupersetAuthConfig> {
-		try {
-			const refreshed = await refreshAccessToken(refreshToken);
-			return {
-				accessToken: refreshed.accessToken,
-				refreshToken: refreshed.refreshToken ?? refreshToken,
-				expiresAt: refreshed.expiresAt,
-			};
-		} catch (error) {
-			if (error instanceof AuthRefreshFailedError) throw error;
-			const options = reasonForRefreshError(error);
-			throw new AuthRefreshFailedError(options);
+		const refreshed = await refreshAccessToken(refreshToken);
+		return {
+			accessToken: refreshed.accessToken,
+			refreshToken: refreshed.refreshToken ?? refreshToken,
+			expiresAt: refreshed.expiresAt,
+		};
+	}
+
+	private handleRefreshFailure(failure: RefreshFailureClassification): void {
+		if (failure.reason === "invalid_grant") {
+			this.transitionToPermanent({
+				reason: failure.reason,
+				statusCode: failure.statusCode,
+			});
+			this.wipeRefreshToken();
+			return;
 		}
+
+		this.transitionToTransient({
+			reason: failure.reason,
+			statusCode: failure.statusCode,
+		});
+	}
+
+	private transitionToPermanent(failure: {
+		reason: "invalid_grant";
+		statusCode?: number;
+	}): void {
+		const wasHealthy = this.expired === null;
+		const occurredAt = Date.now();
+		this.expired = {
+			kind: "expired_permanent",
+			reason: failure.reason,
+			statusCode: failure.statusCode,
+		};
+		if (wasHealthy) {
+			this.eventBus?.broadcastAuthSessionExpired({
+				reason: failure.reason,
+				hint: SESSION_EXPIRED_HINT,
+				occurredAt,
+			});
+		}
+	}
+
+	private transitionToTransient(failure: {
+		reason: "network_error" | "http_error";
+		statusCode?: number;
+	}): void {
+		const wasHealthy = this.expired === null;
+		const occurredAt = Date.now();
+		this.expired = {
+			kind: "expired_transient",
+			reason: failure.reason,
+			lastFailureAt: occurredAt,
+			statusCode: failure.statusCode,
+		};
+		if (wasHealthy) {
+			this.eventBus?.broadcastAuthSessionExpired({
+				reason: failure.reason,
+				hint: SESSION_EXPIRED_HINT,
+				occurredAt,
+			});
+		}
+	}
+
+	private transitionToHealthy(): void {
+		const wasExpiredTransient = this.expired?.kind === "expired_transient";
+		const occurredAt = Date.now();
+		this.expired = null;
+		if (wasExpiredTransient) {
+			this.eventBus?.broadcastAuthSessionRestored({ occurredAt });
+		}
+	}
+
+	private wipeRefreshToken(): void {
+		if (!this.authConfigPath) return;
+
+		const latestConfig = readConfigAtPath(this.authConfigPath);
+		if (!latestConfig.auth?.refreshToken) return;
+
+		const nextAuth = { ...latestConfig.auth };
+		delete nextAuth.refreshToken;
+		writeConfigAtPath(this.authConfigPath, {
+			...latestConfig,
+			auth: nextAuth,
+		});
 	}
 }

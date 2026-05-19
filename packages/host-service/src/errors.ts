@@ -1,5 +1,8 @@
-export const AUTH_REFRESH_FAILED_MESSAGE =
-	"Superset session expired — run `superset auth login`";
+import { SESSION_EXPIRED_HINT } from "./providers/auth/hint";
+
+export { SESSION_EXPIRED_HINT };
+
+export const AUTH_REFRESH_FAILED_MESSAGE = SESSION_EXPIRED_HINT;
 
 export type AuthRefreshFailureReason =
 	| "invalid_grant"

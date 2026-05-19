@@ -6,6 +6,9 @@ export {
 } from "./map-event-type.ts";
 export type {
 	AgentLifecycleMessage,
+	AuthSessionExpiredMessage,
+	AuthSessionExpiredReason,
+	AuthSessionRestoredMessage,
 	ClientMessage,
 	EventBusErrorMessage,
 	FsEventsMessage,
