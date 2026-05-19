@@ -238,6 +238,62 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.HOME).toBe("/Users/test");
 	});
 
+	// Contract test: every key desktop main sets in
+	// apps/desktop/src/main/lib/host-service-coordinator.ts:buildEnv() must be
+	// stripped before the env reaches a PTY — except the three SUPERSET_*
+	// keys the PTY is supposed to keep (see SUPERSET_KEEP_KEYS in env-strip).
+	//
+	// If you add a new childEnv key in host-service-coordinator and this test
+	// fails, update HOST_SERVICE_RUNTIME_KEYS / STRIP_PREFIXES in env-strip.ts
+	// (or, if it's user-facing, add it to the keep list).
+	test("every key desktop main injects into host-service is stripped (regression contract)", () => {
+		// Mirror of host-service-coordinator.ts:644-667 — keep in sync.
+		const desktopInjected: Record<string, string> = {
+			ELECTRON_RUN_AS_NODE: "1",
+			NODE_ENV: "production",
+			ORGANIZATION_ID: "org-abc",
+			HOST_CLIENT_ID: "client-id",
+			HOST_NAME: "Mac",
+			HOST_SERVICE_SECRET: "secret",
+			HOST_SERVICE_PORT: "4879",
+			HOST_MANIFEST_DIR: "/tmp/manifests",
+			HOST_DB_PATH: "/tmp/host.db",
+			HOST_MIGRATIONS_FOLDER: "/tmp/migrations",
+			DESKTOP_VITE_PORT: "5173",
+			SUPERSET_APP_VERSION: "1.9.7",
+			AUTH_TOKEN: "bearer",
+			SUPERSET_API_URL: "https://api.example.com",
+			RELAY_URL: "https://relay.example.com",
+		};
+		const kept: Record<string, string> = {
+			SUPERSET_HOME_DIR: "/Users/test/.superset",
+			SUPERSET_AGENT_HOOK_PORT: "51741",
+			SUPERSET_AGENT_HOOK_VERSION: "2",
+		};
+		const userShellEnv: Record<string, string> = {
+			HOME: "/Users/test",
+			PATH: "/usr/bin",
+			SHELL: "/bin/zsh",
+			DD_API_KEY: "user-launchctl-value",
+		};
+
+		const result = stripTerminalRuntimeEnv({
+			...desktopInjected,
+			...kept,
+			...userShellEnv,
+		});
+
+		for (const key of Object.keys(desktopInjected)) {
+			expect(result[key]).toBeUndefined();
+		}
+		for (const [key, value] of Object.entries(kept)) {
+			expect(result[key]).toBe(value);
+		}
+		for (const [key, value] of Object.entries(userShellEnv)) {
+			expect(result[key]).toBe(value);
+		}
+	});
+
 	test("explicit Superset support keys are kept", () => {
 		const result = stripTerminalRuntimeEnv(secretsEnv);
 		expect(result.SUPERSET_HOME_DIR).toBe("/Users/test/.superset");
