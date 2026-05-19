@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import type { ApiClient } from "../api-client";
+import { SUPERSET_HOME_DIR } from "../config";
 import { env } from "../env";
 import {
 	type HostServiceManifest,
@@ -110,6 +111,7 @@ export async function spawnHostService(
 			...process.env,
 			ORGANIZATION_ID: options.organizationId,
 			AUTH_TOKEN: options.sessionToken,
+			SUPERSET_AUTH_CONFIG_PATH: join(SUPERSET_HOME_DIR, "config.json"),
 			SUPERSET_API_URL: env.SUPERSET_API_URL,
 			RELAY_URL: relayUrl,
 			PORT: String(port),
