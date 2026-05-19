@@ -1,3 +1,7 @@
 export { DeviceKeyApiAuthProvider } from "./DeviceKeyAuthProvider";
-export { JwtApiAuthProvider } from "./JwtAuthProvider";
+export {
+	JwtApiAuthProvider,
+	JwtApiAuthProvider as JwtAuthProvider,
+	type JwtApiAuthProviderOptions,
+} from "./JwtApiAuthProvider";
 export type { ApiAuthProvider } from "./types";
