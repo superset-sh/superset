@@ -7,6 +7,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
 	vscode: "Visual Studio Code",
 	"vscode-insiders": "Visual Studio Code - Insiders",
+	vscodium: "VSCodium",
 	cursor: "Cursor",
 	antigravity: "Antigravity",
 	windsurf: "Windsurf",
@@ -47,6 +48,7 @@ const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
 	vscode: "code",
 	"vscode-insiders": "code-insiders",
+	vscodium: "codium",
 	cursor: "cursor",
 	antigravity: "antigravity",
 	windsurf: "windsurf",
