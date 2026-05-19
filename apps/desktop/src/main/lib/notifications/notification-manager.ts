@@ -88,6 +88,7 @@ export class NotificationManager {
 				tabId: event.tabId,
 				workspaceId: event.workspaceId,
 				sessionId: event.sessionId,
+				...(event.terminalId ? { terminalId: event.terminalId } : {}),
 			});
 			this.untrack(key, notification);
 		});

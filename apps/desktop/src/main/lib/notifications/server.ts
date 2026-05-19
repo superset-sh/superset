@@ -55,6 +55,7 @@ app.get("/hook/complete", (req, res) => {
 		tabId,
 		workspaceId,
 		sessionId,
+		terminalId,
 		hookSessionId,
 		resourceId,
 		eventType,
@@ -101,6 +102,7 @@ app.get("/hook/complete", (req, res) => {
 		paneId: resolvedPaneId,
 		tabId: tabId as string | undefined,
 		workspaceId: workspaceId as string | undefined,
+		terminalId: terminalId as string | undefined,
 		eventType: mappedEventType,
 	};
 
@@ -112,6 +114,7 @@ app.get("/hook/complete", (req, res) => {
 			tabId: tabId as string | undefined,
 			workspaceId: workspaceId as string | undefined,
 			sessionId: sessionId as string | undefined,
+			terminalId: terminalId as string | undefined,
 			hookSessionId: hookSessionId as string | undefined,
 			resourceId: resourceId as string | undefined,
 			resolvedPaneId,

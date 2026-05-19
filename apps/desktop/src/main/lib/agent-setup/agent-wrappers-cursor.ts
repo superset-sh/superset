@@ -14,7 +14,7 @@ import { HOOKS_DIR } from "./paths";
 export const CURSOR_HOOK_SCRIPT_NAME = "cursor-hook.sh";
 
 const CURSOR_HOOK_SIGNATURE = "# Superset cursor hook";
-const CURSOR_HOOK_VERSION = "v2";
+const CURSOR_HOOK_VERSION = "v3";
 export const CURSOR_HOOK_MARKER = `${CURSOR_HOOK_SIGNATURE} ${CURSOR_HOOK_VERSION}`;
 
 const CURSOR_HOOK_TEMPLATE_PATH = path.join(
