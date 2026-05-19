@@ -951,6 +951,12 @@ export class Session {
 		// Mark as terminating immediately to prevent race conditions
 		this.terminatingAt = Date.now();
 
+		// Drop any deferred Spawn — otherwise a Ready frame racing in after
+		// kill() would still trigger handleSubprocessFrame(Ready) to send Spawn,
+		// causing the subprocess to fork a PTY whose orphaned descendant
+		// outlives the session (issue #4322).
+		this.pendingSpawn = null;
+
 		if (this.subprocess && this.subprocessReady) {
 			this.sendKillToSubprocess(signal);
 			return;
