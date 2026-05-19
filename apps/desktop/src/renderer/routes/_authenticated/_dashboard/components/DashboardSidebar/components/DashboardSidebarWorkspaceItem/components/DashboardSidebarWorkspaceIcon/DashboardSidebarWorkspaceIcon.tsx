@@ -17,6 +17,7 @@ import type {
 	DashboardSidebarWorkspacePullRequest,
 	DashboardSidebarWorkspaceType,
 } from "../../../../types";
+import { getDashboardSidebarWorkspaceIconDisplay } from "../../utils/getDashboardSidebarWorkspaceIconDisplay";
 
 interface DashboardSidebarWorkspaceIconProps {
 	hostType: DashboardSidebarWorkspaceHostType;
@@ -101,18 +102,23 @@ export function DashboardSidebarWorkspaceIcon({
 		);
 	};
 
+	const display = getDashboardSidebarWorkspaceIconDisplay({
+		creationStatus,
+		workspaceStatus,
+	});
+
 	return (
 		<>
-			{creationStatus === "failed" ? (
+			{display.primary === "creation-failed" ? (
 				<HiExclamationTriangle className="size-4 text-destructive" />
-			) : creationStatus || workspaceStatus === "working" ? (
+			) : display.primary === "creating" ? (
 				<AsciiSpinner className="text-base" />
 			) : (
 				renderPrimaryIcon()
 			)}
-			{workspaceStatus && workspaceStatus !== "working" && (
+			{display.statusOverlay && (
 				<span className={cn("absolute", overlayPosition)}>
-					<StatusIndicator status={workspaceStatus} />
+					<StatusIndicator status={display.statusOverlay} />
 				</span>
 			)}
 		</>
