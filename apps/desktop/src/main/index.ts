@@ -16,6 +16,7 @@ import {
 	loadToken,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
+import { handleWorkspaceCreateDeepLink } from "main/lib/deep-link/workspace";
 import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
 import { env as mainEnv } from "main/env.main";
 import {
@@ -90,6 +91,34 @@ async function processDeepLink(url: string): Promise<void> {
 			console.error("[main] Auth deep link failed:", result.error);
 		}
 		return;
+	}
+
+	// Workspace creation deep links
+	// e.g. superset://workspaces/create?projectId=...&branchName=...
+	try {
+		const parsed = new URL(url);
+		const isWorkspaceCreate =
+			(parsed.host === "workspaces" && parsed.pathname === "/create") ||
+			parsed.pathname === "/workspaces/create";
+		if (isWorkspaceCreate) {
+			const result = await handleWorkspaceCreateDeepLink(parsed.searchParams);
+			focusMainWindow();
+			if ("workspaceId" in result) {
+				console.log("[main] Workspace created via deep link:", result.workspaceId);
+				const windows = BrowserWindow.getAllWindows();
+				if (windows.length > 0) {
+					windows[0].webContents.send(
+						"deep-link-navigate",
+						`/workspace/${result.workspaceId}`,
+					);
+				}
+			} else {
+				console.error("[main] Workspace deep link failed:", result.error);
+			}
+			return;
+		}
+	} catch (error) {
+		console.error("[main] Failed to parse deep link URL:", error);
 	}
 
 	// Non-auth deep links: extract path and navigate in renderer
