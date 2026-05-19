@@ -2,6 +2,7 @@ import { afterEach, describe, expect, mock, test } from "bun:test";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	sanitizeTerminalFontFamily,
+	TERMINAL_CJK_FALLBACK_FONT_FAMILIES,
 } from "./index";
 
 type MeasureFn = (text: string) => { width: number };
@@ -47,6 +48,9 @@ const proportionalWidths: MeasureFn = (text) => {
 	for (const ch of text) width += ch === "M" ? 16 : 6;
 	return { width };
 };
+const serializedCjkFallbacks = TERMINAL_CJK_FALLBACK_FONT_FAMILIES.map(
+	(family) => `"${family}"`,
+).join(", ");
 
 describe("sanitizeTerminalFontFamily", () => {
 	let restore: (() => void) | null = null;
@@ -108,7 +112,7 @@ describe("sanitizeTerminalFontFamily", () => {
 	test("passes a monospace font through when the stack already ends with monospace", () => {
 		restore = stubCanvas(() => equalWidths);
 		expect(sanitizeTerminalFontFamily('"JetBrains Mono", monospace')).toBe(
-			'"JetBrains Mono", monospace',
+			`"JetBrains Mono", ${serializedCjkFallbacks}, monospace`,
 		);
 	});
 
@@ -117,9 +121,11 @@ describe("sanitizeTerminalFontFamily", () => {
 		// proportional default — appending "monospace" forces OS monospace.
 		restore = stubCanvas(() => equalWidths);
 		expect(sanitizeTerminalFontFamily('"JetBrains Mono"')).toBe(
-			'"JetBrains Mono", monospace',
+			`"JetBrains Mono", ${serializedCjkFallbacks}, monospace`,
 		);
-		expect(sanitizeTerminalFontFamily("Menlo")).toBe("Menlo, monospace");
+		expect(sanitizeTerminalFontFamily("Menlo")).toBe(
+			`"Menlo", ${serializedCjkFallbacks}, monospace`,
+		);
 	});
 
 	test("falls back to default for a proportional primary family (quoted)", () => {
@@ -143,7 +149,7 @@ describe("sanitizeTerminalFontFamily", () => {
 		// Use a unique family so the module-level monospace cache doesn't mask
 		// the canvas error path.
 		expect(sanitizeTerminalFontFamily('"UnmeasurableFont-ABC-123"')).toBe(
-			'"UnmeasurableFont-ABC-123", monospace',
+			`"UnmeasurableFont-ABC-123", ${serializedCjkFallbacks}, monospace`,
 		);
 	});
 });

@@ -11,6 +11,7 @@ import { useSectionDropZone } from "../hooks";
 import type { SidebarSection, SidebarWorkspace } from "../types";
 import { WorkspaceListItem } from "../WorkspaceListItem";
 import { WorkspaceSection } from "../WorkspaceSection";
+import { WORKSPACE_SIDEBAR_PROJECT_CHILDREN_TREE_CLASS_NAME } from "./hierarchy";
 import { ProjectHeader } from "./ProjectHeader";
 
 const PROJECT_TYPE = "PROJECT";
@@ -361,7 +362,7 @@ export function ProjectSection({
 						transition={{ duration: 0.15, ease: "easeOut" }}
 						className="overflow-hidden"
 					>
-						<div className="pb-1">
+						<div className={WORKSPACE_SIDEBAR_PROJECT_CHILDREN_TREE_CLASS_NAME}>
 							{showRootDropZones && topLevelChildren.length === 0 && (
 								<div
 									{...topUngroupedDropZone.handlers}

@@ -11,6 +11,7 @@ import type { DashboardSidebarProjectChild } from "../../../../types";
 import { SidebarDragOverlay } from "../../../SidebarDragOverlay";
 import { SortableSectionHeader } from "../../../SortableSectionHeader";
 import { SortableWorkspaceItem } from "../../../SortableWorkspaceItem";
+import { DASHBOARD_SIDEBAR_PROJECT_CHILDREN_TREE_CLASS_NAME } from "./hierarchy";
 
 interface DashboardSidebarExpandedProjectContentProps {
 	projectId: string;
@@ -60,7 +61,7 @@ export function DashboardSidebarExpandedProjectContent({
 					transition={{ duration: 0.15, ease: "easeOut" }}
 					className="overflow-hidden"
 				>
-					<div className="pb-1">
+					<div className={DASHBOARD_SIDEBAR_PROJECT_CHILDREN_TREE_CLASS_NAME}>
 						<DndContext
 							sensors={sensors}
 							collisionDetection={collisionDetection}

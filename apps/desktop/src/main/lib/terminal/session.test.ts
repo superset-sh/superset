@@ -7,8 +7,14 @@ if (typeof window === "undefined") {
 
 const { SerializeAddon } = await import("@xterm/addon-serialize");
 const { Terminal: HeadlessTerminal } = await import("@xterm/headless");
-const { flushSession, getSerializedScrollback, recoverScrollback } =
-	await import("./session");
+const {
+	createHeadlessTerminal,
+	flushSession,
+	getSerializedScrollback,
+	recoverScrollback,
+} = await import("./session");
+
+const UNICODE_11_WIDE_SYMBOL = String.fromCodePoint(0x231a);
 
 function createTestHeadless() {
 	const headless = new HeadlessTerminal({
@@ -25,6 +31,23 @@ function createTestHeadless() {
 }
 
 describe("session", () => {
+	describe("createHeadlessTerminal", () => {
+		it("uses Unicode 11 widths for restored scrollback layout", async () => {
+			const { headless } = createHeadlessTerminal({
+				cols: 2,
+				rows: 1,
+				scrollback: 1000,
+			});
+
+			await new Promise<void>((resolve) => {
+				headless.write(`${UNICODE_11_WIDE_SYMBOL}A`, resolve);
+			});
+
+			expect(headless.buffer.active.length).toBe(2);
+			headless.dispose();
+		});
+	});
+
 	describe("recoverScrollback", () => {
 		it("should write existing scrollback to headless and return true", async () => {
 			const { headless, serializer } = createTestHeadless();

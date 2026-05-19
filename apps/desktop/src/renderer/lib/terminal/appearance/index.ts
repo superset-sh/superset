@@ -49,6 +49,15 @@ function serializeFontFamilyList(families: string[]): string {
 		.join(", ");
 }
 
+export const TERMINAL_CJK_FALLBACK_FONT_FAMILIES = [
+	"Noto Sans Mono CJK SC",
+	"Source Han Mono SC",
+	"PingFang SC",
+	"Hiragino Sans GB",
+	"Microsoft YaHei",
+	"Noto Sans CJK SC",
+] as const;
+
 export const DEFAULT_TERMINAL_FONT_FAMILIES = [
 	"JetBrains Mono",
 	"JetBrainsMono Nerd Font",
@@ -62,6 +71,7 @@ export const DEFAULT_TERMINAL_FONT_FAMILIES = [
 	"Menlo",
 	"Monaco",
 	"Courier New",
+	...TERMINAL_CJK_FALLBACK_FONT_FAMILIES,
 	"monospace",
 ] as const;
 
@@ -100,6 +110,34 @@ function parseFontFamilyList(cssValue: string): string[] {
 
 const monospaceCheckCache = new Map<string, boolean>();
 
+function appendTerminalFallbacks(families: string[]): string {
+	const cjkFallbackKeys = new Set(
+		TERMINAL_CJK_FALLBACK_FONT_FAMILIES.map((family) => family.toLowerCase()),
+	);
+	const result = families.filter(
+		(family) => !cjkFallbackKeys.has(family.toLowerCase()),
+	);
+	const firstGenericIndex = result.findIndex((family) =>
+		GENERIC_FONT_FAMILIES.has(family.toLowerCase()),
+	);
+	let insertIndex =
+		firstGenericIndex === -1 ? result.length : firstGenericIndex;
+
+	for (const fallback of TERMINAL_CJK_FALLBACK_FONT_FAMILIES) {
+		result.splice(insertIndex, 0, fallback);
+		insertIndex += 1;
+	}
+
+	const hasMonospaceFallback = result.some((family) =>
+		MONOSPACE_GENERIC_FAMILIES.has(family.toLowerCase()),
+	);
+	if (!hasMonospaceFallback) {
+		result.push("monospace");
+	}
+
+	return serializeFontFamilyList(result);
+}
+
 /**
  * Heuristically decide whether `family` is a monospace font using canvas
  * measurement — monospace fonts render narrow ("iiiiii") and wide ("MMMMMM")
@@ -133,7 +171,7 @@ function isFontFamilyMonospace(family: string): boolean {
 
 /**
  * Guard against a persisted terminal font that would break xterm rendering
- * (e.g. a proportional font like "Inter"). Returns the raw CSS value when
+ * (e.g. a proportional font like "Inter"). Returns a sanitized CSS stack when
  * the primary family is monospace; otherwise falls back to the bundled
  * default so a poisoned setting can never blank the app on startup.
  *
@@ -169,14 +207,10 @@ export function sanitizeTerminalFontFamily(
 		);
 		return DEFAULT_TERMINAL_FONT_FAMILY;
 	}
-	// Ensure a generic monospace tail — if the configured primary isn't
-	// installed on this machine, the browser falls back to the OS monospace
-	// generic instead of a proportional default (mirrors VS Code's behavior
-	// in src/vs/workbench/contrib/terminal/browser/terminalConfigurationService.ts).
-	const hasMonoTail = families.some((f) =>
-		MONOSPACE_GENERIC_FAMILIES.has(f.toLowerCase()),
-	);
-	return hasMonoTail ? cssValue : `${cssValue}, monospace`;
+	// Ensure CJK coverage and a generic monospace tail. If the configured
+	// primary is Latin-only or not installed, the browser still gets explicit
+	// terminal-safe fallbacks before reaching the generic family.
+	return appendTerminalFallbacks(families);
 }
 
 /** Reads localStorage theme cache for flash-free first paint. */

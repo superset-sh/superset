@@ -26,6 +26,12 @@ import {
 	GITHUB_STATUS_STALE_TIME,
 	MAX_KEYBOARD_SHORTCUT_INDEX,
 } from "./constants";
+import {
+	WORKSPACE_SIDEBAR_SECTION_WORKSPACE_CONNECTOR_CLASS_NAME,
+	WORKSPACE_SIDEBAR_SECTION_WORKSPACE_ROW_CLASS_NAME,
+	WORKSPACE_SIDEBAR_TOP_LEVEL_WORKSPACE_CONNECTOR_CLASS_NAME,
+	WORKSPACE_SIDEBAR_TOP_LEVEL_WORKSPACE_ROW_CLASS_NAME,
+} from "./hierarchy";
 import { useWorkspaceDnD } from "./useWorkspaceDnD";
 import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
@@ -257,6 +263,13 @@ export function WorkspaceListItem({
 			: null);
 
 	const showBranchSubtitle = isBranchWorkspace || (!!name && name !== branch);
+	const isInSection = sectionId !== null;
+	const hierarchyRowClassName = isInSection
+		? WORKSPACE_SIDEBAR_SECTION_WORKSPACE_ROW_CLASS_NAME
+		: WORKSPACE_SIDEBAR_TOP_LEVEL_WORKSPACE_ROW_CLASS_NAME;
+	const hierarchyConnectorClassName = isInSection
+		? WORKSPACE_SIDEBAR_SECTION_WORKSPACE_CONNECTOR_CLASS_NAME
+		: WORKSPACE_SIDEBAR_TOP_LEVEL_WORKSPACE_CONNECTOR_CLASS_NAME;
 
 	if (isCollapsed) {
 		return (
@@ -302,7 +315,8 @@ export function WorkspaceListItem({
 			onMouseEnter={handleMouseEnter}
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
-				"flex w-full pl-3 pr-2 text-sm",
+				"flex w-full pr-2 text-sm",
+				hierarchyRowClassName,
 				"transition-colors text-left cursor-pointer",
 				isActive ? "hover:bg-muted" : "hover:bg-muted/50",
 				"group relative",
@@ -316,6 +330,7 @@ export function WorkspaceListItem({
 			{isActive && (
 				<div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
 			)}
+			<div aria-hidden="true" className={hierarchyConnectorClassName} />
 
 			<div
 				className={cn(

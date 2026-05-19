@@ -9,6 +9,7 @@
 
 import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { Terminal } from "@xterm/headless";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
@@ -92,6 +93,12 @@ export class HeadlessEmulator {
 
 		this.serializeAddon = new SerializeAddon();
 		this.terminal.loadAddon(this.serializeAddon);
+		this.terminal.loadAddon(
+			new Unicode11Addon() as unknown as Parameters<
+				typeof this.terminal.loadAddon
+			>[0],
+		);
+		this.terminal.unicode.activeVersion = "11";
 
 		// Initialize mode state
 		this.modes = { ...DEFAULT_MODES };

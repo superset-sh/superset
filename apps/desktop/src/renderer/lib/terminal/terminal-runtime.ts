@@ -13,6 +13,7 @@ import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import { TERMINAL_RENDERING_OPTIONS } from "./xterm-options";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -63,6 +64,7 @@ function createTerminal(
 		cursorInactiveStyle: "outline",
 		vtExtensions: { kittyKeyboard: true },
 		scrollbar: { showScrollbar: false },
+		...TERMINAL_RENDERING_OPTIONS,
 	});
 	terminal.loadAddon(fitAddon);
 	terminal.loadAddon(serializeAddon);
