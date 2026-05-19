@@ -341,6 +341,7 @@ function V2WorkspaceContent() {
 							onSelectFile={openFilePaneFromTreeClick}
 							onSelectDiffFile={openDiffPane}
 							onOpenComment={openCommentPane}
+							onOpenChat={addChatTab}
 							onSearch={handleQuickOpen}
 							selectedFilePath={selectedFilePath}
 							pendingReveal={pendingReveal}
