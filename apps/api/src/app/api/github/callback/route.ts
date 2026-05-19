@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { githubInstallations, members } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
@@ -87,6 +87,26 @@ export async function GET(request: Request) {
 			account && "login" in account ? account.login : (account?.name ?? "");
 		const accountType =
 			account && "type" in account ? account.type : "Organization";
+
+		// Check if this installation_id is already linked to a different org.
+		// GitHub can reuse installation IDs after uninstall, so the old row may
+		// still exist and would collide on the column-level UNIQUE constraint.
+		const [conflict] = await db
+			.select({ accountLogin: githubInstallations.accountLogin })
+			.from(githubInstallations)
+			.where(
+				and(
+					eq(githubInstallations.installationId, String(installation.id)),
+					ne(githubInstallations.organizationId, organizationId),
+				),
+			)
+			.limit(1);
+
+		if (conflict) {
+			return Response.redirect(
+				`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=installation_already_linked&account=${encodeURIComponent(conflict.accountLogin)}`,
+			);
+		}
 
 		// Save the installation to our database
 		const [savedInstallation] = await db

@@ -4,13 +4,19 @@ import { toast } from "@superset/ui/sonner";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
-const ERROR_MESSAGES: Record<string, string> = {
+const ERROR_MESSAGES: Record<string, string | ((params: URLSearchParams) => string)> = {
 	installation_cancelled: "GitHub App installation was cancelled.",
 	missing_params: "Invalid installation response. Please try again.",
 	invalid_state: "Invalid state parameter. Please try again.",
 	installation_fetch_failed:
 		"Failed to fetch installation details. Please try again.",
 	save_failed: "Failed to save installation. Please try again.",
+	installation_already_linked: (params) => {
+		const account = params.get("account");
+		return account
+			? `This GitHub installation is already connected to another workspace (${account}). Uninstall the GitHub App from that workspace first.`
+			: "This GitHub installation is already connected to another workspace. Uninstall the GitHub App from that workspace first.";
+	},
 	unexpected: "Something went wrong. Please try again.",
 };
 
@@ -32,7 +38,12 @@ export function ErrorHandler() {
 		const success = searchParams.get("success");
 
 		if (error) {
-			toast.error(ERROR_MESSAGES[error] ?? "Something went wrong.");
+			const msg = ERROR_MESSAGES[error];
+			toast.error(
+				typeof msg === "function"
+					? msg(searchParams)
+					: (msg ?? "Something went wrong."),
+			);
 			window.history.replaceState({}, "", "/integrations/github");
 		} else if (warning) {
 			toast.warning(WARNING_MESSAGES[warning] ?? "Warning occurred.");
