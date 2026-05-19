@@ -37,7 +37,7 @@
 		"posthog-js": "1.310.1",
 		"posthog-node": "5.28.8",
 		"react": "19.2.0",
-		"react-dom": "19.2.0",
+		"react-dom": "19.2.6",
 		"react-icons": "5.6.0",
 		"require-in-the-middle": "8.0.1",
 		"server-only": "0.0.1",
