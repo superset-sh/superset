@@ -87,9 +87,7 @@ export function DashboardSidebarHeader({
 	};
 
 	const handleAutomationsClick = () => {
-		gateFeature(GATED_FEATURES.AUTOMATIONS, () => {
-			navigate({ to: "/automations" });
-		});
+		navigate({ to: "/automations" });
 	};
 
 	const handleTasksClick = () => {

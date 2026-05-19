@@ -1,16 +1,15 @@
 import type { IconType } from "react-icons";
+import { FaSlack } from "react-icons/fa";
 import {
 	HiDevicePhoneMobile,
 	HiOutlineClipboardDocumentList,
 	HiOutlineSignal,
 	HiUsers,
 } from "react-icons/hi2";
-import { LuClock } from "react-icons/lu";
 
 export const GATED_FEATURES = {
 	INVITE_MEMBERS: "invite-members",
 	TASKS: "tasks",
-	AUTOMATIONS: "automations",
 	REMOTE_WORKSPACES: "remote-workspaces",
 	MOBILE_APP: "mobile-app",
 } as const;
@@ -38,15 +37,6 @@ export const PRO_FEATURES: ProFeature[] = [
 		gradientColors: ["#be185d", "#9d174d", "#831843", "#1a1a2e"],
 	},
 	{
-		id: "automations",
-		title: "Automations",
-		description:
-			"Run agents on a schedule. Kick off PR reviews, refactors, and recurring chores without lifting a finger.",
-		icon: LuClock,
-		iconColor: "text-cyan-500",
-		gradientColors: ["#0e7490", "#155e75", "#164e63", "#1a1a2e"],
-	},
-	{
 		id: "team-collaboration",
 		title: "Team Collaboration",
 		description:
@@ -65,6 +55,15 @@ export const PRO_FEATURES: ProFeature[] = [
 		gradientColors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"],
 	},
 	{
+		id: "slack-integration",
+		title: "Slack Integration",
+		description:
+			"Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts.",
+		icon: FaSlack,
+		iconColor: "text-violet-500",
+		gradientColors: ["#7c3aed", "#4f46e5", "#0f766e", "#1a1a2e"],
+	},
+	{
 		id: "mobile-app",
 		title: "Mobile App",
 		description:
@@ -80,7 +79,6 @@ export const PRO_FEATURES: ProFeature[] = [
 export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.INVITE_MEMBERS]: "team-collaboration",
 	[GATED_FEATURES.TASKS]: "tasks",
-	[GATED_FEATURES.AUTOMATIONS]: "automations",
 	[GATED_FEATURES.REMOTE_WORKSPACES]: "remote-workspaces",
 	[GATED_FEATURES.MOBILE_APP]: "mobile-app",
 };

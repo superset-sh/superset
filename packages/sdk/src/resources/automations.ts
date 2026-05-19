@@ -38,7 +38,7 @@ export class Automations extends APIResource {
 	}
 
 	/**
-	 * Create a recurring automation. Requires a Pro plan on the organization.
+	 * Create a recurring automation.
 	 *
 	 * Mirrors `superset automations create`.
 	 */

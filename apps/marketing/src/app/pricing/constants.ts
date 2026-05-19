@@ -139,7 +139,7 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 				values: [null, true, true],
 				badge: { label: "Beta", variant: "default" },
 			},
-			{ label: "Automations", values: [null, true, true] },
+			{ label: "Automations", values: [true, true, true] },
 			{
 				label: "Mobile app",
 				values: [null, true, true],
