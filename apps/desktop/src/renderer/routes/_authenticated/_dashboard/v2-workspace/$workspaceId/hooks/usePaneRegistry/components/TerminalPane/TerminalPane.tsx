@@ -37,6 +37,7 @@ import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
+import { useTerminalActivityTracking } from "./hooks/useTerminalActivityTracking";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 import { useTerminalInterruptClear } from "./hooks/useTerminalInterruptClear";
 import { shellEscapePaths } from "./utils";
@@ -308,6 +309,13 @@ export function TerminalPane({
 	]);
 
 	useTerminalInterruptClear({
+		terminalId,
+		terminalInstanceId,
+		workspaceId,
+		connectionState,
+	});
+
+	useTerminalActivityTracking({
 		terminalId,
 		terminalInstanceId,
 		workspaceId,
