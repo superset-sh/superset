@@ -3,9 +3,13 @@
  * Superset Notification Plugin for OpenCode
  *
  * This plugin sends desktop notifications when OpenCode sessions need attention.
- * It hooks into session.status (busy/idle), session.idle, session.error, and permission.ask events.
+ * It listens for session.status (busy/idle), session.idle, session.error, and
+ * permission.asked bus events. OpenCode publishes permission.asked whenever the
+ * agent needs the user to approve a tool call or answer a question
+ * (`permission: "question"`), so this covers both the "permissions" and
+ * "questions" flows.
  *
- * ROBUSTNESS FEATURES (v8):
+ * ROBUSTNESS FEATURES:
  * - Session-scoped: Tracks root sessionID, ignores events from other sessions
  * - Deduplication: Only sends Start on idle→busy, Stop on busy→idle transitions
  * - Safe defaults: On error, assumes child session to avoid false positives
@@ -23,8 +27,8 @@
  * @see https://github.com/sst/opencode/blob/dev/packages/app/src/context/notification.tsx
  */
 export const SupersetNotifyPlugin = async ({ $, client }) => {
-  if (globalThis.__supersetOpencodeNotifyPluginV8) return {};
-  globalThis.__supersetOpencodeNotifyPluginV8 = true;
+  if (globalThis.__supersetOpencodeNotifyPluginV9) return {};
+  globalThis.__supersetOpencodeNotifyPluginV9 = true;
 
   // Only run inside a v2 Superset terminal session.
   if (!process?.env?.SUPERSET_TERMINAL_ID) return {};
@@ -211,9 +215,14 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
       if (event.type === "session.error") {
         await handleStop(sessionID, 'session.error');
       }
-    },
-    "permission.ask": async (_permission, output) => {
-      if (output.status === "ask") {
+
+      // Handle permission requests (tool approvals and questions).
+      // OpenCode publishes permission.asked on its bus whenever the agent
+      // needs the user to approve a tool call or answer a question.
+      // The legacy "permission.ask" plugin hook is declared in opencode's
+      // type definitions but is never triggered, so we listen for the bus
+      // event via this handler instead.
+      if (event.type === "permission.asked") {
         await notify("PermissionRequest");
       }
     },
