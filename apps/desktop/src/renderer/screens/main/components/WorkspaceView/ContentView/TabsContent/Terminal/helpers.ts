@@ -58,7 +58,15 @@ export function getDefaultTerminalBg(): string {
 }
 
 // Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
-let suggestedRendererType: "webgl" | "dom" | undefined;
+// Users can set localStorage "terminal-renderer-type" to "dom" to permanently
+// disable WebGL (workaround for GPU texture atlas corruption). Only "dom" is
+// meaningful — any other value (including "webgl") behaves like the default.
+let suggestedRendererType: "webgl" | "dom" | undefined = (() => {
+	try {
+		if (localStorage.getItem("terminal-renderer-type") === "dom") return "dom";
+	} catch {}
+	return undefined;
+})();
 
 export interface CreateTerminalOptions {
 	/**
