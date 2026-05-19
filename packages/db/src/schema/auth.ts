@@ -336,11 +336,26 @@ export const apikeys = authSchema.table(
 			.$onUpdate(() => new Date()),
 		permissions: text("permissions"),
 		metadata: text("metadata"),
+		// Derived from metadata so Electric's shape WHERE clause can reference a
+		// real column (`organization_id = $1`) instead of a `LIKE` over JSON text.
+		// See https://electric.ax/docs/sync/guides/shapes#optimized-where-clauses —
+		// only direct column references qualify as optimized predicates; JSON
+		// operators do not. The CASE guards against NULL/empty metadata and
+		// against malformed UUID strings so the STORED expression never raises.
+		organizationId: uuid("organization_id").generatedAlwaysAs(
+			sql`CASE
+				WHEN metadata IS NULL OR metadata = '' THEN NULL
+				WHEN (metadata::jsonb->>'organizationId') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+					THEN (metadata::jsonb->>'organizationId')::uuid
+				ELSE NULL
+			END`,
+		),
 	},
 	(table) => [
 		index("apikeys_configId_idx").on(table.configId),
 		index("apikeys_referenceId_idx").on(table.referenceId),
 		index("apikeys_key_idx").on(table.key),
+		index("apikeys_organization_id_idx").on(table.organizationId),
 		index("apikeys_metadata_trgm_idx").using(
 			"gin",
 			sql`${table.metadata} gin_trgm_ops`,
