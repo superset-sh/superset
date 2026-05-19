@@ -4,7 +4,11 @@ import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
 import { LuCheck, LuExternalLink, LuRefreshCw } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
+import {
+	getNextApplicableStep,
+	STEP_ROUTES,
+	useOnboardingStore,
+} from "renderer/stores/onboarding";
 import { SetupButton } from "../components/SetupButton";
 import { StepHeader, StepShell } from "../components/StepShell";
 
@@ -25,17 +29,20 @@ function OnboardingGhCliPage() {
 		refetch,
 	} = electronTrpc.system.detectGhCli.useQuery();
 
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const nextStep = getNextApplicableStep("gh-cli", platform) ?? "permissions";
+
 	useEffect(() => {
 		goTo("gh-cli");
 	}, [goTo]);
 
 	const handleSkip = () => {
 		markSkipped("gh-cli");
-		navigate({ to: STEP_ROUTES.permissions });
+		navigate({ to: STEP_ROUTES[nextStep] });
 	};
 	const handleContinue = () => {
 		markComplete("gh-cli");
-		navigate({ to: STEP_ROUTES.permissions });
+		navigate({ to: STEP_ROUTES[nextStep] });
 	};
 
 	if (isPending) {

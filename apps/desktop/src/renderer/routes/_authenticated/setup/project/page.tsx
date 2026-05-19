@@ -7,9 +7,14 @@ import { LuFolder } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
+import {
+	getPrevApplicableStep,
+	STEP_ROUTES,
+	useOnboardingStore,
+} from "renderer/stores/onboarding";
 import { MOCK_ORG_ID } from "shared/constants";
 import { SetupButton } from "../components/SetupButton";
 import { StepHeader, StepShell, SupersetPill } from "../components/StepShell";
@@ -45,6 +50,10 @@ function OnboardingProjectPage() {
 	const { activeHostUrl } = useLocalHostService();
 	const hostReady = activeHostUrl !== null;
 
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const prevStep = getPrevApplicableStep("project", platform) ?? "permissions";
+	const backTo = STEP_ROUTES[prevStep];
+
 	useEffect(() => {
 		goTo("project");
 	}, [goTo]);
@@ -79,7 +88,7 @@ function OnboardingProjectPage() {
 
 	if (isLoading) {
 		return (
-			<StepShell backTo={STEP_ROUTES.permissions}>
+			<StepShell backTo={backTo}>
 				<StepHeader
 					icon={supersetIcon}
 					title="Loading projects…"
@@ -99,7 +108,7 @@ function OnboardingProjectPage() {
 
 	if (hasProjects) {
 		return (
-			<StepShell backTo={STEP_ROUTES.permissions}>
+			<StepShell backTo={backTo}>
 				<StepHeader
 					icon={supersetIcon}
 					title="Your projects"
@@ -151,7 +160,7 @@ function OnboardingProjectPage() {
 	}
 
 	return (
-		<StepShell backTo={STEP_ROUTES.permissions}>
+		<StepShell backTo={backTo}>
 			<StepHeader
 				icon={supersetIcon}
 				title="Select a repository"

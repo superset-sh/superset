@@ -2,8 +2,9 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { HiArrowLeft } from "react-icons/hi2";
 import { LuCheck } from "react-icons/lu";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
-	ONBOARDING_STEP_ORDER,
+	getApplicableOnboardingSteps,
 	type OnboardingStep,
 	STEP_ROUTES,
 	useOnboardingStore,
@@ -24,7 +25,9 @@ export function OnboardingProgress() {
 	const completed = useOnboardingStore((s) => s.completed);
 	const skipped = useOnboardingStore((s) => s.skipped);
 	const backTo = useSetupChromeStore((s) => s.backTo);
-	const currentIdx = ONBOARDING_STEP_ORDER.indexOf(currentStep);
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const steps = getApplicableOnboardingSteps(platform);
+	const currentIdx = steps.indexOf(currentStep);
 
 	const pillBase =
 		"inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors";
@@ -48,7 +51,7 @@ export function OnboardingProgress() {
 			</div>
 
 			<div className="flex items-center justify-center gap-2">
-				{ONBOARDING_STEP_ORDER.map((step, idx) => {
+				{steps.map((step, idx) => {
 					const isDone = completed[step] || skipped[step];
 					const isCurrent = step === currentStep;
 					const isPast = idx < currentIdx;
@@ -86,7 +89,7 @@ export function OnboardingProgress() {
 							) : (
 								<div className={cn(pillBase, stateClasses)}>{content}</div>
 							)}
-							{idx < ONBOARDING_STEP_ORDER.length - 1 && (
+							{idx < steps.length - 1 && (
 								<div
 									aria-hidden
 									className={cn(

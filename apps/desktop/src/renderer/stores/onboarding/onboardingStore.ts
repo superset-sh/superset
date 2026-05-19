@@ -22,6 +22,8 @@ const REQUIRED_STEPS: readonly OnboardingStep[] = [
 	"project",
 ] as const;
 
+const MAC_ONLY_STEPS: readonly OnboardingStep[] = ["permissions"] as const;
+
 export const STEP_ROUTES = {
 	providers: "/setup/providers",
 	"gh-cli": "/setup/gh-cli",
@@ -29,6 +31,50 @@ export const STEP_ROUTES = {
 	project: "/setup/project",
 	"adopt-worktrees": "/setup/adopt-worktrees",
 } as const satisfies Record<OnboardingStep, string>;
+
+export function isStepApplicable(
+	step: OnboardingStep,
+	platform: string | undefined,
+): boolean {
+	if (!MAC_ONLY_STEPS.includes(step)) return true;
+	// Treat unknown platform as macOS so Mac users don't see a flicker while the
+	// platform query is loading.
+	return platform === undefined || platform === "darwin";
+}
+
+export function getApplicableOnboardingSteps(
+	platform: string | undefined,
+): readonly OnboardingStep[] {
+	return ONBOARDING_STEP_ORDER.filter((step) =>
+		isStepApplicable(step, platform),
+	);
+}
+
+export function getNextApplicableStep(
+	current: OnboardingStep,
+	platform: string | undefined,
+): OnboardingStep | null {
+	const fullIdx = ONBOARDING_STEP_ORDER.indexOf(current);
+	if (fullIdx < 0) return null;
+	for (let i = fullIdx + 1; i < ONBOARDING_STEP_ORDER.length; i++) {
+		const step = ONBOARDING_STEP_ORDER[i];
+		if (step && isStepApplicable(step, platform)) return step;
+	}
+	return null;
+}
+
+export function getPrevApplicableStep(
+	current: OnboardingStep,
+	platform: string | undefined,
+): OnboardingStep | null {
+	const fullIdx = ONBOARDING_STEP_ORDER.indexOf(current);
+	if (fullIdx <= 0) return null;
+	for (let i = fullIdx - 1; i >= 0; i--) {
+		const step = ONBOARDING_STEP_ORDER[i];
+		if (step && isStepApplicable(step, platform)) return step;
+	}
+	return null;
+}
 
 const STEP_FLAGS_INITIAL: Record<OnboardingStep, boolean> = {
 	providers: false,
