@@ -108,7 +108,7 @@ export function WorkspaceCreatingState({
 				</div>
 
 				{stuck && (
-					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4">
+					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
 						<p className="text-[12px] leading-relaxed text-muted-foreground">
 							This is taking longer than usual. The workspace may already be
 							ready — reloading can pick it up.
