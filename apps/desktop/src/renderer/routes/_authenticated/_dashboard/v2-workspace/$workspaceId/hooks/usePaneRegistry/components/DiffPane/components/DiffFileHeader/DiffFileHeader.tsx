@@ -44,13 +44,6 @@ export function DiffFileHeader({
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const policy = useSidebarFilePolicy();
 
-	// Split into directory + basename so the basename stays visible when the
-	// header is narrow — the directory truncates with ellipsis first, and the
-	// basename truncates only as a fallback (very narrow pane or no directory).
-	const lastSlash = path.lastIndexOf("/");
-	const dir = lastSlash >= 0 ? path.slice(0, lastSlash + 1) : "";
-	const name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
-
 	return (
 		<div
 			data-diff-entry-header-path={path}
@@ -83,18 +76,16 @@ export function DiffFileHeader({
 						className="flex h-6 min-w-0 flex-1 items-center gap-1.5 rounded px-1 text-left transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-60"
 					>
 						<FileIcon fileName={path} className="size-3.5 shrink-0" />
-						<span className="flex min-w-0 items-baseline font-mono text-xs">
-							{dir && (
-								<span className="min-w-0 shrink-[1000] truncate text-muted-foreground">
-									{dir}
-								</span>
-							)}
-							<span className="min-w-0 truncate text-foreground">{name}</span>
+						<span
+							className="min-w-0 flex-1 truncate font-mono text-xs text-foreground"
+							style={{ direction: "rtl", textAlign: "left" }}
+						>
+							<bdi>{path}</bdi>
 						</span>
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
-					{policy.hint}
+					<span className="font-mono text-[10px]">{path}</span>
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>

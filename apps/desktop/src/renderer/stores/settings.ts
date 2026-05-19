@@ -13,10 +13,20 @@ interface SettingsStore extends Settings {
 export const useSettings = create<SettingsStore>()(
 	persist(
 		(set) => ({
-			diffStyle: "split",
+			diffStyle: "unified",
 			showDiffComments: true,
 			update: (key, value) => set({ [key]: value }),
 		}),
-		{ name: "settings" },
+		{
+			name: "settings",
+			version: 1,
+			migrate: (persisted, version) => {
+				const state = (persisted ?? {}) as Record<string, unknown>;
+				if (version < 1) {
+					state.diffStyle = "unified";
+				}
+				return state as unknown as SettingsStore;
+			},
+		},
 	),
 );
