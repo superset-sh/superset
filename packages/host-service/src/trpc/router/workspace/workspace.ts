@@ -68,6 +68,25 @@ export const workspaceRouter = router({
 			};
 		}),
 
+	currentBranch: protectedProcedure
+		.input(z.object({ id: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const localWorkspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.id) })
+				.sync();
+
+			if (!localWorkspace) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+
+			const git = await ctx.git(localWorkspace.worktreePath);
+			const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+			return { workspaceId: input.id, branch: branch || null };
+		}),
+
 	delete: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
