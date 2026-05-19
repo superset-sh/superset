@@ -20,7 +20,19 @@ export function WorkspaceCreateErrorState({
 	const branch = entry.input.branch;
 
 	const handleRetry = () => {
-		submit({ hostId: entry.hostId, snapshot: entry.input });
+		const { workspaceId, completed } = submit({
+			hostId: entry.hostId,
+			snapshot: entry.input,
+		});
+		void completed.then((outcome) => {
+			if (outcome.ok && outcome.workspaceId !== workspaceId) {
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: outcome.workspaceId },
+					replace: true,
+				});
+			}
+		});
 	};
 
 	const handleDismiss = () => {
