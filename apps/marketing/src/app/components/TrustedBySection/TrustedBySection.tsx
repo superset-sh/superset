@@ -19,7 +19,7 @@ const CLIENT_LOGOS = [
 		name: "runway",
 		label: "Runway",
 		logo: "/logos/runway-wordmark.svg",
-		height: 20,
+		height: 18,
 	},
 	{
 		name: "wordware",
