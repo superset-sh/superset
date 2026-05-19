@@ -31,9 +31,9 @@ export function ProjectsSettingsSidebar({
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+	const activeOrganizationId =
+		session?.session?.activeOrganizationId ??
+		(env.SKIP_ENV_VALIDATION ? MOCK_ORG_ID : null);
 
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();

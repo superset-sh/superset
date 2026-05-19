@@ -1,6 +1,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
+import { isLocalProfile } from "@superset/shared/deployment-profile";
 import {
 	app,
 	BrowserWindow,
@@ -28,6 +29,7 @@ import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { ensureDevAuthToken } from "./lib/dev-auto-sign-in";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -54,6 +56,13 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
+
+// Local profile only: expose Chrome DevTools Protocol for headless testing
+// (e.g. import/host-service checks). Skip in internal / cloud profiles.
+if (IS_DEV && isLocalProfile()) {
+	app.commandLine.appendSwitch("remote-debugging-port", "9333");
+	app.commandLine.appendSwitch("remote-allow-origins", "*");
+}
 
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
@@ -417,6 +426,14 @@ if (!gotTheLock) {
 		} catch (error) {
 			console.error("[main] Failed to install bundled CLI shim:", error);
 		}
+
+		// Local profile only: auto-sign-in as the seed admin if no token is on disk.
+		// Fire-and-forget — the function polls the API for readiness internally
+		// (Turbo starts services concurrently, the API may still be compiling).
+		// AuthProvider in the renderer subscribes to auth.onTokenChanged and
+		// will re-hydrate when the token lands, so window creation doesn't
+		// block on this.
+		void ensureDevAuthToken();
 
 		// Discover and adopt host-services that survived a previous quit
 		// before the tray initializes, so it shows accurate status immediately.

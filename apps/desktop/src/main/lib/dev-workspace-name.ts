@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { workspaces, worktrees } from "@superset/local-db";
+import { isLocalProfile } from "@superset/shared/deployment-profile";
 import BetterSqlite3 from "better-sqlite3";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { getWorkspaceName as getEnvWorkspaceName } from "shared/env.shared";
@@ -102,16 +103,22 @@ export function resolveDevWorkspaceName(
 ): string | undefined {
 	if (!IS_DEV) return undefined;
 
+	const workspaceNameFromEnv = getEnvWorkspaceName();
 	const segments = getWorktreeSegmentsFromCwd(cwd);
-	if (!segments) return getEnvWorkspaceName();
+	if (!segments) return workspaceNameFromEnv;
 
 	const workspaceNameFromPath =
 		deriveWorkspaceNameFromWorktreeSegments(segments);
+
+	if (isLocalProfile()) {
+		return workspaceNameFromEnv ?? workspaceNameFromPath;
+	}
+
 	const worktreePath = getWorktreePathFromSegments(segments);
 	const workspaceNameFromDb = worktreePath
 		? (getWorkspaceNameForPathFromCurrentDb(worktreePath) ??
 			getWorkspaceNameForPathFromProdDb(worktreePath))
 		: undefined;
 
-	return workspaceNameFromDb ?? workspaceNameFromPath ?? getEnvWorkspaceName();
+	return workspaceNameFromDb ?? workspaceNameFromPath ?? workspaceNameFromEnv;
 }

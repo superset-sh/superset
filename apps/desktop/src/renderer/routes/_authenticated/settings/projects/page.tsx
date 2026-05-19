@@ -17,9 +17,9 @@ function ProjectsIndexPage() {
 	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+	const activeOrganizationId =
+		session?.session?.activeOrganizationId ??
+		(env.SKIP_ENV_VALIDATION ? MOCK_ORG_ID : null);
 
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();

@@ -56,9 +56,9 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	const { machineId, activeHostUrl } = hostService;
 	const { otherHosts } = useWorkspaceHostOptions();
 	const { data: session } = authClient.useSession();
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+	const activeOrganizationId =
+		session?.session?.activeOrganizationId ??
+		(env.SKIP_ENV_VALIDATION ? MOCK_ORG_ID : null);
 
 	const { submit } = useWorkspaceCreates();
 	const lastProjectId = useV2WorkspaceCreateDefaultsStore(

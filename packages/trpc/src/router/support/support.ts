@@ -9,7 +9,24 @@ import { z } from "zod";
 import { env } from "../../env";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 
-const resend = new Resend(env.RESEND_API_KEY);
+let resendClient: Resend | null = null;
+function getResend(): Resend {
+	if (!resendClient) {
+		if (!env.RESEND_API_KEY) {
+			throw new TRPCError({
+				code: "SERVICE_UNAVAILABLE",
+				message: "Email not configured — set RESEND_API_KEY",
+			});
+		}
+		resendClient = new Resend(env.RESEND_API_KEY);
+	}
+	return resendClient;
+}
+const resend = new Proxy({} as Resend, {
+	get(_t, p) {
+		return Reflect.get(getResend(), p);
+	},
+});
 const SUPPORT_EMAIL = COMPANY.MAIL_TO.replace(/^mailto:/, "");
 const supportReportRateLimit =
 	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
