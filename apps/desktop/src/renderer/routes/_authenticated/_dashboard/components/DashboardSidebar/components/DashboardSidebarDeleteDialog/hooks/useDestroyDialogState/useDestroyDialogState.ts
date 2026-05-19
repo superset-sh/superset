@@ -11,6 +11,7 @@ import {
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import { getWorkspaceMissingOnHostPreview } from "./getWorkspaceMissingOnHostPreview";
 
 interface UseDestroyDialogStateOptions {
 	workspaceId: string;
@@ -66,12 +67,7 @@ export function useDestroyDialogState({
 		if (hostTarget.status === "not-found") {
 			setInspectState({
 				status: "ready",
-				preview: {
-					canDelete: false,
-					reason: "Workspace is no longer available on this host.",
-					hasChanges: false,
-					hasUnpushedCommits: false,
-				},
+				preview: getWorkspaceMissingOnHostPreview(),
 			});
 			return;
 		}

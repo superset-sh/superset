@@ -30,6 +30,9 @@ interface ContextSpec {
 	cloudDelete?: () => Promise<unknown>;
 	gitStatus?: { isClean: () => boolean };
 	revListCount?: string | (() => Promise<string>);
+	worktreeRemove?: () => Promise<unknown>;
+	branchDelete?: () => Promise<unknown>;
+	gitRawCalls?: string[][];
 	gitFactoryThrows?: boolean;
 	dbDeleteThrows?: boolean;
 }
@@ -53,14 +56,15 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 			? await spec.revListCount()
 			: (spec.revListCount ?? "0\n"),
 	);
-	const worktreeRemove = mock(async () => undefined);
-	const branchDelete = mock(async () => undefined);
+	const worktreeRemove = mock(spec.worktreeRemove ?? (async () => undefined));
+	const branchDelete = mock(spec.branchDelete ?? (async () => undefined));
 
 	const git = mock(async () => {
 		if (spec.gitFactoryThrows) throw new Error("git factory boom");
 		return {
 			status,
 			raw: mock(async (args: string[]) => {
+				spec.gitRawCalls?.push(args);
 				if (args[0] === "rev-list") return await revList();
 				if (args[0] === "worktree") return await worktreeRemove();
 				if (args[0] === "branch") return await branchDelete();
@@ -411,5 +415,41 @@ describe("workspaceCleanup.destroy phase-3 best-effort cleanup", () => {
 				w.includes("Failed to remove local workspace row"),
 			),
 		).toBe(true);
+	});
+
+	test("missing worktree removal error is success-equivalent and branch delete still runs", async () => {
+		const gitRawCalls: string[][] = [];
+		const ctx = makeCtx({
+			workspace: {
+				id: "ws-1",
+				projectId: "p-1",
+				worktreePath: "/branch/already-gone",
+				branch: "feature/already-gone",
+			},
+			project: { id: "p-1", repoPath: "/repo" },
+			cloudType: "worktree",
+			gitRawCalls,
+			worktreeRemove: async () => {
+				throw new Error("fatal: '/branch/already-gone' is not a working tree");
+			},
+		});
+		const caller = workspaceCleanupRouter.createCaller(ctx);
+
+		const result = await caller.destroy({
+			workspaceId: "ws-1",
+			deleteBranch: true,
+			force: true,
+		});
+
+		expect(result.success).toBe(true);
+		expect(result.cloudDeleted).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(result.branchDeleted).toBe(true);
+		expect(result.warnings).toEqual([]);
+		expect(gitRawCalls).toContainEqual([
+			"branch",
+			"-D",
+			"feature/already-gone",
+		]);
 	});
 });

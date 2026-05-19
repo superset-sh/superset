@@ -4,6 +4,7 @@ import type {
 } from "@superset/host-service";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	useWorkspaceHostTarget,
@@ -78,6 +79,20 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 		async (
 			input: DestroyWorkspaceInput = {},
 		): Promise<DestroyWorkspaceSuccess> => {
+			if (hostStatus === "not-found") {
+				try {
+					await apiTrpcClient.v2Workspace.delete.mutate({ id: workspaceId });
+					return {
+						success: true,
+						worktreeRemoved: false,
+						branchDeleted: false,
+						cloudDeleted: true,
+						warnings: [],
+					};
+				} catch (err) {
+					throw normalizeError(err);
+				}
+			}
 			const client = getReadyClient(hostUrl, hostStatus);
 			try {
 				return await client.workspaceCleanup.destroy.mutate({
