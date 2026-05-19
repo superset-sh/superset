@@ -6,6 +6,7 @@ import copilotIcon from "./copilot.svg";
 import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
 import geminiIcon from "./gemini.svg";
+import kiroIcon from "./kiro.svg";
 import mastracodeIcon from "./mastracode.svg";
 import mastracodeWhiteIcon from "./mastracode-white.svg";
 import opencodeIcon from "./opencode.svg";
@@ -30,8 +31,14 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
+	kiro: { light: kiroIcon, dark: kiroIcon },
 };
 
+/**
+ * Resolve the icon URL registered for a preset name, picking the dark or light
+ * variant based on the current theme. Names are matched case-insensitively and
+ * trimmed; returns `undefined` when no matching preset is registered.
+ */
 export function getPresetIcon(
 	presetName: string,
 	isDark: boolean,
@@ -58,4 +65,5 @@ export {
 	piIcon,
 	piWhiteIcon,
 	supersetIcon,
+	kiroIcon,
 };
