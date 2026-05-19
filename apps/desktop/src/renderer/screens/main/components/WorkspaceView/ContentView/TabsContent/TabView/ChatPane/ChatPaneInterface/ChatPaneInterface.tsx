@@ -20,6 +20,7 @@ import type {
 	ModelOption,
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
+import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import {
 	getDesktopChatModelOptions,
@@ -248,6 +249,7 @@ export function ChatPaneInterface({
 	const chatRuntimeServiceTrpcUtils = chatRuntimeServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatRuntimeServiceTrpc.workspace.authenticateMcpServer.useMutation();
+	const updateLastActivityAt = useUpdateLastActivityAt();
 	const captureChatEvent = useCallback(
 		(event: string, properties?: ChatAnalyticsProperties) => {
 			posthog.capture(event, {
@@ -629,6 +631,9 @@ export function ChatPaneInterface({
 									sendMessageToSession(nextSessionId, sendInput),
 							});
 				targetSessionId = sendResult.targetSessionId;
+				if (workspaceId) {
+					updateLastActivityAt(workspaceId);
+				}
 				if (content) {
 					onUserMessageSubmitted?.(content);
 				}
@@ -678,6 +683,8 @@ export function ChatPaneInterface({
 			onUserMessageSubmitted,
 			thinkingLevel,
 			clearDraftInStore,
+			updateLastActivityAt,
+			workspaceId,
 		],
 	);
 
@@ -746,6 +753,9 @@ export function ChatPaneInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
+				if (workspaceId) {
+					updateLastActivityAt(workspaceId);
+				}
 				if (prompt) {
 					onUserMessageSubmitted?.(prompt);
 				}
@@ -807,6 +817,8 @@ export function ChatPaneInterface({
 		setRuntimeErrorMessage,
 		onUserMessageSubmitted,
 		thinkingLevel,
+		updateLastActivityAt,
+		workspaceId,
 	]);
 
 	const handleStop = useCallback(

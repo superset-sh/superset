@@ -1,20 +1,31 @@
 import { createTRPCQueryUtils } from "@trpc/react-query";
+import type { AppRouter } from "lib/trpc/routers";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider/ElectronTRPCProvider";
 import { electronReactClient } from "./trpc-client";
 
-const electronTrpcUtils = createTRPCQueryUtils({
-	client: electronReactClient,
-	queryClient: electronQueryClient,
-});
+let _electronTrpcUtils: ReturnType<
+	typeof createTRPCQueryUtils<AppRouter>
+> | null = null;
+
+function getElectronTrpcUtils() {
+	if (!_electronTrpcUtils) {
+		_electronTrpcUtils = createTRPCQueryUtils<AppRouter>({
+			client: electronReactClient,
+			queryClient: electronQueryClient,
+		});
+	}
+	return _electronTrpcUtils;
+}
 
 export function invalidateFileSaveQueries(input: {
 	workspaceId: string;
 	filePath: string;
 }): void {
-	void electronTrpcUtils.filesystem.readFile.invalidate({
+	const utils = getElectronTrpcUtils();
+	void utils.filesystem.readFile.invalidate({
 		workspaceId: input.workspaceId,
 		absolutePath: input.filePath,
 	});
-	void electronTrpcUtils.changes.getGitFileContents.invalidate();
-	void electronTrpcUtils.changes.getStatus.invalidate();
+	void utils.changes.getGitFileContents.invalidate();
+	void utils.changes.getStatus.invalidate();
 }

@@ -18,7 +18,12 @@ import {
 import { getWorkspace } from "../utils/db-helpers";
 import { getProjectChildItems } from "../utils/project-children-order";
 import { loadSetupConfig } from "../utils/setup";
-import { computeVisualOrder } from "../utils/visual-order";
+import {
+	compareActivityDesc,
+	compareByActivity,
+	computeActivityOrder,
+	computeVisualOrder,
+} from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
 type WorktreePathMap = Map<string, string>;
@@ -81,7 +86,6 @@ function getWorkspaceRunDefinition(workspaceId: string) {
 	});
 }
 
-/** Returns workspace IDs in sidebar visual order (by project.tabOrder, then ungrouped workspaces, then sections by tabOrder). */
 function getWorkspacesInVisualOrder(): string[] {
 	const activeProjects = localDb
 		.select()
@@ -95,8 +99,14 @@ function getWorkspacesInVisualOrder(): string[] {
 		.where(isNull(workspaces.deletingAt))
 		.all();
 
-	const allSections = localDb.select().from(workspaceSections).all();
+	const settingsRow = localDb.select().from(settings).get();
+	const sortMode = settingsRow?.sidebarSortMode ?? "manual";
 
+	if (sortMode === "recent") {
+		return computeActivityOrder(activeProjects, allWorkspaces);
+	}
+
+	const allSections = localDb.select().from(workspaceSections).all();
 	return computeVisualOrder(activeProjects, allWorkspaces, allSections);
 }
 
@@ -173,6 +183,7 @@ export const createQueryProcedures = () => {
 				createdAt: number;
 				updatedAt: number;
 				lastOpenedAt: number;
+				lastActivityAt: number | null;
 				isUnread: boolean;
 				isUnnamed: boolean;
 				createdBySuperset: boolean | null;
@@ -285,6 +296,7 @@ export const createQueryProcedures = () => {
 						sectionId: workspace.sectionId ?? null,
 						type: workspace.type as "worktree" | "branch",
 						worktreePath,
+						lastActivityAt: workspace.lastActivityAt ?? null,
 						isUnread: workspace.isUnread ?? false,
 						isUnnamed: workspace.isUnnamed ?? false,
 						createdBySuperset: workspace.worktreeId
@@ -308,7 +320,68 @@ export const createQueryProcedures = () => {
 				}
 			}
 
-			return Array.from(groupsMap.values())
+			const settingsRow = localDb.select().from(settings).get();
+			const sortMode = settingsRow?.sidebarSortMode ?? "manual";
+
+			const groups = Array.from(groupsMap.values());
+
+			const getMaxActivity = (
+				workspaces: { lastActivityAt: number | null }[],
+			): number | null =>
+				workspaces.reduce<number | null>((max, w) => {
+					if (w.lastActivityAt === null) return max;
+					return max === null
+						? w.lastActivityAt
+						: Math.max(max, w.lastActivityAt);
+				}, null);
+
+			if (sortMode === "recent") {
+				for (const group of groups) {
+					group.workspaces.sort(compareByActivity);
+					for (const section of group.sections) {
+						section.workspaces.sort(compareByActivity);
+					}
+				}
+
+				groups.sort((a, b) => {
+					const maxA = getMaxActivity([
+						...a.workspaces,
+						...a.sections.flatMap((s) => s.workspaces),
+					]);
+					const maxB = getMaxActivity([
+						...b.workspaces,
+						...b.sections.flatMap((s) => s.workspaces),
+					]);
+					return (
+						compareActivityDesc(maxA, maxB) ||
+						a.project.tabOrder - b.project.tabOrder
+					);
+				});
+
+				return groups.map((group) => ({
+					...group,
+					topLevelItems: [
+						...group.workspaces.map((w) => ({
+							id: w.id,
+							kind: "workspace" as const,
+							activity: w.lastActivityAt,
+						})),
+						...group.sections.map((s) => ({
+							id: s.id,
+							kind: "section" as const,
+							activity: getMaxActivity(s.workspaces),
+						})),
+					]
+						.sort((a, b) => compareActivityDesc(a.activity, b.activity))
+						.map((entry, index) => ({
+							id: entry.id,
+							kind: entry.kind,
+							tabOrder: index,
+						})),
+				}));
+			}
+
+			return groups
 				.map((group) => {
 					const projectWorkspaces = [
 						...group.workspaces,
@@ -361,6 +434,17 @@ export const createQueryProcedures = () => {
 						? 0
 						: currentIndex + 1;
 				return orderedWorkspaceIds[nextIndex];
+			}),
+
+		updateLastActivityAt: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(({ input }) => {
+				localDb
+					.update(workspaces)
+					.set({ lastActivityAt: Date.now() })
+					.where(eq(workspaces.id, input.workspaceId))
+					.run();
+				return { success: true };
 			}),
 
 		getResolvedRunCommands: publicProcedure

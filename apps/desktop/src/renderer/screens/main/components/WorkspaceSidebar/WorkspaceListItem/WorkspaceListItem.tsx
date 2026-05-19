@@ -114,11 +114,15 @@ export function WorkspaceListItem({
 		fuzzy: true,
 	});
 
+	const { data: sidebarSortMode, isLoading: isSortModeLoading } =
+		electronTrpc.settings.getSidebarSortMode.useQuery();
+
 	const { isDragging, drag, drop } = useWorkspaceDnD({
 		id,
 		projectId,
 		sectionId,
 		index,
+		disabled: isSortModeLoading || sidebarSortMode === "recent",
 	});
 
 	const expandedItemRef = useRef<HTMLDivElement>(null);
