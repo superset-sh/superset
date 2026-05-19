@@ -88,6 +88,34 @@ function ensureWithinRoot({
 	return normalizedAbsolutePath;
 }
 
+// Resolve the workspace root through any symlinks so realpath-based checks
+// compare like-for-like. Callers pass rootPath as the user/DB stored it, which
+// on macOS (e.g. /tmp → /private/tmp) or any workspace under a symlinked
+// ancestor is a different string than fs.realpath returns for files inside it.
+// Without this, assertRealpathWithinRoot would reject every read for such
+// workspaces. Falls back to the normalized path if the root itself can't be
+// realpath'd (e.g. the workspace dir has been deleted) so the existing
+// not-found / dangling-symlink branches still fire.
+async function resolveRealRootPath(rootPath: string): Promise<string> {
+	const normalizedRootPath = normalizeAbsolutePath(rootPath);
+	try {
+		return normalizeAbsolutePath(await fs.realpath(normalizedRootPath));
+	} catch {
+		return normalizedRootPath;
+	}
+}
+
+function isPathWithinEitherRoot(
+	normalizedRootPath: string,
+	realRootPath: string,
+	candidate: string,
+): boolean {
+	return (
+		isPathWithinRoot(normalizedRootPath, candidate) ||
+		isPathWithinRoot(realRootPath, candidate)
+	);
+}
+
 async function assertParentWithinRoot(
 	rootPath: string,
 	absolutePath: string,
@@ -96,6 +124,7 @@ async function assertParentWithinRoot(
 		rootPath,
 		absolutePath: rootPath,
 	});
+	const realRootPath = await resolveRealRootPath(rootPath);
 	let currentPath = path.dirname(absolutePath);
 
 	while (currentPath !== path.dirname(currentPath)) {
@@ -112,7 +141,13 @@ async function assertParentWithinRoot(
 					const targetRealPath = normalizeAbsolutePath(
 						await fs.realpath(resolvedTarget),
 					);
-					if (!isPathWithinRoot(normalizedRootPath, targetRealPath)) {
+					if (
+						!isPathWithinEitherRoot(
+							normalizedRootPath,
+							realRootPath,
+							targetRealPath,
+						)
+					) {
 						throw new WorkspaceFsPathError(
 							"Symlink in path resolves outside workspace root",
 							"SYMLINK_ESCAPE",
@@ -125,8 +160,9 @@ async function assertParentWithinRoot(
 						error.code === "ENOENT"
 					) {
 						if (
-							!isPathWithinRoot(
+							!isPathWithinEitherRoot(
 								normalizedRootPath,
+								realRootPath,
 								normalizeAbsolutePath(resolvedTarget),
 							)
 						) {
@@ -152,7 +188,13 @@ async function assertParentWithinRoot(
 			const parentRealPath = normalizeAbsolutePath(
 				await fs.realpath(currentPath),
 			);
-			if (!isPathWithinRoot(normalizedRootPath, parentRealPath)) {
+			if (
+				!isPathWithinEitherRoot(
+					normalizedRootPath,
+					realRootPath,
+					parentRealPath,
+				)
+			) {
 				throw new WorkspaceFsPathError(
 					"Parent directory resolves outside workspace root",
 					"SYMLINK_ESCAPE",
@@ -193,6 +235,7 @@ async function assertDanglingSymlinkSafe(
 		rootPath,
 		absolutePath: rootPath,
 	});
+	const realRootPath = await resolveRealRootPath(rootPath);
 
 	try {
 		const stats = await fs.lstat(absolutePath);
@@ -203,8 +246,9 @@ async function assertDanglingSymlinkSafe(
 				: path.resolve(path.dirname(absolutePath), linkTarget);
 
 			if (
-				!isPathWithinRoot(
+				!isPathWithinEitherRoot(
 					normalizedRootPath,
+					realRootPath,
 					normalizeAbsolutePath(resolvedTarget),
 				)
 			) {
@@ -238,10 +282,11 @@ async function assertRealpathWithinRoot(
 		rootPath,
 		absolutePath: rootPath,
 	});
+	const realRootPath = await resolveRealRootPath(rootPath);
 
 	try {
 		const realPath = normalizeAbsolutePath(await fs.realpath(absolutePath));
-		if (!isPathWithinRoot(normalizedRootPath, realPath)) {
+		if (!isPathWithinEitherRoot(normalizedRootPath, realRootPath, realPath)) {
 			throw new WorkspaceFsPathError(
 				"Path resolves outside workspace root",
 				"SYMLINK_ESCAPE",
