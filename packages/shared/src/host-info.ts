@@ -7,6 +7,14 @@ import { homedir, hostname, platform } from "node:os";
 // stable for users already registered against the cloud.
 const APP_HOST_SALT = "superset-desktop-device-id-v1";
 
+// Cap on the platform-specific subprocess (ioreg / reg). Without it,
+// `execFileSync` blocks the main process indefinitely if the subprocess
+// hangs — which on macOS has been observed when a sandbox/security tool
+// intercepts subprocess spawn. The renderer's authenticated tree is gated
+// on the resulting machineId query, so an unbounded hang white-screens the
+// whole app. See superset-sh/superset#4567 and #4396.
+const MACHINE_ID_SUBPROCESS_TIMEOUT_MS = 1500;
+
 function getRawMachineId(): string {
 	try {
 		const os = platform();
@@ -15,7 +23,7 @@ function getRawMachineId(): string {
 			const output = execFileSync(
 				"ioreg",
 				["-rd1", "-c", "IOPlatformExpertDevice"],
-				{ encoding: "utf8" },
+				{ encoding: "utf8", timeout: MACHINE_ID_SUBPROCESS_TIMEOUT_MS },
 			);
 			const match = output.match(/"IOPlatformUUID"\s*=\s*"([^"]+)"/);
 			if (match?.[1]) return match[1];
@@ -34,13 +42,13 @@ function getRawMachineId(): string {
 					"/v",
 					"MachineGuid",
 				],
-				{ encoding: "utf8" },
+				{ encoding: "utf8", timeout: MACHINE_ID_SUBPROCESS_TIMEOUT_MS },
 			);
 			const match = output.match(/MachineGuid\s+REG_SZ\s+(\S+)/);
 			if (match?.[1]) return match[1];
 		}
 	} catch {
-		// Fallback if platform-specific method fails
+		// Fallback if platform-specific method fails (including subprocess timeout)
 	}
 
 	return `${hostname()}-${homedir()}-superset-fallback`;
