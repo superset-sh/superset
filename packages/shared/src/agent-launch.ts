@@ -47,12 +47,23 @@ const baseAgentLaunchSchema = z.object({
 	source: launchSourceSchema.optional(),
 });
 
+export const taskInputSchema = z.object({
+	id: z.string(),
+	slug: z.string(),
+	title: z.string(),
+	description: z.string().nullable(),
+	priority: z.string(),
+	statusName: z.string().nullable(),
+	labels: z.array(z.string()).nullable(),
+});
+
 export const terminalLaunchConfigSchema = z.object({
 	command: z.string().min(1),
 	name: z.string().min(1).optional(),
 	paneId: z.string().min(1).optional(),
 	taskPromptContent: z.string().min(1).optional(),
 	taskPromptFileName: z.string().min(1).optional(),
+	taskInput: taskInputSchema.optional(),
 	autoExecute: z.boolean().optional(),
 	initialFiles: z
 		.array(

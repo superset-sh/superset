@@ -109,7 +109,13 @@ describe("session launch MCP tools", () => {
 			params: {
 				request: {
 					kind: string;
-					terminal?: { name?: string; command: string };
+					terminal?: {
+						name?: string;
+						command: string;
+						taskPromptContent?: string;
+						taskPromptFileName?: string;
+						taskInput?: typeof TASK;
+					};
 				};
 			};
 		};
@@ -119,8 +125,17 @@ describe("session launch MCP tools", () => {
 			kind: "terminal",
 			terminal: {
 				name: "demo-task",
+				taskPromptFileName: "task-demo-task.md",
+				taskInput: TASK,
 			},
 		});
+		// Prompt delivered via file, not inlined into the command
+		expect(
+			launchInput.params.request.terminal?.taskPromptContent,
+		).toBeTruthy();
+		expect(launchInput.params.request.terminal?.command).toContain(
+			".superset/task-demo-task.md",
+		);
 	});
 
 	it("launches prompt-only terminal sessions without fetching a task", async () => {
@@ -146,7 +161,12 @@ describe("session launch MCP tools", () => {
 				request: {
 					kind: string;
 					agentType: string;
-					terminal?: { name?: string; command: string };
+					terminal?: {
+						name?: string;
+						command: string;
+						taskPromptContent?: string;
+						taskPromptFileName?: string;
+					};
 				};
 			};
 		};
@@ -160,11 +180,15 @@ describe("session launch MCP tools", () => {
 				name: "Codex",
 			},
 		});
-		expect(launchInput.params.request.terminal?.command).toContain(
+		// Prompt is delivered via file, not baked into the command
+		expect(launchInput.params.request.terminal?.taskPromptContent).toBe(
 			"Fix the failing tests",
 		);
-		expect(launchInput.params.request.terminal?.command).not.toContain(
-			"  Fix the failing tests  ",
+		expect(launchInput.params.request.terminal?.taskPromptFileName).toMatch(
+			/^prompt-.+\.md$/,
+		);
+		expect(launchInput.params.request.terminal?.command).toContain(
+			`.superset/${launchInput.params.request.terminal?.taskPromptFileName}`,
 		);
 	});
 
