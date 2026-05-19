@@ -340,11 +340,12 @@ export const apikeys = authSchema.table(
 		// real column (`organization_id = $1`) instead of a `LIKE` over JSON text.
 		// See https://electric.ax/docs/sync/guides/shapes#optimized-where-clauses —
 		// only direct column references qualify as optimized predicates; JSON
-		// operators do not. The CASE guards against NULL/empty metadata and
-		// against malformed UUID strings so the STORED expression never raises.
+		// operators do not. The CASE guards against NULL/empty/non-JSON metadata
+		// and against malformed UUID strings so the STORED expression never raises.
 		organizationId: uuid("organization_id").generatedAlwaysAs(
 			sql`CASE
 				WHEN metadata IS NULL OR metadata = '' THEN NULL
+				WHEN NOT (metadata IS JSON OBJECT) THEN NULL
 				WHEN (metadata::jsonb->>'organizationId') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 					THEN (metadata::jsonb->>'organizationId')::uuid
 				ELSE NULL

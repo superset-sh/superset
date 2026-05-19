@@ -379,6 +379,13 @@
       "when": 1778777338910,
       "tag": "0053_invitations_team_id_and_session_active_team_id",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1779223786048,
+      "tag": "0054_apikeys_organization_id_generated_column",
+      "breakpoints": true
     }
   ]
 }
