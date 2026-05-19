@@ -3,6 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo } from "react";
 import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { renameV2Workspace } from "./renameV2Workspace";
 
 export type PersistableTransaction = {
 	isPersisted: {
@@ -197,8 +198,10 @@ export function useOptimisticCollectionActions() {
 					),
 				renameWorkspace: (workspaceId: string, name: string) =>
 					runWorkspaceMutation("Failed to rename workspace", () =>
-						collections.v2Workspaces.update(workspaceId, (draft) => {
-							draft.name = name;
+						renameV2Workspace({
+							collection: collections.v2Workspaces,
+							workspaceId,
+							name,
 						}),
 					),
 			},
