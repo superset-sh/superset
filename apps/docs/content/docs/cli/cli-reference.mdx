@@ -513,6 +513,8 @@ than silently falling through to the cloud.
 	options={[
 		{ flag: "--host <id>", description: "Filter to a specific host machineId." },
 		{ flag: "--local", description: "Filter to this machine." },
+		{ flag: "--project <id>", description: "Filter to a specific project ID." },
+		{ flag: "--search <query>", description: "Filter by workspace name (substring match)." },
 	]}
 	output={`Array<{
   id: string;
@@ -523,7 +525,7 @@ than silently falling through to the cloud.
   hostId: string;
   hostName: string;
 }>`}
-	humanColumns={["NAME", "BRANCH", "PROJECT", "HOST"]}
+	humanColumns={["NAME", "BRANCH", "PROJECT", "HOST", "ID"]}
 	quiet="workspace IDs"
 >
 List workspaces accessible to the active organization. With neither
