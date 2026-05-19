@@ -206,7 +206,6 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.HOME).toBe("/Users/test");
 		expect(result.PATH).toBe("/usr/bin:/usr/local/bin");
 		expect(result.SHELL).toBe("/bin/zsh");
-		expect(result.EDITOR).toBe("vim");
 	});
 
 	test("explicit Superset support keys are kept", () => {
@@ -231,6 +230,28 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.PYENV_ROOT).toBe("/Users/dev/.pyenv");
 		expect(result.GOPATH).toBe("/Users/dev/go");
 		expect(result.SSH_AUTH_SOCK).toBe("/tmp/ssh-agent.sock");
+	});
+
+	// zsh picks its default keymap (emacs vs vi-insert) lazily on first ZLE
+	// init by inspecting $VISUAL then $EDITOR. If either contains "vi", it
+	// locks in vi-insert (Ctrl+A → self-insert) for the lifetime of the
+	// shell. The host-service shell snapshot reflects rc-file state — so it
+	// contains the user's EDITOR/VISUAL — which means every PTY child shell
+	// starts with these already in environ[]. By the time .zshrc re-runs,
+	// the keymap is already chosen. Stripping these from the snapshot
+	// restores parity with kitty/ghostty/Terminal.app, where launchd starts
+	// the shell without EDITOR/VISUAL set.
+	test("EDITOR and VISUAL are stripped so zsh picks its default keymap", () => {
+		const result = stripTerminalRuntimeEnv({
+			HOME: "/Users/dev",
+			SHELL: "/bin/zsh",
+			EDITOR: "vim",
+			VISUAL: "vim",
+		});
+		expect(result.EDITOR).toBeUndefined();
+		expect(result.VISUAL).toBeUndefined();
+		expect(result.HOME).toBe("/Users/dev");
+		expect(result.SHELL).toBe("/bin/zsh");
 	});
 });
 

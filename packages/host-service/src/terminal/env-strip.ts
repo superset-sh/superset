@@ -25,6 +25,15 @@ const HOST_SERVICE_RUNTIME_KEYS = new Set([
 
 const NODE_APP_KEYS = new Set(["NODE_ENV", "NODE_OPTIONS", "NODE_PATH"]);
 
+// zsh chooses its default keymap (emacs vs vi-insert) lazily on first ZLE
+// init by inspecting $VISUAL then $EDITOR — if either contains "vi", Ctrl+A
+// becomes self-insert for the lifetime of the shell. The shell-snapshot
+// captured by host-service reflects post-rc state, so EDITOR/VISUAL are
+// already set when each PTY's child shell starts and lock in vi-insert
+// before .zshrc re-runs. Strip them here so PTYs match kitty/ghostty,
+// where launchd starts shells without these in environ.
+const KEYMAP_AFFECTING_KEYS = new Set(["EDITOR", "VISUAL"]);
+
 const STRIP_PREFIXES = [
 	"npm_",
 	"npm_config_",
@@ -49,6 +58,7 @@ export function stripTerminalRuntimeEnv(
 	for (const [key, value] of Object.entries(baseEnv)) {
 		if (HOST_SERVICE_RUNTIME_KEYS.has(key)) continue;
 		if (NODE_APP_KEYS.has(key)) continue;
+		if (KEYMAP_AFFECTING_KEYS.has(key)) continue;
 		if (STRIP_PREFIXES.some((prefix) => key.startsWith(prefix))) continue;
 		if (key.startsWith("SUPERSET_") && !SUPERSET_KEEP_KEYS.has(key)) continue;
 
