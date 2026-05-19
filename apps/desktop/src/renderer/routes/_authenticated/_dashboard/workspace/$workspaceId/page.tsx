@@ -11,6 +11,7 @@ import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dash
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
+import { getKeyboardNavigationPlan } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/utils/getKeyboardNavigationPlan";
 import { NotFound } from "renderer/routes/not-found";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { UnsavedChangesDialog } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/UnsavedChangesDialog";
@@ -44,6 +45,7 @@ import {
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
 } from "renderer/stores/workspace-init";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 
 const EMPTY_HISTORY_STACK: string[] = [];
 
@@ -434,6 +436,28 @@ function WorkspacePage() {
 	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
 	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
 
+	const { data: sidebarGroups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const isProjectCollapsed = useWorkspaceSidebarStore(
+		(s) => s.isProjectCollapsed,
+	);
+	const toggleProjectCollapsed = useWorkspaceSidebarStore(
+		(s) => s.toggleProjectCollapsed,
+	);
+	const revealWorkspaceProject = useCallback(
+		(targetWorkspaceId: string) => {
+			const { expandProjectId } = getKeyboardNavigationPlan(
+				targetWorkspaceId,
+				sidebarGroups,
+				isProjectCollapsed,
+			);
+			if (expandProjectId) {
+				toggleProjectCollapsed(expandProjectId);
+			}
+		},
+		[sidebarGroups, isProjectCollapsed, toggleProjectCollapsed],
+	);
+
 	const getPreviousWorkspace =
 		electronTrpc.workspaces.getPreviousWorkspace.useQuery(
 			{ id: workspaceId },
@@ -442,6 +466,7 @@ function WorkspacePage() {
 	useHotkey("PREV_WORKSPACE", () => {
 		const prevWorkspaceId = getPreviousWorkspace.data;
 		if (prevWorkspaceId) {
+			revealWorkspaceProject(prevWorkspaceId);
 			navigateToWorkspace(prevWorkspaceId, navigate);
 		}
 	});
@@ -453,6 +478,7 @@ function WorkspacePage() {
 	useHotkey("NEXT_WORKSPACE", () => {
 		const nextWorkspaceId = getNextWorkspace.data;
 		if (nextWorkspaceId) {
+			revealWorkspaceProject(nextWorkspaceId);
 			navigateToWorkspace(nextWorkspaceId, navigate);
 		}
 	});
