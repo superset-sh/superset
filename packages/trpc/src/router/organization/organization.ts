@@ -1,5 +1,5 @@
 import { stripeClient } from "@superset/auth/stripe";
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import { members, organizations } from "@superset/db/schema";
 import {
 	sessions as authSessions,
@@ -16,6 +16,19 @@ import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
 import { organizationMembersRouter } from "./members";
+
+type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
+async function withOwnerMutationLock<T>(
+	organizationId: string,
+	fn: (tx: DbWsTransaction) => Promise<T>,
+): Promise<T> {
+	return dbWs.transaction(async (tx: DbWsTransaction) => {
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(hashtextextended(${organizationId}::text, 0))`,
+		);
+		return fn(tx);
+	});
+}
 
 async function getInvitationById(invitationId: string) {
 	const invitation = await db.query.invitations.findFirst({
@@ -464,13 +477,51 @@ export const organizationRouter = {
 				});
 			}
 
-			await ctx.auth.api.removeMember({
-				body: {
-					organizationId: input.organizationId,
-					memberIdOrEmail: targetMember.id, // Use member ID, not user ID
-				},
-				headers: ctx.headers,
-			});
+			if (targetMember.role === "owner") {
+				await withOwnerMutationLock(input.organizationId, async (tx) => {
+					const targetUnderLock = await tx
+						.select({ role: members.role })
+						.from(members)
+						.where(eq(members.id, targetMember.id))
+						.limit(1);
+
+					// Already removed or demoted by a concurrent request — nothing to do.
+					if (targetUnderLock[0]?.role !== "owner") return;
+
+					const [{ count }] = await tx
+						.select({ count: sql<number>`count(*)::int` })
+						.from(members)
+						.where(
+							and(
+								eq(members.organizationId, input.organizationId),
+								eq(members.role, "owner"),
+							),
+						);
+
+					if (count <= 1) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "Cannot remove the last owner. Transfer ownership first.",
+						});
+					}
+
+					await ctx.auth.api.removeMember({
+						body: {
+							organizationId: input.organizationId,
+							memberIdOrEmail: targetMember.id,
+						},
+						headers: ctx.headers,
+					});
+				});
+			} else {
+				await ctx.auth.api.removeMember({
+					body: {
+						organizationId: input.organizationId,
+						memberIdOrEmail: targetMember.id,
+					},
+					headers: ctx.headers,
+				});
+			}
 
 			return { success: true };
 		}),
@@ -496,16 +547,64 @@ export const organizationRouter = {
 				});
 			}
 
-			const leaveResult = await ctx.auth.api.leaveOrganization({
-				body: { organizationId: input.organizationId },
-				headers: ctx.headers,
-			});
+			if (membership.role === "owner") {
+				await withOwnerMutationLock(input.organizationId, async (tx) => {
+					// Re-read under the lock: role may have changed since the initial fetch.
+					const memberUnderLock = await tx
+						.select({ role: members.role })
+						.from(members)
+						.where(
+							and(
+								eq(members.organizationId, input.organizationId),
+								eq(members.userId, ctx.session.user.id),
+							),
+						)
+						.limit(1);
 
-			if (!leaveResult) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to leave organization",
+					if (memberUnderLock[0]?.role === "owner") {
+						const [{ count }] = await tx
+							.select({ count: sql<number>`count(*)::int` })
+							.from(members)
+							.where(
+								and(
+									eq(members.organizationId, input.organizationId),
+									eq(members.role, "owner"),
+								),
+							);
+
+						if (count <= 1) {
+							throw new TRPCError({
+								code: "FORBIDDEN",
+								message:
+									"Cannot leave as the last owner. Transfer ownership first.",
+							});
+						}
+					}
+
+					const leaveResult = await ctx.auth.api.leaveOrganization({
+						body: { organizationId: input.organizationId },
+						headers: ctx.headers,
+					});
+
+					if (!leaveResult) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to leave organization",
+						});
+					}
 				});
+			} else {
+				const leaveResult = await ctx.auth.api.leaveOrganization({
+					body: { organizationId: input.organizationId },
+					headers: ctx.headers,
+				});
+
+				if (!leaveResult) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to leave organization",
+					});
+				}
 			}
 
 			const otherMembership = await db.query.members.findFirst({
@@ -566,7 +665,6 @@ export const organizationRouter = {
 
 			const actorRole = actorMembership.role as OrganizationRole;
 			const targetRole = targetMember.role as OrganizationRole;
-			const ownerCount = allMembers.filter((m) => m.role === "owner").length;
 
 			if (actorRole === "admin" && targetRole === "owner") {
 				throw new TRPCError({
@@ -589,25 +687,56 @@ export const organizationRouter = {
 				});
 			}
 
-			if (
-				targetRole === "owner" &&
-				ownerCount === 1 &&
-				input.role !== "owner"
-			) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Cannot demote the last owner. Promote someone else first.",
+			const isDemotingOwner = targetRole === "owner" && input.role !== "owner";
+
+			if (isDemotingOwner) {
+				await withOwnerMutationLock(input.organizationId, async (tx) => {
+					const targetUnderLock = await tx
+						.select({ role: members.role })
+						.from(members)
+						.where(eq(members.id, input.memberId))
+						.limit(1);
+
+					// Re-check under lock in case a concurrent request already demoted them.
+					if (targetUnderLock[0]?.role === "owner") {
+						const [{ count }] = await tx
+							.select({ count: sql<number>`count(*)::int` })
+							.from(members)
+							.where(
+								and(
+									eq(members.organizationId, input.organizationId),
+									eq(members.role, "owner"),
+								),
+							);
+
+						if (count <= 1) {
+							throw new TRPCError({
+								code: "FORBIDDEN",
+								message:
+									"Cannot demote the last owner. Promote someone else first.",
+							});
+						}
+					}
+
+					await ctx.auth.api.updateMemberRole({
+						body: {
+							organizationId: input.organizationId,
+							memberId: input.memberId,
+							role: [input.role],
+						},
+						headers: ctx.headers,
+					});
+				});
+			} else {
+				await ctx.auth.api.updateMemberRole({
+					body: {
+						organizationId: input.organizationId,
+						memberId: input.memberId,
+						role: [input.role],
+					},
+					headers: ctx.headers,
 				});
 			}
-
-			await ctx.auth.api.updateMemberRole({
-				body: {
-					organizationId: input.organizationId,
-					memberId: input.memberId,
-					role: [input.role],
-				},
-				headers: ctx.headers,
-			});
 
 			const updatedMember = await db.query.members.findFirst({
 				where: eq(members.id, input.memberId),
