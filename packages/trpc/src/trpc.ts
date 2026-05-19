@@ -48,7 +48,20 @@ export const protectedProcedure = t.procedure
 	})
 	.use(async ({ ctx, next }) => {
 		const sessionOrgId = ctx.session.session.activeOrganizationId ?? null;
-		const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
+		const rawHeaderOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
+
+		// Reject non-UUID org IDs early so they never reach the DB.
+		// A non-UUID value (e.g. "mock-org-id") would cause a Postgres
+		// 22P02 error (invalid input syntax for type uuid) and a 500.
+		const UUID_RE =
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		if (rawHeaderOrgId !== null && !UUID_RE.test(rawHeaderOrgId)) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Invalid organization ID: must be a UUID`,
+			});
+		}
+		const headerOrgId = rawHeaderOrgId;
 
 		let activeOrganizationId = sessionOrgId;
 		if (headerOrgId && headerOrgId !== sessionOrgId) {
