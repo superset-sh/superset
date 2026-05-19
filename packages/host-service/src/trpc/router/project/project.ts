@@ -525,7 +525,11 @@ export const projectRouter = router({
 	 *      on fail → abort, leave local untouched, surface error to user.
 	 *
 	 *   2. Local DB rows (workspaces + project)
-	 *      on fail → log; user can re-run later. Cloud is already gone.
+	 *      on fail → throw INTERNAL_SERVER_ERROR. Cloud is already gone but
+	 *      the row is still here, so the UI must surface this; otherwise the
+	 *      user sees "deleted" while the project keeps showing in the
+	 *      sidebar (and a daemon restart can't fix it). The cloud delete is
+	 *      idempotent so the user can safely retry.
 	 *
 	 *   3. Best-effort `git worktree remove` for each non-main local
 	 *      workspace so subsequent worktree commands aren't confused.
@@ -579,6 +583,12 @@ export const projectRouter = router({
 				console.warn("[project.remove] failed to delete local rows", {
 					projectId: input.projectId,
 					err,
+				});
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message:
+						"Project was removed in the cloud, but cleaning up local state failed. Please try again.",
+					cause: err instanceof Error ? err : undefined,
 				});
 			}
 
