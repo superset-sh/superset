@@ -18,6 +18,7 @@ import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { WorkspaceStatusUnavailableState } from "./components/WorkspaceStatusUnavailableState";
 import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellInteractionPassthrough";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
@@ -81,6 +82,21 @@ function V2WorkspacePage() {
 			retry: false,
 		},
 	);
+
+	if (workspaceStatusQuery.isPending) {
+		return <div className="flex h-full w-full" />;
+	}
+
+	if (workspaceStatusQuery.isError) {
+		return (
+			<WorkspaceStatusUnavailableState
+				onRefresh={() => {
+					void workspaceStatusQuery.refetch();
+				}}
+				isRefreshing={workspaceStatusQuery.isFetching}
+			/>
+		);
+	}
 
 	if (workspaceStatusQuery.data?.worktreeExists === false) {
 		return (
