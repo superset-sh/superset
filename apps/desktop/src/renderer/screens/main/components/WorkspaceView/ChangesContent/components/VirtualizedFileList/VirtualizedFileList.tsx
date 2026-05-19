@@ -1,7 +1,7 @@
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { type RefObject, useRef } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
-import { createFileKey } from "../../context";
+import { createFileKey, useScrollContext } from "../../context";
 import { FileDiffSection } from "../FileDiffSection";
 import { getEstimatedFileDiffSectionHeight } from "./utils/getEstimatedFileDiffSectionHeight";
 
@@ -36,6 +36,7 @@ export function VirtualizedFileList({
 	onDiscard,
 	isActioning = false,
 }: VirtualizedFileListProps) {
+	const { viewedFiles } = useScrollContext();
 	const listRef = useRef<HTMLDivElement>(null);
 
 	const virtualizer = useVirtualizer({
@@ -46,7 +47,7 @@ export function VirtualizedFileList({
 			const fileKey = createFileKey(file, category, commitHash, worktreePath);
 			return getEstimatedFileDiffSectionHeight({
 				file,
-				isCollapsed: collapsedFiles.has(fileKey),
+				isCollapsed: collapsedFiles.has(fileKey) || viewedFiles.has(fileKey),
 			});
 		},
 		rangeExtractor: defaultRangeExtractor,
@@ -87,7 +88,9 @@ export function VirtualizedFileList({
 								commitHash={commitHash}
 								worktreePath={worktreePath}
 								baseBranch={baseBranch}
-								isExpanded={!collapsedFiles.has(fileKey)}
+								isExpanded={
+									!collapsedFiles.has(fileKey) && !viewedFiles.has(fileKey)
+								}
 								onToggleExpanded={() => onToggleFile(fileKey)}
 								onStage={onStage ? () => onStage(file) : undefined}
 								onUnstage={onUnstage ? () => onUnstage(file) : undefined}
