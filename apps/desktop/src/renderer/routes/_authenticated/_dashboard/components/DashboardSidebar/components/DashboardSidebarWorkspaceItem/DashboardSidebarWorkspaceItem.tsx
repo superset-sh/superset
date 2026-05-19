@@ -12,6 +12,7 @@ import { DashboardSidebarCollapsedWorkspaceButton } from "./components/Dashboard
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
+import { resolveSidebarWorkspaceCloseAction } from "./utils";
 
 interface DashboardSidebarWorkspaceItemProps {
 	workspace: DashboardSidebarWorkspace;
@@ -78,7 +79,7 @@ export function DashboardSidebarWorkspaceItem({
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
 	const isPending = !!creationStatus;
-	const isFailedInFlight = creationStatus === "failed";
+	const closeAction = resolveSidebarWorkspaceCloseAction(creationStatus);
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
 	const isDeleting = useDeletingWorkspaces().isDeleting(id);
@@ -227,7 +228,7 @@ export function DashboardSidebarWorkspaceItem({
 				onDoubleClick={isPending ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={
-					isFailedInFlight
+					closeAction === "dismiss"
 						? handleDismissInFlight
 						: () => setIsDeleteDialogOpen(true)
 				}

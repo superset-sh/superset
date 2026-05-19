@@ -260,8 +260,9 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								className={cn(
 									"text-[11px]",
 									creationStatus === "failed"
-										? "text-destructive group-hover:hidden"
+										? "text-destructive"
 										: "text-muted-foreground",
+									!isMainWorkspace && "group-hover:hidden",
 								)}
 							>
 								{creationStatusText}
@@ -276,7 +277,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								/>
 							)
 						)}
-						{(!creationStatus || creationStatus === "failed") && (
+						{(!creationStatus || !isMainWorkspace) && (
 							<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
 								{shortcutLabel && !creationStatus && (
 									<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
@@ -331,16 +332,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 												}}
 												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
 												aria-label={
-													creationStatus === "failed"
-														? "Dismiss"
-														: "Close workspace"
+													creationStatus ? "Dismiss" : "Close workspace"
 												}
 											>
 												<HiMiniXMark className="size-3.5" />
 											</button>
 										</TooltipTrigger>
 										<TooltipContent side="top" sideOffset={4}>
-											{creationStatus === "failed" ? (
+											{creationStatus ? (
 												"Dismiss"
 											) : (
 												<HotkeyLabel
