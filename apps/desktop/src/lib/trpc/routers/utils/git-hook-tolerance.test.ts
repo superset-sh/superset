@@ -35,7 +35,7 @@ describe("runWithPostCheckoutHookTolerance", () => {
 		).rejects.toThrow("post-checkout");
 	});
 
-	test("re-throws non-hook failures", async () => {
+	test("re-throws when operation did not succeed even on generic errors", async () => {
 		const genericError = new Error("fatal: '../worktree' already exists");
 
 		await expect(
@@ -44,8 +44,32 @@ describe("runWithPostCheckoutHookTolerance", () => {
 				run: async () => {
 					throw genericError;
 				},
-				didSucceed: async () => true,
+				didSucceed: async () => false,
 			}),
 		).rejects.toThrow("already exists");
+	});
+
+	test("tolerates SIGPIPE/exit 141 hook failures when worktree was created", async () => {
+		const sigpipeError = Object.assign(
+			new Error(
+				"Command failed: git -C /repo worktree add --no-track -b feature origin/main\nPreparing worktree (new branch 'feature')",
+			),
+			{
+				stderr: "Preparing worktree (new branch 'feature')",
+				stdout: "",
+				code: 141,
+				signal: "SIGPIPE" as NodeJS.Signals,
+			},
+		);
+
+		await expect(
+			runWithPostCheckoutHookTolerance({
+				context: "Worktree created at /repo/worktree",
+				run: async () => {
+					throw sigpipeError;
+				},
+				didSucceed: async () => true,
+			}),
+		).resolves.toBeUndefined();
 	});
 });
