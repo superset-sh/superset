@@ -60,26 +60,51 @@ function getAnthropicCredentialFromConfig(): LocalResolvedCredential | null {
 	return null;
 }
 
+// Short-TTL cache around the `security` shell-out. Each `security
+// find-generic-password` call can wake 1Password's Keychain integration
+// and trigger a vault-authorization prompt; chat-runtime creation runs
+// this resolver and the renderer polls auth status frequently, so
+// without caching every poll fans out to bursts of prompts. See #4622.
+const KEYCHAIN_CACHE_TTL_MS = 5 * 60 * 1000;
+let keychainCache: {
+	value: LocalResolvedCredential | null;
+	expiresAt: number;
+} | null = null;
+
+export function clearAnthropicKeychainCache(): void {
+	keychainCache = null;
+}
+
 function getAnthropicCredentialFromKeychain(): LocalResolvedCredential | null {
 	if (platform() !== "darwin") return null;
+
+	if (keychainCache && keychainCache.expiresAt > Date.now()) {
+		return keychainCache.value;
+	}
 
 	const commands = [
 		'security find-generic-password -s "claude-cli" -a "api-key" -w 2>/dev/null',
 		'security find-generic-password -s "anthropic-api-key" -w 2>/dev/null',
 	];
 
+	let resolved: LocalResolvedCredential | null = null;
 	for (const command of commands) {
 		try {
 			const apiKey = execSync(command, { encoding: "utf-8" }).trim();
 			if (apiKey) {
-				return { kind: "api_key" };
+				resolved = { kind: "api_key" };
+				break;
 			}
 		} catch {
 			// Ignore missing keychain entries.
 		}
 	}
 
-	return null;
+	keychainCache = {
+		value: resolved,
+		expiresAt: Date.now() + KEYCHAIN_CACHE_TTL_MS,
+	};
+	return resolved;
 }
 
 async function getAnthropicCredentialFromAuthStorage(): Promise<LocalResolvedCredential | null> {

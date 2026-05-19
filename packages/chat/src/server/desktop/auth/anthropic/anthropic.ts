@@ -6,12 +6,14 @@
  * 2. macOS Keychain (via security command)
  */
 
-import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { homedir, platform } from "node:os";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { createAuthStorage } from "mastracode";
 import { ANTHROPIC_AUTH_PROVIDER_ID } from "../provider-ids";
+import { probeAnthropicKeychain } from "./keychain";
+
+export { clearAnthropicKeychainCache } from "./keychain";
 
 export interface ClaudeCredentials {
 	apiKey: string;
@@ -131,41 +133,16 @@ export function getCredentialsFromConfig(): ClaudeCredentials | null {
 }
 
 export function getCredentialsFromKeychain(): ClaudeCredentials | null {
-	if (platform() !== "darwin") {
-		return null;
+	const probe = probeAnthropicKeychain();
+	if (!probe) return null;
+	if (probe.service === "claude-cli") {
+		console.log("[claude/auth] Found credentials in macOS Keychain");
+	} else {
+		console.log(
+			"[claude/auth] Found credentials in macOS Keychain (anthropic-api-key)",
+		);
 	}
-
-	try {
-		const result = execSync(
-			'security find-generic-password -s "claude-cli" -a "api-key" -w 2>/dev/null',
-			{ encoding: "utf-8" },
-		).trim();
-
-		if (result) {
-			console.log("[claude/auth] Found credentials in macOS Keychain");
-			return { apiKey: result, source: "keychain", kind: "apiKey" };
-		}
-	} catch {
-		// Not found in keychain
-	}
-
-	try {
-		const result = execSync(
-			'security find-generic-password -s "anthropic-api-key" -w 2>/dev/null',
-			{ encoding: "utf-8" },
-		).trim();
-
-		if (result) {
-			console.log(
-				"[claude/auth] Found credentials in macOS Keychain (anthropic-api-key)",
-			);
-			return { apiKey: result, source: "keychain", kind: "apiKey" };
-		}
-	} catch {
-		// Not found in keychain
-	}
-
-	return null;
+	return { apiKey: probe.apiKey, source: "keychain", kind: "apiKey" };
 }
 
 export async function getCredentialsFromAuthStorage(): Promise<ClaudeCredentials | null> {
