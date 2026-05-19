@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import type { ElectronRouterOutputs } from "renderer/lib/electron-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useGitInitDialogStore } from "renderer/stores/git-init-dialog";
+import { invalidateProjectQueries } from "./invalidateProjectQueries";
 import { processOpenNewResults } from "./processOpenNewResults";
 import { useOpenFromPath } from "./useOpenFromPath";
 import { useOpenNew } from "./useOpenNew";
@@ -50,7 +51,7 @@ export function useOpenProject() {
 							}
 						}
 
-						await utils.projects.getRecents.invalidate();
+						await invalidateProjectQueries(utils);
 					} finally {
 						useGitInitDialogStore.getState().close();
 						pendingRef.current = null;
