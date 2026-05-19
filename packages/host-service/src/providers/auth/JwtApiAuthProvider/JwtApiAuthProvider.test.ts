@@ -11,6 +11,11 @@ import * as fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { LoginResult } from "@superset/shared/auth/token-refresh";
+import type {
+	AuthSessionExpiredMessage,
+	AuthSessionRestoredMessage,
+} from "../../../events";
+import type { AuthSessionEventPublisher } from "../types";
 
 let refreshAccessTokenImpl = async (
 	refreshToken: string,
@@ -28,9 +33,11 @@ mock.module("@superset/shared/auth/token-refresh", () => ({
 }));
 
 const { JwtApiAuthProvider } = await import("./JwtApiAuthProvider");
-const { AUTH_REFRESH_FAILED_MESSAGE, AuthRefreshFailedError } = await import(
-	"../../../errors"
-);
+const {
+	AUTH_REFRESH_FAILED_MESSAGE,
+	AuthRefreshFailedError,
+	SESSION_EXPIRED_HINT,
+} = await import("../../../errors");
 
 const tempRoot = fs.mkdtempSync(
 	path.join(os.tmpdir(), "superset-host-jwt-api-auth-"),
@@ -88,14 +95,72 @@ function readConfig(configPath: string): {
 	};
 }
 
+interface RecordedAuthEvents {
+	eventBus: AuthSessionEventPublisher;
+	expired: Array<Omit<AuthSessionExpiredMessage, "type">>;
+	restored: Array<Omit<AuthSessionRestoredMessage, "type">>;
+}
+
+function createAuthEvents(): RecordedAuthEvents {
+	const expired: Array<Omit<AuthSessionExpiredMessage, "type">> = [];
+	const restored: Array<Omit<AuthSessionRestoredMessage, "type">> = [];
+	return {
+		expired,
+		restored,
+		eventBus: {
+			broadcastAuthSessionExpired: (message) => expired.push(message),
+			broadcastAuthSessionRestored: (message) => restored.push(message),
+		},
+	};
+}
+
 function createProvider(
 	configPath: string,
+	eventBus?: AuthSessionEventPublisher,
 ): InstanceType<typeof JwtApiAuthProvider> {
 	return new JwtApiAuthProvider({
 		getSessionToken: async () => "bootstrap-access-token",
 		apiUrl: "https://api.example.com",
 		authConfigPath: configPath,
+		eventBus,
 	});
+}
+
+function mockNow(initialNow: number): {
+	advance: (ms: number) => void;
+	restore: () => void;
+} {
+	let now = initialNow;
+	const nowSpy = spyOn(Date, "now").mockImplementation(() => now);
+	return {
+		advance: (ms: number) => {
+			now += ms;
+		},
+		restore: () => nowSpy.mockRestore(),
+	};
+}
+
+async function captureProcessErrors(
+	run: () => Promise<void>,
+): Promise<unknown[]> {
+	const errors: unknown[] = [];
+	const onUnhandledRejection = (reason: unknown) => {
+		errors.push(reason);
+	};
+	const onUncaughtException = (error: Error) => {
+		errors.push(error);
+	};
+
+	process.on("unhandledRejection", onUnhandledRejection);
+	process.on("uncaughtException", onUncaughtException);
+	try {
+		await run();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+	} finally {
+		process.off("unhandledRejection", onUnhandledRejection);
+		process.off("uncaughtException", onUncaughtException);
+	}
+	return errors;
 }
 
 afterEach(() => {
@@ -233,6 +298,272 @@ describe("JwtApiAuthProvider", () => {
 			reason: "invalid_grant",
 			statusCode: 401,
 		});
+	});
+
+	it("emits one auth:session_expired event with the exact hint and wipes refresh token on invalid_grant", async () => {
+		const clock = mockNow(1_700_000_000_000);
+		try {
+			const configPath = createConfigPath();
+			const events = createAuthEvents();
+			refreshAccessTokenImpl = async () => {
+				throw new Error("Token refresh failed: 401 invalid_grant");
+			};
+			writeConfig(configPath, {
+				organizationId: "org_1",
+				auth: {
+					accessToken: jwtWithExp(Date.now() + 60_000),
+					refreshToken: "refresh-token",
+					expiresAt: Date.now() + 60_000,
+				},
+			});
+			const provider = createProvider(configPath, events.eventBus);
+
+			await expect(provider.getSessionToken()).rejects.toMatchObject({
+				message: SESSION_EXPIRED_HINT,
+				reason: "invalid_grant",
+				statusCode: 401,
+			});
+
+			expect(provider.getAuthState()).toMatchObject({
+				kind: "expired_permanent",
+				reason: "invalid_grant",
+				statusCode: 401,
+			});
+			expect(provider.isInAnyExpiredState()).toBe(true);
+			expect(events.expired).toEqual([
+				{
+					reason: "invalid_grant",
+					hint: SESSION_EXPIRED_HINT,
+					occurredAt: Date.now(),
+				},
+			]);
+			expect(events.restored).toEqual([]);
+			expect(readConfig(configPath)).toEqual({
+				organizationId: "org_1",
+				auth: {
+					accessToken: expect.any(String),
+					expiresAt: expect.any(Number),
+				},
+			});
+
+			await expect(provider.getSessionToken()).rejects.toMatchObject({
+				message: SESSION_EXPIRED_HINT,
+				reason: "invalid_grant",
+				statusCode: 401,
+			});
+			expect(refreshAccessTokenMock).toHaveBeenCalledTimes(1);
+			expect(events.expired).toHaveLength(1);
+			expect(events.restored).toHaveLength(0);
+		} finally {
+			clock.restore();
+		}
+	});
+
+	it("records transient network failures, preserves refresh token, and suppresses retry inside 60 seconds", async () => {
+		const clock = mockNow(1_700_000_000_000);
+		try {
+			const configPath = createConfigPath();
+			const events = createAuthEvents();
+			refreshAccessTokenImpl = async () => {
+				throw new TypeError("fetch failed");
+			};
+			writeConfig(configPath, {
+				auth: {
+					accessToken: jwtWithExp(Date.now() + 60_000),
+					refreshToken: "refresh-token",
+					expiresAt: Date.now() + 60_000,
+				},
+			});
+			const provider = createProvider(configPath, events.eventBus);
+
+			await expect(provider.getSessionToken()).rejects.toMatchObject({
+				message: SESSION_EXPIRED_HINT,
+				reason: "network_error",
+			});
+
+			expect(provider.getAuthState()).toEqual({
+				kind: "expired_transient",
+				reason: "network_error",
+				lastFailureAt: Date.now(),
+				statusCode: undefined,
+			});
+			expect(readConfig(configPath).auth?.refreshToken).toBe("refresh-token");
+			expect(events.expired).toEqual([
+				{
+					reason: "network_error",
+					hint: SESSION_EXPIRED_HINT,
+					occurredAt: Date.now(),
+				},
+			]);
+
+			for (let i = 0; i < 20; i += 1) {
+				clock.advance(1_000);
+				await expect(provider.getSessionToken()).rejects.toMatchObject({
+					message: SESSION_EXPIRED_HINT,
+					reason: "network_error",
+				});
+			}
+			expect(refreshAccessTokenMock).toHaveBeenCalledTimes(1);
+			expect(events.expired).toHaveLength(1);
+			expect(events.restored).toHaveLength(0);
+		} finally {
+			clock.restore();
+		}
+	});
+
+	it("records transient 5xx failures and preserves the refresh token", async () => {
+		const clock = mockNow(1_700_000_000_000);
+		try {
+			const configPath = createConfigPath();
+			const events = createAuthEvents();
+			refreshAccessTokenImpl = async () => {
+				throw new Error("Token refresh failed: 503");
+			};
+			writeConfig(configPath, {
+				auth: {
+					accessToken: jwtWithExp(Date.now() + 60_000),
+					refreshToken: "refresh-token",
+					expiresAt: Date.now() + 60_000,
+				},
+			});
+			const provider = createProvider(configPath, events.eventBus);
+
+			await expect(provider.getSessionToken()).rejects.toMatchObject({
+				message: SESSION_EXPIRED_HINT,
+				reason: "http_error",
+				statusCode: 503,
+			});
+
+			expect(provider.getAuthState()).toEqual({
+				kind: "expired_transient",
+				reason: "http_error",
+				lastFailureAt: Date.now(),
+				statusCode: 503,
+			});
+			expect(readConfig(configPath).auth?.refreshToken).toBe("refresh-token");
+			expect(events.expired).toEqual([
+				{
+					reason: "http_error",
+					hint: SESSION_EXPIRED_HINT,
+					occurredAt: Date.now(),
+				},
+			]);
+			expect(events.restored).toEqual([]);
+		} finally {
+			clock.restore();
+		}
+	});
+
+	it("retries a transient failure after 60 seconds and broadcasts auth:session_restored once on success", async () => {
+		const clock = mockNow(1_700_000_000_000);
+		try {
+			const configPath = createConfigPath();
+			const events = createAuthEvents();
+			const refreshedToken = jwtWithExp(Date.now() + 60 * 60 * 1000);
+			refreshAccessTokenImpl = async () => {
+				throw new TypeError("fetch failed");
+			};
+			writeConfig(configPath, {
+				auth: {
+					accessToken: jwtWithExp(Date.now() + 60_000),
+					refreshToken: "refresh-token",
+					expiresAt: Date.now() + 60_000,
+				},
+			});
+			const provider = createProvider(configPath, events.eventBus);
+
+			await expect(provider.getSessionToken()).rejects.toMatchObject({
+				reason: "network_error",
+			});
+			expect(refreshAccessTokenMock).toHaveBeenCalledTimes(1);
+
+			clock.advance(61_000);
+			refreshAccessTokenImpl = async (refreshToken: string) => ({
+				accessToken: refreshedToken,
+				refreshToken,
+				expiresAt: Date.now() + 60 * 60 * 1000,
+			});
+
+			await expect(provider.getSessionToken()).resolves.toBe(refreshedToken);
+
+			expect(refreshAccessTokenMock).toHaveBeenCalledTimes(2);
+			expect(provider.getAuthState()).toEqual({ kind: "healthy" });
+			expect(provider.isInAnyExpiredState()).toBe(false);
+			expect(events.expired).toHaveLength(1);
+			expect(events.restored).toEqual([{ occurredAt: Date.now() }]);
+
+			await expect(provider.getSessionToken()).resolves.toBe(refreshedToken);
+			expect(refreshAccessTokenMock).toHaveBeenCalledTimes(2);
+			expect(events.restored).toHaveLength(1);
+		} finally {
+			clock.restore();
+		}
+	});
+
+	it("updates transient lastFailureAt after a retry failure without re-emitting auth:session_expired", async () => {
+		const clock = mockNow(1_700_000_000_000);
+		try {
+			const configPath = createConfigPath();
+			const events = createAuthEvents();
+			refreshAccessTokenImpl = async () => {
+				throw new TypeError("fetch failed");
+			};
+			writeConfig(configPath, {
+				auth: {
+					accessToken: jwtWithExp(Date.now() + 60_000),
+					refreshToken: "refresh-token",
+					expiresAt: Date.now() + 60_000,
+				},
+			});
+			const provider = createProvider(configPath, events.eventBus);
+
+			await expect(provider.getSessionToken()).rejects.toMatchObject({
+				reason: "network_error",
+			});
+			clock.advance(61_000);
+			await expect(provider.getSessionToken()).rejects.toMatchObject({
+				reason: "network_error",
+			});
+
+			expect(refreshAccessTokenMock).toHaveBeenCalledTimes(2);
+			expect(provider.getAuthState()).toEqual({
+				kind: "expired_transient",
+				reason: "network_error",
+				lastFailureAt: Date.now(),
+				statusCode: undefined,
+			});
+			expect(events.expired).toHaveLength(1);
+			expect(events.restored).toHaveLength(0);
+		} finally {
+			clock.restore();
+		}
+	});
+
+	it("does not emit process-level error events for permanent or transient refresh failures", async () => {
+		const errors = await captureProcessErrors(async () => {
+			for (const failure of [
+				() => new Error("Token refresh failed: 401 invalid_grant"),
+				() => new TypeError("fetch failed"),
+				() => new Error("Token refresh failed: 503"),
+			]) {
+				const configPath = createConfigPath();
+				refreshAccessTokenImpl = async () => {
+					throw failure();
+				};
+				writeConfig(configPath, {
+					auth: {
+						accessToken: jwtWithExp(Date.now() + 60_000),
+						refreshToken: "refresh-token",
+						expiresAt: Date.now() + 60_000,
+					},
+				});
+				await expect(
+					createProvider(configPath).getSessionToken(),
+				).rejects.toBeInstanceOf(AuthRefreshFailedError);
+			}
+		});
+
+		expect(errors).toEqual([]);
 	});
 
 	it("uses the exact refresh failure hint without leaking token, URL, or response body", async () => {

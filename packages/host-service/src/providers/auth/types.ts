@@ -1,3 +1,17 @@
+import type {
+	AuthSessionExpiredMessage,
+	AuthSessionRestoredMessage,
+} from "../../events/types";
+
+export interface AuthSessionEventPublisher {
+	broadcastAuthSessionExpired(
+		message: Omit<AuthSessionExpiredMessage, "type">,
+	): void;
+	broadcastAuthSessionRestored(
+		message: Omit<AuthSessionRestoredMessage, "type">,
+	): void;
+}
+
 export interface ApiAuthProvider {
 	getHeaders(): Promise<Record<string, string>>;
 	/**
@@ -7,4 +21,7 @@ export interface ApiAuthProvider {
 	 * rotated, JWKS rolled).
 	 */
 	invalidateCache(): void;
+	isInAnyExpiredState?(): boolean;
+	isInExpiredState?(): boolean;
+	setEventBus?(eventBus: AuthSessionEventPublisher): void;
 }

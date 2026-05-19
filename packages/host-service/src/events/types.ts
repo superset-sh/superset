@@ -53,6 +53,23 @@ export interface PortChangedMessage {
 	occurredAt: number;
 }
 
+export type AuthSessionExpiredReason =
+	| "invalid_grant"
+	| "network_error"
+	| "http_error";
+
+export interface AuthSessionExpiredMessage {
+	type: "auth:session_expired";
+	reason: AuthSessionExpiredReason;
+	hint: string;
+	occurredAt: number;
+}
+
+export interface AuthSessionRestoredMessage {
+	type: "auth:session_restored";
+	occurredAt: number;
+}
+
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -64,6 +81,8 @@ export type ServerMessage =
 	| AgentLifecycleMessage
 	| TerminalLifecycleMessage
 	| PortChangedMessage
+	| AuthSessionExpiredMessage
+	| AuthSessionRestoredMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────
