@@ -3,6 +3,7 @@ import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getServiceForWorkspace } from "../workspace-fs-service";
+import { getIgnoredEntries } from "./utils/get-ignored-entries";
 
 function isClosedStreamError(error: unknown): boolean {
 	return (
@@ -39,9 +40,24 @@ export const createFilesystemRouter = () => {
 			)
 			.query(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.listDirectory({
+				const result = await service.listDirectory({
 					absolutePath: input.absolutePath,
 				});
+
+				const ignoredNames = await getIgnoredEntries(
+					input.absolutePath,
+					result.entries.map((entry) => entry.name),
+				);
+
+				// `.git` is always treated as ignored regardless of gitignore
+				// rules so that the git directory and nested submodule git
+				// directories render muted alongside `.gitignore` matches.
+				return {
+					entries: result.entries.map((entry) => ({
+						...entry,
+						isIgnored: entry.name === ".git" || ignoredNames.has(entry.name),
+					})),
+				};
 			}),
 
 		readFile: publicProcedure
