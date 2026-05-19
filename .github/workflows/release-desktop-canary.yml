@@ -11,9 +11,14 @@ on:
         required: false
         type: boolean
         default: false
+      publish_release:
+        description: "Publish the desktop-canary GitHub release after building"
+        required: false
+        type: boolean
+        default: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   check-changes:
@@ -79,8 +84,8 @@ jobs:
       artifact_retention_days: 7
     secrets: inherit
 
-  release:
-    name: Update Canary Release
+  collect-artifacts:
+    name: Collect Canary Artifacts
     needs: [check-changes, build]
     if: needs.check-changes.outputs.should_build == 'true'
     runs-on: ubuntu-latest
@@ -126,6 +131,49 @@ jobs:
         run: |
           echo "Release artifacts:"
           ls -la release-artifacts/
+
+      - name: Upload collected artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: canary-release-artifacts-${{ needs.check-changes.outputs.short_sha }}
+          path: release-artifacts/*
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Write artifact summary
+        run: |
+          {
+            echo "## Desktop Canary Build"
+            echo ""
+            echo "- Commit: ${{ github.sha }}"
+            echo "- Short SHA: ${{ needs.check-changes.outputs.short_sha }}"
+            echo "- Built: ${{ needs.check-changes.outputs.build_time }}"
+            echo "- Artifact bundle: canary-release-artifacts-${{ needs.check-changes.outputs.short_sha }}"
+            echo ""
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.publish_release }}" = "false" ]; then
+              echo "Artifact-only mode: no GitHub release was created, deleted, edited, or published."
+            else
+              echo "Release publish mode: the next job will update the desktop-canary GitHub release."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: Update Canary Release
+    needs: [check-changes, collect-artifacts]
+    if: needs.check-changes.outputs.should_build == 'true' && (github.event_name != 'workflow_dispatch' || inputs.publish_release)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Download collected artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: canary-release-artifacts-${{ needs.check-changes.outputs.short_sha }}
+          path: release-artifacts
 
       - name: Delete existing canary release
         env:
