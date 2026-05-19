@@ -12,7 +12,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { Undo2 } from "lucide-react";
+import { Minus, Plus, Undo2 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ShadowClickHint,
@@ -236,15 +236,41 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		null,
 	);
 	const utils = workspaceTrpc.useUtils();
+	const invalidateStatus = useCallback(() => {
+		void utils.git.getStatus.invalidate({ workspaceId });
+		void utils.git.getDiff.invalidate({ workspaceId });
+	}, [utils, workspaceId]);
 	const discardMutation = workspaceTrpc.git.discardChanges.useMutation({
-		onSuccess: () => {
-			void utils.git.getStatus.invalidate({ workspaceId });
-			void utils.git.getDiff.invalidate({ workspaceId });
-		},
+		onSuccess: invalidateStatus,
 		onError: (err) => {
 			toast.error("Couldn't discard changes", { description: err.message });
 		},
 	});
+	const stageFileMutation = workspaceTrpc.git.stageFile.useMutation({
+		onSuccess: invalidateStatus,
+		onError: (err) => {
+			toast.error("Couldn't stage file", { description: err.message });
+		},
+	});
+	const unstageFileMutation = workspaceTrpc.git.unstageFile.useMutation({
+		onSuccess: invalidateStatus,
+		onError: (err) => {
+			toast.error("Couldn't unstage file", { description: err.message });
+		},
+	});
+
+	const handleStageFile = useCallback(
+		(file: ChangesetFile) => {
+			stageFileMutation.mutate({ workspaceId, filePath: file.path });
+		},
+		[stageFileMutation, workspaceId],
+	);
+	const handleUnstageFile = useCallback(
+		(file: ChangesetFile) => {
+			unstageFileMutation.mutate({ workspaceId, filePath: file.path });
+		},
+		[unstageFileMutation, workspaceId],
+	);
 
 	const fileMenuItems = (file: ChangesetFile) => (
 		<FileRowContextMenuItems
@@ -255,6 +281,8 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			onOpenFile={onOpenFile}
 			onOpenInEditor={onOpenInEditor}
 			onRequestDiscard={setDiscardTarget}
+			onStageFile={handleStageFile}
+			onUnstageFile={handleUnstageFile}
 		/>
 	);
 
@@ -288,26 +316,66 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	};
 
 	const renderHoverInlineActions = (treePath: string) => {
-		if (sectionKind !== "unstaged") return null;
+		if (sectionKind !== "unstaged" && sectionKind !== "staged") return null;
 		const file = fileByPath.get(treePath);
 		if (!file) return null;
 		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						aria-label="Discard changes"
-						className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
-						onClick={(e) => {
-							e.stopPropagation();
-							setDiscardTarget(file);
-						}}
-					>
-						<Undo2 className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="top">Discard changes</TooltipContent>
-			</Tooltip>
+			<>
+				{sectionKind === "unstaged" && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label="Discard changes"
+								className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
+								onClick={(e) => {
+									e.stopPropagation();
+									setDiscardTarget(file);
+								}}
+							>
+								<Undo2 className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="top">Discard changes</TooltipContent>
+					</Tooltip>
+				)}
+				{sectionKind === "unstaged" && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label="Stage file"
+								className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+								onClick={(e) => {
+									e.stopPropagation();
+									handleStageFile(file);
+								}}
+							>
+								<Plus className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="top">Stage file</TooltipContent>
+					</Tooltip>
+				)}
+				{sectionKind === "staged" && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label="Unstage file"
+								className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+								onClick={(e) => {
+									e.stopPropagation();
+									handleUnstageFile(file);
+								}}
+							>
+								<Minus className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="top">Unstage file</TooltipContent>
+					</Tooltip>
+				)}
+			</>
 		);
 	};
 

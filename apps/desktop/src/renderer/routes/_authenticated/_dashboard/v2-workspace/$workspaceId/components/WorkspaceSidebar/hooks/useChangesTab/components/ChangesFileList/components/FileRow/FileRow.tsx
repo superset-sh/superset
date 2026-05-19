@@ -21,6 +21,8 @@ import {
 	ExternalLink,
 	FileText,
 	GitCompare,
+	Minus,
+	Plus,
 	SquarePlus,
 	Trash2,
 	Undo2,
@@ -76,22 +78,41 @@ export const FileRow = memo(function FileRow({
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
 	const canDiscard = file.source.kind === "unstaged";
+	const canStage = file.source.kind === "unstaged";
+	const canUnstage = file.source.kind === "staged";
 	const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 	const utils = workspaceTrpc.useUtils();
+	const invalidateStatus = () => {
+		void utils.git.getStatus.invalidate({ workspaceId });
+		void utils.git.getDiff.invalidate({ workspaceId });
+	};
 	const discardMutation = workspaceTrpc.git.discardChanges.useMutation({
-		onSuccess: () => {
-			void utils.git.getStatus.invalidate({ workspaceId });
-			void utils.git.getDiff.invalidate({ workspaceId });
-		},
+		onSuccess: invalidateStatus,
 		onError: (err) => {
 			toast.error("Couldn't discard changes", { description: err.message });
+		},
+	});
+	const stageFileMutation = workspaceTrpc.git.stageFile.useMutation({
+		onSuccess: invalidateStatus,
+		onError: (err) => {
+			toast.error("Couldn't stage file", { description: err.message });
+		},
+	});
+	const unstageFileMutation = workspaceTrpc.git.unstageFile.useMutation({
+		onSuccess: invalidateStatus,
+		onError: (err) => {
+			toast.error("Couldn't unstage file", { description: err.message });
 		},
 	});
 	const confirmDiscard = () => {
 		setShowDiscardConfirm(false);
 		discardMutation.mutate({ workspaceId, filePath: file.path });
 	};
+	const stageFile = () =>
+		stageFileMutation.mutate({ workspaceId, filePath: file.path });
+	const unstageFile = () =>
+		unstageFileMutation.mutate({ workspaceId, filePath: file.path });
 
 	const policy = useChangesSidebarFilePolicy();
 	const diffNewTabTier = policy.tierForIntent("diffNewTab");
@@ -159,6 +180,42 @@ export const FileRow = memo(function FileRow({
 						<TooltipContent side="top">Discard changes</TooltipContent>
 					</Tooltip>
 				)}
+				{canStage && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label="Stage file"
+								className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+								onClick={(e) => {
+									e.stopPropagation();
+									stageFile();
+								}}
+							>
+								<Plus className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="top">Stage file</TooltipContent>
+					</Tooltip>
+				)}
+				{canUnstage && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label="Unstage file"
+								className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+								onClick={(e) => {
+									e.stopPropagation();
+									unstageFile();
+								}}
+							>
+								<Minus className="size-3.5" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="top">Unstage file</TooltipContent>
+					</Tooltip>
+				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<button
@@ -215,6 +272,18 @@ export const FileRow = memo(function FileRow({
 								</DropdownMenuShortcut>
 							)}
 						</DropdownMenuItem>
+						{canStage && (
+							<DropdownMenuItem onSelect={stageFile}>
+								<Plus />
+								Stage file
+							</DropdownMenuItem>
+						)}
+						{canUnstage && (
+							<DropdownMenuItem onSelect={unstageFile}>
+								<Minus />
+								Unstage file
+							</DropdownMenuItem>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
@@ -272,6 +341,23 @@ export const FileRow = memo(function FileRow({
 						</ContextMenuShortcut>
 					)}
 				</ContextMenuItem>
+				{(canStage || canUnstage) && (
+					<>
+						<ContextMenuSeparator />
+						{canStage && (
+							<ContextMenuItem onSelect={stageFile}>
+								<Plus />
+								Stage file
+							</ContextMenuItem>
+						)}
+						{canUnstage && (
+							<ContextMenuItem onSelect={unstageFile}>
+								<Minus />
+								Unstage file
+							</ContextMenuItem>
+						)}
+					</>
+				)}
 				{absolutePath && (
 					<>
 						<ContextMenuSeparator />

@@ -494,6 +494,37 @@ export const gitRouter = router({
 			return { success: true };
 		}),
 
+	stageFile: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				filePath: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			assertSafeRelativePath(input.filePath);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			// `-A` so a working-tree deletion is staged as a deletion, not skipped.
+			await git.raw(["add", "-A", "--", input.filePath]);
+			return { success: true };
+		}),
+
+	unstageFile: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				filePath: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			assertSafeRelativePath(input.filePath);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			await git.raw(["reset", "HEAD", "--", input.filePath]);
+			return { success: true };
+		}),
+
 	getDiff: queryProcedure
 		.meta({ timeoutMs: 30_000 })
 		.input(
