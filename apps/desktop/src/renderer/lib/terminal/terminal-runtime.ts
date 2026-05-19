@@ -8,7 +8,7 @@ import {
 	applyTerminalFontFamilyCssVariable,
 	type TerminalAppearance,
 } from "./appearance";
-import { waitForFontReady } from "./font-settle";
+import { scheduleFontSettleRefit } from "./font-settle";
 import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
@@ -264,7 +264,17 @@ export function attachToContainer(
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
 	if (measureAndResize(runtime)) onResize?.();
-	scheduleRuntimeFontSettleRefit(runtime, onResize);
+	scheduleFontSettleRefit(
+		runtime.terminal,
+		() => hostIsVisible(runtime.container),
+		() => {
+			try {
+				runtime.terminal.clearTextureAtlas();
+			} catch {}
+			return measureAndResize(runtime);
+		},
+		onResize,
+	);
 
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
@@ -276,24 +286,6 @@ export function attachToContainer(
 	runtime._disposeResizeObserver = scheduler.dispose;
 
 	runtime.terminal.focus();
-}
-
-function scheduleRuntimeFontSettleRefit(
-	runtime: TerminalRuntime,
-	onResize?: () => void,
-): void {
-	const fontFamily = String(runtime.terminal.options.fontFamily ?? "").trim();
-	if (!fontFamily) return;
-	const fontSize = Number(runtime.terminal.options.fontSize ?? 14);
-
-	void waitForFontReady({ fontFamily, fontSize }).then(() => {
-		if (!hostIsVisible(runtime.container)) return;
-		try {
-			runtime.terminal.clearTextureAtlas?.();
-		} catch {}
-		const changed = measureAndResize(runtime);
-		if (changed) onResize?.();
-	});
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
@@ -330,7 +322,17 @@ export function updateRuntimeAppearance(
 		}
 		// The freshly-selected font may still be loading — schedule a follow-up
 		// refit once it resolves so dimensions/atlas track the rendered glyphs.
-		scheduleRuntimeFontSettleRefit(runtime, onResize);
+		scheduleFontSettleRefit(
+			runtime.terminal,
+			() => hostIsVisible(runtime.container),
+			() => {
+				try {
+					runtime.terminal.clearTextureAtlas();
+				} catch {}
+				return measureAndResize(runtime);
+			},
+			onResize,
+		);
 	}
 }
 

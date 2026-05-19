@@ -12,6 +12,8 @@
  * Callers `await` this before re-fitting / refreshing the terminal.
  */
 
+import type { Terminal as XTerm } from "@xterm/xterm";
+
 const DEFAULT_FONT_LOAD_TIMEOUT_MS = 2000;
 
 export interface FontReadyTarget {
@@ -47,4 +49,30 @@ export async function waitForFontReady({
 	} finally {
 		if (timeoutId !== null) clearTimeout(timeoutId);
 	}
+}
+
+/**
+ * Wait for the terminal's configured font to load, then run a refit. Shared
+ * between v1 and v2 — both need identical "measured-too-early" recovery after
+ * `terminal.open()` and after font-setting changes. `refit` should return true
+ * iff terminal dimensions changed (so the caller can propagate to the PTY);
+ * it's the caller's responsibility to clear the texture atlas inside `refit`.
+ * `isAlive` is checked after the await to bail when the terminal has been
+ * disposed/detached while the font was loading.
+ */
+export function scheduleFontSettleRefit(
+	terminal: XTerm,
+	isAlive: () => boolean,
+	refit: () => boolean,
+	onDimensionsChanged?: () => void,
+): void {
+	const fontFamily = String(terminal.options.fontFamily ?? "").trim();
+	if (!fontFamily) return;
+	const fontSize = Number(terminal.options.fontSize ?? 14);
+
+	void waitForFontReady({ fontFamily, fontSize }).then(() => {
+		if (!isAlive()) return;
+		const changed = refit();
+		if (changed) onDimensionsChanged?.();
+	});
 }
