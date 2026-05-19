@@ -6,14 +6,12 @@ import {
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
+import { qstash } from "../../../lib/qstash";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
-
-const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 export const githubRouter = {
 	getInstallation: protectedProcedure
@@ -86,6 +84,13 @@ export const githubRouter = {
 					console.error("[github/triggerSync] Dev sync failed:", error);
 				});
 			} else {
+				if (!qstash) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: "QStash is not configured",
+					});
+				}
+
 				await qstash.publishJSON({
 					url: syncUrl,
 					body: syncBody,

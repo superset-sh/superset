@@ -1,4 +1,4 @@
-import { stripeClient } from "@superset/auth/stripe";
+import { getStripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
@@ -104,7 +104,7 @@ export const billingRouter = {
 
 		const twelveMonthsAgo = subtractMonthsClamped(new Date(), 12);
 
-		const stripeInvoices = await stripeClient.invoices.list({
+		const stripeInvoices = await getStripeClient().invoices.list({
 			customer: subscription.stripeCustomerId,
 			limit: 100,
 			status: "paid",
@@ -125,9 +125,9 @@ export const billingRouter = {
 		if (!stripeCustomerId) return null;
 
 		const [customer, taxIds, paymentMethods] = await Promise.all([
-			stripeClient.customers.retrieve(stripeCustomerId),
-			stripeClient.customers.listTaxIds(stripeCustomerId, { limit: 1 }),
-			stripeClient.paymentMethods.list({
+			getStripeClient().customers.retrieve(stripeCustomerId),
+			getStripeClient().customers.listTaxIds(stripeCustomerId, { limit: 1 }),
+			getStripeClient().paymentMethods.list({
 				customer: stripeCustomerId,
 				limit: 1,
 			}),
@@ -197,13 +197,14 @@ export const billingRouter = {
 				});
 			}
 
-			const portalSession = await stripeClient.billingPortal.sessions.create({
-				customer: stripeCustomerId,
-				return_url: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing`,
-				...(input.flowType === "payment_method_update" && {
-					flow_data: { type: "payment_method_update" as const },
-				}),
-			});
+			const portalSession =
+				await getStripeClient().billingPortal.sessions.create({
+					customer: stripeCustomerId,
+					return_url: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing`,
+					...(input.flowType === "payment_method_update" && {
+						flow_data: { type: "payment_method_update" as const },
+					}),
+				});
 
 			return { url: portalSession.url };
 		}),

@@ -1,10 +1,8 @@
 import { db } from "@superset/db/client";
 import { integrationConnections, tasks } from "@superset/db/schema";
-import { Client } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
 import { env } from "../../../env";
-
-const qstash = new Client({ token: env.QSTASH_TOKEN });
+import { qstash } from "../../qstash";
 
 const PROVIDER_ENDPOINTS: Record<string, string> = {
 	linear: "/api/integrations/linear/jobs/sync-task",
@@ -26,6 +24,24 @@ export async function syncTask(taskId: string) {
 	});
 
 	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
+	const providersToSync = connections.filter(
+		(conn) => PROVIDER_ENDPOINTS[conn.provider],
+	);
+
+	if (!qstash) {
+		if (providersToSync.length > 0) {
+			console.warn(
+				`[syncTask] QSTASH_TOKEN is not configured; skipped task sync for providers: ${providersToSync
+					.map((conn) => conn.provider)
+					.join(", ")}`,
+			);
+		}
+		return connections.map((conn) => ({
+			status: "fulfilled" as const,
+			value: { provider: conn.provider, skipped: true },
+		}));
+	}
+	const qstashClient = qstash;
 
 	const results = await Promise.allSettled(
 		connections.map(async (conn) => {
@@ -36,7 +52,7 @@ export async function syncTask(taskId: string) {
 
 			const syncUrl = `${qstashBaseUrl}${endpoint}`;
 
-			await qstash.publishJSON({
+			await qstashClient.publishJSON({
 				url: syncUrl,
 				body: { taskId },
 				retries: 3,
@@ -45,6 +61,11 @@ export async function syncTask(taskId: string) {
 			return { provider: conn.provider, queued: true };
 		}),
 	);
+
+	const failures = results.filter((result) => result.status === "rejected");
+	if (failures.length > 0) {
+		console.error("[syncTask] failed to enqueue integration sync", failures);
+	}
 
 	return results;
 }

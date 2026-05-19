@@ -28,6 +28,15 @@ import { taskStatusesRouter } from "./statuses";
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
 
+function enqueueTaskSync(taskId: string): void {
+	void syncTask(taskId).catch((error) => {
+		console.error(
+			`[task] failed to enqueue integration sync for ${taskId}`,
+			error,
+		);
+	});
+}
+
 function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
@@ -243,7 +252,7 @@ async function createTask(
 			});
 
 			if (result.task) {
-				syncTask(result.task.id);
+				enqueueTaskSync(result.task.id);
 			}
 
 			return result;
@@ -447,7 +456,7 @@ export const taskRouter = {
 			});
 
 			if (result.task) {
-				syncTask(result.task.id);
+				enqueueTaskSync(result.task.id);
 			}
 
 			return result;
@@ -474,7 +483,7 @@ export const taskRouter = {
 			});
 
 			if (result.deleted?.externalProvider && result.deleted?.externalId) {
-				syncTask(input);
+				enqueueTaskSync(input);
 			}
 
 			return { txid: result.txid };

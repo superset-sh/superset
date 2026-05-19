@@ -2,5 +2,44 @@
 	"attribution": {
 		"commit": "",
 		"pr": ""
+	},
+	"env": {
+		"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+		"CLAUDE_CODE_TASK_LIST_ID": "superset_tasks"
+	},
+	"permissions": {
+		"deny": [
+			"Bash(git commit --no-verify:*)",
+			"Bash(git commit -n:*)",
+			"Bash(git push --no-verify:*)",
+			"Bash(git rebase --no-verify:*)",
+			"Bash(git merge --no-verify:*)",
+			"Bash(git cherry-pick --no-verify:*)",
+			"Bash(git am --no-verify:*)",
+			"Edit(.claude/settings.json)",
+			"Write(.claude/settings.json)",
+			"MultiEdit(.claude/settings.json)",
+			"Edit(.claude/hooks/**)",
+			"Write(.claude/hooks/**)"
+		]
+	},
+	"hooks": {
+		"SubagentStop": [
+			{
+				"matcher": "",
+				"hooks": [
+					{ "type": "command", "command": "python3 ~/.claude/hooks/subagent-worktree-preservation.py" },
+					{ "type": "command", "command": "python3 ~/.claude/hooks/subagent-precommit-gate.py" }
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"matcher": "Task",
+				"hooks": [
+					{ "type": "command", "command": "python3 ~/.claude/hooks/subagent-evidence-verification.py" }
+				]
+			}
+		]
 	}
 }

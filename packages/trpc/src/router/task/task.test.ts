@@ -3,7 +3,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 
 const getCurrentTxidMock = mock(async () => "txid-123");
 const seedDefaultStatusesMock = mock(async () => "status-seeded");
-const syncTaskMock = mock(() => undefined);
+const syncTaskMock = mock(async () => undefined);
 const verifyOrgAdminMock = mock(async () => ({
 	membership: { role: "owner" },
 }));
@@ -245,7 +245,7 @@ describe("task router authorization", () => {
 		seedDefaultStatusesMock.mockImplementation(async () => "status-seeded");
 
 		syncTaskMock.mockReset();
-		syncTaskMock.mockImplementation(() => undefined);
+		syncTaskMock.mockImplementation(async () => undefined);
 
 		transactionMock.mockReset();
 		transactionMock.mockImplementation(async (callback) =>
