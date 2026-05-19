@@ -5,22 +5,24 @@ COMMIT="${1:-}"
 WORKFLOW="release-desktop-canary.yml"
 BUILD_REF_ARGS=()
 WORKFLOW_BRANCH="$(git symbolic-ref --quiet --short HEAD || true)"
-WORKFLOW_REF="${WORKFLOW_BRANCH:-$(git rev-parse HEAD)}"
 WORKFLOW_SHA="$(git rev-parse HEAD)"
+WORKFLOW_REF="$WORKFLOW_BRANCH"
+
+if [ -z "$WORKFLOW_REF" ]; then
+  WORKFLOW_REF="$(gh repo view --json defaultBranchRef -q '.defaultBranchRef.name')"
+  BUILD_REF_ARGS=(-f build_ref="$WORKFLOW_SHA")
+fi
+
 DISPATCHED_AFTER="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 RUN_LIST_ARGS=(
   --workflow="$WORKFLOW"
   --event workflow_dispatch
-  --commit "$WORKFLOW_SHA"
+  --branch "$WORKFLOW_REF"
   --created ">=$DISPATCHED_AFTER"
   --limit=1
   --json url
   -q '.[0].url'
 )
-
-if [ -n "$WORKFLOW_BRANCH" ]; then
-  RUN_LIST_ARGS+=(--branch "$WORKFLOW_BRANCH")
-fi
 
 if [ -n "$COMMIT" ]; then
   FULL_SHA=$(git rev-parse "$COMMIT")
