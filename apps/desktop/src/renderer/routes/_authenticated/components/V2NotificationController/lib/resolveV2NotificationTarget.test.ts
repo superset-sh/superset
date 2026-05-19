@@ -88,6 +88,19 @@ describe("resolveV2NotificationTarget", () => {
 		});
 	});
 
+	it("falls back to a terminal-only target before pane layout exists", () => {
+		const target = resolveV2NotificationTarget({
+			workspaceId: WORKSPACE_ID,
+			payload: payload({ terminalId: "terminal-early" }),
+			paneLayout: null,
+		});
+
+		expect(target).toEqual({
+			workspaceId: WORKSPACE_ID,
+			terminalId: "terminal-early",
+		});
+	});
+
 	it("only reports visible for the active tab and active pane", () => {
 		const terminalTarget = resolveTerminalTarget({
 			workspaceId: WORKSPACE_ID,

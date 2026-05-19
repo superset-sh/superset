@@ -32,7 +32,7 @@ mock.module("shared/env.shared", () => ({
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v3",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -66,6 +66,7 @@ const {
 	createClaudeSettingsJson,
 	createCodexHooksJson,
 	createCodexWrapper,
+	COPILOT_HOOK_MARKER,
 	CURSOR_HOOK_MARKER,
 	createDroidSettingsJson,
 	createDroidWrapper,
@@ -688,9 +689,10 @@ exit 0
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
 
-	it("bumps Cursor and Gemini hook script markers when hook semantics change", () => {
-		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v2");
-		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v2");
+	it("bumps hook script markers when hook semantics change", () => {
+		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v2");
+		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v3");
+		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v3");
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {

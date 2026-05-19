@@ -112,6 +112,11 @@ const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
 
 const spawnConfig = { authToken: "token", cloudApiUrl: "https://api.example" };
 
+interface HostServiceCoordinatorInternals {
+	getPreferredPorts(organizationId: string): number[];
+	rememberPort(organizationId: string, port: number): void;
+}
+
 describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 	let coordinator: InstanceType<typeof HostServiceCoordinator>;
 	let spawnMock: ReturnType<typeof mock>;
@@ -255,6 +260,56 @@ describe("HostServiceCoordinator.tryAdopt — adoption health check", () => {
 		expect(removeManifestMock).toHaveBeenCalledTimes(1);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
+	});
+});
+
+describe("HostServiceCoordinator preferred ports", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+
+	beforeEach(() => {
+		manifestStore.current = null;
+		readManifestMock.mockClear();
+		removeManifestMock.mockClear();
+		isProcessAliveMock.mockClear();
+		listManifestsMock.mockClear();
+		killProcessMock.mockClear();
+		pollHealthCheckMock.mockClear();
+
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+		coordinator = new HostServiceCoordinator();
+	});
+
+	afterEach(() => {
+		coordinator.releaseAll();
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("prefers the last known port, then the manifest port, then a stable org port", () => {
+		manifestStore.current = baseManifest(1234, "http://127.0.0.1:45555");
+		const internals = coordinator as unknown as HostServiceCoordinatorInternals;
+		internals.rememberPort("org-1", 46666);
+
+		const ports = internals.getPreferredPorts("org-1");
+
+		expect(ports[0]).toBe(46666);
+		expect(ports[1]).toBe(45555);
+		expect(ports[2]).toBeGreaterThanOrEqual(48_000);
+		expect(ports[2]).toBeLessThan(49_000);
+	});
+
+	test("uses a deterministic stable port when no previous port exists", () => {
+		const internals = coordinator as unknown as HostServiceCoordinatorInternals;
+
+		const ports = internals.getPreferredPorts("org-1");
+		const secondRead = internals.getPreferredPorts("org-1");
+
+		expect(ports).toEqual(secondRead);
+		expect(ports).toHaveLength(1);
+		expect(ports[0]).toBeGreaterThanOrEqual(48_000);
+		expect(ports[0]).toBeLessThan(49_000);
 	});
 });
 
