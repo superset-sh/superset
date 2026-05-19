@@ -126,7 +126,51 @@ export interface SlackAgentResult {
 	actions: AgentAction[];
 }
 
+// Parses Retry-After / retry-after-ms headers per the SDK convention; returns
+// milliseconds to wait, or null when no usable value is present.
+export function parseRetryAfterMs(
+	headers: Headers | null | undefined,
+): number | null {
+	if (!headers) return null;
+
+	const retryAfterMs = headers.get("retry-after-ms");
+	if (retryAfterMs) {
+		const ms = Number.parseFloat(retryAfterMs);
+		if (!Number.isNaN(ms)) return ms;
+	}
+
+	const retryAfter = headers.get("retry-after");
+	if (retryAfter) {
+		const seconds = Number.parseFloat(retryAfter);
+		if (!Number.isNaN(seconds)) return seconds * 1000;
+		const dateMs = Date.parse(retryAfter) - Date.now();
+		if (!Number.isNaN(dateMs)) return dateMs;
+	}
+
+	return null;
+}
+
+function formatRetryAfter(ms: number): string {
+	const seconds = Math.max(1, Math.ceil(ms / 1000));
+	if (seconds < 60) {
+		return `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+	}
+	const minutes = Math.ceil(seconds / 60);
+	return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+}
+
 export async function formatErrorForSlack(error: unknown): Promise<string> {
+	// 429 short-circuit: the Haiku formatter call below would likely hit the
+	// same rate limit and burn quota. Surface Retry-After to the user when
+	// Anthropic provided it, otherwise fall back to the static overload message.
+	if (error instanceof Anthropic.APIError && error.status === 429) {
+		const retryAfterMs = parseRetryAfterMs(error.headers);
+		if (retryAfterMs && retryAfterMs > 0) {
+			return `I'm rate-limited right now — please try again in ${formatRetryAfter(retryAfterMs)}.`;
+		}
+		return "I'm a bit overloaded right now — please try again in a moment.";
+	}
+
 	const message =
 		error instanceof Error ? error.message : "Unknown error occurred";
 	try {
@@ -146,10 +190,6 @@ export async function formatErrorForSlack(error: unknown): Promise<string> {
 		);
 		return text?.text ?? "Sorry, something went wrong. Please try again.";
 	} catch {
-		// Haiku itself failed (possibly also rate limited) — use static fallback
-		if (error instanceof Anthropic.APIError && error.status === 429) {
-			return "I'm a bit overloaded right now — please try again in a moment.";
-		}
 		return "Sorry, something went wrong. Please try again.";
 	}
 }
