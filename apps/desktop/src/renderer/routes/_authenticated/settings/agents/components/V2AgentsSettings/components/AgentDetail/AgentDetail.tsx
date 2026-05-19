@@ -13,6 +13,7 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import {
+	hasShellControlOperators,
 	joinArgs,
 	joinCommandArgs,
 	parseArgs,
@@ -113,6 +114,13 @@ export function AgentDetail({
 	};
 
 	const handleCommandBlur = () => {
+		if (hasShellControlOperators(commandText)) {
+			toast.error(
+				"Agent commands are argv, not shell. Operators like && or | aren't supported here — use a Terminal preset to chain commands.",
+			);
+			setCommandText(joinCommandArgs(config.command, config.args));
+			return;
+		}
 		const { command, args } = parseCommandString(commandText);
 		if (command.length === 0) {
 			toast.error("Command cannot be empty");
@@ -127,6 +135,13 @@ export function AgentDetail({
 	};
 
 	const handlePromptArgsBlur = () => {
+		if (hasShellControlOperators(promptArgsText)) {
+			toast.error(
+				"Prompt args are argv, not shell. Operators like && or | aren't supported here.",
+			);
+			setPromptArgsText(joinArgs(config.promptArgs));
+			return;
+		}
 		const args = parseArgs(promptArgsText);
 		const changed =
 			args.length !== config.promptArgs.length ||

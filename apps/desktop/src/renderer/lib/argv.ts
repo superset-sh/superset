@@ -45,3 +45,13 @@ export function parseArgs(input: string): string[] {
 		(token): token is string => typeof token === "string",
 	);
 }
+
+/**
+ * Returns true when `input` contains shell control operators (`&&`, `||`,
+ * `;`, `|`, `>`, `<`, etc.). Agent launch specs are argv, not shell
+ * invocations, so operators would be silently dropped by `parseCommandString`.
+ * Callers should reject the input up front instead of saving a mangled command.
+ */
+export function hasShellControlOperators(input: string): boolean {
+	return parse(input).some((token) => typeof token !== "string");
+}

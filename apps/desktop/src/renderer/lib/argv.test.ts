@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	hasShellControlOperators,
 	joinArgs,
 	joinCommandArgs,
 	parseArgs,
@@ -63,6 +64,44 @@ describe("joinCommandArgs", () => {
 		const original = "claude --permission-mode acceptEdits";
 		const { command, args } = parseCommandString(original);
 		expect(joinCommandArgs(command, args)).toBe(original);
+	});
+});
+
+describe("parseCommandString — shell control operators (issue #4270)", () => {
+	it("silently drops `&&` and loses the chained commands on round-trip", () => {
+		const input = "omz update && nvm use 22 && claude";
+		const { command, args } = parseCommandString(input);
+		// Operators are dropped entirely — every remaining token is treated as
+		// a positional arg of the first command.
+		expect(command).toBe("omz");
+		expect(args).toEqual(["update", "nvm", "use", "22", "claude"]);
+		// Round-tripping no longer recovers the original; the `&&` operators are
+		// gone, which is what the user observed in the UI.
+		const rejoined = joinCommandArgs(command, args);
+		expect(rejoined).not.toBe(input);
+		expect(rejoined).not.toContain("&&");
+	});
+});
+
+describe("hasShellControlOperators", () => {
+	it("flags inputs containing shell control operators", () => {
+		expect(hasShellControlOperators("a && b")).toBe(true);
+		expect(hasShellControlOperators("a || b")).toBe(true);
+		expect(hasShellControlOperators("a ; b")).toBe(true);
+		expect(hasShellControlOperators("a | b")).toBe(true);
+		expect(hasShellControlOperators("a > out")).toBe(true);
+		expect(hasShellControlOperators("a < in")).toBe(true);
+	});
+
+	it("returns false for plain command + args", () => {
+		expect(hasShellControlOperators("claude")).toBe(false);
+		expect(
+			hasShellControlOperators("claude --permission-mode acceptEdits"),
+		).toBe(false);
+		expect(
+			hasShellControlOperators('codex -c "model_reasoning_effort=high"'),
+		).toBe(false);
+		expect(hasShellControlOperators("")).toBe(false);
 	});
 });
 
