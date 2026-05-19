@@ -51,9 +51,13 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 			webglAddon.onContextLoss(() => {
 				webglAddon?.dispose();
 				webglAddon = null;
+				suggestedRendererType = "dom";
 				terminal.refresh(0, terminal.rows - 1);
 			});
 			terminal.loadAddon(webglAddon);
+			// Force a full repaint so the WebGL renderer renders all
+			// existing content, including wide/CJK characters.
+			terminal.refresh(0, terminal.rows - 1);
 		} catch {
 			suggestedRendererType = "dom";
 			webglAddon = null;
