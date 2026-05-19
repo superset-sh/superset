@@ -52,6 +52,13 @@ function isZshAvailable(): boolean {
 	}
 }
 
+function writeBashProfilePath(homeDir: string, pathValue: string): void {
+	writeFileSync(
+		path.join(homeDir, ".bash_profile"),
+		`export PATH=${quoteShellLiteral(pathValue)}\n`,
+	);
+}
+
 describe("shell-wrappers", () => {
 	beforeEach(() => {
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
@@ -280,10 +287,7 @@ fi
 		mkdirSync(homeDir, { recursive: true });
 		mkdirSync(systemBinDir, { recursive: true });
 
-		writeFileSync(
-			path.join(homeDir, ".bash_profile"),
-			`export PATH="${systemBinDir}:/usr/bin:/bin"\n`,
-		);
+		writeBashProfilePath(homeDir, `${systemBinDir}:/usr/bin:/bin`);
 
 		writeFileSync(
 			path.join(systemBinDir, "claude"),
@@ -320,6 +324,7 @@ echo wrapper
 		const missingBinDir = path.join(integrationRoot, "missing-bin");
 		mkdirSync(homeDir, { recursive: true });
 		mkdirSync(systemBinDir, { recursive: true });
+		writeBashProfilePath(homeDir, `${systemBinDir}:/usr/bin:/bin`);
 
 		writeFileSync(
 			path.join(systemBinDir, "claude"),
@@ -359,6 +364,7 @@ echo system
 		mkdirSync(homeDir, { recursive: true });
 		mkdirSync(systemBinDir, { recursive: true });
 		mkdirSync(wrapperBinDir, { recursive: true });
+		writeBashProfilePath(homeDir, `${systemBinDir}:/usr/bin:/bin`);
 
 		writeFileSync(
 			path.join(systemBinDir, "claude"),
