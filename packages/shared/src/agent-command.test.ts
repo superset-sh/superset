@@ -12,10 +12,9 @@ describe("buildAgentPromptCommand", () => {
 			agent: "codex",
 		});
 
-		expect(command).toContain(
-			"codex --dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+		expect(command).toBe(
+			"codex --dangerously-bypass-approvals-and-sandbox -- '- Only modified file: runtime.ts'",
 		);
-		expect(command).toContain("- Only modified file: runtime.ts");
 	});
 
 	it("does not change non-codex commands", () => {
@@ -25,9 +24,7 @@ describe("buildAgentPromptCommand", () => {
 			agent: "claude",
 		});
 
-		expect(command).toStartWith(
-			"claude --permission-mode acceptEdits \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
-		);
+		expect(command).toBe("claude --permission-mode acceptEdits 'hello'");
 	});
 
 	it("uses Amp interactive stdin mode for prompt launches", () => {
@@ -37,8 +34,22 @@ describe("buildAgentPromptCommand", () => {
 			agent: "amp",
 		});
 
-		expect(command).toStartWith("amp <<'SUPERSET_PROMPT_amp1234'");
+		expect(command).toBe("printf '%s\\n' 'hello' | amp");
 		expect(command).not.toContain("amp -x");
+	});
+
+	it("escapes single quotes without heredoc syntax", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "it's fish-safe",
+			randomId: "quote-1234",
+			agent: "claude",
+		});
+
+		expect(command).toBe(
+			"claude --permission-mode acceptEdits 'it'\\''s fish-safe'",
+		);
+		expect(command).not.toContain("<<");
+		expect(command).not.toContain("$(cat");
 	});
 
 	it("uses Amp interactive stdin mode for file launches", () => {
@@ -57,7 +68,7 @@ describe("buildAgentPromptCommand", () => {
 			agent: "pi",
 		});
 
-		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
+		expect(command).toBe("pi 'hello'");
 		expect(command).not.toContain("pi -p");
 	});
 });

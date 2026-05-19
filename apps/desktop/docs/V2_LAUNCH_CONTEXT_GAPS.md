@@ -35,9 +35,10 @@ empty strings. The pipeline otherwise works end-to-end.
    head branch. Prompt says so.
 3. **No body truncation** (or very high cap, e.g. 200 KB/source). Modern
    context windows are large. Don't cap aggressively.
-4. **No sanitization.** Prompt goes into a heredoc with a random
-   delimiter (no shell injection). Agent reads raw text, no HTML parser
-   downstream. V1's entity escaping was unnecessary.
+4. **No sanitization.** Prompt text is shell-quoted as a single argv value or
+   piped through `printf` for stdin transports (no prompt shell injection).
+   Agent reads raw text, no HTML parser downstream. V1's entity escaping was
+   unnecessary.
 5. **Attachments framing.** The `{{attachments}}` block includes a short
    header cueing the agent to read the files. Just paths; agent handles
    the rest.

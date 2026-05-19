@@ -105,8 +105,8 @@ function buildArgvCommand(argv: string[]): string {
 /**
  * Build a shell command string that runs the resolved agent config with the
  * given prompt. argv transport appends the prompt as the final positional;
- * stdin transport pipes the prompt via a heredoc so the agent can read from
- * fd 0.
+ * stdin transport pipes the prompt through printf so the command is parsable
+ * by non-POSIX interactive shells such as fish.
  *
  * Empty prompts drop `promptArgs` so codex/opencode/copilot don't get stray
  * prompt-mode flags during promptless launches.
@@ -121,16 +121,7 @@ export function buildAgentCommandString(
 		return buildArgvCommand([...baseArgv, prompt]);
 	}
 
-	// stdin: pipe the prompt to the spawned process via heredoc. Delimiter is
-	// constructed to avoid collision with any line in the prompt content.
-	const baseDelimiter = "SUPERSET_PROMPT";
-	let delimiter = baseDelimiter;
-	let counter = 0;
-	while (prompt.split("\n").some((line) => line === delimiter)) {
-		counter += 1;
-		delimiter = `${baseDelimiter}_${counter}`;
-	}
-	return `${buildArgvCommand(baseArgv)} <<'${delimiter}'\n${prompt}\n${delimiter}`;
+	return `printf '%s\\n' ${quoteSingleShell(prompt)} | ${buildArgvCommand(baseArgv)}`;
 }
 
 function envOverlayPrefix(env: Record<string, string>): string {
