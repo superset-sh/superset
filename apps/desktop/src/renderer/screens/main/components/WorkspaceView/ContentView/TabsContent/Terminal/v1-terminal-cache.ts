@@ -25,6 +25,15 @@ export interface CachedTerminal {
 	wrapper: HTMLDivElement;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
+	/**
+	 * Clears the WebGL texture atlas to discard stale/corrupted glyph
+	 * textures (no-op if WebGL is unavailable). The macOS GPU compositor
+	 * can drop or corrupt atlas pages without firing `onContextLoss`,
+	 * which manifests as garbled "RTL-looking" glyphs across an otherwise
+	 * working terminal (issue #4010, #3504). Must be called before
+	 * `xterm.refresh()` so the repaint rebuilds glyphs from scratch.
+	 */
+	clearTextureAtlas: () => void;
 	/** Last known dimensions — used to skip no-op resize events. */
 	lastCols: number;
 	lastRows: number;
@@ -65,7 +74,10 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function fitAndRefresh(entry: CachedTerminal): boolean {
+function fitAndRefresh(
+	entry: CachedTerminal,
+	options: { clearAtlas?: boolean } = {},
+): boolean {
 	if (!hostIsVisible(entry.container)) return false;
 
 	const { xterm } = entry;
@@ -88,9 +100,14 @@ function fitAndRefresh(entry: CachedTerminal): boolean {
 		}
 	}
 
+	const dimensionsChanged = xterm.cols !== prevCols || xterm.rows !== prevRows;
+	if (options.clearAtlas || dimensionsChanged) {
+		entry.clearTextureAtlas();
+	}
+
 	xterm.refresh(0, Math.max(0, xterm.rows - 1));
 
-	return xterm.cols !== prevCols || xterm.rows !== prevRows;
+	return dimensionsChanged;
 }
 
 export function has(paneId: string): boolean {
@@ -112,7 +129,7 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, wrapper, cleanup } =
+	const { xterm, fitAddon, searchAddon, wrapper, clearTextureAtlas, cleanup } =
 		createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
@@ -121,6 +138,7 @@ export function getOrCreate(
 		searchAddon,
 		wrapper,
 		cleanupCreation: cleanup,
+		clearTextureAtlas,
 		subscription: null,
 		streamReady: false,
 		pendingStreamEvents: [],
@@ -150,7 +168,11 @@ export function attachToContainer(
 	entry.container = container;
 	container.appendChild(entry.wrapper);
 
-	fitAndRefresh(entry);
+	// On reattach, force an atlas clear: while the wrapper was parked, the
+	// macOS GPU compositor can drop or corrupt atlas pages without firing
+	// `onContextLoss`, leaving stale glyphs that paint as RTL-looking
+	// gibberish (issue #4010).
+	fitAndRefresh(entry, { clearAtlas: true });
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
