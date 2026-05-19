@@ -12,8 +12,10 @@ import {
 } from "react-icons/ri";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { mdxComponents } from "@/app/blog/components/mdx-components";
-import { BreadcrumbJsonLd } from "@/components/JsonLd";
+import { BreadcrumbJsonLd, JsonLdScript } from "@/components/JsonLd";
 import { getAllPeople, getPersonById } from "@/lib/people";
+import { TeamBio } from "../components/TeamBio";
+import { getTeamBioText } from "../utils/teamBio";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -56,13 +58,7 @@ function PersonJsonLd({
 		...(sameAs.length > 0 && { sameAs }),
 	};
 
-	return (
-		<script
-			type="application/ld+json"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
-			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-		/>
-	);
+	return <JsonLdScript schema={schema} />;
 }
 
 export default async function TeamMemberPage({ params }: PageProps) {
@@ -143,10 +139,9 @@ export default async function TeamMemberPage({ params }: PageProps) {
 							</h1>
 
 							{person.bio && (
-								<p
+								<TeamBio
+									bio={person.bio}
 									className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 [&_a]:text-muted-foreground [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
-									// biome-ignore lint/security/noDangerouslySetInnerHtml: controlled content from team data
-									dangerouslySetInnerHTML={{ __html: person.bio }}
 								/>
 							)}
 
@@ -303,16 +298,19 @@ export async function generateMetadata({
 	}
 
 	const url = `${COMPANY.MARKETING_URL}/team/${id}`;
+	const description = person.bio
+		? getTeamBioText(person.bio)
+		: `${person.name}, ${person.role} at Superset`;
 
 	return {
 		title: `${person.name} — ${person.role}`,
-		description: person.bio ?? `${person.name}, ${person.role} at Superset`,
+		description,
 		alternates: {
 			canonical: url,
 		},
 		openGraph: {
 			title: `${person.name} — ${person.role} at Superset`,
-			description: person.bio ?? `${person.name}, ${person.role} at Superset`,
+			description,
 			type: "profile",
 			url,
 			siteName: COMPANY.NAME,
@@ -323,7 +321,7 @@ export async function generateMetadata({
 		twitter: {
 			card: "summary",
 			title: `${person.name} — ${person.role} at Superset`,
-			description: person.bio ?? `${person.name}, ${person.role} at Superset`,
+			description,
 			...(person.avatar && {
 				images: [`${COMPANY.MARKETING_URL}${person.avatar}`],
 			}),
