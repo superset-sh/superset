@@ -8,12 +8,7 @@ import {
 } from "react-icons/tb";
 import { UrlSuggestions } from "./components/UrlSuggestions";
 import { useUrlAutocomplete } from "./hooks/useUrlAutocomplete";
-
-function displayUrl(url: string): string {
-	if (url === "about:blank") return "";
-	// Strip trailing slash for cleaner display (e.g. "https://github.com/" → "https://github.com")
-	return url.endsWith("/") ? url.slice(0, -1) : url;
-}
+import { displayUrl, normalizeUrl } from "./utils";
 
 interface BrowserToolbarProps {
 	currentUrl: string;
@@ -47,7 +42,7 @@ export function BrowserToolbar({
 
 	const autocomplete = useUrlAutocomplete({
 		onSelect: (selectedUrl) => {
-			onNavigate(selectedUrl);
+			onNavigate(normalizeUrl(selectedUrl));
 			setIsEditing(false);
 		},
 	});
@@ -77,7 +72,7 @@ export function BrowserToolbar({
 			e.preventDefault();
 			const trimmed = urlInputValue.trim();
 			if (trimmed) {
-				onNavigate(trimmed);
+				onNavigate(normalizeUrl(trimmed));
 				setIsEditing(false);
 				autocomplete.close();
 			}
