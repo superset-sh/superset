@@ -37,6 +37,7 @@ import {
 } from "../../hooks/useSlashCommands";
 import type { ModelOption } from "../../types";
 import { SlashCommandMenu } from "../SlashCommandMenu";
+import { deleteToLineStart } from "./deleteToLineStart";
 import { FileMentionNode } from "./FileMentionNode";
 import { parseTextToEditorContent } from "./parseTextToEditorContent";
 import { SlashCommandNode } from "./SlashCommandNode";
@@ -241,6 +242,14 @@ export function TiptapPromptEditor({
 								return true;
 							}
 							return false;
+						},
+
+						// Mac Cmd+Backspace: ProseMirror doesn't intercept the
+						// `deleteHardLineBackward` beforeinput event, so the browser erases
+						// the whole paragraph (incl. any hardBreak-separated lines).
+						"Mod-Backspace": () => {
+							const { state, view } = this.editor;
+							return deleteToLineStart(state, view.dispatch.bind(view));
 						},
 					};
 				},
