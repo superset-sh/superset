@@ -28,9 +28,9 @@ const TOTAL_SECONDS = STEPS[STEPS.length - 1].doneAt;
 // Cap synthetic progress so the bar never claims completion before the real
 // workspaces.create mutation resolves.
 const PROGRESS_CAP = 0.94;
-// ~2× the typical budget — past this we offer a window reload as an escape
-// hatch in case the renderer state has drifted from the real workspace row.
-const STUCK_AFTER_SECONDS = 45;
+// Past the typical budget — offer a window reload as an escape hatch in
+// case the renderer state has drifted from the real workspace row.
+const STUCK_AFTER_SECONDS = 30;
 
 interface WorkspaceCreatingStateProps {
 	name?: string;
