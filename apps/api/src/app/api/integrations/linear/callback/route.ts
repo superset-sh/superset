@@ -2,15 +2,17 @@ import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import { integrationConnections, members, users } from "@superset/db/schema";
 import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
+import { Client } from "@upstash/qstash";
 import { and, eq, isNull, ne } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
-import { enqueueOrRunLocalJob } from "@/lib/qstash";
 
 const UNIQUE_VIOLATION = "23505";
 const ACTIVE_LINKAGE_INDEX =
 	"integration_connections_provider_external_org_active_unique";
+
+const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 export async function GET(request: Request) {
 	const url = new URL(request.url);
@@ -147,9 +149,10 @@ export async function GET(request: Request) {
 	}
 
 	try {
-		await enqueueOrRunLocalJob("linear/callback", {
+		await qstash.publishJSON({
 			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
 			body: { organizationId, creatorUserId: userId },
+			retries: 3,
 		});
 	} catch (error) {
 		console.error("Failed to queue initial sync job:", error);

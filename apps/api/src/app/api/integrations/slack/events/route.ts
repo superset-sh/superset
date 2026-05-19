@@ -1,11 +1,13 @@
 import type { LinkSharedEvent, SlackEvent } from "@slack/types";
+import { Client } from "@upstash/qstash";
 
 import { env } from "@/env";
-import { qstash } from "@/lib/qstash";
 import { verifySlackSignature } from "../verify-signature";
 import { processAppHomeOpened } from "./process-app-home-opened";
 import { processEntityDetails } from "./process-entity-details";
 import { processLinkShared } from "./process-link-shared";
+
+const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 type SlackEventEnvelope = {
 	type?: string;
@@ -77,21 +79,15 @@ export async function POST(request: Request) {
 
 		if (event.type === "app_mention") {
 			try {
-				if (qstash) {
-					await qstash.publishJSON({
-						url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-mention`,
-						body: {
-							event,
-							teamId: team_id,
-							eventId: event_id,
-						},
-						retries: 3,
-					});
-				} else {
-					console.warn(
-						"[slack/events] Skipping mention job; QStash is not configured",
-					);
-				}
+				await qstash.publishJSON({
+					url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-mention`,
+					body: {
+						event,
+						teamId: team_id,
+						eventId: event_id,
+					},
+					retries: 3,
+				});
 			} catch (error) {
 				console.error("[slack/events] Failed to queue mention job:", error);
 			}
@@ -113,21 +109,15 @@ export async function POST(request: Request) {
 			}
 
 			try {
-				if (qstash) {
-					await qstash.publishJSON({
-						url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-assistant-message`,
-						body: {
-							event: messageEvent,
-							teamId: team_id,
-							eventId: event_id,
-						},
-						retries: 3,
-					});
-				} else {
-					console.warn(
-						"[slack/events] Skipping assistant message job; QStash is not configured",
-					);
-				}
+				await qstash.publishJSON({
+					url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-assistant-message`,
+					body: {
+						event: messageEvent,
+						teamId: team_id,
+						eventId: event_id,
+					},
+					retries: 3,
+				});
 			} catch (error) {
 				console.error(
 					"[slack/events] Failed to queue assistant message job:",

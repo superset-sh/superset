@@ -12,7 +12,7 @@ import { z } from "zod/v4";
 // NOTE: deployment-profile checks are inlined here rather than imported from
 // @superset/shared/deployment-profile because electron.vite.config.ts does
 // `await import("./src/main/env.main")` at config-load time, which Node's ESM
-// loader handles directly (no Vite transform) — and Node can't load `.ts`
+// loader handles directly (no Vite transform), and Node can't load `.ts`
 // files from sibling workspace packages. Keep this in sync with shared/.
 function isTruthyFlag(value: string | undefined): boolean {
 	return value === "1" || value === "true";
@@ -54,40 +54,41 @@ const isStrict =
 	deploymentProfile === "cloud" || deploymentProfile === "internal";
 const skipValidation =
 	!isStrict || isTruthyFlag(process.env.SKIP_ENV_VALIDATION);
+const isLocalDevelopment =
+	process.env.NODE_ENV === "development" && deploymentProfile === "local";
 
 export const env = createEnv({
 	server: {
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),
-		// In dev builds (NODE_ENV=development) the URL defaults switch to
-		// localhost so fresh-clone local contributors never silently sync
-		// against hosted production endpoints.
+		// Local contributor builds default to localhost. Internal dev keeps the
+		// existing hosted fallback unless the profile is explicitly local.
 		NEXT_PUBLIC_API_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4641"
 					: "https://api.superset.sh",
 			),
 		NEXT_PUBLIC_STREAMS_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4647"
 					: "https://streams.superset.sh",
 			),
 		NEXT_PUBLIC_ELECTRIC_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "https://localhost:4650"
 					: "https://electric-proxy.avi-6ac.workers.dev",
 			),
 		NEXT_PUBLIC_WEB_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4640"
 					: "https://app.superset.sh",
 			),
@@ -98,14 +99,14 @@ export const env = createEnv({
 		STREAMS_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4647"
 					: "https://superset-stream.fly.dev",
 			),
 		RELAY_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4653"
 					: "https://relay.superset.sh",
 			),

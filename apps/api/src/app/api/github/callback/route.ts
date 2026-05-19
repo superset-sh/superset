@@ -1,11 +1,13 @@
 import { db } from "@superset/db/client";
 import { githubInstallations, members } from "@superset/db/schema";
+import { Client } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
-import { enqueueOrRunLocalJob } from "@/lib/qstash";
 import { githubApp } from "../octokit";
+
+const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 /**
  * Callback handler for GitHub App installation.
@@ -120,12 +122,13 @@ export async function GET(request: Request) {
 
 		// Queue initial sync job
 		try {
-			await enqueueOrRunLocalJob("github/callback", {
+			await qstash.publishJSON({
 				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
 				body: {
 					installationDbId: savedInstallation.id,
 					organizationId,
 				},
+				retries: 3,
 			});
 		} catch (error) {
 			console.error(

@@ -375,10 +375,9 @@ console.log(`
 Local setup is ready.
 
 Next:
-  bun dev
+  bun dev:desktop
 
 Useful checks after boot:
-  curl -fsS http://localhost:4641/api/health
   curl -fsS http://localhost:4641/api/auth/ok
 
 Desktop state for this setup lives in:

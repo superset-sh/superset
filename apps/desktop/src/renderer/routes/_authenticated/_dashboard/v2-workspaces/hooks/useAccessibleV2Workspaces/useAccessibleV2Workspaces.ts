@@ -221,9 +221,9 @@ export function useAccessibleV2Workspaces(
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
 
-	const activeOrganizationId =
-		session?.session?.activeOrganizationId ??
-		(env.SKIP_ENV_VALIDATION ? MOCK_ORG_ID : null);
+	const activeOrganizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
 
 	const { data: rows = [] } = useLiveQuery(

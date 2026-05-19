@@ -2,14 +2,17 @@ import { dbWs } from "@superset/db/client";
 import { automations, subscriptions } from "@superset/db/schema";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
-import { Receiver } from "@upstash/qstash";
+import { Client, Receiver } from "@upstash/qstash";
 import { and, eq, exists, inArray, lte, ne, sql } from "drizzle-orm";
 
 import { env } from "@/env";
-import { qstash } from "@/lib/qstash";
 
 export const dynamic = "force-dynamic";
 
+const qstash = new Client({
+	token: env.QSTASH_TOKEN,
+	baseUrl: env.QSTASH_URL,
+});
 const receiver = new Receiver({
 	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
 	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
@@ -68,13 +71,6 @@ export async function POST(request: Request): Promise<Response> {
 
 	if (due.length === 0) {
 		return Response.json({ enqueued: 0 });
-	}
-
-	if (!qstash) {
-		return Response.json(
-			{ error: "QSTASH_TOKEN is required to enqueue automation jobs" },
-			{ status: 503 },
-		);
 	}
 
 	await qstash.batchJSON(

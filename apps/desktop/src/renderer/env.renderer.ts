@@ -11,33 +11,31 @@
  */
 import { z } from "zod/v4";
 
+const isLocalDevelopment =
+	process.env.NODE_ENV === "development" &&
+	process.env.SUPERSET_PROFILE === "local";
+
 const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
-	// Hosted defaults for prod builds. In dev builds Vite replaces
-	// NODE_ENV with "development", so the dev-time defaults below kick in
-	// and a fresh-clone contributor never silently syncs against
-	// production Electric / API.
+	// Local contributor builds default to localhost. Internal dev keeps the
+	// existing hosted fallback unless the profile is explicitly local.
 	NEXT_PUBLIC_API_URL: z
 		.url()
 		.default(
-			process.env.NODE_ENV === "development"
-				? "http://localhost:4641"
-				: "https://api.superset.sh",
+			isLocalDevelopment ? "http://localhost:4641" : "https://api.superset.sh",
 		),
 	NEXT_PUBLIC_WEB_URL: z
 		.url()
 		.default(
-			process.env.NODE_ENV === "development"
-				? "http://localhost:4640"
-				: "https://app.superset.sh",
+			isLocalDevelopment ? "http://localhost:4640" : "https://app.superset.sh",
 		),
 	NEXT_PUBLIC_MARKETING_URL: z.url().default("https://superset.sh"),
 	NEXT_PUBLIC_ELECTRIC_URL: z
 		.url()
 		.default(
-			process.env.NODE_ENV === "development"
+			isLocalDevelopment
 				? "https://localhost:4650"
 				: "https://electric-proxy.avi-6ac.workers.dev",
 		),
@@ -48,7 +46,7 @@ const envSchema = z.object({
 	RELAY_URL: z
 		.url()
 		.default(
-			process.env.NODE_ENV === "development"
+			isLocalDevelopment
 				? "http://localhost:4653"
 				: "https://relay.superset.sh",
 		),

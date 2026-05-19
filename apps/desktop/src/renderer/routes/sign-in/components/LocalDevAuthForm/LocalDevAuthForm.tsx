@@ -4,7 +4,7 @@ import { Label } from "@superset/ui/label";
 import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { env } from "renderer/env.renderer";
-import { setAuthToken } from "renderer/lib/auth-client";
+import { authClient, setAuthToken, setJwt } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 const DEV_EMAIL = "admin@local.test";
@@ -98,6 +98,12 @@ export function LocalDevAuthForm() {
 			const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString();
 			await persistToken.mutateAsync({ token, expiresAt });
 			setAuthToken(token);
+
+			const jwt = await authClient.token();
+			if (jwt.data?.token) {
+				setJwt(jwt.data.token);
+			}
+
 			await navigate({ to: "/workspace", replace: true });
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Sign-in failed");

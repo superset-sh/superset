@@ -20,7 +20,7 @@ function SignInPage() {
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
 	const isLocalProfile = env.SUPERSET_PROFILE === "local";
 
-	// Dev bypass: AuthProvider handles auto-sign-in; if session lands, redirect
+	// Dev bypass: if a session is already present, redirect.
 	if (env.SKIP_ENV_VALIDATION && session?.user) {
 		return <Navigate to="/workspace" replace />;
 	}

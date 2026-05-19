@@ -26,11 +26,11 @@ export function defineEnv(
 /**
  * Returns a URL appropriate for the current build:
  *   - the configured `process.env[key]` if set
- *   - the dev fallback in development builds (fresh-clone OSS contributors)
+ *   - the local fallback for SUPERSET_PROFILE=local development builds
  *   - the prod fallback otherwise (hosted production)
  *
- * Avoids fresh-clone OSS dev sessions silently syncing against hosted
- * production Electric / API / relay endpoints.
+ * Keeps internal dev's existing hosted fallback behavior unless a contributor
+ * explicitly opts into the local profile.
  */
 export function devOrProdUrl(
 	envKey: string,
@@ -39,7 +39,10 @@ export function devOrProdUrl(
 ): string {
 	const value = process.env[envKey];
 	if (value) return value;
-	return process.env.NODE_ENV === "development" ? devFallback : prodFallback;
+	return process.env.NODE_ENV === "development" &&
+		process.env.SUPERSET_PROFILE === "local"
+		? devFallback
+		: prodFallback;
 }
 
 const RESOURCES_TO_COPY = [

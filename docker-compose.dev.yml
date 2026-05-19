@@ -6,8 +6,6 @@
 #
 #   bun setup:local
 #
-# See docs/LOCAL_DEVELOPMENT.md for full setup.
-
 services:
   postgres:
     image: postgres:16

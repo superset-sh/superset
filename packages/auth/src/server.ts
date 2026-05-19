@@ -129,10 +129,8 @@ export const auth = betterAuth({
 			generateId: false,
 		},
 	},
-	// Dev-only: email+password is enabled for OSS contributors and
-	// internal devs (NODE_ENV=development). In production builds the
-	// /sign-up/email and /sign-in/email endpoints are disabled — auth
-	// is OAuth-only there. Matches the UI form gating in apps/web.
+	// Dev-only: email+password lets local desktop builds use the seeded
+	// account without OAuth credentials. Production auth remains OAuth-only.
 	emailAndPassword: {
 		enabled: process.env.NODE_ENV !== "production",
 		autoSignIn: true,

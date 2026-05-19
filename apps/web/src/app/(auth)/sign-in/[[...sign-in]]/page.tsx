@@ -8,9 +8,6 @@ import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
-import { DevAuthForm } from "../../components/DevAuthForm";
-
-const isDev = process.env.NODE_ENV !== "production";
 
 export default function SignInPage() {
 	const searchParams = useSearchParams();
@@ -69,7 +66,6 @@ export default function SignInPage() {
 				{error && (
 					<p className="text-destructive text-center text-sm">{error}</p>
 				)}
-				{isDev && <DevAuthForm mode="sign-in" callbackURL={callbackURL} />}
 				<Button
 					variant="outline"
 					disabled={isLoading}
