@@ -72,7 +72,7 @@ mock.module("../../lib/api-client", () => ({
 	createApiClient: createApiClientMock,
 }));
 
-mock.module("../../lib/auth", () => ({
+mock.module("@superset/shared/auth/token-refresh", () => ({
 	refreshAccessToken: refreshAccessTokenMock,
 }));
 
