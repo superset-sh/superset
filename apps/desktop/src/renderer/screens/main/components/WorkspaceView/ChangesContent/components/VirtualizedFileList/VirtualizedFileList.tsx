@@ -12,7 +12,9 @@ interface VirtualizedFileListProps {
 	worktreePath: string;
 	baseBranch?: string;
 	collapsedFiles: Set<string>;
+	viewedFiles: Set<string>;
 	onToggleFile: (key: string) => void;
+	onResetFileToggle: (key: string) => void;
 	scrollElementRef: RefObject<HTMLDivElement | null>;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -29,7 +31,9 @@ export function VirtualizedFileList({
 	worktreePath,
 	baseBranch,
 	collapsedFiles,
+	viewedFiles,
 	onToggleFile,
+	onResetFileToggle,
 	scrollElementRef,
 	onStage,
 	onUnstage,
@@ -46,7 +50,7 @@ export function VirtualizedFileList({
 			const fileKey = createFileKey(file, category, commitHash, worktreePath);
 			return getEstimatedFileDiffSectionHeight({
 				file,
-				isCollapsed: collapsedFiles.has(fileKey),
+				isCollapsed: viewedFiles.has(fileKey) ? !collapsedFiles.has(fileKey) : collapsedFiles.has(fileKey),
 			});
 		},
 		rangeExtractor: defaultRangeExtractor,
@@ -87,8 +91,9 @@ export function VirtualizedFileList({
 								commitHash={commitHash}
 								worktreePath={worktreePath}
 								baseBranch={baseBranch}
-								isExpanded={!collapsedFiles.has(fileKey)}
+								isExpanded={viewedFiles.has(fileKey) ? collapsedFiles.has(fileKey) : !collapsedFiles.has(fileKey)}
 								onToggleExpanded={() => onToggleFile(fileKey)}
+								onResetFileToggle={() => onResetFileToggle(fileKey)}
 								onStage={onStage ? () => onStage(file) : undefined}
 								onUnstage={onUnstage ? () => onUnstage(file) : undefined}
 								onDiscard={onDiscard ? () => onDiscard(file) : undefined}
