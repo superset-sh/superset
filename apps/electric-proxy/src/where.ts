@@ -116,7 +116,7 @@ export function buildWhereClause(
 			return build(agentCommands, agentCommands.organizationId, organizationId);
 
 		case "auth.apikeys": {
-			const fragment = `"metadata" LIKE '%"organizationId":"' || $1 || '"%'`;
+			const fragment = `"organization_id" = $1`;
 			return { fragment, params: [organizationId] };
 		}
 
