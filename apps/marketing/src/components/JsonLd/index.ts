@@ -3,6 +3,7 @@ export {
 	BreadcrumbJsonLd,
 	ComparisonJsonLd,
 	FAQPageJsonLd,
+	JsonLdScript,
 	OrganizationJsonLd,
 	SoftwareApplicationJsonLd,
 	WebsiteJsonLd,
