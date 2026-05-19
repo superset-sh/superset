@@ -40,7 +40,7 @@ const fetchMock = mock(async () => new Response(null, { status: 200 }));
 globalThis.fetch = fetchMock as unknown as typeof fetch;
 
 const { spawnHostService } = await import("./spawn");
-const { writeConfig } = await import("../config");
+const { SUPERSET_HOME_DIR, writeConfig } = await import("../config");
 
 function createApiClient(): ApiClient {
 	return {
@@ -69,6 +69,10 @@ function lastSpawnEnv(): NodeJS.ProcessEnv {
 	return options.env;
 }
 
+function activeConfigPath(): string {
+	return path.join(SUPERSET_HOME_DIR, "config.json");
+}
+
 async function spawnWithToken(sessionToken: string) {
 	return spawnHostService({
 		organizationId: "org_test",
@@ -85,8 +89,8 @@ afterEach(() => {
 	childProcess.unref.mockClear();
 	fetchMock.mockClear();
 	fs.rmSync(path.join(tempHome, "host"), { recursive: true, force: true });
-	fs.rmSync(path.join(tempHome, "config.json"), { force: true });
-	fs.rmSync(path.join(tempHome, "config.json.tmp"), { force: true });
+	fs.rmSync(activeConfigPath(), { force: true });
+	fs.rmSync(`${activeConfigPath()}.tmp`, { force: true });
 });
 
 afterAll(() => {
@@ -104,9 +108,7 @@ describe("spawnHostService", () => {
 
 		const env = lastSpawnEnv();
 		expect(env.AUTH_TOKEN).toBe("access-token-for-bootstrap");
-		expect(env.SUPERSET_AUTH_CONFIG_PATH).toBe(
-			path.join(tempHome, "config.json"),
-		);
+		expect(env.SUPERSET_AUTH_CONFIG_PATH).toBe(activeConfigPath());
 	});
 
 	it("does not pass the stored refresh token through the host child env", async () => {
