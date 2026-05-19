@@ -302,3 +302,42 @@ export function parseThemeConfigFile(content: string): ThemeConfigParseResult {
 
 	return { ok: true, themes, issues };
 }
+
+export interface ThemeConfigFileInput {
+	name: string;
+	content: string;
+}
+
+export interface ThemeConfigFilesParseResult {
+	themes: Theme[];
+	issues: string[];
+	fileErrors: Array<{ name: string; error: string }>;
+}
+
+/**
+ * Parse multiple theme config files at once. Per-file fatal errors (invalid
+ * JSON, no themes) are collected separately from per-theme issues so the UI
+ * can report them distinctly.
+ */
+export function parseThemeConfigFiles(
+	files: ThemeConfigFileInput[],
+): ThemeConfigFilesParseResult {
+	const themes: Theme[] = [];
+	const issues: string[] = [];
+	const fileErrors: Array<{ name: string; error: string }> = [];
+	const prefixIssues = files.length > 1;
+
+	for (const file of files) {
+		const result = parseThemeConfigFile(file.content);
+		if (!result.ok) {
+			fileErrors.push({ name: file.name, error: result.error });
+			continue;
+		}
+		themes.push(...result.themes);
+		for (const issue of result.issues) {
+			issues.push(prefixIssues ? `${file.name}: ${issue}` : issue);
+		}
+	}
+
+	return { themes, issues, fileErrors };
+}
