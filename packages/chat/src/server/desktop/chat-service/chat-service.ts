@@ -330,7 +330,7 @@ export class ChatService {
 	}
 
 	async getOpenAIAuthStatus(): Promise<AuthStatus> {
-		const credential = getOpenAICredentialsFromAuthStorage(
+		const credential = await getOpenAICredentialsFromAuthStorage(
 			this.getAuthStorage(),
 		);
 		const hasExpiredOAuth =

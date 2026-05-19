@@ -4,6 +4,7 @@ import { OPENAI_AUTH_PROVIDER_IDS } from "../provider-ids";
 interface OpenAIAuthStorageLike {
 	reload: () => void;
 	get: (providerId: string) => unknown;
+	getApiKey: (providerId: string) => Promise<string | null | undefined>;
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -29,9 +30,9 @@ export function isOpenAICredentialExpired(
 	);
 }
 
-export function getOpenAICredentialsFromAuthStorage(
+export async function getOpenAICredentialsFromAuthStorage(
 	authStorage: OpenAIAuthStorageLike = createAuthStorage(),
-): OpenAICredentials | null {
+): Promise<OpenAICredentials | null> {
 	try {
 		authStorage.reload();
 		const credentials: OpenAICredentials[] = [];
@@ -61,22 +62,12 @@ export function getOpenAICredentialsFromAuthStorage(
 				typeof credential.access === "string" &&
 				credential.access.trim().length > 0
 			) {
-				const accountId =
-					typeof credential.accountId === "string" &&
-					credential.accountId.trim().length > 0
-						? credential.accountId.trim()
-						: undefined;
-				credentials.push({
-					apiKey: credential.access.trim(),
+				const resolved = await resolveOpenAIOAuthCredential(
+					authStorage,
 					providerId,
-					source: "auth-storage",
-					kind: "oauth",
-					expiresAt:
-						typeof credential.expires === "number"
-							? credential.expires
-							: undefined,
-					accountId,
-				});
+					credential,
+				);
+				credentials.push(resolved);
 			}
 		}
 
@@ -94,6 +85,67 @@ export function getOpenAICredentialsFromAuthStorage(
 	return null;
 }
 
-export function getOpenAICredentialsFromAnySource(): OpenAICredentials | null {
+async function resolveOpenAIOAuthCredential(
+	authStorage: OpenAIAuthStorageLike,
+	providerId: (typeof OPENAI_AUTH_PROVIDER_IDS)[number],
+	credential: Record<string, unknown>,
+): Promise<OpenAICredentials> {
+	const accountId =
+		typeof credential.accountId === "string" &&
+		credential.accountId.trim().length > 0
+			? credential.accountId.trim()
+			: undefined;
+	const rawAccess = (credential.access as string).trim();
+	const rawExpires =
+		typeof credential.expires === "number" ? credential.expires : undefined;
+
+	// mastracode's getApiKey triggers refreshToken() when expires <= now and
+	// persists the refreshed credential back into auth storage. Mirror the
+	// Anthropic flow so an expired OpenAI OAuth token with a valid refresh
+	// token is silently refreshed instead of forcing the user to reconnect.
+	try {
+		const refreshedAccess = await authStorage.getApiKey(providerId);
+		if (
+			typeof refreshedAccess === "string" &&
+			refreshedAccess.trim().length > 0
+		) {
+			authStorage.reload();
+			const refreshed = authStorage.get(providerId);
+			const refreshedExpires =
+				isObjectRecord(refreshed) &&
+				refreshed.type === "oauth" &&
+				typeof refreshed.expires === "number"
+					? refreshed.expires
+					: rawExpires;
+			return {
+				apiKey: refreshedAccess.trim(),
+				providerId,
+				source: "auth-storage",
+				kind: "oauth",
+				expiresAt: refreshedExpires,
+				accountId,
+			};
+		}
+	} catch (error) {
+		// Refresh failed (e.g. refresh token revoked). Fall through to the raw
+		// credential so callers can detect it as expired and surface a
+		// reconnect prompt.
+		console.warn(
+			`[openai/auth] OAuth refresh failed for ${providerId}, falling back to stored credential:`,
+			error,
+		);
+	}
+
+	return {
+		apiKey: rawAccess,
+		providerId,
+		source: "auth-storage",
+		kind: "oauth",
+		expiresAt: rawExpires,
+		accountId,
+	};
+}
+
+export async function getOpenAICredentialsFromAnySource(): Promise<OpenAICredentials | null> {
 	return getOpenAICredentialsFromAuthStorage();
 }
