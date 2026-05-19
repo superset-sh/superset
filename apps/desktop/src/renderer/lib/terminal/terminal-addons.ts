@@ -1,20 +1,17 @@
 import { ClipboardAddon } from "@xterm/addon-clipboard";
-import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { ProgressAddon } from "@xterm/addon-progress";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { createTerminalImageAddon } from "./terminal-image-addon";
+import { scheduleWebglAddon } from "./terminal-webgl-addon";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
 	progressAddon: ProgressAddon;
 	dispose: () => void;
 }
-
-// Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
-let suggestedRendererType: "webgl" | "dom" | undefined;
 
 /**
  * Load optional addons onto an already-opened terminal. Returns a cleanup
@@ -23,7 +20,6 @@ let suggestedRendererType: "webgl" | "dom" | undefined;
  */
 export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	let disposed = false;
-	let webglAddon: WebglAddon | null = null;
 
 	terminal.loadAddon(new ClipboardAddon());
 
@@ -31,7 +27,7 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	terminal.loadAddon(unicode11);
 	terminal.unicode.activeVersion = "11";
 
-	terminal.loadAddon(new ImageAddon());
+	terminal.loadAddon(createTerminalImageAddon());
 
 	const searchAddon = new SearchAddon();
 	terminal.loadAddon(searchAddon);
@@ -43,21 +39,8 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 		terminal.loadAddon(new LigaturesAddon());
 	} catch {}
 
-	const rafId = requestAnimationFrame(() => {
-		if (disposed || suggestedRendererType === "dom") return;
-
-		try {
-			webglAddon = new WebglAddon();
-			webglAddon.onContextLoss(() => {
-				webglAddon?.dispose();
-				webglAddon = null;
-				terminal.refresh(0, terminal.rows - 1);
-			});
-			terminal.loadAddon(webglAddon);
-		} catch {
-			suggestedRendererType = "dom";
-			webglAddon = null;
-		}
+	const disposeWebglAddon = scheduleWebglAddon(terminal, {
+		isDisposed: () => disposed,
 	});
 
 	return {
@@ -65,11 +48,7 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 		progressAddon,
 		dispose: () => {
 			disposed = true;
-			cancelAnimationFrame(rafId);
-			try {
-				webglAddon?.dispose();
-			} catch {}
-			webglAddon = null;
+			disposeWebglAddon();
 		},
 	};
 }

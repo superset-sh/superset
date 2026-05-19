@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
@@ -40,7 +39,8 @@ export function DashboardSidebarWorkspaceItem({
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
-	const diffStats = useDiffStats(id);
+	const isPending = !!creationStatus;
+	const isFailedInFlight = creationStatus === "failed";
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
 		cancelRename,
@@ -69,7 +69,6 @@ export function DashboardSidebarWorkspaceItem({
 		branch,
 		isMainWorkspace,
 	});
-
 	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
 		null,
@@ -77,8 +76,6 @@ export function DashboardSidebarWorkspaceItem({
 	const handleAfterBranchRename = (newBranchName: string) => {
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
-	const isPending = !!creationStatus;
-	const isFailedInFlight = creationStatus === "failed";
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
 	const isDeleting = useDeletingWorkspaces().isDeleting(id);
@@ -220,7 +217,7 @@ export function DashboardSidebarWorkspaceItem({
 				isRenaming={isRenaming}
 				renameValue={renameValue}
 				shortcutLabel={shortcutLabel}
-				diffStats={isPending ? null : diffStats}
+				diffStats={null}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
 				onClick={handleClick}

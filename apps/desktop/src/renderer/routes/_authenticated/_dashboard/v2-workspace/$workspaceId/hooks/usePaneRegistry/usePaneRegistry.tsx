@@ -42,7 +42,11 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
-import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
+import {
+	BrowserPane,
+	BrowserPaneToolbar,
+	browserRuntimeRegistry,
+} from "./components/BrowserPane";
 import { ChatPane } from "./components/ChatPane";
 import { ChatPaneTitle } from "./components/ChatPane/components/ChatPaneTitle";
 import { CommentPane } from "./components/CommentPane";
@@ -423,7 +427,9 @@ export function usePaneRegistry({
 				renderToolbar: (ctx: RendererContext<PaneViewerData>) => (
 					<BrowserPaneToolbar ctx={ctx} />
 				),
-				// Destruction handled by useGlobalBrowserLifecycle for now.
+				onAfterClose: (pane) => {
+					browserRuntimeRegistry.destroy(pane.id);
+				},
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Browser" } : d,

@@ -177,6 +177,7 @@ const MAX_BUFFER_BYTES = 64 * 1024;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
+const TERMINAL_ATTACH_ERROR_CLOSE_REASON = "terminal-attach-error";
 const DEFAULT_TERMINAL_COLS = 120;
 const DEFAULT_TERMINAL_ROWS = 32;
 const MIN_TERMINAL_COLS = 20;
@@ -1560,7 +1561,9 @@ export function registerWorkspaceTerminalRoute({
 						const session = await resolveSessionForAttach();
 						if ("error" in session) {
 							sendMessage(ws, { type: "error", message: session.error });
-							ws.close(1011, session.error);
+							// WebSocket close reasons are limited to 123 bytes.
+							// The prior error frame carries the full diagnostic.
+							ws.close(1011, TERMINAL_ATTACH_ERROR_CLOSE_REASON);
 							return;
 						}
 						if (ws.readyState !== SOCKET_OPEN) return;
