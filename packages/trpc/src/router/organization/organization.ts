@@ -496,6 +496,20 @@ export const organizationRouter = {
 				});
 			}
 
+			if (membership.role === "owner") {
+				const orgMembers = await db.query.members.findMany({
+					where: eq(members.organizationId, input.organizationId),
+				});
+				const ownerCount = orgMembers.filter((m) => m.role === "owner").length;
+				if (ownerCount <= 1) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message:
+							"Cannot leave as the last owner. Transfer ownership first.",
+					});
+				}
+			}
+
 			const leaveResult = await ctx.auth.api.leaveOrganization({
 				body: { organizationId: input.organizationId },
 				headers: ctx.headers,
