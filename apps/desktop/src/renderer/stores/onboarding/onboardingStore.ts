@@ -2,19 +2,13 @@ import { track } from "renderer/lib/analytics";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-export type OnboardingStep =
-	| "providers"
-	| "gh-cli"
-	| "permissions"
-	| "project"
-	| "adopt-worktrees";
+export type OnboardingStep = "providers" | "gh-cli" | "permissions" | "project";
 
 export const ONBOARDING_STEP_ORDER: readonly OnboardingStep[] = [
 	"providers",
 	"gh-cli",
 	"permissions",
 	"project",
-	"adopt-worktrees",
 ] as const;
 
 const REQUIRED_STEPS: readonly OnboardingStep[] = [
@@ -27,7 +21,6 @@ export const STEP_ROUTES = {
 	"gh-cli": "/setup/gh-cli",
 	permissions: "/setup/permissions",
 	project: "/setup/project",
-	"adopt-worktrees": "/setup/adopt-worktrees",
 } as const satisfies Record<OnboardingStep, string>;
 
 const STEP_FLAGS_INITIAL: Record<OnboardingStep, boolean> = {
@@ -35,7 +28,6 @@ const STEP_FLAGS_INITIAL: Record<OnboardingStep, boolean> = {
 	"gh-cli": false,
 	permissions: false,
 	project: false,
-	"adopt-worktrees": false,
 };
 
 interface OnboardingState {
@@ -44,6 +36,10 @@ interface OnboardingState {
 	skipped: Record<OnboardingStep, boolean>;
 	startedAt: number | null;
 	completedAt: number | null;
+	/** Persisted: user clicked "Don't show again". Gate never auto-fires. */
+	dismissedForever: boolean;
+	/** Not persisted: resets on app launch. Set by "Skip for now" + nav-away. */
+	skippedThisLaunch: boolean;
 }
 
 interface OnboardingActions {
@@ -52,6 +48,8 @@ interface OnboardingActions {
 	goTo: (step: OnboardingStep) => void;
 	next: () => OnboardingStep | null;
 	back: () => OnboardingStep | null;
+	skipUntilNextLaunch: () => void;
+	dismissForever: () => void;
 	reset: () => void;
 }
 
@@ -63,6 +61,8 @@ const initialState: OnboardingState = {
 	skipped: { ...STEP_FLAGS_INITIAL },
 	startedAt: null,
 	completedAt: null,
+	dismissedForever: false,
+	skippedThisLaunch: false,
 };
 
 function getNextStep(step: OnboardingStep): OnboardingStep | null {
@@ -134,6 +134,16 @@ export const useOnboardingStore = create<OnboardingStore>()(
 					if (target) set({ currentStep: target });
 					return target;
 				},
+				skipUntilNextLaunch: () => {
+					if (get().skippedThisLaunch) return;
+					track("onboarding_skipped_until_next_launch");
+					set({ skippedThisLaunch: true });
+				},
+				dismissForever: () => {
+					if (get().dismissedForever) return;
+					track("onboarding_dismissed_forever");
+					set({ dismissedForever: true });
+				},
 				reset: () => {
 					track("onboarding_restarted");
 					set({
@@ -142,10 +152,23 @@ export const useOnboardingStore = create<OnboardingStore>()(
 						skipped: { ...STEP_FLAGS_INITIAL },
 						startedAt: null,
 						completedAt: null,
+						dismissedForever: false,
+						skippedThisLaunch: false,
 					});
 				},
 			}),
-			{ name: "superset-onboarding-v1" },
+			{
+				name: "superset-onboarding-v1",
+				partialize: (state) => ({
+					currentStep: state.currentStep,
+					completed: state.completed,
+					skipped: state.skipped,
+					startedAt: state.startedAt,
+					completedAt: state.completedAt,
+					dismissedForever: state.dismissedForever,
+					// skippedThisLaunch intentionally omitted — resets each launch
+				}),
+			},
 		),
 		{ name: "OnboardingStore" },
 	),

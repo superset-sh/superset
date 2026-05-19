@@ -2,9 +2,10 @@ import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { LuFolder } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
+import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
@@ -52,21 +53,34 @@ function OnboardingProjectPage() {
 	const projectCount = projects.length;
 	const hasProjects = projectCount > 0;
 
+	const finishOnboarding = useCallback(
+		(outcome: "completed" | "skipped") => {
+			const startedAt = useOnboardingStore.getState().startedAt;
+			track("onboarding_finished", {
+				outcome,
+				duration_ms: startedAt ? Date.now() - startedAt : null,
+			});
+			navigate({ to: "/v2-workspaces", replace: true });
+		},
+		[navigate],
+	);
+
 	const handleSelectNewRepo = async () => {
 		const result = await folderImport.start();
 		if (result) {
 			markComplete("project");
+			finishOnboarding("completed");
 		}
 	};
 
 	const handleContinueWithCurrent = () => {
 		markComplete("project");
-		navigate({ to: STEP_ROUTES["adopt-worktrees"] });
+		finishOnboarding("completed");
 	};
 
 	const handleSkipStep = () => {
 		markSkipped("project");
-		navigate({ to: STEP_ROUTES["adopt-worktrees"] });
+		finishOnboarding("skipped");
 	};
 
 	const supersetIcon = (
