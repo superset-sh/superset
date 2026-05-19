@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
+import { clearStrictShellEnvCache } from "../../src/terminal/clean-shell-env";
 import {
 	disposeDaemonClient,
 	getDaemonClient,
@@ -20,6 +21,7 @@ import {
 import {
 	initTerminalBaseEnv,
 	resetTerminalBaseEnvForTests,
+	resolveTerminalBaseEnv,
 } from "../../src/terminal/env";
 import { listTerminalResourceSessions } from "../../src/terminal/resource-sessions";
 import {
@@ -153,6 +155,120 @@ describe("terminal router integration", () => {
 				.catch(() => {});
 			await disposeDaemonClient();
 			await server.close();
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	});
+
+	// Regression: v2 PTYs were silently dropping launchctl-injected user creds
+	// because clean-shell-env.ts filtered the snapshot-shell input through a
+	// fixed 25-key allowlist. Codex's Datadog MCP then failed to authenticate
+	// and rmcp choked with "data did not match any variant of untagged enum
+	// JsonRpcMessage". This test exercises the full snapshot → strip → PTY
+	// pipeline against a real `/bin/sh -ilc env` snapshot to prove user creds
+	// in process.env actually reach the daemon spawn env.
+	test("createSession forwards launchctl-style user creds (DD_API_KEY) end-to-end while scrubbing desktop-injected runtime keys", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "host-service-terminal-env-"));
+		const socketPath = join(tmp, "pty-daemon.sock");
+		const terminalId = randomUUID();
+		const spawned: Array<{
+			meta: {
+				shell: string;
+				argv: string[];
+				env?: Record<string, string>;
+			};
+		}> = [];
+		const server = new Server({
+			socketPath,
+			daemonVersion: "0.0.0-terminal-env-test",
+			spawnPty: ({ meta }) => {
+				spawned.push({ meta });
+				return createFakePty(4300 + spawned.length, meta);
+			},
+		});
+
+		// Snapshot keys we mutate on process.env so afterEach restores them.
+		const savedEnv: Record<string, string | undefined> = {
+			DD_API_KEY: process.env.DD_API_KEY,
+			DD_APP_KEY: process.env.DD_APP_KEY,
+			OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+			HOST_SERVICE_SECRET: process.env.HOST_SERVICE_SECRET,
+			AUTH_TOKEN: process.env.AUTH_TOKEN,
+			ORGANIZATION_ID: process.env.ORGANIZATION_ID,
+			ELECTRON_RUN_AS_NODE: process.env.ELECTRON_RUN_AS_NODE,
+			RELAY_URL: process.env.RELAY_URL,
+			SHELL: process.env.SHELL,
+			HOME: process.env.HOME,
+		};
+
+		try {
+			await server.listen();
+			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
+			process.env.SUPERSET_HOME_DIR = tmp;
+
+			// Simulate the launchctl-injected user creds (would have come from
+			// `launchctl setenv DD_API_KEY xxx`).
+			process.env.DD_API_KEY = "dd-launchctl-value";
+			process.env.DD_APP_KEY = "dd-app-launchctl-value";
+			process.env.OPENAI_API_KEY = "sk-user-key";
+
+			// Simulate desktop main injecting host-service runtime keys when it
+			// forks host-service. These must NOT reach the PTY.
+			process.env.HOST_SERVICE_SECRET = "must-not-leak-secret";
+			process.env.AUTH_TOKEN = "must-not-leak-bearer";
+			process.env.ORGANIZATION_ID = "must-not-leak-org";
+			process.env.ELECTRON_RUN_AS_NODE = "1";
+			process.env.RELAY_URL = "https://must-not-leak.example.com";
+
+			// Force a known shell and an empty HOME so the snapshot shell
+			// doesn't source unpredictable user rc files on the developer's
+			// machine. /bin/sh is POSIX-guaranteed; with an empty HOME it has
+			// no ~/.profile to run.
+			process.env.SHELL = "/bin/sh";
+			process.env.HOME = tmp;
+
+			// Drop any cached snapshot from earlier tests so we hit the real
+			// shell with our crafted process.env.
+			clearStrictShellEnvCache();
+			resetTerminalBaseEnvForTests();
+			const resolved = await resolveTerminalBaseEnv();
+			initTerminalBaseEnv(resolved);
+
+			await scenario.host.trpc.terminal.createSession.mutate({
+				workspaceId: scenario.workspaceId,
+				terminalId,
+			});
+
+			expect(spawned).toHaveLength(1);
+			const [{ meta }] = spawned;
+
+			// User creds reach the PTY — the fix.
+			expect(meta.env?.DD_API_KEY).toBe("dd-launchctl-value");
+			expect(meta.env?.DD_APP_KEY).toBe("dd-app-launchctl-value");
+			expect(meta.env?.OPENAI_API_KEY).toBe("sk-user-key");
+
+			// Desktop-injected runtime keys do not.
+			expect(meta.env?.HOST_SERVICE_SECRET).toBeUndefined();
+			expect(meta.env?.AUTH_TOKEN).toBeUndefined();
+			expect(meta.env?.ORGANIZATION_ID).toBeUndefined();
+			expect(meta.env?.ELECTRON_RUN_AS_NODE).toBeUndefined();
+			expect(meta.env?.RELAY_URL).toBeUndefined();
+		} finally {
+			await scenario.host.trpc.terminal.killSession
+				.mutate({
+					workspaceId: scenario.workspaceId,
+					terminalId,
+				})
+				.catch(() => {});
+			await disposeDaemonClient();
+			await server.close();
+			clearStrictShellEnvCache();
+			for (const [key, value] of Object.entries(savedEnv)) {
+				if (value === undefined) {
+					delete process.env[key];
+				} else {
+					process.env[key] = value;
+				}
+			}
 			rmSync(tmp, { recursive: true, force: true });
 		}
 	});

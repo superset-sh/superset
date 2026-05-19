@@ -1,10 +1,16 @@
 /**
  * Runtime env stripping for v2 terminals.
  *
- * Denylist approach: the host-service base env is a shell-derived snapshot
- * plus explicit runtime additions from desktop. We strip the known additions
- * rather than allowlisting, because the shell snapshot should pass through
- * untouched (version managers, proxy config, etc.).
+ * Denylist approach: the host-service base env is the host-service process.env
+ * (a passthrough of desktop main's env, which itself inherits user shell env
+ * via launchctl/login + explicit additions when forking host-service). We
+ * strip the desktop-injected runtime keys here; everything else — including
+ * launchctl-set user creds (DD_API_KEY, OPENAI_API_KEY, …) — passes through.
+ *
+ * This is applied in two places: once on the env handed to the snapshot shell
+ * (clean-shell-env.ts) and again on the snapshot's output before it reaches
+ * any PTY (env.ts:88). The duplication is intentional defense-in-depth: rc
+ * files can re-export anything, so we re-strip after the shell has run.
  */
 
 /**
@@ -21,6 +27,9 @@ const HOST_SERVICE_RUNTIME_KEYS = new Set([
 	"HOST_NAME",
 	"KEEP_ALIVE_AFTER_PARENT",
 	"ORGANIZATION_ID",
+	// host-service-coordinator.ts:586-591 explicitly sets or deletes this when
+	// spawning the host-service child. Treat it as desktop-injected, not user.
+	"RELAY_URL",
 ]);
 
 const NODE_APP_KEYS = new Set(["NODE_ENV", "NODE_OPTIONS", "NODE_PATH"]);
