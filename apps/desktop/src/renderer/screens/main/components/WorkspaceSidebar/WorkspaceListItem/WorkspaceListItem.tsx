@@ -32,6 +32,10 @@ import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceIcon } from "./WorkspaceIcon";
 import { WorkspaceStatusBadge } from "./WorkspaceStatusBadge";
+import {
+	getWorkspaceRunStateFromPanes,
+	shouldShowWorkspaceRunIndicator,
+} from "./workspaceRunIndicator";
 
 interface WorkspaceListItemProps {
 	id: string;
@@ -88,14 +92,9 @@ export function WorkspaceListItem({
 		}
 		return getHighestPriorityStatus(paneStatuses());
 	});
-	const workspaceRunState = useTabsStore((state) => {
-		for (const pane of Object.values(state.panes)) {
-			if (pane.type === "terminal" && pane.workspaceRun?.workspaceId === id) {
-				return pane.workspaceRun.state;
-			}
-		}
-		return null;
-	});
+	const workspaceRunState = useTabsStore((state) =>
+		getWorkspaceRunStateFromPanes(state.panes, id),
+	);
 	const clearWorkspaceAttentionStatus = useTabsStore(
 		(s) => s.clearWorkspaceAttentionStatus,
 	);
@@ -353,7 +352,7 @@ export function WorkspaceListItem({
 						)}
 					</TooltipContent>
 				</Tooltip>
-				{workspaceRunState && showBranchSubtitle && (
+				{shouldShowWorkspaceRunIndicator(workspaceRunState) && (
 					<WorkspaceRunIndicator state={workspaceRunState} variant="inline" />
 				)}
 			</div>
