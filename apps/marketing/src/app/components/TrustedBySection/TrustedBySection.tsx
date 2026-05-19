@@ -16,9 +16,9 @@ const CLIENT_LOGOS = [
 		height: 20,
 	},
 	{
-		name: "netflix",
-		label: "Netflix",
-		logo: "/logos/netflix-wordmark.svg",
+		name: "runway",
+		label: "Runway",
+		logo: "/logos/runway-wordmark.svg",
 		height: 20,
 	},
 	{
