@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { trackTerminalActivity } from "./useTerminalActivityTracking";
+import { trackTerminalActivity } from "./trackTerminalActivity";
 
 describe("trackTerminalActivity", () => {
 	let updateLastActivityAt: ReturnType<typeof mock>;
