@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { LuArrowLeft, LuArrowRight } from "react-icons/lu";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
 import { HistoryDropdown } from "./components/HistoryDropdown";
+import { createNavigationMouseUpHandler } from "./createNavigationMouseUpHandler";
 
 export function NavigationControls() {
 	const router = useRouter();
@@ -16,15 +17,10 @@ export function NavigationControls() {
 	useHotkey("NAVIGATE_FORWARD", () => router.history.forward());
 
 	useEffect(() => {
-		const handleMouseUp = (event: MouseEvent) => {
-			if (event.button === 3) {
-				event.preventDefault();
-				router.history.back();
-			} else if (event.button === 4) {
-				event.preventDefault();
-				router.history.forward();
-			}
-		};
+		const handleMouseUp = createNavigationMouseUpHandler({
+			onBack: () => router.history.back(),
+			onForward: () => router.history.forward(),
+		});
 
 		window.addEventListener("mouseup", handleMouseUp);
 		return () => window.removeEventListener("mouseup", handleMouseUp);
