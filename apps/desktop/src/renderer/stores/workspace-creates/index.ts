@@ -1,5 +1,6 @@
 export { WorkspaceCreatesManager } from "./Manager";
 export {
+	getInFlightSidebarStatus,
 	type InFlightEntry,
 	useWorkspaceCreatesStore,
 	type WorkspacesCreateInput,
