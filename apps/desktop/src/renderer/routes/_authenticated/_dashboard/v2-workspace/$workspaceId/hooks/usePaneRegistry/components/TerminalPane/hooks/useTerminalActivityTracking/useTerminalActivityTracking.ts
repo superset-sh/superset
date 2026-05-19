@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 
-/** Skips the initial buffer replay that fires when attaching to a terminal. */
+/** Ignores early keystrokes right after mount/reconnect. */
 const ACTIVITY_GRACE_PERIOD_MS = 5_000;
 /** Minimum interval between successive lastActivityAt updates. */
 const ACTIVITY_DEBOUNCE_MS = 30_000;

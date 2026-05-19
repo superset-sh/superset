@@ -46,11 +46,11 @@ describe("trackTerminalActivity", () => {
 		tracker.handleData(updateLastActivityAt, workspaceId, now + 6_000);
 		expect(updateLastActivityAt).toHaveBeenCalledTimes(1);
 
-		// Second keystroke 10s later — within 30s debounce, should NOT fire
+		// Second keystroke at t+16s — 10s after first fire, within 30s debounce
 		tracker.handleData(updateLastActivityAt, workspaceId, now + 16_000);
 		expect(updateLastActivityAt).toHaveBeenCalledTimes(1);
 
-		// Third keystroke 25s later — still within 30s debounce window from first
+		// Third keystroke at t+31s — 25s after first fire, still within 30s debounce
 		tracker.handleData(updateLastActivityAt, workspaceId, now + 31_000);
 		expect(updateLastActivityAt).toHaveBeenCalledTimes(1);
 
