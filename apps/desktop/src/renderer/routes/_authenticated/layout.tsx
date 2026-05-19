@@ -1,6 +1,7 @@
 import { WorkerPoolContextProvider } from "@pierre/diffs/react";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
+import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createFileRoute,
 	Navigate,
@@ -8,7 +9,7 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
@@ -24,7 +25,14 @@ import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showW
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
+import {
+	STEP_ROUTES,
+	selectFirstIncompleteStep,
+	selectRequiredStepsComplete,
+	useOnboardingStore,
+} from "renderer/stores/onboarding";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
@@ -44,6 +52,56 @@ import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
 });
+
+// Outer wrapper: v1 users never instantiate the inner gate, so no live-queries
+// or store subscriptions for v2 collections/state run on the v1 code path.
+function V2OnboardingGate() {
+	const isV2 = useIsV2CloudEnabled();
+	if (!isV2) return null;
+	return <V2OnboardingGateInner />;
+}
+
+function V2OnboardingGateInner() {
+	const location = useLocation();
+	const isOnSetup = location.pathname.startsWith("/setup");
+	const dismissedForever = useOnboardingStore((s) => s.dismissedForever);
+	const skippedThisLaunch = useOnboardingStore((s) => s.skippedThisLaunch);
+	const skipUntilNextLaunch = useOnboardingStore((s) => s.skipUntilNextLaunch);
+	const requiredComplete = useOnboardingStore(selectRequiredStepsComplete);
+	const firstIncomplete = useOnboardingStore(selectFirstIncompleteStep);
+	const collections = useCollections();
+	const { data: v2Workspaces = [] } = useLiveQuery(
+		(q) => q.from({ workspaces: collections.v2Workspaces }),
+		[collections],
+	);
+	const hasNoV2Workspaces = v2Workspaces.length === 0;
+
+	// Nav-away from /setup = implicit "skip for now" — gate won't re-trap them
+	// this launch, but they'll see onboarding again next launch.
+	const wasOnSetupRef = useRef(isOnSetup);
+	const justLeftSetup = wasOnSetupRef.current && !isOnSetup;
+	useLayoutEffect(() => {
+		if (justLeftSetup && !skippedThisLaunch && !dismissedForever) {
+			skipUntilNextLaunch();
+		}
+		wasOnSetupRef.current = isOnSetup;
+	}, [
+		isOnSetup,
+		justLeftSetup,
+		skippedThisLaunch,
+		dismissedForever,
+		skipUntilNextLaunch,
+	]);
+
+	const suppressed = dismissedForever || skippedThisLaunch || justLeftSetup;
+	const shouldGate =
+		hasNoV2Workspaces && !requiredComplete && !suppressed && !isOnSetup;
+
+	if (shouldGate) {
+		return <Navigate to={STEP_ROUTES[firstIncomplete]} replace />;
+	}
+	return null;
+}
 
 function AuthenticatedLayout() {
 	const {
@@ -210,6 +268,7 @@ function AuthenticatedLayout() {
 							<AgentHooks />
 							<FileMenuListener />
 							<V2NotificationController />
+							<V2OnboardingGate />
 							<Outlet />
 							<V1ImportModal />
 							<WorkspaceInitEffects />
