@@ -3,6 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
+import { scheduleFontSettleRefit } from "renderer/lib/terminal/font-settle";
 import { getTerminalParkingContainer } from "renderer/lib/terminal/terminal-parking";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { DEBUG_TERMINAL } from "./config";
@@ -65,7 +66,10 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function fitAndRefresh(entry: CachedTerminal): boolean {
+function fitAndRefresh(
+	entry: CachedTerminal,
+	options: { clearAtlas?: boolean } = {},
+): boolean {
 	if (!hostIsVisible(entry.container)) return false;
 
 	const { xterm } = entry;
@@ -88,9 +92,17 @@ function fitAndRefresh(entry: CachedTerminal): boolean {
 		}
 	}
 
+	const dimensionsChanged = xterm.cols !== prevCols || xterm.rows !== prevRows;
+	if (options.clearAtlas || dimensionsChanged) {
+		// xterm no-ops this when WebGL isn't the active renderer.
+		try {
+			xterm.clearTextureAtlas();
+		} catch {}
+	}
+
 	xterm.refresh(0, Math.max(0, xterm.rows - 1));
 
-	return xterm.cols !== prevCols || xterm.rows !== prevRows;
+	return dimensionsChanged;
 }
 
 export function has(paneId: string): boolean {
@@ -150,7 +162,21 @@ export function attachToContainer(
 	entry.container = container;
 	container.appendChild(entry.wrapper);
 
-	fitAndRefresh(entry);
+	// On reattach, force an atlas clear: while the wrapper was parked, the
+	// macOS GPU compositor can drop or corrupt atlas pages without firing
+	// `onContextLoss`, leaving stale glyphs that paint as RTL-looking
+	// gibberish (issue #4010).
+	fitAndRefresh(entry, { clearAtlas: true });
+	// xterm's initial cell-width measurement may have run before the configured
+	// font finished loading, baking wrong glyph metrics into the renderer atlas
+	// (#4617). Refit once fonts are ready so the layout matches the rendered
+	// font without requiring a manual resize.
+	scheduleFontSettleRefit(
+		entry.xterm,
+		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
+		() => fitAndRefresh(entry),
+		onResize,
+	);
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
@@ -189,6 +215,7 @@ export function updateAppearance(
 	paneId: string,
 	fontFamily: string,
 	fontSize: number,
+	onDeferredResize?: (dims: { cols: number; rows: number }) => void,
 ): { cols: number; rows: number; changed: boolean } | null {
 	const entry = cache.get(paneId);
 	if (!entry) return null;
@@ -204,6 +231,17 @@ export function updateAppearance(
 	xterm.options.fontSize = fontSize;
 
 	const changed = fitAndRefresh(entry);
+
+	// The new font may still be loading — schedule a second refit once it
+	// resolves so the atlas/dimensions match the actually-rendered glyphs.
+	scheduleFontSettleRefit(
+		xterm,
+		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
+		() => fitAndRefresh(entry),
+		onDeferredResize
+			? () => onDeferredResize({ cols: xterm.cols, rows: xterm.rows })
+			: undefined,
+	);
 
 	return {
 		cols: xterm.cols,
