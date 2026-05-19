@@ -3,6 +3,8 @@ import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
+import { deduplicateBranchName } from "shared/utils/branch";
+import { deriveWorkspaceBranchFromPrompt } from "shared/utils/workspace-naming";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { attemptWorkspaceAutoRenameFromPrompt } from "../utils/ai-name";
@@ -531,6 +533,10 @@ export const createCreateProcedures = () => {
 
 				const withPrefix = (name: string): string =>
 					branchPrefix ? `${branchPrefix}/${name}` : name;
+				const requestedBranchName = input.branchName?.trim();
+				const promptDerivedBranchName = !existingBranchName && !requestedBranchName
+					? deriveWorkspaceBranchFromPrompt(input.prompt ?? input.name ?? "")
+					: "";
 
 				let branch: string;
 				if (existingBranchName) {
@@ -540,11 +546,20 @@ export const createCreateProcedures = () => {
 						);
 					}
 					branch = existingBranchName;
-				} else if (input.branchName?.trim()) {
+				} else if (requestedBranchName) {
 					branch = sanitizeBranchNameWithMaxLength(
-						withPrefix(input.branchName),
+						withPrefix(requestedBranchName),
 						undefined,
 						{ preserveFirstSegmentCase: true },
+					);
+				} else if (promptDerivedBranchName) {
+					branch = deduplicateBranchName(
+						sanitizeBranchNameWithMaxLength(
+							withPrefix(promptDerivedBranchName),
+							undefined,
+							{ preserveFirstSegmentCase: true },
+						),
+						existingBranches,
 					);
 				} else {
 					branch = generateBranchName({
@@ -553,7 +568,7 @@ export const createCreateProcedures = () => {
 					});
 				}
 
-				if (input.branchName?.trim()) {
+				if (requestedBranchName) {
 					const existing = findWorktreeWorkspaceByBranch({
 						projectId: input.projectId,
 						branch,
