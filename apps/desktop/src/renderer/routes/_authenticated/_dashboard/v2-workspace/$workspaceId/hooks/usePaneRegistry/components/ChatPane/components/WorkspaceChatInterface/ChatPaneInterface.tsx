@@ -15,6 +15,7 @@ import type {
 	ModelOption,
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
+import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import {
 	getDesktopChatModelOptions,
@@ -244,6 +245,7 @@ export function ChatPaneInterface({
 	const autoLaunchRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
 	);
+	const updateLastActivityAt = useUpdateLastActivityAt();
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
 	const sendMessageMutation = workspaceTrpc.chat.sendMessage.useMutation();
 	const restartFromMessageMutation =
@@ -597,6 +599,7 @@ export function ChatPaneInterface({
 				if (content) {
 					onUserMessageSubmitted?.(content);
 				}
+				updateLastActivityAt(workspaceId);
 			} catch (error) {
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
@@ -628,6 +631,8 @@ export function ChatPaneInterface({
 			setRuntimeErrorMessage,
 			onUserMessageSubmitted,
 			thinkingLevel,
+			updateLastActivityAt,
+			workspaceId,
 		],
 	);
 
@@ -699,6 +704,7 @@ export function ChatPaneInterface({
 				if (prompt) {
 					onUserMessageSubmitted?.(prompt);
 				}
+				updateLastActivityAt(workspaceId);
 
 				autoLaunchInFlightRef.current = null;
 				consumedLaunchConfigRef.current = launchConfigKey;
@@ -755,6 +761,8 @@ export function ChatPaneInterface({
 		onUserMessageSubmitted,
 		thinkingLevel,
 		onConsumeLaunchConfig,
+		updateLastActivityAt,
+		workspaceId,
 	]);
 
 	const handleStop = useCallback(
