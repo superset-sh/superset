@@ -46,7 +46,10 @@ type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
 function hasAnthropicEnvCredential(variables: AnthropicEnvVariables): boolean {
 	return Boolean(
 		variables.ANTHROPIC_API_KEY?.trim() ||
-			variables.ANTHROPIC_AUTH_TOKEN?.trim(),
+			variables.ANTHROPIC_AUTH_TOKEN?.trim() ||
+			variables.CLAUDE_CODE_USE_BEDROCK?.trim() ||
+			variables.CLAUDE_CODE_USE_VERTEX?.trim() ||
+			variables.CLAUDE_CODE_USE_FOUNDRY?.trim(),
 	);
 }
 
@@ -634,7 +637,7 @@ export class ChatService {
 		variables: AnthropicEnvVariables,
 	): void {
 		const rawApiKey =
-			variables.ANTHROPIC_API_KEY ?? variables.ANTHROPIC_AUTH_TOKEN;
+			variables.ANTHROPIC_API_KEY?.trim() || variables.ANTHROPIC_AUTH_TOKEN;
 		const apiKey = rawApiKey?.trim();
 		if (!apiKey) return;
 
