@@ -801,17 +801,13 @@ export class Session {
 		}
 		throwIfAborted(signal);
 
-		const attachedClient: AttachedClient = {
-			socket,
-			attachedAt: Date.now(),
-			attachToken: Symbol("attach"),
-		};
-		this.attachedClients.set(socket, attachedClient);
-		this.lastAttachedAt = new Date();
-
-		// Use snapshot boundary flush for consistent state with continuous output.
-		// This ensures we capture all data received BEFORE attach was called,
-		// even if new data continues to arrive during the flush.
+		// Capture the snapshot BEFORE attaching the socket to prevent data
+		// overlap. If the socket were attached first, PTY data arriving during
+		// the flush/snapshot window would be both broadcast to the socket AND
+		// included in the snapshot. The renderer would then write the
+		// overlapping data to xterm twice (once from the snapshot, once from
+		// the queued broadcast events), corrupting visible terminal state on
+		// pane reattach. See: https://github.com/supersetlabs/superset/issues/3309
 		try {
 			const reachedBoundary = await raceWithAbort(
 				this.flushToSnapshotBoundary(ATTACH_FLUSH_TIMEOUT_MS),
@@ -826,10 +822,23 @@ export class Session {
 
 			await raceWithAbort(this.emulator.flush(), signal);
 			throwIfAborted(signal);
-			return this.emulator.getSnapshot();
+			const snapshot = this.emulator.getSnapshot();
+
+			// Now that the snapshot is captured, attach the socket so it
+			// only receives data that arrives AFTER the snapshot point.
+			const attachedClient: AttachedClient = {
+				socket,
+				attachedAt: Date.now(),
+				attachToken: Symbol("attach"),
+			};
+			this.attachedClients.set(socket, attachedClient);
+			this.lastAttachedAt = new Date();
+
+			return snapshot;
 		} catch (error) {
 			if (isTerminalAttachCanceledError(error)) {
-				this.detachAttachedClient(socket, attachedClient);
+				// Socket was never attached (snapshot captured before attach),
+				// so no detach needed.
 				throw error;
 			}
 			throw error;
