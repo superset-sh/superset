@@ -29,7 +29,9 @@ export function useWorkspaceShortcuts() {
 				return workspace ? [workspace] : [];
 			}
 
-			return sectionsById.get(item.id)?.workspaces ?? [];
+			const section = sectionsById.get(item.id);
+			if (!section || section.isCollapsed) return [];
+			return section.workspaces;
 		});
 	});
 
