@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import {
 	chmodSync,
+	cpSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
@@ -99,7 +100,20 @@ function findExtractedRoot(extractDir: string): string {
 	return extractDir;
 }
 
-function atomicReplace(installRoot: string, newRoot: string): void {
+// `renameSync` fails with EXDEV when src and dest are on different filesystems
+// — common on Linux where /tmp is tmpfs and the install lives under /home
+// (#4630). Fall back to a recursive copy + remove in that case.
+function moveDir(src: string, dest: string): void {
+	try {
+		renameSync(src, dest);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "EXDEV") throw error;
+		cpSync(src, dest, { recursive: true, dereference: false });
+		rmSync(src, { recursive: true, force: true });
+	}
+}
+
+export function atomicReplace(installRoot: string, newRoot: string): void {
 	const backupRoot = `${installRoot}.bak`;
 	if (existsSync(backupRoot)) {
 		rmSync(backupRoot, { recursive: true, force: true });
@@ -108,7 +122,7 @@ function atomicReplace(installRoot: string, newRoot: string): void {
 		renameSync(installRoot, backupRoot);
 	}
 	try {
-		renameSync(newRoot, installRoot);
+		moveDir(newRoot, installRoot);
 	} catch (error) {
 		if (existsSync(backupRoot)) {
 			renameSync(backupRoot, installRoot);
