@@ -12,6 +12,8 @@ import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import { WorkspaceShortcutBadge } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/WorkspaceShortcutBadge";
+import { useModifierKeyStateStore } from "renderer/stores/modifier-key-state";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspace,
@@ -85,6 +87,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			pullRequest,
 			creationStatus,
 		} = workspace;
+		const isModifierHeld = useModifierKeyStateStore((s) => s.isModifierHeld);
+		const showShortcutBadge = isModifierHeld && !!shortcutLabel;
 		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
@@ -254,106 +258,113 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						</span>
 					)}
 
-					<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
-						{creationStatusText ? (
-							<span
-								className={cn(
-									"text-[11px]",
-									creationStatus === "failed"
-										? "text-destructive group-hover:hidden"
-										: "text-muted-foreground",
-								)}
-							>
-								{creationStatusText}
-							</span>
-						) : (
-							diffStats &&
-							(diffStats.additions > 0 || diffStats.deletions > 0) && (
-								<DashboardSidebarWorkspaceDiffStats
-									additions={diffStats.additions}
-									deletions={diffStats.deletions}
-									isActive={isActive}
-								/>
-							)
-						)}
-						{(!creationStatus || creationStatus === "failed") && (
-							<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
-								{shortcutLabel && !creationStatus && (
-									<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
-										{shortcutLabel}
-									</span>
-								)}
-								{isMainWorkspace ? (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<button
-												type="button"
-												onClick={(event) => {
-													event.stopPropagation();
-													onRemoveFromSidebarClick();
-												}}
-												onKeyDown={(event) => {
-													if (
-														event.key === "Enter" ||
-														event.key === " " ||
-														event.key === "Spacebar"
-													) {
+					{showShortcutBadge ? (
+						<WorkspaceShortcutBadge
+							label={shortcutLabel as string}
+							className="shrink-0"
+						/>
+					) : (
+						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
+							{creationStatusText ? (
+								<span
+									className={cn(
+										"text-[11px]",
+										creationStatus === "failed"
+											? "text-destructive group-hover:hidden"
+											: "text-muted-foreground",
+									)}
+								>
+									{creationStatusText}
+								</span>
+							) : (
+								diffStats &&
+								(diffStats.additions > 0 || diffStats.deletions > 0) && (
+									<DashboardSidebarWorkspaceDiffStats
+										additions={diffStats.additions}
+										deletions={diffStats.deletions}
+										isActive={isActive}
+									/>
+								)
+							)}
+							{(!creationStatus || creationStatus === "failed") && (
+								<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
+									{shortcutLabel && !creationStatus && (
+										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+											{shortcutLabel}
+										</span>
+									)}
+									{isMainWorkspace ? (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
 														event.stopPropagation();
-													}
-												}}
-												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-												aria-label="Remove from sidebar"
-											>
-												<HiMiniMinus className="size-3.5" />
-											</button>
-										</TooltipTrigger>
-										<TooltipContent side="top" sideOffset={4}>
-											<HotkeyLabel label="Remove from sidebar" />
-										</TooltipContent>
-									</Tooltip>
-								) : (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<button
-												type="button"
-												onClick={(event) => {
-													event.stopPropagation();
-													onCloseWorkspaceClick();
-												}}
-												onKeyDown={(event) => {
-													if (
-														event.key === "Enter" ||
-														event.key === " " ||
-														event.key === "Spacebar"
-													) {
+														onRemoveFromSidebarClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label="Remove from sidebar"
+												>
+													<HiMiniMinus className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												<HotkeyLabel label="Remove from sidebar" />
+											</TooltipContent>
+										</Tooltip>
+									) : (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
 														event.stopPropagation();
+														onCloseWorkspaceClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label={
+														creationStatus === "failed"
+															? "Dismiss"
+															: "Close workspace"
 													}
-												}}
-												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-												aria-label={
-													creationStatus === "failed"
-														? "Dismiss"
-														: "Close workspace"
-												}
-											>
-												<HiMiniXMark className="size-3.5" />
-											</button>
-										</TooltipTrigger>
-										<TooltipContent side="top" sideOffset={4}>
-											{creationStatus === "failed" ? (
-												"Dismiss"
-											) : (
-												<HotkeyLabel
-													label="Close workspace"
-													id={isActive ? "CLOSE_WORKSPACE" : undefined}
-												/>
-											)}
-										</TooltipContent>
-									</Tooltip>
-								)}
-							</div>
-						)}
-					</div>
+												>
+													<HiMiniXMark className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												{creationStatus === "failed" ? (
+													"Dismiss"
+												) : (
+													<HotkeyLabel
+														label="Close workspace"
+														id={isActive ? "CLOSE_WORKSPACE" : undefined}
+													/>
+												)}
+											</TooltipContent>
+										</Tooltip>
+									)}
+								</div>
+							)}
+						</div>
+					)}
 				</div>
 			</div>
 		);
