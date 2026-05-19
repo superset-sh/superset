@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
@@ -29,6 +30,13 @@ export async function runTeardown({
 	workspaceName: string;
 	projectId?: string;
 }): Promise<TeardownResult> {
+	if (!existsSync(worktreePath)) {
+		console.log(
+			`[teardown] Skipping for "${workspaceName}": worktree path ${worktreePath} no longer exists`,
+		);
+		return { success: true };
+	}
+
 	const config = loadSetupConfig({ mainRepoPath, worktreePath, projectId });
 
 	if (!config?.teardown || config.teardown.length === 0) {

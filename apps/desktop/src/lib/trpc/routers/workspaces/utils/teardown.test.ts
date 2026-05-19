@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { execSync } from "node:child_process";
 import {
 	chmodSync,
 	existsSync,
 	mkdirSync,
 	readFileSync,
+	realpathSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -27,7 +29,7 @@ const ORIGINAL_SHELL = process.env.SHELL;
 const ORIGINAL_PATH = process.env.PATH;
 const ORIGINAL_HOME = process.env.HOME;
 
-const { runTeardown } = await import("./teardown");
+const { runTeardown, removeWorktreeFromDisk } = await import("./teardown");
 
 describe("runTeardown", () => {
 	beforeEach(() => {
@@ -275,6 +277,27 @@ describe("runTeardown", () => {
 		expect(readFileSync(mainMarker, "utf-8").trim()).toBe("main");
 	});
 
+	test("returns success when worktree directory is missing (issue #4328)", async () => {
+		// User config has a teardown command...
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ teardown: ["echo bye"] }),
+		);
+		// ...but the worktree directory was deleted out from under us.
+		const missingWorktree = join(TEST_DIR, "missing-worktree");
+		expect(existsSync(missingWorktree)).toBe(false);
+
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: missingWorktree,
+			workspaceName: "test-workspace",
+		});
+
+		// Without a guard, spawn() with a non-existent cwd throws ENOENT and the
+		// caller surfaces "Teardown failed" to the user, blocking deletion.
+		expect(result.success).toBe(true);
+	});
+
 	test("uses managed wrapper path for teardown managed binaries even with PATH rewrites", async () => {
 		const markerFile = join(WORKTREE, "managed-wrapper-used.txt");
 		const shellHome = join(TEST_DIR, "shell-home");
@@ -324,5 +347,97 @@ echo wrapper
 		expect(result.success).toBe(true);
 		expect(existsSync(markerFile)).toBe(true);
 		expect(readFileSync(markerFile, "utf-8").trim()).toBe("wrapper");
+	});
+});
+
+describe("removeWorktreeFromDisk (issue #4328)", () => {
+	const REPO_DIR = join(
+		realpathSync(tmpdir()),
+		`superset-test-remove-worktree-${process.pid}`,
+	);
+
+	function makeRepoWithWorktree(name: string): {
+		mainRepoPath: string;
+		worktreePath: string;
+	} {
+		const mainRepoPath = join(REPO_DIR, name, "main");
+		const worktreePath = join(REPO_DIR, name, "wt");
+		mkdirSync(mainRepoPath, { recursive: true });
+		execSync("git init -b main", { cwd: mainRepoPath, stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: mainRepoPath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: mainRepoPath,
+			stdio: "ignore",
+		});
+		writeFileSync(join(mainRepoPath, "README.md"), "# test\n");
+		execSync("git add . && git commit -m 'init'", {
+			cwd: mainRepoPath,
+			stdio: "ignore",
+		});
+		execSync(`git worktree add "${worktreePath}" -b feature`, {
+			cwd: mainRepoPath,
+			stdio: "ignore",
+		});
+		return { mainRepoPath, worktreePath };
+	}
+
+	beforeEach(() => {
+		mkdirSync(REPO_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(REPO_DIR)) {
+			rmSync(REPO_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("succeeds when worktree directory was removed on disk (rm -rf)", async () => {
+		const { mainRepoPath, worktreePath } = makeRepoWithWorktree("rm-rf");
+
+		// Simulate user manually deleting the worktree directory on disk
+		// without running `git worktree remove`. Git metadata still references it.
+		rmSync(worktreePath, { recursive: true, force: true });
+		expect(existsSync(worktreePath)).toBe(false);
+
+		const result = await removeWorktreeFromDisk({
+			mainRepoPath,
+			worktreePath,
+		});
+
+		expect(result.success).toBe(true);
+	});
+
+	test("succeeds when worktree was already removed via `git worktree remove`", async () => {
+		const { mainRepoPath, worktreePath } = makeRepoWithWorktree("git-remove");
+
+		// Simulate user running `git worktree remove` outside the app — this
+		// removes the directory AND clears the git metadata.
+		execSync(`git worktree remove "${worktreePath}"`, {
+			cwd: mainRepoPath,
+			stdio: "ignore",
+		});
+		expect(existsSync(worktreePath)).toBe(false);
+
+		const result = await removeWorktreeFromDisk({
+			mainRepoPath,
+			worktreePath,
+		});
+
+		expect(result.success).toBe(true);
+	});
+
+	test("succeeds when worktree path never existed", async () => {
+		const { mainRepoPath } = makeRepoWithWorktree("never-existed");
+		const phantomPath = join(REPO_DIR, "never-existed", "ghost-worktree");
+
+		const result = await removeWorktreeFromDisk({
+			mainRepoPath,
+			worktreePath: phantomPath,
+		});
+
+		expect(result.success).toBe(true);
 	});
 });
