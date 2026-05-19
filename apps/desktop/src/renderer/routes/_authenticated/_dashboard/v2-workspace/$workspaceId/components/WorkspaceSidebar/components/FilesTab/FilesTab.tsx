@@ -28,7 +28,10 @@ import {
 	useSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
 import { useFallthroughIcons } from "renderer/lib/fileIcons";
-import { createPierreTreeStyle } from "renderer/lib/pierreTree";
+import {
+	createPierreTreeStyle,
+	DISABLE_MIDDLE_TRUNCATE_CSS,
+} from "renderer/lib/pierreTree";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { PierreRowContextMenu } from "../PierreRowContextMenu";
 import { FileMenuItems } from "./components/FileMenuItems";
@@ -119,6 +122,7 @@ export function FilesTab({
 		itemHeight: FILE_EXPLORER_ROW_HEIGHT,
 		overscan: FILE_EXPLORER_OVERSCAN,
 		stickyFolders: true,
+		unsafeCSS: DISABLE_MIDDLE_TRUNCATE_CSS,
 		onSelectionChange: (paths) => {
 			const last = paths[paths.length - 1];
 			if (!last) return;
