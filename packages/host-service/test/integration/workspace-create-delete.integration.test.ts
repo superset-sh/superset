@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
+import simpleGit from "simple-git";
 import { workspaces } from "../../src/db/schema";
 import { cloudFlows, cloudOk } from "../helpers/cloud-fakes";
 import {
@@ -251,6 +253,139 @@ describe("workspace.create + workspace.delete integration", () => {
 		// Rollback should leave nothing behind in the workspaces table either.
 		const rows = scenario.host.db.select().from(workspaces).all();
 		expect(rows).toHaveLength(0);
+	});
+
+	test("create() with an existing remote-only branch checks out the remote tip, not a fresh fork from base (regress #4364)", async () => {
+		// Regress: when the user picks an existing remote branch in the
+		// workspace-create flow, `workspaces.create` must check it out into
+		// a worktree that tracks the remote — not silently create a new
+		// branch from the default base. The bug surfaced as "the worktree
+		// for `claude/...-1UFT7` opens at main's HEAD" instead of the
+		// remote branch's tip, leading the next push to open a *new* PR
+		// instead of continuing the existing one.
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const bareRepoPath = realpathSync(
+			mkdtempSync(join(tmpdir(), "host-service-test-bare-")),
+		);
+		try {
+			await simpleGit().init(["--bare", "--initial-branch=main", bareRepoPath]);
+			await scenario.repo.git.addRemote("origin", bareRepoPath);
+			await scenario.repo.git.push("origin", "main", ["--set-upstream"]);
+
+			// Mixed-case branch name copied from the linked issue. Push it
+			// to origin, capture the tip, then delete it locally so only the
+			// remote-tracking ref remains — this is the state the user is in
+			// when they open the picker fresh on a different machine.
+			const remoteBranch = "claude/auto-balance-logo-sizing-1UFT7";
+			await scenario.repo.git.checkoutBranch(remoteBranch, "main");
+			const remoteTipOid = await scenario.repo.commit("remote work", {
+				"feature.txt": "remote feature work",
+			});
+			await scenario.repo.git.push("origin", remoteBranch);
+			await scenario.repo.git.checkout("main");
+			await scenario.repo.git.deleteLocalBranch(remoteBranch, true);
+			await scenario.repo.git.fetch(["origin", "--prune"]);
+
+			const result = await scenario.host.trpc.workspaces.create.mutate({
+				projectId: scenario.projectId,
+				name: "continue remote work",
+				branch: remoteBranch,
+			});
+
+			expect(result?.workspace?.branch).toBe(remoteBranch);
+
+			const persisted = scenario.host.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+				.get();
+			expect(persisted?.worktreePath).toBeTruthy();
+			expect(existsSync(persisted?.worktreePath ?? "")).toBe(true);
+
+			// The worktree's HEAD must equal the remote branch tip — not
+			// main. If `workspaces.create` forked from main instead of
+			// checking out the remote, this is what would catch it.
+			const worktreeGit = simpleGit(persisted?.worktreePath ?? "");
+			const worktreeHead = (
+				await worktreeGit.raw(["rev-parse", "HEAD"])
+			).trim();
+			expect(worktreeHead).toBe(remoteTipOid);
+
+			// And the local branch must track origin/<branch> so subsequent
+			// pushes/pulls land on the same remote ref the picker pointed at.
+			const upstream = (
+				await worktreeGit.raw([
+					"rev-parse",
+					"--abbrev-ref",
+					`${remoteBranch}@{upstream}`,
+				])
+			).trim();
+			expect(upstream).toBe(`origin/${remoteBranch}`);
+		} finally {
+			rmSync(bareRepoPath, { recursive: true, force: true });
+		}
+	});
+
+	test("create() with a remote branch typed in a different case checks out the existing remote branch (regress #4364)", async () => {
+		// Regress: the user's exact #4364 scenario. The picker showed a
+		// remote branch `claude/auto-balance-logo-sizing-1UFT7`, the user
+		// pasted `claude/auto-balance-logo-sizing-1uft7` (case-folded by
+		// the cmdk Mod+Enter pathway and/or the OS), and the server
+		// silently created a *new* branch with the typed casing instead
+		// of opening a worktree on the remote tip. The next push then
+		// opened a brand-new PR.
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+
+		const bareRepoPath = realpathSync(
+			mkdtempSync(join(tmpdir(), "host-service-test-bare-")),
+		);
+		try {
+			await simpleGit().init(["--bare", "--initial-branch=main", bareRepoPath]);
+			await scenario.repo.git.addRemote("origin", bareRepoPath);
+			await scenario.repo.git.push("origin", "main", ["--set-upstream"]);
+
+			const remoteBranch = "claude/auto-balance-logo-sizing-1UFT7";
+			const typedBranch = "claude/auto-balance-logo-sizing-1uft7";
+			await scenario.repo.git.checkoutBranch(remoteBranch, "main");
+			const remoteTipOid = await scenario.repo.commit("remote work", {
+				"feature.txt": "remote feature work",
+			});
+			await scenario.repo.git.push("origin", remoteBranch);
+			await scenario.repo.git.checkout("main");
+			await scenario.repo.git.deleteLocalBranch(remoteBranch, true);
+			await scenario.repo.git.fetch(["origin", "--prune"]);
+
+			const result = await scenario.host.trpc.workspaces.create.mutate({
+				projectId: scenario.projectId,
+				name: "continue remote work",
+				branch: typedBranch,
+			});
+
+			const persisted = scenario.host.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+				.get();
+			expect(persisted?.worktreePath).toBeTruthy();
+
+			// The worktree should be on the remote branch tip, not a fresh
+			// fork from main. If the server created a brand-new branch the
+			// HEAD would equal main's commit.
+			const worktreeGit = simpleGit(persisted?.worktreePath ?? "");
+			const worktreeHead = (
+				await worktreeGit.raw(["rev-parse", "HEAD"])
+			).trim();
+			expect(worktreeHead).toBe(remoteTipOid);
+		} finally {
+			rmSync(bareRepoPath, { recursive: true, force: true });
+		}
 	});
 
 	test("delete() rejects deleting a main workspace by path equality", async () => {

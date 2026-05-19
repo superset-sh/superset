@@ -10,6 +10,7 @@ import {
 	type ResolvedRef,
 	resolveDefaultBranchName,
 	resolveRef,
+	resolveRefCaseInsensitive,
 	resolveUpstream,
 } from "../../../runtime/git/refs";
 import type { HostServiceContext } from "../../../types";
@@ -307,6 +308,24 @@ async function planBranchSource(
 			code: "BAD_REQUEST",
 			message: `"${branch}" is a tag, not a branch — cannot check out into a workspace`,
 		});
+	}
+
+	// Case-insensitive fallback: branch names ARE case-sensitive in git, but
+	// the picker can show a remote-only branch like `claude/...-1UFT7` and
+	// the user's input pathway (cmdk's lowercased selected value, autocaps,
+	// retyping from memory) routinely flattens the casing. Without this
+	// fallback we silently fork a fresh branch from base and the next push
+	// opens a new PR instead of continuing the existing one.
+	const fuzzy = await resolveRefCaseInsensitive(git, branch);
+	if (
+		fuzzy &&
+		(fuzzy.kind === "local" || fuzzy.kind === "remote-tracking")
+	) {
+		return {
+			branch: fuzzy.shortName,
+			startPoint: fuzzy,
+			usedExistingBranch: true,
+		};
 	}
 
 	const startPoint = await resolveNewBranchStartPoint(git, baseBranch);

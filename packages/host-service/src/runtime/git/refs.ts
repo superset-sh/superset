@@ -130,6 +130,77 @@ export async function resolveRef(
 }
 
 /**
+ * Case-insensitive fallback for `resolveRef`. Branch names ARE
+ * case-sensitive in git, but humans aren't — pickers and clipboards
+ * routinely flatten case (cmdk's selected value, MS Word autocaps,
+ * a teammate retyping a generated `claude/...-1UFT7` from memory).
+ * Without this fallback the typed casing misses the existing ref and
+ * `workspaces.create` silently forks a fresh branch from base, which
+ * then opens a *new* PR on push.
+ *
+ * Returns a ref with the **canonical case** from git's storage, not the
+ * user's input. Local matches win over remote-tracking when both exist.
+ * Returns `null` if no case-insensitive match exists — the caller is
+ * expected to fall through to fresh-branch creation in that case.
+ */
+export async function resolveRefCaseInsensitive(
+	git: SimpleGit,
+	input: string,
+	options: ResolveRefOptions = {},
+): Promise<ResolvedRef | null> {
+	const remote = options.remote ?? "origin";
+	const trimmed = input.trim();
+	if (!trimmed) return null;
+
+	const remotePrefix = `${remote}/`;
+	const normalized = trimmed.startsWith(remotePrefix)
+		? trimmed.slice(remotePrefix.length)
+		: trimmed;
+	const lowered = normalized.toLowerCase();
+
+	let raw: string;
+	try {
+		raw = await git.raw([
+			"for-each-ref",
+			"--format=%(refname)",
+			"refs/heads/",
+			`refs/remotes/${remote}/`,
+		]);
+	} catch {
+		return null;
+	}
+
+	let remoteMatch: ResolvedRef | null = null;
+	for (const line of raw.split("\n")) {
+		const refname = line.trim();
+		if (!refname) continue;
+		if (refname.startsWith("refs/heads/")) {
+			const name = refname.slice("refs/heads/".length);
+			if (name.toLowerCase() === lowered) {
+				return {
+					kind: "local",
+					fullRef: refname as `refs/heads/${string}`,
+					shortName: name,
+				};
+			}
+		} else if (refname.startsWith(`refs/remotes/${remote}/`)) {
+			const name = refname.slice(`refs/remotes/${remote}/`.length);
+			if (name === "HEAD") continue;
+			if (remoteMatch === null && name.toLowerCase() === lowered) {
+				remoteMatch = {
+					kind: "remote-tracking",
+					fullRef: refname as `refs/remotes/${string}/${string}`,
+					shortName: name,
+					remote,
+					remoteShortName: `${remote}/${name}`,
+				};
+			}
+		}
+	}
+	return remoteMatch;
+}
+
+/**
  * Resolve the repo's default branch name (typically `main`) from
  * `origin/HEAD`. Falls back to `"main"` if symbolic-ref isn't set.
  */
