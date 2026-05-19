@@ -17,6 +17,7 @@ import { requestTabClose } from "renderer/stores/editor-state/editorCoordinator"
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
+	computeTabStatusMap,
 	isLastPaneInTab,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
@@ -24,7 +25,6 @@ import {
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
-import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
 
@@ -125,18 +125,14 @@ export function GroupStrip() {
 		});
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
-	// Compute aggregate status per tab using shared priority logic
 	const tabStatusMap = useMemo(() => {
-		const result = new Map<string, ActivePaneStatus>();
-		for (const pane of Object.values(panes)) {
-			if (!pane.status || pane.status === "idle") continue;
-			const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
-			if (higher !== "idle") {
-				result.set(pane.tabId, higher);
-			}
-		}
-		return result;
-	}, [panes]);
+		if (!activeWorkspaceId) return new Map();
+		return computeTabStatusMap({
+			workspaceId: activeWorkspaceId,
+			tabs: allTabs,
+			panes,
+		});
+	}, [activeWorkspaceId, allTabs, panes]);
 
 	// Sync Electric session titles → tab and pane names for chat panes in this workspace
 	const chatSessionTargets = useMemo(() => {

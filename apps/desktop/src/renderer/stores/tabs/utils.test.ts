@@ -1,10 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import type { MosaicNode } from "react-mosaic-component";
+import type { PaneStatus } from "shared/tabs-types";
 import type { Pane, Tab } from "./types";
 import {
 	activatePaneInWorkspace,
 	applyFileViewerOpenOptionsToPane,
 	buildMultiPaneLayout,
+	computeTabStatusMap,
 	createChatPane,
 	fileViewerTargetsMatch,
 	findPanePath,
@@ -809,5 +811,122 @@ describe("createChatPane", () => {
 			metadata: { model: "gpt-5" },
 			retryCount: 2,
 		});
+	});
+});
+
+describe("computeTabStatusMap", () => {
+	const makeTab = ({
+		id,
+		workspaceId,
+	}: {
+		id: string;
+		workspaceId: string;
+	}): Tab => ({
+		id,
+		name: id,
+		workspaceId,
+		layout: `${id}-pane`,
+		createdAt: 0,
+	});
+
+	const makePane = ({
+		id,
+		tabId,
+		status,
+	}: {
+		id: string;
+		tabId: string;
+		status?: PaneStatus;
+	}): Pane => ({
+		id,
+		tabId,
+		type: "terminal",
+		name: "Terminal",
+		status,
+	});
+
+	it("aggregates pane status for tabs in the workspace", () => {
+		const tabs = [makeTab({ id: "tab-1", workspaceId: "ws-1" })];
+		const panes: Record<string, Pane> = {
+			"pane-1": makePane({ id: "pane-1", tabId: "tab-1", status: "working" }),
+		};
+
+		const result = computeTabStatusMap({ workspaceId: "ws-1", tabs, panes });
+
+		expect(result.get("tab-1")).toBe("working");
+	});
+
+	it("picks the higher-priority status when a tab has multiple non-idle panes", () => {
+		const tabs = [makeTab({ id: "tab-1", workspaceId: "ws-1" })];
+		const panes: Record<string, Pane> = {
+			"pane-1": makePane({ id: "pane-1", tabId: "tab-1", status: "working" }),
+			"pane-2": makePane({
+				id: "pane-2",
+				tabId: "tab-1",
+				status: "permission",
+			}),
+			"pane-3": makePane({ id: "pane-3", tabId: "tab-1", status: "review" }),
+		};
+
+		const result = computeTabStatusMap({ workspaceId: "ws-1", tabs, panes });
+
+		expect(result.get("tab-1")).toBe("permission");
+	});
+
+	it("omits tabs whose only panes are idle", () => {
+		const tabs = [makeTab({ id: "tab-1", workspaceId: "ws-1" })];
+		const panes: Record<string, Pane> = {
+			"pane-1": makePane({ id: "pane-1", tabId: "tab-1", status: "idle" }),
+			"pane-2": makePane({ id: "pane-2", tabId: "tab-1" }),
+		};
+
+		const result = computeTabStatusMap({ workspaceId: "ws-1", tabs, panes });
+
+		expect(result.size).toBe(0);
+	});
+
+	// Regression test for #4466: panes whose tabs belong to other workspaces
+	// must not appear in the active workspace's tab status map. The previous
+	// inline computation in GroupStrip iterated `Object.values(panes)`
+	// globally — relying solely on the rarity of tab-id collisions for
+	// isolation. This test pins the workspace filter as part of the API.
+	it("excludes panes whose tabs belong to other workspaces", () => {
+		const tabs = [
+			makeTab({ id: "tab-ws1", workspaceId: "ws-1" }),
+			makeTab({ id: "tab-ws2", workspaceId: "ws-2" }),
+		];
+		const panes: Record<string, Pane> = {
+			"pane-ws1": makePane({
+				id: "pane-ws1",
+				tabId: "tab-ws1",
+				status: "working",
+			}),
+			"pane-ws2": makePane({
+				id: "pane-ws2",
+				tabId: "tab-ws2",
+				status: "permission",
+			}),
+		};
+
+		const result = computeTabStatusMap({ workspaceId: "ws-1", tabs, panes });
+
+		expect(result.get("tab-ws1")).toBe("working");
+		expect(result.has("tab-ws2")).toBe(false);
+		expect(result.size).toBe(1);
+	});
+
+	it("ignores panes that reference a tab id with no matching tab", () => {
+		const tabs = [makeTab({ id: "tab-1", workspaceId: "ws-1" })];
+		const panes: Record<string, Pane> = {
+			"pane-1": makePane({
+				id: "pane-1",
+				tabId: "missing-tab",
+				status: "working",
+			}),
+		};
+
+		const result = computeTabStatusMap({ workspaceId: "ws-1", tabs, panes });
+
+		expect(result.size).toBe(0);
 	});
 });
