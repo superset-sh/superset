@@ -1,7 +1,7 @@
 ---
 stability: FEATURE_SPEC
 last_validated: 2026-05-18
-prd_version: 1.0.0
+prd_version: 1.1.0
 scope_posture: full
 ---
 
@@ -13,14 +13,19 @@ scope_posture: full
 
 ## In Scope
 
-### Renderer (V2UI group — 7 UCs)
-- Replace text-equality optimistic user-message reconciliation with signature-based approach (V2-M2)
-- Align `withoutActiveTurnAssistantHistory` filter with `getVisibleMessages` (V2-M3 — close the pending-question dedup gap)
+### Renderer (V2UI group — 12 UCs)
+- Replace text-equality optimistic user-message reconciliation with signature-based approach, AND dedup at useMemo composition time to close the one-frame duplicate-render race (V2-M2 + duplicate-user-msg analysis)
+- Align `withoutActiveTurnAssistantHistory` filter with `getVisibleMessages`, AND restore the `stopReason` + `id !== currentMessage.id` guards the canonical filter had so an in-flight assistant message cannot render twice (V2-M3 + duplicate-assistant-msg analysis)
 - Make snapshot polling adaptive (4 fps active, ≤1 fps idle, stop on hidden) and drop `refetchIntervalInBackground` default (V2-H12)
 - Surface `PendingQuestionMessage` submission errors inline with `select-text cursor-text` per `apps/desktop/AGENTS.md` (V2-M4)
 - Evict `workspaceClientsCache` entries on provider unmount (V2-M1 — close the leak)
 - Lift `useWorkspaceChatController` to a single shared instance shared by `ChatPane` and `ChatPaneTitle` (V2-M5)
 - (Cross-layer half) Renderer-side cleanup that fires `commands.stop()` on unmount when `isRunning` (V2-H7 — paired with UC-HOST-09)
+- Sanitize text dropped into the Tiptap composer — refuse oversized drops, escape leading `/` (UC-V2UI-08)
+- Replace hardcoded `isFocused` in `ChatPane.tsx` with the v2 pane-registry focus signal so keyboard shortcuts don't bleed across panes (UC-V2UI-09)
+- Throttle screen-reader announcements for streaming text; add `aria-label` to the `Conversation` `role="log"` region (UC-V2UI-10)
+- Runtime-validate `getSnapshot` payload with zod at the renderer boundary, with a graceful fallback when the host-service version drifts (UC-V2UI-11)
+- Virtualize / memoize the message list for long conversations (UC-V2UI-12 — back of the V2UI cut order)
 
 ### Host-Service Lifecycle + IPC Security (HOST group — 10 UCs)
 - Preload `ipcRenderer` channel allowlist (V2-H6 / v1 carry-over)
@@ -81,10 +86,13 @@ scope_posture: full
 If scope must shrink, cut in this order (preserve CRITICAL and stub-fix items):
 
 1. **First cut**: Deferred polish (already out of scope above — keep deferred)
-2. **Second cut** if needed: HOST-08 (production CORS posture documentation) — can be a doc-only follow-up
-3. **Third cut**: V2UI-06 (controller hoist) — quality fix, not a correctness fix
-4. **Fourth cut**: HOST-05 (PSK rotation + Keychain) — meaningful security improvement but the threat (shared home dir) is low-likelihood
-5. **Fifth cut**: HOST-10 (v1 deprecation decision) — can defer to a separate planning doc
+2. **Second cut** if needed: UC-V2UI-12 (message-list virtualization) — performance polish, no correctness implication
+3. **Third cut**: UC-V2UI-10 (a11y streaming throttle) — accessibility regression vs v1 unclear; can be follow-up
+4. **Fourth cut**: HOST-08 (production CORS posture documentation) — can be a doc-only follow-up
+5. **Fifth cut**: UC-V2UI-09 (isFocused pane signal) — fires only when multiple ChatPanes are open simultaneously
+6. **Sixth cut**: V2UI-06 (controller hoist) — quality fix, not a correctness fix
+7. **Seventh cut**: HOST-05 (PSK rotation + Keychain) — meaningful security improvement but the threat (shared home dir) is low-likelihood
+8. **Eighth cut**: HOST-10 (v1 deprecation decision) — can defer to a separate planning doc
 
 **Cannot cut**:
 - Both stub fixes (UC-RUN-02 abort, UC-RUN-03 getMcpOverview) — SUPREME RULE violation if shipped as-is
@@ -95,3 +103,7 @@ If scope must shrink, cut in this order (preserve CRITICAL and stub-fix items):
 - UC-HOST-09 ChatService extraction — load-bearing for UC-RUN-01 and UC-HOST-07
 - UC-RUN-05 disposeRuntime cleanup — load-bearing for memory bounds and SessionEnd hook semantics
 - UC-V2UI-07 + UC-HOST-08 pane-close drain — agent-keeps-editing-after-close is a trust-breaking bug
+- UC-V2UI-01 (full signature + race-closing dedup) — duplicate user messages are a documented active bug
+- UC-V2UI-02 (filter alignment + id-collision guard) — duplicate assistant messages are a documented active bug
+- UC-V2UI-08 (drag-drop sanitization) — low-grade injection surface that flows through to slash-command execution
+- UC-V2UI-11 (snapshot zod parse) — without it a host-service rolling-upgrade can hard-crash open ChatPanes

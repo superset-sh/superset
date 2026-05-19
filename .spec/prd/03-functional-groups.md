@@ -1,7 +1,7 @@
 ---
 stability: FEATURE_SPEC
 last_validated: 2026-05-18
-prd_version: 1.0.0
+prd_version: 1.1.0
 ---
 
 # Functional Groups
@@ -16,10 +16,10 @@ prd_version: 1.0.0
 
 | Group | Prefix | UCs |
 |-------|--------|-----|
-| V2 Renderer Polish | V2UI | 7 |
+| V2 Renderer Polish | V2UI | 12 |
 | Host-Service Lifecycle & IPC Security | HOST | 10 |
 | v2 Mastra Runtime Polish | RUN | 8 |
-| **Total** | | **25** |
+| **Total** | | **30** |
 
 ## Cross-Layer Use Cases
 
@@ -38,6 +38,6 @@ These UCs require coordinated implementation across two or three layers. They ar
 | Stability | UCs |
 |-----------|-----|
 | **CONSTITUTION** (security/architecture invariants) | UC-HOST-01, UC-HOST-02, UC-HOST-03, UC-HOST-04, UC-HOST-05, UC-HOST-07, UC-HOST-09, UC-RUN-01, UC-RUN-06 |
-| **FEATURE_SPEC** (observable behavior covered by AC tests) | UC-V2UI-01 through UC-V2UI-07, UC-HOST-06, UC-HOST-08, UC-HOST-10, UC-RUN-02, UC-RUN-03, UC-RUN-04, UC-RUN-05, UC-RUN-07, UC-RUN-08 |
+| **FEATURE_SPEC** (observable behavior covered by AC tests) | UC-V2UI-01 through UC-V2UI-12, UC-HOST-06, UC-HOST-08, UC-HOST-10, UC-RUN-02, UC-RUN-03, UC-RUN-04, UC-RUN-05, UC-RUN-07, UC-RUN-08 |
 
 `PRODUCT_CONTEXT`-layer artifacts (overview, roles) are in `00-overview.md` and `02-roles.md`.

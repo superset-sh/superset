@@ -1,7 +1,7 @@
 ---
 stability: PRODUCT_CONTEXT
 last_validated: 2026-05-18
-prd_version: 1.0.0
+prd_version: 1.1.0
 ---
 
 # v2 Internal Chat Polish
@@ -41,7 +41,7 @@ The v2 cut-over is functionally usable but **not production-safe**. Independent 
 
 7. **Lifecycle gaps** — pane unmount during an active turn orphans the host-service runtime (the agent keeps editing files after the user closed the tab). `disposeRuntime` does not run SessionEnd hooks or call `harness.destroy()`. No idle-TTL eviction on the session map.
 
-8. **Performance/UX issues** — text-equality optimistic-message reconciliation flashes/ghosts on duplicate sends and on workspace switches; active-turn dedup filters diverge between the hook and the message-list helpers; polling is 4 fps with `refetchIntervalInBackground: true` regardless of idle state.
+8. **Performance/UX issues** — text-equality optimistic-message reconciliation flashes/ghosts on duplicate sends and on workspace switches; active-turn dedup filters diverge between the hook and the message-list helpers; polling is 4 fps with `refetchIntervalInBackground: true` regardless of idle state. Post-PRD analysis of the two reported duplicate-message reports (one assistant, one user) confirmed the specific mechanisms — a one-frame composition race in the user-message useMemo, and the missing `stopReason + id !== currentMessage.id` guards on the assistant filter — captured as refined ACs on UC-V2UI-01 and UC-V2UI-02 plus new UCs UC-V2UI-08..12 for adjacent UI/UX polish.
 
 ## Solution summary
 

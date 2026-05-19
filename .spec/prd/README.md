@@ -1,6 +1,6 @@
 ---
 title: v2 Internal Chat Polish
-version: 1.0.0
+version: 1.1.0
 scope_posture: full
 human_signal_count: 0
 human_signal_last_elicited: null
@@ -8,7 +8,7 @@ human_signal_last_elicited: null
 
 # v2 Internal Chat Polish - PRD
 
-Closes the v2-GA-blocking risks identified by the 2026-05-18 v2 red-hat review across the renderer, host-service, and Electron-coordinator layers — including 4 CRITICAL items, 2 confirmed stubs, and a feature regression vs v1.
+Closes the v2-GA-blocking risks identified by the 2026-05-18 v2 red-hat review across the renderer, host-service, and Electron-coordinator layers — including 4 CRITICAL items, 2 confirmed stubs, and a feature regression vs v1. v1.1.0 folds in additional renderer polish identified during post-PRD analysis of two reported bugs (duplicate user messages, duplicate assistant messages) plus five smaller UI/UX items (drag-drop sanitization, pane focus signal, a11y streaming throttle, snapshot schema validation, message-list virtualization).
 
 ## Human Signals
 
@@ -38,12 +38,13 @@ Closes the v2-GA-blocking risks identified by the 2026-05-18 v2 red-hat review a
 
 | Field | Value |
 |-------|-------|
-| Version | 1.0.0 |
+| Version | 1.1.0 |
 | Scope Posture | Full feature (default) |
 | Created | 2026-05-18 |
 | Last Updated | 2026-05-18 |
 | Branch | `chat-polish-spec` |
 | Source Review | [../reviews/red-hat-20260518T083344-v2-chat.md](../reviews/red-hat-20260518T083344-v2-chat.md) (committed alongside this PRD) |
+| Post-PRD Fold-In Source | Conversation analysis of duplicate-user-msg + duplicate-assistant-msg bugs + 5 smaller UI/UX items (plan file: `~/.claude/plans/we-ve-created-a-chat-polish-spec-agile-cake.md`) |
 
 ## Document Index
 
@@ -64,8 +65,8 @@ Closes the v2-GA-blocking risks identified by the 2026-05-18 v2 red-hat review a
 | Metric | Value |
 |--------|-------|
 | Functional Groups | 3 |
-| Use Cases | 25 |
-| Source Findings Addressed | 4 CRITICAL + 11 HIGH + 8 MEDIUM = 23 of 39 v2 review findings |
+| Use Cases | 30 |
+| Source Findings Addressed | 4 CRITICAL + 11 HIGH + 8 MEDIUM (red-hat) + 6 post-PRD UI/UX findings = 29 distinct items |
 | Deferred to Follow-up PRDs | 16 findings (observability + low-severity cleanup) |
 | Cross-Layer UCs | 5 (abort/stop, pane-close drain, session ownership, ChatService extraction, no-electron-coupling test) |
 | Specialist Planners | react-vite-planner, electron-planner, mastra-planner |
@@ -75,6 +76,7 @@ Closes the v2-GA-blocking risks identified by the 2026-05-18 v2 red-hat review a
 | Version | Date | Changes | Trigger |
 |---------|------|---------|---------|
 | 1.0.0 | 2026-05-18 | Initial PRD synthesized from v2 red-hat review | New initiative; signals skipped at user request |
+| 1.1.0 | 2026-05-18 | Folded post-PRD findings: refined UC-V2UI-01 (one-frame race, normalization safety, concurrency) and UC-V2UI-02 (stopReason + id-collision guards); added UC-V2UI-08 (drag-drop sanitize), UC-V2UI-09 (pane isFocused), UC-V2UI-10 (a11y aria-live throttle), UC-V2UI-11 (snapshot zod parse), UC-V2UI-12 (message-list virtualization); refined UC-RUN-07 (no-overwrite-user-edited-titles); updated cut order to position new UCs and protect the duplicate-message fixes from being cut | Bug-mechanism deep-dive on reported duplicate-message reports |
 
 ## Next Steps
 
