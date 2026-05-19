@@ -1,0 +1,52 @@
+---
+title: Teams, CLI project commands, and preset-backed workspace runs
+date: 2026-05-11
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot showing the Teams UI */}
+
+## Teams <PRBadge url="https://github.com/superset-sh/superset/pull/4403" />
+
+Teams are now a first-class org primitive. Create teams to group members, assign workspaces and automations to a team, and filter the automations view between **Mine** and **Team** runs.
+
+## CLI: `projects create`, `projects setup`, and `workspaces open` <PRBadge url="https://github.com/superset-sh/superset/pull/4355" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4356" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4258" />
+
+Three new commands extend the `superset` CLI:
+
+- `superset projects create` — scaffold a new project from your shell
+- `superset projects setup` — link an existing local repo to a Superset project
+- `superset workspaces open` — open a workspace directly from the terminal
+
+## Preset-backed workspace runs <PRBadge url="https://github.com/superset-sh/superset/pull/4335" />
+
+Workspaces can now be started with a preset, so the agent launches with the right configuration without any manual setup. Useful for automation flows and repeatable tasks.
+
+## Copy actions in diff comment threads <PRBadge url="https://github.com/superset-sh/superset/pull/4389" />
+
+Diff comment threads now have a copy action so you can grab a comment's permalink or content without leaving the review view. Thread layout is also tighter to keep more context on screen.
+
+## Improvements
+
+- **Workspace + branch in v2 top bar** — Current workspace name and branch are always visible at a glance <PRBadge url="https://github.com/superset-sh/superset/pull/4321" />
+- **Agent icon in terminal pane** — The active agent is shown in the v2 terminal pane header via lifecycle hooks <PRBadge url="https://github.com/superset-sh/superset/pull/4232" />
+- **File menu in desktop** — A native File menu is now available; "Add Repository" options are renamed for clarity <PRBadge url="https://github.com/superset-sh/superset/pull/4383" />
+- **Roomier v2 workspace pickers** — The workspace and branch selectors are larger with clearer branch action labels <PRBadge url="https://github.com/superset-sh/superset/pull/4226" />
+- **Tasks view project filter** — Requires a single project selection and persists the choice across navigation <PRBadge url="https://github.com/superset-sh/superset/pull/4236" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4248" />
+- **Automations tab redesign** — Layout now matches Linear's design language <PRBadge url="https://github.com/superset-sh/superset/pull/4225" />
+- **"Open in Browser" in browser overflow menu** <PRBadge url="https://github.com/superset-sh/superset/pull/4257" />
+- **Animated boot logo** — Gradient wipe animation on desktop startup <PRBadge url="https://github.com/superset-sh/superset/pull/4393" />
+
+---
+
+**Bug fixes**
+
+- Auto-name v2 workspaces from the prompt when no agent is selected <PRBadge url="https://github.com/superset-sh/superset/pull/4404" />
+- Stabilize workspace create/delete navigation <PRBadge url="https://github.com/superset-sh/superset/pull/4316" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4392" />
+- Sidebar: hide resource monitor dot, fix "creating" stuck state, keep projects after closing last workspace, restore LOC indicator <PRBadge url="https://github.com/superset-sh/superset/pull/4391" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4390" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4333" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4222" />
+- Restore recently-viewed dropdown and tighten topbar chrome <PRBadge url="https://github.com/superset-sh/superset/pull/4370" />
+- v2 changes sidebar is now scrollable <PRBadge url="https://github.com/superset-sh/superset/pull/4253" />
+- Host service: restore terminal modes on reattach, adopt external worktrees <PRBadge url="https://github.com/superset-sh/superset/pull/4231" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4229" />
+- Per-branch PR fetches to avoid 504 timeouts on large repos <PRBadge url="https://github.com/superset-sh/superset/pull/4268" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4291" />
+- Prevent duplicate workspace linkage across orgs <PRBadge url="https://github.com/superset-sh/superset/pull/4386" />
+- Bump MCP OAuth access token TTL to 7 days <PRBadge url="https://github.com/superset-sh/superset/pull/4365" />
