@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { githubInstallations, members } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
@@ -87,6 +87,19 @@ export async function GET(request: Request) {
 			account && "login" in account ? account.login : (account?.name ?? "");
 		const accountType =
 			account && "type" in account ? account.type : "Organization";
+
+		// If another organization already owns this installation_id (e.g. GitHub
+		// reused the ID after an uninstall), remove that stale row first so our
+		// organizationId-targeted upsert doesn't collide with the column-level
+		// UNIQUE constraint on installation_id.
+		await db
+			.delete(githubInstallations)
+			.where(
+				and(
+					eq(githubInstallations.installationId, String(installation.id)),
+					ne(githubInstallations.organizationId, organizationId),
+				),
+			);
 
 		// Save the installation to our database
 		const [savedInstallation] = await db
