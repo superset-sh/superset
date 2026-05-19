@@ -16,6 +16,7 @@ const config: NextConfig = {
 	reactStrictMode: true,
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
+	optimizeFonts: false,
 
 	images: {
 		remotePatterns: [
