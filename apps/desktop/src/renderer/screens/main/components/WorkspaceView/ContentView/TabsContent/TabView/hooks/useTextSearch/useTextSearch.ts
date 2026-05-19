@@ -1,5 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { computeSearchUpdate } from "./utils/searchUpdate";
 import {
 	findTextRanges,
 	getHighlightStyleContainers,
@@ -151,7 +152,11 @@ export function useTextSearch({
 	}, []);
 
 	const performSearch = useCallback(
-		(searchQuery: string, isCaseSensitive: boolean) => {
+		(
+			searchQuery: string,
+			isCaseSensitive: boolean,
+			options: { preserveActiveMatch?: boolean } = {},
+		) => {
 			clearHighlights();
 
 			const searchRoots = getResolvedSearchRoots();
@@ -171,7 +176,15 @@ export function useTextSearch({
 			});
 
 			rangesRef.current = ranges;
-			setMatchCount(ranges.length);
+
+			const update = computeSearchUpdate({
+				rangeCount: ranges.length,
+				currentActiveIndex: activeMatchIndexRef.current,
+				preserveActiveMatch: options.preserveActiveMatch ?? false,
+			});
+
+			setMatchCount(update.matchCount);
+			setActiveMatchIndex(update.activeMatchIndex);
 
 			if (ranges.length > 0 && supportsCustomHighlights()) {
 				const allHighlight = new Highlight();
@@ -180,12 +193,13 @@ export function useTextSearch({
 				}
 				CSS.highlights.set(highlightKeys.matches, allHighlight);
 
-				setActiveMatchIndex(0);
-				const activeHighlight = new Highlight(ranges[0]);
+				const activeRange = ranges[update.activeMatchIndex];
+				const activeHighlight = new Highlight(activeRange);
 				CSS.highlights.set(highlightKeys.active, activeHighlight);
-				scrollRangeIntoView(ranges[0]);
-			} else {
-				setActiveMatchIndex(0);
+
+				if (update.shouldScrollActiveIntoView) {
+					scrollRangeIntoView(activeRange);
+				}
 			}
 		},
 		[
@@ -202,13 +216,14 @@ export function useTextSearch({
 		(
 			searchQuery = queryRef.current,
 			isCaseSensitive = caseSensitiveRef.current,
+			options: { preserveActiveMatch?: boolean } = {},
 		) => {
 			if (searchTimerRef.current) {
 				clearTimeout(searchTimerRef.current);
 			}
 
 			searchTimerRef.current = setTimeout(() => {
-				performSearch(searchQuery, isCaseSensitive);
+				performSearch(searchQuery, isCaseSensitive, options);
 			}, SEARCH_DEBOUNCE_MS);
 		},
 		[performSearch],
@@ -219,6 +234,7 @@ export function useTextSearch({
 			const ranges = rangesRef.current;
 			if (ranges.length === 0) return;
 
+			activeMatchIndexRef.current = index;
 			setActiveMatchIndex(index);
 
 			if (supportsCustomHighlights()) {
@@ -285,7 +301,7 @@ export function useTextSearch({
 			frameId = requestAnimationFrame(() => {
 				clearSearchIndexCache();
 				observeTargets();
-				scheduleSearch();
+				scheduleSearch(undefined, undefined, { preserveActiveMatch: true });
 			});
 		});
 		const observeTargets = () => {
