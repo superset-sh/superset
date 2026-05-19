@@ -107,6 +107,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description: "Open-source coding agent for the terminal, IDE, and desktop.",
 		command: "opencode",
 		promptCommand: "opencode --prompt",
+		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
 		id: "pi",
