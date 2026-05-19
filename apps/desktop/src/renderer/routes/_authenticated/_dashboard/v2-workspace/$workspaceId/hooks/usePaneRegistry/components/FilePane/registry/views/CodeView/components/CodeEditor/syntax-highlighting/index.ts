@@ -1,1 +1,4 @@
-export { getCodeSyntaxHighlighting } from "./syntax-highlighting";
+export {
+	getCodeSyntaxHighlighting,
+	getEditorHighlightStyle,
+} from "./syntax-highlighting";
