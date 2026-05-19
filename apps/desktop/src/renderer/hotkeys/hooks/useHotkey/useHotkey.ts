@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { type Options, useHotkeys } from "react-hotkeys-hook";
+import { isActiveCodeMirrorVimInsertMode } from "renderer/lib/code-editor/vim";
 import { formatHotkeyDisplay } from "../../display";
 import type { HotkeyId } from "../../registry";
 import { PLATFORM } from "../../registry";
@@ -15,6 +16,7 @@ import { useBinding } from "../useBinding";
 function shouldIgnoreEvent(e: KeyboardEvent): boolean {
 	if (e.isComposing || e.keyCode === 229) return true;
 	if (e.getModifierState?.("AltGraph") === true) return true;
+	if (isActiveCodeMirrorVimInsertMode(e.target)) return true;
 	return false;
 }
 

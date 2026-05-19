@@ -19,6 +19,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_MARKDOWN: "appearance-markdown",
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
+	APPEARANCE_VIM_MODE: "appearance-vim-mode",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
@@ -126,6 +127,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_VIM_MODE]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
@@ -434,6 +436,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"monospace",
 			"typography",
 			"custom",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_VIM_MODE,
+		section: "appearance",
+		title: "Vim mode",
+		description: "Use Vim keybindings in file and code editors",
+		keywords: [
+			"appearance",
+			"editor",
+			"vim",
+			"vi",
+			"keybindings",
+			"keyboard",
+			"modal",
+			"normal mode",
+			"insert mode",
 		],
 	},
 	{

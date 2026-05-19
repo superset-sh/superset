@@ -27,6 +27,13 @@ describe("settings search - font settings", () => {
 		const results = searchSettings("editor");
 		const ids = getIds(results);
 		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT);
+		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_VIM_MODE);
+	});
+
+	it('searching "vim" returns APPEARANCE_VIM_MODE', () => {
+		const results = searchSettings("vim");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_VIM_MODE);
 	});
 
 	it('searching "monospace" returns both font items', () => {
