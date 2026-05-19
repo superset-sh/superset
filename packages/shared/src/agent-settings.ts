@@ -324,7 +324,14 @@ function resolveAgentConfig(
 			description: resolveDescription(definition.description, override),
 			enabled: override?.enabled ?? definition.enabled,
 			command: override?.command ?? definition.command,
-			promptCommand: override?.promptCommand ?? definition.promptCommand,
+			// Mirrors createTerminalAgentDefinition's "promptCommand defaults to
+			// command" invariant: when the user customizes `command` without
+			// separately customizing `promptCommand`, prompt launches should
+			// follow the new command rather than reverting to the builtin default.
+			promptCommand:
+				override?.promptCommand ??
+				override?.command ??
+				definition.promptCommand,
 			promptCommandSuffix: resolvePromptCommandSuffix(
 				definition.promptCommandSuffix,
 				override,
