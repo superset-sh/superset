@@ -822,11 +822,24 @@ function setupSignalHandlers() {
 // =============================================================================
 
 async function main() {
+	// Belt-and-suspenders SIGHUP guard, installed before anything else (log
+	// calls included). Without a registered listener, Node's default action
+	// for SIGHUP is to terminate the process — so if Electron tears down the
+	// macOS login session during our startup logging, the daemon dies before
+	// setupSignalHandlers() can install the definitive listener.
+	//
+	// We remove this temporary guard after setupSignalHandlers() to keep the
+	// listener set clean — `process.on` adds rather than replaces, so leaving
+	// it in place would leave two SIGHUP listeners for the daemon's lifetime.
+	const earlyHupGuard = (): void => {};
+	process.on("SIGHUP", earlyHupGuard);
+
 	log("info", "Terminal Host Daemon starting...");
 	log("info", `Environment: ${process.env.NODE_ENV || "production"}`);
 	log("info", `Home directory: ${SUPERSET_HOME_DIR}`);
 
 	setupSignalHandlers();
+	process.removeListener("SIGHUP", earlyHupGuard);
 
 	try {
 		await startServer();
