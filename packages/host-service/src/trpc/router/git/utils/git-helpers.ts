@@ -312,9 +312,15 @@ export async function detectUnstagedRenames(
 	hasDeletions: boolean,
 ): Promise<DetectedRename[]> {
 	if (untrackedPaths.length === 0) return [];
-	// Renames need a deletion; copy detection between two untracked
-	// files needs at least two of them.
-	if (!hasDeletions && untrackedPaths.length < 2) return [];
+	// Renames require a deletion. Without this guard, every `getStatus`
+	// refetch (one per debounced `git:changed`) re-runs the full pipeline
+	// — mkdtemp + index copy + `git add --intent-to-add` + two `git diff`
+	// subprocesses — even for pure modifications. Active agents (codex,
+	// claude-code) trigger fs events several times a second, so the loop
+	// becomes near-continuous CPU burn. Copy detection between two
+	// untracked files is theoretically possible here but vanishingly rare
+	// in practice and not worth the per-refetch cost.
+	if (!hasDeletions) return [];
 
 	let indexPath: string;
 	try {

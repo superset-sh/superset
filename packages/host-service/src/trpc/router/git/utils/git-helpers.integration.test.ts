@@ -6,6 +6,7 @@ import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
 import { resolveUpstream } from "../../../../runtime/git/refs";
 import {
+	detectUnstagedRenames,
 	getChangedFilesForDiff,
 	getDefaultBranchName,
 	resolveBaseComparison,
@@ -347,5 +348,70 @@ describe("getChangedFilesForDiff (integration)", () => {
 		const paths = files.map((f) => f.path).sort();
 		// Only our branch's file should show — C on main is excluded by 3-dot.
 		expect(paths).toEqual(["branch-only.ts"]);
+	});
+});
+
+// ── detectUnstagedRenames ───────────────────────────────────────────
+
+describe("detectUnstagedRenames (integration)", () => {
+	let repo: string;
+	let git: SimpleGit;
+
+	beforeEach(async () => {
+		repo = mkTmp();
+		git = await initRepo(repo);
+		await commitFile(git, repo, "tracked.ts", "tracked\n", "base");
+	});
+
+	afterEach(() => {
+		rmSync(repo, { recursive: true, force: true });
+	});
+
+	test("returns [] without spawning subprocesses when there are no deletions", async () => {
+		// Codex-style scenario: tracked file gets modified, plus a couple
+		// of untracked files exist (logs, generated artifacts, etc.). No
+		// deletions means no rename can be detected — running the full
+		// rename pipeline (mkdtemp + index copy + git add --intent-to-add
+		// + 2 git diff subprocesses) on every getStatus refetch is pure
+		// waste. Issue #4223: an active codex agent triggers fs events
+		// roughly every 300ms, and Superset.app burns CPU spawning these
+		// subprocesses in a tight loop.
+		await writeFile(join(repo, "tracked.ts"), "tracked-modified\n");
+		await writeFile(join(repo, "untracked1.ts"), "x\n");
+		await writeFile(join(repo, "untracked2.ts"), "y\n");
+
+		const start = performance.now();
+		const result = await detectUnstagedRenames(
+			git,
+			repo,
+			["untracked1.ts", "untracked2.ts"],
+			false,
+		);
+		const elapsed = performance.now() - start;
+
+		expect(result).toEqual([]);
+		// A single child_process spawn (fork+exec+IPC) is ~20ms+ on Linux,
+		// and the unfixed path runs `mkdtemp` + `copyFile` + `git add` +
+		// two `git diff` invocations sequentially — easily 100ms+. A pure
+		// in-process early return finishes well under 20ms.
+		expect(elapsed).toBeLessThan(20);
+	});
+
+	test("detects rename when an untracked file replaces a deleted tracked file", async () => {
+		// Sanity check that the function still does its job when a
+		// deletion is present — the early-return optimization must not
+		// regress this.
+		await commitFile(git, repo, "old.ts", "shared\n", "add old");
+		// Simulate `mv old.ts new.ts` in the working tree (unstaged).
+		rmSync(join(repo, "old.ts"));
+		await writeFile(join(repo, "new.ts"), "shared\n");
+
+		const result = await detectUnstagedRenames(git, repo, ["new.ts"], true);
+		expect(result).toHaveLength(1);
+		expect(result[0]).toMatchObject({
+			oldPath: "old.ts",
+			newPath: "new.ts",
+			status: "renamed",
+		});
 	});
 });
