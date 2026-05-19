@@ -96,7 +96,7 @@ export function WorkspaceSidebarHeader({
 							/>
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="right">Tasks</TooltipContent>
+					<TooltipContent side="right">Issues & PRs</TooltipContent>
 				</Tooltip>
 
 				<NewWorkspaceButton isCollapsed />
@@ -138,7 +138,9 @@ export function WorkspaceSidebarHeader({
 						strokeWidth={STROKE_WIDTH}
 					/>
 				</div>
-				<span className="text-sm font-medium flex-1 text-left">Tasks</span>
+				<span className="text-sm font-medium flex-1 text-left">
+					Issues & PRs
+				</span>
 			</button>
 
 			<NewWorkspaceButton />

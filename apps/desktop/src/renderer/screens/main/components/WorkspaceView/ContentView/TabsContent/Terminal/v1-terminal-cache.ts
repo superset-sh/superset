@@ -2,6 +2,7 @@ import type { Unsubscribable } from "@trpc/server/observable";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import { getTerminalParkingContainer } from "renderer/lib/terminal/terminal-parking";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { DEBUG_TERMINAL } from "./config";
@@ -198,6 +199,7 @@ export function updateAppearance(
 		xterm.options.fontSize !== fontSize;
 	if (!fontChanged) return null;
 
+	applyTerminalFontFamilyCssVariable(entry.wrapper, fontFamily);
 	xterm.options.fontFamily = fontFamily;
 	xterm.options.fontSize = fontSize;
 

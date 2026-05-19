@@ -163,7 +163,7 @@ export function DashboardSidebarHeader({
 							<HiOutlineClipboardDocumentList className="size-4" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="right">Tasks</TooltipContent>
+					<TooltipContent side="right">Issues & PRs</TooltipContent>
 				</Tooltip>
 
 				<Tooltip delayDuration={300}>
@@ -268,7 +268,7 @@ export function DashboardSidebarHeader({
 				)}
 			>
 				<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Tasks</span>
+				<span className="flex-1 text-left">Issues & PRs</span>
 			</button>
 
 			<div className="flex items-center gap-0">

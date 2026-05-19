@@ -1,9 +1,11 @@
 import type { WorkspaceState } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
@@ -36,7 +38,8 @@ export interface UseWorkspaceCreatesApi {
 
 export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const entries = useWorkspaceCreatesStore((s) => s.entries);
-	const { machineId, activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { machineId, activeHostUrl } = hostService;
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
@@ -63,7 +66,9 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				relayUrl,
 			});
 			if (!hostUrl) {
-				const error = "Host service not available";
+				const error = getHostServiceUnavailableMessage(hostService, {
+					action: "create the workspace",
+				});
 				useWorkspaceCreatesStore.getState().markError(workspaceId, error);
 				return { ok: false, error };
 			}
@@ -135,6 +140,9 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				if (result.alreadyExists && result.workspace.id !== workspaceId) {
 					useWorkspaceCreatesStore.getState().remove(workspaceId);
 				}
+				for (const warning of result.warnings ?? []) {
+					toast.warning(warning);
+				}
 				return {
 					ok: true,
 					workspaceId: result.workspace.id,
@@ -146,7 +154,14 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				return { ok: false, error };
 			}
 		},
-		[machineId, activeHostUrl, organizationId, collections, relayUrl],
+		[
+			machineId,
+			activeHostUrl,
+			organizationId,
+			collections,
+			relayUrl,
+			hostService,
+		],
 	);
 
 	const submit = useCallback(

@@ -27,6 +27,7 @@ export function NameSection({ projectId, currentName }: NameSectionProps) {
 
 	return (
 		<Input
+			id="project-name"
 			value={value}
 			onChange={(e) => setValue(e.target.value)}
 			onBlur={commit}
@@ -42,6 +43,7 @@ export function NameSection({ projectId, currentName }: NameSectionProps) {
 				}
 			}}
 			placeholder="Project name"
+			className="w-96"
 		/>
 	);
 }

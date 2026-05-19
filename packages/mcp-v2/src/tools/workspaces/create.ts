@@ -40,7 +40,7 @@ export function register(server: McpServer): void {
 				.positive()
 				.optional()
 				.describe(
-					"Pull request number — server runs `gh pr checkout` and derives the branch.",
+					"Pull request number — server checks out the verified PR head and derives the branch.",
 				),
 			baseBranch: z
 				.string()
@@ -79,6 +79,7 @@ export function register(server: McpServer): void {
 					| { ok: false; error: string }
 				>;
 				alreadyExists: boolean;
+				warnings: string[];
 			}>(
 				{
 					relayUrl: ctx.relayUrl,

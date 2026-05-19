@@ -192,6 +192,34 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(worktreeList).toContain(otherWorktreePath);
 	});
 
+	test("missing worktree that was locked is still removed without warnings", async () => {
+		// A locked worktree whose dir was manually deleted is the scenario
+		// that breaks the substring-based error matcher: git says
+		// "fatal: cannot remove a locked working tree" and single `--force`
+		// is not enough. `--force --force` plus the existsSync fallback
+		// closes the loop so the user always gets a clean delete.
+		await scenario.repo.git.raw(["worktree", "lock", scenario.worktreePath]);
+		rmSync(scenario.worktreePath, { recursive: true, force: true });
+
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			deleteBranch: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(result.branchDeleted).toBe(true);
+		expect(result.warnings).toEqual([]);
+
+		const worktreeList = await scenario.repo.git.raw([
+			"worktree",
+			"list",
+			"--porcelain",
+		]);
+		expect(worktreeList).not.toContain(scenario.worktreePath);
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).not.toContain(scenario.branch);
+	});
+
 	test("returns success when no local workspace row exists, still calls cloud delete", async () => {
 		await scenario.dispose();
 		const fresh = await createBasicScenario({

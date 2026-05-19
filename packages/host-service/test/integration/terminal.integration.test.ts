@@ -124,8 +124,20 @@ describe("terminal router integration", () => {
 				workspaceId: scenario.workspaceId,
 				terminalId,
 			});
+			const detachedCount =
+				await scenario.host.trpc.terminal.countBackgroundSessions.query({
+					workspaceId: scenario.workspaceId,
+					attachedTerminalIds: [],
+				});
+			const attachedCount =
+				await scenario.host.trpc.terminal.countBackgroundSessions.query({
+					workspaceId: scenario.workspaceId,
+					attachedTerminalIds: [terminalId],
+				});
 
 			expect(spawned).toHaveLength(1);
+			expect(detachedCount.count).toBe(1);
+			expect(attachedCount.count).toBe(0);
 			const [{ meta }] = spawned;
 			expect(meta.shell).toBe(fakeFishPath);
 			expect(meta.argv[0]).toBe("-l");

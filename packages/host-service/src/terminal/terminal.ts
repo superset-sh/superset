@@ -408,6 +408,35 @@ export function listTerminalSessions(
 		}));
 }
 
+export function countTerminalSessions(
+	options: {
+		workspaceId?: string;
+		includeExited?: boolean;
+		excludeTerminalIds?: Iterable<string>;
+	} = {},
+): number {
+	const includeExited = options.includeExited ?? true;
+	const excludedTerminalIds = options.excludeTerminalIds
+		? new Set(options.excludeTerminalIds)
+		: null;
+	let count = 0;
+
+	for (const session of sessions.values()) {
+		if (!session.listed) continue;
+		if (
+			options.workspaceId !== undefined &&
+			session.workspaceId !== options.workspaceId
+		) {
+			continue;
+		}
+		if (!includeExited && session.exited) continue;
+		if (excludedTerminalIds?.has(session.terminalId)) continue;
+		count += 1;
+	}
+
+	return count;
+}
+
 export function writeInputToSession({
 	terminalId,
 	workspaceId,

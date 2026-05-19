@@ -73,8 +73,20 @@ describe("resolveOpenableWorktrees", () => {
 		expect(result.get("hotfix/payment-bug")).toEqual({
 			type: "external",
 			worktreePath: "/repos/project/.worktrees/hotfix-1",
-			branch: "hotfix/payment-bug",
 		});
+	});
+
+	test("excludes external worktrees with an active workspace", () => {
+		const external: ExternalWorktree[] = [
+			{
+				path: "/repos/project/.worktrees/hotfix-1",
+				branch: "hotfix/payment-bug",
+				hasActiveWorkspace: true,
+			},
+		];
+		const result = resolveOpenableWorktrees([], external);
+
+		expect(result.size).toBe(0);
 	});
 
 	test("tracked worktrees take priority over external worktrees for the same branch", () => {
@@ -128,7 +140,6 @@ describe("resolveOpenableWorktrees", () => {
 		expect(result.get("feature/b")).toEqual({
 			type: "external",
 			worktreePath: "/repos/project/.worktrees/b",
-			branch: "feature/b",
 		});
 	});
 

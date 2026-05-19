@@ -13,7 +13,11 @@
 // Pattern adapted from VSCode's XtermSerializer
 // (src/vs/platform/terminal/node/ptyService.ts).
 
-import { Terminal as HeadlessTerminal } from "@xterm/headless";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { Terminal: HeadlessTerminal } =
+	require("@xterm/headless") as typeof import("@xterm/headless");
 
 export interface ModeTracker {
 	feed(bytes: Uint8Array): void;

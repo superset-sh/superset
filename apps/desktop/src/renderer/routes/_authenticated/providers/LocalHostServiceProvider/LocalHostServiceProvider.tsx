@@ -10,12 +10,16 @@ import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { setHostServiceSecret } from "renderer/lib/host-service-auth";
+import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
 import { MOCK_ORG_ID } from "shared/constants";
 import { useCollections } from "../CollectionsProvider";
 
 interface LocalHostServiceContextValue {
 	machineId: string;
 	activeHostUrl: string | null;
+	activeOrganizationId: string | null;
+	activeOrganizationName: string | null;
+	hostServiceStatus: HostServiceAvailabilityStatus;
 }
 
 const LocalHostServiceContext =
@@ -62,12 +66,39 @@ export function LocalHostServiceProvider({
 			{ enabled: !!activeOrganizationId, refetchInterval: 5_000 },
 		);
 
+	const { data: processStatus } =
+		electronTrpc.hostServiceCoordinator.getProcessStatus.useQuery(
+			{ organizationId: activeOrganizationId as string },
+			{
+				enabled: !!activeOrganizationId,
+				refetchInterval: activeConnection?.port ? false : 1_000,
+			},
+		);
+
+	const activeOrganizationName = useMemo(
+		() =>
+			organizations?.find(
+				(organization) => organization.id === activeOrganizationId,
+			)?.name ?? null,
+		[organizations, activeOrganizationId],
+	);
+
 	const value = useMemo<LocalHostServiceContextValue | null>(() => {
 		if (!machineIdData) return null;
 		const machineId = machineIdData.machineId;
+		const hostServiceStatus: HostServiceAvailabilityStatus =
+			activeConnection?.port != null
+				? "running"
+				: (processStatus?.status ?? "unknown");
 
 		if (!activeConnection?.port) {
-			return { machineId, activeHostUrl: null };
+			return {
+				machineId,
+				activeHostUrl: null,
+				activeOrganizationId: activeOrganizationId ?? null,
+				activeOrganizationName,
+				hostServiceStatus,
+			};
 		}
 
 		const activeHostUrl = `http://127.0.0.1:${activeConnection.port}`;
@@ -75,8 +106,20 @@ export function LocalHostServiceProvider({
 			setHostServiceSecret(activeHostUrl, activeConnection.secret);
 		}
 
-		return { machineId, activeHostUrl };
-	}, [machineIdData, activeConnection]);
+		return {
+			machineId,
+			activeHostUrl,
+			activeOrganizationId: activeOrganizationId ?? null,
+			activeOrganizationName,
+			hostServiceStatus,
+		};
+	}, [
+		machineIdData,
+		activeConnection,
+		activeOrganizationId,
+		activeOrganizationName,
+		processStatus?.status,
+	]);
 
 	if (!value) return null;
 

@@ -169,6 +169,10 @@ export function useDashboardSidebarData() {
 			})),
 		[collections],
 	);
+	const hostsByMachineId = useMemo(
+		() => new Map(hosts.map((host) => [host.machineId, host])),
+		[hosts],
+	);
 
 	const { data: rawSidebarProjects = [] } = useLiveQuery(
 		(q) =>
@@ -235,19 +239,15 @@ export function useDashboardSidebarData() {
 					({ sidebarWorkspaces, workspaces }) =>
 						eq(sidebarWorkspaces.workspaceId, workspaces.id),
 				)
-				.innerJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.machineId),
-				)
 				.orderBy(
 					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
 					"asc",
 				)
-				.select(({ sidebarWorkspaces, workspaces, hosts }) => ({
+				.select(({ sidebarWorkspaces, workspaces }) => ({
 					id: workspaces.id,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					hostId: workspaces.hostId,
 					type: workspaces.type,
-					hostIsOnline: hosts.isOnline,
 					name: workspaces.name,
 					branch: workspaces.branch,
 					taskId: workspaces.taskId,
@@ -259,10 +259,18 @@ export function useDashboardSidebarData() {
 				})),
 		[collections],
 	);
+	const rawSidebarWorkspacesWithHostStatus = useMemo(
+		() =>
+			rawSidebarWorkspaces.map((workspace) => ({
+				...workspace,
+				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+			})),
+		[hostsByMachineId, rawSidebarWorkspaces],
+	);
 
 	const sidebarWorkspaces = useMemo(
-		() => getVisibleSidebarWorkspaces(rawSidebarWorkspaces),
-		[rawSidebarWorkspaces],
+		() => getVisibleSidebarWorkspaces(rawSidebarWorkspacesWithHostStatus),
+		[rawSidebarWorkspacesWithHostStatus],
 	);
 
 	const localStateWorkspaceIds = useMemo(
@@ -270,20 +278,16 @@ export function useDashboardSidebarData() {
 		[rawSidebarWorkspaces],
 	);
 
-	const { data: localMainWorkspaces = [] } = useLiveQuery(
+	const { data: rawLocalMainWorkspaces = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
-				.innerJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.machineId),
-				)
 				.where(({ workspaces }) => eq(workspaces.type, "main"))
-				.select(({ workspaces, hosts }) => ({
+				.select(({ workspaces }) => ({
 					id: workspaces.id,
 					projectId: workspaces.projectId,
 					hostId: workspaces.hostId,
 					type: workspaces.type,
-					hostIsOnline: hosts.isOnline,
 					name: workspaces.name,
 					branch: workspaces.branch,
 					taskId: workspaces.taskId,
@@ -294,6 +298,14 @@ export function useDashboardSidebarData() {
 				})),
 		[collections],
 	);
+	const localMainWorkspaces = useMemo(
+		() =>
+			rawLocalMainWorkspaces.map((workspace) => ({
+				...workspace,
+				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+			})),
+		[hostsByMachineId, rawLocalMainWorkspaces],
+	);
 
 	// Cloud-row fallback: when workspaces.create has resolved on the host
 	// service but Electric hasn't yet delivered the v2Workspaces row, surface
@@ -302,16 +314,13 @@ export function useDashboardSidebarData() {
 	// catches up, at which point the live query takes over seamlessly.
 	const cloudRowFallbackWorkspaces = useMemo(() => {
 		if (inFlightEntries.length === 0) return [];
-		const hostByMachineId = new Map(
-			hosts.map((host) => [host.machineId, host]),
-		);
 		const rows = inFlightEntries.flatMap((entry) => {
 			const cloudRow = entry.cloudRow;
 			if (!cloudRow) return [];
 			// Electric already delivered; let the live query own this row.
 			if (localStateWorkspaceIds.has(cloudRow.id)) return [];
 			const localState = collections.v2WorkspaceLocalState.get(cloudRow.id);
-			const host = hostByMachineId.get(cloudRow.hostId);
+			const host = hostsByMachineId.get(cloudRow.hostId);
 			return [
 				{
 					id: cloudRow.id,
@@ -332,7 +341,7 @@ export function useDashboardSidebarData() {
 			];
 		});
 		return getVisibleSidebarWorkspaces(rows);
-	}, [collections, hosts, inFlightEntries, localStateWorkspaceIds]);
+	}, [collections, hostsByMachineId, inFlightEntries, localStateWorkspaceIds]);
 
 	const visibleSidebarWorkspaces = useMemo(() => {
 		const sidebarProjectIds = new Set(

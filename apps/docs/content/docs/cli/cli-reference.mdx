@@ -536,7 +536,7 @@ List workspaces accessible to the active organization. With neither
 		{ flag: "--project <projectId>", required: true, description: "Project ID." },
 		{ flag: "--name <name>", required: true, description: "Workspace name." },
 		{ flag: "--branch <branch>", description: "Workspace branch. Required unless `--pr` is set." },
-		{ flag: "--pr <number>", description: "Pull request number. Derives the branch via `gh pr checkout`." },
+		{ flag: "--pr <number>", description: "Pull request number. Checks out the verified PR head." },
 		{ flag: "--base-branch <branch>", description: "Branch to fork from when `--branch` does not exist. Defaults to the project default branch." },
 		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },

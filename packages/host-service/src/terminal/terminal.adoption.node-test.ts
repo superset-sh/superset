@@ -32,10 +32,10 @@ import { initTerminalBaseEnv } from "./env.ts";
 import {
 	__resetSessionsForTesting,
 	createTerminalSessionInternal,
-	disposeSession,
 	disposeSessionAndWait,
 	listTerminalSessions,
 } from "./terminal.ts";
+import { __setAccountShellForTesting } from "./user-shell.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_HOME = path.join(os.tmpdir(), `host-svc-adopt-${process.pid}`);
@@ -68,6 +68,7 @@ before(async () => {
 	process.env.HOST_SERVICE_VERSION = "0.0.0-adoption-e2e";
 	process.env.NODE_ENV = "development";
 
+	__setAccountShellForTesting("/bin/sh");
 	initTerminalBaseEnv({
 		PATH: process.env.PATH ?? "/usr/bin:/bin",
 		HOME: process.env.HOME ?? TEST_HOME,
@@ -100,6 +101,7 @@ before(async () => {
 
 after(async () => {
 	__resetSessionsForTesting();
+	__setAccountShellForTesting(undefined);
 	await disposeDaemonClient();
 	await server.close();
 	try {
@@ -134,7 +136,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.equal(daemonSession.cols, 101);
 		assert.equal(daemonSession.rows, 27);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("existing session accepts a not-yet-queued initialCommand", async () => {
@@ -163,7 +165,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.equal(second.initialCommandQueued, true);
 		await waitFor(() => fs.existsSync(sentinelFile), 5000);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("rejects reusing a live terminal id from another workspace", async () => {
@@ -200,7 +202,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			false,
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adoptOnly refuses to spawn when daemon does not own the session", async () => {
@@ -242,11 +244,9 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			db,
 			listed: true,
 		});
-		assert.ok(
-			!("error" in result),
-			`expected session, got error: ${JSON.stringify(result)}`,
-		);
-		if ("error" in result) return;
+		if ("error" in result) {
+			assert.fail(`expected session, got error: ${result.error}`);
+		}
 
 		assert.equal(result.terminalId, terminalId);
 		assert.ok(result.pty.pid > 0, "pty pid should be populated");
@@ -257,7 +257,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"new session should be in listTerminalSessions",
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adopts existing daemon session after host-service restart simulation", async () => {
@@ -304,7 +304,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await waitFor(() => buf.includes("after-host-restart"), 3000);
 		disposer.dispose();
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adopted session keeps listed/exited bookkeeping", async () => {
@@ -337,7 +337,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			),
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("rejects adopting a daemon session from another workspace after host-service restart simulation", async () => {
@@ -428,7 +428,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"initialCommand re-fired on adopted session — would re-run setup.sh on every host-service restart",
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adoption when the original workspace row is gone returns a clear error", async () => {
@@ -482,13 +482,13 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"adoption with missing workspace must return error, not throw or loop",
 		);
 		if ("error" in second) {
-			assert.match(second.error, /Workspace worktree not found/);
+			assert.match(second.error, /Workspace (not found|worktree)/);
 		}
 
 		// Daemon still has the orphan session — clean it up directly so the
 		// test suite leaves nothing behind. Production needs a periodic
 		// "orphan session sweep" but that's a separate cleanup concern.
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("replayOnAdoption: false suppresses ring-buffer replay on reconnect", async () => {
@@ -535,15 +535,18 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"adopted session should have same shell pid",
 		);
 
-		// session.bufferBytes is the direct signal: the primary subscription
-		// writes incoming chunks here for WS broadcast. Non-zero after a
-		// replay-suppressed adopt = bug.
+		// The shell may still produce live prompt bytes after reconnect, but
+		// the daemon ring-buffer sentinel from the previous host lifetime must
+		// not be replayed when replayOnAdoption=false.
 		await new Promise((r) => setTimeout(r, 500));
 
+		const bufferedAfterAdoption = Buffer.concat(
+			second.buffer.map((b) => Buffer.from(b)),
+		).toString("utf8");
 		assert.equal(
-			second.bufferBytes,
-			0,
-			`adopted session.bufferBytes must remain 0 when replayOnAdoption=false; got ${second.bufferBytes} bytes (first chunk: ${second.buffer[0] ? JSON.stringify(Buffer.from(second.buffer[0]).toString("utf8").slice(0, 100)) : "<empty>"})`,
+			bufferedAfterAdoption.includes(SENTINEL),
+			false,
+			`adopted session replayed prior output despite replayOnAdoption=false: ${JSON.stringify(bufferedAfterAdoption.slice(0, 200))}`,
 		);
 
 		// Sanity check: live output still flows post-reattach.
@@ -556,7 +559,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			return text.includes(LIVE_SENTINEL);
 		}, 3000);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("dispose then re-create with the same id works (no zombie state)", async () => {
@@ -575,7 +578,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.ok(!("error" in first));
 		const firstPid = "error" in first ? -1 : first.pty.pid;
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 
 		// Wait for the daemon's onExit handler to mark the session exited
 		// (SIGTERM → shell exits → wireSession.onExit fires → session.exited
@@ -588,11 +591,9 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			db,
 			listed: true,
 		});
-		assert.ok(
-			!("error" in second),
-			`re-create after dispose failed: ${JSON.stringify(second)}`,
-		);
-		if ("error" in second) return;
+		if ("error" in second) {
+			assert.fail(`re-create after dispose failed: ${second.error}`);
+		}
 
 		// Different shell pid (real fresh spawn) — not adoption.
 		assert.notEqual(
@@ -601,7 +602,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"re-create after dispose should be a fresh spawn, not adoption of the dead session",
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 });
 

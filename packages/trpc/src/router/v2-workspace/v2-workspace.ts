@@ -147,6 +147,8 @@ export const v2WorkspaceRouter = {
 					projectId: v2Workspaces.projectId,
 					projectName: v2Projects.name,
 					hostId: v2Workspaces.hostId,
+					type: v2Workspaces.type,
+					createdAt: v2Workspaces.createdAt,
 				})
 				.from(v2Workspaces)
 				.innerJoin(
@@ -179,6 +181,8 @@ export const v2WorkspaceRouter = {
 				projectId: row.projectId,
 				projectName: row.projectName ?? "",
 				hostId: row.hostId,
+				type: row.type,
+				createdAt: row.createdAt,
 			}));
 		}),
 

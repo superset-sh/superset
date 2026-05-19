@@ -16,10 +16,9 @@ export interface HostServiceManifest {
 	startedAt: number;
 	organizationId: string;
 	/**
-	 * Desktop app version that spawned this host-service. This is diagnostic
-	 * adoption context; a version mismatch alone must not kill a healthy
-	 * service because canary app timestamps can change without requiring a
-	 * host-service restart.
+	 * Desktop app version that spawned this host-service. Desktop uses this to
+	 * replace the detached host-service after an app update even when the
+	 * host-service package version was not bumped.
 	 */
 	spawnedByAppVersion: string;
 }
@@ -69,8 +68,8 @@ export function readManifest(
 
 		// `spawnedByAppVersion` is required going forward, but pre-existing
 		// manifests on upgraded users won't have it. Coerce to empty string so
-		// `tryAdopt` can log the provenance gap and still health-check the
-		// existing service before deciding whether to reuse it.
+		// `tryAdopt` can treat it as stale and still health-verify before
+		// signaling any PID.
 		if (typeof data.spawnedByAppVersion !== "string") {
 			data.spawnedByAppVersion = "";
 		}
@@ -114,10 +113,27 @@ export function removeManifest(organizationId: string): void {
 
 /** Check whether a process with the given PID is alive. */
 export function isProcessAlive(pid: number): boolean {
+	if (!isSignalablePid(pid)) return false;
+
 	try {
 		process.kill(pid, 0);
 		return true;
 	} catch {
 		return false;
 	}
+}
+
+export function killProcess(
+	pid: number,
+	signal: NodeJS.Signals | number,
+): void {
+	if (!isSignalablePid(pid)) {
+		throw new Error(`Refusing to signal invalid pid: ${pid}`);
+	}
+
+	process.kill(pid, signal);
+}
+
+function isSignalablePid(pid: number): boolean {
+	return Number.isInteger(pid) && Number.isFinite(pid) && pid > 1;
 }

@@ -1,5 +1,7 @@
 app = "superset-relay-staging"
 primary_region = "sjc"
+kill_signal = "SIGINT"
+kill_timeout = "10s"
 
 [build]
   dockerfile = "Dockerfile"

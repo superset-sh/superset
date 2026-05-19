@@ -9,11 +9,18 @@ export { ShadowClickHint } from "./components/ShadowClickHint";
 export { buildHint, UNBOUND_HINT } from "./hint";
 export { modifierLabel } from "./modifierLabel";
 export {
+	buildChangesSidebarFileHint,
+	type ChangesSidebarFileIntent,
+	resolveChangesSidebarFileIntent,
+	tierForChangesSidebarFileIntent,
+} from "./policies/changesSidebarFilePolicy";
+export {
 	type FolderIntent,
 	folderIntentFor,
 	folderIntentLabel,
 } from "./policies/folderPolicy";
 export type { ClickPolicy } from "./policies/policy";
+export { useChangesSidebarFilePolicy } from "./policies/useChangesSidebarFilePolicy";
 export { useInlineFilePolicy } from "./policies/useInlineFilePolicy";
 export { useInlineUrlPolicy } from "./policies/useInlineUrlPolicy";
 export { useSidebarFilePolicy } from "./policies/useSidebarFilePolicy";
@@ -29,4 +36,5 @@ export type {
 	Surface,
 	TierMode,
 } from "./types";
+export { usePierreChangesSidebarRowClickPolicy } from "./usePierreChangesSidebarRowClickPolicy";
 export { usePierreRowClickPolicy } from "./usePierreRowClickPolicy";

@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import {
 	type ProjectSetupResult,
 	useFinalizeProjectSetup,
@@ -43,7 +44,8 @@ export function NewProjectModal({
 	onSuccess,
 	onError,
 }: NewProjectModalProps) {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const finalizeSetup = useFinalizeProjectSetup();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
@@ -93,7 +95,9 @@ export function NewProjectModal({
 
 	const createFromClone = async () => {
 		if (!activeHostUrl) {
-			toast.error("Host service not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "clone the repository",
+			});
 			return;
 		}
 		const trimmedUrl = url.trim();

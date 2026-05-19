@@ -1,6 +1,7 @@
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -38,8 +39,9 @@ export function RepositorySection({
 		: null;
 
 	return (
-		<div className="flex items-center gap-2">
+		<div className="relative w-96">
 			<Input
+				id="project-repo"
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				onFocus={() => {
@@ -61,19 +63,24 @@ export function RepositorySection({
 					}
 				}}
 				placeholder="https://github.com/owner/repo"
-				className="font-mono text-sm flex-1 min-w-0"
+				className="w-full font-mono text-sm pr-9"
 			/>
 			{parsed && (
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					className="shrink-0 gap-1.5"
-					onClick={() => openUrl.mutate(parsed.url)}
-				>
-					<FaGithub className="size-4" />
-					Open
-				</Button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							className="absolute right-1 top-1 size-7 text-muted-foreground hover:text-foreground"
+							onClick={() => openUrl.mutate(parsed.url)}
+							aria-label="Open in GitHub"
+						>
+							<FaGithub className="size-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>Open in GitHub</TooltipContent>
+				</Tooltip>
 			)}
 		</div>
 	);

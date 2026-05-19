@@ -217,6 +217,9 @@ export function ProjectSettings({
 			{ projectId },
 			{ enabled: !!projectId },
 		);
+	const importableExternalWorktrees = externalWorktrees.filter(
+		(worktree) => !worktree.hasActiveWorkspace,
+	);
 	const importAllWorktrees = useImportAllWorktrees();
 	const openExternalWorktree = useOpenExternalWorktree();
 
@@ -238,7 +241,6 @@ export function ProjectSettings({
 			openExternalWorktree.mutateAsync({
 				projectId,
 				worktreePath: path,
-				branch,
 			}),
 			{
 				loading: "Importing worktree...",
@@ -407,7 +409,7 @@ export function ProjectSettings({
 					/>
 
 					{!isExternalLoading &&
-						externalWorktrees.length > 0 &&
+						importableExternalWorktrees.length > 0 &&
 						isItemVisible(
 							SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
 							visibleItems,
@@ -418,8 +420,9 @@ export function ProjectSettings({
 										Import Worktrees
 									</Label>
 									<p className="text-xs text-muted-foreground">
-										{externalWorktrees.length} external worktree
-										{externalWorktrees.length === 1 ? "" : "s"} found on disk.
+										{importableExternalWorktrees.length} external worktree
+										{importableExternalWorktrees.length === 1 ? "" : "s"} found
+										on disk.
 									</p>
 								</div>
 								<div className="flex items-center gap-2">
@@ -436,9 +439,9 @@ export function ProjectSettings({
 										</SelectTrigger>
 										<SelectContent>
 											<SelectItem value="__all__">
-												All worktrees ({externalWorktrees.length})
+												All worktrees ({importableExternalWorktrees.length})
 											</SelectItem>
-											{externalWorktrees.map((wt) => (
+											{importableExternalWorktrees.map((wt) => (
 												<SelectItem key={wt.path} value={wt.path}>
 													{wt.branch}
 												</SelectItem>
@@ -451,7 +454,7 @@ export function ProjectSettings({
 											className="w-22"
 											disabled={openExternalWorktree.isPending}
 											onClick={() => {
-												const wt = externalWorktrees.find(
+												const wt = importableExternalWorktrees.find(
 													(w) => w.path === selectedWorktreePath,
 												);
 												if (wt) {
@@ -483,12 +486,15 @@ export function ProjectSettings({
 														Import all worktrees
 													</AlertDialogTitle>
 													<AlertDialogDescription>
-														This will import {externalWorktrees.length} external
+														This will import{" "}
+														{importableExternalWorktrees.length} external
 														worktree
-														{externalWorktrees.length === 1 ? "" : "s"} into
-														Superset as workspaces. Each worktree on disk will
-														be tracked and appear in your sidebar. No files will
-														be modified.
+														{importableExternalWorktrees.length === 1
+															? ""
+															: "s"}{" "}
+														into Superset as workspaces. Each worktree on disk
+														will be tracked and appear in your sidebar. No files
+														will be modified.
 													</AlertDialogDescription>
 												</AlertDialogHeader>
 												<AlertDialogFooter>

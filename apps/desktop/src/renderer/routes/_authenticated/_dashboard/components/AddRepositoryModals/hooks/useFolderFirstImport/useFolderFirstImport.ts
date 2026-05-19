@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { getBaseName } from "renderer/lib/pathBasename";
 import {
 	type ProjectSetupResult,
@@ -21,14 +22,19 @@ export function useFolderFirstImport(options?: {
 	onError?: (message: string) => void;
 	onMultipleProjects?: (input: { candidates: MatchingProject[] }) => void;
 }): UseFolderFirstImportResult {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const finalizeSetup = useFinalizeProjectSetup();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { onError, onMultipleProjects } = options ?? {};
 
 	const start = useCallback(async (): Promise<ProjectSetupResult | null> => {
 		if (!activeHostUrl) {
-			onError?.("Host service not available");
+			onError?.(
+				getHostServiceUnavailableMessage(hostService, {
+					action: "import a folder",
+				}),
+			);
 			return null;
 		}
 
@@ -49,6 +55,11 @@ export function useFolderFirstImport(options?: {
 		try {
 			const response = await client.project.findByPath.query({ repoPath });
 			candidates = response.candidates;
+			if (candidates.length === 0 && response.cloudErrors.length > 0) {
+				const first = response.cloudErrors[0];
+				onError?.(`Couldn't reach cloud for ${first.url}: ${first.message}`);
+				return null;
+			}
 		} catch (err) {
 			onError?.(err instanceof Error ? err.message : String(err));
 			return null;
@@ -93,6 +104,7 @@ export function useFolderFirstImport(options?: {
 	}, [
 		activeHostUrl,
 		finalizeSetup,
+		hostService,
 		onError,
 		onMultipleProjects,
 		selectDirectory,

@@ -15,6 +15,8 @@ interface WorkspaceHostRow {
 	workspaceId: string;
 	organizationId: string;
 	hostId: string;
+	name: string;
+	branch: string;
 }
 
 interface HostNotificationSubscriberGroup {
@@ -43,6 +45,8 @@ export function V2NotificationController() {
 					workspaceId: v2Workspaces.id,
 					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
+					name: v2Workspaces.name,
+					branch: v2Workspaces.branch,
 				})),
 		[collections],
 	);
@@ -118,6 +122,8 @@ function groupWorkspacesByHostUrl({
 		const group = groups.get(hostUrl) ?? [];
 		group.push({
 			workspaceId: workspace.workspaceId,
+			workspaceName:
+				workspace.name.trim() || workspace.branch.trim() || "Workspace",
 			paneLayout: paneLayoutsByWorkspaceId.get(workspace.workspaceId) ?? null,
 		});
 		groups.set(hostUrl, group);

@@ -142,6 +142,19 @@ jobs:
           }
           "$CLI_BIN" --version
 
+      - name: Verify native bindings packaged
+        working-directory: apps/desktop
+        run: |
+          APP_DIR=$(find release -maxdepth 2 -name "*.app" -type d | head -1)
+          UNPACKED="$APP_DIR/Contents/Resources/app.asar.unpacked/node_modules"
+          BINDING="$UNPACKED/@duckdb/node-bindings-darwin-${{ matrix.arch }}/duckdb.node"
+          test -f "$BINDING" || {
+            echo "::error::DuckDB native binding missing from packaged app — Intel/arm launch will crash. Expected: $BINDING"
+            ls -la "$UNPACKED/@duckdb" 2>/dev/null || echo "  (no @duckdb directory in app.asar.unpacked)"
+            exit 1
+          }
+          echo "OK: bundled $BINDING ($(du -h "$BINDING" | cut -f1))"
+
       - name: Upload DMG artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

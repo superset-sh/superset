@@ -1,5 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
@@ -86,10 +88,17 @@ export function WorkspaceSidebar({
 	workspaceId,
 }: WorkspaceSidebarProps) {
 	const collections = useCollections();
-	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
+	const { data: [localState] = [] } = useLiveQuery(
+		(query) =>
+			query
+				.from({ localState: collections.v2WorkspaceLocalState })
+				.where(({ localState }) => eq(localState.workspaceId, workspaceId)),
+		[collections, workspaceId],
+	);
 	const activeTab: SidebarTabId =
-		(localState?.sidebarState?.activeTab as SidebarTabId | undefined) ??
-		"changes";
+		localState && isSidebarTabId(localState.sidebarState.activeTab)
+			? localState.sidebarState.activeTab
+			: "changes";
 
 	function setActiveTab(tab: string) {
 		if (!isSidebarTabId(tab)) return;

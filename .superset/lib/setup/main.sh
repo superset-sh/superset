@@ -56,9 +56,9 @@ setup_main() {
     step_failed "Allocate port base"
   fi
 
-  # Step 8: Start Electric SQL
-  if ! step_start_electric; then
-    step_failed "Start Electric SQL"
+  # Step 8: Prepare Electric SQL env
+  if ! step_prepare_electric; then
+    step_failed "Prepare Electric SQL"
   fi
 
   # Step 9: Write .env file
@@ -66,7 +66,12 @@ setup_main() {
     step_failed "Write .env file"
   fi
 
-  # Step 10: Setup local MCP in .mcp.json (opt-in)
+  # Step 10: Start Electric SQL
+  if ! step_start_electric; then
+    step_failed "Start Electric SQL"
+  fi
+
+  # Step 11: Setup local MCP in .mcp.json (opt-in)
   if [ "$SETUP_LOCAL_MCP" = "1" ]; then
     if ! step_setup_local_mcp; then
       step_failed "Setup local MCP"

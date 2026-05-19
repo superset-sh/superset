@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
+	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	listTerminalSessions,
@@ -116,6 +117,21 @@ export const terminalRouter = router({
 			sessions: listTerminalSessions({
 				workspaceId: input.workspaceId,
 				includeExited: false,
+			}),
+		})),
+
+	countBackgroundSessions: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				attachedTerminalIds: z.array(z.string()).default([]),
+			}),
+		)
+		.query(({ input }) => ({
+			count: countTerminalSessions({
+				workspaceId: input.workspaceId,
+				includeExited: false,
+				excludeTerminalIds: input.attachedTerminalIds,
 			}),
 		})),
 

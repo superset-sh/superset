@@ -12,6 +12,7 @@ import {
 	useV2NotificationStore,
 	type V2NotificationSourceInput,
 } from "renderer/stores/v2-notifications";
+import { getV2NativeNotificationContent } from "./notificationContent";
 import {
 	isV2NotificationTargetVisible,
 	resolveV2NotificationTarget,
@@ -27,12 +28,14 @@ import { resolveV2AgentStatusTransition } from "./statusTransitions";
  */
 export function handleV2AgentLifecycleEvent({
 	workspaceId,
+	workspaceName,
 	payload,
 	paneLayout,
 	volume,
 	muted,
 }: {
 	workspaceId: string;
+	workspaceName: string;
 	payload: AgentLifecyclePayload;
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 	volume: number;
@@ -61,7 +64,12 @@ export function handleV2AgentLifecycleEvent({
 	const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
 	void playRingtone({ ringtoneId, volume, muted });
 
-	showNativeNotification({ payload, workspaceId, target });
+	showNativeNotification({
+		payload,
+		workspaceId,
+		workspaceName,
+		target,
+	});
 }
 
 export function handleV2TerminalLifecycleEvent({
@@ -134,17 +142,18 @@ function shouldSuppress(
 function showNativeNotification({
 	payload,
 	workspaceId,
+	workspaceName,
 	target,
 }: {
 	payload: AgentLifecyclePayload;
 	workspaceId: string;
+	workspaceName: string;
 	target: V2NotificationTarget;
 }): void {
-	const isPermission = payload.eventType === "PermissionRequest";
-	const title = isPermission ? "Awaiting Response" : "Agent Complete";
-	const body = isPermission
-		? "Your agent needs input"
-		: "Your agent has finished";
+	const { title, body } = getV2NativeNotificationContent({
+		workspaceName,
+		payload,
+	});
 
 	void electronTrpcClient.notifications.showNative
 		.mutate({

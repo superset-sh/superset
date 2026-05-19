@@ -52,7 +52,10 @@ export function DiffFileHeader({
 	const name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
 
 	return (
-		<div className="group/diff-file-header @container/diff-file-header sticky top-0 z-10 flex min-w-0 flex-nowrap items-center gap-1 bg-card px-3 py-2">
+		<div
+			data-diff-entry-header-path={path}
+			className="group/diff-file-header @container/diff-file-header sticky top-0 z-10 flex min-w-0 flex-nowrap items-center gap-1 bg-card px-3 py-2"
+		>
 			<button
 				type="button"
 				onClick={onToggleCollapsed}

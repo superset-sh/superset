@@ -184,6 +184,23 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 	}
 
 	const shouldMount = reason ? showFullDiff : hasBeenNearRef.current;
+	const header = (
+		<DiffFileHeader
+			path={file.path}
+			status={file.status}
+			additions={file.additions}
+			deletions={file.deletions}
+			expandUnchanged={expandUnchanged}
+			onToggleExpandUnchanged={handleToggleExpandUnchanged}
+			collapsed={collapsed}
+			onToggleCollapsed={handleToggleCollapsed}
+			viewed={viewed}
+			onToggleViewed={handleToggleViewed}
+			onOpenFile={handleOpenFile}
+			onOpenInExternalEditor={handleOpenInExternalEditor}
+			onDiscard={requestDiscard}
+		/>
+	);
 
 	return (
 		<div
@@ -193,24 +210,15 @@ export const DiffFileEntry = memo(function DiffFileEntry({
 				minHeight: collapsed ? COLLAPSED_HEIGHT_PX : expandedHeight(file),
 			}}
 		>
+			{header}
 			{shouldMount ? (
 				<WorkspaceDiff
 					workspaceId={workspaceId}
 					path={file.path}
-					status={file.status}
 					source={file.source}
-					additions={file.additions}
-					deletions={file.deletions}
 					diffStyle={diffStyle}
 					expandUnchanged={expandUnchanged}
-					onToggleExpandUnchanged={handleToggleExpandUnchanged}
 					collapsed={collapsed}
-					onToggleCollapsed={handleToggleCollapsed}
-					viewed={viewed}
-					onToggleViewed={handleToggleViewed}
-					onOpenFile={handleOpenFile}
-					onOpenInExternalEditor={handleOpenInExternalEditor}
-					onDiscard={requestDiscard}
 					focusLine={focusLine}
 					focusTick={focusTick}
 				/>

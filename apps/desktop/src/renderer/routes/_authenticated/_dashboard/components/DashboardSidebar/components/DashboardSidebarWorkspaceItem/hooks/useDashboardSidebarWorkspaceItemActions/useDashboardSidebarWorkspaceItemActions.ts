@@ -3,6 +3,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -31,7 +32,8 @@ export function useDashboardSidebarWorkspaceItemActions({
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const { copyToClipboard } = useCopyToClipboard();
 	const { v2Workspaces: workspaceActions } = useOptimisticCollectionActions();
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
@@ -100,7 +102,9 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	const resolveWorktreePath = async (): Promise<string | null> => {
 		if (!activeHostUrl) {
-			toast.error("Host service is not available");
+			showHostServiceUnavailableToast(hostService, {
+				action: "resolve the workspace path",
+			});
 			return null;
 		}
 		const workspace = await getHostServiceClientByUrl(

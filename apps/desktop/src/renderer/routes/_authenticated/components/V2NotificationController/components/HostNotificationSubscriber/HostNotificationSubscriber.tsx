@@ -16,6 +16,7 @@ import {
 
 export interface HostNotificationWorkspaceState {
 	workspaceId: string;
+	workspaceName: string;
 	paneLayout: WorkspaceState<PaneViewerData> | null;
 }
 
@@ -53,6 +54,7 @@ export function HostNotificationSubscriber({
 			if (!workspace) return;
 			handleV2AgentLifecycleEvent({
 				workspaceId,
+				workspaceName: workspace.workspaceName,
 				payload,
 				paneLayout: workspace.paneLayout,
 				volume,

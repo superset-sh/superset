@@ -6,6 +6,7 @@ import {
 	mkdtempSync,
 	realpathSync,
 	rmSync,
+	statSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,6 +15,7 @@ import {
 	branchExistsOnRemote,
 	createWorktree,
 	getCurrentBranch,
+	getWorktreeCreatedAt,
 	hasUnpushedCommits,
 	isUnbornHeadError,
 	parsePorcelainStatusV2,
@@ -43,6 +45,15 @@ function seedCommit(repoPath: string): void {
 		cwd: repoPath,
 		stdio: "ignore",
 	});
+}
+
+function pathCreatedAt(path: string): number {
+	const stats = statSync(path);
+	const birthtimeMs = Math.trunc(stats.birthtimeMs);
+	if (Number.isFinite(birthtimeMs) && birthtimeMs > 0) {
+		return birthtimeMs;
+	}
+	return Math.trunc(stats.ctimeMs);
 }
 
 describe("getDefaultBranch", () => {
@@ -587,6 +598,36 @@ describe("getCurrentBranch", () => {
 			}
 		}
 	});
+});
+
+describe("getWorktreeCreatedAt", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("uses linked worktree git metadata creation time", async () => {
+		const repoPath = createTestRepo("worktree-created-at");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "preexisting-worktree-path");
+		mkdirSync(worktreePath, { recursive: true });
+
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+		execSync(`git worktree add "${worktreePath}" -b feature/created-at`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		expect(getWorktreeCreatedAt(worktreePath)).toBe(
+			pathCreatedAt(join(worktreePath, ".git")),
+		);
+	}, 10_000);
 });
 
 describe("parsePorcelainStatusV2", () => {

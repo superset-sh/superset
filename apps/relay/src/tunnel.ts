@@ -33,6 +33,11 @@ interface TunnelState {
 	missedPings: number;
 }
 
+interface DrainOptions {
+	reason?: string;
+	clearDirectory: () => Promise<number>;
+}
+
 export class TunnelManager {
 	private readonly tunnels = new Map<string, TunnelState>();
 	private readonly requestTimeoutMs: number;
@@ -42,12 +47,18 @@ export class TunnelManager {
 		ReturnType<typeof setTimeout>
 	>();
 	private readonly onlineWriteVersions = new Map<string, number>();
+	private draining = false;
 
 	constructor(requestTimeoutMs = 30_000) {
 		this.requestTimeoutMs = requestTimeoutMs;
 	}
 
 	async register(hostId: string, token: string, ws: WsSocket): Promise<void> {
+		if (this.draining) {
+			ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
+			return;
+		}
+
 		// Last-write-wins: close the old socket so flaky clients don't get
 		// stuck behind a dead-but-not-yet-detected WS.
 		const existing = this.tunnels.get(hostId);
@@ -73,12 +84,15 @@ export class TunnelManager {
 		// hadn't returned yet), so it skipped unregister. Roll the directory
 		// entry back ourselves; otherwise other machines fly-replay traffic
 		// to a dead local tunnel for ~90s until the TTL ages out.
-		if (ws.readyState !== 1) {
+		if (ws.readyState !== 1 || this.draining) {
 			await directory
 				.unregister(hostId, env.FLY_REGION, env.FLY_MACHINE_ID)
 				.catch((err) => {
 					console.error("[relay] directory.unregister rollback failed", err);
 				});
+			if (this.draining) {
+				ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
+			}
 			return;
 		}
 
@@ -159,7 +173,77 @@ export class TunnelManager {
 		console.log(`[relay] tunnel unregistered: ${hostId}`);
 	}
 
-	private disposeTunnel(tunnel: TunnelState, reason: string): void {
+	// Application-defined WS close code (4xxx range) signaling "relay is
+	// draining for a deploy — reconnect immediately." Distinct from 1001
+	// ("Going Away") which the ping-timeout / dispose paths use; the host
+	// resets its backoff only on this code, so a mass ping-timeout doesn't
+	// trigger a thundering-herd of fast reconnects.
+	static readonly WS_CLOSE_DRAIN = 4001;
+
+	// SIGTERM-driven graceful drain. Closes every open tunnel with the
+	// app-defined "drain" close code so the host-service can recognize this
+	// as a deploy drain (not a hard disconnect or ping timeout) and
+	// reconnect immediately. Called from the SIGINT/SIGTERM handler in
+	// index.ts.
+	//
+	// Owns directory cleanup directly instead of relying on websocket close
+	// callbacks. The process exits immediately after drain, so fire-and-forget
+	// unregister work from onClose is not a reliable shutdown primitive.
+	async drain(options: DrainOptions): Promise<number> {
+		this.draining = true;
+		const reason = options.reason ?? "Server draining for deploy";
+		const tunnels = Array.from(this.tunnels.values());
+		console.log(`[relay] draining ${tunnels.length} tunnels`);
+		// In-band drain signal first: send a JSON {type:"drain"} message on
+		// the WS message channel before closing. Game-day testing showed
+		// the WS close frame doesn't reliably reach the host within Fly's
+		// kill_timeout window (host's TCP socket sees ESTABLISHED with no
+		// onclose for 75+ seconds, until its watchdog fires). The message
+		// channel is already exercised by ping/pong every 30s, so we know
+		// it flushes cleanly. Host's onmessage handler triggers a clean
+		// reconnect on receipt; the WS close after is just belt-and-
+		// suspenders.
+		for (const tunnel of tunnels) {
+			try {
+				this.send(tunnel.ws, { type: "drain", reason });
+			} catch {
+				// best-effort
+			}
+		}
+		// Give the message frames a moment to reach the host before we
+		// start closing the underlying sockets.
+		await new Promise((resolve) => setTimeout(resolve, 500));
+
+		let cleared = 0;
+		let clearError: unknown;
+		try {
+			cleared = await options.clearDirectory();
+		} catch (err) {
+			clearError = err;
+		}
+
+		for (const tunnel of tunnels) {
+			this.disposeTunnel(tunnel, reason, TunnelManager.WS_CLOSE_DRAIN);
+			this.tunnels.delete(tunnel.hostId);
+		}
+
+		// Brief tail wait so the close-handshake gets a chance to complete
+		// before the process exits and RSTs the underlying TCP.
+		const WS_CLOSED = 3;
+		const deadline = Date.now() + 1_500;
+		while (Date.now() < deadline) {
+			if (tunnels.every((t) => t.ws.readyState === WS_CLOSED)) break;
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
+		if (clearError) throw clearError;
+		return cleared;
+	}
+
+	private disposeTunnel(
+		tunnel: TunnelState,
+		reason: string,
+		tunnelCloseCode = 1000,
+	): void {
 		if (tunnel.pingTimer) clearInterval(tunnel.pingTimer);
 
 		for (const [, pending] of tunnel.pendingRequests) {
@@ -172,7 +256,7 @@ export class TunnelManager {
 		}
 
 		try {
-			tunnel.ws.close(1000, reason);
+			tunnel.ws.close(tunnelCloseCode, reason);
 		} catch {
 			// already closed
 		}

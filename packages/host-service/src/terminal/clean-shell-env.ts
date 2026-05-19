@@ -24,6 +24,28 @@ const SHELL_BOOTSTRAP_KEYS = [
 	"COMSPEC",
 	"USERPROFILE",
 	"SYSTEMROOT",
+	// macOS launchd sets SSH_AUTH_SOCK in the GUI session env, not via shell
+	// rc files. Without these in the bootstrap, terminals lose the SSH agent
+	// and git pushes over SSH fail. (#4238)
+	"SSH_AUTH_SOCK",
+	"SSH_AGENT_PID",
+	// Proxy config — typically injected via `launchctl setenv` (corp networks),
+	// not by rc files. Without these, git/curl/npm in terminals bypass the proxy.
+	"HTTP_PROXY",
+	"HTTPS_PROXY",
+	"NO_PROXY",
+	"ALL_PROXY",
+	"http_proxy",
+	"https_proxy",
+	"no_proxy",
+	"all_proxy",
+	// Corporate CA bundles — same launchd-injected vector as proxies.
+	"SSL_CERT_FILE",
+	"SSL_CERT_DIR",
+	"NODE_EXTRA_CA_CERTS",
+	"REQUESTS_CA_BUNDLE",
+	// System-level timezone override.
+	"TZ",
 ];
 
 const COMMON_MACOS_PATHS = [
@@ -48,7 +70,7 @@ export function augmentPathForMacOS(
 	env.PATH = [...missingPaths, currentPath].filter(Boolean).join(":");
 }
 
-function buildMinimalEnv(): Record<string, string> {
+export function buildMinimalEnv(): Record<string, string> {
 	const env: Record<string, string> = {
 		DISABLE_AUTO_UPDATE: "true",
 		ZSH_TMUX_AUTOSTARTED: "true",

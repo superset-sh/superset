@@ -504,6 +504,27 @@ function validateParcelWatcherPrepared(): void {
 	);
 }
 
+function validateDuckdbPrepared(): void {
+	const nodeModulesDir = join(projectRoot, "node_modules");
+	const targetArch = process.env.TARGET_ARCH || process.arch;
+	const targetPlatform = process.env.TARGET_PLATFORM || process.platform;
+	const bindingPackage = `@duckdb/node-bindings-${targetPlatform}-${targetArch}`;
+
+	if (!existsSync(join(nodeModulesDir, bindingPackage, "duckdb.node"))) {
+		fail(
+			[
+				"Missing platform-specific @duckdb/node-bindings package.",
+				`Expected: ${bindingPackage}/duckdb.node`,
+				"Run `bun run copy:native-modules` and ensure optional dependencies are materialized.",
+			].join("\n"),
+		);
+	}
+
+	console.log(
+		`[validate:native-runtime] OK: platform duckdb binding present (${bindingPackage})`,
+	);
+}
+
 function main(): void {
 	validateWorkspacePackagesBundled();
 	validateOnlyExpectedExternalRequires();
@@ -511,6 +532,7 @@ function main(): void {
 	validateParcelWatcherNotBundled();
 	validateNativeModulesPrepared();
 	validateParcelWatcherPrepared();
+	validateDuckdbPrepared();
 	console.log("[validate:native-runtime] All checks passed");
 }
 

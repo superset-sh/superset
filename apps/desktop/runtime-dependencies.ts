@@ -79,6 +79,19 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 		],
 		asarUnpackGlobs: ["**/node_modules/@libsql/**/*"],
 	},
+	{
+		specifier: "@mastra/duckdb",
+		materialize: [
+			"@mastra/duckdb",
+			"@duckdb/node-api",
+			"@duckdb/node-bindings",
+		],
+		packagedCopies: [
+			copyWholeModule("@mastra/duckdb"),
+			copyWholeModule("@duckdb"),
+		],
+		asarUnpackGlobs: ["**/node_modules/@duckdb/**/*"],
+	},
 ];
 
 const packagedSupportModules = [
