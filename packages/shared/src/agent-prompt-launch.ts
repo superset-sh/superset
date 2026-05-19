@@ -7,16 +7,12 @@ export const PROMPT_TRANSPORTS = ["argv", "stdin"] as const;
 
 export type PromptTransport = (typeof PROMPT_TRANSPORTS)[number];
 
-function resolveDelimiter(prompt: string, randomId: string): string {
-	let delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
-	while (prompt.includes(delimiter)) {
-		delimiter = `${delimiter}_X`;
-	}
-	return delimiter;
-}
-
 function quoteSingleShell(value: string): string {
 	return value.replaceAll("'", "'\\''");
+}
+
+function quoteShellArg(value: string): string {
+	return `'${quoteSingleShell(value)}'`;
 }
 
 function joinCommand(command: string, suffix?: string): string {
@@ -28,7 +24,6 @@ export function buildPromptCommandString({
 	suffix,
 	transport,
 	prompt,
-	randomId,
 }: {
 	command: string;
 	suffix?: string;
@@ -36,14 +31,14 @@ export function buildPromptCommandString({
 	prompt: string;
 	randomId: string;
 }): string {
-	const delimiter = resolveDelimiter(prompt, randomId);
 	const fullCommand = joinCommand(command, suffix);
+	const promptArg = quoteShellArg(prompt);
 
 	if (transport === "stdin") {
-		return `${fullCommand} <<'${delimiter}'\n${prompt}\n${delimiter}`;
+		return `printf '%s\\n' ${promptArg} | ${fullCommand}`;
 	}
 
-	return `${command} "$(cat <<'${delimiter}'\n${prompt}\n${delimiter}\n)"${suffix ? ` ${suffix}` : ""}`;
+	return `${command} ${promptArg}${suffix ? ` ${suffix}` : ""}`;
 }
 
 export function buildPromptFileCommandString({
@@ -57,12 +52,12 @@ export function buildPromptFileCommandString({
 	transport: PromptTransport;
 	filePath: string;
 }): string {
-	const escapedPath = quoteSingleShell(filePath);
+	const escapedPath = quoteShellArg(filePath);
 	const fullCommand = joinCommand(command, suffix);
 
 	if (transport === "stdin") {
-		return `${fullCommand} < '${escapedPath}'`;
+		return `${fullCommand} < ${escapedPath}`;
 	}
 
-	return `${command} "$(cat '${escapedPath}')"${suffix ? ` ${suffix}` : ""}`;
+	return `${command} "$(cat ${escapedPath})"${suffix ? ` ${suffix}` : ""}`;
 }
