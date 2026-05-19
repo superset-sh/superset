@@ -8,7 +8,7 @@ const CACHE_TTL_MS = 60_000;
 const DELIMITER = "__SUPERSET_SHELL_ENV__";
 const DIAGNOSTIC_OUTPUT_LIMIT = 200;
 
-const SHELL_BOOTSTRAP_KEYS = [
+export const SHELL_BOOTSTRAP_KEYS = [
 	"HOME",
 	"USER",
 	"LOGNAME",
@@ -21,6 +21,14 @@ const SHELL_BOOTSTRAP_KEYS = [
 	"LC_CTYPE",
 	"__CF_USER_TEXT_ENCODING",
 	"Apple_PubSub_Socket_Render",
+	// macOS XPC bootstrap — without these, the helper shell (and every PTY
+	// downstream) loses its Mach handles to securityd/opendirectoryd, which
+	// breaks getpwuid_r (whoami → uid; OpenSSH "No user exists for uid N")
+	// and SecTrustEvaluateWithError (gh, terraform: "x509: OSStatus -26276").
+	"__CFBundleIdentifier",
+	"XPC_SERVICE_NAME",
+	"XPC_FLAGS",
+	"MallocNanoZone",
 	"COMSPEC",
 	"USERPROFILE",
 	"SYSTEMROOT",
