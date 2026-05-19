@@ -24,7 +24,9 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
+import { useModifierKeyListener } from "renderer/hooks/useModifierKeyListener";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
@@ -97,6 +99,10 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 export function DashboardSidebar({
 	isCollapsed = false,
 }: DashboardSidebarProps) {
+	const { data: showNumbersOnModifier = false } =
+		electronTrpc.settings.getShowWorkspaceNumbersOnModifier.useQuery();
+	useModifierKeyListener(showNumbersOnModifier);
+
 	const { groups, refreshWorkspacePullRequest, toggleProjectCollapsed } =
 		useDashboardSidebarData();
 	const { reorderProjects } = useDashboardSidebarState();
