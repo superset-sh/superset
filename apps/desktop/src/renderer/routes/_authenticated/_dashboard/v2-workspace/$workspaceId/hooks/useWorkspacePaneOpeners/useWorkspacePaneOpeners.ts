@@ -1,5 +1,5 @@
 import type { WorkspaceStore } from "@superset/panes";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
@@ -7,9 +7,9 @@ import type {
 	CommentPaneData,
 	DiffPaneData,
 	PaneViewerData,
-	TerminalPaneData,
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import { createAddTerminalAction } from "./utils/createAddTerminalAction";
 
 export function useWorkspacePaneOpeners({
 	store,
@@ -93,17 +93,10 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addTerminalTab = useCallback(async () => {
-		const terminalId = await launcher.create();
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "terminal",
-					data: { terminalId } as TerminalPaneData,
-				},
-			],
-		});
-	}, [store, launcher]);
+	const addTerminalTab = useMemo(
+		() => createAddTerminalAction({ store, launcher }),
+		[store, launcher],
+	);
 
 	const addChatTab = useCallback(() => {
 		store.getState().addTab({
