@@ -29,28 +29,48 @@ export type WorkspaceAutoRenameResult =
 const FALLBACK_WARNING =
 	"A prompt-based title was used because model naming was unavailable.";
 
-export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
+// Workspace init holds a per-project lock until auto-naming resolves, so a
+// hung provider would block all subsequent worktree creation (issue #4117).
+export const DEFAULT_TITLE_GENERATION_TIMEOUT_MS = 30_000;
+
+export async function generateWorkspaceNameFromPrompt(
+	prompt: string,
+	options?: { timeoutMs?: number },
+): Promise<{
 	name: string | null;
 	usedPromptFallback: boolean;
 	warning?: string;
 }> {
+	const timeoutMs = options?.timeoutMs ?? DEFAULT_TITLE_GENERATION_TIMEOUT_MS;
 	const model = await getSmallModel();
 	if (model) {
+		let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 		try {
-			const generated = await generateTitleFromMessage({
-				message: prompt,
-				agentModel: model,
-				agentId: "workspace-namer",
-				agentName: "Workspace Namer",
-				instructions:
-					"You generate concise workspace titles. 20 characters or less. Return ONLY the title, nothing else.",
-				tracingContext: { surface: "workspace-auto-name" },
-			});
+			const generated = await Promise.race([
+				generateTitleFromMessage({
+					message: prompt,
+					agentModel: model,
+					agentId: "workspace-namer",
+					agentName: "Workspace Namer",
+					instructions:
+						"You generate concise workspace titles. 20 characters or less. Return ONLY the title, nothing else.",
+					tracingContext: { surface: "workspace-auto-name" },
+				}),
+				new Promise<never>((_, reject) => {
+					timeoutHandle = setTimeout(() => {
+						reject(
+							new Error(`Title generation timed out after ${timeoutMs}ms`),
+						);
+					}, timeoutMs);
+				}),
+			]);
 			if (generated !== null && generated !== undefined) {
 				return { name: generated, usedPromptFallback: false };
 			}
 		} catch (error) {
 			console.error("[workspace-ai-name] title generation failed", error);
+		} finally {
+			if (timeoutHandle) clearTimeout(timeoutHandle);
 		}
 	}
 
