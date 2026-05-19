@@ -623,8 +623,19 @@ export class PullRequestRuntimeManager {
 			.all();
 		if (projectWorkspaces.length === 0) return;
 
+		// The default branch is the trunk; PRs whose head ref is the default
+		// branch are typically accidental "merge main into branch" PRs that
+		// shouldn't surface as the trunk workspace's PR icon. See #4508.
+		const defaultBranch = await this.resolveProjectDefaultBranch(projectId);
+		const isDefaultBranchWorkspace = (
+			workspace: typeof workspaces.$inferSelect,
+		): boolean =>
+			defaultBranch !== null &&
+			(workspace.upstreamBranch ?? workspace.branch) === defaultBranch;
+
 		const wantedRefs = new Map<string, GitHubPullRequestHeadRef>();
 		for (const workspace of projectWorkspaces) {
+			if (isDefaultBranchWorkspace(workspace)) continue;
 			const upstreamOwner = workspace.upstreamOwner;
 			const upstreamRepo = workspace.upstreamRepo;
 			const upstreamBranch = workspace.upstreamBranch ?? workspace.branch;
@@ -642,6 +653,16 @@ export class PullRequestRuntimeManager {
 			await this.fetchRepoPullRequests(projectId, repo, wantedRefs, options);
 
 		for (const workspace of projectWorkspaces) {
+			if (isDefaultBranchWorkspace(workspace)) {
+				if (workspace.pullRequestId) {
+					this.db
+						.update(workspaces)
+						.set({ pullRequestId: null })
+						.where(eq(workspaces.id, workspace.id))
+						.run();
+				}
+				continue;
+			}
 			const key = upstreamKey(
 				workspace.upstreamOwner,
 				workspace.upstreamRepo,
@@ -685,6 +706,27 @@ export class PullRequestRuntimeManager {
 				.set({ pullRequestId: null })
 				.where(eq(workspaces.id, workspace.id))
 				.run();
+		}
+	}
+
+	private async resolveProjectDefaultBranch(
+		projectId: string,
+	): Promise<string | null> {
+		const project = this.db.query.projects
+			.findFirst({ where: eq(projects.id, projectId) })
+			.sync();
+		if (!project) return null;
+		try {
+			const git = await this.git(project.repoPath);
+			const ref = await git.raw([
+				"symbolic-ref",
+				"refs/remotes/origin/HEAD",
+				"--short",
+			]);
+			const name = ref.trim().replace(/^origin\//, "");
+			return name || null;
+		} catch {
+			return null;
 		}
 	}
 
