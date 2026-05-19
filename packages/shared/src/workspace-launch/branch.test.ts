@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	deduplicateBranchName,
+	resolveBranchNameForCheckout,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
@@ -183,6 +184,73 @@ describe("sanitizeBranchNameWithMaxLength", () => {
 				preserveFirstSegmentCase: true,
 			}),
 		).toBe("Fix_Bug");
+	});
+});
+
+describe("resolveBranchNameForCheckout", () => {
+	// Issue #3729: when launching a workspace from an existing branch with a
+	// long name (e.g. branches generated from Linear ticket descriptions), each
+	// path segment was being truncated to 50 chars, so the worktree ended up
+	// pointing at a name that didn't match any real branch.
+	test("preserves existing branch names that exceed segment max length", () => {
+		const longExistingBranch =
+			"feature/abc-1234-implement-user-authentication-flow-for-external-providers";
+		expect(
+			resolveBranchNameForCheckout({
+				rawName: longExistingBranch,
+				existingBranches: [longExistingBranch],
+			}),
+		).toBe(longExistingBranch);
+	});
+
+	test("preserves existing branch when prefix is configured", () => {
+		const longExistingBranch =
+			"feature/abc-1234-implement-user-authentication-flow-for-external-providers";
+		expect(
+			resolveBranchNameForCheckout({
+				rawName: longExistingBranch,
+				branchPrefix: "kitenite",
+				existingBranches: [longExistingBranch],
+			}),
+		).toBe(longExistingBranch);
+	});
+
+	test("matches an existing branch under the configured prefix", () => {
+		const prefixed = "kitenite/feature/abc-1234-implement-user-auth-flow";
+		expect(
+			resolveBranchNameForCheckout({
+				rawName: "feature/abc-1234-implement-user-auth-flow",
+				branchPrefix: "kitenite",
+				existingBranches: [prefixed],
+			}),
+		).toBe(prefixed);
+	});
+
+	test("sanitizes and truncates when no existing branch matches", () => {
+		const result = resolveBranchNameForCheckout({
+			rawName: "Feature/ABC-1234 Implement User Auth Flow",
+			existingBranches: ["main", "develop"],
+			preserveFirstSegmentCase: true,
+		});
+		expect(result).toBe("Feature/abc-1234-implement-user-auth-flow");
+	});
+
+	test("applies prefix and sanitizes a new branch name", () => {
+		const result = resolveBranchNameForCheckout({
+			rawName: "My Feature",
+			branchPrefix: "kitenite",
+			existingBranches: ["main"],
+		});
+		expect(result).toBe("kitenite/my-feature");
+	});
+
+	test("returns empty string for blank input", () => {
+		expect(
+			resolveBranchNameForCheckout({
+				rawName: "   ",
+				existingBranches: ["main"],
+			}),
+		).toBe("");
 	});
 });
 

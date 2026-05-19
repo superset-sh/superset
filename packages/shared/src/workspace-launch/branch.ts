@@ -72,6 +72,43 @@ export function sanitizeBranchNameWithMaxLength(
 }
 
 /**
+ * Resolves a user-provided branch name when launching a workspace.
+ *
+ * If the name (or the name with prefix applied) matches an existing branch,
+ * returns that match verbatim — git already accepted it, so the per-segment
+ * sanitizer must not silently truncate it (see issue #3729). Otherwise applies
+ * the prefix and sanitizes the result for use as a new branch name.
+ */
+export function resolveBranchNameForCheckout({
+	rawName,
+	branchPrefix,
+	existingBranches,
+	preserveFirstSegmentCase = false,
+	preserveCase = false,
+}: {
+	rawName: string;
+	branchPrefix?: string | null;
+	existingBranches: readonly string[];
+	preserveFirstSegmentCase?: boolean;
+	preserveCase?: boolean;
+}): string {
+	const trimmed = rawName.trim();
+	if (!trimmed) return "";
+
+	if (existingBranches.includes(trimmed)) return trimmed;
+
+	const withPrefix = branchPrefix ? `${branchPrefix}/${trimmed}` : trimmed;
+	if (withPrefix !== trimmed && existingBranches.includes(withPrefix)) {
+		return withPrefix;
+	}
+
+	return sanitizeBranchNameWithMaxLength(withPrefix, undefined, {
+		preserveFirstSegmentCase,
+		preserveCase,
+	});
+}
+
+/**
  * Returns a branch name that does not collide with existing names.
  * If the candidate already exists, appends numeric suffixes (-1, -2, ...)
  * to the last path segment until an available name is found.
