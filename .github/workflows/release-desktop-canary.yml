@@ -11,6 +11,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip_release:
+        description: "Build artifacts only; don't replace the public desktop-canary GitHub release. Use this to test a branch build without affecting teammates on auto-update."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -82,7 +87,7 @@ jobs:
   release:
     name: Update Canary Release
     needs: [check-changes, build]
-    if: needs.check-changes.outputs.should_build == 'true'
+    if: needs.check-changes.outputs.should_build == 'true' && github.event.inputs.skip_release != 'true'
     runs-on: ubuntu-latest
 
     steps:
