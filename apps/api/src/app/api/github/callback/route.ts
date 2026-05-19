@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
-import { qstash, requireQstash } from "@/lib/qstash";
+import { enqueueOrRunLocalJob } from "@/lib/qstash";
 import { githubApp } from "../octokit";
 
 /**
@@ -120,28 +120,13 @@ export async function GET(request: Request) {
 
 		// Queue initial sync job
 		try {
-			const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
-			const syncBody = {
-				installationDbId: savedInstallation.id,
-				organizationId,
-			};
-
-			if (env.NODE_ENV === "development" && !qstash) {
-				const response = await fetch(syncUrl, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(syncBody),
-				});
-				if (!response.ok) {
-					throw new Error(`Local sync request failed: ${response.status}`);
-				}
-			} else {
-				await requireQstash("github/callback").publishJSON({
-					url: syncUrl,
-					body: syncBody,
-					retries: 3,
-				});
-			}
+			await enqueueOrRunLocalJob("github/callback", {
+				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
+				body: {
+					installationDbId: savedInstallation.id,
+					organizationId,
+				},
+			});
 		} catch (error) {
 			console.error(
 				"[github/callback] Failed to queue initial sync job:",

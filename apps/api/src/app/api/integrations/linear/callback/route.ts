@@ -6,7 +6,7 @@ import { and, eq, isNull, ne } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
-import { qstash, requireQstash } from "@/lib/qstash";
+import { enqueueOrRunLocalJob } from "@/lib/qstash";
 
 const UNIQUE_VIOLATION = "23505";
 const ACTIVE_LINKAGE_INDEX =
@@ -147,25 +147,10 @@ export async function GET(request: Request) {
 	}
 
 	try {
-		const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`;
-		const syncBody = { organizationId, creatorUserId: userId };
-
-		if (env.NODE_ENV === "development" && !qstash) {
-			const response = await fetch(syncUrl, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(syncBody),
-			});
-			if (!response.ok) {
-				throw new Error(`Local sync request failed: ${response.status}`);
-			}
-		} else {
-			await requireQstash("linear/callback").publishJSON({
-				url: syncUrl,
-				body: syncBody,
-				retries: 3,
-			});
-		}
+		await enqueueOrRunLocalJob("linear/callback", {
+			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
+			body: { organizationId, creatorUserId: userId },
+		});
 	} catch (error) {
 		console.error("Failed to queue initial sync job:", error);
 		return Response.redirect(
