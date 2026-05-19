@@ -10,6 +10,7 @@ interface DashboardSidebarCollapsedProjectContentProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
 	iconUrl: string | null;
+	projectColor: string | null;
 	isCollapsed: boolean;
 	totalWorkspaceCount: number;
 	workspaces: DashboardSidebarWorkspace[];
@@ -26,6 +27,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 		{
 			projectName,
 			iconUrl,
+			projectColor,
 			isCollapsed,
 			totalWorkspaceCount,
 			workspaces,
@@ -56,7 +58,11 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 								"hover:bg-muted/50 transition-colors",
 							)}
 						>
-							<ProjectThumbnail projectName={projectName} iconUrl={iconUrl} />
+							<ProjectThumbnail
+								projectName={projectName}
+								iconUrl={iconUrl}
+								color={projectColor}
+							/>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
