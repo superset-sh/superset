@@ -118,24 +118,40 @@ function headKey(
 	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
+function pullRequestStateRank(state: PullRequestState): number {
+	if (state === "OPEN") return 2;
+	if (state === "MERGED") return 1;
+	return 0;
+}
+
 function normalizePullRequestCandidates(
 	raw: unknown,
 	head: GitHubPullRequestHeadRef,
 ): GitHubPullRequestNode | null {
 	const requestedKey = headKey(head.owner, head.repo, head.branch);
-	return (
-		asArray(raw)
-			.map((item) => normalizePullRequest(item))
-			.find(
-				(node) =>
-					node &&
-					headKey(
-						node.headRepositoryOwner?.login,
-						node.headRepository?.name,
-						node.headRefName,
-					) === requestedKey,
-			) ?? null
-	);
+	const matches = asArray(raw)
+		.map((item) => normalizePullRequest(item))
+		.filter(
+			(node): node is GitHubPullRequestNode =>
+				node !== null &&
+				headKey(
+					node.headRepositoryOwner?.login,
+					node.headRepository?.name,
+					node.headRefName,
+				) === requestedKey,
+		);
+
+	// Prefer OPEN > MERGED > CLOSED so an active PR isn't shadowed by a more
+	// recently updated closed one. Ties fall back to updatedAt desc (matching
+	// the API's sort=updated&direction=desc).
+	matches.sort((left, right) => {
+		const stateDelta =
+			pullRequestStateRank(right.state) - pullRequestStateRank(left.state);
+		if (stateDelta !== 0) return stateDelta;
+		return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+	});
+
+	return matches[0] ?? null;
 }
 
 function mapReviewDecision(

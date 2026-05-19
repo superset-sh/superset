@@ -351,6 +351,57 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		]);
 	});
 
+	test("does not attach a stale closed PR when workspace HEAD has moved past it (#4513)", async () => {
+		const state = makeState("master");
+		state.workspace = {
+			...state.workspace,
+			headSha: "current-master-sha",
+			upstreamOwner: "base-owner",
+			upstreamRepo: "base-repo",
+			upstreamBranch: "master",
+			pullRequestId: null,
+		};
+		const manager = createManager(state, {
+			execGh: async (args) => {
+				const path = args.find((arg) => arg.startsWith("repos/"));
+				if (path === "repos/base-owner/base-repo/pulls") {
+					return [
+						{
+							number: 42,
+							title: "Old closed PR on master",
+							html_url: "https://github.com/base-owner/base-repo/pull/42",
+							state: "closed",
+							draft: false,
+							merged_at: null,
+							updated_at: "2025-01-01T00:00:00Z",
+							head: {
+								ref: "master",
+								sha: "stale-closed-sha",
+								repo: {
+									name: "base-repo",
+									owner: { login: "base-owner" },
+								},
+							},
+							base: {
+								repo: {
+									full_name: "base-owner/base-repo",
+								},
+							},
+						},
+					];
+				}
+				if (path?.endsWith("/reviews")) return [];
+				if (path?.endsWith("/check-runs")) return { check_runs: [] };
+				if (path?.endsWith("/statuses")) return [];
+				return null;
+			},
+		});
+
+		await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
+
+		expect(state.workspace.pullRequestId).toBeNull();
+	});
+
 	test("preserves existing pullRequestId when head lookup fails", async () => {
 		const state = makeState("fix/sidebar");
 		state.workspace = {
