@@ -14,6 +14,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenProject } from "renderer/react-query/projects";
+import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -24,6 +25,7 @@ import {
 	NewWorkspaceModalDraftProvider,
 	useNewWorkspaceModalDraft,
 } from "./NewWorkspaceModalDraftContext";
+import { openProjectsAndWorkspaces } from "./open-projects";
 
 /** Clears the PromptInputProvider text & attachments when the draft resets. */
 function PromptInputResetSync() {
@@ -47,6 +49,7 @@ export function NewWorkspaceModal() {
 	const closeModal = useCloseNewWorkspaceModal();
 	const navigate = useNavigate();
 	const { openNew } = useOpenProject();
+	const openMainRepoWorkspace = useOpenMainRepoWorkspace();
 	const preSelectedProjectId = usePreSelectedProjectId();
 
 	// Prevents AgentSelect from flashing "No agent" while presets load after refresh.
@@ -55,7 +58,18 @@ export function NewWorkspaceModal() {
 	const handleImportRepo = async () => {
 		closeModal();
 		try {
-			await openNew();
+			await openProjectsAndWorkspaces({
+				openNew,
+				openMainRepoWorkspace: openMainRepoWorkspace.mutateAsync,
+				onProjectOpenError: (projectName, error) => {
+					toast.error(`Failed to open ${projectName}`, {
+						description:
+							error instanceof Error
+								? error.message
+								: "Failed to create workspace",
+					});
+				},
+			});
 		} catch (error) {
 			toast.error("Failed to open project", {
 				description:
