@@ -209,6 +209,7 @@ const ALLOWED_ENV_VARS = new Set([
 
 	// Terminal/display
 	"DISPLAY",
+	"WAYLAND_DISPLAY",
 	"COLORTERM",
 	"TERM_PROGRAM",
 	"TERM_PROGRAM_VERSION",
