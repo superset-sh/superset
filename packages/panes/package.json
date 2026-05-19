@@ -11,7 +11,7 @@
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"typecheck": "tsgo --noEmit --emitDeclarationOnly false",
 		"test": "bun test"
 	},
 	"dependencies": {

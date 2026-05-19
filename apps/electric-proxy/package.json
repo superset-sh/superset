@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "dotenv -e ../../.env -- sh -c 'exec wrangler dev --port ${WRANGLER_PORT:-8787}'",
 		"deploy": "wrangler deploy",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsgo --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
 		"@superset/db": "workspace:*",

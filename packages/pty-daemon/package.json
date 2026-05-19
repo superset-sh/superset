@@ -28,7 +28,7 @@
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"start": "node --experimental-strip-types src/main.ts",
 		"build:daemon": "bun run build.ts",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"typecheck": "tsgo --noEmit --emitDeclarationOnly false",
 		"test": "bun test src/protocol src/SessionStore src/handlers src/Pty/Pty.test.ts test/no-encoding-hops.test.ts",
 		"test:integration": "node --experimental-strip-types --test test/integration.test.ts test/control-plane.test.ts test/signal-recovery.test.ts test/byte-fidelity.test.ts test/handoff.test.ts"
 	},

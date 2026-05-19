@@ -4,7 +4,9 @@
 		"rootDir": "src",
 		"jsx": "react-jsx",
 		"declaration": false,
-		"declarationMap": false
+		"declarationMap": false,
+		"emitDeclarationOnly": false,
+		"noEmit": true
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist", "src/**/*.test.ts"]

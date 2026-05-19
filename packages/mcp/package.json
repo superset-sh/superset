@@ -19,7 +19,7 @@
 	},
 	"scripts": {
 		"test": "bun test",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsgo --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "1.28.0",

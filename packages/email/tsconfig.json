@@ -4,7 +4,7 @@
 		"lib": ["ES2022"],
 		"jsx": "react-jsx",
 		"moduleResolution": "bundler",
-		"baseUrl": "."
+		"types": ["node"]
 	},
 	"include": ["src/**/*.ts", "src/**/*.tsx"],
 	"exclude": ["node_modules", "dist"]

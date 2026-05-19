@@ -38,7 +38,7 @@
 		"push": "drizzle-kit push",
 		"migrate": "drizzle-kit migrate",
 		"studio": "drizzle-kit studio",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsgo --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
 		"@neondatabase/serverless": "1.0.2",
