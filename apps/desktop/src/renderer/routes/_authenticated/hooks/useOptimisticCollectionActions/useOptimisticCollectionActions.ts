@@ -3,6 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo } from "react";
 import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { describeOptimisticError } from "./describeOptimisticError";
 
 export type PersistableTransaction = {
 	isPersisted: {
@@ -24,24 +25,12 @@ interface V2WorkspacePatch {
 	taskId?: string | null;
 }
 
-function getErrorMessage(error: unknown): string {
-	if (error instanceof Error && error.message.trim()) {
-		return error.message;
-	}
-
-	if (typeof error === "string" && error.trim()) {
-		return error;
-	}
-
-	return "The local change was rolled back.";
-}
-
 function useOptimisticMutationRunner() {
 	const reportFailure = useCallback(
 		(scope: string, title: string, error: unknown) => {
 			console.error(`[${scope}] ${title}:`, error);
 			toast.error(title, {
-				description: getErrorMessage(error),
+				description: describeOptimisticError(scope, error),
 			});
 		},
 		[],
