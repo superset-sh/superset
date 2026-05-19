@@ -29,6 +29,7 @@ async function main(): Promise<void> {
 	const authProvider = new JwtApiAuthProvider({
 		getSessionToken: async () => env.AUTH_TOKEN,
 		apiUrl: env.SUPERSET_API_URL,
+		authConfigPath: env.SUPERSET_AUTH_CONFIG_PATH,
 	});
 
 	const { app, injectWebSocket, api } = createApp({
