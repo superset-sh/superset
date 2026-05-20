@@ -2,6 +2,7 @@ import { HOTKEYS, type HotkeyId } from "../registry";
 import { useHotkeyOverridesStore } from "../stores/hotkeyOverridesStore";
 import { useKeyboardLayoutStore } from "../stores/keyboardLayoutStore";
 import {
+	getEffectiveLayoutId,
 	getEffectiveLayoutMap,
 	useKeyboardPreferencesStore,
 } from "../stores/keyboardPreferencesStore";
@@ -121,6 +122,7 @@ export function isTerminalReservedEvent(event: KeyboardEvent): boolean {
 function buildRegisteredAppChords(
 	overrides: Record<string, ShortcutBinding | null>,
 	layoutMap: ReadonlyMap<string, string> | null,
+	layoutId: string | null,
 ): Map<string, HotkeyId> {
 	const map = new Map<string, HotkeyId>();
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
@@ -131,7 +133,7 @@ function buildRegisteredAppChords(
 		if (hasOverride && override === null) continue;
 		const binding = override ?? HOTKEYS[id].key;
 		if (!binding) continue;
-		const dispatchChord = bindingToDispatchChord(binding, layoutMap);
+		const dispatchChord = bindingToDispatchChord(binding, layoutMap, layoutId);
 		if (!dispatchChord) continue;
 		map.set(canonicalizeChord(dispatchChord), id);
 	}
@@ -145,11 +147,13 @@ function buildRegisteredAppChords(
 let registeredAppChords = buildRegisteredAppChords(
 	useHotkeyOverridesStore.getState().overrides,
 	getEffectiveLayoutMap(),
+	getEffectiveLayoutId(),
 );
 function rebuild() {
 	registeredAppChords = buildRegisteredAppChords(
 		useHotkeyOverridesStore.getState().overrides,
 		getEffectiveLayoutMap(),
+		getEffectiveLayoutId(),
 	);
 }
 useHotkeyOverridesStore.subscribe(rebuild);

@@ -1,6 +1,9 @@
 import { HOTKEYS, type HotkeyId } from "../../registry";
 import { useHotkeyOverridesStore } from "../../stores/hotkeyOverridesStore";
-import { getEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
+import {
+	getEffectiveLayoutId,
+	getEffectiveLayoutMap,
+} from "../../stores/keyboardPreferencesStore";
 import type { ShortcutBinding } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
 
@@ -33,5 +36,9 @@ export function getBinding(id: HotkeyId): ShortcutBinding | null {
  * the bound handler on non-US layouts.
  */
 export function getDispatchChord(id: HotkeyId): string | null {
-	return bindingToDispatchChord(getBinding(id), getEffectiveLayoutMap());
+	return bindingToDispatchChord(
+		getBinding(id),
+		getEffectiveLayoutMap(),
+		getEffectiveLayoutId(),
+	);
 }

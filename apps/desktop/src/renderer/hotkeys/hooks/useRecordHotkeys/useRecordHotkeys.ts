@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 import { HOTKEYS, type HotkeyId, PLATFORM } from "../../registry";
 import { useHotkeyOverridesStore } from "../../stores/hotkeyOverridesStore";
-import { getEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
+import {
+	getEffectiveLayoutId,
+	getEffectiveLayoutMap,
+} from "../../stores/keyboardPreferencesStore";
 import type {
 	BindingMode,
 	ParsedBinding,
@@ -142,14 +145,23 @@ function getHotkeyConflict(
 ): HotkeyId | null {
 	const { overrides } = useHotkeyOverridesStore.getState();
 	const layoutMap = getEffectiveLayoutMap();
-	const candidateDispatch = bindingToDispatchChord(candidate, layoutMap);
+	const layoutId = getEffectiveLayoutId();
+	const candidateDispatch = bindingToDispatchChord(
+		candidate,
+		layoutMap,
+		layoutId,
+	);
 	if (!candidateDispatch) return null;
 	const target = canonicalizeChord(candidateDispatch);
 	for (const id of Object.keys(HOTKEYS) as HotkeyId[]) {
 		if (id === excludeId) continue;
 		const effective = id in overrides ? overrides[id] : HOTKEYS[id].key;
 		if (!effective) continue;
-		const otherDispatch = bindingToDispatchChord(effective, layoutMap);
+		const otherDispatch = bindingToDispatchChord(
+			effective,
+			layoutMap,
+			layoutId,
+		);
 		if (otherDispatch && canonicalizeChord(otherDispatch) === target) return id;
 	}
 	return null;
