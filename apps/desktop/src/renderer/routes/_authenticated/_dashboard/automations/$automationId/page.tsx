@@ -81,7 +81,7 @@ function AutomationDetailPage() {
 	if (!automation) {
 		if (!automationReady) return null;
 		return (
-			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
 				Automation not found.
 			</div>
 		);

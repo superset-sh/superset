@@ -114,7 +114,7 @@ export function V2ProjectSettings({
 	if (!project) {
 		if (!isReady) return null;
 		return (
-			<div className="p-6 text-sm text-muted-foreground">
+			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
 				Project not found.
 			</div>
 		);

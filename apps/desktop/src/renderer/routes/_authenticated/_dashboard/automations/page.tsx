@@ -215,8 +215,11 @@ function AutomationsPage() {
 	};
 
 	const rowGrid = scope === "team" ? ROW_GRID_TEAM : ROW_GRID_MINE;
-	const showAutomationLoading = !automationsReady && automations.length === 0;
-	const showMineEmptyState = visible.length === 0 && scope === "mine";
+	const showAutomationLoading = !automationsReady && visible.length === 0;
+	const showMineEmptyState =
+		automationsReady && visible.length === 0 && scope === "mine";
+	const showTeamEmptyState =
+		automationsReady && visible.length === 0 && scope === "team";
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
@@ -337,7 +340,7 @@ function AutomationsPage() {
 					<div className="flex-1 overflow-y-auto px-8 py-8">
 						<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
 					</div>
-				) : visible.length === 0 ? (
+				) : showTeamEmptyState ? (
 					<Empty className="flex-1">
 						<EmptyHeader>
 							<EmptyMedia

@@ -123,7 +123,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	if (!host) {
 		if (!hostReady) return null;
 		return (
-			<div className="p-6 text-sm text-muted-foreground">
+			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
 				Host not found in this organization.
 			</div>
 		);

@@ -242,7 +242,9 @@ export function OrganizationSettings({
 	if (!organization) {
 		return (
 			<div className="p-6 max-w-4xl w-full">
-				<p className="text-sm text-muted-foreground">Organization not found.</p>
+				<p className="text-sm text-muted-foreground select-text cursor-text">
+					Organization not found.
+				</p>
 			</div>
 		);
 	}

@@ -27,15 +27,13 @@ export function useDefaultV2TerminalPresets(hostUrl: string | null): void {
 	);
 
 	const preferences = preferenceRows[0] ?? DEFAULT_V2_USER_PREFERENCES;
-	const presetsUsable = presetsReady || v2Presets.length > 0;
-	const preferencesUsable = preferencesReady || preferenceRows.length > 0;
 
 	useEffect(() => {
 		if (
 			!hostUrl ||
 			!agentsFetched ||
-			!presetsUsable ||
-			!preferencesUsable ||
+			!presetsReady ||
+			!preferencesReady ||
 			preferences.terminalPresetsInitialized
 		) {
 			return;
@@ -77,8 +75,8 @@ export function useDefaultV2TerminalPresets(hostUrl: string | null): void {
 		collections.v2UserPreferences,
 		hostUrl,
 		preferences.terminalPresetsInitialized,
-		preferencesUsable,
-		presetsUsable,
+		preferencesReady,
+		presetsReady,
 		v2Presets,
 	]);
 }
