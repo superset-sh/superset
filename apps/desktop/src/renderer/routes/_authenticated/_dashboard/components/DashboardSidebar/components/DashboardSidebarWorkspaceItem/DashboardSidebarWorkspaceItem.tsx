@@ -35,7 +35,7 @@ export function DashboardSidebarWorkspaceItem({
 		hostIsOnline,
 		name,
 		branch,
-		isSynced,
+		pendingTransaction,
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
@@ -76,7 +76,7 @@ export function DashboardSidebarWorkspaceItem({
 	const handleAfterBranchRename = (newBranchName: string) => {
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
-	const isPending = !isSynced;
+	const isPending = pendingTransaction?.type === "insert";
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
 	const isDeleting = useDeletingWorkspaces().isDeleting(id);
@@ -136,7 +136,7 @@ export function DashboardSidebarWorkspaceItem({
 					isActive={isActive}
 					workspaceStatus={workspaceStatus}
 					onClick={handleClick}
-					isSynced={isSynced}
+					isCreatePending={isPending}
 					pullRequestState={pullRequest?.state ?? null}
 					aria-label={isPending ? `Creating workspace: ${name}` : undefined}
 				/>

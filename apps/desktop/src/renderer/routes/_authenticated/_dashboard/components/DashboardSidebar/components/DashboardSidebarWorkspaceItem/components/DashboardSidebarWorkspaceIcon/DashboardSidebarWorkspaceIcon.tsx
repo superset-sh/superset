@@ -24,7 +24,7 @@ interface DashboardSidebarWorkspaceIconProps {
 	isActive: boolean;
 	variant: "collapsed" | "expanded";
 	workspaceStatus?: ActivePaneStatus | null;
-	isSynced: boolean;
+	isCreatePending: boolean;
 	pullRequestState?: DashboardSidebarWorkspacePullRequest["state"] | null;
 }
 
@@ -54,7 +54,7 @@ export function DashboardSidebarWorkspaceIcon({
 	isActive,
 	variant,
 	workspaceStatus = null,
-	isSynced,
+	isCreatePending,
 	pullRequestState = null,
 }: DashboardSidebarWorkspaceIconProps) {
 	const overlayPosition = OVERLAY_POSITION[variant];
@@ -102,7 +102,7 @@ export function DashboardSidebarWorkspaceIcon({
 
 	return (
 		<>
-			{!isSynced || workspaceStatus === "working" ? (
+			{isCreatePending || workspaceStatus === "working" ? (
 				<AsciiSpinner className="text-base" />
 			) : (
 				renderPrimaryIcon()

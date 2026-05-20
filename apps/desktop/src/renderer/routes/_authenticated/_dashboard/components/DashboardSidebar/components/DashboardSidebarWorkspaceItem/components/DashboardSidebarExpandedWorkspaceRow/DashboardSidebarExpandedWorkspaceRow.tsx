@@ -81,9 +81,9 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			name,
 			branch,
 			pullRequest,
-			isSynced,
+			pendingTransaction,
 		} = workspace;
-		const isPending = !isSynced;
+		const isPending = pendingTransaction?.type === "insert";
 		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
@@ -170,7 +170,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									isActive={isActive}
 									variant="expanded"
 									workspaceStatus={workspaceStatus}
-									isSynced={isSynced}
+									isCreatePending={isPending}
 									pullRequestState={pullRequest.state}
 								/>
 							</button>
@@ -183,7 +183,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									isActive={isActive}
 									variant="expanded"
 									workspaceStatus={workspaceStatus}
-									isSynced={isSynced}
+									isCreatePending={isPending}
 									pullRequestState={null}
 								/>
 							</div>
@@ -265,7 +265,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								/>
 							)
 						)}
-						{isSynced && (
+						{!isPending && (
 							<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
 								{shortcutLabel && (
 									<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">

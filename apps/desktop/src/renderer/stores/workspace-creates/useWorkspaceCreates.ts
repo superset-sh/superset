@@ -8,6 +8,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import type { WorkspaceCreateMutationMetadata } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import type { WorkspacesCreateInput } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useWorkspaceTransactionsStore } from "./workspaceTransactions";
 import { writeWorkspacePaneLayout } from "./writeWorkspacePaneLayout";
 
 export type { WorkspacesCreateInput };
@@ -38,6 +39,9 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const userId = session?.user?.id ?? null;
 	const collections = useCollections();
 	const relayUrl = useRelayUrl();
+	const trackWorkspaceTransaction = useWorkspaceTransactionsStore(
+		(state) => state.track,
+	);
 
 	const submit = useCallback(
 		(args: SubmitArgs): SubmitHandle => {
@@ -115,6 +119,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			const transaction = collections.v2Workspaces.insert(optimisticRow, {
 				metadata,
 			});
+			trackWorkspaceTransaction(workspaceId, transaction);
 			writeWorkspacePaneLayout(
 				collections,
 				{ id: workspaceId, projectId: args.snapshot.projectId },
@@ -157,6 +162,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			collections,
 			relayUrl,
 			hostService,
+			trackWorkspaceTransaction,
 		],
 	);
 

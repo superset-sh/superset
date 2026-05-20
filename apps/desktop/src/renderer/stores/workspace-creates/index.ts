@@ -6,3 +6,10 @@ export {
 	useWorkspaceCreates,
 	type WorkspacesCreateInput,
 } from "./useWorkspaceCreates";
+export {
+	type TrackableWorkspaceTransactionState,
+	useWorkspaceTransactionsStore,
+	type WorkspaceTransactionSnapshot,
+	type WorkspaceTransactionState,
+	type WorkspaceTransactionType,
+} from "./workspaceTransactions";

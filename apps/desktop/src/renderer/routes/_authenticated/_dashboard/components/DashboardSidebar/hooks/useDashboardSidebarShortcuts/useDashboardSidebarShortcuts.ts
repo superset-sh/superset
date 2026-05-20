@@ -59,7 +59,11 @@ export function useDashboardSidebarShortcuts(
 		() =>
 			groups
 				.flatMap((project) => getProjectChildrenWorkspaces(project.children))
-				.filter((workspace) => workspace.isSynced && !isDeleting(workspace.id)),
+				.filter(
+					(workspace) =>
+						workspace.pendingTransaction?.type !== "insert" &&
+						!isDeleting(workspace.id),
+				),
 		[groups, isDeleting],
 	);
 	const workspaceShortcutLabels =

@@ -1,13 +1,14 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -128,6 +129,12 @@ export function useDashboardSidebarData() {
 	const relayUrl = useRelayUrl();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
 	const queryClient = useQueryClient();
+	const workspaceTransactionsById = useWorkspaceTransactionsStore(
+		(state) => state.byWorkspaceId,
+	);
+	const clearWorkspaceTransaction = useWorkspaceTransactionsStore(
+		(state) => state.clear,
+	);
 
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
@@ -234,8 +241,9 @@ export function useDashboardSidebarData() {
 			rawSidebarWorkspaces.map((workspace) => ({
 				...workspace,
 				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+				pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
 			})),
-		[hostsByMachineId, rawSidebarWorkspaces],
+		[hostsByMachineId, rawSidebarWorkspaces, workspaceTransactionsById],
 	);
 
 	const sidebarWorkspaces = useMemo(
@@ -274,9 +282,27 @@ export function useDashboardSidebarData() {
 			rawLocalMainWorkspaces.map((workspace) => ({
 				...workspace,
 				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+				pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
 			})),
-		[hostsByMachineId, rawLocalMainWorkspaces],
+		[hostsByMachineId, rawLocalMainWorkspaces, workspaceTransactionsById],
 	);
+
+	useEffect(() => {
+		for (const workspace of [
+			...rawSidebarWorkspaces,
+			...rawLocalMainWorkspaces,
+		]) {
+			const transaction = workspaceTransactionsById[workspace.id];
+			if (workspace.isSynced && transaction?.type === "insert") {
+				clearWorkspaceTransaction(workspace.id);
+			}
+		}
+	}, [
+		clearWorkspaceTransaction,
+		rawLocalMainWorkspaces,
+		rawSidebarWorkspaces,
+		workspaceTransactionsById,
+	]);
 
 	const visibleSidebarWorkspaces = useMemo(() => {
 		const sidebarProjectIds = new Set(
@@ -435,6 +461,7 @@ export function useDashboardSidebarData() {
 				updatedAt: workspace.updatedAt,
 				taskId: workspace.taskId,
 				isSynced: workspace.isSynced,
+				pendingTransaction: workspace.pendingTransaction,
 			};
 
 			if (workspace.sectionId) {
