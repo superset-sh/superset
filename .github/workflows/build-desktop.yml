@@ -27,6 +27,11 @@ on:
         required: false
         type: number
         default: 30
+      skip_signing:
+        description: "Build macOS artifacts without code signing or notarization"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-macos:
@@ -112,11 +117,13 @@ jobs:
       - name: Build Electron app
         working-directory: apps/desktop
         env:
-          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ inputs.skip_signing == false && secrets.MAC_CERTIFICATE || '' }}
+          CSC_KEY_PASSWORD: ${{ inputs.skip_signing == false && secrets.MAC_CERTIFICATE_PASSWORD || '' }}
+          APPLE_ID: ${{ inputs.skip_signing == false && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ inputs.skip_signing == false && secrets.APPLE_ID_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ inputs.skip_signing == false && secrets.APPLE_TEAM_ID || '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ inputs.skip_signing && 'false' || '' }}
+          SKIP_CODE_SIGNING: ${{ inputs.skip_signing && 'true' || 'false' }}
           TARGET_ARCH: ${{ matrix.arch }}
         run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }} --${{ matrix.arch }}
 

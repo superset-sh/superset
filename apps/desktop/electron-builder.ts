@@ -18,6 +18,7 @@ const productName = pkg.productName;
 const macIconPath = join(pkg.resources, "build/icons/icon.icns");
 const linuxIconPath = join(pkg.resources, "build/icons");
 const winIconPath = join(pkg.resources, "build/icons/icon.ico");
+const skipCodeSigning = process.env.SKIP_CODE_SIGNING === "true";
 const dmgBackgroundPath = join(
 	pkg.resources,
 	"build/installer/background.tiff",
@@ -112,6 +113,7 @@ const config: Configuration = {
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
 		notarize: true,
+		...(skipCodeSigning ? { identity: null, notarize: false } : {}),
 		entitlements: join(pkg.resources, "build/entitlements.mac.plist"),
 		entitlementsInherit: join(
 			pkg.resources,

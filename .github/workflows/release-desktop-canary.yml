@@ -11,6 +11,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip_signing:
+        description: "Build macOS artifacts without code signing or notarization"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -77,6 +82,7 @@ jobs:
       electron_builder_config: electron-builder.canary.ts
       artifact_prefix: desktop-canary
       artifact_retention_days: 7
+      skip_signing: ${{ github.event.inputs.skip_signing == 'true' }}
     secrets: inherit
 
   release:
@@ -149,6 +155,7 @@ jobs:
             - Commit: ${{ github.sha }}
             - Short SHA: ${{ needs.check-changes.outputs.short_sha }}
             - Built: ${{ needs.check-changes.outputs.build_time }}
+            - Code signing: ${{ github.event.inputs.skip_signing == 'true' && 'skipped' || 'enabled' }}
 
             ⚠️ This build is for internal testing only and may be unstable.
           prerelease: true
