@@ -28,12 +28,17 @@ class BrowserManager extends EventEmitter {
 	private consoleLogs = new Map<string, ConsoleEntry[]>();
 	private consoleListeners = new Map<string, () => void>();
 	private contextMenuListeners = new Map<string, () => void>();
+	private beforeInputListeners = new Map<string, () => void>();
 
 	register(paneId: string, webContentsId: number): void {
 		// Clean up previous listeners if re-registering with a new webContentsId
 		const prevId = this.paneWebContentsIds.get(paneId);
 		if (prevId != null && prevId !== webContentsId) {
-			for (const map of [this.consoleListeners, this.contextMenuListeners]) {
+			for (const map of [
+				this.consoleListeners,
+				this.contextMenuListeners,
+				this.beforeInputListeners,
+			]) {
 				const cleanup = map.get(paneId);
 				if (cleanup) {
 					cleanup();
@@ -55,11 +60,16 @@ class BrowserManager extends EventEmitter {
 			});
 			this.setupConsoleCapture(paneId, wc);
 			this.setupContextMenu(paneId, wc);
+			this.setupBeforeInput(paneId, wc);
 		}
 	}
 
 	unregister(paneId: string): void {
-		for (const map of [this.consoleListeners, this.contextMenuListeners]) {
+		for (const map of [
+			this.consoleListeners,
+			this.contextMenuListeners,
+			this.beforeInputListeners,
+		]) {
 			const cleanup = map.get(paneId);
 			if (cleanup) {
 				cleanup();
@@ -256,6 +266,32 @@ class BrowserManager extends EventEmitter {
 		this.consoleListeners.set(paneId, () => {
 			try {
 				wc.off("console-message", handler);
+			} catch {
+				// webContents may be destroyed
+			}
+		});
+	}
+
+	private setupBeforeInput(paneId: string, wc: Electron.WebContents): void {
+		const handler = (event: Electron.Event, input: Electron.Input): void => {
+			// AC-1: Intercept Cmd+W (macOS) / Ctrl+W (Windows/Linux) to close pane
+			// AC-2: Do NOT intercept Cmd+Shift+W / Ctrl+Shift+W (that's for closing the entire tab)
+			const isCloseKey =
+				(input.key === "w" || input.key === "W") &&
+				(input.meta || input.control) &&
+				!input.shift &&
+				!input.alt;
+
+			if (isCloseKey) {
+				event.preventDefault();
+				this.emit(`close-pane:${paneId}`);
+			}
+		};
+
+		wc.on("before-input-event", handler);
+		this.beforeInputListeners.set(paneId, () => {
+			try {
+				wc.off("before-input-event", handler);
 			} catch {
 				// webContents may be destroyed
 			}

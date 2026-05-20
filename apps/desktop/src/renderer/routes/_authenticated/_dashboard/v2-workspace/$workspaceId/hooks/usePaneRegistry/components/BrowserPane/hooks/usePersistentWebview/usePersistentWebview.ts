@@ -80,9 +80,24 @@ export function usePersistentWebview({
 					},
 				},
 			);
+		const closePaneSub = electronTrpcClient.browser.onClosePane.subscribe(
+			{ paneId },
+			{
+				onData: () => {
+					// AC-1, AC-5: Call the same close function as the CLOSE_PANE hotkey
+					const ctx = ctxRef.current;
+					// Find the tab this pane belongs to
+					const tabId = ctx.pane.tabId;
+					if (tabId) {
+						ctx.store.closePane({ tabId, paneId });
+					}
+				},
+			},
+		);
 		return () => {
 			newWindowSub.unsubscribe();
 			contextMenuSub.unsubscribe();
+			closePaneSub.unsubscribe();
 		};
 	}, [paneId]);
 

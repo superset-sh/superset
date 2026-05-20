@@ -28,7 +28,15 @@ export function createApplicationMenu() {
 					},
 				},
 				{ type: "separator" },
-				{ label: "Close Window", role: "close" },
+				{
+					label: "Close Window",
+					// Note: no longer uses role: "close" - that implicitly assigns CmdOrCtrl+W
+					// Cmd+W is now intercepted by browser-pane before-input-event
+					click: () => {
+						const focused = BrowserWindow.getFocusedWindow();
+						if (focused) focused.close();
+					},
+				},
 			],
 		},
 		{

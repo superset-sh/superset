@@ -146,6 +146,25 @@ export function usePersistentWebview({
 		},
 	);
 
+	// Subscribe to close-pane events from Cmd+W in webview (AC-1, AC-5)
+	electronTrpc.browser.onClosePane.useSubscription(
+		{ paneId },
+		{
+			onData: () => {
+				// Call the same close function as the CLOSE_TERMINAL hotkey
+				const state = useTabsStore.getState();
+				const pane = state.panes[paneId];
+				if (!pane) return;
+				// Import dynamically to avoid circular dependency
+				import("renderer/stores/editor-state/editorCoordinator").then(
+					({ requestPaneClose }) => {
+						requestPaneClose(paneId);
+					},
+				);
+			},
+		},
+	);
+
 	// Sync store from webview state (handles agent-triggered navigation while hidden)
 	const syncStoreFromWebview = useCallback(
 		(webview: Electron.WebviewTag) => {
