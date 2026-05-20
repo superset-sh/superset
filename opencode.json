@@ -6,7 +6,7 @@
 	"mcp": {
 		"superset": {
 			"type": "remote",
-			"url": "https://api.superset.sh/api/agent/mcp",
+			"url": "https://api.superset.sh/api/v2/agent/mcp",
 			"oauth": {}
 		},
 		"expo-mcp": {
