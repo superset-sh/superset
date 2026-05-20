@@ -15,17 +15,20 @@ export interface JwtApiAuthProviderOptions {
 	 * (re-login, refresh) are picked up without restarting the host-service.
 	 */
 	getSessionToken: () => Promise<string>;
+	onInvalidateCache?: () => void;
 	apiUrl: string;
 }
 
 export class JwtApiAuthProvider implements ApiAuthProvider {
 	private readonly getSessionToken: () => Promise<string>;
+	private readonly onInvalidateCache?: () => void;
 	private readonly apiUrl: string;
 	private cachedJwt: string | null = null;
 	private cachedJwtExpiresAt = 0;
 
 	constructor(options: JwtApiAuthProviderOptions) {
 		this.getSessionToken = options.getSessionToken;
+		this.onInvalidateCache = options.onInvalidateCache;
 		this.apiUrl = options.apiUrl;
 	}
 
@@ -37,6 +40,7 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 	invalidateCache(): void {
 		this.cachedJwt = null;
 		this.cachedJwtExpiresAt = 0;
+		this.onInvalidateCache?.();
 	}
 
 	async getJwt(): Promise<string> {
