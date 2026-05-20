@@ -17,4 +17,5 @@ async function handleRequest(req: Request): Promise<Response> {
 	return handleMcpRequest(req, deps);
 }
 
+export const maxDuration = 800;
 export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };

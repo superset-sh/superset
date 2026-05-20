@@ -72,4 +72,5 @@ async function handle(req: Request): Promise<Response> {
 	});
 }
 
+export const maxDuration = 800;
 export { handle as GET, handle as POST, handle as DELETE };
