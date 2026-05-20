@@ -1,3 +1,4 @@
+export { invalidateProjectQueries } from "./invalidateProjectQueries";
 export { processOpenNewResults } from "./processOpenNewResults";
 export {
 	type ProjectSetupResult,
