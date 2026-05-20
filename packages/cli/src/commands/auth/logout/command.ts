@@ -39,6 +39,13 @@ async function stopRunningHost(
 		if (!isProcessAlive(manifest.pid)) return;
 		await new Promise((resolve) => setTimeout(resolve, HOST_SHUTDOWN_POLL_MS));
 	}
+
+	if (isProcessAlive(manifest.pid)) {
+		throw new CLIError(
+			`Host service did not stop within ${HOST_SHUTDOWN_TIMEOUT_MS}ms (pid ${manifest.pid})`,
+			"Try: superset stop",
+		);
+	}
 }
 
 export default command({

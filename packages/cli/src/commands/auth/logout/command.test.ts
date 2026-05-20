@@ -106,7 +106,7 @@ describe("auth logout", () => {
 		expect(readConfig()).toEqual({ organizationId: "org_1" });
 	});
 
-	it("waits up to five seconds for host death, then clears credentials", async () => {
+	it("fails logout and keeps credentials when host does not stop within timeout", async () => {
 		const pid = 91_002;
 		writeLoggedInConfig();
 		writeHostManifest(pid);
@@ -134,7 +134,7 @@ describe("auth logout", () => {
 		}) as typeof process.kill);
 
 		try {
-			await runLogout();
+			await expect(runLogout()).rejects.toThrow("Host service did not stop");
 			expect(timeoutSpy).toHaveBeenCalledTimes(50);
 		} finally {
 			killSpy.mockRestore();
@@ -142,6 +142,14 @@ describe("auth logout", () => {
 			nowSpy.mockRestore();
 		}
 
-		expect(readConfig()).toEqual({ organizationId: "org_1" });
+		expect(readConfig()).toEqual({
+			organizationId: "org_1",
+			apiKey: "sk_live_existing",
+			auth: {
+				accessToken: "access-token",
+				refreshToken: "refresh-token",
+				expiresAt: expect.any(Number),
+			},
+		});
 	});
 });
