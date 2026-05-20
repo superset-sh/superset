@@ -362,7 +362,8 @@ async function runAgentOnHost(args: {
 }
 
 function describeError(err: unknown, context: string): string {
-	if (err instanceof RelayDispatchError) return `${context}: ${err.message}`;
-	if (err instanceof Error) return `${context}: ${err.message}`;
+	if (err instanceof RelayDispatchError)
+		return `${context}: ${err.name}: ${err.message}`;
+	if (err instanceof Error) return `${context}: ${err.name}: ${err.message}`;
 	return `${context}: unknown error`;
 }
