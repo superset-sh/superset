@@ -787,7 +787,7 @@ describe("DaemonSupervisor auto-update best effort", () => {
 				(e) =>
 					e.event === "pty_daemon_auto_update_failed" &&
 					e.props.reason === "successor ack timed out after 5000ms" &&
-					e.props.leftPending === true,
+					e.props.leftPending === false,
 			),
 		).toBe(true);
 	});
@@ -853,7 +853,7 @@ describe("DaemonSupervisor auto-update best effort", () => {
 				(e) =>
 					e.event === "pty_daemon_auto_update_failed" &&
 					e.props.reason === "manual smooth update failed" &&
-					e.props.leftPending === true,
+					e.props.leftPending === false,
 			),
 		).toBe(true);
 	});

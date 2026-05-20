@@ -57,13 +57,13 @@ interface DaemonProbeResult {
 	daemonPid?: number;
 }
 
-interface DaemonAutoUpdateFailure {
+export interface DaemonAutoUpdateFailure {
 	id: string;
 	reason: string;
 	failedAt: number;
 }
 
-interface DaemonUpdateStatus {
+export interface DaemonUpdateStatus {
 	pending: boolean;
 	running: string;
 	expected: string;
@@ -588,31 +588,53 @@ export class DaemonSupervisor {
 				return;
 			}
 
+			const leftPending = this.isAutoUpdateFailureStillPending(
+				organizationId,
+				instance,
+				update.started,
+			);
 			logEvent("pty_daemon_auto_update_failed", {
 				organizationId,
 				pid: instance.pid,
 				runningVersion: instance.runningVersion,
 				expectedVersion: instance.expectedVersion,
 				reason: result.reason,
-				leftPending: true,
+				leftPending,
 			});
-			if (update.started) {
+			if (leftPending) {
 				this.recordAutoUpdateFailure(organizationId, instance, result.reason);
 			}
 		} catch (err) {
 			const reason = `threw: ${(err as Error).message}`;
+			const leftPending = this.isAutoUpdateFailureStillPending(
+				organizationId,
+				instance,
+				update.started,
+			);
 			logEvent("pty_daemon_auto_update_failed", {
 				organizationId,
 				pid: instance.pid,
 				runningVersion: instance.runningVersion,
 				expectedVersion: instance.expectedVersion,
 				reason,
-				leftPending: true,
+				leftPending,
 			});
-			if (update.started) {
+			if (leftPending) {
 				this.recordAutoUpdateFailure(organizationId, instance, reason);
 			}
 		}
+	}
+
+	private isAutoUpdateFailureStillPending(
+		organizationId: string,
+		instance: DaemonInstance,
+		updateStartedHere: boolean,
+	): boolean {
+		return (
+			updateStartedHere &&
+			this.instances.get(organizationId) === instance &&
+			instance.updatePending
+		);
 	}
 
 	private recordAutoUpdateFailure(

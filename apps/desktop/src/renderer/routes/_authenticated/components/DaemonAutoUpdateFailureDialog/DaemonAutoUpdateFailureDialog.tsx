@@ -20,10 +20,29 @@ import {
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 const STATUS_REFETCH_MS = 5_000;
+const DISMISSED_FAILURE_STORAGE_KEY_PREFIX =
+	"superset.daemon-auto-update-failure.dismissed.";
+
+function getDismissedFailureId(storageKey: string): string | null {
+	try {
+		return window.localStorage.getItem(storageKey);
+	} catch {
+		return null;
+	}
+}
+
+function saveDismissedFailureId(storageKey: string, failureId: string): void {
+	try {
+		window.localStorage.setItem(storageKey, failureId);
+	} catch {
+		// Best effort; in-memory state still suppresses this failure for the session.
+	}
+}
 
 export function DaemonAutoUpdateFailureDialog() {
-	const { activeHostUrl } = useLocalHostService();
+	const { activeHostUrl, activeOrganizationId } = useLocalHostService();
 	if (!activeHostUrl) return null;
+	const dismissedFailureStorageKey = `${DISMISSED_FAILURE_STORAGE_KEY_PREFIX}${activeOrganizationId ?? activeHostUrl}`;
 	return (
 		<WorkspaceClientProvider
 			cacheKey="daemon-auto-update-failure"
@@ -32,15 +51,21 @@ export function DaemonAutoUpdateFailureDialog() {
 			headers={() => getHostServiceHeaders(activeHostUrl)}
 			wsToken={() => getHostServiceWsToken(activeHostUrl)}
 		>
-			<DaemonAutoUpdateFailureDialogInner />
+			<DaemonAutoUpdateFailureDialogInner
+				dismissedFailureStorageKey={dismissedFailureStorageKey}
+			/>
 		</WorkspaceClientProvider>
 	);
 }
 
-function DaemonAutoUpdateFailureDialogInner() {
+function DaemonAutoUpdateFailureDialogInner({
+	dismissedFailureStorageKey,
+}: {
+	dismissedFailureStorageKey: string;
+}) {
 	const [activeFailureId, setActiveFailureId] = useState<string | null>(null);
 	const [dismissedFailureId, setDismissedFailureId] = useState<string | null>(
-		null,
+		() => getDismissedFailureId(dismissedFailureStorageKey),
 	);
 
 	const updateStatusQuery =
@@ -48,15 +73,28 @@ function DaemonAutoUpdateFailureDialogInner() {
 			refetchInterval: STATUS_REFETCH_MS,
 			refetchOnWindowFocus: true,
 		});
+	const closeDialog = () => {
+		if (activeFailureId) {
+			setDismissedFailureId(activeFailureId);
+			saveDismissedFailureId(dismissedFailureStorageKey, activeFailureId);
+		}
+		setActiveFailureId(null);
+	};
+	useEffect(() => {
+		setDismissedFailureId(getDismissedFailureId(dismissedFailureStorageKey));
+	}, [dismissedFailureStorageKey]);
+
 	const sessionsQuery = workspaceTrpc.terminal.daemon.listSessions.useQuery(
 		undefined,
 		{
 			enabled: activeFailureId !== null,
+			refetchInterval: activeFailureId !== null ? STATUS_REFETCH_MS : false,
 			refetchOnWindowFocus: true,
 		},
 	);
 	const restartDaemon = workspaceTrpc.terminal.daemon.restart.useMutation({
 		onSuccess: () => {
+			closeDialog();
 			toast.success("Daemon restarted", {
 				description: "All sessions were closed and a fresh daemon is running.",
 			});
@@ -77,11 +115,6 @@ function DaemonAutoUpdateFailureDialogInner() {
 		setActiveFailureId(failure.id);
 	}, [failure, dismissedFailureId]);
 
-	const closeDialog = () => {
-		if (activeFailureId) setDismissedFailureId(activeFailureId);
-		setActiveFailureId(null);
-	};
-
 	const sessions = sessionsQuery.data ?? null;
 	const aliveCount =
 		sessions === null
@@ -92,7 +125,7 @@ function DaemonAutoUpdateFailureDialogInner() {
 		<AlertDialog
 			open={activeFailureId !== null && !!failure}
 			onOpenChange={(open) => {
-				if (!open) closeDialog();
+				if (!open && !restartDaemon.isPending) closeDialog();
 			}}
 		>
 			<AlertDialogContent className="max-w-[520px] gap-0 p-0">
@@ -106,7 +139,7 @@ function DaemonAutoUpdateFailureDialogInner() {
 								Superset tried to update the terminal daemon without closing
 								sessions, but the handoff did not finish. Reason:
 							</span>
-							<span className="block rounded bg-muted/40 px-2 py-1.5 font-mono text-[11px] text-foreground">
+							<span className="block cursor-text select-text rounded bg-muted/40 px-2 py-1.5 font-mono text-[11px] text-foreground">
 								{failure?.reason ?? ""}
 							</span>
 							<span className="block">
@@ -118,7 +151,12 @@ function DaemonAutoUpdateFailureDialogInner() {
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter className="flex-row justify-end gap-2 px-4 pb-4 pt-2">
-					<Button variant="ghost" size="sm" onClick={closeDialog}>
+					<Button
+						variant="ghost"
+						size="sm"
+						disabled={restartDaemon.isPending}
+						onClick={closeDialog}
+					>
 						Keep current daemon
 					</Button>
 					<Button
@@ -126,7 +164,6 @@ function DaemonAutoUpdateFailureDialogInner() {
 						size="sm"
 						disabled={restartDaemon.isPending}
 						onClick={() => {
-							closeDialog();
 							restartDaemon.mutate();
 						}}
 					>

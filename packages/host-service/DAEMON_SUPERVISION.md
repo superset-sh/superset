@@ -217,9 +217,10 @@ supervisor's `restoreOnFailure()` path leaves the
 predecessor's instance record intact — the user's shells keep serving on
 the original daemon process. Auto-update on adopt (`kickoffAutoUpdate`)
 relies on this contract: a transient failure must never disrupt sessions.
-Before the destructive auto-update fallback runs, the supervisor re-checks
-that the same stale daemon is still current and still pending so a late
-failure from an obsolete attempt cannot restart a fresh daemon.
+The old destructive auto-update fallback has been removed. Background
+auto-updates leave the predecessor running and surface the failure through
+`updatePending` plus `getUpdateStatus().autoUpdateFailure`; any destructive
+restart is an explicit user action through the desktop confirmation flow.
 
 Mode signal goes through argv (`--handoff`), not env: bundlers
 (Bun, esbuild via electron-vite) statically inline `process.env.X`
