@@ -368,6 +368,7 @@ describe("DaemonSupervisor.getUpdateStatus", () => {
 			pending: false,
 			running: "0.1.0",
 			expected: "0.1.0",
+			autoUpdateFailure: null,
 		});
 	});
 
@@ -381,6 +382,7 @@ describe("DaemonSupervisor.getUpdateStatus", () => {
 			pending: true,
 			running: "0.0.9",
 			expected: "0.1.0",
+			autoUpdateFailure: null,
 		});
 	});
 
@@ -393,6 +395,7 @@ describe("DaemonSupervisor.getUpdateStatus", () => {
 		const status = sup.getUpdateStatus("org-probe-failed");
 		expect(status?.pending).toBe(false);
 		expect(status?.running).toBe("unknown");
+		expect(status?.autoUpdateFailure).toBeNull();
 	});
 });
 
@@ -665,105 +668,88 @@ describe("DaemonSupervisor.update failure mode", () => {
 	});
 });
 
-describe("DaemonSupervisor auto-update fallback", () => {
+describe("DaemonSupervisor auto-update best effort", () => {
 	let sup: DaemonSupervisor;
 
 	beforeEach(() => {
 		sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
 	});
 
-	test("force-restarts when the background smooth update returns ok:false", async () => {
+	test("leaves the predecessor running when the background smooth update returns ok:false", async () => {
 		const instance = staleInstance("0.0.9");
-		seedDaemonInstance(sup, "org-auto-fallback", instance);
+		seedDaemonInstance(sup, "org-auto-best-effort", instance);
 		mockListSessions(sup, []);
 		const runUpdateMock = mock(async () => ({
 			ok: false as const,
 			reason: "snapshot write failed: ENOSPC",
 		}));
-		const forceRestartCalls: {
-			organizationId: string;
-			log: ForceRestartLog;
-		}[] = [];
-		const forceRestartMock = mock(
-			async (organizationId: string, log: ForceRestartLog) => {
-				forceRestartCalls.push({ organizationId, log });
-				return { success: true as const };
-			},
-		);
+		const forceRestartMock = mock(async () => ({ success: true as const }));
 		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
 			runUpdateMock;
 		(
 			sup as unknown as {
-				forceRestart: (
-					organizationId: string,
-					log: ForceRestartLog,
-				) => Promise<{ success: true }>;
+				forceRestart: () => Promise<{ success: true }>;
 			}
 		).forceRestart = forceRestartMock;
 
-		invokeKickoffAutoUpdate(sup, "org-auto-fallback", instance);
+		invokeKickoffAutoUpdate(sup, "org-auto-best-effort", instance);
 		await flushAutoUpdate();
 
-		expect(runUpdateMock).toHaveBeenCalledWith("org-auto-fallback");
-		expect(forceRestartMock).toHaveBeenCalledTimes(1);
-		expect(forceRestartCalls[0]?.organizationId).toBe("org-auto-fallback");
-		expect(forceRestartCalls[0]?.log).toMatchObject({
-			event: "pty_daemon_auto_update_force_restart",
-			props: {
-				smoothUpdateFailureReason: "snapshot write failed: ENOSPC",
-				smoothUpdatePid: instance.pid,
-				smoothUpdateRunningVersion: instance.runningVersion,
-				smoothUpdateExpectedVersion: instance.expectedVersion,
-			},
-		});
+		expect(runUpdateMock).toHaveBeenCalledWith("org-auto-best-effort");
+		expect(forceRestartMock).not.toHaveBeenCalled();
+		expect(getInstancePid(sup, "org-auto-best-effort")).toBe(instance.pid);
+		const status = sup.getUpdateStatus("org-auto-best-effort");
+		expect(status?.pending).toBe(true);
+		expect(status?.autoUpdateFailure?.reason).toBe(
+			"snapshot write failed: ENOSPC",
+		);
 		expect(
 			loggedEvents.some(
-				(e) => e.event === "pty_daemon_auto_update_force_restart_ok",
+				(e) =>
+					e.event === "pty_daemon_auto_update_failed" &&
+					e.props.reason === "snapshot write failed: ENOSPC" &&
+					e.props.leftPending === true,
 			),
 		).toBe(true);
 	});
 
-	test("force-restarts when the background smooth update throws", async () => {
+	test("leaves the predecessor running when the background smooth update throws", async () => {
 		const instance = staleInstance("0.0.8");
 		seedDaemonInstance(sup, "org-auto-throw", instance);
 		mockListSessions(sup, []);
 		const runUpdateMock = mock(async () => {
 			throw new Error("transport: ECONNRESET");
 		});
-		const forceRestartCalls: {
-			organizationId: string;
-			log: ForceRestartLog;
-		}[] = [];
-		const forceRestartMock = mock(
-			async (organizationId: string, log: ForceRestartLog) => {
-				forceRestartCalls.push({ organizationId, log });
-				return { success: true as const };
-			},
-		);
+		const forceRestartMock = mock(async () => ({ success: true as const }));
 		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
 			runUpdateMock;
 		(
 			sup as unknown as {
-				forceRestart: (
-					organizationId: string,
-					log: ForceRestartLog,
-				) => Promise<{ success: true }>;
+				forceRestart: () => Promise<{ success: true }>;
 			}
 		).forceRestart = forceRestartMock;
 
 		invokeKickoffAutoUpdate(sup, "org-auto-throw", instance);
 		await flushAutoUpdate();
 
-		expect(forceRestartMock).toHaveBeenCalledTimes(1);
-		expect(forceRestartCalls[0]?.log).toMatchObject({
-			event: "pty_daemon_auto_update_force_restart",
-			props: {
-				smoothUpdateFailureReason: "threw: transport: ECONNRESET",
-			},
-		});
+		expect(forceRestartMock).not.toHaveBeenCalled();
+		expect(getInstancePid(sup, "org-auto-throw")).toBe(instance.pid);
+		const status = sup.getUpdateStatus("org-auto-throw");
+		expect(status?.pending).toBe(true);
+		expect(status?.autoUpdateFailure?.reason).toBe(
+			"threw: transport: ECONNRESET",
+		);
+		expect(
+			loggedEvents.some(
+				(e) =>
+					e.event === "pty_daemon_auto_update_failed" &&
+					e.props.reason === "threw: transport: ECONNRESET" &&
+					e.props.leftPending === true,
+			),
+		).toBe(true);
 	});
 
-	test("skips force-restart when the failed stale daemon is no longer current", async () => {
+	test("does not overwrite the current daemon if the failed update changed it", async () => {
 		const instance = staleInstance("0.0.7");
 		seedDaemonInstance(sup, "org-auto-changed", instance);
 		mockListSessions(sup, []);
@@ -784,10 +770,7 @@ describe("DaemonSupervisor auto-update fallback", () => {
 			runUpdateMock;
 		(
 			sup as unknown as {
-				forceRestart: (
-					organizationId: string,
-					log: ForceRestartLog,
-				) => Promise<{ success: true }>;
+				forceRestart: () => Promise<{ success: true }>;
 			}
 		).forceRestart = forceRestartMock;
 
@@ -795,13 +778,16 @@ describe("DaemonSupervisor auto-update fallback", () => {
 		await flushAutoUpdate();
 
 		expect(forceRestartMock).not.toHaveBeenCalled();
+		expect(getInstancePid(sup, "org-auto-changed")).toBe(4321);
+		expect(
+			sup.getUpdateStatus("org-auto-changed")?.autoUpdateFailure,
+		).toBeNull();
 		expect(
 			loggedEvents.some(
 				(e) =>
-					e.event === "pty_daemon_auto_update_force_restart_skipped" &&
-					e.props.reason === "daemon_changed" &&
-					e.props.smoothUpdatePid === instance.pid &&
-					e.props.currentPid === 4321,
+					e.event === "pty_daemon_auto_update_failed" &&
+					e.props.reason === "successor ack timed out after 5000ms" &&
+					e.props.leftPending === true,
 			),
 		).toBe(true);
 	});
@@ -832,49 +818,7 @@ describe("DaemonSupervisor auto-update fallback", () => {
 		).toBe(true);
 	});
 
-	test("skips force-restart when live sessions appear after a failed smooth update", async () => {
-		const instance = staleInstance("0.0.5");
-		seedDaemonInstance(sup, "org-auto-race", instance);
-		let listCalls = 0;
-		const listSessionsMock = mock(async () => {
-			listCalls += 1;
-			return listCalls === 1 ? [] : [aliveSession("late-live")];
-		});
-		(sup as unknown as { listSessions: typeof sup.listSessions }).listSessions =
-			listSessionsMock as typeof sup.listSessions;
-		const runUpdateMock = mock(async () => ({
-			ok: false as const,
-			reason: "successor ack timed out after 5000ms",
-		}));
-		const forceRestartMock = mock(async () => ({ success: true as const }));
-		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
-			runUpdateMock;
-		(
-			sup as unknown as {
-				forceRestart: (
-					organizationId: string,
-					log: ForceRestartLog,
-				) => Promise<{ success: true }>;
-			}
-		).forceRestart = forceRestartMock;
-
-		invokeKickoffAutoUpdate(sup, "org-auto-race", instance);
-		await flushAutoUpdate();
-
-		expect(runUpdateMock).toHaveBeenCalledTimes(1);
-		expect(forceRestartMock).not.toHaveBeenCalled();
-		expect(
-			loggedEvents.some(
-				(e) =>
-					e.event === "pty_daemon_auto_update_force_restart_skipped" &&
-					e.props.reason === "live_sessions_present" &&
-					e.props.aliveSessionCount === 1 &&
-					e.props.smoothUpdatePid === instance.pid,
-			),
-		).toBe(true);
-	});
-
-	test("skips force-restart when auto-update joins an existing manual update", async () => {
+	test("joins an existing manual update without adding a destructive fallback", async () => {
 		const instance = staleInstance("0.0.6");
 		seedDaemonInstance(sup, "org-auto-coalesced", instance);
 		mockListSessions(sup, []);
@@ -885,10 +829,7 @@ describe("DaemonSupervisor auto-update fallback", () => {
 			runUpdateMock;
 		(
 			sup as unknown as {
-				forceRestart: (
-					organizationId: string,
-					log: ForceRestartLog,
-				) => Promise<{ success: true }>;
+				forceRestart: () => Promise<{ success: true }>;
 			}
 		).forceRestart = forceRestartMock;
 
@@ -905,22 +846,20 @@ describe("DaemonSupervisor auto-update fallback", () => {
 		expect(runUpdateMock).toHaveBeenCalledTimes(1);
 		expect(forceRestartMock).not.toHaveBeenCalled();
 		expect(
+			sup.getUpdateStatus("org-auto-coalesced")?.autoUpdateFailure,
+		).toBeNull();
+		expect(
 			loggedEvents.some(
 				(e) =>
-					e.event === "pty_daemon_auto_update_force_restart_skipped" &&
-					e.props.reason === "update_already_in_flight" &&
-					e.props.smoothUpdatePid === instance.pid,
+					e.event === "pty_daemon_auto_update_failed" &&
+					e.props.reason === "manual smooth update failed" &&
+					e.props.leftPending === true,
 			),
 		).toBe(true);
 	});
 });
 
 // ---------------- helpers ----------------
-
-interface ForceRestartLog {
-	event: string;
-	props: Record<string, unknown>;
-}
 
 interface Deferred<T> {
 	promise: Promise<T>;

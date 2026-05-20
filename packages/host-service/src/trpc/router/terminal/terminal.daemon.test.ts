@@ -52,6 +52,7 @@ describe("terminal.daemon tRPC procedures", () => {
 			pending: true,
 			running: "0.0.9",
 			expected: "0.1.0",
+			autoUpdateFailure: null,
 		}));
 		(
 			sup as unknown as { getUpdateStatus: typeof sup.getUpdateStatus }
@@ -68,6 +69,7 @@ describe("terminal.daemon tRPC procedures", () => {
 			pending: true,
 			running: "0.0.9",
 			expected: "0.1.0",
+			autoUpdateFailure: null,
 		});
 	});
 

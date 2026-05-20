@@ -48,11 +48,26 @@ interface DaemonInstance {
 	expectedVersion: string;
 	/** True when running < expected. Probe failure does NOT set this. */
 	updatePending: boolean;
+	/** Last failed background update attempt for this still-running daemon. */
+	autoUpdateFailure?: DaemonAutoUpdateFailure;
 }
 
 interface DaemonProbeResult {
 	daemonVersion: string;
 	daemonPid?: number;
+}
+
+interface DaemonAutoUpdateFailure {
+	id: string;
+	reason: string;
+	failedAt: number;
+}
+
+interface DaemonUpdateStatus {
+	pending: boolean;
+	running: string;
+	expected: string;
+	autoUpdateFailure: DaemonAutoUpdateFailure | null;
 }
 
 const SOCKET_READY_TIMEOUT_MS = 5_000;
@@ -116,8 +131,9 @@ export interface DaemonSupervisorOptions {
 	/**
 	 * When true (default), opportunistically calls `update()` after
 	 * adopting a daemon whose `runningVersion < EXPECTED_DAEMON_VERSION`.
-	 * If that smooth handoff fails, auto-update falls back to a force
-	 * restart so the app does not keep running an incompatible daemon.
+	 * Background auto-update is best-effort only: if fd-handoff cannot
+	 * preserve the daemon's sessions, the predecessor keeps running and
+	 * the desktop UI remains the explicit place for a destructive force restart.
 	 * Set to false in integration tests that intentionally adopt a stale
 	 * daemon and assert the version-drift flag without the test racing a
 	 * real handoff.
@@ -189,15 +205,14 @@ export class DaemonSupervisor {
 	 * means the version probe failed during adoption — treat as not-pending
 	 * (probe failure ≠ stale).
 	 */
-	getUpdateStatus(
-		organizationId: string,
-	): { pending: boolean; running: string; expected: string } | null {
+	getUpdateStatus(organizationId: string): DaemonUpdateStatus | null {
 		const instance = this.instances.get(organizationId);
 		if (!instance) return null;
 		return {
 			pending: instance.updatePending,
 			running: instance.runningVersion,
 			expected: instance.expectedVersion,
+			autoUpdateFailure: instance.autoUpdateFailure ?? null,
 		};
 	}
 
@@ -526,7 +541,13 @@ export class DaemonSupervisor {
 				runningVersion: instance.runningVersion,
 				expectedVersion: instance.expectedVersion,
 				reason: `threw: ${(err as Error).message}`,
+				leftPending: true,
 			});
+			this.recordAutoUpdateFailure(
+				organizationId,
+				instance,
+				`threw: ${(err as Error).message}`,
+			);
 		});
 	}
 
@@ -554,8 +575,6 @@ export class DaemonSupervisor {
 			return;
 		}
 
-		// If a manual Update click already owns the in-flight handoff, leave
-		// any destructive fallback to that foreground UI path.
 		const update = this.startUpdate(organizationId);
 		try {
 			const result = await update.promise;
@@ -575,21 +594,11 @@ export class DaemonSupervisor {
 				runningVersion: instance.runningVersion,
 				expectedVersion: instance.expectedVersion,
 				reason: result.reason,
+				leftPending: true,
 			});
-			if (!update.started) {
-				this.skipAutoUpdateForceRestart(
-					organizationId,
-					instance,
-					result.reason,
-					"update_already_in_flight",
-				);
-				return;
+			if (update.started) {
+				this.recordAutoUpdateFailure(organizationId, instance, result.reason);
 			}
-			await this.forceRestartAfterAutoUpdateFailure(
-				organizationId,
-				instance,
-				result.reason,
-			);
 		} catch (err) {
 			const reason = `threw: ${(err as Error).message}`;
 			logEvent("pty_daemon_auto_update_failed", {
@@ -598,22 +607,29 @@ export class DaemonSupervisor {
 				runningVersion: instance.runningVersion,
 				expectedVersion: instance.expectedVersion,
 				reason,
+				leftPending: true,
 			});
-			if (!update.started) {
-				this.skipAutoUpdateForceRestart(
-					organizationId,
-					instance,
-					reason,
-					"update_already_in_flight",
-				);
-				return;
+			if (update.started) {
+				this.recordAutoUpdateFailure(organizationId, instance, reason);
 			}
-			await this.forceRestartAfterAutoUpdateFailure(
-				organizationId,
-				instance,
-				reason,
-			);
 		}
+	}
+
+	private recordAutoUpdateFailure(
+		organizationId: string,
+		instance: DaemonInstance,
+		reason: string,
+	): void {
+		const current = this.instances.get(organizationId);
+		if (!current || current.pid !== instance.pid || !current.updatePending) {
+			return;
+		}
+		const failedAt = Date.now();
+		current.autoUpdateFailure = {
+			id: `${current.pid}:${current.runningVersion}:${current.expectedVersion}:${failedAt}`,
+			reason,
+			failedAt,
+		};
 	}
 
 	private deferAutoUpdate(
@@ -630,124 +646,6 @@ export class DaemonSupervisor {
 			reason,
 			...extra,
 		});
-	}
-
-	private async canAutoUpdateForceRestart(
-		organizationId: string,
-		instance: DaemonInstance,
-		failureReason: string,
-	): Promise<boolean> {
-		const sessions = await this.listSessions(
-			organizationId,
-			AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS,
-		);
-		if (sessions === null) {
-			this.skipAutoUpdateForceRestart(
-				organizationId,
-				instance,
-				failureReason,
-				"session_list_unavailable",
-			);
-			return false;
-		}
-		const aliveSessionCount = countAliveSessions(sessions);
-		if (aliveSessionCount > 0) {
-			this.skipAutoUpdateForceRestart(
-				organizationId,
-				instance,
-				failureReason,
-				"live_sessions_present",
-				{ aliveSessionCount },
-			);
-			return false;
-		}
-		return true;
-	}
-
-	private skipAutoUpdateForceRestart(
-		organizationId: string,
-		instance: DaemonInstance,
-		failureReason: string,
-		reason: string,
-		extra: Record<string, unknown> = {},
-	): void {
-		logEvent("pty_daemon_auto_update_force_restart_skipped", {
-			organizationId,
-			smoothUpdatePid: instance.pid,
-			smoothUpdateFailureReason: failureReason,
-			reason,
-			...extra,
-		});
-	}
-
-	private async forceRestartAfterAutoUpdateFailure(
-		organizationId: string,
-		instance: DaemonInstance,
-		reason: string,
-	): Promise<void> {
-		const current = this.instances.get(organizationId);
-		if (!current) {
-			logEvent("pty_daemon_auto_update_force_restart_skipped", {
-				organizationId,
-				smoothUpdatePid: instance.pid,
-				smoothUpdateFailureReason: reason,
-				reason: "no_current_daemon",
-			});
-			return;
-		}
-		if (current.pid !== instance.pid) {
-			logEvent("pty_daemon_auto_update_force_restart_skipped", {
-				organizationId,
-				smoothUpdatePid: instance.pid,
-				smoothUpdateFailureReason: reason,
-				reason: "daemon_changed",
-				currentPid: current.pid,
-				currentRunningVersion: current.runningVersion,
-				currentExpectedVersion: current.expectedVersion,
-				currentUpdatePending: current.updatePending,
-			});
-			return;
-		}
-		if (!current.updatePending) {
-			logEvent("pty_daemon_auto_update_force_restart_skipped", {
-				organizationId,
-				smoothUpdatePid: instance.pid,
-				smoothUpdateFailureReason: reason,
-				reason: "daemon_no_longer_pending",
-				currentRunningVersion: current.runningVersion,
-				currentExpectedVersion: current.expectedVersion,
-			});
-			return;
-		}
-		if (
-			!(await this.canAutoUpdateForceRestart(organizationId, current, reason))
-		) {
-			return;
-		}
-
-		try {
-			await this.forceRestart(organizationId, {
-				event: "pty_daemon_auto_update_force_restart",
-				props: {
-					smoothUpdateFailureReason: reason,
-					smoothUpdatePid: instance.pid,
-					smoothUpdateRunningVersion: instance.runningVersion,
-					smoothUpdateExpectedVersion: instance.expectedVersion,
-				},
-			});
-			logEvent("pty_daemon_auto_update_force_restart_ok", {
-				organizationId,
-				smoothUpdatePid: instance.pid,
-				smoothUpdateFailureReason: reason,
-			});
-		} catch (err) {
-			logEvent("pty_daemon_auto_update_force_restart_failed", {
-				organizationId,
-				smoothUpdatePid: instance.pid,
-				smoothUpdateFailureReason: reason,
-				reason: (err as Error).message,
-			});
-		}
 	}
 
 	/**
@@ -802,11 +700,9 @@ export class DaemonSupervisor {
 			this.maybeFireUpdatePending(organizationId, adopted);
 			this.startAdoptedLivenessCheck(organizationId, adopted.pid);
 			// Auto-update opportunistically: if the adopted daemon is older
-			// than the bundled binary, kick off a handoff in the background.
-			// Sessions survive on smooth success; on smooth failure the
-			// background path force-restarts because there is no foreground UI
-			// to ask the user for the destructive fallback. Fire-and-track so
-			// bootstrap returns immediately.
+			// than the bundled binary, try a smooth handoff in the background.
+			// This path never force-restarts; if handoff fails, the desktop UI
+			// exposes the explicit destructive fallback.
 			if (adopted.updatePending && this.opts.autoUpdate !== false) {
 				this.kickoffAutoUpdate(organizationId, adopted);
 			}
