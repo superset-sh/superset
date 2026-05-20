@@ -9,7 +9,7 @@
 // renders twice: once from currentMessage, once from historicalMessages.
 // WITH the filter the message is supposed to be suppressed in history —
 // but the filter only suppresses assistant messages that have NO stopReason.
-// 
+//
 // The BUG (M1 from the red-hat review): if the optimistic user message is
 // appended AFTER history, findLastUserMessageIndex lands on the OPTIMISTIC
 // message (the last user message), making activeTurnMessages = [] and the
@@ -17,9 +17,9 @@
 // currentMessage slot AND the history slot render the same assistant text.
 
 import { describe, expect, it } from "bun:test";
-import { withoutActiveTurnAssistantHistory } from "./use-chat-display";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { ChatRuntimeServiceRouter } from "../../../server/trpc";
+import { withoutActiveTurnAssistantHistory } from "./use-chat-display";
 
 type RouterOutputs = inferRouterOutputs<ChatRuntimeServiceRouter>;
 type SessionOutputs = RouterOutputs["session"];
@@ -27,32 +27,32 @@ type ListMessagesOutput = SessionOutputs["listMessages"];
 type DisplayStateOutput = SessionOutputs["getDisplayState"];
 
 function userMessage(id: string, text: string): ListMessagesOutput[number] {
-  return {
-    id,
-    role: "user",
-    content: [{ type: "text", text }],
-    createdAt: new Date("2026-02-26T00:00:00.000Z"),
-  } as unknown as ListMessagesOutput[number];
+	return {
+		id,
+		role: "user",
+		content: [{ type: "text", text }],
+		createdAt: new Date("2026-02-26T00:00:00.000Z"),
+	} as unknown as ListMessagesOutput[number];
 }
 
 function assistantMessage(
-  id: string,
-  text: string,
-  stopReason?: string,
+	id: string,
+	text: string,
+	stopReason?: string,
 ): ListMessagesOutput[number] {
-  return {
-    id,
-    role: "assistant",
-    stopReason,
-    content: [{ type: "text", text }],
-    createdAt: new Date("2026-02-26T00:00:00.000Z"),
-  } as unknown as ListMessagesOutput[number];
+	return {
+		id,
+		role: "assistant",
+		stopReason,
+		content: [{ type: "text", text }],
+		createdAt: new Date("2026-02-26T00:00:00.000Z"),
+	} as unknown as ListMessagesOutput[number];
 }
 
 function asCurrentMessage(
-  message: ListMessagesOutput[number],
+	message: ListMessagesOutput[number],
 ): DisplayStateOutput["currentMessage"] {
-  return message as unknown as DisplayStateOutput["currentMessage"];
+	return message as unknown as DisplayStateOutput["currentMessage"];
 }
 
 /**
@@ -78,45 +78,47 @@ function asCurrentMessage(
  *         appears in currentMessage → the message renders TWICE.
  */
 describe("dual-poll race — flicker reproduction (FAILING)", () => {
-  it("suppresses in-flight assistant message from history when optimistic user message was appended after it", () => {
-    // History from listMessages (tick B): contains committed U1 + in-flight A1
-    const historicalMessagesFromListMessages: ListMessagesOutput = [
-      userMessage("u_1", "edit readme"),
-      assistantMessage("a_1", "Let me read the file..."), // no stopReason → in-flight
-    ];
+	it("suppresses in-flight assistant message from history when optimistic user message was appended after it", () => {
+		// History from listMessages (tick B): contains committed U1 + in-flight A1
+		const historicalMessagesFromListMessages: ListMessagesOutput = [
+			userMessage("u_1", "edit readme"),
+			assistantMessage("a_1", "Let me read the file..."), // no stopReason → in-flight
+		];
 
-    // ChatPaneInterface.tsx:326 appended an optimistic user message AFTER
-    // the existing history via setData. This is what happens when sendMessage
-    // fires and ChatPaneInterface injects the optimistic message into the
-    // listMessages cache. In useChatDisplay, this arrives as historicalMessages
-    // = [...existing, optimisticMessage] on the NEXT render cycle.
-    const optimisticUserMessage = userMessage("optimistic-123", "edit readme");
-    const historicalPlusOptimistic: ListMessagesOutput = [
-      ...historicalMessagesFromListMessages,
-      optimisticUserMessage,
-    ];
+		// ChatPaneInterface.tsx:326 appended an optimistic user message AFTER
+		// the existing history via setData. This is what happens when sendMessage
+		// fires and ChatPaneInterface injects the optimistic message into the
+		// listMessages cache. In useChatDisplay, this arrives as historicalMessages
+		// = [...existing, optimisticMessage] on the NEXT render cycle.
+		const optimisticUserMessage = userMessage("optimistic-123", "edit readme");
+		const historicalPlusOptimistic: ListMessagesOutput = [
+			...historicalMessagesFromListMessages,
+			optimisticUserMessage,
+		];
 
-    // currentMessage from getDisplayState (tick A): same a_1 still streaming
-    const currentMessage = asCurrentMessage(assistantMessage("a_1", "Let me read the file..."));
+		// currentMessage from getDisplayState (tick A): same a_1 still streaming
+		const currentMessage = asCurrentMessage(
+			assistantMessage("a_1", "Let me read the file..."),
+		);
 
-    // This is what useChatDisplay.messages actually computes (line 208-217):
-    const result = withoutActiveTurnAssistantHistory({
-      messages: historicalPlusOptimistic,
-      currentMessage,
-      isRunning: true,
-    });
+		// This is what useChatDisplay.messages actually computes (line 208-217):
+		const result = withoutActiveTurnAssistantHistory({
+			messages: historicalPlusOptimistic,
+			currentMessage,
+			isRunning: true,
+		});
 
-    // EXPECTED: a_1 should NOT appear in the message list because it is the
-    // active-turn message being streamed (no stopReason, matches currentMessage id).
-    // The only messages should be u_1 (the real user message). The optimistic
-    // user message may or may not be present — that's a separate concern.
-    const assistantIds = result
-      .filter((m) => m.role === "assistant")
-      .map((m) => m.id);
+		// EXPECTED: a_1 should NOT appear in the message list because it is the
+		// active-turn message being streamed (no stopReason, matches currentMessage id).
+		// The only messages should be u_1 (the real user message). The optimistic
+		// user message may or may not be present — that's a separate concern.
+		const assistantIds = result
+			.filter((m) => m.role === "assistant")
+			.map((m) => m.id);
 
-    // THIS ASSERTION FAILS because the filter uses findLastUserMessageIndex
-    // which returns the index of "optimistic-123" (the last user message),
-    // making activeTurnMessages = [] and dedup a no-op.
-    expect(assistantIds).toEqual([]); // a_1 should be filtered out
-  });
+		// THIS ASSERTION FAILS because the filter uses findLastUserMessageIndex
+		// which returns the index of "optimistic-123" (the last user message),
+		// making activeTurnMessages = [] and dedup a no-op.
+		expect(assistantIds).toEqual([]); // a_1 should be filtered out
+	});
 });
