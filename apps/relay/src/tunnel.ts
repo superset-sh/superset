@@ -1,3 +1,4 @@
+import { TRPCClientError } from "@trpc/client";
 import { createApiClient } from "./api-client";
 import * as directory from "./directory";
 import { env } from "./env";
@@ -316,6 +317,20 @@ export class TunnelManager {
 				return;
 			} catch (err) {
 				if (this.onlineWriteVersions.get(hostId) !== version) return;
+				// Token is invalid — retrying won't help. Bail out immediately.
+				if (
+					err instanceof TRPCClientError &&
+					(err.data?.httpStatus === 401 || err.data?.code === "UNAUTHORIZED")
+				) {
+					console.warn(
+						`[relay] setOnline(${isOnline}) skipped for ${hostId}: token is invalid/expired (UNAUTHORIZED)`,
+					);
+					this.onlineState.delete(hostId);
+					if (this.onlineWriteVersions.get(hostId) === version) {
+						this.onlineWriteVersions.delete(hostId);
+					}
+					return;
+				}
 				if (attempt === SET_ONLINE_MAX_ATTEMPTS - 1) {
 					console.error(
 						`[relay] setOnline(${isOnline}) failed for ${hostId} after ${SET_ONLINE_MAX_ATTEMPTS} attempts`,
