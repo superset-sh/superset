@@ -175,5 +175,51 @@ export const createNotificationsRouter = (
 				};
 			});
 		}),
+
+		fireAutomationFailure: publicProcedure
+			.input(
+				z.object({
+					runId: z.string().min(1),
+					automationId: z.string().min(1),
+					title: z.string().min(1),
+					error: z.string(),
+				}),
+			)
+			.mutation(({ input }) => {
+				try {
+					if (!Notification.isSupported()) {
+						return { ok: false as const };
+					}
+
+					const notification = new Notification({
+						title: input.title,
+						body: input.error,
+						silent: false,
+					});
+
+					const key = `automation_failure_${input.runId}`;
+					trackNativeNotification(key, notification);
+
+					notification.on("click", () => {
+						focusWindow(getWindow);
+						const window = getWindow();
+						if (window) {
+							window.webContents.send("nav:automation-run", {
+								automationId: input.automationId,
+								runId: input.runId,
+							});
+						}
+					});
+
+					notification.show();
+					return { ok: true as const };
+				} catch (err) {
+					console.warn(
+						"[notifications] Failed to fire automation failure notification:",
+						err,
+					);
+					return { ok: false as const };
+				}
+			}),
 	});
 };

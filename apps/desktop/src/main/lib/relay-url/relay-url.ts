@@ -1,5 +1,5 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { env } from "main/env.main";
+import { deploymentProfile, env } from "main/env.main";
 import { getPosthogClient, getUserId } from "main/lib/analytics";
 
 interface RelayUrlPayload {
@@ -16,7 +16,13 @@ interface RelayUrlPayload {
  * opens land on the same URL.
  */
 export async function getRelayUrl(): Promise<string | undefined> {
-	const fallback = env.RELAY_URL;
+	const usesLenientLocalEnv =
+		deploymentProfile === "local" || deploymentProfile === "ci";
+	// Vite always injects RELAY_URL, so track whether the value came from a
+	// real env var before enabling local tunnels in contributor profiles.
+	const hasExplicitRelayUrl = process.env.SUPERSET_EXPLICIT_RELAY_URL === "1";
+	const fallback =
+		usesLenientLocalEnv && !hasExplicitRelayUrl ? undefined : env.RELAY_URL;
 	const client = getPosthogClient();
 	const userId = getUserId();
 	if (!client || !userId) return fallback;

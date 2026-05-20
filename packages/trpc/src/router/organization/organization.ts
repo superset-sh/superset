@@ -1,4 +1,4 @@
-import { stripeClient } from "@superset/auth/stripe";
+import { getStripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, organizations } from "@superset/db/schema";
 import {
@@ -300,8 +300,8 @@ export const organizationRouter = {
 				.returning();
 
 			if (organization?.stripeCustomerId && data.name) {
-				stripeClient.customers
-					.update(organization.stripeCustomerId, {
+				getStripeClient()
+					.customers.update(organization.stripeCustomerId, {
 						name: data.name,
 					})
 					.catch((error) => {

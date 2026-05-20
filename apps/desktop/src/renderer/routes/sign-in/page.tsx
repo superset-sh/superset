@@ -7,6 +7,7 @@ import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { LocalDevAuthForm } from "./components/LocalDevAuthForm";
 import { SupersetLogo } from "./components/SupersetLogo";
 import { useSessionRecovery } from "./hooks/useSessionRecovery";
 
@@ -17,9 +18,10 @@ export const Route = createFileRoute("/sign-in/")({
 function SignInPage() {
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
+	const isLocalProfile = env.SUPERSET_PROFILE === "local";
 
-	// Dev bypass: skip sign-in entirely
-	if (env.SKIP_ENV_VALIDATION) {
+	// Dev bypass: if a session is already present, redirect.
+	if (env.SKIP_ENV_VALIDATION && session?.user) {
 		return <Navigate to="/workspace" replace />;
 	}
 
@@ -63,7 +65,11 @@ function SignInPage() {
 						</p>
 					</div>
 
-					<div className="flex flex-col gap-3 w-full max-w-xs">
+					<div className="flex w-full max-w-xs flex-col gap-3">
+						{isLocalProfile && <LocalDevAuthForm />}
+
+						{isLocalProfile && <div className="h-px bg-border" />}
+
 						<Button
 							variant="outline"
 							size="lg"

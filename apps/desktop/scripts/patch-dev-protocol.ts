@@ -175,6 +175,11 @@ export function main() {
 		process.exit(0);
 	}
 
+	if (process.env.SUPERSET_PROFILE === "local") {
+		console.log("[patch-dev-protocol] Skipping - local profile");
+		process.exit(0);
+	}
+
 	// Prefer path-derived name so stale .env values never override the active worktree.
 	const { bundleDisplayWorkspaceName, workspaceName, worktreePath } =
 		resolveWorkspaceIdentity({

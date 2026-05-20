@@ -12,6 +12,14 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { config } from "dotenv";
+
+// Let contributor-local .env opt out before touching global Launch Services.
+config({
+	path: resolve(import.meta.dirname, "../../../.env"),
+	override: true,
+	quiet: true,
+});
 
 if (process.platform !== "darwin") {
 	process.exit(0);
@@ -19,6 +27,11 @@ if (process.platform !== "darwin") {
 
 if (process.env.NODE_ENV !== "development") {
 	console.log("[clean-launch-services] Skipping - non-development mode");
+	process.exit(0);
+}
+
+if (process.env.SUPERSET_PROFILE === "local") {
+	console.log("[clean-launch-services] Skipping - local profile");
 	process.exit(0);
 }
 

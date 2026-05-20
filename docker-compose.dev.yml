@@ -1,0 +1,45 @@
+# Local dev services for external contributors.
+#
+# Brings up Postgres + Electric SQL on stable host ports so a fresh clone
+# can talk to both immediately. Internal devs use `.superset/setup.sh`
+# instead (Neon branches + per-workspace Electric containers).
+#
+#   bun setup:local
+#
+services:
+  postgres:
+    image: postgres:16
+    container_name: superset-pg
+    command: ["postgres", "-c", "wal_level=logical"]
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_DB: superset
+    ports:
+      # 5433 to avoid clobbering a host Postgres on the default 5432
+      - "5433:5432"
+    volumes:
+      - superset-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset -d superset"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  electric:
+    image: electricsql/electric:1.4.13
+    container_name: superset-electric
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Docker Desktop exposes host.docker.internal so Electric can reach
+      # the worktree-specific database through the host's stable 5433 port.
+      DATABASE_URL: postgres://superset:superset@host.docker.internal:5433/${SUPERSET_LOCAL_DATABASE_NAME:-superset}
+      ELECTRIC_SECRET: local_electric_dev_secret
+    ports:
+      - "4649:3000"
+    restart: on-failure:5
+
+volumes:
+  superset-pg-data:

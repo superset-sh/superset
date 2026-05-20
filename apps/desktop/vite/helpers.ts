@@ -23,6 +23,28 @@ export function defineEnv(
 	return JSON.stringify(value ?? fallback);
 }
 
+/**
+ * Returns a URL appropriate for the current build:
+ *   - the configured `process.env[key]` if set
+ *   - the local fallback for SUPERSET_PROFILE=local development builds
+ *   - the prod fallback otherwise (hosted production)
+ *
+ * Keeps internal dev's existing hosted fallback behavior unless a contributor
+ * explicitly opts into the local profile.
+ */
+export function devOrProdUrl(
+	envKey: string,
+	devFallback: string,
+	prodFallback: string,
+): string {
+	const value = process.env[envKey];
+	if (value) return value;
+	return process.env.NODE_ENV === "development" &&
+		process.env.SUPERSET_PROFILE === "local"
+		? devFallback
+		: prodFallback;
+}
+
 const RESOURCES_TO_COPY = [
 	{
 		src: resolve(__dirname, "..", resources, "sounds"),
@@ -76,22 +98,37 @@ export function htmlEnvTransformPlugin(): Plugin {
 			return html
 				.replace(
 					/%NEXT_PUBLIC_API_URL%/g,
-					process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+					devOrProdUrl(
+						"NEXT_PUBLIC_API_URL",
+						"http://localhost:4641",
+						"https://api.superset.sh",
+					),
 				)
 				.replace(
 					/%NEXT_PUBLIC_ELECTRIC_URL%/g,
 					new URL(
-						process.env.NEXT_PUBLIC_ELECTRIC_URL ||
+						devOrProdUrl(
+							"NEXT_PUBLIC_ELECTRIC_URL",
+							"https://localhost:4650",
 							"https://electric-proxy.avi-6ac.workers.dev",
+						),
 					).origin,
 				)
 				.replace(
 					/%NEXT_PUBLIC_STREAMS_URL%/g,
-					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
+					devOrProdUrl(
+						"NEXT_PUBLIC_STREAMS_URL",
+						"http://localhost:4647",
+						"https://streams.superset.sh",
+					),
 				)
 				.replace(
 					/%RELAY_URL%/g,
-					process.env.RELAY_URL || "https://relay.superset.sh",
+					devOrProdUrl(
+						"RELAY_URL",
+						"http://localhost:4653",
+						"https://relay.superset.sh",
+					),
 				);
 		},
 	};

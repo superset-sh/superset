@@ -8,6 +8,18 @@ import SuperJSON from "superjson";
  * bundle. Instead, each caller inlines the input/output types they need
  * and this helper just handles transport.
  */
+
+const MAX_RELAY_ERROR_BODY_BYTES = 16384;
+
+/**
+ * Cap a relay error body at MAX_RELAY_ERROR_BODY_BYTES, appending a truncation
+ * marker if truncated. Ensures truncation is never silent.
+ */
+function capBody(s: string): string {
+	if (s.length <= MAX_RELAY_ERROR_BODY_BYTES) return s;
+	return `${s.slice(0, MAX_RELAY_ERROR_BODY_BYTES)} ... [truncated at ${MAX_RELAY_ERROR_BODY_BYTES} bytes]`;
+}
+
 export interface RelayClientOptions {
 	relayUrl: string;
 	hostId: string;
@@ -65,7 +77,7 @@ export async function relayMutation<TInput, TOutput>(
 	const rawBody = await response.text();
 	if (!response.ok) {
 		throw new RelayDispatchError(
-			`relay ${response.status}: ${rawBody.slice(0, 500)}`,
+			`relay ${response.status}: ${capBody(rawBody)}`,
 			response.status,
 			rawBody,
 		);
@@ -77,7 +89,7 @@ export async function relayMutation<TInput, TOutput>(
 		parsed = JSON.parse(rawBody) as TrpcEnvelope;
 	} catch {
 		throw new RelayDispatchError(
-			`invalid JSON from relay: ${rawBody.slice(0, 200)}`,
+			`invalid JSON from relay: ${capBody(rawBody)}`,
 			response.status,
 			rawBody,
 		);
@@ -85,7 +97,7 @@ export async function relayMutation<TInput, TOutput>(
 
 	if (!parsed.result || parsed.result.data === undefined) {
 		throw new RelayDispatchError(
-			`missing result.data in relay response: ${rawBody.slice(0, 200)}`,
+			`missing result.data in relay response: ${capBody(rawBody)}`,
 			response.status,
 			rawBody,
 		);

@@ -1,5 +1,8 @@
+import { shouldSkipEnvValidation } from "@superset/shared/deployment-profile";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
+
+const skipValidation = shouldSkipEnvValidation();
 
 export const env = createEnv({
 	shared: {
@@ -70,5 +73,5 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	},
 	emptyStringAsUndefined: true,
-	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+	skipValidation,
 });
