@@ -4,7 +4,6 @@ import type { AppRouter } from "@superset/trpc";
 import type { TRPCClient } from "@trpc/client";
 import type { HostDb } from "./db";
 import type { EventBus } from "./events";
-import type { ApiAuthProvider } from "./providers/auth";
 import type { ChatRuntimeManager } from "./runtime/chat";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitFactory } from "./runtime/git";
@@ -28,7 +27,6 @@ export interface HostServiceContext {
 	db: HostDb;
 	runtime: HostServiceRuntime;
 	eventBus: EventBus;
-	authProvider: ApiAuthProvider;
 	organizationId: string;
 	isAuthenticated: boolean;
 }

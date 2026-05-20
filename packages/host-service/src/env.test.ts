@@ -1,63 +1,40 @@
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 
-const originalEnv = { ...process.env };
+const originalEnv = {
+	AUTH_TOKEN: process.env.AUTH_TOKEN,
+	HOST_DB_PATH: process.env.HOST_DB_PATH,
+	HOST_MIGRATIONS_FOLDER: process.env.HOST_MIGRATIONS_FOLDER,
+	HOST_SERVICE_SECRET: process.env.HOST_SERVICE_SECRET,
+	ORGANIZATION_ID: process.env.ORGANIZATION_ID,
+	PORT: process.env.PORT,
+	SUPERSET_API_URL: process.env.SUPERSET_API_URL,
+	SUPERSET_AUTH_CONFIG_PATH: process.env.SUPERSET_AUTH_CONFIG_PATH,
+};
 
-const requiredEnv = {
-	ORGANIZATION_ID: "00000000-0000-4000-8000-000000000000",
-	HOST_DB_PATH: "/tmp/superset-host-test.db",
-	HOST_MIGRATIONS_FOLDER: "/tmp/superset-host-migrations",
-	AUTH_TOKEN: "access-token",
-	SUPERSET_API_URL: "https://api.example.com",
-} satisfies Record<string, string>;
+process.env.AUTH_TOKEN = "access-token";
+process.env.HOST_DB_PATH = "/tmp/superset-host.db";
+process.env.HOST_MIGRATIONS_FOLDER = "/tmp/superset-migrations";
+process.env.HOST_SERVICE_SECRET = "host-secret";
+process.env.ORGANIZATION_ID = "00000000-0000-4000-8000-000000000001";
+process.env.PORT = "4879";
+process.env.SUPERSET_API_URL = "https://api.superset.test";
+delete process.env.SUPERSET_AUTH_CONFIG_PATH;
 
-function restoreOriginalEnv(): void {
-	for (const key of Object.keys(process.env)) {
-		delete process.env[key];
-	}
-	Object.assign(process.env, originalEnv);
-}
+const { env } = await import("./env");
 
-function setEnv(overrides: Record<string, string | undefined>): void {
-	restoreOriginalEnv();
-	Object.assign(process.env, requiredEnv);
-	for (const [key, value] of Object.entries(overrides)) {
+afterAll(() => {
+	for (const [key, value] of Object.entries(originalEnv)) {
 		if (value === undefined) {
 			delete process.env[key];
 		} else {
 			process.env[key] = value;
 		}
 	}
-}
-
-async function loadEnv(suffix: string): Promise<typeof import("./env").env> {
-	const module = (await import(`./env.ts?${suffix}`)) as typeof import("./env");
-	return module.env;
-}
-
-afterAll(() => {
-	restoreOriginalEnv();
 });
 
-describe("env", () => {
-	it("parses SUPERSET_AUTH_CONFIG_PATH while keeping AUTH_TOKEN required", async () => {
-		const configPath = "/tmp/superset/config.json";
-		setEnv({
-			AUTH_TOKEN: "bootstrap-access-token",
-			SUPERSET_AUTH_CONFIG_PATH: configPath,
-		});
-
-		const env = await loadEnv("with-auth-config-path");
-
-		expect(env.AUTH_TOKEN).toBe("bootstrap-access-token");
-		expect(env.SUPERSET_AUTH_CONFIG_PATH).toBe(configPath);
-	});
-
-	it("does not require SUPERSET_AUTH_CONFIG_PATH", async () => {
-		setEnv({ SUPERSET_AUTH_CONFIG_PATH: undefined });
-
-		const env = await loadEnv("without-auth-config-path");
-
-		expect(env.AUTH_TOKEN).toBe("access-token");
+describe("host-service env", () => {
+	test("SUPERSET_AUTH_CONFIG_PATH is optional", () => {
 		expect(env.SUPERSET_AUTH_CONFIG_PATH).toBeUndefined();
+		expect(env.AUTH_TOKEN).toBe("access-token");
 	});
 });

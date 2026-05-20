@@ -1,137 +1,114 @@
-import { afterAll, afterEach, describe, expect, it, mock } from "bun:test";
-import type { SpawnOptions } from "node:child_process";
-import * as fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ApiClient } from "../api-client";
 
-const originalEnv = {
-	SUPERSET_HOME_DIR: process.env.SUPERSET_HOME_DIR,
-	SUPERSET_HOST_BIN: process.env.SUPERSET_HOST_BIN,
-	SUPERSET_API_URL: process.env.SUPERSET_API_URL,
-	RELAY_URL: process.env.RELAY_URL,
-};
-const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), "superset-cli-spawn-"));
-const hostBin = path.join(tempHome, "superset-host");
-fs.writeFileSync(hostBin, "");
+const originalFetch = globalThis.fetch;
+const originalSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
+const originalHostBin = process.env.SUPERSET_HOST_BIN;
+const originalSupersetRefreshToken = process.env.SUPERSET_REFRESH_TOKEN;
+const originalOAuthRefreshToken = process.env.OAUTH_REFRESH_TOKEN;
+const tempHome = mkdtempSync(join(tmpdir(), "superset-cli-spawn-"));
+const hostBin = join(tempHome, "superset-host");
 
 process.env.SUPERSET_HOME_DIR = tempHome;
 process.env.SUPERSET_HOST_BIN = hostBin;
-process.env.SUPERSET_API_URL = "https://api.example.com";
-process.env.RELAY_URL = "https://relay.example.com";
+writeFileSync(hostBin, "");
 
-const childProcess = {
-	pid: 24_680,
-	kill: mock(() => true),
-	unref: mock(() => {}),
+type SpawnOptions = {
+	env?: NodeJS.ProcessEnv;
+	detached?: boolean;
+	stdio?: unknown;
 };
+
+const spawnCalls: Array<{
+	command: string;
+	args: string[];
+	options: SpawnOptions;
+}> = [];
+
 const spawnMock = mock(
-	(_command: string, _args: string[], _options: SpawnOptions) => childProcess,
+	(command: string, args: string[], options: SpawnOptions) => {
+		spawnCalls.push({ command, args, options });
+		return {
+			pid: 12345,
+			kill: mock(() => undefined),
+			unref: mock(() => undefined),
+		};
+	},
 );
+
 mock.module("node:child_process", () => ({
 	spawn: spawnMock,
 }));
-mock.module("./relay-url", () => ({
-	getRelayUrl: mock(async () => "https://relay.example.com"),
-}));
 
-const originalFetch = globalThis.fetch;
-const fetchMock = mock(async () => new Response(null, { status: 200 }));
-globalThis.fetch = fetchMock as unknown as typeof fetch;
-
+const { SUPERSET_CONFIG_PATH } = await import("../config");
 const { spawnHostService } = await import("./spawn");
-const { SUPERSET_HOME_DIR, writeConfig } = await import("../config");
 
-function createApiClient(): ApiClient {
+function createApi(): ApiClient {
 	return {
 		analytics: {
 			featureFlagPayload: {
-				query: mock(async () => ({ url: "https://relay.example.com" })),
+				query: async () => null,
 			},
 		},
 	} as unknown as ApiClient;
 }
 
-function restoreEnvValue(key: keyof typeof originalEnv): void {
-	const value = originalEnv[key];
-	if (value === undefined) {
-		delete process.env[key];
-	} else {
-		process.env[key] = value;
-	}
-}
-
-function lastSpawnEnv(): NodeJS.ProcessEnv {
-	const call = spawnMock.mock.calls.at(-1);
-	if (!call) throw new Error("expected host service to be spawned");
-	const options = call[2];
-	if (!options?.env) throw new Error("expected spawn env to be present");
-	return options.env;
-}
-
-function activeConfigPath(): string {
-	return path.join(SUPERSET_HOME_DIR, "config.json");
-}
-
-async function spawnWithToken(sessionToken: string) {
-	return spawnHostService({
-		organizationId: "org_test",
-		sessionToken,
-		api: createApiClient(),
-		port: 49_321,
-		daemon: false,
-	});
-}
-
 afterEach(() => {
+	spawnCalls.length = 0;
 	spawnMock.mockClear();
-	childProcess.kill.mockClear();
-	childProcess.unref.mockClear();
-	fetchMock.mockClear();
-	fs.rmSync(path.join(tempHome, "host"), { recursive: true, force: true });
-	fs.rmSync(activeConfigPath(), { force: true });
-	fs.rmSync(`${activeConfigPath()}.tmp`, { force: true });
+	globalThis.fetch = originalFetch;
+	if (originalSupersetRefreshToken === undefined) {
+		delete process.env.SUPERSET_REFRESH_TOKEN;
+	} else {
+		process.env.SUPERSET_REFRESH_TOKEN = originalSupersetRefreshToken;
+	}
+	if (originalOAuthRefreshToken === undefined) {
+		delete process.env.OAUTH_REFRESH_TOKEN;
+	} else {
+		process.env.OAUTH_REFRESH_TOKEN = originalOAuthRefreshToken;
+	}
 });
 
 afterAll(() => {
-	globalThis.fetch = originalFetch;
-	restoreEnvValue("SUPERSET_HOME_DIR");
-	restoreEnvValue("SUPERSET_HOST_BIN");
-	restoreEnvValue("SUPERSET_API_URL");
-	restoreEnvValue("RELAY_URL");
-	fs.rmSync(tempHome, { recursive: true, force: true });
+	rmSync(tempHome, { recursive: true, force: true });
+	if (originalSupersetHomeDir === undefined) {
+		delete process.env.SUPERSET_HOME_DIR;
+	} else {
+		process.env.SUPERSET_HOME_DIR = originalSupersetHomeDir;
+	}
+	if (originalHostBin === undefined) {
+		delete process.env.SUPERSET_HOST_BIN;
+	} else {
+		process.env.SUPERSET_HOST_BIN = originalHostBin;
+	}
 });
 
 describe("spawnHostService", () => {
-	it("passes the current auth config path and access token to the host child", async () => {
-		await spawnWithToken("access-token-for-bootstrap");
+	test("passes SUPERSET_AUTH_CONFIG_PATH when provided", async () => {
+		process.env.SUPERSET_REFRESH_TOKEN = "superset-refresh-secret";
+		process.env.OAUTH_REFRESH_TOKEN = "oauth-refresh-secret";
+		globalThis.fetch = mock(
+			async () => new Response("ok", { status: 200 }),
+		) as unknown as typeof fetch;
 
-		const env = lastSpawnEnv();
-		expect(env.AUTH_TOKEN).toBe("access-token-for-bootstrap");
-		expect(env.SUPERSET_AUTH_CONFIG_PATH).toBe(activeConfigPath());
-	});
-
-	it("does not pass the stored refresh token through the host child env", async () => {
-		const refreshToken =
-			"refresh-token-value-that-should-not-leak-HOST-AUTH-001";
-		writeConfig({
-			auth: {
-				accessToken: "access-token",
-				refreshToken,
-				expiresAt: Date.now() + 60_000,
-			},
+		await spawnHostService({
+			organizationId: "00000000-0000-0000-0000-000000000001",
+			sessionToken: "session-token",
+			authConfigPath: SUPERSET_CONFIG_PATH,
+			api: createApi(),
+			port: 54879,
+			daemon: true,
 		});
 
-		await spawnWithToken("access-token");
-
-		const env = lastSpawnEnv();
-		const leakedEntries = Object.entries(env).filter(
-			([, value]) => value === refreshToken,
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(spawnCalls[0]?.options.env?.SUPERSET_AUTH_CONFIG_PATH).toBe(
+			SUPERSET_CONFIG_PATH,
 		);
-
-		expect(leakedEntries).toEqual([]);
-		expect(env.SUPERSET_AUTH_REFRESH_TOKEN).toBeUndefined();
-		expect(env.REFRESH_TOKEN).toBeUndefined();
-		expect(env.OAUTH_REFRESH).toBeUndefined();
+		expect(spawnCalls[0]?.options.env?.AUTH_TOKEN).toBe("session-token");
+		expect(spawnCalls[0]?.options.env?.SUPERSET_REFRESH_TOKEN).toBeUndefined();
+		expect(spawnCalls[0]?.options.env?.OAUTH_REFRESH_TOKEN).toBeUndefined();
 	});
 });

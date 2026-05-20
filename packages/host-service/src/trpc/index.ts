@@ -1,6 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import { SESSION_EXPIRED_HINT } from "../providers/auth/hint";
 import type { HostServiceContext } from "../types";
 import {
 	type DeleteInProgressCause,
@@ -73,12 +72,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "Invalid or missing authentication token.",
-		});
-	}
-	if (ctx.authProvider?.isInAnyExpiredState?.()) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: SESSION_EXPIRED_HINT,
 		});
 	}
 	return next({ ctx });

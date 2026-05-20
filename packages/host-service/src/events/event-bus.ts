@@ -182,24 +182,6 @@ export class EventBus {
 		this.broadcast({ type: "terminal:lifecycle", ...message });
 	}
 
-	broadcastAuthSessionExpired(
-		message: Omit<
-			Extract<ServerMessage, { type: "auth:session_expired" }>,
-			"type"
-		>,
-	): void {
-		this.broadcast({ type: "auth:session_expired", ...message });
-	}
-
-	broadcastAuthSessionRestored(
-		message: Omit<
-			Extract<ServerMessage, { type: "auth:session_restored" }>,
-			"type"
-		>,
-	): void {
-		this.broadcast({ type: "auth:session_restored", ...message });
-	}
-
 	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while

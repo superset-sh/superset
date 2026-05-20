@@ -4,7 +4,6 @@ import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import type { ApiClient } from "../api-client";
-import { SUPERSET_HOME_DIR } from "../config";
 import { env } from "../env";
 import {
 	type HostServiceManifest,
@@ -19,6 +18,7 @@ const HEALTH_POLL_TIMEOUT_MS = 10_000;
 export interface SpawnHostOptions {
 	organizationId: string;
 	sessionToken: string;
+	authConfigPath?: string;
 	api: ApiClient;
 	port?: number;
 	daemon: boolean;
@@ -89,6 +89,37 @@ function resolveMigrationsFolder(): string {
 	return join(bundleRoot, "share", "migrations");
 }
 
+function createHostServiceEnv(
+	options: SpawnHostOptions,
+	port: number,
+	secret: string,
+	relayUrl: string,
+	migrationsFolder: string,
+): NodeJS.ProcessEnv {
+	const childEnv: NodeJS.ProcessEnv = { ...process.env };
+	for (const key of Object.keys(childEnv)) {
+		if (key.toUpperCase().includes("REFRESH_TOKEN")) {
+			delete childEnv[key];
+		}
+	}
+
+	return {
+		...childEnv,
+		ORGANIZATION_ID: options.organizationId,
+		AUTH_TOKEN: options.sessionToken,
+		...(options.authConfigPath
+			? { SUPERSET_AUTH_CONFIG_PATH: options.authConfigPath }
+			: {}),
+		SUPERSET_API_URL: env.SUPERSET_API_URL,
+		RELAY_URL: relayUrl,
+		PORT: String(port),
+		HOST_SERVICE_PORT: String(port),
+		HOST_SERVICE_SECRET: secret,
+		HOST_DB_PATH: hostDbPath(options.organizationId),
+		HOST_MIGRATIONS_FOLDER: migrationsFolder,
+	};
+}
+
 export async function spawnHostService(
 	options: SpawnHostOptions,
 ): Promise<SpawnHostResult> {
@@ -107,19 +138,13 @@ export async function spawnHostService(
 	const child = spawn(hostBin, [], {
 		stdio: options.daemon ? "ignore" : "inherit",
 		detached: options.daemon,
-		env: {
-			...process.env,
-			ORGANIZATION_ID: options.organizationId,
-			AUTH_TOKEN: options.sessionToken,
-			SUPERSET_AUTH_CONFIG_PATH: join(SUPERSET_HOME_DIR, "config.json"),
-			SUPERSET_API_URL: env.SUPERSET_API_URL,
-			RELAY_URL: relayUrl,
-			PORT: String(port),
-			HOST_SERVICE_PORT: String(port),
-			HOST_SERVICE_SECRET: secret,
-			HOST_DB_PATH: hostDbPath(options.organizationId),
-			HOST_MIGRATIONS_FOLDER: migrationsFolder,
-		},
+		env: createHostServiceEnv(
+			options,
+			port,
+			secret,
+			relayUrl,
+			migrationsFolder,
+		),
 	});
 
 	if (!child.pid) {

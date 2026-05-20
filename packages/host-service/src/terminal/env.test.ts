@@ -80,6 +80,7 @@ describe("stripTerminalRuntimeEnv", () => {
 	const secretsEnv: Record<string, string> = {
 		// Host-service runtime keys that must not leak
 		AUTH_TOKEN: "secret-token",
+		SUPERSET_AUTH_CONFIG_PATH: "/Users/test/.superset/config.json",
 		HOST_SERVICE_SECRET: "secret",
 		ORGANIZATION_ID: "org-123",
 		HOST_CLIENT_ID: "device-abc",
@@ -124,6 +125,7 @@ describe("stripTerminalRuntimeEnv", () => {
 	test("app/runtime secrets do not reach PTY env", () => {
 		const result = stripTerminalRuntimeEnv(secretsEnv);
 		expect(result.AUTH_TOKEN).toBeUndefined();
+		expect(result.SUPERSET_AUTH_CONFIG_PATH).toBeUndefined();
 		expect(result.HOST_SERVICE_SECRET).toBeUndefined();
 		expect(result.ORGANIZATION_ID).toBeUndefined();
 		expect(result.HOST_CLIENT_ID).toBeUndefined();

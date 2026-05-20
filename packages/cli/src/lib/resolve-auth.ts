@@ -2,7 +2,6 @@ import { CLIError } from "@superset/cli-framework";
 import { type ApiClient, createApiClient } from "./api-client";
 import { refreshAccessToken } from "./auth";
 import { readConfig, type SupersetConfig, writeConfig } from "./config";
-import { isProcessAlive, readManifest } from "./host/manifest";
 
 export type AuthSource = "override" | "config" | "oauth";
 
@@ -14,12 +13,6 @@ export type ResolvedAuth = {
 };
 
 const REFRESH_LEEWAY_MS = 5 * 60 * 1000;
-
-function isHostAlive(organizationId: string | undefined): boolean {
-	if (!organizationId) return false;
-	const manifest = readManifest(organizationId);
-	return manifest ? isProcessAlive(manifest.pid) : false;
-}
 
 export async function resolveAuth(
 	apiKeyOption: string | undefined,
@@ -38,9 +31,7 @@ export async function resolveAuth(
 		authSource = "config";
 	} else if (config.auth) {
 		const auth = config.auth;
-		if (isHostAlive(config.organizationId)) {
-			bearer = auth.accessToken;
-		} else if (auth.expiresAt - REFRESH_LEEWAY_MS < Date.now()) {
+		if (auth.expiresAt - REFRESH_LEEWAY_MS < Date.now()) {
 			if (!auth.refreshToken) {
 				throw new CLIError("Session expired", "Run: superset auth login");
 			}

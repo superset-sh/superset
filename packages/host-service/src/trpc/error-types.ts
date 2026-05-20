@@ -2,14 +2,6 @@
  * Cross-cutting error shapes surfaced via the tRPC error formatter.
  * Lives here (not in a router) to avoid circular imports with `trpc/index.ts`.
  */
-import { SESSION_EXPIRED_HINT } from "../providers/auth/hint";
-
-export { SESSION_EXPIRED_HINT };
-
-export interface SessionExpiredUnauthorizedError {
-	code: "UNAUTHORIZED";
-	message: typeof SESSION_EXPIRED_HINT;
-}
 
 export interface TeardownFailureCause {
 	kind: "TEARDOWN_FAILED";
