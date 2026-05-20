@@ -26,7 +26,7 @@
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
-		"better-auth": "1.6.5",
+		"better-auth": "1.6.11",
 		"drizzle-orm": "0.45.2",
 		"superjson": "2.2.6",
 		"zod": "4.3.6"
