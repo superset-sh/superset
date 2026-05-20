@@ -11,6 +11,7 @@
 
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import * as childProcess from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
@@ -25,12 +26,19 @@ import {
 	probeDaemonVersion,
 	shouldKillStaleDaemonForDev,
 } from "./DaemonSupervisor.ts";
-import { writePtyDaemonManifest } from "./manifest.ts";
+import { readPtyDaemonManifest, writePtyDaemonManifest } from "./manifest.ts";
 
 // Capture supervisor-emitted log events. We replace console.log for the
 // duration of the test, then filter for our supervisor's component prefix.
 const loggedEvents: { event: string; props: Record<string, unknown> }[] = [];
 const realConsoleLog = console.log;
+
+interface AdoptedForTest {
+	pid: number;
+	socketPath: string;
+	runningVersion: string;
+	updatePending: boolean;
+}
 
 beforeEach(() => {
 	loggedEvents.length = 0;
@@ -61,7 +69,9 @@ afterEach(() => {
 });
 
 interface FakeDaemonOptions {
+	socketPath?: string;
 	respondWithVersion?: string;
+	daemonPid?: number;
 	respondRaw?: Buffer;
 	hangUpAfterHello?: boolean;
 	respondWithWrongMessageFirst?: boolean;
@@ -72,10 +82,12 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 	socketPath: string;
 	close: () => Promise<void>;
 }> {
-	const socketPath = path.join(
-		os.tmpdir(),
-		`fake-pty-daemon-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
-	);
+	const socketPath =
+		opts.socketPath ??
+		path.join(
+			os.tmpdir(),
+			`fake-pty-daemon-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
+		);
 	const server = net.createServer((sock) => {
 		const decoder = new FrameDecoder();
 		sock.on("data", (chunk: Buffer) => {
@@ -108,6 +120,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 							type: "hello-ack",
 							protocol: 1,
 							daemonVersion: opts.respondWithVersion,
+							daemonPid: opts.daemonPid,
 						}),
 					);
 					return;
@@ -215,6 +228,67 @@ describe("shouldKillStaleDaemonForDev", () => {
 });
 
 describe("DaemonSupervisor.tryAdopt", () => {
+	test("recovers adoption from a live expected socket when the manifest is missing", async () => {
+		const orgId = "org-socket-fallback";
+		const originalHome = process.env.SUPERSET_HOME_DIR;
+		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
+		process.env.SUPERSET_HOME_DIR = tmpHome;
+		const socketPath = expectedSocketPathForOrg(orgId);
+		try {
+			try {
+				fs.unlinkSync(socketPath);
+			} catch {
+				// best-effort cleanup from a failed prior run
+			}
+			const fake = await startFakeDaemon({
+				socketPath,
+				respondWithVersion: "0.1.0",
+				daemonPid: process.pid,
+			});
+			try {
+				const sup = new DaemonSupervisor({
+					scriptPath: "/nonexistent",
+					autoUpdate: false,
+				});
+				const adopted = (await invokeTryAdopt(
+					sup,
+					orgId,
+				)) as AdoptedForTest | null;
+				expect(adopted).not.toBeNull();
+				expect(adopted?.pid).toBe(process.pid);
+				expect(adopted?.socketPath).toBe(socketPath);
+				expect(adopted?.runningVersion).toBe("0.1.0");
+				expect(readPtyDaemonManifest(orgId)).toMatchObject({
+					pid: process.pid,
+					socketPath,
+					organizationId: orgId,
+				});
+				expect(
+					loggedEvents.some(
+						(e) =>
+							e.event === "pty_daemon_socket_adopt_manifest_recovered" &&
+							e.props.sourceReason === "manifest_missing" &&
+							e.props.pid === process.pid,
+					),
+				).toBe(true);
+			} finally {
+				await fake.close();
+			}
+		} finally {
+			if (originalHome !== undefined) {
+				process.env.SUPERSET_HOME_DIR = originalHome;
+			} else {
+				delete process.env.SUPERSET_HOME_DIR;
+			}
+			fs.rmSync(tmpHome, { recursive: true, force: true });
+			try {
+				fs.unlinkSync(socketPath);
+			} catch {
+				// best-effort
+			}
+		}
+	});
+
 	test("rejects and replaces a reachable daemon that cannot answer the version probe", async () => {
 		const orgId = "org-unprobeable";
 		const fake = await startFakeDaemon({ silent: true });
@@ -1002,6 +1076,14 @@ function invokeTryAdopt(
 			tryAdopt: (id: string) => Promise<unknown | null>;
 		}
 	).tryAdopt(organizationId);
+}
+
+function expectedSocketPathForOrg(organizationId: string): string {
+	const shortId = createHash("sha256")
+		.update(organizationId)
+		.digest("hex")
+		.slice(0, 12);
+	return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
 }
 
 async function waitForProcessExit(

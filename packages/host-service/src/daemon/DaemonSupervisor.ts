@@ -50,6 +50,11 @@ interface DaemonInstance {
 	updatePending: boolean;
 }
 
+interface DaemonProbeResult {
+	daemonVersion: string;
+	daemonPid?: number;
+}
+
 const SOCKET_READY_TIMEOUT_MS = 5_000;
 const VERSION_PROBE_TIMEOUT_MS = 1_500;
 const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
@@ -845,24 +850,38 @@ export class DaemonSupervisor {
 		organizationId: string,
 	): Promise<DaemonInstance | null> {
 		const manifest = readPtyDaemonManifest(organizationId);
-		if (!manifest) return null;
+		const expectedSocketPath = ptyDaemonSocketPath(organizationId);
+		if (!manifest) {
+			return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
+				reason: "manifest_missing",
+			});
+		}
 		if (!isProcessAlive(manifest.pid)) {
 			removePtyDaemonManifest(organizationId);
-			return null;
+			return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
+				reason: "manifest_pid_dead",
+				previousManifest: manifest,
+			});
 		}
 		const reachable = await isSocketConnectable(manifest.socketPath, 1000);
 		if (!reachable) {
 			// PID alive but socket gone — daemon is wedged. Kill and respawn.
 			await terminateProcessTreeAndGroups(manifest.pid, "SIGTERM");
 			removePtyDaemonManifest(organizationId);
+			if (manifest.socketPath !== expectedSocketPath) {
+				return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
+					reason: "manifest_socket_unreachable",
+					previousManifest: manifest,
+				});
+			}
 			return null;
 		}
 
-		const probed = await probeDaemonVersionWithRetry(
+		const probe = await probeDaemonHelloWithRetry(
 			manifest.socketPath,
 			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
 		);
-		if (!probed) {
+		if (!probe) {
 			logEvent("pty_daemon_adopt_rejected", {
 				organizationId,
 				pid: manifest.pid,
@@ -871,11 +890,17 @@ export class DaemonSupervisor {
 			});
 			await terminateProcessTreeAndGroups(manifest.pid, "SIGTERM");
 			removePtyDaemonManifest(organizationId);
+			if (manifest.socketPath !== expectedSocketPath) {
+				return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
+					reason: "manifest_version_probe_failed",
+					previousManifest: manifest,
+				});
+			}
 			return null;
 		}
-		const runningVersion = probed;
+		const runningVersion = probe.daemonVersion;
 		const updatePending = !semver.satisfies(
-			probed,
+			runningVersion,
 			`>=${EXPECTED_DAEMON_VERSION}`,
 		);
 
@@ -886,6 +911,73 @@ export class DaemonSupervisor {
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending,
+		};
+	}
+
+	private async tryAdoptFromSocket(
+		organizationId: string,
+		socketPath: string,
+		context: {
+			reason: string;
+			previousManifest?: PtyDaemonManifest;
+		},
+	): Promise<DaemonInstance | null> {
+		const reachable = await isSocketConnectable(socketPath, 1000);
+		if (!reachable) return null;
+
+		const probe = await probeDaemonHelloWithRetry(
+			socketPath,
+			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
+		);
+		if (!probe) {
+			logEvent("pty_daemon_socket_adopt_rejected", {
+				organizationId,
+				socketPath,
+				reason: "version_probe_failed",
+				sourceReason: context.reason,
+			});
+			return null;
+		}
+
+		const resolvedPid = probe.daemonPid;
+		if (!isPositiveInteger(resolvedPid) || !isProcessAlive(resolvedPid)) {
+			logEvent("pty_daemon_socket_adopt_rejected", {
+				organizationId,
+				socketPath,
+				reason: "pid_unavailable",
+				sourceReason: context.reason,
+				probedPid: resolvedPid,
+			});
+			return null;
+		}
+
+		const startedAt = context.previousManifest?.startedAt ?? Date.now();
+		writePtyDaemonManifest({
+			pid: resolvedPid,
+			socketPath,
+			protocolVersions: [CURRENT_PROTOCOL_VERSION],
+			startedAt,
+			organizationId,
+		});
+
+		logEvent("pty_daemon_socket_adopt_manifest_recovered", {
+			organizationId,
+			pid: resolvedPid,
+			socketPath,
+			sourceReason: context.reason,
+			runningVersion: probe.daemonVersion,
+		});
+
+		return {
+			pid: resolvedPid,
+			socketPath,
+			startedAt,
+			runningVersion: probe.daemonVersion,
+			expectedVersion: EXPECTED_DAEMON_VERSION,
+			updatePending: !semver.satisfies(
+				probe.daemonVersion,
+				`>=${EXPECTED_DAEMON_VERSION}`,
+			),
 		};
 	}
 
@@ -1051,7 +1143,7 @@ export class DaemonSupervisor {
 		const manifest: PtyDaemonManifest = {
 			pid: childPid,
 			socketPath,
-			protocolVersions: [1],
+			protocolVersions: [CURRENT_PROTOCOL_VERSION],
 			startedAt,
 			organizationId,
 		};
@@ -1209,19 +1301,29 @@ export async function listDaemonSessions(
  * `probeDaemonVersion` resolves to null on the first connect-error;
  * we have to actively retry.
  */
-async function probeDaemonVersionWithRetry(
+async function probeDaemonHelloWithRetry(
 	socketPath: string,
 	totalTimeoutMs: number,
-): Promise<string | null> {
+): Promise<DaemonProbeResult | null> {
 	const deadline = Date.now() + totalTimeoutMs;
 	while (Date.now() < deadline) {
 		const remaining = deadline - Date.now();
 		const perAttempt = Math.min(remaining, VERSION_PROBE_TIMEOUT_MS);
-		const v = await probeDaemonVersion(socketPath, perAttempt);
-		if (v !== null) return v;
+		const probe = await probeDaemonHello(socketPath, perAttempt);
+		if (probe !== null) return probe;
 		await new Promise((r) => setTimeout(r, 50));
 	}
 	return null;
+}
+
+async function probeDaemonVersionWithRetry(
+	socketPath: string,
+	totalTimeoutMs: number,
+): Promise<string | null> {
+	return (
+		(await probeDaemonHelloWithRetry(socketPath, totalTimeoutMs))
+			?.daemonVersion ?? null
+	);
 }
 
 function terminatePidOnly(pid: number, signal: NodeJS.Signals): void {
@@ -1282,12 +1384,19 @@ export async function probeDaemonVersion(
 	socketPath: string,
 	timeoutMs: number,
 ): Promise<string | null> {
-	return new Promise<string | null>((resolve) => {
+	return (await probeDaemonHello(socketPath, timeoutMs))?.daemonVersion ?? null;
+}
+
+function probeDaemonHello(
+	socketPath: string,
+	timeoutMs: number,
+): Promise<DaemonProbeResult | null> {
+	return new Promise<DaemonProbeResult | null>((resolve) => {
 		const sock = net.createConnection({ path: socketPath });
 		const decoder = new FrameDecoder();
 		let settled = false;
 
-		const cleanup = (value: string | null) => {
+		const cleanup = (value: DaemonProbeResult | null) => {
 			if (settled) return;
 			settled = true;
 			clearTimeout(timer);
@@ -1330,7 +1439,15 @@ export async function probeDaemonVersion(
 				for (const decoded of decoder.drain()) {
 					const msg = decoded.message as ServerMessage;
 					if (msg.type === "hello-ack") {
-						cleanup(msg.daemonVersion ?? null);
+						const daemonVersion = msg.daemonVersion;
+						if (!daemonVersion) {
+							cleanup(null);
+							return;
+						}
+						cleanup({
+							daemonVersion,
+							daemonPid: msg.daemonPid,
+						});
 						return;
 					}
 					cleanup(null);
