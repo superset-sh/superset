@@ -43,10 +43,11 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
 	const [newKeyName, setNewKeyName] = useState("");
 	const [newKeyValue, setNewKeyValue] = useState("");
-	const { data: apiKeys, isLoading } = useLiveQuery(
+	const { data: apiKeysData, isReady } = useLiveQuery(
 		(q) => q.from({ apiKeys: collections.apiKeys }),
 		[collections],
 	);
+	const apiKeys = apiKeysData ?? [];
 
 	const showApiKeysList = isItemVisible(
 		SETTING_ITEM_ID.API_KEYS_LIST,
@@ -143,7 +144,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			</div>
 
 			{showApiKeysList &&
-				(isLoading ? (
+				(!isReady && apiKeys.length === 0 ? (
 					<div className="divide-y divide-border">
 						{[1, 2, 3].map((i) => (
 							<div key={i} className="flex items-center gap-4 py-3">
@@ -155,7 +156,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 							</div>
 						))}
 					</div>
-				) : !apiKeys || apiKeys.length === 0 ? (
+				) : apiKeys.length === 0 ? (
 					<div className="text-center py-12 text-sm text-muted-foreground">
 						<HiOutlineKey className="h-8 w-8 mx-auto mb-3 opacity-50" />
 						<p>No API keys yet.</p>

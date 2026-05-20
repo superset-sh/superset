@@ -40,7 +40,7 @@ function AutomationDetailPage() {
 	const collections = useCollections();
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 
-	const { data: automationRows } = useLiveQuery(
+	const { data: automationRows, isReady: automationReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ a: collections.automations })
@@ -79,6 +79,7 @@ function AutomationDetailPage() {
 	});
 
 	if (!automation) {
+		if (!automationReady) return null;
 		return (
 			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
 				Automation not found.

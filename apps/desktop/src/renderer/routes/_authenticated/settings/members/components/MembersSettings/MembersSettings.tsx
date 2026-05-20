@@ -41,7 +41,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 		visibleItems,
 	);
 
-	const { data: membersData, isLoading } = useLiveQuery(
+	const { data: membersData, isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ members: collections.members })
@@ -121,7 +121,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 						<h3 className="text-lg font-semibold">Team Members</h3>
 
 						{showMembersList &&
-							(isLoading ? (
+							(!isReady && members.length === 0 ? (
 								<div className="space-y-2 border rounded-lg">
 									{[1, 2, 3].map((i) => (
 										<div key={i} className="flex items-center gap-4 p-4">

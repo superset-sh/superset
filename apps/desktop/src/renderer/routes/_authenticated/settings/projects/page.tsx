@@ -21,10 +21,10 @@ function ProjectsIndexPage() {
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 
-	const { data: groups = [] } =
+	const { data: groups = [], isLoading: groupsLoading } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 
-	const { data: v2Projects = [] } = useLiveQuery(
+	const { data: v2Projects = [], isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ projects: collections.v2Projects })
@@ -67,6 +67,7 @@ function ProjectsIndexPage() {
 
 	const isEmpty = v2Projects.length === 0 && groups.length === 0;
 	if (isEmpty) {
+		if (!isReady || groupsLoading) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
 				No projects yet.

@@ -181,29 +181,27 @@ function ResourceConsumptionContent({
 		getDetails: () => ({ surface }),
 	});
 
-	const { data: rawSidebarProjects = [], isReady: sidebarProjectsReady } =
-		useLiveQuery(
-			(q) =>
-				q
-					.from({ sp: collections.v2SidebarProjects })
-					.orderBy(({ sp }) => sp.tabOrder, "asc")
-					.select(({ sp }) => ({ projectId: sp.projectId })),
-			[collections],
-		);
+	const { data: rawSidebarProjects = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ sp: collections.v2SidebarProjects })
+				.orderBy(({ sp }) => sp.tabOrder, "asc")
+				.select(({ sp }) => ({ projectId: sp.projectId })),
+		[collections],
+	);
 
-	const { data: rawSidebarWorkspaces = [], isReady: sidebarWorkspacesReady } =
-		useLiveQuery(
-			(q) =>
-				q
-					.from({ ws: collections.v2WorkspaceLocalState })
-					.orderBy(({ ws }) => ws.sidebarState.tabOrder, "asc")
-					.select(({ ws }) => ({
-						workspaceId: ws.workspaceId,
-						isHidden: ws.sidebarState.isHidden,
-						paneLayout: ws.paneLayout,
-					})),
-			[collections],
-		);
+	const { data: rawSidebarWorkspaces = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ ws: collections.v2WorkspaceLocalState })
+				.orderBy(({ ws }) => ws.sidebarState.tabOrder, "asc")
+				.select(({ ws }) => ({
+					workspaceId: ws.workspaceId,
+					isHidden: ws.sidebarState.isHidden,
+					paneLayout: ws.paneLayout,
+				})),
+		[collections],
+	);
 
 	const sidebarProjectOrder = useMemo(
 		() => rawSidebarProjects.map((p) => p.projectId),
@@ -223,7 +221,7 @@ function ResourceConsumptionContent({
 		[rawSidebarWorkspaces],
 	);
 
-	const { data: rawV2Projects = [], isReady: v2ProjectsReady } = useLiveQuery(
+	const { data: rawV2Projects = [] } = useLiveQuery(
 		(q) =>
 			q.from({ project: collections.v2Projects }).select(({ project }) => ({
 				id: project.id,
@@ -232,30 +230,21 @@ function ResourceConsumptionContent({
 		[collections],
 	);
 
-	const { data: rawV2Workspaces = [], isReady: v2WorkspacesReady } =
-		useLiveQuery(
-			(q) =>
-				q
-					.from({ workspace: collections.v2Workspaces })
-					.select(({ workspace }) => ({
-						id: workspace.id,
-						projectId: workspace.projectId,
-						name: workspace.name,
-					})),
-			[collections],
-		);
+	const { data: rawV2Workspaces = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ workspace: collections.v2Workspaces })
+				.select(({ workspace }) => ({
+					id: workspace.id,
+					projectId: workspace.projectId,
+					name: workspace.name,
+				})),
+		[collections],
+	);
 
-	const v2MetadataReady =
-		!isV2 ||
-		(Boolean(organizationId) &&
-			sidebarProjectsReady &&
-			sidebarWorkspacesReady &&
-			v2ProjectsReady &&
-			v2WorkspacesReady);
 	const shouldQueryMetrics = shouldQueryResourceMonitor({
 		enabled: true,
 		open: true,
-		metadataReady: v2MetadataReady,
 	});
 
 	const {
@@ -282,7 +271,6 @@ function ResourceConsumptionContent({
 	const normalizedSnapshot = useMemo(() => {
 		const normalized = normalizeResourceMetricsSnapshot(snapshot);
 		if (!normalized || !isV2) return normalized;
-		if (!v2MetadataReady) return null;
 
 		const projectById = new Map(
 			rawV2Projects.map((project) => [project.id, project]),
@@ -312,14 +300,7 @@ function ResourceConsumptionContent({
 				};
 			}),
 		};
-	}, [
-		snapshot,
-		isV2,
-		v2MetadataReady,
-		rawV2Projects,
-		rawV2Workspaces,
-		terminalTitleOverrides,
-	]);
+	}, [snapshot, isV2, rawV2Projects, rawV2Workspaces, terminalTitleOverrides]);
 
 	const getPaneName = (session: SessionMetrics): string => {
 		if (isV2) {

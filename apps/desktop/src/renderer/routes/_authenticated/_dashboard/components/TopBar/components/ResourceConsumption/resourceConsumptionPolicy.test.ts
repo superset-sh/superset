@@ -11,26 +11,23 @@ describe("resourceConsumptionPolicy", () => {
 				shouldQueryResourceMonitor({
 					enabled: true,
 					open: false,
-					metadataReady: true,
 				}),
 			).toBe(false);
 			expect(getResourceMonitorRefetchInterval(false)).toBe(false);
 		}
 	});
 
-	test("enables polling only after the popover is open and metadata is ready", () => {
+	test("enables polling only after the popover is open", () => {
 		expect(
 			shouldQueryResourceMonitor({
 				enabled: true,
 				open: true,
-				metadataReady: true,
 			}),
 		).toBe(true);
 		expect(
 			shouldQueryResourceMonitor({
-				enabled: true,
+				enabled: false,
 				open: true,
-				metadataReady: false,
 			}),
 		).toBe(false);
 		expect(getResourceMonitorRefetchInterval(true)).toBe(2_000);
