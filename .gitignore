@@ -94,3 +94,9 @@ superset-dev-data/
 
 # Local-only plans (not tracked)
 plans/local/
+
+# Per-developer Claude Code state (worktree gitlinks)
+.claude/worktrees/
+
+# Local-only spec drafts / reviews
+.spec/
