@@ -24,10 +24,6 @@
 			"types": "./src/auth/index.ts",
 			"default": "./src/auth/index.ts"
 		},
-		"./auth/token-refresh": {
-			"types": "./src/auth/token-refresh.ts",
-			"default": "./src/auth/token-refresh.ts"
-		},
 		"./agent-command": {
 			"types": "./src/agent-command.ts",
 			"default": "./src/agent-command.ts"

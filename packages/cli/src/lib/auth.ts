@@ -1,17 +1,20 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { CLIError } from "@superset/cli-framework";
-import type { LoginResult } from "@superset/shared/auth/token-refresh";
 import { env } from "./env";
-
-export type { LoginResult } from "@superset/shared/auth/token-refresh";
-export { refreshAccessToken } from "@superset/shared/auth/token-refresh";
 
 const CLIENT_ID = "superset-cli";
 const PASTE_REDIRECT_PATH = "/cli/auth/code";
 const SCOPE = "openid profile email offline_access";
 const LOOPBACK_PORTS = [51789, 51790, 51791, 51792, 51793];
 const CALLBACK_TIMEOUT_MS = 5 * 60 * 1000;
+const LOGIN_AGAIN_SUGGESTION = "Run `superset auth login` again.";
+
+export interface LoginResult {
+	accessToken: string;
+	refreshToken?: string;
+	expiresAt: number;
+}
 
 export interface LoginCallbacks {
 	onAuthorizationUrl?: (url: string) => void;
@@ -220,10 +223,9 @@ async function exchangeCodeForToken({
 	});
 
 	if (!response.ok) {
-		const body = await response.text();
 		throw new CLIError(
 			`Token exchange failed: ${response.status}`,
-			body || "Run `superset auth login` again.",
+			LOGIN_AGAIN_SUGGESTION,
 		);
 	}
 
@@ -238,6 +240,43 @@ async function exchangeCodeForToken({
 	return {
 		accessToken: data.access_token,
 		refreshToken: data.refresh_token,
+		expiresAt: Date.now() + expiresIn * 1000,
+	};
+}
+
+export async function refreshAccessToken(
+	refreshToken: string,
+): Promise<LoginResult> {
+	const apiUrl = env.SUPERSET_API_URL;
+	const response = await fetch(`${apiUrl}/api/auth/oauth2/token`, {
+		method: "POST",
+		headers: { "Content-Type": "application/x-www-form-urlencoded" },
+		body: new URLSearchParams({
+			grant_type: "refresh_token",
+			refresh_token: refreshToken,
+			client_id: CLIENT_ID,
+			resource: apiUrl,
+		}),
+	});
+
+	if (!response.ok) {
+		throw new CLIError(
+			`Token refresh failed: ${response.status}`,
+			LOGIN_AGAIN_SUGGESTION,
+		);
+	}
+
+	const data = (await response.json()) as {
+		access_token: string;
+		token_type: string;
+		expires_in?: number;
+		refresh_token?: string;
+	};
+
+	const expiresIn = data.expires_in ?? 60 * 60;
+	return {
+		accessToken: data.access_token,
+		refreshToken: data.refresh_token ?? refreshToken,
 		expiresAt: Date.now() + expiresIn * 1000,
 	};
 }
