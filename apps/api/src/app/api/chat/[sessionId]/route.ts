@@ -68,6 +68,11 @@ export async function PUT(
 		createdBy: session.user.id,
 	};
 
+	// When the workspaceId FK is invalid (e.g. deleted or v2 workspace UUID),
+	// the INSERT will fail and we retry without it. Track that so we skip the
+	// subsequent UPDATE which would hit the same FK violation.
+	let workspaceIdIsInvalid = false;
+
 	try {
 		await db
 			.insert(chatSessions)
@@ -88,6 +93,7 @@ export async function PUT(
 			throw error;
 		}
 
+		workspaceIdIsInvalid = true;
 		console.warn("[chat] retrying chat session insert without workspaceId", {
 			sessionId,
 			organizationId: body.organizationId,
@@ -97,7 +103,7 @@ export async function PUT(
 		await db.insert(chatSessions).values(baseValues).onConflictDoNothing();
 	}
 
-	if (body.workspaceId) {
+	if (body.workspaceId && !workspaceIdIsInvalid) {
 		try {
 			await db
 				.update(chatSessions)
