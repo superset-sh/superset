@@ -11,7 +11,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	antigravity: "Antigravity",
 	windsurf: "Windsurf",
 	zed: "Zed",
-	xcode: "Xcode",
+	xcode: null, // Resolved via bundle ID so Xcodes-renamed installs (e.g. "Xcode-26.5.0.app") still work
 	iterm: "iTerm",
 	warp: "Warp",
 	terminal: "Terminal",
@@ -33,13 +33,15 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 };
 
 /**
- * Bundle ID candidates for JetBrains IDEs with multiple editions.
- * `open -b <bundleId>` works regardless of the .app display name,
- * so "IntelliJ IDEA Ultimate.app" and "IntelliJ IDEA CE.app" both resolve correctly.
+ * Bundle ID candidates for macOS apps whose .app filename can vary.
+ * `open -b <bundleId>` works regardless of the .app display name, so:
+ *   - "IntelliJ IDEA Ultimate.app" and "IntelliJ IDEA CE.app" both resolve correctly.
+ *   - Xcode installs renamed by Xcodes (e.g. "Xcode-26.5.0.app") still launch.
  */
 const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	intellij: ["com.jetbrains.intellij", "com.jetbrains.intellij.ce"],
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
+	xcode: ["com.apple.dt.Xcode"],
 };
 
 /** Map of app IDs to their Linux CLI commands */
