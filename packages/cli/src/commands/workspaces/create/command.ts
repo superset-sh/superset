@@ -15,6 +15,9 @@ export default command({
 		baseBranch: string().desc(
 			"Branch to fork from when `branch` does not exist (defaults to project default)",
 		),
+		worktreePath: string().desc(
+			"Absolute path to an existing git worktree to adopt instead of creating one. When set, the server reads the current branch from git at this path; `--branch` becomes caller context only. Cannot be combined with `--pr`",
+		),
 		agent: string().desc(
 			"Agent to spawn after creation. Preset id (`claude`, `codex`, …), HostAgentConfig instance UUID, or `superset`",
 		),
@@ -33,10 +36,19 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		if (Boolean(options.branch) === Boolean(options.pr)) {
+		const hasPr = options.pr !== undefined;
+		const hasBranch = Boolean(options.branch);
+
+		if (options.worktreePath && hasPr) {
+			throw new CLIError(
+				"Cannot combine --worktree-path with --pr",
+				"Adoption reads the branch from git; pass --branch as context only",
+			);
+		}
+		if (!options.worktreePath && hasBranch === hasPr) {
 			throw new CLIError(
 				"Specify exactly one of --branch or --pr",
-				"Use --branch <name> or --pr <number>",
+				"Use --branch <name>, --pr <number>, or --worktree-path <path>",
 			);
 		}
 
@@ -91,6 +103,7 @@ export default command({
 			branch: options.branch,
 			pr: options.pr,
 			baseBranch: options.baseBranch,
+			worktreePath: options.worktreePath,
 			agents,
 		});
 

@@ -23,7 +23,7 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_create",
 		description:
-			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. Provide exactly one of `branch` or `pr`. Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_run` against the new workspace). Use projects_list and hosts_list first to get the projectId and hostId.",
+			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. Provide exactly one of `branch` or `pr`, or pass `worktreePath` to adopt an existing git worktree already on disk (created by some other tool, e.g. an external `git worktree add`). Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_run` against the new workspace). Use projects_list and hosts_list first to get the projectId and hostId.",
 		inputSchema: {
 			projectId: z.string().uuid().describe("Project UUID."),
 			name: z.string().min(1).describe("Workspace name (display)."),
@@ -48,6 +48,13 @@ export function register(server: McpServer): void {
 				.describe(
 					"Branch to fork from when `branch` does not exist (defaults to project default). Ignored when `pr` is set.",
 				),
+			worktreePath: z
+				.string()
+				.min(1)
+				.optional()
+				.describe(
+					"Absolute path to an existing git worktree to adopt instead of creating one. When set, the server reads the current branch from git at this path; `branch` becomes caller context only. Cannot be combined with `pr`.",
+				),
 			hostId: z
 				.string()
 				.min(1)
@@ -65,6 +72,19 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
+			const hasPr = input.pr !== undefined;
+			const hasBranch = Boolean(input.branch);
+			const hasWorktreePath = Boolean(input.worktreePath);
+
+			if (hasWorktreePath && hasPr) {
+				throw new Error("Cannot combine `worktreePath` with `pr`.");
+			}
+			if (!hasWorktreePath && hasBranch === hasPr) {
+				throw new Error(
+					"Specify exactly one of `branch` or `pr`, or pass `worktreePath`.",
+				);
+			}
+
 			return hostServiceCall<{
 				workspace: {
 					id: string;
@@ -95,6 +115,7 @@ export function register(server: McpServer): void {
 					branch: input.branch,
 					pr: input.pr,
 					baseBranch: input.baseBranch,
+					worktreePath: input.worktreePath,
 					taskId: input.taskId,
 					agents: input.agents,
 				},
