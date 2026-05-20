@@ -73,3 +73,6 @@ async function handle(req: Request): Promise<Response> {
 }
 
 export { handle as GET, handle as POST, handle as DELETE };
+
+// MCP uses long-lived SSE connections; set to Vercel's maximum to prevent 504 timeouts.
+export const maxDuration = 800;
