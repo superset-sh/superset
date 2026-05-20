@@ -16,8 +16,21 @@ describe("notifications/server", () => {
 			expect(mapEventType("Start")).toBe("Start");
 		});
 
-		it("should map 'SessionStart' to 'Start'", () => {
-			expect(mapEventType("SessionStart")).toBe("Start");
+		// Repro for #4751: SessionStart fires on Claude Code boot when the agent
+		// is still idle. Treating it as "Start" flips the pane to "working",
+		// overwriting any existing notification badge with the amber spinner.
+		it("should not map session-boot events to 'Start' (repro #4751)", () => {
+			expect(mapEventType("SessionStart")).not.toBe("Start");
+			expect(mapEventType("sessionStart")).not.toBe("Start");
+			expect(mapEventType("session_start")).not.toBe("Start");
+		});
+
+		// SessionEnd is a session-lifetime signal, not a turn-complete signal.
+		// Mapping it to "Stop" would falsely mark the pane as "ready for review".
+		it("should not map session-end events to 'Stop' (repro #4751)", () => {
+			expect(mapEventType("SessionEnd")).not.toBe("Stop");
+			expect(mapEventType("sessionEnd")).not.toBe("Stop");
+			expect(mapEventType("session_end")).not.toBe("Stop");
 		});
 
 		it("should map 'UserPromptSubmit' to 'Start'", () => {
@@ -25,7 +38,6 @@ describe("notifications/server", () => {
 		});
 
 		it("should map Codex snake_case start events to 'Start'", () => {
-			expect(mapEventType("session_start")).toBe("Start");
 			expect(mapEventType("user_prompt_submit")).toBe("Start");
 			expect(mapEventType("post_tool_use")).toBe("Start");
 			expect(mapEventType("task_started")).toBe("Start");

@@ -4,16 +4,27 @@ export function mapEventType(
 	if (!eventType) {
 		return null;
 	}
+	// SessionStart / SessionEnd are session-lifetime signals — the agent is idle
+	// at boot and again at exit. Routing them to Start/Stop would flip the pane
+	// indicator to "working" the moment a Claude Code session opens, hiding any
+	// real notification badge (see issue #4751).
+	if (
+		eventType === "SessionStart" ||
+		eventType === "sessionStart" ||
+		eventType === "session_start" ||
+		eventType === "SessionEnd" ||
+		eventType === "sessionEnd" ||
+		eventType === "session_end"
+	) {
+		return null;
+	}
 	if (
 		eventType === "Start" ||
-		eventType === "SessionStart" ||
 		eventType === "UserPromptSubmit" ||
 		eventType === "PostToolUse" ||
 		eventType === "PostToolUseFailure" ||
 		eventType === "BeforeAgent" ||
 		eventType === "AfterTool" ||
-		eventType === "sessionStart" ||
-		eventType === "session_start" ||
 		eventType === "userPromptSubmitted" ||
 		eventType === "user_prompt_submit" ||
 		eventType === "postToolUse" ||
@@ -39,8 +50,6 @@ export function mapEventType(
 		eventType === "stop" ||
 		eventType === "agent-turn-complete" ||
 		eventType === "AfterAgent" ||
-		eventType === "sessionEnd" ||
-		eventType === "session_end" ||
 		eventType === "task_complete"
 	) {
 		return "Stop";
