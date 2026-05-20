@@ -195,7 +195,16 @@ export const organizationRouter = {
 		.input(
 			z.object({
 				name: z.string().min(1),
-				slug: z.string().min(1),
+				slug: z
+					.string()
+					.min(3, "Slug must be at least 3 characters")
+					.max(50)
+					.regex(
+						/^[a-z0-9-]+$/,
+						"Slug can only contain lowercase letters, numbers, and hyphens",
+					)
+					.regex(/^[a-z0-9]/, "Slug must start with a letter or number")
+					.regex(/[a-z0-9]$/, "Slug must end with a letter or number"),
 				logo: z.string().url().optional(),
 			}),
 		)
@@ -212,6 +221,17 @@ export const organizationRouter = {
 							"Your account is managed by your organization. Contact your admin to create a new organization.",
 					});
 				}
+			}
+
+			const existingOrg = await db.query.organizations.findFirst({
+				where: eq(organizations.slug, input.slug),
+			});
+
+			if (existingOrg) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This slug is already taken",
+				});
 			}
 
 			const [organization] = await db
