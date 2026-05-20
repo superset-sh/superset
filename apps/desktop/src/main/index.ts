@@ -434,10 +434,6 @@ if (!gotTheLock) {
 		// block on this.
 		void ensureDevAuthToken();
 
-		// Discover and adopt host-services that survived a previous quit
-		// before the tray initializes, so it shows accurate status immediately.
-		await getHostServiceCoordinator().discoverAll();
-
 		if (IS_DEV) {
 			getHostServiceCoordinator().enableDevReload(async () => {
 				const { token } = await loadToken();
