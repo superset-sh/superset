@@ -2,7 +2,9 @@
 
 <img width="full" alt="Superset" src="apps/marketing/public/images/readme-hero.png" />
 
-### The Code Editor for AI Agents
+### Run dozens of coding agents in parallel.
+
+A native macOS app that gives every agent its own git worktree, terminal, and review surface — with notifications when they need you.
 
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
@@ -12,46 +14,60 @@
 
 <br />
 
-Orchestrate swarms of Claude Code, Codex, and more in parallel.<br />
-Works with any CLI agent. Built for local worktree-based development.
-
-<br />
-
 [**Download for macOS**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
 
 <br />
 
+<!-- TODO: replace with real product screenshot of the main UI with multiple workspaces -->
+<img width="900" alt="Superset main UI" src="apps/marketing/public/images/readme-hero.png" />
+
+<a href="https://www.youtube.com/"><!-- TODO: replace with actual demo video URL -->▶ Watch the 90-second demo</a>
 
 </div>
 
-## Code 10x Faster With No Switching Cost
+## About
 
-Superset orchestrates CLI-based coding agents across isolated git worktrees, with built-in terminal, review, and open-in-editor workflows.
+Superset is a native macOS app for running many CLI-based coding agents in parallel. Each agent gets its own git worktree, terminal, and review surface, so agents can work on different branches at the same time without trampling each other or your main checkout. Notifications surface in one place — you stay in flow until something actually needs your attention.
 
-- **Run multiple agents simultaneously** without context switching overhead
-- **Isolate each task** in its own git worktree so agents don't interfere with each other
-- **Monitor all your agents** from one place and get notified when they need attention
-- **Review and edit changes quickly** with the built-in diff viewer and editor
-- **Open any workspace where you need it** with one-click handoff to your editor or terminal
+Superset is built for developers who already run agents like Claude Code, Codex, and Cursor Agent from the terminal and want a faster way to orchestrate many of them at once. It works with any CLI agent.
 
-Wait less, ship more.
+## What Superset Does
 
-## Features
+| # | Pillar |
+| :-: | --- |
+| 1 | [Parallel agents in isolated git worktrees](#parallel-agents-in-isolated-git-worktrees) |
+| 2 | [Notifications when agents need you](#notifications-when-agents-need-you) |
+| 3 | [Built-in diff review and inline editing](#built-in-diff-review-and-inline-editing) |
+| 4 | [Reproducible workspace setup](#reproducible-workspace-setup) |
+| 5 | [Universal CLI-agent compatibility](#universal-cli-agent-compatibility) |
 
-| Feature | Description |
-|:--------|:------------|
-| **Parallel Execution** | Run 10+ coding agents simultaneously on your machine |
-| **Worktree Isolation** | Each task gets its own branch and working directory |
-| **Agent Monitoring** | Track agent status and get notified when changes are ready |
-| **Built-in Diff Viewer** | Inspect and edit agent changes without leaving the app |
-| **Workspace Presets** | Automate env setup, dependency installation, and more |
-| **Universal Compatibility** | Works with any CLI agent that runs in a terminal |
-| **Quick Context Switching** | Jump between tasks as they need your attention |
-| **IDE Integration** | Open any workspace in your favorite editor with one click |
+#### Parallel agents in isolated git worktrees
+
+Superset runs each task in its own git worktree off the same repository. Workspaces share the underlying object store but have independent working directories and branches, so agents can edit files, install dependencies, and run tests without touching each other or your main checkout.
+
+You can spin up ten workspaces from a single project and have ten agents working on ten different branches simultaneously. When a workspace is done, its branch goes through the same review and merge flow you already use.
+
+#### Notifications when agents need you
+
+Long-running agents alternate between heads-down work and questions for the user. Superset watches every workspace and pings you the moment an agent stops to ask something or finishes a task. The notification list lives in the sidebar so you can scan the state of every workspace at a glance, jump to whichever one needs you, and ignore the ones still working.
+
+This is the difference between checking on agents every few minutes and letting them tell you when they need you.
+
+#### Built-in diff review and inline editing
+
+Every workspace ships with a diff view that shows uncommitted changes, staged changes, and the agent's most recent turn. You can edit files in place, stage hunks, and commit without leaving the app or switching to an external editor.
+
+When you want a full IDE, one click hands the workspace off to VS Code, Cursor, Zed, or your terminal — the worktree path is the same path your editor opens.
+
+#### Reproducible workspace setup
+
+A `.superset/config.json` at your repo root defines what should happen when a workspace is created or destroyed — copy `.env`, install dependencies, run migrations, tear down branches, and anything else you'd normally do by hand. New workspaces come up identical to your main checkout in seconds. See the [setup/teardown docs](https://docs.superset.sh/setup-teardown-scripts).
+
+#### Universal CLI-agent compatibility
+
+Superset works with any agent that runs in a terminal. Claude Code, Codex, Cursor Agent, Gemini, Copilot CLI, OpenCode, Amp, and Pi all work without per-agent configuration. If it talks to stdin/stdout, Superset can run it.
 
 ## Supported Agents
-
-Superset works with any CLI-based coding agent, including:
 
 | Agent | Status |
 |:------|:-------|
@@ -65,7 +81,7 @@ Superset works with any CLI-based coding agent, including:
 | [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
 | Any CLI agent | Will work |
 
-If it runs in a terminal, it runs on Superset
+If it runs in a terminal, it runs on Superset.
 
 ## Requirements
 
@@ -79,14 +95,10 @@ If it runs in a terminal, it runs on Superset
 
 ## Getting Started
 
-### Quick Start (Pre-built)
-
 **[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
 
-### Build from Source
-
 <details>
-<summary>Click to expand build instructions</summary>
+<summary>Or build from source</summary>
 
 **1. Clone the repository**
 
@@ -136,81 +148,13 @@ open apps/desktop/release
 
 </details>
 
-## Keyboard Shortcuts
-
-All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`). See [full documentation](https://docs.superset.sh/keyboard-shortcuts).
-
-### Workspace Navigation
-
-| Shortcut | Action |
-|:---------|:-------|
-| `⌘1-9` | Switch to workspace 1-9 |
-| `⌘⌥↑/↓` | Previous/next workspace |
-| `⌘N` | New workspace |
-| `⌘⇧N` | Quick create workspace |
-| `⌘⇧O` | Open project |
-
-### Terminal
-
-| Shortcut | Action |
-|:---------|:-------|
-| `⌘T` | New tab |
-| `⌘W` | Close pane/terminal |
-| `⌘D` | Split right |
-| `⌘⇧D` | Split down |
-| `⌘K` | Clear terminal |
-| `⌘F` | Find in terminal |
-| `⌘⌥←/→` | Previous/next tab |
-| `Ctrl+1-9` | Open preset 1-9 |
-
-### Layout
-
-| Shortcut | Action |
-|:---------|:-------|
-| `⌘B` | Toggle workspaces sidebar |
-| `⌘L` | Toggle changes panel |
-| `⌘O` | Open in external app |
-| `⌘⇧C` | Copy path |
-
 ## Configuration
 
-Configure workspace setup and teardown in `.superset/config.json`. See [full documentation](https://docs.superset.sh/setup-teardown-scripts).
+Configure workspace setup, teardown, and presets in `.superset/config.json`. See the [configuration docs](https://docs.superset.sh/setup-teardown-scripts).
 
-```json
-{
-  "setup": ["./.superset/setup.sh"],
-  "teardown": ["./.superset/teardown.sh"]
-}
-```
+## Keyboard Shortcuts
 
-| Option | Type | Description |
-|:-------|:-----|:------------|
-| `setup` | `string[]` | Commands to run when creating a workspace |
-| `teardown` | `string[]` | Commands to run when deleting a workspace |
-
-### Example setup script
-
-```bash
-#!/bin/bash
-# .superset/setup.sh
-
-# Copy environment variables
-cp ../.env .env
-
-# Install dependencies
-bun install
-
-# Run any other setup tasks
-echo "Workspace ready!"
-```
-
-Scripts have access to environment variables:
-- `SUPERSET_WORKSPACE_NAME` — Name of the workspace
-- `SUPERSET_ROOT_PATH` — Path to the main repository
-
-## Mastra Dependencies
-
-This repo uses the published upstream `mastracode` and `@mastra/*` packages directly. Avoid adding custom tarball overrides unless there is a repo-specific blocker.
+All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`). See the [full shortcut reference](https://docs.superset.sh/keyboard-shortcuts).
 
 ## Tech Stack
 
@@ -227,32 +171,15 @@ This repo uses the published upstream `mastracode` and `@mastra/*` packages dire
   <a href="https://trpc.io/"><img src="https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white" alt="tRPC" /></a>
 </p>
 
-## Private by Default
-
-- **Source Available** — Full source is available on GitHub under Elastic License 2.0 (ELv2).
-- **Explicit Connections** — You choose which agents, providers, and integrations to connect.
-
 ## Contributing
 
-We welcome contributions! If you have a suggestion that would make Superset better:
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-You can also [open issues](https://github.com/superset-sh/superset/issues) for bugs or feature requests.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions and code of conduct.
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and the PR workflow. For bugs or feature requests, [open an issue](https://github.com/superset-sh/superset/issues).
 
 <a href="https://github.com/superset-sh/superset/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
 </a>
 
 ## Community
-
-Join the Superset community to get help, share feedback, and connect with other users:
 
 - **[Discord](https://discord.gg/cZeD9WYcV7)** — Chat with the team and community
 - **[Twitter](https://x.com/superset_sh)** — Follow for updates and announcements
@@ -267,4 +194,4 @@ Join the Superset community to get help, share feedback, and connect with other 
 
 ## License
 
-Distributed under the Elastic License 2.0 (ELv2). See [LICENSE.md](LICENSE.md) for more information.
+Distributed under the Elastic License 2.0 (ELv2) — source is available on GitHub; you choose which agents, providers, and integrations to connect. See [LICENSE.md](LICENSE.md) for full terms.
