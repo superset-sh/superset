@@ -408,6 +408,13 @@ export const taskRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
 
+			if (Object.keys(data).length === 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No fields provided to update",
+				});
+			}
+
 			const result = await dbWs.transaction(async (tx) => {
 				const taskAccess = await getTaskAccess(tx, ctx.session.user.id, id);
 
