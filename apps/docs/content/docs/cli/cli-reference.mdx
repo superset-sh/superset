@@ -984,9 +984,8 @@ superset automations resume aut_…
 		{ name: "id", required: true, description: "Automation ID." },
 	]}
 	output={`{
-  runId: string;
   automationId: string;
-  dispatchedAt: string;
+  runId: string;
 }`}
 >
 Dispatch an automation immediately. Does not wait for completion.

@@ -122,7 +122,7 @@ Create a worktree on a specific host. Optionally spawn one or more agents inside
 Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID — the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed.
 
 ```ts
-const ws = await client.workspaces.create({
+const result = await client.workspaces.create({
   hostId: '<machineId>',     // see hosts.list()
   projectId: '<uuid>',       // see projects.list()
   name: 'wire-up-auth',
@@ -133,10 +133,18 @@ const ws = await client.workspaces.create({
   ],
 });
 
-console.log(ws.id, ws.agentRuns.map((r) => r.runId));
+console.log(result.workspace.id);
+for (const agent of result.agents) {
+  if (agent.ok) console.log(agent.kind, agent.sessionId, agent.label);
+  else console.error(agent.error);
+}
 ```
 
-Returns a `CreatedWorkspace` — a `HostWorkspace` plus an `agentRuns` array (one entry per agent in the request, empty if `agents` was omitted).
+Returns a `WorkspaceCreateResult`:
+
+- `workspace` — the created workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, …).
+- `terminals` — terminals opened on the host (`{ terminalId, label? }`).
+- `agents` — one entry per agent in the request (empty if `agents` was omitted). Each entry is either `{ ok: true, kind: 'terminal' | 'chat', sessionId, label }` or `{ ok: false, error }`.
 
 ### `workspaces.delete(id, opts?)`
 
