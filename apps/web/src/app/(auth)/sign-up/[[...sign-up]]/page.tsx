@@ -7,6 +7,10 @@ import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
+import { DevSignInButton } from "../../components/DevSignInButton";
+
+const isDev = process.env.NODE_ENV !== "production";
+
 export default function SignUpPage() {
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
@@ -60,6 +64,7 @@ export default function SignUpPage() {
 				{error && (
 					<p className="text-destructive text-center text-sm">{error}</p>
 				)}
+				{isDev && <DevSignInButton callbackURL={env.NEXT_PUBLIC_WEB_URL} />}
 				<Button
 					variant="outline"
 					disabled={isLoading}
