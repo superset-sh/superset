@@ -11,7 +11,6 @@ import {
 import { menuEmitter } from "./menu-events";
 
 export function createApplicationMenu() {
-	const reloadAccelerator = "CmdOrCtrl+R";
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
 	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
@@ -56,7 +55,11 @@ export function createApplicationMenu() {
 			submenu: [
 				{
 					label: "Reload",
-					accelerator: reloadAccelerator,
+					// Note: no longer has CmdOrCtrl+R accelerator - that captured Cmd+R
+					// at the BrowserWindow level before the webview's before-input-event
+					// listener could intercept it. Cmd+R is now intercepted by
+					// browser-pane before-input-event to reload the focused pane.
+					// Cmd+Shift+R (Force Reload below) still reloads the host renderer.
 					click: () => {
 						BrowserWindow.getFocusedWindow()?.reload();
 					},
