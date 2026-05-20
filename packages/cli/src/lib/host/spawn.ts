@@ -89,30 +89,6 @@ function resolveMigrationsFolder(): string {
 	return join(bundleRoot, "share", "migrations");
 }
 
-function createHostServiceEnv(
-	options: SpawnHostOptions,
-	port: number,
-	secret: string,
-	relayUrl: string,
-	migrationsFolder: string,
-): NodeJS.ProcessEnv {
-	return {
-		...process.env,
-		ORGANIZATION_ID: options.organizationId,
-		AUTH_TOKEN: options.sessionToken,
-		...(options.authConfigPath
-			? { SUPERSET_AUTH_CONFIG_PATH: options.authConfigPath }
-			: {}),
-		SUPERSET_API_URL: env.SUPERSET_API_URL,
-		RELAY_URL: relayUrl,
-		PORT: String(port),
-		HOST_SERVICE_PORT: String(port),
-		HOST_SERVICE_SECRET: secret,
-		HOST_DB_PATH: hostDbPath(options.organizationId),
-		HOST_MIGRATIONS_FOLDER: migrationsFolder,
-	};
-}
-
 export async function spawnHostService(
 	options: SpawnHostOptions,
 ): Promise<SpawnHostResult> {
@@ -131,13 +107,21 @@ export async function spawnHostService(
 	const child = spawn(hostBin, [], {
 		stdio: options.daemon ? "ignore" : "inherit",
 		detached: options.daemon,
-		env: createHostServiceEnv(
-			options,
-			port,
-			secret,
-			relayUrl,
-			migrationsFolder,
-		),
+		env: {
+			...process.env,
+			ORGANIZATION_ID: options.organizationId,
+			AUTH_TOKEN: options.sessionToken,
+			...(options.authConfigPath
+				? { SUPERSET_AUTH_CONFIG_PATH: options.authConfigPath }
+				: {}),
+			SUPERSET_API_URL: env.SUPERSET_API_URL,
+			RELAY_URL: relayUrl,
+			PORT: String(port),
+			HOST_SERVICE_PORT: String(port),
+			HOST_SERVICE_SECRET: secret,
+			HOST_DB_PATH: hostDbPath(options.organizationId),
+			HOST_MIGRATIONS_FOLDER: migrationsFolder,
+		},
 	});
 
 	if (!child.pid) {
