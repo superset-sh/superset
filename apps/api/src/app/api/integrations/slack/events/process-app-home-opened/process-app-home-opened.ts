@@ -6,7 +6,7 @@ import { createSlackClient } from "../utils/slack-client";
 import { buildHomeView } from "./build-home-view";
 
 interface ProcessAppHomeOpenedParams {
-	event: { user: string; tab: string };
+	event: { user: string };
 	teamId: string;
 	eventId: string;
 }

@@ -148,16 +148,19 @@ export async function POST(request: Request) {
 
 		if (event.type === "app_home_opened") {
 			const appHomeEvent = event as { user?: string; tab?: string };
-			if (
-				typeof appHomeEvent.user !== "string" ||
-				typeof appHomeEvent.tab !== "string"
-			) {
+			if (typeof appHomeEvent.user !== "string") {
 				console.error("[slack/events] Invalid app home opened payload shape");
 				return new Response("ok", { status: 200 });
 			}
 
+			// Only publish the home view when the user opens the Home tab.
+			// The `tab` field is optional per Slack's API; absent means non-home tab.
+			if (appHomeEvent.tab !== undefined && appHomeEvent.tab !== "home") {
+				return new Response("ok", { status: 200 });
+			}
+
 			processAppHomeOpened({
-				event: { user: appHomeEvent.user, tab: appHomeEvent.tab },
+				event: { user: appHomeEvent.user },
 				teamId: team_id,
 				eventId: event_id,
 			}).catch((err: unknown) => {
