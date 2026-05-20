@@ -9,6 +9,7 @@ import {
 	type TerminalAppearance,
 } from "./appearance";
 import { scheduleFontSettleRefit } from "./font-settle";
+import { refreshAfterFit } from "./refresh-after-fit";
 import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
@@ -147,9 +148,14 @@ function measureAndResize(runtime: TerminalRuntime): boolean {
 		}
 	}
 
-	terminal.refresh(0, Math.max(0, terminal.rows - 1));
+	const dimensionsChanged =
+		terminal.cols !== prevCols || terminal.rows !== prevRows;
+	// Clear the WebGL texture atlas on dimension change — otherwise glyphs
+	// rasterized at the previous cell size keep painting at the new layout
+	// and produce the overlapping/garbled characters reported in #4753.
+	refreshAfterFit(terminal, dimensionsChanged);
 
-	return terminal.cols !== prevCols || terminal.rows !== prevRows;
+	return dimensionsChanged;
 }
 
 function createResizeScheduler(

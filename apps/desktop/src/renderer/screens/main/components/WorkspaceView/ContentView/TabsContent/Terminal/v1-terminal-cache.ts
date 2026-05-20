@@ -4,6 +4,7 @@ import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import { scheduleFontSettleRefit } from "renderer/lib/terminal/font-settle";
+import { refreshAfterFit } from "renderer/lib/terminal/refresh-after-fit";
 import { getTerminalParkingContainer } from "renderer/lib/terminal/terminal-parking";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { DEBUG_TERMINAL } from "./config";
@@ -93,14 +94,7 @@ function fitAndRefresh(
 	}
 
 	const dimensionsChanged = xterm.cols !== prevCols || xterm.rows !== prevRows;
-	if (options.clearAtlas || dimensionsChanged) {
-		// xterm no-ops this when WebGL isn't the active renderer.
-		try {
-			xterm.clearTextureAtlas();
-		} catch {}
-	}
-
-	xterm.refresh(0, Math.max(0, xterm.rows - 1));
+	refreshAfterFit(xterm, dimensionsChanged, { clearAtlas: options.clearAtlas });
 
 	return dimensionsChanged;
 }
