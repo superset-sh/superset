@@ -7,6 +7,7 @@ import {
 	mock,
 	spyOn,
 } from "bun:test";
+import type { PathLike } from "node:fs";
 import * as fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -219,14 +220,25 @@ describe("JwtApiAuthProvider", () => {
 				expiresAt: Date.now() + 60_000,
 			},
 		});
-		const renameSpy = spyOn(fs, "renameSync");
+		const originalRenameSync = fs.renameSync;
+		let atomicTmpPath: string | undefined;
+		const renameSpy = spyOn(fs, "renameSync").mockImplementation(
+			(oldPath: PathLike, newPath: PathLike) => {
+				atomicTmpPath = String(oldPath);
+				expect(newPath).toBe(configPath);
+				originalRenameSync(oldPath, newPath);
+			},
+		);
 
 		const token = await createProvider(configPath).getSessionToken();
 
 		expect(token).toBe(refreshedToken);
 		expect(refreshAccessTokenMock).toHaveBeenCalledTimes(1);
 		expect(refreshAccessTokenMock).toHaveBeenCalledWith("refresh-token");
-		expect(renameSpy).toHaveBeenCalledWith(`${configPath}.tmp`, configPath);
+		expect(atomicTmpPath).toBeDefined();
+		expect(atomicTmpPath).not.toBe(`${configPath}.tmp`);
+		expect(atomicTmpPath?.startsWith(`${configPath}.`)).toBe(true);
+		expect(atomicTmpPath?.endsWith(".tmp")).toBe(true);
 		expect(readConfig(configPath)).toEqual({
 			organizationId: "org_1",
 			apiKey: "sk_live_existing",

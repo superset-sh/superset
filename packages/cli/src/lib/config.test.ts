@@ -16,6 +16,11 @@ const tmpPath = `${configPath}.tmp`;
 function removeConfigFiles(): void {
 	fs.rmSync(configPath, { force: true });
 	fs.rmSync(tmpPath, { force: true });
+	for (const file of fs.readdirSync(tempHome)) {
+		if (file.startsWith("config.json.") && file.endsWith(".tmp")) {
+			fs.rmSync(path.join(tempHome, file), { force: true });
+		}
+	}
 }
 
 afterEach(() => {
@@ -32,7 +37,7 @@ afterAll(() => {
 });
 
 describe("writeConfig", () => {
-	it("writes config to a temp file before renaming it into place", () => {
+	it("writes config to a unique temp file before renaming it into place", () => {
 		const config = {
 			auth: {
 				accessToken: "access-token",
@@ -41,12 +46,17 @@ describe("writeConfig", () => {
 			},
 		};
 		const originalRenameSync = fs.renameSync;
+		const tempPaths: string[] = [];
 		const writeSpy = spyOn(fs, "writeFileSync");
 		const renameSpy = spyOn(fs, "renameSync").mockImplementation(
 			(oldPath: PathLike, newPath: PathLike) => {
-				expect(oldPath).toBe(tmpPath);
+				const tempPath = String(oldPath);
+				tempPaths.push(tempPath);
+				expect(tempPath).not.toBe(tmpPath);
+				expect(tempPath.startsWith(`${configPath}.`)).toBe(true);
+				expect(tempPath.endsWith(".tmp")).toBe(true);
 				expect(newPath).toBe(configPath);
-				expect(fs.existsSync(tmpPath)).toBe(true);
+				expect(fs.existsSync(tempPath)).toBe(true);
 				originalRenameSync(oldPath, newPath);
 			},
 		);
@@ -54,11 +64,12 @@ describe("writeConfig", () => {
 		writeConfig(config);
 
 		expect(writeSpy).toHaveBeenCalledWith(
-			tmpPath,
+			tempPaths[0],
 			JSON.stringify(config, null, 2),
-			{ mode: 0o600 },
+			{ mode: 0o600, flag: "wx" },
 		);
 		expect(renameSpy).toHaveBeenCalledTimes(1);
+		expect(tempPaths).toHaveLength(1);
 		expect(readConfig()).toEqual(config);
 		expect(fs.statSync(configPath).mode & 0o777).toBe(0o600);
 
@@ -83,9 +94,13 @@ describe("writeConfig", () => {
 		};
 
 		writeConfig(originalConfig);
-		const renameSpy = spyOn(fs, "renameSync").mockImplementation(() => {
-			throw new Error("simulated crash before rename");
-		});
+		let pendingTmpPath: string | undefined;
+		const renameSpy = spyOn(fs, "renameSync").mockImplementation(
+			(oldPath: PathLike) => {
+				pendingTmpPath = String(oldPath);
+				throw new Error("simulated crash before rename");
+			},
+		);
 
 		expect(() => writeConfig(nextConfig)).toThrow(
 			"simulated crash before rename",
@@ -94,7 +109,11 @@ describe("writeConfig", () => {
 		expect(JSON.parse(fs.readFileSync(configPath, "utf-8"))).toEqual(
 			originalConfig,
 		);
-		expect(JSON.parse(fs.readFileSync(tmpPath, "utf-8"))).toEqual(nextConfig);
+		expect(pendingTmpPath).toBeDefined();
+		expect(pendingTmpPath).not.toBe(tmpPath);
+		expect(JSON.parse(fs.readFileSync(pendingTmpPath!, "utf-8"))).toEqual(
+			nextConfig,
+		);
 
 		renameSpy.mockRestore();
 	});
