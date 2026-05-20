@@ -1,4 +1,3 @@
-import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import type { FAQItem } from "@/app/components/FAQSection";
 
 export type TierId = "free" | "pro" | "enterprise";
@@ -41,9 +40,8 @@ export const PRICING_TIERS: PricingTier[] = [
 		],
 		cta: {
 			label: "Download app",
-			href: DOWNLOAD_URL_MAC_ARM64,
+			href: "/download",
 			variant: "outline",
-			external: true,
 		},
 	},
 	{
@@ -72,9 +70,8 @@ export const PRICING_TIERS: PricingTier[] = [
 		],
 		cta: {
 			label: "Download app",
-			href: DOWNLOAD_URL_MAC_ARM64,
+			href: "/download",
 			variant: "default",
-			external: true,
 		},
 		highlight: true,
 	},

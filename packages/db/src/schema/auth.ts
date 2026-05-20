@@ -22,6 +22,7 @@ export const users = authSchema.table(
 		emailVerified: boolean("email_verified").default(false).notNull(),
 		image: text("image"),
 		organizationIds: uuid("organization_ids").array().default([]).notNull(),
+		onboardedAt: timestamp("onboarded_at"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()
