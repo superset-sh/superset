@@ -1,6 +1,6 @@
 import { CLIError } from "@superset/cli-framework";
-import { refreshAccessToken } from "@superset/shared/auth/token-refresh";
 import { type ApiClient, createApiClient } from "./api-client";
+import { refreshAccessToken } from "./auth";
 import { readConfig, type SupersetConfig, writeConfig } from "./config";
 import { isProcessAlive, readManifest } from "./host/manifest";
 
