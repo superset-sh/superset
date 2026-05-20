@@ -66,10 +66,7 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function fitAndRefresh(
-	entry: CachedTerminal,
-	options: { clearAtlas?: boolean } = {},
-): boolean {
+function fitAndRefresh(entry: CachedTerminal): boolean {
 	if (!hostIsVisible(entry.container)) return false;
 
 	const { xterm } = entry;
@@ -93,13 +90,6 @@ function fitAndRefresh(
 	}
 
 	const dimensionsChanged = xterm.cols !== prevCols || xterm.rows !== prevRows;
-	if (options.clearAtlas || dimensionsChanged) {
-		// xterm no-ops this when WebGL isn't the active renderer.
-		try {
-			xterm.clearTextureAtlas();
-		} catch {}
-	}
-
 	xterm.refresh(0, Math.max(0, xterm.rows - 1));
 
 	return dimensionsChanged;
@@ -162,13 +152,11 @@ export function attachToContainer(
 	entry.container = container;
 	container.appendChild(entry.wrapper);
 
-	// On reattach, force an atlas clear: while the wrapper was parked, the
-	// macOS GPU compositor can drop or corrupt atlas pages without firing
-	// `onContextLoss`, leaving stale glyphs that paint as RTL-looking
-	// gibberish (issue #4010).
-	fitAndRefresh(entry, { clearAtlas: true });
+	// Refit and repaint on reattach because the wrapper may have been parked
+	// while its live container changed size.
+	fitAndRefresh(entry);
 	// xterm's initial cell-width measurement may have run before the configured
-	// font finished loading, baking wrong glyph metrics into the renderer atlas
+	// font finished loading, baking wrong glyph metrics into the renderer
 	// (#4617). Refit once fonts are ready so the layout matches the rendered
 	// font without requiring a manual resize.
 	scheduleFontSettleRefit(
@@ -233,7 +221,7 @@ export function updateAppearance(
 	const changed = fitAndRefresh(entry);
 
 	// The new font may still be loading — schedule a second refit once it
-	// resolves so the atlas/dimensions match the actually-rendered glyphs.
+	// resolves so dimensions match the actually-rendered glyphs.
 	scheduleFontSettleRefit(
 		xterm,
 		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
