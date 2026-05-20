@@ -5,6 +5,8 @@ import { verifyAccessToken } from "better-auth/oauth2";
 import { env } from "@/env";
 import { handleMcpRequest, type McpRequestDeps } from "./auth-flow";
 
+export const maxDuration = 800;
+
 const deps: McpRequestDeps = {
 	apiUrl: env.NEXT_PUBLIC_API_URL,
 	authApi: auth.api,
