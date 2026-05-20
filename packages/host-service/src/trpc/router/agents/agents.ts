@@ -20,6 +20,8 @@ interface ResolvedHostAgentConfig {
 	env: Record<string, string>;
 }
 
+const STDIN_PROMPT_FOLLOW_UP_DELAY_MS = 200;
+
 function parseArgv(value: string): string[] {
 	try {
 		const parsed = JSON.parse(value);
@@ -103,13 +105,11 @@ function buildArgvCommand(argv: string[]): string {
 }
 
 /**
- * Build a shell command string that runs the resolved agent config with the
- * given prompt. argv transport appends the prompt as the final positional;
- * stdin transport pipes the prompt via a heredoc so the agent can read from
- * fd 0.
- *
- * Empty prompts drop `promptArgs` so codex/opencode/copilot don't get stray
- * prompt-mode flags during promptless launches.
+ * Build the initial terminal command for a prompted agent launch. argv
+ * transport appends the prompt as the final positional. stdin transport starts
+ * the agent only; the prompt is written as a delayed PTY follow-up so fd 0 stays
+ * attached to the terminal and shells like fish cannot read ahead and consume
+ * the prompt before the agent starts.
  */
 export function buildAgentCommandString(
 	config: ResolvedHostAgentConfig,
@@ -121,16 +121,18 @@ export function buildAgentCommandString(
 		return buildArgvCommand([...baseArgv, prompt]);
 	}
 
-	// stdin: pipe the prompt to the spawned process via heredoc. Delimiter is
-	// constructed to avoid collision with any line in the prompt content.
-	const baseDelimiter = "SUPERSET_PROMPT";
-	let delimiter = baseDelimiter;
-	let counter = 0;
-	while (prompt.split("\n").some((line) => line === delimiter)) {
-		counter += 1;
-		delimiter = `${baseDelimiter}_${counter}`;
-	}
-	return `${buildArgvCommand(baseArgv)} <<'${delimiter}'\n${prompt}\n${delimiter}`;
+	return buildArgvCommand(baseArgv);
+}
+
+export function buildAgentPromptFollowUp(
+	config: ResolvedHostAgentConfig,
+	prompt: string,
+): { data: string; delayMs: number } | undefined {
+	if (config.promptTransport !== "stdin") return undefined;
+	return {
+		data: prompt.endsWith("\n") ? prompt : `${prompt}\n`,
+		delayMs: STDIN_PROMPT_FOLLOW_UP_DELAY_MS,
+	};
 }
 
 function envOverlayPrefix(env: Record<string, string>): string {
@@ -250,6 +252,7 @@ async function runTerminalAgent(
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const command = buildAgentCommandString(config, prompt);
 	const fullCommand = `${envOverlayPrefix(config.env)}${command}`;
+	const promptFollowUp = buildAgentPromptFollowUp(config, prompt);
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -258,6 +261,7 @@ async function runTerminalAgent(
 		db: ctx.db,
 		eventBus: ctx.eventBus,
 		initialCommand: fullCommand,
+		initialCommandFollowUp: promptFollowUp,
 	});
 
 	if ("error" in result) {

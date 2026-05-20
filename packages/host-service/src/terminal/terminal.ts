@@ -774,6 +774,7 @@ function resolveShellReady(
 function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
+	followUp?: { data: string; delayMs: number },
 ): void {
 	if (session.initialCommandQueued || session.exited) return;
 	session.initialCommandQueued = true;
@@ -781,9 +782,15 @@ function queueInitialCommand(
 		? initialCommand
 		: `${initialCommand}\n`;
 	session.shellReadyPromise.then(() => {
-		if (!session.exited) {
-			session.pty.write(cmd);
-		}
+		if (session.exited) return;
+		session.pty.write(cmd);
+
+		if (!followUp) return;
+		setTimeout(() => {
+			if (!session.exited) {
+				session.pty.write(followUp.data);
+			}
+		}, followUp.delayMs);
 	});
 }
 
@@ -990,6 +997,8 @@ interface CreateTerminalSessionOptions {
 	eventBus?: EventBus;
 	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
+	/** Optional PTY input written shortly after the initial command starts. */
+	initialCommandFollowUp?: { data: string; delayMs: number };
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
@@ -1045,6 +1054,7 @@ export async function createTerminalSessionInternal({
 	db,
 	eventBus,
 	initialCommand,
+	initialCommandFollowUp,
 	cwd: cwdOverride,
 	listed = true,
 	cols: requestedCols,
@@ -1062,7 +1072,9 @@ export async function createTerminalSessionInternal({
 		if (mismatchError) return { error: mismatchError };
 
 		if (listed) existing.listed = true;
-		if (initialCommand) queueInitialCommand(existing, initialCommand);
+		if (initialCommand) {
+			queueInitialCommand(existing, initialCommand, initialCommandFollowUp);
+		}
 		return existing;
 	}
 
@@ -1355,7 +1367,7 @@ export async function createTerminalSessionInternal({
 	);
 
 	if (initialCommand) {
-		queueInitialCommand(session, initialCommand);
+		queueInitialCommand(session, initialCommand, initialCommandFollowUp);
 	}
 
 	return session;
