@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import { dirname } from "node:path";
 import {
@@ -204,8 +205,11 @@ function writeConfigAtPath(configPath: string, config: SupersetConfig): void {
 		if ((stat.mode & 0o077) !== 0) fs.chmodSync(configDir, 0o700);
 	} catch {}
 
-	const tmpPath = `${configPath}.tmp`;
-	fs.writeFileSync(tmpPath, JSON.stringify(config, null, 2), { mode: 0o600 });
+	const tmpPath = `${configPath}.${process.pid}.${randomUUID()}.tmp`;
+	fs.writeFileSync(tmpPath, JSON.stringify(config, null, 2), {
+		mode: 0o600,
+		flag: "wx",
+	});
 	try {
 		fs.chmodSync(tmpPath, 0o600);
 	} catch {}

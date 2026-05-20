@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -38,9 +39,10 @@ export function readConfig(): SupersetConfig {
 
 export function writeConfig(config: SupersetConfig): void {
 	ensureDir();
-	const tmpPath = `${CONFIG_PATH}.tmp`;
+	const tmpPath = `${CONFIG_PATH}.${process.pid}.${randomUUID()}.tmp`;
 	fs.writeFileSync(tmpPath, JSON.stringify(config, null, 2), {
 		mode: 0o600,
+		flag: "wx",
 	});
 	try {
 		fs.chmodSync(tmpPath, 0o600);
