@@ -252,3 +252,190 @@ competes with the active greenfield worktrees and should be deferred.
 ## Deferred follow-ups
 
 See `.spec/improvements/SUPER-753/follow-ups.md`
+
+---
+
+## Challenge
+
+_Challenger role: `code-reviewer` (fresh-eyes, different specialist than investigator)._
+
+### Reproduction re-verification
+
+**Evidence file at time of challenge was VACUOUS** — the investigator's
+`failing-test-output.txt` contained only `bun test v1.3.11 (af24e281)` (the bun version
+header), not the claimed failure output `expected: [] / received: ["a_1"]`. The
+investigator ran the test but their redirect captured only the header line.
+
+This was caught by the challenger and patched by the orchestrator before binding: the
+evidence file has since been replaced with the genuine 27-line failure transcript,
+which matches the investigator's narrative exactly:
+
+```
+- []
++ [
++   "a_1",
++ ]
+(fail) dual-poll race — flicker reproduction (FAILING)
+0 pass / 1 fail / 1 expect() calls
+```
+
+Even before the patch, the challenger independently confirmed the bug is code-provable
+by reading the failing test file end-to-end alongside `use-chat-display.ts:34-37`. With
+`messages = [u_1, a_1_in_flight, optimistic-123]`:
+
+1. `findLastUserMessageIndex` scans from the tail, lands on `optimistic-123`.
+2. `activeTurnMessages = messages.slice(optimisticIndex + 1) = []`.
+3. Dedup filter has nothing to remove. `a_1` survives.
+4. `assistantIds = ["a_1"]` — the failing assertion.
+
+Bug is deterministic. **Status remains `proposal`, NOT `investigation-incomplete`** —
+the bug is code-provable independently of the evidence-file deficiency, which has been
+remediated.
+
+### Smaller-than-minimum analysis
+
+**Option 4 (challenger-proposed): micro-patch — skip `"optimistic-"` IDs in the turn-boundary search.**
+
+**one_line**: Change `findLastUserMessageIndex` predicate to skip `"optimistic-"`-prefixed
+IDs — 2-3 LOC in one private function, zero test code changes.
+
+**files_in_scope**:
+- `packages/chat/src/client/hooks/use-chat-display/use-chat-display.ts`
+
+**loc_budget**: ~3 LOC changed (0 test LOC — the existing failing test from the
+investigator validates the fix with no modifications).
+
+**Proposed patch** (lines 34-37 of `use-chat-display.ts`):
+
+```typescript
+// BEFORE
+function findLastUserMessageIndex(messages: ListMessagesOutput): number {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        if (messages[index]?.role === "user") return index;
+    }
+    return -1;
+}
+
+// AFTER
+function findLastUserMessageIndex(messages: ListMessagesOutput): number {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const m = messages[index];
+        // INVARIANT: optimistic messages use "optimistic-" ID prefix (both injection channels)
+        if (m?.role === "user" && !m.id?.startsWith("optimistic-")) return index;
+    }
+    return -1;
+}
+```
+
+**Why smaller than minimum**: The investigator's ~20 LOC Option 1 budget assumed
+replacing or wrapping `findLastUserMessageIndex` with a more sophisticated filter (or
+adding an `excludeOptimistic` parameter and updating callsites). The actual change is a
+2-line predicate modification inside the existing private function. No test changes
+needed — the existing failing test already exercises this exact code path.
+
+**Prefix reliability**: Both optimistic injection channels use the `"optimistic-"`
+prefix:
+
+- `use-chat-display.ts:240`: `` `optimistic-${Date.now()}` ``
+- `ChatPaneInterface/utils/optimisticUserMessage.ts:16`: `` `optimistic-${crypto.randomUUID()}` ``
+
+**acceptance_criteria**:
+- AC-1: `bun test packages/chat/src/client/hooks/use-chat-display/use-chat-display-race.test.ts`
+  exits 0 (the investigator's failing test passes after the predicate change).
+- AC-2: `bun test packages/chat/src/client/hooks/use-chat-display/use-chat-display.test.ts`
+  continues to exit 0 (no regression).
+- AC-3: Human verification — no flickering/duplicate assistant message on first
+  message send in a new chat session.
+
+**out_of_scope**:
+- Consolidating the dual optimistic-message injection paths (Option 1's AC-4 and
+  Option 2's AC-5/AC-6). That cleanup is FU-2.
+- H10 text-equality reconciliation. That is FU-2.
+- H4 60fps polling override. That is a separate defect already in follow-ups.
+
+**risks**:
+- The `"optimistic-"` prefix is an informal convention, not a typed contract. If a
+  future optimistic-message creation site uses a different prefix, the dedup filter
+  will silently break again. Mitigation: add `// INVARIANT` comments at both
+  ID-creation sites.
+- Does NOT fix the secondary user-message duplicate (the dual-channel optimistic
+  state). That remains FU-2 territory.
+- Does NOT consolidate the dual optimistic paths.
+
+**rationale**: A 2-3 LOC predicate change inside a private function directly passes the
+failing test without requiring test modifications. This is genuinely smaller than
+Option 1's ~20 LOC estimate AND doesn't bundle in Option 1's AC-4 (dual-path
+consolidation), which is a secondary concern.
+
+### Minimum-proves-symptom-fix
+
+**Yes — with one noted caveat.**
+
+Causal trace after Option 4 micro-patch:
+
+1. `findLastUserMessageIndex([u_1, a_1_in_flight, optimistic-123])` → skips
+   `optimistic-123`, returns index of `u_1`.
+2. `turnStartIndex = indexOf(u_1) + 1`.
+3. `activeTurnMessages = [a_1_in_flight]`.
+4. Dedup filter: `a_1_in_flight.stopReason === undefined` and `id === currentMessage.id`
+   → filtered out.
+5. Result: `[u_1, optimistic-123]` — no assistant messages in history.
+6. `currentMessage` renders `a_1` exactly once. No flicker.
+
+**Caveat (AC-3 human-visible)**: A residual brief user-message duplicate can occur when
+both the `ChatPaneInterface.tsx:326` `setData` path and the hook's own
+`optimisticUserMessage` state are active simultaneously (same text, two channels). That
+is the H10/FU-2 bug — separate from the assistant-message flicker targeted by this
+fix. AC-3 verification should specifically confirm the **assistant-message** flicker is
+gone; a brief user-message flash is a separate tracked issue.
+
+### Hidden scope-creep flags
+
+- `apps/desktop/.../ChatPaneInterface.tsx` (Option 2): The `setData` injection removal
+  (AC-5, AC-6) fixes a secondary structural issue, not the root cause tested by the
+  failing test. The failing test does not require touching `ChatPaneInterface.tsx`.
+  This file change is cleanup belonging in FU-2, not a requirement for the flicker
+  fix. Including it in Option 2 expands conflict surface in a high-overlap file
+  unnecessarily.
+- `packages/chat/src/server/trpc/utils/runtime/runtime.ts` (Option 3): Adding harness
+  event emission is **new functionality** with no relationship to the dedup bug. This
+  is the first milestone of the v2 greenfield architecture, not a flicker fix. It
+  should be removed from SUPER-753 scope entirely.
+- `packages/chat/src/server/trpc/zod.ts` (Option 3): New subscription input schema —
+  pure new API, not a flicker fix. Same disposition.
+- `packages/chat/src/server/trpc/service.ts` (Option 3): New
+  `session.watchDisplayState` procedure. Same disposition.
+
+### File-overlap risk assessment
+
+- **Option 1 / Option 4 (minimum/micro-patch)**: **LOW**. One file, ≤20 LOC (Option 4
+  is 3 LOC) inside a private function, no exported-symbol rename, no new public API.
+  A merge conflict with `justinrich-chatbugs` or `chat-v2` would be a trivial hunk
+  resolvable in seconds. The private function is internal to `use-chat-display.ts` —
+  the greenfield worktrees that plan to rewrite this hook entirely will either
+  trivially absorb the patch during rebase or delete the function as part of their
+  rewrite. No coordination required before landing.
+- **Option 2 (moderate)**: **MEDIUM-HIGH**. `ChatPaneInterface.tsx` is confirmed
+  modified in both `justinrich-chatbugs` and `chat-v2` worktrees. The `setData`
+  injection region (lines ~319-348) is exactly where the greenfield work concentrates.
+  Coordinate with both worktree owners before landing.
+- **Option 3 (strategic)**: **HIGH** — directly competes with both active greenfield
+  worktrees on `use-chat-display.ts` AND adds new server procedures. Defer to the
+  greenfield sprint.
+
+### Verdict
+
+**Challenger proposes smaller.** Option 4 (micro-patch, ~3 LOC, one file, no test
+changes) is the genuine minimum floor — smaller than the investigator's Option 1
+(~20 LOC). Human should choose between:
+
+- **Option 4** (micro-patch): fastest, smallest conflict surface, fixes the exact
+  failing test, defers dual-path cleanup to FU-2.
+- **Option 2** (moderate): fixes the dual-path structural issue simultaneously, but
+  adds `ChatPaneInterface.tsx` overlap risk in a high-conflict file.
+- **Option 1** (investigator's minimum): superseded by Option 4 — same fix conceptually
+  but a larger LOC footprint and includes AC-4 (dual-path consolidation) which is FU-2
+  cleanup, not flicker-fix scope.
+
+Option 3 should be deferred to the greenfield sprint owned by `chat-v2` /
+`justinrich-chatbugs`.

@@ -1,1 +1,27 @@
 bun test v1.3.11 (af24e281)
+
+packages/chat/src/client/hooks/use-chat-display/use-chat-display-race.test.ts:
+115 |       .map((m) => m.id);
+116 | 
+117 |     // THIS ASSERTION FAILS because the filter uses findLastUserMessageIndex
+118 |     // which returns the index of "optimistic-123" (the last user message),
+119 |     // making activeTurnMessages = [] and dedup a no-op.
+120 |     expect(assistantIds).toEqual([]); // a_1 should be filtered out
+                               ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   "a_1",
++ ]
+
+- Expected  - 1
++ Received  + 3
+
+      at <anonymous> (/Users/justinrich/Projects/superset/.claude/worktrees/SUPER-753-chat-start-flicker/packages/chat/src/client/hooks/use-chat-display/use-chat-display-race.test.ts:120:26)
+(fail) dual-poll race — flicker reproduction (FAILING) > suppresses in-flight assistant message from history when optimistic user message was appended after it [0.23ms]
+
+ 0 pass
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [50.00ms]
