@@ -18,6 +18,7 @@ import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
+import { AGENT_STORAGE_KEY as V2_WORKSPACE_AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { hideAll as hideAllTippy } from "tippy.js";
 import { useProjectFileSearch } from "../../hooks/useProjectFileSearch";
 import { useRecentProjects } from "../../hooks/useRecentProjects";
@@ -42,6 +43,17 @@ const DEFAULT_TIMEZONE =
 
 const DEFAULT_RRULE = "FREQ=DAILY;BYHOUR=9;BYMINUTE=0";
 
+const AUTOMATION_AGENT_STORAGE_KEY = "lastSelectedV2AutomationAgent";
+
+function readStoredAgent(): string | null {
+	if (typeof window === "undefined") return null;
+	const automation = window.localStorage.getItem(AUTOMATION_AGENT_STORAGE_KEY);
+	if (automation && automation !== "none") return automation;
+	const workspace = window.localStorage.getItem(V2_WORKSPACE_AGENT_STORAGE_KEY);
+	if (workspace && workspace !== "none") return workspace;
+	return null;
+}
+
 export function CreateAutomationDialog({
 	open,
 	onOpenChange,
@@ -55,7 +67,7 @@ export function CreateAutomationDialog({
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
-	const [agent, setAgent] = useState<string | null>(null);
+	const [agent, setAgent] = useState<string | null>(() => readStoredAgent());
 	const [rrule, setRrule] = useState(DEFAULT_RRULE);
 	const [v2WorkspaceId, setV2WorkspaceId] = useState<string | null>(null);
 
@@ -75,9 +87,20 @@ export function CreateAutomationDialog({
 
 	useEffect(() => {
 		if (agent && hostAgents.some((option) => option.id === agent)) return;
-		const fallback = hostAgents[0]?.id ?? null;
+		const stored = readStoredAgent();
+		const storedMatch = stored
+			? hostAgents.find((option) => option.id === stored)?.id
+			: undefined;
+		const fallback = storedMatch ?? hostAgents[0]?.id ?? null;
 		if (fallback !== agent) setAgent(fallback);
 	}, [agent, hostAgents]);
+
+	const handleAgentChange = useCallback((next: string) => {
+		setAgent(next);
+		if (typeof window !== "undefined") {
+			window.localStorage.setItem(AUTOMATION_AGENT_STORAGE_KEY, next);
+		}
+	}, []);
 
 	// Default to first project once the Electric-synced list lands.
 	useEffect(() => {
@@ -291,7 +314,7 @@ export function CreateAutomationDialog({
 										className="w-[100px]"
 										hostId={targetHostId}
 										value={agent ?? ""}
-										onChange={setAgent}
+										onChange={handleAgentChange}
 									/>
 								</div>
 
