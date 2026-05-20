@@ -189,6 +189,27 @@ describe("Session shell-ready: write pass-through", () => {
 		session.write("\x1b[A");
 		expect(getWrittenData(proc)).toEqual(["\x1b[A"]);
 	});
+
+	// Regression test for #3685: after launching and quitting nvim, the
+	// renderer xterm's duplicate DA/DSR replies to nvim's startup queries
+	// arrived after nvim exited and landed on the next shell prompt.
+	it("drops renderer DA/DSR query responses even after shell is ready", () => {
+		const { session, proc } = createTestSession("/bin/zsh");
+		spawnAndReady(session, proc);
+
+		sendData(proc, SHELL_READY_MARKER);
+
+		// Renderer's duplicate replies to queries nvim issued on startup.
+		session.write("\x1b[?62;4;9;22c"); // DA1
+		session.write("\x1b[>0;276;0c"); // DA2
+		session.write("\x1b[24;80R"); // cursor position report
+
+		// Legitimate user input still reaches the PTY.
+		session.write("\x1b[A"); // arrow up
+		session.write("echo hi\n");
+
+		expect(getWrittenData(proc)).toEqual(["\x1b[A", "echo hi\n"]);
+	});
 });
 
 describe("Session shell-ready: marker detection", () => {
