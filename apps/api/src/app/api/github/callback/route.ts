@@ -88,18 +88,25 @@ export async function GET(request: Request) {
 		const accountType =
 			account && "type" in account ? account.type : "Organization";
 
-		// If another organization already owns this installation_id (e.g. GitHub
-		// reused the ID after an uninstall), remove that stale row first so our
-		// organizationId-targeted upsert doesn't collide with the column-level
-		// UNIQUE constraint on installation_id.
-		await db
-			.delete(githubInstallations)
-			.where(
-				and(
+		// If another organization already owns this installation_id, refuse to
+		// silently take it over — we'd otherwise either crash on the
+		// installation_id UNIQUE constraint or sever the other org's integration
+		// without notice. Ask the user to disconnect on the existing org (or
+		// uninstall in GitHub, which fires our uninstall webhook) first.
+		const existingForInstallation =
+			await db.query.githubInstallations.findFirst({
+				where: and(
 					eq(githubInstallations.installationId, String(installation.id)),
 					ne(githubInstallations.organizationId, organizationId),
 				),
+				columns: { id: true },
+			});
+
+		if (existingForInstallation) {
+			return Response.redirect(
+				`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=already_connected`,
 			);
+		}
 
 		// Save the installation to our database
 		const [savedInstallation] = await db
