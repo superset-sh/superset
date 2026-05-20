@@ -10,6 +10,8 @@ import { posthog } from "@/lib/analytics";
 import { getOAuthProtectedResourceMetadataUrl } from "@/lib/oauth-metadata";
 import { getRelayUrl } from "@/lib/relay-url";
 
+export const maxDuration = 800;
+
 function unauthorizedResponse(req: Request, message: string): Response {
 	return new Response(
 		JSON.stringify({ error: { code: "UNAUTHORIZED", message } }),
