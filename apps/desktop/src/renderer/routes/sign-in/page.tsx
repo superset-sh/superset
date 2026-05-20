@@ -7,7 +7,7 @@ import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { LocalDevAuthForm } from "./components/LocalDevAuthForm";
+import { LocalDevSignInButton } from "./components/LocalDevSignInButton";
 import { SupersetLogo } from "./components/SupersetLogo";
 import { useSessionRecovery } from "./hooks/useSessionRecovery";
 
@@ -66,7 +66,7 @@ function SignInPage() {
 					</div>
 
 					<div className="flex w-full max-w-xs flex-col gap-3">
-						{isLocalProfile && <LocalDevAuthForm />}
+						{isLocalProfile && <LocalDevSignInButton />}
 
 						{isLocalProfile && <div className="h-px bg-border" />}
 

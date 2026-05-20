@@ -1,13 +1,14 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+	DEV_EMAIL as DEV_ADMIN_EMAIL,
+	DEV_NAME as DEV_ADMIN_NAME,
+	DEV_PASSWORD as DEV_ADMIN_PASSWORD,
+} from "@superset/shared/dev-credentials";
 import { config } from "dotenv";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 config({ path: path.resolve(__dirname, "../../../.env"), quiet: true });
-
-const DEV_ADMIN_EMAIL = "admin@local.test";
-const DEV_ADMIN_PASSWORD = "supersetdev";
-const DEV_ADMIN_NAME = "Local Admin";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
 function requireLocalUrl(value: string, label: string): URL {
