@@ -33,6 +33,7 @@ interface FooterLink {
 
 const COMPANY_LINKS: FooterLink[] = [
 	{ href: "/team", label: "About" },
+	{ href: "/contact", label: "Contact" },
 	{ href: COMPANY.CAREERS_URL, label: "Careers", external: true },
 	{ href: COMPANY.STATUS_URL, label: "Status", external: true },
 ];

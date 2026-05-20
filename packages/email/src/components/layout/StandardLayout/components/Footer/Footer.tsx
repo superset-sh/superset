@@ -89,7 +89,7 @@ export function Footer({ showSocial = true }: FooterProps) {
 				</Link>
 				{" • "}
 				<Link
-					href="https://superset.sh/contact"
+					href={`${env.NEXT_PUBLIC_MARKETING_URL}/contact`}
 					className="text-muted no-underline"
 				>
 					Contact
