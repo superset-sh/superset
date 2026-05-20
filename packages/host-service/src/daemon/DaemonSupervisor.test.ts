@@ -11,7 +11,6 @@
 
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import * as childProcess from "node:child_process";
-import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
@@ -24,6 +23,7 @@ import {
 import {
 	DaemonSupervisor,
 	probeDaemonVersion,
+	ptyDaemonSocketPath,
 	shouldKillStaleDaemonForDev,
 } from "./DaemonSupervisor.ts";
 import { readPtyDaemonManifest, writePtyDaemonManifest } from "./manifest.ts";
@@ -233,7 +233,7 @@ describe("DaemonSupervisor.tryAdopt", () => {
 		const originalHome = process.env.SUPERSET_HOME_DIR;
 		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
 		process.env.SUPERSET_HOME_DIR = tmpHome;
-		const socketPath = expectedSocketPathForOrg(orgId);
+		const socketPath = ptyDaemonSocketPath(orgId);
 		try {
 			try {
 				fs.unlinkSync(socketPath);
@@ -1076,14 +1076,6 @@ function invokeTryAdopt(
 			tryAdopt: (id: string) => Promise<unknown | null>;
 		}
 	).tryAdopt(organizationId);
-}
-
-function expectedSocketPathForOrg(organizationId: string): string {
-	const shortId = createHash("sha256")
-		.update(organizationId)
-		.digest("hex")
-		.slice(0, 12);
-	return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
 }
 
 async function waitForProcessExit(

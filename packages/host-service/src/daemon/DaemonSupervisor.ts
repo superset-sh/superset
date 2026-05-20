@@ -91,7 +91,7 @@ export function shouldKillStaleDaemonForDev(
  * file mode (0600, set by the daemon's Server.listen) is the auth boundary;
  * the directory permissions don't matter.
  */
-function ptyDaemonSocketPath(organizationId: string): string {
+export function ptyDaemonSocketPath(organizationId: string): string {
 	const shortId = createHash("sha256")
 		.update(organizationId)
 		.digest("hex")
@@ -860,7 +860,6 @@ export class DaemonSupervisor {
 			removePtyDaemonManifest(organizationId);
 			return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
 				reason: "manifest_pid_dead",
-				previousManifest: manifest,
 			});
 		}
 		const reachable = await isSocketConnectable(manifest.socketPath, 1000);
