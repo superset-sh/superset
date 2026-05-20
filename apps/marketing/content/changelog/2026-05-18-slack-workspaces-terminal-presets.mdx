@@ -1,0 +1,53 @@
+---
+title: Proactive Slack workspaces, terminal presets, and a workspaces page
+date: 2026-05-18
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot of the /workspaces page with terminal viewer */}
+
+## Proactive Slack Agent <PRBadge url="https://github.com/superset-sh/superset/pull/4660" />
+
+The Slack agent now decides on its own when to spin up a workspace — no more explicit command needed. Trigger a task from Slack and the agent creates and attaches the workspace without prompting.
+
+## Workspaces Page with Terminal Viewer <PRBadge url="https://github.com/superset-sh/superset/pull/4647" />
+
+A new `/workspaces` route lets you browse all your workspaces in one place, with a live terminal viewer powered by host-service. Main workspaces are now called out clearly <PRBadge url="https://github.com/superset-sh/superset/pull/4659" />, and you can filter the list by date <PRBadge url="https://github.com/superset-sh/superset/pull/4655" />.
+
+{/* TODO: Screenshot of /workspaces page showing terminal viewer and main workspace badge */}
+
+## Web Terminal Presets <PRBadge url="https://github.com/superset-sh/superset/pull/4653" />
+
+Terminal presets are now available in the web terminal — run your common commands with a single click, same as in the desktop app.
+
+## Graceful Relay Drain <PRBadge url="https://github.com/superset-sh/superset/pull/4594" />
+
+The relay server now drains active tunnel connections cleanly on shutdown before the multi-region prod rollout. Deployments and restarts no longer drop live sessions mid-flight.
+
+## Improvements
+
+- **Review counts in v2 sidebar** - Open review count now shown in the v2 sidebar header at a glance <PRBadge url="https://github.com/superset-sh/superset/pull/4670" />
+- **Workspace delete hotkey** - Delete a v2 workspace with a keyboard shortcut <PRBadge url="https://github.com/superset-sh/superset/pull/4673" />
+- **Offline host gating** - Workspaces on an offline host are now gated with a clear indicator instead of silently failing <PRBadge url="https://github.com/superset-sh/superset/pull/4672" />
+- **macOS notification context** - v2 macOS notifications now include workspace and project context <PRBadge url="https://github.com/superset-sh/superset/pull/4614" />
+- **Better host service errors** - Host-service unavailable states surface a clearer, actionable error message <PRBadge url="https://github.com/superset-sh/superset/pull/4613" />
+- **Remote host project setup** - v2 project setup now works when a specific remote host is pre-selected <PRBadge url="https://github.com/superset-sh/superset/pull/4665" />
+- **Theme search in command palette** - The theme submenu now filters themes as you type <PRBadge url="https://github.com/superset-sh/superset/pull/4573" />
+
+---
+
+**Bug fixes**
+
+- Fixed physical terminal input on mobile (no accidental tap-to-type) <PRBadge url="https://github.com/superset-sh/superset/pull/4657" />
+- Fixed `superset start` and `superset update` on Linux <PRBadge url="https://github.com/superset-sh/superset/pull/4635" />
+- Fixed v2 sidebar state reactivity after workspace switch <PRBadge url="https://github.com/superset-sh/superset/pull/4654" />
+- Fixed changes pane scrolling to file headers <PRBadge url="https://github.com/superset-sh/superset/pull/4615" />
+- Fixed PR worktree checkout materialization <PRBadge url="https://github.com/superset-sh/superset/pull/4643" />
+- Fixed desktop terminal font not inheriting correctly <PRBadge url="https://github.com/superset-sh/superset/pull/4646" />
+- Fixed changes sidebar modifier-click (shift/cmd) selection <PRBadge url="https://github.com/superset-sh/superset/pull/4644" />
+- Fixed stale external worktree imports <PRBadge url="https://github.com/superset-sh/superset/pull/4611" />
+- Fixed alert dialogs overflowing the viewport <PRBadge url="https://github.com/superset-sh/superset/pull/4607" />
+- Fixed preset-command leak in v2 workspace run <PRBadge url="https://github.com/superset-sh/superset/pull/4582" />
+- Fixed v2 project slug exhaustion on workspace create <PRBadge url="https://github.com/superset-sh/superset/pull/4586" />
+- Fixed terminal workspace ownership checks <PRBadge url="https://github.com/superset-sh/superset/pull/4572" />
+- Fixed missing `teamId` on invitations and sessions <PRBadge url="https://github.com/superset-sh/superset/pull/4571" />
