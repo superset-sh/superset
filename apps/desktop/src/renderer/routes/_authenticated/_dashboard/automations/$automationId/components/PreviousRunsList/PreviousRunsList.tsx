@@ -80,7 +80,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 											: "—"}
 									</span>
 								</span>
-								<span className="truncate text-xs text-destructive select-text cursor-text pl-4">
+								<span className="truncate text-xs text-destructive select-text cursor-text pointer-events-auto pl-4">
 									{run.error || "Run failed"}
 								</span>
 							</>
