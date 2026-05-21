@@ -20,7 +20,7 @@ function HostsIndexPage() {
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 
-	const { data: hosts = [] } = useLiveQuery(
+	const { data: hosts = [], isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ hosts: collections.v2Hosts })
@@ -52,6 +52,7 @@ function HostsIndexPage() {
 	}, [firstHostId, navigate]);
 
 	if (hosts.length === 0) {
+		if (!isReady) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
 				No hosts yet.

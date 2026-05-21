@@ -34,7 +34,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	const currentUserId = session?.user?.id ?? null;
 	const actions = useOptimisticCollectionActions();
 
-	const { data: hostRows = [] } = useLiveQuery(
+	const { data: hostRows = [], isReady: hostReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ hosts: collections.v2Hosts })
@@ -121,8 +121,9 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	}, [hostUserRows, currentUserId]);
 
 	if (!host) {
+		if (!hostReady) return null;
 		return (
-			<div className="p-6 text-sm text-muted-foreground">
+			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
 				Host not found in this organization.
 			</div>
 		);

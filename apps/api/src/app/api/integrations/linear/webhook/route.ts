@@ -14,7 +14,7 @@ import {
 	webhookEvents,
 } from "@superset/db/schema";
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/env";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
@@ -29,8 +29,62 @@ export async function POST(request: Request) {
 
 	const payload = webhookClient.parseData(Buffer.from(body), signature);
 
-	// Store event with idempotent handling
-	const eventId = `${payload.organizationId}-${payload.webhookTimestamp}`;
+	const connections = await db.query.integrationConnections.findMany({
+		where: and(
+			eq(integrationConnections.externalOrgId, payload.organizationId),
+			eq(integrationConnections.provider, "linear"),
+			isNull(integrationConnections.disconnectedAt),
+		),
+		orderBy: [asc(integrationConnections.id)],
+	});
+
+	if (connections.length === 0) {
+		console.log(
+			"[linear/webhook] No active connections for Linear org:",
+			payload.organizationId,
+		);
+		return Response.json({ success: true, status: "no_subscribers" });
+	}
+
+	const results = await Promise.all(
+		connections.map((connection) =>
+			processForConnection(payload, connection).catch((error) => ({
+				connectionId: connection.id,
+				outcome: "failed" as const,
+				error: error instanceof Error ? error.message : "Unknown error",
+			})),
+		),
+	);
+
+	const anyFailed = results.some((r) => r.outcome === "failed");
+	const allFailed = results.every((r) => r.outcome === "failed");
+	if (anyFailed) {
+		console.error("[linear/webhook] processing failures:", results);
+	}
+	return Response.json(
+		{
+			success: !allFailed,
+			status: allFailed
+				? "failed"
+				: anyFailed
+					? "partial_failure"
+					: "processed",
+		},
+		{ status: allFailed ? 500 : 200 },
+	);
+}
+
+async function processForConnection(
+	payload: ReturnType<LinearWebhookClient["parseData"]>,
+	connection: SelectIntegrationConnection,
+): Promise<{
+	connectionId: string;
+	outcome: "processed" | "skipped" | "failed";
+	error?: string;
+}> {
+	// One webhookEvents row per (Linear event × Superset connection) so each
+	// tenant's processing status is independently retryable.
+	const eventId = `${connection.id}-${payload.organizationId}-${payload.webhookTimestamp}`;
 
 	const [webhookEvent] = await db
 		.insert(webhookEvents)
@@ -44,7 +98,6 @@ export async function POST(request: Request) {
 		.onConflictDoUpdate({
 			target: [webhookEvents.provider, webhookEvents.eventId],
 			set: {
-				// Reset for reprocessing only if previously failed
 				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
 				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
 				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
@@ -53,47 +106,25 @@ export async function POST(request: Request) {
 		.returning();
 
 	if (!webhookEvent) {
-		return Response.json({ error: "Failed to store event" }, { status: 500 });
+		return {
+			connectionId: connection.id,
+			outcome: "failed",
+			error: "Failed to store event",
+		};
 	}
 
-	// Idempotent: skip if already processed or not ready for processing
 	if (webhookEvent.status === "processed") {
-		console.log("[linear/webhook] Event already processed:", eventId);
-		return Response.json({ success: true, message: "Already processed" });
+		return { connectionId: connection.id, outcome: "processed" };
 	}
 	if (webhookEvent.status !== "pending") {
-		console.log(
-			`[linear/webhook] Event in ${webhookEvent.status} state:`,
-			eventId,
-		);
-		return Response.json({ success: true, message: "Event not ready" });
-	}
-
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.externalOrgId, payload.organizationId),
-			eq(integrationConnections.provider, "linear"),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [
-			desc(integrationConnections.updatedAt),
-			desc(integrationConnections.id),
-		],
-	});
-
-	if (!connection) {
-		await db
-			.update(webhookEvents)
-			.set({ status: "skipped", error: "No connection found" })
-			.where(eq(webhookEvents.id, webhookEvent.id));
-		return Response.json({ error: "Unknown organization" }, { status: 404 });
+		return { connectionId: connection.id, outcome: "skipped" };
 	}
 
 	try {
-		let status: "processed" | "skipped" = "processed";
+		let outcome: "processed" | "skipped" = "processed";
 
 		if (payload.type === "Issue") {
-			status = await processIssueEvent(
+			outcome = await processIssueEvent(
 				payload as EntityWebhookPayloadWithIssueData,
 				connection,
 			);
@@ -101,24 +132,22 @@ export async function POST(request: Request) {
 
 		await db
 			.update(webhookEvents)
-			.set({
-				status,
-				processedAt: new Date(),
-			})
+			.set({ status: outcome, processedAt: new Date() })
 			.where(eq(webhookEvents.id, webhookEvent.id));
 
-		return Response.json({ success: true });
+		return { connectionId: connection.id, outcome };
 	} catch (error) {
+		const message = error instanceof Error ? error.message : "Unknown error";
 		await db
 			.update(webhookEvents)
 			.set({
 				status: "failed",
-				error: error instanceof Error ? error.message : "Unknown error",
+				error: message,
 				retryCount: webhookEvent.retryCount + 1,
 			})
 			.where(eq(webhookEvents.id, webhookEvent.id));
 
-		return Response.json({ error: "Processing failed" }, { status: 500 });
+		return { connectionId: connection.id, outcome: "failed", error: message };
 	}
 }
 
@@ -218,6 +247,7 @@ async function processIssueEvent(
 			.set({ deletedAt: new Date() })
 			.where(
 				and(
+					eq(tasks.organizationId, connection.organizationId),
 					eq(tasks.externalProvider, "linear"),
 					eq(tasks.externalId, issue.id),
 				),

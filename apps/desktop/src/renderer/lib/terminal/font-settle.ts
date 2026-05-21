@@ -4,9 +4,8 @@
  * xterm measures cell width at `terminal.open()` time using whatever font the
  * browser has resolved so far. If a custom `@font-face` (or a user-selected
  * system font that the browser hasn't surfaced yet) finishes loading after
- * that measurement, the cached glyph metrics — and, with the WebGL renderer,
- * the texture atlas — diverge from the actual rendered font, producing
- * "mangled" text that only repairs on the next resize. See issue #4617 and
+ * that measurement, the cached glyph metrics diverge from the actual rendered
+ * font, producing "mangled" text that only repairs on the next resize. See issue #4617 and
  * `plans/20260425-v2-terminal-rendering-divergences.md` (#1).
  *
  * Callers `await` this before re-fitting / refreshing the terminal.
@@ -52,8 +51,8 @@ export async function waitForFontReady({
 }
 
 /**
- * Wait for the terminal's configured font to load, then clear the texture
- * atlas and run a refit. Shared between v1 and v2 — both need identical
+ * Wait for the terminal's configured font to load, then run a refit.
+ * Shared between v1 and v2 — both need identical
  * "measured-too-early" recovery after `terminal.open()` and after
  * font-setting changes. `refit` should return true iff terminal dimensions
  * changed (so the caller can propagate to the PTY). `isAlive` is checked
@@ -72,10 +71,6 @@ export function scheduleFontSettleRefit(
 
 	void waitForFontReady({ fontFamily, fontSize }).then(() => {
 		if (!isAlive()) return;
-		// xterm no-ops this when WebGL isn't the active renderer.
-		try {
-			terminal.clearTextureAtlas();
-		} catch {}
 		const changed = refit();
 		if (changed) onDimensionsChanged?.();
 	});

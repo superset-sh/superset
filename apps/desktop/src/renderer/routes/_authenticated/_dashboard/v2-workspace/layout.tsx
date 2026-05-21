@@ -75,7 +75,7 @@ function V2WorkspaceLayout() {
 
 	const hostStatus = useRemoteHostStatus(canUseWorkspace ? workspace : null);
 
-	if (!workspaceId || !isReady || !workspaces) {
+	if (!workspaceId || !workspaces || (!workspace && !isReady)) {
 		return <div className="flex h-full w-full" />;
 	}
 

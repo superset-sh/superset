@@ -1,0 +1,2 @@
+DROP INDEX "integration_connections_provider_external_org_active_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "integration_connections_slack_external_org_active_unique" ON "integration_connections" USING btree ("external_org_id") WHERE "integration_connections"."provider" = 'slack' AND "integration_connections"."disconnected_at" IS NULL;

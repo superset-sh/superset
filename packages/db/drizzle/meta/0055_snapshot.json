@@ -1,5 +1,5 @@
 {
-  "id": "653e9332-82bd-4529-b6eb-687cf7257137",
+  "id": "e839634d-9389-4a81-b592-9cb4f31a5e00",
   "prevId": "17bfa7f8-3ae9-4990-8264-bec535a04810",
   "version": "7",
   "dialect": "postgresql",
@@ -1820,12 +1820,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
-        },
-        "onboarded_at": {
-          "name": "onboarded_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -4014,15 +4008,9 @@
         }
       },
       "indexes": {
-        "integration_connections_provider_external_org_active_unique": {
-          "name": "integration_connections_provider_external_org_active_unique",
+        "integration_connections_slack_external_org_active_unique": {
+          "name": "integration_connections_slack_external_org_active_unique",
           "columns": [
-            {
-              "expression": "provider",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
             {
               "expression": "external_org_id",
               "isExpression": false,
@@ -4031,7 +4019,7 @@
             }
           ],
           "isUnique": true,
-          "where": "\"integration_connections\".\"disconnected_at\" IS NULL",
+          "where": "\"integration_connections\".\"provider\" = 'slack' AND \"integration_connections\".\"disconnected_at\" IS NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}

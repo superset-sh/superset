@@ -316,7 +316,7 @@ export function updateRuntimeAppearance(
 			measureAndResize(runtime);
 		}
 		// The freshly-selected font may still be loading — schedule a follow-up
-		// refit once it resolves so dimensions/atlas track the rendered glyphs.
+		// refit once it resolves so dimensions track the rendered glyphs.
 		scheduleFontSettleRefit(
 			runtime.terminal,
 			() => hostIsVisible(runtime.container),

@@ -65,8 +65,11 @@ read the running daemon's `daemonVersion`, compares against
 `updatePending: true` on the instance — the renderer surfaces a
 "restart to update" affordance. Manual updates try fd-handoff first and
 only force-restart after the user confirms. Automatic adoption updates
-also try fd-handoff first, then force-restart on failure because there is
-no foreground UI to ask for the destructive fallback.
+also try fd-handoff first, but they never force-restart in the background;
+on failure, the predecessor keeps running and `updatePending` remains
+visible for an explicit user action. The failure reason is exposed through
+`getUpdateStatus().autoUpdateFailure` so the desktop can show a global
+force-update dialog without the supervisor taking the destructive path itself.
 
 Probe failure ≠ stale: a transient socket issue produces
 `runningVersion: "unknown", updatePending: false` rather than a
@@ -137,11 +140,7 @@ The supervisor emits structured `console.log` lines with
 `pty_daemon_spawn`, `pty_daemon_adopt`, `pty_daemon_user_restart`,
 `pty_daemon_update_pending`, `pty_daemon_update`,
 `pty_daemon_auto_update_attempt`, `pty_daemon_auto_update_ok`,
-`pty_daemon_auto_update_failed`,
-`pty_daemon_auto_update_force_restart`,
-`pty_daemon_auto_update_force_restart_ok`,
-`pty_daemon_auto_update_force_restart_failed`,
-`pty_daemon_auto_update_force_restart_skipped`, `pty_daemon_crash`,
+`pty_daemon_auto_update_failed`, `pty_daemon_crash`,
 `pty_daemon_circuit_open`, `pty_daemon_spawn_failed`. No PostHog plumbing
 on host-service yet — promote to real telemetry when the path is needed.
 
@@ -218,9 +217,10 @@ supervisor's `restoreOnFailure()` path leaves the
 predecessor's instance record intact — the user's shells keep serving on
 the original daemon process. Auto-update on adopt (`kickoffAutoUpdate`)
 relies on this contract: a transient failure must never disrupt sessions.
-Before the destructive auto-update fallback runs, the supervisor re-checks
-that the same stale daemon is still current and still pending so a late
-failure from an obsolete attempt cannot restart a fresh daemon.
+The old destructive auto-update fallback has been removed. Background
+auto-updates leave the predecessor running and surface the failure through
+`updatePending` plus `getUpdateStatus().autoUpdateFailure`; any destructive
+restart is an explicit user action through the desktop confirmation flow.
 
 Mode signal goes through argv (`--handoff`), not env: bundlers
 (Bun, esbuild via electron-vite) statically inline `process.env.X`

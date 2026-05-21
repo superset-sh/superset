@@ -372,6 +372,7 @@ export class Server {
 				type: "hello-ack",
 				protocol: negotiated,
 				daemonVersion: this.opts.daemonVersion,
+				daemonPid: process.pid,
 			});
 			return;
 		}

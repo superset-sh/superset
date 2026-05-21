@@ -176,7 +176,7 @@ export function quitApp(): void {
 	app.quit();
 }
 
-/** Quit + also tear down the v1 terminal-host client. Tray "Quit Completely". */
+/** Quit + also stop background services. Tray "Quit Completely". */
 export function quitAppCompletely(): void {
 	forceFullCleanup = true;
 	setSkipQuitConfirmation();
@@ -225,8 +225,10 @@ app.on("before-quit", async (event) => {
 	isQuitting = true;
 	try {
 		getHostServiceCoordinator().stopAll();
-		if (isDev || forceFullCleanup || isUpdateReadyToInstall()) {
+		if (isDev || forceFullCleanup) {
 			await teardownTerminalHost();
+		} else if (isUpdateReadyToInstall()) {
+			disposeTerminalHostClient();
 		}
 		shutdownTanstackDbPersistence();
 		disposeTray();
@@ -239,8 +241,9 @@ app.on("before-quit", async (event) => {
 });
 
 /**
- * Tear down the v1 terminal-host client. Skipped on regular quit so v1
- * PTY sessions reattach via socket on next launch.
+ * Fully stop the v1 terminal-host process. Do not call this for update
+ * installs: terminal-host owns the PTY subprocesses, so shutdown is
+ * destructive and prevents reattach on next launch.
  */
 async function teardownTerminalHost(): Promise<void> {
 	try {

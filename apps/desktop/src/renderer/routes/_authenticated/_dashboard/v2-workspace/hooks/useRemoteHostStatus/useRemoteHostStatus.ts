@@ -67,7 +67,7 @@ export function useRemoteHostStatus(
 
 	if (!workspace) return { status: "loading" };
 	if (isLocal) return { status: "skip" };
-	if (!isReady) return { status: "loading" };
+	if (!isReady && !hostRow) return { status: "loading" };
 
 	if (infoQuery.isSuccess) {
 		const hostVersion = infoQuery.data.version;
