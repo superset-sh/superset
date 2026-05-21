@@ -1,8 +1,6 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useState } from "react";
 import { FaGithub, FaSlack } from "react-icons/fa";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
@@ -51,10 +49,6 @@ export function IntegrationsSettings({
 		useState<GithubInstallation | null>(null);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(true);
 
-	const hasSlackAccess = useFeatureFlagEnabled(
-		FEATURE_FLAGS.SLACK_INTEGRATION_ACCESS,
-	);
-
 	const showLinear = isItemVisible(
 		SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
 		visibleItems,
@@ -93,9 +87,10 @@ export function IntegrationsSettings({
 	const isSlackConnected = !!slackConnection;
 	const isGithubConnected =
 		!!githubInstallation && !githubInstallation.suspended;
-	const showSlack =
-		hasSlackAccess &&
-		isItemVisible(SETTING_ITEM_ID.INTEGRATIONS_SLACK, visibleItems);
+	const showSlack = isItemVisible(
+		SETTING_ITEM_ID.INTEGRATIONS_SLACK,
+		visibleItems,
+	);
 
 	const handleOpenWeb = (path: string) => {
 		window.open(`${env.NEXT_PUBLIC_WEB_URL}${path}`, "_blank");
