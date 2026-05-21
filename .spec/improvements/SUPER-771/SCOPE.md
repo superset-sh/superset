@@ -1,9 +1,13 @@
 ---
 ticket_id: SUPER-771
-status: proposal
+status: binding
+chosen_option: moderate
+loc_budget: 90
+task_chunks: 1
 investigator_specialist: electron-reviewer
 challenger_specialist: code-reviewer
 created_at: 2026-05-20
+bound_at: 2026-05-21
 ---
 
 # SUPER-771: Loud failures for automation runs
@@ -20,6 +24,8 @@ Evidence: `.spec/improvements/SUPER-771/evidence/prong-a-previousrunslist.md`, `
 
 **Prong B**: Full grep of `dispatch_failed` / `skipped_offline` in `apps/desktop/src/` (excluding tests) returns exactly two lines — both the `STATUS_DOT` color map in `PreviousRunsList.tsx`. No code path calls `electronTrpcClient.notifications.showNative.mutate(…)` or any other notification API on automation failure. The `showNative` mutation exists in `notifications.ts:96-122` and is called only for agent lifecycle events in `V2NotificationController/lib/lifecycleEvents.ts:158-173`.
 
+Challenger re-verification (2026-05-21): all 4 evidence files VALID. Tooltip `max-w-xs` pattern confirmed at `PreviousRunsList.tsx:80-89`. `dispatch_failed|skipped_offline` grep re-run returns exactly 2 STATUS_DOT hits, no notification call sites. No fabricated evidence.
+
 ## Root cause
 
 **Prong A — two sub-causes:**
@@ -28,158 +34,92 @@ Evidence: `.spec/improvements/SUPER-771/evidence/prong-a-previousrunslist.md`, `
 
 (ii) **Error string source**: `relay-client.ts:67-68` formats errors as `relay ${status}: ${rawBody.slice(0, 500)}`. For a relay 503, `rawBody` = `{"error":"Host not connected"}`. `dispatch.ts:364-365` wraps this with a `dispatch: ` prefix via `describeError`. The persisted error is `"dispatch: relay 503: {\"error\":\"Host not connected\"}"` — a transport artifact, not user copy.
 
-The QStash path (`run-failed/route.ts:90`) uses different framing: `"delivery failed after retries (status N): ..."` — a separate write site, separate format.
+The QStash path (`run-failed/route.ts:90`) uses different framing: `"delivery failed after retries (status N): ..."` — a separate write site, separate format. QStash-path copy parity is deferred (see follow-ups).
 
 **Prong B — absence:**
 
-The renderer receives `automation_runs` rows via Electric SQL (`collections.ts:683-697`, `createPersistedElectricCollection`). No component subscribes to this collection for status transitions. The notification infrastructure (`notifications.ts` + `showNative` mutation) is in place but not wired to automation run events. Natural insertion point: a renderer-side provider/hook that observes the `automationRuns` collection for rows newly entering `dispatch_failed` / `skipped_offline` and calls `showNative`.
+The renderer receives `automation_runs` rows via Electric SQL (`collections.ts:683-697`, `createPersistedElectricCollection`). On mount, the collection re-hydrates from the SQLite cache and delivers all existing rows (challenger-confirmed). No component subscribes to this collection for status transitions. The notification infrastructure (`notifications.ts` + `showNative` mutation) is in place but not wired to automation run events. Natural insertion point: a renderer-side provider/hook that observes the `automationRuns` collection for rows newly entering `dispatch_failed` / `skipped_offline` and calls `showNative`, with a per-session `useRef` set tracking already-notified run IDs to handle Electric re-emit on mount/reconnect.
 
-## Specialist consultation
+## Binding scope (chosen: moderate)
 
-None — scope is contained to Electron desktop renderer + one tRPC package helper. The `describeError` change (minimum option) is a one-line helper extraction in `packages/trpc`; no tRPC pattern implications. `apps/api/run-failed/route.ts` is NOT in any option (QStash copy parity is deferred to follow-ups). No schema changes proposed.
+The founders' explicit ask in the #founders Slack thread (2026-05-14) was "popup/notification" — this scope addresses BOTH prongs because the visibility goal requires both. Per the umbrella spec, this remains a single PR (task_chunks=1); the renderer-surface and notifier-provider work share file-level dependencies (Electric collection access) and produce an atomic user-visible fix.
 
-## Options
+### Acceptance criteria
 
-### Option: minimum
+- **AC-1**: When `run.status` is `dispatch_failed` or `skipped_offline`, the failed run row in `PreviousRunsList` displays the error text inline (below or beside the title), not exclusively on hover. Verify by opening an automation with a previously-failed run row.
+- **AC-2**: The inline error text carries `select-text cursor-text` CSS classes so users can copy it into bug reports (per `apps/desktop/AGENTS.md`).
+- **AC-3**: A relay 503 "Host not connected" failure displays as human-readable copy (e.g., "Target machine was offline") rather than `dispatch: relay 503: {"error":"Host not connected"}`. Verify by inducing a 503 with the relay service offline.
+- **AC-4**: The `describeError` helper (or `relay-client.ts` message format) translates known relay status codes (503 → "Target machine was offline"; other codes → fallback human string) without breaking the existing `describeError` call signature.
+- **AC-5**: When an automation run row transitions to `dispatch_failed` or `skipped_offline` in the Electric-synced collection, a desktop notification appears: title = "Automation failed", body = human-readable error (not raw relay text). Verify by disabling the host service and triggering a scheduled run.
+- **AC-6** (clarified by challenger): The notification fires at most once per run ID **within the current app session**, tracked via a `useRef<Set<string>>` of already-notified run IDs. Cross-session dedup (notification firing on app reopen for a run that was already failed when the app last closed) is acceptable for v1 — the founders' intent is "proactively tell the user", and re-surfacing a forgotten failure on app reopen serves that goal. Cross-window dedup is also acceptable in v1 (deferred to follow-ups). Verify by triggering a failure, then triggering a second failure of the same run ID (e.g., via repeated scheduled trigger of a still-offline host) → only one notification fires within the session.
+- **AC-7**: The `AutomationFailureNotifier` provider mounts inside `_authenticated/layout.tsx` and observes `collections.automationRuns`. It tracks already-notified run IDs in a `useRef` (not persisted state) to satisfy AC-6 within the current session.
 
-- **one_line**: Translate raw relay error to human copy at the `describeError` boundary, and show the error inline on the failed run row (not tooltip-only), with `select-text cursor-text`.
-- **files_in_scope**:
-  - `packages/trpc/src/router/automation/relay-client.ts`
-  - `packages/trpc/src/router/automation/dispatch.ts`
-  - `apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx`
-- **loc_budget**: 35
-- **acceptance_criteria**:
-  - AC-1: When `run.status` is `dispatch_failed` or `skipped_offline`, the failed run row displays the error text inline (below or beside the title), not exclusively on hover. Verify by opening an automation with a previously-failed run row.
-  - AC-2: The inline error text carries `select-text cursor-text` CSS classes so users can copy it.
-  - AC-3: A relay 503 "Host not connected" failure displays as human-readable copy (e.g., "Target machine was offline") rather than `dispatch: relay 503: {"error":"Host not connected"}`. Verify by inducing a 503 with the relay service offline.
-  - AC-4: The `describeError` helper (or `relay-client.ts` message format) translates known relay status codes (503 → "Target machine was offline"; other codes → fallback human string) without breaking the existing `describeError` call signature.
-- **out_of_scope**: Proactive desktop notification; QStash path (`run-failed/route.ts`) error copy; schema changes; retry UI.
-- **risks**:
-  - `packages/trpc/src/router/automation/relay-client.ts` and `packages/trpc/src/router/automation/dispatch.ts` are modified in the sibling worktree `super-771-loud-failures` (commits AUTO-LOUD-001 and AUTO-LOUD-003). High overlap risk — implementer must rebase or diff carefully.
-  - `PreviousRunsList.tsx` is also modified in `super-771-loud-failures` (AUTO-LOUD-002). Direct conflict expected.
-  - The human-readable string introduced here will also be stored in the DB `error` column, making it harder to machine-parse later. Acceptable tradeoff; noted in follow-ups.
+### Files in scope
 
-### Option: moderate
+```
+packages/trpc/src/router/automation/relay-client.ts
+packages/trpc/src/router/automation/dispatch.ts
+apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx
+apps/desktop/src/renderer/routes/_authenticated/providers/AutomationFailureNotifier/AutomationFailureNotifier.tsx (new)
+apps/desktop/src/renderer/routes/_authenticated/providers/AutomationFailureNotifier/index.ts (new)
+apps/desktop/src/renderer/routes/_authenticated/layout.tsx
+```
 
-- **one_line**: Minimum changes (human error copy + inline error row) PLUS a renderer-side provider that watches Electric-synced run rows for newly-failed status and fires a desktop notification — the behavior Kiet and Satya agreed on in the founders thread.
-- **files_in_scope**:
-  - `packages/trpc/src/router/automation/relay-client.ts`
-  - `packages/trpc/src/router/automation/dispatch.ts`
-  - `apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx`
-  - `apps/desktop/src/renderer/routes/_authenticated/providers/AutomationFailureNotifier/AutomationFailureNotifier.tsx` (new)
-  - `apps/desktop/src/renderer/routes/_authenticated/providers/AutomationFailureNotifier/index.ts` (new)
-  - `apps/desktop/src/renderer/routes/_authenticated/layout.tsx`
-- **loc_budget**: 90
-- **acceptance_criteria**:
-  - AC-1 through AC-4: Same as minimum option.
-  - AC-5: When an automation run row transitions to `dispatch_failed` or `skipped_offline` in the Electric-synced collection, a desktop notification appears: title = "Automation failed", body = human-readable error (not raw relay text). Verify by disabling the host service and triggering a scheduled run.
-  - AC-6: The notification fires at most once per run ID (no re-notification on app reopen or Electric re-sync). Verify by restarting the app after a failure — no notification fires for the pre-existing failed row.
-  - AC-7: The `AutomationFailureNotifier` mounts inside the authenticated layout and observes `collections.automationRuns`. It tracks already-seen failed run IDs in a ref (not persisted state) to satisfy AC-6 within the current session.
-- **out_of_scope**: QStash path error copy; schema changes; retry UI; cross-window dedup (see follow-ups).
-- **risks**:
-  - All files from minimum option plus: `layout.tsx` and `AutomationFailureNotifier/` are new files not present in `super-771-loud-failures` worktree, BUT `layout.tsx` appears in the sibling worktree's diff — direct overlap risk.
-  - Session-scoped dedup (ref) means first app launch after a failure WILL fire the notification, which is the desired behavior. But if the app reopens quickly after a failure and the run is already in `dispatch_failed`, the notification fires on mount. This is probably acceptable per the founders' intent ("proactively tell the user") but should be confirmed.
-  - Two Electron windows open simultaneously would each fire a notification. The existing `activeNativeNotifications` map in `notifications.ts` deduplicates by key string if the notification `key` is the same (run ID works as a dedup key). This must be wired correctly.
+The implementer is licensed to touch these files and no others. Any file not listed above is OUT of scope.
 
-### Option: strategic
+### Out of scope
 
-- **one_line**: Moderate changes PLUS a typed failure-reason enum in `packages/db/schema` (relay_offline, relay_timeout, qstash_exhausted) and matched UI that renders structured failure copy without string-parsing the error column — plus parity fixes to QStash path. (Recommended for a separate sprint, NOT this bug PR.)
-- **files_in_scope**:
-  - All files in moderate option
-  - `packages/db/src/schema/enums.ts` (new `automationRunFailureReason` enum)
-  - `packages/db/src/schema/schema.ts` (new `failureReason` column on `automationRuns`)
-  - `packages/trpc/src/router/automation/dispatch.ts` (write `failureReason`)
-  - `apps/api/src/app/api/automations/run-failed/route.ts` (write `failureReason` on QStash exhaustion)
-  - Drizzle migration (auto-generated)
-- **loc_budget**: 200+
-- **acceptance_criteria**:
-  - All ACs from moderate option.
-  - AC-8: A new `failureReason` column on `automationRuns` carries a typed enum value; the UI reads it directly instead of string-matching `error` text.
-  - AC-9: The QStash exhaustion path (`run-failed/route.ts`) produces the same human-readable copy as the dispatch path for equivalent failure categories.
-- **out_of_scope**: Retry UI; run-history virtualization.
-- **risks**:
-  - DB schema change requires a Drizzle migration and Neon branch — violates "surgical bug fix" mandate. This is why it is flagged as separate-sprint material.
-  - High overlap with `super-771-loud-failures` worktree across almost all files.
-  - Structural change to `automationRuns` table while the table is in production use.
-  - Scope creep risk: this is a cleanup pass dressed as a bug fix. The reported symptom (truncated tooltip, no notification) is fully addressed by the moderate option without a schema change.
+- QStash retry-exhaustion path (`apps/api/src/app/api/automations/run-failed/route.ts`) — copy parity deferred to follow-ups.
+- Schema changes (no `failureReason` enum, no new columns).
+- Retry-now UI affordance on the failed row.
+- Cross-window notification dedup (within-session ref-dedup is sufficient for v1).
+- Cross-session notification dedup (re-surfacing on app reopen is acceptable).
+- Extending `apps/desktop/src/lib/trpc/routers/notifications.ts` `v2NotificationSourceSchema` to add an `automation` source type — only required if run-ID-keyed dedup via `activeNativeNotifications` is desired, which is deferred (challenger flag #3).
+- Run-history virtualization.
+- Failure-detail modal.
 
-**Recommendation**: Pick `moderate`. The founders' explicit ask was "popup/notification" — that is prong (b), and it belongs in this PR, not in a follow-up. The moderate option is ~90 LOC and surgically isolated to the renderer layer + one tRPC helper. Strategic is deferred to a separate sprint.
+### Risks
 
-## File-overlap pre-flight
+- **HIGH: Sibling-worktree merge conflicts**. The sibling `/Users/justinrich/Projects/superset/.claude/worktrees/super-771-loud-failures/` branch has 3 commits (AUTO-LOUD-001/-002/-003) touching files also in this scope. Recommendation: **abandon the sibling**; do not cherry-pick its design (it added a tRPC procedure not sanctioned by this scope). The sibling's `PreviousRunsList.tsx` rendering pattern may be consulted for reference only.
+- **MEDIUM: Notification firing on app launch for pre-existing failures**. Because Electric re-hydrates from SQLite on mount and delivers existing rows, the first launch after a failure WILL fire the notification. This is the desired behavior per founders ("proactively tell the user"), but should be confirmed during implementation review. If the founders push back, the fix is adding a `notifiedBefore?: Date` check or a localStorage-backed seen-set — but that is explicitly deferred for v1.
+- **LOW: `notifications.ts` schema gap**. `v2NotificationSourceSchema` (`notifications.ts:38-41`) only accepts `terminal` / `chat` source types. For automation failures, `clickTarget` must be omitted in the `showNative.mutate` call → `getNativeNotificationKey()` falls back to a counter key, NOT run-ID-based. The implementer must NOT pass an automation source type and must NOT assume `activeNativeNotifications` cross-window dedup works. Within-session `useRef` dedup (AC-6) is the binding contract.
+- **MEDIUM: Translation drift**. Putting human copy in `relay-client.ts` / `describeError` means the persisted `automationRuns.error` column carries the translated string. If error wording changes later, historical rows show old copy. Acceptable for v1; follow-up will introduce a structured `failureReason` enum so display copy can be regenerated.
 
-Sibling worktree `/Users/justinrich/Projects/superset/.claude/worktrees/super-771-loud-failures/` has 3 substantive commits (AUTO-LOUD-001 through AUTO-LOUD-003) that touch the following files also in this scope proposal's `files_in_scope`:
+## Considered alternatives
 
-| File | Overlap severity |
-|---|---|
-| `packages/trpc/src/router/automation/relay-client.ts` | HIGH — AUTO-LOUD-001 modifies error formatting here |
-| `packages/trpc/src/router/automation/dispatch.ts` | HIGH — AUTO-LOUD-001 touches `describeError`; AUTO-LOUD-003 adds tRPC procedure |
-| `apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx` | HIGH — AUTO-LOUD-002 adds inline error row |
-| `apps/desktop/src/renderer/routes/_authenticated/layout.tsx` | MEDIUM — AUTO-LOUD-003 mounts AutomationFailureNotifier here |
-| `apps/desktop/src/lib/trpc/routers/notifications.ts` | MEDIUM — AUTO-LOUD-003 extends the notifications router |
+### Option 4 (challenger-proposed): renderer-only translation, 15 LOC, 1 file
+Rejected. Delivers prong A only (inline error + `select-text`) and ignores the founders' explicit "popup/notification" ask. Reduces blast radius (no `packages/trpc` touch, no sibling conflict) and is the fastest implementation, but the visibility goal — not legibility alone — is the actual founder ask. Score: solves <50% of the reported defect.
 
-The implementer picking up this scope MUST NOT copy design from `super-771-loud-failures`. They should treat it as a parallel attempt that will produce merge conflicts. The orchestrator must resolve the overlap (rebase, pick one attempt, or clean-merge) before integration.
+### minimum (35 LOC, 3 files)
+Rejected. Delivers prong A only via server-side `describeError` normalization + inline error display. Better long-term data quality than Option 4 (translated copy persists in DB, future surfaces inherit it), but still ignores prong B (no proactive notification). Same gap as Option 4 against the founder ask.
 
-No active `sprint/*` branches found: `git branch -a | grep -i sprint` returned empty.
+### strategic (200+ LOC, schema migration)
+Rejected. Adds a typed `failureReason` enum column + Drizzle migration + QStash-path parity. Both specialists explicitly flagged this as scope creep ("cleanup pass dressed as a bug fix"). The schema change requires a Neon branch + production migration coordination that is disproportionate to the reported defect. Captured in `follow-ups.md` for a future sprint.
 
-## Challenge
+## Challenger notes
 
-### Option 4 (challenger-proposed): smaller-than-minimum
+The challenger (code-reviewer, fresh-eyes) confirmed:
 
-- **one_line**: Translate raw relay error in the renderer with a local helper function, and show the error inline with `select-text cursor-text` — keeping `packages/trpc` entirely untouched.
-- **files_in_scope**: [`apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx`]
-- **loc_budget**: 15
-- **acceptance_criteria**:
-  - AC-1: When `run.status` is `dispatch_failed` or `skipped_offline`, the failed run row displays the error text inline (below the title), not exclusively on hover.
-  - AC-2: The inline error text carries `select-text cursor-text` CSS classes.
-  - AC-3: A relay 503 "Host not connected" error renders as human-readable copy (e.g., "Target machine was offline") via a renderer-local translation helper.
-- **out_of_scope**: Error normalization in `packages/trpc`; proactive desktop notification; QStash path; schema changes; retry UI.
-- **risks**:
-  - Raw jargon string continues to be persisted in the DB `error` column — future non-renderer surfaces (admin panel, API, mobile) will need their own translation.
-  - Translation logic is not co-located with the error source; drift risk if relay error format changes.
-  - Does not satisfy the investigator's AC-4 (translation at `describeError` boundary) as written. AC-4 would need to be re-scoped to "renderer-local normalization."
-- **tradeoff vs minimum**: Removes all `packages/trpc` files from scope (~20 LOC saved, all merge-conflict risk eliminated). Accepts that raw jargon persists in DB.
+1. **Evidence is honest.** All 4 evidence artifacts re-verified against current main; no fabrication. Investigator's reproduction characterization is accurate.
+2. **A smaller option exists** (Option 4). The picker rejected it because it does not satisfy the founder ask — but the picker has been informed that Option 4 is available and trades visibility-completeness for blast-radius.
+3. **Minimum proves partial fix only** (prong A: yes, prong B: no). Documented above under "Considered alternatives → minimum".
+4. **Electric re-emit confirmed.** `createPersistedElectricCollection` uses `@tanstack/electron-db-sqlite-persistence`; on mount it re-delivers cached rows. The `useRef<Set<string>>` dedup in AC-7 is necessary and correctly designed.
+5. **AutomationFailureNotifier is the right structure.** Inlining into `V2NotificationController` would mix workspace/agent lifecycle with automation-run observation — separate concerns, no LOC savings.
+6. **Sibling branch should be abandoned.** Its AUTO-LOUD-003 commit adds a tRPC procedure not sanctioned by this scope. Do not adopt its notification architecture; consult AUTO-LOUD-002 for the inline-error rendering pattern only.
+7. **Hidden schema gap** in `notifications.ts:38-41` (`v2NotificationSourceSchema` accepts only terminal/chat sources). This DOES NOT block AC-5/AC-6/AC-7 as written — within-session `useRef` dedup is sufficient. The implementer must not rely on `activeNativeNotifications` cross-window dedup via run-ID keys.
 
-### Reproduction re-verification
+## Scope amendments
 
-- `prong-a-previousrunslist.md`: VALID. Verified `PreviousRunsList.tsx:80-89` in the worktree — Tooltip wrapping with `max-w-xs`, no inline error, no `select-text cursor-text`. Exact match to evidence.
-- `prong-b-no-failure-notification.md`: VALID. Re-verified `dispatch_failed|skipped_offline` grep in worktree `apps/desktop/src/`: returns exactly 2 hits — both `STATUS_DOT` in `PreviousRunsList.tsx:11-12`. No notification call site found. Evidence characterization is accurate.
-- `grep-dispatch-failed-paths.txt`: VALID. Absolute paths, line numbers present. Matches current worktree output. No manufactured evidence.
-- `grep-notification-paths.txt`: VALID. Raw grep output with absolute paths and line numbers across many files — consistent with a real broad search. No evidence of fabrication.
+(empty — populated only if the implementer surfaces a real blocker that requires the picker to re-bind)
 
-### Smaller-option analysis
+## Deferred follow-ups
 
-A credible smaller-than-minimum option exists (Option 4 above): translate the error string in the renderer only, in a co-located helper function inside `PreviousRunsList/`. This drops scope to 1 file, ~15 LOC, with zero `packages/trpc` changes and zero sibling-worktree conflict risk.
+See `.spec/improvements/SUPER-771/follow-ups.md` for:
 
-The investigator's minimum places translation at the `describeError` boundary (server-side) for data-quality reasons — the normalized string is then stored in the DB. This is the right long-term choice but is not required by the founders' immediate UX ask, which is about display, not persistence.
-
-**Electric re-emit and the dedup ref**: Verified that `createPersistedElectricCollection` uses `@tanstack/electron-db-sqlite-persistence`. On mount, it re-hydrates from the SQLite cache and delivers all existing rows — the initial-snapshot re-delivery behavior is confirmed. The dedup `useRef` in `AutomationFailureNotifier` (AC-7) is correctly required for moderate. The investigator's design is sound on this point.
-
-**Could the notifier be inlined into an existing provider?** `layout.tsx` already mounts `<V2NotificationController />` at line 212, which manages workspace/agent lifecycle notifications. That component is scoped to workspace sessions — inlining automation failure watching would mix concerns. A new `AutomationFailureNotifier` is the right call. No LOC saving from inlining.
-
-### Minimum fixes symptom?
-
-- Prong A (truncated + raw text): YES — inline error + `select-text cursor-text` + relay-error normalization address both sub-causes.
-- Prong B (no proactive notification): NO — minimum explicitly excludes `AutomationFailureNotifier`. No notification fires.
-- Overall: minimum fixes **part** of the reported defect (prong A only). The founders' "popup/notification" ask is not satisfied.
-
-### Scope-creep flags
-
-- `packages/trpc/src/router/automation/relay-client.ts`: Required only for source-side error normalization. Unnecessary if Option 4 is chosen. For minimum/moderate it serves AC-3/AC-4. Flag: **scope-correct for minimum/moderate, unnecessary for Option 4**.
-- `packages/trpc/src/router/automation/dispatch.ts`: Same as relay-client.ts. Flag: **scope-correct for minimum/moderate, unnecessary for Option 4**.
-- **Hidden file gap in moderate — `apps/desktop/src/lib/trpc/routers/notifications.ts`**: The `showNative` input schema (`v2NotificationSourceSchema` at `notifications.ts:38-41`) only accepts `{type: "terminal"}` or `{type: "chat"}` source types. For automation failure notifications with no associated workspace/terminal, `clickTarget` must be omitted → `getNativeNotificationKey()` falls back to a counter key (not run-ID-based). This breaks the cross-window dedup claim in moderate's risk note ("run ID works as a dedup key"). **Impact is low**: moderate already defers cross-window dedup to follow-ups, and the ref-based within-session dedup (AC-7) is sufficient for AC-6 as scoped. However, the implementer must not assume run-ID dedup via `activeNativeNotifications` works without first extending `notifications.ts`. This file is informally required if cross-window dedup is desired — but acceptable to defer.
-
-### Sibling-worktree recommendation
-
-**Abandon.** The sibling (`super-771-loud-failures`) added a tRPC procedure in `dispatch.ts` (AUTO-LOUD-003) and extended `notifications.ts` — design decisions that go beyond this scope's sanctioned approach (renderer-side provider, no new tRPC procedures). The sibling's `PreviousRunsList.tsx` change (AUTO-LOUD-002) can be consulted for the inline-error rendering pattern only; do not adopt its notification architecture. Fresh implementation from this scope contract is cleaner.
-
-### Recommendation to the picker
-
-Evidence is solid; the investigator's investigation is thorough and accurate. The challenger agrees that **moderate** is the correct pick if the founders' notification ask is a hard requirement for this sprint. Three real choices exist:
-
-- **Option 4** (challenger-proposed, 15 LOC, 1 file): Pick this if merge-conflict risk is a blocker or notification work is deferred. Delivers prong A only; zero `packages/trpc` blast radius. Fastest to implement.
-- **Minimum** (35 LOC, 3 files): Pick this if source-side error normalization is important (better DB data quality, future-proof for non-renderer surfaces) but notification work is out of scope this sprint.
-- **Moderate** (90 LOC, 6 files): Pick this if the founders' "popup/notification" is a hard requirement for this sprint. Fully addresses both prongs. AC-6 should be clarified to "within the current app session" (ref-based dedup only); cross-window dedup requires a future `notifications.ts` extension.
-
-Do not pick **strategic** — schema migration is disproportionate. Challenger concurs with the investigator's deferral.
-
-Challenger's lean: **moderate**, with AC-6 clarified to within-session dedup only.
+- Typed `failureReason` enum on `automationRuns` (deferred from strategic option)
+- QStash retry-exhaustion path copy parity with dispatch path
+- Cross-window notification dedup (extending `v2NotificationSourceSchema`)
+- Cross-session notification dedup (persisted seen-set)
+- "Retry now" CTA on failed rows
+- `PreviousRunsList` virtualization
+- Dedicated failure-detail modal/sheet
