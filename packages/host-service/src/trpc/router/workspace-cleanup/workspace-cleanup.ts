@@ -277,6 +277,14 @@ async function runDestroy(
 	let worktreeRemoved = false;
 	let branchDeleted = false;
 	let git: Awaited<ReturnType<typeof ctx.git>> | null = null;
+	if (local && !project) {
+		worktreeRemoved = !existsSync(local.worktreePath);
+		if (!worktreeRemoved) {
+			warnings.push(
+				`Skipped worktree removal at ${local.worktreePath}: project metadata is missing`,
+			);
+		}
+	}
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
 		try {

@@ -22,13 +22,17 @@ export function register(server: McpServer): void {
 				return {
 					success: true,
 					alreadyGone: true,
+					cloudDeleted: false,
 					worktreeRemoved: false,
+					branchDeleted: false,
 					warnings: [],
 				};
 			}
 			return hostServiceCall<{
 				success: boolean;
+				cloudDeleted: boolean;
 				worktreeRemoved: boolean;
+				branchDeleted: boolean;
 				warnings: string[];
 			}>(
 				{

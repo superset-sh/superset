@@ -427,6 +427,43 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 		}
 	});
 
+	test("missing project metadata warns but still deletes cloud state", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		let cloudCallCount = 0;
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "missing-project",
+					worktreePath: tmp,
+					branch: "feature",
+				},
+				project: undefined,
+				cloudType: "worktree",
+				cloudDelete: async () => {
+					cloudCallCount += 1;
+				},
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.cloudDeleted).toBe(true);
+			expect(result.worktreeRemoved).toBe(false);
+			expect(result.warnings).toContain(
+				`Skipped worktree removal at ${tmp}: project metadata is missing`,
+			);
+			expect(cloudCallCount).toBe(1);
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	});
+
 	test("missing cloud API blocks before local cleanup", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
 		let worktreeRemoveCount = 0;
