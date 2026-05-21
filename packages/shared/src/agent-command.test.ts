@@ -61,6 +61,30 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toBe("amp < '.superset/task-demo.md'");
 	});
 
+	it("uses shell-agnostic argv file launches without command substitution", () => {
+		const command = buildAgentFileCommand({
+			filePath: ".superset/task-demo's.md",
+			agent: "claude",
+		});
+
+		expect(command).toBe(
+			"xargs -0 -I __SUP_PROMPT__ claude --permission-mode acceptEdits __SUP_PROMPT__ < '.superset/task-demo'\\''s.md'",
+		);
+		expect(command).not.toContain("$(cat");
+		expect(command).not.toContain("<<");
+	});
+
+	it("keeps codex file prompt separator before the file payload", () => {
+		const command = buildAgentFileCommand({
+			filePath: ".superset/task-demo.md",
+			agent: "codex",
+		});
+
+		expect(command).toBe(
+			"xargs -0 -I __SUP_PROMPT__ codex --dangerously-bypass-approvals-and-sandbox -- __SUP_PROMPT__ < '.superset/task-demo.md'",
+		);
+	});
+
 	it("uses pi interactive mode for prompt launches", () => {
 		const command = buildAgentPromptCommand({
 			prompt: "hello",

@@ -7,6 +7,8 @@ export const PROMPT_TRANSPORTS = ["argv", "stdin"] as const;
 
 export type PromptTransport = (typeof PROMPT_TRANSPORTS)[number];
 
+const XARGS_PROMPT_PLACEHOLDER = "__SUP_PROMPT__";
+
 function quoteSingleShell(value: string): string {
 	return value.replaceAll("'", "'\\''");
 }
@@ -59,5 +61,7 @@ export function buildPromptFileCommandString({
 		return `${fullCommand} < ${escapedPath}`;
 	}
 
-	return `${command} "$(cat ${escapedPath})"${suffix ? ` ${suffix}` : ""}`;
+	return `xargs -0 -I ${XARGS_PROMPT_PLACEHOLDER} ${command} ${XARGS_PROMPT_PLACEHOLDER}${
+		suffix ? ` ${suffix}` : ""
+	} < ${escapedPath}`;
 }
