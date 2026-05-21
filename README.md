@@ -20,52 +20,48 @@ A macOS app that gives every agent its own git worktree, terminal, and review su
 
 ## What it is
 
-Superset is a macOS app for running many CLI coding agents in parallel. Each agent gets its own git worktree, terminal, and diff view, so agents work on different branches at the same time without trampling each other or your main checkout. When an agent stops to ask a question or finishes a task, Superset tells you — so you direct the work instead of babysitting it.
+Superset is a macOS app for running many CLI coding agents in parallel. Each agent gets its own git worktree, terminal, and diff view, so agents work on different branches at once without trampling each other or your main checkout. When an agent stops to ask a question or finishes a task, Superset notifies you — so you direct the work instead of babysitting it.
 
-It's built for developers who already run agents like Claude Code, Codex, and Cursor Agent from the terminal and want to drive several at once. It works with any agent that runs in a terminal.
+It's built for developers who already run agents like Claude Code, Codex, and Cursor Agent from the terminal, and works with any agent that runs in a terminal.
 
 ## Why Superset
 
-Most tools in this space are built around one or two specific agents — usually Claude Code and Codex. Superset is deliberately agent-agnostic: if it talks to stdin/stdout, Superset can run it, and you can mix agents across workspaces. Everything runs as a local process on your machine — your code and git history never leave it (see [What runs locally](#what-runs-locally)). You bring your own agent subscriptions and API keys; Superset doesn't proxy or resell them.
+Most tools in this space are built around one or two specific agents. Superset is agent-agnostic — if it talks to stdin/stdout, Superset can run it, and you can mix agents across workspaces. Everything runs locally; your code and git history never leave your machine. You bring your own subscriptions and API keys — Superset doesn't proxy or resell them.
 
 ## Features
 
 #### Parallel agents in isolated git worktrees
 
-Superset runs each task in its own git worktree off the same repository. Workspaces share the underlying object store but have independent working directories and branches, so agents can edit files, install dependencies, and run tests without touching each other or your main checkout.
-
-Spin up ten workspaces from a single project and have ten agents working on ten branches at once. When a workspace is done, its branch goes through the same review and merge flow you already use.
+Each task runs in its own git worktree off the same repository — shared object store, independent working directory and branch. Agents edit files, install dependencies, and run tests without touching each other or your main checkout. Spin up ten workspaces, run ten agents on ten branches, then merge each through your normal review flow.
 
 #### Works with any CLI agent
 
-Superset works with any agent that runs in a terminal. Claude Code, Codex, Cursor Agent, Gemini, Copilot CLI, OpenCode, Amp, and Pi all work without per-agent configuration. No lock-in to a single vendor — pick a different agent per workspace if you want.
+Claude Code, Codex, Cursor Agent, Gemini, Copilot CLI, OpenCode, Amp, and Pi all work with no per-agent configuration. No vendor lock-in — pick a different agent per workspace if you want.
 
 #### Notifications when agents need you
 
-Long-running agents alternate between heads-down work and questions for you. Superset watches every workspace and pings you the moment an agent stops to ask something or finishes a task. The notification list lives in the sidebar, so you can scan the state of every workspace at a glance and jump straight to whichever one needs you.
+Superset watches every workspace and pings you the moment an agent asks a question or finishes a task. The sidebar shows the state of every workspace at a glance, so you jump straight to whichever one needs you.
 
 #### Built-in diff review and inline editing
 
-Every workspace ships with a diff view that shows uncommitted changes, staged changes, and the agent's most recent turn. You can edit files in place, stage hunks, and commit without leaving the app.
-
-When you want a full IDE, one click hands the workspace off to VS Code, Cursor, Zed, or your terminal — the worktree path is the same path your editor opens.
+Every workspace has a diff view for uncommitted, staged, and last-turn changes. Edit files in place, stage hunks, and commit without leaving the app — or hand the worktree to VS Code, Cursor, Zed, or your terminal in one click.
 
 #### Reproducible workspace setup
 
-A `.superset/config.json` at your repo root defines what happens when a workspace is created or destroyed — copy `.env`, install dependencies, run migrations, tear down branches, and anything else you'd normally do by hand. New workspaces come up identical to your main checkout in seconds. See the [setup/teardown docs](https://docs.superset.sh/setup-teardown-scripts).
+A `.superset/config.json` at your repo root defines what happens when a workspace is created or destroyed — copy `.env`, install dependencies, run migrations, tear down branches. New workspaces come up identical to your main checkout in seconds. See the [setup/teardown docs](https://docs.superset.sh/setup-teardown-scripts).
 
 ## Supported Agents
 
 | Agent | Status |
 |:------|:-------|
-| [Amp Code](https://ampcode.com/) | Fully supported |
-| [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
-| [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
-| [Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
-| [GitHub Copilot](https://github.com/features/copilot) | Fully supported |
-| [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
-| [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/amp.svg" /> &nbsp;[Amp Code](https://ampcode.com/) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/claude.svg" /> &nbsp;[Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/codex-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/codex.svg" /></picture> &nbsp;[OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/cursor.svg" /> &nbsp;[Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/gemini.svg" /> &nbsp;[Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/copilot-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/copilot.svg" /></picture> &nbsp;[GitHub Copilot](https://github.com/features/copilot) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/opencode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/opencode.svg" /></picture> &nbsp;[OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/pi-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/pi.svg" /></picture> &nbsp;[Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
 | Any other CLI agent | Works without configuration |
 
 If it runs in a terminal, it runs on Superset.
@@ -74,9 +70,9 @@ If it runs in a terminal, it runs on Superset.
 
 Superset runs on your machine. Your code, git worktrees, and agent processes never leave it.
 
-- **Local** — every git worktree, file edit, diff, and agent process (Claude Code, Codex, and the rest) runs as a local process on your Mac. Your source code is never uploaded.
-- **Account** — Superset requires a free account (GitHub or Google sign-in). The hosted backend stores your account and workspace metadata — names, branches, and status — so the app can sync state across sessions.
-- **Bring your own agents** — Superset doesn't proxy your agents. They use whatever subscriptions or API keys you've already configured.
+- **Local** — every git worktree, file edit, diff, and agent process runs as a local process on your Mac. Your source code is never uploaded.
+- **Account** — Superset requires a free account (GitHub or Google sign-in). The hosted backend stores only your account and workspace metadata — names, branches, status — to sync state across sessions.
+- **Your agents** — Superset doesn't proxy your agents; they use whatever subscriptions or API keys you've already configured.
 
 ## Getting Started
 
@@ -146,9 +142,7 @@ open apps/desktop/release
 
 ## Configuration
 
-Configure workspace setup, teardown, and presets in `.superset/config.json`. See the [configuration docs](https://docs.superset.sh/setup-teardown-scripts).
-
-Keyboard shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`). See the [full shortcut reference](https://docs.superset.sh/keyboard-shortcuts).
+Configure workspace setup, teardown, and presets in `.superset/config.json`. See the [configuration docs](https://docs.superset.sh/setup-teardown-scripts). Keyboard shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`) — see the [shortcut reference](https://docs.superset.sh/keyboard-shortcuts).
 
 ## Tech Stack
 
