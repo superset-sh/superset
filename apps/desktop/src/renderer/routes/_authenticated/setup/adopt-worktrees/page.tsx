@@ -14,6 +14,7 @@ import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { SetupButton } from "../components/SetupButton";
 import { StepHeader, StepShell } from "../components/StepShell";
+import { decideImportOutcome } from "./utils/importOutcome";
 import {
 	countSelected,
 	initializeProjectSelection,
@@ -245,16 +246,18 @@ function AdoptWorktreesContent({
 			setProgress(null);
 		}
 
-		const hadSelections = projects.some((p) => (selected[p.id]?.size ?? 0) > 0);
-		if (hadSelections && totalImported === 0) {
-			// All selected imports failed. Errors were already toasted; keep the
-			// user here to retry rather than yanking them into the dashboard.
+		const outcome = decideImportOutcome({
+			totalAttempted: totalToImport,
+			totalImported,
+		});
+		if (outcome.action === "stay") {
+			// Some imports failed. Errors were already toasted; keep the user
+			// here to retry the failures rather than yanking them into the
+			// dashboard with workspaces silently dropped.
 			return;
 		}
-		if (totalImported > 0) {
-			toast.success(
-				`Imported ${totalImported} workspace${totalImported === 1 ? "" : "s"}`,
-			);
+		if (outcome.successMessage) {
+			toast.success(outcome.successMessage);
 		}
 		onFinish();
 	};
