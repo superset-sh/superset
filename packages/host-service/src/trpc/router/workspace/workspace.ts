@@ -2,9 +2,9 @@ import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { projects, workspaces } from "../../../db/schema";
-import { invalidateLabelCache } from "../../../ports/static-ports";
+import { workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
+import { destroyWorkspace } from "../workspace-cleanup";
 
 export const workspaceRouter = router({
 	get: protectedProcedure
@@ -71,66 +71,12 @@ export const workspaceRouter = router({
 	delete: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			if (!ctx.api) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Cloud API not configured",
-				});
-			}
-
-			const localWorkspace = ctx.db.query.workspaces
-				.findFirst({ where: eq(workspaces.id, input.id) })
-				.sync();
-			const localProject = localWorkspace
-				? ctx.db.query.projects
-						.findFirst({ where: eq(projects.id, localWorkspace.projectId) })
-						.sync()
-				: undefined;
-
-			if (
-				localWorkspace &&
-				localProject &&
-				localWorkspace.worktreePath === localProject.repoPath
-			) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
-				});
-			}
-
-			const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
-				organizationId: ctx.organizationId,
-				id: input.id,
+			// Legacy external surface used by CLI/SDK/MCP. Preserve its
+			// non-interactive contract while reusing the v2 cleanup path.
+			return destroyWorkspace(ctx, {
+				workspaceId: input.id,
+				deleteBranch: false,
+				force: true,
 			});
-			if (cloudWorkspace?.type === "main") {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						"Main workspaces cannot be deleted. Remove them from the sidebar or remove the project from this host instead.",
-				});
-			}
-
-			await ctx.api.v2Workspace.delete.mutate({ id: input.id });
-
-			if (localWorkspace) {
-				if (localProject) {
-					try {
-						const git = await ctx.git(localProject.repoPath);
-						await git.raw(["worktree", "remove", localWorkspace.worktreePath]);
-					} catch (err) {
-						console.warn("[workspace.delete] failed to remove worktree", {
-							workspaceId: input.id,
-							worktreePath: localWorkspace.worktreePath,
-							err,
-						});
-					}
-				}
-			}
-
-			ctx.db.delete(workspaces).where(eq(workspaces.id, input.id)).run();
-			invalidateLabelCache(input.id);
-
-			return { success: true };
 		}),
 });

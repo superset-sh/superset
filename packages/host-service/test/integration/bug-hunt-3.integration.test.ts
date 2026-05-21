@@ -127,11 +127,7 @@ describe("bug-hunt-3: workspace.delete + dirty worktree", () => {
 		repo.dispose();
 	});
 
-	test("workspace.delete (legacy v1 API) lets a dirty workspace be deleted without warning", async () => {
-		// This pins legacy behavior. The new v2 `workspaceCleanup.destroy`
-		// has a phase-0 dirty check; `workspace.delete` does not. If a
-		// future PR adds a dirty check to `workspace.delete`, this test
-		// will flip and signal the change.
+	test("workspace.delete forces removal through the v2 cleanup saga", async () => {
 		const workspaceId = randomUUID();
 		const worktreePath = join(repo.repoPath, ".worktrees", "feature-dirty");
 		await repo.git.raw([
@@ -167,8 +163,10 @@ describe("bug-hunt-3: workspace.delete + dirty worktree", () => {
 			.run();
 
 		const result = await host.trpc.workspace.delete.mutate({ id: workspaceId });
-		// No CONFLICT: dirty work is silently destroyed by the legacy path.
-		expect(result).toEqual({ success: true });
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(result.warnings).toEqual([]);
+		expect(existsSync(worktreePath)).toBe(false);
 	});
 });
 

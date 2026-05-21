@@ -21,7 +21,11 @@ export function register(server: McpServer): void {
 			if (!workspace) {
 				return { success: true, alreadyGone: true };
 			}
-			return hostServiceCall<{ success: boolean }>(
+			return hostServiceCall<{
+				success: boolean;
+				worktreeRemoved: boolean;
+				warnings: string[];
+			}>(
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,
