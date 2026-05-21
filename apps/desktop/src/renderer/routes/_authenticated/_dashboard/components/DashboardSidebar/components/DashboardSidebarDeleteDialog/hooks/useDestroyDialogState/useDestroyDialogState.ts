@@ -66,19 +66,6 @@ export function useDestroyDialogState({
 			setInspectState({ status: "loading" });
 			return;
 		}
-		if (hostTarget.status === "not-found") {
-			setInspectState({
-				status: "ready",
-				preview: {
-					canDelete: false,
-					reason: "Workspace is no longer available on this host.",
-					hasChanges: false,
-					hasUnpushedCommits: false,
-				},
-			});
-			return;
-		}
-
 		let cancelled = false;
 		setInspectState({ status: "loading" });
 		inspect()
