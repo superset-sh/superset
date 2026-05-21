@@ -108,7 +108,16 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 					<li key={run.id}>
 						{run.error ? (
 							<Tooltip>
-								<TooltipTrigger asChild>{row}</TooltipTrigger>
+								{/*
+								 * Wrap in a span: failed rows often have no v2WorkspaceId,
+								 * which disables the inner <button>. Browsers suppress
+								 * pointer events on disabled buttons, so Radix's hover
+								 * detection never fires. The span captures hovers; the
+								 * button still handles clicks when it IS clickable.
+								 */}
+								<TooltipTrigger asChild>
+									<span className="block w-full">{row}</span>
+								</TooltipTrigger>
 								<TooltipContent
 									side="left"
 									className="max-w-xs whitespace-pre-wrap"

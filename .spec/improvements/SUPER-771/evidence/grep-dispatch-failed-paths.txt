@@ -1,2 +1,0 @@
-/Users/justinrich/Projects/superset/.claude/worktrees/improvement-SUPER-771/apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx:11:	skipped_offline: "bg-red-500",
-/Users/justinrich/Projects/superset/.claude/worktrees/improvement-SUPER-771/apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx:12:	dispatch_failed: "bg-red-500",
