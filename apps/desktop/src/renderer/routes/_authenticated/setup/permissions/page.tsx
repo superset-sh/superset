@@ -4,7 +4,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { LuCircleCheck, LuExternalLink, LuShieldCheck } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
+import {
+	getNextApplicableStep,
+	isStepApplicable,
+	STEP_ROUTES,
+	useOnboardingStore,
+} from "renderer/stores/onboarding";
 import { SetupButton } from "../components/SetupButton";
 import { StepHeader, StepShell } from "../components/StepShell";
 
@@ -27,9 +32,13 @@ function OnboardingPermissionsPage() {
 	const markComplete = useOnboardingStore((s) => s.markComplete);
 	const markSkipped = useOnboardingStore((s) => s.markSkipped);
 
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const stepApplies = isStepApplicable("permissions", platform);
+
 	const { data: status, isPending } =
 		electronTrpc.permissions.getStatus.useQuery(undefined, {
 			refetchInterval: 2000,
+			enabled: stepApplies,
 		});
 
 	const requestFda =
@@ -41,6 +50,17 @@ function OnboardingPermissionsPage() {
 	useEffect(() => {
 		goTo("permissions");
 	}, [goTo]);
+
+	// macOS-only step — Full Disk Access and Accessibility are TCC permissions
+	// that don't exist on Linux/Windows. Auto-skip so users aren't stuck (#4517).
+	useEffect(() => {
+		if (platform === undefined) return;
+		if (stepApplies) return;
+		markSkipped("permissions");
+		const nextStep =
+			getNextApplicableStep("permissions", platform) ?? "project";
+		navigate({ to: STEP_ROUTES[nextStep], replace: true });
+	}, [platform, stepApplies, markSkipped, navigate]);
 
 	const fdaGranted = status?.fullDiskAccess ?? false;
 	const a11yGranted = status?.accessibility ?? false;
@@ -57,6 +77,16 @@ function OnboardingPermissionsPage() {
 		markSkipped("permissions");
 		navigate({ to: STEP_ROUTES.project });
 	};
+
+	if (!stepApplies) {
+		return (
+			<StepShell backTo={STEP_ROUTES["gh-cli"]} maxWidth="lg">
+				<div className="flex justify-center py-2">
+					<Spinner className="size-6 text-[#a8a5a3]" />
+				</div>
+			</StepShell>
+		);
+	}
 
 	if (isPending) {
 		return (
