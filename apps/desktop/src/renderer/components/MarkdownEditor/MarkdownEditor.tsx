@@ -142,6 +142,15 @@ interface MarkdownEditorProps {
 	onModEnter?: () => void;
 	/** If provided, enables @-mention file search for the editor. */
 	searchFiles?: FileMentionSearchFn;
+	/** Toggle optional affordances. Each defaults to enabled. */
+	features?: {
+		slashCommand?: boolean;
+		emoji?: boolean;
+		fileMention?: boolean;
+		bubbleMenu?: boolean;
+	};
+	/** Tailwind min-height for the editable area. Defaults to "min-h-[100px]". */
+	minHeightClassName?: string;
 }
 
 function getMarkdown(editor: Editor | null): string {
@@ -175,7 +184,13 @@ export function MarkdownEditor({
 	editorClassName,
 	onModEnter,
 	searchFiles,
+	features,
+	minHeightClassName = "min-h-[100px]",
 }: MarkdownEditorProps) {
+	const showSlashCommand = features?.slashCommand ?? true;
+	const showEmoji = features?.emoji ?? true;
+	const showFileMention = features?.fileMention ?? true;
+	const showBubbleMenu = features?.bubbleMenu ?? true;
 	// useEditor captures extensions on first render, so searchFiles gets frozen
 	// at its initial (likely stale, since projectId resolves in an effect) value.
 	// Thread through a ref so the extension reads the live callback each fire.
@@ -293,19 +308,23 @@ export function MarkdownEditor({
 				transformPastedText: true,
 				transformCopiedText: true,
 			}),
-			SlashCommand,
-			EmojiSuggestion,
-			FileMentionNode,
-			FileMentionSuggestion.configure({
-				searchFiles: (query) =>
-					searchFilesRef.current?.(query) ?? Promise.resolve([]),
-			}),
+			...(showSlashCommand ? [SlashCommand] : []),
+			...(showEmoji ? [EmojiSuggestion] : []),
+			...(showFileMention
+				? [
+						FileMentionNode,
+						FileMentionSuggestion.configure({
+							searchFiles: (query) =>
+								searchFilesRef.current?.(query) ?? Promise.resolve([]),
+						}),
+					]
+				: []),
 			KeyboardHandler,
 		],
 		content,
 		editorProps: {
 			attributes: {
-				class: cn("focus:outline-none min-h-[100px]", editorClassName),
+				class: cn("focus:outline-none", minHeightClassName, editorClassName),
 			},
 			handleKeyDown: (_, event) => {
 				if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -367,7 +386,7 @@ export function MarkdownEditor({
 
 	return (
 		<div className={cn("w-full", className)}>
-			{editor && (
+			{showBubbleMenu && editor && (
 				<BubbleMenu
 					editor={editor}
 					options={{

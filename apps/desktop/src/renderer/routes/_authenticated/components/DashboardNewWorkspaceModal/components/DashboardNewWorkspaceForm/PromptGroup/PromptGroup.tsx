@@ -439,6 +439,13 @@ export function PromptGroup({
 					placeholder="What do you want to do?"
 					className="px-3 pt-3"
 					editorClassName="max-h-[200px] overflow-y-auto text-sm"
+					minHeightClassName="min-h-[44px]"
+					features={{
+						slashCommand: false,
+						emoji: false,
+						fileMention: false,
+						bubbleMenu: false,
+					}}
 				/>
 				<PromptInputFooter>
 					<PromptInputTools className="gap-1.5">
