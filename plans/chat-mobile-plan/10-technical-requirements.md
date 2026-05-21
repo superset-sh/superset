@@ -1,10 +1,10 @@
 ---
 stability: CONSTITUTION
 last_validated: 2026-05-21
-prd_version: 1.0.0
+prd_version: 1.3.0
 ---
 
-# Mobile Chat (v0) — Technical Requirements
+# Mobile Chat v2 — Technical Requirements
 
 ## System Components
 
@@ -33,7 +33,7 @@ Mobile is a **read-mostly** client for chat. The only DB writes mobile triggers 
 
 ### Tables explicitly NOT touched
 
-- `chat_attachments` — attachments deferred to v1 PRD
+- `chat_attachments` — attachments deferred to a future mobile-chat PRD
 - `chat_messages` / any messages table — **does not exist**; messages are runtime-resident, not persisted
 
 ## API Design
@@ -183,7 +183,7 @@ These cover most of the supporting infrastructure — no new install needed:
 | `chat/MessageList/MessagePartsRenderer.tsx` | `.../components/MessagePartsRenderer/MessagePartsRenderer.tsx` |
 | `chat/UserMessage/UserMessage.tsx` | `.../UserMessage/UserMessage.tsx` (shadcn message) |
 | `chat/AssistantMessage/AssistantMessage.tsx` | `.../AssistantMessage/AssistantMessage.tsx` |
-| `chat/ToolCallBlock/ToolCallBlock.tsx` (collapsed-only v0) | `.../ToolCallBlock/ToolCallBlock.tsx` |
+| `chat/ToolCallBlock/ToolCallBlock.tsx` (collapsed-only in mobile-chat v2) | `.../ToolCallBlock/ToolCallBlock.tsx` |
 | `chat/PlanBlock/PlanBlock.tsx` | `.../PlanBlock/PlanBlock.tsx` |
 | `chat/ReasoningBlock/ReasoningBlock.tsx` | `.../ReasoningBlock/ReasoningBlock.tsx` |
 | `chat/SubagentExecutionMessage/SubagentExecutionMessage.tsx` | `.../SubagentExecutionMessage/SubagentExecutionMessage.tsx` |
@@ -202,7 +202,7 @@ These cover most of the supporting infrastructure — no new install needed:
 
 ### Design tokens
 
-Mobile `apps/mobile/global.css` already provides all 20 semantic color tokens (`--color-background`, `--color-foreground`, `--color-muted`, `--color-muted-foreground`, `--color-card`, `--color-card-foreground`, `--color-popover`, `--color-popover-foreground`, `--color-primary`, `--color-primary-foreground`, `--color-secondary`, `--color-secondary-foreground`, `--color-accent`, `--color-accent-foreground`, `--color-destructive`, `--color-destructive-foreground`, `--color-border`, `--color-input`, `--color-ring`, `--radius`) under both `@variant light` and `@variant dark`. No new tokens required for v0.
+Mobile `apps/mobile/global.css` already provides all 20 semantic color tokens (`--color-background`, `--color-foreground`, `--color-muted`, `--color-muted-foreground`, `--color-card`, `--color-card-foreground`, `--color-popover`, `--color-popover-foreground`, `--color-primary`, `--color-primary-foreground`, `--color-secondary`, `--color-secondary-foreground`, `--color-accent`, `--color-accent-foreground`, `--color-destructive`, `--color-destructive-foreground`, `--color-border`, `--color-input`, `--color-ring`, `--radius`) under both `@variant light` and `@variant dark`. No new tokens required for mobile-chat v2.
 
 Palette delta vs desktop: mobile is cool-neutral, desktop is warm-ember. Cross-app brand alignment deferred — flagged in 09-team-contributions.md as an open product decision.
 
@@ -231,7 +231,7 @@ All interactive controls in pause sheets (UC-PAUSE-01/02/03 actions) and compose
 These were flagged but not closed during research; `/kb-sprint-plan` should slot them into specific sprints:
 
 1. **JWT lifecycle for mobile → relay**: per-call mint via cloud tRPC vs device-held longer-lived host token vs server-side proxy. Trade-off: security boundary vs latency vs offline UX.
-2. **Live streaming transport**: SSE through relay (requires extending `apps/relay`'s WS tunnel to proxy `text/event-stream`) vs chunked HTTP through relay vs cloud DurableStreams SSE (existing path at `/api/chat/[sessionId]/stream`). v0 may ship with periodic `chat.getSnapshot` polling and defer streaming to v0.1.
+2. **Live streaming transport**: SSE through relay (requires extending `apps/relay`'s WS tunnel to proxy `text/event-stream`) vs chunked HTTP through relay vs cloud DurableStreams SSE (existing path at `/api/chat/[sessionId]/stream`). Mobile-chat v2 may ship with periodic `chat.getSnapshot` polling and defer streaming to a follow-up mobile-chat PRD.
 3. **Markdown library choice**: `react-native-markdown-display` (widely-used, opinionated styling) vs `@expensify/react-native-live-markdown` (faster but newer/less battle-tested) vs custom thin wrapper. Benchmarks needed.
 4. **Tiptap WebView perf on mid-range Android**: validate that `@10play/tentap-editor` keyboard handling + input latency are acceptable on Android 11+ devices with 4GB RAM. Define a perf budget before locking in.
 5. **Snapshot polling interval (if streaming deferred)**: 250ms? 500ms? 1s? Battery vs latency vs server load.

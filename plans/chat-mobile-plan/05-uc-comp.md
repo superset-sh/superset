@@ -19,7 +19,7 @@ functional_group: COMP
 
 ## UC-COMP-01: Compose a message in Tiptap editor
 
-The chat input is a `@10play/tentap-editor` instance (WebView-hosted Tiptap) configured with the same minimal extension set desktop uses (Document, Paragraph, Text, HardBreak, History, Placeholder, Suggestion) plus the custom `SlashCommandNode` and `FileMentionNode`. The editor's serializer matches desktop's `serializeEditorToText.ts` wire format. User can type plain text, trigger `/` for slash commands (handled in UC-COMP-04 and PAUSE-adjacent flows), and (per scope deferral) `@` does not open file-mention autocomplete in v0 — Tiptap renders typed `@text` as a plain mention node placeholder, awaiting v1's host file search.
+The chat input is a `@10play/tentap-editor` instance (WebView-hosted Tiptap) configured with the same minimal extension set desktop uses (Document, Paragraph, Text, HardBreak, History, Placeholder, Suggestion) plus the custom `SlashCommandNode` and `FileMentionNode`. The editor's serializer matches desktop's `serializeEditorToText.ts` wire format. User can type plain text, trigger `/` for slash commands (handled in UC-COMP-04 and PAUSE-adjacent flows), and (per scope deferral) `@` does not open file-mention autocomplete in mobile-chat v2 — Tiptap renders typed `@text` as a plain mention node placeholder, awaiting a future mobile-chat PRD's host file search.
 
 **Acceptance Criteria:**
 - ☐ User can type multiline freeform text into the chat input on the chat view

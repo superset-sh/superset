@@ -12,7 +12,7 @@ functional_group: RENDER
 | UC-RENDER-01 | Render user and assistant messages | System displays user and assistant message bubbles with text content, role-styled alignment, and timestamps. |
 | UC-RENDER-02 | Render streaming assistant text | System displays assistant text as it arrives, with atomic snapshot updates (no character-drip). |
 | UC-RENDER-03 | Render markdown content | System renders markdown elements (code blocks, lists, links, tables, inline code) inside assistant messages. |
-| UC-RENDER-04 | Render tool call blocks (collapsed) | System renders agent tool calls as collapsed cards showing tool name and status; expansion deferred to v1. |
+| UC-RENDER-04 | Render tool call blocks (collapsed) | System renders agent tool calls as collapsed cards showing tool name and status; expansion deferred to a future mobile-chat PRD. |
 | UC-RENDER-05 | Render plan blocks and reasoning blocks | System renders agent plan blocks (read-only) and reasoning blocks (collapsed extended-thinking) inside the message list. |
 | UC-RENDER-06 | Render subagent execution as nested group | System displays subagent runs as a nested read-only message group within the parent turn. |
 | UC-RENDER-07 | Auto-scroll and scroll-back affordance | System keeps the list anchored to the latest message and provides a scroll-back button when the user scrolls up. |
@@ -61,20 +61,20 @@ Assistant messages frequently contain markdown. Desktop uses `streamdown` (web-o
 
 ## UC-RENDER-04: Render tool call blocks (collapsed)
 
-When the agent invokes a tool, it appears in the message stream as a collapsed `ToolCallBlock`-styled card showing the tool name, status indicator (running / completed / failed), and a chevron. v0 ships collapsed-only — expansion to view arguments/result is deferred. The component is named `ToolCallBlock` to match desktop's component tree.
+When the agent invokes a tool, it appears in the message stream as a collapsed `ToolCallBlock`-styled card showing the tool name, status indicator (running / completed / failed), and a chevron. Mobile-chat v2 ships collapsed-only — expansion to view arguments/result is deferred. The component is named `ToolCallBlock` to match desktop's component tree.
 
 **Acceptance Criteria:**
 - ☐ User can see each tool call rendered as a collapsed card in the message list with tool name and status indicator
 - ☐ User can see a status indicator showing running, completed, or failed state per the tool call lifecycle
-- ☐ User can see the chevron pointing right (collapsed state) on tool call cards for v0
+- ☐ User can see the chevron pointing right (collapsed state) on tool call cards for mobile-chat v2
 - ☐ System renders the tool call component at `apps/mobile/components/chat/ToolCallBlock/` with name parity to desktop
-- ☐ System does NOT render an expansion UI for tool call arguments or result in v0 (deferred to a follow-up PRD)
+- ☐ System does NOT render an expansion UI for tool call arguments or result in mobile-chat v2 (deferred to a follow-up PRD)
 
 ---
 
 ## UC-RENDER-05: Render plan blocks and reasoning blocks
 
-Plan blocks (`PlanBlock` per desktop naming) render the agent's proposed structured plan as a read-only card with the plan title and a collapsed steps list. Reasoning blocks (`ReasoningBlock` per desktop naming) render extended-thinking content in a collapsed-by-default container with a "Show reasoning" affordance. Neither is interactive in v0 beyond toggle expand/collapse.
+Plan blocks (`PlanBlock` per desktop naming) render the agent's proposed structured plan as a read-only card with the plan title and a collapsed steps list. Reasoning blocks (`ReasoningBlock` per desktop naming) render extended-thinking content in a collapsed-by-default container with a "Show reasoning" affordance. Neither is interactive in mobile-chat v2 beyond toggle expand/collapse.
 
 **Acceptance Criteria:**
 - ☐ User can see plan blocks rendered as cards with the plan title and a collapsed list of steps in the message stream

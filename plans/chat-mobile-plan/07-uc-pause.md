@@ -151,9 +151,9 @@ Without this affordance, a user who scrolls away from a tool-approval card or di
 - **iOS action sheet (native slide-up menu from bottom).** Closer to right for tool approval but constrained to ~5 plain-string actions, no rich content/argument preview, and tap-anywhere-to-dismiss. Inappropriate for displaying tool arguments and rationale.
 - **Bottom sheet for tool approval** (the original PRD proposal). Rejected after research: the [Continue.dev](https://docs.continue.dev/ide-extensions/agent/quick-start) inline pattern and [NN/G context-preservation research](https://www.nngroup.com/articles/permission-requests) are decisive against repeated-modal-pop-up UX for frequent decisions.
 
-### Future-state escape hatch (v1, not v0)
+### Future-state escape hatch (future mobile-chat PRD, not mobile-chat v2)
 
-If mobile users report approval fatigue, the next iteration should adopt **[Cline's auto-approve categories pattern](https://docs.cline.bot/features/auto-approve)** — pre-configure approval categories in user settings (e.g., "always allow `bun install` in safe workspaces", "always allow file reads under workspace root"). This reduces approval frequency dramatically without compromising the security model. Worth considering in a follow-up PRD; outside v0 scope.
+If mobile users report approval fatigue, the next iteration should adopt **[Cline's auto-approve categories pattern](https://docs.cline.bot/features/auto-approve)** — pre-configure approval categories in user settings (e.g., "always allow `bun install` in safe workspaces", "always allow file reads under workspace root"). This reduces approval frequency dramatically without compromising the security model. Worth considering in a follow-up PRD; outside mobile-chat v2 scope.
 
 ### Sources
 

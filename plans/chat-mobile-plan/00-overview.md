@@ -1,14 +1,14 @@
 ---
 stability: PRODUCT_CONTEXT
 last_validated: 2026-05-21
-prd_version: 1.0.0
+prd_version: 1.3.0
 ---
 
-# Mobile Chat (v0) — Overview
+# Mobile Chat v2 — Overview
 
 ## Product description
 
-Superset users do their chat-driven work on desktop today. The mobile app currently exposes only a terminal-via-web mirror; there is no native chat-agent UI. This PRD covers v0 of a native mobile chat experience that mirrors the desktop ChatInterface functionally, so users can review, respond to, and initiate chat sessions on remote/cloud hosts from their phone.
+Superset users do their chat-driven work on desktop today. The mobile app currently exposes only a terminal-via-web mirror (implicit mobile chat v1); there is no native chat-agent UI. This PRD covers **mobile-chat v2** — the first native mobile chat experience, mirroring the desktop ChatInterface functionally so users can review, respond to, and initiate chat sessions on remote/cloud hosts from their phone. The "v2" naming aligns with the platform's existing v2 generation of features (`v2-workspace`, `v2-projects`, `v2-hosts`).
 
 The mobile chat is **not a re-architecture of chat** — it consumes the exact same `@superset/host-service` tRPC surface that desktop's renderer already consumes, routed through `apps/relay` (per-host WS tunnel) instead of `127.0.0.1`. Messages live in the host-service runtime memory (Mastra harness) and stream back over relay-routed HTTP+tRPC. Session metadata (`chat_sessions`) syncs to mobile via the existing ElectricSQL shape (`apps/electric-proxy/src/where.ts:136-137` already exposes `chat_sessions` filtered by org).
 
@@ -38,7 +38,7 @@ Build a mobile chat surface in `apps/mobile` with the following shape:
 
 5. **Tiptap parity** via `@10play/tentap-editor` (WebView-hosted Tiptap) so slash commands and file mentions render with the same atomic-token UX as desktop. Wire format (`serializeEditorToText.ts`) is portable.
 
-6. **Live token streaming via the relay's HTTP path** (decision deferred between SSE-through-relay vs polling-with-offset; v0 may ship with periodic snapshot polling and add streaming in a follow-up sprint).
+6. **Live token streaming via the relay's HTTP path** (decision deferred between SSE-through-relay vs polling-with-offset; mobile-chat v2 may ship with periodic snapshot polling and add streaming in a follow-up sprint).
 
 7. **OS push notifications via Expo push** wired to host-service lifecycle events, so users learn about agent completions and pause-prompts even when the mobile app is backgrounded. This is a mobile-specific need that has no desktop analog.
 

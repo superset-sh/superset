@@ -1,13 +1,15 @@
 ---
-title: Mobile Chat (v0)
-version: 1.2.0
+title: Mobile Chat v2
+version: 1.3.0
 scope_posture: full
 pr_sequencing: true
 ---
 
-# Mobile Chat (v0) - PRD
+# Mobile Chat v2 - PRD
 
 Bring native chat-agent interaction to the Superset mobile app (`apps/mobile`) by porting the desktop ChatInterface as a parallel RN tree, talking HTTP+tRPC over the relay to the user's host-service. Read sessions, read messages, send messages for remote/cloud work, and handle mid-turn interactive prompts (tool approval, ask-user, plan approval) — same agent loop as desktop, mobile-native UX.
+
+> **Naming note.** This PRD is referred to as **mobile-chat v2** in product discussions, aligning with the platform's existing "v2" generation of features (`v2-workspace`, `v2-projects`, `v2-hosts`, and the in-flight `chat-v2` desktop architecture redesign). The mobile app currently has only a terminal-via-web mirror (effectively mobile chat v1); this PRD scopes the first native chat experience as v2. The branch and folder slug `chat-mobile-plan` predates the v2 naming and is kept for git history continuity. References to `chat-v2` elsewhere in this doc refer to the **desktop** chat-v2 architecture (a separate, planning-only effort) — not to this PRD.
 
 ## PR Sequencing
 
@@ -21,7 +23,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 
 | Field | Value |
 |-------|-------|
-| Version | 1.2.0 |
+| Version | 1.3.0 |
 | Scope Posture | Full feature (default) |
 | PR Sequencing | Enabled |
 | Created | 2026-05-21 |
@@ -61,6 +63,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 
 | Version | Date | Changes | Trigger |
 |---------|------|---------|---------|
+| 1.3.0 | 2026-05-21 | Rename "v0" → "mobile-chat v2" throughout. "v2" is the platform's loaded generational term (`v2-workspace`, `v2-projects`, `chat-v2` desktop architecture); the current terminal-via-web on mobile is implicit v1, this PRD is v2. Future-work references ("v1 PRD", "deferred to v1") become "a future mobile-chat PRD". `/api/electric/v1/shape` and `chat-v2` (desktop) references intentionally untouched. Added naming-clarification note at the top of this README. | Terminology alignment |
 | 1.2.0 | 2026-05-21 | Annotate every Out-of-Scope item in `01-scope.md` with a one-sentence "Why" grounded in the originating conversation. Distinguish `[DEFERRED: separate PRD]` (could ship later) from `[NOT SUPPORTED]` (architectural/product boundary). Add two previously-implicit exclusions: tRPC subscriptions for chat (superseded by streaming sub-decision) and attachment payload UI in messages (pair-with-send rule). | Scope review |
 | 1.1.0 | 2026-05-21 | Refine PAUSE UCs to use a container per interaction shape (inline card + sticky footer for tool approval; bottom sheet for ask_user; full-screen modal as pushed expo-router route for plan approval). Add UC-PAUSE-04 floating pending-action indicator. Add Design Rationale section to `07-uc-pause.md` with citations to Apple HIG, NN/G, Continue.dev, Cline, Material Design 3. | Product / UX review (research-validated 2026-05-21) |
 | 1.0.0 | 2026-05-21 | Initial PRD generated from research + design audit | New initiative |
