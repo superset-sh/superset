@@ -32,6 +32,7 @@ interface ContextSpec {
 	revListCount?: string | (() => Promise<string>);
 	gitFactoryThrows?: boolean;
 	worktreeRemove?: () => Promise<unknown>;
+	branchDelete?: () => Promise<unknown>;
 	dbDeleteThrows?: boolean;
 }
 
@@ -55,7 +56,7 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 			: (spec.revListCount ?? "0\n"),
 	);
 	const worktreeRemove = mock(spec.worktreeRemove ?? (async () => undefined));
-	const branchDelete = mock(async () => undefined);
+	const branchDelete = mock(spec.branchDelete ?? (async () => undefined));
 
 	const git = mock(async () => {
 		if (spec.gitFactoryThrows) throw new Error("git factory boom");
@@ -388,6 +389,74 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
 		}
+	});
+
+	test("git open failure blocks cloud delete while the worktree path still exists", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		let cloudCallCount = 0;
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: tmp,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: "/repo" },
+				cloudType: "worktree",
+				cloudDelete: async () => {
+					cloudCallCount += 1;
+				},
+				gitFactoryThrows: true,
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			await expect(
+				caller.destroy({
+					workspaceId: "ws-1",
+					deleteBranch: false,
+					force: true,
+				}),
+			).rejects.toThrow(/Failed to open project repo/i);
+			expect(cloudCallCount).toBe(0);
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	});
+
+	test("branch delete failure is reported as a warning after worktree cleanup", async () => {
+		let cloudCallCount = 0;
+		const ctx = makeCtx({
+			workspace: {
+				id: "ws-1",
+				projectId: "p-1",
+				worktreePath: "/missing/wt",
+				branch: "feature",
+			},
+			project: { id: "p-1", repoPath: "/repo" },
+			cloudType: "worktree",
+			cloudDelete: async () => {
+				cloudCallCount += 1;
+			},
+			branchDelete: async () => {
+				throw new Error("branch delete boom");
+			},
+		});
+		const caller = workspaceCleanupRouter.createCaller(ctx);
+
+		const result = await caller.destroy({
+			workspaceId: "ws-1",
+			deleteBranch: true,
+			force: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.cloudDeleted).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(result.branchDeleted).toBe(false);
+		expect(result.warnings).toContain(
+			"Failed to delete branch feature: branch delete boom",
+		);
+		expect(cloudCallCount).toBe(1);
 	});
 
 	test("sqlite row-delete failure after cloud delete becomes a warning", async () => {

@@ -271,32 +271,30 @@ async function runDestroy(
 		warnings.push(`Failed to dispose terminal sessions: ${message}`);
 	}
 
-	// 2b. Worktree. Double-force unlocks the rare locked-worktree case the
-	//     user can hit by manually `rm -rf`-ing a locked worktree.
+	// 2b. Worktree. Double-force unlocks the rare locked-worktree case and
+	//     clears stale metadata when the directory was manually removed.
 	// 2c. Optional branch delete.
 	let worktreeRemoved = false;
 	let branchDeleted = false;
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
 		let git: Awaited<ReturnType<typeof ctx.git>> | null = null;
-		if (!worktreeRemoved || input.deleteBranch) {
-			try {
-				git = await ctx.git(project.repoPath);
-			} catch (err) {
-				const message = err instanceof Error ? err.message : String(err);
-				if (!worktreeRemoved) {
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: `Failed to open project repo at ${project.repoPath}: ${message}`,
-					});
-				}
-				warnings.push(
-					`Failed to open project repo at ${project.repoPath}: ${message}`,
-				);
+		try {
+			git = await ctx.git(project.repoPath);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			if (!worktreeRemoved) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to open project repo at ${project.repoPath}: ${message}`,
+				});
 			}
+			warnings.push(
+				`Failed to open project repo at ${project.repoPath}: ${message}`,
+			);
 		}
 
-		if (git && !worktreeRemoved) {
+		if (git) {
 			try {
 				await git.raw([
 					"worktree",
@@ -319,15 +317,13 @@ async function runDestroy(
 			}
 		}
 
-		if (git) {
-			if (input.deleteBranch && local.branch) {
-				try {
-					await git.raw(["branch", "-D", local.branch]);
-					branchDeleted = true;
-				} catch (err) {
-					const message = err instanceof Error ? err.message : String(err);
-					warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
-				}
+		if (git && input.deleteBranch && local.branch) {
+			try {
+				await git.raw(["branch", "-D", local.branch]);
+				branchDeleted = true;
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
 			}
 		}
 	}
