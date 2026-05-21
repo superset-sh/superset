@@ -1,7 +1,7 @@
 ---
 stability: FEATURE_SPEC
 last_validated: 2026-05-21
-prd_version: 1.3.0
+prd_version: 1.3.1
 scope_posture: full
 ---
 
@@ -74,13 +74,13 @@ Each item below is tagged `[DEFERRED: separate PRD]` (could ship later as its ow
   **Why:** Mobile OSes don't have a Cmd/Ctrl modifier key model. Mobile uses on-screen Send button plus the iOS/Android keyboard's "send" affordance. This is platform-structural, not deferred.
 
 - **Pure-Electric message persistence** (mirror host runtime memory into a new `chat_messages` table for shape-based sync) — `[DEFERRED: separate PRD]`.
-  **Why:** Architecture research (`plans/20260521-mobile-chat-research.md` on `local-setup-no-env`) confirmed messages currently live only in host runtime memory — no `chat_messages` table, no `messages` JSON column. Persisting them is a large cross-cutting schema + dual-write change. The chat-v2 PRD already drafts a "host SQLite event log" approach; mobile-chat v2 doesn't need to block on that and can read via relay-routed tRPC instead.
+  **Why:** Architecture research (`plans/20260521-mobile-chat-research.md` on `local-setup-no-env`) confirmed messages currently live only in host runtime memory — no `chat_messages` table, no `messages` JSON column. Persisting them is a large cross-cutting schema + dual-write change that mobile-chat v2 doesn't need to block on; messages can be read via relay-routed tRPC instead. If host-side persistence ships later in a separate workstream, mobile-chat v2 can swap to a shape-based read path without touching its UI tree.
 
 - **Cross-platform UI component library** (a shared `packages/chat-ui` consumed by both web/desktop and mobile) — `[NOT SUPPORTED]`.
   **Why:** Validated against the `cadra-app/monorepo` reference (private repo, accessed via `gh` CLI 2026-05-21): web shadcn components and React Native primitives are fundamentally incompatible at the JSX layer — Radix vs `@rn-primitives`, `<div>` vs `<View>`. Cadra ships parallel implementations with name + Tailwind parity, zero shared code at the UI layer, after explicit consideration of the alternative. Shared design tokens via Tailwind class names is the correct boundary; shared JSX is not.
 
 - **Real-time tRPC subscriptions for chat** — `[NOT SUPPORTED]` in mobile-chat v2; superseded by streaming sub-decision.
-  **Why:** Repo-wide grep (research finding) confirmed zero tRPC subscriptions in the chat path today; the desktop **chat-v2** PRD draft proposes WebSocket subscriptions with offset-resume but is not merged. Mobile-chat v2 reads via request/response tRPC (with cursor protocol for resume) and defers live-token streaming to a sub-decision in technical requirements §"Open technical sub-decisions" (SSE-through-relay vs cloud DurableStreams vs polling). Adopting tRPC subscriptions would require infrastructure changes outside this PRD's scope.
+  **Why:** Repo-wide grep (research finding) confirmed zero tRPC subscriptions in the chat path today. Mobile-chat v2 reads via request/response tRPC (with cursor protocol for resume) and defers live-token streaming to a sub-decision in technical requirements §"Open technical sub-decisions" (SSE-through-relay vs cloud DurableStreams vs polling). Adopting tRPC subscriptions would require infrastructure changes outside this PRD's scope.
 
 - **Attachment payload UI in messages (file chips, image previews, link cards)** — `[DEFERRED: separate PRD]`.
   **Why:** Consequence of the attachments deferral above. The host-service `chat_attachments` table is read-only to mobile, but rendering attachment payloads in user/assistant messages introduces media-handling, image-caching, and download flows that don't pay off until users can also upload attachments. Pair the render with the send.
