@@ -38,6 +38,17 @@ import { formatPrice, getOrganizationOwners } from "./utils";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
+const userOptions = {
+	additionalFields: {
+		onboardedAt: {
+			type: "date",
+			required: false,
+			input: false,
+			fieldName: "onboarded_at",
+		},
+	},
+} as const;
+
 const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`;
 const desktopDevPort = process.env.DESKTOP_VITE_PORT || "5173";
 const desktopDevOrigins =
@@ -100,6 +111,7 @@ export const auth = betterAuth({
 			maxAge: 60 * 5,
 		},
 	},
+	user: userOptions,
 	advanced: {
 		crossSubDomainCookies: {
 			enabled: true,
@@ -758,40 +770,51 @@ export const auth = betterAuth({
 			},
 		}),
 		bearer(),
-		customSession(async ({ user, session: baseSession }) => {
-			const session = baseSession as typeof sessions.$inferSelect;
-			const { activeOrganizationId, allMemberships, membership } =
-				await resolveSessionOrganizationState({
-					userId: session.userId ?? user.id,
-					session,
+		customSession(
+			async ({ user, session: baseSession }) => {
+				const session = baseSession as typeof sessions.$inferSelect;
+				const { activeOrganizationId, allMemberships, membership } =
+					await resolveSessionOrganizationState({
+						userId: session.userId ?? user.id,
+						session,
+					});
+
+				const organizationIds = [
+					...new Set(allMemberships.map((m) => m.organizationId)),
+				];
+
+				let plan: string | null = null;
+				if (activeOrganizationId) {
+					const subscription = await db.query.subscriptions.findFirst({
+						where: and(
+							eq(subscriptions.referenceId, activeOrganizationId),
+							eq(subscriptions.status, "active"),
+						),
+					});
+					plan = subscription?.plan ?? null;
+				}
+
+				// additionalFields declares onboardedAt for client typing, but the
+				// drizzle adapter doesn't surface it on the passed-in user — read it
+				// explicitly so the onboarding gate is deterministic.
+				const userRow = await db.query.users.findFirst({
+					where: eq(authSchema.users.id, user.id),
+					columns: { onboardedAt: true },
 				});
 
-			const organizationIds = [
-				...new Set(allMemberships.map((m) => m.organizationId)),
-			];
-
-			let plan: string | null = null;
-			if (activeOrganizationId) {
-				const subscription = await db.query.subscriptions.findFirst({
-					where: and(
-						eq(subscriptions.referenceId, activeOrganizationId),
-						eq(subscriptions.status, "active"),
-					),
-				});
-				plan = subscription?.plan ?? null;
-			}
-
-			return {
-				user,
-				session: {
-					...session,
-					activeOrganizationId,
-					organizationIds,
-					role: membership?.role,
-					plan,
-				},
-			};
-		}),
+				return {
+					user: { ...user, onboardedAt: userRow?.onboardedAt ?? null },
+					session: {
+						...session,
+						activeOrganizationId,
+						organizationIds,
+						role: membership?.role,
+						plan,
+					},
+				};
+			},
+			{ user: userOptions },
+		),
 		stripe({
 			stripeClient,
 			stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET,

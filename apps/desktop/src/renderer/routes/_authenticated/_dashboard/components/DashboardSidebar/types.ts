@@ -43,7 +43,6 @@ export interface DashboardSidebarWorkspace {
 	createdAt: Date;
 	updatedAt: Date;
 	taskId: string | null;
-	isSynced: boolean;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
 

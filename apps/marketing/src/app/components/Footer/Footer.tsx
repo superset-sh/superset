@@ -4,6 +4,7 @@ import { COMPANY } from "@superset/shared/constants";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SocialLinks } from "../SocialLinks";
 
 function SupersetLogo() {
@@ -54,6 +55,9 @@ const LEGAL_LINKS: FooterLink[] = [
 ];
 
 export function Footer() {
+	const pathname = usePathname();
+	if (pathname === "/download") return null;
+
 	return (
 		<footer className="border-t border-border bg-background">
 			<motion.div

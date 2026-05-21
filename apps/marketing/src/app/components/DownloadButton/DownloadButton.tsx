@@ -1,9 +1,10 @@
 "use client";
 
-import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
+import { COMPANY } from "@superset/shared/constants";
+import { useRouter } from "next/navigation";
 import { HiMiniArrowDownTray, HiMiniClock } from "react-icons/hi2";
 import { track } from "@/lib/analytics";
-import { usePlatform } from "../../hooks/useOS";
+import { isMacPlatform, Platform, usePlatform } from "../../hooks/useOS";
 import { type DropdownSection, PlatformDropdown } from "../PlatformDropdown";
 
 interface DownloadButtonProps {
@@ -12,12 +13,15 @@ interface DownloadButtonProps {
 	onJoinWaitlist?: () => void;
 }
 
+const INTERSTITIAL_PATH = "/download";
+
 export function DownloadButton({
 	size = "md",
 	className = "",
 	onJoinWaitlist,
 }: DownloadButtonProps) {
-	const { os, isMobile } = usePlatform();
+	const router = useRouter();
+	const { platform } = usePlatform();
 
 	const sizeClasses =
 		size === "sm"
@@ -26,7 +30,12 @@ export function DownloadButton({
 
 	const buttonClasses = `bg-brand/10 text-[#ff8c3a] border border-brand/20 ${sizeClasses} font-normal hover:bg-brand/15 hover:border-brand/35 transition-colors flex items-center gap-2 ${className}`;
 
-	if (isMobile) {
+	const goToInterstitial = () => {
+		track("download_clicked");
+		router.push(INTERSTITIAL_PATH);
+	};
+
+	if (platform === Platform.Mobile) {
 		const appleIcon = (
 			<svg
 				width="20"
@@ -63,10 +72,7 @@ export function DownloadButton({
 						label: "Download for Mac",
 						description: "APPLE SILICON",
 						icon: appleIcon,
-						onClick: () => {
-							track("download_clicked");
-							window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
-						},
+						onClick: goToInterstitial,
 						variant: "primary",
 					},
 				],
@@ -105,15 +111,12 @@ export function DownloadButton({
 		);
 	}
 
-	if (os === "macos" || os === "unknown") {
+	if (isMacPlatform(platform) || platform === Platform.Unknown) {
 		return (
 			<button
 				type="button"
 				className={buttonClasses}
-				onClick={() => {
-					track("download_clicked");
-					window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
-				}}
+				onClick={goToInterstitial}
 			>
 				<span className="hidden sm:inline">Download for macOS</span>
 				<span className="sm:hidden">Download</span>

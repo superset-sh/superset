@@ -393,6 +393,13 @@
       "when": 1779236741548,
       "tag": "0055_set_unique_slack_only",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1779349845635,
+      "tag": "0056_add_onboarded_at",
+      "breakpoints": true
     }
   ]
 }

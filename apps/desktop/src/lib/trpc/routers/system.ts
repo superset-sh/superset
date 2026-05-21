@@ -1,44 +1,42 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { publicProcedure, router } from "..";
-
-const execFileAsync = promisify(execFile);
-
-const KNOWN_GH_PATHS = [
-	"/opt/homebrew/bin/gh",
-	"/usr/local/bin/gh",
-	"/usr/bin/gh",
-	"/bin/gh",
-];
+import { execWithShellEnv } from "./workspaces/utils/shell-env";
 
 interface GhDetectResult {
 	installed: boolean;
+	authenticated: boolean;
 	version: string | null;
 	path: string | null;
 }
 
-async function tryGh(path: string): Promise<GhDetectResult | null> {
+async function detectGhCli(): Promise<GhDetectResult> {
+	// Resolve `gh` via the user's login-shell PATH (execWithShellEnv retries with
+	// the derived shell env on ENOENT), so we find it wherever it's installed —
+	// homebrew, MacPorts, nix, asdf, etc. — not just a hardcoded path list.
+	let version: string | null = null;
 	try {
-		const { stdout } = await execFileAsync(path, ["--version"], {
-			timeout: 3000,
+		const { stdout } = await execWithShellEnv("gh", ["--version"], {
+			timeout: 5000,
 		});
 		const firstLine = stdout.split("\n")[0]?.trim() ?? "";
-		const match = firstLine.match(/gh version (\S+)/);
-		const version = match?.[1] ?? null;
-		return { installed: true, version, path };
+		version = firstLine.match(/gh version (\S+)/)?.[1] ?? null;
 	} catch {
-		return null;
+		return {
+			installed: false,
+			authenticated: false,
+			version: null,
+			path: null,
+		};
 	}
-}
 
-async function detectGhCli(): Promise<GhDetectResult> {
-	for (const path of KNOWN_GH_PATHS) {
-		const result = await tryGh(path);
-		if (result) return result;
+	let authenticated = false;
+	try {
+		await execWithShellEnv("gh", ["auth", "status"], { timeout: 5000 });
+		authenticated = true;
+	} catch {
+		// `gh auth status` exits non-zero when not logged in.
 	}
-	const result = await tryGh("gh");
-	if (result) return result;
-	return { installed: false, version: null, path: null };
+
+	return { installed: true, authenticated, version, path: "gh" };
 }
 
 export const createSystemRouter = () => {

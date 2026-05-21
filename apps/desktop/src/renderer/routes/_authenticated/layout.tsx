@@ -198,6 +198,14 @@ function AuthenticatedLayout() {
 		return <Navigate to="/create-organization" replace />;
 	}
 
+	if (
+		session?.user &&
+		!session.user.onboardedAt &&
+		!location.pathname.startsWith("/onboarding")
+	) {
+		return <Navigate to="/onboarding" replace />;
+	}
+
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>

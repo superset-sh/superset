@@ -460,7 +460,6 @@ export function useDashboardSidebarData() {
 				createdAt: workspace.createdAt,
 				updatedAt: workspace.updatedAt,
 				taskId: workspace.taskId,
-				isSynced: workspace.isSynced,
 				pendingTransaction: workspace.pendingTransaction,
 			};
 
