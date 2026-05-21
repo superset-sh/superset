@@ -794,8 +794,16 @@ export const auth = betterAuth({
 					plan = subscription?.plan ?? null;
 				}
 
+				// additionalFields declares onboardedAt for client typing, but the
+				// drizzle adapter doesn't surface it on the passed-in user — read it
+				// explicitly so the onboarding gate is deterministic.
+				const userRow = await db.query.users.findFirst({
+					where: eq(authSchema.users.id, user.id),
+					columns: { onboardedAt: true },
+				});
+
 				return {
-					user,
+					user: { ...user, onboardedAt: userRow?.onboardedAt ?? null },
 					session: {
 						...session,
 						activeOrganizationId,

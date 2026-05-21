@@ -10,6 +10,7 @@ interface OnboardingNavigationProps {
 	totalSteps: number;
 	onBack: (() => void) | null;
 	onContinue: (() => void) | null;
+	continueDisabled?: boolean;
 	continueLabel: string;
 }
 
@@ -18,6 +19,7 @@ export function OnboardingNavigation({
 	totalSteps,
 	onBack,
 	onContinue,
+	continueDisabled,
 	continueLabel,
 }: OnboardingNavigationProps) {
 	const openUrl = electronTrpc.external.openUrl.useMutation();
@@ -46,13 +48,18 @@ export function OnboardingNavigation({
 				<Button
 					size="sm"
 					variant="ghost"
-					onClick={() => openUrl.mutate(COMPANY.DISCORD_URL)}
+					onClick={() => openUrl.mutate(COMPANY.REPORT_ISSUE_URL)}
 				>
 					<LuCircleHelp />
 					Get support
 				</Button>
 				{onContinue && (
-					<Button size="sm" className="w-[160px]" onClick={onContinue}>
+					<Button
+						size="sm"
+						className="w-[160px]"
+						onClick={onContinue}
+						disabled={continueDisabled}
+					>
 						{continueLabel}
 					</Button>
 				)}

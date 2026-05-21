@@ -1,165 +1,152 @@
 import { Button } from "@superset/ui/button";
+import { Card } from "@superset/ui/card";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
-import { cn } from "@superset/ui/utils";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { LuFolderOpen, LuGitBranch } from "react-icons/lu";
-import { useEnsureV2Project } from "renderer/hooks/useEnsureV2Project";
+import { track } from "renderer/lib/analytics";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { StepHeader, StepShell } from "../components/StepShell";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 export const Route = createFileRoute("/_authenticated/onboarding/project/")({
 	component: OnboardingProjectPage,
 });
 
-type Mode = "folder" | "url";
-
 function OnboardingProjectPage() {
 	const navigate = useNavigate();
+	const { refetch: refetchSession } = authClient.useSession();
 	const { activeHostUrl } = useLocalHostService();
 	const hostReady = activeHostUrl !== null;
-	const [mode, setMode] = useState<Mode>("folder");
+	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
+	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
+	const [url, setUrl] = useState("");
+	const [busy, setBusy] = useState(false);
 
 	const folderImport = useFolderFirstImport({
 		onError: (message) => toast.error(message),
 	});
-	const cloneRepo = electronTrpc.projects.cloneRepo.useMutation();
-	const ensureV2Project = useEnsureV2Project();
-	const [url, setUrl] = useState("");
-	const [submitting, setSubmitting] = useState(false);
 
-	const goToPrompt = (projectId: string) => {
-		navigate({
-			to: "/onboarding/prompt/$projectId",
-			params: { projectId },
-		});
+	// Adding a project finishes onboarding: mark onboarded, then hand off to the
+	// dashboard's new-workspace modal pre-selected to the project just added.
+	const finish = async (projectId: string) => {
+		track("onboarding_finished", { outcome: "completed" });
+		try {
+			await apiTrpcClient.user.completeOnboarding.mutate();
+			// Reactive refetch (not imperative getSession) so the layout guards'
+			// useSession() sees onboardedAt before we navigate — otherwise the
+			// _authenticated guard bounces /v2-workspaces back to /onboarding.
+			await refetchSession({ query: { disableCookieCache: true } });
+		} catch (error) {
+			console.error("[onboarding] completeOnboarding failed", error);
+			toast.error("Could not finish onboarding. Please try again.");
+			return;
+		}
+		openNewWorkspaceModal(projectId);
+		navigate({ to: "/v2-workspaces", replace: true });
 	};
 
 	const handleOpenFolder = async () => {
 		const result = await folderImport.start();
-		if (result) goToPrompt(result.projectId);
+		if (result) {
+			setBusy(true);
+			await finish(result.projectId);
+			setBusy(false);
+		}
 	};
 
-	const handleCloneUrl = async (e: FormEvent) => {
+	const handleClone = async (e: FormEvent) => {
 		e.preventDefault();
 		const trimmed = url.trim();
-		if (!trimmed) return;
-		setSubmitting(true);
+		if (!trimmed || !cloneTargetDir || !activeHostUrl) return;
+		setBusy(true);
 		try {
-			const cloneResult = await cloneRepo.mutateAsync({ url: trimmed });
-			if (cloneResult.canceled) return;
-			if (!cloneResult.success || !cloneResult.project) {
-				toast.error(cloneResult.error ?? "Failed to clone repository");
-				return;
-			}
-			const ensured = await ensureV2Project({
-				repoPath: cloneResult.project.mainRepoPath,
-				name: cloneResult.project.name,
+			const hostService = getHostServiceClientByUrl(activeHostUrl);
+			const created = await hostService.project.create.mutate({
+				name: repoNameFromUrl(trimmed),
+				mode: { kind: "clone", parentDir: cloneTargetDir, url: trimmed },
 			});
-			goToPrompt(ensured.projectId);
+			await finish(created.projectId);
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to clone repository",
 			);
 		} finally {
-			setSubmitting(false);
+			setBusy(false);
 		}
 	};
 
 	return (
-		<StepShell maxWidth="lg">
-			<StepHeader
-				title="Add a project"
-				subtitle="Open a local folder or clone a remote repository."
-			/>
-
-			<div className="grid grid-cols-2 gap-2">
-				<ModeButton
-					selected={mode === "folder"}
-					onClick={() => setMode("folder")}
-					icon={<LuFolderOpen className="size-4" />}
-					label="Open folder"
-				/>
-				<ModeButton
-					selected={mode === "url"}
-					onClick={() => setMode("url")}
-					icon={<LuGitBranch className="size-4" />}
-					label="Clone from URL"
-				/>
-			</div>
-
-			{mode === "folder" ? (
-				<div className="flex flex-col gap-2 self-center">
-					<Button
-						size="sm"
-						className="w-[273px]"
-						onClick={handleOpenFolder}
-						disabled={!hostReady}
-					>
-						{hostReady ? "Choose a folder" : "Connecting…"}
-					</Button>
-					<p className="text-center text-xs text-muted-foreground">
-						Pick any folder with a <span className="font-mono">.git</span>{" "}
-						directory.
+		<div className="flex flex-col gap-3">
+			<Card className="flex-row items-center gap-4 p-5">
+				<ProjectIcon icon={<LuFolderOpen className="size-4.5" />} />
+				<div className="min-w-0 flex-1">
+					<p className="text-sm font-medium text-foreground">Open a folder</p>
+					<p className="text-xs text-muted-foreground">
+						Choose any local directory, git repo or not.
 					</p>
 				</div>
-			) : (
-				<form
-					onSubmit={handleCloneUrl}
-					className="flex w-[420px] flex-col gap-3 self-center"
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={handleOpenFolder}
+					disabled={!hostReady || busy}
 				>
+					{hostReady ? "Browse…" : "Connecting…"}
+				</Button>
+			</Card>
+
+			<Card className="gap-4 p-5">
+				<div className="flex items-center gap-4">
+					<ProjectIcon icon={<LuGitBranch className="size-4.5" />} />
+					<div className="min-w-0 flex-1">
+						<p className="text-sm font-medium text-foreground">Clone a repo</p>
+						<p className="text-xs text-muted-foreground">
+							Paste an HTTPS or SSH URL.
+						</p>
+					</div>
+				</div>
+				<form onSubmit={handleClone} className="flex items-center gap-2">
 					<Input
 						type="text"
-						placeholder="https://github.com/user/repo.git"
+						placeholder="git@github.com:org/repo.git"
 						value={url}
 						onChange={(e) => setUrl(e.target.value)}
-						disabled={submitting || !hostReady}
-						autoFocus
+						disabled={busy || !hostReady}
+						className="flex-1"
 					/>
 					<Button
 						type="submit"
-						size="sm"
-						disabled={!url.trim() || submitting || !hostReady}
+						disabled={!url.trim() || busy || !hostReady || !cloneTargetDir}
 					>
-						{submitting
-							? "Cloning…"
-							: hostReady
-								? "Clone repository"
-								: "Connecting…"}
+						{busy ? "Cloning…" : "Clone"}
 					</Button>
 				</form>
-			)}
-		</StepShell>
+			</Card>
+		</div>
 	);
 }
 
-function ModeButton({
-	selected,
-	onClick,
-	icon,
-	label,
-}: {
-	selected: boolean;
-	onClick: () => void;
-	icon: React.ReactNode;
-	label: string;
-}) {
+function repoNameFromUrl(url: string): string {
+	const lastSegment = url
+		.trim()
+		.replace(/\.git$/, "")
+		.replace(/[/:]+$/, "")
+		.split(/[/:]/)
+		.pop();
+	return lastSegment || "repo";
+}
+
+function ProjectIcon({ icon }: { icon: ReactNode }) {
 	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className={cn(
-				"inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
-				selected
-					? "border-foreground bg-accent text-foreground"
-					: "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
-			)}
-		>
+		<div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
 			{icon}
-			{label}
-		</button>
+		</div>
 	);
 }
