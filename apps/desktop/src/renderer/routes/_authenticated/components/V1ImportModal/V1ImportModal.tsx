@@ -15,6 +15,7 @@ import {
 } from "renderer/stores/v1-import-modal";
 import { MOCK_ORG_ID } from "shared/constants";
 import { IntroPage } from "./components/IntroPage";
+import { StepProgress } from "./components/StepProgress";
 import { WelcomePage } from "./components/WelcomePage";
 import { ImportPresetsPage } from "./ImportPresetsPage";
 import { ImportProjectsPage } from "./ImportProjectsPage";
@@ -92,7 +93,11 @@ export function V1ImportModal() {
 					)}
 				</div>
 
-				<div className="box-border flex shrink-0 items-center justify-between gap-3 border-t border-border/60 bg-background px-5 py-3">
+				<div className="relative box-border flex shrink-0 items-center justify-between gap-3 border-t border-border/60 bg-background px-5 py-3">
+					<StepProgress
+						currentIndex={currentIndex}
+						totalSteps={V1_IMPORT_PAGE_ORDER.length}
+					/>
 					<Button
 						variant="ghost"
 						size="sm"
