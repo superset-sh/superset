@@ -47,32 +47,61 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 		<ul className="flex flex-col gap-0.5 text-sm">
 			{runs.map((run) => {
 				const clickable = !!run.v2WorkspaceId;
+				const isFailed =
+					run.status === "dispatch_failed" || run.status === "skipped_offline";
 				const row = (
 					<button
 						type="button"
 						disabled={!clickable}
 						onClick={() => handleOpenRun(run)}
 						className={cn(
-							"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left",
+							"flex w-full rounded-md px-2 py-1.5 text-left",
+							isFailed ? "flex-col items-start" : "items-center gap-2",
 							clickable
 								? "cursor-pointer hover:bg-accent/40"
 								: "cursor-default opacity-70",
 						)}
 					>
-						<span
-							role="img"
-							aria-label={run.status}
-							className={cn(
-								"inline-block size-2 shrink-0 rounded-full",
-								STATUS_DOT[run.status],
-							)}
-						/>
-						<span className="truncate">{run.title || "Automation"}</span>
-						<span className="ml-auto shrink-0 truncate text-muted-foreground">
-							{run.scheduledFor
-								? formatAgo(new Date(run.scheduledFor), now)
-								: "—"}
-						</span>
+						{isFailed ? (
+							<>
+								<span className="flex w-full items-center gap-2">
+									<span
+										role="img"
+										aria-label={run.status}
+										className={cn(
+											"inline-block size-2 shrink-0 rounded-full",
+											STATUS_DOT[run.status],
+										)}
+									/>
+									<span className="truncate">{run.title || "Automation"}</span>
+									<span className="ml-auto shrink-0 truncate text-muted-foreground">
+										{run.scheduledFor
+											? formatAgo(new Date(run.scheduledFor), now)
+											: "—"}
+									</span>
+								</span>
+								<span className="truncate text-xs text-destructive select-text cursor-text pl-4">
+									{run.error || "Run failed"}
+								</span>
+							</>
+						) : (
+							<>
+								<span
+									role="img"
+									aria-label={run.status}
+									className={cn(
+										"inline-block size-2 shrink-0 rounded-full",
+										STATUS_DOT[run.status],
+									)}
+								/>
+								<span className="truncate">{run.title || "Automation"}</span>
+								<span className="ml-auto shrink-0 truncate text-muted-foreground">
+									{run.scheduledFor
+										? formatAgo(new Date(run.scheduledFor), now)
+										: "—"}
+								</span>
+							</>
+						)}
 					</button>
 				);
 				return (
