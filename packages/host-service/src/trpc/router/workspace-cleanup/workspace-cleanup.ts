@@ -125,13 +125,14 @@ export const workspaceCleanupRouter = router({
 		}),
 
 	/**
-	 * Destroy a workspace in four phases:
+	 * Destroy a workspace in five phases:
 	 *
 	 *   0. Preflight     — dirty-worktree check (skip if force)
 	 *   1. Teardown      — run .superset/teardown.sh (skip if force)
-	 *   2. Local cleanup — PTYs, worktree, optional branch
+	 *   2. Local cleanup — PTYs, worktree
 	 *   3. Cloud delete  ← authoritative UI state
-	 *   4. Host sqlite   — local index cleanup
+	 *   4. Branch delete — optional local branch cleanup
+	 *   5. Host sqlite   — local index cleanup
 	 *
 	 * Worktree removal is intentionally before cloud delete. If it fails
 	 * while the path still exists, the cloud row remains so the workspace is
@@ -141,7 +142,7 @@ export const workspaceCleanupRouter = router({
 	 *   - skips preflight (step 0)
 	 *   - skips teardown  (step 1)
 	 *   - step 2b always uses `--force --force`
-	 *   - step 2c always uses `-D` regardless: the `deleteBranch`
+	 *   - step 4 always uses `-D` regardless: the `deleteBranch`
 	 *     checkbox is the user's consent, so refusing unmerged branches
 	 *     would just silently drop the opt-in.
 	 *
@@ -221,6 +222,15 @@ async function runDestroy(
 		}
 	}
 
+	// Make sure we can commit to cloud before touching local disk. The actual
+	// cloud mutation happens after the worktree is removed.
+	if (!ctx.api) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Cloud API not configured",
+		});
+	}
+
 	// ─── Step 1: Teardown ──────────────────────────────────────────
 	// Script is the user's last chance to stop services / flush state
 	// before the workspace goes away. Failure here is recoverable
@@ -247,15 +257,6 @@ async function runDestroy(
 		}
 	}
 
-	// Make sure we can commit to cloud before touching local disk. The actual
-	// cloud mutation happens after the worktree is removed.
-	if (!ctx.api) {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: "Cloud API not configured",
-		});
-	}
-
 	// ─── Step 2: Local cleanup ─────────────────────────────────────
 	// 2a. PTYs
 	try {
@@ -273,12 +274,11 @@ async function runDestroy(
 
 	// 2b. Worktree. Double-force unlocks the rare locked-worktree case and
 	//     clears stale metadata when the directory was manually removed.
-	// 2c. Optional branch delete.
 	let worktreeRemoved = false;
 	let branchDeleted = false;
+	let git: Awaited<ReturnType<typeof ctx.git>> | null = null;
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
-		let git: Awaited<ReturnType<typeof ctx.git>> | null = null;
 		try {
 			git = await ctx.git(project.repoPath);
 		} catch (err) {
@@ -316,22 +316,25 @@ async function runDestroy(
 				}
 			}
 		}
-
-		if (git && input.deleteBranch && local.branch) {
-			try {
-				await git.raw(["branch", "-D", local.branch]);
-				branchDeleted = true;
-			} catch (err) {
-				const message = err instanceof Error ? err.message : String(err);
-				warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
-			}
-		}
 	}
 
 	// ─── Step 3: Cloud delete ──────────────────────────────────────
 	await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
 
-	// ─── Step 4: Host sqlite row ───────────────────────────────────
+	// ─── Step 4: Optional branch delete ────────────────────────────
+	// Keep this after the cloud commit point. If cloud delete fails, the
+	// workspace stays visible/retryable and the branch pointer remains intact.
+	if (git && local?.branch && input.deleteBranch) {
+		try {
+			await git.raw(["branch", "-D", local.branch]);
+			branchDeleted = true;
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
+		}
+	}
+
+	// ─── Step 5: Host sqlite row ───────────────────────────────────
 	if (local) {
 		try {
 			ctx.db

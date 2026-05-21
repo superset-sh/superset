@@ -19,7 +19,12 @@ export function register(server: McpServer): void {
 				id: input.id,
 			});
 			if (!workspace) {
-				return { success: true, alreadyGone: true };
+				return {
+					success: true,
+					alreadyGone: true,
+					worktreeRemoved: false,
+					warnings: [],
+				};
 			}
 			return hostServiceCall<{
 				success: boolean;

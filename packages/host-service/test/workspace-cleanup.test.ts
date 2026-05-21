@@ -34,6 +34,7 @@ interface ContextSpec {
 	worktreeRemove?: () => Promise<unknown>;
 	branchDelete?: () => Promise<unknown>;
 	dbDeleteThrows?: boolean;
+	noApi?: boolean;
 }
 
 function makeCtx(spec: ContextSpec): HostServiceContext {
@@ -82,12 +83,14 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 		organizationId: "org-1",
 		git: git as never,
 		github: (async () => ({})) as never,
-		api: {
-			v2Workspace: {
-				getFromHost: { query: cloudGetFromHost },
-				delete: { mutate: cloudDelete },
-			},
-		} as never,
+		api: spec.noApi
+			? undefined
+			: ({
+					v2Workspace: {
+						getFromHost: { query: cloudGetFromHost },
+						delete: { mutate: cloudDelete },
+					},
+				} as never),
 		db: {
 			query: {
 				workspaces: { findFirst: workspaceFindFirst },
@@ -424,7 +427,42 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 		}
 	});
 
-	test("branch delete failure is reported as a warning after worktree cleanup", async () => {
+	test("missing cloud API blocks before local cleanup", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		let worktreeRemoveCount = 0;
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: tmp,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: "/repo" },
+				cloudType: "worktree",
+				noApi: true,
+				worktreeRemove: async () => {
+					worktreeRemoveCount += 1;
+				},
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			await expect(
+				caller.destroy({
+					workspaceId: "ws-1",
+					deleteBranch: false,
+					force: true,
+				}),
+			).rejects.toMatchObject({
+				code: "PRECONDITION_FAILED",
+			});
+			expect(worktreeRemoveCount).toBe(0);
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	});
+
+	test("branch delete failure is reported as a warning after cloud delete", async () => {
 		let cloudCallCount = 0;
 		const ctx = makeCtx({
 			workspace: {

@@ -401,6 +401,30 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(remaining).toHaveLength(0);
 	});
 
+	test("cloud delete failure does not delete the optional branch", async () => {
+		scenario.host.setApi("v2Workspace.delete.mutate", () => {
+			throw new Error("cloud delete unavailable");
+		});
+
+		await expect(
+			scenario.host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId: scenario.featureWorkspaceId,
+				deleteBranch: true,
+			}),
+		).rejects.toThrow(/cloud delete unavailable/i);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).toContain(scenario.branch);
+
+		const remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(1);
+	});
+
 	test("returns success when no local workspace row exists, still calls cloud delete", async () => {
 		await scenario.dispose();
 		const fresh = await createBasicScenario({
