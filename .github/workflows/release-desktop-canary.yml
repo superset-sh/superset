@@ -155,7 +155,6 @@ jobs:
             - Commit: ${{ github.sha }}
             - Short SHA: ${{ needs.check-changes.outputs.short_sha }}
             - Built: ${{ needs.check-changes.outputs.build_time }}
-            - Code signing: ${{ github.event.inputs.skip_signing == 'true' && 'skipped' || 'enabled' }}
 
             ⚠️ This build is for internal testing only and may be unstable.
           prerelease: true
