@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { invalidateProjectQueries } from "renderer/react-query/projects/invalidateProjectQueries";
 
 export function useProjectCreationHandler(onError: (error: string) => void) {
 	const utils = electronTrpc.useUtils();
@@ -16,7 +17,7 @@ export function useProjectCreationHandler(onError: (error: string) => void) {
 	) => {
 		if (result.canceled) return;
 		if (result.success && result.project) {
-			utils.projects.getRecents.invalidate();
+			void invalidateProjectQueries(utils);
 			resetState?.();
 			navigate({
 				to: "/project/$projectId",
