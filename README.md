@@ -36,38 +36,33 @@ Superset is a macOS app for running many CLI coding agents in parallel. Each age
 
 ## Features
 
-#### 🌳 &nbsp;Parallel agents in isolated git worktrees
+### Parallel agents in isolated git worktrees
 
 Each task runs in its own git worktree off the same repository — shared object store, independent branch and working directory. Agents install dependencies and run tests without touching each other or your main checkout.
 
-#### 🔔 &nbsp;Notifications when an agent needs you
+### Notifications when an agent needs you
 
 Superset watches every workspace and pings you the moment an agent asks a question or finishes. The sidebar shows every workspace's state at a glance, so you jump straight to the one that needs you.
 
-#### 🔍 &nbsp;Built-in diff review and inline editing
+### Built-in diff review and inline editing
 
 Every workspace has a diff view for uncommitted, staged, and last-turn changes. Edit and commit in-app — or hand the worktree to VS Code, Cursor, Zed, or your terminal in one click.
 
-#### ⚙️ &nbsp;Reproducible workspace setup
+### Reproducible workspace setup
 
 A `.superset/config.json` defines what runs on create and destroy — copy `.env`, install dependencies, run migrations, tear down branches. New workspaces come up identical to your main checkout in seconds.
 
 ## Supported Agents
 
-| Agent | Status |
-|:------|:-------|
-| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/amp.svg" /> &nbsp;[Amp Code](https://ampcode.com/) | Fully supported |
-| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/claude.svg" /> &nbsp;[Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/codex-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/codex.svg" /></picture> &nbsp;[OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
-| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/cursor.svg" /> &nbsp;[Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
-| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/gemini.svg" /> &nbsp;[Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/copilot-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/copilot.svg" /></picture> &nbsp;[GitHub Copilot](https://github.com/features/copilot) | Fully supported |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/mastracode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/mastracode.svg" /></picture> &nbsp;[Mastracode](https://code.mastra.ai/) | Fully supported |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/opencode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/opencode.svg" /></picture> &nbsp;[OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/pi-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/pi.svg" /></picture> &nbsp;[Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
-| Any other CLI agent | Works without configuration |
+These agents run out of the box — no per-agent configuration:
 
-If it runs in a terminal, it runs on Superset.
+|  |  |  |
+|:--|:--|:--|
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/claude.svg" /> &nbsp;[Claude Code](https://github.com/anthropics/claude-code) | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/codex-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/codex.svg" /></picture> &nbsp;[OpenAI Codex CLI](https://github.com/openai/codex) | <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/cursor.svg" /> &nbsp;[Cursor Agent](https://docs.cursor.com/agent) |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/gemini.svg" /> &nbsp;[Gemini CLI](https://github.com/google-gemini/gemini-cli) | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/copilot-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/copilot.svg" /></picture> &nbsp;[GitHub Copilot](https://github.com/features/copilot) | <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/amp.svg" /> &nbsp;[Amp Code](https://ampcode.com/) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/mastracode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/mastracode.svg" /></picture> &nbsp;[Mastracode](https://code.mastra.ai/) | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/opencode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/opencode.svg" /></picture> &nbsp;[OpenCode](https://github.com/opencode-ai/opencode) | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/pi-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/pi.svg" /></picture> &nbsp;[Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) |
+
+**Plus any other CLI agent** — if it runs in a terminal, it runs on Superset.
 
 ## What runs locally
 
@@ -78,6 +73,9 @@ Superset runs on your machine. Your code, git worktrees, and agent processes nev
 - **Your agents** — Superset doesn't proxy your agents; they use whatever subscriptions or API keys you've already configured.
 
 ## Getting Started
+
+> [!NOTE]
+> Superset is macOS-only and requires a free account (GitHub or Google sign-in). Windows and Linux aren't supported yet.
 
 **[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**, then sign in with GitHub or Google.
 
