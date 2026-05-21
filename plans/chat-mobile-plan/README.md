@@ -1,6 +1,6 @@
 ---
 title: Mobile Chat (v0)
-version: 1.0.0
+version: 1.1.0
 scope_posture: full
 pr_sequencing: true
 ---
@@ -21,7 +21,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 
 | Field | Value |
 |-------|-------|
-| Version | 1.0.0 |
+| Version | 1.1.0 |
 | Scope Posture | Full feature (default) |
 | PR Sequencing | Enabled |
 | Created | 2026-05-21 |
@@ -41,7 +41,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 | [04-uc-sess.md](./04-uc-sess.md) | UC-SESS-01 through UC-SESS-05 (Session lifecycle) | FEATURE_SPEC |
 | [05-uc-comp.md](./05-uc-comp.md) | UC-COMP-01 through UC-COMP-05 (Composition + send) | FEATURE_SPEC |
 | [06-uc-render.md](./06-uc-render.md) | UC-RENDER-01 through UC-RENDER-07 (Message rendering) | FEATURE_SPEC |
-| [07-uc-pause.md](./07-uc-pause.md) | UC-PAUSE-01 through UC-PAUSE-03 (Mid-turn interactive prompts) | FEATURE_SPEC |
+| [07-uc-pause.md](./07-uc-pause.md) | UC-PAUSE-01 through UC-PAUSE-04 (Mid-turn interactive prompts + pending-action indicator) — includes Design Rationale with citations | FEATURE_SPEC |
 | [08-uc-platf.md](./08-uc-platf.md) | UC-PLATF-01 through UC-PLATF-05 (Platform integration) | FEATURE_SPEC |
 | [09-team-contributions.md](./09-team-contributions.md) | Source artifacts and prior research | — |
 | [10-technical-requirements.md](./10-technical-requirements.md) | System components, data, API, dependencies | CONSTITUTION |
@@ -51,8 +51,8 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 | Metric | Value |
 |--------|-------|
 | Functional Groups | 5 |
-| Use Cases | 25 |
-| System Components | 8 |
+| Use Cases | 26 |
+| System Components | 9 |
 | Data Entities (read-only) | 2 |
 | API Surfaces | 3 (cloud tRPC, host tRPC via relay, Electric Shape) |
 | External Dependencies (new) | 4 (`@shopify/flash-list`, `@gorhom/bottom-sheet`, `lucide-react-native`, `@10play/tentap-editor`) |
@@ -61,6 +61,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 
 | Version | Date | Changes | Trigger |
 |---------|------|---------|---------|
+| 1.1.0 | 2026-05-21 | Refine PAUSE UCs to use a container per interaction shape (inline card + sticky footer for tool approval; bottom sheet for ask_user; full-screen modal as pushed expo-router route for plan approval). Add UC-PAUSE-04 floating pending-action indicator. Add Design Rationale section to `07-uc-pause.md` with citations to Apple HIG, NN/G, Continue.dev, Cline, Material Design 3. | Product / UX review (research-validated 2026-05-21) |
 | 1.0.0 | 2026-05-21 | Initial PRD generated from research + design audit | New initiative |
 
 ## Source Artifacts (in branch `local-setup-no-env` — read for context)

@@ -14,7 +14,7 @@ prd_version: 1.0.0
 | **Host-service tRPC client** | Typed HTTP+tRPC client against `@superset/host-service`'s `AppRouter`. URL routed through `apps/relay` (per-host WS tunnel) instead of `127.0.0.1`. JWT bearer auth. | `apps/mobile/lib/host-service-client.ts` (NEW) — mirrors `apps/desktop/src/renderer/lib/host-service-client.ts` |
 | **Electric collections (extended)** | Adds `chat_sessions` collection to existing collections graph for realtime session-list sync. Already-exposed Electric shape; mobile just consumes it. | `apps/mobile/lib/collections/collections.ts` (MODIFY) |
 | **Tiptap editor wrapper** | WebView-hosted Tiptap via `@10play/tentap-editor` configured with the same minimal extension set as desktop's `TiptapPromptEditor.tsx` plus the `SlashCommandNode` and `FileMentionNode` ports. | `apps/mobile/components/chat/ChatInputFooter/` (NEW) |
-| **Bottom-sheet pause prompts** | `@gorhom/bottom-sheet` modals for tool approval, ask_user, plan approval. | `apps/mobile/components/chat/PendingApprovalSheet/`, `PendingQuestionSheet/`, `PendingPlanApprovalSheet/` (NEW) |
+| **Mid-turn pause UI** | Container shape chosen per interaction (see `07-uc-pause.md` Design Rationale for citations). Tool approval = inline card + sticky thumb-docked footer (Continue.dev pattern); ask_user = `@gorhom/bottom-sheet` with `BottomSheetTextInput` (keyboard handling); plan approval = full-screen modal as expo-router pushed route (Apple HIG "in-depth content"). Plus a floating pending-action indicator for off-screen pauses. | `apps/mobile/components/chat/PendingApprovalCard/`, `PendingApprovalFooter/` (sticky), `PendingQuestionSheet/`, `PendingActionIndicator/` (NEW components); `apps/mobile/app/(authenticated)/chat/[sessionId]/plan-review/[planId].tsx` (NEW pushed route) |
 | **Message list (virtualized)** | `@shopify/flash-list` (inverted) with Reanimated scroll-back affordance. | `apps/mobile/components/chat/MessageList/` (NEW) |
 | **Markdown renderer** | RN markdown rendering (likely `react-native-markdown-display` or `@expensify/react-native-live-markdown`) for assistant message content. Replaces desktop's web-only `streamdown`. | `apps/mobile/components/chat/MessageMarkdown/` (NEW) |
 | **Push notification handler** | Expo push token registration, foreground/background notification handling, deep-link to session on tap. Wired to host-service `notificationsEmitter` lifecycle events via cloud relay. | `apps/mobile/lib/push-notifications/` (NEW) |
@@ -93,8 +93,11 @@ Already exposed at `apps/electric-proxy/src/where.ts:136-137`. Mobile consumes v
 │  │              apps/mobile/components/chat/                    │    │
 │  │  ChatInterface → MessageList → UserMessage/AssistantMessage  │    │
 │  │  ChatInputFooter (@10play/tentap-editor)                     │    │
-│  │  PendingApprovalSheet / PendingQuestionSheet / PlanSheet     │    │
-│  │  (@gorhom/bottom-sheet, FlashList, Reanimated)               │    │
+│  │  PendingApprovalCard (inline) + PendingApprovalFooter (sticky)│   │
+│  │  PendingQuestionSheet (@gorhom/bottom-sheet)                 │    │
+│  │  PlanReviewScreen (expo-router pushed route)                 │    │
+│  │  PendingActionIndicator (floating pill)                      │    │
+│  │  (FlashList, Reanimated)                                     │    │
 │  └────────────────────┬────────────────────────────┬────────────┘    │
 │                       │                            │                 │
 │  ┌────────────────────▼──────────────┐  ┌──────────▼─────────┐       │
@@ -191,9 +194,11 @@ These cover most of the supporting infrastructure — no new install needed:
 | `chat/SlashCommandMenu/SlashCommandMenu.tsx` | `.../SlashCommandMenu/SlashCommandMenu.tsx` |
 | `chat/ModelPicker/ModelPicker.tsx` | `.../ModelPicker/ModelPicker.tsx` |
 | `chat/PermissionModePicker/PermissionModePicker.tsx` | `.../PermissionModePicker/PermissionModePicker.tsx` |
-| `chat/PendingApprovalSheet/PendingApprovalSheet.tsx` | `.../components/PendingApprovalMessage/PendingApprovalMessage.tsx` (UX adapted: inline card → bottom sheet) |
-| `chat/PendingQuestionSheet/PendingQuestionSheet.tsx` | `.../components/PendingQuestionMessage/PendingQuestionMessage.tsx` (UX adapted) |
-| `chat/PendingPlanApprovalSheet/PendingPlanApprovalSheet.tsx` | `.../components/PendingPlanApprovalMessage/PendingPlanApprovalMessage.tsx` (UX adapted) |
+| `chat/PendingApprovalCard/PendingApprovalCard.tsx` | `.../components/PendingApprovalMessage/PendingApprovalMessage.tsx` (inline card, container parity with desktop) |
+| `chat/PendingApprovalFooter/PendingApprovalFooter.tsx` | NEW — sticky thumb-docked footer with Approve / Decline / Always-allow-category buttons (no desktop analog; desktop has buttons inside the card) |
+| `chat/PendingQuestionSheet/PendingQuestionSheet.tsx` | `.../components/PendingQuestionMessage/PendingQuestionMessage.tsx` (UX adapted: inline → bottom sheet for keyboard handling) |
+| `app/(authenticated)/chat/[sessionId]/plan-review/[planId].tsx` (pushed route) | `.../components/PendingPlanApprovalMessage/PendingPlanApprovalMessage.tsx` (UX adapted: inline → full-screen modal for long-form markdown) |
+| `chat/PendingActionIndicator/PendingActionIndicator.tsx` | NEW — floating "Tap to respond" pill; no desktop analog (desktop assumes pause cards are always visible in a fixed-width pane) |
 
 ### Design tokens
 

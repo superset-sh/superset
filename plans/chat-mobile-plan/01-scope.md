@@ -23,10 +23,11 @@ scope_posture: full
 - **Message rendering**: user messages (text), assistant messages (streaming text + parts), markdown (code blocks, lists, links, tables, inline code via `react-native-markdown-display` or equivalent), tool call blocks (collapsed by default), plan blocks (read-only render), reasoning blocks (collapsed extended-thinking), subagent execution (nested read-only group).
 - **List virtualization** via `@shopify/flash-list` for histories ≥50 messages.
 - **Auto-scroll to bottom + scroll-back affordance** using FlashList `inverted` or `maintainVisibleContentPosition`, with a Reanimated-faded scroll-back button.
-- **Mid-turn interactive prompts as bottom sheets** (`@gorhom/bottom-sheet`):
-  - **Tool approval**: approve / decline / always-allow-category → `chat.respondToApproval`
-  - **`ask_user` question**: freeform text answer (and any provided multiple-choice pills) → `chat.respondToQuestion`
-  - **Plan approval**: approve / reject + optional feedback text → `chat.respondToPlan`
+- **Mid-turn interactive prompts** with container chosen per interaction shape (see UC-PAUSE-* and the Design Rationale section in `07-uc-pause.md` for the full evidence trail):
+  - **Tool approval** → **inline card in the message stream + sticky thumb-docked action footer** (Approve / Decline / Always-allow-category). Queues 1-of-N when multiple approvals are pending. Mirrors Continue.dev's developer-tool chat pattern; preserves conversation context for frequent decisions. → `chat.respondToApproval`
+  - **`ask_user` question** → **bottom sheet** (`@gorhom/bottom-sheet` with `BottomSheetTextInput`) for freeform answer + optional suggested-pill prefills. Keyboard handling is the decisive factor. → `chat.respondToQuestion`
+  - **Plan approval** → **full-screen modal as a pushed expo-router route** (`/chat/[sessionId]/plan-review/[planId]`). Plan markdown gets full vertical scroll with docked Approve/Reject buttons; matches Apple HIG's recommendation of full-screen modals for "in-depth content or a task that involves multiple steps." → `chat.respondToPlan`
+- **Pending-action indicator** (`PendingActionIndicator`): floating "Tap to respond" pill near the chat input that surfaces when a session has an active pause and the user has scrolled away from the inline card OR dismissed the sheet/modal without responding. Tapping it returns the user to the relevant container.
 - **Multi-device session sync**: a session created on desktop or via Slack agent appears in mobile's session list in realtime (via `chat_sessions` Electric shape).
 - **Push notifications** (Expo push) wired to host-service `notificationsEmitter` / `AGENT_LIFECYCLE` events: agent turn complete, agent paused for user input, agent failed.
 - **Host-offline UX**: clear UI state when the user's host-service is unreachable; automatic reconnect when host returns.
