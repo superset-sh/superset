@@ -94,7 +94,7 @@
 		"@types/react": "19.2.14",
 		"babel-preset-expo": "56.0.11",
 		"expo-mcp": "0.2.4",
-		"typescript": "6.0.3"
+		"typescript": "5.9.3"
 	},
 	"private": true
 }

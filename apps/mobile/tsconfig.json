@@ -3,8 +3,6 @@
 	"compilerOptions": {
 		"strict": true,
 		"skipLibCheck": true,
-		// TODO(SUPER-856): remove once TS 7 ships and baseUrl is removed
-		"ignoreDeprecations": "6.0",
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./*"],
