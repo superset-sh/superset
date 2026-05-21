@@ -81,7 +81,7 @@ export function OrganizationSettings({
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [nameValue, setNameValue] = useState("");
 
-	const { data: organizations, isLoading } = useLiveQuery(
+	const { data: organizations, isReady } = useLiveQuery(
 		(q) => q.from({ organizations: collections.organizations }),
 		[collections],
 	);
@@ -118,7 +118,7 @@ export function OrganizationSettings({
 		visibleItems,
 	);
 
-	const { data: membersData, isLoading: isMembersLoading } = useLiveQuery(
+	const { data: membersData, isReady: membersReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ members: collections.members })
@@ -220,7 +220,7 @@ export function OrganizationSettings({
 		);
 	}
 
-	if (isLoading || !organization) {
+	if (!organization && !isReady) {
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<Skeleton className="h-7 w-40 mb-8" />
@@ -235,6 +235,16 @@ export function OrganizationSettings({
 						</div>
 					))}
 				</div>
+			</div>
+		);
+	}
+
+	if (!organization) {
+		return (
+			<div className="p-6 max-w-4xl w-full">
+				<p className="text-sm text-muted-foreground select-text cursor-text">
+					Organization not found.
+				</p>
 			</div>
 		);
 	}
@@ -392,7 +402,7 @@ export function OrganizationSettings({
 										</p>
 									</div>
 
-									{isMembersLoading ? (
+									{!membersReady && members.length === 0 ? (
 										<div className="border rounded-lg divide-y divide-border">
 											{[0, 1, 2].map((i) => (
 												<div key={i} className="flex items-center gap-4 p-4">

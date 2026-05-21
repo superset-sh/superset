@@ -48,7 +48,7 @@ export function V2ProjectSettings({
 	const targetHostUrl = useHostUrl(hostId);
 	const targetHostId = hostId ?? machineId;
 
-	const { data: v2Project } = useLiveQuery(
+	const { data: v2Project, isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ projects: collections.v2Projects })
@@ -111,7 +111,14 @@ export function V2ProjectSettings({
 	});
 
 	const project = v2Project?.[0];
-	if (!project) return null;
+	if (!project) {
+		if (!isReady) return null;
+		return (
+			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
+				Project not found.
+			</div>
+		);
+	}
 
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">

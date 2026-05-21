@@ -5,7 +5,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
-import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
+import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useSettings } from "renderer/stores/settings";
 import type { CommentPaneData } from "../../types";
@@ -87,6 +87,7 @@ export function WorkspaceSidebar({
 	pendingReveal,
 	workspaceId,
 }: WorkspaceSidebarProps) {
+	const gitStatus = useWorkspaceGitStatus();
 	const collections = useCollections();
 	const { data: [localState] = [] } = useLiveQuery(
 		(query) =>
@@ -124,11 +125,8 @@ export function WorkspaceSidebar({
 		return () => ro.disconnect();
 	}, []);
 
-	const gitStatus = useGitStatus(workspaceId);
-
 	const changesTabDef = useChangesTab({
 		workspaceId,
-		gitStatus,
 		selectedFilePath,
 		onSelectFile: onSelectDiffFile,
 		onOpenFile: onSelectFile,

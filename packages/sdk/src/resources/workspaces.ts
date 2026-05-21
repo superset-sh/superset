@@ -60,8 +60,9 @@ export class Workspaces extends APIResource {
 
 	/**
 	 * Update fields on a workspace. At least one field is required. Currently
-	 * only `name` is exposed — branch and host moves require host-side
-	 * orchestration and aren't safe to set directly.
+	 * exposes `name` and `taskId`; branch and host moves require host-side
+	 * orchestration and aren't safe to set directly. Pass `taskId: null` to
+	 * unlink the workspace from its current task.
 	 *
 	 * Mirrors `superset workspaces update`.
 	 */
@@ -208,6 +209,8 @@ export interface WorkspaceCreateResult {
 export interface WorkspaceUpdateParams {
 	/** New workspace name. */
 	name?: string;
+	/** Link the workspace to a task by id, or pass `null` to unlink. */
+	taskId?: string | null;
 }
 
 export interface WorkspaceUpdateResult {

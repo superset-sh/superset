@@ -1,13 +1,15 @@
 import { isLocalProfile } from "@superset/shared/deployment-profile";
+import {
+	DEV_EMAIL,
+	DEV_NAME,
+	DEV_PASSWORD,
+} from "@superset/shared/dev-credentials";
 import { env as mainEnv } from "main/env.main";
 import {
 	loadToken,
 	saveToken,
 } from "../../lib/trpc/routers/auth/utils/auth-functions";
 
-const DEV_EMAIL = "admin@local.test";
-const DEV_PASSWORD = "supersetdev";
-const DEV_NAME = "Local Admin";
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 const DEV_AUTH_TIMEOUT_MS = 8000;
 

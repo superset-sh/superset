@@ -35,6 +35,12 @@ export interface HelloAckMessage {
 	type: "hello-ack";
 	protocol: number;
 	daemonVersion: string;
+	/**
+	 * Process id of the daemon process that accepted the connection. Supervisors
+	 * use this to recover adoption state from a live socket when the manifest is
+	 * missing or stale.
+	 */
+	daemonPid?: number;
 }
 
 // ---------- Client -> Daemon ----------

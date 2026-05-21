@@ -1,4 +1,8 @@
-import { snakeCamelMapper } from "@electric-sql/client";
+import {
+	FetchError,
+	type ShapeStreamOptions,
+	snakeCamelMapper,
+} from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
 	SelectAutomation,
@@ -24,6 +28,7 @@ import type {
 	SelectV2Workspace,
 	SelectWorkspace,
 } from "@superset/db/schema";
+import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
 import type { AppRouter } from "@superset/trpc";
 import { BasicIndex } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
@@ -40,8 +45,15 @@ import {
 	localStorageCollectionOptions,
 } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
+import type { inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
-import { getAuthToken, getJwt } from "renderer/lib/auth-client";
+import {
+	authClient,
+	getAuthToken,
+	getJwt,
+	setJwt,
+} from "renderer/lib/auth-client";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import superjson from "superjson";
 import { z } from "zod";
 import {
@@ -49,6 +61,8 @@ import {
 	type DashboardSidebarSectionRow,
 	dashboardSidebarProjectSchema,
 	dashboardSidebarSectionSchema,
+	type FailedWorkspaceCreateRow,
+	failedWorkspaceCreateSchema,
 	healV2UserPreferences,
 	healWorkspaceLocalState,
 	type V2TerminalPresetRow,
@@ -56,6 +70,7 @@ import {
 	v2TerminalPresetSchema,
 	v2UserPreferencesSchema,
 	type WorkspaceLocalStateRow,
+	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
 import { withReadHeal } from "./withReadHeal";
@@ -63,6 +78,23 @@ import { withReadHeal } from "./withReadHeal";
 const columnMapper = snakeCamelMapper();
 
 const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
+
+export const ELECTRIC_WRITE_SYNC_TIMEOUT_MS = 30_000;
+
+function electricTxidMatch(txid: unknown) {
+	if (typeof txid !== "number") return undefined;
+	return { txid, timeout: ELECTRIC_WRITE_SYNC_TIMEOUT_MS };
+}
+
+type HostWorkspacesCreateResult =
+	inferRouterOutputs<HostServiceAppRouter>["workspaces"]["create"];
+
+export interface WorkspaceCreateMutationMetadata {
+	hostUrl: string;
+	input: WorkspacesCreateInput;
+	result?: HostWorkspacesCreateResult;
+	[key: string]: unknown;
+}
 
 const persistence = createElectronSQLitePersistence({
 	invoke: (channel, request) => window.ipcRenderer.invoke(channel, request),
@@ -168,6 +200,13 @@ export interface OrgCollections {
 		typeof v2UserPreferencesSchema,
 		z.input<typeof v2UserPreferencesSchema>
 	>;
+	failedWorkspaceCreates: Collection<
+		FailedWorkspaceCreateRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof failedWorkspaceCreateSchema,
+		z.input<typeof failedWorkspaceCreateSchema>
+	>;
 }
 
 // Per-org collections cache
@@ -198,6 +237,24 @@ const electricHeaders = {
 	},
 };
 
+type ElectricSyncErrorHandler = NonNullable<ShapeStreamOptions["onError"]>;
+
+const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
+	if (error instanceof FetchError && error.status === 401) {
+		try {
+			const result = await authClient.token();
+			if (result.data?.token) {
+				setJwt(result.data.token);
+			}
+		} catch (refreshError) {
+			console.error("[collections] JWT refresh after 401 failed", refreshError);
+		}
+	} else {
+		console.error("[collections] Electric sync error", error);
+	}
+	return {};
+};
+
 const organizationsCollection = createPersistedElectricCollection(
 	electricCollectionOptions<SelectOrganization>({
 		id: "organizations",
@@ -206,6 +263,7 @@ const organizationsCollection = createPersistedElectricCollection(
 			params: { table: "auth.organizations" },
 			headers: electricHeaders,
 			columnMapper,
+			onError: handleElectricSyncError,
 		},
 		getKey: (item) => item.id,
 	}),
@@ -223,6 +281,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
@@ -231,12 +290,12 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					...changes,
 					id: original.id,
 				});
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 			onDelete: async ({ transaction }) => {
 				const item = transaction.mutations[0].original;
 				const result = await apiClient.task.delete.mutate(item.id);
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
@@ -252,6 +311,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -268,6 +328,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -284,6 +345,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
@@ -300,7 +362,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					repoCloneUrl: changes.repoCloneUrl,
 					githubRepositoryId,
 				});
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
@@ -320,6 +382,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			// Composite PK on (organization_id, machine_id); within an
 			// org-scoped collection, machineId alone is unique.
@@ -333,7 +396,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					hostId: original.machineId,
 					name: changes.name,
 				});
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
@@ -350,6 +413,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			// Composite PK on (organization_id, user_id, machine_id); within
 			// an org-scoped collection, (user_id, machine_id) is unique.
@@ -368,6 +432,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => `${item.userId}:${item.hostId}`,
 			onInsert: async ({ transaction }) => {
@@ -377,7 +442,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					userId: item.userId,
 					role: item.role,
 				});
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
@@ -389,7 +454,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					userId: original.userId,
 					role: changes.role,
 				});
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 			onDelete: async ({ transaction }) => {
 				const item = transaction.mutations[0].original;
@@ -397,7 +462,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					hostId: item.hostId,
 					userId: item.userId,
 				});
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
@@ -415,8 +480,17 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
+			onInsert: async ({ transaction }) => {
+				const metadata = transaction.mutations[0]
+					.metadata as WorkspaceCreateMutationMetadata;
+				const client = getHostServiceClientByUrl(metadata.hostUrl);
+				const result = await client.workspaces.create.mutate(metadata.input);
+				metadata.result = result;
+				return electricTxidMatch(result.txid);
+			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				const { branch, hostId, name, taskId } = changes;
@@ -427,7 +501,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					name,
 					taskId,
 				});
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
@@ -449,6 +523,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -465,6 +540,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -481,6 +557,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -497,6 +574,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -513,6 +591,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -529,6 +608,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -545,6 +625,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
@@ -553,7 +634,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					...changes,
 					id: original.id,
 				});
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
@@ -569,6 +650,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -585,6 +667,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -601,6 +684,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -617,6 +701,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 			onDelete: async ({ transaction }) => {
@@ -627,7 +712,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				if (!result.deleted) {
 					throw new Error("Chat session was not deleted");
 				}
-				return { txid: result.txid };
+				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
@@ -643,6 +728,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -659,6 +745,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -675,6 +762,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -691,6 +779,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers: electricHeaders,
 				columnMapper,
+				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -781,6 +870,15 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		),
 	);
 
+	const failedWorkspaceCreates = createIndexedCollection(
+		localStorageCollectionOptions({
+			id: `failed_workspace_creates-${organizationId}`,
+			storageKey: `failed-workspace-creates-${organizationId}`,
+			schema: failedWorkspaceCreateSchema,
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -810,6 +908,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2SidebarSections,
 		v2TerminalPresets,
 		v2UserPreferences,
+		failedWorkspaceCreates,
 	};
 }
 

@@ -44,50 +44,57 @@ function getDeploymentProfile(): MainDeploymentProfile {
 		return "cloud";
 	}
 	const explicitProfile = getExplicitProfile();
-	if (explicitProfile) return explicitProfile;
+	if (explicitProfile) {
+		if (explicitProfile === "local" && process.env.NODE_ENV === "production") {
+			return "internal";
+		}
+		return explicitProfile;
+	}
 	if (isTruthyFlag(process.env.CI)) return "ci";
 	return "internal";
 }
 
 export const deploymentProfile = getDeploymentProfile();
-const isStrict =
-	deploymentProfile === "cloud" || deploymentProfile === "internal";
 const skipValidation =
-	!isStrict || isTruthyFlag(process.env.SKIP_ENV_VALIDATION);
+	deploymentProfile === "ci" ||
+	deploymentProfile === "local" ||
+	(process.env.NODE_ENV !== "production" &&
+		isTruthyFlag(process.env.SKIP_ENV_VALIDATION));
+const isLocalDevelopment =
+	process.env.NODE_ENV === "development" && deploymentProfile === "local";
 
 export const env = createEnv({
 	server: {
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),
-		// In dev builds (NODE_ENV=development) the URL defaults switch to
-		// localhost so fresh-clone local contributors never silently sync
-		// against hosted production endpoints.
+		// In explicit local-profile dev builds, defaults switch to localhost so
+		// fresh-clone contributors never silently sync against hosted endpoints.
 		NEXT_PUBLIC_API_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4641"
 					: "https://api.superset.sh",
 			),
 		NEXT_PUBLIC_STREAMS_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4647"
 					: "https://streams.superset.sh",
 			),
 		NEXT_PUBLIC_ELECTRIC_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "https://localhost:4650"
 					: "https://electric-proxy.avi-6ac.workers.dev",
 			),
 		NEXT_PUBLIC_WEB_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4640"
 					: "https://app.superset.sh",
 			),
@@ -98,14 +105,14 @@ export const env = createEnv({
 		STREAMS_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4647"
 					: "https://superset-stream.fly.dev",
 			),
 		RELAY_URL: z
 			.url()
 			.default(
-				process.env.NODE_ENV === "development"
+				isLocalDevelopment
 					? "http://localhost:4653"
 					: "https://relay.superset.sh",
 			),

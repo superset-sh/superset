@@ -142,7 +142,7 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: "Automations",
-				values: [null, true, true],
+				values: [true, true, true],
 			},
 			{
 				label: "Mobile app",

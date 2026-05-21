@@ -42,7 +42,12 @@ export function getDeploymentProfile(
 ): DeploymentProfile {
 	if (isTruthyFlag(envSource.VERCEL) || envSource.VERCEL_ENV) return "cloud";
 	const explicitProfile = getExplicitProfile(envSource);
-	if (explicitProfile) return explicitProfile;
+	if (explicitProfile) {
+		if (explicitProfile === "local" && envSource.NODE_ENV === "production") {
+			return "internal";
+		}
+		return explicitProfile;
+	}
 	if (isTruthyFlag(envSource.CI)) return "ci";
 	return "internal";
 }
@@ -62,8 +67,11 @@ export function isLocalProfile(
 export function shouldSkipEnvValidation(
 	envSource: Record<string, string | undefined> = process.env,
 ): boolean {
+	const profile = getDeploymentProfile(envSource);
 	return (
-		!isStrictProfile(getDeploymentProfile(envSource)) ||
-		isTruthyFlag(envSource.SKIP_ENV_VALIDATION)
+		profile === "ci" ||
+		profile === "local" ||
+		(envSource.NODE_ENV !== "production" &&
+			isTruthyFlag(envSource.SKIP_ENV_VALIDATION))
 	);
 }

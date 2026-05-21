@@ -19,7 +19,7 @@ export function TeamsSettings() {
 	const navigate = useNavigate();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
-	const { data: teamsData, isLoading } = useLiveQuery(
+	const { data: teamsData, isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ teams: collections.teams })
@@ -57,7 +57,7 @@ export function TeamsSettings() {
 			<div className="flex-1 overflow-auto">
 				<div className="p-8">
 					<div className="max-w-5xl">
-						{isLoading ? (
+						{!isReady && teams.length === 0 ? (
 							<div className="space-y-2 border rounded-lg p-2">
 								{[1, 2, 3].map((i) => (
 									<div key={i} className="flex items-center gap-4 p-4">

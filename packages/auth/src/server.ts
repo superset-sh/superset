@@ -16,6 +16,7 @@ import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
+import { isLocalProfile } from "@superset/shared/deployment-profile";
 import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
@@ -129,12 +130,10 @@ export const auth = betterAuth({
 			generateId: false,
 		},
 	},
-	// Dev-only: email+password is enabled for OSS contributors and
-	// internal devs (NODE_ENV=development). In production builds the
-	// /sign-up/email and /sign-in/email endpoints are disabled — auth
-	// is OAuth-only there. Matches the UI form gating in apps/web.
+	// Local profile only: email+password backs the seeded contributor account.
+	// Internal dev, cloud, preview, and production stay OAuth-only.
 	emailAndPassword: {
-		enabled: process.env.NODE_ENV !== "production",
+		enabled: isLocalProfile(),
 		autoSignIn: true,
 	},
 	socialProviders,

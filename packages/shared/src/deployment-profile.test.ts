@@ -17,12 +17,20 @@ describe("deployment profile resolution", () => {
 	});
 
 	it("uses explicit local profile for lenient contributor development", () => {
-		const env = { SUPERSET_PROFILE: "local" };
+		const env = { NODE_ENV: "development", SUPERSET_PROFILE: "local" };
 
 		expect(getDeploymentProfile(env)).toBe("local");
 		expect(isLocalProfile(getDeploymentProfile(env))).toBe(true);
 		expect(isStrictProfile(getDeploymentProfile(env))).toBe(false);
 		expect(shouldSkipEnvValidation(env)).toBe(true);
+	});
+
+	it("does not allow local profile behavior in production runtime", () => {
+		const env = { NODE_ENV: "production", SUPERSET_PROFILE: "local" };
+
+		expect(getDeploymentProfile(env)).toBe("internal");
+		expect(isLocalProfile(getDeploymentProfile(env))).toBe(false);
+		expect(shouldSkipEnvValidation(env)).toBe(false);
 	});
 
 	it("uses ci only when no explicit or cloud profile is present", () => {
@@ -51,11 +59,17 @@ describe("deployment profile resolution", () => {
 		);
 	});
 
-	it("allows SKIP_ENV_VALIDATION as an explicit strict-profile escape hatch", () => {
-		const env = { SKIP_ENV_VALIDATION: "1" };
+	it("allows SKIP_ENV_VALIDATION only outside production runtime", () => {
+		const env = { NODE_ENV: "development", SKIP_ENV_VALIDATION: "1" };
 
 		expect(getDeploymentProfile(env)).toBe("internal");
 		expect(shouldSkipEnvValidation(env)).toBe(true);
+		expect(
+			shouldSkipEnvValidation({
+				NODE_ENV: "production",
+				SKIP_ENV_VALIDATION: "1",
+			}),
+		).toBe(false);
 	});
 
 	it("throws on invalid explicit profiles", () => {

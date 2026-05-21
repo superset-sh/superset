@@ -1,7 +1,6 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
-import { isLocalProfile } from "@superset/shared/deployment-profile";
 import {
 	app,
 	BrowserWindow,
@@ -56,13 +55,6 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
-
-// Local profile only: expose Chrome DevTools Protocol for headless testing
-// (e.g. import/host-service checks). Skip in internal / cloud profiles.
-if (IS_DEV && isLocalProfile()) {
-	app.commandLine.appendSwitch("remote-debugging-port", "9333");
-	app.commandLine.appendSwitch("remote-allow-origins", "*");
-}
 
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
@@ -185,14 +177,14 @@ export function quitApp(): void {
 	app.quit();
 }
 
-/** Nuclear quit: also kills host-service(s) and pty-daemon/terminal-host. */
+/** Quit + also stop background services. Tray "Quit Completely". */
 export function quitAppCompletely(): void {
 	forceFullCleanup = true;
 	setSkipQuitConfirmation();
 	app.quit();
 }
 
-/** Bypasses before-quit — services are left running for re-adoption on next launch. */
+/** Bypasses before-quit. Host-service children self-exit via the parent watchdog. */
 export function exitImmediately(): void {
 	app.exit(0);
 }
@@ -233,11 +225,11 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
-		if (isDev || forceFullCleanup || isUpdateReadyToInstall()) {
-			await runFullQuitCleanup();
-		} else {
-			// Prod: leave services running so the next launch re-adopts via manifest.
-			getHostServiceCoordinator().releaseAll();
+		getHostServiceCoordinator().stopAll();
+		if (isDev || forceFullCleanup) {
+			await teardownTerminalHost();
+		} else if (isUpdateReadyToInstall()) {
+			disposeTerminalHostClient();
 		}
 		shutdownTanstackDbPersistence();
 		disposeTray();
@@ -250,13 +242,11 @@ app.on("before-quit", async (event) => {
 });
 
 /**
- * Full cleanup — kill host-service + terminal-host children. Used in dev, on
- * update installs, and on the tray's "Quit Superset Completely" path in prod.
+ * Fully stop the v1 terminal-host process. Do not call this for update
+ * installs: terminal-host owns the PTY subprocesses, so shutdown is
+ * destructive and prevents reattach on next launch.
  */
-async function runFullQuitCleanup(): Promise<void> {
-	const coordinator = getHostServiceCoordinator();
-	await coordinator.teardownKnownManifests();
-	coordinator.stopAll();
+async function teardownTerminalHost(): Promise<void> {
 	try {
 		await getTerminalHostClient().shutdownIfRunning({ killSessions: true });
 	} catch (err) {
@@ -282,8 +272,9 @@ if (process.env.NODE_ENV === "development") {
 		if (signalHandled) return;
 		signalHandled = true;
 		console.log(`[main] Received ${signal}, quitting...`);
+		getHostServiceCoordinator().stopAll();
 		void Promise.allSettled([
-			runFullQuitCleanup(),
+			teardownTerminalHost(),
 			stopNetworkLogger(),
 		]).finally(() => app.exit(0));
 	};
@@ -434,10 +425,6 @@ if (!gotTheLock) {
 		// will re-hydrate when the token lands, so window creation doesn't
 		// block on this.
 		void ensureDevAuthToken();
-
-		// Discover and adopt host-services that survived a previous quit
-		// before the tray initializes, so it shows accurate status immediately.
-		await getHostServiceCoordinator().discoverAll();
 
 		if (IS_DEV) {
 			getHostServiceCoordinator().enableDevReload(async () => {

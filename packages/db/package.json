@@ -37,7 +37,6 @@
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"push": "drizzle-kit push",
 		"migrate": "drizzle-kit migrate",
-		"seed:dev": "bun run src/seed-dev.ts",
 		"studio": "drizzle-kit studio",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},

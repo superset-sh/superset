@@ -27,9 +27,9 @@ export function V1ImportModal() {
 	const close = useCloseV1ImportModal();
 	const { data: session } = authClient.useSession();
 	const { activeHostUrl } = useLocalHostService();
-	const organizationId =
-		session?.session?.activeOrganizationId ??
-		(env.SKIP_ENV_VALIDATION ? MOCK_ORG_ID : null);
+	const organizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
 
 	if (!organizationId) return null;
 

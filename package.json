@@ -8,7 +8,7 @@
 		"@biomejs/biome": "2.4.2",
 		"dotenv-cli": "11.0.0",
 		"sherif": "1.11.0",
-		"turbo": "2.8.7"
+		"turbo": "2.9.14"
 	},
 	"description": "Superset Monorepo",
 	"homepage": "https://superset.sh",
@@ -39,7 +39,6 @@
 		"release:canary": "./scripts/release-canary.sh",
 		"db:push": "bun run --cwd packages/db push",
 		"db:migrate": "bun run --cwd packages/db migrate",
-		"db:seed:dev": "bun run --cwd packages/db seed:dev",
 		"db:generate:desktop": "bun run --cwd packages/local-db generate"
 	},
 	"type": "module",

@@ -11,13 +11,11 @@ export function logBootSummary(): void {
 	logged = true;
 
 	const profile = getDeploymentProfile();
-	const missing = getMissingIntegrations();
-
 	if (isStrictProfile(profile)) {
-		console.log(`[superset] profile=${profile} (strict)`);
 		return;
 	}
 
+	const missing = getMissingIntegrations();
 	console.log(`[superset] profile=${profile} (lenient)`);
 	if (missing.length === 0) {
 		console.log("[superset] all integrations configured");

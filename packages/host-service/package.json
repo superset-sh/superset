@@ -1,6 +1,6 @@
 {
 	"name": "@superset/host-service",
-	"version": "0.8.7",
+	"version": "0.8.10",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -52,6 +52,7 @@
 		"test:integration:daemon": "node --experimental-strip-types --test src/terminal/DaemonClient/DaemonClient.node-test.ts src/daemon/DaemonSupervisor.node-test.ts",
 		"test:e2e": "bun run scripts/test-e2e.ts",
 		"bench": "bun test test/integration/pull-requests-scaling.bench.ts",
+		"profile:git-status": "bun run scripts/git-status-large-repo-profile.ts",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
@@ -70,7 +71,7 @@
 		"@t3-oss/env-core": "0.13.11",
 		"@trpc/client": "11.16.0",
 		"@trpc/server": "11.16.0",
-		"@xterm/headless": "6.1.0-beta.197",
+		"@xterm/headless": "6.1.0-beta.219",
 		"better-sqlite3": "12.6.2",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.12.18",

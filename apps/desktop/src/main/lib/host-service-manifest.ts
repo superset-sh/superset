@@ -1,7 +1,6 @@
 import {
 	existsSync,
 	mkdirSync,
-	readdirSync,
 	readFileSync,
 	unlinkSync,
 	writeFileSync,
@@ -15,12 +14,6 @@ export interface HostServiceManifest {
 	authToken: string;
 	startedAt: number;
 	organizationId: string;
-	/**
-	 * Desktop app version that spawned this host-service. Desktop uses this to
-	 * replace the detached host-service after an app update even when the
-	 * host-service package version was not bumped.
-	 */
-	spawnedByAppVersion: string;
 }
 
 export function manifestDir(organizationId: string): string {
@@ -66,38 +59,10 @@ export function readManifest(
 			return null;
 		}
 
-		// `spawnedByAppVersion` is required going forward, but pre-existing
-		// manifests on upgraded users won't have it. Coerce to empty string so
-		// `tryAdopt` can treat it as stale and still health-verify before
-		// signaling any PID.
-		if (typeof data.spawnedByAppVersion !== "string") {
-			data.spawnedByAppVersion = "";
-		}
-
 		return data as HostServiceManifest;
 	} catch {
 		return null;
 	}
-}
-
-/** Scan the host directory for all valid manifests on disk. */
-export function listManifests(): HostServiceManifest[] {
-	const hostDir = join(SUPERSET_HOME_DIR, "host");
-	if (!existsSync(hostDir)) return [];
-
-	const manifests: HostServiceManifest[] = [];
-	try {
-		for (const entry of readdirSync(hostDir, { withFileTypes: true })) {
-			if (!entry.isDirectory()) continue;
-			const manifest = readManifest(entry.name);
-			if (manifest) {
-				manifests.push(manifest);
-			}
-		}
-	} catch {
-		// Best-effort scan
-	}
-	return manifests;
 }
 
 export function removeManifest(organizationId: string): void {

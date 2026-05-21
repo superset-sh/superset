@@ -412,7 +412,12 @@ export const Terminal = memo(function Terminal({
 		if (!fontSettings) return;
 		const family = sanitizeTerminalFontFamily(fontSettings.terminalFontFamily);
 		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
-		const result = v1TerminalCache.updateAppearance(paneId, family, size);
+		const result = v1TerminalCache.updateAppearance(
+			paneId,
+			family,
+			size,
+			({ cols, rows }) => resizeRef.current({ paneId, cols, rows }),
+		);
 		if (result?.changed) {
 			resizeRef.current({ paneId, cols: result.cols, rows: result.rows });
 		}

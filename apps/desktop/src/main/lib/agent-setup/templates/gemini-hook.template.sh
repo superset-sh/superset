@@ -46,13 +46,14 @@ if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; the
   esac
 fi
 
-[ -z "$SUPERSET_TAB_ID" ] && exit 0
+[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 
 curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
   --connect-timeout 1 --max-time 2 \
   --data-urlencode "paneId=$SUPERSET_PANE_ID" \
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \
   --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+  --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
   --data-urlencode "sessionId=$HOOK_SESSION_ID" \
   --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
   --data-urlencode "eventType=$V1_EVENT_TYPE" \

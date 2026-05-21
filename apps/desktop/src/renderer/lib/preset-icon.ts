@@ -1,9 +1,9 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
-
-interface PresetWithAgent {
-	agentId?: string;
-}
+import {
+	type PresetIconSource,
+	resolveV2PresetIconKey,
+} from "./preset-icon-key";
 
 /**
  * Resolves the preset-icon key for a v2 terminal preset.
@@ -14,21 +14,18 @@ interface PresetWithAgent {
  * `agentId → agent → agent.presetId → icon`. Falls back to `agentId` itself
  * for legacy v2 rows whose `agentId` still holds a presetId.
  *
+ * If the link is missing or stale, falls back to the stored command's
+ * executable for display only. Launch still uses the linked agent when present
+ * and the preset's stored commands otherwise.
+ *
  * Never resolve by `preset.name` — it's user-editable display text and would
  * silently break for any label with spaces, casing differences, or edits.
  */
 export function resolveV2PresetIcon(
-	preset: PresetWithAgent,
+	preset: PresetIconSource,
 	agents: HostAgentConfig[] | undefined,
 	isDark: boolean,
 ): string | undefined {
-	if (!preset.agentId) return undefined;
-	const linkedAgentPresetId =
-		agents?.find((agent) => agent.id === preset.agentId)?.presetId ??
-		agents?.find((agent) => agent.presetId === preset.agentId)?.presetId;
-	return (
-		(linkedAgentPresetId
-			? getPresetIcon(linkedAgentPresetId, isDark)
-			: undefined) ?? getPresetIcon(preset.agentId, isDark)
-	);
+	const iconKey = resolveV2PresetIconKey(preset, agents);
+	return iconKey ? getPresetIcon(iconKey, isDark) : undefined;
 }

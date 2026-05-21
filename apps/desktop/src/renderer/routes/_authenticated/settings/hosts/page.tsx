@@ -16,11 +16,11 @@ function HostsIndexPage() {
 	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 
-	const activeOrganizationId =
-		session?.session?.activeOrganizationId ??
-		(env.SKIP_ENV_VALIDATION ? MOCK_ORG_ID : null);
+	const activeOrganizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
 
-	const { data: hosts = [] } = useLiveQuery(
+	const { data: hosts = [], isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ hosts: collections.v2Hosts })
@@ -52,6 +52,7 @@ function HostsIndexPage() {
 	}, [firstHostId, navigate]);
 
 	if (hosts.length === 0) {
+		if (!isReady) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
 				No hosts yet.

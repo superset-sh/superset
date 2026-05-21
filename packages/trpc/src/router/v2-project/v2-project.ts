@@ -215,18 +215,30 @@ export const v2ProjectRouter = {
 			}
 
 			let project: typeof v2Projects.$inferSelect | undefined;
+			let txid: number | null = null;
 			try {
-				[project] = await dbWs
-					.insert(v2Projects)
-					.values({
-						...(input.id ? { id: input.id } : {}),
-						organizationId: input.organizationId,
-						name: input.name,
-						slug: input.slug,
-						repoCloneUrl: canonicalUrl,
-						githubRepositoryId: linkedRepoId,
-					})
-					.returning();
+				const result = await dbWs.transaction(async (tx) => {
+					const [inserted] = await tx
+						.insert(v2Projects)
+						.values({
+							...(input.id ? { id: input.id } : {}),
+							organizationId: input.organizationId,
+							name: input.name,
+							slug: input.slug,
+							repoCloneUrl: canonicalUrl,
+							githubRepositoryId: linkedRepoId,
+						})
+						.returning();
+
+					if (!inserted) {
+						return { project: undefined, txid: null };
+					}
+
+					const currentTxid = await getCurrentTxid(tx);
+					return { project: inserted, txid: currentTxid };
+				});
+				project = result.project;
+				txid = result.txid;
 			} catch (err) {
 				// Drizzle wraps pg errors in a "Failed query:" envelope; the
 				// real constraint name lives on the underlying cause. Walk
@@ -300,7 +312,7 @@ export const v2ProjectRouter = {
 				})();
 			}
 
-			return project;
+			return { ...project, txid };
 		}),
 
 	linkRepoCloneUrl: jwtProcedure

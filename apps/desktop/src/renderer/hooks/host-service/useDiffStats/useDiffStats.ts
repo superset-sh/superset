@@ -24,6 +24,7 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 			if (!hostUrl) return null;
 			return getHostServiceClientByUrl(hostUrl).git.getStatus.query({
 				workspaceId,
+				priority: "background",
 			});
 		},
 		refetchOnWindowFocus: false,
@@ -34,7 +35,12 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 		void queryClient.invalidateQueries({ queryKey });
 	}, [queryClient, queryKey]);
 
-	useWorkspaceEvent("git:changed", workspaceId, invalidate);
+	useWorkspaceEvent(
+		"git:changed",
+		workspaceId,
+		invalidate,
+		Boolean(workspaceId) && Boolean(hostUrl),
+	);
 
 	return useMemo<DiffStats | null>(() => {
 		if (!status) return null;

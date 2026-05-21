@@ -1,4 +1,6 @@
+import type { AppRouter } from "@superset/host-service";
 import type { WorkspaceState } from "@superset/panes";
+import type { inferRouterInputs } from "@trpc/server";
 import { z } from "zod";
 
 const persistedDateSchema = z
@@ -320,3 +322,18 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 			: sidebarFileLinks,
 	};
 }
+
+export type WorkspacesCreateInput =
+	inferRouterInputs<AppRouter>["workspaces"]["create"];
+
+export const failedWorkspaceCreateSchema = z.object({
+	id: z.string().uuid(),
+	hostId: z.string(),
+	input: z.custom<WorkspacesCreateInput>(),
+	error: z.string(),
+	failedAt: persistedDateSchema,
+});
+
+export type FailedWorkspaceCreateRow = z.infer<
+	typeof failedWorkspaceCreateSchema
+>;

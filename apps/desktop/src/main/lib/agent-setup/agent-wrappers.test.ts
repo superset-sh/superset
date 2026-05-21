@@ -32,7 +32,7 @@ mock.module("shared/env.shared", () => ({
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v3",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -66,6 +66,7 @@ const {
 	createClaudeSettingsJson,
 	createCodexHooksJson,
 	createCodexWrapper,
+	COPILOT_HOOK_MARKER,
 	CURSOR_HOOK_MARKER,
 	createDroidSettingsJson,
 	createDroidWrapper,
@@ -190,11 +191,11 @@ describe("agent-wrappers copilot", () => {
 		const wrapper = readFileSync(wrapperPath, "utf-8");
 
 		expect(wrapper).toContain(
-			`"$REAL_BIN" --enable hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
+			`"$REAL_BIN" "\${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
 
-		expect(wrapper).toContain("# Superset agent-wrapper v2");
+		expect(wrapper).toContain("# Superset agent-wrapper v3");
 
 		// Native hooks remain enabled, but the process-scoped TUI session log is
 		// the reliable Start signal for installed Codex TUI builds.
@@ -202,6 +203,12 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain("CODEX_TUI_RECORD_SESSION");
 		expect(wrapper).toContain("CODEX_TUI_SESSION_LOG_PATH");
 		expect(wrapper).toContain("SUPERSET_TERMINAL_ID$SUPERSET_TAB_ID");
+		expect(wrapper).toContain("_superset_configure_project_trust");
+		expect(wrapper).toContain("SUPERSET_WORKSPACE_PATH/.codex");
+		expect(wrapper).toContain(
+			'projects={\\"$_superset_workspace_path_toml\\"={trust_level=\\"trusted\\"}}',
+		);
+		expect(wrapper).not.toContain("export CODEX_HOME=");
 		expect(wrapper).not.toContain("rollout-*.jsonl");
 		expect(wrapper).not.toContain("_superset_sessions_dir");
 		expect(wrapper).not.toContain("$" + "{CODEX_HOME:-$HOME/.codex}");
@@ -223,6 +230,55 @@ describe("agent-wrappers copilot", () => {
 		);
 		expect(execLine).not.toContain("{{NOTIFY_PATH}}");
 		expect(wrapper).toContain(execLine);
+	});
+
+	it("trusts the Superset workspace codex project config without replacing CODEX_HOME", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realCodex = path.join(realBinDir, "codex");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const workspacePath = path.join(TEST_ROOT, "workspace");
+		const workspaceCodexHome = path.join(workspacePath, ".codex");
+		const explicitCodexHome = path.join(TEST_ROOT, "custom-codex-home");
+		const codexHomeFile = path.join(TEST_ROOT, "codex-home.txt");
+		const argsFile = path.join(TEST_ROOT, "codex-trust-args.txt");
+
+		mkdirSync(realBinDir, { recursive: true });
+		mkdirSync(workspaceCodexHome, { recursive: true });
+		writeFileSync(path.join(workspaceCodexHome, "config.toml"), "\n");
+		writeFileSync(
+			realCodex,
+			`#!/bin/bash
+printf '%s\n' "\${CODEX_HOME:-}" > "${codexHomeFile}"
+printf '%s\n' "$@" > "${argsFile}"
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(realCodex, 0o755);
+
+		createCodexWrapper();
+
+		execFileSync(wrapperPath, [], {
+			env: {
+				...process.env,
+				CODEX_HOME: explicitCodexHome,
+				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+				SUPERSET_WORKSPACE_PATH: workspacePath,
+			},
+			encoding: "utf-8",
+		});
+
+		expect(readFileSync(codexHomeFile, "utf-8")).toBe(`${explicitCodexHome}\n`);
+		expect(readFileSync(argsFile, "utf-8")).toBe(
+			`${[
+				"-c",
+				`projects={"${workspacePath}"={trust_level="trusted"}}`,
+				"--enable",
+				"hooks",
+				"-c",
+				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
+			].join("\n")}\n`,
+		);
 	});
 
 	it("forwards hooks enablement through the codex wrapper for manual launches", () => {
@@ -248,6 +304,7 @@ exit 0
 			env: {
 				...process.env,
 				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+				SUPERSET_WORKSPACE_PATH: "",
 				SUPERSET_TERMINAL_ID: "terminal-1",
 			},
 			encoding: "utf-8",
@@ -688,9 +745,10 @@ exit 0
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
 
-	it("bumps Cursor and Gemini hook script markers when hook semantics change", () => {
-		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v2");
-		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v2");
+	it("bumps hook script markers when hook semantics change", () => {
+		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v2");
+		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v3");
+		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v3");
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {

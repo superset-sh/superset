@@ -8,9 +8,12 @@ import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
-import { DevAuthForm } from "../../components/DevAuthForm";
+import { DevSignInButton } from "../../components/DevSignInButton";
 
-const isDev = process.env.NODE_ENV !== "production";
+const isLocalDev =
+	process.env.NODE_ENV !== "production" &&
+	env.NEXT_PUBLIC_API_URL.startsWith("http://localhost:") &&
+	env.NEXT_PUBLIC_WEB_URL.startsWith("http://localhost:");
 
 export default function SignInPage() {
 	const searchParams = useSearchParams();
@@ -69,7 +72,7 @@ export default function SignInPage() {
 				{error && (
 					<p className="text-destructive text-center text-sm">{error}</p>
 				)}
-				{isDev && <DevAuthForm mode="sign-in" callbackURL={callbackURL} />}
+				{isLocalDev && <DevSignInButton callbackURL={callbackURL} />}
 				<Button
 					variant="outline"
 					disabled={isLoading}

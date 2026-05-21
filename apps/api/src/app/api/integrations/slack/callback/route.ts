@@ -9,8 +9,10 @@ import { posthog } from "@/lib/analytics";
 import { verifySignedState } from "@/lib/oauth-state";
 
 const UNIQUE_VIOLATION = "23505";
-const ACTIVE_LINKAGE_INDEX =
-	"integration_connections_provider_external_org_active_unique";
+const ACTIVE_LINKAGE_INDEXES = new Set([
+	"integration_connections_provider_external_org_active_unique",
+	"integration_connections_slack_external_org_active_unique",
+]);
 
 export async function GET(request: Request) {
 	const url = new URL(request.url);
@@ -142,7 +144,11 @@ export async function GET(request: Request) {
 		return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`);
 	} catch (error) {
 		const e = error as { code?: string; constraint?: string };
-		if (e.code === UNIQUE_VIOLATION && e.constraint === ACTIVE_LINKAGE_INDEX) {
+		if (
+			e.code === UNIQUE_VIOLATION &&
+			e.constraint &&
+			ACTIVE_LINKAGE_INDEXES.has(e.constraint)
+		) {
 			return Response.redirect(
 				`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=workspace_already_linked`,
 			);

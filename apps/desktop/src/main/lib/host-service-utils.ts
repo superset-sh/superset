@@ -43,7 +43,17 @@ export function openRotatingLogFd(logPath: string, maxBytes: number): number {
 	}
 }
 
-export async function findFreePort(): Promise<number> {
+export async function findFreePort(
+	preferredPorts: Iterable<number> = [],
+): Promise<number> {
+	const triedPorts = new Set<number>();
+	for (const port of preferredPorts) {
+		const normalizedPort = normalizePort(port);
+		if (!normalizedPort || triedPorts.has(normalizedPort)) continue;
+		triedPorts.add(normalizedPort);
+		if (await canBindPort(normalizedPort)) return normalizedPort;
+	}
+
 	return new Promise((resolve, reject) => {
 		const server = createServer();
 		server.listen(0, "127.0.0.1", () => {
@@ -56,6 +66,30 @@ export async function findFreePort(): Promise<number> {
 			}
 		});
 		server.on("error", reject);
+	});
+}
+
+function normalizePort(port: number): number | null {
+	if (!Number.isInteger(port) || port <= 0 || port > 65_535) return null;
+	return port;
+}
+
+function canBindPort(port: number): Promise<boolean> {
+	return new Promise((resolve) => {
+		const server = createServer();
+		const finish = (available: boolean) => {
+			server.removeAllListeners("error");
+			server.removeAllListeners("listening");
+			if (!available) {
+				resolve(false);
+				return;
+			}
+			server.close(() => resolve(true));
+		};
+
+		server.once("error", () => finish(false));
+		server.once("listening", () => finish(true));
+		server.listen(port, "127.0.0.1");
 	});
 }
 

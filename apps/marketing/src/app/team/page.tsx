@@ -8,6 +8,7 @@ import {
 	RiTwitterXFill,
 } from "react-icons/ri";
 import { getAllPeople } from "@/lib/people";
+import { TeamBio } from "./components/TeamBio";
 
 export const metadata: Metadata = {
 	title: "About",
@@ -112,10 +113,9 @@ export default function TeamPage() {
 											{person.role}
 										</p>
 										{person.bio && (
-											<p
+											<TeamBio
+												bio={person.bio}
 												className="text-sm text-muted-foreground leading-relaxed mt-3 [&_a]:text-muted-foreground [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
-												// biome-ignore lint/security/noDangerouslySetInnerHtml: controlled content from team data
-												dangerouslySetInnerHTML={{ __html: person.bio }}
 											/>
 										)}
 

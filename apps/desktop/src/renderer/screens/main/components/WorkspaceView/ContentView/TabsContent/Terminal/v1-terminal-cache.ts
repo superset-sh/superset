@@ -3,6 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
+import { scheduleFontSettleRefit } from "renderer/lib/terminal/font-settle";
 import { getTerminalParkingContainer } from "renderer/lib/terminal/terminal-parking";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { DEBUG_TERMINAL } from "./config";
@@ -88,9 +89,10 @@ function fitAndRefresh(entry: CachedTerminal): boolean {
 		}
 	}
 
+	const dimensionsChanged = xterm.cols !== prevCols || xterm.rows !== prevRows;
 	xterm.refresh(0, Math.max(0, xterm.rows - 1));
 
-	return xterm.cols !== prevCols || xterm.rows !== prevRows;
+	return dimensionsChanged;
 }
 
 export function has(paneId: string): boolean {
@@ -150,7 +152,19 @@ export function attachToContainer(
 	entry.container = container;
 	container.appendChild(entry.wrapper);
 
+	// Refit and repaint on reattach because the wrapper may have been parked
+	// while its live container changed size.
 	fitAndRefresh(entry);
+	// xterm's initial cell-width measurement may have run before the configured
+	// font finished loading, baking wrong glyph metrics into the renderer
+	// (#4617). Refit once fonts are ready so the layout matches the rendered
+	// font without requiring a manual resize.
+	scheduleFontSettleRefit(
+		entry.xterm,
+		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
+		() => fitAndRefresh(entry),
+		onResize,
+	);
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
@@ -189,6 +203,7 @@ export function updateAppearance(
 	paneId: string,
 	fontFamily: string,
 	fontSize: number,
+	onDeferredResize?: (dims: { cols: number; rows: number }) => void,
 ): { cols: number; rows: number; changed: boolean } | null {
 	const entry = cache.get(paneId);
 	if (!entry) return null;
@@ -204,6 +219,17 @@ export function updateAppearance(
 	xterm.options.fontSize = fontSize;
 
 	const changed = fitAndRefresh(entry);
+
+	// The new font may still be loading — schedule a second refit once it
+	// resolves so dimensions match the actually-rendered glyphs.
+	scheduleFontSettleRefit(
+		xterm,
+		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
+		() => fitAndRefresh(entry),
+		onDeferredResize
+			? () => onDeferredResize({ cols: xterm.cols, rows: xterm.rows })
+			: undefined,
+	);
 
 	return {
 		cols: xterm.cols,

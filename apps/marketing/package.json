@@ -20,6 +20,8 @@
 		"@superset/shared": "workspace:*",
 		"@superset/ui": "workspace:*",
 		"@t3-oss/env-nextjs": "0.13.11",
+		"@upstash/ratelimit": "2.0.8",
+		"@upstash/redis": "1.37.0",
 		"framer-motion": "12.38.0",
 		"geist": "1.7.0",
 		"gray-matter": "4.0.3",

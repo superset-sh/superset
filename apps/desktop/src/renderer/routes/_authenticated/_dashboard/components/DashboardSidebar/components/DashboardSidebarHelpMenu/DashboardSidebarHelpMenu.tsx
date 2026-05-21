@@ -22,6 +22,7 @@ import {
 import { IoBugOutline } from "react-icons/io5";
 import { LuKeyboard, LuMegaphone } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SubmitPromptDialog } from "./components/SubmitPromptDialog";
 
 interface DashboardSidebarHelpMenuProps {
@@ -34,9 +35,10 @@ export function DashboardSidebarHelpMenu({
 	const navigate = useNavigate();
 	const shortcutsHotkey = useHotkeyDisplay("SHOW_HOTKEYS").text;
 	const [submitPromptOpen, setSubmitPromptOpen] = useState(false);
+	const openUrlMutation = electronTrpc.external.openUrl.useMutation();
 
 	const openExternal = (url: string) => {
-		window.open(url, "_blank");
+		openUrlMutation.mutate(url);
 	};
 
 	const triggerButton = (

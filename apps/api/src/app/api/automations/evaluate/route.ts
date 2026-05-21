@@ -1,9 +1,8 @@
 import { dbWs } from "@superset/db/client";
-import { automations, subscriptions } from "@superset/db/schema";
-import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
+import { automations } from "@superset/db/schema";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import { Receiver } from "@upstash/qstash";
-import { and, eq, exists, inArray, lte, ne, sql } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 
 import { env } from "@/env";
 import { qstash } from "@/lib/qstash";
@@ -43,26 +42,7 @@ export async function POST(request: Request): Promise<Response> {
 	const due = await dbWs
 		.select()
 		.from(automations)
-		.where(
-			and(
-				eq(automations.enabled, true),
-				lte(automations.nextRunAt, now),
-				// Catches orgs that downgraded with automations still enabled — the
-				// create-time gate only blocks new ones.
-				exists(
-					dbWs
-						.select({ one: sql`1` })
-						.from(subscriptions)
-						.where(
-							and(
-								eq(subscriptions.referenceId, automations.organizationId),
-								inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
-								ne(subscriptions.plan, "free"),
-							),
-						),
-				),
-			),
-		)
+		.where(and(eq(automations.enabled, true), lte(automations.nextRunAt, now)))
 		.orderBy(automations.nextRunAt)
 		.limit(BATCH_SIZE);
 

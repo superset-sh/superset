@@ -7,7 +7,7 @@ import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { LocalDevAuthForm } from "./components/LocalDevAuthForm";
+import { LocalDevSignInButton } from "./components/LocalDevSignInButton";
 import { SupersetLogo } from "./components/SupersetLogo";
 import { useSessionRecovery } from "./hooks/useSessionRecovery";
 
@@ -18,7 +18,8 @@ export const Route = createFileRoute("/sign-in/")({
 function SignInPage() {
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
-	const isLocalProfile = env.SUPERSET_PROFILE === "local";
+	const isLocalProfile =
+		env.NODE_ENV === "development" && env.SUPERSET_PROFILE === "local";
 
 	// Dev bypass: AuthProvider handles auto-sign-in; if session lands, redirect
 	if (env.SKIP_ENV_VALIDATION && session?.user) {
@@ -66,7 +67,7 @@ function SignInPage() {
 					</div>
 
 					<div className="flex w-full max-w-xs flex-col gap-3">
-						{isLocalProfile && <LocalDevAuthForm />}
+						{isLocalProfile && <LocalDevSignInButton />}
 
 						{isLocalProfile && <div className="h-px bg-border" />}
 

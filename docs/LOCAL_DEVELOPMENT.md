@@ -92,7 +92,7 @@ For programmatic monitoring (or to confirm a key took effect), hit `GET /api/hea
 { "ok": true, "profile": "local", "integrations": { "stripe": "missing", ... } }
 ```
 
-For the web app (`http://localhost:4640`), the sign-in and sign-up pages render a dev-only email/password form when `NODE_ENV !== "production"`. Use the same credentials.
+For the web app (`http://localhost:4640`), the sign-in and sign-up pages render a dev-only email/password form when running a non-production build against local API/web URLs. Use the same credentials.
 
 ## What works locally
 
@@ -152,4 +152,3 @@ bun setup:local
 - **DB driver swap** — `packages/db/src/client.ts` detects whether `DATABASE_URL` is a Neon host (`*.neon.tech`, `*.neon.build`) and uses Drizzle's `neon-http` adapter for cloud, or `node-postgres` for any other Postgres (including the local Docker one).
 - **Dev auto-sign-in** — `apps/desktop/src/main/lib/dev-auto-sign-in.ts` runs once during `app.whenReady()` only in the `local` profile. POSTs to `/api/auth/sign-in/email` (auto-signs-up if user doesn't exist), persists the token via the same `saveToken()` that OAuth uses. The renderer doesn't know dev mode exists.
 - **Renderer organization selection** — pages prefer `session.activeOrganizationId` from Better Auth, falling back to `MOCK_ORG_ID` only if there's no session at all. Make sure new code that needs `activeOrganizationId` follows this same priority (real session first).
-- **CDP for headless tests** — in the `local` profile, the desktop main process exposes Chrome DevTools Protocol on `localhost:9333`. Useful for scripted UI checks (`curl http://localhost:9333/json/list`).
