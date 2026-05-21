@@ -21,11 +21,8 @@ import { track } from "renderer/lib/analytics";
 import { STEP_ROUTES, useOnboardingStore } from "renderer/stores/onboarding";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
-import {
-	isItemVisible,
-	SETTING_ITEM_ID,
-	type SettingItemId,
-} from "../../../utils/settings-search";
+import type { SettingItemId } from "../../../utils/settings-search";
+import { getExperimentalPanelView } from "./getExperimentalPanelView";
 
 interface ExperimentalSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -34,20 +31,14 @@ interface ExperimentalSettingsProps {
 export function ExperimentalSettings({
 	visibleItems,
 }: ExperimentalSettingsProps) {
-	const showSupersetV2 = isItemVisible(
-		SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2,
-		visibleItems,
-	);
-	const showV1Migration = isItemVisible(
-		SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION,
-		visibleItems,
-	);
-	const showRestartOnboarding = isItemVisible(
-		SETTING_ITEM_ID.EXPERIMENTAL_RESTART_ONBOARDING,
-		visibleItems,
-	);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isV2OnlyUser = useIsV2OnlyUser();
+	const {
+		showSupersetV2Toggle,
+		showV1MigrationButton,
+		showRestartOnboardingButton,
+		showV2OnlyStatusMessage,
+	} = getExperimentalPanelView({ isV2OnlyUser, visibleItems });
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const resetOnboarding = useOnboardingStore((state) => state.reset);
 	const openV1ImportModal = useOpenV1ImportModal();
@@ -68,7 +59,16 @@ export function ExperimentalSettings({
 			</div>
 
 			<div className="space-y-6">
-				{showSupersetV2 && !isV2OnlyUser && (
+				{showV2OnlyStatusMessage && (
+					<div className="rounded-md border border-border bg-muted/40 p-4">
+						<p className="text-sm font-medium">You're using Superset v2</p>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Your account uses the new workspace experience by default. There's
+							no v1 toggle for accounts on v2.
+						</p>
+					</div>
+				)}
+				{showSupersetV2Toggle && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label htmlFor="superset-v2" className="text-sm font-medium">
@@ -91,7 +91,7 @@ export function ExperimentalSettings({
 						/>
 					</div>
 				)}
-				{showV1Migration && !isV2OnlyUser && (
+				{showV1MigrationButton && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label className="text-sm font-medium">Import from v1</Label>
@@ -117,7 +117,7 @@ export function ExperimentalSettings({
 						</Button>
 					</div>
 				)}
-				{showRestartOnboarding && (
+				{showRestartOnboardingButton && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label className="text-sm font-medium">Restart onboarding</Label>
