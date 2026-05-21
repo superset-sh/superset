@@ -582,6 +582,7 @@ export const createCreateProcedures = () => {
 							worktreeId: orphanedWorktree.id,
 							branch,
 							name: input.name ?? branch,
+							isUnnamed: !input.name,
 						});
 						let autoRenameWarning: string | undefined;
 						try {

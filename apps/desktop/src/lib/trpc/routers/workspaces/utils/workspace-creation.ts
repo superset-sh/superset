@@ -21,6 +21,7 @@ interface CreateWorkspaceFromWorktreeParams {
 	worktreeId: string;
 	branch: string;
 	name: string;
+	isUnnamed?: boolean;
 }
 
 export function createWorkspaceFromWorktree({
@@ -28,6 +29,7 @@ export function createWorkspaceFromWorktree({
 	worktreeId,
 	branch,
 	name,
+	isUnnamed,
 }: CreateWorkspaceFromWorktreeParams) {
 	const maxTabOrder = getMaxProjectChildTabOrder(projectId);
 
@@ -39,6 +41,7 @@ export function createWorkspaceFromWorktree({
 			type: "worktree",
 			branch,
 			name,
+			isUnnamed: isUnnamed ?? false,
 			tabOrder: maxTabOrder + 1,
 		})
 		.returning()
