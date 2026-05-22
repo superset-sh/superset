@@ -1,7 +1,7 @@
 ---
 stability: FEATURE_SPEC
 last_validated: 2026-05-21
-prd_version: 1.6.0
+prd_version: 1.8.0
 scope_posture: full
 ---
 
@@ -13,8 +13,10 @@ scope_posture: full
 
 ## In Scope
 
-- **Chat tab in mobile bottom navigation** as a new top-level surface alongside Home/Workspaces, Tasks, and More. Default landing is a sessions list; see UC-NAV-01.
-- **Sessions list sectioned by workspace** with collapsible "{project} · {branch}" section headers, sorted by most-recent activity. Collapsed state persists per user+host. Workspace tap = collapse/expand only (workspace details remain in the existing Workspaces tab, out of scope for this PRD). See UC-NAV-02.
+- **Chat tab in mobile bottom navigation** as a new top-level surface alongside the existing Tasks and More tabs. The legacy `(home)/workspaces` tab is a stub and is intentionally omitted from the sessions-list footer wireframe; downstream sprint planning will decide whether to formally hide or delete the Home tab from `apps/mobile`. Default landing is a sessions list; see UC-NAV-01.
+- **Sessions list sectioned by workspace** with "{project} · {branch}" section headers, **sticky during scroll** (contact-directory pattern), sorted by `max(session.lastActiveAt)` descending. Within each section, sessions sort by `last_active_at` desc. Sections support collapse/expand (state persists per user+host); workspace tap = collapse/expand only (workspace details remain out of scope for this PRD). See UC-NAV-02.
+- **Per-workspace session pagination** capped at 5 sessions per section on initial render when ≥2 workspaces have sessions, with a "Load more (N more)" pill that appends the next 5 in-place (no navigation). When only one workspace has sessions, the cap is disabled and all sessions render. Displayed-count state persists per `(userId, hostId, workspaceId)`. See UC-NAV-02.
+- **Cross-workspace title search/filter** via a TextInput in the sessions-list header. Case-insensitive substring match on `chat_sessions.title` across every workspace on the selected host; results preserve workspace grouping (sections with zero matches hide). Per-section cap and Load more are disabled while a query is active. Filter runs client-side over the synced Electric collection — no new backend. See UC-NAV-07.
 - **One-host-at-a-time model** with a header chip displaying the currently-selected host (machine running the user's workspaces). Tapping the chip opens a `@gorhom/bottom-sheet` listing all hosts the user has access to via `v2_users_hosts`, with online/offline state and metadata. Selected host persisted locally per user+org. See UC-NAV-03.
 - **Floating "+" action button** opens a workspace-picker bottom sheet listing all `v2_workspaces` on the selected host; selecting one creates a session via `chat.createSession` and routes into the empty chat view. See UC-NAV-04.
 - **Push-notification deep-linking** routes directly to `(chat)/[sessionId]`, silently aligning the locally-selected host to match the session's host before mounting the chat view so back-navigation lands in a consistent sessions list. Active pauses open the corresponding UC-PAUSE container immediately. See UC-NAV-05.

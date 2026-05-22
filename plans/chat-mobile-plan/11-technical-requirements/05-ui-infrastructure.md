@@ -6,12 +6,14 @@ Components follow AGENTS.md co-location rules (folder-per-component, barrel `ind
 
 In addition to the `components/chat/` tree below, **shell-level navigation components** (UC-NAV-* surfaces) live in `apps/mobile/screens/(authenticated)/(chat)/` per the project's screen co-location convention:
 
-- `SessionsListScreen/` — UC-NAV-01, UC-NAV-02 (sessions list with workspace sections + FAB)
-  - `components/WorkspaceSection/` — collapsible section header (UC-NAV-02)
+- `SessionsListScreen/` — UC-NAV-01, UC-NAV-02, UC-NAV-07 (sessions list with workspace sections + FAB + search). Holds `sectionDisplayCounts: Record<workspaceId, number>` (per-section pagination, persisted via async-storage per `(userId, hostId)`) and `searchQuery: string` (in-memory only).
+  - `components/WorkspaceSection/` — section header rendered as **sticky during scroll** (UC-NAV-02; contact-directory pattern). Uses FlashList `stickyHeaderIndices` over a flattened-with-headers data array per https://shopify.github.io/flash-list/docs/guides/section-list. Fallback if v1.7.x sticky proves unsatisfactory: switch to RN built-in `SectionList` with `stickySectionHeadersEnabled={true}` — simpler API, less virtualization tuning, decision deferred to the sprint that builds this component.
+    - `components/LoadMorePill/` — "Load more (N more)" affordance appended to the section when `displayedCount < totalCount` and multi-workspace mode is active (UC-NAV-02)
   - `components/SessionRow/` — single session row with status icon (`⌖ ⚠ ● ○`)
+  - `components/SessionSearchBar/` — header TextInput driving the cross-workspace title filter (UC-NAV-07). Debounced query state (~100ms) feeds a memoized selector over the synced `chat_sessions` Electric collection — client-side filter only, no backend calls.
   - `components/HostChip/` — header host display + tap target (UC-NAV-03 trigger)
   - `components/NewChatFab/` — floating "+" button (UC-NAV-04 trigger)
-  - `components/SessionsEmptyState/` — UC-NAV-06 three-state renderer
+  - `components/SessionsEmptyState/` — UC-NAV-06 three-state renderer plus a fourth "no search results" state when `searchQuery` is non-empty and no sessions match
 - `HostPickerSheet/` — UC-NAV-03 bottom sheet (`@gorhom/bottom-sheet` + `BottomSheetFlatList` of hosts)
 - `NewChatSheet/` — UC-NAV-04 workspace-picker sheet
 - `providers/SelectedHostProvider/` — local state + `expo-secure-store` persistence of `selectedHostId` keyed by `userId+organizationId`

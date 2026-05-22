@@ -1,6 +1,6 @@
 ---
 title: Mobile Chat v2
-version: 1.7.0
+version: 1.8.0
 scope_posture: full
 pr_sequencing: true
 ---
@@ -23,7 +23,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 
 | Field | Value |
 |-------|-------|
-| Version | 1.7.0 |
+| Version | 1.8.0 |
 | Scope Posture | Full feature (default) |
 | PR Sequencing | Enabled |
 | Created | 2026-05-21 |
@@ -45,7 +45,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 | [06-uc-render.md](./06-uc-render.md) | UC-RENDER-01 through UC-RENDER-07 (Message rendering) | FEATURE_SPEC |
 | [07-uc-pause.md](./07-uc-pause.md) | UC-PAUSE-01 through UC-PAUSE-04 (Mid-turn interactive prompts + pending-action indicator) — includes Design Rationale with citations | FEATURE_SPEC |
 | [08-uc-platf.md](./08-uc-platf.md) | UC-PLATF-01 through UC-PLATF-05 (Platform integration) | FEATURE_SPEC |
-| [09-uc-nav.md](./09-uc-nav.md) | UC-NAV-01 through UC-NAV-06 (Navigation: Chat tab, sessions list, host picker, FAB, deep-link, empty states) — includes canonical ASCII wireframes | FEATURE_SPEC |
+| [09-uc-nav.md](./09-uc-nav.md) | UC-NAV-01 through UC-NAV-07 (Navigation: Chat tab, sessions list with sticky headers + per-section pagination, host picker, FAB, deep-link, empty states, cross-workspace title search) — includes canonical ASCII wireframes | FEATURE_SPEC |
 | [10-team-contributions.md](./10-team-contributions.md) | Source artifacts and prior research | — |
 | [11-technical-requirements/](./11-technical-requirements/) | System components, data, API, architecture, dependencies, UI infrastructure, open sub-decisions, push notifications wire-level design (folder of 8 files) | CONSTITUTION |
 | [12-component-organization-addendum.md](./12-component-organization-addendum.md) | Component co-location conventions (folder-per-component, subcomponent nesting, barrel exports) | CONSTITUTION |
@@ -56,7 +56,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 | Metric | Value |
 |--------|-------|
 | Functional Groups | 6 |
-| Use Cases | 32 |
+| Use Cases | 33 |
 | System Components | 12 |
 | Data Entities (read-only) | 2 |
 | API Surfaces | 3 (cloud tRPC, host tRPC via relay, Electric Shape) |
@@ -66,6 +66,7 @@ Full convention: [`~/Projects/brain/docs/PR-SEQUENCING.md`](~/Projects/brain/doc
 
 | Version | Date | Changes | Trigger |
 |---------|------|---------|---------|
+| 1.8.0 | 2026-05-21 | **Sessions-list UX refinements (UC-NAV-02 extension + new UC-NAV-07).** (1) Sticky workspace section headers during scroll (contact-directory pattern; FlashList `stickyHeaderIndices` with SectionList fallback). (2) Per-workspace pagination: cap each section at 5 sessions on initial render when ≥2 workspaces have sessions, "Load more (N more)" pill appends the next 5 in-place; single-workspace mode disables the cap entirely; displayed-count persisted per `(userId, hostId, workspaceId)`. (3) **New UC-NAV-07: cross-workspace title search** — header TextInput with debounced client-side filter over the synced Electric `chat_sessions` collection; workspace grouping preserved, sections with zero matches hide; cap + Load more disabled while query is active. (4) Trim sessions-list bottom-tab footer to 3 tabs (Tasks / Chat / More) — the legacy `(home)/workspaces` is a stub today and is intentionally omitted from the wireframe; downstream sprint planning decides whether to formally hide or delete the Home tab. Updates: `09-uc-nav.md` (new UC-NAV-07 + extended UC-NAV-02 ACs + 4 wireframes: §A multi-workspace default, §A2 single-workspace, §A3 search active + no-matches, §A4 sticky-header scroll progression), `01-scope.md` (3 new in-scope items + Chat tab sibling-tab list updated), `03-functional-groups.md` (NAV count 6→7, total 32→33), `11-technical-requirements/00-system-components.md` + `05-ui-infrastructure.md` (state shape, `SessionSearchBar` + `LoadMorePill` subcomponents, FlashList sticky-header approach + SectionList fallback). No new backend procedures, no new dependencies. | Sessions-list UX brainstorm (plan: `mutable-twirling-curry.md`) |
 | 1.7.0 | 2026-05-21 | **Expand push-notification design (UC-PLATF-01).** Lock the relay-side fanout architecture: host emits a new `push:lifecycle` outbound message on its existing tunnel WS (no new connection — hosts sit behind NAT, only the tunnel reaches them); `apps/relay` adds `src/push.ts` to consume the message and call Expo Push API; tokens stored in Upstash KV keyed by `push:org:{orgId}:user:{userId}` as a multi-device set. New relay endpoints `POST /push/register` and `DELETE /push/register/:deviceId` reuse the existing `verifyJWT` middleware (same JWT mobile uses for chat tRPC) — no new auth surface, no new DB schema. Events fanned out are `Stop` + `PermissionRequest` only — "agent failed" dropped from scope (host emits no failure event today). Permission flow follows Expo best practices (custom pre-prompt before OS dialog, never on first cold launch, deny → `Linking.openSettings()`, cold-launch re-check). Foreground suppression is local-only via route-aware `setNotificationHandler`. Deep-link routing delegates to UC-NAV-05 (already specified). Added new `11-technical-requirements/07-notifications.md` with four ASCII diagrams (delivery flow, token lifecycle, permission state machine, foreground suppression). Rewrote UC-PLATF-01 ACs into Permission / Token-lifecycle / Delivery / Foreground / Tap-handoff groups. Added 10 new Out-of-Scope items in `01-scope.md` covering preferences, Time-Sensitive, action buttons, per-host prefs, activity center, server-side presence tracking, Universal Links, grouping, badging, and "agent failed". Resolved technical sub-decision #7. Added `expo-device` dependency for stable `deviceId` in multi-device fanout. | Brainstorming pass + Expo best-practices alignment |
 | 1.6.0 | 2026-05-21 | Add **Navigation (NAV)** functional group as `09-uc-nav.md` — 6 UCs covering the Chat bottom-nav tab, sessions list sectioned by workspace with collapse/expand, host-picker bottom sheet (Slack-style one-host-at-a-time), FAB → workspace-picker → new session, push-notification deep-link routing with host alignment, and empty-state handling. Includes canonical ASCII wireframes for all five surfaces (sessions list, host picker, new-chat picker, deep-link flow, empty states). **Resolves the previously-open Technical Sub-Decision #6** (host selection and workspace→host resolution): `hostId` comes from `v2_workspaces.hostId` on Electric-synced rows, selected host persisted locally per user+org. Renumbered subsequent files to fix the existing `11/11` numbering collision: `09-team-contributions.md` → `10-`, `10-technical-requirements/` → `11-`, `11-component-organization-addendum.md` → `12-`, `11-testing-strategy.md` → `13-`. Updated `01-scope.md` to add 6 navigation in-scope items and `03-functional-groups.md` to add the NAV row (32 UCs total across 6 groups). | PR review feedback (saddlepaddle on #4828) + design brainstorm |
 | 1.5.0 | 2026-05-21 | Add testing strategy (new `11-testing-strategy.md`). Three-layer pyramid: Bun test (unit), Storybook 9 under custom root toggle with build-time stripping (component), Maestro YAML-based E2E (feature). Sprint strategy: Phase 1 = Storybook-gated component builds, Phase 2+ = Maestro-gated service wiring. Updated scope and tech requirements. | Testing strategy pre-sprint-planning |
