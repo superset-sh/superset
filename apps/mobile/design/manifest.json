@@ -37,16 +37,16 @@
 				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
-			"phase": "atoms",
+			"phase": "molecules",
 			"gates": {
 				"scaffold": "passed",
 				"plan": "passed",
 				"atoms": "passed",
-				"molecules": "pending",
+				"molecules": "passed",
 				"compose": "pending"
 			},
 			"build_plan": {
-				"scope_note": "Chat-view only (per designs/AUDIT.md). Sessions-list + nav surfaces deferred to a later sprint. Wave 1 (atoms) completed 2026-05-22 — verified visually in Storybook RN on iOS 26.5 simulator. Wave 2 (molecules) + Wave 3 (screens) gated behind explicit user confirmation per wave.",
+				"scope_note": "Chat-view only (per designs/AUDIT.md). Sessions-list + nav surfaces deferred. Wave 1 (atoms) completed 2026-05-22. Wave 2 (molecules) completed 2026-05-22 — 19 molecules built (1 replaces ComposerToolbar per desktop PR #4866 unified-settings-menu pattern). Wave 3 (screens) gated behind explicit user confirmation.",
 				"tokens": "skip",
 				"atoms": {
 					"status": "build",
@@ -127,12 +127,12 @@
 				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
-			"phase": "atoms",
+			"phase": "molecules",
 			"gates": {
 				"scaffold": "passed",
 				"plan": "passed",
 				"atoms": "passed",
-				"molecules": "pending",
+				"molecules": "passed",
 				"compose": "pending"
 			},
 			"build_plan": {
