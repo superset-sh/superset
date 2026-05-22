@@ -181,3 +181,105 @@ See `.spec/improvements/SUPER-750/follow-ups.md` — 3 deferred items:
 1. **FU-1:** Safari OAuth redirect failure (separate investigation — not caused by this change)
 2. **FU-2:** `--no-browser` flag (if Option A is chosen, this becomes a follow-on ticket)
 3. **FU-3:** `openBrowser()` silent failure on Linux — fire-and-forget `void` at `auth.ts:320`
+
+---
+
+## Challenge
+
+### Ground truth re-verification
+
+- **`packages/cli/src/lib/auth.ts:58-62/58-63`** — `shouldOpenBrowser()` body: VERIFIED. Lines 58-63 in actual file (58 = function declaration, 59-62 = body, 63 = closing brace). SCOPE.md body cites `58-62`; evidence.md cites `58-63`. Minor inconsistency, not a hallucination. PASS.
+- **`packages/cli/src/lib/auth.ts:295`** — `const loopback = await bindLoopbackServer();`: VERIFIED. Exact line 295.
+- **`packages/cli/src/lib/auth.ts:319`** — `if (shouldOpenBrowser()) {`: VERIFIED. Exact line 319.
+- **`packages/cli/src/commands/auth/login/command.ts:148-155`** — options object with only `organization` and `apiKey`: VERIFIED.
+- **`packages/cli/src/commands/auth/login/LoginUI.tsx:99`** — `<Text>Browser didn't open? Use the url below to sign in </Text>`: VERIFIED.
+- **`packages/host-service/src/terminal/env.ts:185`** — `env.SUPERSET_WORKSPACE_ID = workspaceId`: VERIFIED.
+
+All citations confirmed. Status: **PASS**. No hallucination detected. Frontmatter status stays `proposal`.
+
+### Smaller-option search
+
+**Option Z proposed.**
+
+Option A has two parts: (1) widen `shouldOpenBrowser()` (+3 LOC), and (2) gate `bindLoopbackServer()` inside the browser-open branch (~13 LOC restructuring of `login()`).
+
+Part 2 can be omitted. The wasted loopback port (5 min on localhost, ports 51789-51793) is invisible to users. Nobody reaches it. The `finally` block at `auth.ts:414` cleans it up cleanly. The loopback server resource cost is negligible. Omitting the gate means no restructuring of `login()` — the change is purely additive to `shouldOpenBrowser()`.
+
+Additionally, the `DISPLAY`/`WAYLAND_DISPLAY` check can be deferred. Daniel's specific bug is Superset workspace context. `SSH_CONNECTION` already handles plain SSH. The headless Linux case (bare EC2 without SSH or workspace) is a different scenario that can be a follow-up.
+
+**Option Z: add only `SUPERSET_WORKSPACE_ID` check to `shouldOpenBrowser()`. ~1 LOC addition.**
+
+Arguments against omitting the loopback gate: a bound port is observable by port scanners; binding a listener that can never succeed is wasteful design. Both are real but secondary to the user-visible fix.
+
+See `## Option Z (challenger-proposed)` section below.
+
+### Does minimum resolve the problem?
+
+**Technical resolution: YES.** With Option A (or Option Z):
+1. `shouldOpenBrowser()` returns `false` in Superset workspace terminal contexts.
+2. No browser opens on the remote host.
+3. `callbacks.onAuthorizationUrl(pasteAuthorizeUrl)` fires unconditionally at `auth.ts:317` — paste URL is always surfaced.
+4. User sees the URL and paste prompt; login completes via paste flow.
+
+**UX completeness concern (MODERATE, not blocking):**
+
+The "Browser didn't open?" copy at `LoginUI.tsx:99` and `command.ts:218` is rendered/logged unconditionally, regardless of whether a browser was attempted. With Option A, no browser was attempted — the message is factually incorrect. It implies an attempt happened and failed.
+
+In the Ink path: the paste URL displays in cyan immediately below the "Browser didn't open?" header. The paste field is present. A user who sees the URL follows it. In the non-Ink clack path: the URL and paste prompt follow immediately after the misleading log line. In both cases the flow completes.
+
+**Verdict: Option A resolves Daniel's bug technically. The copy is UX-imprecise but not UX-blocking. A cross-device user still sees the URL and completes login. However, for customer-facing quality, Option B's copy change is warranted — the current copy implies a browser attempt failed when none was made. Option B should be the actual minimum for an external customer shipping context.**
+
+### Scope creep flags in moderate/strategic
+
+**Option B (UNDERSPECIFIED, not creep):**
+- `packages/cli/src/commands/auth/login/LoginUI.tsx:6-12` (`LoginUIProps` interface) — a `pasteOnly?: boolean` prop (or equivalent) is required for AC-8 but is NOT listed in `files_in_scope`. Also: `command.ts:185-195` (currentProps initialization + update() calls) must pass this prop — an unlisted touchpoint. The scope description for Option B understates the thread depth by one interface touchpoint.
+- `packages/cli/src/lib/auth.ts:19-22` (`LoginCallbacks` interface) — the `noBrowser?: boolean` addition is described vaguely. This is a required touchpoint. Not creep, just underspecified.
+
+**Option C (genuine creep):**
+- `packages/cli/src/lib/browser-detection.ts` (possibly new file) — not required for any AC. AC-10 can be satisfied by adding `crossDeviceReason()` to `auth.ts` directly. Do not create a new file.
+- AC-11 (reason-specific UI copy: "SSH session detected", "Superset workspace detected", etc.) is scope beyond AC-8's simpler copy change. Approximately 8-10 additional LOC in `LoginUI.tsx` and `command.ts` with marginal user-visible benefit. File as follow-on if ever needed.
+- Option C confirmed as separate-sprint material. The investigator's recommendation to not merge it with A or B is correct.
+
+### File-overlap independent assessment
+
+Read `super-752-HOST-AUTH-002` worktree's `packages/cli/src/lib/auth.ts` directly. The diff from main is:
+
+1. Lines 4, 7-8 added: `import type { LoginResult }` from shared package + two re-export lines at file top. These shift subsequent line numbers by approximately +2 (one `LOGIN_AGAIN_SUGGESTION` constant line is also removed, partially canceling the shift).
+2. `shouldOpenBrowser()` function body: IDENTICAL to main — same 4-line structure, no changes.
+3. `login()` function body: IDENTICAL to main — same unconditional `bindLoopbackServer()` call, same `shouldOpenBrowser()` eval, same structure throughout.
+
+**The HIGH overlap rating is overstated. Actual severity: MEDIUM.**
+
+The conflict is a line-number offset (~+2), not a structural incompatibility. SUPER-750's changes touch `shouldOpenBrowser()` and `login()` — both of which are IDENTICAL in the 752 worktree. A rebase will almost certainly auto-merge cleanly. The investigator rated HIGH based on the change description ("structural refactor") rather than the actual diff content.
+
+### Recommendation
+
+Ship **Option B**: fixes Daniel's bug, corrects the misleading "Browser didn't open?" copy for intentionally-paste-primary flows, adds `--no-browser` escape hatch, costs ~43 LOC. File Option C as a follow-on. Use Option Z only if Option B is blocked by timeline.
+
+---
+
+## Option Z (challenger-proposed): smaller-than-minimum
+
+**one_line:** Add only `SUPERSET_WORKSPACE_ID` check to `shouldOpenBrowser()`. No loopback-bind gating, no `DISPLAY` check, no copy changes, no `--no-browser` flag.
+
+**files_in_scope:**
+- `packages/cli/src/lib/auth.ts` (lines 58-63: add one check to `shouldOpenBrowser()`)
+
+**loc_budget:** ~1 addition, 0 deletions = 1 LOC delta
+
+**acceptance_criteria:**
+- AC-Z1: With `SUPERSET_WORKSPACE_ID` set in env, `shouldOpenBrowser()` returns `false`.
+- AC-Z2: Paste flow completes in Superset workspace context (no browser opened, user pastes code, token exchanged — same as Option A's AC-6).
+
+**out_of_scope:**
+- Linux `DISPLAY`/`WAYLAND_DISPLAY` headless detection (follow-up)
+- `bindLoopbackServer()` gating (wasted port is user-invisible; defer)
+- `--no-browser` flag (follow-up)
+- UI copy changes
+- `openBrowser()` error handling
+
+**risks:**
+- Does NOT fix headless Linux (non-SSH, non-workspace EC2) — `xdg-open` still silently fails in that context.
+- Loopback port still bound in cross-device mode (invisible to users, cleaned up after 5 min).
+- "Browser didn't open?" copy still misleads when no browser was attempted.
+- These risks make Option Z appropriate only under timeline pressure. Option B is preferred.
