@@ -45,6 +45,22 @@ export async function run(opts: RunOptions): Promise<void> {
 	}
 }
 
+/**
+ * Write final command output to stdout, waiting for the write to drain
+ * before resolving.
+ *
+ * `console.log` of a large payload races the process exit: the binary can
+ * exit before an async write to a *pipe* finishes, truncating the output
+ * (a file redirect masks it because the write lands fast). Awaiting the
+ * `write` callback guarantees the bytes reached the OS before the command
+ * completes and the process is allowed to exit.
+ */
+async function writeStdout(text: string): Promise<void> {
+	await new Promise<void>((resolve, reject) => {
+		process.stdout.write(`${text}\n`, (err) => (err ? reject(err) : resolve()));
+	});
+}
+
 function formatZodIssues(message: string): string | null {
 	const trimmed = message.trim();
 	if (!trimmed.startsWith("[")) return null;
@@ -355,6 +371,6 @@ async function execute(
 			json: isJson,
 			quiet: isQuiet,
 		});
-		if (output) console.log(output);
+		if (output) await writeStdout(output);
 	}
 }
