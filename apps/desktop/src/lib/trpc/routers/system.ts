@@ -30,7 +30,11 @@ async function detectGhCli(): Promise<GhDetectResult> {
 
 	let authenticated = false;
 	try {
-		await execWithShellEnv("gh", ["auth", "status"], { timeout: 5000 });
+		await execWithShellEnv(
+			"gh",
+			["auth", "status", "--active", "--hostname", "github.com"],
+			{ timeout: 5000 },
+		);
 		authenticated = true;
 	} catch {
 		// `gh auth status` exits non-zero when not logged in.
