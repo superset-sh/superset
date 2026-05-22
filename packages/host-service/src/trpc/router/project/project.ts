@@ -3,6 +3,7 @@ import {
 	type ParsedGitHubRemote,
 	parseGitHubRemote,
 } from "@superset/shared/github-remote";
+import { BRANCH_PREFIX_MODES } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -53,6 +54,8 @@ export const projectRouter = router({
 						repoName: projects.repoName,
 						repoUrl: projects.repoUrl,
 						worktreeBaseDir: projects.worktreeBaseDir,
+						branchPrefixMode: projects.branchPrefixMode,
+						branchPrefixCustom: projects.branchPrefixCustom,
 					})
 					.from(projects)
 					.where(eq(projects.id, input.projectId))
@@ -89,6 +92,37 @@ export const projectRouter = router({
 				id: project.id,
 				worktreeBaseDir: project.worktreeBaseDir ?? null,
 			};
+		}),
+
+	/**
+	 * Set this project's branch-prefix override. A `null` mode clears the
+	 * override so the project falls back to the host-wide default.
+	 */
+	setBranchPrefix: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				mode: z.enum(BRANCH_PREFIX_MODES).nullable(),
+				customPrefix: z.string().nullable().optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const updated = ctx.db
+				.update(projects)
+				.set({
+					branchPrefixMode: input.mode,
+					branchPrefixCustom: input.customPrefix ?? null,
+				})
+				.where(eq(projects.id, input.projectId))
+				.returning({ id: projects.id })
+				.get();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Project not set up locally: ${input.projectId}`,
+				});
+			}
+			return { success: true as const };
 		}),
 
 	findBackfillConflict: protectedProcedure

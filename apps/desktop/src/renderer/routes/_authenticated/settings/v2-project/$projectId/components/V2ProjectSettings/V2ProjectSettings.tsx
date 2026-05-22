@@ -12,6 +12,7 @@ import {
 	HostSelect,
 	type HostSelectOption,
 } from "../../../../components/HostSelect";
+import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
@@ -148,6 +149,20 @@ export function V2ProjectSettings({
 							currentRepoCloneUrl={project.repoCloneUrl}
 						/>
 					</SettingsRow>
+					{targetHostUrl && hostProject && (
+						<SettingsRow
+							label="Branch prefix"
+							hint="Namespace new branches for this project. Defaults to the host-wide Git setting."
+						>
+							<BranchPrefixSection
+								projectId={projectId}
+								hostUrl={targetHostUrl}
+								mode={hostProject.branchPrefixMode ?? null}
+								customPrefix={hostProject.branchPrefixCustom ?? null}
+								onChanged={() => refetchHostProject()}
+							/>
+						</SettingsRow>
+					)}
 				</section>
 
 				<section>

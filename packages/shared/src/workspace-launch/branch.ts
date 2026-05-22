@@ -1,6 +1,25 @@
 export const DEFAULT_BRANCH_SEGMENT_MAX_LENGTH = 50;
 export const DEFAULT_BRANCH_NAME_MAX_LENGTH = 100;
 
+/**
+ * Branch prefix modes for workspace branch naming.
+ * - `none`: no prefix
+ * - `github`: the user's GitHub username
+ * - `author`: the git `user.name` author name
+ * - `custom`: a user-defined string
+ *
+ * Kept here (not in `@superset/local-db`) so the host-service, which can't
+ * depend on the desktop's local DB package, can share the same source.
+ */
+export const BRANCH_PREFIX_MODES = [
+	"none",
+	"github",
+	"author",
+	"custom",
+] as const;
+
+export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
+
 interface SanitizeSegmentOptions {
 	preserveCase?: boolean;
 }
@@ -170,7 +189,7 @@ export function resolveBranchPrefix({
 	authorPrefix,
 	githubUsername,
 }: {
-	mode: "github" | "author" | "custom" | "none" | null | undefined;
+	mode: BranchPrefixMode | null | undefined;
 	customPrefix?: string | null;
 	authorPrefix?: string | null;
 	githubUsername?: string | null;
