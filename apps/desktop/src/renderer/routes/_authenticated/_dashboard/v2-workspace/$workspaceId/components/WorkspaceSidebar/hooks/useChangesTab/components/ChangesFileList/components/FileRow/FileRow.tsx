@@ -66,8 +66,8 @@ export const FileRow = memo(function FileRow({
 	onOpenFile,
 	onOpenInEditor,
 }: FileRowProps) {
-	const { dir: fullDir, basename } = splitPath(file.path);
-	const dir = hideDir ? "" : fullDir;
+	const { basename } = splitPath(file.path);
+	const displayPath = hideDir ? basename : file.path;
 	const oldBasename =
 		file.oldPath && (file.status === "renamed" || file.status === "copied")
 			? splitPath(file.oldPath).basename
@@ -114,15 +114,17 @@ export const FileRow = memo(function FileRow({
 			>
 				<FileIcon fileName={basename} className="size-3.5 shrink-0" />
 				<span className="flex min-w-0 flex-1 items-baseline overflow-hidden">
-					{dir && <span className="truncate text-muted-foreground">{dir}</span>}
 					{oldBasename && (
-						<span className="truncate text-muted-foreground">
+						<span className="shrink-0 text-muted-foreground">
 							{oldBasename}
 							<span className="px-1">→</span>
 						</span>
 					)}
-					<span className="min-w-[120px] truncate font-medium text-foreground">
-						{basename}
+					<span
+						className="min-w-0 flex-1 truncate text-foreground"
+						style={{ direction: "rtl", textAlign: "left" }}
+					>
+						<bdi>{displayPath}</bdi>
 					</span>
 				</span>
 				<span className="ml-auto flex shrink-0 items-center gap-1.5 group-hover:invisible">
@@ -227,7 +229,9 @@ export const FileRow = memo(function FileRow({
 				<ContextMenuTrigger asChild>
 					<TooltipTrigger asChild>{rowButton}</TooltipTrigger>
 				</ContextMenuTrigger>
-				<TooltipContent side="right">{policy.hint}</TooltipContent>
+				<TooltipContent side="right">
+					<span className="font-mono text-[10px]">{file.path}</span>
+				</TooltipContent>
 			</Tooltip>
 			<ContextMenuContent className="w-64">
 				<ContextMenuItem onSelect={() => onSelect?.(file.path)}>
