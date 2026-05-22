@@ -7,6 +7,8 @@
 		"android": "expo run:android",
 		"ios": "expo run:ios",
 		"web": "expo start --web",
+		"storybook": "sb-rn-get-stories --config-path .rnstorybook && EXPO_PUBLIC_STORYBOOK=true expo start",
+		"storybook-generate": "sb-rn-get-stories --config-path .rnstorybook",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write ."
@@ -90,10 +92,14 @@
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
+		"@storybook/addon-ondevice-actions": "^9",
+		"@storybook/addon-ondevice-controls": "^9",
+		"@storybook/react-native": "^9",
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"babel-preset-expo": "56.0.11",
 		"expo-mcp": "0.2.4",
+		"storybook": "^9",
 		"typescript": "5.9.3"
 	},
 	"private": true
