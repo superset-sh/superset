@@ -131,6 +131,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Cursor's coding agent for editing, running, and debugging code in parallel.",
 		command: "cursor-agent",
 	}),
+	createBuiltinTerminalAgent({
+		id: "droid",
+		label: "Droid",
+		description:
+			"Factory's agent-native coding CLI for autonomous software development.",
+		command: "droid --auto medium",
+		promptCommand: "droid --auto medium",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =

@@ -1,5 +1,7 @@
 import ampIcon from "./amp.svg";
 import claudeIcon from "./claude.svg";
+import droidIcon from "./droid.svg";
+import droidWhiteIcon from "./droid-white.svg";
 import codexIcon from "./codex.svg";
 import codexWhiteIcon from "./codex-white.svg";
 import copilotIcon from "./copilot.svg";
@@ -22,6 +24,7 @@ export interface PresetIconSet {
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	amp: { light: ampIcon, dark: ampIcon },
 	claude: { light: claudeIcon, dark: claudeIcon },
+	droid: { light: droidIcon, dark: droidWhiteIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
@@ -45,6 +48,8 @@ export function getPresetIcon(
 export {
 	ampIcon,
 	claudeIcon,
+	droidIcon,
+	droidWhiteIcon,
 	codexIcon,
 	codexWhiteIcon,
 	copilotIcon,

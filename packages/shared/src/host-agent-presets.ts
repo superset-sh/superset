@@ -129,6 +129,17 @@ export const HOST_AGENT_PRESETS = [
 		promptArgs: [],
 		env: {},
 	},
+	{
+		presetId: "droid",
+		label: "Droid",
+		description:
+			"Factory's agent-native coding CLI for autonomous software development.",
+		command: "droid",
+		args: ["--auto", "medium"],
+		promptTransport: "argv",
+		promptArgs: [],
+		env: {},
+	},
 ] as const satisfies readonly HostAgentPreset[];
 
 const DEFAULT_PRESET_IDS = new Set([
