@@ -37,13 +37,83 @@
 				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
-			"phase": "scaffold",
+			"phase": "plan",
 			"gates": {
 				"scaffold": "passed",
-				"plan": "pending",
+				"plan": "passed",
 				"atoms": "pending",
 				"molecules": "pending",
 				"compose": "pending"
+			},
+			"build_plan": {
+				"scope_note": "Chat-view only (per designs/AUDIT.md). Sessions-list + nav surfaces deferred to a later sprint. Wave 1 (atoms) executing first; molecules + screens gated behind explicit user confirmation per wave.",
+				"tokens": "skip",
+				"atoms": {
+					"status": "build",
+					"refine": [
+						"IconButton",
+						"Pill",
+						"StatusDot",
+						"StreamingCursor",
+						"ToolStatusRule"
+					],
+					"create": [
+						"FabBase",
+						"HitTargetWrapper",
+						"ProgressDots",
+						"ScrollFade",
+						"ToastBase"
+					],
+					"existing_verified": [
+						"Avatar (vendor)",
+						"Badge (vendor)",
+						"Button (vendor)",
+						"Checkbox (vendor)",
+						"IconGlyph (vendor)",
+						"RadioGroup (vendor)",
+						"Separator (vendor)",
+						"TextInput (vendor)",
+						"Textarea (vendor)",
+						"Tooltip (vendor)"
+					],
+					"skip_chatview_scope": [
+						"kbd",
+						"live-activity-dot",
+						"section-label (use Text variant)",
+						"spinner (use ActivityIndicator)",
+						"backdrop (internal to dialog/alert-dialog vendor)",
+						"home-indicator (iOS native chrome)",
+						"device-bezel (real device)"
+					]
+				},
+				"molecules": {
+					"status": "deferred",
+					"create_when_unlocked": [
+						"picker-trigger",
+						"composer-toolbar",
+						"composer-row",
+						"slash-command-option",
+						"model-picker-option",
+						"thinking-level-option",
+						"app-header",
+						"modal-header",
+						"code-block",
+						"banner",
+						"pending-approval-card",
+						"approval-footer",
+						"suggested-answer-pill",
+						"pending-action-pill",
+						"assistant-message-head",
+						"user-message-bubble",
+						"tool-call-card",
+						"collapsed-block",
+						"scroll-back-button"
+					]
+				},
+				"screens": {
+					"status": "deferred",
+					"create_when_unlocked": "22 chat-view screens per designs/AUDIT.md §VIEW AUDIT"
+				}
 			}
 		},
 		"mobile-android": {
@@ -57,13 +127,20 @@
 				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
-			"phase": "scaffold",
+			"phase": "plan",
 			"gates": {
 				"scaffold": "passed",
-				"plan": "pending",
+				"plan": "passed",
 				"atoms": "pending",
 				"molecules": "pending",
 				"compose": "pending"
+			},
+			"build_plan": {
+				"scope_note": "Mirrors mobile-ios — apps/mobile/ source tree is shared across both platforms.",
+				"tokens": "skip",
+				"atoms": "see mobile-ios.build_plan.atoms",
+				"molecules": "deferred",
+				"screens": "deferred"
 			}
 		}
 	}

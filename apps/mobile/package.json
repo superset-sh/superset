@@ -68,6 +68,7 @@
 		"expo-font": "~56",
 		"expo-glass-effect": "56.0.4",
 		"expo-image": "56.0.8",
+		"expo-linear-gradient": "56.0.4",
 		"expo-linking": "56.0.11",
 		"expo-localization": "56.0.6",
 		"expo-network": "56.0.4",
