@@ -1,67 +1,97 @@
 import type { Meta, StoryObj } from "@storybook/react-native";
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { StreamingCursor } from "./StreamingCursor";
+import {
+	StreamingCursor,
+	type StreamingCursorVariant,
+} from "./StreamingCursor";
 
-function StreamingCursorShowcase({
-	glyph,
-	durationMs,
-	className,
-}: {
-	glyph: string;
-	durationMs: number;
-	className: string;
-}) {
-	return (
-		<View className="gap-3">
-			<View className="flex-row items-end">
-				<Text>The agent is currently generating a response</Text>
-				<StreamingCursor
-					glyph={glyph}
-					durationMs={durationMs}
-					className={className}
-				/>
-			</View>
-			<Text variant="muted" className="text-xs">
-				glyph={JSON.stringify(glyph)} · durationMs={durationMs} · className=
-				{JSON.stringify(className)}
-			</Text>
-		</View>
-	);
-}
+const VARIANTS: StreamingCursorVariant[] = ["default", "steady", "paused"];
 
-const meta: Meta<typeof StreamingCursorShowcase> = {
+const meta: Meta<typeof StreamingCursor> = {
 	title: "Components/StreamingCursor",
-	component: StreamingCursorShowcase,
+	component: StreamingCursor,
 	parameters: {
 		docs: {
 			description: {
 				component:
-					"Blinking text cursor (▌) appended to streaming assistant content (UC-RENDER-01). Reanimated opacity loop. Hidden from screen readers. Override glyph, duration, or color via props.",
+					"Blinking text cursor (▌) appended to streaming assistant content (UC-RENDER-01). Three variants: `default` (1s steps(2) mint), `steady` (no animation), `paused` (0.6s steps(2) amber). Animation emulates CSS steps(2) via Reanimated withSequence. Respects AccessibilityInfo.isReduceMotionEnabled() — reduced-motion users see a static cursor regardless of variant.",
 			},
 		},
 	},
 	args: {
+		variant: "default",
 		glyph: "▌",
-		durationMs: 600,
-		className: "",
 	},
 	argTypes: {
-		glyph: { control: "text" },
-		durationMs: { control: { type: "range", min: 100, max: 2000, step: 50 } },
-		className: {
+		variant: {
 			control: { type: "select" },
-			options: ["", "text-streaming-cursor", "text-primary", "text-foreground"],
+			options: VARIANTS,
+			description:
+				"default (mint 1s blink) · steady (no animation) · paused (amber 0.6s blink)",
+		},
+		glyph: {
+			control: "text",
+			description: "Override the cursor character (default ▌)",
+		},
+		durationMs: {
+			control: { type: "range", min: 100, max: 2000, step: 50 },
+			description:
+				"Override variant default — default=1000 · paused=600 · steady=0",
+		},
+		className: {
+			control: "text",
+			description:
+				"Tailwind override — e.g. text-primary, text-foreground. Overrides variant color.",
 		},
 	},
 };
 
 export default meta;
 
-type Story = StoryObj<typeof StreamingCursorShowcase>;
+type Story = StoryObj<typeof StreamingCursor>;
 
 export const Default: Story = {};
-export const FastBlink: Story = { args: { durationMs: 300 } };
-export const SlowBlink: Story = { args: { durationMs: 1200 } };
-export const EmberColor: Story = { args: { className: "text-primary" } };
-export const UnderscoreGlyph: Story = { args: { glyph: "_" } };
+export const Steady: Story = { args: { variant: "steady" } };
+export const Paused: Story = { args: { variant: "paused" } };
+
+export const InStreamingMessage: Story = {
+	render: () => (
+		<View className="gap-2 p-4">
+			<View className="flex-row items-end flex-wrap">
+				<Text>
+					Refactoring the relay tunnel reconnect loop now—I'll preserve the
+					inner try/catch and log err.code before the backoff sleeps
+				</Text>
+				<StreamingCursor variant="default" />
+			</View>
+		</View>
+	),
+};
+
+export const InPausedMessage: Story = {
+	render: () => (
+		<View className="gap-2 p-4">
+			<View className="flex-row items-end flex-wrap">
+				<Text>Awaiting approval to continue</Text>
+				<StreamingCursor variant="paused" />
+			</View>
+		</View>
+	),
+};
+
+export const AllVariants: Story = {
+	render: () => (
+		<View className="gap-4 p-4">
+			{VARIANTS.map((v) => (
+				<View key={v} className="flex-row items-end gap-2">
+					<Text variant="small" className="w-20 text-muted-foreground">
+						{v}
+					</Text>
+					<Text>generating</Text>
+					<StreamingCursor variant={v} />
+				</View>
+			))}
+		</View>
+	),
+};
