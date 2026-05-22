@@ -85,13 +85,18 @@ export const WithAction: Story = {
 	args: {
 		variant: "danger",
 		body: "Failed to send message",
-		action: (
-			<Button size="sm" variant="outline">
-				<Text>Retry</Text>
-			</Button>
-		),
 		onDismiss: () => {},
 	},
+	render: (args) => (
+		<ToastBase
+			{...args}
+			action={
+				<Button size="sm" variant="outline">
+					<Text>Retry</Text>
+				</Button>
+			}
+		/>
+	),
 };
 
 export const StackedWithCTA: Story = {
@@ -100,13 +105,18 @@ export const StackedWithCTA: Story = {
 		shape: "stacked",
 		title: "Host offline",
 		body: "The macbook-pro host hasn't responded in 45 seconds. New messages will queue until it reconnects.",
-		action: (
-			<Button size="sm" variant="default">
-				<Text>Reconnect</Text>
-			</Button>
-		),
 		onDismiss: () => {},
 	},
+	render: (args) => (
+		<ToastBase
+			{...args}
+			action={
+				<Button size="sm" variant="default">
+					<Text>Reconnect</Text>
+				</Button>
+			}
+		/>
+	),
 };
 
 export const AllVariantsInline: Story = {
