@@ -87,7 +87,32 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"codex --dangerously-bypass-approvals-and-sandbox",
 		]);
 		expect(rows[2]?.commands).toEqual(["opencode"]);
-		expect(rows[3]?.commands).toEqual(["copilot --allow-tool\\=write"]);
+		expect(rows[3]?.commands).toEqual(["copilot --allow-tool=write"]);
+	});
+
+	it("includes structured agent env in seeded preset command snapshots", () => {
+		const rows = createDefaultV2TerminalPresetRows({
+			agents: [
+				createAgent({
+					id: "claude-config",
+					presetId: "claude",
+					label: "Claude",
+					command: "claude",
+					args: ["--dangerously-skip-permissions"],
+					env: {
+						ANTHROPIC_BASE_URL: "https://example.test",
+						ANTHROPIC_AUTH_TOKEN: "abc",
+					},
+				}),
+			],
+			existingPresets: [],
+			createId: () => "44444444-4444-4444-8444-444444444444",
+			createdAt,
+		});
+
+		expect(rows[0]?.commands).toEqual([
+			"ANTHROPIC_BASE_URL=https://example.test ANTHROPIC_AUTH_TOKEN=abc claude --dangerously-skip-permissions",
+		]);
 	});
 
 	it("does not seed when v2 presets already exist", () => {

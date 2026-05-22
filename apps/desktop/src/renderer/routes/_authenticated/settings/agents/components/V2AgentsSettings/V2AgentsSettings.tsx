@@ -159,14 +159,18 @@ export function V2AgentsSettings({
 	// Auto-select first agent when none selected, and clear selection when the
 	// selected agent disappears. If `initialAgentPresetId` is provided (deep
 	// link from a preset's "Open" button), prefer the matching config the
-	// first time configs become available.
+	// first time configs become available. The route param accepts both the
+	// unique config id and the built-in preset id for older links.
 	useEffect(() => {
 		if (configs.length === 0) {
 			if (selectedAgentId !== null) setSelectedAgentId(null);
 			return;
 		}
 		if (initialAgentPresetId && !consumedInitialPresetIdRef.current) {
-			const match = configs.find((c) => c.presetId === initialAgentPresetId);
+			const match = configs.find(
+				(c) =>
+					c.id === initialAgentPresetId || c.presetId === initialAgentPresetId,
+			);
 			if (match) {
 				consumedInitialPresetIdRef.current = true;
 				setSelectedAgentId(match.id);
