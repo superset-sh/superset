@@ -28,7 +28,10 @@
 			{
 				"matcher": "Bash",
 				"hooks": [
-					{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fallow-gate.sh" }
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fallow-gate.sh"
+					}
 				]
 			}
 		],
@@ -36,9 +39,18 @@
 			{
 				"matcher": "",
 				"hooks": [
-					{ "type": "command", "command": "python3 ~/.claude/hooks/subagent-worktree-preservation.py" },
-					{ "type": "command", "command": "python3 ~/.claude/hooks/subagent-precommit-gate.py" },
-					{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-verify-gate.sh" }
+					{
+						"type": "command",
+						"command": "python3 ~/.claude/hooks/subagent-worktree-preservation.py"
+					},
+					{
+						"type": "command",
+						"command": "python3 ~/.claude/hooks/subagent-precommit-gate.py"
+					},
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-verify-gate.sh"
+					}
 				]
 			}
 		],
@@ -46,7 +58,10 @@
 			{
 				"matcher": "",
 				"hooks": [
-					{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-verify-gate.sh" }
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-verify-gate.sh"
+					}
 				]
 			}
 		],
@@ -54,7 +69,10 @@
 			{
 				"matcher": "Task",
 				"hooks": [
-					{ "type": "command", "command": "python3 ~/.claude/hooks/subagent-evidence-verification.py" }
+					{
+						"type": "command",
+						"command": "python3 ~/.claude/hooks/subagent-evidence-verification.py"
+					}
 				]
 			}
 		]
