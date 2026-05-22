@@ -29,7 +29,7 @@ const SEMANTIC_PAIRS: Swatch[] = [
 		borderClass: "border-border",
 	},
 	{
-		name: "primary / primary-foreground",
+		name: "primary / primary-foreground (EMBER)",
 		bg: "bg-primary",
 		fg: "text-primary-foreground",
 	},
@@ -71,6 +71,50 @@ const UTILITY_TOKENS: Swatch[] = [
 	},
 ];
 
+const STATE_PALETTE: Swatch[] = [
+	{
+		name: "state-live (streaming, running)",
+		bg: "bg-state-live-bg",
+		fg: "text-state-live-fg",
+	},
+	{
+		name: "state-warning (pause-pending)",
+		bg: "bg-state-warning-bg",
+		fg: "text-state-warning-fg",
+	},
+	{
+		name: "state-danger (error, dispatch_failed)",
+		bg: "bg-state-danger-bg",
+		fg: "text-state-danger-fg",
+	},
+	{
+		name: "state-success (completed)",
+		bg: "bg-state-success-bg",
+		fg: "text-state-success-fg",
+	},
+	{
+		name: "state-neutral-fg (idle, paused)",
+		bg: "bg-background",
+		fg: "text-state-neutral-fg",
+		borderClass: "border-border",
+	},
+];
+
+const DOMAIN_TOKENS: Swatch[] = [
+	{
+		name: "streaming-cursor (▌ blink color)",
+		bg: "bg-background",
+		fg: "text-streaming-cursor",
+		borderClass: "border-border",
+	},
+	{
+		name: "tool-rule (3px left rule on tool cards)",
+		bg: "bg-card",
+		fg: "text-foreground",
+		borderClass: "border-tool-rule",
+	},
+];
+
 function SwatchRow({ swatch }: { swatch: Swatch }) {
 	return (
 		<View
@@ -94,8 +138,9 @@ function ColorsGallery() {
 					Semantic pairs
 				</Text>
 				<Text variant="muted" className="mb-4">
-					Tokens are defined in apps/mobile/global.css under @variant
-					light/dark. Do not redefine.
+					Ember warm palette (Path A, 2026-05-22). Source of truth:
+					designs/tokens/tokens.css. Audit:
+					plans/chat-mobile-plan/14-token-migration-audit.md.
 				</Text>
 				{SEMANTIC_PAIRS.map((s) => (
 					<SwatchRow key={s.name} swatch={s} />
@@ -105,6 +150,28 @@ function ColorsGallery() {
 					Utility tokens
 				</Text>
 				{UTILITY_TOKENS.map((s) => (
+					<SwatchRow key={s.name} swatch={s} />
+				))}
+
+				<Text variant="h3" className="mt-6 mb-2">
+					State palette
+				</Text>
+				<Text variant="muted" className="mb-4">
+					Chat-domain status colors (live · warning · danger · success ·
+					neutral). Each pair is a foreground / background combo for badges,
+					dots, and inline status indicators.
+				</Text>
+				{STATE_PALETTE.map((s) => (
+					<SwatchRow key={s.name} swatch={s} />
+				))}
+
+				<Text variant="h3" className="mt-6 mb-2">
+					Domain tokens
+				</Text>
+				<Text variant="muted" className="mb-4">
+					Chat-specific tokens: streaming cursor color, tool-call card rule.
+				</Text>
+				{DOMAIN_TOKENS.map((s) => (
 					<SwatchRow key={s.name} swatch={s} />
 				))}
 			</View>

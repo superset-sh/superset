@@ -1,19 +1,20 @@
 {
-	"version": "5.0.0",
+	"version": "5.1.0",
 	"created": "2026-05-21",
+	"updated": "2026-05-22",
 	"goal": "Mobile-chat v2 — native iOS+Android port of the desktop ChatInterface, talking HTTP+tRPC over the relay to host-service for read/respond/initiate flows.",
-	"vibe": "Use the theme already established in apps/mobile/global.css — do not deviate. React Native Reusables neutral palette: cool gray scale (hsl 240 hues), both light and dark variants via @variant light/dark, 0.5rem radius, accordion animations defined. Clean, monochromatic, professional, information-dense, thumb-reach optimized. Component names mirror desktop ChatInterface (per PRD), but visual tokens stay native to mobile — design-token parity means extending the existing mobile tokens, never redefining them to match desktop.",
+	"vibe": "Desktop ember warm palette as canonical (per 14-token-migration-audit.md, Path A committed 2026-05-22). Brand accent #e07850 (ember orange), warm-neutral surface ramp (#151110 background / #1a1716 sidebar / #201e1c card / #2a2827 secondary), Geist + Geist Mono typography loaded via @expo-google-fonts/geist with splash-screen gate, state palette (live/warning/danger/success/neutral) for chat-domain status indicators, 44pt minimum touch targets per iOS HIG + WCAG AA. Flat shadcn-style token names (--color-*) preserved for react-native-reusables CLI compatibility. Light + dark variants via uniwind @variant; active theme set via Uniwind.setTheme() in screens/RootLayout/RootLayout.tsx. Domain-token additions for chat: streaming-cursor, tool-rule.",
 	"spec": "../../plans/chat-mobile-plan/",
+	"tokens_source": "../../../designs/tokens/tokens.css",
 	"references": [],
 	"constraints": {
 		"preserve_theme": {
-			"description": "Existing theme/token surfaces are canonical — scaffold and downstream phases MUST NOT overwrite. Reinforces the 'do not deviate' rule in `vibe`.",
-			"paths": [
-				"lib/theme.ts",
-				"global.css",
-				"uniwind-env.d.ts",
-				"uniwind-types.d.ts"
-			]
+			"description": "Uniwind machinery files remain protected — they are scaffolded vendor types, not theme content. global.css and lib/theme.ts were rewritten under Path A (2026-05-22) per 14-token-migration-audit.md §6 and are no longer locked.",
+			"paths": ["uniwind-env.d.ts", "uniwind-types.d.ts"]
+		},
+		"vendor_components_immutable": {
+			"description": "Vendor react-native-reusables components in components/ui/*.tsx are CLI-managed (npx @react-native-reusables/cli@latest add). They MUST NOT be edited locally — customize via design tokens in global.css instead. Re-pulling via the CLI is permitted; hand-rolling wrappers or editing source is not.",
+			"paths": ["components/ui/"]
 		},
 		"wireframes_are_reference_only": {
 			"description": "ASCII wireframes in the PRD describe structural intent, not the final visual design. During build phases (plan/atoms/molecules/compose), invoke the `frontend-design:frontend-design` skill to translate wireframes into high-fidelity component specs before implementing."
@@ -33,6 +34,7 @@
 				"style_docs": "https://www.npmjs.com/package/uniwind",
 				"components": "react-native-reusables",
 				"icons": "lucide-react-native",
+				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
 			"phase": "scaffold",
@@ -52,6 +54,7 @@
 				"style_docs": "https://www.npmjs.com/package/uniwind",
 				"components": "react-native-reusables",
 				"icons": "lucide-react-native",
+				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
 			"phase": "scaffold",
