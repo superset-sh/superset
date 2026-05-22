@@ -1,6 +1,6 @@
 [mcp_servers.superset]
 type = "sse"
-url = "https://api.superset.sh/api/v2/agent/mcp"
+url = "https://api.superset.sh/api/agent/mcp"
 
 [mcp_servers.expo-mcp]
 type = "sse"
@@ -22,3 +22,25 @@ url = "https://mcp.linear.app/mcp"
 [mcp_servers.sentry]
 type = "sse"
 url = "https://mcp.sentry.dev/mcp"
+
+# Agent-only quality gates (shared scripts in .claude/hooks/).
+# Stop: runs tsgo + biome + fallow verify when Codex turn ends.
+# PreToolUse: fallow audit gate on git commit/push.
+# These hooks only fire inside Codex sessions — humans are unaffected.
+
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "\"$(git rev-parse --show-toplevel)/.claude/hooks/fallow-gate.sh\""
+timeout = 60
+statusMessage = "Running fallow audit gate"
+
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = "\"$(git rev-parse --show-toplevel)/.claude/hooks/agent-verify-gate.sh\""
+timeout = 120
+statusMessage = "Running agent quality verification (tsgo + biome + fallow)"
