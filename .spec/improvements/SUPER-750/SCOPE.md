@@ -283,3 +283,35 @@ Ship **Option B**: fixes Daniel's bug, corrects the misleading "Browser didn't o
 - Loopback port still bound in cross-device mode (invisible to users, cleaned up after 5 min).
 - "Browser didn't open?" copy still misleads when no browser was attempted.
 - These risks make Option Z appropriate only under timeline pressure. Option B is preferred.
+
+---
+
+## Security review
+
+### Findings
+
+- **(Q1 PKCE/state surface)** — No regression. `codeVerifier`, `codeChallenge`, and `state` are all generated at `auth.ts:291-293`, before `bindLoopbackServer()` at `auth.ts:295`. The paste path validates `state` at `auth.ts:378` and passes `codeVerifier` to `exchangeCodeForToken()` at `auth.ts:404-408`. The loopback server contributes no PKCE material and holds no session state the paste path lacks. Removing it for cross-device contexts introduces zero PKCE downgrade. Both flows use `code_challenge_method=S256` (`buildAuthorizeUrl()`, `auth.ts:194`) and the same `codeVerifier` for token exchange. CONFIRMED: identical security posture in paste-only path.
+
+- **(Q2 loopback-removed surface)** — Removing the loopback server **closes** a narrow attack surface. Current behavior: `waitForCallback()` at `auth.ts:119-156` accepts any HTTP request to `http://127.0.0.1:{port}/callback`. `state` is validated at `auth.ts:143-148`, but only after code+state are extracted from the request URL. On a multi-user shared host, a local attacker who learns the port (observable via `ss -tlnp`) and the `state` value (visible in the authorization URL echoed to stdout at `auth.ts:317`) could craft a request. `state` entropy is 256 bits (`randomBytes(32)`, `auth.ts:37-39`) — not remotely guessable — but on a shared host `state` could be extracted from stdout scraping or `/proc/{pid}/fd/`. Even if an attacker sends a request with a valid stolen `state` and a fabricated `code`, `exchangeCodeForToken()` at `auth.ts:201-245` posts the fabricated code to the real OAuth server, which rejects it. The code forging attack fails at the server. Removing the loopback server entirely eliminates the attack surface while the OAuth server's code validation remains as a backstop.
+
+- **(Q3 --no-browser phishing risk)** — Low risk, contained by PKCE. The paste flow is PKCE-bound: a `code` from the OAuth server can only be redeemed by a client possessing the `code_verifier` (`auth.ts:291`), held exclusively in CLI process memory. An attacker who tricks a user into pasting an attacker-controlled `code#state` cannot redeem it — `exchangeCodeForToken()` uses the CLI's `code_verifier`, which the attacker does not have. The pasted `state` is validated against the session-generated state at `auth.ts:378` — codes from different sessions fail immediately. Residual UX footgun: the paste interaction ("paste this thing you receive") trains users in a habit that is dangerous in weaker OAuth systems without PKCE. Not exploitable in this codebase but is a pattern risk.
+
+- **(Q4 superset-cli OAuth client)** — No impact. `CLIENT_ID = "superset-cli"` at `auth.ts:6` is a public client with no secret. PKCE (`code_challenge_method=S256`) was designed for exactly this pattern. Option B's changes are orthogonal to the client registration model — the public client + S256 PKCE combination is intact in all paths.
+
+- **(Q5 Option B specifics)** — One underspecification gap found in AC-9. The non-Ink copy path at `command.ts:218` (`p.log.message("Browser didn't open? Use the url below to sign in")`) must update for two distinct conditions: (a) `shouldOpenBrowser()` returns `false` (auto-detected cross-device), and (b) `--no-browser` flag is set explicitly. AC-9 says "non-Ink path also updates message" but does not enumerate both triggers. An implementer could satisfy AC-9 by updating only one branch and missing the other. No new security vulnerabilities are introduced by the `noBrowser?: boolean` addition to `LoginCallbacks` or `pasteOnly?: boolean` to `LoginUIProps`.
+
+### Smaller-secure-option check
+
+- Option Z (1-LOC `SUPERSET_WORKSPACE_ID` check, no loopback gating) is secure. The retained loopback server adds no new exploitable surface beyond what already exists on main today. Option Z's security posture is identical to current main.
+
+### Regression risk in Option A/B
+
+- Net assessment: **improvement** — removing `bindLoopbackServer()` in cross-device contexts eliminates the narrow loopback request-injection vector described in Q2. No regression in PKCE or state validation is introduced by either option. The paste path's cryptographic security was always equivalent to the loopback path's; gating the loopback bind on browser intent removes a resource and a listener that provided no security benefit in cross-device contexts.
+
+### Recommended additional ACs (Option B binding)
+
+- AC-10 (security): The non-Ink log at `command.ts:218` must update copy for **both** conditions independently: (a) `shouldOpenBrowser()` returns `false` (auto-detected cross-device), and (b) `--no-browser` flag is set. AC-9 currently implies this but does not enumerate both trigger conditions, creating an implementation gap.
+
+### Recommended additional risks (Option B binding)
+
+- Paste-habit footgun (LOW): shipping `--no-browser` normalizes a "run with flag, paste back what you receive" interaction. In this codebase the risk is contained (PKCE prevents code theft). In future flows where a weaker grant type is added, this trained pattern becomes dangerous. Mitigation: display the authorization domain explicitly in the paste-primary UI (e.g., "Signing in to app.superset.sh — visit the link below") so users have a visual domain anchor before pasting. Not a blocking risk for Option B but should be noted in the implementation brief.
