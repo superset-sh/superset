@@ -6,8 +6,28 @@ import Animated, {
 	useSharedValue,
 	withTiming,
 } from "react-native-reanimated";
-import { THEME } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
+// Inlined surface colors — duplicated from apps/mobile/global.css to avoid
+// importing lib/theme.ts, which transitively pulls in expo-router's
+// UnhandledLinkingContext (breaks Storybook RN rendering). Keep in sync
+// with `--color-background` / `--color-card` / `--color-popover` in
+// global.css.
+const SURFACE_COLORS: Record<
+	"light" | "dark",
+	{ page: string; soft: string; overlay: string }
+> = {
+	light: {
+		page: "hsl(0, 0%, 100%)",
+		soft: "hsl(0, 0%, 100%)",
+		overlay: "hsl(0, 0%, 100%)",
+	},
+	dark: {
+		page: "hsl(13, 16%, 7%)",
+		soft: "hsl(20, 7%, 12%)",
+		overlay: "hsl(20, 7%, 12%)",
+	},
+};
 
 export type ScrollFadeProps = Omit<ViewProps, "children"> & {
 	/** Top edge (default) or bottom edge of the scroll container. */
@@ -38,15 +58,7 @@ function surfaceColor(
 	surface: NonNullable<ScrollFadeProps["surface"]>,
 	scheme: "light" | "dark",
 ): string {
-	const t = THEME[scheme];
-	switch (surface) {
-		case "page":
-			return t.background;
-		case "soft":
-			return t.card;
-		case "overlay":
-			return t.popover;
-	}
+	return SURFACE_COLORS[scheme][surface];
 }
 
 /**
