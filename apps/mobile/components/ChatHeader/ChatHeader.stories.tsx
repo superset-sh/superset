@@ -79,7 +79,7 @@ export const OfflineWithBanner: Story = {
 					headline="Host offline · retry to reconnect"
 					cta={
 						<Pressable accessibilityRole="button">
-							<Text className="text-amber-600 font-semibold underline">
+							<Text className="text-state-warning-fg font-semibold underline">
 								Retry
 							</Text>
 						</Pressable>
