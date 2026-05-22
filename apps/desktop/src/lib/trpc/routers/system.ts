@@ -8,6 +8,15 @@ interface GhDetectResult {
 	path: string | null;
 }
 
+async function ghSucceeds(args: string[]): Promise<boolean> {
+	try {
+		await execWithShellEnv("gh", args, { timeout: 5000 });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 async function detectGhCli(): Promise<GhDetectResult> {
 	// Resolve `gh` via the user's login-shell PATH (execWithShellEnv retries with
 	// the derived shell env on ENOENT), so we find it wherever it's installed —
@@ -28,17 +37,14 @@ async function detectGhCli(): Promise<GhDetectResult> {
 		};
 	}
 
-	let authenticated = false;
-	try {
-		await execWithShellEnv(
-			"gh",
-			["auth", "status", "--active", "--hostname", "github.com"],
-			{ timeout: 5000 },
-		);
-		authenticated = true;
-	} catch {
-		// `gh auth status` exits non-zero when not logged in.
-	}
+	const authenticated =
+		(await ghSucceeds([
+			"auth",
+			"status",
+			"--active",
+			"--hostname",
+			"github.com",
+		])) || (await ghSucceeds(["auth", "status", "--hostname", "github.com"]));
 
 	return { installed: true, authenticated, version, path: "gh" };
 }
