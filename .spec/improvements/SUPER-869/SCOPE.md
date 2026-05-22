@@ -4,7 +4,10 @@ improvement_id: SUPER-869
 ticket_id: SUPER-869
 ticket_url: https://linear.app/superset-sh/issue/SUPER-869/add-factory-droid-as-a-terminal-agent-preset
 tracker: linear
-status: proposal
+status: binding
+chosen_option: moderate
+loc_budget: 50
+task_chunks: 1
 investigator_specialist: code-reviewer
 challenger_specialist: security-reviewer
 ---
@@ -20,8 +23,8 @@ Factory Droid is partially integrated (desktop wrapper + hooks + agent-identity 
 The gap is confirmed by direct file inspection:
 
 1. **Droid exists in agent-identity.ts:16** — `agentId: BuiltinAgentId | "droid"` shows Droid is recognized as a valid agent process identity but is handled as an out-of-band exception rather than a built-in.
-2. **Droid exists in agent-wrappers-droid.ts** — full wrapper implementation at `apps/desktop/src/main/lib/agent-setup/agent-wrappers-droid.ts` (209 lines) manages `~/.factory/settings.json` hooks with SessionStart, SessionEnd, UserPromptSubmit, Notification, Stop, and PostToolUse events.
-3. **Droid is ABSENT from HOST_AGENT_PRESETS** — `packages/shared/src/host-agent-presets.ts:33-132` lists 9 presets (claude, amp, codex, gemini, mastracode, opencode, pi, copilot, cursor-agent). No "droid" entry.
+2. **Droid exists in agent-wrappers-droid.ts** — full wrapper implementation at `apps/desktop/src/main/lib/agent-setup/agent-wrappers-droid.ts` (209 lines) manages `~/.factory/settings.json` hooks.
+3. **Droid is ABSENT from HOST_AGENT_PRESETS** — `packages/shared/src/host-agent-presets.ts:33-132` lists 9 presets. No "droid" entry.
 4. **Droid is ABSENT from BUILTIN_TERMINAL_AGENTS** — `packages/shared/src/builtin-terminal-agents.ts:59-134` lists the same 9 agents. No "droid" entry.
 5. **Droid has NO preset icon** — `packages/ui/src/assets/icons/preset-icons/` contains SVGs for all 9 presets. No droid.svg or droid-white.svg.
 
@@ -29,105 +32,50 @@ The gap is confirmed by direct file inspection:
 
 Droid was integrated bottom-up (desktop wrapper first) but the two static preset registries that power the UI picker were never updated. The `agent-identity.ts` type union explicitly punts with `| "droid"` instead of deriving it from the built-in set.
 
-## Option 1: minimum — Add droid preset entries to both registries + type cleanup
+## Binding scope (chosen: moderate)
 
-One-line: Add droid to HOST_AGENT_PRESETS and BUILTIN_TERMINAL_AGENTS with `--auto medium`, simplify agent-identity type union.
+### Acceptance criteria
 
-Files in scope:
-- `packages/shared/src/host-agent-presets.ts` — add droid entry after cursor-agent (line ~131)
-- `packages/shared/src/builtin-terminal-agents.ts` — add droid entry after cursor-agent (line ~133)
-- `packages/shared/src/agent-identity.ts:16` — simplify `BuiltinAgentId | "droid"` to just `BuiltinAgentId`
-
-LOC budget: ~30 lines added, 1 line changed
-
-Acceptance criteria:
 - `HOST_AGENT_PRESETS` array contains a `droid` entry with `command: "droid"`, `args: ["--auto", "medium"]`, `promptTransport: "argv"`, `promptArgs: []`
-- `BUILTIN_TERMINAL_AGENTS` array contains a `droid` entry with matching command
-- `agent-identity.ts` no longer has the `| "droid"` union escape hatch
-- TypeScript compiles without errors
-- Existing tests pass (preset resolution, agent catalog, agent identity)
-
-Out of scope:
-- Droid icon SVG (preset will render with a generic fallback icon)
-- Changes to agent-wrappers-droid.ts (already works)
-- Changes to desktop agent-setup flow
-
-Risks:
-- Low: Without a custom icon, droid shows a generic placeholder in the preset picker. Cosmetic only.
-
-## Option 2: moderate — minimum + droid icon
-
-One-line: Add droid preset entries, type cleanup, and add a branded SVG icon to the preset-icons directory.
-
-Files in scope:
-- Same as minimum
-- `packages/ui/src/assets/icons/preset-icons/droid.svg` — new branded icon
-- `packages/ui/src/assets/icons/preset-icons/droid-white.svg` — dark theme variant
-- `packages/ui/src/assets/icons/preset-icons/index.ts` — register both in PRESET_ICONS map
-
-LOC budget: ~50 lines added/changed, plus 2 SVG assets
-
-Acceptance criteria:
-- All minimum ACs
+- `BUILTIN_TERMINAL_AGENTS` array contains a `droid` entry with `command: "droid --auto medium"`, `promptCommand: "droid --auto medium"`
+- `agent-identity.ts` no longer has the `| "droid"` union escape hatch — `BuiltinAgentId` derives from the array
 - `PRESET_ICONS` map in `index.ts` contains a `droid` entry with light and dark icon variants
 - SVGs render correctly at 16x16 and 32x32
+- TypeScript compiles without errors
+- Existing tests pass
 
-Out of scope:
-- Changes to agent-wrappers-droid.ts
+### Files in scope
+
+- `packages/shared/src/host-agent-presets.ts` — add droid entry
+- `packages/shared/src/builtin-terminal-agents.ts` — add droid entry
+- `packages/shared/src/agent-identity.ts:16` — simplify type union
+- `packages/ui/src/assets/icons/preset-icons/droid.svg` — new icon
+- `packages/ui/src/assets/icons/preset-icons/droid-white.svg` — dark theme variant
+- `packages/ui/src/assets/icons/preset-icons/index.ts` — register in PRESET_ICONS
+
+### Out of scope
+
+- Changes to agent-wrappers-droid.ts (already works)
 - Changes to desktop agent-setup flow
-
-Risks:
-- Medium: SVG icon needs to be sourced or created (Factory branding asset). May need design review.
-- Low: If Factory doesn't provide a suitable icon, a placeholder geometric design would be needed.
-
-## Option 3: strategic — moderate + includeInDefaultTerminalPresets
-
-One-line: Add droid as a full preset with icon AND seed it into the default preset list shown to new users.
-
-Files in scope:
-- Same as moderate
-- `packages/shared/src/host-agent-presets.ts` — add `"droid"` to `DEFAULT_PRESET_IDS` set
-- `packages/shared/src/builtin-terminal-agents.ts` — set `includeInDefaultTerminalPresets: true` on droid entry
-
-LOC budget: ~55 lines added/changed, plus 2 SVG assets
-
-Acceptance criteria:
-- All moderate ACs
-- Droid appears in `getDefaultSeedPresets()` output
-- Droid entry has `includeInDefaultTerminalPresets: true`
-- New users see Droid in their initial preset list alongside Claude, Codex, Gemini, Amp, Copilot
-
-Out of scope:
-- Changes to agent-wrappers-droid.ts
-- Changes to desktop agent-setup flow
+- Adding droid to DEFAULT_PRESET_IDS / includeInDefaultTerminalPresets
 - Factory CLI installation or authentication flow
 
-Risks:
-- Medium: Same SVG icon risk as moderate.
-- Medium: Droid is a newer/commercial product. Seeding it as a default preset means all new users see it. May want product sign-off before making it default.
-- Low: Users who don't have droid installed will see it in the picker but get a "command not found" error. This is the same behavior as any other uninstalled preset.
+### Risks
+
+- Medium: SVG icon needs to be sourced or created (Factory branding asset). Placeholder geometric design as fallback.
 
 ## Considered alternatives
 
-(To be populated after human decision)
+- **minimum** — Add droid to registries + type cleanup only (no icon). Rejected: user chose moderate for visual parity with other presets.
+- **strategic** — Moderate + seed as default preset for new users. Rejected: challenger flagged this as a product decision requiring separate sign-off, not an engineering call to bundle.
 
-## Challenge
+## Challenger notes
 
-**Evidence re-verified:** All 5 evidence citations confirmed by reading the actual source files. The gap is real — droid is in the desktop wrapper layer but absent from both preset registries.
-
-**Minimum resolves the problem:** Yes. Adding droid to `HOST_AGENT_PRESETS` and `BUILTIN_TERMINAL_AGENTS` is the exact causal path to making it appear in the terminal preset picker UI. The type union simplification is a clean follow-through. No smaller option possible — you cannot make droid discoverable without adding it to at least one registry, and both are consumed by different UI paths.
-
-**No smaller option proposed.** The minimum is already the smallest defensible change — 2 array entries + 1 type cleanup. Removing any one of the three files would leave the integration incomplete.
-
-**Scope creep flags:**
-- Option 2 (moderate): The SVG icon files (`droid.svg`, `droid-white.svg`) are new assets requiring design sourcing. Not strictly required for discoverability — the preset picker already has a fallback icon path. This is branding polish, not functional.
-- Option 3 (strategic): `includeInDefaultTerminalPresets: true` and `DEFAULT_PRESET_IDS` addition are product decisions, not engineering. Factory Droid is a commercial product with a specific auth flow (`FACTORY_API_KEY`). Seeding it as default means new users who've never heard of Factory see it in their picker. This should be a separate product decision, not bundled with the preset registration.
-
-**Security note:** No auth/secrets/token surface in this change. The preset registries are static configuration. The `--auto medium` flag is the correct autonomy level — not `--skip-permissions-unsafe`. The existing wrapper in `agent-wrappers-droid.ts` already handles `~/.factory/settings.json` correctly.
+**Evidence re-verified.** All 5 citations confirmed against source. Minimum resolves the problem causally — no smaller option possible. No scope creep in moderate beyond the icon assets (branding polish). Strategic's `includeInDefaultTerminalPresets` is a product decision, not engineering. No security surface in this change — `--auto medium` is correct, not `--skip-permissions-unsafe`.
 
 ## Scope amendments
 
-(Empty — populated later if needed)
+(None)
 
 ## Deferred follow-ups
 
