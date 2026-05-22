@@ -1,5 +1,5 @@
 {
-	"version": "5.1.0",
+	"version": "5.2.0",
 	"created": "2026-05-21",
 	"updated": "2026-05-22",
 	"goal": "Mobile-chat v2 — native iOS+Android port of the desktop ChatInterface, talking HTTP+tRPC over the relay to host-service for read/respond/initiate flows.",
@@ -37,16 +37,17 @@
 				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
-			"phase": "molecules",
+			"phase": "organisms",
 			"gates": {
 				"scaffold": "passed",
 				"plan": "passed",
 				"atoms": "passed",
 				"molecules": "passed",
+				"organisms": "passed",
 				"compose": "pending"
 			},
 			"build_plan": {
-				"scope_note": "Chat-view only (per designs/AUDIT.md). Sessions-list + nav surfaces deferred. Wave 1 (atoms) completed 2026-05-22. Wave 2 (molecules) completed 2026-05-22 — 19 molecules built (1 replaces ComposerToolbar per desktop PR #4866 unified-settings-menu pattern). Wave 3 (screens) gated behind explicit user confirmation.",
+				"scope_note": "Chat-view only (per designs/AUDIT.md). Sessions-list + nav surfaces deferred. Wave 1 (atoms) completed 2026-05-22. Wave 2 (molecules) completed 2026-05-22 — 19 molecules built (1 replaces ComposerToolbar per desktop PR #4866 unified-settings-menu pattern). Wave 3 (organisms) completed 2026-05-22 — 10 organisms built per designs/AUDIT.md §ORGANISM AUDIT. Wave 4 (screens / compose) gated behind explicit user confirmation.",
 				"tokens": "skip",
 				"atoms": {
 					"status": "build",
@@ -87,28 +88,45 @@
 					]
 				},
 				"molecules": {
-					"status": "deferred",
-					"create_when_unlocked": [
-						"picker-trigger",
-						"composer-toolbar",
-						"composer-row",
-						"slash-command-option",
-						"model-picker-option",
-						"thinking-level-option",
-						"app-header",
-						"modal-header",
-						"code-block",
-						"banner",
-						"pending-approval-card",
-						"approval-footer",
-						"suggested-answer-pill",
-						"pending-action-pill",
-						"assistant-message-head",
-						"user-message-bubble",
-						"tool-call-card",
-						"collapsed-block",
-						"scroll-back-button"
+					"status": "build",
+					"created": [
+						"PickerTrigger",
+						"ComposerSettingsButton",
+						"ComposerRow",
+						"SlashCommandOption",
+						"ModelPickerOption",
+						"ThinkingLevelOption",
+						"AppHeader",
+						"ModalHeader",
+						"CodeBlock",
+						"Banner",
+						"PendingApprovalCard",
+						"ApprovalFooter",
+						"SuggestedAnswerPill",
+						"PendingActionPill",
+						"AssistantMessageHead",
+						"UserMessageBubble",
+						"ToolCallCard",
+						"CollapsedBlock",
+						"ScrollBackButton"
 					]
+				},
+				"organisms": {
+					"status": "build",
+					"created": [
+						"ChatHeader",
+						"ChatThread",
+						"Composer",
+						"SlashCommandPopover",
+						"PickerPopover",
+						"PauseApprovalOverlay",
+						"BottomSheet",
+						"PlanReviewScreen",
+						"ConfirmationDialog",
+						"LoadingSkeleton"
+					],
+					"vendor_added": ["@gorhom/bottom-sheet@5.2.12"],
+					"source": "designs/AUDIT.md §ORGANISM AUDIT"
 				},
 				"screens": {
 					"status": "deferred",
@@ -127,19 +145,21 @@
 				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
-			"phase": "molecules",
+			"phase": "organisms",
 			"gates": {
 				"scaffold": "passed",
 				"plan": "passed",
 				"atoms": "passed",
 				"molecules": "passed",
+				"organisms": "passed",
 				"compose": "pending"
 			},
 			"build_plan": {
 				"scope_note": "Mirrors mobile-ios — apps/mobile/ source tree is shared across both platforms. Visual verification done on iOS sim only; android-specific render quirks reviewed when an android build is available.",
 				"tokens": "skip",
 				"atoms": "see mobile-ios.build_plan.atoms",
-				"molecules": "deferred",
+				"molecules": "see mobile-ios.build_plan.molecules",
+				"organisms": "see mobile-ios.build_plan.organisms",
 				"screens": "deferred"
 			}
 		}

@@ -20,6 +20,7 @@
 		"@expo-google-fonts/geist-mono": "0.4.2",
 		"@expo/ui": "56.0.12",
 		"@expo/vector-icons": "15.1.1",
+		"@gorhom/bottom-sheet": "5.2.12",
 		"@react-native-async-storage/async-storage": "2.2.0",
 		"@rn-primitives/accordion": "1.4.0",
 		"@rn-primitives/alert-dialog": "1.4.0",
