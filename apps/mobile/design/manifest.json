@@ -37,16 +37,16 @@
 				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
-			"phase": "plan",
+			"phase": "atoms",
 			"gates": {
 				"scaffold": "passed",
 				"plan": "passed",
-				"atoms": "pending",
+				"atoms": "passed",
 				"molecules": "pending",
 				"compose": "pending"
 			},
 			"build_plan": {
-				"scope_note": "Chat-view only (per designs/AUDIT.md). Sessions-list + nav surfaces deferred to a later sprint. Wave 1 (atoms) executing first; molecules + screens gated behind explicit user confirmation per wave.",
+				"scope_note": "Chat-view only (per designs/AUDIT.md). Sessions-list + nav surfaces deferred to a later sprint. Wave 1 (atoms) completed 2026-05-22 — verified visually in Storybook RN on iOS 26.5 simulator. Wave 2 (molecules) + Wave 3 (screens) gated behind explicit user confirmation per wave.",
 				"tokens": "skip",
 				"atoms": {
 					"status": "build",
@@ -127,16 +127,16 @@
 				"fonts": "@expo-google-fonts/geist",
 				"sandbox": "storybook-native"
 			},
-			"phase": "plan",
+			"phase": "atoms",
 			"gates": {
 				"scaffold": "passed",
 				"plan": "passed",
-				"atoms": "pending",
+				"atoms": "passed",
 				"molecules": "pending",
 				"compose": "pending"
 			},
 			"build_plan": {
-				"scope_note": "Mirrors mobile-ios — apps/mobile/ source tree is shared across both platforms.",
+				"scope_note": "Mirrors mobile-ios — apps/mobile/ source tree is shared across both platforms. Visual verification done on iOS sim only; android-specific render quirks reviewed when an android build is available.",
 				"tokens": "skip",
 				"atoms": "see mobile-ios.build_plan.atoms",
 				"molecules": "deferred",
