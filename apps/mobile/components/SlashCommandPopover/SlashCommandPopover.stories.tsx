@@ -41,6 +41,9 @@ const COMMANDS: SlashCommand[] = [
 	},
 ];
 
+const BUILTINS = COMMANDS.filter((c) => c.source === "builtin");
+const CUSTOM = COMMANDS.filter((c) => c.source !== "builtin");
+
 const meta: Meta<typeof SlashCommandPopover> = {
 	title: "Organisms/SlashCommandPopover",
 	component: SlashCommandPopover,
@@ -62,7 +65,6 @@ const meta: Meta<typeof SlashCommandPopover> = {
 	],
 	args: {
 		open: true,
-		commands: COMMANDS,
 		highlightedIndex: 0,
 	},
 	argTypes: {
@@ -71,6 +73,7 @@ const meta: Meta<typeof SlashCommandPopover> = {
 			control: { type: "number", min: 0, max: 10, step: 1 },
 		},
 		emptyLabel: { control: "text" },
+		commands: { control: false, table: { disable: true } },
 	},
 };
 
@@ -78,14 +81,18 @@ export default meta;
 
 type Story = StoryObj<typeof SlashCommandPopover>;
 
-export const AllCommands: Story = {};
+export const AllCommands: Story = {
+	render: (args) => <SlashCommandPopover {...args} commands={COMMANDS} />,
+};
 
 export const BuiltinsOnly: Story = {
-	args: { commands: COMMANDS.filter((c) => c.source === "builtin") },
+	render: (args) => <SlashCommandPopover {...args} commands={BUILTINS} />,
 };
 
 export const CustomOnly: Story = {
-	args: { commands: COMMANDS.filter((c) => c.source !== "builtin") },
+	render: (args) => <SlashCommandPopover {...args} commands={CUSTOM} />,
 };
 
-export const Empty: Story = { args: { commands: [] } };
+export const Empty: Story = {
+	render: (args) => <SlashCommandPopover {...args} commands={[]} />,
+};

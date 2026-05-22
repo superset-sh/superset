@@ -35,8 +35,14 @@ const meta: Meta<typeof ChatHeader> = {
 		subtitle: { control: "text" },
 		status: {
 			control: { type: "select" },
-			options: ["__none__", ...STATUSES],
-			mapping: { __none__: undefined },
+			options: ["(none)", ...STATUSES],
+			mapping: {
+				"(none)": undefined,
+				live: "live",
+				streaming: "streaming",
+				paused: "paused",
+				offline: "offline",
+			},
 			description:
 				"Session-status indicator (StatusDot + label) shown above the header",
 		},
@@ -44,6 +50,7 @@ const meta: Meta<typeof ChatHeader> = {
 		isScrolled: { control: "boolean" },
 		showBack: { control: "boolean" },
 		showActions: { control: "boolean" },
+		banner: { control: false },
 	},
 };
 
@@ -62,22 +69,25 @@ export const Paused: Story = {
 };
 
 export const OfflineWithBanner: Story = {
-	args: {
-		status: "offline",
-		banner: (
-			<Banner
-				variant="offline"
-				headline="Host offline · retry to reconnect"
-				cta={
-					<Pressable accessibilityRole="button">
-						<Text className="text-state-warning-fg font-semibold underline">
-							Retry
-						</Text>
-					</Pressable>
-				}
-			/>
-		),
-	},
+	args: { status: "offline" },
+	render: (args) => (
+		<ChatHeader
+			{...args}
+			banner={
+				<Banner
+					variant="offline"
+					headline="Host offline · retry to reconnect"
+					cta={
+						<Pressable accessibilityRole="button">
+							<Text className="text-state-warning-fg font-semibold underline">
+								Retry
+							</Text>
+						</Pressable>
+					}
+				/>
+			}
+		/>
+	),
 };
 
 export const Scrolled: Story = {

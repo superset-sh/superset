@@ -107,11 +107,8 @@ const meta: Meta<typeof ChatThread> = {
 			</View>
 		),
 	],
-	args: {
-		items: STREAMING_CONVERSATION,
-	},
 	argTypes: {
-		items: { control: false },
+		items: { control: false, table: { disable: true } },
 	},
 };
 
@@ -119,10 +116,18 @@ export default meta;
 
 type Story = StoryObj<typeof ChatThread>;
 
-export const StreamingConversation: Story = {};
+export const StreamingConversation: Story = {
+	render: () => <ChatThread items={STREAMING_CONVERSATION} />,
+};
 
-export const WithPlanBlock: Story = { args: { items: WITH_PLAN } };
+export const WithPlanBlock: Story = {
+	render: () => <ChatThread items={WITH_PLAN} />,
+};
 
-export const FailedUserMessage: Story = { args: { items: FAILED_MESSAGE } };
+export const FailedUserMessage: Story = {
+	render: () => <ChatThread items={FAILED_MESSAGE} />,
+};
 
-export const Empty: Story = { args: { items: [] } };
+export const Empty: Story = {
+	render: () => <ChatThread items={[]} />,
+};
