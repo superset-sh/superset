@@ -35,6 +35,7 @@ import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import {
+	adoptBackgroundTerminal,
 	BACKGROUND_TERMINAL_ATTACHMENT_DEBOUNCE_MS,
 	getAttachedTerminalIdsKey,
 	getBackgroundTerminalCountRefetchInterval,
@@ -200,19 +201,28 @@ export const BackgroundTerminalsButton = memo(
 		}`;
 
 		const handleAdopt = (terminalId: string) => {
-			clearTerminalBackgroundMarker(workspaceId, terminalId);
-			store.getState().addTab({
-				panes: [
-					{
-						kind: "terminal",
-						data: { terminalId } as TerminalPaneData,
-					},
-				],
+			adoptBackgroundTerminal({
+				clearMarker: () =>
+					clearTerminalBackgroundMarker(workspaceId, terminalId),
+				closeDropdown: () => setIsOpen(false),
+				addTab: () =>
+					store.getState().addTab({
+						panes: [
+							{
+								kind: "terminal",
+								data: { terminalId } as TerminalPaneData,
+							},
+						],
+					}),
+				invalidateQueries: () => {
+					void utils.terminal.listSessions.invalidate({ workspaceId });
+					void utils.terminal.countBackgroundSessions.invalidate({
+						workspaceId,
+					});
+				},
+				logEvent: () =>
+					logStressEvent("background-terminals.adopt", { workspaceId }),
 			});
-			void utils.terminal.listSessions.invalidate({ workspaceId });
-			void utils.terminal.countBackgroundSessions.invalidate({ workspaceId });
-			logStressEvent("background-terminals.adopt", { workspaceId });
-			setIsOpen(false);
 		};
 
 		const handleKill = async (terminalId: string) => {

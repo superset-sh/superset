@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	adoptBackgroundTerminal,
 	getAttachedTerminalIdsKey,
 	getBackgroundTerminalCountRefetchInterval,
 	getBackgroundTerminalListRefetchInterval,
@@ -56,5 +57,66 @@ describe("BackgroundTerminalsButton utils", () => {
 		expect(getBackgroundTerminalCountRefetchInterval(true)).toBe(false);
 		expect(getBackgroundTerminalListRefetchInterval(false)).toBe(false);
 		expect(getBackgroundTerminalListRefetchInterval(true)).toBe(2_000);
+	});
+
+	test("adoption closes the dropdown before mounting the terminal pane (#4811)", () => {
+		const calls: string[] = [];
+		const scheduledRef: { current: (() => void) | null } = { current: null };
+
+		adoptBackgroundTerminal({
+			clearMarker: () => calls.push("clearMarker"),
+			closeDropdown: () => calls.push("closeDropdown"),
+			addTab: () => calls.push("addTab"),
+			invalidateQueries: () => calls.push("invalidateQueries"),
+			logEvent: () => calls.push("logEvent"),
+			scheduleFrame: (callback) => {
+				calls.push("scheduleFrame");
+				scheduledRef.current = callback;
+			},
+		});
+
+		// Before the next frame, the dropdown is closed but addTab has NOT yet run.
+		// This is the fix for #4811: if addTab fires while the dropdown is still
+		// open, TerminalPane mounts into a zero-dimension host, fitAddon.fit() is
+		// skipped, and the terminal viewport stays stuck.
+		expect(calls).toEqual(["clearMarker", "closeDropdown", "scheduleFrame"]);
+		expect(calls.indexOf("closeDropdown")).toBeLessThan(
+			calls.indexOf("scheduleFrame"),
+		);
+
+		// Flush the scheduled frame — addTab now runs with a stable layout.
+		scheduledRef.current?.();
+		expect(calls).toEqual([
+			"clearMarker",
+			"closeDropdown",
+			"scheduleFrame",
+			"addTab",
+			"invalidateQueries",
+			"logEvent",
+		]);
+	});
+
+	test("adoption falls back to setTimeout when requestAnimationFrame is absent", () => {
+		const calls: string[] = [];
+		adoptBackgroundTerminal({
+			clearMarker: () => calls.push("clearMarker"),
+			closeDropdown: () => calls.push("closeDropdown"),
+			addTab: () => calls.push("addTab"),
+			invalidateQueries: () => calls.push("invalidateQueries"),
+			logEvent: () => calls.push("logEvent"),
+			scheduleFrame: (callback) => {
+				calls.push("scheduleFrame");
+				callback();
+			},
+		});
+
+		expect(calls).toEqual([
+			"clearMarker",
+			"closeDropdown",
+			"scheduleFrame",
+			"addTab",
+			"invalidateQueries",
+			"logEvent",
+		]);
 	});
 });

@@ -79,3 +79,38 @@ export function getBackgroundTerminalListRefetchInterval(
 ): number | false {
 	return isOpen ? BACKGROUND_TERMINAL_LIST_REFETCH_INTERVAL_MS : false;
 }
+
+export interface AdoptBackgroundTerminalDeps {
+	clearMarker: () => void;
+	closeDropdown: () => void;
+	addTab: () => void;
+	invalidateQueries: () => void;
+	logEvent: () => void;
+	scheduleFrame?: (callback: () => void) => void;
+}
+
+/**
+ * Adopt a background terminal into a new pane. The dropdown must close
+ * before `addTab` runs, otherwise `TerminalPane` mounts while the overlay
+ * still occludes the tab area and its container reports zero dimensions —
+ * `fitAddon.fit()` never fires and the viewport stays stuck (#4811).
+ */
+export function adoptBackgroundTerminal(deps: AdoptBackgroundTerminalDeps) {
+	const scheduleFrame =
+		deps.scheduleFrame ??
+		(typeof requestAnimationFrame === "function"
+			? (callback: () => void) => {
+					requestAnimationFrame(callback);
+				}
+			: (callback: () => void) => {
+					setTimeout(callback, 0);
+				});
+
+	deps.clearMarker();
+	deps.closeDropdown();
+	scheduleFrame(() => {
+		deps.addTab();
+		deps.invalidateQueries();
+		deps.logEvent();
+	});
+}
