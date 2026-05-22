@@ -7,16 +7,21 @@ set -euo pipefail
 #
 # Agent-only by design:
 #   - Claude Code / Codex hooks only fire in agent sessions
-#   - Belt-and-suspenders: check for known agent env vars
-#
-# tsgo is @typescript/native-preview — fast native TS typechecker.
-# Installed as devDep, resolved directly from node_modules/.bin (no npx overhead).
+#   - Belt-and-suspenders: check env vars or stdin for agent context
 
-# Skip if not in an agent session
+# Check if we're in an agent session
 IS_AGENT=false
 [ -n "${CLAUDE_CODE_SESSION_ID:-}" ] && IS_AGENT=true
-[ -n "${CODEX_SESSION_ID:-}" ] && IS_AGENT=true
 [ -n "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ] && IS_AGENT=true
+
+# Codex doesn't set an env var, but its hooks receive JSON on stdin with session_id.
+# If we got stdin with a session_id field, we're in an agent session.
+if [ "$IS_AGENT" = "false" ] && [ -p /dev/stdin ]; then
+  STDIN_DATA=$(cat 2>/dev/null || true)
+  if echo "$STDIN_DATA" | jq -e '.session_id' >/dev/null 2>&1; then
+    IS_AGENT=true
+  fi
+fi
 
 if [ "$IS_AGENT" = "false" ]; then
   echo "agent-verify-gate: not in agent session, skipping." >&2
