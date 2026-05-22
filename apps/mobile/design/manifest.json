@@ -1,0 +1,67 @@
+{
+	"version": "5.0.0",
+	"created": "2026-05-21",
+	"goal": "Mobile-chat v2 — native iOS+Android port of the desktop ChatInterface, talking HTTP+tRPC over the relay to host-service for read/respond/initiate flows.",
+	"vibe": "Use the theme already established in apps/mobile/global.css — do not deviate. React Native Reusables neutral palette: cool gray scale (hsl 240 hues), both light and dark variants via @variant light/dark, 0.5rem radius, accordion animations defined. Clean, monochromatic, professional, information-dense, thumb-reach optimized. Component names mirror desktop ChatInterface (per PRD), but visual tokens stay native to mobile — design-token parity means extending the existing mobile tokens, never redefining them to match desktop.",
+	"spec": "../../plans/chat-mobile-plan/",
+	"references": [],
+	"constraints": {
+		"preserve_theme": {
+			"description": "Existing theme/token surfaces are canonical — scaffold and downstream phases MUST NOT overwrite. Reinforces the 'do not deviate' rule in `vibe`.",
+			"paths": [
+				"lib/theme.ts",
+				"global.css",
+				"uniwind-env.d.ts",
+				"uniwind-types.d.ts"
+			]
+		},
+		"wireframes_are_reference_only": {
+			"description": "ASCII wireframes in the PRD describe structural intent, not the final visual design. During build phases (plan/atoms/molecules/compose), invoke the `frontend-design:frontend-design` skill to translate wireframes into high-fidelity component specs before implementing."
+		}
+	},
+	"gates": {
+		"discover": "passed",
+		"target": "passed",
+		"equip": "passed"
+	},
+	"platforms": {
+		"mobile-ios": {
+			"tools": {
+				"framework": "expo",
+				"style": "custom",
+				"style_name": "uniwind",
+				"style_docs": "https://www.npmjs.com/package/uniwind",
+				"components": "react-native-reusables",
+				"icons": "lucide-react-native",
+				"sandbox": "storybook-native"
+			},
+			"phase": "scaffold",
+			"gates": {
+				"scaffold": "passed",
+				"plan": "pending",
+				"atoms": "pending",
+				"molecules": "pending",
+				"compose": "pending"
+			}
+		},
+		"mobile-android": {
+			"tools": {
+				"framework": "expo",
+				"style": "custom",
+				"style_name": "uniwind",
+				"style_docs": "https://www.npmjs.com/package/uniwind",
+				"components": "react-native-reusables",
+				"icons": "lucide-react-native",
+				"sandbox": "storybook-native"
+			},
+			"phase": "scaffold",
+			"gates": {
+				"scaffold": "passed",
+				"plan": "pending",
+				"atoms": "pending",
+				"molecules": "pending",
+				"compose": "pending"
+			}
+		}
+	}
+}
