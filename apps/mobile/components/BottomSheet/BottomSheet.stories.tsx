@@ -3,12 +3,16 @@ import {
 	BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import type { Meta, StoryObj } from "@storybook/react-native";
-import { useState } from "react";
+import { useRef } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { BottomSheet, type BottomSheetProps } from "./BottomSheet";
+import {
+	BottomSheet,
+	type BottomSheetProps,
+	type BottomSheetRef,
+} from "./BottomSheet";
 
 const SAMPLE_LINES: ReadonlyArray<string> = [
 	"Approve · Decline · Always",
@@ -25,7 +29,7 @@ const SAMPLE_LINES: ReadonlyArray<string> = [
 	"Backdrop tap also closes",
 ];
 
-type ShowcaseProps = Omit<BottomSheetProps, "open" | "onClose" | "children"> & {
+type ShowcaseProps = Omit<BottomSheetProps, "children"> & {
 	triggerLabel: string;
 	bodyLines: number;
 };
@@ -35,16 +39,16 @@ function BottomSheetShowcase({
 	bodyLines,
 	...rest
 }: ShowcaseProps) {
-	const [open, setOpen] = useState(false);
+	const sheetRef = useRef<BottomSheetRef>(null);
 	const lines = SAMPLE_LINES.slice(0, Math.min(bodyLines, SAMPLE_LINES.length));
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<BottomSheetModalProvider>
 				<View className="flex-1 items-center justify-center bg-background p-6">
-					<Button onPress={() => setOpen(true)}>
+					<Button onPress={() => sheetRef.current?.present()}>
 						<Text>{triggerLabel}</Text>
 					</Button>
-					<BottomSheet {...rest} open={open} onClose={() => setOpen(false)}>
+					<BottomSheet {...rest} ref={sheetRef}>
 						<BottomSheetView style={{ padding: 24, gap: 12 }}>
 							<Text className="text-foreground text-lg font-semibold">
 								Sheet content
@@ -54,6 +58,12 @@ function BottomSheetShowcase({
 									{line}
 								</Text>
 							))}
+							<Button
+								variant="outline"
+								onPress={() => sheetRef.current?.dismiss()}
+							>
+								<Text>Close</Text>
+							</Button>
 						</BottomSheetView>
 					</BottomSheet>
 				</View>
@@ -69,7 +79,7 @@ const meta: Meta<typeof BottomSheetShowcase> = {
 		docs: {
 			description: {
 				component:
-					"Project-themed wrapper around @gorhom/bottom-sheet BottomSheetModal. Drag-down dismiss, tap-backdrop dismiss, themed handle + surface via Uniwind tokens. Used by ask_user sheet (UC-PAUSE-02), session overflow (UC-SESS-04), new-chat picker (UC-NAV-04), project/filter pickers (UC-NAV-08).",
+					"Project-themed wrapper around @gorhom/bottom-sheet BottomSheetModal. Imperative API via `useRef<BottomSheetRef>` — call `ref.current?.present()` to open, `.dismiss()` to close. Drag-down dismiss + tap-backdrop dismiss + themed handle/surface. Used by ask_user sheet (UC-PAUSE-02), session overflow (UC-SESS-04), new-chat picker (UC-NAV-04), project/filter pickers (UC-NAV-08).",
 			},
 		},
 		layout: "fullscreen",
