@@ -14,7 +14,7 @@ phase_1_driver: pixel-perfect
 ## Overview
 
 **Sprints:** 7
-**Total Tasks:** 53 + pixel-perfect-managed Phase 1
+**Total Tasks:** 56 + pixel-perfect-managed Phase 1
 **Current Sprint:** Sprint 01 (🟠 In flight via pixel-perfect; scaffold gate passed)
 
 **Planning Specialists:** `pixel-perfect` (Phase 1) · `react-native-ui-planner` · `node-planner` · `frontend-designer`
@@ -29,12 +29,12 @@ phase_1_driver: pixel-perfect
 
 | # | Sprint | Gate | Tasks | Dependencies | Status | Branch | PR |
 |---|--------|------|-------|--------------|--------|--------|----|
-| 1 | [Sprint 01: Pixel-Perfect UI Components](#sprint-01-pixel-perfect-ui-components) | Reviewer launches Storybook on simulator/emulator and walks the full component inventory (Design System + sessions-list + chat-tree + composer + pause + platform-surface) across state matrices on light + dark themes; pixel-perfect manifest gates `atoms`, `molecules`, `compose` all show `passed` | pixel-perfect-managed | — | 🟠 In flight | `chat-mobile-ui-elements` | — |
-| 2 | [Sprint 02: Sessions List Integration](#sprint-02-sessions-list-integration) | A signed-in user taps the Chat tab and uses the full real sessions list — workspace sections with sticky scroll, search, load-more, host picker, empty states — backed by Electric collections; sessions created on desktop appear within 3s | 12 | Sprint 01 | 🔵 Planned | `chat-mobile-sessions-int` | — |
-| 3 | [Sprint 03: Chat View Read + Session Management](#sprint-03-chat-view-read--session-management) | User taps a real session, opens the chat view, sees real message history rendered with all types and live streaming-cursor updates; End / Rename / Delete via overflow + swipe-delete work end-to-end | 8 | Sprint 01, 02 | 🔵 Planned | `chat-mobile-chat-view-int` | — |
-| 4 | [Sprint 04: Compose + Send Integration](#sprint-04-compose--send-integration) | User taps FAB to create a real session, types and sends a message (real optimistic + streaming), Stops a running turn; slash commands and model picker load real data from host | 6 | Sprint 01, 03 | 🔵 Planned | `chat-mobile-send-int` | — |
+| 1 | [Sprint 01: Pixel-Perfect UI Components](#sprint-01-pixel-perfect-ui-components) | Reviewer launches Storybook on simulator/emulator and walks the full component inventory (Design System + sessions-list w/ project-first chrome + chat-tree + composer + pause + platform-surface) across state matrices on light + dark themes; pixel-perfect manifest gates `atoms`, `molecules`, `compose` all show `passed` | pixel-perfect-managed | — | 🟠 In flight | `chat-mobile-ui-elements` | — |
+| 2 | [Sprint 02: Sessions List Integration](#sprint-02-sessions-list-integration) | A signed-in user taps the Chat tab and uses the full real sessions list — flat recency-sorted list scoped to the selected project (header project chip + ProjectPickerSheet when org ≥2 projects), search, filter sheet (workspace + status) with applied removable tag chips, empty states — backed by Electric collections; sessions created on desktop appear within 3s | 14 | Sprint 01 | 🔵 Planned | `chat-mobile-sessions-int` | — |
+| 3 | [Sprint 03: Chat View Read + Session Management](#sprint-03-chat-view-read--session-management) | User taps a real session and the chat view mounts with a lazy relay tunnel opening against `workspace.hostId` (skeleton during handshake, inline retry on error); real message history renders with all types and live streaming-cursor updates; End / Rename / Delete via overflow + swipe-delete work end-to-end | 9 | Sprint 01, 02 | 🔵 Planned | `chat-mobile-chat-view-int` | — |
+| 4 | [Sprint 04: Compose + Send Integration](#sprint-04-compose--send-integration) | User taps FAB to create a real session (workspace picker scoped to the selected project across all hosts), types and sends a message (real optimistic + streaming), Stops a running turn; slash commands and model picker load real data from host | 6 | Sprint 01, 03 | 🔵 Planned | `chat-mobile-send-int` | — |
 | 5 | [Sprint 05: Pause Response Integration](#sprint-05-pause-response-integration) | Real agent tool-approval / ask_user / plan-approval pauses trigger correct containers with live data; user responds and agent resumes end-to-end | 5 | Sprint 01, 04 | 🔵 Planned | `chat-mobile-pause-int` | — |
-| 6 | [Sprint 06: Push Notifications (Server + Mobile)](#sprint-06-push-notifications-server--mobile) | Real agent event on connected host triggers OS push delivered via APNs/FCM through Expo; tap opens correct session with silent host alignment; pre-prompt + foreground suppression + re-enable flow all work end-to-end | 19 | Sprint 01, 05 | 🔵 Planned | `chat-mobile-push` | — |
+| 6 | [Sprint 06: Push Notifications (Server + Mobile)](#sprint-06-push-notifications-server--mobile) | Real agent event on connected host triggers OS push delivered via APNs/FCM through Expo; tap opens correct session with silent project alignment + lazy host resolution (readiness gate falls back to tRPC `chat.getSnapshot` on cold-launch race); pre-prompt + foreground suppression + re-enable flow all work end-to-end | 19 | Sprint 01, 05 | 🔵 Planned | `chat-mobile-push` | — |
 | 7 | [Sprint 07: Offline + Background Resume](#sprint-07-offline--background-resume) | Real host-offline produces banner + disabled Send + correct dispatch outcome surfacing; real reconnect auto-resumes; background → foreground catches up missed events | 3 | Sprint 01, 04, 06 | 🔵 Planned | `chat-mobile-offline` | — |
 
 ---
@@ -73,7 +73,7 @@ Gate state tracked in `apps/mobile/design/manifest.json`:
 **Test Steps:**
 1. From `apps/mobile/`, run `bun storybook` — this generates `.rnstorybook/storybook.requires.ts` and launches Expo with `EXPO_PUBLIC_STORYBOOK=true`. Open the iOS Simulator and Android Emulator simultaneously.
 2. **Design System** group — navigate to Colors, Typography, Spacing, Icons. Confirm every swatch / variant / spacing step / icon reads from the existing global.css tokens (no deviation from the locked vibe).
-3. **Sessions-list tier** — navigate every story for SessionRow (status icons `⌖ ⚠ ● ○` with token colors, long-press copy), WorkspaceSection (sticky-header, collapse/expand chevron, empty-with-CTA), LoadMorePill (44pt button, `--color-secondary` background, `--radius` corners), HostChip, NewChatFab (shadow + 56pt FAB), SessionSearchBar (placeholder + focused + clear ✕), SessionsEmptyState (no-hosts / no-workspaces / no-sessions / no-search variants), HostPickerSheet (sheet handle, online/offline row badges, currently-selected check, populated + empty variants).
+3. **Sessions-list tier (project-first chrome — v2.0.0)** — navigate every story for SessionRow (two-line layout: title with status icon `⌖ ⚠ ● ○` + metadata line `🌿 branch · 💻 host · time`; truncation order title → branch → host → time; long-press copy), ProjectChip (static-label variant when org has 1 project; tappable chip with `▾` when ≥2), ProjectPickerSheet (sheet handle, project rows with workspace + session counts derived via cache-first `useLiveQuery`, currently-selected check, populated + single-project-hidden variants), FilterButton (`⚙` idle state + `⚙·N` badge state when `activeFilters` length ≥ 1, with `·0` hidden vs `·N` visible distinction), AppliedFilterTags (workspace chip `🌿 branch · host` + status chip `⌖ Streaming` | `⚠ Pause pending` | `● Idle`, removable `✕` per chip, trailing `Clear ✕`, horizontal-scroll overflow, stale-chip Electric-tombstone cleanup), SessionFilterSheet (stacked Workspace multi-select rows showing `branch · host` for cross-host disambiguation + Status multi-select with Streaming / Pause pending / Idle rows, Clear all + Apply footer, `accessibilityState={{ selected }}` on rows), NewChatFab (shadow + 56pt FAB), SessionSearchBar (project-scoped placeholder, focused + clear ✕), SessionsEmptyState (no-projects / no-workspaces / no-sessions / search-no-match / filters-no-match — five variants).
 4. **Chat-tree tier** — navigate every story for UserMessage (right-aligned bubble, `bg-secondary`, `max-w-[85%]`, long-press copy), AssistantMessage (left-aligned full-width, optional streaming-cursor Reanimated blink variant), MessageMarkdown (code blocks with syntax highlighting, lists / headings / blockquotes / tables / HRs, inline code contrast, tappable links, long-press copy on code blocks), ToolCallBlock (collapsed-only card with running / completed / failed status indicators + right-chevron, no expansion UI per UC-RENDER-04), PlanBlock and ReasoningBlock (collapsed + expanded with smooth chevron rotation), SubagentExecutionMessage (nested visual indentation + left border), ScrollBackButton (FadeIn / FadeOut animation, 44pt hit target).
 5. **Composer tier** — navigate every story for TiptapPromptEditor (empty-with-placeholder, typed-text, slash-pill-inserted, file-mention-placeholder, multi-line autogrow, autogrow-cap; verify keyboard reveal + caret positioning), SlashCommandMenu (built-in only, built-in + custom mixed, description + arg-hint, preview-loading, empty-loading), ModelPicker (popover with mock list incl. Opus 4.7 / Sonnet 4.6 / Haiku 4.5 / GPT-5.5, selected-model trigger label), PermissionModePicker + ThinkingLevelPicker (`off / low / medium / high / xhigh` for thinking-level, permission mode variants, selected-state trigger), NewChatSheet (workspace-row layout, sessions-first sort, empty-host inline message, no-sessions meta line). Verify every toolbar control meets the 44pt hit-target rule.
 6. **Pause-container tier** — navigate every story for PendingApprovalCard (tool-name typography, short description, arguments preview collapsed JSON with truncation, pending with `--color-destructive` left accent, resolved-approved / resolved-declined), PendingApprovalFooter (44pt-tall Approve / Decline / Always-allow buttons, 1-of-N multi-approval indicator, safe-area-bottom awareness, optimistic-tap ghosting), PendingQuestionSheet (50% / 85% snap points, question text prominence, horizontal-scroll suggested-answer pills, BottomSheetTextInput multi-line, Send button alignment; verify keyboard-active state pushes sheet to 85%), PlanReviewScreen (full-screen layout with nav header + X close, scrollable markdown body multi-screen, expandable "Add feedback", docked Approve / Reject above safe area, Reject disabled when feedback empty), PendingActionIndicator (pill variants per pause type — approval / question / plan — with correct copy + FadeIn/FadeOut).
@@ -84,9 +84,10 @@ Gate state tracked in `apps/mobile/design/manifest.json`:
 
 Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-perfect's plan phase decides the actual atoms / molecules / compose split; these IDs document scope and PRD coverage but no longer drive task dispatch.
 
-**Sessions-list tier** (was Sprint 01)
-- `MOB-NAV-002` SessionRow · `MOB-NAV-003` WorkspaceSection + LoadMorePill · `MOB-NAV-004` HostChip / NewChatFab / SessionSearchBar / SessionsEmptyState · `MOB-NAV-008-UI` HostPickerSheet
-- `DESIGN-NAV-001` SessionsListScreen + session row + workspace section header + LoadMorePill sticker sheet · `DESIGN-NAV-002` HostPickerSheet sticker sheet · `DESIGN-NAV-003` NewChatSheet + empty states sticker sheet · `DESIGN-PLATF-003` Lucide iconography spec for chat actions
+**Sessions-list tier (project-first per v2.0.0)** (was Sprint 01)
+- `MOB-NAV-002-V2` SessionRow (flat two-line layout with title + `🌿 branch · 💻 host · time` metadata; truncation order title→branch→host→time) · `MOB-NAV-004-V2` NewChatFab / SessionSearchBar (project-scoped) / SessionsEmptyState (5 variants) · `MOB-NAV-013` ProjectChip · `MOB-NAV-014` ProjectPickerSheet · `MOB-NAV-015` SessionFilterSheet · `MOB-NAV-016` AppliedFilterTags · `MOB-NAV-017` FilterButton (with `·N` badge state)
+- `DESIGN-NAV-001-V2` SessionsListScreen flat-layout sticker sheet (project chip + search + filter button + applied-tag row + flat session rows) · `DESIGN-NAV-002-V2` ProjectPickerSheet sticker sheet · `DESIGN-NAV-003` NewChatSheet (project-scoped workspace rows) + empty states sticker sheet · `DESIGN-NAV-004` SessionFilterSheet + AppliedFilterTags sticker sheet · `DESIGN-PLATF-003` Lucide iconography spec for chat actions
+- **Retired in v2.0.0:** `MOB-NAV-003` WorkspaceSection + LoadMorePill (workspace sectioning replaced by flat list) · `MOB-NAV-004` HostChip (replaced by `MOB-NAV-013` ProjectChip) · `MOB-NAV-008-UI` HostPickerSheet (replaced by `MOB-NAV-014` ProjectPickerSheet) · `DESIGN-NAV-001` v1.x workspace-section sticker sheet (superseded by `DESIGN-NAV-001-V2`) · `DESIGN-NAV-002` HostPickerSheet sticker sheet (superseded by `DESIGN-NAV-002-V2`)
 
 **Chat-tree tier** (was Sprint 02)
 - `MOB-RENDER-001` UserMessage + AssistantMessage · `MOB-RENDER-003` MessageMarkdown (react-native-markdown-display) · `MOB-RENDER-004` ToolCallBlock (collapsed-only) · `MOB-RENDER-005` PlanBlock + ReasoningBlock · `MOB-RENDER-006` SubagentExecutionMessage · `MOB-RENDER-008-UI` ScrollBackButton (Reanimated fade)
@@ -115,12 +116,11 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 
 #### PRD Coverage
 
-- UC-NAV-01 (Chat tab landing components)
-- UC-NAV-02 (SessionRow, WorkspaceSection, LoadMorePill components)
-- UC-NAV-03 (HostPickerSheet component)
+- UC-NAV-01 (Chat tab landing — project-first header composition: ProjectChip + SessionSearchBar + FilterButton + AppliedFilterTags + flat SessionRow)
 - UC-NAV-04 (NewChatFab + NewChatSheet + SessionsEmptyState components)
-- UC-NAV-06 (SessionsEmptyState component — all variants)
-- UC-NAV-07 (SessionSearchBar component)
+- UC-NAV-06 (SessionsEmptyState component — 5 variants: no-projects / no-workspaces / no-sessions / search-no-match / filters-no-match)
+- UC-NAV-07 (SessionSearchBar component — project-scoped)
+- UC-NAV-08 (ProjectPickerSheet + SessionFilterSheet + AppliedFilterTags + FilterButton)
 - UC-RENDER-01 (UserMessage, AssistantMessage components)
 - UC-RENDER-03 (MessageMarkdown component)
 - UC-RENDER-04 (ToolCallBlock component)
@@ -137,7 +137,7 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 - UC-PLATF-01 (PushPrePromptScreen + RebableInSettingsBanner components)
 - UC-PLATF-03 (HostOfflineBanner component)
 - 11-technical-requirements/04-dependencies.md
-- 11-technical-requirements/05-ui-infrastructure.md
+- 11-technical-requirements/05-ui-infrastructure.md (v2.0.0 component table rewrite)
 - 12-component-organization-addendum.md
 - 13-testing-strategy.md
 
@@ -153,34 +153,36 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 
 #### Human Testing Gate
 
-**Gate:** A signed-in user taps the Chat tab on the mobile app and uses the complete real sessions list — workspaces grouped under section headers with sticky scroll, search across workspaces, load-more pagination, host switcher backed by `v2_users_hosts`, collapse persistence across restarts, empty-state branches — and a session created from desktop appears in the mobile list within three seconds.
+**Gate:** A signed-in user taps the Chat tab on the mobile app and uses the complete real sessions list — flat recency-sorted list scoped to the selected project (header project chip switching projects via `ProjectPickerSheet` when org has ≥2 projects, static label otherwise), search across all workspaces in the project, filter bottom sheet (workspace + status multi-select) with removable applied-tag chips and `·N` badge, empty-state branches — backed by Electric collections joined client-side, and a session created from desktop appears in the mobile list within three seconds.
 
 **Test Steps:**
 1. Sign in on the mobile app on iOS Simulator and Android Emulator and confirm the bottom navigation shows three tabs: Tasks, Chat, More.
-2. Tap **Chat** and confirm the sessions list shows YOUR REAL sessions, grouped by workspace under `{project · branch}` headers sorted by most-recent activity.
-3. Scroll down through a long workspace section and confirm the current section header stays pinned to the top of the viewport until the next section pushes it out.
-4. Tap a workspace header to collapse it; tap again to expand. Force-quit and reopen the app — collapsed state restored.
-5. Type a query into the search bar — confirm only sessions whose title contains the query (case-insensitive) remain visible across workspaces; sections with zero matches hide; tap **✕** to clear.
-6. On a multi-workspace host, scroll to the 5th session in a section and tap **Load more (N more)** — confirm 5 more rows append in-place without navigating away.
-7. Tap the host chip at top-right — confirm the host-picker bottom sheet lists your real accessible hosts with correct online/offline state; tap a different host and confirm the sessions list re-scopes.
+2. Tap **Chat** and confirm the sessions list shows YOUR REAL sessions in a flat list sorted by `lastActiveAt` descending across every workspace in the currently-selected project; each row shows the two-line layout (title + `🌿 branch · 💻 host · time`).
+3. On an org with ≥2 projects, tap the project chip in the header — confirm the **ProjectPickerSheet** opens listing your real projects with workspace + session counts; tap a different project and confirm the list re-scopes. On an org with exactly 1 project, confirm the project name renders as a static label (no chevron, no tap target).
+4. Type a query into the search bar — confirm only sessions whose title contains the query (case-insensitive) remain visible across every workspace in the selected project; tap **✕** to clear.
+5. Tap the **⚙** filter button to open the **SessionFilterSheet** — confirm two stacked multi-select sections: Workspaces (rows showing `{branch} · {hostIcon} {hostName}` with host suffix disambiguating duplicates) and Status (Streaming / Pause pending / Idle); toggle selections, tap **Apply** — confirm the sheet closes and a `·N` badge appears on the ⚙ button.
+6. Confirm an **AppliedFilterTags** row appears below the search bar with one chip per applied workspace (`🌿 branch · host`) and per applied status (`{icon} {label}`), plus a trailing `Clear ✕` chip; tap an individual chip's `✕` to remove only that filter.
+7. Delete one of the workspaces referenced by an applied chip on desktop — confirm the stale chip silently drops from the mobile applied-tag row on next render (Electric-tombstone cleanup).
 8. Create a chat session on desktop — confirm it appears in the mobile sessions list within ~3 seconds via the Electric shape.
-9. Sign in as a user with zero accessible hosts — confirm the "No devices yet" empty state with **Go to Workspaces** CTA appears.
+9. Sign in as a user with zero accessible projects in the active org — confirm the "No projects yet" empty state appears with the project chip omitted from the header.
 
 #### Tasks
 
 | ID | Title | Agent | Estimate |
 |----|-------|-------|----------|
 | MOB-INFRA-003 | Install Maestro and seed apps/mobile/.maestro/ with login sub-flow | react-native-ui-implementer | 90 min |
-| MOB-INFRA-005 | Add chat_sessions, v2_workspaces, v2_hosts, v2_users_hosts Electric collections | react-native-ui-implementer | 120 min |
-| MOB-INFRA-006 | Build SelectedHostProvider + useSelectedHost hook with expo-secure-store persistence | react-native-ui-implementer | 120 min |
-| MOB-INFRA-007 | Build useSessionsForHost derived selector hook over chat_sessions + v2_workspaces | react-native-ui-implementer | 120 min |
+| MOB-INFRA-005-V2 | Add chat_sessions, v2_workspaces, v2_projects Electric collections (project-first; v2_hosts/v2_users_hosts no longer needed at NAV layer) | react-native-ui-implementer | 120 min |
+| MOB-INFRA-006-V2 | Build SelectedProjectProvider + useSelectedProject hook with expo-secure-store persistence; one-shot idempotent migration drops legacy `selectedHostId` and seeds `selectedProjectId` via most-recent-activity / alphabetical-first fallback; MUST complete before useSessionsForProject mounts to avoid empty-list flash | react-native-ui-implementer | 150 min |
+| MOB-INFRA-007-V2 | Build useSessionsForProject derived selector over chat_sessions + v2_workspaces (cache-first per AGENTS.md TanStack DB rule) | react-native-ui-implementer | 120 min |
+| MOB-INFRA-011 | Build useAccessibleProjects hook (Electric collection query over v2_projects scoped to activeOrganizationId) | react-native-ui-implementer | 60 min |
 | MOB-NAV-001 | Create Chat tab route layout under app/(authenticated)/(chat)/_layout.tsx | react-native-ui-implementer | 90 min |
-| MOB-NAV-005-INT | Assemble SessionsListScreen composing Phase 1 components with real Electric data | react-native-ui-implementer | 240 min |
-| MOB-NAV-006 | Wire sticky-header scroll behavior and validate contact-directory pattern | react-native-ui-implementer | 90 min |
-| MOB-NAV-007 | Persist workspace collapse/expand state per (userId, hostId) | react-native-ui-implementer | 60 min |
-| MOB-NAV-008-INT | Wire HostPickerSheet to useAccessibleHosts + SelectedHostProvider state | react-native-ui-implementer | 90 min |
-| MOB-NAV-010 | Build empty-state rendering for no-hosts, no-workspaces, no-sessions | react-native-ui-implementer | 60 min |
+| MOB-NAV-005-INT | Assemble SessionsListScreen composing Phase 1 components with real Electric data, in-memory `searchQuery` + `activeFilters: { workspaceIds[], statuses[] }` state, both cleared on screen exit | react-native-ui-implementer | 240 min |
+| MOB-NAV-008-V2 | Wire ProjectPickerSheet to useAccessibleProjects + SelectedProjectProvider; renders only when org has ≥2 projects; project rows show workspace + session counts via cache-first `useLiveQuery` | react-native-ui-implementer | 120 min |
+| MOB-NAV-010-V2 | Build empty-state rendering for the five UC-NAV-06 variants (no-projects, no-workspaces, no-sessions, search-no-match, filters-no-match) | react-native-ui-implementer | 90 min |
 | MOB-NAV-011 | Wire SessionsListScreen footer to 3-tab bar (Tasks, Chat, More) | react-native-ui-implementer | 60 min |
+| MOB-NAV-013-V2 | Wire SessionFilterSheet to activeFilters state on SessionsListScreen; workspace rows pulled from useSessionsForProject's underlying workspace join, status rows derived from session display state | react-native-ui-implementer | 120 min |
+| MOB-NAV-014-V2 | Wire AppliedFilterTags below search bar; per-chip removal + Clear all; silently drop stale workspace chips on Electric tombstone (no crash, no placeholder) | react-native-ui-implementer | 90 min |
+| MOB-NAV-017-V2 | Wire FilterButton badge: `·N` count = `activeFilters.workspaceIds.length + activeFilters.statuses.length`; badge hidden when 0 | react-native-ui-implementer | 45 min |
 | MOB-PLATF-009 | Verify multi-device sync via existing chat_sessions Electric shape (test + Maestro) | react-native-ui-implementer | 90 min |
 
 **Next Sprint Tasks:** *(populated JIT when sprint becomes active by kb-sprint-tasks-plan)*
@@ -192,15 +194,15 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 
 #### PRD Coverage
 
-- UC-SESS-01 (sessions list with real Electric)
-- UC-NAV-01 (Chat tab landing)
-- UC-NAV-02 (sticky sections, collapse, per-section pagination)
-- UC-NAV-03 (host picker real wiring)
-- UC-NAV-06 (empty-state branching)
-- UC-NAV-07 (cross-workspace search)
+- UC-SESS-01 (sessions list with real Electric, project-scoped)
+- UC-NAV-01 (Chat tab landing — project-first header composition)
+- UC-NAV-04 (FAB → workspace picker scoped to selected project — deferred wiring to Sprint 04)
+- UC-NAV-06 (empty-state branching — five variants)
+- UC-NAV-07 (project-scoped title search across all workspaces)
+- UC-NAV-08 (workspace + status filter sheet, applied chip tags, filter badge — full wiring)
 - UC-PLATF-05 (multi-device session sync via Electric)
-- 11-technical-requirements/02-api-design.md (Electric collections)
-- 11-technical-requirements/06-open-sub-decisions.md (resolved sub-decision #6 — host selection)
+- 11-technical-requirements/02-api-design.md (Electric collections — project-first scoping)
+- 11-technical-requirements/06-open-sub-decisions.md (re-resolved sub-decision #6 — project-first model)
 
 ---
 
@@ -214,25 +216,27 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 
 #### Human Testing Gate
 
-**Gate:** A user taps any real session from the Chat tab, opens the chat view, sees the full real message history rendered with all message types and live streaming-cursor updates for mid-turn sessions; End / Rename / Delete actions via the overflow menu and swipe-to-delete on the list each succeed end-to-end against the host-service.
+**Gate:** A user taps any real session from the Chat tab; the chat view mounts and the **lazy relay tunnel** opens against `workspace.hostId` via `useChatTunnel` (skeleton loader during the ~300ms handshake; inline `Can't reach {hostName}` retry banner on failure); the full real message history renders with all message types and live streaming-cursor updates for mid-turn sessions; End / Rename / Delete actions via the overflow menu and swipe-to-delete on the list each succeed end-to-end against the host-service.
 
 **Test Steps:**
-1. Sign in on the mobile app and tap a real session row from the Chat tab — confirm the chat view opens with the session title in the header and message history loads via `chat.listMessages` (loading indicator visible during fetch).
-2. Confirm the message history renders: assistant messages left-aligned full-width with markdown, user messages right-aligned in a styled bubble capped at ~85% width.
-3. Long-press any message — confirm its text copies to the clipboard.
-4. Scroll up through history — confirm a floating scroll-to-bottom button fades in; tap it to return to the latest message.
-5. Open a session whose host is currently mid-turn — confirm the assistant text streams in atomically every snapshot tick with a blinking cursor; cursor disappears when streaming completes.
-6. Open the overflow (•••) menu and tap **Rename** — type a new title and tap Save — confirm the title updates in both the chat header and the sessions list.
-7. Open the overflow menu and tap **End session** — confirm a confirmation toast and the chat view returns to a read-only state.
-8. Return to the sessions list, swipe a session left → tap **Delete** → confirm the destructive dialog → confirm the session disappears from the list within a few seconds.
+1. Sign in on the mobile app and tap a real session row from the Chat tab — confirm the chat view mounts immediately and a skeleton loader appears for ~300ms (the lazy tunnel handshake from `useChatTunnel`); the loading state then transitions to message history loaded via `chat.listMessages`.
+2. Stop the host-service process, then tap another session row — confirm the chat view shows an inline `Can't reach {hostName}` error banner with a **Retry** affordance instead of the message list; bring the host back online, tap Retry, confirm the tunnel re-opens and the message list renders.
+3. Confirm the message history renders: assistant messages left-aligned full-width with markdown, user messages right-aligned in a styled bubble capped at ~85% width.
+4. Long-press any message — confirm its text copies to the clipboard.
+5. Scroll up through history — confirm a floating scroll-to-bottom button fades in; tap it to return to the latest message.
+6. Open a session whose host is currently mid-turn — confirm the assistant text streams in atomically every snapshot tick with a blinking cursor; cursor disappears when streaming completes.
+7. Open the overflow (•••) menu and tap **Rename** — type a new title and tap Save — confirm the title updates in both the chat header and the sessions list.
+8. Open the overflow menu and tap **End session** — confirm a confirmation toast and the chat view returns to a read-only state.
+9. Return to the sessions list, swipe a session left → tap **Delete** → confirm the destructive dialog → confirm the session disappears from the list within a few seconds.
 
 #### Tasks
 
 | ID | Title | Agent | Estimate |
 |----|-------|-------|----------|
 | MOB-INFRA-004 | Build typed host-service tRPC HTTP client at lib/host-service-client.ts | react-native-ui-implementer | 180 min |
+| MOB-INFRA-010 | Build `useChatTunnel` hook — manages lazy relay-tunnel lifecycle for the chat session route: opens on mount against `workspace.hostId`, drops on unmount, drops on app background, re-opens on foreground while chat mounted; de-duplicates concurrent opens to the same hostId across remounts (single in-flight per host); surfaces `{ status: 'connecting' \| 'open' \| 'error', retry }` for skeleton + retry UI; default 5s handshake timeout | react-native-ui-implementer | 180 min |
 | MOB-SESS-001 | Render session list-row tap to (chat)/[sessionId] route | react-native-ui-implementer | 60 min |
-| MOB-SESS-002 | Build ChatScreen shell with header, loading state, and chat.listMessages fetch | react-native-ui-implementer | 240 min |
+| MOB-SESS-002 | Build ChatScreen shell with header, mounted `useChatTunnel`, skeleton loader during handshake, inline `Can't reach {hostName}` retry banner on tunnel error, and chat.listMessages fetch | react-native-ui-implementer | 240 min |
 | MOB-SESS-003 | Build session-level overflow menu with End / Rename / Delete actions | react-native-ui-implementer | 180 min |
 | MOB-SESS-004 | Wire long-press / swipe-to-delete on SessionRow with confirmation | react-native-ui-implementer | 120 min |
 | MOB-RENDER-002 | Wire streaming text snapshot polling via chat.getDisplayState + chat.listMessages | react-native-ui-implementer | 180 min |
@@ -251,6 +255,7 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 - UC-SESS-02 (resume session with real listMessages)
 - UC-SESS-04 (End session)
 - UC-SESS-05 (Delete session)
+- UC-NAV-05 (lazy tunnel resolution via `useChatTunnel` — chat-route mount opens tunnel against `workspace.hostId`; tunnel dropped on unmount)
 - UC-RENDER-02 (streaming snapshot polling)
 - UC-RENDER-07 (auto-scroll + scroll-back affordance)
 
@@ -266,10 +271,10 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 
 #### Human Testing Gate
 
-**Gate:** A user taps the FAB on the sessions list to create a real new session, types a message in the Tiptap editor (with slash commands, models, and pickers loading real data), taps Send to see optimistic append plus a real streaming assistant response, and taps Stop to interrupt a running turn — all verified end-to-end via Maestro flows against a real host.
+**Gate:** A user taps the FAB on the sessions list to create a real new session (NewChatSheet lists workspaces in the selected project across all hosts with `branch · host` row labels), types a message in the Tiptap editor (with slash commands, models, and pickers loading real data), taps Send to see optimistic append plus a real streaming assistant response, and taps Stop to interrupt a running turn — all verified end-to-end via Maestro flows against a real host.
 
 **Test Steps:**
-1. From the Chat tab sessions list, tap the floating **+** FAB — confirm the workspace-picker bottom sheet opens with your real workspaces on the selected host.
+1. From the Chat tab sessions list, tap the floating **+** FAB — confirm the workspace-picker bottom sheet opens listing the workspaces in the **currently-selected project** across all hosts, with each row showing `{branch} · {hostIcon} {hostName}`.
 2. Tap a workspace — confirm a new chat session is created via cloud `chat.createSession` (visible in the sessions list) and you land in its empty chat view.
 3. Type a multi-line message into the input — confirm it grows up to its max height before introducing internal scroll; placeholder disappears.
 4. Type `/` — confirm the popover loads REAL commands from the host via `chat.getSlashCommands` (built-in + project-level + user-level custom commands with descriptions and arg hints).
@@ -288,7 +293,7 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 | MOB-COMP-007 | Build ChatInputFooter container composing Phase 1 components | react-native-ui-implementer | 180 min |
 | MOB-COMP-008 | Wire chat.sendMessage with optimistic append and input clear | react-native-ui-implementer | 180 min |
 | MOB-COMP-009 | Wire chat.stop and Send/Stop button swap during streaming | react-native-ui-implementer | 90 min |
-| MOB-NAV-009-INT | Wire NewChatSheet to chat.createSession + workspace data + FAB integration | react-native-ui-implementer | 120 min |
+| MOB-NAV-009-INT | Wire NewChatSheet to chat.createSession + workspace data (filtered by `projectId` across all hosts, rows show `branch · host`) + FAB integration | react-native-ui-implementer | 120 min |
 
 **Next Sprint Tasks:** *(populated JIT when sprint becomes active by kb-sprint-tasks-plan)*
 
@@ -366,14 +371,14 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 
 #### Human Testing Gate
 
-**Gate:** When an agent really completes a turn or pauses for input on a connected host, the user's mobile device receives a real OS push notification delivered through APNs / FCM via the Expo Push API; tapping the notification opens the correct session with silent host alignment; the in-app pre-prompt fires before any OS dialog, the foreground handler suppresses banners when viewing the matching session, and the re-enable-in-settings flow surfaces when permission is revoked.
+**Gate:** When an agent really completes a turn or pauses for input on a connected host, the user's mobile device receives a real OS push notification delivered through APNs / FCM via the Expo Push API; tapping the notification opens the correct session with **silent project alignment + lazy host resolution** (handleDeepLink awaits `v2_workspaces` collection readiness with a bounded timeout, falls back to tRPC `chat.getSnapshot({ sessionId })` on cold-launch race, resolves `workspace.projectId`, aligns `selectedProjectId`, pushes the chat route — `useChatTunnel` then opens the tunnel against `workspace.hostId` on mount); the in-app pre-prompt fires before any OS dialog, the foreground handler suppresses banners when viewing the matching session, and the re-enable-in-settings flow surfaces when permission is revoked.
 
 **Test Steps:**
 1. Sign in fresh on a device with notification permission undetermined. Tap the Chat tab and enter a session for the first time — confirm the **PushPrePromptScreen** appears BEFORE any OS dialog.
 2. Tap Enable — confirm the OS permission dialog appears; grant permission.
 3. Background the mobile app. On a connected host, trigger an agent turn that completes — within seconds, confirm a real OS push notification titled "Agent complete" arrives on the device with the workspace name in the body.
 4. Background the mobile app. Trigger a tool-approval / ask_user / plan pause on a connected host — confirm a real OS push titled "Agent needs your input" arrives.
-5. Tap the push notification — confirm the app opens directly to the right session's chat view; if the session is on a different host than the currently-selected one, confirm the selected host silently aligns and back-navigation lands on the correct sessions list.
+5. Tap the push notification — confirm the app opens directly to the right session's chat view; if the session's workspace belongs to a different project than the currently-selected one, confirm `selectedProjectId` silently aligns (back-navigation lands on the correct project's sessions list); the lazy tunnel handshake opens against `workspace.hostId` on chat-route mount (skeleton during handshake). On a cold launch where the workspace row isn't yet synced, confirm the tRPC `chat.getSnapshot` fallback resolves the workspace inline within the readiness gate timeout.
 6. While viewing the chat for session X, trigger an event for session X on the host — confirm the foreground banner is SUPPRESSED (no banner appears).
 7. While viewing a different session, trigger an event for session X — confirm the foreground banner DOES appear.
 8. Revoke notification permission via the OS Settings; foreground the app — confirm the **Re-enable in Settings** banner appears in More tab settings. Tap it — confirm the OS Settings page opens.
@@ -401,7 +406,7 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 | MOB-PLATF-003 | Build route-aware setNotificationHandler for foreground suppression | react-native-ui-implementer | 90 min |
 | MOB-PLATF-004 | Wire addNotificationResponseReceivedListener to handleChatDeepLink | react-native-ui-implementer | 90 min |
 | MOB-PLATF-005-INT | Wire RebableInSettingsBanner to real permission status via getPermissionsAsync | react-native-ui-implementer | 45 min |
-| MOB-NAV-012 | Build deep-link handler at utils/handleDeepLink for push-notification taps | react-native-ui-implementer | 120 min |
+| MOB-NAV-012-V2 | Build deep-link handler at utils/handleDeepLink for push-notification taps: awaits `v2_workspaces` collection readiness with bounded timeout (~2s); falls back to tRPC `chat.getSnapshot({ sessionId })` on cold-launch race; resolves `workspace.projectId`; silently aligns `selectedProjectId` via SelectedProjectProvider; pushes chat route (lazy tunnel opens via useChatTunnel on mount) | react-native-ui-implementer | 150 min |
 
 **Next Sprint Tasks:** *(populated JIT when sprint becomes active by kb-sprint-tasks-plan)*
 
@@ -413,7 +418,7 @@ Preserves the original MOB-* and DESIGN-* IDs as a reference inventory. Pixel-pe
 #### PRD Coverage
 
 - UC-PLATF-01 (full server + mobile push pipeline)
-- UC-NAV-05 (push-notification deep-link routing with silent host alignment)
+- UC-NAV-05 (push-notification deep-link routing with silent project alignment + lazy host resolution; cold-launch race fallback via tRPC `chat.getSnapshot`)
 - 11-technical-requirements/07-notifications.md (wire-level design)
 - 11-technical-requirements/02-api-design.md §4 (relay /push endpoints)
 
@@ -476,9 +481,10 @@ The following design enrichments apply across BOTH phases. Pixel-perfect's `plan
 - **44pt hit-target rule** applies to all pause-footer buttons (MOB-PAUSE-002 — Sprint 01), composer toolbar controls (MOB-COMP-007 — Sprint 04 ChatInputFooter container), action buttons in sheets (MOB-PAUSE-004 — Sprint 01), and the close affordance on PlanReviewScreen (MOB-PAUSE-006 — Sprint 01). Source: `05-ui-infrastructure.md` Hit targets section + WCAG mobile guidelines.
 - **Optimistic-tap pattern** (UI ghosts to ~50% on tap; rolls back with toast on error) applies to MOB-PAUSE-003 / MOB-PAUSE-005 / MOB-PAUSE-007 (all Sprint 05 wiring) and to MOB-COMP-008 (sendMessage wiring in Sprint 04). Pixel-perfect's Sprint 01 components must expose the ghosting state via props so Phase 2 wiring can drive it. Source: UC-PAUSE-01/02/03 ACs + UC-COMP-02 AC.
 - **BottomSheetTextInput requirement** (not plain TextInput) for MOB-PAUSE-004 (Sprint 01) — keyboard avoidance is the decisive factor per `07-uc-pause.md` Design Rationale.
-- **Sticky-header fallback path** for MOB-NAV-006 (Sprint 02 sticky-header wiring) — try FlashList `stickyHeaderIndices` first; fall back to RN `SectionList` with `stickySectionHeadersEnabled` if FlashList 1.7.x stickiness misbehaves on Android `inverted` lists. Sprint 01's WorkspaceSection must be implemented in a way that supports either path.
 - **Tailwind→RN translation rules** (`space-y-* → gap-* on flex-col View`, `transition-* → Reanimated`, `hover:* → active:*`, `dark:* → @variant dark` tokens) apply broadly to all MOB-RENDER-* and MOB-COMP-* components built in Sprint 01. Source: design audit `plans/20260521-mobile-chat-design-audit.md`.
-- **Status icon glyph palette** (`⌖ ⚠ ● ○` from `09-uc-nav.md` §A or Lucide equivalents `Activity / AlertTriangle / Circle-filled / Circle-outline`) for MOB-NAV-002 (Sprint 01 SessionRow) — pixel-perfect must commit to one approach and not mix glyphs + icons across SessionRow variants.
+- **Status icon glyph palette** (`⌖ ⚠ ● ○` from `09-uc-nav.md` §A or Lucide equivalents `Activity / AlertTriangle / Circle-filled / Circle-outline`) for `MOB-NAV-002-V2` (Sprint 01 SessionRow in the v2.0.0 flat two-line layout: title with leading status icon on line 1, `🌿 branch · 💻 host · time` metadata on line 2; truncation order title → branch → host → time on overflow) — pixel-perfect must commit to one approach and not mix glyphs + icons across SessionRow variants.
+- **Lazy tunnel handshake contract** for `MOB-INFRA-010` `useChatTunnel` (Sprint 03) — the hook exposes `{ status: 'connecting' | 'open' | 'error', retry }` as a prop contract that ChatScreen (`MOB-SESS-002`) consumes for its skeleton state (during the ~300ms handshake on chat-route mount) and inline retry banner (on tunnel error or 5s timeout). Sprint 01's chat-tree components must accept a `tunnelStatus` prop or render inside a host that gates on it; pre-shape this in pixel-perfect's plan phase so Sprint 03 wiring drops in without revising the component contract.
+- **Workspace filter chip uniqueness** for `MOB-NAV-015` SessionFilterSheet + `MOB-NAV-016` AppliedFilterTags (Sprint 01) — when two `v2_workspaces` share a branch name across hosts (e.g., `main · macbook` and `main · desktop`), each appears as a separate filter row + chip with `branch · host` disambiguation. Stale chips (referencing a workspace tombstoned in the synced Electric collection) silently drop on next render without crashing or showing a placeholder.
 - **Palette delta (mobile cool-neutral vs desktop warm-ember)** is an OPEN product decision per `05-ui-infrastructure.md` and `10-team-contributions.md`. The manifest locks Sprint 01 to the existing mobile cool-neutral palette in `apps/mobile/global.css` — pixel-perfect MUST NOT auto-reconcile to desktop's ember theme. Flag any cross-app palette divergence in the PR description for product review.
 
 ### PR sequencing operational notes
