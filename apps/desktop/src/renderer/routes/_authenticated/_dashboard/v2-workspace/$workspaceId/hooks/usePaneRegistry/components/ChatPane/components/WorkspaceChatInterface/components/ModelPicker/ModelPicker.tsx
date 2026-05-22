@@ -28,6 +28,7 @@ interface ModelPickerProps {
 	onSelectModel: (model: ModelOption) => void;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	triggerless?: boolean;
 }
 
 export function ModelPicker({
@@ -36,6 +37,7 @@ export function ModelPicker({
 	onSelectModel,
 	open,
 	onOpenChange,
+	triggerless = false,
 }: ModelPickerProps) {
 	const navigate = useNavigate();
 	const groupedModels = useMemo(() => groupModelsByProvider(models), [models]);
@@ -59,19 +61,21 @@ export function ModelPicker({
 
 	return (
 		<ModelSelector open={open} onOpenChange={onOpenChange}>
-			<ModelSelectorTrigger asChild>
-				<PromptInputButton
-					className={`${PILL_BUTTON_CLASS} px-2 gap-1.5 text-xs text-foreground`}
-				>
-					{selectedLogo === ANTHROPIC_LOGO_PROVIDER ? (
-						<img alt="Claude" className="size-3" src={claudeIcon} />
-					) : selectedLogo ? (
-						<ModelSelectorLogo provider={selectedLogo} />
-					) : null}
-					<span>{selectedModel?.name ?? "Model"}</span>
-					<ChevronDownIcon className="size-2.5 opacity-50" />
-				</PromptInputButton>
-			</ModelSelectorTrigger>
+			{!triggerless && (
+				<ModelSelectorTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} px-2 gap-1.5 text-xs text-foreground`}
+					>
+						{selectedLogo === ANTHROPIC_LOGO_PROVIDER ? (
+							<img alt="Claude" className="size-3" src={claudeIcon} />
+						) : selectedLogo ? (
+							<ModelSelectorLogo provider={selectedLogo} />
+						) : null}
+						<span>{selectedModel?.name ?? "Model"}</span>
+						<ChevronDownIcon className="size-2.5 opacity-50" />
+					</PromptInputButton>
+				</ModelSelectorTrigger>
+			)}
 			<ModelSelectorContent title="Select Model">
 				<ModelSelectorInput placeholder="Search models..." />
 				<ModelSelectorList>
