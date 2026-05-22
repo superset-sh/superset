@@ -16,7 +16,7 @@
 
 ## Dev-only dependencies (not in production bundle)
 
-These are gated behind `EXPO_PUBLIC_STORYBOOK=true` and stripped by dead-code elimination when the flag is unset. See `11-testing-strategy.md` for the custom root toggle pattern.
+These are gated behind `EXPO_PUBLIC_STORYBOOK=true` and stripped by dead-code elimination when the flag is unset. See `13-testing-strategy.md` for the custom root toggle pattern.
 
 ## External tooling (not in package.json)
 
@@ -35,7 +35,7 @@ These cover most of the supporting infrastructure — no new install needed:
 - `@electric-sql/client` — Electric Shape protocol
 - `@rn-primitives/*` (popover, dialog, collapsible, tooltip, etc.) — primitives for popovers used by composer pickers
 - `react-native-reanimated` — Reanimated for streaming-cursor, scroll-back fade, sheet animations
-- `expo-router` — navigation; new routes for `(authenticated)/chat/[sessionId]` and `(authenticated)/workspaces/[id]/sessions`
+- `expo-router` — navigation; new routes under the **(chat) tab** for NAV-defined surfaces: `(authenticated)/(chat)/_layout.tsx` (tab + Stack root), `(authenticated)/(chat)/index.tsx` (sessions list — UC-NAV-01/02), `(authenticated)/(chat)/[sessionId].tsx` (chat view), `(authenticated)/(chat)/host-picker.tsx` (modal sheet — UC-NAV-03), `(authenticated)/(chat)/new-chat.tsx` (workspace-picker sheet — UC-NAV-04), and `(authenticated)/(chat)/[sessionId]/plan-review/[planId].tsx` (UC-PAUSE-03 pushed route). Workspace details remain in the existing `(home)/workspaces/[id]/...` route tree (out of scope for this PRD).
 - `expo-secure-store` — secure JWT storage
 - `superjson` — tRPC transformer (matches relay + host-service config)
 - `uniwind` — Tailwind for RN (already wired via `apps/mobile/global.css`)

@@ -1,7 +1,7 @@
 ---
 stability: FEATURE_SPEC
 last_validated: 2026-05-21
-prd_version: 1.3.1
+prd_version: 1.6.0
 scope_posture: full
 ---
 
@@ -13,7 +13,13 @@ scope_posture: full
 
 ## In Scope
 
-- **Session listing per workspace** via existing ElectricSQL `chat_sessions` shape (already published at `apps/electric-proxy/src/where.ts:136-137`), filtered by `activeOrganizationId` and `v2WorkspaceId`, ordered by `lastActiveAt` descending.
+- **Chat tab in mobile bottom navigation** as a new top-level surface alongside Home/Workspaces, Tasks, and More. Default landing is a sessions list; see UC-NAV-01.
+- **Sessions list sectioned by workspace** with collapsible "{project} · {branch}" section headers, sorted by most-recent activity. Collapsed state persists per user+host. Workspace tap = collapse/expand only (workspace details remain in the existing Workspaces tab, out of scope for this PRD). See UC-NAV-02.
+- **One-host-at-a-time model** with a header chip displaying the currently-selected host (machine running the user's workspaces). Tapping the chip opens a `@gorhom/bottom-sheet` listing all hosts the user has access to via `v2_users_hosts`, with online/offline state and metadata. Selected host persisted locally per user+org. See UC-NAV-03.
+- **Floating "+" action button** opens a workspace-picker bottom sheet listing all `v2_workspaces` on the selected host; selecting one creates a session via `chat.createSession` and routes into the empty chat view. See UC-NAV-04.
+- **Push-notification deep-linking** routes directly to `(chat)/[sessionId]`, silently aligning the locally-selected host to match the session's host before mounting the chat view so back-navigation lands in a consistent sessions list. Active pauses open the corresponding UC-PAUSE container immediately. See UC-NAV-05.
+- **Empty-state handling** for three distinct conditions: no accessible hosts (CTA to Workspaces tab), no workspaces on selected host (explainer that workspaces are created on desktop), no sessions on any workspace (FAB emphasized + "Start your first chat" copy). See UC-NAV-06.
+- **Session listing per workspace** via existing ElectricSQL `chat_sessions` shape (already published at `apps/electric-proxy/src/where.ts:136-137`), filtered by `activeOrganizationId`, `selectedHostId` (resolved via the host picker), and the workspaces on that host, ordered by `lastActiveAt` descending.
 - **Session lifecycle**: start a new session, resume an existing one, end (dispose) a session, delete a session permanently with confirmation, rename a session title.
 - **Auto-generated session titles** after first turn (host-service handles generation; mobile renders the synced value).
 - **Message composition**: multiline text input via Tiptap (`@10play/tentap-editor`) for parity with desktop's slash-command and file-mention rendering.
@@ -35,7 +41,7 @@ scope_posture: full
 - **Authentication via JWT bearer** routed through the relay; mobile mints / refreshes per the chosen sub-decision (see TRD).
 - **Component tree at `apps/mobile/components/chat/`** mirroring desktop component names (ChatInterface, MessageList, MessagePartsRenderer, UserMessage, AssistantMessage, ThinkingMessage, PendingApprovalMessage, PendingQuestionMessage, PendingPlanApprovalMessage, ToolCallBlock, ChatInputFooter, ModelPicker, SlashCommandMenu).
 - **Tailwind/uniwind design parity** for the ~80% of desktop chat classes that compile under uniwind; mechanical translations applied per the design audit (`space-y-* → gap-*`, `transition-* → Reanimated`, `hover:* → active:*`, `dark:* → @variant dark` tokens).
-- **Testing infrastructure** (see `11-testing-strategy.md`): Storybook 9 under a custom root toggle (`EXPO_PUBLIC_STORYBOOK=true`) with build-time stripping for production; Maestro for YAML-based E2E flows against the running app; Bun test for shared logic unit tests.
+- **Testing infrastructure** (see `13-testing-strategy.md`): Storybook 9 under a custom root toggle (`EXPO_PUBLIC_STORYBOOK=true`) with build-time stripping for production; Maestro for YAML-based E2E flows against the running app; Bun test for shared logic unit tests.
 - **Storybook stories required for every chat UI component**, co-located as `ComponentName.stories.tsx`, covering all states (loading, empty, error, streaming, paused, etc.). Stories enable **isolated UI testing prior to service integration** — ensuring UI fidelity against design tokens and component contracts before any backend wiring begins. Atomic composition (one component + its stories at a time) ensures speed and accuracy during the build phase.
 - **Maestro E2E flows required for every user-facing UC**, co-located in `.maestro/` named by UC ID. Each service-wiring sprint's gate is defined by its Maestro flows passing.
 
@@ -90,6 +96,6 @@ Each item below is tagged `[DEFERRED: separate PRD]` (could ship later as its ow
 
 ## Scope size check
 
-Mobile-chat v2 reads as one shippable initiative organized around five tight functional groups (session lifecycle, composition, rendering, mid-turn interactive prompts, platform integration). Each group corresponds to a sprintable unit of work with a clear human-testable gate. The Tiptap port carries the bulk of the implementation risk; the rest is mechanical against existing transport and UI primitives.
+Mobile-chat v2 reads as one shippable initiative organized around six tight functional groups (session lifecycle, composition, rendering, mid-turn interactive prompts, platform integration, navigation). Each group corresponds to a sprintable unit of work with a clear human-testable gate. The Tiptap port carries the bulk of the implementation risk; the rest is mechanical against existing transport and UI primitives.
 
 If sprints reveal that a group (especially `RENDER` or `COMP`) needs splitting, run `/kb-sprint-plan --delta-replan`; do not retroactively widen this PRD.

@@ -37,10 +37,22 @@ Already implemented in `packages/host-service/src/trpc/router/chat/chat.ts`. Mob
 
 Auth: JWT bearer minted per the JWT-lifecycle sub-decision (deferred to sprint planning).
 
-## 3. ElectricSQL Shape (`apps/electric-proxy`) — realtime session list
+## 3. ElectricSQL Shapes (`apps/electric-proxy`) — realtime collections
 
-| Endpoint | Use Case |
-|---|---|
-| `GET ${API_URL}/api/electric/v1/shape?table=chat_sessions&where=organization_id='{org}'` | UC-SESS-01, UC-PLATF-05 |
+All four data sources mobile needs for the chat surface are **already exposed** by `apps/electric-proxy/src/where.ts` and only require new mobile Electric collections to consume them:
 
-Already exposed at `apps/electric-proxy/src/where.ts:136-137`. Mobile consumes via existing TanStack Electric DB Collection infrastructure (`@tanstack/electric-db-collection`, `electricCollectionOptions`).
+| Endpoint (table) | Org-scoped via | Use Cases | Where in mobile |
+|---|---|---|---|
+| `chat_sessions` | `organization_id` | UC-SESS-01, UC-NAV-01/02, UC-PLATF-05 | New collection in `apps/mobile/lib/collections/collections.ts` |
+| `v2_workspaces` | `organization_id` | UC-NAV-02 (workspace headers), UC-NAV-04 (workspace picker) | New collection |
+| `v2_hosts` | `organization_id` | UC-NAV-03 (host picker — online state) | New collection |
+| `v2_users_hosts` | `organization_id` | UC-NAV-03 (which hosts this user can access) | New collection (or derived selector joining v2_users_hosts × v2_hosts × current userId) |
+
+All four cases are present in `where.ts:49-133` (case statements for `v2_hosts`, `v2_users_hosts`, `v2_workspaces`, and `chat_sessions`). Mobile consumes via existing TanStack Electric DB Collection infrastructure (`@tanstack/electric-db-collection`, `electricCollectionOptions` — the same shape used today for tasks/projects/members in `apps/mobile/lib/collections/collections.ts`).
+
+**Client-side scoping for NAV:**
+- Sessions list (UC-NAV-01/02): filter `chat_sessions` by `selectedHostId` via a join through `v2_workspaces` (workspace row carries `host_id`), then group by `v2_workspace_id`, ordered by `lastActiveAt` desc.
+- Host picker (UC-NAV-03): list `v2_hosts` where `(organization_id, machine_id)` joins to `v2_users_hosts` for the current user, with `is_online` driving the badge.
+- Workspace picker (UC-NAV-04): list `v2_workspaces` where `host_id == selectedHostId`, sorted by max session `lastActiveAt` then name.
+
+No new tRPC procedures or cloud-router additions are required for the NAV surface — it's a pure client-side selector over already-published Electric shapes.

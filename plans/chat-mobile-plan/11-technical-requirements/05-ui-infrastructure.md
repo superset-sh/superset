@@ -2,7 +2,23 @@
 
 ## Component-tree mirror to `apps/mobile/components/chat/`
 
-Components follow AGENTS.md co-location rules (folder-per-component, barrel `index.ts`, subcomponents nest under parent's `components/`). See `11-component-organization-addendum.md` for full convention details.
+Components follow AGENTS.md co-location rules (folder-per-component, barrel `index.ts`, subcomponents nest under parent's `components/`). See `12-component-organization-addendum.md` for full convention details.
+
+In addition to the `components/chat/` tree below, **shell-level navigation components** (UC-NAV-* surfaces) live in `apps/mobile/screens/(authenticated)/(chat)/` per the project's screen co-location convention:
+
+- `SessionsListScreen/` — UC-NAV-01, UC-NAV-02 (sessions list with workspace sections + FAB)
+  - `components/WorkspaceSection/` — collapsible section header (UC-NAV-02)
+  - `components/SessionRow/` — single session row with status icon (`⌖ ⚠ ● ○`)
+  - `components/HostChip/` — header host display + tap target (UC-NAV-03 trigger)
+  - `components/NewChatFab/` — floating "+" button (UC-NAV-04 trigger)
+  - `components/SessionsEmptyState/` — UC-NAV-06 three-state renderer
+- `HostPickerSheet/` — UC-NAV-03 bottom sheet (`@gorhom/bottom-sheet` + `BottomSheetFlatList` of hosts)
+- `NewChatSheet/` — UC-NAV-04 workspace-picker sheet
+- `providers/SelectedHostProvider/` — local state + `expo-secure-store` persistence of `selectedHostId` keyed by `userId+organizationId`
+- `hooks/useSelectedHost/` — read/write the selected host
+- `hooks/useAccessibleHosts/` — query `v2_users_hosts` joined to `v2_hosts` (Electric collection)
+- `hooks/useSessionsForHost/` — derived selector over `chat_sessions` + `v2_workspaces` Electric collections, scoped to the selected host
+- `utils/handleDeepLink/` — UC-NAV-05 routing logic invoked by the Expo notification handler
 
 ```
 components/chat/
