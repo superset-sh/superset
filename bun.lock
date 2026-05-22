@@ -111,7 +111,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.10.2",
+      "version": "1.10.3",
       "dependencies": {
         "@ai-sdk/anthropic": "3.0.64",
         "@ai-sdk/openai": "3.0.36",
@@ -688,7 +688,7 @@
     },
     "packages/cli": {
       "name": "@superset/cli",
-      "version": "0.2.19",
+      "version": "0.2.20",
       "dependencies": {
         "@clack/prompts": "0.10.1",
         "@superset/cli-framework": "workspace:*",
@@ -769,7 +769,7 @@
     },
     "packages/host-service": {
       "name": "@superset/host-service",
-      "version": "0.8.10",
+      "version": "0.8.11",
       "dependencies": {
         "@hono/node-server": "1.19.13",
         "@hono/node-ws": "1.3.0",
