@@ -16,7 +16,7 @@ const meta: Meta<typeof ComposerRow> = {
 		docs: {
 			description: {
 				component:
-					"Composer cluster — ComposerSettingsButton (top) + Textarea + send/stop IconButton (bottom). 4 state variants: idle (Send disabled) · typing (Send active) · streaming (Stop) · sending (ProgressDots). Settings button replaces legacy 3-picker toolbar per desktop PR #4866 / SUPER-755.",
+					"Composer cluster — single rounded container with Textarea on top and an action toolbar inside the same chrome below. Toolbar order mirrors the Claude iOS reference: LEFT [+ commands] [⚙ settings pill] · spacer · RIGHT [send / stop / dots]. 4 state variants drive the right-slot swap and editability. Composes vendor Textarea + first-party IconButton + ComposerSettingsButton + ProgressDots.",
 			},
 		},
 		layout: "fullscreen",
@@ -29,19 +29,21 @@ const meta: Meta<typeof ComposerRow> = {
 			permissionMode: "default",
 			thinkingLevel: "off",
 		},
+		onCommandsPress: () => {},
 	},
 	argTypes: {
 		variant: {
 			control: { type: "select" },
 			options: VARIANTS,
 			description:
-				"idle (Send disabled) · typing (Send active) · streaming (Stop) · sending (dots)",
+				"idle (Send disabled) · typing (Send active) · streaming (Stop) · sending (ProgressDots)",
 		},
 		value: {
 			control: "text",
 			description: "Controlled textarea value",
 		},
 		placeholder: { control: "text" },
+		commandsAccessibilityLabel: { control: "text" },
 	},
 };
 
@@ -78,8 +80,24 @@ export const ThinkingOnPermissionAcceptEdits: Story = {
 	},
 };
 
+export const NoCommandsButton: Story = {
+	args: { onCommandsPress: undefined },
+};
+
 export const NoSettingsButton: Story = {
 	args: { settings: undefined },
+};
+
+export const Minimal: Story = {
+	args: { settings: undefined, onCommandsPress: undefined },
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Composer with no leading toolbar buttons — just textarea + send. Useful for embedded contexts where settings/commands live elsewhere.",
+			},
+		},
+	},
 };
 
 export const AllStates: Story = {
@@ -95,6 +113,7 @@ export const AllStates: Story = {
 						permissionMode: "default",
 						thinkingLevel: "off",
 					}}
+					onCommandsPress={() => {}}
 				/>
 			))}
 		</View>
