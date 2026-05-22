@@ -718,3 +718,88 @@ describe("reorderTab", () => {
 		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t2", "t1"]);
 	});
 });
+
+// Reproduction for github.com/superset/superset/issues/4850 — users want to
+// recover tabs they closed by accident (cmd+w on a single-pane tab, or
+// cmd+shift+w). The v1 store (apps/desktop/src/renderer/stores/tabs/store.ts)
+// already implements this via a `closedTabsStack` + `reopenClosedTab(workspaceId)`
+// action wired to the REOPEN_TAB hotkey. The v2 panes store has no equivalent,
+// so closed tabs in the v2 workspace are lost permanently. These tests pin down
+// that gap; they fail until the feature is added to the v2 store.
+describe("closed-tab recovery (#4850)", () => {
+	type WorkspaceStoreWithReopen =
+		ReturnType<typeof makeStore> extends {
+			getState: () => infer S;
+		}
+			? S & { reopenClosedTab?: () => boolean }
+			: never;
+
+	it("exposes a reopenClosedTab action on the store", () => {
+		const store = makeStore();
+		const state = store.getState() as WorkspaceStoreWithReopen;
+		expect(typeof state.reopenClosedTab).toBe("function");
+	});
+
+	it("restores a tab destroyed by removeTab", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			titleOverride: "Important conversation",
+			panes: [tp("p1", "chat content")],
+		});
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().removeTab("t1");
+		expect(store.getState().tabs.find((t) => t.id === "t1")).toBeUndefined();
+
+		const reopen = (store.getState() as WorkspaceStoreWithReopen)
+			.reopenClosedTab;
+		expect(typeof reopen).toBe("function");
+		const ok = reopen?.();
+		expect(ok).toBe(true);
+
+		const restored = store
+			.getState()
+			.tabs.find((t) => t.titleOverride === "Important conversation");
+		expect(restored).toBeDefined();
+		expect(Object.values(restored?.panes ?? {})[0]?.data.label).toBe(
+			"chat content",
+		);
+	});
+
+	it("restores a tab destroyed by closePane (last pane closed)", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			titleOverride: "Single-pane tab",
+			panes: [tp("p1", "the conversation")],
+		});
+
+		// cmd+w in v2 closes the active pane; if it's the last pane in the tab,
+		// closePane removes the tab entirely (store.ts L284-294).
+		store.getState().closePane({ tabId: "t1", paneId: "p1" });
+		expect(store.getState().tabs).toHaveLength(0);
+
+		const reopen = (store.getState() as WorkspaceStoreWithReopen)
+			.reopenClosedTab;
+		const ok = reopen?.();
+		expect(ok).toBe(true);
+
+		const restored = store
+			.getState()
+			.tabs.find((t) => t.titleOverride === "Single-pane tab");
+		expect(restored).toBeDefined();
+		expect(Object.values(restored?.panes ?? {})[0]?.data.label).toBe(
+			"the conversation",
+		);
+	});
+
+	it("returns false from reopenClosedTab when nothing has been closed", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+
+		const reopen = (store.getState() as WorkspaceStoreWithReopen)
+			.reopenClosedTab;
+		expect(reopen?.()).toBe(false);
+	});
+});
