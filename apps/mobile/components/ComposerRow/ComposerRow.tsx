@@ -1,4 +1,4 @@
-import { Plus, Send, Square } from "lucide-react-native";
+import { Send, Slash, Square } from "lucide-react-native";
 import { View, type ViewProps } from "react-native";
 import {
 	ComposerSettingsButton,
@@ -82,7 +82,9 @@ export function ComposerRow({
 					}
 					editable={!isDisabled}
 					className={cn(
-						"min-h-12 max-h-32 px-3 py-2 bg-transparent border-0",
+						// Suppress vendor Textarea chrome — outer container owns the border,
+						// background, and rounding so the composer renders as one tonal block.
+						"min-h-12 max-h-32 px-3 py-2 bg-transparent dark:bg-transparent border-0 rounded-none shadow-none",
 						isDisabled && "opacity-60",
 					)}
 					multiline
@@ -91,10 +93,12 @@ export function ComposerRow({
 				<View className="flex-row items-center gap-2 px-2 pb-2">
 					{onCommandsPress ? (
 						<IconButton
-							icon={Plus}
+							icon={Slash}
 							accessibilityLabel={commandsAccessibilityLabel}
-							variant="ghost"
-							size="sm"
+							variant="soft"
+							size="xs"
+							shape="pill"
+							className="border border-border"
 							onPress={onCommandsPress}
 							disabled={isDisabled}
 						/>
