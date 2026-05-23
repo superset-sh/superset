@@ -24,6 +24,14 @@ export function LoginUI({
 	const [validationError, setValidationError] = useState<string | null>(null);
 	const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
 
+	const authHost = (() => {
+		try {
+			return url ? new URL(url).host : null;
+		} catch {
+			return null;
+		}
+	})();
+
 	useEffect(() => {
 		if (copyState !== "copied") return;
 		const id = setTimeout(() => setCopyState("idle"), 1500);
@@ -100,7 +108,11 @@ export function LoginUI({
 			<Box flexDirection="row">
 				{pasteOnly ? (
 					<>
-						<Text>Open the link below to sign in </Text>
+						<Text>
+							{authHost
+								? `Sign in to ${authHost} using the link below `
+								: "Open the link below to sign in "}
+						</Text>
 						<Text dimColor>(press c to copy)</Text>
 					</>
 				) : (

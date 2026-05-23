@@ -7,6 +7,7 @@ import { login, shouldOpenBrowser } from "../../../lib/auth";
 import { command } from "../../../lib/command";
 import { readConfig, writeConfig } from "../../../lib/config";
 import { copyToClipboard } from "./copyToClipboard";
+import { derivePasteOnly } from "./derivePasteOnly";
 import { LoginUI, type LoginUIProps } from "./LoginUI";
 
 type LoginOutput =
@@ -159,7 +160,7 @@ export default command({
 	run: async (opts) => {
 		const requestedOrganization = opts.options.organization;
 		const noBrowser = opts.options.noBrowser ?? false;
-		const pasteOnly = noBrowser || !shouldOpenBrowser();
+		const pasteOnly = derivePasteOnly({ noBrowser }, shouldOpenBrowser());
 		const apiKeyExplicit = apiKeyFlagInArgv();
 		const apiKeyFromCli = apiKeyExplicit
 			? opts.options.apiKey?.trim()
@@ -221,8 +222,17 @@ export default command({
 							onCopy: () => copyToClipboard(url),
 						});
 					} else {
+						const authHost = (() => {
+							try {
+								return new URL(url).host;
+							} catch {
+								return null;
+							}
+						})();
 						const copyText = pasteOnly
-							? "Open the link below to sign in"
+							? authHost
+								? `Sign in to ${authHost} using the link below`
+								: "Open the link below to sign in"
 							: "Browser didn't open? Use the url below to sign in";
 						p.log.message(copyText);
 						p.log.message(url);
