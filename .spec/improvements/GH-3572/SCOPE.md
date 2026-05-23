@@ -166,3 +166,86 @@ webglAddon.onContextLoss(() => {
 - Parallel worktree `imp-xterm-webgl-macos-fallback-1779419095` touches the same two files in scope. User will need to reconcile or discard that worktree post-binding.
 
 **task_chunks:** 1
+
+---
+
+## Challenge
+
+### Re-verification
+
+All ground-truth claims confirmed against source files read directly. One minor discrepancy noted; not material.
+
+- `terminal-addons.ts:17` — `let suggestedRendererType: "webgl" | "dom" | undefined`: CONFIRMED
+- `terminal-addons.ts:46-47` — rAF guard `if (disposed || suggestedRendererType === "dom") return;`: CONFIRMED
+- `terminal-addons.ts:51-54` — `onContextLoss` handler body: CONFIRMED (actual span is lines 51-55, 5 lines; SCOPE says 51-54 — minor off-by-one, not material to the gap claim)
+- `terminal-addons.ts:57-59` — catch-block sets `suggestedRendererType = "dom"`: CONFIRMED (actual lines 57-60)
+- `helpers.ts:61` — second isolated `let suggestedRendererType`: CONFIRMED
+- `helpers.ts:133-134` — rAF guard: CONFIRMED
+- `helpers.ts:138-141` — `onContextLoss` gap: CONFIRMED
+- `helpers.ts:144-146` — catch-block: CONFIRMED
+- `setup.ts:90` — `max-active-webgl-contexts: 256` switch: CONFIRMED
+- `modifierLabel.ts:3-5` — `navigator.platform.toLowerCase().includes("mac")` pattern: CONFIRMED
+- `@xterm/xterm 6.1.0-beta.219` version: CONFIRMED (`apps/desktop/package.json:163`)
+- `@xterm/addon-webgl` sole consumer in monorepo: CONFIRMED — only `apps/desktop/package.json:161` declares it across all 34 package.json files
+
+### Smaller-option search
+
+**(a) Single-file/shared module**
+
+No shared module path exists. `terminal-addons.ts` and `helpers.ts` are entirely independent renderer modules with no shared import graph for `suggestedRendererType`. Introducing a `webgl-policy.ts` shared module still requires importing it in both files — same 2-file change surface. The stale worktree `imp-xterm-webgl-macos-fallback-1779419095` already attempted this approach. Not smaller.
+
+**(b) `setup.ts`-level Electron flag**
+
+`setup.ts:63` demonstrates `PLATFORM.IS_LINUX && app.disableHardwareAcceleration()`. Adding `PLATFORM.IS_MAC && app.disableHardwareAcceleration()` is nominally a 1-line change in 1 file. However `app.disableHardwareAcceleration()` disables GPU acceleration for the ENTIRE Electron renderer process — canvas elements, CSS compositing, video, all WebGL — not just xterm. `PLATFORM.IS_MAC` uses `process.platform` (main-process Node.js), not the renderer's `navigator.platform`. This is a worse tradeoff than a targeted renderer-layer switch and would regress unrelated rendering surfaces. Rejected: worse, not smaller.
+
+**(c) Unconditional WebGL removal (strategic = smaller semantically?)**
+
+Strategic removes ~50 net LOC vs minimum's +6 LOC added. In raw diff size, strategic is "smaller." However scope is not measured in LOC alone: strategic removes WebGL from Windows and Linux users who do not exhibit the corruption. The blast radius is ALL platforms vs minimum's macOS-only. The investigator's framing is correct: strategic is platform-broader. LOC-negative does not make it the minimum-bias winner when it permanently affects users outside the reported failure mode.
+
+**Verdict: minimum is correct as proposed. No Option 4.**
+
+### Minimum-resolves-problem proof
+
+Walk-through on macOS after minimum change:
+
+1. Module loads → `let suggestedRendererType` initializes as `undefined`
+2. macOS guard fires immediately: `navigator.platform.includes("mac")` → `suggestedRendererType = "dom"` (independently in both `terminal-addons.ts` and `helpers.ts`)
+3. Each new terminal's `requestAnimationFrame` callback hits `if (disposed || suggestedRendererType === "dom") return;` → returns immediately
+4. `new WebglAddon()` is never reached on macOS → no WebGL atlas, no texture corruption possible
+5. Both module-isolated variables are independently pre-set at module init — no cross-path dependency required
+
+**YES — minimum provably resolves the reported macOS problem.** The GPU-process-death failure mode (forced loseContext → Aw Snap) is fully avoided because WebGL is never loaded on macOS.
+
+Caveat: non-macOS users continue to use WebGL. There is no evidence in the issue or related cluster that Windows/Linux are materially affected. The Kitenite cluster reports are macOS-dominant. The `onContextLoss` handler gap remains open on Windows/Linux (covered by moderate if chosen).
+
+### Scope-creep flags
+
+- **moderate — `onContextLoss` handler change**: The `suggestedRendererType = "dom"` addition to both `onContextLoss` handlers is unreachable on macOS after the minimum guard (WebGL never loads, so `onContextLoss` never fires). It is effective only on Windows/Linux where context loss is rare and not the reported failure mode. Defense-in-depth only — not required by any documented AC.
+- **strategic — dep removal (`@xterm/addon-webgl`)**: Dep removal is technically clean (confirmed sole consumer: `apps/desktop/package.json:161`). However it permanently forecloses WebGL on all platforms. If xtermjs/xterm.js#5883 lands and corruption is fixed upstream, re-enabling requires re-adding the dep and re-wiring both files. Flag as an irreversibility tradeoff, not a safety concern.
+
+### Related-issue coverage
+
+The Kitenite cluster (#3208, #3321, #2968, #1065, #3406, #3570) from follow-ups.md share the same reported root cause (WebGL texture-atlas corruption under context-cap pressure). The minimum option resolves the primary macOS failure mode for all of them. It does NOT cover:
+- Any Windows/Linux manifestation (no evidence these exist in the cluster)
+- The `onContextLoss` handler gap on Windows/Linux (covered by moderate)
+- Any upstream xterm.js corruption bug unrelated to context cap (requires xtermjs/xterm.js#5883)
+
+The parallel-worktree conflict risk (`imp-xterm-webgl-macos-fallback-1779419095`) is already present in both minimum and strategic `risks[]` sections of SCOPE.md.
+
+---
+
+## User pushback (2026-05-23)
+
+Owner rejects all 3 options. Reason: **most users are on macOS; permanent DOM is unacceptable perf regression.** Owner wants a WebGL-first / DOM-fallback pattern modeled on VSCode (`microsoft/vscode#120393`), plus a way to *recover back* to WebGL transparently if possible.
+
+This points to an Option 4 (VSCode-style) NOT currently in SCOPE.md, AND raises an open question about post-fallback recovery the investigator did not consider.
+
+Triggering `/deep-research` to settle:
+1. VSCode's *current* terminal renderer implementation (has it evolved beyond #120393?)
+2. What `xtermjs/xterm.js#5883` actually does — does it fix the corruption upstream?
+3. Alternative corruption-detection mechanisms beyond `onContextLoss` (atlas health probe, etc.)
+4. Public failure-mode breakdown — how often does corruption fire `onContextLoss` vs not?
+5. Whether other terminal apps (Warp, Hyper, Wave, Tabby, iTerm Web, Ghostty) have a more reliable pattern
+6. Post-fallback recovery methodology — can the renderer upgrade back to WebGL without visible degradation? What does VSCode do?
+
+Research findings will be saved to `.spec/improvements/GH-3572/RESEARCH.md`. Investigator will be re-dispatched with the new evidence to propose refined options.
