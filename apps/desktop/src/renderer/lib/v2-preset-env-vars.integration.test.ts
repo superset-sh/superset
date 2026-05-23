@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	getAgentCommandText,
 	isAgentCommandPatchChanged,
+	parseAgentCommandText,
 	resolvePresetLaunchCommands,
 } from "./agent-launch-command";
 import { parseLaunchCommandString } from "./argv";
@@ -51,5 +52,16 @@ describe("v2 linked preset env var integration", () => {
 		).toEqual([
 			"ANTHROPIC_AUTH_TOKEN=abc claude --dangerously-skip-permissions",
 		]);
+	});
+
+	it("preserves linked agent shell snippets with command chaining", () => {
+		const command =
+			"setCodexMode work && codex --dangerously-bypass-approvals-and-sandbox";
+		const patch = parseAgentCommandText(command);
+		const updatedAgent = { ...claudeAgent, ...patch };
+
+		expect(
+			resolvePresetLaunchCommands(staleLinkedPreset, [updatedAgent]),
+		).toEqual([command]);
 	});
 });

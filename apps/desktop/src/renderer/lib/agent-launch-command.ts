@@ -1,3 +1,4 @@
+import { parse } from "shell-quote";
 import { joinCommandArgsWithEnv, parseLaunchCommandString } from "./argv";
 
 export interface AgentLaunchConfig {
@@ -29,11 +30,23 @@ function areEnvMapsEqual(
 	return leftEntries.every(([key, value]) => right[key] === value);
 }
 
+function hasShellSyntax(commandText: string): boolean {
+	return parse(commandText).some((token) => typeof token !== "string");
+}
+
 export function getAgentCommandText(agent: AgentLaunchConfig): string {
+	if (agent.args.length === 0 && hasShellSyntax(agent.command)) {
+		const envPrefix = joinCommandArgsWithEnv("", [], agent.env);
+		return envPrefix ? `${envPrefix} ${agent.command}` : agent.command;
+	}
 	return joinCommandArgsWithEnv(agent.command, agent.args, agent.env);
 }
 
 export function parseAgentCommandText(commandText: string): AgentCommandPatch {
+	const trimmed = commandText.trim();
+	if (hasShellSyntax(trimmed)) {
+		return { command: trimmed, args: [], env: {} };
+	}
 	return parseLaunchCommandString(commandText);
 }
 
