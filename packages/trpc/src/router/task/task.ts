@@ -1,5 +1,11 @@
 import { db, dbWs } from "@superset/db/client";
-import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import {
+	accounts,
+	members,
+	taskStatuses,
+	tasks,
+	users,
+} from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { getCurrentTxid } from "@superset/db/utils";
 import {
@@ -7,7 +13,7 @@ import {
 	generateUniqueTaskSlug,
 } from "@superset/shared/task-slug";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ilike, isNull } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
@@ -27,6 +33,10 @@ import { taskStatusesRouter } from "./statuses";
 
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
+
+// Provider IDs in the `accounts` table whose `account_id` is mirrored onto
+// `tasks.assigneeExternalId` by integration sync.
+const TASK_ASSIGNEE_EXTERNAL_PROVIDERS = ["linear"] as const;
 
 function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
@@ -316,7 +326,34 @@ export const taskRouter = {
 			if (input?.priority) filters.push(eq(tasks.priority, input.priority));
 			if (input?.statusId) filters.push(eq(tasks.statusId, input.statusId));
 			if (input?.assigneeMe) {
-				filters.push(eq(tasks.assigneeId, ctx.session.user.id));
+				// Integration-synced tasks (Linear today) carry the assignee on
+				// `assigneeExternalId` with `assigneeId = NULL`. Resolve the
+				// caller's linked external accounts so they aren't filtered out.
+				const linked = await db
+					.select({
+						providerId: accounts.providerId,
+						accountId: accounts.accountId,
+					})
+					.from(accounts)
+					.where(eq(accounts.userId, ctx.session.user.id));
+
+				const externalIds = linked
+					.filter((row) =>
+						TASK_ASSIGNEE_EXTERNAL_PROVIDERS.includes(
+							row.providerId as (typeof TASK_ASSIGNEE_EXTERNAL_PROVIDERS)[number],
+						),
+					)
+					.map((row) => row.accountId);
+
+				if (externalIds.length > 0) {
+					const broadened = or(
+						eq(tasks.assigneeId, ctx.session.user.id),
+						inArray(tasks.assigneeExternalId, externalIds),
+					);
+					if (broadened) filters.push(broadened);
+				} else {
+					filters.push(eq(tasks.assigneeId, ctx.session.user.id));
+				}
 			} else if (input?.assigneeId) {
 				filters.push(eq(tasks.assigneeId, input.assigneeId));
 			}

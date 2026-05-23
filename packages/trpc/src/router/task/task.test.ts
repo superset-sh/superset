@@ -109,6 +109,11 @@ mock.module("@superset/db/client", () => ({
 }));
 
 mock.module("@superset/db/schema", () => ({
+	accounts: {
+		accountId: "accounts.accountId",
+		providerId: "accounts.providerId",
+		userId: "accounts.userId",
+	},
 	members: {
 		organizationId: "members.organizationId",
 		userId: "members.userId",
@@ -139,6 +144,7 @@ mock.module("@superset/db/schema", () => ({
 		organizationId: "task_statuses.organizationId",
 	},
 	tasks: {
+		assigneeExternalId: "tasks.assigneeExternalId",
 		assigneeId: "tasks.assigneeId",
 		createdAt: "tasks.createdAt",
 		creatorId: "tasks.creatorId",
@@ -147,7 +153,10 @@ mock.module("@superset/db/schema", () => ({
 		externalProvider: "tasks.externalProvider",
 		id: "tasks.id",
 		organizationId: "tasks.organizationId",
+		priority: "tasks.priority",
 		slug: "tasks.slug",
+		statusId: "tasks.statusId",
+		title: "tasks.title",
 	},
 	users: {
 		id: "users.id",
@@ -174,7 +183,13 @@ mock.module("drizzle-orm", () => ({
 	desc: (value: unknown) => ({ type: "desc", value }),
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
 	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
+	inArray: (left: unknown, values: unknown[]) => ({
+		type: "inArray",
+		left,
+		values,
+	}),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
+	or: (...conditions: unknown[]) => ({ type: "or", conditions }),
 	sql: Object.assign(
 		(strings: TemplateStringsArray, ...values: unknown[]) => ({
 			type: "sql",
@@ -444,5 +459,122 @@ describe("task router authorization", () => {
 			title: "Renamed task",
 		});
 		expect(syncTaskMock).toHaveBeenCalledWith(TASK_ID);
+	});
+});
+
+describe("task.list assigneeMe broadens to linked external assignees (#4888)", () => {
+	const LINEAR_USER_ID = "99a67c67-11f1-4e3d-961a-8cc4987a1964";
+	let accountsResults: Array<{ providerId: string; accountId: string }>;
+	let listResults: unknown[];
+	let capturedTaskFilters: unknown[];
+
+	beforeEach(() => {
+		accountsResults = [];
+		listResults = [];
+		capturedTaskFilters = [];
+
+		verifyOrgMembershipMock.mockReset();
+		verifyOrgMembershipMock.mockImplementation(async () => ({
+			membership: { role: "member" },
+		}));
+
+		// Awaitable terminal for the accounts query: drizzle builders are
+		// PromiseLike, so the `.where(...)` result is awaited directly.
+		const buildAccountsThenable = () => ({
+			// biome-ignore lint/suspicious/noThenProperty: mimics drizzle's PromiseLike builder
+			then: (
+				resolve: (v: unknown) => unknown,
+				reject: (e: unknown) => unknown,
+			) => Promise.resolve(accountsResults).then(resolve, reject),
+		});
+
+		const taskChain: Record<string, unknown> = {};
+		taskChain.leftJoin = mock(() => taskChain);
+		taskChain.where = mock((filter: unknown) => {
+			capturedTaskFilters.push(filter);
+			return taskChain;
+		});
+		taskChain.orderBy = mock(() => taskChain);
+		taskChain.limit = mock(() => taskChain);
+		taskChain.offset = mock(() => Promise.resolve(listResults));
+
+		const accountsChain: Record<string, unknown> = {};
+		accountsChain.where = mock(() => buildAccountsThenable());
+
+		dbState.db.select = mock(() => ({
+			from: mock((table: unknown) => {
+				const isAccountsTable =
+					table !== null &&
+					typeof table === "object" &&
+					"accountId" in (table as Record<string, unknown>);
+				return isAccountsTable ? accountsChain : taskChain;
+			}),
+		})) as never;
+	});
+
+	function findOrPredicate(captured: unknown): {
+		conditions: unknown[];
+	} | null {
+		if (!captured || typeof captured !== "object") return null;
+		const node = captured as { type?: string; conditions?: unknown[] };
+		if (node.type === "or" && Array.isArray(node.conditions)) {
+			return { conditions: node.conditions };
+		}
+		if (Array.isArray(node.conditions)) {
+			for (const child of node.conditions) {
+				const found = findOrPredicate(child);
+				if (found) return found;
+			}
+		}
+		return null;
+	}
+
+	it("matches tasks where the caller's linked Linear id is on assigneeExternalId", async () => {
+		accountsResults = [{ providerId: "linear", accountId: LINEAR_USER_ID }];
+		listResults = [];
+
+		const caller = createCaller(createContext());
+		await caller.task.list({ assigneeMe: true });
+
+		expect(capturedTaskFilters).toHaveLength(1);
+		const orNode = findOrPredicate(capturedTaskFilters[0]);
+		expect(orNode).not.toBeNull();
+		const serialized = JSON.stringify(orNode);
+		// Must filter by internal assignee id (existing behaviour)…
+		expect(serialized).toContain("tasks.assigneeId");
+		// …AND by external assignee id resolved from the caller's linked accounts.
+		expect(serialized).toContain("tasks.assigneeExternalId");
+		expect(serialized).toContain(LINEAR_USER_ID);
+	});
+
+	it("falls back to the original assigneeId-only filter when no external accounts are linked", async () => {
+		accountsResults = [];
+		listResults = [];
+
+		const caller = createCaller(createContext());
+		await caller.task.list({ assigneeMe: true });
+
+		expect(capturedTaskFilters).toHaveLength(1);
+		// No external accounts linked → must not introduce an OR predicate.
+		expect(findOrPredicate(capturedTaskFilters[0])).toBeNull();
+		expect(JSON.stringify(capturedTaskFilters[0])).toContain(
+			"tasks.assigneeId",
+		);
+	});
+
+	it("ignores linked accounts from non-task-sync providers", async () => {
+		accountsResults = [{ providerId: "google", accountId: "google-sub-123" }];
+		listResults = [];
+
+		const caller = createCaller(createContext());
+		await caller.task.list({ assigneeMe: true });
+
+		expect(capturedTaskFilters).toHaveLength(1);
+		// Only a Google account is linked — task-sync providers list is empty,
+		// so the filter must stay narrow and not match Google's account id.
+		expect(findOrPredicate(capturedTaskFilters[0])).toBeNull();
+		expect(JSON.stringify(capturedTaskFilters[0])).not.toContain(
+			"google-sub-123",
+		);
 	});
 });
