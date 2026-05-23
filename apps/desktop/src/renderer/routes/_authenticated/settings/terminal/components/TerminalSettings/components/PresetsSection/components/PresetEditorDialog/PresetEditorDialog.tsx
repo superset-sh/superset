@@ -102,15 +102,10 @@ function toPresetDirectoryValue(
 function toCommandDisplayRows(
 	commands: string[],
 ): Array<{ command: string; key: string }> {
-	const seen = new Map<string, number>();
-	return commands.map((command) => {
-		const count = seen.get(command) ?? 0;
-		seen.set(command, count + 1);
-		return {
-			command,
-			key: count === 0 ? command : `${command}:${count}`,
-		};
-	});
+	return commands.map((command, index) => ({
+		command,
+		key: `${index}:${command}`,
+	}));
 }
 
 interface DialogRowProps {
