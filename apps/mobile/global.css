@@ -1,56 +1,132 @@
 @import "tailwindcss";
 @import "uniwind";
 
+/* ============================================================
+   Superset mobile — ember warm palette (Path A, 2026-05-22)
+   Source of truth: designs/tokens/tokens.css at worktree root
+   Audit: plans/chat-mobile-plan/14-token-migration-audit.md
+
+   Flat shadcn-style keys (--color-*) preserved for rn-reusables
+   CLI compatibility. Light/dark via uniwind @variant. Active
+   theme set in screens/RootLayout/RootLayout.tsx via
+   Uniwind.setTheme().
+
+   oklch literals from designs/tokens converted to hsl for
+   uniwind/RN StyleSheet safety. color-mix() hover/pressed mixes
+   omitted — rn-reusables uses opacity/scale animations, not
+   color tokens, for interaction states.
+   ============================================================ */
+
 @theme {
-	--radius: 0.5rem;
+	/* Radius — uniwind reads --radius for the default Tailwind unit */
+	--radius: 0.625rem;
+
+	/* Typography */
+	--font-sans:
+		"Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+		sans-serif;
+	--font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+
+	/* Mobile chrome essentials — full mobile-chrome surface added during atoms phase */
+	--spacing-touch-min: 44px;
 }
 
 @layer theme {
 	:root {
 		@variant light {
-			--color-radius: 0.5rem;
+			--color-radius: 0.625rem;
+
+			/* ── Surfaces ─────────────────────────────────────── */
 			--color-background: hsl(0 0% 100%);
-			--color-foreground: hsl(240 10% 3.9%);
+			--color-foreground: hsl(0 0% 14.5%);
 			--color-card: hsl(0 0% 100%);
-			--color-card-foreground: hsl(240 10% 3.9%);
+			--color-card-foreground: hsl(0 0% 14.5%);
 			--color-popover: hsl(0 0% 100%);
-			--color-popover-foreground: hsl(240 10% 3.9%);
-			--color-primary: hsl(240 5.9% 10%);
-			--color-primary-foreground: hsl(0 0% 98%);
-			--color-secondary: hsl(240 4.8% 95.9%);
-			--color-secondary-foreground: hsl(240 5.9% 10%);
-			--color-muted: hsl(240 4.8% 95.9%);
-			--color-muted-foreground: hsl(240 3.8% 46.1%);
-			--color-accent: hsl(240 4.8% 95.9%);
-			--color-accent-foreground: hsl(240 5.9% 10%);
+			--color-popover-foreground: hsl(0 0% 14.5%);
+
+			/* ── Ember accent (BRAND) ────────────────────────── */
+			--color-primary: hsl(17 69% 60%);
+			--color-primary-foreground: hsl(0 0% 100%);
+
+			/* ── Neutrals ─────────────────────────────────────── */
+			--color-secondary: hsl(40 5% 95%);
+			--color-secondary-foreground: hsl(0 0% 14.5%);
+			--color-muted: hsl(40 5% 95%);
+			--color-muted-foreground: hsl(0 0% 35%);
+			--color-accent: hsl(40 7% 90%);
+			--color-accent-foreground: hsl(0 0% 14.5%);
+
+			/* ── Destructive ─────────────────────────────────── */
 			--color-destructive: hsl(0 84.2% 60.2%);
-			--color-destructive-foreground: hsl(0 0% 98%);
-			--color-border: hsl(240 5.9% 90%);
-			--color-input: hsl(240 5.9% 90%);
-			--color-ring: hsl(240 5.9% 10%);
+			--color-destructive-foreground: hsl(0 0% 100%);
+
+			/* ── Structure ────────────────────────────────────── */
+			--color-border: hsl(0 0% 92%);
+			--color-input: hsl(0 0% 92%);
+			--color-ring: hsl(0 0% 71%);
+
+			/* ── State palette (chat domain — additive) ──────── */
+			--color-state-live-fg: hsl(160 35% 39%);
+			--color-state-live-bg: hsl(160 35% 95%);
+			--color-state-warning-fg: hsl(38 70% 45%);
+			--color-state-warning-bg: hsl(38 70% 95%);
+			--color-state-danger-fg: hsl(0 84% 60%);
+			--color-state-danger-bg: hsl(0 84% 96%);
+			--color-state-success-fg: hsl(160 35% 39%);
+			--color-state-success-bg: hsl(160 35% 95%);
+			--color-state-neutral-fg: hsl(0 0% 55%);
+
+			/* ── Domain — chat ────────────────────────────────── */
+			--color-streaming-cursor: hsl(160 35% 39%);
+			--color-tool-rule: hsl(17 69% 60%);
 		}
 
 		@variant dark {
-			--color-radius: 0.5rem;
-			--color-background: hsl(240 10% 3.9%);
-			--color-foreground: hsl(0 0% 98%);
-			--color-card: hsl(240 10% 3.9%);
-			--color-card-foreground: hsl(0 0% 98%);
-			--color-popover: hsl(240 10% 3.9%);
-			--color-popover-foreground: hsl(0 0% 98%);
-			--color-primary: hsl(0 0% 98%);
-			--color-primary-foreground: hsl(240 5.9% 10%);
-			--color-secondary: hsl(240 3.7% 15.9%);
-			--color-secondary-foreground: hsl(0 0% 98%);
-			--color-muted: hsl(240 3.7% 15.9%);
-			--color-muted-foreground: hsl(240 5% 64.9%);
-			--color-accent: hsl(240 3.7% 15.9%);
-			--color-accent-foreground: hsl(0 0% 98%);
-			--color-destructive: hsl(0 62.8% 30.6%);
-			--color-destructive-foreground: hsl(0 0% 98%);
-			--color-border: hsl(240 3.7% 15.9%);
-			--color-input: hsl(240 3.7% 15.9%);
-			--color-ring: hsl(240 4.9% 83.9%);
+			--color-radius: 0.625rem;
+
+			/* ── Surfaces (warm-neutral ramp, desktop ember) ──── */
+			--color-background: hsl(13 16% 7%);
+			--color-foreground: hsl(30 6% 91%);
+			--color-card: hsl(20 7% 12%);
+			--color-card-foreground: hsl(30 6% 91%);
+			--color-popover: hsl(20 7% 12%);
+			--color-popover-foreground: hsl(30 6% 91%);
+
+			/* ── Ember accent (BRAND) ────────────────────────── */
+			--color-primary: hsl(17 69% 60%);
+			--color-primary-foreground: hsl(13 16% 7%);
+
+			/* ── Neutrals ─────────────────────────────────────── */
+			--color-secondary: hsl(15 4% 16%);
+			--color-secondary-foreground: hsl(30 6% 91%);
+			--color-muted: hsl(15 4% 16%);
+			--color-muted-foreground: hsl(15 4% 65%);
+			--color-accent: hsl(15 6% 14%);
+			--color-accent-foreground: hsl(30 6% 91%);
+
+			/* ── Destructive ─────────────────────────────────── */
+			--color-destructive: hsl(0 56% 53%);
+			--color-destructive-foreground: hsl(0 100% 90%);
+
+			/* ── Structure ────────────────────────────────────── */
+			--color-border: hsl(15 4% 16%);
+			--color-input: hsl(15 4% 16%);
+			--color-ring: hsl(15 3% 22%);
+
+			/* ── State palette ────────────────────────────────── */
+			--color-state-live-fg: hsl(149 35% 47%);
+			--color-state-live-bg: hsla(149 35% 47% / 0.18);
+			--color-state-warning-fg: hsl(43 60% 56%);
+			--color-state-warning-bg: hsla(43 60% 56% / 0.18);
+			--color-state-danger-fg: hsl(0 56% 53%);
+			--color-state-danger-bg: hsla(0 56% 53% / 0.18);
+			--color-state-success-fg: hsl(149 35% 47%);
+			--color-state-success-bg: hsla(149 35% 47% / 0.18);
+			--color-state-neutral-fg: hsl(15 4% 65%);
+
+			/* ── Domain — chat ────────────────────────────────── */
+			--color-streaming-cursor: hsl(149 35% 47%);
+			--color-tool-rule: hsl(17 69% 60%);
 		}
 	}
 }
