@@ -464,6 +464,9 @@ export class HostServiceCoordinator extends EventEmitter {
 				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
 			DESKTOP_VITE_PORT: String(sharedEnv.DESKTOP_VITE_PORT),
 			SUPERSET_HOME_DIR: SUPERSET_HOME_DIR,
+			...(row?.worktreeBaseDir
+				? { SUPERSET_LEGACY_WORKTREE_BASE_DIR: row.worktreeBaseDir }
+				: {}),
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			AUTH_TOKEN: config.authToken,

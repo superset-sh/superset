@@ -9,6 +9,8 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import { protectedProcedure, router } from "../../index";
+import { getEffectiveWorktreeBaseDir } from "../settings/worktree-location";
+import { normalizeWorktreeBaseDir } from "../workspace-creation/shared/worktree-paths";
 import {
 	createFromClone,
 	createFromEmpty,
@@ -34,6 +36,7 @@ export const projectRouter = router({
 				repoOwner: projects.repoOwner,
 				repoName: projects.repoName,
 				repoUrl: projects.repoUrl,
+				worktreeBaseDir: projects.worktreeBaseDir,
 			})
 			.from(projects)
 			.all();
@@ -50,11 +53,47 @@ export const projectRouter = router({
 						repoOwner: projects.repoOwner,
 						repoName: projects.repoName,
 						repoUrl: projects.repoUrl,
+						worktreeBaseDir: projects.worktreeBaseDir,
 					})
 					.from(projects)
 					.where(eq(projects.id, input.projectId))
 					.get() ?? null
 			);
+		}),
+
+	setWorktreeBaseDir: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				path: z.string().nullable(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const worktreeBaseDir = normalizeWorktreeBaseDir(input.path);
+			ctx.db
+				.update(projects)
+				.set({ worktreeBaseDir })
+				.where(eq(projects.id, input.projectId))
+				.run();
+
+			const project = ctx.db.query.projects
+				.findFirst({ where: eq(projects.id, input.projectId) })
+				.sync();
+			if (!project) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+
+			return {
+				id: project.id,
+				worktreeBaseDir: project.worktreeBaseDir ?? null,
+				effectiveWorktreeBaseDir: getEffectiveWorktreeBaseDir({
+					ctx,
+					projectWorktreeBaseDir: project.worktreeBaseDir,
+				}),
+			};
 		}),
 
 	findBackfillConflict: protectedProcedure

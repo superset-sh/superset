@@ -23,6 +23,7 @@ import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 import { SettingsRow } from "./components/SettingsRow";
 import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
+import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
 
 interface V2ProjectSettingsProps {
 	projectId: string;
@@ -215,6 +216,21 @@ export function V2ProjectSettings({
 							hostUrl={targetHostUrl}
 							hostName={targetHostName}
 							isRemoteTarget={isRemoteTarget}
+							onChanged={() => refetchHostProject()}
+						/>
+					</SettingsRow>
+					<SettingsRow
+						label="Worktrees"
+						hint="Base directory for new worktree workspaces on this host."
+					>
+						<WorktreeLocationSection
+							projectId={projectId}
+							currentPath={hostProject?.worktreeBaseDir ?? null}
+							hostUrl={targetHostUrl}
+							hostName={targetHostName}
+							isRemoteTarget={isRemoteTarget}
+							isHostOnline={selectedHost?.isOnline ?? false}
+							isProjectSetup={Boolean(hostProject)}
 							onChanged={() => refetchHostProject()}
 						/>
 					</SettingsRow>
