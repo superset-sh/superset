@@ -1,0 +1,167 @@
+{
+	"version": "5.2.0",
+	"created": "2026-05-21",
+	"updated": "2026-05-22",
+	"goal": "Mobile-chat v2 — native iOS+Android port of the desktop ChatInterface, talking HTTP+tRPC over the relay to host-service for read/respond/initiate flows.",
+	"vibe": "Desktop ember warm palette as canonical (per 14-token-migration-audit.md, Path A committed 2026-05-22). Brand accent #e07850 (ember orange), warm-neutral surface ramp (#151110 background / #1a1716 sidebar / #201e1c card / #2a2827 secondary), Geist + Geist Mono typography loaded via @expo-google-fonts/geist with splash-screen gate, state palette (live/warning/danger/success/neutral) for chat-domain status indicators, 44pt minimum touch targets per iOS HIG + WCAG AA. Flat shadcn-style token names (--color-*) preserved for react-native-reusables CLI compatibility. Light + dark variants via uniwind @variant; active theme set via Uniwind.setTheme() in screens/RootLayout/RootLayout.tsx. Domain-token additions for chat: streaming-cursor, tool-rule.",
+	"spec": "../../plans/chat-mobile-plan/",
+	"tokens_source": "../../../designs/tokens/tokens.css",
+	"references": [],
+	"constraints": {
+		"preserve_theme": {
+			"description": "Uniwind machinery files remain protected — they are scaffolded vendor types, not theme content. global.css and lib/theme.ts were rewritten under Path A (2026-05-22) per 14-token-migration-audit.md §6 and are no longer locked.",
+			"paths": ["uniwind-env.d.ts", "uniwind-types.d.ts"]
+		},
+		"vendor_components_immutable": {
+			"description": "Vendor react-native-reusables components in components/ui/*.tsx are CLI-managed (npx @react-native-reusables/cli@latest add). They MUST NOT be edited locally — customize via design tokens in global.css instead. Re-pulling via the CLI is permitted; hand-rolling wrappers or editing source is not.",
+			"paths": ["components/ui/"]
+		},
+		"wireframes_are_reference_only": {
+			"description": "ASCII wireframes in the PRD describe structural intent, not the final visual design. During build phases (plan/atoms/molecules/compose), invoke the `frontend-design:frontend-design` skill to translate wireframes into high-fidelity component specs before implementing."
+		}
+	},
+	"gates": {
+		"discover": "passed",
+		"target": "passed",
+		"equip": "passed"
+	},
+	"platforms": {
+		"mobile-ios": {
+			"tools": {
+				"framework": "expo",
+				"style": "custom",
+				"style_name": "uniwind",
+				"style_docs": "https://www.npmjs.com/package/uniwind",
+				"components": "react-native-reusables",
+				"icons": "lucide-react-native",
+				"fonts": "@expo-google-fonts/geist",
+				"sandbox": "storybook-native"
+			},
+			"phase": "organisms",
+			"gates": {
+				"scaffold": "passed",
+				"plan": "passed",
+				"atoms": "passed",
+				"molecules": "passed",
+				"organisms": "passed",
+				"compose": "pending"
+			},
+			"build_plan": {
+				"scope_note": "Chat-view only (per designs/AUDIT.md). Sessions-list + nav surfaces deferred. Wave 1 (atoms) completed 2026-05-22. Wave 2 (molecules) completed 2026-05-22 — 19 molecules built (1 replaces ComposerToolbar per desktop PR #4866 unified-settings-menu pattern). Wave 3 (organisms) completed 2026-05-22 — 10 organisms built per designs/AUDIT.md §ORGANISM AUDIT. Wave 4 (screens / compose) gated behind explicit user confirmation.",
+				"tokens": "skip",
+				"atoms": {
+					"status": "build",
+					"refine": [
+						"IconButton",
+						"Pill",
+						"StatusDot",
+						"StreamingCursor",
+						"ToolStatusRule"
+					],
+					"create": [
+						"FabBase",
+						"HitTargetWrapper",
+						"ProgressDots",
+						"ScrollFade",
+						"ToastBase"
+					],
+					"existing_verified": [
+						"Avatar (vendor)",
+						"Badge (vendor)",
+						"Button (vendor)",
+						"Checkbox (vendor)",
+						"IconGlyph (vendor)",
+						"RadioGroup (vendor)",
+						"Separator (vendor)",
+						"TextInput (vendor)",
+						"Textarea (vendor)",
+						"Tooltip (vendor)"
+					],
+					"skip_chatview_scope": [
+						"kbd",
+						"live-activity-dot",
+						"section-label (use Text variant)",
+						"spinner (use ActivityIndicator)",
+						"backdrop (internal to dialog/alert-dialog vendor)",
+						"home-indicator (iOS native chrome)",
+						"device-bezel (real device)"
+					]
+				},
+				"molecules": {
+					"status": "build",
+					"created": [
+						"PickerTrigger",
+						"ComposerSettingsButton",
+						"ComposerRow",
+						"SlashCommandOption",
+						"ModelPickerOption",
+						"ThinkingLevelOption",
+						"AppHeader",
+						"ModalHeader",
+						"CodeBlock",
+						"Banner",
+						"PendingApprovalCard",
+						"ApprovalFooter",
+						"SuggestedAnswerPill",
+						"PendingActionPill",
+						"AssistantMessageHead",
+						"UserMessageBubble",
+						"ToolCallCard",
+						"CollapsedBlock",
+						"ScrollBackButton"
+					]
+				},
+				"organisms": {
+					"status": "build",
+					"created": [
+						"ChatHeader",
+						"ChatThread",
+						"Composer",
+						"SlashCommandPopover",
+						"PickerPopover",
+						"PauseApprovalOverlay",
+						"BottomSheet",
+						"PlanReviewScreen",
+						"ConfirmationDialog",
+						"LoadingSkeleton"
+					],
+					"vendor_added": ["@gorhom/bottom-sheet@5.2.12"],
+					"source": "designs/AUDIT.md §ORGANISM AUDIT"
+				},
+				"screens": {
+					"status": "deferred",
+					"create_when_unlocked": "22 chat-view screens per designs/AUDIT.md §VIEW AUDIT"
+				}
+			}
+		},
+		"mobile-android": {
+			"tools": {
+				"framework": "expo",
+				"style": "custom",
+				"style_name": "uniwind",
+				"style_docs": "https://www.npmjs.com/package/uniwind",
+				"components": "react-native-reusables",
+				"icons": "lucide-react-native",
+				"fonts": "@expo-google-fonts/geist",
+				"sandbox": "storybook-native"
+			},
+			"phase": "organisms",
+			"gates": {
+				"scaffold": "passed",
+				"plan": "passed",
+				"atoms": "passed",
+				"molecules": "passed",
+				"organisms": "passed",
+				"compose": "pending"
+			},
+			"build_plan": {
+				"scope_note": "Mirrors mobile-ios — apps/mobile/ source tree is shared across both platforms. Visual verification done on iOS sim only; android-specific render quirks reviewed when an android build is available.",
+				"tokens": "skip",
+				"atoms": "see mobile-ios.build_plan.atoms",
+				"molecules": "see mobile-ios.build_plan.molecules",
+				"organisms": "see mobile-ios.build_plan.organisms",
+				"screens": "deferred"
+			}
+		}
+	}
+}
