@@ -89,6 +89,9 @@ export const taskStatuses = pgTable(
 	(table) => [
 		index("task_statuses_organization_id_idx").on(table.organizationId),
 		index("task_statuses_type_idx").on(table.type),
+		uniqueIndex("task_statuses_org_native_type_unique")
+			.on(table.organizationId, table.type)
+			.where(sql`${table.externalProvider} IS NULL`),
 		unique("task_statuses_org_external_unique").on(
 			table.organizationId,
 			table.externalProvider,
