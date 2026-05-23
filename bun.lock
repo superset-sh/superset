@@ -592,8 +592,8 @@
         "@trpc/server": "11.16.0",
         "@trpc/tanstack-react-query": "11.16.0",
         "@uiw/react-md-editor": "4.1.0",
-        "@xterm/addon-fit": "0.12.0-beta.219",
-        "@xterm/xterm": "6.1.0-beta.219",
+        "@xterm/addon-fit": "0.12.0-beta.220",
+        "@xterm/xterm": "6.1.0-beta.220",
         "better-auth": "1.6.5",
         "framer-motion": "12.38.0",
         "geist": "1.7.0",
@@ -6596,10 +6596,6 @@
     "@slack/web-api/eventemitter3": ["eventemitter3@5.0.4", "", {}, "sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw=="],
 
     "@superset/host-service/@xterm/headless": ["@xterm/headless@6.1.0-beta.219", "", {}, "sha512-k0ilgU1jmvW8L1GfR6Zo5tIFEhOZdwsNdmYKx+CkDBobxpu+rHb5O4iD/ehIlxSupGPzOvIw6+1tRJq3Ky+kZw=="],
-
-    "@superset/web/@xterm/addon-fit": ["@xterm/addon-fit@0.12.0-beta.219", "", { "peerDependencies": { "@xterm/xterm": "^6.1.0-beta.219" } }, "sha512-ve9MP+xSfkcFG+l4GoWHurO+r97vh2U52J392Is246Cd2/EWkE9Q/KwpLqEdILTBQl7XVwTuuJzNv9IfndfnfQ=="],
-
-    "@superset/web/@xterm/xterm": ["@xterm/xterm@6.1.0-beta.219", "", {}, "sha512-cQDv5UMEooIqjlybDPfNO0uI0sB0SWaaOxubHcFNXah8umLHR8SfKQbj5BPaa5gqoTKGYFkVdpowyhZlV+xywQ=="],
 
     "@tailwindcss/node/jiti": ["jiti@2.6.1", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ=="],
 
