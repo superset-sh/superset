@@ -79,10 +79,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Codex",
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
-		command:
-			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
-		promptCommand:
-			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust --",
+		command: "codex --dangerously-bypass-approvals-and-sandbox",
+		promptCommand: "codex --dangerously-bypass-approvals-and-sandbox --",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({

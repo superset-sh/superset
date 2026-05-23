@@ -60,6 +60,7 @@ const {
 	AMP_PLUGIN_MARKER,
 	createAmpPlugin,
 	createAmpWrapper,
+	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
 	createClaudeSettingsJson,
@@ -183,6 +184,54 @@ describe("agent-wrappers copilot", () => {
 		expect(updated).not.toContain("/tmp/old-hook.sh");
 	});
 
+	it("tails codex's process-scoped TUI session log to drive Start events", () => {
+		createCodexWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain(
+			`"$REAL_BIN" "\${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
+		);
+		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
+
+		expect(wrapper).toContain("# Superset agent-wrapper v3");
+
+		// Native hooks remain enabled, but the process-scoped TUI session log is
+		// the reliable Start signal for installed Codex TUI builds.
+		expect(wrapper).toContain("SUPERSET_CODEX_SESSION_WATCHER_PID");
+		expect(wrapper).toContain("CODEX_TUI_RECORD_SESSION");
+		expect(wrapper).toContain("CODEX_TUI_SESSION_LOG_PATH");
+		expect(wrapper).toContain("SUPERSET_TERMINAL_ID$SUPERSET_TAB_ID");
+		expect(wrapper).toContain("_superset_configure_project_trust");
+		expect(wrapper).toContain("SUPERSET_WORKSPACE_PATH/.codex");
+		expect(wrapper).toContain(
+			'projects={\\"$_superset_workspace_path_toml\\"={trust_level=\\"trusted\\"}}',
+		);
+		expect(wrapper).not.toContain("export CODEX_HOME=");
+		expect(wrapper).not.toContain("rollout-*.jsonl");
+		expect(wrapper).not.toContain("_superset_sessions_dir");
+		expect(wrapper).not.toContain("$" + "{CODEX_HOME:-$HOME/.codex}");
+		expect(wrapper).toContain("SUPERSET_HOOK_DEBUG_LOG");
+		expect(wrapper).toContain("tail -n +1 -F");
+		expect(wrapper).toContain("_superset_cleanup_session_watcher");
+		expect(wrapper).toContain("_superset_child_pids_for");
+		expect(wrapper).toContain('kill -TERM "$_superset_child_pid"');
+		expect(wrapper).toContain('kill -KILL "$_superset_watcher_pid"');
+		expect(wrapper).not.toContain("mkfifo");
+		expect(wrapper).not.toContain(
+			"SUPERSET_CODEX_SESSION_WATCHER_TAIL_PID_PATH",
+		);
+		expect(wrapper).toContain('"UserTurn"');
+		expect(wrapper).toContain("_approval_request");
+
+		const execLine = buildCodexWrapperExecLine(
+			path.join(TEST_HOOKS_DIR, "notify.sh"),
+		);
+		expect(execLine).not.toContain("{{NOTIFY_PATH}}");
+		expect(wrapper).toContain(execLine);
+	});
+
 	it("trusts the Superset workspace codex project config without replacing CODEX_HOME", () => {
 		const realBinDir = path.join(TEST_ROOT, "real-bin");
 		const realCodex = path.join(realBinDir, "codex");
@@ -226,7 +275,6 @@ exit 0
 				`projects={"${workspacePath}"={trust_level="trusted"}}`,
 				"--enable",
 				"hooks",
-				"--dangerously-bypass-hook-trust",
 				"-c",
 				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
 			].join("\n")}\n`,
@@ -266,7 +314,6 @@ exit 0
 			`${[
 				"--enable",
 				"hooks",
-				"--dangerously-bypass-hook-trust",
 				"-c",
 				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
 				"exec",

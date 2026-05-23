@@ -121,7 +121,7 @@ fi
 
 # `hooks` (formerly `codex_hooks`) is stable and default-enabled in codex
 # >=0.129; the legacy `notify=...` callback remains the completion source.
-"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks --dangerously-bypass-hook-trust -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
+"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
 SUPERSET_CODEX_STATUS=$?
 _superset_debug "codex exited status=$SUPERSET_CODEX_STATUS"
 

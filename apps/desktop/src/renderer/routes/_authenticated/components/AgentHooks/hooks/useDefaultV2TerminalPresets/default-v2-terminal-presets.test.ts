@@ -41,10 +41,7 @@ describe("createDefaultV2TerminalPresetRows", () => {
 					presetId: "codex",
 					label: "Codex",
 					command: "codex",
-					args: [
-						"--dangerously-bypass-approvals-and-sandbox",
-						"--dangerously-bypass-hook-trust",
-					],
+					args: ["--dangerously-bypass-approvals-and-sandbox"],
 					order: 1,
 				}),
 				createAgent({
@@ -87,7 +84,7 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"claude --dangerously-skip-permissions",
 		]);
 		expect(rows[1]?.commands).toEqual([
-			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
+			"codex --dangerously-bypass-approvals-and-sandbox",
 		]);
 		expect(rows[2]?.commands).toEqual(["opencode"]);
 		expect(rows[3]?.commands).toEqual(["copilot --allow-tool\\=write"]);
