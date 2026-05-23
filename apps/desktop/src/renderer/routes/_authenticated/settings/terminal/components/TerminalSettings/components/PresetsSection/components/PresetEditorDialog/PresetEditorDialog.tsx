@@ -23,7 +23,7 @@ import { Switch } from "@superset/ui/switch";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
 import { V2_AGENT_CONFIGS_QUERY_KEY } from "renderer/hooks/useV2AgentConfigs";
 import {
@@ -235,14 +235,24 @@ export function PresetEditorDialog({
 	const queryClient = useQueryClient();
 	const queryFamily = { queryKey: V2_AGENT_CONFIGS_QUERY_KEY };
 	const [linkedCommandText, setLinkedCommandText] = useState("");
+	const linkedCommandResetKeyRef = useRef<string | null>(null);
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
+	const linkedCommandResetKey = `${preset?.id ?? ""}:${linkedAgentId ?? ""}:${
+		linkedAgent?.id ?? ""
+	}`;
 
 	useEffect(() => {
+		if (!open) {
+			linkedCommandResetKeyRef.current = null;
+			return;
+		}
+		if (linkedCommandResetKeyRef.current === linkedCommandResetKey) return;
+		linkedCommandResetKeyRef.current = linkedCommandResetKey;
 		setLinkedCommandText(
 			linkedAgent ? getAgentCommandText(linkedAgent) : (liveCommands[0] ?? ""),
 		);
-	}, [linkedAgent, liveCommands]);
+	}, [linkedAgent, linkedCommandResetKey, liveCommands, open]);
 
 	const updateLinkedAgentMutation = useMutation({
 		mutationFn: ({
@@ -270,7 +280,6 @@ export function PresetEditorDialog({
 				),
 			);
 			void queryClient.invalidateQueries(queryFamily);
-			void queryClient.refetchQueries(queryFamily);
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to save"),
