@@ -51,7 +51,13 @@ export function AgentDetail({
 
 	useEffect(() => {
 		setLabel(config.label);
-		setCommandText(getAgentCommandText(config));
+		setCommandText(
+			getAgentCommandText({
+				command: config.command,
+				args: config.args,
+				env: config.env,
+			}),
+		);
 		setPromptArgsText(joinArgs(config.promptArgs));
 		setPromptTransport(config.promptTransport);
 	}, [
@@ -61,7 +67,6 @@ export function AgentDetail({
 		config.env,
 		config.promptArgs,
 		config.promptTransport,
-		config,
 	]);
 
 	const updateMutation = useMutation({

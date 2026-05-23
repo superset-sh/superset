@@ -99,6 +99,20 @@ function toPresetDirectoryValue(
 	return relativePath === "." ? "." : `./${relativePath}`;
 }
 
+function toCommandDisplayRows(
+	commands: string[],
+): Array<{ command: string; key: string }> {
+	const seen = new Map<string, number>();
+	return commands.map((command) => {
+		const count = seen.get(command) ?? 0;
+		seen.set(command, count + 1);
+		return {
+			command,
+			key: count === 0 ? command : `${command}:${count}`,
+		};
+	});
+}
+
 interface DialogRowProps {
 	label: string;
 	hint?: React.ReactNode;
@@ -216,6 +230,10 @@ export function PresetEditorDialog({
 				? resolvePresetLaunchCommands(preset as PresetWithAgent, agents)
 				: [],
 		[preset, agents],
+	);
+	const liveCommandRows = useMemo(
+		() => toCommandDisplayRows(liveCommands),
+		[liveCommands],
 	);
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
@@ -411,13 +429,13 @@ export function PresetEditorDialog({
 										/>
 									) : (
 										<div className="min-w-0 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
-											{liveCommands.length > 0 ? (
-												liveCommands.map((cmd) => (
+											{liveCommandRows.length > 0 ? (
+												liveCommandRows.map(({ command, key }) => (
 													<div
-														key={cmd}
+														key={key}
 														className="break-all whitespace-pre-wrap text-foreground"
 													>
-														{cmd || "—"}
+														{command || "—"}
 													</div>
 												))
 											) : (
