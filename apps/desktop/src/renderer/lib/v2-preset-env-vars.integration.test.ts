@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-	buildAgentLaunchCommand,
+	getAgentCommandText,
 	isAgentCommandPatchChanged,
 	resolvePresetLaunchCommands,
 } from "./agent-launch-command";
@@ -43,7 +43,7 @@ describe("v2 linked preset env var integration", () => {
 		);
 		const updatedAgent = { ...claudeAgent, ...patch };
 
-		expect(buildAgentLaunchCommand(updatedAgent)).toBe(
+		expect(getAgentCommandText(updatedAgent)).toBe(
 			"ANTHROPIC_AUTH_TOKEN=abc claude --dangerously-skip-permissions",
 		);
 		expect(

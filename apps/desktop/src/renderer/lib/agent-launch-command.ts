@@ -49,17 +49,6 @@ export function isAgentCommandPatchChanged(
 	);
 }
 
-/**
- * Build the shell command string used to launch an agent without a prompt
- * (e.g. when triggered from a v2 terminal preset). Includes structured `env`
- * and always-on `args`, but omits `promptArgs` and `promptTransport` — those
- * only apply when a prompt is being delivered. Mirrors the launch resolution
- * documented in `packages/shared/src/host-agent-presets.ts`.
- */
-export function buildAgentLaunchCommand(agent: AgentLaunchConfig): string {
-	return getAgentCommandText(agent);
-}
-
 export function findLinkedAgent<TAgent extends AgentLaunchConfig>(
 	agents: readonly TAgent[] | undefined,
 	agentId: string | undefined,
@@ -78,7 +67,7 @@ export function resolvePresetLaunchCommands(
 ): string[] {
 	const linkedAgent = findLinkedAgent(agents, preset.agentId);
 	if (linkedAgent?.command.trim()) {
-		return [buildAgentLaunchCommand(linkedAgent)];
+		return [getAgentCommandText(linkedAgent)];
 	}
 	return preset.commands;
 }

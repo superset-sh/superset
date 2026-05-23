@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-	buildAgentLaunchCommand,
+	getAgentCommandText,
 	resolvePresetLaunchCommands,
 } from "./agent-launch-command";
 
@@ -17,7 +17,7 @@ describe("agent launch command helpers", () => {
 	};
 
 	it("builds command strings with structured env assignments", () => {
-		expect(buildAgentLaunchCommand(agent)).toBe(
+		expect(getAgentCommandText(agent)).toBe(
 			"ANTHROPIC_BASE_URL=https://example.test ANTHROPIC_AUTH_TOKEN=abc claude --dangerously-skip-permissions",
 		);
 	});
