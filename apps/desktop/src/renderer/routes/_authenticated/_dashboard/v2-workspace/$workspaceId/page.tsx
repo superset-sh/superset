@@ -138,6 +138,7 @@ function V2WorkspaceContent() {
 	});
 	useConsumeAutomationRunLink({
 		store,
+		workspaceId,
 		terminalId,
 		chatSessionId,
 		focusRequestId,
@@ -276,6 +277,7 @@ function V2WorkspaceContent() {
 						data-workspace-id={workspaceId}
 					>
 						<Workspace<PaneViewerData>
+							key={workspaceId}
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
