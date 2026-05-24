@@ -307,7 +307,14 @@ function attachSocketListeners(
 		// channel; renderer treats them identically). Pipe straight into
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
-			terminal.write(new Uint8Array(event.data));
+			// xterm.write's callback only fires once the parser has consumed
+			// these bytes into its buffer. That's the honest "consumed" signal
+			// for byte-level back-pressure — ACKing on WS receipt would lie
+			// about xterm being the bottleneck.
+			const bytes = event.data.byteLength;
+			terminal.write(new Uint8Array(event.data), () => {
+				sendOutputAck(transport, socket, bytes);
+			});
 			transport._hasReceivedBytes = true;
 			return;
 		}
@@ -382,6 +389,17 @@ function attachSocketListeners(
 		if (transport.connectionState !== "open") return;
 		socket.send(JSON.stringify({ type: "input", data }));
 	});
+}
+
+function sendOutputAck(
+	transport: TerminalTransport,
+	socket: WebSocket,
+	bytes: number,
+) {
+	if (transport.socket !== socket) return;
+	if (socket.readyState !== WebSocket.OPEN) return;
+	if (transport.connectionState !== "open") return;
+	socket.send(JSON.stringify({ type: "output-ack", bytes }));
 }
 
 export function disconnect(transport: TerminalTransport) {

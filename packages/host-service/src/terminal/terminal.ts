@@ -66,6 +66,11 @@ interface DaemonPty {
 	 */
 	writeBytes(bytes: Uint8Array): void;
 	resize(cols: number, rows: number): void;
+	/**
+	 * Forward the renderer's "I consumed N bytes" ack to the daemon's flow-
+	 * control counter for the primary subscription on this session.
+	 */
+	ackOutput(bytes: number): void;
 	kill(signal?: NodeJS.Signals): Promise<void>;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
@@ -94,6 +99,13 @@ function makeDaemonPty(
 				daemon.resize(sessionId, cols, rows);
 			} catch {
 				// Daemon may have disconnected; surface via the next op.
+			}
+		},
+		ackOutput(bytes) {
+			try {
+				daemon.ackOutput(sessionId, bytes);
+			} catch {
+				// Daemon may have disconnected; reconnect path handles recovery.
 			}
 		},
 		kill(signal) {
@@ -160,6 +172,7 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
+	| { type: "output-ack"; bytes: number }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -1274,7 +1287,7 @@ export async function createTerminalSessionInternal({
 
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
-		{ replay: replayOnAdoption },
+		{ replay: replayOnAdoption, flowControl: true },
 		{
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
@@ -1590,6 +1603,11 @@ export function registerWorkspaceTerminalRoute({
 
 					const session = sessions.get(terminalId ?? "");
 					if (!session || !session.sockets.has(ws)) return;
+
+					if (message.type === "output-ack") {
+						session.pty.ackOutput(message.bytes);
+						return;
+					}
 
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);
