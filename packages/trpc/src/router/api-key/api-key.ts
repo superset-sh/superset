@@ -5,7 +5,7 @@ import { protectedProcedure } from "../../trpc";
 
 export const apiKeyRouter = {
 	create: protectedProcedure
-		.input(z.object({ name: z.string().min(1) }))
+		.input(z.object({ name: z.string().min(1).max(100) }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = ctx.activeOrganizationId;
 			if (!organizationId) {
