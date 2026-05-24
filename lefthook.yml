@@ -1,0 +1,38 @@
+####################################################################
+# Superset lefthook config
+#
+# Single source of truth for agent-only verification checks.
+# These checks fire ONLY from Claude Code hooks (Stop, SubagentStop)
+# and the fallow PreToolUse gate — NOT from human git commits.
+#
+# Why agent-only:
+#   - pre-commit hook is intentionally empty (no human gating)
+#   - agents trigger `lefthook run verify` from Stop/SubagentStop
+#   - fallow-gate.sh gates agent git commit/push via PreToolUse
+#
+# Tools:
+#   - tsgo/tsc : TypeScript typechecking via turbo (per-package)
+#   - biome    : @biomejs/biome (Rust linter + formatter)
+#   - fallow   : codebase intelligence (dead code, duplication, complexity)
+####################################################################
+
+# No pre-commit hooks — human developers are not gated.
+# pre-commit:
+#   (empty by design)
+
+# `lefthook run verify` — full-project verification for AI agents.
+# Invoked by Claude Code Stop and SubagentStop hooks.
+# fallow audit lives here because git worktree creation is blocked
+# during the pre-commit lock. Agent commits are gated by the
+# PreToolUse fallow-gate.sh hook before git even runs.
+verify:
+  parallel: true
+  jobs:
+    - name: typecheck
+      run: bun run typecheck
+
+    - name: biome
+      run: bunx biome check .
+
+    - name: fallow
+      run: bunx fallow audit

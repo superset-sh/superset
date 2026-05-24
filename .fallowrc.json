@@ -1,0 +1,26 @@
+{
+	"$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+	"ignorePatterns": [
+		"**/*.generated.ts",
+		"**/*.generated.tsx",
+		".claude/**",
+		"node_modules/**",
+		".next/**",
+		".turbo/**",
+		"dist/**",
+		"build/**",
+		"coverage/**",
+		"*.min.js",
+		"*.min.ts"
+	],
+	"rules": {
+		"unused-files": "warn",
+		"unused-exports": "warn",
+		"unused-types": "off",
+		"circular-dependencies": "warn",
+		"boundary-violations": "warn"
+	},
+	"audit": {
+		"gate": "new-only"
+	}
+}
