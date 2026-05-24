@@ -96,7 +96,7 @@ export function PlanReviewScreen({
 					variant="outline"
 					className="flex-1"
 					onPress={() => onReject(feedbackValue)}
-					disabled={isSubmitting}
+					disabled={isSubmitting || feedbackValue.trim().length === 0}
 				>
 					<Text>Reject</Text>
 				</Button>
