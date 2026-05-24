@@ -713,6 +713,8 @@ export async function movePath({
 		rootPath,
 		absolutePath: sourceAbsolutePath,
 	});
+	await assertRealpathWithinRoot(rootPath, sourcePath);
+
 	const destinationPath = ensureWithinRoot({
 		rootPath,
 		absolutePath: destinationAbsolutePath,
@@ -746,6 +748,8 @@ export async function copyPath({
 		rootPath,
 		absolutePath: sourceAbsolutePath,
 	});
+	await assertRealpathWithinRoot(rootPath, sourcePath);
+
 	const destinationPath = ensureWithinRoot({
 		rootPath,
 		absolutePath: destinationAbsolutePath,
