@@ -27,8 +27,6 @@ export function createApplicationMenu() {
 						menuEmitter.emit("open-project");
 					},
 				},
-				{ type: "separator" },
-				{ label: "Close Window", role: "close" },
 			],
 		},
 		{
