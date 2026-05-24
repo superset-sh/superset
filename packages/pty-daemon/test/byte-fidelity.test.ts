@@ -43,6 +43,7 @@ const sockPath = path.join(os.tmpdir(), `pty-daemon-bytes-${process.pid}.sock`);
  */
 interface DriveablePty extends Pty {
 	writes: Buffer[];
+	paused: boolean;
 	emit(bytes: Uint8Array): void;
 	finish(code: number): void;
 }
@@ -58,8 +59,15 @@ function makeDriveablePty(meta: SpawnOptions["meta"]): DriveablePty {
 		pid,
 		meta,
 		writes: [] as Buffer[],
+		paused: false as boolean,
 		write: (data: Buffer) => {
 			pty.writes.push(Buffer.from(data));
+		},
+		pause: () => {
+			pty.paused = true;
+		},
+		resume: () => {
+			pty.paused = false;
 		},
 		resize: () => {},
 		kill: () => {},

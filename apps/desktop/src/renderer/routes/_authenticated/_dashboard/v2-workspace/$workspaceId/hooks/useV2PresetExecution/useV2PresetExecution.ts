@@ -1,10 +1,9 @@
-import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import { buildAgentLaunchCommand } from "renderer/lib/agent-launch-command";
+import { resolvePresetLaunchCommands } from "renderer/lib/agent-launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -28,17 +27,6 @@ function makeTerminalPane(
 
 function resolveTarget(executionMode: V2TerminalPresetRow["executionMode"]) {
 	return executionMode === "split-pane" ? "active-tab" : "new-tab";
-}
-
-function findLinkedAgent(
-	agents: HostAgentConfig[],
-	agentId: string,
-): HostAgentConfig | null {
-	return (
-		agents.find((agent) => agent.id === agentId) ??
-		agents.find((agent) => agent.presetId === agentId) ??
-		null
-	);
 }
 
 interface UseV2PresetExecutionArgs {
@@ -66,30 +54,21 @@ export function useV2PresetExecution({
 	// /settings/agents page, so user edits there propagate here. The hook is
 	// already invalidated by mutations in the agents settings page.
 	const { activeHostUrl } = useLocalHostService();
-	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
+	const { data: agents = [], refetch: refetchAgents } =
+		useV2AgentConfigs(activeHostUrl);
 
 	const matchedPresets = useMemo(
 		() => filterMatchingPresetsForProject(allPresets, projectId),
 		[allPresets, projectId],
 	);
 
-	// `useV2AgentConfigs` is the cached source of truth for agent configs
-	// (`staleTime: Infinity`, invalidated on every Settings → Agents mutation),
-	// so resolving against the in-memory `agents` array is correct and
-	// synchronous. Re-fetching via the host-service client on every call would
-	// duplicate that query and pin this function async, which forced the
-	// previous consumer (`useV2WorkspaceRun`) into a re-render cycle.
+	// Keep the resolver synchronous for render-time consumers like
+	// `useV2WorkspaceRun`. Direct preset execution does a one-shot refetch for
+	// linked agents before launch so a recently edited agent cannot run from a
+	// stale infinite-cache snapshot.
 	const resolvePresetCommands = useCallback(
-		(preset: V2TerminalPresetRow): string[] => {
-			if (!preset.agentId) return preset.commands;
-			const linkedAgent = findLinkedAgent(agents, preset.agentId);
-			const live =
-				linkedAgent && linkedAgent.command.trim().length > 0
-					? buildAgentLaunchCommand(linkedAgent)
-					: undefined;
-			if (live) return [live];
-			return preset.commands;
-		},
+		(preset: V2TerminalPresetRow): string[] =>
+			resolvePresetLaunchCommands(preset, agents),
 		[agents],
 	);
 
@@ -99,14 +78,6 @@ export function useV2PresetExecution({
 			const activeTabId = state.activeTabId;
 			const target = resolveTarget(preset.executionMode);
 			const title = preset.name || undefined;
-			const commands = resolvePresetCommands(preset);
-
-			const plan = getPresetLaunchPlan({
-				mode: preset.executionMode,
-				target,
-				commandCount: commands.length,
-				hasActiveTab: !!activeTabId,
-			});
 
 			// Sessions for every pane this plan creates are spun up in parallel
 			// before any of them land in the store, so background tabs (e.g.
@@ -115,6 +86,19 @@ export function useV2PresetExecution({
 			// host-service buffers PTY output until the user clicks the tab and
 			// the pane finally mounts and attaches the WS.
 			try {
+				const liveAgents =
+					preset.agentId && activeHostUrl
+						? ((await refetchAgents()).data ?? agents)
+						: agents;
+				const commands = resolvePresetLaunchCommands(preset, liveAgents);
+
+				const plan = getPresetLaunchPlan({
+					mode: preset.executionMode,
+					target,
+					commandCount: commands.length,
+					hasActiveTab: !!activeTabId,
+				});
+
 				switch (plan) {
 					case "new-tab-single": {
 						const terminalId = await launcher.create({ command: commands[0] });
@@ -190,7 +174,7 @@ export function useV2PresetExecution({
 				});
 			}
 		},
-		[store, launcher, resolvePresetCommands],
+		[store, launcher, activeHostUrl, refetchAgents, agents],
 	);
 
 	return { matchedPresets, executePreset, resolvePresetCommands };

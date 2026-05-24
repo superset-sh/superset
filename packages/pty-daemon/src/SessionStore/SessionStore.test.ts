@@ -12,6 +12,8 @@ function fakePty(meta: { cols: number; rows: number }): Pty {
 			rows: meta.rows,
 		},
 		write: () => {},
+		pause: () => {},
+		resume: () => {},
 		resize: () => {},
 		kill: () => {},
 		onData: () => {},

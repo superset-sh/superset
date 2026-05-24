@@ -18,13 +18,25 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
-import { buildAgentLaunchCommand } from "renderer/lib/agent-launch-command";
+import { V2_AGENT_CONFIGS_QUERY_KEY } from "renderer/hooks/useV2AgentConfigs";
+import {
+	findLinkedAgent,
+	getAgentCommandText,
+	isAgentCommandPatchChanged,
+	parseAgentCommandText,
+	resolvePresetLaunchCommands,
+} from "renderer/lib/agent-launch-command";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { useSettingsOriginRoute } from "renderer/stores/settings-state";
 import {
@@ -194,24 +206,74 @@ export function PresetEditorDialog({
 }: PresetEditorDialogProps) {
 	const linkedAgent = useMemo(() => {
 		const presetAgentId = (preset as PresetWithAgent | null)?.agentId;
-		if (!presetAgentId || !agents) return null;
-		return (
-			agents.find((agent) => agent.id === presetAgentId) ??
-			agents.find((agent) => agent.presetId === presetAgentId) ??
-			null
-		);
+		return findLinkedAgent(agents, presetAgentId);
 	}, [preset, agents]);
 	const linkedAgentId = (preset as PresetWithAgent | null)?.agentId;
 	const isLinked = !!linkedAgentId;
 	const liveCommands = useMemo(
 		() =>
-			linkedAgent
-				? [buildAgentLaunchCommand(linkedAgent)]
-				: (preset?.commands ?? []),
-		[linkedAgent, preset?.commands],
+			preset
+				? resolvePresetLaunchCommands(preset as PresetWithAgent, agents)
+				: [],
+		[preset, agents],
+	);
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
+	const queryClient = useQueryClient();
+	const queryFamily = { queryKey: V2_AGENT_CONFIGS_QUERY_KEY };
+	const [linkedCommandText, setLinkedCommandText] = useState(() =>
+		linkedAgent ? getAgentCommandText(linkedAgent) : "",
 	);
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
+
+	useEffect(() => {
+		if (linkedAgent) setLinkedCommandText(getAgentCommandText(linkedAgent));
+	}, [linkedAgent]);
+
+	const updateLinkedAgentMutation = useMutation({
+		mutationFn: ({
+			id,
+			patch,
+		}: {
+			id: string;
+			patch: ReturnType<typeof parseAgentCommandText>;
+		}) => {
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "save the agent command",
+					}),
+				);
+			}
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).settings.agentConfigs.update.mutate({ id, patch });
+		},
+		onSuccess: (updated) => {
+			queryClient.setQueriesData<HostAgentConfig[]>(queryFamily, (current) =>
+				current?.map((config) =>
+					config.id === updated.id ? { ...config, ...updated } : config,
+				),
+			);
+			void queryClient.invalidateQueries(queryFamily);
+		},
+		onError: (err) =>
+			toast.error(err instanceof Error ? err.message : "Failed to save"),
+	});
+
+	const handleLinkedCommandBlur = () => {
+		if (!linkedAgent) return;
+		const patch = parseAgentCommandText(linkedCommandText);
+		if (patch.command.length === 0) {
+			toast.error("Command cannot be empty");
+			setLinkedCommandText(getAgentCommandText(linkedAgent));
+			return;
+		}
+		if (!isAgentCommandPatchChanged(linkedAgent, patch)) return;
+		updateLinkedAgentMutation.mutate({ id: linkedAgent.id, patch });
+	};
+
 	const trimmedCwd = preset?.cwd.trim() ?? "";
 	const originWorkspaceId = useMemo(
 		() => getWorkspaceIdFromRoute(originRoute),
@@ -309,31 +371,53 @@ export function PresetEditorDialog({
 							{isLinked ? (
 								<div className="py-2.5 space-y-2">
 									<div className="flex items-center justify-between gap-3">
-										<Label className="text-sm font-medium">Command</Label>
+										<Label
+											htmlFor={
+												linkedAgent
+													? `linked-command-${linkedAgent.id}`
+													: undefined
+											}
+											className="text-sm font-medium"
+										>
+											Command
+										</Label>
 										<Link
 											to="/settings/agents"
 											search={{ agent: linkedAgentId }}
 											onClick={() => onOpenChange(false)}
 											className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
 										>
-											Edit in {linkedAgent?.label ?? "agent settings"}
+											Open {linkedAgent?.label ?? "agent settings"}
 											<ExternalLink className="size-3" />
 										</Link>
 									</div>
-									<div className="min-w-0 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
-										{liveCommands.length > 0 ? (
-											liveCommands.map((cmd) => (
-												<div
-													key={cmd}
-													className="break-all whitespace-pre-wrap text-foreground"
-												>
-													{cmd || "—"}
-												</div>
-											))
-										) : (
-											<div className="text-foreground">—</div>
-										)}
-									</div>
+									{linkedAgent ? (
+										<Input
+											id={`linked-command-${linkedAgent.id}`}
+											className="font-mono text-xs"
+											value={linkedCommandText}
+											onChange={(e) => setLinkedCommandText(e.target.value)}
+											onBlur={handleLinkedCommandBlur}
+											disabled={updateLinkedAgentMutation.isPending}
+											placeholder="claude --dangerously-skip-permissions"
+										/>
+									) : (
+										<div className="min-w-0 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
+											{liveCommands.length > 0 ? (
+												liveCommands.map((command, index) => (
+													<div
+														// biome-ignore lint/suspicious/noArrayIndexKey: stable order, duplicates allowed
+														key={index}
+														className="break-all whitespace-pre-wrap text-foreground"
+													>
+														{command || "—"}
+													</div>
+												))
+											) : (
+												<div className="text-foreground">—</div>
+											)}
+										</div>
+									)}
 									{!linkedAgent && (
 										<p className="text-xs text-muted-foreground">
 											The linked agent is missing or disabled. Showing the

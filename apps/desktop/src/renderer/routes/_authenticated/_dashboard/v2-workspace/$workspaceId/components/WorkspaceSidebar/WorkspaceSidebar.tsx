@@ -8,7 +8,7 @@ import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useSettings } from "renderer/stores/settings";
-import type { CommentPaneData } from "../../types";
+import type { CommentPaneData, DiffFocusSide } from "../../types";
 import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
@@ -42,6 +42,7 @@ interface WorkspaceSidebarProps {
 		path: string,
 		openInNewTab?: boolean,
 		line?: number,
+		side?: DiffFocusSide,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onOpenChat?: OpenChatFn;
@@ -140,10 +141,10 @@ export function WorkspaceSidebar({
 		workspaceId,
 		onOpenComment,
 		onOpenInDiff: onSelectDiffFile
-			? (path, line, openInNewTab) => {
+			? (path, line, openInNewTab, side) => {
 					// Force annotations on so the user lands on the comment, not an empty line.
 					useSettings.getState().update("showDiffComments", true);
-					onSelectDiffFile(path, openInNewTab ?? false, line);
+					onSelectDiffFile(path, openInNewTab ?? false, line, side);
 				}
 			: undefined,
 	});
