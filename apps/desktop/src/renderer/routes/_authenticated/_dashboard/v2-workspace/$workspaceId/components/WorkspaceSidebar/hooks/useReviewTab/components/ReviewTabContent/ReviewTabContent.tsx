@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { CommentPaneData } from "../../../../../../types";
+import type { CommentPaneData, DiffFocusSide } from "../../../../../../types";
 import type { NormalizedComment, NormalizedPR } from "../../types";
 import { ChecksSection } from "../ChecksSection";
 import { CommentsSection } from "../CommentsSection";
@@ -13,7 +13,12 @@ interface ReviewTabContentProps {
 	isError: boolean;
 	isCommentsLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
+	onOpenInDiff?: (
+		path: string,
+		line?: number,
+		openInNewTab?: boolean,
+		side?: DiffFocusSide,
+	) => void;
 }
 
 export const ReviewTabContent = memo(function ReviewTabContent({

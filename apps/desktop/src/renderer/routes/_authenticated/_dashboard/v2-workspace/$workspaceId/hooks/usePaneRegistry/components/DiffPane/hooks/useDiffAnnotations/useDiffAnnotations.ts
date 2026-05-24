@@ -19,12 +19,14 @@ export interface DiffCommentThread {
 	url?: string;
 }
 
-interface UseDiffAnnotationsOptions {
+interface UseDiffAnnotationsByPathOptions {
 	workspaceId: string;
-	path: string;
 }
 
-const EMPTY_ANNOTATIONS: DiffLineAnnotation<DiffCommentThread>[] = [];
+const EMPTY_ANNOTATIONS_BY_PATH = new Map<
+	string,
+	DiffLineAnnotation<DiffCommentThread>[]
+>();
 
 function parseTimestamp(value: string | undefined): number | undefined {
 	if (!value) return undefined;
@@ -32,10 +34,12 @@ function parseTimestamp(value: string | undefined): number | undefined {
 	return Number.isNaN(ts) ? undefined : ts;
 }
 
-export function useDiffAnnotations({
+export function useDiffAnnotationsByPath({
 	workspaceId,
-	path,
-}: UseDiffAnnotationsOptions): DiffLineAnnotation<DiffCommentThread>[] {
+}: UseDiffAnnotationsByPathOptions): ReadonlyMap<
+	string,
+	DiffLineAnnotation<DiffCommentThread>[]
+> {
 	const showDiffComments = useSettings((s) => s.showDiffComments);
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
 		{ workspaceId },
@@ -62,16 +66,19 @@ export function useDiffAnnotations({
 		// Gate on hasPR too — tanstack-query holds last data when the threads
 		// query disables, so without this stale threads leak into non-PR diffs.
 		if (!showDiffComments || !hasPR) {
-			return EMPTY_ANNOTATIONS;
+			return EMPTY_ANNOTATIONS_BY_PATH;
 		}
 		const threads = threadsQuery.data?.reviewThreads ?? [];
 		if (threads.length === 0) {
-			return EMPTY_ANNOTATIONS;
+			return EMPTY_ANNOTATIONS_BY_PATH;
 		}
 
-		const annotations: DiffLineAnnotation<DiffCommentThread>[] = [];
+		const annotationsByPath = new Map<
+			string,
+			DiffLineAnnotation<DiffCommentThread>[]
+		>();
 		for (const thread of threads) {
-			if (thread.path !== path) continue;
+			if (!thread.path) continue;
 			if (thread.line == null) continue;
 
 			const firstDbId = thread.comments[0]?.databaseId;
@@ -82,6 +89,7 @@ export function useDiffAnnotations({
 					? `${prUrl}#discussion_r${firstDbId}`
 					: undefined;
 
+			const annotations = annotationsByPath.get(thread.path) ?? [];
 			annotations.push({
 				side: thread.diffSide === "LEFT" ? "deletions" : "additions",
 				lineNumber: thread.line,
@@ -102,8 +110,9 @@ export function useDiffAnnotations({
 					}),
 				},
 			});
+			annotationsByPath.set(thread.path, annotations);
 		}
 
-		return annotations;
-	}, [showDiffComments, hasPR, threadsQuery.data, path, prUrl]);
+		return annotationsByPath;
+	}, [showDiffComments, hasPR, threadsQuery.data, prUrl]);
 }
