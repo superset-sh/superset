@@ -4,7 +4,7 @@ import {
 	BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useEffect, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheet, type BottomSheetRef } from "@/components/BottomSheet";
 import { SuggestedAnswerPill } from "@/components/SuggestedAnswerPill";
@@ -49,6 +49,13 @@ export function AskUserSheet({
 }: AskUserSheetProps) {
 	const sheetRef = useRef<BottomSheetRef>(null);
 	const [answer, setAnswer] = useState("");
+	const colorScheme = useColorScheme();
+	// gorhom no-className: BottomSheetTextInput requires inline styles.
+	// Mirror global.css hex values here and avoid the theme.ts prep-crash path,
+	// following the ScrollFade.tsx precedent.
+	const inputBg = colorScheme === "dark" ? "#201e1c" : "#ffffff";
+	const inputText = colorScheme === "dark" ? "#f3eee9" : "#252525";
+	const inputPlaceholder = colorScheme === "dark" ? "#ada6a3" : "#808080";
 
 	useEffect(() => {
 		if (autoPresent) {
@@ -102,15 +109,15 @@ export function AskUserSheet({
 						{/*
 						 * BottomSheetTextInput is the @gorhom/bottom-sheet vendor primitive
 						 * that owns keyboard avoidance — it accepts inline `style` only, not
-						 * `className`. The hex values below mirror the ember dark-theme
+						 * `className`. The colorScheme hex values above mirror the light/dark
 						 * tokens in `apps/mobile/global.css` exactly:
-						 *   --color-card             → hsl(20 7% 12%)  → #201e1c
-						 *   --color-foreground       → hsl(30 6% 91%)  → #f3eee9
-						 *   --color-muted-foreground → hsl(15 4% 65%)  → #ada6a3
+						 *   --color-card             → #ffffff / #201e1c
+						 *   --color-foreground       → #252525 / #f3eee9
+						 *   --color-muted-foreground → #808080 / #ada6a3
 						 * We cannot import THEME from `apps/mobile/lib/theme.ts` here because
 						 * that module transitively imports expo-router/react-navigation,
 						 * which crashes storybook RN prep (UnhandledLinkingContext). Same
-						 * precedent as the BottomSheet organism's themed surface.
+						 * precedent as ScrollFade.tsx.
 						 */}
 						<BottomSheetTextInput
 							value={answer}
@@ -121,11 +128,11 @@ export function AskUserSheet({
 								minHeight: 96,
 								padding: 12,
 								borderRadius: 8,
-								backgroundColor: "#201e1c",
-								color: "#f3eee9",
+								backgroundColor: inputBg,
+								color: inputText,
 								fontSize: 15,
 							}}
-							placeholderTextColor="#ada6a3"
+							placeholderTextColor={inputPlaceholder}
 						/>
 						<View className="flex-row gap-2">
 							<Button
