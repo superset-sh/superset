@@ -670,6 +670,23 @@ export class PullRequestRuntimeManager {
 			}
 			const match = keyToPullRequest.get(key);
 			if (match) {
+				// Historical (MERGED/CLOSED) PRs must only attach when the workspace
+				// HEAD points at the exact PR head commit. Otherwise a workspace on
+				// e.g. `main` would pick up any ancient merged PR that happened to
+				// use `main` as its head ref (issue #4859).
+				if (
+					isHistoricalPullRequestState(match.state) &&
+					!sameHeadSha(workspace.headSha, match.headSha)
+				) {
+					if (workspace.pullRequestId) {
+						this.db
+							.update(workspaces)
+							.set({ pullRequestId: null })
+							.where(eq(workspaces.id, workspace.id))
+							.run();
+					}
+					continue;
+				}
 				this.db
 					.update(workspaces)
 					.set({ pullRequestId: match.id })
@@ -926,10 +943,16 @@ export class PullRequestRuntimeManager {
 		wantedRefs: Map<string, GitHubPullRequestHeadRef>,
 		options: { bypassCache?: boolean } = {},
 	): Promise<{
-		matched: Map<string, { id: string }>;
+		matched: Map<
+			string,
+			{ id: string; state: PullRequestState; headSha: string }
+		>;
 		failedKeys: Set<string>;
 	}> {
-		const matched = new Map<string, { id: string }>();
+		const matched = new Map<
+			string,
+			{ id: string; state: PullRequestState; headSha: string }
+		>();
 		const failedKeys = new Set<string>();
 		if (wantedRefs.size === 0) return { matched, failedKeys };
 
@@ -1031,6 +1054,7 @@ export class PullRequestRuntimeManager {
 			const reviewDecision = reviewDecisionByNumber.has(node.number)
 				? mapReviewDecision(reviewDecisionByNumber.get(node.number) ?? null)
 				: coerceReviewDecision(existing?.reviewDecision ?? null);
+			const mappedState = mapPullRequestState(node.state, node.isDraft);
 			const rowId = this.upsertPullRequestRow({
 				existing,
 				projectId,
@@ -1038,7 +1062,7 @@ export class PullRequestRuntimeManager {
 				repo,
 				url: node.url,
 				title: node.title,
-				state: mapPullRequestState(node.state, node.isDraft),
+				state: mappedState,
 				isDraft: node.isDraft,
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,
@@ -1050,9 +1074,25 @@ export class PullRequestRuntimeManager {
 				now,
 			});
 
-			matched.set(key, { id: rowId });
+			matched.set(key, {
+				id: rowId,
+				state: mappedState,
+				headSha: node.headRefOid,
+			});
 		}
 
 		return { matched, failedKeys };
 	}
+}
+
+function isHistoricalPullRequestState(state: PullRequestState): boolean {
+	return state === "merged" || state === "closed";
+}
+
+function sameHeadSha(
+	workspaceHeadSha: string | null,
+	prHeadSha: string,
+): boolean {
+	if (!workspaceHeadSha) return false;
+	return workspaceHeadSha.trim().toLowerCase() === prHeadSha.toLowerCase();
 }

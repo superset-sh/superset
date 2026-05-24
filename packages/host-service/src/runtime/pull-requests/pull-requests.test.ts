@@ -351,6 +351,63 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		]);
 	});
 
+	test("does not attach an old merged PR to a workspace whose HEAD differs from the PR head (issue #4859)", async () => {
+		const state = makeState("main");
+		state.project = {
+			...state.project,
+			repoOwner: "roderik",
+			repoName: "superset",
+			repoUrl: "https://github.com/roderik/superset.git",
+		};
+		state.workspace = {
+			...state.workspace,
+			headSha: "current-main-sha",
+			upstreamOwner: "roderik",
+			upstreamRepo: "superset",
+			upstreamBranch: "main",
+			pullRequestId: null,
+		};
+		const manager = createManager(state, {
+			execGh: async (args) => {
+				const path = args.find((arg) => arg.startsWith("repos/"));
+				if (path === "repos/roderik/superset/pulls") {
+					return [
+						{
+							number: 100,
+							title: "Ancient merge from main",
+							html_url: "https://github.com/roderik/superset/pull/100",
+							state: "closed",
+							draft: false,
+							merged_at: "2023-01-01T00:00:00Z",
+							updated_at: "2023-01-01T00:00:00Z",
+							head: {
+								ref: "main",
+								sha: "old-merged-sha",
+								repo: {
+									name: "superset",
+									owner: { login: "roderik" },
+								},
+							},
+							base: {
+								repo: {
+									full_name: "roderik/superset",
+								},
+							},
+						},
+					];
+				}
+				if (path?.endsWith("/reviews")) return [];
+				if (path?.endsWith("/check-runs")) return { check_runs: [] };
+				if (path?.endsWith("/statuses")) return [];
+				return [];
+			},
+		});
+
+		await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
+
+		expect(state.workspace.pullRequestId).toBeNull();
+	});
+
 	test("preserves existing pullRequestId when head lookup fails", async () => {
 		const state = makeState("fix/sidebar");
 		state.workspace = {
