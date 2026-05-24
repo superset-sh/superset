@@ -364,7 +364,12 @@ async function writeAtomically({
 		}
 		await fs.rename(tempPath, absolutePath);
 	} finally {
-		await fs.rm(tempPath, { force: true });
+		try {
+			await fs.rm(tempPath, { force: true });
+		} catch {
+			// Best-effort cleanup — the rename may have already succeeded
+			// and removed the temp file, or the temp dir may be read-only.
+		}
 	}
 }
 
