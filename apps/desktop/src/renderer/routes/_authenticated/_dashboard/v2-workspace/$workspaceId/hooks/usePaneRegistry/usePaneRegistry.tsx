@@ -253,7 +253,12 @@ export function usePaneRegistry({
 			terminal: {
 				getIcon: (ctx) => {
 					const { terminalId } = ctx.pane.data as TerminalPaneData;
-					return <TerminalPaneIcon terminalId={terminalId} />;
+					return (
+						<TerminalPaneIcon
+							workspaceId={workspaceId}
+							terminalId={terminalId}
+						/>
+					);
 				},
 				getTitle: () => "Terminal",
 				titleSource: (pane) => {
