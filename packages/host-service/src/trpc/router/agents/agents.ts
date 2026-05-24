@@ -98,8 +98,35 @@ function quoteSingleShell(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
+/**
+ * Shell control operators a user may put between argv tokens to chain
+ * commands (e.g. `setupEnv && codex …`). These are emitted verbatim
+ * instead of single-quoted so the shell still interprets them.
+ */
+const SHELL_OPERATORS = new Set([
+	"&&",
+	"||",
+	"|",
+	";",
+	";;",
+	"&",
+	"(",
+	")",
+	"<",
+	">",
+	">>",
+	"<<",
+	"<<<",
+	"|&",
+	">&",
+]);
+
 function buildArgvCommand(argv: string[]): string {
-	return argv.map(quoteSingleShell).join(" ");
+	return argv
+		.map((token) =>
+			SHELL_OPERATORS.has(token) ? token : quoteSingleShell(token),
+		)
+		.join(" ");
 }
 
 /**

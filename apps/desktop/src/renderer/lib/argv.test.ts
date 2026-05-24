@@ -27,6 +27,22 @@ describe("parseCommandString", () => {
 		expect(parseCommandString("")).toEqual({ command: "", args: [] });
 		expect(parseCommandString("   ")).toEqual({ command: "", args: [] });
 	});
+
+	it("preserves shell control operators like && (regression for #4860)", () => {
+		expect(
+			parseCommandString(
+				"setCodexMode work && codex --dangerously-bypass-approvals-and-sandbox",
+			),
+		).toEqual({
+			command: "setCodexMode",
+			args: [
+				"work",
+				"&&",
+				"codex",
+				"--dangerously-bypass-approvals-and-sandbox",
+			],
+		});
+	});
 });
 
 describe("joinCommandArgs", () => {
@@ -64,6 +80,13 @@ describe("joinCommandArgs", () => {
 		const { command, args } = parseCommandString(original);
 		expect(joinCommandArgs(command, args)).toBe(original);
 	});
+
+	it("round-trips a command containing && (regression for #4860)", () => {
+		const original =
+			"setCodexMode work && codex --dangerously-bypass-approvals-and-sandbox";
+		const { command, args } = parseCommandString(original);
+		expect(joinCommandArgs(command, args)).toBe(original);
+	});
 });
 
 describe("parseArgs / joinArgs", () => {
@@ -76,5 +99,16 @@ describe("parseArgs / joinArgs", () => {
 		expect(parseArgs("--")).toEqual(["--"]);
 		expect(parseArgs("-i")).toEqual(["-i"]);
 		expect(joinArgs(["--prompt"])).toBe("--prompt");
+	});
+
+	it("preserves shell control operators in parseArgs (regression for #4860)", () => {
+		expect(parseArgs("work && codex --flag")).toEqual([
+			"work",
+			"&&",
+			"codex",
+			"--flag",
+		]);
+		const original = "work && codex --flag";
+		expect(joinArgs(parseArgs(original))).toBe(original);
 	});
 });
