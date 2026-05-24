@@ -86,13 +86,11 @@ export function useV2PresetExecution({
 			// host-service buffers PTY output until the user clicks the tab and
 			// the pane finally mounts and attaches the WS.
 			try {
-				const commands =
+				const liveAgents =
 					preset.agentId && activeHostUrl
-						? resolvePresetLaunchCommands(
-								preset,
-								(await refetchAgents()).data ?? agents,
-							)
-						: resolvePresetCommands(preset);
+						? ((await refetchAgents()).data ?? agents)
+						: agents;
+				const commands = resolvePresetLaunchCommands(preset, liveAgents);
 
 				const plan = getPresetLaunchPlan({
 					mode: preset.executionMode,
@@ -176,14 +174,7 @@ export function useV2PresetExecution({
 				});
 			}
 		},
-		[
-			store,
-			launcher,
-			resolvePresetCommands,
-			activeHostUrl,
-			refetchAgents,
-			agents,
-		],
+		[store, launcher, activeHostUrl, refetchAgents, agents],
 	);
 
 	return { matchedPresets, executePreset, resolvePresetCommands };

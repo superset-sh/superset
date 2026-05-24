@@ -23,7 +23,7 @@ import { Switch } from "@superset/ui/switch";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
 import { V2_AGENT_CONFIGS_QUERY_KEY } from "renderer/hooks/useV2AgentConfigs";
 import {
@@ -97,15 +97,6 @@ function toPresetDirectoryValue(
 		return selectedPath;
 	}
 	return relativePath === "." ? "." : `./${relativePath}`;
-}
-
-function toCommandDisplayRows(
-	commands: string[],
-): Array<{ command: string; key: string }> {
-	return commands.map((command, index) => ({
-		command,
-		key: `${index}:${command}`,
-	}));
 }
 
 interface DialogRowProps {
@@ -226,33 +217,19 @@ export function PresetEditorDialog({
 				: [],
 		[preset, agents],
 	);
-	const liveCommandRows = useMemo(
-		() => toCommandDisplayRows(liveCommands),
-		[liveCommands],
-	);
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const queryClient = useQueryClient();
 	const queryFamily = { queryKey: V2_AGENT_CONFIGS_QUERY_KEY };
-	const [linkedCommandText, setLinkedCommandText] = useState("");
-	const linkedCommandResetKeyRef = useRef<string | null>(null);
+	const [linkedCommandText, setLinkedCommandText] = useState(() =>
+		linkedAgent ? getAgentCommandText(linkedAgent) : "",
+	);
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const originRoute = useSettingsOriginRoute();
-	const linkedCommandResetKey = `${preset?.id ?? ""}:${linkedAgentId ?? ""}:${
-		linkedAgent?.id ?? ""
-	}`;
 
 	useEffect(() => {
-		if (!open) {
-			linkedCommandResetKeyRef.current = null;
-			return;
-		}
-		if (linkedCommandResetKeyRef.current === linkedCommandResetKey) return;
-		linkedCommandResetKeyRef.current = linkedCommandResetKey;
-		setLinkedCommandText(
-			linkedAgent ? getAgentCommandText(linkedAgent) : (liveCommands[0] ?? ""),
-		);
-	}, [linkedAgent, linkedCommandResetKey, liveCommands, open]);
+		if (linkedAgent) setLinkedCommandText(getAgentCommandText(linkedAgent));
+	}, [linkedAgent]);
 
 	const updateLinkedAgentMutation = useMutation({
 		mutationFn: ({
@@ -294,14 +271,7 @@ export function PresetEditorDialog({
 			return;
 		}
 		if (!isAgentCommandPatchChanged(linkedAgent, patch)) return;
-		updateLinkedAgentMutation.mutate(
-			{ id: linkedAgent.id, patch },
-			{
-				onSuccess: (updated) => {
-					setLinkedCommandText(getAgentCommandText(updated));
-				},
-			},
-		);
+		updateLinkedAgentMutation.mutate({ id: linkedAgent.id, patch });
 	};
 
 	const trimmedCwd = preset?.cwd.trim() ?? "";
@@ -433,10 +403,11 @@ export function PresetEditorDialog({
 										/>
 									) : (
 										<div className="min-w-0 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
-											{liveCommandRows.length > 0 ? (
-												liveCommandRows.map(({ command, key }) => (
+											{liveCommands.length > 0 ? (
+												liveCommands.map((command, index) => (
 													<div
-														key={key}
+														// biome-ignore lint/suspicious/noArrayIndexKey: stable order, duplicates allowed
+														key={index}
 														className="break-all whitespace-pre-wrap text-foreground"
 													>
 														{command || "—"}
