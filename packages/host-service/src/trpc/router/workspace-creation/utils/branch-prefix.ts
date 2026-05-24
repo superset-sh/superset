@@ -19,33 +19,17 @@ export async function getGitAuthorName(git: SimpleGit): Promise<string | null> {
 	}
 }
 
-let githubUsernameCache: { value: string | null; expiresAt: number } | null =
-	null;
-const GITHUB_USERNAME_TTL_MS = 5 * 60 * 1000;
-
-/**
- * Resolves the authenticated GitHub username via `gh api user`. Cached for
- * 5 minutes — prefix resolution runs on every workspace create and the login
- * rarely changes.
- */
+/** Resolves the authenticated GitHub username via `gh api user`. */
 export async function getGitHubUsername(
 	execGh: ExecGh,
 ): Promise<string | null> {
-	if (githubUsernameCache && Date.now() < githubUsernameCache.expiresAt) {
-		return githubUsernameCache.value;
-	}
-	let value: string | null = null;
 	try {
 		const result = await execGh(["api", "user", "--jq", ".login"]);
-		value = typeof result === "string" && result.trim() ? result.trim() : null;
+		return typeof result === "string" && result.trim() ? result.trim() : null;
 	} catch (error) {
 		console.warn("[branch-prefix] failed to read GitHub username:", error);
+		return null;
 	}
-	githubUsernameCache = {
-		value,
-		expiresAt: Date.now() + GITHUB_USERNAME_TTL_MS,
-	};
-	return value;
 }
 
 export interface ResolvedGitInfo {

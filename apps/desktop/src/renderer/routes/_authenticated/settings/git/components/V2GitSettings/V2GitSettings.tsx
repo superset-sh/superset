@@ -1,24 +1,14 @@
 import {
 	type BranchPrefixMode,
 	resolveBranchPrefix,
-	sanitizeSegment,
 } from "@superset/shared/workspace-launch";
-import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
+import { BranchPrefixControl } from "../../../components/BranchPrefixControl";
 
 const BRANCH_PREFIX_QUERY_KEY = ["host-branch-prefix"] as const;
 
@@ -55,11 +45,7 @@ export function V2GitSettings() {
 	});
 
 	const mode: BranchPrefixMode = branchPrefixQuery.data?.mode ?? "none";
-
-	const [customPrefixInput, setCustomPrefixInput] = useState("");
-	useEffect(() => {
-		setCustomPrefixInput(branchPrefixQuery.data?.customPrefix ?? "");
-	}, [branchPrefixQuery.data?.customPrefix]);
+	const customPrefix = branchPrefixQuery.data?.customPrefix ?? null;
 
 	const setMutation = useMutation({
 		mutationFn: (vars: {
@@ -91,7 +77,7 @@ export function V2GitSettings() {
 	const previewPrefix =
 		resolveBranchPrefix({
 			mode,
-			customPrefix: customPrefixInput,
+			customPrefix,
 			authorPrefix: gitInfoQuery.data?.authorName,
 			githubUsername: gitInfoQuery.data?.githubUsername,
 		}) ||
@@ -99,16 +85,6 @@ export function V2GitSettings() {
 
 	const controlsDisabled =
 		!activeHostUrl || branchPrefixQuery.isLoading || setMutation.isPending;
-
-	const handleModeChange = (next: BranchPrefixMode) => {
-		setMutation.mutate({ mode: next, customPrefix: customPrefixInput || null });
-	};
-
-	const handleCustomPrefixBlur = () => {
-		const sanitized = sanitizeSegment(customPrefixInput);
-		setCustomPrefixInput(sanitized);
-		setMutation.mutate({ mode: "custom", customPrefix: sanitized || null });
-	};
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -129,41 +105,18 @@ export function V2GitSettings() {
 						</code>
 					</p>
 				</div>
-				<div className="flex items-center gap-2">
-					<Select
-						value={mode}
-						onValueChange={(value) =>
-							handleModeChange(value as BranchPrefixMode)
-						}
-						disabled={controlsDisabled}
-					>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{(
-								Object.entries(BRANCH_PREFIX_MODE_LABELS) as [
-									BranchPrefixMode,
-									string,
-								][]
-							).map(([value, label]) => (
-								<SelectItem key={value} value={value}>
-									{label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					{mode === "custom" && (
-						<Input
-							placeholder="Prefix"
-							value={customPrefixInput}
-							onChange={(e) => setCustomPrefixInput(e.target.value)}
-							onBlur={handleCustomPrefixBlur}
-							className="w-[120px]"
-							disabled={controlsDisabled}
-						/>
-					)}
-				</div>
+				<BranchPrefixControl
+					mode={mode}
+					customPrefix={customPrefix}
+					disabled={controlsDisabled}
+					onChange={(next) =>
+						// Host-wide control never produces null mode (no "default" option).
+						setMutation.mutate({
+							mode: next.mode ?? "none",
+							customPrefix: next.customPrefix,
+						})
+					}
+				/>
 			</div>
 		</div>
 	);
