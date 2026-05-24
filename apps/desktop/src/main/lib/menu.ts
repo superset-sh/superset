@@ -11,6 +11,7 @@ import {
 import { menuEmitter } from "./menu-events";
 
 export function createApplicationMenu() {
+	const reloadAccelerator = "CmdOrCtrl+R";
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
 	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
@@ -27,13 +28,14 @@ export function createApplicationMenu() {
 					},
 				},
 				{ type: "separator" },
+				// Explicit click handler (not `role: "close"`) — `role: "close"` adds
+				// an implicit CmdOrCtrl+W accelerator that overrides browser-manager's
+				// `before-input-event` interception and closes the window instead of
+				// the focused pane.
 				{
 					label: "Close Window",
-					// Note: no longer uses role: "close" - that implicitly assigns CmdOrCtrl+W
-					// Cmd+W is now intercepted by browser-pane before-input-event
 					click: () => {
-						const focused = BrowserWindow.getFocusedWindow();
-						if (focused) focused.close();
+						BrowserWindow.getFocusedWindow()?.close();
 					},
 				},
 			],
@@ -55,11 +57,7 @@ export function createApplicationMenu() {
 			submenu: [
 				{
 					label: "Reload",
-					// Note: no longer has CmdOrCtrl+R accelerator - that captured Cmd+R
-					// at the BrowserWindow level before the webview's before-input-event
-					// listener could intercept it. Cmd+R is now intercepted by
-					// browser-pane before-input-event to reload the focused pane.
-					// Cmd+Shift+R (Force Reload below) still reloads the host renderer.
+					accelerator: reloadAccelerator,
 					click: () => {
 						BrowserWindow.getFocusedWindow()?.reload();
 					},

@@ -80,11 +80,13 @@ export function usePersistentWebview({
 					},
 				},
 			);
+		// `ctx.actions.close()` runs the standard onBeforeClose hook chain,
+		// matching the renderer CLOSE_PANE hotkey path.
 		const closePaneSub = electronTrpcClient.browser.onClosePane.subscribe(
 			{ paneId },
 			{
 				onData: () => {
-					ctxRef.current.actions.close();
+					void ctxRef.current.actions.close();
 				},
 			},
 		);

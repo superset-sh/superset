@@ -271,7 +271,9 @@ describe("workspace.create + workspace.delete integration", () => {
 		const result = await scenario.host.trpc.workspace.delete.mutate({
 			id: scenario.featureWorkspaceId,
 		});
-		expect(result).toEqual({ success: true });
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(result.warnings).toEqual([]);
 
 		expect(existsSync(scenario.worktreePath)).toBe(false);
 		const rows = scenario.host.db

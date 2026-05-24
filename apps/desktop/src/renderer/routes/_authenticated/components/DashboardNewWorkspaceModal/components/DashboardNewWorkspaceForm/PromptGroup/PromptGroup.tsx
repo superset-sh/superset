@@ -4,7 +4,6 @@ import {
 	PromptInputButton,
 	PromptInputFooter,
 	PromptInputSubmit,
-	PromptInputTextarea,
 	PromptInputTools,
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
@@ -23,6 +22,7 @@ import { SiLinear } from "react-icons/si";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
+import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -74,7 +74,8 @@ export function PromptGroup({
 }: PromptGroupProps) {
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
-	const { closeModal, draft, updateDraft } = useDashboardNewWorkspaceDraft();
+	const { closeModal, draft, updateDraft, resetKey } =
+		useDashboardNewWorkspaceDraft();
 	const navigate = useNavigate();
 	const attachments = useProviderAttachments();
 	const hostService = useLocalHostService();
@@ -426,17 +427,23 @@ export function PromptGroup({
 						))}
 					</div>
 				)}
-				<PromptInputTextarea
-					autoFocus
+				{/* Markdown prompt editor. Submit stays on draft.prompt (now markdown):
+				    the editor swallows Cmd/Ctrl+Enter (no newline) and the window-level
+				    listener does the single submit, so onModEnter is intentionally unset
+				    to avoid a double-fire. resetKey remounts a clean editor on reset. */}
+				<MarkdownEditor
+					key={resetKey}
+					content={prompt}
+					onChange={(markdown) => updateDraft({ prompt: markdown })}
+					autoFocus="start"
 					placeholder="What do you want to do?"
-					className="min-h-10"
-					value={prompt}
-					onChange={(e) => updateDraft({ prompt: e.target.value })}
-					onKeyDown={(e) => {
-						// Disable the library's plain-Enter → submit. Submit only
-						// happens via the button or the window-level Cmd/Ctrl+Enter
-						// listener. Plain Enter inserts a newline (default).
-						if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) return;
+					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"
+					editorClassName="overflow-y-auto text-sm"
+					features={{
+						slashCommand: false,
+						emoji: false,
+						fileMention: false,
+						bubbleMenu: false,
 					}}
 				/>
 				<PromptInputFooter>

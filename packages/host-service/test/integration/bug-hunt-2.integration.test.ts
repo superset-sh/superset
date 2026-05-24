@@ -235,7 +235,8 @@ describe("bug-hunt-2: partial-failure consistency", () => {
 			.run();
 
 		const result = await host.trpc.workspace.delete.mutate({ id: workspaceId });
-		expect(result).toEqual({ success: true });
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
 
 		const remaining = host.db
 			.select()

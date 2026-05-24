@@ -33,7 +33,8 @@ import {
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData, TerminalPaneData } from "../../types";
+import type { PaneViewerData } from "../../types";
+import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 import {
 	BACKGROUND_TERMINAL_ATTACHMENT_DEBOUNCE_MS,
 	getAttachedTerminalIdsKey,
@@ -201,17 +202,10 @@ export const BackgroundTerminalsButton = memo(
 
 		const handleAdopt = (terminalId: string) => {
 			clearTerminalBackgroundMarker(workspaceId, terminalId);
-			store.getState().addTab({
-				panes: [
-					{
-						kind: "terminal",
-						data: { terminalId } as TerminalPaneData,
-					},
-				],
-			});
+			const result = focusOrAddTerminalPane(store, terminalId);
 			void utils.terminal.listSessions.invalidate({ workspaceId });
 			void utils.terminal.countBackgroundSessions.invalidate({ workspaceId });
-			logStressEvent("background-terminals.adopt", { workspaceId });
+			logStressEvent("background-terminals.adopt", { result, workspaceId });
 			setIsOpen(false);
 		};
 

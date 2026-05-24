@@ -1,12 +1,26 @@
 name: Bump Homebrew Formula
 
-# Triggers when a CLI release (tag matching cli-v*) is published, computes
-# SHA256 for each platform tarball, and pushes an updated formula to the
-# superset-sh/homebrew-tap repository.
+# Renders the superset.rb formula for a published CLI release and pushes it to
+# the superset-sh/homebrew-tap repository. Invoked as a reusable job from
+# release-cli.yml (needs: release) so the bump runs in the same workflow run as
+# the release. It is NOT driven by `release: published` because a release
+# auto-created by the workflow's GITHUB_TOKEN does not emit an event that can
+# trigger another workflow. workflow_dispatch is the manual escape hatch to
+# re-bump a specific tag.
 
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        description: "CLI release tag (cli-v<semver>)"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "CLI release tag (cli-v<semver>)"
+        required: true
+        type: string
 
 # Serialize runs so two concurrent releases can't race and drop a bump.
 concurrency:
@@ -15,13 +29,12 @@ concurrency:
 
 jobs:
   bump:
-    if: startsWith(github.event.release.tag_name, 'cli-v')
     runs-on: ubuntu-latest
     steps:
       - name: Extract version from tag
         id: version
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
           # Validate tag format: cli-v<semver>. Rejects tags with shell metacharacters.
