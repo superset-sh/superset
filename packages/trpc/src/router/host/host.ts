@@ -241,7 +241,7 @@ export const hostRouter = {
 				});
 			}
 
-			await db
+			const [updated] = await db
 				.update(v2Hosts)
 				.set({ isOnline: input.isOnline })
 				.where(
@@ -249,7 +249,16 @@ export const hostRouter = {
 						eq(v2Hosts.organizationId, parsed.organizationId),
 						eq(v2Hosts.machineId, parsed.machineId),
 					),
-				);
+				)
+				.returning();
+
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Host not found",
+				});
+			}
+
 			return { success: true };
 		}),
 } satisfies TRPCRouterRecord;
