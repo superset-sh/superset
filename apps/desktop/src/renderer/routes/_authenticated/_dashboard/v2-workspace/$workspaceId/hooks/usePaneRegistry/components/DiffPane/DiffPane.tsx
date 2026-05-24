@@ -172,7 +172,7 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 	return (
 		<CodeView<DiffCommentThread>
 			ref={codeViewRef}
-			className="h-full w-full overflow-y-auto overflow-x-clip overscroll-contain [contain:strict] [overflow-anchor:none] [will-change:scroll-position]"
+			className="h-full w-full overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
 			style={style}
 			items={items}
 			options={options}

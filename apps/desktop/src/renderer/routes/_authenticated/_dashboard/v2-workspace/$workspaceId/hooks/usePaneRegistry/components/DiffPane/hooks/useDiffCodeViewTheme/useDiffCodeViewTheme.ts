@@ -65,9 +65,12 @@ export function useDiffCodeViewTheme({
 				paddingBottom: 8,
 				gap: 0,
 			},
-			itemMetrics: {
-				diffHeaderHeight: 44,
-			},
+			// Degrade gracefully on lockfiles / minified bundles instead of
+			// blocking the worker. Pierre's defaults are 100k for whole-file
+			// tokenization and unbounded for the rest.
+			tokenizeMaxLineLength: 5_000,
+			tokenizeMaxLength: 200_000,
+			maxLineDiffLength: 5_000,
 			unsafeCSS: `
 				* { user-select: text; -webkit-user-select: text; }
 				[data-diffs-header='custom'] {
