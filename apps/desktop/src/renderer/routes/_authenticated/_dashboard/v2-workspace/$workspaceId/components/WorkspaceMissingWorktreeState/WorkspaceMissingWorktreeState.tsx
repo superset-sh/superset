@@ -3,9 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, FolderX, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 
 interface WorkspaceMissingWorktreeStateProps {
 	workspaceId: string;
+	projectId: string;
 	workspaceName: string;
 	branch: string;
 	worktreePath?: string;
@@ -15,6 +17,7 @@ interface WorkspaceMissingWorktreeStateProps {
 
 export function WorkspaceMissingWorktreeState({
 	workspaceId,
+	projectId,
 	workspaceName,
 	branch,
 	worktreePath,
@@ -22,6 +25,7 @@ export function WorkspaceMissingWorktreeState({
 	isRefreshing = false,
 }: WorkspaceMissingWorktreeStateProps) {
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const { hideWorkspaceInSidebar } = useDashboardSidebarState();
 	const displayName = workspaceName || branch;
 
 	return (
@@ -107,6 +111,9 @@ export function WorkspaceMissingWorktreeState({
 					workspaceName={displayName}
 					open={deleteDialogOpen}
 					onOpenChange={setDeleteDialogOpen}
+					onDeleted={() => {
+						hideWorkspaceInSidebar(workspaceId, projectId);
+					}}
 				/>
 			</div>
 		</div>

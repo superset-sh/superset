@@ -87,6 +87,7 @@ function V2WorkspacePage() {
 		return (
 			<WorkspaceMissingWorktreeState
 				workspaceId={workspace.id}
+				projectId={workspace.projectId}
 				workspaceName={workspace.name}
 				branch={workspace.branch}
 				worktreePath={workspaceStatusQuery.data?.worktreePath}

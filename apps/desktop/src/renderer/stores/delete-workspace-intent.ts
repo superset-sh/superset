@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 export interface DeleteWorkspaceTarget {
 	workspaceId: string;
+	projectId: string;
 	workspaceName: string;
 }
 

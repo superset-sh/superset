@@ -25,6 +25,7 @@ type ProjectTopLevelCollections = Pick<
 	AppCollections,
 	"v2SidebarSections" | "v2WorkspaceLocalState"
 >;
+type HiddenWorkspaceCollections = Pick<AppCollections, "v2WorkspaceLocalState">;
 
 function compareProjectTopLevelItems(
 	left: ProjectTopLevelItem,
@@ -80,6 +81,36 @@ function createEmptyPaneLayout(): WorkspaceState<unknown> {
 		tabs: [],
 		activeTabId: null,
 	} satisfies WorkspaceState<unknown>;
+}
+
+function writeHiddenWorkspaceSidebarState(
+	collections: HiddenWorkspaceCollections,
+	workspaceId: string,
+	projectId: string,
+): void {
+	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
+
+	if (existing) {
+		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+			draft.sidebarState.projectId = projectId;
+			draft.sidebarState.sectionId = null;
+			draft.sidebarState.isHidden = true;
+			draft.paneLayout = createEmptyPaneLayout();
+		});
+		return;
+	}
+
+	collections.v2WorkspaceLocalState.insert({
+		workspaceId,
+		createdAt: new Date(),
+		sidebarState: {
+			projectId,
+			tabOrder: 0,
+			sectionId: null,
+			isHidden: true,
+		},
+		paneLayout: createEmptyPaneLayout(),
+	});
 }
 
 /**
@@ -456,47 +487,38 @@ export function useDashboardSidebarState() {
 	const hideWorkspaceInSidebar = useCallback(
 		(workspaceId: string, projectId: string) => {
 			const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
-			if (!workspace) {
-				collections.v2WorkspaceLocalState.insert({
-					workspaceId,
-					createdAt: new Date(),
-					sidebarState: {
-						projectId,
-						tabOrder: 0,
-						sectionId: null,
-						isHidden: true,
-					},
-					paneLayout: createEmptyPaneLayout(),
-				});
-				return;
+			if (workspace) {
+				cleanupWorkspacePaneRuntimes([workspace]);
 			}
-
-			cleanupWorkspacePaneRuntimes([workspace]);
-			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-				draft.sidebarState.projectId = projectId;
-				draft.sidebarState.sectionId = null;
-				draft.sidebarState.isHidden = true;
-				draft.paneLayout = createEmptyPaneLayout();
-			});
+			writeHiddenWorkspaceSidebarState(collections, workspaceId, projectId);
 		},
 		[collections],
 	);
 
 	const removeProjectFromSidebar = useCallback(
 		(projectId: string) => {
+			const workspaceIds = new Set([
+				...Array.from(collections.v2WorkspaceLocalState.state.values())
+					.filter((item) => item.sidebarState.projectId === projectId)
+					.map((item) => item.workspaceId),
+				...Array.from(collections.v2Workspaces.state.values())
+					.filter((item) => item.projectId === projectId)
+					.map((item) => item.id),
+			]);
 			const workspaceRows = Array.from(
 				collections.v2WorkspaceLocalState.state.values(),
-			).filter((item) => item.sidebarState.projectId === projectId);
-			const workspaceIds = workspaceRows.map((item) => item.workspaceId);
+			).filter((item) => workspaceIds.has(item.workspaceId));
 			const sectionIds = Array.from(
 				collections.v2SidebarSections.state.values(),
 			)
 				.filter((item) => item.projectId === projectId)
 				.map((item) => item.sectionId);
 
-			if (workspaceIds.length > 0) {
+			if (workspaceRows.length > 0) {
 				cleanupWorkspacePaneRuntimes(workspaceRows);
-				collections.v2WorkspaceLocalState.delete(workspaceIds);
+			}
+			for (const workspaceId of workspaceIds) {
+				writeHiddenWorkspaceSidebarState(collections, workspaceId, projectId);
 			}
 			if (sectionIds.length > 0) {
 				collections.v2SidebarSections.delete(sectionIds);
