@@ -72,13 +72,24 @@ export const notificationsRouter = router({
 		}
 
 		const agent = normalizeAgentIdentity(input.agent);
+		const occurredAt = Date.now();
 
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,
 			eventType,
 			terminalId: input.terminalId,
 			...(agent ? { agent } : {}),
-			occurredAt: Date.now(),
+			occurredAt,
+		});
+
+		ctx.terminalAgentStore.recordEvent({
+			terminalId: input.terminalId,
+			workspaceId: terminalSession.originWorkspaceId,
+			eventType,
+			...(agent?.agentId ? { agentId: agent.agentId } : {}),
+			...(agent?.sessionId ? { agentSessionId: agent.sessionId } : {}),
+			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
+			occurredAt,
 		});
 
 		return { success: true, ignored: false as const };

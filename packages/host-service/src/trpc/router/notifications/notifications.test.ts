@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { AgentLifecycleEventType } from "../../../events";
+import { TerminalAgentStore } from "../../../terminal-agents";
 import type { HostServiceContext } from "../../../types";
 import { notificationsRouter } from "./notifications";
 
@@ -18,6 +19,7 @@ function createContext(originWorkspaceId: string | null): {
 		typeof mock<(event: BroadcastedAgentLifecycleEvent) => void>
 	>;
 	findFirst: ReturnType<typeof mock>;
+	terminalAgentStore: TerminalAgentStore;
 } {
 	const broadcastAgentLifecycle = mock(
 		(_event: BroadcastedAgentLifecycleEvent) => {},
@@ -30,6 +32,7 @@ function createContext(originWorkspaceId: string | null): {
 						originWorkspaceId,
 					},
 	}));
+	const terminalAgentStore = new TerminalAgentStore();
 
 	const ctx = {
 		db: {
@@ -42,9 +45,10 @@ function createContext(originWorkspaceId: string | null): {
 		eventBus: {
 			broadcastAgentLifecycle,
 		},
+		terminalAgentStore,
 	} as unknown as HostServiceContext;
 
-	return { ctx, broadcastAgentLifecycle, findFirst };
+	return { ctx, broadcastAgentLifecycle, findFirst, terminalAgentStore };
 }
 
 describe("notificationsRouter.hook", () => {
@@ -135,6 +139,22 @@ describe("notificationsRouter.hook", () => {
 
 		const broadcast = broadcastAgentLifecycle.mock.calls[0]?.[0];
 		expect(broadcast?.agent).toEqual({ agentId: "claude" });
+	});
+
+	it("records the event onto the terminal agent store", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.agentId).toBe("claude");
+		expect(binding?.agentSessionId).toBe("session-abc");
+		expect(binding?.workspaceId).toBe("workspace-1");
+		expect(binding?.lastEventType).toBe("Attached");
 	});
 
 	it("drops agent identity entirely when agentId is missing", async () => {

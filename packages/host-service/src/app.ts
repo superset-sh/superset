@@ -25,6 +25,7 @@ import {
 	stopRemoteControlExpirySweep,
 } from "./terminal/remote-control/session-manager";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
+import { TerminalAgentStore } from "./terminal-agents";
 import { appRouter } from "./trpc/router";
 import {
 	execGh as defaultExecGh,
@@ -136,6 +137,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
 
+	const terminalAgentStore = new TerminalAgentStore();
+
 	// Backfill `kind='main'` v2 workspaces for projects already set up before
 	// this column shipped. Idempotent; runs in the background so it doesn't
 	// block server startup.
@@ -192,6 +195,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					db,
 					runtime,
 					eventBus,
+					terminalAgentStore,
 					organizationId: config.organizationId,
 					isAuthenticated,
 				} as Record<string, unknown>;

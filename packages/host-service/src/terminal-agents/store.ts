@@ -1,0 +1,133 @@
+import { EventEmitter } from "node:events";
+import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
+import type { TerminalAgentBinding, TerminalAgentId } from "./types";
+
+interface RecordEventInput {
+	terminalId: string;
+	workspaceId: string;
+	eventType: string;
+	agentId?: TerminalAgentId;
+	agentSessionId?: string;
+	definitionId?: AgentDefinitionId;
+	occurredAt: number;
+}
+
+interface ListFilter {
+	agentId?: TerminalAgentId;
+	definitionId?: AgentDefinitionId;
+}
+
+const EXIT_EVENT_TYPES = new Set(["Detached", "exit", "error"]);
+
+/**
+ * In-process tracker for which agent (claude/codex/cursor/opencode/droid/…)
+ * is alive in which terminal. Populated by the hook receiver, drained on
+ * terminal exit. Absence is the only signal — no history is retained
+ * (plan decision #3).
+ *
+ * Emits `"change"` with the affected workspaceId after every mutation so
+ * tRPC subscribers can re-snapshot.
+ */
+export class TerminalAgentStore extends EventEmitter {
+	private readonly byTerminal = new Map<string, TerminalAgentBinding>();
+
+	recordEvent(input: RecordEventInput): void {
+		const {
+			terminalId,
+			workspaceId,
+			eventType,
+			agentId,
+			agentSessionId,
+			definitionId,
+			occurredAt,
+		} = input;
+
+		if (EXIT_EVENT_TYPES.has(eventType)) {
+			this.deleteTerminal(terminalId);
+			return;
+		}
+
+		const existing = this.byTerminal.get(terminalId);
+		if (!agentId && !existing) {
+			// First sighting of the terminal with no agent identity attached —
+			// nothing to bind to. Skip.
+			return;
+		}
+
+		const nextAgentId = agentId ?? existing?.agentId;
+		if (!nextAgentId) return;
+
+		const next: TerminalAgentBinding = {
+			terminalId,
+			workspaceId,
+			agentId: nextAgentId,
+			agentSessionId: agentSessionId ?? existing?.agentSessionId,
+			definitionId: definitionId ?? existing?.definitionId,
+			startedAt: existing ? existing.startedAt : occurredAt,
+			lastEventAt: occurredAt,
+			lastEventType: eventType,
+		};
+
+		// Agent swap inside the same pty (e.g. claude /exit → codex) overwrites
+		// in place — start time resets so callers see the new identity's lifetime.
+		if (
+			existing &&
+			(existing.agentId !== next.agentId ||
+				(agentSessionId !== undefined &&
+					existing.agentSessionId !== agentSessionId))
+		) {
+			next.startedAt = occurredAt;
+		}
+
+		this.byTerminal.set(terminalId, next);
+		this.emit("change", workspaceId);
+	}
+
+	markTerminalExited(terminalId: string): void {
+		this.deleteTerminal(terminalId);
+	}
+
+	get(terminalId: string): TerminalAgentBinding | undefined {
+		return this.byTerminal.get(terminalId);
+	}
+
+	listByWorkspace(
+		workspaceId: string,
+		filter?: ListFilter,
+	): TerminalAgentBinding[] {
+		const out: TerminalAgentBinding[] = [];
+		for (const binding of this.byTerminal.values()) {
+			if (binding.workspaceId !== workspaceId) continue;
+			if (filter?.agentId && binding.agentId !== filter.agentId) continue;
+			if (filter?.definitionId && binding.definitionId !== filter.definitionId)
+				continue;
+			out.push(binding);
+		}
+		return out;
+	}
+
+	findActive(
+		workspaceId: string,
+		agentId: TerminalAgentId,
+		definitionId?: AgentDefinitionId,
+	): TerminalAgentBinding | undefined {
+		let best: TerminalAgentBinding | undefined;
+		for (const binding of this.byTerminal.values()) {
+			if (binding.workspaceId !== workspaceId) continue;
+			if (binding.agentId !== agentId) continue;
+			if (definitionId !== undefined && binding.definitionId !== definitionId)
+				continue;
+			if (!best || binding.lastEventAt > best.lastEventAt) {
+				best = binding;
+			}
+		}
+		return best;
+	}
+
+	private deleteTerminal(terminalId: string): void {
+		const existing = this.byTerminal.get(terminalId);
+		if (!existing) return;
+		this.byTerminal.delete(terminalId);
+		this.emit("change", existing.workspaceId);
+	}
+}
