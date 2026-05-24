@@ -1,5 +1,10 @@
-AUTH_URL=http://localhost:3141
-ELECTRIC_SHAPE_URL=http://localhost:3069/v1/shape
+# Defaults match docker-compose.dev.yml (Electric on host port 4649)
+# and the local contributor `bun dev` ports (API on 4641).
+#
+# Internal devs: setup.sh regenerates this with per-workspace ports.
+# External contributors: cp .dev.vars.example .dev.vars and run `bun dev`.
+AUTH_URL=http://localhost:4641
+ELECTRIC_SHAPE_URL=http://localhost:4649/v1/shape
 ELECTRIC_SECRET=local_electric_dev_secret
 ELECTRIC_SOURCE_ID=
 ELECTRIC_SOURCE_SECRET=

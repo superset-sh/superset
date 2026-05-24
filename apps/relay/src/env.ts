@@ -1,5 +1,8 @@
+import { shouldSkipEnvValidation } from "@superset/shared/deployment-profile";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
+
+const skipValidation = shouldSkipEnvValidation();
 
 export const env = createEnv({
 	server: {
@@ -15,5 +18,5 @@ export const env = createEnv({
 	},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
-	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+	skipValidation,
 });

@@ -71,7 +71,7 @@ If it runs in a terminal, it runs on Superset
 
 | Requirement | Details |
 |:------------|:--------|
-| **OS** | macOS (Windows/Linux untested) |
+| **OS** | macOS |
 | **Runtime** | [Bun](https://bun.sh/) v1.0+ |
 | **Version Control** | Git 2.20+ |
 | **GitHub CLI** | [gh](https://cli.github.com/) |
@@ -85,56 +85,26 @@ If it runs in a terminal, it runs on Superset
 
 ### Build from Source
 
-<details>
-<summary>Click to expand build instructions</summary>
+For a complete contributor workflow that boots a fresh clone with no third-party credentials (Neon / OAuth / Stripe / Resend keys are all optional), follow **[Local Development](docs/LOCAL_DEVELOPMENT.md)**.
 
-**1. Clone the repository**
+Short version:
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
 cd superset
-```
-
-**2. Set up environment variables** (choose one):
-
-Option A: Full setup
-```bash
-cp .env.example .env
-# Edit .env and fill in the values
-```
-
-Option B: Skip env validation (for quick local testing)
-```bash
-cp .env.example .env
-echo 'SKIP_ENV_VALIDATION=1' >> .env
-```
-
-**3. Set up Caddy** (reverse proxy for Electric SQL streams):
-
-```bash
-# Install caddy: brew install caddy (macOS) or see https://caddyserver.com/docs/install
-cp Caddyfile.example Caddyfile
-
-# Without this, Chromium rejects https://localhost:* with ERR_CERT_AUTHORITY_INVALID.
-# Prompts for sudo once.
-caddy trust
-```
-
-**4. Install dependencies and run**
-
-```bash
 bun install
-bun run dev
+bun setup:local
+bun dev
 ```
 
-**5. Build the desktop app**
+`bun setup:local` copies local examples, assigns this worktree its own local database and desktop state, starts Docker Postgres/Electric, trusts Caddy's local CA, and runs migrations. It does not overwrite internal `.env` files. The desktop window opens auto-signed-in as `admin@local.test`, with state isolated under `~/.superset-local-dev-*` so source builds do not reuse production or canary desktop state. See [Local Development](docs/LOCAL_DEVELOPMENT.md) for details and troubleshooting.
+
+To build a distributable desktop app:
 
 ```bash
 bun run build
 open apps/desktop/release
 ```
-
-</details>
 
 ## Keyboard Shortcuts
 

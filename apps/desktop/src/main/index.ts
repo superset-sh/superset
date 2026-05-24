@@ -28,6 +28,7 @@ import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { ensureDevAuthToken } from "./lib/dev-auto-sign-in";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -416,6 +417,14 @@ if (!gotTheLock) {
 		} catch (error) {
 			console.error("[main] Failed to install bundled CLI shim:", error);
 		}
+
+		// Local profile only: auto-sign-in as the seed admin if no token is on disk.
+		// Fire-and-forget — the function polls the API for readiness internally
+		// (Turbo starts services concurrently, the API may still be compiling).
+		// AuthProvider in the renderer subscribes to auth.onTokenChanged and
+		// will re-hydrate when the token lands, so window creation doesn't
+		// block on this.
+		void ensureDevAuthToken();
 
 		if (IS_DEV) {
 			getHostServiceCoordinator().enableDevReload(async () => {

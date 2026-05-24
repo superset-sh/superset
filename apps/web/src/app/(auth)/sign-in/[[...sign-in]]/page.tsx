@@ -8,6 +8,12 @@ import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
+import { DevSignInButton } from "../../components/DevSignInButton";
+
+const isLocalDev =
+	process.env.NODE_ENV !== "production" &&
+	env.NEXT_PUBLIC_API_URL.startsWith("http://localhost:") &&
+	env.NEXT_PUBLIC_WEB_URL.startsWith("http://localhost:");
 
 export default function SignInPage() {
 	const searchParams = useSearchParams();
@@ -66,6 +72,7 @@ export default function SignInPage() {
 				{error && (
 					<p className="text-destructive text-center text-sm">{error}</p>
 				)}
+				{isLocalDev && <DevSignInButton callbackURL={callbackURL} />}
 				<Button
 					variant="outline"
 					disabled={isLoading}

@@ -1,6 +1,9 @@
+import { shouldSkipEnvValidation } from "@superset/shared/deployment-profile";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { vercel } from "@t3-oss/env-nextjs/presets-zod";
 import { z } from "zod";
+
+const skipValidation = shouldSkipEnvValidation();
 
 export const env = createEnv({
 	extends: [vercel()],
@@ -33,6 +36,6 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	},
 
-	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+	skipValidation,
 	emptyStringAsUndefined: true,
 });

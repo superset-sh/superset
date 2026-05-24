@@ -22,6 +22,7 @@
 		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
+		"setup:local": "bun run scripts/setup-local.ts",
 		"build": "turbo build --filter=@superset/desktop",
 		"test": "turbo test --concurrency=2",
 		"lint": "./scripts/lint.sh",
