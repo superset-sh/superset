@@ -163,6 +163,13 @@ export function handleSubscribe(
 		if (snap.byteLength > 0) {
 			const out: OutputMessage = { type: "output", id: msg.id };
 			conn.send(out, snap);
+			// Replay rides the same `output` frame the renderer ACKs on parse,
+			// so charge it to the flow-control counter — otherwise the daemon
+			// under-counts what's in flight on subscribe and lets the renderer
+			// chew through `replay + 100KB live` before back-pressure kicks in.
+			if (msg.flowControl) {
+				conn.flowControlUnacked.set(msg.id, snap.byteLength);
+			}
 		}
 	}
 }
