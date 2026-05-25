@@ -25,7 +25,6 @@ function configureNeonForLocalProxy(databaseUrl: string): void {
 	neonConfig.fetchEndpoint = (host, port) => `http://${host}:${port}/sql`;
 	neonConfig.wsProxy = (host, port) => `${host}:${port}/v2`;
 	neonConfig.useSecureWebSocket = false;
-	neonConfig.poolQueryViaFetch = true;
 }
 
 configureNeonForLocalProxy(env.DATABASE_URL);
