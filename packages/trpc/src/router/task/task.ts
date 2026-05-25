@@ -1,5 +1,11 @@
 import { db, dbWs } from "@superset/db/client";
-import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import {
+	accounts,
+	members,
+	taskStatuses,
+	tasks,
+	users,
+} from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { getCurrentTxid } from "@superset/db/utils";
 import {
@@ -7,7 +13,7 @@ import {
 	generateUniqueTaskSlug,
 } from "@superset/shared/task-slug";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ilike, isNull } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
@@ -27,6 +33,7 @@ import { taskStatusesRouter } from "./statuses";
 
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
+const TASK_SYNC_PROVIDERS = ["linear"] as const;
 
 function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
@@ -316,7 +323,34 @@ export const taskRouter = {
 			if (input?.priority) filters.push(eq(tasks.priority, input.priority));
 			if (input?.statusId) filters.push(eq(tasks.statusId, input.statusId));
 			if (input?.assigneeMe) {
-				filters.push(eq(tasks.assigneeId, ctx.session.user.id));
+				const userId = ctx.session.user.id;
+
+				// Check if the user has linked any of the task sync providers.
+				const linkedAccounts = await db
+					.select({ accountId: accounts.accountId })
+					.from(accounts)
+					.where(
+						and(
+							eq(accounts.userId, userId),
+							inArray(accounts.providerId, [...TASK_SYNC_PROVIDERS]),
+						),
+					);
+
+				const externalIds = linkedAccounts.map((a) => a.accountId);
+
+				if (externalIds.length > 0) {
+					
+					// Match tasks assigned either natively OR via an external provider.
+					filters.push(
+						or(
+							eq(tasks.assigneeId, userId),
+							inArray(tasks.assigneeExternalId, externalIds),
+						)!,
+					);
+				} else {
+					// No linked external accounts — plain UUID check.
+					filters.push(eq(tasks.assigneeId, userId));
+				}
 			} else if (input?.assigneeId) {
 				filters.push(eq(tasks.assigneeId, input.assigneeId));
 			}

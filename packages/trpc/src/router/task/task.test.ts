@@ -20,15 +20,40 @@ let selectResults: unknown[][] = [];
 let updateResults: unknown[][] = [];
 
 function createDb() {
+	const selectOffsetMock = mock(async () => dbSelectResults.shift() ?? []);
+	const selectLimitWithOffsetMock = mock(() => ({ offset: selectOffsetMock }));
+
 	const selectLimitMock = mock(async () => dbSelectResults.shift() ?? []);
-	const selectOrderByMock = mock(async () => dbSelectResults.shift() ?? []);
+
+	const selectOrderByMock = mock(() => ({
+		limit: selectLimitWithOffsetMock,
+		// intentional mock thenable. Lets `await .orderBy()` resolve for byOrganization while task.list chains .limit().offset().
+		then(resolve: (v: unknown[]) => unknown, reject?: (e: unknown) => unknown) {
+			return Promise.resolve(dbSelectResults.shift() ?? []).then(
+				resolve,
+				reject,
+			);
+		},
+	}));
+
 	const selectWhereMock = mock(() => ({
 		limit: selectLimitMock,
 		orderBy: selectOrderByMock,
+		// intentional mock thenable. Lets `await .where()` resolve directly for the accounts query.
+		then(resolve: (v: unknown[]) => unknown, reject?: (e: unknown) => unknown) {
+			return Promise.resolve(dbSelectResults.shift() ?? []).then(
+				resolve,
+				reject,
+			);
+		},
 	}));
-	const selectFromMock = mock(() => ({
+
+	const joinable: Record<string, unknown> = {
 		where: selectWhereMock,
-	}));
+	};
+	joinable.leftJoin = mock(() => joinable);
+
+	const selectFromMock = mock(() => joinable);
 	const selectMock = mock(() => ({
 		from: selectFromMock,
 	}));
@@ -109,6 +134,13 @@ mock.module("@superset/db/client", () => ({
 }));
 
 mock.module("@superset/db/schema", () => ({
+	// auth.accounts — stores OAuth connections (e.g. user linked their Linear
+	// account). accountId is the external provider's user ID ("lin_usr_abc").
+	accounts: {
+		accountId: "accounts.accountId",
+		providerId: "accounts.providerId",
+		userId: "accounts.userId",
+	},
 	members: {
 		organizationId: "members.organizationId",
 		userId: "members.userId",
@@ -139,6 +171,7 @@ mock.module("@superset/db/schema", () => ({
 		organizationId: "task_statuses.organizationId",
 	},
 	tasks: {
+		assigneeExternalId: "tasks.assigneeExternalId",
 		assigneeId: "tasks.assigneeId",
 		createdAt: "tasks.createdAt",
 		creatorId: "tasks.creatorId",
@@ -174,7 +207,13 @@ mock.module("drizzle-orm", () => ({
 	desc: (value: unknown) => ({ type: "desc", value }),
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
 	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
+	inArray: (col: unknown, values: unknown) => ({
+		type: "inArray",
+		col,
+		values,
+	}),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
+	or: (...conditions: unknown[]) => ({ type: "or", conditions }),
 	sql: Object.assign(
 		(strings: TemplateStringsArray, ...values: unknown[]) => ({
 			type: "sql",
@@ -444,5 +483,81 @@ describe("task router authorization", () => {
 			title: "Renamed task",
 		});
 		expect(syncTaskMock).toHaveBeenCalledWith(TASK_ID);
+	});
+});
+
+
+/**
+ * task.list assigneeMe filter
+ */
+describe("task.list assigneeMe filter", () => {
+	const LINEAR_EXTERNAL_ID = "lin_usr_abc123";
+
+	it("returns tasks matched by native assigneeId when user has no linked external accounts", async () => {
+		// No linked external accounts — plain UUID check.
+		dbSelectResults.push([]); // accounts lookup → empty (no linked Linear)
+		dbSelectResults.push([
+			{
+				task: {
+					id: TASK_ID,
+					assigneeId: ACTOR_USER_ID,
+					assigneeExternalId: null,
+				},
+				assignee: { id: ACTOR_USER_ID, name: "Actor" },
+				creator: null,
+				statusName: "In Progress",
+			},
+		]);
+
+		const caller = createCaller(createContext());
+		const result = await caller.task.list({ assigneeMe: true });
+
+		expect(result).toHaveLength(1);
+		expect(result[0].task.id).toBe(TASK_ID);
+	});
+
+	it("returns tasks matched by assigneeExternalId when Linear sync had an email mismatch", async () => {
+		// Your Superset email is "you@company.com".
+		// Your Linear email is "you@gmail.com".
+		//
+		// When Linear synced, it couldn't find "you@gmail.com" in Superset's
+		// user table, so it stored:
+		//   tasks.assigneeId = NULL
+		//   tasks.assigneeExternalId = "lin_usr_abc123"  ← your Linear user ID
+		//
+		// The OLD filter: eq(tasks.assigneeId, userId) → 0 results (bug!)
+		// The NEW filter: or(eq(assigneeId, ...), inArray(assigneeExternalId, [...]))
+		//                 → finds the task via assigneeExternalId
+		dbSelectResults.push([{ accountId: LINEAR_EXTERNAL_ID }]); // user linked Linear → we know their Linear ID
+		dbSelectResults.push([
+			{
+				task: {
+					id: TASK_ID,
+					assigneeId: null,
+					assigneeExternalId: LINEAR_EXTERNAL_ID,
+				},
+				assignee: null, // no Superset user row — email mismatch
+				creator: null,
+				statusName: "In Progress",
+			},
+		]);
+
+		const caller = createCaller(createContext());
+		const result = await caller.task.list({ assigneeMe: true });
+
+		// Before the fix this returned []. After the fix it returns the task.
+		expect(result).toHaveLength(1);
+		expect(result[0].task.assigneeExternalId).toBe(LINEAR_EXTERNAL_ID);
+	});
+
+	it("returns an empty list when no tasks match either assigneeId or assigneeExternalId", async () => {
+		// No linked external accounts — plain UUID check.
+		dbSelectResults.push([{ accountId: LINEAR_EXTERNAL_ID }]);
+		dbSelectResults.push([]); // tasks query finds nothing for this user
+
+		const caller = createCaller(createContext());
+		const result = await caller.task.list({ assigneeMe: true });
+
+		expect(result).toHaveLength(0);
 	});
 });
