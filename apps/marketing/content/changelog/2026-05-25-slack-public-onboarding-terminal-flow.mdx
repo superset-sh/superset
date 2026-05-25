@@ -1,0 +1,47 @@
+---
+title: Slack is now public, v2 onboarding, and terminal flow control
+date: 2026-05-25
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot of the new v2 onboarding flow or Slack integration */}
+
+## Slack Integration Is Now Available to Everyone <PRBadge url="https://github.com/superset-sh/superset/pull/4823" />
+
+The Superset Slack bot is open to all users — no more waitlist or internal gate. Mention `@superset` in any channel to create tasks, spin up workspaces, and launch coding agents directly from Slack.
+
+To connect: go to **Integrations → Slack** in the dashboard and click **Connect**.
+
+## v2 Onboarding Flow <PRBadge url="https://github.com/superset-sh/superset/pull/4802" />
+
+New users get a redesigned onboarding experience on first launch — GitHub CLI setup, tool checks, and project import in a single guided flow.
+
+- **Skippable steps** — existing users can skip steps they've already completed <PRBadge url="https://github.com/superset-sh/superset/pull/4867" />
+- **Re-run from Settings** — redo setup anytime, e.g. on a new machine <PRBadge url="https://github.com/superset-sh/superset/pull/4867" />
+- **Setup script guidance** — the setup-script card opens a new-workspace modal with a guided prompt <PRBadge url="https://github.com/superset-sh/superset/pull/4819" />
+
+## Terminal Output Flow Control <PRBadge url="https://github.com/superset-sh/superset/pull/4896" />
+
+The terminal now uses ACK-based flow control with high/low watermarks to pause the PTY source when the renderer falls behind. High-throughput processes (builds, log tails) no longer risk flooding the renderer or causing slowdowns.
+
+## Improvements
+
+- **Diff viewer upgraded** — DiffPane now uses `@pierre/diffs` CodeView for improved rendering performance <PRBadge url="https://github.com/superset-sh/superset/pull/4898" />
+- **Double-click to resize panes** — double-clicking a separator now resets panel sizes; single-click no longer triggers a resize <PRBadge url="https://github.com/superset-sh/superset/pull/4838" />
+- **PTY daemon reliability** — terminal sessions survive daemon restarts and auto-update failures without dropping <PRBadge url="https://github.com/superset-sh/superset/pull/4781" />
+- **Cache-first workspace rendering** — workspaces render from cache immediately while syncing in the background <PRBadge url="https://github.com/superset-sh/superset/pull/4820" />
+- **v2 preset env commands** — environment variable commands in preset runs now execute correctly <PRBadge url="https://github.com/superset-sh/superset/pull/4831" />
+
+---
+
+**Bug fixes**
+
+- Fixed WebGL terminal atlas rendering that could cause display corruption <PRBadge url="https://github.com/superset-sh/superset/pull/4893" />
+- Fixed Cmd+W and Cmd+R to be focus-aware in browser panes <PRBadge url="https://github.com/superset-sh/superset/pull/4865" />
+- Fixed diff line-number ordering in the changes viewer <PRBadge url="https://github.com/superset-sh/superset/pull/4848" />
+- Fixed onboarding blocking when GitHub CLI auth is incomplete <PRBadge url="https://github.com/superset-sh/superset/pull/4834" />
+- Fixed cloned repo not appearing in sidebar after onboarding <PRBadge url="https://github.com/superset-sh/superset/pull/4846" />
+- Renamed "Issues & PRs" sidebar label to "Tasks & PRs" <PRBadge url="https://github.com/superset-sh/superset/pull/4816" />
+- Fixed new-session message flicker in chat <PRBadge url="https://github.com/superset-sh/superset/pull/4791" />
+- Fixed stuck workspace deletion <PRBadge url="https://github.com/superset-sh/superset/pull/4800" />
+- Removed broken `/login` slash command from chat builtins <PRBadge url="https://github.com/superset-sh/superset/pull/4856" />

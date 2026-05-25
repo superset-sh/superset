@@ -111,7 +111,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.11.2",
+      "version": "1.11.3",
       "dependencies": {
         "@ai-sdk/anthropic": "3.0.64",
         "@ai-sdk/openai": "3.0.36",
@@ -769,7 +769,7 @@
     },
     "packages/host-service": {
       "name": "@superset/host-service",
-      "version": "0.8.14",
+      "version": "0.8.15",
       "dependencies": {
         "@hono/node-server": "1.19.13",
         "@hono/node-ws": "1.3.0",
