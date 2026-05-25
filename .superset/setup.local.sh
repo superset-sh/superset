@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Local-development setup. Provisions a fully self-contained Superset workspace
-# backed by a local Postgres container + fake credentials — no Neon account, no
-# real third-party keys. Mirrors setup.sh but replaces the cloud/Neon pieces.
+# Local-development setup. Provisions a fully self-contained, PER-WORKSPACE
+# Superset stack backed by a local Postgres container + fake credentials — no
+# Neon account, no real third-party keys. Mirrors setup.sh, but replaces the
+# Neon branch with a docker-compose bundle (Postgres + neon-proxy + Electric)
+# on per-workspace allocated ports so multiple worktrees never collide.
 set -uo pipefail
 
 SUPERSET_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,11 +16,17 @@ source "$SUPERSET_SCRIPT_DIR/lib/setup/steps.sh" # reuse allocate_port_base + he
 
 cd "$ROOT_DIR" || exit 1
 
-# Shared local DB stack — one Postgres/proxy/Electric across all of a
-# contributor's worktrees. App ports are still per-workspace (allocate_port_base).
-LOCAL_DB_PROJECT="superset-local"
-ELECTRIC_HOST_PORT=3100
 ELECTRIC_SECRET_VALUE="local_electric_dev_secret"
+
+# Set by local_allocate_ports; consumed by docker compose + .env writing.
+LOCAL_DB_PROJECT=""
+LOCAL_PG_PORT=""
+LOCAL_NEON_PROXY_PORT=""
+LOCAL_ELECTRIC_PORT=""
+
+sanitize_name() {
+  echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-48
+}
 
 local_ensure_env() {
   echo "📂 Preparing .env..."
@@ -55,8 +63,26 @@ local_check_dependencies() {
   return 0
 }
 
+local_allocate_ports() {
+  echo "🔌 Allocating per-workspace ports..."
+  if ! allocate_port_base; then
+    error "Port allocation failed"
+    return 1
+  fi
+  local base="$SUPERSET_PORT_BASE"
+  # DB stack host ports live in the free tail of the 20-port window
+  # (app ports use +0..+13; Electric reuses the +9 ELECTRIC_PORT slot).
+  LOCAL_PG_PORT=$((base + 14))
+  LOCAL_NEON_PROXY_PORT=$((base + 15))
+  LOCAL_ELECTRIC_PORT=$((base + 9))
+  export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT
+  LOCAL_DB_PROJECT="superset-$(sanitize_name "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}")"
+  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT (project $LOCAL_DB_PROJECT)"
+  return 0
+}
+
 local_db_up() {
-  echo "🗄️  Starting local DB stack (Postgres + Neon proxy + Electric)..."
+  echo "🗄️  Starting per-workspace DB stack ($LOCAL_DB_PROJECT)..."
   if ! docker compose -p "$LOCAL_DB_PROJECT" -f "$ROOT_DIR/docker-compose.yml" up -d; then
     error "docker compose up failed"
     return 1
@@ -71,7 +97,7 @@ local_db_up() {
   local i
   for i in $(seq 1 30); do
     if [ "$(docker inspect --format '{{.State.Health.Status}}' "$container_id" 2>/dev/null)" = "healthy" ]; then
-      success "Local DB stack ready"
+      success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, electric :$LOCAL_ELECTRIC_PORT)"
       return 0
     fi
     sleep 2
@@ -101,9 +127,9 @@ local_seed_dev_account() {
 }
 
 local_write_env() {
-  echo "📝 Writing workspace ports + URLs to .env..."
-  if [ -z "${SUPERSET_PORT_BASE:-}" ]; then
-    error "SUPERSET_PORT_BASE not set (port allocation must run first)"
+  echo "📝 Writing workspace .env (DB URLs + ports)..."
+  if [ -z "${SUPERSET_PORT_BASE:-}" ] || [ -z "$LOCAL_NEON_PROXY_PORT" ]; then
+    error "Ports not allocated before writing .env"
     return 1
   fi
 
@@ -122,14 +148,21 @@ local_write_env() {
   local WRANGLER_PORT=$((BASE + 12))
   local RELAY_PORT=$((BASE + 13))
 
-  # DATABASE_URL / DATABASE_URL_UNPOOLED stay as written in .env.local.example
-  # (local proxy / direct). We only append workspace identity, ports, and URLs.
   {
     echo ""
     echo "# ===== Local workspace overrides (setup.local.sh) ====="
     write_env_var "SUPERSET_WORKSPACE_NAME" "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
     write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
     write_env_var "SUPERSET_PORT_BASE" "$BASE"
+    echo ""
+    echo "# Per-workspace local DB stack (docker compose project $LOCAL_DB_PROJECT)"
+    write_env_var "LOCAL_PG_PORT" "$LOCAL_PG_PORT"
+    write_env_var "LOCAL_NEON_PROXY_PORT" "$LOCAL_NEON_PROXY_PORT"
+    write_env_var "LOCAL_ELECTRIC_PORT" "$LOCAL_ELECTRIC_PORT"
+    write_env_var "DATABASE_URL" "postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main"
+    write_env_var "DATABASE_URL_UNPOOLED" "postgres://postgres:postgres@localhost:$LOCAL_PG_PORT/main"
+    echo ""
+    echo "# Workspace ports"
     write_env_var "WEB_PORT" "$WEB_PORT"
     write_env_var "API_PORT" "$API_PORT"
     write_env_var "MARKETING_PORT" "$MARKETING_PORT"
@@ -143,7 +176,7 @@ local_write_env() {
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
-    write_env_var "ELECTRIC_PORT" "$ELECTRIC_HOST_PORT"
+    write_env_var "ELECTRIC_PORT" "$LOCAL_ELECTRIC_PORT"
     write_env_var "ELECTRIC_SECRET" "$ELECTRIC_SECRET_VALUE"
     echo ""
     echo "# Cross-app URLs (allocated ports)"
@@ -163,8 +196,8 @@ local_write_env() {
     write_env_var "NEXT_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
     write_env_var "STREAMS_INTERNAL_URL" "http://127.0.0.1:$STREAMS_INTERNAL_PORT"
     echo ""
-    echo "# Electric URLs (shared local Electric on :$ELECTRIC_HOST_PORT, fronted by per-workspace Caddy)"
-    write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_HOST_PORT/v1/shape"
+    echo "# Electric URLs (per-workspace Electric :$LOCAL_ELECTRIC_PORT, fronted by Caddy)"
+    write_env_var "ELECTRIC_URL" "http://localhost:$LOCAL_ELECTRIC_PORT/v1/shape"
     write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
     write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
   } >> .env
@@ -183,7 +216,7 @@ local_write_env() {
 
   cat > apps/electric-proxy/.dev.vars <<DEVVARS
 AUTH_URL=http://localhost:$API_PORT
-ELECTRIC_SHAPE_URL=http://localhost:$ELECTRIC_HOST_PORT/v1/shape
+ELECTRIC_SHAPE_URL=http://localhost:$LOCAL_ELECTRIC_PORT/v1/shape
 ELECTRIC_SECRET=$ELECTRIC_SECRET_VALUE
 ELECTRIC_SOURCE_ID=
 ELECTRIC_SOURCE_SECRET=
@@ -200,9 +233,11 @@ DEVVARS
     { "port": $DESKTOP_VITE_PORT, "label": "Desktop Vite" },
     { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
     { "port": $STREAMS_PORT, "label": "Streams" },
-    { "port": $ELECTRIC_HOST_PORT, "label": "Electric" },
+    { "port": $LOCAL_ELECTRIC_PORT, "label": "Electric" },
     { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
-    { "port": $WRANGLER_PORT, "label": "Electric Proxy (Wrangler)" }
+    { "port": $WRANGLER_PORT, "label": "Electric Proxy (Wrangler)" },
+    { "port": $LOCAL_PG_PORT, "label": "Postgres" },
+    { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" }
   ]
 }
 PORTSJSON
@@ -213,9 +248,6 @@ PORTSJSON
 
 local_write_config_overlay() {
   echo "🔧 Writing .superset/config.local.json (untracked overlay)..."
-  # Gitignored overlay; loadSetupConfig reads it from the main repo path and
-  # worktrees aren't consulted, so every Superset worktree of this project runs
-  # setup.local.sh — without touching the tracked config.json.
   cat > "$SUPERSET_SCRIPT_DIR/config.local.json" <<'CONFIGLOCAL'
 {
   "setup": ["./.superset/setup.local.sh"]
@@ -235,11 +267,11 @@ local_setup_main() {
   local_ensure_env || step_failed "Prepare .env"
   local_check_dependencies || step_failed "Check dependencies"
   step_install_dependencies || step_failed "Install dependencies"
+  local_allocate_ports || step_failed "Allocate ports"
+  local_write_env || step_failed "Write workspace .env"
   local_db_up || step_failed "Start local DB stack"
   local_migrate || step_failed "Apply migrations"
   local_seed_dev_account || step_failed "Seed dev account"
-  allocate_port_base || step_failed "Allocate ports"
-  local_write_env || step_failed "Write workspace .env"
   local_write_config_overlay || step_failed "Write config overlay"
 
   print_summary "Local setup"
