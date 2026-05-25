@@ -211,30 +211,17 @@ PORTSJSON
   return 0
 }
 
-local_flip_config() {
-  echo "🔧 Pointing .superset/config.json setup at setup.local.sh..."
-  local config_file="$SUPERSET_SCRIPT_DIR/config.json"
-  if [ ! -f "$config_file" ]; then
-    warn "No config.json found — skipping"
-    step_skipped "Update config.json"
-    return 0
-  fi
-  if ! command -v jq &> /dev/null; then
-    error "jq not available"
-    return 1
-  fi
-  local tmp_file="${config_file}.tmp.$$"
-  if ! jq '.setup = ["./.superset/setup.local.sh"]' "$config_file" > "$tmp_file"; then
-    error "Failed to update config.json"
-    rm -f "$tmp_file"
-    return 1
-  fi
-  if ! mv "$tmp_file" "$config_file"; then
-    error "Failed to write config.json"
-    rm -f "$tmp_file"
-    return 1
-  fi
-  success "config.json setup now uses setup.local.sh"
+local_write_config_overlay() {
+  echo "🔧 Writing .superset/config.local.json (untracked overlay)..."
+  # Gitignored overlay; loadSetupConfig reads it from the main repo path and
+  # worktrees aren't consulted, so every Superset worktree of this project runs
+  # setup.local.sh — without touching the tracked config.json.
+  cat > "$SUPERSET_SCRIPT_DIR/config.local.json" <<'CONFIGLOCAL'
+{
+  "setup": ["./.superset/setup.local.sh"]
+}
+CONFIGLOCAL
+  success "config.local.json written — worktrees will use setup.local.sh"
   return 0
 }
 
@@ -253,7 +240,7 @@ local_setup_main() {
   local_seed_dev_account || step_failed "Seed dev account"
   allocate_port_base || step_failed "Allocate ports"
   local_write_env || step_failed "Write workspace .env"
-  local_flip_config || step_failed "Update config.json"
+  local_write_config_overlay || step_failed "Write config overlay"
 
   print_summary "Local setup"
 }
