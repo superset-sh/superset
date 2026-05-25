@@ -40,10 +40,6 @@ local_ensure_env() {
   else
     success ".env already exists — leaving as-is"
   fi
-  set -a
-  # shellcheck source=/dev/null
-  source .env
-  set +a
   return 0
 }
 
@@ -76,6 +72,10 @@ local_allocate_ports() {
   LOCAL_NEON_PROXY_PORT=$((base + 15))
   LOCAL_ELECTRIC_PORT=$((base + 9))
   export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT
+  # Export so migrate/seed (child bun processes) use these — an inherited env
+  # var beats the .env file, so this overrides any stale DATABASE_URL.
+  export DATABASE_URL="postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main"
+  export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:$LOCAL_PG_PORT/main"
   LOCAL_DB_PROJECT="superset-$(sanitize_name "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}")"
   success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT (project $LOCAL_DB_PROJECT)"
   return 0
@@ -159,8 +159,8 @@ local_write_env() {
     write_env_var "LOCAL_PG_PORT" "$LOCAL_PG_PORT"
     write_env_var "LOCAL_NEON_PROXY_PORT" "$LOCAL_NEON_PROXY_PORT"
     write_env_var "LOCAL_ELECTRIC_PORT" "$LOCAL_ELECTRIC_PORT"
-    write_env_var "DATABASE_URL" "postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main"
-    write_env_var "DATABASE_URL_UNPOOLED" "postgres://postgres:postgres@localhost:$LOCAL_PG_PORT/main"
+    write_env_var "DATABASE_URL" "$DATABASE_URL"
+    write_env_var "DATABASE_URL_UNPOOLED" "$DATABASE_URL_UNPOOLED"
     echo ""
     echo "# Workspace ports"
     write_env_var "WEB_PORT" "$WEB_PORT"
@@ -250,7 +250,8 @@ local_write_config_overlay() {
   echo "🔧 Writing .superset/config.local.json (untracked overlay)..."
   cat > "$SUPERSET_SCRIPT_DIR/config.local.json" <<'CONFIGLOCAL'
 {
-  "setup": ["./.superset/setup.local.sh"]
+  "setup": ["./.superset/setup.local.sh"],
+  "teardown": ["./.superset/teardown.local.sh"]
 }
 CONFIGLOCAL
   success "config.local.json written — worktrees will use setup.local.sh"
