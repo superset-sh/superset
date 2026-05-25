@@ -225,12 +225,22 @@ export const chatRouter = {
 	updateTitle: protectedProcedure
 		.input(z.object({ sessionId: z.uuid(), title: z.string() }))
 		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.activeOrganizationId;
+
+			if (!organizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No active organization selected",
+				});
+			}
+
 			const [updated] = await db
 				.update(chatSessions)
 				.set({ title: input.title })
 				.where(
 					and(
 						eq(chatSessions.id, input.sessionId),
+						eq(chatSessions.organizationId, organizationId),
 						eq(chatSessions.createdBy, ctx.session.user.id),
 					),
 				)

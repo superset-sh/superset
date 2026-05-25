@@ -139,10 +139,23 @@ export async function PATCH(
 	const body = (await request.json()) as { title?: string };
 
 	if (body.title !== undefined) {
-		await db
+		const [updated] = await db
 			.update(chatSessions)
 			.set({ title: body.title })
-			.where(eq(chatSessions.id, sessionId));
+			.where(
+				and(
+					eq(chatSessions.id, sessionId),
+					eq(chatSessions.createdBy, session.user.id),
+				),
+			)
+			.returning({ id: chatSessions.id });
+
+		if (!updated) {
+			return Response.json(
+				{ error: "Chat session not found" },
+				{ status: 404 },
+			);
+		}
 	}
 
 	return Response.json({ success: true }, { status: 200 });

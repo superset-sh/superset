@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 import {
 	PRODUCER_RESPONSE_HEADERS,
@@ -137,14 +137,26 @@ export async function DELETE(
 
 	const { sessionId } = await params;
 
+	const [deleted] = await db
+		.delete(chatSessions)
+		.where(
+			and(
+				eq(chatSessions.id, sessionId),
+				eq(chatSessions.createdBy, session.user.id),
+			),
+		)
+		.returning({ id: chatSessions.id });
+
+	if (!deleted) {
+		return Response.json({ error: "Chat session not found" }, { status: 404 });
+	}
+
 	const response = await fetch(streamUrl(sessionId), {
 		method: "DELETE",
 		headers: {
 			Authorization: `Bearer ${env.DURABLE_STREAMS_SECRET}`,
 		},
 	});
-
-	await db.delete(chatSessions).where(eq(chatSessions.id, sessionId));
 
 	const headers = new Headers();
 	for (const [key, value] of response.headers.entries()) {
