@@ -94,16 +94,41 @@ local_db_up() {
     error "Postgres container not found"
     return 1
   fi
-  local i
+  local i pg_ready=0
   for i in $(seq 1 30); do
     if [ "$(docker inspect --format '{{.State.Health.Status}}' "$container_id" 2>/dev/null)" = "healthy" ]; then
-      success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, electric :$LOCAL_ELECTRIC_PORT)"
-      return 0
+      pg_ready=1
+      break
     fi
     sleep 2
   done
-  error "Postgres did not become healthy within 60s"
-  return 1
+  if [ "$pg_ready" -ne 1 ]; then
+    error "Postgres did not become healthy within 60s"
+    return 1
+  fi
+
+  # Postgres health != proxy ready. migrate uses direct pg, but seed (and the
+  # app) query through the neon-http proxy, which starts + bootstraps a beat
+  # later. Probe a real query so the seed never races a cold proxy.
+  echo "  Waiting for neon-proxy to serve queries on :$LOCAL_NEON_PROXY_PORT..."
+  local j proxy_ready=0
+  for j in $(seq 1 30); do
+    if curl -s --max-time 3 -X POST "http://localhost:$LOCAL_NEON_PROXY_PORT/sql" \
+        -H "Neon-Connection-String: postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main" \
+        -H "Content-Type: application/json" \
+        -d '{"query":"select 1","params":[]}' 2>/dev/null | grep -q '"command"'; then
+      proxy_ready=1
+      break
+    fi
+    sleep 1
+  done
+  if [ "$proxy_ready" -ne 1 ]; then
+    error "neon-proxy did not become ready within 30s"
+    return 1
+  fi
+
+  success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, electric :$LOCAL_ELECTRIC_PORT)"
+  return 0
 }
 
 local_migrate() {
