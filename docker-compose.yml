@@ -33,5 +33,16 @@ services:
       postgres:
         condition: service_healthy
 
+  electric:
+    image: electricsql/electric:1.4.13
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/main?sslmode=disable
+      ELECTRIC_SECRET: local_electric_dev_secret
+    ports:
+      - "3100:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   superset_db_data:
