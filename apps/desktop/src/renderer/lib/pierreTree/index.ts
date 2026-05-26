@@ -5,4 +5,5 @@ export {
 	type PierreGitStatus,
 	type PierreGitStatusEntry,
 } from "./pierreGitStatus";
+export { PIERRE_TREE_UNSAFE_CSS } from "./pierreTreeUnsafeCss";
 export { stripTrailingSlash } from "./treePaths";

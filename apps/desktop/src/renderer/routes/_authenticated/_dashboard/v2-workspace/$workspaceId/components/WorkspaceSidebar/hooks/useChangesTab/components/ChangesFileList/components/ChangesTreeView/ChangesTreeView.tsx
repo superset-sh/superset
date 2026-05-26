@@ -23,6 +23,7 @@ import { useFallthroughIcons } from "renderer/lib/fileIcons";
 import {
 	createPierreTreeStyle,
 	FILE_STATUS_TO_PIERRE,
+	PIERRE_TREE_UNSAFE_CSS,
 	type PierreGitStatusEntry,
 	stripTrailingSlash,
 } from "renderer/lib/pierreTree";
@@ -122,6 +123,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		paths,
 		initialExpansion: "open",
 		search: false,
+		unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
 		gitStatus: initialGitStatusEntriesRef.current,
 		icons: { set: "complete", colored: true },
 		itemHeight: ITEM_HEIGHT,
