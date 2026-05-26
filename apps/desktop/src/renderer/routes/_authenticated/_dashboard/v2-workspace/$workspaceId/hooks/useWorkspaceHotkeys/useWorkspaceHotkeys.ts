@@ -19,6 +19,7 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import { createInFlightGuard } from "../useV2TerminalLauncher/inFlightGuard";
 
 export function useWorkspaceHotkeys({
 	store,
@@ -53,17 +54,23 @@ export function useWorkspaceHotkeys({
 
 	// --- Tab creation ---
 
-	useHotkey("NEW_GROUP", async () => {
-		const terminalId = await launcher.create();
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "terminal",
-					data: { terminalId } as TerminalPaneData,
-				},
-			],
-		});
-	});
+	// Drop repeats while a creation is in flight so rapid Cmd+T presses
+	// during the cold-start daemon bootstrap don't all spawn a terminal once
+	// it unblocks (#4384).
+	const newGroupGuardRef = useRef(createInFlightGuard());
+	useHotkey("NEW_GROUP", () =>
+		newGroupGuardRef.current.run(async () => {
+			const terminalId = await launcher.create();
+			store.getState().addTab({
+				panes: [
+					{
+						kind: "terminal",
+						data: { terminalId } as TerminalPaneData,
+					},
+				],
+			});
+		}),
+	);
 
 	useHotkey("NEW_CHAT", () => {
 		store.getState().addTab({
