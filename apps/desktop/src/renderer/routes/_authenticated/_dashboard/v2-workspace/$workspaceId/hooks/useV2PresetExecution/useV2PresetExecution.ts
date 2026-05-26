@@ -1,15 +1,25 @@
-import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
+import type { CreatePaneInput, Pane, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { resolvePresetLaunchCommands } from "renderer/lib/agent-launch-command";
+import {
+	buildTerminalCommand,
+	normalizeTerminalCommand,
+} from "renderer/lib/terminal/launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { getPresetLaunchPlan } from "renderer/stores/tabs/preset-launch";
-import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
+import {
+	filterMatchingPresetsForProject,
+	isProjectTargetedPreset,
+} from "shared/preset-project-targeting";
+import { quote } from "shell-quote";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
@@ -26,7 +36,65 @@ function makeTerminalPane(
 }
 
 function resolveTarget(executionMode: V2TerminalPresetRow["executionMode"]) {
-	return executionMode === "split-pane" ? "active-tab" : "new-tab";
+	return executionMode === "split-pane" || executionMode === "sequential"
+		? "active-tab"
+		: "new-tab";
+}
+
+function normalizePresetCwd(cwd: string | undefined): string | undefined {
+	const trimmed = cwd?.trim();
+	return trimmed ? trimmed : undefined;
+}
+
+function isTerminalPane(
+	pane: Pane<PaneViewerData> | null | undefined,
+): pane is Pane<TerminalPaneData> {
+	return pane?.kind === "terminal";
+}
+
+function getActiveTerminalPane(state: WorkspaceStore<PaneViewerData>) {
+	const active = state.getActivePane();
+	if (!active || !isTerminalPane(active.pane)) return null;
+	return {
+		tabId: active.tabId,
+		paneId: active.pane.id,
+		terminalId: active.pane.data.terminalId,
+	};
+}
+
+function buildFocusedTerminalCommand({
+	command,
+	cwd,
+	worktreePath,
+}: {
+	command: string;
+	cwd: string | undefined;
+	worktreePath: string | undefined;
+}) {
+	// Sequential presets write into an already-running shell, so the preset
+	// directory has to be applied as shell input instead of session metadata.
+	if (!cwd) return command;
+	const resolvedCwd = worktreePath
+		? toAbsoluteWorkspacePath(worktreePath, cwd)
+		: cwd;
+	return `cd ${quote([resolvedCwd])} && ${command}`;
+}
+
+function selectAutoApplyPresets(
+	presets: V2TerminalPresetRow[],
+	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
+) {
+	const targetedPresets = presets.filter(isProjectTargetedPreset);
+	const globalPresets = presets.filter(
+		(preset) => !isProjectTargetedPreset(preset),
+	);
+
+	const targetedTagged = targetedPresets.filter((preset) => preset[field]);
+	if (targetedTagged.length > 0) {
+		return targetedTagged;
+	}
+
+	return globalPresets.filter((preset) => preset[field]);
 }
 
 interface UseV2PresetExecutionArgs {
@@ -39,8 +107,17 @@ export function useV2PresetExecution({
 	launcher,
 }: UseV2PresetExecutionArgs) {
 	const { workspace } = useWorkspace();
+	const workspaceId = workspace.id;
 	const projectId = workspace.projectId;
 	const collections = useCollections();
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspaceId },
+		{
+			refetchOnWindowFocus: false,
+			retry: false,
+		},
+	);
+	const writeInput = workspaceTrpc.terminal.writeInput.useMutation();
 
 	const { data: allPresets = [] } = useLiveQuery(
 		(query) =>
@@ -54,18 +131,23 @@ export function useV2PresetExecution({
 	// /settings/agents page, so user edits there propagate here. The hook is
 	// already invalidated by mutations in the agents settings page.
 	const { activeHostUrl } = useLocalHostService();
-	const { data: agents = [], refetch: refetchAgents } =
-		useV2AgentConfigs(activeHostUrl);
+	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
 
 	const matchedPresets = useMemo(
 		() => filterMatchingPresetsForProject(allPresets, projectId),
 		[allPresets, projectId],
 	);
+	const newTabPresets = useMemo(
+		() => selectAutoApplyPresets(matchedPresets, "applyOnNewTab"),
+		[matchedPresets],
+	);
 
-	// Keep the resolver synchronous for render-time consumers like
-	// `useV2WorkspaceRun`. Direct preset execution does a one-shot refetch for
-	// linked agents before launch so a recently edited agent cannot run from a
-	// stale infinite-cache snapshot.
+	// `useV2AgentConfigs` is the cached source of truth for agent configs
+	// (`staleTime: Infinity`, invalidated on every Settings → Agents mutation),
+	// so resolving against the in-memory `agents` array is correct and
+	// synchronous. Re-fetching via the host-service client on every call would
+	// duplicate that query and pin this function async, which forced the
+	// previous consumer (`useV2WorkspaceRun`) into a re-render cycle.
 	const resolvePresetCommands = useCallback(
 		(preset: V2TerminalPresetRow): string[] =>
 			resolvePresetLaunchCommands(preset, agents),
@@ -73,11 +155,38 @@ export function useV2PresetExecution({
 	);
 
 	const executePreset = useCallback(
-		async (preset: V2TerminalPresetRow) => {
+		async (
+			preset: V2TerminalPresetRow,
+			options?: { target?: "new-tab" | "active-tab" },
+		) => {
 			const state = store.getState();
 			const activeTabId = state.activeTabId;
-			const target = resolveTarget(preset.executionMode);
+			const target = options?.target ?? resolveTarget(preset.executionMode);
 			const title = preset.name || undefined;
+			const commands = resolvePresetCommands(preset);
+			const activeTerminal =
+				target === "active-tab" && preset.executionMode === "sequential"
+					? getActiveTerminalPane(state)
+					: null;
+			// Sequential mode is one shell command sent to one terminal; every
+			// other grouped mode keeps one command per terminal session.
+			const launchCommands =
+				preset.executionMode === "sequential"
+					? [buildTerminalCommand(commands)].flatMap((command) =>
+							command === null ? [] : [command],
+						)
+					: commands;
+			const cwd = normalizePresetCwd(preset.cwd);
+			const createTerminal = (command?: string) =>
+				launcher.create({ command, cwd });
+
+			const plan = getPresetLaunchPlan({
+				mode: preset.executionMode,
+				target,
+				commandCount: launchCommands.length,
+				hasActiveTab: !!activeTabId,
+				hasActiveTerminal: !!activeTerminal,
+			});
 
 			// Sessions for every pane this plan creates are spun up in parallel
 			// before any of them land in the store, so background tabs (e.g.
@@ -86,31 +195,35 @@ export function useV2PresetExecution({
 			// host-service buffers PTY output until the user clicks the tab and
 			// the pane finally mounts and attaches the WS.
 			try {
-				const liveAgents =
-					preset.agentId && activeHostUrl
-						? ((await refetchAgents()).data ?? agents)
-						: agents;
-				const commands = resolvePresetLaunchCommands(preset, liveAgents);
-
-				const plan = getPresetLaunchPlan({
-					mode: preset.executionMode,
-					target,
-					commandCount: commands.length,
-					hasActiveTab: !!activeTabId,
-				});
-
 				switch (plan) {
+					case "active-terminal": {
+						const command = launchCommands[0];
+						if (!activeTerminal || !command) break;
+						await writeInput.mutateAsync({
+							terminalId: activeTerminal.terminalId,
+							workspaceId,
+							data: normalizeTerminalCommand(
+								buildFocusedTerminalCommand({
+									command,
+									cwd,
+									worktreePath: workspaceQuery.data?.worktreePath,
+								}),
+							),
+						});
+						break;
+					}
+
 					case "new-tab-single": {
-						const terminalId = await launcher.create({ command: commands[0] });
+						const terminalId = await createTerminal(launchCommands[0]);
 						state.addTab({ panes: [makeTerminalPane(terminalId, title)] });
 						break;
 					}
 
 					case "new-tab-multi-pane": {
 						const ids = await Promise.all(
-							commands.length > 0
-								? commands.map((command) => launcher.create({ command }))
-								: [launcher.create()],
+							launchCommands.length > 0
+								? launchCommands.map((command) => createTerminal(command))
+								: [createTerminal()],
 						);
 						state.addTab({
 							panes: ids.map((id) => makeTerminalPane(id, title)) as [
@@ -123,7 +236,7 @@ export function useV2PresetExecution({
 
 					case "new-tab-per-command": {
 						const ids = await Promise.all(
-							commands.map((command) => launcher.create({ command })),
+							launchCommands.map((command) => createTerminal(command)),
 						);
 						for (const terminalId of ids) {
 							state.addTab({ panes: [makeTerminalPane(terminalId, title)] });
@@ -132,7 +245,7 @@ export function useV2PresetExecution({
 					}
 
 					case "active-tab-single": {
-						const terminalId = await launcher.create({ command: commands[0] });
+						const terminalId = await createTerminal(launchCommands[0]);
 						const pane = makeTerminalPane(terminalId, title);
 						if (!activeTabId) {
 							state.addTab({ panes: [pane] });
@@ -144,9 +257,9 @@ export function useV2PresetExecution({
 
 					case "active-tab-multi-pane": {
 						const ids = await Promise.all(
-							commands.length > 0
-								? commands.map((command) => launcher.create({ command }))
-								: [launcher.create()],
+							launchCommands.length > 0
+								? launchCommands.map((command) => createTerminal(command))
+								: [createTerminal()],
 						);
 						const panes = ids.map((id) => makeTerminalPane(id, title));
 						if (!activeTabId) {
@@ -174,8 +287,20 @@ export function useV2PresetExecution({
 				});
 			}
 		},
-		[store, launcher, activeHostUrl, refetchAgents, agents],
+		[
+			store,
+			launcher,
+			resolvePresetCommands,
+			workspaceId,
+			workspaceQuery.data?.worktreePath,
+			writeInput,
+		],
 	);
 
-	return { matchedPresets, executePreset, resolvePresetCommands };
+	return {
+		matchedPresets,
+		newTabPresets,
+		executePreset,
+		resolvePresetCommands,
+	};
 }

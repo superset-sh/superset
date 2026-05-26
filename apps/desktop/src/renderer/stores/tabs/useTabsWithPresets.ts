@@ -11,6 +11,7 @@ import {
 	launchCommandInPane,
 	writeCommandsInPane,
 } from "renderer/lib/terminal/launch-command";
+import { quote } from "shell-quote";
 import {
 	getPresetLaunchPlan,
 	type PresetMode,
@@ -38,6 +39,16 @@ interface PresetPaneLaunch {
 	workspaceId: string;
 	command: string;
 	cwd: string | undefined;
+}
+
+function buildFocusedTerminalCommand(preset: PreparedPreset): string | null {
+	const command = buildTerminalCommand(preset.commands);
+	if (command === null) return null;
+	const cwd = preset.initialCwd?.trim();
+	// Existing terminals cannot receive a session cwd, so preserve preset
+	// directory behavior by prepending an explicit cd before the commands.
+	if (!cwd) return command;
+	return `cd ${quote([cwd])} && ${command}`;
 }
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
@@ -201,6 +212,24 @@ export function useTabsWithPresets(projectId?: string | null) {
 		(workspaceId: string, preset: PreparedPreset) => {
 			const hasMultipleCommands = preset.commands.length > 1;
 
+			if (preset.mode === "sequential") {
+				const command = buildTerminalCommand(preset.commands);
+				const result = storeAddTab(workspaceId, {
+					initialCwd: preset.initialCwd,
+				});
+				if (command !== null) {
+					launchPresetCommand({
+						paneId: result.paneId,
+						tabId: result.tabId,
+						workspaceId,
+						command,
+						cwd: preset.initialCwd,
+					});
+				}
+				applyTabName(result.tabId, preset.name);
+				return result;
+			}
+
 			if (preset.mode === "new-tab" && hasMultipleCommands) {
 				let firstResult: { tabId: string; paneId: string } | null = null;
 				const launches: PresetPaneLaunch[] = [];
@@ -287,16 +316,47 @@ export function useTabsWithPresets(projectId?: string | null) {
 	const executePreset = useCallback(
 		(workspaceId: string, preset: PreparedPreset, target: PresetOpenTarget) => {
 			const activeTabId =
-				target === "active-tab" && preset.mode === "split-pane"
+				target === "active-tab" &&
+				(preset.mode === "split-pane" || preset.mode === "sequential")
 					? resolveActiveWorkspaceTabId(workspaceId)
 					: null;
+			const activeTerminalPaneId = (() => {
+				if (!activeTabId || preset.mode !== "sequential") return null;
+				const state = useTabsStore.getState();
+				const paneId = state.focusedPaneIds[activeTabId];
+				const pane = paneId ? state.panes[paneId] : undefined;
+				return pane?.type === "terminal" ? paneId : null;
+			})();
 
 			const plan = getPresetLaunchPlan({
 				mode: preset.mode,
 				target,
 				commandCount: preset.commands.length,
 				hasActiveTab: !!activeTabId,
+				hasActiveTerminal: !!activeTerminalPaneId,
 			});
+
+			if (plan === "active-terminal" && activeTabId && activeTerminalPaneId) {
+				const command = buildFocusedTerminalCommand(preset);
+				if (command !== null) {
+					void writeCommandsInPane({
+						paneId: activeTerminalPaneId,
+						commands: [command],
+						write: (input) => writeToTerminal.mutateAsync(input),
+					}).catch((error) => {
+						console.error(
+							"[useTabsWithPresets] Failed to send sequential preset to current terminal:",
+							{
+								workspaceId,
+								tabId: activeTabId,
+								paneId: activeTerminalPaneId,
+								error: error instanceof Error ? error.message : String(error),
+							},
+						);
+					});
+				}
+				return { tabId: activeTabId, paneId: activeTerminalPaneId };
+			}
 
 			if (plan === "active-tab-multi-pane" && activeTabId) {
 				const paneIds = storeAddPanesToTab(activeTabId, {
@@ -357,6 +417,7 @@ export function useTabsWithPresets(projectId?: string | null) {
 			executePresetInNewTab,
 			launchPresetCommands,
 			launchPresetCommand,
+			writeToTerminal,
 		],
 	);
 

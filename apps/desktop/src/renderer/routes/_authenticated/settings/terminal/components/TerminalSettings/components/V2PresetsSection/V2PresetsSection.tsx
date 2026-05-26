@@ -509,7 +509,7 @@ export function V2PresetsSection({
 	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
 	const modeValue: ExecutionMode = hasMultipleCommands
 		? normalizedMode
-		: normalizedMode === "split-pane"
+		: normalizedMode === "split-pane" || normalizedMode === "sequential"
 			? "split-pane"
 			: "new-tab";
 

@@ -108,9 +108,13 @@ export function PresetRow({
 				? commands.length > 1
 					? "New tab + panes"
 					: "New tab"
-				: commands.length > 1
-					? "Single tab + panes"
-					: "Split pane";
+				: modeValue === "sequential"
+					? commands.length > 1
+						? "All in current tab"
+						: "Split pane"
+					: commands.length > 1
+						? "Single tab + panes"
+						: "Split pane";
 	const firstCommand =
 		commands.find((cmd) => cmd.trim().length > 0)?.trim() ?? "Empty command";
 	const commandSummary =

@@ -13,10 +13,10 @@ describe("normalizeExecutionMode", () => {
 		);
 	});
 
-	it("maps legacy modes to split-pane and defaults unknown modes to new-tab", () => {
+	it("keeps sequential, maps legacy parallel to split-pane, and defaults unknown modes to new-tab", () => {
 		expect(normalizeExecutionMode("split-pane")).toBe("split-pane");
 		expect(normalizeExecutionMode("parallel")).toBe("split-pane");
-		expect(normalizeExecutionMode("sequential")).toBe("split-pane");
+		expect(normalizeExecutionMode("sequential")).toBe("sequential");
 		expect(normalizeExecutionMode(undefined)).toBe("new-tab");
 		expect(normalizeExecutionMode("unknown")).toBe("new-tab");
 	});
@@ -76,5 +76,28 @@ describe("getPresetLaunchPlan", () => {
 				hasActiveTab: true,
 			}),
 		).toBe("new-tab-multi-pane");
+	});
+
+	it("uses the active terminal for sequential commands", () => {
+		expect(
+			getPresetLaunchPlan({
+				mode: "sequential",
+				target: "active-tab",
+				commandCount: 2,
+				hasActiveTab: true,
+				hasActiveTerminal: true,
+			}),
+		).toBe("active-terminal");
+	});
+
+	it("uses one new-tab pane for sequential commands without an active terminal", () => {
+		expect(
+			getPresetLaunchPlan({
+				mode: "sequential",
+				target: "active-tab",
+				commandCount: 2,
+				hasActiveTab: true,
+			}),
+		).toBe("new-tab-single");
 	});
 });
