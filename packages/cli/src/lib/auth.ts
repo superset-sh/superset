@@ -37,18 +37,70 @@ function generateState(): string {
 	return base64url(randomBytes(32));
 }
 
-async function openBrowser(url: string): Promise<void> {
-	const { exec } = await import("node:child_process");
-	switch (process.platform) {
-		case "darwin":
-			exec(`open "${url}"`);
-			break;
-		case "win32":
-			exec(`start "" "${url}"`);
-			break;
-		default:
-			exec(`xdg-open "${url}"`);
+/**
+ * Returns true if `url` is safe to hand to the OS browser launcher without
+ * any shell interpolation risk. We reject anything containing shell
+ * metacharacters even though the caller only passes URLs built from `URL`
+ * with controlled inputs. This is defense in depth in case a future caller
+ * forwards user-supplied text.
+ *
+ * Legitimate OAuth authorize URLs never contain whitespace, quotes,
+ * backslashes, backticks, redirection operators, `^`, or `|`. `&` is
+ * allowed because it appears in query strings and is safe under our launch
+ * shapes (cmd quotes the URL; macOS/Linux use shell-free spawn). `%` is
+ * allowed because URL percent-encoding uses it heavily; the Windows path
+ * escapes `%` to `^%` so cmd cannot do variable expansion on it.
+ */
+export function isSafeBrowserUrl(url: string): boolean {
+	let parsed: URL;
+	try {
+		parsed = new URL(url);
+	} catch {
+		return false;
 	}
+	if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+		return false;
+	}
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — we want to reject all control chars.
+	return !/[\s"'`\\<>^|\x00-\x1f]/.test(url);
+}
+
+async function openBrowser(url: string): Promise<void> {
+	if (!isSafeBrowserUrl(url)) {
+		console.error(
+			"[auth] refusing to open browser: URL failed safety validation",
+		);
+		return;
+	}
+
+	const { spawn } = await import("node:child_process");
+	const onError = (err: Error) => {
+		// Non-fatal: paste fallback still works.
+		console.error("[auth] failed to open browser:", err.message);
+	};
+
+	// We use spawn (not exec/execFile) with shell:false so the URL is never
+	// passed through a shell. On Windows we have to invoke cmd because
+	// `start` is a cmd built-in, but we keep our own quoting around the URL
+	// so an `&` in the OAuth query string doesn't end the start command.
+	let child: ReturnType<typeof spawn>;
+	if (process.platform === "darwin") {
+		child = spawn("open", [url], { detached: true, stdio: "ignore" });
+	} else if (process.platform === "win32") {
+		// Escape `%` to `^%` so cmd doesn't try to expand `%FOO%` patterns
+		// (URLs often contain `%XX` percent-encoding which would otherwise
+		// hit cmd's variable expansion).
+		const cmdSafeUrl = url.replace(/%/g, "^%");
+		child = spawn("cmd.exe", ["/d", "/s", "/c", `start "" "${cmdSafeUrl}"`], {
+			windowsVerbatimArguments: true,
+			detached: true,
+			stdio: "ignore",
+		});
+	} else {
+		child = spawn("xdg-open", [url], { detached: true, stdio: "ignore" });
+	}
+	child.on("error", onError);
+	child.unref();
 }
 
 export function getWebUrl(): string {
