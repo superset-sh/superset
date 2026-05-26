@@ -74,11 +74,17 @@ async function terminateChild(child: ChildProcess): Promise<void> {
 	if (child.exitCode !== null || child.signalCode !== null) return;
 	await new Promise<void>((resolve) => {
 		let settled = false;
+		// Declare the timer handles up front so `finish()` can always
+		// reach them. If `finish()` runs before the timers are set
+		// (kill() throws or returns false) these stay undefined, and
+		// the clearTimeout guards below are no-ops.
+		let escalation: ReturnType<typeof setTimeout> | undefined;
+		let hardDeadline: ReturnType<typeof setTimeout> | undefined;
 		const finish = () => {
 			if (settled) return;
 			settled = true;
-			clearTimeout(escalation);
-			clearTimeout(hardDeadline);
+			if (escalation) clearTimeout(escalation);
+			if (hardDeadline) clearTimeout(hardDeadline);
 			child.removeListener("exit", onExit);
 			resolve();
 		};
@@ -97,7 +103,7 @@ async function terminateChild(child: ChildProcess): Promise<void> {
 			finish();
 			return;
 		}
-		const escalation = setTimeout(() => {
+		escalation = setTimeout(() => {
 			try {
 				child.kill("SIGKILL");
 			} catch {
@@ -106,7 +112,7 @@ async function terminateChild(child: ChildProcess): Promise<void> {
 		}, KILL_GRACE_PERIOD_MS);
 		escalation.unref();
 		// Absolute backstop so we don't hang the CLI if the OS misses the exit event.
-		const hardDeadline = setTimeout(finish, KILL_HARD_DEADLINE_MS);
+		hardDeadline = setTimeout(finish, KILL_HARD_DEADLINE_MS);
 		hardDeadline.unref();
 	});
 }
@@ -194,19 +200,20 @@ export async function spawnHostService(
 		},
 	});
 
-	if (!child.pid) {
-		throw new Error("Failed to spawn host-service");
-	}
-
-	// Surface spawn errors instead of letting them bubble as unhandled
-	// 'error' events on the ChildProcess (which crash the CLI process).
-	// Only relevant during startup; we detach the handler once healthy so
-	// later 'error' events (e.g. EPIPE on stdio) don't get silently captured.
+	// Attach the 'error' listener immediately after spawn, before the pid
+	// check. Spawn failures (e.g. ENOENT) emit 'error' asynchronously and
+	// would crash the CLI as an unhandled event if no listener is attached
+	// by the time the event loop processes them. `once` auto-detaches so a
+	// later error after startup doesn't fire into a stale closure.
 	let spawnError: Error | null = null;
 	const onSpawnError = (err: Error) => {
 		spawnError = err;
 	};
-	child.on("error", onSpawnError);
+	child.once("error", onSpawnError);
+
+	if (!child.pid) {
+		throw new Error("Failed to spawn host-service");
+	}
 
 	// Track early exit so health-check can stop polling instead of waiting
 	// for the full timeout when the child already died. Same detach pattern
@@ -245,6 +252,7 @@ export async function spawnHostService(
 	// Healthy: detach the startup-only listeners so any later
 	// 'error'/'exit' events surface through normal Node behavior instead
 	// of being silently captured by closure refs we no longer read.
+	// removeListener is a no-op for `once` listeners that already fired.
 	child.removeListener("error", onSpawnError);
 	child.removeListener("exit", onStartupExit);
 
