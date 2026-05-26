@@ -12,11 +12,11 @@ import { cn } from "@/lib/utils";
 const statusDotVariants = cva("rounded-full", {
 	variants: {
 		variant: {
-			live: "bg-state-live-fg",
-			warning: "bg-state-warning-fg",
-			danger: "bg-state-danger-fg",
-			success: "bg-state-success-fg",
-			neutral: "bg-state-neutral-fg",
+			live: "bg-green-600",
+			warning: "bg-amber-600",
+			danger: "bg-destructive",
+			success: "bg-green-600",
+			neutral: "bg-muted-foreground",
 		},
 		size: {
 			xs: "size-1.5", // 6px
@@ -38,10 +38,10 @@ type StatusDotSize = NonNullable<
 >;
 
 const haloBgByVariant: Record<StatusDotVariant, string> = {
-	live: "bg-state-live-bg",
-	warning: "bg-state-warning-bg",
-	danger: "bg-state-danger-bg",
-	success: "bg-state-success-bg",
+	live: "bg-green-50 dark:bg-green-950/30",
+	warning: "bg-amber-50 dark:bg-amber-950/30",
+	danger: "bg-destructive/10",
+	success: "bg-green-50 dark:bg-green-950/30",
 	neutral: "bg-transparent",
 };
 

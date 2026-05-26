@@ -31,7 +31,7 @@ const STATUS: Record<ToolCallStatus, StatusConfig> = {
 		ruleVariant: "running",
 		statusPillVariant: "live",
 		statusLabel: "RUNNING",
-		iconColorClass: "text-state-live-fg",
+		iconColorClass: "text-green-600",
 		showSpinner: true,
 	},
 	done: {
@@ -44,13 +44,13 @@ const STATUS: Record<ToolCallStatus, StatusConfig> = {
 		ruleVariant: "pending",
 		statusPillVariant: "warning",
 		statusLabel: "AWAITING",
-		iconColorClass: "text-state-warning-fg",
+		iconColorClass: "text-amber-600",
 	},
 	error: {
 		ruleVariant: "error",
 		statusPillVariant: "danger",
 		statusLabel: "FAILED",
-		iconColorClass: "text-state-danger-fg",
+		iconColorClass: "text-destructive",
 	},
 	neutral: {
 		ruleVariant: "neutral",
@@ -118,10 +118,7 @@ export function ToolCallCard({
 					{statusText ? (
 						<View className="flex-row items-center gap-1">
 							{cfg.showSpinner ? (
-								<ActivityIndicator
-									size="small"
-									className="text-state-live-fg"
-								/>
+								<ActivityIndicator size="small" className="text-green-600" />
 							) : null}
 							<Pill
 								label={statusText}

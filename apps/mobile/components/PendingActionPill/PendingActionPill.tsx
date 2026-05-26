@@ -118,18 +118,18 @@ export function PendingActionPill({
 				accessibilityLabel={`${resolvedLabel} — tap to view`}
 				disabled={disabled}
 				className={cn(
-					"flex-row items-center gap-1.5 h-7 px-3 rounded-full bg-state-warning-bg border border-state-warning-fg/30 active:opacity-70",
+					"flex-row items-center gap-1.5 h-7 px-3 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-600/30 active:opacity-70",
 					disabled && "opacity-50",
 					className,
 				)}
 				{...props}
 			>
-				<Icon as={cfg.leadingIcon} className="size-3.5 text-state-warning-fg" />
-				<Text className="text-xs font-mono uppercase tracking-wider font-bold text-state-warning-fg">
+				<Icon as={cfg.leadingIcon} className="size-3.5 text-amber-600" />
+				<Text className="text-xs font-mono uppercase tracking-wider font-bold text-amber-600">
 					{resolvedLabel}
 				</Text>
 				{directionIcon ? (
-					<Icon as={directionIcon} className="size-3.5 text-state-warning-fg" />
+					<Icon as={directionIcon} className="size-3.5 text-amber-600" />
 				) : null}
 			</Pressable>
 		</Animated.View>

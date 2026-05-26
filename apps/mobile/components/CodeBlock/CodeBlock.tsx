@@ -68,7 +68,7 @@ export function CodeBlock({
 					variant="ghost"
 					size="xs"
 					onPress={handleCopy}
-					iconClassName={copied ? "text-state-live-fg" : undefined}
+					iconClassName={copied ? "text-green-600" : undefined}
 				/>
 			</View>
 			<Separator />

@@ -24,9 +24,9 @@ export type StreamingCursorProps = {
 };
 
 const variantColorClass: Record<StreamingCursorVariant, string> = {
-	default: "text-streaming-cursor",
-	steady: "text-streaming-cursor",
-	paused: "text-state-warning-fg",
+	default: "text-foreground",
+	steady: "text-foreground",
+	paused: "text-amber-600",
 };
 
 const variantDurationMs: Record<StreamingCursorVariant, number> = {

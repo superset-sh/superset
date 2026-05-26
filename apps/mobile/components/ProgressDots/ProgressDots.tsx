@@ -29,7 +29,7 @@ const dotVariants = cva("rounded-full", {
 		variant: {
 			muted: "bg-muted-foreground",
 			accent: "bg-primary",
-			live: "bg-state-live-fg",
+			live: "bg-green-600",
 			faint: "bg-muted",
 		},
 		size: {

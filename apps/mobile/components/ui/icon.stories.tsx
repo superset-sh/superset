@@ -113,8 +113,8 @@ const meta: Meta<typeof IconCatalogShowcase> = {
 				"text-muted-foreground",
 				"text-primary",
 				"text-destructive",
-				"text-state-live-fg",
-				"text-state-warning-fg",
+				"text-green-600",
+				"text-amber-600",
 			],
 		},
 		sizeClass: {
@@ -131,4 +131,4 @@ type Story = StoryObj<typeof IconCatalogShowcase>;
 export const Catalog: Story = {};
 export const Ember: Story = { args: { colorClass: "text-primary" } };
 export const Large: Story = { args: { sizeClass: "size-8" } };
-export const Live: Story = { args: { colorClass: "text-state-live-fg" } };
+export const Live: Story = { args: { colorClass: "text-green-600" } };

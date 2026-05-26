@@ -16,9 +16,9 @@ const pillVariants = cva("", {
 			default: "bg-card border-border",
 			strong: "bg-accent border-border",
 			accent: "bg-primary/15 border-transparent",
-			live: "bg-state-live-bg border-transparent",
-			warning: "bg-state-warning-bg border-transparent",
-			danger: "bg-state-danger-bg border-transparent",
+			live: "bg-green-50 dark:bg-green-950/30 border-transparent",
+			warning: "bg-amber-50 dark:bg-amber-950/30 border-transparent",
+			danger: "bg-destructive/10 border-transparent",
 		},
 		size: {
 			sm: "h-5 px-2 gap-1",
@@ -49,9 +49,9 @@ const pillTextColorByVariant: Record<PillVariant, string> = {
 	default: "text-foreground",
 	strong: "text-foreground",
 	accent: "text-primary",
-	live: "text-state-live-fg",
-	warning: "text-state-warning-fg",
-	danger: "text-state-danger-fg",
+	live: "text-green-600",
+	warning: "text-amber-600",
+	danger: "text-destructive",
 };
 
 const pillIconSizeBySize: Record<PillSize, string> = {

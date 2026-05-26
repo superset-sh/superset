@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 const toolStatusRuleVariants = cva("rounded-sm", {
 	variants: {
 		variant: {
-			running: "bg-state-live-fg",
-			done: "bg-state-success-fg",
-			pending: "bg-state-warning-fg",
-			error: "bg-state-danger-fg",
+			running: "bg-green-600",
+			done: "bg-green-600",
+			pending: "bg-amber-600",
+			error: "bg-destructive",
 			neutral: "bg-muted-foreground",
 		},
 		orientation: {

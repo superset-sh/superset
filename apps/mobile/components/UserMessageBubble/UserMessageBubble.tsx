@@ -69,7 +69,7 @@ export function UserMessageBubble({
 			<View className="flex-row items-center gap-2 px-1">
 				{failed ? (
 					<>
-						<Text className="text-xs text-state-danger-fg">Failed to send</Text>
+						<Text className="text-xs text-destructive">Failed to send</Text>
 						<Button
 							size="sm"
 							variant="link"

@@ -60,17 +60,17 @@ const variantMapping: Record<ToastBaseVariant, Mapping> = {
 	success: {
 		ruleVariant: "done",
 		defaultIcon: CheckCircle2,
-		iconColor: "text-state-success-fg",
+		iconColor: "text-green-600",
 	},
 	warning: {
 		ruleVariant: "pending",
 		defaultIcon: AlertTriangle,
-		iconColor: "text-state-warning-fg",
+		iconColor: "text-amber-600",
 	},
 	danger: {
 		ruleVariant: "error",
 		defaultIcon: AlertCircle,
-		iconColor: "text-state-danger-fg",
+		iconColor: "text-destructive",
 	},
 	loading: {
 		ruleVariant: "running",

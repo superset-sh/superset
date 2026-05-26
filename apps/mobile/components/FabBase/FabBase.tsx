@@ -202,10 +202,7 @@ export function FabBase({
 				accessibilityElementsHidden
 				importantForAccessibility="no-hide-descendants"
 				style={ringStyle}
-				className={cn(
-					"absolute bg-state-live-fg",
-					ringSizeBySize[resolvedSize],
-				)}
+				className={cn("absolute bg-green-600", ringSizeBySize[resolvedSize])}
 			/>
 			{fab}
 		</View>

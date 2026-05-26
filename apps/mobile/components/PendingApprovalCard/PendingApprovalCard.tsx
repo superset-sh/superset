@@ -24,23 +24,23 @@ const STATE: Record<PendingApprovalCardState, StateConfig> = {
 	pending: {
 		ruleVariant: "pending",
 		icon: Target,
-		iconColorClass: "text-state-warning-fg",
+		iconColorClass: "text-amber-600",
 	},
 	resolving: {
 		ruleVariant: "pending",
 		icon: Target,
-		iconColorClass: "text-state-warning-fg",
+		iconColorClass: "text-amber-600",
 	},
 	approved: {
 		ruleVariant: "done",
 		icon: Check,
-		iconColorClass: "text-state-success-fg",
+		iconColorClass: "text-green-600",
 		titleOverride: "Tool approved",
 	},
 	declined: {
 		ruleVariant: "error",
 		icon: X,
-		iconColorClass: "text-state-danger-fg",
+		iconColorClass: "text-destructive",
 		titleOverride: "Tool declined",
 	},
 };
@@ -102,7 +102,7 @@ export function PendingApprovalCard({
 					</Text>
 					{alwaysAllowable && state === "pending" ? (
 						<Badge variant="secondary" className="px-1.5 py-0">
-							<Text className="text-[10px] font-mono uppercase tracking-wider text-state-warning-fg">
+							<Text className="text-[10px] font-mono uppercase tracking-wider text-amber-600">
 								ALLOWABLE
 							</Text>
 						</Badge>

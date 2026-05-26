@@ -28,26 +28,26 @@ type VariantConfig = {
 
 const VARIANT: Record<BannerVariant, VariantConfig> = {
 	offline: {
-		bgClass: "bg-state-warning-bg",
-		textClass: "text-state-warning-fg",
+		bgClass: "bg-amber-50 dark:bg-amber-950/30",
+		textClass: "text-amber-600",
 		ruleVariant: "pending",
 		defaultIcon: WifiOff,
 	},
 	unpaid: {
-		bgClass: "bg-state-danger-bg",
-		textClass: "text-state-danger-fg",
+		bgClass: "bg-destructive/10",
+		textClass: "text-destructive",
 		ruleVariant: "error",
 		defaultIcon: AlertTriangle,
 	},
 	"dispatch-failed": {
-		bgClass: "bg-state-danger-bg",
-		textClass: "text-state-danger-fg",
+		bgClass: "bg-destructive/10",
+		textClass: "text-destructive",
 		ruleVariant: "error",
 		defaultIcon: AlertTriangle,
 	},
 	"permission-denied": {
-		bgClass: "bg-state-warning-bg",
-		textClass: "text-state-warning-fg",
+		bgClass: "bg-amber-50 dark:bg-amber-950/30",
+		textClass: "text-amber-600",
 		ruleVariant: "pending",
 		defaultIcon: Bell,
 	},
