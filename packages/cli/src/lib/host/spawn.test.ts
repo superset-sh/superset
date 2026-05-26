@@ -31,8 +31,13 @@ const spawnMock = mock(
 		spawnCalls.push({ command, args, options });
 		return {
 			pid: 12345,
+			exitCode: null,
+			signalCode: null,
 			kill: mock(() => undefined),
 			unref: mock(() => undefined),
+			on: mock(() => undefined),
+			once: mock(() => undefined),
+			removeListener: mock(() => undefined),
 		};
 	},
 );
