@@ -35,7 +35,7 @@ export function ChatViewHostOffline({
 						body="Messages won't send until the host comes back online."
 						cta={
 							<Pressable accessibilityRole="button" onPress={onRetry}>
-								<Text className="text-state-warning-fg font-semibold underline">
+								<Text className="text-amber-600 font-semibold underline">
 									Retry
 								</Text>
 							</Pressable>

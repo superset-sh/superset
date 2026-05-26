@@ -44,7 +44,7 @@ export function ChatViewDispatchOutcomes({
 					body={VARIANT_BODY.unpaid}
 					cta={
 						<Pressable accessibilityRole="button">
-							<Text className="text-state-danger-fg font-semibold underline">
+							<Text className="text-destructive font-semibold underline">
 								Upgrade
 							</Text>
 						</Pressable>
@@ -56,7 +56,7 @@ export function ChatViewDispatchOutcomes({
 					body={VARIANT_BODY["dispatch-failed"]}
 					cta={
 						<Pressable accessibilityRole="button">
-							<Text className="text-state-danger-fg font-semibold underline">
+							<Text className="text-destructive font-semibold underline">
 								Retry
 							</Text>
 						</Pressable>

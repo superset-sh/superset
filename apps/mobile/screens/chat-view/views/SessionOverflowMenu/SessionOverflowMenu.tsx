@@ -82,17 +82,13 @@ export function SessionOverflowMenu({
 								<Icon
 									as={item.icon}
 									className={
-										item.destructive
-											? "text-state-danger-fg"
-											: "text-foreground"
+										item.destructive ? "text-destructive" : "text-foreground"
 									}
 									size={20}
 								/>
 								<Text
 									className={
-										item.destructive
-											? "text-state-danger-fg"
-											: "text-foreground"
+										item.destructive ? "text-destructive" : "text-foreground"
 									}
 								>
 									{item.label}

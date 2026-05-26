@@ -32,7 +32,7 @@ export function ChatViewErrorRetry({
 						body="The host returned an error. Retry to try again."
 						cta={
 							<Pressable accessibilityRole="button" onPress={onRetry}>
-								<Text className="text-state-danger-fg font-semibold underline">
+								<Text className="text-destructive font-semibold underline">
 									Retry
 								</Text>
 							</Pressable>
