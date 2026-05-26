@@ -158,14 +158,22 @@ export async function DELETE(
 		},
 	});
 
-	await db
-		.delete(chatSessions)
-		.where(
-			and(
-				eq(chatSessions.id, sessionId),
-				eq(chatSessions.createdBy, session.user.id),
-			),
-		);
+	// Only delete the DB row when upstream confirms the stream is gone.
+	// fetch() does not throw on non-2xx, so we have to check explicitly,
+	// otherwise an upstream 5xx leaves an orphaned stream with no DB row
+	// pointing at it. 404 from upstream is treated as success because
+	// the stream is already absent.
+	const upstreamGone = response.ok || response.status === 404;
+	if (upstreamGone) {
+		await db
+			.delete(chatSessions)
+			.where(
+				and(
+					eq(chatSessions.id, sessionId),
+					eq(chatSessions.createdBy, session.user.id),
+				),
+			);
+	}
 
 	const headers = new Headers();
 	for (const [key, value] of response.headers.entries()) {

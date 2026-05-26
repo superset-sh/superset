@@ -125,10 +125,14 @@ export async function PUT(
 	}
 
 	// onConflictDoNothing is silent when another caller raced us with the
-	// same sessionId. Re-check ownership so the loser of a race gets a 404
-	// instead of a 200 pointing at a row they don't own.
+	// same sessionId. Re-check both ownership and organizationId so the
+	// loser of a race gets a 404 instead of a 200 pointing at a row
+	// stored under a different org than the one the caller asked for.
 	const postInsert = await getOwnedChatSession(sessionId, session.user.id);
-	if (postInsert.kind !== "ok") {
+	if (
+		postInsert.kind !== "ok" ||
+		postInsert.row.organizationId !== body.organizationId
+	) {
 		return Response.json({ error: "Not found" }, { status: 404 });
 	}
 
