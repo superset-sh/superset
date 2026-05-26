@@ -1,4 +1,4 @@
-import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
+import type { WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
@@ -14,8 +14,9 @@ import type {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { selectWorkspaceRunDefinition } from "shared/workspace-run-definition";
 import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData, TerminalPaneData } from "../../types";
+import type { PaneViewerData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import { placeRunTerminalPane } from "./placeRunTerminalPane";
 
 const CTRL_C_INPUT = "\u0003";
 const TERMINAL_GONE_ERROR_MESSAGES = [
@@ -44,18 +45,6 @@ function markStopped(
 	state.stoppedAt = stoppedAt;
 	if (overrides?.exitCode !== undefined) state.exitCode = overrides.exitCode;
 	if (overrides?.signal !== undefined) state.signal = overrides.signal;
-}
-
-function makeTerminalPane(
-	terminalId: string,
-	paneId: string,
-): CreatePaneInput<PaneViewerData> {
-	return {
-		id: paneId,
-		kind: "terminal",
-		titleOverride: "Workspace Run",
-		data: { terminalId } as TerminalPaneData,
-	};
 }
 
 function getDefinitionId(
@@ -182,10 +171,7 @@ export function useV2WorkspaceRun({
 				};
 			});
 
-			const tabId = crypto.randomUUID();
-			const paneId = crypto.randomUUID();
-			const pane = makeTerminalPane(terminalId, paneId);
-			store.getState().addTab({ id: tabId, panes: [pane] });
+			placeRunTerminalPane(store, terminalId);
 		} catch (error) {
 			toast.error("Failed to run workspace command", {
 				description: error instanceof Error ? error.message : "Unknown error",
