@@ -24,8 +24,8 @@ export interface HostAgentPreset {
  *
  * `promptArgs` is only included when launching with a prompt — codex's
  * trailing `--`, opencode's `--prompt`, and copilot's `-i` therefore do
- * not appear in promptless launches. Stdin transport pipes the prompt to
- * the spawned process's stdin instead of pushing it to argv.
+ * not appear in promptless launches. Stdin transport sends the prompt through
+ * the terminal input stream instead of pushing it to argv.
  *
  * Superset is intentionally excluded — its model/provider config
  * lives in chat settings, not in terminal-agent configs.
