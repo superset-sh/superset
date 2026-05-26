@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it, vi } from "bun:test";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 
 describe("relay-client", () => {
@@ -33,8 +33,8 @@ describe("relay-client", () => {
 					ok: false,
 					status: 500,
 					text: () => Promise.resolve(longBody),
-				})
-			) as any;
+				}),
+			) as unknown as typeof fetch;
 
 			const options = {
 				relayUrl: "http://relay.local",
@@ -58,14 +58,14 @@ describe("relay-client", () => {
 		});
 
 		it("throws RelayDispatchError on invalid JSON with truncated snippet", async () => {
-			const longBody = "invalid json " + "x".repeat(500);
+			const longBody = `invalid json ${"x".repeat(500)}`;
 			global.fetch = vi.fn(() =>
 				Promise.resolve({
 					ok: true,
 					status: 200,
 					text: () => Promise.resolve(longBody),
-				})
-			) as any;
+				}),
+			) as unknown as typeof fetch;
 
 			const options = {
 				relayUrl: "http://relay.local",
@@ -88,7 +88,7 @@ describe("relay-client", () => {
 
 		it("throws RelayDispatchError when result.data is missing with truncated body", async () => {
 			const resultObj = { result: {} };
-			const longBody = JSON.stringify(resultObj) + "x".repeat(500);
+			const _longBody = JSON.stringify(resultObj) + "x".repeat(500);
 			// Create valid JSON with missing data field
 			const validJson = JSON.stringify(resultObj);
 			global.fetch = vi.fn(() =>
@@ -96,8 +96,8 @@ describe("relay-client", () => {
 					ok: true,
 					status: 200,
 					text: () => Promise.resolve(validJson),
-				})
-			) as any;
+				}),
+			) as unknown as typeof fetch;
 
 			const options = {
 				relayUrl: "http://relay.local",
@@ -125,8 +125,8 @@ describe("relay-client", () => {
 					ok: false,
 					status: 503,
 					text: () => Promise.resolve('{"error":"Service unavailable"}'),
-				})
-			) as any;
+				}),
+			) as unknown as typeof fetch;
 
 			const options = {
 				relayUrl: "http://relay.local",
@@ -152,8 +152,8 @@ describe("relay-client", () => {
 					ok: false,
 					status: 502,
 					text: () => Promise.resolve('{"error":"Bad gateway"}'),
-				})
-			) as any;
+				}),
+			) as unknown as typeof fetch;
 
 			const options = {
 				relayUrl: "http://relay.local",
@@ -179,8 +179,8 @@ describe("relay-client", () => {
 					ok: false,
 					status: 504,
 					text: () => Promise.resolve('{"error":"Gateway timeout"}'),
-				})
-			) as any;
+				}),
+			) as unknown as typeof fetch;
 
 			const options = {
 				relayUrl: "http://relay.local",
@@ -207,8 +207,8 @@ describe("relay-client", () => {
 					ok: false,
 					status: 418,
 					text: () => Promise.resolve(responseBody),
-				})
-			) as any;
+				}),
+			) as unknown as typeof fetch;
 
 			const options = {
 				relayUrl: "http://relay.local",
@@ -235,8 +235,8 @@ describe("relay-client", () => {
 					ok: false,
 					status: 500,
 					text: () => Promise.resolve(longBody),
-				})
-			) as any;
+				}),
+			) as unknown as typeof fetch;
 
 			const options = {
 				relayUrl: "http://relay.local",

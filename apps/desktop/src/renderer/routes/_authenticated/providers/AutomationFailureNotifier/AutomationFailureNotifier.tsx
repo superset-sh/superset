@@ -1,5 +1,5 @@
+import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { eq, or } from "drizzle-orm";
 import { useEffect, useRef } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useCollections } from "../CollectionsProvider";
