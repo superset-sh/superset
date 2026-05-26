@@ -79,6 +79,7 @@ export const EXECUTION_MODES = [
 	"split-pane",
 	"new-tab",
 	"new-tab-split-pane",
+	"sequential",
 ] as const;
 
 export type ExecutionMode = (typeof EXECUTION_MODES)[number];
@@ -87,12 +88,13 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 	if (
 		mode === "split-pane" ||
 		mode === "new-tab" ||
-		mode === "new-tab-split-pane"
+		mode === "new-tab-split-pane" ||
+		mode === "sequential"
 	) {
 		return mode;
 	}
 
-	if (mode === "parallel" || mode === "sequential") {
+	if (mode === "parallel") {
 		return "split-pane";
 	}
 
