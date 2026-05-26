@@ -60,7 +60,6 @@ export function shouldOpenBrowser(): boolean {
 	if (!process.stdout.isTTY) return false;
 	if (process.env.CI) return false;
 	if (process.env.SSH_CONNECTION || process.env.SSH_TTY) return false;
-	if (process.env.SUPERSET_WORKSPACE_ID) return false;
 	if (
 		process.platform === "linux" &&
 		!process.env.DISPLAY &&

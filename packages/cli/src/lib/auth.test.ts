@@ -26,15 +26,6 @@ describe("shouldOpenBrowser detection", () => {
 		});
 	});
 
-	test("AC-1: shouldOpenBrowser returns false when SUPERSET_WORKSPACE_ID is set", () => {
-		process.env = {
-			SUPERSET_WORKSPACE_ID: "ws-12345",
-		};
-		process.stdout.isTTY = true;
-
-		const result = shouldOpenBrowser();
-		expect(result).toBe(false);
-	});
 
 	test("AC-2a: shouldOpenBrowser returns false with SSH_CONNECTION set (regression)", () => {
 		Object.defineProperty(process, "platform", {
