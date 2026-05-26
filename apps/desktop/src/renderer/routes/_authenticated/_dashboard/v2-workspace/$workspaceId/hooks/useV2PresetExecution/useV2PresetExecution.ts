@@ -59,6 +59,7 @@ function getActiveTerminalPane(state: WorkspaceStore<PaneViewerData>) {
 		tabId: active.tabId,
 		paneId: active.pane.id,
 		terminalId: active.pane.data.terminalId,
+		titleOverride: active.pane.titleOverride,
 	};
 }
 
@@ -210,6 +211,17 @@ export function useV2PresetExecution({
 								}),
 							),
 						});
+						if (title && !activeTerminal.titleOverride?.trim()) {
+							// Reused terminals keep their existing pane, so apply the
+							// first preset label explicitly instead of relying on creation
+							// metadata. Once a pane has a label, later preset runs must not
+							// rename it.
+							state.setPaneTitleOverride({
+								tabId: activeTerminal.tabId,
+								paneId: activeTerminal.paneId,
+								titleOverride: title,
+							});
+						}
 						break;
 					}
 

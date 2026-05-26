@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	getTerminalDisplayTitle,
 	getTerminalSessionListRefetchInterval,
 	shouldQueryTerminalSessionList,
 	TERMINAL_SESSION_LIST_REFETCH_INTERVAL_MS,
@@ -23,5 +24,23 @@ describe("TerminalSessionDropdown query policy", () => {
 			expect(shouldQueryTerminalSessionList(false)).toBe(false);
 			expect(getTerminalSessionListRefetchInterval(false)).toBe(false);
 		}
+	});
+});
+
+describe("getTerminalDisplayTitle", () => {
+	it("prefers explicit pane title overrides over runtime titles", () => {
+		expect(
+			getTerminalDisplayTitle({
+				titleOverride: "echo sequence",
+				runtimeTitle: "Terminal",
+				sessionTitle: "zsh",
+			}),
+		).toBe("echo sequence");
+	});
+
+	it("falls back through runtime, session, and default titles", () => {
+		expect(getTerminalDisplayTitle({ runtimeTitle: "vim" })).toBe("vim");
+		expect(getTerminalDisplayTitle({ sessionTitle: "zsh" })).toBe("zsh");
+		expect(getTerminalDisplayTitle({})).toBe("Terminal");
 	});
 });

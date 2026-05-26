@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { normalizeExecutionMode } from "@superset/local-db/schema/zod";
-import { getPresetLaunchPlan } from "./preset-launch";
+import {
+	getPresetLaunchPlan,
+	shouldApplyPresetPaneName,
+} from "./preset-launch";
 
 describe("normalizeExecutionMode", () => {
 	it("returns new-tab for new-tab mode", () => {
@@ -19,6 +22,48 @@ describe("normalizeExecutionMode", () => {
 		expect(normalizeExecutionMode("sequential")).toBe("sequential");
 		expect(normalizeExecutionMode(undefined)).toBe("new-tab");
 		expect(normalizeExecutionMode("unknown")).toBe("new-tab");
+	});
+});
+
+describe("shouldApplyPresetPaneName", () => {
+	it("allows preset names for default terminal panes", () => {
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "Terminal",
+				presetName: "echo sequence",
+			}),
+		).toBe(true);
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "",
+				presetName: "desktop",
+			}),
+		).toBe(true);
+	});
+
+	it("preserves existing pane labels", () => {
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "echo sequence",
+				presetName: "desktop",
+			}),
+		).toBe(false);
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "Terminal",
+				presetName: "desktop",
+				userTitle: "my shell",
+			}),
+		).toBe(false);
+	});
+
+	it("ignores blank preset names", () => {
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "Terminal",
+				presetName: "  ",
+			}),
+		).toBe(false);
 	});
 });
 

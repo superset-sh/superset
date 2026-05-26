@@ -16,6 +16,7 @@ import {
 	getPresetLaunchPlan,
 	type PresetMode,
 	type PresetOpenTarget,
+	shouldApplyPresetPaneName,
 } from "./preset-launch";
 import { useTabsStore } from "./store";
 import type { AddTabOptions, SplitPaneOptions } from "./types";
@@ -60,6 +61,23 @@ function preparePreset(preset: TerminalPreset): PreparedPreset {
 	};
 }
 
+function shouldLabelPaneForPreset(
+	paneId: string,
+	presetName?: string,
+): boolean {
+	const trimmedName = presetName?.trim();
+	if (!trimmedName) return false;
+
+	const pane = useTabsStore.getState().panes[paneId];
+	if (!pane) return false;
+
+	return shouldApplyPresetPaneName({
+		currentName: pane.name,
+		presetName: trimmedName,
+		userTitle: pane.userTitle,
+	});
+}
+
 export function useTabsWithPresets(projectId?: string | null) {
 	const newTabPresetsInput = useMemo(
 		() => ({ projectId: projectId ?? null }),
@@ -77,6 +95,7 @@ export function useTabsWithPresets(projectId?: string | null) {
 	const storeSplitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
 	const storeSplitPaneHorizontal = useTabsStore((s) => s.splitPaneHorizontal);
 	const storeSplitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
+	const setPaneName = useTabsStore((s) => s.setPaneName);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const createOrAttach = useCreateOrAttachWithTheme();
 	const writeToTerminal = electronTrpc.terminal.write.useMutation();
@@ -355,6 +374,16 @@ export function useTabsWithPresets(projectId?: string | null) {
 						);
 					});
 				}
+				const presetPaneName = preset.name?.trim();
+				if (
+					presetPaneName &&
+					shouldLabelPaneForPreset(activeTerminalPaneId, presetPaneName)
+				) {
+					// Reusing the focused terminal does not create a named tab/pane,
+					// so label the default pane once. Existing user/preset labels are
+					// preserved on later preset runs.
+					setPaneName(activeTerminalPaneId, presetPaneName);
+				}
 				return { tabId: activeTabId, paneId: activeTerminalPaneId };
 			}
 
@@ -418,6 +447,7 @@ export function useTabsWithPresets(projectId?: string | null) {
 			launchPresetCommands,
 			launchPresetCommand,
 			writeToTerminal,
+			setPaneName,
 		],
 	);
 
@@ -448,10 +478,17 @@ export function useTabsWithPresets(projectId?: string | null) {
 					},
 				);
 			});
+			const presetPaneName = preset.name?.trim();
+			if (presetPaneName && shouldLabelPaneForPreset(paneId, presetPaneName)) {
+				// This explicit "current terminal" action also reuses a pane, so
+				// only apply the preset label while the pane still has its default
+				// title.
+				setPaneName(paneId, presetPaneName);
+			}
 
 			return true;
 		},
-		[resolveActiveWorkspaceTabId, writeToTerminal],
+		[resolveActiveWorkspaceTabId, writeToTerminal, setPaneName],
 	);
 
 	const openPreset = useCallback(

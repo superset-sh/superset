@@ -49,3 +49,23 @@ export function getPresetLaunchPlan({
 
 	return hasMultipleCommands ? "new-tab-multi-pane" : "new-tab-single";
 }
+
+export function shouldApplyPresetPaneName({
+	currentName,
+	presetName,
+	userTitle,
+}: {
+	currentName?: string | null;
+	presetName?: string | null;
+	userTitle?: string | null;
+}): boolean {
+	const trimmedName = presetName?.trim();
+	if (!trimmedName) return false;
+
+	if (userTitle?.trim()) return false;
+
+	const currentTitle = currentName?.trim() ?? "";
+	// Presets that reuse an existing terminal should only replace the default
+	// label. Once any real label is present, later preset runs leave it alone.
+	return currentTitle === "" || currentTitle === "Terminal";
+}

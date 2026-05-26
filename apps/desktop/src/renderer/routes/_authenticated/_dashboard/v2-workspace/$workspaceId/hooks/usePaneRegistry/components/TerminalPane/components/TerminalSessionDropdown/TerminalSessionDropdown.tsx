@@ -25,6 +25,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
 import {
+	getTerminalDisplayTitle,
 	getTerminalSessionListRefetchInterval,
 	shouldQueryTerminalSessionList,
 	TERMINAL_SESSION_LIST_STALE_MS,
@@ -277,7 +278,10 @@ export function TerminalSessionDropdown({
 	const hostTitle =
 		runtimeTitle !== undefined ? runtimeTitle : currentSession?.title;
 	const titleOverride = context.pane.titleOverride;
-	const triggerTitle = hostTitle ?? titleOverride ?? "Terminal";
+	const triggerTitle = getTerminalDisplayTitle({
+		titleOverride,
+		runtimeTitle: hostTitle,
+	});
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -355,7 +359,10 @@ export function TerminalSessionDropdown({
 											: "Detached";
 							const title = isCurrent
 								? triggerTitle
-								: (session.title ?? location?.titleOverride ?? "Terminal");
+								: getTerminalDisplayTitle({
+										titleOverride: location?.titleOverride,
+										sessionTitle: session.title,
+									});
 
 							return (
 								<DropdownMenuItem
