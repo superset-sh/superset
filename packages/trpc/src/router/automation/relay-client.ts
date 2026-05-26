@@ -15,6 +15,22 @@ export interface RelayClientOptions {
 	timeoutMs?: number;
 }
 
+function humanRelayMessage(status: number, rawBody: string): string {
+	switch (status) {
+		case 502:
+			return "Target machine is unreachable";
+		case 503:
+			return "Target machine was offline";
+		case 504:
+			return "Target machine timed out";
+		default: {
+			const trimmed =
+				rawBody.length > 200 ? `${rawBody.slice(0, 200)}…` : rawBody;
+			return `Relay error (status ${status}): ${trimmed}`;
+		}
+	}
+}
+
 export class RelayDispatchError extends Error {
 	constructor(
 		message: string,
@@ -65,7 +81,7 @@ export async function relayMutation<TInput, TOutput>(
 	const rawBody = await response.text();
 	if (!response.ok) {
 		throw new RelayDispatchError(
-			`relay ${response.status}: ${rawBody.slice(0, 500)}`,
+			humanRelayMessage(response.status, rawBody),
 			response.status,
 			rawBody,
 		);
