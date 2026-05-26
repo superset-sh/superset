@@ -137,6 +137,7 @@ const DEFAULT_PRESET_IDS = new Set([
 	"codex",
 	"gemini",
 	"copilot",
+	"opencode",
 ]);
 
 export function getDefaultSeedPresets(): HostAgentPreset[] {
