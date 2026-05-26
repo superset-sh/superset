@@ -489,3 +489,149 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
 	});
 });
+
+describe("Terminal Host Session UTF-8 chunk boundary", () => {
+	beforeEach(() => {
+		fakeChildProcess = new FakeChildProcess();
+		spawnCalls = [];
+	});
+
+	function captureBroadcastDataEvents(session: InstanceType<typeof Session>) {
+		const writes: string[] = [];
+		const socket = {
+			write(message: string) {
+				writes.push(message);
+				return true;
+			},
+		} as unknown as import("node:net").Socket;
+
+		(
+			session as unknown as {
+				attachedClients: Map<
+					import("node:net").Socket,
+					{
+						socket: import("node:net").Socket;
+						attachedAt: number;
+						attachToken: symbol;
+					}
+				>;
+			}
+		).attachedClients.set(socket, {
+			socket,
+			attachedAt: Date.now(),
+			attachToken: Symbol("attach"),
+		});
+
+		return () =>
+			writes
+				.map((message) => {
+					try {
+						return JSON.parse(message.trim());
+					} catch {
+						return null;
+					}
+				})
+				.filter(
+					(event): event is { event: string; payload: { data: string } } =>
+						event !== null && event.event === "data",
+				)
+				.map((event) => event.payload.data)
+				.join("");
+	}
+
+	it("decodes a multi-byte UTF-8 character split across two Data frames", () => {
+		const session = new Session({
+			sessionId: "session-utf8-boundary-2byte",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			// /bin/sh has no shell-ready marker, so PTY bytes go straight through
+			// the scanner without holding back ASCII prefixes.
+			shell: "/bin/sh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+		const getBroadcastData = captureBroadcastDataEvents(session);
+
+		// "é" (U+00E9) encodes to 0xC3 0xA9 in UTF-8.
+		// Split it across two Data frames — the PTY subprocess flushes on a
+		// timer/size threshold and can land between bytes of one codepoint.
+		sendFrame(fakeChildProcess, PtySubprocessIpcType.Data, Buffer.from([0xc3]));
+		sendFrame(fakeChildProcess, PtySubprocessIpcType.Data, Buffer.from([0xa9]));
+
+		const combined = getBroadcastData();
+		expect(combined).toBe("é");
+		expect(combined).not.toContain("�");
+	});
+
+	it("decodes a 4-byte UTF-8 emoji split across multiple Data frames", () => {
+		const session = new Session({
+			sessionId: "session-utf8-boundary-4byte",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/sh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+		const getBroadcastData = captureBroadcastDataEvents(session);
+
+		// "😀" (U+1F600) encodes to 0xF0 0x9F 0x98 0x80 in UTF-8.
+		// Split across two Data frames at the worst possible spot (mid-codepoint).
+		sendFrame(
+			fakeChildProcess,
+			PtySubprocessIpcType.Data,
+			Buffer.from([0xf0, 0x9f]),
+		);
+		sendFrame(
+			fakeChildProcess,
+			PtySubprocessIpcType.Data,
+			Buffer.from([0x98, 0x80]),
+		);
+
+		const combined = getBroadcastData();
+		expect(combined).toBe("😀");
+		expect(combined).not.toContain("�");
+	});
+
+	it("preserves surrounding ASCII when a multi-byte character spans a Data frame boundary", () => {
+		const session = new Session({
+			sessionId: "session-utf8-boundary-mixed",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/sh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+
+		spawnAndReadySession(session);
+		const getBroadcastData = captureBroadcastDataEvents(session);
+
+		// "ab" + first half of "é" in frame 1, second half + "cd" in frame 2.
+		sendFrame(
+			fakeChildProcess,
+			PtySubprocessIpcType.Data,
+			Buffer.from([0x61, 0x62, 0xc3]),
+		);
+		sendFrame(
+			fakeChildProcess,
+			PtySubprocessIpcType.Data,
+			Buffer.from([0xa9, 0x63, 0x64]),
+		);
+
+		const combined = getBroadcastData();
+		expect(combined).toBe("abécd");
+		expect(combined).not.toContain("�");
+	});
+});
