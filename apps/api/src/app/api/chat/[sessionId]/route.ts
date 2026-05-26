@@ -1,7 +1,13 @@
 import { db } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
-import { getDurableStream, requireAuth } from "../lib";
+import {
+	accessErrorResponse,
+	getDurableStream,
+	getOwnedChatSession,
+	isOrganizationMember,
+	requireAuth,
+} from "../lib";
 
 function errorMessage(error: unknown): string {
 	if (error instanceof Error) return error.message;
@@ -42,6 +48,27 @@ export async function PUT(
 			{ error: "organizationId is required" },
 			{ status: 400 },
 		);
+	}
+
+	// If the session already exists, the caller must own it. Otherwise the
+	// caller must be a member of the org they're creating the session under,
+	// so chat sessions can't be planted in arbitrary orgs.
+	const existing = await getOwnedChatSession(sessionId, session.user.id);
+	if (existing.kind === "forbidden") {
+		return accessErrorResponse(existing);
+	}
+	if (existing.kind === "not-found") {
+		const isMember = await isOrganizationMember(
+			session.user.id,
+			body.organizationId,
+		);
+		if (!isMember) {
+			return Response.json({ error: "Not found" }, { status: 404 });
+		}
+	} else if (existing.row.organizationId !== body.organizationId) {
+		// Owner is the caller, but they're trying to move the session to a
+		// different org. Reject silently.
+		return Response.json({ error: "Not found" }, { status: 404 });
 	}
 
 	const stream = getDurableStream(sessionId);
@@ -97,6 +124,14 @@ export async function PUT(
 		await db.insert(chatSessions).values(baseValues).onConflictDoNothing();
 	}
 
+	// onConflictDoNothing is silent when another caller raced us with the
+	// same sessionId. Re-check ownership so the loser of a race gets a 404
+	// instead of a 200 pointing at a row they don't own.
+	const postInsert = await getOwnedChatSession(sessionId, session.user.id);
+	if (postInsert.kind !== "ok") {
+		return Response.json({ error: "Not found" }, { status: 404 });
+	}
+
 	if (body.workspaceId) {
 		try {
 			await db
@@ -138,11 +173,21 @@ export async function PATCH(
 	const { sessionId } = await params;
 	const body = (await request.json()) as { title?: string };
 
+	const access = await getOwnedChatSession(sessionId, session.user.id);
+	if (access.kind !== "ok") {
+		return accessErrorResponse(access);
+	}
+
 	if (body.title !== undefined) {
 		await db
 			.update(chatSessions)
 			.set({ title: body.title })
-			.where(eq(chatSessions.id, sessionId));
+			.where(
+				and(
+					eq(chatSessions.id, sessionId),
+					eq(chatSessions.createdBy, session.user.id),
+				),
+			);
 	}
 
 	return Response.json({ success: true }, { status: 200 });
