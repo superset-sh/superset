@@ -1,5 +1,6 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { useCallback } from "react";
+import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
@@ -15,9 +16,16 @@ import type { TerminalLauncher } from "../useV2TerminalLauncher";
 export function useWorkspacePaneOpeners({
 	store,
 	launcher,
+	newTabPresets,
+	executePreset,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
+	newTabPresets: V2TerminalPresetRow[];
+	executePreset: (
+		preset: V2TerminalPresetRow,
+		options?: { target?: "new-tab" | "active-tab" },
+	) => void | Promise<void>;
 }): {
 	openDiffPane: (
 		filePath: string,
@@ -98,7 +106,7 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addTerminalTab = useCallback(async () => {
+	const addBlankTerminalTab = useCallback(async () => {
 		const terminalId = await launcher.create();
 		store.getState().addTab({
 			panes: [
@@ -109,6 +117,19 @@ export function useWorkspacePaneOpeners({
 			],
 		});
 	}, [store, launcher]);
+
+	const addTerminalTab = useCallback(async () => {
+		if (newTabPresets.length === 0) {
+			await addBlankTerminalTab();
+			return;
+		}
+
+		// New terminal tabs are the trigger point for applyOnNewTab presets.
+		// Each matching preset owns the tab/pane shape it creates.
+		for (const preset of newTabPresets) {
+			await executePreset(preset, { target: "new-tab" });
+		}
+	}, [addBlankTerminalTab, executePreset, newTabPresets]);
 
 	const addChatTab = useCallback(() => {
 		store.getState().addTab({
