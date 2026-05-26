@@ -45,11 +45,9 @@ function generateState(): string {
  * forwards user-supplied text.
  *
  * Legitimate OAuth authorize URLs never contain whitespace, quotes,
- * backslashes, backticks, redirection operators, `^`, or `|`. `&` is
- * allowed because it appears in query strings and is safe under our launch
- * shapes (cmd quotes the URL; macOS/Linux use shell-free spawn). `%` is
- * allowed because URL percent-encoding uses it heavily; the Windows path
- * escapes `%` to `^%` so cmd cannot do variable expansion on it.
+ * backslashes, backticks, redirection operators, `^`, or `|`. `&` and `%`
+ * are allowed because they appear in query strings (cmd is bypassed on
+ * Windows so neither triggers expansion or command separation).
  */
 export function isSafeBrowserUrl(url: string): boolean {
 	let parsed: URL;
@@ -61,8 +59,8 @@ export function isSafeBrowserUrl(url: string): boolean {
 	if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
 		return false;
 	}
-	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — we want to reject all control chars.
-	return !/[\s"'`\\<>^|\x00-\x1f]/.test(url);
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — we want to reject all control chars including DEL.
+	return !/[\s"'`\\<>^|\x00-\x1f\x7f]/.test(url);
 }
 
 async function openBrowser(url: string): Promise<void> {
@@ -79,20 +77,17 @@ async function openBrowser(url: string): Promise<void> {
 		console.error("[auth] failed to open browser:", err.message);
 	};
 
-	// We use spawn (not exec/execFile) with shell:false so the URL is never
-	// passed through a shell. On Windows we have to invoke cmd because
-	// `start` is a cmd built-in, but we keep our own quoting around the URL
-	// so an `&` in the OAuth query string doesn't end the start command.
+	// spawn with shell:false on every platform so the URL is never passed
+	// through a shell. On Windows we use rundll32 to call url.dll's
+	// FileProtocolHandler entry point, which is the documented shell-free
+	// way to open a URL. cmd is avoided entirely so there's no risk of
+	// `&` ending the command or `%FOO%` getting variable-expanded inside
+	// percent-encoded URLs.
 	let child: ReturnType<typeof spawn>;
 	if (process.platform === "darwin") {
 		child = spawn("open", [url], { detached: true, stdio: "ignore" });
 	} else if (process.platform === "win32") {
-		// Escape `%` to `^%` so cmd doesn't try to expand `%FOO%` patterns
-		// (URLs often contain `%XX` percent-encoding which would otherwise
-		// hit cmd's variable expansion).
-		const cmdSafeUrl = url.replace(/%/g, "^%");
-		child = spawn("cmd.exe", ["/d", "/s", "/c", `start "" "${cmdSafeUrl}"`], {
-			windowsVerbatimArguments: true,
+		child = spawn("rundll32.exe", ["url.dll,FileProtocolHandler", url], {
 			detached: true,
 			stdio: "ignore",
 		});

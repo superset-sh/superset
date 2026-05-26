@@ -34,23 +34,29 @@ describe("isSafeBrowserUrl", () => {
 		// These are the chars that could break out of cmd.exe's `"..."`
 		// quoting if a URL ever contained them. Real URLs don't.
 		expect(isSafeBrowserUrl('https://x.com/"evil')).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/'evil")).toBe(false);
 		expect(isSafeBrowserUrl("https://x.com/`evil")).toBe(false);
 		expect(isSafeBrowserUrl("https://x.com/\\evil")).toBe(false);
 		expect(isSafeBrowserUrl("https://x.com/<evil")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/>evil")).toBe(false);
 		expect(isSafeBrowserUrl("https://x.com/^evil")).toBe(false);
 		expect(isSafeBrowserUrl("https://x.com/|evil")).toBe(false);
 	});
 
-	test("accepts percent-encoded URLs (cmd %-expansion is handled at launch)", () => {
+	test("accepts percent-encoded URLs", () => {
+		// rundll32 doesn't pass URLs through cmd, so %XX percent-encoding
+		// is safe to keep in the URL.
 		expect(
 			isSafeBrowserUrl("https://x.com/?redirect=http%3A%2F%2Fexample.com"),
 		).toBe(true);
 	});
 
-	test("rejects whitespace and control chars", () => {
+	test("rejects whitespace and control chars including DEL", () => {
 		expect(isSafeBrowserUrl("https://x.com/a b")).toBe(false);
 		expect(isSafeBrowserUrl("https://x.com/a\nb")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/a\rb")).toBe(false);
 		expect(isSafeBrowserUrl("https://x.com/a\x00b")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/a\x7fb")).toBe(false);
 	});
 });
 
