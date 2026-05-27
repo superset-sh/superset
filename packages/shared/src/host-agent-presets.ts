@@ -76,6 +76,17 @@ export const HOST_AGENT_PRESETS = [
 		env: {},
 	},
 	{
+		presetId: "kimi",
+		label: "Kimi",
+		description:
+			"Kimi Code CLI agent backed by the local Kimi login and Kimi Code managed provider.",
+		command: "kimi",
+		args: ["--yolo"],
+		promptTransport: "argv",
+		promptArgs: ["--prompt"],
+		env: {},
+	},
+	{
 		presetId: "mastracode",
 		label: "Mastracode",
 		description:
@@ -136,6 +147,7 @@ const DEFAULT_PRESET_IDS = new Set([
 	"amp",
 	"codex",
 	"gemini",
+	"kimi",
 	"copilot",
 ]);
 

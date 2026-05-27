@@ -49,7 +49,7 @@ describe("createDefaultV2TerminalPresetRows", () => {
 					presetId: "opencode",
 					label: "OpenCode",
 					command: "opencode",
-					order: 2,
+					order: 3,
 				}),
 				createAgent({
 					id: "copilot-config",
@@ -57,9 +57,17 @@ describe("createDefaultV2TerminalPresetRows", () => {
 					label: "Copilot",
 					command: "copilot",
 					args: ["--allow-tool=write"],
-					order: 3,
+					order: 4,
 				}),
-				createAgent({ presetId: "amp", order: 4 }),
+				createAgent({
+					id: "kimi-config",
+					presetId: "kimi",
+					label: "Kimi",
+					command: "kimi",
+					args: ["--yolo"],
+					order: 2,
+				}),
+				createAgent({ presetId: "amp", order: 5 }),
 			],
 			existingPresets: [],
 			createId: () =>
@@ -70,24 +78,27 @@ describe("createDefaultV2TerminalPresetRows", () => {
 		expect(rows.map((row) => row.agentId)).toEqual([
 			"claude-config",
 			"codex-config",
+			"kimi-config",
 			"opencode-config",
 			"copilot-config",
 		]);
 		expect(rows.map((row) => row.name)).toEqual([
 			"Claude",
 			"Codex",
+			"Kimi",
 			"OpenCode",
 			"Copilot",
 		]);
-		expect(rows.map((row) => row.tabOrder)).toEqual([0, 1, 2, 3]);
+		expect(rows.map((row) => row.tabOrder)).toEqual([0, 1, 2, 3, 4]);
 		expect(rows[0]?.commands).toEqual([
 			"claude --dangerously-skip-permissions",
 		]);
 		expect(rows[1]?.commands).toEqual([
 			"codex --dangerously-bypass-approvals-and-sandbox",
 		]);
-		expect(rows[2]?.commands).toEqual(["opencode"]);
-		expect(rows[3]?.commands).toEqual(["copilot --allow-tool=write"]);
+		expect(rows[2]?.commands).toEqual(["kimi --yolo"]);
+		expect(rows[3]?.commands).toEqual(["opencode"]);
+		expect(rows[4]?.commands).toEqual(["copilot --allow-tool=write"]);
 	});
 
 	it("includes structured agent env in seeded preset command snapshots", () => {

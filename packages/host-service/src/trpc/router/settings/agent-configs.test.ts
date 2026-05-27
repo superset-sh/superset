@@ -39,7 +39,14 @@ async function listFirst(
 	return first;
 }
 
-const DEFAULT_PRESET_IDS = ["claude", "amp", "codex", "gemini", "copilot"];
+const DEFAULT_PRESET_IDS = [
+	"claude",
+	"amp",
+	"codex",
+	"gemini",
+	"kimi",
+	"copilot",
+];
 
 describe("agentConfigsRouter", () => {
 	describe("list()", () => {
@@ -49,7 +56,7 @@ describe("agentConfigsRouter", () => {
 			const result = await caller.list();
 
 			expect(result.map((row) => row.presetId)).toEqual(DEFAULT_PRESET_IDS);
-			expect(result.map((row) => row.order)).toEqual([0, 1, 2, 3, 4]);
+			expect(result.map((row) => row.order)).toEqual([0, 1, 2, 3, 4, 5]);
 		});
 
 		it("does not seed Superset", async () => {
@@ -81,6 +88,20 @@ describe("agentConfigsRouter", () => {
 			expect(codex?.args).not.toContain("--ask-for-approval");
 		});
 
+		it("seeds Kimi with the Kimi Code prompt flag", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+			const kimi = result.find((row) => row.presetId === "kimi");
+
+			expect(kimi).toMatchObject({
+				label: "Kimi",
+				command: "kimi",
+				args: ["--yolo"],
+				promptTransport: "argv",
+				promptArgs: ["--prompt"],
+			});
+		});
+
 		it("returns existing rows on subsequent calls without re-seeding", async () => {
 			const caller = createCaller();
 			const first = await caller.list();
@@ -99,7 +120,7 @@ describe("agentConfigsRouter", () => {
 			expect(reordered.map((row) => row.presetId)).toEqual(
 				[...DEFAULT_PRESET_IDS].reverse(),
 			);
-			expect(reordered.map((row) => row.order)).toEqual([0, 1, 2, 3, 4]);
+			expect(reordered.map((row) => row.order)).toEqual([0, 1, 2, 3, 4, 5]);
 		});
 	});
 
@@ -113,10 +134,10 @@ describe("agentConfigsRouter", () => {
 			expect(created.presetId).toBe("pi");
 			expect(created.command).toBe("pi");
 			expect(created.promptTransport).toBe("argv");
-			expect(created.order).toBe(5);
+			expect(created.order).toBe(6);
 			const all = await caller.list();
-			expect(all).toHaveLength(6);
-			expect(new Set(all.map((row) => row.id)).size).toBe(6);
+			expect(all).toHaveLength(7);
+			expect(new Set(all.map((row) => row.id)).size).toBe(7);
 		});
 
 		it("allows duplicate presetId tags with distinct ids", async () => {
@@ -300,7 +321,7 @@ describe("agentConfigsRouter", () => {
 			const result = await caller.reorder({ ids: reversed });
 
 			expect(result.map((row) => row.id)).toEqual(reversed);
-			expect(result.map((row) => row.order)).toEqual([0, 1, 2, 3, 4]);
+			expect(result.map((row) => row.order)).toEqual([0, 1, 2, 3, 4, 5]);
 		});
 
 		it("rejects when ids do not match existing configs", async () => {

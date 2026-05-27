@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { isAnthropicApiKey, isOpenAIApiKey } from "./get-small-model";
+import {
+	isAnthropicApiKey,
+	isKimiApiKey,
+	isOpenAIApiKey,
+} from "./get-small-model";
 
 describe("isAnthropicApiKey", () => {
 	it("accepts a real-shaped key", () => {
@@ -54,5 +58,19 @@ describe("isOpenAIApiKey", () => {
 
 	it("rejects values without the sk- prefix", () => {
 		expect(isOpenAIApiKey("api-key-aaaaaaaaaaaaaaaaaaaaaaaaaaaaa")).toBe(false);
+	});
+});
+
+describe("isKimiApiKey", () => {
+	it("accepts real-shaped Moonshot API keys", () => {
+		expect(isKimiApiKey("sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")).toBe(
+			true,
+		);
+	});
+
+	it("rejects local placeholders", () => {
+		expect(isKimiApiKey("dummy")).toBe(false);
+		expect(isKimiApiKey("sk-kimi-fake-local-dev")).toBe(false);
+		expect(isKimiApiKey("")).toBe(false);
 	});
 });

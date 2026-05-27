@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { authClient, setAuthToken, setJwt } from "renderer/lib/auth-client";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
@@ -6,6 +6,16 @@ import { electronTrpc } from "../../lib/electron-trpc";
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { refetch: refetchSession } = authClient.useSession();
+
+	const refreshJwt = useCallback(async () => {
+		try {
+			const res = await authClient.token();
+			setJwt(res.data?.token ?? null);
+		} catch (err) {
+			setJwt(null);
+			console.warn("[AuthProvider] JWT refresh failed", err);
+		}
+	}, []);
 
 	const { data: storedToken, isSuccess } =
 		electronTrpc.auth.getStoredToken.useQuery(undefined, {
@@ -32,10 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						);
 					}
 					try {
-						const res = await authClient.token();
-						if (res.data?.token) {
-							setJwt(res.data.token);
-						}
+						await refreshJwt();
 					} catch (err) {
 						console.warn(
 							"[AuthProvider] JWT fetch failed during hydration",
@@ -53,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [storedToken, isSuccess, isHydrated, refetchSession]);
+	}, [storedToken, isSuccess, isHydrated, refetchSession, refreshJwt]);
 
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
 		onData: async (data) => {
@@ -69,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						err,
 					);
 				}
+				await refreshJwt();
 				setIsHydrated(true);
 			} else if (data === null) {
 				setAuthToken(null);
@@ -88,22 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (!isHydrated) return;
 
-		const refreshJwt = () =>
-			authClient
-				.token()
-				.then((res) => {
-					if (res.data?.token) {
-						setJwt(res.data.token);
-					}
-				})
-				.catch((err: unknown) => {
-					console.warn("[AuthProvider] JWT refresh failed", err);
-				});
-
 		refreshJwt();
 		const interval = setInterval(refreshJwt, 50 * 60 * 1000);
 		return () => clearInterval(interval);
-	}, [isHydrated]);
+	}, [isHydrated, refreshJwt]);
 
 	if (!isHydrated) {
 		return (

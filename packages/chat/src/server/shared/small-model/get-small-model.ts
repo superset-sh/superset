@@ -9,8 +9,16 @@ import {
 
 const ANTHROPIC_SMALL_MODEL_ID = "claude-haiku-4-5-20251001";
 const OPENAI_SMALL_MODEL_ID = "gpt-4o-mini";
+const KIMI_SMALL_MODEL_ID = "kimi-k2.6";
+const DEFAULT_KIMI_BASE_URL = "https://api.moonshot.ai/v1";
 
 const MIN_API_KEY_LENGTH = 30;
+const DEV_PLACEHOLDER_KEYS = new Set([
+	"dummy",
+	"placeholder",
+	"sk-kimi-fake-local-dev",
+	"sk-moonshot-fake-local-dev",
+]);
 
 // OAuth tokens issued through the Claude Code flow are accepted by the
 // Anthropic API only when these companion headers are sent alongside the
@@ -52,8 +60,29 @@ export function isOpenAIApiKey(key: string): boolean {
 	return key.startsWith("sk-") && key.length >= MIN_API_KEY_LENGTH;
 }
 
+export function isKimiApiKey(key: string): boolean {
+	const trimmed = key.trim();
+	if (trimmed.length < MIN_API_KEY_LENGTH) return false;
+	const normalized = trimmed.toLowerCase();
+	return !DEV_PLACEHOLDER_KEYS.has(normalized) && !normalized.includes("fake");
+}
+
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
+}
+
+function trimEnvValue(value: string | undefined): string | null {
+	const trimmed = value?.trim();
+	return trimmed ? trimmed : null;
+}
+
+function normalizeBaseUrl(value: string | null): string {
+	if (!value) return DEFAULT_KIMI_BASE_URL;
+	try {
+		return new URL(value).toString().replace(/\/$/, "");
+	} catch {
+		return value;
+	}
 }
 
 type AnthropicResolved =
@@ -139,6 +168,37 @@ async function resolveOpenAIApiKey(): Promise<string | null> {
 	return null;
 }
 
+function resolveKimiConfig(): {
+	apiKey: string;
+	baseURL: string;
+	modelId: string;
+} | null {
+	if (
+		trimEnvValue(process.env.OPENAI_API_KEY) ||
+		trimEnvValue(process.env.OPENAI_AUTH_TOKEN)
+	) {
+		return null;
+	}
+
+	const apiKey =
+		trimEnvValue(process.env.KIMI_API_KEY) ??
+		trimEnvValue(process.env.MOONSHOT_API_KEY);
+	if (!apiKey || !isKimiApiKey(apiKey)) return null;
+
+	return {
+		apiKey,
+		baseURL: normalizeBaseUrl(
+			trimEnvValue(process.env.KIMI_BASE_URL) ??
+				trimEnvValue(process.env.KIMI_API_BASE_URL) ??
+				trimEnvValue(process.env.MOONSHOT_BASE_URL),
+		),
+		modelId:
+			trimEnvValue(process.env.KIMI_SMALL_MODEL_ID) ??
+			trimEnvValue(process.env.MOONSHOT_SMALL_MODEL_ID) ??
+			KIMI_SMALL_MODEL_ID,
+	};
+}
+
 /**
  * Returns an AI-SDK `LanguageModel` for small-model tasks (branch naming,
  * title generation). Returns `null` if no usable credentials are available.
@@ -147,8 +207,10 @@ async function resolveOpenAIApiKey(): Promise<string | null> {
  *   1. ANTHROPIC_API_KEY env var (validated)
  *   2. mastracode auth storage — Anthropic api key
  *   3. mastracode auth storage — Anthropic OAuth (refreshed on the fly)
- *   4. OPENAI_API_KEY env var (validated)
- *   5. mastracode auth storage — OpenAI api key (`openai-codex` / `openai`)
+ *   4. KIMI_API_KEY / MOONSHOT_API_KEY env var (OpenAI-compatible, when no
+ *      direct OpenAI env credential is set)
+ *   5. OPENAI_API_KEY env var (validated)
+ *   6. mastracode auth storage — OpenAI api key (`openai-codex` / `openai`)
  *
  * API keys are validated by prefix + minimum length so dev placeholders
  * (e.g. `ANTHROPIC_API_KEY=dummy` from a sample .env) fall through to the
@@ -166,9 +228,23 @@ export async function getSmallModel(): Promise<MastraModelConfig | null> {
 		})(ANTHROPIC_SMALL_MODEL_ID);
 	}
 
+	const kimi = resolveKimiConfig();
+	if (kimi) {
+		return createOpenAI({
+			apiKey: kimi.apiKey,
+			baseURL: kimi.baseURL,
+		}).chat(kimi.modelId);
+	}
+
 	const openaiKey = await resolveOpenAIApiKey();
 	if (openaiKey) {
-		return createOpenAI({ apiKey: openaiKey }).chat(OPENAI_SMALL_MODEL_ID);
+		const openAIBaseURL = trimEnvValue(process.env.OPENAI_BASE_URL);
+		return createOpenAI({
+			apiKey: openaiKey,
+			...(openAIBaseURL
+				? { baseURL: normalizeBaseUrl(openAIBaseURL) }
+				: {}),
+		}).chat(OPENAI_SMALL_MODEL_ID);
 	}
 
 	console.warn(

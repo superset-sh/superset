@@ -24,6 +24,16 @@ export const DEV_CHAT_MODELS: ModelOption[] = [
 		provider: "Anthropic",
 	},
 	{
+		id: "openai/kimi-k2.6",
+		name: "Kimi K2.6",
+		provider: "Kimi",
+	},
+	{
+		id: "openai/kimi-k2.5",
+		name: "Kimi K2.5",
+		provider: "Kimi",
+	},
+	{
 		id: "openai/gpt-5.5",
 		name: "GPT-5.5",
 		provider: "OpenAI",

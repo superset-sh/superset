@@ -80,6 +80,19 @@ describe("resolveAgentConfigs", () => {
 		});
 	});
 
+	test("includes Kimi as a built-in terminal config", () => {
+		const kimi = resolveAgentConfigs({}).find((preset) => preset.id === "kimi");
+
+		expect(kimi).toMatchObject({
+			id: "kimi",
+			kind: "terminal",
+			label: "Kimi",
+			command: "kimi --yolo",
+			promptCommand: "kimi --yolo --prompt",
+			enabled: true,
+		});
+	});
+
 	test("includes custom terminal configs from stored definitions", () => {
 		const custom = resolveAgentConfigs({
 			customDefinitions: [

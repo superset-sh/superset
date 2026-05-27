@@ -15,6 +15,7 @@ export function providerToLogo(provider: string): string {
 		lower.includes("codex")
 	)
 		return OPENAI_LOGO_PROVIDER;
+	if (lower.includes("kimi") || lower.includes("moonshot")) return "kimi";
 	if (lower.includes("google") || lower.includes("gemini")) return "google";
 	if (lower.includes("mistral")) return "mistral";
 	if (lower.includes("deepseek")) return "deepseek";

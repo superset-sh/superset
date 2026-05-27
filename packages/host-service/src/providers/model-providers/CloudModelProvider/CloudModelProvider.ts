@@ -10,6 +10,11 @@ const CLOUD_PROVIDER_ENV_KEYS = [
 	"OPENAI_API_KEY",
 	"OPENAI_AUTH_TOKEN",
 	"OPENAI_BASE_URL",
+	"KIMI_API_KEY",
+	"KIMI_BASE_URL",
+	"KIMI_API_BASE_URL",
+	"MOONSHOT_API_KEY",
+	"MOONSHOT_BASE_URL",
 	"CLAUDE_CODE_USE_BEDROCK",
 	"AWS_REGION",
 	"AWS_DEFAULT_REGION",
@@ -19,6 +24,8 @@ const CLOUD_PROVIDER_ENV_KEYS = [
 	"AWS_SESSION_TOKEN",
 ] as const;
 
+const DEFAULT_KIMI_BASE_URL = "https://api.moonshot.ai/v1";
+
 interface CloudModelProviderOptions {
 	envResolver?: () => Promise<Record<string, string | undefined>>;
 }
@@ -26,6 +33,15 @@ interface CloudModelProviderOptions {
 function trimEnvValue(value: string | undefined): string | null {
 	const trimmed = value?.trim();
 	return trimmed ? trimmed : null;
+}
+
+function normalizeBaseUrl(value: string | null): string {
+	if (!value) return DEFAULT_KIMI_BASE_URL;
+	try {
+		return new URL(value).toString().replace(/\/$/, "");
+	} catch {
+		return value;
+	}
 }
 
 export class CloudModelProvider implements ModelProviderRuntimeResolver {
@@ -52,6 +68,20 @@ export class CloudModelProvider implements ModelProviderRuntimeResolver {
 			const value = trimEnvValue(sourceEnv[key]);
 			if (!value) continue;
 			nextEnv[key] = value;
+		}
+
+		if (!nextEnv.OPENAI_API_KEY && !nextEnv.OPENAI_AUTH_TOKEN) {
+			const kimiApiKey =
+				trimEnvValue(sourceEnv.KIMI_API_KEY) ??
+				trimEnvValue(sourceEnv.MOONSHOT_API_KEY);
+			if (kimiApiKey) {
+				nextEnv.OPENAI_API_KEY = kimiApiKey;
+				nextEnv.OPENAI_BASE_URL = normalizeBaseUrl(
+					trimEnvValue(sourceEnv.KIMI_BASE_URL) ??
+						trimEnvValue(sourceEnv.KIMI_API_BASE_URL) ??
+						trimEnvValue(sourceEnv.MOONSHOT_BASE_URL),
+				);
+			}
 		}
 
 		const anthropicEnv = buildAnthropicRuntimeEnv({

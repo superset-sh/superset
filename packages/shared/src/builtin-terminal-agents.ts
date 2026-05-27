@@ -93,6 +93,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "kimi",
+		label: "Kimi",
+		description:
+			"Kimi Code CLI agent backed by the local Kimi login and Kimi Code managed provider.",
+		command: "kimi --yolo",
+		promptCommand: "kimi --yolo --prompt",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "mastracode",
 		label: "Mastracode",
 		description:

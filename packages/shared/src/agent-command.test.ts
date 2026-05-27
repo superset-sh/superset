@@ -50,6 +50,18 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toBe("amp < '.superset/task-demo.md'");
 	});
 
+	it("adds Kimi's prompt flag after yolo mode", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "kimi-1234",
+			agent: "kimi",
+		});
+
+		expect(command).toStartWith(
+			"kimi --yolo --prompt \"$(cat <<'SUPERSET_PROMPT_kimi1234'",
+		);
+	});
+
 	it("uses pi interactive mode for prompt launches", () => {
 		const command = buildAgentPromptCommand({
 			prompt: "hello",

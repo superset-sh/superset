@@ -36,10 +36,46 @@ import {
 } from "./zod";
 
 const ENABLE_MASTRA_MCP_SERVERS = false;
+const DEFAULT_KIMI_BASE_URL = "https://api.moonshot.ai/v1";
 
 type RuntimeQuestionPayload = Parameters<
 	RuntimeSession["harness"]["respondToQuestion"]
 >[0];
+
+function trimEnvValue(value: string | undefined): string | null {
+	const trimmed = value?.trim();
+	return trimmed ? trimmed : null;
+}
+
+function normalizeBaseUrl(value: string | null): string {
+	if (!value) return DEFAULT_KIMI_BASE_URL;
+	try {
+		return new URL(value).toString().replace(/\/$/, "");
+	} catch {
+		return value;
+	}
+}
+
+function applyKimiOpenAICompatibleEnv(): void {
+	if (
+		trimEnvValue(process.env.OPENAI_API_KEY) ||
+		trimEnvValue(process.env.OPENAI_AUTH_TOKEN)
+	) {
+		return;
+	}
+
+	const kimiApiKey =
+		trimEnvValue(process.env.KIMI_API_KEY) ??
+		trimEnvValue(process.env.MOONSHOT_API_KEY);
+	if (!kimiApiKey) return;
+
+	process.env.OPENAI_API_KEY = kimiApiKey;
+	process.env.OPENAI_BASE_URL = normalizeBaseUrl(
+		trimEnvValue(process.env.KIMI_BASE_URL) ??
+			trimEnvValue(process.env.KIMI_API_BASE_URL) ??
+			trimEnvValue(process.env.MOONSHOT_BASE_URL),
+	);
+}
 
 function respondToQuestionWithOptimisticState(
 	runtime: RuntimeSession,
@@ -144,6 +180,7 @@ export class ChatRuntimeService {
 					this.opts.apiUrl,
 				);
 
+				applyKimiOpenAICompatibleEnv();
 				const runtime = await createMastraCode({
 					cwd: runtimeCwd,
 					extraTools,

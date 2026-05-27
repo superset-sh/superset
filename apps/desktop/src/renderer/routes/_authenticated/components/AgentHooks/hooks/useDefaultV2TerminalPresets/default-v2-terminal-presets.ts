@@ -6,6 +6,7 @@ import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/provide
 export const DEFAULT_V2_TERMINAL_PRESET_IDS = [
 	"claude",
 	"codex",
+	"kimi",
 	"opencode",
 	"copilot",
 ] as const;
