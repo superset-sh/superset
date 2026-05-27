@@ -136,16 +136,19 @@ export function useWorkspaceRunCommand({
 
 			// Reuse the existing (stopped) run pane so repeated Run invocations
 			// don't accumulate a new tab every time. See issue #4690.
-			if (runPane) {
-				const tabsState = useTabsStore.getState();
-				const tab = tabsState.tabs.find((t) => t.id === runPane.tabId);
-				if (tab) {
-					setActiveTab(workspaceId, tab.id);
-					setFocusedPane(tab.id, runPane.id);
-				}
-				setPaneName(runPane.id, "Workspace Run");
+			// Re-read from the store: runPane was captured before the await
+			// above and the pane/tab may have been closed in the meantime.
+			const tabsState = useTabsStore.getState();
+			const livePane = runPane ? tabsState.panes[runPane.id] : undefined;
+			const liveTab = livePane
+				? tabsState.tabs.find((t) => t.id === livePane.tabId)
+				: undefined;
+			if (livePane && liveTab) {
+				setActiveTab(workspaceId, liveTab.id);
+				setFocusedPane(liveTab.id, livePane.id);
+				setPaneName(livePane.id, "Workspace Run");
 				setPaneWorkspaceRun(
-					runPane.id,
+					livePane.id,
 					createWorkspaceRun({
 						workspaceId,
 						state: "running",
@@ -154,13 +157,13 @@ export function useWorkspaceRunCommand({
 				);
 				try {
 					await launchWorkspaceRunInPane({
-						paneId: runPane.id,
-						tabId: runPane.tabId,
+						paneId: livePane.id,
+						tabId: livePane.tabId,
 						command,
 						cwd: initialCwd,
 					});
 				} catch (error) {
-					setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
+					setPaneWorkspaceRunState(livePane.id, "stopped-by-exit");
 					toast.error("Failed to run workspace command", {
 						description:
 							error instanceof Error ? error.message : "Unknown error",
