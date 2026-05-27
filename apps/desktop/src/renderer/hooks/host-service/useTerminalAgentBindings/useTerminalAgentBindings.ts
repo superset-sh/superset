@@ -13,10 +13,8 @@ type TerminalAgentBindings = Awaited<
 export type TerminalAgentBinding = TerminalAgentBindings[number];
 
 /**
- * Host-service-backed map of `terminalId → agent binding` for a workspace.
- * The host store is the source of truth; this hook just surfaces the
- * current snapshot and refetches on `agent:lifecycle` / `terminal:lifecycle`
- * deltas pushed over the workspace event bus.
+ * Map of `terminalId → agent binding` for a workspace, read from the host
+ * store and invalidated on `agent:lifecycle` / `terminal:lifecycle` events.
  */
 export function useTerminalAgentBindings(
 	workspaceId: string,

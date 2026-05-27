@@ -3,7 +3,7 @@ import type {
 	BuiltinAgentId,
 } from "@superset/shared/agent-catalog";
 
-export type TerminalAgentId = BuiltinAgentId | "droid";
+export type TerminalAgentId = BuiltinAgentId;
 
 /**
  * One live agent process bound to a terminal. Created on the first hook

@@ -73,6 +73,31 @@ describe("TerminalAgentStore", () => {
 		expect(store.listByWorkspace(WORKSPACE)).toHaveLength(0);
 	});
 
+	it("drops stale identity metadata on agent swap even when the new event omits it", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			agentSessionId: "s1",
+			definitionId: "claude",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "codex",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.agentId).toBe("codex");
+		expect(binding?.agentSessionId).toBeUndefined();
+		expect(binding?.definitionId).toBeUndefined();
+		expect(binding?.startedAt).toBe(200);
+	});
+
 	it("overwrites the binding on agent swap inside the same terminal", () => {
 		store.recordEvent({
 			terminalId: "t1",

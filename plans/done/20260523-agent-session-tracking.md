@@ -166,9 +166,21 @@ Router integration tests:
 
 ## Out of scope
 
-- Renderer migration (existing `useV2AgentBindingStore` stays; will be rewritten when the first renderer consumer lands).
 - Automation rewire (`runTerminalAgent` keeps always-create for now).
 - SQLite persistence.
 - History / audit of past bindings.
 - Per-agent `supportsReuse` flag (decide when first reuse-consumer ships).
 - Submit-sequence map (callers write whatever terminator they want; this module doesn't format input).
+
+## For the next consumer ("send message to active agent")
+
+When wiring the first reuse consumer, expect to make these calls. Update this list as decisions land.
+
+1. **Input formatting** — `terminal.writeInput` is raw bytes. Each agent has its own submit sequence (claude: text + `\r`; codex/cursor/opencode may differ; some need a leading clear). First consumer ships per-agent formatting; second consumer = extract to `formatAgentInput(agentId, text)`. Decide whether it lives in `terminal-agents/` or `@superset/shared/agent-catalog`.
+2. **Readiness vs. attached** — `getOrCreate` resolves on the first lifecycle hook (`Attached`/`SessionStart`), not on prompt-readiness. Sending input the next tick can race the REPL. Either confirm the hook fires post-ready or add a "ready" event type and a second wait.
+3. **Busy/idle signal** — `lastEventType` is recorded but consumers don't know the catalog. If "send message" should queue or refuse while the agent is mid-turn, add a derived `state: "idle" | "working" | "awaiting_input"` on `TerminalAgentBinding` (or an `isIdle` helper) rather than re-deriving in each caller.
+
+Already handled in this PR (no action needed):
+
+- Concurrent `getOrCreate` for the same `(workspaceId, agentId, definitionId)` is coalesced via an in-flight map — second caller awaits the first.
+- `getOrCreate` timeout disposes the spawned terminal so retries don't leak ptys.

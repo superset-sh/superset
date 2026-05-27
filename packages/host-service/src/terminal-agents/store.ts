@@ -57,27 +57,31 @@ export class TerminalAgentStore extends EventEmitter {
 		const nextAgentId = agentId ?? existing?.agentId;
 		if (!nextAgentId) return;
 
+		// Only inherit identity metadata when the agentId hasn't changed —
+		// otherwise a swap event (claude → codex) that omits agentSessionId
+		// or definitionId would carry over the prior agent's values and
+		// corrupt `definitionId`-filtered reads.
+		const prior =
+			existing !== undefined && existing.agentId === nextAgentId
+				? existing
+				: undefined;
+
+		const sessionChanged =
+			prior !== undefined &&
+			agentSessionId !== undefined &&
+			prior.agentSessionId !== agentSessionId;
+
 		const next: TerminalAgentBinding = {
 			terminalId,
 			workspaceId,
 			agentId: nextAgentId,
-			agentSessionId: agentSessionId ?? existing?.agentSessionId,
-			definitionId: definitionId ?? existing?.definitionId,
-			startedAt: existing ? existing.startedAt : occurredAt,
+			agentSessionId: agentSessionId ?? prior?.agentSessionId,
+			definitionId: definitionId ?? prior?.definitionId,
+			startedAt:
+				prior !== undefined && !sessionChanged ? prior.startedAt : occurredAt,
 			lastEventAt: occurredAt,
 			lastEventType: eventType,
 		};
-
-		// Agent swap inside the same pty (e.g. claude /exit → codex) overwrites
-		// in place — start time resets so callers see the new identity's lifetime.
-		if (
-			existing &&
-			(existing.agentId !== next.agentId ||
-				(agentSessionId !== undefined &&
-					existing.agentSessionId !== agentSessionId))
-		) {
-			next.startedAt = occurredAt;
-		}
 
 		this.byTerminal.set(terminalId, next);
 		this.emit("change", workspaceId);
