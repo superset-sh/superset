@@ -13,7 +13,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toContain(
-			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			"codex --dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});

@@ -28,6 +28,8 @@ function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
 		pid: state.pid,
 		meta,
 		write: (b) => state.written.push(b),
+		pause: () => {},
+		resume: () => {},
 		resize: (c, r) => {
 			state.cols = c;
 			state.rows = r;
@@ -51,6 +53,7 @@ function makeConn(): Conn & { sent: SentFrame[] } {
 	return {
 		sent,
 		subscriptions: new Set(),
+		flowControlUnacked: new Map(),
 		send: (m, payload) => sent.push({ message: m, payload: payload ?? null }),
 	};
 }

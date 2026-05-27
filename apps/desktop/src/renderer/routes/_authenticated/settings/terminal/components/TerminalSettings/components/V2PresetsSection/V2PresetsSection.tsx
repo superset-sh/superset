@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import { buildAgentLaunchCommand } from "renderer/lib/agent-launch-command";
+import { getAgentCommandText } from "renderer/lib/agent-launch-command";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -200,7 +200,7 @@ export function V2PresetsSection({
 				iconId: agent.presetId,
 				label: agent.label,
 				description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId) ?? "",
-				commands: [buildAgentLaunchCommand(agent)],
+				commands: [getAgentCommandText(agent)],
 			});
 		}
 		return pills;

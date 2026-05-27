@@ -1,6 +1,6 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import { getPresetById } from "@superset/shared/host-agent-presets";
-import { buildAgentLaunchCommand } from "renderer/lib/agent-launch-command";
+import { getAgentCommandText } from "renderer/lib/agent-launch-command";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 
 export const DEFAULT_V2_TERMINAL_PRESET_IDS = [
@@ -39,7 +39,7 @@ export function createDefaultV2TerminalPresetRows({
 			name: agent.label,
 			description: preset.description,
 			cwd: "",
-			commands: [buildAgentLaunchCommand(agent)],
+			commands: [getAgentCommandText(agent)],
 			projectIds: null,
 			executionMode: "new-tab",
 			tabOrder,
