@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ed83d5e7-cb97-44eb-a9e2-cac4a8a9f7fe",
+  "id": "0c6f294e-13f5-4aa7-86cd-2997c78d76cf",
   "prevId": "db84ad81-bfc3-48e0-8393-7e8d004c7ffb",
   "tables": {
     "host_agent_configs": {
@@ -119,6 +119,20 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "branch_prefix_mode": {
+          "name": "branch_prefix_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "branch_prefix_custom": {
+          "name": "branch_prefix_custom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -181,6 +195,20 @@
         },
         "worktree_base_dir": {
           "name": "worktree_base_dir",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "branch_prefix_mode": {
+          "name": "branch_prefix_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "branch_prefix_custom": {
+          "name": "branch_prefix_custom",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
