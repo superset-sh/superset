@@ -92,6 +92,11 @@ export function useFilesTabBridge({
 	// old workspace can detect they're stale and bail out before mutating.
 	const versionRef = useRef(0);
 
+	// Track directories that are known but haven't been loaded yet. When
+	// Pierre fires model.subscribe (on expansion, selection, etc.) we only
+	// check these candidates instead of iterating the entire knownPaths set.
+	const unloadedDirCandidatesRef = useRef(new Set<string>());
+
 	const fetchDir = useCallback(
 		async (relDir: string): Promise<void> => {
 			if (!rootPath || !workspaceId) return;
@@ -114,9 +119,17 @@ export function useFilesTabBridge({
 						if (knownPathsRef.current.has(treePath)) continue;
 						knownPathsRef.current.add(treePath);
 						ops.push({ type: "add", path: treePath });
+						// Register child directories as expansion candidates
+						// so the subscriber can detect when they're expanded.
+						if (entry.kind === "directory") {
+							if (!loadedDirsRef.current.has(rel)) {
+								unloadedDirCandidatesRef.current.add(rel);
+							}
+						}
 					}
 					if (ops.length > 0) model.batch(ops);
 					loadedDirsRef.current.add(relDir);
+					unloadedDirCandidatesRef.current.delete(relDir);
 				} catch (error) {
 					if (versionRef.current !== startVersion) return;
 					console.error("[v2 FilesTab] listDirectory failed", {
@@ -174,7 +187,16 @@ export function useFilesTabBridge({
 			}
 			if (versionRef.current !== startVersion) return;
 			knownPathsRef.current.clear();
-			for (const path of freshPaths) knownPathsRef.current.add(path);
+			unloadedDirCandidatesRef.current.clear();
+			for (const path of freshPaths) {
+				knownPathsRef.current.add(path);
+				if (path.endsWith("/")) {
+					const dirRel = stripTrailingSlash(path);
+					if (!loadedDirsRef.current.has(dirRel)) {
+						unloadedDirCandidatesRef.current.add(dirRel);
+					}
+				}
+			}
 			model.resetPaths(Array.from(freshPaths));
 		} finally {
 			setIsRefreshing(false);
@@ -190,20 +212,22 @@ export function useFilesTabBridge({
 		loadedDirsRef.current.clear();
 		inflightDirsRef.current.clear();
 		pendingCreatesRef.current.clear();
+		unloadedDirCandidatesRef.current.clear();
 		model.resetPaths([]);
 		void fetchDir("");
 	}, [model, rootPath, workspaceId, fetchDir]);
 
-	// On every model change, scan known directories and lazy-load any newly
-	// expanded ones. Pierre doesn't surface an explicit "expand" event, so we
-	// detect by polling expansion state through getItem on each notify.
+	// On every model change, check only unloaded directory candidates for
+	// expansion. Pierre doesn't surface an explicit "expand" event, so we
+	// detect by checking expansion state on the (much smaller) candidate set
+	// instead of iterating every known path. fetchDir removes the dir from
+	// the candidate set on success.
 	useEffect(() => {
 		return model.subscribe(() => {
-			for (const path of knownPathsRef.current) {
-				if (!path.endsWith("/")) continue;
-				const dirRel = stripTrailingSlash(path);
-				if (loadedDirsRef.current.has(dirRel)) continue;
-				const handle = asDirectoryHandle(model.getItem(path));
+			for (const dirRel of unloadedDirCandidatesRef.current) {
+				const dirKey = `${dirRel}/`;
+				if (!knownPathsRef.current.has(dirKey)) continue;
+				const handle = asDirectoryHandle(model.getItem(dirKey));
 				if (handle?.isExpanded()) {
 					void fetchDir(dirRel);
 				}
@@ -299,6 +323,9 @@ export function useFilesTabBridge({
 				const isFolder = event.isDirectory ?? false;
 				const key = isFolder ? `${rel}/` : rel;
 				addKnownPath(model, knownPathsRef.current, key);
+				if (isFolder && !loadedDirsRef.current.has(rel)) {
+					unloadedDirCandidatesRef.current.add(rel);
+				}
 				return;
 			}
 
