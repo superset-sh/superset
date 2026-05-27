@@ -2,35 +2,21 @@ import {
 	type BranchPrefixMode,
 	resolveBranchPrefix,
 } from "@superset/shared/workspace-launch";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { HiOutlineComputerDesktop, HiOutlineServer } from "react-icons/hi2";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { BranchPrefixControl } from "../../../components/BranchPrefixControl";
+import { HostSelect, type HostSelectOption } from "../../../components/HostSelect";
 import { SettingsRow } from "../../../components/SettingsRow";
 
 interface V2GitSettingsProps {
 	hostId: string | null;
-}
-
-interface GitSettingsHostOption {
-	id: string;
-	name: string;
-	isLocal: boolean;
-	isOnline: boolean;
 }
 
 /**
@@ -48,8 +34,8 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 	const targetHostId = hostId ?? machineId;
 	const queryClient = useQueryClient();
 
-	const hostOptions = useMemo<GitSettingsHostOption[]>(() => {
-		const options: GitSettingsHostOption[] = [];
+	const hostOptions = useMemo<HostSelectOption[]>(() => {
+		const options: HostSelectOption[] = [];
 		if (localHostId) {
 			options.push({
 				id: localHostId,
@@ -77,10 +63,6 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 		return options;
 	}, [currentDeviceName, localHostId, machineId, otherHosts, targetHostId]);
 
-	const selectedHost = useMemo(
-		() => hostOptions.find((o) => o.id === targetHostId) ?? null,
-		[hostOptions, targetHostId],
-	);
 	const hasMultipleHosts = hostOptions.length > 1;
 
 	const branchPrefixQuery = useQuery({
@@ -159,8 +141,9 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 					</p>
 				</div>
 				{hasMultipleHosts && targetHostId ? (
-					<Select
+					<HostSelect
 						value={targetHostId}
+						options={hostOptions}
 						onValueChange={(nextHostId) => {
 							void navigate({
 								to: "/settings/git",
@@ -168,53 +151,7 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 								replace: true,
 							});
 						}}
-					>
-						<SelectTrigger
-							size="sm"
-							className="h-8 gap-1.5 px-2 text-foreground"
-						>
-							<SelectValue>
-								<span className="flex items-center gap-1.5">
-									<span className="truncate">
-										{selectedHost?.isLocal
-											? "This device"
-											: (selectedHost?.name ?? targetHostId)}
-									</span>
-									{selectedHost && !selectedHost.isLocal && (
-										<span
-											title={selectedHost.isOnline ? "Online" : "Offline"}
-											className={
-												selectedHost.isOnline
-													? "size-1.5 shrink-0 rounded-full bg-emerald-500"
-													: "size-1.5 shrink-0 rounded-full bg-muted-foreground/60"
-											}
-										/>
-									)}
-								</span>
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="end">
-							{hostOptions.map((option) => (
-								<SelectItem key={option.id} value={option.id}>
-									<span className="flex items-center gap-2">
-										{option.isLocal ? (
-											<HiOutlineComputerDesktop className="size-4 text-muted-foreground" />
-										) : (
-											<HiOutlineServer className="size-4 text-muted-foreground" />
-										)}
-										<span className="truncate">
-											{option.isLocal ? "This device" : option.name}
-										</span>
-										{!option.isLocal && !option.isOnline && (
-											<span className="text-xs text-muted-foreground">
-												offline
-											</span>
-										)}
-									</span>
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					/>
 				) : null}
 			</header>
 
