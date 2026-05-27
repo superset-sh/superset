@@ -134,8 +134,41 @@ export function useWorkspaceRunCommand({
 			const fallbackCwd = worktreePath?.trim() ? worktreePath : undefined;
 			const initialCwd = runDefinition?.cwd ?? fallbackCwd;
 
-			// Always start in a fresh tab. Old run panes stay inspectable instead
-			// of having their terminal session swapped under the user.
+			// Reuse the existing (stopped) run pane so repeated Run invocations
+			// don't accumulate a new tab every time. See issue #4690.
+			if (runPane) {
+				const tabsState = useTabsStore.getState();
+				const tab = tabsState.tabs.find((t) => t.id === runPane.tabId);
+				if (tab) {
+					setActiveTab(workspaceId, tab.id);
+					setFocusedPane(tab.id, runPane.id);
+				}
+				setPaneName(runPane.id, "Workspace Run");
+				setPaneWorkspaceRun(
+					runPane.id,
+					createWorkspaceRun({
+						workspaceId,
+						state: "running",
+						command,
+					}),
+				);
+				try {
+					await launchWorkspaceRunInPane({
+						paneId: runPane.id,
+						tabId: runPane.tabId,
+						command,
+						cwd: initialCwd,
+					});
+				} catch (error) {
+					setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
+					toast.error("Failed to run workspace command", {
+						description:
+							error instanceof Error ? error.message : "Unknown error",
+					});
+				}
+				return;
+			}
+
 			const result = addTab(workspaceId, { initialCwd });
 			const { tabId, paneId } = result;
 
