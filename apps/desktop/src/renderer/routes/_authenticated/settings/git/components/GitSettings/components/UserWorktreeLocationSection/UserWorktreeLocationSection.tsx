@@ -1,7 +1,14 @@
 import { Label } from "@superset/ui/label";
+import { useMemo, useState } from "react";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	HostSelect,
+	type HostSelectOption,
+} from "renderer/routes/_authenticated/settings/components/HostSelect";
 import {
 	useSetV2WorktreeBaseDir,
 	useV2WorktreeLocationSettings,
@@ -14,15 +21,16 @@ import {
 
 export function UserWorktreeLocationSection() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
-	const { activeHostUrl } = useLocalHostService();
+	return isV2CloudEnabled ? <V2Body /> : <V1Body />;
+}
+
+function V1Body() {
 	const utils = electronTrpc.useUtils();
 	const defaultWorktreePath = useDefaultWorktreePath();
 
-	const { data: v1WorktreeBaseDir, isLoading: isV1WorktreeBaseDirLoading } =
-		electronTrpc.settings.getWorktreeBaseDir.useQuery(undefined, {
-			enabled: !isV2CloudEnabled,
-		});
-	const setV1WorktreeBaseDir =
+	const { data: worktreeBaseDir, isLoading } =
+		electronTrpc.settings.getWorktreeBaseDir.useQuery();
+	const setWorktreeBaseDir =
 		electronTrpc.settings.setWorktreeBaseDir.useMutation({
 			onMutate: async ({ path }) => {
 				await utils.settings.getWorktreeBaseDir.cancel();
@@ -43,47 +51,122 @@ export function UserWorktreeLocationSection() {
 			},
 		});
 
-	const v2SettingsQuery = useV2WorktreeLocationSettings(activeHostUrl, {
-		enabled: isV2CloudEnabled,
-	});
-	const setV2WorktreeBaseDir = useSetV2WorktreeBaseDir(activeHostUrl);
-
 	return (
 		<div className="space-y-0.5">
 			<Label className="text-sm font-medium">Worktree location</Label>
 			<p className="text-xs text-muted-foreground">
-				User-level base directory for new worktrees
+				Base directory for new worktrees
 			</p>
-			{isV2CloudEnabled ? (
-				<V2WorktreeLocationPicker
-					currentPath={v2SettingsQuery.data?.worktreeBaseDir ?? null}
-					fallbackPath={
-						v2SettingsQuery.data?.defaultWorktreeBaseDir ?? defaultWorktreePath
-					}
-					hostUrl={activeHostUrl}
-					hostName="this device"
-					isRemoteTarget={false}
-					disabled={
-						!activeHostUrl ||
-						v2SettingsQuery.isLoading ||
-						setV2WorktreeBaseDir.isPending
-					}
-					browseTitle="Select default worktree location"
-					onSelect={(path) => setV2WorktreeBaseDir.mutate(path)}
-					onReset={() => setV2WorktreeBaseDir.mutate(null)}
-				/>
-			) : (
-				<WorktreeLocationPicker
-					currentPath={v1WorktreeBaseDir}
-					defaultPathLabel={`Default (${defaultWorktreePath})`}
-					defaultBrowsePath={v1WorktreeBaseDir}
-					disabled={
-						isV1WorktreeBaseDirLoading || setV1WorktreeBaseDir.isPending
-					}
-					onSelect={(path) => setV1WorktreeBaseDir.mutate({ path })}
-					onReset={() => setV1WorktreeBaseDir.mutate({ path: null })}
-				/>
-			)}
+			<WorktreeLocationPicker
+				currentPath={worktreeBaseDir}
+				defaultPathLabel={`Default (${defaultWorktreePath})`}
+				defaultBrowsePath={worktreeBaseDir}
+				disabled={isLoading || setWorktreeBaseDir.isPending}
+				onSelect={(path) => setWorktreeBaseDir.mutate({ path })}
+				onReset={() => setWorktreeBaseDir.mutate({ path: null })}
+			/>
+		</div>
+	);
+}
+
+function V2Body() {
+	const { machineId } = useLocalHostService();
+	const { currentDeviceName, localHostId, otherHosts } =
+		useWorkspaceHostOptions();
+	const defaultWorktreePath = useDefaultWorktreePath();
+
+	const hostOptions = useMemo<HostSelectOption[]>(() => {
+		const opts: HostSelectOption[] = [];
+		if (localHostId) {
+			opts.push({
+				id: localHostId,
+				name: currentDeviceName ?? "This device",
+				isLocal: true,
+				isOnline: true,
+			});
+		}
+		for (const host of otherHosts) {
+			opts.push({
+				id: host.id,
+				name: host.name,
+				isLocal: false,
+				isOnline: host.isOnline,
+			});
+		}
+		return opts;
+	}, [currentDeviceName, localHostId, otherHosts]);
+
+	const [selectedHostId, setSelectedHostId] = useState<string | null>(
+		() => localHostId ?? machineId ?? null,
+	);
+	const effectiveHostId =
+		selectedHostId && hostOptions.some((o) => o.id === selectedHostId)
+			? selectedHostId
+			: (hostOptions[0]?.id ?? null);
+
+	const targetHostUrl = useHostUrl(effectiveHostId);
+	const selectedHost =
+		hostOptions.find((o) => o.id === effectiveHostId) ?? null;
+	const isLocal = selectedHost?.isLocal ?? true;
+	const isOnline = selectedHost?.isOnline ?? false;
+	const hasMultipleHosts = hostOptions.length > 1;
+
+	const settingsQuery = useV2WorktreeLocationSettings(targetHostUrl, {
+		enabled: isOnline,
+	});
+	const setLocation = useSetV2WorktreeBaseDir(targetHostUrl);
+
+	const disabled =
+		!targetHostUrl ||
+		!isOnline ||
+		settingsQuery.isLoading ||
+		setLocation.isPending;
+
+	return (
+		<div className="space-y-2">
+			<div className="flex items-start justify-between gap-3">
+				<div className="space-y-0.5">
+					<Label className="text-sm font-medium">Worktree location</Label>
+					<p className="text-xs text-muted-foreground">
+						{hasMultipleHosts
+							? `Base directory for new worktrees on ${
+									selectedHost?.isLocal
+										? "this device"
+										: (selectedHost?.name ?? "this device")
+								}`
+							: "Base directory for new worktrees"}
+					</p>
+				</div>
+				{hasMultipleHosts && effectiveHostId ? (
+					<HostSelect
+						value={effectiveHostId}
+						options={hostOptions}
+						onValueChange={setSelectedHostId}
+					/>
+				) : null}
+			</div>
+			<V2WorktreeLocationPicker
+				currentPath={settingsQuery.data?.worktreeBaseDir ?? null}
+				fallbackPath={
+					settingsQuery.data?.defaultWorktreeBaseDir ?? defaultWorktreePath
+				}
+				hostUrl={targetHostUrl}
+				hostName={
+					selectedHost?.isLocal
+						? "this device"
+						: (selectedHost?.name ?? "this device")
+				}
+				isRemoteTarget={!isLocal}
+				disabled={disabled}
+				browseTitle="Select default worktree location"
+				onSelect={(path) => setLocation.mutate(path)}
+				onReset={() => setLocation.mutate(null)}
+			/>
+			{hasMultipleHosts && !isOnline ? (
+				<p className="text-xs text-muted-foreground">
+					{selectedHost?.name ?? "This device"} is offline.
+				</p>
+			) : null}
 		</div>
 	);
 }
