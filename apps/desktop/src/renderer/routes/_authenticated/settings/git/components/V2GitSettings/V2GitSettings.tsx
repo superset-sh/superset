@@ -14,6 +14,12 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { BranchPrefixControl } from "../../../components/BranchPrefixControl";
 import { HostSelect, type HostSelectOption } from "../../../components/HostSelect";
 import { SettingsRow } from "../../../components/SettingsRow";
+import {
+	V2WorktreeLocationPicker,
+	useSetV2WorktreeBaseDir,
+	useV2WorktreeLocationSettings,
+} from "../../../components/V2WorktreeLocationPicker";
+import { useDefaultWorktreePath } from "../../../components/WorktreeLocationPicker";
 
 interface V2GitSettingsProps {
 	hostId: string | null;
@@ -63,7 +69,22 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 		return options;
 	}, [currentDeviceName, localHostId, machineId, otherHosts, targetHostId]);
 
+	const selectedHost = useMemo(
+		() => hostOptions.find((o) => o.id === targetHostId) ?? null,
+		[hostOptions, targetHostId],
+	);
 	const hasMultipleHosts = hostOptions.length > 1;
+	const isRemoteTarget = Boolean(selectedHost && !selectedHost.isLocal);
+	const isHostOnline = selectedHost?.isOnline ?? true;
+	const selectedHostName = selectedHost?.isLocal
+		? "this device"
+		: (selectedHost?.name ?? "this device");
+
+	const worktreeQuery = useV2WorktreeLocationSettings(targetHostUrl, {
+		enabled: isHostOnline,
+	});
+	const setWorktreeBaseDir = useSetV2WorktreeBaseDir(targetHostUrl);
+	const defaultWorktreePath = useDefaultWorktreePath();
 
 	const branchPrefixQuery = useQuery({
 		queryKey: ["host-branch-prefix", targetHostUrl] as const,
@@ -177,6 +198,29 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 								customPrefix: next.customPrefix,
 							})
 						}
+					/>
+				</SettingsRow>
+				<SettingsRow
+					label="Worktree location"
+					hint={`Base directory for new worktrees on ${selectedHostName}.`}
+				>
+					<V2WorktreeLocationPicker
+						currentPath={worktreeQuery.data?.worktreeBaseDir ?? null}
+						fallbackPath={
+							worktreeQuery.data?.defaultWorktreeBaseDir ?? defaultWorktreePath
+						}
+						hostUrl={targetHostUrl}
+						hostName={selectedHostName}
+						isRemoteTarget={isRemoteTarget}
+						disabled={
+							!targetHostUrl ||
+							!isHostOnline ||
+							worktreeQuery.isLoading ||
+							setWorktreeBaseDir.isPending
+						}
+						browseTitle="Select default worktree location"
+						onSelect={(path) => setWorktreeBaseDir.mutate(path)}
+						onReset={() => setWorktreeBaseDir.mutate(null)}
 					/>
 				</SettingsRow>
 			</section>
