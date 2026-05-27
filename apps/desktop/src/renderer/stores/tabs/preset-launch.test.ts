@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { normalizeExecutionMode } from "@superset/local-db/schema/zod";
 import {
+	buildFocusedTerminalCommand,
 	getPresetLaunchPlan,
 	shouldApplyPresetPaneName,
 } from "./preset-launch";
@@ -64,6 +65,35 @@ describe("shouldApplyPresetPaneName", () => {
 				presetName: "  ",
 			}),
 		).toBe(false);
+	});
+});
+
+describe("buildFocusedTerminalCommand", () => {
+	it("prepends an explicit cd when a current terminal launch has a cwd", () => {
+		expect(
+			buildFocusedTerminalCommand({
+				commands: ["echo one", "echo two"],
+				cwd: "apps/my app",
+			}),
+		).toBe("cd 'apps/my app' && echo one && echo two");
+	});
+
+	it("leaves commands unchanged when cwd is blank", () => {
+		expect(
+			buildFocusedTerminalCommand({
+				commands: ["pwd"],
+				cwd: "  ",
+			}),
+		).toBe("pwd");
+	});
+
+	it("returns null when no runnable command exists", () => {
+		expect(
+			buildFocusedTerminalCommand({
+				commands: ["  "],
+				cwd: "apps/desktop",
+			}),
+		).toBeNull();
 	});
 });
 
