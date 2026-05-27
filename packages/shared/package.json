@@ -8,6 +8,10 @@
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
 		},
+		"./dev-credentials": {
+			"types": "./src/dev-credentials.ts",
+			"default": "./src/dev-credentials.ts"
+		},
 		"./v2-only-user": {
 			"types": "./src/v2-only-user.ts",
 			"default": "./src/v2-only-user.ts"
