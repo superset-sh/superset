@@ -1,7 +1,10 @@
 import { toast } from "@superset/ui/sonner";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { V2WorktreeLocationPicker } from "../../../../../../components/V2WorktreeLocationPicker";
+import {
+	useV2WorktreeLocationSettings,
+	V2WorktreeLocationPicker,
+} from "../../../../../../components/V2WorktreeLocationPicker";
 
 interface WorktreeLocationSectionProps {
 	projectId: string;
@@ -24,15 +27,8 @@ export function WorktreeLocationSection({
 	isProjectSetup,
 	onChanged,
 }: WorktreeLocationSectionProps) {
-	const hostSettingsQuery = useQuery({
-		queryKey: ["host-settings", "worktree-location", hostUrl],
-		enabled: Boolean(hostUrl && isHostOnline),
-		queryFn: async () => {
-			if (!hostUrl) throw new Error("Host unavailable");
-			return getHostServiceClientByUrl(
-				hostUrl,
-			).settings.worktreeLocation.get.query();
-		},
+	const hostSettingsQuery = useV2WorktreeLocationSettings(hostUrl, {
+		enabled: isHostOnline,
 	});
 
 	const setLocation = useMutation({
@@ -58,7 +54,11 @@ export function WorktreeLocationSection({
 	return (
 		<V2WorktreeLocationPicker
 			currentPath={currentPath}
-			fallbackPath={hostSettingsQuery.data?.effectiveWorktreeBaseDir ?? null}
+			fallbackPath={
+				hostSettingsQuery.data?.worktreeBaseDir ??
+				hostSettingsQuery.data?.defaultWorktreeBaseDir ??
+				null
+			}
 			hostUrl={hostUrl}
 			hostName={hostName}
 			isRemoteTarget={isRemoteTarget}

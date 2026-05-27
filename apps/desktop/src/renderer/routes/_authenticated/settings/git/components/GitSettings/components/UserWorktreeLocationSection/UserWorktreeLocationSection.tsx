@@ -1,11 +1,12 @@
 import { Label } from "@superset/ui/label";
-import { toast } from "@superset/ui/sonner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { V2WorktreeLocationPicker } from "renderer/routes/_authenticated/settings/components/V2WorktreeLocationPicker";
+import {
+	useSetV2WorktreeBaseDir,
+	useV2WorktreeLocationSettings,
+	V2WorktreeLocationPicker,
+} from "renderer/routes/_authenticated/settings/components/V2WorktreeLocationPicker";
 import {
 	useDefaultWorktreePath,
 	WorktreeLocationPicker,
@@ -14,7 +15,6 @@ import {
 export function UserWorktreeLocationSection() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { activeHostUrl } = useLocalHostService();
-	const queryClient = useQueryClient();
 	const utils = electronTrpc.useUtils();
 	const defaultWorktreePath = useDefaultWorktreePath();
 
@@ -43,34 +43,10 @@ export function UserWorktreeLocationSection() {
 			},
 		});
 
-	const v2QueryKey = ["settings", "git", "worktree-location", activeHostUrl];
-	const v2SettingsQuery = useQuery({
-		queryKey: v2QueryKey,
-		enabled: isV2CloudEnabled && Boolean(activeHostUrl),
-		queryFn: async () => {
-			if (!activeHostUrl) throw new Error("Host unavailable");
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).settings.worktreeLocation.get.query();
-		},
+	const v2SettingsQuery = useV2WorktreeLocationSettings(activeHostUrl, {
+		enabled: isV2CloudEnabled,
 	});
-	const setV2WorktreeBaseDir = useMutation({
-		mutationFn: async (path: string | null) => {
-			if (!activeHostUrl) throw new Error("Host unavailable");
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).settings.worktreeLocation.set.mutate({ path });
-		},
-		onSuccess: (data, path) => {
-			queryClient.setQueryData(v2QueryKey, data);
-			toast.success(
-				path ? "Worktree location updated" : "Worktree location reset",
-			);
-		},
-		onError: (err) => {
-			toast.error(err instanceof Error ? err.message : String(err));
-		},
-	});
+	const setV2WorktreeBaseDir = useSetV2WorktreeBaseDir(activeHostUrl);
 
 	return (
 		<div className="space-y-0.5">

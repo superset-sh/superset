@@ -16,7 +16,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
-import { getEffectiveWorktreeBaseDir } from "../settings/worktree-location";
+import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
 import {
 	getWorktreeBranchAtPath,
@@ -561,10 +561,8 @@ export const workspacesRouter = router({
 			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
 			const git = await ctx.git(localProject.repoPath);
-			const worktreeBaseDir = getEffectiveWorktreeBaseDir({
-				ctx,
-				projectWorktreeBaseDir: localProject.worktreeBaseDir,
-			});
+			const worktreeBaseDir =
+				localProject.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
 
 			// Free branches still claimed by registrations whose dirs are
 			// gone — without this, `git worktree add` later fails with

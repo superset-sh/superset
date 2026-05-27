@@ -9,7 +9,6 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import { protectedProcedure, router } from "../../index";
-import { getEffectiveWorktreeBaseDir } from "../settings/worktree-location";
 import { normalizeWorktreeBaseDir } from "../workspace-creation/shared/worktree-paths";
 import {
 	createFromClone,
@@ -89,10 +88,6 @@ export const projectRouter = router({
 			return {
 				id: project.id,
 				worktreeBaseDir: project.worktreeBaseDir ?? null,
-				effectiveWorktreeBaseDir: getEffectiveWorktreeBaseDir({
-					ctx,
-					projectWorktreeBaseDir: project.worktreeBaseDir,
-				}),
 			};
 		}),
 

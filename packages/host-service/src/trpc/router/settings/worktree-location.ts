@@ -9,36 +9,22 @@ import {
 } from "../workspace-creation/shared/worktree-paths";
 
 const HOST_SETTINGS_ID = 1;
+// Set by the desktop coordinator from the v1 user setting so a first-run
+// host-service inherits the previous worktree location instead of silently
+// falling back to the default.
 const LEGACY_WORKTREE_BASE_DIR_ENV = "SUPERSET_LEGACY_WORKTREE_BASE_DIR";
 
 export interface HostWorktreeLocationSettings {
 	worktreeBaseDir: string | null;
 	defaultWorktreeBaseDir: string;
-	effectiveWorktreeBaseDir: string;
-}
-
-function getLegacyWorktreeBaseDir(): string | null {
-	const legacyPath = process.env[LEGACY_WORKTREE_BASE_DIR_ENV];
-	if (!legacyPath) return null;
-	try {
-		return normalizeWorktreeBaseDir(legacyPath);
-	} catch (err) {
-		console.warn("[settings.worktreeLocation] ignored legacy worktree path", {
-			legacyPath,
-			err,
-		});
-		return null;
-	}
 }
 
 function toOutput(
 	worktreeBaseDir: string | null,
 ): HostWorktreeLocationSettings {
-	const defaultWorktreeBaseDir = defaultWorktreesRoot();
 	return {
 		worktreeBaseDir,
-		defaultWorktreeBaseDir,
-		effectiveWorktreeBaseDir: worktreeBaseDir ?? defaultWorktreeBaseDir,
+		defaultWorktreeBaseDir: defaultWorktreesRoot(),
 	};
 }
 
@@ -52,26 +38,19 @@ export function getHostWorktreeBaseDir(
 		.get();
 	if (existing) return existing.worktreeBaseDir ?? null;
 
-	const legacyWorktreeBaseDir = getLegacyWorktreeBaseDir();
+	// v1 didn't validate paths, so a malformed legacy value shouldn't brick
+	// the first .get() — treat anything that won't normalize as "no legacy".
+	let legacy: string | null = null;
+	try {
+		legacy = normalizeWorktreeBaseDir(
+			process.env[LEGACY_WORKTREE_BASE_DIR_ENV],
+		);
+	} catch {}
 	ctx.db
 		.insert(hostSettings)
-		.values({
-			id: HOST_SETTINGS_ID,
-			worktreeBaseDir: legacyWorktreeBaseDir,
-		})
+		.values({ id: HOST_SETTINGS_ID, worktreeBaseDir: legacy })
 		.run();
-	return legacyWorktreeBaseDir;
-}
-
-export function getEffectiveWorktreeBaseDir(args: {
-	ctx: Pick<HostServiceContext, "db">;
-	projectWorktreeBaseDir?: string | null;
-}): string {
-	return (
-		args.projectWorktreeBaseDir ??
-		getHostWorktreeBaseDir(args.ctx) ??
-		defaultWorktreesRoot()
-	);
+	return legacy;
 }
 
 export const worktreeLocationRouter = router({
@@ -85,10 +64,7 @@ export const worktreeLocationRouter = router({
 			const worktreeBaseDir = normalizeWorktreeBaseDir(input.path);
 			ctx.db
 				.insert(hostSettings)
-				.values({
-					id: HOST_SETTINGS_ID,
-					worktreeBaseDir,
-				})
+				.values({ id: HOST_SETTINGS_ID, worktreeBaseDir })
 				.onConflictDoUpdate({
 					target: hostSettings.id,
 					set: { worktreeBaseDir },
