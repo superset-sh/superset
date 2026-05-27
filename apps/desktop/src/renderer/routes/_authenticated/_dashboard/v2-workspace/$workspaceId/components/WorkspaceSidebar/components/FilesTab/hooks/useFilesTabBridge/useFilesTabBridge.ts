@@ -255,7 +255,22 @@ export function useFilesTabBridge({
 		"fs:events",
 		workspaceId,
 		(event: FsWatchEvent) => {
-			if (!rootPath) return;
+			if (import.meta.env.DEV) {
+				console.log("[fs:debug] useFilesTabBridge recv", {
+					kind: event.kind,
+					path: event.absolutePath,
+					oldPath: event.oldAbsolutePath,
+					isDirectory: event.isDirectory,
+				});
+			}
+			if (!rootPath) {
+				if (import.meta.env.DEV) {
+					console.log(
+						"[fs:debug] drop: rootPath empty (subscription should be gated)",
+					);
+				}
+				return;
+			}
 			if (event.kind === "overflow") {
 				void doRefresh();
 				return;
@@ -263,7 +278,13 @@ export function useFilesTabBridge({
 
 			const rel = toRel(rootPath, event.absolutePath);
 			if (rel === event.absolutePath && event.absolutePath !== rootPath) {
-				return; // outside workspace
+				if (import.meta.env.DEV) {
+					console.log("[fs:debug] drop: outside workspace", {
+						path: event.absolutePath,
+						rootPath,
+					});
+				}
+				return;
 			}
 
 			if (event.kind === "rename" && event.oldAbsolutePath) {
@@ -299,6 +320,15 @@ export function useFilesTabBridge({
 						addKnownPath(model, knownPathsRef.current, newKey);
 					}
 				} else {
+					if (import.meta.env.DEV) {
+						console.log(
+							"[fs:debug] rename fallback: oldKey not in knownPaths, treating as create",
+							{
+								oldRel,
+								newKey,
+							},
+						);
+					}
 					addKnownPath(model, knownPathsRef.current, newKey);
 				}
 				return;
