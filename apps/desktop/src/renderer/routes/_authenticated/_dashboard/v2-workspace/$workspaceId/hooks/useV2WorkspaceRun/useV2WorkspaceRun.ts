@@ -182,10 +182,39 @@ export function useV2WorkspaceRun({
 				};
 			});
 
-			const tabId = crypto.randomUUID();
-			const paneId = crypto.randomUUID();
-			const pane = makeTerminalPane(terminalId, paneId);
-			store.getState().addTab({ id: tabId, panes: [pane] });
+			// Reuse the existing Workspace Run pane so repeated Run invocations
+			// don't accumulate a new tab every time. See issue #4690.
+			const state = store.getState();
+			let reused: { tabId: string; paneId: string } | null = null;
+			for (let i = state.tabs.length - 1; i >= 0; i--) {
+				const tab = state.tabs[i];
+				if (!tab) continue;
+				for (const [paneId, pane] of Object.entries(tab.panes)) {
+					if (
+						pane.kind === "terminal" &&
+						pane.titleOverride === "Workspace Run"
+					) {
+						reused = { tabId: tab.id, paneId };
+						break;
+					}
+				}
+				if (reused) break;
+			}
+
+			if (reused) {
+				const nextData: TerminalPaneData = { terminalId };
+				state.setPaneData({ paneId: reused.paneId, data: nextData });
+				state.setActivePane({
+					tabId: reused.tabId,
+					paneId: reused.paneId,
+				});
+				state.setActiveTab(reused.tabId);
+			} else {
+				const tabId = crypto.randomUUID();
+				const paneId = crypto.randomUUID();
+				const pane = makeTerminalPane(terminalId, paneId);
+				state.addTab({ id: tabId, panes: [pane] });
+			}
 		} catch (error) {
 			toast.error("Failed to run workspace command", {
 				description: error instanceof Error ? error.message : "Unknown error",
