@@ -18,7 +18,7 @@ import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
-import { SettingsRow } from "./components/SettingsRow";
+import { SettingsRow } from "../../../../components/SettingsRow";
 import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
 
