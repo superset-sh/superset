@@ -134,8 +134,6 @@ export function useWorkspaceRunCommand({
 			const fallbackCwd = worktreePath?.trim() ? worktreePath : undefined;
 			const initialCwd = runDefinition?.cwd ?? fallbackCwd;
 
-			// Reuse the existing (stopped) run pane so repeated Run invocations
-			// don't accumulate a new tab every time. See issue #4690.
 			// Re-read from the store: runPane was captured before the await
 			// above and the pane/tab may have been closed in the meantime.
 			const tabsState = useTabsStore.getState();

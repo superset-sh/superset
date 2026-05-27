@@ -165,9 +165,9 @@ export function useV2WorkspaceRun({
 		isStartingRef.current = true;
 		setIsPending(true);
 		try {
-			// Snapshot prior workspace-run terminal IDs so we can identify the
-			// pane to reuse without depending on a UI string. A terminal pane is
-			// a "workspace run" pane iff its terminalId is in this set.
+			// A terminal pane is a "workspace run" pane iff its terminalId is in
+			// workspaceRunTerminals. Snapshot before launch so the new terminal
+			// we're about to create doesn't itself match.
 			const priorRunTerminalIds = new Set(Object.keys(workspaceRunTerminals));
 
 			const terminalId = await launcher.create({
@@ -187,8 +187,6 @@ export function useV2WorkspaceRun({
 				};
 			});
 
-			// Reuse the most recent workspace-run pane so repeated Run
-			// invocations don't accumulate a new tab every time. See #4690.
 			const state = store.getState();
 			let reused: { tabId: string; paneId: string } | null = null;
 			for (let i = state.tabs.length - 1; i >= 0; i--) {
