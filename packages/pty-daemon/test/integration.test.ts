@@ -88,6 +88,93 @@ test("input is forwarded and echoed via output", async () => {
 	await c.close();
 });
 
+test("spawned PTY child can open /dev/tty", async () => {
+	const c = await connectAndHello(sockPath);
+	c.send({
+		type: "open",
+		id: "tty-control",
+		meta: {
+			shell: process.execPath,
+			argv: [
+				"-e",
+				[
+					'const fs = require("node:fs");',
+					'const fd = fs.openSync("/dev/tty", "r+");',
+					"fs.closeSync(fd);",
+					'console.log("tty-open-ok");',
+				].join(" "),
+			],
+			cols: 80,
+			rows: 24,
+		},
+	});
+	await c.waitFor((m) => m.type === "open-ok" && m.id === "tty-control", 3000);
+	c.send({ type: "subscribe", id: "tty-control", replay: true });
+	await c.waitFor(
+		(m) =>
+			m.type === "output" &&
+			m.id === "tty-control" &&
+			payloadAsString(m).includes("tty-open-ok"),
+		3000,
+	);
+	const exit = await c.waitFor(
+		(m) => m.type === "exit" && m.id === "tty-control",
+		3000,
+	);
+	if (exit.type === "exit") assert.equal(exit.code, 0);
+	await c.close();
+});
+
+test("OSC responses in input are stripped before reaching PTY stdin", async () => {
+	const c = await connectAndHello(sockPath);
+	c.send({
+		type: "open",
+		id: "osc-strip",
+		meta: {
+			shell: process.execPath,
+			argv: [
+				"-e",
+				[
+					"const chunks = [];",
+					"process.stdin.setRawMode(true);",
+					"process.stdin.resume();",
+					"function done() {",
+					"  const bytes = Buffer.concat(chunks);",
+					'  console.log("RAW:" + bytes.toString("hex"));',
+					"  process.exit(0);",
+					"}",
+					'process.stdin.on("data", (chunk) => {',
+					"  chunks.push(chunk);",
+					'  if (Buffer.concat(chunks).includes(Buffer.from("b"))) done();',
+					"});",
+					"setTimeout(done, 1000).unref();",
+				].join(" "),
+			],
+			cols: 80,
+			rows: 24,
+		},
+	});
+	await c.waitFor((m) => m.type === "open-ok" && m.id === "osc-strip", 3000);
+	c.send({ type: "subscribe", id: "osc-strip", replay: true });
+	c.send(
+		{ type: "input", id: "osc-strip" },
+		Buffer.from("a\x1b]10;?\x07\x1b]11;?\x07\x1b]52;c;Zm9v\x07b", "utf8"),
+	);
+	await c.waitFor(
+		(m) =>
+			m.type === "output" &&
+			m.id === "osc-strip" &&
+			payloadAsString(m).includes("RAW:6162"),
+		3000,
+	);
+	const exit = await c.waitFor(
+		(m) => m.type === "exit" && m.id === "osc-strip",
+		3000,
+	);
+	if (exit.type === "exit") assert.equal(exit.code, 0);
+	await c.close();
+});
+
 test("Pty.getMasterFd returns a usable kernel fd", () => {
 	// Phase 2 fd-handoff depends on this — surface a clear failure if the
 	// node-pty private-property contract changes under us.

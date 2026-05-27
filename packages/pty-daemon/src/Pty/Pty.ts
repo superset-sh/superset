@@ -11,6 +11,11 @@ import {
 import type { SessionMeta } from "../protocol/index.ts";
 
 const KILL_ESCALATION_TIMEOUT_MS = 1000;
+const ESC = 0x1b;
+const BEL = 0x07;
+const RIGHT_BRACKET = 0x5d;
+const BACKSLASH = 0x5c;
+const C1_OSC = 0x9d;
 
 export type PtyOnData = (data: Buffer) => void;
 export type PtyOnExit = (info: {
@@ -52,6 +57,7 @@ class NodePtyAdapter implements Pty {
 	readonly pid: number;
 	meta: SessionMeta;
 	private term: nodePty.IPty;
+	private readonly inputFilter = new OscInputFilter();
 	private exited = false;
 	private killEscalationTimer: NodeJS.Timeout | null = null;
 	private exitInfo: { code: number | null; signal: number | null } | null =
@@ -87,8 +93,10 @@ class NodePtyAdapter implements Pty {
 	}
 
 	write(data: Buffer): void {
+		const filtered = this.inputFilter.write(data);
+		if (filtered.byteLength === 0) return;
 		// node-pty's write accepts strings or buffers; pass buffer to keep bytes intact.
-		this.term.write(data as unknown as string);
+		this.term.write(filtered as unknown as string);
 	}
 
 	pause(): void {
@@ -194,9 +202,7 @@ export function spawn({ meta }: SpawnOptions): Pty {
 		});
 	} catch (err) {
 		// Annotate with shell + cwd so the wire-error reply is actionable.
-		throw new Error(
-			`spawn failed (shell=${meta.shell} cwd=${meta.cwd ?? "(none)"}): ${(err as Error).message}`,
-		);
+		throw new Error(formatSpawnError(meta, err));
 	}
 	const adapter = new NodePtyAdapter(term, meta);
 	// Validate the private-fd dependency at spawn time, not handoff time.
@@ -227,6 +233,7 @@ class AdoptedPty implements Pty {
 	meta: SessionMeta;
 	private readonly fd: number;
 	private readonly reader: tty.ReadStream;
+	private readonly inputFilter = new OscInputFilter();
 	private exitFired = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
 	private killEscalationTimer: NodeJS.Timeout | null = null;
@@ -280,13 +287,15 @@ class AdoptedPty implements Pty {
 		if (this.exitFired) {
 			throw new Error(`session exited: ${this.pid}`);
 		}
+		const filtered = this.inputFilter.write(data);
+		if (filtered.byteLength === 0) return;
 		let offset = 0;
-		while (offset < data.byteLength) {
+		while (offset < filtered.byteLength) {
 			const written = fs.writeSync(
 				this.fd,
-				data,
+				filtered,
 				offset,
-				data.byteLength - offset,
+				filtered.byteLength - offset,
 			);
 			if (written <= 0) {
 				throw new Error(`pty write wrote ${written} bytes`);
@@ -386,4 +395,84 @@ export function adoptFromFd({ fd, pid, meta }: AdoptOptions): Pty {
 	}
 	validateDims(meta.cols, meta.rows);
 	return new AdoptedPty(fd, pid, meta);
+}
+
+type OscInputFilterState = "normal" | "esc" | "osc" | "osc-esc";
+
+/**
+ * Drops OSC replies that belong to the terminal emulator control plane, not to
+ * the shell stdin stream. These can be injected by renderer-side terminal
+ * queries and confuse raw-mode prompt readers like gh, ssh, and credential
+ * helpers if forwarded into the PTY.
+ */
+export class OscInputFilter {
+	private state: OscInputFilterState = "normal";
+
+	write(data: Buffer): Buffer {
+		const out: number[] = [];
+		for (const byte of data) {
+			this.pushByte(byte, out);
+		}
+		if (this.state === "esc") {
+			out.push(ESC);
+			this.state = "normal";
+		}
+		return Buffer.from(out);
+	}
+
+	private pushByte(byte: number, out: number[]): void {
+		switch (this.state) {
+			case "normal":
+				if (byte === ESC) {
+					this.state = "esc";
+					return;
+				}
+				if (byte === C1_OSC) {
+					this.state = "osc";
+					return;
+				}
+				out.push(byte);
+				return;
+			case "esc":
+				if (byte === RIGHT_BRACKET) {
+					this.state = "osc";
+					return;
+				}
+				out.push(ESC);
+				this.state = "normal";
+				this.pushByte(byte, out);
+				return;
+			case "osc":
+				if (byte === BEL) {
+					this.state = "normal";
+					return;
+				}
+				if (byte === ESC) {
+					this.state = "osc-esc";
+				}
+				return;
+			case "osc-esc":
+				if (byte === BACKSLASH || byte === BEL) {
+					this.state = "normal";
+					return;
+				}
+				this.state = byte === ESC ? "osc-esc" : "osc";
+				return;
+		}
+	}
+}
+
+function formatSpawnError(meta: SessionMeta, err: unknown): string {
+	const e = err as NodeJS.ErrnoException;
+	const message = e.message ?? String(err);
+	const context = `shell=${meta.shell} cwd=${meta.cwd ?? "(none)"}`;
+	if (
+		e.code === "ENXIO" ||
+		e.code === "EAGAIN" ||
+		e.code === "ENOSPC" ||
+		/openpty|forkpty|pty/i.test(message)
+	) {
+		return `spawn failed to allocate PTY (${context}): ${message}`;
+	}
+	return `spawn failed (${context}): ${message}`;
 }
