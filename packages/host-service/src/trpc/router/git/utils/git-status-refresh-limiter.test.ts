@@ -343,6 +343,53 @@ describe("GitStatusRefreshLimiter", () => {
 		await expect(third).resolves.toBe("third");
 	});
 
+	test("rate-limits successive runs to roughly one per minIntervalMs even under continuous invalidation (issue #4937)", async () => {
+		// Reproduces the host-service git polling storm reported in #4937:
+		// once an invalidation lands while a run is active, a follow-up run
+		// starts immediately when the active one finishes. When fs activity
+		// keeps producing `git:changed` events, the limiter spawns
+		// back-to-back getGitStatusSnapshot batches with no minimum interval,
+		// which fans out into many git subprocesses per second per worktree.
+		const MIN_INTERVAL_MS = 200;
+		const WORK_MS = 5;
+		const TEST_DURATION_MS = 1000;
+		const INVALIDATION_EVERY_MS = 10;
+
+		const limiter = new GitStatusRefreshLimiter(1, {
+			minIntervalMs: MIN_INTERVAL_MS,
+		});
+		let runs = 0;
+		const tracked: Array<Promise<unknown>> = [];
+
+		const enqueueOne = () => {
+			tracked.push(
+				limiter.run({
+					workspaceId: "workspace-1",
+					requestKey: "base:main",
+					run: async () => {
+						runs++;
+						await new Promise((r) => setTimeout(r, WORK_MS));
+					},
+				}),
+			);
+		};
+
+		const start = Date.now();
+		const interval = setInterval(enqueueOne, INVALIDATION_EVERY_MS);
+		enqueueOne();
+		await new Promise((r) => setTimeout(r, TEST_DURATION_MS));
+		clearInterval(interval);
+
+		await Promise.allSettled(tracked);
+		const elapsed = Date.now() - start;
+
+		// Without rate limiting, runs would be O(elapsed / WORK_MS) ≈ 200.
+		// With MIN_INTERVAL_MS=200ms and ~1s of churn, we expect ~6 runs
+		// (initial + ~5 trailing). Allow some slack for timing jitter.
+		const maxExpected = Math.ceil(elapsed / MIN_INTERVAL_MS) + 2;
+		expect(runs).toBeLessThanOrEqual(maxExpected);
+	});
+
 	test("clear rejects queued work and lets active work finish without reviving stale queues", async () => {
 		const limiter = new GitStatusRefreshLimiter(1);
 		const firstGate = deferred();
