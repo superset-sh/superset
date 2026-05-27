@@ -1,7 +1,10 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
-import { getPresetById } from "@superset/shared/host-agent-presets";
+import {
+	getDefaultSeedPresets,
+	getPresetById,
+} from "@superset/shared/host-agent-presets";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../../db/schema";
@@ -39,7 +42,8 @@ async function listFirst(
 	return first;
 }
 
-const DEFAULT_PRESET_IDS = ["claude", "amp", "codex", "gemini", "copilot"];
+const DEFAULT_PRESET_IDS = getDefaultSeedPresets().map((p) => p.presetId);
+const DEFAULT_PRESET_ORDERS = DEFAULT_PRESET_IDS.map((_, i) => i);
 
 describe("agentConfigsRouter", () => {
 	describe("list()", () => {
@@ -49,7 +53,7 @@ describe("agentConfigsRouter", () => {
 			const result = await caller.list();
 
 			expect(result.map((row) => row.presetId)).toEqual(DEFAULT_PRESET_IDS);
-			expect(result.map((row) => row.order)).toEqual([0, 1, 2, 3, 4]);
+			expect(result.map((row) => row.order)).toEqual(DEFAULT_PRESET_ORDERS);
 		});
 
 		it("does not seed Superset", async () => {
@@ -99,7 +103,7 @@ describe("agentConfigsRouter", () => {
 			expect(reordered.map((row) => row.presetId)).toEqual(
 				[...DEFAULT_PRESET_IDS].reverse(),
 			);
-			expect(reordered.map((row) => row.order)).toEqual([0, 1, 2, 3, 4]);
+			expect(reordered.map((row) => row.order)).toEqual(DEFAULT_PRESET_ORDERS);
 		});
 	});
 
@@ -113,10 +117,12 @@ describe("agentConfigsRouter", () => {
 			expect(created.presetId).toBe("pi");
 			expect(created.command).toBe("pi");
 			expect(created.promptTransport).toBe("argv");
-			expect(created.order).toBe(5);
+			expect(created.order).toBe(DEFAULT_PRESET_IDS.length);
 			const all = await caller.list();
-			expect(all).toHaveLength(6);
-			expect(new Set(all.map((row) => row.id)).size).toBe(6);
+			expect(all).toHaveLength(DEFAULT_PRESET_IDS.length + 1);
+			expect(new Set(all.map((row) => row.id)).size).toBe(
+				DEFAULT_PRESET_IDS.length + 1,
+			);
 		});
 
 		it("allows duplicate presetId tags with distinct ids", async () => {
@@ -300,7 +306,7 @@ describe("agentConfigsRouter", () => {
 			const result = await caller.reorder({ ids: reversed });
 
 			expect(result.map((row) => row.id)).toEqual(reversed);
-			expect(result.map((row) => row.order)).toEqual([0, 1, 2, 3, 4]);
+			expect(result.map((row) => row.order)).toEqual(DEFAULT_PRESET_ORDERS);
 		});
 
 		it("rejects when ids do not match existing configs", async () => {
@@ -337,7 +343,9 @@ describe("agentConfigsRouter", () => {
 
 			expect(result.map((row) => row.presetId)).toEqual(DEFAULT_PRESET_IDS);
 			expect(result.find((row) => row.label === "Renamed")).toBeUndefined();
-			expect(result.find((row) => row.presetId === "pi")).toBeUndefined();
+			// `pi` is in defaults now, so reset re-seeds exactly one — the
+			// extra row added above is dropped.
+			expect(result.filter((row) => row.presetId === "pi")).toHaveLength(1);
 		});
 	});
 });
