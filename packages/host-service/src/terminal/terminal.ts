@@ -207,12 +207,8 @@ type TerminalSocket = {
 // Scanner logic lives in @superset/shared/shell-ready-scanner.
 // ---------------------------------------------------------------------------
 
-/**
- * How long to wait for the shell-ready marker before unblocking writes.
- * 15 s covers heavy setups like Nix-based devenv via direnv. On timeout
- * buffered writes flush immediately (same behaviour as before this feature).
- */
-const SHELL_READY_TIMEOUT_MS = 15_000;
+/** Flush partial OSC 133;A prefix bytes the scanner is holding if a full marker never arrives. */
+const SHELL_READY_TIMEOUT_MS = 3_000;
 
 /**
  * Shell readiness lifecycle:
@@ -793,11 +789,9 @@ function queueInitialCommand(
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
-	session.shellReadyPromise.then(() => {
-		if (!session.exited) {
-			session.pty.write(cmd);
-		}
-	});
+	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
+	// and gating turned broken/missing markers into a guaranteed stall.
+	session.pty.write(cmd);
 }
 
 interface DaemonCloseResult {
@@ -1001,7 +995,6 @@ interface CreateTerminalSessionOptions {
 	themeType?: "dark" | "light";
 	db: HostDb;
 	eventBus?: EventBus;
-	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
