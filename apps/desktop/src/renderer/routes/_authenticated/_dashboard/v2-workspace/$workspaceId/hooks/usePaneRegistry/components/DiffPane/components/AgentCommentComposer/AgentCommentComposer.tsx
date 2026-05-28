@@ -9,7 +9,7 @@ import {
 } from "@superset/ui/select";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
-import { LuCornerDownLeft, LuPlus } from "react-icons/lu";
+import { LuCornerDownLeft, LuLoaderCircle, LuPlus } from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import {
 	type TerminalAgentBinding,
@@ -25,7 +25,10 @@ interface AgentCommentComposerProps {
 	startLine: number;
 	endLine: number;
 	onCancel: () => void;
-	onSubmit: (input: { comment: string; target: AgentTarget }) => void;
+	onSubmit: (input: {
+		comment: string;
+		target: AgentTarget;
+	}) => void | Promise<void>;
 }
 
 const NEW_SESSION_VALUE = "__new__";
@@ -46,6 +49,7 @@ export function AgentCommentComposer({
 	const [target, setTarget] = useState<string>(
 		sessions[0]?.terminalId ?? NEW_SESSION_VALUE,
 	);
+	const [submitting, setSubmitting] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
 	useEffect(() => {
@@ -61,15 +65,20 @@ export function AgentCommentComposer({
 		startLine === endLine
 			? `Line ${startLine}`
 			: `Lines ${startLine}–${endLine}`;
-	const canSubmit = comment.trim().length > 0;
+	const canSubmit = comment.trim().length > 0 && !submitting;
 
-	const handleSubmit = () => {
+	const handleSubmit = async () => {
 		if (!canSubmit) return;
 		const resolved: AgentTarget =
 			target === NEW_SESSION_VALUE
 				? { kind: "new" }
 				: { kind: "existing", terminalId: target };
-		onSubmit({ comment: comment.trim(), target: resolved });
+		setSubmitting(true);
+		try {
+			await onSubmit({ comment: comment.trim(), target: resolved });
+		} finally {
+			setSubmitting(false);
+		}
 	};
 
 	return (
@@ -155,6 +164,7 @@ export function AgentCommentComposer({
 						size="xs"
 						variant="ghost"
 						onClick={onCancel}
+						disabled={submitting}
 						className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
 					>
 						Cancel
@@ -169,8 +179,11 @@ export function AgentCommentComposer({
 							"disabled:opacity-40",
 						)}
 					>
-						<span>Comment</span>
-						<KbdEnter />
+						{submitting ? (
+							<LuLoaderCircle className="size-3 animate-spin" />
+						) : null}
+						<span>{submitting ? "Sending…" : "Comment"}</span>
+						{submitting ? null : <KbdEnter />}
 					</Button>
 				</div>
 			</div>

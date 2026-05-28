@@ -7,7 +7,12 @@ import type {
 } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo, useRef, useState } from "react";
+import {
+	formatAgentPromptWithFileContext,
+	useSendToTerminalAgent,
+} from "renderer/hooks/host-service/useSendToTerminalAgent";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import { useChangeset } from "../../../useChangeset";
 import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
@@ -88,14 +93,6 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 		[],
 	);
 
-	const handleSubmitComposer = useCallback(
-		(_input: { comment: string; target: AgentTarget }) => {
-			// TODO(pierre-diff-agent-send): wire writeInput to selected agent
-			handleClearSelection();
-		},
-		[handleClearSelection],
-	);
-
 	// Synthetic composer annotation pinned to the end of the live selection.
 	const composerAnnotationsByItemId = useMemo(() => {
 		if (!composer) return null;
@@ -128,6 +125,51 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 			annotationsByPath: threadAnnotationsByPath,
 			extraAnnotationsByItemId: composerAnnotationsByItemId,
 		});
+
+	const { send: sendToTerminalAgent } = useSendToTerminalAgent();
+
+	const handleSubmitComposer = useCallback(
+		async (input: { comment: string; target: AgentTarget }) => {
+			if (!composer) return;
+			const file = fileByItemId.get(composer.itemId);
+			if (!file) return;
+
+			if (input.target.kind === "new") {
+				// TODO(pierre-diff-agent-send): spin up a new agent session and
+				// send the comment there. Reuses the same payload format.
+				toast.info("New agent session sending isn't wired yet");
+				return;
+			}
+
+			const text = formatAgentPromptWithFileContext({
+				comment: input.comment,
+				file: {
+					path: file.path,
+					startLine: composer.range.start,
+					endLine: composer.range.end,
+				},
+			});
+
+			try {
+				await sendToTerminalAgent({
+					workspaceId,
+					terminalId: input.target.terminalId,
+					text,
+				});
+				handleClearSelection();
+			} catch {
+				// Toast is shown by the hook; keep composer open so the user
+				// can retry or edit.
+			}
+		},
+		[
+			composer,
+			fileByItemId,
+			workspaceId,
+			sendToTerminalAgent,
+			handleClearSelection,
+		],
+	);
 
 	const { targetItemId } = useDiffCodeViewScroll({
 		codeViewRef,
