@@ -104,17 +104,15 @@ function ContextMenuContent({
 		() => innerRef.current as HTMLDivElement,
 	);
 
-	// Suppress the pointerup that opened the menu from triggering a menu item.
 	// On Linux/Wayland the pointerup paired with `contextmenu` lands on the
-	// freshly-mounted item under the cursor, and Radix's MenuItem treats
-	// pointerup-without-prior-pointerdown as "user dragged in" and synchronously
-	// calls `event.currentTarget?.click()` → onSelect. We intercept pointerup
-	// (not mouseup — the browser dispatches pointerup first, so by mouseup time
-	// the synthesized click has already run) in capture phase, gated on "did a
-	// real pointerdown happen on this content first?" so legitimate clicks
-	// (which always start with pointerdown on content) are never affected. The
-	// flag resets per pointerup so the guard works for every subsequent open,
-	// including force-mounted content. See superset-sh/superset#4939.
+	// freshly-mounted item under the cursor. Radix's MenuItem treats
+	// pointerup-without-prior-pointerdown as "user dragged in" and
+	// synchronously calls `event.currentTarget?.click()` → onSelect, so the
+	// right-click that opens the menu also fires the item beneath it (usually
+	// destructive Close Pane). Intercept pointerup — not mouseup, which the
+	// browser dispatches after pointerup, by which time the synthesized click
+	// has already run. Reset per event so the guard re-arms for force-mounted
+	// content. See superset-sh/superset#4939.
 	React.useLayoutEffect(() => {
 		const node = innerRef.current;
 		if (!node) return;
