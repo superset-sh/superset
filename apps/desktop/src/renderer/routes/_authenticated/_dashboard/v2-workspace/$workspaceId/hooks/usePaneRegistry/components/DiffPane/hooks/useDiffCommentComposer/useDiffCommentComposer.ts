@@ -1,5 +1,5 @@
 import type {
-	CodeViewLineSelection,
+	CodeViewOptions,
 	DiffLineAnnotation,
 	SelectedLineRange,
 } from "@pierre/diffs";
@@ -55,12 +55,16 @@ interface UseDiffCommentComposerArgs {
 	) => Promise<{ terminalId: string } | null>;
 }
 
+type OnLineSelectionEnd = NonNullable<
+	CodeViewOptions<DiffAnnotationMetadata>["onLineSelectionEnd"]
+>;
+
 interface UseDiffCommentComposerResult {
 	composerAnnotationsByItemId: ReadonlyMap<
 		string,
 		DiffLineAnnotation<DiffAnnotationMetadata>[]
 	> | null;
-	onSelectedLinesChange: (selection: CodeViewLineSelection | null) => void;
+	onLineSelectionEnd: OnLineSelectionEnd;
 	onGutterUtilityClick: () => void;
 	clear: () => void;
 	submit: (input: DiffCommentSubmitInput) => Promise<void>;
@@ -102,27 +106,31 @@ export function useDiffCommentComposer({
 		[clear],
 	);
 
-	const onSelectedLinesChange = useCallback(
-		(selection: CodeViewLineSelection | null) => {
-			if (!selection) {
+	// Open on pointer-up, not pointer-down. Pierre's top-level
+	// `onSelectedLinesChange` fires on every selection notify (start, drag,
+	// end) so using it would pop the composer the moment the user mouses
+	// down. `onLineSelectionEnd` is the strict pointer-up signal — and unlike
+	// `onLineSelected` it does *not* fire for imperative selection writes
+	// (e.g. our own clearSelectedLines or future jump-to-thread), so the
+	// composer never opens spuriously from code.
+	const onLineSelectionEnd = useCallback<OnLineSelectionEnd>(
+		(range, context) => {
+			if (context.type !== "diff") return;
+			if (!range) {
 				setComposer(null);
 				return;
 			}
-			setComposer({ itemId: selection.id, range: selection.range });
+			setComposer({ itemId: context.item.id, range });
 		},
 		[],
 	);
 
 	// Pierre gates the gutter "+" button's pointer flow behind a non-null
 	// onGutterUtilityClick (InteractionManager.startGutterSelectionFromPointerDown
-	// early-returns otherwise). We mirror the open from the CodeView's
-	// current selection — pierre updates that during the pointer session.
-	const onGutterUtilityClick = useCallback(() => {
-		const selection = codeViewRef.current?.getSelectedLines();
-		if (selection) {
-			setComposer({ itemId: selection.id, range: selection.range });
-		}
-	}, [codeViewRef]);
+	// early-returns otherwise). The gutter pointer-up path also fires
+	// notifySelectionEnd → onLineSelectionEnd, so the open is handled there;
+	// this stays as a required stub.
+	const onGutterUtilityClick = useCallback(() => {}, []);
 
 	const composerAnnotationsByItemId = useMemo(() => {
 		if (!composer) return null;
@@ -204,7 +212,7 @@ export function useDiffCommentComposer({
 
 	return {
 		composerAnnotationsByItemId,
-		onSelectedLinesChange,
+		onLineSelectionEnd,
 		onGutterUtilityClick,
 		clear,
 		submit,
