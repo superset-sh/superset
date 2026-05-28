@@ -491,6 +491,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"bindings",
 			"keybindings",
 			"commands",
+			"voice control",
 			"voice shortcut",
 			"voice activation",
 			"dictation shortcut",
@@ -629,10 +630,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.BEHAVIOR_VOICE_INPUT,
 		section: "behavior",
-		title: "Voice input",
-		description: "Control voice dictation and Wispr-style voice input",
+		title: "Voice Control",
+		description:
+			"Control Superset voice controls and OS dictation paste support",
 		keywords: [
 			"voice",
+			"voice control",
+			"voice input",
 			"dictation",
 			"wispr",
 			"speech",

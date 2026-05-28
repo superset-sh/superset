@@ -7,6 +7,7 @@ export type PlatformKey = {
 };
 
 export type HotkeyCategory =
+	| "Voice Control"
 	| "Navigation"
 	| "Workspace"
 	| "Layout"

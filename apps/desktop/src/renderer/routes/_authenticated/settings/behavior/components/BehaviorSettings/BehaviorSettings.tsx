@@ -10,6 +10,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
+import { type MouseEvent, useEffect, useRef } from "react";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -17,11 +18,15 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-
-const VOICE_SHORTCUT_SETTINGS_HREF =
-	"#/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE";
+import {
+	LEGACY_VOICE_INPUT_SETTINGS_SECTION_ID,
+	VOICE_INPUT_SETTINGS_SECTION_ID,
+	VOICE_SHORTCUT_SETTINGS_HREF,
+} from "../../../utils/voice-shortcut-links";
 
 interface BehaviorSettingsProps {
+	focusedSection?: string | null;
+	onVoiceShortcutNavigate?: () => void;
 	visibleItems?: SettingItemId[] | null;
 }
 
@@ -30,6 +35,20 @@ type MicrophonePermissionStatus =
 	| "denied"
 	| "promptable"
 	| "unknown";
+
+function getBehaviorSectionId(): string | null {
+	if (typeof window === "undefined") {
+		return null;
+	}
+
+	const hashQueryIndex = window.location.hash.indexOf("?");
+	const hashSearch =
+		hashQueryIndex >= 0 ? window.location.hash.slice(hashQueryIndex + 1) : "";
+	const params = new URLSearchParams(
+		hashSearch || window.location.search.slice(1),
+	);
+	return params.get("section");
+}
 
 function getMicrophoneReadinessCopy({
 	isLoading,
@@ -42,7 +61,7 @@ function getMicrophoneReadinessCopy({
 		return {
 			actionLabel: null,
 			badge: "Checking",
-			description: "Checking microphone access before voice input starts.",
+			description: "Checking microphone access before voice control starts.",
 			label: "Checking microphone access",
 			variant: "outline" as const,
 		};
@@ -52,7 +71,7 @@ function getMicrophoneReadinessCopy({
 		return {
 			actionLabel: null,
 			badge: "Ready",
-			description: "Voice input can use the microphone.",
+			description: "Voice control can use the microphone.",
 			label: "Microphone is ready",
 			variant: "secondary" as const,
 		};
@@ -89,7 +108,16 @@ function getMicrophoneReadinessCopy({
 	};
 }
 
-export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
+export function BehaviorSettings({
+	focusedSection,
+	onVoiceShortcutNavigate,
+	visibleItems,
+}: BehaviorSettingsProps) {
+	const voiceInputSectionRef = useRef<HTMLDivElement>(null);
+	const activeSection = focusedSection ?? getBehaviorSectionId();
+	const shouldFocusVoiceInput =
+		activeSection === VOICE_INPUT_SETTINGS_SECTION_ID ||
+		activeSection === LEGACY_VOICE_INPUT_SETTINGS_SECTION_ID;
 	const showConfirmQuit = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
@@ -242,6 +270,22 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		status: permissionStatus?.microphoneStatus,
 	});
 
+	const handleVoiceShortcutClick = (event: MouseEvent<HTMLAnchorElement>) => {
+		if (!onVoiceShortcutNavigate) {
+			return;
+		}
+		event.preventDefault();
+		onVoiceShortcutNavigate();
+	};
+
+	useEffect(() => {
+		if (!showVoiceInput || !shouldFocusVoiceInput) return;
+		voiceInputSectionRef.current?.scrollIntoView?.({
+			behavior: "smooth",
+			block: "start",
+		});
+	}, [showVoiceInput, shouldFocusVoiceInput]);
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -346,14 +390,20 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				)}
 
 				{showVoiceInput && (
-					<div className="space-y-4">
+					<div
+						ref={voiceInputSectionRef}
+						id={VOICE_INPUT_SETTINGS_SECTION_ID}
+						data-focused-setting={shouldFocusVoiceInput ? "true" : undefined}
+						className="space-y-4 scroll-mt-6"
+					>
 						<div className="flex items-center justify-between gap-6">
 							<div className="min-w-0 flex-1 space-y-0.5">
 								<Label htmlFor="voice-input" className="text-sm font-medium">
-									Voice Input
+									Voice Control
 								</Label>
 								<p className="text-xs text-muted-foreground">
-									Enable voice input for hands-free dictation controls
+									Enable Superset voice controls; OS dictation and paste
+									continue to work in focused inputs.
 								</p>
 								<p
 									id="voice-input-status"
@@ -368,8 +418,8 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 										: isVoiceInputLoading
 											? "Loading voice preference"
 											: voiceInputEnabled
-												? "Voice input is enabled"
-												: "Voice input is disabled"}
+												? "Voice control is enabled"
+												: "Voice control is disabled"}
 								</p>
 							</div>
 							<Switch
@@ -400,7 +450,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								</p>
 								<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
 									<span className="font-medium text-foreground">
-										Voice Shortcut
+										Voice Control Shortcut
 									</span>
 									{canDisplayVoiceShortcut ? (
 										<span>{voiceShortcutText}</span>
@@ -411,10 +461,11 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 										className="text-primary underline-offset-4 hover:underline"
 										data-testid="behavior-voice-shortcut-link"
 										href={VOICE_SHORTCUT_SETTINGS_HREF}
+										onClick={handleVoiceShortcutClick}
 									>
 										{canDisplayVoiceShortcut
-											? "Edit shortcut"
-											: "Reset in Keyboard Shortcuts"}
+											? "Edit in Keyboard settings"
+											: "Set in Keyboard settings"}
 									</a>
 								</div>
 							</div>

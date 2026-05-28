@@ -20,12 +20,19 @@ import {
 	isIgnorableKey,
 	normalizeToken,
 	TERMINAL_RESERVED_CHORDS,
-} from "../../utils/resolveHotkeyFromEvent";
+} from "../../utils/chord";
+import {
+	isFnShortcutToken,
+	isStandaloneFnKeyEvent,
+	normalizeFnShortcutToken,
+} from "../../utils/fnKey";
 
 // Matches the registry's written modifier order (`meta+alt+up`) so recorded
 // strings stay visually aligned with defaults. Canonicalization handles
 // reordering at compare time.
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
+export const UNSUPPORTED_FN_SHORTCUT_REASON =
+	"Press Fn/Globe by itself to use it as a shortcut. Fn combinations are not supported.";
 
 export interface CapturedHotkey {
 	/** Modifiers + canonical(event.code). Always meaningful. */
@@ -39,8 +46,22 @@ export interface CapturedHotkey {
 export function captureHotkeyFromEvent(
 	event: KeyboardEvent,
 ): CapturedHotkey | null {
+	const codeKey = event.code === undefined ? "" : normalizeToken(event.code);
+	const key = normalizeToken(event.key ?? "");
+
+	const fnKey =
+		normalizeFnShortcutToken(codeKey) ??
+		normalizeFnShortcutToken(key) ??
+		(isStandaloneFnKeyEvent(event) ? "fn" : null);
+	if (fnKey) {
+		return {
+			codeChord: fnKey,
+			keyChord: fnKey,
+			classification: "named",
+		};
+	}
+
 	if (event.code === undefined) return null;
-	const codeKey = normalizeToken(event.code);
 	if (isIgnorableKey(codeKey)) return null;
 
 	const isFKey = isFunctionKey(codeKey);
@@ -77,6 +98,28 @@ export function captureHotkeyFromEvent(
 		}
 	}
 	return { codeChord, keyChord, classification };
+}
+
+export function getUnsupportedShortcutReason(
+	event: KeyboardEvent,
+): string | null {
+	const key = normalizeToken(event.key ?? "");
+	const code = event.code === undefined ? "" : normalizeToken(event.code);
+	const fnActive =
+		event.getModifierState?.("Fn") === true ||
+		event.getModifierState?.("FnLock") === true;
+
+	const hasNonFnKey = !isIgnorableKey(key) || !isIgnorableKey(code);
+	if (
+		fnActive &&
+		hasNonFnKey &&
+		!isFnShortcutToken(key) &&
+		!isFnShortcutToken(code)
+	) {
+		return UNSUPPORTED_FN_SHORTCUT_REASON;
+	}
+
+	return null;
 }
 
 /**
@@ -174,6 +217,7 @@ interface UseRecordHotkeysOptions {
 		binding: ShortcutBinding,
 		info: { reason: string; severity: "error" | "warning" },
 	) => void;
+	onUnsupported?: (info: { reason: string }) => void;
 }
 
 type HotkeyRecorderPersistence = {
@@ -213,6 +257,12 @@ export function useRecordHotkeys(
 
 			if (event.key === "Escape") {
 				optionsRef.current?.onCancel?.();
+				return;
+			}
+
+			const unsupportedReason = getUnsupportedShortcutReason(event);
+			if (unsupportedReason) {
+				optionsRef.current?.onUnsupported?.({ reason: unsupportedReason });
 				return;
 			}
 

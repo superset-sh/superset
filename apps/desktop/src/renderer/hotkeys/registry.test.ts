@@ -126,7 +126,7 @@ describe("HOTKEYS_REGISTRY shape", () => {
 		const voiceHotkey = HOTKEYS_REGISTRY.VOICE_INPUT_TOGGLE;
 
 		expect(voiceHotkey).toMatchObject({
-			category: "Workspace",
+			category: "Voice Control",
 			key: {
 				mac: { version: 2, mode: "logical", chord: "meta+shift+v" },
 				windows: {

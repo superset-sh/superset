@@ -14,7 +14,7 @@ import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
 	HOTKEYS,
@@ -27,6 +27,14 @@ import {
 	useKeyboardPreferencesStore,
 	useRecordHotkeys,
 } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	LEGACY_VOICE_SHORTCUT_SECTION_ID,
+	VOICE_INPUT_HOTKEY_ID,
+	VOICE_INPUT_SETTINGS_HREF,
+	VOICE_INPUT_SETTINGS_SECTION_ID,
+	VOICE_SHORTCUT_SECTION_ID,
+} from "../utils/voice-shortcut-links";
 
 type PendingHotkeyConflict = {
 	targetId: HotkeyId;
@@ -35,6 +43,7 @@ type PendingHotkeyConflict = {
 };
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
+	"Voice Control",
 	"Navigation",
 	"Workspace",
 	"Terminal",
@@ -42,21 +51,29 @@ const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Window",
 	"Help",
 ];
+const RECORDING_SHORTCUT_HINT =
+	"Press the shortcut to assign it. Fn/Globe works when pressed by itself.";
 
 function HotkeyRow({
 	id,
 	label,
 	description,
+	disabled = false,
+	disabledReason,
 	isRecording,
 	isFocused,
+	recordingHint,
 	onStartRecording,
 	onReset,
 }: {
 	id: HotkeyId;
 	label: string;
 	description?: string;
+	disabled?: boolean;
+	disabledReason?: string;
 	isRecording: boolean;
 	isFocused: boolean;
+	recordingHint?: string;
 	onStartRecording: () => void;
 	onReset: () => void;
 }) {
@@ -66,11 +83,14 @@ function HotkeyRow({
 	return (
 		<div
 			data-testid={rowTestId}
+			data-disabled-shortcut={disabled ? "true" : undefined}
 			data-focused-shortcut={isFocused ? "true" : undefined}
+			aria-disabled={disabled || undefined}
 			className={cn(
 				"flex items-center justify-between gap-4 py-3 px-4 transition-colors",
 				isRecording && "bg-destructive/5",
 				isFocused && "bg-accent/30",
+				disabled && "opacity-60",
 			)}
 		>
 			<div className="flex flex-col">
@@ -78,18 +98,34 @@ function HotkeyRow({
 				{description && (
 					<span className="text-xs text-muted-foreground">{description}</span>
 				)}
+				{disabledReason && (
+					<span className="text-xs text-muted-foreground">
+						{disabledReason}
+					</span>
+				)}
+				{isRecording && recordingHint ? (
+					<span
+						className="text-xs text-muted-foreground"
+						data-testid={`${rowTestId}-recording-hint`}
+					>
+						{recordingHint}
+					</span>
+				) : null}
 			</div>
 			<div className="flex items-center gap-2">
 				<button
 					type="button"
 					aria-label={`Record shortcut for ${label}`}
 					data-testid={`${rowTestId}-record`}
-					onClick={onStartRecording}
+					disabled={disabled}
+					onClick={disabled ? undefined : onStartRecording}
 					className={cn(
 						"h-7 px-3 rounded-md border text-xs transition-colors",
-						isRecording
-							? "border-destructive/50 bg-destructive/10 text-destructive ring-2 ring-destructive/20"
-							: "border-border bg-accent/20 text-foreground hover:bg-accent/40",
+						disabled
+							? "border-border bg-muted text-muted-foreground cursor-not-allowed"
+							: isRecording
+								? "border-destructive/50 bg-destructive/10 text-destructive ring-2 ring-destructive/20"
+								: "border-border bg-accent/20 text-foreground hover:bg-accent/40",
 					)}
 				>
 					{isRecording ? (
@@ -107,7 +143,8 @@ function HotkeyRow({
 					data-testid={`${rowTestId}-reset`}
 					variant="ghost"
 					size="sm"
-					onClick={onReset}
+					disabled={disabled}
+					onClick={disabled ? undefined : onReset}
 				>
 					Reset
 				</Button>
@@ -116,9 +153,45 @@ function HotkeyRow({
 	);
 }
 
+export type KeyboardSettingsSearch = {
+	section?: string;
+	shortcut?: HotkeyId;
+};
+
 export const Route = createFileRoute("/_authenticated/settings/keyboard/")({
-	component: KeyboardShortcutsPage,
+	component: KeyboardShortcutsRoutePage,
+	validateSearch: (
+		search: Record<string, unknown>,
+	): KeyboardSettingsSearch => ({
+		section: typeof search.section === "string" ? search.section : undefined,
+		shortcut:
+			typeof search.shortcut === "string" && search.shortcut in HOTKEYS
+				? (search.shortcut as HotkeyId)
+				: undefined,
+	}),
 });
+
+function KeyboardShortcutsRoutePage() {
+	const navigate = Route.useNavigate();
+	const { section, shortcut } = Route.useSearch();
+
+	return (
+		<KeyboardShortcutsPage
+			deepLinkTarget={{
+				sectionId: section ?? null,
+				shortcutId: shortcut ?? null,
+			}}
+			onVoiceSettingsNavigate={() => {
+				navigate({
+					to: "/settings/behavior",
+					search: {
+						section: VOICE_INPUT_SETTINGS_SECTION_ID,
+					},
+				});
+			}}
+		/>
+	);
+}
 
 function buildHotkeyConflictPrompt({
 	conflictDisplayText,
@@ -147,6 +220,7 @@ function getHotkeysByCategory(): Record<
 		HotkeyCategory,
 		Array<{ id: HotkeyId; label: string; description?: string }>
 	> = {
+		"Voice Control": [],
 		Navigation: [],
 		Workspace: [],
 		Layout: [],
@@ -166,9 +240,19 @@ function getHotkeysByCategory(): Record<
 
 const hotkeysByCategory = getHotkeysByCategory();
 
-function getShortcutFocusId(): HotkeyId | null {
+type KeyboardDeepLinkTarget = {
+	sectionId: string | null;
+	shortcutId: HotkeyId | null;
+};
+
+type KeyboardShortcutsPageProps = {
+	deepLinkTarget?: KeyboardDeepLinkTarget;
+	onVoiceSettingsNavigate?: () => void;
+};
+
+function getKeyboardDeepLinkTarget(): KeyboardDeepLinkTarget {
 	if (typeof window === "undefined") {
-		return null;
+		return { sectionId: null, shortcutId: null };
 	}
 
 	const hashQueryIndex = window.location.hash.indexOf("?");
@@ -177,24 +261,47 @@ function getShortcutFocusId(): HotkeyId | null {
 	const params = new URLSearchParams(
 		hashSearch || window.location.search.slice(1),
 	);
+	const sectionId = params.get("section");
 	const shortcutId = params.get("shortcut");
 	if (shortcutId && shortcutId in HOTKEYS) {
-		return shortcutId as HotkeyId;
+		return { sectionId, shortcutId: shortcutId as HotkeyId };
 	}
 
-	return null;
+	return { sectionId, shortcutId: null };
 }
 
-export function KeyboardShortcutsPage() {
-	const [focusedShortcutId] = useState<HotkeyId | null>(() =>
-		getShortcutFocusId(),
+export function KeyboardShortcutsPage({
+	deepLinkTarget: initialDeepLinkTarget,
+	onVoiceSettingsNavigate,
+}: KeyboardShortcutsPageProps = {}) {
+	const voiceShortcutSectionRef = useRef<HTMLDivElement>(null);
+	const [deepLinkTarget] = useState<KeyboardDeepLinkTarget>(
+		() => initialDeepLinkTarget ?? getKeyboardDeepLinkTarget(),
 	);
+	const shouldFocusVoiceShortcut =
+		deepLinkTarget.sectionId === VOICE_SHORTCUT_SECTION_ID ||
+		deepLinkTarget.sectionId === LEGACY_VOICE_SHORTCUT_SECTION_ID ||
+		deepLinkTarget.shortcutId === VOICE_INPUT_HOTKEY_ID;
+	const focusedShortcutId = shouldFocusVoiceShortcut
+		? VOICE_INPUT_HOTKEY_ID
+		: deepLinkTarget.shortcutId;
 	const [searchQuery, setSearchQuery] = useState(() =>
-		focusedShortcutId ? HOTKEYS[focusedShortcutId].label : "",
+		focusedShortcutId && !shouldFocusVoiceShortcut
+			? HOTKEYS[focusedShortcutId].label
+			: "",
 	);
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] =
 		useState<PendingHotkeyConflict | null>(null);
+	const { data: voiceInputEnabled, isLoading: isVoiceInputLoading } =
+		electronTrpc.settings.getVoiceInputEnabled.useQuery();
+	const isVoiceShortcutDisabled =
+		isVoiceInputLoading || voiceInputEnabled !== true;
+	const voiceShortcutDisabledReason = isVoiceInputLoading
+		? "Checking voice control setting"
+		: voiceInputEnabled
+			? undefined
+			: "Voice control is off";
 
 	const resetOverride = useHotkeyOverridesStore((s) => s.resetOverride);
 	const resetAll = useHotkeyOverridesStore((s) => s.resetAll);
@@ -227,6 +334,9 @@ export function KeyboardShortcutsPage() {
 				toast.warning(info.reason);
 			}
 		},
+		onUnsupported: (info) => {
+			toast.error(info.reason);
+		},
 	});
 
 	const { keys: showHotkeysKeys } = useHotkeyDisplay("SHOW_HOTKEYS");
@@ -237,14 +347,23 @@ export function KeyboardShortcutsPage() {
 		return Object.fromEntries(
 			CATEGORY_ORDER.map((category) => [
 				category,
-				(hotkeysByCategory[category] ?? []).filter((hotkey) =>
-					hotkey.label.toLowerCase().includes(lower),
-				),
+				(hotkeysByCategory[category] ?? []).filter((hotkey) => {
+					const searchableText = [
+						category,
+						hotkey.label,
+						hotkey.description ?? "",
+					]
+						.join(" ")
+						.toLowerCase();
+					return searchableText.includes(lower);
+				}),
 			]),
 		) as typeof hotkeysByCategory;
 	}, [searchQuery]);
-
 	const handleStartRecording = (id: HotkeyId) => {
+		if (id === VOICE_INPUT_HOTKEY_ID && isVoiceShortcutDisabled) {
+			return;
+		}
 		setRecordingId((current) => (current === id ? null : id));
 	};
 
@@ -257,6 +376,14 @@ export function KeyboardShortcutsPage() {
 		setPendingConflict(null);
 	};
 
+	const handleVoiceSettingsClick = (event: MouseEvent<HTMLAnchorElement>) => {
+		if (!onVoiceSettingsNavigate) {
+			return;
+		}
+		event.preventDefault();
+		onVoiceSettingsNavigate();
+	};
+
 	const conflictDisplay = useFormatBinding(pendingConflict?.binding ?? null);
 	const conflictPrompt = pendingConflict
 		? buildHotkeyConflictPrompt({
@@ -264,6 +391,14 @@ export function KeyboardShortcutsPage() {
 				conflictId: pendingConflict.conflictId,
 			})
 		: null;
+
+	useEffect(() => {
+		if (!shouldFocusVoiceShortcut) return;
+		voiceShortcutSectionRef.current?.scrollIntoView?.({
+			behavior: "smooth",
+			block: "start",
+		});
+	}, [shouldFocusVoiceShortcut]);
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -333,30 +468,74 @@ export function KeyboardShortcutsPage() {
 				{CATEGORY_ORDER.map((category) => {
 					const hotkeys = filteredHotkeysByCategory[category] ?? [];
 					if (hotkeys.length === 0) return null;
+					const isVoiceControlCategory = category === "Voice Control";
 
 					return (
-						<div key={category}>
-							<h3 className="text-sm font-medium text-muted-foreground mb-2">
-								{category}
-							</h3>
+						<div
+							key={category}
+							ref={isVoiceControlCategory ? voiceShortcutSectionRef : undefined}
+							id={
+								isVoiceControlCategory ? VOICE_SHORTCUT_SECTION_ID : undefined
+							}
+							data-testid={
+								isVoiceControlCategory
+									? "keyboard-voice-shortcut-section"
+									: undefined
+							}
+							data-focused-shortcut={
+								isVoiceControlCategory && shouldFocusVoiceShortcut
+									? "true"
+									: undefined
+							}
+							className={cn(isVoiceControlCategory && "scroll-mt-6")}
+						>
+							<div className="mb-2 flex items-center justify-between gap-4">
+								<h3 className="text-sm font-medium text-muted-foreground">
+									{category}
+								</h3>
+								{isVoiceControlCategory &&
+								voiceInputEnabled !== true &&
+								!isVoiceInputLoading ? (
+									<a
+										className="text-xs text-primary underline-offset-4 hover:underline"
+										data-testid="keyboard-voice-settings-link"
+										href={VOICE_INPUT_SETTINGS_HREF}
+										onClick={handleVoiceSettingsClick}
+									>
+										Enable Voice Control
+									</a>
+								) : null}
+							</div>
 							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
-								{hotkeys.map((hotkey) => (
-									<HotkeyRow
-										key={hotkey.id}
-										id={hotkey.id}
-										label={hotkey.label}
-										description={hotkey.description}
-										isFocused={focusedShortcutId === hotkey.id}
-										isRecording={recordingId === hotkey.id}
-										onStartRecording={() => handleStartRecording(hotkey.id)}
-										onReset={() => {
-											setRecordingId((current) =>
-												current === hotkey.id ? null : current,
-											);
-											resetOverride(hotkey.id);
-										}}
-									/>
-								))}
+								{hotkeys.map((hotkey) => {
+									const isVoiceShortcut = hotkey.id === VOICE_INPUT_HOTKEY_ID;
+									return (
+										<HotkeyRow
+											key={hotkey.id}
+											id={hotkey.id}
+											label={hotkey.label}
+											description={hotkey.description}
+											disabled={
+												isVoiceShortcut ? isVoiceShortcutDisabled : false
+											}
+											disabledReason={
+												isVoiceShortcut
+													? voiceShortcutDisabledReason
+													: undefined
+											}
+											isFocused={focusedShortcutId === hotkey.id}
+											isRecording={recordingId === hotkey.id}
+											recordingHint={RECORDING_SHORTCUT_HINT}
+											onStartRecording={() => handleStartRecording(hotkey.id)}
+											onReset={() => {
+												setRecordingId((current) =>
+													current === hotkey.id ? null : current,
+												);
+												resetOverride(hotkey.id);
+											}}
+										/>
+									);
+								})}
 							</div>
 						</div>
 					);

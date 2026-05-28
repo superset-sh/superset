@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { browserLocalStorage } from "./browserLocalStorage";
 import { useKeyboardLayoutStore } from "./keyboardLayoutStore";
 
 interface KeyboardPreferencesState {
@@ -21,7 +22,7 @@ export const useKeyboardPreferencesStore = create<KeyboardPreferencesState>()(
 		}),
 		{
 			name: "keyboard-preferences",
-			storage: createJSONStorage(() => localStorage),
+			storage: createJSONStorage(() => browserLocalStorage),
 			partialize: (state) => ({
 				adaptiveLayoutEnabled: state.adaptiveLayoutEnabled,
 			}),

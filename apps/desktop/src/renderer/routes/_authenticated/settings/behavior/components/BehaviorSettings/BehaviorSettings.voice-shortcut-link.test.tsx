@@ -172,11 +172,12 @@ describe("BehaviorSettings voice shortcut link", () => {
 	it("displaysEffectiveVoiceShortcutInBehaviorSettings", () => {
 		const markup = renderBehaviorSettings();
 
-		expect(markup).toContain("Voice Shortcut");
+		expect(markup).toContain("Voice Control Shortcut");
 		expect(markup).toContain("⌘⇧V");
 		expect(markup).toContain(
-			'href="#/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE"',
+			'href="#/settings/keyboard?section=voice-control&amp;shortcut=VOICE_INPUT_TOGGLE"',
 		);
+		expect(markup).toContain("Edit in Keyboard settings");
 	});
 
 	it("reflectsCustomVoiceShortcutOverride", () => {
@@ -194,7 +195,7 @@ describe("BehaviorSettings voice shortcut link", () => {
 		const markup = renderBehaviorSettings();
 
 		expect(markup).toContain("Shortcut unavailable");
-		expect(markup).toContain("Reset in Keyboard Shortcuts");
+		expect(markup).toContain("Set in Keyboard settings");
 		expect(markup).toContain('id="voice-input"');
 		expect(markup).toContain('role="switch"');
 

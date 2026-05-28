@@ -307,9 +307,11 @@ function resetState() {
 	useHotkeyOverridesStore.setState({ overrides: {} });
 }
 
-function renderBehaviorSettings() {
+function renderBehaviorSettings(
+	props?: React.ComponentProps<typeof BehaviorSettings>,
+) {
 	voiceToggleHandler = undefined;
-	return renderToStaticMarkup(<BehaviorSettings />);
+	return renderToStaticMarkup(<BehaviorSettings {...props} />);
 }
 
 function findByTestId(testId: string) {
@@ -380,12 +382,36 @@ async function pressShortcut({
 	});
 }
 
-async function mountKeyboardShortcutsPage(): Promise<MountedPage> {
+async function mountKeyboardShortcutsPage(
+	props?: React.ComponentProps<typeof keyboardPageModule.KeyboardShortcutsPage>,
+): Promise<MountedPage> {
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container);
 	await act(async () => {
-		root.render(<keyboardPageModule.KeyboardShortcutsPage />);
+		root.render(<keyboardPageModule.KeyboardShortcutsPage {...props} />);
+	});
+	return {
+		container,
+		root,
+		unmount: async () => {
+			await act(async () => {
+				root.unmount();
+			});
+			container.remove();
+		},
+	};
+}
+
+async function mountBehaviorSettings(
+	props?: React.ComponentProps<typeof BehaviorSettings>,
+): Promise<MountedPage> {
+	voiceToggleHandler = undefined;
+	const container = document.createElement("div");
+	document.body.append(container);
+	const root = createRoot(container);
+	await act(async () => {
+		root.render(<BehaviorSettings {...props} />);
 	});
 	return {
 		container,
@@ -444,23 +470,24 @@ describe("voice input preference and shortcut integration", () => {
 		window.history.replaceState(null, "", "/#/settings/behavior");
 		behaviorMarkup = renderBehaviorSettings();
 
-		expect(behaviorMarkup).toContain("Voice input is enabled");
+		expect(behaviorMarkup).toContain("Voice control is enabled");
 		expect(behaviorMarkup).toContain('aria-checked="true"');
 	});
 
 	it("linksToKeyboardShortcutAndReflectsOverride", async () => {
+		voiceInputEnabled = true;
 		let behaviorMarkup = renderBehaviorSettings();
-		expect(behaviorMarkup).toContain("Voice Shortcut");
+		expect(behaviorMarkup).toContain("Voice Control Shortcut");
 		expect(behaviorMarkup).toContain("⌘");
 		expect(behaviorMarkup).toContain("V");
 		expect(behaviorMarkup).toContain(
-			'href="#/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE"',
+			'href="#/settings/keyboard?section=voice-control&amp;shortcut=VOICE_INPUT_TOGGLE"',
 		);
 
 		window.history.replaceState(
 			null,
 			"",
-			"/#/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE",
+			"/#/settings/keyboard?section=voice-control&shortcut=VOICE_INPUT_TOGGLE",
 		);
 		const page = await mountKeyboardShortcutsPage();
 		try {
@@ -482,12 +509,28 @@ describe("voice input preference and shortcut integration", () => {
 
 		window.history.replaceState(null, "", "/#/settings/behavior");
 		behaviorMarkup = renderBehaviorSettings();
-		expect(behaviorMarkup).toContain("Voice Shortcut");
+		expect(behaviorMarkup).toContain("Voice Control Shortcut");
 		expect(behaviorMarkup).toContain("U");
 		expect(behaviorMarkup).not.toContain("Shortcut unavailable");
 	});
 
+	it("usesSettingsNavigationForBehaviorShortcutLink", async () => {
+		voiceInputEnabled = true;
+		const onVoiceShortcutNavigate = mock(() => undefined);
+		const page = await mountBehaviorSettings({ onVoiceShortcutNavigate });
+		try {
+			const link = getByTestId("behavior-voice-shortcut-link");
+			await click(link);
+
+			expect(onVoiceShortcutNavigate).toHaveBeenCalledTimes(1);
+			expect(window.location.hash).toBe("#/settings/behavior");
+		} finally {
+			await page.unmount();
+		}
+	});
+
 	it("protectsExistingShortcutOnVoiceShortcutConflict", async () => {
+		voiceInputEnabled = true;
 		const conflictingBinding = HOTKEYS.QUICK_OPEN.key;
 		if (!conflictingBinding || typeof conflictingBinding === "string") {
 			throw new Error("Expected QUICK_OPEN to have a structured binding");
@@ -584,12 +627,12 @@ describe("voice input preference and shortcut integration", () => {
 		expect(behaviorMarkup).toContain("Microphone readiness");
 		expect(behaviorMarkup).toContain("Microphone access is needed");
 		expect(behaviorMarkup).toContain("Grant access");
-		expect(behaviorMarkup).toContain("Voice Shortcut");
+		expect(behaviorMarkup).toContain("Voice Control Shortcut");
 
 		microphoneStatus = "granted";
 		behaviorMarkup = renderBehaviorSettings();
 		expect(behaviorMarkup).toContain("Microphone is ready");
-		expect(behaviorMarkup).toContain("Voice input can use the microphone");
+		expect(behaviorMarkup).toContain("Voice control can use the microphone");
 
 		const searchableCopy = behaviorMarkup.toLowerCase();
 		for (const prohibitedCopy of [

@@ -253,9 +253,9 @@ export const HOTKEYS_REGISTRY = {
 			windows: L("ctrl+shift+alt+v"),
 			linux: L("ctrl+shift+alt+v"),
 		},
-		label: "Toggle Voice Input",
-		category: "Workspace",
-		description: "Start or stop voice input for the active workspace",
+		label: "Toggle Voice Control",
+		category: "Voice Control",
+		description: "Request voice control for the focused chat or terminal input",
 	},
 
 	// Layout

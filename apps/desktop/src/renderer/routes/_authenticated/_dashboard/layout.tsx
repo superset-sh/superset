@@ -6,7 +6,7 @@ import {
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
@@ -26,10 +26,13 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { VoiceDictationIndicator } from "renderer/voice-input/components/VoiceDictationIndicator";
+import { useVoiceDictation } from "renderer/voice-input/hooks/useVoiceDictation";
 import {
 	runVoiceActivationHotkeyEvent,
 	useVoiceActivationGuard,
 } from "renderer/voice-input/useVoiceActivationGuard";
+import { getFocusedVoiceDictationTarget } from "renderer/voice-input/voiceDictationTarget";
 import { AddRepositoryModals } from "./components/AddRepositoryModals";
 import { CrossVersionMismatchState } from "./components/CrossVersionMismatchState";
 import { TopBar } from "./components/TopBar";
@@ -108,8 +111,43 @@ function DashboardLayout() {
 	} = useWorkspaceSidebarStore();
 	const { data: voiceInputEnabled } =
 		electronTrpc.settings.getVoiceInputEnabled.useQuery();
+	const voiceDictation = useVoiceDictation();
+	const releaseStopCleanupRef = useRef<(() => void) | null>(null);
+	const disarmVoiceReleaseStop = useCallback(() => {
+		releaseStopCleanupRef.current?.();
+		releaseStopCleanupRef.current = null;
+	}, []);
+	const armVoiceReleaseStop = useCallback(() => {
+		disarmVoiceReleaseStop();
+
+		const stopFromRelease = (event: Event) => {
+			if (event instanceof KeyboardEvent) {
+				event.preventDefault();
+			}
+			disarmVoiceReleaseStop();
+			void voiceDictation.stop();
+		};
+
+		window.addEventListener("keyup", stopFromRelease, true);
+		window.addEventListener("blur", stopFromRelease);
+		releaseStopCleanupRef.current = () => {
+			window.removeEventListener("keyup", stopFromRelease, true);
+			window.removeEventListener("blur", stopFromRelease);
+		};
+	}, [disarmVoiceReleaseStop, voiceDictation.stop]);
+	useEffect(() => disarmVoiceReleaseStop, [disarmVoiceReleaseStop]);
 	const handleVoiceActivationShortcut = useVoiceActivationGuard({
 		voiceInputEnabled: voiceInputEnabled ?? false,
+		onActivate: () => {
+			const target = getFocusedVoiceDictationTarget();
+			if (!target) {
+				voiceDictation.showError(
+					"Voice Control cannot write to this focused area yet.",
+				);
+				return;
+			}
+			void voiceDictation.toggle(target);
+		},
 	});
 
 	// Global hotkeys for dashboard
@@ -118,7 +156,24 @@ function DashboardLayout() {
 	useHotkey(
 		"VOICE_INPUT_TOGGLE",
 		(event) => {
-			runVoiceActivationHotkeyEvent(event, handleVoiceActivationShortcut);
+			if (event.repeat) {
+				event.preventDefault();
+				return;
+			}
+
+			const result = runVoiceActivationHotkeyEvent(
+				event,
+				handleVoiceActivationShortcut,
+			);
+			if (result.status === "disabled") {
+				voiceDictation.showError("Voice Control is off in Settings.");
+			} else if (result.status === "unsupported-target") {
+				voiceDictation.showError(
+					"Focus a chat composer or terminal before starting Voice Control.",
+				);
+			} else {
+				armVoiceReleaseStop();
+			}
 		},
 		{ preventDefault: false },
 	);
@@ -206,6 +261,7 @@ function DashboardLayout() {
 	return (
 		<div className="flex h-full w-full overflow-hidden">
 			<CommandPaletteHost />
+			<VoiceDictationIndicator state={voiceDictation.state} />
 			{sidebarOutsideColumn && sidebarPanel}
 			<div className="flex flex-1 flex-col min-w-0 min-h-0">
 				<TopBar />

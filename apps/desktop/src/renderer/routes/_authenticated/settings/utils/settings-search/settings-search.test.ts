@@ -66,7 +66,7 @@ describe("settings search - font settings", () => {
 
 describe("settings search - voice input", () => {
 	it("returnsBehaviorVoiceInputForVoiceTerms", () => {
-		for (const query of ["voice", "dictation", "Wispr"]) {
+		for (const query of ["voice", "voice control", "dictation", "Wispr"]) {
 			const ids = getIds(searchSettings(query));
 			expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_VOICE_INPUT);
 		}

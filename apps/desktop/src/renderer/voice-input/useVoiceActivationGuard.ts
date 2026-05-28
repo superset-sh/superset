@@ -1,4 +1,8 @@
 import { useCallback } from "react";
+import {
+	getRememberedVoiceInputTargetElement,
+	shouldFallbackToRememberedVoiceTarget,
+} from "./focusTracking";
 import type { VoiceActivationResult, VoiceActivationTarget } from "./types";
 
 type VoiceActivationGuardOptions = {
@@ -16,13 +20,13 @@ type UseVoiceActivationGuardOptions = {
 	onActivate?: (target: VoiceActivationTarget) => void;
 };
 
-function isVoiceActivationTarget(
+export function isVoiceActivationTarget(
 	value: string | undefined,
 ): value is VoiceActivationTarget {
 	return value === "chat" || value === "terminal";
 }
 
-export function getFocusedVoiceActivationTarget(): VoiceActivationTarget | null {
+export function getFocusedVoiceInputTargetElement(): HTMLElement | null {
 	if (typeof document === "undefined") {
 		return null;
 	}
@@ -33,6 +37,19 @@ export function getFocusedVoiceActivationTarget(): VoiceActivationTarget | null 
 	}
 
 	const targetElement = activeElement.closest("[data-voice-input-target]");
+	if (targetElement instanceof HTMLElement) {
+		return targetElement;
+	}
+
+	if (shouldFallbackToRememberedVoiceTarget(activeElement)) {
+		return getRememberedVoiceInputTargetElement();
+	}
+
+	return null;
+}
+
+export function getFocusedVoiceActivationTarget(): VoiceActivationTarget | null {
+	const targetElement = getFocusedVoiceInputTargetElement();
 	const target =
 		targetElement?.getAttribute("data-voice-input-target") ?? undefined;
 	if (!isVoiceActivationTarget(target)) {

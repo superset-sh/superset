@@ -185,8 +185,8 @@ describe("BehaviorSettings voice input", () => {
 	it("rendersVoiceInputSection", () => {
 		const markup = renderBehaviorSettings();
 
-		expect(markup).toContain("Voice Input");
-		expect(markup).toContain("Enable voice input");
+		expect(markup).toContain("Voice Control");
+		expect(markup).toContain("Enable Superset voice controls");
 		expect(markup).toContain('id="voice-input"');
 		expect(markup).toContain('role="switch"');
 		expect(markup).toContain('aria-checked="false"');
@@ -227,7 +227,7 @@ describe("BehaviorSettings voice input", () => {
 	it("omitsVendorCredentialSetupCopy", () => {
 		const markup = renderBehaviorSettings().toLowerCase();
 
-		expect(markup).toContain("voice input");
+		expect(markup).toContain("voice control");
 
 		for (const prohibitedCopy of [
 			"api key",
