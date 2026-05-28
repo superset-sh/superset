@@ -16,6 +16,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
@@ -203,6 +204,20 @@ export function V2ProjectSettings({
 							currentRepoCloneUrl={project.repoCloneUrl}
 						/>
 					</SettingsRow>
+					{targetHostUrl && hostProject && (
+						<SettingsRow
+							label="Branch prefix"
+							hint="Namespace new branches for this project. Defaults to the host-wide Git setting."
+						>
+							<BranchPrefixSection
+								projectId={projectId}
+								hostUrl={targetHostUrl}
+								mode={hostProject.branchPrefixMode ?? null}
+								customPrefix={hostProject.branchPrefixCustom ?? null}
+								onChanged={() => refetchHostProject()}
+							/>
+						</SettingsRow>
+					)}
 				</section>
 
 				<section>
