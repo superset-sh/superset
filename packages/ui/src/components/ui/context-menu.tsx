@@ -2,7 +2,7 @@
 
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
@@ -95,11 +95,50 @@ function ContextMenuSubContent({
 
 function ContextMenuContent({
 	className,
+	ref,
 	...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
+	const innerRef = React.useRef<HTMLDivElement>(null);
+	React.useImperativeHandle(
+		ref as React.Ref<HTMLDivElement>,
+		() => innerRef.current as HTMLDivElement,
+	);
+
+	// Suppress the mouseup that opened the menu from triggering a menu item.
+	// On Linux/Wayland the mouseup paired with `contextmenu` lands on the
+	// freshly-mounted item under the cursor, and Radix's MenuItem treats
+	// pointerup-without-prior-pointerdown as "user dragged in" and fires a
+	// synthesized click → onSelect. We swallow that single leaked mouseup in
+	// capture phase, gated on "did a real mousedown happen on this content
+	// first?" so legitimate clicks (which always start with mousedown on
+	// content) are never affected. See superset-sh/superset#4939.
+	React.useEffect(() => {
+		const node = innerRef.current;
+		if (!node) return;
+		let sawMouseDown = false;
+		const onDown = () => {
+			sawMouseDown = true;
+		};
+		const onUp = (event: MouseEvent) => {
+			if (!sawMouseDown) {
+				event.stopPropagation();
+				event.preventDefault();
+			}
+			node.removeEventListener("mousedown", onDown, true);
+			node.removeEventListener("mouseup", onUp, true);
+		};
+		node.addEventListener("mousedown", onDown, true);
+		node.addEventListener("mouseup", onUp, true);
+		return () => {
+			node.removeEventListener("mousedown", onDown, true);
+			node.removeEventListener("mouseup", onUp, true);
+		};
+	}, []);
+
 	return (
 		<ContextMenuPrimitive.Portal>
 			<ContextMenuPrimitive.Content
+				ref={innerRef}
 				data-slot="context-menu-content"
 				className={cn(
 					"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-context-menu-content-available-height) min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
