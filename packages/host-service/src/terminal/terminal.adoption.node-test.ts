@@ -168,6 +168,41 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
+	test("initialCommand runs promptly even when OSC 133;A never fires", async () => {
+		// Reproduces the v2 "preset send takes 15s" symptom: with a shell in
+		// SHELLS_WITH_READY_MARKER (bash/zsh/fish) and no Superset wrapper on
+		// disk, the marker never arrives and queueInitialCommand stalls on
+		// shellReadyPromise until SHELL_READY_TIMEOUT_MS (15s).
+		__setAccountShellForTesting("/bin/bash");
+		try {
+			const terminalId = `e2e-no-marker-${randomUUID().slice(0, 8)}`;
+			const sentinelFile = path.join(TEST_HOME, `no-marker-${terminalId}`);
+
+			const start = Date.now();
+			const result = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				initialCommand: `echo ok > ${sentinelFile}`,
+			});
+			assert.ok(!("error" in result));
+			if ("error" in result) return;
+
+			await waitFor(() => fs.existsSync(sentinelFile), 3000);
+			const elapsed = Date.now() - start;
+			console.log(`[repro] initialCommand executed in ${elapsed}ms`);
+			assert.ok(
+				elapsed < 3000,
+				`expected initialCommand to run promptly, took ${elapsed}ms`,
+			);
+
+			await disposeSessionAndWait(terminalId, db);
+		} finally {
+			__setAccountShellForTesting("/bin/sh");
+		}
+	});
+
 	test("rejects reusing a live terminal id from another workspace", async () => {
 		const terminalId = `e2e-cross-live-${randomUUID().slice(0, 8)}`;
 

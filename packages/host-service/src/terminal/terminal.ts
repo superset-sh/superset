@@ -208,11 +208,12 @@ type TerminalSocket = {
 // ---------------------------------------------------------------------------
 
 /**
- * How long to wait for the shell-ready marker before unblocking writes.
- * 15 s covers heavy setups like Nix-based devenv via direnv. On timeout
- * buffered writes flush immediately (same behaviour as before this feature).
+ * How long to wait for the shell-ready marker before flushing the scanner's
+ * held bytes. initialCommand no longer waits on this — see queueInitialCommand
+ * — but the scanner still holds partial OSC 133;A prefixes back from output
+ * until either a real match arrives or this timeout fires.
  */
-const SHELL_READY_TIMEOUT_MS = 15_000;
+const SHELL_READY_TIMEOUT_MS = 3_000;
 
 /**
  * Shell readiness lifecycle:
@@ -793,11 +794,14 @@ function queueInitialCommand(
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
-	session.shellReadyPromise.then(() => {
-		if (!session.exited) {
-			session.pty.write(cmd);
-		}
-	});
+	// Write immediately rather than gating on OSC 133;A. The PTY's stdin
+	// buffer holds bytes until the shell reads them, so the preset command
+	// runs as soon as rc files finish — without a wrapper present (stale
+	// install, exec'd shell, broken precmd hook) the marker never arrives
+	// and gating turned every send into a SHELL_READY_TIMEOUT_MS stall.
+	if (!session.exited) {
+		session.pty.write(cmd);
+	}
 }
 
 interface DaemonCloseResult {
