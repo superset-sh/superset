@@ -12,12 +12,15 @@ import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unav
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { BranchPrefixControl } from "../../../components/BranchPrefixControl";
-import { HostSelect, type HostSelectOption } from "../../../components/HostSelect";
+import {
+	HostSelect,
+	type HostSelectOption,
+} from "../../../components/HostSelect";
 import { SettingsRow } from "../../../components/SettingsRow";
 import {
-	V2WorktreeLocationPicker,
 	useSetV2WorktreeBaseDir,
 	useV2WorktreeLocationSettings,
+	V2WorktreeLocationPicker,
 } from "../../../components/V2WorktreeLocationPicker";
 import { useDefaultWorktreePath } from "../../../components/WorktreeLocationPicker";
 
@@ -88,7 +91,7 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 
 	const branchPrefixQuery = useQuery({
 		queryKey: ["host-branch-prefix", targetHostUrl] as const,
-		enabled: !!targetHostUrl,
+		enabled: !!targetHostUrl && isHostOnline,
 		queryFn: () => {
 			if (!targetHostUrl) throw new Error("Host service unavailable");
 			return getHostServiceClientByUrl(
@@ -99,7 +102,7 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 
 	const gitInfoQuery = useQuery({
 		queryKey: ["host-git-info", targetHostUrl] as const,
-		enabled: !!targetHostUrl,
+		enabled: !!targetHostUrl && isHostOnline,
 		staleTime: 5 * 60 * 1000,
 		queryFn: () => {
 			if (!targetHostUrl) throw new Error("Host service unavailable");
@@ -149,7 +152,10 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 		(mode === "author" ? "author-name" : mode === "github" ? "username" : null);
 
 	const controlsDisabled =
-		!targetHostUrl || branchPrefixQuery.isLoading || setMutation.isPending;
+		!targetHostUrl ||
+		!isHostOnline ||
+		branchPrefixQuery.isLoading ||
+		setMutation.isPending;
 
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
