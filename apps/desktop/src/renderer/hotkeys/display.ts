@@ -4,7 +4,7 @@
  */
 
 import type { HotkeyDisplay, Platform } from "./types";
-import { normalizeToken } from "./utils/resolveHotkeyFromEvent";
+import { normalizeToken } from "./utils/chord";
 
 const MODIFIER_DISPLAY: Record<Platform, Record<string, string>> = {
 	mac: { meta: "⌘", ctrl: "⌃", alt: "⌥", shift: "⇧" },
@@ -37,6 +37,10 @@ const KEY_DISPLAY: Record<string, string> = {
 	equal: "=",
 	bracketleft: "[",
 	bracketright: "]",
+	fn: "Fn",
+	function: "Fn",
+	fnlock: "Fn Lock",
+	globe: "Fn",
 };
 
 // canonical token (e.g. "z", "slash") → event.code (e.g. "KeyZ", "Slash")

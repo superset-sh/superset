@@ -1,0 +1,9 @@
+export const VOICE_INPUT_HOTKEY_ID = "VOICE_INPUT_TOGGLE";
+export const VOICE_CONTROL_SECTION_ID = "voice-control";
+export const VOICE_SHORTCUT_SECTION_ID = VOICE_CONTROL_SECTION_ID;
+export const LEGACY_VOICE_SHORTCUT_SECTION_ID = "voice-shortcut";
+export const VOICE_INPUT_SETTINGS_SECTION_ID = VOICE_CONTROL_SECTION_ID;
+export const LEGACY_VOICE_INPUT_SETTINGS_SECTION_ID = "voice-input";
+
+export const VOICE_SHORTCUT_SETTINGS_HREF = `#/settings/keyboard?section=${VOICE_SHORTCUT_SECTION_ID}&shortcut=${VOICE_INPUT_HOTKEY_ID}`;
+export const VOICE_INPUT_SETTINGS_HREF = `#/settings/behavior?section=${VOICE_INPUT_SETTINGS_SECTION_ID}`;

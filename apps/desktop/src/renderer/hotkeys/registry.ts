@@ -247,6 +247,16 @@ export const HOTKEYS_REGISTRY = {
 		category: "Workspace",
 		description: "Open existing PR or create a new one on GitHub",
 	},
+	VOICE_INPUT_TOGGLE: {
+		key: {
+			mac: L("meta+shift+v"),
+			windows: L("ctrl+shift+alt+v"),
+			linux: L("ctrl+shift+alt+v"),
+		},
+		label: "Toggle Voice Control",
+		category: "Voice Control",
+		description: "Request voice control for the focused chat or terminal input",
+	},
 
 	// Layout
 	TOGGLE_SIDEBAR: {

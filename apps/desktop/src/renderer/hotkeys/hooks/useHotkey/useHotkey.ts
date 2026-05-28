@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { type Options, useHotkeys } from "react-hotkeys-hook";
 import { formatHotkeyDisplay } from "../../display";
 import type { HotkeyId } from "../../registry";
@@ -6,6 +6,8 @@ import { PLATFORM } from "../../registry";
 import { useEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
 import type { HotkeyDisplay } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
+import { canonicalizeChord } from "../../utils/chord";
+import { isStandaloneFnKeyEvent } from "../../utils/fnKey";
 import { useBinding } from "../useBinding";
 
 // react-hotkeys-hook doesn't check AltGraph or IME composition. Use its
@@ -18,6 +20,29 @@ function shouldIgnoreEvent(e: KeyboardEvent): boolean {
 	return false;
 }
 
+function isStandaloneFnChord(chord: string | null): boolean {
+	return chord ? canonicalizeChord(chord) === "fn" : false;
+}
+
+type HotkeyTriggerFunction = Exclude<Options["enabled"], boolean | undefined>;
+type HotkeyTriggerEvent = Parameters<HotkeyTriggerFunction>[1];
+
+function evaluateTrigger(
+	trigger: Options["enabled"] | Options["preventDefault"] | undefined,
+	event: KeyboardEvent,
+	chord: string,
+	fallback: boolean,
+): boolean {
+	if (typeof trigger === "function") {
+		return trigger(event, {
+			hotkey: chord,
+			keys: ["fn"],
+		} as HotkeyTriggerEvent);
+	}
+	if (typeof trigger === "boolean") return trigger;
+	return fallback;
+}
+
 export function useHotkey(
 	id: HotkeyId,
 	callback: (e: KeyboardEvent) => void,
@@ -28,9 +53,11 @@ export function useHotkey(
 	const chord = bindingToDispatchChord(binding, layoutMap);
 	const callbackRef = useRef(callback);
 	callbackRef.current = callback;
-	const callerIgnore = options?.ignoreEventWhen;
+	const optionsRef = useRef(options);
+	optionsRef.current = options;
+	const shouldUseFnListener = isStandaloneFnChord(chord);
 	useHotkeys(
-		chord ?? "",
+		shouldUseFnListener ? "" : (chord ?? ""),
 		(e, _h) => {
 			if (options?.preventDefault !== false) {
 				e.preventDefault();
@@ -41,11 +68,42 @@ export function useHotkey(
 			enableOnFormTags: true,
 			enableOnContentEditable: true,
 			...options,
-			ignoreEventWhen: callerIgnore
-				? (e) => shouldIgnoreEvent(e) || callerIgnore(e)
+			ignoreEventWhen: options?.ignoreEventWhen
+				? (e) => shouldIgnoreEvent(e) || options.ignoreEventWhen?.(e) === true
 				: shouldIgnoreEvent,
 		},
-		[chord],
+		[chord, shouldUseFnListener],
 	);
+
+	useEffect(() => {
+		if (!shouldUseFnListener) return;
+
+		const handler = (event: KeyboardEvent) => {
+			if (event.type !== "keydown") return;
+			const currentOptions = optionsRef.current;
+			const hotkeyChord = chord ?? "fn";
+			if (!evaluateTrigger(currentOptions?.enabled, event, hotkeyChord, true)) {
+				return;
+			}
+			if (shouldIgnoreEvent(event)) return;
+			if (currentOptions?.ignoreEventWhen?.(event) === true) return;
+			if (!isStandaloneFnKeyEvent(event)) return;
+			if (
+				evaluateTrigger(
+					currentOptions?.preventDefault,
+					event,
+					hotkeyChord,
+					true,
+				)
+			) {
+				event.preventDefault();
+			}
+			callbackRef.current(event);
+		};
+
+		window.addEventListener("keydown", handler);
+		return () => window.removeEventListener("keydown", handler);
+	}, [chord, shouldUseFnListener]);
+
 	return formatHotkeyDisplay(chord, PLATFORM, layoutMap);
 }

@@ -8,6 +8,11 @@ import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
+import {
+	rememberVoiceInputTargetElement,
+	rememberVoiceInputTargetFromEvent,
+} from "renderer/voice-input/focusTracking";
+import { registerTerminalVoiceTarget } from "renderer/voice-input/terminalVoiceTargets";
 import { SessionKilledOverlay } from "./components";
 import { DEFAULT_TERMINAL_FONT_SIZE } from "./config";
 import { getDefaultTerminalBg } from "./helpers";
@@ -85,6 +90,7 @@ export const Terminal = memo(function Terminal({
 		}
 	};
 	const terminalRef = useRef<HTMLDivElement>(null);
+	const voiceTargetRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
@@ -305,6 +311,26 @@ export const Terminal = memo(function Terminal({
 		if (!isRestoredMode) return;
 		handleStartShell();
 	}, [isRestoredMode, handleStartShell]);
+
+	useEffect(() => {
+		return registerTerminalVoiceTarget(paneId, {
+			label: "Terminal",
+			focus: () => xtermRef.current?.focus(),
+			isReady: () => !isExitedRef.current && !connectionErrorRef.current,
+			write: (text) => {
+				if (isExitedRef.current) return false;
+				writeRef.current({ paneId, data: text });
+				return true;
+			},
+		});
+	}, [paneId, writeRef]);
+
+	useEffect(() => {
+		if (isFocused) {
+			rememberVoiceInputTargetElement(voiceTargetRef.current);
+		}
+	}, [isFocused]);
+
 	const { xtermInstance, restartTerminal } = useTerminalLifecycle({
 		paneId,
 		tabIdRef,
@@ -451,9 +477,14 @@ export const Terminal = memo(function Terminal({
 
 	return (
 		<div
+			ref={voiceTargetRef}
 			role="application"
+			data-voice-input-target="terminal"
+			data-voice-terminal-registry-id={paneId}
 			className="relative h-full w-full overflow-hidden"
 			style={{ backgroundColor: terminalBg }}
+			onFocusCapture={rememberVoiceInputTargetFromEvent}
+			onPointerDownCapture={rememberVoiceInputTargetFromEvent}
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { ShortcutBinding } from "../types";
+import { browserLocalStorage } from "./browserLocalStorage";
 
 interface HotkeyOverridesState {
 	/** Per-hotkey-id override. `null` = explicit unassignment. Stored as the
@@ -30,7 +31,7 @@ export const useHotkeyOverridesStore = create<HotkeyOverridesState>()(
 		}),
 		{
 			name: "hotkey-overrides",
-			storage: createJSONStorage(() => localStorage),
+			storage: createJSONStorage(() => browserLocalStorage),
 			partialize: (state) => ({ overrides: state.overrides }),
 		},
 	),

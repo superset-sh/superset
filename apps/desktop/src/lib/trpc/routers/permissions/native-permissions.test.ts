@@ -1,6 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 
 mock.module("electron", () => ({
+	app: {
+		relaunch: mock(() => {}),
+	},
 	shell: {
 		openExternal: mock(async () => {}),
 	},

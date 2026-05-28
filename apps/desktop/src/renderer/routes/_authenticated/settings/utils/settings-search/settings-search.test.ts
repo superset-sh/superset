@@ -76,3 +76,39 @@ describe("settings search - font settings", () => {
 		).toEqual([SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]);
 	});
 });
+
+describe("settings search - voice input", () => {
+	it("returnsBehaviorVoiceInputForVoiceTerms", () => {
+		for (const query of ["voice", "voice control", "dictation", "Wispr"]) {
+			const ids = getIds(searchSettings(query));
+			expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_VOICE_INPUT);
+		}
+	});
+
+	it("returnsMicrophoneReadinessForPermissionTerms", () => {
+		for (const query of ["microphone", "permission", "microphone permission"]) {
+			const ids = getIds(searchSettings(query));
+			expect(ids).toContain(SETTING_ITEM_ID.PERMISSIONS_MICROPHONE);
+		}
+	});
+
+	it("returnsVoiceShortcutForShortcutTerms", () => {
+		const ids = getIds(searchSettings("voice shortcut"));
+		expect(ids).toContain(SETTING_ITEM_ID.KEYBOARD_SHORTCUTS);
+	});
+
+	it("omitsVendorCredentialSetupSearchResults", () => {
+		for (const query of ["API key", "account", "SDK", "provider setup"]) {
+			const results = searchSettings(query);
+			const ids = getIds(results);
+			expect(ids).not.toContain(SETTING_ITEM_ID.BEHAVIOR_VOICE_INPUT);
+			expect(
+				results.some((item) =>
+					`${item.title} ${item.description} ${item.keywords.join(" ")}`
+						.toLowerCase()
+						.includes("wispr flow credential"),
+				),
+			).toBe(false);
+		}
+	});
+});
