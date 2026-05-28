@@ -106,13 +106,6 @@ export function useDiffCommentComposer({
 		[clear],
 	);
 
-	// Open on pointer-up, not pointer-down. Pierre's top-level
-	// `onSelectedLinesChange` fires on every selection notify (start, drag,
-	// end) so using it would pop the composer the moment the user mouses
-	// down. `onLineSelectionEnd` is the strict pointer-up signal — and unlike
-	// `onLineSelected` it does *not* fire for imperative selection writes
-	// (e.g. our own clearSelectedLines or future jump-to-thread), so the
-	// composer never opens spuriously from code.
 	const onLineSelectionEnd = useCallback<OnLineSelectionEnd>(
 		(range, context) => {
 			if (context.type !== "diff") return;
