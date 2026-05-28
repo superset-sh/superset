@@ -66,6 +66,17 @@ export function planDispatch(
 				},
 			};
 		}
+		case "pr-exists": {
+			const markdown = buildPRContext(state);
+			return {
+				prompt: "/pr/update-pr",
+				attachment: {
+					data: encodeAsDataUrl(markdown, "text/markdown"),
+					mediaType: "text/markdown",
+					filename: "pr-context.md",
+				},
+			};
+		}
 		// MVP scope: other states don't dispatch yet.
 		default:
 			return null;

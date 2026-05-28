@@ -18,10 +18,7 @@ import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
 
-// Gates the "Create PR" button only — the chat-driven create flow doesn't
-// exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
-// always renders so users can see PR state and merge once a PR exists.
-const CREATE_PR_BUTTON_ENABLED = false;
+const CREATE_PR_BUTTON_ENABLED = true;
 
 type SidebarTabId = "changes" | "files" | "review";
 

@@ -1,4 +1,8 @@
-import type { BranchSyncStatus, PRFlowState } from "../getPRFlowState";
+import type {
+	BranchSyncStatus,
+	PRFlowState,
+	PullRequest,
+} from "../getPRFlowState";
 
 /**
  * Builds the markdown attachment that is passed to the agent when the
@@ -9,6 +13,8 @@ export function buildPRContext(state: PRFlowState): string {
 	switch (state.kind) {
 		case "no-pr":
 			return renderNoPR(state.sync);
+		case "pr-exists":
+			return renderPrExists(state.pr, state.sync);
 		default:
 			return renderStub(state.kind);
 	}
@@ -72,6 +78,75 @@ function renderNoPR(sync: BranchSyncStatus): string {
 		"- If the prompt includes `--draft`, add `--draft` to the `gh` call.",
 	);
 	lines.push("- Print the PR URL at the end.");
+	lines.push("");
+
+	return lines.join("\n");
+}
+
+function renderPrExists(
+	pr: PullRequest,
+	sync: BranchSyncStatus | null,
+): string {
+	const lines: string[] = [];
+	lines.push("# PR context");
+	lines.push("");
+	lines.push(
+		"You are about to update an existing pull request. Use this snapshot",
+		"to decide whether to push pending commits and refresh the PR title",
+		"or body before reporting back.",
+	);
+	lines.push("");
+
+	lines.push("## Pull request");
+	lines.push(`- Number: #${pr.number}`);
+	lines.push(`- URL: ${pr.url}`);
+	lines.push(`- State: ${pr.isDraft ? "draft" : pr.state}`);
+	lines.push(`- Repo: \`${pr.repoOwner}/${pr.repoName}\``);
+	lines.push("");
+
+	if (sync) {
+		lines.push("## Branch");
+		lines.push(`- Current: \`${sync.currentBranch ?? "(detached)"}\``);
+		lines.push(`- Base: \`${sync.defaultBranch ?? "(unknown)"}\``);
+		lines.push(`- Published: ${sync.hasUpstream ? "yes" : "no"}`);
+		lines.push("");
+
+		lines.push("## Sync");
+		lines.push(
+			`- Commits ahead of upstream: ${sync.hasUpstream ? sync.pushCount : "n/a"}`,
+		);
+		lines.push(
+			`- Commits behind upstream: ${sync.hasUpstream ? sync.pullCount : "n/a"}`,
+		);
+		lines.push(`- Uncommitted changes: ${sync.hasUncommitted ? "yes" : "no"}`);
+		lines.push("");
+
+		const preconditions: string[] = [];
+		if (sync.hasUncommitted) {
+			preconditions.push("- Commit or stash uncommitted changes.");
+		}
+		if (sync.hasUpstream && sync.pushCount > 0) {
+			preconditions.push("- Push unpushed commits.");
+		}
+		if (sync.hasUpstream && sync.pullCount > 0) {
+			preconditions.push(
+				"- Branch is behind upstream; pull/rebase before updating the PR,",
+				"  or stop and ask the user to resolve.",
+			);
+		}
+		if (preconditions.length > 0) {
+			lines.push("## Required preconditions");
+			for (const line of preconditions) lines.push(line);
+			lines.push("");
+		}
+	}
+
+	lines.push("## Updating the PR");
+	lines.push(
+		"- Refresh the PR title/body from latest commits if they have drifted",
+		'  (`gh pr edit <number> --title "..." --body "..."`).',
+		"- After pushing, print the PR URL on its own line.",
+	);
 	lines.push("");
 
 	return lines.join("\n");
