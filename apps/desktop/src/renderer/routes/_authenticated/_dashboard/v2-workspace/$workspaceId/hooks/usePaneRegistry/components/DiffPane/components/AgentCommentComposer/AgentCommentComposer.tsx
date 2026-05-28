@@ -1,37 +1,21 @@
 import { Button } from "@superset/ui/button";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectLabel,
-	SelectSeparator,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-	LuColumns2,
-	LuCornerDownLeft,
-	LuLoaderCircle,
-	LuPanelTopOpen,
-	LuPlus,
-} from "react-icons/lu";
-import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
-import {
-	type TerminalAgentBinding,
-	useTerminalAgentBindings,
-} from "renderer/hooks/host-service/useTerminalAgentBindings";
+import { LuCornerDownLeft, LuLoaderCircle } from "react-icons/lu";
+import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import { AgentPickerSelect } from "./components/AgentPickerSelect";
+import { AgentPlacementToggle } from "./components/AgentPlacementToggle";
+import {
+	type AgentTarget,
+	useDiffCommentTarget,
+} from "./hooks/useDiffCommentTarget";
 
-export type AgentSessionPlacement = "split-pane" | "new-tab";
-
-export type AgentTarget =
-	| { kind: "existing"; terminalId: string }
-	| { kind: "new"; configId: string; placement: AgentSessionPlacement };
+export type {
+	AgentSessionPlacement,
+	AgentTarget,
+} from "./hooks/useDiffCommentTarget";
 
 interface AgentCommentComposerProps {
 	workspaceId: string;
@@ -42,45 +26,6 @@ interface AgentCommentComposerProps {
 		comment: string;
 		target: AgentTarget;
 	}) => void | Promise<void>;
-}
-
-const LAST_NEW_AGENT_CONFIG_ID_KEY = "lastSelectedDiffCommentNewAgentConfigId";
-const LAST_TERMINAL_ID_KEY = "lastSelectedDiffCommentTerminalId";
-const LAST_PLACEMENT_KEY = "lastSelectedDiffCommentPlacement";
-const DEFAULT_PLACEMENT: AgentSessionPlacement = "split-pane";
-const EXISTING_PREFIX = "existing:";
-const NEW_PREFIX = "new:";
-
-interface DecodedSelection {
-	kind: "existing" | "new";
-	id: string;
-}
-
-function decodeSelection(value: string): DecodedSelection | null {
-	if (value.startsWith(EXISTING_PREFIX)) {
-		return { kind: "existing", id: value.slice(EXISTING_PREFIX.length) };
-	}
-	if (value.startsWith(NEW_PREFIX)) {
-		return { kind: "new", id: value.slice(NEW_PREFIX.length) };
-	}
-	return null;
-}
-
-function readPlacement(): AgentSessionPlacement {
-	const stored = readStorage(LAST_PLACEMENT_KEY);
-	return stored === "new-tab" || stored === "split-pane"
-		? stored
-		: DEFAULT_PLACEMENT;
-}
-
-function readStorage(key: string): string | null {
-	if (typeof window === "undefined") return null;
-	return window.localStorage.getItem(key);
-}
-
-function persistStorage(key: string, value: string) {
-	if (typeof window === "undefined") return;
-	window.localStorage.setItem(key, value);
 }
 
 export function AgentCommentComposer({
@@ -102,45 +47,12 @@ export function AgentCommentComposer({
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const { data: configs = [] } = useV2AgentConfigs(hostUrl);
 
+	const { value, placement, resolved, onValueChange, onPlacementChange } =
+		useDiffCommentTarget({ sessions, configs });
+
 	const [comment, setComment] = useState("");
-	const [target, setTarget] = useState<string | null>(null);
-	const [placement, setPlacement] =
-		useState<AgentSessionPlacement>(readPlacement);
 	const [submitting, setSubmitting] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-	// Resolve the default selection once sessions + configs are loaded.
-	// Priority:
-	//   1. last picked terminal session (persisted), if still alive
-	//   2. most recent active session
-	//   3. last picked new-agent config (persisted), if still listed
-	//   4. first config
-	useEffect(() => {
-		if (target !== null) return;
-
-		if (sessions.length > 0) {
-			const storedTerminalId = readStorage(LAST_TERMINAL_ID_KEY);
-			const stillAlive =
-				storedTerminalId &&
-				sessions.some((s) => s.terminalId === storedTerminalId)
-					? storedTerminalId
-					: null;
-			const terminalId = stillAlive ?? sessions[0]?.terminalId;
-			if (terminalId) {
-				setTarget(`${EXISTING_PREFIX}${terminalId}`);
-				return;
-			}
-		}
-
-		if (configs.length === 0) return;
-		const storedConfigId = readStorage(LAST_NEW_AGENT_CONFIG_ID_KEY);
-		const fromStorage =
-			storedConfigId && configs.some((c) => c.id === storedConfigId)
-				? storedConfigId
-				: null;
-		const fallback = fromStorage ?? configs[0]?.id;
-		if (fallback) setTarget(`${NEW_PREFIX}${fallback}`);
-	}, [target, sessions, configs]);
 
 	useEffect(() => {
 		const el = textareaRef.current;
@@ -150,44 +62,19 @@ export function AgentCommentComposer({
 		el.setSelectionRange(len, len);
 	}, []);
 
-	const handleTargetChange = (next: string) => {
-		setTarget(next);
-		const decoded = decodeSelection(next);
-		if (decoded?.kind === "new") {
-			persistStorage(LAST_NEW_AGENT_CONFIG_ID_KEY, decoded.id);
-		}
-		if (decoded?.kind === "existing") {
-			persistStorage(LAST_TERMINAL_ID_KEY, decoded.id);
-		}
-	};
-
-	const handlePlacementChange = (next: string) => {
-		if (next !== "split-pane" && next !== "new-tab") return;
-		setPlacement(next);
-		persistStorage(LAST_PLACEMENT_KEY, next);
-	};
-
 	const lineLabel =
 		startLine === endLine
 			? `Line ${startLine}`
 			: `Lines ${startLine}–${endLine}`;
-	const decodedTarget = target ? decodeSelection(target) : null;
-	const resolvedTarget: AgentTarget | null = useMemo(() => {
-		if (!decodedTarget) return null;
-		if (decodedTarget.kind === "existing") {
-			return { kind: "existing", terminalId: decodedTarget.id };
-		}
-		return { kind: "new", configId: decodedTarget.id, placement };
-	}, [decodedTarget, placement]);
 	const canSubmit =
-		comment.trim().length > 0 && !submitting && resolvedTarget != null;
-	const showPlacement = decodedTarget?.kind === "new";
+		comment.trim().length > 0 && !submitting && resolved != null;
+	const showPlacement = resolved?.kind === "new";
 
 	const handleSubmit = async () => {
-		if (!canSubmit || !resolvedTarget) return;
+		if (!canSubmit || !resolved) return;
 		setSubmitting(true);
 		try {
-			await onSubmit({ comment: comment.trim(), target: resolvedTarget });
+			await onSubmit({ comment: comment.trim(), target: resolved });
 		} finally {
 			setSubmitting(false);
 		}
@@ -214,7 +101,6 @@ export function AgentCommentComposer({
 				}
 			}}
 		>
-			{/* Header row: line range + close affordance via Esc hint */}
 			<div className="flex items-center justify-between px-3 pt-2 pb-1">
 				<span className="text-[11px] font-medium tracking-tight text-muted-foreground">
 					{lineLabel}
@@ -224,7 +110,6 @@ export function AgentCommentComposer({
 				</span>
 			</div>
 
-			{/* Textarea — borderless, blends into the card */}
 			<div className="px-3 pb-2">
 				<textarea
 					ref={textareaRef}
@@ -240,86 +125,18 @@ export function AgentCommentComposer({
 				/>
 			</div>
 
-			{/* Footer: agent picker (left) + actions (right) */}
 			<div className="flex items-center justify-between gap-2 border-t border-border/60 bg-muted/30 px-2.5 py-1.5">
-				<Select value={target ?? undefined} onValueChange={handleTargetChange}>
-					<SelectTrigger
-						size="sm"
-						className={cn(
-							"h-7 min-w-40 gap-1.5 border-border/60 bg-popover px-2 text-[11px]",
-							"hover:bg-accent/50",
-						)}
-					>
-						<SelectValue placeholder="Choose agent" />
-					</SelectTrigger>
-					<SelectContent align="start" className="min-w-60">
-						{sessions.length > 0 ? (
-							<SelectGroup>
-								<SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
-									Active sessions
-								</SelectLabel>
-								{sessions.map((session) => (
-									<SelectItem
-										key={session.terminalId}
-										value={`${EXISTING_PREFIX}${session.terminalId}`}
-										className="text-[12px]"
-									>
-										<ExistingSessionOption binding={session} />
-									</SelectItem>
-								))}
-							</SelectGroup>
-						) : null}
-						{sessions.length > 0 && configs.length > 0 ? (
-							<SelectSeparator />
-						) : null}
-						{configs.length > 0 ? (
-							<SelectGroup>
-								<SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
-									Start new session
-								</SelectLabel>
-								{configs.map((config) => (
-									<SelectItem
-										key={config.id}
-										value={`${NEW_PREFIX}${config.id}`}
-										className="text-[12px]"
-									>
-										<NewSessionOption
-											label={config.label}
-											presetId={config.presetId}
-										/>
-									</SelectItem>
-								))}
-							</SelectGroup>
-						) : null}
-					</SelectContent>
-				</Select>
+				<AgentPickerSelect
+					value={value}
+					onValueChange={onValueChange}
+					sessions={sessions}
+					configs={configs}
+				/>
 				{showPlacement ? (
-					<ToggleGroup
-						type="single"
-						size="sm"
+					<AgentPlacementToggle
 						value={placement}
-						onValueChange={handlePlacementChange}
-						className="ml-1 h-7 gap-0 rounded-md border border-border/60 bg-popover p-0.5"
-					>
-						<ToggleGroupItem
-							value="split-pane"
-							aria-label="Open in split pane"
-							title="Split pane"
-							className="h-6 gap-1 rounded-[4px] px-1.5 text-[11px] text-muted-foreground data-[state=on]:bg-accent data-[state=on]:text-foreground"
-						>
-							<LuColumns2 className="size-3" />
-							<span>Split</span>
-						</ToggleGroupItem>
-						<ToggleGroupItem
-							value="new-tab"
-							aria-label="Open in new tab"
-							title="New tab"
-							className="h-6 gap-1 rounded-[4px] px-1.5 text-[11px] text-muted-foreground data-[state=on]:bg-accent data-[state=on]:text-foreground"
-						>
-							<LuPanelTopOpen className="size-3" />
-							<span>New tab</span>
-						</ToggleGroupItem>
-					</ToggleGroup>
+						onValueChange={onPlacementChange}
+					/>
 				) : null}
 				<div className="ml-auto flex items-center gap-1">
 					<Button
@@ -354,50 +171,6 @@ export function AgentCommentComposer({
 	);
 }
 
-function ExistingSessionOption({ binding }: { binding: TerminalAgentBinding }) {
-	const iconSrc = usePresetIcon(binding.agentId);
-	return (
-		<span className="inline-flex items-center gap-1.5">
-			<AgentIcon src={iconSrc} />
-			<span>{binding.agentId}</span>
-			<span className="text-muted-foreground/70">
-				· {shortId(binding.terminalId)}
-			</span>
-		</span>
-	);
-}
-
-function NewSessionOption({
-	label,
-	presetId,
-}: {
-	label: string;
-	presetId: string;
-}) {
-	const iconSrc = usePresetIcon(presetId);
-	return (
-		<span className="inline-flex items-center gap-1.5">
-			<AgentIcon src={iconSrc} fallback={<LuPlus className="size-3" />} />
-			<span>{label}</span>
-		</span>
-	);
-}
-
-function AgentIcon({
-	src,
-	fallback,
-}: {
-	src: string | null | undefined;
-	fallback?: React.ReactNode;
-}) {
-	if (src) {
-		return (
-			<img src={src} alt="" className="size-3 shrink-0" draggable={false} />
-		);
-	}
-	return <span className="text-muted-foreground/80">{fallback ?? null}</span>;
-}
-
 function KbdEnter() {
 	return (
 		<span
@@ -410,8 +183,4 @@ function KbdEnter() {
 			<LuCornerDownLeft className="size-2.5" strokeWidth={2.5} />
 		</span>
 	);
-}
-
-function shortId(id: string): string {
-	return id.slice(0, 6);
 }

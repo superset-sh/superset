@@ -1,27 +1,17 @@
 import type {
 	CodeViewItem,
-	CodeViewLineSelection,
 	DiffLineAnnotation,
 	LineAnnotation,
-	SelectedLineRange,
 } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
-import { toast } from "@superset/ui/sonner";
-import { useCallback, useMemo, useRef, useState } from "react";
-import {
-	formatAgentPromptWithFileContext,
-	useSendToTerminalAgent,
-} from "renderer/hooks/host-service/useSendToTerminalAgent";
+import { useCallback, useMemo, useRef } from "react";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
-import { useChangeset } from "../../../useChangeset";
+import { type ChangesetFile, useChangeset } from "../../../useChangeset";
 import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
 import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
-import {
-	AgentCommentComposer,
-	type AgentTarget,
-} from "./components/AgentCommentComposer";
+import { AgentCommentComposer } from "./components/AgentCommentComposer";
 import { CommentThread } from "./components/CommentThread";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
 import { DiffHeaderPrefix } from "./components/DiffHeaderPrefix";
@@ -32,6 +22,7 @@ import {
 import { useDiffCodeViewItems } from "./hooks/useDiffCodeViewItems";
 import { useDiffCodeViewScroll } from "./hooks/useDiffCodeViewScroll";
 import { useDiffCodeViewTheme } from "./hooks/useDiffCodeViewTheme";
+import { useDiffCommentComposer } from "./hooks/useDiffCommentComposer";
 
 interface CreateNewAgentSessionInput {
 	configId: string;
@@ -48,11 +39,6 @@ interface DiffPaneProps {
 	) => Promise<{ terminalId: string } | null>;
 }
 
-interface ComposerState {
-	itemId: string;
-	range: SelectedLineRange;
-}
-
 export function DiffPane({
 	context,
 	workspaceId,
@@ -67,7 +53,6 @@ export function DiffPane({
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const threadAnnotationsByPath = useDiffAnnotationsByPath({ workspaceId });
-	const [composer, setComposer] = useState<ComposerState | null>(null);
 
 	const collapsedSet = useMemo(
 		() => new Set(data.collapsedFiles ?? []),
@@ -91,45 +76,28 @@ export function DiffPane({
 		[updateData],
 	);
 
-	const handleClearSelection = useCallback(() => {
-		setComposer(null);
-		codeViewRef.current?.clearSelectedLines();
-	}, []);
-
-	const handleSelectedLinesChange = useCallback(
-		(selection: CodeViewLineSelection | null) => {
-			if (!selection) {
-				setComposer(null);
-				return;
-			}
-			setComposer({ itemId: selection.id, range: selection.range });
-		},
+	// fileByItemId is produced by useDiffCodeViewItems below, but the composer
+	// hook needs access to look files up at submit time. Funnel through a
+	// stable ref so the composer hook can be wired before items are computed
+	// and still read the latest map when its submit callback fires.
+	const fileByItemIdRef = useRef<ReadonlyMap<string, ChangesetFile>>(new Map());
+	const getFile = useCallback(
+		(itemId: string) => fileByItemIdRef.current.get(itemId),
 		[],
 	);
 
-	// Synthetic composer annotation pinned to the end of the live selection.
-	const composerAnnotationsByItemId = useMemo(() => {
-		if (!composer) return null;
-		const endSide =
-			composer.range.endSide ?? composer.range.side ?? "additions";
-		const startSide = composer.range.side ?? endSide;
-		const map = new Map<string, DiffLineAnnotation<DiffAnnotationMetadata>[]>();
-		map.set(composer.itemId, [
-			{
-				side: endSide,
-				lineNumber: composer.range.end,
-				metadata: {
-					kind: "composer",
-					itemId: composer.itemId,
-					startLine: composer.range.start,
-					endLine: composer.range.end,
-					startSide,
-					endSide,
-				},
-			},
-		]);
-		return map;
-	}, [composer]);
+	const {
+		composerAnnotationsByItemId,
+		onSelectedLinesChange,
+		onGutterUtilityClick,
+		clear: clearComposer,
+		submit: submitComposer,
+	} = useDiffCommentComposer({
+		workspaceId,
+		codeViewRef,
+		getFile,
+		onCreateNewAgentSession,
+	});
 
 	const { items, fileByItemId, pathToItemId, hasPendingDiff, hasDiffError } =
 		useDiffCodeViewItems({
@@ -139,61 +107,7 @@ export function DiffPane({
 			annotationsByPath: threadAnnotationsByPath,
 			extraAnnotationsByItemId: composerAnnotationsByItemId,
 		});
-
-	const { send: sendToTerminalAgent } = useSendToTerminalAgent();
-
-	const handleSubmitComposer = useCallback(
-		async (input: { comment: string; target: AgentTarget }) => {
-			if (!composer) return;
-			const file = fileByItemId.get(composer.itemId);
-			if (!file) return;
-
-			const text = formatAgentPromptWithFileContext({
-				comment: input.comment,
-				file: {
-					path: file.path,
-					startLine: composer.range.start,
-					endLine: composer.range.end,
-				},
-			});
-
-			if (input.target.kind === "new") {
-				if (!onCreateNewAgentSession) {
-					toast.error("Couldn't start a new agent session");
-					return;
-				}
-				// Host bakes the prompt into the launch command (argv/stdin per
-				// the agent config), so we don't follow up with writeInput here.
-				const result = await onCreateNewAgentSession({
-					configId: input.target.configId,
-					placement: input.target.placement,
-					prompt: text,
-				});
-				if (result) handleClearSelection();
-				return;
-			}
-
-			try {
-				await sendToTerminalAgent({
-					workspaceId,
-					terminalId: input.target.terminalId,
-					text,
-				});
-				handleClearSelection();
-			} catch {
-				// Toast is shown by the hook; keep composer open so the user
-				// can retry or edit.
-			}
-		},
-		[
-			composer,
-			fileByItemId,
-			workspaceId,
-			sendToTerminalAgent,
-			handleClearSelection,
-			onCreateNewAgentSession,
-		],
-	);
+	fileByItemIdRef.current = fileByItemId;
 
 	const { targetItemId } = useDiffCodeViewScroll({
 		codeViewRef,
@@ -207,27 +121,14 @@ export function DiffPane({
 
 	const { options, style } = useDiffCodeViewTheme();
 
-	// Pierre gates the gutter "+" button's pointer flow behind a non-null
-	// onGutterUtilityClick — without it, clicks/drags on the button itself
-	// no-op (InteractionManager.startGutterSelectionFromPointerDown returns
-	// early). Drag on the gutter (line numbers) is handled by enableLineSelection
-	// and fires onSelectedLinesChange directly; the button uses this callback
-	// instead, so we mirror the open here from the CodeView's current selection.
-	const handleGutterUtilityClick = useCallback(() => {
-		const selection = codeViewRef.current?.getSelectedLines();
-		if (selection) {
-			setComposer({ itemId: selection.id, range: selection.range });
-		}
-	}, []);
-
 	const codeViewOptions = useMemo(
 		() => ({
 			...options,
 			enableLineSelection: true,
 			enableGutterUtility: true,
-			onGutterUtilityClick: handleGutterUtilityClick,
+			onGutterUtilityClick,
 		}),
-		[options, handleGutterUtilityClick],
+		[options, onGutterUtilityClick],
 	);
 
 	const renderHeaderPrefix = useCallback(
@@ -272,10 +173,6 @@ export function DiffPane({
 		],
 	);
 
-	// Pierre fires onSelectedLinesChange when the user clicks the gutter
-	// button (single-line selection) or drags through line numbers — so the
-	// gutter just needs the visual affordance.
-
 	const renderAnnotation = useCallback(
 		(
 			annotation:
@@ -291,8 +188,8 @@ export function DiffPane({
 						workspaceId={workspaceId}
 						startLine={m.startLine}
 						endLine={m.endLine}
-						onCancel={handleClearSelection}
-						onSubmit={handleSubmitComposer}
+						onCancel={clearComposer}
+						onSubmit={submitComposer}
 					/>
 				);
 			}
@@ -321,8 +218,8 @@ export function DiffPane({
 			data.focusLine,
 			data.focusSide,
 			data.focusTick,
-			handleClearSelection,
-			handleSubmitComposer,
+			clearComposer,
+			submitComposer,
 		],
 	);
 
@@ -353,7 +250,7 @@ export function DiffPane({
 			style={style}
 			items={items}
 			options={codeViewOptions}
-			onSelectedLinesChange={handleSelectedLinesChange}
+			onSelectedLinesChange={onSelectedLinesChange}
 			renderHeaderPrefix={renderHeaderPrefix}
 			renderHeaderMetadata={renderHeaderMetadata}
 			renderAnnotation={renderAnnotation}
