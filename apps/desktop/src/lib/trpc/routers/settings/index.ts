@@ -49,6 +49,7 @@ import {
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
+	DEFAULT_VOICE_INPUT_ENABLED,
 } from "shared/constants";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 import {
@@ -259,8 +260,23 @@ export function getPresetsForTrigger(
 	);
 }
 
+function getSettingsPayload() {
+	const row = getSettings();
+	return {
+		confirmOnQuit: row.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT,
+		fileOpenMode: row.fileOpenMode ?? DEFAULT_FILE_OPEN_MODE,
+		openLinksInApp: row.openLinksInApp ?? DEFAULT_OPEN_LINKS_IN_APP,
+		showResourceMonitor:
+			row.showResourceMonitor ?? DEFAULT_SHOW_RESOURCE_MONITOR,
+		terminalLinkBehavior:
+			row.terminalLinkBehavior ?? DEFAULT_TERMINAL_LINK_BEHAVIOR,
+		voiceInputEnabled: row.voiceInputEnabled ?? DEFAULT_VOICE_INPUT_ENABLED,
+	};
+}
+
 export const createSettingsRouter = () => {
 	return router({
+		getSettings: publicProcedure.query(() => getSettingsPayload()),
 		getTerminalPresets: publicProcedure.query(() => {
 			const row = getSettings();
 			if (!row.terminalPresetsInitialized) {
@@ -923,6 +939,25 @@ export const createSettingsRouter = () => {
 			const row = getSettings();
 			return row.showResourceMonitor ?? DEFAULT_SHOW_RESOURCE_MONITOR;
 		}),
+
+		getVoiceInputEnabled: publicProcedure.query(() => {
+			return getSettingsPayload().voiceInputEnabled;
+		}),
+
+		setVoiceInputEnabled: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, voiceInputEnabled: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { voiceInputEnabled: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
 
 		setShowResourceMonitor: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
