@@ -176,6 +176,24 @@ interface UseRecordHotkeysOptions {
 	) => void;
 }
 
+type HotkeyRecorderPersistence = {
+	setOverride: (id: HotkeyId, binding: ShortcutBinding | null) => void;
+	resetOverride: (id: HotkeyId) => void;
+};
+
+export function saveRecordedHotkeyBinding(
+	recordingId: HotkeyId,
+	binding: ShortcutBinding,
+	{ resetOverride, setOverride }: HotkeyRecorderPersistence,
+) {
+	const defaultBinding = HOTKEYS[recordingId].key;
+	if (defaultBinding && bindingsEqual(binding, defaultBinding)) {
+		resetOverride(recordingId);
+	} else {
+		setOverride(recordingId, binding);
+	}
+}
+
 export function useRecordHotkeys(
 	recordingId: HotkeyId | null,
 	options?: UseRecordHotkeysOptions,
@@ -229,12 +247,10 @@ export function useRecordHotkeys(
 				optionsRef.current?.onReserved?.(binding, reserved);
 			}
 
-			const defaultBinding = HOTKEYS[recordingId].key;
-			if (defaultBinding && bindingsEqual(binding, defaultBinding)) {
-				resetOverride(recordingId);
-			} else {
-				setOverride(recordingId, binding);
-			}
+			saveRecordedHotkeyBinding(recordingId, binding, {
+				resetOverride,
+				setOverride,
+			});
 			optionsRef.current?.onSave?.(recordingId, binding);
 		};
 

@@ -34,6 +34,17 @@ type PendingHotkeyConflict = {
 	conflictId: HotkeyId;
 };
 
+type HotkeyConflictActions = {
+	setOverride: (id: HotkeyId, binding: ShortcutBinding | null) => void;
+};
+
+type HotkeyRowResetActions = {
+	resetOverride: (id: HotkeyId) => void;
+	setRecordingId: (
+		updater: (current: HotkeyId | null) => HotkeyId | null,
+	) => void;
+};
+
 const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Navigation",
 	"Workspace",
@@ -135,6 +146,24 @@ export function buildHotkeyConflictPrompt({
 	};
 }
 
+export function confirmHotkeyConflictReassign(
+	pendingConflict: PendingHotkeyConflict | null,
+	{ setOverride }: HotkeyConflictActions,
+) {
+	if (!pendingConflict) return false;
+	setOverride(pendingConflict.conflictId, null);
+	setOverride(pendingConflict.targetId, pendingConflict.binding);
+	return true;
+}
+
+export function resetHotkeyRowOverride(
+	id: HotkeyId,
+	{ resetOverride, setRecordingId }: HotkeyRowResetActions,
+) {
+	setRecordingId((current) => (current === id ? null : current));
+	resetOverride(id);
+}
+
 function getHotkeysByCategory(): Record<
 	HotkeyCategory,
 	Array<{ id: HotkeyId; label: string; description?: string }>
@@ -221,9 +250,9 @@ export function KeyboardShortcutsPage() {
 	};
 
 	const handleConflictReassign = () => {
-		if (!pendingConflict) return;
-		setOverride(pendingConflict.conflictId, null);
-		setOverride(pendingConflict.targetId, pendingConflict.binding);
+		if (!confirmHotkeyConflictReassign(pendingConflict, { setOverride })) {
+			return;
+		}
 		setPendingConflict(null);
 	};
 
@@ -319,10 +348,10 @@ export function KeyboardShortcutsPage() {
 										isRecording={recordingId === hotkey.id}
 										onStartRecording={() => handleStartRecording(hotkey.id)}
 										onReset={() => {
-											setRecordingId((current) =>
-												current === hotkey.id ? null : current,
-											);
-											resetOverride(hotkey.id);
+											resetHotkeyRowOverride(hotkey.id, {
+												resetOverride,
+												setRecordingId,
+											});
 										}}
 									/>
 								))}
