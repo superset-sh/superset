@@ -104,34 +104,36 @@ function ContextMenuContent({
 		() => innerRef.current as HTMLDivElement,
 	);
 
-	// Suppress the mouseup that opened the menu from triggering a menu item.
-	// On Linux/Wayland the mouseup paired with `contextmenu` lands on the
+	// Suppress the pointerup that opened the menu from triggering a menu item.
+	// On Linux/Wayland the pointerup paired with `contextmenu` lands on the
 	// freshly-mounted item under the cursor, and Radix's MenuItem treats
-	// pointerup-without-prior-pointerdown as "user dragged in" and fires a
-	// synthesized click → onSelect. We swallow that single leaked mouseup in
-	// capture phase, gated on "did a real mousedown happen on this content
-	// first?" so legitimate clicks (which always start with mousedown on
-	// content) are never affected. See superset-sh/superset#4939.
-	React.useEffect(() => {
+	// pointerup-without-prior-pointerdown as "user dragged in" and synchronously
+	// calls `event.currentTarget?.click()` → onSelect. We intercept pointerup
+	// (not mouseup — the browser dispatches pointerup first, so by mouseup time
+	// the synthesized click has already run) in capture phase, gated on "did a
+	// real pointerdown happen on this content first?" so legitimate clicks
+	// (which always start with pointerdown on content) are never affected. The
+	// flag resets per pointerup so the guard works for every subsequent open,
+	// including force-mounted content. See superset-sh/superset#4939.
+	React.useLayoutEffect(() => {
 		const node = innerRef.current;
 		if (!node) return;
-		let sawMouseDown = false;
+		let sawPointerDown = false;
 		const onDown = () => {
-			sawMouseDown = true;
+			sawPointerDown = true;
 		};
-		const onUp = (event: MouseEvent) => {
-			if (!sawMouseDown) {
+		const onUp = (event: PointerEvent) => {
+			if (!sawPointerDown) {
 				event.stopPropagation();
 				event.preventDefault();
 			}
-			node.removeEventListener("mousedown", onDown, true);
-			node.removeEventListener("mouseup", onUp, true);
+			sawPointerDown = false;
 		};
-		node.addEventListener("mousedown", onDown, true);
-		node.addEventListener("mouseup", onUp, true);
+		node.addEventListener("pointerdown", onDown, true);
+		node.addEventListener("pointerup", onUp, true);
 		return () => {
-			node.removeEventListener("mousedown", onDown, true);
-			node.removeEventListener("mouseup", onUp, true);
+			node.removeEventListener("pointerdown", onDown, true);
+			node.removeEventListener("pointerup", onUp, true);
 		};
 	}, []);
 
