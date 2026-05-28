@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { HOTKEYS_REGISTRY } from "./registry";
+import { HOTKEYS, HOTKEYS_REGISTRY, type HotkeyId } from "./registry";
+import type { Platform, ShortcutBinding } from "./types";
 
 // Locks in the shape of shipped defaults so the toggle keeps doing
 // something. The original "Adaptive layout mapping" toggle was decorative
@@ -49,6 +50,12 @@ function* allBindings(): Generator<{
 			yield { id, platform, binding: def.key[platform] };
 		}
 	}
+}
+
+function chordFor(binding: ShortcutBinding | null): string | null {
+	if (binding === null) return null;
+	if (typeof binding === "string") return binding;
+	return binding.chord;
 }
 
 describe("HOTKEYS_REGISTRY shape", () => {
@@ -113,5 +120,66 @@ describe("HOTKEYS_REGISTRY shape", () => {
 			mode: "logical",
 			chord: "meta+comma",
 		});
+	});
+
+	it("exposesVoiceInputToggleHotkey", () => {
+		const voiceHotkey = HOTKEYS_REGISTRY.VOICE_INPUT_TOGGLE;
+
+		expect(voiceHotkey).toMatchObject({
+			category: "Workspace",
+			key: {
+				mac: { version: 2, mode: "logical", chord: "meta+shift+v" },
+				windows: {
+					version: 2,
+					mode: "logical",
+					chord: "ctrl+shift+alt+v",
+				},
+				linux: {
+					version: 2,
+					mode: "logical",
+					chord: "ctrl+shift+alt+v",
+				},
+			},
+		});
+		expect(voiceHotkey.label.trim()).not.toBe("");
+		expect(voiceHotkey.description?.trim()).not.toBe("");
+	});
+
+	it("avoidsDefaultShortcutConflicts", () => {
+		const voiceDefaults = HOTKEYS_REGISTRY.VOICE_INPUT_TOGGLE.key;
+
+		for (const platform of ["mac", "windows", "linux"] as const) {
+			const voiceChord = chordFor(voiceDefaults[platform]);
+			expect(voiceChord).not.toBeNull();
+
+			const conflictingIds = Object.entries(HOTKEYS_REGISTRY)
+				.filter(([id]) => id !== "VOICE_INPUT_TOGGLE")
+				.filter(([, def]) => chordFor(def.key[platform]) === voiceChord)
+				.map(([id]) => id);
+
+			expect(conflictingIds, `${platform} ${voiceChord}`).toEqual([]);
+		}
+	});
+
+	it("includesVoiceInputToggleInRegistryKeys", () => {
+		const voiceId: HotkeyId = "VOICE_INPUT_TOGGLE";
+
+		expect(Object.hasOwn(HOTKEYS_REGISTRY, voiceId)).toBe(true);
+	});
+
+	it("exposesResettableVoiceShortcutDefault", () => {
+		const voiceId: HotkeyId = "VOICE_INPUT_TOGGLE";
+		const resetTargets: Record<Platform, ShortcutBinding | null> = {
+			mac: HOTKEYS_REGISTRY[voiceId].key.mac,
+			windows: HOTKEYS_REGISTRY[voiceId].key.windows,
+			linux: HOTKEYS_REGISTRY[voiceId].key.linux,
+		};
+
+		expect(resetTargets).toEqual({
+			mac: { version: 2, mode: "logical", chord: "meta+shift+v" },
+			windows: { version: 2, mode: "logical", chord: "ctrl+shift+alt+v" },
+			linux: { version: 2, mode: "logical", chord: "ctrl+shift+alt+v" },
+		});
+		expect(HOTKEYS[voiceId].key).toEqual(resetTargets.mac);
 	});
 });
