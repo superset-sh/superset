@@ -1,10 +1,15 @@
 import { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "../../../../../../../packages/local-db/src";
 
 const sqlite = new Database(":memory:");
-sqlite.exec(`
+
+function createPreVoiceInputSettingsTable() {
+	sqlite.exec(`
+	DROP TABLE IF EXISTS settings;
 	CREATE TABLE settings (
 		id integer PRIMARY KEY DEFAULT 1,
 		last_active_workspace_id text,
@@ -33,12 +38,29 @@ sqlite.exec(`
 		editor_font_size integer,
 		show_resource_monitor integer,
 		worktree_base_dir text,
-		voice_input_enabled integer,
 		open_links_in_app integer,
 		default_editor text,
 		expose_host_service_via_relay integer
 	);
 `);
+}
+
+function applyVoiceInputMigration() {
+	const migrationSql = readFileSync(
+		resolve(
+			process.cwd(),
+			"packages/local-db/drizzle/0042_add_voice_input_enabled.sql",
+		),
+		"utf8",
+	);
+
+	for (const statement of migrationSql.split("--> statement-breakpoint")) {
+		const trimmedStatement = statement.trim();
+		if (trimmedStatement.length > 0) {
+			sqlite.exec(trimmedStatement);
+		}
+	}
+}
 
 const testLocalDb = drizzle(sqlite, { schema });
 
@@ -97,7 +119,8 @@ function createCaller() {
 
 describe("voice input settings", () => {
 	beforeEach(() => {
-		sqlite.exec("DELETE FROM settings;");
+		createPreVoiceInputSettingsTable();
+		applyVoiceInputMigration();
 		getHostServiceCoordinatorMock.mockClear();
 		loadTokenMock.mockClear();
 	});

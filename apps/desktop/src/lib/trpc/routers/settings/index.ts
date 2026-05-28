@@ -276,7 +276,9 @@ function getSettingsPayload() {
 
 export const createSettingsRouter = () => {
 	return router({
-		getSettings: publicProcedure.query(() => getSettingsPayload()),
+		getSettings: publicProcedure
+			.input(z.void())
+			.query(() => getSettingsPayload()),
 		getTerminalPresets: publicProcedure.query(() => {
 			const row = getSettings();
 			if (!row.terminalPresetsInitialized) {
@@ -940,7 +942,7 @@ export const createSettingsRouter = () => {
 			return row.showResourceMonitor ?? DEFAULT_SHOW_RESOURCE_MONITOR;
 		}),
 
-		getVoiceInputEnabled: publicProcedure.query(() => {
+		getVoiceInputEnabled: publicProcedure.input(z.void()).query(() => {
 			return getSettingsPayload().voiceInputEnabled;
 		}),
 
