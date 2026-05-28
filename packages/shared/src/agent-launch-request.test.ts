@@ -188,6 +188,44 @@ describe("buildTaskAgentLaunchRequest", () => {
 		});
 	});
 
+	test("respects a Claude command override for task prompt files", () => {
+		const configsById = indexResolvedAgentConfigs(
+			resolveAgentConfigs({
+				overrideEnvelope: {
+					version: 1,
+					presets: [
+						{
+							id: "claude",
+							command: "claude",
+						},
+					],
+				},
+			}),
+		);
+		const request = buildTaskAgentLaunchRequest({
+			workspaceId: "workspace-1",
+			source: "open-in-workspace",
+			selectedAgent: "claude",
+			task: TASK,
+			autoRun: false,
+			configsById,
+		});
+
+		expect(request).toMatchObject({
+			kind: "terminal",
+			terminal: {
+				command: "claude \"$(cat '.superset/task-demo-task.md')\"",
+			},
+		});
+		expect(request?.kind).toBe("terminal");
+		if (request?.kind !== "terminal") {
+			throw new Error("Expected terminal launch request");
+		}
+		expect(request.terminal.command).not.toContain(
+			"--dangerously-skip-permissions",
+		);
+	});
+
 	test("builds Amp task launches in interactive stdin mode", () => {
 		const configsById = indexResolvedAgentConfigs(resolveAgentConfigs({}));
 		const request = buildTaskAgentLaunchRequest({
