@@ -207,12 +207,7 @@ type TerminalSocket = {
 // Scanner logic lives in @superset/shared/shell-ready-scanner.
 // ---------------------------------------------------------------------------
 
-/**
- * How long to wait for the shell-ready marker before flushing the scanner's
- * held bytes. initialCommand no longer waits on this — see queueInitialCommand
- * — but the scanner still holds partial OSC 133;A prefixes back from output
- * until either a real match arrives or this timeout fires.
- */
+/** Flush partial OSC 133;A prefix bytes the scanner is holding if a full marker never arrives. */
 const SHELL_READY_TIMEOUT_MS = 3_000;
 
 /**
@@ -794,11 +789,8 @@ function queueInitialCommand(
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
-	// Write immediately rather than gating on OSC 133;A. The PTY's stdin
-	// buffer holds bytes until the shell reads them, so the preset command
-	// runs as soon as rc files finish — without a wrapper present (stale
-	// install, exec'd shell, broken precmd hook) the marker never arrives
-	// and gating turned every send into a SHELL_READY_TIMEOUT_MS stall.
+	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
+	// and gating turned broken/missing markers into a guaranteed stall.
 	if (!session.exited) {
 		session.pty.write(cmd);
 	}
@@ -1005,7 +997,6 @@ interface CreateTerminalSessionOptions {
 	themeType?: "dark" | "light";
 	db: HostDb;
 	eventBus?: EventBus;
-	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */

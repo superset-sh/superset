@@ -169,10 +169,9 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 	});
 
 	test("initialCommand runs promptly even when OSC 133;A never fires", async () => {
-		// Reproduces the v2 "preset send takes 15s" symptom: with a shell in
-		// SHELLS_WITH_READY_MARKER (bash/zsh/fish) and no Superset wrapper on
-		// disk, the marker never arrives and queueInitialCommand stalls on
-		// shellReadyPromise until SHELL_READY_TIMEOUT_MS (15s).
+		// Regression guard against reintroducing the SHELL_READY_TIMEOUT_MS
+		// stall: bash with no Superset wrapper on disk never emits OSC 133;A,
+		// but the preset command should still run as soon as the shell reads.
 		__setAccountShellForTesting("/bin/bash");
 		try {
 			const terminalId = `e2e-no-marker-${randomUUID().slice(0, 8)}`;
