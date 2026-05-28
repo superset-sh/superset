@@ -26,7 +26,8 @@ import {
 } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import type { AgentSessionPlacement } from "renderer/lib/agent-launch";
+
+export type AgentSessionPlacement = "split-pane" | "new-tab";
 
 export type AgentTarget =
 	| { kind: "existing"; terminalId: string }

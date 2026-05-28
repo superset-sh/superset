@@ -36,6 +36,7 @@ import { useDiffCodeViewTheme } from "./hooks/useDiffCodeViewTheme";
 interface CreateNewAgentSessionInput {
 	configId: string;
 	placement: "split-pane" | "new-tab";
+	prompt: string;
 }
 
 interface DiffPaneProps {
@@ -156,26 +157,26 @@ export function DiffPane({
 				},
 			});
 
-			let terminalId: string | null = null;
-			if (input.target.kind === "existing") {
-				terminalId = input.target.terminalId;
-			} else {
+			if (input.target.kind === "new") {
 				if (!onCreateNewAgentSession) {
 					toast.error("Couldn't start a new agent session");
 					return;
 				}
+				// Host bakes the prompt into the launch command (argv/stdin per
+				// the agent config), so we don't follow up with writeInput here.
 				const result = await onCreateNewAgentSession({
 					configId: input.target.configId,
 					placement: input.target.placement,
+					prompt: text,
 				});
-				if (!result) return;
-				terminalId = result.terminalId;
+				if (result) handleClearSelection();
+				return;
 			}
 
 			try {
 				await sendToTerminalAgent({
 					workspaceId,
-					terminalId,
+					terminalId: input.target.terminalId,
 					text,
 				});
 				handleClearSelection();

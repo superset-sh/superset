@@ -17,10 +17,7 @@ import {
 	LuEraser,
 	LuPower,
 } from "react-icons/lu";
-import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
-import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { useHotkeyDisplay } from "renderer/hotkeys";
-import { createAgentSession } from "renderer/lib/agent-launch";
 import { FileIcon } from "renderer/lib/fileIcons";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
@@ -120,13 +117,7 @@ export function usePaneRegistry({
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
-	const hostUrl = useWorkspaceHostUrl(workspaceId);
-	const { data: agentConfigs = [] } = useV2AgentConfigs(hostUrl);
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
-		{ id: workspaceId },
-		{ refetchOnWindowFocus: false, retry: false },
-	);
-	const worktreePath = workspaceQuery.data?.worktreePath;
+	const runAgent = workspaceTrpc.agents.run.useMutation();
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
@@ -176,27 +167,33 @@ export function usePaneRegistry({
 		async (input: {
 			configId: string;
 			placement: "split-pane" | "new-tab";
+			prompt: string;
 		}): Promise<{ terminalId: string } | null> => {
-			if (!hostUrl) {
-				toast.error("Couldn't reach the workspace host");
-				return null;
-			}
-			const config = agentConfigs.find((c) => c.id === input.configId);
-			if (!config) {
-				toast.error("Agent config not found");
-				return null;
-			}
 			try {
-				const { terminalId } = await createAgentSession({
-					store,
-					launcher,
-					hostUrl,
+				// Host pipeline bakes the prompt into the initialCommand using the
+				// agent's argv/stdin transport — no follow-up writeInput needed,
+				// no bind-wait race vs. the launching shell.
+				const result = await runAgent.mutateAsync({
 					workspaceId,
-					config,
-					placement: input.placement,
-					cwd: worktreePath ?? undefined,
-					titleOverride: config.label,
+					agent: input.configId,
+					prompt: input.prompt,
 				});
+				if (result.kind !== "terminal") {
+					toast.error("Selected agent isn't a terminal agent");
+					return null;
+				}
+				const terminalId = result.sessionId;
+				const state = store.getState();
+				const pane = {
+					kind: "terminal" as const,
+					titleOverride: result.label,
+					data: { terminalId } as TerminalPaneData,
+				};
+				if (input.placement === "split-pane" && state.activeTabId) {
+					state.addPane({ tabId: state.activeTabId, pane });
+				} else {
+					state.addTab({ panes: [pane] });
+				}
 				return { terminalId };
 			} catch (error) {
 				const description =
@@ -205,7 +202,7 @@ export function usePaneRegistry({
 				return null;
 			}
 		},
-		[agentConfigs, hostUrl, launcher, store, workspaceId, worktreePath],
+		[runAgent, store, workspaceId],
 	);
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
