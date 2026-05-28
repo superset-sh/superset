@@ -3,14 +3,14 @@ import type { CodeViewHandle } from "@pierre/diffs/react";
 import { type RefObject, useEffect, useMemo, useRef } from "react";
 import type { DiffPaneData } from "../../../../../../types";
 import type { ChangesetFile } from "../../../../../useChangeset";
-import type { DiffCommentThread } from "../useDiffAnnotations";
+import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 interface UseDiffCodeViewScrollOptions {
-	codeViewRef: RefObject<CodeViewHandle<DiffCommentThread> | null>;
+	codeViewRef: RefObject<CodeViewHandle<DiffAnnotationMetadata> | null>;
 	data: DiffPaneData;
 	fileByItemId: ReadonlyMap<string, ChangesetFile>;
 	pathToItemId: ReadonlyMap<string, string>;
-	items: CodeViewItem<DiffCommentThread>[];
+	items: CodeViewItem<DiffAnnotationMetadata>[];
 	collapsedSet: ReadonlySet<string>;
 	setCollapsed: (path: string, value: boolean) => void;
 }
@@ -30,7 +30,7 @@ export function useDiffCodeViewScroll({
 }: UseDiffCodeViewScrollOptions): UseDiffCodeViewScrollResult {
 	const lastScrollTargetRef = useRef<string | null>(null);
 	const itemById = useMemo(() => {
-		const map = new Map<string, CodeViewItem<DiffCommentThread>>();
+		const map = new Map<string, CodeViewItem<DiffAnnotationMetadata>>();
 		for (const item of items) {
 			map.set(item.id, item);
 		}

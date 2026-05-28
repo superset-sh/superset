@@ -8,7 +8,7 @@ import {
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
 import { useSettings } from "renderer/stores/settings";
 import { useResolvedTheme, useTerminalTheme } from "renderer/stores/theme";
-import type { DiffCommentThread } from "../useDiffAnnotations";
+import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 export function useDiffCodeViewTheme() {
 	const diffStyle = useSettings((s) => s.diffStyle);
@@ -56,7 +56,7 @@ export function useDiffCodeViewTheme() {
 			? "var(--color-red-500)"
 			: "var(--color-red-700)";
 
-	const options = useMemo<CodeViewOptions<DiffCommentThread>>(
+	const options = useMemo<CodeViewOptions<DiffAnnotationMetadata>>(
 		() => ({
 			diffStyle,
 			expandUnchanged,

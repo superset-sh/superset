@@ -1,3 +1,4 @@
+import type { SelectionSide } from "@pierre/diffs";
 import type { DiffLineAnnotation } from "@pierre/diffs/react";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
@@ -19,13 +20,26 @@ export interface DiffCommentThread {
 	url?: string;
 }
 
+/** Local-only metadata for a draft composer pinned to the end of a selection. */
+export interface DiffAgentComposer {
+	itemId: string;
+	startLine: number;
+	endLine: number;
+	startSide: SelectionSide;
+	endSide: SelectionSide;
+}
+
+export type DiffAnnotationMetadata =
+	| ({ kind: "thread" } & DiffCommentThread)
+	| ({ kind: "composer" } & DiffAgentComposer);
+
 interface UseDiffAnnotationsByPathOptions {
 	workspaceId: string;
 }
 
 const EMPTY_ANNOTATIONS_BY_PATH = new Map<
 	string,
-	DiffLineAnnotation<DiffCommentThread>[]
+	DiffLineAnnotation<DiffAnnotationMetadata>[]
 >();
 
 function parseTimestamp(value: string | undefined): number | undefined {
@@ -38,7 +52,7 @@ export function useDiffAnnotationsByPath({
 	workspaceId,
 }: UseDiffAnnotationsByPathOptions): ReadonlyMap<
 	string,
-	DiffLineAnnotation<DiffCommentThread>[]
+	DiffLineAnnotation<DiffAnnotationMetadata>[]
 > {
 	const showDiffComments = useSettings((s) => s.showDiffComments);
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
@@ -75,7 +89,7 @@ export function useDiffAnnotationsByPath({
 
 		const annotationsByPath = new Map<
 			string,
-			DiffLineAnnotation<DiffCommentThread>[]
+			DiffLineAnnotation<DiffAnnotationMetadata>[]
 		>();
 		for (const thread of threads) {
 			if (!thread.path) continue;
@@ -94,6 +108,7 @@ export function useDiffAnnotationsByPath({
 				side: thread.diffSide === "LEFT" ? "deletions" : "additions",
 				lineNumber: thread.line,
 				metadata: {
+					kind: "thread",
 					threadId: thread.id,
 					isResolved: thread.isResolved,
 					isOutdated: thread.isOutdated,

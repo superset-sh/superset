@@ -1,2 +1,6 @@
-export type { DiffCommentThread } from "./useDiffAnnotations";
+export type {
+	DiffAgentComposer,
+	DiffAnnotationMetadata,
+	DiffCommentThread,
+} from "./useDiffAnnotations";
 export { useDiffAnnotationsByPath } from "./useDiffAnnotations";

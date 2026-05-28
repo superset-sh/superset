@@ -10,7 +10,7 @@ import { getQueryKey } from "@trpc/react-query";
 import type { inferRouterInputs } from "@trpc/server";
 import { useMemo } from "react";
 import type { ChangesetFile } from "../../../../../useChangeset";
-import type { DiffCommentThread } from "../useDiffAnnotations";
+import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 type GetDiffInput = inferRouterInputs<AppRouter>["git"]["getDiff"];
 
@@ -20,12 +20,18 @@ interface UseDiffCodeViewItemsOptions {
 	collapsedSet: ReadonlySet<string>;
 	annotationsByPath: ReadonlyMap<
 		string,
-		DiffLineAnnotation<DiffCommentThread>[]
+		DiffLineAnnotation<DiffAnnotationMetadata>[]
 	>;
+	/** Extra in-memory annotations keyed by CodeView item id (e.g. the live
+	 *  agent-comment composer). Merged on top of `annotationsByPath`. */
+	extraAnnotationsByItemId?: ReadonlyMap<
+		string,
+		DiffLineAnnotation<DiffAnnotationMetadata>[]
+	> | null;
 }
 
 interface UseDiffCodeViewItemsResult {
-	items: CodeViewItem<DiffCommentThread>[];
+	items: CodeViewItem<DiffAnnotationMetadata>[];
 	fileByItemId: Map<string, ChangesetFile>;
 	pathToItemId: Map<string, string>;
 	hasPendingDiff: boolean;
@@ -37,6 +43,7 @@ export function useDiffCodeViewItems({
 	files,
 	collapsedSet,
 	annotationsByPath,
+	extraAnnotationsByItemId,
 }: UseDiffCodeViewItemsOptions): UseDiffCodeViewItemsResult {
 	const { trpcClient } = useWorkspaceClient();
 
@@ -75,8 +82,8 @@ export function useDiffCodeViewItems({
 		return map;
 	}, [files]);
 
-	const items = useMemo<CodeViewItem<DiffCommentThread>[]>(() => {
-		const nextItems: CodeViewItem<DiffCommentThread>[] = [];
+	const items = useMemo<CodeViewItem<DiffAnnotationMetadata>[]>(() => {
+		const nextItems: CodeViewItem<DiffAnnotationMetadata>[] = [];
 
 		for (let index = 0; index < diffRequests.length; index++) {
 			const request = diffRequests[index];
@@ -84,7 +91,13 @@ export function useDiffCodeViewItems({
 			if (!request || !query?.data) continue;
 
 			const { file } = request;
-			const annotations = getAnnotationsForFile(annotationsByPath, file);
+			const itemId = getDiffItemId(file);
+			const baseAnnotations = getAnnotationsForFile(annotationsByPath, file);
+			const extra = extraAnnotationsByItemId?.get(itemId);
+			const annotations =
+				baseAnnotations && extra
+					? [...baseAnnotations, ...extra]
+					: (extra ?? baseAnnotations);
 			const fileDiff = parseDiffFromFile(
 				{
 					...query.data.oldFile,
@@ -110,7 +123,7 @@ export function useDiffCodeViewItems({
 			);
 
 			nextItems.push({
-				id: getDiffItemId(file),
+				id: itemId,
 				type: "diff",
 				fileDiff,
 				annotations,
@@ -120,7 +133,13 @@ export function useDiffCodeViewItems({
 		}
 
 		return nextItems;
-	}, [diffRequests, diffQueries, annotationsByPath, collapsedSet]);
+	}, [
+		diffRequests,
+		diffQueries,
+		annotationsByPath,
+		collapsedSet,
+		extraAnnotationsByItemId,
+	]);
 
 	return {
 		items,
@@ -174,10 +193,10 @@ function getDiffItemId(file: ChangesetFile): string {
 function getAnnotationsForFile(
 	annotationsByPath: ReadonlyMap<
 		string,
-		DiffLineAnnotation<DiffCommentThread>[]
+		DiffLineAnnotation<DiffAnnotationMetadata>[]
 	>,
 	file: ChangesetFile,
-): DiffLineAnnotation<DiffCommentThread>[] | undefined {
+): DiffLineAnnotation<DiffAnnotationMetadata>[] | undefined {
 	const current = annotationsByPath.get(file.path);
 	const previous =
 		file.oldPath && file.oldPath !== file.path
@@ -188,20 +207,33 @@ function getAnnotationsForFile(
 }
 
 function getAnnotationsVersion(
-	annotations: DiffLineAnnotation<DiffCommentThread>[] | undefined,
+	annotations: DiffLineAnnotation<DiffAnnotationMetadata>[] | undefined,
 ): string {
 	if (!annotations?.length) return "";
 	return annotations
-		.map((annotation) =>
-			[
+		.map((annotation) => {
+			const m = annotation.metadata;
+			if (m.kind === "composer") {
+				return [
+					"c",
+					annotation.side,
+					annotation.lineNumber,
+					m.startLine,
+					m.endLine,
+					m.startSide,
+					m.endSide,
+				].join(",");
+			}
+			return [
+				"t",
 				annotation.side,
 				annotation.lineNumber,
-				annotation.metadata.threadId,
-				annotation.metadata.isResolved ? "1" : "0",
-				annotation.metadata.isOutdated ? "1" : "0",
-				annotation.metadata.comments.length,
-			].join(","),
-		)
+				m.threadId,
+				m.isResolved ? "1" : "0",
+				m.isOutdated ? "1" : "0",
+				m.comments.length,
+			].join(",");
+		})
 		.join("|");
 }
 
