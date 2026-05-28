@@ -77,15 +77,15 @@ If it runs in a terminal, it runs on Superset
 | **GitHub CLI** | [gh](https://cli.github.com/) |
 | **Caddy** | [caddy](https://caddyserver.com/docs/install) (for dev server) |
 
-## Getting Started
-
-### Install the app
+## Install
 
 **[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
 
-### Run from source
+Builds for Windows and Linux are not yet available.
 
-One command. No Neon account, no third-party credentials.
+## Development
+
+Want to hack on Superset or contribute a PR? Spin up a local dev environment in one command:
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
@@ -94,9 +94,11 @@ cd superset
 bun run dev
 ```
 
-Then open the web app and click **"Sign in as dev"** (or use `admin@local.test` / `supersetdev`).
+No Neon account or third-party credentials needed — `setup.local.sh` brings up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
-Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`). See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide — what the setup script does, manual setup against real services, troubleshooting, and how to build the desktop app.
+Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`).
+
+See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide — what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
 ## Keyboard Shortcuts
 
