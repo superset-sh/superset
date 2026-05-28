@@ -50,6 +50,7 @@ export const DEFAULT_SHOW_PRESETS_BAR = true;
 export const DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON = true;
 export const DEFAULT_TELEMETRY_ENABLED = true;
 export const DEFAULT_SHOW_RESOURCE_MONITOR = true;
+export const DEFAULT_VOICE_INPUT_ENABLED = false;
 export const DEFAULT_OPEN_LINKS_IN_APP = false;
 export const DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY = false;
 
