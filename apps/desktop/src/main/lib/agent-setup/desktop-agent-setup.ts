@@ -72,10 +72,18 @@ export function setupDesktopAgentCapabilities(): void {
  * Re-run setupActions for a single agent (e.g. when the user installs it
  * from the settings UI). Idempotent — runners are safe to invoke
  * repeatedly. Returns whether the agent was a known setup target.
+ *
+ * Runs the bootstrap actions (notify-script, etc.) first because they
+ * are shared prerequisites that per-agent hooks reference. If
+ * boot-time setup somehow didn't run or the script got wiped, this
+ * keeps the per-agent setup self-sufficient.
  */
 export function setupSingleAgent(agentId: string): boolean {
 	const target = DESKTOP_AGENT_SETUP_TARGETS.find((t) => t.id === agentId);
 	if (!target) return false;
+	for (const action of DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS) {
+		DESKTOP_AGENT_SETUP_RUNNERS[action]();
+	}
 	for (const action of target.setupActions) {
 		DESKTOP_AGENT_SETUP_RUNNERS[action]();
 	}
