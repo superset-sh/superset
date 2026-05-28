@@ -256,7 +256,7 @@ describe("voice activation keyboard shortcut settings", () => {
 		window.history.replaceState(
 			null,
 			"",
-			"/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE",
+			"/#/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE",
 		);
 
 		const page = await mountKeyboardShortcutsPage();

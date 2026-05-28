@@ -175,7 +175,7 @@ describe("BehaviorSettings voice shortcut link", () => {
 		expect(markup).toContain("Voice Shortcut");
 		expect(markup).toContain("⌘⇧V");
 		expect(markup).toContain(
-			'href="/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE"',
+			'href="#/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE"',
 		);
 	});
 

@@ -171,9 +171,13 @@ function getShortcutFocusId(): HotkeyId | null {
 		return null;
 	}
 
-	const params = new URLSearchParams(window.location.search);
-	const shortcutId =
-		params.get("shortcut") ?? window.location.hash.replace("#", "");
+	const hashQueryIndex = window.location.hash.indexOf("?");
+	const hashSearch =
+		hashQueryIndex >= 0 ? window.location.hash.slice(hashQueryIndex + 1) : "";
+	const params = new URLSearchParams(
+		hashSearch || window.location.search.slice(1),
+	);
+	const shortcutId = params.get("shortcut");
 	if (shortcutId && shortcutId in HOTKEYS) {
 		return shortcutId as HotkeyId;
 	}

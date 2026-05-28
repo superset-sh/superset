@@ -19,7 +19,7 @@ import {
 } from "../../../utils/settings-search";
 
 const VOICE_SHORTCUT_SETTINGS_HREF =
-	"/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE";
+	"#/settings/keyboard?shortcut=VOICE_INPUT_TOGGLE";
 
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
