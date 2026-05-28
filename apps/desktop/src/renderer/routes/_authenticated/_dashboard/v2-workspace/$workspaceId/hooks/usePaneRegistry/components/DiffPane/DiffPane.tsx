@@ -88,7 +88,7 @@ export function DiffPane({
 
 	const {
 		composerAnnotationsByItemId,
-		onSelectedLinesChange,
+		onLineSelectionEnd,
 		onGutterUtilityClick,
 		clear: clearComposer,
 		submit: submitComposer,
@@ -127,8 +127,9 @@ export function DiffPane({
 			enableLineSelection: true,
 			enableGutterUtility: true,
 			onGutterUtilityClick,
+			onLineSelectionEnd,
 		}),
-		[options, onGutterUtilityClick],
+		[options, onGutterUtilityClick, onLineSelectionEnd],
 	);
 
 	const renderHeaderPrefix = useCallback(
@@ -250,7 +251,6 @@ export function DiffPane({
 			style={style}
 			items={items}
 			options={codeViewOptions}
-			onSelectedLinesChange={onSelectedLinesChange}
 			renderHeaderPrefix={renderHeaderPrefix}
 			renderHeaderMetadata={renderHeaderMetadata}
 			renderAnnotation={renderAnnotation}
