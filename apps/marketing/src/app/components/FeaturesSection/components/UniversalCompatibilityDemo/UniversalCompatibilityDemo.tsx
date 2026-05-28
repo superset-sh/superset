@@ -12,8 +12,13 @@ const AGENTS = [
 	{ name: "Codex", icon: "/app-icons/codex.svg", size: 18 },
 	{ name: "Gemini", icon: "/app-icons/gemini.svg", size: 18 },
 	{ name: "Cursor Agent", icon: "/app-icons/cursor-agent.svg", size: 18 },
+	{ name: "Kiro", icon: "/app-icons/kiro.svg", size: 18 },
 ];
 
+/**
+ * Marketing demo that animates a mock Superset terminal sidebar listing the
+ * built-in coding agents to showcase universal CLI-agent compatibility.
+ */
 export function UniversalCompatibilityDemo() {
 	const ref = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true, margin: "-100px" });

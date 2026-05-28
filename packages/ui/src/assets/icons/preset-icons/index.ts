@@ -8,6 +8,7 @@ import cursorAgentIcon from "./cursor.svg";
 import droidIcon from "./droid.svg";
 import droidWhiteIcon from "./droid-white.svg";
 import geminiIcon from "./gemini.svg";
+import kiroIcon from "./kiro.svg";
 import mastracodeIcon from "./mastracode.svg";
 import mastracodeWhiteIcon from "./mastracode-white.svg";
 import opencodeIcon from "./opencode.svg";
@@ -33,8 +34,14 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	droid: { light: droidIcon, dark: droidWhiteIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
+	kiro: { light: kiroIcon, dark: kiroIcon },
 };
 
+/**
+ * Resolve the icon URL registered for a preset name, picking the dark or light
+ * variant based on the current theme. Names are matched case-insensitively and
+ * trimmed; returns `undefined` when no matching preset is registered.
+ */
 export function getPresetIcon(
 	presetName: string,
 	isDark: boolean,
@@ -63,4 +70,5 @@ export {
 	piIcon,
 	piWhiteIcon,
 	supersetIcon,
+	kiroIcon,
 };

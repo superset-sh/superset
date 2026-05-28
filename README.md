@@ -63,6 +63,7 @@ Superset works with any CLI-based coding agent, including:
 | [GitHub Copilot](https://github.com/features/copilot) | Fully supported |
 | [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
 | [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
+| [Kiro CLI](https://kiro.dev/cli/) | Fully supported |
 | Any CLI agent | Will work |
 
 If it runs in a terminal, it runs on Superset
