@@ -88,46 +88,30 @@ If it runs in a terminal, it runs on Superset
 <details>
 <summary>Click to expand build instructions</summary>
 
-**1. Clone the repository**
+**Recommended: one-command local setup (no Neon or third-party accounts required)**
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
 cd superset
+
+# Prereqs: bun, docker, jq, caddy (`brew install jq caddy && caddy trust`)
+./.superset/setup.local.sh
+
+bun run dev
 ```
 
-**2. Set up environment variables** (choose one):
+`setup.local.sh` copies `.env.local.example` → `.env`, installs deps, brings up a per-workspace Postgres + Electric stack via `docker compose`, runs migrations, and seeds a `Local Admin` dev account. Sign in with the **"Sign in as dev"** button on the sign-in page (web + desktop), or use `admin@local.test` / `supersetdev`. Re-run the script to refresh; `./.superset/teardown.local.sh` tears the stack down.
 
-Option A: Full setup
-```bash
-cp .env.example .env
-# Edit .env and fill in the values
-```
-
-Option B: Skip env validation (for quick local testing)
-```bash
-cp .env.example .env
-echo 'SKIP_ENV_VALIDATION=1' >> .env
-```
-
-**3. Set up Caddy** (reverse proxy for Electric SQL streams):
+**Manual setup** (if you need to point at real Neon / third-party services):
 
 ```bash
-# Install caddy: brew install caddy (macOS) or see https://caddyserver.com/docs/install
-cp Caddyfile.example Caddyfile
-
-# Without this, Chromium rejects https://localhost:* with ERR_CERT_AUTHORITY_INVALID.
-# Prompts for sudo once.
-caddy trust
-```
-
-**4. Install dependencies and run**
-
-```bash
+cp .env.example .env             # fill in real credentials
+cp Caddyfile.example Caddyfile   # `caddy trust` once for HTTPS on localhost
 bun install
 bun run dev
 ```
 
-**5. Build the desktop app**
+**Build the desktop app**
 
 ```bash
 bun run build

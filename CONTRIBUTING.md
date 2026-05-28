@@ -2,6 +2,19 @@ When contributing to this repository, please first discuss the change you wish t
 
 Please note we have a [code of conduct](./CODE_OF_CONDUCT.md), please follow it in all your interactions with the project.
 
+## Local Development Setup
+
+Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`).
+
+```bash
+./.superset/setup.local.sh
+bun run dev
+```
+
+This copies `.env.local.example` → `.env`, brings up a per-workspace Postgres + neon-proxy + Electric stack on isolated ports, runs migrations, and seeds a `Local Admin` account. Sign in with the **"Sign in as dev"** button on the sign-in page, or use `admin@local.test` / `supersetdev`. Tear the stack down with `./.superset/teardown.local.sh`.
+
+You do not need a Neon account, Stripe keys, or any other third-party credentials for local development — `.env.local.example` ships fake placeholders that pass env validation.
+
 ## Pull Request Process
 
 1. To create a Pull Request (PR), [create a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) of the project. 
