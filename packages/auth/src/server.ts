@@ -121,6 +121,10 @@ export const auth = betterAuth({
 			generateId: false,
 		},
 	},
+	emailAndPassword: {
+		enabled: process.env.NODE_ENV === "development",
+		autoSignIn: true,
+	},
 	socialProviders: {
 		github: {
 			clientId: env.GH_CLIENT_ID,
@@ -386,19 +390,21 @@ export const auth = betterAuth({
 				},
 
 				afterCreateOrganization: async ({ organization, user }) => {
-					const customer = await stripeClient.customers.create({
-						name: organization.name,
-						email: user.email,
-						metadata: {
-							organizationId: organization.id,
-							organizationSlug: organization.slug,
-						},
-					});
+					if (process.env.NODE_ENV !== "development") {
+						const customer = await stripeClient.customers.create({
+							name: organization.name,
+							email: user.email,
+							metadata: {
+								organizationId: organization.id,
+								organizationSlug: organization.slug,
+							},
+						});
 
-					await db
-						.update(authSchema.organizations)
-						.set({ stripeCustomerId: customer.id })
-						.where(eq(authSchema.organizations.id, organization.id));
+						await db
+							.update(authSchema.organizations)
+							.set({ stripeCustomerId: customer.id })
+							.where(eq(authSchema.organizations.id, organization.id));
+					}
 
 					await seedDefaultStatuses(organization.id);
 				},

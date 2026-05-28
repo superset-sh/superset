@@ -1,4 +1,5 @@
 import type { PromptTransport } from "./agent-prompt-launch";
+import { BUILTIN_TERMINAL_AGENTS } from "./builtin-terminal-agents";
 
 export interface HostAgentPreset {
 	presetId: string;
@@ -11,163 +12,62 @@ export interface HostAgentPreset {
 	env: Record<string, string>;
 }
 
+function tokenize(commandString: string): string[] {
+	return commandString.split(/\s+/).filter(Boolean);
+}
+
+function derivePromptArgs(
+	commandTokens: string[],
+	promptCommand: string | undefined,
+): string[] {
+	if (!promptCommand) return [];
+	// promptCommand includes the base command; strip the shared prefix to
+	// get just the prompt-only args (e.g. "codex --flag --" → ["--"]).
+	return tokenize(promptCommand).slice(commandTokens.length);
+}
+
 /**
- * Hardcoded terminal agent presets. Used as the seed list when a host's
- * agent table is empty, and as the install catalog the desktop picker
- * renders. Lives here (not on the host service) because it's static
- * configuration that ships with the binary, not data the API owns.
+ * Terminal agent presets derived from `BUILTIN_TERMINAL_AGENTS`. Used as
+ * the seed list when a host's agent table is empty and as the install
+ * catalog the desktop picker renders.
  *
  * Launch resolution:
  *   prompt
  *     ? [command, ...args, ...promptArgs, ...(promptTransport === "argv" ? [prompt] : [])]
  *     : [command, ...args]
  *
- * `promptArgs` is only included when launching with a prompt — codex's
- * trailing `--`, opencode's `--prompt`, and copilot's `-i` therefore do
- * not appear in promptless launches. Stdin transport pipes the prompt to
- * the spawned process's stdin instead of pushing it to argv.
- *
- * Superset is intentionally excluded — its model/provider config
- * lives in chat settings, not in terminal-agent configs.
+ * Stdin transport pipes the prompt to stdin instead of pushing it to argv.
  */
-export const HOST_AGENT_PRESETS = [
-	{
-		presetId: "claude",
-		label: "Claude",
-		description:
-			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
-		command: "claude",
-		args: ["--dangerously-skip-permissions"],
-		promptTransport: "argv",
-		promptArgs: [],
-		env: {},
-	},
-	{
-		presetId: "amp",
-		label: "Amp",
-		description:
-			"Amp's coding agent for terminal-first coding, subagents, and task work.",
-		command: "amp",
-		args: [],
-		promptTransport: "stdin",
-		promptArgs: [],
-		env: {},
-	},
-	{
-		presetId: "codex",
-		label: "Codex",
-		description:
-			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
-		command: "codex",
-		args: ["--dangerously-bypass-approvals-and-sandbox"],
-		promptTransport: "argv",
-		promptArgs: ["--"],
-		env: {},
-	},
-	{
-		presetId: "gemini",
-		label: "Gemini",
-		description:
-			"Google's open-source terminal agent for coding, problem-solving, and task work.",
-		command: "gemini",
-		args: ["--approval-mode=auto_edit"],
-		promptTransport: "argv",
-		promptArgs: [],
-		env: {},
-	},
-	{
-		presetId: "mastracode",
-		label: "Mastracode",
-		description:
-			"Mastra's coding agent for building, debugging, and shipping code from the terminal.",
-		command: "mastracode",
-		args: [],
-		promptTransport: "argv",
-		promptArgs: ["--prompt"],
-		env: {},
-	},
-	{
-		presetId: "opencode",
-		label: "OpenCode",
-		description: "Open-source coding agent for the terminal, IDE, and desktop.",
-		command: "opencode",
-		args: [],
-		promptTransport: "argv",
-		promptArgs: ["--prompt"],
-		env: {},
-	},
-	{
-		presetId: "pi",
-		label: "Pi",
-		description:
-			"Minimal terminal coding harness for flexible coding workflows.",
-		command: "pi",
-		args: [],
-		promptTransport: "argv",
-		promptArgs: [],
-		env: {},
-	},
-	{
-		presetId: "copilot",
-		label: "Copilot",
-		description:
-			"GitHub's coding agent for planning, editing, and building in your repo.",
-		command: "copilot",
-		args: ["--allow-tool=write"],
-		promptTransport: "argv",
-		promptArgs: ["-i"],
-		env: {},
-	},
-	{
-		presetId: "cursor-agent",
-		label: "Cursor Agent",
-		description:
-			"Cursor's coding agent for editing, running, and debugging code in parallel.",
-		command: "cursor-agent",
-		args: [],
-		promptTransport: "argv",
-		promptArgs: [],
-		env: {},
-	},
-	{
-		presetId: "droid",
-		label: "Droid",
-		description:
-			"Factory's agent-native coding CLI for autonomous software development.",
-		command: "droid",
-		args: ["--auto", "medium"],
-		promptTransport: "argv",
-		promptArgs: [],
-		env: {},
-	},
-] as const satisfies readonly HostAgentPreset[];
+export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
+	BUILTIN_TERMINAL_AGENTS.map((agent) => {
+		const commandTokens = tokenize(agent.command);
+		const [bin = agent.id, ...args] = commandTokens;
+		return {
+			presetId: agent.id,
+			label: agent.label,
+			description: agent.description,
+			command: bin,
+			args,
+			promptTransport: agent.promptTransport ?? "argv",
+			promptArgs: derivePromptArgs(commandTokens, agent.promptCommand),
+			env: {},
+		};
+	});
 
-const DEFAULT_PRESET_IDS = new Set([
-	"claude",
-	"amp",
-	"codex",
-	"gemini",
-	"copilot",
-]);
-
-export function getDefaultSeedPresets(): HostAgentPreset[] {
-	return HOST_AGENT_PRESETS.filter((preset) =>
-		DEFAULT_PRESET_IDS.has(preset.presetId),
-	).map((preset) => ({
-		...preset,
-		args: [...preset.args],
-		promptArgs: [...preset.promptArgs],
-		env: { ...preset.env },
-	}));
-}
-
-export function getPresetById(presetId: string): HostAgentPreset | undefined {
-	const preset = HOST_AGENT_PRESETS.find((item) => item.presetId === presetId);
-	if (!preset) return undefined;
+function clonePreset(preset: HostAgentPreset): HostAgentPreset {
 	return {
 		...preset,
 		args: [...preset.args],
 		promptArgs: [...preset.promptArgs],
 		env: { ...preset.env },
 	};
+}
+
+export function getDefaultSeedPresets(): HostAgentPreset[] {
+	return HOST_AGENT_PRESETS.map(clonePreset);
+}
+
+export function getPresetById(presetId: string): HostAgentPreset | undefined {
+	const preset = HOST_AGENT_PRESETS.find((item) => item.presetId === presetId);
+	return preset ? clonePreset(preset) : undefined;
 }

@@ -10,6 +10,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -32,6 +33,7 @@ function OnboardingProjectPage() {
 	const folderImport = useFolderFirstImport({
 		onError: (message) => toast.error(message),
 	});
+	const finalizeSetup = useFinalizeProjectSetup();
 
 	// Adding a project finishes onboarding: mark onboarded, then hand off to the
 	// dashboard's new-workspace modal pre-selected to the project just added.
@@ -75,6 +77,7 @@ function OnboardingProjectPage() {
 				name: repoNameFromUrl(trimmed),
 				mode: { kind: "clone", parentDir: cloneTargetDir, url: trimmed },
 			});
+			finalizeSetup(activeHostUrl, created);
 			await finish(created.projectId);
 		} catch (err) {
 			toast.error(

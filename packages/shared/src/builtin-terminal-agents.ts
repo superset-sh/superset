@@ -62,7 +62,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Claude",
 		description:
 			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
-		command: "claude --permission-mode acceptEdits",
+		command: "claude --dangerously-skip-permissions",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -134,10 +134,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 	createBuiltinTerminalAgent({
 		id: "droid",
 		label: "Droid",
-		description:
-			"Factory's agent-native coding CLI for autonomous software development.",
-		command: "droid --auto medium",
-		promptCommand: "droid --auto medium",
+		description: "Factory's autonomous coding agent for terminal workflows.",
+		command: "droid",
 	}),
 ] as const;
 

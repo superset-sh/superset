@@ -168,6 +168,42 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
+	test("initialCommand runs promptly even when OSC 133;A never fires", async () => {
+		// Regression guard against reintroducing the SHELL_READY_TIMEOUT_MS
+		// stall: bash with no Superset wrapper on disk never emits OSC 133;A,
+		// but the preset command should still run as soon as the shell reads.
+		__setAccountShellForTesting("/bin/bash");
+		try {
+			const terminalId = `e2e-no-marker-${randomUUID().slice(0, 8)}`;
+			const sentinelFile = path.join(TEST_HOME, `no-marker-${terminalId}`);
+
+			const start = Date.now();
+			const result = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				initialCommand: `echo ok > ${sentinelFile}`,
+			});
+			assert.ok(!("error" in result));
+			if ("error" in result) return;
+
+			await waitFor(() => fs.existsSync(sentinelFile), 10_000);
+			const elapsed = Date.now() - start;
+			console.log(`[repro] initialCommand executed in ${elapsed}ms`);
+			// Pre-fix: SHELL_READY_TIMEOUT_MS forced this to 15 s. 5 s leaves
+			// generous headroom for CI overhead while still catching regression.
+			assert.ok(
+				elapsed < 5000,
+				`expected initialCommand to run promptly, took ${elapsed}ms`,
+			);
+
+			await disposeSessionAndWait(terminalId, db);
+		} finally {
+			__setAccountShellForTesting("/bin/sh");
+		}
+	});
+
 	test("rejects reusing a live terminal id from another workspace", async () => {
 		const terminalId = `e2e-cross-live-${randomUUID().slice(0, 8)}`;
 

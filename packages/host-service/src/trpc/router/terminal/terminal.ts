@@ -192,6 +192,7 @@ export const terminalRouter = router({
 			}
 
 			await disposeSessionAndWait(input.terminalId, ctx.db);
+			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
 

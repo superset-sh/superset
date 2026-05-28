@@ -1,6 +1,8 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import {
+	Eye,
+	EyeOff,
 	MessageSquare,
 	MessageSquareOff,
 	SquareSplitHorizontal,
@@ -11,6 +13,7 @@ import { useSettings } from "renderer/stores/settings";
 export function DiffPaneHeaderExtras() {
 	const diffStyle = useSettings((s) => s.diffStyle);
 	const showDiffComments = useSettings((s) => s.showDiffComments);
+	const expandUnchanged = useSettings((s) => s.expandUnchanged);
 	const updateSetting = useSettings((s) => s.update);
 
 	const buttonClass = (active: boolean) =>
@@ -81,6 +84,28 @@ export function DiffPaneHeaderExtras() {
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
 					{showDiffComments ? "Hide review comments" : "Show review comments"}
+				</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={() => updateSetting("expandUnchanged", !expandUnchanged)}
+						aria-label={
+							expandUnchanged ? "Hide unchanged regions" : "Show all lines"
+						}
+						aria-pressed={expandUnchanged}
+						className={buttonClass(expandUnchanged)}
+					>
+						{expandUnchanged ? (
+							<EyeOff className="size-3.5" />
+						) : (
+							<Eye className="size-3.5" />
+						)}
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					{expandUnchanged ? "Hide unchanged regions" : "Show all lines"}
 				</TooltipContent>
 			</Tooltip>
 			<div

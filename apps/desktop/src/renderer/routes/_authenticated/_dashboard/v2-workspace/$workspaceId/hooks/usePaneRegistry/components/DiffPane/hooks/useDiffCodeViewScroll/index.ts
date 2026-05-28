@@ -1,0 +1,1 @@
+export { useDiffCodeViewScroll } from "./useDiffCodeViewScroll";

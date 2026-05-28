@@ -31,10 +31,10 @@ describe("normalizeExecutionMode", () => {
 		);
 	});
 
-	it("maps legacy modes to split-pane and missing modes to new-tab", () => {
+	it("keeps sequential, maps legacy parallel to split-pane, and missing modes to new-tab", () => {
 		expect(normalizeExecutionMode("split-pane")).toBe("split-pane");
 		expect(normalizeExecutionMode("parallel")).toBe("split-pane");
-		expect(normalizeExecutionMode("sequential")).toBe("split-pane");
+		expect(normalizeExecutionMode("sequential")).toBe("sequential");
 		expect(normalizeExecutionMode(undefined)).toBe("new-tab");
 		expect(normalizeExecutionMode("unknown")).toBe("new-tab");
 	});
@@ -45,6 +45,7 @@ describe("normalizeTerminalPresets", () => {
 		const normalized = normalizeTerminalPresets([
 			createPreset("new-tab"),
 			createPreset("new-tab-split-pane"),
+			createPreset("sequential"),
 			createPreset("parallel"),
 			createPreset(undefined),
 		]);
@@ -52,6 +53,7 @@ describe("normalizeTerminalPresets", () => {
 		expect(normalized.map((p) => p.executionMode)).toEqual([
 			"new-tab",
 			"new-tab-split-pane",
+			"sequential",
 			"split-pane",
 			"new-tab",
 		] satisfies TerminalPreset["executionMode"][]);
@@ -126,6 +128,7 @@ describe("shouldPersistNormalizedTerminalPresets", () => {
 				createPreset("split-pane"),
 				createPreset("new-tab"),
 				createPreset("new-tab-split-pane"),
+				createPreset("sequential"),
 			]),
 		).toBe(false);
 	});

@@ -8,12 +8,14 @@ import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { LuGripVertical } from "react-icons/lu";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
+import { resolvePresetLaunchCommands } from "renderer/lib/agent-launch-command";
 import { resolveV2PresetIcon } from "renderer/lib/preset-icon";
 import type { TerminalPreset } from "renderer/routes/_authenticated/settings/presets/types";
 import {
 	getPresetProjectTargetLabel,
 	type PresetProjectOption,
 } from "../PresetsSection/preset-project-options";
+import { getPresetModeLabel } from "./PresetRow.utils";
 
 interface PresetWithAgent extends TerminalPreset {
 	agentId?: string;
@@ -88,30 +90,22 @@ export function PresetRow({
 		agents,
 		isDark,
 	);
+	const commands = resolvePresetLaunchCommands(
+		preset as PresetWithAgent,
+		agents,
+	);
 
 	const isWorkspaceCreation = !!preset.applyOnWorkspaceCreated;
 	const isWorkspaceRun = !!preset.useAsWorkspaceRun;
 	const isNewTab = !!preset.applyOnNewTab;
 	const isVisibleInBar = preset.pinnedToBar !== false;
 	const modeValue = normalizeExecutionMode(preset.executionMode);
-	const modeLabel =
-		modeValue === "new-tab"
-			? preset.commands.length > 1
-				? "Tab per command"
-				: "New tab"
-			: modeValue === "new-tab-split-pane"
-				? preset.commands.length > 1
-					? "New tab + panes"
-					: "New tab"
-				: preset.commands.length > 1
-					? "Single tab + panes"
-					: "Split pane";
+	const modeLabel = getPresetModeLabel(modeValue, commands.length);
 	const firstCommand =
-		preset.commands.find((cmd) => cmd.trim().length > 0)?.trim() ??
-		"Empty command";
+		commands.find((cmd) => cmd.trim().length > 0)?.trim() ?? "Empty command";
 	const commandSummary =
-		preset.commands.length > 1
-			? `${firstCommand}  +${preset.commands.length - 1}`
+		commands.length > 1
+			? `${firstCommand}  +${commands.length - 1}`
 			: firstCommand;
 	const appliesToLabel = getPresetProjectTargetLabel(
 		preset.projectIds,

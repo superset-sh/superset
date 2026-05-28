@@ -125,11 +125,15 @@ function V2WorkspaceContent() {
 	const { store } = useV2WorkspacePaneLayout();
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
-	const { matchedPresets, executePreset, resolvePresetCommands } =
-		useV2PresetExecution({
-			store,
-			launcher,
-		});
+	const {
+		matchedPresets,
+		newTabPresets,
+		executePreset,
+		resolvePresetCommands,
+	} = useV2PresetExecution({
+		store,
+		launcher,
+	});
 	const workspaceRun = useV2WorkspaceRun({
 		store,
 		launcher,
@@ -138,6 +142,7 @@ function V2WorkspaceContent() {
 	});
 	useConsumeAutomationRunLink({
 		store,
+		workspaceId,
 		terminalId,
 		chatSessionId,
 		focusRequestId,
@@ -167,6 +172,7 @@ function V2WorkspaceContent() {
 		onOpenFile: openFilePane,
 		onRevealPath: revealPath,
 		launcher,
+		store,
 	});
 	const defaultContextMenuActions = useDefaultContextMenuActions({
 		paneRegistry,
@@ -178,7 +184,12 @@ function V2WorkspaceContent() {
 		addChatTab,
 		addBrowserTab,
 		openCommentPane,
-	} = useWorkspacePaneOpeners({ store, launcher });
+	} = useWorkspacePaneOpeners({
+		store,
+		launcher,
+		newTabPresets,
+		executePreset,
+	});
 
 	const quickOpenOpen = useQuickOpenStore(
 		(s) => s.open && s.target?.workspaceId === workspaceId,
@@ -243,6 +254,7 @@ function V2WorkspaceContent() {
 		store,
 		matchedPresets,
 		executePreset,
+		addTerminalTab,
 		paneRegistry,
 		launcher,
 	});
@@ -276,6 +288,7 @@ function V2WorkspaceContent() {
 						data-workspace-id={workspaceId}
 					>
 						<Workspace<PaneViewerData>
+							key={workspaceId}
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}

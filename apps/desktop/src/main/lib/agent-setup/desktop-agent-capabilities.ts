@@ -1,6 +1,6 @@
 import type { AgentType } from "@superset/shared/agent-command";
 
-export type SupersetManagedBinary = AgentType | "droid";
+export type SupersetManagedBinary = AgentType;
 
 export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"notify-script",
@@ -32,7 +32,7 @@ export type DesktopAgentSetupAction =
 	(typeof DESKTOP_AGENT_SETUP_ACTIONS)[number];
 
 interface DesktopAgentSetupTarget {
-	id: AgentType | "droid";
+	id: AgentType;
 	setupActions: readonly DesktopAgentSetupAction[];
 	managedBinary?: boolean;
 }
