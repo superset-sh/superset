@@ -1,9 +1,7 @@
+import type { HostAgentConfig } from "@superset/host-service/settings";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -13,15 +11,24 @@ import {
 	VscGitPullRequest,
 	VscLoading,
 } from "react-icons/vsc";
-import type { PRFlowDispatch } from "../../../../hooks/usePRFlowDispatch";
-import type { PRFlowState } from "../../utils/getPRFlowState";
+import type { AgentTarget } from "renderer/hooks/agents/useAgentTarget";
+import type { TerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
+import { PRAgentPickerMenu } from "./components/PRAgentPickerMenu";
 
 type SplitButtonKind = "create" | "update";
 
 interface PRActionSplitButtonProps {
 	kind: SplitButtonKind;
-	state: PRFlowState;
-	dispatch: PRFlowDispatch;
+	sessions: TerminalAgentBinding[];
+	configs: HostAgentConfig[];
+	/** Currently-selected encoded value (`existing:<id>` | `new:<id>`) so the
+	 *  active item can be marked in the menu. */
+	selectedValue: string | null;
+	resolvedTarget: AgentTarget | null;
+	onPickTarget: (target: AgentTarget) => void;
+	/** Fires the action with the currently-resolved target (or null fallback
+	 *  → chat tab). The dispatch hook owns transport routing. */
+	onSubmit: (target: AgentTarget | null) => void | Promise<void>;
 	/** Disables the primary + swaps the action icon for a spinner. */
 	busy?: boolean;
 }
@@ -31,22 +38,29 @@ interface PRActionSplitButtonProps {
  * the v2 PRStatusGroup pill so the action slot reads as a single family.
  *
  * Every invocation runs through an agent — the primary region fires the
- * default agent (today: a new chat tab with the `/pr/*` slash command +
- * `pr-context.md` attachment), and the chevron exposes the agent picker
- * so the user can route to a running session or a different preset.
+ * default agent (last-picked existing terminal or new preset; chat tab as
+ * a fallback), and the chevron exposes the picker so the user can switch
+ * the default.
  *
  * One component covers both no-pr ("Create PR") and pr-exists
  * ("Update PR") via the `kind` discriminant.
  */
 export function PRActionSplitButton({
 	kind,
-	state,
-	dispatch,
+	sessions,
+	configs,
+	selectedValue,
+	resolvedTarget,
+	onPickTarget,
+	onSubmit,
 	busy = false,
 }: PRActionSplitButtonProps) {
 	const copy = labels(kind, busy);
-
-	const primaryHandler = () => dispatch({ state, draft: false });
+	const primaryHandler = () => void onSubmit(resolvedTarget);
+	const handlePick = (target: AgentTarget) => {
+		onPickTarget(target);
+		void onSubmit(target);
+	};
 
 	const ActionIcon = kind === "create" ? VscGitPullRequest : VscEdit;
 
@@ -87,19 +101,12 @@ export function PRActionSplitButton({
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-56 text-xs">
-					<DropdownMenuLabel className="text-[10px] font-normal uppercase tracking-wide text-muted-foreground">
-						Active sessions
-					</DropdownMenuLabel>
-					<DropdownMenuItem disabled className="text-xs text-muted-foreground">
-						No agent sessions yet
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					<DropdownMenuLabel className="text-[10px] font-normal uppercase tracking-wide text-muted-foreground">
-						Start new
-					</DropdownMenuLabel>
-					<DropdownMenuItem disabled className="text-xs text-muted-foreground">
-						Coming soon
-					</DropdownMenuItem>
+					<PRAgentPickerMenu
+						sessions={sessions}
+						configs={configs}
+						value={selectedValue}
+						onPickTarget={handlePick}
+					/>
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</div>

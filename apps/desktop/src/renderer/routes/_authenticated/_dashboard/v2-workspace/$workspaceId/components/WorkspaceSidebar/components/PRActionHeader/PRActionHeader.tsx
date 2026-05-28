@@ -1,7 +1,16 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useMemo } from "react";
 import { VscGitPullRequest } from "react-icons/vsc";
+import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
+import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import type { PRFlowDispatch } from "../../hooks/usePRFlowDispatch";
-import { PRActionSplitButton } from "./components/PRActionSplitButton";
+import {
+	type PRActionCreateNewAgentSession,
+	PRActionSplitButton,
+	usePRActionAgentTarget,
+	usePRActionDispatch,
+} from "./components/PRActionSplitButton";
 import { PRStatusGroup } from "./components/PRStatusGroup";
 import {
 	type PRFlowState,
@@ -12,14 +21,13 @@ import {
 interface PRActionHeaderProps {
 	workspaceId: string;
 	state: PRFlowState;
+	/** Legacy chat-tab flow — used as the fallback transport when no agent
+	 *  target has been picked yet. */
 	dispatch: PRFlowDispatch;
 	onRetry?: () => void;
-	/**
-	 * Gates the "Create PR" entry point. When false, the no-PR state renders
-	 * a muted icon with a tooltip instead of a clickable create button.
-	 * Will flip to true once the chat-driven create flow lands in v2.
-	 */
-	createPREnabled?: boolean;
+	/** Host-side terminal-agent launcher. When omitted, "Start new" picks
+	 *  surface an error toast. */
+	onCreateNewAgentSession?: PRActionCreateNewAgentSession;
 }
 
 export function PRActionHeader({
@@ -27,9 +35,54 @@ export function PRActionHeader({
 	state,
 	dispatch,
 	onRetry,
-	createPREnabled = true,
+	onCreateNewAgentSession,
 }: PRActionHeaderProps) {
 	const action = selectActionButton(state);
+
+	// Agent picker data — same assembly as the DiffPane comment composer,
+	// just with PR-action-scoped storage keys via usePRActionAgentTarget.
+	const bindings = useTerminalAgentBindings(workspaceId);
+	const sessions = useMemo(
+		() =>
+			Array.from(bindings.values()).sort(
+				(a, b) => b.lastEventAt - a.lastEventAt,
+			),
+		[bindings],
+	);
+	const hostUrl = useWorkspaceHostUrl(workspaceId);
+	const { data: configs = [] } = useV2AgentConfigs(hostUrl);
+	const {
+		value: selectedValue,
+		resolved: resolvedTarget,
+		onValueChange,
+	} = usePRActionAgentTarget({ sessions, configs });
+
+	const submit = usePRActionDispatch({
+		workspaceId,
+		flowDispatch: dispatch,
+		onCreateNewAgentSession,
+	});
+
+	const onPickTarget = (
+		target: import("renderer/hooks/agents/useAgentTarget").AgentTarget,
+	) => {
+		onValueChange(
+			target.kind === "existing"
+				? `existing:${target.terminalId}`
+				: `new:${target.configId}`,
+		);
+	};
+
+	const splitButtonProps = {
+		sessions,
+		configs,
+		selectedValue,
+		resolvedTarget,
+		onPickTarget,
+		onSubmit: (
+			target: import("renderer/hooks/agents/useAgentTarget").AgentTarget | null,
+		) => submit({ state, target }),
+	};
 
 	return (
 		<div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-muted/45 px-2 dark:bg-muted/35">
@@ -37,35 +90,32 @@ export function PRActionHeader({
 				<ActionSlot
 					variant={action}
 					state={state}
-					dispatch={dispatch}
 					onRetry={onRetry}
-					createPREnabled={createPREnabled}
 					workspaceId={workspaceId}
+					splitButtonProps={splitButtonProps}
 				/>
 			</div>
 		</div>
 	);
 }
 
-/**
- * Mirrors v1's PRButton state machine using just icons. PR-state, CI/review
- * detail, and copy all live in the hover card surfaced from PRStatusGroup —
- * the bar itself stays quiet at rest.
- */
+type SplitButtonProps = Omit<
+	React.ComponentProps<typeof PRActionSplitButton>,
+	"kind" | "busy"
+>;
+
 function ActionSlot({
 	variant,
 	state,
-	dispatch,
 	onRetry,
-	createPREnabled,
 	workspaceId,
+	splitButtonProps,
 }: {
 	variant: ReturnType<typeof selectActionButton>;
 	state: PRFlowState;
-	dispatch: PRFlowDispatch;
 	onRetry?: () => void;
-	createPREnabled: boolean;
 	workspaceId: string;
+	splitButtonProps: SplitButtonProps;
 }) {
 	switch (variant.kind) {
 		case "hidden":
@@ -81,26 +131,12 @@ function ActionSlot({
 			return <UnavailableIcon reason={variant.reasonKind} />;
 
 		case "create-pr-dropdown":
-			if (!createPREnabled) {
-				return (
-					<UnavailableIcon
-						reason="create-disabled"
-						tooltip="Create PR coming soon"
-					/>
-				);
-			}
-			return (
-				<PRActionSplitButton kind="create" state={state} dispatch={dispatch} />
-			);
+			return <PRActionSplitButton kind="create" {...splitButtonProps} />;
 
 		case "update-pr-dropdown":
 			return (
 				<>
-					<PRActionSplitButton
-						kind="update"
-						state={state}
-						dispatch={dispatch}
-					/>
+					<PRActionSplitButton kind="update" {...splitButtonProps} />
 					<div className="ml-2">
 						<PRStatusGroup
 							state={state}
@@ -121,9 +157,8 @@ function ActionSlot({
 				<>
 					<PRActionSplitButton
 						kind={hasPR ? "update" : "create"}
-						state={state}
-						dispatch={dispatch}
 						busy
+						{...splitButtonProps}
 					/>
 					{hasPR && (
 						<div className="ml-2">
@@ -152,14 +187,7 @@ function ActionSlot({
 	}
 }
 
-function UnavailableIcon({
-	reason,
-	tooltip,
-}: {
-	reason: UnavailableReason | "create-disabled";
-	tooltip?: string;
-}) {
-	const tooltipText = tooltip ?? unavailableTooltip(reason);
+function UnavailableIcon({ reason }: { reason: UnavailableReason }) {
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
@@ -167,14 +195,14 @@ function UnavailableIcon({
 					<VscGitPullRequest className="size-4" />
 				</span>
 			</TooltipTrigger>
-			<TooltipContent side="bottom">{tooltipText}</TooltipContent>
+			<TooltipContent side="bottom">
+				{unavailableTooltip(reason)}
+			</TooltipContent>
 		</Tooltip>
 	);
 }
 
-function unavailableTooltip(
-	reason: UnavailableReason | "create-disabled",
-): string {
+function unavailableTooltip(reason: UnavailableReason): string {
 	switch (reason) {
 		case "no-repo":
 			return "No GitHub repository connected";
@@ -182,7 +210,5 @@ function unavailableTooltip(
 			return "Switch to a feature branch to create a pull request";
 		case "detached-head":
 			return "Checkout a branch to create a pull request";
-		case "create-disabled":
-			return "Create PR coming soon";
 	}
 }
