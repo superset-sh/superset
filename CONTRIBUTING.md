@@ -4,16 +4,14 @@ Please note we have a [code of conduct](./CODE_OF_CONDUCT.md), please follow it 
 
 ## Local Development Setup
 
-Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`).
+See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide. TL;DR:
 
 ```bash
 ./.superset/setup.local.sh
 bun run dev
 ```
 
-This copies `.env.local.example` → `.env`, brings up a per-workspace Postgres + neon-proxy + Electric stack on isolated ports, runs migrations, and seeds a `Local Admin` account. Sign in with the **"Sign in as dev"** button on the sign-in page, or use `admin@local.test` / `supersetdev`. Tear the stack down with `./.superset/teardown.local.sh`.
-
-You do not need a Neon account, Stripe keys, or any other third-party credentials for local development — `.env.local.example` ships fake placeholders that pass env validation.
+No Neon or third-party credentials required for local development.
 
 ## Pull Request Process
 

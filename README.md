@@ -79,46 +79,24 @@ If it runs in a terminal, it runs on Superset
 
 ## Getting Started
 
-### Quick Start (Pre-built)
+### Install the app
 
 **[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
 
-### Build from Source
+### Run from source
 
-<details>
-<summary>Click to expand build instructions</summary>
-
-**Recommended: one-command local setup (no Neon or third-party accounts required)**
+One command. No Neon account, no third-party credentials.
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
 cd superset
-
-# Prereqs: bun, docker, jq, caddy (`brew install jq caddy && caddy trust`)
 ./.superset/setup.local.sh
-
 bun run dev
 ```
 
-`setup.local.sh` copies `.env.local.example` → `.env`, installs deps, brings up a per-workspace Postgres + Electric stack via `docker compose`, runs migrations, and seeds a `Local Admin` dev account. Sign in with the **"Sign in as dev"** button on the sign-in page (web + desktop), or use `admin@local.test` / `supersetdev`. Re-run the script to refresh; `./.superset/teardown.local.sh` tears the stack down.
+Then open the web app and click **"Sign in as dev"** (or use `admin@local.test` / `supersetdev`).
 
-**Manual setup** (if you need to point at real Neon / third-party services):
-
-```bash
-cp .env.example .env             # fill in real credentials
-cp Caddyfile.example Caddyfile   # `caddy trust` once for HTTPS on localhost
-bun install
-bun run dev
-```
-
-**Build the desktop app**
-
-```bash
-bun run build
-open apps/desktop/release
-```
-
-</details>
+Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`). See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide — what the setup script does, manual setup against real services, troubleshooting, and how to build the desktop app.
 
 ## Keyboard Shortcuts
 
