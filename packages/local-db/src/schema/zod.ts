@@ -196,17 +196,10 @@ export const TERMINAL_LINK_BEHAVIORS = [
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
 
-/**
- * Branch prefix modes for workspace branch naming
- */
-export const BRANCH_PREFIX_MODES = [
-	"none",
-	"github",
-	"author",
-	"custom",
-] as const;
-
-export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
+export {
+	BRANCH_PREFIX_MODES,
+	type BranchPrefixMode,
+} from "@superset/shared/workspace-launch";
 
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 

@@ -1,3 +1,4 @@
+import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import {
 	index,
 	integer,
@@ -39,12 +40,30 @@ export const projects = sqliteTable(
 		repoName: text("repo_name"),
 		repoUrl: text("repo_url"),
 		remoteName: text("remote_name"),
+		worktreeBaseDir: text("worktree_base_dir"),
+		// Per-project branch-prefix override. A null `branchPrefixMode` means
+		// "fall back to the host-wide default" in `host_settings`.
+		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
+		branchPrefixCustom: text("branch_prefix_custom"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
 	},
 	(table) => [index("projects_repo_path_idx").on(table.repoPath)],
 );
+
+/**
+ * Single-row host-wide settings (always `id = 1`). The host-service has no
+ * generic settings store yet; this row holds host-wide knobs (worktree base
+ * dir, branch-prefix default) that projects fall back to when they have no
+ * override of their own.
+ */
+export const hostSettings = sqliteTable("host_settings", {
+	id: integer().primaryKey().default(1),
+	worktreeBaseDir: text("worktree_base_dir"),
+	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
+	branchPrefixCustom: text("branch_prefix_custom"),
+});
 
 export const pullRequests = sqliteTable(
 	"pull_requests",
