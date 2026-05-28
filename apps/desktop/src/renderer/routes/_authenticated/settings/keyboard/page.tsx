@@ -34,17 +34,6 @@ type PendingHotkeyConflict = {
 	conflictId: HotkeyId;
 };
 
-type HotkeyConflictActions = {
-	setOverride: (id: HotkeyId, binding: ShortcutBinding | null) => void;
-};
-
-type HotkeyRowResetActions = {
-	resetOverride: (id: HotkeyId) => void;
-	setRecordingId: (
-		updater: (current: HotkeyId | null) => HotkeyId | null,
-	) => void;
-};
-
 const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Navigation",
 	"Workspace",
@@ -127,7 +116,7 @@ export const Route = createFileRoute("/_authenticated/settings/keyboard/")({
 	component: KeyboardShortcutsPage,
 });
 
-export function buildHotkeyConflictPrompt({
+function buildHotkeyConflictPrompt({
 	conflictDisplayText,
 	conflictId,
 }: {
@@ -144,24 +133,6 @@ export function buildHotkeyConflictPrompt({
 		question,
 		description: `${assignmentDescription} ${question}`,
 	};
-}
-
-export function confirmHotkeyConflictReassign(
-	pendingConflict: PendingHotkeyConflict | null,
-	{ setOverride }: HotkeyConflictActions,
-) {
-	if (!pendingConflict) return false;
-	setOverride(pendingConflict.conflictId, null);
-	setOverride(pendingConflict.targetId, pendingConflict.binding);
-	return true;
-}
-
-export function resetHotkeyRowOverride(
-	id: HotkeyId,
-	{ resetOverride, setRecordingId }: HotkeyRowResetActions,
-) {
-	setRecordingId((current) => (current === id ? null : current));
-	resetOverride(id);
 }
 
 function getHotkeysByCategory(): Record<
@@ -250,9 +221,11 @@ export function KeyboardShortcutsPage() {
 	};
 
 	const handleConflictReassign = () => {
-		if (!confirmHotkeyConflictReassign(pendingConflict, { setOverride })) {
+		if (!pendingConflict) {
 			return;
 		}
+		setOverride(pendingConflict.conflictId, null);
+		setOverride(pendingConflict.targetId, pendingConflict.binding);
 		setPendingConflict(null);
 	};
 
@@ -348,10 +321,10 @@ export function KeyboardShortcutsPage() {
 										isRecording={recordingId === hotkey.id}
 										onStartRecording={() => handleStartRecording(hotkey.id)}
 										onReset={() => {
-											resetHotkeyRowOverride(hotkey.id, {
-												resetOverride,
-												setRecordingId,
-											});
+											setRecordingId((current) =>
+												current === hotkey.id ? null : current,
+											);
+											resetOverride(hotkey.id);
 										}}
 									/>
 								))}

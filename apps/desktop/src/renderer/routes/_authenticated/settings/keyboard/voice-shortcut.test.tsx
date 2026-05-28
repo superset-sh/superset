@@ -1,29 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import React, { type ComponentPropsWithoutRef, type ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import type { HotkeyId, ShortcutBinding } from "renderer/hotkeys";
+import { Window } from "happy-dom";
+import React, {
+	act,
+	type ComponentPropsWithoutRef,
+	type ReactNode,
+} from "react";
+import { createRoot, type Root } from "react-dom/client";
+import type { ShortcutBinding } from "renderer/hotkeys";
 
-type StorageLike = {
-	clear: () => void;
-	getItem: (key: string) => string | null;
-	removeItem: (key: string) => void;
-	setItem: (key: string, value: string) => void;
-};
+const window = new Window({
+	url: "http://localhost/settings/keyboard",
+});
 
-function createMemoryStorage(): StorageLike {
-	const values = new Map<string, string>();
-	return {
-		clear: () => values.clear(),
-		getItem: (key) => values.get(key) ?? null,
-		removeItem: (key) => values.delete(key),
-		setItem: (key, value) => values.set(key, value),
-	};
-}
-
-const storage = createMemoryStorage();
-Object.defineProperty(globalThis, "localStorage", {
+Object.defineProperty(window.navigator, "platform", {
 	configurable: true,
-	value: storage,
+	value: "MacIntel",
+});
+Object.assign(globalThis, {
+	window,
+	document: window.document,
+	HTMLElement: window.HTMLElement,
+	KeyboardEvent: window.KeyboardEvent,
+	MouseEvent: window.MouseEvent,
+	Event: window.Event,
+	navigator: window.navigator,
+	localStorage: window.localStorage,
+});
+Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", {
+	configurable: true,
+	value: true,
 });
 Object.defineProperty(globalThis, "electronTRPC", {
 	configurable: true,
@@ -60,6 +65,8 @@ mock.module("@superset/ui/alert-dialog", () => ({
 mock.module("@superset/ui/button", () => ({
 	Button: ({
 		children,
+		size: _size,
+		variant: _variant,
 		...props
 	}: ComponentPropsWithoutRef<"button"> & {
 		variant?: string;
@@ -100,29 +107,51 @@ mock.module("@superset/ui/utils", () => ({
 
 const pageModule = await import("./page");
 const hotkeysModule = await import("renderer/hotkeys");
-const recordHotkeysModule = await import(
-	"renderer/hotkeys/hooks/useRecordHotkeys/useRecordHotkeys"
-);
 
-const {
-	HOTKEYS,
-	formatHotkeyDisplay,
-	getBinding,
-	serializeBinding,
-	useHotkeyOverridesStore,
-} = hotkeysModule;
-const { captureHotkeyFromEvent, resolveCapturedBinding } = recordHotkeysModule;
-const { saveRecordedHotkeyBinding } = recordHotkeysModule;
+const { HOTKEYS, getBinding, useHotkeyOverridesStore } = hotkeysModule;
 
 const voiceId = "VOICE_INPUT_TOGGLE" as const;
 
-function renderKeyboardShortcutsPage(): string {
-	const Page = pageModule.KeyboardShortcutsPage;
-	expect(Page).toBeFunction();
-	return renderToStaticMarkup(<Page />);
+function getShortcutRow(id = voiceId) {
+	const row = findByTestId(`keyboard-shortcut-row-${id}`);
+	expect(row).toBeInstanceOf(HTMLElement);
+	return row as HTMLElement;
 }
 
-function keyboardEvent({
+function findByTestId(testId: string) {
+	return Array.from(document.getElementsByTagName("*")).find(
+		(element) => element.getAttribute("data-testid") === testId,
+	);
+}
+
+function getByTestId(testId: string) {
+	const element = findByTestId(testId);
+	expect(element).toBeInstanceOf(HTMLElement);
+	return element as HTMLElement;
+}
+
+function getButton(testId: string) {
+	const element = getByTestId(testId);
+	expect(element.tagName).toBe("BUTTON");
+	return element as HTMLButtonElement;
+}
+
+function getVoiceRecordButton() {
+	return getButton("keyboard-shortcut-row-VOICE_INPUT_TOGGLE-record");
+}
+
+async function click(element: HTMLElement) {
+	await act(async () => {
+		element.dispatchEvent(
+			new window.MouseEvent("click", {
+				bubbles: true,
+				cancelable: true,
+			}) as unknown as Event,
+		);
+	});
+}
+
+async function pressShortcut({
 	code,
 	key,
 	metaKey = false,
@@ -136,39 +165,46 @@ function keyboardEvent({
 	ctrlKey?: boolean;
 	altKey?: boolean;
 	shiftKey?: boolean;
-}): KeyboardEvent {
-	return {
-		code,
-		key,
-		metaKey,
-		ctrlKey,
-		altKey,
-		shiftKey,
-		preventDefault() {},
-		stopPropagation() {},
-	} as unknown as KeyboardEvent;
+}) {
+	await act(async () => {
+		window.dispatchEvent(
+			new window.KeyboardEvent("keydown", {
+				bubbles: true,
+				cancelable: true,
+				code,
+				key,
+				metaKey,
+				ctrlKey,
+				altKey,
+				shiftKey,
+			}),
+		);
+	});
 }
 
-function recordVoiceShortcutFromKeyboardEvent(binding: {
-	code: string;
-	key: string;
-	metaKey?: boolean;
-	ctrlKey?: boolean;
-	altKey?: boolean;
-	shiftKey?: boolean;
-}): ShortcutBinding {
-	const captured = captureHotkeyFromEvent(keyboardEvent(binding));
-	if (!captured) {
-		throw new Error("Expected voice shortcut keyboard event to be captured");
-	}
-	const resolved = resolveCapturedBinding(captured, "logical");
-	const shortcutBinding = serializeBinding(resolved);
-	saveRecordedHotkeyBinding(
-		voiceId,
-		shortcutBinding,
-		useHotkeyOverridesStore.getState(),
-	);
-	return shortcutBinding;
+type MountedPage = {
+	container: HTMLDivElement;
+	root: Root;
+	unmount: () => Promise<void>;
+};
+
+async function mountKeyboardShortcutsPage(): Promise<MountedPage> {
+	const container = document.createElement("div");
+	document.body.append(container);
+	const root = createRoot(container);
+	await act(async () => {
+		root.render(<pageModule.KeyboardShortcutsPage />);
+	});
+	return {
+		container,
+		root,
+		unmount: async () => {
+			await act(async () => {
+				root.unmount();
+			});
+			container.remove();
+		},
+	};
 }
 
 function expectStructuredBinding(
@@ -180,18 +216,8 @@ function expectStructuredBinding(
 	return binding;
 }
 
-function extractShortcutRow(html: string, id: string): string {
-	const start = html.indexOf(`<div data-testid="keyboard-shortcut-row-${id}"`);
-	expect(start).toBeGreaterThanOrEqual(0);
-	const nextRow = html.indexOf(
-		'<div data-testid="keyboard-shortcut-row-',
-		start + 1,
-	);
-	return html.slice(start, nextRow === -1 ? undefined : nextRow);
-}
-
 function reloadHotkeyOverridesFromStorage() {
-	const stored = storage.getItem("hotkey-overrides");
+	const stored = localStorage.getItem("hotkey-overrides");
 	expect(stored).toBeString();
 	const parsed = JSON.parse(stored ?? "{}") as {
 		state?: { overrides?: Record<string, ShortcutBinding | null> };
@@ -201,127 +227,155 @@ function reloadHotkeyOverridesFromStorage() {
 	});
 }
 
+async function recordVoiceShortcut(binding: {
+	code: string;
+	key: string;
+	metaKey?: boolean;
+	ctrlKey?: boolean;
+	altKey?: boolean;
+	shiftKey?: boolean;
+}) {
+	await click(getVoiceRecordButton());
+	await pressShortcut(binding);
+}
+
 beforeEach(() => {
-	storage.clear();
+	document.body.replaceChildren();
+	localStorage.clear();
 	useHotkeyOverridesStore.setState({ overrides: {} });
 });
 
 afterEach(() => {
+	document.body.replaceChildren();
 	useHotkeyOverridesStore.setState({ overrides: {} });
-	storage.clear();
+	localStorage.clear();
 });
 
 describe("voice activation keyboard shortcut settings", () => {
-	it("rendersVoiceActivationShortcutRow", () => {
-		const html = renderKeyboardShortcutsPage();
-		const row = extractShortcutRow(html, voiceId);
+	it("rendersVoiceActivationShortcutRow", async () => {
+		const page = await mountKeyboardShortcutsPage();
+		try {
+			const row = getShortcutRow();
 
-		expect(row).toContain("Toggle Voice Input");
-		expect(row).toContain("Start or stop voice input for the active workspace");
-		expect(row).toContain("<kbd>⌘</kbd>");
-		expect(row).toContain("<kbd>⇧</kbd>");
-		expect(row).toContain("<kbd>V</kbd>");
+			expect(row.textContent).toContain("Toggle Voice Input");
+			expect(row.textContent).toContain(
+				"Start or stop voice input for the active workspace",
+			);
+			expect(row.textContent).toContain("⌘");
+			expect(row.textContent).toContain("⇧");
+			expect(getVoiceRecordButton().textContent).toContain("V");
+		} finally {
+			await page.unmount();
+		}
 	});
 
-	it("recordsAndPersistsVoiceShortcutFromRecorderCapture", () => {
-		const capturedBinding = recordVoiceShortcutFromKeyboardEvent({
-			code: "KeyU",
-			key: "U",
-			metaKey: true,
-			shiftKey: true,
-		});
+	it("recordsVoiceShortcutThroughMountedHotkeyRecorderAndPersistsAfterRemount", async () => {
+		let page = await mountKeyboardShortcutsPage();
+		try {
+			await recordVoiceShortcut({
+				code: "KeyU",
+				key: "U",
+				metaKey: true,
+				shiftKey: true,
+			});
 
-		expect(capturedBinding).toEqual({
-			version: 2,
-			mode: "logical",
-			chord: "meta+shift+u",
-		});
-		expect(
-			formatHotkeyDisplay(expectStructuredBinding(capturedBinding).chord, "mac")
-				.keys,
-		).toEqual(["⌘", "⇧", "U"]);
+			const recordedBinding = expectStructuredBinding(getBinding(voiceId));
+			expect(recordedBinding).toEqual({
+				version: 2,
+				mode: "logical",
+				chord: "meta+shift+u",
+			});
+			expect(getShortcutRow().textContent).toContain("U");
+			expect(getVoiceRecordButton().textContent).not.toContain("V");
+		} finally {
+			await page.unmount();
+		}
 
+		const persistedOverrides = localStorage.getItem("hotkey-overrides");
+		useHotkeyOverridesStore.setState({ overrides: {} });
+		if (persistedOverrides) {
+			localStorage.setItem("hotkey-overrides", persistedOverrides);
+		}
 		reloadHotkeyOverridesFromStorage();
-		const reloadedBinding = getBinding(voiceId);
-		expect(reloadedBinding).toEqual({
-			version: 2,
-			mode: "logical",
-			chord: "meta+shift+u",
-		});
-		const reloadedChord = expectStructuredBinding(reloadedBinding).chord;
-		expect(formatHotkeyDisplay(reloadedChord, "mac").keys).toContain("U");
-		expect(formatHotkeyDisplay(reloadedChord, "mac").keys).not.toContain("V");
+
+		page = await mountKeyboardShortcutsPage();
+		try {
+			const reloadedBinding = expectStructuredBinding(getBinding(voiceId));
+			expect(reloadedBinding.chord).toBe("meta+shift+u");
+			expect(getShortcutRow().textContent).toContain("U");
+			expect(getVoiceRecordButton().textContent).not.toContain("V");
+		} finally {
+			await page.unmount();
+		}
 	});
 
-	it("showsStandardConflictPromptForVoiceShortcutAndRequiresConfirmation", () => {
+	it("opensConflictDialogFromMountedPageAndSupportsCancelAndReassign", async () => {
+		const page = await mountKeyboardShortcutsPage();
 		const conflictingBinding = HOTKEYS.QUICK_OPEN.key;
 		if (!conflictingBinding || typeof conflictingBinding === "string") {
 			throw new Error("Expected QUICK_OPEN to have a logical binding object");
 		}
 
-		const captured = captureHotkeyFromEvent(
-			keyboardEvent({ code: "KeyP", key: "p", metaKey: true }),
-		);
-		if (!captured) {
-			throw new Error("Expected conflicting keyboard event to be captured");
+		try {
+			await recordVoiceShortcut({
+				code: "KeyP",
+				key: "p",
+				metaKey: true,
+			});
+
+			expect(getByTestId("mock-alert-dialog").textContent).toContain(
+				"Shortcut already in use",
+			);
+			expect(getByTestId("mock-alert-dialog").textContent).toContain(
+				"Quick Open File",
+			);
+			expect(getBinding(voiceId)).toEqual(HOTKEYS[voiceId].key);
+			expect(getBinding("QUICK_OPEN")).toEqual(conflictingBinding);
+
+			await click(getButton("keyboard-shortcuts-conflict-cancel"));
+
+			expect(findByTestId("mock-alert-dialog")).toBeUndefined();
+			expect(getBinding(voiceId)).toEqual(HOTKEYS[voiceId].key);
+			expect(getBinding("QUICK_OPEN")).toEqual(conflictingBinding);
+
+			await recordVoiceShortcut({
+				code: "KeyP",
+				key: "p",
+				metaKey: true,
+			});
+			await click(getButton("keyboard-shortcuts-conflict-reassign"));
+
+			expect(findByTestId("mock-alert-dialog")).toBeUndefined();
+			expect(getBinding(voiceId)).toEqual(conflictingBinding);
+			expect(getBinding("QUICK_OPEN")).toBeNull();
+			expect(getShortcutRow().textContent).toContain("P");
+		} finally {
+			await page.unmount();
 		}
-		const attemptedBinding = serializeBinding(
-			resolveCapturedBinding(captured, "logical"),
-		);
-		expect(attemptedBinding).toEqual(conflictingBinding);
-
-		const conflictDisplay = formatHotkeyDisplay(
-			expectStructuredBinding(attemptedBinding).chord,
-			"mac",
-		);
-		const prompt = pageModule.buildHotkeyConflictPrompt({
-			conflictDisplayText: conflictDisplay.text,
-			conflictId: "QUICK_OPEN",
-		});
-
-		expect(prompt.title).toBe("Shortcut already in use");
-		expect(prompt.description).toContain("Quick Open File");
-		expect(prompt.description).toContain("Would you like to reassign it?");
-		expect(getBinding(voiceId)).toEqual(HOTKEYS[voiceId].key);
-		expect(getBinding("QUICK_OPEN")).toEqual(conflictingBinding);
-
-		const didReassign = pageModule.confirmHotkeyConflictReassign(
-			{
-				targetId: voiceId,
-				binding: attemptedBinding,
-				conflictId: "QUICK_OPEN",
-			},
-			useHotkeyOverridesStore.getState(),
-		);
-
-		expect(didReassign).toBeTrue();
-		expect(getBinding(voiceId)).toEqual(conflictingBinding);
-		expect(getBinding("QUICK_OPEN")).toBeNull();
 	});
 
-	it("resetsVoiceShortcutToDefaultAfterRecorderOverride", () => {
-		recordVoiceShortcutFromKeyboardEvent({
-			code: "KeyU",
-			key: "U",
-			metaKey: true,
-			shiftKey: true,
-		});
+	it("resetsVoiceShortcutToDefaultThroughMountedRowResetButton", async () => {
+		const page = await mountKeyboardShortcutsPage();
+		try {
+			await recordVoiceShortcut({
+				code: "KeyU",
+				key: "U",
+				metaKey: true,
+				shiftKey: true,
+			});
 
-		expect(getBinding(voiceId)).toMatchObject({ chord: "meta+shift+u" });
+			expect(expectStructuredBinding(getBinding(voiceId)).chord).toBe(
+				"meta+shift+u",
+			);
+			expect(getShortcutRow().textContent).toContain("U");
 
-		let recordingId: HotkeyId | null = voiceId;
-		pageModule.resetHotkeyRowOverride(voiceId, {
-			resetOverride: useHotkeyOverridesStore.getState().resetOverride,
-			setRecordingId: (updater) => {
-				recordingId = updater(recordingId);
-			},
-		});
+			await click(getButton("keyboard-shortcut-row-VOICE_INPUT_TOGGLE-reset"));
 
-		expect(recordingId).toBeNull();
-		expect(getBinding(voiceId)).toEqual(HOTKEYS[voiceId].key);
-		const html = renderKeyboardShortcutsPage();
-		const row = extractShortcutRow(html, voiceId);
-		expect(row).toContain("<kbd>V</kbd>");
-		expect(row).not.toContain("<kbd>U</kbd>");
+			expect(getBinding(voiceId)).toEqual(HOTKEYS[voiceId].key);
+			expect(getVoiceRecordButton().textContent).toContain("V");
+			expect(getVoiceRecordButton().textContent).not.toContain("U");
+		} finally {
+			await page.unmount();
+		}
 	});
 });
