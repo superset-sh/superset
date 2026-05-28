@@ -98,23 +98,27 @@ function ContextMenuContent({
 	ref,
 	...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
-	const innerRef = React.useRef<HTMLDivElement>(null);
-	React.useImperativeHandle(
-		ref as React.Ref<HTMLDivElement>,
-		() => innerRef.current as HTMLDivElement,
-	);
-
 	// On Linux/Wayland the pointerup paired with `contextmenu` lands on the
 	// freshly-mounted item under the cursor. Radix's MenuItem treats
-	// pointerup-without-prior-pointerdown as "user dragged in" and
-	// synchronously calls `event.currentTarget?.click()` → onSelect, so the
-	// right-click that opens the menu also fires the item beneath it (usually
-	// destructive Close Pane). Intercept pointerup — not mouseup, which the
-	// browser dispatches after pointerup, by which time the synthesized click
-	// has already run. Reset per event so the guard re-arms for force-mounted
-	// content. See superset-sh/superset#4939.
-	React.useLayoutEffect(() => {
-		const node = innerRef.current;
+	// pointerup-without-prior-pointerdown as "user dragged in" and synchronously
+	// calls `event.currentTarget?.click()` → onSelect, so the right-click that
+	// opens the menu also fires the item beneath it (usually destructive Close
+	// Pane). Intercept pointerup — not mouseup, which the browser dispatches
+	// after pointerup, by which time the synthesized click has already run.
+	// Reset per event so the guard re-arms for force-mounted content. Uses a
+	// callback ref so listeners attach when the portaled Content actually
+	// mounts (and detach when it unmounts) — a useEffect on the wrapper would
+	// run with a null ref, since Portal renders its child only when the menu
+	// is open. See superset-sh/superset#4939.
+	const forwardedRef = React.useRef(ref);
+	forwardedRef.current = ref;
+	const cleanupRef = React.useRef<(() => void) | null>(null);
+	const setRef = React.useCallback((node: HTMLDivElement | null) => {
+		cleanupRef.current?.();
+		cleanupRef.current = null;
+		const forwarded = forwardedRef.current;
+		if (typeof forwarded === "function") forwarded(node);
+		else if (forwarded) forwarded.current = node;
 		if (!node) return;
 		let sawPointerDown = false;
 		const onDown = () => {
@@ -129,7 +133,7 @@ function ContextMenuContent({
 		};
 		node.addEventListener("pointerdown", onDown, true);
 		node.addEventListener("pointerup", onUp, true);
-		return () => {
+		cleanupRef.current = () => {
 			node.removeEventListener("pointerdown", onDown, true);
 			node.removeEventListener("pointerup", onUp, true);
 		};
@@ -138,7 +142,7 @@ function ContextMenuContent({
 	return (
 		<ContextMenuPrimitive.Portal>
 			<ContextMenuPrimitive.Content
-				ref={innerRef}
+				ref={setRef}
 				data-slot="context-menu-content"
 				className={cn(
 					"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-context-menu-content-available-height) min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
