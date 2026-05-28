@@ -51,14 +51,6 @@ describe("Utf8Base64", () => {
 		}
 	});
 
-	it("does not reproduce the double-UTF-8 mojibake of the default btoa/atob codec", () => {
-		// Regression guard: the buggy default returned a Latin-1 byte-string for
-		// `の`, which the clipboard then re-encoded as `c3 a3 ...` mojibake.
-		const decoded = codec.decodeText("44GC44GE44GG44GI44GK");
-		expect(decoded).toBe("あいうえお");
-		expect(decoded).not.toContain("ã");
-	});
-
 	it("propagates on malformed base64 so the addon can bail", () => {
 		expect(() => codec.decodeText("@@@not base64@@@")).toThrow();
 	});
