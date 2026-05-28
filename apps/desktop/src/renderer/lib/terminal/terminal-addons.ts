@@ -6,6 +6,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { Utf8ClipboardBase64 } from "./utf8-clipboard-base64";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
@@ -25,7 +26,7 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
 
-	terminal.loadAddon(new ClipboardAddon());
+	terminal.loadAddon(new ClipboardAddon(new Utf8ClipboardBase64()));
 
 	const unicode11 = new Unicode11Addon();
 	terminal.loadAddon(unicode11);

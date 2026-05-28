@@ -11,6 +11,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
+import { Utf8ClipboardBase64 } from "renderer/lib/terminal/utf8-clipboard-base64";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
@@ -100,7 +101,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const fitAddon = new FitAddon();
 	const searchAddon = new SearchAddon();
 
-	const clipboardAddon = new ClipboardAddon();
+	const clipboardAddon = new ClipboardAddon(new Utf8ClipboardBase64());
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
