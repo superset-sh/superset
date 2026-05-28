@@ -6,6 +6,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { Utf8Base64 } from "./clipboard-base64";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
@@ -25,7 +26,9 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
 
-	terminal.loadAddon(new ClipboardAddon());
+	// Custom UTF-8 base64 codec: the addon's default btoa/atob mangles
+	// multi-byte characters into double-UTF-8 mojibake on OSC 52 copy (#4839).
+	terminal.loadAddon(new ClipboardAddon(new Utf8Base64()));
 
 	const unicode11 = new Unicode11Addon();
 	terminal.loadAddon(unicode11);
