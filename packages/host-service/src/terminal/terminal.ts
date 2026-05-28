@@ -791,9 +791,7 @@ function queueInitialCommand(
 		: `${initialCommand}\n`;
 	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
 	// and gating turned broken/missing markers into a guaranteed stall.
-	if (!session.exited) {
-		session.pty.write(cmd);
-	}
+	session.pty.write(cmd);
 }
 
 interface DaemonCloseResult {

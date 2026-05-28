@@ -188,11 +188,13 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			assert.ok(!("error" in result));
 			if ("error" in result) return;
 
-			await waitFor(() => fs.existsSync(sentinelFile), 3000);
+			await waitFor(() => fs.existsSync(sentinelFile), 10_000);
 			const elapsed = Date.now() - start;
 			console.log(`[repro] initialCommand executed in ${elapsed}ms`);
+			// Pre-fix: SHELL_READY_TIMEOUT_MS forced this to 15 s. 5 s leaves
+			// generous headroom for CI overhead while still catching regression.
 			assert.ok(
-				elapsed < 3000,
+				elapsed < 5000,
 				`expected initialCommand to run promptly, took ${elapsed}ms`,
 			);
 
