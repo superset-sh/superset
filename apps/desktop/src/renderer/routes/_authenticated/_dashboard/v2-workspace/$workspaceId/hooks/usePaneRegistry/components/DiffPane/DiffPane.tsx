@@ -135,8 +135,9 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 			if (!file) return;
 
 			if (input.target.kind === "new") {
-				// TODO(pierre-diff-agent-send): spin up a new agent session and
-				// send the comment there. Reuses the same payload format.
+				// TODO(pierre-diff-agent-send): create a terminal + start the
+				// agent config (input.target.configId), then send the comment.
+				// Reuses the same payload format.
 				toast.info("New agent session sending isn't wired yet");
 				return;
 			}
