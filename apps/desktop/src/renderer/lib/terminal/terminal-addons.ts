@@ -6,6 +6,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { getTerminalRendererPreference } from "./renderer-preference";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
@@ -44,7 +45,10 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	} catch {}
 
 	const rafId = requestAnimationFrame(() => {
-		if (disposed || suggestedRendererType === "dom") return;
+		if (disposed) return;
+		const preference = getTerminalRendererPreference();
+		if (preference === "dom") return;
+		if (preference !== "webgl" && suggestedRendererType === "dom") return;
 
 		try {
 			webglAddon = new WebglAddon();
