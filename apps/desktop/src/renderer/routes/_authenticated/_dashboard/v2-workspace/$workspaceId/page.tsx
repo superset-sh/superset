@@ -172,6 +172,7 @@ function V2WorkspaceContent() {
 		onOpenFile: openFilePane,
 		onRevealPath: revealPath,
 		launcher,
+		store,
 	});
 	const defaultContextMenuActions = useDefaultContextMenuActions({
 		paneRegistry,

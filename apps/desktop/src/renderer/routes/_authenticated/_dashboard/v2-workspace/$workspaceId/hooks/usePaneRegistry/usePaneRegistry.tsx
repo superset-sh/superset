@@ -2,13 +2,14 @@ import type {
 	ContextMenuActionConfig,
 	PaneRegistry,
 	RendererContext,
+	WorkspaceStore,
 } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
 	LuArrowDownToLine,
 	LuClipboard,
@@ -16,7 +17,10 @@ import {
 	LuEraser,
 	LuPower,
 } from "react-icons/lu";
+import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
+import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { createAgentSession } from "renderer/lib/agent-launch";
 import { FileIcon } from "renderer/lib/fileIcons";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
@@ -27,6 +31,7 @@ import {
 	clearV2TerminalRunStatus,
 	getV2NotificationSourcesForPane,
 } from "renderer/stores/v2-notifications";
+import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
 	getDocument,
@@ -104,15 +109,24 @@ interface UsePaneRegistryOptions {
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onRevealPath: (path: string) => void;
 	launcher: TerminalLauncher;
+	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 }
 
 export function usePaneRegistry({
 	onOpenFile,
 	onRevealPath,
 	launcher,
+	store,
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	const hostUrl = useWorkspaceHostUrl(workspaceId);
+	const { data: agentConfigs = [] } = useV2AgentConfigs(hostUrl);
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspaceId },
+		{ refetchOnWindowFocus: false, retry: false },
+	);
+	const worktreePath = workspaceQuery.data?.worktreePath;
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
@@ -156,6 +170,42 @@ export function usePaneRegistry({
 			});
 		},
 		[collections.v2WorkspaceLocalState, workspaceId],
+	);
+
+	const createNewAgentSession = useCallback(
+		async (input: {
+			configId: string;
+			placement: "split-pane" | "new-tab";
+		}): Promise<{ terminalId: string } | null> => {
+			if (!hostUrl) {
+				toast.error("Couldn't reach the workspace host");
+				return null;
+			}
+			const config = agentConfigs.find((c) => c.id === input.configId);
+			if (!config) {
+				toast.error("Agent config not found");
+				return null;
+			}
+			try {
+				const { terminalId } = await createAgentSession({
+					store,
+					launcher,
+					hostUrl,
+					workspaceId,
+					config,
+					placement: input.placement,
+					cwd: worktreePath ?? undefined,
+					titleOverride: config.label,
+				});
+				return { terminalId };
+			} catch (error) {
+				const description =
+					error instanceof Error ? error.message : "Unknown error";
+				toast.error("Couldn't start agent session", { description });
+				return null;
+			}
+		},
+		[agentConfigs, hostUrl, launcher, store, workspaceId, worktreePath],
 	);
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
@@ -242,6 +292,7 @@ export function usePaneRegistry({
 						context={ctx}
 						workspaceId={workspaceId}
 						onOpenFile={onOpenFile}
+						onCreateNewAgentSession={createNewAgentSession}
 					/>
 				),
 				renderHeaderExtras: () => <DiffPaneHeaderExtras />,
@@ -516,6 +567,7 @@ export function usePaneRegistry({
 			launcher,
 			onOpenFile,
 			onRevealPath,
+			createNewAgentSession,
 		],
 	);
 }

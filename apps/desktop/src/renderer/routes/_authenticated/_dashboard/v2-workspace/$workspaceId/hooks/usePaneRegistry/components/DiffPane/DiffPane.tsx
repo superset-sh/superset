@@ -33,10 +33,18 @@ import { useDiffCodeViewItems } from "./hooks/useDiffCodeViewItems";
 import { useDiffCodeViewScroll } from "./hooks/useDiffCodeViewScroll";
 import { useDiffCodeViewTheme } from "./hooks/useDiffCodeViewTheme";
 
+interface CreateNewAgentSessionInput {
+	configId: string;
+	placement: "split-pane" | "new-tab";
+}
+
 interface DiffPaneProps {
 	context: RendererContext<PaneViewerData>;
 	workspaceId: string;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
+	onCreateNewAgentSession?: (
+		input: CreateNewAgentSessionInput,
+	) => Promise<{ terminalId: string } | null>;
 }
 
 interface ComposerState {
@@ -44,7 +52,12 @@ interface ComposerState {
 	range: SelectedLineRange;
 }
 
-export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
+export function DiffPane({
+	context,
+	workspaceId,
+	onOpenFile,
+	onCreateNewAgentSession,
+}: DiffPaneProps) {
 	const data = context.pane.data as DiffPaneData;
 	const codeViewRef = useRef<CodeViewHandle<DiffAnnotationMetadata>>(null);
 
@@ -134,14 +147,6 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 			const file = fileByItemId.get(composer.itemId);
 			if (!file) return;
 
-			if (input.target.kind === "new") {
-				// TODO(pierre-diff-agent-send): create a terminal + start the
-				// agent config (input.target.configId), then send the comment.
-				// Reuses the same payload format.
-				toast.info("New agent session sending isn't wired yet");
-				return;
-			}
-
 			const text = formatAgentPromptWithFileContext({
 				comment: input.comment,
 				file: {
@@ -151,10 +156,26 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 				},
 			});
 
+			let terminalId: string | null = null;
+			if (input.target.kind === "existing") {
+				terminalId = input.target.terminalId;
+			} else {
+				if (!onCreateNewAgentSession) {
+					toast.error("Couldn't start a new agent session");
+					return;
+				}
+				const result = await onCreateNewAgentSession({
+					configId: input.target.configId,
+					placement: input.target.placement,
+				});
+				if (!result) return;
+				terminalId = result.terminalId;
+			}
+
 			try {
 				await sendToTerminalAgent({
 					workspaceId,
-					terminalId: input.target.terminalId,
+					terminalId,
 					text,
 				});
 				handleClearSelection();
@@ -169,6 +190,7 @@ export function DiffPane({ context, workspaceId, onOpenFile }: DiffPaneProps) {
 			workspaceId,
 			sendToTerminalAgent,
 			handleClearSelection,
+			onCreateNewAgentSession,
 		],
 	);
 

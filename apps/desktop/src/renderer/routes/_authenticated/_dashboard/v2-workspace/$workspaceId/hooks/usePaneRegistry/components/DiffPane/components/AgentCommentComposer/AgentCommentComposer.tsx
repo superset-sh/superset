@@ -9,9 +9,16 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LuCornerDownLeft, LuLoaderCircle, LuPlus } from "react-icons/lu";
+import {
+	LuColumns2,
+	LuCornerDownLeft,
+	LuLoaderCircle,
+	LuPanelTopOpen,
+	LuPlus,
+} from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import {
 	type TerminalAgentBinding,
@@ -19,10 +26,11 @@ import {
 } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import type { AgentSessionPlacement } from "renderer/lib/agent-launch";
 
 export type AgentTarget =
 	| { kind: "existing"; terminalId: string }
-	| { kind: "new"; configId: string };
+	| { kind: "new"; configId: string; placement: AgentSessionPlacement };
 
 interface AgentCommentComposerProps {
 	workspaceId: string;
@@ -37,20 +45,31 @@ interface AgentCommentComposerProps {
 
 const LAST_NEW_AGENT_CONFIG_ID_KEY = "lastSelectedDiffCommentNewAgentConfigId";
 const LAST_TERMINAL_ID_KEY = "lastSelectedDiffCommentTerminalId";
+const LAST_PLACEMENT_KEY = "lastSelectedDiffCommentPlacement";
+const DEFAULT_PLACEMENT: AgentSessionPlacement = "split-pane";
 const EXISTING_PREFIX = "existing:";
 const NEW_PREFIX = "new:";
 
-function decodeTarget(value: string): AgentTarget | null {
+interface DecodedSelection {
+	kind: "existing" | "new";
+	id: string;
+}
+
+function decodeSelection(value: string): DecodedSelection | null {
 	if (value.startsWith(EXISTING_PREFIX)) {
-		return {
-			kind: "existing",
-			terminalId: value.slice(EXISTING_PREFIX.length),
-		};
+		return { kind: "existing", id: value.slice(EXISTING_PREFIX.length) };
 	}
 	if (value.startsWith(NEW_PREFIX)) {
-		return { kind: "new", configId: value.slice(NEW_PREFIX.length) };
+		return { kind: "new", id: value.slice(NEW_PREFIX.length) };
 	}
 	return null;
+}
+
+function readPlacement(): AgentSessionPlacement {
+	const stored = readStorage(LAST_PLACEMENT_KEY);
+	return stored === "new-tab" || stored === "split-pane"
+		? stored
+		: DEFAULT_PLACEMENT;
 }
 
 function readStorage(key: string): string | null {
@@ -84,6 +103,8 @@ export function AgentCommentComposer({
 
 	const [comment, setComment] = useState("");
 	const [target, setTarget] = useState<string | null>(null);
+	const [placement, setPlacement] =
+		useState<AgentSessionPlacement>(readPlacement);
 	const [submitting, setSubmitting] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -130,28 +151,42 @@ export function AgentCommentComposer({
 
 	const handleTargetChange = (next: string) => {
 		setTarget(next);
-		const decoded = decodeTarget(next);
+		const decoded = decodeSelection(next);
 		if (decoded?.kind === "new") {
-			persistStorage(LAST_NEW_AGENT_CONFIG_ID_KEY, decoded.configId);
+			persistStorage(LAST_NEW_AGENT_CONFIG_ID_KEY, decoded.id);
 		}
 		if (decoded?.kind === "existing") {
-			persistStorage(LAST_TERMINAL_ID_KEY, decoded.terminalId);
+			persistStorage(LAST_TERMINAL_ID_KEY, decoded.id);
 		}
+	};
+
+	const handlePlacementChange = (next: string) => {
+		if (next !== "split-pane" && next !== "new-tab") return;
+		setPlacement(next);
+		persistStorage(LAST_PLACEMENT_KEY, next);
 	};
 
 	const lineLabel =
 		startLine === endLine
 			? `Line ${startLine}`
 			: `Lines ${startLine}–${endLine}`;
-	const decodedTarget = target ? decodeTarget(target) : null;
+	const decodedTarget = target ? decodeSelection(target) : null;
+	const resolvedTarget: AgentTarget | null = useMemo(() => {
+		if (!decodedTarget) return null;
+		if (decodedTarget.kind === "existing") {
+			return { kind: "existing", terminalId: decodedTarget.id };
+		}
+		return { kind: "new", configId: decodedTarget.id, placement };
+	}, [decodedTarget, placement]);
 	const canSubmit =
-		comment.trim().length > 0 && !submitting && decodedTarget != null;
+		comment.trim().length > 0 && !submitting && resolvedTarget != null;
+	const showPlacement = decodedTarget?.kind === "new";
 
 	const handleSubmit = async () => {
-		if (!canSubmit || !decodedTarget) return;
+		if (!canSubmit || !resolvedTarget) return;
 		setSubmitting(true);
 		try {
-			await onSubmit({ comment: comment.trim(), target: decodedTarget });
+			await onSubmit({ comment: comment.trim(), target: resolvedTarget });
 		} finally {
 			setSubmitting(false);
 		}
@@ -257,7 +292,35 @@ export function AgentCommentComposer({
 						) : null}
 					</SelectContent>
 				</Select>
-				<div className="flex items-center gap-1">
+				{showPlacement ? (
+					<ToggleGroup
+						type="single"
+						size="sm"
+						value={placement}
+						onValueChange={handlePlacementChange}
+						className="ml-1 h-7 gap-0 rounded-md border border-border/60 bg-popover p-0.5"
+					>
+						<ToggleGroupItem
+							value="split-pane"
+							aria-label="Open in split pane"
+							title="Split pane"
+							className="h-6 gap-1 rounded-[4px] px-1.5 text-[11px] text-muted-foreground data-[state=on]:bg-accent data-[state=on]:text-foreground"
+						>
+							<LuColumns2 className="size-3" />
+							<span>Split</span>
+						</ToggleGroupItem>
+						<ToggleGroupItem
+							value="new-tab"
+							aria-label="Open in new tab"
+							title="New tab"
+							className="h-6 gap-1 rounded-[4px] px-1.5 text-[11px] text-muted-foreground data-[state=on]:bg-accent data-[state=on]:text-foreground"
+						>
+							<LuPanelTopOpen className="size-3" />
+							<span>New tab</span>
+						</ToggleGroupItem>
+					</ToggleGroup>
+				) : null}
+				<div className="ml-auto flex items-center gap-1">
 					<Button
 						type="button"
 						size="xs"
