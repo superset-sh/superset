@@ -55,6 +55,11 @@ mock.module("@superset/ui/switch", () => ({
 mock.module("renderer/lib/electron-trpc", () => ({
 	electronTrpc: {
 		useUtils: () => ({
+			permissions: {
+				getStatus: {
+					invalidate: mock(() => undefined),
+				},
+			},
 			settings: {
 				getConfirmOnQuit: queryUtils(true),
 				getFileOpenMode: queryUtils("split-pane"),
@@ -68,6 +73,25 @@ mock.module("renderer/lib/electron-trpc", () => ({
 				},
 			},
 		}),
+		permissions: {
+			getStatus: {
+				useQuery: () => ({
+					data: {
+						accessibility: true,
+						fullDiskAccess: true,
+						microphone: true,
+						microphoneStatus: "granted",
+					},
+					isLoading: false,
+				}),
+			},
+			requestMicrophone: {
+				useMutation: () => ({
+					isPending: false,
+					mutate: mock(() => undefined),
+				}),
+			},
+		},
 		settings: {
 			getConfirmOnQuit: {
 				useQuery: () => ({ data: true, isLoading: false }),
@@ -106,6 +130,16 @@ mock.module("renderer/lib/electron-trpc", () => ({
 					isPending: voiceInputMutationPending,
 					mutate: setVoiceInputEnabledMutateMock,
 				}),
+			},
+		},
+	},
+}));
+mock.module("renderer/lib/trpc-client", () => ({
+	electronReactClient: {},
+	electronTrpcClient: {
+		keyboardLayout: {
+			changes: {
+				subscribe: mock(() => undefined),
 			},
 		},
 	},
