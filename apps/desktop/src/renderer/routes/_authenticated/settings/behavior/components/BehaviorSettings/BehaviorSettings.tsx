@@ -1,4 +1,6 @@
 import type { FileOpenMode } from "@superset/local-db";
+import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -8,6 +10,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
@@ -17,6 +20,70 @@ import {
 
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
+}
+
+type MicrophonePermissionStatus =
+	| "granted"
+	| "denied"
+	| "promptable"
+	| "unknown";
+
+function getMicrophoneReadinessCopy({
+	isLoading,
+	status,
+}: {
+	isLoading: boolean;
+	status: MicrophonePermissionStatus | undefined;
+}) {
+	if (isLoading) {
+		return {
+			actionLabel: null,
+			badge: "Checking",
+			description: "Checking microphone access before voice input starts.",
+			label: "Checking microphone access",
+			variant: "outline" as const,
+		};
+	}
+
+	if (status === "granted") {
+		return {
+			actionLabel: null,
+			badge: "Ready",
+			description: "Voice input can use the microphone.",
+			label: "Microphone is ready",
+			variant: "secondary" as const,
+		};
+	}
+
+	if (status === "denied") {
+		return {
+			actionLabel: "Open settings",
+			badge: "Blocked",
+			description:
+				"Allow microphone access in System Settings to use dictation.",
+			label: "Microphone access is blocked",
+			variant: "outline" as const,
+		};
+	}
+
+	if (status === "promptable") {
+		return {
+			actionLabel: "Grant access",
+			badge: "Action needed",
+			description:
+				"Grant microphone access when you are ready to use dictation.",
+			label: "Microphone access is needed",
+			variant: "outline" as const,
+		};
+	}
+
+	return {
+		actionLabel: "Open settings",
+		badge: "Unknown",
+		description: "Check microphone access in System Settings before dictating.",
+		label: "Microphone status is unavailable",
+		variant: "outline" as const,
+	};
 }
 
 export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
@@ -42,6 +109,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 
 	const utils = electronTrpc.useUtils();
+	const voiceShortcut = useHotkeyDisplay("VOICE_INPUT_TOGGLE").text;
 
 	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
 		electronTrpc.settings.getConfirmOnQuit.useQuery();
@@ -152,6 +220,22 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 		});
 
+	const { data: permissionStatus, isLoading: isPermissionStatusLoading } =
+		electronTrpc.permissions.getStatus.useQuery(undefined, {
+			enabled: showVoiceInput,
+			refetchInterval: 2000,
+		});
+	const requestMicrophone =
+		electronTrpc.permissions.requestMicrophone.useMutation({
+			onSettled: () => {
+				utils.permissions.getStatus.invalidate();
+			},
+		});
+	const microphoneReadiness = getMicrophoneReadinessCopy({
+		isLoading: isPermissionStatusLoading,
+		status: permissionStatus?.microphoneStatus,
+	});
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -256,40 +340,73 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				)}
 
 				{showVoiceInput && (
-					<div className="flex items-center justify-between gap-6">
-						<div className="min-w-0 flex-1 space-y-0.5">
-							<Label htmlFor="voice-input" className="text-sm font-medium">
-								Voice Input
-							</Label>
-							<p className="text-xs text-muted-foreground">
-								Enable voice input for hands-free dictation controls
-							</p>
-							<p
-								id="voice-input-status"
-								className={
-									setVoiceInputEnabled.isError
-										? "text-xs text-destructive"
-										: "text-xs text-muted-foreground"
+					<div className="space-y-4">
+						<div className="flex items-center justify-between gap-6">
+							<div className="min-w-0 flex-1 space-y-0.5">
+								<Label htmlFor="voice-input" className="text-sm font-medium">
+									Voice Input
+								</Label>
+								<p className="text-xs text-muted-foreground">
+									Enable voice input for hands-free dictation controls
+								</p>
+								<p
+									id="voice-input-status"
+									className={
+										setVoiceInputEnabled.isError
+											? "text-xs text-destructive"
+											: "text-xs text-muted-foreground"
+									}
+								>
+									{setVoiceInputEnabled.isError
+										? "Voice preference could not be saved"
+										: isVoiceInputLoading
+											? "Loading voice preference"
+											: voiceInputEnabled
+												? "Voice input is enabled"
+												: "Voice input is disabled"}
+								</p>
+							</div>
+							<Switch
+								aria-describedby="voice-input-status"
+								id="voice-input"
+								checked={voiceInputEnabled ?? false}
+								onCheckedChange={(enabled) =>
+									setVoiceInputEnabled.mutate({ enabled })
 								}
-							>
-								{setVoiceInputEnabled.isError
-									? "Voice preference could not be saved"
-									: isVoiceInputLoading
-										? "Loading voice preference"
-										: voiceInputEnabled
-											? "Voice input is enabled"
-											: "Voice input is disabled"}
-							</p>
+								disabled={isVoiceInputLoading || setVoiceInputEnabled.isPending}
+							/>
 						</div>
-						<Switch
-							aria-describedby="voice-input-status"
-							id="voice-input"
-							checked={voiceInputEnabled ?? false}
-							onCheckedChange={(enabled) =>
-								setVoiceInputEnabled.mutate({ enabled })
-							}
-							disabled={isVoiceInputLoading || setVoiceInputEnabled.isPending}
-						/>
+						<div className="flex items-center justify-between gap-6 rounded-md border border-border/60 p-3">
+							<div className="min-w-0 flex-1 space-y-1">
+								<div className="flex flex-wrap items-center gap-2">
+									<Label className="text-sm font-medium">
+										Microphone readiness
+									</Label>
+									<Badge variant={microphoneReadiness.variant}>
+										{microphoneReadiness.badge}
+									</Badge>
+								</div>
+								<p className="text-xs text-muted-foreground">
+									{microphoneReadiness.label}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									{microphoneReadiness.description}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									Shortcut: {voiceShortcut}
+								</p>
+							</div>
+							{microphoneReadiness.actionLabel ? (
+								<Button
+									disabled={requestMicrophone.isPending}
+									onClick={() => requestMicrophone.mutate()}
+									size="sm"
+									variant="outline"
+								>
+									{microphoneReadiness.actionLabel}
+								</Button>
+							) : null}
+						</div>
 					</div>
 				)}
 			</div>
