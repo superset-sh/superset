@@ -101,8 +101,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const fitAddon = new FitAddon();
 	const searchAddon = new SearchAddon();
 
-	// Custom UTF-8 base64 codec: the addon's default btoa/atob mangles
-	// multi-byte characters into double-UTF-8 mojibake on OSC 52 copy (#4839).
+	// Utf8Base64 replaces the addon's UTF-8-unsafe default codec (#4839).
 	const clipboardAddon = new ClipboardAddon(new Utf8Base64());
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();

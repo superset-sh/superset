@@ -26,8 +26,7 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
 
-	// Custom UTF-8 base64 codec: the addon's default btoa/atob mangles
-	// multi-byte characters into double-UTF-8 mojibake on OSC 52 copy (#4839).
+	// Utf8Base64 replaces the addon's UTF-8-unsafe default codec (#4839).
 	terminal.loadAddon(new ClipboardAddon(new Utf8Base64()));
 
 	const unicode11 = new Unicode11Addon();
