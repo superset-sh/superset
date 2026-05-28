@@ -62,6 +62,8 @@ function createTerminal(
 		cursorStyle: "block",
 		cursorInactiveStyle: "outline",
 		vtExtensions: { kittyKeyboard: true },
+		// Built-in xterm scrollbars reserve width from fitted terminal columns.
+		// TerminalOverlayScrollbar provides the hover affordance without a gutter.
 		scrollbar: { showScrollbar: false },
 	});
 	terminal.loadAddon(fitAddon);

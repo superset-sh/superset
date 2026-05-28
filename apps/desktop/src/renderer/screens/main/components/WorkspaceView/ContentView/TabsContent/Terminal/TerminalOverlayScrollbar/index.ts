@@ -1,0 +1,1 @@
+export { TerminalOverlayScrollbar } from "./TerminalOverlayScrollbar";
