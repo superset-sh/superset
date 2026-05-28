@@ -1,7 +1,8 @@
 import type { RefObject } from "react";
-import { useEffect } from "react";
-import { useHotkey } from "renderer/hotkeys";
-import { useTextSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/hooks";
+import {
+	type FindHotkeySearchController,
+	useFindHotkeySearch,
+} from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/hooks";
 
 interface UseMarkdownSearchOptions {
 	containerRef: RefObject<HTMLDivElement | null>;
@@ -10,74 +11,17 @@ interface UseMarkdownSearchOptions {
 	filePath: string;
 }
 
-interface UseMarkdownSearchReturn {
-	isSearchOpen: boolean;
-	query: string;
-	caseSensitive: boolean;
-	matchCount: number;
-	activeMatchIndex: number;
-	setQuery: (query: string) => void;
-	setCaseSensitive: (caseSensitive: boolean) => void;
-	findNext: () => void;
-	findPrevious: () => void;
-	closeSearch: () => void;
-}
-
 export function useMarkdownSearch({
 	containerRef,
 	isFocused,
 	isRenderedMode,
 	filePath,
-}: UseMarkdownSearchOptions): UseMarkdownSearchReturn {
-	const textSearch = useTextSearch({
+}: UseMarkdownSearchOptions): FindHotkeySearchController {
+	return useFindHotkeySearch({
 		containerRef,
+		hotkeyId: "FIND_IN_FILE_VIEWER",
 		highlightPrefix: "markdown-search",
+		isActive: isFocused && isRenderedMode,
+		resetKey: filePath,
 	});
-
-	// Close search when pane loses focus or exits rendered mode
-	useEffect(() => {
-		if (!isFocused || !isRenderedMode) {
-			if (textSearch.isSearchOpen) {
-				textSearch.closeSearch();
-			}
-		}
-	}, [
-		isFocused,
-		isRenderedMode,
-		textSearch.closeSearch,
-		textSearch.isSearchOpen,
-	]);
-
-	// Reset search when file changes so stale Range objects don't linger
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
-	useEffect(() => {
-		if (textSearch.isSearchOpen) {
-			textSearch.closeSearch();
-		}
-	}, [filePath]);
-
-	useHotkey(
-		"FIND_IN_FILE_VIEWER",
-		() => {
-			if (textSearch.isSearchOpen) {
-				textSearch.closeSearch();
-				return;
-			}
-			textSearch.setIsSearchOpen(true);
-		},
-		{ enabled: isFocused && isRenderedMode, preventDefault: true },
-	);
-
-	return {
-		isSearchOpen: textSearch.isSearchOpen,
-		query: textSearch.query,
-		caseSensitive: textSearch.caseSensitive,
-		matchCount: textSearch.matchCount,
-		activeMatchIndex: textSearch.activeMatchIndex,
-		setQuery: textSearch.setQuery,
-		setCaseSensitive: textSearch.setCaseSensitive,
-		findNext: textSearch.findNext,
-		findPrevious: textSearch.findPrevious,
-		closeSearch: textSearch.closeSearch,
-	};
 }
