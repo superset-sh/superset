@@ -275,6 +275,13 @@ export class EventBus {
 					const next = await iterator.next();
 					if (disposed || next.done) return;
 
+					if (process.env.SUPERSET_FS_EVENTS_DEBUG === "1") {
+						console.log("[fs:debug] event-bus send", {
+							workspaceId,
+							count: next.value.events.length,
+							kinds: next.value.events.map((e) => e.kind),
+						});
+					}
 					sendMessage(socket, {
 						type: "fs:events",
 						workspaceId,
