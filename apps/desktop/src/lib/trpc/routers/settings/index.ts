@@ -1010,11 +1010,8 @@ export const createSettingsRouter = () => {
 			}),
 
 		/**
-		 * Re-runs the wrapper/settings/hook setup for a single agent.
-		 * Boot already does this for every known agent, so this is a safety
-		 * net for the settings-UI "Add" flow — guarantees the agent's hooks
-		 * are wired even if boot-time setup failed or the wrapper was wiped.
-		 * Returns `{ ran: false }` for unknown agent ids.
+		 * Re-runs wrapper/settings/hook setup for one agent. Safety net for
+		 * the settings-UI Add flow; returns `{ ran: false }` for unknown ids.
 		 */
 		setupAgent: publicProcedure
 			.input(z.object({ agentId: z.string().min(1) }))

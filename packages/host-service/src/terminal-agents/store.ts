@@ -20,13 +20,11 @@ interface ListFilter {
 const EXIT_EVENT_TYPES = new Set(["Detached", "exit", "error"]);
 
 /**
- * In-process tracker for which agent (claude/codex/cursor/opencode/droid/…)
- * is alive in which terminal. Populated by the hook receiver, drained on
- * terminal exit. Absence is the only signal — no history is retained
- * (plan decision #3).
+ * In-process tracker for which agent is alive in which terminal. Populated
+ * by the hook receiver, drained on terminal exit. Absence is the only
+ * signal — no history is retained.
  *
- * Emits `"change"` with the affected workspaceId after every mutation so
- * tRPC subscribers can re-snapshot.
+ * Emits `"change"` with the affected workspaceId after every mutation.
  */
 export class TerminalAgentStore extends EventEmitter {
 	private readonly byTerminal = new Map<string, TerminalAgentBinding>();
@@ -48,19 +46,14 @@ export class TerminalAgentStore extends EventEmitter {
 		}
 
 		const existing = this.byTerminal.get(terminalId);
-		if (!agentId && !existing) {
-			// First sighting of the terminal with no agent identity attached —
-			// nothing to bind to. Skip.
-			return;
-		}
+		if (!agentId && !existing) return;
 
 		const nextAgentId = agentId ?? existing?.agentId;
 		if (!nextAgentId) return;
 
-		// Only inherit identity metadata when the agentId hasn't changed —
-		// otherwise a swap event (claude → codex) that omits agentSessionId
-		// or definitionId would carry over the prior agent's values and
-		// corrupt `definitionId`-filtered reads.
+		// Only inherit identity metadata when agentId hasn't changed; otherwise
+		// a swap event that omits agentSessionId/definitionId would inherit the
+		// prior agent's values and corrupt definitionId-filtered reads.
 		const prior =
 			existing !== undefined && existing.agentId === nextAgentId
 				? existing

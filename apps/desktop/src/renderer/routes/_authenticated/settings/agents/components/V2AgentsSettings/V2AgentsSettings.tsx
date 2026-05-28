@@ -78,10 +78,8 @@ export function V2AgentsSettings({
 				await getHostServiceClientByUrl(
 					activeHostUrl,
 				).settings.agentConfigs.add.mutate(body);
-			// Re-run the per-agent wrapper/hook setup as a safety net. Idempotent;
-			// boot already runs it for every known agent, but the user-facing Add
-			// flow is the right moment to guarantee the hooks are in place.
-			// Fire-and-forget — don't fail the add if setup misbehaves.
+			// Safety net: re-run wrapper/hook setup so Add guarantees the hooks
+			// are wired even if boot setup failed or the wrapper was wiped.
 			setupAgentMutation.mutate(
 				{ agentId: preset.presetId },
 				{

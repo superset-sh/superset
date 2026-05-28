@@ -75,16 +75,12 @@ export const terminalAgentsRouter = router({
 
 	/**
 	 * Reuse-or-launch primitive. Returns an existing active binding for the
-	 * `(workspaceId, agentId, definitionId)` triple if one exists; otherwise
-	 * spawns a fresh terminal with `initialCommand`/`cwd` and waits for the
-	 * agent's hook to register a binding (10s budget).
+	 * `(workspaceId, agentId, definitionId)` triple, or spawns a fresh
+	 * terminal and waits up to 10s for the agent's hook to register.
 	 *
-	 * Resolves on the first lifecycle hook — not on agent prompt-readiness.
-	 * Callers that immediately `terminal.writeInput` can race the agent's
-	 * REPL initialization; add a readiness wait if that matters.
-	 *
-	 * Callers compose with `terminal.writeInput` after this resolves — this
-	 * module does not format input.
+	 * Resolves on the first lifecycle hook — not on REPL prompt-readiness.
+	 * Callers that need to `terminal.writeInput` immediately should add
+	 * their own readiness wait. Input formatting also lives in the caller.
 	 */
 	getOrCreate: protectedProcedure
 		.input(
@@ -107,8 +103,7 @@ export const terminalAgentsRouter = router({
 				return { binding: existing, created: false };
 			}
 
-			// Coalesce concurrent callers for the same triple so we don't spawn
-			// duplicate terminals.
+			// Coalesce concurrent callers so the same triple doesn't spawn twice.
 			const key = inflightKey(workspaceId, agentId, definitionId);
 			const pending = inflight.get(key);
 			if (pending) return pending;

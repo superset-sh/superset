@@ -12,25 +12,6 @@ export interface HostAgentPreset {
 	env: Record<string, string>;
 }
 
-/**
- * Terminal agent presets, derived from `BUILTIN_TERMINAL_AGENTS` so the
- * catalog has a single source of truth. Used as the seed list when a
- * host's agent table is empty, and as the install catalog the desktop
- * picker renders.
- *
- * Launch resolution:
- *   prompt
- *     ? [command, ...args, ...promptArgs, ...(promptTransport === "argv" ? [prompt] : [])]
- *     : [command, ...args]
- *
- * `promptArgs` is only included when launching with a prompt. Stdin
- * transport pipes the prompt to the spawned process's stdin instead of
- * pushing it to argv.
- *
- * Superset is intentionally excluded — its model/provider config lives
- * in chat settings, not in terminal-agent configs. It never appears in
- * `BUILTIN_TERMINAL_AGENTS`.
- */
 function tokenize(commandString: string): string[] {
 	return commandString.split(/\s+/).filter(Boolean);
 }
@@ -40,11 +21,23 @@ function derivePromptArgs(
 	promptCommand: string | undefined,
 ): string[] {
 	if (!promptCommand) return [];
-	// promptCommand is the full prompt-launch string (e.g. "codex --flag --").
-	// The tail after the shared command-token prefix is the prompt-only args.
+	// promptCommand includes the base command; strip the shared prefix to
+	// get just the prompt-only args (e.g. "codex --flag --" → ["--"]).
 	return tokenize(promptCommand).slice(commandTokens.length);
 }
 
+/**
+ * Terminal agent presets derived from `BUILTIN_TERMINAL_AGENTS`. Used as
+ * the seed list when a host's agent table is empty and as the install
+ * catalog the desktop picker renders.
+ *
+ * Launch resolution:
+ *   prompt
+ *     ? [command, ...args, ...promptArgs, ...(promptTransport === "argv" ? [prompt] : [])]
+ *     : [command, ...args]
+ *
+ * Stdin transport pipes the prompt to stdin instead of pushing it to argv.
+ */
 export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
 	BUILTIN_TERMINAL_AGENTS.map((agent) => {
 		const commandTokens = tokenize(agent.command);
