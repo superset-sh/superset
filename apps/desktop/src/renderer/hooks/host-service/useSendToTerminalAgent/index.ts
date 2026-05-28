@@ -1,5 +1,6 @@
 export type {
 	AgentPromptFileContext,
+	AgentPromptFileSide,
 	SendToTerminalAgentInput,
 } from "./useSendToTerminalAgent";
 export {

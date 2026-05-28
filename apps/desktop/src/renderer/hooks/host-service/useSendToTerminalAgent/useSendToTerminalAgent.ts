@@ -3,10 +3,17 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback } from "react";
 import { normalizeTerminalCommand } from "renderer/lib/terminal/launch-command";
 
+export type AgentPromptFileSide = "additions" | "deletions" | "mixed";
+
 export interface AgentPromptFileContext {
 	path: string;
 	startLine: number;
 	endLine: number;
+	/** Which side of the diff the selection covers. When omitted, the prompt
+	 *  is rendered without a side annotation (single-file viewer case).
+	 *  `deletions` and `mixed` are tagged explicitly because their line
+	 *  numbers refer to the pre-diff file and would otherwise be ambiguous. */
+	side?: AgentPromptFileSide;
 }
 
 interface FormatPromptInput {
@@ -28,7 +35,13 @@ export function formatAgentPromptWithFileContext({
 		file.startLine === file.endLine
 			? `L${file.startLine}`
 			: `L${file.startLine}-L${file.endLine}`;
-	return `In ${file.path}:${range}: ${comment}`;
+	const sideSuffix =
+		file.side === "deletions"
+			? " (deleted lines)"
+			: file.side === "mixed"
+				? " (across deletions and additions)"
+				: "";
+	return `In ${file.path}:${range}${sideSuffix}: ${comment}`;
 }
 
 export interface SendToTerminalAgentInput {

@@ -5,8 +5,9 @@ import type {
 } from "@pierre/diffs";
 import type { CodeViewHandle } from "@pierre/diffs/react";
 import { toast } from "@superset/ui/sonner";
-import { type RefObject, useCallback, useMemo, useState } from "react";
+import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
 import {
+	type AgentPromptFileSide,
 	formatAgentPromptWithFileContext,
 	useSendToTerminalAgent,
 } from "renderer/hooks/host-service/useSendToTerminalAgent";
@@ -17,6 +18,17 @@ import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 interface ComposerState {
 	itemId: string;
 	range: SelectedLineRange;
+}
+
+function rangeSide(
+	start: SelectedLineRange["side"],
+	end: SelectedLineRange["endSide"],
+): AgentPromptFileSide | undefined {
+	const endSide = end ?? start;
+	if (!start || !endSide) return undefined;
+	if (start === "deletions" && endSide === "deletions") return "deletions";
+	if (start === "additions" && endSide === "additions") return "additions";
+	return "mixed";
 }
 
 export interface DiffCommentSubmitInput {
@@ -71,12 +83,24 @@ export function useDiffCommentComposer({
 	onCreateNewAgentSession,
 }: UseDiffCommentComposerArgs): UseDiffCommentComposerResult {
 	const [composer, setComposer] = useState<ComposerState | null>(null);
+	const composerRef = useRef(composer);
+	composerRef.current = composer;
 	const { send: sendToTerminalAgent } = useSendToTerminalAgent();
 
 	const clear = useCallback(() => {
 		setComposer(null);
 		codeViewRef.current?.clearSelectedLines();
 	}, [codeViewRef]);
+
+	// Only clear when the in-flight submit's composer is still the one on
+	// screen — protects against a slow send wiping a newer composer the user
+	// already opened on a different range.
+	const clearIfStillCurrent = useCallback(
+		(submitted: ComposerState) => {
+			if (composerRef.current === submitted) clear();
+		},
+		[clear],
+	);
 
 	const onSelectedLinesChange = useCallback(
 		(selection: CodeViewLineSelection | null) => {
@@ -125,16 +149,18 @@ export function useDiffCommentComposer({
 
 	const submit = useCallback(
 		async (input: DiffCommentSubmitInput) => {
-			if (!composer) return;
-			const file = getFile(composer.itemId);
+			const submitted = composer;
+			if (!submitted) return;
+			const file = getFile(submitted.itemId);
 			if (!file) return;
 
 			const text = formatAgentPromptWithFileContext({
 				comment: input.comment,
 				file: {
 					path: file.path,
-					startLine: composer.range.start,
-					endLine: composer.range.end,
+					startLine: submitted.range.start,
+					endLine: submitted.range.end,
+					side: rangeSide(submitted.range.side, submitted.range.endSide),
 				},
 			});
 
@@ -150,7 +176,7 @@ export function useDiffCommentComposer({
 					placement: input.target.placement,
 					prompt: text,
 				});
-				if (result) clear();
+				if (result) clearIfStillCurrent(submitted);
 				return;
 			}
 
@@ -160,7 +186,7 @@ export function useDiffCommentComposer({
 					terminalId: input.target.terminalId,
 					text,
 				});
-				clear();
+				clearIfStillCurrent(submitted);
 			} catch {
 				// Toast surfaced by the hook; keep composer open so the user
 				// can retry or edit.
@@ -171,7 +197,7 @@ export function useDiffCommentComposer({
 			getFile,
 			workspaceId,
 			sendToTerminalAgent,
-			clear,
+			clearIfStillCurrent,
 			onCreateNewAgentSession,
 		],
 	);

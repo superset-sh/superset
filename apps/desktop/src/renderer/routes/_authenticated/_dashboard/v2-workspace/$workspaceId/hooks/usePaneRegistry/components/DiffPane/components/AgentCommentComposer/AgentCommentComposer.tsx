@@ -75,6 +75,11 @@ export function AgentCommentComposer({
 		setSubmitting(true);
 		try {
 			await onSubmit({ comment: comment.trim(), target: resolved });
+		} catch (error) {
+			// User-facing errors are the caller's responsibility (we toast in
+			// DiffPane's submit path). Catch here so a rejection doesn't leak
+			// as an unhandled promise out of the form's synchronous handlers.
+			console.error("[AgentCommentComposer] submit failed", error);
 		} finally {
 			setSubmitting(false);
 		}
@@ -171,6 +176,10 @@ export function AgentCommentComposer({
 	);
 }
 
+const IS_MAC =
+	typeof navigator !== "undefined" &&
+	navigator.platform.toLowerCase().includes("mac");
+
 function KbdEnter() {
 	return (
 		<span
@@ -179,7 +188,7 @@ function KbdEnter() {
 				"text-[9px] font-medium leading-none text-primary-foreground/85",
 			)}
 		>
-			<span>⌘</span>
+			<span>{IS_MAC ? "⌘" : "Ctrl"}</span>
 			<LuCornerDownLeft className="size-2.5" strokeWidth={2.5} />
 		</span>
 	);
