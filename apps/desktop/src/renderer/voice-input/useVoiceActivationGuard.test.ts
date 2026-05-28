@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { runVoiceActivationShortcut } from "./useVoiceActivationGuard";
+import {
+	runVoiceActivationHotkeyEvent,
+	runVoiceActivationShortcut,
+} from "./useVoiceActivationGuard";
 
 describe("voice activation guard", () => {
 	test("blocksActivationWhenVoiceInputIsDisabled", () => {
@@ -50,28 +53,45 @@ describe("voice activation guard", () => {
 		expect(activationCount).toBe(0);
 	});
 
-	test("doesNotInterceptNormalInputEvents", () => {
+	test("doesNotPreventDefaultForDisabledVoiceHotkey", () => {
 		let activationCount = 0;
-		const input = new EventTarget();
+		const event = new Event("keydown", { cancelable: true });
 
-		runVoiceActivationShortcut({
-			voiceInputEnabled: false,
-			getActiveTarget: () => "chat",
-			onActivate: () => {
-				activationCount += 1;
-			},
-		});
+		const result = runVoiceActivationHotkeyEvent(
+			event as Pick<KeyboardEvent, "preventDefault">,
+			() =>
+				runVoiceActivationShortcut({
+					voiceInputEnabled: false,
+					getActiveTarget: () => "chat",
+					onActivate: () => {
+						activationCount += 1;
+					},
+				}),
+		);
 
-		const observedEvents: string[] = [];
-		const normalInputEvents = ["keydown", "beforeinput", "input", "paste"];
-		for (const eventType of normalInputEvents) {
-			input.addEventListener(eventType, (event) => {
-				observedEvents.push(event.type);
-			});
-			input.dispatchEvent(new Event(eventType));
-		}
-
-		expect(observedEvents).toEqual(normalInputEvents);
+		expect(result).toEqual({ status: "disabled" });
+		expect(event.defaultPrevented).toBe(false);
 		expect(activationCount).toBe(0);
+	});
+
+	test("preventsDefaultOnlyAfterAllowedVoiceHotkeyActivation", () => {
+		let activationCount = 0;
+		const event = new Event("keydown", { cancelable: true });
+
+		const result = runVoiceActivationHotkeyEvent(
+			event as Pick<KeyboardEvent, "preventDefault">,
+			() =>
+				runVoiceActivationShortcut({
+					voiceInputEnabled: true,
+					getActiveTarget: () => "chat",
+					onActivate: () => {
+						activationCount += 1;
+					},
+				}),
+		);
+
+		expect(result).toEqual({ status: "allowed", target: "chat" });
+		expect(event.defaultPrevented).toBe(true);
+		expect(activationCount).toBe(1);
 	});
 });

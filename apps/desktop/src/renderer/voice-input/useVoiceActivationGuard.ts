@@ -76,6 +76,19 @@ export function runVoiceActivationShortcut({
 	return result;
 }
 
+export function runVoiceActivationHotkeyEvent(
+	event: Pick<KeyboardEvent, "preventDefault">,
+	runShortcut: () => VoiceActivationResult,
+): VoiceActivationResult {
+	const result = runShortcut();
+
+	if (result.status === "allowed") {
+		event.preventDefault();
+	}
+
+	return result;
+}
+
 export function useVoiceActivationGuard({
 	voiceInputEnabled,
 	getActiveTarget = getFocusedVoiceActivationTarget,
