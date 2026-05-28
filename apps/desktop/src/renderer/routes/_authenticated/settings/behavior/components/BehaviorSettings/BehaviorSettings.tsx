@@ -36,6 +36,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showVoiceInput = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_VOICE_INPUT,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -124,6 +128,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 		},
 	);
+
+	const { data: voiceInputEnabled, isLoading: isVoiceInputLoading } =
+		electronTrpc.settings.getVoiceInputEnabled.useQuery();
+	const setVoiceInputEnabled =
+		electronTrpc.settings.setVoiceInputEnabled.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getVoiceInputEnabled.cancel();
+				const previous = utils.settings.getVoiceInputEnabled.getData();
+				utils.settings.getVoiceInputEnabled.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getVoiceInputEnabled.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getVoiceInputEnabled.invalidate();
+			},
+		});
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -224,6 +251,44 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+
+				{showVoiceInput && (
+					<div className="flex items-center justify-between gap-6">
+						<div className="min-w-0 flex-1 space-y-0.5">
+							<Label htmlFor="voice-input" className="text-sm font-medium">
+								Voice Input
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Enable voice input for hands-free dictation controls
+							</p>
+							<p
+								id="voice-input-status"
+								className={
+									setVoiceInputEnabled.isError
+										? "text-xs text-destructive"
+										: "text-xs text-muted-foreground"
+								}
+							>
+								{setVoiceInputEnabled.isError
+									? "Voice preference could not be saved"
+									: isVoiceInputLoading
+										? "Loading voice preference"
+										: voiceInputEnabled
+											? "Voice input is enabled"
+											: "Voice input is disabled"}
+							</p>
+						</div>
+						<Switch
+							aria-describedby="voice-input-status"
+							id="voice-input"
+							checked={voiceInputEnabled ?? false}
+							onCheckedChange={(enabled) =>
+								setVoiceInputEnabled.mutate({ enabled })
+							}
+							disabled={isVoiceInputLoading || setVoiceInputEnabled.isPending}
 						/>
 					</div>
 				)}
