@@ -22,12 +22,14 @@ export class Utf8Base64 implements IBase64 {
 	}
 
 	decodeText(data: string): string {
-		// `atob` throws on malformed base64; the addon relies on that to bail.
 		const binary = atob(data);
 		const bytes = new Uint8Array(binary.length);
 		for (let i = 0; i < binary.length; i++) {
 			bytes[i] = binary.charCodeAt(i);
 		}
-		return new TextDecoder("utf-8").decode(bytes);
+		// Throw on malformed base64 (atob) or non-UTF-8 bytes (fatal decode)
+		// rather than writing replacement characters to the clipboard; the addon
+		// catches and clears instead, matching alacritty/kitty's strict decode.
+		return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 	}
 }

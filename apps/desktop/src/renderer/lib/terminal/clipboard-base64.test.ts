@@ -51,7 +51,9 @@ describe("Utf8Base64", () => {
 		}
 	});
 
-	it("propagates on malformed base64 so the addon can bail", () => {
+	it("throws so the addon can bail on malformed base64 or non-UTF-8 bytes", () => {
 		expect(() => codec.decodeText("@@@not base64@@@")).toThrow();
+		// "/w==" is valid base64 for a lone 0xFF, which is not valid UTF-8.
+		expect(() => codec.decodeText("/w==")).toThrow();
 	});
 });
