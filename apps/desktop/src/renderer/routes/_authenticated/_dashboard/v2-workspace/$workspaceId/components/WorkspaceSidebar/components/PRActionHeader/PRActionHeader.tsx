@@ -115,7 +115,7 @@ export function PRActionHeader({
 
 type SplitButtonProps = Omit<
 	React.ComponentProps<typeof PRActionSplitButton>,
-	"kind" | "busy"
+	"kind" | "busy" | "disabledReason" | "viewUrl"
 >;
 
 function ActionSlot({
@@ -150,7 +150,29 @@ function ActionSlot({
 		case "update-pr-dropdown":
 			return (
 				<>
-					<PRActionSplitButton kind="update" {...splitButtonProps} />
+					<PRActionSplitButton
+						kind="update"
+						disabledReason={variant.blockedReason}
+						{...splitButtonProps}
+					/>
+					<div className="ml-2">
+						<PRStatusGroup
+							state={state}
+							workspaceId={workspaceId}
+							onRefresh={onRetry}
+						/>
+					</div>
+				</>
+			);
+
+		case "view-pr":
+			return (
+				<>
+					<PRActionSplitButton
+						kind="view"
+						viewUrl={variant.url}
+						{...splitButtonProps}
+					/>
 					<div className="ml-2">
 						<PRStatusGroup
 							state={state}

@@ -65,7 +65,8 @@ export type ActionButtonVariant =
 	| { kind: "hidden" }
 	| { kind: "disabled-tooltip"; reasonKind: UnavailableReason }
 	| { kind: "create-pr-dropdown" }
-	| { kind: "update-pr-dropdown" }
+	| { kind: "update-pr-dropdown"; blockedReason?: string }
+	| { kind: "view-pr"; url: string }
 	| { kind: "cancel-busy" }
 	| { kind: "retry" };
 
@@ -78,12 +79,51 @@ export function selectActionButton(state: PRFlowState): ActionButtonVariant {
 		case "no-pr":
 			return { kind: "create-pr-dropdown" };
 		case "pr-exists":
-			return { kind: "update-pr-dropdown" };
+			return selectPRExistsAction(state.pr, state.sync);
 		case "busy":
 			return { kind: "cancel-busy" };
 		case "error":
 			return { kind: "retry" };
 	}
+}
+
+/**
+ * Per-state primary action when a PR already exists. Mirrors t3code's
+ * `resolveQuickAction` pattern: merged/closed PRs surface no action,
+ * fully-synced open PRs swap to "View PR" (no agent invocation), branches
+ * behind upstream block the update with a tooltip reason.
+ */
+function selectPRExistsAction(
+	pr: PullRequest,
+	sync: BranchSyncStatus | null,
+): ActionButtonVariant {
+	if (pr.state === "merged" || pr.state === "closed") {
+		return { kind: "hidden" };
+	}
+	if (pr.state === "open" && !pr.isDraft && isInSync(sync)) {
+		return { kind: "view-pr", url: pr.url };
+	}
+	if (sync?.hasUpstream && sync.pullCount > 0) {
+		const noun =
+			sync.pullCount === 1
+				? "1 commit behind"
+				: `${sync.pullCount} commits behind`;
+		return {
+			kind: "update-pr-dropdown",
+			blockedReason: `Sync your branch first — ${noun} upstream`,
+		};
+	}
+	return { kind: "update-pr-dropdown" };
+}
+
+function isInSync(sync: BranchSyncStatus | null): boolean {
+	if (!sync) return false;
+	return (
+		sync.hasUpstream &&
+		!sync.hasUncommitted &&
+		sync.pushCount === 0 &&
+		sync.pullCount === 0
+	);
 }
 
 export type PRLinkVariant =

@@ -150,10 +150,66 @@ describe("selectActionButton", () => {
 	test("loading → hidden", () => {
 		expect(selectActionButton({ kind: "loading" })).toEqual({ kind: "hidden" });
 	});
-	test("pr-exists → update-pr-dropdown", () => {
+	test("pr-exists + open + dirty → update-pr-dropdown", () => {
 		expect(
-			selectActionButton({ kind: "pr-exists", pr: pr(), sync: sync() }),
+			selectActionButton({
+				kind: "pr-exists",
+				pr: pr(),
+				sync: sync({ pushCount: 2 }),
+			}),
 		).toEqual({ kind: "update-pr-dropdown" });
+	});
+
+	test("pr-exists + open + clean → view-pr with url", () => {
+		const p = pr({ url: "https://github.com/org/repo/pull/42" });
+		expect(
+			selectActionButton({ kind: "pr-exists", pr: p, sync: sync() }),
+		).toEqual({ kind: "view-pr", url: p.url });
+	});
+
+	test("pr-exists + draft + clean stays on update-pr-dropdown", () => {
+		// Drafts may still need title/body refresh or mark-ready; don't swap
+		// to View PR until the user marks ready.
+		expect(
+			selectActionButton({
+				kind: "pr-exists",
+				pr: pr({ isDraft: true }),
+				sync: sync(),
+			}),
+		).toEqual({ kind: "update-pr-dropdown" });
+	});
+
+	test("pr-exists + behind upstream → blocked with reason", () => {
+		const result = selectActionButton({
+			kind: "pr-exists",
+			pr: pr(),
+			sync: sync({ pullCount: 2 }),
+		});
+		expect(result.kind).toBe("update-pr-dropdown");
+		if (result.kind === "update-pr-dropdown") {
+			expect(result.blockedReason).toContain("Sync your branch first");
+			expect(result.blockedReason).toContain("2 commits behind");
+		}
+	});
+
+	test("pr-exists + merged → hidden", () => {
+		expect(
+			selectActionButton({
+				kind: "pr-exists",
+				pr: pr({ state: "merged" }),
+				sync: sync(),
+			}),
+		).toEqual({ kind: "hidden" });
+	});
+
+	test("pr-exists + closed → hidden", () => {
+		expect(
+			selectActionButton({
+				kind: "pr-exists",
+				pr: pr({ state: "closed" }),
+				sync: sync(),
+			}),
+		).toEqual({ kind: "hidden" });
 	});
 	test("unavailable → disabled-tooltip with reason", () => {
 		expect(

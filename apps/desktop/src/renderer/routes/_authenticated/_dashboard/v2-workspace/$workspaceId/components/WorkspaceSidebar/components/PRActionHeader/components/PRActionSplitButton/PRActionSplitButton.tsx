@@ -10,6 +10,7 @@ import {
 	VscChevronDown,
 	VscEdit,
 	VscGitPullRequest,
+	VscLinkExternal,
 	VscLoading,
 } from "react-icons/vsc";
 import type { AgentTarget } from "renderer/hooks/agents/useAgentTarget";
@@ -17,7 +18,7 @@ import type { TerminalAgentBinding } from "renderer/hooks/host-service/useTermin
 import { PRAgentPickerMenu } from "./components/PRAgentPickerMenu";
 import { PRPromptEditDialog } from "./components/PRPromptEditDialog";
 
-type SplitButtonKind = "create" | "update";
+type SplitButtonKind = "create" | "update" | "view";
 
 interface PRActionSplitButtonProps {
 	kind: SplitButtonKind;
@@ -30,26 +31,32 @@ interface PRActionSplitButtonProps {
 	resolvedTarget: AgentTarget | null;
 	onPickTarget: (target: AgentTarget) => void;
 	/** Fires the action with the currently-resolved target (or null fallback
-	 *  → chat tab). The dispatch hook owns transport routing. */
+	 *  → chat tab). The dispatch hook owns transport routing. Ignored when
+	 *  `kind === "view"`. */
 	onSubmit: (target: AgentTarget | null) => void | Promise<void>;
 	/** Deep-link for the "Open in editor" affordance inside the
 	 *  Edit-prompt dialog. */
 	onOpenPromptInEditor?: (absolutePath: string) => void;
 	/** Disables the primary + swaps the action icon for a spinner. */
 	busy?: boolean;
+	/** When set, the primary is disabled and the tooltip shows this reason
+	 *  instead of the normal copy. Agent picker chevron stays enabled so
+	 *  the user can force-dispatch via a specific agent. */
+	disabledReason?: string;
+	/** URL opened by the primary when `kind === "view"`. */
+	viewUrl?: string;
 }
 
 /**
  * Bordered icon+label group with a chevron, mirroring the v1 PRButton and
  * the v2 PRStatusGroup pill so the action slot reads as a single family.
  *
- * Every invocation runs through an agent — the primary region fires the
- * default agent (last-picked existing terminal or new preset; chat tab as
- * a fallback), and the chevron exposes the picker so the user can switch
- * the default.
- *
- * One component covers both no-pr ("Create PR") and pr-exists
- * ("Update PR") via the `kind` discriminant.
+ * For `kind="create"` / `"update"`, the primary fires the default agent
+ * (last-picked existing terminal or new preset; chat tab as a fallback)
+ * and the chevron exposes the picker. For `kind="view"` the primary
+ * opens the PR in a browser tab (no agent invocation) while the chevron
+ * still lets the user force-run the agent if they want to refresh the
+ * title/body.
  */
 export function PRActionSplitButton({
 	kind,
@@ -62,16 +69,30 @@ export function PRActionSplitButton({
 	onSubmit,
 	onOpenPromptInEditor,
 	busy = false,
+	disabledReason,
+	viewUrl,
 }: PRActionSplitButtonProps) {
-	const copy = labels(kind, busy);
+	const copy = labels(kind, busy, disabledReason);
 	const [promptDialogOpen, setPromptDialogOpen] = useState(false);
-	const primaryHandler = () => void onSubmit(resolvedTarget);
+	const isDisabled = busy || Boolean(disabledReason);
+	const primaryHandler = () => {
+		if (kind === "view") {
+			if (viewUrl) window.open(viewUrl, "_blank", "noopener,noreferrer");
+			return;
+		}
+		void onSubmit(resolvedTarget);
+	};
 	const handlePick = (target: AgentTarget) => {
 		onPickTarget(target);
 		void onSubmit(target);
 	};
 
-	const ActionIcon = kind === "create" ? VscGitPullRequest : VscEdit;
+	const ActionIcon =
+		kind === "create"
+			? VscGitPullRequest
+			: kind === "view"
+				? VscLinkExternal
+				: VscEdit;
 
 	return (
 		<div
@@ -83,9 +104,9 @@ export function PRActionSplitButton({
 					<button
 						type="button"
 						onClick={primaryHandler}
-						disabled={busy}
+						disabled={isDisabled}
 						aria-label={copy.primaryAriaLabel}
-						className="flex items-center gap-1.5 px-1.5 py-0.5 text-xs text-foreground outline-none transition-colors hover:bg-accent focus-visible:bg-accent disabled:cursor-default disabled:opacity-70"
+						className="flex items-center gap-1.5 px-1.5 py-0.5 text-xs text-foreground outline-none transition-colors hover:bg-accent focus-visible:bg-accent disabled:cursor-default disabled:opacity-70 disabled:hover:bg-transparent"
 					>
 						{busy ? (
 							<VscLoading className="size-3.5 animate-spin text-muted-foreground" />
@@ -129,21 +150,28 @@ export function PRActionSplitButton({
 	);
 }
 
-function labels(kind: SplitButtonKind, busy: boolean) {
-	if (kind === "create") {
+function labels(
+	kind: SplitButtonKind,
+	busy: boolean,
+	disabledReason: string | undefined,
+) {
+	if (kind === "view") {
 		return {
-			primaryLabel: busy ? "Creating…" : "Create PR",
-			primaryAriaLabel: "Create pull request with agent",
-			primaryTooltip: busy
-				? "Agent is creating the PR"
-				: "Create PR with agent",
-			chevronAriaLabel: "Choose which agent creates the PR",
+			primaryLabel: "View PR",
+			primaryAriaLabel: "Open pull request on GitHub",
+			primaryTooltip: "Open on GitHub",
+			chevronAriaLabel: "Choose which agent updates the PR",
 		};
 	}
+	const verbing = kind === "create" ? "Creating…" : "Updating…";
+	const verb = kind === "create" ? "Create PR" : "Update PR";
+	const action = kind === "create" ? "create" : "update";
 	return {
-		primaryLabel: busy ? "Updating…" : "Update PR",
-		primaryAriaLabel: "Update pull request with agent",
-		primaryTooltip: busy ? "Agent is updating the PR" : "Update PR with agent",
-		chevronAriaLabel: "Choose which agent updates the PR",
+		primaryLabel: busy ? verbing : verb,
+		primaryAriaLabel: `${verb} with agent`,
+		primaryTooltip: busy
+			? `Agent is ${action === "create" ? "creating" : "updating"} the PR`
+			: (disabledReason ?? `${verb} with agent`),
+		chevronAriaLabel: `Choose which agent ${action}s the PR`,
 	};
 }
