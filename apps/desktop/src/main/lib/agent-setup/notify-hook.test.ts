@@ -22,7 +22,22 @@ describe("getNotifyScriptContent", () => {
 			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
 		);
 		expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
-		expect(script).toContain('V1_EVENT_TYPE="Stop"');
+	});
+
+	it("does not rewrite session-lifetime events to per-turn Start/Stop", () => {
+		// SessionStart/SessionEnd must reach mapEventType verbatim so the server
+		// can drop them. Rewriting them here would re-create the stuck-spinner
+		// bug at the bash layer where the server fix can't reach.
+		const script = readFileSync(
+			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
+			"utf-8",
+		);
+		expect(script).not.toContain(
+			"Attached|attached|SessionStart|sessionStart|session_start",
+		);
+		expect(script).not.toContain(
+			"Detached|detached|SessionEnd|sessionEnd|session_end",
+		);
 	});
 
 	it("gives the v2 host-service hook enough time to deliver", () => {

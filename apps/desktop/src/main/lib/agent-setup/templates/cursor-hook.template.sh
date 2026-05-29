@@ -21,10 +21,6 @@ if [ "$NEEDS_RESPONSE" = "true" ]; then
 fi
 
 V1_EVENT_TYPE="$EVENT_TYPE"
-case "$V1_EVENT_TYPE" in
-  SessionStart) V1_EVENT_TYPE="Start" ;;
-  SessionEnd)   V1_EVENT_TYPE="Stop" ;;
-esac
 
 json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'

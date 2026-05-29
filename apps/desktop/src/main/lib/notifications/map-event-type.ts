@@ -1,3 +1,11 @@
+// Session-lifetime events (SessionStart/SessionEnd and aliases) are
+// intentionally NOT mapped here. They fire when an agent attaches to / detaches
+// from a terminal — the agent is idle waiting for input, not generating —
+// so flipping the pane to "working" on SessionStart leaves the spinner stuck
+// until the first real per-turn Stop. v1 has no Attached/Detached state to
+// map to, so let these return null and rely on per-turn events
+// (UserPromptSubmit/Start → Stop/AfterAgent/task_complete) for the working
+// indicator, and on terminal-exit for stuck-state cleanup.
 export function mapEventType(
 	eventType: string | undefined,
 ): "Start" | "Stop" | "PermissionRequest" | null {
@@ -6,14 +14,11 @@ export function mapEventType(
 	}
 	if (
 		eventType === "Start" ||
-		eventType === "SessionStart" ||
 		eventType === "UserPromptSubmit" ||
 		eventType === "PostToolUse" ||
 		eventType === "PostToolUseFailure" ||
 		eventType === "BeforeAgent" ||
 		eventType === "AfterTool" ||
-		eventType === "sessionStart" ||
-		eventType === "session_start" ||
 		eventType === "userPromptSubmitted" ||
 		eventType === "user_prompt_submit" ||
 		eventType === "postToolUse" ||
@@ -39,8 +44,6 @@ export function mapEventType(
 		eventType === "stop" ||
 		eventType === "agent-turn-complete" ||
 		eventType === "AfterAgent" ||
-		eventType === "sessionEnd" ||
-		eventType === "session_end" ||
 		eventType === "task_complete"
 	) {
 		return "Stop";
