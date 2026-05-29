@@ -98,18 +98,15 @@ function ContextMenuContent({
 	ref,
 	...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
-	// On Linux/Wayland the pointerup paired with `contextmenu` lands on the
-	// freshly-mounted item under the cursor. Radix's MenuItem treats
-	// pointerup-without-prior-pointerdown as "user dragged in" and synchronously
-	// calls `event.currentTarget?.click()` → onSelect, so the right-click that
-	// opens the menu also fires the item beneath it (usually destructive Close
-	// Pane). Intercept pointerup — not mouseup, which the browser dispatches
-	// after pointerup, by which time the synthesized click has already run.
-	// Reset per event so the guard re-arms for force-mounted content. Uses a
-	// callback ref so listeners attach when the portaled Content actually
-	// mounts (and detach when it unmounts) — a useEffect on the wrapper would
-	// run with a null ref, since Portal renders its child only when the menu
-	// is open. See superset-sh/superset#4939.
+	// Wayland delivers a stray pointerup with the opening `contextmenu`,
+	// landing on the just-mounted item under the cursor. Radix's MenuItem
+	// treats pointerup with no prior pointerdown as a drag-release and calls
+	// `event.currentTarget?.click()` → onSelect, so opening the menu fires
+	// whatever item sits under the cursor (usually destructive Close Pane).
+	// Intercept pointerup, not mouseup — mouseup arrives too late. Reset per
+	// event so the guard re-arms for force-mounted content. Callback ref
+	// (not useEffect): Portal renders its child only when open, so useEffect
+	// on the wrapper would see a null ref. See superset-sh/superset#4939.
 	const forwardedRef = React.useRef(ref);
 	forwardedRef.current = ref;
 	const cleanupRef = React.useRef<(() => void) | null>(null);
