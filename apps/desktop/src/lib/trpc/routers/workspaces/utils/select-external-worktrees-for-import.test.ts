@@ -1,4 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import {
+	mkdirSync,
+	mkdtempSync,
+	realpathSync,
+	rmSync,
+	symlinkSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ExternalWorktree } from "./git";
 import { selectExternalWorktreesForImport } from "./select-external-worktrees-for-import";
 
@@ -80,5 +89,60 @@ describe("selectExternalWorktreesForImport", () => {
 			requested: new Set(),
 		});
 		expect(result).toEqual([]);
+	});
+});
+
+// Repro for #4989: on macOS, repos on external drives are reached through
+// `/Volumes/...` mount aliases (symlinks/firmlinks), but `git worktree list`
+// reports the realpath-resolved location. The user-provided main repo path and
+// requested paths therefore never string-match git's output, so import either
+// does nothing or wrongly treats the main repo as an importable worktree.
+describe("selectExternalWorktreesForImport with symlinked (external-drive-style) paths", () => {
+	let realBase: string;
+	let aliasBase: string;
+
+	beforeAll(() => {
+		// `realBase` stands in for the canonical path git reports.
+		realBase = realpathSync(mkdtempSync(join(tmpdir(), "superset-real-")));
+		mkdirSync(join(realBase, "main"));
+		mkdirSync(join(realBase, "wt-a"));
+
+		// `aliasBase` stands in for the `/Volumes/...` symlinked mount the user
+		// selected when adding the project and importing.
+		aliasBase = `${realBase}-alias`;
+		symlinkSync(realBase, aliasBase);
+	});
+
+	afterAll(() => {
+		rmSync(aliasBase, { force: true });
+		rmSync(realBase, { recursive: true, force: true });
+	});
+
+	test("matches a requested worktree reached via a symlinked path", () => {
+		// git reports canonical paths; the UI requests the aliased path.
+		const gitWorktrees = [
+			wt({ path: join(realBase, "main"), branch: "main" }),
+			wt({ path: join(realBase, "wt-a"), branch: "feature-a" }),
+		];
+
+		const result = selectExternalWorktreesForImport(gitWorktrees, {
+			mainRepoPath: join(aliasBase, "main"),
+			requested: new Set([join(aliasBase, "wt-a")]),
+		});
+
+		expect(result.map((w) => w.branch)).toEqual(["feature-a"]);
+	});
+
+	test("excludes the main repo reached via a symlinked path", () => {
+		const gitWorktrees = [
+			wt({ path: join(realBase, "main"), branch: "main" }),
+			wt({ path: join(realBase, "wt-a"), branch: "feature-a" }),
+		];
+
+		const result = selectExternalWorktreesForImport(gitWorktrees, {
+			mainRepoPath: join(aliasBase, "main"),
+		});
+
+		expect(result.map((w) => w.branch)).toEqual(["feature-a"]);
 	});
 });
