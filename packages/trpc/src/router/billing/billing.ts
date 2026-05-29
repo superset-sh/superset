@@ -3,7 +3,7 @@ import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import type Stripe from "stripe";
 import { z } from "zod";
 import { env } from "../../env";
@@ -47,7 +47,11 @@ async function requireOwnerWithCustomer(ctx: {
 			),
 		}),
 		db.query.subscriptions.findFirst({
-			where: eq(subscriptions.referenceId, activeOrgId),
+			where: and(
+				eq(subscriptions.referenceId, activeOrgId),
+				isNotNull(subscriptions.stripeCustomerId),
+			),
+			orderBy: desc(subscriptions.createdAt),
 		}),
 	]);
 
@@ -94,8 +98,15 @@ export const billingRouter = {
 			});
 		}
 
+		// Intentionally unfiltered by status so invoices stay accessible after a
+		// downgrade. An org can have multiple subscription rows; take the most
+		// recent that has a Stripe customer.
 		const subscription = await db.query.subscriptions.findFirst({
-			where: eq(subscriptions.referenceId, activeOrgId),
+			where: and(
+				eq(subscriptions.referenceId, activeOrgId),
+				isNotNull(subscriptions.stripeCustomerId),
+			),
+			orderBy: desc(subscriptions.createdAt),
 		});
 
 		if (!subscription?.stripeCustomerId) {
