@@ -10,7 +10,6 @@ import {
 	VscChevronDown,
 	VscEdit,
 	VscGitPullRequest,
-	VscLinkExternal,
 	VscLoading,
 } from "react-icons/vsc";
 import type { AgentTarget } from "renderer/hooks/agents/useAgentTarget";
@@ -18,7 +17,7 @@ import type { TerminalAgentBinding } from "renderer/hooks/host-service/useTermin
 import { PRAgentPickerMenu } from "./components/PRAgentPickerMenu";
 import { PRPromptEditDialog } from "./components/PRPromptEditDialog";
 
-type SplitButtonKind = "create" | "update" | "view";
+type SplitButtonKind = "create" | "update";
 
 interface PRActionSplitButtonProps {
 	kind: SplitButtonKind;
@@ -31,8 +30,7 @@ interface PRActionSplitButtonProps {
 	resolvedTarget: AgentTarget | null;
 	onPickTarget: (target: AgentTarget) => void;
 	/** Fires the action with the currently-resolved target (or null fallback
-	 *  → chat tab). The dispatch hook owns transport routing. Ignored when
-	 *  `kind === "view"`. */
+	 *  → chat tab). The dispatch hook owns transport routing. */
 	onSubmit: (target: AgentTarget | null) => void | Promise<void>;
 	/** Deep-link for the "Open in editor" affordance inside the
 	 *  Edit-prompt dialog. */
@@ -43,20 +41,20 @@ interface PRActionSplitButtonProps {
 	 *  instead of the normal copy. Agent picker chevron stays enabled so
 	 *  the user can force-dispatch via a specific agent. */
 	disabledReason?: string;
-	/** URL opened by the primary when `kind === "view"`. */
-	viewUrl?: string;
 }
 
 /**
  * Bordered icon+label group with a chevron, mirroring the v1 PRButton and
  * the v2 PRStatusGroup pill so the action slot reads as a single family.
  *
- * For `kind="create"` / `"update"`, the primary fires the default agent
- * (last-picked existing terminal or new preset; chat tab as a fallback)
- * and the chevron exposes the picker. For `kind="view"` the primary
- * opens the PR in a browser tab (no agent invocation) while the chevron
- * still lets the user force-run the agent if they want to refresh the
- * title/body.
+ * Primary fires the default agent (last-picked existing terminal or new
+ * preset; chat tab as a fallback); chevron exposes the picker. When
+ * `disabledReason` is set, the primary is disabled with a tooltip
+ * reason but the chevron stays enabled so the user can still force-
+ * dispatch via a specific agent.
+ *
+ * For *synced* / *merged* / *closed* PRs the action slot doesn't render
+ * this component at all — `PRStatusGroup` is the view affordance.
  */
 export function PRActionSplitButton({
 	kind,
@@ -70,29 +68,17 @@ export function PRActionSplitButton({
 	onOpenPromptInEditor,
 	busy = false,
 	disabledReason,
-	viewUrl,
 }: PRActionSplitButtonProps) {
 	const copy = labels(kind, busy, disabledReason);
 	const [promptDialogOpen, setPromptDialogOpen] = useState(false);
 	const isDisabled = busy || Boolean(disabledReason);
-	const primaryHandler = () => {
-		if (kind === "view") {
-			if (viewUrl) window.open(viewUrl, "_blank", "noopener,noreferrer");
-			return;
-		}
-		void onSubmit(resolvedTarget);
-	};
+	const primaryHandler = () => void onSubmit(resolvedTarget);
 	const handlePick = (target: AgentTarget) => {
 		onPickTarget(target);
 		void onSubmit(target);
 	};
 
-	const ActionIcon =
-		kind === "create"
-			? VscGitPullRequest
-			: kind === "view"
-				? VscLinkExternal
-				: VscEdit;
+	const ActionIcon = kind === "create" ? VscGitPullRequest : VscEdit;
 
 	return (
 		<div
@@ -155,14 +141,6 @@ function labels(
 	busy: boolean,
 	disabledReason: string | undefined,
 ) {
-	if (kind === "view") {
-		return {
-			primaryLabel: "View PR",
-			primaryAriaLabel: "Open pull request on GitHub",
-			primaryTooltip: "Open on GitHub",
-			chevronAriaLabel: "Choose which agent updates the PR",
-		};
-	}
 	const verbing = kind === "create" ? "Creating…" : "Updating…";
 	const verb = kind === "create" ? "Create PR" : "Update PR";
 	const action = kind === "create" ? "create" : "update";

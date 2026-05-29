@@ -115,7 +115,7 @@ export function PRActionHeader({
 
 type SplitButtonProps = Omit<
 	React.ComponentProps<typeof PRActionSplitButton>,
-	"kind" | "busy" | "disabledReason" | "viewUrl"
+	"kind" | "busy" | "disabledReason"
 >;
 
 function ActionSlot({
@@ -166,21 +166,17 @@ function ActionSlot({
 			);
 
 		case "view-pr":
+			// PRStatusGroup already renders the #N link (opens pr.url) + state-
+			// tinted icon + hover card with PR detail + merge dropdown — it IS
+			// the view affordance, so no separate pill needed when the PR is
+			// in sync. To invoke an agent here, edit pr-prompt.md or trigger
+			// via the chat command palette.
 			return (
-				<>
-					<PRActionSplitButton
-						kind="view"
-						viewUrl={variant.url}
-						{...splitButtonProps}
-					/>
-					<div className="ml-2">
-						<PRStatusGroup
-							state={state}
-							workspaceId={workspaceId}
-							onRefresh={onRetry}
-						/>
-					</div>
-				</>
+				<PRStatusGroup
+					state={state}
+					workspaceId={workspaceId}
+					onRefresh={onRetry}
+				/>
 			);
 
 		case "cancel-busy": {
