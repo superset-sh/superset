@@ -1,8 +1,10 @@
 import { db } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 import {
+	accessErrorResponse,
+	getOwnedChatSession,
 	PRODUCER_RESPONSE_HEADERS,
 	PROTOCOL_QUERY_PARAMS,
 	PROTOCOL_RESPONSE_HEADERS,
@@ -23,6 +25,10 @@ export async function GET(
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
 	const { sessionId } = await params;
+	const access = await getOwnedChatSession(sessionId, session.user.id);
+	if (access.kind !== "ok") {
+		return accessErrorResponse(access);
+	}
 	const url = new URL(request.url);
 
 	const upstream = new URL(streamUrl(sessionId));
@@ -83,6 +89,10 @@ export async function POST(
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
 	const { sessionId } = await params;
+	const access = await getOwnedChatSession(sessionId, session.user.id);
+	if (access.kind !== "ok") {
+		return accessErrorResponse(access);
+	}
 	const upstream = streamUrl(sessionId);
 
 	const headers: Record<string, string> = {
@@ -136,6 +146,10 @@ export async function DELETE(
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
 	const { sessionId } = await params;
+	const access = await getOwnedChatSession(sessionId, session.user.id);
+	if (access.kind !== "ok") {
+		return accessErrorResponse(access);
+	}
 
 	const response = await fetch(streamUrl(sessionId), {
 		method: "DELETE",
@@ -144,7 +158,22 @@ export async function DELETE(
 		},
 	});
 
-	await db.delete(chatSessions).where(eq(chatSessions.id, sessionId));
+	// Only delete the DB row when upstream confirms the stream is gone.
+	// fetch() does not throw on non-2xx, so we have to check explicitly,
+	// otherwise an upstream 5xx leaves an orphaned stream with no DB row
+	// pointing at it. 404 from upstream is treated as success because
+	// the stream is already absent.
+	const upstreamGone = response.ok || response.status === 404;
+	if (upstreamGone) {
+		await db
+			.delete(chatSessions)
+			.where(
+				and(
+					eq(chatSessions.id, sessionId),
+					eq(chatSessions.createdBy, session.user.id),
+				),
+			);
+	}
 
 	const headers = new Headers();
 	for (const [key, value] of response.headers.entries()) {
@@ -171,6 +200,10 @@ export async function HEAD(
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
 	const { sessionId } = await params;
+	const access = await getOwnedChatSession(sessionId, session.user.id);
+	if (access.kind !== "ok") {
+		return accessErrorResponse(access);
+	}
 
 	const response = await fetch(streamUrl(sessionId), {
 		method: "HEAD",

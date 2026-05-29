@@ -1,5 +1,12 @@
 import { DurableStream } from "@durable-streams/client";
 import { auth } from "@superset/auth/server";
+import { db } from "@superset/db/client";
+import {
+	chatSessions,
+	members,
+	type SelectChatSession,
+} from "@superset/db/schema";
+import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 
 export const PROTOCOL_QUERY_PARAMS = ["offset", "live", "cursor"];
@@ -34,6 +41,53 @@ export async function requireAuth(request: Request) {
 	});
 	if (!sessionData?.user) return null;
 	return sessionData;
+}
+
+export type ChatSessionAccess =
+	| { kind: "ok"; row: SelectChatSession }
+	| { kind: "not-found" }
+	| { kind: "forbidden" };
+
+/**
+ * Confirms the requesting user owns the chat session. Chat sessions are
+ * per-user (`createdBy` is notNull and is the only identity we trust to
+ * read/write the stream). We never gate solely on org membership, since
+ * session IDs are exposed in URLs and can be guessed.
+ */
+export async function getOwnedChatSession(
+	sessionId: string,
+	userId: string,
+): Promise<ChatSessionAccess> {
+	const row = await db.query.chatSessions.findFirst({
+		where: eq(chatSessions.id, sessionId),
+	});
+	if (!row) return { kind: "not-found" };
+	if (row.createdBy !== userId) return { kind: "forbidden" };
+	return { kind: "ok", row };
+}
+
+/**
+ * Returns a 404 for both not-found and forbidden so unauthorized callers
+ * can't probe which session IDs exist.
+ */
+export function accessErrorResponse(
+	_access: Exclude<ChatSessionAccess, { kind: "ok" }>,
+): Response {
+	return Response.json({ error: "Not found" }, { status: 404 });
+}
+
+export async function isOrganizationMember(
+	userId: string,
+	organizationId: string,
+): Promise<boolean> {
+	const row = await db.query.members.findFirst({
+		where: and(
+			eq(members.userId, userId),
+			eq(members.organizationId, organizationId),
+		),
+		columns: { id: true },
+	});
+	return Boolean(row);
 }
 
 export function streamUrl(sessionId: string) {
