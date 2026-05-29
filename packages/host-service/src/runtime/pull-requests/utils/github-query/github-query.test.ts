@@ -64,6 +64,7 @@ describe("GitHub pull request REST queries", () => {
 			isDraft: false,
 			headRefName: "fix/sidebar",
 			headRefOid: "abc123",
+			isHeadDefaultBranch: false,
 			isCrossRepository: false,
 			headRepositoryOwner: { login: "superset-sh" },
 			headRepository: { name: "superset" },
@@ -150,6 +151,93 @@ describe("GitHub pull request REST queries", () => {
 		expect(result?.number).toBe(42);
 		expect(result?.headRepositoryOwner?.login).toBe("Fork-Owner");
 		expect(result?.headRepository?.name).toBe("fork-repo");
+	});
+
+	test("ignores a terminal PR whose head is the repo default branch", async () => {
+		// Regression for #4998: a repo once had a PR where `master` (the default
+		// branch) was the head, targeting a non-default branch. After it was
+		// merged/closed, the trunk workspace kept matching that stale PR and
+		// rendered a red/purple "merged"/"closed" badge on master.
+		const { execGh } = createExecGh([
+			[
+				{
+					number: 7,
+					title: "Accidental master -> feature PR",
+					html_url: "https://github.com/superset-sh/superset/pull/7",
+					state: "closed",
+					draft: false,
+					merged_at: "2026-05-01T12:00:00Z",
+					updated_at: "2026-05-01T12:00:00Z",
+					head: {
+						ref: "master",
+						sha: "abc123",
+						repo: {
+							name: "superset",
+							owner: { login: "superset-sh" },
+							default_branch: "master",
+						},
+					},
+					base: {
+						ref: "feature-x",
+						repo: {
+							full_name: "superset-sh/superset",
+							default_branch: "master",
+						},
+					},
+				},
+			],
+		]);
+
+		const result = await fetchPullRequestByHeadFromGh(
+			execGh,
+			{ owner: "superset-sh", name: "superset" },
+			{ owner: "superset-sh", repo: "superset", branch: "master" },
+		);
+
+		expect(result).toBeNull();
+	});
+
+	test("still matches an open PR whose head is the default branch", async () => {
+		// Only terminal (merged/closed) default-branch PRs are stale noise; an
+		// open one is currently relevant and must still surface.
+		const { execGh } = createExecGh([
+			[
+				{
+					number: 8,
+					title: "Open master -> feature PR",
+					html_url: "https://github.com/superset-sh/superset/pull/8",
+					state: "open",
+					draft: false,
+					merged_at: null,
+					updated_at: "2026-05-01T12:00:00Z",
+					head: {
+						ref: "master",
+						sha: "abc123",
+						repo: {
+							name: "superset",
+							owner: { login: "superset-sh" },
+							default_branch: "master",
+						},
+					},
+					base: {
+						ref: "feature-x",
+						repo: {
+							full_name: "superset-sh/superset",
+							default_branch: "master",
+						},
+					},
+				},
+			],
+		]);
+
+		const result = await fetchPullRequestByHeadFromGh(
+			execGh,
+			{ owner: "superset-sh", name: "superset" },
+			{ owner: "superset-sh", repo: "superset", branch: "master" },
+		);
+
+		expect(result?.number).toBe(8);
+		expect(result?.isHeadDefaultBranch).toBe(true);
 	});
 
 	test("derives review decision from latest REST reviews by author", async () => {

@@ -86,6 +86,16 @@ function normalizePullRequest(raw: unknown): GitHubPullRequestNode | null {
 		? `${ownerLogin}/${repoName}`.toLowerCase()
 		: null;
 
+	// GitHub embeds the full repo object on `head.repo`; for same-repo PRs that
+	// carries the repository's default branch. Fall back to `base.repo` (the
+	// upstream) so cross-repo PRs from a fork's trunk are caught too.
+	const headRepoDefaultBranch =
+		headRepo && typeof headRepo.default_branch === "string"
+			? headRepo.default_branch
+			: baseRepo && typeof baseRepo.default_branch === "string"
+				? baseRepo.default_branch
+				: null;
+
 	return {
 		number: raw.number,
 		title: raw.title,
@@ -97,6 +107,8 @@ function normalizePullRequest(raw: unknown): GitHubPullRequestNode | null {
 		isDraft: raw.draft === true,
 		headRefName: raw.head.ref,
 		headRefOid: raw.head.sha,
+		isHeadDefaultBranch:
+			headRepoDefaultBranch !== null && raw.head.ref === headRepoDefaultBranch,
 		isCrossRepository:
 			Boolean(baseFullName && headFullName) && baseFullName !== headFullName,
 		headRepositoryOwner: { login: ownerLogin },
@@ -133,7 +145,11 @@ function normalizePullRequestCandidates(
 						node.headRepositoryOwner?.login,
 						node.headRepository?.name,
 						node.headRefName,
-					) === requestedKey,
+					) === requestedKey &&
+					// A merged/closed PR whose head is the repo's default branch is a
+					// stale anomaly (e.g. an old `master` -> feature PR). Never surface
+					// it as the trunk workspace's PR status. See #4998.
+					!(node.isHeadDefaultBranch && node.state !== "OPEN"),
 			) ?? null
 	);
 }
