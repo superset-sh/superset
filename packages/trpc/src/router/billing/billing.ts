@@ -125,7 +125,7 @@ export const billingRouter = {
 		const twelveMonthsAgo = subtractMonthsClamped(new Date(), 12);
 
 		// A paid invoice belongs to exactly one customer, so merging across
-		// customers never produces duplicates — just sort by date for display.
+		// customers never produces duplicates.
 		const invoiceLists = await Promise.all(
 			customerIds.map((customer) =>
 				stripeClient.invoices.list({
