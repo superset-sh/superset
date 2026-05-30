@@ -4,8 +4,8 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface TerminalOverlayScrollbarProps {
-	backgroundColor?: string;
 	controlsId: string;
+	foregroundColor?: string;
 	terminal: XTerm | null | undefined;
 }
 
@@ -32,62 +32,17 @@ interface ScrollbarStyle extends CSSProperties {
 	"--terminal-scrollbar-thumb-hover": string;
 }
 
-function parseColor(
-	color: string | undefined,
-): [number, number, number] | null {
-	if (!color) return null;
-
-	const hex = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-	if (hex) {
-		const value = hex[1];
-		const normalized =
-			value.length === 3
-				? value
-						.split("")
-						.map((char) => char + char)
-						.join("")
-				: value;
-		return [
-			Number.parseInt(normalized.slice(0, 2), 16),
-			Number.parseInt(normalized.slice(2, 4), 16),
-			Number.parseInt(normalized.slice(4, 6), 16),
-		];
-	}
-
-	const rgb = color.match(
-		/^rgba?\(\s*(\d{1,3})[\s,]+(\d{1,3})[\s,]+(\d{1,3})/i,
-	);
-	if (!rgb) return null;
-
-	return [
-		Number.parseInt(rgb[1], 10),
-		Number.parseInt(rgb[2], 10),
-		Number.parseInt(rgb[3], 10),
-	];
-}
-
-function isLightBackground(color: string | undefined): boolean {
-	const rgb = parseColor(color);
-	if (!rgb) return false;
-	const [red, green, blue] = rgb;
-	return (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255 > 0.6;
-}
+const DEFAULT_SCROLLBAR_FOREGROUND = "var(--foreground)";
 
 function getScrollbarStyle(
-	backgroundColor: string | undefined,
+	foregroundColor: string | undefined,
 ): ScrollbarStyle {
-	if (isLightBackground(backgroundColor)) {
-		return {
-			"--terminal-scrollbar-rail": "rgba(39, 39, 42, 0.04)",
-			"--terminal-scrollbar-thumb": "rgba(113, 113, 122, 0.46)",
-			"--terminal-scrollbar-thumb-hover": "rgba(82, 82, 91, 0.58)",
-		};
-	}
+	const color = foregroundColor?.trim() || DEFAULT_SCROLLBAR_FOREGROUND;
 
 	return {
-		"--terminal-scrollbar-rail": "rgba(255, 255, 255, 0.04)",
-		"--terminal-scrollbar-thumb": "rgba(255, 255, 255, 0.18)",
-		"--terminal-scrollbar-thumb-hover": "rgba(255, 255, 255, 0.3)",
+		"--terminal-scrollbar-rail": `color-mix(in srgb, ${color} 4%, transparent)`,
+		"--terminal-scrollbar-thumb": `color-mix(in srgb, ${color} 18%, transparent)`,
+		"--terminal-scrollbar-thumb-hover": `color-mix(in srgb, ${color} 30%, transparent)`,
 	};
 }
 
@@ -117,12 +72,13 @@ function readScrollMetrics(terminal: XTerm | null | undefined): ScrollMetrics {
 }
 
 export function TerminalOverlayScrollbar({
-	backgroundColor,
 	controlsId,
+	foregroundColor,
 	terminal,
 }: TerminalOverlayScrollbarProps) {
 	const railRef = useRef<HTMLDivElement | null>(null);
 	const dragOffsetRef = useRef(0);
+	const isDraggingRef = useRef(false);
 	const [isDragging, setIsDragging] = useState(false);
 	const [metrics, setMetrics] = useState<ScrollMetrics>(() =>
 		readScrollMetrics(terminal),
@@ -174,7 +130,12 @@ export function TerminalOverlayScrollbar({
 
 	if (!terminal || !metrics.isScrollable) return null;
 
-	const scrollbarStyle = getScrollbarStyle(backgroundColor);
+	const scrollbarStyle = getScrollbarStyle(foregroundColor);
+	const scrollPositionRatio =
+		metrics.maxScroll > 0
+			? Math.min(1, Math.max(0, metrics.viewportY / metrics.maxScroll))
+			: 0;
+	const scrollPositionPercent = Math.round(scrollPositionRatio * 100);
 
 	return (
 		<div
@@ -202,6 +163,7 @@ export function TerminalOverlayScrollbar({
 				aria-valuemin={0}
 				aria-valuemax={metrics.maxScroll}
 				aria-valuenow={metrics.viewportY}
+				aria-valuetext={`${scrollPositionPercent}%`}
 				tabIndex={0}
 				className={cn(
 					"pointer-events-auto absolute right-0 w-1 rounded-full bg-[var(--terminal-scrollbar-thumb)] outline-none transition-[background-color,width] hover:w-2 hover:bg-[var(--terminal-scrollbar-thumb-hover)] focus-visible:w-2 active:bg-[var(--terminal-scrollbar-thumb-hover)] group-hover/terminal-overlay-scrollbar:w-2",
@@ -239,22 +201,25 @@ export function TerminalOverlayScrollbar({
 					event.currentTarget.setPointerCapture(event.pointerId);
 					const thumbRect = event.currentTarget.getBoundingClientRect();
 					dragOffsetRef.current = event.clientY - thumbRect.top;
+					isDraggingRef.current = true;
 					setIsDragging(true);
 				}}
 				onPointerMove={(event) => {
-					if (!isDragging) return;
+					if (!isDraggingRef.current) return;
 					event.preventDefault();
 					scrollToPointer(event.clientY, dragOffsetRef.current);
 				}}
 				onPointerUp={(event) => {
-					if (!isDragging) return;
+					if (!isDraggingRef.current) return;
 					event.preventDefault();
+					isDraggingRef.current = false;
 					if (event.currentTarget.hasPointerCapture(event.pointerId)) {
 						event.currentTarget.releasePointerCapture(event.pointerId);
 					}
 					setIsDragging(false);
 				}}
 				onPointerCancel={(event) => {
+					isDraggingRef.current = false;
 					if (event.currentTarget.hasPointerCapture(event.pointerId)) {
 						event.currentTarget.releasePointerCapture(event.pointerId);
 					}

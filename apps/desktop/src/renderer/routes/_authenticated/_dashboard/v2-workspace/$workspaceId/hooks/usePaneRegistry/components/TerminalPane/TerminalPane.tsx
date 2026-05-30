@@ -422,8 +422,8 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<TerminalOverlayScrollbar
-					backgroundColor={appearance.background}
 					controlsId={scrollAreaId}
+					foregroundColor={appearance.theme.foreground}
 					terminal={terminal}
 				/>
 				<ScrollToBottomButton terminal={terminal} />

@@ -10,7 +10,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { SessionKilledOverlay } from "./components";
 import { DEFAULT_TERMINAL_FONT_SIZE } from "./config";
-import { getDefaultTerminalBg } from "./helpers";
+import { getDefaultTerminalTheme } from "./helpers";
 import {
 	useFileLinkClick,
 	useTerminalColdRestore,
@@ -425,7 +425,8 @@ export const Terminal = memo(function Terminal({
 		}
 	}, [paneId, fontSettings]);
 
-	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
+	const resolvedTerminalTheme = terminalTheme ?? getDefaultTerminalTheme();
+	const terminalBg = resolvedTerminalTheme.background ?? "#151110";
 
 	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();
@@ -465,8 +466,8 @@ export const Terminal = memo(function Terminal({
 				onClose={() => setIsSearchOpen(false)}
 			/>
 			<TerminalOverlayScrollbar
-				backgroundColor={terminalBg}
 				controlsId={scrollAreaId}
+				foregroundColor={resolvedTerminalTheme.foreground}
 				terminal={xtermInstance}
 			/>
 			<ScrollToBottomButton terminal={xtermInstance} />
