@@ -78,6 +78,26 @@ describe("runWithPostCheckoutHookTolerance", () => {
 		).rejects.toThrow("already exists");
 	});
 
+	test("re-throws git usage errors (exit 129) instead of misreading them as a signal failure", async () => {
+		// Git usage errors exit 129. That is numerically 128 + SIGHUP, so a naive
+		// `code > 128` check would wrongly tolerate it; only SIGPIPE (141) is
+		// forgiven. With the outcome probe passing, this must still rethrow.
+		const usageError = Object.assign(new Error("usage: git worktree add ..."), {
+			stderr: "usage: git worktree add ...",
+			code: 129,
+		});
+
+		await expect(
+			runWithPostCheckoutHookTolerance({
+				context: "Created worktree",
+				run: async () => {
+					throw usageError;
+				},
+				didSucceed: async () => true,
+			}),
+		).rejects.toThrow("usage: git worktree add");
+	});
+
 	test("re-throws the original error when the success check itself throws", async () => {
 		const hookError = Object.assign(new Error("post-checkout hook failed"), {
 			code: 1,

@@ -40,19 +40,23 @@ function isPostCheckoutHookFailure(error: unknown): boolean {
 	);
 }
 
+// SIGPIPE (signal 13) → exit 141 (128 + 13).
+const SIGPIPE_EXIT_CODE = 141;
+
 /**
- * Recognises a process that died from / propagated a signal rather than a git
- * usage error. A post-checkout hook pipeline that hits SIGPIPE under
- * `set -o pipefail` surfaces as exit 141 (128 + SIGPIPE) with no diagnostic
- * text, so the keyword check above can't see it (#4350). Genuine git failures
- * ("fatal: …") exit with 128 or 1, so this branch stays clear of them.
+ * Recognises a process that died from SIGPIPE. A post-checkout hook pipeline
+ * that hits SIGPIPE under `set -o pipefail` (e.g. `git worktree list | awk
+ * '…exit'`) propagates exit 141 with no diagnostic text, so the keyword check
+ * above can't see it (#4350).
+ *
+ * We match SIGPIPE specifically rather than any `code > 128`: git's own usage
+ * errors exit 129 (= 128 + SIGHUP numerically, but really a usage failure) and
+ * user interrupts exit 130 (SIGINT) / 143 (SIGTERM) — none of which we want to
+ * silently tolerate. Genuine git failures ("fatal: …") exit 128 or 1.
  */
-function isSignalTerminatedFailure(error: unknown): boolean {
+function isSigPipeFailure(error: unknown): boolean {
 	const { code, signal } = error as GitCommandException;
-	if (typeof signal === "string" && signal.length > 0) {
-		return true;
-	}
-	return typeof code === "number" && code > 128;
+	return signal === "SIGPIPE" || code === SIGPIPE_EXIT_CODE;
 }
 
 /**
@@ -67,9 +71,9 @@ function isSignalTerminatedFailure(error: unknown): boolean {
  * under `set -o pipefail`) — even though git already finished its work.
  *
  * We forgive the failure only if it looks like a hook failure (recognisable
- * diagnostics) or a signal-terminated process (exit > 128), and the concrete
+ * diagnostics) or a SIGPIPE-terminated process (exit 141), and the concrete
  * outcome we wanted is real (`didSucceed`: worktree registered / branch
- * switched). Genuine git usage errors ("fatal: …", exit 128/1) are NEVER
+ * switched). Genuine git usage errors ("fatal: …", exit 128/129/1) are NEVER
  * swallowed — even if `didSucceed` would pass over a stale/pre-existing worktree
  * at the same path — so a real `worktree add` failure is not hidden.
  */
@@ -85,10 +89,7 @@ export async function runWithPostCheckoutHookTolerance({
 	try {
 		await run();
 	} catch (error) {
-		if (
-			!isPostCheckoutHookFailure(error) &&
-			!isSignalTerminatedFailure(error)
-		) {
+		if (!isPostCheckoutHookFailure(error) && !isSigPipeFailure(error)) {
 			throw error;
 		}
 
