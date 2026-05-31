@@ -390,3 +390,18 @@ server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
 	);
 });
 injectWebSocket(server);
+
+// Disable Nagle's algorithm on every incoming connection. Both the client's
+// terminal WebSocket and the host's tunnel WebSocket connect here, so this
+// covers the relay's writes in both directions. Nagle interacting with TCP
+// delayed-ACK adds tens-to-hundreds of milliseconds to small, sparse
+// interactive frames (terminal keystrokes and their echoes) while leaving
+// bulk output untouched; across the relay's multiple hops this compounds into
+// seconds of perceived typing lag. Interactive proxies should always set
+// TCP_NODELAY. (@hono/node-server returns a Node http.Server.)
+(server as unknown as import("node:http").Server).on(
+	"connection",
+	(socket: import("node:net").Socket) => {
+		socket.setNoDelay(true);
+	},
+);
