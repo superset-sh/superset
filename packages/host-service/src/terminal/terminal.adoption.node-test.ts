@@ -296,6 +296,26 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
+	test("background output does not leave daemon flow control paused", async () => {
+		const terminalId = `e2e-bg-flow-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		const marker = `bg-flow-done-${randomUUID().slice(0, 6)}`;
+		result.pty.write(
+			`i=0; while [ "$i" -lt 3000 ]; do printf '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n'; i=$((i + 1)); done; echo ${marker}\n`,
+		);
+
+		await waitFor(() => sessionBufferText(result).includes(marker), 10_000);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
 	test("adopts existing daemon session after host-service restart simulation", async () => {
 		const terminalId = `e2e-adopt-${randomUUID().slice(0, 8)}`;
 
@@ -666,4 +686,10 @@ async function waitForOutput(
 	} finally {
 		disposer.dispose();
 	}
+}
+
+function sessionBufferText(session: { buffer: Uint8Array[] }): string {
+	return Buffer.concat(session.buffer.map((b) => Buffer.from(b))).toString(
+		"utf8",
+	);
 }

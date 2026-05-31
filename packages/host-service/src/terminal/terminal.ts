@@ -1325,6 +1325,12 @@ export async function createTerminalSessionInternal({
 
 				if (broadcastBytes(session, bytes) === 0) {
 					bufferOutput(session, bytes);
+					// Normally the renderer ACKs each byte it draws, which tells
+					// the daemon it's safe to keep sending. With no socket open,
+					// those ACKs never come, the daemon thinks we're overwhelmed,
+					// and it pauses the PTY forever. So ACK on its behalf: we've
+					// safely stored these bytes in our (size-capped) replay buffer.
+					session.pty.ackOutput(bytes.byteLength);
 				}
 			},
 			onExit({ code, signal }) {
