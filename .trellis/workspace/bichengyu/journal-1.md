@@ -112,3 +112,37 @@ Captured the local desktop startup service graph, Electric proxy/Caddy fallback,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Model Provider Configuration Center
+
+**Date**: 2026-05-31
+**Task**: Model Provider Configuration Center
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Completed the provider-centered model configuration work: Settings provider registry, Chat model picker grouping/search, Claude Code worktree model config, local model gateway, local model icons, resend/runtime fixes, desktop automation validation, and Trellis spec updates.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ae04eb816` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
