@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { WorkspacesListView } from "renderer/screens/main/components/WorkspacesListView";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/workspaces/")({
-	component: WorkspacesPage,
+	component: LegacyWorkspacesRedirect,
 });
 
-function WorkspacesPage() {
-	return <WorkspacesListView />;
+function LegacyWorkspacesRedirect() {
+	return <Navigate to="/v2-workspaces" replace />;
 }

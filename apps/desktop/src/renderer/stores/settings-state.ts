@@ -45,7 +45,7 @@ export const useSettingsStore = create<SettingsState>()(
 			activeProjectId: null,
 			searchQuery: "",
 			isOpen: false,
-			originRoute: "/workspace",
+			originRoute: "/v2-workspaces",
 
 			setActiveSection: (section) => set({ activeSection: section }),
 

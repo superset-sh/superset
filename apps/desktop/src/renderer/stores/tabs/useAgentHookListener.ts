@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
 import { useTabsStore } from "./store";
@@ -34,13 +34,13 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
 
 /**
  * Returns the current workspace ID from the live URL hash.
- * The app uses hash routing: file:///.../index.html#/workspace/<id>
+ * The app uses hash routing: file:///.../index.html#/v2-workspace/<id>
  * We must read window.location.hash (not pathname) at event time since the
  * _authenticated layout does not re-render on workspace navigation.
  */
 function getCurrentWorkspaceId(): string | null {
 	try {
-		const match = window.location.hash.match(/\/workspace\/([^/?#]+)/);
+		const match = window.location.hash.match(/\/v2-workspace\/([^/?#]+)/);
 		return match ? match[1] : null;
 	} catch {
 		return null;
@@ -122,12 +122,7 @@ export function useAgentHookListener() {
 					state.setPaneStatus(paneId, "idle");
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
-				navigateToWorkspace(workspaceId, navigate, {
-					search: {
-						tabId: target.tabId,
-						paneId: target.paneId,
-					},
-				});
+				navigateToV2Workspace(workspaceId, navigate);
 			}
 		},
 	});

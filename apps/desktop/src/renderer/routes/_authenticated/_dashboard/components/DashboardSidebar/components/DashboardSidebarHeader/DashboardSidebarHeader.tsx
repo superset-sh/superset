@@ -16,7 +16,6 @@ import {
 	LuLayers,
 	LuPlus,
 } from "react-icons/lu";
-import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
@@ -69,7 +68,6 @@ export function DashboardSidebarHeader({
 	// Default to Mac while loading so we don't briefly cover the traffic lights.
 	const isMac = platform === undefined || platform === "darwin";
 	const matchRoute = useMatchRoute();
-	const { gateFeature } = usePaywall();
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
@@ -91,17 +89,15 @@ export function DashboardSidebarHeader({
 	};
 
 	const handleTasksClick = () => {
-		gateFeature(GATED_FEATURES.TASKS, () => {
-			navigate({
-				to: "/tasks",
-				search: tasksSearchFromFilters({
-					tab: lastTab,
-					assignee: lastAssignee,
-					search: lastSearch,
-					typeTab: lastTypeTab,
-					projectFilter: lastProjectFilter,
-				}),
-			});
+		navigate({
+			to: "/tasks",
+			search: tasksSearchFromFilters({
+				tab: lastTab,
+				assignee: lastAssignee,
+				search: lastSearch,
+				typeTab: lastTypeTab,
+				projectFilter: lastProjectFilter,
+			}),
 		});
 	};
 

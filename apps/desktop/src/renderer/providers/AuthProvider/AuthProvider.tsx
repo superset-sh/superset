@@ -3,6 +3,17 @@ import { authClient, setAuthToken, setJwt } from "renderer/lib/auth-client";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
 
+async function refreshAuthJwt(logContext: string): Promise<void> {
+	try {
+		const res = await authClient.token();
+		if (res.data?.token) {
+			setJwt(res.data.token);
+		}
+	} catch (err) {
+		console.warn(`[AuthProvider] JWT refresh failed ${logContext}`, err);
+	}
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { refetch: refetchSession } = authClient.useSession();
@@ -31,17 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 							err,
 						);
 					}
-					try {
-						const res = await authClient.token();
-						if (res.data?.token) {
-							setJwt(res.data.token);
-						}
-					} catch (err) {
-						console.warn(
-							"[AuthProvider] JWT fetch failed during hydration",
-							err,
-						);
-					}
+					await refreshAuthJwt("during hydration");
 				}
 			}
 			if (!cancelled) {
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						err,
 					);
 				}
+				await refreshAuthJwt("after token change");
 				setIsHydrated(true);
 			} else if (data === null) {
 				setAuthToken(null);
@@ -88,20 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (!isHydrated) return;
 
-		const refreshJwt = () =>
-			authClient
-				.token()
-				.then((res) => {
-					if (res.data?.token) {
-						setJwt(res.data.token);
-					}
-				})
-				.catch((err: unknown) => {
-					console.warn("[AuthProvider] JWT refresh failed", err);
-				});
-
-		refreshJwt();
-		const interval = setInterval(refreshJwt, 50 * 60 * 1000);
+		void refreshAuthJwt("on interval start");
+		const interval = setInterval(
+			() => void refreshAuthJwt("on interval"),
+			50 * 60 * 1000,
+		);
 		return () => clearInterval(interval);
 	}, [isHydrated]);
 

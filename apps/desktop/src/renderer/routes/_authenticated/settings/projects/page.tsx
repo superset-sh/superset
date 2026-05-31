@@ -4,7 +4,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
@@ -20,9 +19,6 @@ function ProjectsIndexPage() {
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
-
-	const { data: groups = [], isLoading: groupsLoading } =
-		electronTrpc.workspaces.getAllGrouped.useQuery();
 
 	const { data: v2Projects = [], isReady } = useLiveQuery(
 		(q) =>
@@ -42,18 +38,8 @@ function ProjectsIndexPage() {
 		const v2Sorted = [...v2Projects].sort((a, b) =>
 			a.name.localeCompare(b.name),
 		);
-		if (v2Sorted[0]) return v2Sorted[0].id;
-
-		const loadedV2Ids = new Set(v2Projects.map((p) => p.id));
-		const v1Sorted = groups
-			.filter(
-				(g) =>
-					!g.project.neonProjectId || !loadedV2Ids.has(g.project.neonProjectId),
-			)
-			.map((g) => g.project)
-			.sort((a, b) => a.name.localeCompare(b.name));
-		return v1Sorted[0]?.id ?? null;
-	}, [v2Projects, groups]);
+		return v2Sorted[0]?.id ?? null;
+	}, [v2Projects]);
 
 	useEffect(() => {
 		if (firstProjectId) {
@@ -65,9 +51,8 @@ function ProjectsIndexPage() {
 		}
 	}, [firstProjectId, navigate]);
 
-	const isEmpty = v2Projects.length === 0 && groups.length === 0;
-	if (isEmpty) {
-		if (!isReady || groupsLoading) return null;
+	if (v2Projects.length === 0) {
+		if (!isReady) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
 				No projects yet.

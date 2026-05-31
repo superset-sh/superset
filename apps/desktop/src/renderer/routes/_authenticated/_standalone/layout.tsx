@@ -2,10 +2,10 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 export const Route = createFileRoute("/_authenticated/_standalone")({
-	component: OnboardingLayout,
+	component: StandaloneLayout,
 });
 
-function OnboardingLayout() {
+function StandaloneLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === undefined || platform === "darwin";
 

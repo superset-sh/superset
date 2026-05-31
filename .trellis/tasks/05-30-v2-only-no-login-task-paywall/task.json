@@ -1,0 +1,28 @@
+{
+  "id": "v2-only-no-login-task-paywall",
+  "name": "v2-only-no-login-task-paywall",
+  "title": "Make desktop V2-only with password auth and no task paywall",
+  "description": "Plan the clean V2-only desktop refactor, keep the foreground login blocker, add email/password sign-in and sign-up, and remove Task paid restrictions.",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": "desktop",
+  "priority": "P1",
+  "creator": "bichengyu",
+  "assignee": "bichengyu",
+  "createdAt": "2026-05-30",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "05-30-desktop-automation-smoke-harness"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

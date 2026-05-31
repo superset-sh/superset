@@ -21,7 +21,6 @@ import {
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
 import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 import { getAllowedSectionsForVariant } from "../../utils/settings-search";
@@ -213,11 +212,7 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
-	const isV2CloudEnabled = useIsV2CloudEnabled();
-	const allowedSections = useMemo(
-		() => getAllowedSectionsForVariant(isV2CloudEnabled),
-		[isV2CloudEnabled],
-	);
+	const allowedSections = useMemo(() => getAllowedSectionsForVariant(true), []);
 
 	return (
 		<>

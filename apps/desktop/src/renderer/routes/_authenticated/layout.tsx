@@ -11,11 +11,9 @@ import {
 import { useEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
-import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
@@ -24,7 +22,6 @@ import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showW
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
-import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -60,7 +57,7 @@ function AuthenticatedLayout() {
 	const setOriginRoute = useSettingsStore((s) => s.setOriginRoute);
 	const utils = electronTrpc.useUtils();
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
-	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const signOut = electronTrpc.auth.signOut.useMutation();
 
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -154,7 +151,10 @@ function AuthenticatedLayout() {
 				const section = event.data.section || "account";
 				navigate({ to: `/settings/${section}` as "/settings/account" });
 			} else if (event.type === "open-workspace") {
-				navigate({ to: `/workspace/${event.data.workspaceId}` });
+				navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: event.data.workspaceId },
+				});
 			}
 		},
 	});
@@ -195,15 +195,32 @@ function AuthenticatedLayout() {
 	}
 
 	if (!activeOrganizationId) {
-		return <Navigate to="/create-organization" replace />;
-	}
-
-	if (
-		session?.user &&
-		!session.user.onboardedAt &&
-		!location.pathname.startsWith("/onboarding")
-	) {
-		return <Navigate to="/onboarding" replace />;
+		return (
+			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background px-6">
+				<div className="max-w-sm text-center">
+					<h2 className="text-lg font-medium">Account setup is incomplete</h2>
+					<p className="mt-2 text-sm text-muted-foreground select-text cursor-text">
+						Your session does not have an active organization. Sign out and sign
+						in again, or contact support if this keeps happening.
+					</p>
+				</div>
+				<div className="flex gap-2">
+					<Button variant="outline" size="sm" onClick={() => refetch()}>
+						Retry
+					</Button>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={signOut.isPending}
+						onClick={() => {
+							void signOut.mutateAsync();
+						}}
+					>
+						Sign out
+					</Button>
+				</div>
+			</div>
+		);
 	}
 
 	return (
@@ -221,13 +238,8 @@ function AuthenticatedLayout() {
 							<V2NotificationController />
 							<DaemonAutoUpdateFailureDialog />
 							<Outlet />
-							<V1ImportModal />
 							<WorkspaceInitEffects />
-							{isV2CloudEnabled ? (
-								<DashboardNewWorkspaceModal />
-							) : (
-								<NewWorkspaceModal />
-							)}
+							<DashboardNewWorkspaceModal />
 							<InitGitDialog />
 							<TeardownLogsDialog />
 							<Paywall />

@@ -1,0 +1,15 @@
+export {
+	type ClickOptions,
+	type ClickResult,
+	type ConsoleLogsOptions,
+	DesktopAutomation,
+	type DomElement,
+	type NavigateOptions,
+	type ScreenshotRect,
+	type ScreenshotResult,
+	type SendKeysOptions,
+	type TypeTextOptions,
+	type WaitForOptions,
+	type WaitForResult,
+	type WindowInfo,
+} from "./desktop-automation.js";

@@ -26,7 +26,9 @@
 		"VERCEL_ENV",
 		"VERCEL_URL",
 		"npm_lifecycle_event",
-		"RENDERER_REMOTE_DEBUG_PORT"
+		"RENDERER_REMOTE_DEBUG_PORT",
+		"DESKTOP_AUTOMATION_PORT",
+		"DESKTOP_VITE_PORT"
 	],
 	"tasks": {
 		"build": {

@@ -3,7 +3,6 @@ import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import { LuLayers } from "react-icons/lu";
-import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
@@ -20,7 +19,6 @@ export function WorkspaceSidebarHeader({
 }: WorkspaceSidebarHeaderProps) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
-	const { gateFeature } = usePaywall();
 
 	const isWorkspacesListOpen = !!matchRoute({ to: "/workspaces" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
@@ -43,17 +41,15 @@ export function WorkspaceSidebarHeader({
 	} = useTasksFilterStore();
 
 	const handleTasksClick = () => {
-		gateFeature(GATED_FEATURES.TASKS, () => {
-			navigate({
-				to: "/tasks",
-				search: tasksSearchFromFilters({
-					tab: lastTab,
-					assignee: lastAssignee,
-					search: lastSearch,
-					typeTab: lastTypeTab,
-					projectFilter: lastProjectFilter,
-				}),
-			});
+		navigate({
+			to: "/tasks",
+			search: tasksSearchFromFilters({
+				tab: lastTab,
+				assignee: lastAssignee,
+				search: lastSearch,
+				typeTab: lastTypeTab,
+				projectFilter: lastProjectFilter,
+			}),
 		});
 	};
 

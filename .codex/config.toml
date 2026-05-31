@@ -1,3 +1,7 @@
+project_doc_fallback_filenames = ["AGENTS.md"]
+
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
 [mcp_servers.superset]
 type = "sse"
 url = "https://api.superset.sh/api/v2/agent/mcp"
@@ -22,3 +26,12 @@ url = "https://mcp.linear.app/mcp"
 [mcp_servers.sentry]
 type = "sse"
 url = "https://mcp.sentry.dev/mcp"
+
+[mcp_servers.desktop-automation]
+command = "bun"
+args = ["run", "packages/desktop-mcp/src/bin.ts"]
+cwd = "/Users/bichengyu/Documents/toolProject/superset"
+startup_timeout_sec = 120
+
+[mcp_servers.desktop-automation.env]
+DESKTOP_AUTOMATION_PORT = "9322"

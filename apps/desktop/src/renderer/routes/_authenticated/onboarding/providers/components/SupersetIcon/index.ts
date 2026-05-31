@@ -1,1 +1,0 @@
-export { SupersetIcon } from "./SupersetIcon";

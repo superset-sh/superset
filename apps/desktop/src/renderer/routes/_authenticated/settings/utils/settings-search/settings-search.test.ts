@@ -65,7 +65,7 @@ describe("settings search - font settings", () => {
 		expect(terminalFont?.section).toBe("appearance");
 	});
 
-	it("keeps the Git tab visible in v2 for the user worktree location", () => {
+	it("keeps the Git tab visible in v2 for branch prefix and worktree location", () => {
 		expect(getAllowedSectionsForVariant(true).has("git")).toBe(true);
 		expect(
 			getVisibleItemsForSection({
@@ -73,6 +73,9 @@ describe("settings search - font settings", () => {
 				searchQuery: "",
 				isV2: true,
 			}),
-		).toEqual([SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]);
+		).toEqual([
+			SETTING_ITEM_ID.GIT_BRANCH_PREFIX,
+			SETTING_ITEM_ID.GIT_WORKTREE_LOCATION,
+		]);
 	});
 });

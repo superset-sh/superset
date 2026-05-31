@@ -1,15 +1,9 @@
 import type { IconType } from "react-icons";
 import { FaSlack } from "react-icons/fa";
-import {
-	HiDevicePhoneMobile,
-	HiOutlineClipboardDocumentList,
-	HiOutlineSignal,
-	HiUsers,
-} from "react-icons/hi2";
+import { HiDevicePhoneMobile, HiOutlineSignal, HiUsers } from "react-icons/hi2";
 
 export const GATED_FEATURES = {
 	INVITE_MEMBERS: "invite-members",
-	TASKS: "tasks",
 	REMOTE_WORKSPACES: "remote-workspaces",
 	MOBILE_APP: "mobile-app",
 } as const;
@@ -46,15 +40,6 @@ export const PRO_FEATURES: ProFeature[] = [
 		gradientColors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"],
 	},
 	{
-		id: "tasks",
-		title: "Tasks",
-		description:
-			"Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset.",
-		icon: HiOutlineClipboardDocumentList,
-		iconColor: "text-emerald-500",
-		gradientColors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"],
-	},
-	{
 		id: "slack-integration",
 		title: "Slack Integration",
 		description:
@@ -78,7 +63,6 @@ export const PRO_FEATURES: ProFeature[] = [
 // Map gated feature IDs to the feature to highlight in the paywall dialog
 export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.INVITE_MEMBERS]: "team-collaboration",
-	[GATED_FEATURES.TASKS]: "tasks",
 	[GATED_FEATURES.REMOTE_WORKSPACES]: "remote-workspaces",
 	[GATED_FEATURES.MOBILE_APP]: "mobile-app",
 };

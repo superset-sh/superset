@@ -86,6 +86,13 @@ superset-dev-data/
 !.codex/config.toml
 !.codex/commands
 !.codex/prompts
+!.codex/agents/
+!.codex/agents/**
+!.codex/hooks.json
+!.codex/hooks/
+!.codex/hooks/**
+.codex/hooks/**/__pycache__/
+.codex/hooks/**/*.pyc
 .amp/*
 
 # MCP config (contains per-user server URLs/tokens)

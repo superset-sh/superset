@@ -6,7 +6,6 @@ import {
 	HiMagnifyingGlass,
 	HiXMark,
 } from "react-icons/hi2";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
 	useSetSettingsSearchQuery,
 	useSettingsOriginRoute,
@@ -19,10 +18,9 @@ export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const normalizedSearchQuery = searchQuery.trim();
 	const matchCounts = normalizedSearchQuery
-		? getVisibleMatchCountBySection(normalizedSearchQuery, isV2CloudEnabled)
+		? getVisibleMatchCountBySection(normalizedSearchQuery, true)
 		: null;
 
 	return (

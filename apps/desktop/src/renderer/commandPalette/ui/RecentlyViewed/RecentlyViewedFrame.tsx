@@ -9,8 +9,6 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { LuCpu, LuGitBranch } from "react-icons/lu";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type RecentlyViewedEntry,
 	useRecentlyViewed,
@@ -26,19 +24,8 @@ export function RecentlyViewedFrame() {
 	const recentEntries = useRecentlyViewed(20);
 	const currentPath = useLocation({ select: (loc) => loc.pathname });
 	const collections = useCollections();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const setOpen = useFrameStackStore((s) => s.setOpen);
 	const navigate = useNavigate();
-
-	const { data: groups } = electronTrpc.workspaces.getAllGrouped.useQuery();
-	const workspaceData = (groups ?? []).flatMap((group) =>
-		group.workspaces.map((ws) => ({
-			id: ws.id,
-			projectName: group.project.name,
-			projectColor: group.project.color,
-			branch: ws.branch ?? ws.name,
-		})),
-	);
 
 	const { data: v2WorkspaceData } = useLiveQuery(
 		(q) =>
@@ -87,15 +74,12 @@ export function RecentlyViewedFrame() {
 
 	const filteredEntries = recentEntries.filter((entry) => {
 		if (entry.type === "workspace") {
-			if (isV2CloudEnabled) return false;
-			return workspaceData.some((w) => w.id === entry.entityId);
+			return false;
 		}
 		if (entry.type === "v2-workspace") {
-			if (!isV2CloudEnabled) return false;
 			return (v2WorkspaceData ?? []).some((w) => w.id === entry.entityId);
 		}
 		if (entry.type === "automation") {
-			if (!isV2CloudEnabled) return false;
 			return (automationData ?? []).some((a) => a.id === entry.entityId);
 		}
 		return (taskData ?? []).some(
@@ -147,15 +131,7 @@ export function RecentlyViewedFrame() {
 							/>
 						);
 					}
-					return (
-						<WorkspaceRow
-							key={entry.path}
-							entry={entry}
-							isCurrent={isCurrent}
-							workspaceData={workspaceData}
-							onSelect={() => navigateTo(entry.path)}
-						/>
-					);
+					return null;
 				})}
 			</CommandGroup>
 		</CommandList>
@@ -166,49 +142,6 @@ interface RowProps {
 	entry: RecentlyViewedEntry;
 	isCurrent: boolean;
 	onSelect: () => void;
-}
-
-function WorkspaceRow({
-	entry,
-	isCurrent,
-	workspaceData,
-	onSelect,
-}: RowProps & {
-	workspaceData: {
-		id: string;
-		projectName: string;
-		projectColor: string;
-		branch: string;
-	}[];
-}) {
-	const ws = workspaceData.find((w) => w.id === entry.entityId);
-	return (
-		<CommandItem
-			value={`workspace ${entry.entityId} ${ws?.projectName ?? ""} ${ws?.branch ?? ""}`}
-			onSelect={onSelect}
-			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
-		>
-			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
-				{ws?.projectName ?? "Workspace"}
-			</span>
-			<span className="flex items-center justify-center w-4 shrink-0">
-				{ws ? (
-					<span
-						className="size-2 rounded-full"
-						style={{ background: ws.projectColor }}
-					/>
-				) : null}
-			</span>
-			<span
-				className={cn(
-					"truncate text-xs font-normal flex-1 min-w-0",
-					!ws && "text-muted-foreground",
-				)}
-			>
-				{ws?.branch ?? "Unknown"}
-			</span>
-		</CommandItem>
-	);
 }
 
 function V2WorkspaceRow({

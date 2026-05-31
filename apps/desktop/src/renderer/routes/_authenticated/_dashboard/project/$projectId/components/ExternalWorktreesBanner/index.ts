@@ -1,1 +1,0 @@
-export { ExternalWorktreesBanner } from "./ExternalWorktreesBanner";

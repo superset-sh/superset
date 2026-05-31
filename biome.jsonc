@@ -13,6 +13,10 @@
 			"!**/*.template.sh",
 			"!**/*.template.ts",
 			"!**/plans",
+			"!.codex/hooks.json",
+			"!.trellis/.template-hashes.json",
+			"!.trellis/tasks",
+			"!.trellis/workspace",
 			"!apps/mobile/uniwind-types.d.ts",
 			"!packages/sdk/src"
 		]

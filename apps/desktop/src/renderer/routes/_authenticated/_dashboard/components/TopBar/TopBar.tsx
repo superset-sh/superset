@@ -1,6 +1,5 @@
 import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
@@ -8,7 +7,6 @@ import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-stat
 import { NavigationControls } from "../NavigationControls";
 import { SidebarToggle } from "../SidebarToggle";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
-import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { SearchBarTrigger } from "./components/SearchBarTrigger";
@@ -31,7 +29,6 @@ export function TopBar() {
 		{ enabled: !!workspaceId && !isV2WorkspaceRoute },
 	);
 	const isOnline = useOnlineStatus();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
 	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
 	// Default to Mac layout while loading to avoid overlap with traffic lights
@@ -40,8 +37,7 @@ export function TopBar() {
 	// starts to the right of it and the sidebar header hosts the traffic-light
 	// pad + SidebarToggle. When the sidebar is closed or collapsed (too narrow
 	// for the pad), bring the toggle and pad back into the TopBar.
-	const sidebarHostsChrome =
-		isV2CloudEnabled && isSidebarOpen && !isSidebarCollapsed;
+	const sidebarHostsChrome = isSidebarOpen && !isSidebarCollapsed;
 
 	return (
 		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 border-b border-border relative dark:bg-muted/35">
@@ -84,9 +80,7 @@ export function TopBar() {
 			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
-				{!sidebarHostsChrome && (
-					<ResourceConsumption surface={isV2CloudEnabled ? "v2" : "v1"} />
-				)}
+				{!sidebarHostsChrome && <ResourceConsumption surface="v2" />}
 				{!isOnline && (
 					<div className="no-drag flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
 						<HiOutlineWifi className="size-3.5" />
@@ -102,7 +96,6 @@ export function TopBar() {
 						projectId={workspace.project?.id}
 					/>
 				) : null}
-				{!isV2CloudEnabled && <OrganizationDropdown />}
 				{isV2WorkspaceRoute && <RightSidebarToggle />}
 				{!isMac && <WindowControls />}
 			</div>

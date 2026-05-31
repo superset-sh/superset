@@ -5,5 +5,5 @@ export const Route = createFileRoute("/")({
 });
 
 function RootIndexPage() {
-	return <Navigate to="/workspace" replace />;
+	return <Navigate to="/v2-workspaces" replace />;
 }

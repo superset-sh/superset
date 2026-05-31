@@ -13,8 +13,6 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { LuCpu, LuGitBranch, LuHistory } from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	StatusIcon,
 	type StatusType,
@@ -24,58 +22,6 @@ import {
 	type RecentlyViewedEntry,
 	useRecentlyViewed,
 } from "./hooks/useRecentlyViewed";
-
-function WorkspaceRow({
-	entry,
-	isCurrent,
-	workspaceData,
-	onSelect,
-}: {
-	entry: RecentlyViewedEntry;
-	isCurrent: boolean;
-	workspaceData: {
-		id: string;
-		projectName: string;
-		projectColor: string;
-		branch: string;
-	}[];
-	onSelect: () => void;
-}) {
-	const ws = workspaceData.find((w) => w.id === entry.entityId);
-
-	return (
-		<DropdownMenuItem
-			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
-			onSelect={onSelect}
-		>
-			{ws ? (
-				<>
-					<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-						Workspace
-					</span>
-					<span className="flex items-center justify-center w-4 shrink-0">
-						<span
-							className="size-2 rounded-full"
-							style={{ background: ws.projectColor }}
-						/>
-					</span>
-					<span className="truncate text-xs font-normal flex-1 min-w-0">
-						{ws.branch}
-					</span>
-				</>
-			) : (
-				<>
-					<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-						Workspace
-					</span>
-					<span className="truncate text-xs font-normal text-muted-foreground flex-1 min-w-0">
-						Unknown
-					</span>
-				</>
-			)}
-		</DropdownMenuItem>
-	);
-}
 
 function V2WorkspaceRow({
 	entry,
@@ -228,17 +174,6 @@ export function HistoryDropdown() {
 	const recentEntries = useRecentlyViewed(20);
 	const currentPath = useLocation({ select: (loc) => loc.pathname });
 	const collections = useCollections();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
-
-	const { data: groups } = electronTrpc.workspaces.getAllGrouped.useQuery();
-	const workspaceData = (groups ?? []).flatMap((group) =>
-		group.workspaces.map((ws) => ({
-			id: ws.id,
-			projectName: group.project.name,
-			projectColor: group.project.color,
-			branch: ws.branch ?? ws.name,
-		})),
-	);
 
 	const { data: v2WorkspaceData } = useLiveQuery(
 		(q) =>
@@ -288,15 +223,12 @@ export function HistoryDropdown() {
 
 	const filteredEntries = recentEntries.filter((entry) => {
 		if (entry.type === "workspace") {
-			if (isV2CloudEnabled) return false;
-			return workspaceData.some((w) => w.id === entry.entityId);
+			return false;
 		}
 		if (entry.type === "v2-workspace") {
-			if (!isV2CloudEnabled) return false;
 			return (v2WorkspaceData ?? []).some((w) => w.id === entry.entityId);
 		}
 		if (entry.type === "automation") {
-			if (!isV2CloudEnabled) return false;
 			return (automationData ?? []).some((a) => a.id === entry.entityId);
 		}
 		return (taskData ?? []).some(
@@ -373,15 +305,7 @@ export function HistoryDropdown() {
 							/>
 						);
 					}
-					return (
-						<WorkspaceRow
-							key={entry.path}
-							entry={entry}
-							isCurrent={entry.path === currentPath}
-							workspaceData={workspaceData}
-							onSelect={() => navigate({ to: entry.path })}
-						/>
-					);
+					return null;
 				})}
 			</DropdownMenuContent>
 		</DropdownMenu>

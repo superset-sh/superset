@@ -74,11 +74,15 @@ PLATFORM.IS_WINDOWS &&
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
 
-if (env.NODE_ENV === "development" && process.env.RENDERER_REMOTE_DEBUG_PORT) {
-	app.commandLine.appendSwitch(
-		"remote-debugging-port",
-		process.env.RENDERER_REMOTE_DEBUG_PORT,
-	);
+const cdpPort =
+	env.NODE_ENV === "development"
+		? (process.env.DESKTOP_AUTOMATION_PORT ??
+			process.env.RENDERER_REMOTE_DEBUG_PORT)
+		: undefined;
+
+if (cdpPort) {
+	app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
+	app.commandLine.appendSwitch("remote-allow-origins", "*");
 }
 
 // Each xterm pane holds one WebGL context. v2 parking keeps panes alive

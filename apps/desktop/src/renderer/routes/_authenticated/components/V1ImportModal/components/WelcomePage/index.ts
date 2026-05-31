@@ -1,1 +1,0 @@
-export { WelcomePage } from "./WelcomePage";

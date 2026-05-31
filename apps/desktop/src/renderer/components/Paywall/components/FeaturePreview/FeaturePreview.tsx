@@ -7,12 +7,10 @@ import { DitheredBackground } from "./components/DitheredBackground";
 import { MobileAppDemo } from "./components/MobileAppDemo";
 import { RemoteWorkspacesDemo } from "./components/RemoteWorkspacesDemo";
 import { SlackIntegrationDemo } from "./components/SlackIntegrationDemo";
-import { TasksDemo } from "./components/TasksDemo";
 import { TeamCollaborationDemo } from "./components/TeamCollaborationDemo";
 
 const DEMO_COMPONENTS: Record<string, ComponentType> = {
 	"team-collaboration": TeamCollaborationDemo,
-	tasks: TasksDemo,
 	"slack-integration": SlackIntegrationDemo,
 	"remote-workspaces": RemoteWorkspacesDemo,
 	"mobile-app": MobileAppDemo,
