@@ -8,6 +8,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { HiMiniPlus, HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
 	LuClock,
@@ -33,10 +34,14 @@ import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
+	modeSwitcher?: ReactNode;
+	showCodeNavigation?: boolean;
 }
 
 export function DashboardSidebarHeader({
 	isCollapsed = false,
+	modeSwitcher,
+	showCodeNavigation = true,
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
 	const openNewProject = useOpenNewProjectModal();
@@ -105,105 +110,110 @@ export function DashboardSidebarHeader({
 		return (
 			<div className="flex flex-col items-center gap-2 border-b border-border py-2">
 				<OrganizationDropdown variant="collapsed" />
+				{modeSwitcher}
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleWorkspacesClick}
-							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
-								isWorkspacesListOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<LuLayers className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Workspaces</TooltipContent>
-				</Tooltip>
-
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleAutomationsClick}
-							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
-								isAutomationsOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<LuClock className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Automations</TooltipContent>
-				</Tooltip>
-
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleTasksClick}
-							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
-								isTasksOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<HiOutlineClipboardDocumentList className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Tasks & PRs</TooltipContent>
-				</Tooltip>
-
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={() => openModal()}
-							className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-						>
-							<LuPlus className="size-4" strokeWidth={STROKE_WIDTH_THICK} />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">
-						New Workspace ({shortcutText})
-					</TooltipContent>
-				</Tooltip>
-
-				<DropdownMenu>
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<DropdownMenuTrigger asChild>
+				{showCodeNavigation && (
+					<>
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
 								<button
 									type="button"
-									aria-label="Add repository"
+									onClick={handleWorkspacesClick}
+									className={cn(
+										"flex size-8 items-center justify-center rounded-md transition-colors",
+										isWorkspacesListOpen
+											? "bg-accent text-foreground"
+											: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+									)}
+								>
+									<LuLayers className="size-4" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Workspaces</TooltipContent>
+						</Tooltip>
+
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handleAutomationsClick}
+									className={cn(
+										"flex size-8 items-center justify-center rounded-md transition-colors",
+										isAutomationsOpen
+											? "bg-accent text-foreground"
+											: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+									)}
+								>
+									<LuClock className="size-4" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Automations</TooltipContent>
+						</Tooltip>
+
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handleTasksClick}
+									className={cn(
+										"flex size-8 items-center justify-center rounded-md transition-colors",
+										isTasksOpen
+											? "bg-accent text-foreground"
+											: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+									)}
+								>
+									<HiOutlineClipboardDocumentList className="size-4" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Tasks & PRs</TooltipContent>
+						</Tooltip>
+
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={() => openModal()}
 									className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 								>
-									<LuFolderPlus className="size-4" />
+									<LuPlus className="size-4" strokeWidth={STROKE_WIDTH_THICK} />
 								</button>
-							</DropdownMenuTrigger>
-						</TooltipTrigger>
-						<TooltipContent side="right">Add repository</TooltipContent>
-					</Tooltip>
-					<DropdownMenuContent
-						align="start"
-						onCloseAutoFocus={(event) => event.preventDefault()}
-					>
-						<DropdownMenuItem onSelect={() => openNewProject()}>
-							<HiMiniPlus className="size-4" />
-							Clone from URL
-						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={handleImportFolder}>
-							<LuFolderInput className="size-4" />
-							Open from folder
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
+							</TooltipTrigger>
+							<TooltipContent side="right">
+								New Workspace ({shortcutText})
+							</TooltipContent>
+						</Tooltip>
+
+						<DropdownMenu>
+							<Tooltip delayDuration={300}>
+								<TooltipTrigger asChild>
+									<DropdownMenuTrigger asChild>
+										<button
+											type="button"
+											aria-label="Add repository"
+											className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										>
+											<LuFolderPlus className="size-4" />
+										</button>
+									</DropdownMenuTrigger>
+								</TooltipTrigger>
+								<TooltipContent side="right">Add repository</TooltipContent>
+							</Tooltip>
+							<DropdownMenuContent
+								align="start"
+								onCloseAutoFocus={(event) => event.preventDefault()}
+							>
+								<DropdownMenuItem onSelect={() => openNewProject()}>
+									<HiMiniPlus className="size-4" />
+									Clone from URL
+								</DropdownMenuItem>
+								<DropdownMenuItem onSelect={handleImportFolder}>
+									<LuFolderInput className="size-4" />
+									Open from folder
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</>
+				)}
 			</div>
 		);
 	}
@@ -222,101 +232,106 @@ export function DashboardSidebarHeader({
 				<ResourceConsumption surface="v2" className="ml-auto" />
 			</div>
 			<OrganizationDropdown variant="expanded" />
+			{modeSwitcher}
 
-			<button
-				type="button"
-				onClick={handleWorkspacesClick}
-				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-					isWorkspacesListOpen
-						? "bg-accent text-foreground"
-						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-				)}
-			>
-				<LuLayers className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Workspaces</span>
-			</button>
-
-			<button
-				type="button"
-				onClick={handleAutomationsClick}
-				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-					isAutomationsOpen
-						? "bg-accent text-foreground"
-						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-				)}
-			>
-				<LuClock className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Automations</span>
-			</button>
-
-			<button
-				type="button"
-				onClick={handleTasksClick}
-				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-					isTasksOpen
-						? "bg-accent text-foreground"
-						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-				)}
-			>
-				<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Tasks & PRs</span>
-			</button>
-
-			<div className="flex items-center gap-0">
-				<button
-					type="button"
-					onClick={() => openModal()}
-					className="group flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-				>
-					<LuPlus
-						className="size-4 shrink-0"
-						strokeWidth={STROKE_WIDTH_THICK}
-					/>
-					<span className="flex-1 truncate text-left whitespace-nowrap">
-						New Workspace
-					</span>
-					<span
+			{showCodeNavigation && (
+				<>
+					<button
+						type="button"
+						onClick={handleWorkspacesClick}
 						className={cn(
-							"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
-							"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+							"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+							isWorkspacesListOpen
+								? "bg-accent text-foreground"
+								: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
 						)}
 					>
-						{shortcutText}
-					</span>
-				</button>
-				<DropdownMenu>
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<DropdownMenuTrigger asChild>
-								<button
-									type="button"
-									aria-label="Add repository"
-									className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-								>
-									<LuFolderPlus className="size-4" />
-								</button>
-							</DropdownMenuTrigger>
-						</TooltipTrigger>
-						<TooltipContent side="right">Add repository</TooltipContent>
-					</Tooltip>
-					<DropdownMenuContent
-						align="end"
-						onCloseAutoFocus={(event) => event.preventDefault()}
+						<LuLayers className="size-4 shrink-0" />
+						<span className="flex-1 text-left">Workspaces</span>
+					</button>
+
+					<button
+						type="button"
+						onClick={handleAutomationsClick}
+						className={cn(
+							"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+							isAutomationsOpen
+								? "bg-accent text-foreground"
+								: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+						)}
 					>
-						<DropdownMenuItem onSelect={() => openNewProject()}>
-							<HiMiniPlus className="size-4" />
-							Clone from URL
-						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={handleImportFolder}>
-							<LuFolderInput className="size-4" />
-							Open from folder
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</div>
+						<LuClock className="size-4 shrink-0" />
+						<span className="flex-1 text-left">Automations</span>
+					</button>
+
+					<button
+						type="button"
+						onClick={handleTasksClick}
+						className={cn(
+							"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+							isTasksOpen
+								? "bg-accent text-foreground"
+								: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+						)}
+					>
+						<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
+						<span className="flex-1 text-left">Tasks & PRs</span>
+					</button>
+
+					<div className="flex items-center gap-0">
+						<button
+							type="button"
+							onClick={() => openModal()}
+							className="group flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+						>
+							<LuPlus
+								className="size-4 shrink-0"
+								strokeWidth={STROKE_WIDTH_THICK}
+							/>
+							<span className="flex-1 truncate text-left whitespace-nowrap">
+								New Workspace
+							</span>
+							<span
+								className={cn(
+									"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
+									"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+								)}
+							>
+								{shortcutText}
+							</span>
+						</button>
+						<DropdownMenu>
+							<Tooltip delayDuration={300}>
+								<TooltipTrigger asChild>
+									<DropdownMenuTrigger asChild>
+										<button
+											type="button"
+											aria-label="Add repository"
+											className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+										>
+											<LuFolderPlus className="size-4" />
+										</button>
+									</DropdownMenuTrigger>
+								</TooltipTrigger>
+								<TooltipContent side="right">Add repository</TooltipContent>
+							</Tooltip>
+							<DropdownMenuContent
+								align="end"
+								onCloseAutoFocus={(event) => event.preventDefault()}
+							>
+								<DropdownMenuItem onSelect={() => openNewProject()}>
+									<HiMiniPlus className="size-4" />
+									Clone from URL
+								</DropdownMenuItem>
+								<DropdownMenuItem onSelect={handleImportFolder}>
+									<LuFolderInput className="size-4" />
+									Open from folder
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
+				</>
+			)}
 		</div>
 	);
 }

@@ -22,6 +22,7 @@ function V2WorkspaceLayout() {
 	const matchRoute = useMatchRoute();
 	const workspaceMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
+		fuzzy: true,
 	});
 	const workspaceId =
 		workspaceMatch !== false ? workspaceMatch.workspaceId : null;

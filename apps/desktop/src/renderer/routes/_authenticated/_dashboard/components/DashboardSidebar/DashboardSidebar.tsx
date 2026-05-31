@@ -20,24 +20,35 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import {
+	useLocation,
+	useMatchRoute,
+	useNavigate,
+} from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { DashboardChatSidebar } from "./components/DashboardChatSidebar";
+import { DashboardModeSwitcher } from "./components/DashboardModeSwitcher";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHelpMenu } from "./components/DashboardSidebarHelpMenu";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
 import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
+import { DashboardWorkSidebar } from "./components/DashboardWorkSidebar";
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
 import { DashboardSidebarHoverProvider } from "./providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarProject } from "./types";
+import {
+	type DashboardMode,
+	getDashboardModeForPath,
+} from "./utils/dashboardMode";
 
 interface DashboardSidebarProps {
 	isCollapsed?: boolean;
@@ -92,6 +103,12 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 	);
 });
 
+function getSearchStringValue(search: unknown, key: string): string | null {
+	if (!search || typeof search !== "object") return null;
+	const value = (search as Record<string, unknown>)[key];
+	return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 export function DashboardSidebar({
 	isCollapsed = false,
 }: DashboardSidebarProps) {
@@ -99,12 +116,22 @@ export function DashboardSidebar({
 		useDashboardSidebarData();
 	const { reorderProjects } = useDashboardSidebarState();
 	const navigate = useNavigate();
+	const location = useLocation();
 	const matchRoute = useMatchRoute();
+	const dashboardMode = getDashboardModeForPath(location.pathname);
+	const activeChatSessionId = getSearchStringValue(
+		location.search,
+		"chatSessionId",
+	);
 	const settingsHotkey = useHotkeyDisplay("OPEN_SETTINGS").text;
 	const isSettingsOpen = !!matchRoute({ to: "/settings", fuzzy: true });
 	const { activeHostUrl } = useLocalHostService();
-	const v2RouteMatch = matchRoute({ to: "/v2-workspace/$workspaceId" });
-	const activeV2WorkspaceId = v2RouteMatch ? v2RouteMatch.workspaceId : null;
+	const v2RouteMatch = matchRoute({
+		to: "/v2-workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const activeV2WorkspaceId =
+		v2RouteMatch !== false ? v2RouteMatch.workspaceId : null;
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -172,70 +199,132 @@ export function DashboardSidebar({
 		[projectOrder, reorderProjects],
 	);
 
+	const handleModeChange = useCallback(
+		(nextMode: DashboardMode) => {
+			if (nextMode === "code") {
+				if (activeV2WorkspaceId) {
+					void navigate({
+						to: "/v2-workspace/$workspaceId",
+						params: { workspaceId: activeV2WorkspaceId },
+						search: {},
+					});
+					return;
+				}
+				void navigate({ to: "/v2-workspaces" });
+				return;
+			}
+
+			if (nextMode === "chat") {
+				if (activeV2WorkspaceId) {
+					void navigate({
+						to: "/v2-workspace/$workspaceId/chat",
+						params: { workspaceId: activeV2WorkspaceId },
+						search: {},
+					});
+					return;
+				}
+				void navigate({ to: "/chat" });
+				return;
+			}
+
+			if (activeV2WorkspaceId) {
+				void navigate({
+					to: "/v2-workspace/$workspaceId/work",
+					params: { workspaceId: activeV2WorkspaceId },
+				});
+				return;
+			}
+			void navigate({ to: "/work" });
+		},
+		[activeV2WorkspaceId, navigate],
+	);
+
 	return (
 		<DashboardSidebarSectionRenameProvider>
 			<DashboardSidebarHoverProvider>
 				<DashboardSidebarHoverCardOverlay>
 					<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
-						<DashboardSidebarHeader isCollapsed={isCollapsed} />
+						<DashboardSidebarHeader
+							isCollapsed={isCollapsed}
+							modeSwitcher={
+								<DashboardModeSwitcher
+									mode={dashboardMode}
+									isCollapsed={isCollapsed}
+									onModeChange={handleModeChange}
+								/>
+							}
+							showCodeNavigation={dashboardMode === "code"}
+						/>
 
-						<div className="flex-1 overflow-y-auto hide-scrollbar">
-							<DndContext
-								sensors={sensors}
-								collisionDetection={closestCenter}
-								measuring={{
-									droppable: { strategy: MeasuringStrategy.Always },
-								}}
-								onDragStart={({ active }) => {
-									const project = groups.find((p) => p.id === active.id);
-									setActiveProject(project ?? null);
-								}}
-								onDragEnd={handleDragEnd}
-								onDragCancel={() => setActiveProject(null)}
-							>
-								<SortableContext
-									items={projectOrder}
-									strategy={verticalListSortingStrategy}
-								>
-									{orderedGroups.map((project) => (
-										<SortableProjectWrapper
-											key={project.id}
-											project={project}
-											isCollapsed={isCollapsed}
-											isDraggingProject={activeProject != null}
-											workspaceShortcutLabels={workspaceShortcutLabels}
-											onWorkspaceHover={refreshWorkspacePullRequest}
-											onToggleCollapse={toggleProjectCollapsed}
-										/>
-									))}
-								</SortableContext>
-
-								{createPortal(
-									<DragOverlay dropAnimation={null}>
-										{activeProject && (
-											<div className="bg-background shadow-lg border-b border-border">
-												<DashboardSidebarProjectSection
-													project={activeProject}
-													isSidebarCollapsed={isCollapsed}
-													isDraggingProject
+						{dashboardMode === "code" ? (
+							<>
+								<div className="flex-1 overflow-y-auto hide-scrollbar">
+									<DndContext
+										sensors={sensors}
+										collisionDetection={closestCenter}
+										measuring={{
+											droppable: { strategy: MeasuringStrategy.Always },
+										}}
+										onDragStart={({ active }) => {
+											const project = groups.find((p) => p.id === active.id);
+											setActiveProject(project ?? null);
+										}}
+										onDragEnd={handleDragEnd}
+										onDragCancel={() => setActiveProject(null)}
+									>
+										<SortableContext
+											items={projectOrder}
+											strategy={verticalListSortingStrategy}
+										>
+											{orderedGroups.map((project) => (
+												<SortableProjectWrapper
+													key={project.id}
+													project={project}
+													isCollapsed={isCollapsed}
+													isDraggingProject={activeProject != null}
 													workspaceShortcutLabels={workspaceShortcutLabels}
-													onWorkspaceHover={() => {}}
-													onToggleCollapse={() => {}}
+													onWorkspaceHover={refreshWorkspacePullRequest}
+													onToggleCollapse={toggleProjectCollapsed}
 												/>
-											</div>
+											))}
+										</SortableContext>
+
+										{createPortal(
+											<DragOverlay dropAnimation={null}>
+												{activeProject && (
+													<div className="bg-background shadow-lg border-b border-border">
+														<DashboardSidebarProjectSection
+															project={activeProject}
+															isSidebarCollapsed={isCollapsed}
+															isDraggingProject
+															workspaceShortcutLabels={workspaceShortcutLabels}
+															onWorkspaceHover={() => {}}
+															onToggleCollapse={() => {}}
+														/>
+													</div>
+												)}
+											</DragOverlay>,
+											document.body,
 										)}
-									</DragOverlay>,
-									document.body,
+									</DndContext>
+								</div>
+								{!isCollapsed && <DashboardSidebarPortsList />}
+								{!isCollapsed && activeV2Project && activeHostUrl && (
+									<V2SetupScriptCard
+										hostUrl={activeHostUrl}
+										projectId={activeV2Project.id}
+										projectName={activeV2Project.name}
+									/>
 								)}
-							</DndContext>
-						</div>
-						{!isCollapsed && <DashboardSidebarPortsList />}
-						{!isCollapsed && activeV2Project && activeHostUrl && (
-							<V2SetupScriptCard
-								hostUrl={activeHostUrl}
-								projectId={activeV2Project.id}
-								projectName={activeV2Project.name}
+							</>
+						) : dashboardMode === "chat" ? (
+							<DashboardChatSidebar
+								activeWorkspaceId={activeV2WorkspaceId}
+								activeSessionId={activeChatSessionId}
+								isCollapsed={isCollapsed}
 							/>
+						) : (
+							<DashboardWorkSidebar isCollapsed={isCollapsed} />
 						)}
 						<div
 							className={cn(

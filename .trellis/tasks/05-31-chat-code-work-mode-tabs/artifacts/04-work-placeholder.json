@@ -1,0 +1,417 @@
+{
+  "startedAt": "2026-05-31T05:56:27.557Z",
+  "completedAt": "2026-05-31T05:56:27.708Z",
+  "windowInfo": {
+    "title": "",
+    "url": "http://localhost:3005/#/work",
+    "viewportWidth": 1838,
+    "viewportHeight": 1050,
+    "focused": true
+  },
+  "wait": {
+    "kind": "url",
+    "url": "http://localhost:3005/#/work"
+  },
+  "dom": [
+    {
+      "tag": "button",
+      "classes": [
+        "no-drag",
+        "group",
+        "flex",
+        "items-center",
+        "justify-center",
+        "size-8",
+        "rounded-md",
+        "text-muted-foreground",
+        "hover:text-foreground",
+        "hover:bg-accent/50",
+        "transition-colors"
+      ],
+      "text": "",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1)",
+      "bounds": {
+        "x": 80,
+        "y": 8,
+        "width": 32,
+        "height": 32
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "classes": [
+        "no-drag",
+        "flex",
+        "items-center",
+        "justify-center",
+        "size-7",
+        "rounded-md",
+        "text-muted-foreground",
+        "hover:text-foreground",
+        "hover:bg-accent/50",
+        "transition-colors",
+        "disabled:opacity-30",
+        "disabled:pointer-events-none"
+      ],
+      "text": "",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div > button:nth-of-type(1)",
+      "bounds": {
+        "x": 118,
+        "y": 10,
+        "width": 28,
+        "height": 28
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "classes": [
+        "no-drag",
+        "flex",
+        "items-center",
+        "justify-center",
+        "size-7",
+        "rounded-md",
+        "text-muted-foreground",
+        "hover:text-foreground",
+        "hover:bg-accent/50",
+        "transition-colors",
+        "disabled:opacity-30",
+        "disabled:pointer-events-none"
+      ],
+      "text": "",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div > button:nth-of-type(2)",
+      "bounds": {
+        "x": 146,
+        "y": 10,
+        "width": 28,
+        "height": 28
+      },
+      "interactive": true,
+      "disabled": true,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "classes": [
+        "no-drag",
+        "flex",
+        "items-center",
+        "justify-center",
+        "size-7",
+        "rounded-md",
+        "text-muted-foreground",
+        "opacity-30"
+      ],
+      "text": "",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div > button:nth-of-type(3)",
+      "bounds": {
+        "x": 174,
+        "y": 10,
+        "width": 28,
+        "height": 28
+      },
+      "interactive": true,
+      "disabled": true,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "classes": [
+        "inline-flex",
+        "items-center",
+        "justify-center",
+        "gap-2",
+        "whitespace-nowrap",
+        "rounded-md",
+        "text-sm",
+        "font-medium",
+        "transition-all",
+        "disabled:pointer-events-none",
+        "disabled:opacity-50",
+        "[&_svg]:pointer-events-none",
+        "[&_svg:not([class*='size-'])]:size-4",
+        "shrink-0",
+        "[&_svg]:shrink-0",
+        "outline-none",
+        "focus-visible:border-ring",
+        "focus-visible:ring-ring/50",
+        "focus-visible:ring-[3px]",
+        "aria-invalid:ring-destructive/20",
+        "dark:aria-invalid:ring-destructive/40",
+        "aria-invalid:border-destructive",
+        "hover:bg-accent",
+        "dark:hover:bg-accent/50",
+        "size-7",
+        "no-drag",
+        "relative",
+        "text-muted-foreground",
+        "hover:text-foreground",
+        "ml-auto"
+      ],
+      "text": "",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(2)",
+      "bounds": {
+        "x": 242,
+        "y": 10,
+        "width": 28,
+        "height": 28
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "id": "radix-_r_n_",
+      "classes": [
+        "group",
+        "flex",
+        "w-full",
+        "items-center",
+        "gap-2",
+        "rounded-md",
+        "px-2",
+        "py-1.5",
+        "text-sm",
+        "font-medium",
+        "text-muted-foreground",
+        "transition-colors",
+        "hover:bg-accent/50",
+        "hover:text-foreground",
+        "min-w-0"
+      ],
+      "text": "ATrellis Smoke",
+      "selector": "#radix-_r_n_",
+      "bounds": {
+        "x": 8,
+        "y": 44,
+        "width": 262,
+        "height": 32
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "classes": [
+        "flex",
+        "min-w-0",
+        "items-center",
+        "justify-center",
+        "gap-1.5",
+        "rounded-md",
+        "px-2",
+        "py-1.5",
+        "text-xs",
+        "font-medium",
+        "transition-colors",
+        "text-muted-foreground",
+        "hover:bg-accent/50",
+        "hover:text-foreground"
+      ],
+      "text": "Chat",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > button:nth-of-type(1)",
+      "bounds": {
+        "x": 12,
+        "y": 90,
+        "width": 82,
+        "height": 28
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "classes": [
+        "flex",
+        "min-w-0",
+        "items-center",
+        "justify-center",
+        "gap-1.5",
+        "rounded-md",
+        "px-2",
+        "py-1.5",
+        "text-xs",
+        "font-medium",
+        "transition-colors",
+        "text-muted-foreground",
+        "hover:bg-accent/50",
+        "hover:text-foreground"
+      ],
+      "text": "Code",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > button:nth-of-type(2)",
+      "bounds": {
+        "x": 98,
+        "y": 90,
+        "width": 82,
+        "height": 28
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "classes": [
+        "flex",
+        "min-w-0",
+        "items-center",
+        "justify-center",
+        "gap-1.5",
+        "rounded-md",
+        "px-2",
+        "py-1.5",
+        "text-xs",
+        "font-medium",
+        "transition-colors",
+        "bg-accent",
+        "text-foreground",
+        "shadow-sm"
+      ],
+      "text": "Work",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div > button:nth-of-type(3)",
+      "bounds": {
+        "x": 184,
+        "y": 90,
+        "width": 82,
+        "height": 28
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": true,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "classes": [
+        "group",
+        "flex",
+        "flex-1",
+        "min-w-0",
+        "items-center",
+        "gap-2",
+        "rounded-md",
+        "px-2",
+        "py-1.5",
+        "text-sm",
+        "font-medium",
+        "transition-colors",
+        "text-muted-foreground",
+        "hover:bg-accent/50",
+        "hover:text-foreground"
+      ],
+      "text": "Settings⌘，",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > button:nth-of-type(1)",
+      "bounds": {
+        "x": 8,
+        "y": 1014,
+        "width": 226,
+        "height": 32
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "button",
+      "id": "radix-_r_s_",
+      "classes": [
+        "flex",
+        "size-8",
+        "shrink-0",
+        "items-center",
+        "justify-center",
+        "rounded-md",
+        "text-muted-foreground",
+        "transition-colors",
+        "hover:bg-accent/50",
+        "hover:text-foreground"
+      ],
+      "text": "",
+      "selector": "#radix-_r_s_",
+      "bounds": {
+        "x": 238,
+        "y": 1014,
+        "width": 32,
+        "height": 32
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "div",
+      "classes": [
+        "absolute",
+        "top-0",
+        "w-5",
+        "h-full",
+        "cursor-col-resize",
+        "z-10",
+        "after:absolute",
+        "after:top-0",
+        "after:w-1",
+        "after:h-full",
+        "after:transition-colors",
+        "hover:after:bg-border",
+        "focus:outline-none",
+        "focus:after:bg-border",
+        "-right-2",
+        "after:left-2"
+      ],
+      "text": "",
+      "selector": "app > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2)",
+      "bounds": {
+        "x": 267,
+        "y": 0,
+        "width": 20,
+        "height": 1050
+      },
+      "role": "separator",
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    },
+    {
+      "tag": "section",
+      "classes": [],
+      "text": "",
+      "selector": "app > section",
+      "bounds": {
+        "x": 0,
+        "y": 1050,
+        "width": 1838,
+        "height": 0
+      },
+      "interactive": true,
+      "disabled": false,
+      "focused": false,
+      "visible": true
+    }
+  ],
+  "screenshot": {
+    "path": "/Users/bichengyu/Documents/toolProject/superset/.trellis/tasks/05-31-chat-code-work-mode-tabs/artifacts/04-work-placeholder.png",
+    "width": 1838,
+    "height": 1050
+  },
+  "consoleLogs": []
+}

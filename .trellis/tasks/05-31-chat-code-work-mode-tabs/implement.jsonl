@@ -1,0 +1,6 @@
+{"file":".trellis/spec/guides/frontend-conventions.md","reason":"React component organization, UI primitives, TanStack DB cache-first rendering, and local test placement conventions for the dashboard mode shell."}
+{"file":".trellis/spec/guides/desktop-conventions.md","reason":"Desktop renderer routing, V2 workspace, host-service, and sidebar state boundaries."}
+{"file":".trellis/spec/guides/desktop-acceptance-tdd.md","reason":"Real Electron acceptance requirements and Desktop Automation CLI gate for this user-visible shell change."}
+{"file":".trellis/spec/desktop/frontend/auth-and-routing.md","reason":"V2-only desktop routing contracts that must remain intact while adding Chat/Work mode routes."}
+{"file":".trellis/spec/desktop/frontend/quality-guidelines.md","reason":"Required desktop checks, route/source tests, and acceptance expectations before finishing."}
+{"file":".trellis/tasks/05-31-chat-code-work-mode-tabs/research/code-map.md","reason":"Task-specific code map for current sidebar, V2 workspace, chat runtime, and Mastracode/Mastra facts."}

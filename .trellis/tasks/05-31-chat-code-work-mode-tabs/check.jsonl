@@ -1,0 +1,6 @@
+{"file":".trellis/spec/guides/frontend-conventions.md","reason":"Check component boundaries, shared UI use, and cache-first rendering after implementation."}
+{"file":".trellis/spec/guides/desktop-conventions.md","reason":"Check Electron renderer/route boundaries and V2 workspace assumptions."}
+{"file":".trellis/spec/guides/desktop-acceptance-tdd.md","reason":"Check that Desktop Automation CLI acceptance was defined and run for mode switching."}
+{"file":".trellis/spec/desktop/frontend/auth-and-routing.md","reason":"Check that V2-only route contracts and authenticated dashboard entry remain intact."}
+{"file":".trellis/spec/desktop/frontend/quality-guidelines.md","reason":"Check required lint/type/test and route/source regression coverage."}
+{"file":".trellis/tasks/05-31-chat-code-work-mode-tabs/research/code-map.md","reason":"Check implementation against the task-specific affected code map."}
