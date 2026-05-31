@@ -4,10 +4,14 @@
 // coverage lives in DaemonSupervisor.node-test.ts.
 
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { DaemonSupervisor } from "./DaemonSupervisor.ts";
 import {
 	__resetSupervisorForTesting,
 	getSupervisor,
+	resolveSupervisorScriptPathFromDir,
 	startDaemonBootstrap,
 	waitForDaemonReady,
 } from "./singleton.ts";
@@ -34,6 +38,34 @@ describe("getSupervisor", () => {
 		// supervisor was constructed (not null) and uses the path when it
 		// tries to spawn — `existsSync` check throws "script not found".
 		expect(sup).toBeInstanceOf(DaemonSupervisor);
+	});
+});
+
+describe("resolveSupervisorScriptPathFromDir", () => {
+	let tempRoot: string | null = null;
+
+	afterEach(() => {
+		if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
+		tempRoot = null;
+	});
+
+	test("uses explicit script path override", () => {
+		expect(
+			resolveSupervisorScriptPathFromDir("/unused", {
+				SUPERSET_PTY_DAEMON_SCRIPT_PATH: "/custom/pty-daemon.js",
+			} as NodeJS.ProcessEnv),
+		).toBe("/custom/pty-daemon.js");
+	});
+
+	test("resolves electron-vite chunks back to dist/main/pty-daemon.js", () => {
+		tempRoot = mkdtempSync(join(tmpdir(), "superset-daemon-resolver-"));
+		const mainDir = join(tempRoot, "apps", "desktop", "dist", "main");
+		const chunksDir = join(mainDir, "chunks");
+		const daemonPath = join(mainDir, "pty-daemon.js");
+		mkdirSync(chunksDir, { recursive: true });
+		writeFileSync(daemonPath, "console.log('daemon');\n");
+
+		expect(resolveSupervisorScriptPathFromDir(chunksDir)).toBe(daemonPath);
 	});
 });
 

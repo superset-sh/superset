@@ -2,7 +2,7 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Search } from "lucide-react";
+import { BotIcon, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
@@ -10,6 +10,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useSettings } from "renderer/stores/settings";
 import type { CommentPaneData, DiffFocusSide } from "../../types";
 import { FilesTab } from "./components/FilesTab";
+import { ModelsTab } from "./components/ModelsTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
@@ -23,9 +24,14 @@ import type { SidebarTabDefinition } from "./types";
 // always renders so users can see PR state and merge once a PR exists.
 const CREATE_PR_BUTTON_ENABLED = false;
 
-type SidebarTabId = "changes" | "files" | "review";
+type SidebarTabId = "changes" | "files" | "review" | "models";
 
-const VALID_TAB_IDS: readonly SidebarTabId[] = ["changes", "files", "review"];
+const VALID_TAB_IDS: readonly SidebarTabId[] = [
+	"changes",
+	"files",
+	"review",
+	"models",
+];
 
 function isSidebarTabId(tab: string): tab is SidebarTabId {
 	return (VALID_TAB_IDS as readonly string[]).includes(tab);
@@ -170,7 +176,19 @@ export function WorkspaceSidebar({
 		),
 	};
 
-	const tabs: SidebarTabDefinition[] = [filesTab, changesTab, reviewTab];
+	const modelsTab: SidebarTabDefinition = {
+		id: "models",
+		label: "Models",
+		icon: BotIcon,
+		content: <ModelsTab workspaceId={workspaceId} />,
+	};
+
+	const tabs: SidebarTabDefinition[] = [
+		filesTab,
+		changesTab,
+		reviewTab,
+		modelsTab,
+	];
 	const activeTabDef = tabs.find((t) => t.id === activeTab);
 
 	return (

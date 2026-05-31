@@ -111,6 +111,40 @@ interface HarnessWithConfig {
 	};
 }
 
+function isRestartableUserRole(role: string | undefined): boolean {
+	// Mastra persists submitted user turns as "signal" messages.
+	return role === "user" || role === "signal";
+}
+
+function resolveRestartUserMessageIndex(
+	messages: RuntimeStoredMessage[],
+	messageId: string,
+): number {
+	const selectedIndex = messages.findIndex(
+		(message) => message.id === messageId,
+	);
+	if (selectedIndex === -1) {
+		throw new Error("The selected message is no longer available to edit");
+	}
+
+	const selectedMessage = messages[selectedIndex];
+	if (isRestartableUserRole(selectedMessage?.role)) return selectedIndex;
+
+	if (selectedMessage?.role === "assistant") {
+		for (
+			let messageIndex = selectedIndex - 1;
+			messageIndex >= 0;
+			messageIndex -= 1
+		) {
+			if (isRestartableUserRole(messages[messageIndex]?.role)) {
+				return messageIndex;
+			}
+		}
+	}
+
+	throw new Error("Only user messages can be edited or resent");
+}
+
 async function getRuntimeMemoryStore(
 	runtime: RuntimeSession,
 ): Promise<RuntimeMemoryStore> {
@@ -408,17 +442,10 @@ export async function restartRuntimeFromUserMessage(
 		perPage: false,
 		orderBy: { field: "createdAt", direction: "ASC" },
 	});
-	const targetIndex = sourceMessages.messages.findIndex(
-		(message) => message.id === input.messageId,
+	const targetIndex = resolveRestartUserMessageIndex(
+		sourceMessages.messages,
+		input.messageId,
 	);
-	if (targetIndex === -1) {
-		throw new Error("The selected message is no longer available to edit");
-	}
-
-	const targetMessage = sourceMessages.messages[targetIndex];
-	if (targetMessage?.role !== "user") {
-		throw new Error("Only user messages can be edited or resent");
-	}
 
 	const clonedThread = await memoryStore.cloneThread({
 		sourceThreadId: threadId,

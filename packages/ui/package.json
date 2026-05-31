@@ -15,6 +15,8 @@
 		"./mesh-gradient": "./src/components/mesh-gradient.tsx",
 		"./icons/preset-icons": "./src/assets/icons/preset-icons/index.ts",
 		"./icons/preset-icons/*": "./src/assets/icons/preset-icons/*.svg",
+		"./icons/model-providers": "./src/assets/icons/model-providers/index.ts",
+		"./icons/model-providers/*": "./src/assets/icons/model-providers/*",
 		"./atoms/*": "./src/atoms/*/index.ts",
 		"./*": "./src/components/ui/*.tsx"
 	},

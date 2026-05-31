@@ -1,3 +1,4 @@
+import { dirname, join } from "node:path";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
@@ -8,9 +9,13 @@ import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createDb, type HostDb } from "./db";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
+import { handleModelGatewayRequest } from "./model-gateway";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
-import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
+import {
+	type ModelProviderRuntimeResolver,
+	RegistryModelProvider,
+} from "./providers/model-providers";
 import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
@@ -41,6 +46,7 @@ export interface CreateAppOptions {
 		migrationsFolder: string;
 		allowedOrigins: string[];
 		hostServiceSecret?: string;
+		publicBaseUrl?: string;
 	};
 	providers: {
 		auth: ApiAuthProvider;
@@ -73,6 +79,9 @@ export interface CreateAppResult {
 
 export function createApp(options: CreateAppOptions): CreateAppResult {
 	const { config, providers } = options;
+	const hostServiceBaseUrl =
+		config.publicBaseUrl ??
+		`http://127.0.0.1:${process.env.HOST_SERVICE_PORT || process.env.PORT || "4879"}`;
 
 	const api =
 		options.api ??
@@ -110,7 +119,13 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		options.chatRuntime ??
 		new ChatRuntimeManager({
 			db,
-			runtimeResolver: providers.modelResolver,
+			mastraHomeDir: join(dirname(config.dbPath), "mastracode"),
+			runtimeResolver: new RegistryModelProvider({
+				db,
+				fallback: providers.modelResolver,
+				gatewayBaseUrl: `${hostServiceBaseUrl}/model-gateway`,
+				internalToken: config.hostServiceSecret,
+			}),
 		});
 	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
@@ -175,6 +190,14 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		upgradeWebSocket,
 	});
 
+	app.all("/model-gateway/*", async (c) =>
+		handleModelGatewayRequest({
+			db,
+			request: c.req.raw,
+			internalToken: config.hostServiceSecret,
+		}),
+	);
+
 	if (config.hostServiceSecret) {
 		initRemoteControlSecret(config.hostServiceSecret);
 		startRemoteControlExpirySweep();
@@ -197,6 +220,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					eventBus,
 					terminalAgentStore,
 					organizationId: config.organizationId,
+					hostServiceBaseUrl,
+					hostServiceSecret: config.hostServiceSecret,
 					isAuthenticated,
 				} as Record<string, unknown>;
 			},

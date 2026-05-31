@@ -5,6 +5,13 @@ export type {
 	ClientMessage as EventBusClientMessage,
 	ServerMessage as EventBusServerMessage,
 } from "./events";
+export type {
+	ModelProviderModelSummary,
+	ModelProviderProtocol,
+	ModelProviderSummary,
+	ProviderModelRef,
+	WorkspaceClaudeModelConfig,
+} from "./model-providers";
 export type { ApiAuthProvider } from "./providers/auth";
 export { DeviceKeyApiAuthProvider, JwtApiAuthProvider } from "./providers/auth";
 export {
@@ -17,6 +24,7 @@ export type { ModelProviderRuntimeResolver } from "./providers/model-providers";
 export {
 	CloudModelProvider,
 	LocalModelProvider,
+	RegistryModelProvider,
 } from "./providers/model-providers";
 export type { GitCredentialProvider, GitFactory } from "./runtime/git";
 export { installProcessSafetyNet } from "./safety";

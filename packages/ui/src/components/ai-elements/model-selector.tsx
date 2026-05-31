@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { getLocalModelSelectorLogo } from "../../assets/icons/model-providers";
 import { cn } from "../../lib/utils";
 import {
 	Command,
@@ -32,17 +33,25 @@ export const ModelSelectorTrigger = (props: ModelSelectorTriggerProps) => (
 
 export type ModelSelectorContentProps = ComponentProps<typeof DialogContent> & {
 	title?: ReactNode;
+	filter?: ComponentProps<typeof Command>["filter"];
+	shouldFilter?: ComponentProps<typeof Command>["shouldFilter"];
 };
 
 export const ModelSelectorContent = ({
 	className,
 	children,
+	filter,
+	shouldFilter,
 	title = "Model Selector",
 	...props
 }: ModelSelectorContentProps) => (
 	<DialogContent className={cn("p-0", className)} {...props}>
 		<DialogTitle className="sr-only">{title}</DialogTitle>
-		<Command className="**:data-[slot=command-input-wrapper]:h-auto">
+		<Command
+			className="**:data-[slot=command-input-wrapper]:h-auto"
+			filter={filter}
+			shouldFilter={shouldFilter}
+		>
 			{children}
 		</Command>
 	</DialogContent>
@@ -101,10 +110,7 @@ export const ModelSelectorSeparator = (props: ModelSelectorSeparatorProps) => (
 	<CommandSeparator {...props} />
 );
 
-export type ModelSelectorLogoProps = Omit<
-	ComponentProps<"img">,
-	"src" | "alt"
-> & {
+export type ModelSelectorLogoProps = ComponentProps<"span"> & {
 	provider:
 		| "moonshotai-cn"
 		| "lucidquery"
@@ -169,16 +175,35 @@ export const ModelSelectorLogo = ({
 	provider,
 	className,
 	...props
-}: ModelSelectorLogoProps) => (
-	<img
-		{...props}
-		alt={`${provider} logo`}
-		className={cn("size-3 dark:invert", className)}
-		height={12}
-		src={`https://models.dev/logos/${provider}.svg`}
-		width={12}
-	/>
-);
+}: ModelSelectorLogoProps) => {
+	const logo = getLocalModelSelectorLogo(provider);
+
+	if (logo) {
+		return (
+			<img
+				alt={`${provider} logo`}
+				className={cn("size-3 dark:invert", className)}
+				height={12}
+				src={logo}
+				width={12}
+			/>
+		);
+	}
+
+	return (
+		<span
+			{...props}
+			aria-hidden="true"
+			className={cn(
+				"inline-flex size-3 items-center justify-center rounded-full bg-muted font-medium text-[8px] text-muted-foreground uppercase",
+				className,
+			)}
+			title={provider}
+		>
+			{provider.slice(0, 1)}
+		</span>
+	);
+};
 
 export type ModelSelectorLogoGroupProps = ComponentProps<"div">;
 

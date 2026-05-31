@@ -380,4 +380,169 @@ describe("runtime message restart", () => {
 		expect(sendMessageInputs).toEqual([{ content: "Edited prompt" }]);
 		expect(runtime.lastErrorMessage).toBeNull();
 	});
+
+	it("uses the previous user message when restart receives an assistant message id", async () => {
+		const cloneThreadInputs: Array<Record<string, unknown>> = [];
+		const sendMessageInputs: Array<Record<string, unknown>> = [];
+		const switchThreadInputs: Array<Record<string, unknown>> = [];
+
+		const memoryStore = {
+			getThreadById: async () => ({
+				id: "thread-1",
+				resourceId: "resource-1",
+				title: "Existing Thread",
+			}),
+			listMessages: async () => ({
+				messages: [
+					{ id: "user-1", role: "user" },
+					{ id: "assistant-1", role: "assistant" },
+					{ id: "user-2", role: "user" },
+					{ id: "assistant-2", role: "assistant" },
+				],
+			}),
+			cloneThread: async (input: Record<string, unknown>) => {
+				cloneThreadInputs.push(input);
+				return {
+					thread: {
+						id: "thread-2",
+						resourceId: "resource-1",
+						title: "Existing Thread",
+					},
+				};
+			},
+		};
+
+		const runtime: RuntimeSession = {
+			sessionId: "11111111-1111-1111-1111-111111111111",
+			harness: {
+				getCurrentThreadId: () => "thread-1",
+				abort: () => {},
+				switchThread: async (input: Record<string, unknown>) => {
+					switchThreadInputs.push(input);
+				},
+				switchModel: async () => {},
+				sendMessage: async (input: Record<string, unknown>) => {
+					sendMessageInputs.push(input);
+				},
+				config: {
+					storage: {
+						getStore: async () => memoryStore,
+					},
+				},
+			} as unknown as RuntimeSession["harness"],
+			mcpManager: null as RuntimeSession["mcpManager"],
+			hookManager: null as RuntimeSession["hookManager"],
+			mcpManualStatuses: new Map(),
+			lastErrorMessage: "stale error",
+			pendingSandboxQuestion: null,
+			answeredQuestionIds: new Set(),
+			pendingQuestionResponses: new Map(),
+			cwd: "/tmp",
+		};
+
+		await restartRuntimeFromUserMessage(runtime, {
+			messageId: "assistant-2",
+			payload: {
+				content: "Retry previous user prompt",
+			},
+		});
+
+		expect(cloneThreadInputs).toEqual([
+			{
+				sourceThreadId: "thread-1",
+				resourceId: "resource-1",
+				title: "Existing Thread",
+				options: {
+					messageFilter: {
+						messageIds: ["user-1", "assistant-1"],
+					},
+				},
+			},
+		]);
+		expect(switchThreadInputs).toEqual([{ threadId: "thread-2" }]);
+		expect(sendMessageInputs).toEqual([
+			{ content: "Retry previous user prompt" },
+		]);
+		expect(runtime.lastErrorMessage).toBeNull();
+	});
+
+	it("treats persisted Mastra signal messages as restartable user messages", async () => {
+		const cloneThreadInputs: Array<Record<string, unknown>> = [];
+		const sendMessageInputs: Array<Record<string, unknown>> = [];
+
+		const memoryStore = {
+			getThreadById: async () => ({
+				id: "thread-1",
+				resourceId: "resource-1",
+				title: "Existing Thread",
+			}),
+			listMessages: async () => ({
+				messages: [
+					{ id: "signal-1", role: "signal" },
+					{ id: "assistant-1", role: "assistant" },
+					{ id: "signal-2", role: "signal" },
+				],
+			}),
+			cloneThread: async (input: Record<string, unknown>) => {
+				cloneThreadInputs.push(input);
+				return {
+					thread: {
+						id: "thread-2",
+						resourceId: "resource-1",
+						title: "Existing Thread",
+					},
+				};
+			},
+		};
+
+		const runtime: RuntimeSession = {
+			sessionId: "11111111-1111-1111-1111-111111111111",
+			harness: {
+				getCurrentThreadId: () => "thread-1",
+				abort: () => {},
+				switchThread: async () => {},
+				switchModel: async () => {},
+				sendMessage: async (input: Record<string, unknown>) => {
+					sendMessageInputs.push(input);
+				},
+				config: {
+					storage: {
+						getStore: async () => memoryStore,
+					},
+				},
+			} as unknown as RuntimeSession["harness"],
+			mcpManager: null as RuntimeSession["mcpManager"],
+			hookManager: null as RuntimeSession["hookManager"],
+			mcpManualStatuses: new Map(),
+			lastErrorMessage: "stale error",
+			pendingSandboxQuestion: null,
+			answeredQuestionIds: new Set(),
+			pendingQuestionResponses: new Map(),
+			cwd: "/tmp",
+		};
+
+		await restartRuntimeFromUserMessage(runtime, {
+			messageId: "signal-2",
+			payload: {
+				content: "Retry persisted signal prompt",
+			},
+		});
+
+		expect(cloneThreadInputs).toEqual([
+			{
+				sourceThreadId: "thread-1",
+				resourceId: "resource-1",
+				title: "Existing Thread",
+				options: {
+					messageFilter: {
+						messageIds: ["signal-1", "assistant-1"],
+					},
+				},
+			},
+		]);
+		expect(sendMessageInputs).toEqual([
+			{ content: "Retry persisted signal prompt" },
+		]);
+		expect(runtime.lastErrorMessage).toBeNull();
+	});
 });

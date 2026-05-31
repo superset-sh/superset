@@ -1,0 +1,1 @@
+export { RegistryModelProvider } from "./RegistryModelProvider";

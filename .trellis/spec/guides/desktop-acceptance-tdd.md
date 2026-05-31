@@ -129,6 +129,7 @@ Real desktop acceptance should:
 - Capture screenshots at meaningful checkpoints and on failure.
 - Record main-process and renderer console errors.
 - Clean up Electron, child services, ports, temporary directories, and background processes best-effort in `finally`.
+- After any E2E smoke that signs into a disposable test account, restore the real desktop app to the developer's daily account before handing the app to the user for manual acceptance. Verify the visible organization/workspace label is no longer the E2E account, and avoid creating extra data in the daily account unless the user explicitly asks.
 
 Computer Use fallback is allowed for native dialogs, app menus, full-screen transitions, OS permission prompts, or focus states outside the renderer/CDP boundary. It should not replace Desktop Automation CLI for normal renderer assertions.
 
@@ -171,4 +172,5 @@ When finishing a desktop-facing task, record:
 - The focused unit/source/integration tests that passed.
 - The Desktop Automation CLI acceptance path and result, or the explicit reason it was not run.
 - Screenshot artifact paths when the smoke captures them.
+- Whether the app session was restored from the disposable E2E account to the developer's daily account before manual acceptance.
 - Any Computer Use fallback steps, remaining manual visual checks, or known instability.

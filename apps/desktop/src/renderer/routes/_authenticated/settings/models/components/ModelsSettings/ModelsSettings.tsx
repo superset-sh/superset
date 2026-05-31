@@ -1,509 +1,593 @@
-import { chatServiceTrpc } from "@superset/chat/client";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
-import { claudeIcon } from "@superset/ui/icons/preset-icons";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
-import { Textarea } from "@superset/ui/textarea";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { PlusIcon, RefreshCwIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { HiChevronDown } from "react-icons/hi2";
-import { AnthropicOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/AnthropicOAuthDialog";
-import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/OpenAIOAuthDialog";
-import { useAnthropicOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useAnthropicOAuth";
-import { useOpenAIOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useOpenAIOAuth";
+import {
+	groupModelsByModelFamily,
+	type ModelCatalogOption,
+} from "renderer/components/Chat/ChatInterface/utils/modelOptions";
+import { ModelProviderIcon } from "renderer/components/ModelProviderIcon";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { ConfigRow } from "./components/ConfigRow";
 import { SettingsSection } from "./components/SettingsSection";
-import {
-	buildAnthropicEnvText,
-	EMPTY_ANTHROPIC_FORM,
-	getProviderAction,
-	getStatusBadge,
-	parseAnthropicForm,
-	resolveProviderStatus,
-} from "./utils";
 
 interface ModelsSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
-const DIALOG_CONTEXT = {
-	isModelSelectorOpen: true,
-	onModelSelectorOpenChange: () => {},
-} as const;
+type ProviderProtocol = "anthropic" | "openai-chat" | "openai-responses";
+
+interface ProviderModelForm {
+	modelId: string;
+	displayName: string;
+	enabled: boolean;
+}
+
+interface ProviderForm {
+	id: string | null;
+	name: string;
+	protocol: ProviderProtocol;
+	baseUrl: string;
+	enabled: boolean;
+	secret: string;
+	models: ProviderModelForm[];
+}
+
+const EMPTY_FORM: ProviderForm = {
+	id: null,
+	name: "",
+	protocol: "anthropic",
+	baseUrl: "",
+	enabled: true,
+	secret: "",
+	models: [],
+};
+
+const PROTOCOL_LABEL: Record<ProviderProtocol, string> = {
+	anthropic: "Anthropic-compatible",
+	"openai-chat": "OpenAI Chat Completions",
+	"openai-responses": "OpenAI Responses",
+};
+
+function normalizeModelId(value: string): string {
+	return value.trim();
+}
+
+function formModelsFromProvider(
+	models: Array<{ modelId: string; displayName: string; enabled: boolean }>,
+): ProviderModelForm[] {
+	return models.map((model) => ({
+		modelId: model.modelId,
+		displayName: model.displayName,
+		enabled: model.enabled,
+	}));
+}
+
+function parseModelInput(value: string): ProviderModelForm[] {
+	return value
+		.split(/[\n,]+/)
+		.map(normalizeModelId)
+		.filter(Boolean)
+		.map((modelId) => ({
+			modelId,
+			displayName: modelId,
+			enabled: true,
+		}));
+}
+
+function mergeModels(
+	current: ProviderModelForm[],
+	incoming: ProviderModelForm[],
+): ProviderModelForm[] {
+	const seen = new Set(current.map((model) => model.modelId));
+	const merged = [...current];
+	for (const model of incoming) {
+		if (seen.has(model.modelId)) continue;
+		seen.add(model.modelId);
+		merged.push(model);
+	}
+	return merged;
+}
+
+function modelsToRows(models: ProviderModelForm[]) {
+	return models.map((model) => ({
+		modelId: model.modelId,
+		displayName: model.displayName || model.modelId,
+		enabled: model.enabled,
+	}));
+}
+
+function modelOptionsFromForm(form: ProviderForm): ModelCatalogOption[] {
+	return form.models.map((model) => ({
+		id: model.modelId,
+		modelId: model.modelId,
+		name: model.displayName || model.modelId,
+		protocol: form.protocol,
+		provider: form.name,
+	}));
+}
 
 export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
-	const showAnthropic = isItemVisible(
-		SETTING_ITEM_ID.MODELS_ANTHROPIC,
-		visibleItems,
+	const shouldShow =
+		isItemVisible(SETTING_ITEM_ID.MODELS_ANTHROPIC, visibleItems) ||
+		isItemVisible(SETTING_ITEM_ID.MODELS_OPENAI, visibleItems);
+	const { activeHostUrl, hostServiceStatus } = useLocalHostService();
+	const queryClient = useQueryClient();
+	const [form, setForm] = useState<ProviderForm>(EMPTY_FORM);
+	const [modelInput, setModelInput] = useState("");
+	const queryKey = useMemo(
+		() => ["model-providers", activeHostUrl] as const,
+		[activeHostUrl],
 	);
-	const showOpenAI = isItemVisible(SETTING_ITEM_ID.MODELS_OPENAI, visibleItems);
-	const [advancedOpen, setAdvancedOpen] = useState(false);
-	const [openAIApiKeyInput, setOpenAIApiKeyInput] = useState("");
-	const [anthropicApiKeyInput, setAnthropicApiKeyInput] = useState("");
-	const [anthropicForm, setAnthropicForm] = useState(EMPTY_ANTHROPIC_FORM);
 
-	const { data: anthropicAuthStatus, refetch: refetchAnthropicAuthStatus } =
-		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
-	const { data: openAIAuthStatus, refetch: refetchOpenAIAuthStatus } =
-		chatServiceTrpc.auth.getOpenAIStatus.useQuery();
-	const { data: anthropicEnvConfig, refetch: refetchAnthropicEnvConfig } =
-		chatServiceTrpc.auth.getAnthropicEnvConfig.useQuery();
-	const setAnthropicApiKeyMutation =
-		chatServiceTrpc.auth.setAnthropicApiKey.useMutation();
-	const clearAnthropicApiKeyMutation =
-		chatServiceTrpc.auth.clearAnthropicApiKey.useMutation();
-	const setAnthropicEnvConfigMutation =
-		chatServiceTrpc.auth.setAnthropicEnvConfig.useMutation();
-	const clearAnthropicEnvConfigMutation =
-		chatServiceTrpc.auth.clearAnthropicEnvConfig.useMutation();
-	const setOpenAIApiKeyMutation =
-		chatServiceTrpc.auth.setOpenAIApiKey.useMutation();
-	const clearOpenAIApiKeyMutation =
-		chatServiceTrpc.auth.clearOpenAIApiKey.useMutation();
-
-	const {
-		isStartingOAuth: isStartingAnthropicOAuth,
-		startAnthropicOAuth,
-		oauthDialog: anthropicOAuthDialog,
-	} = useAnthropicOAuth({
-		...DIALOG_CONTEXT,
-		onAuthStateChange: async () => {
-			await refetchAnthropicAuthStatus();
+	const providersQuery = useQuery({
+		queryKey,
+		enabled: shouldShow && Boolean(activeHostUrl),
+		queryFn: async () => {
+			if (!activeHostUrl) return [];
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).modelProviders.list.query();
 		},
 	});
-	const {
-		isStartingOAuth: isStartingOpenAIOAuth,
-		startOpenAIOAuth,
-		oauthDialog: openAIOAuthDialog,
-	} = useOpenAIOAuth(DIALOG_CONTEXT);
-
-	const isSavingAnthropicApiKey =
-		setAnthropicApiKeyMutation.isPending ||
-		clearAnthropicApiKeyMutation.isPending;
-	const isSavingAnthropicConfig =
-		setAnthropicEnvConfigMutation.isPending ||
-		clearAnthropicEnvConfigMutation.isPending;
-	const isSavingOpenAIConfig =
-		setOpenAIApiKeyMutation.isPending || clearOpenAIApiKeyMutation.isPending;
+	const providers = providersQuery.data ?? [];
 
 	useEffect(() => {
-		setAnthropicForm(parseAnthropicForm(anthropicEnvConfig?.envText ?? ""));
-		setAnthropicApiKeyInput("");
-	}, [anthropicEnvConfig?.envText]);
+		if (form.id !== null) return;
+		const first = providers[0];
+		if (!first) return;
+		setForm({
+			id: first.id,
+			name: first.name,
+			protocol: first.protocol,
+			baseUrl: first.baseUrl,
+			enabled: first.enabled,
+			secret: "",
+			models: formModelsFromProvider(first.models),
+		});
+	}, [form.id, providers]);
 
-	const anthropicStatus = useMemo(
-		() =>
-			resolveProviderStatus({
-				providerId: "anthropic",
-				authStatus: anthropicAuthStatus,
-			}),
-		[anthropicAuthStatus],
-	);
-
-	const openAIStatus = useMemo(
-		() =>
-			resolveProviderStatus({
-				providerId: "openai",
-				authStatus: openAIAuthStatus,
-			}),
-		[openAIAuthStatus],
-	);
-
-	const anthropicBadge = useMemo(
-		() => getStatusBadge(anthropicStatus),
-		[anthropicStatus],
-	);
-	const openAIBadge = useMemo(
-		() => getStatusBadge(openAIStatus),
-		[openAIStatus],
-	);
-
-	const saveAnthropicForm = async (nextForm = anthropicForm) => {
-		const envText = buildAnthropicEnvText(nextForm);
-		try {
-			if (envText) {
-				await setAnthropicEnvConfigMutation.mutateAsync({ envText });
-			} else {
-				await clearAnthropicEnvConfigMutation.mutateAsync();
-			}
-			await Promise.all([
-				refetchAnthropicEnvConfig(),
-				refetchAnthropicAuthStatus(),
-			]);
-			toast.success("Anthropic settings updated");
-			return true;
-		} catch (error) {
+	const upsertMutation = useMutation({
+		mutationFn: async (nextForm: ProviderForm) => {
+			if (!activeHostUrl) throw new Error("Host service is not running");
+			const models = modelsToRows(nextForm.models);
+			if (models.length === 0) throw new Error("Add at least one model");
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).modelProviders.upsert.mutate({
+				id: nextForm.id ?? undefined,
+				name: nextForm.name,
+				protocol: nextForm.protocol,
+				baseUrl: nextForm.baseUrl,
+				enabled: nextForm.enabled,
+				secret: nextForm.secret.trim() || undefined,
+				models,
+			});
+		},
+		onSuccess: async (saved) => {
+			await queryClient.invalidateQueries({ queryKey });
+			setForm({
+				id: saved.id,
+				name: saved.name,
+				protocol: saved.protocol,
+				baseUrl: saved.baseUrl,
+				enabled: saved.enabled,
+				secret: "",
+				models: formModelsFromProvider(saved.models),
+			});
+			toast.success("Model provider saved");
+		},
+		onError: (error) => {
 			toast.error(error instanceof Error ? error.message : "Failed to save");
-			return false;
-		}
-	};
+		},
+	});
 
-	const handleAnthropicFormBlur = () => {
-		const currentEnvText = anthropicEnvConfig?.envText ?? "";
-		const nextEnvText = buildAnthropicEnvText(anthropicForm);
-		if (currentEnvText.trim() === nextEnvText.trim()) return;
-		void saveAnthropicForm(anthropicForm);
-	};
-
-	const resetAnthropicAdvanced = () => {
-		const nextForm = {
-			...anthropicForm,
-			authToken: "",
-			baseUrl: "",
-			extraEnv: "",
-		};
-		setAnthropicForm(nextForm);
-		void saveAnthropicForm(nextForm);
-	};
-
-	const hasAdvancedContent =
-		anthropicForm.authToken.trim().length > 0 ||
-		anthropicForm.baseUrl.trim().length > 0 ||
-		anthropicForm.extraEnv.trim().length > 0;
-
-	const saveAnthropicApiKey = async () => {
-		const apiKey = anthropicApiKeyInput.trim();
-		if (!apiKey) return;
-		try {
-			await setAnthropicApiKeyMutation.mutateAsync({ apiKey });
-			setAnthropicApiKeyInput("");
-			await refetchAnthropicAuthStatus();
-			toast.success("Anthropic API key updated");
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to save");
-		}
-	};
-
-	const saveOpenAIApiKey = async () => {
-		const apiKey = openAIApiKeyInput.trim();
-		if (!apiKey) return;
-		try {
-			await setOpenAIApiKeyMutation.mutateAsync({ apiKey });
-			setOpenAIApiKeyInput("");
-			await refetchOpenAIAuthStatus();
-			toast.success("OpenAI API key updated");
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to save");
-		}
-	};
-
-	const renderProviderAction = ({
-		status,
-		startOAuth,
-		isStartingOAuth,
-		onDisconnect,
-	}: {
-		status: typeof anthropicStatus | typeof openAIStatus;
-		startOAuth: () => Promise<void>;
-		isStartingOAuth: boolean;
-		onDisconnect: () => void;
-	}) => {
-		const action = getProviderAction(status);
-		if (!action) return null;
-		if (action.kind === "logout") {
-			return (
-				<Button variant="outline" size="sm" onClick={onDisconnect}>
-					Sign out
-				</Button>
+	const fetchRemoteModelsMutation = useMutation({
+		mutationFn: async (nextForm: ProviderForm) => {
+			if (!activeHostUrl) throw new Error("Host service is not running");
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).modelProviders.fetchRemoteModels.mutate({
+				id: nextForm.id ?? undefined,
+				protocol: nextForm.protocol,
+				baseUrl: nextForm.baseUrl,
+				secret: nextForm.secret.trim() || undefined,
+			});
+		},
+		onSuccess: ({ models }) => {
+			setForm((current) => ({
+				...current,
+				models: mergeModels(
+					current.models,
+					models.map((model) => ({ ...model, enabled: true })),
+				),
+			}));
+			toast.success(`Fetched ${models.length} models`);
+		},
+		onError: (error) => {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to fetch models",
 			);
-		}
-		return (
-			<Button
-				size="sm"
-				onClick={() => void startOAuth()}
-				disabled={isStartingOAuth}
-			>
-				{action.kind === "reconnect" ? "Reconnect" : "Sign in"}
-			</Button>
-		);
-	};
+		},
+	});
+
+	const deleteMutation = useMutation({
+		mutationFn: async (providerId: string) => {
+			if (!activeHostUrl) throw new Error("Host service is not running");
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).modelProviders.delete.mutate({ id: providerId });
+		},
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({ queryKey });
+			setForm(EMPTY_FORM);
+			toast.success("Model provider deleted");
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Failed to delete");
+		},
+	});
+
+	if (!shouldShow) return null;
+
+	const selectedProvider = providers.find(
+		(provider) => provider.id === form.id,
+	);
+	const groupedModels = groupModelsByModelFamily(
+		modelOptionsFromForm(form),
+	).map(
+		([family, models]) => [family, models as ModelCatalogOption[]] as const,
+	);
+	const canSave =
+		Boolean(activeHostUrl) &&
+		form.name.trim().length > 0 &&
+		form.baseUrl.trim().length > 0 &&
+		form.models.length > 0;
+	const canFetchRemoteModels =
+		Boolean(activeHostUrl) &&
+		form.baseUrl.trim().length > 0 &&
+		(Boolean(form.secret.trim()) || Boolean(selectedProvider?.hasSecret));
+
+	function selectProvider(provider: (typeof providers)[number]) {
+		setForm({
+			id: provider.id,
+			name: provider.name,
+			protocol: provider.protocol,
+			baseUrl: provider.baseUrl,
+			enabled: provider.enabled,
+			secret: "",
+			models: formModelsFromProvider(provider.models),
+		});
+		setModelInput("");
+	}
+
+	function addManualModels() {
+		const models = parseModelInput(modelInput);
+		if (models.length === 0) return;
+		setForm((current) => ({
+			...current,
+			models: mergeModels(current.models, models),
+		}));
+		setModelInput("");
+	}
+
+	function removeModel(modelId: string) {
+		setForm((current) => ({
+			...current,
+			models: current.models.filter((model) => model.modelId !== modelId),
+		}));
+	}
 
 	return (
-		<>
-			<div className="w-full max-w-4xl p-6">
-				<div className="mb-8">
-					<h2 className="text-xl font-semibold">Models</h2>
-					<p className="mt-1 text-sm text-muted-foreground">
-						Manage provider accounts, API keys, and overrides.
-					</p>
-				</div>
-
-				<div className="space-y-8">
-					{showAnthropic ? (
-						<SettingsSection
-							title="Anthropic"
-							icon={<img alt="" className="size-4" src={claudeIcon} />}
-							description="Sign in with Claude or use an API key."
-							action={
-								<div className="flex items-center gap-2">
-									{anthropicBadge ? (
-										<Badge variant={anthropicBadge.variant}>
-											{anthropicBadge.label}
-										</Badge>
-									) : null}
-									{renderProviderAction({
-										status: anthropicStatus,
-										startOAuth: startAnthropicOAuth,
-										isStartingOAuth: isStartingAnthropicOAuth,
-										onDisconnect: async () => {
-											if (anthropicStatus?.authMethod === "oauth") {
-												anthropicOAuthDialog.onDisconnect();
-											} else {
-												await clearAnthropicApiKeyMutation.mutateAsync();
-												setAnthropicApiKeyInput("");
-											}
-											await refetchAnthropicAuthStatus();
-										},
-									})}
-								</div>
-							}
-						>
-							<ConfigRow
-								title="API key"
-								htmlFor="anthropic-api-key"
-								field={
-									<Input
-										id="anthropic-api-key"
-										type="password"
-										value={anthropicApiKeyInput}
-										onChange={(event) => {
-											setAnthropicApiKeyInput(event.target.value);
-										}}
-										placeholder={
-											anthropicStatus?.authMethod === "api_key"
-												? "Saved Anthropic API key"
-												: "sk-ant-..."
-										}
-										className="font-mono"
-										disabled={isSavingAnthropicApiKey}
-									/>
-								}
-								onSave={() => {
-									void saveAnthropicApiKey();
-								}}
-								onClear={() => {
-									const nextForm = { ...anthropicForm, apiKey: "" };
-									void (async () => {
-										try {
-											await clearAnthropicApiKeyMutation.mutateAsync();
-											setAnthropicApiKeyInput("");
-											setAnthropicForm(nextForm);
-											await refetchAnthropicAuthStatus();
-											toast.success("Anthropic API key cleared");
-										} catch (error) {
-											toast.error(
-												error instanceof Error
-													? error.message
-													: "Failed to clear",
-											);
-										}
-									})();
-								}}
-								showSave={anthropicApiKeyInput.trim().length > 0}
-								disableSave={isSavingAnthropicApiKey}
-								showClear={anthropicStatus?.authMethod === "api_key"}
-								disableClear={isSavingAnthropicApiKey}
-							/>
-
-							<Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-								<div className="flex items-center justify-between">
-									<CollapsibleTrigger asChild>
-										<button
-											type="button"
-											className="flex items-center gap-1.5 text-left text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-										>
-											<HiChevronDown
-												className={`size-3.5 transition-transform ${advancedOpen ? "" : "-rotate-90"}`}
-											/>
-											Advanced
-										</button>
-									</CollapsibleTrigger>
-									{advancedOpen && hasAdvancedContent ? (
-										<button
-											type="button"
-											onClick={resetAnthropicAdvanced}
-											disabled={isSavingAnthropicConfig}
-											className="text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
-										>
-											Reset
-										</button>
-									) : null}
-								</div>
-								<CollapsibleContent className="mt-3 space-y-3">
-									<div className="space-y-1.5">
-										<Label
-											htmlFor="anthropic-auth-token"
-											className="text-sm font-medium"
-										>
-											Auth token
-										</Label>
-										<Input
-											id="anthropic-auth-token"
-											type="password"
-											value={anthropicForm.authToken}
-											onChange={(event) => {
-												setAnthropicForm((current) => ({
-													...current,
-													authToken: event.target.value,
-												}));
-											}}
-											onBlur={handleAnthropicFormBlur}
-											placeholder="ANTHROPIC_AUTH_TOKEN"
-											className="font-mono"
-											disabled={isSavingAnthropicConfig}
-										/>
-									</div>
-									<div className="space-y-1.5">
-										<Label
-											htmlFor="anthropic-base-url"
-											className="text-sm font-medium"
-										>
-											Base URL
-										</Label>
-										<Input
-											id="anthropic-base-url"
-											value={anthropicForm.baseUrl}
-											onChange={(event) => {
-												setAnthropicForm((current) => ({
-													...current,
-													baseUrl: event.target.value,
-												}));
-											}}
-											onBlur={handleAnthropicFormBlur}
-											placeholder="https://api.anthropic.com"
-											className="font-mono"
-											disabled={isSavingAnthropicConfig}
-										/>
-									</div>
-									<div className="space-y-1.5">
-										<Label
-											htmlFor="anthropic-extra-env"
-											className="text-sm font-medium"
-										>
-											Additional env vars
-										</Label>
-										<Textarea
-											id="anthropic-extra-env"
-											value={anthropicForm.extraEnv}
-											onChange={(event) => {
-												setAnthropicForm((current) => ({
-													...current,
-													extraEnv: event.target.value,
-												}));
-											}}
-											onBlur={handleAnthropicFormBlur}
-											placeholder={
-												"CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1"
-											}
-											className="min-h-24 font-mono text-xs"
-											disabled={isSavingAnthropicConfig}
-										/>
-									</div>
-									<p className="text-xs text-muted-foreground">
-										Saved on blur.
-									</p>
-								</CollapsibleContent>
-							</Collapsible>
-						</SettingsSection>
-					) : null}
-
-					{showOpenAI ? (
-						<SettingsSection
-							title="OpenAI"
-							icon={
-								<img
-									alt=""
-									className="size-4 dark:invert"
-									src="https://models.dev/logos/openai.svg"
-								/>
-							}
-							description="Sign in with ChatGPT or use an API key."
-							action={
-								<div className="flex items-center gap-2">
-									{openAIBadge ? (
-										<Badge variant={openAIBadge.variant}>
-											{openAIBadge.label}
-										</Badge>
-									) : null}
-									{renderProviderAction({
-										status: openAIStatus,
-										startOAuth: startOpenAIOAuth,
-										isStartingOAuth: isStartingOpenAIOAuth,
-										onDisconnect: async () => {
-											if (openAIStatus?.authMethod === "oauth") {
-												openAIOAuthDialog.onDisconnect();
-											} else {
-												await clearOpenAIApiKeyMutation.mutateAsync();
-												setOpenAIApiKeyInput("");
-											}
-											await refetchOpenAIAuthStatus();
-										},
-									})}
-								</div>
-							}
-						>
-							<ConfigRow
-								title="API key"
-								htmlFor="openai-api-key"
-								field={
-									<Input
-										id="openai-api-key"
-										type="password"
-										value={openAIApiKeyInput}
-										onChange={(event) => {
-											setOpenAIApiKeyInput(event.target.value);
-										}}
-										placeholder={
-											openAIStatus?.authMethod === "api_key"
-												? "Saved OpenAI API key"
-												: "sk-..."
-										}
-										className="font-mono"
-										disabled={isSavingOpenAIConfig}
-									/>
-								}
-								onSave={() => {
-									void saveOpenAIApiKey();
-								}}
-								onClear={() => {
-									void (async () => {
-										try {
-											await clearOpenAIApiKeyMutation.mutateAsync();
-											setOpenAIApiKeyInput("");
-											await refetchOpenAIAuthStatus();
-											toast.success("OpenAI API key cleared");
-										} catch (error) {
-											toast.error(
-												error instanceof Error
-													? error.message
-													: "Failed to clear",
-											);
-										}
-									})();
-								}}
-								showSave={openAIApiKeyInput.trim().length > 0}
-								disableSave={isSavingOpenAIConfig}
-								showClear={openAIStatus?.authMethod === "api_key"}
-								disableClear={isSavingOpenAIConfig}
-							/>
-						</SettingsSection>
-					) : null}
-				</div>
+		<div className="w-full max-w-5xl p-6">
+			<div className="mb-8">
+				<h2 className="text-xl font-semibold">Models</h2>
+				<p className="mt-1 text-sm text-muted-foreground">
+					Manage model service providers, credentials, protocols, and model
+					lists.
+				</p>
 			</div>
 
-			<AnthropicOAuthDialog {...anthropicOAuthDialog} />
-			<OpenAIOAuthDialog {...openAIOAuthDialog} />
-		</>
+			<div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+				<SettingsSection
+					title="Providers"
+					description={
+						activeHostUrl
+							? "Local model gateway sources."
+							: `Host service is ${hostServiceStatus}.`
+					}
+					action={
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={() => {
+								setForm(EMPTY_FORM);
+								setModelInput("");
+							}}
+						>
+							<PlusIcon className="size-3.5" />
+							New
+						</Button>
+					}
+				>
+					<div className="space-y-2">
+						{providers.length === 0 ? (
+							<div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+								No providers configured.
+							</div>
+						) : (
+							providers.map((provider) => (
+								<button
+									key={provider.id}
+									type="button"
+									onClick={() => selectProvider(provider)}
+									className={`w-full rounded-md border p-3 text-left transition-colors ${
+										form.id === provider.id
+											? "border-primary bg-primary/5"
+											: "border-border hover:bg-muted/50"
+									}`}
+								>
+									<div className="flex items-center justify-between gap-2">
+										<div className="flex min-w-0 items-center gap-2">
+											<ModelProviderIcon
+												className="size-4"
+												modelId={provider.models[0]?.modelId}
+												protocol={provider.protocol}
+												provider={provider.name}
+											/>
+											<span className="truncate font-medium text-sm">
+												{provider.name}
+											</span>
+										</div>
+										<Badge variant={provider.enabled ? "default" : "secondary"}>
+											{provider.enabled ? "On" : "Off"}
+										</Badge>
+									</div>
+									<div className="mt-1 text-xs text-muted-foreground">
+										{PROTOCOL_LABEL[provider.protocol]} ·{" "}
+										{provider.models.length} models
+									</div>
+								</button>
+							))
+						)}
+					</div>
+				</SettingsSection>
+
+				<SettingsSection
+					title={form.id ? "Provider details" : "New provider"}
+					description="Choose the upstream protocol once; Superset routes Chat and terminal agents through the gateway."
+					action={
+						selectedProvider?.hasSecret ? (
+							<Badge variant="secondary">Credential saved</Badge>
+						) : null
+					}
+				>
+					<div className="grid gap-4">
+						<div className="grid gap-1.5">
+							<Label htmlFor="provider-name">Name</Label>
+							<Input
+								id="provider-name"
+								value={form.name}
+								onChange={(event) =>
+									setForm((current) => ({
+										...current,
+										name: event.target.value,
+									}))
+								}
+								placeholder="My gateway"
+							/>
+						</div>
+
+						<div className="grid gap-1.5">
+							<Label>Protocol</Label>
+							<Select
+								value={form.protocol}
+								onValueChange={(value) =>
+									setForm((current) => ({
+										...current,
+										protocol: value as ProviderProtocol,
+									}))
+								}
+							>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{Object.entries(PROTOCOL_LABEL).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						<div className="grid gap-1.5">
+							<Label htmlFor="provider-base-url">Base URL</Label>
+							<Input
+								id="provider-base-url"
+								value={form.baseUrl}
+								onChange={(event) =>
+									setForm((current) => ({
+										...current,
+										baseUrl: event.target.value,
+									}))
+								}
+								placeholder="https://api.example.com"
+								className="font-mono"
+							/>
+						</div>
+
+						<div className="grid gap-1.5">
+							<Label htmlFor="provider-secret">API key or token</Label>
+							<Input
+								id="provider-secret"
+								type="password"
+								value={form.secret}
+								onChange={(event) =>
+									setForm((current) => ({
+										...current,
+										secret: event.target.value,
+									}))
+								}
+								placeholder={
+									selectedProvider?.hasSecret
+										? "Saved credential (leave blank to keep)"
+										: "Provider credential"
+								}
+								className="font-mono"
+							/>
+						</div>
+
+						<div className="grid gap-2">
+							<div className="flex items-center justify-between gap-3">
+								<Label>Models</Label>
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={() => fetchRemoteModelsMutation.mutate(form)}
+									disabled={
+										!canFetchRemoteModels || fetchRemoteModelsMutation.isPending
+									}
+								>
+									<RefreshCwIcon
+										className={`size-3.5 ${
+											fetchRemoteModelsMutation.isPending ? "animate-spin" : ""
+										}`}
+									/>
+									Fetch model list
+								</Button>
+							</div>
+
+							<div className="min-h-28 rounded-md border bg-muted/10 p-3">
+								{groupedModels.length === 0 ? (
+									<div className="rounded-md border border-dashed p-4 text-center text-muted-foreground text-sm">
+										No models added.
+									</div>
+								) : (
+									<div className="grid gap-3">
+										{groupedModels.map(([family, models]) => (
+											<div key={family} className="grid gap-2">
+												<div className="flex items-center gap-2">
+													<ModelProviderIcon
+														className="size-3.5"
+														modelId={
+															models[0]?.modelId ?? models[0]?.name ?? family
+														}
+														protocol={form.protocol}
+														provider={form.name}
+													/>
+													<span className="font-medium text-xs">{family}</span>
+													<span className="text-muted-foreground text-xs">
+														{models.length}
+													</span>
+												</div>
+												<div className="flex flex-wrap gap-2">
+													{models.map((model) => (
+														<button
+															key={model.modelId ?? model.id}
+															type="button"
+															onClick={() =>
+																removeModel(model.modelId ?? model.id)
+															}
+															className="inline-flex max-w-full items-center gap-1 rounded-full border bg-background px-2 py-1 text-xs transition-colors hover:bg-muted"
+															title={model.modelId ?? model.id}
+														>
+															<ModelProviderIcon
+																className="size-3"
+																modelId={model.modelId ?? model.name}
+																protocol={form.protocol}
+																provider={form.name}
+															/>
+															<span className="min-w-0 truncate">
+																{model.name}
+															</span>
+															<XIcon className="size-3 text-muted-foreground" />
+														</button>
+													))}
+												</div>
+											</div>
+										))}
+									</div>
+								)}
+							</div>
+
+							<div className="flex gap-2">
+								<Input
+									id="provider-model-add-input"
+									value={modelInput}
+									onChange={(event) => setModelInput(event.target.value)}
+									onKeyDown={(event) => {
+										if (event.key !== "Enter") return;
+										event.preventDefault();
+										addManualModels();
+									}}
+									placeholder="gpt-5.5"
+									className="font-mono"
+								/>
+								<Button
+									id="provider-model-add-button"
+									type="button"
+									variant="outline"
+									onClick={addManualModels}
+									disabled={parseModelInput(modelInput).length === 0}
+								>
+									<PlusIcon className="size-4" />
+									Add
+								</Button>
+							</div>
+						</div>
+
+						<div className="flex items-center justify-between gap-3 border-t pt-4">
+							<div className="flex items-center gap-2">
+								<Button
+									onClick={() => upsertMutation.mutate(form)}
+									disabled={!canSave || upsertMutation.isPending}
+								>
+									Save provider
+								</Button>
+								<Button
+									variant="outline"
+									onClick={() =>
+										setForm((current) => ({
+											...current,
+											enabled: !current.enabled,
+										}))
+									}
+								>
+									{form.enabled ? "Disable" : "Enable"}
+								</Button>
+							</div>
+							{form.id ? (
+								<Button
+									variant="ghost"
+									onClick={() => deleteMutation.mutate(form.id as string)}
+									disabled={deleteMutation.isPending}
+								>
+									<Trash2Icon className="size-4" />
+									Delete
+								</Button>
+							) : null}
+						</div>
+					</div>
+				</SettingsSection>
+			</div>
+		</div>
 	);
 }

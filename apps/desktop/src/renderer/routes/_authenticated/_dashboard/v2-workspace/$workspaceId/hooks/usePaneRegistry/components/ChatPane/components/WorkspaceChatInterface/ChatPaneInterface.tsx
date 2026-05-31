@@ -15,11 +15,13 @@ import type {
 	ModelOption,
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
+import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import {
 	getDesktopChatModelOptions,
 	isDesktopChatDevMode,
 } from "renderer/lib/dev-chat";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import {
@@ -128,14 +130,23 @@ function ChatUploadFooter({
 	);
 }
 
-function useAvailableModels(): {
+function useAvailableModels(workspaceId: string): {
 	models: ModelOption[];
 	defaultModel: ModelOption | null;
 } {
+	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const localModels = getDesktopChatModelOptions();
 	const { data } = useQuery({
-		queryKey: ["chat", "models"],
-		queryFn: () => apiTrpcClient.chat.getModels.query(),
+		queryKey: ["chat", "models", hostUrl],
+		queryFn: async () => {
+			const providerModels = hostUrl
+				? await getHostServiceClientByUrl(
+						hostUrl,
+					).modelProviders.listChatModels.query()
+				: [];
+			if (providerModels.length > 0) return { models: providerModels };
+			return apiTrpcClient.chat.getModels.query();
+		},
 		enabled: !isDesktopChatDevMode(),
 		staleTime: Number.POSITIVE_INFINITY,
 	});
@@ -199,7 +210,8 @@ export function ChatPaneInterface({
 	onResetSession,
 	onUserMessageSubmitted,
 }: ChatPaneInterfaceProps) {
-	const { models: availableModels, defaultModel } = useAvailableModels();
+	const { models: availableModels, defaultModel } =
+		useAvailableModels(workspaceId);
 	const selectedModelId = useChatPreferencesStore(
 		(state) => state.selectedModelId,
 	);

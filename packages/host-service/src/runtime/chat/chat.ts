@@ -197,9 +197,100 @@ interface HarnessWithConfig {
 	};
 }
 
+function isRestartableUserRole(role: string | undefined): boolean {
+	// Mastra persists submitted user turns as "signal" messages.
+	return role === "user" || role === "signal";
+}
+
+function resolveRestartUserMessageIndex(
+	messages: RuntimeStoredMessage[],
+	messageId: string,
+): number {
+	const selectedIndex = messages.findIndex(
+		(message) => message.id === messageId,
+	);
+	if (selectedIndex === -1) {
+		throw new Error("The selected message is no longer available to edit");
+	}
+
+	const selectedMessage = messages[selectedIndex];
+	if (isRestartableUserRole(selectedMessage?.role)) return selectedIndex;
+
+	if (selectedMessage?.role === "assistant") {
+		for (
+			let messageIndex = selectedIndex - 1;
+			messageIndex >= 0;
+			messageIndex -= 1
+		) {
+			if (isRestartableUserRole(messages[messageIndex]?.role)) {
+				return messageIndex;
+			}
+		}
+	}
+
+	throw new Error("Only user messages can be edited or resent");
+}
+
 export interface ChatRuntimeManagerOptions {
 	db: HostDb;
 	runtimeResolver: ModelProviderRuntimeResolver;
+	mastraHomeDir?: string;
+}
+
+const MASTRA_HOME_ENV_KEYS = ["HOME", "APPDATA", "XDG_DATA_HOME"] as const;
+
+type MastraHomeEnvKey = (typeof MASTRA_HOME_ENV_KEYS)[number];
+
+let mastraHomeEnvTail: Promise<void> = Promise.resolve();
+
+function snapshotMastraHomeEnv(): Partial<
+	Record<MastraHomeEnvKey, string | undefined>
+> {
+	return Object.fromEntries(
+		MASTRA_HOME_ENV_KEYS.map((key) => [key, process.env[key]]),
+	) as Partial<Record<MastraHomeEnvKey, string | undefined>>;
+}
+
+function restoreMastraHomeEnv(
+	snapshot: Partial<Record<MastraHomeEnvKey, string | undefined>>,
+): void {
+	for (const key of MASTRA_HOME_ENV_KEYS) {
+		const value = snapshot[key];
+		if (value === undefined) {
+			delete process.env[key];
+		} else {
+			process.env[key] = value;
+		}
+	}
+}
+
+function configureMastraHomeEnv(mastraHomeDir: string): void {
+	mkdirSync(mastraHomeDir, { recursive: true, mode: 0o700 });
+	process.env.HOME = mastraHomeDir;
+	process.env.APPDATA = join(mastraHomeDir, "AppData", "Roaming");
+	process.env.XDG_DATA_HOME = join(mastraHomeDir, ".local", "share");
+}
+
+function withMastraHome<T>(
+	mastraHomeDir: string,
+	callback: () => Promise<T>,
+): Promise<T> {
+	let release: () => void = () => {};
+	const previousTail = mastraHomeEnvTail;
+	mastraHomeEnvTail = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+
+	return previousTail.then(async () => {
+		const snapshot = snapshotMastraHomeEnv();
+		try {
+			configureMastraHomeEnv(mastraHomeDir);
+			return await callback();
+		} finally {
+			restoreMastraHomeEnv(snapshot);
+			release();
+		}
+	});
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -300,6 +391,7 @@ async function getRuntimeMemoryStore(
 async function restartRuntimeFromUserMessage(
 	runtime: RuntimeSession,
 	input: RestartPayload,
+	resolveModelId: (modelId: string, workspaceId: string) => Promise<string>,
 ): Promise<void> {
 	const threadId = runtime.harness.getCurrentThreadId();
 	if (!threadId) {
@@ -317,17 +409,10 @@ async function restartRuntimeFromUserMessage(
 		perPage: false,
 		orderBy: { field: "createdAt", direction: "ASC" },
 	});
-	const targetIndex = sourceMessages.messages.findIndex(
-		(message) => message.id === input.messageId,
+	const targetIndex = resolveRestartUserMessageIndex(
+		sourceMessages.messages,
+		input.messageId,
 	);
-	if (targetIndex === -1) {
-		throw new Error("The selected message is no longer available to edit");
-	}
-
-	const targetMessage = sourceMessages.messages[targetIndex];
-	if (targetMessage?.role !== "user") {
-		throw new Error("Only user messages can be edited or resent");
-	}
 
 	const clonedThread = await memoryStore.cloneThread({
 		sourceThreadId: threadId,
@@ -347,8 +432,9 @@ async function restartRuntimeFromUserMessage(
 
 	const selectedModel = input.metadata?.model?.trim();
 	if (selectedModel) {
+		const modelId = await resolveModelId(selectedModel, input.workspaceId);
 		await runtime.harness.switchModel({
-			modelId: selectedModel,
+			modelId,
 			scope: "thread",
 		});
 	}
@@ -370,6 +456,7 @@ interface InflightRuntimeCreation {
 export class ChatRuntimeManager {
 	private readonly db: HostDb;
 	private readonly runtimeResolver: ModelProviderRuntimeResolver;
+	private readonly mastraHomeDir: string | undefined;
 	private readonly runtimes = new Map<string, RuntimeSession>();
 	private readonly runtimeCreations = new Map<
 		string,
@@ -379,6 +466,24 @@ export class ChatRuntimeManager {
 	constructor(options: ChatRuntimeManagerOptions) {
 		this.db = options.db;
 		this.runtimeResolver = options.runtimeResolver;
+		this.mastraHomeDir = options.mastraHomeDir;
+	}
+
+	private runInMastraHome<T>(callback: () => Promise<T>): Promise<T> {
+		return this.mastraHomeDir
+			? withMastraHome(this.mastraHomeDir, callback)
+			: callback();
+	}
+
+	private async resolveRuntimeModel(
+		modelId: string,
+		workspaceId: string,
+	): Promise<string> {
+		const resolved = await this.runtimeResolver.prepareRuntimeEnvForModel?.({
+			modelId,
+			workspaceId,
+		});
+		return resolved?.modelId ?? modelId;
 	}
 
 	private subscribeToSessionEvents(runtime: RuntimeSession): void {
@@ -460,13 +565,20 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 		const cwd = workspace.worktreePath;
 
-		this.ensureGlobalAgentInstructions();
 		await this.runtimeResolver.prepareRuntimeEnv();
 
-		const runtime = await createMastraCode({
-			cwd,
-			disableMcp: true,
-			memory: new Memory({ options: { observationalMemory: false } }),
+		const createRuntime = () =>
+			createMastraCode({
+				cwd,
+				disableMcp: true,
+				memory: new Memory({ options: { observationalMemory: false } }),
+				...(this.mastraHomeDir
+					? { settingsPath: join(this.mastraHomeDir, "settings.json") }
+					: {}),
+			});
+		const runtime = await this.runInMastraHome(async () => {
+			this.ensureGlobalAgentInstructions();
+			return createRuntime();
 		});
 		runtime.hookManager?.setSessionId(sessionId);
 		await runtime.harness.init();
@@ -682,20 +794,26 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		);
 		runtime.lastErrorMessage = null;
 
-		const selectedModel = input.metadata?.model?.trim();
-		if (selectedModel) {
-			await runtime.harness.switchModel({
-				modelId: selectedModel,
-				scope: "thread",
-			});
-		}
+		return this.runInMastraHome(async () => {
+			const selectedModel = input.metadata?.model?.trim();
+			if (selectedModel) {
+				const modelId = await this.resolveRuntimeModel(
+					selectedModel,
+					input.workspaceId,
+				);
+				await runtime.harness.switchModel({
+					modelId,
+					scope: "thread",
+				});
+			}
 
-		const thinkingLevel = input.metadata?.thinkingLevel;
-		if (thinkingLevel) {
-			await runtime.harness.setState({ thinkingLevel });
-		}
+			const thinkingLevel = input.metadata?.thinkingLevel;
+			if (thinkingLevel) {
+				await runtime.harness.setState({ thinkingLevel });
+			}
 
-		return runtime.harness.sendMessage(input.payload);
+			return runtime.harness.sendMessage(input.payload);
+		});
 	}
 
 	async restartFromMessage(input: RestartPayload): Promise<void> {
@@ -704,7 +822,11 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			input.workspaceId,
 		);
 		runtime.lastErrorMessage = null;
-		await restartRuntimeFromUserMessage(runtime, input);
+		await this.runInMastraHome(() =>
+			restartRuntimeFromUserMessage(runtime, input, (modelId, workspaceId) =>
+				this.resolveRuntimeModel(modelId, workspaceId),
+			),
+		);
 	}
 
 	async stop(input: { sessionId: string; workspaceId: string }): Promise<void> {

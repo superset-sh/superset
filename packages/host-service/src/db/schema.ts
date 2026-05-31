@@ -135,6 +135,102 @@ export const hostAgentConfigs = sqliteTable(
 	],
 );
 
+export type ModelProviderProtocol =
+	| "anthropic"
+	| "openai-chat"
+	| "openai-responses";
+
+export const modelProviders = sqliteTable(
+	"model_providers",
+	{
+		id: text().primaryKey(),
+		name: text().notNull(),
+		protocol: text().$type<ModelProviderProtocol>().notNull(),
+		baseUrl: text("base_url").notNull(),
+		enabled: integer({ mode: "boolean" }).notNull().default(true),
+		secretEncrypted: text("secret_encrypted"),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("model_providers_enabled_idx").on(table.enabled),
+		index("model_providers_protocol_idx").on(table.protocol),
+	],
+);
+
+export const modelProviderModels = sqliteTable(
+	"model_provider_models",
+	{
+		id: text().primaryKey(),
+		providerId: text("provider_id")
+			.notNull()
+			.references(() => modelProviders.id, { onDelete: "cascade" }),
+		modelId: text("model_id").notNull(),
+		displayName: text("display_name"),
+		enabled: integer({ mode: "boolean" }).notNull().default(true),
+		capabilitiesJson: text("capabilities_json").notNull().default("{}"),
+		displayOrder: integer("display_order").notNull().default(0),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("model_provider_models_provider_id_idx").on(table.providerId),
+		uniqueIndex("model_provider_models_provider_model_unique").on(
+			table.providerId,
+			table.modelId,
+		),
+	],
+);
+
+export const workspaceAgentModelConfigs = sqliteTable(
+	"workspace_agent_model_configs",
+	{
+		id: text().primaryKey(),
+		workspaceId: text("workspace_id")
+			.notNull()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		agent: text().notNull(),
+		providerId: text("provider_id")
+			.notNull()
+			.references(() => modelProviders.id, { onDelete: "cascade" }),
+		gatewayToken: text("gateway_token").notNull(),
+		haikuModelId: text("haiku_model_id").notNull(),
+		sonnetModelId: text("sonnet_model_id").notNull(),
+		opusModelId: text("opus_model_id").notNull(),
+		disableOneMillionContext: integer("disable_one_million_context", {
+			mode: "boolean",
+		})
+			.notNull()
+			.default(true),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("workspace_agent_model_configs_workspace_id_idx").on(
+			table.workspaceId,
+		),
+		uniqueIndex("workspace_agent_model_configs_workspace_agent_unique").on(
+			table.workspaceId,
+			table.agent,
+		),
+		uniqueIndex("workspace_agent_model_configs_gateway_token_unique").on(
+			table.gatewayToken,
+		),
+	],
+);
+
 export const workspaces = sqliteTable(
 	"workspaces",
 	{

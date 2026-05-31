@@ -30,5 +30,7 @@ export interface HostServiceContext {
 	eventBus: EventBus;
 	terminalAgentStore: TerminalAgentStore;
 	organizationId: string;
+	hostServiceBaseUrl: string;
+	hostServiceSecret?: string;
 	isAuthenticated: boolean;
 }

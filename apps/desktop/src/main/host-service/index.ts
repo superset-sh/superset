@@ -5,30 +5,88 @@
  * The coordinator polls health.check to know when it's ready.
  */
 
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 import { serve } from "@hono/node-server";
-import {
-	createApp,
-	installProcessSafetyNet,
-	JwtApiAuthProvider,
-	LocalGitCredentialProvider,
-	LocalModelProvider,
-	PskHostAuthProvider,
-} from "@superset/host-service";
-import {
-	initTerminalBaseEnv,
-	resolveTerminalBaseEnv,
-} from "@superset/host-service/terminal-env";
-import { connectRelay } from "@superset/host-service/tunnel";
 import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
 import { writeManifest } from "main/lib/host-service-manifest";
 import { env } from "./env";
 
 const SHUTDOWN_GRACE_MS = 3_000;
 const WATCHDOG_INTERVAL_MS = 2_000;
+const MASTRA_IMPORT_HOME_ENV_KEYS = [
+	"HOME",
+	"APPDATA",
+	"XDG_DATA_HOME",
+] as const;
 
 type Server = ReturnType<typeof serve>;
+type MastraImportHomeEnvKey = (typeof MASTRA_IMPORT_HOME_ENV_KEYS)[number];
+
+function snapshotMastraImportHomeEnv(): Partial<
+	Record<MastraImportHomeEnvKey, string | undefined>
+> {
+	return Object.fromEntries(
+		MASTRA_IMPORT_HOME_ENV_KEYS.map((key) => [key, process.env[key]]),
+	) as Partial<Record<MastraImportHomeEnvKey, string | undefined>>;
+}
+
+function restoreMastraImportHomeEnv(
+	snapshot: Partial<Record<MastraImportHomeEnvKey, string | undefined>>,
+): void {
+	for (const key of MASTRA_IMPORT_HOME_ENV_KEYS) {
+		const value = snapshot[key];
+		if (value === undefined) {
+			delete process.env[key];
+		} else {
+			process.env[key] = value;
+		}
+	}
+}
+
+function configureMastraImportHome(): void {
+	const mastraHomeDir = path.join(path.dirname(env.HOST_DB_PATH), "mastracode");
+	mkdirSync(mastraHomeDir, { recursive: true, mode: 0o700 });
+	process.env.HOME = mastraHomeDir;
+	process.env.APPDATA = path.join(mastraHomeDir, "AppData", "Roaming");
+	process.env.XDG_DATA_HOME = path.join(mastraHomeDir, ".local", "share");
+}
+
+async function importHostServiceRuntime() {
+	const snapshot = snapshotMastraImportHomeEnv();
+	try {
+		// MastraCode creates a module-level AuthStorage during import. Import the
+		// host-service stack under an org-local HOME so provider-backed Chat never
+		// reads the user's global MastraCode auth.json.
+		configureMastraImportHome();
+		const [hostService, terminalEnv, tunnel] = await Promise.all([
+			import("@superset/host-service"),
+			import("@superset/host-service/terminal-env"),
+			import("@superset/host-service/tunnel"),
+		]);
+		return {
+			...hostService,
+			...terminalEnv,
+			...tunnel,
+		};
+	} finally {
+		restoreMastraImportHomeEnv(snapshot);
+	}
+}
 
 async function main(): Promise<void> {
+	const {
+		connectRelay,
+		createApp,
+		initTerminalBaseEnv,
+		installProcessSafetyNet,
+		JwtApiAuthProvider,
+		LocalGitCredentialProvider,
+		LocalModelProvider,
+		PskHostAuthProvider,
+		resolveTerminalBaseEnv,
+	} = await importHostServiceRuntime();
+
 	// Install the parent watchdog before any awaits so a crash during
 	// startup can still reap this child. `serverRef` is filled in once
 	// serve() returns; shutdown handles both pre- and post-bind states.
@@ -98,6 +156,7 @@ async function main(): Promise<void> {
 				`http://127.0.0.1:${env.DESKTOP_VITE_PORT}`,
 			],
 			hostServiceSecret: env.HOST_SERVICE_SECRET,
+			publicBaseUrl: `http://127.0.0.1:${env.HOST_SERVICE_PORT}`,
 		},
 		providers: {
 			auth: authProvider,

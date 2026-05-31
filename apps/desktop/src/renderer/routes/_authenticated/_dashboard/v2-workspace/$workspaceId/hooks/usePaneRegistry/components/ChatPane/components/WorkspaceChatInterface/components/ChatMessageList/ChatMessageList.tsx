@@ -24,6 +24,7 @@ import { UserMessage } from "./components/UserMessage";
 import { useChatMessageSearch } from "./hooks/useChatMessageSearch";
 import {
 	findLatestSubmitPlanToolCallId,
+	getCurrentAssistantMessage,
 	getInterruptedPreview,
 	getStreamingPreviewToolParts,
 	getVisibleMessages,
@@ -79,15 +80,19 @@ export function ChatMessageList({
 		containerRef: messageListRef,
 		isFocused,
 	});
+	const currentAssistantMessage = useMemo(
+		() => getCurrentAssistantMessage(currentMessage),
+		[currentMessage],
+	);
 
 	const visibleMessages = useMemo(
 		() =>
 			getVisibleMessages({
 				messages,
 				isRunning,
-				currentMessage,
+				currentMessage: currentAssistantMessage,
 			}),
-		[currentMessage, isRunning, messages],
+		[currentAssistantMessage, isRunning, messages],
 	);
 
 	const interruptedPreview = useMemo(
@@ -121,8 +126,8 @@ export function ChatMessageList({
 		if (interruptedPreview) {
 			anchorMessages.push(interruptedPreview);
 		}
-		if (currentMessage?.role === "assistant") {
-			anchorMessages.push(currentMessage);
+		if (currentAssistantMessage) {
+			anchorMessages.push(currentAssistantMessage);
 		}
 
 		const latestSubmitPlanToolCallId = findLatestSubmitPlanToolCallId({
@@ -135,7 +140,7 @@ export function ChatMessageList({
 			fallbackToolCallId: latestSubmitPlanToolCallId,
 		});
 	}, [
-		currentMessage,
+		currentAssistantMessage,
 		interruptedPreview,
 		pendingPlanApproval,
 		previewToolParts,
@@ -147,7 +152,7 @@ export function ChatMessageList({
 	);
 
 	const canShowPendingAssistantUi =
-		isAwaitingAssistant && !currentMessage && !pendingApproval;
+		isAwaitingAssistant && !currentAssistantMessage && !pendingApproval;
 	const shouldShowThinking =
 		canShowPendingAssistantUi &&
 		!pendingPlanApproval &&
@@ -233,10 +238,10 @@ export function ChatMessageList({
 							footer={<InterruptedFooter />}
 						/>
 					)}
-					{isRunning && currentMessage && (
+					{isRunning && currentAssistantMessage && (
 						<AssistantMessage
-							key={`current-${currentMessage.id}`}
-							message={currentMessage}
+							key={`current-${currentAssistantMessage.id}`}
+							message={currentAssistantMessage}
 							workspaceId={workspaceId}
 							sessionId={sessionId}
 							organizationId={organizationId}

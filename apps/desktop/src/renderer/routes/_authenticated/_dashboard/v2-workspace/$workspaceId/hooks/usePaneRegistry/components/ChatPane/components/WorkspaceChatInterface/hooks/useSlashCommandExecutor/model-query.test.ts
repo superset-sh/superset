@@ -12,6 +12,7 @@ const modelOptions: ModelOption[] = [
 		provider: "anthropic",
 	},
 	{ id: "openai/gpt-4.1", name: "GPT-4.1", provider: "openai" },
+	{ id: "gateway/gpt-5.5", name: "gpt-5.5", provider: "gateway" },
 ];
 
 describe("normalizeModelQueryFromActionArgument", () => {
@@ -44,6 +45,12 @@ describe("findModelByQuery", () => {
 		const query = normalizeModelQueryFromActionArgument('"Claude Sonnet 4.5"');
 		expect(findModelByQuery(modelOptions, query)?.id).toBe(
 			"anthropic/claude-sonnet-4-5",
+		);
+	});
+
+	it("finds GPT models with punctuation-insensitive search", () => {
+		expect(findModelByQuery(modelOptions, "gpt5.5")?.id).toBe(
+			"gateway/gpt-5.5",
 		);
 	});
 });

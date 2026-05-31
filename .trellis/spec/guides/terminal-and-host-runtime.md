@@ -41,6 +41,31 @@ Source: `apps/desktop/CLAUDE.md` and `apps/desktop/src/lib/trpc/routers/index.ts
 - In local development, host-service migrations come from `packages/host-service/drizzle`.
 - Runtime native modules such as `better-sqlite3` should be exercised under the intended Node/Electron runtime. Bun is fine for repo scripts and tests, but it is not a substitute for the packaged host-service runtime when validating native SQLite behavior.
 - If manual recovery is needed, inspect host-service logs and the SQLite DB directly before changing cloud rows. A cloud `v2Workspaces` row without a matching local `workspaces` row can still leave workspace-local panes unusable.
+- Mastra persisted chat memory can store submitted user turns with role `signal`
+  rather than `user`. Runtime restart/edit/resend logic should treat both roles
+  as user-originated restart targets, and regression tests should cover the
+  persisted `signal` shape.
+- Electron-vite can split host-service modules into `apps/desktop/dist/main/chunks`.
+  The bundled pty-daemon entry remains at `apps/desktop/dist/main/pty-daemon.js`,
+  so daemon script resolution must check both the current bundle directory and
+  one parent directory before falling back to `packages/pty-daemon/dist`.
+
+## Bundled Runtime Path Resolution
+
+- Treat `import.meta.url` in host-service code as the current compiled module
+  location, not as the Electron main bundle root. Electron-vite can place
+  imported host-service modules under `dist/main/chunks`, while sibling process
+  entrypoints such as `pty-daemon.js` stay in `dist/main`.
+- Runtime script resolvers should be small, pure, and unit-testable with an
+  injectable base directory and existence check. Cover at least:
+  - direct side-by-side bundle path
+  - electron-vite `dist/main/chunks` path resolving one level up
+  - source-running fallback path
+  - explicit env override
+- Terminal or agent-facing desktop acceptance must trigger the actual runtime
+  path. For Claude/terminal changes, clicking a settings tab is not enough:
+  create or attach a terminal/agent session, then verify host-service logs show
+  the expected `pty-daemon.js` path and socket bootstrap.
 
 ## Source Examples
 - `packages/pty-daemon/README.md` documents runtime, layout, testing, and out-of-scope items.

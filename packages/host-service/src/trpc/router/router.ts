@@ -11,6 +11,7 @@ import { githubRouter } from "./github";
 import { healthRouter } from "./health";
 import { hostRouter } from "./host";
 import { issuesRouter } from "./issues";
+import { modelProvidersRouter } from "./model-providers";
 import { notificationsRouter } from "./notifications";
 import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
@@ -36,6 +37,7 @@ export const appRouter = router({
 	github: githubRouter,
 	cloud: cloudRouter,
 	issues: issuesRouter,
+	modelProviders: modelProvidersRouter,
 	notifications: notificationsRouter,
 	pullRequests: pullRequestsRouter,
 	project: projectRouter,

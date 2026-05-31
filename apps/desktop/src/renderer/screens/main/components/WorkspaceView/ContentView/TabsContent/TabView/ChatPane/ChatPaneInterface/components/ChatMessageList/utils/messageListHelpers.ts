@@ -88,6 +88,12 @@ function findLastUserMessageIndex(messages: ChatMessage[]): number {
 	return -1;
 }
 
+export function getCurrentAssistantMessage(
+	currentMessage: ChatMessage | null,
+): ChatMessage | null {
+	return currentMessage?.role === "assistant" ? currentMessage : null;
+}
+
 export function getVisibleMessages({
 	messages,
 	isRunning,

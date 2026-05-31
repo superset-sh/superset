@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/guides/desktop-acceptance-tdd.md", "reason": "Desktop-facing behavior, real app smoke, and automation artifact requirements."}
+{"file": ".trellis/spec/desktop/frontend/index.md", "reason": "Renderer settings, workspace sidebar, and Chat picker conventions."}
+{"file": ".trellis/spec/desktop/backend/index.md", "reason": "Electron/main and local persistence conventions for desktop changes."}
+{"file": ".trellis/spec/chat/frontend/index.md", "reason": "Shared Chat UI model picker and chat client conventions."}
+{"file": ".trellis/spec/chat/backend/index.md", "reason": "Chat runtime and model switching backend conventions."}
+{"file": ".trellis/spec/host-service/backend/index.md", "reason": "Host-service persistence, terminal agent, and worktree runtime contracts."}

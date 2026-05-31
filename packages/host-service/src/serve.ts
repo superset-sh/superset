@@ -53,6 +53,7 @@ async function main(): Promise<void> {
 			migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
 			allowedOrigins: env.CORS_ORIGINS ?? [],
 			hostServiceSecret: env.HOST_SERVICE_SECRET,
+			publicBaseUrl: `http://127.0.0.1:${env.PORT}`,
 		},
 		providers: {
 			auth: authProvider,

@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/guides/desktop-acceptance-tdd.md", "reason": "Quality gate for Settings, Chat picker, workspace model config, and real Electron acceptance."}
+{"file": ".trellis/spec/desktop/frontend/quality-guidelines.md", "reason": "Renderer test and UI quality expectations."}
+{"file": ".trellis/spec/desktop/backend/quality-guidelines.md", "reason": "Desktop backend test and validation expectations."}
+{"file": ".trellis/spec/chat/backend/quality-guidelines.md", "reason": "Chat runtime test expectations for model switching."}
+{"file": ".trellis/spec/host-service/backend/quality-guidelines.md", "reason": "Host-service router, local DB, and terminal/worktree validation expectations."}
