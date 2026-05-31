@@ -42,6 +42,81 @@ Use it like this:
 
 Do not add Playwright, WebDriver, or another desktop driver for routine Trellis acceptance unless a specific task needs CI-style fully scripted execution that Desktop Automation cannot provide.
 
+## Local Desktop Startup Contract
+
+Use this contract before any desktop-facing Trellis acceptance run. The desktop app is not a single process in development; V2 auth, live workspace data, and host-service panes only work when the local service graph is up.
+
+### 1. Scope / Trigger
+
+- Trigger: validating the real Electron desktop app, authenticated V2 dashboard, workspace chat/code panes, host-service features, Electric/TanStack DB collections, or Desktop Automation CLI acceptance.
+- Goal: start the same local services the renderer expects, with local URLs only, before running `bun run desktop:automation -- ...`.
+
+### 2. Signatures
+
+- Docker service graph: `docker compose up -d`
+- Preferred desktop graph when Caddy is installed: `bun run dev:desktop`
+- Manual graph when debugging pieces separately:
+  - API: `bun run --cwd apps/api dev`
+  - Electric proxy Worker: `bun run --cwd apps/electric-proxy dev`
+  - Desktop/Electron: `bun run --cwd apps/desktop dev`
+- Automation probe: `bun run desktop:automation -- window-info --json`
+- Renderer env probe: `bun run desktop:automation -- evaluate-js --code "JSON.stringify({ electricUrl: process.env.NEXT_PUBLIC_ELECTRIC_URL, href: location.href })" --json`
+
+### 3. Contracts
+
+- Local Docker ports come from `.env`: Postgres on `LOCAL_PG_PORT` (this workspace: `3014`), Neon HTTP proxy on `LOCAL_NEON_PROXY_PORT` (`3015`), raw Electric on `LOCAL_ELECTRIC_PORT` (`3009`).
+- API runs on `API_PORT` (`3001`) and is required for email/password login, registration, organization/project/workspace writes, and auth/session checks.
+- Desktop renderer runs on `DESKTOP_VITE_PORT` (`3005` in this workspace) and Electron exposes CDP automation on `DESKTOP_AUTOMATION_PORT` (`9322`).
+- `apps/electric-proxy` runs on `WRANGLER_PORT` (`3012`) and is the auth-aware Electric proxy used by V2 collections.
+- Caddy, when available, runs `dev:caddy` and exposes the Worker through `https://localhost:${CADDY_ELECTRIC_PORT}` (`3010`).
+- `NEXT_PUBLIC_ELECTRIC_URL` must point at the reachable auth-aware Electric proxy, not raw Electric. With Caddy use `https://localhost:${CADDY_ELECTRIC_PORT}`. Without Caddy use `http://localhost:${WRANGLER_PORT}`.
+- `ELECTRIC_URL` is for server/Worker access to raw Electric shape endpoints; renderer code should not use it directly.
+- `apps/desktop/electron.vite.config.ts` loads root `.env` with `override: true`. Inline shell overrides such as `NEXT_PUBLIC_ELECTRIC_URL=... bun run --cwd apps/desktop dev` will not beat root `.env`; edit `.env` and restart desktop when changing renderer compile-time env.
+
+### 4. Validation & Error Matrix
+
+- Docker DB stack is down -> API auth and DB-backed workspace writes fail; start `docker compose up -d`.
+- API is down -> login/register blocks or renderer calls to `NEXT_PUBLIC_API_URL` fail; start `bun run --cwd apps/api dev`.
+- Electric proxy is down or `NEXT_PUBLIC_ELECTRIC_URL` is stale -> V2 collection-backed workspace/sidebar data can appear empty even when cloud rows exist; start `apps/electric-proxy` and restart desktop with a reachable proxy URL.
+- Caddy is missing -> `bun run dev:desktop` can fail in `dev:caddy`; use the manual graph and set `NEXT_PUBLIC_ELECTRIC_URL=http://localhost:${WRANGLER_PORT}` locally.
+- Renderer points at raw Electric (`LOCAL_ELECTRIC_PORT`/`ELECTRIC_URL`) -> shape requests bypass proxy auth and can be rejected; point renderer at `apps/electric-proxy` or Caddy.
+- `.env` changes are made after desktop starts -> renderer still uses the old compiled env; restart `apps/desktop`.
+- Host-service local DB lacks matching `projects`/`workspaces` rows -> cloud V2 rows may list, but local workspace operations and panes can fail; seed through app flows or ensure host DB rows exist.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `docker compose up -d`, `bun run dev:desktop`, then `bun run desktop:automation -- smoke --url-includes "#/" --screenshot .trellis/tasks/<task>/artifacts/desktop.png --report .trellis/tasks/<task>/artifacts/desktop.json`.
+- Base: when Caddy is unavailable, run API, `apps/electric-proxy`, and desktop manually, set `NEXT_PUBLIC_ELECTRIC_URL=http://localhost:${WRANGLER_PORT}`, restart desktop, then run Desktop Automation CLI.
+- Bad: only running `bun run --cwd apps/desktop dev` and treating a visible Electron window as proof that auth, Electric collections, host-service, and workspace panes work.
+
+### 6. Tests Required
+
+- Probe the service graph before desktop acceptance: API URL, Electric proxy URL, and Desktop Automation `window-info`.
+- For V2 workspace tasks, assert route/hash state and at least one collection-backed UI state with `wait-for`, `inspect-dom`, or `evaluate-js`.
+- Capture a screenshot and renderer console errors for any desktop smoke run.
+- Record which startup graph was used in the task validation notes.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```bash
+NEXT_PUBLIC_ELECTRIC_URL=http://localhost:3012 bun run --cwd apps/desktop dev
+```
+
+This can still compile the renderer with the `.env` value because desktop Vite loads root `.env` with override enabled.
+
+Correct:
+
+```bash
+docker compose up -d
+bun run --cwd apps/api dev
+bun run --cwd apps/electric-proxy dev
+# If Caddy is absent, set NEXT_PUBLIC_ELECTRIC_URL="http://localhost:3012" in .env.
+bun run --cwd apps/desktop dev
+bun run desktop:automation -- window-info --json
+```
+
 ## Real Desktop Acceptance Requirements
 
 Real desktop acceptance should:

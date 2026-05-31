@@ -31,6 +31,22 @@ Workspace type has product meaning. `v2Workspaces.type === "main"` is pinned and
 
 Task status display uses status rows, not hard-coded labels. `StatusIcon.tsx`, `StatusMenuItems.tsx`, `StatusProperty.tsx`, `useTasksData.tsx`, and `sorting.ts` rely on `taskStatuses.type`, `color`, `position`, and `progressPercent`.
 
+## Host-Service Local State
+
+Host-service owns per-machine local project/workspace state. Electron starts one host-service process per organization through `HostServiceCoordinator`, and the child receives:
+
+- `HOST_MANIFEST_DIR=${SUPERSET_HOME_DIR}/host/<organizationId>`
+- `HOST_DB_PATH=${SUPERSET_HOME_DIR}/host/<organizationId>/host.db`
+- `HOST_MIGRATIONS_FOLDER=packages/host-service/drizzle` in development
+- `AUTH_TOKEN` and `SUPERSET_API_URL` from the authenticated desktop session
+
+Cloud V2 rows are not enough for a fully usable local workspace. Local operations such as workspace panes, filesystem/git status, terminal setup, chat context, and code workspace creation rely on host-service `projects` and `workspaces` rows in `host.db`. When manually seeding local dev state, keep cloud rows and host-service SQLite rows aligned:
+
+- Cloud: `v2Users`, organization membership, `v2Hosts`, `v2UsersHosts`, `v2Projects`, and `v2Workspaces`.
+- Local host DB: matching `projects` row plus matching `workspaces` row for the workspace id/project id/path/branch.
+
+Do not treat a visible V2 workspace row in Electric/TanStack DB as proof that the local host runtime can open it. Desktop acceptance for workspace usability should include at least one host-service-backed assertion, such as workspace route load, chat pane availability, git/filesystem data, or terminal/session startup.
+
 ## Terminal Boundaries
 
 Terminal persistence and PTY ownership are split:
