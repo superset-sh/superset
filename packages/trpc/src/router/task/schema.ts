@@ -10,6 +10,7 @@ export const createTaskSchema = z.object({
 	estimate: z.number().int().positive().nullish(),
 	dueDate: z.coerce.date().nullish(),
 	labels: z.array(z.string()).nullish(),
+	v2ProjectId: z.string().uuid().nullish(),
 });
 
 export const updateTaskSchema = z.object({
@@ -23,6 +24,7 @@ export const updateTaskSchema = z.object({
 	estimate: z.number().int().positive().nullish(),
 	dueDate: z.coerce.date().nullish(),
 	labels: z.array(z.string()).nullish(),
+	v2ProjectId: z.string().uuid().nullish(),
 	// Deprecated: accepted-but-ignored. Drop in CLI-vNext cleanup PR.
 	branch: z.string().nullish(),
 });
@@ -35,6 +37,8 @@ export const taskListInputSchema = z
 		assigneeMe: z.boolean().nullish(),
 		creatorMe: z.boolean().nullish(),
 		search: z.string().min(1).nullish(),
+		projectMode: z.enum(["all", "projectless", "project"]).default("all"),
+		v2ProjectId: z.string().uuid().nullish(),
 		limit: z.number().int().positive().max(500).default(50),
 		offset: z.number().int().nonnegative().default(0),
 	})

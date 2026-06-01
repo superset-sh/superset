@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	isProjectlessTaskFilter,
 	tasksSearchFromFilters,
 	useTasksFilterStore,
 } from "../../stores/tasks-filter-state";
@@ -17,7 +18,6 @@ import {
 	GitHubIssuesContent,
 	type SelectedIssue,
 } from "./components/GitHubIssuesContent";
-import { LinearCTA } from "./components/LinearCTA";
 import { PullRequestsContent } from "./components/PullRequestsContent";
 import { TableContent } from "./components/TableContent";
 import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
@@ -130,16 +130,6 @@ export function TasksView({
 		storeSetProjectFilter(projectFilter);
 	}, [projectFilter, storeSetProjectFilter]);
 
-	const { data: integrations } = useLiveQuery(
-		(q) =>
-			q
-				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => ({
-					...integrationConnections,
-				})),
-		[collections],
-	);
-
 	const { data: v2Projects } = useLiveQuery(
 		(q) => q.from({ projects: collections.v2Projects }),
 		[collections],
@@ -147,7 +137,24 @@ export function TasksView({
 
 	useEffect(() => {
 		if (!v2Projects) return;
-		if (projectFilter && v2Projects.some((p) => p.id === projectFilter)) return;
+		const hasSelectedProject =
+			projectFilter && v2Projects.some((p) => p.id === projectFilter);
+		if (typeTab === "tasks") {
+			if (
+				!projectFilter ||
+				hasSelectedProject ||
+				isProjectlessTaskFilter(projectFilter)
+			) {
+				return;
+			}
+			navigate({
+				to: "/tasks",
+				search: buildSearch({ project: null }),
+				replace: true,
+			});
+			return;
+		}
+		if (hasSelectedProject) return;
 		const firstProject = v2Projects[0];
 		if (!firstProject) return;
 		navigate({
@@ -155,10 +162,7 @@ export function TasksView({
 			search: buildSearch({ project: firstProject.id }),
 			replace: true,
 		});
-	}, [projectFilter, v2Projects, navigate, buildSearch]);
-
-	const isLinearConnected =
-		integrations?.some((i) => i.provider === "linear") ?? false;
+	}, [projectFilter, v2Projects, navigate, buildSearch, typeTab]);
 
 	const handleTabChange = (tab: TabValue) => {
 		navigate({ to: "/tasks", search: buildSearch({ tab }), replace: true });
@@ -176,7 +180,7 @@ export function TasksView({
 		navigate({ to: "/tasks", search: buildSearch({ type }), replace: true });
 	};
 
-	const handleProjectFilterChange = (project: string) => {
+	const handleProjectFilterChange = (project: string | null) => {
 		navigate({ to: "/tasks", search: buildSearch({ project }), replace: true });
 	};
 
@@ -218,72 +222,65 @@ export function TasksView({
 		});
 	};
 
-	const showLinearCTA =
-		integrations !== undefined && !isLinearConnected && typeTab === "tasks";
-
 	const showTasks = typeTab === "tasks";
 	const showPRs = typeTab === "prs";
 	const showIssues = typeTab === "issues";
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-			{!showLinearCTA && (
-				<TasksTopBar
-					currentTab={currentTab}
-					onTabChange={handleTabChange}
-					searchQuery={searchQuery}
-					onSearchChange={handleSearchChange}
-					assigneeFilter={assigneeFilter}
-					onAssigneeFilterChange={handleAssigneeFilterChange}
-					selectedTasks={selectedTasks}
-					onClearSelection={handleClearSelection}
-					selectedIssues={selectedIssues}
-					onClearIssueSelection={handleClearIssueSelection}
-					viewMode={viewMode}
-					onViewModeChange={setViewMode}
-					typeTab={typeTab}
-					onTypeTabChange={handleTypeTabChange}
-					projectFilter={projectFilter}
-					onProjectFilterChange={handleProjectFilterChange}
-				/>
-			)}
+			<TasksTopBar
+				currentTab={currentTab}
+				onTabChange={handleTabChange}
+				searchQuery={searchQuery}
+				onSearchChange={handleSearchChange}
+				assigneeFilter={assigneeFilter}
+				onAssigneeFilterChange={handleAssigneeFilterChange}
+				selectedTasks={selectedTasks}
+				onClearSelection={handleClearSelection}
+				selectedIssues={selectedIssues}
+				onClearIssueSelection={handleClearIssueSelection}
+				viewMode={viewMode}
+				onViewModeChange={setViewMode}
+				typeTab={typeTab}
+				onTypeTabChange={handleTypeTabChange}
+				projectFilter={projectFilter}
+				onProjectFilterChange={handleProjectFilterChange}
+			/>
 
-			{showLinearCTA ? (
-				<LinearCTA />
-			) : (
-				<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-					{showTasks &&
-						(viewMode === "board" ? (
-							<BoardContent
-								filterTab={currentTab}
-								searchQuery={deferredSearchQuery}
-								assigneeFilter={assigneeFilter}
-								onTaskClick={handleTaskClick}
-							/>
-						) : (
-							<TableContent
-								filterTab={currentTab}
-								searchQuery={deferredSearchQuery}
-								assigneeFilter={assigneeFilter}
-								onTaskClick={handleTaskClick}
-								onSelectionChange={handleSelectionChange}
-							/>
-						))}
-					{showPRs && (
-						<PullRequestsContent
-							projectFilter={projectFilter}
+			<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+				{showTasks &&
+					(viewMode === "board" ? (
+						<BoardContent
+							filterTab={currentTab}
 							searchQuery={deferredSearchQuery}
-						/>
-					)}
-					{showIssues && (
-						<GitHubIssuesContent
+							assigneeFilter={assigneeFilter}
 							projectFilter={projectFilter}
-							searchQuery={deferredSearchQuery}
-							onSelectionChange={handleIssueSelectionChange}
+							onTaskClick={handleTaskClick}
 						/>
-					)}
-				</div>
-			)}
+					) : (
+						<TableContent
+							filterTab={currentTab}
+							searchQuery={deferredSearchQuery}
+							assigneeFilter={assigneeFilter}
+							projectFilter={projectFilter}
+							onTaskClick={handleTaskClick}
+							onSelectionChange={handleSelectionChange}
+						/>
+					))}
+				{showPRs && (
+					<PullRequestsContent
+						projectFilter={projectFilter}
+						searchQuery={deferredSearchQuery}
+					/>
+				)}
+				{showIssues && (
+					<GitHubIssuesContent
+						projectFilter={projectFilter}
+						searchQuery={deferredSearchQuery}
+						onSelectionChange={handleIssueSelectionChange}
+					/>
+				)}
+			</div>
 		</div>
 	);
 }

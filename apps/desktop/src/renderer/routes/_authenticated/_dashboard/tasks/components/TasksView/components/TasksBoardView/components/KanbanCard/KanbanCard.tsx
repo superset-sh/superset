@@ -38,6 +38,7 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 	const createdDate = task.createdAt
 		? format(new Date(task.createdAt), "MMM d")
 		: null;
+	const dueDate = task.dueDate ? format(new Date(task.dueDate), "MMM d") : null;
 
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: Draggable card requires div for dnd-kit, button cannot receive drag attributes
@@ -109,11 +110,24 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 					</>
 				)}
 
-				{createdDate && (
+				{task.project ? (
+					<Badge
+						variant="secondary"
+						className="max-w-24 truncate px-1.5 py-0 text-[10px] leading-none"
+					>
+						{task.project.name}
+					</Badge>
+				) : null}
+
+				{dueDate ? (
+					<span className="text-[10px] text-muted-foreground ml-auto">
+						Due {dueDate}
+					</span>
+				) : createdDate ? (
 					<span className="text-[10px] text-muted-foreground ml-auto">
 						Created {createdDate}
 					</span>
-				)}
+				) : null}
 			</div>
 		</div>
 	);

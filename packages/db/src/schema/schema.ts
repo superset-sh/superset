@@ -129,6 +129,9 @@ export const tasks = pgTable(
 		estimate: integer(),
 		dueDate: timestamp("due_date"),
 		labels: jsonb().$type<string[]>().default([]),
+		v2ProjectId: uuid("v2_project_id").references(() => v2Projects.id, {
+			onDelete: "set null",
+		}),
 
 		// Git/Work tracking
 		branch: text(),
@@ -164,6 +167,7 @@ export const tasks = pgTable(
 		index("tasks_assignee_id_idx").on(table.assigneeId),
 		index("tasks_creator_id_idx").on(table.creatorId),
 		index("tasks_status_id_idx").on(table.statusId),
+		index("tasks_v2_project_id_idx").on(table.v2ProjectId),
 		index("tasks_created_at_idx").on(table.createdAt),
 		index("tasks_external_provider_idx").on(table.externalProvider),
 		index("tasks_assignee_external_id_idx").on(table.assigneeExternalId),

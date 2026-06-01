@@ -1,5 +1,11 @@
 import { db, dbWs } from "@superset/db/client";
-import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import {
+	members,
+	taskStatuses,
+	tasks,
+	users,
+	v2Projects,
+} from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { getCurrentTxid } from "@superset/db/utils";
 import {
@@ -173,6 +179,39 @@ async function getScopedAssigneeId(
 	return member.userId;
 }
 
+async function getScopedV2ProjectId(
+	executor: Executor,
+	organizationId: string,
+	v2ProjectId: string | null,
+	message: string,
+) {
+	if (!v2ProjectId) {
+		return null;
+	}
+
+	const project = await requireOrgScopedResource(
+		async () => {
+			const [project] = await executor
+				.select({
+					id: v2Projects.id,
+					organizationId: v2Projects.organizationId,
+				})
+				.from(v2Projects)
+				.where(eq(v2Projects.id, v2ProjectId))
+				.limit(1);
+
+			return project ?? null;
+		},
+		{
+			code: "BAD_REQUEST",
+			message,
+			organizationId,
+		},
+	);
+
+	return project.id;
+}
+
 type CreateTaskContext = {
 	session: NonNullable<TRPCContext["session"]>;
 	activeOrganizationId: string | null;
@@ -204,6 +243,12 @@ async function createTask(
 							"Assignee must belong to the active organization",
 						)
 					: null;
+				const v2ProjectId = await getScopedV2ProjectId(
+					tx,
+					organizationId,
+					input.v2ProjectId ?? null,
+					"Project must belong to the active organization",
+				);
 
 				const baseSlug = generateBaseTaskSlug(input.title);
 				const existingSlugs = await tx
@@ -234,6 +279,7 @@ async function createTask(
 						estimate: input.estimate ?? null,
 						dueDate: input.dueDate ?? null,
 						labels: input.labels ?? [],
+						v2ProjectId,
 					})
 					.returning();
 
@@ -327,6 +373,11 @@ export const taskRouter = {
 				filters.push(
 					ilike(tasks.title, `%${escapeLikePattern(input.search)}%`),
 				);
+			}
+			if (input?.projectMode === "projectless") {
+				filters.push(isNull(tasks.v2ProjectId));
+			} else if (input?.v2ProjectId) {
+				filters.push(eq(tasks.v2ProjectId, input.v2ProjectId));
 			}
 
 			return db
@@ -433,6 +484,15 @@ export const taskRouter = {
 					updateData.assigneeExternalId = null;
 					updateData.assigneeDisplayName = null;
 					updateData.assigneeAvatarUrl = null;
+				}
+
+				if ("v2ProjectId" in data) {
+					updateData.v2ProjectId = await getScopedV2ProjectId(
+						tx,
+						taskAccess.organizationId,
+						data.v2ProjectId ?? null,
+						"Project must belong to the task organization",
+					);
 				}
 
 				const [task] = await tx

@@ -152,6 +152,12 @@ export function useOptimisticCollectionActions() {
 							draft.assigneeAvatarUrl = null;
 						}),
 					),
+				updateProject: (taskId: string, v2ProjectId: string | null) =>
+					runTaskMutation("Failed to update task project", () =>
+						collections.tasks.update(taskId, (draft) => {
+							draft.v2ProjectId = v2ProjectId;
+						}),
+					),
 				deleteTask: (taskId: string) =>
 					runTaskMutation("Failed to delete task", () =>
 						collections.tasks.delete(taskId),

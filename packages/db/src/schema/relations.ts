@@ -137,6 +137,10 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
 		references: [users.id],
 		relationName: "creator",
 	}),
+	project: one(v2Projects, {
+		fields: [tasks.v2ProjectId],
+		references: [v2Projects.id],
+	}),
 	workspaces: many(v2Workspaces),
 }));
 
@@ -277,6 +281,7 @@ export const v2ProjectsRelations = relations(v2Projects, ({ one, many }) => ({
 		fields: [v2Projects.githubRepositoryId],
 		references: [githubRepositories.id],
 	}),
+	tasks: many(tasks),
 	workspaces: many(v2Workspaces),
 }));
 

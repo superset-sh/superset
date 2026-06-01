@@ -20,6 +20,7 @@ import {
 	upsertModelProvider,
 } from "../../../model-providers/storage";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+import { generateTaskDraft } from "./task-draft";
 
 const protocolSchema = z.enum(["anthropic", "openai-chat", "openai-responses"]);
 
@@ -45,6 +46,10 @@ const fetchRemoteModelsSchema = z.object({
 	protocol: protocolSchema.optional(),
 	baseUrl: z.url().optional(),
 	secret: z.string().optional(),
+});
+
+const generateTaskDraftSchema = z.object({
+	prompt: z.string().trim().min(1).max(6000),
 });
 
 const claudeConfigSchema = z.object({
@@ -171,6 +176,12 @@ export const modelProvidersRouter = router({
 				});
 			}
 		}),
+
+	generateTaskDraft: protectedProcedure
+		.input(generateTaskDraftSchema)
+		.mutation(({ ctx, input }) =>
+			generateTaskDraft({ ctx, prompt: input.prompt }),
+		),
 
 	delete: protectedProcedure
 		.input(z.object({ id: z.string().min(1) }))

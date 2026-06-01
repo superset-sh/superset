@@ -24,7 +24,7 @@ const OPTIONS: ReadonlyArray<{
 	label: string;
 	Icon: typeof AllIssuesIcon;
 }> = [
-	{ value: "all", label: "All issues", Icon: AllIssuesIcon },
+	{ value: "all", label: "All tasks", Icon: AllIssuesIcon },
 	{ value: "active", label: "Active", Icon: ActiveIcon },
 	{ value: "backlog", label: "Backlog", Icon: BacklogIcon },
 ];

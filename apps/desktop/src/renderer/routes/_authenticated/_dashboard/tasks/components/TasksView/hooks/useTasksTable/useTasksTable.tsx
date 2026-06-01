@@ -2,6 +2,7 @@ import type {
 	SelectTask,
 	SelectTaskStatus,
 	SelectUser,
+	SelectV2Project,
 } from "@superset/db/schema";
 import { Badge } from "@superset/ui/badge";
 import { Checkbox } from "@superset/ui/checkbox";
@@ -25,6 +26,7 @@ import { HiChevronRight } from "react-icons/hi2";
 import { getSlugColumnWidth } from "renderer/lib/slug-width";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { create } from "zustand";
+import { isProjectlessTaskFilter } from "../../../../stores/tasks-filter-state";
 import {
 	StatusIcon,
 	type StatusType,
@@ -39,6 +41,7 @@ import { StatusCell } from "./components/StatusCell";
 export type TaskWithStatus = SelectTask & {
 	status: SelectTaskStatus;
 	assignee: SelectUser | null;
+	project: SelectV2Project | null;
 };
 
 const columnHelper = createColumnHelper<TaskWithStatus>();
@@ -63,12 +66,14 @@ interface UseTasksTableParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	projectFilter: string | null;
 }
 
 export function useTasksTable({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	projectFilter,
 }: UseTasksTableParams): {
 	table: Table<TaskWithStatus>;
 	slugColumnWidth: string;
@@ -96,10 +101,14 @@ export function useTasksTable({
 				.leftJoin({ assignee: collections.users }, ({ tasks, assignee }) =>
 					eq(tasks.assigneeId, assignee.id),
 				)
-				.select(({ tasks, status, assignee }) => ({
+				.leftJoin({ project: collections.v2Projects }, ({ tasks, project }) =>
+					eq(tasks.v2ProjectId, project.id),
+				)
+				.select(({ tasks, status, assignee, project }) => ({
 					...tasks,
 					status,
 					assignee: assignee ?? null,
+					project: project ?? null,
 				}))
 				.where(({ tasks }) => isNull(tasks.deletedAt)),
 		[collections],
@@ -114,6 +123,10 @@ export function useTasksTable({
 					typeof task.assignee?.id === "string"
 						? (task.assignee as SelectUser)
 						: null,
+				project:
+					typeof task.project?.id === "string"
+						? (task.project as SelectV2Project)
+						: null,
 			}))
 			.sort(compareTasks);
 	}, [allData]);
@@ -121,12 +134,17 @@ export function useTasksTable({
 	const { search } = useHybridSearch(sortedData);
 
 	const data = useMemo(() => {
-		if (!searchQuery.trim()) {
-			return sortedData;
+		const searched = searchQuery.trim()
+			? search(searchQuery).map((r) => r.item)
+			: sortedData;
+		if (isProjectlessTaskFilter(projectFilter)) {
+			return searched.filter((task) => task.v2ProjectId === null);
 		}
-		const results = search(searchQuery);
-		return results.map((r) => r.item);
-	}, [sortedData, searchQuery, search]);
+		if (projectFilter) {
+			return searched.filter((task) => task.v2ProjectId === projectFilter);
+		}
+		return searched;
+	}, [sortedData, searchQuery, search, projectFilter]);
 
 	const isFirstMount = useRef(true);
 	useEffect(() => {
@@ -308,15 +326,36 @@ export function useTasksTable({
 				},
 			}),
 
-			columnHelper.accessor("createdAt", {
-				header: "Created",
+			columnHelper.accessor((row) => row.project?.name ?? null, {
+				id: "project",
+				header: "Project",
+				cell: (info) => {
+					if (info.cell.getIsPlaceholder()) return null;
+					const projectName = info.getValue();
+					if (!projectName) {
+						return (
+							<span className="text-xs text-muted-foreground">No project</span>
+						);
+					}
+					return (
+						<span className="max-w-28 truncate text-xs text-muted-foreground">
+							{projectName}
+						</span>
+					);
+				},
+			}),
+
+			columnHelper.accessor((row) => row.dueDate ?? row.createdAt, {
+				id: "date",
+				header: "Due",
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					const date = info.getValue();
 					if (!date) return null;
+					const label = info.row.original.dueDate ? "Due" : "Created";
 					return (
-						<span className="text-xs text-muted-foreground shrink-0 w-11">
-							{format(new Date(date), "MMM d")}
+						<span className="w-20 shrink-0 text-xs text-muted-foreground">
+							{label} {format(new Date(date), "MMM d")}
 						</span>
 					);
 				},

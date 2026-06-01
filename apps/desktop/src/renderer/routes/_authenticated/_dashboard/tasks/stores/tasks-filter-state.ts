@@ -4,6 +4,11 @@ import { persist } from "zustand/middleware";
 export type ViewMode = "table" | "board";
 export type TypeTab = "tasks" | "prs" | "issues";
 export type FilterTab = "all" | "active" | "backlog";
+export const PROJECTLESS_TASKS_FILTER = "__projectless";
+
+export function isProjectlessTaskFilter(value: string | null): boolean {
+	return value === PROJECTLESS_TASKS_FILTER;
+}
 
 interface TasksFilterState {
 	tab: FilterTab;

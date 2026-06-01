@@ -14,6 +14,7 @@ function createTask(id: string, title = `Task ${id}`): TaskWithStatus {
 		estimate: null,
 		dueDate: null,
 		labels: [],
+		v2ProjectId: null,
 		assigneeId: null,
 		assigneeExternalId: null,
 		assigneeDisplayName: null,
@@ -46,6 +47,7 @@ function createTask(id: string, title = `Task ${id}`): TaskWithStatus {
 			updatedAt: new Date(),
 		},
 		assignee: null,
+		project: null,
 	};
 }
 

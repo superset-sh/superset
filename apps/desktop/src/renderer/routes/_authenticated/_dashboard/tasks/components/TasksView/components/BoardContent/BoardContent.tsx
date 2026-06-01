@@ -8,6 +8,7 @@ interface BoardContentProps {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	projectFilter: string | null;
 	onTaskClick: (task: TaskWithStatus) => void;
 }
 
@@ -15,12 +16,14 @@ export function BoardContent({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	projectFilter,
 	onTaskClick,
 }: BoardContentProps) {
 	const { data, allStatuses } = useTasksData({
 		filterTab,
 		searchQuery,
 		assigneeFilter,
+		projectFilter,
 	});
 
 	if (data.length === 0) {

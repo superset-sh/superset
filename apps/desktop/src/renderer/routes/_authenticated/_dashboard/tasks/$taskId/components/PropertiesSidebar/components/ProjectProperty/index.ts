@@ -1,0 +1,1 @@
+export { ProjectProperty } from "./ProjectProperty";

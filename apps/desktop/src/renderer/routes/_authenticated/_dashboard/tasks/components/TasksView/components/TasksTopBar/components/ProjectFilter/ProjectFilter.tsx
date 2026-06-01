@@ -13,13 +13,22 @@ import { useMemo, useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineFolder } from "react-icons/hi2";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	isProjectlessTaskFilter,
+	PROJECTLESS_TASKS_FILTER,
+} from "../../../../../../stores/tasks-filter-state";
 
 interface ProjectFilterProps {
 	value: string | null;
-	onChange: (value: string) => void;
+	onChange: (value: string | null) => void;
+	includeTaskOptions?: boolean;
 }
 
-export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
+export function ProjectFilter({
+	value,
+	onChange,
+	includeTaskOptions = false,
+}: ProjectFilterProps) {
 	const collections = useCollections();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
@@ -35,6 +44,14 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 		() => (value ? (projects.find((p) => p.id === value) ?? null) : null),
 		[value, projects],
 	);
+	const isProjectless = isProjectlessTaskFilter(value);
+	const triggerLabel = selected
+		? selected.name
+		: isProjectless
+			? "No project"
+			: includeTaskOptions
+				? "All tasks"
+				: "Project";
 
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
@@ -42,7 +59,7 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 		return projects.filter((p) => p.name.toLowerCase().includes(q));
 	}, [projects, search]);
 
-	const handleSelect = (id: string) => {
+	const handleSelect = (id: string | null) => {
 		onChange(id);
 		setOpen(false);
 		setSearch("");
@@ -60,8 +77,8 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 				<Button
 					variant="ghost"
 					size="sm"
-					title={selected ? selected.name : "Project"}
-					aria-label={selected ? selected.name : "Project"}
+					title={triggerLabel}
+					aria-label={triggerLabel}
 					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					{selected ? (
@@ -73,9 +90,7 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 					) : (
 						<HiOutlineFolder className="size-4" />
 					)}
-					<span className="text-sm hidden @4xl:inline">
-						{selected ? selected.name : "Project"}
-					</span>
+					<span className="text-sm hidden @4xl:inline">{triggerLabel}</span>
 					<HiChevronDown className="size-3" />
 				</Button>
 			</PopoverTrigger>
@@ -89,6 +104,26 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 					<CommandList className="max-h-80">
 						{filtered.length === 0 && search && (
 							<CommandEmpty>No projects found.</CommandEmpty>
+						)}
+						{includeTaskOptions && (
+							<CommandGroup>
+								<CommandItem onSelect={() => handleSelect(null)}>
+									<HiOutlineFolder className="size-4 shrink-0 text-muted-foreground" />
+									<span className="text-sm truncate">All tasks</span>
+									{value === null && (
+										<HiCheck className="ml-auto size-3.5 shrink-0" />
+									)}
+								</CommandItem>
+								<CommandItem
+									onSelect={() => handleSelect(PROJECTLESS_TASKS_FILTER)}
+								>
+									<HiOutlineFolder className="size-4 shrink-0 text-muted-foreground" />
+									<span className="text-sm truncate">No project</span>
+									{isProjectless && (
+										<HiCheck className="ml-auto size-3.5 shrink-0" />
+									)}
+								</CommandItem>
+							</CommandGroup>
 						)}
 						{filtered.length > 0 && (
 							<CommandGroup>

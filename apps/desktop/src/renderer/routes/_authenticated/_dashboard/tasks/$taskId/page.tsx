@@ -2,6 +2,7 @@ import type {
 	SelectTask,
 	SelectTaskStatus,
 	SelectUser,
+	SelectV2Project,
 } from "@superset/db/schema";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
@@ -32,6 +33,7 @@ type TaskDetailRecord = SelectTask & {
 	status: SelectTaskStatus;
 	assignee: SelectUser | null;
 	creator: SelectUser | null;
+	project: SelectV2Project | null;
 };
 
 function TaskDetailPage() {
@@ -76,11 +78,15 @@ function TaskDetailPage() {
 				.leftJoin({ creator: collections.users }, ({ tasks, creator }) =>
 					eq(tasks.creatorId, creator.id),
 				)
-				.select(({ tasks, status, assignee, creator }) => ({
+				.leftJoin({ project: collections.v2Projects }, ({ tasks, project }) =>
+					eq(tasks.v2ProjectId, project.id),
+				)
+				.select(({ tasks, status, assignee, creator, project }) => ({
 					...tasks,
 					status,
 					assignee: assignee ?? null,
 					creator: creator ?? null,
+					project: project ?? null,
 				}))
 				.where(({ tasks }) => or(eq(tasks.id, taskId), eq(tasks.slug, taskId))),
 		[collections, taskId],
@@ -98,6 +104,10 @@ function TaskDetailPage() {
 			creator:
 				typeof task.creator?.id === "string"
 					? (task.creator as SelectUser)
+					: null,
+			project:
+				typeof task.project?.id === "string"
+					? (task.project as SelectV2Project)
 					: null,
 		};
 	}, [taskData]);

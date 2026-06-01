@@ -15,15 +15,22 @@ import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HiChevronRight, HiOutlinePaperClip, HiXMark } from "react-icons/hi2";
+import { HiChevronRight, HiSparkles, HiXMark } from "react-icons/hi2";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { PLATFORM } from "renderer/hotkeys";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { isProjectlessTaskFilter } from "../../../../../../stores/tasks-filter-state";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
 import type { TabValue } from "../../TasksTopBar";
 import { CreateTaskAssigneePicker } from "./components/CreateTaskAssigneePicker";
+import { CreateTaskDueDatePicker } from "./components/CreateTaskDueDatePicker";
+import { CreateTaskLabelsInput } from "./components/CreateTaskLabelsInput";
 import { CreateTaskPriorityPicker } from "./components/CreateTaskPriorityPicker";
+import { CreateTaskProjectPicker } from "./components/CreateTaskProjectPicker";
 import { CreateTaskStatusPicker } from "./components/CreateTaskStatusPicker";
 
 interface CreateTaskDialogProps {
@@ -32,6 +39,7 @@ interface CreateTaskDialogProps {
 	currentTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	projectFilter: string | null;
 }
 
 export function CreateTaskDialog({
@@ -40,18 +48,25 @@ export function CreateTaskDialog({
 	currentTab,
 	searchQuery,
 	assigneeFilter,
+	projectFilter,
 }: CreateTaskDialogProps) {
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
+	const hostService = useLocalHostService();
 	const navigate = useNavigate();
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const titleInputRef = useRef<HTMLInputElement>(null);
+	const wasOpenRef = useRef(false);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [statusId, setStatusId] = useState<string | null>(null);
 	const [priority, setPriority] = useState<TaskPriority>("none");
 	const [assigneeId, setAssigneeId] = useState<string | null>(null);
+	const [dueDate, setDueDate] = useState("");
+	const [labels, setLabels] = useState<string[]>([]);
+	const [v2ProjectId, setV2ProjectId] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
+	const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
 
 	const { data: statusData } = useLiveQuery(
 		(q) =>
@@ -75,9 +90,14 @@ export function CreateTaskDialog({
 				.select(({ organizations }) => ({ ...organizations })),
 		[collections],
 	);
+	const { data: projectData } = useLiveQuery(
+		(q) => q.from({ projects: collections.v2Projects }),
+		[collections],
+	);
 
 	const statuses = useMemo(() => statusData ?? [], [statusData]);
 	const users = useMemo(() => userData ?? [], [userData]);
+	const projects = useMemo(() => projectData ?? [], [projectData]);
 	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
 	const organizationLabel = useMemo(() => {
 		const organization = organizationData?.find(
@@ -102,23 +122,95 @@ export function CreateTaskDialog({
 	}, [defaultStatusId, open, statusId]);
 
 	useEffect(() => {
-		if (open) return;
+		const justOpened = open && !wasOpenRef.current;
+		const justClosed = !open && wasOpenRef.current;
+		wasOpenRef.current = open;
+
+		if (justOpened) {
+			setV2ProjectId(
+				projectFilter && !isProjectlessTaskFilter(projectFilter)
+					? projectFilter
+					: null,
+			);
+			return;
+		}
+
+		if (!justClosed) return;
 
 		setTitle("");
 		setDescription("");
 		setStatusId(defaultStatusId);
 		setPriority("none");
 		setAssigneeId(null);
+		setDueDate("");
+		setLabels([]);
+		setV2ProjectId(null);
 		setIsCreating(false);
-	}, [defaultStatusId, open]);
+		setIsGeneratingDraft(false);
+	}, [defaultStatusId, open, projectFilter]);
 
 	const currentStatusType = useMemo(
 		() => statuses.find((status) => status.id === statusId)?.type,
 		[statusId, statuses],
 	);
-	const handleAttachmentClick = () => {
-		toast.info("Attachments are not wired yet");
+
+	const buildTaskPolishPrompt = () => {
+		const trimmedTitle = title.trim();
+		const trimmedDescription = description.trim();
+		if (!trimmedTitle && !trimmedDescription) return "";
+
+		return [
+			"Polish this task draft. Keep the user's intent, return a clearer title and a concise markdown description.",
+			"If labels, priority, or an explicit YYYY-MM-DD due date are obvious from the text, include them; otherwise leave metadata neutral.",
+			"",
+			trimmedTitle ? `Current title:\n${trimmedTitle}` : null,
+			trimmedDescription ? `Current description:\n${trimmedDescription}` : null,
+		]
+			.filter(Boolean)
+			.join("\n\n");
 	};
+
+	const handlePolishDraft = async () => {
+		if (isGeneratingDraft) return;
+		const prompt = buildTaskPolishPrompt();
+		if (!prompt) {
+			toast.error("Add a title or description first");
+			return;
+		}
+		if (!hostService.activeHostUrl) {
+			showHostServiceUnavailableToast(hostService, {
+				action: "draft a task",
+			});
+			return;
+		}
+
+		setIsGeneratingDraft(true);
+		try {
+			const draft = await getHostServiceClientByUrl(
+				hostService.activeHostUrl,
+			).modelProviders.generateTaskDraft.mutate({ prompt });
+
+			setTitle(draft.title);
+			setDescription(draft.description ?? description);
+			if (draft.priority && draft.priority !== "none") {
+				setPriority(draft.priority);
+			}
+			if (draft.labels.length > 0) {
+				setLabels(draft.labels);
+			}
+			if (draft.dueDate) {
+				setDueDate(draft.dueDate);
+			}
+			toast.success("Task polished");
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to polish task",
+			);
+		} finally {
+			setIsGeneratingDraft(false);
+		}
+	};
+
 	const handleCreate = async () => {
 		if (!title.trim() || isCreating) return;
 
@@ -131,6 +223,9 @@ export function CreateTaskDialog({
 				statusId,
 				priority,
 				assigneeId,
+				dueDate: dueDate ? new Date(`${dueDate}T00:00:00`) : null,
+				labels,
+				v2ProjectId,
 			});
 
 			if (!result.task) {
@@ -141,6 +236,7 @@ export function CreateTaskDialog({
 			if (currentTab !== "all") nextSearch.tab = currentTab;
 			if (assigneeFilter) nextSearch.assignee = assigneeFilter;
 			if (searchQuery) nextSearch.search = searchQuery;
+			if (projectFilter) nextSearch.project = projectFilter;
 
 			onOpenChange(false);
 			toast.success(`Created ${result.task.slug}`);
@@ -161,7 +257,7 @@ export function CreateTaskDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
 				showCloseButton={false}
-				className="!top-[calc(50%-min(35vh,320px))] !-translate-y-0 flex max-h-[min(72vh,640px)] flex-col gap-0 overflow-hidden bg-popover p-0 text-popover-foreground sm:max-w-[720px]"
+				className="!top-[calc(50%-min(35vh,320px))] !-translate-y-0 flex h-[min(72vh,640px)] max-h-[min(78vh,720px)] flex-col gap-0 overflow-hidden bg-popover p-0 text-popover-foreground sm:max-w-[960px]"
 				onOpenAutoFocus={(event) => {
 					event.preventDefault();
 					titleInputRef.current?.focus();
@@ -180,22 +276,34 @@ export function CreateTaskDialog({
 							{organizationLabel}
 						</div>
 						<HiChevronRight className="size-3.5 text-muted-foreground" />
-						<span className="font-medium">New issue</span>
+						<span className="font-medium">New task</span>
 					</div>
 
-					<DialogClose asChild>
-						<button
+					<div className="flex items-center gap-2">
+						<Button
 							type="button"
-							disabled={isCreating}
-							className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-							aria-label="Close"
+							variant="outline"
+							size="sm"
+							onClick={handlePolishDraft}
+							disabled={isCreating || isGeneratingDraft}
 						>
-							<HiXMark className="size-4" />
-						</button>
-					</DialogClose>
+							<HiSparkles className="size-4" />
+							{isGeneratingDraft ? "Polishing..." : "AI polish"}
+						</Button>
+						<DialogClose asChild>
+							<button
+								type="button"
+								disabled={isCreating}
+								className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+								aria-label="Close"
+							>
+								<HiXMark className="size-4" />
+							</button>
+						</DialogClose>
+					</div>
 				</div>
 
-				<div className="flex min-h-0 flex-1 flex-col px-4 py-4">
+				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4">
 					<input
 						ref={titleInputRef}
 						type="text"
@@ -211,64 +319,77 @@ export function CreateTaskDialog({
 						className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/60"
 					/>
 
-					<div className="mt-5 flex-1">
+					<div className="mt-5 flex min-h-0 flex-1">
 						<MarkdownEditor
 							content={description}
 							onChange={setDescription}
 							placeholder="Add description..."
-							editorClassName="min-h-[240px] text-base leading-relaxed"
+							className="flex min-h-0 flex-1 flex-col"
+							editorClassName="text-base leading-relaxed"
 							onModEnter={handleCreate}
-						/>
-					</div>
-
-					<div className="mt-4 flex flex-wrap items-center gap-2">
-						<CreateTaskStatusPicker
-							statuses={statuses}
-							value={statusId}
-							onChange={setStatusId}
-						/>
-						<CreateTaskPriorityPicker
-							value={priority}
-							statusType={currentStatusType}
-							onChange={setPriority}
-						/>
-						<CreateTaskAssigneePicker
-							users={users}
-							value={assigneeId}
-							onChange={setAssigneeId}
 						/>
 					</div>
 				</div>
 
-				<DialogFooter className="flex-row items-center justify-between border-t px-4 py-3">
-					<Button
-						variant="ghost"
-						size="icon"
-						className="h-10 w-10 rounded-full text-muted-foreground"
-						onClick={handleAttachmentClick}
-						disabled={isCreating}
-					>
-						<HiOutlinePaperClip className="size-4" />
-					</Button>
+				<DialogFooter className="flex-col gap-3 border-t p-3 sm:flex-col sm:justify-between">
+					<div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+						<div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+							<CreateTaskStatusPicker
+								statuses={statuses}
+								value={statusId}
+								onChange={setStatusId}
+							/>
+							<CreateTaskPriorityPicker
+								value={priority}
+								statusType={currentStatusType}
+								onChange={setPriority}
+							/>
+							<CreateTaskAssigneePicker
+								users={users}
+								value={assigneeId}
+								onChange={setAssigneeId}
+							/>
+							<CreateTaskProjectPicker
+								projects={projects}
+								value={v2ProjectId}
+								onChange={setV2ProjectId}
+							/>
+							<CreateTaskDueDatePicker
+								value={dueDate}
+								onChange={setDueDate}
+								disabled={isCreating}
+							/>
+							<CreateTaskLabelsInput
+								value={labels}
+								onChange={setLabels}
+								disabled={isCreating}
+							/>
+						</div>
 
-					<div className="ml-auto flex items-center gap-3">
-						<Button
-							onClick={handleCreate}
-							disabled={!title.trim() || isCreating}
-							className="h-10 rounded-full px-5 text-sm"
-						>
-							{isCreating ? "Creating..." : "Create task"}
-							{!isCreating && (
-								<KbdGroup className="ml-1.5 opacity-70">
-									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
-										{modKey}
-									</Kbd>
-									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
-										↵
-									</Kbd>
-								</KbdGroup>
-							)}
-						</Button>
+						<div className="flex shrink-0 items-center justify-end gap-2">
+							<DialogClose asChild>
+								<Button type="button" variant="ghost" disabled={isCreating}>
+									Cancel
+								</Button>
+							</DialogClose>
+							<Button
+								onClick={handleCreate}
+								disabled={!title.trim() || isCreating}
+								className="h-10 rounded-full px-5 text-sm"
+							>
+								{isCreating ? "Creating..." : "Create task"}
+								{!isCreating && (
+									<KbdGroup className="ml-1.5 opacity-70">
+										<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+											{modKey}
+										</Kbd>
+										<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+											↵
+										</Kbd>
+									</KbdGroup>
+								)}
+							</Button>
+						</div>
 					</div>
 				</DialogFooter>
 			</DialogContent>

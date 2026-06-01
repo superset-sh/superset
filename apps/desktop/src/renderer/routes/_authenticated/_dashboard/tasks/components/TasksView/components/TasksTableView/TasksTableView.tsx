@@ -107,7 +107,7 @@ export function TasksTableView({
 											row.getIsSelected() && "bg-accent/30",
 										)}
 										style={{
-											gridTemplateColumns: `auto auto ${slugColumnWidth} 1fr auto auto`,
+											gridTemplateColumns: `auto auto ${slugColumnWidth} minmax(0,1fr) auto auto auto`,
 										}}
 										onClick={() => onTaskClick(row.original)}
 										onKeyDown={(e) => {

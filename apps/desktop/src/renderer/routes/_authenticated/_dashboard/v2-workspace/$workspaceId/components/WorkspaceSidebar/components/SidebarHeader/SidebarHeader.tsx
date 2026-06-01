@@ -19,8 +19,8 @@ export function SidebarHeader({
 	const actions = tabs.find((t) => t.id === activeTab)?.actions;
 
 	return (
-		<div className="flex h-10 shrink-0 items-stretch border-b border-border">
-			<div className="flex min-w-0 items-center h-full overflow-hidden">
+		<div className="flex h-10 shrink-0 items-stretch overflow-hidden border-b border-border">
+			<div className="hide-scrollbar flex h-full min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden overscroll-x-contain whitespace-nowrap">
 				{tabs.map((tab) => {
 					const isActive = activeTab === tab.id;
 					const badge =
@@ -74,7 +74,6 @@ export function SidebarHeader({
 					return btn;
 				})}
 			</div>
-			<div className="flex-1" />
 			{actions && (
 				<div className="flex shrink-0 items-center h-10 pr-2 gap-0.5">
 					{actions}

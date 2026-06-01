@@ -1,0 +1,28 @@
+{
+  "id": "multica-inspired-task-system",
+  "name": "multica-inspired-task-system",
+  "title": "Task Code Work backbone",
+  "description": "Parent plan for a canonical Task model shared by local-first Tasks, Code execution, and future Work collaboration/workflow surfaces.",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": "desktop",
+  "priority": "P2",
+  "creator": "bichengyu",
+  "assignee": "bichengyu",
+  "createdAt": "2026-05-31",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "codex/model-provider-configuration-center",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "05-31-task-core"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

@@ -4,6 +4,7 @@ import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTask
 import { AssigneeProperty } from "./components/AssigneeProperty";
 import { OpenInWorkspaceV2 } from "./components/OpenInWorkspaceV2";
 import { PriorityProperty } from "./components/PriorityProperty";
+import { ProjectProperty } from "./components/ProjectProperty";
 import { StatusProperty } from "./components/StatusProperty";
 
 interface PropertiesSidebarProps {
@@ -25,6 +26,7 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 						<StatusProperty task={task} />
 						<PriorityProperty task={task} />
 						<AssigneeProperty task={task} />
+						<ProjectProperty task={task} />
 					</div>
 
 					{/* Labels */}

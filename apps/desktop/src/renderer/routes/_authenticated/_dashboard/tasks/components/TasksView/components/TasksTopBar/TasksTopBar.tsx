@@ -41,7 +41,7 @@ interface TasksTopBarProps {
 	typeTab: TypeTab;
 	onTypeTabChange: (typeTab: TypeTab) => void;
 	projectFilter: string | null;
-	onProjectFilterChange: (projectId: string) => void;
+	onProjectFilterChange: (projectId: string | null) => void;
 }
 
 const TYPE_TABS = [
@@ -124,6 +124,7 @@ export function TasksTopBar({
 							<ProjectFilter
 								value={projectFilter}
 								onChange={onProjectFilterChange}
+								includeTaskOptions={showTaskOnlyControls}
 							/>
 
 							<div className="h-4 w-px bg-border" />
@@ -247,6 +248,7 @@ export function TasksTopBar({
 				currentTab={currentTab}
 				searchQuery={searchQuery}
 				assigneeFilter={assigneeFilter}
+				projectFilter={projectFilter}
 			/>
 		</>
 	);
