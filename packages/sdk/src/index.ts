@@ -23,10 +23,10 @@ export { toFile, type Uploadable } from "./core/uploads";
 // can `import { type Task } from '@superset_sh/sdk'` without going through
 // the `Superset` namespace.
 export {
+	type AgentCreateParams,
+	type AgentCreateResult,
 	type AgentListParams,
 	type AgentListResponse,
-	type AgentRunParams,
-	type AgentRunResult,
 	Agents,
 	type Automation,
 	type AutomationCreateParams,
@@ -54,6 +54,9 @@ export {
 	type TaskListResponse,
 	Tasks,
 	type TaskUpdateParams,
+	type TerminalCreateParams,
+	type TerminalCreateResult,
+	Terminals,
 	type Workspace,
 	type WorkspaceAgentLaunch,
 	type WorkspaceCreateAgentResult,

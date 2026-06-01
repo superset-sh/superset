@@ -50,10 +50,10 @@ import {
 import { stringifyQuery } from "./internal/utils/query";
 import { isEmptyObj } from "./internal/utils/values";
 import {
+	AgentCreateParams,
+	AgentCreateResult,
 	AgentListParams,
 	AgentListResponse,
-	AgentRunParams,
-	AgentRunResult,
 	Agents,
 	HostAgentConfig,
 	PromptTransport,
@@ -93,6 +93,11 @@ import {
 	TaskStatusListResponse,
 	TaskUpdateParams,
 } from "./resources/tasks";
+import {
+	TerminalCreateParams,
+	TerminalCreateResult,
+	Terminals,
+} from "./resources/terminals";
 import {
 	HostWorkspace,
 	Workspace,
@@ -1119,8 +1124,10 @@ export class Superset {
 	hosts: API.Hosts = new API.Hosts(this);
 	/** Recurring automations: full CRUD plus run/pause/resume/logs/prompt. */
 	automations: API.Automations = new API.Automations(this);
-	/** Agents (per-host terminal-agent rows): list, run. */
+	/** Agents (per-host terminal-agent rows): list, create. */
 	agents: API.Agents = new API.Agents(this);
+	/** Terminals (per-host PTY sessions): create. */
+	terminals: API.Terminals = new API.Terminals(this);
 	/** Active-organization config: nested `organization.members.list`. */
 	organization: API.Organization = new API.Organization(this);
 }
@@ -1131,6 +1138,7 @@ Superset.Projects = Projects;
 Superset.Hosts = Hosts;
 Superset.Automations = Automations;
 Superset.Agents = Agents;
+Superset.Terminals = Terminals;
 Superset.Organization = Organization;
 
 export declare namespace Superset {
@@ -1193,8 +1201,10 @@ export declare namespace Superset {
 		HostAgentConfig,
 		AgentListResponse,
 		AgentListParams,
-		AgentRunParams,
-		AgentRunResult,
+		AgentCreateParams,
+		AgentCreateResult,
 		PromptTransport,
 	};
+
+	export { Terminals, TerminalCreateParams, TerminalCreateResult };
 }

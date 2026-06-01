@@ -33,7 +33,7 @@ export class Workspaces extends APIResource {
 	/**
 	 * Create a workspace on a specific host. Optionally spawn one or more
 	 * agents inside it as soon as the worktree is ready (the `agents` sugar
-	 * runs `agents.run` once per entry against the freshly-created workspace),
+	 * runs `agents.create` once per entry against the freshly-created workspace),
 	 * and/or run a one-off shell `command` in the worktree.
 	 *
 	 * The host service must be running and reachable via the relay tunnel.

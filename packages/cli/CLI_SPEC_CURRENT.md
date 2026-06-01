@@ -40,6 +40,7 @@ superset start
 superset status
 superset stop
 superset tasks
+superset terminals
 superset update
 superset workspaces
 ```
@@ -51,14 +52,15 @@ Aliases:
 | `auto` | `automations` |
 | `org` | `organization` |
 | `t` | `tasks` |
+| `term` | `terminals` |
 | `ws` | `workspaces` |
 
 ## Implemented Command Tree
 
 ```text
 agents
+  create
   list
-  run
 auth
   login
   logout
@@ -95,6 +97,8 @@ tasks
   statuses
     list
   update
+terminals
+  create
 workspaces
   create
   delete
