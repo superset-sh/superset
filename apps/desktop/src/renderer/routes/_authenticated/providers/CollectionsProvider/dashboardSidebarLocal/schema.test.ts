@@ -151,6 +151,34 @@ describe("healWorkspaceLocalState", () => {
 		expect(healed.sidebarState.isHidden).toBe(false);
 	});
 
+	it("coerces a persisted ISO-string lastActivityAt back to a Date", () => {
+		// localStorage round-trips Dates as ISO strings without re-running the
+		// Zod transform, so reads must restore the Date so getTime() works.
+		const stored = {
+			...baseStored,
+			lastActivityAt: "2026-05-01T12:00:00.000Z",
+		};
+		const healed = healWorkspaceLocalState(stored);
+		expect(healed.lastActivityAt).toBeInstanceOf(Date);
+		expect(healed.lastActivityAt?.getTime()).toBe(
+			new Date("2026-05-01T12:00:00.000Z").getTime(),
+		);
+	});
+
+	it("preserves a Date lastActivityAt and nulls missing/invalid values", () => {
+		const asDate = healWorkspaceLocalState({
+			...baseStored,
+			lastActivityAt: new Date("2026-05-01T12:00:00.000Z"),
+		});
+		expect(asDate.lastActivityAt).toBeInstanceOf(Date);
+
+		expect(healWorkspaceLocalState(baseStored).lastActivityAt).toBeNull();
+		expect(
+			healWorkspaceLocalState({ ...baseStored, lastActivityAt: "not-a-date" })
+				.lastActivityAt,
+		).toBeNull();
+	});
+
 	it("does not throw on null/non-object input (parser must never throw)", () => {
 		// Heal must never throw — a throw would take down the entire collection
 		// load (loadFromStorage swallows the error and returns an empty Map).
