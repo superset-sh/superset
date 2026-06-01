@@ -180,3 +180,37 @@ Implemented and validated the local-first Task core: Linear gate removal, rich t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Task system wrap-up
+
+**Date**: 2026-06-01
+**Task**: Task system wrap-up
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Finished the Task backbone slice: local-first task creation, task board/table UI, rich task dialog, workspace launch linkage, and validation before archiving the parent Trellis task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c4ceee1ef` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
