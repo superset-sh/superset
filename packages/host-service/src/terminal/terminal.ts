@@ -37,6 +37,7 @@ import {
 } from "./env.ts";
 import { revokeSessionsForTerminal } from "./remote-control/session-manager.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
+import { broadcastWithBackpressure } from "./terminal-backpressure.ts";
 import {
 	createModeTracker,
 	type ModeTracker,
@@ -196,10 +197,13 @@ const MIN_TERMINAL_COLS = 20;
 const MIN_TERMINAL_ROWS = 5;
 
 // `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
+// `raw` is hono's escape hatch to the underlying ws WebSocket — we read
+// bufferedAmount off it for back-pressure (see terminal-backpressure.ts).
 type TerminalSocket = {
 	send: (data: string | Uint8Array<ArrayBuffer>) => void;
 	close: (code?: number, reason?: string) => void;
 	readyState: number;
+	raw?: { bufferedAmount?: number } | undefined;
 };
 
 // ---------------------------------------------------------------------------
@@ -482,21 +486,7 @@ function broadcastMessage(
 	session: TerminalSession,
 	message: TerminalServerMessage,
 ): number {
-	let sent = 0;
-	for (const socket of session.sockets) {
-		if (socket.readyState !== SOCKET_OPEN) {
-			if (
-				socket.readyState === SOCKET_CLOSING ||
-				socket.readyState === SOCKET_CLOSED
-			) {
-				session.sockets.delete(socket);
-			}
-			continue;
-		}
-		sendMessage(socket, message);
-		sent += 1;
-	}
-	return sent;
+	return broadcastWithBackpressure(session, JSON.stringify(message)).sent;
 }
 
 function setSessionTitle(session: TerminalSession, title: string | null) {
@@ -708,22 +698,7 @@ function sendBytes(socket: TerminalSocket, bytes: Uint8Array) {
 }
 
 function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
-	let sent = 0;
-	const tight = asArrayBufferBytes(bytes);
-	for (const socket of session.sockets) {
-		if (socket.readyState !== SOCKET_OPEN) {
-			if (
-				socket.readyState === SOCKET_CLOSING ||
-				socket.readyState === SOCKET_CLOSED
-			) {
-				session.sockets.delete(socket);
-			}
-			continue;
-		}
-		socket.send(tight);
-		sent += 1;
-	}
-	return sent;
+	return broadcastWithBackpressure(session, asArrayBufferBytes(bytes)).sent;
 }
 
 function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
