@@ -44,12 +44,19 @@ function makeHarness(opts: {
 		onResizeCalls: 0,
 	};
 
-	const pendingRafs: Array<() => void> = [];
+	// Model rAF faithfully: ids are stable and cancel removes the pending
+	// callback, so back-to-back events reproduce production's "last rAF wins"
+	// behaviour rather than queueing every callback.
+	const pendingRafs = new Map<number, () => void>();
+	let nextRafId = 0;
 	const requestAnimationFrame = (cb: () => void): number => {
-		pendingRafs.push(cb);
-		return pendingRafs.length;
+		const id = ++nextRafId;
+		pendingRafs.set(id, cb);
+		return id;
 	};
-	const cancelAnimationFrame = (_id: number) => {};
+	const cancelAnimationFrame = (id: number) => {
+		pendingRafs.delete(id);
+	};
 
 	const fitAndRefresh = (): boolean => {
 		const width = state.settled ? opts.settledWidth : opts.staleWidth;
@@ -72,7 +79,8 @@ function makeHarness(opts: {
 	};
 
 	const flushFrame = () => {
-		const cbs = pendingRafs.splice(0);
+		const cbs = [...pendingRafs.values()];
+		pendingRafs.clear();
 		for (const cb of cbs) cb();
 	};
 
@@ -108,6 +116,21 @@ describe("v1-terminal-cache deferred resize refit (#5021)", () => {
 		h.flushFrame();
 		expect(h.state.cols).toBe(120);
 		expect(h.state.onResizeCalls).toBe(1);
+	});
+
+	it("collapses rapid back-to-back events into a single deferred refit", () => {
+		// Two events arrive before a frame is flushed. The second must cancel
+		// the first's pending rAF so only one deferred refit (and one backend
+		// notification) runs — guarding the last-rAF-wins invariant.
+		const h = makeHarness({ staleWidth: 600, settledWidth: 1200 });
+
+		h.onResizeEvent();
+		h.onResizeEvent();
+
+		h.flushFrame();
+		expect(h.state.cols).toBe(120);
+		expect(h.state.onResizeCalls).toBe(1);
+		expect(h.state.resizeRafId).toBeNull();
 	});
 
 	it("does not notify when neither the sync nor deferred fit changes dims", () => {

@@ -188,6 +188,12 @@ export function attachToContainer(
 		if (entry.resizeRafId !== null) {
 			cancelAnimationFrame(entry.resizeRafId);
 		}
+		// onResize (backend PTY resize) is intentionally deferred to the rAF
+		// rather than fired here: the deferred fit is authoritative, so we send
+		// one notification with the settled dims. `changedNow` is still carried
+		// in so a grow that only the synchronous fit caught (deferred read sees
+		// no further change) is not dropped. Cost is a ~1-frame PTY-resize delay
+		// on continuous drags, which is imperceptible.
 		entry.resizeRafId = requestAnimationFrame(() => {
 			entry.resizeRafId = null;
 			const changedLater = fitAndRefresh(entry);
