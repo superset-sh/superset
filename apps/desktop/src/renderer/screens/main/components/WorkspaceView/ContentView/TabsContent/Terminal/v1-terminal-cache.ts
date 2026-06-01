@@ -55,6 +55,8 @@ export interface CachedTerminal {
 	subscriptionErrorHandler: ((error: unknown) => void) | null;
 	/** ResizeObserver for the attached container. Managed by attach/detach. */
 	resizeObserver: ResizeObserver | null;
+	/** Pending rAF id for the deferred resize refit. Cancelled on detach/dispose. */
+	resizeRafId: number | null;
 	/** Live container, when attached. */
 	container: HTMLDivElement | null;
 }
@@ -130,6 +132,7 @@ export function getOrCreate(
 		eventHandler: null,
 		subscriptionErrorHandler: null,
 		resizeObserver: null,
+		resizeRafId: null,
 		container: null,
 		lastCols: xterm.cols,
 		lastRows: xterm.rows,
@@ -168,10 +171,30 @@ export function attachToContainer(
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
+	if (entry.resizeRafId !== null) {
+		cancelAnimationFrame(entry.resizeRafId);
+		entry.resizeRafId = null;
+	}
 	const observer = new ResizeObserver(() => {
-		if (fitAndRefresh(entry)) {
-			onResize?.();
+		// Fit immediately so shrinking the window stays snappy, then re-fit on
+		// the next frame. A single-shot grow (window maximize / native
+		// fullscreen) delivers one ResizeObserver event before layout and the
+		// WebGL renderer's cell metrics have settled; the synchronous fit then
+		// latches a too-small `cols`, and because the container is already at
+		// its final size no further event arrives to correct it — leaving the
+		// terminal stuck at the old narrow width. The deferred refit re-reads
+		// the settled geometry. (superset-sh/superset#5021)
+		const changedNow = fitAndRefresh(entry);
+		if (entry.resizeRafId !== null) {
+			cancelAnimationFrame(entry.resizeRafId);
 		}
+		entry.resizeRafId = requestAnimationFrame(() => {
+			entry.resizeRafId = null;
+			const changedLater = fitAndRefresh(entry);
+			if (changedNow || changedLater) {
+				onResize?.();
+			}
+		});
 	});
 	observer.observe(container);
 	entry.resizeObserver = observer;
@@ -186,6 +209,10 @@ export function detachFromContainer(paneId: string): void {
 	}
 	entry.resizeObserver?.disconnect();
 	entry.resizeObserver = null;
+	if (entry.resizeRafId !== null) {
+		cancelAnimationFrame(entry.resizeRafId);
+		entry.resizeRafId = null;
+	}
 	entry.container = null;
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
@@ -362,6 +389,10 @@ export function dispose(paneId: string): void {
 	}
 
 	entry.resizeObserver?.disconnect();
+	if (entry.resizeRafId !== null) {
+		cancelAnimationFrame(entry.resizeRafId);
+		entry.resizeRafId = null;
+	}
 	entry.subscription?.unsubscribe();
 	entry.cleanupCreation();
 	entry.wrapper.remove();
