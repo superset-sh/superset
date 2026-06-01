@@ -175,6 +175,12 @@ export function attachToContainer(
 		cancelAnimationFrame(entry.resizeRafId);
 		entry.resizeRafId = null;
 	}
+	// Tracks whether any fit since the last delivered notification changed dims.
+	// Lives outside the callback so the signal survives rAF cancellation: when a
+	// later event cancels a pending deferred refit, the earlier event's
+	// dimension change must not be lost (otherwise the backend PTY never learns
+	// about it and ends up out of sync with xterm).
+	let pendingResizeChange = false;
 	const observer = new ResizeObserver(() => {
 		// Fit immediately so shrinking the window stays snappy, then re-fit on
 		// the next frame. A single-shot grow (window maximize / native
@@ -184,20 +190,19 @@ export function attachToContainer(
 		// its final size no further event arrives to correct it — leaving the
 		// terminal stuck at the old narrow width. The deferred refit re-reads
 		// the settled geometry. (superset-sh/superset#5021)
-		const changedNow = fitAndRefresh(entry);
+		if (fitAndRefresh(entry)) pendingResizeChange = true;
 		if (entry.resizeRafId !== null) {
 			cancelAnimationFrame(entry.resizeRafId);
 		}
 		// onResize (backend PTY resize) is intentionally deferred to the rAF
-		// rather than fired here: the deferred fit is authoritative, so we send
-		// one notification with the settled dims. `changedNow` is still carried
-		// in so a grow that only the synchronous fit caught (deferred read sees
-		// no further change) is not dropped. Cost is a ~1-frame PTY-resize delay
-		// on continuous drags, which is imperceptible.
+		// rather than fired synchronously: the deferred fit is authoritative, so
+		// we send a single notification with the settled dims. Cost is a
+		// ~1-frame PTY-resize delay on continuous drags, which is imperceptible.
 		entry.resizeRafId = requestAnimationFrame(() => {
 			entry.resizeRafId = null;
-			const changedLater = fitAndRefresh(entry);
-			if (changedNow || changedLater) {
+			if (fitAndRefresh(entry)) pendingResizeChange = true;
+			if (pendingResizeChange) {
+				pendingResizeChange = false;
 				onResize?.();
 			}
 		});

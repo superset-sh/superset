@@ -66,15 +66,21 @@ function makeHarness(opts: {
 		return changed;
 	};
 
-	// Mirrors the production ResizeObserver callback.
+	// Mirrors the production ResizeObserver callback. `pendingChange` lives
+	// outside the handler so a dimension change survives rAF cancellation by a
+	// later event (otherwise the backend notification would be lost).
+	let pendingChange = false;
 	const onResizeEvent = () => {
-		const changedNow = fitAndRefresh();
+		if (fitAndRefresh()) pendingChange = true;
 		if (state.resizeRafId !== null) cancelAnimationFrame(state.resizeRafId);
 		state.resizeRafId = requestAnimationFrame(() => {
 			state.resizeRafId = null;
 			state.settled = true;
-			const changedLater = fitAndRefresh();
-			if (changedNow || changedLater) state.onResizeCalls++;
+			if (fitAndRefresh()) pendingChange = true;
+			if (pendingChange) {
+				pendingChange = false;
+				state.onResizeCalls++;
+			}
 		});
 	};
 
@@ -131,6 +137,22 @@ describe("v1-terminal-cache deferred resize refit (#5021)", () => {
 		expect(h.state.cols).toBe(120);
 		expect(h.state.onResizeCalls).toBe(1);
 		expect(h.state.resizeRafId).toBeNull();
+	});
+
+	it("does not drop a dimension change when a later event cancels its rAF", () => {
+		// Regression for #5022 (cubic P1): event 1's synchronous fit changes
+		// dims, event 2's fit sees no further change and cancels event 1's
+		// pending rAF, and the deferred fit also sees no change. The backend
+		// must STILL be notified — the change from event 1 must not be lost.
+		const h = makeHarness({ staleWidth: 800, settledWidth: 800 });
+		h.state.cols = 120; // backend/xterm currently at the wide width
+
+		h.onResizeEvent(); // sync fit: 120 -> 80 (changed)
+		h.onResizeEvent(); // sync fit: 80 -> 80 (no change), cancels prior rAF
+
+		h.flushFrame(); // deferred fit: 80 -> 80 (no change)
+		expect(h.state.cols).toBe(80);
+		expect(h.state.onResizeCalls).toBe(1);
 	});
 
 	it("does not notify when neither the sync nor deferred fit changes dims", () => {
