@@ -274,6 +274,9 @@ function ProjectPage() {
 				setup: commands,
 				teardown: teardownCommands,
 			});
+			// This flow only edits setup/teardown — `run` is intentionally out of
+			// scope here, so it's omitted from the event rather than reported as
+			// absent.
 			trackSetupScriptConfigured({
 				projectId,
 				setup: commands,
