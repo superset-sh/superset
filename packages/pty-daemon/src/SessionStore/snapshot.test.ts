@@ -17,8 +17,6 @@ function fakePty(pid: number, meta: { cols: number; rows: number }): Pty {
 		pid,
 		meta: { shell: "/bin/sh", argv: [], cols: meta.cols, rows: meta.rows },
 		write: () => {},
-		pause: () => {},
-		resume: () => {},
 		resize: () => {},
 		kill: () => {},
 		onData: () => {},

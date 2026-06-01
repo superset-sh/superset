@@ -22,13 +22,6 @@ export interface Pty {
 	readonly pid: number;
 	readonly meta: SessionMeta;
 	write(data: Buffer): void;
-	/**
-	 * Stop reading from the PTY master fd. The shell (slave side) eventually
-	 * blocks on `write` once the kernel pipe buffer fills — real upstream
-	 * back-pressure, not a software flag.
-	 */
-	pause(): void;
-	resume(): void;
 	resize(cols: number, rows: number): void;
 	kill(signal?: NodeJS.Signals): void;
 	onData(cb: PtyOnData): void;
@@ -89,14 +82,6 @@ class NodePtyAdapter implements Pty {
 	write(data: Buffer): void {
 		// node-pty's write accepts strings or buffers; pass buffer to keep bytes intact.
 		this.term.write(data as unknown as string);
-	}
-
-	pause(): void {
-		this.term.pause();
-	}
-
-	resume(): void {
-		this.term.resume();
 	}
 
 	resize(cols: number, rows: number): void {
@@ -266,14 +251,6 @@ class AdoptedPty implements Pty {
 
 	getMasterFd(): number {
 		return this.fd;
-	}
-
-	pause(): void {
-		this.reader.pause();
-	}
-
-	resume(): void {
-		this.reader.resume();
 	}
 
 	write(data: Buffer): void {
