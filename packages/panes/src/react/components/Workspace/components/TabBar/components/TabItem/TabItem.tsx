@@ -123,7 +123,10 @@ export function TabItem<TData>({
 						isDragging && "opacity-30",
 					)}
 					onMouseDown={(event) => {
-						if (event.button === 0) onSelect();
+						if (event.button === 0) {
+							event.preventDefault();
+							onSelect();
+						}
 					}}
 				>
 					{isEditing ? (
@@ -217,3 +220,4 @@ export function TabItem<TData>({
 		</ContextMenu>
 	);
 }
+
