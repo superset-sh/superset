@@ -146,3 +146,37 @@ Completed the provider-centered model configuration work: Settings provider regi
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Local-first Task core
+
+**Date**: 2026-06-01
+**Task**: Local-first Task core
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Implemented and validated the local-first Task core: Linear gate removal, rich task creation, V2 project association, AI draft polish, task detail project editing, create-path regression tests, real desktop create E2E, and Trellis validation artifacts.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c4ceee1ef` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
