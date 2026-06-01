@@ -42,6 +42,9 @@ function makeHarness(opts: {
 		// Switches from stale -> settled when the rAF callback runs.
 		settled: false,
 		onResizeCalls: 0,
+		// Mirrors `CachedTerminal.pendingResizeChange`: lives on the entry so the
+		// signal survives both rAF cancellation and a detach/reattach cycle.
+		pendingChange: false,
 	};
 
 	// Model rAF faithfully: ids are stable and cancel removes the pending
@@ -66,22 +69,39 @@ function makeHarness(opts: {
 		return changed;
 	};
 
-	// Mirrors the production ResizeObserver callback. `pendingChange` lives
-	// outside the handler so a dimension change survives rAF cancellation by a
-	// later event (otherwise the backend notification would be lost).
-	let pendingChange = false;
+	// Mirrors the production ResizeObserver callback. `state.pendingChange` lives
+	// on the entry so a dimension change survives rAF cancellation by a later
+	// event (otherwise the backend notification would be lost).
 	const onResizeEvent = () => {
-		if (fitAndRefresh()) pendingChange = true;
+		if (fitAndRefresh()) state.pendingChange = true;
 		if (state.resizeRafId !== null) cancelAnimationFrame(state.resizeRafId);
 		state.resizeRafId = requestAnimationFrame(() => {
 			state.resizeRafId = null;
 			state.settled = true;
-			if (fitAndRefresh()) pendingChange = true;
-			if (pendingChange) {
-				pendingChange = false;
+			if (fitAndRefresh()) state.pendingChange = true;
+			if (state.pendingChange) {
+				state.pendingChange = false;
 				state.onResizeCalls++;
 			}
 		});
+	};
+
+	// Mirrors detachFromContainer: cancels the pending rAF but deliberately
+	// preserves `pendingChange` so reattach can flush it.
+	const detach = () => {
+		if (state.resizeRafId !== null) {
+			cancelAnimationFrame(state.resizeRafId);
+			state.resizeRafId = null;
+		}
+	};
+
+	// Mirrors attachToContainer's reattach flush.
+	const reattach = () => {
+		if (fitAndRefresh()) state.pendingChange = true;
+		if (state.pendingChange) {
+			state.pendingChange = false;
+			state.onResizeCalls++;
+		}
 	};
 
 	const flushFrame = () => {
@@ -90,7 +110,7 @@ function makeHarness(opts: {
 		for (const cb of cbs) cb();
 	};
 
-	return { state, onResizeEvent, flushFrame };
+	return { state, onResizeEvent, detach, reattach, flushFrame };
 }
 
 describe("v1-terminal-cache deferred resize refit (#5021)", () => {
@@ -153,6 +173,27 @@ describe("v1-terminal-cache deferred resize refit (#5021)", () => {
 		h.flushFrame(); // deferred fit: 80 -> 80 (no change)
 		expect(h.state.cols).toBe(80);
 		expect(h.state.onResizeCalls).toBe(1);
+	});
+
+	it("flushes a pending resize on reattach when a detach cancelled its rAF", () => {
+		// Regression for #5022 (CodeRabbit Major): the synchronous fit changed
+		// dims (xterm adopted the new size) but a tab switch detached and
+		// cancelled the deferred rAF before onResize fired. On reattach — with
+		// the container unchanged so the reattach fit reports no change — the
+		// backend must STILL be reconciled from the preserved pending signal.
+		const h = makeHarness({ staleWidth: 800, settledWidth: 800 });
+		h.state.cols = 120; // backend/xterm currently at the wide width
+
+		h.onResizeEvent(); // sync fit: 120 -> 80 (changed), rAF scheduled
+		expect(h.state.cols).toBe(80);
+		expect(h.state.onResizeCalls).toBe(0); // not delivered yet
+
+		h.detach(); // cancels the rAF; pendingChange preserved
+		expect(h.state.onResizeCalls).toBe(0);
+
+		h.reattach(); // container unchanged -> fit no-op, but pending flushes
+		expect(h.state.onResizeCalls).toBe(1);
+		expect(h.state.pendingChange).toBe(false);
 	});
 
 	it("does not notify when neither the sync nor deferred fit changes dims", () => {
