@@ -10,6 +10,7 @@ import * as directory from "./directory";
 import { env } from "./env";
 import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
+import { enableTcpNoDelay } from "./tcpNoDelay";
 import { TunnelManager } from "./tunnel";
 
 // Bearer tokens we never want in stdout. The remote-control viewer must
@@ -389,6 +390,10 @@ server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
 		`[relay] listening on http://localhost:${info.port} (region=${env.FLY_REGION} machine=${env.FLY_MACHINE_ID})`,
 	);
 });
+// Disable Nagle's algorithm on every accepted socket so sparse interactive
+// terminal traffic (keystrokes + echoes) isn't held by Nagle/delayed-ACK.
+// Both the client terminal WS and the host tunnel WS terminate here. (#5012)
+enableTcpNoDelay(server);
 injectWebSocket(server);
 
 // Disable Nagle's algorithm on every incoming connection. Both the client's
