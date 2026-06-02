@@ -1,13 +1,13 @@
 import {
 	type FocusDirection,
 	getPaneParentDirection,
-	getSpatialNeighborPaneId,
 	type PaneRegistry,
 	type WorkspaceStore,
 } from "@superset/panes";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
+import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggle-intent";
 import type { StoreApi } from "zustand";
@@ -19,6 +19,7 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import { moveFocusDirectional } from "./utils/moveFocusDirectional";
 
 export function useWorkspaceHotkeys({
 	store,
@@ -184,25 +185,22 @@ export function useWorkspaceHotkeys({
 
 	// --- Pane management ---
 
-	const moveFocusDirectional = useCallback(
+	const focusDirectional = useCallback(
 		(dir: FocusDirection) => {
-			const state = store.getState();
-			const tab = state.getActiveTab();
-			if (!tab || !tab.activePaneId) return;
-			const neighbor = getSpatialNeighborPaneId(
-				tab.layout,
-				tab.activePaneId,
-				dir,
-			);
-			if (neighbor) state.setActivePane({ tabId: tab.id, paneId: neighbor });
+			moveFocusDirectional(store, dir, {
+				focusTerminal: (terminalId, terminalInstanceId) =>
+					terminalRuntimeRegistry
+						.getTerminal(terminalId, terminalInstanceId)
+						?.focus(),
+			});
 		},
 		[store],
 	);
 
-	useHotkey("FOCUS_PANE_LEFT", () => moveFocusDirectional("left"));
-	useHotkey("FOCUS_PANE_RIGHT", () => moveFocusDirectional("right"));
-	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
-	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
+	useHotkey("FOCUS_PANE_LEFT", () => focusDirectional("left"));
+	useHotkey("FOCUS_PANE_RIGHT", () => focusDirectional("right"));
+	useHotkey("FOCUS_PANE_UP", () => focusDirectional("up"));
+	useHotkey("FOCUS_PANE_DOWN", () => focusDirectional("down"));
 
 	useHotkey("SPLIT_AUTO", async () => {
 		const state = store.getState();
