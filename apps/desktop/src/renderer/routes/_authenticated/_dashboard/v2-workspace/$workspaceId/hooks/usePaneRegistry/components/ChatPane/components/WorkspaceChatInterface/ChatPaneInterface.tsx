@@ -29,6 +29,7 @@ import {
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { ChatMessageList } from "./components/ChatMessageList";
 import type { UserMessageRestartRequest } from "./components/ChatMessageList/ChatMessageList.types";
+import { DraftSaver } from "./components/DraftSaver";
 import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import { useOptimisticUpload } from "./hooks/useOptimisticUpload";
@@ -191,6 +192,7 @@ export function ChatPaneInterface({
 	sessionId,
 	initialLaunchConfig,
 	onConsumeLaunchConfig,
+	onSaveDraft,
 	workspaceId,
 	organizationId,
 	cwd,
@@ -237,6 +239,8 @@ export function ChatPaneInterface({
 		useState<PendingUserTurn | null>(null);
 	const currentMcpScopeRef = useRef<string | null>(null);
 	const consumedLaunchConfigRef = useRef<string | null>(null);
+	const isSendingRef = useRef(false);
+	const previousSessionIdRef = useRef(sessionId);
 	const autoLaunchInFlightRef = useRef<string | null>(null);
 	const autoLaunchAttemptsRef = useRef<Record<string, number>>({});
 	const autoLaunchSessionLockRef = useRef<Record<string, string | null>>({});
@@ -453,6 +457,16 @@ export function ChatPaneInterface({
 		}
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
 
+	const clearDraftInStore = useCallback(() => {
+		onSaveDraft?.(undefined);
+	}, [onSaveDraft]);
+
+	useEffect(() => {
+		if (sessionId === previousSessionIdRef.current) return;
+		previousSessionIdRef.current = sessionId;
+		clearDraftInStore();
+	}, [clearDraftInStore, sessionId]);
+
 	useEffect(() => {
 		if (
 			shouldClearPendingUserTurn({
@@ -566,6 +580,7 @@ export function ChatPaneInterface({
 			};
 
 			let targetSessionId = effectiveSessionId;
+			isSendingRef.current = true;
 			try {
 				if (!targetSessionId) {
 					targetSessionId = await getOrCreateSession();
@@ -598,12 +613,15 @@ export function ChatPaneInterface({
 					onUserMessageSubmitted?.(content);
 				}
 			} catch (error) {
+				isSendingRef.current = false;
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
 				if (error instanceof Error) throw error;
 				throw new Error(sendErrorMessage);
 			}
+
+			clearDraftInStore();
 
 			captureChatEvent("chat_message_sent", {
 				session_id: targetSessionId,
@@ -618,6 +636,7 @@ export function ChatPaneInterface({
 		[
 			activeModel?.id,
 			captureChatEvent,
+			clearDraftInStore,
 			clearRuntimeError,
 			commands,
 			getOrCreateSession,
@@ -920,6 +939,13 @@ export function ChatPaneInterface({
 
 	return (
 		<PromptInputProvider initialInput={initialLaunchConfig?.draftInput}>
+			{onSaveDraft && (
+				<DraftSaver
+					sessionId={sessionId}
+					isSendingRef={isSendingRef}
+					onSaveDraft={onSaveDraft}
+				/>
+			)}
 			<div className="flex h-full w-full flex-col bg-background">
 				<ChatMessageList
 					messages={visibleMessages}
