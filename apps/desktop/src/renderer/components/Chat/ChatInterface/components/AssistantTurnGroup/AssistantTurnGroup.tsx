@@ -5,16 +5,22 @@ import {
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import { BotIcon, ChevronRightIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { TurnStatus } from "../../utils/group-assistant-turn";
 
 interface AssistantTurnGroupProps {
 	/** One-line summary, e.g. "3 tool calls · 1 subagent · 1 message". */
 	summary: string;
 	status: TurnStatus;
+	/**
+	 * A required user action (e.g. plan approval) is pending. Overrides the
+	 * status dot with an amber "awaiting" state so a collapsed turn still signals
+	 * that something needs attention.
+	 */
+	pendingAction?: boolean;
 	/** When the turn started — shown as a compact clock in the header. */
 	timestamp?: string | number | Date | null;
-	/** Expanded on first render (live turns, errors, or when nothing else shows). */
+	/** Whether the turn should be open: live/errored turns expand, finished ones collapse. */
 	defaultOpen?: boolean;
 	/** The intermediate step nodes (thinking, tools, images) — collapsible. */
 	steps: ReactNode;
@@ -38,6 +44,12 @@ const STATUS_DOT_CLASS: Record<TurnStatus, string> = {
 	complete: "bg-emerald-500",
 };
 
+const STATUS_LABEL: Record<TurnStatus, string> = {
+	in_progress: "Running",
+	error: "Failed",
+	complete: "Done",
+};
+
 /**
  * Groups an assistant turn's intermediate actions into a single collapsible
  * card — the vendored agent-inspector's signature presentation — while the
@@ -47,15 +59,37 @@ const STATUS_DOT_CLASS: Record<TurnStatus, string> = {
 export function AssistantTurnGroup({
 	summary,
 	status,
+	pendingAction = false,
 	timestamp,
 	defaultOpen = false,
 	steps,
 	lastOutput,
 }: AssistantTurnGroupProps) {
+	const dotClass = pendingAction ? "bg-amber-500" : STATUS_DOT_CLASS[status];
+	const statusLabel = pendingAction
+		? "Awaiting approval"
+		: STATUS_LABEL[status];
+	// Controlled open state so a turn that started open while streaming collapses
+	// once it finishes (`defaultOpen` flips to false) — unless the user has
+	// manually toggled it, in which case their choice wins.
+	const [open, setOpen] = useState(defaultOpen);
+	const userToggled = useRef(false);
+	useEffect(() => {
+		if (!userToggled.current) setOpen(defaultOpen);
+	}, [defaultOpen]);
+	const handleOpenChange = (next: boolean) => {
+		userToggled.current = true;
+		setOpen(next);
+	};
+
 	const clock = formatClock(timestamp);
 	return (
 		<div className="flex flex-col gap-1.5">
-			<Collapsible defaultOpen={defaultOpen} className="not-prose group/turn">
+			<Collapsible
+				open={open}
+				onOpenChange={handleOpenChange}
+				className="not-prose group/turn"
+			>
 				<CollapsibleTrigger
 					className={cn(
 						"flex w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left text-xs",
@@ -65,7 +99,9 @@ export function AssistantTurnGroup({
 				>
 					<ChevronRightIcon className="size-3 shrink-0 transition-transform group-data-[state=open]/turn:rotate-90" />
 					<BotIcon className="size-3.5 shrink-0" />
-					<span className="shrink-0 font-medium text-foreground">Claude</span>
+					<span className="shrink-0 font-medium text-foreground">
+						Assistant
+					</span>
 					{summary ? (
 						<>
 							<span className="shrink-0 opacity-50">·</span>
@@ -79,10 +115,12 @@ export function AssistantTurnGroup({
 							{clock}
 						</span>
 					) : null}
+					<span className="sr-only">{statusLabel}</span>
 					<span
 						className={cn(
 							"size-1.5 shrink-0 rounded-full",
-							STATUS_DOT_CLASS[status],
+							dotClass,
+							pendingAction && "animate-pulse",
 						)}
 						aria-hidden
 					/>

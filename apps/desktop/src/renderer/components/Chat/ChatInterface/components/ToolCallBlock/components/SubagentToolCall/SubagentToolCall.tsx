@@ -29,8 +29,10 @@ function formatDuration(ms: number): string {
 	if (ms < 1000) return `${Math.round(ms)}ms`;
 	const seconds = ms / 1000;
 	if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
-	const minutes = Math.floor(seconds / 60);
-	const remainder = Math.round(seconds % 60);
+	// Round to whole seconds first, then split, so the remainder can't carry to 60.
+	const roundedSeconds = Math.round(seconds);
+	const minutes = Math.floor(roundedSeconds / 60);
+	const remainder = roundedSeconds % 60;
 	return `${minutes}m ${remainder}s`;
 }
 
@@ -87,57 +89,62 @@ export function SubagentToolCall({
 		) : undefined;
 
 	return (
-		<ToolCallRow
-			icon={BotIcon}
-			isError={isError}
-			isPending={isPending}
-			title={titleNode}
-			headerExtra={headerExtra}
-		>
-			{hasDetails ? (
-				<div className="space-y-2 pl-2 text-xs">
-					<MessageResponse
-						animated={false}
-						className={`font-medium ${TOOL_CALL_MD_CLASSNAME}`}
-						isAnimating={false}
-						mermaid={{ config: { theme: "default" } }}
-					>
-						{task}
-					</MessageResponse>
-					{parsed.tools.length > 0 ? (
-						<div className="space-y-1">
-							<div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-								<TerminalIcon className="size-3 shrink-0" />
-								<span className="font-medium">Execution Trace</span>
-								<span className="opacity-50">·</span>
-								<span>{toolCallLabel}</span>
-							</div>
-							{parsed.tools.map((tool, index) => (
-								<SubagentInnerToolCall
-									key={`${tool.name}-${index}`}
-									name={tool.name}
-									isError={tool.isError}
-									args={tool.args}
-									result={tool.result}
-									workspaceId={workspaceId}
-									workspaceCwd={workspaceCwd}
-									onOpenFileInPane={onOpenFileInPane}
-								/>
-							))}
-						</div>
-					) : null}
-					{parsed.text ? (
+		// Distinct card so the spawned agent reads as its own contained unit
+		// (matching the agent-inspector subagent card), set apart from the
+		// parent turn's inline steps.
+		<div className="rounded-md border border-border/60 bg-muted/20 px-2 py-0.5">
+			<ToolCallRow
+				icon={BotIcon}
+				isError={isError}
+				isPending={isPending}
+				title={titleNode}
+				headerExtra={headerExtra}
+			>
+				{hasDetails ? (
+					<div className="space-y-2 pl-2 text-xs">
 						<MessageResponse
 							animated={false}
-							className={`${TOOL_CALL_MD_CLASSNAME} [&_[data-streamdown=table-header-cell]]:px-2.5 [&_[data-streamdown=table-header-cell]]:py-1.5 [&_[data-streamdown=table-header-cell]]:text-xs [&_[data-streamdown=table-cell]]:px-2.5 [&_[data-streamdown=table-cell]]:py-1.5 [&_[data-streamdown=table-cell]]:text-xs`}
+							className={`font-medium ${TOOL_CALL_MD_CLASSNAME}`}
 							isAnimating={false}
 							mermaid={{ config: { theme: "default" } }}
 						>
-							{parsed.text}
+							{task}
 						</MessageResponse>
-					) : null}
-				</div>
-			) : undefined}
-		</ToolCallRow>
+						{parsed.tools.length > 0 ? (
+							<div className="space-y-1">
+								<div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+									<TerminalIcon className="size-3 shrink-0" />
+									<span className="font-medium">Execution Trace</span>
+									<span className="opacity-50">·</span>
+									<span>{toolCallLabel}</span>
+								</div>
+								{parsed.tools.map((tool, index) => (
+									<SubagentInnerToolCall
+										key={`${tool.name}-${index}`}
+										name={tool.name}
+										isError={tool.isError}
+										args={tool.args}
+										result={tool.result}
+										workspaceId={workspaceId}
+										workspaceCwd={workspaceCwd}
+										onOpenFileInPane={onOpenFileInPane}
+									/>
+								))}
+							</div>
+						) : null}
+						{parsed.text ? (
+							<MessageResponse
+								animated={false}
+								className={`${TOOL_CALL_MD_CLASSNAME} [&_[data-streamdown=table-header-cell]]:px-2.5 [&_[data-streamdown=table-header-cell]]:py-1.5 [&_[data-streamdown=table-header-cell]]:text-xs [&_[data-streamdown=table-cell]]:px-2.5 [&_[data-streamdown=table-cell]]:py-1.5 [&_[data-streamdown=table-cell]]:text-xs`}
+								isAnimating={false}
+								mermaid={{ config: { theme: "default" } }}
+							>
+								{parsed.text}
+							</MessageResponse>
+						) : null}
+					</div>
+				) : undefined}
+			</ToolCallRow>
+		</div>
 	);
 }

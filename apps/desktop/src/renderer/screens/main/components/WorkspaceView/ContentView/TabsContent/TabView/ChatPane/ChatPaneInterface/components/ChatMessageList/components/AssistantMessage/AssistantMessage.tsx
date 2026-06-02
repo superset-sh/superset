@@ -2,7 +2,7 @@ import type { UseChatDisplayReturn } from "@superset/chat/client";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import { FileSearchIcon } from "lucide-react";
-import { type ReactNode, useCallback } from "react";
+import { type ReactNode, useCallback, useMemo } from "react";
 import { AssistantTurnGroup } from "renderer/components/Chat/ChatInterface/components/AssistantTurnGroup";
 import { StreamingMessageText } from "renderer/components/Chat/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
 import { ToolCallBlock } from "renderer/components/Chat/ChatInterface/components/ToolCallBlock";
@@ -130,12 +130,15 @@ export function AssistantMessage({
 	const errored =
 		messageMeta.stopReason === "error" ||
 		Boolean(messageMeta.errorMessage?.trim());
-	const turnSummary = summarizeAssistantTurn(message.content, {
-		isStreaming,
-		errored,
-	});
+	const turnSummary = useMemo(
+		() => summarizeAssistantTurn(message.content, { isStreaming, errored }),
+		[message.content, isStreaming, errored],
+	);
 	const stepNodes: ReactNode[] = [];
 	const lastOutputNodes: ReactNode[] = [];
+	// Required actions (e.g. plan approval) render OUTSIDE the collapsible group so
+	// collapsing a turn can never hide an action the user must take.
+	const pendingActionNodes: ReactNode[] = [];
 	const renderedToolCallIds = new Set<string>();
 	let didRenderPendingPlanApproval = false;
 	const handleAttachmentClick = useCallback(
@@ -298,7 +301,7 @@ export function AssistantMessage({
 					isInterrupted={isInterrupted}
 				/>,
 			);
-			stepNodes.push(...getInlineToolStateNodes(part.id));
+			pendingActionNodes.push(...getInlineToolStateNodes(part.id));
 
 			if (resultIndex === partIndex + 1) {
 				partIndex++;
@@ -323,7 +326,7 @@ export function AssistantMessage({
 					isInterrupted={isInterrupted}
 				/>,
 			);
-			stepNodes.push(...getInlineToolStateNodes(part.id));
+			pendingActionNodes.push(...getInlineToolStateNodes(part.id));
 			continue;
 		}
 
@@ -353,10 +356,12 @@ export function AssistantMessage({
 				isStreaming={isStreaming}
 			/>,
 		);
-		stepNodes.push(...getInlineToolStateNodes(previewPart.toolCallId));
+		pendingActionNodes.push(...getInlineToolStateNodes(previewPart.toolCallId));
 	}
 
-	const hasAnyNode = stepNodes.length > 0 || lastOutputNodes.length > 0;
+	const hasPendingAction = pendingActionNodes.length > 0;
+	const hasAnyNode =
+		stepNodes.length > 0 || lastOutputNodes.length > 0 || hasPendingAction;
 
 	if (!hasAnyNode && !isStreaming && !footer) {
 		return null;
@@ -375,12 +380,13 @@ export function AssistantMessage({
 		const defaultOpen =
 			isStreaming ||
 			turnSummary.status === "error" ||
-			Boolean(pendingPlanApproval) ||
+			hasPendingAction ||
 			lastOutputNodes.length === 0;
 		body = (
 			<AssistantTurnGroup
 				summary={formatTurnSummary(turnSummary)}
 				status={turnSummary.status}
+				pendingAction={hasPendingAction}
 				timestamp={messageMeta.createdAt}
 				defaultOpen={defaultOpen}
 				steps={stepNodes}
@@ -400,7 +406,10 @@ export function AssistantMessage({
 	return (
 		<Message from="assistant">
 			<MessageContent>
+				{/* Pending actions sit outside `body` so they stay visible even when
+				    the turn group is collapsed. */}
 				{body}
+				{pendingActionNodes}
 				{footer}
 			</MessageContent>
 		</Message>

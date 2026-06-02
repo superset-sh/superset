@@ -18,7 +18,7 @@ describe("AssistantTurnGroup", () => {
 		expect(html).toContain("3 tools · 1 message");
 	});
 
-	it("shows the Claude lead and a status-colored dot", () => {
+	it("shows the assistant lead plus a status dot and screen-reader label", () => {
 		const complete = renderToStaticMarkup(
 			<AssistantTurnGroup
 				summary="1 tool call"
@@ -26,8 +26,9 @@ describe("AssistantTurnGroup", () => {
 				steps={<div />}
 			/>,
 		);
-		expect(complete).toContain("Claude");
+		expect(complete).toContain("Assistant");
 		expect(complete).toContain("bg-emerald-500");
+		expect(complete).toContain("Done"); // sr-only status text
 		expect(
 			renderToStaticMarkup(
 				<AssistantTurnGroup
@@ -42,6 +43,21 @@ describe("AssistantTurnGroup", () => {
 				<AssistantTurnGroup summary="" status="in_progress" steps={<div />} />,
 			),
 		).toContain("bg-sky-500");
+	});
+
+	it("signals a pending action with an amber dot + sr-only label", () => {
+		const html = renderToStaticMarkup(
+			<AssistantTurnGroup
+				summary="1 tool call"
+				status="complete"
+				pendingAction
+				steps={<div />}
+			/>,
+		);
+		expect(html).toContain("bg-amber-500");
+		expect(html).toContain("Awaiting approval");
+		// The misleading "complete/green" state must not win while pending.
+		expect(html).not.toContain("bg-emerald-500");
 	});
 
 	it("renders step content when opened by default", () => {

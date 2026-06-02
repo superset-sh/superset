@@ -81,10 +81,25 @@ describe("summarizeAssistantTurn", () => {
 		expect(summary.status).toBe("in_progress");
 	});
 
-	it("marks pure-text turns as having no steps", () => {
+	it("marks a single-text turn as having no steps", () => {
 		const summary = summarizeAssistantTurn([{ type: "text" }] as never);
 		expect(summary.hasSteps).toBe(false);
 		expect(summary.lastTextIndex).toBe(0);
+	});
+
+	it("groups a turn with intermediate text (output) before the final answer", () => {
+		const summary = summarizeAssistantTurn([
+			{ type: "text" }, // intermediate narration
+			{ type: "text" }, // final answer
+		] as never);
+		expect(summary.outputCount).toBe(1);
+		expect(summary.hasSteps).toBe(true);
+	});
+
+	it("does not group an image-only turn", () => {
+		const summary = summarizeAssistantTurn([{ type: "image" }] as never);
+		expect(summary.imageCount).toBe(1);
+		expect(summary.hasSteps).toBe(false);
 	});
 });
 

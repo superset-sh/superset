@@ -27,7 +27,7 @@ export function TurnTextItem({ kind, text, isStreaming }: TurnTextItemProps) {
 			description={toPreview(text)}
 		>
 			{isThinking ? (
-				<div className="whitespace-pre-wrap py-1 pl-3 text-muted-foreground text-xs">
+				<div className="cursor-text select-text whitespace-pre-wrap py-1 pl-3 text-muted-foreground text-xs">
 					{text}
 				</div>
 			) : (

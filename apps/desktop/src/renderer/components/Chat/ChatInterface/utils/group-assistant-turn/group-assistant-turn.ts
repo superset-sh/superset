@@ -114,7 +114,11 @@ export function summarizeAssistantTurn(
 		imageCount,
 		status,
 		lastTextIndex,
-		hasSteps: toolCount > 0 || subagentCount > 0 || thinkingCount > 0,
+		hasSteps:
+			toolCount > 0 ||
+			subagentCount > 0 ||
+			thinkingCount > 0 ||
+			outputCount > 0,
 	};
 }
 
@@ -140,9 +144,6 @@ export function formatTurnSummary(summary: AssistantTurnSummary): string {
 	// Intermediate messages + a trailing answer collapsed into the body.
 	if (summary.outputCount > 0) {
 		parts.push(pluralize(summary.outputCount, TOKEN_MESSAGE));
-	}
-	if (summary.imageCount > 0) {
-		parts.push(pluralize(summary.imageCount, "image"));
 	}
 	return parts.join(" · ");
 }
