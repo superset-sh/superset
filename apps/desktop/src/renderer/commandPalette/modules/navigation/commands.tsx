@@ -1,6 +1,8 @@
 import { BookOpenIcon, HistoryIcon, SettingsIcon } from "lucide-react";
+import { LuLayers } from "react-icons/lu";
 import type { Command, CommandProvider } from "../../core/types";
 import { RecentlyViewedFrame } from "../../ui/RecentlyViewed/RecentlyViewedFrame";
+import { WorkspaceListFrame } from "../../ui/WorkspaceList";
 import { settingsTabCommands } from "../settings/commands";
 
 export const navigationProvider: CommandProvider = {
@@ -23,6 +25,14 @@ export const navigationProvider: CommandProvider = {
 				icon: HistoryIcon,
 				keywords: ["history", "recent", "back"],
 				renderFrame: () => <RecentlyViewedFrame />,
+			},
+			{
+				id: "nav.workspaces",
+				title: "Workspaces",
+				section: "navigation",
+				icon: LuLayers,
+				keywords: ["workspace", "project", "repo", "repository", "switch"],
+				renderFrame: () => <WorkspaceListFrame />,
 			},
 			{
 				id: "nav.docs",

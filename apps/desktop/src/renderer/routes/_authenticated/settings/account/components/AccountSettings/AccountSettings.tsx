@@ -40,7 +40,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 	const [nameValue, setNameValue] = useState("");
 	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-	const { data: usersData, isLoading } = useLiveQuery(
+	const { data: usersData, isReady } = useLiveQuery(
 		(q) => q.from({ users: collections.users }),
 		[collections],
 	);
@@ -110,7 +110,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 			<div className="space-y-3">
 				{showProfile &&
-					(isLoading ? (
+					(!isReady && !user ? (
 						<ProfileSkeleton />
 					) : user ? (
 						<>

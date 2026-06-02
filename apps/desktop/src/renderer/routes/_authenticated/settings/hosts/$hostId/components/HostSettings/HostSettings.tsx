@@ -2,17 +2,20 @@ import { toast } from "@superset/ui/sonner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { authClient } from "renderer/lib/auth-client";
 import {
 	type PersistableTransaction,
 	useOptimisticCollectionActions,
 } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { CandidateRow } from "./components/AddMemberDropdown";
 import { AddMemberDropdown } from "./components/AddMemberDropdown";
 import { HostHeader } from "./components/HostHeader";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
+import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
 
 function notifyOnPersist(
 	tx: PersistableTransaction | null,
@@ -33,8 +36,10 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id ?? null;
 	const actions = useOptimisticCollectionActions();
+	const { machineId } = useLocalHostService();
+	const hostUrl = useHostUrl(hostId);
 
-	const { data: hostRows = [] } = useLiveQuery(
+	const { data: hostRows = [], isReady: hostReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ hosts: collections.v2Hosts })
@@ -119,10 +124,12 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 			hostUserRows.find((r) => r.userId === currentUserId)?.role === "owner"
 		);
 	}, [hostUserRows, currentUserId]);
+	const isRemoteTarget = Boolean(machineId && hostId !== machineId);
 
 	if (!host) {
+		if (!hostReady) return null;
 		return (
-			<div className="p-6 text-sm text-muted-foreground">
+			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
 				Host not found in this organization.
 			</div>
 		);
@@ -162,28 +169,38 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				canRename={isOwner}
 			/>
 
-			<section className="space-y-3">
-				<div className="flex items-end justify-between gap-4">
-					<div>
-						<h3 className="text-sm font-medium">Members</h3>
-						{!isOwner && (
-							<p className="text-sm text-muted-foreground mt-0.5">
-								Only owners can change membership.
-							</p>
+			<div className="space-y-10">
+				<WorktreeLocationSection
+					hostUrl={hostUrl}
+					hostName={host.name}
+					isRemoteTarget={isRemoteTarget}
+					isOnline={host.isOnline || !isRemoteTarget}
+					canEdit={isOwner}
+				/>
+
+				<section className="space-y-3">
+					<div className="flex items-end justify-between gap-4">
+						<div>
+							<h3 className="text-sm font-medium">Members</h3>
+							{!isOwner && (
+								<p className="text-sm text-muted-foreground mt-0.5">
+									Only owners can change membership.
+								</p>
+							)}
+						</div>
+						{isOwner && (
+							<AddMemberDropdown candidates={candidates} onPick={handleAdd} />
 						)}
 					</div>
-					{isOwner && (
-						<AddMemberDropdown candidates={candidates} onPick={handleAdd} />
-					)}
-				</div>
 
-				<MembersTable
-					members={members}
-					isOwner={isOwner}
-					onSetRole={handleSetRole}
-					onRemove={handleRemove}
-				/>
-			</section>
+					<MembersTable
+						members={members}
+						isOwner={isOwner}
+						onSetRole={handleSetRole}
+						onRemove={handleRemove}
+					/>
+				</section>
+			</div>
 		</div>
 	);
 }

@@ -2,16 +2,11 @@ import { db, dbWs } from "@superset/db/client";
 import {
 	automationRuns,
 	automations,
-	type SelectSubscription,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
 	v2Workspaces,
 } from "@superset/db/schema";
-import {
-	isActiveSubscriptionStatus,
-	isPaidPlan,
-} from "@superset/shared/billing";
 import {
 	describeSchedule,
 	nextOccurrences,
@@ -22,10 +17,7 @@ import { and, desc, eq, getTableColumns, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { protectedProcedure } from "../../trpc";
-import {
-	requireActiveOrgMembership,
-	requireActiveOrgMembershipWithSubscription,
-} from "../utils/active-org";
+import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
 	getAutomationForUser,
@@ -43,19 +35,6 @@ import { automationVersionsRouter } from "./versions";
 
 function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
-}
-
-function requirePaidSubscription(subscription: SelectSubscription | null) {
-	if (
-		!subscription ||
-		!isPaidPlan(subscription.plan) ||
-		!isActiveSubscriptionStatus(subscription.status)
-	) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Automations require a Pro plan",
-		});
-	}
 }
 
 async function verifyHostAccess(
@@ -217,9 +196,7 @@ export const automationRouter = {
 	create: protectedProcedure
 		.input(createAutomationSchema)
 		.mutation(async ({ ctx, input }) => {
-			const { organizationId, subscription } =
-				await requireActiveOrgMembershipWithSubscription(ctx);
-			requirePaidSubscription(subscription);
+			const organizationId = await requireActiveOrgMembership(ctx);
 
 			if (input.targetHostId) {
 				await verifyHostAccess(
@@ -431,11 +408,7 @@ export const automationRouter = {
 	setEnabled: protectedProcedure
 		.input(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const { organizationId, subscription } =
-				await requireActiveOrgMembershipWithSubscription(ctx);
-			if (input.enabled) {
-				requirePaidSubscription(subscription);
-			}
+			const organizationId = await requireActiveOrgMembership(ctx);
 			const existing = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -468,9 +441,7 @@ export const automationRouter = {
 	runNow: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const { organizationId, subscription } =
-				await requireActiveOrgMembershipWithSubscription(ctx);
-			requirePaidSubscription(subscription);
+			const organizationId = await requireActiveOrgMembership(ctx);
 			const automation = await getAutomationForUser(
 				ctx.session.user.id,
 				organizationId,
@@ -501,13 +472,6 @@ export const automationRouter = {
 					message: outcome.error,
 				});
 			}
-			if (outcome.status === "skipped_unpaid") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: outcome.error,
-				});
-			}
-
 			return { automationId: automation.id, runId: outcome.runId };
 		}),
 

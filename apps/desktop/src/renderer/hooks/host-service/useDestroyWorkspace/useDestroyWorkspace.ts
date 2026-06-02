@@ -5,6 +5,7 @@ import type {
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	useWorkspaceHostTarget,
 	type WorkspaceHostTarget,
@@ -66,13 +67,23 @@ export interface UseDestroyWorkspace {
  */
 export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 	const hostTarget = useWorkspaceHostTarget(workspaceId);
+	const { activeHostUrl } = useLocalHostService();
 
 	// Reduce the (object-identity-unstable) hostTarget down to two scalars so
 	// memoized callbacks below don't churn on every collection notification.
 	// useLiveQuery returns a new array each tick, which would otherwise rebuild
 	// `inspect`/`destroy` and re-fire effects that depend on them.
-	const hostUrl = hostTarget.status === "ready" ? hostTarget.url : null;
-	const hostStatus = hostTarget.status;
+	const shouldTryLocalCleanup =
+		hostTarget.status === "not-found" && activeHostUrl !== null;
+	const hostUrl =
+		hostTarget.status === "ready"
+			? hostTarget.url
+			: shouldTryLocalCleanup
+				? activeHostUrl
+				: null;
+	const hostStatus: WorkspaceHostTarget["status"] = shouldTryLocalCleanup
+		? "ready"
+		: hostTarget.status;
 
 	const destroy = useCallback(
 		async (

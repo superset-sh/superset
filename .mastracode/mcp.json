@@ -2,7 +2,7 @@
 	"mcpServers": {
 		"superset": {
 			"command": "npx",
-			"args": ["-y", "mcp-remote", "https://api.superset.sh/api/agent/mcp"]
+			"args": ["-y", "mcp-remote", "https://api.superset.sh/api/v2/agent/mcp"]
 		},
 		"maestro": {
 			"command": "maestro",

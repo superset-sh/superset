@@ -9,6 +9,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
+import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -100,7 +101,8 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const fitAddon = new FitAddon();
 	const searchAddon = new SearchAddon();
 
-	const clipboardAddon = new ClipboardAddon();
+	// Utf8Base64 replaces the addon's UTF-8-unsafe default codec (#4839).
+	const clipboardAddon = new ClipboardAddon(new Utf8Base64());
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
@@ -138,6 +140,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			webglAddon.onContextLoss(() => {
 				webglAddon?.dispose();
 				webglAddon = null;
+				suggestedRendererType = "dom";
 				xterm.refresh(0, xterm.rows - 1);
 			});
 			xterm.loadAddon(webglAddon);

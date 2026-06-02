@@ -193,7 +193,6 @@ describe("workspaces.create PR checkout integration", () => {
 		).toBe("HEAD:refs/heads/feature/pr-lockfile");
 		const dryRunOutput = await worktreeGit.raw(["push", "--dry-run"]);
 		expect(typeof dryRunOutput).toBe("string");
-		expect(result.warnings).toEqual([]);
 
 		const lockStatus = (
 			await worktreeGit.raw([
@@ -531,7 +530,6 @@ describe("workspaces.create PR checkout integration", () => {
 		expect(worktreePath).toBeTruthy();
 		if (!worktreePath) throw new Error("expected worktree path");
 		expect(result.workspace.branch).toBe("feature/same-repo");
-		expect(result.warnings).toEqual([]);
 		expect(
 			(
 				await scenario.repo.git.raw([
@@ -553,7 +551,7 @@ describe("workspaces.create PR checkout integration", () => {
 		).toBe(prHeadOid);
 	});
 
-	test("same-repo PR falls back to synthetic ref with a user-visible warning when the head branch is gone", async () => {
+	test("same-repo PR falls back to synthetic ref when the head branch is gone", async () => {
 		const prNumber = 8081;
 		let prHeadOid = "";
 
@@ -616,8 +614,7 @@ describe("workspaces.create PR checkout integration", () => {
 		)?.worktreePath;
 		expect(worktreePath).toBeTruthy();
 		if (!worktreePath) throw new Error("expected worktree path");
-		expect(result.warnings).toHaveLength(1);
-		expect(result.warnings[0]).toContain("was unavailable from origin");
+		expect(result.workspace.branch).toBe("feature/deleted-head");
 		expect(
 			(
 				await scenario.repo.git.raw([

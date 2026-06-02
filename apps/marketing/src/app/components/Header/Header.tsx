@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { DesktopNav } from "./components/DesktopNav";
 import { MobileNav } from "./components/MobileNav";
 import { SupersetLogo } from "./components/SupersetLogo";
@@ -12,6 +13,9 @@ interface HeaderProps {
 }
 
 export function Header({ ctaButtons, starCounter }: HeaderProps) {
+	const pathname = usePathname();
+	if (pathname === "/download") return null;
+
 	return (
 		<header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

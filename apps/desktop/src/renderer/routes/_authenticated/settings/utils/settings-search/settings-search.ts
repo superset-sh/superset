@@ -51,7 +51,7 @@ export const SETTING_ITEM_ID = {
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
-	EXPERIMENTAL_RESTART_ONBOARDING: "experimental-restart-onboarding",
+	EXPERIMENTAL_RERUN_ONBOARDING: "experimental-rerun-onboarding",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -84,6 +84,7 @@ export const SETTING_ITEM_ID = {
 	HOST_MEMBERS: "host-members",
 	HOST_INVITE_MEMBER: "host-invite-member",
 	HOST_MEMBER_ROLE: "host-member-role",
+	HOST_WORKTREE_LOCATION: "host-worktree-location",
 } as const;
 
 export type SettingItemId =
@@ -137,9 +138,10 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
 
-	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "v1",
+	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
+	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
 	[SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH]: "v1",
-	[SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]: "v1",
+	[SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]: "shared",
 
 	[SETTING_ITEM_ID.AGENTS_ENABLED]: "shared",
 	[SETTING_ITEM_ID.AGENTS_COMMANDS]: "shared",
@@ -159,7 +161,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
-	[SETTING_ITEM_ID.EXPERIMENTAL_RESTART_ONBOARDING]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_RERUN_ONBOARDING]: "v2",
 
 	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
 	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
@@ -173,7 +175,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PROJECT_PATH]: "shared",
 	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "v1",
 	[SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX]: "v1",
-	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "v1",
+	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "shared",
 	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
 	[SETTING_ITEM_ID.PROJECT_ENV_VARS]: "v2",
 
@@ -191,6 +193,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.HOST_MEMBERS]: "shared",
 	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
 	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
+	[SETTING_ITEM_ID.HOST_WORKTREE_LOCATION]: "v2",
 };
 
 export function isItemAllowedForVariant(
@@ -590,7 +593,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.GIT_WORKTREE_LOCATION,
 		section: "git",
 		title: "Worktree location",
-		description: "Base directory where new worktrees are created on disk",
+		description: "User-level base directory where new worktrees are created",
 		keywords: [
 			"git",
 			"worktree",
@@ -897,18 +900,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.EXPERIMENTAL_RESTART_ONBOARDING,
+		id: SETTING_ITEM_ID.EXPERIMENTAL_RERUN_ONBOARDING,
 		section: "experimental",
-		title: "Restart onboarding",
-		description: "Walk through the v2 setup flow again",
+		title: "Run Setup Again",
+		description: "Reopen the setup guide to connect agents and add projects",
 		keywords: [
+			"experimental",
 			"onboarding",
 			"setup",
+			"guide",
+			"rerun",
+			"re-run",
 			"restart",
-			"redo",
-			"walkthrough",
-			"tour",
-			"v2",
+			"welcome",
+			"getting started",
+			"connect",
+			"github cli",
+			"providers",
+			"agents",
 		],
 	},
 	{
@@ -1081,7 +1090,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION,
 		section: "project",
 		title: "Worktree Location",
-		description: "Override the global worktree directory for this project",
+		description: "Override the host worktree directory for this project",
 		keywords: [
 			"project",
 			"worktree",
@@ -1282,6 +1291,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"share",
 			"machine",
 			"device",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_WORKTREE_LOCATION,
+		section: "hosts",
+		title: "Worktree location",
+		description: "Default location for new worktree workspaces on this host",
+		keywords: [
+			"host",
+			"hosts",
+			"worktree",
+			"worktrees",
+			"location",
+			"directory",
+			"path",
+			"folder",
+			"storage",
+			"default",
 		],
 	},
 	{

@@ -28,8 +28,8 @@
 		"@t3-oss/env-core": "0.13.11",
 		"date-fns": "4.1.0",
 		"drizzle-orm": "0.45.2",
-		"react": "19.2.0",
-		"react-dom": "19.2.0",
+		"react": "19.2.3",
+		"react-dom": "19.2.3",
 		"resend": "4.8.0",
 		"tailwindcss": "4.2.2",
 		"zod": "4.3.6"

@@ -80,9 +80,29 @@ export function usePersistentWebview({
 					},
 				},
 			);
+		// `ctx.actions.close()` runs the standard onBeforeClose hook chain,
+		// matching the renderer CLOSE_PANE hotkey path.
+		const closePaneSub = electronTrpcClient.browser.onClosePane.subscribe(
+			{ paneId },
+			{
+				onData: () => {
+					void ctxRef.current.actions.close();
+				},
+			},
+		);
+		const reloadPaneSub = electronTrpcClient.browser.onReloadPane.subscribe(
+			{ paneId },
+			{
+				onData: () => {
+					browserRuntimeRegistry.reload(paneId);
+				},
+			},
+		);
 		return () => {
 			newWindowSub.unsubscribe();
 			contextMenuSub.unsubscribe();
+			closePaneSub.unsubscribe();
+			reloadPaneSub.unsubscribe();
 		};
 	}, [paneId]);
 

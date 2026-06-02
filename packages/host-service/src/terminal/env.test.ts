@@ -80,6 +80,7 @@ describe("stripTerminalRuntimeEnv", () => {
 	const secretsEnv: Record<string, string> = {
 		// Host-service runtime keys that must not leak
 		AUTH_TOKEN: "secret-token",
+		SUPERSET_AUTH_CONFIG_PATH: "/Users/test/.superset/config.json",
 		HOST_SERVICE_SECRET: "secret",
 		ORGANIZATION_ID: "org-123",
 		HOST_CLIENT_ID: "device-abc",
@@ -111,6 +112,9 @@ describe("stripTerminalRuntimeEnv", () => {
 		SUPERSET_PORT: "51741",
 		SUPERSET_HOOK_VERSION: "2",
 		SUPERSET_WORKSPACE_NAME: "my-ws",
+		// Auth refresh tokens inherited from parent (CLI/desktop) env
+		OAUTH_REFRESH_TOKEN: "oauth-refresh-secret",
+		SUPERSET_REFRESH_TOKEN: "superset-refresh-secret",
 		// Keys that SHOULD survive
 		HOME: "/Users/test",
 		PATH: "/usr/bin:/usr/local/bin",
@@ -124,6 +128,7 @@ describe("stripTerminalRuntimeEnv", () => {
 	test("app/runtime secrets do not reach PTY env", () => {
 		const result = stripTerminalRuntimeEnv(secretsEnv);
 		expect(result.AUTH_TOKEN).toBeUndefined();
+		expect(result.SUPERSET_AUTH_CONFIG_PATH).toBeUndefined();
 		expect(result.HOST_SERVICE_SECRET).toBeUndefined();
 		expect(result.ORGANIZATION_ID).toBeUndefined();
 		expect(result.HOST_CLIENT_ID).toBeUndefined();
@@ -155,6 +160,12 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.npm_config_registry).toBeUndefined();
 		expect(result.npm_lifecycle_event).toBeUndefined();
 		expect(result.ELECTRON_ENABLE_LOGGING).toBeUndefined();
+	});
+
+	test("refresh tokens do not reach PTY env", () => {
+		const result = stripTerminalRuntimeEnv(secretsEnv);
+		expect(result.OAUTH_REFRESH_TOKEN).toBeUndefined();
+		expect(result.SUPERSET_REFRESH_TOKEN).toBeUndefined();
 	});
 
 	test("HOST_* prefix is stripped, DESKTOP_* exact keys only", () => {

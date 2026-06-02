@@ -16,6 +16,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
+import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
 import {
 	getWorktreeBranchAtPath,
@@ -32,6 +33,7 @@ import {
 	type GeneratedWorkspaceNames,
 	generateWorkspaceNamesFromPrompt,
 } from "../workspace-creation/utils/ai-workspace-names";
+import { resolveProjectBranchPrefix } from "../workspace-creation/utils/branch-prefix";
 import type { ExecGh } from "../workspace-creation/utils/exec-gh";
 import { listBranchNames } from "../workspace-creation/utils/list-branch-names";
 import {
@@ -116,6 +118,11 @@ type CloudWorkspace = NonNullable<
 		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
 	>
 >;
+
+function extractCreateTxid(row: CloudWorkspace): number | null {
+	const txid = (row as { txid?: unknown }).txid;
+	return typeof txid === "number" ? txid : null;
+}
 
 async function findExistingWorkspaceByBranch(
 	ctx: HostServiceContext,
@@ -555,6 +562,8 @@ export const workspacesRouter = router({
 			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
 			const git = await ctx.git(localProject.repoPath);
+			const worktreeBaseDir =
+				localProject.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
 
 			// Free branches still claimed by registrations whose dirs are
 			// gone — without this, `git worktree add` later fails with
@@ -569,7 +578,6 @@ export const workspacesRouter = router({
 			let worktreePath: string;
 			let alreadyExists = false;
 			let workspaceRow: CloudWorkspace;
-			const warnings: string[] = [];
 
 			if (input.pr !== undefined) {
 				const releaseCreateLock = await acquireWorkspaceCreateLock(
@@ -609,7 +617,6 @@ export const workspacesRouter = router({
 						) => {
 							if (materialized.warning) {
 								console.warn(`[workspaces.create] ${materialized.warning}`);
-								warnings.push(materialized.warning);
 							}
 						};
 						const normalizeExistingPrBranch = async () => {
@@ -667,6 +674,7 @@ export const workspacesRouter = router({
 							worktreePath = safeResolveWorktreePath(
 								localProject.id,
 								resolvedBranch,
+								worktreeBaseDir,
 							);
 							mkdirSync(dirname(worktreePath), { recursive: true });
 
@@ -825,12 +833,31 @@ export const workspacesRouter = router({
 					// Typed branch: resolve start point via the existing-branch-
 					// aware planner. Title-rename can race with that lookup.
 					resolvedBranch = typedBranch;
-					const [planResult, aiNames] = await Promise.all([
+					const [planResult, aiNames, existing] = await Promise.all([
 						planBranchSource(git, resolvedBranch, input.baseBranch),
 						aiNamesPromise ?? Promise.resolve(null),
+						listBranchNames(ctx, localProject.repoPath),
 					]);
 					plan = planResult;
 					aiTitle = aiNames?.title ?? null;
+					// Namespace newly-created branches under the configured
+					// prefix. A typed branch that resolves to an existing ref is
+					// checked out as-is and never re-prefixed.
+					if (!plan.usedExistingBranch) {
+						const prefix = await resolveProjectBranchPrefix({
+							ctx,
+							project: localProject,
+							git,
+							existingBranches: existing,
+						});
+						if (prefix) {
+							resolvedBranch = deduplicateBranchName(
+								`${prefix}/${resolvedBranch}`,
+								existing,
+							);
+							plan = { ...plan, branch: resolvedBranch };
+						}
+					}
 				} else {
 					// Auto-gen branch: kick the LLM, the start-point resolve,
 					// and the dedupe list off in parallel — none of them depend
@@ -843,8 +870,15 @@ export const workspacesRouter = router({
 						listBranchNames(ctx, localProject.repoPath),
 					]);
 					aiTitle = aiNames?.title ?? null;
+					const prefix = await resolveProjectBranchPrefix({
+						ctx,
+						project: localProject,
+						git,
+						existingBranches: existing,
+					});
 					const candidate = aiNames?.branchName || generateFriendlyBranchName();
-					resolvedBranch = deduplicateBranchName(candidate, existing);
+					const prefixed = prefix ? `${prefix}/${candidate}` : candidate;
+					resolvedBranch = deduplicateBranchName(prefixed, existing);
 					plan = {
 						branch: resolvedBranch,
 						startPoint,
@@ -892,6 +926,7 @@ export const workspacesRouter = router({
 						worktreePath = safeResolveWorktreePath(
 							localProject.id,
 							resolvedBranch,
+							worktreeBaseDir,
 						);
 						mkdirSync(dirname(worktreePath), { recursive: true });
 
@@ -1010,7 +1045,6 @@ export const workspacesRouter = router({
 				});
 				if (warning) {
 					console.warn(`[workspaces.create] setup warning: ${warning}`);
-					warnings.push(warning);
 				}
 				if (terminal) {
 					terminalsResult.push({
@@ -1031,7 +1065,7 @@ export const workspacesRouter = router({
 				terminals: terminalsResult,
 				agents: agentsResult,
 				alreadyExists,
-				warnings,
+				txid: extractCreateTxid(workspaceRow),
 			};
 		}),
 

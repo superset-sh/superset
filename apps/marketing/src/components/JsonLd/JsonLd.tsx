@@ -1,5 +1,34 @@
 import { COMPANY } from "@superset/shared/constants";
 
+function serializeJsonLd(schema: unknown): string {
+	const json = JSON.stringify(schema);
+
+	if (typeof json !== "string") {
+		return "null";
+	}
+
+	return json.replace(/[<>&\u2028\u2029]/g, (character) => {
+		switch (character) {
+			case "<":
+				return "\\u003c";
+			case ">":
+				return "\\u003e";
+			case "&":
+				return "\\u0026";
+			case "\u2028":
+				return "\\u2028";
+			case "\u2029":
+				return "\\u2029";
+			default:
+				return character;
+		}
+	});
+}
+
+export function JsonLdScript({ schema }: { schema: unknown }) {
+	return <script type="application/ld+json">{serializeJsonLd(schema)}</script>;
+}
+
 export function OrganizationJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",
@@ -11,13 +40,7 @@ export function OrganizationJsonLd() {
 		sameAs: [COMPANY.GITHUB_URL, COMPANY.X_URL],
 	};
 
-	return (
-		<script
-			type="application/ld+json"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
-			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-		/>
-	);
+	return <JsonLdScript schema={schema} />;
 }
 
 export function SoftwareApplicationJsonLd() {
@@ -36,13 +59,7 @@ export function SoftwareApplicationJsonLd() {
 		url: COMPANY.MARKETING_URL,
 	};
 
-	return (
-		<script
-			type="application/ld+json"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
-			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-		/>
-	);
+	return <JsonLdScript schema={schema} />;
 }
 
 interface ArticleAuthor {
@@ -102,13 +119,7 @@ export function ArticleJsonLd({
 		}),
 	};
 
-	return (
-		<script
-			type="application/ld+json"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
-			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-		/>
-	);
+	return <JsonLdScript schema={schema} />;
 }
 
 interface ComparisonJsonLdProps {
@@ -161,13 +172,7 @@ export function ComparisonJsonLd({
 		}),
 	};
 
-	return (
-		<script
-			type="application/ld+json"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
-			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-		/>
-	);
+	return <JsonLdScript schema={schema} />;
 }
 
 export function WebsiteJsonLd() {
@@ -178,13 +183,7 @@ export function WebsiteJsonLd() {
 		url: COMPANY.MARKETING_URL,
 	};
 
-	return (
-		<script
-			type="application/ld+json"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
-			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-		/>
-	);
+	return <JsonLdScript schema={schema} />;
 }
 
 interface FAQPageJsonLdProps {
@@ -205,13 +204,7 @@ export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
 		})),
 	};
 
-	return (
-		<script
-			type="application/ld+json"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
-			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-		/>
-	);
+	return <JsonLdScript schema={schema} />;
 }
 
 interface BreadcrumbJsonLdProps {
@@ -230,11 +223,5 @@ export function BreadcrumbJsonLd({ items }: BreadcrumbJsonLdProps) {
 		})),
 	};
 
-	return (
-		<script
-			type="application/ld+json"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
-			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-		/>
-	);
+	return <JsonLdScript schema={schema} />;
 }

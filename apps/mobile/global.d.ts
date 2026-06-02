@@ -3,3 +3,5 @@ declare module "*.svg" {
 	const value: ImageSourcePropType;
 	export default value;
 }
+
+declare module "*.css";

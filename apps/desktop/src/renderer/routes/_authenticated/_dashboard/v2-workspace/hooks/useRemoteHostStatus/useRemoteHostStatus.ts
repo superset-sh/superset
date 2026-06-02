@@ -14,11 +14,6 @@ export type RemoteHostStatus =
 	| { status: "skip" }
 	| { status: "loading" }
 	| {
-			status: "offline";
-			hostId: string;
-			hostName: string;
-	  }
-	| {
 			status: "incompatible";
 			hostName: string;
 			hostVersion: string;
@@ -40,7 +35,7 @@ export function useRemoteHostStatus(
 		workspace != null && machineId != null && workspace.hostId === machineId;
 	const filterMachineId = !workspace || isLocal ? "" : hostId;
 
-	const { data: hostRows = [], isReady } = useLiveQuery(
+	const { data: hostRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ hosts: collections.v2Hosts })
@@ -52,7 +47,6 @@ export function useRemoteHostStatus(
 				)
 				.select(({ hosts }) => ({
 					name: hosts.name,
-					isOnline: hosts.isOnline,
 				})),
 		[collections, organizationId, filterMachineId],
 	);
@@ -66,22 +60,13 @@ export function useRemoteHostStatus(
 	const infoQuery = useQuery({
 		queryKey: ["remoteHostInfo", organizationId, hostId],
 		queryFn: () => getHostServiceClientByUrl(hostUrl).host.info.query(),
-		enabled:
-			workspace != null && !isLocal && isReady && hostRow?.isOnline !== false,
+		enabled: workspace != null && !isLocal,
 		staleTime: HOST_INFO_STALE_MS,
 		retry: false,
 	});
 
 	if (!workspace) return { status: "loading" };
 	if (isLocal) return { status: "skip" };
-	if (!isReady) return { status: "loading" };
-	if (hostRow?.isOnline === false) {
-		return {
-			status: "offline",
-			hostId,
-			hostName: hostRow.name,
-		};
-	}
 
 	if (infoQuery.isSuccess) {
 		const hostVersion = infoQuery.data.version;

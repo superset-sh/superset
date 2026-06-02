@@ -41,6 +41,7 @@ export const THEME_STORAGE_KEY = "superset-theme";
 
 // Download URLs
 export const DOWNLOAD_URL_MAC_ARM64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-arm64.dmg`;
+export const DOWNLOAD_URL_MAC_X64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-x64.dmg`;
 
 // Auth token configuration
 export const TOKEN_CONFIG = {
@@ -72,8 +73,6 @@ export const FEATURE_FLAGS = {
 	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
 	/** Gates access to GitHub integration (currently buggy, internal only). */
 	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
-	/** Gates access to Slack integration (internal only). */
-	SLACK_INTEGRATION_ACCESS: "slack-integration-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */

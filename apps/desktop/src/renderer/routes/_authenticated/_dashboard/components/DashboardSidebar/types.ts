@@ -1,3 +1,5 @@
+import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
+
 export type DashboardSidebarWorkspaceHostType =
 	| "local-device"
 	| "remote-device"
@@ -41,7 +43,7 @@ export interface DashboardSidebarWorkspace {
 	createdAt: Date;
 	updatedAt: Date;
 	taskId: string | null;
-	creationStatus?: "preparing" | "generating-branch" | "creating" | "failed";
+	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
 
 export interface DashboardSidebarSection {

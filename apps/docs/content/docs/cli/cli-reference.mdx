@@ -589,6 +589,8 @@ superset workspaces delete ws_a ws_b ws_c
 	]}
 	options={[
 		{ flag: "--name <name>", description: "New workspace name." },
+		{ flag: "--task-id <id>", description: "Link the workspace to a task by id." },
+		{ flag: "--clear-task", description: "Unlink the workspace from its current task. Mutually exclusive with --task-id." },
 	]}
 	output="Workspace"
 >
@@ -596,6 +598,8 @@ Update a workspace.
 
 ```bash
 superset workspaces update ws_… --name "better-name"
+superset workspaces update ws_… --task-id tsk_…
+superset workspaces update ws_… --clear-task
 ```
 </Command>
 
@@ -984,9 +988,8 @@ superset automations resume aut_…
 		{ name: "id", required: true, description: "Automation ID." },
 	]}
 	output={`{
-  runId: string;
   automationId: string;
-  dispatchedAt: string;
+  runId: string;
 }`}
 >
 Dispatch an automation immediately. Does not wait for completion.

@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 interface Settings {
 	diffStyle: "split" | "unified";
 	showDiffComments: boolean;
+	expandUnchanged: boolean;
 }
 
 interface SettingsStore extends Settings {
@@ -15,6 +16,7 @@ export const useSettings = create<SettingsStore>()(
 		(set) => ({
 			diffStyle: "split",
 			showDiffComments: true,
+			expandUnchanged: false,
 			update: (key, value) => set({ [key]: value }),
 		}),
 		{ name: "settings" },

@@ -36,6 +36,7 @@ import { TRPCError } from "@trpc/server";
 import { app } from "electron";
 import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
+import { setupSingleAgent } from "main/lib/agent-setup";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { localDb } from "main/lib/local-db";
@@ -1006,6 +1007,17 @@ export const createSettingsRouter = () => {
 					.run();
 
 				return { success: true };
+			}),
+
+		/**
+		 * Re-runs wrapper/settings/hook setup for one agent. Safety net for
+		 * the settings-UI Add flow; returns `{ ran: false }` for unknown ids.
+		 */
+		setupAgent: publicProcedure
+			.input(z.object({ agentId: z.string().min(1) }))
+			.mutation(({ input }) => {
+				const ran = setupSingleAgent(input.agentId);
+				return { ran };
 			}),
 
 		// TODO: remove telemetry procedures once telemetry_enabled column is dropped

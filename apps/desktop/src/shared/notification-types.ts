@@ -8,6 +8,7 @@ export interface NotificationIds {
 	tabId?: string;
 	workspaceId?: string;
 	sessionId?: string;
+	terminalId?: string;
 }
 
 export interface AgentLifecycleEvent extends NotificationIds {

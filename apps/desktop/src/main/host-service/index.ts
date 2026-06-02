@@ -23,7 +23,55 @@ import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
 import { writeManifest } from "main/lib/host-service-manifest";
 import { env } from "./env";
 
+const SHUTDOWN_GRACE_MS = 3_000;
+const WATCHDOG_INTERVAL_MS = 2_000;
+
+type Server = ReturnType<typeof serve>;
+
 async function main(): Promise<void> {
+	// Install the parent watchdog before any awaits so a crash during
+	// startup can still reap this child. `serverRef` is filled in once
+	// serve() returns; shutdown handles both pre- and post-bind states.
+	const serverRef: { current: Server | null } = { current: null };
+	let shuttingDown = false;
+	const shutdown = (reason: string) => {
+		if (shuttingDown) return;
+		shuttingDown = true;
+		console.log(`[host-service] shutdown (${reason}), draining connections`);
+		const server = serverRef.current;
+		if (!server) {
+			process.exit(0);
+		}
+		server.close();
+		// SSE/WS streams (chat, watchers) ignore server.close() — give in-flight
+		// HTTP a brief window, then forcibly tear sockets down.
+		const forceExit = setTimeout(() => {
+			const httpServer = server as unknown as {
+				closeAllConnections?: () => void;
+			};
+			httpServer.closeAllConnections?.();
+			process.exit(0);
+		}, SHUTDOWN_GRACE_MS);
+		forceExit.unref();
+	};
+
+	process.on("SIGTERM", () => shutdown("SIGTERM"));
+	process.on("SIGINT", () => shutdown("SIGINT"));
+
+	// Self-exit if our Electron parent dies without sending SIGTERM
+	// (orphan reparenting to init/launchd). CLI-spawned host-services
+	// don't set HOST_PARENT_PID and skip this.
+	const parentPid = Number(process.env.HOST_PARENT_PID);
+	if (Number.isInteger(parentPid) && parentPid > 1) {
+		const interval = setInterval(() => {
+			if (!isParentAlive(parentPid)) {
+				clearInterval(interval);
+				shutdown("parent-exit");
+			}
+		}, WATCHDOG_INTERVAL_MS);
+		interval.unref();
+	}
+
 	const terminalBaseEnv = await resolveTerminalBaseEnv();
 	initTerminalBaseEnv(terminalBaseEnv);
 
@@ -75,7 +123,6 @@ async function main(): Promise<void> {
 						authToken: env.HOST_SERVICE_SECRET,
 						startedAt,
 						organizationId: env.ORGANIZATION_ID,
-						spawnedByAppVersion: env.SUPERSET_APP_VERSION,
 					});
 				} catch (error) {
 					console.error("[host-service] Failed to write manifest:", error);
@@ -94,16 +141,17 @@ async function main(): Promise<void> {
 			}
 		},
 	);
+	serverRef.current = server;
 	injectWebSocket(server);
+}
 
-	// Manifest lifecycle belongs to the coordinator, not the child.
-	const shutdown = () => {
-		server.close();
-		process.exit(0);
-	};
-
-	process.on("SIGTERM", shutdown);
-	process.on("SIGINT", shutdown);
+function isParentAlive(parentPid: number): boolean {
+	try {
+		process.kill(parentPid, 0);
+		return process.ppid === parentPid;
+	} catch {
+		return false;
+	}
 }
 
 void main().catch((error) => {

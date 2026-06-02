@@ -93,7 +93,7 @@ if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; the
 fi
 
 # v1 fallback: Electron localhost hook server. Kept while v1 terminals exist.
-[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && exit 0
+[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
@@ -101,6 +101,7 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     --data-urlencode "paneId=$SUPERSET_PANE_ID" \
     --data-urlencode "tabId=$SUPERSET_TAB_ID" \
     --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+    --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
     --data-urlencode "sessionId=$SESSION_ID" \
     --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
     --data-urlencode "resourceId=$RESOURCE_ID" \
@@ -117,6 +118,7 @@ else
     --data-urlencode "paneId=$SUPERSET_PANE_ID" \
     --data-urlencode "tabId=$SUPERSET_TAB_ID" \
     --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+    --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
     --data-urlencode "sessionId=$SESSION_ID" \
     --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
     --data-urlencode "resourceId=$RESOURCE_ID" \

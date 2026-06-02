@@ -7,7 +7,6 @@ import { pullRequests, workspaces } from "../../../db/schema";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
 import type {
-	ChangedFile,
 	CheckConclusionState,
 	CheckRun,
 	CheckStatusState,
@@ -20,15 +19,12 @@ import type {
 } from "./types";
 import { gitConfigWrite } from "./utils/config-write";
 import {
-	buildBranch,
-	countUntrackedFileLines,
-	detectUnstagedRenames,
 	getChangedFilesForDiff,
 	getDefaultBranchName,
-	mapGitStatus,
-	parseNumstat,
 	resolveBaseComparison,
 } from "./utils/git-helpers";
+import { getGitStatusSnapshot } from "./utils/git-status";
+import { gitStatusRefreshLimiter } from "./utils/git-status-refresh-limiter";
 import {
 	type GraphQLThreadsResult,
 	parseGraphQLThreads,
@@ -100,151 +96,27 @@ export const gitRouter = router({
 			z.object({
 				workspaceId: z.string(),
 				baseBranch: z.string().optional(),
+				priority: z.enum(["foreground", "background"]).optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-			const git = await ctx.git(worktreePath);
-
-			const currentBranchName = (
-				await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
-			).trim();
-			const base = await resolveBaseComparison(git, input.baseBranch);
-			const defaultBranchName = base?.branchName ?? null;
-			const baseRef = base?.baseRef ?? "HEAD";
-
-			const [currentBranch, defaultBranch, status, ignoredRaw] =
-				await Promise.all([
-					buildBranch(git, currentBranchName, true, baseRef),
-					defaultBranchName
-						? buildBranch(git, defaultBranchName, false)
-						: buildBranch(git, currentBranchName, true),
-					git.status(),
-					git
-						.raw([
-							"ls-files",
-							"--others",
-							"--ignored",
-							"--exclude-standard",
-							"--directory",
-						])
-						.catch(() => ""),
-				]);
-
-			// Top-level gitignored paths. `--directory` collapses entirely-ignored
-			// folders to a single entry (e.g. `node_modules`) instead of
-			// enumerating every file inside, so this stays cheap in large repos.
-			const ignoredPaths = ignoredRaw
-				.split("\n")
-				.map((line) => line.trim().replace(/\/$/, ""))
-				.filter(Boolean);
-
-			const againstBase = await getChangedFilesForDiff(git, [
-				`${baseRef}...HEAD`,
-			]);
-
-			// Staged — use status.files index character for correct status.
-			// `-M -C` lets the numstat collapse renamed/copied entries so a
-			// `git add` of `mv old new` yields a single 0/0 rename row
-			// instead of an A + D pair.
-			const stagedNumstat = parseNumstat(
-				await git
-					.raw(["diff", "--numstat", "-z", "-M", "-C", "--cached"])
-					.catch(() => ""),
-			);
-			const staged: ChangedFile[] = [];
-			for (const file of status.files) {
-				const idx = file.index;
-				if (idx && idx !== " " && idx !== "?") {
-					const stats = stagedNumstat.get(file.path) ?? {
-						additions: 0,
-						deletions: 0,
-					};
-					staged.push({
-						path: file.path,
-						oldPath:
-							file.from && file.from !== file.path ? file.from : undefined,
-						status: mapGitStatus(idx),
-						additions: stats.additions,
-						deletions: stats.deletions,
+			const requestKey = JSON.stringify({
+				baseBranch: input.baseBranch ?? null,
+			});
+			return gitStatusRefreshLimiter.run({
+				workspaceId: input.workspaceId,
+				requestKey,
+				priority: input.priority,
+				run: async () => {
+					const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+					const git = await ctx.git(worktreePath);
+					return getGitStatusSnapshot({
+						git,
+						worktreePath,
+						baseBranch: input.baseBranch,
 					});
-				}
-			}
-
-			// Unstaged — use status.files working_dir character
-			const unstagedNumstat = parseNumstat(
-				await git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
-			);
-			const unstaged: ChangedFile[] = [];
-			const untrackedFiles: ChangedFile[] = [];
-			for (const file of status.files) {
-				const wd = file.working_dir;
-				if (file.index === "?" && wd === "?") {
-					const entry: ChangedFile = {
-						path: file.path,
-						status: "untracked",
-						additions: 0,
-						deletions: 0,
-					};
-					untrackedFiles.push(entry);
-					unstaged.push(entry);
-				} else if (wd && wd !== " ") {
-					const stats = unstagedNumstat.get(file.path) ?? {
-						additions: 0,
-						deletions: 0,
-					};
-					unstaged.push({
-						path: file.path,
-						status: mapGitStatus(wd),
-						additions: stats.additions,
-						deletions: stats.deletions,
-					});
-				}
-			}
-			await countUntrackedFileLines(worktreePath, untrackedFiles);
-
-			const hasDeletions = unstaged.some((f) => f.status === "deleted");
-			const renames = await detectUnstagedRenames(
-				git,
-				worktreePath,
-				untrackedFiles.map((f) => f.path),
-				hasDeletions,
-			);
-
-			let mergedUnstaged = unstaged;
-			if (renames.length > 0) {
-				const consumedDeleted = new Set<string>();
-				const consumedUntracked = new Set<string>();
-				for (const r of renames) {
-					if (r.status === "renamed") consumedDeleted.add(r.oldPath);
-					consumedUntracked.add(r.newPath);
-				}
-				mergedUnstaged = unstaged.filter((f) => {
-					if (f.status === "deleted" && consumedDeleted.has(f.path))
-						return false;
-					if (f.status === "untracked" && consumedUntracked.has(f.path))
-						return false;
-					return true;
-				});
-				for (const r of renames) {
-					mergedUnstaged.push({
-						path: r.newPath,
-						oldPath: r.oldPath,
-						status: r.status,
-						additions: r.additions,
-						deletions: r.deletions,
-					});
-				}
-			}
-
-			return {
-				currentBranch,
-				defaultBranch,
-				againstBase,
-				staged,
-				unstaged: mergedUnstaged,
-				ignoredPaths,
-			};
+				},
+			});
 		}),
 
 	listCommits: queryProcedure

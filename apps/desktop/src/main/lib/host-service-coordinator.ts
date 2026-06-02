@@ -11,10 +11,8 @@ import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import {
-	type HostServiceManifest,
 	isProcessAlive,
 	killProcess,
-	listManifests,
 	manifestDir,
 	readManifest,
 	removeManifest,
@@ -56,33 +54,54 @@ interface HostServiceProcess {
 	status: HostServiceStatus;
 }
 
-const ADOPTED_LIVENESS_INTERVAL = 5_000;
+// High, uncommon user-space range: above usual web/dev server ports and below
+// macOS's default ephemeral range, while still falling back if occupied.
+const STABLE_PORT_BASE = 48_000;
+const STABLE_PORT_COUNT = 1_000;
+
+function getStablePortForOrganization(organizationId: string): number {
+	let hash = 2_166_136_261;
+	for (let index = 0; index < organizationId.length; index++) {
+		hash ^= organizationId.charCodeAt(index);
+		hash = Math.imul(hash, 16_777_619);
+	}
+	return STABLE_PORT_BASE + ((hash >>> 0) % STABLE_PORT_COUNT);
+}
+
+function isValidPort(port: number | null | undefined): port is number {
+	return (
+		typeof port === "number" &&
+		Number.isInteger(port) &&
+		port > 0 &&
+		port <= 65_535
+	);
+}
 
 /**
- * Cap how long an adoption health check can take before we decide the adopted
- * process is dead and respawn. Short enough that a Cmd+R into a wedged
- * host-service heals quickly; long enough to ride out brief startup blips.
+ * Coupled to Electron: each child is spawned attached and SIGTERMed on
+ * before-quit. PTYs survive across Electron restarts via the pty-daemon
+ * layer host-service supervises, not via host-service itself. Manifests
+ * are still written by the child for the CLI's benefit.
  */
-const ADOPT_HEALTH_CHECK_TIMEOUT_MS = 2_000;
-
 export class HostServiceCoordinator extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
 	private pendingStarts = new Map<string, Promise<Connection>>();
-	private adoptedLivenessTimers = new Map<
-		string,
-		ReturnType<typeof setInterval>
-	>();
+	private lastKnownPorts = new Map<string, number>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
-	// Note: pty-daemon supervision moved into host-service itself —
-	// see packages/host-service/src/daemon. Host-service spawns and adopts
-	// the daemon when it boots, so the desktop coordinator no longer needs
-	// to know about it.
 
 	async start(
 		organizationId: string,
 		config: SpawnConfig,
+	): Promise<Connection> {
+		return this.startWithPreferredPorts(organizationId, config);
+	}
+
+	private async startWithPreferredPorts(
+		organizationId: string,
+		config: SpawnConfig,
+		preferredPorts?: Iterable<number>,
 	): Promise<Connection> {
 		const existing = this.instances.get(organizationId);
 		if (existing?.status === "running") {
@@ -96,11 +115,11 @@ export class HostServiceCoordinator extends EventEmitter {
 		const pending = this.pendingStarts.get(organizationId);
 		if (pending) return pending;
 
-		const startPromise = (async (): Promise<Connection> => {
-			const adopted = await this.tryAdopt(organizationId);
-			if (adopted) return adopted;
-			return this.spawn(organizationId, config);
-		})();
+		const startPromise = this.spawn(
+			organizationId,
+			config,
+			preferredPorts ?? this.getPreferredPorts(organizationId),
+		);
 		this.pendingStarts.set(organizationId, startPromise);
 
 		try {
@@ -110,14 +129,36 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 	}
 
+	private getPreferredPorts(organizationId: string): number[] {
+		const ports = [
+			this.instances.get(organizationId)?.port,
+			this.lastKnownPorts.get(organizationId),
+			getStablePortForOrganization(organizationId),
+		];
+		const uniquePorts: number[] = [];
+		const seen = new Set<number>();
+
+		for (const port of ports) {
+			if (!isValidPort(port) || seen.has(port)) continue;
+			seen.add(port);
+			uniquePorts.push(port);
+		}
+
+		return uniquePorts;
+	}
+
+	private rememberPort(organizationId: string, port: number): void {
+		if (!isValidPort(port)) return;
+		this.lastKnownPorts.set(organizationId, port);
+	}
+
 	stop(organizationId: string): void {
 		const instance = this.instances.get(organizationId);
-		this.stopAdoptedLivenessCheck(organizationId);
-
 		if (!instance) return;
 
 		const previousStatus = instance.status;
 		instance.status = "stopped";
+		this.rememberPort(organizationId, instance.port);
 
 		try {
 			killProcess(instance.pid, "SIGTERM");
@@ -134,55 +175,23 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 	}
 
-	releaseAll(): void {
-		for (const [id] of this.instances) {
-			this.stopAdoptedLivenessCheck(id);
-		}
-		this.instances.clear();
-	}
-
-	async discoverAll(): Promise<void> {
-		const manifests = listManifests();
-		for (const manifest of manifests) {
-			if (this.instances.has(manifest.organizationId)) continue;
-			try {
-				await this.tryAdopt(manifest.organizationId);
-			} catch {
-				removeManifest(manifest.organizationId);
-			}
-		}
-	}
-
-	async teardownKnownManifests(): Promise<void> {
-		for (const manifest of listManifests()) {
-			const verified = await pollHealthCheck(
-				manifest.endpoint,
-				manifest.authToken,
-				ADOPT_HEALTH_CHECK_TIMEOUT_MS,
-			);
-			if (verified) {
-				this.killManifestProcess(manifest.organizationId, manifest, "stale");
-			} else {
-				removeManifest(manifest.organizationId);
-			}
-		}
-	}
-
 	async restart(
 		organizationId: string,
 		config: SpawnConfig,
 	): Promise<Connection> {
+		const preferredPorts = this.getPreferredPorts(organizationId);
 		this.stop(organizationId);
-		return this.start(organizationId, config);
+		return this.startWithPreferredPorts(organizationId, config, preferredPorts);
 	}
 
 	/**
 	 * Forcefully reset host-service state for an org. Unlike `restart`, this
 	 * SIGKILLs whatever pid the manifest names — even when no instance is
-	 * tracked in this process (e.g. a manifest left by a previous app session)
-	 * — then removes the manifest so adoption can't pick up the stale entry,
-	 * and respawns. Used by the recovery path for superset-sh/superset#4299
-	 * where a live-but-wedged host-service keeps getting re-adopted.
+	 * tracked in this process (e.g. a stale manifest left by a CLI-spawned
+	 * host-service) — then removes the manifest so callers can't pick up the
+	 * stale entry, and respawns. Used by the recovery path for
+	 * superset-sh/superset#4299 where a wedged host-service keeps serving
+	 * stale state.
 	 */
 	async reset(
 		organizationId: string,
@@ -191,6 +200,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		// Capture the manifest pid *before* stop() — stop() removes the manifest
 		// for tracked instances and only sends SIGTERM, which a wedged process
 		// can ignore. We escalate to SIGKILL on whatever pid the manifest named.
+		const preferredPorts = this.getPreferredPorts(organizationId);
 		const manifestPid = readManifest(organizationId)?.pid;
 
 		this.stop(organizationId);
@@ -208,7 +218,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		removeManifest(organizationId);
 
-		return this.start(organizationId, config);
+		return this.startWithPreferredPorts(organizationId, config, preferredPorts);
 	}
 
 	getConnection(organizationId: string): Connection | null {
@@ -224,14 +234,6 @@ export class HostServiceCoordinator extends EventEmitter {
 	getProcessStatus(organizationId: string): HostServiceStatus {
 		if (this.pendingStarts.has(organizationId)) return "starting";
 		return this.instances.get(organizationId)?.status ?? "stopped";
-	}
-
-	hasActiveInstances(): boolean {
-		for (const instance of this.instances.values()) {
-			if (instance.status === "running" || instance.status === "starting")
-				return true;
-		}
-		return this.pendingStarts.size > 0;
 	}
 
 	getActiveOrganizationIds(): string[] {
@@ -334,113 +336,15 @@ export class HostServiceCoordinator extends EventEmitter {
 		};
 	}
 
-	// ── Adoption ──────────────────────────────────────────────────────
-
-	private async tryAdopt(organizationId: string): Promise<Connection | null> {
-		const manifest = this.readAndValidateManifest(organizationId);
-		if (!manifest) return null;
-
-		const url = new URL(manifest.endpoint);
-		const port = Number(url.port);
-
-		const currentAppVersion = app.getVersion();
-		if (manifest.spawnedByAppVersion !== currentAppVersion) {
-			const reason = manifest.spawnedByAppVersion
-				? `spawned by app ${manifest.spawnedByAppVersion} != current ${currentAppVersion}`
-				: "no recorded app version (pre-upgrade manifest)";
-			const verified = await pollHealthCheck(
-				manifest.endpoint,
-				manifest.authToken,
-				ADOPT_HEALTH_CHECK_TIMEOUT_MS,
-			);
-
-			if (verified) {
-				log.info(
-					`[host-service:${organizationId}] Refusing to adopt stale service (${reason}); killing and respawning`,
-				);
-				this.killManifestProcess(organizationId, manifest, "stale");
-			} else {
-				log.warn(
-					`[host-service:${organizationId}] Stale manifest (${reason}) did not verify on ${manifest.endpoint}; removing manifest and respawning without kill`,
-				);
-				removeManifest(organizationId);
-			}
-
-			return null;
-		}
-
-		// A live pid is not the same as a serving host-service — the process can
-		// be hung on migrations, deadlocked, or no longer bound to the recorded
-		// port. Without this check the renderer's `getConnection` keeps handing
-		// out a dead port forever, which is the failure mode in superset-sh/superset#4299.
-		const healthy = await pollHealthCheck(
-			manifest.endpoint,
-			manifest.authToken,
-			ADOPT_HEALTH_CHECK_TIMEOUT_MS,
-		);
-		if (!healthy) {
-			log.info(
-				`[host-service:${organizationId}] Adopted pid=${manifest.pid} did not respond on ${manifest.endpoint}, killing and respawning`,
-			);
-			this.killManifestProcess(organizationId, manifest, "unhealthy");
-			return null;
-		}
-
-		this.instances.set(organizationId, {
-			pid: manifest.pid,
-			port,
-			secret: manifest.authToken,
-			status: "running",
-		});
-		this.startAdoptedLivenessCheck(organizationId, manifest.pid);
-
-		log.info(
-			`[host-service:${organizationId}] Adopted pid=${manifest.pid} port=${port}`,
-		);
-		this.emitStatus(organizationId, "running", null);
-		return { port, secret: manifest.authToken, machineId: this.machineId };
-	}
-
-	private readAndValidateManifest(
-		organizationId: string,
-	): HostServiceManifest | null {
-		const manifest = readManifest(organizationId);
-		if (!manifest) return null;
-
-		if (!isProcessAlive(manifest.pid)) {
-			removeManifest(organizationId);
-			return null;
-		}
-
-		return manifest;
-	}
-
-	private killManifestProcess(
-		organizationId: string,
-		manifest: HostServiceManifest,
-		reason: "stale" | "unhealthy",
-	): void {
-		try {
-			killProcess(manifest.pid, "SIGKILL");
-		} catch (error) {
-			// ESRCH (already gone) is fine; anything else (EPERM) we want to see.
-			if ((error as NodeJS.ErrnoException)?.code !== "ESRCH") {
-				log.warn(
-					`[host-service:${organizationId}] SIGKILL of ${reason} pid=${manifest.pid} failed`,
-					error,
-				);
-			}
-		}
-		removeManifest(organizationId);
-	}
-
 	// ── Spawn ─────────────────────────────────────────────────────────
 
 	private async spawn(
 		organizationId: string,
 		config: SpawnConfig,
+		preferredPorts: Iterable<number> = this.getPreferredPorts(organizationId),
 	): Promise<Connection> {
-		const port = await findFreePort();
+		const port = await findFreePort(preferredPorts);
+		this.rememberPort(organizationId, port);
 		const secret = randomBytes(32).toString("hex");
 
 		const instance: HostServiceProcess = {
@@ -452,22 +356,14 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.instances.set(organizationId, instance);
 		this.emitStatus(organizationId, "starting", null);
 
-		// pty-daemon is supervised by host-service itself; this coordinator
-		// only spawns host-service and steps out. See
-		// packages/host-service/src/daemon for the supervisor lifecycle.
 		const childEnv = await this.buildEnv(organizationId, port, secret, config);
-		// Host-service owns v2 PTYs, so it must survive Electron restarts in
-		// every environment. This mirrors the terminal-host daemon: detach the
-		// child and back stdio with real files so parent teardown cannot close
-		// pipes and take the service down with the app.
 		const logFd = openRotatingLogFd(
 			path.join(manifestDir(organizationId), "host-service.log"),
 			MAX_HOST_LOG_BYTES,
 		);
 		// Dev: pipe child stdout/stderr through this process so log lines
 		// land in the developer's `bun dev` terminal. Production: hard-back
-		// stdio with the rotating log file so the detached child survives
-		// parent teardown without losing logs.
+		// stdio with the rotating log file.
 		const isDev = !app.isPackaged;
 		const stdio: childProcess.StdioOptions = isDev
 			? ["ignore", "pipe", "pipe"]
@@ -477,11 +373,8 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
-			// Prod: detached so PTYs survive Electron restarts via manifest
-			// adoption (docs/HOST_SERVICE_LIFECYCLE.md). Dev: attached so a `bun dev`
-			// kill propagates and serve.ts's dev shutdown can stop pty-daemon.
 			child = childProcess.spawn(process.execPath, [this.scriptPath], {
-				detached: !isDev,
+				detached: false,
 				stdio,
 				env: childEnv,
 				// Avoid a flashing CMD window on Windows.
@@ -498,8 +391,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		// In dev, fan child output through to parent stdout/stderr with a
-		// prefix so it's identifiable in `bun dev`. The detached child has
-		// its own session, so closing pipes won't kill it on parent exit.
+		// prefix so it's identifiable in `bun dev`.
 		if (isDev && child.stdout && child.stderr) {
 			const tag = `[hs:${organizationId.slice(0, 8)}]`;
 			pipeWithPrefix(child.stdout, process.stdout, tag);
@@ -519,11 +411,13 @@ export class HostServiceCoordinator extends EventEmitter {
 			if (!current || current.pid !== childPid || current.status === "stopped")
 				return;
 
+			this.rememberPort(organizationId, current.port);
 			this.instances.delete(organizationId);
 			removeManifest(organizationId);
 			this.emitStatus(organizationId, "stopped", "running");
 		});
-		if (!isDev) child.unref();
+		// Don't let the child block Electron's exit — stopAll() handles teardown.
+		child.unref();
 
 		const endpoint = `http://127.0.0.1:${port}`;
 		const healthy = await pollHealthCheck(endpoint, secret);
@@ -570,11 +464,15 @@ export class HostServiceCoordinator extends EventEmitter {
 				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
 			DESKTOP_VITE_PORT: String(sharedEnv.DESKTOP_VITE_PORT),
 			SUPERSET_HOME_DIR: SUPERSET_HOME_DIR,
+			SUPERSET_LEGACY_WORKTREE_BASE_DIR: row?.worktreeBaseDir ?? "",
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
-			SUPERSET_APP_VERSION: app.getVersion(),
 			AUTH_TOKEN: config.authToken,
+			SUPERSET_AUTH_CONFIG_PATH: path.join(SUPERSET_HOME_DIR, "config.json"),
 			SUPERSET_API_URL: config.cloudApiUrl,
+			// Read by the child's parent watchdog so it can self-exit if
+			// Electron crashes without sending SIGTERM (orphan reparenting).
+			HOST_PARENT_PID: String(process.pid),
 		});
 
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
@@ -591,36 +489,6 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		return childEnv;
-	}
-
-	// ── Liveness ──────────────────────────────────────────────────────
-
-	private startAdoptedLivenessCheck(organizationId: string, pid: number): void {
-		this.stopAdoptedLivenessCheck(organizationId);
-		const timer = setInterval(() => {
-			if (!isProcessAlive(pid)) {
-				clearInterval(timer);
-				this.adoptedLivenessTimers.delete(organizationId);
-				const instance = this.instances.get(organizationId);
-				if (instance && instance.status !== "stopped") {
-					log.info(
-						`[host-service:${organizationId}] Adopted process ${pid} died`,
-					);
-					this.instances.delete(organizationId);
-					removeManifest(organizationId);
-					this.emitStatus(organizationId, "stopped", "running");
-				}
-			}
-		}, ADOPTED_LIVENESS_INTERVAL);
-		this.adoptedLivenessTimers.set(organizationId, timer);
-	}
-
-	private stopAdoptedLivenessCheck(organizationId: string): void {
-		const timer = this.adoptedLivenessTimers.get(organizationId);
-		if (timer) {
-			clearInterval(timer);
-			this.adoptedLivenessTimers.delete(organizationId);
-		}
 	}
 
 	// ── Events ────────────────────────────────────────────────────────

@@ -28,7 +28,16 @@ export function createApplicationMenu() {
 					},
 				},
 				{ type: "separator" },
-				{ label: "Close Window", role: "close" },
+				// Explicit click handler (not `role: "close"`) — `role: "close"` adds
+				// an implicit CmdOrCtrl+W accelerator that overrides browser-manager's
+				// `before-input-event` interception and closes the window instead of
+				// the focused pane.
+				{
+					label: "Close Window",
+					click: () => {
+						BrowserWindow.getFocusedWindow()?.close();
+					},
+				},
 			],
 		},
 		{

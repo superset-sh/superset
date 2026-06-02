@@ -22,6 +22,7 @@ export default command({
 		});
 
 		const deleted: string[] = [];
+		const warnings: string[] = [];
 		for (const id of ids) {
 			let hostId = explicitHostId;
 			if (!hostId) {
@@ -41,16 +42,23 @@ export default command({
 				userJwt: ctx.bearer,
 			});
 
-			await target.client.workspace.delete.mutate({ id });
+			const result = await target.client.workspace.delete.mutate({ id });
 			deleted.push(id);
+			for (const warning of result.warnings ?? []) {
+				warnings.push(`${id}: ${warning}`);
+			}
 		}
 
+		const deleteMessage =
+			deleted.length === 1
+				? `Deleted workspace ${deleted[0]}`
+				: `Deleted ${deleted.length} workspaces`;
 		return {
-			data: { deleted },
+			data: { deleted, warnings },
 			message:
-				deleted.length === 1
-					? `Deleted workspace ${deleted[0]}`
-					: `Deleted ${deleted.length} workspaces`,
+				warnings.length > 0
+					? `${deleteMessage}\nWarnings:\n${warnings.map((warning) => `- ${warning}`).join("\n")}`
+					: deleteMessage,
 		};
 	},
 });

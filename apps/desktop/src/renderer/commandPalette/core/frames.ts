@@ -1,3 +1,4 @@
+import { track } from "renderer/lib/analytics";
 import { create } from "zustand";
 import type { Command } from "./types";
 
@@ -17,7 +18,14 @@ interface FrameStackState {
 export const useFrameStackStore = create<FrameStackState>((set) => ({
 	open: false,
 	frames: [],
-	setOpen: (open) => set(open ? { open: true } : { open: false, frames: [] }),
+	setOpen: (open) =>
+		set((state) => {
+			if (open) {
+				if (!state.open) track("command_palette_opened");
+				return { open: true };
+			}
+			return { open: false, frames: [] };
+		}),
 	pushFrame: (command) =>
 		set((state) => ({ frames: [...state.frames, { command }] })),
 	popFrame: () => set((state) => ({ frames: state.frames.slice(0, -1) })),

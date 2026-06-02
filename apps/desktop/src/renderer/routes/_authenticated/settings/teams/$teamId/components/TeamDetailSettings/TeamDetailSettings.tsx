@@ -53,7 +53,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const currentUserId = session?.user?.id;
 
-	const { data: teamsData, isLoading: teamsLoading } = useLiveQuery(
+	const { data: teamsData, isReady: teamsReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ teams: collections.teams })
@@ -72,7 +72,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 		[collections],
 	);
 
-	const { data: membersRaw, isLoading: membersLoading } = useLiveQuery(
+	const { data: membersRaw, isReady: membersReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ tm: collections.teamMembers })
@@ -201,7 +201,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 
 	if (!activeOrganizationId) return null;
 
-	const isLoading = teamsLoading || membersLoading;
+	const isReady = teamsReady && membersReady;
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0">
@@ -267,7 +267,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							)}
 						</div>
 
-						{isLoading && members.length === 0 ? (
+						{!isReady && members.length === 0 ? (
 							<div className="space-y-2 border rounded-lg">
 								{[1, 2, 3].map((i) => (
 									<div key={i} className="flex items-center gap-4 p-4">

@@ -50,12 +50,13 @@ export function useCurrentPlan(): { plan: PlanTier; isReady: boolean } {
 	const activeSubscription = subscriptionsData.find((subscription) =>
 		isActiveSubscriptionStatus(subscription.status),
 	);
+	const subscriptionsLoaded = isReady || subscriptionsData.length > 0;
 
 	const plan = resolveCurrentPlan({
 		subscriptionPlan: activeSubscription?.plan,
 		sessionPlan: session?.session?.plan,
-		subscriptionsLoaded: isReady,
+		subscriptionsLoaded,
 	});
 
-	return { plan, isReady };
+	return { plan, isReady: subscriptionsLoaded };
 }

@@ -77,10 +77,6 @@ function SplitView<TData>({
 					});
 				}
 			}}
-			onDoubleClick={(e) => {
-				e.stopPropagation();
-				groupRef.current?.setLayout([50, 50]);
-			}}
 		>
 			<ResizablePanel
 				className={PANE_MIN_SIZE_CLASS_NAME}
@@ -102,6 +98,10 @@ function SplitView<TData>({
 				onDragging={(isDragging) =>
 					onSplitResizeDragging?.(resizeSourceId, isDragging)
 				}
+				onDoubleClick={(e) => {
+					e.stopPropagation();
+					groupRef.current?.setLayout([50, 50]);
+				}}
 			/>
 			<ResizablePanel
 				className={PANE_MIN_SIZE_CLASS_NAME}

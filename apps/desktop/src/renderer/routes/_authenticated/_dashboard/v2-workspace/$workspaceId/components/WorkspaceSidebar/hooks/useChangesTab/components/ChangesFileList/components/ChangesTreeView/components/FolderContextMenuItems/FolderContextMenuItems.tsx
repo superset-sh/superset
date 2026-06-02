@@ -42,6 +42,7 @@ export function FolderContextMenuItems({
 					<PathActionsMenuItems
 						absolutePath={absolutePath}
 						relativePath={relativePath}
+						menuType="dropdown"
 					/>
 				</>
 			)}

@@ -15,6 +15,7 @@
  */
 const HOST_SERVICE_RUNTIME_KEYS = new Set([
 	"AUTH_TOKEN",
+	"SUPERSET_AUTH_CONFIG_PATH",
 	"SUPERSET_API_URL",
 	"DESKTOP_VITE_PORT",
 	"HOST_CLIENT_ID",
@@ -41,12 +42,25 @@ const SUPERSET_KEEP_KEYS = new Set([
 	"SUPERSET_AGENT_HOOK_VERSION",
 ]);
 
+/**
+ * Auth secrets that must never leak from host-service into spawned PTYs.
+ * Parent CLI/desktop may have these in process.env; they pass through to
+ * host-service but stop here. SUPERSET_REFRESH_TOKEN would already be caught
+ * by the SUPERSET_ prefix rule, but listing it explicitly keeps the
+ * protection load-bearing if SUPERSET_KEEP_KEYS ever changes.
+ */
+const SENSITIVE_AUTH_KEYS = new Set([
+	"OAUTH_REFRESH_TOKEN",
+	"SUPERSET_REFRESH_TOKEN",
+]);
+
 export function stripTerminalRuntimeEnv(
 	baseEnv: Record<string, string>,
 ): Record<string, string> {
 	const result: Record<string, string> = {};
 
 	for (const [key, value] of Object.entries(baseEnv)) {
+		if (SENSITIVE_AUTH_KEYS.has(key)) continue;
 		if (HOST_SERVICE_RUNTIME_KEYS.has(key)) continue;
 		if (NODE_APP_KEYS.has(key)) continue;
 		if (STRIP_PREFIXES.some((prefix) => key.startsWith(prefix))) continue;

@@ -46,7 +46,12 @@ export function handleV2AgentLifecycleEvent({
 		payload,
 		paneLayout,
 	});
-	updatePaneStatus(workspaceId, payload, target, paneLayout);
+	updateV2AgentLifecycleStatus({
+		workspaceId,
+		payload,
+		paneLayout,
+		target,
+	});
 
 	// Only Stop and PermissionRequest deserve sound. Start fires per-prompt
 	// (the working spinner is feedback enough); Attached/Detached fire on
@@ -68,6 +73,28 @@ export function handleV2AgentLifecycleEvent({
 		payload,
 		workspaceId,
 		workspaceName,
+		target,
+	});
+}
+
+export function handleV2AgentLifecycleStatusEvent({
+	workspaceId,
+	payload,
+	paneLayout,
+}: {
+	workspaceId: string;
+	payload: AgentLifecyclePayload;
+	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
+}): void {
+	const target = resolveV2NotificationTarget({
+		workspaceId,
+		payload,
+		paneLayout,
+	});
+	updateV2AgentLifecycleStatus({
+		workspaceId,
+		payload,
+		paneLayout,
 		target,
 	});
 }
@@ -113,6 +140,20 @@ function updatePaneStatus(
 			payload.occurredAt,
 		);
 	}
+}
+
+function updateV2AgentLifecycleStatus({
+	workspaceId,
+	payload,
+	paneLayout,
+	target,
+}: {
+	workspaceId: string;
+	payload: AgentLifecyclePayload;
+	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
+	target: V2NotificationTarget;
+}): void {
+	updatePaneStatus(workspaceId, payload, target, paneLayout);
 }
 
 function getCurrentWorkspaceId(): string | null {

@@ -101,7 +101,7 @@ export const v2HostRouter = {
 			await requireHostOwner(ctx.session.user.id, input.hostId, organizationId);
 
 			const txid = await dbWs.transaction(async (tx) => {
-				await tx
+				const [updated] = await tx
 					.update(v2Hosts)
 					.set({ name: input.name })
 					.where(
@@ -109,7 +109,14 @@ export const v2HostRouter = {
 							eq(v2Hosts.organizationId, organizationId),
 							eq(v2Hosts.machineId, input.hostId),
 						),
-					);
+					)
+					.returning({ machineId: v2Hosts.machineId });
+				if (!updated) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Host not found in this organization",
+					});
+				}
 				return await getCurrentTxid(tx);
 			});
 
@@ -194,7 +201,7 @@ export const v2HostRouter = {
 				});
 
 				if (!target) {
-					return await getCurrentTxid(tx);
+					return null;
 				}
 
 				if (target.role === "owner") {
@@ -218,7 +225,7 @@ export const v2HostRouter = {
 					}
 				}
 
-				await tx
+				const [deleted] = await tx
 					.delete(v2UsersHosts)
 					.where(
 						and(
@@ -226,7 +233,11 @@ export const v2HostRouter = {
 							eq(v2UsersHosts.userId, input.userId),
 							eq(v2UsersHosts.hostId, input.hostId),
 						),
-					);
+					)
+					.returning({ userId: v2UsersHosts.userId });
+				if (!deleted) {
+					return null;
+				}
 				return await getCurrentTxid(tx);
 			});
 
@@ -295,7 +306,7 @@ export const v2HostRouter = {
 					}
 				}
 
-				await tx
+				const [updated] = await tx
 					.update(v2UsersHosts)
 					.set({ role: input.role })
 					.where(
@@ -304,7 +315,14 @@ export const v2HostRouter = {
 							eq(v2UsersHosts.userId, input.userId),
 							eq(v2UsersHosts.hostId, input.hostId),
 						),
-					);
+					)
+					.returning({ userId: v2UsersHosts.userId });
+				if (!updated) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "User is not a member of this host",
+					});
+				}
 				return await getCurrentTxid(tx);
 			});
 

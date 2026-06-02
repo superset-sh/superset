@@ -155,11 +155,18 @@ describe("NotificationManager", () => {
 				tabId: "t1",
 				workspaceId: "w1",
 				sessionId: "s1",
+				terminalId: "term-1",
 			});
 			manager.handleAgentLifecycle(event);
 			lastNotification(deps).trigger("click");
 			expect(deps.clickedIds).toEqual([
-				{ paneId: "p1", tabId: "t1", workspaceId: "w1", sessionId: "s1" },
+				{
+					paneId: "p1",
+					tabId: "t1",
+					workspaceId: "w1",
+					sessionId: "s1",
+					terminalId: "term-1",
+				},
 			]);
 		});
 

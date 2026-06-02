@@ -219,7 +219,12 @@ const localDbMock = () => ({
 	agentCustomDefinitionSchema,
 	PROMPT_TRANSPORTS: ["argv", "stdin"],
 	EXTERNAL_APPS: [],
-	EXECUTION_MODES: ["sequential", "parallel"],
+	EXECUTION_MODES: [
+		"split-pane",
+		"new-tab",
+		"new-tab-split-pane",
+		"sequential",
+	],
 	BRANCH_PREFIX_MODES: ["none", "github", "author", "custom"],
 	TERMINAL_LINK_BEHAVIORS: ["external-editor", "file-viewer"],
 	FILE_OPEN_MODES: ["split-pane", "new-tab"],

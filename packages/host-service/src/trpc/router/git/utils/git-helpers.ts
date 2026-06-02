@@ -293,17 +293,17 @@ export async function countUntrackedFileLines(
 export interface DetectedRename {
 	oldPath: string;
 	newPath: string;
-	status: "renamed" | "copied";
+	status: "renamed";
 	additions: number;
 	deletions: number;
 }
 
 /**
- * Run git's real rename/copy detection across the working tree by
- * copying the index to a temp file, marking untracked files
- * intent-to-add against that copy, and diffing. Real index is never
- * mutated. Falls back to an empty result on any error — caller still
- * has the unrelated deleted+untracked entries to display.
+ * Run git's real rename detection across the working tree by copying the
+ * index to a temp file, marking untracked files intent-to-add against that
+ * copy, and diffing. Real index is never mutated. Falls back to an empty
+ * result on any error — caller still has the unrelated deleted+untracked
+ * entries to display.
  */
 export async function detectUnstagedRenames(
 	git: SimpleGit,
@@ -312,9 +312,7 @@ export async function detectUnstagedRenames(
 	hasDeletions: boolean,
 ): Promise<DetectedRename[]> {
 	if (untrackedPaths.length === 0) return [];
-	// Renames need a deletion; copy detection between two untracked
-	// files needs at least two of them.
-	if (!hasDeletions && untrackedPaths.length < 2) return [];
+	if (!hasDeletions) return [];
 
 	let indexPath: string;
 	try {
@@ -344,8 +342,8 @@ export async function detectUnstagedRenames(
 		await tempGit.raw(["add", "--intent-to-add", "--", ...untrackedPaths]);
 
 		const [nameStatusRaw, numstatRaw] = await Promise.all([
-			tempGit.raw(["diff", "--name-status", "-z", "-M", "-C"]),
-			tempGit.raw(["diff", "--numstat", "-z", "-M", "-C"]),
+			tempGit.raw(["diff", "--name-status", "-z", "-M"]),
+			tempGit.raw(["diff", "--numstat", "-z", "-M"]),
 		]);
 
 		const nameStatus = parseNameStatus(nameStatusRaw);
@@ -355,12 +353,12 @@ export async function detectUnstagedRenames(
 		for (const entry of nameStatus) {
 			if (!entry.oldPath) continue;
 			const code = entry.status[0];
-			if (code !== "R" && code !== "C") continue;
+			if (code !== "R") continue;
 			const stats = numstat.get(entry.path) ?? { additions: 0, deletions: 0 };
 			result.push({
 				oldPath: entry.oldPath,
 				newPath: entry.path,
-				status: code === "R" ? "renamed" : "copied",
+				status: "renamed",
 				additions: stats.additions,
 				deletions: stats.deletions,
 			});

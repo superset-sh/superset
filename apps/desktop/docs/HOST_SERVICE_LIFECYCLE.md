@@ -2,22 +2,21 @@
 
 ## Architecture
 
-Electron main owns app lifecycle, tray, and host-service management. Host-services run as child processes that can outlive the app via manifest-based adoption.
+Electron main owns app lifecycle, tray, and host-service management. Host-service runs as a child process **coupled to Electron** — it starts and stops with the app. Terminal sessions (PTYs) survive Electron restarts via a separate `pty-daemon` that host-service supervises on its own detached lifecycle.
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │ Electron Main Process                               │
 │                                                     │
 │  ┌──────────┐  ┌──────────────────────┐  ┌───────┐ │
-│  │   Tray   │  │ HostServiceManager   │  │Windows│ │
+│  │   Tray   │  │ HostServiceCoordinator│  │Windows│ │
 │  │ (macOS)  │  │                      │  │       │ │
-│  │          │◄─┤ status events        │  │ hide/ │ │
-│  │ restart  │  │ start/stop/adopt     │  │ show  │ │
-│  │ stop     │  │ per org              │  │       │ │
-│  │ quit ────┼──┼──► requestQuit(mode) │  │       │ │
+│  │ restart  │◄─┤ status events        │  │ hide/ │ │
+│  │ stop     │  │ start/stop per org   │  │ show  │ │
+│  │ quit ────┼──┼──► app.quit()        │  │       │ │
 │  └──────────┘  └──────┬───────────────┘  └───────┘ │
 └───────────────────────┼─────────────────────────────┘
-                        │ IPC + stdio
+                        │ spawn (attached, detached:false)
           ┌─────────────┼─────────────┐
           │             │             │
           ▼             ▼             ▼
@@ -26,50 +25,52 @@ Electron main owns app lifecycle, tray, and host-service management. Host-servic
    │  (org A)   │ │  (org B)   │ │  (org C)   │
    │            │ │            │ │            │
    │ HTTP/tRPC  │ │ HTTP/tRPC  │ │ HTTP/tRPC  │
-   │ port:rand  │ │ port:rand  │ │ port:rand  │
    │            │ │            │ │            │
-   │ writes     │ │ writes     │ │ writes     │
-   │ manifest   │ │ manifest   │ │ manifest   │
+   │ supervises │ │ supervises │ │ supervises │
+   │ pty-daemon │ │ pty-daemon │ │ pty-daemon │
+   └─────┬──────┘ └─────┬──────┘ └─────┬──────┘
+         │              │              │
+         ▼              ▼              ▼
+   ┌────────────┐ ┌────────────┐ ┌────────────┐
+   │ pty-daemon │ │ pty-daemon │ │ pty-daemon │
+   │ (detached) │ │ (detached) │ │ (detached) │
+   │  → PTYs    │ │  → PTYs    │ │  → PTYs    │
    └────────────┘ └────────────┘ └────────────┘
-        │              │              │
-        ▼              ▼              ▼
-   ~/.superset/host/{orgId}/manifest.json
 ```
 
-### Quit modes
+### Quit behavior
 
-All quit paths use a single `QuitMode` (`"release" | "stop"`):
+Electron `before-quit` always SIGTERMs every host-service via `coordinator.stopAll()`. There is no "release" mode — host-services no longer outlive the app.
 
-- **release** — detach from services, they keep running for re-adoption on next launch
-- **stop** — SIGTERM all services, then exit
-- **implicit** (Cmd+Q with active services on macOS) — hide windows to tray
+What survives a quit:
+- **pty-daemon + open PTYs** — pty-daemon is spawned by host-service with `detached: true`. On the next launch, host-service adopts the existing pty-daemon via its socket/manifest. See `packages/host-service/src/daemon/DaemonSupervisor.ts`.
 
-### Manifest adoption
+What does **not** survive:
+- In-flight chat completions, file watchers, durable-session reads. These are bound to host-service's process and tear down with it. The renderer handles reconnect on next launch.
 
-Each host-service child writes `~/.superset/host/{orgId}/manifest.json` on startup (pid, endpoint, authToken, version). It's a pidfile extended with connection info.
+### How host-service is reaped
 
-- **Release quit** — children keep running, manifests stay on disk
-- **Next launch** — `discoverAndAdoptAll()` scans manifests, health-checks each pid/endpoint, reconnects if healthy, removes and respawns if not
-- **Stop quit** — SIGTERM children, they remove their own manifests on shutdown
+| Quit path | Mechanism |
+|---|---|
+| Clean `before-quit` (Cmd+Q, tray quit, auto-update install) | `coordinator.stopAll()` SIGTERMs each child; child closes its HTTP server and exits within `SHUTDOWN_GRACE_MS` (3s) |
+| Electron force-killed / crash | Parent-pid watchdog inside host-service (`apps/desktop/src/main/host-service/index.ts`) polls `process.ppid`. When Electron's pid is gone, the child shuts down voluntarily |
+| Dev `bun dev` SIGTERM/SIGINT | Coordinator's `stopAll()` runs in the signal handler before `app.exit()` |
 
-```
-App Launch                          App Quit (release)          Next Launch
-─────────                          ──────────────────          ───────────
-spawn child ──► child writes        parent detaches             scan manifests
-               manifest.json        manifests stay on disk      health-check pid/endpoint
-               {pid, endpoint,      child keeps running         ├─ healthy → reconnect
-                authToken, ...}                                 └─ dead/bad → remove, respawn
-```
+The watchdog only runs when `HOST_PARENT_PID` is set in the child env — CLI-spawned host-services (`packages/cli`) explicitly skip coupling and use `detached: true` for their own deployment model.
 
-### v1 vs v2 terminal paths
+### Manifest
 
-v1 terminals run on a separate **terminal-host daemon** (`src/main/terminal-host/`) — a persistent background process that owns PTYs over a Unix domain socket. It has its own survival and reconnection model independent of host-service.
+Each host-service still writes `~/.superset/host/{orgId}/manifest.json` (pid, endpoint, authToken, app version). Electron's coordinator no longer reads it for adoption; the manifest is now consumed by:
 
-v2 terminals run through **host-service** child processes. The quit/adopt/tray lifecycle described here only applies to host-service instances.
+- **CLI** (`packages/cli`) — finds and talks to a running host-service for `status`/`stop`/`start` commands.
+- **`coordinator.reset()`** — SIGKILLs whatever pid the manifest names as a recovery escape hatch when a wedged host-service has been left behind (superset-sh/superset#4299).
+
+Host-service writes the manifest on boot but does not remove it on exit; coordinator removes it on `stop()` and when the child exits.
 
 ### Design decisions
 
-- **No supervisor process.** Electron main owns everything. Simpler while v1 and v2 coexist.
-- **No tray on Windows/Linux.** Services still survive quit and are re-adopted, but there's no persistent UI to manage them.
-- **Tray calls `requestQuit(mode)`.** One function, one codepath — no setter chains or flag mutation.
-- **Manifest handling is single-sourced.** Both parent and child use `host-service-manifest.ts`. Files are written with 0o600 permissions.
+- **Coupled to Electron.** PTY survival is owned by pty-daemon, not host-service. No reason for host-service itself to outlive the app — coupling deletes the adoption codepath and removes a class of "wedged adopted service" bugs.
+- **CLI keeps its own spawn.** Standalone host-service deployments (CLI-driven) still use detached lifetime via `packages/cli/src/lib/host/spawn.ts`. The coordinator's coupling only applies to Electron-spawned children.
+- **No supervisor process.** Electron main owns everything.
+- **No tray on Windows/Linux.** Services stop with the app.
+- **Manifest handling stays single-sourced.** Both desktop and CLI use the same `host-service-manifest.ts` API. Files are written with 0o600 permissions.

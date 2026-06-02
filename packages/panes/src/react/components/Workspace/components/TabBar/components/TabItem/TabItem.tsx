@@ -123,7 +123,10 @@ export function TabItem<TData>({
 						isDragging && "opacity-30",
 					)}
 					onMouseDown={(event) => {
-						if (event.button === 0) onSelect();
+						if (event.button === 0) {
+							event.preventDefault();
+							onSelect();
+						}
 					}}
 				>
 					{isEditing ? (
@@ -171,31 +174,25 @@ export function TabItem<TData>({
 										{accessory}
 									</span>
 								)}
-								<Tooltip delayDuration={500}>
-									<TooltipTrigger asChild>
-										<Button
-											className={cn(
-												"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
-												isActive ? "hover:bg-foreground/10" : "hover:bg-muted",
-											)}
-											onClick={(event) => {
-												event.stopPropagation();
-												onClose();
-											}}
-											onMouseDown={(event) => {
-												event.stopPropagation();
-											}}
-											size="icon"
-											type="button"
-											variant="ghost"
-										>
-											<XIcon className="size-3.5" />
-										</Button>
-									</TooltipTrigger>
-									<TooltipContent side="top" showArrow={false}>
-										Close
-									</TooltipContent>
-								</Tooltip>
+								<Button
+									aria-label="Close tab"
+									className={cn(
+										"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+										isActive ? "hover:bg-foreground/10" : "hover:bg-muted",
+									)}
+									onClick={(event) => {
+										event.stopPropagation();
+										onClose();
+									}}
+									onMouseDown={(event) => {
+										event.stopPropagation();
+									}}
+									size="icon"
+									type="button"
+									variant="ghost"
+								>
+									<XIcon className="size-3.5" />
+								</Button>
 							</div>
 						</>
 					)}

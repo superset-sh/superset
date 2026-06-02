@@ -4,11 +4,10 @@ import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
+import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
-import { WorkspaceHostOfflineState } from "./components/WorkspaceHostOfflineState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
@@ -28,6 +27,13 @@ function V2WorkspaceLayout() {
 		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
 	const collections = useCollections();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
+	const pendingTransaction = useWorkspaceTransactionsStore((state) =>
+		workspaceId ? (state.byWorkspaceId[workspaceId] ?? null) : null,
+	);
+	const clearWorkspaceTransaction = useWorkspaceTransactionsStore(
+		(state) => state.clear,
+	);
+	const isCreatePending = pendingTransaction?.type === "insert";
 
 	const { data: workspaces, isReady } = useLiveQuery(
 		(q) =>
@@ -36,16 +42,21 @@ function V2WorkspaceLayout() {
 				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
 		[collections, workspaceId],
 	);
-	const syncedWorkspace = workspaces?.[0] ?? null;
-	const inFlight = useWorkspaceCreatesStore((store) =>
-		workspaceId
-			? store.entries.find((entry) => entry.snapshot.id === workspaceId)
-			: undefined,
+	const { data: failedEntries } = useLiveQuery(
+		(q) =>
+			q
+				.from({ failed: collections.failedWorkspaceCreates })
+				.where(({ failed }) => eq(failed.id, workspaceId ?? "")),
+		[collections, workspaceId],
 	);
-	// Fall back to the cloud row cached on the in-flight entry while
-	// Electric hasn't yet delivered the synced row. The cloud has already
-	// confirmed the workspace at this point — no need to block on sync.
-	const workspace = syncedWorkspace ?? inFlight?.cloudRow ?? null;
+	const workspace = workspaces?.[0] ?? null;
+	const failedEntry = failedEntries?.[0] ?? null;
+
+	useEffect(() => {
+		if (workspace?.$synced === true && pendingTransaction?.type === "insert") {
+			clearWorkspaceTransaction(workspace.id);
+		}
+	}, [clearWorkspaceTransaction, pendingTransaction, workspace]);
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 	useEffect(() => {
@@ -57,31 +68,25 @@ function V2WorkspaceLayout() {
 
 	const hostStatus = useRemoteHostStatus(workspace);
 
-	if (!workspaceId || !isReady || !workspaces) {
+	if (!workspaceId || !workspaces || (!workspace && !isReady)) {
 		return <div className="flex h-full w-full" />;
 	}
 
 	if (!workspace) {
-		if (inFlight?.state === "creating") {
-			return (
-				<WorkspaceCreatingState
-					name={inFlight.snapshot.name}
-					branch={inFlight.snapshot.branch}
-					startedAt={inFlight.startedAt}
-				/>
-			);
-		}
-		if (inFlight?.state === "error") {
-			return (
-				<WorkspaceCreateErrorState
-					workspaceId={workspaceId}
-					name={inFlight.snapshot.name}
-					branch={inFlight.snapshot.branch}
-					error={inFlight.error ?? "Unknown error"}
-				/>
-			);
+		if (failedEntry) {
+			return <WorkspaceCreateErrorState entry={failedEntry} />;
 		}
 		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
+	}
+
+	if (isCreatePending) {
+		return (
+			<WorkspaceCreatingState
+				name={workspace.name}
+				branch={workspace.branch}
+				startedAt={new Date(workspace.createdAt).getTime()}
+			/>
+		);
 	}
 
 	if (hostStatus.status === "incompatible") {
@@ -90,14 +95,6 @@ function V2WorkspaceLayout() {
 				hostName={hostStatus.hostName}
 				hostVersion={hostStatus.hostVersion}
 				minVersion={hostStatus.minVersion}
-			/>
-		);
-	}
-	if (hostStatus.status === "offline") {
-		return (
-			<WorkspaceHostOfflineState
-				hostId={hostStatus.hostId}
-				hostName={hostStatus.hostName}
 			/>
 		);
 	}

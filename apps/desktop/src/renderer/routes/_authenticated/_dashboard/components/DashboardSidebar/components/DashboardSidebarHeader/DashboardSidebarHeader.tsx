@@ -87,9 +87,7 @@ export function DashboardSidebarHeader({
 	};
 
 	const handleAutomationsClick = () => {
-		gateFeature(GATED_FEATURES.AUTOMATIONS, () => {
-			navigate({ to: "/automations" });
-		});
+		navigate({ to: "/automations" });
 	};
 
 	const handleTasksClick = () => {
@@ -163,7 +161,7 @@ export function DashboardSidebarHeader({
 							<HiOutlineClipboardDocumentList className="size-4" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="right">Issues & PRs</TooltipContent>
+					<TooltipContent side="right">Tasks & PRs</TooltipContent>
 				</Tooltip>
 
 				<Tooltip delayDuration={300}>
@@ -268,7 +266,7 @@ export function DashboardSidebarHeader({
 				)}
 			>
 				<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Issues & PRs</span>
+				<span className="flex-1 text-left">Tasks & PRs</span>
 			</button>
 
 			<div className="flex items-center gap-0">

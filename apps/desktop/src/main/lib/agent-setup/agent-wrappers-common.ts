@@ -3,7 +3,7 @@ import path from "node:path";
 import { SUPERSET_MANAGED_BINARIES } from "./desktop-agent-capabilities";
 import { BIN_DIR } from "./paths";
 
-export const WRAPPER_MARKER = "# Superset agent-wrapper v2";
+export const WRAPPER_MARKER = "# Superset agent-wrapper v3";
 export { SUPERSET_MANAGED_BINARIES };
 
 // Dev setup (.superset/lib/setup/steps.sh) points SUPERSET_HOME_DIR at

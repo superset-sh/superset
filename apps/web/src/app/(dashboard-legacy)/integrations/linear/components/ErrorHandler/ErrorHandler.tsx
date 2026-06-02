@@ -18,12 +18,7 @@ export function ErrorHandler() {
 		const error = searchParams.get("error");
 		if (!error) return;
 
-		const message =
-			error === "workspace_already_linked"
-				? searchParams.get("owner")
-					? `This Linear workspace is already connected by ${searchParams.get("owner")}. Ask them to disconnect first.`
-					: "This Linear workspace is already connected by another Superset organization."
-				: (ERROR_MESSAGES[error] ?? "Something went wrong.");
+		const message = ERROR_MESSAGES[error] ?? "Something went wrong.";
 
 		window.history.replaceState({}, "", "/integrations/linear");
 		const id = setTimeout(() => toast.error(message), 0);

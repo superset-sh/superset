@@ -22,6 +22,7 @@ import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
+import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
@@ -197,6 +198,14 @@ function AuthenticatedLayout() {
 		return <Navigate to="/create-organization" replace />;
 	}
 
+	if (
+		session?.user &&
+		!session.user.onboardedAt &&
+		!location.pathname.startsWith("/onboarding")
+	) {
+		return <Navigate to="/onboarding" replace />;
+	}
+
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
@@ -210,6 +219,7 @@ function AuthenticatedLayout() {
 							<AgentHooks />
 							<FileMenuListener />
 							<V2NotificationController />
+							<DaemonAutoUpdateFailureDialog />
 							<Outlet />
 							<V1ImportModal />
 							<WorkspaceInitEffects />

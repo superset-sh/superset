@@ -1,0 +1,1 @@
+export { useDiffCodeViewTheme } from "./useDiffCodeViewTheme";

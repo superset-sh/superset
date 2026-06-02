@@ -1,10 +1,25 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Server, type ServerOptions } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
+import { disposeDaemonClient } from "../../src/terminal/daemon-client-singleton";
+import {
+	initTerminalBaseEnv,
+	resetTerminalBaseEnvForTests,
+} from "../../src/terminal/env";
+import { __resetSessionsForTesting } from "../../src/terminal/terminal";
+import { __setAccountShellForTesting } from "../../src/terminal/user-shell";
 import { cloudFlows, cloudOk } from "../helpers/cloud-fakes";
 import { createTestHost } from "../helpers/createTestHost";
 import { createGitFixture } from "../helpers/git-fixture";
@@ -17,14 +32,34 @@ import { seedProject, seedWorkspace } from "../helpers/seed";
 
 describe("workspaceCleanup.destroy integration", () => {
 	let scenario: FeatureWorktreeScenario;
+	let teardownServer: Server | null = null;
+	let teardownTmp: string | null = null;
+	let previousPtyDaemonSocket: string | undefined;
+	let previousSupersetHomeDir: string | undefined;
 
 	beforeEach(async () => {
+		previousPtyDaemonSocket = process.env.SUPERSET_PTY_DAEMON_SOCKET;
+		previousSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
 		scenario = await createFeatureWorktreeScenario({
 			hostOptions: { apiOverrides: cloudFlows.workspaceDeleteOk() },
 		});
 	});
 
 	afterEach(async () => {
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+		resetTerminalBaseEnvForTests();
+		__setAccountShellForTesting(undefined);
+		restoreEnv("SUPERSET_PTY_DAEMON_SOCKET", previousPtyDaemonSocket);
+		restoreEnv("SUPERSET_HOME_DIR", previousSupersetHomeDir);
+		if (teardownServer) {
+			await teardownServer.close().catch(() => {});
+			teardownServer = null;
+		}
+		if (teardownTmp) {
+			rmSync(teardownTmp, { recursive: true, force: true });
+			teardownTmp = null;
+		}
 		await scenario.dispose();
 	});
 
@@ -113,6 +148,112 @@ describe("workspaceCleanup.destroy integration", () => {
 				(c) => c.path === "v2Workspace.delete.mutate",
 			),
 		).toBe(true);
+	});
+
+	test("force=true removes a locked worktree whose directory still exists", async () => {
+		await scenario.repo.git.raw(["worktree", "lock", scenario.worktreePath]);
+
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			deleteBranch: true,
+			force: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(result.branchDeleted).toBe(true);
+		expect(result.warnings).toEqual([]);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+
+		const worktreeList = await scenario.repo.git.raw([
+			"worktree",
+			"list",
+			"--porcelain",
+		]);
+		expect(worktreeList).not.toContain(scenario.worktreePath);
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).not.toContain(scenario.branch);
+	});
+
+	test("teardown failure blocks local and cloud delete until force retry", async () => {
+		teardownTmp = mkdtempSync(join(tmpdir(), "workspace-cleanup-teardown-"));
+		const socketPath = join(teardownTmp, "pty-daemon.sock");
+		const teardownWrites: string[] = [];
+		teardownServer = new Server({
+			socketPath,
+			daemonVersion: "0.0.0-workspace-cleanup-test",
+			spawnPty: createFailingTeardownPtySpawner(teardownWrites),
+		});
+		await teardownServer.listen();
+
+		process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
+		process.env.SUPERSET_HOME_DIR = teardownTmp;
+		__setAccountShellForTesting("/bin/bash");
+		initTerminalBaseEnv({
+			HOME: process.env.HOME ?? teardownTmp,
+			LANG: "en_US.UTF-8",
+			PATH: process.env.PATH ?? "/usr/bin:/bin",
+			SHELL: "/bin/bash",
+		});
+
+		const scriptDir = join(scenario.worktreePath, ".superset");
+		mkdirSync(scriptDir, { recursive: true });
+		writeFileSync(
+			join(scriptDir, "teardown.sh"),
+			"#!/usr/bin/env bash\necho teardown failed\nexit 42\n",
+			{ mode: 0o755 },
+		);
+		await scenario.repo.git.raw([
+			"-C",
+			scenario.worktreePath,
+			"add",
+			".superset/teardown.sh",
+		]);
+		await scenario.repo.git.raw([
+			"-C",
+			scenario.worktreePath,
+			"commit",
+			"-m",
+			"add failing teardown",
+		]);
+
+		await expect(
+			scenario.host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId: scenario.featureWorkspaceId,
+			}),
+		).rejects.toThrow(/Teardown script failed/i);
+		expect(teardownWrites).toHaveLength(1);
+		expect(
+			scenario.host.apiCalls.some(
+				(c) => c.path === "v2Workspace.delete.mutate",
+			),
+		).toBe(false);
+		expect(existsSync(scenario.worktreePath)).toBe(true);
+		let remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(1);
+
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			force: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+		expect(
+			scenario.host.apiCalls.some(
+				(c) => c.path === "v2Workspace.delete.mutate",
+			),
+		).toBe(true);
+
+		remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(0);
 	});
 
 	test("clean worktree destroys without force and removes db row", async () => {
@@ -220,6 +361,70 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(branches.all).not.toContain(scenario.branch);
 	});
 
+	test("cloud delete failure after local removal keeps row so delete can retry", async () => {
+		let cloudDeleteCalls = 0;
+		scenario.host.setApi("v2Workspace.delete.mutate", () => {
+			cloudDeleteCalls += 1;
+			if (cloudDeleteCalls === 1) {
+				throw new Error("cloud delete unavailable");
+			}
+			return { success: true };
+		});
+
+		await expect(
+			scenario.host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId: scenario.featureWorkspaceId,
+			}),
+		).rejects.toThrow(/cloud delete unavailable/i);
+		expect(cloudDeleteCalls).toBe(1);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+
+		let remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(1);
+
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+		});
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(cloudDeleteCalls).toBe(2);
+
+		remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(0);
+	});
+
+	test("cloud delete failure does not delete the optional branch", async () => {
+		scenario.host.setApi("v2Workspace.delete.mutate", () => {
+			throw new Error("cloud delete unavailable");
+		});
+
+		await expect(
+			scenario.host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId: scenario.featureWorkspaceId,
+				deleteBranch: true,
+			}),
+		).rejects.toThrow(/cloud delete unavailable/i);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).toContain(scenario.branch);
+
+		const remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(1);
+	});
+
 	test("returns success when no local workspace row exists, still calls cloud delete", async () => {
 		await scenario.dispose();
 		const fresh = await createBasicScenario({
@@ -241,3 +446,52 @@ describe("workspaceCleanup.destroy integration", () => {
 		}
 	});
 });
+
+function createFailingTeardownPtySpawner(
+	writes: string[],
+): NonNullable<ServerOptions["spawnPty"]> {
+	return ({ meta }) => {
+		let dataCallback: ((data: Buffer) => void) | null = null;
+		let exitCallback:
+			| ((info: { code: number | null; signal: number | null }) => void)
+			| null = null;
+
+		queueMicrotask(() => {
+			dataCallback?.(Buffer.from("\x1b]133;A\x07"));
+		});
+
+		return {
+			pid: 42,
+			meta,
+			write(data) {
+				writes.push(data.toString("utf8").trim());
+				dataCallback?.(Buffer.from("teardown failed\n"));
+				exitCallback?.({ code: 42, signal: null });
+			},
+			resize(cols, rows) {
+				meta.cols = cols;
+				meta.rows = rows;
+			},
+			kill(signal) {
+				exitCallback?.({ code: null, signal: signal === "SIGKILL" ? 9 : 1 });
+			},
+			onData(cb) {
+				dataCallback = cb;
+			},
+			onExit(cb) {
+				exitCallback = cb;
+			},
+			getMasterFd() {
+				return 0;
+			},
+		};
+	};
+}
+
+function restoreEnv(name: string, previousValue: string | undefined): void {
+	if (previousValue === undefined) {
+		delete process.env[name];
+		return;
+	}
+	process.env[name] = previousValue;
+}

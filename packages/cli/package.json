@@ -1,6 +1,6 @@
 {
 	"name": "@superset/cli",
-	"version": "0.2.19",
+	"version": "0.2.20",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -22,7 +22,7 @@
 		"date-fns": "4.1.0",
 		"ink": "7.0.1",
 		"mime-types": "3.0.2",
-		"react": "19.2.0",
+		"react": "19.2.3",
 		"superjson": "2.2.6"
 	},
 	"devDependencies": {

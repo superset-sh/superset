@@ -13,11 +13,11 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import {
-	joinArgs,
-	joinCommandArgs,
-	parseArgs,
-	parseCommandString,
-} from "renderer/lib/argv";
+	getAgentCommandText,
+	isAgentCommandPatchChanged,
+	parseAgentCommandText,
+} from "renderer/lib/agent-launch-command";
+import { joinArgs, parseArgs } from "renderer/lib/argv";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -41,9 +41,7 @@ export function AgentDetail({
 	const icon = getPresetIcon(config.presetId, isDark);
 
 	const [label, setLabel] = useState(config.label);
-	const [commandText, setCommandText] = useState(
-		joinCommandArgs(config.command, config.args),
-	);
+	const [commandText, setCommandText] = useState(getAgentCommandText(config));
 	const [promptArgsText, setPromptArgsText] = useState(
 		joinArgs(config.promptArgs),
 	);
@@ -53,13 +51,20 @@ export function AgentDetail({
 
 	useEffect(() => {
 		setLabel(config.label);
-		setCommandText(joinCommandArgs(config.command, config.args));
+		setCommandText(
+			getAgentCommandText({
+				command: config.command,
+				args: config.args,
+				env: config.env,
+			}),
+		);
 		setPromptArgsText(joinArgs(config.promptArgs));
 		setPromptTransport(config.promptTransport);
 	}, [
 		config.label,
 		config.command,
 		config.args,
+		config.env,
 		config.promptArgs,
 		config.promptTransport,
 	]);
@@ -113,17 +118,16 @@ export function AgentDetail({
 	};
 
 	const handleCommandBlur = () => {
-		const { command, args } = parseCommandString(commandText);
+		const patch = parseAgentCommandText(commandText);
+		const { command } = patch;
 		if (command.length === 0) {
 			toast.error("Command cannot be empty");
-			setCommandText(joinCommandArgs(config.command, config.args));
+			setCommandText(getAgentCommandText(config));
 			return;
 		}
-		const changed =
-			command !== config.command ||
-			args.length !== config.args.length ||
-			args.some((arg, i) => arg !== config.args[i]);
-		if (changed) updateMutation.mutate({ command, args });
+		if (isAgentCommandPatchChanged(config, patch)) {
+			updateMutation.mutate(patch);
+		}
 	};
 
 	const handlePromptArgsBlur = () => {

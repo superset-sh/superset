@@ -18,6 +18,7 @@ const HEALTH_POLL_TIMEOUT_MS = 10_000;
 export interface SpawnHostOptions {
 	organizationId: string;
 	sessionToken: string;
+	authConfigPath?: string;
 	api: ApiClient;
 	port?: number;
 	daemon: boolean;
@@ -110,6 +111,9 @@ export async function spawnHostService(
 			...process.env,
 			ORGANIZATION_ID: options.organizationId,
 			AUTH_TOKEN: options.sessionToken,
+			...(options.authConfigPath
+				? { SUPERSET_AUTH_CONFIG_PATH: options.authConfigPath }
+				: {}),
 			SUPERSET_API_URL: env.SUPERSET_API_URL,
 			RELAY_URL: relayUrl,
 			PORT: String(port),

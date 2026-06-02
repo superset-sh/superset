@@ -2,6 +2,10 @@ import {
 	ContextMenuItem,
 	ContextMenuSeparator,
 } from "@superset/ui/context-menu";
+import {
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+} from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Clipboard, Copy, FolderOpen } from "lucide-react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
@@ -10,11 +14,13 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 interface PathActionsMenuItemsProps {
 	absolutePath: string;
 	relativePath?: string;
+	menuType?: "context" | "dropdown";
 }
 
 export function PathActionsMenuItems({
 	absolutePath,
 	relativePath,
+	menuType = "context",
 }: PathActionsMenuItemsProps) {
 	const { copyToClipboard } = useCopyToClipboard();
 
@@ -35,6 +41,32 @@ export function PathActionsMenuItems({
 			);
 		}
 	};
+
+	if (menuType === "dropdown") {
+		return (
+			<>
+				<DropdownMenuItem onSelect={handleRevealInFinder}>
+					<FolderOpen />
+					Reveal in Finder
+				</DropdownMenuItem>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem
+					onSelect={() => handleCopy(absolutePath, "Path copied")}
+				>
+					<Clipboard />
+					Copy Path
+				</DropdownMenuItem>
+				{relativePath && (
+					<DropdownMenuItem
+						onSelect={() => handleCopy(relativePath, "Relative path copied")}
+					>
+						<Copy />
+						Copy Relative Path
+					</DropdownMenuItem>
+				)}
+			</>
+		);
+	}
 
 	return (
 		<>

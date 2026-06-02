@@ -1,7 +1,7 @@
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
-import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import type { FileStatus } from "../../components/StatusIndicator";
+import { useWorkspaceGitStatus } from "../../providers/WorkspaceGitStatusProvider";
 import type { ChangesetFile, DiffRef } from "./types";
 
 interface UseChangesetArgs {
@@ -20,18 +20,7 @@ export function useChangeset({
 	workspaceId,
 	ref,
 }: UseChangesetArgs): UseChangesetResult {
-	const utils = workspaceTrpc.useUtils();
-
-	const needsStatus = ref.kind === "against-base" || ref.kind === "uncommitted";
-	const statusQuery = workspaceTrpc.git.getStatus.useQuery(
-		{
-			workspaceId,
-			baseBranch:
-				ref.kind === "against-base" ? (ref.baseBranch ?? undefined) : undefined,
-		},
-		{ enabled: needsStatus, staleTime: Number.POSITIVE_INFINITY },
-	);
-
+	const gitStatus = useWorkspaceGitStatus();
 	const commitQuery = workspaceTrpc.git.getCommitFiles.useQuery(
 		ref.kind === "commit"
 			? {
@@ -44,22 +33,6 @@ export function useChangeset({
 			enabled: ref.kind === "commit",
 			staleTime: Number.POSITIVE_INFINITY,
 		},
-	);
-
-	useWorkspaceEvent(
-		"git:changed",
-		workspaceId,
-		(payload) => {
-			void utils.git.getStatus.invalidate({ workspaceId });
-			if (payload.paths && payload.paths.length > 0) {
-				for (const path of payload.paths) {
-					void utils.git.getDiff.invalidate({ workspaceId, path });
-				}
-			} else {
-				void utils.git.getDiff.invalidate({ workspaceId });
-			}
-		},
-		needsStatus,
 	);
 
 	const files = useMemo<ChangesetFile[]>(() => {
@@ -78,7 +51,7 @@ export function useChangeset({
 			}));
 		}
 
-		const status = statusQuery.data;
+		const status = gitStatus.data;
 		if (!status) return [];
 
 		if (ref.kind === "uncommitted") {
@@ -139,9 +112,9 @@ export function useChangeset({
 			});
 		}
 		return Array.from(seen.values());
-	}, [ref, statusQuery.data, commitQuery.data?.files]);
+	}, [ref, gitStatus.data, commitQuery.data?.files]);
 
-	const activeQuery = needsStatus ? statusQuery : commitQuery;
+	const activeQuery = ref.kind === "commit" ? commitQuery : gitStatus;
 
 	return {
 		files,

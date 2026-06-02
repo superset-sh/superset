@@ -196,6 +196,16 @@ export async function MainWindow() {
 		onNotificationClick: (ids) => {
 			window.show();
 			window.focus();
+			if (ids.workspaceId && ids.terminalId) {
+				notificationsEmitter.emit(
+					NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE,
+					{
+						workspaceId: ids.workspaceId,
+						source: { type: "terminal", id: ids.terminalId },
+					},
+				);
+				return;
+			}
 			notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, ids);
 		},
 		getVisibilityContext: () => ({

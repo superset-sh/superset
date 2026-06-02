@@ -1,39 +1,30 @@
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { HiOutlineComputerDesktop, HiOutlineServer } from "react-icons/hi2";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	HostSelect,
+	type HostSelectOption,
+} from "../../../../components/HostSelect";
+import { SettingsRow } from "../../../../components/SettingsRow";
+import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
-import { SettingsRow } from "./components/SettingsRow";
 import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
+import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
 
 interface V2ProjectSettingsProps {
 	projectId: string;
 	hostId: string | null;
-}
-
-interface ProjectSettingsHostOption {
-	id: string;
-	name: string;
-	isLocal: boolean;
-	isOnline: boolean;
 }
 
 export function V2ProjectSettings({
@@ -48,7 +39,7 @@ export function V2ProjectSettings({
 	const targetHostUrl = useHostUrl(hostId);
 	const targetHostId = hostId ?? machineId;
 
-	const { data: v2Project } = useLiveQuery(
+	const { data: v2Project, isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ projects: collections.v2Projects })
@@ -57,8 +48,8 @@ export function V2ProjectSettings({
 		[collections, projectId],
 	);
 
-	const hostOptions = useMemo<ProjectSettingsHostOption[]>(() => {
-		const options: ProjectSettingsHostOption[] = [];
+	const hostOptions = useMemo<HostSelectOption[]>(() => {
+		const options: HostSelectOption[] = [];
 		if (localHostId) {
 			options.push({
 				id: localHostId,
@@ -111,7 +102,14 @@ export function V2ProjectSettings({
 	});
 
 	const project = v2Project?.[0];
-	if (!project) return null;
+	if (!project) {
+		if (!isReady) return null;
+		return (
+			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
+				Project not found.
+			</div>
+		);
+	}
 
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
@@ -125,8 +123,9 @@ export function V2ProjectSettings({
 					<h2 className="truncate text-xl font-semibold">{project.name}</h2>
 				</div>
 				{hasMultipleHosts && targetHostId ? (
-					<Select
+					<HostSelect
 						value={targetHostId}
+						options={hostOptions}
 						onValueChange={(nextHostId) => {
 							void navigate({
 								to: "/settings/projects/$projectId",
@@ -135,53 +134,7 @@ export function V2ProjectSettings({
 								replace: true,
 							});
 						}}
-					>
-						<SelectTrigger
-							size="sm"
-							className="h-8 gap-1.5 px-2 text-foreground"
-						>
-							<SelectValue>
-								<span className="flex items-center gap-1.5">
-									<span className="truncate">
-										{selectedHost?.isLocal
-											? "This device"
-											: (selectedHost?.name ?? targetHostId)}
-									</span>
-									{selectedHost && !selectedHost.isLocal && (
-										<span
-											title={selectedHost.isOnline ? "Online" : "Offline"}
-											className={
-												selectedHost.isOnline
-													? "size-1.5 shrink-0 rounded-full bg-emerald-500"
-													: "size-1.5 shrink-0 rounded-full bg-muted-foreground/60"
-											}
-										/>
-									)}
-								</span>
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="end">
-							{hostOptions.map((option) => (
-								<SelectItem key={option.id} value={option.id}>
-									<span className="flex items-center gap-2">
-										{option.isLocal ? (
-											<HiOutlineComputerDesktop className="size-4 text-muted-foreground" />
-										) : (
-											<HiOutlineServer className="size-4 text-muted-foreground" />
-										)}
-										<span className="truncate">
-											{option.isLocal ? "This device" : option.name}
-										</span>
-										{!option.isLocal && !option.isOnline && (
-											<span className="text-xs text-muted-foreground">
-												offline
-											</span>
-										)}
-									</span>
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					/>
 				) : null}
 			</header>
 
@@ -196,6 +149,20 @@ export function V2ProjectSettings({
 							currentRepoCloneUrl={project.repoCloneUrl}
 						/>
 					</SettingsRow>
+					{targetHostUrl && hostProject && (
+						<SettingsRow
+							label="Branch prefix"
+							hint="Namespace new branches for this project. Defaults to the host-wide Git setting."
+						>
+							<BranchPrefixSection
+								projectId={projectId}
+								hostUrl={targetHostUrl}
+								mode={hostProject.branchPrefixMode ?? null}
+								customPrefix={hostProject.branchPrefixCustom ?? null}
+								onChanged={() => refetchHostProject()}
+							/>
+						</SettingsRow>
+					)}
 				</section>
 
 				<section>
@@ -208,6 +175,21 @@ export function V2ProjectSettings({
 							hostUrl={targetHostUrl}
 							hostName={targetHostName}
 							isRemoteTarget={isRemoteTarget}
+							onChanged={() => refetchHostProject()}
+						/>
+					</SettingsRow>
+					<SettingsRow
+						label="Worktrees"
+						hint="Base directory for new worktree workspaces on this host."
+					>
+						<WorktreeLocationSection
+							projectId={projectId}
+							currentPath={hostProject?.worktreeBaseDir ?? null}
+							hostUrl={targetHostUrl}
+							hostName={targetHostName}
+							isRemoteTarget={isRemoteTarget}
+							isHostOnline={selectedHost?.isOnline ?? false}
+							isProjectSetup={Boolean(hostProject)}
 							onChanged={() => refetchHostProject()}
 						/>
 					</SettingsRow>

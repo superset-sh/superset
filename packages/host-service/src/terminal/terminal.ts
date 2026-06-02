@@ -66,6 +66,11 @@ interface DaemonPty {
 	 */
 	writeBytes(bytes: Uint8Array): void;
 	resize(cols: number, rows: number): void;
+	/**
+	 * Forward the renderer's "I consumed N bytes" ack to the daemon's flow-
+	 * control counter for the primary subscription on this session.
+	 */
+	ackOutput(bytes: number): void;
 	kill(signal?: NodeJS.Signals): Promise<void>;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
@@ -94,6 +99,13 @@ function makeDaemonPty(
 				daemon.resize(sessionId, cols, rows);
 			} catch {
 				// Daemon may have disconnected; surface via the next op.
+			}
+		},
+		ackOutput(bytes) {
+			try {
+				daemon.ackOutput(sessionId, bytes);
+			} catch {
+				// Daemon may have disconnected; reconnect path handles recovery.
 			}
 		},
 		kill(signal) {
@@ -160,6 +172,7 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
+	| { type: "output-ack"; bytes: number }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -194,12 +207,8 @@ type TerminalSocket = {
 // Scanner logic lives in @superset/shared/shell-ready-scanner.
 // ---------------------------------------------------------------------------
 
-/**
- * How long to wait for the shell-ready marker before unblocking writes.
- * 15 s covers heavy setups like Nix-based devenv via direnv. On timeout
- * buffered writes flush immediately (same behaviour as before this feature).
- */
-const SHELL_READY_TIMEOUT_MS = 15_000;
+/** Flush partial OSC 133;A prefix bytes the scanner is holding if a full marker never arrives. */
+const SHELL_READY_TIMEOUT_MS = 3_000;
 
 /**
  * Shell readiness lifecycle:
@@ -780,11 +789,9 @@ function queueInitialCommand(
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
-	session.shellReadyPromise.then(() => {
-		if (!session.exited) {
-			session.pty.write(cmd);
-		}
-	});
+	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
+	// and gating turned broken/missing markers into a guaranteed stall.
+	session.pty.write(cmd);
 }
 
 interface DaemonCloseResult {
@@ -988,7 +995,6 @@ interface CreateTerminalSessionOptions {
 	themeType?: "dark" | "light";
 	db: HostDb;
 	eventBus?: EventBus;
-	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
@@ -1274,7 +1280,7 @@ export async function createTerminalSessionInternal({
 
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
-		{ replay: replayOnAdoption },
+		{ replay: replayOnAdoption, flowControl: true },
 		{
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
@@ -1590,6 +1596,11 @@ export function registerWorkspaceTerminalRoute({
 
 					const session = sessions.get(terminalId ?? "");
 					if (!session || !session.sockets.has(ws)) return;
+
+					if (message.type === "output-ack") {
+						session.pty.ackOutput(message.bytes);
+						return;
+					}
 
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);

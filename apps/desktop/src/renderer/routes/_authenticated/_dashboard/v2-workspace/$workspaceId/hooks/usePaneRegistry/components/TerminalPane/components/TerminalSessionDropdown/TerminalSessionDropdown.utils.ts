@@ -10,3 +10,17 @@ export function getTerminalSessionListRefetchInterval(
 ): false | number {
 	return isOpen ? TERMINAL_SESSION_LIST_REFETCH_INTERVAL_MS : false;
 }
+
+export function getTerminalDisplayTitle({
+	titleOverride,
+	runtimeTitle,
+	sessionTitle,
+}: {
+	titleOverride?: string;
+	runtimeTitle?: string | null;
+	sessionTitle?: string | null;
+}): string {
+	// Explicit pane titles come from user/preset labels, so they should not be
+	// hidden by transient shell-reported titles such as "zsh" or "Terminal".
+	return titleOverride ?? runtimeTitle ?? sessionTitle ?? "Terminal";
+}

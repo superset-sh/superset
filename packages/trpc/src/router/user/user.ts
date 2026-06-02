@@ -52,6 +52,15 @@ export const userRouter = {
 			return updatedUser;
 		}),
 
+	completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+		const [updatedUser] = await db
+			.update(users)
+			.set({ onboardedAt: new Date() })
+			.where(eq(users.id, ctx.session.user.id))
+			.returning();
+		return updatedUser;
+	}),
+
 	uploadAvatar: protectedProcedure
 		.input(
 			z.object({

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { requestPaneClose } from "renderer/stores/editor-state/editorCoordinator";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 // ---------------------------------------------------------------------------
@@ -142,6 +143,26 @@ export function usePersistentWebview({
 					if (!tab) return;
 					state.openInBrowserPane(tab.workspaceId, url);
 				}
+			},
+		},
+	);
+
+	electronTrpc.browser.onClosePane.useSubscription(
+		{ paneId },
+		{
+			onData: () => {
+				requestPaneClose(paneId);
+			},
+		},
+	);
+
+	// Look up via webviewRegistry, not a captured ref — the registry may have
+	// re-registered the underlying webContents since this hook ran.
+	electronTrpc.browser.onReloadPane.useSubscription(
+		{ paneId },
+		{
+			onData: () => {
+				webviewRegistry.get(paneId)?.reload();
 			},
 		},
 	);

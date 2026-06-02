@@ -1,8 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { NOTIFY_SCRIPT_MARKER } from "./notify-hook";
 
 describe("getNotifyScriptContent", () => {
+	it("bumps the notify hook marker when hook semantics change", () => {
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v3");
+	});
+
 	it("emits the v2 host-service payload with full agent identity", () => {
 		const script = readFileSync(
 			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
@@ -41,9 +46,10 @@ describe("getNotifyScriptContent", () => {
 			'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then',
 		);
 		expect(script).toContain(
-			'[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && exit 0',
+			'[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0',
 		);
 		expect(script).toContain("/hook/complete");
+		expect(script).toContain("terminalId=$SUPERSET_TERMINAL_ID");
 		expect(script).toContain("SUPERSET_TAB_ID");
 		expect(script).toContain("SUPERSET_PANE_ID");
 	});
@@ -71,6 +77,7 @@ describe("per-agent hook scripts dispatch to v2", () => {
 			expect(script).toContain("/hook/complete");
 			expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
 			expect(script).toContain("eventType=$V1_EVENT_TYPE");
+			expect(script).toContain("terminalId=$SUPERSET_TERMINAL_ID");
 			expect(script).toContain("SUPERSET_TAB_ID");
 			expect(script).toContain("SUPERSET_PANE_ID");
 		});

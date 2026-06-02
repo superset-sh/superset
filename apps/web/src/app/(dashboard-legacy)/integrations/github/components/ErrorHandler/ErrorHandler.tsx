@@ -11,6 +11,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 	installation_fetch_failed:
 		"Failed to fetch installation details. Please try again.",
 	save_failed: "Failed to save installation. Please try again.",
+	already_connected:
+		"This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again.",
 	unexpected: "Something went wrong. Please try again.",
 };
 

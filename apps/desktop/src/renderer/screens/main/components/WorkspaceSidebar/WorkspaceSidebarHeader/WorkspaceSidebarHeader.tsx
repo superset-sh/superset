@@ -96,7 +96,7 @@ export function WorkspaceSidebarHeader({
 							/>
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="right">Issues & PRs</TooltipContent>
+					<TooltipContent side="right">Tasks & PRs</TooltipContent>
 				</Tooltip>
 
 				<NewWorkspaceButton isCollapsed />
@@ -139,7 +139,7 @@ export function WorkspaceSidebarHeader({
 					/>
 				</div>
 				<span className="text-sm font-medium flex-1 text-left">
-					Issues & PRs
+					Tasks & PRs
 				</span>
 			</button>
 

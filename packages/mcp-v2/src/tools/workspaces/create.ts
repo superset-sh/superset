@@ -79,7 +79,6 @@ export function register(server: McpServer): void {
 					| { ok: false; error: string }
 				>;
 				alreadyExists: boolean;
-				warnings: string[];
 			}>(
 				{
 					relayUrl: ctx.relayUrl,
