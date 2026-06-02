@@ -12,8 +12,10 @@ describe("buildAgentPromptCommand", () => {
 			agent: "codex",
 		});
 
-		expect(command).toContain(
-			"codex --dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+		// Commands are wrapped in `bash -c '...'` so fish/zsh users can run
+		// the bash-only heredoc syntax. Single quotes inside become `'\''`.
+		expect(command).toStartWith(
+			"bash -c 'codex --dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'\\''SUPERSET_PROMPT_12345678'\\''",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
@@ -26,7 +28,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toStartWith(
-			"claude --permission-mode acceptEdits \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
+			"bash -c 'claude --permission-mode acceptEdits \"$(cat <<'\\''SUPERSET_PROMPT_abcdefgh'\\''",
 		);
 	});
 
@@ -37,7 +39,9 @@ describe("buildAgentPromptCommand", () => {
 			agent: "amp",
 		});
 
-		expect(command).toStartWith("amp <<'SUPERSET_PROMPT_amp1234'");
+		expect(command).toStartWith(
+			"bash -c 'amp <<'\\''SUPERSET_PROMPT_amp1234'\\''",
+		);
 		expect(command).not.toContain("amp -x");
 	});
 
@@ -57,7 +61,9 @@ describe("buildAgentPromptCommand", () => {
 			agent: "pi",
 		});
 
-		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
+		expect(command).toStartWith(
+			"bash -c 'pi \"$(cat <<'\\''SUPERSET_PROMPT_pi1234'\\''",
+		);
 		expect(command).not.toContain("pi -p");
 	});
 });
