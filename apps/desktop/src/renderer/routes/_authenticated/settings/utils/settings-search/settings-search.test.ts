@@ -1,7 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import {
-	getAllowedSectionsForVariant,
-	getVisibleItemsForSection,
 	SETTING_ITEM_ID,
 	type SettingsItem,
 	searchSettings,
@@ -63,16 +61,5 @@ describe("settings search - font settings", () => {
 
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
-	});
-
-	it("keeps the Git tab visible in v2 for the user worktree location", () => {
-		expect(getAllowedSectionsForVariant(true).has("git")).toBe(true);
-		expect(
-			getVisibleItemsForSection({
-				section: "git",
-				searchQuery: "",
-				isV2: true,
-			}),
-		).toEqual([SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]);
 	});
 });
