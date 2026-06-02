@@ -172,6 +172,7 @@ export function TabItem<TData>({
 									</span>
 								)}
 								<Button
+									aria-label="Close tab"
 									className={cn(
 										"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
 										isActive ? "hover:bg-foreground/10" : "hover:bg-muted",
