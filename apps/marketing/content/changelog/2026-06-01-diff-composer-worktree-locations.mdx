@@ -1,0 +1,41 @@
+---
+title: Diff agent composer & configurable worktree locations
+date: 2026-06-01
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot of the inline diff composer in action */}
+
+## Inline diff agent composer <PRBadge url="https://github.com/superset-sh/superset/pull/4966" />
+
+You can now send prompts to a running agent directly from the diff view. Drag across line numbers (or click the gutter `+` button) to select a range, pick an active terminal agent, and hit **Comment** — the agent receives your message with the selected lines as context.
+
+- Works with any active terminal agent session; pick from a dropdown or start a new one
+- Supports single lines and multi-line ranges, including deletions and mixed selections
+- Keyboard shortcuts: Esc to dismiss, Cmd/Ctrl+Enter to submit
+- Terminal pane icons now reflect which agent is running <PRBadge url="https://github.com/superset-sh/superset/pull/4901" />
+
+## Configurable worktree locations & branch prefixes <PRBadge url="https://github.com/superset-sh/superset/pull/4887" />
+
+You can now control where v2 workspace worktrees are created and how new branches are named — at the global, host, or per-project level.
+
+- **Worktree location**: override the default `~/.superset/worktrees` globally, per host, or per project
+- **Branch prefixes**: choose between none, GitHub username, author name, or a custom prefix
+- Settings live under **Settings → Git** and in each project's settings; remote path picker for cloud hosts
+
+## Improvements
+
+- **Run tab reuse** — triggering a run now reuses the existing Run tab instead of opening a new one <PRBadge url="https://github.com/superset-sh/superset/pull/4960" />
+- **Lower EU latency** — the relay now reads tunnel directory entries from regional replicas instead of the primary, reducing cross-region routing latency <PRBadge url="https://github.com/superset-sh/superset/pull/5019" />
+
+---
+
+**Bug fixes**
+
+- Security: reject OAuth tokens from untrusted clients on tRPC <PRBadge url="https://github.com/superset-sh/superset/pull/5018" />
+- Security: enforce chat session ownership on `/api/chat` routes (IDOR) <PRBadge url="https://github.com/superset-sh/superset/pull/5017" />
+- Terminal preset launches repaired — no longer blocked on OSC 133;A marker <PRBadge url="https://github.com/superset-sh/superset/pull/4963" /> <PRBadge url="https://github.com/superset-sh/superset/pull/4926" />
+- Right-click no longer closes terminal/CLI tab <PRBadge url="https://github.com/superset-sh/superset/pull/4968" />
+- Terminal clipboard now decodes as UTF-8 correctly <PRBadge url="https://github.com/superset-sh/superset/pull/4983" />
+- Invoice access preserved after billing downgrade <PRBadge url="https://github.com/superset-sh/superset/pull/4995" />
+- DiffPane comment composer now opens on pointer-up <PRBadge url="https://github.com/superset-sh/superset/pull/4977" />
