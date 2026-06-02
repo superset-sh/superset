@@ -162,6 +162,7 @@ mock.module("@superset/db/seed-default-statuses", () => ({
 
 mock.module("@superset/db/utils", () => ({
 	getCurrentTxid: getCurrentTxidMock,
+	findOrgMembership: mock(async () => null),
 }));
 
 mock.module("@superset/shared/task-slug", () => ({
@@ -173,6 +174,7 @@ mock.module("drizzle-orm", () => ({
 	and: (...conditions: unknown[]) => ({ type: "and", conditions }),
 	desc: (value: unknown) => ({ type: "desc", value }),
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
+	ne: (left: unknown, right: unknown) => ({ type: "ne", left, right }),
 	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
 	sql: Object.assign(
