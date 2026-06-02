@@ -46,7 +46,38 @@ superset agents list --local                     # Same, for this machine
 superset agents run --workspace <id> --agent claude --prompt "..."
 ```
 
-`--agent` accepts a preset id (e.g. `claude`, `codex`) or a HostAgentConfig instance UUID. Pass `--attachment-id <uuid>` once per attachment. Use `agents list` first if you don't already know which agents are installed on the target host.
+`--agent` accepts a preset id (e.g. `claude`, `codex`), a HostAgentConfig instance UUID, or `superset` for a built-in Superset chat session. Pass `--attachment-id <uuid>` once per attachment. Use `agents list` first if you don't already know which agents are installed on the target host.
+
+`agents run --json` returns `{ kind, sessionId, label }`. `kind` is `chat` (the `superset` agent) or `terminal` (e.g. `claude`, `codex`) — you need it to build a session deep link (see [Opening sessions in the desktop app](#opening-sessions-in-the-desktop-app)).
+
+## Opening sessions in the desktop app
+
+`superset workspaces open <id>` opens a **workspace** in the desktop app — it fires the deep link `superset://v2-workspace/<id>`; add `--print` to print the URL instead.
+
+```bash
+superset workspaces open <workspace-id>
+superset workspaces open <workspace-id> --print
+```
+
+A session you start with `agents run` syncs to the desktop app but has **no pane** in the workspace view until you navigate to it, and there is no session list — so a freshly created session is effectively invisible until opened. `workspaces open` targets only the workspace and cannot focus a session, so build the deep link yourself and append a query param chosen by the session `kind`:
+
+| `kind` (from `agents run --json`) | Agents | Deep-link param |
+| --- | --- | --- |
+| `chat` | `superset` | `?chatSessionId=<sessionId>` |
+| `terminal` | `claude`, `codex` | `?terminalId=<sessionId>` |
+
+```bash
+# chat session (agent: superset)
+open "superset://v2-workspace/<workspace-id>?chatSessionId=<sessionId>"
+
+# terminal session (agent: claude, codex, …)
+open "superset://v2-workspace/<workspace-id>?terminalId=<sessionId>"
+
+# from inside a workspace, open your own terminal via the env vars
+open "superset://v2-workspace/$SUPERSET_WORKSPACE_ID?terminalId=$SUPERSET_TERMINAL_ID"
+```
+
+Add `&focusRequestId=<unique>` to force a re-focus when opening the same link repeatedly. The session must belong to the workspace in the URL. On Linux/Windows use your platform's URL opener (`xdg-open`, `start`) instead of `open`.
 
 ## Tasks
 
