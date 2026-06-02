@@ -1,24 +1,10 @@
-import { spawn } from "node:child_process";
-import { boolean, CLIError, positional } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-
-function openUrl(url: string): Promise<void> {
-	const [bin, args]: [string, string[]] =
-		process.platform === "darwin"
-			? ["open", [url]]
-			: process.platform === "win32"
-				? ["cmd", ["/c", "start", "", url]]
-				: ["xdg-open", [url]];
-
-	return new Promise((resolve, reject) => {
-		const child = spawn(bin, args, { stdio: "ignore", detached: true });
-		child.once("error", reject);
-		child.once("spawn", () => {
-			child.unref();
-			resolve();
-		});
-	});
-}
+import {
+	openUrl,
+	sessionDeepLink,
+	workspaceDeepLink,
+} from "../../../lib/deep-link";
 
 export default command({
 	description: "Open a workspace in the Superset desktop app",
@@ -27,12 +13,24 @@ export default command({
 		print: boolean().desc(
 			"Print the deep link URL instead of opening the desktop app",
 		),
+		chatSession: string().desc(
+			"Open and focus a chat session (Superset agent) by id",
+		),
+		terminalSession: string().desc(
+			"Open and focus a terminal session (claude, codex, …) by id",
+		),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
+		}
+
+		if (options.chatSession && options.terminalSession) {
+			throw new CLIError(
+				"Pass only one of --chat-session or --terminal-session",
+			);
 		}
 
 		const workspace = await ctx.api.v2Workspace.getFromHost.query({
@@ -46,7 +44,11 @@ export default command({
 			);
 		}
 
-		const url = `superset://v2-workspace/${workspace.id}`;
+		const url = options.chatSession
+			? sessionDeepLink(workspace.id, "chat", options.chatSession)
+			: options.terminalSession
+				? sessionDeepLink(workspace.id, "terminal", options.terminalSession)
+				: workspaceDeepLink(workspace.id);
 
 		if (!options.print) {
 			try {

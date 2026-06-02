@@ -1,5 +1,6 @@
-import { CLIError, string } from "@superset/cli-framework";
+import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { openUrl, sessionDeepLink } from "../../../lib/deep-link";
 import { resolveHostTarget } from "../../../lib/host-target";
 import { uploadAttachments } from "../../../lib/upload-attachments";
 
@@ -21,6 +22,9 @@ export default command({
 			.desc(
 				"Local file path to upload as an attachment to the host. Repeatable",
 			),
+		open: boolean().desc(
+			"Open the launched session in the Superset desktop app",
+		),
 	},
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
@@ -54,13 +58,32 @@ export default command({
 			attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 		});
 
+		const url = sessionDeepLink(
+			options.workspace,
+			result.kind,
+			result.sessionId,
+		);
+
+		if (options.open) {
+			try {
+				await openUrl(url);
+			} catch (err) {
+				throw new CLIError(
+					"Failed to open desktop app",
+					err instanceof Error ? err.message : String(err),
+				);
+			}
+		}
+
 		const sessionDescriptor =
 			result.kind === "chat"
 				? `chat session ${result.sessionId}`
 				: `terminal ${result.sessionId}`;
 		return {
-			data: result,
-			message: `Launched ${result.label} (${sessionDescriptor}) in workspace ${options.workspace}`,
+			data: { ...result, url },
+			message: options.open
+				? `Launched ${result.label} (${sessionDescriptor}) and opening in Superset desktop`
+				: `Launched ${result.label} (${sessionDescriptor}) in workspace ${options.workspace}`,
 		};
 	},
 });
