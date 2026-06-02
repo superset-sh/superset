@@ -3,7 +3,7 @@ import {
 	TOOL_CALL_MD_CLASSNAME,
 } from "@superset/ui/ai-elements/message";
 import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
-import { BotIcon } from "lucide-react";
+import { BotIcon, TerminalIcon } from "lucide-react";
 import { useMemo } from "react";
 import { SubagentInnerToolCall } from "renderer/components/Chat/components/SubagentInnerToolCall";
 import type { ToolPart } from "../../../../utils/tool-helpers";
@@ -22,6 +22,16 @@ function asString(value: unknown): string | null {
 	if (typeof value !== "string") return null;
 	const trimmed = value.trim();
 	return trimmed.length > 0 ? trimmed : null;
+}
+
+function formatDuration(ms: number): string {
+	if (!Number.isFinite(ms) || ms < 0) return "";
+	if (ms < 1000) return `${Math.round(ms)}ms`;
+	const seconds = ms / 1000;
+	if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+	const minutes = Math.floor(seconds / 60);
+	const remainder = Math.round(seconds % 60);
+	return `${minutes}m ${remainder}s`;
 }
 
 export function SubagentToolCall({
@@ -45,13 +55,36 @@ export function SubagentToolCall({
 	const hasDetails =
 		task.length > 0 || parsed.text.length > 0 || parsed.tools.length > 0;
 
-	// Title: "Agent" (foreground) — agentType goes in description (muted)
+	// Title: a "TASK" badge + "Agent {type}", matching the inspector card.
 	const titleNode = (
-		<span className="shrink-0 font-medium text-xs">
-			<span className="text-foreground">Agent</span>{" "}
+		<span className="flex shrink-0 items-center gap-1.5 font-medium text-xs">
+			<span className="rounded border border-sky-500/40 px-1 py-px font-semibold text-[9px] text-sky-400 uppercase tracking-wide">
+				Task
+			</span>
+			<span className="text-foreground">Agent</span>
 			<span className="text-muted-foreground">{agentType}</span>
 		</span>
 	);
+
+	const toolCallLabel = `${parsed.tools.length} tool call${
+		parsed.tools.length === 1 ? "" : "s"
+	}`;
+
+	// Surface the subagent's model + run duration (parsed from <subagent-meta>),
+	// matching the agent-inspector subagent card.
+	const durationLabel =
+		typeof parsed.durationMs === "number"
+			? formatDuration(parsed.durationMs)
+			: "";
+	const metaBits = [parsed.modelId, durationLabel].filter(
+		(bit): bit is string => Boolean(bit),
+	);
+	const headerExtra =
+		metaBits.length > 0 ? (
+			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
+				{metaBits.join(" · ")}
+			</span>
+		) : undefined;
 
 	return (
 		<ToolCallRow
@@ -59,6 +92,7 @@ export function SubagentToolCall({
 			isError={isError}
 			isPending={isPending}
 			title={titleNode}
+			headerExtra={headerExtra}
 		>
 			{hasDetails ? (
 				<div className="space-y-2 pl-2 text-xs">
@@ -72,6 +106,12 @@ export function SubagentToolCall({
 					</MessageResponse>
 					{parsed.tools.length > 0 ? (
 						<div className="space-y-1">
+							<div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+								<TerminalIcon className="size-3 shrink-0" />
+								<span className="font-medium">Execution Trace</span>
+								<span className="opacity-50">·</span>
+								<span>{toolCallLabel}</span>
+							</div>
 							{parsed.tools.map((tool, index) => (
 								<SubagentInnerToolCall
 									key={`${tool.name}-${index}`}
