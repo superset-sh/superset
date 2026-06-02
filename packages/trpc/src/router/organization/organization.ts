@@ -230,6 +230,34 @@ export const organizationRouter = {
 					role: "owner",
 				});
 
+				// Mirror better-auth's `afterCreateOrganization` hook: orgs created
+				// through this procedure (e.g. a user's 2nd org created from the app)
+				// must get a Stripe customer too. Without it the org's
+				// `stripeCustomerId` stays null and a later upgrade can't resolve a
+				// checkout customer, so the upgrade page never opens (#5048).
+				if (process.env.NODE_ENV !== "development") {
+					try {
+						const customer = await stripeClient.customers.create({
+							name: organization.name,
+							email: ctx.session.user.email,
+							metadata: {
+								organizationId: organization.id,
+								organizationSlug: organization.slug,
+							},
+						});
+
+						await db
+							.update(organizations)
+							.set({ stripeCustomerId: customer.id })
+							.where(eq(organizations.id, organization.id));
+					} catch (error) {
+						console.error(
+							"[org/create] Failed to create Stripe customer:",
+							error,
+						);
+					}
+				}
+
 				await seedDefaultStatuses(organization.id);
 			}
 
