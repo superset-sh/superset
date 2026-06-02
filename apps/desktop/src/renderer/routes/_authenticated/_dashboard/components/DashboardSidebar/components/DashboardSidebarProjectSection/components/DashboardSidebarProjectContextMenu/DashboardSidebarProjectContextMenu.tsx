@@ -64,6 +64,7 @@ export function DashboardSidebarProjectContextMenu({
 					<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
 						<ColorSelector
 							variant="menu"
+							includeDefault
 							selectedColor={projectColor}
 							onSelectColor={onSetColor}
 						/>
