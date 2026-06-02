@@ -107,7 +107,7 @@ interface RuntimeSession {
 	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
 	lastErrorMessage: string | null;
-	pendingSandboxQuestion: PendingSandboxQuestion | null;
+	pendingSandboxQuestions: PendingSandboxQuestion[];
 	answeredQuestionIds: Set<string>;
 	pendingQuestionResponses: Map<string, Promise<RuntimeQuestionResult>>;
 }
@@ -121,13 +121,17 @@ function respondToQuestionWithOptimisticState(
 	if (pendingResponse) return pendingResponse;
 
 	const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
-	const previousSandboxQuestion = runtime.pendingSandboxQuestion;
-	const clearsSandboxQuestion =
-		previousSandboxQuestion?.questionId === questionId;
+	const sandboxQuestionIndex = runtime.pendingSandboxQuestions.findIndex(
+		(question) => question.questionId === questionId,
+	);
+	const clearsSandboxQuestion = sandboxQuestionIndex !== -1;
+	const removedSandboxQuestion = clearsSandboxQuestion
+		? runtime.pendingSandboxQuestions[sandboxQuestionIndex]
+		: null;
 
 	runtime.answeredQuestionIds.add(questionId);
 	if (clearsSandboxQuestion) {
-		runtime.pendingSandboxQuestion = null;
+		runtime.pendingSandboxQuestions.splice(sandboxQuestionIndex, 1);
 	}
 
 	let responsePromise: Promise<RuntimeQuestionResult>;
@@ -140,8 +144,18 @@ function respondToQuestionWithOptimisticState(
 				if (!wasAlreadyAnswered) {
 					runtime.answeredQuestionIds.delete(questionId);
 				}
-				if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
-					runtime.pendingSandboxQuestion = previousSandboxQuestion;
+				if (
+					clearsSandboxQuestion &&
+					removedSandboxQuestion &&
+					!runtime.pendingSandboxQuestions.some(
+						(question) => question.questionId === questionId,
+					)
+				) {
+					runtime.pendingSandboxQuestions.splice(
+						sandboxQuestionIndex,
+						0,
+						removedSandboxQuestion,
+					);
 				}
 			}
 			throw error;
@@ -389,24 +403,36 @@ export class ChatRuntimeManager {
 			}
 
 			if (isHarnessSandboxAccessRequestEvent(event)) {
-				runtime.pendingSandboxQuestion = {
-					questionId: event.questionId,
-					path: event.path,
-					reason: event.reason,
-				};
+				// The harness can emit a separate request per directory in a single
+				// turn. Queue each one so they are surfaced sequentially; a single
+				// slot would drop all but the last and stall the session waiting on
+				// the unanswered requests.
+				const alreadyQueued = runtime.pendingSandboxQuestions.some(
+					(question) => question.questionId === event.questionId,
+				);
+				if (
+					!alreadyQueued &&
+					!runtime.answeredQuestionIds.has(event.questionId)
+				) {
+					runtime.pendingSandboxQuestions.push({
+						questionId: event.questionId,
+						path: event.path,
+						reason: event.reason,
+					});
+				}
 				return;
 			}
 
 			if (isObjectRecord(event) && event.type === "agent_start") {
 				runtime.lastErrorMessage = null;
-				runtime.pendingSandboxQuestion = null;
+				runtime.pendingSandboxQuestions = [];
 				runtime.answeredQuestionIds.clear();
 				runtime.pendingQuestionResponses.clear();
 				return;
 			}
 
 			if (isObjectRecord(event) && event.type === "agent_end") {
-				runtime.pendingSandboxQuestion = null;
+				runtime.pendingSandboxQuestions = [];
 				runtime.answeredQuestionIds.clear();
 				runtime.pendingQuestionResponses.clear();
 			}
@@ -481,7 +507,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			mcpManager: runtime.mcpManager,
 			hookManager: runtime.hookManager,
 			lastErrorMessage: null,
-			pendingSandboxQuestion: null,
+			pendingSandboxQuestions: [],
 			answeredQuestionIds: new Set(),
 			pendingQuestionResponses: new Map(),
 		};
@@ -600,11 +626,17 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			!runtime.answeredQuestionIds.has(displayState.pendingQuestion.questionId)
 				? displayState.pendingQuestion
 				: null;
-		const sandboxPendingQuestion = runtime.pendingSandboxQuestion
+		// Surface the first queued sandbox request that hasn't been answered yet,
+		// so multiple directory requests from one turn are resolved one at a time.
+		const nextSandboxQuestion =
+			runtime.pendingSandboxQuestions.find(
+				(question) => !runtime.answeredQuestionIds.has(question.questionId),
+			) ?? null;
+		const sandboxPendingQuestion = nextSandboxQuestion
 			? {
-					questionId: runtime.pendingSandboxQuestion.questionId,
-					question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
-					description: runtime.pendingSandboxQuestion.reason,
+					questionId: nextSandboxQuestion.questionId,
+					question: `Grant sandbox access to "${nextSandboxQuestion.path}"?`,
+					description: nextSandboxQuestion.reason,
 					options: [
 						{
 							label: "Yes",
