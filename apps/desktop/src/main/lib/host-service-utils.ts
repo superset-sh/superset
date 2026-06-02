@@ -5,11 +5,7 @@ import path from "node:path";
 /** Rotate per-org host-service.log once it exceeds this size. */
 export const MAX_HOST_LOG_BYTES = 5 * 1024 * 1024;
 
-// Must exceed the host-service's DB-migration budget (MIGRATION_BUSY_TIMEOUT_MS,
-// 8s) plus startup overhead: migrations run synchronously before the port binds,
-// so a recoverable lock stall delays the first successful health response. Too
-// tight and the coordinator SIGKILLs a host-service that was about to come up.
-export const HEALTH_POLL_TIMEOUT_MS = 20_000;
+export const HEALTH_POLL_TIMEOUT_MS = 10_000;
 
 const HEALTH_POLL_INTERVAL_MS = 200;
 
