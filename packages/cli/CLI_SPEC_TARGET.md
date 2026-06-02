@@ -500,22 +500,34 @@ Output:
 | `--assignee-me`, `-m` | Tasks assigned to current user. |
 | `--creator-me` | Tasks created by current user. |
 | `--search <query>`, `-s` | Substring search on title. |
-| `--limit <n>` | Default 50, max 200. |
+| `--limit <n>` | Total results to return; default 50. Auto-paginated under the hood (API caps each request at 500). |
 | `--offset <n>` | Default 0. |
+| `--all` | Fetch every result (ignores `--limit`). |
 
 All filters are sent to the API and respected. No silent-ignore.
 
 tRPC: `task.list` *(new — replaces `task.all` for the CLI; takes the filter
 input shape above)*.
 
-Output (array, raw):
+Output (`--json`): paginated envelope so consumers can detect when results
+were capped without a separate count query.
 
 ```ts
-Array<Task>
+{
+  data: Array<Task>;
+  pagination: {
+    returned: number;
+    limit: number | null;   // `null` when `--all` was set
+    offset: number;
+    hasMore: boolean;
+  };
+}
 ```
 
-Quiet: task IDs.
-Human: table with `SLUG, TITLE, STATUS, PRIORITY, ASSIGNEE`.
+Quiet: task IDs (one per line).
+Human: table with `SLUG, TITLE, PRIORITY, ASSIGNEE`, followed by a
+"Showing N result(s); more available — pass --offset … or a higher
+--limit for the rest." footer only when `hasMore` is true.
 
 ### `superset tasks get <idOrSlug>`
 

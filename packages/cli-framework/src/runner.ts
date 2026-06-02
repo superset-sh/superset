@@ -45,6 +45,31 @@ export async function run(opts: RunOptions): Promise<void> {
 	}
 }
 
+/**
+ * Write final command output to stdout, waiting for the write to drain
+ * before resolving.
+ *
+ * `console.log` of a large payload races the process exit: the binary can
+ * exit before an async write to a *pipe* finishes, truncating the output
+ * (a file redirect masks it because the write lands fast). Awaiting the
+ * `write` callback guarantees the bytes reached the OS before the command
+ * completes and the process is allowed to exit.
+ *
+ * Broken-pipe errors (consumer exited early, e.g. `… | head`) resolve
+ * cleanly — `console.log` swallowed them silently, and surfacing them as
+ * `Error: write EPIPE` is worse UX than the truncation we set out to fix.
+ */
+async function writeStdout(text: string): Promise<void> {
+	await new Promise<void>((resolve, reject) => {
+		process.stdout.write(`${text}\n`, (err) => {
+			if (!err) return resolve();
+			const code = (err as NodeJS.ErrnoException).code;
+			if (code === "EPIPE" || code === "ECONNRESET") return resolve();
+			reject(err);
+		});
+	});
+}
+
 function formatZodIssues(message: string): string | null {
 	const trimmed = message.trim();
 	if (!trimmed.startsWith("[")) return null;
@@ -355,6 +380,6 @@ async function execute(
 			json: isJson,
 			quiet: isQuiet,
 		});
-		if (output) console.log(output);
+		if (output) await writeStdout(output);
 	}
 }

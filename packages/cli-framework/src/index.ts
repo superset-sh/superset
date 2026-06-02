@@ -17,7 +17,8 @@ export type {
 	TypeOf,
 } from "./option";
 export { boolean, number, positional, string } from "./option";
-export { formatOutput, table } from "./output";
+export type { OutputFlags, PaginatedResult, Pagination } from "./output";
+export { formatOutput, paginated, table } from "./output";
 export { camelToKebab, isAgentMode, parseArgv } from "./parser";
 export type { CommandsPluginOptions } from "./plugin";
 export { createCommandsPlugin } from "./plugin";
