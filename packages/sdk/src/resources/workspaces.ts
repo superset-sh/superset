@@ -36,7 +36,9 @@ export class Workspaces extends APIResource {
 	 * runs `agents.run` once per entry against the freshly-created workspace).
 	 *
 	 * The host service must be running and reachable via the relay tunnel.
-	 * Provide exactly one of `branch` or `pr`.
+	 * Provide exactly one of `branch` or `pr`, or pass `worktreePath` to
+	 * adopt an existing git worktree already on disk (created by some other
+	 * tool, e.g. an external `git worktree add`).
 	 */
 	create(
 		params: WorkspaceCreateParams,
@@ -51,6 +53,7 @@ export class Workspaces extends APIResource {
 				branch: params.branch,
 				pr: params.pr,
 				baseBranch: params.baseBranch,
+				worktreePath: params.worktreePath,
 				taskId: params.taskId,
 				agents: params.agents,
 			},
@@ -166,6 +169,12 @@ export interface WorkspaceCreateParams {
 	pr?: number;
 	/** Branch to fork from when `branch` does not exist. Ignored with `pr`. */
 	baseBranch?: string;
+	/**
+	 * Absolute path to an existing git worktree to adopt instead of creating
+	 * one. When set, the server reads the current branch from git at this
+	 * path; `branch` is caller context only. Cannot be combined with `pr`.
+	 */
+	worktreePath?: string;
 	/** Optional Superset task id to link to the new workspace. */
 	taskId?: string;
 	/** Spawn one or more agents in the workspace immediately after creation. */
