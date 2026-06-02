@@ -159,9 +159,14 @@ class TerminalRuntimeRegistryImpl {
 		}
 
 		const { runtime, transport } = entry;
-		attachToContainer(runtime, container, () => {
-			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
-		});
+		attachToContainer(
+			runtime,
+			container,
+			() => {
+				sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
+			},
+			{ focus: false },
+		);
 	}
 
 	/**
