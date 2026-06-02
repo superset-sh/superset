@@ -223,6 +223,13 @@ export const organizationRouter = {
 				},
 			});
 
+			if (!organization) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create organization",
+				});
+			}
+
 			return organization;
 		}),
 
