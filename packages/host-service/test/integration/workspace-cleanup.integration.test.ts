@@ -4,6 +4,7 @@ import {
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	renameSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -359,6 +360,50 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(worktreeList).not.toContain(scenario.worktreePath);
 		const branches = await scenario.repo.git.branchLocal();
 		expect(branches.all).not.toContain(scenario.branch);
+	});
+
+	test("deregistered worktree whose directory lingers is removed without error", async () => {
+		// Reproduce the >50% deletion failure: something deregistered the
+		// worktree from git's metadata (a concurrent `git worktree prune` from
+		// workspaces.create, or a prior partial delete) while the directory
+		// stayed on disk. `git worktree remove` then fails permanently with
+		// "is not a working tree". Simulate by pruning the metadata while the
+		// directory is briefly moved aside, then restoring the directory.
+		const stash = `${scenario.worktreePath}.stash`;
+		renameSync(scenario.worktreePath, stash);
+		await scenario.repo.git.raw(["worktree", "prune"]);
+		renameSync(stash, scenario.worktreePath);
+
+		// Precondition: git no longer registers the path, but it exists on disk.
+		const before = await scenario.repo.git.raw([
+			"worktree",
+			"list",
+			"--porcelain",
+		]);
+		expect(before).not.toContain(scenario.worktreePath);
+		expect(existsSync(scenario.worktreePath)).toBe(true);
+
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			deleteBranch: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(result.branchDeleted).toBe(true);
+		expect(result.warnings).toEqual([]);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+		expect(
+			scenario.host.apiCalls.some(
+				(c) => c.path === "v2Workspace.delete.mutate",
+			),
+		).toBe(true);
+
+		const remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(0);
 	});
 
 	test("cloud delete failure after local removal keeps row so delete can retry", async () => {
