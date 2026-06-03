@@ -250,9 +250,10 @@ export function attachToContainer(
 	runtime: TerminalRuntime,
 	container: HTMLDivElement,
 	onResize?: () => void,
+	options: { focus?: boolean } = {},
 ) {
 	// If we're already attached to this exact container, do nothing. Prevents
-	// redundant refresh/focus/fit from transient remounts during provider key
+	// redundant refresh/fit from transient remounts during provider key
 	// churn — VSCode setVisible() is idempotent for the same host element.
 	const sameContainer =
 		runtime.container === container &&
@@ -280,7 +281,9 @@ export function attachToContainer(
 	runtime.resizeObserver = observer;
 	runtime._disposeResizeObserver = scheduler.dispose;
 
-	runtime.terminal.focus();
+	if (options.focus !== false) {
+		runtime.terminal.focus();
+	}
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {

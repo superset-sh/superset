@@ -542,12 +542,15 @@ List workspaces accessible to the active organization. With neither
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
 		{ flag: "--agent <preset|uuid|superset>", description: "Agent to spawn after creation." },
 		{ flag: "--prompt <text>", description: "Initial prompt. Required when `--agent` is set." },
+		{ flag: "--command <cmd>", description: "Shell command to run in the new workspace after creation." },
 		{ flag: "--attachment <path>", description: "Local file to upload for the spawned agent. Repeatable." },
 	]}
 	output="Workspace"
 >
 Create a workspace on the target host. Specify exactly one of `--branch`
-or `--pr`. If you pass `--agent`, you must also pass `--prompt`.
+or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
+runs a one-off shell command in the worktree and is independent of
+`--agent`/`--prompt` — pass either or both.
 
 ```bash
 superset workspaces create \
@@ -664,9 +667,9 @@ superset agents list --host host_…
 </Command>
 
 <Command
-	name="superset agents run"
+	name="superset agents create"
 	options={[
-		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to run the agent in." },
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the agent session in." },
 		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
 		{ flag: "--prompt <text>", required: true, description: "Prompt sent to the agent." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
@@ -678,13 +681,42 @@ superset agents list --host host_…
   label: string;
 }`}
 >
-Launch an agent inside an existing workspace. Resolves the host that owns the
-workspace and starts the named preset (or HostAgentConfig instance) in a
+Create an agent session in an existing workspace. Resolves the host that owns
+the workspace and starts the named preset (or HostAgentConfig instance) in a
 fresh terminal session on that host.
 
 ```bash
-superset agents run --workspace ws_… --agent claude --prompt "Audit the login flow"
-superset agents run --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
+superset agents create --workspace ws_… --agent claude --prompt "Audit the login flow"
+superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
+```
+</Command>
+
+---
+
+### terminals (alias: `term`)
+
+Terminals are PTY sessions on a host, scoped to a workspace. Create one to run
+a one-off command in a worktree or to open an interactive shell.
+
+<Command
+	name="superset terminals create"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the terminal in." },
+		{ flag: "--command <cmd>", description: "Shell command to run in the terminal. Omit to open an interactive shell." },
+		{ flag: "--cwd <path>", description: "Working directory for the terminal. Defaults to the worktree." },
+	]}
+	output={`{
+  terminalId: string;
+  status: string;
+}`}
+>
+Create a terminal session in an existing workspace. Resolves the host that
+owns the workspace and opens a fresh PTY in the worktree, optionally running
+a command.
+
+```bash
+superset terminals create --workspace ws_… --command "bun install && bun test"
+superset terminals create --workspace ws_…
 ```
 </Command>
 

@@ -6,9 +6,9 @@ import { hostServiceCall } from "../../host-service-client";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
-		name: "agents_run",
+		name: "agents_create",
 		description:
-			"Launch an agent inside an existing workspace. Resolves the host that owns the workspace, then runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
+			"Create (launch) an agent session inside an existing workspace. Resolves the host that owns the workspace, then runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
 		inputSchema: {
 			workspaceId: z
 				.string()

@@ -66,11 +66,6 @@ interface DaemonPty {
 	 */
 	writeBytes(bytes: Uint8Array): void;
 	resize(cols: number, rows: number): void;
-	/**
-	 * Forward the renderer's "I consumed N bytes" ack to the daemon's flow-
-	 * control counter for the primary subscription on this session.
-	 */
-	ackOutput(bytes: number): void;
 	kill(signal?: NodeJS.Signals): Promise<void>;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
@@ -99,13 +94,6 @@ function makeDaemonPty(
 				daemon.resize(sessionId, cols, rows);
 			} catch {
 				// Daemon may have disconnected; surface via the next op.
-			}
-		},
-		ackOutput(bytes) {
-			try {
-				daemon.ackOutput(sessionId, bytes);
-			} catch {
-				// Daemon may have disconnected; reconnect path handles recovery.
 			}
 		},
 		kill(signal) {
@@ -172,7 +160,6 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
-	| { type: "output-ack"; bytes: number }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -187,6 +174,14 @@ type TerminalServerMessage =
 	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+// Cap on a single renderer socket's unflushed WebSocket send buffer. With no
+// ACK flow control, a renderer that stops draining (slow paint, pinned main
+// thread, dead tab) would let this buffer grow without bound → host OOM (the
+// risk #4868 was about). Once a socket blows past this, we drop it; the
+// renderer auto-reconnects and replays the bounded tail buffer. Crucially the
+// PTY is never paused, so a stalled renderer can't wedge the shell. Matches the
+// daemon's own 8 MB outbound socket cap.
+const WS_SEND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
@@ -196,10 +191,13 @@ const MIN_TERMINAL_COLS = 20;
 const MIN_TERMINAL_ROWS = 5;
 
 // `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
+// `raw` is the underlying `ws` WebSocket (present for node-ws); we read
+// `bufferedAmount` off it to bound a slow renderer's send queue.
 type TerminalSocket = {
 	send: (data: string | Uint8Array<ArrayBuffer>) => void;
 	close: (code?: number, reason?: string) => void;
 	readyState: number;
+	raw?: { readonly bufferedAmount?: number };
 };
 
 // ---------------------------------------------------------------------------
@@ -707,6 +705,11 @@ function sendBytes(socket: TerminalSocket, bytes: Uint8Array) {
 	socket.send(asArrayBufferBytes(bytes));
 }
 
+function socketBufferedAmount(socket: TerminalSocket): number {
+	const amount = socket.raw?.bufferedAmount;
+	return typeof amount === "number" ? amount : 0;
+}
+
 function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 	let sent = 0;
 	const tight = asArrayBufferBytes(bytes);
@@ -717,6 +720,19 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 				socket.readyState === SOCKET_CLOSED
 			) {
 				session.sockets.delete(socket);
+			}
+			continue;
+		}
+		// A renderer that can't keep up lets its send buffer grow without bound.
+		// Drop it past the cap rather than buffer forever; it reconnects and
+		// replays the tail. Returning this chunk as "not sent" routes it to the
+		// bounded replay buffer via the caller's broadcast-or-buffer check.
+		if (socketBufferedAmount(socket) > WS_SEND_BUFFER_CAP_BYTES) {
+			session.sockets.delete(socket);
+			try {
+				socket.close(1013, "terminal output back-pressure");
+			} catch {
+				// best-effort; close may race an already-closing socket
 			}
 			continue;
 		}
@@ -1280,7 +1296,7 @@ export async function createTerminalSessionInternal({
 
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
-		{ replay: replayOnAdoption, flowControl: true },
+		{ replay: replayOnAdoption },
 		{
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
@@ -1596,11 +1612,6 @@ export function registerWorkspaceTerminalRoute({
 
 					const session = sessions.get(terminalId ?? "");
 					if (!session || !session.sockets.has(ws)) return;
-
-					if (message.type === "output-ack") {
-						session.pty.ackOutput(message.bytes);
-						return;
-					}
 
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);

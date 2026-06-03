@@ -79,28 +79,11 @@ export interface SubscribeMessage {
 	id: string;
 	/** if true, replay buffered output before live streaming */
 	replay: boolean;
-	/**
-	 * Opt this subscription into byte-level ACK back-pressure. Daemon counts
-	 * unacked output bytes; when the count crosses the high watermark it
-	 * pauses the PTY, resuming once acks drop below the low watermark.
-	 */
-	flowControl?: boolean;
 }
 
 export interface UnsubscribeMessage {
 	type: "unsubscribe";
 	id: string;
-}
-
-/**
- * Subscriber tells the daemon it has consumed `bytes` of output for this
- * session. Drives the flow-control counter; only meaningful when the
- * subscription was opened with `flowControl: true`.
- */
-export interface AckOutputMessage {
-	type: "ack-output";
-	id: string;
-	bytes: number;
 }
 
 /**
@@ -175,7 +158,6 @@ export type ClientMessage =
 	| ListMessage
 	| SubscribeMessage
 	| UnsubscribeMessage
-	| AckOutputMessage
 	| PrepareUpgradeMessage;
 
 export type ServerMessage =

@@ -14,14 +14,14 @@ If the CLI is not installed, you can install it using `curl -fsSL https://supers
 
 1. **Pick a project and host**: `superset projects list` and `superset hosts list`.
 2. **Create a Workspace**: `superset workspaces create --project <id> --host <id> --name "..." --branch <branch>` (or `--pr <number>`, or `--local` instead of `--host`).
-3. **Spawn an agent**: `superset agents run --workspace <id> --agent claude --prompt "..."`.
+3. **Spawn an agent**: `superset agents create --workspace <id> --agent claude --prompt "..."`.
 4. **Plan work**: `superset tasks create --title "..."` then `tasks update <id-or-slug>` as work progresses.
 
 ## Runtime Context
 
 When invoked from inside a Superset workspace or terminal, these environment variables are set and can provide you with context about your session:
 
-- `$SUPERSET_WORKSPACE_ID` — current workspace id (use directly with `agents run --workspace`, `automations create --workspace`, etc.)
+- `$SUPERSET_WORKSPACE_ID` — current workspace id (use directly with `agents create --workspace`, `automations create --workspace`, etc.)
 - `$SUPERSET_TERMINAL_ID` — current terminal session id
 
 If `$SUPERSET_WORKSPACE_ID` is unset, you're not inside a Superset workspace — follow the Core Workflow above to create one.
@@ -38,15 +38,36 @@ superset workspaces delete <id> [<id>...]
 
 Provide exactly one of `--branch` or `--pr`. With `--pr`, the host checks out the verified PR head and derives the branch. `--base-branch <name>` is the fork point when `--branch` doesn't exist yet.
 
+Optionally act on the new workspace as soon as it's materialized:
+
+```bash
+superset workspaces create --project <id> --local --name "..." --branch <branch> --agent claude --prompt "fix the build"
+superset workspaces create --project <id> --local --name "..." --branch <branch> --command "bun install && bun test"
+```
+
+- `--agent`/`--prompt` launch an agent in the workspace (both required together) — the inline form of `agents create`.
+- `--command <cmd>` runs a one-off shell command in the worktree — the inline form of `terminals create`.
+
+The two are independent — pass either or both.
+
 ## Agents
 
 ```bash
 superset agents list --host <id>                 # Configured agents on a host (LABEL, PRESET, COMMAND, ID)
 superset agents list --local                     # Same, for this machine
-superset agents run --workspace <id> --agent claude --prompt "..."
+superset agents create --workspace <id> --agent claude --prompt "..."
 ```
 
 `--agent` accepts a preset id (e.g. `claude`, `codex`) or a HostAgentConfig instance UUID. Pass `--attachment-id <uuid>` once per attachment. Use `agents list` first if you don't already know which agents are installed on the target host.
+
+## Terminals
+
+```bash
+superset terminals create --workspace <id> --command "bun test"   # Run a command in a new terminal
+superset terminals create --workspace <id>                        # Open an interactive shell
+```
+
+`--command` is optional — omit it to open a bare shell. `--cwd <path>` overrides the working directory (defaults to the worktree).
 
 ## Tasks
 

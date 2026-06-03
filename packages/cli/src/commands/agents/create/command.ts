@@ -4,7 +4,7 @@ import { resolveHostTarget } from "../../../lib/host-target";
 import { uploadAttachments } from "../../../lib/upload-attachments";
 
 export default command({
-	description: "Launch an agent inside an existing workspace",
+	description: "Create an agent session in an existing workspace",
 	options: {
 		workspace: string().required().desc("Workspace ID"),
 		agent: string()

@@ -27,13 +27,6 @@ import type { Session, SessionStore } from "../SessionStore/index.ts";
  */
 export interface Conn {
 	subscriptions: Set<string>;
-	/**
-	 * Per-session unacked-bytes counter for back-pressure. Populated only for
-	 * sessions whose subscription set `flowControl: true`; absent entries
-	 * indicate the subscription is not flow-controlled (output is fire-and-
-	 * forget, daemon trusts socket-level backpressure).
-	 */
-	flowControlUnacked: Map<string, number>;
 	send(message: ServerMessage, payload?: Uint8Array): void;
 }
 
@@ -157,26 +150,17 @@ export function handleSubscribe(
 		return;
 	}
 	conn.subscriptions.add(msg.id);
-	if (msg.flowControl) conn.flowControlUnacked.set(msg.id, 0);
 	if (msg.replay) {
 		const snap = ctx.store.snapshotBuffer(session);
 		if (snap.byteLength > 0) {
 			const out: OutputMessage = { type: "output", id: msg.id };
 			conn.send(out, snap);
-			// Replay rides the same `output` frame the renderer ACKs on parse,
-			// so charge it to the flow-control counter — otherwise the daemon
-			// under-counts what's in flight on subscribe and lets the renderer
-			// chew through `replay + 100KB live` before back-pressure kicks in.
-			if (msg.flowControl) {
-				conn.flowControlUnacked.set(msg.id, snap.byteLength);
-			}
 		}
 	}
 }
 
 export function handleUnsubscribe(conn: Conn, msg: UnsubscribeMessage): void {
 	conn.subscriptions.delete(msg.id);
-	conn.flowControlUnacked.delete(msg.id);
 }
 
 function errorFor(

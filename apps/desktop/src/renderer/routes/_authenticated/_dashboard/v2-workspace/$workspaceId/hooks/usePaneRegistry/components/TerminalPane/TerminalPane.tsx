@@ -154,6 +154,14 @@ export function TerminalPane({
 		};
 	}, [terminalId, terminalInstanceId]);
 
+	useEffect(() => {
+		if (!ctx.isActive) return;
+
+		terminalRuntimeRegistry
+			.getTerminal(terminalId, terminalInstanceId)
+			?.focus();
+	}, [ctx.isActive, terminalId, terminalInstanceId]);
+
 	const lastInvalidatedOpenSessionRef = useRef<string | null>(null);
 	useEffect(() => {
 		const invalidateSessionsAfterSocketOpen = () => {

@@ -26,7 +26,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toStartWith(
-			"claude --permission-mode acceptEdits \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
+			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
 	});
 

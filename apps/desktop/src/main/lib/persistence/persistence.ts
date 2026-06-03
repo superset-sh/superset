@@ -14,7 +14,11 @@ let database: Database.Database | null = null;
 export function initTanstackDbPersistence(): void {
 	ensureSupersetHomeDirExists();
 	database = new Database(join(SUPERSET_HOME_DIR, "tanstack-db.sqlite"));
-	const persistence = createNodeSQLitePersistence({ database });
+	const persistence = createNodeSQLitePersistence({
+		database,
+		appliedTxPruneMaxRows: 1_000,
+		appliedTxPruneMaxAgeSeconds: 24 * 60 * 60,
+	});
 	dispose = exposeElectronSQLitePersistence({ ipcMain, persistence });
 }
 

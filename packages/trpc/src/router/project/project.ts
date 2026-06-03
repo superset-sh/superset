@@ -9,7 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
-import { verifyOrgMembership } from "../integration/utils";
+import { verifyOrgMembership, verifyOrgOwner } from "../integration/utils";
 import {
 	requireOrgResourceAccess,
 	requireOrgScopedResource,
@@ -172,7 +172,7 @@ export const projectRouter = {
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgOwner(ctx.session.user.id, input.organizationId);
 			const project = await getScopedProject(input.organizationId, input.id);
 			await dbWs.delete(projects).where(eq(projects.id, project.id));
 			return { success: true };

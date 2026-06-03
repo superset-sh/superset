@@ -187,28 +187,14 @@ export class DaemonClient {
 	}
 
 	/**
-	 * Fire-and-forget back-pressure ack. Tells the daemon that `bytes` of
-	 * output for this session have been consumed by the renderer. Only
-	 * meaningful when the subscription was opened with `flowControl: true`;
-	 * otherwise the daemon has no counter to credit and ignores the message.
-	 */
-	ackOutput(id: string, bytes: number): void {
-		if (!Number.isFinite(bytes) || bytes <= 0) return;
-		this.send({ type: "ack-output", id, bytes: Math.floor(bytes) });
-	}
-
-	/**
 	 * Subscribe to a session's output + exit stream. Returns an unsubscribe
 	 * function. With `replay: true` the daemon sends its current ring buffer
 	 * before live streaming begins. Multiple subscribers per session are
 	 * supported — the daemon fans output out to all of them.
-	 *
-	 * `flowControl: true` opts this subscription into byte-level ACK back-
-	 * pressure (caller must invoke ackOutput as bytes are consumed).
 	 */
 	subscribe(
 		id: string,
-		opts: { replay: boolean; flowControl?: boolean },
+		opts: { replay: boolean },
 		cb: SubscribeCallbacks,
 	): () => void {
 		let entry = this.callbacks.get(id);
@@ -236,7 +222,6 @@ export class DaemonClient {
 				type: "subscribe",
 				id,
 				replay: opts.replay,
-				flowControl: opts.flowControl === true,
 			});
 		}
 		return () => {

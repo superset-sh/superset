@@ -307,14 +307,12 @@ function attachSocketListeners(
 		// channel; renderer treats them identically). Pipe straight into
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
-			// xterm.write's callback only fires once the parser has consumed
-			// these bytes into its buffer. That's the honest "consumed" signal
-			// for byte-level back-pressure — ACKing on WS receipt would lie
-			// about xterm being the bottleneck.
-			const bytes = event.data.byteLength;
-			terminal.write(new Uint8Array(event.data), () => {
-				sendOutputAck(transport, socket, bytes);
-			});
+			// Pipe PTY bytes straight into xterm. There's no output ACK back to
+			// host-service: back-pressure lives entirely on the host side, which
+			// bounds this socket's send buffer and drops us (we reconnect and
+			// replay) if we fall hopelessly behind. That means a slow/stalled
+			// renderer can never wedge the shell — it just loses some scrollback.
+			terminal.write(new Uint8Array(event.data));
 			transport._hasReceivedBytes = true;
 			return;
 		}
@@ -389,17 +387,6 @@ function attachSocketListeners(
 		if (transport.connectionState !== "open") return;
 		socket.send(JSON.stringify({ type: "input", data }));
 	});
-}
-
-function sendOutputAck(
-	transport: TerminalTransport,
-	socket: WebSocket,
-	bytes: number,
-) {
-	if (transport.socket !== socket) return;
-	if (socket.readyState !== WebSocket.OPEN) return;
-	if (transport.connectionState !== "open") return;
-	socket.send(JSON.stringify({ type: "output-ack", bytes }));
 }
 
 export function disconnect(transport: TerminalTransport) {

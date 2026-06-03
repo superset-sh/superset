@@ -73,7 +73,7 @@ try {
 
 ## Two transport paths
 
-Most methods hit `api.superset.sh` directly. Three methods physically execute on a developer machine and route through the relay tunnel: `workspaces.create`, `workspaces.delete`, and `automations.run`. The SDK transparently exchanges your API key for a short-lived JWT to talk to the relay — no token plumbing required.
+Most methods hit `api.superset.sh` directly. Several methods physically execute on a developer machine and route through the relay tunnel: `workspaces.create`, `workspaces.delete`, `agents.list`, `agents.create`, and `terminals.create`. The SDK transparently exchanges your API key for a short-lived JWT to talk to the relay — no token plumbing required.
 
 For relay-bound calls, the target host has to be online and tunneling, otherwise you'll get a `503 Host not connected`.
 

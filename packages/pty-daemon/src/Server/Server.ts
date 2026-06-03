@@ -15,7 +15,6 @@ import {
 } from "../handlers/index.ts";
 import { adoptFromFd } from "../Pty/index.ts";
 import {
-	type AckOutputMessage,
 	type ClientMessage,
 	encodeFrame,
 	FrameDecoder,
@@ -46,12 +45,6 @@ export interface ServerOptions {
 
 const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 
-// Watermarks for output back-pressure. Mirrors VS Code's terminal flow-control
-// defaults (their tracker counts characters; we count bytes because the wire
-// is byte-native). 100KB high → pause the PTY; 5KB low → resume.
-const FLOW_CONTROL_HIGH_WATERMARK = 100_000;
-const FLOW_CONTROL_LOW_WATERMARK = 5_000;
-
 interface ConnState extends Conn {
 	socket: net.Socket;
 	decoder: FrameDecoder;
@@ -63,8 +56,6 @@ export class Server {
 	private readonly store: SessionStore;
 	private readonly conns = new Set<ConnState>();
 	private readonly opts: ServerOptions;
-	/** Sessions whose PTY is currently paused by flow control. */
-	private readonly pausedSessions = new Set<string>();
 
 	constructor(opts: ServerOptions) {
 		this.opts = opts;
@@ -326,7 +317,6 @@ export class Server {
 			decoder: new FrameDecoder(),
 			negotiated: null,
 			subscriptions: new Set(),
-			flowControlUnacked: new Map(),
 			send: (msg, payload) =>
 				writeMessage(socket, msg, payload, outboundBufferCap),
 		};
@@ -425,11 +415,6 @@ export class Server {
 			}
 			case "unsubscribe": {
 				handleUnsubscribe(conn, msg);
-				this.maybeResume(msg.id);
-				return;
-			}
-			case "ack-output": {
-				this.handleAckOutput(conn, msg);
 				return;
 			}
 			case "prepare-upgrade": {
@@ -481,12 +466,7 @@ export class Server {
 			for (const c of this.conns) {
 				if (!c.subscriptions.has(session.id)) continue;
 				c.send(out, chunk);
-				const prev = c.flowControlUnacked.get(session.id);
-				if (prev !== undefined) {
-					c.flowControlUnacked.set(session.id, prev + chunk.byteLength);
-				}
 			}
-			this.maybePause(session);
 		});
 		session.pty.onExit((info) => {
 			session.exited = true;
@@ -502,10 +482,8 @@ export class Server {
 				if (c.subscriptions.has(session.id)) {
 					c.send(ev);
 					c.subscriptions.delete(session.id);
-					c.flowControlUnacked.delete(session.id);
 				}
 			}
-			this.pausedSessions.delete(session.id);
 			// Delete the session immediately. Without this, every closed
 			// terminal pane left a row in the store forever — list-reply
 			// inflated, memory grew unbounded.
@@ -520,68 +498,8 @@ export class Server {
 		});
 	}
 
-	private handleAckOutput(conn: ConnState, msg: AckOutputMessage): void {
-		if (
-			!Number.isFinite(msg.bytes) ||
-			!Number.isInteger(msg.bytes) ||
-			msg.bytes <= 0
-		) {
-			conn.send({
-				type: "error",
-				id: msg.id,
-				message: `invalid ack-output bytes: ${String(msg.bytes)}`,
-				code: "EPROTO",
-			});
-			return;
-		}
-		const outstanding = conn.flowControlUnacked.get(msg.id);
-		if (outstanding === undefined) return;
-		const next = Math.max(0, outstanding - msg.bytes);
-		conn.flowControlUnacked.set(msg.id, next);
-		this.maybeResume(msg.id);
-	}
-
-	private maybePause(session: Session): void {
-		if (this.pausedSessions.has(session.id)) return;
-		for (const c of this.conns) {
-			const u = c.flowControlUnacked.get(session.id);
-			if (u !== undefined && u > FLOW_CONTROL_HIGH_WATERMARK) {
-				try {
-					session.pty.pause();
-				} catch {
-					// already exited; nothing to back-pressure
-				}
-				this.pausedSessions.add(session.id);
-				return;
-			}
-		}
-	}
-
-	private maybeResume(sessionId: string): void {
-		if (!this.pausedSessions.has(sessionId)) return;
-		for (const c of this.conns) {
-			const u = c.flowControlUnacked.get(sessionId);
-			if (u !== undefined && u > FLOW_CONTROL_LOW_WATERMARK) return;
-		}
-		const session = this.store.get(sessionId);
-		this.pausedSessions.delete(sessionId);
-		if (session && !session.exited) {
-			try {
-				session.pty.resume();
-			} catch {
-				// already exited; nothing to resume
-			}
-		}
-	}
-
 	private dropConn(conn: ConnState): void {
-		if (!this.conns.delete(conn)) return;
-		// A dropped conn's unacked bytes effectively become "consumed" as far
-		// as the back-pressure decision is concerned — clearing them lets any
-		// PTY that was paused on this conn's behalf resume.
-		const sessionIds = Array.from(conn.flowControlUnacked.keys());
-		conn.flowControlUnacked.clear();
-		for (const id of sessionIds) this.maybeResume(id);
+		this.conns.delete(conn);
 	}
 }
 
