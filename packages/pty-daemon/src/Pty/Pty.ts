@@ -142,6 +142,21 @@ function validateDims(cols: number, rows: number): void {
 	}
 }
 
+function reprobeErrno(meta: SessionMeta): string {
+	try {
+		const probe = childProcess.spawnSync(meta.shell, ["-c", ":"], {
+			cwd: meta.cwd,
+			timeout: 1000,
+			stdio: "ignore",
+		});
+		if (!probe.error) return "ok";
+		const e = probe.error as NodeJS.ErrnoException;
+		return e.code ?? e.message;
+	} catch (e) {
+		return `reprobe-failed:${(e as Error).message}`;
+	}
+}
+
 export function spawn({ meta }: SpawnOptions): Pty {
 	validateDims(meta.cols, meta.rows);
 	// Pre-flight: node-pty's "posix_spawnp failed" message swallows errno
@@ -178,9 +193,11 @@ export function spawn({ meta }: SpawnOptions): Pty {
 			encoding: null,
 		});
 	} catch (err) {
-		// Annotate with shell + cwd so the wire-error reply is actionable.
+		// node-pty's native "posix_spawnp failed." drops the errno, so re-probe
+		// the same shell+cwd with spawnSync to surface the real code (e.g.
+		// EMFILE/EAGAIN/ENOENT).
 		throw new Error(
-			`spawn failed (shell=${meta.shell} cwd=${meta.cwd ?? "(none)"}): ${(err as Error).message}`,
+			`spawn failed (shell=${meta.shell} cwd=${meta.cwd ?? "(none)"} errno=${reprobeErrno(meta)}): ${(err as Error).message}`,
 		);
 	}
 	const adapter = new NodePtyAdapter(term, meta);
