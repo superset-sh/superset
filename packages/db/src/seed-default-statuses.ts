@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { dbWs } from "./client";
 import type { InsertTaskStatus } from "./schema";
 import { taskStatuses } from "./schema";
@@ -48,9 +48,28 @@ export async function seedDefaultStatuses(
 	const created = await executor
 		.insert(taskStatuses)
 		.values(rows)
+		.onConflictDoNothing({
+			target: [taskStatuses.organizationId, taskStatuses.type],
+			where: sql`${taskStatuses.externalProvider} IS NULL`,
+		})
 		.returning({ id: taskStatuses.id, type: taskStatuses.type });
 
 	const backlog = created.find((s) => s.type === "backlog");
-	if (!backlog) throw new Error("Failed to seed default task statuses");
-	return backlog.id;
+	if (backlog) return backlog.id;
+
+	const [seeded] = await executor
+		.select({ id: taskStatuses.id })
+		.from(taskStatuses)
+		.where(
+			and(
+				eq(taskStatuses.organizationId, organizationId),
+				eq(taskStatuses.type, "backlog"),
+				isNull(taskStatuses.externalProvider),
+			),
+		)
+		.orderBy(taskStatuses.position)
+		.limit(1);
+
+	if (!seeded) throw new Error("Failed to seed default task statuses");
+	return seeded.id;
 }
