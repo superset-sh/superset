@@ -2,6 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import { GeistPixelGrid, GeistPixelSquare } from "geist/font/pixel";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter, Micro_5, Pixelify_Sans } from "next/font/google";
+import Script from "next/script";
 
 import { CookieConsent } from "@/components/CookieConsent";
 import {
@@ -129,6 +130,19 @@ export default function RootLayout({
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />
+				{/* Google tag (gtag.js) — Google Ads */}
+				<Script
+					src="https://www.googletagmanager.com/gtag/js?id=AW-18209336001"
+					strategy="afterInteractive"
+				/>
+				<Script id="google-ads-gtag" strategy="afterInteractive">
+					{`
+						window.dataLayer = window.dataLayer || [];
+						function gtag(){dataLayer.push(arguments);}
+						gtag('js', new Date());
+						gtag('config', 'AW-18209336001');
+					`}
+				</Script>
 			</head>
 			<body className="overscroll-none font-sans">
 				<Providers>
