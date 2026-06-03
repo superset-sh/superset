@@ -3,6 +3,7 @@ import {
 	DEFAULT_V2_USER_PREFERENCES,
 	healV2UserPreferences,
 	healWorkspaceLocalState,
+	workspaceLocalStateSchema,
 } from "./schema";
 
 describe("healV2UserPreferences", () => {
@@ -158,5 +159,48 @@ describe("healWorkspaceLocalState", () => {
 		expect(() => healWorkspaceLocalState(undefined)).not.toThrow();
 		expect(() => healWorkspaceLocalState("garbage")).not.toThrow();
 		expect(() => healWorkspaceLocalState(42)).not.toThrow();
+	});
+});
+
+describe("changesViewMode default (issue #5064)", () => {
+	const baseInsert = {
+		workspaceId: "11111111-1111-4111-8111-111111111111",
+		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		paneLayout: { panes: [], focusedPaneId: null },
+		sidebarState: {
+			projectId: "22222222-2222-4222-8222-222222222222",
+		},
+	};
+
+	it("defaults a newly inserted workspace's Changes view to Tree", () => {
+		// New workspace inserts omit changesViewMode and rely on the schema
+		// default (see writeWorkspacePaneLayout / useDashboardSidebarState).
+		const parsed = workspaceLocalStateSchema.parse(baseInsert);
+		expect(parsed.sidebarState.changesViewMode).toBe("tree");
+	});
+
+	it("defaults to Tree when healing a row missing changesViewMode", () => {
+		const healed = healWorkspaceLocalState(baseInsert);
+		expect(healed.sidebarState.changesViewMode).toBe("tree");
+	});
+
+	it("preserves an explicit Folders choice (no forced migration)", () => {
+		const parsed = workspaceLocalStateSchema.parse({
+			...baseInsert,
+			sidebarState: {
+				...baseInsert.sidebarState,
+				changesViewMode: "folders",
+			},
+		});
+		expect(parsed.sidebarState.changesViewMode).toBe("folders");
+
+		const healed = healWorkspaceLocalState({
+			...baseInsert,
+			sidebarState: {
+				...baseInsert.sidebarState,
+				changesViewMode: "folders",
+			},
+		});
+		expect(healed.sidebarState.changesViewMode).toBe("folders");
 	});
 });
