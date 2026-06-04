@@ -439,5 +439,18 @@ if (!gotTheLock) {
 		}
 
 		appReady = true;
-	})();
+	})().catch((error) => {
+		// Last-resort handler so a fatal startup rejection is surfaced and the
+		// process exits, rather than leaving a windowless zombie. See issue #5086.
+		console.error("[main] Fatal startup error:", error);
+		try {
+			dialog.showErrorBox(
+				"Superset failed to start",
+				error instanceof Error ? error.stack || error.message : String(error),
+			);
+		} catch (dialogError) {
+			console.error("[main] Failed to show startup error dialog:", dialogError);
+		}
+		app.exit(1);
+	});
 }
