@@ -20,7 +20,7 @@ interface UseFilesTabDropOptions {
 }
 
 export interface FilesTabDropTarget {
-	/** Relative directory the dropped files copy into. "" = worktree root. */
+	/** Relative directory the dropped files write into. "" = worktree root. */
 	dirRel: string;
 	/** Human label for the overlay — folder basename, or "workspace root". */
 	label: string;
@@ -58,22 +58,75 @@ function resolveDropDirRel(e: React.DragEvent): string {
 	return "";
 }
 
-/** Basename of a native OS path (handles both `/` and `\` separators). */
-function nativeBasename(absPath: string): string {
-	const segments = absPath.split(/[\\/]/);
-	return segments[segments.length - 1] ?? absPath;
-}
-
 function dirLabel(dirRel: string): string {
 	return dirRel === "" ? "workspace root" : basename(dirRel);
 }
 
 /**
+ * Collect droppable files, skipping directories. We deliberately read the
+ * `File` objects (not OS paths) because the host-service filesystem is
+ * sandboxed to the worktree — an external source path would be rejected, and a
+ * path means nothing for a remote workspace. Directory detection uses the entry
+ * API; folders are reported separately since recursive upload isn't supported.
+ *
+ * Must run synchronously inside the drop handler: `getAsFile` /
+ * `webkitGetAsEntry` are only valid during event dispatch.
+ */
+function collectDroppedFiles(e: React.DragEvent): {
+	files: File[];
+	skippedDirs: number;
+} {
+	const items = Array.from(e.dataTransfer.items);
+	const supportsEntries =
+		items.length > 0 && typeof items[0].webkitGetAsEntry === "function";
+
+	if (!supportsEntries) {
+		return { files: Array.from(e.dataTransfer.files), skippedDirs: 0 };
+	}
+
+	const files: File[] = [];
+	let skippedDirs = 0;
+	for (const item of items) {
+		if (item.kind !== "file") continue;
+		if (item.webkitGetAsEntry()?.isDirectory) {
+			skippedDirs += 1;
+			continue;
+		}
+		const file = item.getAsFile();
+		if (file) files.push(file);
+	}
+	return { files, skippedDirs };
+}
+
+/** Read a File into base64 (handles binary + large files via the reader). */
+function fileToBase64(file: File): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => {
+			const result = reader.result;
+			if (typeof result !== "string") {
+				reject(new Error("Unexpected file reader result"));
+				return;
+			}
+			// Strip the "data:<mime>;base64," prefix.
+			const comma = result.indexOf(",");
+			resolve(comma >= 0 ? result.slice(comma + 1) : result);
+		};
+		reader.onerror = () =>
+			reject(reader.error ?? new Error("Failed to read file"));
+		reader.readAsDataURL(file);
+	});
+}
+
+/**
  * Drag-and-drop file upload for the v2 Files tab. Dropping OS files onto a
- * folder row copies them into that folder (onto a file row → its parent, onto
- * empty space → the worktree root) via `filesystem.copyPath`. The new entries
- * surface automatically through the bridge's `fs:events` reconciliation; we
- * also expand + fetch the destination so they appear without a manual refresh.
+ * folder row writes them into that folder (onto a file row → its parent, onto
+ * empty space → the worktree root). Each file's bytes are read in the renderer
+ * and written via `filesystem.writeFile` (base64) — the host sandboxes write
+ * destinations to the worktree but never sees an external source path, so this
+ * works for both local and remote workspaces. New entries surface through the
+ * bridge's `fs:events` reconciliation; we also expand + fetch the destination
+ * so they appear without a manual refresh.
  */
 export function useFilesTabDrop({
 	model,
@@ -81,7 +134,7 @@ export function useFilesTabDrop({
 	rootPath,
 	workspaceId,
 }: UseFilesTabDropOptions): FilesTabDrop {
-	const copyPath = workspaceTrpc.filesystem.copyPath.useMutation();
+	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
 	const [dropTarget, setDropTarget] = useState<FilesTabDropTarget | null>(null);
 
 	// Clear the overlay if the drag ends outside our handlers (released over
@@ -97,33 +150,45 @@ export function useFilesTabDrop({
 	}, []);
 
 	const uploadFiles = useCallback(
-		async (dirRel: string, sources: string[]): Promise<void> => {
+		async (
+			dirRel: string,
+			files: File[],
+			skippedDirs: number,
+		): Promise<void> => {
 			const destDirAbs = toAbs(rootPath, dirRel);
 			const versionToken = bridge.getVersion();
 
 			const results = await Promise.allSettled(
-				sources.map((sourceAbsolutePath) =>
-					copyPath.mutateAsync({
+				files.map(async (file) => {
+					const data = await fileToBase64(file);
+					const result = await writeFile.mutateAsync({
 						workspaceId,
-						sourceAbsolutePath,
-						destinationAbsolutePath: `${destDirAbs}/${nativeBasename(sourceAbsolutePath)}`,
-					}),
-				),
+						absolutePath: `${destDirAbs}/${file.name}`,
+						content: { kind: "base64", data },
+						options: { create: true, overwrite: false },
+					});
+					// The host resolves "already exists" to `{ ok: false }` rather
+					// than throwing — surface it as a failure for this file.
+					if (result && result.ok === false) {
+						throw new Error(result.reason ?? "write failed");
+					}
+					return result;
+				}),
 			);
 
-			// User switched workspaces mid-copy — don't toast/expand against the
+			// User switched workspaces mid-upload — don't toast/expand against the
 			// new tree.
 			if (!bridge.isCurrent(versionToken)) return;
 
-			const copied = results.filter((r) => r.status === "fulfilled").length;
-			const failed = results.length - copied;
+			const added = results.filter((r) => r.status === "fulfilled").length;
+			const failed = results.length - added;
 
-			if (copied > 0) {
+			if (added > 0) {
 				const where = dirLabel(dirRel);
 				toast.success(
-					copied === 1
+					added === 1
 						? `Added 1 file to ${where}`
-						: `Added ${copied} files to ${where}`,
+						: `Added ${added} files to ${where}`,
 				);
 				// Surface the new entries immediately. fs:events also reconciles,
 				// but expanding + fetching avoids waiting on the watcher and shows
@@ -141,8 +206,15 @@ export function useFilesTabDrop({
 						: `Failed to add ${failed} files`,
 				);
 			}
+			if (skippedDirs > 0) {
+				toast.info(
+					skippedDirs === 1
+						? "Skipped a folder — only files can be dropped"
+						: `Skipped ${skippedDirs} folders — only files can be dropped`,
+				);
+			}
 		},
-		[model, bridge, copyPath, rootPath, workspaceId],
+		[model, bridge, writeFile, rootPath, workspaceId],
 	);
 
 	const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -180,25 +252,21 @@ export function useFilesTabDrop({
 			setDropTarget(null);
 			if (!rootPath || !workspaceId) return;
 
-			// Read everything off the event synchronously — composedPath() and
-			// getPathForFile are only valid during dispatch, before any await.
+			// Read everything off the event synchronously — composedPath() and the
+			// entry/file accessors are only valid during dispatch, before any await.
 			const dirRel = resolveDropDirRel(e);
-			const sources: string[] = [];
-			for (const file of Array.from(e.dataTransfer.files)) {
-				try {
-					const path = window.webUtils.getPathForFile(file);
-					if (path) sources.push(path);
-				} catch {
-					// Skip entries we can't resolve to a filesystem path.
-				}
-			}
+			const { files, skippedDirs } = collectDroppedFiles(e);
 
-			if (sources.length === 0) {
-				toast.error("Could not read the dropped files");
+			if (files.length === 0) {
+				toast.error(
+					skippedDirs > 0
+						? "Only files can be dropped, not folders"
+						: "Could not read the dropped files",
+				);
 				return;
 			}
 
-			void uploadFiles(dirRel, sources);
+			void uploadFiles(dirRel, files, skippedDirs);
 		},
 		[rootPath, workspaceId, uploadFiles],
 	);
