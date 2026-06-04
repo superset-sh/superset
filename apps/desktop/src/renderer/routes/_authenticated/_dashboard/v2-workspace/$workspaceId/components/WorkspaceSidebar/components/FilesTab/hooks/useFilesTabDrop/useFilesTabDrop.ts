@@ -238,11 +238,12 @@ export function useFilesTabDrop({
 			}
 
 			// Create directories shallowest-first so parents exist before
-			// children; recursive makes the calls idempotent. Failures are left
-			// uncounted — files underneath will fail and be reported below.
+			// children; recursive makes the calls idempotent.
 			const dirs = Array.from(new Set(tree.dirs)).sort(
 				(a, b) => a.split("/").length - b.split("/").length,
 			);
+			let createdDirs = 0;
+			let failedDirs = 0;
 			for (const relDir of dirs) {
 				if (!bridge.isCurrent(versionToken)) return;
 				try {
@@ -251,7 +252,9 @@ export function useFilesTabDrop({
 						absolutePath: `${destDirAbs}/${relDir}`,
 						recursive: true,
 					});
+					createdDirs += 1;
 				} catch (error) {
+					failedDirs += 1;
 					console.error("[v2 FilesTab] createDirectory failed", {
 						relDir,
 						error,
@@ -297,25 +300,34 @@ export function useFilesTabDrop({
 						? `Added 1 file to ${where}`
 						: `Added ${added} files to ${where}`,
 				);
-			} else if (failed === 0 && dirs.length > 0) {
+			} else if (createdDirs > 0 && failed === 0 && failedDirs === 0) {
 				toast.success(
-					dirs.length === 1
+					createdDirs === 1
 						? `Created 1 folder in ${where}`
-						: `Created ${dirs.length} folders in ${where}`,
+						: `Created ${createdDirs} folders in ${where}`,
 				);
 			}
+			// A failed directory cascades into failures for its files, so prefer
+			// the file count; only fall back to the folder count when nothing but
+			// directory creation failed (e.g. an empty folder).
 			if (failed > 0) {
 				toast.error(
 					failed === 1
 						? "Failed to add 1 file"
 						: `Failed to add ${failed} files`,
 				);
+			} else if (failedDirs > 0) {
+				toast.error(
+					failedDirs === 1
+						? "Failed to create 1 folder"
+						: `Failed to create ${failedDirs} folders`,
+				);
 			}
 
 			// Surface the new entries immediately. fs:events also reconciles, but
 			// expanding + fetching avoids waiting on the watcher and shows results
 			// inside a collapsed destination folder.
-			if (added > 0 || dirs.length > 0) {
+			if (added > 0 || createdDirs > 0) {
 				if (dirRel) {
 					const handle = asDirectoryHandle(model.getItem(`${dirRel}/`));
 					if (handle && !handle.isExpanded()) handle.expand();
