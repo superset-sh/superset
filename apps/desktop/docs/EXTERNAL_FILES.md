@@ -17,6 +17,7 @@ This separation prevents multiple instances from interfering with each other.
 
 | File | Purpose |
 |------|---------|
+| `agy` | Wrapper for Antigravity CLI that preserves Superset terminal context |
 | `amp` | Wrapper for Amp CLI that preserves Superset terminal context |
 | `claude` | Wrapper for Claude Code CLI that injects notification hooks |
 | `codex` | Wrapper for Codex CLI that injects notification hooks |
