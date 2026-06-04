@@ -58,6 +58,7 @@ mock.module("node:os", () => ({
 
 const {
 	AMP_PLUGIN_MARKER,
+	createAgyWrapper,
 	createAmpPlugin,
 	createAmpWrapper,
 	buildCodexWrapperExecLine,
@@ -559,6 +560,18 @@ exit 0
 		expect(wrapper).toContain("# Superset wrapper for droid");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "droid")"');
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="droid"');
+		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("creates agy wrapper passthrough", () => {
+		createAgyWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "agy");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain("# Superset wrapper for agy");
+		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "agy")"');
+		expect(wrapper).toContain('export SUPERSET_AGENT_ID="agy"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 
