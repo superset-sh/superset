@@ -44,7 +44,7 @@
 		"@trpc/client": "11.16.0",
 		"@trpc/server": "11.16.0",
 		"ai": "6.0.141",
-		"hono": "4.12.18",
+		"hono": "4.12.21",
 		"mastracode": "0.18.1",
 		"superjson": "2.2.6",
 		"zod": "4.3.6"
