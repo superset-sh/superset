@@ -7,19 +7,46 @@ import { env } from "@/env";
 interface AcceptInvitationButtonProps {
 	invitationId: string;
 	token: string;
-	email: string;
 }
 
 export function AcceptInvitationButton({
 	invitationId,
 	token,
-	email,
 }: AcceptInvitationButtonProps) {
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	const getErrorMessage = async (response: Response) => {
+		const text = await response.text();
+
+		if (text) {
+			try {
+				const data = JSON.parse(text) as {
+					error?: string;
+					message?: string;
+				};
+
+				if (data.error) return data.error;
+				if (data.message) return data.message;
+			} catch {
+				return text;
+			}
+		}
+
+		if (response.status === 409) {
+			return "This invitation has already been accepted.";
+		}
+
+		if (response.status === 400 || response.status === 404) {
+			return "This invitation link is invalid or has expired.";
+		}
+
+		return "Failed to accept invitation";
+	};
+
 	const handleContinue = async () => {
 		setIsProcessing(true);
+		setError(null);
 		try {
 			// Call the Better Auth endpoint that handles auth and cookies properly
 			const response = await fetch(
@@ -38,8 +65,7 @@ export function AcceptInvitationButton({
 			);
 
 			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || "Failed to accept invitation");
+				throw new Error(await getErrorMessage(response));
 			}
 
 			// Session cookie is now set by the server
@@ -56,7 +82,7 @@ export function AcceptInvitationButton({
 	return (
 		<>
 			<Button onClick={handleContinue} size="lg" disabled={isProcessing}>
-				{isProcessing ? "Processing..." : `Continue as ${email}`}
+				{isProcessing ? "Processing..." : "Accept invitation"}
 			</Button>
 
 			{error && <p className="text-sm text-destructive">{error}</p>}

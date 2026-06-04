@@ -6,6 +6,7 @@ import {
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
+	reconcileManagedEntries,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { HOOKS_DIR } from "./paths";
@@ -13,7 +14,7 @@ import { HOOKS_DIR } from "./paths";
 export const CURSOR_HOOK_SCRIPT_NAME = "cursor-hook.sh";
 
 const CURSOR_HOOK_SIGNATURE = "# Superset cursor hook";
-const CURSOR_HOOK_VERSION = "v1";
+const CURSOR_HOOK_VERSION = "v3";
 export const CURSOR_HOOK_MARKER = `${CURSOR_HOOK_SIGNATURE} ${CURSOR_HOOK_VERSION}`;
 
 const CURSOR_HOOK_TEMPLATE_PATH = path.join(
@@ -45,7 +46,7 @@ export function getCursorHookScriptContent(): string {
 	const template = fs.readFileSync(CURSOR_HOOK_TEMPLATE_PATH, "utf-8");
 	return template
 		.replace("{{MARKER}}", CURSOR_HOOK_MARKER)
-		.replace(/\{\{DEFAULT_PORT\}\}/g, String(env.DESKTOP_NOTIFICATIONS_PORT));
+		.replaceAll("{{DEFAULT_PORT}}", String(env.DESKTOP_NOTIFICATIONS_PORT));
 }
 
 /**
@@ -74,6 +75,8 @@ export function getCursorHooksJsonContent(hookScriptPath: string): string {
 	}
 
 	const ourHooks: Record<string, CursorHookEntry> = {
+		sessionStart: { command: `${hookScriptPath} SessionStart` },
+		sessionEnd: { command: `${hookScriptPath} SessionEnd` },
 		beforeSubmitPrompt: { command: `${hookScriptPath} Start` },
 		stop: { command: `${hookScriptPath} Stop` },
 		beforeShellExecution: {
@@ -86,19 +89,16 @@ export function getCursorHooksJsonContent(hookScriptPath: string): string {
 
 	for (const [eventName, ourEntry] of Object.entries(ourHooks)) {
 		const current = existing.hooks[eventName];
-		if (Array.isArray(current)) {
-			const filtered = current.filter(
-				(entry: CursorHookEntry) =>
-					!(
-						entry.command?.includes(hookScriptPath) ||
-						isSupersetManagedHookCommand(entry.command, CURSOR_HOOK_SCRIPT_NAME)
-					),
-			);
-			filtered.push(ourEntry);
-			existing.hooks[eventName] = filtered;
-		} else {
-			existing.hooks[eventName] = [ourEntry];
-		}
+		const { entries } = reconcileManagedEntries({
+			current,
+			desired: [ourEntry],
+			isManaged: (entry: CursorHookEntry) =>
+				entry.command?.includes(hookScriptPath) ||
+				isSupersetManagedHookCommand(entry.command, CURSOR_HOOK_SCRIPT_NAME),
+			isEquivalent: (entry: CursorHookEntry, desiredEntry: CursorHookEntry) =>
+				entry.command === desiredEntry.command,
+		});
+		existing.hooks[eventName] = entries;
 	}
 
 	return JSON.stringify(existing, null, 2);
@@ -114,7 +114,9 @@ export function createCursorHookScript(): void {
 }
 
 export function createCursorAgentWrapper(): void {
-	const script = buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`, {
+		agentId: "cursor-agent",
+	});
 	createWrapper("cursor-agent", script);
 }
 

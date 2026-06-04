@@ -5,6 +5,7 @@ import {
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
+	reconcileManagedEntries,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getNotifyScriptPath, NOTIFY_SCRIPT_NAME } from "./notify-hook";
@@ -43,7 +44,9 @@ export function getMastraGlobalHooksJsonPath(): string {
 }
 
 export function createMastraWrapper(): void {
-	const script = buildWrapperScript("mastracode", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("mastracode", `exec "$REAL_BIN" "$@"`, {
+		agentId: "mastracode",
+	});
 	createWrapper("mastracode", script);
 }
 
@@ -65,24 +68,30 @@ export function getMastraHooksJsonContent(notifyScriptPath: string): string {
 		);
 	}
 
-	const notifyCommand = `bash ${quoteShellPath(notifyScriptPath)}`;
-	const managedEvents = ["UserPromptSubmit", "Stop", "PostToolUse"] as const;
+	const notifyCommand = `SUPERSET_AGENT_ID=mastracode bash ${quoteShellPath(notifyScriptPath)}`;
+	// Session lifecycle drives the pane icon binding; per-prompt drives status.
+	const managedEvents = [
+		"SessionStart",
+		"SessionEnd",
+		"UserPromptSubmit",
+		"Stop",
+		"PostToolUse",
+	] as const;
 
 	for (const eventName of managedEvents) {
 		const current = existing[eventName];
-		if (Array.isArray(current)) {
-			const filtered = current.filter(
-				(entry: MastraHookDefinition) =>
-					!(
-						entry.command?.includes(notifyScriptPath) ||
-						isSupersetManagedHookCommand(entry.command, NOTIFY_SCRIPT_NAME)
-					),
-			);
-			filtered.push({ type: "command", command: notifyCommand });
-			existing[eventName] = filtered;
-		} else {
-			existing[eventName] = [{ type: "command", command: notifyCommand }];
-		}
+		const { entries } = reconcileManagedEntries({
+			current,
+			desired: [{ type: "command", command: notifyCommand }],
+			isManaged: (entry: MastraHookDefinition) =>
+				entry.command?.includes(notifyScriptPath) ||
+				isSupersetManagedHookCommand(entry.command, NOTIFY_SCRIPT_NAME),
+			isEquivalent: (
+				entry: MastraHookDefinition,
+				desiredEntry: MastraHookDefinition,
+			) => entry.command === desiredEntry.command,
+		});
+		existing[eventName] = entries;
 	}
 
 	return JSON.stringify(existing, null, 2);

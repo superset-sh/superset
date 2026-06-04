@@ -1,4 +1,5 @@
-import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { rejectTerminalSessionReady } from "../../../lib/terminal/session-readiness";
+import { electronTrpcClient } from "../../../lib/trpc-client";
 
 /**
  * Soft-close delay: terminal sessions are kept alive for this duration after
@@ -15,7 +16,7 @@ const persistPendingKills = (): void => {
 	try {
 		window.localStorage.setItem(
 			PENDING_KILLS_STORAGE_KEY,
-			JSON.stringify([...pendingKills.keys()]),
+			JSON.stringify(Array.from(pendingKills.keys())),
 		);
 	} catch (error) {
 		console.warn("Failed to persist pending soft-close kills:", error);
@@ -86,6 +87,10 @@ export const cancelPendingKill = (paneId: string): boolean => {
  */
 export const killTerminalForPane = (paneId: string): void => {
 	cancelPendingKill(paneId);
+	rejectTerminalSessionReady(
+		paneId,
+		new Error("Terminal pane was closed before the session became ready"),
+	);
 	electronTrpcClient.terminal.kill.mutate({ paneId }).catch((error) => {
 		console.warn(`Failed to kill terminal for pane ${paneId}:`, error);
 	});
@@ -96,7 +101,7 @@ export const killTerminalForPane = (paneId: string): void => {
  * Called on renderer teardown to prevent orphan PTY sessions.
  */
 const flushPendingKills = (): void => {
-	for (const [paneId, timer] of pendingKills) {
+	for (const [paneId, timer] of Array.from(pendingKills)) {
 		clearTimeout(timer);
 		electronTrpcClient.terminal.kill.mutate({ paneId }).catch((error) => {
 			console.warn(`Failed to flush pending kill for pane ${paneId}:`, error);

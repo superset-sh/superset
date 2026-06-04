@@ -1,0 +1,1 @@
+export { DashboardSidebarCollapsedWorkspaceButton } from "./DashboardSidebarCollapsedWorkspaceButton";

@@ -17,6 +17,7 @@ import {
 	HiLockClosed,
 	HiOutlineCodeBracket,
 } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 
 interface SecretRowProps {
@@ -42,7 +43,7 @@ export function SecretRow({
 }: SecretRowProps) {
 	const [isRevealed, setIsRevealed] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
-	const [copied, setCopied] = useState(false);
+
 	const [valueHovered, setValueHovered] = useState(false);
 
 	const handleDelete = useCallback(async () => {
@@ -61,11 +62,10 @@ export function SecretRow({
 		}
 	}, [secret.id, secret.key, organizationId, onDeleted]);
 
-	const handleCopy = useCallback(async () => {
-		await navigator.clipboard.writeText(secret.value);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 1500);
-	}, [secret.value]);
+	const { copyToClipboard, copied } = useCopyToClipboard(1500);
+	const handleCopy = useCallback(() => {
+		copyToClipboard(secret.value);
+	}, [secret.value, copyToClipboard]);
 
 	const isEmpty = !secret.sensitive && !secret.value;
 

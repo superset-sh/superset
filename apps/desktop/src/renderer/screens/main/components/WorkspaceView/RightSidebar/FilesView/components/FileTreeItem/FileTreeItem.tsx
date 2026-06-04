@@ -21,7 +21,7 @@ import {
 } from "react-icons/lu";
 import type { DirectoryEntry } from "shared/file-tree-types";
 import { useFileDrag, usePathActions } from "../../../ChangesView/hooks";
-import { getFileIcon } from "../../utils";
+import { FileIcon } from "../../utils";
 
 interface FileTreeItemProps {
 	item: ItemInstance<DirectoryEntry>;
@@ -30,7 +30,7 @@ interface FileTreeItemProps {
 	indent: number;
 	worktreePath: string;
 	projectId?: string;
-	onActivate: (entry: DirectoryEntry) => void;
+	onActivate: (entry: DirectoryEntry, openInNewTab?: boolean) => void;
 	onOpenInEditor: (entry: DirectoryEntry) => void;
 	onNewFile: (parentPath: string) => void;
 	onNewFolder: (parentPath: string) => void;
@@ -55,7 +55,6 @@ export function FileTreeItem({
 	const isFolder = entry.isDirectory;
 	const isExpanded = item.isExpanded();
 	const level = item.getItemMeta().level;
-	const { icon: Icon, color } = getFileIcon(entry.name, isFolder, isExpanded);
 
 	const parentPath = isFolder
 		? entry.path
@@ -65,7 +64,7 @@ export function FileTreeItem({
 		usePathActions({
 			absolutePath: entry.path,
 			relativePath: entry.relativePath,
-			cwd: worktreePath,
+			worktreePath,
 			projectId,
 		});
 
@@ -73,12 +72,16 @@ export function FileTreeItem({
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		if (isFolder) {
+		if (e.metaKey || e.ctrlKey) {
+			onOpenInEditor(entry);
+		} else if (isFolder) {
 			if (isExpanded) {
 				item.collapse();
 			} else {
 				item.expand();
 			}
+		} else if (e.shiftKey) {
+			onActivate(entry, true);
 		} else {
 			onActivate(entry);
 		}
@@ -99,7 +102,7 @@ export function FileTreeItem({
 					item.expand();
 				}
 			} else {
-				onActivate(entry);
+				onActivate(entry, e.metaKey || e.ctrlKey ? true : undefined);
 			}
 		}
 	};
@@ -135,7 +138,12 @@ export function FileTreeItem({
 				) : null}
 			</span>
 
-			<Icon className={cn("size-4 shrink-0", color)} />
+			<FileIcon
+				fileName={entry.name}
+				isDirectory={isFolder}
+				isOpen={isExpanded}
+				className="size-4 shrink-0"
+			/>
 
 			<span className="flex-1 min-w-0 text-xs truncate">{entry.name}</span>
 		</div>

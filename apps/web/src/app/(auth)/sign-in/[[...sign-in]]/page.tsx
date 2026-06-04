@@ -1,14 +1,26 @@
 "use client";
 
 import { authClient } from "@superset/auth/client";
+import {
+	DEV_EMAIL,
+	DEV_NAME,
+	DEV_PASSWORD,
+} from "@superset/shared/dev-credentials";
 import { Button } from "@superset/ui/button";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
 
 export default function SignInPage() {
+	const searchParams = useSearchParams();
+	const redirect = searchParams.get("redirect");
+	const callbackURL = redirect
+		? `${env.NEXT_PUBLIC_WEB_URL}${redirect}`
+		: env.NEXT_PUBLIC_WEB_URL;
+
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -20,7 +32,7 @@ export default function SignInPage() {
 		try {
 			await authClient.signIn.social({
 				provider: "google",
-				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+				callbackURL,
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);
@@ -36,7 +48,7 @@ export default function SignInPage() {
 		try {
 			await authClient.signIn.social({
 				provider: "github",
-				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+				callbackURL,
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);
@@ -45,7 +57,39 @@ export default function SignInPage() {
 		}
 	};
 
-	const isLoading = isLoadingGoogle || isLoadingGithub;
+	const [isLoadingDev, setIsLoadingDev] = useState(false);
+
+	const signInAsDev = async () => {
+		setIsLoadingDev(true);
+		setError(null);
+
+		try {
+			let res = await authClient.signIn.email({
+				email: DEV_EMAIL,
+				password: DEV_PASSWORD,
+			});
+			if (res.error) {
+				const signUpRes = await authClient.signUp.email({
+					email: DEV_EMAIL,
+					password: DEV_PASSWORD,
+					name: DEV_NAME,
+				});
+				if (signUpRes.error) throw new Error(signUpRes.error.message);
+				res = await authClient.signIn.email({
+					email: DEV_EMAIL,
+					password: DEV_PASSWORD,
+				});
+			}
+			if (res.error) throw new Error(res.error.message);
+			window.location.href = callbackURL;
+		} catch (err) {
+			console.error("Dev sign in failed:", err);
+			setError(err instanceof Error ? err.message : "Dev sign-in failed");
+			setIsLoadingDev(false);
+		}
+	};
+
+	const isLoading = isLoadingGoogle || isLoadingGithub || isLoadingDev;
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
@@ -58,6 +102,16 @@ export default function SignInPage() {
 			<div className="grid gap-4">
 				{error && (
 					<p className="text-destructive text-center text-sm">{error}</p>
+				)}
+				{process.env.NODE_ENV === "development" && (
+					<Button
+						variant="outline"
+						disabled={isLoading}
+						onClick={signInAsDev}
+						className="w-full"
+					>
+						{isLoadingDev ? "Signing in..." : "Sign in as Local Admin (dev)"}
+					</Button>
 				)}
 				<Button
 					variant="outline"

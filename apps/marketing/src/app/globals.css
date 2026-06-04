@@ -1,9 +1,29 @@
 @import "tailwindcss";
 @import "@superset/ui/globals.css";
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme {
 	--font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+@theme inline {
+	--color-brand: var(--brand);
+	--color-brand-light: var(--brand-light);
+	--color-brand-dark: var(--brand-dark);
+}
+
+:root {
+	--brand: #d25611;
+	--brand-light: #e8804a;
+	--brand-dark: #9e400a;
+}
+
+@layer base {
+	button:not(:disabled),
+	[role="button"]:not([aria-disabled="true"]) {
+		cursor: pointer;
+	}
 }
 
 @utility scrollbar-hide {

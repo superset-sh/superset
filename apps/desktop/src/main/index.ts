@@ -13,36 +13,55 @@ import {
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
 	handleAuthCallback,
+	loadToken,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
+import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
+import { env as mainEnv } from "main/env.main";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
-import { getWorkspaceName } from "shared/env.shared";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
-import { setupAutoUpdater } from "./lib/auto-updater";
+import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
+import { installBundledCliShim } from "./lib/bundled-cli";
+import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
+import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
 import { localDb } from "./lib/local-db";
-import { outlit } from "./lib/outlit";
+import { requestLocalNetworkAccess } from "./lib/local-network-permission";
+import {
+	initTanstackDbPersistence,
+	shutdownTanstackDbPersistence,
+} from "./lib/persistence/persistence";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
 	reconcileDaemonSessions,
 } from "./lib/terminal";
+import {
+	disposeTerminalHostClient,
+	getTerminalHostClient,
+} from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
+import { startNetworkLogger, stopNetworkLogger } from "./network-logger";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
+const IS_DEV = process.env.NODE_ENV === "development";
+
+void applyShellEnvToProcess().catch((error) => {
+	console.error("[main] Failed to apply shell environment:", error);
+});
 
 // Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
-if (process.env.NODE_ENV === "development") {
-	const workspaceName = getWorkspaceName();
+if (IS_DEV) {
+	const workspaceName = resolveDevWorkspaceName();
 	if (workspaceName) {
 		app.setName(`Superset (${workspaceName})`);
 	}
@@ -88,7 +107,7 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 }
 
-function focusMainWindow(): void {
+export function focusMainWindow(): void {
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
 		const mainWindow = windows[0];
@@ -97,6 +116,9 @@ function focusMainWindow(): void {
 		}
 		mainWindow.show();
 		mainWindow.focus();
+	} else {
+		// Triggers window creation via makeAppSetup's activate handler
+		app.emit("activate");
 	}
 }
 
@@ -142,7 +164,29 @@ app.on("open-url", async (event, url) => {
 });
 
 let isQuitting = false;
-let skipConfirmation = false;
+let skipQuitConfirmation = false;
+let forceFullCleanup = false;
+
+export function setSkipQuitConfirmation(): void {
+	skipQuitConfirmation = true;
+}
+
+export function quitApp(): void {
+	setSkipQuitConfirmation();
+	app.quit();
+}
+
+/** Quit + also stop background services. Tray "Quit Completely". */
+export function quitAppCompletely(): void {
+	forceFullCleanup = true;
+	setSkipQuitConfirmation();
+	app.quit();
+}
+
+/** Bypasses before-quit. Host-service children self-exit via the parent watchdog. */
+export function exitImmediately(): void {
+	app.exit(0);
+}
 
 function getConfirmOnQuitSetting(): boolean {
 	try {
@@ -153,23 +197,11 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
-export function setSkipQuitConfirmation(): void {
-	skipConfirmation = true;
-}
-
-export function quitWithoutConfirmation(): void {
-	skipConfirmation = true;
-	app.exit(0);
-}
-
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
 	const isDev = process.env.NODE_ENV === "development";
-	const shouldConfirm =
-		!skipConfirmation && !isDev && getConfirmOnQuitSetting();
-
-	if (shouldConfirm) {
+	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
 
 		try {
@@ -182,19 +214,45 @@ app.on("before-quit", async (event) => {
 				message: "Are you sure you want to quit?",
 			});
 
-			if (response === 1) return;
+			if (response === 1) {
+				return;
+			}
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
 	}
 
-	// Quit confirmed or no confirmation needed - exit immediately
-	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
-	await outlit.shutdown();
-	disposeTray();
+	try {
+		getHostServiceCoordinator().stopAll();
+		if (isDev || forceFullCleanup) {
+			await teardownTerminalHost();
+		} else if (isUpdateReadyToInstall()) {
+			disposeTerminalHostClient();
+		}
+		shutdownTanstackDbPersistence();
+		disposeTray();
+	} catch (error) {
+		console.error("[main] Cleanup during quit failed:", error);
+	} finally {
+		await stopNetworkLogger();
+	}
 	app.exit(0);
 });
+
+/**
+ * Fully stop the v1 terminal-host process. Do not call this for update
+ * installs: terminal-host owns the PTY subprocesses, so shutdown is
+ * destructive and prevents reattach on next launch.
+ */
+async function teardownTerminalHost(): Promise<void> {
+	try {
+		await getTerminalHostClient().shutdownIfRunning({ killSessions: true });
+	} catch (err) {
+		console.warn("[main] terminal-host dev shutdown failed:", err);
+	}
+	disposeTerminalHostClient();
+}
 
 process.on("uncaughtException", (error) => {
 	if (isQuitting) return;
@@ -208,9 +266,16 @@ process.on("unhandledRejection", (reason) => {
 
 // Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
+	let signalHandled = false;
 	const handleTerminationSignal = (signal: string) => {
+		if (signalHandled) return;
+		signalHandled = true;
 		console.log(`[main] Received ${signal}, quitting...`);
-		app.exit(0);
+		getHostServiceCoordinator().stopAll();
+		void Promise.allSettled([
+			teardownTerminalHost(),
+			stopNetworkLogger(),
+		]).finally(() => app.exit(0));
 	};
 
 	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
@@ -231,7 +296,7 @@ if (process.env.NODE_ENV === "development") {
 		if (!isParentAlive()) {
 			console.log("[main] Parent process exited, quitting...");
 			clearInterval(parentCheckInterval);
-			app.exit(0);
+			handleTerminationSignal("parent-exit");
 		}
 	}, 1000);
 	parentCheckInterval.unref();
@@ -240,6 +305,15 @@ if (process.env.NODE_ENV === "development") {
 protocol.registerSchemesAsPrivileged([
 	{
 		scheme: "superset-icon",
+		privileges: {
+			standard: true,
+			secure: true,
+			bypassCSP: true,
+			supportFetchAPI: true,
+		},
+	},
+	{
+		scheme: "superset-font",
 		privileges: {
 			standard: true,
 			secure: true,
@@ -267,6 +341,7 @@ if (!gotTheLock) {
 		await app.whenReady();
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
+		requestLocalNetworkAccess();
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
@@ -283,10 +358,47 @@ if (!gotTheLock) {
 			.fromPartition("persist:superset")
 			.protocol.handle("superset-icon", iconProtocolHandler);
 
+		// Serve system fonts (e.g. SF Mono on macOS) via custom protocol
+		// so the renderer can use @font-face with font-src 'self' CSP
+		if (process.platform === "darwin") {
+			const SYSTEM_FONT_DIRS = [
+				"/System/Applications/Utilities/Terminal.app/Contents/Resources/Fonts",
+				"/System/Library/Fonts",
+				"/Library/Fonts",
+			];
+			const fontProtocolHandler = async (request: Request) => {
+				const url = new URL(request.url);
+				const filename = path.basename(url.pathname);
+				if (!/\.(otf|ttf|woff2?)$/i.test(filename)) {
+					return new Response("Not found", { status: 404 });
+				}
+				for (const dir of SYSTEM_FONT_DIRS) {
+					const fontPath = path.join(dir, filename);
+					try {
+						return await net.fetch(pathToFileURL(fontPath).toString());
+					} catch {
+						// Not in this directory
+					}
+				}
+				return new Response("Not found", { status: 404 });
+			};
+			protocol.handle("superset-font", fontProtocolHandler);
+			session
+				.fromPartition("persist:superset")
+				.protocol.handle("superset-font", fontProtocolHandler);
+		}
+
 		ensureProjectIconsDir();
 		setWorkspaceDockIcon();
 		initSentry();
 		await initAppState();
+		initTanstackDbPersistence();
+
+		try {
+			await startNetworkLogger();
+		} catch (error) {
+			console.error("[main] Failed to start network logger:", error);
+		}
 
 		await loadWebviewBrowserExtension();
 
@@ -299,12 +411,24 @@ if (!gotTheLock) {
 		} catch (error) {
 			console.error("[main] Failed to set up agent hooks:", error);
 		}
+		try {
+			installBundledCliShim();
+		} catch (error) {
+			console.error("[main] Failed to install bundled CLI shim:", error);
+		}
+
+		if (IS_DEV) {
+			getHostServiceCoordinator().enableDevReload(async () => {
+				const { token } = await loadToken();
+				if (!token) return null;
+				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+			});
+		}
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
 		initTray();
 
-		// Process any deep links from cold start
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {
 			await processDeepLink(coldStartUrl);

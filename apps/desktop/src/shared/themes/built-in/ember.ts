@@ -69,6 +69,10 @@ export const darkTheme: Theme = {
 		// Search highlights - warm orange tint matching ember's accent
 		highlightMatch: "rgba(224, 120, 80, 0.2)",
 		highlightActive: "rgba(224, 120, 80, 0.5)",
+
+		// Brand highlight - ember's warm orange
+		highlight: "#e07850",
+		highlightForeground: "#151110",
 	},
 
 	terminal: {
@@ -97,5 +101,11 @@ export const darkTheme: Theme = {
 		brightMagenta: "#d494e6",
 		brightCyan: "#73c7d3",
 		brightWhite: "#ffffff",
+	},
+
+	editor: {
+		syntax: {
+			comment: "#a8a5a3",
+		},
 	},
 };

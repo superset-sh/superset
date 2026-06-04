@@ -1,10 +1,19 @@
-import { workspaces } from "@superset/local-db";
-import { eq } from "drizzle-orm";
+import os from "node:os";
 import { app } from "electron";
-import { localDb } from "main/lib/local-db";
-import { getProcessTree } from "main/lib/terminal/port-scanner";
-import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry";
 import pidusage from "pidusage";
+import {
+	captureProcessSnapshot,
+	enrichWithPhysFootprint,
+	getSubtreePids,
+	getSubtreeResources,
+	type ProcessSnapshot,
+} from "./process-tree";
+import { normalizeOptionalTitle } from "./session-normalization";
+import {
+	collectWorkspaceSessionMap,
+	getWorkspaceMetadata,
+	type ResourceMetricsSurface,
+} from "./session-sources";
 
 interface ProcessMetrics {
 	cpu: number;
@@ -15,12 +24,15 @@ interface SessionMetrics {
 	sessionId: string;
 	paneId: string;
 	pid: number;
+	title: string | null;
 	cpu: number;
 	memory: number;
 }
 
 interface WorkspaceMetrics {
 	workspaceId: string;
+	projectId: string;
+	projectName: string;
 	workspaceName: string;
 	cpu: number;
 	memory: number;
@@ -30,102 +42,306 @@ interface WorkspaceMetrics {
 interface AppMetrics extends ProcessMetrics {
 	main: ProcessMetrics;
 	renderer: ProcessMetrics;
+	other: ProcessMetrics;
+}
+
+interface HostMetrics {
+	totalMemory: number;
+	freeMemory: number;
+	usedMemory: number;
+	memoryUsagePercent: number;
+	cpuCoreCount: number;
+	loadAverage1m: number;
 }
 
 export interface ResourceMetricsSnapshot {
 	app: AppMetrics;
 	workspaces: WorkspaceMetrics[];
+	host: HostMetrics;
 	totalCpu: number;
 	totalMemory: number;
+	collectedAt: number;
 }
 
-export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot> {
-	const registry = getWorkspaceRuntimeRegistry();
-	const { sessions } = await registry
-		.getDefault()
-		.terminal.management.listSessions();
+type SnapshotMode = "interactive" | "idle";
+interface CollectResourceMetricsOptions {
+	mode?: SnapshotMode;
+	force?: boolean;
+	surface?: ResourceMetricsSurface;
+	organizationId?: string;
+}
 
-	const workspaceSessionMap = new Map<
-		string,
-		Array<{ sessionId: string; paneId: string; pid: number }>
-	>();
+const SNAPSHOT_MAX_AGE_MS: Record<SnapshotMode, number> = {
+	interactive: 2500,
+	idle: 15000,
+};
 
-	for (const session of sessions) {
-		if (!session.isAlive || session.pid == null) continue;
+const cachedSnapshots = new Map<string, ResourceMetricsSnapshot>();
+const inflightCollections = new Map<string, Promise<ResourceMetricsSnapshot>>();
 
-		let entries = workspaceSessionMap.get(session.workspaceId);
-		if (!entries) {
-			entries = [];
-			workspaceSessionMap.set(session.workspaceId, entries);
-		}
-		entries.push({
+function normalizeFiniteNumber(value: unknown): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+	return Math.max(0, value);
+}
+
+function createHostMetrics(): HostMetrics {
+	const totalHostMemory = normalizeFiniteNumber(os.totalmem());
+	const freeHostMemory = normalizeFiniteNumber(os.freemem());
+	const usedHostMemory = Math.max(0, totalHostMemory - freeHostMemory);
+	const cpuCoreCount = Math.max(1, os.cpus().length);
+	const loadAverage1m = normalizeFiniteNumber(os.loadavg()[0]);
+
+	return {
+		totalMemory: totalHostMemory,
+		freeMemory: freeHostMemory,
+		usedMemory: usedHostMemory,
+		memoryUsagePercent:
+			totalHostMemory > 0 ? (usedHostMemory / totalHostMemory) * 100 : 0,
+		cpuCoreCount,
+		loadAverage1m,
+	};
+}
+
+function createEmptySnapshot(): ResourceMetricsSnapshot {
+	return {
+		app: {
+			cpu: 0,
+			memory: 0,
+			main: { cpu: 0, memory: 0 },
+			renderer: { cpu: 0, memory: 0 },
+			other: { cpu: 0, memory: 0 },
+		},
+		workspaces: [],
+		host: createHostMetrics(),
+		totalCpu: 0,
+		totalMemory: 0,
+		collectedAt: Date.now(),
+	};
+}
+
+function normalizeSnapshot(
+	snapshot: ResourceMetricsSnapshot,
+): ResourceMetricsSnapshot {
+	const appMain = {
+		cpu: normalizeFiniteNumber(snapshot.app.main.cpu),
+		memory: normalizeFiniteNumber(snapshot.app.main.memory),
+	};
+	const appRenderer = {
+		cpu: normalizeFiniteNumber(snapshot.app.renderer.cpu),
+		memory: normalizeFiniteNumber(snapshot.app.renderer.memory),
+	};
+	const appOther = {
+		cpu: normalizeFiniteNumber(snapshot.app.other.cpu),
+		memory: normalizeFiniteNumber(snapshot.app.other.memory),
+	};
+	const workspaces = snapshot.workspaces.map((workspace) => {
+		const sessions = workspace.sessions.map((session) => ({
 			sessionId: session.sessionId,
 			paneId: session.paneId,
-			pid: session.pid,
-		});
-	}
+			pid: Math.max(0, Math.floor(normalizeFiniteNumber(session.pid))),
+			title: normalizeOptionalTitle(session.title),
+			cpu: normalizeFiniteNumber(session.cpu),
+			memory: normalizeFiniteNumber(session.memory),
+		}));
 
-	const allEntries = [...workspaceSessionMap.values()].flat();
-	const sessionPidTrees = await Promise.all(
-		allEntries.map(async (entry) => ({
-			entry,
-			treePids: await getProcessTree(entry.pid),
-		})),
+		return {
+			workspaceId: workspace.workspaceId,
+			projectId: workspace.projectId,
+			projectName: workspace.projectName,
+			workspaceName: workspace.workspaceName,
+			cpu: normalizeFiniteNumber(workspace.cpu),
+			memory: normalizeFiniteNumber(workspace.memory),
+			sessions,
+		};
+	});
+	const sessionCpuTotal = workspaces.reduce(
+		(sum, workspace) => sum + workspace.cpu,
+		0,
 	);
+	const sessionMemoryTotal = workspaces.reduce(
+		(sum, workspace) => sum + workspace.memory,
+		0,
+	);
+	const host = createHostMetrics();
+	const app = {
+		main: appMain,
+		renderer: appRenderer,
+		other: appOther,
+		cpu: appMain.cpu + appRenderer.cpu + appOther.cpu,
+		memory: appMain.memory + appRenderer.memory + appOther.memory,
+	};
 
-	const allPids = sessionPidTrees.flatMap((s) => s.treePids);
-	let pidStats: Record<number, pidusage.Status> = {};
-	if (allPids.length > 0) {
-		try {
-			pidStats = await pidusage(allPids);
-		} catch {
-			// PIDs may have exited between listing and querying
+	return {
+		app,
+		workspaces,
+		host,
+		totalCpu: app.cpu + sessionCpuTotal,
+		totalMemory: app.memory + sessionMemoryTotal,
+		collectedAt:
+			typeof snapshot.collectedAt === "number" &&
+			Number.isFinite(snapshot.collectedAt)
+				? snapshot.collectedAt
+				: Date.now(),
+	};
+}
+
+function getSnapshotMaxAge(mode: SnapshotMode): number {
+	return SNAPSHOT_MAX_AGE_MS[mode];
+}
+
+export async function collectResourceMetrics(
+	options: CollectResourceMetricsOptions = {},
+): Promise<ResourceMetricsSnapshot> {
+	const mode = options.mode ?? "interactive";
+	const surface = options.surface ?? "v1";
+	const maxAgeMs = getSnapshotMaxAge(mode);
+	const cacheKey = `${surface}:${options.organizationId ?? "all"}`;
+
+	const cachedSnapshot = cachedSnapshots.get(cacheKey) ?? null;
+	if (!options.force && cachedSnapshot) {
+		const ageMs = Date.now() - cachedSnapshot.collectedAt;
+		if (ageMs <= maxAgeMs) {
+			return cachedSnapshot;
 		}
 	}
+
+	// Avoid duplicate expensive process-tree scans for concurrent callers.
+	const inflightCollection = inflightCollections.get(cacheKey);
+	if (inflightCollection) {
+		return inflightCollection;
+	}
+
+	const collection = collectResourceMetricsNow({
+		surface,
+		organizationId: options.organizationId,
+	})
+		.catch((error) => {
+			console.warn(
+				"[resource-metrics] Failed to collect resource metrics; returning a safe fallback snapshot",
+				error,
+			);
+			return cachedSnapshot ?? createEmptySnapshot();
+		})
+		.then((snapshot) => {
+			const normalized = normalizeSnapshot(snapshot);
+			cachedSnapshots.set(cacheKey, normalized);
+			return normalized;
+		})
+		.finally(() => {
+			inflightCollections.delete(cacheKey);
+		});
+	inflightCollections.set(cacheKey, collection);
+
+	return collection;
+}
+
+async function enrichSnapshotCpu(
+	snapshot: ProcessSnapshot,
+	pids: number[],
+): Promise<void> {
+	if (pids.length === 0) return;
+	try {
+		const stats = await pidusage(pids);
+		for (const pid of pids) {
+			const stat = stats[pid];
+			const info = snapshot.byPid.get(pid);
+			if (info && stat) {
+				info.cpu = normalizeFiniteNumber(stat.cpu);
+			}
+		}
+	} catch {
+		// PIDs may have exited between listing and querying.
+	}
+}
+
+async function collectResourceMetricsNow({
+	surface,
+	organizationId,
+}: {
+	surface: ResourceMetricsSurface;
+	organizationId?: string;
+}): Promise<ResourceMetricsSnapshot> {
+	const workspaceSessionMap = await collectWorkspaceSessionMap({
+		surface,
+		organizationId,
+	});
+	const allEntries = [...workspaceSessionMap.values()].flat();
+
+	// Single atomic snapshot: tree structure + resource data from one `ps`
+	// call, eliminating the race between pidtree and pidusage.
+	const processSnapshot = await captureProcessSnapshot();
+
+	// Collect all subtree PIDs so we can enrich them in bulk.
+	const allSubtreePids: number[] = [];
+	for (const entry of allEntries) {
+		allSubtreePids.push(...getSubtreePids(processSnapshot, entry.pid));
+	}
+
+	// On Windows, `ps` isn't available so the snapshot has cpu: 0.
+	// Enrich the relevant subtree PIDs with CPU data from pidusage.
+	if (os.platform() === "win32") {
+		await enrichSnapshotCpu(processSnapshot, allSubtreePids);
+	}
+
+	// On macOS, replace RSS with phys_footprint (compressed memory) to
+	// match what Activity Monitor reports as "Memory".
+	enrichWithPhysFootprint(processSnapshot, allSubtreePids);
 
 	const electronMetrics = app.getAppMetrics();
 	const main: ProcessMetrics = { cpu: 0, memory: 0 };
 	const renderer: ProcessMetrics = { cpu: 0, memory: 0 };
+	const other: ProcessMetrics = { cpu: 0, memory: 0 };
+
+	const isRendererProcessType = (type: string): boolean => {
+		const normalized = type.toLowerCase();
+		return normalized === "renderer" || normalized === "tab";
+	};
+
 	for (const proc of electronMetrics) {
-		const cpu = proc.cpu.percentCPUUsage;
-		// workingSetSize is in KB
-		const memory = proc.memory.workingSetSize * 1024;
-		const target = proc.type === "Browser" ? main : renderer;
+		const cpu = normalizeFiniteNumber(proc.cpu?.percentCPUUsage);
+		// Electron returns workingSetSize in KB.
+		const memory = normalizeFiniteNumber(proc.memory?.workingSetSize) * 1024;
+		let target = other;
+		if (proc.type === "Browser") {
+			target = main;
+		} else if (
+			typeof proc.type === "string" &&
+			isRendererProcessType(proc.type)
+		) {
+			target = renderer;
+		}
 		target.cpu += cpu;
 		target.memory += memory;
 	}
 	const appMetrics: AppMetrics = {
-		cpu: main.cpu + renderer.cpu,
-		memory: main.memory + renderer.memory,
+		cpu: main.cpu + renderer.cpu + other.cpu,
+		memory: main.memory + renderer.memory + other.memory,
 		main,
 		renderer,
+		other,
 	};
 
 	const sessionAggregated = new Map<string, { cpu: number; memory: number }>();
-	for (const { entry, treePids } of sessionPidTrees) {
-		let cpu = 0;
-		let memory = 0;
-		for (const pid of treePids) {
-			const stats = pidStats[pid];
-			if (stats) {
-				cpu += stats.cpu;
-				memory += stats.memory;
-			}
-		}
-		sessionAggregated.set(entry.sessionId, { cpu, memory });
+	for (const entry of allEntries) {
+		const resources = getSubtreeResources(processSnapshot, entry.pid);
+		sessionAggregated.set(entry.sessionId, {
+			cpu: normalizeFiniteNumber(resources.cpu),
+			memory: normalizeFiniteNumber(resources.memory),
+		});
 	}
 
 	const workspaceMetricsList: WorkspaceMetrics[] = [];
-	const nameCache = new Map<string, string>();
+	const workspaceMetaCache = new Map<
+		string,
+		{ workspaceName: string; projectId: string; projectName: string }
+	>();
 
 	for (const [workspaceId, entries] of workspaceSessionMap) {
-		if (!nameCache.has(workspaceId)) {
-			const ws = localDb
-				.select({ name: workspaces.name })
-				.from(workspaces)
-				.where(eq(workspaces.id, workspaceId))
-				.get();
-			nameCache.set(workspaceId, ws?.name ?? "Unknown");
+		if (!workspaceMetaCache.has(workspaceId)) {
+			workspaceMetaCache.set(
+				workspaceId,
+				getWorkspaceMetadata(surface, workspaceId),
+			);
 		}
 
 		const sessionMetrics: SessionMetrics[] = [];
@@ -142,6 +358,7 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 				sessionId: entry.sessionId,
 				paneId: entry.paneId,
 				pid: entry.pid,
+				title: entry.title,
 				cpu: agg.cpu,
 				memory: agg.memory,
 			});
@@ -152,7 +369,11 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 
 		workspaceMetricsList.push({
 			workspaceId,
-			workspaceName: nameCache.get(workspaceId) ?? "Unknown",
+			projectId: workspaceMetaCache.get(workspaceId)?.projectId ?? "unknown",
+			projectName:
+				workspaceMetaCache.get(workspaceId)?.projectName ?? "Unknown Project",
+			workspaceName:
+				workspaceMetaCache.get(workspaceId)?.workspaceName ?? "Unknown",
 			cpu: wsCpu,
 			memory: wsMemory,
 			sessions: sessionMetrics,
@@ -168,10 +389,12 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		0,
 	);
 
-	return {
+	return normalizeSnapshot({
 		app: appMetrics,
 		workspaces: workspaceMetricsList,
+		host: createHostMetrics(),
 		totalCpu: appMetrics.cpu + sessionCpuTotal,
 		totalMemory: appMetrics.memory + sessionMemoryTotal,
-	};
+		collectedAt: Date.now(),
+	});
 }

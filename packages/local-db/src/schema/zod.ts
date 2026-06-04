@@ -20,9 +20,26 @@ export const checkItemSchema = z.object({
 	name: z.string(),
 	status: z.enum(["success", "failure", "pending", "skipped", "cancelled"]),
 	url: z.string().optional(),
+	durationText: z.string().optional(),
 });
 
 export type CheckItem = z.infer<typeof checkItemSchema>;
+
+export const pullRequestCommentSchema = z.object({
+	id: z.string(),
+	authorLogin: z.string(),
+	avatarUrl: z.string().optional(),
+	body: z.string(),
+	createdAt: z.number().optional(),
+	url: z.string().optional(),
+	kind: z.enum(["review", "conversation"]).optional(),
+	path: z.string().optional(),
+	line: z.number().optional(),
+	isResolved: z.boolean().optional(),
+	threadId: z.string().optional(),
+});
+
+export type PullRequestComment = z.infer<typeof pullRequestCommentSchema>;
 
 /**
  * GitHub PR status
@@ -37,13 +54,22 @@ export const gitHubStatusSchema = z.object({
 			mergedAt: z.number().optional(),
 			additions: z.number(),
 			deletions: z.number(),
+			headRefName: z.string().optional(),
+			headRepositoryOwner: z.string().optional(),
+			headRepositoryName: z.string().optional(),
+			isCrossRepository: z.boolean().optional(),
 			reviewDecision: z.enum(["approved", "changes_requested", "pending"]),
 			checksStatus: z.enum(["success", "failure", "pending", "none"]),
 			checks: z.array(checkItemSchema),
+			comments: z.array(pullRequestCommentSchema).optional(),
+			requestedReviewers: z.array(z.string()).optional(),
 		})
 		.nullable(),
 	repoUrl: z.string(),
+	upstreamUrl: z.string().optional(),
+	isFork: z.boolean().optional(),
 	branchExistsOnRemote: z.boolean(),
+	previewUrl: z.string().optional(),
 	lastRefreshed: z.number(),
 });
 
@@ -53,6 +79,7 @@ export const EXECUTION_MODES = [
 	"split-pane",
 	"new-tab",
 	"new-tab-split-pane",
+	"sequential",
 ] as const;
 
 export type ExecutionMode = (typeof EXECUTION_MODES)[number];
@@ -61,12 +88,17 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 	if (
 		mode === "split-pane" ||
 		mode === "new-tab" ||
-		mode === "new-tab-split-pane"
+		mode === "new-tab-split-pane" ||
+		mode === "sequential"
 	) {
 		return mode;
 	}
 
-	return "split-pane";
+	if (mode === "parallel") {
+		return "split-pane";
+	}
+
+	return "new-tab";
 }
 
 /**
@@ -78,14 +110,30 @@ export const terminalPresetSchema = z.object({
 	description: z.string().optional(),
 	cwd: z.string(),
 	commands: z.array(z.string()),
+	projectIds: z.array(z.string()).nullable().optional(),
 	pinnedToBar: z.boolean().optional(),
-	isDefault: z.boolean().optional(),
+	useAsWorkspaceRun: z.boolean().optional(),
 	applyOnWorkspaceCreated: z.boolean().optional(),
 	applyOnNewTab: z.boolean().optional(),
 	executionMode: z.enum(EXECUTION_MODES).optional(),
 });
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
+
+export {
+	AGENT_PRESET_FIELDS,
+	type AgentCustomDefinition,
+	type AgentPresetField,
+	type AgentPresetOverride,
+	type AgentPresetOverrideEnvelope,
+	agentCustomDefinitionSchema,
+	agentPresetOverrideEnvelopeSchema,
+	agentPresetOverrideSchema,
+} from "@superset/shared/agent-custom";
+export {
+	PROMPT_TRANSPORTS,
+	type PromptTransport,
+} from "@superset/shared/agent-prompt-launch";
 
 /**
  * Workspace type
@@ -124,6 +172,7 @@ export const EXTERNAL_APPS = [
 	"appcode",
 	"fleet",
 	"rustrover",
+	"android-studio",
 ] as const;
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];
@@ -147,17 +196,10 @@ export const TERMINAL_LINK_BEHAVIORS = [
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
 
-/**
- * Branch prefix modes for workspace branch naming
- */
-export const BRANCH_PREFIX_MODES = [
-	"none",
-	"github",
-	"author",
-	"custom",
-] as const;
-
-export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
+export {
+	BRANCH_PREFIX_MODES,
+	type BranchPrefixMode,
+} from "@superset/shared/workspace-launch";
 
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 

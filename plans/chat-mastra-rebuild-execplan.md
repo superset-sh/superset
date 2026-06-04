@@ -1,6 +1,6 @@
 # Chat-Mastra Rebuild Exec Plan
 
-This is the source-of-truth plan for rebuilding chat as a separate `chat-mastra` stack.
+This is the source-of-truth plan for rebuilding chat as a separate `chat` stack.
 
 ## Status
 - Owner: platform/chat
@@ -20,7 +20,7 @@ This is the source-of-truth plan for rebuilding chat as a separate `chat-mastra`
 - No attempt to make harness events stable across arbitrary Mastra versions.
 
 ## Locked Decisions
-- New package: `packages/chat-mastra` (single package with strict internal boundaries).
+- New package: `packages/chat` (single package with strict internal boundaries).
 - New session metadata table: `chat_mastra_sessions`.
 - Event protocol: raw Mastra harness events for runtime output.
 - Slash commands served by our service layer, not by harness.
@@ -152,9 +152,9 @@ Notes:
 - Avoid stream-scanning for index UX.
 
 ## Desktop Integration Plan
-- Add new pane type: `chat-mastra`.
-- Add new router namespace: `chatMastraService`.
-- Add new renderer pane component tree for chat-mastra.
+- Add new pane type: `chat`.
+- Add new router namespace: `chatRuntimeService`.
+- Add new renderer pane component tree for chat.
 - Keep old `chat` pane untouched during rollout.
 - Feature-flag initial enablement.
 
@@ -180,7 +180,7 @@ Notes:
 - Contract: snapshot raw harness event discriminants and key fields.
 
 ## Implementation Checklist
-- [ ] Create `packages/chat-mastra` exports + tsconfig + deps.
+- [ ] Create `packages/chat` exports + tsconfig + deps.
 - [ ] Implement `src/schema` event/state schema.
 - [ ] Implement `src/events` queue + durable append helpers.
 - [ ] Implement `src/server/core` runtime manager and session runtime lifecycle.
@@ -188,8 +188,8 @@ Notes:
 - [ ] Implement `src/server/trpc` router over core.
 - [ ] Implement `src/server/hono` wrapper mounting tRPC + stream routes.
 - [ ] Add `chat_mastra_sessions` DB schema (and relations if needed).
-- [ ] Add desktop main-process router namespace `chatMastraService`.
-- [ ] Add desktop pane type `chat-mastra` and initial pane surface.
+- [ ] Add desktop main-process router namespace `chatRuntimeService`.
+- [ ] Add desktop pane type `chat` and initial pane surface.
 - [ ] Add tests for ordering, resume, slash behaviors, and event contracts.
 
 ## Open Questions (to resolve during implementation)

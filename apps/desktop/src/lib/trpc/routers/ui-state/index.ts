@@ -1,12 +1,5 @@
-import { observable } from "@trpc/server/observable";
 import { appState } from "main/lib/app-state";
 import type { TabsState, ThemeState } from "main/lib/app-state/schemas";
-import { hotkeysEmitter } from "main/lib/hotkeys-events";
-import {
-	buildOverridesFromBindings,
-	HOTKEYS_STATE_VERSION,
-	type HotkeysState,
-} from "shared/hotkeys";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -27,19 +20,23 @@ const fileViewerStateSchema = z.object({
 	oldPath: z.string().optional(),
 });
 
+const chatLaunchConfigSchema = z.object({
+	initialPrompt: z.string().optional(),
+	metadata: z
+		.object({
+			model: z.string().optional(),
+		})
+		.optional(),
+	retryCount: z.number().int().min(0).optional(),
+});
+
 /**
  * Zod schema for Pane
  */
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum([
-		"terminal",
-		"webview",
-		"file-viewer",
-		"chat-mastra",
-		"devtools",
-	]),
+	type: z.enum(["terminal", "webview", "file-viewer", "chat", "devtools"]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
@@ -48,7 +45,12 @@ const paneSchema = z.object({
 	cwd: z.string().nullable().optional(),
 	cwdConfirmed: z.boolean().optional(),
 	fileViewer: fileViewerStateSchema.optional(),
-	chatMastra: z.object({ sessionId: z.string().nullable() }).optional(),
+	chat: z
+		.object({
+			sessionId: z.string().nullable(),
+			launchConfig: chatLaunchConfigSchema.nullable().optional(),
+		})
+		.optional(),
 	browser: z
 		.object({
 			currentUrl: z.string(),
@@ -75,6 +77,12 @@ const paneSchema = z.object({
 	devtools: z
 		.object({
 			targetPaneId: z.string(),
+		})
+		.optional(),
+	workspaceRun: z
+		.object({
+			workspaceId: z.string(),
+			state: z.enum(["running", "stopped-by-user", "stopped-by-exit"]),
 		})
 		.optional(),
 });
@@ -165,6 +173,8 @@ const uiColorsSchema = z.object({
 	chart5: z.string(),
 	highlightMatch: z.string(),
 	highlightActive: z.string(),
+	highlight: z.string().optional(),
+	highlightForeground: z.string().optional(),
 });
 
 /**
@@ -217,15 +227,8 @@ const themeSchema = z.object({
 const themeStateSchema = z.object({
 	activeThemeId: z.string(),
 	customThemes: z.array(themeSchema),
-});
-
-const hotkeysStateSchema = z.object({
-	version: z.number(),
-	byPlatform: z.object({
-		darwin: z.record(z.string(), z.string().nullable()).default({}),
-		win32: z.record(z.string(), z.string().nullable()).default({}),
-		linux: z.record(z.string(), z.string().nullable()).default({}),
-	}),
+	systemLightThemeId: z.string().optional(),
+	systemDarkThemeId: z.string().optional(),
 });
 
 /**
@@ -263,57 +266,10 @@ export const createUiStateRouter = () => {
 				}),
 		}),
 
-		// Hotkeys state procedures
+		// Legacy hotkeys state (read-only, for one-time migration to localStorage)
 		hotkeys: router({
-			get: publicProcedure.query((): HotkeysState => {
+			get: publicProcedure.query(() => {
 				return appState.data.hotkeysState;
-			}),
-
-			set: publicProcedure
-				.input(hotkeysStateSchema)
-				.mutation(async ({ input }) => {
-					const version =
-						input.version === HOTKEYS_STATE_VERSION
-							? input.version
-							: HOTKEYS_STATE_VERSION;
-
-					const normalized: HotkeysState = {
-						version,
-						byPlatform: {
-							darwin: buildOverridesFromBindings(
-								input.byPlatform.darwin ?? {},
-								"darwin",
-							),
-							win32: buildOverridesFromBindings(
-								input.byPlatform.win32 ?? {},
-								"win32",
-							),
-							linux: buildOverridesFromBindings(
-								input.byPlatform.linux ?? {},
-								"linux",
-							),
-						},
-					};
-
-					appState.data.hotkeysState = normalized;
-					await appState.write();
-					hotkeysEmitter.emit("change", {
-						version: normalized.version,
-						updatedAt: new Date().toISOString(),
-					});
-					return { success: true };
-				}),
-
-			subscribe: publicProcedure.subscription(() => {
-				return observable<{ version: number; updatedAt: string }>((emit) => {
-					const onChange = (data: { version: number; updatedAt: string }) => {
-						emit.next(data);
-					};
-					hotkeysEmitter.on("change", onChange);
-					return () => {
-						hotkeysEmitter.off("change", onChange);
-					};
-				});
 			}),
 		}),
 	});

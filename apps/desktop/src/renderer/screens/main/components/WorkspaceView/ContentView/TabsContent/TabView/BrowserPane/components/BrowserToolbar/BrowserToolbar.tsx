@@ -195,7 +195,7 @@ export function BrowserToolbar({
 							</span>
 						) : (
 							<>
-								<span className="shrink-0 whitespace-nowrap text-muted-foreground/60 transition-colors group-hover:text-foreground">
+								<span className="min-w-0 truncate text-muted-foreground/60 transition-colors group-hover:text-foreground">
 									{url}
 								</span>
 								{pageTitle && (

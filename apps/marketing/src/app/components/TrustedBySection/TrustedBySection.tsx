@@ -4,68 +4,99 @@ import Image from "next/image";
 
 const CLIENT_LOGOS = [
 	{
-		name: "amazon",
-		logo: "/logos/amazon.png",
-		height: 24,
-		marginTop: 10,
-	},
-	{
-		name: "google",
-		logo: "/logos/google.svg",
-		height: 24,
-		marginTop: 4,
-	},
-	{
-		name: "doordash",
-		logo: "/logos/doordash.svg",
-		height: 22,
-		text: "DoorDash",
-	},
-	{
-		name: "intercom",
-		logo: "/logos/intercom-white.png",
-		height: 24,
-	},
-	{ name: "vercel", logo: "/logos/vercel.svg", height: 15 },
-	{
-		name: "cloudflare",
-		logo: "/logos/cloudflare-white.png",
-		height: 38,
-		marginTop: -20,
-	},
-	{ name: "webflow", logo: "/logos/webflow.svg", height: 17 },
-	{ name: "oracle", logo: "/logos/oracle.svg", height: 14 },
-	{
-		name: "atlassian",
-		logo: "/logos/atlassian-white.png",
-		height: 28,
-		marginTop: 4,
-	},
-	{
-		name: "servicenow",
-		logo: "/logos/servicenow.svg",
-		height: 15,
-	},
-	{ name: "wix", logo: "/logos/wix.svg", height: 34 },
-	{ name: "ycombinator", logo: "/logos/yc.png", height: 28 },
-	{
-		name: "browseruse",
-		logo: "/logos/browseruse.svg",
+		name: "microsoft",
+		label: "Microsoft",
+		logo: "/logos/microsoft-wordmark.svg",
 		height: 20,
 	},
 	{
-		name: "mastra",
-		logo: "/logos/mastra.svg",
+		name: "openai",
+		label: "OpenAI",
+		logo: "/logos/openai-wordmark.svg",
+		height: 20,
+	},
+	{
+		name: "runway",
+		label: "Runway",
+		logo: "/logos/runway-wordmark.svg",
 		height: 18,
-		text: "Mastra",
+	},
+	{
+		name: "wordware",
+		label: "Wordware",
+		logo: "/logos/wordware-wordmark.svg",
+		height: 16,
+	},
+	{
+		name: "salesforce",
+		label: "Salesforce",
+		logo: "/logos/salesforce-wordmark-dark.svg",
+		height: 50,
+		invert: false,
+	},
+	{
+		name: "wix",
+		label: "Wix",
+		logo: "/logos/wix-wordmark.svg",
+		height: 16,
+	},
+	{
+		name: "datadog",
+		label: "Datadog",
+		logo: "/logos/datadog-wordmark.svg",
+		height: 42,
+	},
+	{
+		name: "intercom",
+		label: "Intercom",
+		logo: "/logos/intercom-white.png",
+		height: 26,
+	},
+	{
+		name: "bytedance",
+		label: "ByteDance",
+		logo: "/logos/bytedance-wordmark.svg",
+		height: 18,
+	},
+	{
+		name: "toss",
+		label: "Toss",
+		logo: "/logos/toss-wordmark.svg",
+		height: 18,
+	},
+	{
+		name: "google",
+		label: "Google",
+		logo: "/logos/google.svg",
+		height: 24,
+	},
+	{
+		name: "vercel",
+		label: "Vercel",
+		logo: "/logos/vercel-wordmark.svg",
+		height: 38,
+	},
+	{
+		name: "cloudflare",
+		label: "Cloudflare",
+		logo: "/logos/cloudflare-wordmark.svg",
+		height: 48,
+		marginTop: -16,
+	},
+	{
+		name: "amazon",
+		label: "Amazon",
+		logo: "/logos/amazon.png",
+		height: 22,
 	},
 ] as {
 	name: string;
+	label: string;
 	logo: string;
 	height: number;
 	marginTop?: number;
 	borderRadius?: number;
-	text?: string;
+	invert?: boolean;
 }[];
 
 export function TrustedBySection() {
@@ -79,7 +110,7 @@ export function TrustedBySection() {
 		<section className="py-6 sm:py-12 md:py-18 bg-background overflow-hidden">
 			<div className="max-w-7xl mx-auto">
 				<div>
-					<h2 className="text-base sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
+					<h2 className="text-base sm:text-xl font-semibold text-center mb-4 sm:mb-8 text-foreground px-4">
 						Trusted by builders from
 					</h2>
 				</div>
@@ -89,27 +120,22 @@ export function TrustedBySection() {
 					{CLIENT_LOGOS.map((client) => (
 						<div
 							key={client.name}
-							className="flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+							className="flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 transition-all duration-200 hover:opacity-100 hover:border-foreground/[0.2] hover:bg-foreground/[0.06]"
 						>
 							<Image
 								src={client.logo}
-								alt={client.name}
-								width={160}
+								alt={client.label}
+								width={200}
 								height={client.height}
-								className="object-contain scale-75 sm:scale-90 grayscale brightness-0 invert"
+								className={`object-contain scale-75 sm:scale-90 ${client.invert === false ? "" : "grayscale brightness-0 invert"}`}
 								style={{
 									height: client.height,
 									width: "auto",
-									borderRadius: client?.borderRadius ?? 0,
-									marginTop: client?.marginTop ?? 0,
+									borderRadius: client.borderRadius ?? 0,
+									marginTop: client.marginTop ?? 0,
 								}}
 								unoptimized
 							/>
-							{client.text && (
-								<span className="ml-2 mt-0.5 font-medium text-foreground text-[0.9rem]">
-									{client.text}
-								</span>
-							)}
 						</div>
 					))}
 				</div>
@@ -124,27 +150,22 @@ export function TrustedBySection() {
 							{row.map((client) => (
 								<div
 									key={client.name}
-									className="flex items-center justify-center whitespace-nowrap h-24 w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+									className="flex items-center justify-center whitespace-nowrap h-24 w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 transition-all duration-200 hover:opacity-100 hover:border-foreground/[0.2] hover:bg-foreground/[0.06]"
 								>
 									<Image
 										src={client.logo}
-										alt={client.name}
-										width={160}
+										alt={client.label}
+										width={200}
 										height={client.height}
-										className="object-contain scale-100 grayscale brightness-0 invert"
+										className={`object-contain scale-100 ${client.invert === false ? "" : "grayscale brightness-0 invert"}`}
 										style={{
 											height: client.height,
 											width: "auto",
-											borderRadius: client?.borderRadius ?? 0,
-											marginTop: client?.marginTop ?? 0,
+											borderRadius: client.borderRadius ?? 0,
+											marginTop: client.marginTop ?? 0,
 										}}
 										unoptimized
 									/>
-									{client.text && (
-										<span className="ml-2 mt-0.5 font-medium text-foreground text-[1.1rem]">
-											{client.text}
-										</span>
-									)}
 								</div>
 							))}
 						</div>

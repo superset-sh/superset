@@ -12,8 +12,8 @@ import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent/HotkeyTooltipContent";
-import type { HotkeyId } from "shared/hotkeys";
+import type { HotkeyId } from "renderer/hotkeys";
+import { HotkeyLabel } from "renderer/hotkeys";
 
 const PRESET_BAR_ITEM_TYPE = "PRESET_BAR_ITEM";
 
@@ -23,7 +23,9 @@ interface PresetBarItemProps {
 	hotkeyId?: HotkeyId;
 	isDark: boolean;
 	canOpen: boolean;
+	canOpenInCurrentTerminal: boolean;
 	onOpenDefault: (preset: TerminalPreset) => void;
+	onOpenInCurrentTerminal: (preset: TerminalPreset) => void;
 	onOpenInNewTab: (preset: TerminalPreset) => void;
 	onOpenInPane: (preset: TerminalPreset) => void;
 	onEdit: (preset: TerminalPreset) => void;
@@ -37,7 +39,9 @@ export function PresetBarItem({
 	hotkeyId,
 	isDark,
 	canOpen,
+	canOpenInCurrentTerminal,
 	onOpenDefault,
+	onOpenInCurrentTerminal,
 	onOpenInNewTab,
 	onOpenInPane,
 	onEdit,
@@ -109,12 +113,18 @@ export function PresetBarItem({
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" sideOffset={4}>
-							<HotkeyTooltipContent label={label} hotkeyId={hotkeyId} />
+							<HotkeyLabel label={label} id={hotkeyId} />
 						</TooltipContent>
 					</Tooltip>
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
+				<ContextMenuItem
+					disabled={!canOpenInCurrentTerminal}
+					onSelect={() => onOpenInCurrentTerminal(preset)}
+				>
+					Open in current terminal
+				</ContextMenuItem>
 				<ContextMenuItem
 					disabled={!canOpen}
 					onSelect={() => onOpenInPane(preset)}

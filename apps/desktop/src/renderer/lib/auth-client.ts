@@ -1,7 +1,7 @@
+import { apiKeyClient } from "@better-auth/api-key/client";
 import { stripeClient } from "@better-auth/stripe/client";
 import type { auth } from "@superset/auth/server";
 import {
-	apiKeyClient,
 	customSessionClient,
 	jwtClient,
 	organizationClient,
@@ -38,7 +38,16 @@ export function getJwt(): string | null {
 export const authClient = createAuthClient({
 	baseURL: env.NEXT_PUBLIC_API_URL,
 	plugins: [
-		organizationClient(),
+		organizationClient({
+			teams: { enabled: true },
+			schema: {
+				team: {
+					additionalFields: {
+						slug: { type: "string", input: true, required: true },
+					},
+				},
+			},
+		}),
 		customSessionClient<typeof auth>(),
 		stripeClient({ subscription: true }),
 		apiKeyClient(),

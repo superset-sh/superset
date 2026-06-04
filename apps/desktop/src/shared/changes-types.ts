@@ -75,7 +75,7 @@ export interface FileDiffInput {
 	commitHash?: string; // For committed category: which commit to show
 }
 
-/** File contents for Monaco diff editor */
+/** File contents for diff viewer */
 export interface FileContents {
 	original: string; // Original content (before changes)
 	modified: string; // Modified content (after changes)

@@ -26,6 +26,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import {
+	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
 	type DetachRequest,
@@ -45,6 +46,7 @@ import {
 	type TerminalExitEvent,
 	type WriteRequest,
 } from "../lib/terminal-host/types";
+import { setupTerminalHostSignalHandlers } from "./signal-handlers";
 import { TerminalHost } from "./terminal-host";
 
 // =============================================================================
@@ -335,6 +337,26 @@ const handlers: Record<string, RequestHandler> = {
 			sendError(socket, id, "CREATE_ATTACH_FAILED", message);
 			log("error", `Failed to create/attach session: ${message}`);
 		}
+	},
+
+	cancelCreateOrAttach: (socket, id, payload, clientState) => {
+		if (!clientState.authenticated) {
+			sendError(socket, id, "NOT_AUTHENTICATED", "Must authenticate first");
+			return;
+		}
+		if (clientState.role !== "control") {
+			sendError(
+				socket,
+				id,
+				"INVALID_ROLE",
+				"cancelCreateOrAttach requires control",
+			);
+			return;
+		}
+
+		const request = payload as CancelCreateOrAttachRequest;
+		const response = terminalHost.cancelCreateOrAttach(request);
+		sendSuccess(socket, id, response);
 	},
 
 	write: (socket, id, payload, clientState) => {
@@ -789,28 +811,9 @@ async function stopServer(): Promise<void> {
 // =============================================================================
 
 function setupSignalHandlers() {
-	const shutdown = async (signal: string) => {
-		log("info", `Received ${signal}, shutting down...`);
-		await stopServer();
-		process.exit(0);
-	};
-
-	process.on("SIGINT", () => shutdown("SIGINT"));
-	process.on("SIGTERM", () => shutdown("SIGTERM"));
-	process.on("SIGHUP", () => shutdown("SIGHUP"));
-
-	// Handle uncaught errors
-	process.on("uncaughtException", (error) => {
-		log("error", "Uncaught exception", {
-			error: error.message,
-			stack: error.stack,
-		});
-		stopServer().then(() => process.exit(1));
-	});
-
-	process.on("unhandledRejection", (reason) => {
-		log("error", "Unhandled rejection", { reason });
-		stopServer().then(() => process.exit(1));
+	setupTerminalHostSignalHandlers({
+		log,
+		stopServer,
 	});
 }
 

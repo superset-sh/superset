@@ -70,6 +70,9 @@ export function register(server: McpServer) {
 						statusType: z.string().nullable(),
 						assigneeId: z.string().nullable(),
 						assigneeName: z.string().nullable(),
+						assigneeExternalId: z.string().nullable(),
+						assigneeDisplayName: z.string().nullable(),
+						assigneeAvatarUrl: z.string().nullable(),
 						creatorId: z.string().nullable(),
 						creatorName: z.string().nullable(),
 						labels: z.array(z.string()),
@@ -188,7 +191,12 @@ export function register(server: McpServer) {
 					statusName: status.name,
 					statusType: status.type,
 					assigneeId: tasks.assigneeId,
-					assigneeName: assignee.name,
+					assigneeName: sql<
+						string | null
+					>`coalesce(${assignee.name}, ${tasks.assigneeDisplayName})`,
+					assigneeExternalId: tasks.assigneeExternalId,
+					assigneeDisplayName: tasks.assigneeDisplayName,
+					assigneeAvatarUrl: tasks.assigneeAvatarUrl,
 					creatorId: tasks.creatorId,
 					creatorName: creator.name,
 					labels: tasks.labels,

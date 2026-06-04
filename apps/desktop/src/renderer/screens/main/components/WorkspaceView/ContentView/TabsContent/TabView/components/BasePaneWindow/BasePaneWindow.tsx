@@ -1,3 +1,4 @@
+import { cn } from "@superset/ui/utils";
 import { useContext, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow, MosaicWindowContext } from "react-mosaic-component";
@@ -54,9 +55,13 @@ export function BasePaneWindow({
 	contentClassName = "w-full h-full overflow-hidden",
 }: BasePaneWindowProps) {
 	const isActive = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
+	const workspaceRunState = useTabsStore(
+		(s) => s.panes[paneId]?.workspaceRun?.state,
+	);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const splitOrientation = useSplitOrientation(containerRef);
 	const isDragging = useDragPaneStore((s) => s.draggingPaneId !== null);
+	const isResizing = useDragPaneStore((s) => s.isResizing);
 	const setDragging = useDragPaneStore((s) => s.setDragging);
 	const clearDragging = useDragPaneStore((s) => s.clearDragging);
 
@@ -98,7 +103,10 @@ export function BasePaneWindow({
 					renderToolbar(handlers)
 				)
 			}
-			className={isActive ? "mosaic-window-focused" : ""}
+			className={cn(
+				isActive && "mosaic-window-focused",
+				workspaceRunState && `workspace-run-pane-${workspaceRunState}`,
+			)}
 			onDragStart={() => setDragging(paneId, tabId)}
 			onDragEnd={() => clearDragging()}
 		>
@@ -106,7 +114,7 @@ export function BasePaneWindow({
 			<div
 				ref={containerRef}
 				className={contentClassName}
-				style={isDragging ? { pointerEvents: "none" } : undefined}
+				style={isDragging || isResizing ? { pointerEvents: "none" } : undefined}
 				onClick={handleFocus}
 			>
 				{children}

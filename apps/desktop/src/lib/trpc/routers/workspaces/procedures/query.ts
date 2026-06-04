@@ -1,22 +1,93 @@
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import {
+	projects,
+	settings,
+	workspaceSections,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { selectWorkspaceRunDefinition } from "shared/workspace-run-definition";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import {
+	normalizeTerminalPresets,
+	type PresetWithUnknownMode,
+} from "../../settings/preset-execution-mode";
 import { getWorkspace } from "../utils/db-helpers";
+import { getProjectChildItems } from "../utils/project-children-order";
+import { loadSetupConfig } from "../utils/setup";
+import { computeVisualOrder } from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
 type WorktreePathMap = Map<string, string>;
 
-/** Returns workspace IDs in sidebar visual order (by project.tabOrder, then workspace.tabOrder). */
+function getTerminalPresetsForWorkspaceRun() {
+	const row = localDb.select().from(settings).get();
+	return normalizeTerminalPresets(
+		(row?.terminalPresets ?? []) as PresetWithUnknownMode[],
+	);
+}
+
+function getWorkspaceRunDefinition(workspaceId: string) {
+	const workspace = localDb
+		.select()
+		.from(workspaces)
+		.where(eq(workspaces.id, workspaceId))
+		.get();
+	if (!workspace) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Workspace ${workspaceId} not found`,
+		});
+	}
+
+	const project = localDb
+		.select()
+		.from(projects)
+		.where(eq(projects.id, workspace.projectId))
+		.get();
+	if (!project) {
+		return null;
+	}
+
+	const worktree = workspace.worktreeId
+		? localDb
+				.select()
+				.from(worktrees)
+				.where(eq(worktrees.id, workspace.worktreeId))
+				.get()
+		: null;
+
+	const worktreePath =
+		workspace.type === "worktree" && worktree?.path
+			? worktree.path
+			: workspace.type === "branch"
+				? project.mainRepoPath
+				: undefined;
+
+	const config = loadSetupConfig({
+		mainRepoPath: project.mainRepoPath,
+		worktreePath,
+		projectId: project.id,
+	});
+
+	return selectWorkspaceRunDefinition({
+		presets: getTerminalPresetsForWorkspaceRun(),
+		configRunCommands: config?.run,
+		configCwd: config?.cwd,
+		projectId: project.id,
+	});
+}
+
+/** Returns workspace IDs in sidebar visual order (by project.tabOrder, then ungrouped workspaces, then sections by tabOrder). */
 function getWorkspacesInVisualOrder(): string[] {
 	const activeProjects = localDb
 		.select()
 		.from(projects)
 		.where(isNotNull(projects.tabOrder))
-		.all()
-		.sort((a, b) => (a.tabOrder ?? 0) - (b.tabOrder ?? 0));
+		.all();
 
 	const allWorkspaces = localDb
 		.select()
@@ -24,17 +95,9 @@ function getWorkspacesInVisualOrder(): string[] {
 		.where(isNull(workspaces.deletingAt))
 		.all();
 
-	const orderedIds: string[] = [];
-	for (const project of activeProjects) {
-		const projectWorkspaces = allWorkspaces
-			.filter((w) => w.projectId === project.id)
-			.sort((a, b) => a.tabOrder - b.tabOrder);
-		for (const ws of projectWorkspaces) {
-			orderedIds.push(ws.id);
-		}
-	}
+	const allSections = localDb.select().from(workspaceSections).all();
 
-	return orderedIds;
+	return computeVisualOrder(activeProjects, allWorkspaces, allSections);
 }
 
 export const createQueryProcedures = () => {
@@ -81,6 +144,7 @@ export const createQueryProcedures = () => {
 								branch: worktree.branch,
 								// Normalize to null to ensure consistent "incomplete init" detection in UI
 								gitStatus: worktree.gitStatus ?? null,
+								createdBySuperset: worktree.createdBySuperset,
 							}
 						: null,
 				};
@@ -96,6 +160,40 @@ export const createQueryProcedures = () => {
 		}),
 
 		getAllGrouped: publicProcedure.query(() => {
+			type WorkspaceItem = {
+				id: string;
+				projectId: string;
+				sectionId: string | null;
+				worktreeId: string | null;
+				worktreePath: string;
+				type: "worktree" | "branch";
+				branch: string;
+				name: string;
+				tabOrder: number;
+				createdAt: number;
+				updatedAt: number;
+				lastOpenedAt: number;
+				isUnread: boolean;
+				isUnnamed: boolean;
+				createdBySuperset: boolean | null;
+			};
+
+			type SectionItem = {
+				id: string;
+				projectId: string;
+				name: string;
+				tabOrder: number;
+				isCollapsed: boolean;
+				color: string | null;
+				workspaces: WorkspaceItem[];
+			};
+
+			type TopLevelItem = {
+				id: string;
+				kind: "workspace" | "section";
+				tabOrder: number;
+			};
+
 			const activeProjects = localDb
 				.select()
 				.from(projects)
@@ -106,6 +204,11 @@ export const createQueryProcedures = () => {
 			const worktreePathMap: WorktreePathMap = new Map(
 				allWorktrees.map((wt) => [wt.id, wt.path]),
 			);
+			const worktreeCreatedBySupersetMap = new Map(
+				allWorktrees.map((wt) => [wt.id, wt.createdBySuperset]),
+			);
+
+			const allSections = localDb.select().from(workspaceSections).all();
 
 			const groupsMap = new Map<
 				string,
@@ -119,26 +222,28 @@ export const createQueryProcedures = () => {
 						mainRepoPath: string;
 						hideImage: boolean;
 						iconUrl: string | null;
+						neonProjectId: string | null;
 					};
-					workspaces: Array<{
-						id: string;
-						projectId: string;
-						worktreeId: string | null;
-						worktreePath: string;
-						type: "worktree" | "branch";
-						branch: string;
-						name: string;
-						tabOrder: number;
-						createdAt: number;
-						updatedAt: number;
-						lastOpenedAt: number;
-						isUnread: boolean;
-						isUnnamed: boolean;
-					}>;
+					workspaces: WorkspaceItem[];
+					sections: SectionItem[];
+					topLevelItems: TopLevelItem[];
 				}
 			>();
 
 			for (const project of activeProjects) {
+				const projectSections = allSections
+					.filter((s) => s.projectId === project.id)
+					.sort((a, b) => a.tabOrder - b.tabOrder)
+					.map((s) => ({
+						id: s.id,
+						projectId: s.projectId,
+						name: s.name,
+						tabOrder: s.tabOrder,
+						isCollapsed: s.isCollapsed ?? false,
+						color: s.color ?? null,
+						workspaces: [] as WorkspaceItem[],
+					}));
+
 				groupsMap.set(project.id, {
 					project: {
 						id: project.id,
@@ -150,8 +255,11 @@ export const createQueryProcedures = () => {
 						mainRepoPath: project.mainRepoPath,
 						hideImage: project.hideImage ?? false,
 						iconUrl: project.iconUrl ?? null,
+						neonProjectId: project.neonProjectId ?? null,
 					},
 					workspaces: [],
+					sections: projectSections,
+					topLevelItems: [],
 				});
 			}
 
@@ -172,19 +280,55 @@ export const createQueryProcedures = () => {
 						worktreePath = group.project.mainRepoPath;
 					}
 
-					group.workspaces.push({
+					const item: WorkspaceItem = {
 						...workspace,
+						sectionId: workspace.sectionId ?? null,
 						type: workspace.type as "worktree" | "branch",
 						worktreePath,
 						isUnread: workspace.isUnread ?? false,
 						isUnnamed: workspace.isUnnamed ?? false,
-					});
+						createdBySuperset: workspace.worktreeId
+							? (worktreeCreatedBySupersetMap.get(workspace.worktreeId) ?? null)
+							: null,
+					};
+
+					if (workspace.sectionId) {
+						const section = group.sections.find(
+							(s) => s.id === workspace.sectionId,
+						);
+						if (section) {
+							section.workspaces.push(item);
+						} else {
+							// Orphan: section not found, fall back to ungrouped
+							group.workspaces.push(item);
+						}
+					} else {
+						group.workspaces.push(item);
+					}
 				}
 			}
 
-			return Array.from(groupsMap.values()).sort(
-				(a, b) => a.project.tabOrder - b.project.tabOrder,
-			);
+			return Array.from(groupsMap.values())
+				.map((group) => {
+					const projectWorkspaces = [
+						...group.workspaces,
+						...group.sections.flatMap((section) => section.workspaces),
+					];
+
+					return {
+						...group,
+						topLevelItems: getProjectChildItems(
+							group.project.id,
+							projectWorkspaces,
+							group.sections,
+						).map((item) => ({
+							id: item.id,
+							kind: item.kind,
+							tabOrder: item.tabOrder,
+						})),
+					};
+				})
+				.sort((a, b) => a.project.tabOrder - b.project.tabOrder);
 		}),
 
 		getPreviousWorkspace: publicProcedure
@@ -218,5 +362,18 @@ export const createQueryProcedures = () => {
 						: currentIndex + 1;
 				return orderedWorkspaceIds[nextIndex];
 			}),
+
+		getResolvedRunCommands: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => {
+				const definition = getWorkspaceRunDefinition(input.workspaceId);
+				return {
+					commands: definition?.commands ?? [],
+				};
+			}),
+
+		getWorkspaceRunDefinition: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => getWorkspaceRunDefinition(input.workspaceId)),
 	});
 };

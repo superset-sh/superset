@@ -6,7 +6,7 @@
 	"mcp": {
 		"superset": {
 			"type": "remote",
-			"url": "https://api.superset.sh/api/agent/mcp",
+			"url": "https://api.superset.sh/api/v2/agent/mcp",
 			"oauth": {}
 		},
 		"expo-mcp": {
@@ -30,9 +30,10 @@
 			"type": "remote",
 			"url": "https://mcp.sentry.dev/mcp"
 		},
-		"desktop-automation": {
-			"type": "local",
-			"command": ["bun", "run", "packages/desktop-mcp/src/bin.ts"]
+		"posthog": {
+			"type": "remote",
+			"url": "https://mcp.posthog.com/mcp",
+			"oauth": {}
 		}
 	}
 }

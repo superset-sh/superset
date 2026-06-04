@@ -1,18 +1,20 @@
 import { db } from "@superset/db/client";
-import { devicePresence, deviceTypeValues, users } from "@superset/db/schema";
+import { devicePresence, deviceTypeValues } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 
-const OFFLINE_THRESHOLD_MS = 60_000;
-
+/**
+ * v1 device-presence procedures. Kept separate from the v2 host router so the
+ * device_presence table stays an isolated v1 system that gets retired with
+ * the rest of v1.
+ */
 export const deviceRouter = {
 	/**
-	 * Register or update device presence (heartbeat)
-	 * Called by desktop/mobile apps to indicate they're online
+	 * Register device presence (called once on app startup).
+	 * Upserts a row so MCP can verify device ownership.
 	 */
-	heartbeat: protectedProcedure
+	registerDevice: protectedProcedure
 		.input(
 			z.object({
 				deviceId: z.string().min(1),
@@ -21,7 +23,7 @@ export const deviceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.session.activeOrganizationId;
+			const organizationId = ctx.activeOrganizationId;
 			if (!organizationId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -56,39 +58,4 @@ export const deviceRouter = {
 
 			return { device, timestamp: now };
 		}),
-
-	/**
-	 * List online devices in the organization
-	 */
-	listOnlineDevices: protectedProcedure.query(async ({ ctx }) => {
-		const organizationId = ctx.session.session.activeOrganizationId;
-		if (!organizationId) {
-			return [];
-		}
-
-		const threshold = new Date(Date.now() - OFFLINE_THRESHOLD_MS);
-
-		const devices = await db
-			.select({
-				id: devicePresence.id,
-				deviceId: devicePresence.deviceId,
-				deviceName: devicePresence.deviceName,
-				deviceType: devicePresence.deviceType,
-				lastSeenAt: devicePresence.lastSeenAt,
-				createdAt: devicePresence.createdAt,
-				ownerId: devicePresence.userId,
-				ownerName: users.name,
-				ownerEmail: users.email,
-			})
-			.from(devicePresence)
-			.innerJoin(users, eq(devicePresence.userId, users.id))
-			.where(
-				and(
-					eq(devicePresence.organizationId, organizationId),
-					gt(devicePresence.lastSeenAt, threshold),
-				),
-			);
-
-		return devices;
-	}),
 } satisfies TRPCRouterRecord;

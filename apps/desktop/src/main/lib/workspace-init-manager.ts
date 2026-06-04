@@ -115,6 +115,7 @@ class WorkspaceInitManager extends EventEmitter {
 		step: WorkspaceInitStep,
 		message: string,
 		error?: string,
+		warning?: string,
 	): void {
 		const job = this.jobs.get(workspaceId);
 		if (!job) {
@@ -127,6 +128,7 @@ class WorkspaceInitManager extends EventEmitter {
 			step,
 			message,
 			error,
+			warning,
 		};
 
 		this.emit("progress", job.progress);

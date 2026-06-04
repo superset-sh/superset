@@ -1,7 +1,15 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+	index,
+	integer,
+	primaryKey,
+	sqliteTable,
+	text,
+} from "drizzle-orm/sqlite-core";
 import { v4 as uuidv4 } from "uuid";
 
 import type {
+	AgentCustomDefinition,
+	AgentPresetOverrideEnvelope,
 	BranchPrefixMode,
 	ExternalApp,
 	FileOpenMode,
@@ -74,6 +82,11 @@ export const worktrees = sqliteTable(
 			.$defaultFn(() => Date.now()),
 		gitStatus: text("git_status", { mode: "json" }).$type<GitStatus>(),
 		githubStatus: text("github_status", { mode: "json" }).$type<GitHubStatus>(),
+		// Track whether this worktree was created by Superset or imported from external source
+		// Used to prevent accidental deletion of user-created worktrees
+		createdBySuperset: integer("created_by_superset", { mode: "boolean" })
+			.notNull()
+			.default(true),
 	},
 	(table) => [
 		index("worktrees_project_id_idx").on(table.projectId),
@@ -121,11 +134,15 @@ export const workspaces = sqliteTable(
 		// Allocated port base for multi-worktree dev instances.
 		// Each workspace gets a range of 10 ports starting from this base.
 		portBase: integer("port_base"),
+		sectionId: text("section_id").references(() => workspaceSections.id, {
+			onDelete: "set null",
+		}),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
 		index("workspaces_worktree_id_idx").on(table.worktreeId),
 		index("workspaces_last_opened_at_idx").on(table.lastOpenedAt),
+		index("workspaces_section_id_idx").on(table.sectionId),
 		// NOTE: Migration 0006 creates an additional partial unique index:
 		// CREATE UNIQUE INDEX workspaces_unique_branch_per_project
 		//   ON workspaces(project_id) WHERE type = 'branch'
@@ -138,6 +155,32 @@ export const workspaces = sqliteTable(
 export type InsertWorkspace = typeof workspaces.$inferInsert;
 export type SelectWorkspace = typeof workspaces.$inferSelect;
 
+/**
+ * Workspace sections - user-created groups within a project for organizing workspaces
+ */
+export const workspaceSections = sqliteTable(
+	"workspace_sections",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		tabOrder: integer("tab_order").notNull(),
+		isCollapsed: integer("is_collapsed", { mode: "boolean" }).default(false),
+		color: text("color"),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [index("workspace_sections_project_id_idx").on(table.projectId)],
+);
+
+export type InsertWorkspaceSection = typeof workspaceSections.$inferInsert;
+export type SelectWorkspaceSection = typeof workspaceSections.$inferSelect;
+
 export const settings = sqliteTable("settings", {
 	id: integer("id").primaryKey().default(1),
 	lastActiveWorkspaceId: text("last_active_workspace_id"),
@@ -147,6 +190,15 @@ export const settings = sqliteTable("settings", {
 	terminalPresetsInitialized: integer("terminal_presets_initialized", {
 		mode: "boolean",
 	}),
+	agentPresetOverrides: text("agent_preset_overrides", {
+		mode: "json",
+	}).$type<AgentPresetOverrideEnvelope>(),
+	agentCustomDefinitions: text("agent_custom_definitions", {
+		mode: "json",
+	}).$type<AgentCustomDefinition[]>(),
+	agentPresetPermissionsMigratedAt: integer(
+		"agent_preset_permissions_migrated_at",
+	),
 	selectedRingtoneId: text("selected_ringtone_id"),
 	activeOrganizationId: text("active_organization_id"),
 	confirmOnQuit: integer("confirm_on_quit", { mode: "boolean" }),
@@ -164,6 +216,7 @@ export const settings = sqliteTable("settings", {
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),
+	notificationVolume: integer("notification_volume"),
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
 	showPresetsBar: integer("show_presets_bar", { mode: "boolean" }),
@@ -178,10 +231,40 @@ export const settings = sqliteTable("settings", {
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
 	defaultEditor: text("default_editor").$type<ExternalApp>(),
+	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
+		mode: "boolean",
+	}),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
 export type SelectSettings = typeof settings.$inferSelect;
+
+export type V1MigrationKind = "project" | "workspace" | "preset";
+export type V1MigrationStatus = "success" | "linked" | "error" | "skipped";
+
+export const v1MigrationState = sqliteTable(
+	"v1_migration_state",
+	{
+		v1Id: text("v1_id").notNull(),
+		kind: text("kind").notNull().$type<V1MigrationKind>(),
+		v2Id: text("v2_id"),
+		organizationId: text("organization_id").notNull(),
+		status: text("status").notNull().$type<V1MigrationStatus>(),
+		reason: text("reason"),
+		migratedAt: integer("migrated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.organizationId, table.v1Id, table.kind],
+		}),
+		index("v1_migration_state_v2_id_idx").on(table.v2Id),
+	],
+);
+
+export type InsertV1MigrationState = typeof v1MigrationState.$inferInsert;
+export type SelectV1MigrationState = typeof v1MigrationState.$inferSelect;
 
 // =============================================================================
 // Synced tables - mirrored from cloud Postgres via Electric SQL

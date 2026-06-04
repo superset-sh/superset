@@ -1,10 +1,10 @@
-import { toast } from "@superset/ui/sonner";
-import type * as Monaco from "monaco-editor";
 import { useCallback } from "react";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import type { CodeEditorAdapter } from "../CodeEditorAdapter";
 import type { EditorActions } from "./EditorContextMenu";
 
 interface UseEditorActionsProps {
-	getEditor: () => Monaco.editor.IStandaloneCodeEditor | null | undefined;
+	getEditor: () => CodeEditorAdapter | null | undefined;
 	filePath: string;
 	/** If true, includes cut/paste actions (for editable editors) */
 	editable?: boolean;
@@ -12,134 +12,69 @@ interface UseEditorActionsProps {
 
 /**
  * Hook that creates all editor action handlers for the context menu.
- * Shared between FileEditorContextMenu and DiffViewer.
- *
- * Note: Standalone Monaco editor doesn't include language service features
- * like Go to Definition, References, Rename, etc. Those require language
- * providers to be registered. We only expose actions that are actually available.
+ * Shared by editor surfaces that operate through the adapter contract.
  */
 export function useEditorActions({
 	getEditor,
 	filePath,
 	editable = true,
 }: UseEditorActionsProps): EditorActions {
+	const { copyToClipboard } = useCopyToClipboard();
+
 	const handleCut = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		editor.trigger("contextMenu", "editor.action.clipboardCutAction", null);
+		editor.cut();
 	}, [getEditor]);
 
 	const handleCopy = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		editor.trigger("contextMenu", "editor.action.clipboardCopyAction", null);
+		editor.copy();
 	}, [getEditor]);
 
 	const handlePaste = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		editor.trigger("contextMenu", "editor.action.clipboardPasteAction", null);
+		editor.paste();
 	}, [getEditor]);
 
 	const handleSelectAll = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		const model = editor.getModel();
-		if (model) {
-			const fullRange = model.getFullModelRange();
-			editor.setSelection(fullRange);
-		}
+		editor.selectAll();
 	}, [getEditor]);
 
-	const handleCopyPath = useCallback(async () => {
-		try {
-			await navigator.clipboard.writeText(filePath);
-		} catch (error) {
-			console.error("[handleCopyPath] Failed to copy path to clipboard:", {
-				error,
-				filePath,
-			});
-			toast.error("Failed to copy path to clipboard", {
-				description: String(error),
-			});
-		}
-	}, [filePath]);
+	const handleCopyPath = useCallback(() => {
+		copyToClipboard(filePath);
+	}, [filePath, copyToClipboard]);
 
-	const handleCopyPathWithLine = useCallback(async () => {
+	const handleCopyPathWithLine = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) {
-			console.error(
-				"[handleCopyPathWithLine] Editor is missing, falling back to filePath only",
-			);
-			try {
-				await navigator.clipboard.writeText(filePath);
-			} catch (error) {
-				console.error(
-					"[handleCopyPathWithLine] Failed to copy path to clipboard:",
-					{ error, filePath },
-				);
-				toast.error("Failed to copy path to clipboard", {
-					description: String(error),
-				});
-			}
+			copyToClipboard(filePath);
 			return;
 		}
 
-		const selection = editor.getSelection();
+		const selection = editor.getSelectionLines();
 		if (!selection) {
-			console.error(
-				"[handleCopyPathWithLine] Selection is missing, falling back to filePath only",
-			);
-			try {
-				await navigator.clipboard.writeText(filePath);
-			} catch (error) {
-				console.error(
-					"[handleCopyPathWithLine] Failed to copy path to clipboard:",
-					{ error, filePath },
-				);
-				toast.error("Failed to copy path to clipboard", {
-					description: String(error),
-				});
-			}
+			copyToClipboard(filePath);
 			return;
 		}
 
-		const { startLineNumber, endLineNumber } = selection;
+		const { startLine, endLine } = selection;
 		const pathWithLine =
-			startLineNumber === endLineNumber
-				? `${filePath}:${startLineNumber}`
-				: `${filePath}:${startLineNumber}-${endLineNumber}`;
+			startLine === endLine
+				? `${filePath}:${startLine}`
+				: `${filePath}:${startLine}-${endLine}`;
 
-		try {
-			await navigator.clipboard.writeText(pathWithLine);
-		} catch (error) {
-			console.error(
-				"[handleCopyPathWithLine] Failed to copy path with line to clipboard:",
-				{ error, pathWithLine },
-			);
-			toast.error("Failed to copy path to clipboard", {
-				description: String(error),
-			});
-		}
-	}, [filePath, getEditor]);
+		copyToClipboard(pathWithLine);
+	}, [filePath, getEditor, copyToClipboard]);
 
 	const handleFind = useCallback(() => {
 		const editor = getEditor();
 		if (!editor) return;
-		editor.focus();
-		editor.trigger("contextMenu", "actions.find", null);
-	}, [getEditor]);
-
-	const handleChangeAllOccurrences = useCallback(() => {
-		const editor = getEditor();
-		if (!editor) return;
-		editor.focus();
-		// Use selectHighlights which is available in standalone Monaco
-		editor.trigger("contextMenu", "editor.action.selectHighlights", null);
+		editor.openFind();
 	}, [getEditor]);
 
 	return {
@@ -150,6 +85,5 @@ export function useEditorActions({
 		onCopyPath: handleCopyPath,
 		onCopyPathWithLine: handleCopyPathWithLine,
 		onFind: handleFind,
-		onChangeAllOccurrences: handleChangeAllOccurrences,
 	};
 }

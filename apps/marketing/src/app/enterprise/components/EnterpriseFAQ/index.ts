@@ -1,0 +1,1 @@
+export { EnterpriseFAQ } from "./EnterpriseFAQ";

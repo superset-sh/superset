@@ -1,0 +1,1 @@
+export { SearchBarTrigger } from "./SearchBarTrigger";

@@ -29,6 +29,8 @@ Sentry.init({
 	enabled: !!env.NEXT_PUBLIC_SENTRY_DSN_ADMIN,
 	tracesSampleRate:
 		env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production" ? 0.1 : 1.0,
+	replaysSessionSampleRate: 0,
+	replaysOnErrorSampleRate: 0,
 	sendDefaultPii: true,
 	debug: false,
 });

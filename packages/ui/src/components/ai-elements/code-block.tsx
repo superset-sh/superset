@@ -1,15 +1,18 @@
 "use client";
 
+import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import {
 	type ComponentProps,
 	createContext,
+	Fragment,
 	type HTMLAttributes,
 	useContext,
 	useEffect,
 	useState,
 } from "react";
-import { type BundledLanguage, codeToHtml, type ShikiTransformer } from "shiki";
+import { jsx, jsxs } from "react/jsx-runtime";
+import { type BundledLanguage, codeToHast, type ShikiTransformer } from "shiki";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
@@ -17,6 +20,10 @@ type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
 	code: string;
 	language: BundledLanguage;
 	showLineNumbers?: boolean;
+	/** Starting line number offset (for partial file display). Default: 1 */
+	startLine?: number;
+	/** When false, suppresses syntax-highlight colors — all tokens render in the foreground color. */
+	colorize?: boolean;
 };
 
 type CodeBlockContextType = {
@@ -27,73 +34,129 @@ const CodeBlockContext = createContext<CodeBlockContextType>({
 	code: "",
 });
 
-const lineNumberTransformer: ShikiTransformer = {
-	name: "line-numbers",
-	line(node, line) {
-		node.children.unshift({
-			type: "element",
-			tagName: "span",
-			properties: {
-				className: [
-					"inline-block",
-					"min-w-10",
-					"mr-4",
-					"text-right",
-					"select-none",
-					"text-muted-foreground",
+type HighlightedCode = Awaited<ReturnType<typeof codeToHast>>;
+
+function createLineNumberTransformer(startLine = 1): ShikiTransformer {
+	return {
+		name: "line-numbers",
+		line(node, line) {
+			node.children.unshift({
+				type: "element",
+				tagName: "span",
+				properties: {
+					className: [
+						"shiki-line-number",
+						"inline-block",
+						"min-w-10",
+						"mr-4",
+						"text-right",
+						"select-none",
+						"text-muted-foreground",
+					],
+				},
+				children: [{ type: "text", value: String(line + startLine - 1) }],
+			});
+		},
+	};
+}
+
+function plainTextToHast(code: string) {
+	return {
+		type: "root",
+		children: [
+			{
+				type: "element",
+				tagName: "pre",
+				properties: {},
+				children: [
+					{
+						type: "element",
+						tagName: "code",
+						properties: {},
+						children: [{ type: "text", value: code }],
+					},
 				],
 			},
-			children: [{ type: "text", value: String(line) }],
-		});
-	},
-};
+		],
+	} satisfies HighlightedCode;
+}
 
 export async function highlightCode(
 	code: string,
 	language: BundledLanguage,
 	showLineNumbers = false,
-) {
+	startLine = 1,
+): Promise<[HighlightedCode, HighlightedCode]> {
 	const transformers: ShikiTransformer[] = showLineNumbers
-		? [lineNumberTransformer]
+		? [createLineNumberTransformer(startLine)]
 		: [];
 
-	return await Promise.all([
-		codeToHtml(code, {
-			lang: language,
-			theme: "one-light",
-			transformers,
-		}),
-		codeToHtml(code, {
-			lang: language,
-			theme: "one-dark-pro",
-			transformers,
-		}),
-	]);
+	try {
+		return await Promise.all([
+			codeToHast(code, {
+				lang: language,
+				theme: "one-light",
+				transformers,
+			}),
+			codeToHast(code, {
+				lang: language,
+				theme: "one-dark-pro",
+				transformers,
+			}),
+		]);
+	} catch {
+		if (language === ("text" as BundledLanguage)) {
+			const plainText = plainTextToHast(code);
+			return [plainText, plainText];
+		}
+		// Unknown/unsupported language — fall back to plain text
+		return highlightCode(
+			code,
+			"text" as BundledLanguage,
+			showLineNumbers,
+			startLine,
+		);
+	}
+}
+
+function renderHighlightedCode(root: HighlightedCode) {
+	return toJsxRuntime(root, {
+		Fragment,
+		development: false,
+		jsx,
+		jsxs,
+	});
 }
 
 export const CodeBlock = ({
 	code,
 	language,
 	showLineNumbers = false,
+	startLine = 1,
+	colorize = true,
 	className,
 	children,
 	...props
 }: CodeBlockProps) => {
-	const [html, setHtml] = useState<string>("");
-	const [darkHtml, setDarkHtml] = useState<string>("");
+	const [highlightedCode, setHighlightedCode] =
+		useState<HighlightedCode | null>(null);
+	const [darkHighlightedCode, setDarkHighlightedCode] =
+		useState<HighlightedCode | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
-		highlightCode(code, language, showLineNumbers).then(([light, dark]) => {
-			if (!cancelled) {
-				setHtml(light);
-				setDarkHtml(dark);
-			}
-		});
+		highlightCode(code, language, showLineNumbers, startLine).then(
+			([light, dark]) => {
+				if (!cancelled) {
+					setHighlightedCode(light);
+					setDarkHighlightedCode(dark);
+				}
+			},
+		);
 		return () => {
 			cancelled = true;
 		};
-	}, [code, language, showLineNumbers]);
+	}, [code, language, showLineNumbers, startLine]);
 
 	return (
 		<CodeBlockContext.Provider value={{ code }}>
@@ -106,15 +169,25 @@ export const CodeBlock = ({
 			>
 				<div className="relative">
 					<div
-						className="overflow-auto dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
-						// biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
-						dangerouslySetInnerHTML={{ __html: html }}
-					/>
+						className={cn(
+							"overflow-auto dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm",
+							!colorize &&
+								"[&_span[style]]:!text-foreground [&_.line>.shiki-line-number]:!opacity-50",
+						)}
+					>
+						{highlightedCode ? renderHighlightedCode(highlightedCode) : null}
+					</div>
 					<div
-						className="hidden overflow-auto dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
-						// biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
-						dangerouslySetInnerHTML={{ __html: darkHtml }}
-					/>
+						className={cn(
+							"hidden overflow-auto dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm",
+							!colorize &&
+								"[&_span[style]]:!text-foreground [&_.line>.shiki-line-number]:!opacity-50",
+						)}
+					>
+						{darkHighlightedCode
+							? renderHighlightedCode(darkHighlightedCode)
+							: null}
+					</div>
 					{children && (
 						<div className="absolute top-2 right-2 flex items-center gap-2">
 							{children}

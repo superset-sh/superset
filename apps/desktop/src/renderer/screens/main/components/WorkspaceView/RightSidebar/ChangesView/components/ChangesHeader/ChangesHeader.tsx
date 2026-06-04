@@ -17,18 +17,25 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HiArrowPath, HiCheck } from "react-icons/hi2";
-import { LuGitBranch } from "react-icons/lu";
-import { VscGitStash, VscGitStashApply } from "react-icons/vsc";
+import {
+	VscCheck,
+	VscGitStash,
+	VscGitStashApply,
+	VscRefresh,
+	VscSourceControl,
+} from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangesViewMode } from "../../types";
 import { ViewModeToggle } from "../ViewModeToggle";
 import { PRButton } from "./components/PRButton";
 
+const BRANCH_QUERY_STALE_TIME_MS = 10_000;
+
 interface ChangesHeaderProps {
 	onRefresh: () => void;
 	viewMode: ChangesViewMode;
 	onViewModeChange: (mode: ChangesViewMode) => void;
+	showViewModeToggle?: boolean;
 	worktreePath: string;
 	pr: GitHubStatus["pr"] | null;
 	isPRStatusLoading: boolean;
@@ -47,7 +54,11 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	const { data: branchData, isLoading } =
 		electronTrpc.changes.getBranches.useQuery(
 			{ worktreePath },
-			{ enabled: !!worktreePath },
+			{
+				enabled: !!worktreePath,
+				staleTime: BRANCH_QUERY_STALE_TIME_MS,
+				refetchOnWindowFocus: false,
+			},
 		);
 
 	const updateBaseBranch = electronTrpc.changes.updateBaseBranch.useMutation({
@@ -96,7 +107,7 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 							className="size-6 p-0"
 							disabled={isLoading}
 						>
-							<LuGitBranch className="size-3.5" />
+							<VscSourceControl className="size-3.5" />
 						</Button>
 					</PopoverTrigger>
 				</TooltipTrigger>
@@ -129,7 +140,7 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 									)}
 								</span>
 								{branch === effectiveBaseBranch && (
-									<HiCheck className="size-3.5 shrink-0 text-primary" />
+									<VscCheck className="size-3.5 shrink-0 text-primary" />
 								)}
 							</CommandItem>
 						))}
@@ -216,7 +227,7 @@ function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 					disabled={isSpinning}
 					className="size-6 p-0"
 				>
-					<HiArrowPath
+					<VscRefresh
 						className={`size-3.5 ${isSpinning ? "animate-spin" : ""}`}
 					/>
 				</Button>
@@ -232,6 +243,7 @@ export function ChangesHeader({
 	onRefresh,
 	viewMode,
 	onViewModeChange,
+	showViewModeToggle = true,
 	worktreePath,
 	pr,
 	isPRStatusLoading,
@@ -251,7 +263,12 @@ export function ChangesHeader({
 				onStashPop={onStashPop}
 				isPending={isStashPending}
 			/>
-			<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+			{showViewModeToggle && (
+				<ViewModeToggle
+					viewMode={viewMode}
+					onViewModeChange={onViewModeChange}
+				/>
+			)}
 			<RefreshButton onRefresh={onRefresh} />
 			<PRButton
 				pr={pr}

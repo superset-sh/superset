@@ -57,9 +57,34 @@ const config: NextConfig = {
 				permanent: true,
 			},
 			{
+				source: "/changelog/2026-03-09-codemirror-workspace-modal-icons",
+				destination: "/changelog/2026-03-09-codemirror-workspace",
+				permanent: true,
+			},
+			{
 				source: "/docs/:path*",
 				destination: `${docsUrl}/:path*`,
 				permanent: false,
+			},
+		];
+	},
+
+	async headers() {
+		return [
+			{
+				source: "/(.*)",
+				headers: [
+					{ key: "X-Content-Type-Options", value: "nosniff" },
+					{ key: "X-Frame-Options", value: "DENY" },
+					{
+						key: "Referrer-Policy",
+						value: "strict-origin-when-cross-origin",
+					},
+					{
+						key: "Permissions-Policy",
+						value: "camera=(), microphone=(), geolocation=()",
+					},
+				],
 			},
 		];
 	},

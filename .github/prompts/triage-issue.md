@@ -22,8 +22,9 @@ You are triaging GitHub issue `$ISSUE_NUMBER`. Your goal is to:
    - Run any nearby targeted tests needed to validate the fix.
    - If a safe fix is not clear, keep this as reproduction-only and continue to step 6A.
 
-6. **Open exactly one PR** — Run `bun run lint:fix`, then commit, push, and create a PR:
-   - **6A: Reproduction-only PR (reproducible but not solved)**
+6. **Open exactly one PR** — Run `bun run lint:fix`, then commit, push, and create a PR.
+   **Default to draft** (`gh pr create --draft`) unless the issue is high priority (labeled `priority: high` or `priority: critical`, or the issue describes data loss, security, or a production outage) **and** you are highly confident in the fix (clear root cause, minimal scoped change, all relevant tests pass). Only in that case, create as ready for review (omit `--draft`).
+   - **6A: Reproduction-only PR (reproducible but not solved)** — always draft.
      - Title: `test: reproduce #$ISSUE_NUMBER — <short bug description>`
      - Body should include:
        - What the bug is (in your own words, based on the issue)

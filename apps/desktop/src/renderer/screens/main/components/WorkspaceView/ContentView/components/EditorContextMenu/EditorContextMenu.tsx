@@ -4,29 +4,23 @@ import {
 	ContextMenuItem,
 	ContextMenuSeparator,
 	ContextMenuShortcut,
-	ContextMenuSub,
-	ContextMenuSubContent,
-	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import type { ReactNode } from "react";
 import {
 	LuClipboard,
 	LuClipboardCopy,
-	LuColumns2,
 	LuFile,
 	LuLink,
 	LuMousePointerClick,
-	LuMoveRight,
-	LuPlus,
-	LuReplace,
-	LuRows2,
 	LuScissors,
 	LuSearch,
-	LuX,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { Tab } from "renderer/stores/tabs/types";
+import {
+	type PaneContextMenuActions,
+	PaneContextMenuItems,
+} from "../PaneContextMenuItems";
 
 export interface EditorActions {
 	onCut?: () => void;
@@ -36,34 +30,23 @@ export interface EditorActions {
 	onCopyPath?: () => void;
 	onCopyPathWithLine?: () => void;
 	onFind?: () => void;
-	onChangeAllOccurrences?: () => void;
 }
 
-export interface PaneActions {
-	onSplitHorizontal: () => void;
-	onSplitVertical: () => void;
-	onClosePane: () => void;
-	currentTabId: string;
-	availableTabs: Tab[];
-	onMoveToTab: (tabId: string) => void;
-	onMoveToNewTab: () => void;
-}
+export type PaneActions = PaneContextMenuActions;
 
 interface EditorContextMenuProps {
 	children: ReactNode;
 	editorActions: EditorActions;
 	paneActions: PaneActions;
+	leadingItems?: ReactNode;
 }
 
 export function EditorContextMenu({
 	children,
 	editorActions,
 	paneActions,
+	leadingItems,
 }: EditorContextMenuProps) {
-	const targetTabs = paneActions.availableTabs.filter(
-		(t) => t.id !== paneActions.currentTabId,
-	);
-
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
 	const cmdKey = isMac ? "Cmd" : "Ctrl";
@@ -76,7 +59,6 @@ export function EditorContextMenu({
 		onCopyPath,
 		onCopyPathWithLine,
 		onFind,
-		onChangeAllOccurrences,
 	} = editorActions;
 	const showCutPaste = !!onCut && !!onPaste;
 
@@ -84,6 +66,13 @@ export function EditorContextMenu({
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent>
+				{leadingItems && (
+					<>
+						{leadingItems}
+						<ContextMenuSeparator />
+					</>
+				)}
+
 				{/* Clipboard Actions */}
 				{showCutPaste && (
 					<ContextMenuItem onSelect={onCut}>
@@ -120,15 +109,6 @@ export function EditorContextMenu({
 
 				<ContextMenuSeparator />
 
-				{/* Editor Actions */}
-				{onChangeAllOccurrences && (
-					<ContextMenuItem onSelect={onChangeAllOccurrences}>
-						<LuReplace className="size-4" />
-						Change All Occurrences
-						<ContextMenuShortcut>{cmdKey}+Shift+L</ContextMenuShortcut>
-					</ContextMenuItem>
-				)}
-
 				<ContextMenuItem onSelect={onSelectAll}>
 					<LuMousePointerClick className="size-4" />
 					Select All
@@ -145,45 +125,7 @@ export function EditorContextMenu({
 
 				<ContextMenuSeparator />
 
-				{/* Pane Actions */}
-				<ContextMenuItem onSelect={paneActions.onSplitHorizontal}>
-					<LuRows2 className="size-4" />
-					Split Horizontally
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={paneActions.onSplitVertical}>
-					<LuColumns2 className="size-4" />
-					Split Vertically
-				</ContextMenuItem>
-				<ContextMenuSeparator />
-				<ContextMenuSub>
-					<ContextMenuSubTrigger className="gap-2">
-						<LuMoveRight className="size-4" />
-						Move to Tab
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent>
-						{targetTabs.map((tab) => (
-							<ContextMenuItem
-								key={tab.id}
-								onSelect={() => paneActions.onMoveToTab(tab.id)}
-							>
-								{tab.name}
-							</ContextMenuItem>
-						))}
-						{targetTabs.length > 0 && <ContextMenuSeparator />}
-						<ContextMenuItem onSelect={paneActions.onMoveToNewTab}>
-							<LuPlus className="size-4" />
-							New Tab
-						</ContextMenuItem>
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-				<ContextMenuSeparator />
-				<ContextMenuItem
-					variant="destructive"
-					onSelect={paneActions.onClosePane}
-				>
-					<LuX className="size-4" />
-					Close File
-				</ContextMenuItem>
+				<PaneContextMenuItems actions={paneActions} closeLabel="Close File" />
 			</ContextMenuContent>
 		</ContextMenu>
 	);

@@ -8,9 +8,12 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { HiChevronDown } from "react-icons/hi2";
-import { LuGitPullRequest, LuLoaderCircle } from "react-icons/lu";
-import { VscGitMerge } from "react-icons/vsc";
+import {
+	VscChevronDown,
+	VscGitMerge,
+	VscGitPullRequest,
+	VscLoading,
+} from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { useCreateOrOpenPR } from "renderer/screens/main/hooks";
@@ -33,11 +36,18 @@ export function PRButton({
 	onRefresh,
 }: PRButtonProps) {
 	const mergePRMutation = electronTrpc.changes.mergePR.useMutation({
-		onSuccess: () => {
-			toast.success("PR merged successfully");
+		onMutate: () => {
+			const toastId = toast.loading("Merging PR...");
+			return { toastId };
+		},
+		onSuccess: (_data, _variables, context) => {
+			toast.success("PR merged successfully", { id: context?.toastId });
 			onRefresh();
 		},
-		onError: (error) => toast.error(`Merge failed: ${error.message}`),
+		onError: (error, _variables, context) =>
+			toast.error(`Merge failed: ${error.message}`, {
+				id: context?.toastId,
+			}),
 	});
 
 	const { createOrOpenPR, isPending: isCreateOrOpenPRPending } =
@@ -55,7 +65,7 @@ export function PRButton({
 
 	if (isLoading) {
 		return (
-			<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground" />
+			<VscLoading className="w-4 h-4 animate-spin text-muted-foreground" />
 		);
 	}
 
@@ -65,7 +75,7 @@ export function PRButton({
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<span className="flex items-center ml-auto text-muted-foreground/40">
-							<LuGitPullRequest className="w-4 h-4" />
+							<VscGitPullRequest className="w-4 h-4" />
 						</span>
 					</TooltipTrigger>
 					<TooltipContent side="top">
@@ -85,9 +95,9 @@ export function PRButton({
 						disabled={isCreatePending}
 					>
 						{isCreatePending ? (
-							<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground" />
+							<VscLoading className="w-4 h-4 animate-spin text-muted-foreground" />
 						) : (
-							<LuGitPullRequest className="w-4 h-4 text-muted-foreground" />
+							<VscGitPullRequest className="w-4 h-4 text-muted-foreground" />
 						)}
 					</button>
 				</TooltipTrigger>
@@ -115,7 +125,10 @@ export function PRButton({
 	}
 
 	return (
-		<div className="flex items-center ml-auto rounded border border-border overflow-hidden">
+		<div
+			className="flex items-center ml-auto rounded border border-border overflow-hidden"
+			aria-busy={mergePRMutation.isPending}
+		>
 			<a
 				href={pr.url}
 				target="_blank"
@@ -134,8 +147,17 @@ export function PRButton({
 						type="button"
 						className="flex items-center px-1 py-0.5 hover:bg-accent transition-colors"
 						disabled={mergePRMutation.isPending}
+						aria-label={
+							mergePRMutation.isPending
+								? "Merging pull request"
+								: "Open merge options"
+						}
 					>
-						<HiChevronDown className="size-3 text-muted-foreground" />
+						{mergePRMutation.isPending ? (
+							<VscLoading className="size-3 animate-spin text-muted-foreground" />
+						) : (
+							<VscChevronDown className="size-3 text-muted-foreground" />
+						)}
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-44">

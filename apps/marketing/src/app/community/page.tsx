@@ -97,21 +97,47 @@ export default async function CommunityPage() {
 
 	return (
 		<main className="bg-background pt-24 pb-16 min-h-screen">
-			<div className="max-w-4xl mx-auto px-6 sm:px-8">
+			<div className="max-w-4xl mx-auto px-4 sm:px-8">
 				{/* Hero */}
-				<header className="text-center mb-16">
+				<header className="text-center mb-12 sm:mb-16">
 					<h1 className="text-4xl sm:text-5xl font-medium tracking-tight text-foreground">
 						Community
 					</h1>
-					<p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
+					<p className="mt-4 sm:mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
 						Join the <span className="font-semibold italic">Superset</span>{" "}
 						community to get help, share ideas, and stay up to date with the
 						latest news and updates.
 					</p>
 				</header>
 
-				{/* Community Links - Boxy Grid */}
-				<div className="border border-border">
+				{/* Community Links - Mobile */}
+				<div className="border border-border sm:hidden">
+					{COMMUNITY_LINKS.map((link) => (
+						<a
+							key={link.name}
+							href={link.href}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center justify-between gap-4 px-4 py-5 border-b border-border last:border-b-0 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+						>
+							<div className="flex items-center gap-3 min-w-0">
+								<div className="text-foreground [&_svg]:size-9">
+									{link.icon}
+								</div>
+								<span className="text-sm font-medium tracking-wider">
+									{link.name}
+								</span>
+							</div>
+							<div className="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-right">
+								{link.cta}
+								<ArrowUpRight className="size-3 shrink-0" />
+							</div>
+						</a>
+					))}
+				</div>
+
+				{/* Community Links - Desktop */}
+				<div className="hidden sm:block border border-border">
 					{/* First Row - Icons */}
 					<div className="grid grid-cols-3 divide-x divide-border">
 						{COMMUNITY_LINKS.slice(0, 3).map((link) => (
@@ -135,10 +161,10 @@ export default async function CommunityPage() {
 								href={link.href}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="flex items-center justify-center gap-2 py-4 text-xs sm:text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+								className="flex items-center justify-center gap-2 py-4 text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
 							>
 								{link.cta}
-								<ArrowUpRight className="size-3 sm:size-4" />
+								<ArrowUpRight className="size-4" />
 							</a>
 						))}
 					</div>
@@ -166,10 +192,10 @@ export default async function CommunityPage() {
 								href={link.href}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="flex items-center justify-center gap-2 py-4 text-xs sm:text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+								className="flex items-center justify-center gap-2 py-4 text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
 							>
 								{link.cta}
-								<ArrowUpRight className="size-3 sm:size-4" />
+								<ArrowUpRight className="size-4" />
 							</a>
 						))}
 					</div>
@@ -179,8 +205,8 @@ export default async function CommunityPage() {
 				{stars && (
 					<div className="border border-border border-t-0">
 						{/* Stats Numbers Row */}
-						<div className="flex items-center justify-center py-12 sm:py-16">
-							<span className="text-4xl sm:text-6xl font-semibold tracking-tight text-muted-foreground">
+						<div className="flex items-center justify-center py-10 sm:py-16">
+							<span className="text-3xl sm:text-6xl font-semibold tracking-tight text-muted-foreground">
 								{stars}
 							</span>
 						</div>
@@ -190,7 +216,7 @@ export default async function CommunityPage() {
 							href={COMPANY.GITHUB_URL}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="flex items-center justify-center gap-2 py-4 border-t border-border text-xs sm:text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+							className="flex items-center justify-center gap-2 py-4 border-t border-border text-[11px] sm:text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
 						>
 							<svg
 								width="16"

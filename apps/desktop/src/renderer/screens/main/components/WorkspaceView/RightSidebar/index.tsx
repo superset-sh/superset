@@ -1,6 +1,5 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import {
@@ -10,7 +9,7 @@ import {
 	LuShrink,
 	LuX,
 } from "react-icons/lu";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	RightSidebarTab,
@@ -18,10 +17,12 @@ import {
 	useSidebarStore,
 } from "renderer/stores/sidebar-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
 import { FilesView } from "./FilesView";
+import { getSidebarHeaderTabButtonClassName } from "./headerTabStyles";
 
 function TabButton({
 	isActive,
@@ -43,12 +44,10 @@ function TabButton({
 					<button
 						type="button"
 						onClick={onClick}
-						className={cn(
-							"flex items-center justify-center shrink-0 h-full w-10 transition-all",
-							isActive
-								? "text-foreground bg-border/30"
-								: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
-						)}
+						className={getSidebarHeaderTabButtonClassName({
+							isActive,
+							compact: true,
+						})}
 					>
 						{icon}
 					</button>
@@ -64,12 +63,7 @@ function TabButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className={cn(
-				"flex items-center gap-2 shrink-0 px-3 h-full transition-all text-sm",
-				isActive
-					? "text-foreground bg-border/30"
-					: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
-			)}
+			className={getSidebarHeaderTabButtonClassName({ isActive })}
 		>
 			{icon}
 			{label}
@@ -84,14 +78,12 @@ export function RightSidebar() {
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
-	const {
-		currentMode,
-		rightSidebarTab,
-		setRightSidebarTab,
-		toggleSidebar,
-		setMode,
-		sidebarWidth,
-	} = useSidebarStore();
+	const currentMode = useSidebarStore((s) => s.currentMode);
+	const rightSidebarTab = useSidebarStore((s) => s.rightSidebarTab);
+	const setRightSidebarTab = useSidebarStore((s) => s.setRightSidebarTab);
+	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const setMode = useSidebarStore((s) => s.setMode);
+	const sidebarWidth = useSidebarStore((s) => s.sidebarWidth);
 	const isExpanded = currentMode === SidebarMode.Changes;
 	const compactTabs = sidebarWidth < 250;
 	const showChangesTab = !!worktreePath;
@@ -105,48 +97,57 @@ export function RightSidebar() {
 	const { scrollToFile } = useScrollContext();
 
 	const invalidateFileContent = useCallback(
-		(filePath: string) => {
-			if (!worktreePath) return;
-
-			Promise.all([
-				trpcUtils.changes.readWorkingFile.invalidate({
-					worktreePath,
-					filePath,
-				}),
-				trpcUtils.changes.getFileContents.invalidate({
-					worktreePath,
-					filePath,
-				}),
-			]).catch((error) => {
+		(absolutePath: string) => {
+			const invalidations: Promise<unknown>[] = [];
+			if (workspaceId) {
+				invalidations.push(
+					trpcUtils.filesystem.readFile.invalidate({
+						workspaceId,
+						absolutePath,
+					}),
+				);
+			}
+			if (worktreePath) {
+				invalidations.push(
+					trpcUtils.changes.getGitFileContents.invalidate({
+						worktreePath,
+						absolutePath,
+					}),
+				);
+			}
+			Promise.all(invalidations).catch((error) => {
 				console.error(
 					"[RightSidebar/invalidateFileContent] Failed to invalidate file content queries:",
-					{ worktreePath, filePath, error },
+					{ absolutePath, error },
 				);
 			});
 		},
-		[worktreePath, trpcUtils],
+		[workspaceId, worktreePath, trpcUtils],
 	);
 
 	const handleFileOpenPane = useCallback(
 		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 			if (!workspaceId || !worktreePath) return;
+			const absolutePath = toAbsoluteWorkspacePath(worktreePath, file.path);
 			addFileViewerPane(workspaceId, {
-				filePath: file.path,
+				filePath: absolutePath,
 				diffCategory: category,
 				fileStatus: file.status,
 				commitHash,
-				oldPath: file.oldPath,
+				oldPath: file.oldPath
+					? toAbsoluteWorkspacePath(worktreePath, file.oldPath)
+					: undefined,
 			});
-			invalidateFileContent(file.path);
+			invalidateFileContent(absolutePath);
 		},
 		[workspaceId, worktreePath, addFileViewerPane, invalidateFileContent],
 	);
 
 	const handleFileScrollTo = useCallback(
 		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
-			scrollToFile(file, category, commitHash);
+			scrollToFile(file, category, commitHash, worktreePath);
 		},
-		[scrollToFile],
+		[scrollToFile, worktreePath],
 	);
 
 	const handleFileOpen =
@@ -195,9 +196,9 @@ export function RightSidebar() {
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							<HotkeyTooltipContent
+							<HotkeyLabel
 								label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-								hotkeyId="TOGGLE_EXPAND_SIDEBAR"
+								id="OPEN_DIFF_VIEWER"
 							/>
 						</TooltipContent>
 					</Tooltip>
@@ -213,10 +214,7 @@ export function RightSidebar() {
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							<HotkeyTooltipContent
-								label="Close sidebar"
-								hotkeyId="TOGGLE_SIDEBAR"
-							/>
+							<HotkeyLabel label="Close sidebar" id="TOGGLE_SIDEBAR" />
 						</TooltipContent>
 					</Tooltip>
 				</div>
@@ -232,6 +230,7 @@ export function RightSidebar() {
 					<ChangesView
 						onFileOpen={handleFileOpen}
 						isExpandedView={isExpanded}
+						isActive={rightSidebarTab === RightSidebarTab.Changes}
 					/>
 				</div>
 			)}

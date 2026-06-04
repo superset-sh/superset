@@ -1,57 +1,203 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import type { CheckItem, GitHubStatus } from "@superset/local-db";
-import { branchExistsOnRemote } from "../git";
-import { execWithShellEnv } from "../shell-env";
+import type { GitHubStatus, PullRequestComment } from "@superset/local-db";
 import {
-	type GHPRResponse,
-	GHPRResponseSchema,
-	GHRepoResponseSchema,
+	branchExistsOnRemote,
+	getCurrentBranch,
+	isUnbornHeadError,
+} from "../git";
+import { execGitWithShellPath } from "../git-client";
+import { execWithShellEnv } from "../shell-env";
+import { parseUpstreamRef } from "../upstream-ref";
+import {
+	clearGitHubCachesForWorktree,
+	getCachedPullRequestCommentsState,
+	makePullRequestCommentsCacheKey,
+	readCachedGitHubStatus,
+	readCachedPullRequestComments,
+} from "./cache";
+import { fetchPullRequestComments, resolveReviewThread } from "./comments";
+import { getPRForBranch } from "./pr-resolution";
+import { extractNwoFromUrl, getRepoContext } from "./repo-context";
+import {
+	GHDeploymentSchema,
+	GHDeploymentStatusSchema,
+	type RepoContext,
 } from "./types";
 
-const execFileAsync = promisify(execFile);
+export interface PullRequestCommentsTarget {
+	prNumber: number;
+	repoContext: Pick<RepoContext, "repoUrl" | "upstreamUrl" | "isFork">;
+}
 
-const cache = new Map<string, { data: GitHubStatus; timestamp: number }>();
-const CACHE_TTL_MS = 10_000;
+export { clearGitHubCachesForWorktree, resolveReviewThread };
 
-/**
- * Fetches GitHub PR status for a worktree using the `gh` CLI.
- * Returns null if `gh` is not installed, not authenticated, or on error.
- */
-export async function fetchGitHubPRStatus(
+function getPullRequestCommentsRepoNameWithOwner(
+	target: PullRequestCommentsTarget,
+): string | null {
+	const targetUrl = target.repoContext.isFork
+		? target.repoContext.upstreamUrl
+		: target.repoContext.repoUrl;
+
+	return extractNwoFromUrl(targetUrl);
+}
+
+async function resolvePullRequestCommentsTarget(
 	worktreePath: string,
-): Promise<GitHubStatus | null> {
-	const cached = cache.get(worktreePath);
-	if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-		return cached.data;
+	branchOverride?: string | null,
+): Promise<PullRequestCommentsTarget | null> {
+	const repoContext = await getRepoContext(worktreePath);
+	if (!repoContext) {
+		return null;
 	}
 
+	const branchName =
+		branchOverride?.trim() || (await getCurrentBranch(worktreePath));
+	if (!branchName) {
+		return null;
+	}
+
+	const revParseTarget = branchOverride ? `refs/heads/${branchName}` : "HEAD";
+	const shaResult = await execGitWithShellPath(["rev-parse", revParseTarget], {
+		cwd: worktreePath,
+	}).catch((error) => {
+		if (isUnbornHeadError(error)) {
+			return { stdout: "", stderr: "" };
+		}
+		if (branchOverride) {
+			return { stdout: "", stderr: "" };
+		}
+		throw error;
+	});
+	const headSha = shaResult.stdout.trim() || undefined;
+
+	if (branchOverride && !headSha) {
+		return null;
+	}
+	const prInfo = await getPRForBranch(
+		worktreePath,
+		branchName,
+		repoContext,
+		headSha,
+	);
+	if (!prInfo) {
+		return null;
+	}
+
+	return {
+		prNumber: prInfo.number,
+		repoContext,
+	};
+}
+
+export function resolveRemoteBranchNameForGitHubStatus({
+	localBranchName,
+	upstreamBranchName,
+	prHeadRefName,
+}: {
+	localBranchName: string;
+	upstreamBranchName?: string | null;
+	prHeadRefName?: string | null;
+}): string {
+	return upstreamBranchName?.trim() || prHeadRefName?.trim() || localBranchName;
+}
+
+async function refreshGitHubPRStatus(
+	worktreePath: string,
+	branchOverride?: string | null,
+): Promise<GitHubStatus | null> {
 	try {
-		const repoUrl = await getRepoUrl(worktreePath);
-		if (!repoUrl) {
+		const repoContext = await getRepoContext(worktreePath);
+		if (!repoContext) {
 			return null;
 		}
 
-		const { stdout: branchOutput } = await execFileAsync(
-			"git",
-			["rev-parse", "--abbrev-ref", "HEAD"],
-			{ cwd: worktreePath },
-		);
-		const branchName = branchOutput.trim();
+		const branchName =
+			branchOverride?.trim() || (await getCurrentBranch(worktreePath));
+		if (!branchName) {
+			return null;
+		}
 
-		const [branchCheck, prInfo] = await Promise.all([
-			branchExistsOnRemote(worktreePath, branchName),
-			getPRForBranch(worktreePath, branchName),
+		const revParseTarget = branchOverride ? `refs/heads/${branchName}` : "HEAD";
+		const upstreamTarget = branchOverride
+			? `${branchName}@{upstream}`
+			: "@{upstream}";
+
+		const [shaResult, upstreamResult] = await Promise.all([
+			execGitWithShellPath(["rev-parse", revParseTarget], {
+				cwd: worktreePath,
+			}).catch((error) => {
+				if (isUnbornHeadError(error)) {
+					return { stdout: "", stderr: "" };
+				}
+				if (branchOverride) {
+					return { stdout: "", stderr: "" };
+				}
+				throw error;
+			}),
+			execGitWithShellPath(["rev-parse", "--abbrev-ref", upstreamTarget], {
+				cwd: worktreePath,
+			}).catch(() => ({ stdout: "", stderr: "" })),
 		]);
+		const headSha = shaResult.stdout.trim() || undefined;
+
+		// When using a branch override, we must have a valid SHA to avoid
+		// getPRForBranch falling back to HEAD (which is a different branch).
+		if (branchOverride && !headSha) {
+			return null;
+		}
+
+		const parsedUpstreamRef = parseUpstreamRef(upstreamResult.stdout.trim());
+		const trackingRemote = parsedUpstreamRef?.remoteName ?? "origin";
+		const previewBranchName = resolveRemoteBranchNameForGitHubStatus({
+			localBranchName: branchName,
+			upstreamBranchName: parsedUpstreamRef?.branchName,
+		});
+
+		const [prInfo, previewUrl] = await Promise.all([
+			getPRForBranch(worktreePath, branchName, repoContext, headSha),
+			fetchPreviewDeploymentUrl(
+				worktreePath,
+				headSha,
+				previewBranchName,
+				repoContext,
+			),
+		]);
+
+		const remoteBranchName = resolveRemoteBranchNameForGitHubStatus({
+			localBranchName: branchName,
+			upstreamBranchName: parsedUpstreamRef?.branchName,
+			prHeadRefName: prInfo?.headRefName,
+		});
+
+		const branchCheck = await branchExistsOnRemote(
+			worktreePath,
+			remoteBranchName,
+			trackingRemote,
+		);
+
+		let finalPreviewUrl = previewUrl;
+		if (!finalPreviewUrl && prInfo?.number) {
+			const targetUrl = repoContext.isFork
+				? repoContext.upstreamUrl
+				: repoContext.repoUrl;
+			const nwo = extractNwoFromUrl(targetUrl);
+			if (nwo) {
+				finalPreviewUrl = await queryDeploymentUrl(
+					worktreePath,
+					nwo,
+					`ref=${encodeURIComponent(`refs/pull/${prInfo.number}/merge`)}`,
+				);
+			}
+		}
 
 		const result: GitHubStatus = {
 			pr: prInfo,
-			repoUrl,
+			repoUrl: repoContext.repoUrl,
+			upstreamUrl: repoContext.upstreamUrl,
+			isFork: repoContext.isFork,
 			branchExistsOnRemote: branchCheck.status === "exists",
+			previewUrl: finalPreviewUrl,
 			lastRefreshed: Date.now(),
 		};
-
-		cache.set(worktreePath, { data: result, timestamp: Date.now() });
 
 		return result;
 	} catch {
@@ -59,309 +205,209 @@ export async function fetchGitHubPRStatus(
 	}
 }
 
-async function getRepoUrl(worktreePath: string): Promise<string | null> {
-	try {
-		const { stdout } = await execWithShellEnv(
-			"gh",
-			["repo", "view", "--json", "url"],
-			{ cwd: worktreePath },
-		);
-		const raw = JSON.parse(stdout);
-		const result = GHRepoResponseSchema.safeParse(raw);
-		if (!result.success) {
-			console.error("[GitHub] Repo schema validation failed:", result.error);
-			console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
-			return null;
-		}
-		return result.data.url;
-	} catch {
-		return null;
-	}
-}
-
-const PR_JSON_FIELDS =
-	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,reviewDecision,statusCheckRollup";
-
-async function getPRForBranch(
-	worktreePath: string,
-	branchName: string,
-): Promise<GitHubStatus["pr"]> {
-	const byTracking = await getPRByBranchTracking(worktreePath);
-	if (byTracking) {
-		return byTracking;
-	}
-
-	// Fallback for branches where local naming/casing diverges from PR head.
-	return findPRByHeadBranch(worktreePath, branchName);
-}
-
-/**
- * Looks up a PR using `gh pr view` (no args), which matches via the branch's
- * tracking ref. Essential for fork PRs that track refs/pull/XXX/head.
- */
-async function getPRByBranchTracking(
-	worktreePath: string,
-): Promise<GitHubStatus["pr"]> {
-	try {
-		const { stdout } = await execWithShellEnv(
-			"gh",
-			["pr", "view", "--json", PR_JSON_FIELDS],
-			{ cwd: worktreePath },
-		);
-
-		const data = parsePRResponse(stdout);
-		if (!data) {
-			return null;
-		}
-
-		if (!(await sharesAncestry(worktreePath, data.headRefOid))) {
-			return null;
-		}
-
-		return formatPRData(data);
-	} catch (error) {
-		if (
-			error instanceof Error &&
-			error.message.toLowerCase().includes("no pull requests found")
-		) {
-			return null;
-		}
-		throw error;
-	}
-}
-
-async function findPRByHeadBranch(
-	worktreePath: string,
-	branchName: string,
-): Promise<GitHubStatus["pr"]> {
-	try {
-		const { stdout } = await execWithShellEnv(
-			"gh",
-			[
-				"pr",
-				"list",
-				"--state",
-				"all",
-				"--search",
-				`head:${branchName}`,
-				"--limit",
-				"20",
-				"--json",
-				PR_JSON_FIELDS,
-			],
-			{ cwd: worktreePath },
-		);
-
-		const candidates = parsePRListResponse(stdout);
-		for (const candidate of candidates) {
-			if (await sharesAncestry(worktreePath, candidate.headRefOid)) {
-				return formatPRData(candidate);
-			}
-		}
-
-		return null;
-	} catch {
-		return null;
-	}
-}
-
-function parsePRResponse(stdout: string): GHPRResponse | null {
-	const trimmed = stdout.trim();
-	if (!trimmed || trimmed === "null") {
-		return null;
-	}
-
-	let raw: unknown;
-	try {
-		raw = JSON.parse(trimmed);
-	} catch (error) {
-		console.warn(
-			"[GitHub] Failed to parse PR response JSON:",
-			error instanceof Error ? error.message : String(error),
-		);
-		return null;
-	}
-	const result = GHPRResponseSchema.safeParse(raw);
-	if (!result.success) {
-		console.error("[GitHub] PR schema validation failed:", result.error);
-		console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
-		return null;
-	}
-	return result.data;
-}
-
-function parsePRListResponse(stdout: string): GHPRResponse[] {
-	const trimmed = stdout.trim();
-	if (!trimmed || trimmed === "null") {
-		return [];
-	}
-
-	let raw: unknown;
-	try {
-		raw = JSON.parse(trimmed);
-	} catch (error) {
-		console.warn(
-			"[GitHub] Failed to parse PR list response JSON:",
-			error instanceof Error ? error.message : String(error),
-		);
-		return [];
-	}
-
-	if (!Array.isArray(raw)) {
-		return [];
-	}
-
-	const parsed: GHPRResponse[] = [];
-	for (const item of raw) {
-		const result = GHPRResponseSchema.safeParse(item);
-		if (result.success) {
-			parsed.push(result.data);
-		}
-	}
-	return parsed;
-}
-
-/**
- * Returns true if local HEAD and the given commit share ancestry
- * (one is an ancestor of the other, or they are the same commit).
- */
-async function sharesAncestry(
-	worktreePath: string,
-	prHeadOid: string,
-): Promise<boolean> {
-	try {
-		const { stdout: localHead } = await execFileAsync(
-			"git",
-			["-C", worktreePath, "rev-parse", "HEAD"],
-			{ timeout: 10_000 },
-		);
-		const localOid = localHead.trim();
-
-		if (localOid === prHeadOid) {
-			return true;
-		}
-
-		for (const [ancestor, descendant] of [
-			[prHeadOid, localOid],
-			[localOid, prHeadOid],
-		]) {
-			try {
-				await execFileAsync(
-					"git",
-					[
-						"-C",
-						worktreePath,
-						"merge-base",
-						"--is-ancestor",
-						ancestor,
-						descendant,
-					],
-					{ timeout: 10_000 },
-				);
-				return true;
-			} catch {
-				// Try the other direction.
-			}
-		}
-
-		return false;
-	} catch {
-		return false;
-	}
-}
-
-function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {
-	return {
-		number: data.number,
-		title: data.title,
-		url: data.url,
-		state: mapPRState(data.state, data.isDraft),
-		mergedAt: data.mergedAt ? new Date(data.mergedAt).getTime() : undefined,
-		additions: data.additions,
-		deletions: data.deletions,
-		reviewDecision: mapReviewDecision(data.reviewDecision),
-		checksStatus: computeChecksStatus(data.statusCheckRollup),
-		checks: parseChecks(data.statusCheckRollup),
-	};
-}
-
-function mapPRState(
-	state: GHPRResponse["state"],
-	isDraft: boolean,
-): NonNullable<GitHubStatus["pr"]>["state"] {
-	if (state === "MERGED") return "merged";
-	if (state === "CLOSED") return "closed";
-	if (isDraft) return "draft";
-	return "open";
-}
-
-function mapReviewDecision(
-	decision: GHPRResponse["reviewDecision"],
-): NonNullable<GitHubStatus["pr"]>["reviewDecision"] {
-	if (decision === "APPROVED") return "approved";
-	if (decision === "CHANGES_REQUESTED") return "changes_requested";
-	return "pending";
-}
-
-function parseChecks(rollup: GHPRResponse["statusCheckRollup"]): CheckItem[] {
-	if (!rollup || rollup.length === 0) {
-		return [];
-	}
-
-	// GitHub returns two shapes: CheckRun (name/detailsUrl/conclusion) and
-	// StatusContext (context/targetUrl/state). Normalize both here.
-	return rollup.map((ctx) => {
-		const name = ctx.name || ctx.context || "Unknown check";
-		const url = ctx.detailsUrl || ctx.targetUrl;
-		const rawStatus = ctx.state || ctx.conclusion;
-
-		let status: CheckItem["status"];
-		if (rawStatus === "SUCCESS") {
-			status = "success";
-		} else if (
-			rawStatus === "FAILURE" ||
-			rawStatus === "ERROR" ||
-			rawStatus === "TIMED_OUT"
-		) {
-			status = "failure";
-		} else if (rawStatus === "SKIPPED" || rawStatus === "NEUTRAL") {
-			status = "skipped";
-		} else if (rawStatus === "CANCELLED") {
-			status = "cancelled";
-		} else {
-			status = "pending";
-		}
-
-		return { name, status, url };
+async function refreshGitHubPRComments({
+	worktreePath,
+	repoNameWithOwner,
+	pullRequestNumber,
+}: {
+	worktreePath: string;
+	repoNameWithOwner: string;
+	pullRequestNumber: number;
+}): Promise<PullRequestComment[]> {
+	return fetchPullRequestComments({
+		worktreePath,
+		repoNameWithOwner,
+		pullRequestNumber,
 	});
 }
 
-function computeChecksStatus(
-	rollup: GHPRResponse["statusCheckRollup"],
-): NonNullable<GitHubStatus["pr"]>["checksStatus"] {
-	if (!rollup || rollup.length === 0) {
-		return "none";
+/**
+ * Fetches GitHub PR status for a worktree or branch workspace using the `gh` CLI.
+ * Returns null if `gh` is not installed, not authenticated, or on error.
+ *
+ * @param branchName - Optional branch name override. When provided (for branch
+ *   workspaces), resolves the SHA and upstream for that branch instead of using
+ *   HEAD / the checked-out branch. Also used to scope the cache key.
+ */
+export async function fetchGitHubPRStatus(
+	worktreePath: string,
+	branchName?: string | null,
+): Promise<GitHubStatus | null> {
+	const cacheKey = branchName ? `${worktreePath}::${branchName}` : worktreePath;
+	return readCachedGitHubStatus(cacheKey, () =>
+		refreshGitHubPRStatus(worktreePath, branchName),
+	);
+}
+
+export async function fetchGitHubPRComments({
+	worktreePath,
+	pullRequest,
+	branchName,
+}: {
+	worktreePath: string;
+	pullRequest?: PullRequestCommentsTarget | null;
+	branchName?: string | null;
+}): Promise<PullRequestComment[]> {
+	try {
+		const pullRequestTarget =
+			pullRequest ??
+			(await resolvePullRequestCommentsTarget(worktreePath, branchName));
+		if (!pullRequestTarget) {
+			return [];
+		}
+
+		const repoNameWithOwner =
+			getPullRequestCommentsRepoNameWithOwner(pullRequestTarget);
+		if (!repoNameWithOwner) {
+			return [];
+		}
+
+		const cacheKey = makePullRequestCommentsCacheKey({
+			worktreePath,
+			repoNameWithOwner,
+			pullRequestNumber: pullRequestTarget.prNumber,
+		});
+		try {
+			return await readCachedPullRequestComments(cacheKey, () =>
+				refreshGitHubPRComments({
+					worktreePath,
+					repoNameWithOwner,
+					pullRequestNumber: pullRequestTarget.prNumber,
+				}),
+			);
+		} catch (error) {
+			const cached = getCachedPullRequestCommentsState(cacheKey);
+			if (cached) {
+				console.warn(
+					"[GitHub] Failed to refresh pull request comments; using cached value:",
+					error,
+				);
+				return cached.value;
+			}
+
+			throw error;
+		}
+	} catch {
+		return [];
+	}
+}
+
+function isSafeHttpUrl(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		return parsed.protocol === "http:" || parsed.protocol === "https:";
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Low-level helper: query deployments matching the given params and return
+ * the environment_url of the first successful deployment. Status lookups
+ * are parallelized to minimize latency.
+ */
+async function queryDeploymentUrl(
+	worktreePath: string,
+	nwo: string,
+	queryParams: string,
+): Promise<string | undefined> {
+	const { stdout } = await execWithShellEnv(
+		"gh",
+		["api", `repos/${nwo}/deployments?${queryParams}&per_page=5`],
+		{ cwd: worktreePath },
+	);
+
+	const rawDeployments: unknown = JSON.parse(stdout.trim());
+	if (!Array.isArray(rawDeployments) || rawDeployments.length === 0) {
+		return undefined;
 	}
 
-	let hasFailure = false;
-	let hasPending = false;
-
-	for (const ctx of rollup) {
-		const status = ctx.state || ctx.conclusion;
-
-		if (status === "FAILURE" || status === "ERROR" || status === "TIMED_OUT") {
-			hasFailure = true;
-		} else if (
-			status === "PENDING" ||
-			status === "" ||
-			status === null ||
-			status === undefined
-		) {
-			hasPending = true;
+	const deploymentIds: number[] = [];
+	for (const raw of rawDeployments) {
+		const result = GHDeploymentSchema.safeParse(raw);
+		if (result.success) {
+			deploymentIds.push(result.data.id);
 		}
 	}
+	if (deploymentIds.length === 0) {
+		return undefined;
+	}
 
-	if (hasFailure) return "failure";
-	if (hasPending) return "pending";
-	return "success";
+	const urls = await Promise.all(
+		deploymentIds.map(async (id): Promise<string | undefined> => {
+			try {
+				const { stdout: out } = await execWithShellEnv(
+					"gh",
+					["api", `repos/${nwo}/deployments/${id}/statuses?per_page=1`],
+					{ cwd: worktreePath },
+				);
+				const rawStatuses: unknown = JSON.parse(out.trim());
+				if (!Array.isArray(rawStatuses) || rawStatuses.length === 0) {
+					return undefined;
+				}
+				const statusResult = GHDeploymentStatusSchema.safeParse(rawStatuses[0]);
+				if (!statusResult.success) {
+					return undefined;
+				}
+				if (
+					statusResult.data.state === "success" &&
+					statusResult.data.environment_url &&
+					isSafeHttpUrl(statusResult.data.environment_url)
+				) {
+					return statusResult.data.environment_url;
+				}
+				return undefined;
+			} catch {
+				return undefined;
+			}
+		}),
+	);
+
+	// Return the first successful URL (preserves deployment order: most recent first)
+	return urls.find((url): url is string => url !== undefined);
+}
+
+/**
+ * Fetches the preview deployment URL by trying multiple query strategies:
+ * 1. By commit SHA (works for Vercel, Netlify official integrations)
+ * 2. By branch name ref (works for some CI configurations)
+ * The PR merge ref (refs/pull/N/merge) is handled in fetchGitHubPRStatus
+ * after the PR number is known.
+ */
+async function fetchPreviewDeploymentUrl(
+	worktreePath: string,
+	headSha: string | undefined,
+	branchName: string,
+	repoContext: RepoContext,
+): Promise<string | undefined> {
+	try {
+		const targetUrl = repoContext.isFork
+			? repoContext.upstreamUrl
+			: repoContext.repoUrl;
+		const nwo = extractNwoFromUrl(targetUrl);
+		if (!nwo) {
+			return undefined;
+		}
+
+		if (headSha) {
+			// Try by commit SHA (works for Vercel, Netlify official integrations)
+			const bySha = await queryDeploymentUrl(
+				worktreePath,
+				nwo,
+				`sha=${headSha}`,
+			);
+			if (bySha) {
+				return bySha;
+			}
+		}
+
+		// Fall back to branch name (works for some CI configurations)
+		return await queryDeploymentUrl(
+			worktreePath,
+			nwo,
+			`ref=${encodeURIComponent(branchName)}`,
+		);
+	} catch {
+		return undefined;
+	}
 }

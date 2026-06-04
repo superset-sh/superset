@@ -22,6 +22,7 @@ import {
 import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight } from "react-icons/hi2";
+import { getSlugColumnWidth } from "renderer/lib/slug-width";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { create } from "zustand";
 import {
@@ -70,7 +71,6 @@ export function useTasksTable({
 	assigneeFilter,
 }: UseTasksTableParams): {
 	table: Table<TaskWithStatus>;
-	isLoading: boolean;
 	slugColumnWidth: string;
 	rowSelection: RowSelectionState;
 	setRowSelection: (
@@ -86,7 +86,7 @@ export function useTasksTable({
 	const rowSelection = useRowSelectionStore((s) => s.rowSelection);
 	const setRowSelection = useRowSelectionStore((s) => s.setRowSelection);
 
-	const { data: allData, isLoading } = useLiveQuery(
+	const { data: allData } = useLiveQuery(
 		(q) =>
 			q
 				.from({ tasks: collections.tasks })
@@ -107,7 +107,15 @@ export function useTasksTable({
 
 	const sortedData = useMemo(() => {
 		if (!allData) return [];
-		return [...allData].sort(compareTasks);
+		return allData
+			.map((task) => ({
+				...task,
+				assignee:
+					typeof task.assignee?.id === "string"
+						? (task.assignee as SelectUser)
+						: null,
+			}))
+			.sort(compareTasks);
 	}, [allData]);
 
 	const { search } = useHybridSearch(sortedData);
@@ -143,19 +151,10 @@ export function useTasksTable({
 		}
 	}, [filterTab, assigneeFilter, setRowSelection]);
 
-	const slugColumnWidth = useMemo(() => {
-		if (!data || data.length === 0) return "5rem";
-
-		const longestSlug = data.reduce((longest, task) => {
-			return task.slug.length > longest.length ? task.slug : longest;
-		}, "");
-
-		const REM_PER_CHAR = 0.5 * 0.75;
-		const PADDING_REM = 0.5;
-		const width = longestSlug.length * REM_PER_CHAR + PADDING_REM;
-
-		return `${Math.ceil(width * 10) / 10}rem`;
-	}, [data]);
+	const slugColumnWidth = useMemo(
+		() => getSlugColumnWidth((data ?? []).map((t) => t.slug)),
+		[data],
+	);
 
 	const columns = useMemo(
 		() => [
@@ -249,7 +248,7 @@ export function useTasksTable({
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					return (
-						<span className="text-xs text-muted-foreground shrink-0">
+						<span className="text-xs text-muted-foreground truncate min-w-0">
 							{info.getValue()}
 						</span>
 					);
@@ -293,7 +292,13 @@ export function useTasksTable({
 				header: "Assignee",
 				filterFn: (row, _columnId, filterValue: string) => {
 					if (filterValue === "unassigned") {
-						return row.original.assigneeId === null;
+						return (
+							row.original.assigneeId === null &&
+							row.original.assigneeExternalId === null
+						);
+					}
+					if (filterValue.startsWith("ext:")) {
+						return row.original.assigneeExternalId === filterValue.slice(4);
 					}
 					return row.original.assigneeId === filterValue;
 				},
@@ -342,5 +347,5 @@ export function useTasksTable({
 		autoResetExpanded: false,
 	});
 
-	return { table, isLoading, slugColumnWidth, rowSelection, setRowSelection };
+	return { table, slugColumnWidth, rowSelection, setRowSelection };
 }

@@ -10,6 +10,7 @@ import {
 	type TerminalHostClient,
 } from "../../terminal-host/client";
 import type { ListSessionsResponse } from "../../terminal-host/types";
+import { raceWithAbort, throwIfAborted } from "../abort";
 import { buildTerminalEnv, getDefaultShell } from "../env";
 import { TerminalKilledError } from "../errors";
 import { portManager } from "../port-manager";
@@ -25,10 +26,17 @@ import { HistoryManager } from "./history-manager";
 import { PrioritySemaphore } from "./priority-semaphore";
 import type { ColdRestoreInfo, SessionInfo } from "./types";
 
+interface PendingCreateOrAttach {
+	requestId: string;
+	joinPending: boolean;
+	abortController: AbortController;
+	promise: Promise<SessionResult>;
+}
+
 export class DaemonTerminalManager extends EventEmitter {
 	private client!: TerminalHostClient;
 	private sessions = new Map<string, SessionInfo>();
-	private pendingSessions = new Map<string, Promise<SessionResult>>();
+	private pendingSessions = new Map<string, PendingCreateOrAttach>();
 	private killedSessionTombstones = new Map<string, number>();
 	private createOrAttachLimiter = new PrioritySemaphore(
 		CREATE_OR_ATTACH_CONCURRENCY,
@@ -76,9 +84,17 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.setupClientEventHandlers();
 	}
 
+	private async listExistingDaemonSessions(): Promise<ListSessionsResponse> {
+		// `listSessionsIfRunning()` returns null only when no daemon/socket exists.
+		// Probe contention and other failures bubble up so callers can choose whether
+		// to retry, fall back, or fail closed.
+		const response = await this.client.listSessionsIfRunning();
+		return response ?? { sessions: [] };
+	}
+
 	async reconcileOnStartup(): Promise<void> {
 		try {
-			const response = await this.client.listSessions();
+			const response = await this.listExistingDaemonSessions();
 			if (response.sessions.length === 0) {
 				this.daemonAliveSessionIds.clear();
 				this.daemonSessionIdsHydrated = true;
@@ -122,7 +138,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 			// Enable port scanning before user opens terminal tabs
 			for (const session of preservedSessions) {
-				portManager.upsertDaemonSession(
+				portManager.upsertSession(
 					session.paneId,
 					session.workspaceId,
 					session.pid,
@@ -147,7 +163,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		if (this.daemonSessionIdsHydrated) return;
 
 		try {
-			const response = await this.client.listSessions();
+			const response = await this.listExistingDaemonSessions();
 			this.daemonAliveSessionIds = new Set(
 				response.sessions.filter((s) => s.isAlive).map((s) => s.sessionId),
 			);
@@ -175,7 +191,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				session.lastActive = Date.now();
 			}
 
-			portManager.checkOutputForHint(data, paneId);
+			portManager.checkOutputForHint(data);
 			this.historyManager.writeToHistory(paneId, data, () =>
 				this.sessions.get(paneId),
 			);
@@ -194,7 +210,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.pid = null;
 				}
 
-				portManager.unregisterDaemonSession(paneId);
+				portManager.unregisterSession(paneId);
 				this.historyManager.closeHistoryWriter(paneId, exitCode);
 				const reason =
 					session?.exitReason ??
@@ -280,23 +296,56 @@ export class DaemonTerminalManager extends EventEmitter {
 			}
 		}
 
+		const requestId = params.requestId ?? `${paneId}:${Date.now()}`;
+		const joinPending = params.joinPending ?? false;
 		const pending = this.pendingSessions.get(paneId);
 		if (pending) {
-			return pending;
+			if (
+				pending.requestId === requestId ||
+				joinPending ||
+				pending.joinPending
+			) {
+				return pending.promise;
+			}
+			pending.abortController.abort();
+			this.pendingSessions.delete(paneId);
 		}
 
-		const creationPromise = this.doCreateOrAttach(params);
-		this.pendingSessions.set(paneId, creationPromise);
+		const abortController = new AbortController();
+		const promise = this.doCreateOrAttach(
+			{ ...params, requestId },
+			abortController.signal,
+		);
+		const entry: PendingCreateOrAttach = {
+			requestId,
+			joinPending,
+			abortController,
+			promise,
+		};
+		this.pendingSessions.set(paneId, entry);
 
 		try {
-			return await creationPromise;
+			return await entry.promise;
 		} finally {
-			this.pendingSessions.delete(paneId);
+			if (this.pendingSessions.get(paneId) === entry) {
+				this.pendingSessions.delete(paneId);
+			}
+		}
+	}
+
+	cancelCreateOrAttach(params: { paneId: string; requestId: string }): void {
+		const pending = this.pendingSessions.get(params.paneId);
+		if (!pending || pending.requestId !== params.requestId) {
+			return;
+		}
+		pending.abortController.abort();
+		if (this.pendingSessions.get(params.paneId) === pending) {
+			this.pendingSessions.delete(params.paneId);
 		}
 	}
 
 	async listDaemonSessions(): Promise<ListSessionsResponse> {
-		const response = await this.client.listSessions();
+		const response = await this.listExistingDaemonSessions();
 		this.daemonAliveSessionIds = new Set(
 			response.sessions.filter((s) => s.isAlive).map((s) => s.sessionId),
 		);
@@ -306,9 +355,11 @@ export class DaemonTerminalManager extends EventEmitter {
 
 	private async doCreateOrAttach(
 		params: CreateSessionParams,
+		signal: AbortSignal,
 	): Promise<SessionResult> {
 		const releaseCreateOrAttach = await this.createOrAttachLimiter.acquire(
 			this.getCreateOrAttachPriority(params),
+			signal,
 		);
 		const {
 			paneId,
@@ -320,14 +371,17 @@ export class DaemonTerminalManager extends EventEmitter {
 			cwd,
 			cols = 80,
 			rows = 24,
+			command,
 			skipColdRestore,
 			themeType,
 		} = params;
 
 		try {
+			throwIfAborted(signal);
 			if (!skipColdRestore) {
 				const stickyRestore = this.coldRestoreInfo.get(paneId);
 				if (stickyRestore) {
+					throwIfAborted(signal);
 					return {
 						isNew: false,
 						scrollback: stickyRestore.scrollback,
@@ -352,6 +406,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			}
 
 			await this.ensureDaemonSessionIdsHydrated();
+			throwIfAborted(signal);
 			const daemonHasSession = this.daemonAliveSessionIds.has(paneId);
 
 			if (!daemonHasSession && !skipColdRestore) {
@@ -362,12 +417,14 @@ export class DaemonTerminalManager extends EventEmitter {
 					rows,
 				});
 				if (coldRestoreResult) {
+					throwIfAborted(signal);
 					return coldRestoreResult;
 				}
 			}
 
 			if (!daemonHasSession && skipColdRestore) {
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
+				throwIfAborted(signal);
 			}
 
 			const shell = getDefaultShell();
@@ -392,20 +449,48 @@ export class DaemonTerminalManager extends EventEmitter {
 				});
 			}
 
-			const response = await this.client.createOrAttach({
-				sessionId: paneId,
-				paneId,
-				tabId,
-				workspaceId,
-				workspaceName,
-				workspacePath,
-				rootPath,
-				cols,
-				rows,
-				cwd,
-				env,
-				shell,
-			});
+			const cancelDaemonRequest = () => {
+				if (!params.requestId) return;
+				void this.client
+					.cancelCreateOrAttach({
+						sessionId: paneId,
+						requestId: params.requestId,
+					})
+					.catch((error) => {
+						console.warn(
+							`[DaemonTerminalManager] Failed to cancel createOrAttach for ${paneId}:`,
+							error,
+						);
+					});
+			};
+			signal.addEventListener("abort", cancelDaemonRequest, { once: true });
+			throwIfAborted(signal);
+			const daemonRequest = this.client.createOrAttach(
+				{
+					sessionId: paneId,
+					requestId: params.requestId,
+					paneId,
+					tabId,
+					workspaceId,
+					workspaceName,
+					workspacePath,
+					rootPath,
+					cols,
+					rows,
+					cwd,
+					env,
+					shell,
+					command,
+				},
+				signal,
+			);
+			daemonRequest.catch(() => {});
+			const response = await raceWithAbort(daemonRequest, signal).finally(
+				() => {
+					signal.removeEventListener("abort", cancelDaemonRequest);
+				},
+			);
+			throwIfAborted(signal);
 
 			this.daemonAliveSessionIds.add(paneId);
 
@@ -426,7 +511,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				rows: effectiveRows,
 			});
 
-			portManager.upsertDaemonSession(paneId, workspaceId, response.pid);
+			portManager.upsertSession(paneId, workspaceId, response.pid);
 
 			const snapshotAnsi = response.snapshot.snapshotAnsi || "";
 			const snapshotAnsiBytes = Buffer.byteLength(snapshotAnsi, "utf8");
@@ -507,19 +592,11 @@ export class DaemonTerminalManager extends EventEmitter {
 			rawScrollbackBytes > MAX_SCROLLBACK_BYTES
 				? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
 				: rawScrollback;
-		const scrollbackBytes = Buffer.byteLength(scrollback, "utf8");
-
 		this.coldRestoreInfo.set(paneId, {
 			scrollback,
 			previousCwd: metadata.cwd,
 			cols: metadata.cols || cols,
 			rows: metadata.rows || rows,
-		});
-
-		track("terminal_cold_restored", {
-			workspace_id: workspaceId,
-			pane_id: paneId,
-			scrollback_bytes: scrollbackBytes,
 		});
 
 		return {
@@ -637,7 +714,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			session.pid = null;
 		}
 
-		portManager.unregisterDaemonSession(paneId);
+		portManager.unregisterSession(paneId);
 
 		if (deleteHistory && session) {
 			await this.historyManager.cleanupHistory(paneId, session.workspaceId);
@@ -645,7 +722,15 @@ export class DaemonTerminalManager extends EventEmitter {
 			this.historyManager.closeHistoryWriter(paneId, 0);
 		}
 
-		await this.client.kill({ sessionId: paneId, deleteHistory });
+		try {
+			await this.client.kill({ sessionId: paneId, deleteHistory });
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (message.toLowerCase().includes("not found")) {
+				return;
+			}
+			throw error;
+		}
 	}
 
 	detach(params: { paneId: string }): void {
@@ -726,7 +811,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		const paneIdsToKill = new Set<string>();
 
 		try {
-			const response = await this.client.listSessions();
+			const response = await this.listExistingDaemonSessions();
 			for (const session of response.sessions) {
 				if (session.workspaceId === workspaceId && session.isAlive) {
 					paneIdsToKill.add(session.paneId);
@@ -762,7 +847,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.pid = null;
 				}
 
-				portManager.unregisterDaemonSession(paneId);
+				portManager.unregisterSession(paneId);
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
 				await this.client.kill({ sessionId: paneId, deleteHistory: true });
 			}),
@@ -782,7 +867,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 	async getSessionCountByWorkspaceId(workspaceId: string): Promise<number> {
 		try {
-			const response = await this.client.listSessions();
+			const response = await this.listExistingDaemonSessions();
 			return response.sessions.filter(
 				(s) => s.workspaceId === workspaceId && s.isAlive,
 			).length;
@@ -828,7 +913,15 @@ export class DaemonTerminalManager extends EventEmitter {
 		}
 	}
 
+	private abortPendingSessions(): void {
+		for (const pending of this.pendingSessions.values()) {
+			pending.abortController.abort();
+		}
+		this.pendingSessions.clear();
+	}
+
 	async cleanup(): Promise<void> {
+		this.abortPendingSessions();
 		for (const timeout of this.cleanupTimeouts.values()) {
 			clearTimeout(timeout);
 		}
@@ -846,9 +939,7 @@ export class DaemonTerminalManager extends EventEmitter {
 	}
 
 	async forceKillAll(): Promise<void> {
-		const response = await this.client.listSessions().catch(() => ({
-			sessions: [],
-		}));
+		const response = await this.listExistingDaemonSessions();
 		const sessionIds = response.sessions.map((s) => s.sessionId);
 
 		for (const session of response.sessions) {
@@ -869,9 +960,13 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		await this.historyManager.forceCloseAll();
 
-		await this.client.killAll({});
+		// Skip the daemon RPC when the probe proves there are no live sessions to kill.
+		// Revisit this if killAll ever grows daemon-side cleanup responsibilities.
+		if (sessionIds.length > 0) {
+			await this.client.killAll({});
+		}
 		for (const paneId of sessionIds) {
-			portManager.unregisterDaemonSession(paneId);
+			portManager.unregisterSession(paneId);
 		}
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = true;
@@ -882,6 +977,7 @@ export class DaemonTerminalManager extends EventEmitter {
 	reset(): void {
 		console.log("[DaemonTerminalManager] Resetting...");
 
+		this.abortPendingSessions();
 		for (const timeout of this.cleanupTimeouts.values()) {
 			clearTimeout(timeout);
 		}
@@ -889,7 +985,6 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.client.removeAllListeners();
 
 		this.sessions.clear();
-		this.pendingSessions.clear();
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = false;
 		this.coldRestoreInfo.clear();

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-const DEFAULT_WORKSPACE_SIDEBAR_WIDTH = 280;
+export const DEFAULT_WORKSPACE_SIDEBAR_WIDTH = 280;
 export const COLLAPSED_WORKSPACE_SIDEBAR_WIDTH = 52;
 const MIN_WORKSPACE_SIDEBAR_WIDTH = 220;
 export const MAX_WORKSPACE_SIDEBAR_WIDTH = 400;

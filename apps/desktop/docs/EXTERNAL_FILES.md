@@ -17,8 +17,10 @@ This separation prevents multiple instances from interfering with each other.
 
 | File | Purpose |
 |------|---------|
+| `amp` | Wrapper for Amp CLI that preserves Superset terminal context |
 | `claude` | Wrapper for Claude Code CLI that injects notification hooks |
 | `codex` | Wrapper for Codex CLI that injects notification hooks |
+| `droid` | Wrapper for Factory Droid CLI that preserves Superset hook integration |
 | `opencode` | Wrapper for OpenCode CLI that sets `OPENCODE_CONFIG_DIR` |
 
 These wrappers are added to `PATH` via shell integration, allowing them to intercept
@@ -32,12 +34,35 @@ agent commands and inject Superset-specific configuration.
 | `claude-settings.json` | Claude Code settings file with hook configuration |
 | `opencode/plugin/superset-notify.js` | OpenCode plugin for lifecycle events |
 
+## Global Tool Settings Files
+
+Some CLIs only support global user settings for hook registration. Superset merges
+its hook entries into these files while preserving user-defined entries:
+
+| File | Purpose |
+|------|---------|
+| `~/.claude/settings.json` | Claude Code hook registration merge |
+| `~/.codex/hooks.json` | Codex hook registration merge (`SessionStart`, `UserPromptSubmit`, `Stop`) |
+| `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
+
+For Codex specifically, Superset now relies on native `~/.codex/hooks.json`
+registration for durable prompt/tool lifecycle events, while the wrapper in
+`~/.superset[-{workspace}]/bin/codex` still injects `notify` and keeps the
+session-log watcher as a best-effort compatibility bridge for older Codex
+releases. On startup, Superset rewrites only its own managed entries in
+`~/.codex/hooks.json` to point at the current environment's `notify.sh`, while
+preserving any user-defined Codex hooks.
+
 ### `zsh/` and `bash/` - Shell Integration
 
 | File | Purpose |
 |------|---------|
 | `init.zsh` | Zsh initialization script (sources .zshrc, sets up PATH) |
 | `init.bash` | Bash initialization script (sources .bashrc, sets up PATH) |
+
+Shell integration keeps interactive startup close to native shell behavior:
+- Interactive startup applies idempotent PATH prepend only (no persistent command interception functions).
+- App-owned non-interactive `-c` command execution still routes managed binaries through absolute Superset wrapper paths.
 
 ## Global Files (AVOID ADDING NEW ONES)
 

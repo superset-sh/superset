@@ -9,29 +9,27 @@ import {
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
+import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
-	captureHotkeyFromEvent,
-	getHotkeyConflict,
-	useHotkeyDisplay,
-	useHotkeysByCategory,
-	useHotkeysStore,
-} from "renderer/stores/hotkeys";
-import {
-	formatHotkeyText,
 	HOTKEYS,
 	type HotkeyCategory,
 	type HotkeyId,
-	type HotkeysState,
-	isOsReservedHotkey,
-	isTerminalReservedHotkey,
-} from "shared/hotkeys";
+	type ShortcutBinding,
+	useFormatBinding,
+	useHotkeyDisplay,
+	useHotkeyOverridesStore,
+	useKeyboardPreferencesStore,
+	useRecordHotkeys,
+} from "renderer/hotkeys";
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
+	"Navigation",
 	"Workspace",
 	"Terminal",
 	"Layout",
@@ -54,10 +52,15 @@ function HotkeyRow({
 	onStartRecording: () => void;
 	onReset: () => void;
 }) {
-	const display = useHotkeyDisplay(id);
+	const { keys } = useHotkeyDisplay(id);
 
 	return (
-		<div className="flex items-center justify-between gap-4 py-3 px-4">
+		<div
+			className={cn(
+				"flex items-center justify-between gap-4 py-3 px-4 transition-colors",
+				isRecording && "bg-destructive/5",
+			)}
+		>
 			<div className="flex flex-col">
 				<span className="text-sm text-foreground">{label}</span>
 				{description && (
@@ -68,13 +71,18 @@ function HotkeyRow({
 				<button
 					type="button"
 					onClick={onStartRecording}
-					className="h-7 px-3 rounded-md border border-border bg-accent/20 text-xs text-foreground hover:bg-accent/40 transition-colors"
+					className={cn(
+						"h-7 px-3 rounded-md border text-xs transition-colors",
+						isRecording
+							? "border-destructive/50 bg-destructive/10 text-destructive ring-2 ring-destructive/20"
+							: "border-border bg-accent/20 text-foreground hover:bg-accent/40",
+					)}
 				>
 					{isRecording ? (
-						<span className="text-xs text-muted-foreground">Recording…</span>
+						<span>Press a key…</span>
 					) : (
 						<KbdGroup>
-							{display.map((key) => (
+							{keys.map((key) => (
 								<Kbd key={key}>{key}</Kbd>
 							))}
 						</KbdGroup>
@@ -92,34 +100,76 @@ export const Route = createFileRoute("/_authenticated/settings/keyboard/")({
 	component: KeyboardShortcutsPage,
 });
 
+function getHotkeysByCategory(): Record<
+	HotkeyCategory,
+	Array<{ id: HotkeyId; label: string; description?: string }>
+> {
+	const grouped: Record<
+		HotkeyCategory,
+		Array<{ id: HotkeyId; label: string; description?: string }>
+	> = {
+		Navigation: [],
+		Workspace: [],
+		Layout: [],
+		Terminal: [],
+		Window: [],
+		Help: [],
+	};
+	for (const [id, hotkey] of Object.entries(HOTKEYS)) {
+		grouped[hotkey.category as HotkeyCategory].push({
+			id: id as HotkeyId,
+			label: hotkey.label,
+			description: hotkey.description,
+		});
+	}
+	return grouped;
+}
+
+const hotkeysByCategory = getHotkeysByCategory();
+
 function KeyboardShortcutsPage() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
-		id: HotkeyId;
-		keys: string;
+		targetId: HotkeyId;
+		binding: ShortcutBinding;
 		conflictId: HotkeyId;
 	} | null>(null);
-	const [pendingImport, setPendingImport] = useState<{
-		path: string;
-		state: HotkeysState;
-		summary: { assigned: number; disabled: number };
-	} | null>(null);
 
-	const platform = useHotkeysStore((state) => state.platform);
-	const setHotkey = useHotkeysStore((state) => state.setHotkey);
-	const setHotkeysBatch = useHotkeysStore((state) => state.setHotkeysBatch);
-	const resetHotkey = useHotkeysStore((state) => state.resetHotkey);
-	const resetAllHotkeys = useHotkeysStore((state) => state.resetAllHotkeys);
-	const replaceHotkeysState = useHotkeysStore(
-		(state) => state.replaceHotkeysState,
+	const resetOverride = useHotkeyOverridesStore((s) => s.resetOverride);
+	const resetAll = useHotkeyOverridesStore((s) => s.resetAll);
+	const setOverride = useHotkeyOverridesStore((s) => s.setOverride);
+
+	const adaptiveLayoutEnabled = useKeyboardPreferencesStore(
+		(s) => s.adaptiveLayoutEnabled,
 	);
-	const hotkeysByCategory = useHotkeysByCategory();
+	const setAdaptiveLayoutEnabled = useKeyboardPreferencesStore(
+		(s) => s.setAdaptiveLayoutEnabled,
+	);
 
-	const exportMutation = electronTrpc.hotkeys.export.useMutation();
-	const importMutation = electronTrpc.hotkeys.import.useMutation();
+	useRecordHotkeys(recordingId, {
+		// New printable bindings follow the printed character (matches what the
+		// user sees on their keyboard). F-keys / named keys are forced to
+		// "named" by the recorder regardless of this preference.
+		preferredMode: "logical",
+		onSave: () => setRecordingId(null),
+		onCancel: () => setRecordingId(null),
+		onUnassign: () => setRecordingId(null),
+		onConflict: (targetId, binding, conflictId) => {
+			setPendingConflict({ targetId, binding, conflictId });
+			setRecordingId(null);
+		},
+		onReserved: (_binding, info) => {
+			if (info.severity === "error") {
+				toast.error(info.reason);
+				setRecordingId(null);
+			} else {
+				toast.warning(info.reason);
+			}
+		},
+	});
 
-	const showHotkeysDisplay = useHotkeyDisplay("SHOW_HOTKEYS");
+	const { keys: showHotkeysKeys } = useHotkeyDisplay("SHOW_HOTKEYS");
 
 	const filteredHotkeysByCategory = useMemo(() => {
 		if (!searchQuery) return hotkeysByCategory;
@@ -132,155 +182,67 @@ function KeyboardShortcutsPage() {
 				),
 			]),
 		) as typeof hotkeysByCategory;
-	}, [hotkeysByCategory, searchQuery]);
-
-	useEffect(() => {
-		if (!recordingId) return;
-
-		const handleKeyDown = (event: KeyboardEvent) => {
-			event.preventDefault();
-			event.stopPropagation();
-
-			if (event.key === "Escape") {
-				setRecordingId(null);
-				return;
-			}
-
-			if (event.key === "Backspace" || event.key === "Delete") {
-				setHotkey(recordingId, null);
-				setRecordingId(null);
-				return;
-			}
-
-			const captured = captureHotkeyFromEvent(event, platform);
-			if (!captured) return;
-
-			if (isTerminalReservedHotkey(captured)) {
-				toast.error("That shortcut is reserved by the terminal.");
-				setRecordingId(null);
-				return;
-			}
-
-			const conflictId = getHotkeyConflict(captured, recordingId);
-			if (conflictId) {
-				setPendingConflict({ id: recordingId, keys: captured, conflictId });
-				setRecordingId(null);
-				return;
-			}
-
-			if (isOsReservedHotkey(captured, platform)) {
-				toast.warning("This shortcut may be reserved by your OS.");
-			}
-
-			setHotkey(recordingId, captured);
-			setRecordingId(null);
-		};
-
-		window.addEventListener("keydown", handleKeyDown, { capture: true });
-		return () => {
-			window.removeEventListener("keydown", handleKeyDown, { capture: true });
-		};
-	}, [recordingId, platform, setHotkey]);
+	}, [searchQuery]);
 
 	const handleStartRecording = (id: HotkeyId) => {
 		setRecordingId((current) => (current === id ? null : id));
 	};
 
-	const handleExport = async () => {
-		try {
-			const result = await exportMutation.mutateAsync();
-			if ("canceled" in result && result.canceled) return;
-			if ("error" in result) {
-				toast.error("Failed to export shortcuts", {
-					description: result.error,
-				});
-				return;
-			}
-			toast.success("Keyboard shortcuts exported", {
-				description: result.path,
-			});
-		} catch (error) {
-			toast.error("Failed to export shortcuts", {
-				description: error instanceof Error ? error.message : undefined,
-			});
-		}
-	};
-
-	const handleImport = async () => {
-		try {
-			const result = await importMutation.mutateAsync();
-			if ("canceled" in result && result.canceled) return;
-			if ("error" in result) {
-				toast.error("Failed to import shortcuts", {
-					description: result.error,
-				});
-				return;
-			}
-			setPendingImport({
-				path: result.path,
-				state: result.state,
-				summary: result.summary,
-			});
-		} catch (error) {
-			toast.error("Failed to import shortcuts", {
-				description: error instanceof Error ? error.message : undefined,
-			});
-		}
-	};
-
-	const handleConfirmImport = () => {
-		if (!pendingImport) return;
-		replaceHotkeysState(pendingImport.state);
-		toast.success("Keyboard shortcuts imported");
-		setPendingImport(null);
-	};
-
 	const handleConflictReassign = () => {
 		if (!pendingConflict) return;
-		setHotkeysBatch({
-			[pendingConflict.conflictId]: null,
-			[pendingConflict.id]: pendingConflict.keys,
-		});
-		if (isOsReservedHotkey(pendingConflict.keys, platform)) {
-			toast.warning("This shortcut may be reserved by your OS.");
-		}
+		setOverride(pendingConflict.conflictId, null);
+		setOverride(pendingConflict.targetId, pendingConflict.binding);
 		setPendingConflict(null);
 	};
 
+	const conflictDisplay = useFormatBinding(pendingConflict?.binding ?? null);
+
 	return (
-		<div className="p-6 w-full max-w-4xl">
+		<div className="p-6 max-w-4xl w-full">
 			{/* Header */}
 			<div className="mb-6 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-lg font-semibold">Keyboard Shortcuts</h2>
+					<h2 className="text-xl font-semibold">Keyboard shortcuts</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						Customize keyboard shortcuts for your workflow. Press{" "}
 						<KbdGroup>
-							{showHotkeysDisplay.map((key) => (
+							{showHotkeysKeys.map((key) => (
 								<Kbd key={key}>{key}</Kbd>
 							))}
 						</KbdGroup>{" "}
 						to open this page anytime.
 					</p>
 				</div>
-				<div className="flex items-center gap-2">
-					<Button variant="outline" size="sm" onClick={handleImport}>
-						Import
-					</Button>
-					<Button variant="outline" size="sm" onClick={handleExport}>
-						Export
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => {
-							setRecordingId(null);
-							resetAllHotkeys();
-						}}
-					>
-						Reset all
-					</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						setRecordingId(null);
+						resetAll();
+					}}
+				>
+					Reset all
+				</Button>
+			</div>
+
+			{/* Preferences */}
+			<div className="mb-8 flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="adaptive-layout" className="text-sm font-medium">
+						Adaptive layout mapping
+					</Label>
+					<p className="text-xs text-muted-foreground">
+						Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires
+						on the key labeled "Z" — physical KeyY on QWERTZ). When off,
+						shortcuts are anchored to physical key positions and ignore the
+						current input source.
+					</p>
 				</div>
+				<Switch
+					id="adaptive-layout"
+					checked={adaptiveLayoutEnabled}
+					onCheckedChange={setAdaptiveLayoutEnabled}
+				/>
 			</div>
 
 			{/* Search */}
@@ -296,7 +258,7 @@ function KeyboardShortcutsPage() {
 			</div>
 
 			{/* Tables by Category */}
-			<div className="max-h-[calc(100vh-320px)] overflow-y-auto space-y-6">
+			<div className="space-y-6">
 				{CATEGORY_ORDER.map((category) => {
 					const hotkeys = filteredHotkeysByCategory[category] ?? [];
 					if (hotkeys.length === 0) return null;
@@ -306,28 +268,23 @@ function KeyboardShortcutsPage() {
 							<h3 className="text-sm font-medium text-muted-foreground mb-2">
 								{category}
 							</h3>
-							<div className="rounded-lg border border-border overflow-hidden">
-								<div className="flex items-center justify-between py-2 px-4 bg-accent/10 border-b border-border">
-									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-										Command
-									</span>
-									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-										Shortcut
-									</span>
-								</div>
-								<div className="divide-y divide-border">
-									{hotkeys.map((hotkey) => (
-										<HotkeyRow
-											key={hotkey.id}
-											id={hotkey.id}
-											label={hotkey.label}
-											description={hotkey.description}
-											isRecording={recordingId === hotkey.id}
-											onStartRecording={() => handleStartRecording(hotkey.id)}
-											onReset={() => resetHotkey(hotkey.id)}
-										/>
-									))}
-								</div>
+							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+								{hotkeys.map((hotkey) => (
+									<HotkeyRow
+										key={hotkey.id}
+										id={hotkey.id}
+										label={hotkey.label}
+										description={hotkey.description}
+										isRecording={recordingId === hotkey.id}
+										onStartRecording={() => handleStartRecording(hotkey.id)}
+										onReset={() => {
+											setRecordingId((current) =>
+												current === hotkey.id ? null : current,
+											);
+											resetOverride(hotkey.id);
+										}}
+									/>
+								))}
 							</div>
 						</div>
 					);
@@ -356,12 +313,9 @@ function KeyboardShortcutsPage() {
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
 									{pendingConflict
-										? `${formatHotkeyText(
-												pendingConflict.keys,
-												platform,
-											)} is already assigned to “${
+										? `${conflictDisplay.text} is already assigned to "${
 												HOTKEYS[pendingConflict.conflictId].label
-											}”.`
+											}".`
 										: ""}
 								</span>
 								<span className="block">Would you like to reassign it?</span>
@@ -382,45 +336,6 @@ function KeyboardShortcutsPage() {
 							onClick={handleConflictReassign}
 						>
 							Reassign
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-
-			{/* Import dialog */}
-			<AlertDialog
-				open={!!pendingImport}
-				onOpenChange={() => setPendingImport(null)}
-			>
-				<AlertDialogContent className="max-w-[420px] gap-0 p-0">
-					<AlertDialogHeader className="px-4 pt-4 pb-2">
-						<AlertDialogTitle className="font-medium">
-							Import keyboard shortcuts?
-						</AlertDialogTitle>
-						<AlertDialogDescription asChild>
-							<div className="text-muted-foreground space-y-1.5">
-								<span className="block">
-									This will replace your shortcuts on all platforms.
-								</span>
-								{pendingImport && (
-									<span className="block">
-										{pendingImport.summary.assigned} assigned,{" "}
-										{pendingImport.summary.disabled} disabled on {platform}.
-									</span>
-								)}
-							</div>
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setPendingImport(null)}
-						>
-							Cancel
-						</Button>
-						<Button variant="secondary" size="sm" onClick={handleConfirmImport}>
-							Import
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

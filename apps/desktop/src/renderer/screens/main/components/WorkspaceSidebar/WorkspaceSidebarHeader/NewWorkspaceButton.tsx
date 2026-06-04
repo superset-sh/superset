@@ -1,13 +1,9 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useMatchRoute } from "@tanstack/react-router";
 import { LuPlus } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	useEffectiveHotkeysMap,
-	useHotkeysStore,
-} from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
-import { formatHotkeyText } from "shared/hotkeys";
 import { STROKE_WIDTH_THICK } from "../constants";
 
 interface NewWorkspaceButtonProps {
@@ -18,9 +14,7 @@ export function NewWorkspaceButton({
 	isCollapsed = false,
 }: NewWorkspaceButtonProps) {
 	const openModal = useOpenNewWorkspaceModal();
-	const platform = useHotkeysStore((state) => state.platform);
-	const effective = useEffectiveHotkeysMap();
-	const shortcutText = formatHotkeyText(effective.NEW_WORKSPACE, platform);
+	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
 
 	// Derive current workspace from route to pre-select project in modal
 	const matchRoute = useMatchRoute();
@@ -38,8 +32,6 @@ export function NewWorkspaceButton({
 	);
 
 	const handleClick = () => {
-		// projectId may be undefined if no workspace is active in route
-		// openModal handles undefined by opening without a pre-selected project
 		const projectId = currentWorkspace?.projectId;
 		openModal(projectId);
 	};
@@ -75,7 +67,7 @@ export function NewWorkspaceButton({
 				<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
 			</div>
 			<span className="flex-1 text-left">New Workspace</span>
-			<span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums shrink-0">
+			<span className="text-[10px] text-muted-foreground/40 group-hover:text-muted-foreground/80 transition-colors font-mono tabular-nums shrink-0">
 				{shortcutText}
 			</span>
 		</button>

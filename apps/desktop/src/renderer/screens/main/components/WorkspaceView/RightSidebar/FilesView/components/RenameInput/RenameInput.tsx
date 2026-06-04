@@ -2,7 +2,7 @@ import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
 import { LuCheck, LuX } from "react-icons/lu";
 import type { DirectoryEntry } from "shared/file-tree-types";
-import { getFileIcon } from "../../utils";
+import { FileIcon } from "../../utils";
 
 interface RenameInputProps {
 	entry: DirectoryEntry;
@@ -56,19 +56,17 @@ export function RenameInput({
 		}
 	};
 
-	const { icon: Icon, color } = getFileIcon(
-		entry.name,
-		entry.isDirectory,
-		false,
-	);
-
 	return (
 		<div
 			className={cn("flex items-center gap-1 px-1 h-7", "bg-accent rounded-sm")}
 			style={{ paddingLeft: `${level * 16 + 4}px` }}
 		>
 			<span className="w-4 h-4 shrink-0" />
-			<Icon className={cn("size-4 shrink-0", color)} />
+			<FileIcon
+				fileName={entry.name}
+				isDirectory={entry.isDirectory}
+				className="size-4 shrink-0"
+			/>
 			<input
 				ref={inputRef}
 				type="text"

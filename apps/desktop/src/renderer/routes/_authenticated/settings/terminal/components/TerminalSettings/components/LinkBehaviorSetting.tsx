@@ -47,7 +47,7 @@ export function LinkBehaviorSetting() {
 				</p>
 			</div>
 			<Select
-				value={terminalLinkBehavior ?? "external-editor"}
+				value={terminalLinkBehavior ?? "file-viewer"}
 				onValueChange={(value) =>
 					setTerminalLinkBehavior.mutate({
 						behavior: value as TerminalLinkBehavior,

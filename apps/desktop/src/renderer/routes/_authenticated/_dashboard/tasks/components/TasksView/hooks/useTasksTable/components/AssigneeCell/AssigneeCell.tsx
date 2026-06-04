@@ -9,6 +9,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import type { CellContext } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../useTasksTable";
 
@@ -18,6 +19,7 @@ interface AssigneeCellProps {
 
 export function AssigneeCell({ info }: AssigneeCellProps) {
 	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const task = info.row.original;
@@ -31,16 +33,15 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 	const users = useMemo(() => allUsers || [], [allUsers]);
 
 	const handleSelectUser = (userId: string | null) => {
-		if (userId === assigneeId) {
+		if (userId === assigneeId && !task.assigneeExternalId) {
 			setOpen(false);
 			return;
 		}
 
-		setOpen(false);
-
-		collections.tasks.update(task.id, (draft) => {
-			draft.assigneeId = userId;
-		});
+		const transaction = taskActions.updateAssignee(task.id, userId);
+		if (transaction) {
+			setOpen(false);
+		}
 	};
 
 	return (
@@ -56,6 +57,12 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 							size="xs"
 							fullName={task.assignee.name}
 							image={task.assignee.image}
+						/>
+					) : task.assigneeExternalId ? (
+						<Avatar
+							size="xs"
+							fullName={task.assigneeDisplayName || "External"}
+							image={task.assigneeAvatarUrl}
 						/>
 					) : (
 						<HiOutlineUserCircle className="size-5 text-muted-foreground" />
@@ -74,7 +81,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 					>
 						<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
 						<span className="text-sm">No assignee</span>
-						{!assigneeId && (
+						{!assigneeId && !task.assigneeExternalId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						)}
 					</DropdownMenuItem>

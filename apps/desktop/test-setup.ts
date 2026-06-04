@@ -12,6 +12,7 @@
 import { mock } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { z } from "zod";
 
 process.env.NODE_ENV = "test";
 process.env.SKIP_ENV_VALIDATION = "1";
@@ -32,6 +33,8 @@ const mockHead = {
 
 // biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).document = {
+	addEventListener: mock(() => {}),
+	removeEventListener: mock(() => {}),
 	documentElement: {
 		style: {
 			setProperty: (key: string, value: string) => mockStyleMap.set(key, value),
@@ -63,6 +66,19 @@ const mockHead = {
 		textContent: text,
 	})),
 };
+
+// Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
+if (typeof globalThis.window !== "undefined") {
+	const win = globalThis.window as Record<string, unknown>;
+	if (!win.addEventListener) win.addEventListener = mock(() => {});
+	if (!win.removeEventListener) win.removeEventListener = mock(() => {});
+} else {
+	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
+	(globalThis as any).window = {
+		addEventListener: mock(() => {}),
+		removeEventListener: mock(() => {}),
+	};
+}
 
 // =============================================================================
 // Electron Preload Mocks (exposed via contextBridge in real app)
@@ -143,6 +159,9 @@ mock.module("main/lib/analytics", () => ({
 	track: mock(() => {}),
 	clearUserCache: mock(() => {}),
 	shutdown: mock(() => Promise.resolve()),
+	getPosthogClient: mock(() => null),
+	getUserId: mock(() => null),
+	setUserId: mock(() => {}),
 }));
 
 // =============================================================================
@@ -150,6 +169,40 @@ mock.module("main/lib/analytics", () => ({
 // =============================================================================
 
 const mockTable = (name: string) => ({ id: `${name}_id` });
+
+const agentPresetOverrideSchema = z.object({
+	id: z.string(),
+	enabled: z.boolean().optional(),
+	label: z.string().optional(),
+	description: z.string().nullable().optional(),
+	command: z.string().optional(),
+	promptCommand: z.string().optional(),
+	promptCommandSuffix: z.string().nullable().optional(),
+	taskPromptTemplate: z.string().optional(),
+	contextPromptTemplateSystem: z.string().optional(),
+	contextPromptTemplateUser: z.string().optional(),
+	model: z.string().optional(),
+});
+
+const agentPresetOverrideEnvelopeSchema = z.object({
+	version: z.literal(1),
+	presets: z.array(agentPresetOverrideSchema),
+});
+
+const agentCustomDefinitionSchema = z.object({
+	id: z.string().regex(/^custom:/),
+	kind: z.literal("terminal"),
+	label: z.string(),
+	description: z.string().optional(),
+	command: z.string(),
+	promptCommand: z.string().optional(),
+	promptCommandSuffix: z.string().optional(),
+	promptTransport: z.enum(["argv", "stdin"]).optional(),
+	taskPromptTemplate: z.string(),
+	contextPromptTemplateSystem: z.string().optional(),
+	contextPromptTemplateUser: z.string().optional(),
+	enabled: z.boolean().optional(),
+});
 
 const localDbMock = () => ({
 	projects: mockTable("projects"),
@@ -160,8 +213,18 @@ const localDbMock = () => ({
 	organizations: mockTable("organizations"),
 	organizationMembers: mockTable("organization_members"),
 	tasks: mockTable("tasks"),
+	workspaceSections: mockTable("workspace_sections"),
+	agentPresetOverrideSchema,
+	agentPresetOverrideEnvelopeSchema,
+	agentCustomDefinitionSchema,
+	PROMPT_TRANSPORTS: ["argv", "stdin"],
 	EXTERNAL_APPS: [],
-	EXECUTION_MODES: ["sequential", "parallel"],
+	EXECUTION_MODES: [
+		"split-pane",
+		"new-tab",
+		"new-tab-split-pane",
+		"sequential",
+	],
 	BRANCH_PREFIX_MODES: ["none", "github", "author", "custom"],
 	TERMINAL_LINK_BEHAVIORS: ["external-editor", "file-viewer"],
 	FILE_OPEN_MODES: ["split-pane", "new-tab"],

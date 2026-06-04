@@ -33,8 +33,10 @@ export async function makeAppSetup(
 		if (!windows.length) {
 			window = await createWindow();
 		} else {
+			// Show hidden windows (macOS hide-to-tray) or restore minimized ones
 			for (window of windows.reverse()) {
-				window.restore();
+				window.show();
+				window.focus();
 			}
 		}
 	});
@@ -50,8 +52,10 @@ export async function makeAppSetup(
 		});
 	});
 
+	// macOS: keep the app alive (standard behavior) — tray/dock provide re-entry.
+	// Windows/Linux: quit the app UI. Host-services are coupled to the app and
+	// stop with it; v1 pty-daemon survives separately.
 	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
-	app.on("before-quit", () => {});
 
 	return window;
 }
@@ -70,7 +74,17 @@ PLATFORM.IS_WINDOWS &&
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
 
-// Enable CDP for browser DevTools and desktop automation MCP
-const cdpPort = String(process.env.DESKTOP_AUTOMATION_PORT || 41729);
-app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
-app.commandLine.appendSwitch("remote-allow-origins", "*");
+if (env.NODE_ENV === "development" && process.env.RENDERER_REMOTE_DEBUG_PORT) {
+	app.commandLine.appendSwitch(
+		"remote-debugging-port",
+		process.env.RENDERER_REMOTE_DEBUG_PORT,
+	);
+}
+
+// Each xterm pane holds one WebGL context. v2 parking keeps panes alive
+// across workspace switches, so cumulative contexts can reach the low
+// hundreds — past Chromium's default cap of 16, Blink force-evicts the
+// oldest context and the terminal blanks out. 256 covers the parking load
+// while staying bounded enough that a runaway leak still surfaces (Tabby
+// raises this to 9000, which masks leaks).
+app.commandLine.appendSwitch("max-active-webgl-contexts", "256");

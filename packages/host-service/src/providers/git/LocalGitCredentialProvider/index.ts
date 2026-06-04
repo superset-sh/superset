@@ -1,0 +1,1 @@
+export { LocalGitCredentialProvider } from "./LocalGitCredentialProvider";

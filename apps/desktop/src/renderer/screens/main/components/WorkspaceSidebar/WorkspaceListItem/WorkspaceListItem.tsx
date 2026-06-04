@@ -1,65 +1,37 @@
-import {
-	ContextMenu,
-	ContextMenuContent,
-	ContextMenuItem,
-	ContextMenuSeparator,
-	ContextMenuTrigger,
-} from "@superset/ui/context-menu";
-import {
-	HoverCard,
-	HoverCardContent,
-	HoverCardTrigger,
-} from "@superset/ui/hover-card";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useDrag, useDrop } from "react-dnd";
+import { useEffect, useMemo, useRef } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
-import {
-	LuBellOff,
-	LuCopy,
-	LuEye,
-	LuEyeOff,
-	LuFolderOpen,
-	LuPencil,
-} from "react-icons/lu";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	useReorderWorkspaces,
-	useWorkspaceDeleteHandler,
-} from "renderer/react-query/workspaces";
+import { useHoverGitHubStatus } from "renderer/lib/githubQueryPolicy";
+import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { WorkspaceRunIndicator } from "renderer/screens/main/components/WorkspaceRunIndicator";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
+import { useActiveDragItemStore } from "renderer/stores/active-drag-item";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
+import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { getHighestPriorityStatus } from "shared/tabs-types";
-import { STROKE_WIDTH } from "../constants";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
-import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
+import { DeleteWorkspaceDialog } from "./components";
 import {
 	GITHUB_STATUS_STALE_TIME,
-	HOVER_CARD_CLOSE_DELAY,
-	HOVER_CARD_OPEN_DELAY,
 	MAX_KEYBOARD_SHORTCUT_INDEX,
 } from "./constants";
+import { useWorkspaceDnD } from "./useWorkspaceDnD";
 import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
+import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceIcon } from "./WorkspaceIcon";
 import { WorkspaceStatusBadge } from "./WorkspaceStatusBadge";
-
-const WORKSPACE_DND_TYPE = "WORKSPACE";
-
-interface DragItem {
-	id: string;
-	projectId: string;
-	index: number;
-	originalIndex: number;
-}
 
 interface WorkspaceListItemProps {
 	id: string;
@@ -72,6 +44,9 @@ interface WorkspaceListItemProps {
 	index: number;
 	shortcutIndex?: number;
 	isCollapsed?: boolean;
+	sectionId?: string | null;
+	sections?: { id: string; name: string }[];
+	orderedWorkspaceIds?: string[];
 }
 
 export function WorkspaceListItem({
@@ -85,21 +60,53 @@ export function WorkspaceListItem({
 	index,
 	shortcutIndex,
 	isCollapsed = false,
+	sectionId = null,
+	sections = [],
+	orderedWorkspaceIds = [],
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
-	const reorderWorkspaces = useReorderWorkspaces();
-	const [hasHovered, setHasHovered] = useState(false);
-	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+	const {
+		githubStatus,
+		hasHovered,
+		onMouseEnter: onGithubMouseEnter,
+	} = useHoverGitHubStatus({
+		workspaceId: id,
+		surface: "workspace-list-item",
+		isWorktree: type === "worktree",
+	});
 	const rename = useWorkspaceRename(id, name, branch);
-	const tabs = useTabsStore((s) => s.tabs);
-	const panes = useTabsStore((s) => s.panes);
+	const workspaceStatus = useTabsStore((state) => {
+		function* paneStatuses() {
+			for (const tab of state.tabs) {
+				if (tab.workspaceId !== id) continue;
+				for (const paneId of extractPaneIdsFromLayout(tab.layout)) {
+					yield state.panes[paneId]?.status;
+				}
+			}
+		}
+		return getHighestPriorityStatus(paneStatuses());
+	});
+	const workspaceRunState = useTabsStore((state) => {
+		for (const pane of Object.values(state.panes)) {
+			if (pane.type === "terminal" && pane.workspaceRun?.workspaceId === id) {
+				return pane.workspaceRun.state;
+			}
+		}
+		return null;
+	});
 	const clearWorkspaceAttentionStatus = useTabsStore(
 		(s) => s.clearWorkspaceAttentionStatus,
 	);
 	const resetWorkspaceStatus = useTabsStore((s) => s.resetWorkspaceStatus);
 	const utils = electronTrpc.useUtils();
+	const isSelected = useWorkspaceSelectionStore((s) => s.selectedIds.has(id));
+	const selectionStore = useWorkspaceSelectionStore;
+	const isMultiDragging = useActiveDragItemStore(
+		(s) =>
+			s.activeDragItem?.selectedIds?.includes(id) && s.activeDragItem.id !== id,
+	);
 
 	const isActive = !!matchRoute({
 		to: "/workspace/$workspaceId",
@@ -107,15 +114,38 @@ export function WorkspaceListItem({
 		fuzzy: true,
 	});
 
-	const itemRef = useRef<HTMLElement | null>(null);
+	const { isDragging, drag, drop } = useWorkspaceDnD({
+		id,
+		projectId,
+		sectionId,
+		index,
+	});
+
+	const expandedItemRef = useRef<HTMLDivElement>(null);
+	const collapsedItemRef = useRef<HTMLButtonElement>(null);
+
 	useEffect(() => {
-		if (isActive) {
-			itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+		if (isCollapsed) {
+			drag(drop(collapsedItemRef));
+			return;
 		}
-	}, [isActive]);
+		drag(drop(expandedItemRef));
+	}, [drag, drop, isCollapsed]);
+
+	useEffect(() => {
+		if (!isActive) return;
+		const activeNode = isCollapsed
+			? collapsedItemRef.current
+			: expandedItemRef.current;
+		activeNode?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+	}, [isActive, isCollapsed]);
 
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
+	});
+	const openFileInEditor = electronTrpc.external.openFileInEditor.useMutation({
+		onError: (error) =>
+			toast.error(`Failed to open in editor: ${error.message}`),
 	});
 	const setUnread = electronTrpc.workspaces.setUnread.useMutation({
 		onSuccess: () => utils.workspaces.getAllGrouped.invalidate(),
@@ -125,16 +155,6 @@ export function WorkspaceListItem({
 
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
-
-	const { data: githubStatus } =
-		electronTrpc.workspaces.getGitHubStatus.useQuery(
-			{ workspaceId: id },
-			{
-				enabled: hasHovered && type === "worktree",
-				staleTime: GITHUB_STATUS_STALE_TIME,
-			},
-		);
-
 	const { status: localChanges } = useGitChangesStatus({
 		worktreePath,
 		enabled: hasHovered && !!worktreePath,
@@ -147,7 +167,6 @@ export function WorkspaceListItem({
 			{
 				enabled: isBranchWorkspace,
 				staleTime: GITHUB_STATUS_STALE_TIME,
-				refetchInterval: hasHovered ? GITHUB_STATUS_STALE_TIME : false,
 			},
 		);
 
@@ -173,28 +192,39 @@ export function WorkspaceListItem({
 		return { additions, deletions };
 	}, [localChanges]);
 
-	const workspaceStatus = useMemo(() => {
-		const workspaceTabs = tabs.filter((t) => t.workspaceId === id);
-		const paneIds = new Set(
-			workspaceTabs.flatMap((t) => extractPaneIdsFromLayout(t.layout)),
-		);
-		function* paneStatuses() {
-			for (const paneId of paneIds) {
-				yield panes[paneId]?.status;
+	const handleClick = (e?: React.MouseEvent) => {
+		if (rename.isRenaming) return;
+
+		if (e?.metaKey) {
+			selectionStore.getState().toggle(id, projectId);
+			return;
+		}
+
+		if (e?.shiftKey) {
+			const { lastClickedId } = selectionStore.getState();
+			if (lastClickedId) {
+				const lastIdx = orderedWorkspaceIds.indexOf(lastClickedId);
+				const currIdx = orderedWorkspaceIds.indexOf(id);
+				if (lastIdx !== -1 && currIdx !== -1) {
+					const [start, end] = [
+						Math.min(lastIdx, currIdx),
+						Math.max(lastIdx, currIdx),
+					];
+					const rangeIds = orderedWorkspaceIds.slice(start, end + 1);
+					selectionStore.getState().selectRange(rangeIds, projectId);
+					return;
+				}
 			}
 		}
-		return getHighestPriorityStatus(paneStatuses());
-	}, [tabs, panes, id]);
 
-	const handleClick = () => {
-		if (!rename.isRenaming) {
-			clearWorkspaceAttentionStatus(id);
-			navigateToWorkspace(id, navigate);
-		}
+		selectionStore.getState().clearSelection();
+		selectionStore.setState({ lastClickedId: id });
+		clearWorkspaceAttentionStatus(id);
+		navigateToWorkspace(id, navigate);
 	};
 
 	const handleMouseEnter = () => {
-		if (!hasHovered) setHasHovered(true);
+		onGithubMouseEnter();
 		if (isBranchWorkspace) void refetchAheadBehind();
 	};
 
@@ -202,67 +232,22 @@ export function WorkspaceListItem({
 		if (worktreePath) openInFinder.mutate(worktreePath);
 	};
 
+	const handleOpenInEditor = () => {
+		if (worktreePath)
+			openFileInEditor.mutate({ path: worktreePath, projectId });
+	};
+
+	const { copyToClipboard } = useCopyToClipboard();
 	const handleCopyPath = async () => {
 		if (!worktreePath) return;
-		try {
-			await navigator.clipboard.writeText(worktreePath);
-			toast.success("Path copied to clipboard");
-		} catch {
-			toast.error("Failed to copy path");
-		}
+		await copyToClipboard(worktreePath);
+		toast.success("Path copied to clipboard");
 	};
-
-	const handleReorder = (item: DragItem) => {
-		if (item.originalIndex === item.index) return;
-		reorderWorkspaces.mutate(
-			{
-				projectId: item.projectId,
-				fromIndex: item.originalIndex,
-				toIndex: item.index,
-			},
-			{
-				onError: (error) =>
-					toast.error(`Failed to reorder workspace: ${error.message}`),
-				onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
-			},
-		);
+	const handleCopyBranchName = async () => {
+		if (!branch) return;
+		await copyToClipboard(branch);
+		toast.success("Branch name copied to clipboard");
 	};
-
-	const [{ isDragging }, drag] = useDrag(
-		() => ({
-			type: WORKSPACE_DND_TYPE,
-			item: { id, projectId, index, originalIndex: index },
-			end: (item, monitor) => {
-				if (item && !monitor.didDrop()) handleReorder(item);
-			},
-			collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-		}),
-		[id, projectId, index, reorderWorkspaces],
-	);
-
-	const [, drop] = useDrop({
-		accept: WORKSPACE_DND_TYPE,
-		hover: (item: DragItem) => {
-			if (item.projectId !== projectId || item.index === index) return;
-			utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
-				if (!oldData) return oldData;
-				return oldData.map((group) => {
-					if (group.project.id !== projectId) return group;
-					const workspaces = [...group.workspaces];
-					const [moved] = workspaces.splice(item.index, 1);
-					workspaces.splice(index, 0, moved);
-					return { ...group, workspaces };
-				});
-			});
-			item.index = index;
-		},
-		drop: (item: DragItem) => {
-			if (item.projectId === projectId) {
-				handleReorder(item);
-				if (item.originalIndex !== item.index) return { reordered: true };
-			}
-		},
-	});
 
 	const pr = githubStatus?.pr;
 	const diffStats =
@@ -283,13 +268,14 @@ export function WorkspaceListItem({
 				isActive={isActive}
 				isUnread={isUnread}
 				workspaceStatus={workspaceStatus}
-				itemRef={itemRef}
+				itemRef={collapsedItemRef}
 				showDeleteDialog={showDeleteDialog}
 				setShowDeleteDialog={setShowDeleteDialog}
 				onMouseEnter={handleMouseEnter}
 				onClick={handleClick}
 				onDeleteClick={handleDeleteClick}
 				onCopyPath={handleCopyPath}
+				onCopyBranchName={handleCopyBranchName}
 			/>
 		);
 	}
@@ -299,10 +285,7 @@ export function WorkspaceListItem({
 		<div
 			role="button"
 			tabIndex={0}
-			ref={(node) => {
-				itemRef.current = node;
-				drag(drop(node));
-			}}
+			ref={expandedItemRef}
 			onClick={handleClick}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
@@ -320,11 +303,13 @@ export function WorkspaceListItem({
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
 				"flex w-full pl-3 pr-2 text-sm",
-				"hover:bg-muted/50 transition-colors text-left cursor-pointer",
+				"transition-colors text-left cursor-pointer",
+				isActive ? "hover:bg-muted" : "hover:bg-muted/50",
 				"group relative",
 				showBranchSubtitle ? "py-1.5" : "py-2 items-center",
 				isActive && "bg-muted",
-				isDragging && "opacity-30",
+				isSelected && "bg-primary/10 ring-1 ring-inset ring-primary/30",
+				(isDragging || isMultiDragging) && "opacity-30",
 			)}
 			style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 		>
@@ -332,41 +317,46 @@ export function WorkspaceListItem({
 				<div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
 			)}
 
-			<Tooltip delayDuration={500}>
-				<TooltipTrigger asChild>
-					<div
-						className={cn(
-							"relative shrink-0 size-5 flex items-center justify-center mr-2.5",
-							showBranchSubtitle && "mt-0.5",
+			<div
+				className={cn(
+					"flex flex-col items-center shrink-0 mr-2.5 gap-0.5",
+					showBranchSubtitle && "mt-0.5",
+				)}
+			>
+				<Tooltip delayDuration={500}>
+					<TooltipTrigger asChild>
+						<div className="relative size-5 flex items-center justify-center">
+							<WorkspaceIcon
+								isBranchWorkspace={isBranchWorkspace}
+								isActive={isActive}
+								isUnread={isUnread}
+								workspaceStatus={workspaceStatus}
+								variant="expanded"
+							/>
+						</div>
+					</TooltipTrigger>
+					<TooltipContent side="right" sideOffset={8}>
+						{isBranchWorkspace ? (
+							<>
+								<p className="text-xs font-medium">Local workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Changes are made directly in the main repository
+								</p>
+							</>
+						) : (
+							<>
+								<p className="text-xs font-medium">Worktree workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Isolated copy for parallel development
+								</p>
+							</>
 						)}
-					>
-						<WorkspaceIcon
-							isBranchWorkspace={isBranchWorkspace}
-							isActive={isActive}
-							isUnread={isUnread}
-							workspaceStatus={workspaceStatus}
-							variant="expanded"
-						/>
-					</div>
-				</TooltipTrigger>
-				<TooltipContent side="right" sideOffset={8}>
-					{isBranchWorkspace ? (
-						<>
-							<p className="text-xs font-medium">Local workspace</p>
-							<p className="text-xs text-muted-foreground">
-								Changes are made directly in the main repository
-							</p>
-						</>
-					) : (
-						<>
-							<p className="text-xs font-medium">Worktree workspace</p>
-							<p className="text-xs text-muted-foreground">
-								Isolated copy for parallel development
-							</p>
-						</>
-					)}
-				</TooltipContent>
-			</Tooltip>
+					</TooltipContent>
+				</Tooltip>
+				{workspaceRunState && showBranchSubtitle && (
+					<WorkspaceRunIndicator state={workspaceRunState} variant="inline" />
+				)}
+			</div>
 
 			<div className="flex-1 min-w-0">
 				{rename.isRenaming ? (
@@ -413,7 +403,7 @@ export function WorkspaceListItem({
 										isActive={isActive}
 									/>
 								)}
-								<div className="flex items-center justify-end gap-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-[opacity,visibility]">
+								<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
 									{shortcutIndex !== undefined &&
 										shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
 											<span className="text-[10px] text-muted-foreground font-mono tabular-nums shrink-0">
@@ -436,7 +426,10 @@ export function WorkspaceListItem({
 												</button>
 											</TooltipTrigger>
 											<TooltipContent side="top" sideOffset={4}>
-												Close workspace
+												<HotkeyLabel
+													label="Close workspace"
+													id={isActive ? "CLOSE_WORKSPACE" : undefined}
+												/>
 											</TooltipContent>
 										</Tooltip>
 									)}
@@ -467,87 +460,28 @@ export function WorkspaceListItem({
 		</div>
 	);
 
-	const unreadMenuItem = (
-		<ContextMenuItem
-			onSelect={() => setUnread.mutate({ id, isUnread: !isUnread })}
-		>
-			{isUnread ? (
-				<>
-					<LuEye className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					Mark as Read
-				</>
-			) : (
-				<>
-					<LuEyeOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					Mark as Unread
-				</>
-			)}
-		</ContextMenuItem>
-	);
-
-	const commonContextMenuItems = (
-		<>
-			<ContextMenuItem onSelect={handleOpenInFinder}>
-				<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-				Open in Finder
-			</ContextMenuItem>
-			<ContextMenuItem onSelect={handleCopyPath}>
-				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-				Copy Path
-			</ContextMenuItem>
-			<ContextMenuSeparator />
-			{unreadMenuItem}
-			{workspaceStatus && (
-				<ContextMenuItem onSelect={() => resetWorkspaceStatus(id)}>
-					<LuBellOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					Clear Status
-				</ContextMenuItem>
-			)}
-		</>
-	);
-
-	if (isBranchWorkspace) {
-		return (
-			<>
-				<ContextMenu>
-					<ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
-					<ContextMenuContent>{commonContextMenuItems}</ContextMenuContent>
-				</ContextMenu>
-				<DeleteWorkspaceDialog
-					workspaceId={id}
-					workspaceName={name}
-					workspaceType={type}
-					open={showDeleteDialog}
-					onOpenChange={setShowDeleteDialog}
-				/>
-			</>
-		);
-	}
-
 	return (
 		<>
-			<HoverCard
-				open={isContextMenuOpen ? false : undefined}
-				openDelay={HOVER_CARD_OPEN_DELAY}
-				closeDelay={HOVER_CARD_CLOSE_DELAY}
+			<WorkspaceContextMenu
+				id={id}
+				projectId={projectId}
+				name={name}
+				isBranchWorkspace={isBranchWorkspace}
+				isUnread={isUnread}
+				showDeleteHotkey={isActive}
+				workspaceStatus={workspaceStatus}
+				sections={sections}
+				onRename={rename.startRename}
+				onOpenInFinder={handleOpenInFinder}
+				onOpenInEditor={handleOpenInEditor}
+				onCopyPath={handleCopyPath}
+				onCopyBranchName={handleCopyBranchName}
+				onSetUnread={(unread) => setUnread.mutate({ id, isUnread: unread })}
+				onResetStatus={() => resetWorkspaceStatus(id)}
+				onDelete={handleDeleteClick}
 			>
-				<ContextMenu onOpenChange={setIsContextMenuOpen}>
-					<HoverCardTrigger asChild>
-						<ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
-					</HoverCardTrigger>
-					<ContextMenuContent>
-						<ContextMenuItem onSelect={rename.startRename}>
-							<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-							Rename
-						</ContextMenuItem>
-						<ContextMenuSeparator />
-						{commonContextMenuItems}
-					</ContextMenuContent>
-				</ContextMenu>
-				<HoverCardContent side="right" align="start" className="w-72">
-					<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
-				</HoverCardContent>
-			</HoverCard>
+				{content}
+			</WorkspaceContextMenu>
 			<DeleteWorkspaceDialog
 				workspaceId={id}
 				workspaceName={name}

@@ -9,14 +9,17 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	buildTerminalCommand,
 	launchCommandInPane,
+	writeCommandsInPane,
 } from "renderer/lib/terminal/launch-command";
 import {
+	buildFocusedTerminalCommand,
 	getPresetLaunchPlan,
 	type PresetMode,
 	type PresetOpenTarget,
+	shouldApplyPresetPaneName,
 } from "./preset-launch";
 import { useTabsStore } from "./store";
-import type { AddTabOptions } from "./types";
+import type { AddTabOptions, SplitPaneOptions } from "./types";
 import { resolveActiveTabIdForWorkspace } from "./utils";
 
 interface OpenPresetOptions {
@@ -36,6 +39,7 @@ interface PresetPaneLaunch {
 	tabId: string;
 	workspaceId: string;
 	command: string;
+	cwd: string | undefined;
 }
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
@@ -47,9 +51,30 @@ function preparePreset(preset: TerminalPreset): PreparedPreset {
 	};
 }
 
-export function useTabsWithPresets() {
+function shouldLabelPaneForPreset(
+	paneId: string,
+	presetName?: string,
+): boolean {
+	const trimmedName = presetName?.trim();
+	if (!trimmedName) return false;
+
+	const pane = useTabsStore.getState().panes[paneId];
+	if (!pane) return false;
+
+	return shouldApplyPresetPaneName({
+		currentName: pane.name,
+		presetName: trimmedName,
+		userTitle: pane.userTitle,
+	});
+}
+
+export function useTabsWithPresets(projectId?: string | null) {
+	const newTabPresetsInput = useMemo(
+		() => ({ projectId: projectId ?? null }),
+		[projectId],
+	);
 	const { data: newTabPresets = [] } =
-		electronTrpc.settings.getNewTabPresets.useQuery();
+		electronTrpc.settings.getNewTabPresets.useQuery(newTabPresetsInput);
 
 	const storeAddTab = useTabsStore((s) => s.addTab);
 	const storeAddTabWithMultiplePanes = useTabsStore(
@@ -60,6 +85,7 @@ export function useTabsWithPresets() {
 	const storeSplitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
 	const storeSplitPaneHorizontal = useTabsStore((s) => s.splitPaneHorizontal);
 	const storeSplitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
+	const setPaneName = useTabsStore((s) => s.setPaneName);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const createOrAttach = useCreateOrAttachWithTheme();
 	const writeToTerminal = electronTrpc.terminal.write.useMutation();
@@ -97,12 +123,17 @@ export function useTabsWithPresets() {
 	}, []);
 
 	const launchPresetCommand = useCallback(
-		({ paneId, tabId, workspaceId, command }: PresetPaneLaunch) => {
+		(
+			{ paneId, tabId, workspaceId, command, cwd }: PresetPaneLaunch,
+			options?: { waitForMountedSession?: boolean },
+		) => {
 			void launchCommandInPane({
 				paneId,
 				tabId,
 				workspaceId,
 				command,
+				cwd,
+				waitForMountedSession: options?.waitForMountedSession,
 				createOrAttach: (input) => createOrAttach.mutateAsync(input),
 				write: (input) => writeToTerminal.mutateAsync(input),
 			}).catch((error) => {
@@ -118,9 +149,12 @@ export function useTabsWithPresets() {
 	);
 
 	const launchPresetCommands = useCallback(
-		(launches: PresetPaneLaunch[]) => {
+		(
+			launches: PresetPaneLaunch[],
+			options?: { waitForMountedSession?: boolean },
+		) => {
 			for (const launch of launches) {
-				launchPresetCommand(launch);
+				launchPresetCommand(launch, options);
 			}
 		},
 		[launchPresetCommand],
@@ -138,46 +172,87 @@ export function useTabsWithPresets() {
 			if (firstPresetCommand === null) return;
 			const workspaceId = resolveWorkspaceIdForTab(tabId);
 			if (!workspaceId) return;
-			launchPresetCommand({
-				paneId,
-				tabId,
-				workspaceId,
-				command: firstPresetCommand,
-			});
+			launchPresetCommand(
+				{
+					paneId,
+					tabId,
+					workspaceId,
+					command: firstPresetCommand,
+					cwd: firstPreset?.cwd || undefined,
+				},
+				{ waitForMountedSession: true },
+			);
 		},
-		[firstPresetCommand, launchPresetCommand, resolveWorkspaceIdForTab],
+		[
+			firstPreset,
+			firstPresetCommand,
+			launchPresetCommand,
+			resolveWorkspaceIdForTab,
+		],
 	);
 
 	const launchFirstPresetInFocusedPane = useCallback(
-		(tabId: string, previousFocusedPaneId: string | undefined) => {
+		(
+			tabId: string,
+			previousFocusedPaneId: string | undefined,
+			options?: { waitForMountedSession?: boolean },
+		) => {
 			if (firstPresetCommand === null) return;
 			const state = useTabsStore.getState();
 			const paneId = state.focusedPaneIds[tabId];
 			if (!paneId || paneId === previousFocusedPaneId) return;
 			const tab = state.tabs.find((tabItem) => tabItem.id === tabId);
 			if (!tab) return;
-			launchPresetCommand({
-				paneId,
-				tabId,
-				workspaceId: tab.workspaceId,
-				command: firstPresetCommand,
-			});
+			launchPresetCommand(
+				{
+					paneId,
+					tabId,
+					workspaceId: tab.workspaceId,
+					command: firstPresetCommand,
+					cwd: firstPreset?.cwd || undefined,
+				},
+				options,
+			);
 		},
-		[firstPresetCommand, launchPresetCommand],
+		[firstPreset, firstPresetCommand, launchPresetCommand],
 	);
 
 	const executePresetInNewTab = useCallback(
 		(workspaceId: string, preset: PreparedPreset) => {
 			const hasMultipleCommands = preset.commands.length > 1;
 
+			const createPresetTab = () => {
+				const result = storeAddTab(workspaceId, {
+					initialCwd: preset.initialCwd,
+				});
+				applyTabName(result.tabId, preset.name);
+				return result;
+			};
+
+			const launchSinglePresetTab = (command: string | null) => {
+				const result = createPresetTab();
+				if (command !== null) {
+					launchPresetCommand({
+						paneId: result.paneId,
+						tabId: result.tabId,
+						workspaceId,
+						command,
+						cwd: preset.initialCwd,
+					});
+				}
+				return result;
+			};
+
+			if (preset.mode === "sequential") {
+				return launchSinglePresetTab(buildTerminalCommand(preset.commands));
+			}
+
 			if (preset.mode === "new-tab" && hasMultipleCommands) {
 				let firstResult: { tabId: string; paneId: string } | null = null;
 				const launches: PresetPaneLaunch[] = [];
 
 				for (const command of preset.commands) {
-					const result = storeAddTab(workspaceId, {
-						initialCwd: preset.initialCwd,
-					});
+					const result = createPresetTab();
 					if (!firstResult) {
 						firstResult = result;
 					}
@@ -186,8 +261,8 @@ export function useTabsWithPresets() {
 						tabId: result.tabId,
 						workspaceId,
 						command,
+						cwd: preset.initialCwd,
 					});
-					applyTabName(result.tabId, preset.name);
 				}
 
 				if (firstResult) {
@@ -195,11 +270,7 @@ export function useTabsWithPresets() {
 					return firstResult;
 				}
 
-				const fallback = storeAddTab(workspaceId, {
-					initialCwd: preset.initialCwd,
-				});
-				applyTabName(fallback.tabId, preset.name);
-				return fallback;
+				return createPresetTab();
 			}
 
 			if (hasMultipleCommands) {
@@ -211,7 +282,15 @@ export function useTabsWithPresets() {
 					(paneId, index) => {
 						const command = preset.commands[index];
 						if (command === undefined) return [];
-						return [{ paneId, tabId: multiPane.tabId, workspaceId, command }];
+						return [
+							{
+								paneId,
+								tabId: multiPane.tabId,
+								workspaceId,
+								command,
+								cwd: preset.initialCwd,
+							},
+						];
 					},
 				);
 				launchPresetCommands(launches);
@@ -219,20 +298,7 @@ export function useTabsWithPresets() {
 				return { tabId: multiPane.tabId, paneId: multiPane.paneIds[0] };
 			}
 
-			const command = buildTerminalCommand(preset.commands);
-			const result = storeAddTab(workspaceId, {
-				initialCwd: preset.initialCwd,
-			});
-			if (command !== null) {
-				launchPresetCommand({
-					paneId: result.paneId,
-					tabId: result.tabId,
-					workspaceId,
-					command,
-				});
-			}
-			applyTabName(result.tabId, preset.name);
-			return result;
+			return launchSinglePresetTab(buildTerminalCommand(preset.commands));
 		},
 		[
 			storeAddTab,
@@ -246,16 +312,60 @@ export function useTabsWithPresets() {
 	const executePreset = useCallback(
 		(workspaceId: string, preset: PreparedPreset, target: PresetOpenTarget) => {
 			const activeTabId =
-				target === "active-tab" && preset.mode === "split-pane"
+				target === "active-tab" &&
+				(preset.mode === "split-pane" || preset.mode === "sequential")
 					? resolveActiveWorkspaceTabId(workspaceId)
 					: null;
+			const activeTerminalPaneId = (() => {
+				if (!activeTabId || preset.mode !== "sequential") return null;
+				const state = useTabsStore.getState();
+				const paneId = state.focusedPaneIds[activeTabId];
+				const pane = paneId ? state.panes[paneId] : undefined;
+				return pane?.type === "terminal" ? paneId : null;
+			})();
 
 			const plan = getPresetLaunchPlan({
 				mode: preset.mode,
 				target,
 				commandCount: preset.commands.length,
 				hasActiveTab: !!activeTabId,
+				hasActiveTerminal: !!activeTerminalPaneId,
 			});
+
+			if (plan === "active-terminal" && activeTabId && activeTerminalPaneId) {
+				const command = buildFocusedTerminalCommand({
+					commands: preset.commands,
+					cwd: preset.initialCwd,
+				});
+				if (command !== null) {
+					void writeCommandsInPane({
+						paneId: activeTerminalPaneId,
+						commands: [command],
+						write: (input) => writeToTerminal.mutateAsync(input),
+					}).catch((error) => {
+						console.error(
+							"[useTabsWithPresets] Failed to send sequential preset to current terminal:",
+							{
+								workspaceId,
+								tabId: activeTabId,
+								paneId: activeTerminalPaneId,
+								error: error instanceof Error ? error.message : String(error),
+							},
+						);
+					});
+				}
+				const presetPaneName = preset.name?.trim();
+				if (
+					presetPaneName &&
+					shouldLabelPaneForPreset(activeTerminalPaneId, presetPaneName)
+				) {
+					// Reusing the focused terminal does not create a named tab/pane,
+					// so label the default pane once. Existing user/preset labels are
+					// preserved on later preset runs.
+					setPaneName(activeTerminalPaneId, presetPaneName);
+				}
+				return { tabId: activeTabId, paneId: activeTerminalPaneId };
+			}
 
 			if (plan === "active-tab-multi-pane" && activeTabId) {
 				const paneIds = storeAddPanesToTab(activeTabId, {
@@ -267,10 +377,18 @@ export function useTabsWithPresets() {
 						(paneId, index) => {
 							const command = preset.commands[index];
 							if (command === undefined) return [];
-							return [{ paneId, tabId: activeTabId, workspaceId, command }];
+							return [
+								{
+									paneId,
+									tabId: activeTabId,
+									workspaceId,
+									command,
+									cwd: preset.initialCwd,
+								},
+							];
 						},
 					);
-					launchPresetCommands(launches);
+					launchPresetCommands(launches, { waitForMountedSession: true });
 					return { tabId: activeTabId, paneId: paneIds[0] };
 				}
 				return executePresetInNewTab(workspaceId, preset);
@@ -283,12 +401,16 @@ export function useTabsWithPresets() {
 				});
 				if (paneId) {
 					if (command !== null) {
-						launchPresetCommand({
-							paneId,
-							tabId: activeTabId,
-							workspaceId,
-							command,
-						});
+						launchPresetCommand(
+							{
+								paneId,
+								tabId: activeTabId,
+								workspaceId,
+								command,
+								cwd: preset.initialCwd,
+							},
+							{ waitForMountedSession: true },
+						);
 					}
 					return { tabId: activeTabId, paneId };
 				}
@@ -304,7 +426,55 @@ export function useTabsWithPresets() {
 			executePresetInNewTab,
 			launchPresetCommands,
 			launchPresetCommand,
+			writeToTerminal,
+			setPaneName,
 		],
+	);
+
+	const openPresetInCurrentTerminal = useCallback(
+		(workspaceId: string, preset: TerminalPreset) => {
+			const activeTabId = resolveActiveWorkspaceTabId(workspaceId);
+			if (!activeTabId) return false;
+
+			const state = useTabsStore.getState();
+			const paneId = state.focusedPaneIds[activeTabId];
+			if (!paneId) return false;
+
+			const pane = state.panes[paneId];
+			if (!pane || pane.type !== "terminal") return false;
+
+			const command = buildFocusedTerminalCommand({
+				commands: preset.commands,
+				cwd: preset.cwd,
+			});
+			if (command !== null) {
+				void writeCommandsInPane({
+					paneId,
+					commands: [command],
+					write: (input) => writeToTerminal.mutateAsync(input),
+				}).catch((error) => {
+					console.error(
+						"[useTabsWithPresets] Failed to send preset commands to current terminal:",
+						{
+							workspaceId,
+							tabId: activeTabId,
+							paneId,
+							error: error instanceof Error ? error.message : String(error),
+						},
+					);
+				});
+			}
+			const presetPaneName = preset.name?.trim();
+			if (presetPaneName && shouldLabelPaneForPreset(paneId, presetPaneName)) {
+				// This explicit "current terminal" action also reuses a pane, so
+				// only apply the preset label while the pane still has its default
+				// title.
+				setPaneName(paneId, presetPaneName);
+			}
+
+			return true;
+		},
+		[resolveActiveWorkspaceTabId, writeToTerminal, setPaneName],
 	);
 
 	const openPreset = useCallback(
@@ -362,7 +532,7 @@ export function useTabsWithPresets() {
 			tabId: string,
 			sourcePaneId: string,
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneVertical(tabId, sourcePaneId, path, options);
@@ -370,7 +540,9 @@ export function useTabsWithPresets() {
 			const previousFocusedPaneId =
 				useTabsStore.getState().focusedPaneIds[tabId];
 			storeSplitPaneVertical(tabId, sourcePaneId, path, firstPresetOptions);
-			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId);
+			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId, {
+				waitForMountedSession: true,
+			});
 		},
 		[
 			storeSplitPaneVertical,
@@ -384,7 +556,7 @@ export function useTabsWithPresets() {
 			tabId: string,
 			sourcePaneId: string,
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneHorizontal(tabId, sourcePaneId, path, options);
@@ -392,7 +564,9 @@ export function useTabsWithPresets() {
 			const previousFocusedPaneId =
 				useTabsStore.getState().focusedPaneIds[tabId];
 			storeSplitPaneHorizontal(tabId, sourcePaneId, path, firstPresetOptions);
-			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId);
+			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId, {
+				waitForMountedSession: true,
+			});
 		},
 		[
 			storeSplitPaneHorizontal,
@@ -407,7 +581,7 @@ export function useTabsWithPresets() {
 			sourcePaneId: string,
 			dimensions: { width: number; height: number },
 			path?: MosaicBranch[],
-			options?: AddTabOptions,
+			options?: SplitPaneOptions,
 		) => {
 			if (options) {
 				return storeSplitPaneAuto(
@@ -427,7 +601,9 @@ export function useTabsWithPresets() {
 				path,
 				firstPresetOptions,
 			);
-			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId);
+			launchFirstPresetInFocusedPane(tabId, previousFocusedPaneId, {
+				waitForMountedSession: true,
+			});
 		},
 		[storeSplitPaneAuto, firstPresetOptions, launchFirstPresetInFocusedPane],
 	);
@@ -439,5 +615,6 @@ export function useTabsWithPresets() {
 		splitPaneHorizontal,
 		splitPaneAuto,
 		openPreset,
+		openPresetInCurrentTerminal,
 	};
 }

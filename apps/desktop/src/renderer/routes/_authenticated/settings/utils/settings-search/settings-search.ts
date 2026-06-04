@@ -7,10 +7,13 @@ export const SETTING_ITEM_ID = {
 	ORGANIZATION_LOGO: "organization-logo",
 	ORGANIZATION_NAME: "organization-name",
 	ORGANIZATION_SLUG: "organization-slug",
+	ORGANIZATION_ID: "organization-id",
 	ORGANIZATION_MEMBERS_LIST: "organization-members-list",
 	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
 	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
 		"organization-members-pending-invitations",
+
+	TEAMS_LIST: "teams-list",
 
 	APPEARANCE_THEME: "appearance-theme",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
@@ -21,20 +24,34 @@ export const SETTING_ITEM_ID = {
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
-
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
-	BEHAVIOR_DELETE_LOCAL_BRANCH: "behavior-delete-local-branch",
-	BEHAVIOR_BRANCH_PREFIX: "behavior-branch-prefix",
-	BEHAVIOR_TELEMETRY: "behavior-telemetry",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
-	BEHAVIOR_WORKTREE_LOCATION: "behavior-worktree-location",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+
+	GIT_BRANCH_PREFIX: "git-branch-prefix",
+	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
+	GIT_WORKTREE_LOCATION: "git-worktree-location",
+
+	AGENTS_ENABLED: "agents-enabled",
+	AGENTS_COMMANDS: "agents-commands",
+	AGENTS_TASK_PROMPTS: "agents-task-prompts",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+
+	LINKS_FILE: "links-file",
+	LINKS_URL: "links-url",
+	LINKS_SIDEBAR_FILE: "links-sidebar-file",
+
+	MODELS_ANTHROPIC: "models-anthropic",
+	MODELS_OPENAI: "models-openai",
+
+	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
+	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
+	EXPERIMENTAL_RERUN_ONBOARDING: "experimental-rerun-onboarding",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -49,18 +66,25 @@ export const SETTING_ITEM_ID = {
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
+	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
 	PROJECT_ENV_VARS: "project-env-vars",
 
-	// API Keys
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
 
-	// Permissions
 	PERMISSIONS_FULL_DISK_ACCESS: "permissions-full-disk-access",
 	PERMISSIONS_ACCESSIBILITY: "permissions-accessibility",
 	PERMISSIONS_MICROPHONE: "permissions-microphone",
 	PERMISSIONS_APPLE_EVENTS: "permissions-apple-events",
 	PERMISSIONS_LOCAL_NETWORK: "permissions-local-network",
+
+	SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY:
+		"security-expose-host-service-via-relay",
+
+	HOST_MEMBERS: "host-members",
+	HOST_INVITE_MEMBER: "host-invite-member",
+	HOST_MEMBER_ROLE: "host-member-role",
+	HOST_WORKTREE_LOCATION: "host-worktree-location",
 } as const;
 
 export type SettingItemId =
@@ -72,6 +96,113 @@ export interface SettingsItem {
 	title: string;
 	description: string;
 	keywords: string[];
+}
+
+/**
+ * Which v1/v2 variant of the desktop UI a setting applies to.
+ * - "v1": only used by the legacy desktop UI; hide when the user is on v2.
+ * - "v2": only meaningful in the v2 desktop UI; hide when the user is on v1.
+ * - "shared": applies to both (or is provided by a global/cloud surface).
+ *
+ * Source of truth for the v1/v2 settings audit. When adding a new setting,
+ * pick a variant or it will fail typecheck on the registry below.
+ */
+export type SettingVariant = "v1" | "v2" | "shared";
+
+export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
+	[SETTING_ITEM_ID.ACCOUNT_PROFILE]: "shared",
+	[SETTING_ITEM_ID.ACCOUNT_SIGNOUT]: "shared",
+
+	[SETTING_ITEM_ID.ORGANIZATION_LOGO]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_NAME]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_SLUG]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_ID]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS]: "shared",
+
+	[SETTING_ITEM_ID.TEAMS_LIST]: "shared",
+
+	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+
+	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
+
+	[SETTING_ITEM_ID.KEYBOARD_SHORTCUTS]: "shared",
+
+	[SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT]: "shared",
+	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
+	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
+	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
+
+	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
+	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
+	[SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH]: "v1",
+	[SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]: "shared",
+
+	[SETTING_ITEM_ID.AGENTS_ENABLED]: "shared",
+	[SETTING_ITEM_ID.AGENTS_COMMANDS]: "shared",
+	[SETTING_ITEM_ID.AGENTS_TASK_PROMPTS]: "shared",
+
+	[SETTING_ITEM_ID.TERMINAL_PRESETS]: "shared",
+	[SETTING_ITEM_ID.TERMINAL_QUICK_ADD]: "shared",
+	[SETTING_ITEM_ID.TERMINAL_SESSIONS]: "shared",
+	[SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR]: "v1",
+
+	[SETTING_ITEM_ID.LINKS_FILE]: "v2",
+	[SETTING_ITEM_ID.LINKS_URL]: "v2",
+	[SETTING_ITEM_ID.LINKS_SIDEBAR_FILE]: "v2",
+
+	[SETTING_ITEM_ID.MODELS_ANTHROPIC]: "shared",
+	[SETTING_ITEM_ID.MODELS_OPENAI]: "shared",
+
+	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
+	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_RERUN_ONBOARDING]: "v2",
+
+	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
+	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
+	[SETTING_ITEM_ID.INTEGRATIONS_SLACK]: "shared",
+
+	[SETTING_ITEM_ID.BILLING_OVERVIEW]: "shared",
+	[SETTING_ITEM_ID.BILLING_PLANS]: "shared",
+	[SETTING_ITEM_ID.BILLING_USAGE]: "shared",
+
+	[SETTING_ITEM_ID.PROJECT_NAME]: "shared",
+	[SETTING_ITEM_ID.PROJECT_PATH]: "shared",
+	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "v1",
+	[SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX]: "v1",
+	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "shared",
+	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
+	[SETTING_ITEM_ID.PROJECT_ENV_VARS]: "v2",
+
+	[SETTING_ITEM_ID.API_KEYS_LIST]: "shared",
+	[SETTING_ITEM_ID.API_KEYS_GENERATE]: "shared",
+
+	[SETTING_ITEM_ID.PERMISSIONS_FULL_DISK_ACCESS]: "shared",
+	[SETTING_ITEM_ID.PERMISSIONS_ACCESSIBILITY]: "shared",
+	[SETTING_ITEM_ID.PERMISSIONS_MICROPHONE]: "shared",
+	[SETTING_ITEM_ID.PERMISSIONS_APPLE_EVENTS]: "shared",
+	[SETTING_ITEM_ID.PERMISSIONS_LOCAL_NETWORK]: "shared",
+
+	[SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY]: "shared",
+
+	[SETTING_ITEM_ID.HOST_MEMBERS]: "shared",
+	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
+	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
+	[SETTING_ITEM_ID.HOST_WORKTREE_LOCATION]: "v2",
+};
+
+export function isItemAllowedForVariant(
+	itemId: SettingItemId,
+	isV2: boolean,
+): boolean {
+	const variant = SETTING_ITEM_VARIANT[itemId];
+	if (variant === "shared") return true;
+	return isV2 ? variant === "v2" : variant === "v1";
 }
 
 export const SETTINGS_ITEMS: SettingsItem[] = [
@@ -152,6 +283,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.ORGANIZATION_ID,
+		section: "organization",
+		title: "Organization ID",
+		description: "Your organization's unique identifier",
+		keywords: [
+			"organization",
+			"id",
+			"identifier",
+			"uuid",
+			"unique",
+			"copy",
+			"api",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
 		section: "organization",
 		title: "Team Members",
@@ -205,6 +351,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cancel",
 			"resend",
 			"email",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TEAMS_LIST,
+		section: "teams",
+		title: "Teams",
+		description: "Create, rename, and delete teams within your organization",
+		keywords: [
+			"teams",
+			"team",
+			"group",
+			"create team",
+			"rename team",
+			"delete team",
+			"organize",
 		],
 	},
 	{
@@ -356,13 +517,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.BEHAVIOR_DELETE_LOCAL_BRANCH,
-		section: "behavior",
+		id: SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH,
+		section: "git",
 		title: "Delete local branch on workspace removal",
 		description:
 			"Also delete the local git branch when deleting a worktree workspace",
 		keywords: [
-			"features",
+			"git",
 			"delete",
 			"branch",
 			"local",
@@ -370,44 +531,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"workspace",
 			"remove",
 			"cleanup",
-			"git",
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
-		section: "behavior",
+		id: SETTING_ITEM_ID.GIT_BRANCH_PREFIX,
+		section: "git",
 		title: "Branch Prefix",
 		description: "Default prefix for new branch names",
 		keywords: [
-			"features",
+			"git",
 			"branch",
 			"prefix",
 			"naming",
-			"git",
 			"worktree",
 			"author",
 			"github",
 			"username",
 			"feat",
 			"custom",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.BEHAVIOR_TELEMETRY,
-		section: "behavior",
-		title: "Send anonymous usage data",
-		description: "Help improve Superset by sending anonymous usage data",
-		keywords: [
-			"telemetry",
-			"analytics",
-			"tracking",
-			"privacy",
-			"data",
-			"usage",
-			"anonymous",
-			"metrics",
-			"opt out",
-			"disable",
 		],
 	},
 	{
@@ -449,11 +590,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.BEHAVIOR_WORKTREE_LOCATION,
-		section: "behavior",
+		id: SETTING_ITEM_ID.GIT_WORKTREE_LOCATION,
+		section: "git",
 		title: "Worktree location",
-		description: "Base directory where new worktrees are created on disk",
+		description: "User-level base directory where new worktrees are created",
 		keywords: [
+			"git",
 			"worktree",
 			"location",
 			"directory",
@@ -467,9 +609,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		section: "behavior",
-		title: "Open links in app browser",
+		title: "Open links in the in-app browser",
 		description:
-			"Open links from chat and terminal in the built-in browser instead of your default browser",
+			"Open links from chat and terminal in the in-app browser instead of your default browser",
 		keywords: [
 			"browser",
 			"links",
@@ -479,6 +621,60 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.AGENTS_ENABLED,
+		section: "agents",
+		title: "Enabled agents",
+		description: "Control which agents appear in workspace launchers",
+		keywords: [
+			"agents",
+			"enabled",
+			"launcher",
+			"dropdown",
+			"visible",
+			"show",
+			"hide",
+			"superset chat",
+			"claude",
+			"codex",
+			"pi",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.AGENTS_COMMANDS,
+		section: "agents",
+		title: "Agent commands",
+		description: "Configure no-prompt and prompt launch commands",
+		keywords: [
+			"agents",
+			"commands",
+			"prompt command",
+			"terminal",
+			"claude",
+			"codex",
+			"gemini",
+			"opencode",
+			"pi",
+			"copilot",
+			"cursor",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.AGENTS_TASK_PROMPTS,
+		section: "agents",
+		title: "Task prompt templates",
+		description: "Configure task prompt templates for agent launches",
+		keywords: [
+			"agents",
+			"task prompt",
+			"template",
+			"variables",
+			"prompt",
+			"task",
+			"superset chat",
+			"launch",
 		],
 	},
 	{
@@ -515,6 +711,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"gemini",
 			"cursor",
 			"opencode",
+			"pi",
 			"ai",
 			"assistant",
 		],
@@ -555,6 +752,172 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cmd",
 			"ctrl",
 			"browser",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.LINKS_FILE,
+		section: "links",
+		title: "File links",
+		description:
+			"How file paths open when clicked in terminals, chat, and tasks",
+		keywords: [
+			"links",
+			"file",
+			"click",
+			"cmd",
+			"ctrl",
+			"shift",
+			"meta",
+			"pane",
+			"editor",
+			"external",
+			"open",
+			"terminal",
+			"chat",
+			"markdown",
+			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.LINKS_URL,
+		section: "links",
+		title: "URL links",
+		description: "How URLs open when clicked in terminals, chat, and tasks",
+		keywords: [
+			"links",
+			"url",
+			"link",
+			"click",
+			"cmd",
+			"ctrl",
+			"shift",
+			"meta",
+			"browser",
+			"in-app",
+			"system",
+			"external",
+			"open",
+			"terminal",
+			"chat",
+			"markdown",
+			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.LINKS_SIDEBAR_FILE,
+		section: "links",
+		title: "Sidebar file rows",
+		description:
+			"How file rows in the file tree, changes list, and diff header open when clicked",
+		keywords: [
+			"links",
+			"sidebar",
+			"file tree",
+			"changes",
+			"diff",
+			"file",
+			"click",
+			"cmd",
+			"ctrl",
+			"shift",
+			"meta",
+			"new tab",
+			"editor",
+			"external",
+			"open",
+			"select",
+			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.MODELS_ANTHROPIC,
+		section: "models",
+		title: "Anthropic Model Auth",
+		description: "Connect Anthropic for workspace naming and small model tasks",
+		keywords: [
+			"models",
+			"anthropic",
+			"claude",
+			"oauth",
+			"api key",
+			"auth",
+			"workspace naming",
+			"auto name",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.MODELS_OPENAI,
+		section: "models",
+		title: "OpenAI Model Auth",
+		description: "Connect OpenAI for supported model tasks",
+		keywords: [
+			"models",
+			"openai",
+			"gpt",
+			"oauth",
+			"api key",
+			"auth",
+			"workspace naming",
+			"auto name",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2,
+		section: "experimental",
+		title: "Try Superset Version 2 (Early Access)",
+		description: "Switch between Superset V1 and the new V2 experience",
+		keywords: [
+			"experimental",
+			"experiments",
+			"v2",
+			"v1",
+			"version",
+			"early access",
+			"beta",
+			"preview",
+			"workspace",
+			"workspaces",
+			"toggle",
+			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION,
+		section: "experimental",
+		title: "V1 to V2 Migration",
+		description: "Rerun the V1 to V2 data migration",
+		keywords: [
+			"experimental",
+			"migration",
+			"migrate",
+			"rerun",
+			"retry",
+			"recover",
+			"v1",
+			"v2",
+			"projects",
+			"workspaces",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_RERUN_ONBOARDING,
+		section: "experimental",
+		title: "Run Setup Again",
+		description: "Reopen the setup guide to connect agents and add projects",
+		keywords: [
+			"experimental",
+			"onboarding",
+			"setup",
+			"guide",
+			"rerun",
+			"re-run",
+			"restart",
+			"welcome",
+			"getting started",
+			"connect",
+			"github cli",
+			"providers",
+			"agents",
 		],
 	},
 	{
@@ -685,12 +1048,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.PROJECT_SCRIPTS,
 		section: "project",
 		title: "Scripts",
-		description: "Setup and teardown scripts for workspaces",
+		description: "Setup, teardown, and run scripts for workspaces",
 		keywords: [
 			"project",
 			"scripts",
 			"setup",
 			"teardown",
+			"run",
 			"bash",
 			"shell",
 			"automation",
@@ -726,7 +1090,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION,
 		section: "project",
 		title: "Worktree Location",
-		description: "Override the global worktree directory for this project",
+		description: "Override the host worktree directory for this project",
 		keywords: [
 			"project",
 			"worktree",
@@ -736,6 +1100,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"folder",
 			"storage",
 			"override",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
+		section: "project",
+		title: "Import Worktrees",
+		description: "Import existing worktrees from disk into Superset",
+		keywords: [
+			"project",
+			"import",
+			"worktree",
+			"worktrees",
+			"workspace",
+			"workspaces",
+			"external",
+			"existing",
+			"disk",
+			"add",
 		],
 	},
 	{
@@ -752,7 +1134,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"sandbox",
 		],
 	},
-	// API Keys
 	{
 		id: SETTING_ITEM_ID.API_KEYS_LIST,
 		section: "apikeys",
@@ -875,6 +1256,92 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"development servers",
 		],
 	},
+	{
+		id: SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY,
+		section: "security",
+		title: "Allow remote workspaces to access this device via relay",
+		description:
+			"Controls whether remote workspaces can reach your local host service through the Superset relay",
+		keywords: [
+			"security",
+			"relay",
+			"remote",
+			"workspace",
+			"expose",
+			"lockdown",
+			"network",
+			"inbound",
+			"host service",
+			"tunnel",
+			"attack surface",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_MEMBERS,
+		section: "hosts",
+		title: "Host members",
+		description: "View who has access to a host in your organization",
+		keywords: [
+			"host",
+			"hosts",
+			"member",
+			"members",
+			"access",
+			"team",
+			"share",
+			"machine",
+			"device",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_WORKTREE_LOCATION,
+		section: "hosts",
+		title: "Worktree location",
+		description: "Default location for new worktree workspaces on this host",
+		keywords: [
+			"host",
+			"hosts",
+			"worktree",
+			"worktrees",
+			"location",
+			"directory",
+			"path",
+			"folder",
+			"storage",
+			"default",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_INVITE_MEMBER,
+		section: "hosts",
+		title: "Grant access to a host",
+		description: "Add an organization member to a host",
+		keywords: [
+			"host",
+			"hosts",
+			"invite",
+			"add",
+			"grant",
+			"member",
+			"access",
+			"share",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_MEMBER_ROLE,
+		section: "hosts",
+		title: "Host member role",
+		description: "Change a member's role on a host (owner or member)",
+		keywords: [
+			"host",
+			"hosts",
+			"role",
+			"owner",
+			"member",
+			"permission",
+			"admin",
+		],
+	},
 ];
 
 export function searchSettings(query: string): SettingsItem[] {
@@ -914,4 +1381,58 @@ export function isItemVisible(
 	visibleItems: SettingItemId[] | null | undefined,
 ): boolean {
 	return !visibleItems || visibleItems.includes(itemId);
+}
+
+/**
+ * Items in `section` that are allowed for the active v1/v2 variant and
+ * (if a search query is provided) also match the query. Returns an array
+ * suitable for passing to `isItemVisible` at the leaf — never `null`, so
+ * variant-hidden items are always excluded.
+ */
+export function getVisibleItemsForSection(params: {
+	section: SettingsSection;
+	searchQuery: string;
+	isV2: boolean;
+}): SettingItemId[] {
+	const { section, searchQuery, isV2 } = params;
+	const matched = searchQuery.trim()
+		? getMatchingItemsForSection(searchQuery, section)
+		: SETTINGS_ITEMS.filter((item) => item.section === section);
+	return matched
+		.filter((item) => isItemAllowedForVariant(item.id, isV2))
+		.map((item) => item.id);
+}
+
+/**
+ * Like `getMatchCountBySection`, but excludes items that are hidden by the
+ * active v1/v2 variant. Used by the sidebar so search counts and section
+ * visibility agree.
+ */
+export function getVisibleMatchCountBySection(
+	query: string,
+	isV2: boolean,
+): Partial<Record<SettingsSection, number>> {
+	const matches = searchSettings(query).filter((item) =>
+		isItemAllowedForVariant(item.id, isV2),
+	);
+	const counts: Partial<Record<SettingsSection, number>> = {};
+	for (const item of matches) {
+		counts[item.section] = (counts[item.section] || 0) + 1;
+	}
+	return counts;
+}
+
+/**
+ * Sections that contain at least one item allowed for the active variant.
+ * Sections with no allowed items (e.g. `git` in v2, `links` in v1) should
+ * be hidden from the sidebar entirely.
+ */
+export function getAllowedSectionsForVariant(
+	isV2: boolean,
+): Set<SettingsSection> {
+	const sections = new Set<SettingsSection>();
+	for (const item of SETTINGS_ITEMS) {
+		if (isItemAllowedForVariant(item.id, isV2)) sections.add(item.section);
+	}
+	return sections;
 }

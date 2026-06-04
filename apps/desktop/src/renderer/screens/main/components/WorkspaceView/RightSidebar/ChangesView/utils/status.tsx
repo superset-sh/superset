@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import {
-	LuCopy,
-	LuFileOutput,
-	LuPencilLine,
-	LuPlus,
-	LuX,
-} from "react-icons/lu";
+	VscCopy,
+	VscDiffAdded,
+	VscDiffModified,
+	VscDiffRemoved,
+	VscDiffRenamed,
+} from "react-icons/vsc";
 import type { FileStatus } from "shared/changes-types";
 
 export function getStatusColor(status: FileStatus): string {
@@ -31,15 +31,15 @@ export function getStatusIndicator(status: FileStatus): ReactNode {
 	switch (status) {
 		case "added":
 		case "untracked":
-			return <LuPlus className={iconClass} />;
+			return <VscDiffAdded className={iconClass} />;
 		case "modified":
-			return <LuPencilLine className={iconClass} />;
+			return <VscDiffModified className={iconClass} />;
 		case "deleted":
-			return <LuX className={iconClass} />;
+			return <VscDiffRemoved className={iconClass} />;
 		case "renamed":
-			return <LuFileOutput className={iconClass} />;
+			return <VscDiffRenamed className={iconClass} />;
 		case "copied":
-			return <LuCopy className={iconClass} />;
+			return <VscCopy className={iconClass} />;
 		default:
 			return null;
 	}

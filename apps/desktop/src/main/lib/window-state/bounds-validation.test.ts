@@ -1,4 +1,5 @@
 import {
+	afterAll,
 	beforeEach,
 	describe,
 	expect,
@@ -7,7 +8,6 @@ import {
 	mock,
 } from "bun:test";
 
-// Mock electron with screen API before importing anything that uses it
 const mockScreen = {
 	getPrimaryDisplay: mock(() => ({
 		workAreaSize: { width: 1920, height: 1080 },
@@ -21,18 +21,21 @@ const mockScreen = {
 	]),
 };
 
-mock.module("electron", () => ({
-	screen: mockScreen,
-}));
-
-// Import module after mocks are set up
-const { getInitialWindowBounds, isVisibleOnAnyDisplay } = await import(
-	"./bounds-validation"
-);
+const { getInitialWindowBounds, isVisibleOnAnyDisplay, setScreenForTesting } =
+	await import("./bounds-validation");
 const screen = mockScreen;
 
 const MIN_VISIBLE_OVERLAP = 50;
 const MIN_WINDOW_SIZE = 400;
+
+beforeEach(() => {
+	setScreenForTesting(screen);
+});
+
+afterAll(() => {
+	setScreenForTesting(null);
+	mock.restore();
+});
 
 describe("isVisibleOnAnyDisplay", () => {
 	describe("single display setup", () => {

@@ -1,16 +1,17 @@
 import { useEffect, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import { WorkspaceRunIndicator } from "renderer/screens/main/components/WorkspaceRunIndicator";
 import {
 	registerPaneRef,
 	unregisterPaneRef,
 } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
-import type { Tab } from "renderer/stores/tabs/types";
+import type { SplitPaneOptions, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
-import { BasePaneWindow, PaneToolbarActions } from "./components";
+import { BasePaneWindow, PaneTitle, PaneToolbarActions } from "./components";
 
 interface TabPaneProps {
 	paneId: string;
@@ -27,11 +28,13 @@ interface TabPaneProps {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	splitPaneVertical: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: SplitPaneOptions,
 	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
@@ -56,6 +59,10 @@ export function TabPane({
 }: TabPaneProps) {
 	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
 	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
+	const workspaceRun = useTabsStore((s) => s.panes[paneId]?.workspaceRun);
+	const setPaneName = useTabsStore((s) => s.setPaneName);
+	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
+	const equalizePaneSplits = useTabsStore((s) => s.equalizePaneSplits);
 
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
@@ -96,9 +103,17 @@ export function TabPane({
 			renderToolbar={(handlers) => (
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
-						<span className="truncate text-sm text-muted-foreground">
-							{paneName || "Terminal"}
-						</span>
+						{workspaceRun && (
+							<WorkspaceRunIndicator
+								state={workspaceRun.state}
+								variant="toolbar"
+							/>
+						)}
+						<PaneTitle
+							name={paneName ?? ""}
+							fallback="Terminal"
+							onRename={(newName) => setPaneName(paneId, newName)}
+						/>
 						{paneStatus && paneStatus !== "idle" && (
 							<StatusIndicator status={paneStatus} />
 						)}
@@ -115,11 +130,19 @@ export function TabPane({
 			<TabContentContextMenu
 				onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+				onSplitWithNewChat={() =>
+					splitPaneVertical(tabId, paneId, path, { paneType: "chat" })
+				}
+				onSplitWithNewBrowser={() =>
+					splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
+				}
+				onEqualizePaneSplits={() => equalizePaneSplits(tabId)}
 				onClosePane={() => removePane(paneId)}
 				onClearTerminal={handleClearTerminal}
 				onScrollToBottom={handleScrollToBottom}
 				getSelection={() => getGetSelectionCallback(paneId)?.() ?? ""}
 				onPaste={(text) => getPasteCallback(paneId)?.(text)}
+				onMarkAsUnread={() => setPaneStatus(paneId, "review")}
 				currentTabId={tabId}
 				availableTabs={availableTabs}
 				onMoveToTab={onMoveToTab}

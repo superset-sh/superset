@@ -1,0 +1,1 @@
+export { BoardContent } from "./BoardContent";

@@ -1,0 +1,1 @@
+export { FilesTabHeaderButton } from "./FilesTabHeaderButton";

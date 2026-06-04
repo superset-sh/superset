@@ -28,6 +28,7 @@ export const env = createEnv({
 
 	client: {
 		NEXT_PUBLIC_API_URL: z.string().url(),
+		NEXT_PUBLIC_RELAY_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_MARKETING_URL: z.string().url(),
 		NEXT_PUBLIC_DOCS_URL: z.string().url(),
@@ -37,12 +38,12 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])
 			.optional(),
-		NEXT_PUBLIC_OUTLIT_KEY: z.string(),
 	},
 
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
 		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+		NEXT_PUBLIC_RELAY_URL: process.env.NEXT_PUBLIC_RELAY_URL,
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		NEXT_PUBLIC_MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL,
 		NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
@@ -50,7 +51,6 @@ export const env = createEnv({
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
 		NEXT_PUBLIC_SENTRY_DSN_WEB: process.env.NEXT_PUBLIC_SENTRY_DSN_WEB,
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
-		NEXT_PUBLIC_OUTLIT_KEY: process.env.NEXT_PUBLIC_OUTLIT_KEY,
 	},
 
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

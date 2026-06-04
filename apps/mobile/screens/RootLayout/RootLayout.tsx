@@ -1,7 +1,7 @@
-import { ThemeProvider } from "@react-navigation/native";
 import { PortalHost } from "@rn-primitives/portal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { ThemeProvider } from "expo-router/react-navigation";
 import { Uniwind } from "uniwind";
 import { useSession } from "@/lib/auth/client";
 import { NAV_THEME } from "@/lib/theme";

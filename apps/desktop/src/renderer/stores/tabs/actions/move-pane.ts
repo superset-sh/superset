@@ -1,11 +1,18 @@
-import type { MosaicNode } from "react-mosaic-component";
-import type { Pane, Tab, TabsState } from "../types";
+import {
+	getNodeAtPath,
+	type MosaicBranch,
+	type MosaicNode,
+	updateTree,
+} from "react-mosaic-component";
+import type { MosaicDropPosition, Pane, Tab, TabsState } from "../types";
 import {
 	addPaneToLayout,
+	cleanLayout,
 	extractPaneIdsFromLayout,
 	generateId,
 	generateTabName,
 	getFirstPaneId,
+	getPaneIdSetForTab,
 	isLastPaneInTab,
 	removePaneFromLayout,
 	updateHistoryStack,
@@ -85,6 +92,102 @@ export function movePaneToTab(
 				state.activeTabIds[workspaceId] ?? null,
 				targetTabId,
 				isLastPane ? sourceTab.id : undefined,
+			),
+		},
+	};
+}
+
+export function mergeTabIntoTab(
+	state: TabsState,
+	sourceTabId: string,
+	targetTabId: string,
+	destinationPath: MosaicBranch[],
+	position: MosaicDropPosition,
+): MovePaneResult | null {
+	const sourceTab = state.tabs.find((t) => t.id === sourceTabId);
+	const targetTab = state.tabs.find((t) => t.id === targetTabId);
+	if (
+		!sourceTab ||
+		!targetTab ||
+		sourceTabId === targetTabId ||
+		sourceTab.workspaceId !== targetTab.workspaceId
+	)
+		return null;
+
+	// Clean layouts to match what Mosaic actually rendered (drop paths come from the cleaned tree)
+	const sourceValidIds = getPaneIdSetForTab(state.panes, sourceTabId);
+	const targetValidIds = getPaneIdSetForTab(state.panes, targetTabId);
+	const cleanedSourceLayout = cleanLayout(sourceTab.layout, sourceValidIds);
+	const cleanedTargetLayout = cleanLayout(targetTab.layout, targetValidIds);
+	if (!cleanedSourceLayout || !cleanedTargetLayout) return null;
+
+	// Invariant: every pane owned by the source tab should be in its layout.
+	// If not, there's a bug elsewhere — abort rather than inventing cleanup.
+	const sourcePaneIds = extractPaneIdsFromLayout(cleanedSourceLayout);
+	if (sourcePaneIds.length !== sourceValidIds.size) {
+		console.warn(
+			"[mergeTabIntoTab] Source tab has orphaned panes — aborting merge",
+		);
+		return null;
+	}
+
+	// Guard: ensure no source pane already exists in the target layout
+	const targetPaneIds = new Set(extractPaneIdsFromLayout(cleanedTargetLayout));
+	if (sourcePaneIds.some((id) => targetPaneIds.has(id))) return null;
+
+	// Build the split node at the destination path using the drop position
+	const destinationNode = getNodeAtPath(cleanedTargetLayout, destinationPath);
+	if (destinationNode === undefined || destinationNode === null) return null;
+
+	const direction =
+		position === "left" || position === "right" ? "row" : "column";
+	const isFirst = position === "left" || position === "top";
+
+	const splitNode: MosaicNode<string> = {
+		direction,
+		first: isFirst ? cleanedSourceLayout : destinationNode,
+		second: isFirst ? destinationNode : cleanedSourceLayout,
+		splitPercentage: 50,
+	};
+
+	const newTargetLayout =
+		destinationPath.length === 0
+			? splitNode
+			: updateTree(cleanedTargetLayout, [
+					{ path: destinationPath, spec: { $set: splitNode } },
+				]);
+
+	// Reassign source panes to the target tab
+	const newPanes = { ...state.panes };
+	for (const paneId of sourcePaneIds) {
+		newPanes[paneId] = { ...newPanes[paneId], tabId: targetTabId };
+	}
+
+	// Remove source tab, update target tab layout
+	const newTabs = state.tabs
+		.filter((t) => t.id !== sourceTabId)
+		.map((t) => (t.id === targetTabId ? { ...t, layout: newTargetLayout } : t));
+
+	const workspaceId = sourceTab.workspaceId;
+	const newFocusedPaneIds = { ...state.focusedPaneIds };
+	delete newFocusedPaneIds[sourceTabId];
+	// Keep the target tab's existing focus; only set if it doesn't have one
+	if (!newFocusedPaneIds[targetTabId]) {
+		newFocusedPaneIds[targetTabId] = getFirstPaneId(cleanedSourceLayout);
+	}
+
+	return {
+		tabs: newTabs,
+		panes: newPanes,
+		activeTabIds: { ...state.activeTabIds, [workspaceId]: targetTabId },
+		focusedPaneIds: newFocusedPaneIds,
+		tabHistoryStacks: {
+			...state.tabHistoryStacks,
+			[workspaceId]: updateHistoryStack(
+				state.tabHistoryStacks[workspaceId] || [],
+				state.activeTabIds[workspaceId] ?? null,
+				targetTabId,
+				sourceTabId,
 			),
 		},
 	};

@@ -1,0 +1,42 @@
+name: Merge macOS Auto-Update Manifests
+description: >
+  Downloads arm64 and x64 macOS update manifests from separate build artifacts
+  and merges them into a single latest-mac.yml with entries for both architectures.
+  arm64 is used as the canonical base (path/sha512).
+
+inputs:
+  artifact-prefix:
+    description: "Artifact name prefix (e.g., 'desktop' or 'desktop-canary')"
+    required: true
+  artifacts-path:
+    description: "Path to the release artifacts directory"
+    required: false
+    default: release-artifacts
+  extra-manifest-names:
+    description: "Comma-separated list of additional manifest filenames to write (e.g., 'canary-mac.yml')"
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Download arm64 macOS update manifest
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact-prefix }}-mac-arm64-update-manifest
+        path: manifests/arm64
+
+    - name: Download x64 macOS update manifest
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact-prefix }}-mac-x64-update-manifest
+        path: manifests/x64
+
+    - name: Merge macOS auto-update manifests
+      shell: bash
+      run: |
+        node .github/actions/merge-mac-manifests/merge-mac-manifests.mjs \
+          --arm64-dir manifests/arm64 \
+          --x64-dir manifests/x64 \
+          --output "${{ inputs.artifacts-path }}/latest-mac.yml" \
+          --extra-manifest-names "${{ inputs.extra-manifest-names }}"

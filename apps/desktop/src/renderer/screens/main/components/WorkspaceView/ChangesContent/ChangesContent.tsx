@@ -1,10 +1,17 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
+import {
+	RightSidebarTab,
+	useSidebarStore,
+} from "renderer/stores/sidebar-state";
 import { InfiniteScrollView } from "./components/InfiniteScrollView";
 
 export function ChangesContent() {
 	const { workspaceId } = useParams({ strict: false });
+	const isChangesSidebarVisible = useSidebarStore(
+		(s) => s.isSidebarOpen && s.rightSidebarTab === RightSidebarTab.Changes,
+	);
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
@@ -13,8 +20,8 @@ export function ChangesContent() {
 
 	const { status, isLoading, effectiveBaseBranch } = useGitChangesStatus({
 		worktreePath,
-		refetchInterval: 2500,
-		refetchOnWindowFocus: true,
+		refetchInterval: isChangesSidebarVisible ? undefined : 2500,
+		refetchOnWindowFocus: !isChangesSidebarVisible,
 	});
 
 	if (!worktreePath) {

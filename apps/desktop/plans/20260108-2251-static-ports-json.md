@@ -1,5 +1,12 @@
 # Static Ports Configuration via ports.json
 
+> Superseded semantics: this plan documents the original static-port replacement
+> design. Current behavior treats `.superset/ports.json` as supplemental label
+> metadata only: it names dynamically detected listening ports, but does not
+> create port rows, hide unlabeled ports, or replace dynamic discovery. See
+> `plans/20260422-v2-remote-ports.md` and `apps/docs/content/docs/ports.mdx`
+> for the current contract.
+
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Reference: This plan follows conventions from AGENTS.md and the ExecPlan template at `.agents/commands/create-plan.md`.

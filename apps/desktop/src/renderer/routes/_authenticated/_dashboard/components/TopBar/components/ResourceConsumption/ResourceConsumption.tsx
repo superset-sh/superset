@@ -1,72 +1,343 @@
+import type { WorkspaceState } from "@superset/panes";
+import { Button } from "@superset/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { cn } from "@superset/ui/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	HiOutlineArrowPath,
-	HiOutlineChevronDown,
-	HiOutlineChevronRight,
+	HiOutlineBarsArrowDown,
 	HiOutlineCpuChip,
 } from "react-icons/hi2";
+import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	logStressEvent,
+	useRenderStressInstrumentation,
+} from "renderer/lib/performance/stress-instrumentation";
+import {
+	navigateToWorkspace as navigateToV1Workspace,
+	navigateToV2Workspace,
+} from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { AppResourceSection } from "./components/AppResourceSection";
+import { MetricBadge } from "./components/MetricBadge";
+import { WorkspaceResourceSection } from "./components/WorkspaceResourceSection";
+import {
+	getResourceMonitorRefetchInterval,
+	shouldQueryResourceMonitor,
+} from "./resourceConsumptionPolicy";
+import type { SessionMetrics, SortOption, UsageValues } from "./types";
+import { formatCpu, formatMemory, formatPercent } from "./utils/formatters";
+import { normalizeResourceMetricsSnapshot } from "./utils/normalizeSnapshot";
+import { getTrackedHostMemorySeverity } from "./utils/resourceSeverity";
 
-function formatMemory(bytes: number): string {
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-	if (bytes < 1024 * 1024 * 1024)
-		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-	return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+const SORT_LABELS: Record<SortOption, string> = {
+	memory: "Memory",
+	cpu: "CPU",
+	name: "Name",
+	sidebar: "Sidebar order",
+};
+
+function getTotalUsage(
+	cpu: number | undefined,
+	memory: number | undefined,
+): UsageValues {
+	return {
+		cpu: cpu ?? 0,
+		memory: memory ?? 0,
+	};
 }
 
-function formatCpu(percent: number): string {
-	return `${percent.toFixed(1)}%`;
+function getTrackedMemorySharePercent(
+	totalMemory: number,
+	hostTotalMemory: number,
+): number {
+	if (hostTotalMemory <= 0) return 0;
+	return (totalMemory / hostTotalMemory) * 100;
 }
 
-const METRIC_COLS = "flex items-center shrink-0 tabular-nums";
-const CPU_COL = "w-12 text-right";
-const MEM_COL = "w-16 text-right";
+function getTerminalIdFromPaneData(data: unknown): string | null {
+	if (!data || typeof data !== "object") return null;
+	const terminalId = (data as { terminalId?: unknown }).terminalId;
+	return typeof terminalId === "string" && terminalId.length > 0
+		? terminalId
+		: null;
+}
 
-export function ResourceConsumption() {
+function getTerminalTitleOverrides(
+	rows: Array<{ paneLayout: unknown }>,
+): Map<string, string> {
+	const overrides = new Map<string, string>();
+	for (const row of rows) {
+		const layout = row.paneLayout as WorkspaceState<unknown> | undefined;
+		if (!Array.isArray(layout?.tabs)) continue;
+		for (const tab of layout.tabs) {
+			if (!tab.panes || typeof tab.panes !== "object") continue;
+			for (const pane of Object.values(tab.panes)) {
+				if (pane.kind !== "terminal" || !pane.titleOverride) continue;
+				const terminalId = getTerminalIdFromPaneData(pane.data);
+				if (terminalId && !overrides.has(terminalId)) {
+					overrides.set(terminalId, pane.titleOverride);
+				}
+			}
+		}
+	}
+	return overrides;
+}
+
+interface ResourceConsumptionProps {
+	surface?: "v1" | "v2";
+	className?: string;
+}
+
+export function ResourceConsumption({
+	surface = "v1",
+	className,
+}: ResourceConsumptionProps) {
 	const [open, setOpen] = useState(false);
+	const { data: enabled } =
+		electronTrpc.settings.getShowResourceMonitor.useQuery();
+
+	useRenderStressInstrumentation("ResourceConsumptionTrigger", {
+		warnAt: 25,
+		getDetails: () => ({ open, surface }),
+	});
+
+	if (!enabled) return null;
+
+	return (
+		<Popover open={open} onOpenChange={setOpen}>
+			<Tooltip delayDuration={150}>
+				<TooltipTrigger asChild>
+					<PopoverTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon-xs"
+							aria-label="Resource consumption"
+							className={cn(
+								"no-drag relative text-muted-foreground hover:text-foreground",
+								className,
+							)}
+						>
+							<HiOutlineCpuChip className="size-3.5" />
+						</Button>
+					</PopoverTrigger>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" sideOffset={6} showArrow={false}>
+					Resources
+				</TooltipContent>
+			</Tooltip>
+
+			{open && (
+				<ResourceConsumptionContent
+					surface={surface}
+					onClose={() => setOpen(false)}
+				/>
+			)}
+		</Popover>
+	);
+}
+
+interface ResourceConsumptionContentProps {
+	surface: "v1" | "v2";
+	onClose: () => void;
+}
+
+function ResourceConsumptionContent({
+	surface,
+	onClose,
+}: ResourceConsumptionContentProps) {
+	const [sortOption, setSortOption] = useState<SortOption>("memory");
+	const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(
+		new Set(),
+	);
 	const [collapsedWorkspaces, setCollapsedWorkspaces] = useState<Set<string>>(
 		new Set(),
 	);
-	const navigate = useNavigate();
-	const panes = useTabsStore((s) => s.panes);
-	const setActiveTab = useTabsStore((s) => s.setActiveTab);
-	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 
-	const { data: enabled } =
-		electronTrpc.settings.getShowResourceMonitor.useQuery();
+	const navigate = useNavigate();
+	const panes = useTabsStore((state) => state.panes);
+	const setActiveTab = useTabsStore((state) => state.setActiveTab);
+	const setFocusedPane = useTabsStore((state) => state.setFocusedPane);
+	const collections = useCollections();
+	const isV2 = surface === "v2";
+	const { data: session } = authClient.useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? undefined;
+
+	useRenderStressInstrumentation("ResourceConsumptionContent", {
+		warnAt: 25,
+		getDetails: () => ({ surface }),
+	});
+
+	const { data: rawSidebarProjects = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ sp: collections.v2SidebarProjects })
+				.orderBy(({ sp }) => sp.tabOrder, "asc")
+				.select(({ sp }) => ({ projectId: sp.projectId })),
+		[collections],
+	);
+
+	const { data: rawSidebarWorkspaces = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ ws: collections.v2WorkspaceLocalState })
+				.orderBy(({ ws }) => ws.sidebarState.tabOrder, "asc")
+				.select(({ ws }) => ({
+					workspaceId: ws.workspaceId,
+					isHidden: ws.sidebarState.isHidden,
+					paneLayout: ws.paneLayout,
+				})),
+		[collections],
+	);
+
+	const sidebarProjectOrder = useMemo(
+		() => rawSidebarProjects.map((p) => p.projectId),
+		[rawSidebarProjects],
+	);
+
+	const sidebarWorkspaceOrder = useMemo(
+		() =>
+			getVisibleSidebarWorkspaces(rawSidebarWorkspaces).map(
+				(w) => w.workspaceId,
+			),
+		[rawSidebarWorkspaces],
+	);
+
+	const terminalTitleOverrides = useMemo(
+		() => getTerminalTitleOverrides(rawSidebarWorkspaces),
+		[rawSidebarWorkspaces],
+	);
+
+	const { data: rawV2Projects = [] } = useLiveQuery(
+		(q) =>
+			q.from({ project: collections.v2Projects }).select(({ project }) => ({
+				id: project.id,
+				name: project.name,
+			})),
+		[collections],
+	);
+
+	const { data: rawV2Workspaces = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ workspace: collections.v2Workspaces })
+				.select(({ workspace }) => ({
+					id: workspace.id,
+					projectId: workspace.projectId,
+					name: workspace.name,
+				})),
+		[collections],
+	);
+
+	const shouldQueryMetrics = shouldQueryResourceMonitor({
+		enabled: true,
+		open: true,
+	});
 
 	const {
 		data: snapshot,
 		refetch,
 		isFetching,
-	} = electronTrpc.resourceMetrics.getSnapshot.useQuery(undefined, {
-		enabled: enabled === true,
-		refetchInterval: open ? 2000 : false,
-	});
+	} = electronTrpc.resourceMetrics.getSnapshot.useQuery(
+		{
+			mode: "interactive",
+			surface,
+			organizationId,
+		},
+		{
+			enabled: shouldQueryMetrics,
+			refetchInterval: getResourceMonitorRefetchInterval(true),
+		},
+	);
 
-	if (!enabled) return null;
+	useEffect(() => {
+		if (!isFetching) return;
+		logStressEvent("resource-monitor.fetch", { surface });
+	}, [isFetching, surface]);
 
-	const getPaneName = (paneId: string): string => {
-		const pane = panes[paneId];
-		return pane?.name || `Pane ${paneId.slice(0, 6)}`;
+	const normalizedSnapshot = useMemo(() => {
+		const normalized = normalizeResourceMetricsSnapshot(snapshot);
+		if (!normalized || !isV2) return normalized;
+
+		const projectById = new Map(
+			rawV2Projects.map((project) => [project.id, project]),
+		);
+		const workspaceById = new Map(
+			rawV2Workspaces.map((workspace) => [workspace.id, workspace]),
+		);
+
+		return {
+			...normalized,
+			workspaces: normalized.workspaces.map((workspace) => {
+				const v2Workspace = workspaceById.get(workspace.workspaceId);
+				const projectId = v2Workspace?.projectId ?? workspace.projectId;
+				const project = projectById.get(projectId);
+				return {
+					...workspace,
+					projectId,
+					projectName: project?.name ?? workspace.projectName,
+					workspaceName: v2Workspace?.name ?? workspace.workspaceName,
+					sessions: workspace.sessions.map((session) => ({
+						...session,
+						title:
+							terminalTitleOverrides.get(session.paneId) ??
+							session.title ??
+							null,
+					})),
+				};
+			}),
+		};
+	}, [snapshot, isV2, rawV2Projects, rawV2Workspaces, terminalTitleOverrides]);
+
+	const getPaneName = (session: SessionMetrics): string => {
+		if (isV2) {
+			return session.title ?? `Terminal ${session.sessionId.slice(0, 8)}`;
+		}
+		const pane = panes[session.paneId];
+		return pane?.name || `Pane ${session.paneId.slice(0, 6)}`;
 	};
 
 	const navigateToWorkspace = (workspaceId: string) => {
-		navigate({ to: `/workspace/${workspaceId}` });
-		setOpen(false);
+		if (isV2) {
+			void navigateToV2Workspace(workspaceId, navigate);
+		} else {
+			void navigateToV1Workspace(workspaceId, navigate);
+		}
+		onClose();
 	};
 
 	const navigateToPane = (workspaceId: string, paneId: string) => {
+		if (isV2) {
+			void navigateToV2Workspace(workspaceId, navigate, {
+				search: {
+					terminalId: paneId,
+					focusRequestId: crypto.randomUUID(),
+				},
+			});
+			onClose();
+			return;
+		}
+
 		const pane = panes[paneId];
 		if (pane) {
 			setActiveTab(workspaceId, pane.tabId);
 			setFocusedPane(pane.tabId, paneId);
 		}
-		navigate({ to: `/workspace/${workspaceId}` });
-		setOpen(false);
+		void navigateToV1Workspace(workspaceId, navigate);
+		onClose();
 	};
 
 	const toggleWorkspace = (workspaceId: string) => {
@@ -81,189 +352,174 @@ export function ResourceConsumption() {
 		});
 	};
 
+	const toggleProject = (projectId: string) => {
+		setCollapsedProjects((prev) => {
+			const next = new Set(prev);
+			if (next.has(projectId)) {
+				next.delete(projectId);
+			} else {
+				next.add(projectId);
+			}
+			return next;
+		});
+	};
+
+	const totalUsage = getTotalUsage(
+		normalizedSnapshot?.totalCpu,
+		normalizedSnapshot?.totalMemory,
+	);
+
+	const trackedMemorySharePercent = normalizedSnapshot
+		? getTrackedMemorySharePercent(
+				normalizedSnapshot.totalMemory,
+				normalizedSnapshot.host.totalMemory,
+			)
+		: 0;
+
+	const hostShareSeverity = getTrackedHostMemorySeverity(
+		trackedMemorySharePercent,
+	);
+	const shareBarColorClass =
+		hostShareSeverity === "high"
+			? "bg-red-500/80"
+			: hostShareSeverity === "elevated"
+				? "bg-amber-500/80"
+				: "bg-foreground/40";
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
-					aria-label="Resource consumption"
-				>
-					<HiOutlineCpuChip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-					{snapshot && (
-						<span className="text-xs text-muted-foreground font-medium tabular-nums">
-							{formatMemory(snapshot.totalMemory)}
-						</span>
-					)}
-				</button>
-			</PopoverTrigger>
-			<PopoverContent align="start" className="w-80 p-0">
-				<div className="p-3 border-b border-border">
-					<div className="flex items-center justify-between">
-						<h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-							Resource Usage
-						</h4>
+		<PopoverContent align="start" className="w-[28rem] p-0 overflow-hidden">
+			<div className="px-3.5 pt-3 pb-3 border-b border-border/60">
+				<div className="flex items-center justify-between">
+					<h4 className="text-[13px] font-medium tracking-tight text-foreground">
+						Resources
+					</h4>
+					<div className="flex items-center gap-0.5">
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									className="flex items-center gap-1 h-6 px-1.5 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
+									aria-label="Sort workspaces"
+								>
+									<HiOutlineBarsArrowDown className="h-3.5 w-3.5" />
+									<span>{SORT_LABELS[sortOption]}</span>
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="w-40">
+								<DropdownMenuRadioGroup
+									value={sortOption}
+									onValueChange={(value) => setSortOption(value as SortOption)}
+								>
+									<DropdownMenuRadioItem value="memory">
+										Memory
+									</DropdownMenuRadioItem>
+									<DropdownMenuRadioItem value="cpu">CPU</DropdownMenuRadioItem>
+									<DropdownMenuRadioItem value="name">
+										Name
+									</DropdownMenuRadioItem>
+									<DropdownMenuRadioItem value="sidebar">
+										Sidebar order
+									</DropdownMenuRadioItem>
+								</DropdownMenuRadioGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
 						<button
 							type="button"
 							onClick={() => refetch()}
-							className="p-0.5 rounded hover:bg-muted transition-colors"
+							className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
 							aria-label="Refresh metrics"
 						>
 							<HiOutlineArrowPath
-								className={`h-3.5 w-3.5 text-muted-foreground ${isFetching ? "animate-spin" : ""}`}
+								className={cn("h-3.5 w-3.5", isFetching && "animate-spin")}
 							/>
 						</button>
 					</div>
-					{snapshot && (
-						<div className="mt-2 flex items-center gap-4">
-							<MetricBadge label="CPU" value={formatCpu(snapshot.totalCpu)} />
+				</div>
+
+				{normalizedSnapshot && (
+					<>
+						<div className="mt-3 grid grid-cols-3 divide-x divide-border/50">
+							<MetricBadge
+								label="CPU"
+								value={formatCpu(normalizedSnapshot.totalCpu)}
+								tooltip="Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
+							/>
 							<MetricBadge
 								label="Memory"
-								value={formatMemory(snapshot.totalMemory)}
+								value={formatMemory(normalizedSnapshot.totalMemory)}
+								tooltip="Resident memory used by Superset and monitored terminal process trees. If this keeps climbing without dropping, a workspace process may be retaining memory. High values increase swap risk and can cause stutter."
+							/>
+							<MetricBadge
+								label="RAM Share"
+								value={formatPercent(trackedMemorySharePercent)}
+								tooltip="Percent of total system RAM used by monitored Superset resources only (not all apps). A high share means Superset is a major contributor to system memory pressure; a low share means pressure is likely elsewhere."
 							/>
 						</div>
-					)}
-				</div>
-
-				<div className="max-h-[50vh] overflow-y-auto">
-					{snapshot && (
-						<div className="border-b border-border/50">
-							<div className="px-3 py-2 flex items-center justify-between">
-								<span className="text-xs font-medium min-w-0 truncate">
-									Superset App
-								</span>
-								<div className={`${METRIC_COLS} text-xs text-muted-foreground`}>
-									<span className={CPU_COL}>{formatCpu(snapshot.app.cpu)}</span>
-									<span className={MEM_COL}>
-										{formatMemory(snapshot.app.memory)}
-									</span>
-								</div>
-							</div>
-							<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
-								<span className="text-[11px] text-muted-foreground min-w-0 truncate">
-									Main
-								</span>
+						<Tooltip delayDuration={150}>
+							<TooltipTrigger asChild>
 								<div
-									className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
+									className="mt-3 h-1 w-full overflow-hidden rounded-full bg-muted/60"
+									role="progressbar"
+									aria-label="System RAM share"
+									aria-valuenow={Math.round(trackedMemorySharePercent)}
+									aria-valuemin={0}
+									aria-valuemax={100}
 								>
-									<span className={CPU_COL}>
-										{formatCpu(snapshot.app.main.cpu)}
-									</span>
-									<span className={MEM_COL}>
-										{formatMemory(snapshot.app.main.memory)}
-									</span>
+									<div
+										className={cn(
+											"h-full rounded-full transition-[width] duration-300",
+											shareBarColorClass,
+										)}
+										style={{
+											width: `${Math.min(100, Math.max(0, trackedMemorySharePercent))}%`,
+										}}
+									/>
 								</div>
-							</div>
-							<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
-								<span className="text-[11px] text-muted-foreground min-w-0 truncate">
-									Renderer
-								</span>
-								<div
-									className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
-								>
-									<span className={CPU_COL}>
-										{formatCpu(snapshot.app.renderer.cpu)}
-									</span>
-									<span className={MEM_COL}>
-										{formatMemory(snapshot.app.renderer.memory)}
-									</span>
-								</div>
-							</div>
-						</div>
-					)}
+							</TooltipTrigger>
+							<TooltipContent side="bottom" sideOffset={6} showArrow={false}>
+								Superset uses {formatPercent(trackedMemorySharePercent)} of
+								system RAM
+							</TooltipContent>
+						</Tooltip>
+					</>
+				)}
+			</div>
 
-					{snapshot?.workspaces.map((ws) => {
-						const isCollapsed = collapsedWorkspaces.has(ws.workspaceId);
-						return (
-							<div
-								key={ws.workspaceId}
-								className="border-b border-border/50 last:border-b-0"
-							>
-								<div className="flex items-center">
-									{ws.sessions.length > 0 && (
-										<button
-											type="button"
-											onClick={() => toggleWorkspace(ws.workspaceId)}
-											className="pl-2 py-2 pr-0.5 hover:bg-muted/50 transition-colors"
-											aria-label={
-												isCollapsed ? "Expand workspace" : "Collapse workspace"
-											}
-										>
-											{isCollapsed ? (
-												<HiOutlineChevronRight className="h-3 w-3 text-muted-foreground" />
-											) : (
-												<HiOutlineChevronDown className="h-3 w-3 text-muted-foreground" />
-											)}
-										</button>
-									)}
-									<button
-										type="button"
-										onClick={() => navigateToWorkspace(ws.workspaceId)}
-										className={`flex-1 min-w-0 py-2 pr-3 flex items-center justify-between hover:bg-muted/50 transition-colors ${ws.sessions.length > 0 ? "pl-1" : "pl-3"}`}
-									>
-										<span className="text-xs font-medium truncate min-w-0 mr-2">
-											{ws.workspaceName}
-										</span>
-										<div
-											className={`${METRIC_COLS} text-xs text-muted-foreground`}
-										>
-											<span className={CPU_COL}>{formatCpu(ws.cpu)}</span>
-											<span className={MEM_COL}>{formatMemory(ws.memory)}</span>
-										</div>
-									</button>
-								</div>
+			<div className="max-h-[50vh] overflow-y-auto">
+				{normalizedSnapshot && (
+					<AppResourceSection
+						app={normalizedSnapshot.app}
+						totalUsage={totalUsage}
+					/>
+				)}
 
-								{!isCollapsed &&
-									ws.sessions.map((session) => (
-										<button
-											type="button"
-											key={session.sessionId}
-											onClick={() =>
-												navigateToPane(ws.workspaceId, session.paneId)
-											}
-											className="w-full px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30 hover:bg-muted/60 transition-colors"
-										>
-											<span className="text-[11px] text-muted-foreground truncate min-w-0 mr-2">
-												{getPaneName(session.paneId)}
-											</span>
-											<div
-												className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
-											>
-												<span className={CPU_COL}>
-													{formatCpu(session.cpu)}
-												</span>
-												<span className={MEM_COL}>
-													{formatMemory(session.memory)}
-												</span>
-											</div>
-										</button>
-									))}
-							</div>
-						);
-					})}
+				{normalizedSnapshot && (
+					<WorkspaceResourceSection
+						workspaces={normalizedSnapshot.workspaces}
+						sortOption={sortOption}
+						sidebarProjectOrder={sidebarProjectOrder}
+						sidebarWorkspaceOrder={sidebarWorkspaceOrder}
+						collapsedProjects={collapsedProjects}
+						toggleProject={toggleProject}
+						collapsedWorkspaces={collapsedWorkspaces}
+						toggleWorkspace={toggleWorkspace}
+						navigateToWorkspace={navigateToWorkspace}
+						navigateToPane={navigateToPane}
+						getPaneName={getPaneName}
+					/>
+				)}
 
-					{snapshot && snapshot.workspaces.length === 0 && (
-						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
-							No active terminal sessions
-						</div>
-					)}
+				{normalizedSnapshot && normalizedSnapshot.workspaces.length === 0 && (
+					<div className="px-3.5 py-6 text-center text-[11px] text-muted-foreground">
+						No active terminal sessions
+					</div>
+				)}
 
-					{!snapshot && (
-						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
-							Loading...
-						</div>
-					)}
-				</div>
-			</PopoverContent>
-		</Popover>
-	);
-}
-
-function MetricBadge({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="flex items-center gap-1.5">
-			<span className="text-xs text-muted-foreground">{label}</span>
-			<span className="text-sm font-medium tabular-nums">{value}</span>
-		</div>
+				{!normalizedSnapshot && (
+					<div className="px-3.5 py-6 text-center text-[11px] text-muted-foreground">
+						Loading…
+					</div>
+				)}
+			</div>
+		</PopoverContent>
 	);
 }

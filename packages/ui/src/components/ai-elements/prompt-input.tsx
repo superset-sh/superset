@@ -34,6 +34,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { isEnterSubmit } from "../../lib/keyboard";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
@@ -78,6 +79,7 @@ export type AttachmentsContext = {
 	files: (FileUIPart & { id: string })[];
 	add: (files: File[] | FileList) => void;
 	setFiles: (files: FileUIPart[]) => void;
+	takeFiles: () => (FileUIPart & { id: string })[];
 	remove: (id: string) => void;
 	clear: () => void;
 	openFileDialog: () => void;
@@ -88,6 +90,7 @@ export type TextInputContext = {
 	value: string;
 	setInput: (v: string) => void;
 	clear: () => void;
+	focus: () => void;
 };
 
 export type PromptInputControllerProps = {
@@ -98,6 +101,10 @@ export type PromptInputControllerProps = {
 		ref: RefObject<HTMLInputElement | null>,
 		open: () => void,
 	) => void;
+	/** INTERNAL: Allows PromptInputTextarea to register its ref for instance-scoped focus */
+	__registerTextarea: (ref: RefObject<HTMLTextAreaElement | null>) => void;
+	/** INTERNAL: Allows TiptapPromptEditor (or similar) to override focus behavior */
+	__registerFocusCallback: (cb: (() => void) | null) => void;
 };
 
 const PromptInputController = createContext<PromptInputControllerProps | null>(
@@ -149,6 +156,29 @@ export function PromptInputProvider({
 	// ----- textInput state
 	const [textInput, setTextInput] = useState(initialTextInput);
 	const clearInput = useCallback(() => setTextInput(""), []);
+	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+	const focusCallbackRef = useRef<(() => void) | null>(null);
+	const focus = useCallback(() => {
+		// Prefer a registered focus callback (e.g., from TiptapPromptEditor)
+		if (focusCallbackRef.current) {
+			focusCallbackRef.current();
+			return;
+		}
+		const el = textareaRef.current;
+		if (!el) return;
+		el.focus();
+		const len = el.value.length;
+		el.setSelectionRange(len, len);
+	}, []);
+	const __registerTextarea = useCallback(
+		(ref: RefObject<HTMLTextAreaElement | null>) => {
+			textareaRef.current = ref.current;
+		},
+		[],
+	);
+	const __registerFocusCallback = useCallback((cb: (() => void) | null) => {
+		focusCallbackRef.current = cb;
+	}, []);
 
 	// ----- attachments state (global when wrapped)
 	const [attachmentFiles, setAttachmentFiles] = useState<
@@ -211,6 +241,16 @@ export function PromptInputProvider({
 		});
 	}, []);
 
+	const takeFiles = useCallback(() => {
+		const takenFiles = attachmentsRef.current;
+		attachmentsRef.current = [];
+		setAttachmentFiles([]);
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
+		}
+		return takenFiles;
+	}, []);
+
 	// Keep a ref to attachments for cleanup on unmount (avoids stale closure)
 	const attachmentsRef = useRef(attachmentFiles);
 	attachmentsRef.current = attachmentFiles;
@@ -235,12 +275,13 @@ export function PromptInputProvider({
 			files: attachmentFiles,
 			add,
 			setFiles,
+			takeFiles,
 			remove,
 			clear,
 			openFileDialog,
 			fileInputRef,
 		}),
-		[attachmentFiles, add, setFiles, remove, clear, openFileDialog],
+		[attachmentFiles, add, setFiles, takeFiles, remove, clear, openFileDialog],
 	);
 
 	const __registerFileInput = useCallback(
@@ -257,11 +298,22 @@ export function PromptInputProvider({
 				value: textInput,
 				setInput: setTextInput,
 				clear: clearInput,
+				focus,
 			},
 			attachments,
 			__registerFileInput,
+			__registerTextarea,
+			__registerFocusCallback,
 		}),
-		[textInput, clearInput, attachments, __registerFileInput],
+		[
+			textInput,
+			clearInput,
+			focus,
+			attachments,
+			__registerFileInput,
+			__registerTextarea,
+			__registerFocusCallback,
+		],
 	);
 
 	return (
@@ -294,11 +346,13 @@ export const usePromptInputAttachments = () => {
 
 export type PromptInputAttachmentProps = HTMLAttributes<HTMLDivElement> & {
 	data: FileUIPart & { id: string };
+	loading?: boolean;
 	className?: string;
 };
 
 export function PromptInputAttachment({
 	data,
+	loading,
 	className,
 	...props
 }: PromptInputAttachmentProps) {
@@ -360,14 +414,22 @@ export function PromptInputAttachment({
 			<PromptInputHoverCardContent className="w-auto p-2">
 				<div className="w-auto space-y-3">
 					{isImage && (
-						<div className="flex max-h-96 w-96 items-center justify-center overflow-hidden rounded-md border">
+						<div className="relative flex max-h-96 w-96 items-center justify-center overflow-hidden rounded-md border">
 							<img
 								alt={filename || "attachment preview"}
-								className="max-h-full max-w-full object-contain"
+								className={cn(
+									"max-h-full max-w-full object-contain",
+									loading && "opacity-50",
+								)}
 								height={384}
 								src={data.url}
 								width={448}
 							/>
+							{loading && (
+								<div className="absolute inset-0 flex items-center justify-center">
+									<Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+								</div>
+							)}
 						</div>
 					)}
 					<div className="flex items-center gap-2.5">
@@ -620,10 +682,23 @@ export const PromptInput = ({
 		});
 	}, []);
 
+	const takeFilesLocal = useCallback(() => {
+		const takenFiles = filesRef.current;
+		filesRef.current = [];
+		setItems([]);
+		if (inputRef.current) {
+			inputRef.current.value = "";
+		}
+		return takenFiles;
+	}, []);
+
 	const add = usingProvider ? controller.attachments.add : addLocal;
 	const setFiles = usingProvider
 		? controller.attachments.setFiles
 		: setLocalFiles;
+	const takeFiles = usingProvider
+		? controller.attachments.takeFiles
+		: takeFilesLocal;
 	const remove = usingProvider ? controller.attachments.remove : removeLocal;
 	const clear = usingProvider ? controller.attachments.clear : clearLocal;
 	const openFileDialog = usingProvider
@@ -737,12 +812,13 @@ export const PromptInput = ({
 			files: files.map((item) => ({ ...item, id: item.id })),
 			add,
 			setFiles,
+			takeFiles,
 			remove,
 			clear,
 			openFileDialog,
 			fileInputRef: inputRef,
 		}),
-		[files, add, setFiles, remove, clear, openFileDialog],
+		[files, add, setFiles, takeFiles, remove, clear, openFileDialog],
 	);
 
 	const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
@@ -895,15 +971,24 @@ export const PromptInputTextarea = ({
 	const controller = useOptionalPromptInputController();
 	const attachments = usePromptInputAttachments();
 	const [isComposing, setIsComposing] = useState(false);
+	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+	useEffect(() => {
+		if (controller) controller.__registerTextarea(textareaRef);
+	}, [controller]);
 
 	const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+		// Prevent modifier+arrow combos from bubbling to pane-navigation hotkeys
+		if (
+			(e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+			(e.metaKey || e.ctrlKey)
+		) {
+			e.stopPropagation();
+		}
+
 		if (e.key === "Enter") {
-			if (isComposing || e.nativeEvent.isComposing) {
-				return;
-			}
-			if (e.shiftKey) {
-				return;
-			}
+			if (isComposing) return;
+			if (!isEnterSubmit(e)) return;
 			e.preventDefault();
 
 			// Check if the submit button is disabled before submitting
@@ -977,6 +1062,7 @@ export const PromptInputTextarea = ({
 			onKeyDown={handleKeyDown}
 			onPaste={handlePaste}
 			placeholder={placeholder}
+			ref={textareaRef}
 			{...props}
 			{...controlledProps}
 		/>

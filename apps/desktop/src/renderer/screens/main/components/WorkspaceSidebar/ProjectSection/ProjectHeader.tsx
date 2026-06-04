@@ -18,19 +18,17 @@ import {
 	LuFolderOpen,
 	LuImage,
 	LuImageOff,
+	LuListPlus,
 	LuPalette,
 	LuPencil,
 	LuSettings,
 	LuX,
 } from "react-icons/lu";
+import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-} from "shared/constants/project-colors";
 import { STROKE_WIDTH } from "../constants";
 import { RenameInput } from "../RenameInput";
 import { CloseProjectDialog } from "./CloseProjectDialog";
@@ -75,7 +73,6 @@ export function ProjectHeader({
 
 	const closeProject = electronTrpc.projects.close.useMutation({
 		onMutate: async ({ id }) => {
-			// Check if we're viewing a workspace from this project BEFORE closing
 			let shouldNavigate = false;
 
 			if (params.workspaceId) {
@@ -84,8 +81,11 @@ export function ProjectHeader({
 						id: params.workspaceId,
 					});
 					shouldNavigate = currentWorkspace?.projectId === id;
-				} catch {
-					// Workspace might not exist, skip navigation
+				} catch (error) {
+					console.warn(
+						"[ProjectHeader] Failed to resolve current workspace before closing project",
+						error,
+					);
 				}
 			}
 
@@ -95,9 +95,7 @@ export function ProjectHeader({
 			utils.workspaces.getAllGrouped.invalidate();
 			utils.projects.getRecents.invalidate();
 
-			// Navigate away if we were viewing a workspace from the closed project
 			if (context?.shouldNavigate) {
-				// Find a workspace from a different project to navigate to
 				const groups = await utils.workspaces.getAllGrouped.fetch();
 				const otherWorkspace = groups
 					.flatMap((group) => group.workspaces)
@@ -106,7 +104,6 @@ export function ProjectHeader({
 				if (otherWorkspace) {
 					navigateToWorkspace(otherWorkspace.id, navigate);
 				} else {
-					// No other workspaces exist - go to workspace index
 					navigate({ to: "/workspace" });
 				}
 			}
@@ -137,7 +134,7 @@ export function ProjectHeader({
 	};
 
 	const handleOpenSettings = () => {
-		navigate({ to: "/settings/project/$projectId", params: { projectId } });
+		navigate({ to: "/settings/projects/$projectId", params: { projectId } });
 	};
 
 	const updateProject = useUpdateProject({
@@ -152,41 +149,32 @@ export function ProjectHeader({
 		updateProject.mutate({ id: projectId, patch: { hideImage: !hideImage } });
 	};
 
-	// Color picker submenu used in both collapsed and expanded context menus
+	const createSection = electronTrpc.workspaces.createSection.useMutation({
+		onSuccess: () => utils.workspaces.getAllGrouped.invalidate(),
+		onError: (error) =>
+			toast.error(`Failed to create section: ${error.message}`),
+	});
+
+	const handleNewSection = () => {
+		createSection.mutate({ projectId, name: "New Section" });
+	};
+
 	const colorPickerSubmenu = (
 		<ContextMenuSub>
 			<ContextMenuSubTrigger>
 				<LuPalette className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Set Color
 			</ContextMenuSubTrigger>
-			<ContextMenuSubContent className="w-36">
-				{PROJECT_COLORS.map((color) => {
-					const isDefault = color.value === PROJECT_COLOR_DEFAULT;
-					return (
-						<ContextMenuItem
-							key={color.value}
-							onSelect={() => handleColorChange(color.value)}
-							className="flex items-center gap-2"
-						>
-							<span
-								className={cn(
-									"size-3 rounded-full border",
-									isDefault ? "border-border bg-muted" : "border-border/50",
-								)}
-								style={isDefault ? undefined : { backgroundColor: color.value }}
-							/>
-							<span>{color.name}</span>
-							{projectColor === color.value && (
-								<span className="ml-auto text-xs text-muted-foreground">✓</span>
-							)}
-						</ContextMenuItem>
-					);
-				})}
+			<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
+				<ColorSelector
+					variant="menu"
+					selectedColor={projectColor}
+					onSelectColor={handleColorChange}
+				/>
 			</ContextMenuSubContent>
 		</ContextMenuSub>
 	);
 
-	// Collapsed sidebar: show just the thumbnail with tooltip and context menu
 	if (isSidebarCollapsed) {
 		return (
 			<>
@@ -208,6 +196,7 @@ export function ProjectHeader({
 										projectColor={projectColor}
 										githubOwner={githubOwner}
 										iconUrl={iconUrl}
+										hideImage={hideImage}
 									/>
 								</button>
 							</TooltipTrigger>
@@ -237,6 +226,10 @@ export function ProjectHeader({
 							Project Settings
 						</ContextMenuItem>
 						{colorPickerSubmenu}
+						<ContextMenuItem onSelect={handleNewSection}>
+							<LuListPlus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							New Section
+						</ContextMenuItem>
 						<ContextMenuSeparator />
 						<ContextMenuItem
 							onSelect={handleCloseProject}
@@ -273,7 +266,6 @@ export function ProjectHeader({
 							"hover:bg-muted/50 transition-colors",
 						)}
 					>
-						{/* Main clickable area */}
 						{rename.isRenaming ? (
 							<div className="flex items-center gap-2 flex-1 min-w-0 py-0.5">
 								<ProjectThumbnail
@@ -314,7 +306,6 @@ export function ProjectHeader({
 							</button>
 						)}
 
-						{/* Add workspace button */}
 						<Tooltip delayDuration={500}>
 							<TooltipTrigger asChild>
 								<button
@@ -334,7 +325,6 @@ export function ProjectHeader({
 							</TooltipContent>
 						</Tooltip>
 
-						{/* Collapse chevron */}
 						<button
 							type="button"
 							onClick={onToggleCollapse}
@@ -373,6 +363,10 @@ export function ProjectHeader({
 							<LuImageOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						)}
 						{hideImage ? "Show Image" : "Hide Image"}
+					</ContextMenuItem>
+					<ContextMenuItem onSelect={handleNewSection}>
+						<LuListPlus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						New Section
 					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem

@@ -6,9 +6,6 @@ import { FAQ_ITEMS } from "./components/FAQSection";
 import { HeroSection } from "./components/HeroSection";
 
 // Lazy load below-fold sections to reduce initial JS bundle (~304 KiB unused JS)
-const VideoSection = dynamic(() =>
-	import("./components/VideoSection").then((mod) => mod.VideoSection),
-);
 const TrustedBySection = dynamic(() =>
 	import("./components/TrustedBySection").then((mod) => mod.TrustedBySection),
 );
@@ -37,7 +34,6 @@ export default function Home() {
 			<FAQPageJsonLd items={FAQ_ITEMS} />
 			<HeroSection />
 			<TrustedBySection />
-			<VideoSection />
 			<FeaturesSection />
 			<WallOfLoveSection />
 			<FAQSection />

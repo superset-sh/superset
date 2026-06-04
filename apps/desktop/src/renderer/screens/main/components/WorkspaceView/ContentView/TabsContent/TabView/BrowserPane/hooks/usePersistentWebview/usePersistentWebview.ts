@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { requestPaneClose } from "renderer/stores/editor-state/editorCoordinator";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 // ---------------------------------------------------------------------------
@@ -25,6 +26,36 @@ function getHiddenContainer(): HTMLDivElement {
 	}
 	return hiddenContainer;
 }
+
+// ---------------------------------------------------------------------------
+// Disable webview interaction during ANY drag operation.
+// Electron <webview> tags create separate compositor layers that swallow
+// drag events before they reach the mosaic drop targets. Setting
+// pointer-events:none directly on the <webview> element tells the
+// compositor to stop routing events to the guest process.
+//
+// We use native HTML5 drag events (capture phase) rather than the drag pane
+// store because the store only covers mosaic pane drags — not tab-bar drags
+// or other drag sources.
+// ---------------------------------------------------------------------------
+
+function setWebviewsDragPassthrough(passthrough: boolean) {
+	for (const webview of webviewRegistry.values()) {
+		webview.style.pointerEvents = passthrough ? "none" : "";
+	}
+}
+
+window.addEventListener(
+	"dragstart",
+	() => setWebviewsDragPassthrough(true),
+	true,
+);
+window.addEventListener(
+	"dragend",
+	() => setWebviewsDragPassthrough(false),
+	true,
+);
+window.addEventListener("drop", () => setWebviewsDragPassthrough(false), true);
 
 /** Call from useBrowserLifecycle when a pane is removed. */
 export function destroyPersistentWebview(paneId: string): void {
@@ -95,6 +126,43 @@ export function usePersistentWebview({
 				const tab = state.tabs.find((t) => t.id === pane.tabId);
 				if (!tab) return;
 				state.openInBrowserPane(tab.workspaceId, url);
+			},
+		},
+	);
+
+	// Subscribe to context menu actions (e.g. "Open Link as New Split")
+	electronTrpc.browser.onContextMenuAction.useSubscription(
+		{ paneId },
+		{
+			onData: ({ action, url }: { action: string; url: string }) => {
+				if (action === "open-in-split") {
+					const state = useTabsStore.getState();
+					const pane = state.panes[paneId];
+					if (!pane) return;
+					const tab = state.tabs.find((t) => t.id === pane.tabId);
+					if (!tab) return;
+					state.openInBrowserPane(tab.workspaceId, url);
+				}
+			},
+		},
+	);
+
+	electronTrpc.browser.onClosePane.useSubscription(
+		{ paneId },
+		{
+			onData: () => {
+				requestPaneClose(paneId);
+			},
+		},
+	);
+
+	// Look up via webviewRegistry, not a captured ref — the registry may have
+	// re-registered the underlying webContents since this hook ran.
+	electronTrpc.browser.onReloadPane.useSubscription(
+		{ paneId },
+		{
+			onData: () => {
+				webviewRegistry.get(paneId)?.reload();
 			},
 		},
 	);

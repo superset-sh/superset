@@ -1,16 +1,26 @@
 import {
 	agentCommands,
+	automationRuns,
+	automations,
 	chatSessions,
 	devicePresence,
+	githubPullRequests,
+	githubRepositories,
 	integrationConnections,
 	invitations,
 	members,
 	organizations,
 	projects,
-	sessionHosts,
 	subscriptions,
 	taskStatuses,
 	tasks,
+	teamMembers,
+	teams,
+	v2Clients,
+	v2Hosts,
+	v2Projects,
+	v2UsersHosts,
+	v2Workspaces,
 	workspaces,
 } from "@superset/db/schema";
 import { eq, inArray, sql } from "drizzle-orm";
@@ -45,11 +55,32 @@ export function buildWhereClause(
 		case "projects":
 			return build(projects, projects.organizationId, organizationId);
 
+		case "v2_projects":
+			return build(v2Projects, v2Projects.organizationId, organizationId);
+
+		case "v2_hosts":
+			return build(v2Hosts, v2Hosts.organizationId, organizationId);
+
+		case "v2_clients":
+			return build(v2Clients, v2Clients.organizationId, organizationId);
+
+		case "v2_users_hosts":
+			return build(v2UsersHosts, v2UsersHosts.organizationId, organizationId);
+
+		case "v2_workspaces":
+			return build(v2Workspaces, v2Workspaces.organizationId, organizationId);
+
 		case "auth.members":
 			return build(members, members.organizationId, organizationId);
 
 		case "auth.invitations":
 			return build(invitations, invitations.organizationId, organizationId);
+
+		case "auth.teams":
+			return build(teams, teams.organizationId, organizationId);
+
+		case "auth.team_members":
+			return build(teamMembers, teamMembers.organizationId, organizationId);
 
 		case "auth.organizations": {
 			if (organizationIds.length === 0) {
@@ -70,7 +101,7 @@ export function buildWhereClause(
 		}
 
 		case "auth.users": {
-			const fragment = `$1 = ANY("organization_ids")`;
+			const fragment = `"organization_ids" @> ARRAY[$1::uuid]`;
 			return { fragment, params: [organizationId] };
 		}
 
@@ -85,7 +116,7 @@ export function buildWhereClause(
 			return build(agentCommands, agentCommands.organizationId, organizationId);
 
 		case "auth.apikeys": {
-			const fragment = `"metadata" LIKE '%"organizationId":"' || $1 || '"%'`;
+			const fragment = `"organization_id" = $1`;
 			return { fragment, params: [organizationId] };
 		}
 
@@ -105,8 +136,29 @@ export function buildWhereClause(
 		case "chat_sessions":
 			return build(chatSessions, chatSessions.organizationId, organizationId);
 
-		case "session_hosts":
-			return build(sessionHosts, sessionHosts.organizationId, organizationId);
+		case "github_repositories":
+			return build(
+				githubRepositories,
+				githubRepositories.organizationId,
+				organizationId,
+			);
+
+		case "github_pull_requests":
+			return build(
+				githubPullRequests,
+				githubPullRequests.organizationId,
+				organizationId,
+			);
+
+		case "automations":
+			return build(automations, automations.organizationId, organizationId);
+
+		case "automation_runs":
+			return build(
+				automationRuns,
+				automationRuns.organizationId,
+				organizationId,
+			);
 
 		default:
 			return null;

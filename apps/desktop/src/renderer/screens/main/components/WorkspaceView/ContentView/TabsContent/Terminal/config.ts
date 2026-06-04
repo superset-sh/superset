@@ -1,4 +1,9 @@
 import type { ITerminalOptions } from "@xterm/xterm";
+import {
+	DEFAULT_TERMINAL_FONT_FAMILY as SHARED_DEFAULT_TERMINAL_FONT_FAMILY,
+	DEFAULT_TERMINAL_FONT_SIZE as SHARED_DEFAULT_TERMINAL_FONT_SIZE,
+} from "renderer/lib/terminal/appearance";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
@@ -12,26 +17,10 @@ export const DEBUG_TERMINAL =
 	typeof localStorage !== "undefined" &&
 	localStorage.getItem("SUPERSET_TERMINAL_DEBUG") === "1";
 
-// Nerd Fonts first for shell theme compatibility (Oh My Posh, Powerlevel10k, etc.)
-export const DEFAULT_TERMINAL_FONT_FAMILY = [
-	"MesloLGM Nerd Font",
-	"MesloLGM NF",
-	"MesloLGS NF",
-	"MesloLGS Nerd Font",
-	"Hack Nerd Font",
-	"FiraCode Nerd Font",
-	"JetBrainsMono Nerd Font",
-	"CaskaydiaCove Nerd Font",
-	"Menlo",
-	"Monaco",
-	'"Courier New"',
-	// SF fonts for Apple tools (swift, xcodebuild) that use SF Symbols private use area characters
-	"SF Mono",
-	"SF Pro",
-	"monospace",
-].join(", ");
+// Shared terminal font defaults are serialized as a valid CSS font-family value.
+export const DEFAULT_TERMINAL_FONT_FAMILY = SHARED_DEFAULT_TERMINAL_FONT_FAMILY;
 
-export const DEFAULT_TERMINAL_FONT_SIZE = 14;
+export const DEFAULT_TERMINAL_FONT_SIZE = SHARED_DEFAULT_TERMINAL_FONT_SIZE;
 
 export const TERMINAL_OPTIONS: ITerminalOptions = {
 	cursorBlink: true,
@@ -39,12 +28,16 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
 	allowProposedApi: true,
-	scrollback: 2000,
+	scrollback: DEFAULT_TERMINAL_SCROLLBACK,
 	// Allow Option+key to type special characters on international keyboards (e.g., Option+2 = @)
 	macOptionIsMeta: false,
 	cursorStyle: "block",
 	cursorInactiveStyle: "outline",
+	vtExtensions: { kittyKeyboard: true },
 	screenReaderMode: false,
+	// xterm's fit addon permanently reserves scrollbar width from usable columns.
+	// Hide the built-in scrollbar so terminal content can use the full pane width.
+	scrollbar: {
+		showScrollbar: false,
+	},
 };
-
-export const RESIZE_DEBOUNCE_MS = 150;

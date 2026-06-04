@@ -41,13 +41,27 @@ Presets are parallel by default.
 
 ## Quick-Add Templates
 
-Pre-configured presets for popular AI agents:
+Pre-configured presets for popular AI agents. Defaults mirror the bundled Superset launch settings for each agent. Claude and Codex use their most permissive bypass flags; edit any preset to change its permission mode.
 
+- **amp** - `amp` (built-in permission rules auto-deny destructive ops)
 - **claude** - `claude --dangerously-skip-permissions`
-- **codex** - Full danger mode with high reasoning effort
-- **gemini** - `gemini --yolo`
-- **cursor-agent** - Cursor AI agent
-- **opencode** - Open-source AI coding agent
+- **codex** - `codex --dangerously-bypass-approvals-and-sandbox` (most permissive)
+- **gemini** - `gemini --approval-mode=auto_edit`
+- **copilot** - `copilot --allow-tool=write`
+- **cursor-agent** - `cursor-agent` (prompts for every action)
+- **mastracode** - Mastra's coding agent (opt-in: auto-approves all actions by default at the CLI; no startup flag to restrict)
+- **opencode** - Open-source AI coding agent (opt-in: full file and shell access by default at the CLI; no startup flag to restrict)
+- **pi** - Minimal terminal coding harness (opt-in: auto-approves all actions by default at the CLI; no startup flag to restrict)
+
+## Preset Bar
+
+The preset bar appears above terminal tabs and shows your pinned presets for one-click access.
+
+- **Pin a preset** - Use the pin control in **Settings → Terminal** or the preset bar menu
+- **Launch** - Click a pinned preset to open it in the current workspace
+- **Right-click** - Open in the current terminal, current tab, or a new tab, or edit the preset
+- **Reorder** - Drag pinned items to rearrange their order in the bar
+- **Manage** - Use the gear menu to browse presets, add quick-add templates, and show or hide the bar
 
 ## Default Preset
 

@@ -53,7 +53,10 @@ Brief description of the feature and its benefit to users.
 
 ---
 
-**Bug fixes:** Fixed issue with X <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />, resolved Y problem <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
+**Bug fixes**
+
+- Fixed issue with X <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
+- Resolved Y problem <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
 ```
 
 6. **Important formatting rules**
@@ -61,7 +64,8 @@ Brief description of the feature and its benefit to users.
    - MDX comments (`{/* ... */}`) must come AFTER the frontmatter, not before
    - Set `image:` in frontmatter to `/changelog/IMAGE_PLACEHOLDER.png` - reviewers will replace this
    - Add TODO comments for features that would benefit from screenshots
-   - Use a horizontal rule (`---`) before the bug fixes footnote
+   - Use a horizontal rule (`---`) before the bug fixes section
+   - Bug fixes should use bullet points, one fix per line, same as Improvements
 
 7. **Writing style**
    - **Be brief** - Users scan changelogs, they don't read every word
@@ -77,7 +81,7 @@ Brief description of the feature and its benefit to users.
 | New user-facing feature | Own section with heading, 1-2 sentences + bullets |
 | Significant improvement | Own section or grouped under "Improvements" |
 | Small enhancement | One line under "Improvements" |
-| Bug fix | One-liner in footnote section at bottom |
+| Bug fix | Bullet point in footnote section at bottom |
 | Internal/refactor | Skip entirely unless user-visible |
 
 ## Reference Examples

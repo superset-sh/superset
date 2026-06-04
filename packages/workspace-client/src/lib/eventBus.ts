@@ -1,0 +1,361 @@
+import type {
+	AgentLifecycleEventType,
+	ClientMessage,
+	ServerMessage,
+} from "@superset/host-service/events";
+import type { AgentIdentity } from "@superset/shared/agent-identity";
+import type { FsWatchEvent } from "@superset/workspace-fs/host";
+import { primeRelayAffinity } from "./primeRelayAffinity";
+
+export type { AgentIdentity };
+
+type EventType =
+	| "fs:events"
+	| "git:changed"
+	| "agent:lifecycle"
+	| "terminal:lifecycle"
+	| "port:changed";
+
+interface FsEventsPayload {
+	events: FsWatchEvent[];
+}
+
+export interface GitChangedPayload {
+	/**
+	 * Worktree-relative paths when the event was worktree-only. Absent for
+	 * broad state changes (`.git/` activity) — treat as "invalidate everything".
+	 */
+	paths?: string[];
+}
+
+export interface AgentLifecyclePayload {
+	eventType: AgentLifecycleEventType;
+	terminalId: string;
+	// Absent when the hook ran without `SUPERSET_AGENT_ID` set.
+	agent?: AgentIdentity;
+	occurredAt: number;
+}
+
+export interface TerminalLifecyclePayload {
+	eventType: "exit";
+	terminalId: string;
+	exitCode: number;
+	signal: number;
+	occurredAt: number;
+}
+
+type PortChangedMessage = Extract<ServerMessage, { type: "port:changed" }>;
+
+export interface PortChangedPayload {
+	eventType: PortChangedMessage["eventType"];
+	port: PortChangedMessage["port"];
+	label: PortChangedMessage["label"];
+	occurredAt: number;
+}
+
+type EventListener<T extends EventType> = T extends "fs:events"
+	? (workspaceId: string, payload: FsEventsPayload) => void
+	: T extends "git:changed"
+		? (workspaceId: string, payload: GitChangedPayload) => void
+		: T extends "agent:lifecycle"
+			? (workspaceId: string, payload: AgentLifecyclePayload) => void
+			: T extends "terminal:lifecycle"
+				? (workspaceId: string, payload: TerminalLifecyclePayload) => void
+				: T extends "port:changed"
+					? (workspaceId: string, payload: PortChangedPayload) => void
+					: never;
+
+interface ListenerEntry {
+	type: EventType;
+	workspaceId: string | "*";
+	callback: (...args: unknown[]) => void;
+}
+
+const RECONNECT_BASE_MS = 1_000;
+const RECONNECT_MAX_MS = 30_000;
+
+interface ConnectionState {
+	socket: WebSocket | null;
+	refCount: number;
+	listeners: Set<ListenerEntry>;
+	fsWatchedWorkspaces: Map<string, number>;
+	reconnectAttempts: number;
+	reconnectTimer: ReturnType<typeof setTimeout> | null;
+	disposed: boolean;
+}
+
+const connections = new Map<string, ConnectionState>();
+
+function buildEventBusUrl(hostUrl: string, wsToken: string | null): string {
+	const base = hostUrl.replace(/\/$/, "");
+	const wsBase = base.replace(/^http/, "ws");
+	const params = wsToken ? `?token=${encodeURIComponent(wsToken)}` : "";
+	return `${wsBase}/events${params}`;
+}
+
+function sendCommand(state: ConnectionState, message: ClientMessage): void {
+	if (state.socket?.readyState === WebSocket.OPEN) {
+		state.socket.send(JSON.stringify(message));
+	}
+}
+
+function handleMessage(state: ConnectionState, data: unknown): void {
+	let message: ServerMessage;
+	try {
+		message = JSON.parse(String(data)) as ServerMessage;
+	} catch {
+		return;
+	}
+
+	if (message.type === "error") {
+		// Server-side bus errors aren't actionable from the client; the
+		// reconnect loop already handles transient failures, and logging
+		// here just floods the console when a host bounces offline.
+		return;
+	}
+
+	for (const entry of state.listeners) {
+		if (entry.type !== message.type) continue;
+
+		const workspaceId =
+			message.type === "fs:events" ||
+			message.type === "git:changed" ||
+			message.type === "agent:lifecycle" ||
+			message.type === "terminal:lifecycle" ||
+			message.type === "port:changed"
+				? message.workspaceId
+				: null;
+
+		if (
+			workspaceId &&
+			entry.workspaceId !== "*" &&
+			entry.workspaceId !== workspaceId
+		) {
+			continue;
+		}
+
+		if (message.type === "fs:events") {
+			(entry.callback as EventListener<"fs:events">)(message.workspaceId, {
+				events: message.events,
+			});
+		} else if (message.type === "git:changed") {
+			(entry.callback as EventListener<"git:changed">)(message.workspaceId, {
+				paths: message.paths,
+			});
+		} else if (message.type === "agent:lifecycle") {
+			(entry.callback as EventListener<"agent:lifecycle">)(
+				message.workspaceId,
+				{
+					eventType: message.eventType,
+					terminalId: message.terminalId,
+					...(message.agent ? { agent: message.agent } : {}),
+					occurredAt: message.occurredAt,
+				},
+			);
+		} else if (message.type === "terminal:lifecycle") {
+			(entry.callback as EventListener<"terminal:lifecycle">)(
+				message.workspaceId,
+				{
+					eventType: message.eventType,
+					terminalId: message.terminalId,
+					exitCode: message.exitCode,
+					signal: message.signal,
+					occurredAt: message.occurredAt,
+				},
+			);
+		} else if (message.type === "port:changed") {
+			(entry.callback as EventListener<"port:changed">)(message.workspaceId, {
+				eventType: message.eventType,
+				port: message.port,
+				label: message.label,
+				occurredAt: message.occurredAt,
+			});
+		}
+	}
+}
+
+function connect(
+	state: ConnectionState,
+	hostUrl: string,
+	getWsToken: () => string | null,
+): void {
+	if (state.disposed) return;
+
+	const wsUrl = buildEventBusUrl(hostUrl, getWsToken());
+	// Pre-flight an HTTP request to lock fly's edge affinity to the owning
+	// machine before the WS upgrade. fly-replay isn't transparent to all WS
+	// clients on the upgrade itself, but is on plain HTTP, so a quick GET
+	// avoids the connect → 1006 close → reconnect flicker.
+	void primeRelayAffinity(wsUrl).then(() => {
+		if (state.disposed || state.socket) return;
+		let socket: WebSocket;
+		try {
+			socket = new WebSocket(wsUrl);
+		} catch {
+			scheduleReconnect(state, hostUrl, getWsToken);
+			return;
+		}
+		state.socket = socket;
+
+		socket.onopen = () => {
+			state.reconnectAttempts = 0;
+
+			// Re-send all active fs:watch commands
+			for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
+				sendCommand(state, { type: "fs:watch", workspaceId });
+			}
+		};
+
+		socket.onmessage = (event) => {
+			handleMessage(state, event.data);
+		};
+
+		socket.onclose = () => {
+			if (state.disposed) return;
+			state.socket = null;
+			scheduleReconnect(state, hostUrl, getWsToken);
+		};
+
+		socket.onerror = () => {
+			// onclose will fire after onerror
+		};
+	});
+}
+
+function scheduleReconnect(
+	state: ConnectionState,
+	hostUrl: string,
+	getWsToken: () => string | null,
+): void {
+	if (state.disposed || state.reconnectTimer) return;
+
+	const delay = Math.min(
+		RECONNECT_BASE_MS * 2 ** state.reconnectAttempts,
+		RECONNECT_MAX_MS,
+	);
+	state.reconnectAttempts++;
+
+	state.reconnectTimer = setTimeout(() => {
+		state.reconnectTimer = null;
+		if (!state.disposed) {
+			connect(state, hostUrl, getWsToken);
+		}
+	}, delay);
+}
+
+function getOrCreateConnection(
+	hostUrl: string,
+	getWsToken: () => string | null,
+): ConnectionState {
+	const key = hostUrl;
+	const existing = connections.get(key);
+	if (existing) return existing;
+
+	const state: ConnectionState = {
+		socket: null,
+		refCount: 0,
+		listeners: new Set(),
+		fsWatchedWorkspaces: new Map(),
+		reconnectAttempts: 0,
+		reconnectTimer: null,
+		disposed: false,
+	};
+	connections.set(key, state);
+	connect(state, hostUrl, getWsToken);
+	return state;
+}
+
+function maybeCleanupConnection(hostUrl: string): void {
+	const key = hostUrl;
+	const state = connections.get(key);
+	if (!state) return;
+
+	if (state.refCount > 0 || state.listeners.size > 0) return;
+
+	state.disposed = true;
+	if (state.reconnectTimer) {
+		clearTimeout(state.reconnectTimer);
+		state.reconnectTimer = null;
+	}
+	if (
+		state.socket?.readyState === WebSocket.CONNECTING ||
+		state.socket?.readyState === WebSocket.OPEN
+	) {
+		state.socket.close(1000, "No more subscribers");
+	}
+	connections.delete(key);
+}
+
+// ── Public API ─────────────────────────────────────────────────────
+
+export interface EventBusHandle {
+	on<T extends EventType>(
+		type: T,
+		workspaceId: string | "*",
+		listener: EventListener<T>,
+	): () => void;
+	watchFs(workspaceId: string): void;
+	unwatchFs(workspaceId: string): void;
+	retain(): () => void;
+}
+
+/**
+ * Get a handle to the event bus for a given host.
+ * One WS connection is shared across all handles for the same hostUrl.
+ */
+export function getEventBus(
+	hostUrl: string,
+	getWsToken: () => string | null,
+): EventBusHandle {
+	const state = getOrCreateConnection(hostUrl, getWsToken);
+
+	return {
+		on<T extends EventType>(
+			type: T,
+			workspaceId: string | "*",
+			listener: EventListener<T>,
+		): () => void {
+			const entry: ListenerEntry = {
+				type,
+				workspaceId,
+				callback: listener as (...args: unknown[]) => void,
+			};
+			state.listeners.add(entry);
+
+			return () => {
+				state.listeners.delete(entry);
+				maybeCleanupConnection(hostUrl);
+			};
+		},
+
+		watchFs(workspaceId: string): void {
+			const count = state.fsWatchedWorkspaces.get(workspaceId) ?? 0;
+			state.fsWatchedWorkspaces.set(workspaceId, count + 1);
+			if (count === 0) {
+				sendCommand(state, { type: "fs:watch", workspaceId });
+			}
+		},
+
+		unwatchFs(workspaceId: string): void {
+			const count = state.fsWatchedWorkspaces.get(workspaceId) ?? 0;
+			if (count <= 1) {
+				state.fsWatchedWorkspaces.delete(workspaceId);
+				sendCommand(state, { type: "fs:unwatch", workspaceId });
+			} else {
+				state.fsWatchedWorkspaces.set(workspaceId, count - 1);
+			}
+		},
+
+		/**
+		 * Increment ref count to keep the connection alive even without listeners.
+		 * Returns a release function.
+		 */
+		retain(): () => void {
+			state.refCount++;
+			return () => {
+				state.refCount = Math.max(0, state.refCount - 1);
+				maybeCleanupConnection(hostUrl);
+			};
+		},
+	};
+}

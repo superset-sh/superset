@@ -1,13 +1,25 @@
 export {
+	AMP_PLUGIN_FILE,
+	AMP_PLUGIN_MARKER,
+	createAmpPlugin,
+	createAmpWrapper,
+	getAmpGlobalPluginPath,
+	getAmpPluginContent,
+} from "./agent-wrappers-amp";
+export {
 	buildCodexWrapperExecLine,
-	CLAUDE_SETTINGS_FILE,
 	cleanupGlobalOpenCodePlugin,
+	createClaudeSettingsJson,
 	createClaudeWrapper,
+	createCodexHooksJson,
 	createCodexWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
-	getClaudeSettingsContent,
-	getClaudeSettingsPath,
+	getClaudeGlobalSettingsJsonContent,
+	getClaudeGlobalSettingsJsonPath,
+	getClaudeManagedHookCommand,
+	getCodexGlobalHooksJsonContent,
+	getCodexGlobalHooksJsonPath,
 	getOpenCodeGlobalPluginPath,
 	getOpenCodePluginContent,
 	getOpenCodePluginPath,
@@ -41,6 +53,12 @@ export {
 	getCursorHooksJsonContent,
 } from "./agent-wrappers-cursor";
 export {
+	createDroidSettingsJson,
+	createDroidWrapper,
+	getDroidSettingsJsonContent,
+	getDroidSettingsJsonPath,
+} from "./agent-wrappers-droid";
+export {
 	createGeminiHookScript,
 	createGeminiSettingsJson,
 	createGeminiWrapper,
@@ -57,3 +75,10 @@ export {
 	getMastraGlobalHooksJsonPath,
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
+export {
+	createPiExtension,
+	getPiExtensionContent,
+	getPiExtensionPath,
+	PI_EXTENSION_FILE,
+	PI_EXTENSION_MARKER,
+} from "./agent-wrappers-pi";

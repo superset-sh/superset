@@ -2,27 +2,29 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useCallback, useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { MONACO_EDITOR_OPTIONS } from "renderer/providers/MonacoProvider";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/config";
-import { FontPreview } from "../FontPreview";
-
-const DEFAULT_EDITOR_FONT_FAMILY = MONACO_EDITOR_OPTIONS.fontFamily;
-const DEFAULT_EDITOR_FONT_SIZE = MONACO_EDITOR_OPTIONS.fontSize;
+import {
+	DEFAULT_CODE_EDITOR_FONT_FAMILY,
+	DEFAULT_CODE_EDITOR_FONT_SIZE,
+} from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/constants";
+import { FontFamilyCombobox } from "./components/FontFamilyCombobox";
+import { FontPreview } from "./components/FontPreview";
+import { useSystemFonts } from "./hooks/useSystemFonts";
 
 const VARIANT_CONFIG = {
 	editor: {
-		title: "Editor Font",
+		title: "Editor font",
 		description: "Font used in diff views and file editors",
-		defaultFamily: DEFAULT_EDITOR_FONT_FAMILY,
-		defaultSize: DEFAULT_EDITOR_FONT_SIZE,
+		defaultFamily: DEFAULT_CODE_EDITOR_FONT_FAMILY,
+		defaultSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
 		familyKey: "editorFontFamily",
 		sizeKey: "editorFontSize",
 	},
 	terminal: {
-		title: "Terminal Font",
+		title: "Terminal font",
 		description: "Font used in terminal panels.",
 		defaultFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 		defaultSize: DEFAULT_TERMINAL_FONT_SIZE,
@@ -66,7 +68,8 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 		},
 	});
 
-	const [fontDraft, setFontDraft] = useState<string | null>(null);
+	const { fonts: systemFonts, isLoading: fontsLoading } = useSystemFonts();
+
 	const [fontSizeDraft, setFontSizeDraft] = useState<string | null>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: sync draft state when fontSettings changes
@@ -77,11 +80,10 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 	const currentFamily = fontSettings?.[config.familyKey] ?? null;
 	const currentSize = fontSettings?.[config.sizeKey] ?? null;
 
-	const handleFontFamilyBlur = useCallback(
-		(e: React.FocusEvent<HTMLInputElement>) => {
-			const value = e.target.value.trim();
+	const handleFontFamilyChange = useCallback(
+		(value: string | null) => {
 			setFontSettings.mutate({
-				[config.familyKey]: value || null,
+				[config.familyKey]: value,
 			});
 		},
 		[setFontSettings, config.familyKey],
@@ -97,7 +99,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 		[setFontSettings, config.sizeKey],
 	);
 
-	const previewFamily = fontDraft ?? currentFamily ?? config.defaultFamily;
+	const previewFamily = currentFamily ?? config.defaultFamily;
 	const previewSize =
 		(fontSizeDraft != null ? Number.parseInt(fontSizeDraft, 10) : undefined) ||
 		currentSize ||
@@ -106,7 +108,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 	return (
 		<div>
 			<h3 className="text-sm font-medium mb-1">{config.title}</h3>
-			<p className="text-sm text-muted-foreground mb-3">
+			<p className="text-xs text-muted-foreground mb-3">
 				{config.description}
 				{variant === "terminal" && (
 					<>
@@ -124,16 +126,14 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 				)}
 			</p>
 			<div className="flex items-center gap-2">
-				<Input
-					placeholder={config.defaultFamily}
-					value={fontDraft ?? currentFamily ?? ""}
-					onChange={(e) => setFontDraft(e.target.value)}
-					onBlur={(e) => {
-						handleFontFamilyBlur(e);
-						setFontDraft(null);
-					}}
+				<FontFamilyCombobox
+					value={currentFamily}
+					defaultValue={config.defaultFamily}
+					onValueChange={handleFontFamilyChange}
 					disabled={isLoading}
-					className="flex-1"
+					variant={variant}
+					fonts={systemFonts}
+					fontsLoading={fontsLoading}
 				/>
 				<Input
 					type="number"
@@ -147,18 +147,18 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 					}}
 					disabled={isLoading}
 					className="w-20"
+					aria-label={`${config.title} size`}
 				/>
 				{(currentFamily || currentSize) && (
 					<Button
-						variant="ghost"
+						variant="outline"
 						size="sm"
-						className="text-xs text-muted-foreground shrink-0"
+						className="shrink-0"
 						onClick={() => {
 							setFontSettings.mutate({
 								[config.familyKey]: null,
 								[config.sizeKey]: null,
 							});
-							setFontDraft(null);
 							setFontSizeDraft(null);
 						}}
 					>
@@ -171,6 +171,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 					fontFamily={previewFamily}
 					fontSize={previewSize}
 					variant={variant}
+					isCustomFont={currentFamily !== null}
 				/>
 			</div>
 		</div>

@@ -1,63 +1,109 @@
-import { useParams } from "@tanstack/react-router";
+import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { NavigationControls } from "./components/NavigationControls";
+import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import { NavigationControls } from "../NavigationControls";
+import { SidebarToggle } from "../SidebarToggle";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
-import { SidebarToggle } from "./components/SidebarToggle";
+import { RightSidebarToggle } from "./components/RightSidebarToggle";
+import { SearchBarTrigger } from "./components/SearchBarTrigger";
+import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
+import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
 import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
+	const matchRoute = useMatchRoute();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const { workspaceId } = useParams({ strict: false });
+	const v2Match = matchRoute({
+		to: "/v2-workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const v2WorkspaceId = v2Match !== false ? v2Match.workspaceId : null;
+	const isV2WorkspaceRoute = v2WorkspaceId !== null;
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
-		{ enabled: !!workspaceId },
+		{ enabled: !!workspaceId && !isV2WorkspaceRoute },
 	);
 	const isOnline = useOnlineStatus();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
+	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
+	// In v2 the expanded sidebar lives outside the TopBar column, so the TopBar
+	// starts to the right of it and the sidebar header hosts the traffic-light
+	// pad + SidebarToggle. When the sidebar is closed or collapsed (too narrow
+	// for the pad), bring the toggle and pad back into the TopBar.
+	const sidebarHostsChrome =
+		isV2CloudEnabled && isSidebarOpen && !isSidebarCollapsed;
 
 	return (
 		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 border-b border-border relative dark:bg-muted/35">
 			<div
 				className="flex items-center gap-1.5 h-full"
 				style={{
-					paddingLeft: isMac ? "88px" : "16px",
+					paddingLeft: isMac && !sidebarHostsChrome ? "80px" : "16px",
 				}}
 			>
-				<SidebarToggle />
-				<NavigationControls />
-				<ResourceConsumption />
+				{!sidebarHostsChrome && (
+					<>
+						<SidebarToggle />
+						<NavigationControls />
+					</>
+				)}
 			</div>
 
-			{workspace?.project?.name && (
+			<div className="flex min-w-0 flex-1 items-center justify-start">
+				{isV2WorkspaceRoute && v2WorkspaceId && (
+					<V2WorkspaceTitle workspaceId={v2WorkspaceId} />
+				)}
+			</div>
+
+			{!isV2WorkspaceRoute && workspaceId && (
 				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-					<span className="text-sm text-muted-foreground font-medium truncate max-w-[calc(100vw-36rem)] lg:max-w-[calc(100vw-52rem)]">
-						{[workspace.project.name, workspace.name]
-							.filter(Boolean)
-							.join(" - ")}
-					</span>
+					<div className="pointer-events-auto">
+						<SearchBarTrigger
+							workspaceName={
+								workspace
+									? getWorkspaceDisplayName(
+											workspace.name,
+											workspace.type,
+											workspace.project?.name,
+										)
+									: undefined
+							}
+						/>
+					</div>
 				</div>
 			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
+				{!sidebarHostsChrome && (
+					<ResourceConsumption surface={isV2CloudEnabled ? "v2" : "v1"} />
+				)}
 				{!isOnline && (
 					<div className="no-drag flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
 						<HiOutlineWifi className="size-3.5" />
 						<span>Offline</span>
 					</div>
 				)}
-				{workspace?.worktreePath && (
+				{isV2WorkspaceRoute ? (
+					<V2WorkspaceOpenInButton workspaceId={v2WorkspaceId} />
+				) : workspace?.worktreePath ? (
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}
 						branch={workspace.worktree?.branch}
 						projectId={workspace.project?.id}
 					/>
-				)}
-				<OrganizationDropdown />
+				) : null}
+				{!isV2CloudEnabled && <OrganizationDropdown />}
+				{isV2WorkspaceRoute && <RightSidebarToggle />}
 				{!isMac && <WindowControls />}
 			</div>
 		</div>

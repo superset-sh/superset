@@ -1,21 +1,16 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	createContext,
 	type ReactNode,
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { MOCK_ORG_ID } from "shared/constants";
-import {
-	getCollections,
-	preloadCollections,
-	setElectricUrl,
-} from "./collections";
+import { getCollections, preloadCollections } from "./collections";
 
 type CollectionsContextType = ReturnType<typeof getCollections> & {
 	switchOrganization: (organizationId: string) => Promise<void>;
@@ -27,9 +22,7 @@ export function preloadActiveOrganizationCollections(
 	activeOrganizationId: string | null | undefined,
 ): void {
 	if (!activeOrganizationId) return;
-	void preloadCollections(activeOrganizationId, {
-		includeChatCollections: false,
-	}).catch((error) => {
+	void preloadCollections(activeOrganizationId).catch((error) => {
 		console.error(
 			"[collections-provider] Failed to preload active org collections:",
 			error,
@@ -39,7 +32,6 @@ export function preloadActiveOrganizationCollections(
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
-	const useElectricCloud = useFeatureFlagEnabled(FEATURE_FLAGS.ELECTRIC_CLOUD);
 	const [isSwitching, setIsSwitching] = useState(false);
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -64,26 +56,22 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	if (useElectricCloud === undefined) {
-		return null;
-	}
-
-	setElectricUrl(
-		useElectricCloud
-			? env.NEXT_PUBLIC_ELECTRIC_URL
-			: env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
+	const collections = useMemo(
+		() => (activeOrganizationId ? getCollections(activeOrganizationId) : null),
+		[activeOrganizationId],
 	);
 
-	const collections = activeOrganizationId
-		? getCollections(activeOrganizationId)
-		: null;
+	const contextValue = useMemo<CollectionsContextType | null>(
+		() => (collections ? { ...collections, switchOrganization } : null),
+		[collections, switchOrganization],
+	);
 
-	if (!collections || isSwitching) {
+	if (!contextValue || isSwitching) {
 		return null;
 	}
 
 	return (
-		<CollectionsContext.Provider value={{ ...collections, switchOrganization }}>
+		<CollectionsContext.Provider value={contextValue}>
 			{children}
 		</CollectionsContext.Provider>
 	);

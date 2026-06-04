@@ -7,6 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	StatusIcon,
@@ -22,6 +23,7 @@ interface StatusCellProps {
 
 export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const { data: allStatuses } = useLiveQuery(
@@ -42,13 +44,12 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 			return;
 		}
 
-		try {
-			collections.tasks.update(taskWithStatus.id, (draft) => {
-				draft.statusId = newStatus.id;
-			});
+		const transaction = taskActions.updateStatus(
+			taskWithStatus.id,
+			newStatus.id,
+		);
+		if (transaction) {
 			setOpen(false);
-		} catch (error) {
-			console.error("[StatusCell] Failed to update status:", error);
 		}
 	};
 

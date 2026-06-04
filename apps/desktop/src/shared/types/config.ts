@@ -1,6 +1,19 @@
 export interface SetupConfig {
 	setup?: string[];
 	teardown?: string[];
+	run?: string[];
+	cwd?: string;
+}
+
+export interface LocalScriptMerge {
+	before?: string[];
+	after?: string[];
+}
+
+export interface LocalSetupConfig {
+	setup?: string[] | LocalScriptMerge;
+	teardown?: string[] | LocalScriptMerge;
+	run?: string[] | LocalScriptMerge;
 }
 
 export interface SetupAction {

@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -8,16 +9,16 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import {
-	LuClipboard,
-	LuExternalLink,
-	LuFolderOpen,
-	LuMinus,
-	LuPlus,
-	LuTrash2,
-	LuUndo2,
-} from "react-icons/lu";
+	VscAdd,
+	VscClippy,
+	VscDiscard,
+	VscFolderOpened,
+	VscLinkExternal,
+	VscRemove,
+	VscTrash,
+} from "react-icons/vsc";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../ChangesContent";
 import { useFileDrag, usePathActions } from "../../hooks";
@@ -42,6 +43,7 @@ interface FileItemProps {
 	/** Expanded view uses scroll-sync highlighting; collapsed view uses selection highlighting */
 	isExpandedView?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -76,6 +78,7 @@ export function FileItem({
 	commitHash,
 	isExpandedView = false,
 	projectId,
+	defaultApp,
 }: FileItemProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const { activeFileKey } = useScrollContext();
@@ -88,34 +91,45 @@ export function FileItem({
 		showStats && (file.additions > 0 || file.deletions > 0);
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage || onDiscard;
+	const absolutePath = worktreePath
+		? toAbsoluteWorkspacePath(worktreePath, file.path)
+		: null;
 
 	const isScrollSyncActive =
-		category && activeFileKey === createFileKey(file, category, commitHash);
+		category &&
+		activeFileKey === createFileKey(file, category, commitHash, worktreePath);
 	const isHighlighted = isExpandedView ? isScrollSyncActive : isSelected;
-
-	const absolutePath = worktreePath ? `${worktreePath}/${file.path}` : null;
 
 	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
 		usePathActions({
 			absolutePath,
 			relativePath: file.path,
-			cwd: worktreePath,
+			worktreePath,
+			defaultApp,
 			projectId,
 		});
 
 	const fileDragProps = useFileDrag({ absolutePath });
 
-	const handleClick = useCallback(() => {
-		if (clickTimeoutRef.current) {
-			clearTimeout(clickTimeoutRef.current);
-			clickTimeoutRef.current = null;
-		}
+	const handleClick = useCallback(
+		(e: React.MouseEvent) => {
+			if (e.metaKey || e.ctrlKey) {
+				openInEditor();
+				return;
+			}
 
-		clickTimeoutRef.current = setTimeout(() => {
-			clickTimeoutRef.current = null;
-			onClick();
-		}, 300);
-	}, [onClick]);
+			if (clickTimeoutRef.current) {
+				clearTimeout(clickTimeoutRef.current);
+				clickTimeoutRef.current = null;
+			}
+
+			clickTimeoutRef.current = setTimeout(() => {
+				clickTimeoutRef.current = null;
+				onClick();
+			}, 300);
+		},
+		[onClick, openInEditor],
+	);
 
 	const handleDoubleClick = useCallback(
 		(e: React.MouseEvent) => {
@@ -164,9 +178,9 @@ export function FileItem({
 						key: "discard",
 						label: discardLabel,
 						icon: isDeleteAction ? (
-							<LuTrash2 className="size-3" />
+							<VscTrash className="size-3" />
 						) : (
-							<LuUndo2 className="size-3" />
+							<VscDiscard className="size-3" />
 						),
 						onClick: handleDiscardClick,
 						isDestructive: true,
@@ -179,7 +193,7 @@ export function FileItem({
 					{
 						key: "stage",
 						label: "Stage",
-						icon: <HiMiniPlus className="size-3" />,
+						icon: <VscAdd className="size-3" />,
 						onClick: onStage,
 						disabled: isActioning,
 					},
@@ -190,7 +204,7 @@ export function FileItem({
 					{
 						key: "unstage",
 						label: "Unstage",
-						icon: <HiMiniMinus className="size-3" />,
+						icon: <VscRemove className="size-3" />,
 						onClick: onUnstage,
 						disabled: isActioning,
 					},
@@ -262,20 +276,20 @@ export function FileItem({
 				<ContextMenuTrigger asChild>{fileContent}</ContextMenuTrigger>
 				<ContextMenuContent className="w-48">
 					<ContextMenuItem onClick={copyPath}>
-						<LuClipboard className="mr-2 size-4" />
+						<VscClippy className="mr-2 size-4" />
 						Copy Path
 					</ContextMenuItem>
 					<ContextMenuItem onClick={copyRelativePath}>
-						<LuClipboard className="mr-2 size-4" />
+						<VscClippy className="mr-2 size-4" />
 						Copy Relative Path
 					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem onClick={revealInFinder}>
-						<LuFolderOpen className="mr-2 size-4" />
+						<VscFolderOpened className="mr-2 size-4" />
 						Reveal in Finder
 					</ContextMenuItem>
 					<ContextMenuItem onClick={openInEditor}>
-						<LuExternalLink className="mr-2 size-4" />
+						<VscLinkExternal className="mr-2 size-4" />
 						Open in Editor
 					</ContextMenuItem>
 
@@ -283,14 +297,14 @@ export function FileItem({
 
 					{onStage && (
 						<ContextMenuItem onClick={onStage} disabled={isActioning}>
-							<LuPlus className="mr-2 size-4" />
+							<VscAdd className="mr-2 size-4" />
 							Stage
 						</ContextMenuItem>
 					)}
 
 					{onUnstage && (
 						<ContextMenuItem onClick={onUnstage} disabled={isActioning}>
-							<LuMinus className="mr-2 size-4" />
+							<VscRemove className="mr-2 size-4" />
 							Unstage
 						</ContextMenuItem>
 					)}
@@ -302,9 +316,9 @@ export function FileItem({
 							className="text-destructive focus:text-destructive"
 						>
 							{isDeleteAction ? (
-								<LuTrash2 className="mr-2 size-4" />
+								<VscTrash className="mr-2 size-4" />
 							) : (
-								<LuUndo2 className="mr-2 size-4" />
+								<VscDiscard className="mr-2 size-4" />
 							)}
 							{discardLabel}
 						</ContextMenuItem>

@@ -12,8 +12,9 @@ export type PaneType =
 	| "terminal"
 	| "webview"
 	| "file-viewer"
-	| "chat-mastra"
-	| "devtools";
+	| "chat"
+	| "devtools"
+	| "comment";
 
 /**
  * Pane status for agent lifecycle indicators
@@ -101,7 +102,7 @@ export type DiffLayout = "inline" | "side-by-side";
  * File viewer pane-specific properties
  */
 export interface FileViewerState {
-	/** Worktree-relative file path */
+	/** Canonical absolute file path (or remote URL for attachments) */
 	filePath: string;
 	/** Display mode: rendered (markdown), raw (source), or diff */
 	viewMode: FileViewerMode;
@@ -113,12 +114,14 @@ export interface FileViewerState {
 	diffCategory?: ChangeCategory;
 	/** Commit hash for committed category diffs */
 	commitHash?: string;
-	/** Original path for renamed files */
+	/** Canonical absolute original path for renamed files */
 	oldPath?: string;
 	/** Initial line to scroll to (raw mode only, transient - applied once) */
 	initialLine?: number;
 	/** Initial column to scroll to (raw mode only, transient - applied once) */
 	initialColumn?: number;
+	/** Optional user-facing name override for remote URLs/attachments */
+	displayName?: string;
 }
 
 /**
@@ -129,6 +132,7 @@ export interface Pane {
 	tabId: string;
 	type: PaneType;
 	name: string;
+	userTitle?: string;
 	isNew?: boolean;
 	status?: PaneStatus;
 	initialCwd?: string;
@@ -136,13 +140,41 @@ export interface Pane {
 	cwd?: string | null; // Current working directory
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
 	fileViewer?: FileViewerState; // For file-viewer panes
-	chatMastra?: ChatMastraPaneState; // For Mastra chat panes
+	chat?: ChatPaneState; // For chat panes
 	browser?: BrowserPaneState; // For browser (webview) panes
 	devtools?: DevToolsPaneState; // For devtools panes
+	comment?: CommentPaneState; // For comment panes
+	workspaceRun?: {
+		workspaceId: string;
+		state: "running" | "stopped-by-user" | "stopped-by-exit";
+		command?: string;
+	};
 }
 
-export interface ChatMastraPaneState {
+export type WorkspaceRunState = NonNullable<Pane["workspaceRun"]>["state"];
+
+// TODO: `initialFiles` stores base64 data URLs inline. This bloats
+// the pane layout state in localStorage (v2WorkspaceLocalState
+// collection). Migrate to IndexedDB blob storage — store file
+// references here, actual blobs in IndexedDB keyed by session/pane ID.
+// See renderer/lib/pending-attachment-store.ts for the IndexedDB pattern.
+export interface ChatLaunchConfig {
+	initialPrompt?: string;
+	draftInput?: string;
+	initialFiles?: Array<{
+		data: string;
+		mediaType: string;
+		filename?: string;
+	}>;
+	metadata?: {
+		model?: string;
+	};
+	retryCount?: number;
+}
+
+export interface ChatPaneState {
 	sessionId: string | null;
+	launchConfig?: ChatLaunchConfig | null;
 }
 
 /**
@@ -188,6 +220,19 @@ export interface BrowserPaneState {
 export interface DevToolsPaneState {
 	/** The pane ID of the browser pane being inspected */
 	targetPaneId: string;
+}
+
+/**
+ * Comment pane-specific properties (PR review / conversation comment viewer)
+ */
+export interface CommentPaneState {
+	commentId: string;
+	authorLogin: string;
+	avatarUrl?: string;
+	body: string;
+	url?: string;
+	path?: string;
+	line?: number;
 }
 
 /**

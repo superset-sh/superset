@@ -11,7 +11,43 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
-import { verifyOrgAdmin, verifyOrgMembership } from "../integration/utils";
+import { verifyOrgMembership } from "../integration/utils";
+import { requireOrgScopedResource } from "../utils/org-resource-access";
+
+async function getScopedProject(organizationId: string, projectId: string) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.projects.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(projects.id, projectId),
+			}),
+		{
+			code: "BAD_REQUEST",
+			message: "Project not found in this organization",
+			organizationId,
+		},
+	);
+}
+
+async function getScopedWorkspace(organizationId: string, workspaceId: string) {
+	return requireOrgScopedResource(
+		() =>
+			dbWs.query.workspaces.findFirst({
+				columns: {
+					id: true,
+					organizationId: true,
+				},
+				where: eq(workspaces.id, workspaceId),
+			}),
+		{
+			message: "Workspace not found in this organization",
+			organizationId,
+		},
+	);
+}
 
 export const workspaceRouter = {
 	ensure: protectedProcedure
@@ -113,11 +149,15 @@ export const workspaceRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const project = await getScopedProject(
+				input.organizationId,
+				input.projectId,
+			);
 			const [workspace] = await dbWs
 				.insert(workspaces)
 				.values({
-					projectId: input.projectId,
-					organizationId: input.organizationId,
+					projectId: project.id,
+					organizationId: project.organizationId,
 					name: input.name,
 					type: input.type,
 					config: input.config,
@@ -132,15 +172,12 @@ export const workspaceRouter = {
 			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
-			await dbWs
-				.delete(workspaces)
-				.where(
-					and(
-						eq(workspaces.id, input.id),
-						eq(workspaces.organizationId, input.organizationId),
-					),
-				);
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const workspace = await getScopedWorkspace(
+				input.organizationId,
+				input.id,
+			);
+			await dbWs.delete(workspaces).where(eq(workspaces.id, workspace.id));
 			return { success: true };
 		}),
 } satisfies TRPCRouterRecord;

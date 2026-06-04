@@ -1,15 +1,21 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { statSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
-
-import friendlyWords = require("friendly-words");
-
 import type { BranchPrefixMode } from "@superset/local-db";
-import simpleGit, { type StatusResult } from "simple-git";
+import {
+	sanitizeAuthorPrefix,
+	sanitizeBranchName,
+	sanitizeBranchNameWithMaxLength,
+} from "@superset/shared/workspace-launch";
+import friendlyWords from "friendly-words";
+import type { StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
+import { execGitWithShellPath, getSimpleGitWithShellPath } from "./git-client";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
+import { resolveTrackingRemoteName } from "./upstream-ref";
 
 const execFileAsync = promisify(execFile);
 
@@ -19,6 +25,54 @@ export class NotGitRepoError extends Error {
 		this.name = "NotGitRepoError";
 	}
 }
+
+function getPathCreatedAt(path: string): number | null {
+	const stats = statSync(path);
+	const birthtimeMs = Math.trunc(stats.birthtimeMs);
+	if (Number.isFinite(birthtimeMs) && birthtimeMs > 0) {
+		return birthtimeMs;
+	}
+
+	const ctimeMs = Math.trunc(stats.ctimeMs);
+	if (Number.isFinite(ctimeMs) && ctimeMs > 0) {
+		return ctimeMs;
+	}
+
+	return null;
+}
+
+export function getWorktreeCreatedAt(worktreePath: string): number {
+	try {
+		const gitMetadataCreatedAt = getPathCreatedAt(join(worktreePath, ".git"));
+		if (gitMetadataCreatedAt !== null) {
+			return gitMetadataCreatedAt;
+		}
+	} catch {
+		// Fall back to the worktree directory for non-standard layouts.
+	}
+
+	try {
+		const worktreeDirectoryCreatedAt = getPathCreatedAt(worktreePath);
+		if (worktreeDirectoryCreatedAt !== null) {
+			return worktreeDirectoryCreatedAt;
+		}
+	} catch (error) {
+		console.warn("[git] Failed to read worktree created time", {
+			worktreePath,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
+	return Date.now();
+}
+
+const UNBORN_HEAD_ERROR_PATTERNS = [
+	"ambiguous argument 'head'",
+	"unknown revision or path not in the working tree",
+	"bad revision 'head'",
+	"not a valid object name head",
+	"needed a single revision",
+];
 
 /**
  * Error thrown by execFile when the command fails.
@@ -40,20 +94,32 @@ function isExecFileException(error: unknown): error is ExecFileException {
 	);
 }
 
+export function isUnbornHeadError(error: unknown): boolean {
+	if (!(error instanceof Error)) {
+		return false;
+	}
+
+	const stderr =
+		isExecFileException(error) && typeof error.stderr === "string"
+			? error.stderr
+			: "";
+	const message = `${error.message}\n${stderr}`.toLowerCase();
+	return UNBORN_HEAD_ERROR_PATTERNS.some((pattern) =>
+		message.includes(pattern),
+	);
+}
+
 async function isWorktreeRegistered({
 	mainRepoPath,
 	worktreePath,
-	env,
 }: {
 	mainRepoPath: string;
 	worktreePath: string;
-	env: Record<string, string>;
 }): Promise<boolean> {
 	try {
-		const { stdout } = await execFileAsync(
-			"git",
+		const { stdout } = await execGitWithShellPath(
 			["-C", mainRepoPath, "worktree", "list", "--porcelain"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 
 		const expectedPath = resolve(worktreePath);
@@ -82,23 +148,21 @@ async function isWorktreeRegistered({
 async function execWorktreeAdd({
 	mainRepoPath,
 	args,
-	env,
 	worktreePath,
 	timeout = 120_000,
 }: {
 	mainRepoPath: string;
 	args: string[];
-	env: Record<string, string>;
 	worktreePath: string;
 	timeout?: number;
 }): Promise<void> {
 	await runWithPostCheckoutHookTolerance({
 		context: `Worktree created at ${worktreePath}`,
 		run: async () => {
-			await execFileAsync("git", args, { env, timeout });
+			await execGitWithShellPath(args, { timeout });
 		},
 		didSucceed: async () =>
-			isWorktreeRegistered({ mainRepoPath, worktreePath, env }),
+			isWorktreeRegistered({ mainRepoPath, worktreePath }),
 	});
 }
 
@@ -135,26 +199,25 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 
 	try {
 		// Run git status with --no-optional-locks to avoid holding locks
-		// Use porcelain=v1 for machine-parseable output, -b for branch info
+		// Use porcelain=v2 for stable machine-parseable output with branch headers
 		// Use -z for NUL-terminated output (handles filenames with special chars)
 		// Use -uall to show individual files in untracked directories (not just the directory)
-		// Note: porcelain=v1 already includes rename info (R/C status codes) without needing -M
-		const { stdout } = await execFileAsync(
-			"git",
+		// Note: porcelain=v2 includes structured rename/copy records without needing -M
+		const { stdout } = await execGitWithShellPath(
 			[
 				"--no-optional-locks",
 				"-C",
 				repoPath,
 				"status",
-				"--porcelain=v1",
-				"-b",
+				"--porcelain=v2",
+				"--branch",
 				"-z",
 				"-uall",
 			],
-			{ env, timeout: 30_000 },
+			{ env, timeout: 30_000, maxBuffer: 10 * 1024 * 1024 },
 		);
 
-		return parsePortelainStatus(stdout);
+		return parsePorcelainStatusV2(stdout);
 	} catch (error) {
 		// Provide more descriptive error messages
 		if (isExecFileException(error)) {
@@ -173,17 +236,19 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 }
 
 /**
- * Parses git status --porcelain=v1 -z output into a StatusResult-compatible object.
+ * Parses git status --porcelain=v2 --branch -z output into a StatusResult-compatible object.
  * The -z format uses NUL characters to separate entries, which safely handles
  * filenames containing spaces, newlines, or other special characters.
  */
-function parsePortelainStatus(stdout: string): StatusResult {
+export function parsePorcelainStatusV2(stdout: string): StatusResult {
 	// Split by NUL character - the -z format separates entries with NUL
 	const entries = stdout.split("\0").filter(Boolean);
 
 	let current: string | null = null;
 	let tracking: string | null = null;
 	let isDetached = false;
+	let ahead = 0;
+	let behind = 0;
 
 	// Parse file status entries
 	const files: StatusResult["files"] = [];
@@ -196,6 +261,49 @@ function parsePortelainStatus(stdout: string): StatusResult {
 	const conflictedSet = new Set<string>();
 	const notAddedSet = new Set<string>();
 
+	const normalizeStatusCode = (code: string): string =>
+		code === "." ? " " : code;
+	const addFile = ({
+		path,
+		indexStatus,
+		workingStatus,
+		from,
+	}: {
+		path: string;
+		indexStatus: string;
+		workingStatus: string;
+		from?: string;
+	}) => {
+		files.push({
+			path,
+			from: from ?? path,
+			index: indexStatus,
+			working_dir: workingStatus,
+		});
+
+		if (indexStatus === "?" && workingStatus === "?") {
+			notAddedSet.add(path);
+			return;
+		}
+
+		// Index status (staged changes)
+		if (indexStatus === "A") createdSet.add(path);
+		else if (indexStatus === "M") {
+			stagedSet.add(path);
+			modifiedSet.add(path);
+		} else if (indexStatus === "D") {
+			stagedSet.add(path);
+			deletedSet.add(path);
+		} else if (indexStatus === "R" || indexStatus === "C") stagedSet.add(path);
+		else if (indexStatus === "U") conflictedSet.add(path);
+		else if (indexStatus !== " " && indexStatus !== "?") stagedSet.add(path);
+
+		// Working tree status (unstaged changes)
+		if (workingStatus === "M") modifiedSet.add(path);
+		else if (workingStatus === "D") deletedSet.add(path);
+		else if (workingStatus === "U") conflictedSet.add(path);
+	};
+
 	let i = 0;
 	while (i < entries.length) {
 		const entry = entries[i];
@@ -204,84 +312,100 @@ function parsePortelainStatus(stdout: string): StatusResult {
 			continue;
 		}
 
-		// Parse branch line: ## branch...tracking or ## branch
-		if (entry.startsWith("## ")) {
-			const branchInfo = entry.slice(3);
-
-			// Check for detached HEAD states
-			if (branchInfo.startsWith("HEAD (no branch)") || branchInfo === "HEAD") {
-				isDetached = true;
-				current = "HEAD";
-			} else if (
-				// Handle empty repo: "No commits yet on BRANCH" or "Initial commit on BRANCH"
-				branchInfo.startsWith("No commits yet on ") ||
-				branchInfo.startsWith("Initial commit on ")
-			) {
-				// Extract branch name from the end
-				const parts = branchInfo.split(" ");
-				current = parts[parts.length - 1] || null;
-			} else {
-				// Check for tracking info: "branch...origin/branch [ahead 1, behind 2]"
-				const trackingMatch = branchInfo.match(/^(.+?)\.\.\.(.+?)(?:\s|$)/);
-				if (trackingMatch) {
-					current = trackingMatch[1];
-					tracking = trackingMatch[2].split(" ")[0] || null;
+		if (entry.startsWith("# ")) {
+			const header = entry.slice(2);
+			if (header.startsWith("branch.head ")) {
+				const branchHead = header.slice("branch.head ".length);
+				if (branchHead === "(detached)") {
+					isDetached = true;
+					current = "HEAD";
 				} else {
-					// No tracking branch, just get branch name (before any space)
-					current = branchInfo.split(" ")[0] || null;
+					current = branchHead || null;
+				}
+			} else if (header.startsWith("branch.upstream ")) {
+				tracking = header.slice("branch.upstream ".length) || null;
+			} else if (header.startsWith("branch.ab ")) {
+				const match = header.match(/^branch\.ab \+(\d+) -(\d+)$/);
+				if (match) {
+					ahead = Number.parseInt(match[1] || "0", 10);
+					behind = Number.parseInt(match[2] || "0", 10);
 				}
 			}
 			i++;
 			continue;
 		}
 
-		// Parse file status: "XY path" where X=index, Y=working tree
-		if (entry.length < 3) {
+		if (entry.startsWith("? ")) {
+			const path = entry.slice(2);
+			addFile({
+				path,
+				indexStatus: "?",
+				workingStatus: "?",
+			});
 			i++;
 			continue;
 		}
 
-		const indexStatus = entry[0];
-		const workingStatus = entry[1];
-		// entry[2] is a space separator
-		const path = entry.slice(3);
-		let from: string | undefined;
-
-		// For renames/copies, the next entry is the original path
-		if (indexStatus === "R" || indexStatus === "C") {
+		// Ignored entries should not affect clean status.
+		if (entry.startsWith("! ")) {
 			i++;
-			from = entries[i];
-			renamed.push({ from: from || path, to: path });
+			continue;
 		}
 
-		files.push({
-			path,
-			from: from ?? path,
-			index: indexStatus,
-			working_dir: workingStatus,
-		});
+		if (entry.startsWith("1 ")) {
+			const match = entry.match(/^1 (\S{2}) \S+ \S+ \S+ \S+ \S+ \S+ (.+)$/);
+			if (match) {
+				const xy = match[1] || "..";
+				const path = match[2];
+				if (path) {
+					addFile({
+						path,
+						indexStatus: normalizeStatusCode(xy[0] || "."),
+						workingStatus: normalizeStatusCode(xy[1] || "."),
+					});
+				}
+			}
+			i++;
+			continue;
+		}
 
-		// Populate convenience arrays for checkBranchCheckoutSafety compatibility
-		if (indexStatus === "?" && workingStatus === "?") {
-			notAddedSet.add(path);
-		} else {
-			// Index status (staged changes)
-			if (indexStatus === "A") createdSet.add(path);
-			else if (indexStatus === "M") {
-				stagedSet.add(path);
-				modifiedSet.add(path);
-			} else if (indexStatus === "D") {
-				stagedSet.add(path);
-				deletedSet.add(path);
-			} else if (indexStatus === "R" || indexStatus === "C")
-				stagedSet.add(path);
-			else if (indexStatus === "U") conflictedSet.add(path);
-			else if (indexStatus !== " " && indexStatus !== "?") stagedSet.add(path);
+		if (entry.startsWith("2 ")) {
+			const match = entry.match(/^2 (\S{2}) \S+ \S+ \S+ \S+ \S+ \S+ \S+ (.+)$/);
+			const from = entries[i + 1];
+			if (match) {
+				const xy = match[1] || "..";
+				const path = match[2];
+				if (path) {
+					const originalPath = from || path;
+					renamed.push({ from: originalPath, to: path });
+					addFile({
+						path,
+						from: originalPath,
+						indexStatus: normalizeStatusCode(xy[0] || "."),
+						workingStatus: normalizeStatusCode(xy[1] || "."),
+					});
+				}
+			}
+			i += 2;
+			continue;
+		}
 
-			// Working tree status (unstaged changes)
-			if (workingStatus === "M") modifiedSet.add(path);
-			else if (workingStatus === "D") deletedSet.add(path);
-			else if (workingStatus === "U") conflictedSet.add(path);
+		if (entry.startsWith("u ")) {
+			const match = entry.match(
+				/^u (\S{2}) \S+ \S+ \S+ \S+ \S+ \S+ \S+ \S+ (.+)$/,
+			);
+			if (match) {
+				const xy = match[1] || "..";
+				const path = match[2];
+				if (path) {
+					conflictedSet.add(path);
+					addFile({
+						path,
+						indexStatus: normalizeStatusCode(xy[0] || "."),
+						workingStatus: normalizeStatusCode(xy[1] || "."),
+					});
+				}
+			}
 		}
 
 		i++;
@@ -297,8 +421,8 @@ function parsePortelainStatus(stdout: string): StatusResult {
 		renamed,
 		files,
 		staged: [...stagedSet],
-		ahead: 0,
-		behind: 0,
+		ahead,
+		behind,
 		current,
 		tracking,
 		detached: isDetached,
@@ -317,7 +441,7 @@ export async function getGitAuthorName(
 	repoPath?: string,
 ): Promise<string | null> {
 	try {
-		const git = repoPath ? simpleGit(repoPath) : simpleGit();
+		const git = await getSimpleGitWithShellPath(repoPath);
 		const name = await git.getConfig("user.name");
 		return name.value?.trim() || null;
 	} catch (error) {
@@ -394,7 +518,7 @@ export async function getBranchPrefix({
 		case "author": {
 			const authorName = await getGitAuthorName(repoPath);
 			if (authorName) {
-				return authorName.toLowerCase().replace(/\s+/g, "-");
+				return sanitizeAuthorPrefix(authorName);
 			}
 			return null;
 		}
@@ -407,7 +531,7 @@ export {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
-} from "shared/utils/branch";
+};
 
 export function generateBranchName({
 	existingBranches = [],
@@ -416,7 +540,8 @@ export function generateBranchName({
 	existingBranches?: string[];
 	authorPrefix?: string;
 } = {}): string {
-	const words = friendlyWords.objects as string[];
+	const predicates = friendlyWords.predicates as string[];
+	const objects = friendlyWords.objects as string[];
 	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
 
 	const prefixWouldCollide =
@@ -430,15 +555,20 @@ export function generateBranchName({
 		return name;
 	};
 
+	const randomTwoWord = () => {
+		const predicate = predicates[Math.floor(Math.random() * predicates.length)];
+		const object = objects[Math.floor(Math.random() * objects.length)];
+		return `${predicate}-${object}`;
+	};
+
 	for (let i = 0; i < MAX_ATTEMPTS; i++) {
-		const word = words[Math.floor(Math.random() * words.length)];
-		const candidate = addPrefix(word);
+		const candidate = addPrefix(randomTwoWord());
 		if (!existingSet.has(candidate.toLowerCase())) {
 			return candidate;
 		}
 	}
 
-	const baseWord = words[Math.floor(Math.random() * words.length)];
+	const baseWord = randomTwoWord();
 	for (let n = 0; n < FALLBACK_MAX_SUFFIX; n++) {
 		const candidate = addPrefix(`${baseWord}-${n}`);
 		if (!existingSet.has(candidate.toLowerCase())) {
@@ -459,8 +589,6 @@ export async function createWorktree(
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		const env = await getGitEnv();
-
 		await execWorktreeAdd({
 			mainRepoPath,
 			args: [
@@ -468,24 +596,22 @@ export async function createWorktree(
 				mainRepoPath,
 				"worktree",
 				"add",
-				worktreePath,
+				// --no-track prevents the new branch from tracking the remote ref
+				// (e.g. origin/main); push.autoSetupRemote handles first-push tracking.
+				"--no-track",
 				"-b",
 				branch,
-				// Append ^{commit} to force Git to treat the startPoint as a commit,
-				// not a branch ref. This prevents implicit upstream tracking when
-				// creating a new branch from a remote branch like origin/main.
-				`${startPoint}^{commit}`,
+				worktreePath,
+				startPoint,
 			],
-			env,
 			worktreePath,
 		});
 
 		// Enable autoSetupRemote so the first `git push` automatically creates
 		// the remote branch and sets upstream (like `git push -u origin <branch>`).
-		await execFileAsync(
-			"git",
+		await execGitWithShellPath(
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 
 		console.log(
@@ -534,9 +660,7 @@ export async function createWorktreeFromExistingBranch({
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		const env = await getGitEnv();
-
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const localBranches = await git.branchLocal();
 		const branchExistsLocally = localBranches.all.includes(branch);
 
@@ -544,7 +668,6 @@ export async function createWorktreeFromExistingBranch({
 			await execWorktreeAdd({
 				mainRepoPath,
 				args: ["-C", mainRepoPath, "worktree", "add", worktreePath, branch],
-				env,
 				worktreePath,
 			});
 		} else {
@@ -564,7 +687,6 @@ export async function createWorktreeFromExistingBranch({
 						worktreePath,
 						remoteBranchName,
 					],
-					env,
 					worktreePath,
 				});
 			} else {
@@ -576,10 +698,9 @@ export async function createWorktreeFromExistingBranch({
 
 		// Enable autoSetupRemote so the first `git push` automatically creates
 		// the remote branch and sets upstream (like `git push -u origin <branch>`).
-		await execFileAsync(
-			"git",
+		await execGitWithShellPath(
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 
 		console.log(
@@ -629,11 +750,8 @@ export async function deleteLocalBranch({
 	mainRepoPath: string;
 	branch: string;
 }): Promise<void> {
-	const env = await getGitEnv();
-
 	try {
-		await execFileAsync("git", ["-C", mainRepoPath, "branch", "-D", branch], {
-			env,
+		await execGitWithShellPath(["-C", mainRepoPath, "branch", "-D", branch], {
 			timeout: 10_000,
 		});
 		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
@@ -653,8 +771,6 @@ export async function removeWorktree(
 	worktreePath: string,
 ): Promise<void> {
 	try {
-		const env = await getGitEnv();
-
 		// Rename the worktree to a sibling temp dir (same filesystem to avoid EXDEV),
 		// then `git worktree prune` to clean metadata, then delete in background.
 		const tempPath = join(
@@ -663,8 +779,7 @@ export async function removeWorktree(
 		);
 		await rename(worktreePath, tempPath);
 
-		await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
-			env,
+		await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
 			timeout: 10_000,
 		});
 
@@ -694,9 +809,7 @@ export async function removeWorktree(
 		// If the worktree directory is already gone, just prune metadata
 		if (code === "ENOENT") {
 			try {
-				const env = await getGitEnv();
-				await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
-					env,
+				await execGitWithShellPath(["-C", mainRepoPath, "worktree", "prune"], {
 					timeout: 10_000,
 				});
 			} catch {}
@@ -710,7 +823,7 @@ export async function removeWorktree(
 
 export async function getGitRoot(path: string): Promise<string> {
 	try {
-		const git = simpleGit(path);
+		const git = await getSimpleGitWithShellPath(path);
 		const root = await git.revparse(["--show-toplevel"]);
 		return root.trim();
 	} catch (error) {
@@ -727,7 +840,7 @@ export async function worktreeExists(
 	worktreePath: string,
 ): Promise<boolean> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const worktrees = await git.raw(["worktree", "list", "--porcelain"]);
 
 		const lines = worktrees.split("\n");
@@ -750,7 +863,7 @@ export async function listExternalWorktrees(
 	mainRepoPath: string,
 ): Promise<ExternalWorktree[]> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const output = await git.raw(["worktree", "list", "--porcelain"]);
 
 		const result: ExternalWorktree[] = [];
@@ -806,7 +919,7 @@ export async function getBranchWorktreePath({
 	branch: string;
 }): Promise<string | null> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const worktreesOutput = await git.raw(["worktree", "list", "--porcelain"]);
 
 		const lines = worktreesOutput.split("\n");
@@ -836,7 +949,7 @@ export async function getBranchWorktreePath({
 
 export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const remotes = await git.getRemotes();
 		return remotes.some((r) => r.name === "origin");
 	} catch {
@@ -845,7 +958,7 @@ export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 }
 
 export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
-	const git = simpleGit(mainRepoPath);
+	const git = await getSimpleGitWithShellPath(mainRepoPath);
 
 	// First check if we have an origin remote
 	const hasRemote = await hasOriginRemote(mainRepoPath);
@@ -912,7 +1025,7 @@ export async function fetchDefaultBranch(
 	mainRepoPath: string,
 	defaultBranch: string,
 ): Promise<string> {
-	const git = simpleGit(mainRepoPath);
+	const git = await getSimpleGitWithShellPath(mainRepoPath);
 	await git.fetch("origin", defaultBranch);
 	const commit = await git.revparse(`origin/${defaultBranch}`);
 	return commit.trim();
@@ -927,7 +1040,7 @@ export async function fetchDefaultBranch(
 export async function refreshDefaultBranch(
 	mainRepoPath: string,
 ): Promise<string | null> {
-	const git = simpleGit(mainRepoPath);
+	const git = await getSimpleGitWithShellPath(mainRepoPath);
 
 	const hasRemote = await hasOriginRemote(mainRepoPath);
 	if (!hasRemote) {
@@ -965,7 +1078,7 @@ export async function checkNeedsRebase(
 	worktreePath: string,
 	defaultBranch: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 	const behindCount = await git.raw([
 		"rev-list",
 		"--count",
@@ -981,7 +1094,7 @@ export async function getAheadBehindCount({
 	repoPath: string;
 	defaultBranch: string;
 }): Promise<{ ahead: number; behind: number }> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 	try {
 		const output = await git.raw([
 			"rev-list",
@@ -1009,7 +1122,7 @@ export async function hasUncommittedChanges(
 export async function hasUnpushedCommits(
 	worktreePath: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 	try {
 		const aheadCount = await git.raw([
 			"rev-list",
@@ -1018,6 +1131,34 @@ export async function hasUnpushedCommits(
 		]);
 		return Number.parseInt(aheadCount.trim(), 10) > 0;
 	} catch {
+		// Upstream ref is gone (e.g. remote branch deleted after merge).
+		// Before falling back to the broad --remotes check, see whether the
+		// branch's patches are already present in the default branch via
+		// cherry-pick detection (handles squash & rebase merges).
+		try {
+			const defaultBranch = await getDefaultBranch(worktreePath);
+			const unmergedPatches = await git.raw([
+				"log",
+				"--cherry-pick",
+				"--right-only",
+				"--no-merges",
+				"--oneline",
+				`origin/${defaultBranch}...HEAD`,
+			]);
+			if (unmergedPatches.trim() === "") {
+				// All patches are already in the default branch
+				return false;
+			}
+		} catch (error) {
+			console.warn(
+				"[git/hasUnpushedCommits] Cherry-pick fallback failed; falling back to remote reachability check.",
+				{
+					worktreePath,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			);
+		}
+
 		try {
 			const localCommits = await git.raw([
 				"rev-list",
@@ -1077,11 +1218,15 @@ const GIT_ERROR_PATTERNS = {
 		"does not appear to be a git repository",
 		"no such remote",
 		"repository not found",
+		"remote not found",
 		"remote origin not found",
 	],
 } as const;
 
-function categorizeGitError(errorMessage: string): BranchExistsResult {
+function categorizeGitError(
+	errorMessage: string,
+	remoteName: string,
+): BranchExistsResult {
 	const lowerMessage = errorMessage.toLowerCase();
 
 	if (GIT_ERROR_PATTERNS.network.some((p) => lowerMessage.includes(p))) {
@@ -1103,8 +1248,7 @@ function categorizeGitError(errorMessage: string): BranchExistsResult {
 	) {
 		return {
 			status: "error",
-			message:
-				"Remote 'origin' is not configured or the repository was not found.",
+			message: `Remote '${remoteName}' is not configured or the repository was not found.`,
 		};
 	}
 
@@ -1117,21 +1261,21 @@ function categorizeGitError(errorMessage: string): BranchExistsResult {
 export async function branchExistsOnRemote(
 	worktreePath: string,
 	branchName: string,
+	remoteName = "origin",
 ): Promise<BranchExistsResult> {
 	const env = await getGitEnv();
 
 	try {
 		// Use execFileAsync directly to get reliable exit codes
 		// simple-git doesn't expose exit codes in a predictable way
-		await execFileAsync(
-			"git",
+		await execGitWithShellPath(
 			[
 				"-C",
 				worktreePath,
 				"ls-remote",
 				"--exit-code",
 				"--heads",
-				"origin",
+				remoteName,
 				branchName,
 			],
 			{ env, timeout: 30_000 },
@@ -1184,7 +1328,21 @@ export async function branchExistsOnRemote(
 		// For fatal errors (128) or other codes, categorize using stderr (preferred) or message
 		// stderr contains the actual git error; message may include wrapper text
 		const errorText = error.stderr || error.message || "";
-		return categorizeGitError(errorText);
+		return categorizeGitError(errorText, remoteName);
+	}
+}
+
+export async function getTrackingRemoteNameForWorktree(
+	worktreePath: string,
+): Promise<string> {
+	try {
+		const { stdout } = await execGitWithShellPath(
+			["rev-parse", "--abbrev-ref", "@{upstream}"],
+			{ cwd: worktreePath },
+		);
+		return resolveTrackingRemoteName(stdout);
+	} catch {
+		return "origin";
 	}
 }
 
@@ -1197,7 +1355,7 @@ export async function detectBaseBranch(
 	currentBranch: string,
 	defaultBranch: string,
 ): Promise<string | null> {
-	const git = simpleGit(worktreePath);
+	const git = await getSimpleGitWithShellPath(worktreePath);
 
 	// Candidate base branches to check, in priority order
 	const candidates = [
@@ -1250,7 +1408,7 @@ export async function listBranches(
 	repoPath: string,
 	options?: { fetch?: boolean },
 ): Promise<{ local: string[]; remote: string[] }> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 
 	// Optionally fetch and prune to get up-to-date remote refs
 	if (options?.fetch) {
@@ -1280,7 +1438,7 @@ export async function listBranches(
 export async function getCurrentBranch(
 	repoPath: string,
 ): Promise<string | null> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 	try {
 		const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 		const trimmed = branch.trim();
@@ -1357,7 +1515,7 @@ export async function checkBranchCheckoutSafety(
 
 		// Fetch and prune stale remote refs (best-effort, ignore errors if offline)
 		try {
-			const git = simpleGit(repoPath);
+			const git = await getSimpleGitWithShellPath(repoPath);
 			await git.fetch(["--prune"]);
 		} catch {
 			// Ignore fetch errors
@@ -1386,7 +1544,7 @@ export async function checkoutBranch(
 	repoPath: string,
 	branch: string,
 ): Promise<void> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 
 	const localBranches = await git.branchLocal();
 	if (localBranches.all.includes(branch)) {
@@ -1440,7 +1598,7 @@ export async function refExistsLocally(
 	repoPath: string,
 	ref: string,
 ): Promise<boolean> {
-	const git = simpleGit(repoPath);
+	const git = await getSimpleGitWithShellPath(repoPath);
 	try {
 		// Use --verify --quiet to check if ref exists without output
 		// Append ^{commit} to ensure it resolves to a commit-ish
@@ -1631,13 +1789,11 @@ export async function createWorktreeFromPr({
 	prInfo: PullRequestInfo;
 	localBranchName: string;
 }): Promise<void> {
-	const env = await getGitEnv();
-
 	try {
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		const git = simpleGit(mainRepoPath);
+		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const localBranches = await git.branchLocal();
 		const branchExists = localBranches.all.includes(localBranchName);
 
@@ -1652,36 +1808,61 @@ export async function createWorktreeFromPr({
 					worktreePath,
 					localBranchName,
 				],
-				env,
 				worktreePath,
 			});
 		} else {
 			await execWorktreeAdd({
 				mainRepoPath,
 				args: ["-C", mainRepoPath, "worktree", "add", "--detach", worktreePath],
-				env,
 				worktreePath,
 			});
 		}
 
-		await execWithShellEnv(
-			"gh",
-			[
-				"pr",
-				"checkout",
-				String(prInfo.number),
-				"--branch",
-				localBranchName,
-				"--force",
-			],
-			{ cwd: worktreePath, timeout: 120_000 },
-		);
+		try {
+			await execWithShellEnv(
+				"gh",
+				[
+					"pr",
+					"checkout",
+					String(prInfo.number),
+					"--branch",
+					localBranchName,
+					"--force",
+				],
+				{ cwd: worktreePath, timeout: 120_000 },
+			);
+		} catch (ghError) {
+			const ghMsg =
+				ghError instanceof Error ? ghError.message : String(ghError);
+			// `gh pr checkout` can fail with "is not a branch" when the branch name
+			// contains '/' (e.g. "user/feature-branch"). Git has trouble resolving
+			// "origin/user/feature-branch" as a tracking ref inside a worktree.
+			// gh already fetched the remote successfully, so FETCH_HEAD points to
+			// the right commit — fall back to creating the branch without tracking.
+			if (!ghMsg.includes("is not a branch")) {
+				throw ghError;
+			}
+			console.log(
+				`[git] gh pr checkout failed with tracking error for PR #${prInfo.number}, falling back to FETCH_HEAD checkout`,
+			);
+			await execGitWithShellPath(
+				[
+					"-C",
+					worktreePath,
+					"checkout",
+					"-B",
+					localBranchName,
+					"--no-track",
+					"FETCH_HEAD",
+				],
+				{ timeout: 30_000 },
+			);
+		}
 
 		// Enable autoSetupRemote so `git push` just works without -u flag.
-		await execFileAsync(
-			"git",
+		await execGitWithShellPath(
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 
 		console.log(

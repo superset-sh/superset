@@ -26,12 +26,18 @@ function hasConfiguredScripts(
 				(s): s is string => typeof s === "string" && s.trim().length > 0,
 			)
 		: [];
-	return setup.length > 0 || teardown.length > 0;
+	const run = Array.isArray(config?.run)
+		? config.run.filter(
+				(s): s is string => typeof s === "string" && s.trim().length > 0,
+			)
+		: [];
+	return setup.length > 0 || teardown.length > 0 || run.length > 0;
 }
 
 const CONFIG_TEMPLATE = `{
   "setup": [],
-  "teardown": []
+  "teardown": [],
+  "run": []
 }
 `;
 
@@ -450,6 +456,7 @@ export const createConfigRouter = () => {
 					projectId: z.string(),
 					setup: z.array(z.string()),
 					teardown: z.array(z.string()),
+					run: z.array(z.string()).optional(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -482,6 +489,7 @@ export const createConfigRouter = () => {
 					...existingConfig,
 					setup: input.setup,
 					teardown: input.teardown,
+					...(input.run !== undefined && { run: input.run }),
 				};
 
 				try {

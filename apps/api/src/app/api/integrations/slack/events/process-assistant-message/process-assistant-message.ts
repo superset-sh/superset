@@ -4,7 +4,8 @@ import {
 	subscriptions,
 	usersSlackUsers,
 } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
+import { posthog } from "@/lib/analytics";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import {
 	formatErrorForSlack,
@@ -62,7 +63,12 @@ export async function processAssistantMessage({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
 			eq(integrationConnections.externalOrgId, teamId),
+			isNull(integrationConnections.disconnectedAt),
 		),
+		orderBy: [
+			desc(integrationConnections.updatedAt),
+			desc(integrationConnections.id),
+		],
 	});
 
 	if (!connection) {
@@ -95,6 +101,15 @@ export async function processAssistantMessage({
 	]);
 
 	if (!activeSubscription) {
+		posthog.capture({
+			distinctId: event.user,
+			event: "slack_gated",
+			properties: {
+				reason: "no_subscription",
+				team_id: teamId,
+				$process_person_profile: false,
+			},
+		});
 		await slack.chat.postMessage({
 			channel: event.channel,
 			thread_ts: event.thread_ts ?? event.ts,
@@ -125,6 +140,15 @@ export async function processAssistantMessage({
 
 	if (!slackUserLink) {
 		if (!event.user) return;
+		posthog.capture({
+			distinctId: event.user,
+			event: "slack_gated",
+			properties: {
+				reason: "no_linked_account",
+				team_id: teamId,
+				$process_person_profile: false,
+			},
+		});
 		const connectUrl = generateConnectUrl({
 			slackUserId: event.user,
 			teamId,
@@ -229,6 +253,17 @@ export async function processAssistantMessage({
 				text: result.text,
 			});
 		}
+
+		posthog.capture({
+			distinctId: slackUserLink.userId,
+			event: "slack_message_sent",
+			properties: {
+				type: "dm",
+				model: slackUserLink.modelPreference ?? undefined,
+				tools_used: result.actions.map((a) => a.type),
+				actions: result.actions.map((a) => a.type),
+			},
+		});
 
 		// Post side effects as a separate message
 		if (result.actions.length > 0) {

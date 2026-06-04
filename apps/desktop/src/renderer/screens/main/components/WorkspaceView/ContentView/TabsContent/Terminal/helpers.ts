@@ -3,29 +3,24 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
+import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { debounce } from "lodash";
+import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
+import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
+import type { DetectedLink } from "renderer/lib/terminal/links";
+import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
-import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
-import {
-	getCurrentPlatform,
-	hotkeyFromKeyboardEvent,
-	isTerminalReservedEvent,
-	matchesHotkeyEvent,
-} from "shared/hotkeys";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
-import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
-import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
+import { DEFAULT_TERMINAL_FONT_FAMILY, TERMINAL_OPTIONS } from "./config";
 import { suppressQueryResponses } from "./suppressQueryResponses";
-import { scrollToBottom } from "./utils";
 
 /**
  * Get the default terminal theme from localStorage cache.
@@ -63,263 +58,170 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#151110";
 }
 
-/**
- * Load GPU-accelerated renderer with automatic fallback.
- * Tries WebGL first, falls back to DOM if WebGL fails.
- * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
- */
-export type TerminalRenderer = {
-	kind: "webgl" | "dom";
-	dispose: () => void;
-	clearTextureAtlas?: () => void;
-};
-
-type PreferredRenderer = TerminalRenderer["kind"] | "auto";
-
-// Track WebGL failures globally to avoid repeated initialization attempts (VS Code pattern)
-let suggestedRendererType: TerminalRenderer["kind"] | undefined;
-
-function getPreferredRenderer(): PreferredRenderer {
-	// If WebGL previously failed, don't try again
-	if (suggestedRendererType === "dom") {
-		return "dom";
-	}
-
-	try {
-		const stored = localStorage.getItem("terminal-renderer");
-		if (stored === "webgl" || stored === "dom") {
-			return stored;
-		}
-		if (stored === "canvas") {
-			// Canvas renderer was removed in xterm.js 6.0; fall back to DOM.
-			try {
-				localStorage.setItem("terminal-renderer", "dom");
-			} catch {
-				// ignore storage errors
-			}
-			return "dom";
-		}
-	} catch {
-		// ignore
-	}
-
-	return "auto";
-}
-
-function loadRenderer(xterm: XTerm): TerminalRenderer {
-	let webglAddon: WebglAddon | null = null;
-	let kind: TerminalRenderer["kind"] = "dom";
-
-	const preferred = getPreferredRenderer();
-
-	if (preferred === "dom") {
-		return { kind: "dom", dispose: () => {}, clearTextureAtlas: undefined };
-	}
-
-	try {
-		webglAddon = new WebglAddon();
-
-		webglAddon.onContextLoss(() => {
-			console.warn(
-				"[Terminal] WebGL context lost, falling back to DOM renderer",
-			);
-			webglAddon?.dispose();
-			webglAddon = null;
-			kind = "dom";
-			// Force refresh after context loss
-			xterm.refresh(0, xterm.rows - 1);
-		});
-
-		xterm.loadAddon(webglAddon);
-		kind = "webgl";
-	} catch (e) {
-		console.warn(
-			"[Terminal] WebGL could not be loaded, falling back to DOM renderer",
-			e,
-		);
-		suggestedRendererType = "dom";
-		webglAddon = null;
-		kind = "dom";
-	}
-
-	return {
-		kind,
-		dispose: () => webglAddon?.dispose(),
-		clearTextureAtlas: webglAddon
-			? () => {
-					try {
-						webglAddon?.clearTextureAtlas();
-					} catch (error) {
-						console.warn("[Terminal] WebGL clearTextureAtlas() failed:", error);
-					}
-				}
-			: undefined,
-	};
-}
+// Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
+let suggestedRendererType: "webgl" | "dom" | undefined;
 
 export interface CreateTerminalOptions {
-	cwd?: string;
+	/**
+	 * Workspace id used for worktree lookup during path stat/resolution.
+	 * The main process looks up the worktree root, so relative paths always
+	 * anchor to the correct worktree regardless of renderer load state.
+	 */
+	workspaceId?: string;
 	initialTheme?: ITheme | null;
-	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
+	onFileLinkClick?: (event: MouseEvent, link: DetectedLink) => void;
 	onUrlClickRef?: { current: ((url: string) => void) | undefined };
 }
 
 /**
- * Mutable reference to the terminal renderer.
- * Used because the GPU renderer is loaded asynchronously after the terminal is created.
+ * Create an xterm instance opened into a detached wrapper div (not a live container).
+ * The wrapper can be moved between DOM containers via appendChild without
+ * disposing the terminal — this is the "hide attach" pattern from v2.
+ *
+ * Used by v1-terminal-cache.ts to keep xterm alive across React mount/unmount.
  */
-export interface TerminalRendererRef {
-	current: TerminalRenderer;
-}
-
-export function createTerminalInstance(
-	container: HTMLDivElement,
-	options: CreateTerminalOptions = {},
-): {
+export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
-	renderer: TerminalRendererRef;
+	searchAddon: SearchAddon;
+	wrapper: HTMLDivElement;
+	linkManager: TerminalLinkManager;
 	cleanup: () => void;
 } {
 	const {
-		cwd,
+		workspaceId,
 		initialTheme,
 		onFileLinkClick,
 		onUrlClickRef: urlClickRef,
 	} = options;
 
-	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
 	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
+	const searchAddon = new SearchAddon();
 
-	const clipboardAddon = new ClipboardAddon();
+	// Utf8Base64 replaces the addon's UTF-8-unsafe default codec (#4839).
+	const clipboardAddon = new ClipboardAddon(new Utf8Base64());
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
-	// Track cleanup state to prevent operations on disposed terminal
-	let isDisposed = false;
-	let rafId: number | null = null;
+	let disposed = false;
+	let webglAddon: WebglAddon | null = null;
 
-	// Use a ref pattern so the renderer can be updated after rAF.
-	// Start with a no-op DOM renderer - the actual GPU renderer is loaded async.
-	const rendererRef: TerminalRendererRef = {
-		current: {
-			kind: "dom",
-			dispose: () => {},
-			clearTextureAtlas: undefined,
-		},
-	};
+	// Open into a detached wrapper div — not the live container.
+	const wrapper = document.createElement("div");
+	wrapper.style.width = "100%";
+	wrapper.style.height = "100%";
+	applyTerminalFontFamilyCssVariable(
+		wrapper,
+		terminalOptions.fontFamily ?? DEFAULT_TERMINAL_FONT_FAMILY,
+	);
+	xterm.open(wrapper);
 
-	xterm.open(container);
-
-	// Load non-renderer addons synchronously - these are safe and needed immediately
 	xterm.loadAddon(fitAddon);
+	xterm.loadAddon(searchAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
 
-	// Defer GPU renderer loading to next animation frame.
-	// xterm.open() schedules a setTimeout for Viewport.syncScrollArea which expects
-	// the renderer to be ready. Loading WebGL immediately after open() can cause a
-	// race condition where the setTimeout fires during addon initialization, when
-	// _renderer is temporarily undefined (old renderer disposed, new not yet set).
-	// Deferring to rAF ensures xterm's internal setTimeout completes first with the
-	// default DOM renderer, then we safely swap to WebGL.
-	rafId = requestAnimationFrame(() => {
-		rafId = null;
-		if (isDisposed) return;
-		rendererRef.current = loadRenderer(xterm);
-	});
-
 	try {
-		if (!isDisposed) {
-			xterm.loadAddon(new LigaturesAddon());
-		}
+		xterm.loadAddon(new LigaturesAddon());
 	} catch {
 		// Ligatures not supported by current font
 	}
 
+	// Defer WebGL to rAF to avoid racing xterm's post-open viewport sync.
+	const rafId = requestAnimationFrame(() => {
+		if (disposed || suggestedRendererType === "dom") return;
+
+		try {
+			webglAddon = new WebglAddon();
+			webglAddon.onContextLoss(() => {
+				webglAddon?.dispose();
+				webglAddon = null;
+				suggestedRendererType = "dom";
+				xterm.refresh(0, xterm.rows - 1);
+			});
+			xterm.loadAddon(webglAddon);
+		} catch {
+			suggestedRendererType = "dom";
+			webglAddon = null;
+		}
+	});
+
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
-	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
-		const handler = urlClickRef?.current;
-		if (handler) {
-			handler(uri);
-			return;
-		}
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
-			console.error("[Terminal] Failed to open URL:", uri, error);
-			toast.error("Failed to open URL", {
-				description:
-					error instanceof Error
-						? error.message
-						: "Could not open URL in browser",
-			});
-		});
-	});
-	xterm.registerLinkProvider(urlLinkProvider);
-
-	const filePathLinkProvider = new FilePathLinkProvider(
-		xterm,
-		(_event, path, line, column) => {
-			if (onFileLinkClick) {
-				onFileLinkClick(path, line, column);
-			} else {
-				// Fallback to default behavior (external editor)
-				trpcClient.external.openFileInEditor
-					.mutate({
-						path,
-						line,
-						column,
-						cwd,
-					})
-					.catch((error) => {
-						console.error(
-							"[Terminal] Failed to open file in editor:",
-							path,
-							error,
-						);
-					});
+	const linkManager = new TerminalLinkManager(xterm);
+	linkManager.setHandlers({
+		stat: async (path) => {
+			try {
+				return await trpcClient.external.statPath.mutate({ path, workspaceId });
+			} catch {
+				return null;
 			}
 		},
-	);
-	xterm.registerLinkProvider(filePathLinkProvider);
+		onFileLinkClick: (event, link) => {
+			if (!event.metaKey && !event.ctrlKey) {
+				return;
+			}
+			if (onFileLinkClick) {
+				onFileLinkClick(event, link);
+				return;
+			}
+			trpcClient.external.openFileInEditor
+				.mutate({
+					path: link.resolvedPath,
+					line: link.row,
+					column: link.col,
+				})
+				.catch((error) => {
+					console.error(
+						"[Terminal] Failed to open file in editor:",
+						link.resolvedPath,
+						error,
+					);
+				});
+		},
+		onUrlClick: (event, uri) => {
+			if (!event.metaKey && !event.ctrlKey) return;
+			event.preventDefault();
+			const handler = urlClickRef?.current;
+			if (handler) {
+				handler(uri);
+				return;
+			}
+			trpcClient.external.openUrl.mutate(uri).catch((error) => {
+				console.error("[Terminal] Failed to open URL:", uri, error);
+				toast.error("Failed to open URL", {
+					description:
+						error instanceof Error
+							? error.message
+							: "Could not open URL in browser",
+				});
+			});
+		},
+	});
 
 	xterm.unicode.activeVersion = "11";
-	fitAddon.fit();
 
 	return {
 		xterm,
 		fitAddon,
-		renderer: rendererRef,
+		searchAddon,
+		wrapper,
+		linkManager,
 		cleanup: () => {
-			isDisposed = true;
-			if (rafId !== null) {
-				cancelAnimationFrame(rafId);
-			}
+			disposed = true;
+			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
-			rendererRef.current.dispose();
+			linkManager.dispose();
+			try {
+				webglAddon?.dispose();
+			} catch {}
+			webglAddon = null;
 		},
 	};
-}
-
-export interface KeyboardHandlerOptions {
-	/** Callback for Shift+Enter (sends ESC+CR to avoid \ appearing in Claude Code while keeping line continuation behavior) */
-	onShiftEnter?: () => void;
-	/** Callback for the configured clear terminal shortcut */
-	onClear?: () => void;
-	onWrite?: (data: string) => void;
-}
-
-export interface PasteHandlerOptions {
-	/** Callback when text is pasted, receives the pasted text */
-	onPaste?: (text: string) => void;
-	/** Optional direct write callback to bypass xterm's paste burst */
-	onWrite?: (data: string) => void;
-	/** Whether bracketed paste mode is enabled for the current terminal */
-	isBracketedPasteEnabled?: () => boolean;
 }
 
 /**
@@ -366,333 +268,6 @@ export function setupCopyHandler(xterm: XTerm): () => void {
 	};
 }
 
-/**
- * Setup paste handler for xterm to ensure bracketed paste mode works correctly.
- *
- * xterm.js's built-in paste handling via the textarea should work, but in some
- * Electron environments the clipboard events may not propagate correctly.
- * This handler explicitly intercepts paste events and uses xterm's paste() method,
- * which properly handles bracketed paste mode (wrapping pasted content with
- * \x1b[200~ and \x1b[201~ escape sequences when the shell has enabled it).
- *
- * This is required for TUI applications like opencode, vim, etc. that expect
- * bracketed paste mode to distinguish between typed and pasted content.
- *
- * Returns a cleanup function to remove the handler.
- */
-export function setupPasteHandler(
-	xterm: XTerm,
-	options: PasteHandlerOptions = {},
-): () => void {
-	const textarea = xterm.textarea;
-	if (!textarea) return () => {};
-
-	let cancelActivePaste: (() => void) | null = null;
-
-	const shouldForwardCtrlVForNonTextPaste = (
-		event: ClipboardEvent,
-		text: string,
-	): boolean => {
-		if (text) return false;
-		const types = Array.from(event.clipboardData?.types ?? []);
-		if (types.length === 0) return false;
-		return types.some((type) => type !== "text/plain");
-	};
-
-	const handlePaste = (event: ClipboardEvent) => {
-		const text = event.clipboardData?.getData("text/plain") ?? "";
-		if (!text) {
-			// Match terminal behavior like iTerm's "Paste or send ^V":
-			// when clipboard has non-text payloads but no plain text, forward Ctrl+V.
-			if (options.onWrite && shouldForwardCtrlVForNonTextPaste(event, text)) {
-				event.preventDefault();
-				event.stopImmediatePropagation();
-				options.onWrite("\x16");
-			}
-			return;
-		}
-
-		event.preventDefault();
-		event.stopImmediatePropagation();
-
-		options.onPaste?.(text);
-
-		// Cancel any in-flight chunked paste to avoid overlapping writes.
-		cancelActivePaste?.();
-		cancelActivePaste = null;
-
-		// Chunk large pastes to avoid sending a single massive input burst that can
-		// overwhelm the PTY pipeline (especially when the app is repainting heavily).
-		const MAX_SYNC_PASTE_CHARS = 16_384;
-
-		// If no direct write callback is provided, fall back to xterm's paste()
-		// (it handles newline normalization and bracketed paste mode internally).
-		if (!options.onWrite) {
-			const CHUNK_CHARS = 4096;
-			const CHUNK_DELAY_MS = 5;
-
-			if (text.length <= MAX_SYNC_PASTE_CHARS) {
-				xterm.paste(text);
-				return;
-			}
-
-			let cancelled = false;
-			let offset = 0;
-
-			const pasteNext = () => {
-				if (cancelled) return;
-
-				const chunk = text.slice(offset, offset + CHUNK_CHARS);
-				offset += CHUNK_CHARS;
-				xterm.paste(chunk);
-
-				if (offset < text.length) {
-					setTimeout(pasteNext, CHUNK_DELAY_MS);
-				}
-			};
-
-			cancelActivePaste = () => {
-				cancelled = true;
-			};
-
-			pasteNext();
-			return;
-		}
-
-		// Direct write path: replicate xterm's paste normalization, but stream in
-		// controlled chunks while preserving bracketed-paste semantics.
-		const preparedText = text.replace(/\r?\n/g, "\r");
-		const bracketedPasteEnabled = options.isBracketedPasteEnabled?.() ?? false;
-		const shouldBracket = bracketedPasteEnabled;
-
-		// For small/medium pastes, preserve the fast path and avoid timers.
-		if (preparedText.length <= MAX_SYNC_PASTE_CHARS) {
-			options.onWrite(
-				shouldBracket ? `\x1b[200~${preparedText}\x1b[201~` : preparedText,
-			);
-			return;
-		}
-
-		let cancelled = false;
-		let offset = 0;
-		const CHUNK_CHARS = 16_384;
-		const CHUNK_DELAY_MS = 0;
-
-		const pasteNext = () => {
-			if (cancelled) return;
-
-			const chunk = preparedText.slice(offset, offset + CHUNK_CHARS);
-			offset += CHUNK_CHARS;
-
-			if (shouldBracket) {
-				// Wrap each chunk to avoid long-running "open" bracketed paste blocks,
-				// which some TUIs may defer repainting until the closing sequence arrives.
-				options.onWrite?.(`\x1b[200~${chunk}\x1b[201~`);
-			} else {
-				options.onWrite?.(chunk);
-			}
-
-			if (offset < preparedText.length) {
-				setTimeout(pasteNext, CHUNK_DELAY_MS);
-				return;
-			}
-		};
-
-		cancelActivePaste = () => {
-			cancelled = true;
-		};
-
-		pasteNext();
-	};
-
-	textarea.addEventListener("paste", handlePaste, { capture: true });
-
-	return () => {
-		cancelActivePaste?.();
-		cancelActivePaste = null;
-		textarea.removeEventListener("paste", handlePaste, { capture: true });
-	};
-}
-
-/**
- * Setup keyboard handling for xterm including:
- * - Shortcut forwarding: App hotkeys bubble to document where useAppHotkey listens
- * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
- * - Clear terminal: Uses the configured clear shortcut
- *
- * Returns a cleanup function to remove the handler.
- */
-export function setupKeyboardHandler(
-	xterm: XTerm,
-	options: KeyboardHandlerOptions = {},
-): () => void {
-	const platform =
-		typeof navigator !== "undefined" ? navigator.platform.toLowerCase() : "";
-	const isMac = platform.includes("mac");
-	const isWindows = platform.includes("win");
-
-	const handler = (event: KeyboardEvent): boolean => {
-		const isShiftEnter =
-			event.key === "Enter" &&
-			event.shiftKey &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey;
-
-		if (isShiftEnter) {
-			if (event.type === "keydown" && options.onShiftEnter) {
-				event.preventDefault();
-				options.onShiftEnter();
-			}
-			return false;
-		}
-
-		const isCmdBackspace =
-			event.key === "Backspace" &&
-			event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCmdBackspace) {
-			if (event.type === "keydown" && options.onWrite) {
-				event.preventDefault();
-				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
-			}
-			return false;
-		}
-
-		// Cmd+Left: Move cursor to beginning of line (sends Ctrl+A)
-		const isCmdLeft =
-			event.key === "ArrowLeft" &&
-			event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCmdLeft) {
-			if (event.type === "keydown" && options.onWrite) {
-				event.preventDefault();
-				options.onWrite("\x01"); // Ctrl+A - beginning of line
-			}
-			return false;
-		}
-
-		// Cmd+Right: Move cursor to end of line (sends Ctrl+E)
-		const isCmdRight =
-			event.key === "ArrowRight" &&
-			event.metaKey &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCmdRight) {
-			if (event.type === "keydown" && options.onWrite) {
-				event.preventDefault();
-				options.onWrite("\x05"); // Ctrl+E - end of line
-			}
-			return false;
-		}
-
-		// Option+Left/Right (macOS): word navigation (Meta+B / Meta+F)
-		const isOptionLeft =
-			event.key === "ArrowLeft" &&
-			event.altKey &&
-			isMac &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.shiftKey;
-
-		if (isOptionLeft) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bb"); // Meta+B - backward word
-			}
-			return false;
-		}
-
-		// Option+Right: Move cursor forward by word (Meta+F)
-		const isOptionRight =
-			event.key === "ArrowRight" &&
-			event.altKey &&
-			isMac &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.shiftKey;
-
-		if (isOptionRight) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bf"); // Meta+F - forward word
-			}
-			return false;
-		}
-
-		// Ctrl+Left/Right (Windows): word navigation (Meta+B / Meta+F)
-		const isCtrlLeft =
-			event.key === "ArrowLeft" &&
-			event.ctrlKey &&
-			isWindows &&
-			!event.metaKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCtrlLeft) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bb"); // Meta+B - backward word
-			}
-			return false;
-		}
-
-		const isCtrlRight =
-			event.key === "ArrowRight" &&
-			event.ctrlKey &&
-			isWindows &&
-			!event.metaKey &&
-			!event.altKey &&
-			!event.shiftKey;
-
-		if (isCtrlRight) {
-			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x1bf"); // Meta+F - forward word
-			}
-			return false;
-		}
-
-		if (isTerminalReservedEvent(event)) return true;
-
-		const clearKeys = getHotkeyKeys("CLEAR_TERMINAL");
-		const isClearShortcut =
-			clearKeys !== null && matchesHotkeyEvent(event, clearKeys);
-
-		if (isClearShortcut) {
-			if (event.type === "keydown" && options.onClear) {
-				options.onClear();
-			}
-			return false;
-		}
-
-		if (event.type !== "keydown") return true;
-		const potentialHotkey = hotkeyFromKeyboardEvent(
-			event,
-			getCurrentPlatform(),
-		);
-		if (!potentialHotkey) return true;
-
-		if (isAppHotkeyEvent(event)) {
-			// Return false to prevent xterm from processing the key.
-			// The original event bubbles to document where useAppHotkey handles it.
-			return false;
-		}
-
-		return true;
-	};
-
-	xterm.attachCustomKeyEventHandler(handler);
-
-	return () => {
-		xterm.attachCustomKeyEventHandler(() => true);
-	};
-}
-
 export function setupFocusListener(
 	xterm: XTerm,
 	onFocus: () => void,
@@ -704,33 +279,6 @@ export function setupFocusListener(
 
 	return () => {
 		textarea.removeEventListener("focus", onFocus);
-	};
-}
-
-export function setupResizeHandlers(
-	container: HTMLDivElement,
-	xterm: XTerm,
-	fitAddon: FitAddon,
-	onResize: (cols: number, rows: number) => void,
-): () => void {
-	const debouncedHandleResize = debounce(() => {
-		const buffer = xterm.buffer.active;
-		const wasAtBottom = buffer.viewportY >= buffer.baseY;
-		fitAddon.fit();
-		onResize(xterm.cols, xterm.rows);
-		if (wasAtBottom) {
-			requestAnimationFrame(() => scrollToBottom(xterm));
-		}
-	}, RESIZE_DEBOUNCE_MS);
-
-	const resizeObserver = new ResizeObserver(debouncedHandleResize);
-	resizeObserver.observe(container);
-	window.addEventListener("resize", debouncedHandleResize);
-
-	return () => {
-		window.removeEventListener("resize", debouncedHandleResize);
-		resizeObserver.disconnect();
-		debouncedHandleResize.cancel();
 	};
 }
 

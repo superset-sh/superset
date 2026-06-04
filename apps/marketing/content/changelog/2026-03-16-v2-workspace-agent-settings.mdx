@@ -1,0 +1,69 @@
+---
+title: Configurable agent settings, streamlined workspace modal, and tab and pane enhancements
+date: 2026-03-16
+image: /changelog/agents-customization.png
+---
+
+## Configurable Agent Settings <PRBadge url="https://github.com/superset-sh/superset/pull/2495" />
+
+Agent behavior is now configurable from the desktop settings UI. You can override built-in presets, preview prompt templates, and reuse the same agent definitions everywhere you launch work without editing config files by hand.
+
+- Adjust model, labels, descriptions, commands, and prompt templates from one settings page
+- Changes save immediately and can be reset back to defaults
+- The same shared agent presets now power workspace creation and task launch flows
+
+## Streamlined Workspace Modal <PRBadge url="https://github.com/superset-sh/superset/pull/2391" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2506" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2500" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2513" />
+
+The workspace modal now keeps project selection, prompts, images, PRs, and issues in one flow, so it is faster to launch a workspace with complete context.
+
+![New workspace modal](/changelog/new-workspace-modal-2026-03-16.png)
+
+- Prompt-first creation flow with project selection built directly into the modal
+- Project avatars, GitHub owner details, and inline `Add from GitHub` in the selector
+- Prompt text, image attachments, linked PRs, linked issues, and selected agent all live in the same streamlined flow
+- Prompt text, attachments, and selected agent persist when you close and reopen the modal
+- Branch prefix previews, better long-name truncation, and PR lookup by pasted GitHub URL
+
+## Tab and Pane Enhancements <PRBadge url="https://github.com/superset-sh/superset/pull/2488" /> <PRBadge url="https://github.com/superset-sh/superset/pull/2487" />
+
+Desktop layouts are more flexible now. You can merge an entire tab into another pane layout with drag-and-drop, and rename pane headers inline to keep dense workspaces organized.
+
+![Drag tab into pane](/changelog/drag-tab.png)
+
+- Drag a top-level tab onto another tab's split zones to merge it left, right, top, or bottom
+- Source tabs are removed cleanly after the merge, preserving pane ownership and layout state
+- Double-click pane headers to rename them directly in place
+
+## Improvements
+
+- **V2 workspace sidebar** - Workspaces are grouped by project in the redesigned sidebar, with the newer project-first flow feeding directly into that structure <PRBadge url="https://github.com/superset-sh/superset/pull/2399" />
+- **Linked Linear issue pills** - Linear issues referenced in agent tasks now render as inline pills with the issue title and status, so you can reference tasks in chat without leaving context <PRBadge url="https://github.com/superset-sh/superset/pull/2383" />
+- **Keyboard shortcut to equalize pane splits** - Press `Cmd+Shift+0` to instantly balance all pane splits to equal widths <PRBadge url="https://github.com/superset-sh/superset/pull/2381" />
+- **Searchable font picker** - The font selector in settings is now a searchable dropdown instead of a plain text input <PRBadge url="https://github.com/superset-sh/superset/pull/2458" />
+- **Terminal scrollback increased to 5k lines** - More history retained in terminal sessions <PRBadge url="https://github.com/superset-sh/superset/pull/2480" />
+- **Server-side branch/PR/issue search** - Branch, PR, and issue pickers now search server-side and paginate for large repositories <PRBadge url="https://github.com/superset-sh/superset/pull/2442" />
+- **Desktop themes applied to editor and diffs** - The active desktop theme now extends to the CodeMirror editor and diff views <PRBadge url="https://github.com/superset-sh/superset/pull/2404" />
+- **PRs sorted by most recently updated** - PR lists in the workspace modal now sort by update time <PRBadge url="https://github.com/superset-sh/superset/pull/2406" />
+- **Yearly pricing shown as monthly equivalent** - Plans page now displays the per-month cost for annual subscriptions <PRBadge url="https://github.com/superset-sh/superset/pull/2396" />
+- **Android Studio added to IDE dropdown** <PRBadge url="https://github.com/superset-sh/superset/pull/2428" />
+- **OpenAI GPT-5.4 available** - Updated OpenAI model list replaces GPT-5.2 with GPT-5.4 <PRBadge url="https://github.com/superset-sh/superset/pull/2497" />
+- **New-tab as default preset execution mode** <PRBadge url="https://github.com/superset-sh/superset/pull/1817" />
+
+---
+
+**Bug fixes:**
+
+- Fixed macOS git spawn failures when shell-env PATH fallback is missing <PRBadge url="https://github.com/superset-sh/superset/pull/2505" />
+- Fixed Linear two-way sync write-back to Linear <PRBadge url="https://github.com/superset-sh/superset/pull/2477" />
+- Fixed stale project icon after image replacement <PRBadge url="https://github.com/superset-sh/superset/pull/2485" />
+- Fixed agent hooks written to native config files <PRBadge url="https://github.com/superset-sh/superset/pull/2479" />
+- Fixed pasted content reverting in CodeMirror <PRBadge url="https://github.com/superset-sh/superset/pull/2463" />
+- Fixed agent launch from issues tab <PRBadge url="https://github.com/superset-sh/superset/pull/2482" />
+- Fixed branch search and project switching in workspace modal <PRBadge url="https://github.com/superset-sh/superset/pull/2465" />
+- Fixed terminal link path resolution to file viewer <PRBadge url="https://github.com/superset-sh/superset/pull/2440" />
+- Fixed stale sidebar after workspace creation <PRBadge url="https://github.com/superset-sh/superset/pull/2441" />
+- Fixed settings back button navigation <PRBadge url="https://github.com/superset-sh/superset/pull/2425" />
+- Fixed new workspaces showing unrelated PRs <PRBadge url="https://github.com/superset-sh/superset/pull/2405" />
+- Fixed git resolution from shell PATH <PRBadge url="https://github.com/superset-sh/superset/pull/2403" />
+- Fixed git status buffer overflow in large repos <PRBadge url="https://github.com/superset-sh/superset/pull/2400" />
+- Fixed Linear OAuth token revocation on disconnect <PRBadge url="https://github.com/superset-sh/superset/pull/2443" />

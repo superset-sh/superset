@@ -13,7 +13,9 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import type { PlanTier } from "../../constants";
+import { BillingDetails } from "./components/BillingDetails";
 import { CurrentPlanCard } from "./components/CurrentPlanCard";
+import { RecentInvoices } from "./components/RecentInvoices";
 import { UpgradeCard } from "./components/UpgradeCard";
 
 interface BillingOverviewProps {
@@ -28,6 +30,13 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const [isRestoring, setIsRestoring] = useState(false);
 
 	const activeOrgId = session?.session?.activeOrganizationId;
+
+	const { data: activeOrg } = authClient.useActiveOrganization();
+	const currentUserId = session?.user?.id;
+	const currentMember = activeOrg?.members?.find(
+		(m) => m.userId === currentUserId,
+	);
+	const isOwner = currentMember?.role === "owner";
 
 	// Get subscription from Electric (preloaded, instant)
 	const { data: subscriptionsData } = useLiveQuery(
@@ -123,49 +132,53 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
-			<div className="mb-6">
-				<div className="flex items-center justify-between">
-					<div>
-						<h2 className="text-lg font-semibold">Billing</h2>
-						<p className="text-xs text-muted-foreground mt-0.5">
-							For questions about billing,{" "}
-							<a
-								href="mailto:founders@superset.sh"
-								className="text-primary hover:underline"
-							>
-								contact us
-							</a>
-						</p>
-					</div>
-					<Button variant="ghost" size="sm" asChild>
-						<Link to="/settings/billing/plans">
-							All plans
-							<HiArrowRight className="h-3 w-3" />
-						</Link>
-					</Button>
+			<div className="mb-8 flex items-start justify-between gap-4">
+				<div>
+					<h2 className="text-xl font-semibold">Billing</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						For questions about billing,{" "}
+						<a
+							href="mailto:founders@superset.sh"
+							className="text-primary hover:underline"
+						>
+							contact us
+						</a>
+						.
+					</p>
 				</div>
+				<Button variant="ghost" size="sm" asChild>
+					<Link to="/settings/billing/plans">
+						All plans
+						<HiArrowRight className="h-3 w-3" />
+					</Link>
+				</Button>
 			</div>
 
-			<div className="space-y-3">
+			<div className="space-y-6">
 				{showOverview && (
-					<>
-						<CurrentPlanCard
-							currentPlan={plan}
-							onCancel={handleCancel}
-							isCanceling={isCanceling}
-							onRestore={handleRestore}
-							isRestoring={isRestoring}
-							cancelAt={subscriptionData?.cancelAt}
-							periodEnd={subscriptionData?.periodEnd}
-						/>
-						{plan === "free" && (
-							<UpgradeCard
-								onUpgrade={() => handleUpgrade(false)}
-								isUpgrading={isUpgrading || memberCount === undefined}
+					<div>
+						<h3 className="text-sm font-medium mb-2">Plan</h3>
+						<div className="divide-y divide-border">
+							<CurrentPlanCard
+								currentPlan={plan}
+								onCancel={handleCancel}
+								isCanceling={isCanceling}
+								onRestore={handleRestore}
+								isRestoring={isRestoring}
+								cancelAt={subscriptionData?.cancelAt}
+								periodEnd={subscriptionData?.periodEnd}
 							/>
-						)}
-					</>
+							{plan === "free" && (
+								<UpgradeCard
+									onUpgrade={() => handleUpgrade(false)}
+									isUpgrading={isUpgrading || memberCount === undefined}
+								/>
+							)}
+						</div>
+					</div>
 				)}
+				{showOverview && isOwner && plan !== "free" && <BillingDetails />}
+				<RecentInvoices />
 			</div>
 		</div>
 	);

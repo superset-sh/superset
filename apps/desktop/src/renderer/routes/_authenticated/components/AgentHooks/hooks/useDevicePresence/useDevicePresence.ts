@@ -1,42 +1,34 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
-const HEARTBEAT_INTERVAL_MS = 30_000;
-
+/**
+ * Registers this device once on startup so MCP can verify ownership.
+ * No polling — just a single upsert into device_presence.
+ */
 export function useDevicePresence() {
 	const { data: session } = authClient.useSession();
-	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+	const registeredScopeRef = useRef<string | null>(null);
 
-	const sendHeartbeat = useCallback(async () => {
-		if (!deviceInfo || !session?.session?.activeOrganizationId) return;
+	useEffect(() => {
+		const orgId = session?.session?.activeOrganizationId;
+		if (!deviceInfo || !orgId) return;
+		if (registeredScopeRef.current === orgId) return;
+		registeredScopeRef.current = orgId;
 
-		try {
-			await apiTrpcClient.device.heartbeat.mutate({
+		apiTrpcClient.device.registerDevice
+			.mutate({
 				deviceId: deviceInfo.deviceId,
 				deviceName: deviceInfo.deviceName,
 				deviceType: "desktop",
+			})
+			.catch(() => {
+				// Registration can fail when offline — will retry on next app launch
+				registeredScopeRef.current = null;
 			});
-		} catch {
-			// Heartbeat can fail when offline - ignore
-		}
 	}, [deviceInfo, session?.session?.activeOrganizationId]);
-
-	useEffect(() => {
-		if (!deviceInfo || !session?.session?.activeOrganizationId) return;
-
-		sendHeartbeat();
-		intervalRef.current = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
-
-		return () => {
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
-				intervalRef.current = null;
-			}
-		};
-	}, [deviceInfo, session?.session?.activeOrganizationId, sendHeartbeat]);
 
 	return {
 		deviceInfo,

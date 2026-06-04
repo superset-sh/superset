@@ -1,6 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db, dbWs } from "@superset/db/client";
-import { taskStatuses, tasks } from "@superset/db/schema";
+import { tasks } from "@superset/db/schema";
+import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
+import {
+	generateBaseTaskSlug,
+	generateUniqueTaskSlug,
+} from "@superset/shared/task-slug";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
@@ -37,28 +42,6 @@ const taskInputSchema = z.object({
 
 type TaskInput = z.infer<typeof taskInputSchema>;
 
-function generateBaseSlug(title: string): string {
-	return title
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
-}
-
-function generateUniqueSlug(
-	baseSlug: string,
-	existingSlugs: Set<string>,
-): string {
-	let slug = baseSlug;
-	if (existingSlugs.has(slug)) {
-		let counter = 1;
-		while (existingSlugs.has(slug)) {
-			slug = `${baseSlug}-${counter++}`;
-		}
-	}
-	return slug;
-}
-
 export function register(server: McpServer) {
 	server.registerTool(
 		"create_task",
@@ -89,28 +72,10 @@ export function register(server: McpServer) {
 			const needsDefaultStatus = taskInputs.some((t) => !t.statusId);
 
 			if (needsDefaultStatus) {
-				const [defaultStatus] = await db
-					.select({ id: taskStatuses.id })
-					.from(taskStatuses)
-					.where(
-						and(
-							eq(taskStatuses.organizationId, ctx.organizationId),
-							eq(taskStatuses.type, "backlog"),
-						),
-					)
-					.orderBy(taskStatuses.position)
-					.limit(1);
-
-				defaultStatusId = defaultStatus?.id;
-				if (!defaultStatusId) {
-					return {
-						content: [{ type: "text", text: "Error: No default status found" }],
-						isError: true,
-					};
-				}
+				defaultStatusId = await seedDefaultStatuses(ctx.organizationId);
 			}
 
-			const baseSlugs = taskInputs.map((t) => generateBaseSlug(t.title));
+			const baseSlugs = taskInputs.map((t) => generateBaseTaskSlug(t.title));
 			const uniqueBaseSlugs = [...new Set(baseSlugs)];
 
 			const slugConditions = uniqueBaseSlugs.map((baseSlug) =>
@@ -138,6 +103,9 @@ export function register(server: McpServer) {
 				organizationId: string;
 				creatorId: string;
 				assigneeId: string | null;
+				assigneeExternalId: string | null;
+				assigneeDisplayName: string | null;
+				assigneeAvatarUrl: string | null;
 				labels: string[];
 				dueDate: Date | null;
 				estimate: number | null;
@@ -145,7 +113,7 @@ export function register(server: McpServer) {
 
 			for (const [i, input] of taskInputs.entries()) {
 				const baseSlug = baseSlugs[i] ?? "";
-				const slug = generateUniqueSlug(baseSlug, usedSlugs);
+				const slug = generateUniqueTaskSlug(baseSlug, usedSlugs);
 				usedSlugs.add(slug);
 
 				const priority: TaskPriority = isPriority(input.priority)
@@ -163,6 +131,9 @@ export function register(server: McpServer) {
 					organizationId: ctx.organizationId,
 					creatorId: ctx.userId,
 					assigneeId: input.assigneeId ?? null,
+					assigneeExternalId: null,
+					assigneeDisplayName: null,
+					assigneeAvatarUrl: null,
 					labels: input.labels ?? [],
 					dueDate: input.dueDate ? new Date(input.dueDate) : null,
 					estimate: input.estimate ?? null,

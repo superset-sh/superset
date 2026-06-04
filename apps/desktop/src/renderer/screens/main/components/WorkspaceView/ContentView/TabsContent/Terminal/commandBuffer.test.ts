@@ -1,5 +1,40 @@
 import { describe, expect, it } from "bun:test";
-import { sanitizeForTitle } from "./commandBuffer";
+import type { Terminal as XTerm } from "@xterm/xterm";
+import { isCommandEchoed, sanitizeForTitle } from "./commandBuffer";
+
+function makeXterm(
+	lines: Array<{ text: string; isWrapped?: boolean }>,
+	options: {
+		cursorX?: number;
+		cursorY?: number;
+		viewportY?: number;
+	} = {},
+): XTerm {
+	const {
+		cursorX = lines.at(-1)?.text.length ?? 0,
+		cursorY = Math.max(lines.length - 1, 0),
+		viewportY = 0,
+	} = options;
+
+	return {
+		buffer: {
+			active: {
+				cursorX,
+				cursorY,
+				viewportY,
+				getLine: (index: number) => {
+					const line = lines[index];
+					if (!line) return undefined;
+
+					return {
+						isWrapped: line.isWrapped ?? false,
+						translateToString: () => line.text,
+					};
+				},
+			},
+		},
+	} as unknown as XTerm;
+}
 
 describe("sanitizeForTitle", () => {
 	it("should keep normal text unchanged", () => {
@@ -37,5 +72,50 @@ describe("sanitizeForTitle", () => {
 
 	it("should trim whitespace", () => {
 		expect(sanitizeForTitle("  command  ")).toBe("command");
+	});
+});
+
+describe("isCommandEchoed", () => {
+	it("returns true when the rendered prompt line ends with the typed command", () => {
+		const xterm = makeXterm([{ text: "$ ls -la" }]);
+
+		expect(isCommandEchoed(xterm, "ls -la")).toBe(true);
+	});
+
+	it("returns false when masked input is not echoed on screen", () => {
+		const xterm = makeXterm([{ text: "[sudo] password for alice: " }]);
+
+		expect(isCommandEchoed(xterm, "hunter2")).toBe(false);
+	});
+
+	it("returns false when the prompt contains the same substring as the secret", () => {
+		const xterm = makeXterm([{ text: "[sudo] password for alice: " }]);
+
+		expect(isCommandEchoed(xterm, "alice")).toBe(false);
+	});
+
+	it("returns true for commands that wrap onto the current line", () => {
+		const xterm = makeXterm([
+			{ text: "$ git status --", isWrapped: false },
+			{ text: "short", isWrapped: true },
+		]);
+
+		expect(isCommandEchoed(xterm, "git status --short")).toBe(true);
+	});
+
+	it("uses the cursor position on the current line", () => {
+		const xterm = makeXterm([{ text: "$ npm test ghost-text" }], {
+			cursorX: "$ npm test".length,
+		});
+
+		expect(isCommandEchoed(xterm, "npm test")).toBe(true);
+		expect(isCommandEchoed(xterm, "npm test ghost-text")).toBe(false);
+	});
+
+	it("returns false for empty commands", () => {
+		const xterm = makeXterm([{ text: "$ " }]);
+
+		expect(isCommandEchoed(xterm, "")).toBe(false);
+		expect(isCommandEchoed(xterm, "   ")).toBe(false);
 	});
 });

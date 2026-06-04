@@ -1,9 +1,10 @@
 import { relations } from "drizzle-orm";
-import { projects, workspaces, worktrees } from "./schema";
+import { projects, workspaceSections, workspaces, worktrees } from "./schema";
 
 export const projectsRelations = relations(projects, ({ many }) => ({
 	worktrees: many(worktrees),
 	workspaces: many(workspaces),
+	workspaceSections: many(workspaceSections),
 }));
 
 export const worktreesRelations = relations(worktrees, ({ one, many }) => ({
@@ -23,4 +24,19 @@ export const workspacesRelations = relations(workspaces, ({ one }) => ({
 		fields: [workspaces.worktreeId],
 		references: [worktrees.id],
 	}),
+	section: one(workspaceSections, {
+		fields: [workspaces.sectionId],
+		references: [workspaceSections.id],
+	}),
 }));
+
+export const workspaceSectionsRelations = relations(
+	workspaceSections,
+	({ one, many }) => ({
+		project: one(projects, {
+			fields: [workspaceSections.projectId],
+			references: [projects.id],
+		}),
+		workspaces: many(workspaces),
+	}),
+);

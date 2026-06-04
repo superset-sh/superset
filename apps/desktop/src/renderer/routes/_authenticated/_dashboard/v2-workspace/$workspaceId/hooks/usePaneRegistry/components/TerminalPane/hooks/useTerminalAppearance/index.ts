@@ -1,0 +1,1 @@
+export { useTerminalAppearance } from "./useTerminalAppearance";

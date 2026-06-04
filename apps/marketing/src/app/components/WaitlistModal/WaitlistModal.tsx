@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { WaitlistForm } from "../WaitlistForm";
 
 interface WaitlistModalProps {
 	isOpen: boolean;
@@ -9,7 +10,6 @@ interface WaitlistModalProps {
 
 export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 	useEffect(() => {
-		// Prevent body scroll when modal is open
 		if (isOpen) {
 			document.body.style.overflow = "hidden";
 		} else {
@@ -25,7 +25,6 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 
 	return (
 		<>
-			{/* Backdrop */}
 			<button
 				type="button"
 				className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 cursor-default"
@@ -33,10 +32,8 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 				aria-label="Close modal backdrop"
 			/>
 
-			{/* Modal Container with overflow hidden */}
 			<div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-				<div className="pointer-events-auto w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border border-border overflow-hidden">
-					{/* Close button */}
+				<div className="pointer-events-auto w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border border-border overflow-hidden p-8 relative">
 					<button
 						type="button"
 						onClick={onClose}
@@ -59,16 +56,9 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 						</svg>
 					</button>
 
-					{/* Iframe container with fixed height to cut off branding */}
-					<iframe
-						src="https://tally.so/r/wv7Q0A"
-						width="100%"
-						height="750px"
-						frameBorder="0"
-						marginHeight={0}
-						marginWidth={0}
-						title="Superset Waitlist"
-						className="w-full"
+					<WaitlistForm
+						heading="Join the waitlist"
+						description="Get notified when Superset is available on Windows & Linux."
 					/>
 				</div>
 			</div>

@@ -1,7 +1,7 @@
 /**
  * Theme type definitions for the Superset desktop app
  *
- * Themes control both UI colors (via CSS variables) and terminal colors (via xterm.js)
+ * Themes control UI colors, terminal colors, and editor/diff colors.
  */
 
 /**
@@ -150,6 +150,13 @@ export interface UIColors {
 	// Search highlight colors (CSS Custom Highlight API)
 	highlightMatch: string;
 	highlightActive: string;
+
+	// Brand highlight (e.g. PRO badge). Theme-defining color used for accents
+	// that should pop against muted UI chrome. Optional so existing stored
+	// themes without this token still typecheck — globals.css supplies a
+	// fallback value.
+	highlight?: string;
+	highlightForeground?: string;
 }
 
 /**
@@ -187,6 +194,72 @@ export interface TerminalColors {
 }
 
 /**
+ * Editor chrome colors shared by raw editing and diff rendering
+ */
+export interface EditorColors {
+	background: string;
+	foreground: string;
+	border: string;
+	cursor: string;
+	gutterBackground: string;
+	gutterForeground: string;
+	activeLine: string;
+	selection: string;
+	search: string;
+	searchActive: string;
+	panel: string;
+	panelBorder: string;
+	panelInputBackground: string;
+	panelInputForeground: string;
+	panelInputBorder: string;
+	panelButtonBackground: string;
+	panelButtonForeground: string;
+	panelButtonBorder: string;
+	diffBuffer: string;
+	diffHover: string;
+	diffSeparator: string;
+	addition: string;
+	deletion: string;
+	modified: string;
+}
+
+/**
+ * Syntax colors shared by CodeMirror and Shiki/Pierre
+ */
+export interface EditorSyntaxColors {
+	plainText: string;
+	comment: string;
+	keyword: string;
+	string: string;
+	number: string;
+	functionCall: string;
+	variableName: string;
+	typeName: string;
+	className: string;
+	constant: string;
+	regexp: string;
+	tagName: string;
+	attributeName: string;
+	invalid: string;
+}
+
+/**
+ * Complete editor theme definition
+ */
+export interface EditorTheme {
+	colors: EditorColors;
+	syntax: EditorSyntaxColors;
+}
+
+/**
+ * Partial editor overrides used by built-in and imported themes.
+ */
+export interface EditorThemeOverrides {
+	colors?: Partial<EditorColors>;
+	syntax?: Partial<EditorSyntaxColors>;
+}
+
+/**
  * Complete theme definition
  */
 export interface Theme {
@@ -207,6 +280,8 @@ export interface Theme {
 	ui: UIColors;
 	/** Terminal ANSI colors (optional, falls back to xterm defaults based on theme type) */
 	terminal?: TerminalColors;
+	/** Code editor and diff colors (optional, otherwise derived from UI + terminal tokens) */
+	editor?: EditorThemeOverrides;
 
 	/** Whether this is a built-in theme */
 	isBuiltIn?: boolean;

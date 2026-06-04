@@ -1,0 +1,240 @@
+import {
+	PromptInput,
+	PromptInputAttachment,
+	PromptInputAttachments,
+	type PromptInputMessage,
+	usePromptInputController,
+} from "@superset/ui/ai-elements/prompt-input";
+import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
+import { workspaceTrpc } from "@superset/workspace-client";
+import type { ChatStatus, FileUIPart } from "ai";
+import type React from "react";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { QuestionInputOverlay } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/QuestionInputOverlay";
+import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor";
+import { useFocusPromptOnPane } from "renderer/components/Chat/ChatInterface/hooks/useFocusPromptOnPane";
+import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
+import type {
+	ModelOption,
+	PermissionMode,
+} from "renderer/components/Chat/ChatInterface/types";
+import { useHotkeyDisplay } from "renderer/hotkeys";
+import { ChatComposerControls } from "./components/ChatComposerControls";
+import { ChatInputDropZone } from "./components/ChatInputDropZone";
+import { ChatShortcuts } from "./components/ChatShortcuts";
+import { FileDropOverlay } from "./components/FileDropOverlay";
+import { LinkedIssues } from "./components/LinkedIssues";
+import { SlashCommandPreview } from "./components/SlashCommandPreview";
+import type { LinkedIssue } from "./types";
+import { getErrorMessage } from "./utils/getErrorMessage";
+
+interface ChatInputFooterProps {
+	workspaceId: string;
+	cwd: string;
+	isFocused: boolean;
+	error: unknown;
+	canAbort: boolean;
+	submitStatus?: ChatStatus;
+	availableModels: ModelOption[];
+	selectedModel: ModelOption | null;
+	setSelectedModel: React.Dispatch<React.SetStateAction<ModelOption | null>>;
+	modelSelectorOpen: boolean;
+	setModelSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	permissionMode: PermissionMode;
+	setPermissionMode: React.Dispatch<React.SetStateAction<PermissionMode>>;
+	thinkingLevel: ThinkingLevel;
+	setThinkingLevel: (level: ThinkingLevel) => void;
+	slashCommands: SlashCommand[];
+	submitDisabled?: boolean;
+	renderAttachment?: (file: FileUIPart & { id: string }) => ReactNode;
+	onSubmitStart?: () => void;
+	onSubmitEnd?: () => void;
+	onSend: (message: PromptInputMessage) => Promise<void> | void;
+	onStop: (e: React.MouseEvent) => void;
+	pendingQuestion?: {
+		questionId: string;
+		question: string;
+		options?: { label: string; description?: string }[];
+	} | null;
+	isQuestionSubmitting?: boolean;
+	onQuestionRespond?: (questionId: string, answer: string) => Promise<void>;
+	onQuestionCancel?: () => void;
+}
+
+export function ChatInputFooter({
+	workspaceId,
+	cwd,
+	isFocused,
+	error,
+	canAbort,
+	submitStatus,
+	availableModels,
+	selectedModel,
+	setSelectedModel,
+	modelSelectorOpen,
+	setModelSelectorOpen,
+	permissionMode,
+	setPermissionMode,
+	thinkingLevel,
+	setThinkingLevel,
+	slashCommands,
+	submitDisabled,
+	renderAttachment,
+	onSubmitStart,
+	onSubmitEnd,
+	onSend,
+	onStop,
+	pendingQuestion,
+	isQuestionSubmitting,
+	onQuestionRespond,
+	onQuestionCancel,
+}: ChatInputFooterProps) {
+	useFocusPromptOnPane(isFocused);
+
+	// Re-focus the editor when the question overlay dismisses.
+	const { textInput } = usePromptInputController();
+	const prevPendingQuestionRef = useRef(pendingQuestion);
+	useEffect(() => {
+		const prev = prevPendingQuestionRef.current;
+		prevPendingQuestionRef.current = pendingQuestion;
+		if (prev != null && pendingQuestion == null) {
+			const id = requestAnimationFrame(() => textInput.focus());
+			return () => cancelAnimationFrame(id);
+		}
+	}, [pendingQuestion, textInput]);
+
+	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
+	const inputRootRef = useRef<HTMLDivElement>(null);
+	const errorMessage = getErrorMessage(error);
+	const focusShortcutText = useHotkeyDisplay("FOCUS_CHAT_INPUT").text;
+	const showFocusHint = focusShortcutText !== "Unassigned";
+
+	const removeLinkedIssue = useCallback((slug: string) => {
+		setLinkedIssues((prev) => prev.filter((issue) => issue.slug !== slug));
+	}, []);
+
+	const trpcUtils = workspaceTrpc.useUtils();
+	const searchFiles = useCallback(
+		async (query: string) => {
+			const { matches } = await trpcUtils.filesystem.searchFiles.fetch({
+				workspaceId,
+				query,
+				includeHidden: false,
+				limit: 20,
+			});
+			return matches.map((m) => ({
+				id: m.absolutePath,
+				name: m.name,
+				relativePath: m.relativePath,
+			}));
+		},
+		[trpcUtils, workspaceId],
+	);
+
+	const handleSend = useCallback(
+		(message: PromptInputMessage) => {
+			if (linkedIssues.length === 0) return onSend(message);
+
+			const prefix = linkedIssues
+				.map((issue) => `@task:${issue.slug}`)
+				.join(" ");
+			const modifiedMessage: PromptInputMessage = {
+				...message,
+				text: `${prefix} ${message.text}`,
+			};
+			setLinkedIssues([]);
+			return onSend(modifiedMessage);
+		},
+		[linkedIssues, onSend],
+	);
+
+	return (
+		<ChatInputDropZone className="bg-background px-4 py-3">
+			{(dragType) => (
+				<div className="mx-auto w-full max-w-[680px]">
+					{errorMessage && (
+						<p
+							role="alert"
+							className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive"
+						>
+							{errorMessage}
+						</p>
+					)}
+					{pendingQuestion && onQuestionRespond && onQuestionCancel ? (
+						<QuestionInputOverlay
+							key={pendingQuestion.questionId}
+							question={pendingQuestion}
+							isSubmitting={isQuestionSubmitting ?? false}
+							onRespond={onQuestionRespond}
+							onCancel={onQuestionCancel}
+						/>
+					) : (
+						<div
+							ref={inputRootRef}
+							className={
+								dragType === "path"
+									? "relative opacity-50 transition-opacity"
+									: "relative"
+							}
+						>
+							{showFocusHint && (
+								<span className="pointer-events-none absolute top-3 right-3 z-10 text-xs text-muted-foreground/50 [:focus-within>&]:hidden">
+									{focusShortcutText} to focus
+								</span>
+							)}
+							<PromptInput
+								className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+								onSubmitStart={onSubmitStart}
+								onSubmitEnd={onSubmitEnd}
+								onSubmit={handleSend}
+								multiple
+								maxFiles={5}
+								maxFileSize={10 * 1024 * 1024}
+								globalDrop
+							>
+								<ChatShortcuts isFocused={isFocused} />
+								<FileDropOverlay visible={dragType === "files"} />
+								<PromptInputAttachments>
+									{renderAttachment ??
+										((file) => <PromptInputAttachment data={file} />)}
+								</PromptInputAttachments>
+								<LinkedIssues
+									issues={linkedIssues}
+									onRemove={removeLinkedIssue}
+								/>
+								<SlashCommandPreview
+									workspaceId={workspaceId}
+									slashCommands={slashCommands}
+								/>
+								<TiptapPromptEditor
+									cwd={cwd}
+									searchFiles={searchFiles}
+									slashCommands={slashCommands}
+									availableModels={availableModels}
+									placeholder="Ask to make changes, @mention files, run /commands"
+								/>
+								<ChatComposerControls
+									availableModels={availableModels}
+									selectedModel={selectedModel}
+									setSelectedModel={setSelectedModel}
+									modelSelectorOpen={modelSelectorOpen}
+									setModelSelectorOpen={setModelSelectorOpen}
+									permissionMode={permissionMode}
+									setPermissionMode={setPermissionMode}
+									thinkingLevel={thinkingLevel}
+									setThinkingLevel={setThinkingLevel}
+									canAbort={canAbort}
+									submitStatus={submitStatus}
+									submitDisabled={submitDisabled}
+									onStop={onStop}
+								/>
+							</PromptInput>
+						</div>
+					)}
+					<div className="py-1.5" />
+				</div>
+			)}
+		</ChatInputDropZone>
+	);
+}

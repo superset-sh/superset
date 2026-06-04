@@ -1,8 +1,6 @@
 import { app } from "electron";
 import { env } from "main/env.main";
-import { outlit } from "main/lib/outlit";
 import { PostHog } from "posthog-node";
-import { toOutlitProperties } from "shared/analytics";
 import { DEFAULT_TELEMETRY_ENABLED } from "shared/constants";
 
 export let posthog: PostHog | null = null;
@@ -21,6 +19,14 @@ function getClient(): PostHog | null {
 		});
 	}
 	return posthog;
+}
+
+export function getPosthogClient(): PostHog | null {
+	return getClient();
+}
+
+export function getUserId(): string | null {
+	return userId;
 }
 
 function isTelemetryEnabled(): boolean {
@@ -50,16 +56,5 @@ export function track(
 				desktop_version: app.getVersion(),
 			},
 		});
-	}
-
-	outlit.track({
-		eventName: event,
-		userId,
-		properties: toOutlitProperties(properties),
-	});
-
-	// Fire user.activate() on project_opened (activation moment)
-	if (event === "project_opened") {
-		outlit.user.activate({ userId });
 	}
 }

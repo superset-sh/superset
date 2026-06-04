@@ -4,12 +4,15 @@ import {
 	type SelectWorkspace,
 	type SelectWorktree,
 	settings,
+	workspaceSections,
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { localDb } from "main/lib/local-db";
+import { invalidatePortLabelCache } from "../../ports/label-cache";
+import { computeNextProjectChildTabOrder } from "./project-children-order";
 
 /**
  * Set the last active workspace in settings.
@@ -27,10 +30,11 @@ export function setLastActiveWorkspace(workspaceId: string | null): void {
 }
 
 /**
- * Get the maximum tab order for workspaces in a project (excluding those being deleted).
- * Returns -1 if no workspaces exist.
+ * Get the maximum tab order for top-level project children in a project.
+ * Top-level children are ungrouped workspaces plus sections.
+ * Returns -1 if no top-level children exist.
  */
-export function getMaxWorkspaceTabOrder(projectId: string): number {
+export function getMaxProjectChildTabOrder(projectId: string): number {
 	const projectWorkspaces = localDb
 		.select()
 		.from(workspaces)
@@ -38,9 +42,18 @@ export function getMaxWorkspaceTabOrder(projectId: string): number {
 			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
 		)
 		.all();
-	return projectWorkspaces.length > 0
-		? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
-		: -1;
+	const projectSections = localDb
+		.select()
+		.from(workspaceSections)
+		.where(eq(workspaceSections.projectId, projectId))
+		.all();
+	return (
+		computeNextProjectChildTabOrder(
+			projectId,
+			projectWorkspaces,
+			projectSections,
+		) - 1
+	);
 }
 
 /**
@@ -74,37 +87,6 @@ export function activateProject(project: SelectProject): void {
 		})
 		.where(eq(projects.id, project.id))
 		.run();
-}
-
-/**
- * Hide a project from the sidebar by setting tabOrder to null.
- * Called when the last workspace in a project is deleted/closed.
- */
-export function hideProject(projectId: string): void {
-	localDb
-		.update(projects)
-		.set({ tabOrder: null })
-		.where(eq(projects.id, projectId))
-		.run();
-}
-
-/**
- * Check if a project has any remaining workspaces.
- * If not, hide it from the sidebar.
- *
- * Note: We check for ANY workspaces (including those being deleted) to avoid
- * prematurely hiding the project when multiple workspaces are being deleted
- * concurrently. The project should only be hidden when all deletions complete.
- */
-export function hideProjectIfNoWorkspaces(projectId: string): void {
-	const remainingWorkspaces = localDb
-		.select()
-		.from(workspaces)
-		.where(eq(workspaces.projectId, projectId))
-		.all();
-	if (remainingWorkspaces.length === 0) {
-		hideProject(projectId);
-	}
 }
 
 /**
@@ -261,6 +243,7 @@ export function clearWorkspaceDeletingStatus(workspaceId: string): void {
  */
 export function deleteWorkspace(workspaceId: string): void {
 	localDb.delete(workspaces).where(eq(workspaces.id, workspaceId)).run();
+	invalidatePortLabelCache(workspaceId);
 }
 
 /**

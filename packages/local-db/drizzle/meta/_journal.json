@@ -246,6 +246,55 @@
       "when": 1771977629901,
       "tag": "0034_add_use_compact_terminal_add_button_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1772841491441,
+      "tag": "0035_add_workspace_sections",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1773592336317,
+      "tag": "0036_add_agent_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1773824260645,
+      "tag": "0037_add_created_by_superset_to_worktrees",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1774995017185,
+      "tag": "0038_quick_star_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1775765690176,
+      "tag": "0039_add_expose_host_service_via_relay_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1776796221146,
+      "tag": "0040_agent_preset_permissions_migrated_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1776928440569,
+      "tag": "0041_v1_migration_state",
+      "breakpoints": true
     }
   ]
 }

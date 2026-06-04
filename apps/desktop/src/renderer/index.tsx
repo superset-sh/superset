@@ -12,13 +12,14 @@ import {
 	markBootMounted,
 	reportBootError,
 } from "./lib/boot-errors";
-import { outlit } from "./lib/outlit";
 import { persistentHistory } from "./lib/persistent-hash-history";
 import { posthog } from "./lib/posthog";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
+import { NotFound } from "./routes/not-found";
 import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";
+import "./styles/bundled-fonts.css";
 
 const rootElement = document.querySelector("app");
 initBootErrorHandling(rootElement);
@@ -27,6 +28,7 @@ const router = createRouter({
 	routeTree,
 	history: persistentHistory,
 	defaultPreload: "intent",
+	defaultNotFoundComponent: NotFound,
 	context: {
 		queryClient: electronQueryClient,
 	},
@@ -35,9 +37,6 @@ const router = createRouter({
 const unsubscribe = router.subscribe("onResolved", (event) => {
 	posthog.capture("$pageview", {
 		$current_url: event.toLocation.pathname,
-	});
-	outlit.track("pageview", {
-		url: event.toLocation.pathname,
 	});
 });
 

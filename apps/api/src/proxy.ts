@@ -1,3 +1,4 @@
+import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { env } from "./env";
@@ -11,28 +12,25 @@ const desktopDevOrigins =
 			]
 		: [];
 
-const allowedOrigins = [
-	env.NEXT_PUBLIC_WEB_URL,
-	env.NEXT_PUBLIC_ADMIN_URL,
-	env.NEXT_PUBLIC_DESKTOP_URL,
-	...desktopDevOrigins,
-].filter(Boolean);
+function getAllowedOrigins(deploymentOrigin: string) {
+	return [
+		env.NEXT_PUBLIC_WEB_URL,
+		env.NEXT_PUBLIC_ADMIN_URL,
+		env.NEXT_PUBLIC_DESKTOP_URL,
+		...getTrustedVercelPreviewOrigins(deploymentOrigin),
+		...desktopDevOrigins,
+	].filter(Boolean);
+}
 
-function getCorsHeaders(origin: string | null) {
+function getCorsHeaders(origin: string | null, deploymentOrigin: string) {
+	const allowedOrigins = getAllowedOrigins(deploymentOrigin);
 	const isAllowed = origin && allowedOrigins.includes(origin);
 	return {
 		"Access-Control-Allow-Origin": isAllowed ? origin : "",
 		"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 		"Access-Control-Allow-Headers":
-			"Content-Type, Authorization, x-trpc-source, trpc-accept, X-Electric-Backend, Producer-Id, Producer-Epoch, Producer-Seq, Stream-Closed",
+			"Content-Type, Authorization, x-trpc-source, trpc-accept, Producer-Id, Producer-Epoch, Producer-Seq, Stream-Closed",
 		"Access-Control-Expose-Headers": [
-			// Electric sync headers
-			"electric-offset",
-			"electric-handle",
-			"electric-schema",
-			"electric-cursor",
-			"electric-chunk-last-offset",
-			"electric-up-to-date",
 			// Durable stream headers
 			"Stream-Next-Offset",
 			"Stream-Cursor",
@@ -51,7 +49,7 @@ function getCorsHeaders(origin: string | null) {
 
 export default function proxy(req: NextRequest) {
 	const origin = req.headers.get("origin");
-	const corsHeaders = getCorsHeaders(origin);
+	const corsHeaders = getCorsHeaders(origin, req.nextUrl.origin);
 
 	// Handle preflight
 	if (req.method === "OPTIONS") {

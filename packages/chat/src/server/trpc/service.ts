@@ -1,0 +1,408 @@
+import { Memory } from "@mastra/memory";
+import type { AppRouter } from "@superset/trpc";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { initTRPC } from "@trpc/server";
+import { createMastraCode } from "mastracode";
+import superjson from "superjson";
+import { searchFiles } from "./utils/file-search";
+import {
+	authenticateRuntimeMcpServer,
+	destroyRuntime,
+	generateAndSetTitle,
+	getRuntimeMcpOverview,
+	type LifecycleEvent,
+	onUserPromptSubmit,
+	type RuntimeQuestionResponse,
+	type RuntimeSession,
+	reloadHookConfig,
+	restartRuntimeFromUserMessage,
+	runSessionStartHook,
+	subscribeToSessionEvents,
+	syncRuntimeHookSessionId,
+} from "./utils/runtime";
+import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
+import {
+	approvalRespondInput,
+	displayStateInput,
+	listMessagesInput,
+	mcpOverviewInput,
+	mcpServerAuthInput,
+	planRespondInput,
+	questionRespondInput,
+	restartFromMessageInput,
+	searchFilesInput,
+	sendMessageInput,
+	sessionIdInput,
+} from "./zod";
+
+const ENABLE_MASTRA_MCP_SERVERS = false;
+
+type RuntimeQuestionPayload = Parameters<
+	RuntimeSession["harness"]["respondToQuestion"]
+>[0];
+
+function respondToQuestionWithOptimisticState(
+	runtime: RuntimeSession,
+	payload: RuntimeQuestionPayload,
+): Promise<RuntimeQuestionResponse> {
+	const questionId = payload.questionId;
+	const pendingResponse = runtime.pendingQuestionResponses.get(questionId);
+	if (pendingResponse) return pendingResponse;
+
+	const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
+	const previousSandboxQuestion = runtime.pendingSandboxQuestion;
+	const clearsSandboxQuestion =
+		previousSandboxQuestion?.questionId === questionId;
+
+	runtime.answeredQuestionIds.add(questionId);
+	if (clearsSandboxQuestion) {
+		runtime.pendingSandboxQuestion = null;
+	}
+
+	let responsePromise: Promise<RuntimeQuestionResponse>;
+	responsePromise = Promise.resolve()
+		.then(() => runtime.harness.respondToQuestion(payload))
+		.catch((error) => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				if (!wasAlreadyAnswered) {
+					runtime.answeredQuestionIds.delete(questionId);
+				}
+				if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
+					runtime.pendingSandboxQuestion = previousSandboxQuestion;
+				}
+			}
+			throw error;
+		})
+		.finally(() => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				runtime.pendingQuestionResponses.delete(questionId);
+			}
+		});
+	runtime.pendingQuestionResponses.set(questionId, responsePromise);
+	return responsePromise;
+}
+
+export interface ChatRuntimeServiceOptions {
+	headers: () => Record<string, string> | Promise<Record<string, string>>;
+	apiUrl: string;
+	onLifecycleEvent?: (event: LifecycleEvent) => void;
+}
+
+export class ChatRuntimeService {
+	private readonly runtimes = new Map<string, RuntimeSession>();
+	private readonly runtimeCreations = new Map<
+		string,
+		Promise<RuntimeSession>
+	>();
+	private readonly apiClient: ReturnType<typeof createTRPCClient<AppRouter>>;
+
+	constructor(readonly opts: ChatRuntimeServiceOptions) {
+		this.apiClient = createTRPCClient<AppRouter>({
+			links: [
+				httpBatchLink({
+					url: `${opts.apiUrl}/api/trpc`,
+					transformer: superjson,
+					async headers() {
+						return opts.headers();
+					},
+				}),
+			],
+		});
+	}
+
+	private async getOrCreateRuntime(
+		sessionId: string,
+		cwd?: string,
+	): Promise<RuntimeSession> {
+		const runtimeCwd = cwd ?? process.cwd();
+		const runtimeKey = `${sessionId}:${runtimeCwd}`;
+
+		const existing = this.runtimes.get(sessionId);
+		if (existing) {
+			if (cwd && existing.cwd !== cwd) {
+				await destroyRuntime(existing);
+				this.runtimes.delete(sessionId);
+			} else {
+				reloadHookConfig(existing);
+				return existing;
+			}
+		}
+
+		const existingCreation = this.runtimeCreations.get(runtimeKey);
+		if (existingCreation) {
+			return existingCreation;
+		}
+
+		const creationPromise = (async () => {
+			try {
+				const extraTools = await getSupersetMcpTools(
+					() => Promise.resolve(this.opts.headers()),
+					this.opts.apiUrl,
+				);
+
+				const runtime = await createMastraCode({
+					cwd: runtimeCwd,
+					extraTools,
+					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
+					memory: new Memory({ options: { observationalMemory: false } }),
+				});
+				runtime.hookManager?.setSessionId(sessionId);
+				await runtime.harness.init();
+				runtime.harness.setResourceId({ resourceId: sessionId });
+				await runtime.harness.selectOrCreateThread();
+
+				const sessionRuntime: RuntimeSession = {
+					sessionId,
+					harness: runtime.harness,
+					mcpManager: runtime.mcpManager,
+					hookManager: runtime.hookManager,
+					mcpManualStatuses: new Map(),
+					lastErrorMessage: null,
+					pendingSandboxQuestion: null,
+					answeredQuestionIds: new Set(),
+					pendingQuestionResponses: new Map(),
+					cwd: runtimeCwd,
+				};
+				syncRuntimeHookSessionId(sessionRuntime);
+				await runSessionStartHook(sessionRuntime).catch(() => {});
+				subscribeToSessionEvents(sessionRuntime, this.opts.onLifecycleEvent);
+				this.runtimes.set(sessionId, sessionRuntime);
+				return sessionRuntime;
+			} finally {
+				this.runtimeCreations.delete(runtimeKey);
+			}
+		})();
+
+		this.runtimeCreations.set(runtimeKey, creationPromise);
+		return creationPromise;
+	}
+
+	createRouter() {
+		const t = initTRPC.create({ transformer: superjson });
+
+		return t.router({
+			workspace: t.router({
+				searchFiles: t.procedure
+					.input(searchFilesInput)
+					.query(async ({ input }) => {
+						return searchFiles({
+							rootPath: input.rootPath,
+							query: input.query,
+							includeHidden: input.includeHidden,
+							limit: input.limit,
+						});
+					}),
+
+				getMcpOverview: t.procedure
+					.input(mcpOverviewInput)
+					.query(async ({ input }) => {
+						if (!ENABLE_MASTRA_MCP_SERVERS) {
+							return { sourcePath: null, servers: [] };
+						}
+
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						return getRuntimeMcpOverview(runtime);
+					}),
+				authenticateMcpServer: t.procedure
+					.input(mcpServerAuthInput)
+					.mutation(async ({ input }) => {
+						if (!ENABLE_MASTRA_MCP_SERVERS) {
+							return { sourcePath: null, servers: [] };
+						}
+
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						return authenticateRuntimeMcpServer(runtime, input.serverName);
+					}),
+			}),
+
+			session: t.router({
+				getDisplayState: t.procedure
+					.input(displayStateInput)
+					.query(async ({ input }) => {
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						const displayState = runtime.harness.getDisplayState();
+						const currentMessage = displayState.currentMessage as {
+							role?: string;
+							stopReason?: string;
+							errorMessage?: string;
+						} | null;
+						const currentMessageError =
+							currentMessage?.role === "assistant" &&
+							typeof currentMessage.errorMessage === "string" &&
+							currentMessage.errorMessage.trim()
+								? currentMessage.errorMessage.trim()
+								: null;
+						const sandboxPendingQuestion = runtime.pendingSandboxQuestion
+							? {
+									questionId: runtime.pendingSandboxQuestion.questionId,
+									question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
+									description: runtime.pendingSandboxQuestion.reason,
+									options: [
+										{
+											label: "Yes",
+											description: "Allow access.",
+										},
+										{ label: "No", description: "Deny access." },
+									],
+								}
+							: null;
+						// Skip any pending question whose ID was already answered this turn.
+						// The harness only clears pendingQuestion on agent_end, so without this
+						// filter an answered ask_user question would permanently shadow the
+						// sandbox question that fired in the same turn.
+						const harnessPendingQuestion =
+							displayState.pendingQuestion &&
+							!runtime.answeredQuestionIds.has(
+								displayState.pendingQuestion.questionId,
+							)
+								? displayState.pendingQuestion
+								: null;
+						return {
+							...displayState,
+							pendingQuestion: harnessPendingQuestion ?? sandboxPendingQuestion,
+							errorMessage: currentMessageError ?? runtime.lastErrorMessage,
+						};
+					}),
+
+				listMessages: t.procedure
+					.input(listMessagesInput)
+					.query(async ({ input }) => {
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						return runtime.harness.listMessages();
+					}),
+
+				sendMessage: t.procedure
+					.input(sendMessageInput)
+					.mutation(async ({ input }) => {
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						runtime.lastErrorMessage = null;
+						const userMessage =
+							input.payload.content.trim() || "[non-text message]";
+						await onUserPromptSubmit(runtime, userMessage);
+						const submittedUserMessage = input.payload.content.trim();
+						const selectedModel = input.metadata?.model?.trim();
+						if (selectedModel) {
+							await runtime.harness.switchModel({
+								modelId: selectedModel,
+								scope: "thread",
+							});
+						}
+						const thinkingLevel = input.metadata?.thinkingLevel;
+						if (thinkingLevel) {
+							await runtime.harness.setState({ thinkingLevel });
+						}
+						void generateAndSetTitle(runtime, this.apiClient, {
+							submittedUserMessage:
+								submittedUserMessage.length > 0
+									? submittedUserMessage
+									: undefined,
+						});
+						return runtime.harness.sendMessage(input.payload);
+					}),
+
+				restartFromMessage: t.procedure
+					.input(restartFromMessageInput)
+					.mutation(async ({ input }) => {
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						runtime.lastErrorMessage = null;
+						const userMessage =
+							input.payload.content.trim() || "[non-text message]";
+						await onUserPromptSubmit(runtime, userMessage);
+						const submittedUserMessage = input.payload.content.trim();
+						await restartRuntimeFromUserMessage(runtime, {
+							messageId: input.messageId,
+							payload: input.payload,
+							metadata: input.metadata,
+						});
+						void generateAndSetTitle(runtime, this.apiClient, {
+							submittedUserMessage:
+								submittedUserMessage.length > 0
+									? submittedUserMessage
+									: undefined,
+						});
+					}),
+
+				stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
+					const runtime = await this.getOrCreateRuntime(
+						input.sessionId,
+						input.cwd,
+					);
+					runtime.harness.abort();
+				}),
+
+				abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
+					const runtime = await this.getOrCreateRuntime(
+						input.sessionId,
+						input.cwd,
+					);
+					runtime.harness.abort();
+				}),
+
+				approval: t.router({
+					respond: t.procedure
+						.input(approvalRespondInput)
+						.mutation(async ({ input }) => {
+							const runtime = await this.getOrCreateRuntime(
+								input.sessionId,
+								input.cwd,
+							);
+							return runtime.harness.respondToToolApproval(input.payload);
+						}),
+				}),
+
+				question: t.router({
+					respond: t.procedure
+						.input(questionRespondInput)
+						.mutation(async ({ input }) => {
+							const runtime = await this.getOrCreateRuntime(
+								input.sessionId,
+								input.cwd,
+							);
+							return respondToQuestionWithOptimisticState(
+								runtime,
+								input.payload,
+							);
+						}),
+				}),
+
+				plan: t.router({
+					respond: t.procedure
+						.input(planRespondInput)
+						.mutation(async ({ input }) => {
+							const runtime = await this.getOrCreateRuntime(
+								input.sessionId,
+								input.cwd,
+							);
+							return runtime.harness.respondToPlanApproval(input.payload);
+						}),
+				}),
+			}),
+		});
+	}
+}
+
+export type ChatRuntimeServiceRouter = ReturnType<
+	ChatRuntimeService["createRouter"]
+>;

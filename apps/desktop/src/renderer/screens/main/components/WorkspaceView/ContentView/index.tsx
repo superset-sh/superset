@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { SidebarControl } from "../../SidebarControl";
@@ -6,7 +7,17 @@ import { PresetsBar } from "./components/PresetsBar";
 import { TabsContent } from "./TabsContent";
 import { GroupStrip } from "./TabsContent/GroupStrip";
 
-export function ContentView() {
+interface ContentViewProps {
+	defaultExternalApp?: ExternalApp | null;
+	onOpenInApp: () => void;
+	onOpenQuickOpen: () => void;
+}
+
+export function ContentView({
+	defaultExternalApp,
+	onOpenInApp,
+	onOpenQuickOpen,
+}: ContentViewProps) {
 	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
@@ -19,7 +30,11 @@ export function ContentView() {
 				<GroupStrip />
 			</ContentHeader>
 			{showPresetsBar && <PresetsBar />}
-			<TabsContent />
+			<TabsContent
+				defaultExternalApp={defaultExternalApp}
+				onOpenInApp={onOpenInApp}
+				onOpenQuickOpen={onOpenQuickOpen}
+			/>
 		</div>
 	);
 }

@@ -4,7 +4,7 @@
 }
 
 .default-markdown article {
-	max-width: 65ch;
+	width: 100%;
 	margin: 0 auto;
 }
 
@@ -48,7 +48,7 @@
 .default-markdown p {
 	margin-top: 0;
 	margin-bottom: 1rem;
-	line-height: 1.7;
+	line-height: 1.5;
 }
 
 .default-markdown ul,
@@ -60,7 +60,7 @@
 
 .default-markdown li {
 	margin-bottom: 0.25rem;
-	line-height: 1.6;
+	line-height: 1.5;
 }
 
 .default-markdown ul {
@@ -81,6 +81,27 @@
 	margin: 1rem 0;
 	border-radius: 0.375rem;
 	overflow-x: auto;
+}
+
+.default-markdown table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+	margin: 1rem 0;
+}
+
+.default-markdown th {
+	text-align: left;
+	padding: 0.5rem 1rem;
+	background: var(--muted);
+	font-weight: 600;
+	vertical-align: top;
+}
+
+.default-markdown td {
+	padding: 0.5rem 1rem;
+	border-top: 1px solid var(--border);
+	vertical-align: top;
 }
 
 .default-markdown strong {

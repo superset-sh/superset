@@ -2,11 +2,12 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { LuDiff } from "react-icons/lu";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { HotkeyLabel } from "renderer/hotkeys";
 import { useSidebarStore } from "renderer/stores";
 
 export function SidebarControl() {
-	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
+	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
+	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 
 	return (
 		<Tooltip>
@@ -29,10 +30,7 @@ export function SidebarControl() {
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
-				<HotkeyTooltipContent
-					label="Open Code Sidebar"
-					hotkeyId="TOGGLE_SIDEBAR"
-				/>
+				<HotkeyLabel label="Open Code Sidebar" id="TOGGLE_SIDEBAR" />
 			</TooltipContent>
 		</Tooltip>
 	);

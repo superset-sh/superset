@@ -7,11 +7,17 @@ import type {
 } from "./types";
 import { buildBulkResult } from "./types";
 
-const workspaceInputSchema = z.object({
-	name: z.string().optional(),
-	branchName: z.string().optional(),
-	baseBranch: z.string().optional(),
-});
+const workspaceInputSchema = z
+	.object({
+		name: z.string().optional(),
+		branchName: z.string().optional(),
+		compareBaseBranch: z.string().optional(),
+		sourceWorkspaceId: z.string().optional(),
+	})
+	.refine((data) => !(data.compareBaseBranch && data.sourceWorkspaceId), {
+		message:
+			"Cannot specify both compareBaseBranch and sourceWorkspaceId. Use one or the other.",
+	});
 
 const schema = z.object({
 	projectId: z.string(),
@@ -36,11 +42,28 @@ async function execute(
 
 	for (const [i, input] of params.workspaces.entries()) {
 		try {
+			if (input.sourceWorkspaceId) {
+				const workspaces = ctx.getWorkspaces();
+				const sourceWorkspace = workspaces?.find(
+					(ws) => ws.id === input.sourceWorkspaceId,
+				);
+				if (!sourceWorkspace) {
+					errors.push({
+						index: i,
+						name: input.name,
+						sourceWorkspaceId: input.sourceWorkspaceId,
+						error: `Source workspace "${input.sourceWorkspaceId}" not found`,
+					});
+					continue;
+				}
+			}
+
 			const result = await ctx.createWorktree.mutateAsync({
 				projectId,
 				name: input.name,
 				branchName: input.branchName,
-				baseBranch: input.baseBranch,
+				compareBaseBranch: input.compareBaseBranch,
+				sourceWorkspaceId: input.sourceWorkspaceId,
 			});
 
 			created.push({

@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { TRPCClientError } from "@trpc/client";
 import { Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,25 +11,47 @@ interface PageProps {
 	searchParams: Promise<{ token?: string }>;
 }
 
+function isInvitationNotFoundError(error: unknown) {
+	return (
+		error instanceof TRPCClientError &&
+		(error.data?.code === "NOT_FOUND" ||
+			error.shape?.data?.code === "NOT_FOUND")
+	);
+}
+
 export default async function AcceptInvitationPage({
 	params,
 	searchParams,
 }: PageProps) {
 	const { invitationId } = await params;
 	const { token } = await searchParams;
-
-	// Fetch invitation using tRPC
 	const trpc = await api();
+
 	let invitation: Awaited<
-		ReturnType<typeof trpc.organization.getInvitation.query>
+		ReturnType<typeof trpc.organization.getInvitationPreview.query>
 	> | null;
-	try {
-		invitation = await trpc.organization.getInvitation.query(invitationId);
-	} catch (_error) {
+
+	if (!token) {
 		invitation = null;
+	} else {
+		try {
+			invitation = await trpc.organization.getInvitationPreview.query({
+				invitationId,
+				token,
+			});
+		} catch (error) {
+			if (isInvitationNotFoundError(error)) {
+				invitation = null;
+			} else {
+				console.error(
+					"[accept-invitation] Failed to load invitation preview",
+					error,
+				);
+				throw error;
+			}
+		}
 	}
 
-	// Show error if invitation invalid/expired/not found or missing token
 	if (
 		!invitation ||
 		invitation.isExpired ||
@@ -59,11 +82,9 @@ export default async function AcceptInvitationPage({
 		);
 	}
 
-	// Show invitation details with "Continue as" CTA
 	return (
 		<div className="flex min-h-screen items-center justify-center p-4">
 			<div className="max-w-lg space-y-6 text-center">
-				{/* Organization logo */}
 				{invitation.organization.logo && (
 					<div className="relative mx-auto h-16 w-16">
 						<Image
@@ -75,7 +96,6 @@ export default async function AcceptInvitationPage({
 					</div>
 				)}
 
-				{/* Invitation details */}
 				<div className="space-y-4">
 					<h1 className="text-2xl font-semibold">
 						You've been invited to join {invitation.organization.name}
@@ -86,12 +106,7 @@ export default async function AcceptInvitationPage({
 					</p>
 				</div>
 
-				{/* Continue as button - atomic auth + accept */}
-				<AcceptInvitationButton
-					invitationId={invitationId}
-					token={token}
-					email={invitation.email}
-				/>
+				<AcceptInvitationButton invitationId={invitationId} token={token} />
 			</div>
 		</div>
 	);

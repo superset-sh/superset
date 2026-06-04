@@ -64,17 +64,20 @@ export class NotificationManager {
 		const title = this.deps.getNotificationTitle(event);
 
 		const isPermissionRequest = event.eventType === "PermissionRequest";
+		const isPendingQuestion = event.eventType === "PendingQuestion";
 		const notification = this.deps.createNotification({
-			title: isPermissionRequest
-				? `Input Needed — ${workspaceName}`
-				: `Agent Complete — ${workspaceName}`,
-			body: isPermissionRequest
-				? `"${title}" needs your attention`
-				: `"${title}" has finished its task`,
+			title:
+				isPermissionRequest || isPendingQuestion
+					? `Awaiting Response — ${workspaceName}`
+					: `Agent Complete — ${workspaceName}`,
+			body:
+				isPermissionRequest || isPendingQuestion
+					? `"${title}" is waiting for your reply`
+					: `"${title}" has finished its task`,
 			silent: true,
 		});
 
-		const key = event.paneId ?? `_anon_${this.counter++}`;
+		const key = event.sessionId ?? event.paneId ?? `_anon_${this.counter++}`;
 		this.track(key, notification);
 
 		this.deps.playSound();
@@ -84,12 +87,14 @@ export class NotificationManager {
 				paneId: event.paneId,
 				tabId: event.tabId,
 				workspaceId: event.workspaceId,
+				sessionId: event.sessionId,
+				...(event.terminalId ? { terminalId: event.terminalId } : {}),
 			});
-			this.untrack(key);
+			this.untrack(key, notification);
 		});
 
 		notification.on("close", () => {
-			this.untrack(key);
+			this.untrack(key, notification);
 		});
 
 		notification.show();
@@ -133,7 +138,10 @@ export class NotificationManager {
 		this.active.set(key, { notification, createdAt: Date.now() });
 	}
 
-	private untrack(key: string): void {
+	private untrack(key: string, notification?: NativeNotification): void {
+		const current = this.active.get(key);
+		if (!current) return;
+		if (notification && current.notification !== notification) return;
 		this.active.delete(key);
 	}
 

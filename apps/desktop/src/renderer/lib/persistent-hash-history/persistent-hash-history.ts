@@ -27,6 +27,7 @@ function loadPersistedState(): PersistedState {
 			if (
 				Array.isArray(parsed.entries) &&
 				parsed.entries.length > 0 &&
+				parsed.entries.every((e) => typeof e === "string" && e.length > 0) &&
 				typeof parsed.index === "number"
 			) {
 				const index = Math.min(
@@ -48,7 +49,7 @@ function persistState(entries: string[], index: number) {
 				: entries;
 		const cappedIndex =
 			entries.length > MAX_ENTRIES
-				? index - (entries.length - MAX_ENTRIES)
+				? Math.max(0, index - (entries.length - MAX_ENTRIES))
 				: index;
 		localStorage.setItem(
 			STORAGE_KEY,

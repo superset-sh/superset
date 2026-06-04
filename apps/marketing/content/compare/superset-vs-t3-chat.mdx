@@ -1,0 +1,115 @@
+---
+title: "Superset vs T3 Chat (2026): Agent Orchestration vs Multi-Model AI Chat"
+description: "Compare Superset and T3 Chat for AI-assisted development. See how local coding-agent orchestration differs from a hosted multi-model chat app."
+date: 2026-03-21
+lastUpdated: 2026-03-21
+type: "1v1"
+competitors:
+  - t3-chat
+keywords:
+  - superset vs t3 chat
+  - t3 chat alternative
+  - t3 chat for coding
+  - ai chat vs coding agents
+  - multi model chat for developers
+---
+
+T3 Chat and Superset both help developers work with AI, but they sit at different layers of the stack. T3 Chat is a hosted multi-model chat product. Superset is a local-first agent workspace with built-in chat, in-app browser, diff/file review, and Git worktree orchestration. They overlap more than a pure terminal-vs-chat comparison would suggest, but they are still complementary much more often than direct substitutes.
+
+---
+
+## At a Glance
+
+| | **Superset** | **T3 Chat** |
+|---|---|---|
+| **Category** | Agent orchestration workspace | Multi-model AI chat app |
+| **What it does** | Runs 10+ coding agents in parallel with Git worktrees, built-in chat, diff/file review, and browser preview | Lets you chat with multiple frontier models from one hosted interface |
+| **AI approach** | Agent-agnostic orchestration plus Superset Chat and MCP tools | Hosted chat surface with model switching, search, attachments, and profiles |
+| **Execution model** | Local agents can read, edit, and run code in your repo | Chat-first workflow; useful for questions, planning, and pasted context |
+| **Parallelism** | Core feature — many agents across isolated worktrees | Conversation-based, not agent orchestration |
+| **Isolation** | Automatic Git worktree per task | No Git worktree or branch isolation |
+| **Pricing model** | Free tier + Pro $20/seat/mo | Free up to usage limits, with paid usage beyond those limits |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Aider, Copilot, Cursor Agent, Gemini CLI, Superset Chat, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It is strongest when the real problem is coordination: multiple tasks, multiple branches, and multiple autonomous coding sessions that all need review.
+
+---
+
+## What Is T3 Chat?
+
+T3 Chat is a hosted AI chat app built around fast access to many models from one interface. Its public product surfaces emphasize model selection, search, attachments, profiles, temporary chats, and sharable new-chat URLs with query parameters for model and search state. In practice, it is a strong place to compare model behavior, ask questions, draft prompts, and work through coding ideas before touching a repository.
+
+---
+
+## Key Differences
+
+### Repo-Execution Workspace vs Chat Front End
+
+Superset now has its own built-in chat panel and Superset Chat agent, but the center of gravity is still repo execution. Tasks turn into worktrees, agents can edit files and run commands, and you review concrete diffs. T3 Chat is the opposite: it is a hosted conversation product first. That makes it good for reasoning, brainstorming, and one-off coding help, but not a substitute for local multi-agent execution.
+
+### Local Repo Execution vs Hosted Conversations
+
+Superset runs agents on your machine in real Git worktrees. Those agents can read files, edit code, run tests, preview dev servers in the built-in browser, and produce reviewable diffs. T3 Chat is fundamentally a hosted conversation product. Even when you use it for coding, the interaction is still prompt-and-response unless you manually move the result into your repo.
+
+### Worktree Isolation vs Thread Context
+
+Superset's main primitive is isolation: one task, one worktree, one branch. That is what makes parallel coding agents safe. T3 Chat's main primitive is conversation context. That is useful for continuing a line of reasoning, but it does not solve branch isolation, diff review, browser-based app validation, or concurrent agent execution.
+
+### Model Access vs Agent Flexibility
+
+T3 Chat is strong when you want one place to switch between models quickly and compare answers. Superset is strong when you want one place to orchestrate whichever coding agents you prefer, with the chat, browser, and review surfaces attached to the same workspace. If your question is "which model should I ask?", T3 Chat fits. If your question is "how do I run five coding agents on five tasks without branch chaos?", Superset fits.
+
+### Privacy and Data Flow
+
+Superset keeps the workspace and orchestration local-first, and the code path depends on whichever agent and provider you choose. T3 Chat is a hosted service. Its FAQ says it does not train its own models and that it opts out of training with providers where possible, but the product still routes through a hosted web service and external model providers.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month, then you pay the underlying providers for whichever coding agents you run.
+
+T3 Chat's public terms say the service is available without charge up to certain usage limits, and usage beyond those limits may require purchasing additional resources or paying fees. Its FAQ also documents a base-and-overage usage meter. The exact commercial details are handled in-product rather than on a stable public pricing page.
+
+---
+
+## Which Should You Choose?
+
+**Choose T3 Chat if you:**
+
+- Want one hosted UI for comparing multiple models quickly
+- Mostly need brainstorming, planning, explanation, or prompt iteration
+- Want search, attachments, and lightweight chat workflows without setting up CLI agents
+- Prefer a chat product over a repo-execution workflow
+
+**Choose Superset if you:**
+
+- Run CLI-based coding agents and want to parallelize across many tasks
+- Need local Git worktree isolation so work stays reviewable
+- Want agents to actually execute inside your repository
+- Care about orchestration more than chat UX
+
+**Use both** if you want the best of each. T3 Chat is useful for model comparison, prompt drafting, and working through architecture questions. Superset is useful once you want actual coding agents to execute on real tasks in parallel.
+
+---
+
+## Frequently Asked Questions
+
+### Is T3 Chat a coding agent?
+
+Not in the same sense as Claude Code or Codex. T3 Chat is a hosted multi-model chat product. It can help with coding questions and prompt-driven assistance, but it is not the same thing as a local coding agent running in your repo.
+
+### Can T3 Chat replace Superset?
+
+Not if you need actual repo execution. Superset now includes chat as well, but its core primitives are still worktrees, agents, diffs, browser preview, and MCP-connected workflow. T3 Chat is better understood as a hosted chat layer, not an orchestration layer.
+
+### Can I use T3 Chat alongside Superset?
+
+Yes. A practical pattern is to use T3 Chat for quick model comparisons, debugging discussion, or prompt drafting, then use Superset to dispatch the real implementation tasks to coding agents inside isolated worktrees.
+
+### Does T3 Chat run inside my repository?
+
+Not the way Superset-orchestrated agents do. T3 Chat is a hosted service with conversation state, while Superset's agents run locally in Git worktrees on your machine.

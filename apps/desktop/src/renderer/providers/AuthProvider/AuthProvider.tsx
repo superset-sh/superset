@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	if (!isHydrated) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
-				<SupersetLogo className="h-8 w-auto animate-pulse opacity-80" />
+				<SupersetLogo className="h-8 w-auto" gradient />
 			</div>
 		);
 	}

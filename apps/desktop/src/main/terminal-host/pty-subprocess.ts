@@ -9,6 +9,12 @@
  */
 
 import { write as fsWrite } from "node:fs";
+import {
+	type ProcessSignalError,
+	type ProcessSignalTarget,
+	signalProcessTargets,
+	signalProcessTreeAndGroups,
+} from "@superset/pty-daemon/process-tree";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
 import treeKill from "tree-kill";
@@ -57,7 +63,7 @@ const INPUT_QUEUE_HARD_LIMIT_BYTES = 64 * 1024 * 1024; // 64MB
 let outputChunks: string[] = [];
 let outputBytesQueued = 0;
 let outputFlushScheduled = false;
-const OUTPUT_FLUSH_INTERVAL_MS = 32; // ~30 fps max
+const OUTPUT_FLUSH_INTERVAL_MS = 16; // Match terminal-style frame batching (~60fps)
 const MAX_OUTPUT_BATCH_SIZE_BYTES = 128 * 1024; // 128KB max per flush
 
 // Backpressure - track if stdout is draining
@@ -92,10 +98,6 @@ function sendError(message: string): void {
 	send(PtySubprocessIpcType.Error, Buffer.from(message, "utf8"));
 }
 
-/**
- * Queue PTY output for batched sending.
- * Flushes immediately if batch exceeds MAX_OUTPUT_BATCH_SIZE_BYTES.
- */
 function queueOutput(data: string): void {
 	outputChunks.push(data);
 	outputBytesQueued += Buffer.byteLength(data, "utf8");
@@ -108,6 +110,8 @@ function queueOutput(data: string): void {
 
 	if (!outputFlushScheduled) {
 		outputFlushScheduled = true;
+		// Timed batching keeps TUI redraws coherent and avoids flooding the renderer
+		// with tiny per-turn frames while still staying under a single display frame.
 		setTimeout(flushOutput, OUTPUT_FLUSH_INTERVAL_MS);
 	}
 }
@@ -259,6 +263,26 @@ function flush(): void {
 	flushing = false;
 }
 
+function signalProcessTreeGroups(
+	rootPid: number,
+	signal: NodeJS.Signals,
+): ProcessSignalTarget[] {
+	return signalProcessTreeAndGroups(rootPid, signal, {
+		signalPids: false,
+		onSignalError: logProcessSignalError,
+	});
+}
+
+function logProcessSignalError(event: ProcessSignalError): void {
+	if ((event.error as NodeJS.ErrnoException).code === "ESRCH") return;
+
+	const label = event.target === "pgid" ? "process group" : "pid";
+	console.error(
+		`[pty-subprocess] Failed to ${event.signal} ${label} ${event.id}:`,
+		event.error,
+	);
+}
+
 // =============================================================================
 // Message Handlers
 // =============================================================================
@@ -280,7 +304,6 @@ function handleSpawn(payload: Buffer): void {
 	}
 
 	if (DEBUG_OUTPUT_BATCHING) {
-		// Debug: Log spawn parameters
 		console.error("[pty-subprocess] Spawning PTY:", {
 			shell: msg.shell,
 			args: msg.args,
@@ -335,6 +358,8 @@ function handleSpawn(payload: Buffer): void {
 		sendError(
 			`Spawn failed: ${error instanceof Error ? error.message : String(error)}`,
 		);
+		// Exit so the daemon does not keep a live subprocess with no PTY.
+		setTimeout(() => process.exit(1), 100);
 	}
 }
 
@@ -360,16 +385,19 @@ function handleResize(payload: Buffer): void {
 }
 
 function handleKill(payload: Buffer): void {
-	const signal = payload.length > 0 ? payload.toString("utf8") : "SIGTERM";
+	const signal = (
+		payload.length > 0 ? payload.toString("utf8") : "SIGHUP"
+	) as NodeJS.Signals;
 
 	if (!ptyProcess) {
 		return;
 	}
 
 	const pid = ptyProcess.pid;
+	const escalationTargets = signalProcessTreeGroups(pid, signal);
 
-	// Step 1: Kill the process tree using tree-kill
-	// tree-kill traverses by PPID to find all descendants
+	// Step 1: Signal descendants and process groups. tree-kill keeps legacy
+	// PPID traversal behavior for direct children.
 	treeKill(pid, signal, (err) => {
 		if (err) {
 			console.error("[pty-subprocess] Failed to kill process tree:", err);
@@ -381,6 +409,7 @@ function handleKill(payload: Buffer): void {
 	const escalationTimer = setTimeout(() => {
 		if (!ptyProcess) return; // Already exited via onExit
 
+		signalProcessTargets(escalationTargets, "SIGKILL", logProcessSignalError);
 		treeKill(pid, "SIGKILL", (err) => {
 			if (err) {
 				console.error("[pty-subprocess] Failed to SIGKILL process tree:", err);
@@ -445,6 +474,7 @@ function handleDispose(): void {
 		const pid = ptyProcess.pid;
 		ptyProcess = null;
 
+		signalProcessTreeGroups(pid, "SIGKILL");
 		// tree-kill spawns child processes (ps/pgrep) to discover descendants,
 		// so we must wait for the callback before exiting.
 		treeKill(pid, "SIGKILL", (err) => {

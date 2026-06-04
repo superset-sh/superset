@@ -1,8 +1,9 @@
 import { COMPANY } from "@superset/shared/constants";
 import { GeistPixelGrid, GeistPixelSquare } from "geist/font/pixel";
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Inter, Micro_5 } from "next/font/google";
+import { IBM_Plex_Mono, Inter, Micro_5, Pixelify_Sans } from "next/font/google";
 import Script from "next/script";
+
 import { CookieConsent } from "@/components/CookieConsent";
 import {
 	OrganizationJsonLd,
@@ -35,6 +36,13 @@ const micro5 = Micro_5({
 	weight: "400",
 	subsets: ["latin"],
 	variable: "--font-micro5",
+	display: "swap",
+});
+
+const pixelifySans = Pixelify_Sans({
+	weight: ["400", "500", "600", "700"],
+	subsets: ["latin"],
+	variable: "--font-pixel",
 	display: "swap",
 });
 
@@ -115,14 +123,26 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable} ${micro5.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable}`}
+			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable} ${micro5.variable} ${pixelifySans.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable}`}
 			suppressHydrationWarning
 		>
 			<head>
-				<Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />
+				{/* Google tag (gtag.js) — Google Ads */}
+				<Script
+					src="https://www.googletagmanager.com/gtag/js?id=AW-18209336001"
+					strategy="afterInteractive"
+				/>
+				<Script id="google-ads-gtag" strategy="afterInteractive">
+					{`
+						window.dataLayer = window.dataLayer || [];
+						function gtag(){dataLayer.push(arguments);}
+						gtag('js', new Date());
+						gtag('config', 'AW-18209336001');
+					`}
+				</Script>
 			</head>
 			<body className="overscroll-none font-sans">
 				<Providers>

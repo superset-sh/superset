@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
-import { app, clipboard, webContents } from "electron";
+import { clipboard, Menu, webContents } from "electron";
+import { safeOpenExternal } from "main/lib/safe-url";
 
 interface ConsoleEntry {
 	level: "log" | "warn" | "error" | "info" | "debug";
@@ -26,21 +27,32 @@ class BrowserManager extends EventEmitter {
 	private paneWebContentsIds = new Map<string, number>();
 	private consoleLogs = new Map<string, ConsoleEntry[]>();
 	private consoleListeners = new Map<string, () => void>();
+	private contextMenuListeners = new Map<string, () => void>();
+	private beforeInputListeners = new Map<string, () => void>();
 
 	register(paneId: string, webContentsId: number): void {
-		// Clean up previous console listener if re-registering with a new webContentsId
+		// Clean even when prevId === webContentsId so BrowserManager owns
+		// listener idempotency; callers can re-register without duplicating.
 		const prevId = this.paneWebContentsIds.get(paneId);
-		if (prevId != null && prevId !== webContentsId) {
-			const cleanup = this.consoleListeners.get(paneId);
-			if (cleanup) {
-				cleanup();
-				this.consoleListeners.delete(paneId);
+		if (prevId != null) {
+			for (const map of [
+				this.consoleListeners,
+				this.contextMenuListeners,
+				this.beforeInputListeners,
+			]) {
+				const cleanup = map.get(paneId);
+				if (cleanup) {
+					cleanup();
+					map.delete(paneId);
+				}
 			}
 		}
 		this.paneWebContentsIds.set(paneId, webContentsId);
 		const wc = webContents.fromId(webContentsId);
 		if (wc) {
-			wc.setBackgroundThrottling(false);
+			// Keep throttling enabled so parked/offscreen persistent webviews don't
+			// run at full speed in the background.
+			wc.setBackgroundThrottling(true);
 			wc.setWindowOpenHandler(({ url }) => {
 				if (url && url !== "about:blank") {
 					this.emit(`new-window:${paneId}`, url);
@@ -48,14 +60,22 @@ class BrowserManager extends EventEmitter {
 				return { action: "deny" as const };
 			});
 			this.setupConsoleCapture(paneId, wc);
+			this.setupContextMenu(paneId, wc);
+			this.setupBeforeInput(paneId, wc);
 		}
 	}
 
 	unregister(paneId: string): void {
-		const cleanup = this.consoleListeners.get(paneId);
-		if (cleanup) {
-			cleanup();
-			this.consoleListeners.delete(paneId);
+		for (const map of [
+			this.consoleListeners,
+			this.contextMenuListeners,
+			this.beforeInputListeners,
+		]) {
+			const cleanup = map.get(paneId);
+			if (cleanup) {
+				cleanup();
+				map.delete(paneId);
+			}
 		}
 		this.paneWebContentsIds.delete(paneId);
 		this.consoleLogs.delete(paneId);
@@ -105,54 +125,152 @@ class BrowserManager extends EventEmitter {
 		wc.openDevTools({ mode: "detach" });
 	}
 
-	async getDevToolsUrl(browserPaneId: string): Promise<string | null> {
-		const wc = this.getWebContents(browserPaneId);
-		if (!wc) return null;
+	private setupContextMenu(paneId: string, wc: Electron.WebContents): void {
+		const handler = (
+			_event: Electron.Event,
+			params: Electron.ContextMenuParams,
+		) => {
+			const { linkURL, pageURL, selectionText, editFlags } = params;
 
-		const cdpPort = app.commandLine.getSwitchValue("remote-debugging-port");
-		if (!cdpPort) return null;
+			const menuItems: Electron.MenuItemConstructorOptions[] = [];
 
-		try {
-			const targetUrl = wc.getURL();
-			const res = await fetch(`http://127.0.0.1:${cdpPort}/json`);
-			const targets = (await res.json()) as Array<{
-				id: string;
-				url: string;
-				type: string;
-				webSocketDebuggerUrl?: string;
-			}>;
-
-			const webviewTargets = targets.filter(
-				(t) => t.type === "page" || t.type === "webview",
-			);
-
-			// Strategy 1: Exact URL match
-			let target = webviewTargets.find((t) => t.url === targetUrl);
-
-			// Strategy 2: Match ignoring trailing slash / fragment differences
-			if (!target && targetUrl) {
-				const normalize = (u: string) =>
-					u.replace(/\/?(#.*)?$/, "").toLowerCase();
-				const normalizedTarget = normalize(targetUrl);
-				target = webviewTargets.find(
-					(t) => normalize(t.url) === normalizedTarget,
+			if (linkURL) {
+				menuItems.push(
+					{
+						label: "Open Link in Default Browser",
+						click: () => {
+							void safeOpenExternal(linkURL);
+						},
+					},
+					{
+						label: "Open Link as New Split",
+						click: () =>
+							this.emit(`context-menu-action:${paneId}`, {
+								action: "open-in-split" as const,
+								url: linkURL,
+							}),
+					},
+					{
+						label: "Copy Link Address",
+						click: () => clipboard.writeText(linkURL),
+					},
+					{ type: "separator" },
 				);
 			}
 
-			// Strategy 3: If only one webview target exists, use it
-			if (!target) {
-				const webviewOnly = webviewTargets.filter((t) => t.type === "webview");
-				if (webviewOnly.length === 1) {
-					target = webviewOnly[0];
-				}
+			if (selectionText) {
+				menuItems.push({
+					label: "Copy",
+					enabled: editFlags.canCopy,
+					click: () => wc.copy(),
+				});
 			}
 
-			if (!target) return null;
+			if (editFlags.canPaste) {
+				menuItems.push({
+					label: "Paste",
+					click: () => wc.paste(),
+				});
+			}
 
-			return `http://127.0.0.1:${cdpPort}/devtools/inspector.html?ws=127.0.0.1:${cdpPort}/devtools/page/${target.id}`;
-		} catch {
-			return null;
-		}
+			if (editFlags.canSelectAll) {
+				menuItems.push({
+					label: "Select All",
+					click: () => wc.selectAll(),
+				});
+			}
+
+			if (selectionText || editFlags.canPaste || editFlags.canSelectAll) {
+				menuItems.push({ type: "separator" });
+			}
+
+			menuItems.push(
+				{
+					label: "Back",
+					enabled: wc.canGoBack(),
+					click: () => wc.goBack(),
+				},
+				{
+					label: "Forward",
+					enabled: wc.canGoForward(),
+					click: () => wc.goForward(),
+				},
+				{
+					label: "Reload",
+					click: () => wc.reload(),
+				},
+			);
+
+			if (!linkURL) {
+				menuItems.push(
+					{ type: "separator" },
+					{
+						label: "Open Page in Default Browser",
+						click: () => {
+							if (pageURL && pageURL !== "about:blank") {
+								void safeOpenExternal(pageURL);
+							}
+						},
+						enabled: !!pageURL && pageURL !== "about:blank",
+					},
+					{
+						label: "Copy Page URL",
+						click: () => {
+							if (pageURL) clipboard.writeText(pageURL);
+						},
+						enabled: !!pageURL && pageURL !== "about:blank",
+					},
+				);
+			}
+
+			const menu = Menu.buildFromTemplate(menuItems);
+			menu.popup();
+		};
+
+		wc.on("context-menu", handler);
+		this.contextMenuListeners.set(paneId, () => {
+			try {
+				wc.off("context-menu", handler);
+			} catch {
+				// webContents may be destroyed
+			}
+		});
+	}
+
+	// When a webview has focus, keystrokes route to the guest renderer — host
+	// `react-hotkeys-hook` listeners never see them and the menu's CmdOrCtrl+W
+	// accelerator closes the whole window. `before-input-event` fires in the
+	// main process before both, and `preventDefault()` suppresses both.
+	//
+	// keyDown guard prevents a second fire on keyUp. Shift guard preserves
+	// Cmd+Shift+W (CLOSE_TAB) and Cmd+Shift+R (forceReload).
+	private setupBeforeInput(paneId: string, wc: Electron.WebContents): void {
+		const handler = (event: Electron.Event, input: Electron.Input): void => {
+			if (input.type !== "keyDown") return;
+			if (input.shift || input.alt) return;
+			if (!(input.meta || input.control)) return;
+
+			const key = input.key.toLowerCase();
+			if (key === "w") {
+				event.preventDefault();
+				this.emit(`close-pane:${paneId}`);
+				return;
+			}
+			if (key === "r") {
+				event.preventDefault();
+				this.emit(`reload-pane:${paneId}`);
+				return;
+			}
+		};
+
+		wc.on("before-input-event", handler);
+		this.beforeInputListeners.set(paneId, () => {
+			try {
+				wc.off("before-input-event", handler);
+			} catch {
+				// webContents may be destroyed
+			}
+		});
 	}
 
 	private setupConsoleCapture(paneId: string, wc: Electron.WebContents): void {

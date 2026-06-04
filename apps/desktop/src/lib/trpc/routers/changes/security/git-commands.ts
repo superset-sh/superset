@@ -1,6 +1,6 @@
-import simpleGit from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
-import { getProcessEnvWithShellPath } from "../../workspaces/utils/shell-env";
+import { getCurrentBranch } from "../../workspaces/utils/git";
+import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
 import {
 	assertRegisteredWorktree,
 	assertValidGitPath,
@@ -19,9 +19,7 @@ import {
  */
 
 async function getGitWithShellPath(worktreePath: string) {
-	const git = simpleGit(worktreePath);
-	git.env(await getProcessEnvWithShellPath());
-	return git;
+	return getSimpleGitWithShellPath(worktreePath);
 }
 
 async function isCurrentBranch({
@@ -32,8 +30,7 @@ async function isCurrentBranch({
 	expectedBranch: string;
 }): Promise<boolean> {
 	try {
-		const git = await getGitWithShellPath(worktreePath);
-		const currentBranch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+		const currentBranch = await getCurrentBranch(worktreePath);
 		return currentBranch === expectedBranch;
 	} catch {
 		return false;
@@ -143,7 +140,7 @@ export async function gitStageFiles(
 		assertValidGitPath(filePath);
 	}
 
-	const git = simpleGit(worktreePath);
+	const git = await getGitWithShellPath(worktreePath);
 	await git.add(["--", ...filePaths]);
 }
 
@@ -165,7 +162,7 @@ export async function gitUnstageFiles(
 		assertValidGitPath(filePath);
 	}
 
-	const git = simpleGit(worktreePath);
+	const git = await getGitWithShellPath(worktreePath);
 	await git.reset(["HEAD", "--", ...filePaths]);
 }
 

@@ -1,9 +1,24 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import os from "node:os";
 import path from "node:path";
-import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
+import {
+	getAppCommand,
+	RelativePathWithoutCwdError,
+	resolvePath,
+	stripPathWrappers,
+} from "./helpers";
 
 describe("getAppCommand", () => {
+	const originalPlatform = process.platform;
+
+	beforeEach(() => {
+		Object.defineProperty(process, "platform", { value: "darwin" });
+	});
+
+	afterEach(() => {
+		Object.defineProperty(process, "platform", { value: originalPlatform });
+	});
+
 	test("returns null for finder (handled specially)", () => {
 		expect(getAppCommand("finder", "/path/to/file")).toBeNull();
 	});
@@ -127,6 +142,15 @@ describe("getAppCommand", () => {
 			},
 		]);
 	});
+
+	test("returns Linux command candidates on Linux", () => {
+		const result = getAppCommand("intellij", "/path/to/file", "linux");
+		expect(result).toEqual([
+			{ command: "idea", args: ["/path/to/file"] },
+			{ command: "intellij-idea-ultimate", args: ["/path/to/file"] },
+			{ command: "intellij-idea-community", args: ["/path/to/file"] },
+		]);
+	});
 });
 
 describe("resolvePath", () => {
@@ -186,9 +210,8 @@ describe("resolvePath", () => {
 			expect(result).toBe("/project/sibling/file.ts");
 		});
 
-		test("resolves relative path against process.cwd() when no cwd provided", () => {
-			const result = resolvePath("file.ts");
-			expect(result).toBe(path.resolve("file.ts"));
+		test("throws RelativePathWithoutCwdError when no cwd provided", () => {
+			expect(() => resolvePath("file.ts")).toThrow(RelativePathWithoutCwdError);
 		});
 	});
 
@@ -560,5 +583,37 @@ describe("stripPathWrappers", () => {
 		test("strips trailing period from dotfile with extension", () => {
 			expect(stripPathWrappers(".eslintrc.json.")).toBe(".eslintrc.json");
 		});
+	});
+});
+
+describe("resolvePath guards against process.cwd() fallback", () => {
+	test("throws RelativePathWithoutCwdError for a relative path with no cwd", () => {
+		expect(() => resolvePath("apps/desktop/src/index.ts")).toThrow(
+			RelativePathWithoutCwdError,
+		);
+	});
+
+	test("throws for a wrapped/quoted relative path with no cwd", () => {
+		expect(() => resolvePath('"apps/desktop/src/index.ts"')).toThrow(
+			RelativePathWithoutCwdError,
+		);
+	});
+
+	test("absolute paths do not need a cwd", () => {
+		expect(() => resolvePath("/Users/me/file.ts")).not.toThrow();
+	});
+
+	test("~-prefixed paths do not need a cwd", () => {
+		expect(() => resolvePath("~/file.ts")).not.toThrow();
+	});
+
+	test("file:// URLs do not need a cwd", () => {
+		expect(() => resolvePath("file:///Users/me/file.ts")).not.toThrow();
+	});
+
+	test("a relative path with a cwd resolves correctly", () => {
+		expect(resolvePath("src/index.ts", "/workspace")).toBe(
+			"/workspace/src/index.ts",
+		);
 	});
 });

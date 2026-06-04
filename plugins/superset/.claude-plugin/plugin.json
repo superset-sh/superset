@@ -1,0 +1,22 @@
+{
+	"name": "superset",
+	"version": "0.1.0",
+	"description": "Use Superset to spawn agents, create workspaces, manage tasks, and schedule automations from Claude Code.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/superset-sh/superset"
+	},
+	"license": "MIT",
+	"keywords": [
+		"superset",
+		"agents",
+		"workspaces",
+		"automations",
+		"orchestration"
+	]
+}

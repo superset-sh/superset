@@ -41,6 +41,10 @@ const RESOURCES_TO_COPY = [
 		dest: resolve(__dirname, "..", devPath, "resources/migrations"),
 	},
 	{
+		src: resolve(__dirname, "../../../packages/host-service/drizzle"),
+		dest: resolve(__dirname, "..", devPath, "resources/host-migrations"),
+	},
+	{
 		src: resolve(__dirname, "../src/main/lib/agent-setup/templates"),
 		dest: resolve(__dirname, "..", devPath, "main/templates"),
 	},
@@ -82,15 +86,12 @@ export function htmlEnvTransformPlugin(): Plugin {
 					).origin,
 				)
 				.replace(
-					/%NEXT_PUBLIC_ELECTRIC_PROXY_URL%/g,
-					new URL(
-						process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL ||
-							"https://api.superset.sh",
-					).origin,
-				)
-				.replace(
 					/%NEXT_PUBLIC_STREAMS_URL%/g,
 					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
+				)
+				.replace(
+					/%RELAY_URL%/g,
+					process.env.RELAY_URL || "https://relay.superset.sh",
 				);
 		},
 	};

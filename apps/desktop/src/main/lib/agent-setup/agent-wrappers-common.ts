@@ -1,10 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
+import { SUPERSET_MANAGED_BINARIES } from "./desktop-agent-capabilities";
 import { BIN_DIR } from "./paths";
 
-export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
+export const WRAPPER_MARKER = "# Superset agent-wrapper v3";
+export { SUPERSET_MANAGED_BINARIES };
 
-const SUPERSET_MANAGED_HOOK_PATH_PATTERN = /\/\.superset(?:-[^/'"\s\\]+)?\//;
+// Dev setup (.superset/lib/setup/steps.sh) points SUPERSET_HOME_DIR at
+// $PWD/superset-dev-data — without a leading dot — so we must recognize that
+// variant to reap stale notify.sh paths from deleted worktrees.
+const SUPERSET_MANAGED_HOOK_PATH_PATTERN =
+	/\/(?:\.superset(?:-[^/'"\s\\]+)?|superset-dev-data)\//;
 
 export function writeFileIfChanged(
 	filePath: string,
@@ -37,6 +43,44 @@ export function isSupersetManagedHookCommand(
 	return SUPERSET_MANAGED_HOOK_PATH_PATTERN.test(normalized);
 }
 
+interface ReconcileManagedEntriesOptions<T> {
+	current: T[] | undefined;
+	desired: T[];
+	isManaged: (entry: T) => boolean;
+	isEquivalent: (entry: T, desiredEntry: T) => boolean;
+}
+
+interface ReconcileManagedEntriesResult<T> {
+	entries: T[];
+	replacedManagedEntries: T[];
+}
+
+export function reconcileManagedEntries<T>({
+	current,
+	desired,
+	isManaged,
+	isEquivalent,
+}: ReconcileManagedEntriesOptions<T>): ReconcileManagedEntriesResult<T> {
+	const existing = Array.isArray(current) ? current : [];
+	const entries: T[] = [];
+	const replacedManagedEntries: T[] = [];
+
+	for (const entry of existing) {
+		if (!isManaged(entry)) {
+			entries.push(entry);
+			continue;
+		}
+
+		if (!desired.some((desiredEntry) => isEquivalent(entry, desiredEntry))) {
+			replacedManagedEntries.push(entry);
+		}
+	}
+
+	entries.push(...desired);
+
+	return { entries, replacedManagedEntries };
+}
+
 function buildRealBinaryResolver(): string {
 	return `find_real_binary() {
   local name="$1"
@@ -65,10 +109,24 @@ export function getWrapperPath(binaryName: string): string {
 	return path.join(BIN_DIR, binaryName);
 }
 
+export interface BuildWrapperScriptOptions {
+	/**
+	 * `BuiltinAgentId` for the wrapped binary (e.g. "claude", "codex"). When
+	 * set, the wrapper exports `SUPERSET_AGENT_ID` so the agent process and
+	 * any hook subprocess it spawns inherit the wrapper-level identity. The
+	 * notify-hook script forwards this into the v2 hook payload.
+	 */
+	agentId?: string;
+}
+
 export function buildWrapperScript(
 	binaryName: string,
 	execLine: string,
+	options: BuildWrapperScriptOptions = {},
 ): string {
+	const exportAgentId = options.agentId
+		? `export SUPERSET_AGENT_ID="${options.agentId}"\n\n`
+		: "";
 	return `#!/bin/bash
 ${WRAPPER_MARKER}
 # Superset wrapper for ${binaryName}
@@ -80,7 +138,7 @@ if [ -z "$REAL_BIN" ]; then
   exit 127
 fi
 
-${execLine}
+${exportAgentId}${execLine}
 `;
 }
 

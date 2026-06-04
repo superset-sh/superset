@@ -1,0 +1,33 @@
+{
+	"name": "@superset/relay",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun run --env-file=../../.env --hot src/index.ts",
+		"start": "bun run src/index.ts",
+		"deploy": "./scripts/deploy.sh",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@hono/node-server": "1.19.13",
+		"@hono/node-ws": "1.3.0",
+		"@sentry/node": "9.47.1",
+		"@superset/shared": "workspace:*",
+		"@superset/trpc": "workspace:*",
+		"@t3-oss/env-core": "0.13.11",
+		"@trpc/client": "11.16.0",
+		"@upstash/redis": "1.37.0",
+		"hono": "4.12.18",
+		"jose": "6.2.2",
+		"lru-cache": "11.2.7",
+		"superjson": "2.2.6",
+		"zod": "4.3.6"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "24.12.0",
+		"bun-types": "1.3.11",
+		"typescript": "5.9.3"
+	}
+}

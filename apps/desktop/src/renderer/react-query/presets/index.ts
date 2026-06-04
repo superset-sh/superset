@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { filterMatchingPresetsForProject } from "shared/preset-project-targeting";
 
 function useCreateTerminalPreset(
 	options?: Parameters<
@@ -11,6 +13,10 @@ function useCreateTerminalPreset(
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
+			await utils.workspaces.getWorkspaceRunDefinition.invalidate();
+			await utils.workspaces.getResolvedRunCommands.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});
@@ -27,6 +33,10 @@ function useUpdateTerminalPreset(
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
+			await utils.workspaces.getWorkspaceRunDefinition.invalidate();
+			await utils.workspaces.getResolvedRunCommands.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});
@@ -43,6 +53,10 @@ function useDeleteTerminalPreset(
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
+			await utils.workspaces.getWorkspaceRunDefinition.invalidate();
+			await utils.workspaces.getResolvedRunCommands.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});
@@ -61,6 +75,8 @@ function useSetPresetAutoApply(
 			await utils.settings.getTerminalPresets.invalidate();
 			await utils.settings.getWorkspaceCreationPresets.invalidate();
 			await utils.settings.getNewTabPresets.invalidate();
+			await utils.workspaces.getWorkspaceRunDefinition.invalidate();
+			await utils.workspaces.getResolvedRunCommands.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});
@@ -77,14 +93,22 @@ function useReorderTerminalPresets(
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
+			await utils.workspaces.getWorkspaceRunDefinition.invalidate();
+			await utils.workspaces.getResolvedRunCommands.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});
 }
 
-export function usePresets() {
+export function usePresets(projectId?: string | null) {
 	const { data: presets = [], isLoading } =
 		electronTrpc.settings.getTerminalPresets.useQuery();
+	const matchedPresets = useMemo(
+		() => filterMatchingPresetsForProject(presets, projectId),
+		[presets, projectId],
+	);
 
 	const createPreset = useCreateTerminalPreset();
 	const updatePreset = useUpdateTerminalPreset();
@@ -94,6 +118,7 @@ export function usePresets() {
 
 	return {
 		presets,
+		matchedPresets,
 		isLoading,
 		createPreset,
 		updatePreset,

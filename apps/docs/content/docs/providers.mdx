@@ -1,0 +1,150 @@
+---
+title: Use with OpenRouter, Bedrock, Vertex, or Vercel
+description: Connect Superset to Vercel AI Gateway, OpenRouter, AWS Bedrock, Google Vertex, and other providers
+---
+
+If you're using Superset in the terminal - any CLI agent (Claude Code, Codex, Curser Agents, etc.)
+automatically just work. That's the beauty of us being terminal first.
+
+For the Chat UI, we have a flow for users to get started.
+
+## Chat UI
+
+1. Open the model picker at the bottom of the chat
+
+![Model picker](/images/providers-model-picker.png)
+
+2. Click the **key icon** next to **Anthropic**
+
+3. Select **Use API key**
+
+![Connect Anthropic](/images/providers-connect-dialog.png)
+
+4. Enter the environment variables for your provider (one per line, `VAR_NAME=value` format)
+
+![Environment variables](/images/providers-env-vars.png)
+
+5. Click **Save settings**
+
+See the provider sections below for the specific variables to use.
+
+## Terminal
+
+Set environment variables in your shell profile or per workspace via **Settings > Env**.
+
+<Callout type="info">
+For Anthropic-compatible providers (OpenRouter, Vercel AI Gateway), set `ANTHROPIC_API_KEY` to an empty string to prevent direct Anthropic authentication.
+</Callout>
+
+---
+
+## Vercel AI Gateway
+
+Route requests through the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway).
+
+```bash
+ANTHROPIC_BASE_URL=https://ai-gateway.vercel.sh
+ANTHROPIC_AUTH_TOKEN=your-vercel-ai-gateway-api-key
+ANTHROPIC_API_KEY=
+```
+
+## OpenRouter
+
+[OpenRouter](https://openrouter.ai) provides access to many models through a single API.
+
+```bash
+ANTHROPIC_BASE_URL=https://openrouter.ai/api
+ANTHROPIC_AUTH_TOKEN=your-openrouter-api-key
+ANTHROPIC_API_KEY=
+```
+
+## AWS Bedrock
+
+Use Claude models through your AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/).
+
+Ensure your AWS credentials are configured via `aws configure`, environment variables, or SSO profile.
+
+```bash
+CLAUDE_CODE_USE_BEDROCK=1
+AWS_REGION=us-east-1
+```
+
+Optionally override the region for the small/fast model (Haiku):
+
+```bash
+ANTHROPIC_SMALL_FAST_MODEL_AWS_REGION=us-west-2
+```
+
+<Callout type="warn">
+Pin specific model versions to prevent breakage when new models are released:
+
+```bash
+ANTHROPIC_DEFAULT_OPUS_MODEL=us.anthropic.claude-opus-4-6-v1
+ANTHROPIC_DEFAULT_SONNET_MODEL=us.anthropic.claude-sonnet-4-6
+ANTHROPIC_DEFAULT_HAIKU_MODEL=us.anthropic.claude-haiku-4-5-20251001-v1:0
+```
+</Callout>
+
+For full setup details including IAM configuration, see the [Claude Code on Amazon Bedrock docs](https://code.claude.com/docs/en/amazon-bedrock).
+
+## Google Vertex AI
+
+Run Claude models on [Google Cloud Vertex AI](https://cloud.google.com/vertex-ai).
+
+Authenticate with `gcloud auth application-default login`, then set:
+
+```bash
+CLAUDE_CODE_USE_VERTEX=1
+CLOUD_ML_REGION=global
+ANTHROPIC_VERTEX_PROJECT_ID=your-project-id
+```
+
+<Callout type="warn">
+Pin specific model versions to prevent breakage when new models are released:
+
+```bash
+ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-6
+ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-6
+ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4-5@20251001
+```
+</Callout>
+
+For full setup details including IAM configuration, see the [Claude Code on Google Vertex AI docs](https://code.claude.com/docs/en/google-vertex-ai).
+
+## Microsoft Foundry (Azure)
+
+Use Claude models via [Microsoft Foundry](https://ai.azure.com).
+
+Authenticate with an API key or Microsoft Entra ID (`az login`), then set:
+
+```bash
+CLAUDE_CODE_USE_FOUNDRY=1
+ANTHROPIC_FOUNDRY_RESOURCE=your-resource-name
+
+# If using API key authentication:
+ANTHROPIC_FOUNDRY_API_KEY=your-azure-api-key
+```
+
+<Callout type="warn">
+Pin specific model versions to prevent breakage when new models are released:
+
+```bash
+ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-6
+ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-6
+ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-haiku-4-5
+```
+</Callout>
+
+For full setup details including RBAC configuration, see the [Claude Code on Microsoft Foundry docs](https://code.claude.com/docs/en/microsoft-foundry).
+
+## Other Anthropic-Compatible Providers
+
+Any provider that exposes an Anthropic-compatible API (such as LiteLLM) can be used:
+
+```bash
+ANTHROPIC_BASE_URL=https://your-provider.example.com
+ANTHROPIC_AUTH_TOKEN=your-api-key
+ANTHROPIC_API_KEY=
+```
+
+For LLM gateway configuration details, see the [Claude Code LLM gateway docs](https://code.claude.com/docs/en/llm-gateway).

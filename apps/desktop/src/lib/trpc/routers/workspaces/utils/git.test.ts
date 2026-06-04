@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { execSync } from "node:child_process";
 import {
 	existsSync,
@@ -6,11 +6,21 @@ import {
 	mkdtempSync,
 	realpathSync,
 	rmSync,
+	statSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createWorktree, getCurrentBranch, parsePrUrl } from "./git";
+import {
+	branchExistsOnRemote,
+	createWorktree,
+	getCurrentBranch,
+	getWorktreeCreatedAt,
+	hasUnpushedCommits,
+	isUnbornHeadError,
+	parsePorcelainStatusV2,
+	parsePrUrl,
+} from "./git";
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),
@@ -35,6 +45,15 @@ function seedCommit(repoPath: string): void {
 		cwd: repoPath,
 		stdio: "ignore",
 	});
+}
+
+function pathCreatedAt(path: string): number {
+	const stats = statSync(path);
+	const birthtimeMs = Math.trunc(stats.birthtimeMs);
+	if (Number.isFinite(birthtimeMs) && birthtimeMs > 0) {
+		return birthtimeMs;
+	}
+	return Math.trunc(stats.ctimeMs);
 }
 
 describe("getDefaultBranch", () => {
@@ -239,7 +258,7 @@ describe("Shell Environment", () => {
 
 		// Should have PATH
 		expect(env.PATH || env.Path).toBeDefined();
-	});
+	}, 10_000);
 
 	test("clearShellEnvCache clears cache", async () => {
 		const { clearShellEnvCache, getShellEnvironment } = await import(
@@ -255,7 +274,7 @@ describe("Shell Environment", () => {
 		// Should work again (cache was cleared)
 		const env = await getShellEnvironment();
 		expect(env.PATH || env.Path).toBeDefined();
-	});
+	}, 10_000);
 
 	test("getProcessEnvWithShellPath applies shell PATH and preserves string vars", async () => {
 		const { getProcessEnvWithShellPath, getShellEnvironment } = await import(
@@ -279,7 +298,7 @@ describe("Shell Environment", () => {
 				expect(env.Path).toBe(shellPath);
 			}
 		}
-	});
+	}, 10_000);
 
 	test("getShellEnvironment PATH includes homebrew and user-installed tools", async () => {
 		const { clearShellEnvCache, getShellEnvironment } = await import(
@@ -300,7 +319,7 @@ describe("Shell Environment", () => {
 		];
 		const hasUserPath = userPaths.some((p) => shellPath.includes(p));
 		expect(hasUserPath).toBe(true);
-	});
+	}, 10_000);
 
 	test("getShellEnvironment strips delimiter noise from interactive shell output", async () => {
 		const { clearShellEnvCache, getShellEnvironment } = await import(
@@ -317,7 +336,7 @@ describe("Shell Environment", () => {
 		expect(
 			Object.values(env).some((v) => v.includes("_SHELL_ENV_DELIMITER_")),
 		).toBe(false);
-	});
+	}, 10_000);
 
 	test("getProcessEnvWithShellPath overrides minimal GUI PATH with shell PATH", async () => {
 		const { clearShellEnvCache, getProcessEnvWithShellPath } = await import(
@@ -336,7 +355,7 @@ describe("Shell Environment", () => {
 		expect(env.PATH).not.toBe(guiPath);
 		// It should contain additional directories from the shell
 		expect(env.PATH.length).toBeGreaterThan(guiPath.length);
-	});
+	}, 10_000);
 
 	test("getShellEnvironment captures .zshrc variables (requires -ilc)", async () => {
 		// This test proves that getShellEnvironment uses an interactive shell (-i)
@@ -379,7 +398,7 @@ describe("Shell Environment", () => {
 			clearShellEnvCache();
 			rmSync(tmpDir, { recursive: true });
 		}
-	});
+	}, 10_000);
 });
 
 describe("createWorktree hook tolerance", () => {
@@ -419,7 +438,7 @@ describe("createWorktree hook tolerance", () => {
 			.toString()
 			.trim();
 		expect(currentBranch).toBe("feature/hook-failure");
-	});
+	}, 10_000);
 
 	test("throws when destination path exists but worktree is not created", async () => {
 		const repoPath = createTestRepo("worktree-existing-path");
@@ -432,7 +451,90 @@ describe("createWorktree hook tolerance", () => {
 		await expect(
 			createWorktree(repoPath, "feature/existing-path", worktreePath, "HEAD"),
 		).rejects.toThrow("already exists");
-	});
+	}, 10_000);
+
+	test("works with remote-tracking ref as start point (no-track prevents upstream)", async () => {
+		// Set up a "remote" repo with a commit, then clone it so we have origin/<branch> refs
+		const originPath = join(TEST_DIR, "worktree-notrack-origin");
+		mkdirSync(originPath, { recursive: true });
+		execSync("git init -b main", { cwd: originPath, stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: originPath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: originPath,
+			stdio: "ignore",
+		});
+		writeFileSync(join(originPath, "README.md"), "# test\n");
+		execSync("git add . && git commit -m 'init'", {
+			cwd: originPath,
+			stdio: "ignore",
+		});
+
+		const clonePath = join(TEST_DIR, "worktree-notrack-clone");
+		execSync(`git clone "${originPath}" "${clonePath}"`, {
+			stdio: "ignore",
+		});
+		execSync("git config user.email 'test@test.com'", {
+			cwd: clonePath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: clonePath,
+			stdio: "ignore",
+		});
+
+		const worktreePath = join(TEST_DIR, "worktree-notrack-wt");
+		await createWorktree(
+			clonePath,
+			"feature/no-track-test",
+			worktreePath,
+			"origin/main",
+		);
+
+		expect(existsSync(worktreePath)).toBe(true);
+
+		// Verify the new branch does NOT track origin/main
+		const trackingResult = execSync(
+			"git config --get branch.feature/no-track-test.remote 2>&1 || true",
+			{ cwd: worktreePath },
+		)
+			.toString()
+			.trim();
+		expect(trackingResult).toBe("");
+	}, 15_000);
+
+	test("works with a branch name containing slashes as start point", async () => {
+		// Reproduces #3448: createWorktree previously appended ^{commit} to the
+		// start point, which can fail with "fatal: invalid reference" when the ref
+		// is not locally resolvable with that suffix. Using --no-track avoids this.
+		const repoPath = createTestRepo("worktree-slash-branch");
+		seedCommit(repoPath);
+
+		// Create a branch with slashes (like feat/workstreams-view)
+		execSync("git checkout -b feat/workstreams-view", {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync("git checkout -", { cwd: repoPath, stdio: "ignore" });
+
+		const worktreePath = join(TEST_DIR, "worktree-slash-branch-wt");
+		await createWorktree(
+			repoPath,
+			"feature/new-workspace",
+			worktreePath,
+			"feat/workstreams-view",
+		);
+
+		expect(existsSync(worktreePath)).toBe(true);
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("feature/new-workspace");
+	}, 10_000);
 });
 
 describe("getCurrentBranch", () => {
@@ -494,6 +596,384 @@ describe("getCurrentBranch", () => {
 			if (existsSync(repoPath)) {
 				rmSync(repoPath, { recursive: true, force: true });
 			}
+		}
+	});
+});
+
+describe("getWorktreeCreatedAt", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("uses linked worktree git metadata creation time", async () => {
+		const repoPath = createTestRepo("worktree-created-at");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "preexisting-worktree-path");
+		mkdirSync(worktreePath, { recursive: true });
+
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+		execSync(`git worktree add "${worktreePath}" -b feature/created-at`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		expect(getWorktreeCreatedAt(worktreePath)).toBe(
+			pathCreatedAt(join(worktreePath, ".git")),
+		);
+	}, 10_000);
+});
+
+describe("parsePorcelainStatusV2", () => {
+	test("parses branch headers for unborn branches with upstream tracking", () => {
+		const status = parsePorcelainStatusV2(
+			[
+				"# branch.oid (initial)",
+				"# branch.head feature/gone-fix",
+				"# branch.upstream origin/feature/gone-fix",
+				"# branch.ab +0 -0",
+				"? path with spaces.txt",
+			].join("\0"),
+		);
+
+		expect(status.current).toBe("feature/gone-fix");
+		expect(status.tracking).toBe("origin/feature/gone-fix");
+		expect(status.ahead).toBe(0);
+		expect(status.behind).toBe(0);
+		expect(status.not_added).toEqual(["path with spaces.txt"]);
+		expect(status.files).toEqual([
+			{
+				path: "path with spaces.txt",
+				from: "path with spaces.txt",
+				index: "?",
+				working_dir: "?",
+			},
+		]);
+	});
+
+	test("parses rename and modified entries from porcelain v2 output", () => {
+		const status = parsePorcelainStatusV2(
+			[
+				"# branch.oid abcdef1234567890",
+				"# branch.head feature/rename",
+				"# branch.upstream origin/feature/rename",
+				"# branch.ab +2 -3",
+				"2 R. N... 100644 100644 100644 43dd47ea691c90a5fa7827892c70241913351963 43dd47ea691c90a5fa7827892c70241913351963 R100 new.txt",
+				"old.txt",
+				"1 .M N... 100644 100644 100644 43dd47ea691c90a5fa7827892c70241913351963 43dd47ea691c90a5fa7827892c70241913351963 edited.txt",
+			].join("\0"),
+		);
+
+		expect(status.current).toBe("feature/rename");
+		expect(status.tracking).toBe("origin/feature/rename");
+		expect(status.ahead).toBe(2);
+		expect(status.behind).toBe(3);
+		expect(status.renamed).toEqual([{ from: "old.txt", to: "new.txt" }]);
+		expect(status.files).toEqual([
+			{
+				path: "new.txt",
+				from: "old.txt",
+				index: "R",
+				working_dir: " ",
+			},
+			{
+				path: "edited.txt",
+				from: "edited.txt",
+				index: " ",
+				working_dir: "M",
+			},
+		]);
+		expect(status.staged).toEqual(["new.txt"]);
+		expect(status.modified).toEqual(["edited.txt"]);
+	});
+
+	test("parses unmerged conflict entries from porcelain v2 output", () => {
+		const status = parsePorcelainStatusV2(
+			[
+				"# branch.oid abcdef1234567890",
+				"# branch.head main",
+				"u UU N... 100644 100644 100644 100644 43dd47ea691c90a5fa7827892c70241913351963 43dd47ea691c90a5fa7827892c70241913351963 43dd47ea691c90a5fa7827892c70241913351963 conflict.txt",
+			].join("\0"),
+		);
+
+		expect(status.current).toBe("main");
+		expect(status.conflicted).toEqual(["conflict.txt"]);
+		expect(status.files).toEqual([
+			{
+				path: "conflict.txt",
+				from: "conflict.txt",
+				index: "U",
+				working_dir: "U",
+			},
+		]);
+	});
+
+	test("marks all porcelain v2 unmerged records as conflicted", () => {
+		const status = parsePorcelainStatusV2(
+			[
+				"# branch.oid abcdef1234567890",
+				"# branch.head main",
+				"u AA N... 100644 100644 100644 100644 43dd47ea691c90a5fa7827892c70241913351963 43dd47ea691c90a5fa7827892c70241913351963 43dd47ea691c90a5fa7827892c70241913351963 both-added.txt",
+			].join("\0"),
+		);
+
+		expect(status.conflicted).toEqual(["both-added.txt"]);
+		expect(status.files).toEqual([
+			{
+				path: "both-added.txt",
+				from: "both-added.txt",
+				index: "A",
+				working_dir: "A",
+			},
+		]);
+	});
+});
+
+describe("isUnbornHeadError", () => {
+	test("matches the standard unborn HEAD rev-parse failure", () => {
+		expect(
+			isUnbornHeadError(
+				new Error(
+					"fatal: ambiguous argument 'HEAD': unknown revision or path not in the working tree.",
+				),
+			),
+		).toBe(true);
+	});
+
+	test("does not hide unrelated git failures", () => {
+		expect(isUnbornHeadError(new Error("fatal: not a git repository"))).toBe(
+			false,
+		);
+	});
+});
+
+describe("branchExistsOnRemote", () => {
+	test("checks the requested remote instead of always origin", async () => {
+		const repoPath = createTestRepo("branch-exists-on-remote");
+		seedCommit(repoPath);
+
+		const originRemotePath = join(TEST_DIR, "branch-exists-origin.git");
+		const forkRemotePath = join(TEST_DIR, "branch-exists-fork.git");
+
+		execSync(`git init --bare "${originRemotePath}"`, { stdio: "ignore" });
+		execSync(`git init --bare "${forkRemotePath}"`, { stdio: "ignore" });
+
+		execSync(`git remote add origin "${originRemotePath}"`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync(`git remote add contributor "${forkRemotePath}"`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync(
+			"git push contributor HEAD:refs/heads/feature/fork-tracking-remote",
+			{
+				cwd: repoPath,
+				stdio: "ignore",
+			},
+		);
+
+		await expect(
+			branchExistsOnRemote(repoPath, "feature/fork-tracking-remote"),
+		).resolves.toEqual({ status: "not_found" });
+		await expect(
+			branchExistsOnRemote(
+				repoPath,
+				"feature/fork-tracking-remote",
+				"contributor",
+			),
+		).resolves.toEqual({ status: "exists" });
+	});
+});
+
+describe("hasUnpushedCommits", () => {
+	/**
+	 * Helper: create a "remote" bare repo, a local clone, and push an initial
+	 * commit so we have a realistic origin/main setup.
+	 */
+	function setupRemoteAndClone(testName: string) {
+		const remotePath = join(TEST_DIR, `${testName}-remote.git`);
+		const localPath = join(TEST_DIR, `${testName}-local`);
+
+		// Create bare remote
+		mkdirSync(remotePath, { recursive: true });
+		execSync("git init --bare", { cwd: remotePath, stdio: "ignore" });
+
+		// Clone it
+		execSync(`git clone "${remotePath}" "${localPath}"`, { stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		// Seed commit on main
+		writeFileSync(join(localPath, "README.md"), "# test\n");
+		execSync("git add . && git commit -m 'init' && git push", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		return { remotePath, localPath };
+	}
+
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("returns false when branch has no commits ahead of upstream", async () => {
+		const { localPath } = setupRemoteAndClone("no-ahead");
+
+		// Create a feature branch, push it (no extra commits)
+		execSync(
+			"git checkout -b feature/no-change && git push -u origin feature/no-change",
+			{
+				cwd: localPath,
+				stdio: "ignore",
+			},
+		);
+
+		expect(await hasUnpushedCommits(localPath)).toBe(false);
+	}, 10_000);
+
+	test("returns true when branch has commits ahead of upstream", async () => {
+		const { localPath } = setupRemoteAndClone("ahead");
+
+		execSync(
+			"git checkout -b feature/ahead && git push -u origin feature/ahead",
+			{
+				cwd: localPath,
+				stdio: "ignore",
+			},
+		);
+
+		// Add an unpushed commit
+		writeFileSync(join(localPath, "new.txt"), "new");
+		execSync("git add . && git commit -m 'unpushed'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		expect(await hasUnpushedCommits(localPath)).toBe(true);
+	}, 10_000);
+
+	test("returns false after squash-merge when upstream branch is deleted (bug #2545)", async () => {
+		const { remotePath, localPath } = setupRemoteAndClone("squash-merge");
+
+		// Create feature branch with a commit and push it
+		execSync("git checkout -b feature/squash-test", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		writeFileSync(join(localPath, "feature.txt"), "feature work");
+		execSync("git add . && git commit -m 'add feature'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		execSync("git push -u origin feature/squash-test", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		// Simulate squash-merge on remote: apply the same change to main with
+		// a different commit (different SHA, same patch)
+		const squashClone = join(TEST_DIR, "squash-merge-squasher");
+		execSync(`git clone "${remotePath}" "${squashClone}"`, { stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: squashClone,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: squashClone,
+			stdio: "ignore",
+		});
+		writeFileSync(join(squashClone, "feature.txt"), "feature work");
+		execSync("git add . && git commit -m 'squash: add feature' && git push", {
+			cwd: squashClone,
+			stdio: "ignore",
+		});
+
+		// Delete the remote branch (simulating GitHub's post-merge cleanup)
+		execSync("git push origin --delete feature/squash-test", {
+			cwd: squashClone,
+			stdio: "ignore",
+		});
+
+		// Back in local: fetch --prune so the upstream tracking ref is gone
+		execSync("git fetch --prune", { cwd: localPath, stdio: "ignore" });
+
+		// BUG: Before the fix, this returned true (false positive warning)
+		// After the fix, it should return false since the patch is in origin/main
+		expect(await hasUnpushedCommits(localPath)).toBe(false);
+	}, 15_000);
+
+	test("returns true after upstream branch deleted with truly unmerged commits", async () => {
+		const { remotePath, localPath } = setupRemoteAndClone("unmerged");
+
+		// Create feature branch with a commit and push it
+		execSync("git checkout -b feature/unmerged-test", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		writeFileSync(join(localPath, "unique.txt"), "unique work not on main");
+		execSync("git add . && git commit -m 'unique work'", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+		execSync("git push -u origin feature/unmerged-test", {
+			cwd: localPath,
+			stdio: "ignore",
+		});
+
+		// Delete the remote branch WITHOUT merging
+		const helperClone = join(TEST_DIR, "unmerged-helper");
+		execSync(`git clone "${remotePath}" "${helperClone}"`, { stdio: "ignore" });
+		execSync("git push origin --delete feature/unmerged-test", {
+			cwd: helperClone,
+			stdio: "ignore",
+		});
+
+		// Prune locally
+		execSync("git fetch --prune", { cwd: localPath, stdio: "ignore" });
+
+		// Should still return true — commits are genuinely not merged
+		expect(await hasUnpushedCommits(localPath)).toBe(true);
+	}, 15_000);
+
+	test("warns when cherry-pick fallback fails and continues to remotes fallback", async () => {
+		const repoPath = createTestRepo("no-remote-warning");
+		seedCommit(repoPath);
+
+		const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			expect(await hasUnpushedCommits(repoPath)).toBe(true);
+			expect(warnSpy).toHaveBeenCalledTimes(1);
+			expect(warnSpy).toHaveBeenCalledWith(
+				"[git/hasUnpushedCommits] Cherry-pick fallback failed; falling back to remote reachability check.",
+				expect.objectContaining({
+					worktreePath: repoPath,
+					error: expect.any(String),
+				}),
+			);
+		} finally {
+			warnSpy.mockRestore();
 		}
 	});
 });

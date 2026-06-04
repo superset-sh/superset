@@ -1,23 +1,8 @@
-import type { AuthContext, WhereClause } from "./auth";
+import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
+import type { WhereClause } from "./auth";
 import type { Env } from "./types";
 
-const PROTOCOL_PARAMS = new Set([
-	"live",
-	"live_sse",
-	"handle",
-	"offset",
-	"cursor",
-	"expired_handle",
-	"log",
-	"subset__where",
-	"subset__limit",
-	"subset__offset",
-	"subset__order_by",
-	"subset__params",
-	"subset__where_expr",
-	"subset__order_by_expr",
-	"cache-buster",
-]);
+const PROTOCOL_PARAMS = new Set(ELECTRIC_PROTOCOL_QUERY_PARAMS);
 
 const COLUMN_RESTRICTIONS: Record<string, string> = {
 	"auth.apikeys": "id,name,start,created_at,last_request",
@@ -31,9 +16,17 @@ export function buildUpstreamUrl(
 	whereClause: WhereClause,
 	env: Env,
 ): URL {
-	const upstream = new URL("/v1/shape", env.ELECTRIC_CLOUD_URL);
-	upstream.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID);
-	upstream.searchParams.set("secret", env.ELECTRIC_SOURCE_SECRET);
+	const hasSourceCredentials =
+		Boolean(env.ELECTRIC_SOURCE_ID) && Boolean(env.ELECTRIC_SOURCE_SECRET);
+
+	const upstream = new URL(env.ELECTRIC_SHAPE_URL ?? "");
+
+	if (hasSourceCredentials) {
+		upstream.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID ?? "");
+		upstream.searchParams.set("secret", env.ELECTRIC_SOURCE_SECRET ?? "");
+	} else {
+		upstream.searchParams.set("secret", env.ELECTRIC_SECRET ?? "");
+	}
 
 	for (const [key, value] of clientUrl.searchParams) {
 		if (PROTOCOL_PARAMS.has(key)) {
@@ -54,10 +47,5 @@ export function buildUpstreamUrl(
 	if (columns) {
 		upstream.searchParams.set("columns", columns);
 	}
-
 	return upstream;
-}
-
-export function buildCacheKey(upstreamUrl: URL, _auth: AuthContext): string {
-	return upstreamUrl.toString();
 }

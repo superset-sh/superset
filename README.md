@@ -2,13 +2,18 @@
 
 <img width="full" alt="Superset" src="apps/marketing/public/images/readme-hero.png" />
 
-### The Terminal for Coding Agents
+### The Code Editor for AI Agents
 
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
 [![License](https://img.shields.io/github/license/superset-sh/superset?style=flat)](LICENSE.md)
 [![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
 [![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
+
+<br />
+
+Orchestrate swarms of Claude Code, Codex, and more in parallel.<br />
+Works with any CLI agent. Built for local worktree-based development.
 
 <br />
 
@@ -19,14 +24,15 @@
 
 </div>
 
-## Why Superset?
+## Code 10x Faster With No Switching Cost
 
-Superset is a turbocharged terminal that allows you to run any CLI coding agents along with the tools to 10x your development workflow. 
+Superset orchestrates CLI-based coding agents across isolated git worktrees, with built-in terminal, review, and open-in-editor workflows.
 
 - **Run multiple agents simultaneously** without context switching overhead
 - **Isolate each task** in its own git worktree so agents don't interfere with each other
 - **Monitor all your agents** from one place and get notified when they need attention
-- **Review changes quickly** with built-in diff viewer and editor
+- **Review and edit changes quickly** with the built-in diff viewer and editor
+- **Open any workspace where you need it** with one-click handoff to your editor or terminal
 
 Wait less, ship more.
 
@@ -49,13 +55,17 @@ Superset works with any CLI-based coding agent, including:
 
 | Agent | Status |
 |:------|:-------|
-| [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
-| [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
-| [Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
-| [GitHub Copilot](https://github.com/features/copilot) | Fully supported |
-| [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
-| Any CLI agent | Will work |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/amp.svg" /> &nbsp;[Amp Code](https://ampcode.com/) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/claude.svg" /> &nbsp;[Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/codex-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/codex.svg" /></picture> &nbsp;[OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/cursor.svg" /> &nbsp;[Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/droid-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/droid.svg" /></picture> &nbsp;[Droid](https://www.factory.ai/) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/gemini.svg" /> &nbsp;[Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/copilot-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/copilot.svg" /></picture> &nbsp;[GitHub Copilot](https://github.com/features/copilot) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/mastracode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/mastracode.svg" /></picture> &nbsp;[Mastra Code](https://mastra.ai/) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/opencode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/opencode.svg" /></picture> &nbsp;[OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/pi-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/pi.svg" /></picture> &nbsp;[Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
+| Any other CLI agent | Works without configuration |
 
 If it runs in a terminal, it runs on Superset
 
@@ -69,60 +79,28 @@ If it runs in a terminal, it runs on Superset
 | **GitHub CLI** | [gh](https://cli.github.com/) |
 | **Caddy** | [caddy](https://caddyserver.com/docs/install) (for dev server) |
 
-## Getting Started
-
-### Quick Start (Pre-built)
+## Install
 
 **[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
 
-### Build from Source
+Builds for Windows and Linux are not yet available.
 
-<details>
-<summary>Click to expand build instructions</summary>
+## Development
 
-**1. Clone the repository**
+Want to hack on Superset or contribute a PR? Spin up a local dev environment in one command:
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
 cd superset
-```
-
-**2. Set up environment variables** (choose one):
-
-Option A: Full setup
-```bash
-cp .env.example .env
-# Edit .env and fill in the values
-```
-
-Option B: Skip env validation (for quick local testing)
-```bash
-cp .env.example .env
-echo 'SKIP_ENV_VALIDATION=1' >> .env
-```
-
-**3. Set up Caddy** (reverse proxy for Electric SQL streams):
-
-```bash
-# Install caddy: brew install caddy (macOS) or see https://caddyserver.com/docs/install
-cp Caddyfile.example Caddyfile
-```
-
-**4. Install dependencies and run**
-
-```bash
-bun install
+./.superset/setup.local.sh
 bun run dev
 ```
 
-**5. Build the desktop app**
+No Neon account or third-party credentials needed — `setup.local.sh` brings up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
-```bash
-bun run build
-open apps/desktop/release
-```
+Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`).
 
-</details>
+See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide — what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
 ## Keyboard Shortcuts
 
@@ -196,9 +174,9 @@ Scripts have access to environment variables:
 - `SUPERSET_WORKSPACE_NAME` — Name of the workspace
 - `SUPERSET_ROOT_PATH` — Path to the main repository
 
-## Internal Dependency Overrides
+## Mastra Dependencies
 
-For the internal `mastracode` fork/bundle workflow used by this repo, see [docs/mastracode-fork-workflow.md](docs/mastracode-fork-workflow.md).
+This repo uses the published upstream `mastracode` and `@mastra/*` packages directly. Avoid adding custom tarball overrides unless there is a repo-specific blocker.
 
 ## Tech Stack
 
@@ -214,6 +192,11 @@ For the internal `mastracode` fork/bundle workflow used by this repo, see [docs/
   <a href="https://neon.tech/"><img src="https://img.shields.io/badge/Neon-00E9CA?logo=neon&logoColor=white" alt="Neon" /></a>
   <a href="https://trpc.io/"><img src="https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white" alt="tRPC" /></a>
 </p>
+
+## Private by Default
+
+- **Source Available** — Full source is available on GitHub under Elastic License 2.0 (ELv2).
+- **Explicit Connections** — You choose which agents, providers, and integrations to connect.
 
 ## Contributing
 
@@ -250,4 +233,4 @@ Join the Superset community to get help, share feedback, and connect with other 
 
 ## License
 
-Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more information.
+Distributed under the Elastic License 2.0 (ELv2). See [LICENSE.md](LICENSE.md) for more information.

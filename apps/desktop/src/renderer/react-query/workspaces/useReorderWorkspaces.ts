@@ -1,9 +1,6 @@
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { invalidateWorkspaceQueries } from "./invalidateWorkspaceQueries";
 
-/**
- * Mutation hook for reordering workspaces
- * Automatically invalidates workspace queries on success
- */
 export function useReorderWorkspaces(
 	options?: Parameters<typeof electronTrpc.workspaces.reorder.useMutation>[0],
 ) {
@@ -12,10 +9,7 @@ export function useReorderWorkspaces(
 	return electronTrpc.workspaces.reorder.useMutation({
 		...options,
 		onSuccess: async (...args) => {
-			await utils.workspaces.getAll.invalidate();
-			await utils.workspaces.getAllGrouped.invalidate();
-			await utils.workspaces.getPreviousWorkspace.invalidate();
-			await utils.workspaces.getNextWorkspace.invalidate();
+			await invalidateWorkspaceQueries(utils);
 			await options?.onSuccess?.(...args);
 		},
 	});

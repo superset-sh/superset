@@ -3,6 +3,7 @@ import { GlobeIcon } from "lucide-react";
 import { useCallback } from "react";
 import { TbDeviceDesktop } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { BrowserErrorOverlay } from "./components/BrowserErrorOverlay";
@@ -34,7 +35,6 @@ export function BrowserPane({
 	setFocusedPane,
 }: BrowserPaneProps) {
 	const pane = useTabsStore((s) => s.panes[paneId]);
-	const openDevToolsPane = useTabsStore((s) => s.openDevToolsPane);
 	const browserState = pane?.browser;
 	const currentUrl = browserState?.currentUrl ?? DEFAULT_BROWSER_URL;
 	const pageTitle =
@@ -42,6 +42,8 @@ export function BrowserPane({
 	const isLoading = browserState?.isLoading ?? false;
 	const loadError = browserState?.error ?? null;
 	const isBlankPage = currentUrl === "about:blank";
+	const { mutate: openDevTools } =
+		electronTrpc.browser.openDevTools.useMutation();
 
 	const {
 		containerRef,
@@ -57,8 +59,8 @@ export function BrowserPane({
 	});
 
 	const handleOpenDevTools = useCallback(() => {
-		openDevToolsPane(tabId, paneId, path);
-	}, [openDevToolsPane, tabId, paneId, path]);
+		openDevTools({ paneId });
+	}, [openDevTools, paneId]);
 
 	return (
 		<BasePaneWindow

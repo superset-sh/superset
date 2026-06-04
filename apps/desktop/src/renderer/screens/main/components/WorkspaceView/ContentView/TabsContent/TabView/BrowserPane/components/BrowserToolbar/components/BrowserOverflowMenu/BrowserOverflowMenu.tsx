@@ -10,9 +10,11 @@ import {
 	TbClock,
 	TbCopy,
 	TbDots,
+	TbExternalLink,
 	TbReload,
 	TbTrash,
 } from "react-icons/tb";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
@@ -31,6 +33,7 @@ export function BrowserOverflowMenu({
 	const clearBrowsingDataMutation =
 		electronTrpc.browser.clearBrowsingData.useMutation();
 	const clearHistoryMutation = electronTrpc.browserHistory.clear.useMutation();
+	const openExternalMutation = electronTrpc.external.openUrl.useMutation();
 	const currentUrl = useTabsStore((s) => s.panes[paneId]?.browser?.currentUrl);
 
 	const handleScreenshot = () => {
@@ -41,9 +44,17 @@ export function BrowserOverflowMenu({
 		reloadMutation.mutate({ paneId, hard: true });
 	};
 
+	const { copyToClipboard } = useCopyToClipboard();
+
 	const handleCopyUrl = () => {
 		if (currentUrl) {
-			navigator.clipboard.writeText(currentUrl);
+			copyToClipboard(currentUrl);
+		}
+	};
+
+	const handleOpenExternal = () => {
+		if (currentUrl) {
+			openExternalMutation.mutate(currentUrl);
 		}
 	};
 
@@ -93,6 +104,14 @@ export function BrowserOverflowMenu({
 				>
 					<TbCopy className="size-4" />
 					Copy URL
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					onClick={handleOpenExternal}
+					disabled={!hasPage}
+					className="gap-2"
+				>
+					<TbExternalLink className="size-4" />
+					Open in Browser
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onClick={handleClearHistory} className="gap-2">

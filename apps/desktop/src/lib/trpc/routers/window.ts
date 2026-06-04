@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
-import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
+import { getImageMimeType } from "shared/file-types";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
@@ -46,6 +46,27 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 		getHomeDir: publicProcedure.query(() => {
 			return homedir();
 		}),
+
+		getDirectoryStatus: publicProcedure
+			.input(
+				z.object({
+					path: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				try {
+					const stats = await fs.stat(input.path);
+					return {
+						exists: true,
+						isDirectory: stats.isDirectory(),
+					};
+				} catch {
+					return {
+						exists: false,
+						isDirectory: false,
+					};
+				}
+			}),
 
 		selectDirectory: publicProcedure
 			.input(
@@ -98,10 +119,9 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 
 			const filePath = result.filePaths[0];
 			const buffer = await fs.readFile(filePath);
-			const ext = path.extname(filePath).slice(1).toLowerCase();
-			const mimeType = ext === "jpg" ? "jpeg" : ext;
+			const mimeType = getImageMimeType(filePath) ?? "image/png";
 			const base64 = buffer.toString("base64");
-			const dataUrl = `data:image/${mimeType};base64,${base64}`;
+			const dataUrl = `data:${mimeType};base64,${base64}`;
 
 			return { canceled: false, dataUrl };
 		}),

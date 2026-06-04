@@ -1,0 +1,1 @@
+export { DashboardSidebarWorkspaceHoverCardContent } from "./DashboardSidebarWorkspaceHoverCardContent";

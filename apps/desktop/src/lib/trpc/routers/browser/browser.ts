@@ -115,18 +115,53 @@ export const createBrowserRouter = () => {
 				});
 			}),
 
+		onContextMenuAction: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<{ action: string; url: string }>((emit) => {
+					const handler = (data: { action: string; url: string }) => {
+						emit.next(data);
+					};
+					browserManager.on(`context-menu-action:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`context-menu-action:${input.paneId}`, handler);
+					};
+				});
+			}),
+
+		onClosePane: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<void>((emit) => {
+					const handler = () => {
+						emit.next();
+					};
+					browserManager.on(`close-pane:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`close-pane:${input.paneId}`, handler);
+					};
+				});
+			}),
+
+		onReloadPane: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<void>((emit) => {
+					const handler = () => {
+						emit.next();
+					};
+					browserManager.on(`reload-pane:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`reload-pane:${input.paneId}`, handler);
+					};
+				});
+			}),
+
 		openDevTools: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {
 				browserManager.openDevTools(input.paneId);
 				return { success: true };
-			}),
-
-		getDevToolsUrl: publicProcedure
-			.input(z.object({ browserPaneId: z.string() }))
-			.query(async ({ input }) => {
-				const url = await browserManager.getDevToolsUrl(input.browserPaneId);
-				return { url };
 			}),
 
 		getPageInfo: publicProcedure

@@ -17,16 +17,14 @@ const envSchema = z.object({
 		.default("development"),
 	NEXT_PUBLIC_API_URL: z.url().default("https://api.superset.sh"),
 	NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
+	NEXT_PUBLIC_MARKETING_URL: z.url().default("https://superset.sh"),
 	NEXT_PUBLIC_ELECTRIC_URL: z
 		.url()
 		.default("https://electric-proxy.avi-6ac.workers.dev"),
-	NEXT_PUBLIC_ELECTRIC_PROXY_URL: z
-		.url()
-		.default("https://api.superset.sh/api/electric"),
 	NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 	NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
-	NEXT_PUBLIC_OUTLIT_KEY: z.string(),
 	SENTRY_DSN_DESKTOP: z.string().optional(),
+	RELAY_URL: z.url().default("https://relay.superset.sh"),
 });
 
 /**
@@ -40,18 +38,16 @@ const rawEnv = {
 	NODE_ENV: process.env.NODE_ENV,
 	NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 	NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
+	NEXT_PUBLIC_MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL,
 	NEXT_PUBLIC_ELECTRIC_URL: process.env.NEXT_PUBLIC_ELECTRIC_URL,
-	NEXT_PUBLIC_ELECTRIC_PROXY_URL: process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
 	NEXT_PUBLIC_POSTHOG_KEY: import.meta.env.NEXT_PUBLIC_POSTHOG_KEY as
 		| string
 		| undefined,
 	NEXT_PUBLIC_POSTHOG_HOST: import.meta.env.NEXT_PUBLIC_POSTHOG_HOST as
 		| string
 		| undefined,
-	NEXT_PUBLIC_OUTLIT_KEY: import.meta.env.NEXT_PUBLIC_OUTLIT_KEY as
-		| string
-		| undefined,
 	SENTRY_DSN_DESKTOP: import.meta.env.SENTRY_DSN_DESKTOP as string | undefined,
+	RELAY_URL: process.env.RELAY_URL,
 };
 
 // Only allow skipping validation in development (never in production)

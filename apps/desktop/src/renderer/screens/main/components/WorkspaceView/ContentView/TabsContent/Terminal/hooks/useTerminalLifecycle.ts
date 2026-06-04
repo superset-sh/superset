@@ -1,34 +1,48 @@
 import type { FitAddon } from "@xterm/addon-fit";
-import { SearchAddon } from "@xterm/addon-search";
+import type { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
+import type { DetectedLink } from "renderer/lib/terminal/links";
+import {
+	clearTerminalSessionReady,
+	markTerminalSessionReady,
+	rejectTerminalSessionReady,
+} from "renderer/lib/terminal/session-readiness";
+import { installTerminalKeyEventHandler } from "renderer/lib/terminal/terminal-key-event-handler";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
+import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { scheduleTerminalAttach } from "../attach-scheduler";
-import { sanitizeForTitle } from "../commandBuffer";
+import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
 import {
-	createTerminalInstance,
 	setupClickToMoveCursor,
 	setupCopyHandler,
 	setupFocusListener,
-	setupKeyboardHandler,
-	setupPasteHandler,
-	setupResizeHandlers,
-	type TerminalRendererRef,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
+	TerminalCancelCreateOrAttachMutate,
 	TerminalClearScrollbackMutate,
-	TerminalDetachMutate,
 	TerminalResizeMutate,
 	TerminalWriteMutate,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import * as v1TerminalCache from "../v1-terminal-cache";
+import { createAttachRequestId } from "./attach-request-id";
+import {
+	getPaneWorkspaceRun,
+	hasPaneWorkspaceRun,
+	recoverWorkspaceRunPane,
+	resolveWorkspaceRunAttachMode,
+	setPaneWorkspaceRunState,
+} from "./workspaceRun";
 
 type RegisterCallback = (paneId: string, callback: () => void) => void;
 type UnregisterCallback = (paneId: string) => void;
@@ -76,7 +90,6 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 		}
 	};
 }
-
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabIdRef: MutableRefObject<string>;
@@ -85,7 +98,6 @@ export interface UseTerminalLifecycleOptions {
 	xtermRef: MutableRefObject<XTerm | null>;
 	fitAddonRef: MutableRefObject<FitAddon | null>;
 	searchAddonRef: MutableRefObject<SearchAddon | null>;
-	rendererRef: MutableRefObject<TerminalRendererRef | null>;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
 	commandBufferRef: MutableRefObject<string>;
@@ -93,9 +105,8 @@ export interface UseTerminalLifecycleOptions {
 	isRestoredModeRef: MutableRefObject<boolean>;
 	connectionErrorRef: MutableRefObject<string | null>;
 	initialThemeRef: MutableRefObject<ITheme | null>;
-	workspaceCwdRef: MutableRefObject<string | null>;
 	handleFileLinkClickRef: MutableRefObject<
-		(path: string, line?: number, column?: number) => void
+		(event: MouseEvent, link: DetectedLink) => void
 	>;
 	handleUrlClickRef: MutableRefObject<((url: string) => void) | undefined>;
 	paneInitialCwdRef: MutableRefObject<string | undefined>;
@@ -107,7 +118,7 @@ export interface UseTerminalLifecycleOptions {
 	createOrAttachRef: MutableRefObject<CreateOrAttachMutate>;
 	writeRef: MutableRefObject<TerminalWriteMutate>;
 	resizeRef: MutableRefObject<TerminalResizeMutate>;
-	detachRef: MutableRefObject<TerminalDetachMutate>;
+	cancelCreateOrAttachRef: MutableRefObject<TerminalCancelCreateOrAttachMutate>;
 	clearScrollbackRef: MutableRefObject<TerminalClearScrollbackMutate>;
 	isStreamReadyRef: MutableRefObject<boolean>;
 	didFirstRenderRef: MutableRefObject<boolean>;
@@ -116,7 +127,6 @@ export interface UseTerminalLifecycleOptions {
 	flushPendingEvents: () => void;
 	resetModes: () => void;
 	isAlternateScreenRef: MutableRefObject<boolean>;
-	isBracketedPasteRef: MutableRefObject<boolean>;
 	setPaneNameRef: MutableRefObject<(paneId: string, name: string) => void>;
 	renameUnnamedWorkspaceRef: MutableRefObject<(title: string) => void>;
 	handleTerminalFocusRef: MutableRefObject<() => void>;
@@ -132,11 +142,15 @@ export interface UseTerminalLifecycleOptions {
 		(paneId: string, callback: (text: string) => void) => void
 	>;
 	unregisterPasteCallbackRef: MutableRefObject<UnregisterCallback>;
+	defaultRestartCommandRef: MutableRefObject<string | undefined>;
 }
 
 export interface UseTerminalLifecycleReturn {
 	xtermInstance: XTerm | null;
-	restartTerminal: () => void;
+	restartTerminal: (options?: {
+		command?: string;
+		forceRestart?: boolean;
+	}) => Promise<void>;
 }
 
 export function useTerminalLifecycle({
@@ -147,7 +161,6 @@ export function useTerminalLifecycle({
 	xtermRef,
 	fitAddonRef,
 	searchAddonRef,
-	rendererRef,
 	isExitedRef,
 	wasKilledByUserRef,
 	commandBufferRef,
@@ -155,7 +168,6 @@ export function useTerminalLifecycle({
 	isRestoredModeRef,
 	connectionErrorRef,
 	initialThemeRef,
-	workspaceCwdRef,
 	handleFileLinkClickRef,
 	handleUrlClickRef,
 	paneInitialCwdRef,
@@ -167,7 +179,7 @@ export function useTerminalLifecycle({
 	createOrAttachRef,
 	writeRef,
 	resizeRef,
-	detachRef,
+	cancelCreateOrAttachRef,
 	clearScrollbackRef,
 	isStreamReadyRef,
 	didFirstRenderRef,
@@ -176,7 +188,6 @@ export function useTerminalLifecycle({
 	flushPendingEvents,
 	resetModes,
 	isAlternateScreenRef,
-	isBracketedPasteRef,
 	setPaneNameRef,
 	renameUnnamedWorkspaceRef,
 	handleTerminalFocusRef,
@@ -188,10 +199,17 @@ export function useTerminalLifecycle({
 	unregisterGetSelectionCallbackRef,
 	registerPasteCallbackRef,
 	unregisterPasteCallbackRef,
+	defaultRestartCommandRef,
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
-	const restartTerminalRef = useRef<() => void>(() => {});
-	const restartTerminal = useCallback(() => restartTerminalRef.current(), []);
+	const restartTerminalRef = useRef<
+		(options?: { command?: string; forceRestart?: boolean }) => Promise<void>
+	>(() => Promise.resolve());
+	const restartTerminal = useCallback(
+		(options?: { command?: string; forceRestart?: boolean }) =>
+			restartTerminalRef.current(options),
+		[],
+	);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally
 	useEffect(() => {
@@ -213,20 +231,57 @@ export function useTerminalLifecycle({
 		let attachCanceled = false;
 		let attachSequence = 0;
 		let activeAttachId = 0;
+		let activeAttachRequestId: string | null = null;
 		let cancelAttachWait: (() => void) | null = null;
 
-		const {
-			xterm,
-			fitAddon,
-			renderer,
-			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(container, {
-			cwd: workspaceCwdRef.current ?? undefined,
+		// Use the v1 terminal cache: reuse existing xterm instance across tab
+		// switches instead of creating/disposing each time (v2 "hide attach" pattern).
+		// Only treat as reattach when the prior mount actually completed attach —
+		// a cache entry can exist with streamReady=false if the previous mount
+		// unmounted before createOrAttach finished (e.g. bulk tab creation where
+		// React remounts a pane mid-attach). Taking the reattach fast path in
+		// that state leaves the pane permanently disconnected with no daemon
+		// session and no stream subscription.
+		const cachedBeforeCreate = v1TerminalCache.get(paneId);
+		const isReattach = cachedBeforeCreate?.streamReady === true;
+		if (DEBUG_TERMINAL) {
+			console.log(`[Terminal] isReattach=${isReattach} paneId=${paneId}`);
+		}
+		const cached = v1TerminalCache.getOrCreate(paneId, {
+			workspaceId,
 			initialTheme: initialThemeRef.current,
-			onFileLinkClick: (path, line, column) =>
-				handleFileLinkClickRef.current(path, line, column),
+			onFileLinkClick: (event, link) =>
+				handleFileLinkClickRef.current(event, link),
 			onUrlClickRef: handleUrlClickRef,
 		});
+
+		const { xterm, fitAddon, searchAddon } = cached;
+
+		// Called after createOrAttach resolves: re-fit against the now-settled
+		// container and push dims to the backend. Guards against stale sizes
+		// from attachToContainer's fit running before flex layout resolved
+		// (e.g. preset tabs, new workspace bulk creation). Mirrors v2's
+		// terminal-ws-transport sendResize-on-open.
+		const syncBackendDimensions = () => {
+			if (container.clientWidth === 0 || container.clientHeight === 0) return;
+			fitAddon.fit();
+			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+		};
+
+		// Attach the wrapper div to the live container.
+		// The cache creates a ResizeObserver that calls fitAddon.fit() and
+		// forwards resize events to the backend — no separate resize handler needed.
+		const prevCols = xterm.cols;
+		const prevRows = xterm.rows;
+		v1TerminalCache.attachToContainer(paneId, container, () => {
+			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+		});
+		// If dimensions changed during attach (container resized while hidden),
+		// notify the backend PTY immediately — the ResizeObserver only fires on
+		// subsequent changes, not the initial fit.
+		if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+		}
 
 		const scheduleScrollToBottom = () => {
 			requestAnimationFrame(() => {
@@ -237,82 +292,192 @@ export function useTerminalLifecycle({
 
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
-		rendererRef.current = renderer;
+		searchAddonRef.current = searchAddon;
 		isExitedRef.current = false;
 		setXtermInstance(xterm);
 		isStreamReadyRef.current = false;
-		didFirstRenderRef.current = false;
 		pendingInitialStateRef.current = null;
 
 		if (isFocusedRef.current) {
 			xterm.focus();
 		}
 
-		if (!isUnmounted) {
-			const searchAddon = new SearchAddon();
-			xterm.loadAddon(searchAddon);
-			searchAddonRef.current = searchAddon;
-		}
-
-		// Wait for first render before applying restoration
+		// Wait for first render before applying restoration.
+		// On reattach, xterm is already rendered so skip the render gate.
 		let renderDisposable: IDisposable | null = null;
 		let firstRenderFallback: ReturnType<typeof setTimeout> | null = null;
 
-		renderDisposable = xterm.onRender(() => {
-			if (firstRenderFallback) {
-				clearTimeout(firstRenderFallback);
-				firstRenderFallback = null;
-			}
-			renderDisposable?.dispose();
-			renderDisposable = null;
+		if (isReattach) {
 			didFirstRenderRef.current = true;
-			maybeApplyInitialState();
-		});
+		} else {
+			didFirstRenderRef.current = false;
 
-		firstRenderFallback = setTimeout(() => {
-			if (isUnmounted || didFirstRenderRef.current) return;
-			didFirstRenderRef.current = true;
-			maybeApplyInitialState();
-		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
+			renderDisposable = xterm.onRender(() => {
+				if (firstRenderFallback) {
+					clearTimeout(firstRenderFallback);
+					firstRenderFallback = null;
+				}
+				renderDisposable?.dispose();
+				renderDisposable = null;
+				didFirstRenderRef.current = true;
+				maybeApplyInitialState();
+			});
 
-		const restartTerminalSession = () => {
-			isExitedRef.current = false;
-			isStreamReadyRef.current = false;
-			wasKilledByUserRef.current = false;
-			setExitStatus(null);
-			resetModes();
-			xterm.clear();
-			createOrAttachRef.current(
-				{
-					paneId,
-					tabId: tabIdRef.current,
-					workspaceId,
-					cols: xterm.cols,
-					rows: xterm.rows,
-					allowKilled: true,
-				},
-				{
-					onSuccess: (result) => {
-						pendingInitialStateRef.current = result;
-						maybeApplyInitialState();
-					},
-					onError: (error) => {
-						console.error("[Terminal] Failed to restart:", error);
-						setConnectionError(error.message || "Failed to restart terminal");
-						isStreamReadyRef.current = true;
-						flushPendingEvents();
-					},
-				},
-			);
+			firstRenderFallback = setTimeout(() => {
+				if (isUnmounted || didFirstRenderRef.current) return;
+				didFirstRenderRef.current = true;
+				maybeApplyInitialState();
+			}, FIRST_RENDER_RESTORE_FALLBACK_MS);
+		}
+
+		const nextAttachRequestId = () => createAttachRequestId(paneId);
+		const cancelAttachRequest = (requestId: string | null) => {
+			if (!requestId) return;
+			cancelCreateOrAttachRef.current({ paneId, requestId });
 		};
+		const writeWorkspaceRunCommand = async (command: string) => {
+			await writeCommandInPane({
+				paneId,
+				command,
+				write: (input) => electronTrpcClient.terminal.write.mutate(input),
+			});
+		};
+
+		const restartTerminalSession = (options?: {
+			command?: string;
+			forceRestart?: boolean;
+		}) =>
+			new Promise<void>((resolve, reject) => {
+				const command = options?.command ?? defaultRestartCommandRef.current;
+				const workspaceRun = getPaneWorkspaceRun(paneId);
+				if (workspaceRun && command) {
+					setPaneWorkspaceRunState(paneId, "running");
+				}
+				const canReuseAttachedSession =
+					Boolean(command) &&
+					!options?.forceRestart &&
+					!isExitedRef.current &&
+					!connectionErrorRef.current;
+				if (canReuseAttachedSession && command) {
+					void writeWorkspaceRunCommand(command).then(resolve).catch(reject);
+					return;
+				}
+				isExitedRef.current = false;
+				isStreamReadyRef.current = false;
+				wasKilledByUserRef.current = false;
+				setExitStatus(null);
+				resetModes();
+				xterm.clear();
+				const attach = () => {
+					const requestId = nextAttachRequestId();
+					cancelAttachRequest(activeAttachRequestId);
+					activeAttachRequestId = requestId;
+					clearTerminalSessionReady(paneId);
+					createOrAttachRef.current(
+						{
+							paneId,
+							requestId,
+							tabId: tabIdRef.current,
+							workspaceId,
+							cols: xterm.cols,
+							rows: xterm.rows,
+							skipColdRestore: true,
+							allowKilled: true,
+						},
+						{
+							onSuccess: (result) => {
+								if (activeAttachRequestId !== requestId) {
+									resolve();
+									return;
+								}
+								setConnectionError(null);
+								syncBackendDimensions();
+								pendingInitialStateRef.current = result;
+								maybeApplyInitialState();
+								if (!command) {
+									resolve();
+									return;
+								}
+								void writeWorkspaceRunCommand(command)
+									.then(resolve)
+									.catch((error) => {
+										console.error(
+											"[Terminal] Failed to write workspace run command:",
+											error,
+										);
+										if (workspaceRun) {
+											setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+										}
+										setConnectionError(
+											error instanceof Error
+												? error.message
+												: "Failed to write workspace run command",
+										);
+										isStreamReadyRef.current = true;
+										flushPendingEvents();
+										reject(error);
+									});
+							},
+							onError: (error) => {
+								if (activeAttachRequestId !== requestId) {
+									resolve();
+									return;
+								}
+								if (isTerminalAttachCanceledMessage(error.message)) {
+									resolve();
+									return;
+								}
+								console.error("[Terminal] Failed to restart:", error);
+								if (workspaceRun) {
+									setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+								}
+								setConnectionError(
+									error.message || "Failed to restart terminal",
+								);
+								isStreamReadyRef.current = true;
+								flushPendingEvents();
+								reject(error);
+							},
+							onSettled: () => {
+								if (activeAttachRequestId === requestId) {
+									activeAttachRequestId = null;
+								}
+							},
+						},
+					);
+				};
+
+				if (options?.forceRestart) {
+					void electronTrpcClient.terminal.kill
+						.mutate({ paneId })
+						.catch((err) => {
+							console.warn("[Terminal] Kill failed before restart:", err);
+						})
+						.finally(attach);
+					return;
+				}
+				attach();
+			});
 
 		restartTerminalRef.current = restartTerminalSession;
 
 		const handleTerminalInput = (data: string) => {
 			if (isRestoredModeRef.current || connectionErrorRef.current) return;
 			if (isExitedRef.current) {
-				if (!isFocusedRef.current || wasKilledByUserRef.current) return;
-				restartTerminalSession();
+				const isWorkspaceRunPane = hasPaneWorkspaceRun(paneId);
+				if (
+					!isFocusedRef.current ||
+					(wasKilledByUserRef.current && !isWorkspaceRunPane)
+				) {
+					return;
+				}
+				// For workspace-run panes, don't restart until the run command
+				// has been resolved via tRPC query — otherwise we'd start a
+				// plain interactive shell instead of the configured command.
+				if (isWorkspaceRunPane && !defaultRestartCommandRef.current) {
+					return;
+				}
+				void restartTerminalSession();
 				return;
 			}
 			writeRef.current({ paneId, data });
@@ -326,9 +491,12 @@ export function useTerminalLifecycle({
 			const { domEvent } = event;
 			if (domEvent.key === "Enter") {
 				if (!isAlternateScreenRef.current) {
-					const title = sanitizeForTitle(commandBufferRef.current);
-					if (title) {
-						setPaneNameRef.current(paneId, title);
+					const buffer = commandBufferRef.current;
+					if (isCommandEchoed(xterm, buffer)) {
+						const title = sanitizeForTitle(buffer);
+						if (title) {
+							setPaneNameRef.current(paneId, title);
+						}
 					}
 				}
 				commandBufferRef.current = "";
@@ -362,110 +530,209 @@ export function useTerminalLifecycle({
 
 		const initialCwd = paneInitialCwdRef.current;
 
-		const cancelInitialAttach = scheduleTerminalAttach({
-			paneId,
-			priority: isFocusedRef.current ? 0 : 1,
-			run: (done) => {
-				const startAttach = () => {
-					if (attachCanceled) return;
-					if (attachInFlightByPane.has(paneId)) {
-						cancelAttachWait = waitForAttachClear(paneId, () => {
-							if (attachCanceled || isUnmounted) return;
-							startAttach();
+		const {
+			workspaceRun: paneWorkspaceRun,
+			isNewWorkspaceRun,
+			restartCommand: workspaceRunRestartCommand,
+		} = resolveWorkspaceRunAttachMode(paneId, defaultRestartCommandRef.current);
+
+		// On reattach: stream is already running and xterm buffer is current.
+		// Skip the entire createOrAttach + stream setup.
+		let cancelInitialAttach: (() => void) | null = null;
+
+		if (isReattach) {
+			// Stream is ready — the cache has been writing data to xterm.
+			// Resize is handled by attachToContainer's ResizeObserver above.
+			isStreamReadyRef.current = true;
+		} else {
+			cancelInitialAttach = scheduleTerminalAttach({
+				paneId,
+				priority: isFocusedRef.current ? 0 : 1,
+				run: (done) => {
+					const startAttach = (commandToRunAfterAttach?: string) => {
+						if (attachCanceled) return;
+						if (attachInFlightByPane.has(paneId)) {
+							cancelAttachWait = waitForAttachClear(paneId, () => {
+								if (attachCanceled || isUnmounted) return;
+								startAttach(commandToRunAfterAttach);
+							});
+							return;
+						}
+
+						const requestId = nextAttachRequestId();
+						cancelAttachRequest(activeAttachRequestId);
+						activeAttachRequestId = requestId;
+						activeAttachId = ++attachSequence;
+						const attachId = activeAttachId;
+						const isAttachActive = () =>
+							!isUnmounted && !attachCanceled && attachId === activeAttachId;
+
+						markAttachInFlight(paneId, attachId);
+						clearTerminalSessionReady(paneId);
+
+						const finishAttach = () => {
+							clearAttachInFlight(paneId, attachId);
+							done();
+						};
+
+						if (DEBUG_TERMINAL) {
+							console.log(`[Terminal] createOrAttach start: ${paneId}`);
+						}
+						createOrAttachRef.current(
+							{
+								paneId,
+								requestId,
+								tabId: tabIdRef.current,
+								workspaceId,
+								cols: xterm.cols,
+								rows: xterm.rows,
+								cwd: initialCwd,
+								...((isNewWorkspaceRun || Boolean(commandToRunAfterAttach)) && {
+									skipColdRestore: true,
+								}),
+							},
+							{
+								onSuccess: (result) => {
+									if (!isAttachActive()) return;
+									if (activeAttachRequestId !== requestId) return;
+									setConnectionError(null);
+									clearPaneInitialDataRef.current(paneId);
+
+									// Start the cache-owned stream subscription now that the
+									// backend session exists, and mark it ready so events
+									// flow through the component's registered handler.
+									v1TerminalCache.startStream(paneId);
+									v1TerminalCache.setStreamReady(paneId);
+									markTerminalSessionReady(paneId);
+									syncBackendDimensions();
+
+									const storedColdRestore = coldRestoreState.get(paneId);
+									if (storedColdRestore?.isRestored) {
+										setIsRestoredMode(true);
+										setRestoredCwd(storedColdRestore.cwd);
+										if (storedColdRestore.scrollback && xterm) {
+											xterm.write(
+												storedColdRestore.scrollback,
+												scheduleScrollToBottom,
+											);
+										}
+										didFirstRenderRef.current = true;
+										return;
+									}
+
+									if (result.isColdRestore) {
+										const scrollback =
+											result.snapshot?.snapshotAnsi ?? result.scrollback;
+										coldRestoreState.set(paneId, {
+											isRestored: true,
+											cwd: result.previousCwd || null,
+											scrollback,
+										});
+										setIsRestoredMode(true);
+										setRestoredCwd(result.previousCwd || null);
+										if (scrollback && xterm) {
+											xterm.write(scrollback, scheduleScrollToBottom);
+										}
+										didFirstRenderRef.current = true;
+										return;
+									}
+
+									pendingInitialStateRef.current = result;
+									maybeApplyInitialState();
+
+									if (!commandToRunAfterAttach) {
+										return;
+									}
+
+									void writeWorkspaceRunCommand(commandToRunAfterAttach).catch(
+										(error) => {
+											console.error(
+												"[Terminal] Failed to write workspace run command after attach:",
+												error,
+											);
+											if (paneWorkspaceRun) {
+												setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+											}
+											setConnectionError(
+												error instanceof Error
+													? error.message
+													: "Failed to write workspace run command",
+											);
+											isStreamReadyRef.current = true;
+											flushPendingEvents();
+										},
+									);
+								},
+								onError: (error) => {
+									if (!isAttachActive()) return;
+									if (activeAttachRequestId !== requestId) return;
+									if (isTerminalAttachCanceledMessage(error.message)) {
+										return;
+									}
+									const workspaceRun = getPaneWorkspaceRun(paneId);
+									if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
+										rejectTerminalSessionReady(
+											paneId,
+											new Error(error.message || "Terminal session killed"),
+										);
+										if (workspaceRun) {
+											setPaneWorkspaceRunState(paneId, "stopped-by-user");
+										}
+										wasKilledByUserRef.current = true;
+										isExitedRef.current = true;
+										isStreamReadyRef.current = false;
+										setExitStatus("killed");
+										setConnectionError(null);
+										return;
+									}
+									console.error("[Terminal] Failed to create/attach:", error);
+									rejectTerminalSessionReady(
+										paneId,
+										new Error(error.message || "Failed to connect to terminal"),
+									);
+									if (workspaceRun) {
+										setPaneWorkspaceRunState(paneId, "stopped-by-exit");
+									}
+									setConnectionError(
+										error.message || "Failed to connect to terminal",
+									);
+									isStreamReadyRef.current = true;
+									flushPendingEvents();
+								},
+								onSettled: () => {
+									if (activeAttachRequestId === requestId) {
+										activeAttachRequestId = null;
+									}
+									finishAttach();
+								},
+							},
+						);
+					};
+
+					// Handle workspace-run panes that need recovery (stopped or stale "running" after restart)
+					if (paneWorkspaceRun && !isNewWorkspaceRun) {
+						void recoverWorkspaceRunPane({
+							paneId,
+							workspaceRun: paneWorkspaceRun,
+							isNewWorkspaceRun,
+							xterm,
+							shouldAbort: () => isUnmounted || attachCanceled,
+							startAttach,
+							done,
+							isExitedRef,
+							wasKilledByUserRef,
+							isStreamReadyRef,
+							setExitStatus,
+							restartCommand: workspaceRunRestartCommand,
 						});
 						return;
 					}
 
-					activeAttachId = ++attachSequence;
-					const attachId = activeAttachId;
-					const isAttachActive = () =>
-						!isUnmounted && !attachCanceled && attachId === activeAttachId;
-
-					markAttachInFlight(paneId, attachId);
-
-					const finishAttach = () => {
-						clearAttachInFlight(paneId, attachId);
-						done();
-					};
-
-					if (DEBUG_TERMINAL) {
-						console.log(`[Terminal] createOrAttach start: ${paneId}`);
-					}
-					createOrAttachRef.current(
-						{
-							paneId,
-							tabId: tabIdRef.current,
-							workspaceId,
-							cols: xterm.cols,
-							rows: xterm.rows,
-							cwd: initialCwd,
-						},
-						{
-							onSuccess: (result) => {
-								if (!isAttachActive()) return;
-								setConnectionError(null);
-								clearPaneInitialDataRef.current(paneId);
-
-								const storedColdRestore = coldRestoreState.get(paneId);
-								if (storedColdRestore?.isRestored) {
-									setIsRestoredMode(true);
-									setRestoredCwd(storedColdRestore.cwd);
-									if (storedColdRestore.scrollback && xterm) {
-										xterm.write(
-											storedColdRestore.scrollback,
-											scheduleScrollToBottom,
-										);
-									}
-									didFirstRenderRef.current = true;
-									return;
-								}
-
-								if (result.isColdRestore) {
-									const scrollback =
-										result.snapshot?.snapshotAnsi ?? result.scrollback;
-									coldRestoreState.set(paneId, {
-										isRestored: true,
-										cwd: result.previousCwd || null,
-										scrollback,
-									});
-									setIsRestoredMode(true);
-									setRestoredCwd(result.previousCwd || null);
-									if (scrollback && xterm) {
-										xterm.write(scrollback, scheduleScrollToBottom);
-									}
-									didFirstRenderRef.current = true;
-									return;
-								}
-
-								pendingInitialStateRef.current = result;
-								maybeApplyInitialState();
-							},
-							onError: (error) => {
-								if (!isAttachActive()) return;
-								if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
-									wasKilledByUserRef.current = true;
-									isExitedRef.current = true;
-									isStreamReadyRef.current = false;
-									setExitStatus("killed");
-									setConnectionError(null);
-									return;
-								}
-								console.error("[Terminal] Failed to create/attach:", error);
-								setConnectionError(
-									error.message || "Failed to connect to terminal",
-								);
-								isStreamReadyRef.current = true;
-								flushPendingEvents();
-							},
-							onSettled: () => finishAttach(),
-						},
-					);
-				};
-
-				startAttach();
-				return;
-			},
-		});
+					startAttach();
+					return;
+				},
+			});
+		} // end if (!isReattach)
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
@@ -488,11 +755,7 @@ export function useTerminalLifecycle({
 			writeRef.current({ paneId, data });
 		};
 
-		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\x1b\r"),
-			onClear: handleClear,
-			onWrite: handleWrite,
-		});
+		const cleanupKeyboard = installTerminalKeyEventHandler(xterm);
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
 			onWrite: handleWrite,
 		});
@@ -519,114 +782,23 @@ export function useTerminalLifecycle({
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
-		const cleanupResize = setupResizeHandlers(
-			container,
-			xterm,
-			fitAddon,
-			(cols, rows) => resizeRef.current({ paneId, cols, rows }),
-		);
-		const cleanupPaste = setupPasteHandler(xterm, {
-			onPaste: (text) => {
-				commandBufferRef.current += text;
-			},
-			onWrite: handleWrite,
-			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
-		});
 		const cleanupCopy = setupCopyHandler(xterm);
-		const reattachRecovery = {
-			throttleMs: 120,
-			pendingFrame: null as number | null,
-			lastRunAt: 0,
-			pendingForceResize: false,
-		};
-
-		const isCurrentTerminalRenderable = () => {
-			if (isUnmounted || xtermRef.current !== xterm) return false;
-			if (!container.isConnected) return false;
-
-			const style = window.getComputedStyle(container);
-			if (style.display === "none" || style.visibility === "hidden") {
-				return false;
-			}
-
-			const rect = container.getBoundingClientRect();
-			return rect.width > 1 && rect.height > 1;
-		};
-
-		const runReattachRecovery = (forceResize: boolean) => {
-			if (!isCurrentTerminalRenderable()) return;
-
-			const prevCols = xterm.cols;
-			const prevRows = xterm.rows;
-			const wasAtBottom =
-				xterm.buffer.active.viewportY >= xterm.buffer.active.baseY;
-
-			// Rebuild stale WebGL glyph cache after occlusion and force a paint pass.
-			rendererRef.current?.current.clearTextureAtlas?.();
-
-			fitAddon.fit();
-			xterm.refresh(0, Math.max(0, xterm.rows - 1));
-
-			if (forceResize || xterm.cols !== prevCols || xterm.rows !== prevRows) {
-				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
-			}
-
-			if (isFocusedRef.current && document.hasFocus()) {
-				xterm.focus();
-			}
-
-			if (!wasAtBottom) return;
-			requestAnimationFrame(() => {
-				if (isUnmounted || xtermRef.current !== xterm) return;
-				scrollToBottom(xterm);
-			});
-		};
-
-		const scheduleReattachRecovery = (forceResize: boolean) => {
-			reattachRecovery.pendingForceResize ||= forceResize;
-			if (reattachRecovery.pendingFrame !== null) return;
-
-			reattachRecovery.pendingFrame = requestAnimationFrame(() => {
-				reattachRecovery.pendingFrame = null;
-
-				const now = Date.now();
-				if (now - reattachRecovery.lastRunAt < reattachRecovery.throttleMs)
-					return;
-				reattachRecovery.lastRunAt = now;
-
-				const shouldForceResize = reattachRecovery.pendingForceResize;
-				reattachRecovery.pendingForceResize = false;
-				runReattachRecovery(shouldForceResize);
-			});
-		};
-
-		const cancelReattachRecovery = () => {
-			if (reattachRecovery.pendingFrame === null) return;
-			cancelAnimationFrame(reattachRecovery.pendingFrame);
-			reattachRecovery.pendingFrame = null;
-		};
-
-		const handleVisibilityChange = () => {
-			if (document.hidden) return;
-			scheduleReattachRecovery(isFocusedRef.current);
-		};
-		const handleWindowFocus = () => {
-			scheduleReattachRecovery(isFocusedRef.current);
-		};
-
-		document.addEventListener("visibilitychange", handleVisibilityChange);
-		window.addEventListener("focus", handleWindowFocus);
 
 		const isPaneDestroyedInStore = () =>
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);
 
 		return () => {
+			const paneDestroyed = isPaneDestroyedInStore();
 			if (DEBUG_TERMINAL) {
-				console.log(`[Terminal] Unmount: ${paneId}`);
+				console.log(
+					`[Terminal] Unmount: ${paneId}, paneDestroyed=${paneDestroyed}`,
+				);
 			}
-			cancelInitialAttach();
+			cancelInitialAttach?.();
 			isUnmounted = true;
 			attachCanceled = true;
+			cancelAttachRequest(activeAttachRequestId);
+			activeAttachRequestId = null;
 			const cleanupAttachId = activeAttachId || undefined;
 			activeAttachId = 0;
 			if (cancelAttachWait) {
@@ -635,49 +807,41 @@ export function useTerminalLifecycle({
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
-			cancelReattachRecovery();
-			document.removeEventListener("visibilitychange", handleVisibilityChange);
-			window.removeEventListener("focus", handleWindowFocus);
 			inputDisposable.dispose();
 			keyDisposable.dispose();
 			titleDisposable.dispose();
 			cleanupKeyboard();
 			cleanupClickToMove();
 			cleanupFocus?.();
-			cleanupResize();
-			cleanupPaste();
 			cleanupCopy();
-			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			unregisterGetSelectionCallbackRef.current(paneId);
 			unregisterPasteCallbackRef.current(paneId);
 
-			if (isPaneDestroyedInStore()) {
-				// Pane was explicitly destroyed, so kill the session.
+			if (paneDestroyed) {
+				// Pane was explicitly destroyed — full cleanup.
 				killTerminalForPane(paneId);
 				coldRestoreState.delete(paneId);
 				pendingDetaches.delete(paneId);
+				v1TerminalCache.dispose(paneId);
 			} else {
-				const detachTimeout = setTimeout(() => {
-					detachRef.current({ paneId });
-					pendingDetaches.delete(paneId);
-					coldRestoreState.delete(paneId);
-				}, 50);
-				pendingDetaches.set(paneId, detachTimeout);
+				// Pane hidden (tab switch) — detach wrapper from DOM but keep
+				// xterm AND stream subscription alive in the cache.
+				// No backend detach — the session stays connected so data
+				// continues flowing to xterm while hidden.
+				v1TerminalCache.detachFromContainer(paneId);
 			}
 
-			isStreamReadyRef.current = false;
-			didFirstRenderRef.current = false;
 			pendingInitialStateRef.current = null;
 			resetModes();
 			renderDisposable?.dispose();
 
-			setTimeout(() => xterm.dispose(), 0);
+			// Do NOT dispose xterm or reset stream state — the cache owns
+			// both the xterm lifecycle and the stream subscription.
 
 			xtermRef.current = null;
 			searchAddonRef.current = null;
-			rendererRef.current = null;
 			setXtermInstance(null);
 		};
 	}, [

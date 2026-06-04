@@ -274,6 +274,7 @@ describe("detectLanguage", () => {
 
 	test("detects web files", () => {
 		expect(detectLanguage("index.html")).toBe("html");
+		expect(detectLanguage("page.astro")).toBe("html");
 		expect(detectLanguage("styles.css")).toBe("css");
 		expect(detectLanguage("styles.scss")).toBe("scss");
 	});

@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import type { ExternalApp } from "@superset/local-db";
+import { useCallback, useMemo, useState } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
@@ -20,6 +21,7 @@ interface FileListGroupedProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 interface FolderGroup {
@@ -77,6 +79,7 @@ interface FolderGroupItemProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 function FolderGroupItem({
@@ -95,6 +98,7 @@ function FolderGroupItem({
 	commitHash,
 	isExpandedView,
 	projectId,
+	defaultApp,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const displayName = group.folderPath || "Root Path";
@@ -136,6 +140,7 @@ function FolderGroupItem({
 			folderPath={group.folderPath}
 			worktreePath={worktreePath}
 			projectId={projectId}
+			defaultApp={defaultApp}
 			onStageAll={onStage || onStageFiles ? handleStageAll : undefined}
 			onUnstageAll={onUnstage || onUnstageFiles ? handleUnstageAll : undefined}
 			onDiscardAll={onDiscard ? handleDiscardAll : undefined}
@@ -153,6 +158,7 @@ function FolderGroupItem({
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					projectId={projectId}
+					defaultApp={defaultApp}
 					onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 					category={category}
 					commitHash={commitHash}
@@ -179,8 +185,9 @@ export function FileListGrouped({
 	commitHash,
 	isExpandedView,
 	projectId,
+	defaultApp,
 }: FileListGroupedProps) {
-	const groups = groupFilesByFolder(files);
+	const groups = useMemo(() => groupFilesByFolder(files), [files]);
 
 	return (
 		<div className="flex flex-col overflow-hidden">
@@ -202,6 +209,7 @@ export function FileListGrouped({
 					commitHash={commitHash}
 					isExpandedView={isExpandedView}
 					projectId={projectId}
+					defaultApp={defaultApp}
 				/>
 			))}
 		</div>

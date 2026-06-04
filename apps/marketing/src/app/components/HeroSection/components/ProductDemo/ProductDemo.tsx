@@ -56,12 +56,6 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 		[containerWidth || 1, constrainedWidth || 1],
 	);
 
-	// Pills shift up to follow the shrinking mockup (minimal on mobile since scale is subtle)
-	const pillsY = useTransform(
-		scrollYProgress,
-		[0, 1],
-		[0, isMobile ? -6 : -40],
-	);
 	return (
 		<div ref={containerRef} className="relative w-full max-w-full">
 			{/* Mockup with scroll-driven scale */}
@@ -82,11 +76,8 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 				</div>
 			</motion.div>
 
-			{/* Selector pills - below mockup, shift up as mockup scales */}
-			<motion.div
-				className="flex items-center gap-2 -mt-2 sm:-mt-4 px-4 sm:px-0 sm:justify-center overflow-x-auto pb-1 scrollbar-hide"
-				style={{ y: pillsY, willChange: "transform" }}
-			>
+			{/* Selector pills - directly below mockup */}
+			<div className="mt-4 flex items-center gap-2 px-4 sm:px-0 sm:justify-center overflow-x-auto scrollbar-hide">
 				{DEMO_OPTIONS.map((option) => (
 					<SelectorPill
 						key={option.label}
@@ -95,7 +86,7 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 						onSelect={() => setActiveOption(option.label as ActiveDemo)}
 					/>
 				))}
-			</motion.div>
+			</div>
 		</div>
 	);
 }

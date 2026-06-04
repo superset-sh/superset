@@ -4,6 +4,7 @@ import {
 	CheckCircleIcon,
 	CheckIcon,
 	ChevronDownIcon,
+	ChevronRightIcon,
 	CircleIcon,
 	ClockIcon,
 	WrenchIcon,
@@ -11,14 +12,13 @@ import {
 	XIcon,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { isValidElement } from "react";
+import { useState } from "react";
 import { cn } from "../../lib/utils";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../ui/collapsible";
-import { CodeBlock } from "./code-block";
 
 /** TanStack AI native states + derived output states. */
 export type ToolDisplayState =
@@ -37,7 +37,7 @@ export type ToolProps = ComponentProps<typeof Collapsible>;
 export const Tool = ({ className, ...props }: ToolProps) => (
 	<Collapsible
 		className={cn(
-			"not-prose mb-4 w-full overflow-hidden rounded-lg border border-border bg-muted/30",
+			"not-prose mb-4 w-full overflow-hidden rounded-lg border border-border bg-muted/30 font-mono",
 			className,
 		)}
 		{...props}
@@ -48,6 +48,7 @@ export type ToolHeaderProps = {
 	title?: string;
 	type?: string;
 	state: ToolDisplayState;
+	open?: boolean;
 	className?: string;
 };
 
@@ -78,34 +79,50 @@ export const ToolHeader = ({
 	title,
 	type,
 	state,
+	open = false,
 	...props
-}: ToolHeaderProps) => (
-	<CollapsibleTrigger
-		className={cn(
-			"group flex h-7 w-full items-center justify-between gap-3 px-2.5 transition-colors hover:bg-muted/50",
-			className,
-		)}
-		{...props}
-	>
-		<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-			<WrenchIcon className="h-3 w-3 shrink-0" />
-			<span className="truncate font-medium text-foreground">
-				{getToolDisplayName(title, type)}
-			</span>
-		</div>
-		<div className="ml-2 flex shrink-0 items-center gap-1.5 text-muted-foreground">
-			{getStatusIcon(state)}
-			<ChevronDownIcon className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
-		</div>
-	</CollapsibleTrigger>
-);
+}: ToolHeaderProps) => {
+	const [isHovered, setIsHovered] = useState(false);
+
+	return (
+		<CollapsibleTrigger
+			className={cn(
+				"group flex h-7 w-full items-center justify-between gap-3 rounded-b-md px-1 transition-colors hover:bg-muted/50",
+				className,
+			)}
+			data-tool-trigger
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
+			{...props}
+		>
+			<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+				{isHovered ? (
+					open ? (
+						<ChevronDownIcon className="h-3 w-3 shrink-0" />
+					) : (
+						<ChevronRightIcon className="h-3 w-3 shrink-0" />
+					)
+				) : (
+					<WrenchIcon className="h-3 w-3 shrink-0" />
+				)}
+				<span className="truncate font-medium text-foreground">
+					{getToolDisplayName(title, type)}
+				</span>
+			</div>
+			<div className="ml-2 flex shrink-0 items-center gap-1.5 text-muted-foreground">
+				{getStatusIcon(state)}
+				<ChevronDownIcon className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
+			</div>
+		</CollapsibleTrigger>
+	);
+};
 
 export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
 	<CollapsibleContent
 		className={cn(
-			"border-t border-border data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+			"border-t border-border text-popover-foreground outline-none",
 			className,
 		)}
 		{...props}
@@ -131,13 +148,13 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
 	const displayCode = formatJson(input);
 
 	return (
-		<div className={cn("space-y-2 overflow-hidden p-4", className)} {...props}>
+		<div className={cn("space-y-1 overflow-hidden", className)} {...props}>
 			<h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-				Parameters
+				Input
 			</h4>
-			<div className="rounded-md bg-muted/50">
-				<CodeBlock code={displayCode} language="json" />
-			</div>
+			<pre className="overflow-x-auto rounded-sm bg-muted/30 px-2 py-1.5 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all">
+				{displayCode}
+			</pre>
 		</div>
 	);
 };
@@ -145,44 +162,46 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
 export type ToolOutputProps = ComponentProps<"div"> & {
 	output?: unknown;
 	errorText?: string;
+	label?: string;
 };
+
+function formatOutput(output: unknown): string {
+	if (typeof output === "string") return output;
+	try {
+		return JSON.stringify(output, null, 2);
+	} catch {
+		return String(output);
+	}
+}
 
 export const ToolOutput = ({
 	className,
 	output,
 	errorText,
+	label,
 	...props
 }: ToolOutputProps) => {
 	if (!(output || errorText)) {
 		return null;
 	}
 
-	let Output = <div>{output as ReactNode}</div>;
-
-	if (typeof output === "object" && !isValidElement(output)) {
-		Output = (
-			<CodeBlock code={JSON.stringify(output, null, 2)} language="json" />
-		);
-	} else if (typeof output === "string") {
-		Output = <CodeBlock code={output} language="json" />;
-	}
+	const heading = errorText ? "Error" : (label ?? "Output");
 
 	return (
-		<div className={cn("space-y-2 p-4", className)} {...props}>
+		<div className={cn("space-y-1", className)} {...props}>
 			<h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-				{errorText ? "Error" : "Result"}
+				{heading}
 			</h4>
-			<div
+			<pre
 				className={cn(
-					"overflow-x-auto rounded-md text-xs [&_table]:w-full",
+					"overflow-x-auto rounded-sm px-2 py-1.5 font-mono text-xs whitespace-pre-wrap break-all",
 					errorText
 						? "bg-destructive/10 text-destructive"
-						: "bg-muted/50 text-foreground",
+						: "bg-muted/30 text-foreground",
 				)}
 			>
-				{errorText && <div>{errorText}</div>}
-				{Output}
-			</div>
+				{errorText ?? formatOutput(output)}
+			</pre>
 		</div>
 	);
 };

@@ -12,6 +12,89 @@ if (process.env.NODE_ENV !== "production") {
 	});
 }
 
+const isProduction = process.env.NODE_ENV === "production";
+const apiOrigin = process.env.NEXT_PUBLIC_API_URL
+	? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+	: null;
+// The web app reaches host-services through the relay — a WebSocket for the
+// terminal stream and HTTP for host tRPC. In dev the blanket `ws:`/`wss:`
+// below covers the socket; prod needs the relay origins listed explicitly so
+// `connect-src` blocks neither. The hard-coded prod fallback keeps the header
+// correct even if RELAY_URL isn't plumbed into the build env.
+const relayWsOrigin = process.env.RELAY_URL
+	? new URL(process.env.RELAY_URL).origin.replace(/^http/, "ws")
+	: isProduction
+		? "wss://relay.superset.sh"
+		: null;
+const relayHttpOrigin = process.env.RELAY_URL
+	? new URL(process.env.RELAY_URL).origin
+	: isProduction
+		? "https://relay.superset.sh"
+		: null;
+
+const contentSecurityPolicy = [
+	"default-src 'self'",
+	"base-uri 'self'",
+	[
+		"connect-src 'self'",
+		apiOrigin,
+		relayWsOrigin,
+		relayHttpOrigin,
+		"wss://relay-backup.superset.sh",
+		"https://relay-backup.superset.sh",
+		"https://*.ingest.sentry.io",
+		"https://*.sentry.io",
+		"https://us.i.posthog.com",
+		"https://us-assets.i.posthog.com",
+		"https://us.posthog.com",
+		!isProduction && "ws:",
+		!isProduction && "wss:",
+	]
+		.filter(Boolean)
+		.join(" "),
+	"font-src 'self' data: https://fonts.gstatic.com",
+	"form-action 'self'",
+	"frame-ancestors 'none'",
+	"img-src 'self' data: blob: https:",
+	"object-src 'none'",
+	["script-src 'self' 'unsafe-inline'", !isProduction && "'unsafe-eval'"]
+		.filter(Boolean)
+		.join(" "),
+	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+	"worker-src 'self' blob:",
+].join("; ");
+
+const securityHeaders: Array<{ key: string; value: string }> = [
+	...(isProduction
+		? [
+				{
+					key: "Strict-Transport-Security",
+					value: "max-age=31536000; includeSubDomains",
+				},
+			]
+		: []),
+	{
+		key: "Content-Security-Policy",
+		value: contentSecurityPolicy,
+	},
+	{
+		key: "Permissions-Policy",
+		value: "camera=(), geolocation=(), microphone=()",
+	},
+	{
+		key: "Referrer-Policy",
+		value: "strict-origin-when-cross-origin",
+	},
+	{
+		key: "X-Content-Type-Options",
+		value: "nosniff",
+	},
+	{
+		key: "X-Frame-Options",
+		value: "DENY",
+	},
+];
+
 const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
@@ -38,6 +121,15 @@ const config: NextConfig = {
 			{
 				source: "/ingest/decide",
 				destination: "https://us.i.posthog.com/decide",
+			},
+		];
+	},
+
+	async headers() {
+		return [
+			{
+				source: "/(.*)",
+				headers: securityHeaders,
 			},
 		];
 	},

@@ -2,11 +2,11 @@ import {
 	AlertDialog,
 	AlertDialogAction,
 	AlertDialogCancel,
-	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { LuLoader } from "react-icons/lu";
@@ -14,61 +14,63 @@ import { LuLoader } from "react-icons/lu";
 interface UnsavedChangesDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSaveAndSwitch: () => void;
-	onDiscardAndSwitch: () => void;
+	onSave: () => void;
+	onDiscard: () => void;
 	isSaving?: boolean;
+	title?: string;
+	description?: string;
+	discardLabel?: string;
+	saveLabel?: string;
 }
 
 export function UnsavedChangesDialog({
 	open,
 	onOpenChange,
-	onSaveAndSwitch,
-	onDiscardAndSwitch,
+	onSave,
+	onDiscard,
 	isSaving = false,
+	title = "Unsaved Changes",
+	description = "You have unsaved changes. What would you like to do?",
+	discardLabel = "Discard & Continue",
+	saveLabel = "Save & Continue",
 }: UnsavedChangesDialogProps) {
-	const handleSaveAndSwitch = (e: React.MouseEvent) => {
-		e.preventDefault();
-		onSaveAndSwitch();
-		// Don't close dialog - parent will close on success
+	const handleSaveAndSwitch = () => {
+		onSave();
 	};
 
-	const handleDiscardAndSwitch = (e: React.MouseEvent) => {
-		e.preventDefault();
-		onDiscardAndSwitch();
-		onOpenChange(false);
+	const handleDiscardAndSwitch = () => {
+		onDiscard();
 	};
 
 	return (
 		<AlertDialog open={open} onOpenChange={isSaving ? undefined : onOpenChange}>
-			<AlertDialogContent>
+			<EnterEnabledAlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-					<AlertDialogDescription>
-						You have unsaved changes. What would you like to do?
-					</AlertDialogDescription>
+					<AlertDialogTitle>{title}</AlertDialogTitle>
+					<AlertDialogDescription>{description}</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
-					<Button
+					<AlertDialogAction
 						variant="outline"
 						onClick={handleDiscardAndSwitch}
 						disabled={isSaving}
 						className="border-destructive/50 text-destructive hover:bg-destructive/10"
 					>
-						Discard & Switch
-					</Button>
-					<AlertDialogAction onClick={handleSaveAndSwitch} disabled={isSaving}>
+						{discardLabel}
+					</AlertDialogAction>
+					<Button onClick={handleSaveAndSwitch} disabled={isSaving}>
 						{isSaving ? (
 							<>
 								<LuLoader className="mr-2 h-4 w-4 animate-spin" />
 								Saving...
 							</>
 						) : (
-							"Save & Switch"
+							saveLabel
 						)}
-					</AlertDialogAction>
+					</Button>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }

@@ -1,3 +1,4 @@
+import type { SelectTaskStatus } from "@superset/db/schema";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -15,6 +16,8 @@ import {
 	HiOutlineTrash,
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
@@ -36,14 +39,13 @@ export function TaskContextMenu({
 	onDelete,
 }: TaskContextMenuProps) {
 	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 
-	// Load statuses for the status submenu
 	const { data: allStatuses } = useLiveQuery(
 		(q) => q.from({ taskStatuses: collections.taskStatuses }),
 		[collections],
 	);
 
-	// Load users for the assignee submenu
 	const { data: allUsers } = useLiveQuery(
 		(q) => q.from({ users: collections.users }),
 		[collections],
@@ -56,49 +58,39 @@ export function TaskContextMenu({
 
 	const users = useMemo(() => allUsers || [], [allUsers]);
 
-	const handleStatusChange = (status: (typeof allStatuses)[0]) => {
-		try {
-			collections.tasks.update(task.id, (draft) => {
-				draft.statusId = status.id;
-			});
-		} catch (error) {
-			console.error("[TaskContextMenu] Failed to update status:", error);
-		}
+	const handleStatusChange = (status: SelectTaskStatus) => {
+		taskActions.updateStatus(task.id, status.id);
 	};
 
 	const handleAssigneeChange = (userId: string | null) => {
-		try {
-			collections.tasks.update(task.id, (draft) => {
-				draft.assigneeId = userId;
-			});
-		} catch (error) {
-			console.error("[TaskContextMenu] Failed to update assignee:", error);
-		}
+		taskActions.updateAssignee(task.id, userId);
 	};
 
 	const handlePriorityChange = (priority: typeof task.priority) => {
-		try {
-			collections.tasks.update(task.id, (draft) => {
-				draft.priority = priority;
-			});
-		} catch (error) {
-			console.error("[TaskContextMenu] Failed to update priority:", error);
-		}
+		taskActions.updatePriority(task.id, priority);
 	};
 
+	const { copyToClipboard } = useCopyToClipboard();
+
 	const handleCopyId = () => {
-		navigator.clipboard.writeText(task.slug);
+		copyToClipboard(task.slug);
 	};
 
 	const handleCopyTitle = () => {
-		navigator.clipboard.writeText(task.title);
+		copyToClipboard(task.title);
+	};
+
+	const handleDelete = () => {
+		const transaction = taskActions.deleteTask(task.id);
+		if (transaction) {
+			onDelete?.();
+		}
 	};
 
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent className="w-64">
-				{/* Status submenu */}
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<ActiveIcon className="mr-2" />
@@ -127,6 +119,7 @@ export function TaskContextMenu({
 							<AssigneeMenuItems
 								users={users}
 								currentAssigneeId={task.assigneeId}
+								hasExternalAssignee={!!task.assigneeExternalId}
 								onSelect={handleAssigneeChange}
 								MenuItem={ContextMenuItem}
 							/>
@@ -171,7 +164,7 @@ export function TaskContextMenu({
 				<ContextMenuSeparator />
 
 				<ContextMenuItem
-					onClick={onDelete}
+					onSelect={handleDelete}
 					className="text-destructive focus:text-destructive"
 				>
 					<HiOutlineTrash className="text-destructive size-4" />

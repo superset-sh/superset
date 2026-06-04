@@ -34,6 +34,22 @@ function isCustomColor(color: string): boolean {
 	return color !== PROJECT_COLOR_DEFAULT && color.startsWith("#");
 }
 
+/**
+ * Determines whether the GitHub avatar should be displayed.
+ * Exported for unit testing.
+ */
+export function shouldShowGitHubAvatar({
+	owner,
+	imageError,
+	hideImage,
+}: {
+	owner: string | null | undefined;
+	imageError: boolean;
+	hideImage: boolean | undefined;
+}): boolean {
+	return !!(owner && !imageError && !hideImage);
+}
+
 export function ProjectThumbnail({
 	projectId,
 	projectName,
@@ -57,6 +73,7 @@ export function ProjectThumbnail({
 	const owner = avatarData?.owner ?? githubOwner;
 	const firstLetter = projectName.charAt(0).toUpperCase();
 	const hasCustomColor = isCustomColor(projectColor);
+	const shouldUseTransparentIconFrame = projectColor === PROJECT_COLOR_DEFAULT;
 
 	// Border: gray by default, custom color with slight transparency when set
 	const borderClasses = cn(
@@ -72,8 +89,10 @@ export function ProjectThumbnail({
 		return (
 			<div
 				className={cn(
-					"relative size-6 rounded overflow-hidden flex-shrink-0 bg-muted",
-					borderClasses,
+					"relative size-6 rounded overflow-hidden flex-shrink-0",
+					!shouldUseTransparentIconFrame && "bg-muted",
+					!shouldUseTransparentIconFrame && borderClasses,
+					shouldUseTransparentIconFrame && "p-[1.5px]",
 					className,
 				)}
 				style={borderStyle}
@@ -89,7 +108,7 @@ export function ProjectThumbnail({
 	}
 
 	// Priority 2: Show GitHub avatar if available and not hidden
-	if (owner && !imageError && !hideImage) {
+	if (owner && shouldShowGitHubAvatar({ owner, imageError, hideImage })) {
 		return (
 			<div
 				className={cn(

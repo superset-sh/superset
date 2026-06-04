@@ -1,3 +1,4 @@
+import { sanitizeSegment } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
@@ -30,12 +31,12 @@ import {
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import { invalidateProjectScriptQueries } from "renderer/lib/project-scripts";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { NotFound } from "renderer/routes/not-found";
 import type { SetupAction } from "shared/types/config";
-import { sanitizeSegment } from "shared/utils/branch";
 import { ExternalWorktreesBanner } from "./components/ExternalWorktreesBanner";
 
 export const Route = createFileRoute(
@@ -142,15 +143,16 @@ function ProjectPage() {
 	const utils = electronTrpc.useUtils();
 	const updateConfigMutation = electronTrpc.config.updateConfig.useMutation({
 		onSuccess: async () => {
-			await utils.config.getConfigContent.invalidate({ projectId });
-			await utils.config.shouldShowSetupCard.invalidate({ projectId });
+			await invalidateProjectScriptQueries(utils, projectId);
 		},
 	});
 
 	const [step, setStep] = useState<Step>("workspace");
 	const [title, setTitle] = useState("");
-	const [baseBranch, setBaseBranch] = useState<string | null>(null);
-	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
+	const [compareBaseBranch, setCompareBaseBranch] = useState<string | null>(
+		null,
+	);
+	const [compareBaseBranchOpen, setCompareBaseBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [teardownOpen, setTeardownOpen] = useState(false);
@@ -178,8 +180,8 @@ function ProjectPage() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
-		explicitBaseBranch: baseBranch,
+	const effectiveCompareBaseBranch = resolveEffectiveWorkspaceBaseBranch({
+		explicitBaseBranch: compareBaseBranch,
 		workspaceBaseBranch: project?.workspaceBaseBranch,
 		defaultBranch: branchData?.defaultBranch,
 		branches: branchData?.branches,
@@ -234,7 +236,7 @@ function ProjectPage() {
 				projectId,
 				name: workspaceName,
 				branchName: generatedBranchName || undefined,
-				baseBranch: baseBranch || undefined,
+				compareBaseBranch: compareBaseBranch || undefined,
 			});
 
 			toast.success("Workspace created", {
@@ -374,7 +376,9 @@ function ProjectPage() {
 												{generatedBranchName || "branch-name"}
 											</span>
 											<span className="text-muted-foreground/50">from</span>
-											<span className="font-mono">{effectiveBaseBranch}</span>
+											<span className="font-mono">
+												{effectiveCompareBaseBranch}
+											</span>
 										</div>
 									</div>
 
@@ -407,8 +411,8 @@ function ProjectPage() {
 															</div>
 														) : (
 															<Popover
-																open={baseBranchOpen}
-																onOpenChange={setBaseBranchOpen}
+																open={compareBaseBranchOpen}
+																onOpenChange={setCompareBaseBranchOpen}
 																modal={false}
 															>
 																<PopoverTrigger asChild>
@@ -420,10 +424,10 @@ function ProjectPage() {
 																		<span className="flex items-center gap-2 truncate">
 																			<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 																			<span className="truncate font-mono text-sm">
-																				{effectiveBaseBranch ||
+																				{effectiveCompareBaseBranch ||
 																					"Select branch..."}
 																			</span>
-																			{effectiveBaseBranch ===
+																			{effectiveCompareBaseBranch ===
 																				branchData?.defaultBranch && (
 																				<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 																					default
@@ -453,8 +457,8 @@ function ProjectPage() {
 																					key={branch.name}
 																					value={branch.name}
 																					onSelect={() => {
-																						setBaseBranch(branch.name);
-																						setBaseBranchOpen(false);
+																						setCompareBaseBranch(branch.name);
+																						setCompareBaseBranchOpen(false);
 																						setBranchSearch("");
 																					}}
 																					className="flex items-center justify-between"
@@ -479,7 +483,7 @@ function ProjectPage() {
 																								)}
 																							</span>
 																						)}
-																						{effectiveBaseBranch ===
+																						{effectiveCompareBaseBranch ===
 																							branch.name && (
 																							<HiCheck className="size-4 text-primary" />
 																						)}

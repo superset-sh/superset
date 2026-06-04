@@ -1,18 +1,33 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import {
+	getPathBaseName,
+	isRemotePath,
+	pathsMatch,
+} from "shared/absolute-paths";
+import {
 	type ChangeCategory,
 	type FileStatus,
 	isNewFile,
 } from "shared/changes-types";
 import { hasRenderedPreview, isImageFile } from "shared/file-types";
-import type {
-	BrowserPaneState,
-	DevToolsPaneState,
-	DiffLayout,
-	FileViewerMode,
-	FileViewerState,
+import {
+	acknowledgedStatus,
+	type BrowserPaneState,
+	type CommentPaneState,
+	type DevToolsPaneState,
+	type DiffLayout,
+	type FileViewerMode,
+	type FileViewerState,
 } from "shared/tabs-types";
-import type { Pane, PaneType, Tab } from "./types";
+import type {
+	AddChatTabOptions,
+	AddFileViewerPaneOptions,
+	FileViewerReuseScope,
+	Pane,
+	PaneType,
+	Tab,
+	TabsState,
+} from "./types";
 
 export const resolveFileViewerMode = ({
 	filePath,
@@ -171,6 +186,7 @@ export const createPane = (
  */
 export interface CreateFileViewerPaneOptions {
 	filePath: string;
+	displayName?: string;
 	viewMode?: FileViewerMode;
 	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
 	isPinned?: boolean;
@@ -212,10 +228,11 @@ export const createFileViewerPane = (
 		oldPath: options.oldPath,
 		initialLine: options.line,
 		initialColumn: options.column,
+		displayName: options.displayName,
 	};
 
 	// Use filename for display name
-	const fileName = options.filePath.split("/").pop() || options.filePath;
+	const fileName = options.displayName || getPathBaseName(options.filePath);
 
 	return {
 		id,
@@ -226,17 +243,21 @@ export const createFileViewerPane = (
 	};
 };
 
-export const createChatMastraPane = (tabId: string): Pane => {
+export const createChatPane = (
+	tabId: string,
+	options?: AddChatTabOptions,
+): Pane => {
 	const id = generateId("pane");
 	const sessionId = crypto.randomUUID();
 
 	return {
 		id,
 		tabId,
-		type: "chat-mastra",
+		type: "chat",
 		name: "New Chat",
-		chatMastra: {
+		chat: {
 			sessionId,
+			launchConfig: options?.launchConfig ?? null,
 		},
 	};
 };
@@ -320,11 +341,12 @@ export const createBrowserTabWithPane = (
 	return { tab, pane };
 };
 
-export const createChatMastraTabWithPane = (
+export const createChatTabWithPane = (
 	workspaceId: string,
+	options?: AddChatTabOptions,
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
-	const pane = createChatMastraPane(tabId);
+	const pane = createChatPane(tabId, options);
 
 	const tab: Tab = {
 		id: tabId,
@@ -334,6 +356,42 @@ export const createChatMastraTabWithPane = (
 		createdAt: Date.now(),
 	};
 
+	return { tab, pane };
+};
+
+/**
+ * Creates a new comment pane (PR review / conversation comment viewer)
+ */
+export const createCommentPane = (
+	tabId: string,
+	comment: CommentPaneState,
+): Pane => {
+	const id = generateId("pane");
+	return {
+		id,
+		tabId,
+		type: "comment",
+		name: `@${comment.authorLogin}`,
+		comment,
+	};
+};
+
+/**
+ * Creates a new tab with a comment pane atomically
+ */
+export const createCommentTabWithPane = (
+	workspaceId: string,
+	comment: CommentPaneState,
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createCommentPane(tabId, comment);
+	const tab: Tab = {
+		id: tabId,
+		name: `@${comment.authorLogin}`,
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
 	return { tab, pane };
 };
 
@@ -395,6 +453,13 @@ export const getPaneIdsForTab = (
 	return Object.values(panes)
 		.filter((pane) => pane.tabId === tabId)
 		.map((pane) => pane.id);
+};
+
+export const getPaneIdSetForTab = (
+	panes: Record<string, Pane>,
+	tabId: string,
+): Set<string> => {
+	return new Set(getPaneIdsForTab(panes, tabId));
 };
 
 /**
@@ -479,42 +544,6 @@ export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 };
 
 /**
- * Gets the next pane ID in visual order (left-to-right, top-to-bottom),
- * wrapping around to the first if at the end.
- */
-export const getNextPaneId = (
-	layout: MosaicNode<string>,
-	currentPaneId: string,
-): string | null => {
-	const paneIds = getPaneIdsInVisualOrder(layout);
-	if (paneIds.length <= 1) return null;
-
-	const currentIndex = paneIds.indexOf(currentPaneId);
-	if (currentIndex === -1) return paneIds[0];
-
-	const nextIndex = (currentIndex + 1) % paneIds.length;
-	return paneIds[nextIndex];
-};
-
-/**
- * Gets the previous pane ID in visual order (right-to-left, bottom-to-top),
- * wrapping around to the last if at the beginning.
- */
-export const getPreviousPaneId = (
-	layout: MosaicNode<string>,
-	currentPaneId: string,
-): string | null => {
-	const paneIds = getPaneIdsInVisualOrder(layout);
-	if (paneIds.length <= 1) return null;
-
-	const currentIndex = paneIds.indexOf(currentPaneId);
-	if (currentIndex === -1) return paneIds[paneIds.length - 1];
-
-	const prevIndex = (currentIndex - 1 + paneIds.length) % paneIds.length;
-	return paneIds[prevIndex];
-};
-
-/**
  * Gets the adjacent pane ID for focus fallback when a pane is closed.
  * Prefers the next pane in visual order, falls back to previous if at the end.
  * Returns null only if the pane is the only one in the layout.
@@ -563,6 +592,70 @@ export const findPanePath = (
 	return null;
 };
 
+export type FocusDirection = "left" | "right" | "up" | "down";
+
+const findEdgeMosaicPaneId = (
+	node: MosaicNode<string>,
+	dir: FocusDirection,
+	alignmentPath: MosaicBranch[] = [],
+): string => {
+	if (typeof node === "string") return node;
+	const axis: "row" | "column" =
+		dir === "left" || dir === "right" ? "row" : "column";
+	if (node.direction === axis) {
+		const nearEdge: MosaicBranch =
+			dir === "right" || dir === "down" ? "first" : "second";
+		return findEdgeMosaicPaneId(node[nearEdge], dir, alignmentPath);
+	}
+	const [alignedBranch = "first", ...rest] = alignmentPath;
+	return findEdgeMosaicPaneId(node[alignedBranch], dir, rest);
+};
+
+const getMosaicNodeAtPath = (
+	node: MosaicNode<string>,
+	path: MosaicBranch[],
+): MosaicNode<string> | null => {
+	let current: MosaicNode<string> = node;
+	for (const branch of path) {
+		if (typeof current === "string") return null;
+		current = current[branch];
+	}
+	return current;
+};
+
+/**
+ * Visually adjacent pane in `dir`, or null at the outer edge of the grid.
+ * Preserves cross-axis alignment when descending through perpendicular splits.
+ */
+export const getSpatialNeighborMosaicPaneId = (
+	root: MosaicNode<string>,
+	paneId: string,
+	dir: FocusDirection,
+): string | null => {
+	const path = findPanePath(root, paneId);
+	if (!path) return null;
+
+	const axis: "row" | "column" =
+		dir === "left" || dir === "right" ? "row" : "column";
+	const wantSecond = dir === "right" || dir === "down";
+
+	for (let i = path.length - 1; i >= 0; i--) {
+		const ancestor = getMosaicNodeAtPath(root, path.slice(0, i));
+		if (!ancestor || typeof ancestor === "string") continue;
+		if (ancestor.direction !== axis) continue;
+		const cameFrom = path[i];
+		if (wantSecond && cameFrom !== "first") continue;
+		if (!wantSecond && cameFrom !== "second") continue;
+		const siblingBranch: MosaicBranch = wantSecond ? "second" : "first";
+		return findEdgeMosaicPaneId(
+			ancestor[siblingBranch],
+			dir,
+			path.slice(i + 1),
+		);
+	}
+	return null;
+};
+
 /**
  * Adds a pane to an existing layout by creating a split
  */
@@ -575,6 +668,32 @@ export const addPaneToLayout = (
 	second: newPaneId,
 	splitPercentage: 50,
 });
+
+/**
+ * Counts the number of leaf panes in a mosaic subtree.
+ */
+const countLeaves = (node: MosaicNode<string>): number => {
+	if (typeof node === "string") return 1;
+	return countLeaves(node.first) + countLeaves(node.second);
+};
+
+/**
+ * Recursively sets split percentages so all leaf panes get equal space.
+ * Each split is proportional to the number of leaves on each side.
+ */
+export const equalizeSplitPercentages = (
+	node: MosaicNode<string>,
+): MosaicNode<string> => {
+	if (typeof node === "string") return node;
+	const leftLeaves = countLeaves(node.first);
+	const rightLeaves = countLeaves(node.second);
+	return {
+		...node,
+		splitPercentage: (leftLeaves / (leftLeaves + rightLeaves)) * 100,
+		first: equalizeSplitPercentages(node.first),
+		second: equalizeSplitPercentages(node.second),
+	};
+};
 
 /**
  * Builds a balanced multi-pane Mosaic layout using recursive binary splits.
@@ -636,4 +755,242 @@ export const updateHistoryStack = (
 	}
 
 	return newStack;
+};
+
+export const fileViewerTargetsMatch = (
+	fileViewer:
+		| Pick<FileViewerState, "filePath" | "diffCategory" | "commitHash">
+		| undefined,
+	options: Pick<
+		AddFileViewerPaneOptions,
+		"filePath" | "diffCategory" | "commitHash"
+	>,
+): boolean => {
+	if (!fileViewer) {
+		return false;
+	}
+
+	const normalizeRemoteFileTarget = (value: string): string => {
+		return value.endsWith("/") && !value.endsWith("://")
+			? value.slice(0, -1)
+			: value;
+	};
+	const filePathsMatch =
+		isRemotePath(fileViewer.filePath) || isRemotePath(options.filePath)
+			? normalizeRemoteFileTarget(fileViewer.filePath) ===
+				normalizeRemoteFileTarget(options.filePath)
+			: pathsMatch(fileViewer.filePath, options.filePath);
+
+	return (
+		filePathsMatch &&
+		fileViewer.diffCategory === options.diffCategory &&
+		fileViewer.commitHash === options.commitHash
+	);
+};
+
+const getWorkspaceTabIdsByReusePreference = ({
+	workspaceId,
+	activeTabId,
+	tabs,
+	tabHistoryStacks,
+	reuseExisting,
+}: {
+	workspaceId: string;
+	activeTabId: string | null;
+	tabs: Tab[];
+	tabHistoryStacks: Record<string, string[] | undefined>;
+	reuseExisting: FileViewerReuseScope;
+}): string[] => {
+	if (reuseExisting === "none") {
+		return [];
+	}
+
+	const workspaceTabs = tabs.filter((tab) => tab.workspaceId === workspaceId);
+	if (workspaceTabs.length === 0) {
+		return [];
+	}
+
+	if (reuseExisting === "active-tab") {
+		return activeTabId && workspaceTabs.some((tab) => tab.id === activeTabId)
+			? [activeTabId]
+			: [];
+	}
+
+	const orderedTabIds: string[] = [];
+	const seenTabIds = new Set<string>();
+	const addTabId = (tabId: string | null | undefined): void => {
+		if (!tabId || seenTabIds.has(tabId)) {
+			return;
+		}
+		if (!workspaceTabs.some((tab) => tab.id === tabId)) {
+			return;
+		}
+		seenTabIds.add(tabId);
+		orderedTabIds.push(tabId);
+	};
+
+	addTabId(activeTabId);
+	for (const tabId of tabHistoryStacks[workspaceId] ?? []) {
+		addTabId(tabId);
+	}
+	for (const tab of workspaceTabs) {
+		addTabId(tab.id);
+	}
+
+	return orderedTabIds;
+};
+
+export const findReusableFileViewerPane = ({
+	workspaceId,
+	activeTabId,
+	tabs,
+	panes,
+	tabHistoryStacks,
+	reuseExisting,
+	options,
+}: {
+	workspaceId: string;
+	activeTabId: string | null;
+	tabs: Tab[];
+	panes: Record<string, Pane>;
+	tabHistoryStacks: Record<string, string[] | undefined>;
+	reuseExisting: FileViewerReuseScope;
+	options: Pick<
+		AddFileViewerPaneOptions,
+		"filePath" | "diffCategory" | "commitHash"
+	>;
+}): Pane | null => {
+	const orderedTabIds = getWorkspaceTabIdsByReusePreference({
+		workspaceId,
+		activeTabId,
+		tabs,
+		tabHistoryStacks,
+		reuseExisting,
+	});
+
+	for (const tabId of orderedTabIds) {
+		const tab = tabs.find((candidate) => candidate.id === tabId);
+		if (!tab) {
+			continue;
+		}
+
+		for (const paneId of extractPaneIdsFromLayout(tab.layout)) {
+			const pane = panes[paneId];
+			if (
+				pane?.type === "file-viewer" &&
+				fileViewerTargetsMatch(pane.fileViewer, options)
+			) {
+				return pane;
+			}
+		}
+	}
+
+	return null;
+};
+
+export const applyFileViewerOpenOptionsToPane = (
+	pane: Pane,
+	options: AddFileViewerPaneOptions,
+): Pane => {
+	if (pane.type !== "file-viewer" || !pane.fileViewer) {
+		return pane;
+	}
+
+	const nextFileViewer: FileViewerState = {
+		...pane.fileViewer,
+		viewMode: options.viewMode ?? pane.fileViewer.viewMode,
+		isPinned: pane.fileViewer.isPinned || (options.isPinned ?? false),
+		oldPath: options.oldPath ?? pane.fileViewer.oldPath,
+		initialLine: options.line ?? pane.fileViewer.initialLine,
+		initialColumn: options.column ?? pane.fileViewer.initialColumn,
+		displayName: options.displayName ?? pane.fileViewer.displayName,
+	};
+
+	const nextName = pane.userTitle?.trim()
+		? pane.name
+		: nextFileViewer.displayName || getPathBaseName(nextFileViewer.filePath);
+
+	if (
+		nextName === pane.name &&
+		nextFileViewer.viewMode === pane.fileViewer.viewMode &&
+		nextFileViewer.isPinned === pane.fileViewer.isPinned &&
+		nextFileViewer.oldPath === pane.fileViewer.oldPath &&
+		nextFileViewer.initialLine === pane.fileViewer.initialLine &&
+		nextFileViewer.initialColumn === pane.fileViewer.initialColumn &&
+		nextFileViewer.displayName === pane.fileViewer.displayName
+	) {
+		return pane;
+	}
+
+	return {
+		...pane,
+		name: nextName,
+		fileViewer: nextFileViewer,
+	};
+};
+
+export const activatePaneInWorkspace = ({
+	workspaceId,
+	paneId,
+	tabs,
+	panes,
+	activeTabIds,
+	focusedPaneIds,
+	tabHistoryStacks,
+}: {
+	workspaceId: string;
+	paneId: string;
+	tabs: Tab[];
+	panes: Record<string, Pane>;
+	activeTabIds: TabsState["activeTabIds"];
+	focusedPaneIds: TabsState["focusedPaneIds"];
+	tabHistoryStacks: TabsState["tabHistoryStacks"];
+}): Pick<
+	TabsState,
+	"activeTabIds" | "focusedPaneIds" | "tabHistoryStacks" | "panes"
+> | null => {
+	const pane = panes[paneId];
+	if (!pane) {
+		return null;
+	}
+
+	const tab = tabs.find((candidate) => candidate.id === pane.tabId);
+	if (!tab || tab.workspaceId !== workspaceId) {
+		return null;
+	}
+
+	const nextPanes = { ...panes };
+	let hasPaneChanges = false;
+	for (const tabPaneId of extractPaneIdsFromLayout(tab.layout)) {
+		const currentPane = nextPanes[tabPaneId];
+		if (!currentPane) {
+			continue;
+		}
+
+		const resolvedStatus = acknowledgedStatus(currentPane.status);
+		if (resolvedStatus !== (currentPane.status ?? "idle")) {
+			nextPanes[tabPaneId] = { ...currentPane, status: resolvedStatus };
+			hasPaneChanges = true;
+		}
+	}
+
+	return {
+		panes: hasPaneChanges ? nextPanes : panes,
+		activeTabIds: {
+			...activeTabIds,
+			[workspaceId]: tab.id,
+		},
+		focusedPaneIds: {
+			...focusedPaneIds,
+			[tab.id]: paneId,
+		},
+		tabHistoryStacks: {
+			...tabHistoryStacks,
+			[workspaceId]: updateHistoryStack(
+				tabHistoryStacks[workspaceId] ?? [],
+				activeTabIds[workspaceId] ?? null,
+				tab.id,
+			),
+		},
+	};
 };

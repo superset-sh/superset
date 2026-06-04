@@ -1,7 +1,10 @@
 export {
 	SYSTEM_THEME_ID,
-	useMonacoTheme,
+	useResolvedTheme,
+	useSetSystemThemePreference,
 	useSetTheme,
+	useSystemDarkThemeId,
+	useSystemLightThemeId,
 	useTerminalTheme,
 	useTheme,
 	useThemeId,

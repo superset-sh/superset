@@ -1,3 +1,5 @@
+import type { PushActionCopy } from "./getPushActionCopy";
+
 export type PrimaryActionType = "commit" | "sync" | "push" | "pull";
 
 export interface PrimaryActionInput {
@@ -7,7 +9,7 @@ export interface PrimaryActionInput {
 	pushCount: number;
 	pullCount: number;
 	hasUpstream: boolean;
-	hasExistingPR: boolean;
+	pushActionCopy: Pick<PushActionCopy, "label" | "tooltip">;
 }
 
 export interface PrimaryActionState {
@@ -24,7 +26,7 @@ export function getPrimaryAction({
 	pushCount,
 	pullCount,
 	hasUpstream,
-	hasExistingPR,
+	pushActionCopy,
 }: PrimaryActionInput): PrimaryActionState {
 	if (canCommit) {
 		return {
@@ -47,9 +49,9 @@ export function getPrimaryAction({
 	if (pushCount > 0) {
 		return {
 			action: "push",
-			label: "Push",
+			label: pushActionCopy.label,
 			disabled: isPending,
-			tooltip: `Push ${pushCount} commit${pushCount !== 1 ? "s" : ""}`,
+			tooltip: pushActionCopy.tooltip,
 		};
 	}
 
@@ -65,11 +67,9 @@ export function getPrimaryAction({
 	if (!hasUpstream) {
 		return {
 			action: "push",
-			label: hasExistingPR ? "Push" : "Publish Branch",
+			label: pushActionCopy.label,
 			disabled: isPending,
-			tooltip: hasExistingPR
-				? "Push branch changes"
-				: "Publish branch to remote",
+			tooltip: pushActionCopy.tooltip,
 		};
 	}
 

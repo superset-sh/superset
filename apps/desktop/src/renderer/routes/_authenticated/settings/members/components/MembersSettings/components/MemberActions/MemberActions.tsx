@@ -19,6 +19,7 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import type { TeamMember } from "../../../../types";
@@ -37,12 +38,8 @@ export function MemberActions({
 	canRemove: boolean;
 }) {
 	const [isChangingRole, setIsChangingRole] = useState(false);
-	const { data: session, refetch: refetchSession } = authClient.useSession();
-	const plan = session?.session?.plan as
-		| "free"
-		| "pro"
-		| "enterprise"
-		| undefined;
+	const { refetch: refetchSession } = authClient.useSession();
+	const { plan } = useCurrentPlan();
 	const navigate = useNavigate();
 
 	const availableRoles = getAvailableRoleChanges(
@@ -93,16 +90,19 @@ export function MemberActions({
 				? " Your subscription will be adjusted accordingly."
 				: "";
 
-		alert.destructive({
+		alert({
 			title: isCurrentUser ? "Leave organization?" : "Remove team member?",
 			description: isCurrentUser
 				? `Are you sure you want to leave this organization? You will lose access immediately.${billingNote}`
 				: `Are you sure you want to remove ${member.name} (${member.email}) from the organization? They will lose access immediately.${billingNote}`,
-			confirmText: isCurrentUser ? "Leave Organization" : "Remove Member",
-			cancelText: "Cancel",
-			onConfirm: () => {
-				handleRemove();
-			},
+			actions: [
+				{ label: "Cancel", variant: "outline", onClick: () => {} },
+				{
+					label: isCurrentUser ? "Leave Organization" : "Remove Member",
+					variant: "destructive",
+					onClick: () => handleRemove(),
+				},
+			],
 		});
 	};
 
@@ -129,14 +129,17 @@ export function MemberActions({
 			isCurrentUser && getRoleLevel(newRole) < getRoleLevel(member.role);
 
 		if (isSelfDemotion) {
-			alert.destructive({
+			alert({
 				title: "Demote yourself?",
 				description: `You're about to change your role from ${ORGANIZATION_ROLES[member.role].name} to ${ORGANIZATION_ROLES[newRole].name}. Another owner will need to restore your permissions. Are you sure?`,
-				confirmText: "Yes, demote me",
-				cancelText: "Cancel",
-				onConfirm: async () => {
-					await handleChangeRole(newRole);
-				},
+				actions: [
+					{ label: "Cancel", variant: "outline", onClick: () => {} },
+					{
+						label: "Yes, demote me",
+						variant: "destructive",
+						onClick: () => handleChangeRole(newRole),
+					},
+				],
 			});
 		} else {
 			handleChangeRole(newRole);
