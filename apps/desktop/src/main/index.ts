@@ -439,5 +439,23 @@ if (!gotTheLock) {
 		}
 
 		appReady = true;
-	})();
+	})().catch(async (error) => {
+		// Last-resort guard: an unhandled rejection in the startup sequence would
+		// otherwise leave a live process with no visible window (see the SQLite
+		// corruption incident). Surface the failure and exit instead.
+		console.error("[main] Fatal error during startup:", error);
+		try {
+			if (app.isReady()) {
+				await dialog.showMessageBox({
+					type: "error",
+					title: "Superset failed to start",
+					message:
+						"Superset hit an unexpected error during startup and needs to close.",
+					detail: String(error),
+					buttons: ["Quit"],
+				});
+			}
+		} catch {}
+		app.exit(1);
+	});
 }
