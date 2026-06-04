@@ -18,7 +18,7 @@
 		"@t3-oss/env-core": "0.13.11",
 		"@trpc/client": "11.16.0",
 		"@upstash/redis": "1.37.0",
-		"hono": "4.12.18",
+		"hono": "4.12.21",
 		"jose": "6.2.2",
 		"lru-cache": "11.2.7",
 		"superjson": "2.2.6",
