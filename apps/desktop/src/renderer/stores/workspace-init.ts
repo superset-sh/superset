@@ -94,6 +94,22 @@ export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 	),
 );
 
+/**
+ * Whether a failed workspace's pending terminal setup can be safely discarded.
+ *
+ * When init fails, we must NOT throw away a setup that still carries a launch
+ * prompt (`agentCommand`/`agentLaunchRequest`). Keeping it lets the user recover
+ * the prompt after retrying init — once the workspace reaches "ready" again the
+ * pending setup is replayed and the agent launches with the original prompt.
+ * Setups with no prompt hold nothing recoverable, so they're cleaned up. (#5088)
+ */
+export function canDiscardPendingSetupOnFailure(
+	setup: PendingTerminalSetup | undefined,
+): boolean {
+	if (!setup) return true;
+	return !setup.agentCommand && !setup.agentLaunchRequest;
+}
+
 export const useWorkspaceInitProgress = (workspaceId: string) =>
 	useWorkspaceInitStore((state) => state.initProgress[workspaceId]);
 

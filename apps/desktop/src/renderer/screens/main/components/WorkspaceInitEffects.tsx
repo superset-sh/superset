@@ -12,6 +12,7 @@ import { isTerminalAttachCanceledMessage } from "renderer/screens/main/component
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
+	canDiscardPendingSetupOnFailure,
 	type PendingTerminalSetup,
 	useWorkspaceInitStore,
 } from "renderer/stores/workspace-init";
@@ -375,7 +376,11 @@ export function WorkspaceInitEffects() {
 			}
 
 			if (progress?.step === "failed") {
-				removePendingTerminalSetup(workspaceId);
+				// Preserve a setup that still carries a launch prompt so the user can
+				// recover it after retrying init; only discard promptless setups (#5088).
+				if (canDiscardPendingSetupOnFailure(setup)) {
+					removePendingTerminalSetup(workspaceId);
+				}
 			}
 		}
 
