@@ -3,6 +3,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { TerminalCopySessionIdButton } from "../TerminalCopySessionIdButton";
 import { TerminalRemoteControlButton } from "../TerminalRemoteControlButton";
 
 interface TerminalHeaderExtrasProps {
@@ -20,6 +21,7 @@ export function TerminalHeaderExtras({
 
 	return (
 		<div className="flex items-center gap-0.5">
+			<TerminalCopySessionIdButton terminalId={data.terminalId} />
 			<TerminalRemoteControlButton
 				workspaceId={workspaceId}
 				terminalId={data.terminalId}
