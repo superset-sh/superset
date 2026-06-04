@@ -162,7 +162,7 @@
 		"@xterm/headless": "6.1.0-beta.220",
 		"@xterm/xterm": "6.1.0-beta.220",
 		"ai": "6.0.141",
-		"better-auth": "1.6.5",
+		"better-auth": "1.6.11",
 		"better-sqlite3": "12.6.2",
 		"bindings": "1.5.0",
 		"bufferutil": "4.1.0",
