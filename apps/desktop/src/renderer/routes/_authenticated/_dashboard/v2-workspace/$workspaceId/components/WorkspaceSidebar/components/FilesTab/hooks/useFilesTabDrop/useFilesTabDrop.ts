@@ -158,8 +158,15 @@ export function useFilesTabDrop({
 			const destDirAbs = toAbs(rootPath, dirRel);
 			const versionToken = bridge.getVersion();
 
-			const results = await Promise.allSettled(
-				files.map(async (file) => {
+			// Upload one file at a time: encoding everything up front would hold
+			// every base64 payload (~1.33x each) in memory at once, and a per-file
+			// version check lets a workspace switch stop the remaining writes
+			// instead of dribbling them into a worktree the user has left.
+			let added = 0;
+			let failed = 0;
+			for (const file of files) {
+				if (!bridge.isCurrent(versionToken)) break;
+				try {
 					const data = await fileToBase64(file);
 					const result = await writeFile.mutateAsync({
 						workspaceId,
@@ -172,16 +179,15 @@ export function useFilesTabDrop({
 					if (result && result.ok === false) {
 						throw new Error(result.reason ?? "write failed");
 					}
-					return result;
-				}),
-			);
+					added += 1;
+				} catch {
+					failed += 1;
+				}
+			}
 
 			// User switched workspaces mid-upload — don't toast/expand against the
 			// new tree.
 			if (!bridge.isCurrent(versionToken)) return;
-
-			const added = results.filter((r) => r.status === "fulfilled").length;
-			const failed = results.length - added;
 
 			if (added > 0) {
 				const where = dirLabel(dirRel);
