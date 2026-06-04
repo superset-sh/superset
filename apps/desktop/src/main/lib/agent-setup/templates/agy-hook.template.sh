@@ -13,14 +13,27 @@ case "$1" in
 esac
 
 EVENT_TYPE="$1"
-HOOK_SESSION_ID=$(printf '%s' "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+
+extract_session_id() {
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$INPUT" | jq -r 'try (.session_id // empty) catch empty' 2>/dev/null
+    return
+  fi
+
+  printf '%s' "$INPUT" \
+    | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
+    | grep -oE '"[^"]*"$' \
+    | tr -d '"'
+}
+
+HOOK_SESSION_ID="$(extract_session_id)"
 
 # Map agy event names to Superset event types.
 case "$EVENT_TYPE" in
   PreInvocation)  EVENT_TYPE="Start" ;;
   PostInvocation) EVENT_TYPE="Stop" ;;
   PreToolUse)     EVENT_TYPE="PermissionRequest" ;;
-  PostToolUse)    EVENT_TYPE="Start" ;;
+  PostToolUse)    EVENT_TYPE="Stop" ;;
   Stop)           ;;
   *)              exit 0 ;;
 esac
@@ -28,7 +41,20 @@ esac
 V1_EVENT_TYPE="$EVENT_TYPE"
 
 json_escape() {
-  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$1" | jq -Rs . 2>/dev/null | sed -e 's/^"//' -e 's/"$//'
+    return
+  fi
+
+  local escaped="$1"
+  escaped=${escaped//\\/\\\\}
+  escaped=${escaped//\"/\\\"}
+  escaped=${escaped//$'\n'/\\n}
+  escaped=${escaped//$'\r'/\\r}
+  escaped=${escaped//$'\t'/\\t}
+  escaped=${escaped//$'\f'/\\f}
+  escaped=${escaped//$'\b'/\\b}
+  printf '%s' "$escaped"
 }
 
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then

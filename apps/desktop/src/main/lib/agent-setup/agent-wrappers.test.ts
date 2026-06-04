@@ -591,10 +591,13 @@ exit 0
 		expect(script).toContain("PostInvocation");
 		expect(script).toContain("PreToolUse");
 		expect(script).toContain("PostToolUse");
+		expect(script).toContain('PostToolUse)    EVENT_TYPE="Stop" ;;');
+		expect(script).toContain("jq -r 'try (.session_id // empty) catch empty'");
 	});
 
 	it("creates agy hooks.json with all lifecycle event arrays", () => {
 		const hookScriptPath = "/tmp/.superset-new/hooks/agy-hook.sh";
+		const quotedHookScriptPath = `'${hookScriptPath}'`;
 		const content = getAgyHooksJsonContent(hookScriptPath);
 		const parsed = JSON.parse(content) as Record<
 			string,
@@ -616,18 +619,18 @@ exit 0
 		const spec = parsed["superset-lifecycle"];
 		expect(spec).toBeDefined();
 		expect(spec.PreInvocation?.[0]?.command).toBe(
-			`${hookScriptPath} PreInvocation`,
+			`${quotedHookScriptPath} PreInvocation`,
 		);
 		expect(spec.PostInvocation?.[0]?.command).toBe(
-			`${hookScriptPath} PostInvocation`,
+			`${quotedHookScriptPath} PostInvocation`,
 		);
 		expect(spec.PreToolUse?.[0]?.hooks?.[0]?.command).toBe(
-			`${hookScriptPath} PreToolUse`,
+			`${quotedHookScriptPath} PreToolUse`,
 		);
 		expect(spec.PostToolUse?.[0]?.hooks?.[0]?.command).toBe(
-			`${hookScriptPath} PostToolUse`,
+			`${quotedHookScriptPath} PostToolUse`,
 		);
-		expect(spec.Stop?.[0]?.command).toBe(`${hookScriptPath} Stop`);
+		expect(spec.Stop?.[0]?.command).toBe(`${quotedHookScriptPath} Stop`);
 	});
 
 	it("replaces stale agy hook commands from old superset paths", () => {
@@ -639,6 +642,7 @@ exit 0
 		);
 		const staleHookPath = "/tmp/.superset-old/hooks/agy-hook.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/agy-hook.sh";
+		const quotedCurrentHookPath = `'${currentHookPath}'`;
 
 		mkdirSync(path.dirname(agyHooksPath), { recursive: true });
 		writeFileSync(
@@ -689,18 +693,72 @@ exit 0
 		const spec = parsed["superset-lifecycle"];
 		expect(spec).toBeDefined();
 		expect(spec.PreInvocation?.[0]?.command).toBe(
-			`${currentHookPath} PreInvocation`,
+			`${quotedCurrentHookPath} PreInvocation`,
 		);
 		// Tool-use hooks now use matcher+hooks format
 		expect(spec.PreToolUse?.[0]?.hooks?.[0]?.command).toBe(
-			`${currentHookPath} PreToolUse`,
+			`${quotedCurrentHookPath} PreToolUse`,
 		);
 		expect(spec.PostToolUse?.[0]?.hooks?.[0]?.command).toBe(
-			`${currentHookPath} PostToolUse`,
+			`${quotedCurrentHookPath} PostToolUse`,
 		);
 		expect(JSON.stringify(parsed).includes(staleHookPath)).toBe(false);
 
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("throws when existing agy hooks.json is malformed", () => {
+		const agyHooksPath = path.join(
+			mockedHomeDir,
+			".gemini",
+			"config",
+			"hooks.json",
+		);
+		mkdirSync(path.dirname(agyHooksPath), { recursive: true });
+		writeFileSync(agyHooksPath, "{invalid-json");
+
+		expect(() => {
+			getAgyHooksJsonContent("/tmp/.superset-new/hooks/agy-hook.sh");
+		}).toThrow("Invalid ~/.gemini/config/hooks.json");
+	});
+
+	it("ignores malformed agy hook entries when cleaning stale commands", () => {
+		const agyHooksPath = path.join(
+			mockedHomeDir,
+			".gemini",
+			"config",
+			"hooks.json",
+		);
+		mkdirSync(path.dirname(agyHooksPath), { recursive: true });
+		writeFileSync(
+			agyHooksPath,
+			JSON.stringify(
+				{
+					"bad-null": null,
+					"bad-array": [],
+					"bad-number": 123,
+					"user-custom-hook": {
+						PreInvocation: [{ command: "/opt/custom-hook.sh" }],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getAgyHooksJsonContent("/tmp/.superset-new/hooks/agy-hook.sh");
+		const parsed = JSON.parse(content) as Record<string, unknown>;
+		expect(parsed["bad-null"]).toBeNull();
+		expect(parsed["bad-array"]).toEqual([]);
+		expect(parsed["bad-number"]).toBe(123);
+		expect(
+			(
+				parsed["user-custom-hook"] as {
+					PreInvocation: Array<{ command: string }>;
+				}
+			).PreInvocation[0]?.command,
+		).toBe("/opt/custom-hook.sh");
+		expect(parsed["superset-lifecycle"]).toBeDefined();
 	});
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {

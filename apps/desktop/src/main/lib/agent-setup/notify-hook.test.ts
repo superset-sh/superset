@@ -60,6 +60,7 @@ describe("per-agent hook scripts dispatch to v2", () => {
 		'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"';
 
 	for (const template of [
+		"agy-hook.template.sh",
 		"cursor-hook.template.sh",
 		"copilot-hook.template.sh",
 		"gemini-hook.template.sh",

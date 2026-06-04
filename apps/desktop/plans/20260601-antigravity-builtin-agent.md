@@ -4,7 +4,7 @@
 
 **Goal:** Add Google's Antigravity CLI (`agy`) as a first-class built-in terminal agent in the Superset desktop app, matching the existing 5-touchpoint pattern used by Claude/Codex/Amp/OpenCode.
 
-**Architecture:** One new wrapper module + manifest row + setup registry entries + icon asset + test. Notification hook integration is deferred because antigravity-cli v1.0.4 has no documented hook system yet. The `SUPERSET_AGENT_ID=agy` env var is exported by the wrapper so future hook integration is purely additive.
+**Architecture:** One new wrapper module + manifest row + setup registry entries + icon asset + test, plus lifecycle hook integration via `agy-hook.sh` + `~/.gemini/config/hooks.json`. The `SUPERSET_AGENT_ID=agy` env var remains exported by the wrapper for end-to-end identity wiring.
 
 **Tech Stack:** TypeScript, Bun, Biome, shadcn-style SVG icons, `~/.superset/bin/agy` shell wrapper, Drizzle/Zustand/TanStack DB at the data layer (no DB changes).
 
@@ -23,7 +23,7 @@
 | `apps/desktop/src/main/lib/agent-setup/agent-wrappers-agy.ts` | Wrapper generator for `~/.superset/bin/agy` |
 | `packages/ui/src/assets/icons/preset-icons/agy.svg` | Light-variant Antigravity icon |
 | `packages/ui/src/assets/icons/preset-icons/agy-white.svg` | Dark-variant Antigravity icon |
-| `apps/desktop/plans/20260601-antigravity-builtin-agent.md` | Plan file documenting ship + deferred hooks |
+| `apps/desktop/plans/20260601-antigravity-builtin-agent.md` | Plan file documenting ship details |
 
 ### Modified files
 
@@ -467,17 +467,13 @@ Five-touchpoint integration matching the existing pattern for built-in terminal 
 4. `packages/ui/src/assets/icons/preset-icons/agy.svg` + `agy-white.svg` and registration in `PRESET_ICONS`
 5. `apps/desktop/src/main/lib/agent-setup/agent-wrappers.test.ts` — passthrough wrapper test
 
-## What did NOT ship (deferred)
+## Hook integration shipped
 
-**Notification hook integration.** antigravity-cli v1.0.4 (released 2026-06-01) does not expose a `settings.json`, plugin, or extension model. There is no documented hook format to integrate against.
+The ship now includes `agy-hook.sh` generation and `~/.gemini/config/hooks.json` registration, with stale Superset-managed hook entries replaced during setup and user-defined entries preserved.
 
-When antigravity-cli ships a hook system, the migration is purely additive:
-
-- `SUPERSET_AGENT_ID=agy` is already exported by the wrapper. Any hook handler that reads the parent-process identity will see the correct value automatically.
-- The notify script's v2 payload will carry `agentId: "agy"` without further wiring.
-- The new integration is one new file (e.g. `createAgySettingsJson()`) and one new setup action id, with no schema migration.
-
-The renderer and host-service already accept any string for `agentId`; the `usePresetIcon` hook returns `undefined` for unknown names so pickers degrade gracefully.
+- `SUPERSET_AGENT_ID=agy` is exported by the wrapper and forwarded in v2 payloads.
+- Hook commands are generated as quoted shell paths to support spaces in home/worktree paths.
+- The renderer and host-service already accept any string for `agentId`; the `usePresetIcon` hook returns `undefined` for unknown names so pickers degrade gracefully.
 
 ## Known issue
 

@@ -2,7 +2,7 @@
 
 - **Status:** Approved (sections 1–7 reviewed 2026-06-01)
 - **Source issue:** [superset-sh/superset#4986](https://github.com/superset-sh/superset/issues/4986)
-- **Scope:** Full first-class desktop integration (manifest + wrapper + setup registry + icon + tests). Notification hooks deferred.
+- **Scope:** Full first-class desktop integration (manifest + wrapper + setup registry + icon + tests), including lifecycle hook integration.
 - **Worktree:** `apps/desktop`
 
 ## Problem
@@ -14,18 +14,18 @@ Google's Antigravity CLI (`agy`) is a production-grade terminal agent (Gemini 3.
 - The Superset-managed binary at `~/.superset/bin/agy` (and the `SUPERSET_AGENT_ID=agy` identity env var that wires the agent to future hook integrations)
 - A documented configuration path for first-class features
 
-The fix is a 5-touchpoint integration matching the existing pattern for built-in terminal agents. Antigravity CLI is brand new (v1.0.4 released 2026-06-01) and has no documented hook system yet, so notification hook integration is explicitly deferred to a follow-up.
+The fix is a 5-touchpoint integration matching the existing pattern for built-in terminal agents. Antigravity CLI is brand new (v1.0.4 released 2026-06-01), and this implementation includes Superset-managed lifecycle hooks via `~/.gemini/config/hooks.json` plus a generated `agy-hook.sh` template.
 
 ## Goals
 
 1. Make `agy` a first-class, selectable built-in agent matching the UX of Claude/Codex/Amp/OpenCode.
 2. Use the same 5-touchpoint pattern as every other built-in agent (manifest, wrapper, setup registry, icon, tests).
-3. Set the stage for future hook integration by exporting `SUPERSET_AGENT_ID=agy` from the wrapper today.
-4. Defer speculative code: do not invent a hook integration that does not yet have a documented format upstream.
+3. Ship lifecycle hook integration for `agy` while preserving `SUPERSET_AGENT_ID=agy` identity wiring.
+4. Keep hook wiring additive and resilient across worktree moves by replacing only Superset-managed hook entries.
 
 ## Non-goals
 
-- Notification hook integration. Antigravity CLI v1.0.4 has no `settings.json`, plugin, or extension model. Adding hooks would require guessing at a format that may change.
+- Additional plugin- or extension-based integrations beyond `hooks.json` + `agy-hook.sh`.
 - A custom icon. Reuse the existing `antigravity.svg` asset; the CLI and editor are the same product family.
 - Fixing antigravity-cli#76 (the `agy -p` no-output bug in non-TTY mode). That's an upstream issue.
 - A new agent picker component. The existing pickers consume `BUILTIN_TERMINAL_AGENTS` and `PRESET_ICONS` at render time and need no changes.
@@ -34,7 +34,7 @@ The fix is a 5-touchpoint integration matching the existing pattern for built-in
 
 The integration follows the existing 5-touchpoint pattern. Every layer is auto-derived from the manifest except for the wrapper, setup runner, and icon registration.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ packages/shared/src/builtin-terminal-agents.ts (manifest row)               │
 │   id: "agy", label: "Antigravity", command: "agy", promptCommand: "agy -p"  │
@@ -66,7 +66,7 @@ The integration follows the existing 5-touchpoint pattern. Every layer is auto-d
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ packages/ui/src/assets/icons/preset-icons/                                  │
-│   agy.svg, agy-dark.svg (copies of antigravity.svg)                         │
+│   agy.svg, agy-white.svg (copies of antigravity.svg)                        │
 │   PRESET_ICONS += agy: { light, dark }                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -198,19 +198,19 @@ Add the runner to the `DESKTOP_AGENT_SETUP_RUNNERS` map:
 **Asset creation:** copy `apps/desktop/src/renderer/assets/app-icons/antigravity.svg` to two new files in the preset-icons directory:
 
 - `packages/ui/src/assets/icons/preset-icons/agy.svg` (light variant)
-- `packages/ui/src/assets/icons/preset-icons/agy-dark.svg` (dark variant — copy of the same file for now)
+- `packages/ui/src/assets/icons/preset-icons/agy-white.svg` (dark variant — copy of the same file for now)
 
 **Registration** in `packages/ui/src/assets/icons/preset-icons/index.ts:24-36`:
 
 ```ts
 import agyIcon from "./agy.svg";
-import agyDarkIcon from "./agy-dark.svg";
+import agyWhiteIcon from "./agy-white.svg";
 
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
   // ...existing 11
-  agy: { light: agyIcon, dark: agyDarkIcon },
+  agy: { light: agyIcon, dark: agyWhiteIcon },
 };
-```
+```text
 
 **Why reuse the existing `antigravity.svg`:** the Antigravity CLI and Antigravity editor are the same product family with the same branding. The existing SVG is the only Antigravity icon asset in the repo. Reusing it is consistent with how the codebase already represents Antigravity. If the team later wants distinct icons, the light/dark pair can be replaced without code changes.
 
@@ -232,13 +232,13 @@ it("creates agy wrapper passthrough", () => {
   expect(wrapper).toContain('export SUPERSET_AGENT_ID="agy"');
   expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 });
-```
+```text
 
 **Test infrastructure reuse:** the file's existing `mock.module` setup (lines 26-48) and `TEST_BIN_DIR` (line 89) cover the new file. The barrel re-export in touchpoint 2 means `createAgyWrapper` is importable via the existing `await import("./agent-wrappers")` at line 89. No new test setup.
 
-**No new tests required for:**
-- `agent-wrappers-gemini.ts` / `agent-wrappers-copilot.ts` per-agent hook script patterns (we don't ship a hook script)
-- `notify-hook.test.ts` (no per-agent hook template to parameterize over)
+**No additional tests required for:**
+- `agent-wrappers-gemini.ts` / `agent-wrappers-copilot.ts` beyond existing per-agent hook template coverage
+- `notify-hook.test.ts` beyond adding `agy-hook.template.sh` to the shared per-agent assertion loop
 - `agent-command.test.ts` (no non-default `promptTransport` or `--` separator; `promptCommand: "agy -p"` is the simple `argv` form)
 - `agent-launch-request.test.ts` (no unusual task launch behavior)
 
@@ -250,7 +250,7 @@ it("creates agy wrapper passthrough", () => {
 
 ### Launch path (user clicks "Antigravity" in agent picker)
 
-```
+```text
 User picks "Antigravity" in DiffPane/AgentPicker/Settings/etc.
   ↓
 Terminal pane spawns ~/.superset/bin/agy
@@ -266,7 +266,7 @@ agy launches interactive TUI
 
 ### Setup path (user adds Antigravity via Settings → Agents)
 
-```
+```text
 User clicks "Set up" in Settings → Agents
   ↓
 tRPC setupAgent({ agentId: "agy" })
@@ -282,29 +282,27 @@ createAgyWrapper() writes ~/.superset/bin/agy
 writeFileIfChanged no-ops if content matches
 ```
 
-### Identity flow (today, hookless)
+### Identity and hook flow
 
-```
+```text
 agy process has env: SUPERSET_AGENT_ID=agy
-  ↓ (when agy ships hooks, they read this env)
-Future hook handler reads SUPERSET_AGENT_ID
   ↓
-POSTs to SUPERSET_HOST_AGENT_HOOK_URL with { agentId: "agy" }
+agy invokes hooks from ~/.gemini/config/hooks.json
+  ↓
+Superset-managed agy-hook.sh receives event + payload JSON
+  ↓
+POSTs to SUPERSET_HOST_AGENT_HOOK_URL with { agentId: "agy", eventType, sessionId }
   ↓
 Host service normalizes + broadcasts agent:lifecycle
   ↓
 Renderer shows working indicator
 ```
 
-## Deferred work
+## Hook behavior notes
 
-**Notification hook integration is deferred** until antigravity-cli ships a documented hook system. When that happens:
-
-1. The `SUPERSET_AGENT_ID=agy` env var is already in place. The notify script's v2 payload will carry `agentId: "agy"` automatically for any agy invocation through the wrapper.
-2. The new hook integration is purely additive: a new file under `apps/desktop/src/main/lib/agent-setup/agent-wrappers-agy.ts` (e.g. `createAgySettingsJson()`), a new `templates/agy-hook.template.sh` if needed, and a new setup action id.
-3. No schema migration. The receiver accepts any string for `agentId` and the renderer's `usePresetIcon` returns `undefined` for unknowns, so the picker and pane-header fall back gracefully.
-
-The `apps/desktop/plans/20260601-antigravity-builtin-agent.md` plan file documents this as a follow-up, with a link to the upstream tracking issue.
+1. `SUPERSET_AGENT_ID=agy` is exported by the wrapper and forwarded in v2 payloads.
+2. `hooks.json` registration is idempotent and replaces stale Superset-managed paths from old worktrees.
+3. The receiver accepts any string for `agentId`; picker/icon fallback remains safe for unknown IDs.
 
 ## Files changed (summary)
 
@@ -312,7 +310,7 @@ The `apps/desktop/plans/20260601-antigravity-builtin-agent.md` plan file documen
 |---|---|---|
 | NEW | `apps/desktop/src/main/lib/agent-setup/agent-wrappers-agy.ts` | Wrapper generator for `~/.superset/bin/agy` |
 | NEW | `packages/ui/src/assets/icons/preset-icons/agy.svg` | Light variant of Antigravity icon |
-| NEW | `packages/ui/src/assets/icons/preset-icons/agy-dark.svg` | Dark variant of Antigravity icon |
+| NEW | `packages/ui/src/assets/icons/preset-icons/agy-white.svg` | Dark variant of Antigravity icon |
 | EDIT | `apps/desktop/src/main/lib/agent-setup/agent-wrappers.ts` | Barrel re-export of the new wrapper module |
 | EDIT | `apps/desktop/src/main/lib/agent-setup/desktop-agent-capabilities.ts` | Add `agy-wrapper` action and `agy` target |
 | EDIT | `apps/desktop/src/main/lib/agent-setup/desktop-agent-setup.ts` | Register `createAgyWrapper` runner |
@@ -320,7 +318,7 @@ The `apps/desktop/plans/20260601-antigravity-builtin-agent.md` plan file documen
 | EDIT | `packages/ui/src/assets/icons/preset-icons/index.ts` | Register agy icon in `PRESET_ICONS` |
 | EDIT | `apps/desktop/src/main/lib/agent-setup/agent-wrappers.test.ts` | Add wrapper passthrough test |
 | EDIT | `apps/desktop/docs/EXTERNAL_FILES.md` | Add `agy` row to `bin/` section |
-| NEW | `apps/desktop/plans/20260601-antigravity-builtin-agent.md` | Plan file documenting ship + deferred hooks |
+| NEW | `apps/desktop/plans/20260601-antigravity-builtin-agent.md` | Plan file documenting ship details |
 
 ## Verification
 
@@ -341,4 +339,4 @@ Manual verification on the desktop app:
 
 ## Open questions
 
-None at ship time. The deferred hook work may surface new questions when antigravity-cli ships a hook format.
+None at ship time.

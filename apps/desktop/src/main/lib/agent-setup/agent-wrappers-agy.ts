@@ -13,7 +13,7 @@ import { HOOKS_DIR } from "./paths";
 export const AGY_HOOK_SCRIPT_NAME = "agy-hook.sh";
 
 const AGY_HOOK_SIGNATURE = "# Superset agy hook";
-const AGY_HOOK_VERSION = "v2";
+const AGY_HOOK_VERSION = "v3";
 export const AGY_HOOK_MARKER = `${AGY_HOOK_SIGNATURE} ${AGY_HOOK_VERSION}`;
 
 const AGY_HOOK_TEMPLATE_PATH = path.join(
@@ -44,7 +44,72 @@ interface AgyHookSpec {
 	enabled?: boolean;
 }
 
-type AgyHooksJson = Record<string, AgyHookSpec>;
+type AgyHooksJson = Record<string, unknown>;
+
+function quoteShellPath(filePath: string): string {
+	return `'${filePath.replaceAll("'", "'\\''")}'`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isAgyHookCommand(value: unknown): value is AgyHookCommand {
+	return isRecord(value) && typeof value.command === "string";
+}
+
+function extractHookCommands(entries: unknown): string[] {
+	if (!Array.isArray(entries)) return [];
+	return entries
+		.filter(isAgyHookCommand)
+		.map((entry) => entry.command);
+}
+
+function extractToolHookCommands(entries: unknown): string[] {
+	if (!Array.isArray(entries)) return [];
+	const commands: string[] = [];
+
+	for (const entry of entries) {
+		if (isAgyHookCommand(entry)) {
+			commands.push(entry.command);
+			continue;
+		}
+		if (!isRecord(entry) || !Array.isArray(entry.hooks)) continue;
+
+		for (const hook of entry.hooks) {
+			if (isAgyHookCommand(hook)) {
+				commands.push(hook.command);
+			}
+		}
+	}
+
+	return commands;
+}
+
+function readExistingAgyHooksJson(globalPath: string): AgyHooksJson {
+	if (!fs.existsSync(globalPath)) {
+		return {};
+	}
+
+	const rawContent = fs.readFileSync(globalPath, "utf-8");
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(rawContent);
+	} catch (error) {
+		throw new Error(
+			"[agent-setup] Invalid ~/.gemini/config/hooks.json; refusing to overwrite malformed file.",
+			{ cause: error },
+		);
+	}
+
+	if (!isRecord(parsed)) {
+		throw new Error(
+			"[agent-setup] Expected ~/.gemini/config/hooks.json to contain a JSON object.",
+		);
+	}
+
+	return parsed;
+}
 
 export function getAgyHookScriptPath(): string {
 	return path.join(HOOKS_DIR, AGY_HOOK_SCRIPT_NAME);
@@ -74,38 +139,22 @@ export function getAgyHookScriptContent(): string {
  */
 export function getAgyHooksJsonContent(hookScriptPath: string): string {
 	const globalPath = getAgyHooksJsonPath();
-
-	let existing: AgyHooksJson = {};
-	try {
-		if (fs.existsSync(globalPath)) {
-			existing = JSON.parse(fs.readFileSync(globalPath, "utf-8"));
-		}
-	} catch {
-		console.warn(
-			"[agent-setup] Could not parse existing ~/.gemini/config/hooks.json, merging carefully",
-		);
-	}
+	const existing = readExistingAgyHooksJson(globalPath);
 
 	// Remove all entries whose commands reference our hook script (covers key
 	// renames and stale worktree paths from older installs).
 	for (const [key, spec] of Object.entries(existing)) {
-		const invocationCommands = [
-			...(spec.PreInvocation ?? []),
-			...(spec.PostInvocation ?? []),
-			...(spec.Stop ?? []),
-		].map((h) => h.command);
+		if (!isRecord(spec)) continue;
 
-		// Tool-use entries use matcher+hooks format now, but may be flat {command}
-		// in legacy installs — handle both defensively.
-		const toolEntries = [
-			...(spec.PreToolUse ?? []),
-			...(spec.PostToolUse ?? []),
-		] as Array<AgyToolHookEntry & { command?: string }>;
-		const toolCommands = toolEntries.flatMap((entry) =>
-			entry.command != null
-				? [entry.command]
-				: (entry.hooks ?? []).map((h) => h.command),
-		);
+		const invocationCommands = [
+			...extractHookCommands(spec.PreInvocation),
+			...extractHookCommands(spec.PostInvocation),
+			...extractHookCommands(spec.Stop),
+		];
+		const toolCommands = [
+			...extractToolHookCommands(spec.PreToolUse),
+			...extractToolHookCommands(spec.PostToolUse),
+		];
 
 		if (
 			[...invocationCommands, ...toolCommands].some((cmd) =>
@@ -119,17 +168,24 @@ export function getAgyHooksJsonContent(hookScriptPath: string): string {
 	// Write event type as $1 so the hook script doesn't need to infer it from
 	// the payload (which differs per hook proto type).
 	// Tool-use hooks require a matcher; invocation/stop hooks are flat commands.
+	const quotedHookScriptPath = quoteShellPath(hookScriptPath);
 	existing[AGY_HOOKS_JSON_KEY] = {
-		PreInvocation: [{ command: `${hookScriptPath} PreInvocation` }],
-		PostInvocation: [{ command: `${hookScriptPath} PostInvocation` }],
+		PreInvocation: [{ command: `${quotedHookScriptPath} PreInvocation` }],
+		PostInvocation: [{ command: `${quotedHookScriptPath} PostInvocation` }],
 		PreToolUse: [
-			{ matcher: ".*", hooks: [{ command: `${hookScriptPath} PreToolUse` }] },
+			{
+				matcher: ".*",
+				hooks: [{ command: `${quotedHookScriptPath} PreToolUse` }],
+			},
 		],
 		PostToolUse: [
-			{ matcher: ".*", hooks: [{ command: `${hookScriptPath} PostToolUse` }] },
+			{
+				matcher: ".*",
+				hooks: [{ command: `${quotedHookScriptPath} PostToolUse` }],
+			},
 		],
-		Stop: [{ command: `${hookScriptPath} Stop` }],
-	};
+		Stop: [{ command: `${quotedHookScriptPath} Stop` }],
+	} satisfies AgyHookSpec;
 
 	return JSON.stringify(existing, null, 2);
 }
