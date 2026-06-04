@@ -4,6 +4,10 @@ import os from "node:os";
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
+import {
+	buildSessionLocationKey,
+	SESSION_LOCATION_LOG_PATH,
+} from "./session-location-log";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedUtf8Locale: string | null = null;
@@ -475,6 +479,12 @@ export function buildTerminalEnv(params: {
 		SUPERSET_WORKSPACE_NAME: workspaceName || "",
 		SUPERSET_WORKSPACE_PATH: workspacePath || "",
 		SUPERSET_ROOT_PATH: rootPath || "",
+		SUPERSET_SESSION_LOCATIONS_PATH: SESSION_LOCATION_LOG_PATH,
+		SUPERSET_SESSION_LOCATION_KEY: buildSessionLocationKey({
+			workspaceId,
+			tabId,
+			paneId,
+		}),
 		SUPERSET_PORT: String(env.DESKTOP_NOTIFICATIONS_PORT),
 		// Environment identifier for dev/prod separation
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",
