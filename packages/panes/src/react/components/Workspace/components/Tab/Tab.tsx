@@ -19,6 +19,7 @@ import type {
 } from "../../../../types";
 import { Pane } from "./components/Pane";
 import { PANE_MIN_SIZE_CLASS_NAME } from "./constants";
+import { getLayoutToApply } from "./getLayoutToApply";
 
 interface TabProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -62,6 +63,16 @@ function SplitView<TData>({
 			onSplitResizeDragging?.(resizeSourceId, false);
 		};
 	}, [onSplitResizeDragging, resizeSourceId]);
+
+	// `defaultSize` is only honored on mount, so store-driven changes to the
+	// split percentage (e.g. "Equalize Pane Splits") must be pushed into the
+	// panel group imperatively. See getLayoutToApply for why we skip no-ops.
+	useEffect(() => {
+		const group = groupRef.current;
+		if (!group) return;
+		const next = getLayoutToApply(group.getLayout(), firstSize);
+		if (next) group.setLayout(next);
+	}, [firstSize]);
 
 	return (
 		<ResizablePanelGroup
