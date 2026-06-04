@@ -1,7 +1,4 @@
-import {
-	buildWrapperScript,
-	createWrapper,
-} from "./agent-wrappers-common";
+import { buildWrapperScript, createWrapper } from "./agent-wrappers-common";
 
 /**
  * Creates the Antigravity CLI wrapper that preserves Superset's terminal
