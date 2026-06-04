@@ -57,8 +57,11 @@ mock.module("node:os", () => ({
 }));
 
 const {
+	AGY_HOOK_MARKER,
 	AMP_PLUGIN_MARKER,
+	createAgyHookScript,
 	createAgyWrapper,
+	getAgyHooksJsonContent,
 	createAmpPlugin,
 	createAmpWrapper,
 	buildCodexWrapperExecLine,
@@ -575,6 +578,131 @@ exit 0
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 
+	it("creates agy hook script with correct marker", () => {
+		createAgyHookScript();
+
+		const scriptPath = path.join(TEST_HOOKS_DIR, "agy-hook.sh");
+		const script = readFileSync(scriptPath, "utf-8");
+
+		expect(script).toContain(AGY_HOOK_MARKER);
+		expect(script).not.toContain("{{MARKER}}");
+		expect(script).not.toContain("{{DEFAULT_PORT}}");
+		expect(script).toContain("PreInvocation");
+		expect(script).toContain("PostInvocation");
+		expect(script).toContain("PreToolUse");
+		expect(script).toContain("PostToolUse");
+	});
+
+	it("creates agy hooks.json with all lifecycle event arrays", () => {
+		const hookScriptPath = "/tmp/.superset-new/hooks/agy-hook.sh";
+		const content = getAgyHooksJsonContent(hookScriptPath);
+		const parsed = JSON.parse(content) as Record<
+			string,
+			{
+				PreInvocation?: Array<{ command: string }>;
+				PostInvocation?: Array<{ command: string }>;
+				PreToolUse?: Array<{
+					matcher: string;
+					hooks: Array<{ command: string }>;
+				}>;
+				PostToolUse?: Array<{
+					matcher: string;
+					hooks: Array<{ command: string }>;
+				}>;
+				Stop?: Array<{ command: string }>;
+			}
+		>;
+
+		const spec = parsed["superset-lifecycle"];
+		expect(spec).toBeDefined();
+		expect(spec.PreInvocation?.[0]?.command).toBe(
+			`${hookScriptPath} PreInvocation`,
+		);
+		expect(spec.PostInvocation?.[0]?.command).toBe(
+			`${hookScriptPath} PostInvocation`,
+		);
+		expect(spec.PreToolUse?.[0]?.hooks?.[0]?.command).toBe(
+			`${hookScriptPath} PreToolUse`,
+		);
+		expect(spec.PostToolUse?.[0]?.hooks?.[0]?.command).toBe(
+			`${hookScriptPath} PostToolUse`,
+		);
+		expect(spec.Stop?.[0]?.command).toBe(`${hookScriptPath} Stop`);
+	});
+
+	it("replaces stale agy hook commands from old superset paths", () => {
+		const agyHooksPath = path.join(
+			mockedHomeDir,
+			".gemini",
+			"config",
+			"hooks.json",
+		);
+		const staleHookPath = "/tmp/.superset-old/hooks/agy-hook.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/agy-hook.sh";
+
+		mkdirSync(path.dirname(agyHooksPath), { recursive: true });
+		writeFileSync(
+			agyHooksPath,
+			JSON.stringify(
+				{
+					"user-custom-hook": {
+						PreInvocation: [{ command: "/opt/custom-hook.sh" }],
+					},
+					"superset-lifecycle": {
+						PreInvocation: [{ command: `${staleHookPath} PreInvocation` }],
+						// Legacy flat format for tool hooks (written by older installs)
+						PreToolUse: [{ command: `${staleHookPath} PreToolUse` }],
+						Stop: [{ command: `${staleHookPath} Stop` }],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getAgyHooksJsonContent(currentHookPath);
+		writeFileSync(agyHooksPath, content);
+		const content2 = getAgyHooksJsonContent(currentHookPath);
+
+		const parsed = JSON.parse(content) as Record<
+			string,
+			{
+				PreInvocation?: Array<{ command: string }>;
+				PreToolUse?: Array<{
+					matcher: string;
+					hooks: Array<{ command: string }>;
+				}>;
+				PostToolUse?: Array<{
+					matcher: string;
+					hooks: Array<{ command: string }>;
+				}>;
+			}
+		>;
+
+		// Preserves user-defined entries
+		expect(parsed["user-custom-hook"]).toBeDefined();
+		expect(parsed["user-custom-hook"].PreInvocation?.[0]?.command).toBe(
+			"/opt/custom-hook.sh",
+		);
+
+		// Stale superset entry replaced with current path
+		const spec = parsed["superset-lifecycle"];
+		expect(spec).toBeDefined();
+		expect(spec.PreInvocation?.[0]?.command).toBe(
+			`${currentHookPath} PreInvocation`,
+		);
+		// Tool-use hooks now use matcher+hooks format
+		expect(spec.PreToolUse?.[0]?.hooks?.[0]?.command).toBe(
+			`${currentHookPath} PreToolUse`,
+		);
+		expect(spec.PostToolUse?.[0]?.hooks?.[0]?.command).toBe(
+			`${currentHookPath} PostToolUse`,
+		);
+		expect(JSON.stringify(parsed).includes(staleHookPath)).toBe(false);
+
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
 	it("replaces stale Cursor hook commands from old superset paths", () => {
 		const cursorHooksPath = path.join(mockedHomeDir, ".cursor", "hooks.json");
 		const staleHookPath =
@@ -759,6 +887,7 @@ exit 0
 	});
 
 	it("bumps hook script markers when hook semantics change", () => {
+		expect(AGY_HOOK_MARKER).toBe("# Superset agy hook v2");
 		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v2");
 		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v3");
 		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v3");
