@@ -1,3 +1,4 @@
+export { createAgyWrapper } from "./agent-wrappers-agy";
 export {
 	AMP_PLUGIN_FILE,
 	AMP_PLUGIN_MARKER,
