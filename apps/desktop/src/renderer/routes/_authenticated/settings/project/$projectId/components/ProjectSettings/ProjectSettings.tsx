@@ -27,6 +27,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
@@ -89,6 +90,7 @@ export function ProjectSettings({
 	visibleItems,
 }: ProjectSettingsProps) {
 	const utils = electronTrpc.useUtils();
+	const navigate = useNavigate();
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
@@ -133,6 +135,19 @@ export function ProjectSettings({
 		onSettled: () => {
 			utils.projects.get.invalidate({ id: projectId });
 			utils.workspaces.getAllGrouped.invalidate();
+		},
+	});
+
+	const closeProject = electronTrpc.projects.close.useMutation({
+		onSuccess: (result) => {
+			if (result.terminalWarning) {
+				toast.warning(result.terminalWarning);
+			}
+			utils.workspaces.getAllGrouped.invalidate();
+			navigate({ to: "/settings/projects" });
+		},
+		onError: (err) => {
+			toast.error(err.message || "Failed to remove project");
 		},
 	});
 
@@ -584,6 +599,56 @@ export function ProjectSettings({
 						</div>
 					</div>
 				</SettingsSection>
+
+				{isItemVisible(SETTING_ITEM_ID.PROJECT_DELETE, visibleItems) && (
+					<SettingsSection
+						title="Delete Project"
+						description="Removes this project and all of its workspaces from Superset. Your repository and files on disk are not touched."
+					>
+						<div className="flex items-center justify-end">
+							<AlertDialog>
+								<AlertDialogTrigger asChild>
+									<Button
+										type="button"
+										variant="destructive"
+										size="sm"
+										disabled={closeProject.isPending}
+									>
+										<LuTrash2 className="size-4" />
+										{closeProject.isPending ? "Removing…" : "Remove project"}
+									</Button>
+								</AlertDialogTrigger>
+								<AlertDialogContent>
+									<AlertDialogHeader>
+										<AlertDialogTitle>
+											Remove "{project.name}"?
+										</AlertDialogTitle>
+										<AlertDialogDescription>
+											This removes the project and all of its workspaces from
+											Superset. Your repository and files on disk are not
+											touched. This cannot be undone.
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+									<AlertDialogFooter>
+										<AlertDialogCancel disabled={closeProject.isPending}>
+											Cancel
+										</AlertDialogCancel>
+										<AlertDialogAction
+											onClick={(e) => {
+												e.preventDefault();
+												closeProject.mutate({ id: projectId });
+											}}
+											disabled={closeProject.isPending}
+											className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+										>
+											{closeProject.isPending ? "Removing…" : "Remove"}
+										</AlertDialogAction>
+									</AlertDialogFooter>
+								</AlertDialogContent>
+							</AlertDialog>
+						</div>
+					</SettingsSection>
+				)}
 			</div>
 		</div>
 	);

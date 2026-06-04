@@ -68,6 +68,7 @@ export const SETTING_ITEM_ID = {
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
 	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
 	PROJECT_ENV_VARS: "project-env-vars",
+	PROJECT_DELETE: "project-delete",
 
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
@@ -178,6 +179,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "shared",
 	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
 	[SETTING_ITEM_ID.PROJECT_ENV_VARS]: "v2",
+	// Both UIs can remove a project — v1 `ProjectSettings`, v2 `DeleteProjectSection`.
+	[SETTING_ITEM_ID.PROJECT_DELETE]: "shared",
 
 	[SETTING_ITEM_ID.API_KEYS_LIST]: "shared",
 	[SETTING_ITEM_ID.API_KEYS_GENERATE]: "shared",
@@ -1132,6 +1135,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"env",
 			"cloud",
 			"sandbox",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PROJECT_DELETE,
+		section: "project",
+		title: "Delete Project",
+		description: "Remove this project and its workspaces from Superset",
+		keywords: [
+			"project",
+			"delete",
+			"remove",
+			"close",
+			"destroy",
+			"trash",
+			"uninstall",
+			"delete project",
+			"remove project",
 		],
 	},
 	{

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	isItemAllowedForVariant,
 	SETTING_ITEM_ID,
 	type SettingsItem,
 	searchSettings,
@@ -61,5 +62,33 @@ describe("settings search - font settings", () => {
 
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
+	});
+});
+
+// Reproduces https://github.com/.../issues/5101 — "unable to remove v1 projects".
+// v2 projects expose a "Delete project" action, but v1 project settings had no
+// way to remove a project. The settings registry is the source of truth for the
+// v1/v2 settings audit, so a discoverable, v1-available project-delete item must
+// exist.
+describe("settings search - project deletion (issue #5101)", () => {
+	it('searching "delete project" returns a project-section item', () => {
+		const results = searchSettings("delete project");
+		const projectItems = results.filter((r) => r.section === "project");
+		expect(projectItems.length).toBeGreaterThan(0);
+	});
+
+	it('searching "remove project" returns a project-section item', () => {
+		const results = searchSettings("remove project");
+		const projectItems = results.filter((r) => r.section === "project");
+		expect(projectItems.length).toBeGreaterThan(0);
+	});
+
+	it("a project-delete item is available in the v1 desktop UI", () => {
+		const results = searchSettings("delete project");
+		const projectItems = results.filter((r) => r.section === "project");
+		const availableInV1 = projectItems.some((item) =>
+			isItemAllowedForVariant(item.id, false),
+		);
+		expect(availableInV1).toBe(true);
 	});
 });
