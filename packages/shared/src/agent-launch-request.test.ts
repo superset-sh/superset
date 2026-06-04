@@ -103,7 +103,8 @@ describe("buildPromptAgentLaunchRequest", () => {
 		if (request?.kind !== "terminal") {
 			throw new Error("Expected terminal launch request");
 		}
-		expect(request.terminal.command).toStartWith("amp <<'SUPERSET_PROMPT_");
+		expect(request.terminal.command).toStartWith("printf '%s' ");
+		expect(request.terminal.command).toContain("| amp");
 		expect(request.terminal.command).not.toContain("amp -x");
 	});
 });
