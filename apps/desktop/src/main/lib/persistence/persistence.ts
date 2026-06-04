@@ -7,18 +7,39 @@ import {
 	ensureSupersetHomeDirExists,
 	SUPERSET_HOME_DIR,
 } from "../app-environment";
+import { openSqliteWithRecovery } from "../sqlite-recovery";
 
 let dispose: (() => void) | null = null;
 let database: Database.Database | null = null;
 
 export function initTanstackDbPersistence(): void {
 	ensureSupersetHomeDirExists();
-	database = new Database(join(SUPERSET_HOME_DIR, "tanstack-db.sqlite"));
-	const persistence = createNodeSQLitePersistence({
-		database,
-		appliedTxPruneMaxRows: 1_000,
-		appliedTxPruneMaxAgeSeconds: 24 * 60 * 60,
-	});
+	const dbPath = join(SUPERSET_HOME_DIR, "tanstack-db.sqlite");
+
+	// tanstack-db.sqlite is a pure sync cache with no migrations, so a corrupt
+	// file (e.g. truncated by an interrupted auto-update) is safe to quarantine
+	// and rebuild from the server rather than crashing startup.
+	const { database: db, persistence } = openSqliteWithRecovery(
+		dbPath,
+		"tanstack-db",
+		() => {
+			const opened = new Database(dbPath);
+			try {
+				const persistence = createNodeSQLitePersistence({
+					database: opened,
+					appliedTxPruneMaxRows: 1_000,
+					appliedTxPruneMaxAgeSeconds: 24 * 60 * 60,
+				});
+				return { database: opened, persistence };
+			} catch (error) {
+				// Release the handle so the file can be renamed on Windows.
+				opened.close();
+				throw error;
+			}
+		},
+	);
+
+	database = db;
 	dispose = exposeElectronSQLitePersistence({ ipcMain, persistence });
 }
 
