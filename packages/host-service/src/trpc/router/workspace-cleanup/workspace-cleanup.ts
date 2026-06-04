@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -25,6 +26,18 @@ import { isMainWorkspace } from "./is-main-workspace";
  * after restart is safe.
  */
 const destroysInFlight = new Set<string>();
+
+/**
+ * `git worktree remove` fails with this when the path is no longer a
+ * registered worktree (its `.git/worktrees/<id>` metadata is gone) even
+ * though the directory may still exist on disk. This happens when a
+ * concurrent `git worktree prune` (run by `workspaces.create` on every
+ * invocation, including idempotent window opens/refreshes) or a prior
+ * partially-completed delete deregistered the worktree first. Retrying
+ * `git worktree remove` can never succeed in this state, so we treat it as
+ * already-deregistered and clean up the leftover directory ourselves.
+ */
+const NOT_A_WORKING_TREE = /is not a working tree/i;
 
 /** @internal — exposed for tests to introspect / clear the guard. */
 export const __testDestroysInFlight = destroysInFlight;
@@ -315,7 +328,23 @@ async function runDestroy(
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
 				if (!existsSync(local.worktreePath)) {
+					// Directory already gone — nothing left to remove.
 					worktreeRemoved = true;
+				} else if (NOT_A_WORKING_TREE.test(message)) {
+					// Deregistered but lingering: prune stale metadata, then remove
+					// the leftover directory directly so the delete is idempotent.
+					await git.raw(["worktree", "prune"]).catch(() => undefined);
+					try {
+						await rm(local.worktreePath, { recursive: true, force: true });
+						worktreeRemoved = true;
+					} catch (rmErr) {
+						const rmMessage =
+							rmErr instanceof Error ? rmErr.message : String(rmErr);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `Failed to remove leftover worktree directory at ${local.worktreePath}: ${rmMessage}`,
+						});
+					}
 				} else {
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",

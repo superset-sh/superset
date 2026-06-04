@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import {
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
@@ -32,6 +33,7 @@ interface ContextSpec {
 	revListCount?: string | (() => Promise<string>);
 	gitFactoryThrows?: boolean;
 	worktreeRemove?: () => Promise<unknown>;
+	worktreePrune?: () => Promise<unknown>;
 	branchDelete?: () => Promise<unknown>;
 	dbDeleteThrows?: boolean;
 	noApi?: boolean;
@@ -57,6 +59,7 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 			: (spec.revListCount ?? "0\n"),
 	);
 	const worktreeRemove = mock(spec.worktreeRemove ?? (async () => undefined));
+	const worktreePrune = mock(spec.worktreePrune ?? (async () => undefined));
 	const branchDelete = mock(spec.branchDelete ?? (async () => undefined));
 
 	const git = mock(async () => {
@@ -65,6 +68,8 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 			status,
 			raw: mock(async (args: string[]) => {
 				if (args[0] === "rev-list") return await revList();
+				if (args[0] === "worktree" && args[1] === "prune")
+					return await worktreePrune();
 				if (args[0] === "worktree") return await worktreeRemove();
 				if (args[0] === "branch") return await branchDelete();
 				throw new Error(`unexpected git raw: ${args.join(" ")}`);
@@ -389,6 +394,54 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 				}),
 			).rejects.toThrow(/Failed to remove worktree/i);
 			expect(cloudCallCount).toBe(0);
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	});
+
+	test("deregistered worktree ('is not a working tree') is cleaned up idempotently and delete proceeds", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		writeFileSync(join(tmp, ".keep"), "");
+		let cloudCallCount = 0;
+		let pruneCount = 0;
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: tmp,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: "/repo" },
+				cloudType: "worktree",
+				cloudDelete: async () => {
+					cloudCallCount += 1;
+				},
+				// Directory still on disk, but git no longer registers it — a
+				// concurrent prune/partial-delete deregistered it. Retrying
+				// `git worktree remove` can never succeed.
+				worktreeRemove: async () => {
+					throw new Error(`fatal: '${tmp}' is not a working tree`);
+				},
+				worktreePrune: async () => {
+					pruneCount += 1;
+				},
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(result.cloudDeleted).toBe(true);
+			expect(cloudCallCount).toBe(1);
+			expect(pruneCount).toBe(1);
+			// Leftover directory removed from disk.
+			expect(existsSync(tmp)).toBe(false);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
 		}
