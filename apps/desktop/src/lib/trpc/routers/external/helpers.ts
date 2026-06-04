@@ -83,11 +83,37 @@ const LINUX_CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 };
 
 /**
+ * IntelliJ-platform JetBrains IDEs. On macOS these must receive the target as
+ * a launcher CLI argument (`open -n ... --args <path>`) rather than as an
+ * "open document" Apple event (`open -a/-b <path>`); otherwise an already
+ * running instance just reopens its last project — e.g. the base repo instead
+ * of the git worktree (#5090). The native launcher detects a running instance
+ * and routes the open-project request to it, so `-n` doesn't spawn a duplicate
+ * IDE. Fleet is excluded — it ships a different launcher with its own CLI.
+ */
+const JETBRAINS_APPS = new Set<ExternalApp>([
+	"intellij",
+	"webstorm",
+	"pycharm",
+	"phpstorm",
+	"rubymine",
+	"goland",
+	"clion",
+	"rider",
+	"datagrip",
+	"appcode",
+	"rustrover",
+	"android-studio",
+]);
+
+/**
  * Get candidate commands to open a path in the specified app.
  * Returns an array of commands to try in order — for multi-edition apps (IntelliJ, PyCharm),
  * multiple candidates are returned so the caller can fall back if one isn't installed.
  *
  * macOS: Uses `open -b` (bundle ID) for multi-edition apps and `open -a` (app name) for others.
+ *        JetBrains IDEs additionally get `-n ... --args <path>` so the path is opened as a
+ *        project rather than ignored by an already-running instance (#5090).
  * Linux: Uses direct CLI commands (e.g. `code`, `cursor`, `zed`).
  */
 export function getAppCommand(
@@ -96,17 +122,28 @@ export function getAppCommand(
 	platform: NodeJS.Platform = process.platform,
 ): { command: string; args: string[] }[] | null {
 	if (platform === "darwin") {
+		const isJetBrains = JETBRAINS_APPS.has(app);
+
 		const bundleIds = BUNDLE_ID_CANDIDATES[app];
 		if (bundleIds) {
 			return bundleIds.map((id) => ({
 				command: "open",
-				args: ["-b", id, targetPath],
+				args: isJetBrains
+					? ["-n", "-b", id, "--args", targetPath]
+					: ["-b", id, targetPath],
 			}));
 		}
 
 		const appName = MACOS_APP_NAMES[app];
 		if (!appName) return null;
-		return [{ command: "open", args: ["-a", appName, targetPath] }];
+		return [
+			{
+				command: "open",
+				args: isJetBrains
+					? ["-n", "-a", appName, "--args", targetPath]
+					: ["-a", appName, targetPath],
+			},
+		];
 	}
 
 	// Linux (and other non-macOS platforms)
