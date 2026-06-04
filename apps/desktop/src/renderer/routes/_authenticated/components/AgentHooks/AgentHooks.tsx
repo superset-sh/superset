@@ -1,4 +1,5 @@
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useAutoAddLocalWorkspacesToSidebar } from "./hooks/useAutoAddLocalWorkspacesToSidebar";
 import { useCommandWatcher } from "./hooks/useCommandWatcher";
 import { useDefaultV2TerminalPresets } from "./hooks/useDefaultV2TerminalPresets";
 import { useDevicePresence } from "./hooks/useDevicePresence";
@@ -14,5 +15,6 @@ export function AgentHooks() {
 	// Seeds the default v2 terminal presets and warms the local host's agent
 	// config cache for Settings.
 	useDefaultV2TerminalPresets(activeHostUrl);
+	useAutoAddLocalWorkspacesToSidebar();
 	return null;
 }
