@@ -66,6 +66,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "agy",
+		label: "Antigravity",
+		description:
+			"Google's agentic development platform — multi-step reasoning, parallel sub-agents, and project context via AGENTS.md.",
+		command: "agy",
+		promptCommand: "agy -p",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "amp",
 		label: "Amp",
 		description:
