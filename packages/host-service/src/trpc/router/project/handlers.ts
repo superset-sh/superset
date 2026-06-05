@@ -10,8 +10,10 @@ import {
 	cloneRepoInto,
 	cloneTemplateInto,
 	initEmptyRepo,
+	initLocalRepoInPlace,
 	type ResolvedRepo,
 	resolveLocalRepo,
+	tryRevParseGitRoot,
 } from "./utils/resolve-repo";
 import { templateUrlFor } from "./utils/templates";
 
@@ -196,11 +198,28 @@ export async function createFromClone(
 	});
 }
 
+/**
+ * Resolve an existing repo, or — when `initIfNeeded` and the folder isn't a git
+ * repo yet — `git init` it in place first. The init branch only runs after the
+ * UI has confirmed intent with the user.
+ */
+async function resolveOrInitLocalRepo(
+	repoPath: string,
+	initIfNeeded: boolean,
+): Promise<ResolvedRepo> {
+	if (!initIfNeeded) return resolveLocalRepo(repoPath);
+	const root = await tryRevParseGitRoot(repoPath);
+	return root ? resolveLocalRepo(root) : initLocalRepoInPlace(repoPath);
+}
+
 export async function createFromImportLocal(
 	ctx: HostServiceContext,
-	args: { name: string; repoPath: string },
+	args: { name: string; repoPath: string; initIfNeeded?: boolean },
 ): Promise<CreateResult> {
-	const resolved = await resolveLocalRepo(args.repoPath);
+	const resolved = await resolveOrInitLocalRepo(
+		args.repoPath,
+		args.initIfNeeded ?? false,
+	);
 	return persistFromResolved(ctx, {
 		name: args.name,
 		resolved,

@@ -20,7 +20,7 @@ export interface ResolvedGitHubRepo extends ResolvedRepo {
 	parsed: ParsedGitHubRemote;
 }
 
-function validateDirectoryPath(path: string, label: string): void {
+export function validateDirectoryPath(path: string, label: string): void {
 	if (!existsSync(path)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -95,17 +95,30 @@ async function gitInitMainBranch(targetPath: string): Promise<void> {
 	}
 }
 
-async function revParseGitRoot(path: string): Promise<string> {
+/**
+ * Returns the canonical git root for `path`, or `null` when `path` is not
+ * inside a git work tree. Non-throwing variant of `revParseGitRoot` — callers
+ * that want to branch on "is this a git repo?" use this instead of catching.
+ */
+export async function tryRevParseGitRoot(path: string): Promise<string | null> {
 	try {
 		return (
 			await createUserSimpleGit(path).revparse(["--show-toplevel"])
 		).trim();
 	} catch {
+		return null;
+	}
+}
+
+async function revParseGitRoot(path: string): Promise<string> {
+	const root = await tryRevParseGitRoot(path);
+	if (root === null) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Not a git repository: ${path}`,
 		});
 	}
+	return root;
 }
 
 /**
@@ -127,6 +140,43 @@ export async function resolveLocalRepo(
 	if (!first) return { repoPath: gitRoot, remoteName: null, parsed: null };
 	const [firstName, firstParsed] = first;
 	return { repoPath: gitRoot, remoteName: firstName, parsed: firstParsed };
+}
+
+/**
+ * Initialize git in an EXISTING, populated folder (in place) and resolve it as
+ * a local-only project. Unlike `initEmptyRepo`, this neither mkdirs nor fails on
+ * a non-empty directory — it adopts the user's folder. Use for "import a folder
+ * that isn't a git repo yet"; the caller must have confirmed intent with the
+ * user first, since `git init` writes into their directory.
+ *
+ * Idempotent: if the path is already inside a git work tree (e.g. it was
+ * initialized between detection and this call, or it's nested under a parent
+ * repo) we skip init and just resolve the existing root.
+ *
+ * Like `initEmptyRepo`, creates an `--allow-empty` initial commit so
+ * `ensureMainWorkspaceStrict` has a real branch/HEAD to point at; a bare
+ * `git init` leaves an unborn branch.
+ */
+export async function initLocalRepoInPlace(
+	repoPath: string,
+): Promise<ResolvedRepo> {
+	validateDirectoryPath(repoPath, "Path");
+
+	const existingRoot = await tryRevParseGitRoot(repoPath);
+	if (existingRoot) return resolveLocalRepo(existingRoot);
+
+	await gitInitMainBranch(repoPath);
+	try {
+		await createUserSimpleGit(repoPath).raw([
+			"commit",
+			"--allow-empty",
+			"-m",
+			"Initial commit",
+		]);
+	} catch (err) {
+		throw asInitialCommitTrpcError(err);
+	}
+	return resolveLocalRepo(repoPath);
 }
 
 /**
