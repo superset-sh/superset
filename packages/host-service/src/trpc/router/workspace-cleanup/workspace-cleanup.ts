@@ -13,8 +13,8 @@ import type {
 } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
 import {
-	listGitWorktrees,
 	normalizeWorktreePath,
+	parseWorktreeList,
 } from "../workspace-creation/shared/worktree-list";
 import { isMainWorkspace } from "./is-main-workspace";
 
@@ -319,7 +319,20 @@ async function runDestroy(
 				.raw(["worktree", "remove", "--force", "--force", canonicalPath])
 				.catch(() => {});
 
-			if (await isRegisteredWorktree(git, local.worktreePath)) {
+			// A `worktree list` failure here means the post-remove state is
+			// unknown — treat that like "still registered" and block rather
+			// than risk orphaning disk past the cloud commit point.
+			let stillRegistered = true;
+			try {
+				stillRegistered = await isRegisteredWorktree(git, local.worktreePath);
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to verify worktree removal at ${local.worktreePath}: ${message}`,
+				});
+			}
+			if (stillRegistered) {
 				// git still tracks a live worktree here — removal genuinely
 				// failed. Keep the cloud row so the workspace stays visible and
 				// retryable instead of orphaning disk past the cloud commit point.
@@ -339,18 +352,18 @@ async function runDestroy(
 	// Keep this after the cloud commit point. If cloud delete fails, the
 	// workspace stays visible/retryable and the branch pointer remains intact.
 	if (git && local?.branch && input.deleteBranch) {
-		if (!(await localBranchExists(git, local.branch))) {
-			// Ref is already gone (renamed, pruned, or never materialized) —
-			// the deleteBranch goal is met, so don't surface a scary warning.
-			branchDeleted = true;
-		} else {
-			try {
+		try {
+			// An absent ref (renamed, pruned, or never materialized) already
+			// satisfies the goal, so skip the delete without a scary warning.
+			// A thrown git failure falls through to the warning below rather
+			// than being mistaken for "already gone".
+			if (await localBranchExists(git, local.branch)) {
 				await git.raw(["branch", "-D", local.branch]);
-				branchDeleted = true;
-			} catch (err) {
-				const message = err instanceof Error ? err.message : String(err);
-				warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
 			}
+			branchDeleted = true;
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
 		}
 	}
 
@@ -386,24 +399,26 @@ async function runDestroy(
 
 // Authoritative "is this still a worktree git tracks" check — reads git's own
 // registry (realpath-canonicalized) instead of parsing remove's error text.
+// Calls `git.raw` directly rather than the swallowing `listGitWorktrees` so a
+// failed `worktree list` throws (state unknown) instead of looking empty.
 async function isRegisteredWorktree(
 	git: Awaited<ReturnType<HostServiceContext["git"]>>,
 	worktreePath: string,
 ): Promise<boolean> {
 	const target = normalizeWorktreePath(worktreePath);
-	const worktrees = await listGitWorktrees(git);
-	return worktrees.some((w) => normalizeWorktreePath(w.path) === target);
+	const raw = await git.raw(["worktree", "list", "--porcelain"]);
+	return parseWorktreeList(raw).some(
+		(w) => normalizeWorktreePath(w.path) === target,
+	);
 }
 
-// Exit-code-based ref existence check — no message parsing.
+// `branch --list` exits 0 whether or not the branch exists (empty output when
+// absent), so a thrown error is a real git failure — not a missing ref — and
+// propagates instead of being misread as "already deleted".
 async function localBranchExists(
 	git: Awaited<ReturnType<HostServiceContext["git"]>>,
 	branch: string,
 ): Promise<boolean> {
-	try {
-		await git.raw(["show-ref", "--verify", "--quiet", `refs/heads/${branch}`]);
-		return true;
-	} catch {
-		return false;
-	}
+	const out = await git.raw(["branch", "--list", branch]);
+	return out.trim().length > 0;
 }

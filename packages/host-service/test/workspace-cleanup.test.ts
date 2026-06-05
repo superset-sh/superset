@@ -36,7 +36,7 @@ interface ContextSpec {
 	// A path still present here means git considers the worktree live.
 	worktreeList?: string;
 	branchDelete?: () => Promise<unknown>;
-	// Whether `git show-ref` finds the branch (defaults to present).
+	// Whether `git branch --list` finds the branch (defaults to present).
 	branchExists?: boolean;
 	dbDeleteThrows?: boolean;
 	noApi?: boolean;
@@ -64,10 +64,6 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 	const worktreeRemove = mock(spec.worktreeRemove ?? (async () => undefined));
 	const worktreeList = mock(async () => spec.worktreeList ?? "");
 	const branchDelete = mock(spec.branchDelete ?? (async () => undefined));
-	const branchExists = mock(async () => {
-		if (spec.branchExists === false) throw new Error("ref not found");
-		return "";
-	});
 
 	const git = mock(async () => {
 		if (spec.gitFactoryThrows) throw new Error("git factory boom");
@@ -80,8 +76,15 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 						? await worktreeList()
 						: await worktreeRemove();
 				}
-				if (args[0] === "show-ref") return await branchExists();
-				if (args[0] === "branch") return await branchDelete();
+				if (args[0] === "branch") {
+					// `branch --list <name>` is the existence probe: non-empty
+					// output means the ref exists. `branch -D` is the delete.
+					return args[1] === "--list"
+						? spec.branchExists === false
+							? ""
+							: `  ${args[2]}\n`
+						: await branchDelete();
+				}
 				throw new Error(`unexpected git raw: ${args.join(" ")}`);
 			}),
 		};
