@@ -43,6 +43,18 @@ export interface TerminalTransport {
 	_reconnectTimer: ReturnType<typeof setTimeout> | null;
 	/** Internal: reconnect attempt count for backoff. */
 	_reconnectAttempt: number;
+	/**
+	 * Internal: wall-clock-gap watchdog. After a host suspend (laptop sleep) the
+	 * socket can go half-open — the TCP connection is dead but `readyState` stays
+	 * OPEN and no `close` event ever fires — so the close-driven reconnect never
+	 * runs. This interval compares Date.now() between ticks; a gap far larger than
+	 * the interval means the process was suspended, so we recycle the dead socket.
+	 */
+	_watchdogTimer: ReturnType<typeof setInterval> | null;
+	/** Internal: Date.now() captured on the previous watchdog tick. */
+	_lastWatchdogTick: number;
+	/** Internal: bound resume listener (visibilitychange/online/focus), or null. */
+	_resumeListener: (() => void) | null;
 	/** Internal: title-change debounce timer; see TITLE_COALESCE_MS. */
 	_titleNotifyTimer: ReturnType<typeof setTimeout> | null;
 	/** The xterm instance used for reconnection. */
@@ -150,6 +162,9 @@ export function createTransport(): TerminalTransport {
 		_reconnectTimer: null,
 		_titleNotifyTimer: null,
 		_reconnectAttempt: 0,
+		_watchdogTimer: null,
+		_lastWatchdogTick: 0,
+		_resumeListener: null,
 		_terminal: null,
 		_hasReceivedBytes: false,
 		_terminated: false,
@@ -185,6 +200,110 @@ function cancelReconnect(transport: TerminalTransport) {
 		clearTimeout(transport._reconnectTimer);
 		transport._reconnectTimer = null;
 	}
+}
+
+// Watchdog cadence and the gap that counts as a suspend. The watchdog fires
+// every WATCHDOG_INTERVAL_MS; if two ticks are more than WATCHDOG_SUSPEND_GAP_MS
+// apart, timers stopped firing for a while (the process was suspended), which is
+// the signal that the socket may be half-open.
+const WATCHDOG_INTERVAL_MS = 5_000;
+const WATCHDOG_SUSPEND_GAP_MS = 30_000;
+
+function startWatchdog(transport: TerminalTransport) {
+	stopWatchdog(transport);
+	transport._lastWatchdogTick = Date.now();
+	transport._watchdogTimer = setInterval(() => {
+		const now = Date.now();
+		const gap = now - transport._lastWatchdogTick;
+		transport._lastWatchdogTick = now;
+		if (gap > WATCHDOG_SUSPEND_GAP_MS) {
+			recoverAfterSuspend(transport);
+		}
+	}, WATCHDOG_INTERVAL_MS);
+}
+
+function stopWatchdog(transport: TerminalTransport) {
+	if (transport._watchdogTimer) {
+		clearInterval(transport._watchdogTimer);
+		transport._watchdogTimer = null;
+	}
+}
+
+// Called when the wall-clock watchdog detects a suspend gap. The socket may be
+// half-open (readyState OPEN but the connection is dead and no `close` will
+// fire), so we drop it unconditionally and reconnect. The host keeps the PTY
+// alive, so re-attaching is cheap and the protocol replays missed output.
+function recoverAfterSuspend(transport: TerminalTransport) {
+	if (transport._terminated) return;
+	if (!transport.currentUrl || !transport._terminal) return;
+	const terminal = transport._terminal;
+	const url = transport.currentUrl;
+	transport._reconnectAttempt = 0;
+	cancelReconnect(transport);
+	if (transport.socket) {
+		const dead = transport.socket;
+		transport.socket = null;
+		try {
+			dead.close();
+		} catch {
+			// best-effort; the socket is already presumed dead.
+		}
+	}
+	setConnectionState(transport, "closed");
+	pushLog(
+		transport,
+		"warn",
+		`Detected wake from suspend; reconnecting to ${formatWsEndpoint(url)}.`,
+	);
+	connect(transport, terminal, url);
+}
+
+// DOM resume signals (tab visible again, network back, window refocused). Unlike
+// the watchdog these don't assume the socket is dead — they only reset backoff
+// and reconnect a socket that is already gone, matching the web TerminalConnection.
+function handleResume(transport: TerminalTransport) {
+	if (transport._terminated) return;
+	if (!transport.currentUrl || !transport._terminal) return;
+	transport._reconnectAttempt = 0;
+	const socket = transport.socket;
+	if (
+		socket &&
+		(socket.readyState === WebSocket.OPEN ||
+			socket.readyState === WebSocket.CONNECTING)
+	) {
+		return;
+	}
+	cancelReconnect(transport);
+	connect(transport, transport._terminal, transport.currentUrl);
+}
+
+function addResumeListeners(transport: TerminalTransport) {
+	if (transport._resumeListener) return;
+	const hasDom =
+		typeof document !== "undefined" || typeof window !== "undefined";
+	if (!hasDom) return;
+	const listener = () => handleResume(transport);
+	transport._resumeListener = listener;
+	if (typeof document !== "undefined") {
+		document.addEventListener("visibilitychange", listener);
+	}
+	if (typeof window !== "undefined") {
+		window.addEventListener("online", listener);
+		window.addEventListener("focus", listener);
+	}
+}
+
+function removeResumeListeners(transport: TerminalTransport) {
+	const listener = transport._resumeListener;
+	if (!listener) return;
+	if (typeof document !== "undefined") {
+		document.removeEventListener("visibilitychange", listener);
+	}
+	if (typeof window !== "undefined") {
+		window.removeEventListener("online", listener);
+		window.removeEventListener("focus", listener);
+	}
+	transport._resumeListener = null;
 }
 
 function formatWsEndpoint(wsUrl: string | null): string {
@@ -235,6 +354,11 @@ export function connect(
 	transport.currentUrl = wsUrl;
 	transport._terminal = terminal;
 	transport._terminated = false;
+	// Liveness/wake recovery: a wall-clock watchdog (catches half-open sockets
+	// after suspend) plus DOM resume listeners. Both are idempotent across the
+	// reconnect loop and are torn down in disconnect()/disposeTransport().
+	startWatchdog(transport);
+	addResumeListeners(transport);
 	setConnectionState(transport, "connecting");
 	const actualUrl = transport._hasReceivedBytes
 		? appendQueryParam(wsUrl, "replay", "0")
@@ -391,6 +515,8 @@ function attachSocketListeners(
 
 export function disconnect(transport: TerminalTransport) {
 	cancelReconnect(transport);
+	stopWatchdog(transport);
+	removeResumeListeners(transport);
 	if (transport.socket) {
 		transport.socket.close();
 		transport.socket = null;
@@ -430,6 +556,8 @@ export function sendDispose(transport: TerminalTransport) {
 
 export function disposeTransport(transport: TerminalTransport) {
 	cancelReconnect(transport);
+	stopWatchdog(transport);
+	removeResumeListeners(transport);
 	if (transport.socket) {
 		transport.socket.close();
 		transport.socket = null;
