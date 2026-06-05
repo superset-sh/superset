@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import {
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
@@ -389,6 +390,53 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 				}),
 			).rejects.toThrow(/Failed to remove worktree/i);
 			expect(cloudCallCount).toBe(0);
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	});
+
+	// Regression test for #4941: when a previous removal attempt partially
+	// completed (git metadata cleaned up but disk contents remain — e.g. a
+	// locked `.vite/` folder blocked the rm), the retry hits "is not a
+	// working tree" because git no longer recognizes the path. The
+	// directory is still on disk so existsSync returns true. Cleanup must
+	// finish the job by removing the orphaned directory itself instead of
+	// stranding the user with an undeletable workspace.
+	test("recovers from orphaned worktree directory after partial git removal (#4941)", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		// Simulate leftover files from a partial deletion (e.g. .vite/).
+		mkdirSync(join(tmp, ".vite"));
+		writeFileSync(join(tmp, ".vite", "deps.json"), "{}");
+		let cloudCallCount = 0;
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: tmp,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: "/repo" },
+				cloudType: "worktree",
+				cloudDelete: async () => {
+					cloudCallCount += 1;
+				},
+				worktreeRemove: async () => {
+					throw new Error(`fatal: '${tmp}' is not a working tree`);
+				},
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(cloudCallCount).toBe(1);
+			expect(existsSync(tmp)).toBe(false);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
 		}

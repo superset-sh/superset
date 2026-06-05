@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -316,6 +317,23 @@ async function runDestroy(
 				const message = err instanceof Error ? err.message : String(err);
 				if (!existsSync(local.worktreePath)) {
 					worktreeRemoved = true;
+				} else if (/is not a working tree/i.test(message)) {
+					// Git's metadata is gone (likely from a prior partial-cleanup
+					// attempt) but the directory is still on disk — typically
+					// leftover files like `.vite/` that were locked when the
+					// first rm ran. Finish the job ourselves so the user isn't
+					// stranded with an undeletable workspace. (#4941)
+					try {
+						await rm(local.worktreePath, { recursive: true, force: true });
+						worktreeRemoved = true;
+					} catch (rmErr) {
+						const rmMessage =
+							rmErr instanceof Error ? rmErr.message : String(rmErr);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `Failed to remove worktree at ${local.worktreePath}: ${rmMessage}`,
+						});
+					}
 				} else {
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",
