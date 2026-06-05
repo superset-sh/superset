@@ -41,7 +41,7 @@ function reclaimBloatedDatabaseFile(target: Database.Database): void {
 }
 
 function stripVolatileResumeFields(value: unknown): unknown {
-	if (value === null || typeof value !== "object") {
+	if (value === null || typeof value !== "object" || Array.isArray(value)) {
 		return value;
 	}
 	const { updatedAt, ...stableFields } = value as Record<string, unknown>;
@@ -98,16 +98,17 @@ function suppressIdleResumeWrites(
 					transaction: CommittedTransaction,
 				): Promise<void> => {
 					const resumeSignature = getRedundantResumeSignature(transaction);
-					if (resumeSignature !== null) {
-						if (
-							lastForwardedResumeByCollection.get(collectionId) ===
+					if (
+						resumeSignature !== null &&
+						lastForwardedResumeByCollection.get(collectionId) ===
 							resumeSignature
-						) {
-							return;
-						}
-						lastForwardedResumeByCollection.set(collectionId, resumeSignature);
+					) {
+						return;
 					}
 					await target.applyCommittedTx(collectionId, transaction);
+					if (resumeSignature !== null) {
+						lastForwardedResumeByCollection.set(collectionId, resumeSignature);
+					}
 				};
 			},
 		});
