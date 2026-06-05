@@ -21,6 +21,47 @@ import {
 	updateAtPath,
 } from "./utils";
 
+/** Upper bound on the recently-closed-tab stack, mirroring the v1 workspace. */
+const MAX_CLOSED_TABS = 20;
+
+function remapLayoutIds(
+	node: LayoutNode,
+	idMap: Map<string, string>,
+): LayoutNode {
+	if (node.type === "pane") {
+		return { type: "pane", paneId: idMap.get(node.paneId) ?? node.paneId };
+	}
+	return {
+		...node,
+		first: remapLayoutIds(node.first, idMap),
+		second: remapLayoutIds(node.second, idMap),
+	};
+}
+
+/**
+ * Clone a previously-closed tab with fresh tab/pane ids so reopening it can
+ * never collide with live ids (e.g. when the same snapshot is reopened twice).
+ */
+function cloneClosedTab<TData>(tab: Tab<TData>): Tab<TData> {
+	const idMap = new Map<string, string>();
+	const panes: Record<string, Pane<TData>> = {};
+	for (const pane of Object.values(tab.panes)) {
+		const newPaneId = generateId("pane");
+		idMap.set(pane.id, newPaneId);
+		panes[newPaneId] = { ...pane, id: newPaneId };
+	}
+
+	return {
+		...tab,
+		id: generateId("tab"),
+		layout: remapLayoutIds(tab.layout, idMap),
+		panes,
+		activePaneId: tab.activePaneId
+			? (idMap.get(tab.activePaneId) ?? null)
+			: null,
+	};
+}
+
 function buildPane<TData>(args: CreatePaneInput<TData>): Pane<TData> {
 	return {
 		id: args.id ?? generateId("pane"),
@@ -108,8 +149,17 @@ export type CreateTabInput<TData> = {
 };
 
 export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
+	// Always materialized inside the live store (the persisted shape keeps it
+	// optional for backwards compatibility).
+	closedTabs: Tab<TData>[];
+
 	addTab: (args: CreateTabInput<TData>) => void;
 	removeTab: (tabId: string) => void;
+	/**
+	 * Restore the most recently closed tab (if any), set it active, and return
+	 * `true`. Returns `false` when the closed-tab stack is empty.
+	 */
+	reopenClosedTab: () => boolean;
 	setActiveTab: (tabId: string) => void;
 	setTabTitleOverride: (args: {
 		tabId: string;
@@ -189,6 +239,7 @@ export function createWorkspaceStore<TData>(
 		version: 1,
 		tabs: options?.initialState?.tabs ?? [],
 		activeTabId: options?.initialState?.activeTabId ?? null,
+		closedTabs: options?.initialState?.closedTabs ?? [],
 
 		addTab: (args) => {
 			const builtPanes = args.panes.map(buildPane) as [
@@ -204,6 +255,8 @@ export function createWorkspaceStore<TData>(
 
 		removeTab: (tabId) => {
 			set((s) => {
+				const removed = s.tabs.find((t) => t.id === tabId);
+				if (!removed) return s;
 				const nextTabs = s.tabs.filter((t) => t.id !== tabId);
 				return {
 					tabs: nextTabs,
@@ -212,8 +265,24 @@ export function createWorkspaceStore<TData>(
 						s.activeTabId,
 						tabId,
 					),
+					closedTabs: [removed, ...s.closedTabs].slice(0, MAX_CLOSED_TABS),
 				};
 			});
+		},
+
+		reopenClosedTab: () => {
+			const [mostRecent] = get().closedTabs;
+			if (!mostRecent) return false;
+
+			set((s) => {
+				const restored = cloneClosedTab(mostRecent);
+				return {
+					tabs: [...s.tabs, restored],
+					activeTabId: restored.id,
+					closedTabs: s.closedTabs.slice(1),
+				};
+			});
+			return true;
 		},
 
 		setActiveTab: (tabId) => {
@@ -290,6 +359,7 @@ export function createWorkspaceStore<TData>(
 							s.activeTabId,
 							args.tabId,
 						),
+						closedTabs: [tab, ...s.closedTabs].slice(0, MAX_CLOSED_TABS),
 					};
 				}
 
@@ -877,12 +947,14 @@ export function createWorkspaceStore<TData>(
 								version: s.version,
 								tabs: s.tabs,
 								activeTabId: s.activeTabId,
+								closedTabs: s.closedTabs,
 							})
 						: next;
 				return {
 					version: resolved.version,
 					tabs: resolved.tabs,
 					activeTabId: resolved.activeTabId,
+					closedTabs: resolved.closedTabs ?? [],
 				};
 			});
 		},

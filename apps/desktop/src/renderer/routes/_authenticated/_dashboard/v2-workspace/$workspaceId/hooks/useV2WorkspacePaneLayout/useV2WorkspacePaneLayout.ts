@@ -83,6 +83,7 @@ export function useV2WorkspacePaneLayout() {
 				version: nextStore.version,
 				tabs: nextStore.tabs,
 				activeTabId: nextStore.activeTabId,
+				closedTabs: nextStore.closedTabs,
 			};
 			const nextSnapshot = getSnapshot(nextWorkspaceState);
 			if (nextSnapshot === syncStateRef.current.lastSyncedSnapshot) {

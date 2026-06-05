@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { WorkspaceState } from "../../types";
 import type { CreatePaneInput } from "./store";
 import { createWorkspaceStore } from "./store";
+import { findFirstPaneId } from "./utils/utils";
 
 interface TestData {
 	label: string;
@@ -716,5 +717,119 @@ describe("reorderTab", () => {
 		store.getState().reorderTab({ tabId: "t1", toIndex: 100 });
 
 		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t2", "t1"]);
+	});
+});
+
+// Reproduces https://github.com/.../issues/5125 — "Reopen Closed Tab" must
+// restore the most recently closed v2 tab from a bounded, persisted stack.
+describe("reopen closed tab", () => {
+	it("restores the most recently closed tab and activates it", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1", "kept")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2", "closed")] });
+
+		store.getState().removeTab("t2");
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1"]);
+
+		const reopened = store.getState().reopenClosedTab();
+
+		expect(reopened).toBe(true);
+		expect(store.getState().tabs).toHaveLength(2);
+		const restored = store
+			.getState()
+			.tabs.find((t) => t.id === store.getState().activeTabId);
+		expect(Object.values(restored?.panes ?? {})[0]?.data.label).toBe("closed");
+	});
+
+	it("returns false when there is nothing to reopen", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+
+		expect(store.getState().reopenClosedTab()).toBe(false);
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1"]);
+	});
+
+	it("assigns fresh tab/pane ids so reopening cannot collide with live tabs", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+
+		store.getState().removeTab("t1");
+		store.getState().reopenClosedTab();
+
+		const restored = store.getState().tabs[0];
+		expect(restored?.id).not.toBe("t1");
+		expect(restored && Object.keys(restored.panes)).not.toContain("p1");
+		// Layout leaf ids are remapped to match the restored pane ids.
+		expect(restored && findFirstPaneId(restored.layout)).toBe(
+			restored && Object.keys(restored.panes)[0],
+		);
+	});
+
+	it("reopens tabs in most-recent-first order", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1", "first")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2", "second")] });
+
+		store.getState().removeTab("t1");
+		store.getState().removeTab("t2");
+
+		store.getState().reopenClosedTab();
+		const firstRestored = store
+			.getState()
+			.tabs.find((t) => t.id === store.getState().activeTabId);
+		expect(Object.values(firstRestored?.panes ?? {})[0]?.data.label).toBe(
+			"second",
+		);
+
+		store.getState().reopenClosedTab();
+		const secondRestored = store
+			.getState()
+			.tabs.find((t) => t.id === store.getState().activeTabId);
+		expect(Object.values(secondRestored?.panes ?? {})[0]?.data.label).toBe(
+			"first",
+		);
+	});
+
+	it("bounds the closed-tab stack to the most recent 20 entries", () => {
+		const store = makeStore();
+		for (let i = 0; i < 25; i++) {
+			store.getState().addTab({ id: `t${i}`, panes: [tp(`p${i}`)] });
+			store.getState().removeTab(`t${i}`);
+		}
+
+		expect(store.getState().closedTabs).toHaveLength(20);
+		// Oldest five (t0..t4) were evicted; newest (t24) is at the top.
+		expect(store.getState().closedTabs[0]?.panes.p24).toBeDefined();
+	});
+
+	it("snapshots a tab when its last pane is closed via closePane", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1", "only")] });
+
+		store.getState().closePane({ tabId: "t1", paneId: "p1" });
+		expect(store.getState().tabs).toHaveLength(0);
+
+		expect(store.getState().reopenClosedTab()).toBe(true);
+		const restored = store.getState().tabs[0];
+		expect(Object.values(restored?.panes ?? {})[0]?.data.label).toBe("only");
+	});
+
+	it("persists the closed-tab stack through replaceState", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().removeTab("t1");
+
+		const snapshot: WorkspaceState<TestData> = {
+			version: 1,
+			tabs: store.getState().tabs,
+			activeTabId: store.getState().activeTabId,
+			closedTabs: store.getState().closedTabs,
+		};
+
+		const rehydrated = makeStore();
+		rehydrated.getState().replaceState(snapshot);
+
+		expect(rehydrated.getState().reopenClosedTab()).toBe(true);
+		expect(rehydrated.getState().tabs).toHaveLength(1);
 	});
 });

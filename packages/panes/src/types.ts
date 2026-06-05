@@ -37,4 +37,11 @@ export interface WorkspaceState<TData> {
 	version: 1;
 	tabs: Tab<TData>[];
 	activeTabId: string | null;
+	/**
+	 * Bounded, most-recent-first stack of recently closed tabs, persisted with
+	 * the pane layout so "Reopen Closed Tab" can recover a tab across the same
+	 * workspace session. Optional for backwards compatibility with older
+	 * persisted layouts that predate this field.
+	 */
+	closedTabs?: Tab<TData>[];
 }
