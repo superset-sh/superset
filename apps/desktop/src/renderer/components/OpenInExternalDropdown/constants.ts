@@ -58,8 +58,10 @@ export const IDE_OPTIONS: OpenInExternalAppOption[] = [
 		darkIcon: antigravityIcon,
 	},
 	{
+		// Windsurf was rebranded to Devin Desktop (June 2026). The `windsurf` id is
+		// retained as a stable key for persisted user preferences. See issue #5142.
 		id: "windsurf",
-		label: "Windsurf",
+		label: "Devin",
 		lightIcon: windsurfIcon,
 		darkIcon: windsurfWhiteIcon,
 	},

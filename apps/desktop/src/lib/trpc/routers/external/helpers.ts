@@ -9,7 +9,9 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	"vscode-insiders": "Visual Studio Code - Insiders",
 	cursor: "Cursor",
 	antigravity: "Antigravity",
-	windsurf: "Windsurf",
+	// Windsurf was rebranded to Devin Desktop (June 2026); the macOS app is now
+	// "Devin.app". The `windsurf` id is kept as a stable key for persisted prefs.
+	windsurf: "Devin",
 	zed: "Zed",
 	xcode: "Xcode",
 	iterm: "iTerm",
@@ -49,7 +51,7 @@ const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	"vscode-insiders": "code-insiders",
 	cursor: "cursor",
 	antigravity: "antigravity",
-	windsurf: "windsurf",
+	windsurf: null, // Post-rebrand: uses CLI candidates (devin, then legacy windsurf)
 	zed: "zed",
 	xcode: null, // macOS only
 	iterm: null, // macOS only
@@ -80,6 +82,9 @@ const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 const LINUX_CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	intellij: ["idea", "intellij-idea-ultimate", "intellij-idea-community"],
 	pycharm: ["pycharm", "pycharm-professional", "pycharm-community"],
+	// Devin Desktop (formerly Windsurf): prefer the new `devin` binary, fall back
+	// to the `windsurf` launcher that older installs still ship.
+	windsurf: ["devin", "windsurf"],
 };
 
 /**

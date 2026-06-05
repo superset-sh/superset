@@ -133,6 +133,26 @@ describe("getAppCommand", () => {
 		});
 	});
 
+	describe("Devin (formerly Windsurf)", () => {
+		// Windsurf was rebranded to Devin Desktop (June 2026). The macOS app is now
+		// "Devin.app", so `open -a Windsurf` no longer resolves and "Open in Windsurf"
+		// silently fails. See issue #5142.
+		test("maps the windsurf id to the Devin macOS app", () => {
+			const result = getAppCommand("windsurf", "/path/to/file");
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "Devin", "/path/to/file"] },
+			]);
+		});
+
+		test("opens via the devin CLI on Linux, falling back to legacy windsurf", () => {
+			const result = getAppCommand("windsurf", "/path/to/file", "linux");
+			expect(result).toEqual([
+				{ command: "devin", args: ["/path/to/file"] },
+				{ command: "windsurf", args: ["/path/to/file"] },
+			]);
+		});
+	});
+
 	test("preserves paths with spaces", () => {
 		const result = getAppCommand("cursor", "/path/with spaces/file.ts");
 		expect(result).toEqual([
