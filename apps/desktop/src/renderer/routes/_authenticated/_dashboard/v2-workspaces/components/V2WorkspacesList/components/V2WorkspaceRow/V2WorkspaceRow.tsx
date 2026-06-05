@@ -18,6 +18,7 @@ import {
 	LuMinus,
 	LuMonitor,
 	LuPlus,
+	LuTrash2,
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -30,8 +31,13 @@ import type {
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
+import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { V2_WORKSPACES_ROW_GRID } from "../../constants";
+import {
+	buildWorkspaceDeleteIntent,
+	isWorkspaceDeletable,
+} from "./workspaceRowDelete";
 
 interface V2WorkspaceRowProps {
 	workspace: AccessibleV2Workspace;
@@ -106,6 +112,18 @@ export function V2WorkspaceRow({
 			workspace.name,
 			workspace.projectId,
 		],
+	);
+
+	const canDelete = isWorkspaceDeletable(workspace);
+
+	const handleDelete = useCallback(
+		(event: React.MouseEvent) => {
+			event.stopPropagation();
+			useDeleteWorkspaceIntent
+				.getState()
+				.request(buildWorkspaceDeleteIntent(workspace));
+		},
+		[workspace],
 	);
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
@@ -257,6 +275,27 @@ export function V2WorkspaceRow({
 				>
 					{timeLabel} · {creatorLabel}
 				</span>
+
+				{canDelete ? (
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<Button
+								size="icon"
+								variant="ghost"
+								onClick={handleDelete}
+								aria-label="Delete workspace"
+								className={cn(
+									"absolute right-3 top-1/2 size-7 -translate-y-1/2 text-muted-foreground",
+									"opacity-0 transition-opacity",
+									"hover:text-destructive focus-visible:opacity-100 group-hover/row:opacity-100",
+								)}
+							>
+								<LuTrash2 className="size-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="left">Delete workspace</TooltipContent>
+					</Tooltip>
+				) : null}
 			</div>
 		</li>
 	);
