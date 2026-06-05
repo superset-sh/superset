@@ -6,7 +6,10 @@ import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import {
+	getVisibleSidebarWorkspaces,
+	isAutoIncludedLocalMainWorkspace,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
@@ -308,11 +311,12 @@ export function useDashboardSidebarData() {
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
 		);
-		const autoLocalMainWorkspaces = localMainWorkspaces.filter(
-			(workspace) =>
-				!localStateWorkspaceIds.has(workspace.id) &&
-				workspace.hostId === machineId &&
-				sidebarProjectIds.has(workspace.projectId),
+		const autoLocalMainWorkspaces = localMainWorkspaces.filter((workspace) =>
+			isAutoIncludedLocalMainWorkspace(workspace, {
+				localStateWorkspaceIds,
+				sidebarProjectIds,
+				machineId,
+			}),
 		);
 
 		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
