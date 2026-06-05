@@ -29,7 +29,6 @@ import {
 	CommandSeparator,
 } from "@superset/ui/command";
 import { Input } from "@superset/ui/input";
-import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -72,6 +71,7 @@ import { GitHubIssueLinkCommand } from "./components/GitHubIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
+import { resolveNewWorkspaceShortcut } from "./utils/resolveNewWorkspaceShortcut";
 import type { OpenableWorktreeAction } from "./utils/resolveOpenableWorktrees";
 import { resolveOpenableWorktrees } from "./utils/resolveOpenableWorktrees";
 
@@ -1061,9 +1061,18 @@ ${sanitizeText(truncatedBody)}`;
 	useEffect(() => {
 		if (!isNewWorkspaceModalOpen) return;
 		const handler = (e: KeyboardEvent) => {
-			if (!isEnterSubmit(e, { requireMod: true })) return;
+			const action = resolveNewWorkspaceShortcut(e);
+			if (!action) return;
 			e.preventDefault();
-			void handleCreate();
+			if (action === "create") {
+				void handleCreate();
+			} else if (action === "open-github-issue") {
+				// open-github-issue → open the GitHub issue picker popover.
+				setGitHubIssueLinkOpen(true);
+			} else {
+				// open-pr → open the pull-request picker popover.
+				setPRLinkOpen(true);
+			}
 		};
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);
@@ -1384,7 +1393,7 @@ ${sanitizeText(truncatedBody)}`;
 					</AnimatePresence>
 				</div>
 				<span className="text-[11px] text-muted-foreground/50">
-					{modKey}↵ to create
+					{modKey}I issue · {modKey}P PR · {modKey}↵ to create
 				</span>
 			</div>
 		</div>
