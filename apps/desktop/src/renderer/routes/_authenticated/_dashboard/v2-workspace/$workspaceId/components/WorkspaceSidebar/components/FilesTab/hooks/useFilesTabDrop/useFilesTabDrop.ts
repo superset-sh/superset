@@ -388,8 +388,9 @@ export function useFilesTabDrop({
 					} else {
 						added += 1;
 					}
-				} catch {
+				} catch (error) {
 					failed += 1;
+					console.error("[v2 FilesTab] upload failed", { relPath, error });
 				}
 			}
 
@@ -462,8 +463,12 @@ export function useFilesTabDrop({
 								try {
 									await writeOneFile(relPath, file, true);
 									replaced += 1;
-								} catch {
+								} catch (error) {
 									replaceFailed += 1;
+									console.error("[v2 FilesTab] replace failed", {
+										relPath,
+										error,
+									});
 								}
 							}
 							if (!bridge.isCurrent(versionToken)) return;
