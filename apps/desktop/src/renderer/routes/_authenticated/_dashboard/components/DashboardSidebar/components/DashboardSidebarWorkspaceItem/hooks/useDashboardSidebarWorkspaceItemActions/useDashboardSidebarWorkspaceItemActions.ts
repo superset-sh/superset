@@ -42,7 +42,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	);
 	const setManualUnread = useV2NotificationStore((s) => s.setManualUnread);
 	const isUnread = useV2WorkspaceIsUnread(workspaceId);
-	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
+	const { createSection, hideWorkspaceInSidebar, moveWorkspaceToSection } =
 		useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
@@ -82,7 +82,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleDeleted = () => {
-		removeWorkspaceFromSidebar(workspaceId);
+		hideWorkspaceInSidebar(workspaceId);
 	};
 
 	const handleRemoveFromSidebar = () => {

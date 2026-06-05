@@ -15,8 +15,7 @@ import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-fro
 export function RemoveFromSidebarMount() {
 	const target = useRemoveFromSidebarIntent((s) => s.target);
 	const clear = useRemoveFromSidebarIntent((s) => s.clear);
-	const { hideWorkspaceInSidebar, removeWorkspaceFromSidebar } =
-		useDashboardSidebarState();
+	const { hideWorkspaceInSidebar } = useDashboardSidebarState();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
 	const handleOpenChange = useCallback(
@@ -29,19 +28,9 @@ export function RemoveFromSidebarMount() {
 	const handleConfirm = useCallback(() => {
 		if (!target) return;
 		navigateAwayFromWorkspace(target.workspaceId);
-		if (target.isMain) {
-			hideWorkspaceInSidebar(target.workspaceId, target.projectId);
-		} else {
-			removeWorkspaceFromSidebar(target.workspaceId);
-		}
+		hideWorkspaceInSidebar(target.workspaceId);
 		clear();
-	}, [
-		target,
-		navigateAwayFromWorkspace,
-		hideWorkspaceInSidebar,
-		removeWorkspaceFromSidebar,
-		clear,
-	]);
+	}, [target, navigateAwayFromWorkspace, hideWorkspaceInSidebar, clear]);
 
 	return (
 		<AlertDialog open={!!target} onOpenChange={handleOpenChange}>

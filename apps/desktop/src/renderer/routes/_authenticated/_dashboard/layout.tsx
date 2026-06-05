@@ -53,7 +53,7 @@ function DashboardLayout() {
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const collections = useCollections();
-	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
+	const { hideWorkspaceInSidebar } = useDashboardSidebarState();
 	useDevSeedV2Sidebar();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
@@ -224,7 +224,7 @@ function DashboardLayout() {
 						);
 					}}
 					onDeleted={() => {
-						removeWorkspaceFromSidebar(deleteTarget.workspaceId);
+						hideWorkspaceInSidebar(deleteTarget.workspaceId);
 						setDeleteTarget(null);
 					}}
 				/>
