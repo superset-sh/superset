@@ -55,8 +55,8 @@ superset agents run --workspace <id> --agent claude --prompt "..."
 `superset workspaces open <id>` opens a **workspace** in the desktop app — it fires the deep link `superset://v2-workspace/<id>`; add `--print` to print the URL instead.
 
 ```bash
-superset workspaces open <workspace-id>
-superset workspaces open <workspace-id> --print
+superset workspaces open <workspaceId>
+superset workspaces open <workspaceId> --print
 ```
 
 A session you start with `agents run` syncs to the desktop app but has **no pane** in the workspace view until you navigate to it, and there is no session list — so a freshly created session is effectively invisible until opened. `workspaces open` targets only the workspace and cannot focus a session, so build the deep link yourself and append a query param chosen by the session `kind`:
@@ -68,10 +68,10 @@ A session you start with `agents run` syncs to the desktop app but has **no pane
 
 ```bash
 # chat session (agent: superset)
-open "superset://v2-workspace/<workspace-id>?chatSessionId=<sessionId>"
+open "superset://v2-workspace/<workspaceId>?chatSessionId=<sessionId>"
 
 # terminal session (agent: claude, codex, …)
-open "superset://v2-workspace/<workspace-id>?terminalId=<sessionId>"
+open "superset://v2-workspace/<workspaceId>?terminalId=<sessionId>"
 
 # from inside a workspace, open your own terminal via the env vars
 open "superset://v2-workspace/$SUPERSET_WORKSPACE_ID?terminalId=$SUPERSET_TERMINAL_ID"

@@ -640,11 +640,17 @@ chosen by the session `kind` returned by `agents run`:
 | `terminal` | `claude`, `codex` | `?terminalId=<sessionId>` |
 
 ```bash
+# Run the agent with --json, then pull kind + sessionId out of the payload:
+session=$(superset agents run --workspace ws_… --agent claude --prompt "…" --json)
+kind=$(echo "$session" | jq -r '.kind')           # "chat" or "terminal"
+sessionId=$(echo "$session" | jq -r '.sessionId')
+
+# Open the session using the query param that matches its kind:
 # chat session (kind: "chat")
-open "superset://v2-workspace/<workspaceId>?chatSessionId=<sessionId>"
+open "superset://v2-workspace/<workspaceId>?chatSessionId=$sessionId"
 
 # terminal session (kind: "terminal")
-open "superset://v2-workspace/<workspaceId>?terminalId=<sessionId>"
+open "superset://v2-workspace/<workspaceId>?terminalId=$sessionId"
 ```
 
 Append `&focusRequestId=<unique>` to force a re-focus when opening the same link
