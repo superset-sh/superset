@@ -67,7 +67,7 @@ const Alerter = () => {
 			open={isOpen}
 			onOpenChange={(open) => !open && handleClose()}
 		>
-			<DialogContent>
+			<DialogContent showCloseButton={false}>
 				<DialogHeader>
 					<DialogTitle>{alertOptions.title}</DialogTitle>
 					<DialogDescription>{alertOptions.description}</DialogDescription>

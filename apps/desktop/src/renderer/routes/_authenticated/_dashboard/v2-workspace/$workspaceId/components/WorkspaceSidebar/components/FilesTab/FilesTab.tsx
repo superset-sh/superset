@@ -32,6 +32,7 @@ import { createPierreTreeStyle } from "renderer/lib/pierreTree";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { PierreRowContextMenu } from "../PierreRowContextMenu";
 import { FileMenuItems } from "./components/FileMenuItems";
+import { FilesTabDropOverlay } from "./components/FilesTabDropOverlay";
 import { FilesTabHeaderButton } from "./components/FilesTabHeaderButton";
 import { FolderMenuItems } from "./components/FolderMenuItems";
 import {
@@ -41,6 +42,7 @@ import {
 } from "./constants";
 import { useFilesTabActions } from "./hooks/useFilesTabActions";
 import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
+import { useFilesTabDrop } from "./hooks/useFilesTabDrop";
 import { buildPierreGitStatus } from "./utils/buildPierreGitStatus";
 import { stripTrailingSlash, toAbs, toRel } from "./utils/treePath";
 
@@ -140,6 +142,7 @@ export function FilesTab({
 			selectedFilePath,
 			onSelectFile,
 		});
+	const drop = useFilesTabDrop({ model, bridge, rootPath, workspaceId });
 
 	// Push live git status updates into Pierre.
 	useEffect(() => {
@@ -265,9 +268,13 @@ export function FilesTab({
 	}
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external file upload
 		<div
-			className="flex h-full min-h-0 flex-col overflow-hidden"
+			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
+			onDragOver={drop.onDragOver}
+			onDragLeave={drop.onDragLeave}
+			onDrop={drop.onDrop}
 		>
 			<ShadowClickHint hint={filePolicy.hint} findRow={findFileRow}>
 				<PierreFileTree
@@ -305,6 +312,8 @@ export function FilesTab({
 					renderContextMenu={renderContextMenu}
 				/>
 			</ShadowClickHint>
+
+			{drop.dropTarget && <FilesTabDropOverlay target={drop.dropTarget} />}
 		</div>
 	);
 }

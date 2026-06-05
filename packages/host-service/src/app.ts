@@ -17,13 +17,6 @@ import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
-import { registerRemoteControlRoute } from "./terminal/remote-control/route";
-import {
-	initRemoteControlSecret,
-	revokeAllSessions,
-	startRemoteControlExpirySweep,
-	stopRemoteControlExpirySweep,
-} from "./terminal/remote-control/session-manager";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import { TerminalAgentStore } from "./terminal-agents";
 import { appRouter } from "./trpc/router";
@@ -40,7 +33,6 @@ export interface CreateAppOptions {
 		cloudApiUrl: string;
 		migrationsFolder: string;
 		allowedOrigins: string[];
-		hostServiceSecret?: string;
 	};
 	providers: {
 		auth: ApiAuthProvider;
@@ -161,11 +153,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
-	// `/remote-control/*` does NOT use `wsAuth` — viewers come in via the
-	// relay tunnel (already PSK-authenticated end-to-end) and authenticate
-	// per-session with an HMAC `remoteControlToken` validated by
-	// `authenticateSession` inside the route handler. The HMAC is the
-	// credential we ship to the browser, not the host PSK.
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerWorkspaceTerminalRoute({
@@ -174,12 +161,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		upgradeWebSocket,
 	});
-
-	if (config.hostServiceSecret) {
-		initRemoteControlSecret(config.hostServiceSecret);
-		startRemoteControlExpirySweep();
-		registerRemoteControlRoute({ app, upgradeWebSocket });
-	}
 
 	app.use(
 		"/trpc/*",
@@ -208,16 +189,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Each step is best-effort and isolated: a throw in one cleanup must
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
-		try {
-			stopRemoteControlExpirySweep();
-		} catch (err) {
-			console.warn("[host-service] stopRemoteControlExpirySweep failed:", err);
-		}
-		try {
-			revokeAllSessions("host-shutdown");
-		} catch (err) {
-			console.warn("[host-service] revokeAllSessions failed:", err);
-		}
 		try {
 			pullRequestRuntime.stop();
 		} catch (err) {
