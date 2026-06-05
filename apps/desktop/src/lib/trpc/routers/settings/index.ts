@@ -45,6 +45,7 @@ import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_HIDE_REMOTE_PORTS,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
@@ -934,6 +935,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { showResourceMonitor: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getHideRemotePorts: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.hideRemotePorts ?? DEFAULT_HIDE_REMOTE_PORTS;
+		}),
+
+		setHideRemotePorts: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, hideRemotePorts: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { hideRemotePorts: input.enabled },
 					})
 					.run();
 

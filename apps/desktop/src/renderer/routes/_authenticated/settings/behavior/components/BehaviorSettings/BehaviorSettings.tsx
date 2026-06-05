@@ -36,6 +36,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showHideRemotePorts = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_HIDE_REMOTE_PORTS,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -124,6 +128,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 		},
 	);
+
+	const { data: hideRemotePorts, isLoading: isHideRemotePortsLoading } =
+		electronTrpc.settings.getHideRemotePorts.useQuery();
+	const setHideRemotePorts =
+		electronTrpc.settings.setHideRemotePorts.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getHideRemotePorts.cancel();
+				const previous = utils.settings.getHideRemotePorts.getData();
+				utils.settings.getHideRemotePorts.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getHideRemotePorts.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getHideRemotePorts.invalidate();
+			},
+		});
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -224,6 +251,33 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+
+				{showHideRemotePorts && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="hide-remote-ports"
+								className="text-sm font-medium"
+							>
+								Hide remote ports
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Hide ports from remote hosts in the sidebar Ports list, showing
+								only ports on this device
+							</p>
+						</div>
+						<Switch
+							id="hide-remote-ports"
+							checked={hideRemotePorts ?? false}
+							onCheckedChange={(enabled) =>
+								setHideRemotePorts.mutate({ enabled })
+							}
+							disabled={
+								isHideRemotePortsLoading || setHideRemotePorts.isPending
+							}
 						/>
 					</div>
 				)}

@@ -234,6 +234,7 @@ export const settings = sqliteTable("settings", {
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",
 	}),
+	hideRemotePorts: integer("hide_remote_ports", { mode: "boolean" }),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

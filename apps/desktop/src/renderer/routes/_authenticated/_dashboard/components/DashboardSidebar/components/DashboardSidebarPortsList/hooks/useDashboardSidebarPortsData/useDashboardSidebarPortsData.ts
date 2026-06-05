@@ -6,6 +6,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -37,6 +38,8 @@ export function useDashboardSidebarPortsData(): {
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
+	const { data: hideRemotePorts = false } =
+		electronTrpc.settings.getHideRemotePorts.useQuery();
 
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
@@ -150,14 +153,15 @@ export function useDashboardSidebarPortsData(): {
 		};
 	}, [hostsToQuery, queryClient]);
 
-	const workspacePortGroups = useMemo(
-		() =>
-			groupDashboardSidebarPorts({
-				hostPortResults: queries.map((query) => query.data),
-				workspaces,
-			}),
-		[queries, workspaces],
-	);
+	const workspacePortGroups = useMemo(() => {
+		const groups = groupDashboardSidebarPorts({
+			hostPortResults: queries.map((query) => query.data),
+			workspaces,
+		});
+		return hideRemotePorts
+			? groups.filter((group) => group.hostType === "local-device")
+			: groups;
+	}, [queries, workspaces, hideRemotePorts]);
 
 	const totalPortCount = workspacePortGroups.reduce(
 		(sum, group) => sum + group.ports.length,
@@ -168,6 +172,7 @@ export function useDashboardSidebarPortsData(): {
 		if (!query.isError && !query.isRefetchError) return [];
 		const host = hostsToQuery[index];
 		if (!host) return [];
+		if (hideRemotePorts && host.hostType === "remote-device") return [];
 		return [
 			{
 				hostId: host.machineId,

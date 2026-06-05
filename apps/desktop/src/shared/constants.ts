@@ -52,6 +52,7 @@ export const DEFAULT_TELEMETRY_ENABLED = true;
 export const DEFAULT_SHOW_RESOURCE_MONITOR = true;
 export const DEFAULT_OPEN_LINKS_IN_APP = false;
 export const DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY = false;
+export const DEFAULT_HIDE_REMOTE_PORTS = false;
 
 // External links (documentation, help resources, etc.)
 export const EXTERNAL_LINKS = {
