@@ -1,4 +1,5 @@
 import type { FileTree } from "@pierre/trees";
+import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useState } from "react";
@@ -339,28 +340,44 @@ export function useFilesTabDrop({
 				}
 			}
 
+			// Write a single dropped file. Returns "exists" when the host reports a
+			// name collision (only possible with overwrite off); throws otherwise.
+			const writeOneFile = async (
+				relPath: string,
+				file: File,
+				overwrite: boolean,
+			): Promise<"ok" | "exists"> => {
+				const data = await fileToBase64(file);
+				const result = await writeFile.mutateAsync({
+					workspaceId,
+					absolutePath: `${destDirAbs}/${relPath}`,
+					content: { kind: "base64", data },
+					options: { create: true, overwrite },
+				});
+				if (result && result.ok === false) {
+					if (!overwrite && result.reason === "exists") return "exists";
+					throw new Error(result.reason ?? "write failed");
+				}
+				return "ok";
+			};
+
 			// Upload one file at a time: encoding everything up front would hold
 			// every base64 payload (~1.33x each) in memory at once, and a per-file
 			// version check lets a workspace switch stop the remaining writes
-			// instead of dribbling them into a worktree the user has left.
+			// instead of dribbling them into a worktree the user has left. Files
+			// whose names already exist are collected (not overwritten) and the
+			// user is asked to confirm replacement below.
 			let added = 0;
 			let failed = 0;
+			const collisions: DroppedFile[] = [];
 			for (const { relPath, file } of tree.files) {
 				if (!bridge.isCurrent(versionToken)) break;
 				try {
-					const data = await fileToBase64(file);
-					const result = await writeFile.mutateAsync({
-						workspaceId,
-						absolutePath: `${destDirAbs}/${relPath}`,
-						content: { kind: "base64", data },
-						options: { create: true, overwrite: false },
-					});
-					// The host resolves "already exists" to `{ ok: false }` rather
-					// than throwing — surface it as a failure for this file.
-					if (result && result.ok === false) {
-						throw new Error(result.reason ?? "write failed");
+					if ((await writeOneFile(relPath, file, false)) === "exists") {
+						collisions.push({ relPath, file });
+					} else {
+						added += 1;
 					}
-					added += 1;
 				} catch {
 					failed += 1;
 				}
@@ -411,6 +428,54 @@ export function useFilesTabDrop({
 				}
 				void bridge.fetchDir(dirRel);
 			}
+
+			// Name collisions: the host left these untouched (overwrite off), so
+			// confirm before replacing. Replacing only overwrites existing rows —
+			// no tree-shape change — so no refresh is needed afterward.
+			if (collisions.length === 0) return;
+			const many = collisions.length > 1;
+			const firstName = basename(collisions[0].relPath);
+			alert({
+				title: many
+					? `${collisions.length} files already exist in ${where}. Do you want to replace them?`
+					: `A file named '${firstName}' already exists in ${where}. Do you want to replace it?`,
+				description: "This action is irreversible.",
+				actions: [
+					{
+						label: many ? "Replace All" : "Replace",
+						variant: "destructive",
+						onClick: async () => {
+							let replaced = 0;
+							let replaceFailed = 0;
+							for (const { relPath, file } of collisions) {
+								if (!bridge.isCurrent(versionToken)) break;
+								try {
+									await writeOneFile(relPath, file, true);
+									replaced += 1;
+								} catch {
+									replaceFailed += 1;
+								}
+							}
+							if (!bridge.isCurrent(versionToken)) return;
+							if (replaced > 0) {
+								toast.success(
+									replaced === 1
+										? `Replaced 1 file in ${where}`
+										: `Replaced ${replaced} files in ${where}`,
+								);
+							}
+							if (replaceFailed > 0) {
+								toast.error(
+									replaceFailed === 1
+										? "Failed to replace 1 file"
+										: `Failed to replace ${replaceFailed} files`,
+								);
+							}
+						},
+					},
+					{ label: "Cancel", variant: "ghost" },
+				],
+			});
 		},
 		[model, bridge, writeFile, createDirectory, rootPath, workspaceId],
 	);
