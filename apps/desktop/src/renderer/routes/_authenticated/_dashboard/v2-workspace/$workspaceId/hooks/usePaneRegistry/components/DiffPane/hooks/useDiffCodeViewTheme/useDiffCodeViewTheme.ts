@@ -77,6 +77,14 @@ export function useDiffCodeViewTheme() {
 			maxLineDiffLength: 5_000,
 			unsafeCSS: `
 				* { user-select: text; -webkit-user-select: text; }
+				/* Query container for slotted PR-comment bubbles
+				 * (.diff-comment): lets them size to the visible code
+				 * column via 100cqi instead of overflowing the pane. The
+				 * cell width comes from the grid, so inline-size
+				 * containment doesn't collapse it. */
+				[data-line-annotation] {
+					container-type: inline-size;
+				}
 				/* Container query host for the "Viewed" label visibility rule
 				 * (see DiffHeaderMetadata: @min-[380px]/diff-header:inline). */
 				[data-diffs-header='default'] {
