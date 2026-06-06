@@ -123,10 +123,10 @@ export function TabItem<TData>({
 						isDragging && "opacity-30",
 					)}
 					onMouseDown={(event) => {
-						if (event.button === 0) {
-							event.preventDefault();
-							onSelect();
-						}
+						// No preventDefault: this node is the react-dnd drag source, and
+						// preventing the mousedown default cancels the native HTML5 drag.
+						// Focus is kept off the tab via the non-focusable title <div> below.
+						if (event.button === 0) onSelect();
 					}}
 				>
 					{isEditing ? (
@@ -147,7 +147,8 @@ export function TabItem<TData>({
 								open={isDragging ? false : undefined}
 							>
 								<TooltipTrigger asChild>
-									<button
+									{/* biome-ignore lint/a11y/noStaticElementInteractions: tab selection is handled by the wrapper's mousedown; this title element is intentionally a non-focusable div so clicking a tab never steals focus from the active pane (issue #4967) */}
+									<div
 										className="flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-xs transition-colors"
 										onAuxClick={(event) => {
 											if (event.button === 1) {
@@ -156,13 +157,12 @@ export function TabItem<TData>({
 											}
 										}}
 										onDoubleClick={startEditing}
-										type="button"
 									>
 										{icon && <span className="shrink-0">{icon}</span>}
 										<OverflowFadeText className="flex-1">
 											{title}
 										</OverflowFadeText>
-									</button>
+									</div>
 								</TooltipTrigger>
 								<TooltipContent side="bottom" showArrow={false}>
 									{title}
