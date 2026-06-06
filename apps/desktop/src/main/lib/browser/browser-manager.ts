@@ -87,6 +87,30 @@ class BrowserManager extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Unregister only the panes hosted inside a specific window's webContents.
+	 * The owning window is derived via `webContents.hostWebContents`, which
+	 * Electron sets on every <webview> child.
+	 */
+	unregisterAllForWindow(hostWebContentsId: number): void {
+		for (const [paneId, paneWcId] of [...this.paneWebContentsIds]) {
+			const paneWc = webContents.fromId(paneWcId);
+			// Treat destroyed webContents as belonging to the closing window: their
+			// host is no longer reachable, and leaving stale entries would leak.
+			if (!paneWc || paneWc.isDestroyed()) {
+				this.unregister(paneId);
+				continue;
+			}
+			// hostWebContents goes null mid-teardown — ownership can no longer be
+			// attributed, so clean up here too. Live panes in other windows keep a
+			// non-null host and are unaffected; a remount re-registers anyway.
+			const hostId = paneWc.hostWebContents?.id;
+			if (hostId == null || hostId === hostWebContentsId) {
+				this.unregister(paneId);
+			}
+		}
+	}
+
 	getWebContents(paneId: string): Electron.WebContents | null {
 		const id = this.paneWebContentsIds.get(paneId);
 		if (id == null) return null;

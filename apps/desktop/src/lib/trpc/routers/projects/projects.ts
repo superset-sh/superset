@@ -13,7 +13,6 @@ import {
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNotNull, isNull, not } from "drizzle-orm";
-import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -303,7 +302,7 @@ function extractRepoName(urlInput: string): string | null {
 }
 
 /** Create the tRPC router for project CRUD, branch listing, and git operations. */
-export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
+export const createProjectsRouter = () => {
 	return router({
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
@@ -556,12 +555,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					defaultPath: z.string().optional(),
 				}),
 			)
-			.mutation(async ({ input }) => {
-				const window = getWindow();
-				if (!window) {
+			.mutation(async ({ ctx, input }) => {
+				if (!ctx.window) {
 					return { canceled: true as const, path: null };
 				}
-				const result = await dialog.showOpenDialog(window, {
+				const result = await dialog.showOpenDialog(ctx.window, {
 					properties: ["openDirectory", "createDirectory"],
 					title: "Select Directory",
 					defaultPath: input.defaultPath,
@@ -1061,58 +1059,59 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				},
 			),
 
-		openNew: publicProcedure.mutation(async (): Promise<OpenNewMultiResult> => {
-			const window = getWindow();
-			if (!window) {
-				return { canceled: false, error: "No window available" };
-			}
-			const result = await dialog.showOpenDialog(window, {
-				properties: ["openDirectory", "multiSelections"],
-				title: "Open Project",
-			});
+		openNew: publicProcedure.mutation(
+			async ({ ctx }): Promise<OpenNewMultiResult> => {
+				if (!ctx.window) {
+					return { canceled: false, error: "No window available" };
+				}
+				const result = await dialog.showOpenDialog(ctx.window, {
+					properties: ["openDirectory", "multiSelections"],
+					title: "Open Project",
+				});
 
-			if (result.canceled || result.filePaths.length === 0) {
-				return { canceled: true };
-			}
+				if (result.canceled || result.filePaths.length === 0) {
+					return { canceled: true };
+				}
 
-			const outcomes: FolderOutcome[] = [];
+				const outcomes: FolderOutcome[] = [];
 
-			for (const selectedPath of result.filePaths) {
-				try {
-					const mainRepoPath = await getGitRoot(selectedPath);
-					const defaultBranch = await getDefaultBranch(mainRepoPath);
+				for (const selectedPath of result.filePaths) {
+					try {
+						const mainRepoPath = await getGitRoot(selectedPath);
+						const defaultBranch = await getDefaultBranch(mainRepoPath);
 
-					const project = upsertProject(mainRepoPath, defaultBranch);
-					await ensureMainWorkspace(project);
+						const project = upsertProject(mainRepoPath, defaultBranch);
+						await ensureMainWorkspace(project);
 
-					track("project_opened", {
-						project_id: project.id,
-						method: "open",
-					});
-
-					outcomes.push({ status: "success", project });
-				} catch (gitError) {
-					if (gitError instanceof NotGitRepoError) {
-						outcomes.push({ status: "needsGitInit", selectedPath });
-					} else {
-						const msg =
-							gitError instanceof Error ? gitError.message : String(gitError);
-						console.error(
-							"[projects/openNew] Failed to open project:",
-							selectedPath,
-							gitError,
-						);
-						outcomes.push({
-							status: "error",
-							selectedPath,
-							error: msg,
+						track("project_opened", {
+							project_id: project.id,
+							method: "open",
 						});
+
+						outcomes.push({ status: "success", project });
+					} catch (gitError) {
+						if (gitError instanceof NotGitRepoError) {
+							outcomes.push({ status: "needsGitInit", selectedPath });
+						} else {
+							const msg =
+								gitError instanceof Error ? gitError.message : String(gitError);
+							console.error(
+								"[projects/openNew] Failed to open project:",
+								selectedPath,
+								gitError,
+							);
+							outcomes.push({
+								status: "error",
+								selectedPath,
+								error: msg,
+							});
+						}
 					}
 				}
-			}
 
-			return { canceled: false, multi: true, results: outcomes };
-		}),
+				return { canceled: false, multi: true, results: outcomes };
+			},
+		),
 
 		openFromPath: publicProcedure
 			.input(z.object({ path: z.string() }))
@@ -1209,20 +1208,19 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.transform((v) => (v && v.length > 0 ? v : undefined)),
 				}),
 			)
-			.mutation(async ({ input }) => {
+			.mutation(async ({ ctx, input }) => {
 				try {
 					let targetDir = input.targetDirectory;
 
 					if (!targetDir) {
-						const window = getWindow();
-						if (!window) {
+						if (!ctx.window) {
 							return {
 								canceled: false as const,
 								success: false as const,
 								error: "No window available",
 							};
 						}
-						const result = await dialog.showOpenDialog(window, {
+						const result = await dialog.showOpenDialog(ctx.window, {
 							properties: ["openDirectory", "createDirectory"],
 							title: "Select Clone Destination",
 						});

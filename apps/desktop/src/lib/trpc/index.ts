@@ -1,14 +1,25 @@
 import { createTRPCReact } from "@trpc/react-query";
 import { initTRPC } from "@trpc/server";
+import type { BrowserWindow } from "electron";
 import superjson from "superjson";
 import type { AppRouter } from "./routers";
 import { NotGitRepoError } from "./routers/workspaces/utils/git";
 
 /**
+ * Per-call context. `window` is the BrowserWindow that initiated the IPC call,
+ * resolved from `event.sender` in trpc-electron's createContext. Procedures
+ * that act on "the window" should use `ctx.window` so multi-window callers
+ * each affect their own window.
+ */
+export interface TrpcContext {
+	window: BrowserWindow | null;
+}
+
+/**
  * Core tRPC initialization
  * This provides the base router and procedure builders used by all routers
  */
-const t = initTRPC.create({
+const t = initTRPC.context<TrpcContext>().create({
 	transformer: superjson,
 	isServer: true,
 });

@@ -32,13 +32,16 @@ export async function makeAppSetup(
 
 		if (!windows.length) {
 			window = await createWindow();
-		} else {
-			// Show hidden windows (macOS hide-to-tray) or restore minimized ones
-			for (window of windows.reverse()) {
-				window.show();
-				window.focus();
-			}
+			return;
 		}
+
+		// Show hidden windows (macOS hide-to-tray) or restore minimized ones.
+		// Focus the last one so the topmost (or most recently created) wins.
+		for (const win of windows) {
+			if (win.isMinimized()) win.restore();
+			win.show();
+		}
+		windows[windows.length - 1].focus();
 	});
 
 	app.on("web-contents-created", (_, contents) => {

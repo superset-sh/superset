@@ -1,42 +1,37 @@
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
-import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { getImageMimeType } from "shared/file-types";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
-export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
+export const createWindowRouter = () => {
 	return router({
-		minimize: publicProcedure.mutation(() => {
-			const window = getWindow();
-			if (!window) return { success: false };
-			window.minimize();
+		minimize: publicProcedure.mutation(({ ctx }) => {
+			if (!ctx.window) return { success: false };
+			ctx.window.minimize();
 			return { success: true };
 		}),
 
-		maximize: publicProcedure.mutation(() => {
-			const window = getWindow();
-			if (!window) return { success: false, isMaximized: false };
-			if (window.isMaximized()) {
-				window.unmaximize();
+		maximize: publicProcedure.mutation(({ ctx }) => {
+			if (!ctx.window) return { success: false, isMaximized: false };
+			if (ctx.window.isMaximized()) {
+				ctx.window.unmaximize();
 			} else {
-				window.maximize();
+				ctx.window.maximize();
 			}
-			return { success: true, isMaximized: window.isMaximized() };
+			return { success: true, isMaximized: ctx.window.isMaximized() };
 		}),
 
-		close: publicProcedure.mutation(() => {
-			const window = getWindow();
-			if (!window) return { success: false };
-			window.close();
+		close: publicProcedure.mutation(({ ctx }) => {
+			if (!ctx.window) return { success: false };
+			ctx.window.close();
 			return { success: true };
 		}),
 
-		isMaximized: publicProcedure.query(() => {
-			const window = getWindow();
-			if (!window) return false;
-			return window.isMaximized();
+		isMaximized: publicProcedure.query(({ ctx }) => {
+			if (!ctx.window) return false;
+			return ctx.window.isMaximized();
 		}),
 
 		getPlatform: publicProcedure.query(() => {
@@ -77,13 +72,12 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 					})
 					.optional(),
 			)
-			.mutation(async ({ input }) => {
-				const window = getWindow();
-				if (!window) {
+			.mutation(async ({ ctx, input }) => {
+				if (!ctx.window) {
 					return { canceled: true, path: null };
 				}
 
-				const result = await dialog.showOpenDialog(window, {
+				const result = await dialog.showOpenDialog(ctx.window, {
 					properties: ["openDirectory", "createDirectory"],
 					title: input?.title ?? "Select Directory",
 					defaultPath: input?.defaultPath ?? undefined,
@@ -96,13 +90,12 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 				return { canceled: false, path: result.filePaths[0] };
 			}),
 
-		selectImageFile: publicProcedure.mutation(async () => {
-			const window = getWindow();
-			if (!window) {
+		selectImageFile: publicProcedure.mutation(async ({ ctx }) => {
+			if (!ctx.window) {
 				return { canceled: true, dataUrl: null };
 			}
 
-			const result = await dialog.showOpenDialog(window, {
+			const result = await dialog.showOpenDialog(ctx.window, {
 				properties: ["openFile"],
 				title: "Select Organization Logo",
 				filters: [

@@ -1,4 +1,3 @@
-import type { BrowserWindow } from "electron";
 import { router } from "..";
 import { createAnalyticsRouter } from "./analytics";
 import { createAuthRouter } from "./auth";
@@ -30,7 +29,7 @@ import { createUiStateRouter } from "./ui-state";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
-export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
+export const createAppRouter = () => {
 	return router({
 		chatRuntimeService: createChatRuntimeServiceRouter(),
 		chatService: createChatServiceRouter(),
@@ -40,13 +39,13 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
 		cache: createCacheRouter(),
-		window: createWindowRouter(getWindow),
-		projects: createProjectsRouter(getWindow),
+		window: createWindowRouter(),
+		projects: createProjectsRouter(),
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
 		changes: createChangesRouter(),
 		filesystem: createFilesystemRouter(),
-		notifications: createNotificationsRouter(getWindow),
+		notifications: createNotificationsRouter(),
 		permissions: createPermissionsRouter(),
 		ports: createPortsRouter(),
 		resourceMetrics: createResourceMetricsRouter(),
@@ -57,7 +56,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		config: createConfigRouter(),
 		device: createDeviceRouter(),
 		uiState: createUiStateRouter(),
-		ringtone: createRingtoneRouter(getWindow),
+		ringtone: createRingtoneRouter(),
 		hostServiceCoordinator: createHostServiceCoordinatorRouter(),
 		keyboardLayout: createKeyboardLayoutRouter(),
 		migration: createMigrationRouter(),

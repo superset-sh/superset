@@ -18,17 +18,23 @@ export function registerRoute(props: {
 	query?: Record<string, string>;
 }): void {
 	const isDev = env.NODE_ENV === "development";
+	const queryString = props.query
+		? `?${new URLSearchParams(props.query).toString()}`
+		: "";
 
 	if (isDev) {
-		// Development: load from Vite dev server with hash routing
-		const url = `http://localhost:${env.DESKTOP_VITE_PORT}/#/`;
+		// Development: load from Vite dev server with hash routing.
+		// Query params live AFTER the hash so the renderer router sees them.
+		const url = `http://localhost:${env.DESKTOP_VITE_PORT}/#/${queryString}`;
 		console.log("[window-loader] Loading development URL:", url);
 		props.browserWindow.loadURL(url);
 	} else {
 		// Production: load from file with hash routing
 		// TanStack Router uses hash-based routing, so we always start at #/
 		console.log("[window-loader] Loading file:", props.htmlFile);
-		props.browserWindow.loadFile(props.htmlFile, { hash: "/" });
+		props.browserWindow.loadFile(props.htmlFile, {
+			hash: `/${queryString}`,
+		});
 	}
 
 	// Log successful loads

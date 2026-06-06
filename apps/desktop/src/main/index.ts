@@ -1,15 +1,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
-import {
-	app,
-	BrowserWindow,
-	dialog,
-	Notification,
-	net,
-	protocol,
-	session,
-} from "electron";
+import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
 	handleAuthCallback,
@@ -24,6 +16,7 @@ import {
 	PROTOCOL_SCHEME,
 } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
+import { disposeAppServices, initAppServices } from "./lib/app-services";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
@@ -51,6 +44,10 @@ import {
 import { disposeTray, initTray } from "./lib/tray";
 import { startNetworkLogger, stopNetworkLogger } from "./network-logger";
 import { MainWindow } from "./windows/main";
+import {
+	getAllManagedWindows,
+	getFocusedManagedWindow,
+} from "./windows/manager";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -95,12 +92,23 @@ async function processDeepLink(url: string): Promise<void> {
 	// Non-auth deep links: extract path and navigate in renderer
 	// e.g. superset://tasks/my-slug -> /tasks/my-slug
 	const path = `/${url.split("://")[1]}`;
-	focusMainWindow();
 
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		windows[0].webContents.send("deep-link-navigate", path);
+	// Route to the focused window so the user's current context handles it.
+	// Falls back to any visible window; creates one when none exist (macOS
+	// keeps the app alive with zero windows) — awaiting creation here avoids
+	// the race where `app.emit("activate")` spawns asynchronously and the IPC
+	// below would target nothing.
+	let target =
+		getFocusedManagedWindow()?.window ?? getAllManagedWindows()[0]?.window;
+	if (!target || target.isDestroyed()) {
+		target = await MainWindow();
 	}
+	if (target.isMinimized()) {
+		target.restore();
+	}
+	target.show();
+	target.focus();
+	target.webContents.send("deep-link-navigate", path);
 }
 
 function findDeepLinkInArgv(argv: string[]): string | undefined {
@@ -108,18 +116,18 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 }
 
 export function focusMainWindow(): void {
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		const mainWindow = windows[0];
-		if (mainWindow.isMinimized()) {
-			mainWindow.restore();
+	const managed = getFocusedManagedWindow();
+	if (managed) {
+		const win = managed.window;
+		if (win.isMinimized()) {
+			win.restore();
 		}
-		mainWindow.show();
-		mainWindow.focus();
-	} else {
-		// Triggers window creation via makeAppSetup's activate handler
-		app.emit("activate");
+		win.show();
+		win.focus();
+		return;
 	}
+	// Triggers window creation via makeAppSetup's activate handler
+	app.emit("activate");
 }
 
 function registerWithMacOSNotificationCenter() {
@@ -232,6 +240,7 @@ app.on("before-quit", async (event) => {
 		}
 		shutdownTanstackDbPersistence();
 		disposeTray();
+		disposeAppServices();
 	} catch (error) {
 		console.error("[main] Cleanup during quit failed:", error);
 	} finally {
@@ -399,6 +408,11 @@ if (!gotTheLock) {
 		} catch (error) {
 			console.error("[main] Failed to start network logger:", error);
 		}
+
+		// App-level singletons: notifications HTTP server, NotificationManager,
+		// terminal-exit forwarder. Must outlive any individual window so the
+		// HTTP port is bound exactly once even with multiple workspaces open.
+		initAppServices();
 
 		await loadWebviewBrowserExtension();
 

@@ -1,10 +1,10 @@
 import { EventEmitter } from "node:events";
-import { BrowserWindow } from "electron";
 import express from "express";
 import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
+import { getFocusedManagedWindow } from "../../windows/manager";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
 import { resolvePaneId } from "./resolve-pane-id";
@@ -153,13 +153,15 @@ app.get("/auth/callback", async (req, res) => {
 		return res.status(400).json(result);
 	}
 
-	const mainWindow = BrowserWindow.getAllWindows()[0];
-	if (mainWindow) {
-		if (mainWindow.isMinimized()) {
-			mainWindow.restore();
+	// Route to the most-recently-focused managed window so OAuth completion
+	// surfaces in the window the user actually started sign-in from.
+	const target = getFocusedManagedWindow()?.window;
+	if (target && !target.isDestroyed()) {
+		if (target.isMinimized()) {
+			target.restore();
 		}
-		mainWindow.show();
-		mainWindow.focus();
+		target.show();
+		target.focus();
 	}
 
 	// Return HTML since the browser navigated here directly (not fetch).

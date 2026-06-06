@@ -1,6 +1,6 @@
 import type { ChildProcess } from "node:child_process";
 import { TRPCError } from "@trpc/server";
-import type { BrowserWindow, OpenDialogOptions } from "electron";
+import type { OpenDialogOptions } from "electron";
 import { dialog } from "electron";
 import {
 	getCustomRingtoneInfo,
@@ -105,7 +105,7 @@ function getNotificationRingtoneSoundPath(ringtoneId: string): string | null {
 /**
  * Ringtone router for audio preview and playback operations
  */
-export const createRingtoneRouter = (getWindow: () => BrowserWindow | null) => {
+export const createRingtoneRouter = () => {
 	return router({
 		/**
 		 * Preview a ringtone by ringtone ID.
@@ -166,8 +166,8 @@ export const createRingtoneRouter = (getWindow: () => BrowserWindow | null) => {
 		/**
 		 * Imports a custom ringtone file from disk and stores it in the Superset home assets directory.
 		 */
-		importCustom: publicProcedure.mutation(async () => {
-			const window = getWindow();
+		importCustom: publicProcedure.mutation(async ({ ctx }) => {
+			const window = ctx.window;
 			const openDialogOptions: OpenDialogOptions = {
 				properties: ["openFile"],
 				title: "Select Notification Sound",
