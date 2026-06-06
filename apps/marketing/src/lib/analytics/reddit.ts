@@ -29,8 +29,14 @@ export function trackReddit(
 		return;
 	}
 
-	window.rdt("track", event, {
-		conversionId: generateConversionId(),
-		...properties,
-	});
+	// Best-effort: a throw from the third-party pixel must never escape into the
+	// caller (e.g. a download click handler that navigates right after).
+	try {
+		window.rdt("track", event, {
+			conversionId: generateConversionId(),
+			...properties,
+		});
+	} catch (error) {
+		console.warn("Reddit Pixel track failed", error);
+	}
 }
