@@ -8,7 +8,7 @@ import {
 } from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
 import { HiMiniXMark } from "react-icons/hi2";
@@ -29,6 +29,7 @@ import {
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
 import { MOSAIC_ID } from "../TabView";
+import { shouldReorderOnHover } from "./tabReorder";
 
 const TAB_DRAG_NO_MATCH_ID = "__tab-drag-no-match__";
 
@@ -66,6 +67,7 @@ export function GroupItem({
 	onReorder,
 }: GroupItemProps) {
 	const displayName = getTabDisplayName(tab);
+	const elementRef = useRef<HTMLElement | null>(null);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
 	const activeTabId = useTabsStore((s) =>
@@ -149,15 +151,37 @@ export function GroupItem({
 					draggingSourceTabId !== tab.id
 				);
 			},
-			hover: (item) => {
+			hover: (item, monitor) => {
 				if (
-					item.isTabDrag &&
-					item.index !== undefined &&
-					item.index !== index
+					!item.isTabDrag ||
+					item.index === undefined ||
+					item.index === index
 				) {
-					onReorder?.(item.index, index);
-					item.index = index;
+					return;
 				}
+
+				// Only swap once the pointer crosses this tab's midpoint in the
+				// direction of travel. Without this guard react-dnd swaps on the
+				// first pixel past the edge, the dragged tab slides under the
+				// pointer, and the next move swaps it back — the tabs oscillate
+				// and reordering feels impossible (#5156).
+				const boundingRect = elementRef.current?.getBoundingClientRect();
+				const clientOffset = monitor.getClientOffset();
+				if (
+					boundingRect &&
+					clientOffset &&
+					!shouldReorderOnHover({
+						dragIndex: item.index,
+						hoverIndex: index,
+						pointerX: clientOffset.x,
+						boundingRect,
+					})
+				) {
+					return;
+				}
+
+				onReorder?.(item.index, index);
+				item.index = index;
 			},
 			drop: (item) => {
 				if (item.isTabDrag) {
@@ -210,6 +234,7 @@ export function GroupItem({
 			<ContextMenuTrigger asChild>
 				<div
 					ref={(node) => {
+						elementRef.current = node;
 						drag(drop(node));
 					}}
 					className={cn(
