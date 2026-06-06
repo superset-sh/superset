@@ -171,8 +171,7 @@ export function Pane<TData>({
 		() => ({
 			accept: [PANE_DRAG_TYPE, TAB_DRAG_TYPE],
 			canDrop: (item: PaneDropItem, monitor) => {
-				// A tab can be dropped onto any pane outside itself (merges all its
-				// panes here); a pane can be dropped onto any pane but itself.
+				// Can't drop a tab onto a pane it already owns, or a pane onto itself.
 				if (monitor.getItemType() === TAB_DRAG_TYPE) {
 					return "tabId" in item && item.tabId !== tab.id;
 				}

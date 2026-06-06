@@ -872,9 +872,8 @@ export function createWorkspaceStore<TData>(
 				if (sourceTab.id === targetTab.id) return s;
 				if (!findPaneInLayout(targetTab.layout, args.targetPaneId)) return s;
 
-				// Graft the source tab's entire layout next to the target pane,
-				// preserving the source's internal split arrangement, then drop the
-				// now-empty source tab.
+				// Graft the source's whole layout subtree so its internal split
+				// arrangement is preserved, rather than re-adding panes one by one.
 				const nextTargetLayout = graftSubtreeAtPane(
 					targetTab.layout,
 					args.targetPaneId,
