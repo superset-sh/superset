@@ -733,14 +733,17 @@ export async function disposeSessionAndWait(
 
 	portManager.unregisterSession(terminalId);
 
-	db.update(terminalSessions)
-		.set({ status: "disposed", endedAt: Date.now() })
-		.where(eq(terminalSessions.id, terminalId))
-		.run();
-
 	const closeResult = closePromise
 		? await closePromise
 		: { attempted: false, succeeded: true };
+
+	if (closeResult.succeeded) {
+		db.update(terminalSessions)
+			.set({ status: "disposed", endedAt: Date.now() })
+			.where(eq(terminalSessions.id, terminalId))
+			.run();
+	}
+
 	return {
 		terminalId,
 		daemonCloseAttempted: closeResult.attempted,
