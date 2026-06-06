@@ -5,6 +5,7 @@ import { toast } from "@superset/ui/sonner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { LuFolderOpen, LuGitBranch } from "react-icons/lu";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/onboarding/project/")({
 
 function OnboardingProjectPage() {
 	const navigate = useNavigate();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { refetch: refetchSession } = authClient.useSession();
 	const { activeHostUrl } = useLocalHostService();
 	const hostReady = activeHostUrl !== null;
@@ -53,7 +55,10 @@ function OnboardingProjectPage() {
 		// Land on the dashboard first, then open the modal. Opening it in the same
 		// tick as navigate mounts the Dialog mid-route-transition, which thrashes
 		// Radix's ref composition into a "Maximum update depth" loop.
-		await navigate({ to: "/v2-workspaces", replace: true });
+		await navigate({
+			to: isV2CloudEnabled ? "/v2-workspaces" : "/workspaces",
+			replace: true,
+		});
 		openNewWorkspaceModal(projectId);
 	};
 

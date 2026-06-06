@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { V2AvailableBanner } from "renderer/components/V2AvailableBanner";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
@@ -115,8 +114,6 @@ export function WorkspaceSidebar({
 				projectId={activeProjectId}
 				projectName={activeProjectName}
 			/>
-
-			{!isCollapsed && <V2AvailableBanner />}
 
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 			<MultiDragPreview />
