@@ -111,7 +111,8 @@ export function TabItem<TData>({
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
-				{/* biome-ignore lint/a11y/noStaticElementInteractions: mousedown selects tab immediately before drag threshold */}
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: clicking a tab selects it */}
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents: tabs are pointer-driven; keyboard nav is out of scope here */}
 				<div
 					ref={setRef}
 					className={cn(
@@ -122,12 +123,10 @@ export function TabItem<TData>({
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
-					onMouseDown={(event) => {
-						// No preventDefault: this node is the react-dnd drag source, and
-						// preventing the mousedown default cancels the native HTML5 drag.
-						// Focus is kept off the tab via the non-focusable title <div> below.
-						if (event.button === 0) onSelect();
-					}}
+					// Select on click, not mousedown: the browser suppresses click after a
+					// drag, so starting a drag (reorder, or merging a tab into a pane) no
+					// longer switches the active tab mid-gesture.
+					onClick={() => onSelect()}
 				>
 					{isEditing ? (
 						<div className="flex h-full w-full shrink-0 items-center px-2">
