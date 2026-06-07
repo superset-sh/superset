@@ -88,7 +88,6 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
 		});
 		expect(result.map((w) => w.path).sort()).toEqual([wtA, wtB, wtC].sort());
 		expect(result.map((w) => w.branch).sort()).toEqual(
@@ -101,19 +100,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
 			requested: new Set([wtA, wtC]),
-		});
-		expect(result.map((w) => w.path).sort()).toEqual([wtA, wtC].sort());
-	});
-
-	test("paths already tracked in the DB are skipped even when requested", async () => {
-		const all = await listExternalWorktrees(mainRepoPath);
-
-		const result = selectExternalWorktreesForImport(all, {
-			mainRepoPath,
-			trackedPaths: new Set([wtB]),
-			requested: new Set([wtA, wtB, wtC]),
 		});
 		expect(result.map((w) => w.path).sort()).toEqual([wtA, wtC].sort());
 	});
@@ -124,7 +111,6 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
 			requested: new Set([wtA, ghostPath]),
 		});
 		expect(result.map((w) => w.path)).toEqual([wtA]);
@@ -141,7 +127,6 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
 			requested: new Set([wtA, wtDetached]),
 		});
 		expect(result.map((w) => w.path)).toEqual([wtA]);
@@ -152,7 +137,6 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
 			requested: new Set(),
 		});
 		expect(result).toEqual([]);
@@ -163,30 +147,8 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 
 		const result = selectExternalWorktreesForImport(all, {
 			mainRepoPath,
-			trackedPaths: new Set(),
 			requested: new Set([mainRepoPath, wtA]),
 		});
 		expect(result.map((w) => w.path)).toEqual([wtA]);
-	});
-
-	test("re-running selection after one worktree is marked tracked converges", async () => {
-		const all = await listExternalWorktrees(mainRepoPath);
-
-		// First pass: import wtA only
-		const firstPass = selectExternalWorktreesForImport(all, {
-			mainRepoPath,
-			trackedPaths: new Set(),
-			requested: new Set([wtA]),
-		});
-		expect(firstPass.map((w) => w.path)).toEqual([wtA]);
-
-		// Simulate wtA now being tracked. A second pass with all three requested
-		// should return only wtB and wtC.
-		const secondPass = selectExternalWorktreesForImport(all, {
-			mainRepoPath,
-			trackedPaths: new Set([wtA]),
-			requested: new Set([wtA, wtB, wtC]),
-		});
-		expect(secondPass.map((w) => w.path).sort()).toEqual([wtB, wtC].sort());
 	});
 });

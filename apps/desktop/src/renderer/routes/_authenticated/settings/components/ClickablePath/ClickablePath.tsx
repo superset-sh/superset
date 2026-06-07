@@ -15,9 +15,14 @@ import { useThemeStore } from "renderer/stores/theme";
 interface ClickablePathProps {
 	path: string;
 	className?: string;
+	truncate?: boolean;
 }
 
-export function ClickablePath({ path, className }: ClickablePathProps) {
+export function ClickablePath({
+	path,
+	className,
+	truncate,
+}: ClickablePathProps) {
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = electronTrpc.useUtils();
@@ -55,14 +60,18 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
+					title={truncate ? path : undefined}
 					className={cn(
-						"group inline-flex items-center gap-1.5 text-sm font-mono break-all text-left",
+						"group inline-flex items-center gap-1.5 text-sm font-mono text-left max-w-full min-w-0",
+						truncate ? "" : "break-all",
 						"hover:underline decoration-current/40 underline-offset-2",
 						"transition-colors cursor-pointer",
 						className,
 					)}
 				>
-					<span>{path}</span>
+					<span className={truncate ? "min-w-0 truncate" : undefined}>
+						{path}
+					</span>
 					<LuExternalLink className="size-3.5 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
 				</button>
 			</DropdownMenuTrigger>

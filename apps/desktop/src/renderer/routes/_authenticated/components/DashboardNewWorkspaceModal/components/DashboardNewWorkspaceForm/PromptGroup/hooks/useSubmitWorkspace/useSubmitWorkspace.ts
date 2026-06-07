@@ -101,6 +101,7 @@ export function useSubmitWorkspace(
 			? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
 			: undefined;
 
+		const trimmedPrompt = draft.prompt.trim();
 		const workspaceId = crypto.randomUUID();
 		const snapshot = {
 			id: workspaceId,
@@ -111,9 +112,14 @@ export function useSubmitWorkspace(
 			baseBranch: draft.baseBranch ?? undefined,
 			taskId: linkedTaskId,
 			agents,
+			namingPrompt:
+				!isPrCheckout && !wantAgent && trimmedPrompt
+					? trimmedPrompt
+					: undefined,
 		};
 
 		closeAndResetDraft();
+		const { completed } = submit({ hostId, snapshot });
 		void navigate({
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId },
@@ -130,36 +136,21 @@ export function useSubmitWorkspace(
 			);
 		};
 
-		void submit({ hostId, snapshot })
-			.then((result) => {
-				if (!result.ok) {
-					if (isViewingOptimisticWorkspace()) {
-						toast.error("Workspace creation failed");
-					}
-					return;
-				}
-				if (result.workspaceId === workspaceId) return;
-				if (!isViewingOptimisticWorkspace()) return;
-				void navigate({
-					to: "/v2-workspace/$workspaceId",
-					params: { workspaceId: result.workspaceId },
-					replace: true,
-				}).catch((error) => {
-					console.error(
-						"[useSubmitWorkspace] failed to redirect workspace",
-						error,
-					);
-				});
-			})
-			.catch((error) => {
+		void completed.then((outcome) => {
+			if (!outcome.ok) return;
+			if (outcome.workspaceId === workspaceId) return;
+			if (!isViewingOptimisticWorkspace()) return;
+			void navigate({
+				to: "/v2-workspace/$workspaceId",
+				params: { workspaceId: outcome.workspaceId },
+				replace: true,
+			}).catch((error) => {
 				console.error(
-					"[useSubmitWorkspace] workspace creation failed unexpectedly",
+					"[useSubmitWorkspace] failed to redirect workspace",
 					error,
 				);
-				if (isViewingOptimisticWorkspace()) {
-					toast.error("Workspace creation failed");
-				}
 			});
+		});
 	}, [
 		activeOrganizationId,
 		closeAndResetDraft,

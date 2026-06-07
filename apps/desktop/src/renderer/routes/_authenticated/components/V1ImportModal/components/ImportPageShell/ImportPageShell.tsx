@@ -28,7 +28,7 @@ export function ImportPageShell({
 }: ImportPageShellProps) {
 	return (
 		<div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
-			<div className="flex items-center gap-3 border-b border-border/60 px-6 py-3.5 pr-16">
+			<div className="flex items-center gap-3 border-b border-border/60 px-6 py-3.5">
 				<div className="min-w-0 flex-1">
 					<div className="truncate text-[14px] font-medium tracking-tight text-foreground">
 						{title}

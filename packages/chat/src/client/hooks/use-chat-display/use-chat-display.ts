@@ -32,7 +32,15 @@ function toRefetchIntervalMs(fps: number): number {
 
 function findLastUserMessageIndex(messages: ListMessagesOutput): number {
 	for (let index = messages.length - 1; index >= 0; index -= 1) {
-		if (messages[index]?.role === "user") return index;
+		const message = messages[index];
+		// INVARIANT: optimistic user messages use the "optimistic-" ID prefix
+		// (both the use-chat-display internal channel and the ChatPaneInterface
+		// setData injection). Skipping them here keeps the turn-boundary anchored
+		// to the real committed user message so withoutActiveTurnAssistantHistory
+		// can dedupe the in-flight assistant message — see SUPER-753.
+		if (message?.role === "user" && !message.id?.startsWith("optimistic-")) {
+			return index;
+		}
 	}
 	return -1;
 }

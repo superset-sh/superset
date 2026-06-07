@@ -84,14 +84,30 @@ describe("attachmentsRouter.upload", () => {
 		}
 	});
 
-	it("rejects unrecognized media type", async () => {
+	it("falls back to application/octet-stream for unrecognized media type", async () => {
 		const caller = createCaller();
-		await expect(
-			caller.upload({
-				data: { kind: "base64", data: PNG_BASE64 },
-				mediaType: "application/x-totally-fake",
-			}),
-		).rejects.toThrow(/unrecognized media type/i);
+		const result = await caller.upload({
+			data: { kind: "base64", data: PNG_BASE64 },
+			mediaType: "application/x-totally-fake",
+			originalFilename: "racetrack.bmad",
+		});
+		expect(result.mediaType).toBe("application/octet-stream");
+		const filePath = getAttachmentFilePath(
+			result.attachmentId,
+			"application/octet-stream",
+		);
+		expect(filePath).toMatch(/\.bin$/);
+		expect(existsSync(filePath)).toBe(true);
+	});
+
+	it("falls back to application/octet-stream for empty media type", async () => {
+		const caller = createCaller();
+		const result = await caller.upload({
+			data: { kind: "base64", data: PNG_BASE64 },
+			mediaType: "",
+			originalFilename: "racetrack.bmad",
+		});
+		expect(result.mediaType).toBe("application/octet-stream");
 	});
 
 	it("accepts a single decoded byte", async () => {

@@ -16,6 +16,7 @@ import { env } from "renderer/env.renderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { authClient } from "renderer/lib/auth-client";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
@@ -51,7 +52,8 @@ function readStoredAgent(): SelectedAgent {
 export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const { machineId, activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { machineId, activeHostUrl } = hostService;
 	const { otherHosts } = useWorkspaceHostOptions();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -213,7 +215,13 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 
 	const handleOpen = () => {
 		if (submitBlocker) {
-			toast.error(submitBlocker);
+			if (hostId === machineId && !activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "open the task in a workspace",
+				});
+			} else {
+				toast.error(submitBlocker);
+			}
 			return;
 		}
 		if (!selectedProjectId || !hostId) return;
@@ -239,7 +247,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 			params: { workspaceId: snapshotId },
 		});
 
-		const promise = submit({
+		const { completed } = submit({
 			hostId,
 			snapshot: {
 				id: snapshotId,
@@ -249,34 +257,17 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				taskId: task.id,
 				agents,
 			},
-		}).then((result) => {
-			if (!result.ok) {
-				// We optimistically navigated to the snapshot URL — bounce back to
-				// the task on failure so the user isn't stranded on a dead route.
-				void navigate({
-					to: "/tasks/$taskId",
-					params: { taskId: task.id },
-					replace: true,
-				});
-				throw new Error(result.error);
-			}
-			if (result.workspaceId !== snapshotId) {
-				void navigate({
-					to: "/v2-workspace/$workspaceId",
-					params: { workspaceId: result.workspaceId },
-					replace: true,
-				});
-			}
-			return result;
 		});
 
-		toast.promise(promise, {
-			loading: "Creating workspace...",
-			success: (result) =>
-				result.alreadyExists
-					? "Opened existing workspace"
-					: "Workspace created",
-			error: (err) => (err instanceof Error ? err.message : String(err)),
+		void completed.then((outcome) => {
+			if (!outcome.ok) return;
+			if (outcome.workspaceId !== snapshotId) {
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: outcome.workspaceId },
+					replace: true,
+				});
+			}
 		});
 	};
 

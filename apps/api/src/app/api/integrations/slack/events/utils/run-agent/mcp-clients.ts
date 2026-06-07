@@ -3,8 +3,8 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { McpContext } from "@superset/mcp/auth";
 import { createInMemoryMcpClient as createV1Client } from "@superset/mcp/in-memory";
 import { createInMemoryMcpClient as createV2Client } from "@superset/mcp-v2/in-memory";
-import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
+import { getRelayUrl } from "@/lib/relay-url";
 
 interface McpTool {
 	name: string;
@@ -51,7 +51,7 @@ export async function createSupersetMcpV2Client({
 		organizationId,
 		userId,
 		clientLabel: SLACK_CLIENT_LABEL,
-		relayUrl: env.RELAY_URL,
+		relayUrl: await getRelayUrl(userId),
 		onToolCall: (event) => {
 			posthog.capture({
 				distinctId: event.userId,

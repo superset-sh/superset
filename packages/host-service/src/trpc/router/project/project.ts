@@ -3,12 +3,14 @@ import {
 	type ParsedGitHubRemote,
 	parseGitHubRemote,
 } from "@superset/shared/github-remote";
+import { BRANCH_PREFIX_MODES } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import { protectedProcedure, router } from "../../index";
+import { normalizeWorktreeBaseDir } from "../workspace-creation/shared/worktree-paths";
 import {
 	createFromClone,
 	createFromEmpty,
@@ -23,6 +25,8 @@ import {
 	type ResolvedRepo,
 	resolveLocalRepo,
 	resolveMatchingSlug,
+	tryRevParseGitRoot,
+	validateDirectoryPath,
 } from "./utils/resolve-repo";
 
 export const projectRouter = router({
@@ -34,6 +38,7 @@ export const projectRouter = router({
 				repoOwner: projects.repoOwner,
 				repoName: projects.repoName,
 				repoUrl: projects.repoUrl,
+				worktreeBaseDir: projects.worktreeBaseDir,
 			})
 			.from(projects)
 			.all();
@@ -50,11 +55,76 @@ export const projectRouter = router({
 						repoOwner: projects.repoOwner,
 						repoName: projects.repoName,
 						repoUrl: projects.repoUrl,
+						worktreeBaseDir: projects.worktreeBaseDir,
+						branchPrefixMode: projects.branchPrefixMode,
+						branchPrefixCustom: projects.branchPrefixCustom,
 					})
 					.from(projects)
 					.where(eq(projects.id, input.projectId))
 					.get() ?? null
 			);
+		}),
+
+	setWorktreeBaseDir: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				path: z.string().nullable(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const worktreeBaseDir = normalizeWorktreeBaseDir(input.path);
+			ctx.db
+				.update(projects)
+				.set({ worktreeBaseDir })
+				.where(eq(projects.id, input.projectId))
+				.run();
+
+			const project = ctx.db.query.projects
+				.findFirst({ where: eq(projects.id, input.projectId) })
+				.sync();
+			if (!project) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+
+			return {
+				id: project.id,
+				worktreeBaseDir: project.worktreeBaseDir ?? null,
+			};
+		}),
+
+	/**
+	 * Set this project's branch-prefix override. A `null` mode clears the
+	 * override so the project falls back to the host-wide default.
+	 */
+	setBranchPrefix: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				mode: z.enum(BRANCH_PREFIX_MODES).nullable(),
+				customPrefix: z.string().nullable().optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const updated = ctx.db
+				.update(projects)
+				.set({
+					branchPrefixMode: input.mode,
+					branchPrefixCustom: input.customPrefix ?? null,
+				})
+				.where(eq(projects.id, input.projectId))
+				.returning({ id: projects.id })
+				.get();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Project not set up locally: ${input.projectId}`,
+				});
+			}
+			return { success: true as const };
 		}),
 
 	findBackfillConflict: protectedProcedure
@@ -94,7 +164,22 @@ export const projectRouter = router({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const resolved = await resolveLocalRepo(input.repoPath);
+			// Detect "folder isn't a git repo yet" without throwing, so the import
+			// UI can offer to `git init` it (create importLocal + initIfNeeded)
+			// instead of dead-ending on a BAD_REQUEST. Additive optional field —
+			// repo paths never carry needsGitInit, so existing callers are
+			// unaffected.
+			const root = await tryRevParseGitRoot(input.repoPath);
+			if (root === null) {
+				validateDirectoryPath(input.repoPath, "Path"); // 400 on missing / not-a-dir
+				return {
+					candidates: [],
+					cloudErrors: [] as { url: string; message: string }[],
+					needsGitInit: true as const,
+				};
+			}
+
+			const resolved = await resolveLocalRepo(root);
 			const gitRoot = resolved.repoPath;
 
 			const expectedParsed =
@@ -179,7 +264,7 @@ export const projectRouter = router({
 			}
 
 			// walkAllRemotes branch — v1→v2 importer.
-			const allRemotes = await getGitHubRemotes(simpleGit(gitRoot));
+			const allRemotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
 
 			const urlsToQuery = new Map<string, ParsedGitHubRemote>();
 			for (const parsed of allRemotes.values()) {
@@ -323,6 +408,10 @@ export const projectRouter = router({
 					z.object({
 						kind: z.literal("importLocal"),
 						repoPath: z.string().min(1),
+						// When set, `git init` a non-git folder in place before
+						// importing. The UI sets this only after confirming intent
+						// with the user (see findByPath's needsGitInit).
+						initIfNeeded: z.boolean().optional().default(false),
 					}),
 					z.object({
 						kind: z.literal("template"),
@@ -355,6 +444,7 @@ export const projectRouter = router({
 					return createFromImportLocal(ctx, {
 						name: input.name,
 						repoPath: input.mode.repoPath,
+						initIfNeeded: input.mode.initIfNeeded,
 					});
 			}
 		}),

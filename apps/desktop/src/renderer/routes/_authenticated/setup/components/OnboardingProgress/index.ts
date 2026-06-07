@@ -1,1 +1,0 @@
-export { OnboardingProgress } from "./OnboardingProgress";

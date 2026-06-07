@@ -4,29 +4,54 @@ import { persistentHistory } from "renderer/lib/persistent-hash-history";
 
 export interface RecentlyViewedEntry {
 	path: string;
-	type: "workspace" | "task";
+	type: "workspace" | "v2-workspace" | "task" | "automation";
 	entityId: string;
 	timestamp: number;
+}
+
+function pathnameOf(href: string): string {
+	const queryIndex = href.indexOf("?");
+	const hashIndex = href.indexOf("#");
+	const cutoffs = [queryIndex, hashIndex].filter((i) => i >= 0);
+	return cutoffs.length === 0 ? href : href.substring(0, Math.min(...cutoffs));
 }
 
 function parseResourceEntry(entry: {
 	path: string;
 	timestamp: number;
 }): RecentlyViewedEntry | null {
-	const wsMatch = entry.path.match(/^\/workspace\/(.+)$/);
+	const pathname = pathnameOf(entry.path);
+
+	const v2WsMatch = pathname.match(/^\/v2-workspace\/([^/]+)/);
+	if (v2WsMatch?.[1])
+		return {
+			path: `/v2-workspace/${v2WsMatch[1]}`,
+			type: "v2-workspace",
+			entityId: v2WsMatch[1],
+			timestamp: entry.timestamp,
+		};
+	const wsMatch = pathname.match(/^\/workspace\/([^/]+)/);
 	if (wsMatch?.[1])
 		return {
-			path: entry.path,
+			path: `/workspace/${wsMatch[1]}`,
 			type: "workspace",
 			entityId: wsMatch[1],
 			timestamp: entry.timestamp,
 		};
-	const taskMatch = entry.path.match(/^\/tasks\/(.+)$/);
+	const taskMatch = pathname.match(/^\/tasks\/([^/]+)/);
 	if (taskMatch?.[1])
 		return {
-			path: entry.path,
+			path: `/tasks/${taskMatch[1]}`,
 			type: "task",
 			entityId: taskMatch[1],
+			timestamp: entry.timestamp,
+		};
+	const automationMatch = pathname.match(/^\/automations\/([^/]+)/);
+	if (automationMatch?.[1])
+		return {
+			path: `/automations/${automationMatch[1]}`,
+			type: "automation",
+			entityId: automationMatch[1],
 			timestamp: entry.timestamp,
 		};
 	return null;
@@ -41,10 +66,10 @@ export function useRecentlyViewed(limit = 20): RecentlyViewedEntry[] {
 
 	for (let i = allEntries.length - 1; i >= 0; i--) {
 		const entry = allEntries[i];
-		if (!entry || seen.has(entry.path)) continue;
+		if (!entry) continue;
 		const resource = parseResourceEntry(entry);
-		if (resource) {
-			seen.set(entry.path, resource);
+		if (resource && !seen.has(resource.path)) {
+			seen.set(resource.path, resource);
 		}
 	}
 

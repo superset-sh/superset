@@ -5,9 +5,10 @@ import {
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
@@ -36,6 +37,8 @@ export function useDashboardSidebarPortsData(): {
 	const collections = useCollections();
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
+	const relayUrl = useRelayUrl();
+	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
 
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
@@ -47,7 +50,7 @@ export function useDashboardSidebarPortsData(): {
 		[collections],
 	);
 
-	const { data: workspaces = [] } = useLiveQuery(
+	const { data: allWorkspaces = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
@@ -58,6 +61,13 @@ export function useDashboardSidebarPortsData(): {
 				})),
 		[collections],
 	);
+	const workspaces = useMemo(
+		() =>
+			allWorkspaces.filter((workspace) =>
+				visibleWorkspaceIds.has(workspace.id),
+			),
+		[allWorkspaces, visibleWorkspaceIds],
+	);
 
 	const hostsToQuery = useMemo(
 		() =>
@@ -65,10 +75,10 @@ export function useDashboardSidebarPortsData(): {
 				activeHostUrl,
 				hosts,
 				machineId,
-				relayUrl: env.RELAY_URL,
+				relayUrl,
 				workspaces,
 			}),
-		[activeHostUrl, hosts, machineId, workspaces],
+		[activeHostUrl, hosts, machineId, relayUrl, workspaces],
 	);
 
 	const queries = useQueries({

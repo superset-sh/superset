@@ -19,10 +19,19 @@ describe("healV2UserPreferences", () => {
 		const healed = healV2UserPreferences(stored);
 		expect(healed.rightSidebarOpen).toBe(false);
 		expect(healed.rightSidebarWidth).toBe(500);
+		expect(healed.terminalPresetsInitialized).toBe(false);
 		expect(healed.sidebarFileLinks).toEqual(
 			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
 		);
 		expect(healed.fileLinks).toEqual(DEFAULT_V2_USER_PREFERENCES.fileLinks);
+	});
+
+	it("preserves the terminal presets initialization sentinel", () => {
+		const healed = healV2UserPreferences({
+			terminalPresetsInitialized: true,
+		});
+
+		expect(healed.terminalPresetsInitialized).toBe(true);
 	});
 
 	it("reproduces the original crash shape: missing sidebarFileLinks entirely", () => {
@@ -59,6 +68,21 @@ describe("healV2UserPreferences", () => {
 		);
 		expect(healed.sidebarFileLinks.metaShift).toBe(
 			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks.metaShift,
+		);
+	});
+
+	it("migrates the legacy sidebar file link default to the current default", () => {
+		const healed = healV2UserPreferences({
+			sidebarFileLinks: {
+				plain: "pane",
+				shift: "newTab",
+				meta: "external",
+				metaShift: "external",
+			},
+		});
+
+		expect(healed.sidebarFileLinks).toEqual(
+			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
 		);
 	});
 });

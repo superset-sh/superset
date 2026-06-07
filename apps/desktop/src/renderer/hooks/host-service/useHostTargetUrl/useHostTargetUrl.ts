@@ -1,6 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
@@ -13,12 +13,13 @@ export function useHostUrl(hostId: string | null | undefined): string | null {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
+	const relayUrl = useRelayUrl();
 
 	return useMemo(() => {
 		if (hostId === undefined) return null;
 		if (hostId === null || hostId === machineId) return activeHostUrl;
 		if (!activeOrganizationId) return null;
 		const routingKey = buildHostRoutingKey(activeOrganizationId, hostId);
-		return `${env.RELAY_URL}/hosts/${routingKey}`;
-	}, [hostId, machineId, activeOrganizationId, activeHostUrl]);
+		return `${relayUrl}/hosts/${routingKey}`;
+	}, [hostId, machineId, activeOrganizationId, activeHostUrl, relayUrl]);
 }

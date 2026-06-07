@@ -15,6 +15,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { Route as TasksLayoutRoute } from "../layout";
+import { tasksSearchFromFilters } from "../stores/tasks-filter-state";
 import { ActivitySection } from "./components/ActivitySection";
 import { EditableTitle } from "./components/EditableTitle";
 import { PropertiesSidebar } from "./components/PropertiesSidebar";
@@ -35,7 +36,13 @@ type TaskDetailRecord = SelectTask & {
 
 function TaskDetailPage() {
 	const { taskId } = Route.useParams();
-	const { tab, assignee, search } = TasksLayoutRoute.useSearch();
+	const {
+		tab,
+		assignee,
+		search: searchQuery,
+		type,
+		project,
+	} = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const { tasks: taskActions } = useOptimisticCollectionActions();
@@ -45,12 +52,14 @@ function TaskDetailPage() {
 		);
 
 	const backSearch = useMemo(() => {
-		const s: Record<string, string> = {};
-		if (tab) s.tab = tab;
-		if (assignee) s.assignee = assignee;
-		if (search) s.search = search;
-		return s;
-	}, [tab, assignee, search]);
+		return tasksSearchFromFilters({
+			tab: tab ?? "all",
+			assignee: assignee ?? null,
+			search: searchQuery ?? "",
+			typeTab: type ?? "tasks",
+			projectFilter: project ?? null,
+		});
+	}, [tab, assignee, searchQuery, type, project]);
 	useEscapeToNavigate("/tasks", { search: backSearch });
 
 	// Support both UUID and slug lookups

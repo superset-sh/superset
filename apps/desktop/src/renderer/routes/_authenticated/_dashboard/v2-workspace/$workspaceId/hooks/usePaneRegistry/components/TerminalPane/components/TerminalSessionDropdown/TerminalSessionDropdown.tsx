@@ -13,8 +13,10 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Check, ChevronDown, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useRenderStressInstrumentation } from "renderer/lib/performance/stress-instrumentation";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import type { TerminalLauncher } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2TerminalLauncher";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
@@ -22,9 +24,16 @@ import type {
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
+import {
+	getTerminalDisplayTitle,
+	getTerminalSessionListRefetchInterval,
+	shouldQueryTerminalSessionList,
+	TERMINAL_SESSION_LIST_STALE_MS,
+} from "./TerminalSessionDropdown.utils";
 
 interface TerminalSessionDropdownProps {
 	context: RendererContext<PaneViewerData>;
+	launcher: TerminalLauncher;
 	workspaceId: string;
 }
 
@@ -76,21 +85,36 @@ function getTerminalPaneLocations(
 
 export function TerminalSessionDropdown({
 	context,
+	launcher,
 	workspaceId,
 }: TerminalSessionDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isCreatingTerminal, setIsCreatingTerminal] = useState(false);
 	const collections = useCollections();
 	const { terminalId } = context.pane.data as TerminalPaneData;
 	const terminalInstanceId = context.pane.id;
 	const utils = workspaceTrpc.useUtils();
 	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation();
+	const sessionsInput = useMemo(() => ({ workspaceId }), [workspaceId]);
 	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
-		{ workspaceId },
+		sessionsInput,
 		{
-			refetchInterval: isOpen ? 2_000 : false,
-			refetchOnWindowFocus: true,
+			enabled: shouldQueryTerminalSessionList(isOpen),
+			notifyOnChangeProps: ["data", "isFetching"],
+			refetchInterval: getTerminalSessionListRefetchInterval(isOpen),
+			refetchOnWindowFocus: false,
+			staleTime: TERMINAL_SESSION_LIST_STALE_MS,
 		},
 	);
+	useRenderStressInstrumentation("TerminalSessionDropdown", {
+		warnAt: 30,
+		getDetails: () => ({
+			workspaceId,
+			terminalId,
+			isOpen,
+			hasSessionData: Boolean(sessionsQuery.data),
+		}),
+	});
 	const { data: localWorkspaceRows = [] } = useLiveQuery(
 		(query) =>
 			query
@@ -168,7 +192,7 @@ export function TerminalSessionDropdown({
 		}
 
 		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
-			markTerminalForBackground(terminalId);
+			markTerminalForBackground(terminalId, workspaceId);
 		}
 
 		state.setPaneData({
@@ -219,31 +243,45 @@ export function TerminalSessionDropdown({
 		});
 	};
 
-	const handleNewTerminal = () => {
-		const state = context.store.getState();
-		const terminalPaneLocations = getTerminalPaneLocations(context);
-		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
-			markTerminalForBackground(terminalId);
+	const handleNewTerminal = async () => {
+		if (isCreatingTerminal) return;
+		setIsCreatingTerminal(true);
+		try {
+			const nextTerminalId = await launcher.create();
+			const state = context.store.getState();
+			const terminalPaneLocations = getTerminalPaneLocations(context);
+			if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
+				markTerminalForBackground(terminalId, workspaceId);
+			}
+			state.setPaneData({
+				paneId: context.pane.id,
+				data: {
+					terminalId: nextTerminalId,
+				} as PaneViewerData,
+			});
+			state.setPaneTitleOverride({
+				tabId: context.tab.id,
+				paneId: context.pane.id,
+				titleOverride: undefined,
+			});
+			void utils.terminal.listSessions.invalidate({ workspaceId });
+			setIsOpen(false);
+		} catch (error) {
+			toast.error("Failed to create terminal", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
+		} finally {
+			setIsCreatingTerminal(false);
 		}
-		state.setPaneData({
-			paneId: context.pane.id,
-			data: {
-				terminalId: crypto.randomUUID(),
-			} as PaneViewerData,
-		});
-		state.setPaneTitleOverride({
-			tabId: context.tab.id,
-			paneId: context.pane.id,
-			titleOverride: undefined,
-		});
-		void utils.terminal.listSessions.invalidate({ workspaceId });
-		setIsOpen(false);
 	};
 
 	const hostTitle =
 		runtimeTitle !== undefined ? runtimeTitle : currentSession?.title;
 	const titleOverride = context.pane.titleOverride;
-	const triggerTitle = hostTitle ?? titleOverride ?? "Terminal";
+	const triggerTitle = getTerminalDisplayTitle({
+		titleOverride,
+		runtimeTitle: hostTitle,
+	});
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -256,7 +294,7 @@ export function TerminalSessionDropdown({
 					onMouseDown={(event) => event.stopPropagation()}
 					onClick={(event) => event.stopPropagation()}
 				>
-					<TerminalPaneIcon terminalId={terminalId} />
+					<TerminalPaneIcon workspaceId={workspaceId} terminalId={terminalId} />
 					{workspaceRunState && (
 						<span
 							className={
@@ -286,14 +324,19 @@ export function TerminalSessionDropdown({
 						type="button"
 						aria-label="New terminal"
 						title="New terminal"
+						disabled={isCreatingTerminal}
 						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 						onClick={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
-							handleNewTerminal();
+							void handleNewTerminal();
 						}}
 					>
-						<Plus className="size-3.5" />
+						{isCreatingTerminal ? (
+							<LoaderCircle className="size-3.5 animate-spin" />
+						) : (
+							<Plus className="size-3.5" />
+						)}
 					</button>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
@@ -316,7 +359,10 @@ export function TerminalSessionDropdown({
 											: "Detached";
 							const title = isCurrent
 								? triggerTitle
-								: (session.title ?? location?.titleOverride ?? "Terminal");
+								: getTerminalDisplayTitle({
+										titleOverride: location?.titleOverride,
+										sessionTitle: session.title,
+									});
 
 							return (
 								<DropdownMenuItem

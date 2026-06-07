@@ -13,5 +13,6 @@ fi
 
 ./scripts/check-desktop-git-env.sh
 ./scripts/check-git-ref-strings.sh
+bash ./scripts/check-simple-git-usage.sh
 
 exit $exit_code

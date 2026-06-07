@@ -19,6 +19,7 @@ import {
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
 	HiOutlineCog6Tooth,
+	HiOutlinePlus,
 } from "react-icons/hi2";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
@@ -147,7 +148,7 @@ export function OrganizationDropdown({
 					<FiUsers className="h-4 w-4" />
 					<span>Manage members</span>
 				</DropdownMenuItem>
-				{organizations && organizations.length > 1 && (
+				{organizations && organizations.length > 0 && (
 					<DropdownMenuSub>
 						<DropdownMenuSubTrigger className="gap-2">
 							<span>Switch organization</span>
@@ -178,6 +179,13 @@ export function OrganizationDropdown({
 									)}
 								</DropdownMenuItem>
 							))}
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								onSelect={() => navigate({ to: "/create-organization" })}
+							>
+								<HiOutlinePlus className="h-4 w-4" />
+								<span>Create organization</span>
+							</DropdownMenuItem>
 						</DropdownMenuSubContent>
 					</DropdownMenuSub>
 				)}

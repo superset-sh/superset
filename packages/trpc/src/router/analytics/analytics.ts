@@ -83,6 +83,24 @@ export const analyticsRouter = {
 			return { ok: true };
 		}),
 
+	// Server-side feature-flag payload lookup for the authenticated user. Lets
+	// clients without a PostHog SDK (e.g. the CLI binary) evaluate flags
+	// without us baking the PostHog project key into their build. Returns
+	// `null` when the flag is off or has no payload configured.
+	featureFlagPayload: protectedProcedure
+		.input(z.object({ key: z.string().min(1).max(100) }))
+		.query(async ({ ctx, input }) => {
+			try {
+				const payload = await posthog.getFeatureFlagPayload(
+					input.key,
+					ctx.session.user.id,
+				);
+				return payload ?? null;
+			} catch {
+				return null;
+			}
+		}),
+
 	getActivationFunnel: adminProcedure
 		.input(
 			z

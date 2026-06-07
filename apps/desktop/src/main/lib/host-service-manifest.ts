@@ -1,7 +1,6 @@
 import {
 	existsSync,
 	mkdirSync,
-	readdirSync,
 	readFileSync,
 	unlinkSync,
 	writeFileSync,
@@ -15,15 +14,6 @@ export interface HostServiceManifest {
 	authToken: string;
 	startedAt: number;
 	organizationId: string;
-	/**
-	 * Desktop app version that spawned this host-service. Compared against
-	 * the current `app.getVersion()` on adoption — any mismatch triggers a
-	 * kill + respawn so every Electron auto-update lands on a freshly
-	 * spawned host-service, even when the host-service version pin alone
-	 * would have allowed adoption (e.g. host-service code changed but its
-	 * `package.json#version` was not bumped).
-	 */
-	spawnedByAppVersion: string;
 }
 
 export function manifestDir(organizationId: string): string {
@@ -69,38 +59,10 @@ export function readManifest(
 			return null;
 		}
 
-		// `spawnedByAppVersion` is required going forward, but pre-existing
-		// manifests on upgraded users won't have it. Coerce to empty string so
-		// `tryAdopt` still finds the old PID, then trip the app-version pin
-		// (current version !== "") so the stale daemon gets killed and respawned.
-		if (typeof data.spawnedByAppVersion !== "string") {
-			data.spawnedByAppVersion = "";
-		}
-
 		return data as HostServiceManifest;
 	} catch {
 		return null;
 	}
-}
-
-/** Scan the host directory for all valid manifests on disk. */
-export function listManifests(): HostServiceManifest[] {
-	const hostDir = join(SUPERSET_HOME_DIR, "host");
-	if (!existsSync(hostDir)) return [];
-
-	const manifests: HostServiceManifest[] = [];
-	try {
-		for (const entry of readdirSync(hostDir, { withFileTypes: true })) {
-			if (!entry.isDirectory()) continue;
-			const manifest = readManifest(entry.name);
-			if (manifest) {
-				manifests.push(manifest);
-			}
-		}
-	} catch {
-		// Best-effort scan
-	}
-	return manifests;
 }
 
 export function removeManifest(organizationId: string): void {
@@ -116,10 +78,27 @@ export function removeManifest(organizationId: string): void {
 
 /** Check whether a process with the given PID is alive. */
 export function isProcessAlive(pid: number): boolean {
+	if (!isSignalablePid(pid)) return false;
+
 	try {
 		process.kill(pid, 0);
 		return true;
 	} catch {
 		return false;
 	}
+}
+
+export function killProcess(
+	pid: number,
+	signal: NodeJS.Signals | number,
+): void {
+	if (!isSignalablePid(pid)) {
+		throw new Error(`Refusing to signal invalid pid: ${pid}`);
+	}
+
+	process.kill(pid, signal);
+}
+
+function isSignalablePid(pid: number): boolean {
+	return Number.isInteger(pid) && Number.isFinite(pid) && pid > 1;
 }

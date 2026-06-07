@@ -1,6 +1,6 @@
 import path from "node:path";
 import { config } from "dotenv";
-import type { ConfigContext, ExpoConfig } from "expo/config";
+import type { ConfigContext } from "expo/config";
 
 // Load .env file
 config({
@@ -9,7 +9,7 @@ config({
 	quiet: true,
 });
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+export default ({ config }: ConfigContext) => ({
 	...config,
 	name: "Superset",
 	slug: "superset",
@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	scheme: "superset",
 	splash: {
 		image: "./assets/splash-icon.png",
-		resizeMode: "contain",
+		resizeMode: "contain" as const,
 		backgroundColor: "#09090b",
 	},
 	ios: {

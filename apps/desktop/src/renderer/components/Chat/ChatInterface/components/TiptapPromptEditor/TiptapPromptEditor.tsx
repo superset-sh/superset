@@ -28,7 +28,7 @@ const mentionSuggestionKey = new PluginKey("fileMentionSuggestion");
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { FileIcon } from "renderer/lib/fileIcons";
 import {
 	getCommandMatchRank,
 	type SlashCommand,

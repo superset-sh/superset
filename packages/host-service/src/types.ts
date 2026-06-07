@@ -8,6 +8,7 @@ import type { ChatRuntimeManager } from "./runtime/chat";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitFactory } from "./runtime/git";
 import type { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import type { TerminalAgentStore } from "./terminal-agents";
 import type { ExecGh } from "./trpc/router/workspace-creation/utils/exec-gh";
 
 export type ApiClient = TRPCClient<AppRouter>;
@@ -27,6 +28,7 @@ export interface HostServiceContext {
 	db: HostDb;
 	runtime: HostServiceRuntime;
 	eventBus: EventBus;
+	terminalAgentStore: TerminalAgentStore;
 	organizationId: string;
 	isAuthenticated: boolean;
 }

@@ -15,6 +15,7 @@ import {
 } from "renderer/stores/v1-import-modal";
 import { MOCK_ORG_ID } from "shared/constants";
 import { IntroPage } from "./components/IntroPage";
+import { StepProgress } from "./components/StepProgress";
 import { WelcomePage } from "./components/WelcomePage";
 import { ImportPresetsPage } from "./ImportPresetsPage";
 import { ImportProjectsPage } from "./ImportProjectsPage";
@@ -46,6 +47,7 @@ export function V1ImportModal() {
 		>
 			<DialogContent
 				className="flex flex-col w-[min(744px,calc(100vw-2rem))] !max-w-[744px] h-[min(540px,calc(100vh-2rem))] max-h-[calc(100vh-2rem)] p-0 gap-0 overflow-hidden !rounded-none [&>[data-slot=dialog-close]]:top-5 [&>[data-slot=dialog-close]]:right-5 [&>[data-slot=dialog-close]]:z-10 [&>[data-slot=dialog-close]]:opacity-100 [&>[data-slot=dialog-close]]:text-muted-foreground hover:[&>[data-slot=dialog-close]]:text-foreground"
+				showCloseButton={false}
 				onEscapeKeyDown={(event) => event.preventDefault()}
 				onPointerDownOutside={(event) => event.preventDefault()}
 				onInteractOutside={(event) => event.preventDefault()}
@@ -91,36 +93,48 @@ export function V1ImportModal() {
 					)}
 				</div>
 
-				<div className="box-border flex shrink-0 items-center justify-between gap-3 border-t border-border/60 bg-background px-5 py-3">
-					{previousPage ? (
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setPage(previousPage)}
-							className="h-8 shrink-0 px-3 text-[13px] font-medium text-muted-foreground hover:text-foreground"
-						>
-							Back
-						</Button>
-					) : (
-						<div />
-					)}
-					{nextPage ? (
-						<Button
-							size="sm"
-							onClick={() => setPage(nextPage)}
-							className="h-8 shrink-0 px-3 text-[13px] font-medium"
-						>
-							{page === "welcome" ? "Get started" : "Next"}
-						</Button>
-					) : (
-						<Button
-							size="sm"
-							onClick={close}
-							className="h-8 shrink-0 px-3 text-[13px] font-medium"
-						>
-							Done
-						</Button>
-					)}
+				<div className="relative box-border flex shrink-0 items-center justify-between gap-3 border-t border-border/60 bg-background px-5 py-3">
+					<StepProgress
+						currentIndex={currentIndex}
+						totalSteps={V1_IMPORT_PAGE_ORDER.length}
+					/>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={close}
+						className="h-8 shrink-0 px-3 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+					>
+						Cancel
+					</Button>
+					<div className="flex shrink-0 items-center gap-2">
+						{previousPage && (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setPage(previousPage)}
+								className="h-8 shrink-0 px-3 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+							>
+								Back
+							</Button>
+						)}
+						{nextPage ? (
+							<Button
+								size="sm"
+								onClick={() => setPage(nextPage)}
+								className="h-8 shrink-0 px-3 text-[13px] font-medium"
+							>
+								{page === "welcome" ? "Get started" : "Next"}
+							</Button>
+						) : (
+							<Button
+								size="sm"
+								onClick={close}
+								className="h-8 shrink-0 px-3 text-[13px] font-medium"
+							>
+								Done
+							</Button>
+						)}
+					</div>
 				</div>
 			</DialogContent>
 		</Dialog>

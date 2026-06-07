@@ -10,8 +10,10 @@ import {
 	cloneRepoInto,
 	cloneTemplateInto,
 	initEmptyRepo,
+	initLocalRepoInPlace,
 	type ResolvedRepo,
 	resolveLocalRepo,
+	tryRevParseGitRoot,
 } from "./utils/resolve-repo";
 import { templateUrlFor } from "./utils/templates";
 
@@ -50,10 +52,6 @@ interface CreateResult {
 	mainWorkspaceId: string;
 }
 
-function slugWithSuffix(baseSlug: string, attempt: number): string {
-	return attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
-}
-
 // Cloud v2Project.create catches v2_projects_org_slug_unique and re-throws
 // as TRPCError CONFLICT with this exact message — kept stable so the slug
 // retry below can detect it. If you change the cloud message, change this
@@ -71,9 +69,9 @@ async function createCloudProjectWithSlugRetry(
 ) {
 	const baseSlug = slugifyProjectName(args.name);
 	let lastError: unknown;
-	const maxAttempts = 10;
+	const maxAttempts = 100;
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
-		const slug = slugWithSuffix(baseSlug, attempt);
+		const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
 		try {
 			return await ctx.api.v2Project.create.mutate({
 				organizationId: ctx.organizationId,
@@ -95,7 +93,7 @@ async function createCloudProjectWithSlugRetry(
 	}
 	throw new TRPCError({
 		code: "CONFLICT",
-		message: `Could not allocate a unique slug for "${args.name}" after ${maxAttempts} attempts`,
+		message: `Could not allocate a unique slug for "${args.name}" after ${maxAttempts} attempts. Try a different project name.`,
 		cause: lastError,
 	});
 }
@@ -200,11 +198,28 @@ export async function createFromClone(
 	});
 }
 
+/**
+ * Resolve an existing repo, or — when `initIfNeeded` and the folder isn't a git
+ * repo yet — `git init` it in place first. The init branch only runs after the
+ * UI has confirmed intent with the user.
+ */
+async function resolveOrInitLocalRepo(
+	repoPath: string,
+	initIfNeeded: boolean,
+): Promise<ResolvedRepo> {
+	if (!initIfNeeded) return resolveLocalRepo(repoPath);
+	const root = await tryRevParseGitRoot(repoPath);
+	return root ? resolveLocalRepo(root) : initLocalRepoInPlace(repoPath);
+}
+
 export async function createFromImportLocal(
 	ctx: HostServiceContext,
-	args: { name: string; repoPath: string },
+	args: { name: string; repoPath: string; initIfNeeded?: boolean },
 ): Promise<CreateResult> {
-	const resolved = await resolveLocalRepo(args.repoPath);
+	const resolved = await resolveOrInitLocalRepo(
+		args.repoPath,
+		args.initIfNeeded ?? false,
+	);
 	return persistFromResolved(ctx, {
 		name: args.name,
 		resolved,

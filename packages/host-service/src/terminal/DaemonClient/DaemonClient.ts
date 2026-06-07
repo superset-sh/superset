@@ -218,7 +218,11 @@ export class DaemonClient {
 			);
 		}
 		if (wasFirst) {
-			this.send({ type: "subscribe", id, replay: opts.replay });
+			this.send({
+				type: "subscribe",
+				id,
+				replay: opts.replay,
+			});
 		}
 		return () => {
 			const e = this.callbacks.get(id);

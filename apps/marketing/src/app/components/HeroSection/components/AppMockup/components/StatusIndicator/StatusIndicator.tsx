@@ -10,13 +10,13 @@ const STATUS_STYLES: Record<
 	WorkspaceStatus,
 	{ dot: string; ping: string; pulse: boolean }
 > = {
-	permission: { ping: "bg-red-400/45", dot: "bg-red-400/80", pulse: true },
+	permission: { ping: "bg-amber-300/40", dot: "bg-amber-300/90", pulse: true },
 	working: {
-		ping: "bg-orange-500/35",
-		dot: "bg-orange-500/80",
+		ping: "bg-brand/40",
+		dot: "bg-brand",
 		pulse: true,
 	},
-	review: { ping: "", dot: "bg-emerald-400/75", pulse: false },
+	review: { ping: "", dot: "bg-emerald-400/85", pulse: false },
 };
 
 export function StatusIndicator({ status }: StatusIndicatorProps) {

@@ -23,7 +23,7 @@ Killing `bun run dev` left orphan processes (PPID=1): dev servers bound to ports
 
 ## Prod safety
 
-All daemon-spawn changes branch on `app.isPackaged` (or `NODE_ENV === "production"` for `DaemonSupervisor`). Packaged builds keep `detached: true` + `unref()` and the `releaseAll()` quit path unchanged, preserving manifest-based adoption and PTY survival across restarts (see `apps/desktop/HOST_SERVICE_LIFECYCLE.md`). The `exec` edits only touch `"dev"` scripts; cloud apps deploy via `next start` / `wrangler deploy`, which never run them.
+All daemon-spawn changes branch on `app.isPackaged` (or `NODE_ENV === "production"` for `DaemonSupervisor`). Packaged builds keep `detached: true` + `unref()` and the `releaseAll()` quit path unchanged, preserving manifest-based adoption and PTY survival across restarts (see `apps/desktop/docs/HOST_SERVICE_LIFECYCLE.md`). The `exec` edits only touch `"dev"` scripts; cloud apps deploy via `next start` / `wrangler deploy`, which never run them.
 
 ## Verification
 

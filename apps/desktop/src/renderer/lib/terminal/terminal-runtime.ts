@@ -4,7 +4,11 @@ import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
-import type { TerminalAppearance } from "./appearance";
+import {
+	applyTerminalFontFamilyCssVariable,
+	type TerminalAppearance,
+} from "./appearance";
+import { scheduleFontSettleRefit } from "./font-settle";
 import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
@@ -205,6 +209,7 @@ export function createRuntime(
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
+	applyTerminalFontFamilyCssVariable(wrapper, appearance.fontFamily);
 	terminal.open(wrapper);
 
 	installTerminalKeyEventHandler(terminal);
@@ -245,9 +250,10 @@ export function attachToContainer(
 	runtime: TerminalRuntime,
 	container: HTMLDivElement,
 	onResize?: () => void,
+	options: { focus?: boolean } = {},
 ) {
 	// If we're already attached to this exact container, do nothing. Prevents
-	// redundant refresh/focus/fit from transient remounts during provider key
+	// redundant refresh/fit from transient remounts during provider key
 	// churn — VSCode setVisible() is idempotent for the same host element.
 	const sameContainer =
 		runtime.container === container &&
@@ -259,6 +265,12 @@ export function attachToContainer(
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
 	if (measureAndResize(runtime)) onResize?.();
+	scheduleFontSettleRefit(
+		runtime.terminal,
+		() => hostIsVisible(runtime.container),
+		() => measureAndResize(runtime),
+		onResize,
+	);
 
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
@@ -269,7 +281,9 @@ export function attachToContainer(
 	runtime.resizeObserver = observer;
 	runtime._disposeResizeObserver = scheduler.dispose;
 
-	runtime.terminal.focus();
+	if (options.focus !== false) {
+		runtime.terminal.focus();
+	}
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
@@ -288,6 +302,7 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 export function updateRuntimeAppearance(
 	runtime: TerminalRuntime,
 	appearance: TerminalAppearance,
+	onResize?: () => void,
 ) {
 	const { terminal } = runtime;
 	terminal.options.theme = appearance.theme;
@@ -297,11 +312,20 @@ export function updateRuntimeAppearance(
 		terminal.options.fontSize !== appearance.fontSize;
 
 	if (fontChanged) {
+		applyTerminalFontFamilyCssVariable(runtime.wrapper, appearance.fontFamily);
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
 		if (hostIsVisible(runtime.container)) {
 			measureAndResize(runtime);
 		}
+		// The freshly-selected font may still be loading — schedule a follow-up
+		// refit once it resolves so dimensions track the rendered glyphs.
+		scheduleFontSettleRefit(
+			runtime.terminal,
+			() => hostIsVisible(runtime.container),
+			() => measureAndResize(runtime),
+			onResize,
+		);
 	}
 }
 

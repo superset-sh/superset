@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -10,9 +10,31 @@ import * as directory from "./directory";
 import { env } from "./env";
 import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
+import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
 import { TunnelManager } from "./tunnel";
 
+// Bearer tokens we never want in stdout. Hosts put their JWT on the WS
+// upgrade URL because browser WebSockets can't send custom headers, and
+// Hono's default `logger()` echoes the full query string. Mask the values
+// before they reach the log sink so the raw token doesn't end up in Fly
+// logs / Sentry breadcrumbs.
+const SENSITIVE_QUERY_RE = /([?&])(token)=[^&\s]+/g;
+const redactingLogger = logger((message, ...rest) => {
+	const redacted =
+		typeof message === "string"
+			? message.replace(SENSITIVE_QUERY_RE, "$1$2=REDACTED")
+			: message;
+	console.log(redacted, ...rest);
+});
+
 initSentry();
+
+process.on("uncaughtException", (err) => {
+	console.error("[relay] uncaughtException (suppressed)", err);
+});
+process.on("unhandledRejection", (reason) => {
+	console.error("[relay] unhandledRejection (suppressed)", reason);
+});
 
 type AppContext = {
 	Variables: {
@@ -26,8 +48,53 @@ const app = new Hono<AppContext>();
 const tunnelManager = new TunnelManager();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
-app.use("*", logger());
+// Graceful drain on Fly's pre-stop signal. Fly's init sends SIGINT (not
+// SIGTERM) to the main process during rolling deploys; listen on both to
+// also cover hand-rolled `fly machine stop` and local Ctrl-C. Without this,
+// deploys kill the process while tunnels are open and host-services see
+// TCP-RST'd sockets, triggering their long exponential backoff.
+//
+// Sequence: stop accepting new TCP connections (server.close), then close
+// every open tunnel with the app-defined drain code so hosts reconnect
+// promptly, and clear this machine's directory ownership before process exit.
+// server is assigned at the bottom of this file — by signal time, the closure
+// has it.
+let server: ReturnType<typeof serve> | null = null;
+let draining = false;
+const handleDrain = async (signal: string) => {
+	if (draining) return;
+	draining = true;
+	console.log(`[relay] ${signal} received, draining tunnels`);
+	try {
+		server?.close();
+		const cleared = await tunnelManager.drain({
+			clearDirectory: () =>
+				directory.clearStaleEntriesForMachine(
+					env.FLY_REGION,
+					env.FLY_MACHINE_ID,
+				),
+		});
+		if (cleared > 0) {
+			console.log(`[relay] cleared ${cleared} directory entries during drain`);
+		}
+	} catch (err) {
+		console.error("[relay] drain failed", err);
+	}
+	process.exit(0);
+};
+process.on("SIGINT", () => void handleDrain("SIGINT"));
+process.on("SIGTERM", () => void handleDrain("SIGTERM"));
+
+app.use("*", redactingLogger);
 app.use("*", cors());
+
+app.onError((err, c) => {
+	captureSentryException(err, {
+		op: "hono.onError",
+		path: new URL(c.req.url).pathname,
+	});
+	return c.json({ error: "Internal server error" }, 500);
+});
 
 app.get("/health", (c) => c.json({ ok: true, region: env.FLY_REGION }));
 
@@ -75,12 +142,26 @@ async function maybeReplay(hostId: string): Promise<{
 	};
 }
 
+function pathAfterHost(c: Context<AppContext>): string {
+	const hostId = c.req.param("hostId") ?? "";
+	const path = new URL(c.req.url).pathname;
+	return path.slice(`/hosts/${hostId}`.length);
+}
+
 const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
+	const wantsTrpc = isTrpcPath(pathAfterHost(c));
+
 	const token = extractToken(c);
-	if (!token) return c.json({ error: "Unauthorized" }, 401);
+	if (!token)
+		return wantsTrpc
+			? trpcErrorResponse(c, "UNAUTHORIZED", "Unauthorized")
+			: c.json({ error: "Unauthorized" }, 401);
 
 	const auth = await verifyJWT(token, env.NEXT_PUBLIC_API_URL);
-	if (!auth) return c.json({ error: "Unauthorized" }, 401);
+	if (!auth)
+		return wantsTrpc
+			? trpcErrorResponse(c, "UNAUTHORIZED", "Unauthorized")
+			: c.json({ error: "Unauthorized" }, 401);
 
 	const hostId = c.req.param("hostId");
 	if (!hostId) return c.json({ error: "Missing hostId" }, 400);
@@ -91,11 +172,16 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 	if (!tunnelManager.hasTunnel(hostId)) {
 		const replay = await maybeReplay(hostId);
 		if (replay) return c.body(null, 200, replay.header);
-		return c.json({ error: "Host not connected" }, 503);
+		return wantsTrpc
+			? trpcErrorResponse(c, "SERVICE_UNAVAILABLE", "Host is not online")
+			: c.json({ error: "Host not connected" }, 503);
 	}
 
-	const hasAccess = await checkHostAccess(token, hostId);
-	if (!hasAccess) return c.json({ error: "Forbidden" }, 403);
+	const hasAccess = await checkHostAccess(auth, token, hostId);
+	if (!hasAccess)
+		return wantsTrpc
+			? trpcErrorResponse(c, "FORBIDDEN", "Forbidden")
+			: c.json({ error: "Forbidden" }, 403);
 
 	c.set("auth", auth);
 	c.set("token", token);
@@ -115,6 +201,11 @@ app.get(
 
 		return {
 			onOpen: async (_event, ws) => {
+				if (draining) {
+					ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
+					return;
+				}
+
 				if (!hostId || !token) {
 					ws.close(1008, "Missing hostId or token");
 					return;
@@ -126,9 +217,14 @@ app.get(
 					return;
 				}
 
-				const hasAccess = await checkHostAccess(token, hostId);
+				const hasAccess = await checkHostAccess(auth, token, hostId);
 				if (!hasAccess) {
 					ws.close(1008, "Forbidden");
+					return;
+				}
+
+				if (draining) {
+					ws.close(TunnelManager.WS_CLOSE_DRAIN, "Server draining for deploy");
 					return;
 				}
 
@@ -203,10 +299,8 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 		});
 	} catch (error) {
 		captureSentryException(error, { hostId, path });
-		return c.json(
-			{ error: error instanceof Error ? error.message : "Proxy error" },
-			502,
-		);
+		const message = error instanceof Error ? error.message : "Proxy error";
+		return trpcErrorResponse(c, "BAD_GATEWAY", message);
 	}
 });
 
@@ -263,9 +357,42 @@ if (env.RELAY_SYNTHETIC_JWT) {
 
 // ── Start ───────────────────────────────────────────────────────────
 
-const server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
+// Clear any directory entries our previous process generation left behind
+// (SIGKILL, drain race, etc.) before we begin accepting connections, so
+// fly-replay doesn't route cross-region requests at us for tunnels we no
+// longer have. Best-effort: relay still boots if Upstash is unreachable.
+try {
+	const cleared = await directory.clearStaleEntriesForMachine(
+		env.FLY_REGION,
+		env.FLY_MACHINE_ID,
+	);
+	if (cleared > 0) {
+		console.log(
+			`[relay] cleared ${cleared} stale directory entries on startup`,
+		);
+	}
+} catch (err) {
+	console.error("[relay] startup cleanup failed", err);
+}
+
+server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
 	console.log(
 		`[relay] listening on http://localhost:${info.port} (region=${env.FLY_REGION} machine=${env.FLY_MACHINE_ID})`,
 	);
 });
 injectWebSocket(server);
+
+// Disable Nagle's algorithm on every incoming connection. Both the client's
+// terminal WebSocket and the host's tunnel WebSocket connect here, so this
+// covers the relay's writes in both directions. Nagle interacting with TCP
+// delayed-ACK adds tens-to-hundreds of milliseconds to small, sparse
+// interactive frames (terminal keystrokes and their echoes) while leaving
+// bulk output untouched; across the relay's multiple hops this compounds into
+// seconds of perceived typing lag. Interactive proxies should always set
+// TCP_NODELAY. (@hono/node-server returns a Node http.Server.)
+(server as unknown as import("node:http").Server).on(
+	"connection",
+	(socket: import("node:net").Socket) => {
+		socket.setNoDelay(true);
+	},
+);

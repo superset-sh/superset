@@ -1,5 +1,6 @@
+import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
-import { Check, GitBranch, Loader2 } from "lucide-react";
+import { Check, GitBranch, Loader2, RotateCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import "./WorkspaceCreatingState.css";
 
@@ -27,6 +28,9 @@ const TOTAL_SECONDS = STEPS[STEPS.length - 1].doneAt;
 // Cap synthetic progress so the bar never claims completion before the real
 // workspaces.create mutation resolves.
 const PROGRESS_CAP = 0.94;
+// Past the typical budget — offer a window reload as an escape hatch in
+// case the renderer state has drifted from the real workspace row.
+const STUCK_AFTER_SECONDS = 30;
 
 interface WorkspaceCreatingStateProps {
 	name?: string;
@@ -42,6 +46,7 @@ export function WorkspaceCreatingState({
 	const elapsed = useElapsedSeconds(startedAt);
 	const activeIndex = getActiveIndex(elapsed);
 	const progress = Math.min(elapsed / TOTAL_SECONDS, PROGRESS_CAP);
+	const stuck = elapsed >= STUCK_AFTER_SECONDS;
 
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
@@ -101,6 +106,28 @@ export function WorkspaceCreatingState({
 						<span>~{TOTAL_SECONDS}s typical</span>
 					</div>
 				</div>
+
+				{stuck && (
+					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
+						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
+							This is taking longer than usual. The workspace may already be
+							ready — reloading can pick it up.
+						</p>
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-7 w-fit gap-1.5 px-2 text-[12px] font-medium"
+							onClick={() => window.location.reload()}
+						>
+							<RotateCw
+								className="size-3.5"
+								strokeWidth={2}
+								aria-hidden="true"
+							/>
+							Reload window
+						</Button>
+					</div>
+				)}
 			</div>
 		</div>
 	);

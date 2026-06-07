@@ -4,8 +4,9 @@ import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
+	countTerminalSessions,
 	createTerminalSessionInternal,
-	disposeSession,
+	disposeSessionAndWait,
 	listTerminalSessions,
 	parseThemeType,
 	writeInputToSession,
@@ -118,6 +119,21 @@ export const terminalRouter = router({
 			}),
 		})),
 
+	countBackgroundSessions: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				attachedTerminalIds: z.array(z.string()).default([]),
+			}),
+		)
+		.query(({ input }) => ({
+			count: countTerminalSessions({
+				workspaceId: input.workspaceId,
+				includeExited: false,
+				excludeTerminalIds: input.attachedTerminalIds,
+			}),
+		})),
+
 	writeInput: protectedProcedure
 		.input(
 			z.object({
@@ -144,7 +160,7 @@ export const terminalRouter = router({
 				workspaceId: z.string(),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
 				.sync();
@@ -174,7 +190,8 @@ export const terminalRouter = router({
 				});
 			}
 
-			disposeSession(input.terminalId, ctx.db);
+			await disposeSessionAndWait(input.terminalId, ctx.db);
+			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
 

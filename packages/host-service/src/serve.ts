@@ -2,7 +2,10 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { getSupervisor, startDaemonBootstrap } from "./daemon";
 import { env } from "./env";
-import { JwtApiAuthProvider } from "./providers/auth";
+import {
+	ConfigFileSessionTokenSource,
+	JwtApiAuthProvider,
+} from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
@@ -26,8 +29,19 @@ async function main(): Promise<void> {
 	// daemon takes time to come up or fails entirely.
 	startDaemonBootstrap(env.ORGANIZATION_ID);
 
+	const configTokenSource = env.SUPERSET_AUTH_CONFIG_PATH
+		? new ConfigFileSessionTokenSource({
+				configPath: env.SUPERSET_AUTH_CONFIG_PATH,
+				apiUrl: env.SUPERSET_API_URL,
+			})
+		: null;
 	const authProvider = new JwtApiAuthProvider({
-		getSessionToken: async () => env.AUTH_TOKEN,
+		getSessionToken: configTokenSource
+			? () => configTokenSource.getSessionToken()
+			: async () => env.AUTH_TOKEN,
+		onInvalidateCache: configTokenSource
+			? () => configTokenSource.invalidateCache()
+			: undefined,
 		apiUrl: env.SUPERSET_API_URL,
 	});
 
@@ -51,7 +65,7 @@ async function main(): Promise<void> {
 	// iteration on daemon code resets cleanly. Production keeps the
 	// daemon detached so PTYs survive host-service restarts.
 	// Per the migration plan's D5 decision.
-	const isDev = process.env.NODE_ENV !== "production";
+	const isDev = process.env.NODE_ENV === "development";
 	if (isDev) {
 		let shuttingDown = false;
 		const devShutdown = async (signal: NodeJS.Signals) => {

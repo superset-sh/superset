@@ -1,21 +1,28 @@
 import { memo } from "react";
-import type { CommentPaneData } from "../../../../../../types";
+import type { CommentPaneData, DiffFocusSide } from "../../../../../../types";
 import type { NormalizedComment, NormalizedPR } from "../../types";
 import { ChecksSection } from "../ChecksSection";
 import { CommentsSection } from "../CommentsSection";
 import { PRHeader } from "../PRHeader";
 
 interface ReviewTabContentProps {
+	workspaceId: string;
 	pr: NormalizedPR | null;
 	comments: NormalizedComment[];
 	isLoading: boolean;
 	isError: boolean;
 	isCommentsLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
+	onOpenInDiff?: (
+		path: string,
+		line?: number,
+		openInNewTab?: boolean,
+		side?: DiffFocusSide,
+	) => void;
 }
 
 export const ReviewTabContent = memo(function ReviewTabContent({
+	workspaceId,
 	pr,
 	comments,
 	isLoading,
@@ -63,6 +70,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 			<div className="my-1 border-b border-border/70" />
 
 			<CommentsSection
+				workspaceId={workspaceId}
 				comments={comments}
 				isLoading={isCommentsLoading}
 				onOpenComment={onOpenComment}

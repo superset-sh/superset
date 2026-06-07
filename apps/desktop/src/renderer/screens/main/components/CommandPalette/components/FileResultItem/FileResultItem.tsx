@@ -1,5 +1,5 @@
 import { CommandPrimitive } from "@superset/ui/command";
-import { FileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+import { FileIcon } from "renderer/lib/fileIcons";
 
 interface FileResultItemProps {
 	value: string;

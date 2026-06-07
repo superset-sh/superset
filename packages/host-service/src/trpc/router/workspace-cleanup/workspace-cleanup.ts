@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -11,6 +12,10 @@ import type {
 	TeardownFailureCause,
 } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
+import {
+	normalizeWorktreePath,
+	parseWorktreeList,
+} from "../workspace-creation/shared/worktree-list";
 import { isMainWorkspace } from "./is-main-workspace";
 
 /**
@@ -28,7 +33,7 @@ const destroysInFlight = new Set<string>();
 /** @internal — exposed for tests to introspect / clear the guard. */
 export const __testDestroysInFlight = destroysInFlight;
 
-interface DestroyInput {
+export interface DestroyWorkspaceInput {
 	workspaceId: string;
 	deleteBranch: boolean;
 	force: boolean;
@@ -124,22 +129,24 @@ export const workspaceCleanupRouter = router({
 		}),
 
 	/**
-	 * Destroy a workspace in three phases:
+	 * Destroy a workspace in five phases:
 	 *
 	 *   0. Preflight     — dirty-worktree check (skip if force)
 	 *   1. Teardown      — run .superset/teardown.sh (skip if force)
-	 *   2. Cloud delete  ← COMMIT POINT — throws if it fails
-	 *   3. Local cleanup — PTYs, worktree, branch, host sqlite (best-effort)
+	 *   2. Local cleanup — PTYs, worktree
+	 *   3. Cloud delete  ← authoritative UI state
+	 *   4. Branch delete — optional local branch cleanup
+	 *   5. Host sqlite   — local index cleanup
 	 *
-	 * Any failure in phases 0–2 leaves the workspace fully intact. Failures
-	 * in phase 3 become warnings — local orphans are cheap, and the user
-	 * has a toast telling them what was left behind.
+	 * Worktree removal is intentionally before cloud delete. If it fails
+	 * while the path still exists, the cloud row remains so the workspace is
+	 * still visible and delete can be retried instead of orphaning disk state.
 	 *
 	 * Force semantics:
 	 *   - skips preflight (step 0)
 	 *   - skips teardown  (step 1)
-	 *   - step 3b always uses `--force` (we're past the commit point)
-	 *   - step 3c always uses `-D` regardless: the `deleteBranch`
+	 *   - step 2b always uses `--force --force`
+	 *   - step 4 always uses `-D` regardless: the `deleteBranch`
 	 *     checkbox is the user's consent, so refusing unmerged branches
 	 *     would just silently drop the opt-in.
 	 *
@@ -163,24 +170,32 @@ export const workspaceCleanupRouter = router({
 				force: z.boolean().default(false),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
-			if (destroysInFlight.has(input.workspaceId)) {
-				throw new TRPCError({
-					code: "CONFLICT",
-					message: "Deletion already in progress for this workspace",
-					cause: { kind: "DELETE_IN_PROGRESS" } satisfies DeleteInProgressCause,
-				});
-			}
-			destroysInFlight.add(input.workspaceId);
-			try {
-				return await runDestroy(ctx, input);
-			} finally {
-				destroysInFlight.delete(input.workspaceId);
-			}
-		}),
+		.mutation(async ({ ctx, input }) => destroyWorkspace(ctx, input)),
 });
 
-async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
+export async function destroyWorkspace(
+	ctx: HostServiceContext,
+	input: DestroyWorkspaceInput,
+) {
+	if (destroysInFlight.has(input.workspaceId)) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Deletion already in progress for this workspace",
+			cause: { kind: "DELETE_IN_PROGRESS" } satisfies DeleteInProgressCause,
+		});
+	}
+	destroysInFlight.add(input.workspaceId);
+	try {
+		return await runDestroy(ctx, input);
+	} finally {
+		destroysInFlight.delete(input.workspaceId);
+	}
+}
+
+async function runDestroy(
+	ctx: HostServiceContext,
+	input: DestroyWorkspaceInput,
+) {
 	const warnings: string[] = [];
 
 	// `isMainWorkspace` already loads workspace + project rows from sqlite;
@@ -193,7 +208,7 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 
 	// ─── Step 0: Preflight ─────────────────────────────────────────
 	// Block only on dirty worktree (the common "I forgot to commit"
-	// case). Anything else the local-cleanup phase handles as warning.
+	// case). Missing/broken local state is handled by the cleanup phase.
 	if (!input.force && local && project) {
 		try {
 			const git = await ctx.git(local.worktreePath);
@@ -209,6 +224,15 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 			// Can't read status (missing worktree dir, etc.) — not a
 			// conflict. Continue; step 3b will skip idempotently.
 		}
+	}
+
+	// Make sure we can commit to cloud before touching local disk. The actual
+	// cloud mutation happens after the worktree is removed.
+	if (!ctx.api) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Cloud API not configured",
+		});
 	}
 
 	// ─── Step 1: Teardown ──────────────────────────────────────────
@@ -237,25 +261,13 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 		}
 	}
 
-	// ─── Step 2: Cloud delete (commit point) ───────────────────────
-	// Past this line, the workspace is gone from the user's perspective
-	// (sidebar will reflect the cloud state). Local artifacts become
-	// cleanup debris — never a source of truth.
-	if (!ctx.api) {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: "Cloud API not configured",
-		});
-	}
-	await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
-
-	// ─── Step 3: Local cleanup (best-effort) ───────────────────────
-	// Every failure in this phase is captured as a warning; the
-	// caller always sees success.
-
-	// 3a. PTYs
+	// ─── Step 2: Local cleanup ─────────────────────────────────────
+	// 2a. PTYs
 	try {
-		const killed = disposeSessionsByWorkspaceId(input.workspaceId, ctx.db);
+		const killed = await disposeSessionsByWorkspaceId(
+			input.workspaceId,
+			ctx.db,
+		);
 		if (killed.failed > 0) {
 			warnings.push(`${killed.failed} terminal(s) may still be running`);
 		}
@@ -264,57 +276,98 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 		warnings.push(`Failed to dispose terminal sessions: ${message}`);
 	}
 
-	// 3b. Worktree (always --force: we're past the commit point)
-	// 3c. Optional branch delete
+	// 2b. Worktree. Double-force unlocks the rare locked-worktree case and
+	//     clears stale metadata when the directory was manually removed.
 	let worktreeRemoved = false;
 	let branchDeleted = false;
+	let git: Awaited<ReturnType<typeof ctx.git>> | null = null;
+	if (local && !project) {
+		worktreeRemoved = !existsSync(local.worktreePath);
+		if (!worktreeRemoved) {
+			warnings.push(
+				`Skipped worktree removal at ${local.worktreePath}: project metadata is missing`,
+			);
+		}
+	}
 	if (local && project) {
-		// Past the commit point — every failure here is a warning, including
-		// failure to even open the repo. Letting `ctx.git` escape would surface
-		// as a hard error for a workspace that's already been deleted in cloud.
-		let git: Awaited<ReturnType<typeof ctx.git>> | null = null;
+		worktreeRemoved = !existsSync(local.worktreePath);
 		try {
 			git = await ctx.git(project.repoPath);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
+			if (!worktreeRemoved) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to open project repo at ${project.repoPath}: ${message}`,
+				});
+			}
 			warnings.push(
 				`Failed to open project repo at ${project.repoPath}: ${message}`,
 			);
 		}
 
 		if (git) {
+			// Remove against git's canonical path so a symlinked stored path
+			// (macOS `/var` → `/private/var`) still matches its registration.
+			const canonicalPath = normalizeWorktreePath(local.worktreePath);
+			// Best-effort: we trust git's registry below, not the command's
+			// exit text, which is locale- and version-dependent. `--force
+			// --force` also unregisters a worktree whose directory is already
+			// gone, so no separate prune (which would clobber other stale
+			// worktrees' metadata) is needed.
+			await git
+				.raw(["worktree", "remove", "--force", "--force", canonicalPath])
+				.catch(() => {});
+
+			// A `worktree list` failure here means the post-remove state is
+			// unknown — treat that like "still registered" and block rather
+			// than risk orphaning disk past the cloud commit point.
+			let stillRegistered = true;
 			try {
-				await git.raw(["worktree", "remove", "--force", local.worktreePath]);
-				worktreeRemoved = true;
+				stillRegistered = await isRegisteredWorktree(git, local.worktreePath);
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
-				if (
-					message.includes("is not a working tree") ||
-					message.includes("No such file or directory") ||
-					message.includes("does not exist") ||
-					message.includes("ENOENT")
-				) {
-					worktreeRemoved = true;
-				} else {
-					warnings.push(
-						`Failed to remove worktree at ${local.worktreePath}: ${message}`,
-					);
-				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to verify worktree removal at ${local.worktreePath}: ${message}`,
+				});
 			}
-
-			if (input.deleteBranch && local.branch) {
-				try {
-					await git.raw(["branch", "-D", local.branch]);
-					branchDeleted = true;
-				} catch (err) {
-					const message = err instanceof Error ? err.message : String(err);
-					warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
-				}
+			if (stillRegistered) {
+				// git still tracks a live worktree here — removal genuinely
+				// failed. Keep the cloud row so the workspace stays visible and
+				// retryable instead of orphaning disk past the cloud commit point.
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to remove worktree at ${local.worktreePath}`,
+				});
 			}
+			worktreeRemoved = true;
 		}
 	}
 
-	// 3d. Host sqlite row
+	// ─── Step 3: Cloud delete ──────────────────────────────────────
+	await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+
+	// ─── Step 4: Optional branch delete ────────────────────────────
+	// Keep this after the cloud commit point. If cloud delete fails, the
+	// workspace stays visible/retryable and the branch pointer remains intact.
+	if (git && local?.branch && input.deleteBranch) {
+		try {
+			// An absent ref (renamed, pruned, or never materialized) already
+			// satisfies the goal, so skip the delete without a scary warning.
+			// A thrown git failure falls through to the warning below rather
+			// than being mistaken for "already gone".
+			if (await localBranchExists(git, local.branch)) {
+				await git.raw(["branch", "-D", local.branch]);
+			}
+			branchDeleted = true;
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			warnings.push(`Failed to delete branch ${local.branch}: ${message}`);
+		}
+	}
+
+	// ─── Step 5: Host sqlite row ───────────────────────────────────
 	if (local) {
 		try {
 			ctx.db
@@ -342,4 +395,30 @@ async function runDestroy(ctx: HostServiceContext, input: DestroyInput) {
 		branchDeleted,
 		warnings,
 	};
+}
+
+// Authoritative "is this still a worktree git tracks" check — reads git's own
+// registry (realpath-canonicalized) instead of parsing remove's error text.
+// Calls `git.raw` directly rather than the swallowing `listGitWorktrees` so a
+// failed `worktree list` throws (state unknown) instead of looking empty.
+async function isRegisteredWorktree(
+	git: Awaited<ReturnType<HostServiceContext["git"]>>,
+	worktreePath: string,
+): Promise<boolean> {
+	const target = normalizeWorktreePath(worktreePath);
+	const raw = await git.raw(["worktree", "list", "--porcelain"]);
+	return parseWorktreeList(raw).some(
+		(w) => normalizeWorktreePath(w.path) === target,
+	);
+}
+
+// `branch --list` exits 0 whether or not the branch exists (empty output when
+// absent), so a thrown error is a real git failure — not a missing ref — and
+// propagates instead of being misread as "already deleted".
+async function localBranchExists(
+	git: Awaited<ReturnType<HostServiceContext["git"]>>,
+	branch: string,
+): Promise<boolean> {
+	const out = await git.raw(["branch", "--list", branch]);
+	return out.trim().length > 0;
 }

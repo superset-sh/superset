@@ -64,7 +64,7 @@ export function generateGroupHelp(
 	name: string,
 	path: string[],
 	node: CommandNode,
-	_globals?: Record<string, ProcessedBuilderConfig>,
+	globals?: Record<string, ProcessedBuilderConfig>,
 ): string {
 	const lines: string[] = [];
 	const fullPath = [name, ...path].join(" ");
@@ -89,6 +89,14 @@ export function generateGroupHelp(
 		lines.push("");
 	}
 
+	if (globals && Object.keys(globals).length > 0) {
+		lines.push("Global options:");
+		lines.push(...formatOptions(globals));
+		lines.push("");
+	}
+
+	lines.push("  --help, -h       Show help");
+
 	return lines.join("\n");
 }
 
@@ -96,7 +104,7 @@ export function generateCommandHelp(
 	name: string,
 	path: string[],
 	node: CommandNode,
-	_globals?: Record<string, ProcessedBuilderConfig>,
+	globals?: Record<string, ProcessedBuilderConfig>,
 ): string {
 	const lines: string[] = [];
 	const fullPath = [name, ...path].join(" ");
@@ -144,6 +152,14 @@ export function generateCommandHelp(
 		lines.push(...formatOptions(node.options));
 		lines.push("");
 	}
+
+	if (globals && Object.keys(globals).length > 0) {
+		lines.push("Global options:");
+		lines.push(...formatOptions(globals));
+		lines.push("");
+	}
+
+	lines.push("  --help, -h       Show help");
 
 	return lines.join("\n");
 }

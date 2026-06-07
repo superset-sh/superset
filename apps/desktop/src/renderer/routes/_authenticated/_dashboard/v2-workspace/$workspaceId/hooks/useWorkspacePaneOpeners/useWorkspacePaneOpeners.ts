@@ -1,10 +1,12 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { useCallback } from "react";
+import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
 	CommentPaneData,
+	DiffFocusSide,
 	DiffPaneData,
 	PaneViewerData,
 	TerminalPaneData,
@@ -14,14 +16,22 @@ import type { TerminalLauncher } from "../useV2TerminalLauncher";
 export function useWorkspacePaneOpeners({
 	store,
 	launcher,
+	newTabPresets,
+	executePreset,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
+	newTabPresets: V2TerminalPresetRow[];
+	executePreset: (
+		preset: V2TerminalPresetRow,
+		options?: { target?: "new-tab" | "active-tab" },
+	) => void | Promise<void>;
 }): {
 	openDiffPane: (
 		filePath: string,
 		openInNewTab?: boolean,
 		line?: number,
+		side?: DiffFocusSide,
 	) => void;
 	addTerminalTab: () => Promise<void>;
 	addChatTab: () => void;
@@ -29,15 +39,24 @@ export function useWorkspacePaneOpeners({
 	openCommentPane: (comment: CommentPaneData) => void;
 } {
 	const openDiffPane = useCallback(
-		(filePath: string, openInNewTab?: boolean, line?: number) => {
+		(
+			filePath: string,
+			openInNewTab?: boolean,
+			line?: number,
+			side?: DiffFocusSide,
+		) => {
 			const state = store.getState();
-			// Bump tick on every request so ScrollToFile re-fires on repeat
+			// Bump tick on every request so the scroll effect re-fires on repeat
 			// clicks; clear when no line is given so reused panes don't jump
 			// to a stale focus.
 			const focusFields =
 				line != null
-					? { focusLine: line, focusTick: Date.now() }
-					: { focusLine: undefined, focusTick: undefined };
+					? { focusLine: line, focusSide: side, focusTick: Date.now() }
+					: {
+							focusLine: undefined,
+							focusSide: undefined,
+							focusTick: undefined,
+						};
 			if (openInNewTab) {
 				state.addTab({
 					panes: [
@@ -46,7 +65,6 @@ export function useWorkspacePaneOpeners({
 							data: {
 								path: filePath,
 								collapsedFiles: [],
-								expandedFiles: [filePath],
 								...focusFields,
 							} as DiffPaneData,
 						},
@@ -58,7 +76,6 @@ export function useWorkspacePaneOpeners({
 				for (const pane of Object.values(tab.panes)) {
 					if (pane.kind !== "diff") continue;
 					const prev = pane.data as DiffPaneData;
-					const prevExpanded = prev.expandedFiles ?? [];
 					state.setPaneData({
 						paneId: pane.id,
 						data: {
@@ -67,9 +84,6 @@ export function useWorkspacePaneOpeners({
 							collapsedFiles: (prev.collapsedFiles ?? []).filter(
 								(p) => p !== filePath,
 							),
-							expandedFiles: prevExpanded.includes(filePath)
-								? prevExpanded
-								: [...prevExpanded, filePath],
 							...focusFields,
 						} as PaneViewerData,
 					});
@@ -84,7 +98,6 @@ export function useWorkspacePaneOpeners({
 					data: {
 						path: filePath,
 						collapsedFiles: [],
-						expandedFiles: [filePath],
 						...focusFields,
 					} as DiffPaneData,
 				},
@@ -93,7 +106,7 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addTerminalTab = useCallback(async () => {
+	const addBlankTerminalTab = useCallback(async () => {
 		const terminalId = await launcher.create();
 		store.getState().addTab({
 			panes: [
@@ -104,6 +117,19 @@ export function useWorkspacePaneOpeners({
 			],
 		});
 	}, [store, launcher]);
+
+	const addTerminalTab = useCallback(async () => {
+		if (newTabPresets.length === 0) {
+			await addBlankTerminalTab();
+			return;
+		}
+
+		// New terminal tabs are the trigger point for applyOnNewTab presets.
+		// Each matching preset owns the tab/pane shape it creates.
+		for (const preset of newTabPresets) {
+			await executePreset(preset, { target: "new-tab" });
+		}
+	}, [addBlankTerminalTab, executePreset, newTabPresets]);
 
 	const addChatTab = useCallback(() => {
 		store.getState().addTab({

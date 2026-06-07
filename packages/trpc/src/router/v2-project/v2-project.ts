@@ -11,9 +11,11 @@ import { TRPCError } from "@trpc/server";
 import { del } from "@vercel/blob";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
+import { posthog } from "../../lib/analytics";
 import { fetchAndStoreGitHubAvatar } from "../../lib/github-avatar";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { verifyOrgOwner } from "../integration/utils";
 import { requireActiveOrgId } from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
@@ -214,18 +216,30 @@ export const v2ProjectRouter = {
 			}
 
 			let project: typeof v2Projects.$inferSelect | undefined;
+			let txid: number | null = null;
 			try {
-				[project] = await dbWs
-					.insert(v2Projects)
-					.values({
-						...(input.id ? { id: input.id } : {}),
-						organizationId: input.organizationId,
-						name: input.name,
-						slug: input.slug,
-						repoCloneUrl: canonicalUrl,
-						githubRepositoryId: linkedRepoId,
-					})
-					.returning();
+				const result = await dbWs.transaction(async (tx) => {
+					const [inserted] = await tx
+						.insert(v2Projects)
+						.values({
+							...(input.id ? { id: input.id } : {}),
+							organizationId: input.organizationId,
+							name: input.name,
+							slug: input.slug,
+							repoCloneUrl: canonicalUrl,
+							githubRepositoryId: linkedRepoId,
+						})
+						.returning();
+
+					if (!inserted) {
+						return { project: undefined, txid: null };
+					}
+
+					const currentTxid = await getCurrentTxid(tx);
+					return { project: inserted, txid: currentTxid };
+				});
+				project = result.project;
+				txid = result.txid;
 			} catch (err) {
 				// Drizzle wraps pg errors in a "Failed query:" envelope; the
 				// real constraint name lives on the underlying cause. Walk
@@ -260,6 +274,17 @@ export const v2ProjectRouter = {
 				});
 			}
 
+			posthog.capture({
+				distinctId: ctx.userId,
+				event: "project_opened",
+				properties: {
+					project_id: project.id,
+					organization_id: project.organizationId,
+					method: input.repoCloneUrl ? "github" : "empty",
+					surface: "v2",
+				},
+			});
+
 			if (githubOwner) {
 				const owner = githubOwner;
 				const projectId = project.id;
@@ -288,7 +313,7 @@ export const v2ProjectRouter = {
 				})();
 			}
 
-			return project;
+			return { ...project, txid };
 		}),
 
 	linkRepoCloneUrl: jwtProcedure
@@ -483,12 +508,7 @@ export const v2ProjectRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (!ctx.organizationIds.includes(input.organizationId)) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Not a member of this organization",
-				});
-			}
+			await verifyOrgOwner(ctx.userId, input.organizationId);
 			const project = await dbWs.query.v2Projects.findFirst({
 				columns: { id: true, organizationId: true, iconUrl: true },
 				where: eq(v2Projects.id, input.id),

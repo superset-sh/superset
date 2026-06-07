@@ -13,12 +13,13 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import {
-	joinArgs,
-	joinCommandArgs,
-	parseArgs,
-	parseCommandString,
-} from "renderer/lib/argv";
+	getAgentCommandText,
+	isAgentCommandPatchChanged,
+	parseAgentCommandText,
+} from "renderer/lib/agent-launch-command";
+import { joinArgs, parseArgs } from "renderer/lib/argv";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface AgentDetailProps {
@@ -34,14 +35,13 @@ export function AgentDetail({
 	onChanged,
 	onDeleted,
 }: AgentDetailProps) {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const isDark = useIsDarkTheme();
 	const icon = getPresetIcon(config.presetId, isDark);
 
 	const [label, setLabel] = useState(config.label);
-	const [commandText, setCommandText] = useState(
-		joinCommandArgs(config.command, config.args),
-	);
+	const [commandText, setCommandText] = useState(getAgentCommandText(config));
 	const [promptArgsText, setPromptArgsText] = useState(
 		joinArgs(config.promptArgs),
 	);
@@ -51,13 +51,20 @@ export function AgentDetail({
 
 	useEffect(() => {
 		setLabel(config.label);
-		setCommandText(joinCommandArgs(config.command, config.args));
+		setCommandText(
+			getAgentCommandText({
+				command: config.command,
+				args: config.args,
+				env: config.env,
+			}),
+		);
 		setPromptArgsText(joinArgs(config.promptArgs));
 		setPromptTransport(config.promptTransport);
 	}, [
 		config.label,
 		config.command,
 		config.args,
+		config.env,
 		config.promptArgs,
 		config.promptTransport,
 	]);
@@ -70,7 +77,13 @@ export function AgentDetail({
 				>["settings"]["agentConfigs"]["update"]["mutate"]
 			>[0]["patch"],
 		) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "save the agent",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.update.mutate({ id: config.id, patch });
@@ -82,7 +95,13 @@ export function AgentDetail({
 
 	const removeMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "remove the agent",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.remove.mutate({ id: config.id });
@@ -99,17 +118,16 @@ export function AgentDetail({
 	};
 
 	const handleCommandBlur = () => {
-		const { command, args } = parseCommandString(commandText);
+		const patch = parseAgentCommandText(commandText);
+		const { command } = patch;
 		if (command.length === 0) {
 			toast.error("Command cannot be empty");
-			setCommandText(joinCommandArgs(config.command, config.args));
+			setCommandText(getAgentCommandText(config));
 			return;
 		}
-		const changed =
-			command !== config.command ||
-			args.length !== config.args.length ||
-			args.some((arg, i) => arg !== config.args[i]);
-		if (changed) updateMutation.mutate({ command, args });
+		if (isAgentCommandPatchChanged(config, patch)) {
+			updateMutation.mutate(patch);
+		}
 	};
 
 	const handlePromptArgsBlur = () => {
@@ -166,7 +184,7 @@ export function AgentDetail({
 							value={commandText}
 							onChange={(e) => setCommandText(e.target.value)}
 							onBlur={handleCommandBlur}
-							placeholder="claude --permission-mode acceptEdits"
+							placeholder="claude --dangerously-skip-permissions"
 						/>
 					</StackedField>
 

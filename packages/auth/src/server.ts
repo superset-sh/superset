@@ -22,7 +22,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, customSession, organization } from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
@@ -38,6 +38,17 @@ import { formatPrice, getOrganizationOwners } from "./utils";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
+const userOptions = {
+	additionalFields: {
+		onboardedAt: {
+			type: "date",
+			required: false,
+			input: false,
+			fieldName: "onboarded_at",
+		},
+	},
+} as const;
+
 const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`;
 const desktopDevPort = process.env.DESKTOP_VITE_PORT || "5173";
 const desktopDevOrigins =
@@ -47,6 +58,26 @@ const desktopDevOrigins =
 				`http://127.0.0.1:${desktopDevPort}`,
 			]
 		: [];
+
+function serializeCancellationDetails(
+	cancellationDetails?: Stripe.Subscription.CancellationDetails | null,
+) {
+	try {
+		if (!cancellationDetails) return undefined;
+
+		return {
+			comment: cancellationDetails.comment,
+			feedback: cancellationDetails.feedback,
+			reason: cancellationDetails.reason,
+		};
+	} catch (error) {
+		console.error(
+			"[stripe/subscription-cancel] Failed to serialize cancellation details:",
+			error,
+		);
+		return undefined;
+	}
+}
 
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
@@ -80,6 +111,7 @@ export const auth = betterAuth({
 			maxAge: 60 * 5,
 		},
 	},
+	user: userOptions,
 	advanced: {
 		crossSubDomainCookies: {
 			enabled: true,
@@ -88,6 +120,10 @@ export const auth = betterAuth({
 		database: {
 			generateId: false,
 		},
+	},
+	emailAndPassword: {
+		enabled: process.env.NODE_ENV === "development",
+		autoSignIn: true,
 	},
 	socialProviders: {
 		github: {
@@ -202,6 +238,7 @@ export const auth = betterAuth({
 			consentPage: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
 			allowDynamicClientRegistration: true,
 			allowUnauthenticatedClientRegistration: true,
+			accessTokenExpiresIn: 60 * 60 * 24 * 7,
 			validAudiences: [
 				env.NEXT_PUBLIC_API_URL,
 				`${env.NEXT_PUBLIC_API_URL}/`,
@@ -254,6 +291,33 @@ export const auth = betterAuth({
 		organization({
 			creatorRole: "owner",
 			invitationExpiresIn: 60 * 60 * 24 * 7,
+			teams: {
+				enabled: true,
+				maximumTeams: 25,
+				allowRemovingAllTeams: false,
+				defaultTeam: {
+					enabled: true,
+					customCreateDefaultTeam: async (organization) => {
+						const [team] = await db
+							.insert(authSchema.teams)
+							.values({
+								name: "Default Team",
+								slug: "DEFAULT",
+								organizationId: organization.id,
+							})
+							.returning();
+						if (!team) throw new Error("Failed to create default team");
+						return { ...team, updatedAt: team.updatedAt ?? undefined };
+					},
+				},
+			},
+			schema: {
+				team: {
+					additionalFields: {
+						slug: { type: "string", input: true, required: true },
+					},
+				},
+			},
 			sendInvitationEmail: async (data) => {
 				const token = await generateMagicTokenForInvite({
 					invitationId: data.id,
@@ -282,7 +346,7 @@ export const auth = betterAuth({
 			},
 			organizationHooks: {
 				beforeCreateInvitation: async (data) => {
-					const { inviterId, organizationId, role } = data.invitation;
+					const { inviterId, organizationId, role, teamId } = data.invitation;
 
 					const { success } = await invitationRateLimit.limit(inviterId);
 					if (!success) {
@@ -310,24 +374,129 @@ export const auth = betterAuth({
 					) {
 						throw new Error("Cannot invite users with this role");
 					}
+
+					if (!teamId) {
+						const oldestTeam = await db.query.teams.findFirst({
+							where: eq(authSchema.teams.organizationId, organizationId),
+							orderBy: asc(authSchema.teams.createdAt),
+							columns: { id: true },
+						});
+						if (oldestTeam) {
+							return {
+								data: { ...data.invitation, teamId: oldestTeam.id },
+							};
+						}
+					}
 				},
 
 				afterCreateOrganization: async ({ organization, user }) => {
-					const customer = await stripeClient.customers.create({
-						name: organization.name,
-						email: user.email,
-						metadata: {
-							organizationId: organization.id,
-							organizationSlug: organization.slug,
-						},
-					});
+					if (process.env.NODE_ENV !== "development") {
+						const customer = await stripeClient.customers.create({
+							name: organization.name,
+							email: user.email,
+							metadata: {
+								organizationId: organization.id,
+								organizationSlug: organization.slug,
+							},
+						});
 
-					await db
-						.update(authSchema.organizations)
-						.set({ stripeCustomerId: customer.id })
-						.where(eq(authSchema.organizations.id, organization.id));
+						await db
+							.update(authSchema.organizations)
+							.set({ stripeCustomerId: customer.id })
+							.where(eq(authSchema.organizations.id, organization.id));
+					}
 
 					await seedDefaultStatuses(organization.id);
+				},
+
+				beforeRemoveMember: async ({ member, organization }) => {
+					await db
+						.delete(authSchema.teamMembers)
+						.where(
+							and(
+								eq(authSchema.teamMembers.userId, member.userId),
+								inArray(
+									authSchema.teamMembers.teamId,
+									db
+										.select({ id: authSchema.teams.id })
+										.from(authSchema.teams)
+										.where(
+											eq(authSchema.teams.organizationId, organization.id),
+										),
+								),
+							),
+						);
+				},
+
+				beforeRemoveTeamMember: async ({ teamMember, organization }) => {
+					// Invariant: every org member belongs to ≥1 team. Reject the
+					// removal if it would leave this user with zero teams in this
+					// org. Self-leave and admin-removal both flow through this hook.
+					const [otherMemberships] = await db
+						.select({ value: count() })
+						.from(authSchema.teamMembers)
+						.where(
+							and(
+								eq(authSchema.teamMembers.userId, teamMember.userId),
+								eq(authSchema.teamMembers.organizationId, organization.id),
+								ne(authSchema.teamMembers.teamId, teamMember.teamId),
+							),
+						);
+					if ((otherMemberships?.value ?? 0) === 0) {
+						throw new Error("You should be a member of at least one team");
+					}
+				},
+
+				beforeDeleteTeam: async ({ team }) => {
+					// Linear-style: deleting a team would otherwise orphan any
+					// members who were only in this team. Re-home them into the
+					// next-oldest team in the org before the FK cascade fires.
+					const teamMemberRows = await db
+						.select({ userId: authSchema.teamMembers.userId })
+						.from(authSchema.teamMembers)
+						.where(eq(authSchema.teamMembers.teamId, team.id));
+
+					if (teamMemberRows.length === 0) return;
+
+					const memberUserIds = teamMemberRows.map((row) => row.userId);
+
+					const safelyInOtherTeam = await db
+						.select({ userId: authSchema.teamMembers.userId })
+						.from(authSchema.teamMembers)
+						.where(
+							and(
+								inArray(authSchema.teamMembers.userId, memberUserIds),
+								eq(authSchema.teamMembers.organizationId, team.organizationId),
+								ne(authSchema.teamMembers.teamId, team.id),
+							),
+						);
+					const safeUserIds = new Set(safelyInOtherTeam.map((r) => r.userId));
+					const orphanUserIds = memberUserIds.filter(
+						(uid) => !safeUserIds.has(uid),
+					);
+
+					if (orphanUserIds.length === 0) return;
+
+					const nextTeam = await db.query.teams.findFirst({
+						where: and(
+							eq(authSchema.teams.organizationId, team.organizationId),
+							ne(authSchema.teams.id, team.id),
+						),
+						orderBy: asc(authSchema.teams.createdAt),
+						columns: { id: true },
+					});
+					if (!nextTeam) return;
+
+					await db
+						.insert(authSchema.teamMembers)
+						.values(
+							orphanUserIds.map((userId) => ({
+								teamId: nextTeam.id,
+								userId,
+								organizationId: team.organizationId,
+							})),
+						)
+						.onConflictDoNothing();
 				},
 
 				beforeDeleteOrganization: async ({ organization }) => {
@@ -391,6 +560,28 @@ export const auth = betterAuth({
 				},
 
 				afterAddMember: async ({ member, user, organization }) => {
+					// Linear-style: auto-add new org members to the oldest team so
+					// they aren't dropped into an empty teams view. Additional team
+					// memberships are added explicitly by admins.
+					const defaultTeam = await db.query.teams.findFirst({
+						where: eq(authSchema.teams.organizationId, organization.id),
+						orderBy: asc(authSchema.teams.createdAt),
+						columns: { id: true },
+					});
+					if (defaultTeam) {
+						// onConflictDoNothing keeps addMember robust if a stale row
+						// ever exists from a partial earlier run — we never want this
+						// hook to fail a member-add.
+						await db
+							.insert(authSchema.teamMembers)
+							.values({
+								teamId: defaultTeam.id,
+								userId: member.userId,
+								organizationId: organization.id,
+							})
+							.onConflictDoNothing();
+					}
+
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),
@@ -585,40 +776,51 @@ export const auth = betterAuth({
 			},
 		}),
 		bearer(),
-		customSession(async ({ user, session: baseSession }) => {
-			const session = baseSession as typeof sessions.$inferSelect;
-			const { activeOrganizationId, allMemberships, membership } =
-				await resolveSessionOrganizationState({
-					userId: session.userId ?? user.id,
-					session,
+		customSession(
+			async ({ user, session: baseSession }) => {
+				const session = baseSession as typeof sessions.$inferSelect;
+				const { activeOrganizationId, allMemberships, membership } =
+					await resolveSessionOrganizationState({
+						userId: session.userId ?? user.id,
+						session,
+					});
+
+				const organizationIds = [
+					...new Set(allMemberships.map((m) => m.organizationId)),
+				];
+
+				let plan: string | null = null;
+				if (activeOrganizationId) {
+					const subscription = await db.query.subscriptions.findFirst({
+						where: and(
+							eq(subscriptions.referenceId, activeOrganizationId),
+							eq(subscriptions.status, "active"),
+						),
+					});
+					plan = subscription?.plan ?? null;
+				}
+
+				// additionalFields declares onboardedAt for client typing, but the
+				// drizzle adapter doesn't surface it on the passed-in user — read it
+				// explicitly so the onboarding gate is deterministic.
+				const userRow = await db.query.users.findFirst({
+					where: eq(authSchema.users.id, user.id),
+					columns: { onboardedAt: true },
 				});
 
-			const organizationIds = [
-				...new Set(allMemberships.map((m) => m.organizationId)),
-			];
-
-			let plan: string | null = null;
-			if (activeOrganizationId) {
-				const subscription = await db.query.subscriptions.findFirst({
-					where: and(
-						eq(subscriptions.referenceId, activeOrganizationId),
-						eq(subscriptions.status, "active"),
-					),
-				});
-				plan = subscription?.plan ?? null;
-			}
-
-			return {
-				user,
-				session: {
-					...session,
-					activeOrganizationId,
-					organizationIds,
-					role: membership?.role,
-					plan,
-				},
-			};
-		}),
+				return {
+					user: { ...user, onboardedAt: userRow?.onboardedAt ?? null },
+					session: {
+						...session,
+						activeOrganizationId,
+						organizationIds,
+						role: membership?.role,
+						plan,
+					},
+				};
+			},
+			{ user: userOptions },
+		),
 		stripe({
 			stripeClient,
 			stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET,
@@ -674,7 +876,11 @@ export const auth = betterAuth({
 					}
 				},
 
-				getCheckoutSessionParams: async ({ user, plan, subscription }) => {
+				getCheckoutSessionParams: async (
+					{ user, plan, subscription },
+					_request,
+					ctx,
+				) => {
 					if (plan.name === "enterprise") {
 						throw new Error(
 							"Enterprise subscriptions are managed by admins. Contact founders@superset.sh.",
@@ -688,10 +894,14 @@ export const auth = betterAuth({
 						),
 					});
 
+					const annual = Boolean(
+						(ctx?.body as { annual?: boolean } | undefined)?.annual,
+					);
+
 					return {
 						params: {
 							customer: org?.stripeCustomerId ?? undefined,
-							allow_promotion_codes: true,
+							allow_promotion_codes: !annual,
 							billing_address_collection: "required",
 							metadata: {
 								organizationId: org?.id ?? "",
@@ -759,7 +969,11 @@ export const auth = betterAuth({
 					}
 				},
 
-				onSubscriptionCancel: async ({ subscription, stripeSubscription }) => {
+				onSubscriptionCancel: async ({
+					subscription,
+					stripeSubscription,
+					cancellationDetails,
+				}) => {
 					const org = await db.query.organizations.findFirst({
 						where: eq(authSchema.organizations.id, subscription.referenceId),
 					});
@@ -796,6 +1010,10 @@ export const auth = betterAuth({
 							body: {
 								eventType: "subscription_cancelled",
 								stripeSubscriptionId: stripeSubscription.id,
+								cancellationDetails: serializeCancellationDetails(
+									cancellationDetails ??
+										stripeSubscription.cancellation_details,
+								),
 							},
 							retries: 3,
 						});

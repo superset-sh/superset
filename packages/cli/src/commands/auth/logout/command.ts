@@ -7,6 +7,7 @@ export default command({
 	run: async () => {
 		const config = readConfig();
 		delete config.auth;
+		delete config.apiKey;
 		writeConfig(config);
 		return { message: "Logged out." };
 	},

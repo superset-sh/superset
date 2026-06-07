@@ -5,7 +5,7 @@ import type { RequestOptions } from "../internal/request-options";
 /**
  * Configured terminal-agent rows live on each developer's host service —
  * one row per installed agent in Settings → Agents on that machine. Reads
- * (`list`) and the launch action (`run`) are routed to a specific host
+ * (`list`) and the launch action (`create`) are routed to a specific host
  * through the relay tunnel.
  *
  * Mirrors the CLI's `superset agents …` commands.
@@ -30,17 +30,17 @@ export class Agents extends APIResource {
 	}
 
 	/**
-	 * Launch an agent inside an existing workspace. Looks up the host that
-	 * owns the workspace (cloud index) and starts the named preset (or
-	 * HostAgentConfig instance) in a fresh terminal session on that host.
-	 * Pass an explicit `hostId` to skip the lookup.
+	 * Create (launch) an agent session inside an existing workspace. Looks up
+	 * the host that owns the workspace (cloud index) and starts the named
+	 * preset (or HostAgentConfig instance) in a fresh terminal session on that
+	 * host. Pass an explicit `hostId` to skip the lookup.
 	 *
-	 * Mirrors `superset agents run`.
+	 * Mirrors `superset agents create`.
 	 */
-	async run(
-		params: AgentRunParams,
+	async create(
+		params: AgentCreateParams,
 		options?: { hostId?: string },
-	): Promise<AgentRunResult> {
+	): Promise<AgentCreateResult> {
 		this._requireOrgId();
 		let hostId = options?.hostId;
 		if (!hostId) {
@@ -56,7 +56,7 @@ export class Agents extends APIResource {
 			}
 			hostId = cloud.hostId;
 		}
-		return this._client.hostMutation<AgentRunResult>(hostId, "agents.run", {
+		return this._client.hostMutation<AgentCreateResult>(hostId, "agents.run", {
 			workspaceId: params.workspaceId,
 			agent: params.agent,
 			prompt: params.prompt,
@@ -96,8 +96,8 @@ export interface AgentListParams {
 	hostId: string;
 }
 
-export interface AgentRunParams {
-	/** Workspace UUID to run the agent in. */
+export interface AgentCreateParams {
+	/** Workspace UUID to launch the agent session in. */
 	workspaceId: string;
 	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance UUID. */
 	agent: string;
@@ -111,7 +111,7 @@ interface HostLookup {
 	hostId: string;
 }
 
-export type AgentRunResult =
+export type AgentCreateResult =
 	| { kind: "terminal"; sessionId: string; label: string }
 	| { kind: "chat"; sessionId: string; label: string };
 
@@ -120,8 +120,8 @@ export declare namespace Agents {
 		HostAgentConfig,
 		AgentListResponse,
 		AgentListParams,
-		AgentRunParams,
-		AgentRunResult,
+		AgentCreateParams,
+		AgentCreateResult,
 		PromptTransport,
 	};
 }

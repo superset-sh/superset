@@ -53,8 +53,7 @@ export async function runTeardown({
 	if (!existsSync(scriptPath)) return { status: "skipped" };
 
 	const terminalId = randomUUID();
-	// Single-quoted so no shell interpolation is possible on the path.
-	const initialCommand = `bash ${singleQuote(scriptPath)} ; exit $?`;
+	const initialCommand = buildTeardownInitialCommand(scriptPath);
 
 	const session = await createTerminalSessionInternal({
 		terminalId,
@@ -118,7 +117,7 @@ export async function runTeardown({
 			timedOut = true;
 			appendTail(`\n[teardown timed out after ${timeoutMs}ms]\n`);
 			try {
-				session.pty.kill();
+				void session.pty.kill().catch(() => {});
 			} catch {
 				// PTY may already be dead
 			}
@@ -136,6 +135,13 @@ export async function runTeardown({
 		}, timeoutMs);
 		timer.unref();
 	});
+}
+
+export function buildTeardownInitialCommand(scriptPath: string): string {
+	// `exec` replaces the user's login shell with the teardown process. That
+	// avoids shell-specific exit-status syntax like `$?`, which breaks in fish
+	// and leaves the hidden teardown terminal open until timeout.
+	return `exec bash ${singleQuote(scriptPath)}`;
 }
 
 /** POSIX single-quote escape: safe for any byte sequence in a path. */

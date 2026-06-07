@@ -18,6 +18,29 @@ export function createApplicationMenu() {
 
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
+			label: "File",
+			submenu: [
+				{
+					label: "Open Repo...",
+					accelerator: "CmdOrCtrl+O",
+					click: () => {
+						menuEmitter.emit("open-project");
+					},
+				},
+				{ type: "separator" },
+				// Explicit click handler (not `role: "close"`) — `role: "close"` adds
+				// an implicit CmdOrCtrl+W accelerator that overrides browser-manager's
+				// `before-input-event` interception and closes the window instead of
+				// the focused pane.
+				{
+					label: "Close Window",
+					click: () => {
+						BrowserWindow.getFocusedWindow()?.close();
+					},
+				},
+			],
+		},
+		{
 			label: "Edit",
 			submenu: [
 				{ role: "undo" },

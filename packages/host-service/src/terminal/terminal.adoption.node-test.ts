@@ -32,9 +32,10 @@ import { initTerminalBaseEnv } from "./env.ts";
 import {
 	__resetSessionsForTesting,
 	createTerminalSessionInternal,
-	disposeSession,
+	disposeSessionAndWait,
 	listTerminalSessions,
 } from "./terminal.ts";
+import { __setAccountShellForTesting } from "./user-shell.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_HOME = path.join(os.tmpdir(), `host-svc-adopt-${process.pid}`);
@@ -45,12 +46,16 @@ let server: Server;
 let db: HostDb;
 let projectId: string;
 let workspaceId: string;
+let otherWorkspaceId: string;
 let worktreePath: string;
+let otherWorktreePath: string;
 
 before(async () => {
 	fs.mkdirSync(TEST_HOME, { recursive: true });
 	worktreePath = path.join(TEST_HOME, "worktree");
+	otherWorktreePath = path.join(TEST_HOME, "other-worktree");
 	fs.mkdirSync(worktreePath, { recursive: true });
+	fs.mkdirSync(otherWorktreePath, { recursive: true });
 
 	server = new Server({
 		socketPath: SOCK,
@@ -63,6 +68,7 @@ before(async () => {
 	process.env.HOST_SERVICE_VERSION = "0.0.0-adoption-e2e";
 	process.env.NODE_ENV = "development";
 
+	__setAccountShellForTesting("/bin/sh");
 	initTerminalBaseEnv({
 		PATH: process.env.PATH ?? "/usr/bin:/bin",
 		HOME: process.env.HOME ?? TEST_HOME,
@@ -82,10 +88,20 @@ before(async () => {
 			branch: "main",
 		})
 		.run();
+	otherWorkspaceId = randomUUID();
+	db.insert(workspaces)
+		.values({
+			id: otherWorkspaceId,
+			projectId,
+			worktreePath: otherWorktreePath,
+			branch: "feature/other",
+		})
+		.run();
 });
 
 after(async () => {
 	__resetSessionsForTesting();
+	__setAccountShellForTesting(undefined);
 	await disposeDaemonClient();
 	await server.close();
 	try {
@@ -120,7 +136,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.equal(daemonSession.cols, 101);
 		assert.equal(daemonSession.rows, 27);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("existing session accepts a not-yet-queued initialCommand", async () => {
@@ -149,7 +165,80 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.equal(second.initialCommandQueued, true);
 		await waitFor(() => fs.existsSync(sentinelFile), 5000);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("initialCommand runs promptly even when OSC 133;A never fires", async () => {
+		// Regression guard against reintroducing the SHELL_READY_TIMEOUT_MS
+		// stall: bash with no Superset wrapper on disk never emits OSC 133;A,
+		// but the preset command should still run as soon as the shell reads.
+		__setAccountShellForTesting("/bin/bash");
+		try {
+			const terminalId = `e2e-no-marker-${randomUUID().slice(0, 8)}`;
+			const sentinelFile = path.join(TEST_HOME, `no-marker-${terminalId}`);
+
+			const start = Date.now();
+			const result = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				initialCommand: `echo ok > ${sentinelFile}`,
+			});
+			assert.ok(!("error" in result));
+			if ("error" in result) return;
+
+			await waitFor(() => fs.existsSync(sentinelFile), 10_000);
+			const elapsed = Date.now() - start;
+			console.log(`[repro] initialCommand executed in ${elapsed}ms`);
+			// Pre-fix: SHELL_READY_TIMEOUT_MS forced this to 15 s. 5 s leaves
+			// generous headroom for CI overhead while still catching regression.
+			assert.ok(
+				elapsed < 5000,
+				`expected initialCommand to run promptly, took ${elapsed}ms`,
+			);
+
+			await disposeSessionAndWait(terminalId, db);
+		} finally {
+			__setAccountShellForTesting("/bin/sh");
+		}
+	});
+
+	test("rejects reusing a live terminal id from another workspace", async () => {
+		const terminalId = `e2e-cross-live-${randomUUID().slice(0, 8)}`;
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId: otherWorkspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok("error" in second);
+		if ("error" in second) {
+			assert.match(second.error, /belongs to workspace/);
+		}
+
+		assert.ok(
+			listTerminalSessions({ workspaceId }).some(
+				(s) => s.terminalId === terminalId,
+			),
+		);
+		assert.equal(
+			listTerminalSessions({ workspaceId: otherWorkspaceId }).some(
+				(s) => s.terminalId === terminalId,
+			),
+			false,
+		);
+
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adoptOnly refuses to spawn when daemon does not own the session", async () => {
@@ -191,11 +280,9 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			db,
 			listed: true,
 		});
-		assert.ok(
-			!("error" in result),
-			`expected session, got error: ${JSON.stringify(result)}`,
-		);
-		if ("error" in result) return;
+		if ("error" in result) {
+			assert.fail(`expected session, got error: ${result.error}`);
+		}
 
 		assert.equal(result.terminalId, terminalId);
 		assert.ok(result.pty.pid > 0, "pty pid should be populated");
@@ -206,7 +293,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"new session should be in listTerminalSessions",
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adopts existing daemon session after host-service restart simulation", async () => {
@@ -253,7 +340,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await waitFor(() => buf.includes("after-host-restart"), 3000);
 		disposer.dispose();
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adopted session keeps listed/exited bookkeeping", async () => {
@@ -286,7 +373,46 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			),
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("rejects adopting a daemon session from another workspace after host-service restart simulation", async () => {
+		const terminalId = `e2e-cross-adopt-${randomUUID().slice(0, 8)}`;
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId: otherWorkspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok("error" in second);
+		if ("error" in second) {
+			assert.match(second.error, /belongs to workspace/);
+		}
+
+		const record = db.query.terminalSessions
+			.findFirst({ where: eq(terminalSessions.id, terminalId) })
+			.sync();
+		assert.equal(record?.originWorkspaceId, workspaceId);
+		assert.equal(
+			listTerminalSessions({ workspaceId: otherWorkspaceId }).some(
+				(s) => s.terminalId === terminalId,
+			),
+			false,
+		);
+
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adopted session does NOT re-fire initialCommand", async () => {
@@ -338,7 +464,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"initialCommand re-fired on adopted session — would re-run setup.sh on every host-service restart",
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("adoption when the original workspace row is gone returns a clear error", async () => {
@@ -392,13 +518,13 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"adoption with missing workspace must return error, not throw or loop",
 		);
 		if ("error" in second) {
-			assert.match(second.error, /Workspace worktree not found/);
+			assert.match(second.error, /Workspace (not found|worktree)/);
 		}
 
 		// Daemon still has the orphan session — clean it up directly so the
 		// test suite leaves nothing behind. Production needs a periodic
 		// "orphan session sweep" but that's a separate cleanup concern.
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("replayOnAdoption: false suppresses ring-buffer replay on reconnect", async () => {
@@ -445,15 +571,18 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"adopted session should have same shell pid",
 		);
 
-		// session.bufferBytes is the direct signal: the primary subscription
-		// writes incoming chunks here for WS broadcast. Non-zero after a
-		// replay-suppressed adopt = bug.
+		// The shell may still produce live prompt bytes after reconnect, but
+		// the daemon ring-buffer sentinel from the previous host lifetime must
+		// not be replayed when replayOnAdoption=false.
 		await new Promise((r) => setTimeout(r, 500));
 
+		const bufferedAfterAdoption = Buffer.concat(
+			second.buffer.map((b) => Buffer.from(b)),
+		).toString("utf8");
 		assert.equal(
-			second.bufferBytes,
-			0,
-			`adopted session.bufferBytes must remain 0 when replayOnAdoption=false; got ${second.bufferBytes} bytes (first chunk: ${second.buffer[0] ? JSON.stringify(Buffer.from(second.buffer[0]).toString("utf8").slice(0, 100)) : "<empty>"})`,
+			bufferedAfterAdoption.includes(SENTINEL),
+			false,
+			`adopted session replayed prior output despite replayOnAdoption=false: ${JSON.stringify(bufferedAfterAdoption.slice(0, 200))}`,
 		);
 
 		// Sanity check: live output still flows post-reattach.
@@ -466,7 +595,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			return text.includes(LIVE_SENTINEL);
 		}, 3000);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 	});
 
 	test("dispose then re-create with the same id works (no zombie state)", async () => {
@@ -485,7 +614,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.ok(!("error" in first));
 		const firstPid = "error" in first ? -1 : first.pty.pid;
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
 
 		// Wait for the daemon's onExit handler to mark the session exited
 		// (SIGTERM → shell exits → wireSession.onExit fires → session.exited
@@ -498,11 +627,9 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			db,
 			listed: true,
 		});
-		assert.ok(
-			!("error" in second),
-			`re-create after dispose failed: ${JSON.stringify(second)}`,
-		);
-		if ("error" in second) return;
+		if ("error" in second) {
+			assert.fail(`re-create after dispose failed: ${second.error}`);
+		}
 
 		// Different shell pid (real fresh spawn) — not adoption.
 		assert.notEqual(
@@ -511,7 +638,71 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"re-create after dispose should be a fresh spawn, not adoption of the dead session",
 		);
 
-		disposeSession(terminalId, db);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	// Regression: SUPER-939 / #4993 — heavy/concurrent output must never wedge
+	// the shell. Output flow control is gone; back-pressure is bounded buffering
+	// on the host side, never a producer pause. These guard both halves of that.
+
+	test("heavy output with no renderer attached never wedges the PTY", async () => {
+		const terminalId = `e2e-heavy-nobody-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		// ~3 MB with no socket attached — far past any old watermark. With the
+		// ACK flow control removed, the daemon never pauses, so this completes;
+		// the bounded replay buffer just keeps the tail (incl. the marker).
+		const marker = `heavy-done-${randomUUID().slice(0, 6)}`;
+		result.pty.write(
+			`i=0; while [ "$i" -lt 48000 ]; do printf '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n'; i=$((i + 1)); done; echo ${marker}\n`,
+		);
+
+		await waitFor(() => sessionBufferText(result).includes(marker), 15_000);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("a renderer whose send buffer exceeds the cap is dropped; output keeps flowing", async () => {
+		const terminalId = `e2e-slow-renderer-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		// A renderer that's permanently behind: its WS send buffer never drains,
+		// so bufferedAmount sits way over the 8 MB cap. broadcastBytes must drop
+		// it instead of buffering forever.
+		let closed = false;
+		const stuckSocket = {
+			send: () => {},
+			close: () => {
+				closed = true;
+			},
+			readyState: 1, // SOCKET_OPEN
+			raw: { bufferedAmount: 64 * 1024 * 1024 },
+		};
+		result.sockets.add(stuckSocket);
+
+		const marker = `slow-done-${randomUUID().slice(0, 6)}`;
+		result.pty.write(
+			`i=0; while [ "$i" -lt 6000 ]; do printf '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n'; i=$((i + 1)); done; echo ${marker}\n`,
+		);
+
+		// The stuck socket is closed and removed on the next broadcast, and the
+		// PTY keeps producing — the marker lands in the (now socketless) buffer.
+		await waitFor(() => closed && !result.sockets.has(stuckSocket), 10_000);
+		await waitFor(() => sessionBufferText(result).includes(marker), 15_000);
+		await disposeSessionAndWait(terminalId, db);
 	});
 });
 
@@ -539,4 +730,10 @@ async function waitForOutput(
 	} finally {
 		disposer.dispose();
 	}
+}
+
+function sessionBufferText(session: { buffer: Uint8Array[] }): string {
+	return Buffer.concat(session.buffer.map((b) => Buffer.from(b))).toString(
+		"utf8",
+	);
 }

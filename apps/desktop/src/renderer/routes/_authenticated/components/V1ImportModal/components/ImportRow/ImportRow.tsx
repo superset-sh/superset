@@ -52,22 +52,22 @@ export function ImportRow({
 	action,
 }: ImportRowProps) {
 	return (
-		<div className="group flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden rounded-md px-2.5 py-1.5 transition-colors hover:bg-accent/40">
+		<div className="group grid w-full min-w-0 max-w-full shrink-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 overflow-hidden rounded-md px-2.5 py-2 transition-colors hover:bg-accent/40 sm:grid-cols-[1rem_minmax(0,1fr)_auto]">
 			{icon && (
-				<div className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
+				<div className="row-start-1 flex size-4 shrink-0 items-center justify-center self-start pt-0.5 text-muted-foreground sm:self-center sm:pt-0">
 					{icon}
 				</div>
 			)}
-			<div className="flex min-w-0 flex-1 flex-col">
+			<div className="col-start-2 flex min-w-0 flex-col">
 				<span
-					className="truncate text-[13px] font-medium leading-tight text-foreground"
+					className="truncate text-[13px] font-medium leading-4 text-foreground"
 					title={primary}
 				>
 					{primary}
 				</span>
 				{secondary && (
 					<span
-						className="mt-0.5 truncate font-mono text-[11px] leading-tight text-muted-foreground"
+						className="mt-0.5 truncate font-mono text-[11px] leading-4 text-muted-foreground"
 						title={secondary}
 					>
 						{secondary}
@@ -75,7 +75,7 @@ export function ImportRow({
 				)}
 				{action.kind === "error" && (
 					<span
-						className="mt-0.5 select-text cursor-text truncate text-[11px] leading-tight text-destructive"
+						className="mt-0.5 select-text cursor-text truncate text-[11px] leading-4 text-destructive"
 						title={action.message}
 					>
 						{action.message}
@@ -83,19 +83,21 @@ export function ImportRow({
 				)}
 				{action.kind === "blocked" && (
 					<span
-						className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground"
+						className="mt-0.5 truncate text-[11px] leading-4 text-muted-foreground"
 						title={action.reason}
 					>
 						{action.reason}
 					</span>
 				)}
 				{action.kind === "confirm" && (
-					<span className="mt-0.5 select-text cursor-text text-[11px] leading-tight text-muted-foreground [overflow-wrap:anywhere]">
+					<span className="mt-0.5 select-text cursor-text text-[11px] leading-4 text-muted-foreground [overflow-wrap:anywhere]">
 						{action.message}
 					</span>
 				)}
 			</div>
-			<RowActionView action={action} />
+			<div className="col-start-2 flex shrink-0 items-center justify-self-end sm:col-start-3 sm:row-start-1">
+				<RowActionView action={action} />
+			</div>
 		</div>
 	);
 }

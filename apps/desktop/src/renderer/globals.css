@@ -187,6 +187,11 @@
 		height: 100%;
 		width: 100%;
 	}
+
+	.xterm {
+		font-family: var(--superset-terminal-font-family, ui-monospace, monospace);
+	}
+
 	.xterm .xterm-rows a {
 		color: inherit;
 		cursor: pointer;

@@ -1,4 +1,3 @@
-import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { sql } from "drizzle-orm";
 import {
 	boolean,
@@ -208,6 +207,11 @@ export const integrationConnections = pgTable(
 			table.organizationId,
 			table.provider,
 		),
+		uniqueIndex("integration_connections_slack_external_org_active_unique")
+			.on(table.externalOrgId)
+			.where(
+				sql`${table.provider} = 'slack' AND ${table.disconnectedAt} IS NULL`,
+			),
 		index("integration_connections_org_idx").on(table.organizationId),
 	],
 );
@@ -753,7 +757,7 @@ export const automations = pgTable(
 		name: text().notNull(),
 		prompt: text().notNull(),
 
-		agentConfig: jsonb("agent_config").$type<ResolvedAgentConfig>().notNull(),
+		agent: text("agent").notNull(),
 
 		targetHostId: text("target_host_id"),
 

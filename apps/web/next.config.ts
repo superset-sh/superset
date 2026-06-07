@@ -16,6 +16,21 @@ const isProduction = process.env.NODE_ENV === "production";
 const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 	? new URL(process.env.NEXT_PUBLIC_API_URL).origin
 	: null;
+// The web app reaches host-services through the relay — a WebSocket for the
+// terminal stream and HTTP for host tRPC. In dev the blanket `ws:`/`wss:`
+// below covers the socket; prod needs the relay origins listed explicitly so
+// `connect-src` blocks neither. The hard-coded prod fallback keeps the header
+// correct even if RELAY_URL isn't plumbed into the build env.
+const relayWsOrigin = process.env.RELAY_URL
+	? new URL(process.env.RELAY_URL).origin.replace(/^http/, "ws")
+	: isProduction
+		? "wss://relay.superset.sh"
+		: null;
+const relayHttpOrigin = process.env.RELAY_URL
+	? new URL(process.env.RELAY_URL).origin
+	: isProduction
+		? "https://relay.superset.sh"
+		: null;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
@@ -23,6 +38,10 @@ const contentSecurityPolicy = [
 	[
 		"connect-src 'self'",
 		apiOrigin,
+		relayWsOrigin,
+		relayHttpOrigin,
+		"wss://relay-backup.superset.sh",
+		"https://relay-backup.superset.sh",
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",

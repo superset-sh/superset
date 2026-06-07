@@ -1,19 +1,30 @@
 import { memo, useMemo } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import type { ChangesViewMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { ChangesFoldersView } from "./components/ChangesFoldersView";
 import { ChangesSection } from "./components/ChangesSection";
-import { FileRow } from "./components/FileRow";
+import { ChangesTreeView } from "./components/ChangesTreeView";
+
+/** Pulse from the toolbar's expand-all / collapse-all buttons. `epoch` is 0 until the first press. */
+export interface FoldSignal {
+	epoch: number;
+	action: "collapse" | "expand";
+}
 
 interface ChangesFileListProps {
 	files: ChangesetFile[];
 	workspaceId: string;
 	isLoading?: boolean;
+	viewMode: ChangesViewMode;
 	worktreePath?: string;
+	selectedFilePath?: string;
+	foldSignal: FoldSignal;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 }
 
-type GroupKey = "unstaged" | "staged" | "against-base" | "commit";
+type GroupKey = ChangesetFile["source"]["kind"];
 
 const GROUP_ORDER: GroupKey[] = [
 	"unstaged",
@@ -33,7 +44,10 @@ export const ChangesFileList = memo(function ChangesFileList({
 	files,
 	workspaceId,
 	isLoading,
+	viewMode,
 	worktreePath,
+	selectedFilePath,
+	foldSignal,
 	onSelectFile,
 	onOpenFile,
 	onOpenInEditor,
@@ -68,7 +82,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	}
 
 	return (
-		<div className="min-h-0 flex-1 overflow-y-auto">
+		<div className="min-h-0 flex-1 space-y-2 overflow-y-auto pt-1">
 			{GROUP_ORDER.map((key) => {
 				const groupFiles = grouped[key];
 				if (groupFiles.length === 0) return null;
@@ -84,17 +98,29 @@ export const ChangesFileList = memo(function ChangesFileList({
 								: undefined
 						}
 					>
-						{groupFiles.map((file) => (
-							<FileRow
-								key={`${file.source.kind}:${file.path}`}
-								file={file}
+						{viewMode === "tree" ? (
+							<ChangesTreeView
+								files={groupFiles}
+								sectionKind={key}
 								workspaceId={workspaceId}
 								worktreePath={worktreePath}
-								onSelect={onSelectFile}
+								selectedFilePath={selectedFilePath}
+								foldSignal={foldSignal}
+								onSelectFile={onSelectFile}
 								onOpenFile={onOpenFile}
 								onOpenInEditor={onOpenInEditor}
 							/>
-						))}
+						) : (
+							<ChangesFoldersView
+								files={groupFiles}
+								workspaceId={workspaceId}
+								worktreePath={worktreePath}
+								foldSignal={foldSignal}
+								onSelectFile={onSelectFile}
+								onOpenFile={onOpenFile}
+								onOpenInEditor={onOpenInEditor}
+							/>
+						)}
 					</ChangesSection>
 				);
 			})}

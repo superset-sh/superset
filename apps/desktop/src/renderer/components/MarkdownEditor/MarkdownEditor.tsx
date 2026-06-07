@@ -136,12 +136,20 @@ interface MarkdownEditorProps {
 	onSave?: (markdown: string) => void;
 	onChange?: (markdown: string) => void;
 	placeholder?: string;
-	autoFocus?: boolean;
+	/** true focuses at the end; "start"/"end" pick the caret position. */
+	autoFocus?: boolean | "start" | "end";
 	className?: string;
 	editorClassName?: string;
 	onModEnter?: () => void;
 	/** If provided, enables @-mention file search for the editor. */
 	searchFiles?: FileMentionSearchFn;
+	/** Toggle optional affordances. Each defaults to enabled. */
+	features?: {
+		slashCommand?: boolean;
+		emoji?: boolean;
+		fileMention?: boolean;
+		bubbleMenu?: boolean;
+	};
 }
 
 function getMarkdown(editor: Editor | null): string {
@@ -175,7 +183,12 @@ export function MarkdownEditor({
 	editorClassName,
 	onModEnter,
 	searchFiles,
+	features,
 }: MarkdownEditorProps) {
+	const showSlashCommand = features?.slashCommand ?? true;
+	const showEmoji = features?.emoji ?? true;
+	const showFileMention = features?.fileMention ?? true;
+	const showBubbleMenu = features?.bubbleMenu ?? true;
 	// useEditor captures extensions on first render, so searchFiles gets frozen
 	// at its initial (likely stale, since projectId resolves in an effect) value.
 	// Thread through a ref so the extension reads the live callback each fire.
@@ -186,12 +199,12 @@ export function MarkdownEditor({
 	const urlPolicy = useInlineUrlPolicy();
 
 	const editor = useEditor({
-		autofocus: autoFocus ? "end" : false,
+		autofocus: autoFocus === true ? "end" : autoFocus || false,
 		extensions: [
 			Document,
 			Text,
 			Paragraph.configure({
-				HTMLAttributes: { class: "mt-0 mb-3 leading-relaxed" },
+				HTMLAttributes: { class: "my-0 leading-relaxed" },
 			}),
 			StyledHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
 			Bold.configure({
@@ -293,13 +306,17 @@ export function MarkdownEditor({
 				transformPastedText: true,
 				transformCopiedText: true,
 			}),
-			SlashCommand,
-			EmojiSuggestion,
-			FileMentionNode,
-			FileMentionSuggestion.configure({
-				searchFiles: (query) =>
-					searchFilesRef.current?.(query) ?? Promise.resolve([]),
-			}),
+			...(showSlashCommand ? [SlashCommand] : []),
+			...(showEmoji ? [EmojiSuggestion] : []),
+			...(showFileMention
+				? [
+						FileMentionNode,
+						FileMentionSuggestion.configure({
+							searchFiles: (query) =>
+								searchFilesRef.current?.(query) ?? Promise.resolve([]),
+						}),
+					]
+				: []),
 			KeyboardHandler,
 		],
 		content,
@@ -367,7 +384,7 @@ export function MarkdownEditor({
 
 	return (
 		<div className={cn("w-full", className)}>
-			{editor && (
+			{showBubbleMenu && editor && (
 				<BubbleMenu
 					editor={editor}
 					options={{

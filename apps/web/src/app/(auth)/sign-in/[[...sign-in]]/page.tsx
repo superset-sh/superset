@@ -1,6 +1,11 @@
 "use client";
 
 import { authClient } from "@superset/auth/client";
+import {
+	DEV_EMAIL,
+	DEV_NAME,
+	DEV_PASSWORD,
+} from "@superset/shared/dev-credentials";
 import { Button } from "@superset/ui/button";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -52,7 +57,39 @@ export default function SignInPage() {
 		}
 	};
 
-	const isLoading = isLoadingGoogle || isLoadingGithub;
+	const [isLoadingDev, setIsLoadingDev] = useState(false);
+
+	const signInAsDev = async () => {
+		setIsLoadingDev(true);
+		setError(null);
+
+		try {
+			let res = await authClient.signIn.email({
+				email: DEV_EMAIL,
+				password: DEV_PASSWORD,
+			});
+			if (res.error) {
+				const signUpRes = await authClient.signUp.email({
+					email: DEV_EMAIL,
+					password: DEV_PASSWORD,
+					name: DEV_NAME,
+				});
+				if (signUpRes.error) throw new Error(signUpRes.error.message);
+				res = await authClient.signIn.email({
+					email: DEV_EMAIL,
+					password: DEV_PASSWORD,
+				});
+			}
+			if (res.error) throw new Error(res.error.message);
+			window.location.href = callbackURL;
+		} catch (err) {
+			console.error("Dev sign in failed:", err);
+			setError(err instanceof Error ? err.message : "Dev sign-in failed");
+			setIsLoadingDev(false);
+		}
+	};
+
+	const isLoading = isLoadingGoogle || isLoadingGithub || isLoadingDev;
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
@@ -65,6 +102,16 @@ export default function SignInPage() {
 			<div className="grid gap-4">
 				{error && (
 					<p className="text-destructive text-center text-sm">{error}</p>
+				)}
+				{process.env.NODE_ENV === "development" && (
+					<Button
+						variant="outline"
+						disabled={isLoading}
+						onClick={signInAsDev}
+						className="w-full"
+					>
+						{isLoadingDev ? "Signing in..." : "Sign in as Local Admin (dev)"}
+					</Button>
 				)}
 				<Button
 					variant="outline"

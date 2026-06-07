@@ -69,6 +69,15 @@ export interface DaemonClient {
 		predicate: (m: ServerMessage) => boolean,
 		ms?: number,
 	): Promise<ServerMessage>;
+	/**
+	 * Like waitFor, but ignores messages already received when this method is
+	 * called. Use after sending a command whose reply has the same shape as an
+	 * earlier reply, e.g. repeated `list` calls.
+	 */
+	waitForNext(
+		predicate: (m: ServerMessage) => boolean,
+		ms?: number,
+	): Promise<ServerMessage>;
 	collect(
 		predicate: (m: ServerMessage) => boolean,
 		ms: number,
@@ -148,6 +157,24 @@ export function connect(socketPath: string): Promise<DaemonClient> {
 							rej(new Error(`waitFor timed out after ${ms}ms`));
 						}, ms);
 						waiters.push({ predicate, resolve: res, reject: rej, timer });
+					});
+				},
+				waitForNext(predicate, ms = 5000) {
+					const startIndex = messages.length;
+					return new Promise<ServerMessage>((res, rej) => {
+						let waiter: Waiter;
+						const timer = setTimeout(() => {
+							const i = waiters.indexOf(waiter);
+							if (i >= 0) waiters.splice(i, 1);
+							rej(new Error(`waitForNext timed out after ${ms}ms`));
+						}, ms);
+						waiter = {
+							predicate: (m) => messages.length > startIndex && predicate(m),
+							resolve: res,
+							reject: rej,
+							timer,
+						};
+						waiters.push(waiter);
 					});
 				},
 				collect(predicate, ms) {

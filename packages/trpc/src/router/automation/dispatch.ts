@@ -1,38 +1,28 @@
-import crypto from "node:crypto";
 import { mintUserJwt } from "@superset/auth/server";
 import { dbWs } from "@superset/db/client";
 import {
 	automationRuns,
-	chatSessions,
 	type SelectAutomation,
-	subscriptions,
 	users,
 	v2Hosts,
 	v2UsersHosts,
 } from "@superset/db/schema";
-import {
-	buildPromptCommandFromAgentConfig,
-	getCommandFromAgentConfig,
-	type TerminalResolvedAgentConfig,
-} from "@superset/shared/agent-settings";
-import {
-	ACTIVE_SUBSCRIPTION_STATUSES,
-	isActiveSubscriptionStatus,
-	isPaidPlan,
-} from "@superset/shared/billing";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import {
 	deduplicateBranchName,
 	sanitizeBranchNameWithMaxLength,
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { RelayDispatchError, relayMutation } from "./relay-client";
+
+type AgentRunResult =
+	| { kind: "terminal"; sessionId: string; label: string }
+	| { kind: "chat"; sessionId: string; label: string };
 
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
 	| { status: "skipped_offline"; runId: string | null; error: string }
-	| { status: "skipped_unpaid"; runId: string | null; error: string }
 	| { status: "dispatch_failed"; runId: string | null; error: string }
 	| { status: "conflict" };
 
@@ -60,18 +50,7 @@ export async function dispatchAutomation(
 		const inserted = await recordSkipped(automation, scheduledFor, null, error);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
-	const { host, paidPlan } = resolved;
-	// Defense-in-depth: the cron evaluate-step (apps/api/.../evaluate/route.ts)
-	// already filters unpaid orgs, so this only fires in a tiny window between
-	// SELECT and dispatch. Bail without writing a run row to avoid muddying
-	// dashboards with paywall blocks under the offline metric.
-	if (!paidPlan) {
-		return {
-			status: "skipped_unpaid",
-			runId: null,
-			error: "automations require a Pro plan",
-		};
-	}
+	const host = resolved;
 	if (!host.isOnline) {
 		const error = "target host offline";
 		const inserted = await recordSkipped(
@@ -136,65 +115,26 @@ export async function dispatchAutomation(
 			workspaceId = created.workspaceId;
 		}
 
-		const agentConfig = automation.agentConfig;
-		if (!agentConfig || !agentConfig.enabled) {
-			throw new Error(
-				`agent preset is disabled: ${agentConfig?.id ?? "unknown"}`,
-			);
-		}
+		const result = await runAgentOnHost({
+			relayUrl,
+			hostId: routingKey,
+			jwt,
+			workspaceId,
+			agent: automation.agent,
+			prompt: automation.prompt,
+		});
 
-		if (agentConfig.kind === "chat") {
-			const { sessionId } = await dispatchChatSession({
-				relayUrl,
-				hostId: routingKey,
-				jwt,
-				workspaceId,
-				prompt: automation.prompt,
-				model: agentConfig.model ?? undefined,
-			});
-
-			await dbWs.insert(chatSessions).values({
-				id: sessionId,
-				organizationId: automation.organizationId,
-				createdBy: automation.ownerUserId,
+		await dbWs
+			.update(automationRuns)
+			.set({
+				status: "dispatched",
+				sessionKind: result.kind,
+				chatSessionId: result.kind === "chat" ? result.sessionId : null,
+				terminalSessionId: result.kind === "terminal" ? result.sessionId : null,
 				v2WorkspaceId: workspaceId,
-				title: automation.name,
-			});
-
-			await dbWs
-				.update(automationRuns)
-				.set({
-					status: "dispatched",
-					sessionKind: "chat",
-					chatSessionId: sessionId,
-					v2WorkspaceId: workspaceId,
-					dispatchedAt: new Date(),
-				})
-				.where(eq(automationRuns.id, run.id));
-		} else {
-			const command = buildTerminalCommand({
-				prompt: automation.prompt,
-				config: agentConfig,
-				randomId: run.id,
-			});
-			const { terminalId } = await dispatchTerminalSession({
-				relayUrl,
-				hostId: routingKey,
-				jwt,
-				workspaceId,
-				command,
-			});
-			await dbWs
-				.update(automationRuns)
-				.set({
-					status: "dispatched",
-					sessionKind: "terminal",
-					terminalSessionId: terminalId,
-					v2WorkspaceId: workspaceId,
-					dispatchedAt: new Date(),
-				})
-				.where(eq(automationRuns.id, run.id));
-		}
+				dispatchedAt: new Date(),
+			})
+			.where(eq(automationRuns.id, run.id));
 	} catch (err) {
 		const error = describeError(err, "dispatch");
 		await dbWs
@@ -211,56 +151,33 @@ export async function dispatchAutomation(
 	return { status: "dispatched", runId: run.id };
 }
 
-async function resolveTargetHost(automation: SelectAutomation): Promise<{
-	host: typeof v2Hosts.$inferSelect;
-	paidPlan: boolean;
-} | null> {
+async function resolveTargetHost(
+	automation: SelectAutomation,
+): Promise<typeof v2Hosts.$inferSelect | null> {
 	if (automation.targetHostId) {
-		const [row] = await dbWs
-			.select({
-				host: v2Hosts,
-				subscriptionPlan: subscriptions.plan,
-				subscriptionStatus: subscriptions.status,
-			})
+		const [host] = await dbWs
+			.select()
 			.from(v2Hosts)
-			.leftJoin(
-				subscriptions,
-				and(
-					eq(subscriptions.referenceId, v2Hosts.organizationId),
-					inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
-				),
-			)
 			.where(
 				and(
 					eq(v2Hosts.organizationId, automation.organizationId),
 					eq(v2Hosts.machineId, automation.targetHostId),
 				),
 			)
-			.orderBy(desc(subscriptions.createdAt))
 			.limit(1);
 
-		if (!row) return null;
-		return {
-			host: row.host,
-			paidPlan:
-				isPaidPlan(row.subscriptionPlan) &&
-				isActiveSubscriptionStatus(row.subscriptionStatus),
-		};
+		return host ?? null;
 	}
 
-	const [row] = await dbWs
+	const [host] = await dbWs
 		.select({
-			host: {
-				organizationId: v2Hosts.organizationId,
-				machineId: v2Hosts.machineId,
-				name: v2Hosts.name,
-				isOnline: v2Hosts.isOnline,
-				createdByUserId: v2Hosts.createdByUserId,
-				createdAt: v2Hosts.createdAt,
-				updatedAt: v2Hosts.updatedAt,
-			},
-			subscriptionPlan: subscriptions.plan,
-			subscriptionStatus: subscriptions.status,
+			organizationId: v2Hosts.organizationId,
+			machineId: v2Hosts.machineId,
+			name: v2Hosts.name,
+			isOnline: v2Hosts.isOnline,
+			createdByUserId: v2Hosts.createdByUserId,
+			createdAt: v2Hosts.createdAt,
+			updatedAt: v2Hosts.updatedAt,
 		})
 		.from(v2Hosts)
 		.innerJoin(
@@ -270,13 +187,6 @@ async function resolveTargetHost(automation: SelectAutomation): Promise<{
 				eq(v2UsersHosts.hostId, v2Hosts.machineId),
 			),
 		)
-		.leftJoin(
-			subscriptions,
-			and(
-				eq(subscriptions.referenceId, v2Hosts.organizationId),
-				inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
-			),
-		)
 		.where(
 			and(
 				eq(v2UsersHosts.userId, automation.ownerUserId),
@@ -284,16 +194,10 @@ async function resolveTargetHost(automation: SelectAutomation): Promise<{
 				eq(v2Hosts.isOnline, true),
 			),
 		)
-		.orderBy(v2Hosts.updatedAt, desc(subscriptions.createdAt))
+		.orderBy(v2Hosts.updatedAt)
 		.limit(1);
 
-	if (!row) return null;
-	return {
-		host: row.host,
-		paidPlan:
-			isPaidPlan(row.subscriptionPlan) &&
-			isActiveSubscriptionStatus(row.subscriptionStatus),
-	};
+	return host ?? null;
 }
 
 async function recordSkipped(
@@ -377,80 +281,30 @@ async function createWorkspaceOnHost(args: {
 	return { workspaceId: result.workspace.id, branchName };
 }
 
-async function dispatchChatSession(args: {
+async function runAgentOnHost(args: {
 	relayUrl: string;
 	hostId: string;
 	jwt: string;
 	workspaceId: string;
+	agent: string;
 	prompt: string;
-	model: string | undefined;
-}): Promise<{ sessionId: string }> {
-	const sessionId = crypto.randomUUID();
-	await relayMutation<
-		{
-			sessionId: string;
-			workspaceId: string;
-			payload: { content: string };
-			metadata?: { model?: string };
-		},
-		{ sessionId: string; messageId: string }
-	>(
-		{ relayUrl: args.relayUrl, hostId: args.hostId, jwt: args.jwt },
-		"chat.sendMessage",
-		{
-			sessionId,
-			workspaceId: args.workspaceId,
-			payload: { content: args.prompt },
-			metadata: args.model ? { model: args.model } : undefined,
-		},
-	);
-	return { sessionId };
-}
-
-async function dispatchTerminalSession(args: {
-	relayUrl: string;
-	hostId: string;
-	jwt: string;
-	workspaceId: string;
-	command: string;
-}): Promise<{ terminalId: string }> {
-	const terminalId = crypto.randomUUID();
-	await relayMutation<
+}): Promise<AgentRunResult> {
+	return relayMutation<
 		{
 			workspaceId: string;
-			terminalId?: string;
-			initialCommand: string;
+			agent: string;
+			prompt: string;
 		},
-		{ terminalId: string; status: string }
+		AgentRunResult
 	>(
 		{ relayUrl: args.relayUrl, hostId: args.hostId, jwt: args.jwt },
-		"terminal.launchSession",
+		"agents.run",
 		{
-			terminalId,
 			workspaceId: args.workspaceId,
-			initialCommand: args.command,
+			agent: args.agent,
+			prompt: args.prompt,
 		},
 	);
-	return { terminalId };
-}
-
-function buildTerminalCommand(args: {
-	prompt: string;
-	config: TerminalResolvedAgentConfig;
-	randomId: string;
-}): string {
-	const command = args.prompt
-		? buildPromptCommandFromAgentConfig({
-				prompt: args.prompt,
-				randomId: args.randomId,
-				config: args.config,
-			})
-		: getCommandFromAgentConfig(args.config);
-
-	if (!command) {
-		throw new Error(`no command configured for agent "${args.config.id}"`);
-	}
-	return command;
 }
 
 function describeError(err: unknown, context: string): string {

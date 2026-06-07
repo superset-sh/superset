@@ -1,26 +1,49 @@
 import type { WorkspaceState } from "@superset/panes";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useEffectEvent, useMemo } from "react";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { NOTIFICATION_EVENTS } from "shared/constants";
+import type { AgentLifecycleEvent } from "shared/notification-types";
 import {
 	HostNotificationSubscriber,
 	type HostNotificationWorkspaceState,
 } from "./components/HostNotificationSubscriber";
+import { handleV2AgentLifecycleStatusEvent } from "./lib/lifecycleEvents";
 
 interface WorkspaceHostRow {
 	workspaceId: string;
 	organizationId: string;
 	hostId: string;
+	name: string;
+	branch: string;
 }
 
 interface HostNotificationSubscriberGroup {
 	hostUrl: string;
 	workspaces: HostNotificationWorkspaceState[];
 }
+
+type ElectronNotificationEventName =
+	(typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];
+
+type ElectronNotificationEvent =
+	| {
+			type: typeof NOTIFICATION_EVENTS.AGENT_LIFECYCLE;
+			data?: AgentLifecycleEvent;
+	  }
+	| {
+			type: Exclude<
+				ElectronNotificationEventName,
+				typeof NOTIFICATION_EVENTS.AGENT_LIFECYCLE
+			>;
+			data?: unknown;
+	  };
 
 /**
  * Mounts one v2 notification listener per host-service URL so backgrounded
@@ -34,7 +57,9 @@ interface HostNotificationSubscriberGroup {
 export function V2NotificationController() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
-	const { data: workspaceHosts = [] } = useLiveQuery(
+	const relayUrl = useRelayUrl();
+	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
+	const { data: allWorkspaceHosts = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
@@ -42,10 +67,12 @@ export function V2NotificationController() {
 					workspaceId: v2Workspaces.id,
 					organizationId: v2Workspaces.organizationId,
 					hostId: v2Workspaces.hostId,
+					name: v2Workspaces.name,
+					branch: v2Workspaces.branch,
 				})),
 		[collections],
 	);
-	const { data: localWorkspaceRows = [] } = useLiveQuery(
+	const { data: allLocalWorkspaceRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2WorkspaceLocalState: collections.v2WorkspaceLocalState })
@@ -55,16 +82,68 @@ export function V2NotificationController() {
 				})),
 		[collections],
 	);
+	const workspaceHosts = useMemo(
+		() =>
+			allWorkspaceHosts.filter((workspace) =>
+				visibleWorkspaceIds.has(workspace.workspaceId),
+			),
+		[allWorkspaceHosts, visibleWorkspaceIds],
+	);
+	const localWorkspaceRows = useMemo(
+		() =>
+			allLocalWorkspaceRows.filter((workspace) =>
+				visibleWorkspaceIds.has(workspace.workspaceId),
+			),
+		[allLocalWorkspaceRows, visibleWorkspaceIds],
+	);
+	const workspaceStatesById = useMemo(
+		() =>
+			getNotificationWorkspaceStatesById({
+				workspaceHosts,
+				localWorkspaceRows,
+			}),
+		[workspaceHosts, localWorkspaceRows],
+	);
 	const hostGroups = useMemo(
 		() =>
 			groupWorkspacesByHostUrl({
 				workspaceHosts,
-				localWorkspaceRows,
+				workspaceStatesById,
 				machineId,
 				activeHostUrl,
+				relayUrl,
 			}),
-		[workspaceHosts, localWorkspaceRows, machineId, activeHostUrl],
+		[workspaceHosts, workspaceStatesById, machineId, activeHostUrl, relayUrl],
 	);
+
+	const handleElectronAgentLifecycle = useEffectEvent(
+		(event: ElectronNotificationEvent) => {
+			if (event.type !== NOTIFICATION_EVENTS.AGENT_LIFECYCLE) return;
+			const data = event.data;
+			if (!data?.workspaceId || !data.terminalId) return;
+			const workspace = workspaceStatesById.get(data.workspaceId);
+			if (!workspace) return;
+
+			// Adopted shells keep their launch-time host-service hook URL. When
+			// that URL is stale, the Electron fallback still has terminal context.
+			handleV2AgentLifecycleStatusEvent({
+				workspaceId: data.workspaceId,
+				payload: {
+					eventType:
+						data.eventType === "PendingQuestion"
+							? "PermissionRequest"
+							: data.eventType,
+					terminalId: data.terminalId,
+					occurredAt: Date.now(),
+				},
+				paneLayout: workspace.paneLayout,
+			});
+		},
+	);
+
+	electronTrpc.notifications.subscribe.useSubscription(undefined, {
+		onData: handleElectronAgentLifecycle,
+	});
 
 	return (
 		<>
@@ -79,27 +158,61 @@ export function V2NotificationController() {
 	);
 }
 
-function groupWorkspacesByHostUrl({
+function getNotificationWorkspaceStatesById({
 	workspaceHosts,
 	localWorkspaceRows,
-	machineId,
-	activeHostUrl,
 }: {
 	workspaceHosts: WorkspaceHostRow[];
 	localWorkspaceRows: Array<{
 		workspaceId: string;
 		paneLayout: unknown;
 	}>;
-	machineId: string | null;
-	activeHostUrl: string | null;
-}): HostNotificationSubscriberGroup[] {
+}): Map<string, HostNotificationWorkspaceState> {
 	const paneLayoutsByWorkspaceId = new Map(
 		localWorkspaceRows.map((row) => [
 			row.workspaceId,
 			row.paneLayout as WorkspaceState<PaneViewerData>,
 		]),
 	);
+
+	const statesById = new Map(
+		localWorkspaceRows.map((row) => [
+			row.workspaceId,
+			{
+				workspaceId: row.workspaceId,
+				workspaceName: "Workspace",
+				paneLayout: paneLayoutsByWorkspaceId.get(row.workspaceId) ?? null,
+			},
+		]),
+	);
+
+	for (const workspace of workspaceHosts) {
+		statesById.set(workspace.workspaceId, {
+			workspaceId: workspace.workspaceId,
+			workspaceName:
+				workspace.name.trim() || workspace.branch.trim() || "Workspace",
+			paneLayout: paneLayoutsByWorkspaceId.get(workspace.workspaceId) ?? null,
+		});
+	}
+
+	return statesById;
+}
+
+function groupWorkspacesByHostUrl({
+	workspaceHosts,
+	workspaceStatesById,
+	machineId,
+	activeHostUrl,
+	relayUrl,
+}: {
+	workspaceHosts: WorkspaceHostRow[];
+	workspaceStatesById: Map<string, HostNotificationWorkspaceState>;
+	machineId: string | null;
+	activeHostUrl: string | null;
+	relayUrl: string;
+}): HostNotificationSubscriberGroup[] {
 	const groups = new Map<string, HostNotificationWorkspaceState[]>();
+	const hostedWorkspaceIds = new Set<string>();
 
 	for (const workspace of workspaceHosts) {
 		const hostUrl = getHostUrlForWorkspace({
@@ -107,15 +220,26 @@ function groupWorkspacesByHostUrl({
 			hostId: workspace.hostId,
 			machineId,
 			activeHostUrl,
+			relayUrl,
 		});
 		if (!hostUrl) continue;
 
 		const group = groups.get(hostUrl) ?? [];
-		group.push({
-			workspaceId: workspace.workspaceId,
-			paneLayout: paneLayoutsByWorkspaceId.get(workspace.workspaceId) ?? null,
-		});
+		const state = workspaceStatesById.get(workspace.workspaceId);
+		if (state) group.push(state);
 		groups.set(hostUrl, group);
+		hostedWorkspaceIds.add(workspace.workspaceId);
+	}
+
+	if (activeHostUrl) {
+		const localGroup = groups.get(activeHostUrl) ?? [];
+		for (const state of workspaceStatesById.values()) {
+			if (hostedWorkspaceIds.has(state.workspaceId)) continue;
+			localGroup.push(state);
+		}
+		if (localGroup.length > 0) {
+			groups.set(activeHostUrl, localGroup);
+		}
 	}
 
 	return [...groups.entries()].map(([hostUrl, workspaces]) => ({
@@ -129,14 +253,16 @@ function getHostUrlForWorkspace({
 	hostId,
 	machineId,
 	activeHostUrl,
+	relayUrl,
 }: {
 	organizationId: string;
 	hostId: string;
 	machineId: string | null;
 	activeHostUrl: string | null;
+	relayUrl: string;
 }): string | null {
 	if (machineId && hostId === machineId) {
 		return activeHostUrl;
 	}
-	return `${env.RELAY_URL}/hosts/${buildHostRoutingKey(organizationId, hostId)}`;
+	return `${relayUrl}/hosts/${buildHostRoutingKey(organizationId, hostId)}`;
 }

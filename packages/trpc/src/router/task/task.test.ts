@@ -7,6 +7,9 @@ const syncTaskMock = mock(() => undefined);
 const verifyOrgAdminMock = mock(async () => ({
 	membership: { role: "owner" },
 }));
+const verifyOrgOwnerMock = mock(async () => ({
+	membership: { role: "owner" },
+}));
 const verifyOrgMembershipMock = mock(async () => ({
 	membership: { role: "member" },
 }));
@@ -195,6 +198,7 @@ mock.module("../../lib/integrations/sync", () => ({
 
 mock.module("../integration/utils", () => ({
 	verifyOrgAdmin: verifyOrgAdminMock,
+	verifyOrgOwner: verifyOrgOwnerMock,
 	verifyOrgMembership: verifyOrgMembershipMock,
 	verifyOrgMembershipWithSubscription: verifyOrgMembershipWithSubscriptionMock,
 }));

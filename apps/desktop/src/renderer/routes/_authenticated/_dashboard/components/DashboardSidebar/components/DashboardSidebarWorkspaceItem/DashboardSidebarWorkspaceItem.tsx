@@ -4,7 +4,6 @@ import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/h
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
-import { useWorkspaceCreatesStore } from "renderer/stores/workspace-creates";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
@@ -36,7 +35,8 @@ export function DashboardSidebarWorkspaceItem({
 		hostIsOnline,
 		name,
 		branch,
-		creationStatus,
+		pendingTransaction,
+		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
@@ -76,15 +76,10 @@ export function DashboardSidebarWorkspaceItem({
 	const handleAfterBranchRename = (newBranchName: string) => {
 		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
-	const isPending = !!creationStatus;
-	const isFailedInFlight = creationStatus === "failed";
+	const isPending = pendingTransaction?.type === "insert";
 	// Keep the delete dialog outside the hidden wrapper below — the destroy
 	// flow reopens it into an error pane on conflict/teardown-failed.
 	const isDeleting = useDeletingWorkspaces().isDeleting(id);
-
-	const handleDismissInFlight = useCallback(() => {
-		useWorkspaceCreatesStore.getState().remove(id);
-	}, [id]);
 
 	const {
 		hoveredId: hoverHoveredId,
@@ -141,10 +136,9 @@ export function DashboardSidebarWorkspaceItem({
 					isActive={isActive}
 					workspaceStatus={workspaceStatus}
 					onClick={handleClick}
-					creationStatus={creationStatus}
-					aria-label={
-						creationStatus ? `Creating workspace: ${name}` : undefined
-					}
+					isCreatePending={isPending}
+					pullRequestState={pullRequest?.state ?? null}
+					aria-label={isPending ? `Creating workspace: ${name}` : undefined}
 				/>
 			</div>
 		);
@@ -160,7 +154,9 @@ export function DashboardSidebarWorkspaceItem({
 							isInSection={isInSection}
 							isUnread={isUnread}
 							isLocalWorkspace={hostType === "local-device"}
+							isPinned={isMainWorkspace && hostType === "local-device"}
 							onCreateSection={handleCreateSection}
+							showDeleteHotkey={isActive}
 							onMoveToSection={(targetSectionId) =>
 								moveWorkspaceToSection(id, projectId, targetSectionId)
 							}
@@ -222,11 +218,7 @@ export function DashboardSidebarWorkspaceItem({
 				onClick={handleClick}
 				onDoubleClick={isPending ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
-				onCloseWorkspaceClick={
-					isFailedInFlight
-						? handleDismissInFlight
-						: () => setIsDeleteDialogOpen(true)
-				}
+				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
@@ -249,7 +241,9 @@ export function DashboardSidebarWorkspaceItem({
 							moveWorkspaceToSection(id, projectId, targetSectionId)
 						}
 						isLocalWorkspace={hostType === "local-device"}
+						isPinned={isMainWorkspace && hostType === "local-device"}
 						onOpenInFinder={handleOpenInFinder}
+						showDeleteHotkey={isActive}
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}

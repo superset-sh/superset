@@ -8,6 +8,7 @@ const PASTE_REDIRECT_PATH = "/cli/auth/code";
 const SCOPE = "openid profile email offline_access";
 const LOOPBACK_PORTS = [51789, 51790, 51791, 51792, 51793];
 const CALLBACK_TIMEOUT_MS = 5 * 60 * 1000;
+const LOGIN_AGAIN_SUGGESTION = "Run `superset auth login` again.";
 
 export interface LoginResult {
 	accessToken: string;
@@ -222,10 +223,9 @@ async function exchangeCodeForToken({
 	});
 
 	if (!response.ok) {
-		const body = await response.text();
 		throw new CLIError(
 			`Token exchange failed: ${response.status}`,
-			body || "Run `superset auth login` again.",
+			LOGIN_AGAIN_SUGGESTION,
 		);
 	}
 
@@ -260,10 +260,9 @@ export async function refreshAccessToken(
 	});
 
 	if (!response.ok) {
-		const body = await response.text();
 		throw new CLIError(
 			`Token refresh failed: ${response.status}`,
-			body || "Run `superset auth login` again.",
+			LOGIN_AGAIN_SUGGESTION,
 		);
 	}
 

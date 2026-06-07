@@ -5,10 +5,11 @@ import {
 	type PaneRegistry,
 	type WorkspaceStore,
 } from "@superset/panes";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggle-intent";
 import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
@@ -23,12 +24,14 @@ export function useWorkspaceHotkeys({
 	store,
 	matchedPresets,
 	executePreset,
+	addTerminalTab,
 	paneRegistry,
 	launcher,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	matchedPresets: V2TerminalPresetRow[];
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
+	addTerminalTab: () => Promise<void>;
 	paneRegistry: PaneRegistry<PaneViewerData>;
 	launcher: TerminalLauncher;
 }) {
@@ -42,18 +45,18 @@ export function useWorkspaceHotkeys({
 		setRightSidebarOpen((prev) => !prev);
 	});
 
+	useEffect(
+		() =>
+			useRightSidebarToggleIntent.subscribe((state, prev) => {
+				if (state.tick !== prev.tick) setRightSidebarOpen((open) => !open);
+			}),
+		[setRightSidebarOpen],
+	);
+
 	// --- Tab creation ---
 
 	useHotkey("NEW_GROUP", async () => {
-		const terminalId = await launcher.create();
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "terminal",
-					data: { terminalId } as TerminalPaneData,
-				},
-			],
-		});
+		await addTerminalTab();
 	});
 
 	useHotkey("NEW_CHAT", () => {

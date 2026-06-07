@@ -9,92 +9,84 @@ interface ExternalIdePopupProps {
 }
 
 export function ExternalIdePopup({ activeDemo }: ExternalIdePopupProps) {
-	const treeIconClassName = "size-3.5 shrink-0";
+	const treeIconClassName = "size-3 shrink-0";
 
 	return (
 		<motion.div
-			className="absolute bottom-6 right-6 w-[55%] overflow-hidden rounded-xl bg-black/50 shadow-[0_8px_40px_-8px_rgba(0,0,0,0.6)] backdrop-blur-xl"
-			style={{ aspectRatio: "16/10" }}
-			initial={{ opacity: 0, scale: 0.9, y: 20 }}
+			className="absolute bottom-6 right-6 w-[55%] overflow-hidden rounded-lg border border-border bg-background shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
+			style={{
+				aspectRatio: "16/10",
+				pointerEvents: activeDemo === "Open in Any IDE" ? "auto" : "none",
+			}}
+			initial={{ opacity: 0, scale: 0.94, y: 16 }}
 			animate={{
 				opacity: activeDemo === "Open in Any IDE" ? 1 : 0,
-				scale: activeDemo === "Open in Any IDE" ? 1 : 0.9,
-				y: activeDemo === "Open in Any IDE" ? 0 : 20,
+				scale: activeDemo === "Open in Any IDE" ? 1 : 0.94,
+				y: activeDemo === "Open in Any IDE" ? 0 : 16,
 			}}
 			transition={{ duration: 0.3, ease: "easeOut" }}
 		>
-			<div
-				className="pointer-events-none absolute inset-0 z-10 rounded-xl"
-				style={{
-					background:
-						"linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 26%, rgba(255,255,255,0.03) 74%, rgba(255,255,255,0.07) 100%)",
-					mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-					WebkitMask:
-						"linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-					maskComposite: "exclude",
-					WebkitMaskComposite: "xor",
-					padding: "1.5px",
-				}}
-			/>
+			<div className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-1 ring-inset ring-white/[0.04]" />
 
-			<div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.04] px-5 py-3 backdrop-blur-md">
+			<div className="relative flex h-8 items-center border-b border-border bg-card px-3">
 				<div className="flex items-center gap-1.5">
-					<div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]/80" />
-					<div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]/80" />
-					<div className="h-2.5 w-2.5 rounded-full bg-[#28c840]/80" />
+					<div className="size-2 rounded-full bg-[#ff5f57]/85" />
+					<div className="size-2 rounded-full bg-[#febc2e]/85" />
+					<div className="size-2 rounded-full bg-[#28c840]/85" />
 				</div>
-				<span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/38">
-					External IDE
+				<span className="pointer-events-none absolute inset-x-0 text-center font-mono text-[10px] tracking-tight text-muted-foreground/60">
+					Cursor — index.ts
 				</span>
-				<div className="w-12" />
 			</div>
 
-			<div className="flex h-[calc(100%-36px)]">
-				<div className="w-[116px] border-r border-white/[0.06] bg-white/[0.02] p-5 text-[11px]">
-					<div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/36">
+			<div className="flex h-[calc(100%-32px)]">
+				<div className="w-[120px] border-r border-border bg-card p-3 text-[11px]">
+					<div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/55">
 						<LuFolder className={treeIconClassName} />
 						<span>src</span>
 					</div>
-					<div className="ml-4 space-y-2">
-						<div className="flex items-center gap-2 font-medium text-orange-500/75">
+					<div className="ml-3 space-y-0.5">
+						<div className="relative flex items-center gap-1.5 rounded-sm bg-foreground/[0.06] px-1.5 py-0.5 text-foreground/95">
+							<span className="absolute inset-y-1 left-0 w-[2px] rounded-r-sm bg-brand" />
 							<LuFile className={treeIconClassName} />
 							<span>index.ts</span>
 						</div>
-						<div className="flex items-center gap-2 text-muted-foreground/30">
+						<div className="flex items-center gap-1.5 px-1.5 py-0.5 text-muted-foreground/55">
 							<LuFile className={treeIconClassName} />
 							<span>utils.ts</span>
 						</div>
-						<div className="flex items-center gap-2 text-muted-foreground/30">
+						<div className="flex items-center gap-1.5 px-1.5 py-0.5 text-muted-foreground/55">
 							<LuFile className={treeIconClassName} />
 							<span>types.ts</span>
 						</div>
 					</div>
 				</div>
 
-				<div className="flex-1 overflow-hidden bg-black/20 p-6 font-mono text-[11px]">
-					<div className="space-y-2 leading-relaxed">
+				<div className="flex-1 overflow-hidden p-4 font-mono text-[11px]">
+					<div className="space-y-1.5 leading-relaxed">
 						<div>
-							<span className="text-violet-300/60">import</span> {"{"} Agent{" "}
-							{"}"} <span className="text-violet-300/60">from</span>{" "}
-							<span className="text-stone-300/70">"ai"</span>
+							<span className="text-violet-300">import</span> {"{"} Agent {"}"}{" "}
+							<span className="text-violet-300">from</span>{" "}
+							<span className="text-emerald-300/85">"ai"</span>
 						</div>
 						<div>
-							<span className="text-violet-300/60">import</span> {"{"} tools{" "}
-							{"}"} <span className="text-violet-300/60">from</span>{" "}
-							<span className="text-stone-300/70">"./utils"</span>
+							<span className="text-violet-300">import</span> {"{"} tools {"}"}{" "}
+							<span className="text-violet-300">from</span>{" "}
+							<span className="text-emerald-300/85">"./utils"</span>
 						</div>
-						<div className="text-muted-foreground/20">│</div>
+						<div className="text-muted-foreground/30">│</div>
 						<div>
-							<span className="text-violet-300/60">const</span>{" "}
-							<span className="text-orange-500/75">agent</span> ={" "}
-							<span className="text-stone-300/70">new</span> Agent({"{"}
+							<span className="text-violet-300">const</span>{" "}
+							<span className="text-brand-light">agent</span> ={" "}
+							<span className="text-violet-300">new</span>{" "}
+							<span className="text-foreground/95">Agent</span>({"{"}
 						</div>
 						<div className="pl-4">
-							<span className="text-foreground/60">model:</span>{" "}
-							<span className="text-stone-300/70">"claude-4"</span>,
+							<span className="text-foreground/75">model:</span>{" "}
+							<span className="text-emerald-300/85">"claude-4"</span>,
 						</div>
 						<div className="pl-4">
-							<span className="text-foreground/60">tools:</span> [tools.read,
+							<span className="text-foreground/75">tools:</span> [tools.read,
 							tools.write]
 						</div>
 						<div>{"}"})</div>

@@ -13,15 +13,74 @@ _superset_notify_path="{{NOTIFY_PATH}}"
 _superset_debug_log="${SUPERSET_HOOK_DEBUG_LOG:-/tmp/superset-codex-hooks.log}"
 _superset_has_superset_context="0"
 [ -n "$SUPERSET_TERMINAL_ID$SUPERSET_TAB_ID$SUPERSET_PANE_ID" ] && _superset_has_superset_context="1"
+SUPERSET_CODEX_SESSION_WATCHER_PID=""
+_superset_codex_args=()
 
 _superset_debug() {
   [ "$_superset_debug_enabled" = "1" ] || return 0
   printf '%s [codex-wrapper] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$*" >> "$_superset_debug_log" 2>/dev/null || true
 }
 
+_superset_toml_escape() {
+  local _superset_value="$1"
+  _superset_value="${_superset_value//\\/\\\\}"
+  _superset_value="${_superset_value//\"/\\\"}"
+  printf '%s' "$_superset_value"
+}
+
+_superset_configure_project_trust() {
+  [ -n "${SUPERSET_WORKSPACE_PATH:-}" ] || return 0
+
+  local _superset_workspace_codex_home="$SUPERSET_WORKSPACE_PATH/.codex"
+  [ -f "$_superset_workspace_codex_home/config.toml" ] || return 0
+
+  local _superset_workspace_path_toml
+  _superset_workspace_path_toml="$(_superset_toml_escape "$SUPERSET_WORKSPACE_PATH")"
+  _superset_codex_args+=("-c" "projects={\"$_superset_workspace_path_toml\"={trust_level=\"trusted\"}}")
+  _superset_debug "using trusted workspace Codex project config path=$SUPERSET_WORKSPACE_PATH"
+}
+
+_superset_configure_project_trust
+
+_superset_child_pids_for() {
+  if command -v pgrep >/dev/null 2>&1; then
+    pgrep -P "$1" 2>/dev/null || true
+    return 0
+  fi
+  ps -axo pid=,ppid= 2>/dev/null | awk -v ppid="$1" '$2 == ppid { print $1 }' 2>/dev/null || true
+}
+
+_superset_cleanup_session_watcher() {
+  if [ -n "$SUPERSET_CODEX_SESSION_WATCHER_PID" ]; then
+    _superset_watcher_pid="$SUPERSET_CODEX_SESSION_WATCHER_PID"
+    _superset_child_pids="$(_superset_child_pids_for "$_superset_watcher_pid" | tr '\n' ' ')"
+    for _superset_child_pid in $_superset_child_pids; do
+      kill -TERM "$_superset_child_pid" >/dev/null 2>&1 || true
+    done
+    kill -TERM "$_superset_watcher_pid" >/dev/null 2>&1 || true
+    sleep 0.2
+    _superset_child_pids="$_superset_child_pids $(_superset_child_pids_for "$_superset_watcher_pid" | tr '\n' ' ')"
+    for _superset_child_pid in $_superset_child_pids; do
+      kill -KILL "$_superset_child_pid" >/dev/null 2>&1 || true
+    done
+    kill -KILL "$_superset_watcher_pid" >/dev/null 2>&1 || true
+    _superset_debug "session watcher cleanup signaled pid=$_superset_watcher_pid"
+    SUPERSET_CODEX_SESSION_WATCHER_PID=""
+  fi
+}
+
+_superset_exit_trap() {
+  _superset_status=$?
+  trap - EXIT HUP INT TERM
+  _superset_cleanup_session_watcher
+  exit "$_superset_status"
+}
+
+trap _superset_exit_trap EXIT HUP INT TERM
+
 if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" ]; then
   export CODEX_TUI_RECORD_SESSION="${CODEX_TUI_RECORD_SESSION:-1}"
-  export CODEX_TUI_SESSION_LOG_PATH="${CODEX_TUI_SESSION_LOG_PATH:-${TMPDIR:-/tmp}/superset-codex-session-$$_$(date +%s).jsonl}"
+  export CODEX_TUI_SESSION_LOG_PATH="${TMPDIR:-/tmp}/superset-codex-session-$$_$(date +%s).jsonl"
   _superset_debug "session watcher starting terminalId=$SUPERSET_TERMINAL_ID tabId=$SUPERSET_TAB_ID paneId=$SUPERSET_PANE_ID log=$CODEX_TUI_SESSION_LOG_PATH notify=$_superset_notify_path"
 
   (
@@ -51,7 +110,7 @@ if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" 
         *'_approval_request"'*) _superset_emit_event "PermissionRequest" ;;
       esac
     done
-  ) &
+  ) 2>/dev/null &
   SUPERSET_CODEX_SESSION_WATCHER_PID=$!
   _superset_debug "session watcher pid=$SUPERSET_CODEX_SESSION_WATCHER_PID"
 else
@@ -62,14 +121,11 @@ fi
 
 # `hooks` (formerly `codex_hooks`) is stable and default-enabled in codex
 # >=0.129; the legacy `notify=...` callback remains the completion source.
-"$REAL_BIN" --enable hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
+"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
 SUPERSET_CODEX_STATUS=$?
 _superset_debug "codex exited status=$SUPERSET_CODEX_STATUS"
 
-if [ -n "$SUPERSET_CODEX_SESSION_WATCHER_PID" ]; then
-  kill "$SUPERSET_CODEX_SESSION_WATCHER_PID" >/dev/null 2>&1 || true
-  wait "$SUPERSET_CODEX_SESSION_WATCHER_PID" 2>/dev/null || true
-  _superset_debug "session watcher stopped pid=$SUPERSET_CODEX_SESSION_WATCHER_PID"
-fi
+_superset_cleanup_session_watcher
 
+trap - EXIT HUP INT TERM
 exit "$SUPERSET_CODEX_STATUS"

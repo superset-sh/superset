@@ -3,6 +3,7 @@ import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { app, Notification, nativeTheme } from "electron";
+import log from "electron-log/main";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
@@ -135,6 +136,40 @@ export async function MainWindow() {
 		window.webContents.setBackgroundThrottling(false);
 	}
 
+	if (isDev) {
+		window.webContents.on(
+			"console-message",
+			(_event, level, message, line, sourceId) => {
+				const shouldForward =
+					level >= 2 ||
+					message.includes("[stress]") ||
+					message.includes("[main]");
+				if (!shouldForward) return;
+
+				const details = sourceId ? ` (${sourceId}:${line})` : "";
+				const formatted = `[renderer-console] ${message}${details}`;
+				if (level >= 3) {
+					log.error(formatted);
+				} else if (level >= 2) {
+					log.warn(formatted);
+				} else {
+					log.info(formatted);
+				}
+			},
+		);
+
+		window.on("unresponsive", () => {
+			log.warn("[main-window] Renderer became unresponsive", {
+				url: window.webContents.getURL(),
+			});
+		});
+		window.on("responsive", () => {
+			log.info("[main-window] Renderer became responsive", {
+				url: window.webContents.getURL(),
+			});
+		});
+	}
+
 	if (ipcHandler) {
 		ipcHandler.attachWindow(window);
 	} else {
@@ -161,6 +196,16 @@ export async function MainWindow() {
 		onNotificationClick: (ids) => {
 			window.show();
 			window.focus();
+			if (ids.workspaceId && ids.terminalId) {
+				notificationsEmitter.emit(
+					NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE,
+					{
+						workspaceId: ids.workspaceId,
+						source: { type: "terminal", id: ids.terminalId },
+					},
+				);
+				return;
+			}
 			notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, ids);
 		},
 		getVisibilityContext: () => ({
@@ -289,6 +334,7 @@ export async function MainWindow() {
 
 	window.webContents.on("render-process-gone", (_event, details) => {
 		console.error("[main-window] Renderer process gone:", details);
+		log.error("[main-window] Renderer process gone", details);
 	});
 
 	window.webContents.on("preload-error", (_event, preloadPath, error) => {

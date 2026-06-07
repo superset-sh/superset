@@ -11,7 +11,7 @@ export default command({
 		project: string().required().desc("Project ID"),
 		name: string().required().desc("Workspace name"),
 		branch: string().desc("Git branch (required unless --pr is set)"),
-		pr: number().desc("PR number — derives branch via gh pr checkout"),
+		pr: number().desc("PR number — checks out the verified PR head"),
 		baseBranch: string().desc(
 			"Branch to fork from when `branch` does not exist (defaults to project default)",
 		),
@@ -20,6 +20,9 @@ export default command({
 		),
 		prompt: string().desc(
 			"Initial prompt the agent starts with. Required when --agent is set",
+		),
+		command: string().desc(
+			"Shell command to run in the new workspace after creation",
 		),
 		attachment: string()
 			.variadic()
@@ -92,6 +95,7 @@ export default command({
 			pr: options.pr,
 			baseBranch: options.baseBranch,
 			agents,
+			command: options.command ?? undefined,
 		});
 
 		return {

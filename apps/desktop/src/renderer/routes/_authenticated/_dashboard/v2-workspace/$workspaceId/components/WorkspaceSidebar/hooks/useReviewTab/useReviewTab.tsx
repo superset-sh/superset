@@ -3,7 +3,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { LuMessageSquare } from "react-icons/lu";
-import type { CommentPaneData } from "../../../../types";
+import type { CommentPaneData, DiffFocusSide } from "../../../../types";
 import {
 	coerceCheckStatus,
 	computeChecksRollup,
@@ -18,7 +18,12 @@ type V2ThreadsData = RouterOutputs["git"]["getPullRequestThreads"];
 interface UseReviewTabParams {
 	workspaceId: string;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenInDiff?: (path: string, line?: number, openInNewTab?: boolean) => void;
+	onOpenInDiff?: (
+		path: string,
+		line?: number,
+		openInNewTab?: boolean,
+		side?: DiffFocusSide,
+	) => void;
 }
 
 export function useReviewTab({
@@ -74,10 +79,13 @@ export function useReviewTab({
 		return normalizeThreadsToComments(data);
 	}, [threadsQuery.data]);
 
-	const openCommentCount = comments.filter((c) => !c.isResolved).length;
+	const openReviewCount = comments.filter(
+		(c) => c.kind === "review" && !c.isResolved,
+	).length;
 
 	const content = (
 		<ReviewTabContent
+			workspaceId={workspaceId}
 			pr={pr}
 			comments={comments}
 			isLoading={prQuery.isLoading}
@@ -92,7 +100,7 @@ export function useReviewTab({
 		id: "review",
 		label: "Review",
 		icon: LuMessageSquare,
-		badge: openCommentCount,
+		badge: openReviewCount > 0 ? openReviewCount : undefined,
 		content,
 	};
 }
@@ -140,6 +148,7 @@ function normalizeThreadsToComments(data: V2ThreadsData): NormalizedComment[] {
 			line: thread.line ?? undefined,
 			diffSide: thread.diffSide,
 			isResolved: thread.isResolved,
+			isOutdated: thread.isOutdated,
 			threadId: thread.id,
 		});
 	}

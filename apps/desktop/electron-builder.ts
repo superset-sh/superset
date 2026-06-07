@@ -69,6 +69,11 @@ const config: Configuration = {
 			to: "resources/host-migrations",
 			filter: ["**/*"],
 		},
+		{
+			from: "dist/resources/bin",
+			to: "resources/bin",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [
@@ -93,6 +98,10 @@ const config: Configuration = {
 	// macOS DMG installer
 	dmg: {
 		...(existsSync(dmgBackgroundPath) ? { background: dmgBackgroundPath } : {}),
+		// Explicit size — dmgbuild's auto-calc under-allocates and silently truncates
+		// the last large file above ~1.7GB of contents. `shrink: true` (default) keeps
+		// the final artifact compact.
+		size: "4g",
 	},
 
 	// macOS

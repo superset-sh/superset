@@ -3,6 +3,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
@@ -10,6 +11,7 @@ import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel"
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { AddTabMenu } from "./components/AddTabMenu";
+import { BackgroundTerminalsButton } from "./components/BackgroundTerminalsButton";
 import { V2NotificationStatusIndicator } from "./components/V2NotificationStatusIndicator";
 import { V2PresetsBar } from "./components/V2PresetsBar";
 import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
@@ -32,6 +34,7 @@ import { useV2WorkspaceRun } from "./hooks/useV2WorkspaceRun";
 import { useWorkspaceFileNavigation } from "./hooks/useWorkspaceFileNavigation";
 import { useWorkspaceHotkeys } from "./hooks/useWorkspaceHotkeys";
 import { useWorkspacePaneOpeners } from "./hooks/useWorkspacePaneOpeners";
+import { WorkspaceGitStatusProvider } from "./providers/WorkspaceGitStatusProvider";
 import { FileDocumentStoreProvider } from "./state/fileDocumentStore";
 import type { PaneViewerData } from "./types";
 import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
@@ -118,14 +121,19 @@ function V2WorkspaceContent() {
 		setShowPresetsBar,
 	} = useV2UserPreferences();
 	const showPresetsBar = v2UserPreferences.showPresetsBar;
+	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
 	const { store } = useV2WorkspacePaneLayout();
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
-	const { matchedPresets, executePreset, resolvePresetCommands } =
-		useV2PresetExecution({
-			store,
-			launcher,
-		});
+	const {
+		matchedPresets,
+		newTabPresets,
+		executePreset,
+		resolvePresetCommands,
+	} = useV2PresetExecution({
+		store,
+		launcher,
+	});
 	const workspaceRun = useV2WorkspaceRun({
 		store,
 		launcher,
@@ -134,6 +142,7 @@ function V2WorkspaceContent() {
 	});
 	useConsumeAutomationRunLink({
 		store,
+		workspaceId,
 		terminalId,
 		chatSessionId,
 		focusRequestId,
@@ -147,6 +156,7 @@ function V2WorkspaceContent() {
 
 	const {
 		openFilePane,
+		openFilePaneFromTreeClick,
 		revealPath,
 		selectedFilePath,
 		pendingReveal,
@@ -161,6 +171,8 @@ function V2WorkspaceContent() {
 	const paneRegistry = usePaneRegistry({
 		onOpenFile: openFilePane,
 		onRevealPath: revealPath,
+		launcher,
+		store,
 	});
 	const defaultContextMenuActions = useDefaultContextMenuActions({
 		paneRegistry,
@@ -172,14 +184,42 @@ function V2WorkspaceContent() {
 		addChatTab,
 		addBrowserTab,
 		openCommentPane,
-	} = useWorkspacePaneOpeners({ store, launcher });
+	} = useWorkspacePaneOpeners({
+		store,
+		launcher,
+		newTabPresets,
+		executePreset,
+	});
 
-	const [quickOpenOpen, setQuickOpenOpen] = useState(false);
-	const handleQuickOpen = useCallback(() => setQuickOpenOpen(true), []);
+	const quickOpenOpen = useQuickOpenStore(
+		(s) => s.open && s.target?.workspaceId === workspaceId,
+	);
+	const closeQuickOpen = useQuickOpenStore((s) => s.close);
+	const openQuickOpenFor = useQuickOpenStore((s) => s.openFor);
+	const handleQuickOpen = useCallback(
+		() => openQuickOpenFor({ workspaceId }),
+		[openQuickOpenFor, workspaceId],
+	);
+	const handleQuickOpenChange = useCallback(
+		(next: boolean) => {
+			if (!next) closeQuickOpen();
+		},
+		[closeQuickOpen],
+	);
+	// Picking a file from Quick Open should surface the sidebar/Files tab so
+	// the reveal (expand + highlight + scroll) is actually visible. Tree
+	// clicks and other openFilePane callers already have the sidebar open.
+	const handleQuickOpenSelectFile = useCallback(
+		(filePath: string, openInNewTab?: boolean) => {
+			setRightSidebarOpen(true);
+			setRightSidebarTab("files");
+			openFilePane(filePath, openInNewTab);
+		},
+		[openFilePane, setRightSidebarOpen, setRightSidebarTab],
+	);
 	const defaultPaneActions = useDefaultPaneActions({ launcher });
 	const onBeforeCloseTab = useDirtyTabCloseGuard();
 
-	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
 	// Fallback for rows persisted before the rightSidebarWidth field existed —
 	// the live collection skips zod defaults, so an older row reads undefined
 	// here and would render the ResizablePanel without a width (full-bleed).
@@ -214,6 +254,7 @@ function V2WorkspaceContent() {
 		store,
 		matchedPresets,
 		executePreset,
+		addTerminalTab,
 		paneRegistry,
 		launcher,
 	});
@@ -236,89 +277,102 @@ function V2WorkspaceContent() {
 
 	return (
 		<FileDocumentStoreProvider>
-			<div className="flex min-h-0 min-w-0 flex-1">
-				<div
-					className="flex min-h-0 min-w-[320px] flex-1 flex-col overflow-hidden"
-					data-workspace-id={workspaceId}
-				>
-					<Workspace<PaneViewerData>
-						registry={paneRegistry}
-						paneActions={defaultPaneActions}
-						contextMenuActions={defaultContextMenuActions}
-						renderTabIcon={renderBrowserTabIcon}
-						renderTabAccessory={(tab) => (
-							<V2NotificationStatusIndicator
-								sources={getV2NotificationSourcesForTab(tab)}
-							/>
-						)}
-						renderBelowTabBar={() =>
-							showPresetsBar ? (
-								<V2PresetsBar
-									matchedPresets={matchedPresets}
-									executePreset={executePreset}
+			<WorkspaceGitStatusProvider
+				workspaceId={workspaceId}
+				store={store}
+				sidebarOpen={sidebarOpen}
+			>
+				<div className="flex min-h-0 min-w-0 flex-1">
+					<div
+						className="flex min-h-0 min-w-[320px] flex-1 flex-col overflow-hidden"
+						data-workspace-id={workspaceId}
+					>
+						<Workspace<PaneViewerData>
+							key={workspaceId}
+							registry={paneRegistry}
+							paneActions={defaultPaneActions}
+							contextMenuActions={defaultContextMenuActions}
+							renderTabIcon={renderBrowserTabIcon}
+							renderTabAccessory={(tab) => (
+								<V2NotificationStatusIndicator
+									sources={getV2NotificationSourcesForTab(tab)}
+								/>
+							)}
+							renderBelowTabBar={() =>
+								showPresetsBar ? (
+									<V2PresetsBar
+										matchedPresets={matchedPresets}
+										executePreset={executePreset}
+										showPresetsBar={showPresetsBar}
+										onToggleShowPresetsBar={setShowPresetsBar}
+										trailing={workspaceRunButton}
+									/>
+								) : (
+									<div className="flex h-8 min-w-0 shrink-0 items-center border-b border-border bg-background px-2">
+										{workspaceRunButton}
+									</div>
+								)
+							}
+							renderAddTabMenu={() => (
+								<AddTabMenu
+									onAddTerminal={addTerminalTab}
+									onAddChat={addChatTab}
+									onAddBrowser={addBrowserTab}
 									showPresetsBar={showPresetsBar}
 									onToggleShowPresetsBar={setShowPresetsBar}
-									trailing={workspaceRunButton}
 								/>
-							) : (
-								<div className="flex h-8 min-w-0 shrink-0 items-center border-b border-border bg-background px-2">
-									{workspaceRunButton}
-								</div>
-							)
-						}
-						renderAddTabMenu={() => (
-							<AddTabMenu
-								onAddTerminal={addTerminalTab}
-								onAddChat={addChatTab}
-								onAddBrowser={addBrowserTab}
-								showPresetsBar={showPresetsBar}
-								onToggleShowPresetsBar={setShowPresetsBar}
-							/>
-						)}
-						renderEmptyState={() => (
-							<WorkspaceEmptyState
-								onOpenBrowser={addBrowserTab}
-								onOpenChat={addChatTab}
-								onOpenQuickOpen={handleQuickOpen}
-								onOpenTerminal={addTerminalTab}
-							/>
-						)}
-						onBeforeCloseTab={onBeforeCloseTab}
-						onInteractionStateChange={onWorkspaceInteractionStateChange}
-						store={store}
-					/>
-				</div>
-			</div>
-			{sidebarOpen &&
-				sidebarSlotEl &&
-				createPortal(
-					<ResizablePanel
-						width={sidebarWidth}
-						onWidthChange={setRightSidebarWidth}
-						isResizing={isSidebarResizing}
-						onResizingChange={handleSidebarResizingChange}
-						minWidth={240}
-						maxWidth={640}
-						handleSide="left"
-						onDoubleClickHandle={() => setRightSidebarWidth(340)}
-					>
-						<WorkspaceSidebar
-							workspaceId={workspaceId}
-							onSelectFile={openFilePane}
-							onSelectDiffFile={openDiffPane}
-							onOpenComment={openCommentPane}
-							onSearch={handleQuickOpen}
-							selectedFilePath={selectedFilePath}
-							pendingReveal={pendingReveal}
+							)}
+							renderTabBarTrailing={() => (
+								<BackgroundTerminalsButton
+									workspaceId={workspaceId}
+									store={store}
+								/>
+							)}
+							renderEmptyState={() => (
+								<WorkspaceEmptyState
+									onOpenBrowser={addBrowserTab}
+									onOpenChat={addChatTab}
+									onOpenQuickOpen={handleQuickOpen}
+									onOpenTerminal={addTerminalTab}
+								/>
+							)}
+							onBeforeCloseTab={onBeforeCloseTab}
+							onInteractionStateChange={onWorkspaceInteractionStateChange}
+							store={store}
 						/>
-					</ResizablePanel>,
-					sidebarSlotEl,
-				)}
+					</div>
+				</div>
+				{sidebarOpen &&
+					sidebarSlotEl &&
+					createPortal(
+						<ResizablePanel
+							width={sidebarWidth}
+							onWidthChange={setRightSidebarWidth}
+							isResizing={isSidebarResizing}
+							onResizingChange={handleSidebarResizingChange}
+							minWidth={240}
+							maxWidth={640}
+							handleSide="left"
+							onDoubleClickHandle={() => setRightSidebarWidth(340)}
+						>
+							<WorkspaceSidebar
+								workspaceId={workspaceId}
+								onSelectFile={openFilePaneFromTreeClick}
+								onSelectDiffFile={openDiffPane}
+								onOpenComment={openCommentPane}
+								onSearch={handleQuickOpen}
+								selectedFilePath={selectedFilePath}
+								pendingReveal={pendingReveal}
+							/>
+						</ResizablePanel>,
+						sidebarSlotEl,
+					)}
+			</WorkspaceGitStatusProvider>
 			<CommandPalette
 				workspaceId={workspaceId}
 				open={quickOpenOpen}
-				onOpenChange={setQuickOpenOpen}
-				onSelectFile={openFilePane}
+				onOpenChange={handleQuickOpenChange}
+				onSelectFile={handleQuickOpenSelectFile}
 				variant="v2"
 				recentlyViewedFiles={recentFiles}
 				openFilePaths={openFilePaths}

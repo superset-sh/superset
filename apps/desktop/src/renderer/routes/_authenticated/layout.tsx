@@ -22,6 +22,7 @@ import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
+import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
@@ -32,6 +33,7 @@ import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
+import { FileMenuListener } from "./components/FileMenuListener";
 import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2NotificationController } from "./components/V2NotificationController";
@@ -196,6 +198,14 @@ function AuthenticatedLayout() {
 		return <Navigate to="/create-organization" replace />;
 	}
 
+	if (
+		session?.user &&
+		!session.user.onboardedAt &&
+		!location.pathname.startsWith("/onboarding")
+	) {
+		return <Navigate to="/onboarding" replace />;
+	}
+
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
@@ -207,7 +217,9 @@ function AuthenticatedLayout() {
 							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
 						>
 							<AgentHooks />
+							<FileMenuListener />
 							<V2NotificationController />
+							<DaemonAutoUpdateFailureDialog />
 							<Outlet />
 							<V1ImportModal />
 							<WorkspaceInitEffects />

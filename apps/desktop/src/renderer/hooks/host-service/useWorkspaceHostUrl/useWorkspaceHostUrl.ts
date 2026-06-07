@@ -2,7 +2,7 @@ import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
@@ -24,6 +24,7 @@ export function useWorkspaceHostTarget(
 ): WorkspaceHostTarget {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
+	const relayUrl = useRelayUrl();
 
 	const { data: workspaceRows = [], isReady } = useLiveQuery(
 		(q) =>
@@ -40,7 +41,7 @@ export function useWorkspaceHostTarget(
 	const match = workspaceId ? (workspaceRows[0] ?? null) : null;
 
 	return useMemo(() => {
-		if (!workspaceId || !isReady) return { status: "loading" };
+		if (!workspaceId || (!isReady && !match)) return { status: "loading" };
 		if (!match) return { status: "not-found" };
 		if (machineId && match.hostId === machineId) {
 			if (activeHostUrl) {
@@ -58,9 +59,9 @@ export function useWorkspaceHostTarget(
 			status: "ready",
 			kind: "remote",
 			hostId: match.hostId,
-			url: `${env.RELAY_URL}/hosts/${routingKey}`,
+			url: `${relayUrl}/hosts/${routingKey}`,
 		};
-	}, [workspaceId, isReady, match, machineId, activeHostUrl]);
+	}, [workspaceId, isReady, match, machineId, activeHostUrl, relayUrl]);
 }
 
 /**

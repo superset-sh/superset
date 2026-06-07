@@ -1,9 +1,11 @@
 import { SidebarCard } from "@superset/ui/sidebar-card";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useV2SetupCardDismissalsStore } from "renderer/stores/v2-setup-card-dismissals";
+import setupScriptPrompt from "./setup-script-prompt.md?raw";
 
 interface V2SetupScriptCardProps {
 	hostUrl: string;
@@ -18,7 +20,7 @@ export function V2SetupScriptCard({
 	projectName,
 	isCollapsed,
 }: V2SetupScriptCardProps) {
-	const navigate = useNavigate();
+	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const isDismissed = useV2SetupCardDismissalsStore((s) =>
 		s.isDismissed(projectId),
 	);
@@ -35,6 +37,16 @@ export function V2SetupScriptCard({
 
 	if (isCollapsed || isDismissed || !shouldShow) return null;
 
+	// Configure → open the new-workspace modal seeded with a prompt that walks
+	// the agent through writing setup/teardown scripts for this project, rather
+	// than sending the user to the settings page to hand-write config.json.
+	const handleConfigure = () => {
+		const draftStore = useNewWorkspaceDraftStore.getState();
+		draftStore.resetDraft();
+		draftStore.updateDraft({ prompt: setupScriptPrompt });
+		openNewWorkspaceModal(projectId);
+	};
+
 	return (
 		<AnimatePresence>
 			<motion.div
@@ -50,12 +62,7 @@ export function V2SetupScriptCard({
 					title="Setup scripts"
 					description={`Automate workspace setup for ${projectName}`}
 					actionLabel="Configure"
-					onAction={() =>
-						navigate({
-							to: "/settings/projects/$projectId",
-							params: { projectId },
-						})
-					}
+					onAction={handleConfigure}
 					onDismiss={() => dismiss(projectId)}
 				/>
 			</motion.div>

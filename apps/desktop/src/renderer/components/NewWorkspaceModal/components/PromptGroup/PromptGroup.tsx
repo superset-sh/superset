@@ -198,7 +198,11 @@ function ProjectPickerPill({
 					<HiChevronUpDown className="size-3 shrink-0 text-muted-foreground" />
 				</PromptInputButton>
 			</PopoverTrigger>
-			<PopoverContent align="start" className="w-60 p-0">
+			<PopoverContent
+				align="start"
+				className="w-60 p-0"
+				onWheel={(event) => event.stopPropagation()}
+			>
 				<Command>
 					<CommandInput placeholder="Search projects..." />
 					<CommandList>
@@ -1090,7 +1094,6 @@ ${sanitizeText(truncatedBody)}`;
 					openExternalWorktree.mutateAsync({
 						projectId,
 						worktreePath: action.worktreePath,
-						branch: action.branch,
 					}),
 					{
 						loading: "Opening worktree...",

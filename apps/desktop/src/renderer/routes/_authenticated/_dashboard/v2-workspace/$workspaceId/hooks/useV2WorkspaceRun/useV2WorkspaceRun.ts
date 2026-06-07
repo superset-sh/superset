@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
@@ -71,7 +71,7 @@ interface UseV2WorkspaceRunArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
 	matchedPresets: V2TerminalPresetRow[];
-	resolvePresetCommands: (preset: V2TerminalPresetRow) => Promise<string[]>;
+	resolvePresetCommands: (preset: V2TerminalPresetRow) => string[];
 }
 
 export function useV2WorkspaceRun({
@@ -89,10 +89,6 @@ export function useV2WorkspaceRun({
 	const utils = workspaceTrpc.useUtils();
 	const writeInputMutation = workspaceTrpc.terminal.writeInput.useMutation();
 	const killSessionMutation = workspaceTrpc.terminal.killSession.useMutation();
-	const [resolvedPresetCommandsById, setResolvedPresetCommandsById] = useState<
-		Record<string, string[]>
-	>({});
-
 	const { data: localWorkspaceRows = [] } = useLiveQuery(
 		(query) =>
 			query
@@ -111,44 +107,13 @@ export function useV2WorkspaceRun({
 	const { data: configRunDefinition } =
 		workspaceTrpc.config.getWorkspaceRunDefinition.useQuery({ projectId });
 
-	useEffect(() => {
-		let cancelled = false;
-
-		async function resolveCommands() {
-			const entries = await Promise.all(
-				matchedPresets.map(async (preset) => {
-					try {
-						return {
-							id: preset.id,
-							commands: await resolvePresetCommands(preset),
-						};
-					} catch {
-						return { id: preset.id, commands: preset.commands };
-					}
-				}),
-			);
-			if (cancelled) return;
-			const next: Record<string, string[]> = {};
-			for (const entry of entries) {
-				next[entry.id] = entry.commands;
-			}
-			setResolvedPresetCommandsById(next);
-		}
-
-		void resolveCommands();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [matchedPresets, resolvePresetCommands]);
-
 	const resolvedMatchedPresets = useMemo(
 		() =>
 			matchedPresets.map((preset) => ({
 				...preset,
-				commands: resolvedPresetCommandsById[preset.id] ?? preset.commands,
+				commands: resolvePresetCommands(preset),
 			})),
-		[matchedPresets, resolvedPresetCommandsById],
+		[matchedPresets, resolvePresetCommands],
 	);
 
 	const definition = useMemo(
@@ -200,6 +165,11 @@ export function useV2WorkspaceRun({
 		isStartingRef.current = true;
 		setIsPending(true);
 		try {
+			// A terminal pane is a "workspace run" pane iff its terminalId is in
+			// workspaceRunTerminals. Snapshot before launch so the new terminal
+			// we're about to create doesn't itself match.
+			const priorRunTerminalIds = new Set(Object.keys(workspaceRunTerminals));
+
 			const terminalId = await launcher.create({
 				command,
 				cwd: definition.cwd,
@@ -217,10 +187,36 @@ export function useV2WorkspaceRun({
 				};
 			});
 
-			const tabId = crypto.randomUUID();
-			const paneId = crypto.randomUUID();
-			const pane = makeTerminalPane(terminalId, paneId);
-			store.getState().addTab({ id: tabId, panes: [pane] });
+			const state = store.getState();
+			let reused: { tabId: string; paneId: string } | null = null;
+			for (let i = state.tabs.length - 1; i >= 0; i--) {
+				const tab = state.tabs[i];
+				if (!tab) continue;
+				for (const [paneId, pane] of Object.entries(tab.panes)) {
+					if (pane.kind !== "terminal") continue;
+					const paneTerminalId = (pane.data as TerminalPaneData).terminalId;
+					if (paneTerminalId && priorRunTerminalIds.has(paneTerminalId)) {
+						reused = { tabId: tab.id, paneId };
+						break;
+					}
+				}
+				if (reused) break;
+			}
+
+			if (reused) {
+				const nextData: TerminalPaneData = { terminalId };
+				state.setPaneData({ paneId: reused.paneId, data: nextData });
+				state.setActivePane({
+					tabId: reused.tabId,
+					paneId: reused.paneId,
+				});
+				state.setActiveTab(reused.tabId);
+			} else {
+				const tabId = crypto.randomUUID();
+				const paneId = crypto.randomUUID();
+				const pane = makeTerminalPane(terminalId, paneId);
+				state.addTab({ id: tabId, panes: [pane] });
+			}
 		} catch (error) {
 			toast.error("Failed to run workspace command", {
 				description: error instanceof Error ? error.message : "Unknown error",
@@ -229,7 +225,14 @@ export function useV2WorkspaceRun({
 			isStartingRef.current = false;
 			setIsPending(false);
 		}
-	}, [definition, launcher, store, updateWorkspaceRunTerminals, workspaceId]);
+	}, [
+		definition,
+		launcher,
+		store,
+		updateWorkspaceRunTerminals,
+		workspaceId,
+		workspaceRunTerminals,
+	]);
 
 	const stopWorkspaceRun = useCallback(async () => {
 		if (!runningState) return;

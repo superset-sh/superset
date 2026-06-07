@@ -33,7 +33,8 @@ export class Workspaces extends APIResource {
 	/**
 	 * Create a workspace on a specific host. Optionally spawn one or more
 	 * agents inside it as soon as the worktree is ready (the `agents` sugar
-	 * runs `agents.run` once per entry against the freshly-created workspace).
+	 * runs `agents.create` once per entry against the freshly-created workspace),
+	 * and/or run a one-off shell `command` in the worktree.
 	 *
 	 * The host service must be running and reachable via the relay tunnel.
 	 * Provide exactly one of `branch` or `pr`.
@@ -53,6 +54,7 @@ export class Workspaces extends APIResource {
 				baseBranch: params.baseBranch,
 				taskId: params.taskId,
 				agents: params.agents,
+				command: params.command,
 			},
 			options,
 		);
@@ -60,8 +62,9 @@ export class Workspaces extends APIResource {
 
 	/**
 	 * Update fields on a workspace. At least one field is required. Currently
-	 * only `name` is exposed — branch and host moves require host-side
-	 * orchestration and aren't safe to set directly.
+	 * exposes `name` and `taskId`; branch and host moves require host-side
+	 * orchestration and aren't safe to set directly. Pass `taskId: null` to
+	 * unlink the workspace from its current task.
 	 *
 	 * Mirrors `superset workspaces update`.
 	 */
@@ -144,6 +147,12 @@ export type WorkspaceListResponse = Array<Workspace>;
 export interface WorkspaceListParams {
 	/** Restrict the listing to workspaces on a single host machineId. */
 	hostId?: string;
+	/** Restrict the listing to a single project by UUID. */
+	projectId?: string;
+	/** Restrict the listing by project name (case-insensitive exact match). */
+	projectName?: string;
+	/** Substring match against workspace name or branch. */
+	search?: string;
 }
 
 export interface WorkspaceCreateParams {
@@ -155,7 +164,7 @@ export interface WorkspaceCreateParams {
 	name: string;
 	/** Git branch the workspace tracks. Required unless `pr` is set. */
 	branch?: string;
-	/** Pull request number — server runs `gh pr checkout` and derives the branch. */
+	/** Pull request number — server checks out the verified PR head and derives the branch. */
 	pr?: number;
 	/** Branch to fork from when `branch` does not exist. Ignored with `pr`. */
 	baseBranch?: string;
@@ -163,6 +172,8 @@ export interface WorkspaceCreateParams {
 	taskId?: string;
 	/** Spawn one or more agents in the workspace immediately after creation. */
 	agents?: WorkspaceAgentLaunch[];
+	/** Shell command to run in the new worktree after creation. */
+	command?: string;
 }
 
 export interface WorkspaceAgentLaunch {
@@ -201,6 +212,8 @@ export interface WorkspaceCreateResult {
 export interface WorkspaceUpdateParams {
 	/** New workspace name. */
 	name?: string;
+	/** Link the workspace to a task by id, or pass `null` to unlink. */
+	taskId?: string | null;
 }
 
 export interface WorkspaceUpdateResult {
@@ -219,7 +232,11 @@ export interface WorkspaceUpdateResult {
 }
 
 export interface WorkspaceDeleteResult {
-	[key: string]: unknown;
+	success: boolean;
+	cloudDeleted?: boolean;
+	worktreeRemoved?: boolean;
+	branchDeleted?: boolean;
+	warnings?: string[];
 }
 
 export declare namespace Workspaces {

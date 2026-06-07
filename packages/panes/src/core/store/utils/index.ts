@@ -11,6 +11,7 @@ export {
 	getPaneIdsInLayout,
 	getPaneParentDirection,
 	getSpatialNeighborPaneId,
+	graftSubtreeAtPane,
 	positionToDirection,
 	removePaneFromLayout,
 	replacePaneIdInLayout,

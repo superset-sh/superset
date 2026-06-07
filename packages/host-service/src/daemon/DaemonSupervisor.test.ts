@@ -10,6 +10,8 @@
 // filter for our component prefix.
 
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import * as childProcess from "node:child_process";
+import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -18,12 +20,25 @@ import {
 	encodeFrame,
 	FrameDecoder,
 } from "@superset/pty-daemon/protocol";
-import { DaemonSupervisor, probeDaemonVersion } from "./DaemonSupervisor.ts";
+import {
+	DaemonSupervisor,
+	probeDaemonVersion,
+	ptyDaemonSocketPath,
+	shouldKillStaleDaemonForDev,
+} from "./DaemonSupervisor.ts";
+import { readPtyDaemonManifest, writePtyDaemonManifest } from "./manifest.ts";
 
 // Capture supervisor-emitted log events. We replace console.log for the
 // duration of the test, then filter for our supervisor's component prefix.
 const loggedEvents: { event: string; props: Record<string, unknown> }[] = [];
 const realConsoleLog = console.log;
+
+interface AdoptedForTest {
+	pid: number;
+	socketPath: string;
+	runningVersion: string;
+	updatePending: boolean;
+}
 
 beforeEach(() => {
 	loggedEvents.length = 0;
@@ -54,7 +69,9 @@ afterEach(() => {
 });
 
 interface FakeDaemonOptions {
+	socketPath?: string;
 	respondWithVersion?: string;
+	daemonPid?: number;
 	respondRaw?: Buffer;
 	hangUpAfterHello?: boolean;
 	respondWithWrongMessageFirst?: boolean;
@@ -65,10 +82,12 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 	socketPath: string;
 	close: () => Promise<void>;
 }> {
-	const socketPath = path.join(
-		os.tmpdir(),
-		`fake-pty-daemon-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
-	);
+	const socketPath =
+		opts.socketPath ??
+		path.join(
+			os.tmpdir(),
+			`fake-pty-daemon-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
+		);
 	const server = net.createServer((sock) => {
 		const decoder = new FrameDecoder();
 		sock.on("data", (chunk: Buffer) => {
@@ -101,6 +120,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 							type: "hello-ack",
 							protocol: 1,
 							daemonVersion: opts.respondWithVersion,
+							daemonPid: opts.daemonPid,
 						}),
 					);
 					return;
@@ -187,6 +207,146 @@ describe("probeDaemonVersion", () => {
 	});
 });
 
+describe("shouldKillStaleDaemonForDev", () => {
+	test("keeps production adoption behavior", () => {
+		expect(shouldKillStaleDaemonForDev({ NODE_ENV: "production" })).toBe(false);
+	});
+
+	test("kills stale daemons only in explicit dev mode", () => {
+		expect(shouldKillStaleDaemonForDev({ NODE_ENV: "development" })).toBe(true);
+		expect(shouldKillStaleDaemonForDev({})).toBe(false);
+	});
+
+	test("allows production-like adoption in dev for handoff testing", () => {
+		expect(
+			shouldKillStaleDaemonForDev({
+				NODE_ENV: "development",
+				SUPERSET_PTY_DAEMON_ADOPT_IN_DEV: "1",
+			}),
+		).toBe(false);
+	});
+});
+
+describe("DaemonSupervisor.tryAdopt", () => {
+	test("recovers adoption from a live expected socket when the manifest is missing", async () => {
+		const orgId = "org-socket-fallback";
+		const originalHome = process.env.SUPERSET_HOME_DIR;
+		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
+		process.env.SUPERSET_HOME_DIR = tmpHome;
+		const socketPath = ptyDaemonSocketPath(orgId);
+		try {
+			try {
+				fs.unlinkSync(socketPath);
+			} catch {
+				// best-effort cleanup from a failed prior run
+			}
+			const fake = await startFakeDaemon({
+				socketPath,
+				respondWithVersion: "0.1.0",
+				daemonPid: process.pid,
+			});
+			try {
+				const sup = new DaemonSupervisor({
+					scriptPath: "/nonexistent",
+					autoUpdate: false,
+				});
+				const adopted = (await invokeTryAdopt(
+					sup,
+					orgId,
+				)) as AdoptedForTest | null;
+				expect(adopted).not.toBeNull();
+				expect(adopted?.pid).toBe(process.pid);
+				expect(adopted?.socketPath).toBe(socketPath);
+				expect(adopted?.runningVersion).toBe("0.1.0");
+				expect(readPtyDaemonManifest(orgId)).toMatchObject({
+					pid: process.pid,
+					socketPath,
+					organizationId: orgId,
+				});
+				expect(
+					loggedEvents.some(
+						(e) =>
+							e.event === "pty_daemon_socket_adopt_manifest_recovered" &&
+							e.props.sourceReason === "manifest_missing" &&
+							e.props.pid === process.pid,
+					),
+				).toBe(true);
+			} finally {
+				await fake.close();
+			}
+		} finally {
+			if (originalHome !== undefined) {
+				process.env.SUPERSET_HOME_DIR = originalHome;
+			} else {
+				delete process.env.SUPERSET_HOME_DIR;
+			}
+			fs.rmSync(tmpHome, { recursive: true, force: true });
+			try {
+				fs.unlinkSync(socketPath);
+			} catch {
+				// best-effort
+			}
+		}
+	});
+
+	test("rejects and replaces a reachable daemon that cannot answer the version probe", async () => {
+		const orgId = "org-unprobeable";
+		const fake = await startFakeDaemon({ silent: true });
+		const child = childProcess.spawn(
+			process.execPath,
+			["-e", "setInterval(() => {}, 1000)"],
+			{ stdio: "ignore" },
+		);
+		const childPid = child.pid;
+		expect(typeof childPid).toBe("number");
+		if (!childPid) {
+			await fake.close();
+			return;
+		}
+
+		const originalHome = process.env.SUPERSET_HOME_DIR;
+		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
+		process.env.SUPERSET_HOME_DIR = tmpHome;
+		try {
+			writePtyDaemonManifest({
+				pid: childPid,
+				socketPath: fake.socketPath,
+				protocolVersions: [1],
+				startedAt: Date.now(),
+				organizationId: orgId,
+			});
+
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			const adopted = await invokeTryAdopt(sup, orgId);
+			expect(adopted).toBeNull();
+			expect(
+				loggedEvents.some(
+					(e) =>
+						e.event === "pty_daemon_adopt_rejected" &&
+						e.props.reason === "version_probe_failed" &&
+						e.props.pid === childPid,
+				),
+			).toBe(true);
+			expect(await waitForProcessExit(childPid, 2500)).toBe(true);
+		} finally {
+			await fake.close();
+			if (isProcessAliveForTest(childPid)) {
+				try {
+					process.kill(childPid, "SIGKILL");
+				} catch {
+					// already gone
+				}
+			}
+			if (originalHome !== undefined) {
+				process.env.SUPERSET_HOME_DIR = originalHome;
+			} else {
+				delete process.env.SUPERSET_HOME_DIR;
+			}
+			fs.rmSync(tmpHome, { recursive: true, force: true });
+		}
+	});
+});
+
 describe("DaemonSupervisor.getUpdateStatus", () => {
 	let sup: DaemonSupervisor;
 
@@ -208,6 +368,7 @@ describe("DaemonSupervisor.getUpdateStatus", () => {
 			pending: false,
 			running: "0.1.0",
 			expected: "0.1.0",
+			autoUpdateFailure: null,
 		});
 	});
 
@@ -221,6 +382,7 @@ describe("DaemonSupervisor.getUpdateStatus", () => {
 			pending: true,
 			running: "0.0.9",
 			expected: "0.1.0",
+			autoUpdateFailure: null,
 		});
 	});
 
@@ -233,6 +395,7 @@ describe("DaemonSupervisor.getUpdateStatus", () => {
 		const status = sup.getUpdateStatus("org-probe-failed");
 		expect(status?.pending).toBe(false);
 		expect(status?.running).toBe("unknown");
+		expect(status?.autoUpdateFailure).toBeNull();
 	});
 });
 
@@ -459,15 +622,9 @@ describe("DaemonSupervisor.update concurrency guard", () => {
 	});
 });
 
-describe("auto-update failure mode (heavy path: must not disrupt sessions)", () => {
-	// Auto-update fires on every host-service start when the adopted daemon
-	// is older than the bundle. In production this is the most-traveled
-	// code path that touches live PTYs — a bug that loses sessions here
-	// kills the user's shells silently. These tests pin the contract:
-	// when update() fails for any reason, the predecessor's instance
-	// record stays, the manifest stays pointed at the predecessor's pid,
-	// and no successor is recorded. The user's shells continue serving
-	// on the original daemon process.
+describe("DaemonSupervisor.update failure mode", () => {
+	// Manual smooth updates must keep the predecessor tracked on failure so
+	// the renderer can offer force restart as the explicit destructive path.
 
 	let sup: DaemonSupervisor;
 
@@ -508,6 +665,197 @@ describe("auto-update failure mode (heavy path: must not disrupt sessions)", () 
 
 		await expect(sup.update("org-throw")).rejects.toThrow(/ECONNRESET/);
 		expect(getInstancePid(sup, "org-throw")).toBe(PREDECESSOR_PID);
+	});
+});
+
+describe("DaemonSupervisor auto-update best effort", () => {
+	let sup: DaemonSupervisor;
+
+	beforeEach(() => {
+		sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+	});
+
+	test("leaves the predecessor running when the background smooth update returns ok:false", async () => {
+		const instance = staleInstance("0.0.9");
+		seedDaemonInstance(sup, "org-auto-best-effort", instance);
+		mockListSessions(sup, []);
+		const runUpdateMock = mock(async () => ({
+			ok: false as const,
+			reason: "snapshot write failed: ENOSPC",
+		}));
+		const forceRestartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+		(
+			sup as unknown as {
+				forceRestart: () => Promise<{ success: true }>;
+			}
+		).forceRestart = forceRestartMock;
+
+		invokeKickoffAutoUpdate(sup, "org-auto-best-effort", instance);
+		await flushAutoUpdate();
+
+		expect(runUpdateMock).toHaveBeenCalledWith("org-auto-best-effort");
+		expect(forceRestartMock).not.toHaveBeenCalled();
+		expect(getInstancePid(sup, "org-auto-best-effort")).toBe(instance.pid);
+		const status = sup.getUpdateStatus("org-auto-best-effort");
+		expect(status?.pending).toBe(true);
+		expect(status?.autoUpdateFailure?.reason).toBe(
+			"snapshot write failed: ENOSPC",
+		);
+		expect(
+			loggedEvents.some(
+				(e) =>
+					e.event === "pty_daemon_auto_update_failed" &&
+					e.props.reason === "snapshot write failed: ENOSPC" &&
+					e.props.leftPending === true,
+			),
+		).toBe(true);
+	});
+
+	test("leaves the predecessor running when the background smooth update throws", async () => {
+		const instance = staleInstance("0.0.8");
+		seedDaemonInstance(sup, "org-auto-throw", instance);
+		mockListSessions(sup, []);
+		const runUpdateMock = mock(async () => {
+			throw new Error("transport: ECONNRESET");
+		});
+		const forceRestartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+		(
+			sup as unknown as {
+				forceRestart: () => Promise<{ success: true }>;
+			}
+		).forceRestart = forceRestartMock;
+
+		invokeKickoffAutoUpdate(sup, "org-auto-throw", instance);
+		await flushAutoUpdate();
+
+		expect(forceRestartMock).not.toHaveBeenCalled();
+		expect(getInstancePid(sup, "org-auto-throw")).toBe(instance.pid);
+		const status = sup.getUpdateStatus("org-auto-throw");
+		expect(status?.pending).toBe(true);
+		expect(status?.autoUpdateFailure?.reason).toBe(
+			"threw: transport: ECONNRESET",
+		);
+		expect(
+			loggedEvents.some(
+				(e) =>
+					e.event === "pty_daemon_auto_update_failed" &&
+					e.props.reason === "threw: transport: ECONNRESET" &&
+					e.props.leftPending === true,
+			),
+		).toBe(true);
+	});
+
+	test("does not overwrite the current daemon if the failed update changed it", async () => {
+		const instance = staleInstance("0.0.7");
+		seedDaemonInstance(sup, "org-auto-changed", instance);
+		mockListSessions(sup, []);
+		const runUpdateMock = mock(async () => {
+			seedDaemonInstance(sup, "org-auto-changed", {
+				...instance,
+				pid: 4321,
+				runningVersion: instance.expectedVersion,
+				updatePending: false,
+			});
+			return {
+				ok: false as const,
+				reason: "successor ack timed out after 5000ms",
+			};
+		});
+		const forceRestartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+		(
+			sup as unknown as {
+				forceRestart: () => Promise<{ success: true }>;
+			}
+		).forceRestart = forceRestartMock;
+
+		invokeKickoffAutoUpdate(sup, "org-auto-changed", instance);
+		await flushAutoUpdate();
+
+		expect(forceRestartMock).not.toHaveBeenCalled();
+		expect(getInstancePid(sup, "org-auto-changed")).toBe(4321);
+		expect(
+			sup.getUpdateStatus("org-auto-changed")?.autoUpdateFailure,
+		).toBeNull();
+		expect(
+			loggedEvents.some(
+				(e) =>
+					e.event === "pty_daemon_auto_update_failed" &&
+					e.props.reason === "successor ack timed out after 5000ms" &&
+					e.props.leftPending === false,
+			),
+		).toBe(true);
+	});
+
+	test("defers the background update when live sessions are present", async () => {
+		const instance = staleInstance("0.0.6");
+		seedDaemonInstance(sup, "org-auto-live", instance);
+		mockListSessions(sup, [aliveSession()]);
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 7777,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		invokeKickoffAutoUpdate(sup, "org-auto-live", instance);
+		await flushAutoUpdate();
+
+		expect(runUpdateMock).not.toHaveBeenCalled();
+		expect(
+			loggedEvents.some(
+				(e) =>
+					e.event === "pty_daemon_auto_update_deferred" &&
+					e.props.reason === "live_sessions_present" &&
+					e.props.aliveSessionCount === 1 &&
+					e.props.pid === instance.pid,
+			),
+		).toBe(true);
+	});
+
+	test("joins an existing manual update without adding a destructive fallback", async () => {
+		const instance = staleInstance("0.0.6");
+		seedDaemonInstance(sup, "org-auto-coalesced", instance);
+		mockListSessions(sup, []);
+		const deferred = createDeferred<{ ok: false; reason: string }>();
+		const runUpdateMock = mock(() => deferred.promise);
+		const forceRestartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+		(
+			sup as unknown as {
+				forceRestart: () => Promise<{ success: true }>;
+			}
+		).forceRestart = forceRestartMock;
+
+		const manualUpdate = sup.update("org-auto-coalesced");
+		invokeKickoffAutoUpdate(sup, "org-auto-coalesced", instance);
+		deferred.resolve({
+			ok: false,
+			reason: "manual smooth update failed",
+		});
+
+		await manualUpdate;
+		await flushAutoUpdate();
+
+		expect(runUpdateMock).toHaveBeenCalledTimes(1);
+		expect(forceRestartMock).not.toHaveBeenCalled();
+		expect(
+			sup.getUpdateStatus("org-auto-coalesced")?.autoUpdateFailure,
+		).toBeNull();
+		expect(
+			loggedEvents.some(
+				(e) =>
+					e.event === "pty_daemon_auto_update_failed" &&
+					e.props.reason === "manual smooth update failed" &&
+					e.props.leftPending === false,
+			),
+		).toBe(true);
 	});
 });
 
@@ -577,6 +925,41 @@ function seedInstance(
 	});
 }
 
+function seedDaemonInstance(
+	sup: DaemonSupervisor,
+	organizationId: string,
+	instance: ReturnType<typeof staleInstance>,
+): void {
+	(sup as unknown as { instances: Map<string, unknown> }).instances.set(
+		organizationId,
+		instance,
+	);
+}
+
+function mockListSessions(
+	sup: DaemonSupervisor,
+	sessions: Awaited<ReturnType<DaemonSupervisor["listSessions"]>>,
+): void {
+	const listSessionsMock = mock(async () => sessions);
+	(sup as unknown as { listSessions: typeof sup.listSessions }).listSessions =
+		listSessionsMock as typeof sup.listSessions;
+}
+
+function aliveSession(id = "live") {
+	return {
+		id,
+		pid: 4321,
+		cols: 80,
+		rows: 24,
+		alive: true,
+	};
+}
+
+async function flushAutoUpdate(): Promise<void> {
+	await new Promise((r) => setTimeout(r, 0));
+	await new Promise((r) => setTimeout(r, 0));
+}
+
 function freshInstance() {
 	return {
 		pid: 1234,
@@ -609,4 +992,48 @@ function invokeMaybeFire(
 			maybeFireUpdatePending: (id: string, inst: typeof instance) => void;
 		}
 	).maybeFireUpdatePending(organizationId, instance);
+}
+
+function invokeKickoffAutoUpdate(
+	sup: DaemonSupervisor,
+	organizationId: string,
+	instance: ReturnType<typeof staleInstance>,
+): void {
+	(
+		sup as unknown as {
+			kickoffAutoUpdate: (id: string, inst: typeof instance) => void;
+		}
+	).kickoffAutoUpdate(organizationId, instance);
+}
+
+function invokeTryAdopt(
+	sup: DaemonSupervisor,
+	organizationId: string,
+): Promise<unknown | null> {
+	return (
+		sup as unknown as {
+			tryAdopt: (id: string) => Promise<unknown | null>;
+		}
+	).tryAdopt(organizationId);
+}
+
+async function waitForProcessExit(
+	pid: number,
+	timeoutMs: number,
+): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		if (!isProcessAliveForTest(pid)) return true;
+		await new Promise((r) => setTimeout(r, 25));
+	}
+	return false;
+}
+
+function isProcessAliveForTest(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		return (err as NodeJS.ErrnoException).code === "EPERM";
+	}
 }

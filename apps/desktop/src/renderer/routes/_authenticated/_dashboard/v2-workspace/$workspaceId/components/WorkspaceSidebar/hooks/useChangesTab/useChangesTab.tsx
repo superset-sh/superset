@@ -5,37 +5,44 @@ import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { RefreshCw } from "lucide-react";
 import { useCallback, useState } from "react";
-import type { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
 import { useChangeset } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useSidebarDiffRef } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useSidebarDiffRef";
+import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { ChangesFilter } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import type {
+	ChangesFilter,
+	ChangesViewMode,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { SidebarTabDefinition } from "../../types";
 import { ChangesTabContent } from "./components/ChangesTabContent";
 
-export type { ChangesFilter };
+export type { ChangesFilter, ChangesViewMode };
 
 interface UseChangesTabParams {
 	workspaceId: string;
-	gitStatus: ReturnType<typeof useGitStatus>;
+	/** Absolute path of the file whose diff/preview is currently open. */
+	selectedFilePath?: string;
 	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 }
 
 export function useChangesTab({
 	workspaceId,
-	gitStatus: status,
+	selectedFilePath,
 	onSelectFile,
 	onOpenFile,
 }: UseChangesTabParams): SidebarTabDefinition {
+	const status = useWorkspaceGitStatus();
 	const collections = useCollections();
 	const utils = workspaceTrpc.useUtils();
 	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
 	const filter: ChangesFilter = localState?.sidebarState?.changesFilter ?? {
 		kind: "all",
 	};
+	const viewMode: ChangesViewMode =
+		localState?.sidebarState?.changesViewMode ?? "folders";
 
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
 		{ workspaceId },
@@ -44,7 +51,10 @@ export function useChangesTab({
 	const baseBranch = baseBranchQuery.data?.baseBranch ?? null;
 
 	const ref = useSidebarDiffRef(workspaceId);
-	const { files, isLoading } = useChangeset({ workspaceId, ref });
+	const { files, isLoading } = useChangeset({
+		workspaceId,
+		ref,
+	});
 
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
@@ -65,6 +75,16 @@ export function useChangesTab({
 			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
 			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 				draft.sidebarState.changesFilter = next;
+			});
+		},
+		[collections, workspaceId],
+	);
+
+	const setViewMode = useCallback(
+		(next: ChangesViewMode) => {
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.changesViewMode = next;
 			});
 		},
 		[collections, workspaceId],
@@ -173,6 +193,7 @@ export function useChangesTab({
 			commits={commits}
 			branches={branches}
 			filter={filter}
+			viewMode={viewMode}
 			baseBranch={baseBranch}
 			files={files}
 			isLoading={isLoading}
@@ -180,10 +201,12 @@ export function useChangesTab({
 			totalAdditions={totalAdditions}
 			totalDeletions={totalDeletions}
 			worktreePath={worktreePath}
+			selectedFilePath={selectedFilePath}
 			onSelectFile={onSelectFile}
 			onOpenFile={onOpenFile}
 			onOpenInEditor={handleOpenInEditor}
 			onFilterChange={setFilter}
+			onViewModeChange={setViewMode}
 			onBaseBranchChange={setBaseBranch}
 			onRenameBranch={handleRenameBranch}
 			canRenameBranch={canRenameBranch}

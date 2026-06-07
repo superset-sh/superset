@@ -1,12 +1,14 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
-import { useGitStatus } from "renderer/hooks/host-service/useGitStatus";
+import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useSettings } from "renderer/stores/settings";
-import type { CommentPaneData } from "../../types";
+import type { CommentPaneData, DiffFocusSide } from "../../types";
 import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
@@ -40,6 +42,7 @@ interface WorkspaceSidebarProps {
 		path: string,
 		openInNewTab?: boolean,
 		line?: number,
+		side?: DiffFocusSide,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onOpenChat?: OpenChatFn;
@@ -85,11 +88,19 @@ export function WorkspaceSidebar({
 	pendingReveal,
 	workspaceId,
 }: WorkspaceSidebarProps) {
+	const gitStatus = useWorkspaceGitStatus();
 	const collections = useCollections();
-	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
+	const { data: [localState] = [] } = useLiveQuery(
+		(query) =>
+			query
+				.from({ localState: collections.v2WorkspaceLocalState })
+				.where(({ localState }) => eq(localState.workspaceId, workspaceId)),
+		[collections, workspaceId],
+	);
 	const activeTab: SidebarTabId =
-		(localState?.sidebarState?.activeTab as SidebarTabId | undefined) ??
-		"changes";
+		localState && isSidebarTabId(localState.sidebarState.activeTab)
+			? localState.sidebarState.activeTab
+			: "changes";
 
 	function setActiveTab(tab: string) {
 		if (!isSidebarTabId(tab)) return;
@@ -115,11 +126,9 @@ export function WorkspaceSidebar({
 		return () => ro.disconnect();
 	}, []);
 
-	const gitStatus = useGitStatus(workspaceId);
-
 	const changesTabDef = useChangesTab({
 		workspaceId,
-		gitStatus,
+		selectedFilePath,
 		onSelectFile: onSelectDiffFile,
 		onOpenFile: onSelectFile,
 	});
@@ -132,10 +141,10 @@ export function WorkspaceSidebar({
 		workspaceId,
 		onOpenComment,
 		onOpenInDiff: onSelectDiffFile
-			? (path, line, openInNewTab) => {
+			? (path, line, openInNewTab, side) => {
 					// Force annotations on so the user lands on the comment, not an empty line.
 					useSettings.getState().update("showDiffComments", true);
-					onSelectDiffFile(path, openInNewTab ?? false, line);
+					onSelectDiffFile(path, openInNewTab ?? false, line, side);
 				}
 			: undefined,
 	});

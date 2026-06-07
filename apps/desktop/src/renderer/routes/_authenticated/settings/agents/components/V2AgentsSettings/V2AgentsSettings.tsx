@@ -12,7 +12,9 @@ import {
 	V2_AGENT_CONFIGS_QUERY_KEY as QUERY_KEY,
 	useV2AgentConfigs,
 } from "renderer/hooks/useV2AgentConfigs";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { AgentDetail } from "./components/AgentDetail";
 import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
@@ -39,7 +41,8 @@ interface V2AgentsSettingsProps {
 export function V2AgentsSettings({
 	initialAgentPresetId,
 }: V2AgentsSettingsProps = {}) {
-	const { activeHostUrl } = useLocalHostService();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
 	const queryClient = useQueryClient();
 
 	const configsQuery = useV2AgentConfigs(activeHostUrl);
@@ -59,13 +62,35 @@ export function V2AgentsSettings({
 		);
 	};
 
+	const setupAgentMutation = electronTrpc.settings.setupAgent.useMutation();
+
 	const addMutation = useMutation({
-		mutationFn: (preset: HostAgentPreset) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+		mutationFn: async (preset: HostAgentPreset) => {
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "add an agent",
+					}),
+				);
+			}
 			const { description: _description, ...body } = preset;
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).settings.agentConfigs.add.mutate(body);
+			const added =
+				await getHostServiceClientByUrl(
+					activeHostUrl,
+				).settings.agentConfigs.add.mutate(body);
+			// Safety net: re-run wrapper/hook setup so Add guarantees the hooks
+			// are wired even if boot setup failed or the wrapper was wiped.
+			setupAgentMutation.mutate(
+				{ agentId: preset.presetId },
+				{
+					onError: (err) =>
+						console.warn(
+							`[agents] setupAgent failed for ${preset.presetId}`,
+							err,
+						),
+				},
+			);
+			return added;
 		},
 		onSuccess: (added) => {
 			invalidate();
@@ -77,7 +102,13 @@ export function V2AgentsSettings({
 
 	const reorderMutation = useMutation({
 		mutationFn: (ids: string[]) => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "reorder agents",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.reorder.mutate({ ids });
@@ -110,7 +141,13 @@ export function V2AgentsSettings({
 
 	const resetMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) throw new Error("Host service is not available");
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "reset agents",
+					}),
+				);
+			}
 			return getHostServiceClientByUrl(
 				activeHostUrl,
 			).settings.agentConfigs.resetToDefaults.mutate();
@@ -128,6 +165,10 @@ export function V2AgentsSettings({
 	const addablePresets = KNOWN_PRESETS.filter(
 		(preset) => !installedPresetIds.has(preset.presetId),
 	);
+	const hostServiceUnavailableMessage = getHostServiceUnavailableMessage(
+		hostService,
+		{ action: "load agent settings" },
+	);
 
 	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 	const consumedInitialPresetIdRef = useRef(false);
@@ -135,14 +176,18 @@ export function V2AgentsSettings({
 	// Auto-select first agent when none selected, and clear selection when the
 	// selected agent disappears. If `initialAgentPresetId` is provided (deep
 	// link from a preset's "Open" button), prefer the matching config the
-	// first time configs become available.
+	// first time configs become available. The route param accepts both the
+	// unique config id and the built-in preset id for older links.
 	useEffect(() => {
 		if (configs.length === 0) {
 			if (selectedAgentId !== null) setSelectedAgentId(null);
 			return;
 		}
 		if (initialAgentPresetId && !consumedInitialPresetIdRef.current) {
-			const match = configs.find((c) => c.presetId === initialAgentPresetId);
+			const match = configs.find(
+				(c) =>
+					c.id === initialAgentPresetId || c.presetId === initialAgentPresetId,
+			);
 			if (match) {
 				consumedInitialPresetIdRef.current = true;
 				setSelectedAgentId(match.id);
@@ -161,7 +206,7 @@ export function V2AgentsSettings({
 				Couldn't load agent settings:{" "}
 				{configsQuery.error instanceof Error
 					? configsQuery.error.message
-					: "host service unavailable"}
+					: hostServiceUnavailableMessage}
 			</div>
 		);
 	}

@@ -10,13 +10,16 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { LuFolderOpen } from "react-icons/lu";
+import { RemotePathPicker } from "renderer/components/RemotePathPicker";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ClickablePath } from "../../../../../../components/ClickablePath";
+import { SetupProjectModal } from "../SetupProjectModal";
 
 interface BackfillConflict {
 	id: string;
@@ -27,6 +30,10 @@ interface ProjectLocationSectionProps {
 	projectId: string;
 	currentPath: string | null;
 	repoCloneUrl: string | null;
+	hostId: string | null;
+	hostUrl: string | null;
+	hostName: string;
+	isRemoteTarget: boolean;
 	onChanged?: () => void;
 }
 
@@ -34,9 +41,12 @@ export function ProjectLocationSection({
 	projectId,
 	currentPath,
 	repoCloneUrl,
+	hostId,
+	hostUrl,
+	hostName,
+	isRemoteTarget,
 	onChanged,
 }: ProjectLocationSectionProps) {
-	const { activeHostUrl } = useLocalHostService();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const navigate = useNavigate();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
@@ -45,64 +55,12 @@ export function ProjectLocationSection({
 	const [pendingPath, setPendingPath] = useState<string | null>(null);
 	const [conflict, setConflict] = useState<BackfillConflict | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-
-	const runSetup = async (repoPath: string, allowRelocate: boolean) => {
-		if (!activeHostUrl) {
-			toast.error("Host service not available");
-			return false;
-		}
-		try {
-			const client = getHostServiceClientByUrl(activeHostUrl);
-			const result = await client.project.setup.mutate({
-				projectId,
-				mode: { kind: "import", repoPath, allowRelocate },
-			});
-			toast.success(
-				allowRelocate
-					? `Project relocated to ${result.repoPath}`
-					: `Project set up at ${result.repoPath}`,
-			);
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
-			} else {
-				ensureProjectInSidebar(projectId);
-			}
-			onChanged?.();
-			return true;
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
-			return false;
-		}
-	};
-
-	const runClone = async (parentDir: string) => {
-		if (!activeHostUrl) {
-			toast.error("Host service not available");
-			return false;
-		}
-		try {
-			const client = getHostServiceClientByUrl(activeHostUrl);
-			const result = await client.project.setup.mutate({
-				projectId,
-				mode: { kind: "clone", parentDir },
-			});
-			toast.success(`Cloned to ${result.repoPath}`);
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
-			} else {
-				ensureProjectInSidebar(projectId);
-			}
-			onChanged?.();
-			return true;
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
-			return false;
-		}
-	};
+	const [setupOpen, setSetupOpen] = useState(false);
+	const [changeBrowseOpen, setChangeBrowseOpen] = useState(false);
 
 	const pickPath = async (title: string) => {
-		if (!activeHostUrl) {
-			toast.error("Host service not available");
+		if (!hostUrl) {
+			toast.error(`Host unavailable: ${hostName}`);
 			return null;
 		}
 		try {
@@ -118,58 +76,17 @@ export function ProjectLocationSection({
 		}
 	};
 
-	const handleImport = async () => {
-		const path = await pickPath("Select project location");
-		if (!path) return;
-		if (!activeHostUrl) {
-			toast.error("Host service not available");
-			return;
-		}
-		setIsSubmitting(true);
-		let keepSubmitting = false;
-		try {
-			const client = getHostServiceClientByUrl(activeHostUrl);
-			const precheck = await client.project.findBackfillConflict.query({
-				projectId,
-				repoPath: path,
-			});
-			if (precheck.conflict) {
-				setConflict(precheck.conflict);
-				keepSubmitting = true;
-				return;
-			}
-			await runSetup(path, false);
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
-		} finally {
-			if (!keepSubmitting) setIsSubmitting(false);
-		}
-	};
-
-	const handleClone = async () => {
-		const parentDir = await pickPath("Select parent directory to clone into");
-		if (!parentDir) return;
-		setIsSubmitting(true);
-		try {
-			await runClone(parentDir);
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
-
-	const handleChange = async () => {
-		const path = await pickPath("Select new project location");
-		if (!path) return;
+	const proposeRelocate = async (path: string) => {
 		if (path === currentPath) {
 			toast.info("Project is already at that location");
 			return;
 		}
-		if (!activeHostUrl) {
-			toast.error("Host service not available");
+		if (!hostUrl) {
+			toast.error(`Host unavailable: ${hostName}`);
 			return;
 		}
 		try {
-			const client = getHostServiceClientByUrl(activeHostUrl);
+			const client = getHostServiceClientByUrl(hostUrl);
 			const precheck = await client.project.findBackfillConflict.query({
 				projectId,
 				repoPath: path,
@@ -185,66 +102,110 @@ export function ProjectLocationSection({
 		setPendingPath(path);
 	};
 
+	const handleChange = async () => {
+		if (isRemoteTarget) {
+			setChangeBrowseOpen(true);
+			return;
+		}
+		const path = await pickPath("Select new project location");
+		if (!path) return;
+		await proposeRelocate(path);
+	};
+
 	const handleConfirmRelocate = async () => {
 		if (!pendingPath) return;
+		if (!hostUrl) {
+			toast.error(`Host unavailable: ${hostName}`);
+			return;
+		}
 		setIsSubmitting(true);
-		const ok = await runSetup(pendingPath, true);
-		setIsSubmitting(false);
-		if (ok) setPendingPath(null);
+		try {
+			const client = getHostServiceClientByUrl(hostUrl);
+			const result = await client.project.setup.mutate({
+				projectId,
+				mode: { kind: "import", repoPath: pendingPath, allowRelocate: true },
+			});
+			toast.success(`Project relocated to ${result.repoPath}`);
+			if (result.mainWorkspaceId) {
+				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
+			} else {
+				ensureProjectInSidebar(projectId);
+			}
+			onChanged?.();
+			setPendingPath(null);
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : String(err));
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	return (
 		<>
-			<div className="flex items-center gap-4">
-				<div className="flex-1 min-w-0">
-					{currentPath ? (
-						<ClickablePath path={currentPath} />
-					) : (
-						<span className="text-sm text-muted-foreground">
-							Not set up on this device.
-						</span>
-					)}
+			{currentPath ? (
+				<div className="relative w-96">
+					<div className="flex h-9 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 pr-9 dark:bg-input/30">
+						<ClickablePath path={currentPath} className="max-w-none shrink-0" />
+					</div>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="absolute right-1 top-1 size-7 text-muted-foreground hover:text-foreground"
+								onClick={handleChange}
+								disabled={selectDirectory.isPending || isSubmitting}
+								aria-label="Change location"
+							>
+								<LuFolderOpen className="size-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Change location</TooltipContent>
+					</Tooltip>
 				</div>
-				{currentPath ? (
+			) : (
+				<div className="flex items-center gap-3">
+					<span className="text-sm text-muted-foreground">
+						Not set up on {hostName}
+					</span>
 					<Button
 						type="button"
 						variant="outline"
 						size="sm"
-						onClick={handleChange}
-						disabled={selectDirectory.isPending || isSubmitting}
+						onClick={() => setSetupOpen(true)}
+						disabled={!hostUrl}
 					>
-						Change…
+						Set up project…
 					</Button>
-				) : (
-					<div className="flex items-center gap-2 shrink-0">
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							onClick={handleClone}
-							disabled={
-								!repoCloneUrl || selectDirectory.isPending || isSubmitting
-							}
-							title={
-								repoCloneUrl
-									? undefined
-									: "Link a GitHub repository first to enable cloning"
-							}
-						>
-							Clone here…
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							onClick={handleImport}
-							disabled={selectDirectory.isPending || isSubmitting}
-						>
-							Import existing…
-						</Button>
-					</div>
-				)}
-			</div>
+				</div>
+			)}
+
+			<SetupProjectModal
+				open={setupOpen}
+				onOpenChange={setSetupOpen}
+				projectId={projectId}
+				hostUrl={hostUrl}
+				hostName={hostName}
+				repoCloneUrl={repoCloneUrl}
+				isRemoteTarget={isRemoteTarget}
+				onChanged={onChanged}
+				onConflict={setConflict}
+			/>
+
+			<RemotePathPicker
+				open={changeBrowseOpen}
+				onOpenChange={setChangeBrowseOpen}
+				hostUrl={hostUrl}
+				hostName={hostName}
+				initialPath={currentPath ?? undefined}
+				title="Change project location"
+				description={`Pick the new project folder on ${hostName}.`}
+				confirmLabel="Use this folder"
+				onPick={(path) => {
+					void proposeRelocate(path);
+				}}
+			/>
 
 			<AlertDialog
 				open={conflict !== null}
@@ -258,10 +219,10 @@ export function ProjectLocationSection({
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Repository already linked</AlertDialogTitle>
-						<AlertDialogDescription>
+						<AlertDialogDescription className="select-text cursor-text">
 							This repository is already linked to project "
 							{conflict?.name ?? ""}" in this organization. Open that project to
-							set it up on this device.
+							set it up on {hostName}.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -276,6 +237,7 @@ export function ProjectLocationSection({
 								navigate({
 									to: "/settings/projects/$projectId",
 									params: { projectId: target.id },
+									search: { hostId: hostId ?? undefined },
 								});
 							}}
 						>
@@ -295,7 +257,7 @@ export function ProjectLocationSection({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Relocate project?</AlertDialogTitle>
 						<AlertDialogDescription asChild>
-							<div className="space-y-3 text-sm">
+							<div className="space-y-3 text-sm select-text cursor-text">
 								<div>
 									<div className="text-muted-foreground text-xs">From</div>
 									<div className="font-mono break-all">{currentPath}</div>

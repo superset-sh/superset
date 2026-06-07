@@ -28,12 +28,18 @@ class BrowserManager extends EventEmitter {
 	private consoleLogs = new Map<string, ConsoleEntry[]>();
 	private consoleListeners = new Map<string, () => void>();
 	private contextMenuListeners = new Map<string, () => void>();
+	private beforeInputListeners = new Map<string, () => void>();
 
 	register(paneId: string, webContentsId: number): void {
-		// Clean up previous listeners if re-registering with a new webContentsId
+		// Clean even when prevId === webContentsId so BrowserManager owns
+		// listener idempotency; callers can re-register without duplicating.
 		const prevId = this.paneWebContentsIds.get(paneId);
-		if (prevId != null && prevId !== webContentsId) {
-			for (const map of [this.consoleListeners, this.contextMenuListeners]) {
+		if (prevId != null) {
+			for (const map of [
+				this.consoleListeners,
+				this.contextMenuListeners,
+				this.beforeInputListeners,
+			]) {
 				const cleanup = map.get(paneId);
 				if (cleanup) {
 					cleanup();
@@ -55,11 +61,16 @@ class BrowserManager extends EventEmitter {
 			});
 			this.setupConsoleCapture(paneId, wc);
 			this.setupContextMenu(paneId, wc);
+			this.setupBeforeInput(paneId, wc);
 		}
 	}
 
 	unregister(paneId: string): void {
-		for (const map of [this.consoleListeners, this.contextMenuListeners]) {
+		for (const map of [
+			this.consoleListeners,
+			this.contextMenuListeners,
+			this.beforeInputListeners,
+		]) {
 			const cleanup = map.get(paneId);
 			if (cleanup) {
 				cleanup();
@@ -220,6 +231,42 @@ class BrowserManager extends EventEmitter {
 		this.contextMenuListeners.set(paneId, () => {
 			try {
 				wc.off("context-menu", handler);
+			} catch {
+				// webContents may be destroyed
+			}
+		});
+	}
+
+	// When a webview has focus, keystrokes route to the guest renderer — host
+	// `react-hotkeys-hook` listeners never see them and the menu's CmdOrCtrl+W
+	// accelerator closes the whole window. `before-input-event` fires in the
+	// main process before both, and `preventDefault()` suppresses both.
+	//
+	// keyDown guard prevents a second fire on keyUp. Shift guard preserves
+	// Cmd+Shift+W (CLOSE_TAB) and Cmd+Shift+R (forceReload).
+	private setupBeforeInput(paneId: string, wc: Electron.WebContents): void {
+		const handler = (event: Electron.Event, input: Electron.Input): void => {
+			if (input.type !== "keyDown") return;
+			if (input.shift || input.alt) return;
+			if (!(input.meta || input.control)) return;
+
+			const key = input.key.toLowerCase();
+			if (key === "w") {
+				event.preventDefault();
+				this.emit(`close-pane:${paneId}`);
+				return;
+			}
+			if (key === "r") {
+				event.preventDefault();
+				this.emit(`reload-pane:${paneId}`);
+				return;
+			}
+		};
+
+		wc.on("before-input-event", handler);
+		this.beforeInputListeners.set(paneId, () => {
+			try {
+				wc.off("before-input-event", handler);
 			} catch {
 				// webContents may be destroyed
 			}

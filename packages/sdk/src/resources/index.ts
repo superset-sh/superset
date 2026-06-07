@@ -1,14 +1,13 @@
 export {
+	type AgentCreateParams,
+	type AgentCreateResult,
 	type AgentListParams,
 	type AgentListResponse,
-	type AgentRunParams,
-	type AgentRunResult,
 	Agents,
 	type HostAgentConfig,
 	type PromptTransport,
 } from "./agents";
 export {
-	type AgentConfig,
 	type Automation,
 	type AutomationCreateParams,
 	type AutomationListResponse,
@@ -30,6 +29,11 @@ export {
 	type OrganizationRole,
 } from "./organization";
 export { type Project, type ProjectListResponse, Projects } from "./projects";
+export {
+	type TerminalCreateParams,
+	type TerminalCreateResult,
+	Terminals,
+} from "./terminals";
 export {
 	type Task,
 	type TaskCreateParams,

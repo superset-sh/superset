@@ -55,15 +55,17 @@ Superset works with any CLI-based coding agent, including:
 
 | Agent | Status |
 |:------|:-------|
-| [Amp Code](https://ampcode.com/) | Fully supported |
-| [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
-| [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
-| [Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
-| [GitHub Copilot](https://github.com/features/copilot) | Fully supported |
-| [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
-| [Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
-| Any CLI agent | Will work |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/amp.svg" /> &nbsp;[Amp Code](https://ampcode.com/) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/claude.svg" /> &nbsp;[Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/codex-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/codex.svg" /></picture> &nbsp;[OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/cursor.svg" /> &nbsp;[Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/droid-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/droid.svg" /></picture> &nbsp;[Droid](https://www.factory.ai/) | Fully supported |
+| <img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/gemini.svg" /> &nbsp;[Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/copilot-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/copilot.svg" /></picture> &nbsp;[GitHub Copilot](https://github.com/features/copilot) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/mastracode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/mastracode.svg" /></picture> &nbsp;[Mastra Code](https://mastra.ai/) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/opencode-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/opencode.svg" /></picture> &nbsp;[OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/pi-white.svg" /><img height="16" align="top" src="packages/ui/src/assets/icons/preset-icons/pi.svg" /></picture> &nbsp;[Pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | Fully supported |
+| Any other CLI agent | Works without configuration |
 
 If it runs in a terminal, it runs on Superset
 
@@ -77,64 +79,28 @@ If it runs in a terminal, it runs on Superset
 | **GitHub CLI** | [gh](https://cli.github.com/) |
 | **Caddy** | [caddy](https://caddyserver.com/docs/install) (for dev server) |
 
-## Getting Started
-
-### Quick Start (Pre-built)
+## Install
 
 **[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
 
-### Build from Source
+Builds for Windows and Linux are not yet available.
 
-<details>
-<summary>Click to expand build instructions</summary>
+## Development
 
-**1. Clone the repository**
+Want to hack on Superset or contribute a PR? Spin up a local dev environment in one command:
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
 cd superset
-```
-
-**2. Set up environment variables** (choose one):
-
-Option A: Full setup
-```bash
-cp .env.example .env
-# Edit .env and fill in the values
-```
-
-Option B: Skip env validation (for quick local testing)
-```bash
-cp .env.example .env
-echo 'SKIP_ENV_VALIDATION=1' >> .env
-```
-
-**3. Set up Caddy** (reverse proxy for Electric SQL streams):
-
-```bash
-# Install caddy: brew install caddy (macOS) or see https://caddyserver.com/docs/install
-cp Caddyfile.example Caddyfile
-
-# Without this, Chromium rejects https://localhost:* with ERR_CERT_AUTHORITY_INVALID.
-# Prompts for sudo once.
-caddy trust
-```
-
-**4. Install dependencies and run**
-
-```bash
-bun install
+./.superset/setup.local.sh
 bun run dev
 ```
 
-**5. Build the desktop app**
+No Neon account or third-party credentials needed — `setup.local.sh` brings up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
-```bash
-bun run build
-open apps/desktop/release
-```
+Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`).
 
-</details>
+See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide — what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
 ## Keyboard Shortcuts
 

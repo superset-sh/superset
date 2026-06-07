@@ -350,4 +350,34 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 			},
 		]);
 	});
+
+	test("preserves existing pullRequestId when head lookup fails", async () => {
+		const state = makeState("fix/sidebar");
+		state.workspace = {
+			...state.workspace,
+			headSha: "abc123",
+			upstreamOwner: "fork-owner",
+			upstreamRepo: "fork-repo",
+			upstreamBranch: "fix/sidebar",
+			pullRequestId: "pr-existing",
+		};
+		const manager = createManager(state, {
+			execGh: async () => {
+				throw new Error("gh unavailable");
+			},
+			github: async () => {
+				throw new Error("octokit unavailable");
+			},
+		});
+
+		const originalWarn = console.warn;
+		console.warn = () => {};
+		try {
+			await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
+		} finally {
+			console.warn = originalWarn;
+		}
+
+		expect(state.workspace.pullRequestId).toBe("pr-existing");
+	});
 });

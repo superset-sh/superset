@@ -9,6 +9,12 @@
  */
 
 import { write as fsWrite } from "node:fs";
+import {
+	type ProcessSignalError,
+	type ProcessSignalTarget,
+	signalProcessTargets,
+	signalProcessTreeAndGroups,
+} from "@superset/pty-daemon/process-tree";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
 import treeKill from "tree-kill";
@@ -257,6 +263,26 @@ function flush(): void {
 	flushing = false;
 }
 
+function signalProcessTreeGroups(
+	rootPid: number,
+	signal: NodeJS.Signals,
+): ProcessSignalTarget[] {
+	return signalProcessTreeAndGroups(rootPid, signal, {
+		signalPids: false,
+		onSignalError: logProcessSignalError,
+	});
+}
+
+function logProcessSignalError(event: ProcessSignalError): void {
+	if ((event.error as NodeJS.ErrnoException).code === "ESRCH") return;
+
+	const label = event.target === "pgid" ? "process group" : "pid";
+	console.error(
+		`[pty-subprocess] Failed to ${event.signal} ${label} ${event.id}:`,
+		event.error,
+	);
+}
+
 // =============================================================================
 // Message Handlers
 // =============================================================================
@@ -359,16 +385,19 @@ function handleResize(payload: Buffer): void {
 }
 
 function handleKill(payload: Buffer): void {
-	const signal = payload.length > 0 ? payload.toString("utf8") : "SIGTERM";
+	const signal = (
+		payload.length > 0 ? payload.toString("utf8") : "SIGHUP"
+	) as NodeJS.Signals;
 
 	if (!ptyProcess) {
 		return;
 	}
 
 	const pid = ptyProcess.pid;
+	const escalationTargets = signalProcessTreeGroups(pid, signal);
 
-	// Step 1: Kill the process tree using tree-kill
-	// tree-kill traverses by PPID to find all descendants
+	// Step 1: Signal descendants and process groups. tree-kill keeps legacy
+	// PPID traversal behavior for direct children.
 	treeKill(pid, signal, (err) => {
 		if (err) {
 			console.error("[pty-subprocess] Failed to kill process tree:", err);
@@ -380,6 +409,7 @@ function handleKill(payload: Buffer): void {
 	const escalationTimer = setTimeout(() => {
 		if (!ptyProcess) return; // Already exited via onExit
 
+		signalProcessTargets(escalationTargets, "SIGKILL", logProcessSignalError);
 		treeKill(pid, "SIGKILL", (err) => {
 			if (err) {
 				console.error("[pty-subprocess] Failed to SIGKILL process tree:", err);
@@ -444,6 +474,7 @@ function handleDispose(): void {
 		const pid = ptyProcess.pid;
 		ptyProcess = null;
 
+		signalProcessTreeGroups(pid, "SIGKILL");
 		// tree-kill spawns child processes (ps/pgrep) to discover descendants,
 		// so we must wait for the callback before exiting.
 		treeKill(pid, "SIGKILL", (err) => {

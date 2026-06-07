@@ -15,11 +15,15 @@ import {
 } from "@superset/shared/terminal-title-scanner";
 import { and, eq, ne } from "drizzle-orm";
 import type { Hono } from "hono";
+import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
-import type { DaemonClient } from "./DaemonClient/index.ts";
+import {
+	DaemonClient,
+	type Signal as DaemonSignal,
+} from "./DaemonClient/index.ts";
 import {
 	getDaemonClient,
 	onDaemonDisconnect,
@@ -40,7 +44,7 @@ import {
  * Thin adapter exposing approximately the IPty surface that the rest of
  * this file (and teardown.ts) was built against, so most of the call
  * sites stay unchanged after the daemon extraction. The PTY itself lives
- * in pty-daemon; this is a remote control.
+ * in pty-daemon; this adapter forwards to it over the daemon socket.
  *
  * onData / onExit register additional subscribers on top of whatever the
  * session's primary subscription is doing — daemon supports multi-
@@ -54,7 +58,7 @@ interface DaemonPty {
 	pid: number;
 	write(data: string): void;
 	resize(cols: number, rows: number): void;
-	kill(signal?: NodeJS.Signals): void;
+	kill(signal?: NodeJS.Signals): Promise<void>;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
 		cb: (info: { exitCode: number; signal: number }) => void,
@@ -79,14 +83,7 @@ function makeDaemonPty(
 			}
 		},
 		kill(signal) {
-			daemon
-				.close(
-					sessionId,
-					(signal as "SIGTERM" | "SIGKILL" | "SIGINT" | "SIGHUP") ?? "SIGHUP",
-				)
-				.catch(() => {
-					// Already gone or daemon disconnected — no-op.
-				});
+			return daemon.close(sessionId, toDaemonSignal(signal));
 		},
 		onData(cb) {
 			// StringDecoder buffers partial UTF-8 sequences across chunks.
@@ -163,6 +160,14 @@ type TerminalServerMessage =
 	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+// Cap on a single renderer socket's unflushed WebSocket send buffer. With no
+// ACK flow control, a renderer that stops draining (slow paint, pinned main
+// thread, dead tab) would let this buffer grow without bound → host OOM (the
+// risk #4868 was about). Once a socket blows past this, we drop it; the
+// renderer auto-reconnects and replays the bounded tail buffer. Crucially the
+// PTY is never paused, so a stalled renderer can't wedge the shell. Matches the
+// daemon's own 8 MB outbound socket cap.
+const WS_SEND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
@@ -172,10 +177,13 @@ const MIN_TERMINAL_COLS = 20;
 const MIN_TERMINAL_ROWS = 5;
 
 // `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
+// `raw` is the underlying `ws` WebSocket (present for node-ws); we read
+// `bufferedAmount` off it to bound a slow renderer's send queue.
 type TerminalSocket = {
 	send: (data: string | Uint8Array<ArrayBuffer>) => void;
 	close: (code?: number, reason?: string) => void;
 	readyState: number;
+	raw?: { readonly bufferedAmount?: number };
 };
 
 // ---------------------------------------------------------------------------
@@ -183,12 +191,8 @@ type TerminalSocket = {
 // Scanner logic lives in @superset/shared/shell-ready-scanner.
 // ---------------------------------------------------------------------------
 
-/**
- * How long to wait for the shell-ready marker before unblocking writes.
- * 15 s covers heavy setups like Nix-based devenv via direnv. On timeout
- * buffered writes flush immediately (same behaviour as before this feature).
- */
-const SHELL_READY_TIMEOUT_MS = 15_000;
+/** Flush partial OSC 133;A prefix bytes the scanner is holding if a full marker never arrives. */
+const SHELL_READY_TIMEOUT_MS = 3_000;
 
 /**
  * Shell readiness lifecycle:
@@ -203,6 +207,8 @@ interface TerminalSession {
 	terminalId: string;
 	workspaceId: string;
 	pty: DaemonPty;
+	cols: number;
+	rows: number;
 	/** Unsubscribe from the daemon's output/exit stream when disposed. */
 	unsubscribeDaemon: (() => void) | null;
 	sockets: Set<TerminalSocket>;
@@ -365,6 +371,35 @@ export function listTerminalSessions(
 		}));
 }
 
+export function countTerminalSessions(
+	options: {
+		workspaceId?: string;
+		includeExited?: boolean;
+		excludeTerminalIds?: Iterable<string>;
+	} = {},
+): number {
+	const includeExited = options.includeExited ?? true;
+	const excludedTerminalIds = options.excludeTerminalIds
+		? new Set(options.excludeTerminalIds)
+		: null;
+	let count = 0;
+
+	for (const session of sessions.values()) {
+		if (!session.listed) continue;
+		if (
+			options.workspaceId !== undefined &&
+			session.workspaceId !== options.workspaceId
+		) {
+			continue;
+		}
+		if (!includeExited && session.exited) continue;
+		if (excludedTerminalIds?.has(session.terminalId)) continue;
+		count += 1;
+	}
+
+	return count;
+}
+
 export function writeInputToSession({
 	terminalId,
 	workspaceId,
@@ -454,6 +489,11 @@ function sendBytes(socket: TerminalSocket, bytes: Uint8Array) {
 	socket.send(asArrayBufferBytes(bytes));
 }
 
+function socketBufferedAmount(socket: TerminalSocket): number {
+	const amount = socket.raw?.bufferedAmount;
+	return typeof amount === "number" ? amount : 0;
+}
+
 function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 	let sent = 0;
 	const tight = asArrayBufferBytes(bytes);
@@ -464,6 +504,19 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 				socket.readyState === SOCKET_CLOSED
 			) {
 				session.sockets.delete(socket);
+			}
+			continue;
+		}
+		// A renderer that can't keep up lets its send buffer grow without bound.
+		// Drop it past the cap rather than buffer forever; it reconnects and
+		// replays the tail. Returning this chunk as "not sent" routes it to the
+		// bounded replay buffer via the caller's broadcast-or-buffer check.
+		if (socketBufferedAmount(socket) > WS_SEND_BUFFER_CAP_BYTES) {
+			session.sockets.delete(socket);
+			try {
+				socket.close(1013, "terminal output back-pressure");
+			} catch {
+				// best-effort; close may race an already-closing socket
 			}
 			continue;
 		}
@@ -536,11 +589,72 @@ function queueInitialCommand(
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
-	session.shellReadyPromise.then(() => {
-		if (!session.exited) {
-			session.pty.write(cmd);
+	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
+	// and gating turned broken/missing markers into a guaranteed stall.
+	session.pty.write(cmd);
+}
+
+interface DaemonCloseResult {
+	attempted: boolean;
+	succeeded: boolean;
+	error?: unknown;
+}
+
+export interface DisposeSessionResult {
+	terminalId: string;
+	daemonCloseAttempted: boolean;
+	daemonCloseSucceeded: boolean;
+}
+
+function toDaemonSignal(signal?: NodeJS.Signals): DaemonSignal {
+	switch (signal) {
+		case "SIGINT":
+		case "SIGTERM":
+		case "SIGKILL":
+		case "SIGHUP":
+			return signal;
+		default:
+			return "SIGHUP";
+	}
+}
+
+function isUnknownDaemonSessionError(error: unknown): boolean {
+	if (!(error instanceof Error)) return false;
+	return error.message.includes("unknown session:");
+}
+
+function reachableDaemonSocketPath(): string | null {
+	const explicitSocket = process.env.SUPERSET_PTY_DAEMON_SOCKET;
+	if (explicitSocket) return explicitSocket;
+
+	const organizationId = process.env.ORGANIZATION_ID;
+	if (!organizationId) return null;
+
+	const manifest = readPtyDaemonManifest(organizationId);
+	if (!manifest || !isProcessAlive(manifest.pid)) return null;
+	return manifest.socketPath;
+}
+
+async function closeDaemonSessionById(
+	terminalId: string,
+	signal: DaemonSignal = "SIGHUP",
+): Promise<DaemonCloseResult> {
+	const socketPath = reachableDaemonSocketPath();
+	if (!socketPath) return { attempted: false, succeeded: true };
+
+	const daemon = new DaemonClient({ socketPath, connectTimeoutMs: 1000 });
+	try {
+		await daemon.connect();
+		await daemon.close(terminalId, signal);
+		return { attempted: true, succeeded: true };
+	} catch (error) {
+		if (isUnknownDaemonSessionError(error)) {
+			return { attempted: true, succeeded: true };
 		}
-	});
+		return { attempted: true, succeeded: false, error };
+	} finally {
+		await daemon.dispose().catch(() => {});
+	}
 }
 
 /**
@@ -550,7 +664,25 @@ function queueInitialCommand(
  * transient teardown session.
  */
 export function disposeSession(terminalId: string, db: HostDb) {
+	void disposeSessionAndWait(terminalId, db)
+		.then((result) => {
+			if (!result.daemonCloseSucceeded) {
+				console.warn("[terminal] disposeSession daemon close failed", {
+					terminalId,
+				});
+			}
+		})
+		.catch((error) => {
+			console.warn("[terminal] disposeSession failed", { terminalId, error });
+		});
+}
+
+export async function disposeSessionAndWait(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
 	const session = sessions.get(terminalId);
+	let closePromise: Promise<DaemonCloseResult> | null = null;
 
 	if (session) {
 		if (session.shellReadyTimeoutId) {
@@ -563,9 +695,21 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		session.sockets.clear();
 		if (!session.exited) {
 			try {
-				session.pty.kill();
-			} catch {
-				// PTY may already be dead
+				closePromise = session.pty.kill().then(
+					() =>
+						({ attempted: true, succeeded: true }) satisfies DaemonCloseResult,
+					(error) => ({
+						attempted: true,
+						succeeded: isUnknownDaemonSessionError(error),
+						error,
+					}),
+				);
+			} catch (error) {
+				closePromise = Promise.resolve({
+					attempted: true,
+					succeeded: isUnknownDaemonSessionError(error),
+					error,
+				});
 			}
 		}
 		// Stop receiving daemon callbacks for this session.
@@ -583,6 +727,8 @@ export function disposeSession(terminalId: string, db: HostDb) {
 			// best-effort
 		}
 		sessions.delete(terminalId);
+	} else {
+		closePromise = closeDaemonSessionById(terminalId, "SIGHUP");
 	}
 
 	portManager.unregisterSession(terminalId);
@@ -591,16 +737,25 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		.set({ status: "disposed", endedAt: Date.now() })
 		.where(eq(terminalSessions.id, terminalId))
 		.run();
+
+	const closeResult = closePromise
+		? await closePromise
+		: { attempted: false, succeeded: true };
+	return {
+		terminalId,
+		daemonCloseAttempted: closeResult.attempted,
+		daemonCloseSucceeded: closeResult.succeeded,
+	};
 }
 
 /**
  * Dispose every active session belonging to the given workspace.
  * Returns counts so callers (e.g. workspaceCleanup.destroy) can surface warnings.
  */
-export function disposeSessionsByWorkspaceId(
+export async function disposeSessionsByWorkspaceId(
 	workspaceId: string,
 	db: HostDb,
-): { terminated: number; failed: number } {
+): Promise<{ terminated: number; failed: number }> {
 	const rows = db
 		.select({ id: terminalSessions.id })
 		.from(terminalSessions)
@@ -616,7 +771,11 @@ export function disposeSessionsByWorkspaceId(
 	let failed = 0;
 	for (const row of rows) {
 		try {
-			disposeSession(row.id, db);
+			const result = await disposeSessionAndWait(row.id, db);
+			if (!result.daemonCloseSucceeded) {
+				failed += 1;
+				continue;
+			}
 			terminated += 1;
 		} catch {
 			failed += 1;
@@ -631,7 +790,6 @@ interface CreateTerminalSessionOptions {
 	themeType?: "dark" | "light";
 	db: HostDb;
 	eventBus?: EventBus;
-	/** Command to run after the shell is ready. Queued behind shellReadyPromise. */
 	initialCommand?: string;
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
@@ -665,6 +823,22 @@ function resolveTerminalCwd(
 	return existsSync(resolvedPath) ? resolvedPath : worktreePath;
 }
 
+function getTerminalWorkspaceMismatchError({
+	terminalId,
+	ownerWorkspaceId,
+	requestedWorkspaceId,
+}: {
+	terminalId: string;
+	ownerWorkspaceId: string | null | undefined;
+	requestedWorkspaceId: string;
+}): string | null {
+	if (!ownerWorkspaceId || ownerWorkspaceId === requestedWorkspaceId) {
+		return null;
+	}
+
+	return `Terminal session "${terminalId}" belongs to workspace "${ownerWorkspaceId}", not "${requestedWorkspaceId}".`;
+}
+
 export async function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
@@ -681,10 +855,27 @@ export async function createTerminalSessionInternal({
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
+		const mismatchError = getTerminalWorkspaceMismatchError({
+			terminalId,
+			ownerWorkspaceId: existing.workspaceId,
+			requestedWorkspaceId: workspaceId,
+		});
+		if (mismatchError) return { error: mismatchError };
+
 		if (listed) existing.listed = true;
 		if (initialCommand) queueInitialCommand(existing, initialCommand);
 		return existing;
 	}
+
+	const existingRecord = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	const recordMismatchError = getTerminalWorkspaceMismatchError({
+		terminalId,
+		ownerWorkspaceId: existingRecord?.originWorkspaceId,
+		requestedWorkspaceId: workspaceId,
+	});
+	if (recordMismatchError) return { error: recordMismatchError };
 
 	const workspace = db.query.workspaces
 		.findFirst({ where: eq(workspaces.id, workspaceId) })
@@ -812,7 +1003,12 @@ export async function createTerminalSessionInternal({
 		})
 		.onConflictDoUpdate({
 			target: terminalSessions.id,
-			set: { status: "active", createdAt, endedAt: null },
+			set: {
+				originWorkspaceId: workspaceId,
+				status: "active",
+				createdAt,
+				endedAt: null,
+			},
 		})
 		.run();
 
@@ -834,6 +1030,8 @@ export async function createTerminalSessionInternal({
 		terminalId,
 		workspaceId,
 		pty,
+		cols,
+		rows,
 		unsubscribeDaemon: null,
 		sockets: new Set(),
 		buffer: [],
@@ -1044,6 +1242,7 @@ export function registerWorkspaceTerminalRoute({
 		"/terminal/:terminalId",
 		upgradeWebSocket((c) => {
 			const terminalId = c.req.param("terminalId") ?? "";
+			const requestedWorkspaceId = c.req.query("workspaceId") || null;
 			const attachSocketToSession = (
 				session: TerminalSession,
 				ws: TerminalSocket,
@@ -1072,7 +1271,17 @@ export function registerWorkspaceTerminalRoute({
 				TerminalSession | { error: string }
 			> => {
 				const existing = sessions.get(terminalId);
-				if (existing) return existing;
+				if (existing) {
+					if (requestedWorkspaceId) {
+						const mismatchError = getTerminalWorkspaceMismatchError({
+							terminalId,
+							ownerWorkspaceId: existing.workspaceId,
+							requestedWorkspaceId,
+						});
+						if (mismatchError) return { error: mismatchError };
+					}
+					return existing;
+				}
 
 				const record = db.query.terminalSessions
 					.findFirst({ where: eq(terminalSessions.id, terminalId) })
@@ -1092,6 +1301,14 @@ export function registerWorkspaceTerminalRoute({
 					return {
 						error: `Terminal session "${terminalId}" is missing a workspace.`,
 					};
+				}
+				if (requestedWorkspaceId) {
+					const mismatchError = getTerminalWorkspaceMismatchError({
+						terminalId,
+						ownerWorkspaceId: record.originWorkspaceId,
+						requestedWorkspaceId,
+					});
+					if (mismatchError) return { error: mismatchError };
 				}
 
 				const themeType = parseThemeType(c.req.query("themeType"));
@@ -1190,6 +1407,8 @@ export function registerWorkspaceTerminalRoute({
 						);
 						session.pty.resize(cols, rows);
 						session.modeTracker.resize(cols, rows);
+						session.cols = cols;
+						session.rows = rows;
 					}
 				},
 

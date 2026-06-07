@@ -8,6 +8,8 @@ import { env } from "@/env";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
 
+const TRUSTED_API_CLIENTS = new Set(["superset-cli"]);
+
 function looksLikeJwt(token: string): boolean {
 	const parts = token.split(".");
 	return parts.length === 3 && parts.every(Boolean);
@@ -31,6 +33,12 @@ async function sessionFromOAuthBearer(
 			},
 		})) as Record<string, unknown>;
 	} catch {
+		return null;
+	}
+
+	const authorizedClientId =
+		typeof payload.azp === "string" ? payload.azp : null;
+	if (authorizedClientId && !TRUSTED_API_CLIENTS.has(authorizedClientId)) {
 		return null;
 	}
 

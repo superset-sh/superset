@@ -73,62 +73,8 @@ jobs:
 
       - name: Smoke test binary
         run: |
-          # Resolve dist as an absolute path before changing cwd. The smoke
-          # tests below run from /tmp instead of the workspace because
-          # Node's module resolution walks up from cwd before consulting
-          # NODE_PATH — staying in $GITHUB_WORKSPACE leaks into the host
-          # repo's node_modules and silently masks bundle issues.
           DIST="$(pwd)/packages/cli/dist/superset-${{ matrix.target }}"
-          "$DIST/bin/superset" --version
-          "$DIST/bin/superset" --help
-          "$DIST/lib/node" --version
-          test -f "$DIST/lib/host-service.js" || (echo "missing host-service.js" >&2; exit 1)
-          test -f "$DIST/lib/pty-daemon.js" || (echo "missing pty-daemon.js" >&2; exit 1)
-          if [[ "${{ matrix.target }}" == darwin-* ]]; then
-            ARCH="${{ matrix.target }}"
-            ARCH="${ARCH#darwin-}"
-            HELPER="$DIST/lib/node_modules/node-pty/prebuilds/darwin-$ARCH/spawn-helper"
-            test -x "$HELPER" || (echo "spawn-helper not executable: $HELPER" >&2; exit 1)
-          fi
-          cd /tmp
-          NODE_PATH="$DIST/lib/node_modules" "$DIST/lib/node" -e '
-            for (const m of ["better-sqlite3", "node-pty", "@parcel/watcher", "libsql"]) {
-              require(m);
-              console.log(m, "OK");
-            }
-          '
-          # Actually spawn a PTY against the bundled Node + bundled prebuild.
-          # Catches the runtime failures `require()` can't see — spawn-helper
-          # exec bit, pty.node ABI mismatch, arch mismatch, etc. Asserts
-          # node-pty resolves to the bundled copy so a host-tree leak
-          # (described above) doesn't silently make this pass.
-          NODE_PATH="$DIST/lib/node_modules" DIST="$DIST" "$DIST/lib/node" -e '
-            const resolved = require.resolve("node-pty/lib/unixTerminal");
-            if (!resolved.startsWith(process.env.DIST)) {
-              console.error("node-pty leaked from non-bundled tree:", resolved);
-              process.exit(1);
-            }
-            const pty = require("node-pty");
-            const term = pty.spawn("/bin/sh", ["-c", "echo SPAWN_OK"], {
-              name: "xterm", cols: 80, rows: 24,
-              cwd: process.env.HOME || "/", env: process.env,
-            });
-            let got = "";
-            let exited = null;
-            const check = () => {
-              if (got.includes("SPAWN_OK") && exited && exited.exitCode === 0) {
-                console.log("pty spawn OK"); process.exit(0);
-              }
-              console.error("pty spawn FAIL exit=" + (exited && exited.exitCode) + " got=" + JSON.stringify(got));
-              process.exit(1);
-            };
-            term.onData((d) => { got += d.toString(); });
-            // onExit can fire before the final onData chunk is delivered
-            // (SIGCHLD and EOF on the pty master are independent events).
-            // Defer the assertion one tick so any in-flight onData runs first.
-            term.onExit((e) => { exited = e; setTimeout(check, 100); });
-            setTimeout(() => { console.error("pty spawn timeout"); process.exit(1); }, 5000);
-          '
+          bash packages/cli/scripts/smoke-test.sh "$DIST" "${{ matrix.target }}"
 
       - name: Upload tarball
         if: inputs.upload

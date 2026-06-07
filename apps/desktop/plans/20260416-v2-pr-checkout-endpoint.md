@@ -12,7 +12,7 @@ time — moved earlier in the pending-page sequence and shared between the
 mutation payload and the agent-launch resolver. **Zero net new fetches.**
 
 Cross-refs:
-- `apps/desktop/V2_WORKSPACE_CREATION.md` — umbrella design this extends.
+- `apps/desktop/docs/V2_WORKSPACE_CREATION.md` — umbrella design this extends.
 - `packages/host-service/GIT_REFS.md` — ref handling discipline.
 - V1 source: `apps/desktop/src/lib/trpc/routers/workspaces/procedures/create.ts:752` (`createFromPr`) + `.../utils/git.ts:1630-1791`.
 

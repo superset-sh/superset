@@ -30,7 +30,7 @@ interface LaunchCommandInPaneOptions {
 	waitForMountedSession?: boolean;
 }
 
-function normalizeTerminalCommand(command: string): string {
+export function normalizeTerminalCommand(command: string): string {
 	return command.endsWith("\n") ? command : `${command}\n`;
 }
 
