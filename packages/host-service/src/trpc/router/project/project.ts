@@ -416,7 +416,7 @@ export const projectRouter = router({
 					z.object({
 						kind: z.literal("template"),
 						parentDir: z.string().min(1),
-						templateId: z.string().min(1),
+						url: z.string().min(1),
 					}),
 				]),
 			}),
@@ -432,7 +432,7 @@ export const projectRouter = router({
 					return createFromTemplate(ctx, {
 						name: input.name,
 						parentDir: input.mode.parentDir,
-						templateId: input.mode.templateId,
+						url: input.mode.url,
 					});
 				case "clone":
 					return createFromClone(ctx, {

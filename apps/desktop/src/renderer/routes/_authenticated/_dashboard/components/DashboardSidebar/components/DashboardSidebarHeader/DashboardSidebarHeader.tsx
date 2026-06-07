@@ -14,6 +14,7 @@ import {
 	LuFolderInput,
 	LuFolderPlus,
 	LuLayers,
+	LuLayoutTemplate,
 	LuPlus,
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
@@ -29,7 +30,10 @@ import {
 	useTasksFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
-import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
+import {
+	useOpenNewProjectModal,
+	useOpenTemplateGalleryModal,
+} from "renderer/stores/add-repository-modal";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 interface DashboardSidebarHeaderProps {
@@ -41,6 +45,7 @@ export function DashboardSidebarHeader({
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
 	const openNewProject = useOpenNewProjectModal();
+	const openTemplateGallery = useOpenTemplateGalleryModal();
 	const navigate = useNavigate();
 	const folderImport = useFolderFirstImport({
 		onError: (message) => {
@@ -206,6 +211,10 @@ export function DashboardSidebarHeader({
 							<LuFolderInput className="size-4" />
 							Open from folder
 						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={() => openTemplateGallery()}>
+							<LuLayoutTemplate className="size-4" />
+							Start from a template
+						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
@@ -317,6 +326,10 @@ export function DashboardSidebarHeader({
 						<DropdownMenuItem onSelect={handleImportFolder}>
 							<LuFolderInput className="size-4" />
 							Open from folder
+						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={() => openTemplateGallery()}>
+							<LuLayoutTemplate className="size-4" />
+							Start from a template
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

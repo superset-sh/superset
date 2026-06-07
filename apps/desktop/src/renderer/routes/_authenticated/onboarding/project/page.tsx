@@ -4,7 +4,7 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { LuFolderOpen, LuGitBranch } from "react-icons/lu";
+import { LuFolderOpen, LuGitBranch, LuLayoutTemplate } from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -13,6 +13,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
+import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
@@ -31,6 +32,7 @@ function OnboardingProjectPage() {
 	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
 	const [url, setUrl] = useState("");
 	const [busy, setBusy] = useState(false);
+	const [templateOpen, setTemplateOpen] = useState(false);
 
 	const folderImport = useFolderFirstImport({
 		onError: (message) => toast.error(message),
@@ -140,6 +142,35 @@ function OnboardingProjectPage() {
 					</Button>
 				</form>
 			</Card>
+
+			<Card className="flex-row items-center gap-4 p-5">
+				<ProjectIcon icon={<LuLayoutTemplate className="size-4.5" />} />
+				<div className="min-w-0 flex-1">
+					<p className="text-sm font-medium text-foreground">
+						Start from a template
+					</p>
+					<p className="text-xs text-muted-foreground">
+						Scaffold a new project from a starter like gstack.
+					</p>
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setTemplateOpen(true)}
+					disabled={!hostReady || busy}
+				>
+					{hostReady ? "Browse…" : "Connecting…"}
+				</Button>
+			</Card>
+
+			<TemplateGalleryModal
+				open={templateOpen}
+				onOpenChange={setTemplateOpen}
+				onCreated={(result) => {
+					setTemplateOpen(false);
+					finish(result.projectId);
+				}}
+			/>
 		</div>
 	);
 }
