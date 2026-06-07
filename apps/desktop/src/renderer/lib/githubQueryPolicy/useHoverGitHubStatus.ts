@@ -10,18 +10,24 @@ interface UseHoverGitHubStatusOptions {
 	workspaceId: string | null | undefined;
 	surface: GitHubStatusQuerySurface;
 	isWorktree: boolean;
+	/**
+	 * Fetch on mount instead of waiting for the first hover. Used by sidebar
+	 * cards that show PR info inline. Hover still drives refreshes.
+	 */
+	eager?: boolean;
 }
 
 export function useHoverGitHubStatus({
 	workspaceId,
 	surface,
 	isWorktree,
+	eager = false,
 }: UseHoverGitHubStatusOptions) {
 	const [hasHovered, setHasHovered] = useState(false);
 
 	const queryPolicy = getGitHubStatusQueryPolicy(surface, {
 		hasWorkspaceId: !!workspaceId,
-		isActive: hasHovered && isWorktree,
+		isActive: (eager || hasHovered) && isWorktree,
 	});
 
 	const {

@@ -1,4 +1,5 @@
 import { mergeRouters } from "../..";
+import { createCardLinesProcedures } from "./procedures/card-lines";
 import { createCreateProcedures } from "./procedures/create";
 import { createDeleteProcedures } from "./procedures/delete";
 import { createGenerateBranchNameProcedures } from "./procedures/generate-branch-name";
@@ -18,6 +19,7 @@ export const createWorkspacesRouter = () => {
 		createInitProcedures(),
 		createSectionsProcedures(),
 		createGenerateBranchNameProcedures(),
+		createCardLinesProcedures(),
 	);
 };
 

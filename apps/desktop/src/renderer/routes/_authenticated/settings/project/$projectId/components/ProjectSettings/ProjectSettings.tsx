@@ -49,6 +49,7 @@ import {
 } from "../../../../utils/settings-search";
 import { ProjectSettingsHeader } from "../ProjectSettingsHeader";
 import { ScriptsEditor } from "./components/ScriptsEditor";
+import { WorkspaceCardSettings } from "./components/WorkspaceCardSettings";
 
 const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
 
@@ -385,6 +386,13 @@ export function ProjectSettings({
 							workspaces will fall back to "{repoDefaultBranch}".
 						</p>
 					)}
+				</SettingsSection>
+
+				<SettingsSection
+					title="Workspace cards"
+					description="Which lines the sidebar workspace cards show for this project"
+				>
+					<WorkspaceCardSettings projectId={projectId} />
 				</SettingsSection>
 
 				<SettingsSection title="Worktrees">
