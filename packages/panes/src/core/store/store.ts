@@ -14,6 +14,7 @@ import {
 	generateId,
 	getActiveIdAfterRemoval,
 	getPaneIdsInLayout,
+	graftSubtreeAtPane,
 	positionToDirection,
 	removePaneFromLayout,
 	replacePaneIdInLayout,
@@ -168,6 +169,11 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 
 	movePaneToTab: (args: { paneId: string; targetTabId: string }) => void;
 	movePaneToNewTab: (args: { paneId: string; toIndex?: number }) => void;
+	moveTabToSplit: (args: {
+		sourceTabId: string;
+		targetPaneId: string;
+		position: SplitPosition;
+	}) => void;
 
 	reorderTab: (args: { tabId: string; toIndex: number }) => void;
 
@@ -852,6 +858,43 @@ export function createWorkspaceStore<TData>(
 				nextTabs.splice(insertIndex, 0, newTab);
 
 				return { tabs: nextTabs, activeTabId: newTab.id };
+			});
+		},
+
+		moveTabToSplit: (args) => {
+			set((s) => {
+				const sourceTab = s.tabs.find((t) => t.id === args.sourceTabId);
+				if (!sourceTab || !sourceTab.layout) return s;
+
+				const targetTab = s.tabs.find((t) => t.panes[args.targetPaneId]);
+				if (!targetTab || !targetTab.layout) return s;
+				// Merging a tab into one of its own panes is a no-op.
+				if (sourceTab.id === targetTab.id) return s;
+				if (!findPaneInLayout(targetTab.layout, args.targetPaneId)) return s;
+
+				// Graft the source's whole layout subtree so its internal split
+				// arrangement is preserved, rather than re-adding panes one by one.
+				const nextTargetLayout = graftSubtreeAtPane(
+					targetTab.layout,
+					args.targetPaneId,
+					sourceTab.layout,
+					args.position,
+				);
+
+				const nextTabs = s.tabs
+					.filter((t) => t.id !== sourceTab.id)
+					.map((t) =>
+						t.id === targetTab.id
+							? {
+									...t,
+									layout: nextTargetLayout,
+									panes: { ...t.panes, ...sourceTab.panes },
+									activePaneId: sourceTab.activePaneId ?? t.activePaneId,
+								}
+							: t,
+					);
+
+				return { tabs: nextTabs, activeTabId: targetTab.id };
 			});
 		},
 

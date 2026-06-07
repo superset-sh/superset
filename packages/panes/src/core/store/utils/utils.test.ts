@@ -9,6 +9,7 @@ import {
 	getOtherBranch,
 	getPaneIdsInLayout,
 	getSpatialNeighborPaneId,
+	graftSubtreeAtPane,
 	positionToDirection,
 	removePaneFromLayout,
 	replacePaneIdInLayout,
@@ -230,6 +231,56 @@ describe("splitPaneInLayout", () => {
 				expect(nested.second).toEqual({ type: "pane", paneId: "c" });
 			}
 		}
+	});
+});
+
+describe("graftSubtreeAtPane", () => {
+	it("grafts a whole subtree next to the target pane, preserving its shape", () => {
+		const subtree: LayoutNode = {
+			type: "split",
+			direction: "vertical",
+			first: { type: "pane", paneId: "x" },
+			second: { type: "pane", paneId: "y" },
+		};
+
+		const result = graftSubtreeAtPane(SINGLE, "a", subtree, "right");
+
+		expect(result).toEqual({
+			type: "split",
+			direction: "horizontal",
+			first: { type: "pane", paneId: "a" },
+			second: subtree,
+		});
+	});
+
+	it("places the subtree first for left/top positions", () => {
+		const subtree: LayoutNode = { type: "pane", paneId: "x" };
+		const result = graftSubtreeAtPane(SINGLE, "a", subtree, "top");
+
+		expect(result).toEqual({
+			type: "split",
+			direction: "vertical",
+			first: subtree,
+			second: { type: "pane", paneId: "a" },
+		});
+	});
+
+	it("grafts at a nested target pane and leaves siblings untouched", () => {
+		const subtree: LayoutNode = { type: "pane", paneId: "x" };
+		const result = graftSubtreeAtPane(NESTED, "c", subtree, "right");
+
+		// a stays as-is; the b/c vertical split keeps b, c becomes c|x
+		if (result.type !== "split") throw new Error("expected split");
+		expect(result.first).toEqual({ type: "pane", paneId: "a" });
+		const inner = result.second;
+		if (inner.type !== "split") throw new Error("expected nested split");
+		expect(inner.first).toEqual({ type: "pane", paneId: "b" });
+		expect(inner.second).toEqual({
+			type: "split",
+			direction: "horizontal",
+			first: { type: "pane", paneId: "c" },
+			second: subtree,
+		});
 	});
 });
 

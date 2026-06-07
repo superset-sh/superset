@@ -1,6 +1,11 @@
 .diff-comment {
 	display: block;
-	max-width: min(100%, 720px);
+	/* Size to the visible code column. The bubble is slotted into a
+	 * shrink-to-fit flex item ([data-annotation-content]), so a plain 100%
+	 * resolved against an indefinite width and let wide content overflow the
+	 * pane. cqi queries the [data-line-annotation] cell (made a container in
+	 * useDiffCodeViewTheme's unsafeCSS); 1.5rem is this rule's mx-3 margins. */
+	max-width: min(calc(100cqi - 1.5rem), 720px);
 	min-width: 0;
 	box-sizing: border-box;
 	overflow-wrap: anywhere;

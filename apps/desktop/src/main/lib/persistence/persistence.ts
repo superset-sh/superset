@@ -139,6 +139,13 @@ function suppressIdleResumeWrites(
 export function initTanstackDbPersistence(): void {
 	ensureSupersetHomeDirExists();
 	database = new Database(join(SUPERSET_HOME_DIR, "tanstack-db.sqlite"));
+	// Crash durability: WAL keeps the main DB file intact across a kill mid-commit
+	// (auto-update restart / OS crash) because writes go to a -wal file and the
+	// main file is only touched by an atomic checkpoint. Default DELETE journal
+	// rewrites the main file in place and can truncate it -> SQLITE_CORRUPT.
+	database.pragma("journal_mode = WAL");
+	database.pragma("synchronous = NORMAL");
+	database.pragma("busy_timeout = 5000");
 	reclaimBloatedDatabaseFile(database);
 	const persistence = createNodeSQLitePersistence({
 		database,

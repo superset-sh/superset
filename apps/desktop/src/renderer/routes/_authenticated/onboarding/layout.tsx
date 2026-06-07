@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -49,6 +50,7 @@ function OnboardingFlowLayout() {
 	const chatClient = useMemo(() => createChatServiceIpcClient(), []);
 	const location = useLocation();
 	const navigate = useNavigate();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const [skipping, setSkipping] = useState(false);
 	const { rerun } = Route.useSearch();
 
@@ -94,7 +96,10 @@ function OnboardingFlowLayout() {
 			setSkipping(false);
 			return;
 		}
-		await navigate({ to: "/v2-workspaces", replace: true });
+		await navigate({
+			to: isV2CloudEnabled ? "/v2-workspaces" : "/workspaces",
+			replace: true,
+		});
 	};
 
 	return (

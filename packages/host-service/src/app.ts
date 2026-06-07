@@ -60,6 +60,7 @@ export interface CreateAppResult {
 	app: Hono;
 	injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 	api: ApiClient;
+	db: HostDb;
 	dispose: () => Promise<void>;
 }
 
@@ -213,5 +214,5 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}
 	};
 
-	return { app, injectWebSocket, api, dispose };
+	return { app, injectWebSocket, api, db, dispose };
 }

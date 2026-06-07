@@ -27,7 +27,6 @@ export function initPostHog(deviceId?: string) {
 			ph.register({
 				app_name: "desktop",
 				platform: window.navigator.platform,
-				desktop_version: window.App.appVersion,
 				...(deviceId && { device_id: deviceId }),
 			});
 		},
