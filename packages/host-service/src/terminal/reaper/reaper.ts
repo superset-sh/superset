@@ -3,45 +3,23 @@ import { terminalSessions } from "../../db/schema.ts";
 import { getDaemonClient } from "../daemon-client-singleton.ts";
 import { disposeSessionAndWait } from "../terminal.ts";
 
-export interface ReapResult {
+interface ReapResult {
 	reaped: number;
 	failed: number;
 }
 
 const REAP_INTERVAL_MS = 5 * 60 * 1000;
 
-const rowlessSessionsPendingSecondPass = new Set<string>();
-
-export function startTerminalReaper(db: HostDb): () => void {
-	const run = () => {
-		void reapOrphanedSessions(db)
-			.then((result) => {
-				if (result.reaped > 0 || result.failed > 0) {
-					console.log(
-						`[host-service] terminal reaper: ${result.reaped} reaped, ${result.failed} failed`,
-					);
-				}
-			})
-			.catch((err) => {
-				console.warn("[host-service] terminal reaper failed:", err);
-			});
-	};
-	run();
-	const interval = setInterval(run, REAP_INTERVAL_MS);
-	interval.unref();
-	return () => clearInterval(interval);
-}
-
-export async function reapOrphanedSessions(db: HostDb): Promise<ReapResult> {
+async function reapOrphanedSessions(
+	db: HostDb,
+	rowlessPendingSecondPass: Set<string>,
+): Promise<ReapResult> {
 	const daemon = await getDaemonClient();
 	const liveSessions = (await daemon.list()).filter((session) => session.alive);
-	const liveIds = new Set(liveSessions.map((session) => session.id));
-
-	for (const id of rowlessSessionsPendingSecondPass) {
-		if (!liveIds.has(id)) rowlessSessionsPendingSecondPass.delete(id);
+	if (liveSessions.length === 0) {
+		rowlessPendingSecondPass.clear();
+		return { reaped: 0, failed: 0 };
 	}
-
-	if (liveSessions.length === 0) return { reaped: 0, failed: 0 };
 
 	const rows = db
 		.select({
@@ -53,13 +31,13 @@ export async function reapOrphanedSessions(db: HostDb): Promise<ReapResult> {
 		.all();
 	const rowById = new Map(rows.map((row) => [row.id, row]));
 
-	const orphanIds: string[] = [];
+	const orphans: { id: string; rowless: boolean }[] = [];
 	const stillRowless = new Set<string>();
 	for (const session of liveSessions) {
 		const row = rowById.get(session.id);
 		if (!row) {
-			if (rowlessSessionsPendingSecondPass.has(session.id)) {
-				orphanIds.push(session.id);
+			if (rowlessPendingSecondPass.has(session.id)) {
+				orphans.push({ id: session.id, rowless: true });
 			} else {
 				stillRowless.add(session.id);
 			}
@@ -70,23 +48,58 @@ export async function reapOrphanedSessions(db: HostDb): Promise<ReapResult> {
 			row.status === "exited" ||
 			!row.originWorkspaceId
 		) {
-			orphanIds.push(session.id);
+			orphans.push({ id: session.id, rowless: false });
 		}
 	}
-
-	rowlessSessionsPendingSecondPass.clear();
-	for (const id of stillRowless) rowlessSessionsPendingSecondPass.add(id);
 
 	let reaped = 0;
 	let failed = 0;
-	for (const id of orphanIds) {
+	for (const orphan of orphans) {
 		try {
-			const result = await disposeSessionAndWait(id, db);
-			if (result.daemonCloseSucceeded) reaped += 1;
-			else failed += 1;
+			const result = await disposeSessionAndWait(orphan.id, db);
+			if (result.daemonCloseSucceeded) {
+				reaped += 1;
+				continue;
+			}
 		} catch {
-			failed += 1;
+			// fall through to the failure path below
 		}
+		failed += 1;
+		// A failed kill on a confirmed (second-pass) rowless orphan is kept
+		// pending so the next pass retries it instead of restarting its
+		// two-pass clock.
+		if (orphan.rowless) stillRowless.add(orphan.id);
 	}
+
+	rowlessPendingSecondPass.clear();
+	for (const id of stillRowless) rowlessPendingSecondPass.add(id);
+
 	return { reaped, failed };
+}
+
+export function startTerminalReaper(db: HostDb): () => void {
+	const rowlessPendingSecondPass = new Set<string>();
+	let running = false;
+	const run = () => {
+		if (running) return;
+		running = true;
+		void reapOrphanedSessions(db, rowlessPendingSecondPass)
+			.then((result) => {
+				if (result.reaped > 0 || result.failed > 0) {
+					console.log(
+						`[host-service] terminal reaper: ${result.reaped} reaped, ${result.failed} failed`,
+					);
+				}
+			})
+			.catch((err) => {
+				console.warn("[host-service] terminal reaper failed:", err);
+			})
+			.finally(() => {
+				running = false;
+			});
+	};
+	run();
+	const interval = setInterval(run, REAP_INTERVAL_MS);
+	interval.unref();
+	return () => clearInterval(interval);
 }

@@ -1,5 +1,1 @@
-export {
-	type ReapResult,
-	reapOrphanedSessions,
-	startTerminalReaper,
-} from "./reaper.ts";
+export { startTerminalReaper } from "./reaper.ts";
