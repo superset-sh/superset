@@ -24,6 +24,15 @@ export interface ModeTracker {
 	resize(cols: number, rows: number): void;
 	buildPreamble(): Uint8Array | null;
 	dispose(): void;
+	/**
+	 * Register a handler for the headless xterm's automatic replies to
+	 * terminal queries the program emits (primary/secondary device
+	 * attributes, cursor-position reports, …). Lets the host answer the
+	 * shell's startup queries itself rather than depending on an attached
+	 * renderer. Mirrors the v1 headless emulator (apps/desktop/src/main/
+	 * lib/terminal-host).
+	 */
+	onData(callback: (data: string) => void): void;
 }
 
 // Reaches into private xterm internals: synchronous parsing and kitty
@@ -118,6 +127,9 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 		return new TextEncoder().encode(parts.join(""));
 	};
 
+	let onDataCallback: ((data: string) => void) | undefined;
+	term.onData((data) => onDataCallback?.(data));
+
 	return {
 		feed(bytes) {
 			writeBuffer.writeSync(bytes);
@@ -127,6 +139,9 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 			term.resize(nextCols, nextRows);
 		},
 		buildPreamble,
+		onData(callback) {
+			onDataCallback = callback;
+		},
 		dispose() {
 			term.dispose();
 		},

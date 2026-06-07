@@ -420,6 +420,14 @@ export function writeInputToSession({
 		return { error: "Terminal session has exited" };
 	}
 
+	// Drop terminal query responses (DA/DSR, `\x1b`-prefixed) while the shell
+	// is initializing. The host answers those queries itself (see
+	// modeTracker.onData); forwarding the renderer's duplicate here would
+	// inject it as typed text and displace the queued preset command.
+	if (session.shellReadyState === "pending" && data.startsWith("\x1b")) {
+		return { success: true };
+	}
+
 	session.pty.write(data);
 	return { success: true };
 }
@@ -1064,6 +1072,19 @@ export async function createTerminalSessionInternal({
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
 
+	// Answer the shell's startup terminal queries (DA/DSR) server-side while
+	// it is still initializing. The renderer also answers these, but its
+	// replies arrive as stdin and are dropped during `pending` (see
+	// writeInputToSession and the "input" socket handler) — otherwise they
+	// surface as typed text like `?62;4;9;22c` and displace the queued preset
+	// command. Gated on `pending` so the renderer is the sole responder once
+	// the shell is interactive. Mirrors the v1 headless emulator.
+	session.modeTracker.onData((data) => {
+		if (session.shellReadyState === "pending") {
+			session.pty.write(data);
+		}
+	});
+
 	// If the marker never arrives (broken wrapper, unsupported config),
 	// the timeout unblocks so the session degrades gracefully.
 	if (session.shellReadyState === "pending") {
@@ -1393,6 +1414,14 @@ export function registerWorkspaceTerminalRoute({
 					if (session.exited) return;
 
 					if (message.type === "input") {
+						// See writeInputToSession: drop the renderer's query
+						// responses while the shell is still initializing.
+						if (
+							session.shellReadyState === "pending" &&
+							message.data.startsWith("\x1b")
+						) {
+							return;
+						}
 						session.pty.write(message.data);
 						return;
 					}
