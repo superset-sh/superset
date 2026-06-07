@@ -68,8 +68,8 @@ export const POSTHOG_COOKIE_NAME = "superset";
 // and admin.
 // 2026-05-15 14:00 UTC = Fri 07:00 PDT / 10:00 EDT.
 export const V2_ONLY_USER_CUTOFF = "2026-05-15T14:00:00.000Z";
-// 2026-06-07 03:00 UTC = Sat 20:00 PDT (8pm Pacific).
-export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-07T03:00:00.000Z";
+// 2026-06-07 22:00 UTC = Sun 15:00 PDT (3pm Pacific).
+export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-07T22:00:00.000Z";
 
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
