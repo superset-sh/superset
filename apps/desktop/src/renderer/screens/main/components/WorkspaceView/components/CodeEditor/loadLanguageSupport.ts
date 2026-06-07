@@ -101,6 +101,11 @@ export async function loadLanguageSupport(
 				() => import("@codemirror/legacy-modes/mode/toml"),
 				"toml",
 			);
+		case "properties":
+			return loadLegacyLanguage(
+				() => import("@codemirror/legacy-modes/mode/properties"),
+				"properties",
+			);
 		case "ruby":
 			return loadLegacyLanguage(
 				() => import("@codemirror/legacy-modes/mode/ruby"),
