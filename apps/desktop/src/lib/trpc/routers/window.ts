@@ -1,12 +1,50 @@
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import { dialog } from "electron";
+import { getManagedWindowByWebContents } from "main/windows/manager";
 import { getImageMimeType } from "shared/file-types";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
 export const createWindowRouter = () => {
 	return router({
+		/**
+		 * Identity of the calling window. Lets renderers distinguish themselves
+		 * (e.g. to ignore self-originated cross-window state broadcasts).
+		 */
+		self: publicProcedure.query(({ ctx }) => {
+			if (!ctx.window) return null;
+			const webContentsId = ctx.window.webContents.id;
+			const managed = getManagedWindowByWebContents(webContentsId);
+			return {
+				windowId: managed?.id ?? null,
+				webContentsId,
+				workspaceId: managed?.workspaceId ?? null,
+			};
+		}),
+
+		/**
+		 * Open a workspace in a new window, optionally focused on a tab.
+		 * Dynamic import: windows/main statically imports the app router, so a
+		 * static import here would create a cycle (same pattern as lib/menu.ts).
+		 */
+		openWorkspaceWindow: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					focusTabId: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const { MainWindow } = await import("main/windows/main");
+				await MainWindow({
+					workspaceId: input.workspaceId,
+					stagger: true,
+					focusTabId: input.focusTabId,
+				});
+				return { success: true };
+			}),
+
 		minimize: publicProcedure.mutation(({ ctx }) => {
 			if (!ctx.window) return { success: false };
 			ctx.window.minimize();

@@ -72,6 +72,8 @@ export interface MainWindowOptions {
 	workspaceId?: string | null;
 	/** When true, stagger bounds off any existing window to avoid stacking. */
 	stagger?: boolean;
+	/** Tab to focus on first paint (forwarded to the renderer as a query param). */
+	focusTabId?: string;
 }
 
 export async function MainWindow(
@@ -126,7 +128,12 @@ export async function MainWindow(
 		frame: false,
 		titleBarStyle: "hidden",
 		trafficLightPosition: { x: 16, y: 16 },
-		query: workspaceId ? { workspaceId } : undefined,
+		query: workspaceId
+			? {
+					workspaceId,
+					...(options.focusTabId ? { focusTabId: options.focusTabId } : {}),
+				}
+			: undefined,
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,
