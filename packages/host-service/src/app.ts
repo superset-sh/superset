@@ -17,7 +17,6 @@ import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
-import { startTerminalReaper } from "./terminal/reaper";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import { TerminalAgentStore } from "./terminal-agents";
 import { appRouter } from "./trpc/router";
@@ -61,6 +60,7 @@ export interface CreateAppResult {
 	app: Hono;
 	injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 	api: ApiClient;
+	db: HostDb;
 	dispose: () => Promise<void>;
 }
 
@@ -163,8 +163,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		upgradeWebSocket,
 	});
 
-	const stopTerminalReaper = startTerminalReaper(db);
-
 	app.use(
 		"/trpc/*",
 		trpcServer({
@@ -193,11 +191,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
 		try {
-			stopTerminalReaper();
-		} catch (err) {
-			console.warn("[host-service] stopTerminalReaper failed:", err);
-		}
-		try {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
@@ -221,5 +214,5 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}
 	};
 
-	return { app, injectWebSocket, api, dispose };
+	return { app, injectWebSocket, api, db, dispose };
 }
