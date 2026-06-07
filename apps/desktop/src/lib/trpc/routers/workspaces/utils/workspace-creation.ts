@@ -21,6 +21,7 @@ interface CreateWorkspaceFromWorktreeParams {
 	worktreeId: string;
 	branch: string;
 	name: string;
+	sectionId?: string | null;
 }
 
 export function createWorkspaceFromWorktree({
@@ -28,6 +29,7 @@ export function createWorkspaceFromWorktree({
 	worktreeId,
 	branch,
 	name,
+	sectionId = null,
 }: CreateWorkspaceFromWorktreeParams) {
 	const maxTabOrder = getMaxProjectChildTabOrder(projectId);
 
@@ -39,6 +41,7 @@ export function createWorkspaceFromWorktree({
 			type: "worktree",
 			branch,
 			name,
+			sectionId,
 			tabOrder: maxTabOrder + 1,
 		})
 		.returning()
@@ -69,6 +72,7 @@ export interface CreateWorkspaceFromExternalWorktreeParams {
 	projectId: string;
 	branch: string;
 	name: string;
+	sectionId?: string | null;
 }
 
 export interface CreateWorkspaceFromExternalWorktreeResult {
@@ -96,6 +100,7 @@ export async function createWorkspaceFromExternalWorktree({
 	projectId,
 	branch,
 	name,
+	sectionId = null,
 }: CreateWorkspaceFromExternalWorktreeParams): Promise<
 	CreateWorkspaceFromExternalWorktreeResult | undefined
 > {
@@ -230,6 +235,7 @@ export async function createWorkspaceFromExternalWorktree({
 			worktreeId: worktree.id,
 			branch,
 			name,
+			sectionId,
 		});
 
 		workspaceId = workspace.id;

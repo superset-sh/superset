@@ -1,4 +1,9 @@
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import {
+	projects,
+	workspaceSections,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -38,6 +43,7 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
+import { resolveWorkspaceSectionId } from "../utils/resolve-section";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
@@ -437,6 +443,7 @@ export const createCreateProcedures = () => {
 				z
 					.object({
 						projectId: z.string(),
+						sectionId: z.string().optional(),
 						name: z.string().optional(),
 						prompt: z.string().optional(),
 						branchName: z.string().optional(),
@@ -469,6 +476,23 @@ export const createCreateProcedures = () => {
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
+
+				// Resolve the target group (a.k.a. "section") up front so an invalid
+				// section fails fast before any git work, and so every workspace
+				// creation path below lands the new workspace in the right group.
+				const requestedSectionId = input.sectionId?.trim() || null;
+				const resolvedSectionId = resolveWorkspaceSectionId({
+					requestedSectionId,
+					section: requestedSectionId
+						? localDb
+								.select()
+								.from(workspaceSections)
+								.where(eq(workspaceSections.id, requestedSectionId))
+								.get()
+						: undefined,
+					projectId: input.projectId,
+				});
+
 				const requestedCompareBaseBranch = input.compareBaseBranch;
 
 				const sourceWorkspace = input.sourceWorkspaceId
@@ -582,6 +606,7 @@ export const createCreateProcedures = () => {
 							worktreeId: orphanedWorktree.id,
 							branch,
 							name: input.name ?? branch,
+							sectionId: resolvedSectionId,
 						});
 						let autoRenameWarning: string | undefined;
 						try {
@@ -621,6 +646,7 @@ export const createCreateProcedures = () => {
 							projectId: input.projectId,
 							branch,
 							name: input.name ?? branch,
+							sectionId: resolvedSectionId,
 						});
 
 					if (externalWorkspaceResult) {
@@ -662,6 +688,7 @@ export const createCreateProcedures = () => {
 						branch,
 						name: input.name ?? branch,
 						isUnnamed: !input.name,
+						sectionId: resolvedSectionId,
 						tabOrder: maxTabOrder + 1,
 					})
 					.returning()
