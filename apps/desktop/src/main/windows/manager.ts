@@ -4,6 +4,7 @@ import type { BrowserWindow } from "electron";
 export interface ManagedWindow {
 	id: string;
 	window: BrowserWindow;
+	webContentsId: number;
 	workspaceId: string | null;
 	lastFocusedAt: number;
 }
@@ -19,11 +20,12 @@ export function registerWindow(
 	const managed: ManagedWindow = {
 		id,
 		window,
+		webContentsId: window.webContents.id,
 		workspaceId: opts.workspaceId ?? null,
 		lastFocusedAt: Date.now(),
 	};
 	managedWindows.set(id, managed);
-	webContentsToWindowId.set(window.webContents.id, id);
+	webContentsToWindowId.set(managed.webContentsId, id);
 
 	window.on("focus", () => {
 		managed.lastFocusedAt = Date.now();
@@ -38,7 +40,9 @@ export function registerWindow(
 export function unregisterWindow(id: string): void {
 	const managed = managedWindows.get(id);
 	if (!managed) return;
-	webContentsToWindowId.delete(managed.window.webContents.id);
+	// Use the id captured at registration — accessing window.webContents after
+	// the window is destroyed (e.g. in the "closed" handler) throws.
+	webContentsToWindowId.delete(managed.webContentsId);
 	managedWindows.delete(id);
 }
 

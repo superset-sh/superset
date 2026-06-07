@@ -61,6 +61,26 @@ describe("registerWindow", () => {
 		expect(getManagedWindow(managed.id)).toBeUndefined();
 		expect(getManagedWindowByWebContents(fake.webContents.id)).toBeUndefined();
 	});
+
+	it("unregisters on closed even when webContents is already destroyed", () => {
+		const { win, fake } = fakeWindow();
+		const managed = registerWindow(win);
+		const wcId = fake.webContents.id;
+
+		// Real Electron throws "Object has been destroyed" on any webContents
+		// access once the window is destroyed — which is the state inside the
+		// "closed" handler.
+		fake.destroyed = true;
+		Object.defineProperty(fake, "webContents", {
+			get() {
+				throw new TypeError("Object has been destroyed");
+			},
+		});
+
+		expect(() => fake.emit("closed")).not.toThrow();
+		expect(getManagedWindow(managed.id)).toBeUndefined();
+		expect(getManagedWindowByWebContents(wcId)).toBeUndefined();
+	});
 });
 
 describe("getAllManagedWindows", () => {
