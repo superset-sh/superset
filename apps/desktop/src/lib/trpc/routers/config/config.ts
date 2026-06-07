@@ -23,9 +23,13 @@ import {
 	watchWorkspaceCardConfigFile,
 } from "./workspace-card-source";
 import {
-	commandSetHash,
 	resolveGatedWorkspaceCardConfig,
+	resolveWorkspaceCardTrustHash,
 } from "./workspace-card-trust";
+import {
+	loadCompiledWidget,
+	watchWorkspaceCardWidgetsDir,
+} from "./workspace-card-widgets";
 
 /**
  * Validated projectId — rejects path traversal attempts before they reach
@@ -456,7 +460,8 @@ export const createConfigRouter = () => {
 					: "defaults";
 			}),
 
-		// Returns the trust state for repo-sourced command lines. When
+		// Returns the trust state for repo-sourced command and widget lines.
+		// Both run arbitrary code, so both count toward pending approval. When
 		// pendingCommandCount > 0 the UI should show the consent banner.
 		getWorkspaceCardTrustState: publicProcedure
 			.input(z.object({ projectId: projectIdSchema }))
@@ -470,22 +475,24 @@ export const createConfigRouter = () => {
 					return { trusted: true, pendingCommandCount: 0 };
 				}
 				const config = parseWorkspaceCardConfig(block);
-				const commandCount = config.customLines.filter(
-					(l) => l.type === "command" && l.enabled,
+				const codeLineCount = config.customLines.filter(
+					(l) => (l.type === "command" || l.type === "widget") && l.enabled,
 				).length;
-				if (commandCount === 0) {
+				if (codeLineCount === 0) {
 					return { trusted: true, pendingCommandCount: 0 };
 				}
 				const trusted =
 					(appState.data.trustedCardCommandProjects?.[input.projectId] ??
-						null) === commandSetHash(config);
+						null) === resolveWorkspaceCardTrustHash(input.projectId, config);
 				return {
 					trusted,
-					pendingCommandCount: trusted ? 0 : commandCount,
+					pendingCommandCount: trusted ? 0 : codeLineCount,
 				};
 			}),
 
-		// Approve the current repo command set for this project.
+		// Approve the current repo command + widget set for this project. The
+		// stored hash folds in widget file contents, so editing a widget body
+		// later re-arms the consent gate.
 		trustCardCommands: publicProcedure
 			.input(z.object({ projectId: projectIdSchema }))
 			.mutation(async ({ input }) => {
@@ -493,7 +500,10 @@ export const createConfigRouter = () => {
 				if (block === undefined) return { success: true };
 				const config = parseWorkspaceCardConfig(block);
 				const next = { ...appState.data.trustedCardCommandProjects };
-				next[input.projectId] = commandSetHash(config);
+				next[input.projectId] = resolveWorkspaceCardTrustHash(
+					input.projectId,
+					config,
+				);
 				appState.data.trustedCardCommandProjects = next;
 				await appState.write();
 				return { success: true };
@@ -548,9 +558,10 @@ export const createConfigRouter = () => {
 				return { success: true };
 			}),
 
-		// Emits whenever the project's .superset/config.json changes on disk,
-		// so card configs live-reload without an app restart. Same
-		// observable-subscription pattern as hostServiceCoordinator.onStatusChange.
+		// Emits whenever the project's .superset/config.json OR any file under
+		// .superset/widgets/ changes on disk, so card configs and widget modules
+		// live-reload without an app restart. Same observable-subscription pattern
+		// as hostServiceCoordinator.onStatusChange.
 		watchWorkspaceCardConfig: publicProcedure
 			.input(z.object({ projectId: projectIdSchema }))
 			.subscription(({ input }) => {
@@ -559,11 +570,68 @@ export const createConfigRouter = () => {
 					if (!repoPath) {
 						return () => {};
 					}
-					return watchWorkspaceCardConfigFile(repoPath, () =>
+					const stopConfig = watchWorkspaceCardConfigFile(repoPath, () =>
 						emit.next({ changedAt: Date.now() }),
 					);
+					const stopWidgets = watchWorkspaceCardWidgetsDir(repoPath, () =>
+						emit.next({ changedAt: Date.now() }),
+					);
+					return () => {
+						stopConfig();
+						stopWidgets();
+					};
 				});
 			}),
+
+		// Returns the compiled CJS module source + content hash for a widget
+		// line, but ONLY when the project's repo command/widget set is currently
+		// trusted. The renderer never sends a file path — it sends a lineId, and
+		// the server resolves the widget file from the gated config (untrusted
+		// widget lines are absent, so an unknown lineId means "not permitted").
+		// Same server-side-resolve-by-id security pattern as command lines.
+		getWidgetModule: publicProcedure
+			.input(z.object({ projectId: projectIdSchema, lineId: z.string() }))
+			.query(
+				({
+					input,
+				}):
+					| { ok: true; code: string; hash: string }
+					| {
+							ok: false;
+							reason: "untrusted" | "not-found" | "compile-error";
+							message?: string;
+					  } => {
+					const config = resolveGatedWorkspaceCardConfig(input.projectId);
+					const line = config.customLines.find(
+						(l) => l.id === input.lineId && l.type === "widget" && l.enabled,
+					);
+					// Untrusted or unknown widget lines are stripped from the gated
+					// config, so an absent line means "not permitted here".
+					if (!line || line.type !== "widget") {
+						return { ok: false, reason: "untrusted" };
+					}
+					const repoPath = resolveWorkspaceCardRepoPath(input.projectId);
+					if (!repoPath) {
+						return { ok: false, reason: "not-found" };
+					}
+					try {
+						const compiled = loadCompiledWidget(repoPath, line.file);
+						if (!compiled) {
+							return { ok: false, reason: "not-found" };
+						}
+						return { ok: true, code: compiled.code, hash: compiled.hash };
+					} catch (error) {
+						return {
+							ok: false,
+							reason: "compile-error",
+							message:
+								error instanceof Error
+									? error.message
+									: "Failed to compile widget",
+						};
+					}
+				},
+			),
 
 		// Get the config file path (creates it if it doesn't exist)
 		getConfigFilePath: publicProcedure

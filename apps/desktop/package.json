@@ -228,6 +228,7 @@
 		"simple-git": "3.36.0",
 		"streamdown": "2.5.0",
 		"strip-ansi": "7.2.0",
+		"sucrase": "3.35.1",
 		"superjson": "2.2.6",
 		"tailwind-merge": "3.5.0",
 		"tippy.js": "6.3.7",

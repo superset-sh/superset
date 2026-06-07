@@ -1,12 +1,15 @@
 import { cn } from "@superset/ui/utils";
 import { LuCircleCheck, LuCircleDot, LuCircleX } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import type { WidgetContext } from "renderer/lib/widget-kit";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	CommandCardLine,
 	ComponentCardLine,
+	WidgetCardLine,
 	WorkspaceCardConfig,
 } from "shared/workspace-card-config";
+import { WidgetLine } from "./WidgetLine";
 import {
 	type WorkspaceCardLineComponentProps,
 	WorkspaceCardLineComponents,
@@ -16,6 +19,9 @@ type ChecksStatus = "success" | "failure" | "pending" | "none";
 
 interface CardPr {
 	title: string;
+	number?: number;
+	url?: string;
+	state?: string;
 	checksStatus?: ChecksStatus;
 	reviewDecision?: string | null;
 }
@@ -86,6 +92,30 @@ function ComponentLineRow({
 	);
 }
 
+function WidgetLineRow({
+	line,
+	projectId,
+	ctx,
+}: {
+	line: WidgetCardLine;
+	projectId: string;
+	ctx: WidgetContext;
+}) {
+	return (
+		<div className="flex items-center gap-1.5 min-w-0">
+			{line.label && (
+				<span className="shrink-0 text-muted-foreground/60">{line.label}</span>
+			)}
+			<WidgetLine
+				projectId={projectId}
+				lineId={line.id}
+				label={line.label || line.file}
+				ctx={ctx}
+			/>
+		</div>
+	);
+}
+
 function ChecksIcon({ status }: { status: ChecksStatus }) {
 	if (status === "success") {
 		return <LuCircleCheck className="size-3 shrink-0 text-emerald-500/90" />;
@@ -119,6 +149,29 @@ export function WorkspaceCardLines({
 	const customLines = workspaceId
 		? config.customLines.filter((line) => line.enabled)
 		: [];
+
+	// Snapshot handed to widgets — assembled from props the renderers already
+	// have. No new data plumbing; fields default to null/undefined when absent.
+	const widgetCtx: WidgetContext | null =
+		workspaceId && projectId !== undefined
+			? {
+					workspaceId,
+					projectId,
+					workspaceName: workspaceName ?? "",
+					branch: branch ?? "",
+					pr: pr
+						? {
+								number: pr.number,
+								title: pr.title,
+								url: pr.url,
+								checks: pr.checksStatus,
+								reviewDecision: pr.reviewDecision,
+							}
+						: null,
+					linearTicket: linearTicket ?? null,
+					status: workspaceStatus,
+				}
+			: null;
 
 	if (
 		!showPrLine &&
@@ -171,9 +224,9 @@ export function WorkspaceCardLines({
 				</div>
 			)}
 			{workspaceId &&
-				customLines.map((line) =>
-					line.type === "component" ? (
-						projectId !== undefined && (
+				customLines.map((line) => {
+					if (line.type === "component") {
+						return projectId !== undefined ? (
 							<ComponentLineRow
 								key={line.id}
 								line={line}
@@ -182,15 +235,26 @@ export function WorkspaceCardLines({
 								branch={branch ?? ""}
 								workspaceName={workspaceName ?? ""}
 							/>
-						)
-					) : (
+						) : null;
+					}
+					if (line.type === "widget") {
+						return projectId !== undefined && widgetCtx ? (
+							<WidgetLineRow
+								key={line.id}
+								line={line}
+								projectId={projectId}
+								ctx={widgetCtx}
+							/>
+						) : null;
+					}
+					return (
 						<CustomLineRow
 							key={line.id}
 							workspaceId={workspaceId}
 							line={line}
 						/>
-					),
-				)}
+					);
+				})}
 		</div>
 	);
 }

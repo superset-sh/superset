@@ -119,14 +119,17 @@ export function WorkspaceCardSettings({
 					<LuShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-500" />
 					<div className="min-w-0 flex-1">
 						<p className="font-medium text-foreground">
-							Repo-defined command{pendingCount === 1 ? "" : "s"} pending
-							approval
+							Repo-defined command{pendingCount === 1 ? "" : "s"}/widget
+							{pendingCount === 1 ? "" : "s"} pending approval
 						</p>
 						<p className="mt-0.5 text-xs text-muted-foreground">
 							This project&apos;s{" "}
 							<code className="font-mono">.superset/config.json</code> defines{" "}
-							{pendingCount} command{pendingCount === 1 ? "" : "s"} that run
-							automatically on each workspace card. Approve to enable them.
+							{pendingCount} command{pendingCount === 1 ? "" : "s"} or widget
+							{pendingCount === 1 ? "" : "s"} that run code (shell commands and{" "}
+							<code className="font-mono">.superset/widgets/*.tsx</code>{" "}
+							modules) on each workspace card. Editing a widget file re-arms
+							this approval. Approve to enable them.
 						</p>
 						<div className="mt-2 flex gap-2">
 							<Button

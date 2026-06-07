@@ -10,17 +10,21 @@ import {
 } from "./workspace-card-config";
 
 // Inline the pure gating logic so this test file has no main-process imports.
-// It must stay in sync with applyCommandGating in workspace-card-trust.ts.
+// It must stay in sync with applyCommandGating in workspace-card-trust.ts:
+// command AND widget lines are stripped when untrusted (both run code);
+// component lines always pass.
 function applyCommandGating(
 	config: WorkspaceCardConfig,
 	storedHash: string | undefined,
+	currentHash: string = commandSetHash(config),
 ): WorkspaceCardConfig {
-	const currentHash = commandSetHash(config);
 	const trusted = storedHash !== undefined && storedHash === currentHash;
 	if (trusted) return config;
 	return {
 		...config,
-		customLines: config.customLines.filter((l) => l.type !== "command"),
+		customLines: config.customLines.filter(
+			(l) => l.type !== "command" && l.type !== "widget",
+		),
 	};
 }
 
@@ -100,6 +104,43 @@ describe("applyCommandGating", () => {
 
 		// Old hash no longer matches updated config -- treated as untrusted.
 		const gated = applyCommandGating(updated, originalHash);
+		expect(gated.customLines).toHaveLength(0);
+	});
+
+	it("strips widget lines (arbitrary code) when untrusted", () => {
+		const withWidget = parseWorkspaceCardConfig({
+			customLines: [
+				{ id: "w", type: "widget", file: "widgets/a.tsx" },
+				{ id: "cmp", type: "component", component: "clock" },
+			],
+		});
+		const gated = applyCommandGating(withWidget, undefined);
+		expect(gated.customLines).toHaveLength(1);
+		expect(gated.customLines[0].type).toBe("component");
+	});
+
+	it("passes widget lines through when the content-aware hash matches", () => {
+		const withWidget = parseWorkspaceCardConfig({
+			customLines: [{ id: "w", type: "widget", file: "widgets/a.tsx" }],
+		});
+		// Main process computes a content-aware hash and passes it as the third
+		// arg; here we simulate a stored hash that matches it exactly.
+		const contentHash = "trusted-content-hash";
+		const gated = applyCommandGating(withWidget, contentHash, contentHash);
+		expect(gated.customLines).toHaveLength(1);
+		expect(gated.customLines[0].type).toBe("widget");
+	});
+
+	it("strips widget lines when the content-aware hash diverges (edited file)", () => {
+		const withWidget = parseWorkspaceCardConfig({
+			customLines: [{ id: "w", type: "widget", file: "widgets/a.tsx" }],
+		});
+		// storedHash was for the OLD widget contents; current hash differs.
+		const gated = applyCommandGating(
+			withWidget,
+			"old-content-hash",
+			"new-content-hash",
+		);
 		expect(gated.customLines).toHaveLength(0);
 	});
 });

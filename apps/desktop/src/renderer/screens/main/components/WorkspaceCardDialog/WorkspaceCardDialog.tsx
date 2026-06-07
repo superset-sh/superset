@@ -166,6 +166,13 @@ export function WorkspaceCardDialog({
 								>
 									component: {line.component}
 								</span>
+							) : line.type === "widget" ? (
+								<span
+									className="flex-1 truncate text-xs text-muted-foreground"
+									title={line.file}
+								>
+									widget: {line.file}
+								</span>
 							) : (
 								<code className="flex-1 truncate text-xs" title={line.command}>
 									{line.command}
