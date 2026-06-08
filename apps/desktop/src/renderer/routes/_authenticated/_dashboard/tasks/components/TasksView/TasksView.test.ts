@@ -87,6 +87,21 @@ describe("Run in Workspace selection wiring (#2641)", () => {
 		expect(source).toContain("generateTaskDraft");
 	});
 
+	test("CreateTaskDialog seeds the local task row before navigating to detail", () => {
+		const source = readComponent(
+			"components/TasksTopBar/components/CreateTaskDialog/CreateTaskDialog.tsx",
+		);
+		const localUpsertIndex = source.indexOf(
+			"collections.tasks.utils.upsertSyncedRow(result.task)",
+		);
+		const navigateIndex = source.indexOf("navigate({");
+
+		expect(source).toContain("collections.tasks.startSyncImmediate();");
+		expect(localUpsertIndex).toBeGreaterThan(-1);
+		expect(navigateIndex).toBeGreaterThan(-1);
+		expect(localUpsertIndex).toBeLessThan(navigateIndex);
+	});
+
 	test("CreateTaskDialog uses inline AI polish without dormant attachment or native date controls", () => {
 		const source = readComponent(
 			"components/TasksTopBar/components/CreateTaskDialog/CreateTaskDialog.tsx",

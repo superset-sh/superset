@@ -245,12 +245,16 @@ describe("Superset Task Trellis bridge", () => {
 		].join("\n");
 
 		const merged = mergeTrellisHookConfig(config, {
+			after_create:
+				"python3 .trellis/scripts/hooks/superset_task_sync.py after_create",
 			after_start:
 				"python3 .trellis/scripts/hooks/superset_task_sync.py after_start",
 			after_archive:
 				"python3 .trellis/scripts/hooks/superset_task_sync.py after_archive",
 		});
 		const second = mergeTrellisHookConfig(merged.text, {
+			after_create:
+				"python3 .trellis/scripts/hooks/superset_task_sync.py after_create",
 			after_start:
 				"python3 .trellis/scripts/hooks/superset_task_sync.py after_start",
 			after_archive:
@@ -260,6 +264,7 @@ describe("Superset Task Trellis bridge", () => {
 		expect(merged.changed).toBe(true);
 		expect(merged.text).toContain('    - "echo custom-start"');
 		expect(merged.text).toContain('    - "echo custom-finish"');
+		expect(merged.text).toContain("  after_create:");
 		expect(merged.text).toContain(
 			'    - "python3 .trellis/scripts/hooks/superset_task_sync.py after_start"',
 		);
@@ -310,8 +315,82 @@ describe("Superset Task Trellis bridge", () => {
 		expect(taskJson.meta.supersetTaskId).toBe(taskId);
 		expect(taskJson.meta.supersetTaskSlug).toBe("sync-task");
 		expect(taskJson.meta.supersetWorkspaceId).toBe(
-			"22222222-2222-4222-8222-222222222222",
+			"33333333-3333-4333-8333-333333333333",
 		);
+
+		const linkJson = JSON.parse(
+			await readFile(
+				join(repoPath, ".trellis", "superset", "task-link.json"),
+				"utf8",
+			),
+		) as Record<string, unknown>;
+		expect(linkJson.supersetTaskId).toBe(taskId);
+		expect(linkJson.supersetTaskSlug).toBe("sync-task");
+		expect(linkJson.supersetWorkspaceId).toBe(
+			"33333333-3333-4333-8333-333333333333",
+		);
+		expect(linkJson.taskJsonPath).toBe(first.taskJsonPath);
+	});
+
+	test("repairs a matching existing Trellis task when metadata was rewritten", async () => {
+		const repoPath = await readyTrellisRepo();
+		const taskDir = join(repoPath, ".trellis", "tasks", "06-08-sync-task");
+		await mkdir(taskDir, { recursive: true });
+		const taskJsonPath = join(taskDir, "task.json");
+		await writeFile(
+			taskJsonPath,
+			JSON.stringify(
+				{
+					id: "sync-task",
+					name: "sync-task",
+					title: "Sync task status",
+					status: "in_progress",
+					meta: {},
+				},
+				null,
+				2,
+			),
+			"utf8",
+		);
+
+		const result = await ensureSupersetTaskTrellisLink({
+			worktreePath: repoPath,
+			workspaceId: "44444444-4444-4444-8444-444444444444",
+			branch: "feature/repair",
+			supersetTask: {
+				id: "33333333-3333-4333-8333-333333333333",
+				slug: "sync-task",
+				title: "Sync task status",
+			},
+		});
+
+		expect(result.created).toBe(false);
+		expect(result.taskJsonPath).toBe(taskJsonPath);
+
+		const taskJson = JSON.parse(await readFile(taskJsonPath, "utf8")) as {
+			meta: Record<string, unknown>;
+			branch: string;
+			worktree_path: string;
+		};
+		expect(taskJson.branch).toBe("feature/repair");
+		expect(taskJson.worktree_path).toBe(repoPath);
+		expect(taskJson.meta.supersetTaskId).toBe(
+			"33333333-3333-4333-8333-333333333333",
+		);
+		expect(taskJson.meta.supersetWorkspaceId).toBe(
+			"44444444-4444-4444-8444-444444444444",
+		);
+
+		const linkJson = JSON.parse(
+			await readFile(
+				join(repoPath, ".trellis", "superset", "task-link.json"),
+				"utf8",
+			),
+		) as Record<string, unknown>;
+		expect(linkJson.supersetTaskId).toBe(
+			"33333333-3333-4333-8333-333333333333",
+		);
+		expect(linkJson.taskJsonPath).toBe(taskJsonPath);
 	});
 
 	test("installs the sync hook script and appends lifecycle hooks idempotently", async () => {
@@ -339,12 +418,13 @@ describe("Superset Task Trellis bridge", () => {
 		expect(second.installed).toBe(true);
 		expect(second.configChanged).toBe(false);
 		expect(config).toContain('    - "echo custom-start"');
+		expect(config).toContain("superset_task_sync.py after_create");
 		expect(config).toContain("superset_task_sync.py after_start");
 		expect(config).toContain("superset_task_sync.py after_archive");
 		expect(script).toContain("EVENT_TO_STATUS_TYPE");
 	});
 
-	test("sync hook maps Trellis start/archive to Superset status updates", async () => {
+	test("sync hook maps Trellis create/start/archive to Superset status updates", async () => {
 		const repoPath = await readyTrellisRepo();
 		const taskId = "44444444-4444-4444-8444-444444444444";
 		await ensureSupersetTaskTrellisLink({
@@ -386,6 +466,7 @@ with open(os.environ["CAPTURE_PATH"], "a", encoding="utf-8") as handle:
 args = sys.argv[1:]
 if args == ["tasks", "statuses", "list", "--json"]:
     print(json.dumps([
+        {"id": "unstarted-status", "type": "unstarted"},
         {"id": "started-status", "type": "started"},
         {"id": "completed-status", "type": "completed"},
     ]))
@@ -399,7 +480,12 @@ raise SystemExit(2)
 		);
 		await chmod(fakeSuperset, 0o755);
 
-		for (const event of ["after_start", "after_archive", "after_finish"]) {
+		for (const event of [
+			"after_create",
+			"after_start",
+			"after_archive",
+			"after_finish",
+		]) {
 			await execFileAsync(PYTHON, [hookPath, event], {
 				cwd: repoPath,
 				env: {
@@ -417,9 +503,64 @@ raise SystemExit(2)
 			.map((line) => JSON.parse(line) as string[]);
 		expect(calls).toEqual([
 			["tasks", "statuses", "list", "--json"],
+			["tasks", "update", taskId, "--status-id", "unstarted-status", "--json"],
+			["tasks", "statuses", "list", "--json"],
 			["tasks", "update", taskId, "--status-id", "started-status", "--json"],
 			["tasks", "statuses", "list", "--json"],
 			["tasks", "update", taskId, "--status-id", "completed-status", "--json"],
+		]);
+	});
+
+	test("sync hook falls back to the durable workspace link when task metadata is rewritten", async () => {
+		const repoPath = await readyTrellisRepo();
+		const taskId = "88888888-8888-4888-8888-888888888888";
+		await ensureSupersetTaskTrellisLink({
+			worktreePath: repoPath,
+			workspaceId: "99999999-9999-4999-8999-999999999999",
+			branch: "feature/fallback",
+			supersetTask: { id: taskId, slug: "fallback-sync", title: "Fallback" },
+		});
+		await installSupersetTaskSyncHook({ worktreePath: repoPath });
+		const taskJsonPath = join(
+			repoPath,
+			".trellis",
+			"tasks",
+			await readdirTaskDir(repoPath),
+			"task.json",
+		);
+		await writeFile(
+			taskJsonPath,
+			JSON.stringify({ status: "in_progress", meta: {} }, null, 2),
+			"utf8",
+		);
+
+		const fake = await writeLoggingSupersetCli(repoPath, [
+			{ id: "started-status", type: "started" },
+		]);
+		await execFileAsync(
+			PYTHON,
+			[
+				join(repoPath, ".trellis", "scripts", "hooks", "superset_task_sync.py"),
+				"after_start",
+			],
+			{
+				cwd: repoPath,
+				env: {
+					TASK_JSON_PATH: taskJsonPath,
+					SUPERSET_HOME_DIR: join(repoPath, "empty-home"),
+					PATH: fake.binDir,
+					CAPTURE_PATH: fake.logPath,
+				},
+			},
+		);
+
+		const calls = (await readFile(fake.logPath, "utf8"))
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line) as string[]);
+		expect(calls).toEqual([
+			["tasks", "statuses", "list", "--json"],
+			["tasks", "update", taskId, "--status-id", "started-status", "--json"],
 		]);
 	});
 

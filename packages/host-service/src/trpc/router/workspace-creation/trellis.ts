@@ -104,8 +104,10 @@ export type TrellisCommandRunner = (
 
 const SUPERSET_TASK_SYNC_HOOK_RELATIVE_PATH =
 	".trellis/scripts/hooks/superset_task_sync.py";
+const SUPERSET_TASK_LINK_RELATIVE_PATH = ".trellis/superset/task-link.json";
 
 const SUPERSET_TASK_SYNC_HOOK_COMMANDS = {
+	after_create: `python3 ${SUPERSET_TASK_SYNC_HOOK_RELATIVE_PATH} after_create`,
 	after_start: `python3 ${SUPERSET_TASK_SYNC_HOOK_RELATIVE_PATH} after_start`,
 	after_archive: `python3 ${SUPERSET_TASK_SYNC_HOOK_RELATIVE_PATH} after_archive`,
 } as const;
@@ -124,6 +126,9 @@ from pathlib import Path
 
 
 EVENT_TO_STATUS_TYPE = {
+    "after_create": "unstarted",
+    "create": "unstarted",
+    "planning": "unstarted",
     "after_start": "started",
     "start": "started",
     "in_progress": "started",
@@ -151,12 +156,51 @@ def load_task_json() -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def linked_superset_task_id(task_json: dict) -> str | None:
-    meta = task_json.get("meta")
-    if not isinstance(meta, dict):
+def find_trellis_dir(task_json_path: str) -> Path | None:
+    try:
+        path = Path(task_json_path).resolve()
+    except Exception:
+        path = Path(task_json_path)
+
+    for candidate in [path, *path.parents]:
+        if candidate.name == ".trellis" and candidate.is_dir():
+            return candidate
+
+    cwd_trellis = Path.cwd() / ".trellis"
+    if cwd_trellis.is_dir():
+        return cwd_trellis
+    return None
+
+
+def load_workspace_link(task_json_path: str) -> dict | None:
+    trellis_dir = find_trellis_dir(task_json_path)
+    if trellis_dir is None:
         return None
-    task_id = meta.get("supersetTaskId")
-    return task_id if isinstance(task_id, str) and task_id.strip() else None
+    link_path = trellis_dir / "superset" / "task-link.json"
+    try:
+        with open(link_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except FileNotFoundError:
+        return None
+    except Exception as exc:
+        warn(f"could not read Superset task link file: {exc}")
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def linked_superset_task_id(task_json: dict, task_json_path: str) -> str | None:
+    meta = task_json.get("meta")
+    if isinstance(meta, dict):
+        task_id = meta.get("supersetTaskId")
+        if isinstance(task_id, str) and task_id.strip():
+            return task_id
+
+    link = load_workspace_link(task_json_path)
+    if isinstance(link, dict):
+        task_id = link.get("supersetTaskId")
+        if isinstance(task_id, str) and task_id.strip():
+            return task_id
+    return None
 
 
 def candidate_cli_paths() -> list[str]:
@@ -243,11 +287,12 @@ def main() -> int:
     if status_type is None:
         return 0
 
+    task_json_path = os.environ.get("TASK_JSON_PATH", "").strip()
     task_json = load_task_json()
     if task_json is None:
         return 0
 
-    task_id = linked_superset_task_id(task_json)
+    task_id = linked_superset_task_id(task_json, task_json_path)
     if task_id is None:
         return 0
 
@@ -784,6 +829,59 @@ function readSupersetTaskId(taskJson: Record<string, unknown>): string | null {
 	return typeof taskId === "string" && taskId.trim() ? taskId : null;
 }
 
+async function writeSupersetTaskTrellisLinkFile(args: {
+	worktreePath: string;
+	taskJsonPath: string | null;
+	supersetTask: {
+		id: string;
+		slug?: string | null;
+	};
+	workspaceId?: string | null;
+	branch?: string | null;
+}): Promise<void> {
+	const linkPath = join(args.worktreePath, SUPERSET_TASK_LINK_RELATIVE_PATH);
+	await mkdir(dirname(linkPath), { recursive: true });
+	await writeJsonObject(linkPath, {
+		supersetTaskId: args.supersetTask.id,
+		supersetTaskSlug: optionalString(args.supersetTask.slug),
+		supersetWorkspaceId: optionalString(args.workspaceId),
+		branch: optionalString(args.branch),
+		taskJsonPath: optionalString(args.taskJsonPath),
+		updatedAt: new Date().toISOString(),
+	});
+}
+
+async function writeSupersetTaskMetadata(args: {
+	taskJsonPath: string;
+	worktreePath: string;
+	supersetTask: {
+		id: string;
+		slug?: string | null;
+	};
+	workspaceId?: string | null;
+	branch?: string | null;
+}): Promise<void> {
+	const taskJson = (await readJsonObject(args.taskJsonPath)) ?? {};
+	const previousMeta = taskJson.meta;
+	const meta =
+		previousMeta &&
+		typeof previousMeta === "object" &&
+		!Array.isArray(previousMeta)
+			? (previousMeta as Record<string, unknown>)
+			: {};
+	await writeJsonObject(args.taskJsonPath, {
+		...taskJson,
+		branch: optionalString(args.branch) ?? taskJson.branch ?? null,
+		worktree_path: taskJson.worktree_path ?? args.worktreePath,
+		meta: {
+			...meta,
+			supersetTaskId: args.supersetTask.id,
+			supersetTaskSlug: optionalString(args.supersetTask.slug),
+			supersetWorkspaceId: optionalString(args.workspaceId),
+		},
+	});
+}
+
 async function findLinkedTrellisTaskJson(args: {
 	tasksPath: string;
 	supersetTaskId: string;
@@ -800,6 +898,71 @@ async function findLinkedTrellisTaskJson(args: {
 		const taskJsonPath = join(args.tasksPath, entry.name, "task.json");
 		const taskJson = await readJsonObject(taskJsonPath);
 		if (taskJson && readSupersetTaskId(taskJson) === args.supersetTaskId) {
+			return taskJsonPath;
+		}
+	}
+
+	return null;
+}
+
+function trellisTaskMatchesSupersetTask(args: {
+	entryName: string;
+	taskJson: Record<string, unknown>;
+	supersetTask: {
+		slug?: string | null;
+		title?: string | null;
+	};
+}): boolean {
+	const slug = optionalString(args.supersetTask.slug);
+	const title = optionalString(args.supersetTask.title);
+	const titleSlug = title ? slugifyTaskTitle(title, "") : null;
+	const candidateKeys = new Set(
+		[slug, titleSlug].filter((value): value is string => Boolean(value)),
+	);
+	if (candidateKeys.size === 0) return false;
+
+	const candidateValues = [
+		args.entryName,
+		args.taskJson.id,
+		args.taskJson.name,
+		args.taskJson.title,
+	]
+		.filter((value): value is string => typeof value === "string")
+		.flatMap((value) => [value, slugifyTaskTitle(value, "")]);
+
+	return candidateValues.some((value) => candidateKeys.has(value));
+}
+
+async function findMatchingUnlinkedTrellisTaskJson(args: {
+	tasksPath: string;
+	supersetTask: {
+		id: string;
+		slug?: string | null;
+		title?: string | null;
+	};
+}): Promise<string | null> {
+	const entries = await readdir(args.tasksPath, { withFileTypes: true }).catch(
+		(error) => {
+			if (isNodeErrno(error, "ENOENT")) return [];
+			throw error;
+		},
+	);
+
+	for (const entry of entries) {
+		if (!entry.isDirectory() || entry.name === "archive") continue;
+		const taskJsonPath = join(args.tasksPath, entry.name, "task.json");
+		const taskJson = await readJsonObject(taskJsonPath);
+		if (!taskJson) continue;
+
+		const linkedTaskId = readSupersetTaskId(taskJson);
+		if (linkedTaskId && linkedTaskId !== args.supersetTask.id) continue;
+		if (
+			trellisTaskMatchesSupersetTask({
+				entryName: entry.name,
+				taskJson,
+				supersetTask: args.supersetTask,
+			})
+		) {
 			return taskJsonPath;
 		}
 	}
@@ -879,14 +1042,44 @@ export async function ensureSupersetTaskTrellisLink(args: {
 	const existingTaskJsonPath = await findLinkedTrellisTaskJson({
 		tasksPath,
 		supersetTaskId: args.supersetTask.id,
-	});
+	}).then(
+		(path) =>
+			path ??
+			findMatchingUnlinkedTrellisTaskJson({
+				tasksPath,
+				supersetTask: args.supersetTask,
+			}),
+	);
 	if (existingTaskJsonPath) {
-		return {
-			created: false,
-			taskDir: dirname(existingTaskJsonPath),
-			taskJsonPath: existingTaskJsonPath,
-			warning: null,
-		};
+		try {
+			await writeSupersetTaskMetadata({
+				taskJsonPath: existingTaskJsonPath,
+				worktreePath: args.worktreePath,
+				supersetTask: args.supersetTask,
+				workspaceId: args.workspaceId,
+				branch: args.branch,
+			});
+			await writeSupersetTaskTrellisLinkFile({
+				worktreePath: args.worktreePath,
+				taskJsonPath: existingTaskJsonPath,
+				supersetTask: args.supersetTask,
+				workspaceId: args.workspaceId,
+				branch: args.branch,
+			});
+			return {
+				created: false,
+				taskDir: dirname(existingTaskJsonPath),
+				taskJsonPath: existingTaskJsonPath,
+				warning: null,
+			};
+		} catch (error) {
+			return {
+				created: false,
+				taskDir: dirname(existingTaskJsonPath),
+				taskJsonPath: existingTaskJsonPath,
+				warning: `Failed to write the durable Superset Task link: ${errorMessageWithOutput(error)}`,
+			};
+		}
 	}
 
 	try {
@@ -953,6 +1146,13 @@ export async function ensureSupersetTaskTrellisLink(args: {
 			}),
 			"utf8",
 		);
+		await writeSupersetTaskTrellisLinkFile({
+			worktreePath: args.worktreePath,
+			taskJsonPath,
+			supersetTask: args.supersetTask,
+			workspaceId: args.workspaceId,
+			branch: args.branch,
+		});
 
 		return {
 			created: true,

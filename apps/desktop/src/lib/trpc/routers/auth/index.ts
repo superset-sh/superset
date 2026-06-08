@@ -17,6 +17,7 @@ import {
 	stateStore,
 	TOKEN_FILE,
 } from "./utils/auth-functions";
+import { clearCliAuthConfig, syncCliAuthConfig } from "./utils/cli-auth-config";
 
 export const createAuthRouter = () => {
 	return router({
@@ -32,10 +33,30 @@ export const createAuthRouter = () => {
 				z.object({
 					token: z.string(),
 					expiresAt: z.string(),
+					organizationId: z.string().nullable().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				await saveToken(input);
+				return { success: true };
+			}),
+
+		syncCliAuthConfig: publicProcedure
+			.input(
+				z.object({
+					organizationId: z.string().nullable().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const storedToken = await loadToken();
+				if (!storedToken.token || !storedToken.expiresAt) {
+					return { success: false, reason: "missing-token" as const };
+				}
+				await syncCliAuthConfig({
+					token: storedToken.token,
+					expiresAt: storedToken.expiresAt,
+					organizationId: input.organizationId,
+				});
 				return { success: true };
 			}),
 
@@ -111,6 +132,9 @@ export const createAuthRouter = () => {
 		signOut: publicProcedure.mutation(async () => {
 			getHostServiceCoordinator().stopAll();
 			await fs.unlink(TOKEN_FILE).catch(() => {});
+			await clearCliAuthConfig().catch((error) => {
+				console.warn("[auth] Failed to clear CLI auth config:", error);
+			});
 			authEvents.emit("token-cleared");
 			return { success: true };
 		}),

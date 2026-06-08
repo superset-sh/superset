@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import { join } from "node:path";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 import { PROTOCOL_SCHEME } from "shared/constants";
+import { syncCliAuthConfig } from "./cli-auth-config";
 import { decrypt, encrypt } from "./crypto-storage";
 
 interface StoredAuth {
@@ -45,12 +46,15 @@ export async function loadToken(): Promise<{
 export async function saveToken({
 	token,
 	expiresAt,
+	organizationId,
 }: {
 	token: string;
 	expiresAt: string;
+	organizationId?: string | null;
 }): Promise<void> {
 	const storedAuth: StoredAuth = { token, expiresAt };
 	await fs.writeFile(TOKEN_FILE, encrypt(JSON.stringify(storedAuth)));
+	await syncCliAuthConfig({ token, expiresAt, organizationId });
 	authEvents.emit("token-saved", { token, expiresAt });
 }
 

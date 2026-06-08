@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useEffectEvent, useState } from "react";
 import { authClient, setAuthToken, setJwt } from "renderer/lib/auth-client";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
@@ -16,7 +16,9 @@ async function refreshAuthJwt(logContext: string): Promise<void> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
-	const { refetch: refetchSession } = authClient.useSession();
+	const { data: session, refetch: refetchSession } = authClient.useSession();
+	const syncCliAuthConfigMutation =
+		electronTrpc.auth.syncCliAuthConfig.useMutation();
 
 	const { data: storedToken, isSuccess } =
 		electronTrpc.auth.getStoredToken.useQuery(undefined, {
@@ -97,6 +99,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		);
 		return () => clearInterval(interval);
 	}, [isHydrated]);
+
+	const syncCliAuthConfigForSession = useEffectEvent(
+		async (organizationId: string | null) => {
+			await syncCliAuthConfigMutation.mutateAsync({ organizationId });
+		},
+	);
+
+	useEffect(() => {
+		if (!isHydrated || !storedToken?.token || !storedToken?.expiresAt) return;
+
+		void syncCliAuthConfigForSession(
+			session?.session?.activeOrganizationId ?? null,
+		).catch((error) => {
+			console.warn("[AuthProvider] CLI auth config sync failed", error);
+		});
+	}, [
+		isHydrated,
+		session?.session?.activeOrganizationId,
+		storedToken?.expiresAt,
+		storedToken?.token,
+	]);
 
 	if (!isHydrated) {
 		return (

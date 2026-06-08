@@ -30,7 +30,7 @@ import type {
 } from "@superset/db/schema";
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
 import type { AppRouter } from "@superset/trpc";
-import { BasicIndex } from "@tanstack/db";
+import { BasicIndex, type SyncConfig, type UtilsRecord } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
 	createElectronSQLitePersistence,
@@ -112,6 +112,76 @@ const createIndexedCollection = ((
 	createCollection({ ...config, ...indexDefaults })) as typeof createCollection;
 
 type ElectricSyncConfig = ReturnType<typeof electricCollectionOptions>;
+
+type SyncRowMutation<T extends object> =
+	| { type: "insert" | "update"; value: T; metadata?: Record<string, unknown> }
+	| { type: "delete"; key: string | number };
+
+type SyncRowControls<T extends object> = {
+	begin: (options?: { immediate?: boolean }) => void;
+	write: (mutation: SyncRowMutation<T>) => void;
+	commit: () => void;
+};
+
+interface SyncedRowUpsertUtils<T extends object> extends UtilsRecord {
+	upsertSyncedRow: (row: T) => boolean;
+}
+
+type SyncedTaskCollection = Collection<
+	SelectTask,
+	string | number,
+	SyncedRowUpsertUtils<SelectTask>
+>;
+
+function withSyncedRowUpsertFor<T extends object>() {
+	return <
+		TConfig extends {
+			sync: SyncConfig<T, string | number>;
+			utils?: UtilsRecord;
+		},
+	>(
+		config: TConfig,
+	): TConfig & { utils: TConfig["utils"] & SyncedRowUpsertUtils<T> } => {
+		const syncControls: Partial<SyncRowControls<T>> = {};
+		const sourceSync = config.sync;
+
+		return {
+			...config,
+			sync: {
+				...sourceSync,
+				sync: (params) => {
+					syncControls.begin = params.begin;
+					syncControls.write = params.write as SyncRowControls<T>["write"];
+					syncControls.commit = params.commit;
+					return sourceSync.sync(params);
+				},
+			},
+			utils: {
+				...(config.utils ?? {}),
+				upsertSyncedRow: (row: T) => {
+					if (
+						!syncControls.begin ||
+						!syncControls.write ||
+						!syncControls.commit
+					) {
+						return false;
+					}
+
+					try {
+						syncControls.begin({ immediate: true });
+						syncControls.write({ type: "update", value: row });
+						syncControls.commit();
+						return true;
+					} catch (error) {
+						console.warn("[collections] Failed to upsert synced row", error);
+						return false;
+					}
+				},
+			} as TConfig["utils"] & SyncedRowUpsertUtils<T>,
+		};
+	};
+}
+
 const createPersistedElectricCollection = ((config: ElectricSyncConfig) => {
 	const persisted = persistedCollectionOptions({
 		...config,
@@ -142,7 +212,7 @@ type IntegrationConnectionDisplay = Omit<
 >;
 
 export interface OrgCollections {
-	tasks: Collection<SelectTask>;
+	tasks: SyncedTaskCollection;
 	taskStatuses: Collection<SelectTaskStatus>;
 	projects: Collection<SelectProject>;
 	v2Hosts: Collection<SelectV2Host>;
@@ -271,34 +341,36 @@ const organizationsCollection = createPersistedElectricCollection(
 
 function createOrgCollections(organizationId: string): OrgCollections {
 	const tasks = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTask>({
-			id: `tasks-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "tasks",
-					organizationId,
+		withSyncedRowUpsertFor<SelectTask>()(
+			electricCollectionOptions<SelectTask>({
+				id: `tasks-${organizationId}`,
+				shapeOptions: {
+					url: electricUrl,
+					params: {
+						table: "tasks",
+						organizationId,
+					},
+					headers: electricHeaders,
+					columnMapper,
+					onError: handleElectricSyncError,
 				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const result = await apiClient.task.update.mutate({
-					...changes,
-					id: original.id,
-				});
-				return electricTxidMatch(result.txid);
-			},
-			onDelete: async ({ transaction }) => {
-				const item = transaction.mutations[0].original;
-				const result = await apiClient.task.delete.mutate(item.id);
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
+				getKey: (item) => item.id,
+				onUpdate: async ({ transaction }) => {
+					const { original, changes } = transaction.mutations[0];
+					const result = await apiClient.task.update.mutate({
+						...changes,
+						id: original.id,
+					});
+					return electricTxidMatch(result.txid);
+				},
+				onDelete: async ({ transaction }) => {
+					const item = transaction.mutations[0].original;
+					const result = await apiClient.task.delete.mutate(item.id);
+					return electricTxidMatch(result.txid);
+				},
+			}),
+		),
+	) as unknown as SyncedTaskCollection;
 
 	const taskStatuses = createPersistedElectricCollection(
 		electricCollectionOptions<SelectTaskStatus>({

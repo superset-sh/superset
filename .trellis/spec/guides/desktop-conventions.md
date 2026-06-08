@@ -31,6 +31,93 @@ Workspace type has product meaning. `v2Workspaces.type === "main"` is pinned and
 
 Task status display uses status rows, not hard-coded labels. `StatusIcon.tsx`, `StatusMenuItems.tsx`, `StatusProperty.tsx`, `useTasksData.tsx`, and `sorting.ts` rely on `taskStatuses.type`, `color`, `position`, and `progressPercent`.
 
+## Task Create Local Sync
+
+### 1. Scope / Trigger
+
+- Trigger: a desktop renderer flow creates a cloud Task through
+  `apiTrpcClient.task.create` and immediately routes to a collection-backed
+  Task surface.
+- Goal: the user should land on an editable Task detail page immediately, not
+  a read-only "Syncing local task data" fallback while Electric catches up.
+
+### 2. Signatures
+
+- API mutation: `apiTrpcClient.task.create.mutate(input)` returns
+  `{ task: SelectTask, txid: number }`.
+- Renderer local sync helper:
+  `collections.tasks.utils.upsertSyncedRow(task: SelectTask): boolean`.
+- Task collection utility source:
+  `withSyncedRowUpsertFor<SelectTask>()` in
+  `apps/desktop/src/renderer/routes/_authenticated/providers/CollectionsProvider/collections.ts`.
+
+### 3. Contracts
+
+- Cloud tRPC remains the canonical write path for creating Tasks.
+- After `task.create` returns a `task`, the renderer must write that exact row
+  into `collections.tasks` through the collection sync channel before routing
+  to `/tasks/$taskId`.
+- The local write must use sync `update` semantics, not
+  `collections.tasks.insert`, so it behaves as an upsert and does not invoke a
+  second cloud create mutation.
+- The helper should call `startSyncImmediate()` before upserting when the flow
+  is about to navigate into a collection-backed detail route.
+- If the local upsert helper returns `false`, the existing API fallback may
+  render, but successful normal creation should not depend on waiting for
+  Electric shape delivery.
+
+### 4. Validation & Error Matrix
+
+- `task.create` returns no `task` -> throw and keep the dialog open with an
+  error toast.
+- Sync controls are not ready -> `upsertSyncedRow` returns `false`; route may
+  fall back to API read-only data.
+- Sync write throws -> warn to console and return `false`; do not fail the
+  already-successful cloud create.
+- Electric later emits the same row -> normal collection reconciliation updates
+  the synced row without duplicating the Task.
+
+### 5. Good/Base/Bad Cases
+
+- Good: create Task, local upsert succeeds, detail route immediately renders
+  `EditableTitle`, properties, and workspace actions.
+- Base: local upsert is unavailable, detail route renders the API fallback
+  until Electric sync arrives.
+- Bad: create Task, navigate immediately, and show
+  `Syncing local task data` for seconds even though the API returned the row.
+- Bad: use `collections.tasks.insert` after `task.create`, causing a second
+  persistence mutation or duplicate write semantics.
+
+### 6. Tests Required
+
+- Source regression: `CreateTaskDialog` calls
+  `collections.tasks.startSyncImmediate()` and
+  `collections.tasks.utils.upsertSyncedRow(result.task)` before `navigate`.
+- Collection regression: `collections.tasks` is wrapped with
+  `withSyncedRowUpsertFor<SelectTask>()`, uses sync `update`, and has no
+  `onInsert`.
+- Desktop Automation smoke: create a real Task, wait for `#/tasks/<id>`, and
+  assert the page does not contain `Syncing local task data` or
+  `Editing unlocks after local sync finishes.`
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+const result = await apiTrpcClient.task.create.mutate(input);
+navigate({ to: "/tasks/$taskId", params: { taskId: result.task.id } });
+```
+
+#### Correct
+
+```typescript
+const result = await apiTrpcClient.task.create.mutate(input);
+collections.tasks.startSyncImmediate();
+collections.tasks.utils.upsertSyncedRow(result.task);
+navigate({ to: "/tasks/$taskId", params: { taskId: result.task.id } });
+```
+
 ## Host-Service Local State
 
 Host-service owns per-machine local project/workspace state. Electron starts one host-service process per organization through `HostServiceCoordinator`, and the child receives:
@@ -71,6 +158,10 @@ intent while host-service owns filesystem probing and mutation.
 - Repo-local task metadata:
   `task.json.meta.supersetTaskId`, plus optional `supersetTaskSlug` and
   `supersetWorkspaceId`.
+- Durable repo-local task link:
+  `.trellis/superset/task-link.json`, containing `supersetTaskId`,
+  optional `supersetTaskSlug`, `supersetWorkspaceId`, `branch`,
+  `taskJsonPath`, and `updatedAt`.
 
 ### 3. Contracts
 
@@ -96,19 +187,27 @@ intent while host-service owns filesystem probing and mutation.
   Workspace is created from a Superset Task, host-service may create one
   repository-local Trellis mirror task and link it through
   `task.json.meta.supersetTaskId`; arbitrary Trellis tasks are not imported
-  into Superset.
+  into Superset. Because Agents may rewrite Trellis task metadata, host-service
+  must also write `.trellis/superset/task-link.json` as the durable fallback
+  link. If a matching existing Trellis task can be identified by slug/title but
+  has missing metadata, repair that task instead of creating a duplicate mirror.
 - Guided Task workspaces install a conservative Trellis lifecycle hook that
   preserves existing `.trellis/config.yaml` hooks and appends only:
+  `after_create -> superset_task_sync.py after_create`,
   `after_start -> superset_task_sync.py after_start` and
   `after_archive -> superset_task_sync.py after_archive`.
 - Trellis lifecycle status sync resolves Superset status ids dynamically by
   status `type`, never by hard-coded UUID or localized name:
-  `after_start` maps to `started`; `after_archive` maps to `completed`;
-  `after_finish` is a no-op.
+  `after_create` maps to `unstarted`, `after_start` maps to `started`;
+  `after_archive` maps to `completed`; `after_finish` is a no-op.
 - The sync hook should find the bundled/user Superset CLI through
   `SUPERSET_CLI_PATH`, `${SUPERSET_HOME_DIR}/bin/superset`, or `PATH`. Missing
-  CLI, auth failure, offline API, missing metadata, or missing status type must
-  warn and exit 0 so Trellis/Agent work is not blocked.
+  CLI, auth failure, offline API, missing metadata/link data, or missing status
+  type must warn and exit 0 so Trellis/Agent work is not blocked.
+- Desktop login/session recovery must keep
+  `${SUPERSET_HOME_DIR}/config.json` in the CLI-compatible auth shape so
+  desktop-launched hooks can authenticate without receiving `AUTH_TOKEN` in
+  terminal environment variables. Sign-out clears the shared auth entry.
 - The `v2Workspaces` collection create path must treat the host-service
   `workspaces.create` result as the write barrier. Do not wait on
   `electricTxidMatch(result.txid)` for workspace creation inserts: host-service
@@ -137,9 +236,11 @@ intent while host-service owns filesystem probing and mutation.
   requested -> do not run Trellis init; return a warning and let workspace
   creation continue.
 - Guided setup ready + linked `taskId` -> create or reuse one Trellis task with
-  `meta.supersetTaskId`; preserve existing active tasks and custom hooks.
-- Hook cannot find `TASK_JSON_PATH`, linked metadata, CLI, auth, API, or target
-  status type -> print a concise warning where useful and exit 0.
+  `meta.supersetTaskId`, write `.trellis/superset/task-link.json`, and preserve
+  existing active tasks and custom hooks.
+- Hook cannot find `TASK_JSON_PATH`, linked metadata or durable link data, CLI,
+  auth, API, or target status type -> print a concise warning where useful and
+  exit 0.
 - Trellis `after_finish` -> no Superset status update.
 - Electric txid confirmation timeout after host-service returned a create result
   -> workspace creation is considered successful; do not render
@@ -166,10 +267,12 @@ intent while host-service owns filesystem probing and mutation.
 - Host-service tests that Trellis platform flags are derived from exact Agent
   presets and that missing/unsupported Agent selections do not run bare init.
 - Host-service tests that linked task metadata is written once and reused.
+- Host-service tests that `.trellis/superset/task-link.json` is written and that
+  the hook falls back to it when `task.json.meta` is missing.
 - Host-service tests for hook config merge preserving existing hook entries.
 - Hook execution tests for no `TASK_JSON_PATH`, no `meta.supersetTaskId`,
-  start -> `started`, archive -> `completed`, finish/no-op, missing CLI/auth,
-  and missing target status type.
+  create -> `unstarted`, start -> `started`, archive -> `completed`,
+  finish/no-op, missing CLI/auth, and missing target status type.
 - Source-level host-service test that `workspaces.create` applies the bridge for
   linked Superset Tasks.
 - Renderer wiring test that `trellisInitialize` becomes

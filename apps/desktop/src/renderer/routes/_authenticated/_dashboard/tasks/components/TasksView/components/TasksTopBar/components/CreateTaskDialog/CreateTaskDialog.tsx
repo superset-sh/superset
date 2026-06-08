@@ -232,6 +232,15 @@ export function CreateTaskDialog({
 				throw new Error("Task creation returned no task");
 			}
 
+			collections.tasks.startSyncImmediate();
+			const taskRowReady = collections.tasks.utils.upsertSyncedRow(result.task);
+			if (!taskRowReady) {
+				console.warn(
+					"[tasks] Created task could not be written to the local collection immediately",
+					result.task.id,
+				);
+			}
+
 			const nextSearch: Record<string, string> = {};
 			if (currentTab !== "all") nextSearch.tab = currentTab;
 			if (assigneeFilter) nextSearch.assignee = assigneeFilter;
