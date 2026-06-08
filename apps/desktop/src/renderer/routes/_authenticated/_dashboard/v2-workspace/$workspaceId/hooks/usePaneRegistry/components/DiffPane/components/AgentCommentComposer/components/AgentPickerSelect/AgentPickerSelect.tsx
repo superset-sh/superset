@@ -10,10 +10,16 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { cn } from "@superset/ui/utils";
+import { useMemo } from "react";
 import { LuPlus } from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import type { TerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { EXISTING_PREFIX, NEW_PREFIX } from "../../hooks/useDiffCommentTarget";
+import {
+	buildSessionLabels,
+	formatSessionName,
+	type SessionLabel,
+} from "./utils/buildSessionLabels";
 
 interface AgentPickerSelectProps {
 	value: string | null;
@@ -28,6 +34,7 @@ export function AgentPickerSelect({
 	sessions,
 	configs,
 }: AgentPickerSelectProps) {
+	const sessionLabels = useMemo(() => buildSessionLabels(sessions), [sessions]);
 	return (
 		<Select value={value ?? undefined} onValueChange={onValueChange}>
 			<SelectTrigger
@@ -51,7 +58,10 @@ export function AgentPickerSelect({
 								value={`${EXISTING_PREFIX}${session.terminalId}`}
 								className="text-[12px]"
 							>
-								<ExistingSessionOption binding={session} />
+								<ExistingSessionOption
+									binding={session}
+									label={sessionLabels.get(session.terminalId)}
+								/>
 							</SelectItem>
 						))}
 					</SelectGroup>
@@ -81,8 +91,16 @@ export function AgentPickerSelect({
 	);
 }
 
-function ExistingSessionOption({ binding }: { binding: TerminalAgentBinding }) {
+function ExistingSessionOption({
+	binding,
+	label,
+}: {
+	binding: TerminalAgentBinding;
+	label?: SessionLabel;
+}) {
 	const iconSrc = usePresetIcon(binding.agentId);
+	const name = label ? formatSessionName(label) : binding.agentId;
+	const shortId = label?.shortId ?? binding.terminalId.slice(0, 6);
 	return (
 		<span className="inline-flex items-center gap-1.5">
 			{iconSrc ? (
@@ -93,10 +111,8 @@ function ExistingSessionOption({ binding }: { binding: TerminalAgentBinding }) {
 					draggable={false}
 				/>
 			) : null}
-			<span>{binding.agentId}</span>
-			<span className="text-muted-foreground/70">
-				· {binding.terminalId.slice(0, 6)}
-			</span>
+			<span>{name}</span>
+			<span className="text-muted-foreground/70">· {shortId}</span>
 		</span>
 	);
 }
