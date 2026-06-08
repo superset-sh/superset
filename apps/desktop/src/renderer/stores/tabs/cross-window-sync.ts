@@ -1,11 +1,29 @@
 import type { Unsubscribable } from "@trpc/server/observable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import type { BaseTab, Pane } from "shared/tabs-types";
 import {
 	mergeRemoteTabsState,
 	type RemoteTabsState,
 } from "./merge-remote-state";
 import { runWithRemoteTabsApply } from "./remote-apply";
 import { useTabsStore } from "./store";
+import type { Tab } from "./types";
+
+/**
+ * Narrow a wire/persisted tabs-state to the structure we apply across windows.
+ *
+ * The persisted shape types `tabs` as `BaseTab` (no `layout`), but the
+ * `uiState.tabs.set` schema (`tabsStateSchema`) requires `layout`, so every tab
+ * on the wire carries it at runtime — the persistence type just widens it away.
+ * The `as Tab[]` is a direct downcast (not `as unknown as`) that makes the
+ * structural intent explicit: we read only tabs + panes; selection is dropped.
+ */
+function toRemoteStructure(state: {
+	tabs: BaseTab[];
+	panes: Record<string, Pane>;
+}): RemoteTabsState {
+	return { tabs: state.tabs as Tab[], panes: state.panes };
+}
 
 /**
  * Cross-window tabs synchronization.
@@ -55,9 +73,7 @@ async function subscribe(): Promise<void> {
 				// remote write.
 				electronTrpcClient.uiState.tabs.get
 					.query()
-					.then((state) =>
-						applyRemoteTabsState(state as unknown as RemoteTabsState),
-					)
+					.then((state) => applyRemoteTabsState(toRemoteStructure(state)))
 					.catch((err) => {
 						console.error("[cross-window-sync] catch-up fetch failed:", err);
 					});
@@ -70,7 +86,7 @@ async function subscribe(): Promise<void> {
 				) {
 					return;
 				}
-				applyRemoteTabsState(event.state as unknown as RemoteTabsState);
+				applyRemoteTabsState(toRemoteStructure(event.state));
 			},
 			onError: (err) => {
 				console.error("[cross-window-sync] subscription error:", err);

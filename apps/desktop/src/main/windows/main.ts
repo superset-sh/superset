@@ -200,13 +200,21 @@ export async function MainWindow(
 			windows: [window],
 			createContext: async ({ event }) => {
 				// IPC may originate from a <webview> pane, not the host renderer.
-				// Walk to hostWebContents so ctx.window always resolves to the
-				// owning BrowserWindow (otherwise dialog procedures no-op).
+				// Walk to hostWebContents to prefer resolving the owning
+				// BrowserWindow. If it can't be resolved, ctx.window stays null and
+				// dialog procedures no-op.
 				const host = event.sender.hostWebContents ?? event.sender;
 				const senderManaged = getManagedWindowByWebContents(host.id);
 				const senderWindow =
 					senderManaged?.window ?? BrowserWindowCtor.fromWebContents(host);
-				return { window: senderWindow };
+				// Capture the id now, while the sender is provably alive — reading
+				// webContents off a stored BrowserWindow later can throw if the
+				// window has since been destroyed.
+				const webContentsId =
+					senderWindow && !senderWindow.isDestroyed()
+						? senderWindow.webContents.id
+						: null;
+				return { window: senderWindow, webContentsId };
 			},
 		});
 	}

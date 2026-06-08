@@ -13,8 +13,8 @@ export const createWindowRouter = () => {
 		 * (e.g. to ignore self-originated cross-window state broadcasts).
 		 */
 		self: publicProcedure.query(({ ctx }) => {
-			if (!ctx.window) return null;
-			const webContentsId = ctx.window.webContents.id;
+			if (ctx.webContentsId === null) return null;
+			const webContentsId = ctx.webContentsId;
 			const managed = getManagedWindowByWebContents(webContentsId);
 			return {
 				windowId: managed?.id ?? null,

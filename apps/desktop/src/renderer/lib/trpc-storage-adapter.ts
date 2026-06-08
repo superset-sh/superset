@@ -115,9 +115,12 @@ export function createTrpcStorageAdapter(
 				state: unknown;
 				version: number;
 			};
-			// Persist version in localStorage, bare state via tRPC.
-			localStorage.setItem(`${name}:version`, String(parsed.version));
+			// Write bare state via tRPC first, then bump the localStorage version.
+			// If config.set rejects, the version stays at its prior value so the
+			// next getItem() rebuilds a consistent version+state snapshot instead
+			// of pairing a bumped version with the old persisted state.
 			await config.set(parsed.state);
+			localStorage.setItem(`${name}:version`, String(parsed.version));
 			lastFlushedValue = valueToFlush;
 
 			// Cancel delayed snapshot write if this exact snapshot was already flushed.

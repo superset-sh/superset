@@ -98,6 +98,14 @@ export function saveWindowState(state: WindowState): void {
 /**
  * Saves window state for a specific key while preserving other entries.
  * `filePath` is injectable for tests only.
+ *
+ * INVARIANT: this read-modify-write is fully synchronous (readFileSync →
+ * mutate → writeFileSync). Node runs each call to completion before any other
+ * JS, so two windows closing "simultaneously" cannot interleave their
+ * read/write phases — the second call's read only runs after the first call's
+ * write has landed, so no key is dropped. Keep it synchronous: introducing an
+ * `await` between read and write would reopen that race and require a lock or
+ * in-memory map to close it again.
  */
 export function saveWindowStateForKey(
 	key: string,

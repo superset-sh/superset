@@ -265,7 +265,9 @@ export const createUiStateRouter = () => {
 					await appState.write();
 					const event: TabsStateChangeEvent = {
 						state: input,
-						sourceWebContentsId: ctx.window?.webContents.id ?? null,
+						// Captured at context creation — safe even if the window is
+						// torn down before this async mutation resolves.
+						sourceWebContentsId: ctx.webContentsId,
 					};
 					tabsStateEvents.emit(TABS_STATE_CHANGED, event);
 					return { success: true };
