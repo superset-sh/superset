@@ -282,3 +282,38 @@ Added a repo-local Trellis hook bridge that links Task-opened Code workspaces ba
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Trellis Superset task status sync
+
+**Date**: 2026-06-08
+**Task**: Trellis Superset task status sync
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Completed Trellis to Superset Task status sync hardening: task detail fallback while local sync catches up, durable Trellis task link repair, shared desktop/CLI auth config, and real desktop verification that Trellis archive moves the linked Superset Task to Done.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5adc0ee3a` | (see git log) |
+| `d495c7fd7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
