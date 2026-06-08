@@ -6,6 +6,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import {
+	TbAppWindow,
 	TbCamera,
 	TbClock,
 	TbCopy,
@@ -50,6 +51,12 @@ export function BrowserOverflowMenu({
 		if (currentUrl) {
 			electronTrpcClient.external.openUrl.mutate(currentUrl).catch(() => {});
 		}
+	};
+
+	const handlePopOut = () => {
+		electronTrpcClient.browser.popOut
+			.mutate({ paneId, url: currentUrl || undefined })
+			.catch(() => {});
 	};
 
 	const handleClearCookies = () => {
@@ -110,6 +117,14 @@ export function BrowserOverflowMenu({
 				>
 					<TbExternalLink className="size-4" />
 					Open in Browser
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					onClick={handlePopOut}
+					disabled={!hasPage}
+					className="gap-2"
+				>
+					<TbAppWindow className="size-4" />
+					Open in New Window
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onClick={handleClearHistory} className="gap-2">

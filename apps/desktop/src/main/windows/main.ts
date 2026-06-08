@@ -17,6 +17,7 @@ import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
+import { closeAllBrowserPopouts } from "../lib/browser/browser-popout";
 import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
@@ -359,6 +360,7 @@ export async function MainWindow() {
 		persistedZoomLevel = zoomLevel;
 
 		browserManager.unregisterAll();
+		closeAllBrowserPopouts();
 		server.close();
 		notificationManager.dispose();
 		notificationsEmitter.removeAllListeners();

@@ -1,11 +1,23 @@
 import { observable } from "@trpc/server/observable";
 import { session } from "electron";
 import { browserManager } from "main/lib/browser/browser-manager";
+import { openBrowserPopout } from "main/lib/browser/browser-popout";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 export const createBrowserRouter = () => {
 	return router({
+		popOut: publicProcedure
+			.input(z.object({ paneId: z.string(), url: z.string().optional() }))
+			.mutation(({ input }) => {
+				// Prefer the live webview URL; fall back to the URL the renderer knows.
+				const liveUrl = browserManager.getWebContents(input.paneId)?.getURL();
+				const target =
+					liveUrl && /^https?:\/\//.test(liveUrl) ? liveUrl : input.url;
+				if (!target) return { success: false };
+				return { success: !!openBrowserPopout(target) };
+			}),
+
 		register: publicProcedure
 			.input(z.object({ paneId: z.string(), webContentsId: z.number() }))
 			.mutation(({ input }) => {
