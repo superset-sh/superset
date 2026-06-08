@@ -44,7 +44,7 @@ export function ExperimentalSettings({
 			</div>
 
 			<div className="space-y-6">
-				{showSupersetV2 && !isV2OnlyUser && (
+				{showSupersetV2 && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label htmlFor="superset-v2" className="text-sm font-medium">
