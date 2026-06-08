@@ -32,6 +32,7 @@ import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-
 import type { GitClient } from "../workspace-creation/shared/types";
 import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
 import {
+	applySupersetTaskTrellisBridge,
 	applyTrellisSetup,
 	resolveTrellisPlatformsFromAgents,
 } from "../workspace-creation/trellis";
@@ -1093,7 +1094,36 @@ export const workspacesRouter = router({
 								`[workspaces.create] trellis setup warning: ${result.warning}`,
 							);
 						}
-						return result;
+						if (!input.taskId) return result;
+
+						const supersetTask = await ctx.api.task.byId
+							.query(input.taskId)
+							.catch((error) => {
+								console.warn(
+									"[workspaces.create] failed to fetch linked task for Trellis sync",
+									error,
+								);
+								return null;
+							});
+
+						const bridged = await applySupersetTaskTrellisBridge({
+							worktreePath: localWorkspace.worktreePath,
+							trellisSetup: result,
+							supersetTask: {
+								id: input.taskId,
+								slug: supersetTask?.slug ?? null,
+								title: supersetTask?.title ?? null,
+								description: supersetTask?.description ?? null,
+							},
+							workspaceId: workspaceRow.id,
+							branch: resolvedBranch,
+						});
+						if (bridged.warning && bridged.warning !== result.warning) {
+							console.warn(
+								`[workspaces.create] trellis bridge warning: ${bridged.warning}`,
+							);
+						}
+						return bridged;
 					})()
 				: undefined;
 

@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/desktop-conventions.md", "reason": "Verify Code Workspace and desktop acceptance contracts are preserved."}
+{"file": ".trellis/spec/guides/quality-and-testing.md", "reason": "Choose focused validation, typecheck, lint, and desktop smoke coverage."}
+{"file": ".trellis/spec/host-service/backend/quality-guidelines.md", "reason": "Host-service test/typecheck expectations."}
+{"file": ".agents/skills/trellis-meta/references/customize-local/change-task-lifecycle.md", "reason": "Review hook semantics, non-blocking behavior, and metadata conventions."}

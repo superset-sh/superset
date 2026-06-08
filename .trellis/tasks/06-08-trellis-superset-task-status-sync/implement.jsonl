@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/desktop-conventions.md", "reason": "Code Workspace guided workflow, host-service boundary, and desktop acceptance requirements."}
+{"file": ".trellis/spec/guides/backend-conventions.md", "reason": "Host-service and tRPC backend conventions for hook installation and task updates."}
+{"file": ".trellis/spec/host-service/backend/index.md", "reason": "Host-service package-specific implementation rules."}
+{"file": ".agents/skills/trellis-meta/references/customize-local/change-task-lifecycle.md", "reason": "Trellis lifecycle hook behavior and TASK_JSON_PATH contract."}

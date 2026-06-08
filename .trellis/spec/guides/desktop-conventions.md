@@ -64,6 +64,13 @@ intent while host-service owns filesystem probing and mutation.
   `workspaces.create({ ..., trellisSetup?: { initialize?: boolean } })`.
 - Create result extension:
   `trellisSetup?: { state, hasTrellis, configPath, version, message, initialized, warning }`.
+- Task bridge helper:
+  `applySupersetTaskTrellisBridge({ worktreePath, trellisSetup, supersetTask, workspaceId, branch })`.
+- Repo-local hook path:
+  `.trellis/scripts/hooks/superset_task_sync.py`.
+- Repo-local task metadata:
+  `task.json.meta.supersetTaskId`, plus optional `supersetTaskSlug` and
+  `supersetWorkspaceId`.
 
 ### 3. Contracts
 
@@ -85,9 +92,23 @@ intent while host-service owns filesystem probing and mutation.
 - User-facing desktop copy should describe this as a guided workflow or
   planning/review best-practice option. Keep `Trellis` as the implementation
   name in code/specs, not the primary UI concept.
-- Superset `Task` remains the user-facing task object; Trellis tasks are
-  repository-local workflow artifacts until a separate import/sync feature maps
-  them into Tasks.
+- Superset `Task` remains the user-facing task object. When a guided Code
+  Workspace is created from a Superset Task, host-service may create one
+  repository-local Trellis mirror task and link it through
+  `task.json.meta.supersetTaskId`; arbitrary Trellis tasks are not imported
+  into Superset.
+- Guided Task workspaces install a conservative Trellis lifecycle hook that
+  preserves existing `.trellis/config.yaml` hooks and appends only:
+  `after_start -> superset_task_sync.py after_start` and
+  `after_archive -> superset_task_sync.py after_archive`.
+- Trellis lifecycle status sync resolves Superset status ids dynamically by
+  status `type`, never by hard-coded UUID or localized name:
+  `after_start` maps to `started`; `after_archive` maps to `completed`;
+  `after_finish` is a no-op.
+- The sync hook should find the bundled/user Superset CLI through
+  `SUPERSET_CLI_PATH`, `${SUPERSET_HOME_DIR}/bin/superset`, or `PATH`. Missing
+  CLI, auth failure, offline API, missing metadata, or missing status type must
+  warn and exit 0 so Trellis/Agent work is not blocked.
 - The `v2Workspaces` collection create path must treat the host-service
   `workspaces.create` result as the write barrier. Do not wait on
   `electricTxidMatch(result.txid)` for workspace creation inserts: host-service
@@ -115,6 +136,11 @@ intent while host-service owns filesystem probing and mutation.
 - No supported Agent platform is selected while guided workflow setup is
   requested -> do not run Trellis init; return a warning and let workspace
   creation continue.
+- Guided setup ready + linked `taskId` -> create or reuse one Trellis task with
+  `meta.supersetTaskId`; preserve existing active tasks and custom hooks.
+- Hook cannot find `TASK_JSON_PATH`, linked metadata, CLI, auth, API, or target
+  status type -> print a concise warning where useful and exit 0.
+- Trellis `after_finish` -> no Superset status update.
 - Electric txid confirmation timeout after host-service returned a create result
   -> workspace creation is considered successful; do not render
   `WorkspaceCreateErrorState`.
@@ -122,11 +148,15 @@ intent while host-service owns filesystem probing and mutation.
 ### 5. Good/Base/Bad Cases
 
 - Good: user opts in on a missing repo, host-service initializes Trellis after
-  resolving the final worktree path.
+  resolving the final worktree path, links the Superset Task in Trellis
+  metadata, and installs status sync hooks.
 - Base: repo already has Trellis, UI shows detected/ready state and create
-  proceeds unchanged.
+  proceeds unchanged except for conservative hook/link installation when a
+  Superset Task launched the workspace.
 - Bad: renderer shells out to Trellis or a create flow overwrites existing
   `.trellis/spec`, `.trellis/tasks`, or `.trellis/workspace`.
+- Bad: hook marks a Task completed on Trellis `finish`; completion maps only
+  from `after_archive`.
 
 ### 6. Tests Required
 
@@ -135,6 +165,13 @@ intent while host-service owns filesystem probing and mutation.
   treated as a valid runtime for Trellis bin scripts.
 - Host-service tests that Trellis platform flags are derived from exact Agent
   presets and that missing/unsupported Agent selections do not run bare init.
+- Host-service tests that linked task metadata is written once and reused.
+- Host-service tests for hook config merge preserving existing hook entries.
+- Hook execution tests for no `TASK_JSON_PATH`, no `meta.supersetTaskId`,
+  start -> `started`, archive -> `completed`, finish/no-op, missing CLI/auth,
+  and missing target status type.
+- Source-level host-service test that `workspaces.create` applies the bridge for
+  linked Superset Tasks.
 - Renderer wiring test that `trellisInitialize` becomes
   `trellisSetup: { initialize: true }`.
 - Collection/source tests that `v2Workspaces.onInsert` stores
@@ -151,6 +188,9 @@ intent while host-service owns filesystem probing and mutation.
 Build a separate right-sidebar Trellis board or silently run `trellis init` from
 the renderer when a workspace opens.
 
+Overwrite a user's existing `.trellis/config.yaml` hooks or hard-code a
+Superset task status UUID in the injected hook.
+
 Return `electricTxidMatch(result.txid)` from `v2Workspaces.onInsert` for
 workspace creation. This can turn a successful create into
 `Timeout waiting for txId` after slow local setup.
@@ -162,6 +202,10 @@ Run `bin/trellis.js` with Electron's `process.execPath`.
 Keep Create Workspace as the product flow: renderer captures intent, host-service
 performs conservative Trellis setup, and future Trellis requirements can be
 bridged into the existing Superset Task board.
+
+Install a repo-local hook only after Trellis is ready, link only the Superset
+Task that launched the workspace through `meta.supersetTaskId`, dynamically
+resolve status ids by type, and let hook failures warn without blocking.
 
 Store the host-service result on mutation metadata, let Electric catch up
 normally, and treat a completed host-service result as successful even when the
