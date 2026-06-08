@@ -253,24 +253,26 @@ export const v2WorkspaceRouter = {
 					.returning();
 
 				if (inserted) {
-					posthog.capture({
-						distinctId: ctx.userId,
-						event: "workspace_created",
-						properties: {
-							workspace_id: inserted.id,
-							project_id: inserted.projectId,
-							organization_id: inserted.organizationId,
-							host_id: inserted.hostId,
-							branch: inserted.branch,
-							type: inserted.type,
-							host_kind:
-								input.clientMachineId &&
-								input.clientMachineId === inserted.hostId
-									? "local"
-									: "remote",
-							client_machine_id: input.clientMachineId ?? null,
-						},
-					});
+					if (inserted.type !== "main") {
+						posthog.capture({
+							distinctId: ctx.userId,
+							event: "workspace_created",
+							properties: {
+								workspace_id: inserted.id,
+								project_id: inserted.projectId,
+								organization_id: inserted.organizationId,
+								host_id: inserted.hostId,
+								branch: inserted.branch,
+								type: inserted.type,
+								host_kind:
+									input.clientMachineId &&
+									input.clientMachineId === inserted.hostId
+										? "local"
+										: "remote",
+								client_machine_id: input.clientMachineId ?? null,
+							},
+						});
+					}
 					const txid = await getCurrentTxid(tx);
 					return { workspace: inserted, txid };
 				}
