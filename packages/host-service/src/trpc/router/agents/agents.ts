@@ -9,7 +9,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 
-interface ResolvedHostAgentConfig {
+export interface ResolvedHostAgentConfig {
 	id: string;
 	presetId: string;
 	label: string;

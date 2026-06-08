@@ -489,7 +489,12 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				const client = getHostServiceClientByUrl(metadata.hostUrl);
 				const result = await client.workspaces.create.mutate(metadata.input);
 				metadata.result = result;
-				return electricTxidMatch(result.txid);
+				// Workspace creation performs local filesystem work after the cloud row is
+				// registered. By the time the host-service returns, the txid can already
+				// be old enough for Electric's confirmation wait to time out even though
+				// create succeeded. Treat the host-service result as the write barrier and
+				// let Electric catch up normally.
+				return undefined;
 			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];

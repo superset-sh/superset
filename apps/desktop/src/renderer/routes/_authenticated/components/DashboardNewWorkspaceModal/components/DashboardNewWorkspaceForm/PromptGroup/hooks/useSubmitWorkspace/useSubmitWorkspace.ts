@@ -111,6 +111,7 @@ export function useSubmitWorkspace(
 			pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
 			baseBranch: draft.baseBranch ?? undefined,
 			taskId: linkedTaskId,
+			trellisSetup: draft.trellisInitialize ? { initialize: true } : undefined,
 			agents,
 			namingPrompt:
 				!isPrCheckout && !wantAgent && trimmedPrompt
@@ -138,6 +139,9 @@ export function useSubmitWorkspace(
 
 		void completed.then((outcome) => {
 			if (!outcome.ok) return;
+			if (outcome.trellisWarning) {
+				toast.warning(outcome.trellisWarning);
+			}
 			if (outcome.workspaceId === workspaceId) return;
 			if (!isViewingOptimisticWorkspace()) return;
 			void navigate({

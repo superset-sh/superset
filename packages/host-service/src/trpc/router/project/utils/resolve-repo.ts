@@ -35,6 +35,27 @@ function validateDirectoryPath(path: string, label: string): void {
 	}
 }
 
+function ensureDirectoryPath(path: string, label: string): void {
+	if (!existsSync(path)) {
+		try {
+			mkdirSync(path, { recursive: true });
+		} catch (err) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Could not create ${label}: ${
+					err instanceof Error ? err.message : String(err)
+				}`,
+			});
+		}
+	}
+	if (!statSync(path).isDirectory()) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${label} is not a directory: ${path}`,
+		});
+	}
+}
+
 /**
  * Atomic claim: `mkdir` without `recursive` throws EEXIST when the path is
  * present, which avoids the TOCTOU window between an `existsSync` check
@@ -186,7 +207,7 @@ export async function initEmptyRepo(
 	}
 
 	const resolvedParentDir = resolvePath(parentDir);
-	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	ensureDirectoryPath(resolvedParentDir, "Parent directory");
 	const targetPath = join(resolvedParentDir, dirName);
 	claimEmptyTargetDir(targetPath);
 
@@ -228,7 +249,7 @@ export async function cloneTemplateInto(
 	}
 
 	const resolvedParentDir = resolvePath(parentDir);
-	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	ensureDirectoryPath(resolvedParentDir, "Parent directory");
 	const targetPath = join(resolvedParentDir, dirName);
 	claimEmptyTargetDir(targetPath);
 
@@ -286,7 +307,7 @@ export async function cloneRepoInto(
 	const repoName = parsedUrl?.name ?? deriveCloneDirectoryName(repoCloneUrl);
 
 	const resolvedParentDir = resolvePath(parentDir);
-	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	ensureDirectoryPath(resolvedParentDir, "Parent directory");
 
 	const targetPath = join(resolvedParentDir, repoName);
 	claimEmptyTargetDir(targetPath);

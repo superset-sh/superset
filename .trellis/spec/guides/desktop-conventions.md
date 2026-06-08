@@ -47,6 +47,131 @@ Cloud V2 rows are not enough for a fully usable local workspace. Local operation
 
 Do not treat a visible V2 workspace row in Electric/TanStack DB as proof that the local host runtime can open it. Desktop acceptance for workspace usability should include at least one host-service-backed assertion, such as workspace route load, chat pane availability, git/filesystem data, or terminal/session startup.
 
+## Code Workspace Trellis Setup
+
+### 1. Scope / Trigger
+
+Create Workspace may initialize repository-local Trellis workflow files for Code
+workspaces. This is a cross-layer desktop contract because renderer UI collects
+intent while host-service owns filesystem probing and mutation.
+
+### 2. Signatures
+
+- Renderer draft field: `NewWorkspaceDraft.trellisInitialize: boolean`.
+- Host-service query:
+  `workspaceCreation.getTrellisStatus({ projectId: string })`.
+- Host-service mutation extension:
+  `workspaces.create({ ..., trellisSetup?: { initialize?: boolean } })`.
+- Create result extension:
+  `trellisSetup?: { state, hasTrellis, configPath, version, message, initialized, warning }`.
+
+### 3. Contracts
+
+- Renderer may show Trellis state but must not inspect local files directly.
+- Host-service must probe `.trellis/` at the local project or final worktree
+  path.
+- Trellis init must use the repo-local `@mindfoldhq/trellis` dependency, not a
+  global `trellis` binary.
+- Host-service must execute the repo-local Trellis bin script with a real
+  JavaScript runtime (`bun` preferred, `node` fallback). Do not use
+  `process.execPath` blindly from Electron child processes: in desktop dev and
+  packaged-like runs it can point at `Electron.app/Contents/MacOS/Electron`,
+  which cannot run `bin/trellis.js` as a Node CLI entrypoint.
+- Trellis platform adapter flags must come from the selected Task/Workspace
+  Agent preset. `claude` maps only to `--claude`, `codex` maps only to
+  `--codex`, and so on. Do not hard-code multiple default platform flags or
+  run bare `trellis init` for a missing platform selection, because the Trellis
+  CLI may choose its own platform default.
+- User-facing desktop copy should describe this as a guided workflow or
+  planning/review best-practice option. Keep `Trellis` as the implementation
+  name in code/specs, not the primary UI concept.
+- Superset `Task` remains the user-facing task object; Trellis tasks are
+  repository-local workflow artifacts until a separate import/sync feature maps
+  them into Tasks.
+- The `v2Workspaces` collection create path must treat the host-service
+  `workspaces.create` result as the write barrier. Do not wait on
+  `electricTxidMatch(result.txid)` for workspace creation inserts: host-service
+  registers the cloud row first, then may run local setup such as repository
+  workflow initialization, terminal setup, or agent launch. By the time the
+  result returns, the cloud txid can be stale enough for Electric confirmation
+  to time out even though creation succeeded.
+- `useWorkspaceCreates` must preserve successful host-service results across
+  `transaction.isPersisted` rejection. If `WorkspaceCreateMutationMetadata.result`
+  exists, write the pane layout and return an ok outcome; only create a
+  `failedWorkspaceCreates` row when no host-service result exists.
+
+### 4. Validation & Error Matrix
+
+- No `.trellis/` -> state `missing`; UI may offer initialization.
+- `.trellis/config.yaml` and `.trellis/tasks` exist -> state `ready`; never
+  reinitialize.
+- Partial `.trellis/` -> state `partial`; do not overwrite, return a warning if
+  init was requested.
+- CLI/init failure -> workspace creation succeeds and `trellisSetup.warning`
+  explains the failure.
+- Electron is used as the Trellis runtime -> reject that runtime selection and
+  resolve `bun`/`node`; otherwise Trellis may report
+  `unknown command .../bin/trellis.js`.
+- No supported Agent platform is selected while guided workflow setup is
+  requested -> do not run Trellis init; return a warning and let workspace
+  creation continue.
+- Electric txid confirmation timeout after host-service returned a create result
+  -> workspace creation is considered successful; do not render
+  `WorkspaceCreateErrorState`.
+
+### 5. Good/Base/Bad Cases
+
+- Good: user opts in on a missing repo, host-service initializes Trellis after
+  resolving the final worktree path.
+- Base: repo already has Trellis, UI shows detected/ready state and create
+  proceeds unchanged.
+- Bad: renderer shells out to Trellis or a create flow overwrites existing
+  `.trellis/spec`, `.trellis/tasks`, or `.trellis/workspace`.
+
+### 6. Tests Required
+
+- Host-service tests for missing, ready, partial, init success, and init failure.
+- Host-service runtime tests that `Electron.app/Contents/MacOS/Electron` is not
+  treated as a valid runtime for Trellis bin scripts.
+- Host-service tests that Trellis platform flags are derived from exact Agent
+  presets and that missing/unsupported Agent selections do not run bare init.
+- Renderer wiring test that `trellisInitialize` becomes
+  `trellisSetup: { initialize: true }`.
+- Collection/source tests that `v2Workspaces.onInsert` stores
+  `metadata.result` and does not return `electricTxidMatch(result.txid)`.
+- Store/source tests that `useWorkspaceCreates` returns success when
+  `metadata.result` exists even if sync confirmation rejects.
+- Desktop Automation smoke that opens Create Workspace and waits for Trellis
+  status text.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+Build a separate right-sidebar Trellis board or silently run `trellis init` from
+the renderer when a workspace opens.
+
+Return `electricTxidMatch(result.txid)` from `v2Workspaces.onInsert` for
+workspace creation. This can turn a successful create into
+`Timeout waiting for txId` after slow local setup.
+
+Run `bin/trellis.js` with Electron's `process.execPath`.
+
+#### Correct
+
+Keep Create Workspace as the product flow: renderer captures intent, host-service
+performs conservative Trellis setup, and future Trellis requirements can be
+bridged into the existing Superset Task board.
+
+Store the host-service result on mutation metadata, let Electric catch up
+normally, and treat a completed host-service result as successful even when the
+sync confirmation promise rejects.
+
+Resolve a real JS runtime first, then execute the repo-local Trellis bin:
+`bun <repo>/node_modules/.bin/trellis init --yes --skip-existing --codex` when
+the selected Agent preset is Codex, or the matching single platform flag for the
+selected supported Agent.
+
 ## Terminal Boundaries
 
 Terminal persistence and PTY ownership are split:

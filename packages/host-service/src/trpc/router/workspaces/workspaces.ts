@@ -14,7 +14,11 @@ import {
 } from "../../../runtime/git/refs";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
-import { type AgentRunResult, runAgentInWorkspace } from "../agents";
+import {
+	type AgentRunResult,
+	resolveHostAgentConfig,
+	runAgentInWorkspace,
+} from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
@@ -27,6 +31,10 @@ import { requireLocalProject } from "../workspace-creation/shared/local-project"
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import type { GitClient } from "../workspace-creation/shared/types";
 import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
+import {
+	applyTrellisSetup,
+	resolveTrellisPlatformsFromAgents,
+} from "../workspace-creation/trellis";
 import { generateBranchNameFromPrompt } from "../workspace-creation/utils/ai-branch-name";
 import {
 	applyAiWorkspaceRename,
@@ -78,6 +86,11 @@ const createInputSchema = z
 		// inferring the path from `branch`. When present, `branch` is
 		// caller context only; the server reads the current branch from git.
 		worktreePath: z.string().min(1).optional(),
+		trellisSetup: z
+			.object({
+				initialize: z.boolean().optional(),
+			})
+			.optional(),
 	})
 	.refine((value) => !(value.branch && value.pr), {
 		message: "`branch` and `pr` cannot both be set",
@@ -87,6 +100,20 @@ const createInputSchema = z
 	});
 
 const workspaceCreateLocks = new Map<string, Promise<void>>();
+
+type WorkspaceAgentLaunch = z.infer<typeof agentLaunchSchema>;
+
+function resolveTrellisPlatformsForAgentLaunches(
+	ctx: HostServiceContext,
+	launches: readonly WorkspaceAgentLaunch[] | undefined,
+) {
+	return resolveTrellisPlatformsFromAgents(
+		launches?.map((launch) => {
+			const config = resolveHostAgentConfig(ctx.db, launch.agent);
+			return config?.presetId ?? launch.agent;
+		}),
+	);
+}
 
 async function acquireWorkspaceCreateLock(key: string): Promise<() => void> {
 	const previous = workspaceCreateLocks.get(key) ?? Promise.resolve();
@@ -1036,6 +1063,40 @@ export const workspacesRouter = router({
 				}
 			}
 
+			const trellisSetupResult = input.trellisSetup?.initialize
+				? await (async () => {
+						const localWorkspace = ctx.db.query.workspaces
+							.findFirst({ where: eq(workspaces.id, workspaceRow.id) })
+							.sync();
+						if (!localWorkspace?.worktreePath) {
+							return {
+								state: "unavailable" as const,
+								hasTrellis: false,
+								configPath: null,
+								version: null,
+								message: "Workspace path is not available on this host.",
+								initialized: false,
+								warning:
+									"Trellis initialization was requested, but the workspace path is not available on this host.",
+							};
+						}
+						const result = await applyTrellisSetup({
+							worktreePath: localWorkspace.worktreePath,
+							initialize: true,
+							platforms: resolveTrellisPlatformsForAgentLaunches(
+								ctx,
+								input.agents,
+							),
+						});
+						if (result.warning) {
+							console.warn(
+								`[workspaces.create] trellis setup warning: ${result.warning}`,
+							);
+						}
+						return result;
+					})()
+				: undefined;
+
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];
 
 			if (!alreadyExists) {
@@ -1065,6 +1126,7 @@ export const workspacesRouter = router({
 				terminals: terminalsResult,
 				agents: agentsResult,
 				alreadyExists,
+				trellisSetup: trellisSetupResult,
 				txid: extractCreateTxid(workspaceRow),
 			};
 		}),

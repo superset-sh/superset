@@ -22,6 +22,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
+import { TrellisSetupRow } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/TrellisSetupRow";
 import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -157,6 +158,7 @@ export function RunInWorkspacePopoverV2({
 
 	const [selectedAgent, setSelectedAgentState] =
 		useState<SelectedAgent>(readStoredAgent);
+	const [trellisInitialize, setTrellisInitialize] = useState(false);
 	useEffect(() => {
 		if (!v2AgentsFetched) return;
 		if (selectedAgent !== NONE && validAgentIds.has(selectedAgent)) return;
@@ -245,6 +247,7 @@ export function RunInWorkspacePopoverV2({
 										prompt: synthesizeTaskPrompt(task),
 									},
 								],
+					trellisSetup: trellisInitialize ? { initialize: true } : undefined,
 				},
 			}),
 		);
@@ -259,6 +262,11 @@ export function RunInWorkspacePopoverV2({
 					throw new Error(
 						`${outcomes.length - failed} of ${outcomes.length} succeeded${details}`,
 					);
+				}
+				for (const outcome of outcomes) {
+					if (outcome.ok && outcome.trellisWarning) {
+						toast.warning(outcome.trellisWarning);
+					}
 				}
 				return outcomes.length;
 			},
@@ -371,6 +379,14 @@ export function RunInWorkspacePopoverV2({
 						allowNone
 						noneLabel="No agent"
 						noneValue={NONE}
+					/>
+
+					<TrellisSetupRow
+						projectId={selectedProjectId}
+						hostId={hostId}
+						disabled={selectedProject?.needsSetup === true}
+						initialize={trellisInitialize}
+						onInitializeChange={setTrellisInitialize}
 					/>
 				</div>
 

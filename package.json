@@ -6,7 +6,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
-		"@mindfoldhq/trellis": "0.6.0-beta.21",
+		"@mindfoldhq/trellis": "0.6.0-beta.23",
 		"dotenv-cli": "11.0.0",
 		"sherif": "1.11.0",
 		"turbo": "2.9.14"

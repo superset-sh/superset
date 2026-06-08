@@ -41,6 +41,7 @@ export interface NewWorkspaceDraft {
 	linkedPR: LinkedPR | null;
 	selectedAgentId: string | null;
 	attachments: DraftAttachment[];
+	trellisInitialize: boolean;
 }
 
 interface NewWorkspaceDraftState extends NewWorkspaceDraft {
@@ -67,6 +68,7 @@ function buildInitialDraft(): NewWorkspaceDraft {
 		linkedPR: null,
 		selectedAgentId: null,
 		attachments: [],
+		trellisInitialize: false,
 	};
 }
 

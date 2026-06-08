@@ -44,6 +44,7 @@ import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
+import { TrellisSetupRow } from "./components/TrellisSetupRow";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
@@ -527,6 +528,16 @@ export function PromptGroup({
 					</div>
 				</PromptInputFooter>
 			</PromptInput>
+
+			<TrellisSetupRow
+				projectId={projectId}
+				hostId={hostId}
+				disabled={needsSetup}
+				initialize={draft.trellisInitialize}
+				onInitializeChange={(trellisInitialize) =>
+					updateDraft({ trellisInitialize })
+				}
+			/>
 
 			{/* Bottom bar */}
 			<div className="flex items-center justify-between gap-2">

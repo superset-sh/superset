@@ -19,7 +19,7 @@ export interface SubmitArgs {
 }
 
 export type SubmitOutcome =
-	| { ok: true; workspaceId: string }
+	| { ok: true; workspaceId: string; trellisWarning?: string }
 	| { ok: false; error: string };
 
 export interface SubmitHandle {
@@ -50,10 +50,14 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				throw new Error("workspaces.create requires `id`");
 			}
 
-			const recordFailure = (error: string) => {
+			const clearFailure = () => {
 				if (collections.failedWorkspaceCreates.get(workspaceId)) {
 					collections.failedWorkspaceCreates.delete(workspaceId);
 				}
+			};
+
+			const recordFailure = (error: string) => {
+				clearFailure();
 				collections.failedWorkspaceCreates.insert({
 					id: workspaceId,
 					hostId: args.hostId,
@@ -93,7 +97,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			}
 
 			if (collections.failedWorkspaceCreates.get(workspaceId)) {
-				collections.failedWorkspaceCreates.delete(workspaceId);
+				clearFailure();
 			}
 
 			const now = new Date();
@@ -127,24 +131,44 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				[],
 			);
 
+			const completeFromHostResult = (
+				result: NonNullable<WorkspaceCreateMutationMetadata["result"]>,
+			): SubmitOutcome => {
+				clearFailure();
+				writeWorkspacePaneLayout(
+					collections,
+					result.workspace,
+					result.terminals,
+					result.agents,
+				);
+				if (result.workspace.id !== workspaceId) {
+					deleteWorkspaceLocalState(workspaceId);
+				}
+				return {
+					ok: true,
+					workspaceId: result.workspace.id,
+					trellisWarning: result.trellisSetup?.warning ?? undefined,
+				};
+			};
+
 			const completed = transaction.isPersisted.promise
 				.then<SubmitOutcome>(() => {
 					const result = metadata.result;
 					if (!result) {
 						return { ok: true, workspaceId };
 					}
-					writeWorkspacePaneLayout(
-						collections,
-						result.workspace,
-						result.terminals,
-						result.agents,
-					);
-					if (result.workspace.id !== workspaceId) {
-						deleteWorkspaceLocalState(workspaceId);
-					}
-					return { ok: true, workspaceId: result.workspace.id };
+					return completeFromHostResult(result);
 				})
 				.catch<SubmitOutcome>((error: unknown) => {
+					const result = metadata.result;
+					if (result) {
+						console.warn(
+							"[workspace-creates] workspace create succeeded but sync confirmation failed",
+							error,
+						);
+						return completeFromHostResult(result);
+					}
+
 					const message =
 						error instanceof Error ? error.message : String(error);
 					deleteWorkspaceLocalState(workspaceId);

@@ -276,12 +276,15 @@ describe("cloneRepoInto", () => {
 		expect(existsSync(join(targetPath, "keep-me.txt"))).toBe(true);
 	});
 
-	test("rejects when parent directory does not exist", async () => {
+	test("creates the parent directory when it does not exist", async () => {
 		const missingParent = join(workRoot, "no-such-parent");
 
-		await expect(cloneRepoInto(source, missingParent)).rejects.toThrow(
-			/Parent directory does not exist/,
-		);
+		const resolved = await cloneRepoInto(source, missingParent);
+
+		expect(existsSync(missingParent)).toBe(true);
+		expect(
+			eqRealpath(resolved.repoPath, join(missingParent, "source-repo")),
+		).toBe(true);
 	});
 
 	test("rejects when parent directory points at a file", async () => {

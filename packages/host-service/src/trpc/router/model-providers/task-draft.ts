@@ -1,6 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { handleModelGatewayRequest } from "../../../model-gateway/gateway";
+import { encodeGatewayModelId } from "../../../model-providers/model-ref";
 import { listModelProviders } from "../../../model-providers/storage";
+import type { ModelProviderSummary } from "../../../model-providers/types";
 import type { HostServiceContext } from "../../../types";
 import {
 	extractTaskDraftFromGatewayResponse,
@@ -8,18 +10,47 @@ import {
 	TASK_PRIORITIES,
 } from "./task-draft-parser";
 
+const DEFAULT_TASK_DRAFT_MODEL_ID = "gpt-5.5";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function selectDraftModel(ctx: HostServiceContext): string | null {
-	const provider = listModelProviders(ctx.db).find(
-		(item) =>
-			item.enabled &&
-			item.hasSecret &&
-			item.models.some((model) => model.enabled),
+interface DraftModelCandidate {
+	providerId: string;
+	modelId: string;
+}
+
+export function selectTaskDraftGatewayModel(
+	providers: ModelProviderSummary[],
+): string | null {
+	const candidates: DraftModelCandidate[] = providers.flatMap((provider) =>
+		provider.enabled && provider.hasSecret
+			? provider.models
+					.filter((model) => model.enabled)
+					.map((model) => ({
+						providerId: provider.id,
+						modelId: model.modelId,
+					}))
+			: [],
 	);
-	return provider?.models.find((model) => model.enabled)?.modelId ?? null;
+	if (candidates.length === 0) return null;
+
+	const exactDefault = candidates.find(
+		(candidate) =>
+			candidate.modelId.toLowerCase() === DEFAULT_TASK_DRAFT_MODEL_ID,
+	);
+	const compatibleDefault = candidates.find((candidate) =>
+		candidate.modelId.toLowerCase().includes(DEFAULT_TASK_DRAFT_MODEL_ID),
+	);
+	const selected = exactDefault ?? compatibleDefault ?? candidates[0];
+	if (!selected) return null;
+
+	return encodeGatewayModelId(selected);
+}
+
+function selectDraftModel(ctx: HostServiceContext): string | null {
+	return selectTaskDraftGatewayModel(listModelProviders(ctx.db));
 }
 
 const SYSTEM_PROMPT = [

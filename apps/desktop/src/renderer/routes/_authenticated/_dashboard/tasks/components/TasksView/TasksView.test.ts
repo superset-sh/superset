@@ -110,4 +110,28 @@ describe("Run in Workspace selection wiring (#2641)", () => {
 		expect(source).toContain("<Calendar");
 		expect(source).not.toContain('type="date"');
 	});
+
+	test("Task-driven workspace creation exposes Trellis initialization", () => {
+		const taskDetailSource = readComponent(
+			"../../$taskId/components/PropertiesSidebar/components/OpenInWorkspaceV2/OpenInWorkspaceV2.tsx",
+		);
+		const taskBatchSource = readComponent(
+			"components/TasksTopBar/components/RunInWorkspacePopoverV2/RunInWorkspacePopoverV2.tsx",
+		);
+		const issueBatchSource = readComponent(
+			"components/TasksTopBar/components/RunIssuesInWorkspacePopover/RunIssuesInWorkspacePopover.tsx",
+		);
+
+		for (const source of [
+			taskDetailSource,
+			taskBatchSource,
+			issueBatchSource,
+		]) {
+			expect(source).toContain("TrellisSetupRow");
+			expect(source).toContain("trellisInitialize");
+			expect(source).toContain(
+				"trellisSetup: trellisInitialize ? { initialize: true } : undefined",
+			);
+		}
+	});
 });

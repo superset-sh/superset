@@ -136,8 +136,8 @@ export function useDestroyDialogState({
 						workspaceId,
 						err: syncErr,
 					});
-					toast.warning(
-						`Deleted ${workspaceName}, but sync is taking longer than expected.`,
+					toast.info(
+						`Deleted ${workspaceName}. The sidebar will update when local sync catches up.`,
 					);
 					return;
 				}
