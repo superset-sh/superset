@@ -14,10 +14,9 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarProject,
-	DashboardSidebarProjectChild,
-	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import { buildDashboardSidebarProjects } from "./buildDashboardSidebarProjects";
 import {
 	derivePullRequestQueryTargets,
 	getDashboardSidebarPullRequestQueryKey,
@@ -393,154 +392,23 @@ export function useDashboardSidebarData() {
 	const pullRequestsByWorkspaceId =
 		useStablePullRequestsByWorkspaceId(pullRequestRows);
 
-	const computedGroups = useMemo<DashboardSidebarProject[]>(() => {
-		const projectsById = new Map<
-			string,
-			DashboardSidebarProject & {
-				sectionMap: Map<string, DashboardSidebarSection>;
-				childEntries: Array<{
-					tabOrder: number;
-					child: DashboardSidebarProjectChild;
-				}>;
-			}
-		>();
-
-		for (const project of sidebarProjects) {
-			projectsById.set(project.id, {
-				...project,
-				children: [],
-				sectionMap: new Map(),
-				childEntries: [],
-			});
-		}
-
-		for (const section of sidebarSections) {
-			const project = projectsById.get(section.projectId);
-			if (!project) continue;
-
-			const sidebarSection: DashboardSidebarSection = {
-				...section,
-				workspaces: [],
-			};
-
-			project.sectionMap.set(section.id, sidebarSection);
-			project.childEntries.push({
-				tabOrder: section.tabOrder,
-				child: {
-					type: "section",
-					section: sidebarSection,
-				},
-			});
-		}
-
-		for (const workspace of visibleSidebarWorkspaces) {
-			const project = projectsById.get(workspace.projectId);
-			if (!project) continue;
-
-			const hostType: DashboardSidebarWorkspace["hostType"] =
-				workspace.hostId === machineId ? "local-device" : "remote-device";
-
-			const sidebarWorkspace: DashboardSidebarWorkspace = {
-				id: workspace.id,
-				projectId: workspace.projectId,
-				hostId: workspace.hostId,
-				hostType,
-				type: workspace.type,
-				hostIsOnline:
-					hostType === "remote-device" ? workspace.hostIsOnline : null,
-				accentColor: null,
-				name: workspace.name,
-				branch: workspace.branch,
-				pullRequest: pullRequestsByWorkspaceId.get(workspace.id) ?? null,
-				repoUrl:
-					project.githubOwner && project.githubRepoName
-						? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
-						: null,
-				branchExistsOnRemote:
-					project.githubOwner !== null && project.githubRepoName !== null,
-				previewUrl: null,
-				needsRebase: null,
-				behindCount: null,
-				createdAt: workspace.createdAt,
-				updatedAt: workspace.updatedAt,
-				taskId: workspace.taskId,
-				pendingTransaction: workspace.pendingTransaction,
-			};
-
-			if (workspace.sectionId) {
-				const section = project.sectionMap.get(workspace.sectionId);
-				if (section) {
-					section.workspaces.push({
-						...sidebarWorkspace,
-						accentColor: section.color,
-					});
-				}
-				continue;
-			}
-
-			project.childEntries.push({
-				tabOrder: workspace.tabOrder,
-				child: {
-					type: "workspace",
-					workspace: sidebarWorkspace,
-				},
-			});
-		}
-
-		return sidebarProjects.flatMap((project) => {
-			const resolvedProject = projectsById.get(project.id);
-			if (!resolvedProject) return [];
-			const {
-				childEntries,
-				sectionMap: _sectionMap,
-				...sidebarProject
-			} = resolvedProject;
-
-			const isLocalMain = (entry: (typeof childEntries)[number]) =>
-				entry.child.type === "workspace" &&
-				entry.child.workspace.type === "main" &&
-				entry.child.workspace.hostType === "local-device";
-
-			const sortedChildren = childEntries
-				.sort((left, right) => {
-					const leftLocalMain = isLocalMain(left);
-					const rightLocalMain = isLocalMain(right);
-					if (leftLocalMain !== rightLocalMain) {
-						return leftLocalMain ? -1 : 1;
-					}
-					return left.tabOrder - right.tabOrder;
-				})
-				.map(({ child }) => child);
-
-			// Ungrouped workspaces rendered after a section header are visually
-			// grouped with that section (shared accent, collapse-together) and will
-			// be committed into it on next DnD. Reparent them here so section counts
-			// match what the user sees.
-			const children: DashboardSidebarProjectChild[] = [];
-			let currentSection: DashboardSidebarSection | null = null;
-			for (const child of sortedChildren) {
-				if (child.type === "section") {
-					currentSection = child.section;
-					children.push(child);
-				} else if (currentSection) {
-					currentSection.workspaces.push({
-						...child.workspace,
-						accentColor: currentSection.color,
-					});
-				} else {
-					children.push(child);
-				}
-			}
-			sidebarProject.children = children;
-			return [sidebarProject];
-		});
-	}, [
-		machineId,
-		pullRequestsByWorkspaceId,
-		sidebarProjects,
-		sidebarSections,
-		visibleSidebarWorkspaces,
-	]);
+	const computedGroups = useMemo<DashboardSidebarProject[]>(
+		() =>
+			buildDashboardSidebarProjects({
+				sidebarProjects,
+				sidebarSections,
+				visibleSidebarWorkspaces,
+				machineId,
+				pullRequestsByWorkspaceId,
+			}),
+		[
+			machineId,
+			pullRequestsByWorkspaceId,
+			sidebarProjects,
+			sidebarSections,
+			visibleSidebarWorkspaces,
+		],
+	);
 	const groups = useStableDashboardSidebarProjects(computedGroups);
 
 	return {
