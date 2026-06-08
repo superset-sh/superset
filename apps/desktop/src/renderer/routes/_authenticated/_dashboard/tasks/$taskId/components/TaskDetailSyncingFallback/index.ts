@@ -1,0 +1,1 @@
+export { TaskDetailSyncingFallback } from "./TaskDetailSyncingFallback";

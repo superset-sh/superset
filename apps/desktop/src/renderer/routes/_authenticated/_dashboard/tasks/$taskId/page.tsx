@@ -21,6 +21,7 @@ import { ActivitySection } from "./components/ActivitySection";
 import { EditableTitle } from "./components/EditableTitle";
 import { PropertiesSidebar } from "./components/PropertiesSidebar";
 import { TaskDetailHeader } from "./components/TaskDetailHeader";
+import { TaskDetailSyncingFallback } from "./components/TaskDetailSyncingFallback";
 import { useEscapeToNavigate } from "./hooks/useEscapeToNavigate";
 
 export const Route = createFileRoute(
@@ -120,7 +121,55 @@ function TaskDetailPage() {
 		enabled: !task,
 		retry: false,
 	});
-	const isTaskSyncing = !task && !!taskFallbackQuery.data;
+	const fallbackTask = !task ? (taskFallbackQuery.data ?? null) : null;
+	const shouldResolveFallbackRelations = !!fallbackTask;
+	const fallbackStatusId = fallbackTask?.statusId ?? "";
+	const fallbackCreatorId = fallbackTask?.creatorId ?? "";
+	const fallbackAssigneeId = fallbackTask?.assigneeId ?? "";
+	const fallbackProjectId = fallbackTask?.v2ProjectId ?? "";
+
+	const { data: fallbackStatusData } = useLiveQuery(
+		(q) =>
+			shouldResolveFallbackRelations
+				? q
+						.from({ status: collections.taskStatuses })
+						.where(({ status }) => eq(status.id, fallbackStatusId))
+						.select(({ status }) => ({ ...status }))
+				: null,
+		[collections, shouldResolveFallbackRelations, fallbackStatusId],
+	);
+
+	const { data: fallbackUserData } = useLiveQuery(
+		(q) =>
+			shouldResolveFallbackRelations
+				? q
+						.from({ users: collections.users })
+						.where(({ users }) =>
+							or(
+								eq(users.id, fallbackCreatorId),
+								eq(users.id, fallbackAssigneeId),
+							),
+						)
+						.select(({ users }) => ({ ...users }))
+				: null,
+		[
+			collections,
+			shouldResolveFallbackRelations,
+			fallbackCreatorId,
+			fallbackAssigneeId,
+		],
+	);
+
+	const { data: fallbackProjectData } = useLiveQuery(
+		(q) =>
+			shouldResolveFallbackRelations && fallbackProjectId
+				? q
+						.from({ project: collections.v2Projects })
+						.where(({ project }) => eq(project.id, fallbackProjectId))
+						.select(({ project }) => ({ ...project }))
+				: null,
+		[collections, shouldResolveFallbackRelations, fallbackProjectId],
+	);
 	const isTaskLoading = !task && taskFallbackQuery.isPending;
 
 	const handleBack = () => {
@@ -143,12 +192,33 @@ function TaskDetailPage() {
 	const creatorName = task?.creator?.name?.trim() ? task.creator.name : null;
 
 	if (!task) {
-		if (isTaskLoading || isTaskSyncing) {
+		if (fallbackTask) {
+			const fallbackUsers = fallbackUserData ?? [];
+			return (
+				<TaskDetailSyncingFallback
+					task={fallbackTask}
+					status={fallbackStatusData?.[0] ?? null}
+					assignee={
+						fallbackTask.assigneeId
+							? (fallbackUsers.find(
+									(user) => user.id === fallbackTask.assigneeId,
+								) ?? null)
+							: null
+					}
+					creator={
+						fallbackUsers.find((user) => user.id === fallbackTask.creatorId) ??
+						null
+					}
+					project={fallbackProjectData?.[0] ?? null}
+					onBack={handleBack}
+				/>
+			);
+		}
+
+		if (isTaskLoading) {
 			return (
 				<div className="flex-1 flex items-center justify-center">
-					<span className="text-muted-foreground">
-						{isTaskSyncing ? "Syncing task..." : "Loading task..."}
-					</span>
+					<span className="text-muted-foreground">Loading task...</span>
 				</div>
 			);
 		}
