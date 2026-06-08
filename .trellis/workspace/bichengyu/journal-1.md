@@ -248,3 +248,37 @@ Completed Code Workspace guided workflow initialization: added repo-local Trelli
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Trellis Superset task status sync
+
+**Date**: 2026-06-08
+**Task**: Trellis Superset task status sync
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Added a repo-local Trellis hook bridge that links Task-opened Code workspaces back to Superset tasks and syncs Trellis start/archive events through the Superset CLI without blocking agent work.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `96bf41b2c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
