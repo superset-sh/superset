@@ -3,7 +3,6 @@ import { HiOutlineWifi } from "react-icons/hi2";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getWorkspaceDisplayName } from "renderer/lib/getWorkspaceDisplayName";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { NavigationControls } from "../NavigationControls";
 import { SidebarToggle } from "../SidebarToggle";
@@ -11,7 +10,6 @@ import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
-import { SearchBarTrigger } from "./components/SearchBarTrigger";
 import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
 import { WindowControls } from "./components/WindowControls";
@@ -64,24 +62,6 @@ export function TopBar() {
 					<V2WorkspaceTitle workspaceId={v2WorkspaceId} />
 				)}
 			</div>
-
-			{!isV2WorkspaceRoute && workspaceId && (
-				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-					<div className="pointer-events-auto">
-						<SearchBarTrigger
-							workspaceName={
-								workspace
-									? getWorkspaceDisplayName(
-											workspace.name,
-											workspace.type,
-											workspace.project?.name,
-										)
-									: undefined
-							}
-						/>
-					</div>
-				</div>
-			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
 				{!sidebarHostsChrome && (
