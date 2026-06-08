@@ -55,6 +55,7 @@ export function TopBar() {
 					<>
 						<SidebarToggle />
 						<NavigationControls />
+						{!isV2CloudEnabled && <ResourceConsumption surface="v1" />}
 					</>
 				)}
 			</div>
@@ -84,8 +85,8 @@ export function TopBar() {
 			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
-				{!sidebarHostsChrome && (
-					<ResourceConsumption surface={isV2CloudEnabled ? "v2" : "v1"} />
+				{!sidebarHostsChrome && isV2CloudEnabled && (
+					<ResourceConsumption surface="v2" />
 				)}
 				{!isOnline && (
 					<div className="no-drag flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
