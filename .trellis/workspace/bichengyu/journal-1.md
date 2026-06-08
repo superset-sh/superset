@@ -214,3 +214,37 @@ Finished the Task backbone slice: local-first task creation, task board/table UI
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Code Workspace Guided Workflow
+
+**Date**: 2026-06-08
+**Task**: Code Workspace Guided Workflow
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Completed Code Workspace guided workflow initialization: added repo-local Trellis status/init support, Agent-specific platform flags, Create Workspace and Task entrypoint wiring, and validation fixes for workspace create sync, local clone parent paths, AI polish model selection, and delete toast wording.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `379484f4a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
-- **Last Active**: 2026-06-01
+- **Total Sessions**: 7
+- **Last Active**: 2026-06-08
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~216 | Active |
+| `journal-1.md` | ~250 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-06-08 | Code Workspace Guided Workflow | `379484f4a` | `codex/model-provider-configuration-center` |
 | 6 | 2026-06-01 | Task system wrap-up | `c4ceee1ef` | `codex/model-provider-configuration-center` |
 | 5 | 2026-06-01 | Local-first Task core | `c4ceee1ef` | `codex/model-provider-configuration-center` |
 | 4 | 2026-05-31 | Model Provider Configuration Center | `ae04eb816` | `codex/model-provider-configuration-center` |
