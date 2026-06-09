@@ -27,17 +27,38 @@ on:
         required: false
         type: number
         default: 30
+      build_macos:
+        description: "Whether to build macOS artifacts"
+        required: false
+        type: boolean
+        default: true
+      macos_arches_json:
+        description: "JSON array of macOS architectures to build"
+        required: false
+        type: string
+        default: '["arm64","x64"]'
+      build_linux:
+        description: "Whether to build Linux artifacts"
+        required: false
+        type: boolean
+        default: true
+      mac_signing:
+        description: "macOS signing mode: auto, required, or unsigned_internal"
+        required: false
+        type: string
+        default: "auto"
 
 jobs:
   build-macos:
     name: Build - macOS (${{ matrix.arch }})
+    if: ${{ inputs.build_macos }}
     runs-on: macos-latest
     environment: production
 
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64, x64]
+        arch: ${{ fromJSON(inputs.macos_arches_json) }}
 
     steps:
       - name: Checkout code
@@ -109,6 +130,10 @@ jobs:
           TARGET_ARCH: ${{ matrix.arch }}
         run: bun run compile:app
 
+      - name: Report package size after compile
+        working-directory: apps/desktop
+        run: bun run report:size --top=15
+
       - name: Build Electron app
         working-directory: apps/desktop
         env:
@@ -118,8 +143,14 @@ jobs:
           MAC_APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           MAC_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TARGET_ARCH: ${{ matrix.arch }}
+          MAC_SIGNING_MODE: ${{ inputs.mac_signing }}
         run: |
-          if [[ -n "${MAC_CERTIFICATE:-}" && -n "${MAC_CERTIFICATE_PASSWORD:-}" && -n "${MAC_APPLE_ID:-}" && -n "${MAC_APPLE_ID_PASSWORD:-}" && -n "${MAC_APPLE_TEAM_ID:-}" ]]; then
+          if [[ "$MAC_SIGNING_MODE" == "unsigned_internal" ]]; then
+            echo "::warning::macOS signing mode is unsigned_internal; building unsigned macOS artifacts."
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+            export SKIP_MAC_CODE_SIGNING=true
+          elif [[ -n "${MAC_CERTIFICATE:-}" && -n "${MAC_CERTIFICATE_PASSWORD:-}" && -n "${MAC_APPLE_ID:-}" && -n "${MAC_APPLE_ID_PASSWORD:-}" && -n "${MAC_APPLE_TEAM_ID:-}" ]]; then
             echo "macOS signing secrets found; building signed and notarized app."
             export CSC_LINK="$MAC_CERTIFICATE"
             export CSC_KEY_PASSWORD="$MAC_CERTIFICATE_PASSWORD"
@@ -127,6 +158,11 @@ jobs:
             export APPLE_APP_SPECIFIC_PASSWORD="$MAC_APPLE_ID_PASSWORD"
             export APPLE_TEAM_ID="$MAC_APPLE_TEAM_ID"
           else
+            if [[ "$MAC_SIGNING_MODE" == "required" ]]; then
+              echo "::error::macOS signing was required, but signing/notarization secrets are incomplete."
+              echo "::error::Required secrets: MAC_CERTIFICATE, MAC_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_ID_PASSWORD, APPLE_TEAM_ID."
+              exit 1
+            fi
             echo "::warning::macOS signing secrets are incomplete; building unsigned macOS artifacts."
             unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
             export CSC_IDENTITY_AUTO_DISCOVERY=false
@@ -170,6 +206,29 @@ jobs:
           }
           echo "OK: bundled $BINDING ($(du -h "$BINDING" | cut -f1))"
 
+      - name: Verify macOS code signing status
+        working-directory: apps/desktop
+        env:
+          MAC_CERTIFICATE: ${{ secrets.MAC_CERTIFICATE }}
+          MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          MAC_APPLE_ID: ${{ secrets.APPLE_ID }}
+          MAC_APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          MAC_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          APP_DIR=$(find release -maxdepth 2 -name "*.app" -type d | head -1)
+          if [[ -z "$APP_DIR" ]]; then
+            echo "::error::No .app bundle found in release/"
+            exit 1
+          fi
+
+          if [[ -n "${MAC_CERTIFICATE:-}" && -n "${MAC_CERTIFICATE_PASSWORD:-}" && -n "${MAC_APPLE_ID:-}" && -n "${MAC_APPLE_ID_PASSWORD:-}" && -n "${MAC_APPLE_TEAM_ID:-}" ]]; then
+            codesign --verify --deep --strict --verbose=2 "$APP_DIR"
+            spctl --assess --type execute --verbose=4 "$APP_DIR"
+            echo "macOS app is signed and passed Gatekeeper assessment."
+          else
+            echo "::warning::macOS app is unsigned. Downloaded artifacts may show as damaged until signing/notarization secrets are configured."
+          fi
+
       - name: Upload DMG artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -196,6 +255,7 @@ jobs:
 
   build-linux:
     name: Build - Linux (x64)
+    if: ${{ inputs.build_linux }}
     runs-on: ubuntu-latest
     environment: production
 
@@ -269,6 +329,10 @@ jobs:
           SUPERSET_WORKSPACE_NAME: superset
           TARGET_ARCH: x64
         run: bun run compile:app
+
+      - name: Report package size after compile
+        working-directory: apps/desktop
+        run: bun run report:size --top=15
 
       - name: Build Electron app
         working-directory: apps/desktop

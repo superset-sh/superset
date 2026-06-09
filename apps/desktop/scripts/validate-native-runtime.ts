@@ -39,15 +39,21 @@ function assertExists(path: string, reason: string): void {
 	}
 }
 
-function validateLibsqlNotBundled(): void {
+function readOptionalMainSourceMap(): string | null {
 	const sourceMapPath = join(projectRoot, "dist", "main", "index.js.map");
-	assertExists(
-		sourceMapPath,
-		"Main bundle sourcemap not found. Run `bun run compile:app` first.",
-	);
+	if (!existsSync(sourceMapPath)) {
+		console.warn(
+			"[validate:native-runtime] Main bundle sourcemap not found; skipping sourcemap-origin scan while keeping JS output checks enabled.",
+		);
+		return null;
+	}
 
-	const sourceMap = readFileSync(sourceMapPath, "utf8");
-	if (sourceMap.includes("node_modules/.bun/libsql@")) {
+	return readFileSync(sourceMapPath, "utf8");
+}
+
+function validateLibsqlNotBundled(): void {
+	const sourceMap = readOptionalMainSourceMap();
+	if (sourceMap?.includes("node_modules/.bun/libsql@")) {
 		fail(
 			[
 				"Detected bundled `libsql` sources in dist/main/index.js.map.",
@@ -91,14 +97,8 @@ function validateLibsqlNotBundled(): void {
 }
 
 function validateParcelWatcherNotBundled(): void {
-	const sourceMapPath = join(projectRoot, "dist", "main", "index.js.map");
-	assertExists(
-		sourceMapPath,
-		"Main bundle sourcemap not found. Run `bun run compile:app` first.",
-	);
-
-	const sourceMap = readFileSync(sourceMapPath, "utf8");
-	if (sourceMap.includes("node_modules/.bun/@parcel+watcher@")) {
+	const sourceMap = readOptionalMainSourceMap();
+	if (sourceMap?.includes("node_modules/.bun/@parcel+watcher@")) {
 		fail(
 			[
 				"Detected bundled `@parcel/watcher` sources in dist/main/index.js.map.",

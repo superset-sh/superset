@@ -32,6 +32,11 @@ const tsconfigPaths = tsconfigPathsPlugin({
 const workspaceDependencies = Object.keys(dependencies).filter((dependency) =>
 	dependency.startsWith("@superset/"),
 );
+const buildSourcemap =
+	process.env.SENTRY_AUTH_TOKEN ||
+	process.env.DESKTOP_INCLUDE_SOURCEMAPS === "true"
+		? "hidden"
+		: false;
 
 // Sentry plugin for uploading sourcemaps (only in CI with auth token)
 const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
@@ -99,7 +104,7 @@ export default defineConfig({
 		},
 
 		build: {
-			sourcemap: true,
+			sourcemap: buildSourcemap,
 			rollupOptions: {
 				input: {
 					index: resolve("src/main/index.ts"),
@@ -250,7 +255,7 @@ export default defineConfig({
 		publicDir: resolve(resources, "public"),
 
 		build: {
-			sourcemap: true,
+			sourcemap: buildSourcemap,
 			outDir: resolve(devPath, "renderer"),
 
 			rollupOptions: {

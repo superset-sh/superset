@@ -11,6 +11,23 @@ on:
         required: false
         type: boolean
         default: false
+      build_scope:
+        description: "Canary artifact scope"
+        required: false
+        type: choice
+        default: quick
+        options:
+          - quick
+          - full
+      mac_signing:
+        description: "macOS signing mode"
+        required: false
+        type: choice
+        default: auto
+        options:
+          - auto
+          - required
+          - unsigned_internal
 
 permissions:
   contents: write
@@ -24,6 +41,10 @@ jobs:
       short_sha: ${{ steps.check.outputs.short_sha }}
       build_time: ${{ steps.check.outputs.build_time }}
       version_timestamp: ${{ steps.check.outputs.version_timestamp }}
+      build_scope: ${{ steps.check.outputs.build_scope }}
+      macos_arches_json: ${{ steps.check.outputs.macos_arches_json }}
+      build_linux: ${{ steps.check.outputs.build_linux }}
+      mac_signing: ${{ steps.check.outputs.mac_signing }}
 
     steps:
       - name: Checkout code
@@ -47,6 +68,45 @@ jobs:
           echo "version_timestamp=$VERSION_TIMESTAMP" >> $GITHUB_OUTPUT
 
           FORCE_BUILD="${{ github.event.inputs.force_build }}"
+          BUILD_SCOPE="${{ github.event.inputs.build_scope }}"
+          MAC_SIGNING="${{ github.event.inputs.mac_signing }}"
+
+          if [ -z "$BUILD_SCOPE" ]; then
+            BUILD_SCOPE="quick"
+          fi
+
+          if [ -z "$MAC_SIGNING" ]; then
+            MAC_SIGNING="auto"
+          fi
+
+          case "$BUILD_SCOPE" in
+            quick)
+              echo "Quick canary requested: macOS arm64 only."
+              echo 'macos_arches_json=["arm64"]' >> $GITHUB_OUTPUT
+              echo "build_linux=false" >> $GITHUB_OUTPUT
+              ;;
+            full)
+              echo "Full canary requested: macOS arm64/x64 + Linux x64."
+              echo 'macos_arches_json=["arm64","x64"]' >> $GITHUB_OUTPUT
+              echo "build_linux=true" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "::error::Unsupported build_scope: $BUILD_SCOPE"
+              exit 1
+              ;;
+          esac
+
+          case "$MAC_SIGNING" in
+            auto|required|unsigned_internal)
+              ;;
+            *)
+              echo "::error::Unsupported mac_signing mode: $MAC_SIGNING"
+              exit 1
+              ;;
+          esac
+
+          echo "build_scope=$BUILD_SCOPE" >> $GITHUB_OUTPUT
+          echo "mac_signing=$MAC_SIGNING" >> $GITHUB_OUTPUT
 
           if [ "$FORCE_BUILD" = "true" ]; then
             echo "Force build requested, skipping change detection..."
@@ -77,6 +137,10 @@ jobs:
       electron_builder_config: electron-builder.canary.ts
       artifact_prefix: desktop-canary
       artifact_retention_days: 7
+      build_macos: true
+      macos_arches_json: ${{ needs.check-changes.outputs.macos_arches_json }}
+      build_linux: ${{ needs.check-changes.outputs.build_linux == 'true' }}
+      mac_signing: ${{ needs.check-changes.outputs.mac_signing }}
     secrets: inherit
 
   release:
@@ -88,6 +152,46 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Create release body
+        env:
+          BUILD_SCOPE: ${{ needs.check-changes.outputs.build_scope }}
+          BUILD_TIME: ${{ needs.check-changes.outputs.build_time }}
+          MAC_CERTIFICATE: ${{ secrets.MAC_CERTIFICATE }}
+          MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          MAC_APPLE_ID: ${{ secrets.APPLE_ID }}
+          MAC_APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          MAC_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MAC_SIGNING: ${{ needs.check-changes.outputs.mac_signing }}
+          SHORT_SHA: ${{ needs.check-changes.outputs.short_sha }}
+        run: |
+          if [[ "$MAC_SIGNING" == "unsigned_internal" ]]; then
+            MAC_SIGNING_STATUS="Unsigned internal build"
+            MAC_SIGNING_NOTES="macOS may report that the app is damaged because this build intentionally skips Developer ID signing/notarization. For internal testing only, install the app and run: \`xattr -dr com.apple.quarantine /Applications/Superset\\ Canary.app\`"
+          elif [[ -n "${MAC_CERTIFICATE:-}" && -n "${MAC_CERTIFICATE_PASSWORD:-}" && -n "${MAC_APPLE_ID:-}" && -n "${MAC_APPLE_ID_PASSWORD:-}" && -n "${MAC_APPLE_TEAM_ID:-}" ]]; then
+            MAC_SIGNING_STATUS="Developer ID signed and notarized"
+            MAC_SIGNING_NOTES="macOS artifacts are expected to open normally after download."
+          else
+            MAC_SIGNING_STATUS="Unsigned internal build"
+            MAC_SIGNING_NOTES="macOS may report that the app is damaged because this build is not Developer ID signed/notarized. For internal testing only, install the app and run: \`xattr -dr com.apple.quarantine /Applications/Superset\\ Canary.app\`"
+          fi
+
+          cat > release-body.md <<EOF
+          **Internal Testing Build**
+
+          This is an automated canary build from \`main\` branch.
+
+          - Commit: ${{ github.sha }}
+          - Short SHA: ${SHORT_SHA}
+          - Built: ${BUILD_TIME}
+          - Build scope: ${BUILD_SCOPE}
+          - macOS signing mode: ${MAC_SIGNING}
+          - macOS signing status: ${MAC_SIGNING_STATUS}
+
+          ${MAC_SIGNING_NOTES}
+
+          This build is for internal testing only and may be unstable.
+          EOF
 
       - name: Download all artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -141,16 +245,7 @@ jobs:
         with:
           tag_name: desktop-canary
           name: "Superset Desktop Canary"
-          body: |
-            **Internal Testing Build**
-
-            This is an automated canary build from `main` branch.
-
-            - Commit: ${{ github.sha }}
-            - Short SHA: ${{ needs.check-changes.outputs.short_sha }}
-            - Built: ${{ needs.check-changes.outputs.build_time }}
-
-            ⚠️ This build is for internal testing only and may be unstable.
+          body_path: release-body.md
           prerelease: true
           files: release-artifacts/*
         env:

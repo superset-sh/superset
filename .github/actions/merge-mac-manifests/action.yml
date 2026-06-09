@@ -1,8 +1,8 @@
 name: Merge macOS Auto-Update Manifests
 description: >
-  Downloads arm64 and x64 macOS update manifests from separate build artifacts
-  and merges them into a single latest-mac.yml with entries for both architectures.
-  arm64 is used as the canonical base (path/sha512).
+  Downloads available arm64 and x64 macOS update manifests from separate build
+  artifacts and merges them into a single latest-mac.yml. When only one
+  architecture exists, that manifest is copied through.
 
 inputs:
   artifact-prefix:
@@ -21,12 +21,14 @@ runs:
   using: composite
   steps:
     - name: Download arm64 macOS update manifest
+      continue-on-error: true
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.artifact-prefix }}-mac-arm64-update-manifest
         path: manifests/arm64
 
     - name: Download x64 macOS update manifest
+      continue-on-error: true
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.artifact-prefix }}-mac-x64-update-manifest

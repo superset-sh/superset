@@ -91,6 +91,9 @@ const config: Configuration = {
 		// before building (required for Bun 1.3+ isolated installs).
 		...packagedNodeModuleCopies,
 		"!**/.DS_Store",
+		"!**/*.map",
+		"!**/*.test.*",
+		"!**/*.spec.*",
 	],
 
 	// Rebuild native modules for Electron's Node.js version
