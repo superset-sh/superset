@@ -71,6 +71,13 @@ class MockWebSocket {
 
 const originalWebSocket = globalThis.WebSocket;
 
+// `window` is aliased to `globalThis` by the xterm-env-polyfill preload, and
+// `globalThis.addEventListener` is absent on Linux CI runtimes, so the transport's
+// `window.addEventListener` call throws there. Guarantee the methods exist.
+const win = globalThis.window as unknown as Record<string, unknown> | undefined;
+const originalAddEventListener = win?.addEventListener;
+const originalRemoveEventListener = win?.removeEventListener;
+
 function createMockTerminal(
 	cols = 101,
 	rows = 27,
@@ -94,10 +101,20 @@ function createMockTerminal(
 beforeEach(() => {
 	MockWebSocket.instances = [];
 	globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+	if (win && typeof win.addEventListener !== "function") {
+		win.addEventListener = () => {};
+	}
+	if (win && typeof win.removeEventListener !== "function") {
+		win.removeEventListener = () => {};
+	}
 });
 
 afterEach(() => {
 	globalThis.WebSocket = originalWebSocket;
+	if (win) {
+		win.addEventListener = originalAddEventListener;
+		win.removeEventListener = originalRemoveEventListener;
+	}
 	setSystemTime();
 	jest.useRealTimers();
 });
