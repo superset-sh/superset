@@ -69,6 +69,11 @@ macOS code signing uses these repository secrets:
 - `MAC_CERTIFICATE` / `MAC_CERTIFICATE_PASSWORD`
 - `APPLE_ID` / `APPLE_ID_PASSWORD` / `APPLE_TEAM_ID`
 
+If the macOS signing and notarization secrets are not configured, the desktop
+build workflow automatically produces unsigned macOS artifacts instead of
+failing during certificate import. Once the secrets are added, the same workflow
+returns to signed and notarized builds.
+
 ## Local Testing
 
 ```bash
