@@ -221,6 +221,22 @@ work should therefore create both immediate wins and durable guardrails.
   - Fix: `unsigned_internal` and missing-secret `auto` builds should use
     `AD_HOC_MAC_CODE_SIGNING=true` and `identity: "-"`, disabling Developer ID
     notarization while still sealing the app bundle.
+- Updated ad-hoc signed Canary validation:
+  - Run: https://github.com/TwitterIsGood/superset/actions/runs/27189409464
+  - Commit: `de42cdd28`
+  - Completed successfully at `2026-06-09T07:14:09Z`.
+  - CI `Verify macOS code signing status` passed
+    `codesign --verify --deep --strict`.
+  - Downloaded release DMG
+    `Superset-Canary-1.12.4-canary.20260609065812-arm64.dmg` was mounted and
+    the contained `Superset Canary.app` passed:
+    `codesign --verify --deep --strict --verbose=2`.
+  - The mounted release app reports `Signature=adhoc`,
+    `Identifier=com.superset.desktop.canary`, and
+    `Sealed Resources version=2`.
+  - `spctl --assess` still rejects the app, as expected for a non-notarized
+    internal build; users must remove quarantine after copying the app to
+    `/Applications`.
 
 ## Notes
 
