@@ -11,11 +11,7 @@ export function initSentry(): void {
 		release: process.env.FLY_IMAGE_REF,
 		environment: process.env.FLY_APP_NAME ?? "relay-local",
 		tracesSampleRate: 0,
-		_experiments: { enableLogs: true },
 		integrations: [
-			Sentry.consoleLoggingIntegration({
-				levels: ["log", "info", "warn", "error"],
-			}),
 			Sentry.onUncaughtExceptionIntegration({
 				exitEvenIfOtherHandlersAreRegistered: false,
 			}),
