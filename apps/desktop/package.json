@@ -223,7 +223,7 @@
 		"remark-parse": "11.0.0",
 		"semver": "7.7.4",
 		"shell-env": "4.0.3",
-		"shell-quote": "1.8.3",
+		"shell-quote": "1.8.4",
 		"shiki": "3.23.0",
 		"simple-git": "3.36.0",
 		"streamdown": "2.5.0",
