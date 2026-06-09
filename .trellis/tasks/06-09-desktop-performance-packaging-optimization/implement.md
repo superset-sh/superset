@@ -112,9 +112,11 @@ Validation:
   - `bun run lint`
   - `bun run --cwd apps/desktop typecheck`
 - Remaining work:
-  - Run the updated GitHub Actions Canary workflow after committing/pushing.
-  - Capture CI duration after quick arm64-only canary.
   - Continue broader startup, page-open, CPU, and memory measurements.
+  - Continue deeper package-size work on Electron runtime, bundled CLI, DuckDB,
+    and node-pty/native runtime payload.
+  - Address GitHub Actions Node 20 deprecation warnings before Node 24 becomes
+    the default runner action runtime.
 
 ## Risks
 

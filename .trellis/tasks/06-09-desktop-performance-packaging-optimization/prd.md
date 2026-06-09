@@ -192,6 +192,20 @@ work should therefore create both immediate wins and durable guardrails.
   no-cost path is internal testing with quarantine removal, for example:
   `xattr -dr com.apple.quarantine /Applications/Superset\ Canary.app`.
   This does not provide a normal consumer-grade double-click install experience.
+- Updated quick Canary CI run completed successfully:
+  - Run: https://github.com/TwitterIsGood/superset/actions/runs/27187755251
+  - Commit: `08e9e6b87`
+  - Triggered at `2026-06-09T06:18:20Z`.
+  - Completed at `2026-06-09T06:30:29Z`.
+  - End-to-end duration: about 12 minutes 9 seconds.
+  - macOS arm64 build job duration: about 10 minutes 54 seconds.
+  - macOS `Build Electron app` duration: about 5 minutes 50 seconds.
+  - Linux job was skipped by quick canary scope.
+  - Release assets:
+    - arm64 DMG: 452,760,757 bytes.
+    - arm64 ZIP: 435,477,572 bytes.
+  - Release notes correctly state `macOS signing mode: unsigned_internal` and
+    `macOS signing status: Unsigned internal build`.
 
 ## Notes
 
