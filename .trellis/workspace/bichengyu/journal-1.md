@@ -351,3 +351,37 @@ Merged official origin/main into the fork while preserving V2-only desktop behav
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: Desktop performance phase 1
+
+**Date**: 2026-06-09
+**Task**: Desktop performance phase 1
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Completed phase-one desktop performance optimization: canary packaging/signing improvements, runtime measurement tooling, lazy terminal and active-org host-service startup, lazy renderer analytics/startup timeline, and lazy host-service Chat/Mastra/AI loading with desktop smoke evidence.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `611757472` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
