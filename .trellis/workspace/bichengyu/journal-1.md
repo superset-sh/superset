@@ -317,3 +317,37 @@ Completed Trellis to Superset Task status sync hardening: task detail fallback w
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Merge upstream official changes
+
+**Date**: 2026-06-09
+**Task**: Merge upstream official changes
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Merged official origin/main into the fork while preserving V2-only desktop behavior, local auth, model provider center, Task/Trellis flows, and unsigned canary fallback; resolved host-service, terminal, workspace creation, DB migration-history, and desktop routing conflicts; validated with lint, typecheck, focused package tests, and Desktop Automation smoke.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b1e93f946` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

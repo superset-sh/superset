@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 9
-- **Last Active**: 2026-06-08
+- **Total Sessions**: 10
+- **Last Active**: 2026-06-09
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~319 | Active |
+| `journal-1.md` | ~353 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 10 | 2026-06-09 | Merge upstream official changes | `b1e93f946` | `codex/model-provider-configuration-center` |
 | 9 | 2026-06-08 | Trellis Superset task status sync | `5adc0ee3a`, `d495c7fd7` | `codex/model-provider-configuration-center` |
 | 8 | 2026-06-08 | Trellis Superset task status sync | `96bf41b2c` | `codex/model-provider-configuration-center` |
 | 7 | 2026-06-08 | Code Workspace Guided Workflow | `379484f4a` | `codex/model-provider-configuration-center` |
