@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "bun:test";
 import {
 	existsSync,
 	mkdirSync,
@@ -10,7 +18,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
-import { cloneRepoInto, resolveLocalRepo } from "./resolve-repo";
+import {
+	cloneRepoInto,
+	initLocalRepoInPlace,
+	resolveLocalRepo,
+} from "./resolve-repo";
 
 /**
  * Integration tests against real on-disk git repositories. The point is
@@ -186,6 +198,110 @@ describe("resolveLocalRepo", () => {
 
 		await expect(resolveLocalRepo(plain)).rejects.toThrow(
 			/Not a git repository/,
+		);
+	});
+});
+
+// ── initLocalRepoInPlace ──────────────────────────────────────────
+
+describe("initLocalRepoInPlace", () => {
+	// The in-place initial commit happens inside the call, so there's no
+	// window to set local git identity. Provide one via env (git honors these
+	// without config) so the commit succeeds under CI's identity-less env.
+	const savedEnv: Record<string, string | undefined> = {};
+	const identity = {
+		GIT_AUTHOR_NAME: "test",
+		GIT_AUTHOR_EMAIL: "test@example.com",
+		GIT_COMMITTER_NAME: "test",
+		GIT_COMMITTER_EMAIL: "test@example.com",
+	};
+
+	beforeAll(() => {
+		for (const [k, v] of Object.entries(identity)) {
+			savedEnv[k] = process.env[k];
+			process.env[k] = v;
+		}
+	});
+
+	afterAll(() => {
+		for (const k of Object.keys(identity)) {
+			if (savedEnv[k] === undefined) delete process.env[k];
+			else process.env[k] = savedEnv[k];
+		}
+	});
+
+	async function commitCount(path: string): Promise<number> {
+		const out = await simpleGit(path).raw(["rev-list", "--count", "HEAD"]);
+		return Number(out.trim());
+	}
+
+	test("initializes a plain folder as a local-only repo on main with one commit", async () => {
+		const dir = join(workRoot, "plain");
+		mkdirSync(dir);
+
+		const resolved = await initLocalRepoInPlace(dir);
+
+		expect(eqRealpath(resolved.repoPath, dir)).toBe(true);
+		expect(resolved.remoteName).toBeNull();
+		expect(resolved.parsed).toBeNull();
+
+		const branch = (
+			await simpleGit(dir).raw(["rev-parse", "--abbrev-ref", "HEAD"])
+		).trim();
+		expect(branch).toBe("main");
+		expect(await commitCount(dir)).toBe(1);
+	});
+
+	test("adopts a non-empty folder without erroring and preserves its files", async () => {
+		const dir = join(workRoot, "with-files");
+		mkdirSync(dir);
+		writeFileSync(join(dir, "README.md"), "hello");
+
+		const resolved = await initLocalRepoInPlace(dir);
+
+		expect(eqRealpath(resolved.repoPath, dir)).toBe(true);
+		expect(existsSync(join(dir, "README.md"))).toBe(true);
+	});
+
+	test("is idempotent on an already-initialized repo (no second commit)", async () => {
+		const repo = join(workRoot, "already");
+		const git = await initRepoAt(repo);
+		await seedCommit(git);
+		expect(await commitCount(repo)).toBe(1);
+
+		const resolved = await initLocalRepoInPlace(repo);
+
+		expect(eqRealpath(resolved.repoPath, repo)).toBe(true);
+		// Resolved the existing repo rather than re-initializing / re-committing.
+		expect(await commitCount(repo)).toBe(1);
+	});
+
+	test("resolves to the parent toplevel for a subdir of an existing repo (no nested init)", async () => {
+		const repo = join(workRoot, "outer");
+		const git = await initRepoAt(repo);
+		await seedCommit(git);
+		const inner = join(repo, "packages", "child");
+		mkdirSync(inner, { recursive: true });
+
+		const resolved = await initLocalRepoInPlace(inner);
+
+		expect(eqRealpath(resolved.repoPath, repo)).toBe(true);
+		// No standalone repo created inside the subdir.
+		expect(existsSync(join(inner, ".git"))).toBe(false);
+	});
+
+	test("rejects a path that does not exist", async () => {
+		await expect(
+			initLocalRepoInPlace(join(workRoot, "missing")),
+		).rejects.toThrow(/Path does not exist/);
+	});
+
+	test("rejects a path that points at a file", async () => {
+		const file = join(workRoot, "file.txt");
+		writeFileSync(file, "x");
+
+		await expect(initLocalRepoInPlace(file)).rejects.toThrow(
+			/Path is not a directory/,
 		);
 	});
 });

@@ -2,7 +2,6 @@ import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
-import { REMOTE_CONTROL_TAIL_BYTES } from "@superset/shared/remote-control-protocol";
 import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
@@ -35,7 +34,6 @@ import {
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 } from "./env.ts";
-import { revokeSessionsForTerminal } from "./remote-control/session-manager.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	createModeTracker,
@@ -46,7 +44,7 @@ import {
  * Thin adapter exposing approximately the IPty surface that the rest of
  * this file (and teardown.ts) was built against, so most of the call
  * sites stay unchanged after the daemon extraction. The PTY itself lives
- * in pty-daemon; this is a remote control.
+ * in pty-daemon; this adapter forwards to it over the daemon socket.
  *
  * onData / onExit register additional subscribers on top of whatever the
  * session's primary subscription is doing — daemon supports multi-
@@ -59,18 +57,7 @@ interface PtyDataDisposer {
 interface DaemonPty {
 	pid: number;
 	write(data: string): void;
-	/**
-	 * Raw-byte input that bypasses the string round-trip in `write`. Used by
-	 * the remote-control path so non-ASCII bytes (pasted UTF-8, non-Latin
-	 * keyboards, control sequences) reach the PTY exactly as sent.
-	 */
-	writeBytes(bytes: Uint8Array): void;
 	resize(cols: number, rows: number): void;
-	/**
-	 * Forward the renderer's "I consumed N bytes" ack to the daemon's flow-
-	 * control counter for the primary subscription on this session.
-	 */
-	ackOutput(bytes: number): void;
 	kill(signal?: NodeJS.Signals): Promise<void>;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
@@ -88,24 +75,11 @@ function makeDaemonPty(
 		write(data) {
 			daemon.input(sessionId, Buffer.from(data, "utf8"));
 		},
-		writeBytes(bytes) {
-			daemon.input(
-				sessionId,
-				Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
-			);
-		},
 		resize(cols, rows) {
 			try {
 				daemon.resize(sessionId, cols, rows);
 			} catch {
 				// Daemon may have disconnected; surface via the next op.
-			}
-		},
-		ackOutput(bytes) {
-			try {
-				daemon.ackOutput(sessionId, bytes);
-			} catch {
-				// Daemon may have disconnected; reconnect path handles recovery.
 			}
 		},
 		kill(signal) {
@@ -172,7 +146,6 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
-	| { type: "output-ack"; bytes: number }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -187,6 +160,14 @@ type TerminalServerMessage =
 	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+// Cap on a single renderer socket's unflushed WebSocket send buffer. With no
+// ACK flow control, a renderer that stops draining (slow paint, pinned main
+// thread, dead tab) would let this buffer grow without bound → host OOM (the
+// risk #4868 was about). Once a socket blows past this, we drop it; the
+// renderer auto-reconnects and replays the bounded tail buffer. Crucially the
+// PTY is never paused, so a stalled renderer can't wedge the shell. Matches the
+// daemon's own 8 MB outbound socket cap.
+const WS_SEND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 const SOCKET_OPEN = 1;
 const SOCKET_CLOSING = 2;
 const SOCKET_CLOSED = 3;
@@ -196,10 +177,13 @@ const MIN_TERMINAL_COLS = 20;
 const MIN_TERMINAL_ROWS = 5;
 
 // `<ArrayBuffer>` narrowing matches hono/ws's WSContext.send signature.
+// `raw` is the underlying `ws` WebSocket (present for node-ws); we read
+// `bufferedAmount` off it to bound a slow renderer's send queue.
 type TerminalSocket = {
 	send: (data: string | Uint8Array<ArrayBuffer>) => void;
 	close: (code?: number, reason?: string) => void;
 	readyState: number;
+	raw?: { readonly bufferedAmount?: number };
 };
 
 // ---------------------------------------------------------------------------
@@ -219,42 +203,12 @@ const SHELL_READY_TIMEOUT_MS = 3_000;
  */
 type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
 
-export interface TerminalViewerListener {
-	onData(bytes: Uint8Array, sequence: number): void;
-	onTitle(title: string | null): void;
-	onResize(cols: number, rows: number): void;
-	onExit(exitCode: number, signal: number): void;
-}
-
-export interface TerminalViewerSnapshot {
-	tail: Uint8Array;
-	outputSequence: number;
-	cols: number;
-	rows: number;
-	title: string | null;
-	exited: boolean;
-	exitCode?: number;
-	signal?: number;
-}
-
-export interface TerminalViewerHandle {
-	detach(): void;
-	sendInput(bytes: Uint8Array): void;
-	resize(cols: number, rows: number): void;
-	runCommand(command: string): void;
-	getSnapshot(): TerminalViewerSnapshot;
-}
-
 interface TerminalSession {
 	terminalId: string;
 	workspaceId: string;
 	pty: DaemonPty;
 	cols: number;
 	rows: number;
-	outputSequence: number;
-	tailRing: Uint8Array[];
-	tailRingBytes: number;
-	viewers: Set<TerminalViewerListener>;
 	/** Unsubscribe from the daemon's output/exit stream when disposed. */
 	unsubscribeDaemon: (() => void) | null;
 	sockets: Set<TerminalSocket>;
@@ -503,178 +457,6 @@ function setSessionTitle(session: TerminalSession, title: string | null) {
 	if (session.title === title) return;
 	session.title = title;
 	broadcastMessage(session, { type: "title", title });
-	notifyViewersTitle(session, title);
-}
-
-function pushToTailRing(session: TerminalSession, bytes: Uint8Array) {
-	if (bytes.byteLength === 0) return;
-	// If a single chunk is larger than the cap, keep only its tail. Otherwise
-	// the FIFO eviction below would push then immediately shift the same
-	// chunk and leave the snapshot empty.
-	const chunk =
-		bytes.byteLength > REMOTE_CONTROL_TAIL_BYTES
-			? new Uint8Array(
-					bytes.subarray(bytes.byteLength - REMOTE_CONTROL_TAIL_BYTES),
-				)
-			: new Uint8Array(bytes);
-	session.tailRing.push(chunk);
-	session.tailRingBytes += chunk.byteLength;
-	while (
-		session.tailRingBytes > REMOTE_CONTROL_TAIL_BYTES &&
-		session.tailRing.length > 1
-	) {
-		const removed = session.tailRing.shift();
-		if (removed) session.tailRingBytes -= removed.byteLength;
-	}
-}
-
-function tailRingSnapshot(session: TerminalSession): Uint8Array {
-	if (session.tailRing.length === 0) return new Uint8Array(0);
-	const out = new Uint8Array(session.tailRingBytes);
-	let off = 0;
-	for (const chunk of session.tailRing) {
-		out.set(chunk, off);
-		off += chunk.byteLength;
-	}
-	return out;
-}
-
-function notifyViewersData(
-	session: TerminalSession,
-	bytes: Uint8Array,
-	sequence: number,
-) {
-	for (const v of session.viewers) {
-		try {
-			v.onData(bytes, sequence);
-		} catch (err) {
-			console.warn("[terminal] viewer onData threw:", err);
-		}
-	}
-}
-
-function notifyViewersTitle(session: TerminalSession, title: string | null) {
-	for (const v of session.viewers) {
-		try {
-			v.onTitle(title);
-		} catch (err) {
-			console.warn("[terminal] viewer onTitle threw:", err);
-		}
-	}
-}
-
-function notifyViewersResize(
-	session: TerminalSession,
-	cols: number,
-	rows: number,
-) {
-	for (const v of session.viewers) {
-		try {
-			v.onResize(cols, rows);
-		} catch (err) {
-			console.warn("[terminal] viewer onResize threw:", err);
-		}
-	}
-}
-
-function notifyViewersExit(
-	session: TerminalSession,
-	exitCode: number,
-	signal: number,
-) {
-	for (const v of session.viewers) {
-		try {
-			v.onExit(exitCode, signal);
-		} catch (err) {
-			console.warn("[terminal] viewer onExit threw:", err);
-		}
-	}
-}
-
-export function terminalSessionExists(
-	terminalId: string,
-	workspaceId?: string,
-): boolean {
-	const session = sessions.get(terminalId);
-	if (!session) return false;
-	if (workspaceId !== undefined && session.workspaceId !== workspaceId) {
-		return false;
-	}
-	return !session.exited;
-}
-
-export interface AttachTerminalViewerOptions {
-	terminalId: string;
-	workspaceId: string;
-	listener: TerminalViewerListener;
-}
-
-export function attachTerminalViewer(
-	options: AttachTerminalViewerOptions,
-): TerminalViewerHandle | null {
-	const session = sessions.get(options.terminalId);
-	if (!session) return null;
-	if (session.workspaceId !== options.workspaceId) return null;
-
-	session.viewers.add(options.listener);
-
-	let detached = false;
-
-	const handle: TerminalViewerHandle = {
-		detach() {
-			if (detached) return;
-			detached = true;
-			session.viewers.delete(options.listener);
-		},
-		sendInput(bytes) {
-			if (detached || session.exited) return;
-			// Raw-byte path. Earlier versions round-tripped via a latin1 string
-			// here, but `pty.write` re-encodes its argument as UTF-8 so any
-			// byte ≥ 0x80 (non-ASCII typed input, pasted UTF-8 sequences,
-			// kitty/keyboard-protocol bytes) was being mangled on the wire.
-			session.pty.writeBytes(bytes);
-		},
-		resize(cols, rows) {
-			if (detached || session.exited) return;
-			const c = normalizeTerminalDimension(
-				cols,
-				MIN_TERMINAL_COLS,
-				DEFAULT_TERMINAL_COLS,
-			);
-			const r = normalizeTerminalDimension(
-				rows,
-				MIN_TERMINAL_ROWS,
-				DEFAULT_TERMINAL_ROWS,
-			);
-			session.pty.resize(c, r);
-			session.modeTracker.resize(c, r);
-			session.cols = c;
-			session.rows = r;
-			notifyViewersResize(session, c, r);
-		},
-		runCommand(command) {
-			if (detached || session.exited) return;
-			// FLAG: plan referenced enqueueTrackedCommand (command-records system),
-			// which is not present on this branch. Falling back to a raw write so
-			// the feature still works; revisit when command-records lands.
-			const cmd = command.endsWith("\n") ? command : `${command}\n`;
-			session.pty.write(cmd);
-		},
-		getSnapshot() {
-			return {
-				tail: tailRingSnapshot(session),
-				outputSequence: session.outputSequence,
-				cols: session.cols,
-				rows: session.rows,
-				title: session.title,
-				exited: session.exited,
-				exitCode: session.exited ? session.exitCode : undefined,
-				signal: session.exited ? session.exitSignal : undefined,
-			};
-		},
-	};
-
-	return handle;
 }
 
 function bufferOutput(session: TerminalSession, data: Uint8Array) {
@@ -707,6 +489,11 @@ function sendBytes(socket: TerminalSocket, bytes: Uint8Array) {
 	socket.send(asArrayBufferBytes(bytes));
 }
 
+function socketBufferedAmount(socket: TerminalSocket): number {
+	const amount = socket.raw?.bufferedAmount;
+	return typeof amount === "number" ? amount : 0;
+}
+
 function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 	let sent = 0;
 	const tight = asArrayBufferBytes(bytes);
@@ -717,6 +504,19 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 				socket.readyState === SOCKET_CLOSED
 			) {
 				session.sockets.delete(socket);
+			}
+			continue;
+		}
+		// A renderer that can't keep up lets its send buffer grow without bound.
+		// Drop it past the cap rather than buffer forever; it reconnects and
+		// replays the tail. Returning this chunk as "not sent" routes it to the
+		// bounded replay buffer via the caller's broadcast-or-buffer check.
+		if (socketBufferedAmount(socket) > WS_SEND_BUFFER_CAP_BYTES) {
+			session.sockets.delete(socket);
+			try {
+				socket.close(1013, "terminal output back-pressure");
+			} catch {
+				// best-effort; close may race an already-closing socket
 			}
 			continue;
 		}
@@ -885,11 +685,6 @@ export async function disposeSessionAndWait(
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
 	if (session) {
-		try {
-			revokeSessionsForTerminal(terminalId);
-		} catch (err) {
-			console.warn("[terminal] revokeSessionsForTerminal failed:", err);
-		}
 		if (session.shellReadyTimeoutId) {
 			clearTimeout(session.shellReadyTimeoutId);
 			session.shellReadyTimeoutId = null;
@@ -938,14 +733,17 @@ export async function disposeSessionAndWait(
 
 	portManager.unregisterSession(terminalId);
 
-	db.update(terminalSessions)
-		.set({ status: "disposed", endedAt: Date.now() })
-		.where(eq(terminalSessions.id, terminalId))
-		.run();
-
 	const closeResult = closePromise
 		? await closePromise
 		: { attempted: false, succeeded: true };
+
+	if (closeResult.succeeded) {
+		db.update(terminalSessions)
+			.set({ status: "disposed", endedAt: Date.now() })
+			.where(eq(terminalSessions.id, terminalId))
+			.run();
+	}
+
 	return {
 		terminalId,
 		daemonCloseAttempted: closeResult.attempted,
@@ -1237,10 +1035,6 @@ export async function createTerminalSessionInternal({
 		pty,
 		cols,
 		rows,
-		outputSequence: 0,
-		tailRing: [],
-		tailRingBytes: 0,
-		viewers: new Set(),
 		unsubscribeDaemon: null,
 		sockets: new Set(),
 		buffer: [],
@@ -1280,7 +1074,7 @@ export async function createTerminalSessionInternal({
 
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
-		{ replay: replayOnAdoption, flowControl: true },
+		{ replay: replayOnAdoption },
 		{
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
@@ -1319,10 +1113,6 @@ export async function createTerminalSessionInternal({
 				// so this is the only path that catches startup mode escapes.
 				session.modeTracker.feed(bytes);
 
-				pushToTailRing(session, bytes);
-				session.outputSequence += 1;
-				notifyViewersData(session, bytes, session.outputSequence);
-
 				if (broadcastBytes(session, bytes) === 0) {
 					bufferOutput(session, bytes);
 				}
@@ -1345,8 +1135,6 @@ export async function createTerminalSessionInternal({
 					exitCode: session.exitCode,
 					signal: session.exitSignal,
 				});
-
-				notifyViewersExit(session, session.exitCode, session.exitSignal);
 
 				eventBus?.broadcastTerminalLifecycle({
 					workspaceId,
@@ -1597,11 +1385,6 @@ export function registerWorkspaceTerminalRoute({
 					const session = sessions.get(terminalId ?? "");
 					if (!session || !session.sockets.has(ws)) return;
 
-					if (message.type === "output-ack") {
-						session.pty.ackOutput(message.bytes);
-						return;
-					}
-
 					if (message.type === "dispose") {
 						disposeSession(terminalId ?? "", db);
 						return;
@@ -1629,7 +1412,6 @@ export function registerWorkspaceTerminalRoute({
 						session.modeTracker.resize(cols, rows);
 						session.cols = cols;
 						session.rows = rows;
-						notifyViewersResize(session, cols, rows);
 					}
 				},
 

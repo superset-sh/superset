@@ -14,11 +14,14 @@ import type {
 	RendererContext,
 } from "../../../../../../types";
 import { PaneHeaderActions } from "../../../../../PaneHeaderActions";
+import { TAB_DRAG_TYPE } from "../../../TabBar/components/TabItem";
 import { PANE_MIN_SIZE_CLASS_NAME } from "../../constants";
 import { DropZoneOverlay } from "./components/DropZoneOverlay";
 import { PaneContent } from "./components/PaneContent";
 import { PaneContextMenu } from "./components/PaneContextMenu";
 import { PANE_DRAG_TYPE, PaneHeader } from "./components/PaneHeader";
+
+type PaneDropItem = { paneId: string } | { tabId: string; index: number };
 
 interface PaneComponentProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -166,8 +169,14 @@ export function Pane<TData>({
 
 	const [{ isOver, canDrop }, connectDrop] = useDrop(
 		() => ({
-			accept: PANE_DRAG_TYPE,
-			canDrop: (item: { paneId: string }) => item.paneId !== pane.id,
+			accept: [PANE_DRAG_TYPE, TAB_DRAG_TYPE],
+			canDrop: (item: PaneDropItem, monitor) => {
+				// Can't drop a tab onto a pane it already owns, or a pane onto itself.
+				if (monitor.getItemType() === TAB_DRAG_TYPE) {
+					return "tabId" in item && item.tabId !== tab.id;
+				}
+				return "paneId" in item && item.paneId !== pane.id;
+			},
 			hover: (_item, monitor) => {
 				const offset = monitor.getClientOffset();
 				const el = dropRef.current;
@@ -179,14 +188,24 @@ export function Pane<TData>({
 					setDropPosition(pos);
 				}
 			},
-			drop: (item: { paneId: string }) => {
+			drop: (item: PaneDropItem, monitor) => {
 				const pos = dropPositionRef.current;
 				if (!pos) return;
-				store.getState().movePaneToSplit({
-					sourcePaneId: item.paneId,
-					targetPaneId: pane.id,
-					position: pos,
-				});
+				if (monitor.getItemType() === TAB_DRAG_TYPE && "tabId" in item) {
+					store.getState().moveTabToSplit({
+						sourceTabId: item.tabId,
+						targetPaneId: pane.id,
+						position: pos,
+					});
+					return;
+				}
+				if ("paneId" in item) {
+					store.getState().movePaneToSplit({
+						sourcePaneId: item.paneId,
+						targetPaneId: pane.id,
+						position: pos,
+					});
+				}
 			},
 			collect: (monitor) => ({
 				isOver: monitor.isOver(),

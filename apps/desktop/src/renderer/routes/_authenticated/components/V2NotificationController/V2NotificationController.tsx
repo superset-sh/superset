@@ -5,6 +5,7 @@ import { useEffectEvent, useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { NOTIFICATION_EVENTS } from "shared/constants";
@@ -57,7 +58,8 @@ export function V2NotificationController() {
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
-	const { data: workspaceHosts = [] } = useLiveQuery(
+	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
+	const { data: allWorkspaceHosts = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2Workspaces: collections.v2Workspaces })
@@ -70,7 +72,7 @@ export function V2NotificationController() {
 				})),
 		[collections],
 	);
-	const { data: localWorkspaceRows = [] } = useLiveQuery(
+	const { data: allLocalWorkspaceRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ v2WorkspaceLocalState: collections.v2WorkspaceLocalState })
@@ -79,6 +81,20 @@ export function V2NotificationController() {
 					paneLayout: v2WorkspaceLocalState.paneLayout,
 				})),
 		[collections],
+	);
+	const workspaceHosts = useMemo(
+		() =>
+			allWorkspaceHosts.filter((workspace) =>
+				visibleWorkspaceIds.has(workspace.workspaceId),
+			),
+		[allWorkspaceHosts, visibleWorkspaceIds],
+	);
+	const localWorkspaceRows = useMemo(
+		() =>
+			allLocalWorkspaceRows.filter((workspace) =>
+				visibleWorkspaceIds.has(workspace.workspaceId),
+			),
+		[allLocalWorkspaceRows, visibleWorkspaceIds],
 	);
 	const workspaceStatesById = useMemo(
 		() =>

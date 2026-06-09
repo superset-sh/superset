@@ -15,6 +15,7 @@ import { posthog } from "../../lib/analytics";
 import { fetchAndStoreGitHubAvatar } from "../../lib/github-avatar";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { verifyOrgOwner } from "../integration/utils";
 import { requireActiveOrgId } from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
@@ -507,12 +508,7 @@ export const v2ProjectRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (!ctx.organizationIds.includes(input.organizationId)) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Not a member of this organization",
-				});
-			}
+			await verifyOrgOwner(ctx.userId, input.organizationId);
 			const project = await dbWs.query.v2Projects.findFirst({
 				columns: { id: true, organizationId: true, iconUrl: true },
 				where: eq(v2Projects.id, input.id),

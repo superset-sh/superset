@@ -1,3 +1,4 @@
+import { auth } from "@superset/auth/server";
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, organizations } from "@superset/db/schema";
@@ -6,7 +7,6 @@ import {
 	invitations,
 	verifications,
 } from "@superset/db/schema/auth";
-import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
@@ -214,23 +214,20 @@ export const organizationRouter = {
 				}
 			}
 
-			const [organization] = await db
-				.insert(organizations)
-				.values({
+			const organization = await auth.api.createOrganization({
+				body: {
 					name: input.name,
 					slug: input.slug,
 					logo: input.logo,
-				})
-				.returning();
-
-			if (organization) {
-				await db.insert(members).values({
-					organizationId: organization.id,
 					userId: ctx.session.user.id,
-					role: "owner",
-				});
+				},
+			});
 
-				await seedDefaultStatuses(organization.id);
+			if (!organization) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create organization",
+				});
 			}
 
 			return organization;

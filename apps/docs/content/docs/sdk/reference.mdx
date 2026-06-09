@@ -126,11 +126,11 @@ const onOneHost = await client.workspaces.list({ hostId: '<machineId>' });
 
 Returns `Array<Workspace>`.
 
-### `workspaces.create({ hostId, projectId, name, branch, agents? })`
+### `workspaces.create({ hostId, projectId, name, branch, agents?, command? })`
 
-Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready. Goes through the relay tunnel — the host must be online.
+Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel — the host must be online.
 
-Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID — the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed.
+Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID — the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents` — pass either or both.
 
 ```ts
 const result = await client.workspaces.create({
@@ -221,20 +221,40 @@ prompt-transport fields used to launch the agent.
 const agents = await client.agents.list({ hostId: '<machineId>' });
 ```
 
-### `agents.run({ workspaceId, agent, prompt, attachmentIds? }, { hostId? })`
+### `agents.create({ workspaceId, agent, prompt, attachmentIds? }, { hostId? })`
 
-Launch an agent inside an existing workspace. By default looks up the host
-that owns the workspace via the cloud index; pass an explicit `hostId` to
-skip the lookup.
+Create (launch) an agent session in an existing workspace. By default looks up
+the host that owns the workspace via the cloud index; pass an explicit `hostId`
+to skip the lookup.
 
 `agent` accepts either a preset id (e.g. `"claude"`) or a `HostAgentConfig`
-instance UUID. Returns `{ sessionId, label }`.
+instance UUID. Returns `{ kind, sessionId, label }`.
 
 ```ts
-const { sessionId } = await client.agents.run({
+const { sessionId } = await client.agents.create({
   workspaceId: '<uuid>',
   agent: 'claude',
   prompt: 'Audit the login flow for race conditions.',
+});
+```
+
+---
+
+## terminals
+
+Terminal (PTY) sessions on a host, scoped to a workspace.
+
+### `terminals.create({ workspaceId, command?, cwd? }, { hostId? })`
+
+Create a terminal session in an existing workspace. By default looks up the
+host that owns the workspace via the cloud index; pass an explicit `hostId` to
+skip the lookup. Pass `command` to run a one-off shell command, or omit it to
+open an interactive shell. Returns `{ terminalId, status }`.
+
+```ts
+const { terminalId } = await client.terminals.create({
+  workspaceId: '<uuid>',
+  command: 'bun install && bun test',
 });
 ```
 

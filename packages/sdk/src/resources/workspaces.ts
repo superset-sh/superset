@@ -33,7 +33,8 @@ export class Workspaces extends APIResource {
 	/**
 	 * Create a workspace on a specific host. Optionally spawn one or more
 	 * agents inside it as soon as the worktree is ready (the `agents` sugar
-	 * runs `agents.run` once per entry against the freshly-created workspace).
+	 * runs `agents.create` once per entry against the freshly-created workspace),
+	 * and/or run a one-off shell `command` in the worktree.
 	 *
 	 * The host service must be running and reachable via the relay tunnel.
 	 * Provide exactly one of `branch` or `pr`.
@@ -53,6 +54,7 @@ export class Workspaces extends APIResource {
 				baseBranch: params.baseBranch,
 				taskId: params.taskId,
 				agents: params.agents,
+				command: params.command,
 			},
 			options,
 		);
@@ -170,6 +172,8 @@ export interface WorkspaceCreateParams {
 	taskId?: string;
 	/** Spawn one or more agents in the workspace immediately after creation. */
 	agents?: WorkspaceAgentLaunch[];
+	/** Shell command to run in the new worktree after creation. */
+	command?: string;
 }
 
 export interface WorkspaceAgentLaunch {

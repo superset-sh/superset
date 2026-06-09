@@ -33,4 +33,5 @@ export interface HostServiceContext {
 	hostServiceBaseUrl: string;
 	hostServiceSecret?: string;
 	isAuthenticated: boolean;
+	clientMachineId?: string;
 }

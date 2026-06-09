@@ -26,7 +26,41 @@ Source: `apps/desktop/CLAUDE.md` and `apps/desktop/src/lib/trpc/routers/index.ts
 - PTY input and output bytes ride in the pty-daemon frame binary payload tail. Do not base64 encode them inside JSON.
 - Do not decode output with per-chunk `chunk.toString("utf8")` in the data path. The host-service observer path uses `StringDecoder` only for string callback compatibility.
 - Primary terminal WebSocket output is binary; renderer/xterm consumes `Uint8Array`. Control messages remain JSON.
-- Flow control is byte-counted. Renderer acks consumed bytes; host-service forwards `output-ack` to the daemon.
+- Current slow-renderer handling is bounded buffering, not protocol ACK flow control. The daemon broadcasts output without `ack-output`; host-service closes a renderer socket once its buffered amount exceeds the configured cap, then the renderer reconnects and replays the bounded terminal tail.
+
+### Scenario: Terminal Byte Transport And Slow Renderer Handling
+
+1. Scope / Trigger
+- Applies when editing `packages/pty-daemon`, `packages/host-service/src/terminal`, or desktop terminal WebSocket transport.
+
+2. Signatures
+- Daemon protocol: `InputMessage { type: "input"; id }` plus binary payload tail.
+- Daemon protocol: `OutputMessage { type: "output"; id }` plus binary payload tail.
+- Renderer socket: binary output frames plus JSON control frames (`attached`, `error`, `exit`, `title`).
+
+3. Contracts
+- Input/output bytes must remain byte-native end to end.
+- Daemon subscribe messages use `{ replay: boolean }`; do not add renderer ACK state unless the protocol and tests are deliberately reintroduced.
+- Slow renderer recovery is reconnect + replay, not daemon-side PTY pause/resume.
+
+4. Validation & Error Matrix
+- Missing daemon session -> protocol `error` with the session id.
+- Oversized daemon frame -> decoder throws and closes the socket.
+- Renderer socket buffer over cap -> host-service closes that renderer socket; PTY session stays alive.
+
+5. Good/Base/Bad Cases
+- Good: `daemon.input(id, Buffer.from(bytes))` writes bytes through the payload tail.
+- Base: no renderer attached means host-service stores bounded replay bytes.
+- Bad: base64 in protocol JSON, per-chunk UTF-8 output decoding, or resurrecting `output-ack` without matching daemon/client tests.
+
+6. Tests Required
+- `packages/pty-daemon/test/no-encoding-hops.test.ts` for byte path regressions.
+- `packages/pty-daemon/src/protocol/*` for frame shape changes.
+- `packages/host-service/test/integration/terminal.integration.test.ts` for real daemon lifecycle behavior.
+
+7. Wrong vs Correct
+- Wrong: treat output as strings or require renderer ACKs to keep the PTY running.
+- Correct: keep bytes in binary frames, bound slow sockets, and rely on reconnect replay.
 
 ## Daemon Lifecycle
 - The daemon runs under Node 20+ via Electron's bundled Node. Bun is the build/test tool, not the production daemon runtime.

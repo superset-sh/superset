@@ -32,7 +32,12 @@ interface ContextSpec {
 	revListCount?: string | (() => Promise<string>);
 	gitFactoryThrows?: boolean;
 	worktreeRemove?: () => Promise<unknown>;
+	// Porcelain `git worktree list` output read back after the remove attempt.
+	// A path still present here means git considers the worktree live.
+	worktreeList?: string;
 	branchDelete?: () => Promise<unknown>;
+	// Whether `git branch --list` finds the branch (defaults to present).
+	branchExists?: boolean;
 	dbDeleteThrows?: boolean;
 	noApi?: boolean;
 }
@@ -57,6 +62,7 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 			: (spec.revListCount ?? "0\n"),
 	);
 	const worktreeRemove = mock(spec.worktreeRemove ?? (async () => undefined));
+	const worktreeList = mock(async () => spec.worktreeList ?? "");
 	const branchDelete = mock(spec.branchDelete ?? (async () => undefined));
 
 	const git = mock(async () => {
@@ -65,8 +71,20 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 			status,
 			raw: mock(async (args: string[]) => {
 				if (args[0] === "rev-list") return await revList();
-				if (args[0] === "worktree") return await worktreeRemove();
-				if (args[0] === "branch") return await branchDelete();
+				if (args[0] === "worktree") {
+					return args[1] === "list"
+						? await worktreeList()
+						: await worktreeRemove();
+				}
+				if (args[0] === "branch") {
+					// `branch --list <name>` is the existence probe: non-empty
+					// output means the ref exists. `branch -D` is the delete.
+					return args[1] === "--list"
+						? spec.branchExists === false
+							? ""
+							: `  ${args[2]}\n`
+						: await branchDelete();
+				}
 				throw new Error(`unexpected git raw: ${args.join(" ")}`);
 			}),
 		};
@@ -378,6 +396,9 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 				worktreeRemove: async () => {
 					throw new Error("worktree remove boom");
 				},
+				// git still lists the worktree after the failed remove — the
+				// authoritative signal that cleanup did not succeed.
+				worktreeList: `worktree ${tmp}\nHEAD 0000\nbranch refs/heads/feature\n`,
 			});
 			const caller = workspaceCleanupRouter.createCaller(ctx);
 

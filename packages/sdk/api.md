@@ -81,13 +81,24 @@ Types:
 - <code><a href="./src/resources/agents.ts">PromptTransport</a></code>
 - <code><a href="./src/resources/agents.ts">AgentListParams</a></code>
 - <code><a href="./src/resources/agents.ts">AgentListResponse</a></code>
-- <code><a href="./src/resources/agents.ts">AgentRunParams</a></code>
-- <code><a href="./src/resources/agents.ts">AgentRunResult</a></code>
+- <code><a href="./src/resources/agents.ts">AgentCreateParams</a></code>
+- <code><a href="./src/resources/agents.ts">AgentCreateResult</a></code>
 
 Methods:
 
 - <code title="host get /api/trpc/settings.agentConfigs.list">client.agents.<a href="./src/resources/agents.ts">list</a>({ hostId }) -> AgentListResponse</code>
-- <code title="host post /api/trpc/agents.run">client.agents.<a href="./src/resources/agents.ts">run</a>({ workspaceId, agent, prompt, attachmentIds? }, { hostId? }) -> AgentRunResult</code>
+- <code title="host post /api/trpc/agents.run">client.agents.<a href="./src/resources/agents.ts">create</a>({ workspaceId, agent, prompt, attachmentIds? }, { hostId? }) -> AgentCreateResult</code>
+
+# Terminals
+
+Types:
+
+- <code><a href="./src/resources/terminals.ts">TerminalCreateParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalCreateResult</a></code>
+
+Methods:
+
+- <code title="host post /api/trpc/terminal.createSession">client.terminals.<a href="./src/resources/terminals.ts">create</a>({ workspaceId, command?, cwd? }, { hostId? }) -> TerminalCreateResult</code>
 
 # Automations
 

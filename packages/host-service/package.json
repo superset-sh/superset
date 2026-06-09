@@ -1,6 +1,6 @@
 {
 	"name": "@superset/host-service",
-	"version": "0.8.17",
+	"version": "0.8.20",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -75,7 +75,7 @@
 		"@xterm/headless": "6.1.0-beta.220",
 		"better-sqlite3": "12.6.2",
 		"drizzle-orm": "0.45.2",
-		"hono": "4.12.18",
+		"hono": "4.12.23",
 		"mastracode": "0.18.1",
 		"mime-types": "3.0.2",
 		"node-pty": "1.1.0",

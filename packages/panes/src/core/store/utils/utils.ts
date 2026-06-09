@@ -86,32 +86,48 @@ export function replacePaneIdInLayout(
 	};
 }
 
-export function splitPaneInLayout(
+// Splits the target pane, placing `subtree` (a single pane or a whole layout
+// tree) on the side given by `position`. Used both to split in a new pane and
+// to graft an entire tab's layout next to a pane when merging tabs.
+export function graftSubtreeAtPane(
 	node: LayoutNode,
 	targetPaneId: string,
-	newPaneId: string,
+	subtree: LayoutNode,
 	position: SplitPosition,
 ): LayoutNode {
 	if (node.type === "pane") {
 		if (node.paneId !== targetPaneId) return node;
 
 		const direction = positionToDirection(position);
-		const newPaneNode: LayoutNode = { type: "pane", paneId: newPaneId };
 		const isFirst = position === "left" || position === "top";
 
 		return {
 			type: "split",
 			direction,
-			first: isFirst ? newPaneNode : node,
-			second: isFirst ? node : newPaneNode,
+			first: isFirst ? subtree : node,
+			second: isFirst ? node : subtree,
 		};
 	}
 
 	return {
 		...node,
-		first: splitPaneInLayout(node.first, targetPaneId, newPaneId, position),
-		second: splitPaneInLayout(node.second, targetPaneId, newPaneId, position),
+		first: graftSubtreeAtPane(node.first, targetPaneId, subtree, position),
+		second: graftSubtreeAtPane(node.second, targetPaneId, subtree, position),
 	};
+}
+
+export function splitPaneInLayout(
+	node: LayoutNode,
+	targetPaneId: string,
+	newPaneId: string,
+	position: SplitPosition,
+): LayoutNode {
+	return graftSubtreeAtPane(
+		node,
+		targetPaneId,
+		{ type: "pane", paneId: newPaneId },
+		position,
+	);
 }
 
 export function getNodeAtPath(

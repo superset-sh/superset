@@ -11,6 +11,7 @@ const TTL_GRACE_MS = 90_000;
 const redis = new Redis({
 	url: env.KV_REST_API_URL,
 	token: env.KV_REST_API_TOKEN,
+	readYourWrites: false,
 });
 
 export interface TunnelOwner {

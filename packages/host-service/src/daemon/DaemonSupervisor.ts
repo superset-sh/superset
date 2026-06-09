@@ -942,16 +942,28 @@ export class DaemonSupervisor {
 			// Prod: detached so PTYs survive host-service restarts via socket
 			// adoption. Dev: attached as defense-in-depth in case serve.ts's
 			// dev shutdown doesn't fire (e.g. host-service crash).
-			child = childProcess.spawn(
-				process.execPath,
-				[this.opts.scriptPath, `--socket=${socketPath}`],
-				{
-					detached: !isDev,
-					stdio,
-					env: childEnv,
-					windowsHide: true,
-				},
-			);
+			// Raise RLIMIT_NOFILE before exec: macOS's 256 soft default starves a
+			// daemon hosting many worktrees' PTYs and surfaces as node-pty
+			// "posix_spawnp failed" (EMFILE). The raised limit is inherited by
+			// handoff successors the daemon spawns from itself.
+			const isWindows = process.platform === "win32";
+			const command = isWindows ? process.execPath : "/bin/sh";
+			const commandArgs = isWindows
+				? [this.opts.scriptPath, `--socket=${socketPath}`]
+				: [
+						"-c",
+						'ulimit -n 1048576 2>/dev/null || ulimit -n "$(ulimit -Hn)" 2>/dev/null || true; exec "$@"',
+						"sh",
+						process.execPath,
+						this.opts.scriptPath,
+						`--socket=${socketPath}`,
+					];
+			child = childProcess.spawn(command, commandArgs, {
+				detached: !isDev,
+				stdio,
+				env: childEnv,
+				windowsHide: true,
+			});
 		} finally {
 			if (logFd >= 0) {
 				try {

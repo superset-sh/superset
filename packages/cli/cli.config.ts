@@ -1,6 +1,7 @@
 import { boolean, defineConfig, string } from "@superset/cli-framework";
+import pkg from "./package.json" with { type: "json" };
 
-const VERSION = "0.2.19";
+const VERSION = pkg.version;
 
 export default defineConfig({
 	name: "superset",

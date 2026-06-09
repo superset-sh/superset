@@ -15,16 +15,13 @@ import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
-import {
-	type ProjectSetupResult,
-	useFinalizeProjectSetup,
-} from "renderer/react-query/projects";
+import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface NewProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSuccess?: (result: ProjectSetupResult) => void;
+	onSuccess?: (result: { projectId: string }) => void;
 	onError?: (message: string) => void;
 }
 
@@ -94,12 +91,6 @@ export function NewProjectModal({
 	};
 
 	const createFromClone = async () => {
-		if (!activeHostUrl) {
-			showHostServiceUnavailableToast(hostService, {
-				action: "clone the repository",
-			});
-			return;
-		}
 		const trimmedUrl = url.trim();
 		const trimmedParent = parentDir.trim();
 		if (!trimmedUrl) {
@@ -110,21 +101,27 @@ export function NewProjectModal({
 			toast.error("Please select a project location");
 			return;
 		}
-		const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
-		if (!trimmedName) {
-			toast.error("Please enter a project name");
-			return;
-		}
 
 		setWorking(true);
 		try {
+			if (!activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "clone the repository",
+				});
+				return;
+			}
+			const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
+			if (!trimmedName) {
+				toast.error("Please enter a project name");
+				return;
+			}
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			const result = await client.project.create.mutate({
 				name: trimmedName,
 				mode: { kind: "clone", parentDir: trimmedParent, url: trimmedUrl },
 			});
 			finalizeSetup(activeHostUrl, result);
-			onSuccess?.(result);
+			onSuccess?.({ projectId: result.projectId });
 			reset();
 			onOpenChange(false);
 		} catch (err) {

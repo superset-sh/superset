@@ -641,6 +641,10 @@ export async function createDirectory({
 	recursive?: boolean;
 }): Promise<{ absolutePath: string; kind: "directory" }> {
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	// Lexical containment isn't enough: a symlinked ancestor (e.g. `link ->
+	// /outside`) would let `mkdir` create directories outside the workspace.
+	// Resolve the real path / ancestry the same way writes do before creating.
+	await assertRealpathWithinRoot(rootPath, targetPath);
 	try {
 		await fs.mkdir(targetPath, { recursive });
 	} catch (error) {

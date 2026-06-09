@@ -26,6 +26,7 @@ import {
 	getWorktreeBranchAtPath,
 	listWorktreeBranches,
 } from "../workspace-creation/shared/branch-search";
+import { startCommandTerminal } from "../workspace-creation/shared/command-terminal";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import { requireLocalProject } from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
@@ -81,6 +82,7 @@ const createInputSchema = z
 		baseBranch: z.string().min(1).optional(),
 		taskId: z.string().uuid().optional(),
 		agents: z.array(agentLaunchSchema).optional(),
+		command: z.string().min(1).optional(),
 		namingPrompt: z.string().min(1).optional(),
 		id: z.string().uuid().optional(),
 		// Adopt the worktree git already has at this path instead of
@@ -484,6 +486,7 @@ async function registerCloudAndLocal(args: {
 			hostId: host.machineId,
 			taskId: args.taskId,
 			id: args.id,
+			clientMachineId: ctx.clientMachineId,
 		})
 		.catch(async (err) => {
 			await args.rollbackWorktree();
@@ -1145,11 +1148,28 @@ export const workspacesRouter = router({
 				}
 			}
 
-			const agentsResult = await dispatchSugarAgents(
-				ctx,
-				workspaceRow.id,
-				input.agents ?? [],
-			);
+			const [agentsResult, commandResult] = await Promise.all([
+				dispatchSugarAgents(ctx, workspaceRow.id, input.agents ?? []),
+				input.command
+					? startCommandTerminal({
+							ctx,
+							workspaceId: workspaceRow.id,
+							command: input.command,
+						})
+					: Promise.resolve(null),
+			]);
+
+			if (commandResult?.warning) {
+				console.warn(
+					`[workspaces.create] command warning: ${commandResult.warning}`,
+				);
+			}
+			if (commandResult?.terminal) {
+				terminalsResult.push({
+					terminalId: commandResult.terminal.id,
+					label: commandResult.terminal.label,
+				});
+			}
 
 			return {
 				workspace: workspaceRow,

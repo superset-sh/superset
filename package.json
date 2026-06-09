@@ -51,7 +51,9 @@
 		"tooling/*"
 	],
 	"overrides": {
-		"axios": "1.14.0"
+		"axios": "1.14.0",
+		"hono": "4.12.23",
+		"kysely": "0.28.17"
 	},
 	"trustedDependencies": [
 		"better-sqlite3",

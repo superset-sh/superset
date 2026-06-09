@@ -640,6 +640,70 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 
 		await disposeSessionAndWait(terminalId, db);
 	});
+
+	// Regression: SUPER-939 / #4993 — heavy/concurrent output must never wedge
+	// the shell. Output flow control is gone; back-pressure is bounded buffering
+	// on the host side, never a producer pause. These guard both halves of that.
+
+	test("heavy output with no renderer attached never wedges the PTY", async () => {
+		const terminalId = `e2e-heavy-nobody-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		// ~3 MB with no socket attached — far past any old watermark. With the
+		// ACK flow control removed, the daemon never pauses, so this completes;
+		// the bounded replay buffer just keeps the tail (incl. the marker).
+		const marker = `heavy-done-${randomUUID().slice(0, 6)}`;
+		result.pty.write(
+			`i=0; while [ "$i" -lt 48000 ]; do printf '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n'; i=$((i + 1)); done; echo ${marker}\n`,
+		);
+
+		await waitFor(() => sessionBufferText(result).includes(marker), 15_000);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("a renderer whose send buffer exceeds the cap is dropped; output keeps flowing", async () => {
+		const terminalId = `e2e-slow-renderer-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		// A renderer that's permanently behind: its WS send buffer never drains,
+		// so bufferedAmount sits way over the 8 MB cap. broadcastBytes must drop
+		// it instead of buffering forever.
+		let closed = false;
+		const stuckSocket = {
+			send: () => {},
+			close: () => {
+				closed = true;
+			},
+			readyState: 1, // SOCKET_OPEN
+			raw: { bufferedAmount: 64 * 1024 * 1024 },
+		};
+		result.sockets.add(stuckSocket);
+
+		const marker = `slow-done-${randomUUID().slice(0, 6)}`;
+		result.pty.write(
+			`i=0; while [ "$i" -lt 6000 ]; do printf '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n'; i=$((i + 1)); done; echo ${marker}\n`,
+		);
+
+		// The stuck socket is closed and removed on the next broadcast, and the
+		// PTY keeps producing — the marker lands in the (now socketless) buffer.
+		await waitFor(() => closed && !result.sockets.has(stuckSocket), 10_000);
+		await waitFor(() => sessionBufferText(result).includes(marker), 15_000);
+		await disposeSessionAndWait(terminalId, db);
+	});
 });
 
 // ---------------- helpers ----------------
@@ -666,4 +730,10 @@ async function waitForOutput(
 	} finally {
 		disposer.dispose();
 	}
+}
+
+function sessionBufferText(session: { buffer: Uint8Array[] }): string {
+	return Buffer.concat(session.buffer.map((b) => Buffer.from(b))).toString(
+		"utf8",
+	);
 }

@@ -21,6 +21,9 @@ export default command({
 		prompt: string().desc(
 			"Initial prompt the agent starts with. Required when --agent is set",
 		),
+		command: string().desc(
+			"Shell command to run in the new workspace after creation",
+		),
 		attachment: string()
 			.variadic()
 			.desc(
@@ -92,6 +95,7 @@ export default command({
 			pr: options.pr,
 			baseBranch: options.baseBranch,
 			agents,
+			command: options.command ?? undefined,
 		});
 
 		return {

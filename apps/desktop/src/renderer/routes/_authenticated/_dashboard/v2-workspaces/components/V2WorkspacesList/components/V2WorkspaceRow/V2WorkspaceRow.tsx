@@ -7,7 +7,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CgLaptop } from "react-icons/cg";
 import {
 	LuCircleCheck,
@@ -15,11 +15,12 @@ import {
 	LuCircleX,
 	LuGitBranch,
 	LuLaptop,
-	LuMinus,
 	LuMonitor,
-	LuPlus,
+	LuTrash2,
 } from "react-icons/lu";
+import { RiPushpinFill, RiPushpinLine } from "react-icons/ri";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { V2WorkspacePrHoverCardContent } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacePrHoverCardContent";
 import type {
@@ -28,9 +29,9 @@ import type {
 	V2WorkspacePrSummary,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
-import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { V2_WORKSPACES_ROW_GRID } from "../../constants";
 
 interface V2WorkspaceRowProps {
@@ -48,8 +49,15 @@ export function V2WorkspaceRow({
 }: V2WorkspaceRowProps) {
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
-	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
+	const {
+		ensureWorkspaceInSidebar,
+		removeWorkspaceFromSidebar,
+		hideWorkspaceInSidebar,
+	} = useDashboardSidebarState();
 	const isMainWorkspace = workspace.type === "main";
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const { isDeleting } = useDeletingWorkspaces();
+	const deleting = isDeleting(workspace.id);
 
 	const HostIcon = hostIconFor(workspace.hostType);
 
@@ -92,21 +100,34 @@ export function V2WorkspaceRow({
 				event.preventDefault();
 				return;
 			}
-			useRemoveFromSidebarIntent.getState().request({
-				workspaceId: workspace.id,
-				workspaceName: workspace.name,
-				projectId: workspace.projectId,
-				isMain: isMainWorkspace,
-			});
+			// Unpin directly (synchronous optimistic write) rather than routing
+			// through the intent store + RemoveFromSidebarMount effect, which adds
+			// an extra render cycle of latency. The list view is never a workspace
+			// route, so there's no active workspace to navigate away from.
+			if (isMainWorkspace) {
+				hideWorkspaceInSidebar(workspace.id, workspace.projectId);
+			} else {
+				removeWorkspaceFromSidebar(workspace.id);
+			}
 		},
 		[
 			isCurrentRoute,
 			isMainWorkspace,
+			hideWorkspaceInSidebar,
+			removeWorkspaceFromSidebar,
 			workspace.id,
-			workspace.name,
 			workspace.projectId,
 		],
 	);
+
+	const handleDeleteClick = useCallback((event: React.MouseEvent) => {
+		event.stopPropagation();
+		setIsDeleteDialogOpen(true);
+	}, []);
+
+	const handleDeleted = useCallback(() => {
+		removeWorkspaceFromSidebar(workspace.id);
+	}, [removeWorkspaceFromSidebar, workspace.id]);
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
 		? "you"
@@ -154,7 +175,8 @@ export function V2WorkspaceRow({
 			{/* biome-ignore lint/a11y/useSemanticElements: interactive row needs nested buttons, so the outer element is a div with role/tabIndex */}
 			<div
 				role="button"
-				tabIndex={0}
+				tabIndex={deleting ? -1 : 0}
+				aria-busy={deleting}
 				onClick={handleOpen}
 				onKeyDown={handleRowKeyDown}
 				className={cn(
@@ -165,6 +187,7 @@ export function V2WorkspaceRow({
 					isCurrentRoute
 						? "bg-muted hover:bg-muted focus-visible:bg-muted"
 						: "hover:bg-accent/50 focus-visible:bg-accent/50",
+					deleting && "pointer-events-none opacity-50",
 				)}
 			>
 				<div className="flex items-center justify-center">
@@ -176,19 +199,20 @@ export function V2WorkspaceRow({
 									variant="ghost"
 									onClick={handleRemoveFromSidebar}
 									aria-disabled={isCurrentRoute}
-									aria-label="Remove from sidebar"
+									aria-pressed
+									aria-label="Unpin from sidebar"
 									className={cn(
-										"size-7",
+										"size-7 text-foreground hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent",
 										isCurrentRoute && "cursor-not-allowed opacity-50",
 									)}
 								>
-									<LuMinus className="size-3.5" />
+									<RiPushpinFill className="size-4" />
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent side="right">
 								{isCurrentRoute
-									? "Can't remove the current workspace"
-									: "Remove from sidebar"}
+									? "Can't unpin the current workspace"
+									: "Unpin from sidebar"}
 							</TooltipContent>
 						</Tooltip>
 					) : (
@@ -198,13 +222,14 @@ export function V2WorkspaceRow({
 									size="icon"
 									variant="ghost"
 									onClick={handleAddToSidebar}
-									aria-label="Add to sidebar"
-									className="size-7"
+									aria-pressed={false}
+									aria-label="Pin to sidebar"
+									className="size-7 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
 								>
-									<LuPlus className="size-3.5" />
+									<RiPushpinLine className="size-4" />
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent side="right">Add to sidebar</TooltipContent>
+							<TooltipContent side="right">Pin to sidebar</TooltipContent>
 						</Tooltip>
 					)}
 				</div>
@@ -257,7 +282,36 @@ export function V2WorkspaceRow({
 				>
 					{timeLabel} · {creatorLabel}
 				</span>
+
+				<div className="flex items-center justify-center">
+					{deleting ? (
+						<AsciiSpinner />
+					) : !isMainWorkspace ? (
+						<Button
+							size="icon"
+							variant="ghost"
+							onClick={handleDeleteClick}
+							aria-label="Delete workspace"
+							className="size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-transparent hover:text-destructive focus-visible:opacity-100 group-hover/row:opacity-100 dark:hover:bg-transparent"
+						>
+							<LuTrash2 className="size-3.5" />
+						</Button>
+					) : null}
+				</div>
 			</div>
+			{/* Mount the dialog (and its per-workspace live-query subscription) only
+			    while it's open or a delete is in flight — not idle for every row.
+			    `|| deleting` keeps it mounted through the destroy so a
+			    teardown-failure can re-open it to offer force-delete. */}
+			{!isMainWorkspace && (isDeleteDialogOpen || deleting) ? (
+				<DashboardSidebarDeleteDialog
+					workspaceId={workspace.id}
+					workspaceName={workspace.name || workspace.branch}
+					open={isDeleteDialogOpen}
+					onOpenChange={setIsDeleteDialogOpen}
+					onDeleted={handleDeleted}
+				/>
+			) : null}
 		</li>
 	);
 }
@@ -308,4 +362,27 @@ function ChecksDot({ status }: ChecksDotProps) {
 		return <LuCircleCheck className="size-3 text-emerald-500" />;
 	}
 	return <LuCircleX className="size-3 text-red-500" />;
+}
+
+const ASCII_SPINNER_FRAMES = ["◰", "◳", "◲", "◱"];
+const ASCII_SPINNER_INTERVAL_MS = 120;
+
+function AsciiSpinner() {
+	const [frame, setFrame] = useState(0);
+
+	useEffect(() => {
+		const id = setInterval(() => {
+			setFrame((prev) => (prev + 1) % ASCII_SPINNER_FRAMES.length);
+		}, ASCII_SPINNER_INTERVAL_MS);
+		return () => clearInterval(id);
+	}, []);
+
+	return (
+		<output
+			aria-label="Deleting workspace"
+			className="select-none font-mono text-base leading-none tabular-nums text-muted-foreground"
+		>
+			{ASCII_SPINNER_FRAMES[frame]}
+		</output>
+	);
 }

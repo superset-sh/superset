@@ -158,6 +158,7 @@ describe("terminal router integration", () => {
 	});
 
 	test("terminal disposal cleans up background process groups from real daemon sessions", async () => {
+		__setAccountShellForTesting(null);
 		const tmp = mkdtempSync(join(tmpdir(), "host-service-terminal-pgrp-"));
 		const socketPath = join(tmp, "pty-daemon.sock");
 		const pidPath = join(tmp, "detached-helper.pid");

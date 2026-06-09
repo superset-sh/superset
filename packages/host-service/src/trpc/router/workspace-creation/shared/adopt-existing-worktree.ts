@@ -165,6 +165,7 @@ export async function adoptExistingWorktree(
 			hostId: host.machineId,
 			id: idempotencyId,
 			taskId,
+			clientMachineId: ctx.clientMachineId,
 		})
 		.catch((err) => {
 			if (err instanceof TRPCError) throw err;

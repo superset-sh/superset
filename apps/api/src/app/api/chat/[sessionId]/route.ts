@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { chatSessions } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
-import { getDurableStream, requireAuth } from "../lib";
+import { findChatSessionOwner, getDurableStream, requireAuth } from "../lib";
 
 function errorMessage(error: unknown): string {
 	if (error instanceof Error) return error.message;
@@ -42,6 +42,11 @@ export async function PUT(
 			{ error: "organizationId is required" },
 			{ status: 400 },
 		);
+	}
+
+	const existingOwner = await findChatSessionOwner(sessionId);
+	if (existingOwner && existingOwner.createdBy !== session.user.id) {
+		return new Response("Not found", { status: 404 });
 	}
 
 	const stream = getDurableStream(sessionId);
@@ -139,10 +144,20 @@ export async function PATCH(
 	const body = (await request.json()) as { title?: string };
 
 	if (body.title !== undefined) {
-		await db
+		const [updated] = await db
 			.update(chatSessions)
 			.set({ title: body.title })
-			.where(eq(chatSessions.id, sessionId));
+			.where(
+				and(
+					eq(chatSessions.id, sessionId),
+					eq(chatSessions.createdBy, session.user.id),
+				),
+			)
+			.returning({ id: chatSessions.id });
+
+		if (!updated) {
+			return new Response("Not found", { status: 404 });
+		}
 	}
 
 	return Response.json({ success: true }, { status: 200 });

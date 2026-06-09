@@ -1,5 +1,8 @@
 import { DurableStream } from "@durable-streams/client";
 import { auth } from "@superset/auth/server";
+import { db } from "@superset/db/client";
+import { chatSessions } from "@superset/db/schema";
+import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 
 export const PROTOCOL_QUERY_PARAMS = ["offset", "live", "cursor"];
@@ -34,6 +37,26 @@ export async function requireAuth(request: Request) {
 	});
 	if (!sessionData?.user) return null;
 	return sessionData;
+}
+
+export async function loadOwnedChatSession(sessionId: string, userId: string) {
+	const [row] = await db
+		.select({ id: chatSessions.id, createdBy: chatSessions.createdBy })
+		.from(chatSessions)
+		.where(
+			and(eq(chatSessions.id, sessionId), eq(chatSessions.createdBy, userId)),
+		)
+		.limit(1);
+	return row ?? null;
+}
+
+export async function findChatSessionOwner(sessionId: string) {
+	const [row] = await db
+		.select({ createdBy: chatSessions.createdBy })
+		.from(chatSessions)
+		.where(eq(chatSessions.id, sessionId))
+		.limit(1);
+	return row ?? null;
 }
 
 export function streamUrl(sessionId: string) {
