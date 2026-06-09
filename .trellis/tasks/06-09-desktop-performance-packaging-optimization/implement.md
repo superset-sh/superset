@@ -20,8 +20,8 @@ Validation:
   - signed/notarized when required secrets are present.
   - explicitly unsigned when secrets are missing.
 - Update canary release body to show whether the macOS artifacts are signed.
-- If unsigned fallback remains allowed, include internal quarantine workaround in
-  the release body:
+- If no-cost internal fallback remains allowed, ad-hoc sign the app bundle and
+  include the internal quarantine workaround in the release body:
   - `xattr -dr com.apple.quarantine /Applications/Superset.app`
 - When signing secrets are available, verify downloaded Apple Silicon artifact
   opens without the macOS "damaged" warning.
@@ -98,8 +98,9 @@ Validation:
   - Canary workflow supports quick macOS arm64-only builds and full builds.
   - macOS signing mode is explicit: `auto`, `required`, or
     `unsigned_internal`.
-  - Release notes now distinguish signed/notarized builds from unsigned internal
-    builds and include the quarantine-removal workaround for internal testing.
+  - Release notes now distinguish signed/notarized builds from ad-hoc signed
+    internal builds and include the quarantine-removal workaround for internal
+    testing.
   - Production sourcemaps are opt-in; packaged `.map` and test/spec files are
     broadly excluded.
   - CLI bundling is no longer repeated in `prepackage` when the bundled CLI
@@ -107,7 +108,7 @@ Validation:
 - Local validation completed:
   - `bun run --cwd apps/desktop validate:native-runtime`
   - `ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "ok #{f}" }' .github/workflows/build-desktop.yml .github/workflows/release-desktop-canary.yml .github/actions/merge-mac-manifests/action.yml`
-  - `SKIP_MAC_CODE_SIGNING=true CSC_IDENTITY_AUTO_DISCOVERY=false TARGET_ARCH=arm64 bun run --cwd apps/desktop package -- --publish never --config electron-builder.canary.ts --arm64`
+  - `AD_HOC_MAC_CODE_SIGNING=true CSC_IDENTITY_AUTO_DISCOVERY=false TARGET_ARCH=arm64 bun run --cwd apps/desktop package -- --publish never --config electron-builder.canary.ts --arm64`
   - `bun run --cwd apps/desktop report:size --top=12`
   - `bun run lint`
   - `bun run --cwd apps/desktop typecheck`

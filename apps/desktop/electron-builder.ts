@@ -23,6 +23,8 @@ const dmgBackgroundPath = join(
 	"build/installer/background.tiff",
 );
 const skipMacCodeSigning = process.env.SKIP_MAC_CODE_SIGNING === "true";
+const adHocMacCodeSigning = process.env.AD_HOC_MAC_CODE_SIGNING === "true";
+const skipDeveloperIdMacSigning = skipMacCodeSigning || adHocMacCodeSigning;
 
 const config: Configuration = {
 	appId: "com.superset.desktop",
@@ -113,10 +115,11 @@ const config: Configuration = {
 		...(existsSync(macIconPath) ? { icon: macIconPath } : {}),
 		category: "public.app-category.utilities",
 		target: "default",
-		hardenedRuntime: !skipMacCodeSigning,
+		hardenedRuntime: !skipDeveloperIdMacSigning,
 		gatekeeperAssess: false,
-		notarize: !skipMacCodeSigning,
+		notarize: !skipDeveloperIdMacSigning,
 		...(skipMacCodeSigning ? { identity: null } : {}),
+		...(adHocMacCodeSigning ? { identity: "-" } : {}),
 		entitlements: join(pkg.resources, "build/entitlements.mac.plist"),
 		entitlementsInherit: join(
 			pkg.resources,

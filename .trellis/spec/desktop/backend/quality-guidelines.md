@@ -56,16 +56,20 @@
 ### 3. Contracts
 
 - `mac_signing=auto`: sign and notarize when all macOS signing secrets are
-  present; otherwise build an explicitly unsigned internal artifact.
+  present; otherwise build an ad-hoc signed internal artifact without
+  notarization.
 - `mac_signing=required`: fail the macOS build if any signing/notarization
   secret is missing.
-- `mac_signing=unsigned_internal`: always skip macOS signing/notarization,
-  even if secrets are configured.
+- `mac_signing=unsigned_internal`: always skip Developer ID
+  signing/notarization, even if secrets are configured, but still ad-hoc sign
+  the `.app` bundle with `identity: "-"` so Apple Silicon can launch it after
+  quarantine removal.
 - Required signing secrets for normal tester-ready macOS downloads:
   `MAC_CERTIFICATE`, `MAC_CERTIFICATE_PASSWORD`, `APPLE_ID`,
   `APPLE_ID_PASSWORD`, and `APPLE_TEAM_ID`.
-- Unsigned macOS artifacts are internal-only. Release notes must say they are
-  unsigned and include the quarantine-removal workaround:
+- Non-notarized macOS artifacts are internal-only. Release notes must say they
+  are ad-hoc signed, not Developer ID notarized, and include the
+  quarantine-removal workaround:
   `xattr -dr com.apple.quarantine /Applications/Superset\ Canary.app`.
 - Native runtime validation must not require production sourcemaps. Sourcemap
   scans are extra evidence; JS output scans and native package presence checks
@@ -75,10 +79,15 @@
 
 - `mac_signing=required` + missing secret -> fail before packaging upload with
   a clear GitHub Actions error listing required secrets.
-- `mac_signing=auto` + missing secrets -> warning plus unsigned internal
+- `mac_signing=auto` + missing secrets -> warning plus ad-hoc signed internal
   release notes; do not describe the artifact as normal tester-installable.
-- `mac_signing=unsigned_internal` + secrets present -> warning plus unsigned
-  package; this mode must not accidentally sign.
+- `mac_signing=unsigned_internal` + secrets present -> warning plus ad-hoc
+  signed package without notarization; this mode must not accidentally use
+  Developer ID credentials.
+- `mac_signing=unsigned_internal` + `codesign --verify --deep --strict` fails
+  with `code has no resources but signature indicates they must be present` ->
+  build is invalid; ensure the workflow exports `AD_HOC_MAC_CODE_SIGNING=true`,
+  not `SKIP_MAC_CODE_SIGNING=true`.
 - No `dist/main/index.js.map` -> native validation warns and skips sourcemap
   origin checks, then still scans `dist/main/**/*.js`.
 - Missing native binding in packaged app -> fail the packaging workflow before
@@ -87,12 +96,14 @@
 ### 5. Good/Base/Bad Cases
 
 - Good: quick canary builds macOS arm64 only, reports package size, verifies
-  native bindings, and either signs/notarizes or labels the release as unsigned
-  internal.
-- Base: no signing secrets exist, but the release body clearly states unsigned
-  status and gives internal quarantine instructions.
-- Bad: CI uploads an unsigned macOS artifact with generic release notes that
-  make users believe it should open normally after download.
+  native bindings, and either Developer ID signs/notarizes or ad-hoc signs the
+  internal bundle and labels it as non-notarized.
+- Base: no signing secrets exist, but the app bundle passes
+  `codesign --verify --deep --strict`, and the release body clearly states
+  ad-hoc/internal status with quarantine instructions.
+- Bad: CI uploads a macOS artifact whose `.app` fails
+  `codesign --verify --deep --strict`, even if the release notes say it is for
+  internal testing.
 - Bad: package-size optimization disables sourcemaps and breaks
   `validate:native-runtime` even though JS output checks could still run.
 
@@ -102,8 +113,11 @@
   `ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "ok #{f}" }' .github/workflows/build-desktop.yml .github/workflows/release-desktop-canary.yml .github/actions/merge-mac-manifests/action.yml`
 - Run desktop package validation:
   `bun run --cwd apps/desktop validate:native-runtime`.
-- For macOS packaging changes, run at least one local arm64 package build:
-  `SKIP_MAC_CODE_SIGNING=true CSC_IDENTITY_AUTO_DISCOVERY=false TARGET_ARCH=arm64 bun run --cwd apps/desktop package -- --publish never --config electron-builder.canary.ts --arm64`.
+- For macOS packaging changes, run at least one local ad-hoc signed arm64
+  package build:
+  `AD_HOC_MAC_CODE_SIGNING=true CSC_IDENTITY_AUTO_DISCOVERY=false TARGET_ARCH=arm64 bun run --cwd apps/desktop package -- --publish never --config electron-builder.canary.ts --arm64`.
+- Verify the packaged app signature:
+  `codesign --verify --deep --strict --verbose=2 apps/desktop/release/mac-arm64/Superset\ Canary.app`.
 - Run size reporting after compile/package:
   `bun run --cwd apps/desktop report:size --top=12`.
 - Run repo quality gates before commit:
@@ -129,7 +143,7 @@ run: |
 run: |
   if [[ "$MAC_SIGNING_MODE" == "unsigned_internal" ]]; then
     export CSC_IDENTITY_AUTO_DISCOVERY=false
-    export SKIP_MAC_CODE_SIGNING=true
+    export AD_HOC_MAC_CODE_SIGNING=true
   elif [[ -n "${MAC_CERTIFICATE:-}" && -n "${MAC_CERTIFICATE_PASSWORD:-}" && -n "${MAC_APPLE_ID:-}" && -n "${MAC_APPLE_ID_PASSWORD:-}" && -n "${MAC_APPLE_TEAM_ID:-}" ]]; then
     export CSC_LINK="$MAC_CERTIFICATE"
     export CSC_KEY_PASSWORD="$MAC_CERTIFICATE_PASSWORD"
@@ -137,6 +151,6 @@ run: |
     exit 1
   else
     export CSC_IDENTITY_AUTO_DISCOVERY=false
-    export SKIP_MAC_CODE_SIGNING=true
+    export AD_HOC_MAC_CODE_SIGNING=true
   fi
 ```

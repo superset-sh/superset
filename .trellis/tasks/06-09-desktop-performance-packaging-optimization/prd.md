@@ -87,8 +87,12 @@ work should therefore create both immediate wins and durable guardrails.
   validation. Full/stable release workflows may continue producing macOS x64 and
   Linux artifacts.
 - macOS Canary artifacts intended for normal user testing must be signed and
-  notarized, or the release must explicitly label them as unsigned internal
-  builds with quarantine-removal instructions.
+  notarized, or the release must explicitly label them as ad-hoc signed
+  internal builds with quarantine-removal instructions.
+- Internal no-cost macOS Canary artifacts must still be ad-hoc signed so the
+  `.app` bundle is valid on disk. Fully skipping bundle signing can produce an
+  Apple Silicon "app is damaged" error even before Developer ID notarization is
+  considered.
 - Improve app startup and first workspace open time; avoid delaying the first
   usable frame on services that can be lazily initialized.
 - Improve route/page open performance for the main surfaces: Chat, Code, Tasks,
@@ -171,7 +175,7 @@ work should therefore create both immediate wins and durable guardrails.
 - Added a repeatable package-size report command:
   `bun run --cwd apps/desktop report:size --top=12`.
 - Local unsigned macOS arm64 package validation passed with:
-  `SKIP_MAC_CODE_SIGNING=true CSC_IDENTITY_AUTO_DISCOVERY=false TARGET_ARCH=arm64 bun run --cwd apps/desktop package -- --publish never --config electron-builder.canary.ts --arm64`.
+  `AD_HOC_MAC_CODE_SIGNING=true CSC_IDENTITY_AUTO_DISCOVERY=false TARGET_ARCH=arm64 bun run --cwd apps/desktop package -- --publish never --config electron-builder.canary.ts --arm64`.
 - Local arm64 Canary artifact size after low-risk cleanup:
   - DMG: about 440 MB.
   - ZIP: about 423 MB.
@@ -187,7 +191,8 @@ work should therefore create both immediate wins and durable guardrails.
 - Desktop Canary workflow can now run a quick macOS arm64-only build while still
   keeping a manual full build path for macOS arm64/x64 and Linux.
 - GitHub secrets for Developer ID signing/notarization are currently absent, so
-  current macOS releases remain unsigned internal builds.
+  current macOS releases remain ad-hoc signed internal builds without
+  notarization.
 - Without Apple Developer Program / Developer ID credentials, the viable
   no-cost path is internal testing with quarantine removal, for example:
   `xattr -dr com.apple.quarantine /Applications/Superset\ Canary.app`.
@@ -204,8 +209,18 @@ work should therefore create both immediate wins and durable guardrails.
   - Release assets:
     - arm64 DMG: 452,760,757 bytes.
     - arm64 ZIP: 435,477,572 bytes.
-  - Release notes correctly state `macOS signing mode: unsigned_internal` and
-    `macOS signing status: Unsigned internal build`.
+  - Release notes state `macOS signing mode: unsigned_internal`; this was later
+    refined to report `macOS signing status: Ad-hoc signed internal build`.
+- Follow-up from user testing:
+  - The first quick Canary still showed "app is damaged" on Apple Silicon.
+  - Downloaded DMG inspection confirmed the packaged app failed:
+    `codesign --verify --deep --strict` with
+    `code has no resources but signature indicates they must be present`.
+  - Root cause: `unsigned_internal` set `SKIP_MAC_CODE_SIGNING=true`, which
+    skipped bundle signing instead of ad-hoc signing the `.app`.
+  - Fix: `unsigned_internal` and missing-secret `auto` builds should use
+    `AD_HOC_MAC_CODE_SIGNING=true` and `identity: "-"`, disabling Developer ID
+    notarization while still sealing the app bundle.
 
 ## Notes
 

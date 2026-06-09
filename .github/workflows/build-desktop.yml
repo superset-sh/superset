@@ -146,10 +146,10 @@ jobs:
           MAC_SIGNING_MODE: ${{ inputs.mac_signing }}
         run: |
           if [[ "$MAC_SIGNING_MODE" == "unsigned_internal" ]]; then
-            echo "::warning::macOS signing mode is unsigned_internal; building unsigned macOS artifacts."
+            echo "::warning::macOS signing mode is unsigned_internal; building ad-hoc signed internal macOS artifacts without notarization."
             unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
             export CSC_IDENTITY_AUTO_DISCOVERY=false
-            export SKIP_MAC_CODE_SIGNING=true
+            export AD_HOC_MAC_CODE_SIGNING=true
           elif [[ -n "${MAC_CERTIFICATE:-}" && -n "${MAC_CERTIFICATE_PASSWORD:-}" && -n "${MAC_APPLE_ID:-}" && -n "${MAC_APPLE_ID_PASSWORD:-}" && -n "${MAC_APPLE_TEAM_ID:-}" ]]; then
             echo "macOS signing secrets found; building signed and notarized app."
             export CSC_LINK="$MAC_CERTIFICATE"
@@ -163,10 +163,10 @@ jobs:
               echo "::error::Required secrets: MAC_CERTIFICATE, MAC_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_ID_PASSWORD, APPLE_TEAM_ID."
               exit 1
             fi
-            echo "::warning::macOS signing secrets are incomplete; building unsigned macOS artifacts."
+            echo "::warning::macOS signing secrets are incomplete; building ad-hoc signed internal macOS artifacts without notarization."
             unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
             export CSC_IDENTITY_AUTO_DISCOVERY=false
-            export SKIP_MAC_CODE_SIGNING=true
+            export AD_HOC_MAC_CODE_SIGNING=true
           fi
 
           bun run package -- --publish never --config ${{ inputs.electron_builder_config }} --${{ matrix.arch }}
@@ -221,12 +221,13 @@ jobs:
             exit 1
           fi
 
+          codesign --verify --deep --strict --verbose=2 "$APP_DIR"
+
           if [[ -n "${MAC_CERTIFICATE:-}" && -n "${MAC_CERTIFICATE_PASSWORD:-}" && -n "${MAC_APPLE_ID:-}" && -n "${MAC_APPLE_ID_PASSWORD:-}" && -n "${MAC_APPLE_TEAM_ID:-}" ]]; then
-            codesign --verify --deep --strict --verbose=2 "$APP_DIR"
             spctl --assess --type execute --verbose=4 "$APP_DIR"
             echo "macOS app is signed and passed Gatekeeper assessment."
           else
-            echo "::warning::macOS app is unsigned. Downloaded artifacts may show as damaged until signing/notarization secrets are configured."
+            echo "::warning::macOS app is ad-hoc signed but not Developer ID notarized. Downloaded artifacts require quarantine removal for internal testing."
           fi
 
       - name: Upload DMG artifact

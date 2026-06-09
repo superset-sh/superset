@@ -166,14 +166,14 @@ jobs:
           SHORT_SHA: ${{ needs.check-changes.outputs.short_sha }}
         run: |
           if [[ "$MAC_SIGNING" == "unsigned_internal" ]]; then
-            MAC_SIGNING_STATUS="Unsigned internal build"
-            MAC_SIGNING_NOTES="macOS may report that the app is damaged because this build intentionally skips Developer ID signing/notarization. For internal testing only, install the app and run: \`xattr -dr com.apple.quarantine /Applications/Superset\\ Canary.app\`"
+            MAC_SIGNING_STATUS="Ad-hoc signed internal build"
+            MAC_SIGNING_NOTES="This build is ad-hoc signed but not Developer ID notarized. For internal testing only, install the app and run: \`xattr -dr com.apple.quarantine /Applications/Superset\\ Canary.app\`"
           elif [[ -n "${MAC_CERTIFICATE:-}" && -n "${MAC_CERTIFICATE_PASSWORD:-}" && -n "${MAC_APPLE_ID:-}" && -n "${MAC_APPLE_ID_PASSWORD:-}" && -n "${MAC_APPLE_TEAM_ID:-}" ]]; then
             MAC_SIGNING_STATUS="Developer ID signed and notarized"
             MAC_SIGNING_NOTES="macOS artifacts are expected to open normally after download."
           else
-            MAC_SIGNING_STATUS="Unsigned internal build"
-            MAC_SIGNING_NOTES="macOS may report that the app is damaged because this build is not Developer ID signed/notarized. For internal testing only, install the app and run: \`xattr -dr com.apple.quarantine /Applications/Superset\\ Canary.app\`"
+            MAC_SIGNING_STATUS="Ad-hoc signed internal build"
+            MAC_SIGNING_NOTES="This build is ad-hoc signed because Developer ID signing/notarization secrets are incomplete. For internal testing only, install the app and run: \`xattr -dr com.apple.quarantine /Applications/Superset\\ Canary.app\`"
           fi
 
           cat > release-body.md <<EOF

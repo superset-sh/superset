@@ -75,8 +75,9 @@ Separate "build succeeded" from "tester-installable artifact".
   - Verify signature/notarization status in CI where possible.
   - Release notes should show signed/notarized status.
 - If secrets are missing:
-  - Continue allowing an unsigned internal artifact only if explicitly permitted.
-  - Mark the release body as unsigned.
+  - Continue allowing an ad-hoc signed internal artifact only if explicitly
+    permitted.
+  - Mark the release body as ad-hoc signed and non-notarized.
   - Include temporary internal workaround:
     `xattr -dr com.apple.quarantine /Applications/Superset.app`
   - Prefer not to present unsigned artifacts as normal tester-ready downloads.
@@ -147,7 +148,7 @@ Add non-blocking first, then optionally blocking thresholds:
 - Fast Canary targeting can be reverted by switching workflow inputs back to full
   platform coverage.
 - Signing/notarization changes can be rolled back by removing required-signing
-  enforcement and returning to explicit unsigned internal releases.
+  enforcement and returning to explicit ad-hoc signed internal releases.
 - Sourcemap packaging changes should be gated by env/config so debug builds can
   re-enable sourcemaps.
 - Native module copy narrowing must be small and individually testable.
