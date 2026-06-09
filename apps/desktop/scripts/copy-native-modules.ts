@@ -13,7 +13,8 @@
  * This is safe because bun install will recreate the symlinks on next install.
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import {
 	cpSync,
 	existsSync,
@@ -23,6 +24,7 @@ import {
 	readFileSync,
 	realpathSync,
 	rmSync,
+	unlinkSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { satisfies } from "semver";
@@ -77,7 +79,10 @@ function copyModuleIfSymlink(
 		if (existsSync(bunFlatModulePath)) {
 			console.log(`  ${moduleName}: materializing from Bun store index`);
 			mkdirSync(dirname(modulePath), { recursive: true });
-			cpSync(realpathSync(bunFlatModulePath), modulePath, { recursive: true });
+			cpSync(realpathSync(bunFlatModulePath), modulePath, {
+				recursive: true,
+				dereference: true,
+			});
 			console.log(`    Copied to: ${modulePath}`);
 			return true;
 		}
@@ -98,10 +103,10 @@ function copyModuleIfSymlink(
 		console.log(`    Real path: ${realPath}`);
 
 		// Remove the symlink
-		rmSync(modulePath);
+		unlinkSync(modulePath);
 
 		// Copy the actual files
-		cpSync(realPath, modulePath, { recursive: true });
+		cpSync(realPath, modulePath, { recursive: true, dereference: true });
 
 		console.log(`    Copied to: ${modulePath}`);
 	} else {
@@ -143,7 +148,7 @@ function copyExactModuleVersion(
 		);
 		if (existsSync(sourcePath)) {
 			mkdirSync(dirname(destPath), { recursive: true });
-			cpSync(sourcePath, destPath, { recursive: true });
+			cpSync(sourcePath, destPath, { recursive: true, dereference: true });
 			console.log(`    Copied ${moduleName}@${version} to: ${destPath}`);
 			return true;
 		}
@@ -203,9 +208,10 @@ function copyDependencyForPackage(
 		const nestedStats = lstatSync(nestedDependencyPath);
 		if (nestedStats.isSymbolicLink()) {
 			const realPath = realpathSync(nestedDependencyPath);
-			rmSync(nestedDependencyPath);
+			unlinkSync(nestedDependencyPath);
 			cpSync(realPath, nestedDependencyPath, {
 				recursive: true,
+				dereference: true,
 			});
 		}
 		return;
@@ -239,13 +245,16 @@ function fetchNpmPackage(
 		: packageName;
 	const url = `https://registry.npmjs.org/${packageName}/-/${barePackageName}-${version}.tgz`;
 	console.log(`  ${packageName}: fetching from npm (${version})`);
+	const tarballPath = join(dirname(destPath), `.download-${randomUUID()}.tgz`);
 	try {
 		mkdirSync(destPath, { recursive: true });
-		execSync(
-			`curl -sL "${url}" | tar xz -C "${destPath}" --strip-components=1`,
-			{
-				stdio: "pipe",
-			},
+		execFileSync("curl", ["-fsSL", "-o", tarballPath, url], {
+			stdio: "pipe",
+		});
+		execFileSync(
+			"tar",
+			["-xzf", tarballPath, "-C", destPath, "--strip-components=1"],
+			{ stdio: "pipe" },
 		);
 		console.log(`    Extracted to: ${destPath}`);
 		return true;
@@ -254,6 +263,8 @@ function fetchNpmPackage(
 			`  [ERROR] Failed to fetch ${packageName}@${version}: ${err}`,
 		);
 		return false;
+	} finally {
+		rmSync(tarballPath, { force: true });
 	}
 }
 
@@ -315,7 +326,7 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 			if (existsSync(sourcePath)) {
 				console.log(`  ${platformPkg.name}: copying from Bun store`);
 				mkdirSync(dirname(destPath), { recursive: true });
-				cpSync(sourcePath, destPath, { recursive: true });
+				cpSync(sourcePath, destPath, { recursive: true, dereference: true });
 				if (isTargetPkg) resolvedTargetPackage = true;
 				continue;
 			}
@@ -458,7 +469,7 @@ function copyParcelWatcherPlatformPackages(nodeModulesDir: string): void {
 
 		console.log(`  ${platformPkg.name}: copying from Bun store`);
 		mkdirSync(dirname(destPath), { recursive: true });
-		cpSync(sourcePath, destPath, { recursive: true });
+		cpSync(sourcePath, destPath, { recursive: true, dereference: true });
 		resolvedPlatformPackage = true;
 	}
 

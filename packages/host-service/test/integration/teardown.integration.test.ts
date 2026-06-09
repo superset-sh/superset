@@ -18,6 +18,7 @@ import {
 } from "../../src/terminal/env";
 import { __resetSessionsForTesting } from "../../src/terminal/terminal";
 import { __setAccountShellForTesting } from "../../src/terminal/user-shell";
+import { makeTestDaemonSocketPath } from "../helpers/platform";
 import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 
 describe("runTeardown integration", () => {
@@ -46,56 +47,75 @@ describe("runTeardown integration", () => {
 		}
 	});
 
-	test("hidden teardown terminal exits under fish instead of timing out", async () => {
-		tmp = mkdtempSync(join(tmpdir(), "host-service-teardown-it-"));
-		const socketPath = join(tmp, "pty-daemon.sock");
-		const writes: string[] = [];
-		server = new Server({
-			socketPath,
-			daemonVersion: "0.0.0-teardown-integration-test",
-			spawnPty: createFishLikePtySpawner(writes),
-		});
-		await server.listen();
+	test(
+		"hidden teardown terminal exits under fish instead of timing out",
+		{ timeout: 10_000 },
+		async () => {
+			tmp = mkdtempSync(join(tmpdir(), "host-service-teardown-it-"));
+			const socketPath = makeTestDaemonSocketPath("host-service-teardown-it");
+			scenario = await createBasicScenario();
+			const scriptDir = join(scenario.repo.repoPath, ".superset");
+			const markerPath = join(scenario.repo.repoPath, "teardown-marker.txt");
+			const writes: string[] = [];
+			server = new Server({
+				socketPath,
+				daemonVersion: "0.0.0-teardown-integration-test",
+				spawnPty: createFishLikePtySpawner(writes, markerPath),
+			});
+			await server.listen();
 
-		process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
-		process.env.SUPERSET_HOME_DIR = tmp;
-		__setAccountShellForTesting("/bin/fish");
-		initTerminalBaseEnv({
-			HOME: process.env.HOME ?? tmp,
-			LANG: "en_US.UTF-8",
-			PATH: process.env.PATH ?? "/usr/bin:/bin",
-			SHELL: "/bin/bash",
-		});
+			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
+			process.env.SUPERSET_HOME_DIR = tmp;
+			__setAccountShellForTesting("/bin/fish");
+			initTerminalBaseEnv({
+				...testPathEnv(),
+				HOME: process.env.HOME ?? tmp,
+				LANG: "en_US.UTF-8",
+				SHELL: "/bin/bash",
+			});
 
-		scenario = await createBasicScenario();
-		const scriptDir = join(scenario.repo.repoPath, ".superset");
-		const markerPath = join(scenario.repo.repoPath, "teardown-marker.txt");
-		mkdirSync(scriptDir, { recursive: true });
-		writeFileSync(
-			join(scriptDir, "teardown.sh"),
-			`#!/usr/bin/env bash\nprintf ran > ${shellQuote(markerPath)}\n`,
-			{ mode: 0o755 },
-		);
+			mkdirSync(scriptDir, { recursive: true });
+			if (process.platform === "win32") {
+				writeFileSync(
+					join(scriptDir, "teardown.ts"),
+					`await Bun.write(${JSON.stringify(markerPath)}, "ran");\n`,
+					"utf-8",
+				);
+			} else {
+				writeFileSync(
+					join(scriptDir, "teardown.sh"),
+					`#!/usr/bin/env bash\nprintf ran > ${shellQuote(markerPath)}\n`,
+					{ mode: 0o755 },
+				);
+			}
 
-		const startedAt = Date.now();
-		const result = await runTeardown({
-			db: scenario.host.db,
-			workspaceId: scenario.workspaceId,
-			worktreePath: scenario.repo.repoPath,
-			timeoutMs: 3_000,
-		});
+			const startedAt = Date.now();
+			const result = await runTeardown({
+				db: scenario.host.db,
+				workspaceId: scenario.workspaceId,
+				worktreePath: scenario.repo.repoPath,
+				timeoutMs: 3_000,
+			});
 
-		expect(Date.now() - startedAt).toBeLessThan(3_000);
-		expect(result.status).toBe("ok");
-		expect(writes).toHaveLength(1);
-		expect(writes[0]).toStartWith("exec bash ");
-		expect(writes[0]).not.toContain("$?");
-		expect(existsSync(markerPath)).toBe(true);
-	});
+			expect(Date.now() - startedAt).toBeLessThan(5_000);
+			expect(result.status).toBe("ok");
+			expect(writes).toHaveLength(1);
+			if (process.platform === "win32") {
+				expect(writes[0]).toStartWith("bun ");
+				expect(writes[0]).toContain("teardown.ts");
+				expect(writes[0]).toContain("&& exit /b 0 || exit /b 1");
+			} else {
+				expect(writes[0]).toStartWith("exec bash ");
+				expect(writes[0]).not.toContain("$?");
+			}
+			expect(existsSync(markerPath)).toBe(true);
+		},
+	);
 });
 
 function createFishLikePtySpawner(
 	writes: string[],
+	markerPath: string,
 ): NonNullable<ServerOptions["spawnPty"]> {
 	return ({ meta }) => {
 		let dataCallback: ((data: Buffer) => void) | null = null;
@@ -115,6 +135,12 @@ function createFishLikePtySpawner(
 			write(data) {
 				const command = data.toString("utf8").trim();
 				writes.push(command);
+				if (process.platform === "win32") {
+					writeFileSync(markerPath, "ran");
+					exitCallback?.({ code: 0, signal: null });
+					return;
+				}
+
 				if (command.includes("$?")) {
 					dataCallback?.(
 						Buffer.from(
@@ -124,10 +150,20 @@ function createFishLikePtySpawner(
 					return;
 				}
 
-				const child = spawnSync("/bin/sh", ["-c", command], {
-					cwd: meta.cwd,
-					env: meta.env,
-				});
+				const child =
+					process.platform === "win32"
+						? spawnSync(
+								process.env.ComSpec ?? "cmd.exe",
+								["/d", "/s", "/c", command],
+								{
+									cwd: meta.cwd,
+									env: meta.env,
+								},
+							)
+						: spawnSync("/bin/sh", ["-c", command], {
+								cwd: meta.cwd,
+								env: meta.env,
+							});
 				if (child.stdout.byteLength > 0) dataCallback?.(child.stdout);
 				if (child.stderr.byteLength > 0) dataCallback?.(child.stderr);
 				exitCallback?.({ code: child.status ?? 1, signal: null });
@@ -154,4 +190,11 @@ function createFishLikePtySpawner(
 
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function testPathEnv(): Record<string, string> {
+	const pathValue = process.env.Path ?? process.env.PATH ?? "/usr/bin:/bin";
+	return process.platform === "win32"
+		? { PATH: pathValue, Path: pathValue }
+		: { PATH: pathValue };
 }

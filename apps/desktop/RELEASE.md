@@ -5,7 +5,7 @@
 From the monorepo root:
 
 ```bash
-./apps/desktop/create-release.sh
+bun run release:desktop
 ```
 
 The script will:
@@ -19,14 +19,14 @@ The script will:
 
 ```bash
 # Interactive version selection (recommended)
-./apps/desktop/create-release.sh
+bun run release:desktop
 
 # Explicit version
-./apps/desktop/create-release.sh 0.0.50
+bun run release:desktop 0.0.50
 
 # Auto-publish (skip draft)
-./apps/desktop/create-release.sh --publish
-./apps/desktop/create-release.sh 0.0.50 --publish
+bun run release:desktop --publish
+bun run release:desktop 0.0.50 --publish
 ```
 
 To publish a draft:
@@ -79,6 +79,8 @@ bun run package
 ```
 
 Output: `apps/desktop/release/`
+
+Windows local packaging requires Visual Studio Build Tools 2022 with the MSVC v143 C++ x64/x86 Spectre-mitigated libraries and a Windows 10 or Windows 11 SDK. The package script checks these before invoking Electron native rebuilds.
 
 Linux output should include:
 

@@ -5,8 +5,25 @@ import { join } from "node:path";
 const ENV_LINE = /^(?:export\s+)?[a-zA-Z_]\w*\s*=/;
 const CONFIG_FILE_NAME = "chat-anthropic-env.json";
 const ENV_KEY = /^[a-zA-Z_]\w*$/;
+const ANTHROPIC_CREDENTIAL_PLACEHOLDERS = new Set([
+	"ANTHROPIC_API_KEY",
+	"ANTHROPIC_AUTH_TOKEN",
+]);
+const BEDROCK_ENV_KEYS = new Set([
+	"CLAUDE_CODE_USE_BEDROCK",
+	"AWS_REGION",
+	"AWS_DEFAULT_REGION",
+	"AWS_PROFILE",
+	"AWS_ACCESS_KEY_ID",
+	"AWS_SECRET_ACCESS_KEY",
+	"AWS_SESSION_TOKEN",
+]);
 
 export type AnthropicEnvVariables = Record<string, string>;
+
+interface BuildAnthropicRuntimeEnvOptions {
+	suppressBedrock?: boolean;
+}
 
 interface AnthropicEnvConfigDiskOptions {
 	configPath?: string;
@@ -34,6 +51,13 @@ function parseLineValue(rawValue: string): string {
 		return value.slice(1, -1);
 	}
 	return value;
+}
+
+function isPlaceholderCredentialValue(key: string, value: string): boolean {
+	return (
+		(key === "ANTHROPIC_API_KEY" || key === "ANTHROPIC_AUTH_TOKEN") &&
+		ANTHROPIC_CREDENTIAL_PLACEHOLDERS.has(value.trim())
+	);
 }
 
 function normalizeAnthropicBaseUrl(
@@ -122,7 +146,11 @@ export function parseAnthropicEnvText(envText: string): AnthropicEnvVariables {
 			throw new Error(`${INVALID_ENV_MESSAGE} Invalid line ${index + 1}.`);
 		}
 
-		variables[key] = parseLineValue(line.slice(eqIndex + 1));
+		const parsedValue = parseLineValue(line.slice(eqIndex + 1));
+		if (isPlaceholderCredentialValue(key, parsedValue)) {
+			continue;
+		}
+		variables[key] = parsedValue;
 	}
 
 	return variables;
@@ -166,8 +194,14 @@ export function stripAnthropicCredentialEnvVariables(
 
 export function buildAnthropicRuntimeEnv(
 	variables: AnthropicEnvVariables,
+	options?: BuildAnthropicRuntimeEnvOptions,
 ): Record<string, string> {
 	const runtimeEnv = Object.fromEntries(toNormalizedEnvEntries(variables));
+	if (options?.suppressBedrock) {
+		for (const key of BEDROCK_ENV_KEYS) {
+			delete runtimeEnv[key];
+		}
+	}
 	const baseUrl = normalizeAnthropicBaseUrl(runtimeEnv.ANTHROPIC_BASE_URL);
 	if (baseUrl) {
 		runtimeEnv.ANTHROPIC_BASE_URL = baseUrl;

@@ -18,7 +18,8 @@ export function useHandleOpenedWorktree() {
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const createOrAttach = useCreateOrAttachWithTheme();
-	const writeToTerminal = electronTrpc.terminal.write.useMutation();
+	const writeCommandsToTerminal =
+		electronTrpc.terminal.writeCommands.useMutation();
 
 	return useCallback(
 		async (data: OpenedWorktreeData) => {
@@ -30,7 +31,8 @@ export function useHandleOpenedWorktree() {
 				addTab,
 				setTabAutoTitle,
 				createOrAttach: (input) => createOrAttach.mutateAsync(input),
-				writeToTerminal: (input) => writeToTerminal.mutateAsync(input),
+				writeCommandsToTerminal: (input) =>
+					writeCommandsToTerminal.mutateAsync(input),
 			});
 			if (bootstrapError === "create_or_attach_failed") {
 				toast.error("Workspace opened, but terminal failed to start.");
@@ -48,7 +50,7 @@ export function useHandleOpenedWorktree() {
 			setTabAutoTitle,
 			utils.projects.getRecents,
 			utils.workspaces,
-			writeToTerminal,
+			writeCommandsToTerminal,
 		],
 	);
 }

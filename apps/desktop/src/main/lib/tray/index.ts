@@ -9,18 +9,50 @@ import {
 	Tray,
 } from "electron";
 import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
-import { env } from "main/env.main";
 import { focusMainWindow, quitApp, quitAppCompletely } from "main/index";
+import { getMainApiUrl } from "main/lib/desktop-runtime-flags";
 import {
 	getHostServiceCoordinator,
 	type HostServiceStatusEvent,
 } from "main/lib/host-service-coordinator";
 import { menuEmitter } from "main/lib/menu-events";
+import { PLATFORM } from "shared/constants";
 
 /** Must have "Template" suffix for macOS dark/light mode support */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
+const WINDOWS_TRAY_ICON_FILENAME = "icon.ico";
 
 function getTrayIconPath(): string | null {
+	if (PLATFORM.IS_WINDOWS) {
+		const candidates = app.isPackaged
+			? [
+					join(
+						process.resourcesPath,
+						"app.asar.unpacked/resources/build/icons",
+						WINDOWS_TRAY_ICON_FILENAME,
+					),
+					join(
+						app.getAppPath(),
+						"resources/build/icons",
+						WINDOWS_TRAY_ICON_FILENAME,
+					),
+				]
+			: [
+					join(
+						__dirname,
+						"../resources/build/icons",
+						WINDOWS_TRAY_ICON_FILENAME,
+					),
+					join(
+						app.getAppPath(),
+						"src/resources/build/icons",
+						WINDOWS_TRAY_ICON_FILENAME,
+					),
+				];
+		const candidate = candidates.find((candidate) => existsSync(candidate));
+		if (candidate) return candidate;
+	}
+
 	if (app.isPackaged) {
 		const prodPath = join(
 			process.resourcesPath,
@@ -45,7 +77,7 @@ function getTrayIconPath(): string | null {
 		return devPath;
 	}
 
-	console.warn("[Tray] Icon not found at:", previewPath, "or", devPath);
+	console.warn("[Tray] Icon not found");
 	return null;
 }
 
@@ -71,12 +103,22 @@ function createTrayIcon(): Electron.NativeImage | null {
 		if (size.width > 22 || size.height > 22) {
 			image = image.resize({ width: 16, height: 16 });
 		}
-		image.setTemplateImage(true);
+		image.setTemplateImage(!PLATFORM.IS_WINDOWS);
 		return image;
 	} catch (error) {
 		console.warn("[Tray] Failed to load icon:", error);
 		return null;
 	}
+}
+
+function getLaunchAtLogin(): boolean {
+	if (!PLATFORM.IS_WINDOWS) return false;
+	return app.getLoginItemSettings().openAtLogin;
+}
+
+function setLaunchAtLogin(openAtLogin: boolean): void {
+	if (!PLATFORM.IS_WINDOWS) return;
+	app.setLoginItemSettings({ openAtLogin });
 }
 
 function openSettings(): void {
@@ -181,7 +223,7 @@ function buildHostServiceSubmenu(
 						if (!token) return;
 						await coordinator.restart(orgId, {
 							authToken: token,
-							cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+							cloudApiUrl: getMainApiUrl(),
 						});
 					} catch (error) {
 						console.error(
@@ -243,6 +285,19 @@ async function updateTrayMenu(): Promise<void> {
 			label: "Settings",
 			click: openSettings,
 		},
+		...(PLATFORM.IS_WINDOWS
+			? [
+					{
+						label: "Launch at Login",
+						type: "checkbox" as const,
+						checked: getLaunchAtLogin(),
+						click: (menuItem: Electron.MenuItem) => {
+							setLaunchAtLogin(menuItem.checked);
+							void updateTrayMenu();
+						},
+					},
+				]
+			: []),
 		{
 			label: "Check for Updates",
 			click: () => {
@@ -275,7 +330,7 @@ export function initTray(): void {
 		return;
 	}
 
-	if (process.platform !== "darwin") {
+	if (!PLATFORM.IS_MAC && !PLATFORM.IS_WINDOWS) {
 		return;
 	}
 

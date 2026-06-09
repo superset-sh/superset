@@ -46,13 +46,16 @@ import {
 } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
-import { env } from "renderer/env.renderer";
 import {
 	authClient,
 	getAuthToken,
 	getJwt,
 	setJwt,
 } from "renderer/lib/auth-client";
+import {
+	getRuntimeApiUrl,
+	getRuntimeElectricUrl,
+} from "renderer/lib/desktop-runtime-flags";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import superjson from "superjson";
 import { z } from "zod";
@@ -77,7 +80,7 @@ import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
 
-const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
+const electricUrl = `${getRuntimeElectricUrl()}/v1/shape`;
 
 export const ELECTRIC_WRITE_SYNC_TIMEOUT_MS = 30_000;
 
@@ -220,7 +223,7 @@ function getCollectionsCacheKey(organizationId: string): string {
 const apiClient = createTRPCProxyClient<AppRouter>({
 	links: [
 		httpBatchLink({
-			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
+			url: `${getRuntimeApiUrl()}/api/trpc`,
 			headers: () => {
 				const token = getAuthToken();
 				return token ? { Authorization: `Bearer ${token}` } : {};

@@ -17,6 +17,7 @@
  *   bun run scripts/build-dist.ts --target=darwin-arm64
  *   bun run scripts/build-dist.ts --target=darwin-x64
  *   bun run scripts/build-dist.ts --target=linux-x64
+ *   bun run scripts/build-dist.ts --target=win32-x64
  */
 import { spawn } from "node:child_process";
 import {
@@ -32,15 +33,21 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
 
-type Target = "darwin-arm64" | "darwin-x64" | "linux-x64" | "linux-arm64";
+type Target =
+	| "darwin-arm64"
+	| "darwin-x64"
+	| "linux-x64"
+	| "linux-arm64"
+	| "win32-x64";
 
 const VALID_TARGETS: Target[] = [
 	"darwin-arm64",
 	"darwin-x64",
 	"linux-x64",
 	"linux-arm64",
+	"win32-x64",
 ];
 const NODE_VERSION = "22.13.0";
 
@@ -94,6 +101,12 @@ const TARGET_NATIVE_PACKAGES: Record<Target, string[]> = {
 		"@anush008/tokenizers-linux-arm64-gnu",
 		"@duckdb/node-bindings-linux-arm64",
 	],
+	"win32-x64": [
+		"@libsql/win32-x64-msvc",
+		"@parcel/watcher-win32-x64",
+		"@anush008/tokenizers-win32-x64-msvc",
+		"@duckdb/node-bindings-win32-x64",
+	],
 };
 
 /**
@@ -124,13 +137,31 @@ function targetParts(target: Target): { platform: string; arch: string } {
 	return { platform, arch };
 }
 
+function bunTarget(target: Target): string {
+	if (target === "win32-x64") return "bun-windows-x64";
+	return `bun-${target}`;
+}
+
 function nodeArchiveName(target: Target): string {
 	const { platform, arch } = targetParts(target);
+	if (platform === "win32") return `node-v${NODE_VERSION}-win-${arch}`;
 	return `node-v${NODE_VERSION}-${platform}-${arch}`;
 }
 
 function nodeDownloadUrl(target: Target): string {
-	return `https://nodejs.org/dist/v${NODE_VERSION}/${nodeArchiveName(target)}.tar.gz`;
+	const { platform } = targetParts(target);
+	const extension = platform === "win32" ? "zip" : "tar.gz";
+	return `https://nodejs.org/dist/v${NODE_VERSION}/${nodeArchiveName(target)}.${extension}`;
+}
+
+function nodeBinaryName(target: Target): string {
+	const { platform } = targetParts(target);
+	return platform === "win32" ? "node.exe" : "node";
+}
+
+function cliBinaryName(target: Target): string {
+	const { platform } = targetParts(target);
+	return platform === "win32" ? "superset.exe" : "superset";
 }
 
 async function exec(cmd: string, args: string[], cwd?: string): Promise<void> {
@@ -184,7 +215,9 @@ async function downloadAndExtractNode(
 	if (!existsSync(cacheDir)) mkdirSync(cacheDir, { recursive: true });
 
 	const archiveName = nodeArchiveName(target);
-	const archivePath = join(cacheDir, `${archiveName}.tar.gz`);
+	const archiveExt =
+		extname(nodeDownloadUrl(target)) === ".zip" ? "zip" : "tar.gz";
+	const archivePath = join(cacheDir, `${archiveName}.${archiveExt}`);
 	const extractedPath = join(cacheDir, archiveName);
 
 	if (!existsSync(archivePath)) {
@@ -194,13 +227,23 @@ async function downloadAndExtractNode(
 
 	if (!existsSync(extractedPath)) {
 		console.log(`[build-dist] extracting Node.js for ${target}`);
-		await exec("tar", ["-xzf", archivePath, "-C", cacheDir]);
+		const extractArgs =
+			archiveExt === "zip"
+				? ["-xf", archivePath, "-C", cacheDir]
+				: ["-xzf", archivePath, "-C", cacheDir];
+		await exec("tar", extractArgs);
 	}
 
-	const sourceBinary = join(extractedPath, "bin", "node");
-	const destBinary = join(destDir, "node");
+	const binaryName = nodeBinaryName(target);
+	const sourceBinary =
+		binaryName === "node.exe"
+			? join(extractedPath, binaryName)
+			: join(extractedPath, "bin", binaryName);
+	const destBinary = join(destDir, binaryName);
 	cpSync(sourceBinary, destBinary);
-	chmodSync(destBinary, 0o755);
+	if (binaryName !== "node.exe") {
+		chmodSync(destBinary, 0o755);
+	}
 	return destBinary;
 }
 
@@ -396,7 +439,7 @@ async function buildCli(target: Target, outputPath: string): Promise<void> {
 		[
 			"cli-framework",
 			"build",
-			`--target=bun-${target}`,
+			`--target=${bunTarget(target)}`,
 			`--outfile=${outputPath}`,
 		],
 		cliDir,
@@ -415,7 +458,14 @@ async function buildPtyDaemon(): Promise<string> {
 	return join(ptyDaemonDir, "dist", "pty-daemon.js");
 }
 
-function writeHostWrapper(binDir: string): void {
+function writeHostWrapper(binDir: string, target: Target): void {
+	const { platform } = targetParts(target);
+	if (platform === "win32") {
+		const wrapper = `@echo off\r\nset "SCRIPT_DIR=%~dp0"\r\nset "NODE_PATH=%SCRIPT_DIR%..\\lib\\node_modules"\r\n"%SCRIPT_DIR%..\\lib\\node.exe" "%SCRIPT_DIR%..\\lib\\host-service.js" %*\r\n`;
+		writeFileSync(join(binDir, "superset-host.cmd"), wrapper);
+		return;
+	}
+
 	const wrapper = `#!/bin/sh
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 export NODE_PATH="$SCRIPT_DIR/../lib/node_modules"
@@ -440,7 +490,7 @@ async function main(): Promise<void> {
 	console.log(`[build-dist] staging: ${stagingRoot}`);
 
 	console.log("[build-dist] building CLI binary");
-	await buildCli(target, join(stagingRoot, "bin", "superset"));
+	await buildCli(target, join(stagingRoot, "bin", cliBinaryName(target)));
 
 	console.log("[build-dist] building host-service bundle");
 	const hostServiceBundle = await buildHostService();
@@ -470,7 +520,7 @@ async function main(): Promise<void> {
 	});
 
 	console.log("[build-dist] writing host wrapper");
-	writeHostWrapper(join(stagingRoot, "bin"));
+	writeHostWrapper(join(stagingRoot, "bin"), target);
 
 	const tarball = join(cliDir, "dist", `superset-${target}.tar.gz`);
 	console.log(`[build-dist] creating ${tarball}`);

@@ -8,19 +8,24 @@ import {
 	type WorkspaceRunState,
 } from "renderer/stores/tabs/workspace-run";
 
+export interface WorkspaceRunRestartCommand {
+	command: string;
+	commands: string[];
+}
+
 interface RecoverWorkspaceRunPaneOptions {
 	paneId: string;
 	workspaceRun: PaneWorkspaceRun;
 	isNewWorkspaceRun: boolean;
 	xterm: { writeln: (data: string) => void };
 	shouldAbort: () => boolean;
-	startAttach: (commandToRunAfterAttach?: string) => void;
+	startAttach: (commandToRunAfterAttach?: WorkspaceRunRestartCommand) => void;
 	done: () => void;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
 	isStreamReadyRef: MutableRefObject<boolean>;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
-	restartCommand?: string;
+	restartCommand?: WorkspaceRunRestartCommand;
 }
 
 export {
@@ -31,15 +36,16 @@ export {
 
 export function resolveWorkspaceRunAttachMode(
 	paneId: string,
-	defaultRestartCommand?: string,
+	defaultRestartCommand?: WorkspaceRunRestartCommand,
 ): {
 	workspaceRun: PaneWorkspaceRun | null;
 	isNewWorkspaceRun: boolean;
-	restartCommand?: string;
+	restartCommand?: WorkspaceRunRestartCommand;
 } {
 	const workspaceRun = getPaneWorkspaceRun(paneId);
 	const hasRestartCommand =
-		workspaceRun?.state === "running" && Boolean(defaultRestartCommand);
+		workspaceRun?.state === "running" &&
+		Boolean(defaultRestartCommand?.commands.length);
 	const isNewWorkspaceRun =
 		hasRestartCommand && isPaneWorkspaceRunLaunchPending(paneId);
 

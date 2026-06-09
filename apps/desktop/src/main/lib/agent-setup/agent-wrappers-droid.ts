@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+	buildNotifyHookCommand,
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
@@ -92,10 +93,6 @@ function removeManagedHooksFromDefinition(
 	};
 }
 
-function quoteShellPath(filePath: string): string {
-	return `'${filePath.replaceAll("'", "'\\''")}'`;
-}
-
 export function getDroidSettingsJsonPath(): string {
 	return path.join(os.homedir(), ".factory", "settings.json");
 }
@@ -104,7 +101,7 @@ export function createDroidWrapper(): void {
 	const script = buildWrapperScript("droid", `exec "$REAL_BIN" "$@"`, {
 		agentId: "droid",
 	});
-	createWrapper("droid", script);
+	createWrapper("droid", script, { agentId: "droid" });
 }
 
 /**
@@ -125,7 +122,7 @@ export function getDroidSettingsJsonContent(
 		existing.hooks = {};
 	}
 
-	const managedHookCommand = `SUPERSET_AGENT_ID=droid ${quoteShellPath(notifyScriptPath)}`;
+	const managedHookCommand = buildNotifyHookCommand("droid", notifyScriptPath);
 
 	const managedEvents: Array<{
 		eventName:

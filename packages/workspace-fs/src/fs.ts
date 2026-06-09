@@ -359,13 +359,19 @@ async function writeAtomically({
 
 	try {
 		await fs.writeFile(tempPath, buffer);
-		if (sourceMode !== undefined) {
+		if (sourceMode !== undefined && shouldPreserveFileMode()) {
 			await fs.chmod(tempPath, sourceMode);
 		}
 		await fs.rename(tempPath, absolutePath);
 	} finally {
 		await fs.rm(tempPath, { force: true });
 	}
+}
+
+export function shouldPreserveFileMode(
+	platform: NodeJS.Platform = process.platform,
+): boolean {
+	return platform !== "win32";
 }
 
 // Symlink-resolution batch size. Node's fs.readdir and fs.stat ignore

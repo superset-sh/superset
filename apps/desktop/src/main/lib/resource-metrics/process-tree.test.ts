@@ -2,8 +2,11 @@ import { describe, expect, it } from "bun:test";
 import {
 	getSubtreePids,
 	getSubtreeResources,
+	getWindowsProcessListCommand,
 	type ProcessInfo,
 	type ProcessSnapshot,
+	parseUnixProcessList,
+	parseWindowsProcessCsv,
 } from "./process-tree";
 
 function buildSnapshot(processes: ProcessInfo[]): ProcessSnapshot {
@@ -112,5 +115,40 @@ describe("getSubtreeResources", () => {
 		expect(resources.cpu).toBe(15.5);
 		expect(resources.memory).toBe(2048);
 		expect(resources.pids).toEqual([42]);
+	});
+});
+
+describe("process list parsers", () => {
+	it("parses Unix ps output and converts RSS from KB to bytes", () => {
+		expect(
+			parseUnixProcessList(`
+			  100     1  1.5  256
+			  200   100  -3.0  512
+			  nope  100  1.0   1
+			`),
+		).toEqual([
+			{ pid: 100, ppid: 1, cpu: 1.5, memory: 256 * 1024 },
+			{ pid: 200, ppid: 100, cpu: 0, memory: 512 * 1024 },
+		]);
+	});
+
+	it("parses Windows PowerShell CSV output with CRLF line endings", () => {
+		expect(
+			parseWindowsProcessCsv(
+				`"ProcessId","ParentProcessId","WorkingSetSize"\r\n"100","4","4096"\r\n"200","100","8192"\r\n`,
+			),
+		).toEqual([
+			{ pid: 100, ppid: 4, cpu: 0, memory: 4096 },
+			{ pid: 200, ppid: 100, cpu: 0, memory: 8192 },
+		]);
+	});
+
+	it("builds Windows process listing as argv instead of a shell command string", () => {
+		const command = getWindowsProcessListCommand();
+		expect(command.command).toBe("powershell.exe");
+		expect(command.args).toContain("-NonInteractive");
+		expect(command.args).toContain("-Command");
+		expect(command.args.join(" ")).toContain("Get-CimInstance Win32_Process");
+		expect(command.args[0]).not.toContain("powershell");
 	});
 });

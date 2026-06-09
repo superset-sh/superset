@@ -1,4 +1,4 @@
-// Message schemas for the pty-daemon Unix socket protocol.
+// Message schemas for the pty-daemon local socket/named-pipe protocol.
 //
 // Wire format (v2): see ./framing.ts. Each frame carries a JSON header
 // and an optional binary payload tail. PTY input/output bytes ride in

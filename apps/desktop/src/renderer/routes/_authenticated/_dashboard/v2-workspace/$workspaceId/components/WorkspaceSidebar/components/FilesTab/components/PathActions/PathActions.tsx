@@ -5,6 +5,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Clipboard, Copy, FolderOpen } from "lucide-react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { getRevealInFileManagerLabel } from "renderer/lib/file-manager-labels";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 interface PathActionsProps {
@@ -26,7 +27,7 @@ export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
 			await electronTrpcClient.external.openInFinder.mutate(absolutePath);
 		} catch (error) {
 			toast.error(
-				`Failed to reveal in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to ${getRevealInFileManagerLabel().toLowerCase()}: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
 		}
 	};
@@ -34,7 +35,7 @@ export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
 		<>
 			<DropdownMenuItem onSelect={handleRevealInFinder}>
 				<FolderOpen />
-				Reveal in Finder
+				{getRevealInFileManagerLabel()}
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<DropdownMenuItem

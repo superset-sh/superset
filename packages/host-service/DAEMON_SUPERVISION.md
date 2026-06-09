@@ -40,8 +40,10 @@ the PID is alive and the socket is reachable, and reuses the running
 daemon. PTY sessions therefore survive host-service restarts.
 
 The socket path lives in `os.tmpdir()/superset-ptyd-<sha256(orgId).slice(0,12)>.sock`
-— short enough to fit Darwin's 104-byte `sun_path` limit. Owner-only
-file mode (0600) is the auth boundary.
+on POSIX — short enough to fit Darwin's 104-byte `sun_path` limit. On
+Windows it lives at `\\.\pipe\superset-ptyd-<sha256(orgId).slice(0,12)>`.
+Owner-only file mode (0600) is the POSIX auth boundary; Windows uses the
+local named-pipe endpoint.
 
 ### Adopted-daemon liveness check
 
@@ -185,8 +187,11 @@ That's the only place. `EXPECTED_DAEMON_VERSION` (host-service) and
 `DAEMON_PACKAGE_VERSION` (pty-daemon's runtime export) both derive from
 that JSON via compile-time imports, so drift is structurally impossible.
 The supervisor's adoption probe surfaces "update available" on installs
-running an older daemon; clicking "Update daemon" triggers fd-handoff
-(Phase 2) so live shells survive the swap.
+running an older daemon. On POSIX, clicking "Update daemon" triggers
+fd-handoff (Phase 2) so live shells survive the swap. On Windows, ConPTY
+does not expose inheritable PTY master fds; update refuses while live
+sessions exist, and safely restarts the daemon when there are no live
+sessions.
 
 Bumping host-service-level features that the desktop coordinator
 needs to refuse to adopt old binaries: bump `HOST_SERVICE_VERSION`

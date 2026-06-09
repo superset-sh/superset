@@ -41,8 +41,11 @@ detect_target() {
                 *) error "Unsupported Linux architecture: $arch (only x64 is supported)" ;;
             esac
             ;;
+        MINGW*|MSYS*|CYGWIN*)
+            error "Windows installs use PowerShell: irm https://superset.sh/cli/install.ps1 | iex"
+            ;;
         *)
-            error "Unsupported OS: $os (only macOS and Linux are supported)"
+            error "Unsupported OS: $os (use install.ps1 on Windows)"
             ;;
     esac
 }

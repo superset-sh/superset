@@ -25,6 +25,7 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { getOpenInFileManagerLabel } from "renderer/lib/file-manager-labels";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
 
@@ -99,7 +100,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={onOpenInFinder}>
 							<LuFolderOpen className="size-4 mr-2" />
-							Open in Finder
+							{getOpenInFileManagerLabel()}
 						</ContextMenuItem>
 						<ContextMenuItem onSelect={onCopyPath}>
 							<LuCopy className="size-4 mr-2" />

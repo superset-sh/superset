@@ -9,6 +9,7 @@ import {
 	resetTerminalEnvCachesForTests,
 	SHELL_CRASH_THRESHOLD_MS,
 	sanitizeEnv,
+	shouldStartLocaleProbe,
 } from "./env";
 
 describe("env", () => {
@@ -54,6 +55,12 @@ describe("env", () => {
 	});
 
 	describe("getLocale", () => {
+		it("should not start the POSIX locale probe on Windows", () => {
+			expect(shouldStartLocaleProbe("win32")).toBe(false);
+			expect(shouldStartLocaleProbe("darwin")).toBe(true);
+			expect(shouldStartLocaleProbe("linux")).toBe(true);
+		});
+
 		it("should return LANG if it contains UTF-8", () => {
 			const result = getLocale({ LANG: "en_US.UTF-8" });
 			expect(result).toBe("en_US.UTF-8");

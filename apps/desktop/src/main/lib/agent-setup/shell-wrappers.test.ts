@@ -29,10 +29,46 @@ const TEST_PATHS: ShellWrapperPaths = {
 	ZSH_DIR: TEST_ZSH_DIR,
 	BASH_DIR: TEST_BASH_DIR,
 };
-const SPECIAL_SHELL_PATH_SEGMENT = `special $USER "quoted" 'single'`;
+const SPECIAL_SHELL_PATH_SEGMENT =
+	process.platform === "win32"
+		? `special $USER 'single'`
+		: `special $USER "quoted" 'single'`;
+let bashCommand: string | null | undefined;
+const PATH_ENV_KEY =
+	Object.keys(process.env).find((key) => key.toLowerCase() === "path") ??
+	"PATH";
 
 function quoteShellLiteral(value: string): string {
 	return `'${value.replaceAll("'", `'"'"'`)}'`;
+}
+
+function shellPathJoin(...segments: string[]): string {
+	return segments.join("/");
+}
+
+function getBashCommand(): string | null {
+	if (bashCommand !== undefined) return bashCommand;
+	const candidates =
+		process.platform === "win32"
+			? [String.raw`C:\Program Files\Git\bin\bash.exe`, "bash"]
+			: ["bash"];
+	for (const candidate of candidates) {
+		try {
+			execFileSync(candidate, ["-lc", "exit 0"], { stdio: "ignore" });
+			bashCommand = candidate;
+			return bashCommand;
+		} catch {
+			// Try the next candidate. Some Windows installs expose a WSL launcher
+			// named bash.exe even when no default distro is available.
+		}
+	}
+	bashCommand = null;
+	return bashCommand;
+}
+
+function buildBashPath(...prefixes: string[]): string {
+	const currentPath = process.env[PATH_ENV_KEY] ?? process.env.PATH ?? "";
+	return [...prefixes, currentPath].filter(Boolean).join(path.delimiter);
 }
 
 function isZshAvailable(): boolean {
@@ -252,7 +288,7 @@ fi
 			`source ${quoteShellLiteral(path.join(TEST_ZSH_DIR, ".zshrc"))} &&`,
 		);
 		expect(args[1]).toContain(
-			`_superset_wrapper=${quoteShellLiteral(path.join(TEST_BIN_DIR, "claude"))}`,
+			`_superset_wrapper=${quoteShellLiteral(shellPathJoin(TEST_BIN_DIR, "claude"))}`,
 		);
 		expect(args[1]).toContain('command claude "$@"');
 		expect(args[1]).toContain("echo ok");
@@ -265,13 +301,16 @@ fi
 			`source ${quoteShellLiteral(path.join(TEST_ZSH_DIR, ".zshrc"))} &&`,
 		);
 		expect(args[1]).toContain(
-			`_superset_wrapper=${quoteShellLiteral(path.join(TEST_BIN_DIR, "claude"))}`,
+			`_superset_wrapper=${quoteShellLiteral(shellPathJoin(TEST_BIN_DIR, "claude"))}`,
 		);
 		expect(args[1]).toContain('command claude "$@"');
 		expect(args[1]).toContain("echo ok");
 	});
 
 	it("uses managed wrappers for non-interactive commands even if shell config rewrites PATH", () => {
+		const bash = getBashCommand();
+		if (!bash) return;
+
 		createBashWrapper(TEST_PATHS);
 
 		const integrationRoot = path.join(TEST_ROOT, "managed-command-path");
@@ -302,18 +341,21 @@ echo wrapper
 		chmodSync(path.join(TEST_BIN_DIR, "claude"), 0o755);
 
 		const args = getCommandShellArgs("/bin/bash", "claude", TEST_PATHS);
-		const output = execFileSync("bash", args, {
+		const output = execFileSync(bash, args, {
 			encoding: "utf-8",
 			env: {
 				...process.env,
 				HOME: homeDir,
-				PATH: `${systemBinDir}:/usr/bin:/bin`,
+				[PATH_ENV_KEY]: buildBashPath(systemBinDir),
 			},
 		}).trim();
 		expect(output).toBe("wrapper");
 	});
 
 	it("falls back to system binaries for managed commands when wrappers are missing", () => {
+		const bash = getBashCommand();
+		if (!bash) return;
+
 		const integrationRoot = path.join(TEST_ROOT, "managed-command-fallback");
 		const homeDir = path.join(integrationRoot, "home");
 		const systemBinDir = path.join(integrationRoot, "system-bin");
@@ -337,18 +379,22 @@ echo system
 		createBashWrapper(fallbackPaths);
 
 		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
-		const output = execFileSync("bash", args, {
+		const output = execFileSync(bash, args, {
 			encoding: "utf-8",
 			env: {
 				...process.env,
 				HOME: homeDir,
-				PATH: `${systemBinDir}:/usr/bin:/bin`,
+				[PATH_ENV_KEY]: buildBashPath(systemBinDir),
 			},
 		}).trim();
 		expect(output).toBe("system");
 	});
 
 	it("falls back to system binaries when wrapper exists but is not executable", () => {
+		const bash = getBashCommand();
+		if (!bash) return;
+		if (process.platform === "win32") return;
+
 		const integrationRoot = path.join(
 			TEST_ROOT,
 			"managed-command-non-executable-fallback",
@@ -384,12 +430,12 @@ echo wrapper
 		createBashWrapper(fallbackPaths);
 
 		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
-		const output = execFileSync("bash", args, {
+		const output = execFileSync(bash, args, {
 			encoding: "utf-8",
 			env: {
 				...process.env,
 				HOME: homeDir,
-				PATH: `${systemBinDir}:/usr/bin:/bin`,
+				[PATH_ENV_KEY]: buildBashPath(systemBinDir),
 			},
 		}).trim();
 		expect(output).toBe("system");
@@ -400,6 +446,9 @@ echo wrapper
 			"--rcfile",
 			path.join(TEST_BASH_DIR, "rcfile"),
 		]);
+		expect(
+			getShellArgs(String.raw`C:\Program Files\Git\bin\bash.exe`, TEST_PATHS),
+		).toEqual(["--rcfile", path.join(TEST_BASH_DIR, "rcfile")]);
 	});
 
 	it("uses login args for other interactive shells", () => {
@@ -410,7 +459,24 @@ echo wrapper
 
 	it("returns empty args for unrecognized shells", () => {
 		expect(getShellArgs("/bin/csh")).toEqual([]);
-		expect(getShellArgs("powershell")).toEqual([]);
+	});
+
+	it("uses native Windows shell args for interactive shells", () => {
+		expect(getShellArgs("cmd.exe")).toEqual([]);
+		expect(getShellArgs("powershell.exe")).toEqual(["-NoLogo"]);
+		expect(getShellArgs("pwsh.exe")).toEqual(["-NoLogo"]);
+	});
+
+	it("uses native Windows shell args for command execution", () => {
+		expect(getCommandShellArgs("cmd.exe", "echo ok", TEST_PATHS)).toEqual([
+			"/d",
+			"/s",
+			"/c",
+			"echo ok",
+		]);
+		expect(
+			getCommandShellArgs("pwsh.exe", "Write-Output ok", TEST_PATHS),
+		).toEqual(["-NoLogo", "-NoProfile", "-Command", "Write-Output ok"]);
 	});
 
 	it("zsh BIN_DIR survives a late precmd PATH reset from user .zlogin", () => {
@@ -569,6 +635,9 @@ typeset -gr -a precmd_functions
 	});
 
 	it("bash managed commands treat special characters in wrapper paths literally", () => {
+		const bash = getBashCommand();
+		if (!bash) return;
+
 		const integrationRoot = path.join(TEST_ROOT, SPECIAL_SHELL_PATH_SEGMENT);
 		const homeDir = path.join(integrationRoot, "home");
 		const systemBinDir = path.join(integrationRoot, "system-bin");
@@ -602,12 +671,12 @@ echo wrapper
 		createBashWrapper(specialPaths);
 
 		const args = getCommandShellArgs("/bin/bash", "claude", specialPaths);
-		const output = execFileSync("bash", args, {
+		const output = execFileSync(bash, args, {
 			encoding: "utf-8",
 			env: {
 				...process.env,
 				HOME: homeDir,
-				PATH: `${systemBinDir}:/usr/bin:/bin`,
+				[PATH_ENV_KEY]: buildBashPath(systemBinDir),
 			},
 		}).trim();
 
@@ -616,6 +685,9 @@ echo wrapper
 
 	describe("SUPERSET_* env var protection from user RC overrides", () => {
 		it("bash wrapper restores SUPERSET_WORKSPACE_NAME after user .bashrc overrides it", () => {
+			const bash = getBashCommand();
+			if (!bash) return;
+
 			const integrationRoot = path.join(TEST_ROOT, "bash-env-protect");
 			const homeDir = path.join(integrationRoot, "home");
 			mkdirSync(homeDir, { recursive: true });
@@ -634,11 +706,12 @@ echo wrapper
 				"-ic",
 				'echo "$SUPERSET_WORKSPACE_NAME"',
 			];
-			const output = execFileSync("bash", args, {
+			const output = execFileSync(bash, args, {
 				encoding: "utf-8",
 				env: {
+					...process.env,
 					HOME: homeDir,
-					PATH: "/usr/bin:/bin",
+					[PATH_ENV_KEY]: buildBashPath(),
 					SUPERSET_WORKSPACE_NAME: "my-clean-workspace",
 				},
 			}).trim();
@@ -651,6 +724,9 @@ echo wrapper
 		});
 
 		it("bash wrapper restores SUPERSET_WORKSPACE_NAME after user .bash_profile overrides it", () => {
+			const bash = getBashCommand();
+			if (!bash) return;
+
 			const integrationRoot = path.join(TEST_ROOT, "bash-profile-env-protect");
 			const homeDir = path.join(integrationRoot, "home");
 			mkdirSync(homeDir, { recursive: true });
@@ -669,11 +745,12 @@ echo wrapper
 				"-ic",
 				'echo "$SUPERSET_WORKSPACE_NAME"',
 			];
-			const output = execFileSync("bash", args, {
+			const output = execFileSync(bash, args, {
 				encoding: "utf-8",
 				env: {
+					...process.env,
 					HOME: homeDir,
-					PATH: "/usr/bin:/bin",
+					[PATH_ENV_KEY]: buildBashPath(),
 					SUPERSET_WORKSPACE_NAME: "correct-name",
 				},
 			}).trim();
@@ -686,6 +763,9 @@ echo wrapper
 		});
 
 		it("bash wrapper restores multiple SUPERSET_* vars after user RC overrides them", () => {
+			const bash = getBashCommand();
+			if (!bash) return;
+
 			const integrationRoot = path.join(TEST_ROOT, "bash-multi-env-protect");
 			const homeDir = path.join(integrationRoot, "home");
 			mkdirSync(homeDir, { recursive: true });
@@ -705,11 +785,12 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				"-ic",
 				'echo "$SUPERSET_WORKSPACE_NAME|$SUPERSET_WORKSPACE_PATH"',
 			];
-			const output = execFileSync("bash", args, {
+			const output = execFileSync(bash, args, {
 				encoding: "utf-8",
 				env: {
+					...process.env,
 					HOME: homeDir,
-					PATH: "/usr/bin:/bin",
+					[PATH_ENV_KEY]: buildBashPath(),
 					SUPERSET_WORKSPACE_NAME: "correct-name",
 					SUPERSET_WORKSPACE_PATH: "/correct/path",
 				},
@@ -838,7 +919,9 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 
 			expect(args[0]).toBe("-l");
 			expect(args[1]).toBe("--init-command");
-			expect(args[2]).toContain(`set -l _superset_bin "${TEST_BIN_DIR}"`);
+			expect(args[2]).toContain(
+				`set -l _superset_bin "${TEST_BIN_DIR.replaceAll("\\", "\\\\")}"`,
+			);
 			// Both markers are emitted so old v1 daemons (777 scanner) and new
 			// scanners (133;A) both detect readiness without a daemon restart.
 			expect(args[2]).toContain("\\033]777;superset-shell-ready\\007");

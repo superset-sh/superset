@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { getOpenInFileManagerLabel } from "renderer/lib/file-manager-labels";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
@@ -124,7 +125,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 			await electronTrpcClient.external.openInFinder.mutate(path);
 		} catch (error) {
 			toast.error(
-				`Failed to open in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to ${getOpenInFileManagerLabel().toLowerCase()}: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
 		}
 	};

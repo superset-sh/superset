@@ -57,8 +57,8 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 					</button>
 
 					<WaitlistForm
-						heading="Join the waitlist"
-						description="Get notified when Superset is available on Windows & Linux."
+						heading="Join the desktop installer waitlist"
+						description="Get notified when packaged desktop installers are available beyond macOS."
 					/>
 				</div>
 			</div>

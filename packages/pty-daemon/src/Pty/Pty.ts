@@ -64,6 +64,12 @@ class NodePtyAdapter implements Pty {
 	}
 
 	getMasterFd(): number {
+		if (process.platform === "win32") {
+			throw new Error(
+				"node-pty master fd unavailable on Windows ConPTY. " +
+					"Daemon fd-handoff is POSIX-only; Windows daemon updates must restart sessions.",
+			);
+		}
 		// node-pty 1.1.x exposes the master fd as the private property `_fd`.
 		// Pinned to "1.1.0" in package.json so a future bump can't break this
 		// silently — assert here so a missing/changed field surfaces at the
@@ -91,7 +97,19 @@ class NodePtyAdapter implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
+		if (this.exited) return;
 		const killSignal = signal ?? "SIGHUP";
+		if (process.platform === "win32") {
+			const result = childProcess.spawnSync(
+				"taskkill.exe",
+				["/PID", String(this.pid), "/T", "/F"],
+				{ stdio: "ignore", timeout: KILL_ESCALATION_TIMEOUT_MS },
+			);
+			if ((result.error || result.status !== 0) && isPidAlive(this.pid)) {
+				this.term.kill();
+			}
+			return;
+		}
 		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
 			includeRoot: false,
 			onSignalError: logProcessSignalError,
@@ -202,7 +220,9 @@ export function spawn({ meta }: SpawnOptions): Pty {
 	}
 	const adapter = new NodePtyAdapter(term, meta);
 	// Validate the private-fd dependency at spawn time, not handoff time.
-	adapter.getMasterFd();
+	// Windows ConPTY has no Unix master fd, so regular PTY spawn must not
+	// depend on the POSIX-only daemon handoff path.
+	if (process.platform !== "win32") adapter.getMasterFd();
 	return adapter;
 }
 

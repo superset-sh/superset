@@ -1,4 +1,4 @@
-import { exec } from "node:child_process";
+import { exec, execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 
@@ -12,8 +12,16 @@ try {
 }
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const EXEC_TIMEOUT_MS = 5_000;
 const MAX_BUFFER = 10 * 1024 * 1024;
+const WINDOWS_PROCESS_QUERY = [
+	"-NoLogo",
+	"-NoProfile",
+	"-NonInteractive",
+	"-Command",
+	"Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,WorkingSetSize | ConvertTo-Csv -NoTypeInformation",
+] as const;
 
 export interface ProcessInfo {
 	pid: number;
@@ -158,30 +166,7 @@ async function listProcessesUnix(): Promise<ProcessInfo[]> {
 			timeout: EXEC_TIMEOUT_MS,
 		});
 
-		const result: ProcessInfo[] = [];
-		for (const line of stdout.split("\n")) {
-			const t = line.trim();
-			if (!t) continue;
-
-			const parts = t.split(/\s+/);
-			if (parts.length < 4) continue;
-
-			const pid = Number.parseInt(parts[0], 10);
-			const ppid = Number.parseInt(parts[1], 10);
-			if (Number.isNaN(pid) || Number.isNaN(ppid)) continue;
-
-			const cpu = Number.parseFloat(parts[2]);
-			const rssKb = Number.parseInt(parts[3], 10);
-
-			result.push({
-				pid,
-				ppid,
-				cpu: Number.isFinite(cpu) ? Math.max(0, cpu) : 0,
-				memory: Number.isFinite(rssKb) ? Math.max(0, rssKb) * 1024 : 0,
-			});
-		}
-
-		return result;
+		return parseUnixProcessList(stdout);
 	} catch {
 		return [];
 	}
@@ -189,35 +174,77 @@ async function listProcessesUnix(): Promise<ProcessInfo[]> {
 
 async function listProcessesWindows(): Promise<ProcessInfo[]> {
 	try {
-		const { stdout } = await execAsync(
-			'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,WorkingSetSize | ConvertTo-Csv -NoTypeInformation"',
-			{ maxBuffer: MAX_BUFFER, timeout: EXEC_TIMEOUT_MS },
+		const { stdout } = await execFileAsync(
+			"powershell.exe",
+			[...WINDOWS_PROCESS_QUERY],
+			{ maxBuffer: MAX_BUFFER, timeout: EXEC_TIMEOUT_MS, windowsHide: true },
 		);
 
-		const result: ProcessInfo[] = [];
-		for (const line of stdout.trim().split("\n").slice(1)) {
-			const clean = line.trim().replace(/"/g, "");
-			if (!clean) continue;
-
-			const parts = clean.split(",");
-			if (parts.length < 3) continue;
-
-			const pid = Number.parseInt(parts[0], 10);
-			const ppid = Number.parseInt(parts[1], 10);
-			if (Number.isNaN(pid) || Number.isNaN(ppid)) continue;
-
-			const ws = Number.parseInt(parts[2], 10);
-
-			result.push({
-				pid,
-				ppid,
-				cpu: 0, // Windows CPU% needs delta sampling; enriched separately.
-				memory: Number.isFinite(ws) ? Math.max(0, ws) : 0,
-			});
-		}
-
-		return result;
+		return parseWindowsProcessCsv(stdout);
 	} catch {
 		return [];
 	}
+}
+
+export function getWindowsProcessListCommand(): {
+	command: string;
+	args: string[];
+} {
+	return {
+		command: "powershell.exe",
+		args: [...WINDOWS_PROCESS_QUERY],
+	};
+}
+
+export function parseUnixProcessList(stdout: string): ProcessInfo[] {
+	const result: ProcessInfo[] = [];
+	for (const line of stdout.split("\n")) {
+		const t = line.trim();
+		if (!t) continue;
+
+		const parts = t.split(/\s+/);
+		if (parts.length < 4) continue;
+
+		const pid = Number.parseInt(parts[0], 10);
+		const ppid = Number.parseInt(parts[1], 10);
+		if (Number.isNaN(pid) || Number.isNaN(ppid)) continue;
+
+		const cpu = Number.parseFloat(parts[2]);
+		const rssKb = Number.parseInt(parts[3], 10);
+
+		result.push({
+			pid,
+			ppid,
+			cpu: Number.isFinite(cpu) ? Math.max(0, cpu) : 0,
+			memory: Number.isFinite(rssKb) ? Math.max(0, rssKb) * 1024 : 0,
+		});
+	}
+
+	return result;
+}
+
+export function parseWindowsProcessCsv(stdout: string): ProcessInfo[] {
+	const result: ProcessInfo[] = [];
+	for (const line of stdout.trim().split(/\r?\n/).slice(1)) {
+		const clean = line.trim().replace(/"/g, "");
+		if (!clean) continue;
+
+		const parts = clean.split(",");
+		if (parts.length < 3) continue;
+
+		const pid = Number.parseInt(parts[0], 10);
+		const ppid = Number.parseInt(parts[1], 10);
+		if (Number.isNaN(pid) || Number.isNaN(ppid)) continue;
+
+		const ws = Number.parseInt(parts[2], 10);
+
+		result.push({
+			pid,
+			ppid,
+			cpu: 0, // Windows CPU% needs delta sampling; enriched separately.
+			memory: Number.isFinite(ws) ? Math.max(0, ws) : 0,
+		});
+	}
+
+	return result;
 }

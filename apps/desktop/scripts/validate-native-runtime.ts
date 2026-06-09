@@ -28,6 +28,14 @@ const builtinModuleSpecifiers = new Set([
 		.map((specifier) => `node:${specifier}`),
 ]);
 
+function getTargetPlatform(): NodeJS.Platform {
+	return (process.env.TARGET_PLATFORM || process.platform) as NodeJS.Platform;
+}
+
+function getTargetArch(): NodeJS.Architecture {
+	return (process.env.TARGET_ARCH || process.arch) as NodeJS.Architecture;
+}
+
 function fail(message: string): never {
 	console.error(`[validate:native-runtime] ${message}`);
 	process.exit(1);
@@ -287,8 +295,8 @@ function collectFiles(rootDir: string): string[] {
 }
 
 function getPlatformLibsqlCandidates(): string[] {
-	const targetArch = process.env.TARGET_ARCH || process.arch;
-	const targetPlatform = process.env.TARGET_PLATFORM || process.platform;
+	const targetArch = getTargetArch();
+	const targetPlatform = getTargetPlatform();
 
 	if (targetPlatform === "darwin") {
 		return [
@@ -314,8 +322,8 @@ function getPlatformLibsqlCandidates(): string[] {
 }
 
 function getPlatformAstGrepCandidates(): string[] {
-	const targetArch = process.env.TARGET_ARCH || process.arch;
-	const targetPlatform = process.env.TARGET_PLATFORM || process.platform;
+	const targetArch = getTargetArch();
+	const targetPlatform = getTargetPlatform();
 
 	if (targetPlatform === "darwin") {
 		return [
@@ -384,7 +392,7 @@ function validateNativeModulesPrepared(): void {
 	const platformCandidates = getPlatformLibsqlCandidates();
 	if (platformCandidates.length === 0) {
 		console.warn(
-			`[validate:native-runtime] Skipping platform-specific @libsql check for ${process.platform}/${process.arch}`,
+			`[validate:native-runtime] Skipping platform-specific @libsql check for ${getTargetPlatform()}/${getTargetArch()}`,
 		);
 		return;
 	}
@@ -428,22 +436,25 @@ function validateNativeModulesPrepared(): void {
 }
 
 function getPlatformParcelWatcherCandidates(): string[] {
-	if (process.platform === "darwin") {
+	const targetArch = getTargetArch();
+	const targetPlatform = getTargetPlatform();
+
+	if (targetPlatform === "darwin") {
 		return [
-			process.arch === "arm64"
+			targetArch === "arm64"
 				? "@parcel/watcher-darwin-arm64"
 				: "@parcel/watcher-darwin-x64",
 		];
 	}
 
-	if (process.platform === "linux") {
-		if (process.arch === "arm64") {
+	if (targetPlatform === "linux") {
+		if (targetArch === "arm64") {
 			return [
 				"@parcel/watcher-linux-arm64-glibc",
 				"@parcel/watcher-linux-arm64-musl",
 			];
 		}
-		if (process.arch === "arm") {
+		if (targetArch === "arm") {
 			return [
 				"@parcel/watcher-linux-arm-glibc",
 				"@parcel/watcher-linux-arm-musl",
@@ -455,21 +466,21 @@ function getPlatformParcelWatcherCandidates(): string[] {
 		];
 	}
 
-	if (process.platform === "win32") {
-		if (process.arch === "arm64") {
+	if (targetPlatform === "win32") {
+		if (targetArch === "arm64") {
 			return ["@parcel/watcher-win32-arm64"];
 		}
-		if (process.arch === "ia32") {
+		if (targetArch === "ia32") {
 			return ["@parcel/watcher-win32-ia32"];
 		}
 		return ["@parcel/watcher-win32-x64"];
 	}
 
-	if (process.platform === "android") {
+	if (targetPlatform === "android") {
 		return ["@parcel/watcher-android-arm64"];
 	}
 
-	if (process.platform === "freebsd") {
+	if (targetPlatform === "freebsd") {
 		return ["@parcel/watcher-freebsd-x64"];
 	}
 
@@ -481,7 +492,7 @@ function validateParcelWatcherPrepared(): void {
 	const platformCandidates = getPlatformParcelWatcherCandidates();
 	if (platformCandidates.length === 0) {
 		console.warn(
-			`[validate:native-runtime] Skipping platform-specific @parcel/watcher check for ${process.platform}/${process.arch}`,
+			`[validate:native-runtime] Skipping platform-specific @parcel/watcher check for ${getTargetPlatform()}/${getTargetArch()}`,
 		);
 		return;
 	}
@@ -506,8 +517,8 @@ function validateParcelWatcherPrepared(): void {
 
 function validateDuckdbPrepared(): void {
 	const nodeModulesDir = join(projectRoot, "node_modules");
-	const targetArch = process.env.TARGET_ARCH || process.arch;
-	const targetPlatform = process.env.TARGET_PLATFORM || process.platform;
+	const targetArch = getTargetArch();
+	const targetPlatform = getTargetPlatform();
 	const bindingPackage = `@duckdb/node-bindings-${targetPlatform}-${targetArch}`;
 
 	if (!existsSync(join(nodeModulesDir, bindingPackage, "duckdb.node"))) {

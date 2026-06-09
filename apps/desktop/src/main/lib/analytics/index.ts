@@ -1,5 +1,6 @@
 import { app } from "electron";
 import { env } from "main/env.main";
+import { getMainPostHogKey } from "main/lib/desktop-runtime-flags";
 import { PostHog } from "posthog-node";
 import { DEFAULT_TELEMETRY_ENABLED } from "shared/constants";
 
@@ -7,12 +8,13 @@ export let posthog: PostHog | null = null;
 let userId: string | null = null;
 
 function getClient(): PostHog | null {
-	if (!env.NEXT_PUBLIC_POSTHOG_KEY) {
+	const postHogKey = getMainPostHogKey(env.NEXT_PUBLIC_POSTHOG_KEY);
+	if (!postHogKey) {
 		return null;
 	}
 
 	if (!posthog) {
-		posthog = new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
+		posthog = new PostHog(postHogKey, {
 			host: env.NEXT_PUBLIC_POSTHOG_HOST,
 			flushAt: 1,
 			flushInterval: 0,

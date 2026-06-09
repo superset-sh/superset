@@ -22,6 +22,7 @@ import {
 	VscLinkExternal,
 	VscRemove,
 } from "react-icons/vsc";
+import { getRevealInFileManagerLabel } from "renderer/lib/file-manager-labels";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import { usePathActions } from "../../hooks";
 import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
@@ -211,7 +212,7 @@ export function FolderRow({
 			<ContextMenuSeparator />
 			<ContextMenuItem onClick={revealInFinder}>
 				<VscFolderOpened className="mr-2 size-4" />
-				Reveal in Finder
+				{getRevealInFileManagerLabel()}
 			</ContextMenuItem>
 			<ContextMenuItem onClick={openInEditor}>
 				<VscLinkExternal className="mr-2 size-4" />

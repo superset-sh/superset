@@ -9,6 +9,10 @@ import {
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { invalidateProjectScriptQueries } from "renderer/lib/project-scripts";
+import {
+	isScriptFileImportSupported,
+	SCRIPT_FILE_IMPORT_ACCEPT,
+} from "renderer/lib/script-file-imports";
 import { EXTERNAL_LINKS } from "shared/constants";
 
 interface ScriptsEditorProps {
@@ -58,7 +62,7 @@ function ScriptTextarea({
 	const importFirstFile = useCallback(
 		async (files: File[]) => {
 			const scriptFile = files.find((file) =>
-				file.name.match(/\.(sh|bash|zsh|command)$/i),
+				isScriptFileImportSupported(file.name),
 			);
 			if (!scriptFile) {
 				return;
@@ -155,7 +159,7 @@ function ScriptTextarea({
 			<input
 				ref={fileInputRef}
 				type="file"
-				accept=".sh,.bash,.zsh,.command"
+				accept={SCRIPT_FILE_IMPORT_ACCEPT}
 				onChange={handleFileInputChange}
 				className="hidden"
 			/>

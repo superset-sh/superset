@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { env } from "renderer/env.renderer";
+import { getRuntimeApiUrl } from "renderer/lib/desktop-runtime-flags";
 import { lt } from "semver";
 
 interface VersionRequirements {
@@ -32,9 +32,7 @@ export function useVersionCheck(): UseVersionCheckResult {
 		}
 
 		try {
-			const response = await fetch(
-				`${env.NEXT_PUBLIC_API_URL}/api/desktop/version`,
-			);
+			const response = await fetch(`${getRuntimeApiUrl()}/api/desktop/version`);
 
 			if (!response.ok) {
 				// Fail open - if API is down, don't block users

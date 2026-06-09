@@ -2,16 +2,43 @@ import { spawn } from "node:child_process";
 import { boolean, CLIError, positional } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 
+interface OpenUrlSpawn {
+	command: string;
+	args: string[];
+	windowsVerbatimArguments?: boolean;
+}
+
+function cmdDoubleQuote(value: string): string {
+	return `"${value.replaceAll('"', '""').replaceAll("\r", "").replaceAll("\n", "")}"`;
+}
+
+export function buildOpenUrlSpawn(
+	url: string,
+	platform: NodeJS.Platform = process.platform,
+	env: NodeJS.ProcessEnv = process.env,
+): OpenUrlSpawn {
+	if (platform === "darwin") {
+		return { command: "open", args: [url] };
+	}
+	if (platform === "win32") {
+		return {
+			command: env.COMSPEC || env.ComSpec || "cmd.exe",
+			args: ["/d", "/s", "/c", `start "" ${cmdDoubleQuote(url)}`],
+			windowsVerbatimArguments: true,
+		};
+	}
+	return { command: "xdg-open", args: [url] };
+}
+
 function openUrl(url: string): Promise<void> {
-	const [bin, args]: [string, string[]] =
-		process.platform === "darwin"
-			? ["open", [url]]
-			: process.platform === "win32"
-				? ["cmd", ["/c", "start", "", url]]
-				: ["xdg-open", [url]];
+	const launch = buildOpenUrlSpawn(url);
 
 	return new Promise((resolve, reject) => {
-		const child = spawn(bin, args, { stdio: "ignore", detached: true });
+		const child = spawn(launch.command, launch.args, {
+			stdio: "ignore",
+			detached: true,
+			windowsVerbatimArguments: launch.windowsVerbatimArguments,
+		});
 		child.once("error", reject);
 		child.once("spawn", () => {
 			child.unref();

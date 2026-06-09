@@ -12,7 +12,24 @@ This guide is for contributors building Superset from source. If you just want t
 | [Caddy](https://caddyserver.com/docs/install) | `brew install caddy && caddy trust` |
 | Git 2.20+ and [`gh`](https://cli.github.com/) | `brew install gh` |
 
-macOS is the primary supported platform. Windows / Linux are untested.
+macOS is the primary supported platform. Native Windows support is in progress.
+
+### Windows notes
+
+For native Windows development, use PowerShell and install:
+
+- Bun 1.3.x
+- Git for Windows
+- Docker Desktop
+- Caddy
+- GitHub CLI
+- Visual Studio Build Tools 2022 with the MSVC v143 C++ x64/x86
+  Spectre-mitigated libraries and a Windows 10 or Windows 11 SDK
+
+If you only need to install JavaScript dependencies before rebuilding Electron
+native modules, set `SUPERSET_SKIP_DESKTOP_INSTALL_DEPS=1` while running
+`bun install`. The full desktop app still requires
+`bun run --cwd apps/desktop install:deps` to pass.
 
 ## Run it (one command)
 

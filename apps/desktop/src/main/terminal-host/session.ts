@@ -12,8 +12,11 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import {
+	buildShellCommandChain,
+	shellSupportsReadyMarker,
+} from "@superset/shared/shell";
+import {
 	createScanState,
-	SHELLS_WITH_READY_MARKER,
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
@@ -114,6 +117,7 @@ export interface SessionOptions {
 	workspacePath?: string;
 	rootPath?: string;
 	command?: string;
+	commands?: string[];
 	scrollbackLines?: number;
 	spawnProcess?: SpawnProcess;
 }
@@ -195,7 +199,14 @@ export class Session {
 		this.paneId = options.paneId;
 		this.tabId = options.tabId;
 		this.shell = options.shell || this.getDefaultShell();
-		this.command = options.command;
+		this.command =
+			options.command ??
+			(options.commands?.length
+				? buildShellCommandChain(options.commands, {
+						shell: this.shell,
+						platform: process.platform,
+					})
+				: undefined);
 		this.createdAt = new Date();
 		this.lastAttachedAt = new Date();
 		this.spawnProcess = options.spawnProcess ?? spawn;
@@ -207,8 +218,7 @@ export class Session {
 
 		// zsh/bash/fish get shell-ready markers via our wrappers in
 		// shell-wrappers.ts. Other shells skip the gating entirely.
-		const shellName = this.shell.split("/").pop() || this.shell;
-		this.shellReadyState = SHELLS_WITH_READY_MARKER.has(shellName)
+		this.shellReadyState = shellSupportsReadyMarker(this.shell)
 			? "pending"
 			: "unsupported";
 
@@ -1001,8 +1011,7 @@ export class Session {
 		this.subprocess = null;
 		this.subprocessReady = false;
 		this.subprocessDecoder = null;
-		const shellName = this.shell.split("/").pop() || this.shell;
-		this.shellReadyState = SHELLS_WITH_READY_MARKER.has(shellName)
+		this.shellReadyState = shellSupportsReadyMarker(this.shell)
 			? "pending"
 			: "unsupported";
 		if (this.shellReadyTimeoutId) {
@@ -1194,5 +1203,6 @@ export function createSession(request: CreateOrAttachRequest): Session {
 		workspacePath: request.workspacePath,
 		rootPath: request.rootPath,
 		command: request.command,
+		commands: request.commands,
 	});
 }

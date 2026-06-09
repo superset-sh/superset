@@ -95,7 +95,7 @@ async function openPathInApp(
 				lastError = error instanceof Error ? error : new Error(String(error));
 				if (candidates.length > 1) {
 					console.warn(
-						`[external/openInApp] ${cmd.args[1]} not found, trying next candidate`,
+						`[external/openInApp] ${cmd.command} not found, trying next candidate`,
 					);
 				}
 			}
@@ -103,7 +103,9 @@ async function openPathInApp(
 		throw lastError;
 	}
 
-	await shell.openPath(filePath);
+	throw new Error(
+		`Opening paths in ${app} is not supported on ${process.platform}.`,
+	);
 }
 
 /**

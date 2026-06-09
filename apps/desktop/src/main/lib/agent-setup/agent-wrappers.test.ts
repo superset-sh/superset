@@ -22,6 +22,7 @@ const TEST_BASH_DIR = path.join(TEST_ROOT, "superset", "bash");
 const TEST_OPENCODE_CONFIG_DIR = path.join(TEST_HOOKS_DIR, "opencode");
 const TEST_OPENCODE_PLUGIN_DIR = path.join(TEST_OPENCODE_CONFIG_DIR, "plugin");
 let mockedHomeDir = path.join(TEST_ROOT, "home");
+const itUnix = process.platform === "win32" ? it.skip : it;
 
 mock.module("shared/env.shared", () => ({
 	env: {
@@ -32,9 +33,19 @@ mock.module("shared/env.shared", () => ({
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v3",
-	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
+	WINDOWS_NOTIFY_SCRIPT_NAME: "notify.cmd",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v5",
+	WINDOWS_NOTIFY_SCRIPT_MARKER: "rem Superset agent notification hook v5",
+	getNotifyScriptPath: (platform: NodeJS.Platform = process.platform) =>
+		path.join(
+			TEST_HOOKS_DIR,
+			platform === "win32" ? "notify.cmd" : "notify.sh",
+		),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
+	getWindowsNotifyCommandScriptContent: () =>
+		'@echo off\r\nrem Superset agent notification hook v5\r\nnode.exe "%~dp0notify.mjs" %*\r\n',
+	getNotifyNodeScriptContent: () =>
+		'JSON.parse\nmethod: "POST"\nSUPERSET_HOST_AGENT_HOOK_URL\nSUPERSET_AGENT_ID\n/hook/complete\n',
 	createNotifyScript: () => {},
 }));
 
@@ -62,12 +73,15 @@ const {
 	createAmpWrapper,
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
+	buildNotifyHookCommand,
+	buildWindowsWrapperScript,
 	buildWrapperScript,
 	createClaudeSettingsJson,
 	createCodexHooksJson,
 	createCodexWrapper,
 	COPILOT_HOOK_MARKER,
 	CURSOR_HOOK_MARKER,
+	createWrapper,
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
@@ -78,6 +92,7 @@ const {
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getDroidSettingsJsonContent,
+	getWindowsWrapperPath,
 	GEMINI_HOOK_MARKER,
 	getAmpGlobalPluginPath,
 	getAmpPluginContent,
@@ -140,7 +155,73 @@ describe("agent-wrappers copilot", () => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
 	});
 
-	it("rewrites stale superset-notify.json with current hook path", () => {
+	it("builds Windows cmd wrappers for native shell PATH resolution", () => {
+		const wrapper = buildWindowsWrapperScript("claude", { agentId: "claude" });
+
+		expect(wrapper).toContain("@echo off");
+		expect(wrapper).toContain("# Superset agent-wrapper v3");
+		expect(wrapper).toContain('set "SUPERSET_AGENT_ID=claude"');
+		expect(wrapper).toContain('if /I not "%%~fD"=="!_superset_bin_dir!"');
+		expect(wrapper).toContain("%%~fD\\claude%%~E");
+		expect(wrapper).toContain("call");
+		expect(wrapper).toContain("exit /b !ERRORLEVEL!");
+	});
+
+	it("writes a Windows cmd wrapper beside the Unix wrapper on Windows", () => {
+		const unixScript = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`, {
+			agentId: "claude",
+		});
+
+		createWrapper("claude", unixScript, {
+			agentId: "claude",
+			platform: "win32",
+		});
+
+		const unixWrapper = path.join(TEST_BIN_DIR, "claude");
+		const windowsWrapper = getWindowsWrapperPath("claude");
+
+		expect(readFileSync(unixWrapper, "utf-8")).toBe(unixScript);
+		const cmd = readFileSync(windowsWrapper, "utf-8");
+		expect(cmd).toContain("@echo off");
+		expect(cmd).toContain('set "SUPERSET_AGENT_ID=claude"');
+	});
+
+	it("executes the Windows cmd wrapper against the real binary on PATH", () => {
+		if (process.platform !== "win32") return;
+
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		mkdirSync(realBinDir, { recursive: true });
+		writeFileSync(
+			path.join(realBinDir, "claude.cmd"),
+			"@echo off\r\necho agent=%SUPERSET_AGENT_ID%\r\necho args=%*\r\n",
+		);
+
+		const unixScript = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`, {
+			agentId: "claude",
+		});
+		createWrapper("claude", unixScript, {
+			agentId: "claude",
+			platform: "win32",
+		});
+
+		const output = execFileSync(
+			getWindowsWrapperPath("claude"),
+			["one", "two"],
+			{
+				env: {
+					...process.env,
+					PATH: `${TEST_BIN_DIR};${realBinDir};${process.env.PATH || ""}`,
+					Path: `${TEST_BIN_DIR};${realBinDir};${process.env.Path || process.env.PATH || ""}`,
+				},
+				encoding: "utf-8",
+			},
+		);
+
+		expect(output).toContain("agent=claude");
+		expect(output).toContain("args=one two");
+	});
+
+	itUnix("rewrites stale superset-notify.json with current hook path", () => {
 		const projectDir = path.join(TEST_ROOT, "project");
 		const hooksDir = path.join(projectDir, ".github", "hooks");
 		const hookFile = path.join(hooksDir, "superset-notify.json");
@@ -232,97 +313,105 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain(execLine);
 	});
 
-	it("trusts the Superset workspace codex project config without replacing CODEX_HOME", () => {
-		const realBinDir = path.join(TEST_ROOT, "real-bin");
-		const realCodex = path.join(realBinDir, "codex");
-		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
-		const workspacePath = path.join(TEST_ROOT, "workspace");
-		const workspaceCodexHome = path.join(workspacePath, ".codex");
-		const explicitCodexHome = path.join(TEST_ROOT, "custom-codex-home");
-		const codexHomeFile = path.join(TEST_ROOT, "codex-home.txt");
-		const argsFile = path.join(TEST_ROOT, "codex-trust-args.txt");
+	itUnix(
+		"trusts the Superset workspace codex project config without replacing CODEX_HOME",
+		() => {
+			const realBinDir = path.join(TEST_ROOT, "real-bin");
+			const realCodex = path.join(realBinDir, "codex");
+			const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+			const workspacePath = path.join(TEST_ROOT, "workspace");
+			const workspaceCodexHome = path.join(workspacePath, ".codex");
+			const explicitCodexHome = path.join(TEST_ROOT, "custom-codex-home");
+			const codexHomeFile = path.join(TEST_ROOT, "codex-home.txt");
+			const argsFile = path.join(TEST_ROOT, "codex-trust-args.txt");
 
-		mkdirSync(realBinDir, { recursive: true });
-		mkdirSync(workspaceCodexHome, { recursive: true });
-		writeFileSync(path.join(workspaceCodexHome, "config.toml"), "\n");
-		writeFileSync(
-			realCodex,
-			`#!/bin/bash
+			mkdirSync(realBinDir, { recursive: true });
+			mkdirSync(workspaceCodexHome, { recursive: true });
+			writeFileSync(path.join(workspaceCodexHome, "config.toml"), "\n");
+			writeFileSync(
+				realCodex,
+				`#!/bin/bash
 printf '%s\n' "\${CODEX_HOME:-}" > "${codexHomeFile}"
 printf '%s\n' "$@" > "${argsFile}"
 exit 0
 `,
-			{ mode: 0o755 },
-		);
-		chmodSync(realCodex, 0o755);
+				{ mode: 0o755 },
+			);
+			chmodSync(realCodex, 0o755);
 
-		createCodexWrapper();
+			createCodexWrapper();
 
-		execFileSync(wrapperPath, [], {
-			env: {
-				...process.env,
-				CODEX_HOME: explicitCodexHome,
-				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
-				SUPERSET_WORKSPACE_PATH: workspacePath,
-			},
-			encoding: "utf-8",
-		});
+			execFileSync(wrapperPath, [], {
+				env: {
+					...process.env,
+					CODEX_HOME: explicitCodexHome,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+					SUPERSET_WORKSPACE_PATH: workspacePath,
+				},
+				encoding: "utf-8",
+			});
 
-		expect(readFileSync(codexHomeFile, "utf-8")).toBe(`${explicitCodexHome}\n`);
-		expect(readFileSync(argsFile, "utf-8")).toBe(
-			`${[
-				"-c",
-				`projects={"${workspacePath}"={trust_level="trusted"}}`,
-				"--enable",
-				"hooks",
-				"-c",
-				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
-			].join("\n")}\n`,
-		);
-	});
+			expect(readFileSync(codexHomeFile, "utf-8")).toBe(
+				`${explicitCodexHome}\n`,
+			);
+			expect(readFileSync(argsFile, "utf-8")).toBe(
+				`${[
+					"-c",
+					`projects={"${workspacePath}"={trust_level="trusted"}}`,
+					"--enable",
+					"hooks",
+					"-c",
+					`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
+				].join("\n")}\n`,
+			);
+		},
+	);
 
-	it("forwards hooks enablement through the codex wrapper for manual launches", () => {
-		const realBinDir = path.join(TEST_ROOT, "real-bin");
-		const realCodex = path.join(realBinDir, "codex");
-		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
-		const argsFile = path.join(TEST_ROOT, "codex-args.txt");
+	itUnix(
+		"forwards hooks enablement through the codex wrapper for manual launches",
+		() => {
+			const realBinDir = path.join(TEST_ROOT, "real-bin");
+			const realCodex = path.join(realBinDir, "codex");
+			const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+			const argsFile = path.join(TEST_ROOT, "codex-args.txt");
 
-		mkdirSync(realBinDir, { recursive: true });
-		writeFileSync(
-			realCodex,
-			`#!/bin/bash
+			mkdirSync(realBinDir, { recursive: true });
+			writeFileSync(
+				realCodex,
+				`#!/bin/bash
 printf '%s\n' "$@" > "${argsFile}"
 exit 0
 `,
-			{ mode: 0o755 },
-		);
-		chmodSync(realCodex, 0o755);
+				{ mode: 0o755 },
+			);
+			chmodSync(realCodex, 0o755);
 
-		createCodexWrapper();
+			createCodexWrapper();
 
-		execFileSync(wrapperPath, ["exec", "Reply with exactly OK."], {
-			env: {
-				...process.env,
-				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
-				SUPERSET_WORKSPACE_PATH: "",
-				SUPERSET_TERMINAL_ID: "terminal-1",
-			},
-			encoding: "utf-8",
-		});
+			execFileSync(wrapperPath, ["exec", "Reply with exactly OK."], {
+				env: {
+					...process.env,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+					SUPERSET_WORKSPACE_PATH: "",
+					SUPERSET_TERMINAL_ID: "terminal-1",
+				},
+				encoding: "utf-8",
+			});
 
-		expect(readFileSync(argsFile, "utf-8")).toBe(
-			`${[
-				"--enable",
-				"hooks",
-				"-c",
-				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
-				"exec",
-				"Reply with exactly OK.",
-			].join("\n")}\n`,
-		);
-	});
+			expect(readFileSync(argsFile, "utf-8")).toBe(
+				`${[
+					"--enable",
+					"hooks",
+					"-c",
+					`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
+					"exec",
+					"Reply with exactly OK.",
+				].join("\n")}\n`,
+			);
+		},
+	);
 
-	it("emits codex Start from the wrapper-owned TUI session log", () => {
+	itUnix("emits codex Start from the wrapper-owned TUI session log", () => {
 		const realBinDir = path.join(TEST_ROOT, "real-bin");
 		const realCodex = path.join(realBinDir, "codex");
 		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
@@ -378,31 +467,33 @@ exit 0
 		expect(debugLog).toContain("emitting Start");
 	});
 
-	it("emits codex Start from legacy TUI session logs with v1 tab context", () => {
-		const realBinDir = path.join(TEST_ROOT, "real-bin");
-		const realCodex = path.join(realBinDir, "codex");
-		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
-		const notifyPath = path.join(TEST_HOOKS_DIR, "notify.sh");
-		const notifyCapturePath = path.join(
-			TEST_ROOT,
-			"codex-legacy-notify-events.txt",
-		);
-		const debugLogPath = path.join(TEST_ROOT, "codex-legacy-debug.log");
+	itUnix(
+		"emits codex Start from legacy TUI session logs with v1 tab context",
+		() => {
+			const realBinDir = path.join(TEST_ROOT, "real-bin");
+			const realCodex = path.join(realBinDir, "codex");
+			const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+			const notifyPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+			const notifyCapturePath = path.join(
+				TEST_ROOT,
+				"codex-legacy-notify-events.txt",
+			);
+			const debugLogPath = path.join(TEST_ROOT, "codex-legacy-debug.log");
 
-		mkdirSync(realBinDir, { recursive: true });
-		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
-		writeFileSync(
-			notifyPath,
-			`#!/bin/bash
+			mkdirSync(realBinDir, { recursive: true });
+			mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+			writeFileSync(
+				notifyPath,
+				`#!/bin/bash
 printf '%s\n' "$1" >> "$NOTIFY_CAPTURE_PATH"
 exit 0
 `,
-			{ mode: 0o755 },
-		);
-		chmodSync(notifyPath, 0o755);
-		writeFileSync(
-			realCodex,
-			`#!/bin/bash
+				{ mode: 0o755 },
+			);
+			chmodSync(notifyPath, 0o755);
+			writeFileSync(
+				realCodex,
+				`#!/bin/bash
 set -eu
 : > "$CODEX_TUI_SESSION_LOG_PATH"
 sleep 0.3
@@ -410,35 +501,36 @@ printf '{"dir":"from_tui","kind":"op","payload":{"UserTurn":{"items":[]}}}\n' >>
 sleep 0.3
 exit 0
 `,
-			{ mode: 0o755 },
-		);
-		chmodSync(realCodex, 0o755);
+				{ mode: 0o755 },
+			);
+			chmodSync(realCodex, 0o755);
 
-		createCodexWrapper();
+			createCodexWrapper();
 
-		execFileSync(wrapperPath, [], {
-			env: {
-				...process.env,
-				NOTIFY_CAPTURE_PATH: notifyCapturePath,
-				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
-				SUPERSET_DEBUG_HOOKS: "1",
-				SUPERSET_HOOK_DEBUG_LOG: debugLogPath,
-				SUPERSET_TAB_ID: "tab-1",
-			},
-			encoding: "utf-8",
-		});
+			execFileSync(wrapperPath, [], {
+				env: {
+					...process.env,
+					NOTIFY_CAPTURE_PATH: notifyCapturePath,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+					SUPERSET_DEBUG_HOOKS: "1",
+					SUPERSET_HOOK_DEBUG_LOG: debugLogPath,
+					SUPERSET_TAB_ID: "tab-1",
+				},
+				encoding: "utf-8",
+			});
 
-		const notifications = readFileSync(notifyCapturePath, "utf-8");
-		expect(notifications).toContain('{"hook_event_name":"Start"}');
-		expect(notifications).not.toContain('{"hook_event_name":"Stop"}');
+			const notifications = readFileSync(notifyCapturePath, "utf-8");
+			expect(notifications).toContain('{"hook_event_name":"Start"}');
+			expect(notifications).not.toContain('{"hook_event_name":"Stop"}');
 
-		const debugLog = readFileSync(debugLogPath, "utf-8");
-		expect(debugLog).toContain("watching session=");
-		expect(debugLog).toContain("emitting Start");
-		expect(debugLog).toContain("tabId=tab-1");
-	});
+			const debugLog = readFileSync(debugLogPath, "utf-8");
+			expect(debugLog).toContain("watching session=");
+			expect(debugLog).toContain("emitting Start");
+			expect(debugLog).toContain("tabId=tab-1");
+		},
+	);
 
-	it("does not emit codex events from unrelated rollout files", () => {
+	itUnix("does not emit codex events from unrelated rollout files", () => {
 		const realBinDir = path.join(TEST_ROOT, "real-bin");
 		const realCodex = path.join(realBinDir, "codex");
 		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
@@ -803,7 +895,7 @@ exit 0
 					(entry) =>
 						entry.type === "command" &&
 						entry.command ===
-							`SUPERSET_AGENT_ID=mastracode bash '${currentHookPath}'`,
+							buildNotifyHookCommand("mastracode", currentHookPath),
 				),
 			).toBe(true);
 			expect(hooks.some((entry) => entry.command.includes(staleHookPath))).toBe(
@@ -902,7 +994,7 @@ exit 0
 				hooks.some((def) =>
 					def.hooks.some(
 						(hook) =>
-							hook.command === `SUPERSET_AGENT_ID=droid '${currentHookPath}'`,
+							hook.command === buildNotifyHookCommand("droid", currentHookPath),
 					),
 				),
 			).toBe(true);
@@ -1224,7 +1316,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedCommand = `SUPERSET_AGENT_ID=codex "${notifyPath}"`;
+		const expectedCommand = buildNotifyHookCommand("codex", notifyPath);
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1339,7 +1431,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			),
 		).toBe(true);
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${notifyPath}"`;
+		const expectedManagedCommand = buildNotifyHookCommand("codex", notifyPath);
 		// Adds managed hooks for SessionStart, UserPromptSubmit, Stop
 		for (const eventName of ["SessionStart", "UserPromptSubmit", "Stop"]) {
 			expect(
@@ -1423,7 +1515,10 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
+		const expectedManagedCommand = buildNotifyHookCommand(
+			"codex",
+			currentHookPath,
+		);
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1499,7 +1594,10 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
+		const expectedManagedCommand = buildNotifyHookCommand(
+			"codex",
+			currentHookPath,
+		);
 		expect(parsed.hooks.UserPromptSubmit).toBeDefined();
 		expect(
 			parsed.hooks.UserPromptSubmit?.some((def) =>
@@ -1563,7 +1661,10 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
+		const expectedManagedCommand = buildNotifyHookCommand(
+			"codex",
+			currentHookPath,
+		);
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",

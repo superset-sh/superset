@@ -7,7 +7,7 @@
 import { strict as assert } from "node:assert";
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
-import * as os from "node:os";
+import * as net from "node:net";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -16,18 +16,22 @@ import {
 	accumulatedOutputAsString,
 	connectAndHello,
 } from "./helpers/client.ts";
+import {
+	closeSignal,
+	inputLine,
+	interactiveMeta,
+	makeDaemonSocketPath,
+} from "./helpers/platform.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DAEMON_SCRIPT = path.resolve(here, "..", "src", "main.ts");
 
-const sockPath = path.join(
-	os.tmpdir(),
-	`pty-daemon-handoff-${process.pid}.sock`,
-);
+const sockPath = makeDaemonSocketPath("pty-daemon-handoff");
 
 let daemonA: childProcess.ChildProcess | null = null;
 
 function unlinkSafe(p: string): void {
+	if (process.platform === "win32") return;
 	try {
 		fs.unlinkSync(p);
 	} catch (err) {
@@ -46,12 +50,26 @@ function spawnDaemon(socketPath: string): childProcess.ChildProcess {
 async function waitForSocket(p: string, timeoutMs = 3_000): Promise<void> {
 	const start = Date.now();
 	while (Date.now() - start < timeoutMs) {
-		try {
-			fs.statSync(p);
+		const connected = await new Promise<boolean>((resolve) => {
+			const socket = net.createConnection({ path: p });
+			const timer = setTimeout(() => {
+				socket.destroy();
+				resolve(false);
+			}, 200);
+			socket.once("connect", () => {
+				clearTimeout(timer);
+				socket.end();
+				resolve(true);
+			});
+			socket.once("error", () => {
+				clearTimeout(timer);
+				resolve(false);
+			});
+		});
+		if (connected) {
 			return;
-		} catch {
-			await new Promise((r) => setTimeout(r, 50));
 		}
+		await new Promise((r) => setTimeout(r, 50));
 	}
 	throw new Error(`socket ${p} not ready in ${timeoutMs}ms`);
 }
@@ -81,12 +99,7 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 		c1.send({
 			type: "open",
 			id,
-			meta: {
-				shell: "/bin/sh",
-				argv: [],
-				cols: 80,
-				rows: 24,
-			},
+			meta: interactiveMeta(),
 		});
 		const opened = await c1.waitFor((m) => m.type === "open-ok" && m.id === id);
 		assert.equal(opened.type, "open-ok");
@@ -98,7 +111,7 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 	for (const id of sessionIds) {
 		const marker = `before-handoff-replay-${id}`;
 		c1.send({ type: "subscribe", id, replay: false });
-		c1.send({ type: "input", id }, Buffer.from(`printf '${marker}\\n'\n`));
+		c1.send({ type: "input", id }, inputLine(`echo ${marker}`));
 		await c1.waitFor(
 			(m) =>
 				m.type === "output" &&
@@ -113,6 +126,21 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 	const reply = await c1.waitFor((m) => m.type === "upgrade-prepared", 10_000);
 	assert.equal(reply.type, "upgrade-prepared");
 	if (reply.type !== "upgrade-prepared") return;
+	if (process.platform === "win32") {
+		assert.equal(reply.result.ok, false);
+		if (reply.result.ok === false) {
+			assert.match(
+				reply.result.reason,
+				/fd-handoff is not available on Windows/,
+			);
+		}
+		for (const id of sessionIds) {
+			c1.send({ type: "close", id, signal: closeSignal() });
+			await c1.waitFor((m) => m.type === "closed" && m.id === id, 2_000);
+		}
+		await c1.close();
+		return;
+	}
 	assert.equal(reply.result.ok, true, JSON.stringify(reply.result));
 	const successorPid =
 		reply.result.ok === true ? reply.result.successorPid : -1;
@@ -178,7 +206,7 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 			);
 			adoptedClient.send(
 				{ type: "input", id },
-				Buffer.from(`printf '${afterMarker}\\n'\n`),
+				inputLine(`echo ${afterMarker}`),
 			);
 			await adoptedClient.waitFor(
 				(m) =>

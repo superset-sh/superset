@@ -172,6 +172,38 @@ describe("Terminal Host Session shell args", () => {
 		expect(argsStr).toContain("echo hello && exit 1");
 	});
 
+	it("builds PowerShell-compatible command args when commands are provided", () => {
+		const session = new Session({
+			sessionId: "session-command-array-args",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "powershell.exe",
+			commands: ["echo one", "echo two"],
+			spawnProcess: (command: string, args: readonly string[], _options) => {
+				spawnCalls.push({ command, args: [...args] });
+				return fakeChildProcess as unknown as ChildProcess;
+			},
+		});
+
+		session.spawn({
+			cwd: "/tmp",
+			cols: 80,
+			rows: 24,
+			env: { PATH: "/usr/bin" },
+		});
+
+		const spawnPayload = getSpawnPayload(fakeChildProcess);
+
+		expect(spawnPayload?.args).toContain("-Command");
+		const argsStr = spawnPayload?.args?.join(" ") ?? "";
+		expect(argsStr).toContain("echo one; if ($?) { echo two }");
+		expect(argsStr).not.toContain(" && ");
+	});
+
 	it("detaches and aborts attach when the signal is already canceled", async () => {
 		const session = new Session({
 			sessionId: "session-attach-canceled",

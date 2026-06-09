@@ -2,7 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
 import {
 	buildTerminalCommand,
-	launchCommandInPane,
+	launchCommandsInPane,
 } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -53,28 +53,29 @@ export function useWorkspaceRunCommand({
 		async ({
 			paneId,
 			tabId,
-			command,
+			commands,
 			cwd,
 		}: {
 			paneId: string;
 			tabId: string;
-			command: string;
+			commands: string[];
 			cwd?: string;
 		}) => {
 			markPaneWorkspaceRunLaunchPending(paneId);
 			try {
-				await launchCommandInPane({
+				await launchCommandsInPane({
 					paneId,
 					tabId,
 					workspaceId,
-					command,
+					commands,
 					cwd,
 					createOrAttach: (input) =>
 						electronTrpcClient.terminal.createOrAttach.mutate({
 							...input,
 							allowKilled: true,
 						}),
-					write: (input) => electronTrpcClient.terminal.write.mutate(input),
+					writeCommands: (input) =>
+						electronTrpcClient.terminal.writeCommands.mutate(input),
 				});
 			} finally {
 				clearPaneWorkspaceRunLaunchPending(paneId);
@@ -122,8 +123,11 @@ export function useWorkspaceRunCommand({
 				await electronTrpcClient.workspaces.getWorkspaceRunDefinition.query({
 					workspaceId,
 				});
-			const command = buildTerminalCommand(runDefinition?.commands);
-			if (!command) {
+			const commands = runDefinition?.commands?.filter(
+				(command) => command.trim().length > 0,
+			);
+			const command = buildTerminalCommand(commands);
+			if (!commands?.length || !command) {
 				toast.error("No workspace run command configured", {
 					description:
 						"Add a run script in Project Settings or mark a preset as the workspace run.",
@@ -151,13 +155,14 @@ export function useWorkspaceRunCommand({
 						workspaceId,
 						state: "running",
 						command,
+						commands,
 					}),
 				);
 				try {
 					await launchWorkspaceRunInPane({
 						paneId: livePane.id,
 						tabId: livePane.tabId,
-						command,
+						commands,
 						cwd: initialCwd,
 					});
 				} catch (error) {
@@ -180,6 +185,7 @@ export function useWorkspaceRunCommand({
 					workspaceId,
 					state: "running",
 					command,
+					commands,
 				}),
 			);
 			setActiveTab(workspaceId, tabId);
@@ -188,7 +194,7 @@ export function useWorkspaceRunCommand({
 				await launchWorkspaceRunInPane({
 					paneId,
 					tabId,
-					command,
+					commands,
 					cwd: initialCwd,
 				});
 			} catch (error) {

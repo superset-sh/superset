@@ -37,9 +37,9 @@ export function getPiExtensionPath(): string {
 /**
  * Renders the pi extension content with the marker substituted.
  *
- * The template is environment-independent: it computes the notify.sh path at
- * runtime from `SUPERSET_HOME_DIR` (which is set in every Superset terminal
- * for both dev and prod installs).
+ * The template is environment-independent: it computes the platform-specific
+ * notify hook path at runtime from `SUPERSET_HOME_DIR` (which is set in every
+ * Superset terminal for both dev and prod installs).
  */
 export function getPiExtensionContent(): string {
 	const template = fs.readFileSync(PI_EXTENSION_TEMPLATE_PATH, "utf-8");

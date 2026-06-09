@@ -52,10 +52,10 @@ export async function makeAppSetup(
 		});
 	});
 
-	// macOS: keep the app alive (standard behavior) — tray/dock provide re-entry.
-	// Windows/Linux: quit the app UI. Host-services are coupled to the app and
-	// stop with it; v1 pty-daemon survives separately.
-	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
+	// macOS/Windows: keep the app alive so dock/tray provide re-entry.
+	// Linux: quit the app UI. Host-services are coupled to the app and stop with
+	// it; v1 pty-daemon survives separately.
+	app.on("window-all-closed", () => PLATFORM.IS_LINUX && app.quit());
 
 	return window;
 }

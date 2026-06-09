@@ -2,6 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+	getKnownShell,
+	getShellName,
+	getWindowsCommandShellArgs,
+	getWindowsInteractiveShellArgs,
+} from "@superset/shared/shell";
+import {
 	SUPERSET_MANAGED_BINARIES,
 	type SupersetManagedBinary,
 } from "./desktop-agent-capabilities";
@@ -20,10 +26,6 @@ const DEFAULT_PATHS: ShellWrapperPaths = {
 };
 
 const modeDiagnosticsLogged = new Set<string>();
-
-function getShellName(shell: string): string {
-	return shell.split("/").pop() || shell;
-}
 
 /**
  * Shell snippet to save all SUPERSET_* env vars before sourcing user RC files.
@@ -298,7 +300,7 @@ export function getShellEnv(
 	shell: string,
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): Record<string, string> {
-	const shellName = getShellName(shell);
+	const shellName = getKnownShell(shell);
 	if (shellName === "zsh") {
 		return {
 			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || os.homedir(),
@@ -312,7 +314,13 @@ export function getShellArgs(
 	shell: string,
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): string[] {
-	const shellName = getShellName(shell);
+	const windowsArgs = getWindowsInteractiveShellArgs(shell);
+	if (windowsArgs) {
+		logModeDiagnostics(getShellName(shell));
+		return windowsArgs;
+	}
+
+	const shellName = getKnownShell(shell);
 	logModeDiagnostics(shellName);
 	if (shellName === "bash") {
 		return ["--rcfile", path.join(paths.BASH_DIR, "rcfile")];
@@ -357,7 +365,13 @@ export function getCommandShellArgs(
 	command: string,
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): string[] {
-	const shellName = getShellName(shell);
+	const windowsArgs = getWindowsCommandShellArgs(shell, command);
+	if (windowsArgs) {
+		logModeDiagnostics(getShellName(shell));
+		return windowsArgs;
+	}
+
+	const shellName = getKnownShell(shell);
 	logModeDiagnostics(shellName);
 	const zshRc = path.join(paths.ZSH_DIR, ".zshrc");
 	const bashRcfile = path.join(paths.BASH_DIR, "rcfile");

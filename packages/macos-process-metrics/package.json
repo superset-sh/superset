@@ -5,7 +5,7 @@
 	"main": "index.js",
 	"types": "index.d.ts",
 	"scripts": {
-		"install": "node-gyp rebuild || echo 'Native build skipped (non-macOS or missing toolchain)'"
+		"install": "bun run scripts/install.ts"
 	},
 	"dependencies": {
 		"node-addon-api": "7.1.1"

@@ -6,8 +6,8 @@
  *   node scripts/smoke-pty-daemon-cleanup.mjs [repo-root]
  *
  * The script starts the target worktree's real pty-daemon under Node, opens a
- * bash PTY that backgrounds a generic long-running helper in its own process
- * group, closes the daemon session, and fails if the helper survives.
+ * PTY that starts a generic long-running helper, closes the daemon session, and
+ * fails if the helper survives. It uses bash on POSIX and Node on Windows.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -17,6 +17,7 @@ import {
 	readdirSync,
 	readFileSync,
 	rmSync,
+	writeFileSync,
 } from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -27,6 +28,8 @@ const HEADER_BYTES = 4;
 const INNER_JSON_LEN_BYTES = 4;
 const MAX_FRAME_BYTES = 8 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 5000;
+const SOURCE_DAEMON_START_TIMEOUT_MS =
+	process.platform === "win32" ? 30_000 : DEFAULT_TIMEOUT_MS;
 
 function parseArgs(rawArgs) {
 	const parsed = {
@@ -90,7 +93,8 @@ function printUsageAndExit() {
   node scripts/smoke-pty-daemon-cleanup.mjs --repo /path/to/worktree
   node scripts/smoke-pty-daemon-cleanup.mjs --production
   node scripts/smoke-pty-daemon-cleanup.mjs --production --org <organizationId>
-  node scripts/smoke-pty-daemon-cleanup.mjs --socket /path/to/pty-daemon.sock`);
+  node scripts/smoke-pty-daemon-cleanup.mjs --socket /path/to/pty-daemon.sock
+  node scripts/smoke-pty-daemon-cleanup.mjs --socket "\\\\.\\pipe\\superset-ptyd-..."`);
 	process.exit(0);
 }
 
@@ -239,7 +243,7 @@ function drainFrames(client) {
 async function waitFor(predicate, timeoutMs, message) {
 	const start = Date.now();
 	while (Date.now() - start < timeoutMs) {
-		if (predicate()) return true;
+		if (await predicate()) return true;
 		await sleep(25);
 	}
 	if (message) throw new Error(message());
@@ -248,6 +252,21 @@ async function waitFor(predicate, timeoutMs, message) {
 
 async function stopProcess(child) {
 	if (!child || child.exitCode !== null || child.signalCode !== null) return;
+	if (process.platform === "win32" && child.pid) {
+		spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {
+			stdio: "ignore",
+			timeout: 5000,
+		});
+		if (child.exitCode === null && child.signalCode === null) {
+			child.kill();
+		}
+		child.stderr?.destroy();
+		child.stdout?.destroy();
+		child.stdin?.destroy();
+		child.unref();
+		await waitForProcessExit(child, 1000);
+		return;
+	}
 	child.kill("SIGTERM");
 	if (await waitForProcessExit(child, 1000)) return;
 	child.kill("SIGKILL");
@@ -273,6 +292,10 @@ function fileExists(filePath) {
 	return existsSync(filePath);
 }
 
+function isWindowsNamedPipe(socketPath) {
+	return process.platform === "win32" && /^\\\\[.?]\\pipe\\/i.test(socketPath);
+}
+
 function isPidAlive(pid) {
 	try {
 		process.kill(pid, 0);
@@ -291,6 +314,13 @@ function readPositivePidFile(filePath) {
 }
 
 function killPid(pid, signal) {
+	if (process.platform === "win32") {
+		spawnSync("taskkill.exe", ["/PID", String(pid), "/T", "/F"], {
+			stdio: "ignore",
+			timeout: 5000,
+		});
+		return;
+	}
 	try {
 		process.kill(pid, signal);
 	} catch {
@@ -299,6 +329,10 @@ function killPid(pid, signal) {
 }
 
 function processRow(pid) {
+	if (process.platform === "win32") {
+		return isPidAlive(pid) ? `pid ${pid} alive` : null;
+	}
+
 	const result = spawnSync(
 		"ps",
 		["-p", String(pid), "-o", "pid=,ppid=,pgid=,tty=,stat=,command="],
@@ -310,6 +344,55 @@ function processRow(pid) {
 
 function shellQuote(value) {
 	return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
+function makeDaemonSocketPath(tmpDir) {
+	if (process.platform === "win32") {
+		const safeId = `${process.pid}-${Date.now()}`
+			.replace(/[^a-zA-Z0-9_-]/g, "-")
+			.slice(0, 80);
+		return `\\\\.\\pipe\\superset-pty-cleanup-${safeId}`;
+	}
+	return path.join(tmpDir, "pty-daemon.sock");
+}
+
+function makeCleanupOpenMeta({
+	helperPidPath,
+	coordinatorScriptPath,
+	repoRoot,
+}) {
+	if (process.platform === "win32") {
+		return {
+			shell: process.execPath,
+			argv: [coordinatorScriptPath],
+			cwd: repoRoot,
+			cols: 80,
+			rows: 24,
+			env: {
+				...stringEnv(process.env),
+				TERM: "xterm-256color",
+			},
+		};
+	}
+
+	const script = [
+		"set -m",
+		`${shellQuote(process.execPath)} -e ${shellQuote("process.on('SIGHUP', () => {}); process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);")} >/dev/null 2>&1 & helper_pid=$!`,
+		`echo "$helper_pid" > ${shellQuote(helperPidPath)}`,
+		"sleep 60",
+	].join("; ");
+
+	return {
+		shell: "/bin/bash",
+		argv: ["-c", script],
+		cwd: repoRoot,
+		cols: 80,
+		rows: 24,
+		env: {
+			...stringEnv(process.env),
+			TERM: "xterm-256color",
+		},
+	};
 }
 
 function stringEnv(env) {
@@ -327,8 +410,10 @@ function sleep(ms) {
 async function main() {
 	const args = parseArgs(process.argv.slice(2));
 	const tmpDir = mkdtempSync(path.join(os.tmpdir(), "superset-pty-cleanup-"));
-	const launchedSocketPath = path.join(tmpDir, "pty-daemon.sock");
+	const launchedSocketPath = makeDaemonSocketPath(tmpDir);
 	const helperPidPath = path.join(tmpDir, "detached-helper.pid");
+	const helperScriptPath = path.join(tmpDir, "detached-helper.js");
+	const coordinatorScriptPath = path.join(tmpDir, "coordinator.js");
 	const sessionId = `cleanup-smoke-${process.pid}-${Date.now()}`;
 
 	let repoRoot = null;
@@ -338,6 +423,21 @@ async function main() {
 	let helperPid = null;
 
 	try {
+		writeFileSync(
+			helperScriptPath,
+			"process.on('SIGHUP', () => {});\nprocess.on('SIGTERM', () => {});\nsetInterval(() => {}, 1000);\n",
+		);
+		writeFileSync(
+			coordinatorScriptPath,
+			[
+				"const { spawn } = require('node:child_process');",
+				"const { writeFileSync } = require('node:fs');",
+				`const helper = spawn(${JSON.stringify(process.execPath)}, [${JSON.stringify(helperScriptPath)}], { stdio: 'ignore' });`,
+				`writeFileSync(${JSON.stringify(helperPidPath)}, String(helper.pid));`,
+				"setInterval(() => {}, 1000);",
+			].join("\n"),
+		);
+
 		let socketPath;
 		if (args.production || args.socketPath) {
 			const target = args.socketPath
@@ -382,9 +482,13 @@ async function main() {
 			});
 
 			await waitFor(
-				() => fileExists(socketPath),
-				DEFAULT_TIMEOUT_MS,
-				() => `daemon did not create socket\n${daemonStderr}`,
+				async () =>
+					isWindowsNamedPipe(socketPath)
+						? await canConnect(socketPath)
+						: fileExists(socketPath),
+				SOURCE_DAEMON_START_TIMEOUT_MS,
+				() =>
+					`daemon did not create socket (exit=${daemonProcess?.exitCode ?? "running"} signal=${daemonProcess?.signalCode ?? "none"})\n${daemonStderr}`,
 			);
 		}
 
@@ -393,27 +497,14 @@ async function main() {
 			`[smoke] connected: protocol=${client.protocol} daemon=${client.daemonVersion}`,
 		);
 
-		const script = [
-			"set -m",
-			`${shellQuote(process.execPath)} -e ${shellQuote("process.on('SIGHUP', () => {}); process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);")} >/dev/null 2>&1 & helper_pid=$!`,
-			`echo "$helper_pid" > ${shellQuote(helperPidPath)}`,
-			"sleep 60",
-		].join("; ");
-
 		const open = await client.request({
 			type: "open",
 			id: sessionId,
-			meta: {
-				shell: "/bin/bash",
-				argv: ["-c", script],
-				cwd: repoRoot,
-				cols: 80,
-				rows: 24,
-				env: {
-					...stringEnv(process.env),
-					TERM: "xterm-256color",
-				},
-			},
+			meta: makeCleanupOpenMeta({
+				helperPidPath,
+				coordinatorScriptPath,
+				repoRoot,
+			}),
 		});
 		if (open.type !== "open-ok") {
 			throw new Error(`open failed: ${JSON.stringify(open)}`);
@@ -431,6 +522,11 @@ async function main() {
 				`invalid helper pid: ${readFileSync(helperPidPath, "utf8")}`,
 			);
 		}
+		await waitFor(
+			() => isPidAlive(helperPid),
+			DEFAULT_TIMEOUT_MS,
+			() => `background helper pid ${helperPid} was not alive before close`,
+		);
 		console.log(`[smoke] background helper pid: ${helperPid}`);
 		console.log(`[smoke] before close: ${processRow(helperPid) ?? "missing"}`);
 
@@ -451,6 +547,7 @@ async function main() {
 			process.exitCode = 1;
 		} else {
 			console.log("[smoke] PASS: background helper was reaped");
+			helperPid = null;
 		}
 	} catch (error) {
 		console.error(
@@ -476,7 +573,12 @@ async function findProductionDaemon(orgId) {
 	const manifests = listProductionDaemonManifests().filter((manifest) => {
 		if (orgId && manifest.organizationId !== orgId) return false;
 		if (!isPidAlive(manifest.pid)) return false;
-		if (!fileExists(manifest.socketPath)) return false;
+		if (
+			!isWindowsNamedPipe(manifest.socketPath) &&
+			!fileExists(manifest.socketPath)
+		) {
+			return false;
+		}
 		return true;
 	});
 

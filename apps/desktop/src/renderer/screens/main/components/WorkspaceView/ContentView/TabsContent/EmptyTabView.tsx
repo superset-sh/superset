@@ -54,7 +54,9 @@ export function EmptyTabView({
 	const { keys: quickOpenDisplay } = useHotkeyDisplay("QUICK_OPEN");
 	const { keys: newBrowserDisplay } = useHotkeyDisplay("NEW_BROWSER");
 	const { keys: openInAppDisplay } = useHotkeyDisplay("OPEN_IN_APP");
-	const resolvedExternalApp: ExternalApp = defaultExternalApp ?? "cursor";
+	const storedExternalApp: ExternalApp = defaultExternalApp ?? "cursor";
+	const resolvedExternalApp: ExternalApp =
+		getAppOption(storedExternalApp)?.id ?? "finder";
 
 	const handleShowTerminal = useCallback(() => {
 		addTab(workspaceId);

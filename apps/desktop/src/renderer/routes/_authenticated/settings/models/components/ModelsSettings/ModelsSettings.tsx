@@ -359,7 +359,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 												}));
 											}}
 											onBlur={handleAnthropicFormBlur}
-											placeholder="ANTHROPIC_AUTH_TOKEN"
+											placeholder="Paste auth token"
 											className="font-mono"
 											disabled={isSavingAnthropicConfig}
 										/>
@@ -403,9 +403,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 												}));
 											}}
 											onBlur={handleAnthropicFormBlur}
-											placeholder={
-												"CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1"
-											}
+											placeholder={"CUSTOM_ENV=value"}
 											className="min-h-24 font-mono text-xs"
 											disabled={isSavingAnthropicConfig}
 										/>

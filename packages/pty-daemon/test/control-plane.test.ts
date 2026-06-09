@@ -1,5 +1,5 @@
 // Comprehensive control-plane test for pty-daemon. Each test exercises a
-// real daemon over a real Unix socket and walks through one usage pattern
+// real daemon over a real local socket/named pipe and walks through one usage pattern
 // end-to-end. Together these cover every usage shape host-service can throw
 // at the daemon: handshake variants, session lifecycle, I/O patterns,
 // multi-client subscribe/replay/unsubscribe, detach+reattach, malformed
@@ -12,6 +12,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, test } from "node:test";
+import type { SessionMeta } from "../src/protocol/index.ts";
 import { encodeFrame } from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
 import {
@@ -20,11 +21,19 @@ import {
 	connectAndHello,
 	payloadAsString,
 } from "./helpers/client.ts";
+import {
+	closeSignal,
+	commandMeta,
+	exitCommand,
+	inputLine,
+	interactiveMeta,
+	joinCommands,
+	makeDaemonSocketPath,
+	sleepCommand,
+	successCommand,
+} from "./helpers/platform.ts";
 
-const sockPath = path.join(
-	os.tmpdir(),
-	`pty-daemon-control-${process.pid}.sock`,
-);
+const sockPath = makeDaemonSocketPath("pty-daemon-control");
 let server: Server;
 
 before(async () => {
@@ -40,13 +49,7 @@ after(async () => {
 	await server.close();
 });
 
-const SH = "/bin/sh";
-const baseMeta = {
-	shell: SH,
-	argv: ["-c", "echo ready; sleep 5"] as string[],
-	cols: 80,
-	rows: 24,
-};
+const baseMeta = commandMeta(joinCommands(["echo ready", sleepCommand(5)]));
 
 function uniqueId(prefix: string): string {
 	return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
@@ -83,6 +86,36 @@ async function waitForCondition(
 		await new Promise((resolve) => setTimeout(resolve, 25));
 	}
 	throw new Error(`condition timed out after ${timeoutMs}ms`);
+}
+
+function burstCommand(count: number): string {
+	if (process.platform === "win32") {
+		return `for /L %i in (1,1,${count}) do @echo BURST:%i`;
+	}
+	return `for i in $(seq 1 ${count}); do echo BURST:$i; done; sleep 0.5`;
+}
+
+function utf8Meta(): SessionMeta {
+	if (process.platform === "win32") {
+		return {
+			shell: "powershell.exe",
+			argv: [
+				"-NoLogo",
+				"-NoProfile",
+				"-Command",
+				"[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new(); Write-Output ('rocket: ' + [char]::ConvertFromUtf32(0x1F680))",
+			],
+			cols: 80,
+			rows: 24,
+		};
+	}
+	return commandMeta(utf8Command());
+}
+
+function utf8Command(): string {
+	const code =
+		"process.stdout.write('rocket: ' + String.fromCodePoint(0x1f680) + String.fromCharCode(10))";
+	return `${shellQuote(process.execPath)} -e ${shellQuote(code)}; sleep 0.1`;
 }
 
 // ---------------- Handshake ----------------
@@ -177,7 +210,7 @@ describe("session lifecycle", () => {
 		c.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-c", "true"] },
+			meta: commandMeta(successCommand()),
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: true });
@@ -192,7 +225,7 @@ describe("session lifecycle", () => {
 		c.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-c", "sleep 60"] },
+			meta: commandMeta(sleepCommand(60)),
 		});
 		const ok = await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		if (ok.type !== "open-ok") throw new Error("no open-ok");
@@ -218,7 +251,7 @@ describe("session lifecycle", () => {
 		c.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-i"] },
+			meta: interactiveMeta(),
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: false });
@@ -233,6 +266,8 @@ describe("session lifecycle", () => {
 	});
 
 	test("default close kills detached background process groups", async () => {
+		if (process.platform === "win32") return;
+
 		const c = await connectAndHello(sockPath);
 		const id = uniqueId("background-pgrp");
 		const tmp = mkdtempSync(path.join(os.tmpdir(), "pty-daemon-pgrp-"));
@@ -292,13 +327,13 @@ describe("I/O patterns", () => {
 		c.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-i"] },
+			meta: interactiveMeta(),
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: false });
 
 		c.send({ type: "resize", id, cols: 120, rows: 40 });
-		c.send({ type: "input", id }, Buffer.from("echo post-resize-marker\n"));
+		c.send({ type: "input", id }, inputLine("echo post-resize-marker"));
 		await c.waitFor(
 			(m) =>
 				m.type === "output" &&
@@ -307,7 +342,7 @@ describe("I/O patterns", () => {
 			3000,
 		);
 
-		c.send({ type: "close", id, signal: "SIGTERM" });
+		c.send({ type: "close", id, signal: closeSignal() });
 		await c.close();
 	});
 
@@ -317,13 +352,7 @@ describe("I/O patterns", () => {
 		c.send({
 			type: "open",
 			id,
-			meta: {
-				...baseMeta,
-				argv: [
-					"-c",
-					"for i in $(seq 1 200); do echo BURST:$i; done; sleep 0.5",
-				],
-			},
+			meta: commandMeta(burstCommand(200)),
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: false });
@@ -347,10 +376,7 @@ describe("I/O patterns", () => {
 		c.send({
 			type: "open",
 			id,
-			meta: {
-				...baseMeta,
-				argv: ["-c", "printf 'rocket: \\xf0\\x9f\\x9a\\x80\\n'; sleep 0.1"],
-			},
+			meta: utf8Meta(),
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: true });
@@ -381,7 +407,9 @@ describe("multi-client fan-out", () => {
 		a.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-c", "echo fanout-marker; sleep 0.5"] },
+			meta: commandMeta(
+				joinCommands(["echo fanout-marker", sleepCommand(0.5)]),
+			),
 		});
 		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
 
@@ -416,7 +444,7 @@ describe("multi-client fan-out", () => {
 		a.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-i"] },
+			meta: interactiveMeta(),
 		});
 		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
 
@@ -424,7 +452,7 @@ describe("multi-client fan-out", () => {
 		b.send({ type: "subscribe", id, replay: false });
 
 		// First marker — both should see it.
-		a.send({ type: "input", id }, Buffer.from("echo first-marker\n"));
+		a.send({ type: "input", id }, inputLine("echo first-marker"));
 		await Promise.all([
 			a.waitFor(
 				(m) =>
@@ -448,7 +476,7 @@ describe("multi-client fan-out", () => {
 			500,
 		);
 
-		a.send({ type: "input", id }, Buffer.from("echo second-marker\n"));
+		a.send({ type: "input", id }, inputLine("echo second-marker"));
 		await a.waitFor(
 			(m) =>
 				m.type === "output" && payloadAsString(m).includes("second-marker"),
@@ -462,7 +490,7 @@ describe("multi-client fan-out", () => {
 		);
 		assert.equal(sawSecondOnB, false);
 
-		a.send({ type: "close", id, signal: "SIGTERM" });
+		a.send({ type: "close", id, signal: closeSignal() });
 		await Promise.all([a.close(), b.close()]);
 	});
 
@@ -475,7 +503,7 @@ describe("multi-client fan-out", () => {
 		owner.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-i"] },
+			meta: interactiveMeta(),
 		});
 		await owner.waitFor((m) => m.type === "open-ok" && m.id === id);
 		dropper.send({ type: "subscribe", id, replay: false });
@@ -484,14 +512,14 @@ describe("multi-client fan-out", () => {
 		// Force-close the dropper without unsubscribing.
 		dropper.socket.destroy();
 
-		owner.send({ type: "input", id }, Buffer.from("echo survives-drop\n"));
+		owner.send({ type: "input", id }, inputLine("echo survives-drop"));
 		await observer.waitFor(
 			(m) =>
 				m.type === "output" && payloadAsString(m).includes("survives-drop"),
 			3000,
 		);
 
-		owner.send({ type: "close", id, signal: "SIGTERM" });
+		owner.send({ type: "close", id, signal: closeSignal() });
 		await Promise.all([owner.close(), observer.close()]);
 	});
 });
@@ -506,10 +534,7 @@ describe("detach + reattach", () => {
 		owner.send({
 			type: "open",
 			id,
-			meta: {
-				...baseMeta,
-				argv: ["-c", "echo early-marker; sleep 1"],
-			},
+			meta: commandMeta(joinCommands(["echo early-marker", sleepCommand(1)])),
 		});
 		await owner.waitFor((m) => m.type === "open-ok" && m.id === id);
 
@@ -526,7 +551,7 @@ describe("detach + reattach", () => {
 			3000,
 		);
 
-		owner.send({ type: "close", id, signal: "SIGTERM" });
+		owner.send({ type: "close", id, signal: closeSignal() });
 		await Promise.all([owner.close(), late.close()]);
 	});
 
@@ -537,7 +562,7 @@ describe("detach + reattach", () => {
 		owner.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-i"] },
+			meta: interactiveMeta(),
 		});
 		await owner.waitFor((m) => m.type === "open-ok" && m.id === id);
 
@@ -545,7 +570,7 @@ describe("detach + reattach", () => {
 		first.send({ type: "subscribe", id, replay: false });
 
 		// Generate some output via input.
-		owner.send({ type: "input", id }, Buffer.from("echo before-reattach\n"));
+		owner.send({ type: "input", id }, inputLine("echo before-reattach"));
 		await first.waitFor(
 			(m) =>
 				m.type === "output" && payloadAsString(m).includes("before-reattach"),
@@ -567,7 +592,7 @@ describe("detach + reattach", () => {
 			2000,
 		);
 
-		owner.send({ type: "input", id }, Buffer.from("echo after-reattach\n"));
+		owner.send({ type: "input", id }, inputLine("echo after-reattach"));
 		await second.waitFor(
 			(m) =>
 				m.type === "output" &&
@@ -576,7 +601,7 @@ describe("detach + reattach", () => {
 			3000,
 		);
 
-		owner.send({ type: "close", id, signal: "SIGTERM" });
+		owner.send({ type: "close", id, signal: closeSignal() });
 		await Promise.all([owner.close(), second.close()]);
 	});
 });
@@ -601,7 +626,7 @@ describe("list", () => {
 			assert.equal(found?.alive, true);
 		}
 
-		c.send({ type: "close", id, signal: "SIGTERM" });
+		c.send({ type: "close", id, signal: closeSignal() });
 		await c.close();
 	});
 });
@@ -622,7 +647,7 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		a.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-c", "echo from-A; sleep 5"] },
+			meta: commandMeta(joinCommands(["echo from-A", sleepCommand(5)])),
 		});
 		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
 		// Force-close A's connection without unsubscribing — this simulates a
@@ -642,7 +667,7 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 			assert.equal(found?.alive, true);
 		}
 
-		b.send({ type: "close", id, signal: "SIGTERM" });
+		b.send({ type: "close", id, signal: closeSignal() });
 		await b.close();
 	});
 
@@ -665,7 +690,7 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 			assert.match(err.message, /session already exists/);
 		}
 
-		a.send({ type: "close", id, signal: "SIGTERM" });
+		a.send({ type: "close", id, signal: closeSignal() });
 		await Promise.all([a.close(), b.close()]);
 	});
 
@@ -679,12 +704,12 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		a.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-i"] },
+			meta: interactiveMeta(),
 		});
 		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
 
 		a.send({ type: "subscribe", id, replay: false });
-		a.send({ type: "input", id }, Buffer.from("echo before-restart\n"));
+		a.send({ type: "input", id }, inputLine("echo before-restart"));
 		await a.waitFor(
 			(m) =>
 				m.type === "output" && payloadAsString(m).includes("before-restart"),
@@ -715,7 +740,7 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		);
 
 		// New input from B reaches the (still-living) shell.
-		b.send({ type: "input", id }, Buffer.from("echo after-restart\n"));
+		b.send({ type: "input", id }, inputLine("echo after-restart"));
 		await b.waitFor(
 			(m) =>
 				m.type === "output" &&
@@ -724,7 +749,7 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 			3000,
 		);
 
-		b.send({ type: "close", id, signal: "SIGTERM" });
+		b.send({ type: "close", id, signal: closeSignal() });
 		await b.close();
 	});
 
@@ -740,7 +765,7 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		a.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-c", "echo final-words; exit 7"] },
+			meta: commandMeta(joinCommands(["echo final-words", exitCommand(7)])),
 		});
 		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
 		a.send({ type: "subscribe", id, replay: true });
@@ -774,7 +799,7 @@ describe("cross-client continuity (host-service restart simulation)", () => {
 		a.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-c", "sleep 30"] },
+			meta: commandMeta(sleepCommand(30)),
 		});
 		await a.waitFor((m) => m.type === "open-ok" && m.id === id);
 
@@ -803,7 +828,7 @@ describe("hostile input", () => {
 		owner.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-i"] },
+			meta: interactiveMeta(),
 		});
 		await owner.waitFor((m) => m.type === "open-ok" && m.id === id);
 
@@ -816,13 +841,13 @@ describe("hostile input", () => {
 
 		// Owner is still functional.
 		owner.send({ type: "subscribe", id, replay: false });
-		owner.send({ type: "input", id }, Buffer.from("echo still-alive\n"));
+		owner.send({ type: "input", id }, inputLine("echo still-alive"));
 		await owner.waitFor(
 			(m) => m.type === "output" && payloadAsString(m).includes("still-alive"),
 			3000,
 		);
 
-		owner.send({ type: "close", id, signal: "SIGTERM" });
+		owner.send({ type: "close", id, signal: closeSignal() });
 		await owner.close();
 	});
 
@@ -850,7 +875,7 @@ describe("hostile input", () => {
 		c.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-c", "true"] },
+			meta: commandMeta(successCommand()),
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 		c.send({ type: "subscribe", id, replay: true });
@@ -879,10 +904,9 @@ describe("concurrency", () => {
 			c.send({
 				type: "open",
 				id,
-				meta: {
-					...baseMeta,
-					argv: ["-c", "echo TICK:start; sleep 0.5; echo TICK:end"],
-				},
+				meta: commandMeta(
+					joinCommands(["echo TICK:start", sleepCommand(0.5), "echo TICK:end"]),
+				),
 			});
 		}
 
@@ -941,7 +965,9 @@ describe("concurrency", () => {
 				c.send({
 					type: "open",
 					id,
-					meta: { ...baseMeta, argv: ["-c", `echo CONN:${i}; sleep 0.2`] },
+					meta: commandMeta(
+						joinCommands([`echo CONN:${i}`, sleepCommand(0.2)]),
+					),
 				});
 				await c.waitFor((m) => m.type === "open-ok" && m.id === id, 5000);
 				c.send({ type: "subscribe", id, replay: true });
@@ -952,7 +978,7 @@ describe("concurrency", () => {
 						payloadAsString(m).includes(`CONN:${i}`),
 					5000,
 				);
-				c.send({ type: "close", id, signal: "SIGTERM" });
+				c.send({ type: "close", id, signal: closeSignal() });
 				await c.close();
 			}),
 		);
@@ -964,10 +990,7 @@ describe("concurrency", () => {
 describe("server shutdown", () => {
 	test("disconnects active clients cleanly via close()", async () => {
 		// Use a *separate* short-lived server so we don't tear down the suite's main one.
-		const localPath = path.join(
-			os.tmpdir(),
-			`pty-daemon-shutdown-${process.pid}-${Date.now()}.sock`,
-		);
+		const localPath = makeDaemonSocketPath("pty-daemon-shutdown");
 		const local = new Server({
 			socketPath: localPath,
 			daemonVersion: "0.0.0-local",
@@ -979,7 +1002,7 @@ describe("server shutdown", () => {
 		c.send({
 			type: "open",
 			id,
-			meta: { ...baseMeta, argv: ["-c", "sleep 60"] },
+			meta: commandMeta(sleepCommand(60)),
 		});
 		await c.waitFor((m) => m.type === "open-ok" && m.id === id);
 

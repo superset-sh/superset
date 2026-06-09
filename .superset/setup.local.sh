@@ -275,11 +275,11 @@ local_write_config_overlay() {
   echo "🔧 Writing .superset/config.local.json (untracked overlay)..."
   cat > "$SUPERSET_SCRIPT_DIR/config.local.json" <<'CONFIGLOCAL'
 {
-  "setup": ["./.superset/setup.local.sh"],
-  "teardown": ["./.superset/teardown.local.sh"]
+  "setup": ["bun ./.superset/setup.local.ts"],
+  "teardown": ["bun ./.superset/teardown.local.ts"]
 }
 CONFIGLOCAL
-  success "config.local.json written — worktrees will use setup.local.sh"
+  success "config.local.json written — worktrees will use setup.local.ts"
   return 0
 }
 

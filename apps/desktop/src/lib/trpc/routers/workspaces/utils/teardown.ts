@@ -1,6 +1,7 @@
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { getKnownShell } from "@superset/shared/shell";
 import {
 	getCommandShellArgs,
 	getShellEnv,
@@ -38,13 +39,10 @@ export async function runTeardown({
 		return { success: true };
 	}
 
-	const command = config.teardown.join(" && ");
-	console.log(`[teardown] Running for "${workspaceName}": ${command}`);
-
 	try {
-		const shell =
-			process.env.SHELL ||
-			(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
+		const shell = resolveTeardownShell();
+		const command = buildTeardownCommand(config.teardown, shell);
+		console.log(`[teardown] Running for "${workspaceName}": ${command}`);
 		const supersetHomeDir =
 			process.env.SUPERSET_HOME_DIR || join(homedir(), SUPERSET_DIR_NAME);
 		const shellWrapperPaths = {
@@ -55,13 +53,19 @@ export async function runTeardown({
 
 		const baseEnv = buildSafeEnv(sanitizeEnv(process.env) || {});
 		const wrapperEnv = getShellEnv(shell, shellWrapperPaths);
+		if (process.platform === "win32") {
+			prependPathForWindows(wrapperEnv, shellWrapperPaths.BIN_DIR, baseEnv);
+		}
 		const args = getCommandShellArgs(shell, command, shellWrapperPaths);
+		const useVerbatimCmdArgs =
+			process.platform === "win32" && getKnownShell(shell) === "cmd";
 
 		const output = await new Promise<string>((resolve, reject) => {
 			const child = spawn(shell, args, {
 				cwd: worktreePath,
 				detached: true,
 				stdio: ["ignore", "pipe", "pipe"],
+				windowsVerbatimArguments: useVerbatimCmdArgs,
 				env: {
 					...baseEnv,
 					...wrapperEnv,
@@ -113,9 +117,7 @@ export async function runTeardown({
 					console.error(
 						`[teardown] Timed out after ${TEARDOWN_TIMEOUT_MS}ms, killing process group`,
 					);
-					try {
-						if (child.pid) process.kill(-child.pid, "SIGKILL");
-					} catch {}
+					killTeardownProcess(child);
 					reject(
 						new Error(`Teardown timed out after ${TEARDOWN_TIMEOUT_MS}ms`),
 					);
@@ -136,6 +138,62 @@ export async function runTeardown({
 			error: errorMessage,
 			output: errorMessage,
 		};
+	}
+}
+
+export function resolveTeardownShell(
+	platform: NodeJS.Platform = process.platform,
+	env: NodeJS.ProcessEnv = process.env,
+): string {
+	if (platform === "win32") {
+		return env.COMSPEC || env.ComSpec || "cmd.exe";
+	}
+	return env.SHELL || (platform === "darwin" ? "/bin/zsh" : "/bin/bash");
+}
+
+export function buildTeardownCommand(
+	commands: string[],
+	shell: string,
+	platform: NodeJS.Platform = process.platform,
+): string {
+	const knownShell = getKnownShell(shell);
+	if (
+		platform === "win32" &&
+		(knownShell === "powershell" || knownShell === "pwsh")
+	) {
+		const guard =
+			"if (-not $?) { if ($LASTEXITCODE -is [int] -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; exit 1 }";
+		return commands.map((command) => `${command}; ${guard}`).join("; ");
+	}
+
+	return commands.join(" && ");
+}
+
+function prependPathForWindows(
+	targetEnv: Record<string, string>,
+	binDir: string,
+	baseEnv: Record<string, string>,
+): void {
+	const currentPath =
+		targetEnv.Path ?? targetEnv.PATH ?? baseEnv.Path ?? baseEnv.PATH ?? "";
+	const nextPath = currentPath ? `${binDir};${currentPath}` : binDir;
+	targetEnv.Path = nextPath;
+	targetEnv.PATH = nextPath;
+}
+
+function killTeardownProcess(child: ChildProcess): void {
+	if (!child.pid) return;
+	if (process.platform === "win32") {
+		spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {
+			stdio: "ignore",
+			timeout: 5000,
+		});
+		return;
+	}
+	try {
+		process.kill(-child.pid, "SIGKILL");
+	} catch {
+		// Already exited.
 	}
 }
 

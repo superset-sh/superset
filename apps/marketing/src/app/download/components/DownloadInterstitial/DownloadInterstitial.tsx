@@ -25,8 +25,9 @@ export function DownloadInterstitial() {
 	const firedRef = useRef(false);
 
 	const isMac = isMacPlatform(platform);
-	// Only auto-download on Mac (the only built binary). Windows/Linux/Mobile see
-	// the waitlist instead — never the .dmg. Unknown waits for detection.
+	// Only auto-download on Mac (the only published desktop installer).
+	// Windows/Linux/Mobile see installer-specific guidance instead — never the
+	// .dmg. Unknown waits for detection.
 	const showWaitlist = !isMac && platform !== Platform.Unknown;
 
 	useEffect(() => {
@@ -60,11 +61,12 @@ export function DownloadInterstitial() {
 								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
 								style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
 							>
-								Superset is Mac-only for now
+								Superset desktop installers are Mac-only for now
 							</h1>
 							<p className="text-sm text-muted-foreground sm:text-base">
-								We're bringing Superset to Windows &amp; Linux. Drop your email
-								and we'll let you know the moment it's ready.
+								Windows CLI and source builds are available today. Drop your
+								email and we'll let you know when packaged desktop installers
+								are available beyond macOS.
 							</p>
 							<div className="max-w-sm">
 								<WaitlistForm />

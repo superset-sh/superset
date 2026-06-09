@@ -15,6 +15,7 @@ import {
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
+import { isAppQuitRequested } from "../lib/app-quit-state";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
 import { createApplicationMenu } from "../lib/menu";
@@ -343,7 +344,7 @@ export async function MainWindow() {
 		console.error(`  Error:`, error);
 	});
 
-	window.on("close", () => {
+	window.on("close", (event) => {
 		// Save window state first, before any cleanup
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
@@ -357,6 +358,12 @@ export async function MainWindow() {
 			zoomLevel,
 		});
 		persistedZoomLevel = zoomLevel;
+
+		if (PLATFORM.IS_WINDOWS && !isAppQuitRequested()) {
+			event.preventDefault();
+			window.hide();
+			return;
+		}
 
 		browserManager.unregisterAll();
 		server.close();

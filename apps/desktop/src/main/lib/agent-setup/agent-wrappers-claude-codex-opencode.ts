@@ -2,12 +2,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+	buildNotifyHookCommand,
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
-import { getNotifyScriptPath, NOTIFY_SCRIPT_NAME } from "./notify-hook";
+import {
+	getNotifyScriptPath,
+	NOTIFY_SCRIPT_NAME,
+	WINDOWS_NOTIFY_SCRIPT_NAME,
+} from "./notify-hook";
 import { OPENCODE_CONFIG_DIR, OPENCODE_PLUGIN_DIR } from "./paths";
 
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
@@ -67,6 +72,7 @@ interface ClaudeSettingsJson {
 
 const CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
 const CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}`;
+const CLAUDE_DYNAMIC_NOTIFY_WINDOWS_PATH_MARKER = `%SUPERSET_HOME_DIR%\\hooks\\${WINDOWS_NOTIFY_SCRIPT_NAME}`;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -81,7 +87,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * wrapper-level identity even when Claude is launched outside the Superset
  * wrapper (system PATH resolves to the real binary directly).
  */
-export function getClaudeManagedHookCommand(): string {
+export function getClaudeManagedHookCommand(
+	platform: NodeJS.Platform = process.platform,
+): string {
+	if (platform === "win32") {
+		return `if defined SUPERSET_HOME_DIR if exist "%SUPERSET_HOME_DIR%\\hooks\\${WINDOWS_NOTIFY_SCRIPT_NAME}" (set "SUPERSET_AGENT_ID=claude" && "%SUPERSET_HOME_DIR%\\hooks\\${WINDOWS_NOTIFY_SCRIPT_NAME}")`;
+	}
 	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_AGENT_ID=claude "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
 }
 
@@ -92,6 +103,7 @@ function isManagedClaudeHookCommand(
 	return (
 		command?.includes(notifyScriptPath) ||
 		command?.includes(CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER) ||
+		command?.includes(CLAUDE_DYNAMIC_NOTIFY_WINDOWS_PATH_MARKER) ||
 		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
 	);
 }
@@ -281,20 +293,20 @@ export function createClaudeWrapper(): void {
 	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`, {
 		agentId: "claude",
 	});
-	createWrapper("claude", script);
+	createWrapper("claude", script, { agentId: "claude" });
 }
 
 /**
  * Creates the Codex wrapper that injects Superset's notify/session-log logic.
  */
 export function createCodexWrapper(): void {
-	const notifyPath = getNotifyScriptPath();
+	const notifyPath = getNotifyScriptPath("linux");
 	const script = buildWrapperScript(
 		"codex",
 		buildCodexWrapperExecLine(notifyPath),
 		{ agentId: "codex" },
 	);
-	createWrapper("codex", script);
+	createWrapper("codex", script, { agentId: "codex" });
 }
 
 /**
@@ -395,11 +407,7 @@ export function getCodexGlobalHooksJsonContent(
 		existing.hooks[eventName] = filtered;
 	}
 
-	// Inline SUPERSET_AGENT_ID like getClaudeManagedHookCommand so the v2
-	// payload carries identity even when codex is launched outside the wrapper.
-	// Quote the path: codex executes via /bin/sh -lc, so a space in $HOME
-	// (e.g. "/Users/Some User/...") would otherwise word-split.
-	const codexCommand = `SUPERSET_AGENT_ID=codex "${notifyScriptPath}"`;
+	const codexCommand = buildNotifyHookCommand("codex", notifyScriptPath);
 
 	const managedEvents: Array<{
 		eventName: "SessionStart" | "UserPromptSubmit" | "Stop";
@@ -504,5 +512,5 @@ export function createOpenCodeWrapper(): void {
 		`export OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR}"\nexec "$REAL_BIN" "$@"`,
 		{ agentId: "opencode" },
 	);
-	createWrapper("opencode", script);
+	createWrapper("opencode", script, { agentId: "opencode" });
 }

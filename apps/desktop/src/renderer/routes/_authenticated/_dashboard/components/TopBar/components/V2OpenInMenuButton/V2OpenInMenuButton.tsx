@@ -35,7 +35,7 @@ export function V2OpenInMenuButton({
 
 	const { app: persistedApp, setApp: persistDefaultApp } =
 		useV2ProjectDefaultApp(projectId);
-	const resolvedApp: ExternalApp = persistedApp ?? "finder";
+	const storedApp: ExternalApp = persistedApp ?? "finder";
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: (_data, variables) => {
@@ -49,9 +49,10 @@ export function V2OpenInMenuButton({
 	});
 
 	const currentApp = useMemo(
-		() => getAppOption(resolvedApp) ?? null,
-		[resolvedApp],
+		() => getAppOption(storedApp) ?? null,
+		[storedApp],
 	);
+	const resolvedApp: ExternalApp = currentApp?.id ?? "finder";
 	const openInDisplay = useHotkeyDisplay("OPEN_IN_APP");
 	const copyPathDisplay = useHotkeyDisplay("COPY_PATH");
 	const showOpenInShortcut = openInDisplay.text !== "Unassigned";

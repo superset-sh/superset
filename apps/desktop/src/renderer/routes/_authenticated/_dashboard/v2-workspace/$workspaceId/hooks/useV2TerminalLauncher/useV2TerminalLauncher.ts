@@ -14,6 +14,7 @@ interface CreateOptions {
 	 */
 	terminalId?: string;
 	command?: string;
+	commands?: string[];
 	cwd?: string;
 }
 
@@ -44,6 +45,7 @@ export function useV2TerminalLauncher(): TerminalLauncher {
 				workspaceId,
 				themeType,
 				initialCommand: options?.command,
+				initialCommands: options?.commands,
 				cwd: options?.cwd,
 			});
 			return terminalId;

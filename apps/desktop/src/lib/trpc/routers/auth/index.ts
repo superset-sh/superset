@@ -4,7 +4,7 @@ import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { observable } from "@trpc/server/observable";
 import { shell } from "electron";
-import { env } from "main/env.main";
+import { getMainApiUrl } from "main/lib/desktop-runtime-flags";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { PLATFORM, PROTOCOL_SCHEME } from "shared/constants";
 import { env as sharedEnv } from "shared/env.shared";
@@ -85,7 +85,7 @@ export const createAuthRouter = () => {
 					}
 
 					const connectUrl = new URL(
-						`${env.NEXT_PUBLIC_API_URL}/api/auth/desktop/connect`,
+						`${getMainApiUrl()}/api/auth/desktop/connect`,
 					);
 					connectUrl.searchParams.set("provider", input.provider);
 					connectUrl.searchParams.set("state", state);

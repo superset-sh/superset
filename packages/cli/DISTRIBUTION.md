@@ -27,6 +27,19 @@ superset-darwin-arm64/
       spawn-helper          # node-pty helper (darwin only)
   share/
     migrations/             # Drizzle SQL migration files
+
+superset-win32-x64/
+  bin/
+    superset.exe            # Bun-compiled Windows CLI
+    superset-host.cmd       # cmd wrapper → node.exe ..\lib\host-service.js %*
+  lib/
+    node.exe                # Standalone Node.js 22 binary
+    host-service.js
+    native/
+      better_sqlite3.node
+      pty.node
+  share/
+    migrations/
 ```
 
 ### Why two runtimes?
@@ -56,46 +69,21 @@ superset start --daemon
 ### Per-platform build (runs on native CI runner or local machine)
 
 ```bash
-# 1. Build CLI binary
-bunx cli-framework build --target=bun-darwin-arm64 --outfile=dist/bin/superset
-
-# 2. Bundle host service JS (single file, native deps external)
-esbuild packages/host-service/src/serve.ts \
-  --bundle --platform=node --format=esm \
-  --external:better-sqlite3 --external:node-pty \
-  --outfile dist/lib/host-service.js
-
-# 3. Download standalone Node.js binary
-curl -O https://nodejs.org/dist/v22.x.x/node-v22.x.x-darwin-arm64.tar.gz
-# extract bin/node → dist/lib/node
-
-# 4. Copy native .node files from node_modules prebuilds
-cp node_modules/node-pty/prebuilds/darwin-arm64/pty.node dist/lib/native/
-cp node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper dist/lib/native/
-# better-sqlite3 prebuilds downloaded by prebuild-install during npm install
-cp node_modules/better-sqlite3/prebuilds/darwin-arm64/better_sqlite3.node dist/lib/native/
-
-# 5. Copy migrations
-cp -r packages/host-service/drizzle/ dist/share/migrations/
-
-# 6. Write superset-host wrapper
-cat > dist/bin/superset-host << 'EOF'
-#!/bin/sh
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/../lib/node" "$SCRIPT_DIR/../lib/host-service.js" "$@"
-EOF
-chmod +x dist/bin/superset-host
-
-# 7. Package
-tar -czf superset-darwin-arm64.tar.gz -C dist .
+bun run --cwd packages/cli build:dist -- --target=darwin-arm64
+bun run --cwd packages/cli build:dist -- --target=linux-x64
+bun run --cwd packages/cli build:dist -- --target=win32-x64
 ```
+
+`packages/cli/scripts/build-dist.ts` handles CLI compilation, host-service
+bundling, standalone Node download, native addon staging, wrapper generation,
+migration copying, and archive creation for each target.
 
 ### Native addon availability
 
-| Package | darwin-arm64 | darwin-x64 | linux-x64 |
+| Package | darwin-arm64 | linux-x64 | win32-x64 |
 |---------|-------------|-----------|-----------|
-| better-sqlite3 | prebuild | prebuild | prebuild |
-| node-pty | prebuild (in npm pkg) | prebuild (in npm pkg) | **compile from source** |
+| better-sqlite3 | prebuild | prebuild | staged Windows prebuild/native package |
+| node-pty | prebuild (in npm pkg) | **compile from source** | staged Windows prebuild/native package |
 
 Linux CI runners (Ubuntu) have gcc/make/python, so `node-pty` compiles during `npm install`.
 
@@ -121,6 +109,9 @@ jobs:
           - os: ubuntu-latest
             target: linux-x64
             bun-target: bun-linux-x64
+          - os: windows-2022
+            target: win32-x64
+            bun-target: bun-windows-x64
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -138,10 +129,14 @@ jobs:
 
 ## Installation
 
-### curl | sh (planned)
+### Install scripts
 
 ```bash
-curl -fsSL https://get.superset.sh | sh
+curl -fsSL https://superset.sh/cli/install.sh | sh
+```
+
+```powershell
+irm https://superset.sh/cli/install.ps1 | iex
 ```
 
 Detects platform/arch, downloads tarball from GitHub Releases, extracts to `~/.superset/bin/`, prints PATH instructions.
@@ -151,6 +146,7 @@ Detects platform/arch, downloads tarball from GitHub Releases, extracts to `~/.s
 ```bash
 # Download
 curl -LO https://github.com/user/superset/releases/latest/download/superset-darwin-arm64.tar.gz
+# Windows archive name: superset-win32-x64.tar.gz
 
 # Extract
 mkdir -p ~/.superset/bin
@@ -182,7 +178,7 @@ superset host install   # writes systemd unit or launchd plist
 
 ### Done
 
-- [x] CLI binary cross-compilation (`bun build --compile` for 3 targets)
+- [x] CLI binary cross-compilation (`bun build --compile` for macOS, Linux, and Windows targets)
 - [x] CLI auth flow (OAuth 2.0 Device Authorization, works headless)
 - [x] CLI commands: auth login/logout/whoami, org list/switch, tasks CRUD
 - [x] Host service standalone entry point (`packages/host-service/src/serve.ts`)
@@ -194,15 +190,15 @@ superset host install   # writes systemd unit or launchd plist
 ### To Build
 
 - [ ] esbuild config for host service bundle (`packages/host-service/build.ts`)
-- [ ] Build/assembly script (`packages/cli/scripts/build-dist.ts`)
+- [x] Build/assembly script (`packages/cli/scripts/build-dist.ts`)
 - [ ] `start` command — spawn host service, pass env, health check
 - [ ] `stop` command — read manifest, SIGTERM, cleanup
 - [ ] `status` command — read manifest, check PID, health check port
 - [ ] Manifest write/read in standalone host service mode
 - [ ] Wire active org ID from CLI config → host service env
-- [ ] Native addon path resolution (host-service.js must find `.node` files in `../lib/native/`)
+- [x] Native addon path resolution (host-service.js must find `.node` files in `../lib/native/`)
 - [ ] GitHub Actions workflow (`.github/workflows/build-cli.yml`)
-- [ ] Install script (`curl | sh`)
+- [x] POSIX and Windows install scripts
 - [ ] `host install` — systemd unit / launchd plist (stretch)
 - [ ] Headless login polish — detect missing display, always print URL prominently
 

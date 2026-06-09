@@ -17,8 +17,57 @@ import {
 	htmlEnvTransformPlugin,
 } from "./vite/helpers";
 
-// override: true ensures .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
+const isDevelopmentMode = process.env.NODE_ENV === "development";
+
+// In dev, local .env should win so each worktree uses its allocated ports.
+// In packaged builds, inherited CI/release env should win over a developer
+// checkout's local .env.
+config({
+	path: resolve(__dirname, "../../.env"),
+	override: isDevelopmentMode,
+	quiet: true,
+});
+
+const packagedBuildUrlDefaults = {
+	NEXT_PUBLIC_API_URL: "https://api.superset.sh",
+	NEXT_PUBLIC_STREAMS_URL: "https://streams.superset.sh",
+	NEXT_PUBLIC_WEB_URL: "https://app.superset.sh",
+	NEXT_PUBLIC_MARKETING_URL: "https://superset.sh",
+	NEXT_PUBLIC_DOCS_URL: "https://docs.superset.sh",
+	NEXT_PUBLIC_ELECTRIC_URL: "https://electric-proxy.avi-6ac.workers.dev",
+	STREAMS_URL: "https://superset-stream.fly.dev",
+	RELAY_URL: "https://relay.superset.sh",
+} as const;
+
+function isLocalBuildUrl(value: string | undefined): boolean {
+	if (!value) return false;
+	try {
+		const { hostname } = new URL(value);
+		return (
+			hostname === "localhost" ||
+			hostname === "127.0.0.1" ||
+			hostname === "0.0.0.0" ||
+			hostname === "::1" ||
+			hostname.endsWith(".localtest.me")
+		);
+	} catch {
+		return false;
+	}
+}
+
+if (
+	!isDevelopmentMode &&
+	!process.env.SUPERSET_DESKTOP_ALLOW_LOCAL_BUILD_URLS
+) {
+	for (const [key, fallback] of Object.entries(packagedBuildUrlDefaults)) {
+		if (isLocalBuildUrl(process.env[key])) {
+			console.warn(
+				`[desktop:build] Replacing local ${key}=${process.env[key]} with ${fallback} for packaged build`,
+			);
+			process.env[key] = fallback;
+		}
+	}
+}
 
 const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
 

@@ -10,14 +10,13 @@
 
 import { strict as assert } from "node:assert";
 import * as childProcess from "node:child_process";
-import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { DaemonSupervisor } from "./DaemonSupervisor.ts";
+import { DaemonSupervisor, ptyDaemonSocketPath } from "./DaemonSupervisor.ts";
 import {
 	type PtyDaemonManifest,
 	ptyDaemonManifestDir,
@@ -125,18 +124,9 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 		// EXPECTED_DAEMON_VERSION (0.1.0) into childEnv, defeating the
 		// older-version setup.
 		const orgId = "org-stale";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
+		const socketPath = ptyDaemonSocketPath(orgId);
 		// Clean up any leftover socket from prior runs.
-		try {
-			fs.unlinkSync(socketPath);
-		} catch {}
+		removeSocketPath(socketPath);
 
 		const child = childProcess.spawn(
 			process.execPath,
@@ -314,17 +304,24 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		const { DaemonClient } = await import("../terminal/DaemonClient/index.ts");
 		const client = new DaemonClient({ socketPath: a.socketPath });
 		await client.connect();
-		const opened = await client.open("upd-0", {
-			shell: "/bin/sh",
-			argv: ["-c", "echo before; sleep 30"],
-			cols: 80,
-			rows: 24,
-		});
+		const opened = await client.open("upd-0", longRunningSessionMeta());
 		const shellPid = opened.pid;
 		assert.ok(shellPid > 0, "expected a positive shell pid");
 		await client.dispose();
 
 		const result = await sup.update(orgId);
+		if (process.platform === "win32") {
+			assert.equal(result.ok, false);
+			if (!result.ok) {
+				assert.match(result.reason, /Windows ConPTY/);
+			}
+			assert.equal(isAlive(predecessorPid), true);
+			const verifyClient = new DaemonClient({ socketPath: a.socketPath });
+			await verifyClient.connect();
+			await verifyClient.close("upd-0", "SIGKILL").catch(() => {});
+			await verifyClient.dispose();
+			return;
+		}
 		assert.equal(result.ok, true, JSON.stringify(result));
 		if (!result.ok) return;
 		assert.notEqual(
@@ -382,17 +379,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// daemon's pid should change to the successor's within a few
 		// seconds.
 		const orgId = "org-auto-update";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
-		try {
-			fs.unlinkSync(socketPath);
-		} catch {}
+		const socketPath = ptyDaemonSocketPath(orgId);
+		removeSocketPath(socketPath);
 
 		const child = childProcess.spawn(
 			process.execPath,
@@ -474,17 +462,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// successor's. This test pins the predecessor at 0.0.1-stale via
 		// env and asserts post-update running != stale, pending=false.
 		const orgId = "org-update-version";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
-		try {
-			fs.unlinkSync(socketPath);
-		} catch {}
+		const socketPath = ptyDaemonSocketPath(orgId);
+		removeSocketPath(socketPath);
 
 		const child = childProcess.spawn(
 			process.execPath,
@@ -563,17 +542,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// Snapshot has zero session frames; successor adopts nothing and
 		// rebinds. Easy to break under refactors that assume sessions > 0.
 		const orgId = "org-empty-handoff";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
-		try {
-			fs.unlinkSync(socketPath);
-		} catch {}
+		const socketPath = ptyDaemonSocketPath(orgId);
+		removeSocketPath(socketPath);
 
 		const child = childProcess.spawn(
 			process.execPath,
@@ -652,17 +622,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// not silently handoff/restart under the user's typing. The visible
 		// Settings action remains available for a user-approved update.
 		const orgId = "org-autoupdate-live-defer";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
-		try {
-			fs.unlinkSync(socketPath);
-		} catch {}
+		const socketPath = ptyDaemonSocketPath(orgId);
+		removeSocketPath(socketPath);
 
 		const child = childProcess.spawn(
 			process.execPath,
@@ -686,12 +647,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 			);
 			const client = new DaemonClient({ socketPath });
 			await client.connect();
-			const opened = await client.open("survivor", {
-				shell: "/bin/sh",
-				argv: ["-c", "echo alive; sleep 30"],
-				cols: 80,
-				rows: 24,
-			});
+			const opened = await client.open("survivor", longRunningSessionMeta());
 			const shellPid = opened.pid;
 			assert.ok(shellPid > 0);
 			await client.dispose();
@@ -811,13 +767,48 @@ function isReachable(socketPath: string): Promise<boolean> {
 	});
 }
 
+function isWindowsNamedPipe(socketPath: string): boolean {
+	return process.platform === "win32" && /^\\\\[.?]\\pipe\\/i.test(socketPath);
+}
+
+function removeSocketPath(socketPath: string): void {
+	if (isWindowsNamedPipe(socketPath)) return;
+	try {
+		fs.unlinkSync(socketPath);
+	} catch {
+		// best-effort cleanup from a failed prior run
+	}
+}
+
+function longRunningSessionMeta(): {
+	shell: string;
+	argv: string[];
+	cols: number;
+	rows: number;
+} {
+	if (process.platform === "win32") {
+		return {
+			shell: process.env.ComSpec || "cmd.exe",
+			argv: ["/d", "/s", "/c", "echo before & ping -n 31 127.0.0.1 >NUL"],
+			cols: 80,
+			rows: 24,
+		};
+	}
+	return {
+		shell: "/bin/sh",
+		argv: ["-c", "echo before; sleep 30"],
+		cols: 80,
+		rows: 24,
+	};
+}
+
 async function waitForSocket(
 	socketPath: string,
 	timeoutMs: number,
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
-		if (fs.existsSync(socketPath)) {
+		if (isWindowsNamedPipe(socketPath) || fs.existsSync(socketPath)) {
 			if (await isReachable(socketPath)) return true;
 		}
 		await new Promise((r) => setTimeout(r, 50));

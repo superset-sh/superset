@@ -34,10 +34,11 @@ import {
 } from "@superset/shared/agent-settings";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
-import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
 import { setupSingleAgent } from "main/lib/agent-setup";
+import { appState } from "main/lib/app-state";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
+import { getMainApiUrl } from "main/lib/desktop-runtime-flags";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { localDb } from "main/lib/local-db";
 import {
@@ -51,6 +52,7 @@ import {
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
+import { normalizeDesktopRuntimeFlags } from "shared/desktop-runtime-flags";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 import {
 	CUSTOM_RINGTONE_ID,
@@ -99,6 +101,11 @@ function getSettings() {
 	}
 	return row;
 }
+
+const desktopRuntimeFlagsInputSchema = z.object({
+	disableAutoUpdate: z.boolean(),
+	disableAnalytics: z.boolean(),
+});
 
 function readRawTerminalPresets(): PresetWithUnknownMode[] {
 	const row = getSettings();
@@ -669,7 +676,7 @@ export const createSettingsRouter = () => {
 				const restartedOrgCount = coordinator.getActiveOrganizationIds().length;
 				await coordinator.restartAll({
 					authToken: token,
-					cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+					cloudApiUrl: getMainApiUrl(),
 				});
 
 				return { restartedOrgCount };
@@ -783,6 +790,19 @@ export const createSettingsRouter = () => {
 			exitImmediately();
 			return { success: true };
 		}),
+
+		getDesktopRuntimeFlags: publicProcedure.query(() =>
+			normalizeDesktopRuntimeFlags(appState.data.desktopRuntimeFlags),
+		),
+
+		setDesktopRuntimeFlags: publicProcedure
+			.input(desktopRuntimeFlagsInputSchema)
+			.mutation(async ({ input }) => {
+				const nextFlags = normalizeDesktopRuntimeFlags(input);
+				appState.data.desktopRuntimeFlags = nextFlags;
+				await appState.write();
+				return nextFlags;
+			}),
 
 		getBranchPrefix: publicProcedure.query(() => {
 			const row = getSettings();

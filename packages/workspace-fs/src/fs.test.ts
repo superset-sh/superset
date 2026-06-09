@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createDirectory, readFile, writeFile } from "./fs";
+import {
+	createDirectory,
+	readFile,
+	shouldPreserveFileMode,
+	writeFile,
+} from "./fs";
 
 const tempRoots: string[] = [];
 
@@ -118,6 +123,12 @@ describe("readFile", () => {
 });
 
 describe("writeFile", () => {
+	it("does not preserve POSIX file modes on Windows", () => {
+		expect(shouldPreserveFileMode("win32")).toBe(false);
+		expect(shouldPreserveFileMode("linux")).toBe(true);
+		expect(shouldPreserveFileMode("darwin")).toBe(true);
+	});
+
 	it("returns a conflict when revision does not match", async () => {
 		const rootPath = await createTempRoot();
 		const absolutePath = path.join(rootPath, "notes.txt");

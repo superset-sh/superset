@@ -153,8 +153,9 @@ export function useV2WorkspaceRun({
 
 	const startWorkspaceRun = useCallback(async () => {
 		if (isStartingRef.current) return;
-		const command = buildTerminalCommand(definition?.commands);
-		if (!definition || !command) {
+		const commands = definition?.commands;
+		const command = buildTerminalCommand(commands);
+		if (!definition || !commands?.length || !command) {
 			toast.error("No workspace run command configured", {
 				description:
 					"Add a run script in Project Settings or mark a preset as the workspace run.",
@@ -171,7 +172,7 @@ export function useV2WorkspaceRun({
 			const priorRunTerminalIds = new Set(Object.keys(workspaceRunTerminals));
 
 			const terminalId = await launcher.create({
-				command,
+				commands,
 				cwd: definition.cwd,
 			});
 			const startedAt = Date.now();

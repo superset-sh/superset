@@ -111,6 +111,9 @@ export function ptyDaemonSocketPath(organizationId: string): string {
 		.update(organizationId)
 		.digest("hex")
 		.slice(0, 12);
+	if (process.platform === "win32") {
+		return `\\\\.\\pipe\\superset-ptyd-${shortId}`;
+	}
 	return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
 }
 
@@ -261,6 +264,9 @@ export class DaemonSupervisor {
 		if (!instance) {
 			return { ok: false, reason: "no daemon running for this org" };
 		}
+		if (process.platform === "win32") {
+			return this.runWindowsUpdate(organizationId, instance);
+		}
 
 		// Suppress crash-respawn for the predecessor's imminent exit. The
 		// predecessor was either spawned by us (child.on('exit') will fire)
@@ -379,6 +385,55 @@ export class DaemonSupervisor {
 		});
 
 		return { ok: true, successorPid: result.successorPid };
+	}
+
+	private async runWindowsUpdate(
+		organizationId: string,
+		instance: DaemonInstance,
+	): Promise<
+		{ ok: true; successorPid: number } | { ok: false; reason: string }
+	> {
+		const client = new DaemonClient({ socketPath: instance.socketPath });
+		let sessions: SessionInfo[];
+		try {
+			await client.connect();
+			sessions = await client.list();
+		} catch (error) {
+			return {
+				ok: false,
+				reason: `windows update session check failed: ${(error as Error).message}`,
+			};
+		} finally {
+			await client.dispose().catch(() => {});
+		}
+
+		const aliveSessionCount = countAliveSessions(sessions);
+		if (aliveSessionCount > 0) {
+			return {
+				ok: false,
+				reason:
+					"daemon fd-handoff is not available on Windows ConPTY; restart the daemon after closing live sessions",
+			};
+		}
+
+		try {
+			await this.stop(organizationId);
+			const successor = await this.ensure(organizationId);
+			logEvent("pty_daemon_update", {
+				organizationId,
+				previousPid: instance.pid,
+				successorPid: successor.pid,
+				previousVersion: instance.runningVersion,
+				successorVersion: successor.runningVersion,
+				mode: "windows_restart_no_live_sessions",
+			});
+			return { ok: true, successorPid: successor.pid };
+		} catch (error) {
+			return {
+				ok: false,
+				reason: `windows update restart failed: ${(error as Error).message}`,
+			};
+		}
 	}
 
 	/**
@@ -1130,7 +1185,7 @@ async function waitForSocket(
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
-		if (fs.existsSync(socketPath)) {
+		if (isWindowsNamedPipe(socketPath) || fs.existsSync(socketPath)) {
 			if (await isSocketConnectable(socketPath, 200)) return true;
 		}
 		await new Promise((r) => setTimeout(r, 50));
@@ -1387,6 +1442,10 @@ function probeDaemonHello(
 			}
 		});
 	});
+}
+
+function isWindowsNamedPipe(socketPath: string): boolean {
+	return process.platform === "win32" && /^\\\\[.?]\\pipe\\/i.test(socketPath);
 }
 
 function isSocketConnectable(

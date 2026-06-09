@@ -102,17 +102,20 @@ export function resolveAuthMethodForProvider(
 	authStorage: AuthStorageLike,
 	providerId: string,
 	isOAuthValid: (credential: StoredOAuthCredential) => boolean = () => true,
+	isApiKeyValid: (apiKey: string) => boolean = (apiKey) =>
+		apiKey.trim().length > 0,
 ): AuthMethod {
 	authStorage.reload();
 	const credential = authStorage.get(providerId);
 	if (credential?.type === "oauth" && isOAuthValid(credential)) {
 		return "oauth";
 	}
-	if (credential?.type === "api_key" && credential.key.trim().length > 0) {
+	if (credential?.type === "api_key" && isApiKeyValid(credential.key)) {
 		return "api_key";
 	}
 	// Check the backup slot — API key may have been displaced by OAuth.
-	if (authStorage.hasStoredApiKey(providerId)) {
+	const storedApiKey = authStorage.getStoredApiKey(providerId);
+	if (storedApiKey && isApiKeyValid(storedApiKey)) {
 		return "api_key";
 	}
 	return null;

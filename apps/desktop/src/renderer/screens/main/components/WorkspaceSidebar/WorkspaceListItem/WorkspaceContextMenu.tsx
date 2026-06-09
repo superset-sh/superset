@@ -30,6 +30,7 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { getOpenInFileManagerLabel } from "renderer/lib/file-manager-labels";
 import {
 	useCreateSectionFromWorkspaces,
 	useMoveWorkspacesToSection,
@@ -153,7 +154,7 @@ export function WorkspaceContextMenu({
 		<>
 			<ContextMenuItem onSelect={onOpenInFinder}>
 				<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-				Open in Finder
+				{getOpenInFileManagerLabel()}
 			</ContextMenuItem>
 			<ContextMenuItem onSelect={onOpenInEditor}>
 				<LuExternalLink className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />

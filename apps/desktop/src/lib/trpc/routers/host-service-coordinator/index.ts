@@ -1,5 +1,5 @@
 import { observable } from "@trpc/server/observable";
-import { env } from "main/env.main";
+import { getMainApiUrl } from "main/lib/desktop-runtime-flags";
 import {
 	getHostServiceCoordinator,
 	type HostServiceStatusEvent,
@@ -20,7 +20,7 @@ export const createHostServiceCoordinatorRouter = () => {
 			}
 			return coordinator.start(input.organizationId, {
 				authToken: token,
-				cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+				cloudApiUrl: getMainApiUrl(),
 			});
 		}),
 
@@ -42,7 +42,7 @@ export const createHostServiceCoordinatorRouter = () => {
 			}
 			return coordinator.restart(input.organizationId, {
 				authToken: token,
-				cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+				cloudApiUrl: getMainApiUrl(),
 			});
 		}),
 
@@ -54,7 +54,7 @@ export const createHostServiceCoordinatorRouter = () => {
 			}
 			return coordinator.reset(input.organizationId, {
 				authToken: token,
-				cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+				cloudApiUrl: getMainApiUrl(),
 			});
 		}),
 

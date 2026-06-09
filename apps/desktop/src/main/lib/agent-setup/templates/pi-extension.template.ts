@@ -2,9 +2,9 @@
 /**
  * Superset Notification Extension for pi
  *
- * Emits Claude-Code-compatible lifecycle hooks to Superset's notify.sh so
- * the host UI gets a "working" indicator (and completion chime) for pi
- * sessions, the same way it does for Claude Code, Codex, etc.
+ * Emits Claude-Code-compatible lifecycle hooks to Superset's platform notify
+ * script so the host UI gets a "working" indicator (and completion chime)
+ * for pi sessions, the same way it does for Claude Code, Codex, etc.
  *
  * Mapping:
  *   pi `before_agent_start`  → Claude `UserPromptSubmit`  → Superset `Start`
@@ -14,11 +14,11 @@
  *   pi `session_shutdown`    → Claude `Stop`              → cleanup on quit/reload
  *
  * Activates only when running inside a v2 Superset terminal (detected via
- * SUPERSET_TERMINAL_ID). Outside Superset it's a complete no-op. If notify.sh
- * is missing it's also a no-op (Superset uninstalled / never installed).
+ * SUPERSET_TERMINAL_ID). Outside Superset it's a complete no-op. If the notify
+ * script is missing it's also a no-op (Superset uninstalled / never installed).
  *
- * Hook dispatch is fire-and-forget: failures to spawn or curl never
- * affect the agent loop. notify.sh has its own connect/max timeouts.
+ * Hook dispatch is fire-and-forget: failures to spawn never affect the agent
+ * loop. The notify script has its own connect/max timeouts.
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -33,7 +33,8 @@ export default function (pi: ExtensionAPI) {
 
 	const supersetHome =
 		process.env.SUPERSET_HOME_DIR || join(homedir(), ".superset");
-	const notifyScript = join(supersetHome, "hooks", "notify.sh");
+	const notifyName = process.platform === "win32" ? "notify.cmd" : "notify.sh";
+	const notifyScript = join(supersetHome, "hooks", notifyName);
 	if (!existsSync(notifyScript)) return;
 
 	const fire = (eventName: string) => {
@@ -47,7 +48,7 @@ export default function (pi: ExtensionAPI) {
 				/* swallow — never let hook failures affect pi */
 			});
 			child.stdin?.on("error", () => {
-				/* swallow — happens if notify.sh exits before we finish writing */
+				/* swallow — happens if notify script exits before we finish writing */
 			});
 			child.stdin?.end(JSON.stringify({ hook_event_name: eventName }));
 			child.unref();

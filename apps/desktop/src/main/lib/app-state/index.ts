@@ -1,4 +1,5 @@
 import { JSONFilePreset } from "lowdb/node";
+import { normalizeDesktopRuntimeFlags } from "shared/desktop-runtime-flags";
 import { APP_STATE_PATH } from "../app-environment";
 import type { AppState } from "./schemas";
 import { defaultAppState } from "./schemas";
@@ -30,6 +31,7 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 				...(data.hotkeysState?.byPlatform ?? {}),
 			},
 		},
+		desktopRuntimeFlags: normalizeDesktopRuntimeFlags(data.desktopRuntimeFlags),
 	};
 }
 

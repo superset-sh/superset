@@ -11,9 +11,9 @@ Create `.superset/config.json` in your project:
 
 ```json
 {
-  "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"],
-  "teardown": ["docker-compose down"],
-  "run": ["./.superset/run.sh"]
+  "setup": ["bun ./.superset/setup.ts"],
+  "teardown": ["docker compose down"],
+  "run": ["bun run dev"]
 }
 ```
 
@@ -36,7 +36,7 @@ The `run` field defines commands that start your dev server or other long-runnin
 ```json
 {
   "setup": ["npm install"],
-  "run": ["./.superset/run.sh"]
+  "run": ["npm run dev"]
 }
 ```
 
@@ -52,25 +52,41 @@ The `run` field defines commands that start your dev server or other long-runnin
 
 **Node.js:**
 ```json
-{ "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"] }
+{ "setup": ["bun install"], "run": ["bun run dev"] }
 ```
 
 **Docker:**
 ```json
 {
-  "setup": ["docker-compose up -d", "bun run db:migrate"],
-  "teardown": ["docker-compose down -v"]
+  "setup": ["docker compose up -d", "bun run db:migrate"],
+  "teardown": ["docker compose down -v"]
 }
 ```
 
 **Full config:**
 ```json
 {
-  "setup": ["./.superset/setup.sh"],
-  "teardown": ["./.superset/teardown.sh"],
-  "run": ["./.superset/run.sh"]
+  "setup": ["bun ./.superset/setup.ts"],
+  "teardown": ["bun ./.superset/teardown.ts"],
+  "run": ["bun run dev"]
 }
 ```
+
+**Platform-specific scripts:**
+
+Use portable Bun/Node scripts when the same config needs to work for every
+teammate. If a project needs platform-specific scripts, commit the native entry
+point for each platform and point your config at the one your team uses:
+
+```json
+{
+  "setup": ["powershell -ExecutionPolicy Bypass -File ./.superset/setup.ps1"],
+  "teardown": ["./.superset/teardown.cmd"]
+}
+```
+
+Unix shell scripts such as `./.superset/setup.sh` still work on macOS, Linux,
+and Git Bash, but they are not required for Windows-native projects.
 
 ## User Overrides
 
@@ -96,8 +112,8 @@ No merging occurs between levels—the first config found is used entirely.
 **Custom setup script:**
 ```json
 {
-  "setup": ["~/.superset/projects/<project-id>/setup.sh"],
-  "teardown": ["~/.superset/projects/<project-id>/teardown.sh"]
+  "setup": ["bun ~/.superset/projects/<project-id>/setup.ts"],
+  "teardown": ["bun ~/.superset/projects/<project-id>/teardown.ts"]
 }
 ```
 
@@ -118,10 +134,10 @@ Add steps before or after the team's scripts:
 {
   "setup": {
     "before": ["echo 'running pre-setup'"],
-    "after": ["./.superset/my-post-setup.sh"]
+    "after": ["bun ./.superset/my-post-setup.ts"]
   },
   "teardown": {
-    "after": ["./.superset/my-cleanup.sh"]
+    "after": ["bun ./.superset/my-cleanup.ts"]
   }
 }
 ```
@@ -134,7 +150,7 @@ Use a plain array to replace the team's scripts completely:
 
 ```json
 {
-  "setup": ["./.superset/my-custom-setup.sh"]
+  "setup": ["bun ./.superset/my-custom-setup.ts"]
 }
 ```
 
@@ -145,7 +161,7 @@ Override one key while extending the other:
 ```json
 {
   "setup": { "after": ["bun run my-extra-step"] },
-  "teardown": ["my-custom-teardown.sh"]
+  "teardown": ["bun my-custom-teardown.ts"]
 }
 ```
 
@@ -166,7 +182,8 @@ When teardown fails:
 
 - Keep setup fast—runs every workspace creation
 - Commit `.superset/` to share with team
-- Use shell scripts for complex logic: `"setup": ["./.superset/setup.sh"]`
+- Use portable Bun/Node scripts for complex cross-platform logic: `"setup": ["bun ./.superset/setup.ts"]`
+- Use Windows-native scripts (`.ps1`, `.cmd`, `.bat`) when your project is Windows-specific; use `.sh` only when your team runs a Unix shell.
 - Use `config.local.json` to add personal steps without touching the team's config
 - Use user overrides (`~/.superset/projects/`) to replace scripts entirely per-project
 - Use `run` for dev servers instead of putting them in `setup`—run scripts are restartable and don't block workspace creation

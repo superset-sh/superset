@@ -9,6 +9,7 @@ import {
 	disposeSessionAndWait,
 	listTerminalSessions,
 	parseThemeType,
+	writeCommandsToSession,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -18,6 +19,7 @@ const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
 	terminalId: z.string().optional(),
 	initialCommand: z.string().trim().min(1).optional(),
+	initialCommands: z.array(z.string().trim().min(1)).min(1).optional(),
 	cwd: z.string().optional(),
 	themeType: z.string().optional(),
 	cols: z.number().int().positive().optional(),
@@ -39,6 +41,7 @@ async function createTerminalSessionFromInput({
 		db: ctx.db,
 		eventBus: ctx.eventBus,
 		initialCommand: input.initialCommand,
+		initialCommands: input.initialCommands,
 		cwd: input.cwd,
 		cols: input.cols,
 		rows: input.rows,
@@ -144,6 +147,26 @@ export const terminalRouter = router({
 		)
 		.mutation(({ input }) => {
 			const result = writeInputToSession(input);
+			if ("error" in result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: result.error,
+				});
+			}
+			return { success: true as const };
+		}),
+
+	writeCommands: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				commands: z.array(z.string().trim().min(1)).min(1),
+				cwd: z.string().optional(),
+			}),
+		)
+		.mutation(({ input }) => {
+			const result = writeCommandsToSession(input);
 			if ("error" in result) {
 				throw new TRPCError({
 					code: "NOT_FOUND",

@@ -16,7 +16,7 @@ export function createAmpWrapper(): void {
 	const script = buildWrapperScript("amp", `exec "$REAL_BIN" "$@"`, {
 		agentId: "amp",
 	});
-	createWrapper("amp", script);
+	createWrapper("amp", script, { agentId: "amp" });
 }
 
 export const AMP_PLUGIN_FILE = "superset-lifecycle.ts";

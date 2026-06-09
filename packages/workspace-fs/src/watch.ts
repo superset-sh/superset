@@ -78,6 +78,44 @@ interface WatcherState {
 	throttler: ThrottledWorker<FsWatchEvent>;
 }
 
+interface NormalizeWatchEventPathOptions {
+	absolutePath: string;
+	realPathNormalized: string;
+	realPathDiffers: boolean;
+	platform?: NodeJS.Platform;
+}
+
+function pathForPlatform(platform: NodeJS.Platform): typeof path.win32 {
+	return platform === "win32" ? path.win32 : path.posix;
+}
+
+export function normalizeWatchEventPath(
+	eventPath: string,
+	{
+		absolutePath,
+		realPathNormalized,
+		realPathDiffers,
+		platform = process.platform,
+	}: NormalizeWatchEventPathOptions,
+): string {
+	const platformPath = pathForPlatform(platform);
+	let normalizedEventPath =
+		platform === "darwin" ? eventPath.normalize("NFC") : eventPath;
+
+	if (platform === "win32" && absolutePath.length <= 3) {
+		normalizedEventPath = platformPath.normalize(normalizedEventPath);
+	}
+
+	if (!realPathDiffers) {
+		return normalizedEventPath;
+	}
+
+	return platformPath.join(
+		absolutePath,
+		platformPath.relative(realPathNormalized, normalizedEventPath),
+	);
+}
+
 function coalesceWatchEvent(
 	current: ParcelWatcherEvent | undefined,
 	next: ParcelWatcherEvent,
@@ -457,8 +495,8 @@ export class FsWatcherManager {
 	 * Mutate parcel events in place: NFC-normalize on darwin (HFS+/APFS stores
 	 * filenames in NFD; consumers compare against NFC) and map paths back from
 	 * the resolved-symlink form to the caller's requested form. Port of VS Code
-	 * parcelWatcher.ts `normalizeEvents` (lines 518-539). Windows root-drive
-	 * workaround is omitted — desktop doesn't ship on Windows yet.
+	 * parcelWatcher.ts `normalizeEvents` (lines 518-539), including the Windows
+	 * root-drive workaround for @parcel/watcher paths with extra backslashes.
 	 */
 	private normalizeEvents(
 		events: ParcelWatcherEvent[],
@@ -470,18 +508,7 @@ export class FsWatcherManager {
 		// against the same-normalized realPath so the rebase works regardless
 		// of NFC length changes.
 		for (const event of events) {
-			const eventPath =
-				process.platform === "darwin"
-					? event.path.normalize("NFC")
-					: event.path;
-			if (state.realPathDiffers) {
-				event.path = path.join(
-					state.absolutePath,
-					path.relative(state.realPathNormalized, eventPath),
-				);
-			} else {
-				event.path = eventPath;
-			}
+			event.path = normalizeWatchEventPath(event.path, state);
 		}
 	}
 

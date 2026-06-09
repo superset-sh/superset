@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { TEARDOWN_TIMEOUT_MS } from "@superset/shared/constants";
+import { getKnownShell } from "@superset/shared/shell";
 import type { HostDb } from "../../db";
+import { getTerminalBaseEnv } from "../../terminal/env";
+import { resolveLaunchShell } from "../../terminal/shell-launch";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
@@ -11,6 +14,12 @@ import {
 export { TEARDOWN_TIMEOUT_MS };
 
 export const TEARDOWN_SCRIPT_REL_PATH = ".superset/teardown.sh";
+export const PORTABLE_TEARDOWN_SCRIPT_REL_PATH = ".superset/teardown.ts";
+export const WINDOWS_TEARDOWN_SCRIPT_REL_PATHS = [
+	".superset/teardown.cmd",
+	".superset/teardown.bat",
+	".superset/teardown.ps1",
+] as const;
 const OUTPUT_TAIL_BYTES = 4096;
 const KILL_GRACE_MS = 2_000;
 
@@ -35,10 +44,10 @@ interface RunTeardownOptions {
 }
 
 /**
- * Runs `.superset/teardown.sh` inside the workspace, reusing the same
+ * Runs the workspace teardown script inside the workspace, reusing the same
  * terminal primitive v2 uses for interactive sessions. This gives the
  * script full environment parity with the user's terminals (login shell
- * rcfiles, PATH, nvm/rbenv, etc.), matching how setup.sh runs.
+ * rcfiles, PATH, nvm/rbenv, etc.), matching how setup runs.
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
@@ -49,11 +58,16 @@ export async function runTeardown({
 	worktreePath,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const scriptPath = join(worktreePath, TEARDOWN_SCRIPT_REL_PATH);
-	if (!existsSync(scriptPath)) return { status: "skipped" };
+	const scriptPath = resolveTeardownScriptPath(worktreePath);
+	if (!scriptPath) return { status: "skipped" };
 
 	const terminalId = randomUUID();
-	const initialCommand = buildTeardownInitialCommand(scriptPath);
+	const shell = resolveTeardownShell();
+	const initialCommand = buildTeardownInitialCommand(
+		scriptPath,
+		shell,
+		process.platform,
+	);
 
 	const session = await createTerminalSessionInternal({
 		terminalId,
@@ -137,7 +151,57 @@ export async function runTeardown({
 	});
 }
 
-export function buildTeardownInitialCommand(scriptPath: string): string {
+export function resolveTeardownScriptPath(
+	worktreePath: string,
+	platform: NodeJS.Platform = process.platform,
+): string | null {
+	const portableScript = join(worktreePath, PORTABLE_TEARDOWN_SCRIPT_REL_PATH);
+	const shellScript = join(worktreePath, TEARDOWN_SCRIPT_REL_PATH);
+	if (platform === "win32") {
+		if (existsSync(portableScript)) return portableScript;
+		for (const relPath of WINDOWS_TEARDOWN_SCRIPT_REL_PATHS) {
+			const scriptPath = join(worktreePath, relPath);
+			if (existsSync(scriptPath)) return scriptPath;
+		}
+	}
+	if (existsSync(shellScript)) return shellScript;
+	if (existsSync(portableScript)) return portableScript;
+	return null;
+}
+
+export function buildTeardownInitialCommand(
+	scriptPath: string,
+	shell?: string,
+	platform: NodeJS.Platform = process.platform,
+): string {
+	if (scriptPath.endsWith(".ts")) {
+		const knownShell = shell ? getKnownShell(shell) : "unknown";
+		if (knownShell === "cmd") {
+			return `bun ${doubleQuote(scriptPath)} && exit /b 0 || exit /b 1`;
+		}
+		if (knownShell === "powershell" || knownShell === "pwsh") {
+			return `bun ${powershellSingleQuote(scriptPath)}; exit $LASTEXITCODE`;
+		}
+		return `exec bun ${singleQuote(scriptPath)}`;
+	}
+
+	if (platform === "win32") {
+		const knownShell = shell ? getKnownShell(shell) : "unknown";
+		const lowerScriptPath = scriptPath.toLowerCase();
+		if (lowerScriptPath.endsWith(".cmd") || lowerScriptPath.endsWith(".bat")) {
+			if (knownShell === "powershell" || knownShell === "pwsh") {
+				return `cmd.exe /d /s /c ${powershellSingleQuote(doubleQuote(scriptPath))}; exit $LASTEXITCODE`;
+			}
+			return `${doubleQuote(scriptPath)} && exit /b 0 || exit /b 1`;
+		}
+		if (lowerScriptPath.endsWith(".ps1")) {
+			if (knownShell === "cmd" || knownShell === "unknown") {
+				return `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ${doubleQuote(scriptPath)} && exit /b 0 || exit /b 1`;
+			}
+			return `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ${powershellSingleQuote(scriptPath)}; exit $LASTEXITCODE`;
+		}
+	}
+
 	// `exec` replaces the user's login shell with the teardown process. That
 	// avoids shell-specific exit-status syntax like `$?`, which breaks in fish
 	// and leaves the hidden teardown terminal open until timeout.
@@ -147,4 +211,20 @@ export function buildTeardownInitialCommand(scriptPath: string): string {
 /** POSIX single-quote escape: safe for any byte sequence in a path. */
 function singleQuote(s: string): string {
 	return `'${s.replaceAll("'", "'\\''")}'`;
+}
+
+function powershellSingleQuote(s: string): string {
+	return `'${s.replaceAll("'", "''")}'`;
+}
+
+function doubleQuote(s: string): string {
+	return `"${s.replaceAll('"', '\\"')}"`;
+}
+
+function resolveTeardownShell(): string | undefined {
+	try {
+		return resolveLaunchShell(getTerminalBaseEnv());
+	} catch {
+		return undefined;
+	}
 }

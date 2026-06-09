@@ -14,6 +14,7 @@ import {
 import { __resetSessionsForTesting } from "../../src/terminal/terminal";
 import { __setAccountShellForTesting } from "../../src/terminal/user-shell";
 import { cloudFlows } from "../helpers/cloud-fakes";
+import { makeTestDaemonSocketPath } from "../helpers/platform";
 import { createProjectScenario } from "../helpers/scenarios";
 
 describe("setup scripts integration", () => {
@@ -33,120 +34,128 @@ describe("setup scripts integration", () => {
 		}
 	});
 
-	test("v2 settings config is the same config used by workspace setup terminals", async () => {
-		const scenario = await createProjectScenario({
-			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
-		});
-		const daemonRoot = mkdtempSync(join(tmpdir(), "setup-scripts-daemon-"));
-		const socketPath = join(daemonRoot, "pty-daemon.sock");
-		const writes: string[] = [];
-		const spawned: Array<{
-			meta: {
-				cwd?: string;
-				env?: Record<string, string>;
+	test(
+		"v2 settings config is the same config used by workspace setup terminals",
+		{
+			timeout: 15_000,
+		},
+		async () => {
+			const scenario = await createProjectScenario({
+				hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+			});
+			const daemonRoot = mkdtempSync(join(tmpdir(), "setup-scripts-daemon-"));
+			const socketPath = makeTestDaemonSocketPath("setup-scripts-daemon");
+			const writes: string[] = [];
+			const spawned: Array<{
+				meta: {
+					cwd?: string;
+					env?: Record<string, string>;
+				};
+			}> = [];
+
+			const server = new Server({
+				socketPath,
+				daemonVersion: "0.0.0-setup-scripts-test",
+				spawnPty: ({ meta }) => {
+					spawned.push({ meta });
+					return createFakePty(5200 + spawned.length, writes);
+				},
+			});
+
+			dispose = async () => {
+				await server.close();
+				rmSync(daemonRoot, { recursive: true, force: true });
+				await scenario.dispose();
 			};
-		}> = [];
 
-		const server = new Server({
-			socketPath,
-			daemonVersion: "0.0.0-setup-scripts-test",
-			spawnPty: ({ meta }) => {
-				spawned.push({ meta });
-				return createFakePty(5200 + spawned.length, writes);
-			},
-		});
+			await server.listen();
+			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
+			process.env.SUPERSET_HOME_DIR = daemonRoot;
+			__setAccountShellForTesting("/bin/sh");
+			initTerminalBaseEnv({
+				PATH: process.env.PATH ?? "/usr/bin:/bin",
+				HOME: daemonRoot,
+				SHELL: "/bin/sh",
+			});
 
-		dispose = async () => {
-			await server.close();
-			rmSync(daemonRoot, { recursive: true, force: true });
-			await scenario.dispose();
-		};
+			const emptyConfig =
+				await scenario.host.trpc.config.getConfigContent.query({
+					projectId: scenario.projectId,
+				});
+			expect(emptyConfig).toEqual({ content: null, exists: false });
 
-		await server.listen();
-		process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
-		process.env.SUPERSET_HOME_DIR = daemonRoot;
-		__setAccountShellForTesting("/bin/sh");
-		initTerminalBaseEnv({
-			PATH: process.env.PATH ?? "/usr/bin:/bin",
-			HOME: daemonRoot,
-			SHELL: "/bin/sh",
-		});
-
-		const emptyConfig = await scenario.host.trpc.config.getConfigContent.query({
-			projectId: scenario.projectId,
-		});
-		expect(emptyConfig).toEqual({ content: null, exists: false });
-
-		await scenario.host.trpc.config.updateConfig.mutate({
-			projectId: scenario.projectId,
-			setup: ["echo setup-a", "echo setup-b"],
-			teardown: ["echo teardown"],
-			run: ["bun dev"],
-		});
-
-		const configPath = getProjectConfigPath(scenario.repo.repoPath);
-		const diskConfig = JSON.parse(readFileSync(configPath, "utf-8"));
-		expect(diskConfig).toEqual({
-			setup: ["echo setup-a", "echo setup-b"],
-			teardown: ["echo teardown"],
-			run: ["bun dev"],
-		});
-
-		const readBack = await scenario.host.trpc.config.getConfigContent.query({
-			projectId: scenario.projectId,
-		});
-		expect(readBack.exists).toBe(true);
-		expect(JSON.parse(readBack.content ?? "{}")).toEqual(diskConfig);
-
-		await expect(
-			scenario.host.trpc.config.shouldShowSetupCard.query({
+			await scenario.host.trpc.config.updateConfig.mutate({
 				projectId: scenario.projectId,
-			}),
-		).resolves.toBe(false);
+				setup: ["echo setup-a", "echo setup-b"],
+				teardown: ["echo teardown"],
+				run: ["bun dev"],
+			});
 
-		await expect(
-			scenario.host.trpc.config.getWorkspaceRunDefinition.query({
+			const configPath = getProjectConfigPath(scenario.repo.repoPath);
+			const diskConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+			expect(diskConfig).toEqual({
+				setup: ["echo setup-a", "echo setup-b"],
+				teardown: ["echo teardown"],
+				run: ["bun dev"],
+			});
+
+			const readBack = await scenario.host.trpc.config.getConfigContent.query({
 				projectId: scenario.projectId,
-			}),
-		).resolves.toEqual({
-			source: "project-config",
-			projectId: scenario.projectId,
-			commands: ["bun dev"],
-		});
+			});
+			expect(readBack.exists).toBe(true);
+			expect(JSON.parse(readBack.content ?? "{}")).toEqual(diskConfig);
 
-		const created = await scenario.host.trpc.workspaces.create.mutate({
-			projectId: scenario.projectId,
-			name: "scripted setup",
-			branch: "scripted-setup",
-		});
+			await expect(
+				scenario.host.trpc.config.shouldShowSetupCard.query({
+					projectId: scenario.projectId,
+				}),
+			).resolves.toBe(false);
 
-		expect(created.terminals).toHaveLength(1);
-		expect(created.terminals[0]?.label).toBe("Workspace Setup");
+			await expect(
+				scenario.host.trpc.config.getWorkspaceRunDefinition.query({
+					projectId: scenario.projectId,
+				}),
+			).resolves.toEqual({
+				source: "project-config",
+				projectId: scenario.projectId,
+				commands: ["bun dev"],
+			});
 
-		await waitFor(
-			() => writes.includes("echo setup-a && echo setup-b\n"),
-			5000,
-			() => `expected setup command write, got ${JSON.stringify(writes)}`,
-		);
+			const created = await scenario.host.trpc.workspaces.create.mutate({
+				projectId: scenario.projectId,
+				name: "scripted setup",
+				branch: "scripted-setup",
+			});
 
-		const workspaceRow = scenario.host.db
-			.select()
-			.from(workspaces)
-			.where(eq(workspaces.id, created.workspace.id))
-			.get();
-		expect(workspaceRow).toBeDefined();
-		if (!workspaceRow) throw new Error("Expected workspace row to exist");
+			expect(created.terminals).toHaveLength(1);
+			expect(created.terminals[0]?.label).toBe("Workspace Setup");
 
-		const setupTerminal = spawned.at(-1);
-		expect(setupTerminal).toBeDefined();
-		if (!setupTerminal)
-			throw new Error("Expected setup terminal to be spawned");
+			const lineEnding = process.platform === "win32" ? "\r\n" : "\n";
+			await waitFor(
+				() => writes.includes(`echo setup-a && echo setup-b${lineEnding}`),
+				5000,
+				() => `expected setup command write, got ${JSON.stringify(writes)}`,
+			);
 
-		expect(setupTerminal.meta.cwd).toBe(workspaceRow.worktreePath);
-		expect(setupTerminal.meta.env?.SUPERSET_ROOT_PATH).toBe(
-			scenario.repo.repoPath,
-		);
-	});
+			const workspaceRow = scenario.host.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.id, created.workspace.id))
+				.get();
+			expect(workspaceRow).toBeDefined();
+			if (!workspaceRow) throw new Error("Expected workspace row to exist");
+
+			const setupTerminal = spawned.at(-1);
+			expect(setupTerminal).toBeDefined();
+			if (!setupTerminal)
+				throw new Error("Expected setup terminal to be spawned");
+
+			expect(setupTerminal.meta.cwd).toBe(workspaceRow.worktreePath);
+			expect(setupTerminal.meta.env?.SUPERSET_ROOT_PATH).toBe(
+				scenario.repo.repoPath,
+			);
+		},
+	);
 });
 
 function createFakePty(pid: number, writes: string[]) {
