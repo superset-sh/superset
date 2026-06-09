@@ -14,6 +14,8 @@ let listSessionsIfRunningResult: ListSessionsResponse | null = null;
 let listSessionsIfRunningError: Error | null = null;
 let shutdownIfRunningError: Error | null = null;
 let shutdownIfRunningCalls = 0;
+let ensureConnectedCalls = 0;
+let prewarmTerminalEnvCalls = 0;
 let resetCalls = 0;
 
 function makeSession(
@@ -45,9 +47,17 @@ mock.module("main/lib/terminal-host/client", () => ({
 			}
 			return { wasRunning: true };
 		},
-		ensureConnected: async () => {},
+		ensureConnected: async () => {
+			ensureConnectedCalls++;
+		},
 	}),
 	disposeTerminalHostClient: () => {},
+}));
+
+mock.module("./env", () => ({
+	prewarmTerminalEnv: () => {
+		prewarmTerminalEnvCalls++;
+	},
 }));
 
 mock.module("./daemon", () => ({
@@ -60,9 +70,10 @@ mock.module("./daemon", () => ({
 	}),
 }));
 
-const { restartDaemon, tryListExistingDaemonSessions } = await import(
-	"./index"
-);
+const { prewarmTerminalRuntime, restartDaemon, tryListExistingDaemonSessions } =
+	await import("./index");
+
+const flushPrewarm = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("terminal index", () => {
 	beforeAll(() => {
@@ -79,6 +90,8 @@ describe("terminal index", () => {
 		listSessionsIfRunningError = null;
 		shutdownIfRunningError = null;
 		shutdownIfRunningCalls = 0;
+		ensureConnectedCalls = 0;
+		prewarmTerminalEnvCalls = 0;
 		resetCalls = 0;
 	});
 
@@ -129,5 +142,21 @@ describe("terminal index", () => {
 		await expect(tryListExistingDaemonSessions()).resolves.toEqual({
 			sessions: [],
 		});
+	});
+
+	it("prewarms terminal environment without connecting the daemon by default", async () => {
+		prewarmTerminalRuntime();
+		await flushPrewarm();
+
+		expect(prewarmTerminalEnvCalls).toBe(1);
+		expect(ensureConnectedCalls).toBe(0);
+	});
+
+	it("connects the terminal daemon only when daemon prewarm is explicitly requested", async () => {
+		prewarmTerminalRuntime({ connectDaemon: true });
+		await flushPrewarm();
+
+		expect(prewarmTerminalEnvCalls).toBe(1);
+		expect(ensureConnectedCalls).toBe(1);
 	});
 });

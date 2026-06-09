@@ -1,10 +1,10 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useFeatureFlagEnabled } from "renderer/lib/posthog-feature-flags";
 import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces/useDeleteWorkspace";
 import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWorkspace";

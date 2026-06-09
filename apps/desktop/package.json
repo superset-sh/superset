@@ -26,6 +26,7 @@
 		"copy:native-modules": "bun run scripts/copy-native-modules.ts",
 		"validate:native-runtime": "bun run scripts/validate-native-runtime.ts",
 		"report:size": "bun run scripts/report-package-size.ts",
+		"report:runtime": "bun run scripts/report-runtime-performance.ts",
 		"prebuild": "bun run clean:dev && bun run generate:icons && bun run compile:app && bun run copy:native-modules && bun run validate:native-runtime",
 		"build": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
 		"prepackage": "bun run ensure:cli && bun run copy:native-modules && bun run validate:native-runtime",

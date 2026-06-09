@@ -2,21 +2,17 @@ import { dirname, join } from "node:path";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
-import { ChatService } from "@superset/chat/server/desktop";
+import type { ChatService } from "@superset/chat/server/desktop";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createDb, type HostDb } from "./db";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
-import { handleModelGatewayRequest } from "./model-gateway";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
-import {
-	type ModelProviderRuntimeResolver,
-	RegistryModelProvider,
-} from "./providers/model-providers";
-import { ChatRuntimeManager } from "./runtime/chat";
+import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
+import type { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
@@ -29,7 +25,18 @@ import {
 	execGh as defaultExecGh,
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
-import type { ApiClient } from "./types";
+import type { ApiClient, HostServiceRuntime } from "./types";
+
+function onceAsync<T>(factory: () => Promise<T>): () => Promise<T> {
+	let promise: Promise<T> | undefined;
+	return () => {
+		promise ??= factory().catch((error) => {
+			promise = undefined;
+			throw error;
+		});
+		return promise;
+	};
+}
 
 export interface CreateAppOptions {
 	config: {
@@ -109,9 +116,14 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		gitWatcher,
 	});
 	pullRequestRuntime.start();
-	const chatRuntime =
-		options.chatRuntime ??
-		new ChatRuntimeManager({
+	const getChatRuntime = onceAsync(async () => {
+		if (options.chatRuntime) return options.chatRuntime;
+		const [{ ChatRuntimeManager }, { RegistryModelProvider }] =
+			await Promise.all([
+				import("./runtime/chat"),
+				import("./providers/model-providers"),
+			]);
+		return new ChatRuntimeManager({
 			db,
 			mastraHomeDir: join(dirname(config.dbPath), "mastracode"),
 			runtimeResolver: new RegistryModelProvider({
@@ -121,14 +133,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				internalToken: config.hostServiceSecret,
 			}),
 		});
+	});
 	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
-	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
-	// auth storage; the `host.auth.*` router proxies to it.
-	const chatService = options.chatService ?? new ChatService();
+	// per-workspace. Keep the ChatService singleton lazy so host-service startup
+	// doesn't load the chat/Mastra stack before a provider-auth route is used.
+	const getChatService = onceAsync(async () => {
+		if (options.chatService) return options.chatService;
+		const { ChatService } = await import("@superset/chat/server/desktop");
+		return new ChatService();
+	});
 
-	const runtime = {
-		auth: chatService,
-		chat: chatRuntime,
+	const runtime: HostServiceRuntime = {
+		getAuth: getChatService,
+		getChat: getChatRuntime,
 		filesystem,
 		pullRequests: pullRequestRuntime,
 	};
@@ -184,13 +201,14 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		upgradeWebSocket,
 	});
 
-	app.all("/model-gateway/*", async (c) =>
-		handleModelGatewayRequest({
+	app.all("/model-gateway/*", async (c) => {
+		const { handleModelGatewayRequest } = await import("./model-gateway");
+		return handleModelGatewayRequest({
 			db,
 			request: c.req.raw,
 			internalToken: config.hostServiceSecret,
-		}),
-	);
+		});
+	});
 
 	app.use(
 		"/trpc/*",

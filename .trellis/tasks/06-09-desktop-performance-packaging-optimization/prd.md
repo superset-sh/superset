@@ -106,11 +106,11 @@ work should therefore create both immediate wins and durable guardrails.
 
 ## Acceptance Criteria
 
-- [ ] A baseline report exists with current package size, top packaged
+- [x] A baseline report exists with current package size, top packaged
       contributors, CI step durations, cold start timing, key route timings,
       idle CPU/memory, and active workflow CPU/memory.
 - [ ] A repeatable command or script can generate the package-size report.
-- [ ] A repeatable command or script can generate desktop startup and route-open
+- [x] A repeatable command or script can generate desktop startup and route-open
       performance measurements.
 - [ ] Canary package size has a clearly measured reduction target and a measured
       result after implementation.
@@ -237,6 +237,152 @@ work should therefore create both immediate wins and durable guardrails.
   - `spctl --assess` still rejects the app, as expected for a non-notarized
     internal build; users must remove quarantine after copying the app to
     `/Applications`.
+
+## Milestone 2 Progress: Runtime Baseline
+
+- Added a repeatable desktop runtime performance report command:
+  `bun run --cwd apps/desktop report:runtime -- --duration=10000 --interval=1000 --top=12`.
+- The command connects to the currently running Electron app through the
+  project Desktop Automation implementation, captures renderer performance
+  metadata, samples Superset process CPU/memory, and writes markdown/json
+  artifacts under the Trellis task artifacts directory.
+- The route-open measurement uses the in-app TanStack Router instance
+  (`window.__TSR_ROUTER__`) rather than reload-based hash navigation, so it
+  measures SPA route transitions plus an explicit settle window.
+- Official runtime baseline captured at:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-performance-2026-06-09T08-00-02-930Z.md`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-performance-2026-06-09T08-00-02-930Z.json`
+- Current running-dev baseline highlights:
+  - Workspace renderer JS heap: about 181 MB.
+  - Electron renderer physical footprint: about 536 MB.
+  - Electron main physical footprint: about 302 MB.
+  - Two host-service processes combined: about 460 MB.
+  - Electron GPU process peak: about 377 MB during the sampled route pass.
+  - SPA route timings, including 750 ms settle window:
+    - `/tasks`: about 977 ms.
+    - `/settings/models`: about 843 ms.
+    - Workspace chat route: about 848 ms.
+  - Development service overhead is large and should be separated from packaged
+    user-app optimization:
+    - `electron-vite dev --watch`: about 2.3 GB.
+    - Cloudflare `workerd`: about 3.7 GB.
+    - `next-server` from the local API graph: about 2.0 GB.
+
+## Milestone 2 Progress: Runtime Optimization Pass 1
+
+- Reduced eager startup work without removing user-facing features:
+  - Terminal runtime environment still prewarms at startup, but daemon
+    connection/spawn is no longer part of default startup prewarm.
+  - Workspace terminal runtime is now a lightweight lazy EventEmitter bridge;
+    registering main-window terminal lifecycle listeners no longer initializes
+    the daemon backend.
+  - Desktop now starts host-service only for the active organization. Other
+    organizations start on demand when they become active.
+- Post-change runtime report captured at:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-performance-2026-06-09T08-20-55-910Z.md`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-performance-2026-06-09T08-20-55-910Z.json`
+- Post-change highlights:
+  - Host-service: reduced from about 460 MB across two processes to about
+    210 MB in one active-organization process.
+  - Idle CPU in the focused Code workspace after the change: renderer about
+    1.1% average, Electron main about 0.3%, and host-service about 0.5%.
+  - Electron main: about 302 MB, essentially unchanged.
+  - Electron renderer: about 533 MB physical footprint and about 193 MB JS heap
+    in the sampled Code/Models state; renderer memory still needs a separate
+    follow-up pass.
+  - SPA route timings were roughly flat/noisy: `/tasks` about 1.08 s,
+    `/settings/models` about 870 ms, workspace chat about 909 ms, all including
+    the 750 ms settle window.
+  - The sample had an already-active pty-daemon from terminal work; it used
+    about 14 MB and was left running to avoid disrupting active work.
+- Idle report captured at:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-idle-after-lazy-services.md`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-idle-after-lazy-services.json`
+- Desktop smoke evidence:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-smoke-after-lazy-services.png`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-smoke-after-lazy-services.json`
+
+## Milestone 2 Progress: Runtime Optimization Pass 2
+
+- Renderer analytics is now lazy and non-blocking:
+  - `posthog-js/dist/module.full.no-external` is no longer statically imported
+    by the renderer startup bundle.
+  - Renderer `PostHogProvider` no longer blocks the app behind device-id lookup
+    or analytics initialization; children render immediately.
+  - Local/dev `NEXT_PUBLIC_POSTHOG_KEY=phc_local_dev_disabled` is treated as a
+    no-op, so the PostHog SDK is not loaded for that disabled key.
+  - Feature flag reads now go through the local lightweight
+    `renderer/lib/posthog-feature-flags.ts` hook instead of
+    `posthog-js/react`, preserving flag behavior without pulling the React
+    PostHog package into common renderer paths.
+- Production renderer bundle evidence after `bun run --cwd apps/desktop
+  compile:app`:
+  - Initial renderer `index-*.js`: about 1.8 MB.
+  - Previous recorded initial renderer `index-*.js`: about 2.5 MB and included
+    the PostHog full bundle.
+  - PostHog now appears as a lazy `module.no-external-*.js` chunk of about
+    240 KB and is reached only through dynamic import when analytics is
+    enabled.
+- Added cold-start timeline instrumentation:
+  - Shared IPC contract: `shared/startup-performance.ts`.
+  - Main-process marks: process start, Electron ready, app-state init,
+    persistence init, network logger, webview extension, terminal reconcile,
+    terminal prewarm, window creation, renderer load, first show.
+  - Renderer mark: `renderer:boot-mounted` with renderer elapsed time and
+    current URL.
+  - `report:runtime` now includes a Startup Timeline section and JSON payload.
+- Final short startup/runtime report:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-final-startup-renderer-memory.md`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-final-startup-renderer-memory.json`
+- Route/runtime report after renderer analytics pass:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-routes-after-renderer-analytics-startup.md`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-routes-after-renderer-analytics-startup.json`
+- Idle/runtime report after renderer analytics pass:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-after-renderer-analytics-startup.md`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-after-renderer-analytics-startup.json`
+- Desktop smoke evidence after renderer analytics/startup instrumentation:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-smoke-after-renderer-analytics-startup.png`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-smoke-after-renderer-analytics-startup.json`
+- Measurement notes:
+  - Running dev app idle snapshot after analytics pass showed renderer JS heap
+    about 158 MB and renderer physical footprint about 509 MB in one sample.
+    Dev numbers remain state-dependent and are not a production memory
+    guarantee.
+  - Final short startup report in dev showed process start to first show about
+    2.12 s, with about 1.34 s before `main:index-module-ready`; the next cold
+    start optimization target is main-process import/evaluation cost.
+  - Route timing after route chunk loads remains noisy: `/tasks` about 2.33 s
+    on the measured pass, `/settings/models` about 1.36 s, and workspace chat
+    about 910 ms, all including the 750 ms settle window.
+
+## Milestone 2 Progress: Runtime Optimization Pass 3
+
+- Host-service Chat/Mastra/AI startup work is now lazy:
+  - Chat runtime and provider auth singleton creation moved behind
+    `HostServiceRuntime.getChat()` / `getAuth()`.
+  - Model gateway handling, AI task draft gateway calls, AI branch naming, and
+    AI workspace naming/rename moved to dynamic imports.
+  - The desktop host-service process now imports `@superset/host-service`
+    through narrow subpaths instead of the root barrel for runtime startup.
+- Bundle evidence:
+  - `dist/main/host-service.js` is about 25 KB after compile.
+  - Chat/Mastra/model-gateway/AI naming paths are emitted as separate chunks,
+    not part of the host-service entry chunk.
+- Runtime evidence:
+  - `runtime-after-lazy-chat-ai.md`: host-service about 192 MB.
+  - `runtime-after-lazy-chat-ai-subpaths.md`: host-service about 196 MB.
+  - This is a modest additional reduction over the prior 210-234 MB samples,
+    not a fresh 100-200 MB reduction. The stable low-risk win for this round is
+    keeping Chat/Mastra/AI code out of idle host-service startup.
+- Desktop smoke after the pass:
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-smoke-after-lazy-chat-ai.png`
+  - `.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-smoke-after-lazy-chat-ai.json`
+- Follow-up:
+  - A new 100 MB-class host-service reduction likely requires a separate design
+    pass around GitWatcher, PullRequestRuntime, event-bus startup, all-router
+    eager imports, or native watcher policy. Those are more coupled to Changes,
+    PR freshness, workspace state, and real-time event behavior, so they should
+    not be mixed into this low-risk pass.
 
 ## Notes
 

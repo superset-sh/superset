@@ -14,6 +14,7 @@ export type {
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 let prewarmInFlight: Promise<void> | null = null;
+let daemonPrewarmInFlight: Promise<void> | null = null;
 
 /**
  * Reconcile daemon sessions on app startup.
@@ -95,25 +96,33 @@ export async function tryListExistingDaemonSessions(): Promise<{
 
 /**
  * Best-effort terminal runtime warmup.
- * Runs in the background to reduce latency for the first user-opened terminal:
- * - precomputes locale/env fallback
- * - ensures daemon control/stream channels are established
+ * Runs in the background to reduce latency for the first user-opened terminal.
+ * Startup only precomputes locale/env fallback; daemon connection is opt-in so
+ * the app does not spawn terminal-host before the user opens a terminal.
  */
-export function prewarmTerminalRuntime(): void {
-	if (prewarmInFlight) return;
-
-	prewarmInFlight = (async () => {
-		try {
-			prewarmTerminalEnv();
-		} catch (error) {
-			if (DEBUG_TERMINAL) {
-				console.warn(
-					"[TerminalManager] Failed to prewarm terminal env:",
-					error,
-				);
+export function prewarmTerminalRuntime(
+	options: { connectDaemon?: boolean } = {},
+): void {
+	if (!prewarmInFlight) {
+		prewarmInFlight = (async () => {
+			try {
+				prewarmTerminalEnv();
+			} catch (error) {
+				if (DEBUG_TERMINAL) {
+					console.warn(
+						"[TerminalManager] Failed to prewarm terminal env:",
+						error,
+					);
+				}
 			}
-		}
+		})().finally(() => {
+			prewarmInFlight = null;
+		});
+	}
 
+	if (!options.connectDaemon || daemonPrewarmInFlight) return;
+
+	daemonPrewarmInFlight = (async () => {
 		try {
 			await getTerminalHostClient().ensureConnected();
 		} catch (error) {
@@ -125,6 +134,6 @@ export function prewarmTerminalRuntime(): void {
 			}
 		}
 	})().finally(() => {
-		prewarmInFlight = null;
+		daemonPrewarmInFlight = null;
 	});
 }

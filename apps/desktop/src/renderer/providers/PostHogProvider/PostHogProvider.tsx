@@ -1,8 +1,7 @@
-import { PostHogProvider as PHProvider } from "posthog-js/react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { track } from "renderer/lib/analytics";
-import { initPostHog, posthog } from "renderer/lib/posthog";
+import { initPostHog } from "renderer/lib/posthog";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 interface PostHogProviderProps {
@@ -10,8 +9,6 @@ interface PostHogProviderProps {
 }
 
 export function PostHogProvider({ children }: PostHogProviderProps) {
-	const [isInitialized, setIsInitialized] = useState(false);
-
 	useEffect(() => {
 		let cancelled = false;
 
@@ -27,12 +24,12 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 			if (cancelled) return;
 
 			try {
-				initPostHog(deviceId);
-				track("desktop_opened");
+				await initPostHog(deviceId);
+				if (!cancelled) {
+					track("desktop_opened");
+				}
 			} catch (error) {
 				console.error("[posthog] Failed to initialize:", error);
-			} finally {
-				setIsInitialized(true);
 			}
 		})();
 
@@ -41,9 +38,5 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 		};
 	}, []);
 
-	if (!isInitialized) {
-		return null;
-	}
-
-	return <PHProvider client={posthog}>{children}</PHProvider>;
+	return <>{children}</>;
 }

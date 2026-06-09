@@ -14,8 +14,8 @@ import type { ExecGh } from "./trpc/router/workspace-creation/utils/exec-gh";
 export type ApiClient = TRPCClient<AppRouter>;
 
 export interface HostServiceRuntime {
-	auth: ChatService;
-	chat: ChatRuntimeManager;
+	getAuth: () => Promise<ChatService>;
+	getChat: () => Promise<ChatRuntimeManager>;
 	filesystem: WorkspaceFilesystemManager;
 	pullRequests: PullRequestRuntimeManager;
 }

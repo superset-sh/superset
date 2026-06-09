@@ -5,6 +5,7 @@ import {
 	app,
 	BrowserWindow,
 	dialog,
+	ipcMain,
 	Notification,
 	net,
 	protocol,
@@ -23,6 +24,11 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
+import {
+	STARTUP_PERFORMANCE_GET_CHANNEL,
+	STARTUP_PERFORMANCE_RENDERER_MARK_CHANNEL,
+	type StartupPerformanceRendererMarkPayload,
+} from "shared/startup-performance";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
@@ -41,6 +47,10 @@ import {
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import {
+	getStartupPerformanceReport,
+	markStartup,
+} from "./lib/startup-performance";
+import {
 	prewarmTerminalRuntime,
 	reconcileDaemonSessions,
 } from "./lib/terminal";
@@ -54,6 +64,29 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
+markStartup("main:index-module-ready");
+
+ipcMain.handle(STARTUP_PERFORMANCE_GET_CHANNEL, () =>
+	getStartupPerformanceReport(),
+);
+ipcMain.on(
+	STARTUP_PERFORMANCE_RENDERER_MARK_CHANNEL,
+	(_event, payload: StartupPerformanceRendererMarkPayload) => {
+		if (!payload || typeof payload.name !== "string") return;
+
+		const detail: Record<string, unknown> = {};
+		if (typeof payload.rendererElapsedMs === "number") {
+			detail.rendererElapsedMs = payload.rendererElapsedMs;
+		}
+		if (typeof payload.href === "string") {
+			detail.href = payload.href;
+		}
+		if (typeof payload.readyState === "string") {
+			detail.readyState = payload.readyState;
+		}
+		markStartup(payload.name, detail);
+	},
+);
 
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
@@ -338,7 +371,9 @@ if (!gotTheLock) {
 	});
 
 	(async () => {
+		markStartup("electron:when-ready-start");
 		await app.whenReady();
+		markStartup("electron:app-ready");
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();
@@ -391,20 +426,32 @@ if (!gotTheLock) {
 		ensureProjectIconsDir();
 		setWorkspaceDockIcon();
 		initSentry();
+		markStartup("main:init-app-state-start");
 		await initAppState();
+		markStartup("main:init-app-state-end");
+		markStartup("main:tanstack-persistence-start");
 		initTanstackDbPersistence();
+		markStartup("main:tanstack-persistence-end");
 
 		try {
+			markStartup("main:network-logger-start");
 			await startNetworkLogger();
+			markStartup("main:network-logger-end");
 		} catch (error) {
 			console.error("[main] Failed to start network logger:", error);
 		}
 
+		markStartup("main:webview-extension-start");
 		await loadWebviewBrowserExtension();
+		markStartup("main:webview-extension-end");
 
 		// Must happen before renderer restore runs
+		markStartup("main:terminal-reconcile-start");
 		await reconcileDaemonSessions();
+		markStartup("main:terminal-reconcile-end");
+		markStartup("main:terminal-prewarm-start");
 		prewarmTerminalRuntime();
+		markStartup("main:terminal-prewarm-end");
 
 		try {
 			setupAgentHooks();
@@ -425,7 +472,9 @@ if (!gotTheLock) {
 			});
 		}
 
+		markStartup("main:window-setup-start");
 		await makeAppSetup(() => MainWindow());
+		markStartup("main:window-setup-end");
 		setupAutoUpdater();
 		initTray();
 
@@ -439,5 +488,6 @@ if (!gotTheLock) {
 		}
 
 		appReady = true;
+		markStartup("main:app-ready-complete");
 	})();
 }

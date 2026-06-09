@@ -4,6 +4,7 @@ initSentry();
 
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
+import { STARTUP_PERFORMANCE_RENDERER_MARK_CHANNEL } from "shared/startup-performance";
 import { BootErrorBoundary } from "./components/BootErrorBoundary";
 import {
 	cleanupBootErrorHandling,
@@ -80,4 +81,10 @@ if (!rootElement) {
 		</BootErrorBoundary>,
 	);
 	markBootMounted();
+	ipcRenderer?.send(STARTUP_PERFORMANCE_RENDERER_MARK_CHANNEL, {
+		name: "renderer:boot-mounted",
+		rendererElapsedMs: performance.now(),
+		href: location.href,
+		readyState: document.readyState,
+	});
 }

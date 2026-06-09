@@ -29,6 +29,7 @@ import {
 	getNotificationTitle,
 	getWorkspaceName,
 } from "../lib/notifications/utils";
+import { markStartup } from "../lib/startup-performance";
 import {
 	getInitialWindowBounds,
 	loadWindowState,
@@ -89,6 +90,7 @@ app.on("child-process-gone", (_event, details) => {
 });
 
 export async function MainWindow() {
+	markStartup("main-window:create-start");
 	const savedWindowState = loadWindowState();
 	const initialBounds = getInitialWindowBounds(savedWindowState);
 	let persistedZoomLevel = savedWindowState?.zoomLevel;
@@ -99,6 +101,7 @@ export async function MainWindow() {
 		? `${productName} — ${workspaceName}`
 		: productName;
 
+	markStartup("main-window:browser-window-create-start");
 	const window = createWindow({
 		id: "main",
 		title: windowTitle,
@@ -126,6 +129,7 @@ export async function MainWindow() {
 			partition: "persist:superset",
 		},
 	});
+	markStartup("main-window:browser-window-create-end");
 
 	createApplicationMenu();
 
@@ -304,6 +308,9 @@ export async function MainWindow() {
 	});
 
 	window.webContents.on("did-finish-load", () => {
+		markStartup("main-window:renderer-did-finish-load", {
+			url: window.webContents.getURL(),
+		});
 		console.log("[main-window] Renderer loaded successfully");
 
 		if (persistedZoomLevel !== undefined) {
@@ -315,6 +322,7 @@ export async function MainWindow() {
 				window.maximize();
 			}
 			window.show();
+			markStartup("main-window:first-show");
 			initialized = true;
 			hasCompletedFirstLoad = true;
 		}

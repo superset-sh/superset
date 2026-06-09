@@ -1,6 +1,6 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { createFileRoute, Navigate, notFound } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useFeatureFlagEnabled } from "renderer/lib/posthog-feature-flags";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { NotFound } from "renderer/routes/not-found";
 import { SecretsSettings } from "./components/SecretsSettings";

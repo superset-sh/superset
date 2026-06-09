@@ -9,10 +9,8 @@
  * TerminalRuntime interface.
  */
 
-import {
-	type DaemonTerminalManager,
-	getDaemonTerminalManager,
-} from "../terminal";
+import { EventEmitter } from "node:events";
+import type { DaemonTerminalManager } from "../terminal";
 import type {
 	TerminalCapabilities,
 	TerminalManagement,
@@ -33,14 +31,18 @@ import type {
  * 2. Exposes management capabilities only when available (daemon mode)
  * 3. Provides capability flags for UI feature detection
  */
-class LocalTerminalRuntime implements TerminalRuntime {
-	private readonly backend: DaemonTerminalManager;
+class LocalTerminalRuntime extends EventEmitter implements TerminalRuntime {
+	private backend: DaemonTerminalManager | null = null;
+	private readonly forwardedEvents = new Map<
+		string | symbol,
+		(...args: unknown[]) => void
+	>();
 
 	readonly management: TerminalManagement;
 	readonly capabilities: TerminalCapabilities;
 
-	constructor(backend: DaemonTerminalManager) {
-		this.backend = backend;
+	constructor(private readonly getBackend: () => DaemonTerminalManager) {
+		super();
 
 		// Capabilities are always daemon-backed
 		this.capabilities = {
@@ -49,10 +51,66 @@ class LocalTerminalRuntime implements TerminalRuntime {
 		};
 
 		this.management = {
-			listSessions: () => backend.listDaemonSessions(),
-			killAllSessions: () => backend.forceKillAll(),
-			resetHistoryPersistence: () => backend.resetHistoryPersistence(),
+			listSessions: () => this.ensureBackend().listDaemonSessions(),
+			killAllSessions: () => this.ensureBackend().forceKillAll(),
+			resetHistoryPersistence: () =>
+				this.ensureBackend().resetHistoryPersistence(),
 		};
+	}
+
+	private ensureBackend(): DaemonTerminalManager {
+		if (!this.backend) {
+			this.backend = this.getBackend();
+			this.bridgeExistingListenerEvents();
+		}
+		return this.backend;
+	}
+
+	private bridgeExistingListenerEvents(): void {
+		for (const event of this.eventNames()) {
+			this.ensureForwarder(event);
+		}
+	}
+
+	private ensureForwarder(event: string | symbol): void {
+		if (!this.backend || this.forwardedEvents.has(event)) return;
+
+		const forwarder = (...args: unknown[]) => {
+			super.emit(event, ...args);
+		};
+		this.forwardedEvents.set(event, forwarder);
+		this.backend.on(event, forwarder);
+	}
+
+	private removeForwarder(event: string | symbol): void {
+		if (!this.backend) return;
+		const forwarder = this.forwardedEvents.get(event);
+		if (!forwarder) return;
+
+		this.backend.off(event, forwarder);
+		this.forwardedEvents.delete(event);
+	}
+
+	private detachForwarders(): void {
+		if (!this.backend) {
+			this.forwardedEvents.clear();
+			return;
+		}
+
+		for (const event of Array.from(this.forwardedEvents.keys())) {
+			this.removeForwarder(event);
+		}
+	}
+
+	private isTerminalRuntimeEvent(event: string | symbol): boolean {
+		const name = String(event);
+		return (
+			name.startsWith("data:") ||
+			name.startsWith("exit:") ||
+			name.startsWith("disconnect:") ||
+			name.startsWith("error:") ||
+			name === "terminalExit"
+		);
 	}
 
 	// ===========================================================================
@@ -60,43 +118,43 @@ class LocalTerminalRuntime implements TerminalRuntime {
 	// ===========================================================================
 
 	createOrAttach: TerminalRuntime["createOrAttach"] = (params) => {
-		return this.backend.createOrAttach(params);
+		return this.ensureBackend().createOrAttach(params);
 	};
 
 	cancelCreateOrAttach: TerminalRuntime["cancelCreateOrAttach"] = (params) => {
-		this.backend.cancelCreateOrAttach(params);
+		this.ensureBackend().cancelCreateOrAttach(params);
 	};
 
 	write: TerminalRuntime["write"] = (params) => {
-		return this.backend.write(params);
+		return this.ensureBackend().write(params);
 	};
 
 	resize: TerminalRuntime["resize"] = (params) => {
-		return this.backend.resize(params);
+		return this.ensureBackend().resize(params);
 	};
 
 	signal: TerminalRuntime["signal"] = (params) => {
-		return this.backend.signal(params);
+		return this.ensureBackend().signal(params);
 	};
 
 	kill: TerminalRuntime["kill"] = (params) => {
-		return this.backend.kill(params);
+		return this.ensureBackend().kill(params);
 	};
 
 	detach: TerminalRuntime["detach"] = (params) => {
-		return this.backend.detach(params);
+		return this.ensureBackend().detach(params);
 	};
 
 	clearScrollback: TerminalRuntime["clearScrollback"] = (params) => {
-		return this.backend.clearScrollback(params);
+		return this.ensureBackend().clearScrollback(params);
 	};
 
 	ackColdRestore: TerminalRuntime["ackColdRestore"] = (paneId) => {
-		return this.backend.ackColdRestore(paneId);
+		return this.ensureBackend().ackColdRestore(paneId);
 	};
 
 	getSession: TerminalRuntime["getSession"] = (paneId) => {
-		return this.backend.getSession(paneId);
+		return this.ensureBackend().getSession(paneId);
 	};
 
 	// ===========================================================================
@@ -104,50 +162,50 @@ class LocalTerminalRuntime implements TerminalRuntime {
 	// ===========================================================================
 
 	killByWorkspaceId: TerminalRuntime["killByWorkspaceId"] = (workspaceId) => {
-		return this.backend.killByWorkspaceId(workspaceId);
+		return this.ensureBackend().killByWorkspaceId(workspaceId);
 	};
 
 	getSessionCountByWorkspaceId: TerminalRuntime["getSessionCountByWorkspaceId"] =
 		(workspaceId) => {
-			return this.backend.getSessionCountByWorkspaceId(workspaceId);
+			return this.ensureBackend().getSessionCountByWorkspaceId(workspaceId);
 		};
 
 	refreshPromptsForWorkspace: TerminalRuntime["refreshPromptsForWorkspace"] = (
 		workspaceId,
 	) => {
-		return this.backend.refreshPromptsForWorkspace(workspaceId);
+		return this.ensureBackend().refreshPromptsForWorkspace(workspaceId);
 	};
 
 	// ===========================================================================
-	// Event Source (delegate to backend EventEmitter)
+	// Event Source (bridge backend EventEmitter lazily)
 	// ===========================================================================
 
-	// EventEmitter methods - delegate to backend
-	// Use method syntax to preserve `this` return type correctly
 	on(event: string | symbol, listener: (...args: unknown[]) => void): this {
-		this.backend.on(event, listener);
+		super.on(event, listener);
+		this.ensureForwarder(event);
 		return this;
 	}
 
 	off(event: string | symbol, listener: (...args: unknown[]) => void): this {
-		this.backend.off(event, listener);
+		super.off(event, listener);
+		if (this.listenerCount(event) === 0) {
+			this.removeForwarder(event);
+		}
 		return this;
 	}
 
 	once(event: string | symbol, listener: (...args: unknown[]) => void): this {
-		this.backend.once(event, listener);
+		super.once(event, listener);
+		this.ensureForwarder(event);
 		return this;
-	}
-
-	emit(event: string | symbol, ...args: unknown[]): boolean {
-		return this.backend.emit(event, ...args);
 	}
 
 	addListener(
 		event: string | symbol,
 		listener: (...args: unknown[]) => void,
 	): this {
-		this.backend.addListener(event, listener);
+		super.addListener(event, listener);
+		this.ensureForwarder(event);
 		return this;
 	}
 
@@ -155,46 +213,31 @@ class LocalTerminalRuntime implements TerminalRuntime {
 		event: string | symbol,
 		listener: (...args: unknown[]) => void,
 	): this {
-		this.backend.removeListener(event, listener);
+		super.removeListener(event, listener);
+		if (this.listenerCount(event) === 0) {
+			this.removeForwarder(event);
+		}
 		return this;
 	}
 
 	removeAllListeners(event?: string | symbol): this {
-		this.backend.removeAllListeners(event);
+		if (event) {
+			super.removeAllListeners(event);
+			this.removeForwarder(event);
+			return this;
+		}
+
+		super.removeAllListeners();
+		this.detachForwarders();
 		return this;
-	}
-
-	setMaxListeners(n: number): this {
-		this.backend.setMaxListeners(n);
-		return this;
-	}
-
-	getMaxListeners(): number {
-		return this.backend.getMaxListeners();
-	}
-
-	// biome-ignore lint/complexity/noBannedTypes: EventEmitter interface requires Function[]
-	listeners(event: string | symbol): Function[] {
-		return this.backend.listeners(event);
-	}
-
-	// biome-ignore lint/complexity/noBannedTypes: EventEmitter interface requires Function[]
-	rawListeners(event: string | symbol): Function[] {
-		return this.backend.rawListeners(event);
-	}
-
-	listenerCount(
-		event: string | symbol,
-		listener?: (...args: unknown[]) => void,
-	): number {
-		return this.backend.listenerCount(event, listener);
 	}
 
 	prependListener(
 		event: string | symbol,
 		listener: (...args: unknown[]) => void,
 	): this {
-		this.backend.prependListener(event, listener);
+		super.prependListener(event, listener);
+		this.ensureForwarder(event);
 		return this;
 	}
 
@@ -202,16 +245,19 @@ class LocalTerminalRuntime implements TerminalRuntime {
 		event: string | symbol,
 		listener: (...args: unknown[]) => void,
 	): this {
-		this.backend.prependOnceListener(event, listener);
+		super.prependOnceListener(event, listener);
+		this.ensureForwarder(event);
 		return this;
 	}
 
-	eventNames(): (string | symbol)[] {
-		return this.backend.eventNames();
-	}
-
 	detachAllListeners(): void {
-		this.backend.detachAllListeners();
+		for (const event of this.eventNames()) {
+			if (this.isTerminalRuntimeEvent(event)) {
+				super.removeAllListeners(event);
+				this.removeForwarder(event);
+			}
+		}
+		this.backend?.detachAllListeners();
 	}
 
 	// ===========================================================================
@@ -219,6 +265,7 @@ class LocalTerminalRuntime implements TerminalRuntime {
 	// ===========================================================================
 
 	cleanup: TerminalRuntime["cleanup"] = () => {
+		if (!this.backend) return Promise.resolve();
 		return this.backend.cleanup();
 	};
 }
@@ -238,13 +285,11 @@ export class LocalWorkspaceRuntime implements WorkspaceRuntime {
 	readonly terminal: TerminalRuntime;
 	readonly capabilities: WorkspaceRuntime["capabilities"];
 
-	constructor() {
+	constructor(getTerminalBackend: () => DaemonTerminalManager) {
 		this.id = "local";
 
-		const backend = getDaemonTerminalManager();
-
 		// Create terminal runtime adapter
-		this.terminal = new LocalTerminalRuntime(backend);
+		this.terminal = new LocalTerminalRuntime(getTerminalBackend);
 
 		// Aggregate capabilities
 		this.capabilities = {

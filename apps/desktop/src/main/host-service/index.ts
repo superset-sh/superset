@@ -59,13 +59,32 @@ async function importHostServiceRuntime() {
 		// host-service stack under an org-local HOME so provider-backed Chat never
 		// reads the user's global MastraCode auth.json.
 		configureMastraImportHome();
-		const [hostService, terminalEnv, tunnel] = await Promise.all([
-			import("@superset/host-service"),
+		const [
+			hostServiceApp,
+			authProviders,
+			gitProviders,
+			hostAuthProviders,
+			modelProviders,
+			safety,
+			terminalEnv,
+			tunnel,
+		] = await Promise.all([
+			import("@superset/host-service/app"),
+			import("@superset/host-service/providers/auth"),
+			import("@superset/host-service/providers/git"),
+			import("@superset/host-service/providers/host-auth"),
+			import("@superset/host-service/providers/model-providers"),
+			import("@superset/host-service/safety"),
 			import("@superset/host-service/terminal-env"),
 			import("@superset/host-service/tunnel"),
 		]);
 		return {
-			...hostService,
+			...hostServiceApp,
+			...authProviders,
+			...gitProviders,
+			...hostAuthProviders,
+			...modelProviders,
+			...safety,
 			...terminalEnv,
 			...tunnel,
 		};

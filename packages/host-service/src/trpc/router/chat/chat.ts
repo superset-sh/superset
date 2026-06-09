@@ -38,20 +38,23 @@ const messageMetadataSchema = z
 export const chatRouter = router({
 	getDisplayState: protectedProcedure
 		.input(sessionInput)
-		.query(({ ctx, input }) => {
-			return ctx.runtime.chat.getDisplayState(input);
+		.query(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.getDisplayState(input);
 		}),
 
 	listMessages: protectedProcedure
 		.input(sessionInput)
-		.query(({ ctx, input }) => {
-			return ctx.runtime.chat.listMessages(input);
+		.query(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.listMessages(input);
 		}),
 
 	getSnapshot: protectedProcedure
 		.input(sessionInput)
-		.query(({ ctx, input }) => {
-			return ctx.runtime.chat.getSnapshot(input);
+		.query(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.getSnapshot(input);
 		}),
 
 	sendMessage: protectedProcedure
@@ -62,7 +65,8 @@ export const chatRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const result = await ctx.runtime.chat.sendMessage(input);
+			const chat = await ctx.runtime.getChat();
+			const result = await chat.sendMessage(input);
 			// Fire-and-forget cloud lastActiveAt update so the session selector
 			// keeps reordering after activity. Failures here must not block the
 			// turn — the user already sees their message land via the snapshot.
@@ -75,7 +79,8 @@ export const chatRouter = router({
 	endSession: protectedProcedure
 		.input(sessionInput)
 		.mutation(async ({ ctx, input }) => {
-			await ctx.runtime.chat.disposeRuntime(input.sessionId, input.workspaceId);
+			const chat = await ctx.runtime.getChat();
+			await chat.disposeRuntime(input.sessionId, input.workspaceId);
 			return { ok: true };
 		}),
 
@@ -87,13 +92,17 @@ export const chatRouter = router({
 				metadata: messageMetadataSchema,
 			}),
 		)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.restartFromMessage(input);
+		.mutation(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.restartFromMessage(input);
 		}),
 
-	stop: protectedProcedure.input(sessionInput).mutation(({ ctx, input }) => {
-		return ctx.runtime.chat.stop(input);
-	}),
+	stop: protectedProcedure
+		.input(sessionInput)
+		.mutation(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.stop(input);
+		}),
 
 	respondToApproval: protectedProcedure
 		.input(
@@ -103,8 +112,9 @@ export const chatRouter = router({
 				}),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.respondToApproval(input);
+		.mutation(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.respondToApproval(input);
 		}),
 
 	respondToQuestion: protectedProcedure
@@ -116,8 +126,9 @@ export const chatRouter = router({
 				}),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.respondToQuestion(input);
+		.mutation(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.respondToQuestion(input);
 		}),
 
 	respondToPlan: protectedProcedure
@@ -132,14 +143,16 @@ export const chatRouter = router({
 				}),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.respondToPlan(input);
+		.mutation(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.respondToPlan(input);
 		}),
 
 	getSlashCommands: protectedProcedure
 		.input(workspaceSlashInput)
-		.query(({ ctx, input }) => {
-			return ctx.runtime.chat.getSlashCommands(input);
+		.query(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.getSlashCommands(input);
 		}),
 
 	resolveSlashCommand: protectedProcedure
@@ -148,8 +161,9 @@ export const chatRouter = router({
 				text: z.string(),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.resolveSlashCommand(input);
+		.mutation(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.resolveSlashCommand(input);
 		}),
 
 	previewSlashCommand: protectedProcedure
@@ -158,13 +172,15 @@ export const chatRouter = router({
 				text: z.string(),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.previewSlashCommand(input);
+		.mutation(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.previewSlashCommand(input);
 		}),
 
 	getMcpOverview: protectedProcedure
 		.input(sessionInput)
-		.query(({ ctx, input }) => {
-			return ctx.runtime.chat.getMcpOverview(input);
+		.query(async ({ ctx, input }) => {
+			const chat = await ctx.runtime.getChat();
+			return chat.getMcpOverview(input);
 		}),
 });

@@ -37,12 +37,7 @@ import {
 	applyTrellisSetup,
 	resolveTrellisPlatformsFromAgents,
 } from "../workspace-creation/trellis";
-import { generateBranchNameFromPrompt } from "../workspace-creation/utils/ai-branch-name";
-import {
-	applyAiWorkspaceRename,
-	type GeneratedWorkspaceNames,
-	generateWorkspaceNamesFromPrompt,
-} from "../workspace-creation/utils/ai-workspace-names";
+import type { GeneratedWorkspaceNames } from "../workspace-creation/utils/ai-workspace-names";
 import { resolveProjectBranchPrefix } from "../workspace-creation/utils/branch-prefix";
 import type { ExecGh } from "../workspace-creation/utils/exec-gh";
 import { listBranchNames } from "../workspace-creation/utils/list-branch-names";
@@ -583,10 +578,14 @@ export const workspacesRouter = router({
 				!!composerPrompt;
 			const aiNamesPromise: Promise<GeneratedWorkspaceNames | null> | null =
 				wantAi
-					? generateWorkspaceNamesFromPrompt(composerPrompt).catch((err) => {
-							console.warn("[workspaces.create] AI naming failed", err);
-							return null;
-						})
+					? import("../workspace-creation/utils/ai-workspace-names")
+							.then(({ generateWorkspaceNamesFromPrompt }) =>
+								generateWorkspaceNamesFromPrompt(composerPrompt),
+							)
+							.catch((err) => {
+								console.warn("[workspaces.create] AI naming failed", err);
+								return null;
+							})
 					: null;
 			aiNamesPromise?.catch(() => {});
 
@@ -1217,19 +1216,23 @@ export const workspacesRouter = router({
 					message: "Local project not found for workspace",
 				});
 			}
-			void applyAiWorkspaceRename({
-				ctx,
-				workspaceId: input.workspaceId,
-				repoPath: project.repoPath ?? "",
-				worktreePath: local.worktreePath,
-				oldBranchName: cloud.branch,
-				oldWorkspaceName: cloud.name,
-				prompt: input.prompt,
-				renameTitle: true,
-				renameBranch: true,
-			}).catch((err) => {
-				console.warn("[workspaces.aiRename] failed", err);
-			});
+			void import("../workspace-creation/utils/ai-workspace-names")
+				.then(({ applyAiWorkspaceRename }) =>
+					applyAiWorkspaceRename({
+						ctx,
+						workspaceId: input.workspaceId,
+						repoPath: project.repoPath ?? "",
+						worktreePath: local.worktreePath,
+						oldBranchName: cloud.branch,
+						oldWorkspaceName: cloud.name,
+						prompt: input.prompt,
+						renameTitle: true,
+						renameBranch: true,
+					}),
+				)
+				.catch((err) => {
+					console.warn("[workspaces.aiRename] failed", err);
+				});
 			return { success: true as const };
 		}),
 
@@ -1246,6 +1249,9 @@ export const workspacesRouter = router({
 				ctx,
 				localProject.repoPath,
 			);
+			const { generateBranchNameFromPrompt } = await import(
+				"../workspace-creation/utils/ai-branch-name"
+			);
 			const branchName = await generateBranchNameFromPrompt(
 				input.prompt,
 				existingBranches,
@@ -1254,4 +1260,11 @@ export const workspacesRouter = router({
 		}),
 });
 
-export { generateWorkspaceNamesFromPrompt as _aiNamesGenerator };
+export const _aiNamesGenerator = async (
+	prompt: string,
+): Promise<GeneratedWorkspaceNames | null> => {
+	const { generateWorkspaceNamesFromPrompt } = await import(
+		"../workspace-creation/utils/ai-workspace-names"
+	);
+	return generateWorkspaceNamesFromPrompt(prompt);
+};

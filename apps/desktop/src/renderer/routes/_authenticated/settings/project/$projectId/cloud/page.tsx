@@ -1,6 +1,6 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useFeatureFlagEnabled } from "renderer/lib/posthog-feature-flags";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/project/$projectId/cloud/",

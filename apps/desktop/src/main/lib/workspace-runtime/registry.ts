@@ -13,6 +13,7 @@
  * - Local + cloud workspaces can coexist
  */
 
+import { getDaemonTerminalManager } from "../terminal";
 import { LocalWorkspaceRuntime } from "./local";
 import type { WorkspaceRuntime, WorkspaceRuntimeRegistry } from "./types";
 
@@ -49,7 +50,7 @@ class DefaultWorkspaceRuntimeRegistry implements WorkspaceRuntimeRegistry {
 	 */
 	getDefault(): WorkspaceRuntime {
 		if (!this.localRuntime) {
-			this.localRuntime = new LocalWorkspaceRuntime();
+			this.localRuntime = new LocalWorkspaceRuntime(getDaemonTerminalManager);
 		}
 		return this.localRuntime;
 	}

@@ -50,6 +50,7 @@
   - `mac_signing: "auto" | "required" | "unsigned_internal"`
 - Desktop package scripts:
   - `bun run --cwd apps/desktop report:size --top=<n>`
+  - `bun run --cwd apps/desktop report:runtime -- --duration=<ms> --interval=<ms> --top=<n>`
   - `bun run --cwd apps/desktop ensure:cli`
   - `bun run --cwd apps/desktop validate:native-runtime`
 
@@ -120,6 +121,12 @@
   `codesign --verify --deep --strict --verbose=2 apps/desktop/release/mac-arm64/Superset\ Canary.app`.
 - Run size reporting after compile/package:
   `bun run --cwd apps/desktop report:size --top=12`.
+- For desktop runtime performance work, run the runtime baseline reporter
+  against the real running app and save the markdown/json artifacts:
+  `bun run --cwd apps/desktop report:runtime -- --duration=10000 --interval=1000 --top=12`.
+  Use `--route=<hash-route>` to measure SPA route transitions through the
+  in-app TanStack Router; do not use reload-based navigation as a route-open
+  performance proxy unless the task explicitly measures cold route loads.
 - Run repo quality gates before commit:
   `bun run lint`, `bun run --cwd apps/desktop typecheck`, and
   `bun run typecheck` when package/workflow scripts or shared types changed.
@@ -154,3 +161,56 @@ run: |
     export AD_HOC_MAC_CODE_SIGNING=true
   fi
 ```
+
+## Desktop Runtime Startup Performance
+
+### 1. Scope / Trigger
+
+- Trigger: changes to Electron main startup, workspace runtime registry,
+  terminal runtime setup, host-service coordination, or authenticated desktop
+  providers that start local child processes.
+- Goal: keep desktop startup and idle state from paying for services the user
+  has not opened yet.
+
+### 2. Contracts
+
+- Startup warmups may precompute cheap in-process data, but must not spawn or
+  connect long-lived terminal daemons unless explicitly requested.
+- Workspace runtime construction and capability reads must remain lightweight.
+  Registering terminal lifecycle listeners such as `terminalExit` must not
+  instantiate daemon backends by itself.
+- Host-service should start for the active organization on demand. Do not
+  prestart one host-service process for every synced organization unless a task
+  explicitly adds a measured background-sync requirement and budget.
+- Desktop host-service entrypoints should import host-service runtime modules
+  through narrow package subpaths, not the root `@superset/host-service`
+  barrel. Use subpaths such as `@superset/host-service/app`,
+  `@superset/host-service/providers/auth`, and
+  `@superset/host-service/safety` so unrelated exports do not become part of
+  process startup.
+- Keep Chat/Mastra/model-gateway/AI helper paths out of idle host-service
+  startup. Use lazy accessors or dynamic imports for:
+  `ChatRuntimeManager`, `ChatService`, model gateway handlers, AI task draft
+  gateway calls, AI branch naming, and AI workspace naming/rename.
+- Preserve existing terminal event behavior when making runtime backends lazy:
+  listeners registered before backend initialization must receive forwarded
+  backend events after the first real terminal operation.
+
+### 3. Tests Required
+
+- Unit regression for terminal prewarm default behavior: no daemon connection by
+  default, explicit daemon prewarm still connects.
+- Unit regression for workspace runtime laziness: construction, capability
+  reads, and listener registration do not create the daemon backend; first real
+  terminal operation does.
+- Unit regression for host-service startup selection: only the active
+  organization is selected, including before organization collection data is
+  ready.
+- Runtime report after meaningful startup/runtime optimization:
+  `bun run --cwd apps/desktop report:runtime -- --duration=10000 --interval=1000 --top=12`.
+- Source-level regression when changing desktop host-service startup imports:
+  assert `apps/desktop/src/main/host-service/index.ts` does not import the root
+  `@superset/host-service` barrel for runtime startup.
+- Source-level regression when changing host-service composition: assert
+  `packages/host-service/src/app.ts` has no static value imports for
+  `ChatService`, `ChatRuntimeManager`, or model gateway handlers.

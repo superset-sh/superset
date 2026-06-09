@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./app": {
+			"types": "./src/app.ts",
+			"default": "./src/app.ts"
+		},
 		"./db": {
 			"types": "./src/db/index.ts",
 			"default": "./src/db/index.ts"
@@ -31,6 +35,26 @@
 		"./terminal-env": {
 			"types": "./src/terminal/env.ts",
 			"default": "./src/terminal/env.ts"
+		},
+		"./providers/auth": {
+			"types": "./src/providers/auth/index.ts",
+			"default": "./src/providers/auth/index.ts"
+		},
+		"./providers/git": {
+			"types": "./src/providers/git/index.ts",
+			"default": "./src/providers/git/index.ts"
+		},
+		"./providers/host-auth": {
+			"types": "./src/providers/host-auth/index.ts",
+			"default": "./src/providers/host-auth/index.ts"
+		},
+		"./providers/model-providers": {
+			"types": "./src/providers/model-providers/index.ts",
+			"default": "./src/providers/model-providers/index.ts"
+		},
+		"./safety": {
+			"types": "./src/safety.ts",
+			"default": "./src/safety.ts"
 		},
 		"./settings": {
 			"types": "./src/trpc/router/settings/index.ts",

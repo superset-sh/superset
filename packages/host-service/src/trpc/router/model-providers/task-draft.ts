@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { handleModelGatewayRequest } from "../../../model-gateway/gateway";
 import { encodeGatewayModelId } from "../../../model-providers/model-ref";
 import { listModelProviders } from "../../../model-providers/storage";
 import type { ModelProviderSummary } from "../../../model-providers/types";
@@ -78,6 +77,9 @@ export async function generateTaskDraft(args: {
 		});
 	}
 
+	const { handleModelGatewayRequest } = await import(
+		"../../../model-gateway/gateway"
+	);
 	const response = await handleModelGatewayRequest({
 		db: args.ctx.db,
 		internalToken: args.ctx.hostServiceSecret,

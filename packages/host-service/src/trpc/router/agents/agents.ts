@@ -204,15 +204,18 @@ async function runChatAgent(
 
 	// Errors surface via `getSnapshot.displayState.errorMessage` when a
 	// chat pane attaches.
-	void ctx.runtime.chat
-		.sendMessage({
-			sessionId,
-			workspaceId: input.workspaceId,
-			payload: {
-				content: input.prompt,
-				...(files.length > 0 ? { files } : {}),
-			},
-		})
+	void ctx.runtime
+		.getChat()
+		.then((chat) =>
+			chat.sendMessage({
+				sessionId,
+				workspaceId: input.workspaceId,
+				payload: {
+					content: input.prompt,
+					...(files.length > 0 ? { files } : {}),
+				},
+			}),
+		)
 		.catch((error) => {
 			console.error(
 				`[runChatAgent] sendMessage failed for ${sessionId}:`,

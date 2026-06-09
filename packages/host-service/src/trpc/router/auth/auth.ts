@@ -18,66 +18,83 @@ const anthropicEnvConfigInput = z.object({
 });
 
 export const authRouter = router({
-	getAnthropicStatus: protectedProcedure.query(({ ctx }) => {
-		return ctx.runtime.auth.getAnthropicAuthStatus();
+	getAnthropicStatus: protectedProcedure.query(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.getAnthropicAuthStatus();
 	}),
-	startAnthropicOAuth: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.startAnthropicOAuth();
+	startAnthropicOAuth: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.startAnthropicOAuth();
 	}),
 	completeAnthropicOAuth: protectedProcedure
 		.input(anthropicOAuthCodeInput)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.auth.completeAnthropicOAuth({ code: input.code });
+		.mutation(async ({ ctx, input }) => {
+			const auth = await ctx.runtime.getAuth();
+			return auth.completeAnthropicOAuth({ code: input.code });
 		}),
-	cancelAnthropicOAuth: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.cancelAnthropicOAuth();
+	cancelAnthropicOAuth: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.cancelAnthropicOAuth();
 	}),
-	disconnectAnthropicOAuth: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.disconnectAnthropicOAuth();
+	disconnectAnthropicOAuth: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.disconnectAnthropicOAuth();
 	}),
 	setAnthropicApiKey: protectedProcedure
 		.input(anthropicApiKeyInput)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.auth.setAnthropicApiKey({ apiKey: input.apiKey });
+		.mutation(async ({ ctx, input }) => {
+			const auth = await ctx.runtime.getAuth();
+			return auth.setAnthropicApiKey({ apiKey: input.apiKey });
 		}),
-	clearAnthropicApiKey: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.clearAnthropicApiKey();
+	clearAnthropicApiKey: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.clearAnthropicApiKey();
 	}),
-	getAnthropicEnvConfig: protectedProcedure.query(({ ctx }) => {
-		return ctx.runtime.auth.getAnthropicEnvConfig();
+	getAnthropicEnvConfig: protectedProcedure.query(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.getAnthropicEnvConfig();
 	}),
 	setAnthropicEnvConfig: protectedProcedure
 		.input(anthropicEnvConfigInput)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.auth.setAnthropicEnvConfig({ envText: input.envText });
+		.mutation(async ({ ctx, input }) => {
+			const auth = await ctx.runtime.getAuth();
+			return auth.setAnthropicEnvConfig({ envText: input.envText });
 		}),
-	clearAnthropicEnvConfig: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.clearAnthropicEnvConfig();
+	clearAnthropicEnvConfig: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.clearAnthropicEnvConfig();
 	}),
 
-	getOpenAIStatus: protectedProcedure.query(({ ctx }) => {
-		return ctx.runtime.auth.getOpenAIAuthStatus();
+	getOpenAIStatus: protectedProcedure.query(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.getOpenAIAuthStatus();
 	}),
-	startOpenAIOAuth: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.startOpenAIOAuth();
+	startOpenAIOAuth: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.startOpenAIOAuth();
 	}),
 	completeOpenAIOAuth: protectedProcedure
 		.input(openAIOAuthCodeInput)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.auth.completeOpenAIOAuth({ code: input.code });
+		.mutation(async ({ ctx, input }) => {
+			const auth = await ctx.runtime.getAuth();
+			return auth.completeOpenAIOAuth({ code: input.code });
 		}),
-	cancelOpenAIOAuth: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.cancelOpenAIOAuth();
+	cancelOpenAIOAuth: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.cancelOpenAIOAuth();
 	}),
-	disconnectOpenAIOAuth: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.disconnectOpenAIOAuth();
+	disconnectOpenAIOAuth: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.disconnectOpenAIOAuth();
 	}),
 	setOpenAIApiKey: protectedProcedure
 		.input(openAIApiKeyInput)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.auth.setOpenAIApiKey({ apiKey: input.apiKey });
+		.mutation(async ({ ctx, input }) => {
+			const auth = await ctx.runtime.getAuth();
+			return auth.setOpenAIApiKey({ apiKey: input.apiKey });
 		}),
-	clearOpenAIApiKey: protectedProcedure.mutation(({ ctx }) => {
-		return ctx.runtime.auth.clearOpenAIApiKey();
+	clearOpenAIApiKey: protectedProcedure.mutation(async ({ ctx }) => {
+		const auth = await ctx.runtime.getAuth();
+		return auth.clearOpenAIApiKey();
 	}),
 });

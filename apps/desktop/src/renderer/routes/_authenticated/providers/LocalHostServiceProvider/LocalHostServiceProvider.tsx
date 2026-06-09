@@ -16,6 +16,7 @@ import {
 import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
 import { MOCK_ORG_ID } from "shared/constants";
 import { useCollections } from "../CollectionsProvider";
+import { getHostServiceOrganizationIdsToStart } from "./utils/getHostServiceOrganizationIdsToStart/getHostServiceOrganizationIdsToStart";
 
 interface LocalHostServiceContextValue {
 	machineId: string;
@@ -51,12 +52,20 @@ export function LocalHostServiceProvider({
 		() => organizations?.map((organization) => organization.id) ?? [],
 		[organizations],
 	);
+	const organizationIdsToStart = useMemo(
+		() =>
+			getHostServiceOrganizationIdsToStart({
+				activeOrganizationId,
+				knownOrganizationIds: organizationIds,
+			}),
+		[activeOrganizationId, organizationIds],
+	);
 
 	useEffect(() => {
-		for (const organizationId of organizationIds) {
+		for (const organizationId of organizationIdsToStart) {
 			startHostService({ organizationId });
 		}
-	}, [organizationIds, startHostService]);
+	}, [organizationIdsToStart, startHostService]);
 
 	const { data: machineIdData } = electronTrpc.device.getMachineId.useQuery(
 		undefined,

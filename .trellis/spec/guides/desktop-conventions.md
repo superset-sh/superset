@@ -120,7 +120,11 @@ navigate({ to: "/tasks/$taskId", params: { taskId: result.task.id } });
 
 ## Host-Service Local State
 
-Host-service owns per-machine local project/workspace state. Electron starts one host-service process per organization through `HostServiceCoordinator`, and the child receives:
+Host-service owns per-machine local project/workspace state. The desktop
+renderer starts host-service for the active organization through
+`LocalHostServiceProvider`; inactive organizations are not prestarted on app
+load. Switching the active organization starts that organization's host-service
+on demand. The child receives:
 
 - `HOST_MANIFEST_DIR=${SUPERSET_HOME_DIR}/host/<organizationId>`
 - `HOST_DB_PATH=${SUPERSET_HOME_DIR}/host/<organizationId>/host.db`

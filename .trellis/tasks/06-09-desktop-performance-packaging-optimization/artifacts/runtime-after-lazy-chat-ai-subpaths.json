@@ -1,0 +1,3694 @@
+{
+  "generatedAt": "2026-06-09T09:17:25.607Z",
+  "options": {
+    "durationMs": 10000,
+    "intervalMs": 1000,
+    "topLimit": 12,
+    "reportDir": "/Users/bichengyu/Documents/toolProject/superset/.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts",
+    "routes": [],
+    "routeSettleMs": 750,
+    "restoreRoute": true,
+    "automation": true,
+    "markdownOut": "/Users/bichengyu/Documents/toolProject/superset/.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-after-lazy-chat-ai-subpaths.md",
+    "jsonOut": "/Users/bichengyu/Documents/toolProject/superset/.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-after-lazy-chat-ai-subpaths.json"
+  },
+  "startup": {
+    "report": {
+      "processStartedAt": "2026-06-09T09:14:39.280Z",
+      "uptimeMs": 156323.311792,
+      "marks": [
+        {
+          "name": "main:process-start",
+          "elapsedMs": 0,
+          "timestamp": "2026-06-09T09:14:39.280Z"
+        },
+        {
+          "name": "main:index-module-ready",
+          "elapsedMs": 1466.002625,
+          "timestamp": "2026-06-09T09:14:40.746Z"
+        },
+        {
+          "name": "electron:when-ready-start",
+          "elapsedMs": 1474.653125,
+          "timestamp": "2026-06-09T09:14:40.754Z"
+        },
+        {
+          "name": "electron:app-ready",
+          "elapsedMs": 1567.936792,
+          "timestamp": "2026-06-09T09:14:40.848Z"
+        },
+        {
+          "name": "main:init-app-state-start",
+          "elapsedMs": 1681.093709,
+          "timestamp": "2026-06-09T09:14:40.961Z"
+        },
+        {
+          "name": "main:init-app-state-end",
+          "elapsedMs": 1714.997875,
+          "timestamp": "2026-06-09T09:14:40.995Z"
+        },
+        {
+          "name": "main:tanstack-persistence-start",
+          "elapsedMs": 1715.01125,
+          "timestamp": "2026-06-09T09:14:40.995Z"
+        },
+        {
+          "name": "main:tanstack-persistence-end",
+          "elapsedMs": 1723.8295,
+          "timestamp": "2026-06-09T09:14:41.004Z"
+        },
+        {
+          "name": "main:network-logger-start",
+          "elapsedMs": 1723.840792,
+          "timestamp": "2026-06-09T09:14:41.004Z"
+        },
+        {
+          "name": "main:network-logger-end",
+          "elapsedMs": 1728.132167,
+          "timestamp": "2026-06-09T09:14:41.008Z"
+        },
+        {
+          "name": "main:webview-extension-start",
+          "elapsedMs": 1728.150334,
+          "timestamp": "2026-06-09T09:14:41.008Z"
+        },
+        {
+          "name": "main:webview-extension-end",
+          "elapsedMs": 1729.8915,
+          "timestamp": "2026-06-09T09:14:41.010Z"
+        },
+        {
+          "name": "main:terminal-reconcile-start",
+          "elapsedMs": 1729.8955,
+          "timestamp": "2026-06-09T09:14:41.010Z"
+        },
+        {
+          "name": "main:terminal-reconcile-end",
+          "elapsedMs": 1730.206125,
+          "timestamp": "2026-06-09T09:14:41.010Z"
+        },
+        {
+          "name": "main:terminal-prewarm-start",
+          "elapsedMs": 1730.207792,
+          "timestamp": "2026-06-09T09:14:41.010Z"
+        },
+        {
+          "name": "main:terminal-prewarm-end",
+          "elapsedMs": 1730.630417,
+          "timestamp": "2026-06-09T09:14:41.010Z"
+        },
+        {
+          "name": "main:window-setup-start",
+          "elapsedMs": 1779.587042,
+          "timestamp": "2026-06-09T09:14:41.059Z"
+        },
+        {
+          "name": "main-window:create-start",
+          "elapsedMs": 1783.369625,
+          "timestamp": "2026-06-09T09:14:41.063Z"
+        },
+        {
+          "name": "main-window:browser-window-create-start",
+          "elapsedMs": 1783.698667,
+          "timestamp": "2026-06-09T09:14:41.063Z"
+        },
+        {
+          "name": "main-window:browser-window-create-end",
+          "elapsedMs": 1892.513959,
+          "timestamp": "2026-06-09T09:14:41.172Z"
+        },
+        {
+          "name": "main:window-setup-end",
+          "elapsedMs": 1905.544834,
+          "timestamp": "2026-06-09T09:14:41.185Z"
+        },
+        {
+          "name": "main:app-ready-complete",
+          "elapsedMs": 1924.270209,
+          "timestamp": "2026-06-09T09:14:41.204Z"
+        },
+        {
+          "name": "renderer:boot-mounted",
+          "elapsedMs": 2436.169542,
+          "timestamp": "2026-06-09T09:14:41.716Z",
+          "detail": {
+            "rendererElapsedMs": 546.6000000238419,
+            "href": "http://localhost:3005/#/v2-workspace/72faa8d8-2dfa-4202-b7fe-1ec72711af87",
+            "readyState": "interactive"
+          }
+        },
+        {
+          "name": "main-window:renderer-did-finish-load",
+          "elapsedMs": 2457.805,
+          "timestamp": "2026-06-09T09:14:41.737Z",
+          "detail": {
+            "url": "http://localhost:3005/#/v2-workspace/72faa8d8-2dfa-4202-b7fe-1ec72711af87"
+          }
+        },
+        {
+          "name": "main-window:first-show",
+          "elapsedMs": 2471.220375,
+          "timestamp": "2026-06-09T09:14:41.751Z"
+        }
+      ],
+      "durations": [
+        {
+          "from": "main:process-start",
+          "to": "main:index-module-ready",
+          "durationMs": 1466.002625
+        },
+        {
+          "from": "main:index-module-ready",
+          "to": "electron:when-ready-start",
+          "durationMs": 8.650499999999965
+        },
+        {
+          "from": "electron:when-ready-start",
+          "to": "electron:app-ready",
+          "durationMs": 93.28366699999992
+        },
+        {
+          "from": "electron:app-ready",
+          "to": "main:init-app-state-start",
+          "durationMs": 113.15691700000002
+        },
+        {
+          "from": "main:init-app-state-start",
+          "to": "main:init-app-state-end",
+          "durationMs": 33.90416600000003
+        },
+        {
+          "from": "main:init-app-state-end",
+          "to": "main:tanstack-persistence-start",
+          "durationMs": 0.013374999999996362
+        },
+        {
+          "from": "main:tanstack-persistence-start",
+          "to": "main:tanstack-persistence-end",
+          "durationMs": 8.818250000000035
+        },
+        {
+          "from": "main:tanstack-persistence-end",
+          "to": "main:network-logger-start",
+          "durationMs": 0.01129199999991215
+        },
+        {
+          "from": "main:network-logger-start",
+          "to": "main:network-logger-end",
+          "durationMs": 4.291375000000016
+        },
+        {
+          "from": "main:network-logger-end",
+          "to": "main:webview-extension-start",
+          "durationMs": 0.01816699999994853
+        },
+        {
+          "from": "main:webview-extension-start",
+          "to": "main:webview-extension-end",
+          "durationMs": 1.741166000000021
+        },
+        {
+          "from": "main:webview-extension-end",
+          "to": "main:terminal-reconcile-start",
+          "durationMs": 0.004000000000132786
+        },
+        {
+          "from": "main:terminal-reconcile-start",
+          "to": "main:terminal-reconcile-end",
+          "durationMs": 0.3106249999998454
+        },
+        {
+          "from": "main:terminal-reconcile-end",
+          "to": "main:terminal-prewarm-start",
+          "durationMs": 0.0016669999999976426
+        },
+        {
+          "from": "main:terminal-prewarm-start",
+          "to": "main:terminal-prewarm-end",
+          "durationMs": 0.4226250000001528
+        },
+        {
+          "from": "main:terminal-prewarm-end",
+          "to": "main:window-setup-start",
+          "durationMs": 48.95662500000003
+        },
+        {
+          "from": "main:window-setup-start",
+          "to": "main-window:create-start",
+          "durationMs": 3.7825829999999314
+        },
+        {
+          "from": "main-window:create-start",
+          "to": "main-window:browser-window-create-start",
+          "durationMs": 0.32904199999984485
+        },
+        {
+          "from": "main-window:browser-window-create-start",
+          "to": "main-window:browser-window-create-end",
+          "durationMs": 108.81529200000023
+        },
+        {
+          "from": "main-window:browser-window-create-end",
+          "to": "main:window-setup-end",
+          "durationMs": 13.030874999999924
+        },
+        {
+          "from": "main:window-setup-end",
+          "to": "main:app-ready-complete",
+          "durationMs": 18.725374999999985
+        },
+        {
+          "from": "main:app-ready-complete",
+          "to": "renderer:boot-mounted",
+          "durationMs": 511.89933300000007
+        },
+        {
+          "from": "renderer:boot-mounted",
+          "to": "main-window:renderer-did-finish-load",
+          "durationMs": 21.635457999999744
+        },
+        {
+          "from": "main-window:renderer-did-finish-load",
+          "to": "main-window:first-show",
+          "durationMs": 13.41537500000004
+        }
+      ]
+    }
+  },
+  "automation": {
+    "windowInfo": {
+      "title": "",
+      "url": "http://localhost:3005/#/v2-workspace/72faa8d8-2dfa-4202-b7fe-1ec72711af87",
+      "viewportWidth": 1844,
+      "viewportHeight": 1050,
+      "focused": false
+    },
+    "renderer": {
+      "href": "http://localhost:3005/#/v2-workspace/72faa8d8-2dfa-4202-b7fe-1ec72711af87",
+      "title": "",
+      "readyState": "complete",
+      "visibilityState": "visible",
+      "nodeCount": 551,
+      "scriptCount": 5,
+      "stylesheetCount": 15,
+      "resourceCount": 250,
+      "usedJsHeapSize": 164767985,
+      "totalJsHeapSize": 176805641,
+      "jsHeapSizeLimit": 4294967296,
+      "navigation": {
+        "type": "navigate",
+        "durationMs": 568.1000000238419,
+        "domContentLoadedMs": 547,
+        "loadEventMs": 568.1000000238419,
+        "responseEndMs": 264
+      },
+      "paint": [
+        {
+          "name": "first-paint",
+          "startTimeMs": 808
+        },
+        {
+          "name": "first-contentful-paint",
+          "startTimeMs": 2308
+        }
+      ],
+      "largestResources": [
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/lucide-react.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 26.299999952316284,
+          "transferSize": 0,
+          "decodedBodySize": 1064505
+        },
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/react-dom_client.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 5.800000071525574,
+          "transferSize": 0,
+          "decodedBodySize": 1005867
+        },
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/react-icons_hi2.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 25.5,
+          "transferSize": 0,
+          "decodedBodySize": 653916
+        },
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/chunk-DXBGPRRJ.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 16.899999976158142,
+          "transferSize": 0,
+          "decodedBodySize": 599671
+        },
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/chunk-JUNHJVGZ.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 39.199999928474426,
+          "transferSize": 0,
+          "decodedBodySize": 580174
+        },
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/chunk-TDLK6Z2U.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 38.699999928474426,
+          "transferSize": 0,
+          "decodedBodySize": 401868
+        },
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/chunk-P37RYJLM.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 11.899999976158142,
+          "transferSize": 0,
+          "decodedBodySize": 398533
+        },
+        {
+          "name": "http://localhost:3005/globals.css?t=1780996469872",
+          "initiatorType": "script",
+          "durationMs": 35.299999952316284,
+          "transferSize": 300,
+          "decodedBodySize": 312242
+        },
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/@tanstack_react-router.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 4.700000047683716,
+          "transferSize": 0,
+          "decodedBodySize": 271742
+        },
+        {
+          "name": "http://localhost:3005/stores/tabs/store.ts?t=1780994565968",
+          "initiatorType": "script",
+          "durationMs": 213.80000007152557,
+          "transferSize": 300,
+          "decodedBodySize": 228387
+        },
+        {
+          "name": "http://localhost:3005/@vite/client",
+          "initiatorType": "script",
+          "durationMs": 47.299999952316284,
+          "transferSize": 300,
+          "decodedBodySize": 179345
+        },
+        {
+          "name": "http://localhost:3005/@fs/Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.vite/deps/chunk-ISSNYALG.js?v=4c229995",
+          "initiatorType": "script",
+          "durationMs": 15.699999928474426,
+          "transferSize": 0,
+          "decodedBodySize": 145931
+        }
+      ],
+      "longTasks": []
+    },
+    "consoleErrors": []
+  },
+  "routeMeasurements": [],
+  "processSummary": {
+    "sampleCount": 10,
+    "durationMs": 9508,
+    "desktop": {
+      "role": "other",
+      "maxCount": 12,
+      "avgCpu": 5.87,
+      "maxCpu": 52.4,
+      "avgMemoryBytes": 5341975934.4,
+      "maxMemoryBytes": 5342269208
+    },
+    "services": {
+      "role": "other-service",
+      "maxCount": 13,
+      "avgCpu": 1.48,
+      "maxCpu": 3.9,
+      "avgMemoryBytes": 6632759614.4,
+      "maxMemoryBytes": 6632774360
+    },
+    "all": {
+      "role": "other",
+      "maxCount": 25,
+      "avgCpu": 7.35,
+      "maxCpu": 53.1,
+      "avgMemoryBytes": 11974735548.8,
+      "maxMemoryBytes": 11975010800
+    },
+    "groups": [
+      {
+        "role": "electron-renderer",
+        "maxCount": 1,
+        "avgCpu": 5.2,
+        "maxCpu": 50.1,
+        "avgMemoryBytes": 541915604.8,
+        "maxMemoryBytes": 542133512
+      },
+      {
+        "role": "electron-main",
+        "maxCount": 1,
+        "avgCpu": 0.29,
+        "maxCpu": 2.3,
+        "avgMemoryBytes": 326764872,
+        "maxMemoryBytes": 326797640
+      },
+      {
+        "role": "host-service",
+        "maxCount": 1,
+        "avgCpu": 0.2,
+        "maxCpu": 0.7,
+        "avgMemoryBytes": 205457016,
+        "maxMemoryBytes": 205538936
+      },
+      {
+        "role": "pty-daemon",
+        "maxCount": 1,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "avgMemoryBytes": 14959720,
+        "maxMemoryBytes": 14959720
+      },
+      {
+        "role": "electron-gpu",
+        "maxCount": 1,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "avgMemoryBytes": 146293840,
+        "maxMemoryBytes": 146293840
+      },
+      {
+        "role": "electron-network",
+        "maxCount": 1,
+        "avgCpu": 0.18000000000000002,
+        "maxCpu": 0.9,
+        "avgMemoryBytes": 27204905.6,
+        "maxMemoryBytes": 27214736
+      },
+      {
+        "role": "desktop-dev-runner",
+        "maxCount": 3,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "avgMemoryBytes": 3715242480,
+        "maxMemoryBytes": 3715242480
+      },
+      {
+        "role": "api",
+        "maxCount": 3,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "avgMemoryBytes": 85569800,
+        "maxMemoryBytes": 85569800
+      },
+      {
+        "role": "electric-proxy",
+        "maxCount": 3,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "avgMemoryBytes": 26103600,
+        "maxMemoryBytes": 26103600
+      },
+      {
+        "role": "workerd",
+        "maxCount": 2,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "avgMemoryBytes": 4155529360,
+        "maxMemoryBytes": 4155529360
+      },
+      {
+        "role": "other",
+        "maxCount": 8,
+        "avgCpu": 1.48,
+        "maxCpu": 3.9,
+        "avgMemoryBytes": 2729694350.4,
+        "maxMemoryBytes": 2729709096
+      }
+    ],
+    "topByMemory": [
+      {
+        "pid": 57169,
+        "role": "workerd",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 3973927952,
+        "latestMemoryBytes": 3973927952,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+      },
+      {
+        "pid": 72875,
+        "role": "desktop-dev-runner",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 3698626968,
+        "latestMemoryBytes": 3698626968,
+        "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+      },
+      {
+        "pid": 22858,
+        "role": "other",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 2046144824,
+        "latestMemoryBytes": 2046144824,
+        "command": "next-server (v16.2.6)"
+      },
+      {
+        "pid": 8475,
+        "role": "electron-renderer",
+        "samples": 10,
+        "avgCpu": 5.2,
+        "maxCpu": 50.1,
+        "maxMemoryBytes": 542133512,
+        "latestMemoryBytes": 541330696,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+      },
+      {
+        "pid": 72915,
+        "role": "other",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 348539016,
+        "latestMemoryBytes": 348539016,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+      },
+      {
+        "pid": 8239,
+        "role": "electron-main",
+        "samples": 10,
+        "avgCpu": 0.29,
+        "maxCpu": 2.3,
+        "maxMemoryBytes": 326797640,
+        "latestMemoryBytes": 326748488,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+      },
+      {
+        "pid": 15601,
+        "role": "host-service",
+        "samples": 10,
+        "avgCpu": 0.2,
+        "maxCpu": 0.7,
+        "maxMemoryBytes": 205538936,
+        "latestMemoryBytes": 204752504,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+      },
+      {
+        "pid": 55870,
+        "role": "other",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 196314040,
+        "latestMemoryBytes": 196314040,
+        "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+      },
+      {
+        "pid": 57684,
+        "role": "workerd",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 181601408,
+        "latestMemoryBytes": 181601408,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+      },
+      {
+        "pid": 8408,
+        "role": "electron-gpu",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 146293840,
+        "latestMemoryBytes": 146293840,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+      },
+      {
+        "pid": 57038,
+        "role": "other",
+        "samples": 10,
+        "avgCpu": 1.48,
+        "maxCpu": 3.9,
+        "maxMemoryBytes": 100369056,
+        "latestMemoryBytes": 100369056,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+      },
+      {
+        "pid": 61342,
+        "role": "api",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 59580792,
+        "latestMemoryBytes": 59580792,
+        "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+      }
+    ],
+    "topByCpu": [
+      {
+        "pid": 8475,
+        "role": "electron-renderer",
+        "samples": 10,
+        "avgCpu": 5.2,
+        "maxCpu": 50.1,
+        "maxMemoryBytes": 542133512,
+        "latestMemoryBytes": 541330696,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+      },
+      {
+        "pid": 57038,
+        "role": "other",
+        "samples": 10,
+        "avgCpu": 1.48,
+        "maxCpu": 3.9,
+        "maxMemoryBytes": 100369056,
+        "latestMemoryBytes": 100369056,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+      },
+      {
+        "pid": 8239,
+        "role": "electron-main",
+        "samples": 10,
+        "avgCpu": 0.29,
+        "maxCpu": 2.3,
+        "maxMemoryBytes": 326797640,
+        "latestMemoryBytes": 326748488,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+      },
+      {
+        "pid": 15601,
+        "role": "host-service",
+        "samples": 10,
+        "avgCpu": 0.2,
+        "maxCpu": 0.7,
+        "maxMemoryBytes": 205538936,
+        "latestMemoryBytes": 204752504,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+      },
+      {
+        "pid": 8409,
+        "role": "electron-network",
+        "samples": 10,
+        "avgCpu": 0.18000000000000002,
+        "maxCpu": 0.9,
+        "maxMemoryBytes": 27214736,
+        "latestMemoryBytes": 27132816,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+      },
+      {
+        "pid": 16675,
+        "role": "pty-daemon",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 14959720,
+        "latestMemoryBytes": 14959720,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+      },
+      {
+        "pid": 55825,
+        "role": "electric-proxy",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 2539928,
+        "latestMemoryBytes": 2539928,
+        "command": "bun run --cwd apps/electric-proxy dev"
+      },
+      {
+        "pid": 55826,
+        "role": "electric-proxy",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 12224552,
+        "latestMemoryBytes": 12224552,
+        "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+      },
+      {
+        "pid": 55866,
+        "role": "electric-proxy",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 11339120,
+        "latestMemoryBytes": 11339120,
+        "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+      },
+      {
+        "pid": 55870,
+        "role": "other",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 196314040,
+        "latestMemoryBytes": 196314040,
+        "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+      },
+      {
+        "pid": 57169,
+        "role": "workerd",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 3973927952,
+        "latestMemoryBytes": 3973927952,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+      },
+      {
+        "pid": 57681,
+        "role": "other",
+        "samples": 10,
+        "avgCpu": 0,
+        "maxCpu": 0,
+        "maxMemoryBytes": 10322496,
+        "latestMemoryBytes": 10322496,
+        "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+      }
+    ]
+  },
+  "samples": [
+    {
+      "sampledAt": "2026-06-09T09:17:15.725Z",
+      "elapsedMs": 119,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 52.4,
+        "memoryBytes": 5342269208
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 0.7,
+        "memoryBytes": 6632741592
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 53.1,
+        "memoryBytes": 11975010800
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 50.1,
+          "memoryBytes": 542133512
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 2.3,
+          "memoryBytes": 326797640
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 205506168
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 27198352
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 0.7,
+          "memoryBytes": 2729676328
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196281272,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0.7,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 2.3,
+          "memoryBytes": 326797640,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0,
+          "memoryBytes": 27198352,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 50.1,
+          "memoryBytes": 542133512,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0,
+          "memoryBytes": 205506168,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:16.755Z",
+      "elapsedMs": 1149,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 3.1,
+        "memoryBytes": 5342236440
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 1,
+        "memoryBytes": 6632741592
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 4.1,
+        "memoryBytes": 11974978032
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 1.3,
+          "memoryBytes": 542051592
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0.3,
+          "memoryBytes": 326797640
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0.6,
+          "memoryBytes": 205538936
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0.9,
+          "memoryBytes": 27214736
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 1,
+          "memoryBytes": 2729676328
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196281272,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 1,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0.3,
+          "memoryBytes": 326797640,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0.9,
+          "memoryBytes": 27214736,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 1.3,
+          "memoryBytes": 542051592,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0.6,
+          "memoryBytes": 205538936,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:17.782Z",
+      "elapsedMs": 2176,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 2.2,
+        "memoryBytes": 5342236440
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 0.9,
+        "memoryBytes": 6632741592
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 3.1,
+        "memoryBytes": 11974978032
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 0.6,
+          "memoryBytes": 542051592
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0.2,
+          "memoryBytes": 326797640
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0.6,
+          "memoryBytes": 205538936
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0.8,
+          "memoryBytes": 27214736
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 0.9,
+          "memoryBytes": 2729676328
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196281272,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0.9,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0.2,
+          "memoryBytes": 326797640,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0.8,
+          "memoryBytes": 27214736,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 0.6,
+          "memoryBytes": 542051592,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0.6,
+          "memoryBytes": 205538936,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:18.809Z",
+      "elapsedMs": 3203,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 0,
+        "memoryBytes": 5342236440
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 0.9,
+        "memoryBytes": 6632757976
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 0.9,
+        "memoryBytes": 11974994416
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 542051592
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 326797640
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 205538936
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 27214736
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 0.9,
+          "memoryBytes": 2729692712
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196297656,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0.9,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0,
+          "memoryBytes": 326797640,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0,
+          "memoryBytes": 27214736,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 0,
+          "memoryBytes": 542051592,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0,
+          "memoryBytes": 205538936,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:19.836Z",
+      "elapsedMs": 4230,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 0.7999999999999999,
+        "memoryBytes": 5342170904
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 1.1,
+        "memoryBytes": 6632757976
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 1.9000000000000001,
+        "memoryBytes": 11974928880
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 542051592
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0.1,
+          "memoryBytes": 326732104
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0.7,
+          "memoryBytes": 205538936
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 27214736
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 1.1,
+          "memoryBytes": 2729692712
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196297656,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 1.1,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0.1,
+          "memoryBytes": 326732104,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0,
+          "memoryBytes": 27214736,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 0,
+          "memoryBytes": 542051592,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0.7,
+          "memoryBytes": 205538936,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:20.865Z",
+      "elapsedMs": 5259,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 0,
+        "memoryBytes": 5342170904
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 1.5,
+        "memoryBytes": 6632757976
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 1.5,
+        "memoryBytes": 11974928880
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 542051592
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 326732104
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 205538936
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 27214736
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 1.5,
+          "memoryBytes": 2729692712
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196297656,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 1.5,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0,
+          "memoryBytes": 326732104,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0,
+          "memoryBytes": 27214736,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 0,
+          "memoryBytes": 542051592,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0,
+          "memoryBytes": 205538936,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:22.026Z",
+      "elapsedMs": 6420,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 0,
+        "memoryBytes": 5342187288
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 2.1,
+        "memoryBytes": 6632774360
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 2.1,
+        "memoryBytes": 11974961648
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 542051592
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 326748488
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 205538936
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 27214736
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 2.1,
+          "memoryBytes": 2729709096
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196314040,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 2.1,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0,
+          "memoryBytes": 326748488,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0,
+          "memoryBytes": 27214736,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 0,
+          "memoryBytes": 542051592,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0,
+          "memoryBytes": 205538936,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:23.053Z",
+      "elapsedMs": 7447,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 0,
+        "memoryBytes": 5342187288
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 3.9,
+        "memoryBytes": 6632774360
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 3.9,
+        "memoryBytes": 11974961648
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 542051592
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 326748488
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 205538936
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 27214736
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 3.9,
+          "memoryBytes": 2729709096
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196314040,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 3.9,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0,
+          "memoryBytes": 326748488,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0,
+          "memoryBytes": 27214736,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 0,
+          "memoryBytes": 542051592,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0,
+          "memoryBytes": 205538936,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:24.081Z",
+      "elapsedMs": 8475,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 0,
+        "memoryBytes": 5341466392
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 1,
+        "memoryBytes": 6632774360
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 1,
+        "memoryBytes": 11974240752
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 541330696
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 326748488
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 205538936
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 27214736
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 1,
+          "memoryBytes": 2729709096
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196314040,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 1,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0,
+          "memoryBytes": 326748488,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0,
+          "memoryBytes": 27214736,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 0,
+          "memoryBytes": 541330696,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0,
+          "memoryBytes": 205538936,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    },
+    {
+      "sampledAt": "2026-06-09T09:17:25.114Z",
+      "elapsedMs": 9508,
+      "desktop": {
+        "role": "other",
+        "count": 12,
+        "cpu": 0.2,
+        "memoryBytes": 5340598040
+      },
+      "services": {
+        "role": "other-service",
+        "count": 13,
+        "cpu": 1.7,
+        "memoryBytes": 6632774360
+      },
+      "all": {
+        "role": "other",
+        "count": 25,
+        "cpu": 1.9000000000000001,
+        "memoryBytes": 11973372400
+      },
+      "groups": [
+        {
+          "role": "electron-renderer",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 541330696
+        },
+        {
+          "role": "electron-main",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 326748488
+        },
+        {
+          "role": "host-service",
+          "count": 1,
+          "cpu": 0.1,
+          "memoryBytes": 204752504
+        },
+        {
+          "role": "pty-daemon",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 14959720
+        },
+        {
+          "role": "electron-gpu",
+          "count": 1,
+          "cpu": 0,
+          "memoryBytes": 146293840
+        },
+        {
+          "role": "electron-network",
+          "count": 1,
+          "cpu": 0.1,
+          "memoryBytes": 27132816
+        },
+        {
+          "role": "desktop-dev-runner",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 3715242480
+        },
+        {
+          "role": "api",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 85569800
+        },
+        {
+          "role": "electric-proxy",
+          "count": 3,
+          "cpu": 0,
+          "memoryBytes": 26103600
+        },
+        {
+          "role": "workerd",
+          "count": 2,
+          "cpu": 0,
+          "memoryBytes": 4155529360
+        },
+        {
+          "role": "other",
+          "count": 8,
+          "cpu": 1.7,
+          "memoryBytes": 2729709096
+        }
+      ],
+      "processes": [
+        {
+          "pid": 16675,
+          "ppid": 15601,
+          "role": "pty-daemon",
+          "cpu": 0,
+          "memoryBytes": 14959720,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/pty-daemon.js --socket=/var/folders/75/wv42k4rj6zg92nd57m795jbr0000gn/T/superset-ptyd-81779b755b7a.sock"
+        },
+        {
+          "pid": 55825,
+          "ppid": 29259,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 2539928,
+          "command": "bun run --cwd apps/electric-proxy dev"
+        },
+        {
+          "pid": 55826,
+          "ppid": 55825,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 12224552,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec wrangler dev --port ${WRANGLER_PORT:-8787}"
+        },
+        {
+          "pid": 55866,
+          "ppid": 55826,
+          "role": "electric-proxy",
+          "cpu": 0,
+          "memoryBytes": 11339120,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/electric-proxy/node_modules/.bin/wrangler dev --port 3012"
+        },
+        {
+          "pid": 55870,
+          "ppid": 55866,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 196314040,
+          "command": "/Users/bichengyu/.nvm/versions/node/v20.18.2/bin/node --no-warnings --experimental-vm-modules /Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/wrangler@4.78.0+eb149c62096a40af/node_modules/wrangler/wrangler-dist/cli.js dev --port 3012"
+        },
+        {
+          "pid": 57038,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 1.7,
+          "memoryBytes": 100369056,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57169,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 3973927952,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=localhost:3012 --external-addr=loopback=localhost:50455 --control-fd=3 -"
+        },
+        {
+          "pid": 57681,
+          "ppid": 55870,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 10322496,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.3/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.3 --ping"
+        },
+        {
+          "pid": 57684,
+          "ppid": 55870,
+          "role": "workerd",
+          "cpu": 0,
+          "memoryBytes": 181601408,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@cloudflare+workerd-darwin-arm64@1.20260317.1/node_modules/@cloudflare/workerd-darwin-arm64/bin/workerd serve --binary --experimental --socket-addr=entry=127.0.0.1:0 --external-addr=loopback=127.0.0.1:50457 --control-fd=3 - --inspector-addr=localhost:50473"
+        },
+        {
+          "pid": 8239,
+          "ppid": 72875,
+          "role": "electron-main",
+          "cpu": 0,
+          "memoryBytes": 326748488,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron ."
+        },
+        {
+          "pid": 8408,
+          "ppid": 8239,
+          "role": "electron-gpu",
+          "cpu": 0,
+          "memoryBytes": 146293840,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=gpu-process --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --gpu-preferences=SAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAAwAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708988185955192 --seatbelt-client=44"
+        },
+        {
+          "pid": 8409,
+          "ppid": 8239,
+          "role": "electron-network",
+          "cpu": 0.1,
+          "memoryBytes": 27132816,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --utility-sub-type=network.mojom.NetworkService --lang=zh-CN --service-sandbox-type=network --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708989122997041 --seatbelt-client=46"
+        },
+        {
+          "pid": 8475,
+          "ppid": 8239,
+          "role": "electron-renderer",
+          "cpu": 0,
+          "memoryBytes": 541330696,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/MacOS/Electron Helper (Renderer) --type=renderer --user-data-dir=/Users/bichengyu/Library/Application Support/Superset --standard-schemes=superset-icon,superset-font --secure-schemes=superset-icon,superset-font --bypasscsp-schemes=superset-icon,superset-font --fetch-schemes=superset-icon,superset-font --app-path=/Users/bichengyu/Documents/toolProject/superset/apps/desktop --enable-sandbox --force-color-profile=srgb --max-active-webgl-contexts=256 --remote-debugging-port=9322 --lang=zh-CN --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1780067019507687 --launch-time-ticks=929461662377 --shared-files --field-trial-handle=1718379636,r,4010516705139023733,1374879283203371879,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,MacWebContentsOcclusion,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=86"
+        },
+        {
+          "pid": 15601,
+          "ppid": 8239,
+          "role": "host-service",
+          "cpu": 0.1,
+          "memoryBytes": 204752504,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/electron@40.8.5/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron /Users/bichengyu/Documents/toolProject/superset/apps/desktop/dist/main/host-service.js"
+        },
+        {
+          "pid": 72533,
+          "ppid": 29259,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 2785688,
+          "command": "bun run --cwd apps/desktop dev"
+        },
+        {
+          "pid": 72865,
+          "ppid": 72533,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 13829824,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 DESKTOP_VITE_PORT=5173 DESKTOP_AUTOMATION_PORT=9322 electron-vite dev --watch"
+        },
+        {
+          "pid": 72875,
+          "ppid": 72865,
+          "role": "desktop-dev-runner",
+          "cpu": 0,
+          "memoryBytes": 3698626968,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/desktop/node_modules/.bin/electron-vite dev --watch"
+        },
+        {
+          "pid": 72913,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12042792,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.25.12/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.12 --ping"
+        },
+        {
+          "pid": 72915,
+          "ppid": 72875,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 348539016,
+          "command": "/Users/bichengyu/Documents/toolProject/superset/node_modules/.bun/@esbuild+darwin-arm64@0.27.4/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.27.4 --ping"
+        },
+        {
+          "pid": 16968,
+          "ppid": 16675,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 3555688,
+          "command": "/bin/zsh -l"
+        },
+        {
+          "pid": 22793,
+          "ppid": 29259,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 2490752,
+          "command": "bun run --cwd apps/api dev"
+        },
+        {
+          "pid": 22795,
+          "ppid": 22793,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 12421184,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/node_modules/.bin/dotenv -e ../../.env -- sh -c exec next dev --port ${API_PORT:-3001}"
+        },
+        {
+          "pid": 22817,
+          "ppid": 22795,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 23498256,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/node_modules/.bin/next dev --port 3001"
+        },
+        {
+          "pid": 22858,
+          "ppid": 22817,
+          "role": "other",
+          "cpu": 0,
+          "memoryBytes": 2046144824,
+          "command": "next-server (v16.2.6)"
+        },
+        {
+          "pid": 61342,
+          "ppid": 22858,
+          "role": "api",
+          "cpu": 0,
+          "memoryBytes": 59580792,
+          "command": "node /Users/bichengyu/Documents/toolProject/superset/apps/api/.next/dev/build/webpack-loaders.js 50173"
+        }
+      ]
+    }
+  ],
+  "outputs": {
+    "markdownPath": "/Users/bichengyu/Documents/toolProject/superset/.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-after-lazy-chat-ai-subpaths.md",
+    "jsonPath": "/Users/bichengyu/Documents/toolProject/superset/.trellis/tasks/06-09-desktop-performance-packaging-optimization/artifacts/runtime-after-lazy-chat-ai-subpaths.json"
+  }
+}

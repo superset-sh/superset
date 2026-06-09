@@ -1,6 +1,6 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { useFeatureFlagPayload } from "posthog-js/react";
 import { env } from "renderer/env.renderer";
+import { useFeatureFlagPayload } from "renderer/lib/posthog-feature-flags";
 
 interface RelayUrlPayload {
 	url?: string;
