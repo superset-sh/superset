@@ -177,6 +177,17 @@ jobs:
 
           bun run package -- --publish never --config ${{ inputs.electron_builder_config }} --${{ matrix.arch }}
 
+      - name: Verify bundled Trellis runtime
+        working-directory: apps/desktop
+        run: |
+          APP_DIR=$(find release -maxdepth 2 -name "*.app" -type d | head -1)
+          if [ -z "$APP_DIR" ]; then
+            echo "::error::No .app bundle found in release/"
+            ls -la release/
+            exit 1
+          fi
+          bun run validate:trellis-runtime -- --app-dir "$APP_DIR"
+
       - name: Verify app-update.yml exists
         working-directory: apps/desktop
         run: |
@@ -344,6 +355,10 @@ jobs:
       - name: Build Electron app
         working-directory: apps/desktop
         run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
+
+      - name: Verify bundled Trellis runtime
+        working-directory: apps/desktop
+        run: bun run validate:trellis-runtime -- --node-modules node_modules
 
       - name: Verify Linux AppImage + update manifest exist
         working-directory: apps/desktop

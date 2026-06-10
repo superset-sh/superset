@@ -146,6 +146,25 @@ Create Workspace may initialize repository-local Trellis workflow files for Code
 workspaces. This is a cross-layer desktop contract because renderer UI collects
 intent while host-service owns filesystem probing and mutation.
 
+### 0. Plugin Runtime Packaging Contract
+
+- Trellis is Superset's first bundled guided-workflow plugin runtime. Treat it
+  as the pattern for future injected tools such as MCP plugins, not as an
+  incidental npm dependency.
+- Packaged Canary/Release artifacts must prove the bundled runtime can execute
+  before upload. Missing transitive packages such as `supports-color` are
+  Superset packaging failures, not user project failures.
+- Desktop release builds must run `apps/desktop/scripts/validate-trellis-runtime.ts`
+  against the packaged app/resource layout. The gate must execute the Trellis
+  entrypoint with Bun and run minimal `init --yes --skip-existing` flows for
+  the supported Code adapters used by the app.
+- Any explicit Trellis runtime dependency allowlist in
+  `apps/desktop/runtime-dependencies.ts` is only acceptable when guarded by the
+  executable smoke test. Do not rely on `trellis --version` or source-tree
+  startup checks alone; they do not prove `app.asar.unpacked` is complete.
+- User-facing copy should describe this as a guided workflow or workflow best
+  practice. Keep `Trellis` as implementation terminology in code/specs.
+
 ### 2. Signatures
 
 - Renderer draft field: `NewWorkspaceDraft.trellisInitialize: boolean`.
@@ -187,6 +206,11 @@ intent while host-service owns filesystem probing and mutation.
 - User-facing desktop copy should describe this as a guided workflow or
   planning/review best-practice option. Keep `Trellis` as the implementation
   name in code/specs, not the primary UI concept.
+- Task-driven workspace creation should only block on selected host
+  availability. If the host is online, the selected Project should be prepared
+  on that host when missing, then the task worktree should be created there.
+  Project-local setup state may be shown as progress/copy but must not be a
+  disabled prerequisite for running the Task.
 - Superset `Task` remains the user-facing task object. When a guided Code
   Workspace is created from a Superset Task, host-service may create one
   repository-local Trellis mirror task and link it through

@@ -20,6 +20,8 @@ import {
 	runAgentInWorkspace,
 } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
+import { persistLocalProject } from "../project/utils/persist-project";
+import { cloneRepoInto } from "../project/utils/resolve-repo";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
 import {
@@ -28,10 +30,17 @@ import {
 } from "../workspace-creation/shared/branch-search";
 import { startCommandTerminal } from "../workspace-creation/shared/command-terminal";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
-import { requireLocalProject } from "../workspace-creation/shared/local-project";
+import {
+	findLocalProject,
+	type LocalProject,
+	requireLocalProject,
+} from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import type { GitClient } from "../workspace-creation/shared/types";
-import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
+import {
+	defaultWorktreesRoot,
+	safeResolveWorktreePath,
+} from "../workspace-creation/shared/worktree-paths";
 import {
 	applySupersetTaskTrellisBridge,
 	applyTrellisSetup,
@@ -132,6 +141,42 @@ async function acquireWorkspaceCreateLock(key: string): Promise<() => void> {
 			workspaceCreateLocks.delete(key);
 		}
 	};
+}
+
+async function ensureLocalProjectForWorkspaceCreate(
+	ctx: HostServiceContext,
+	projectId: string,
+): Promise<LocalProject> {
+	const existing = findLocalProject(ctx, projectId);
+	if (existing) return existing;
+
+	const releaseProjectSetupLock = await acquireWorkspaceCreateLock(
+		`project-setup:${projectId}`,
+	);
+	try {
+		const afterLock = findLocalProject(ctx, projectId);
+		if (afterLock) return afterLock;
+
+		const cloudProject = await ctx.api.v2Project.get.query({
+			organizationId: ctx.organizationId,
+			id: projectId,
+		});
+		if (!cloudProject.repoCloneUrl) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"Project is not set up on this host and has no repository clone URL. Import the project on this host before running tasks there.",
+			});
+		}
+
+		const parentDir = getHostWorktreeBaseDir(ctx) ?? defaultWorktreesRoot();
+		mkdirSync(parentDir, { recursive: true });
+		const resolved = await cloneRepoInto(cloudProject.repoCloneUrl, parentDir);
+		persistLocalProject(ctx, projectId, resolved);
+		return requireLocalProject(ctx, projectId);
+	} finally {
+		releaseProjectSetupLock();
+	}
 }
 
 type AgentLaunchResult =
@@ -555,7 +600,10 @@ export const workspacesRouter = router({
 	create: protectedProcedure
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
-			const localProject = requireLocalProject(ctx, input.projectId);
+			const localProject = await ensureLocalProjectForWorkspaceCreate(
+				ctx,
+				input.projectId,
+			);
 
 			// Kick off host.ensure immediately so the cloud round-trip
 			// overlaps with the git work below. Suppressing unhandled

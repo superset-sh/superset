@@ -25,6 +25,7 @@
 		"check:pty-daemon-bundle": "bun run scripts/check-pty-daemon-bundle.ts",
 		"copy:native-modules": "bun run scripts/copy-native-modules.ts",
 		"validate:native-runtime": "bun run scripts/validate-native-runtime.ts",
+		"validate:trellis-runtime": "bun run scripts/validate-trellis-runtime.ts",
 		"report:size": "bun run scripts/report-package-size.ts",
 		"report:runtime": "bun run scripts/report-runtime-performance.ts",
 		"prebuild": "bun run clean:dev && bun run generate:icons && bun run compile:app && bun run copy:native-modules && bun run validate:native-runtime",

@@ -143,10 +143,13 @@ describe("Run in Workspace selection wiring (#2641)", () => {
 			issueBatchSource,
 		]) {
 			expect(source).toContain("TrellisSetupRow");
-			expect(source).toContain("trellisInitialize");
+			expect(source).toContain("useState(true)");
 			expect(source).toContain(
 				"trellisSetup: trellisInitialize ? { initialize: true } : undefined",
 			);
+			expect(source).toContain("allowProjectPreparation");
+			expect(source).not.toContain("Project not set up on this host");
+			expect(source).not.toContain("Checking host…");
 		}
 	});
 

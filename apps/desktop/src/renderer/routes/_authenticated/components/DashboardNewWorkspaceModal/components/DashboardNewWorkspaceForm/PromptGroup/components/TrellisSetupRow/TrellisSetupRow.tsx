@@ -10,6 +10,7 @@ interface TrellisSetupRowProps {
 	projectId: string | null;
 	hostId: string | null;
 	disabled?: boolean;
+	allowProjectPreparation?: boolean;
 	projectSetupState?: ProjectSetupState;
 	initialize: boolean;
 	onInitializeChange: (initialize: boolean) => void;
@@ -43,8 +44,8 @@ function statusCopy(
 			};
 		case "project-not-setup":
 			return {
-				title: "Set up project on this device",
-				description: "Guided workflow is available after setup.",
+				title: "Prepare project on this device",
+				description: "The project will be prepared before the workflow starts.",
 			};
 		case "ready":
 			return {
@@ -79,13 +80,17 @@ export function TrellisSetupRow({
 	projectId,
 	hostId,
 	disabled = false,
+	allowProjectPreparation = false,
 	projectSetupState,
 	initialize,
 	onInitializeChange,
 }: TrellisSetupRowProps) {
 	const hostUrl = useHostUrl(hostId);
 	const canCheckWorkflow =
-		projectSetupState !== "checking" && projectSetupState !== "not-setup";
+		projectSetupState !== "checking" &&
+		(projectSetupState !== "not-setup" || allowProjectPreparation);
+	const canPrepareProject =
+		allowProjectPreparation && projectSetupState === "not-setup";
 	const { data, isFetching, error } = useQuery({
 		queryKey: ["workspaceCreation", "trellisStatus", projectId, hostUrl],
 		queryFn: async () => {
@@ -94,7 +99,13 @@ export function TrellisSetupRow({
 				hostUrl,
 			).workspaceCreation.getTrellisStatus.query({ projectId });
 		},
-		enabled: Boolean(projectId && hostUrl && !disabled && canCheckWorkflow),
+		enabled: Boolean(
+			projectId &&
+				hostUrl &&
+				!disabled &&
+				canCheckWorkflow &&
+				!canPrepareProject,
+		),
 		retry: false,
 		staleTime: 10_000,
 	});
@@ -102,10 +113,12 @@ export function TrellisSetupRow({
 	const setupBlockedState =
 		projectSetupState === "checking"
 			? "project-checking"
-			: projectSetupState === "not-setup"
+			: projectSetupState === "not-setup" && !allowProjectPreparation
 				? "project-not-setup"
 				: null;
-	const state = setupBlockedState ?? (error ? "unavailable" : data?.state);
+	const state =
+		setupBlockedState ??
+		(canPrepareProject ? "missing" : error ? "unavailable" : data?.state);
 	const copy = statusCopy(state);
 	const canInitialize = state === "missing" && !disabled;
 

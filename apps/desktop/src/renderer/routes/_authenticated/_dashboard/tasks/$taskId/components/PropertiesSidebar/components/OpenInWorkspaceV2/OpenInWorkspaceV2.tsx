@@ -151,7 +151,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 
 	const [selectedAgent, setSelectedAgentState] =
 		useState<SelectedAgent>(readStoredAgent);
-	const [trellisInitialize, setTrellisInitialize] = useState(false);
+	const [trellisInitialize, setTrellisInitialize] = useState(true);
 	useEffect(() => {
 		if (!v2AgentsFetched) return;
 		if (selectedAgent !== NONE && validAgentIds.has(selectedAgent)) return;
@@ -187,13 +187,6 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		} else if (!activeHostUrl) {
 			return "Host service is not running";
 		}
-		// While the host's project list is still loading, needsSetup is null —
-		// block until we know whether the project is actually set up on the
-		// chosen host, otherwise the server-side guard becomes the only check.
-		if (setUpProjectIds === null) return "Checking host…";
-		if (selectedProject?.needsSetup === true) {
-			return "Project not set up on this host";
-		}
 		// Agent UUIDs are host-scoped. Right after a host switch the stored id
 		// from the previous host is still in selectedAgent until the agent
 		// query resolves and the corrective effect runs — block submission so
@@ -207,8 +200,6 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		return null;
 	}, [
 		selectedProjectId,
-		selectedProject?.needsSetup,
-		setUpProjectIds,
 		selectedAgent,
 		v2AgentsFetched,
 		validAgentIds,
@@ -335,7 +326,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 									<span className="flex-1 truncate">{project.name}</span>
 									{project.needsSetup === true && (
 										<span className="text-[10px] text-amber-500 shrink-0">
-											not set up
+											will prepare
 										</span>
 									)}
 								</DropdownMenuItem>
@@ -368,7 +359,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				<TrellisSetupRow
 					projectId={selectedProjectId}
 					hostId={hostId}
-					disabled={selectedProject?.needsSetup === true}
+					allowProjectPreparation
 					projectSetupState={getProjectSetupState(selectedProject?.needsSetup)}
 					initialize={trellisInitialize}
 					onInitializeChange={setTrellisInitialize}

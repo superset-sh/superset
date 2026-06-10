@@ -162,7 +162,7 @@ export function RunIssuesInWorkspacePopover({
 
 	const [selectedAgent, setSelectedAgentState] =
 		useState<SelectedAgent>(readStoredAgent);
-	const [trellisInitialize, setTrellisInitialize] = useState(false);
+	const [trellisInitialize, setTrellisInitialize] = useState(true);
 	useEffect(() => {
 		if (!v2AgentsFetched) return;
 		if (selectedAgent !== NONE && validAgentIds.has(selectedAgent)) return;
@@ -192,10 +192,6 @@ export function RunIssuesInWorkspacePopover({
 		} else if (!activeHostUrl) {
 			return "Host service is not running";
 		}
-		if (setUpProjectIds === null) return "Checking host…";
-		if (selectedProject?.needsSetup === true) {
-			return "Project not set up on this host";
-		}
 		if (selectedAgent !== NONE) {
 			if (!v2AgentsFetched) return "Checking agents…";
 			if (!validAgentIds.has(selectedAgent)) {
@@ -205,8 +201,6 @@ export function RunIssuesInWorkspacePopover({
 		return null;
 	}, [
 		selectedProjectId,
-		selectedProject?.needsSetup,
-		setUpProjectIds,
 		selectedAgent,
 		v2AgentsFetched,
 		validAgentIds,
@@ -359,7 +353,7 @@ export function RunIssuesInWorkspacePopover({
 												<span className="flex-1 truncate">{project.name}</span>
 												{project.needsSetup === true && (
 													<span className="text-[10px] text-amber-500">
-														not set up
+														will prepare
 													</span>
 												)}
 												{project.id === selectedProjectId && (
@@ -388,7 +382,7 @@ export function RunIssuesInWorkspacePopover({
 					<TrellisSetupRow
 						projectId={selectedProjectId}
 						hostId={hostId}
-						disabled={selectedProject?.needsSetup === true}
+						allowProjectPreparation
 						projectSetupState={getProjectSetupState(
 							selectedProject?.needsSetup,
 						)}
