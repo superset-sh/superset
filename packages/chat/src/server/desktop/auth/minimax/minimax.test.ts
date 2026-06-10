@@ -1,35 +1,60 @@
-import { describe, expect, it } from "bun:test";
-import {
-	getMiniMaxCredentialsFromAuthStorage,
-	type MiniMaxAuthStorageLike,
-} from "./minimax";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 
-function makeStorage(
-	entries: Record<string, unknown>,
-): MiniMaxAuthStorageLike {
+interface FakeAuthStorage {
+	reload: ReturnType<typeof mock<() => void>>;
+	get: ReturnType<typeof mock<(providerId: string) => unknown>>;
+}
+
+function makeFakeAuthStorage(): FakeAuthStorage {
 	return {
-		reload: () => {},
-		get: (providerId: string) => entries[providerId],
+		reload: mock(() => {}),
+		get: mock((_providerId: string) => undefined),
 	};
 }
 
+const fakeAuthStorage = makeFakeAuthStorage();
+
+mock.module("mastracode", () => ({
+	createAuthStorage: mock(() => fakeAuthStorage),
+	createMastraCode: mock(async () => ({
+		harness: {},
+		mcpManager: null,
+		hookManager: null,
+		authStorage: null,
+		storageWarning: undefined,
+	})),
+}));
+
+const { getMiniMaxCredentialsFromAuthStorage } = await import("./minimax");
+
 describe("getMiniMaxCredentialsFromAuthStorage", () => {
+	beforeEach(() => {
+		fakeAuthStorage.reload.mockClear();
+		fakeAuthStorage.get.mockClear();
+		fakeAuthStorage.get.mockReturnValue(undefined);
+	});
+
 	it("returns null when storage is empty", () => {
-		expect(getMiniMaxCredentialsFromAuthStorage(makeStorage({}))).toBeNull();
+		expect(getMiniMaxCredentialsFromAuthStorage()).toBeNull();
 	});
 
 	it("returns null when the minimax entry is missing", () => {
-		expect(
-			getMiniMaxCredentialsFromAuthStorage(
-				makeStorage({ anthropic: { type: "api_key", key: "sk-ant-..." } }),
-			),
-		).toBeNull();
+		fakeAuthStorage.get.mockImplementation((providerId: string) =>
+			providerId === "anthropic"
+				? { type: "api_key", key: "sk-ant-..." }
+				: undefined,
+		);
+		expect(getMiniMaxCredentialsFromAuthStorage()).toBeNull();
 	});
 
 	it("returns the api key when stored", () => {
-		const result = getMiniMaxCredentialsFromAuthStorage(
-			makeStorage({ minimax: { type: "api_key", key: "sk-cp-..." } }),
+		fakeAuthStorage.get.mockImplementation((providerId: string) =>
+			providerId === "minimax"
+				? { type: "api_key", key: "sk-cp-..." }
+				: undefined,
 		);
+
+		const result = getMiniMaxCredentialsFromAuthStorage();
 		expect(result).not.toBeNull();
 		expect(result?.apiKey).toBe("sk-cp-...");
 		expect(result?.providerId).toBe("minimax");
@@ -38,50 +63,47 @@ describe("getMiniMaxCredentialsFromAuthStorage", () => {
 	});
 
 	it("trims whitespace from the api key", () => {
-		const result = getMiniMaxCredentialsFromAuthStorage(
-			makeStorage({ minimax: { type: "api_key", key: "  sk-cp-...  \n" } }),
+		fakeAuthStorage.get.mockImplementation((providerId: string) =>
+			providerId === "minimax"
+				? { type: "api_key", key: "  sk-cp-...  \n" }
+				: undefined,
 		);
-		expect(result?.apiKey).toBe("sk-cp-...");
+		expect(getMiniMaxCredentialsFromAuthStorage()?.apiKey).toBe("sk-cp-...");
 	});
 
 	it("returns null when key is empty after trim", () => {
-		expect(
-			getMiniMaxCredentialsFromAuthStorage(
-				makeStorage({ minimax: { type: "api_key", key: "   " } }),
-			),
-		).toBeNull();
+		fakeAuthStorage.get.mockImplementation((providerId: string) =>
+			providerId === "minimax"
+				? { type: "api_key", key: "   " }
+				: undefined,
+		);
+		expect(getMiniMaxCredentialsFromAuthStorage()).toBeNull();
 	});
 
 	it("returns null when entry has wrong type (not api_key)", () => {
-		expect(
-			getMiniMaxCredentialsFromAuthStorage(
-				makeStorage({
-					minimax: { type: "oauth", access: "something", key: "ignored" },
-				}),
-			),
-		).toBeNull();
+		fakeAuthStorage.get.mockImplementation((providerId: string) =>
+			providerId === "minimax"
+				? { type: "oauth", access: "something", key: "ignored" }
+				: undefined,
+		);
+		expect(getMiniMaxCredentialsFromAuthStorage()).toBeNull();
 	});
 
 	it("returns null when entry is not a plain object", () => {
-		expect(
-			getMiniMaxCredentialsFromAuthStorage(
-				makeStorage({ minimax: "not-an-object" }),
-			),
-		).toBeNull();
+		fakeAuthStorage.get.mockImplementation((providerId: string) =>
+			providerId === "minimax" ? "not-an-object" : undefined,
+		);
+		expect(getMiniMaxCredentialsFromAuthStorage()).toBeNull();
 	});
 
 	it("swallows storage read errors and returns null", () => {
-		const broken: MiniMaxAuthStorageLike = {
-			reload: () => {
-				throw new Error("disk on fire");
-			},
-			get: () => null,
-		};
-		// Suppress the expected console.warn from this test
+		fakeAuthStorage.reload.mockImplementation(() => {
+			throw new Error("disk on fire");
+		});
 		const origWarn = console.warn;
 		console.warn = () => {};
 		try {
-			expect(getMiniMaxCredentialsFromAuthStorage(broken)).toBeNull();
+			expect(getMiniMaxCredentialsFromAuthStorage()).toBeNull();
 		} finally {
 			console.warn = origWarn;
 		}

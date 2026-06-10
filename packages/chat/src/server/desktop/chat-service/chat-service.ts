@@ -8,8 +8,10 @@ import {
 	getOpenAICredentialsFromAuthStorage,
 	isOpenAICredentialExpired,
 } from "../auth/openai";
+import { getMiniMaxCredentialsFromAnySource } from "../auth/minimax";
 import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
+	MINIMAX_AUTH_PROVIDER_ID,
 	OPENAI_AUTH_PROVIDER_ID,
 	OPENAI_AUTH_PROVIDER_IDS,
 } from "../auth/provider-ids";
@@ -376,6 +378,47 @@ export class ChatService {
 		return { success: true };
 	}
 
+	/**
+	 * MiniMax (minimax.io) is an Anthropic-protocol provider with a single
+	 * API key and no OAuth. The credentials live in the same auth-storage
+	 * file as Anthropic/OpenAI, just under a different provider id.
+	 */
+	async getMiniMaxAuthStatus(): Promise<AuthStatus> {
+		const authStorage = this.getAuthStorage();
+		authStorage.reload();
+		const credential = getMiniMaxCredentialsFromAnySource();
+		const method: AuthStatus["method"] = credential ? "api_key" : null;
+		const status: AuthStatus = {
+			authenticated: method !== null,
+			method,
+			source: method !== null ? "managed" : null,
+			issue: null,
+		};
+		this.logAuthResolution("minimax", {
+			resolvedMethod: status.method,
+			resolvedSource: status.source,
+			externalRuntimeAllowed: false,
+			storageProviderId: credential?.providerId ?? null,
+			storageMethod: method,
+		});
+		return status;
+	}
+
+	async setMiniMaxApiKey(input: { apiKey: string }): Promise<{ success: true }> {
+		setApiKeyForProvider(
+			this.getAuthStorage(),
+			MINIMAX_AUTH_PROVIDER_ID,
+			input.apiKey,
+			"MiniMax API key is required",
+		);
+		return { success: true };
+	}
+
+	async clearMiniMaxApiKey(): Promise<{ success: true }> {
+		clearApiKeyForProvider(this.getAuthStorage(), MINIMAX_AUTH_PROVIDER_ID);
+		return { success: true };
+	}
+
 	async startOpenAIOAuth(): Promise<{ url: string; instructions: string }> {
 		this.stopOpenAIOAuthLoopback();
 		this.pendingOpenAIOAuthCallbackUrl = null;
@@ -652,7 +695,7 @@ export class ChatService {
 	}
 
 	private logAuthResolution(
-		provider: "anthropic" | "openai",
+		provider: "anthropic" | "minimax" | "openai",
 		details: Record<string, unknown>,
 	): void {
 		if (process.env.SUPERSET_DEBUG_AUTH !== "1") {
