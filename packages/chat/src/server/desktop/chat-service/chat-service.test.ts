@@ -859,3 +859,61 @@ describe("ChatService OpenAI auth storage", () => {
 		}
 	});
 });
+
+describe("ChatService MiniMax auth storage", () => {
+	it("returns unauthenticated when no MiniMax key is set", async () => {
+		const chatService = new ChatService();
+
+		expect(await chatService.getMiniMaxAuthStatus()).toEqual({
+			authenticated: false,
+			method: null,
+			source: null,
+			issue: null,
+		});
+	});
+
+	it("stores a managed MiniMax API key and reports it as authenticated", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setMiniMaxApiKey({ apiKey: " test-cp-key " });
+
+		expect(fakeAuthStorage.setStoredApiKey).toHaveBeenCalledWith(
+			"minimax",
+			"test-cp-key",
+		);
+		expect(fakeAuthStorage.set).toHaveBeenCalledWith("minimax", {
+			type: "api_key",
+			key: "test-cp-key",
+		});
+
+		expect(await chatService.getMiniMaxAuthStatus()).toEqual({
+			authenticated: true,
+			method: "api_key",
+			source: "managed",
+			issue: null,
+		});
+	});
+
+	it("clears a stored MiniMax API key", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setMiniMaxApiKey({ apiKey: " cp-key " });
+		await chatService.clearMiniMaxApiKey();
+
+		expect(fakeAuthStorage.remove).toHaveBeenCalledWith("apikey:minimax");
+		expect(await chatService.getMiniMaxAuthStatus()).toEqual({
+			authenticated: false,
+			method: null,
+			source: null,
+			issue: null,
+		});
+	});
+
+	it("rejects empty or whitespace-only MiniMax API keys", async () => {
+		const chatService = new ChatService();
+
+		await expect(
+			chatService.setMiniMaxApiKey({ apiKey: "   " }),
+		).rejects.toThrow("MiniMax API key is required");
+	});
+});
