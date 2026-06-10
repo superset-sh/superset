@@ -43,6 +43,22 @@ describe("Trellis bundled runtime packaging", () => {
 		}
 	});
 
+	test("keeps CJS-only Trellis compatibility dependencies nested", () => {
+		expect(requiredMaterializedNodeModules).not.toContain("mimic-fn");
+		expect(packagedTrellisRuntimeResourceCopies).toContainEqual(
+			expect.objectContaining({
+				from: "node_modules/onetime/node_modules/mimic-fn",
+				to: "node_modules/onetime/node_modules/mimic-fn",
+			}),
+		);
+		expect(packagedTrellisRuntimeResourceCopies).toContainEqual(
+			expect.objectContaining({
+				from: "node_modules/restore-cursor/node_modules/signal-exit",
+				to: "node_modules/restore-cursor/node_modules/signal-exit",
+			}),
+		);
+	});
+
 	test("exposes a Trellis runtime smoke command for release gates", () => {
 		expect(packageJson.scripts).toHaveProperty("validate:trellis-runtime");
 

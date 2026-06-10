@@ -235,6 +235,46 @@ function copyDependencyForPackage(
 	);
 }
 
+function copyNestedDependencyForPackage(
+	nodeModulesDir: string,
+	parentModuleName: string,
+	dependencyName: string,
+	dependencyRange: string,
+	required: boolean,
+): void {
+	const nestedDependencyPath = join(
+		nodeModulesDir,
+		parentModuleName,
+		"node_modules",
+		dependencyName,
+	);
+	const nestedVersion = readInstalledModuleVersion(nestedDependencyPath);
+	if (nestedVersion && satisfies(nestedVersion, dependencyRange)) {
+		const nestedStats = lstatSync(nestedDependencyPath);
+		if (nestedStats.isSymbolicLink()) {
+			const realPath = realpathSync(nestedDependencyPath);
+			rmSync(nestedDependencyPath);
+			cpSync(realPath, nestedDependencyPath, {
+				recursive: true,
+			});
+		}
+		return;
+	}
+
+	rmSync(nestedDependencyPath, { force: true, recursive: true });
+	console.log(
+		`  ${dependencyName}: materializing ${dependencyRange} as nested copy for ${parentModuleName}`,
+	);
+
+	copyExactModuleVersion(
+		nodeModulesDir,
+		dependencyName,
+		dependencyRange,
+		nestedDependencyPath,
+		required,
+	);
+}
+
 /**
  * Fetch an npm package tarball and extract it to destPath.
  * Used when cross-compiling and the target platform package isn't in the Bun store.
@@ -527,14 +567,14 @@ function copyDuckdbPlatformPackages(nodeModulesDir: string): void {
 
 function copyTrellisCompatibilityDependencies(nodeModulesDir: string): void {
 	console.log("\nPreparing Trellis runtime compatibility dependencies...");
-	copyDependencyForPackage(
+	copyNestedDependencyForPackage(
 		nodeModulesDir,
 		"onetime",
 		"mimic-fn",
 		"^2.1.0",
 		true,
 	);
-	copyDependencyForPackage(
+	copyNestedDependencyForPackage(
 		nodeModulesDir,
 		"restore-cursor",
 		"signal-exit",

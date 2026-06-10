@@ -30,6 +30,17 @@ function copyModuleSubtree(
 	};
 }
 
+function copyNestedModule(
+	parentModuleName: string,
+	moduleName: string,
+): PackagedNodeModuleCopy {
+	return {
+		from: `node_modules/${parentModuleName}/node_modules/${moduleName}`,
+		to: `node_modules/${parentModuleName}/node_modules/${moduleName}`,
+		filter: ["**/*"],
+	};
+}
+
 const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 	{
 		specifier: "better-sqlite3",
@@ -115,7 +126,6 @@ const trellisRuntimeModuleNames = [
 	"cli-cursor",
 	"restore-cursor",
 	"onetime",
-	"mimic-fn",
 	"signal-exit",
 	"cli-spinners",
 	"is-interactive",
@@ -145,6 +155,11 @@ const trellisRuntimeModuleCopies = trellisRuntimeModuleNames.map((moduleName) =>
 	copyWholeModule(moduleName),
 );
 
+const trellisRuntimeNestedModuleCopies = [
+	copyNestedModule("onetime", "mimic-fn"),
+	copyNestedModule("restore-cursor", "signal-exit"),
+];
+
 const packagedSupportModules = [
 	copyWholeModule("bindings"),
 	copyWholeModule("file-uri-to-path"),
@@ -170,7 +185,10 @@ export const packagedNodeModuleCopies = [
 	...packagedSupportModules,
 ];
 
-export const packagedTrellisRuntimeResourceCopies = trellisRuntimeModuleCopies;
+export const packagedTrellisRuntimeResourceCopies = [
+	...trellisRuntimeModuleCopies,
+	...trellisRuntimeNestedModuleCopies,
+];
 
 export const packagedAsarUnpackGlobs = [
 	...externalizedRuntimeModules.flatMap((module) => module.asarUnpackGlobs),
@@ -179,6 +197,8 @@ export const packagedAsarUnpackGlobs = [
 	...trellisRuntimeModuleNames.map(
 		(moduleName) => `**/node_modules/${moduleName}/**/*`,
 	),
+	"**/node_modules/onetime/node_modules/mimic-fn/**/*",
+	"**/node_modules/restore-cursor/node_modules/signal-exit/**/*",
 ];
 
 export const requiredMaterializedNodeModules = [
