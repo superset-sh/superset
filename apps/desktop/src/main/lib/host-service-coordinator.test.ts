@@ -26,6 +26,10 @@ const manifestStore: {
 } = { current: null };
 
 let testManifestRoot = "";
+let localSettingsRow: {
+	exposeHostServiceViaRelay?: boolean | null;
+	worktreeBaseDir?: string | null;
+} | null = null;
 
 const readManifestMock = mock(() => manifestStore.current);
 const removeManifestMock = mock(() => {
@@ -87,8 +91,15 @@ mock.module("@superset/shared/host-info", () => ({
 }));
 mock.module("./local-db", () => ({
 	localDb: {
-		select: () => ({ from: () => ({ get: () => null }) }),
+		select: () => ({ from: () => ({ get: () => localSettingsRow }) }),
 	},
+}));
+mock.module("../../lib/trpc/routers/workspaces/utils/shell-env", () => ({
+	getProcessEnvWithShellPath: (env: Record<string, string>) =>
+		Promise.resolve(env),
+}));
+mock.module("./relay-url", () => ({
+	getRelayUrl: () => Promise.resolve("https://relay.example"),
 }));
 
 const { HostServiceCoordinator } = await import("./host-service-coordinator");
@@ -108,8 +119,18 @@ interface HostServiceCoordinatorInternals {
 	rememberPort(organizationId: string, port: number): void;
 }
 
+interface HostServiceCoordinatorBuildEnvInternals {
+	buildEnv(
+		organizationId: string,
+		port: number,
+		secret: string,
+		config: typeof spawnConfig,
+	): Promise<Record<string, string>>;
+}
+
 function resetMocks(): void {
 	manifestStore.current = null;
+	localSettingsRow = null;
 	readManifestMock.mockClear();
 	removeManifestMock.mockClear();
 	isProcessAliveMock.mockClear();
@@ -157,6 +178,51 @@ describe("HostServiceCoordinator preferred ports", () => {
 		expect(ports).toHaveLength(1);
 		expect(ports[0]).toBeGreaterThanOrEqual(48_000);
 		expect(ports[0]).toBeLessThan(49_000);
+	});
+});
+
+describe("HostServiceCoordinator relay exposure env", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+
+	beforeEach(() => {
+		resetMocks();
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+		coordinator = new HostServiceCoordinator();
+	});
+
+	afterEach(() => {
+		coordinator.stopAll();
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("exposes the host-service via relay by default", async () => {
+		const env = await (
+			coordinator as unknown as HostServiceCoordinatorBuildEnvInternals
+		).buildEnv("org-1", 40000, "secret", spawnConfig);
+
+		expect(env.RELAY_URL).toBe("https://relay.example");
+	});
+
+	test("respects an explicit local opt-out from relay exposure", async () => {
+		localSettingsRow = { exposeHostServiceViaRelay: false };
+		const previousRelayUrl = process.env.RELAY_URL;
+		process.env.RELAY_URL = "https://inherited-relay.example";
+		try {
+			const env = await (
+				coordinator as unknown as HostServiceCoordinatorBuildEnvInternals
+			).buildEnv("org-1", 40000, "secret", spawnConfig);
+
+			expect(env.RELAY_URL).toBeUndefined();
+		} finally {
+			if (previousRelayUrl === undefined) {
+				delete process.env.RELAY_URL;
+			} else {
+				process.env.RELAY_URL = previousRelayUrl;
+			}
+		}
 	});
 });
 

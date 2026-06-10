@@ -7,6 +7,7 @@ import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app } from "electron";
 import log from "electron-log/main";
+import { DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY } from "shared/constants";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
@@ -444,7 +445,8 @@ export class HostServiceCoordinator extends EventEmitter {
 	): Promise<Record<string, string>> {
 		const organizationDir = manifestDir(organizationId);
 		const row = localDb.select().from(settings).get();
-		const exposeViaRelay = row?.exposeHostServiceViaRelay ?? false;
+		const exposeViaRelay =
+			row?.exposeHostServiceViaRelay ?? DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY;
 
 		const childEnv = await getProcessEnvWithShellPath({
 			...(process.env as Record<string, string>),
