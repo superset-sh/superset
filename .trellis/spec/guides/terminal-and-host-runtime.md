@@ -58,6 +58,16 @@ Source: `apps/desktop/CLAUDE.md` and `apps/desktop/src/lib/trpc/routers/index.ts
   snapshot tracker with scrollback. On attach, send mode preamble first, then
   the serialized headless xterm state. Fall back to raw FIFO only when no
   snapshot is available.
+- Remote observer snapshots must not restore the alternate buffer as an actual
+  alternate buffer. `@xterm/addon-serialize` emits `CSI ? 1049 h` when the host
+  is currently in alternate-screen mode; replaying that literally makes the
+  observer's active buffer unscrollable. Flatten that transition into ordinary
+  normal-buffer rows so the observer can scroll both prior normal history and
+  the latest alternate-screen frame.
+- Renderer-local persisted buffers are speculative only. When a transport
+  requests host replay, reset and clear the xterm before applying the first
+  binary replay frame so localStorage/parked-runtime state cannot mix stale
+  scrollback, cursor state, or alternate-screen mode into the host snapshot.
 - Resize both mode and replay trackers whenever the owning PTY is resized.
   Secondary observers must not resize the shared PTY.
 - Dispose replay trackers wherever mode trackers are disposed: daemon
@@ -69,6 +79,12 @@ Source: `apps/desktop/CLAUDE.md` and `apps/desktop/src/lib/trpc/routers/index.ts
   scrollback, not a wheel-event interception bug.
 - Owner host still running an old build -> observer-side dev changes cannot
   fix that live terminal; update/restart the owning host-service.
+- Observer can scroll but content looks unrelated -> inspect for renderer-local
+  persisted terminal buffers being applied before host replay; initial replay
+  must reset/clear the xterm before writing host bytes.
+- Observer can scroll only around one screen while the host is in a TUI ->
+  inspect for literal alternate-buffer replay (`CSI ? 1049 h`). Flatten
+  alternate snapshots for observers instead of entering alternate screen.
 - Snapshot tracker construction fails because xterm internals changed -> fail
   loudly at session construction, matching the mode tracker version-pinning
   strategy.
@@ -77,17 +93,25 @@ Source: `apps/desktop/CLAUDE.md` and `apps/desktop/src/lib/trpc/routers/index.ts
 - Good: work computer owns a terminal, Mac mini attaches later, and the
   observer xterm has `scrollHeight > clientHeight` when prior output exceeds
   the viewport.
+- Good: a Claude/Code TUI is currently using alternate screen; the observer
+  receives normal-buffer scrollback plus the current alternate-screen frame as
+  scrollable normal rows.
 - Base: no previous output exists; snapshot serializes little or nothing and
   the observer starts at the live screen.
 - Bad: only replay the last raw 64KB. Claude/Codex/TUI output may reconstruct
   the current screen but no scrollback, so the remote observer cannot scroll.
+- Bad: replay `CSI ? 1049 h` literally for observers. This restores the current
+  TUI frame but makes the active buffer alternate/unscrollable.
 
 #### 6. Tests Required
 - Unit test `terminal-replay-snapshot.test.ts` asserts serialized snapshots
-  include output that scrolled beyond the viewport and continue tracking after
-  resize.
+  include output that scrolled beyond the viewport, continue tracking after
+  resize, and flatten alternate-screen snapshots into normal scrollback.
 - Existing terminal transport tests must keep asserting secondary observers do
   not send resize messages.
+- Renderer transport tests must assert the first replay frame resets/clears
+  speculative local xterm state, while reconnects that pass `replay=0` do not
+  clear already-live scrollback.
 - Desktop acceptance for this path should inspect the accident scene with
   DevTools/automation: attach to a remote terminal after output, assert
   `.xterm-viewport.scrollHeight > clientHeight`, dispatch a wheel event, and
@@ -110,6 +134,16 @@ Correct:
 const preamble = session.modeTracker.buildPreamble();
 const snapshot = session.replaySnapshot.serialize();
 sendBytes(socket, combine(preamble, snapshot ?? rawFifoFallback));
+```
+
+Also correct for the observing renderer:
+
+```ts
+if (requestedReplay && firstBinaryFrame) {
+  terminal.reset();
+  terminal.clear();
+}
+terminal.write(hostReplayBytes);
 ```
 
 ### Scenario: Terminal Byte Transport And Slow Renderer Handling

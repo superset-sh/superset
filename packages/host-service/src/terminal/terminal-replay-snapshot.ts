@@ -10,6 +10,7 @@ const { SerializeAddon } =
 	require("@xterm/addon-serialize") as typeof import("@xterm/addon-serialize");
 
 const REPLAY_SCROLLBACK = 5000;
+const ENTER_ALT_SCREEN = "\x1b[?1049h\x1b[H";
 
 export interface ReplaySnapshotTracker {
 	feed(bytes: Uint8Array): void;
@@ -26,6 +27,15 @@ type HeadlessInternals = {
 		};
 	};
 };
+
+function flattenAlternateScreenForObserver(snapshot: string): string {
+	// SerializeAddon accurately restores xterm state by switching late attachers
+	// back into the alternate buffer. That is correct for local restoration, but
+	// wrong for remote observers: the alternate buffer has no scrollback, so the
+	// observer can only move around the current screen. Keep the normal scrollback
+	// authoritative and append the current alternate screen as ordinary rows.
+	return snapshot.replace(ENTER_ALT_SCREEN, "\r\n");
+}
 
 export function createReplaySnapshotTracker(
 	cols: number,
@@ -60,9 +70,11 @@ export function createReplaySnapshotTracker(
 			term.resize(nextCols, nextRows);
 		},
 		serialize() {
-			const snapshot = serializeAddon.serialize({
-				scrollback: REPLAY_SCROLLBACK,
-			});
+			const snapshot = flattenAlternateScreenForObserver(
+				serializeAddon.serialize({
+					scrollback: REPLAY_SCROLLBACK,
+				}),
+			);
 			return snapshot.length > 0 ? new TextEncoder().encode(snapshot) : null;
 		},
 		dispose() {
