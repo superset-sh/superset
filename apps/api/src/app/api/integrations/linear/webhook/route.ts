@@ -13,9 +13,13 @@ import {
 	users,
 	webhookEvents,
 } from "@superset/db/schema";
-import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
+import {
+	getLinearClient,
+	mapPriorityFromLinear,
+} from "@superset/trpc/integrations/linear";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/env";
+import { syncWorkflowStates } from "../jobs/initial-sync/syncWorkflowStates";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
@@ -158,20 +162,35 @@ async function processIssueEvent(
 	const issue = payload.data;
 
 	if (payload.action === "create" || payload.action === "update") {
-		const taskStatus = await db.query.taskStatuses.findFirst({
-			where: and(
-				eq(taskStatuses.organizationId, connection.organizationId),
-				eq(taskStatuses.externalProvider, "linear"),
-				eq(taskStatuses.externalId, issue.state.id),
-			),
-		});
+		const findStatus = () =>
+			db.query.taskStatuses.findFirst({
+				where: and(
+					eq(taskStatuses.organizationId, connection.organizationId),
+					eq(taskStatuses.externalProvider, "linear"),
+					eq(taskStatuses.externalId, issue.state.id),
+				),
+			});
+
+		let taskStatus = await findStatus();
 
 		if (!taskStatus) {
-			// TODO(SUPER-237): Handle new workflow states in webhooks by triggering syncWorkflowStates
-			// Currently webhooks silently fail when Linear has new statuses that aren't synced yet.
-			// Should either: (1) trigger workflow state sync and retry, (2) queue for retry, or (3) keep periodic sync only
+			// The issue references a Linear workflow state we haven't synced yet
+			// (newly created, or renamed since the initial sync). Linear does not
+			// send workflow-state webhooks, so refresh this org's states on demand
+			// and retry the lookup before giving up.
+			const client = await getLinearClient(connection.organizationId);
+			if (client) {
+				await syncWorkflowStates({
+					client,
+					organizationId: connection.organizationId,
+				});
+				taskStatus = await findStatus();
+			}
+		}
+
+		if (!taskStatus) {
 			console.warn(
-				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
+				`[webhook] Status not found for state ${issue.state.id} even after workflow-state resync, skipping update`,
 			);
 			return "skipped";
 		}
