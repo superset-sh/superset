@@ -1,6 +1,7 @@
 .default-markdown {
 	color: var(--foreground);
 	background: var(--background);
+	font-weight: var(--md-font-weight, 400);
 }
 
 .default-markdown article {
@@ -48,7 +49,7 @@
 .default-markdown p {
 	margin-top: 0;
 	margin-bottom: 1rem;
-	line-height: 1.5;
+	line-height: var(--md-line-height, 1.5);
 }
 
 .default-markdown ul,
@@ -60,7 +61,7 @@
 
 .default-markdown li {
 	margin-bottom: 0.25rem;
-	line-height: 1.5;
+	line-height: var(--md-line-height, 1.5);
 }
 
 .default-markdown ul {

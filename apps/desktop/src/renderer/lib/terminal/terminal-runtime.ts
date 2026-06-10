@@ -55,6 +55,8 @@ function createTerminal(
 		cursorBlink: true,
 		fontFamily: appearance.fontFamily,
 		fontSize: appearance.fontSize,
+		fontWeight: appearance.fontWeight,
+		lineHeight: appearance.lineHeight,
 		theme: appearance.theme,
 		allowProposedApi: true,
 		scrollback: DEFAULT_TERMINAL_SCROLLBACK,
@@ -309,12 +311,16 @@ export function updateRuntimeAppearance(
 
 	const fontChanged =
 		terminal.options.fontFamily !== appearance.fontFamily ||
-		terminal.options.fontSize !== appearance.fontSize;
+		terminal.options.fontSize !== appearance.fontSize ||
+		terminal.options.fontWeight !== appearance.fontWeight ||
+		terminal.options.lineHeight !== appearance.lineHeight;
 
 	if (fontChanged) {
 		applyTerminalFontFamilyCssVariable(runtime.wrapper, appearance.fontFamily);
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
+		terminal.options.fontWeight = appearance.fontWeight;
+		terminal.options.lineHeight = appearance.lineHeight;
 		if (hostIsVisible(runtime.container)) {
 			measureAndResize(runtime);
 		}
