@@ -25,6 +25,13 @@
 
 - Local Desktop Automation can validate the route, layout, and host-service
   runtime wiring on one machine.
-- Full remote attach still needs a canary/manual two-machine check: keep this
-  machine online, sign into the same account on the work machine, open a
-  workspace owned by this machine, and attach to an existing terminal.
+- Cloud model provider sync migration was applied locally against the shared
+  backend database; `model_providers` and `model_provider_models` exist.
+- API/web/backend services were kept online and `GET /api/desktop/version`
+  responded successfully during release.
+- Canary build `27252331667` completed successfully on GitHub Actions.
+  Release `desktop-canary` contains the macOS arm64 DMG/ZIP plus update
+  manifests for internal testing.
+- Full remote attach is ready for canary/manual two-machine validation: keep
+  this host online, sign into the same account on the work machine, open a
+  workspace owned by this host, and attach to an existing terminal.
