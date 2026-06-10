@@ -19,7 +19,10 @@ import { authClient } from "renderer/lib/auth-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
-import { TrellisSetupRow } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/TrellisSetupRow";
+import {
+	getProjectSetupState,
+	TrellisSetupRow,
+} from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/TrellisSetupRow";
 import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -366,6 +369,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 					projectId={selectedProjectId}
 					hostId={hostId}
 					disabled={selectedProject?.needsSetup === true}
+					projectSetupState={getProjectSetupState(selectedProject?.needsSetup)}
 					initialize={trellisInitialize}
 					onInitializeChange={setTrellisInitialize}
 				/>

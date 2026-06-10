@@ -44,7 +44,10 @@ import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
-import { TrellisSetupRow } from "./components/TrellisSetupRow";
+import {
+	getProjectSetupState,
+	TrellisSetupRow,
+} from "./components/TrellisSetupRow";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
@@ -533,6 +536,7 @@ export function PromptGroup({
 				projectId={projectId}
 				hostId={hostId}
 				disabled={needsSetup}
+				projectSetupState={getProjectSetupState(selectedProject?.needsSetup)}
 				initialize={draft.trellisInitialize}
 				onInitializeChange={(trellisInitialize) =>
 					updateDraft({ trellisInitialize })

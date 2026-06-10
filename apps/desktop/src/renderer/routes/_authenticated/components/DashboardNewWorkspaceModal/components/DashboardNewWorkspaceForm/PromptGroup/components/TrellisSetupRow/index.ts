@@ -1,1 +1,1 @@
-export { TrellisSetupRow } from "./TrellisSetupRow";
+export { getProjectSetupState, TrellisSetupRow } from "./TrellisSetupRow";

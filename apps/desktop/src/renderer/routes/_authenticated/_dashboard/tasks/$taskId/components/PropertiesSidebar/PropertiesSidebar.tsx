@@ -1,5 +1,4 @@
 import { Badge } from "@superset/ui/badge";
-import { ScrollArea } from "@superset/ui/scroll-area";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 import { AssigneeProperty } from "./components/AssigneeProperty";
 import { OpenInWorkspaceV2 } from "./components/OpenInWorkspaceV2";
@@ -16,8 +15,8 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 
 	return (
 		<div className="w-64 min-w-0 shrink-0 overflow-hidden border-l border-border">
-			<ScrollArea className="h-full">
-				<div className="min-w-0 space-y-6 p-4">
+			<div className="h-full min-w-0 overflow-y-auto">
+				<div className="w-full min-w-0 max-w-full space-y-6 p-4">
 					<h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
 						Properties
 					</h3>
@@ -47,7 +46,7 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 
 					<OpenInWorkspaceV2 task={task} />
 				</div>
-			</ScrollArea>
+			</div>
 		</div>
 	);
 }

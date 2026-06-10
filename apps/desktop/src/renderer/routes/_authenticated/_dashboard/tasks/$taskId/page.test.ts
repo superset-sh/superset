@@ -48,6 +48,9 @@ describe("Task detail properties layout", () => {
 
 		expect(sidebarSource).toContain("w-64 min-w-0");
 		expect(sidebarSource).toContain("overflow-hidden");
+		expect(sidebarSource).toContain("h-full min-w-0 overflow-y-auto");
+		expect(sidebarSource).toContain("w-full min-w-0 max-w-full");
+		expect(sidebarSource).not.toContain("@superset/ui/scroll-area");
 		expect(openInWorkspaceSource).toContain("flex min-w-0 max-w-full flex-col");
 		expect(openInWorkspaceSource).toContain(
 			'className="h-8 w-full max-w-full min-w-0"',

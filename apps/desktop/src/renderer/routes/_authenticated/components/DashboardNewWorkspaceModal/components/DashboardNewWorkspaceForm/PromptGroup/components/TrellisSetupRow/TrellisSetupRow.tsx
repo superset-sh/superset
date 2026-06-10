@@ -10,14 +10,42 @@ interface TrellisSetupRowProps {
 	projectId: string | null;
 	hostId: string | null;
 	disabled?: boolean;
+	projectSetupState?: ProjectSetupState;
 	initialize: boolean;
 	onInitializeChange: (initialize: boolean) => void;
 }
 
+export type ProjectSetupState = "ready" | "not-setup" | "checking";
+
+export function getProjectSetupState(
+	needsSetup: boolean | null | undefined,
+): ProjectSetupState {
+	if (needsSetup === true) return "not-setup";
+	if (needsSetup === false) return "ready";
+	return "checking";
+}
+
 function statusCopy(
-	state: "ready" | "missing" | "partial" | "unavailable" | undefined,
+	state:
+		| "ready"
+		| "missing"
+		| "partial"
+		| "unavailable"
+		| "project-not-setup"
+		| "project-checking"
+		| undefined,
 ) {
 	switch (state) {
+		case "project-checking":
+			return {
+				title: "Checking selected device",
+				description: "Confirming this project is available there.",
+			};
+		case "project-not-setup":
+			return {
+				title: "Set up project on this device",
+				description: "Guided workflow is available after setup.",
+			};
 		case "ready":
 			return {
 				title: "Guided workflow ready",
@@ -37,7 +65,7 @@ function statusCopy(
 		case "unavailable":
 			return {
 				title: "Workflow check unavailable",
-				description: "Workspace creation can continue without guided setup.",
+				description: "Update selected device or continue without setup.",
 			};
 		default:
 			return {
@@ -51,10 +79,13 @@ export function TrellisSetupRow({
 	projectId,
 	hostId,
 	disabled = false,
+	projectSetupState,
 	initialize,
 	onInitializeChange,
 }: TrellisSetupRowProps) {
 	const hostUrl = useHostUrl(hostId);
+	const canCheckWorkflow =
+		projectSetupState !== "checking" && projectSetupState !== "not-setup";
 	const { data, isFetching, error } = useQuery({
 		queryKey: ["workspaceCreation", "trellisStatus", projectId, hostUrl],
 		queryFn: async () => {
@@ -63,12 +94,18 @@ export function TrellisSetupRow({
 				hostUrl,
 			).workspaceCreation.getTrellisStatus.query({ projectId });
 		},
-		enabled: Boolean(projectId && hostUrl && !disabled),
+		enabled: Boolean(projectId && hostUrl && !disabled && canCheckWorkflow),
 		retry: false,
 		staleTime: 10_000,
 	});
 
-	const state = error ? "unavailable" : data?.state;
+	const setupBlockedState =
+		projectSetupState === "checking"
+			? "project-checking"
+			: projectSetupState === "not-setup"
+				? "project-not-setup"
+				: null;
+	const state = setupBlockedState ?? (error ? "unavailable" : data?.state);
 	const copy = statusCopy(state);
 	const canInitialize = state === "missing" && !disabled;
 
@@ -100,8 +137,12 @@ export function TrellisSetupRow({
 						<Loader2 className="size-3 animate-spin" />
 					) : state === "ready" ? (
 						<CheckCircle2 className="size-3 text-emerald-500" />
-					) : state === "partial" || state === "unavailable" ? (
+					) : state === "partial" ||
+						state === "unavailable" ||
+						state === "project-not-setup" ? (
 						<AlertCircle className="size-3 text-amber-500" />
+					) : state === "project-checking" ? (
+						<Loader2 className="size-3 animate-spin" />
 					) : (
 						<Workflow className="size-3" />
 					)}
