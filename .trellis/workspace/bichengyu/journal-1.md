@@ -487,3 +487,37 @@ Updated the desktop release workflow to bypass Bun's minimum release age during 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Plugin Runtime Remote Task Runs
+
+**Date**: 2026-06-10
+**Task**: Plugin Runtime Remote Task Runs
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Bundled Trellis as a validated desktop plugin runtime, added release smoke gates, simplified Task run target behavior to auto-prepare online hosts, and validated the live relay route to the work computer; full remote auto-prepare requires the new Canary host-service to be installed there.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7d9deb571` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
