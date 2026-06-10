@@ -10,6 +10,7 @@ import { chatRouter } from "./router/chat";
 import { deviceRouter } from "./router/device";
 import { hostRouter } from "./router/host";
 import { integrationRouter } from "./router/integration";
+import { modelProviderRouter } from "./router/model-provider";
 import { organizationRouter } from "./router/organization";
 import { projectRouter } from "./router/project";
 import { supportRouter } from "./router/support/support";
@@ -33,6 +34,7 @@ export const appRouter = createTRPCRouter({
 	device: deviceRouter,
 	host: hostRouter,
 	integration: integrationRouter,
+	modelProvider: modelProviderRouter,
 	organization: organizationRouter,
 	project: projectRouter,
 	support: supportRouter,

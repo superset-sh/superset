@@ -19,6 +19,7 @@ import {
 	installSupersetTaskSyncHook,
 	mergeTrellisHookConfig,
 	resolveTrellisPlatformsFromAgents,
+	resolveUnpackedAsarPath,
 	type TrellisCommandArgs,
 } from "./trellis";
 
@@ -80,6 +81,21 @@ describe("getTrellisStatusAtPath", () => {
 });
 
 describe("applyTrellisSetup", () => {
+	test("rewrites packaged Trellis bin paths to app.asar.unpacked when available", () => {
+		const asarPath =
+			"/Applications/Superset Canary.app/Contents/Resources/app.asar/node_modules/@mindfoldhq/trellis/bin/trellis.js";
+		const unpackedPath =
+			"/Applications/Superset Canary.app/Contents/Resources/app.asar.unpacked/node_modules/@mindfoldhq/trellis/bin/trellis.js";
+
+		expect(
+			resolveUnpackedAsarPath(
+				asarPath,
+				(candidate) => candidate === unpackedPath,
+			),
+		).toBe(unpackedPath);
+		expect(resolveUnpackedAsarPath(asarPath, () => false)).toBe(asarPath);
+	});
+
 	test("maps selected task agents to matching Trellis platform adapters only", () => {
 		expect(resolveTrellisPlatformsFromAgents(["claude"])).toEqual(["claude"]);
 		expect(resolveTrellisPlatformsFromAgents(["codex"])).toEqual(["codex"]);

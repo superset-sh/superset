@@ -1,3 +1,4 @@
+import type { SelectV2Workspace } from "@superset/db/schema";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import { workspaces } from "../../../../db/schema";
@@ -7,6 +8,11 @@ export type EnsureMainWorkspaceContext = Pick<
 	HostServiceContext,
 	"api" | "db" | "git" | "organizationId" | "clientMachineId"
 >;
+
+function stripTxid<T extends object>(row: T): Omit<T, "txid"> {
+	const { txid: _txid, ...rest } = row as T & { txid?: unknown };
+	return rest;
+}
 
 async function getCurrentBranchName(
 	git: Awaited<ReturnType<EnsureMainWorkspaceContext["git"]>>,
@@ -36,7 +42,7 @@ export async function ensureMainWorkspace(
 	ctx: EnsureMainWorkspaceContext,
 	projectId: string,
 	repoPath: string,
-): Promise<{ id: string } | null> {
+): Promise<SelectV2Workspace | null> {
 	try {
 		return await ensureMainWorkspaceStrict(ctx, projectId, repoPath);
 	} catch (err) {
@@ -58,7 +64,7 @@ export async function ensureMainWorkspaceStrict(
 	ctx: EnsureMainWorkspaceContext,
 	projectId: string,
 	repoPath: string,
-): Promise<{ id: string }> {
+): Promise<SelectV2Workspace> {
 	const git = await ctx.git(repoPath);
 	const branch = await getCurrentBranchName(git);
 	if (!branch) {
@@ -103,5 +109,5 @@ export async function ensureMainWorkspaceStrict(
 		})
 		.run();
 
-	return { id: cloudRow.id };
+	return stripTxid(cloudRow) as SelectV2Workspace;
 }

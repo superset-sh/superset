@@ -104,6 +104,8 @@ export function useFolderFirstImport(options?: {
 					projectId: only.id,
 					repoPath: setupResult.repoPath,
 					mainWorkspaceId: setupResult.mainWorkspaceId,
+					project: setupResult.project,
+					mainWorkspace: setupResult.mainWorkspace,
 				};
 			} else {
 				result = await client.project.create.mutate({

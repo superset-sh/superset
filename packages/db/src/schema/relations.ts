@@ -18,6 +18,8 @@ import {
 	chatSessions,
 	devicePresence,
 	integrationConnections,
+	modelProviderModels,
+	modelProviders,
 	projects,
 	sandboxImages,
 	secrets,
@@ -41,6 +43,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	createdTasks: many(tasks, { relationName: "creator" }),
 	assignedTasks: many(tasks, { relationName: "assignee" }),
 	connectedIntegrations: many(integrationConnections),
+	modelProviders: many(modelProviders),
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	v2Hosts: many(v2Hosts),
@@ -81,6 +84,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	tasks: many(tasks),
 	taskStatuses: many(taskStatuses),
 	integrations: many(integrationConnections),
+	modelProviders: many(modelProviders),
 	githubInstallations: many(githubInstallations),
 	githubRepositories: many(githubRepositories),
 	githubPullRequests: many(githubPullRequests),
@@ -165,6 +169,31 @@ export const integrationConnectionsRelations = relations(
 		connectedBy: one(users, {
 			fields: [integrationConnections.connectedByUserId],
 			references: [users.id],
+		}),
+	}),
+);
+
+export const modelProvidersRelations = relations(
+	modelProviders,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [modelProviders.organizationId],
+			references: [organizations.id],
+		}),
+		createdBy: one(users, {
+			fields: [modelProviders.createdByUserId],
+			references: [users.id],
+		}),
+		models: many(modelProviderModels),
+	}),
+);
+
+export const modelProviderModelsRelations = relations(
+	modelProviderModels,
+	({ one }) => ({
+		provider: one(modelProviders, {
+			fields: [modelProviderModels.providerId],
+			references: [modelProviders.id],
 		}),
 	}),
 );

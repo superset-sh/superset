@@ -3,12 +3,13 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
+import { listTerminalResourceSessions } from "../../../terminal/resource-sessions";
 import {
-	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	listTerminalSessions,
 	parseThemeType,
+	type TerminalSessionSummary,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -55,6 +56,68 @@ async function createTerminalSessionFromInput({
 		terminalId: result.terminalId,
 		status: "active" as const,
 	};
+}
+
+async function listWorkspaceTerminalSessions({
+	ctx,
+	workspaceId,
+}: {
+	ctx: HostServiceContext;
+	workspaceId: string;
+}): Promise<TerminalSessionSummary[]> {
+	const memorySessions = listTerminalSessions({
+		workspaceId,
+		includeExited: false,
+	});
+	const sessionById = new Map(
+		memorySessions.map((session) => [session.terminalId, session]),
+	);
+
+	try {
+		const daemonSessions = await getSupervisor().listSessions(
+			ctx.organizationId,
+		);
+		if (!daemonSessions) return memorySessions;
+
+		for (const resourceSession of listTerminalResourceSessions(
+			ctx.db,
+			daemonSessions,
+		)) {
+			if (resourceSession.workspaceId !== workspaceId) continue;
+			if (sessionById.has(resourceSession.terminalId)) continue;
+
+			sessionById.set(resourceSession.terminalId, {
+				terminalId: resourceSession.terminalId,
+				workspaceId: resourceSession.workspaceId,
+				createdAt: resourceSession.createdAt,
+				exited: false,
+				exitCode: 0,
+				attached: false,
+				title: resourceSession.title,
+			});
+		}
+	} catch (error) {
+		console.warn(
+			"[terminal] Failed to merge daemon-backed terminal sessions",
+			error,
+		);
+	}
+
+	return Array.from(sessionById.values());
+}
+
+async function countWorkspaceBackgroundTerminalSessions({
+	ctx,
+	workspaceId,
+	attachedTerminalIds,
+}: {
+	ctx: HostServiceContext;
+	workspaceId: string;
+	attachedTerminalIds: string[];
+}): Promise<number> {
+	const attached = new Set(attachedTerminalIds);
+	const sessions = await listWorkspaceTerminalSessions({ ctx, workspaceId });
+	return sessions.filter((session) => !attached.has(session.terminalId)).length;
 }
 
 // Daemon control surface — sibling to the per-workspace terminal ops above.
@@ -112,10 +175,10 @@ export const terminalRouter = router({
 				workspaceId: z.string(),
 			}),
 		)
-		.query(({ input }) => ({
-			sessions: listTerminalSessions({
+		.query(async ({ ctx, input }) => ({
+			sessions: await listWorkspaceTerminalSessions({
+				ctx,
 				workspaceId: input.workspaceId,
-				includeExited: false,
 			}),
 		})),
 
@@ -126,11 +189,11 @@ export const terminalRouter = router({
 				attachedTerminalIds: z.array(z.string()).default([]),
 			}),
 		)
-		.query(({ input }) => ({
-			count: countTerminalSessions({
+		.query(async ({ ctx, input }) => ({
+			count: await countWorkspaceBackgroundTerminalSessions({
+				ctx,
 				workspaceId: input.workspaceId,
-				includeExited: false,
-				excludeTerminalIds: input.attachedTerminalIds,
+				attachedTerminalIds: input.attachedTerminalIds,
 			}),
 		})),
 

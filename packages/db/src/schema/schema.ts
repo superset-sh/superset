@@ -235,6 +235,76 @@ export type InsertIntegrationConnection =
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
 
+export type ModelProviderProtocol =
+	| "anthropic"
+	| "openai-chat"
+	| "openai-responses";
+
+export const modelProviders = pgTable(
+	"model_providers",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		name: text().notNull(),
+		protocol: text().$type<ModelProviderProtocol>().notNull(),
+		baseUrl: text("base_url").notNull(),
+		enabled: boolean().notNull().default(true),
+		secretEncrypted: text("secret_encrypted"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("model_providers_organization_id_idx").on(table.organizationId),
+		index("model_providers_enabled_idx").on(table.enabled),
+		index("model_providers_protocol_idx").on(table.protocol),
+		unique("model_providers_org_name_unique").on(
+			table.organizationId,
+			table.name,
+		),
+	],
+);
+
+export type InsertModelProvider = typeof modelProviders.$inferInsert;
+export type SelectModelProvider = typeof modelProviders.$inferSelect;
+
+export const modelProviderModels = pgTable(
+	"model_provider_models",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		providerId: uuid("provider_id")
+			.notNull()
+			.references(() => modelProviders.id, { onDelete: "cascade" }),
+		modelId: text("model_id").notNull(),
+		displayName: text("display_name"),
+		enabled: boolean().notNull().default(true),
+		capabilities: jsonb().$type<Record<string, unknown>>().default({}),
+		displayOrder: integer("display_order").notNull().default(0),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("model_provider_models_provider_id_idx").on(table.providerId),
+		unique("model_provider_models_provider_model_unique").on(
+			table.providerId,
+			table.modelId,
+		),
+	],
+);
+
+export type InsertModelProviderModel = typeof modelProviderModels.$inferInsert;
+export type SelectModelProviderModel = typeof modelProviderModels.$inferSelect;
+
 // Stripe subscriptions (org-based billing)
 export const subscriptions = pgTable(
 	"subscriptions",

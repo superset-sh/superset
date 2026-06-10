@@ -6,6 +6,30 @@ const setupResult = {
 	repoPath,
 	mainWorkspaceId: "workspace-1",
 };
+const hydratedProject = {
+	id: "project-1",
+	organizationId: "org-1",
+	name: "Octocat",
+	slug: "octocat",
+	repoCloneUrl: "https://github.com/octocat/hello.git",
+	githubRepositoryId: null,
+	iconUrl: null,
+	createdAt: new Date("2026-01-01T00:00:00.000Z"),
+	updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
+const hydratedWorkspace = {
+	id: "workspace-1",
+	organizationId: "org-1",
+	projectId: "project-1",
+	hostId: "host-1",
+	name: "main",
+	branch: "main",
+	type: "main",
+	createdByUserId: "user-1",
+	taskId: null,
+	createdAt: new Date("2026-01-01T00:00:00.000Z"),
+	updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+};
 const cloudError = {
 	url: "https://github.com/octocat/hello.git",
 	message: "cloud-down",
@@ -35,6 +59,12 @@ const finalizeSetupMock = mock(() => undefined);
 const requestGitInitMock = mock(async () => false);
 
 mock.module("react", () => ({
+	default: {
+		createElement: () => null,
+		forwardRef: <T extends (...args: never[]) => unknown>(render: T) => render,
+	},
+	createElement: () => null,
+	forwardRef: <T extends (...args: never[]) => unknown>(render: T) => render,
 	useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
 		callback,
 }));
@@ -57,6 +87,10 @@ mock.module("renderer/lib/host-service-client", () => ({
 			create: { mutate: createMock },
 		},
 	}),
+}));
+
+mock.module("renderer/lib/host-service-unavailable", () => ({
+	getHostServiceUnavailableMessage: () => "Host service is unavailable",
 }));
 
 mock.module("renderer/react-query/projects", () => ({
@@ -89,6 +123,12 @@ describe("useFolderFirstImport", () => {
 			fn.mockClear();
 		}
 		findByPathMock.mockResolvedValue({ candidates: [], cloudErrors: [] });
+		setupMock.mockResolvedValue(setupResult);
+		createMock.mockResolvedValue({
+			projectId: "created-project",
+			repoPath,
+			mainWorkspaceId: "workspace-created",
+		});
 		requestGitInitMock.mockResolvedValue(false);
 	});
 
@@ -155,6 +195,36 @@ describe("useFolderFirstImport", () => {
 		expect(requestGitInitMock).toHaveBeenCalledWith(repoPath);
 		expect(createMock).not.toHaveBeenCalled();
 		expect(finalizeSetupMock).not.toHaveBeenCalled();
+		expect(onError).not.toHaveBeenCalled();
+	});
+
+	it("preserves setup project and main workspace rows for immediate sidebar hydration", async () => {
+		findByPathMock.mockResolvedValue({
+			candidates: [{ id: "project-1", name: "Octocat" }],
+			cloudErrors: [],
+		});
+		setupMock.mockResolvedValue({
+			...setupResult,
+			project: hydratedProject,
+			mainWorkspace: hydratedWorkspace,
+		});
+		const onError = mock(() => undefined);
+
+		const result = await useFolderFirstImport({ onError }).start();
+
+		const expected = {
+			projectId: "project-1",
+			repoPath,
+			mainWorkspaceId: "workspace-1",
+			project: hydratedProject,
+			mainWorkspace: hydratedWorkspace,
+		};
+		expect(setupMock).toHaveBeenCalledWith({
+			projectId: "project-1",
+			mode: { kind: "import", repoPath },
+		});
+		expect(finalizeSetupMock).toHaveBeenCalledWith(hostUrl, expected);
+		expect(result).toEqual(expected);
 		expect(onError).not.toHaveBeenCalled();
 	});
 });

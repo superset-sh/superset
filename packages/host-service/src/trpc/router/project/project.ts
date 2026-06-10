@@ -1,4 +1,5 @@
 import { basename, resolve as resolvePath } from "node:path";
+import type { SelectV2Project } from "@superset/db/schema";
 import {
 	type ParsedGitHubRemote,
 	parseGitHubRemote,
@@ -28,6 +29,20 @@ import {
 	tryRevParseGitRoot,
 	validateDirectoryPath,
 } from "./utils/resolve-repo";
+
+function syncableProject(row: SelectV2Project): SelectV2Project {
+	return {
+		id: row.id,
+		organizationId: row.organizationId,
+		name: row.name,
+		slug: row.slug,
+		repoCloneUrl: row.repoCloneUrl,
+		githubRepositoryId: row.githubRepositoryId,
+		iconUrl: row.iconUrl,
+		createdAt: row.createdAt,
+		updatedAt: row.updatedAt,
+	};
+}
 
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
@@ -526,6 +541,8 @@ export const projectRouter = router({
 						return {
 							repoPath: existing.repoPath,
 							mainWorkspaceId: mainWorkspace?.id ?? null,
+							project: syncableProject(cloudProject),
+							mainWorkspace,
 						};
 					}
 					const resolved = await cloneRepoInto(
@@ -541,6 +558,8 @@ export const projectRouter = router({
 					return {
 						repoPath: resolved.repoPath,
 						mainWorkspaceId: mainWorkspace?.id ?? null,
+						project: syncableProject(cloudProject),
+						mainWorkspace,
 					};
 				}
 				case "import": {
@@ -589,6 +608,8 @@ export const projectRouter = router({
 						return {
 							repoPath: existing.repoPath,
 							mainWorkspaceId: mainWorkspace?.id ?? null,
+							project: syncableProject(cloudProject),
+							mainWorkspace,
 						};
 					}
 
@@ -608,6 +629,8 @@ export const projectRouter = router({
 					return {
 						repoPath: resolved.repoPath,
 						mainWorkspaceId: mainWorkspace?.id ?? null,
+						project: syncableProject(cloudProject),
+						mainWorkspace,
 					};
 				}
 			}

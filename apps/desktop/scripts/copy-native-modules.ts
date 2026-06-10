@@ -58,10 +58,21 @@ function findBunStoreFolderName(
 	if (!existsSync(bunStoreDir)) return null;
 	const entries = readdirSync(bunStoreDir);
 	const modulePrefix = `${moduleName.replace("/", "+")}@`;
-	const exactPrefix = `${modulePrefix}${version}`;
-	const exactMatch = entries.find((entry) => entry.startsWith(exactPrefix));
+	const moduleEntries = entries
+		.filter((entry) => entry.startsWith(modulePrefix))
+		.map((entry) => ({
+			entry,
+			version: entry.slice(modulePrefix.length).split("_")[0] ?? "",
+		}));
+	const exactMatch = moduleEntries.find(
+		(entry) => entry.version === version,
+	)?.entry;
 	if (exactMatch) return exactMatch;
-	return entries.find((entry) => entry.startsWith(modulePrefix)) ?? null;
+	const rangeMatch = moduleEntries.find((entry) =>
+		satisfies(entry.version, version, { includePrerelease: true }),
+	)?.entry;
+	if (rangeMatch) return rangeMatch;
+	return moduleEntries[0]?.entry ?? null;
 }
 
 function copyModuleIfSymlink(
@@ -514,6 +525,24 @@ function copyDuckdbPlatformPackages(nodeModulesDir: string): void {
 	);
 }
 
+function copyTrellisCompatibilityDependencies(nodeModulesDir: string): void {
+	console.log("\nPreparing Trellis runtime compatibility dependencies...");
+	copyDependencyForPackage(
+		nodeModulesDir,
+		"onetime",
+		"mimic-fn",
+		"^2.1.0",
+		true,
+	);
+	copyDependencyForPackage(
+		nodeModulesDir,
+		"restore-cursor",
+		"signal-exit",
+		"^3.0.2",
+		true,
+	);
+}
+
 function prepareNativeModules() {
 	console.log("Preparing external runtime modules for electron-builder...");
 	console.log(
@@ -533,6 +562,7 @@ function prepareNativeModules() {
 	copyParcelWatcherPlatformPackages(nodeModulesDir);
 	copyLibsqlDependencies(nodeModulesDir);
 	copyDuckdbPlatformPackages(nodeModulesDir);
+	copyTrellisCompatibilityDependencies(nodeModulesDir);
 
 	console.log("\nDone!");
 }

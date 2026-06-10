@@ -18,7 +18,13 @@ import {
 	type ModelCatalogOption,
 } from "renderer/components/Chat/ChatInterface/utils/modelOptions";
 import { ModelProviderIcon } from "renderer/components/ModelProviderIcon";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import {
+	chatModelsQueryKey,
+	modelProvidersQueryKey,
+	workspaceModelProvidersQueryKey,
+} from "renderer/lib/model-provider-query-keys";
+import { syncCloudModelProvidersToHost } from "renderer/lib/sync-cloud-model-providers";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	isItemVisible,
@@ -132,18 +138,36 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	const [form, setForm] = useState<ProviderForm>(EMPTY_FORM);
 	const [modelInput, setModelInput] = useState("");
 	const queryKey = useMemo(
-		() => ["model-providers", activeHostUrl] as const,
+		() => modelProvidersQueryKey(activeHostUrl),
 		[activeHostUrl],
 	);
 
+	const invalidateProviderCaches = async () => {
+		await Promise.all([
+			queryClient.invalidateQueries({ queryKey }),
+			queryClient.invalidateQueries({
+				queryKey: workspaceModelProvidersQueryKey(activeHostUrl),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: chatModelsQueryKey(activeHostUrl),
+			}),
+		]);
+	};
+
 	const providersQuery = useQuery({
 		queryKey,
-		enabled: shouldShow && Boolean(activeHostUrl),
+		enabled: shouldShow,
 		queryFn: async () => {
-			if (!activeHostUrl) return [];
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).modelProviders.list.query();
+			const providers = await apiTrpcClient.modelProvider.list.query();
+			if (activeHostUrl) {
+				await syncCloudModelProvidersToHost(activeHostUrl).catch((error) => {
+					console.warn(
+						"[models-settings] Failed to sync providers to host",
+						error,
+					);
+				});
+			}
+			return providers;
 		},
 	});
 	const providers = providersQuery.data ?? [];
@@ -165,12 +189,9 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 
 	const upsertMutation = useMutation({
 		mutationFn: async (nextForm: ProviderForm) => {
-			if (!activeHostUrl) throw new Error("Host service is not running");
 			const models = modelsToRows(nextForm.models);
 			if (models.length === 0) throw new Error("Add at least one model");
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).modelProviders.upsert.mutate({
+			return apiTrpcClient.modelProvider.upsert.mutate({
 				id: nextForm.id ?? undefined,
 				name: nextForm.name,
 				protocol: nextForm.protocol,
@@ -181,7 +202,15 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			});
 		},
 		onSuccess: async (saved) => {
-			await queryClient.invalidateQueries({ queryKey });
+			if (activeHostUrl) {
+				await syncCloudModelProvidersToHost(activeHostUrl).catch((error) => {
+					console.warn(
+						"[models-settings] Failed to sync providers to host",
+						error,
+					);
+				});
+			}
+			await invalidateProviderCaches();
 			setForm({
 				id: saved.id,
 				name: saved.name,
@@ -200,10 +229,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 
 	const fetchRemoteModelsMutation = useMutation({
 		mutationFn: async (nextForm: ProviderForm) => {
-			if (!activeHostUrl) throw new Error("Host service is not running");
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).modelProviders.fetchRemoteModels.mutate({
+			return apiTrpcClient.modelProvider.fetchRemoteModels.mutate({
 				id: nextForm.id ?? undefined,
 				protocol: nextForm.protocol,
 				baseUrl: nextForm.baseUrl,
@@ -229,13 +255,18 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 
 	const deleteMutation = useMutation({
 		mutationFn: async (providerId: string) => {
-			if (!activeHostUrl) throw new Error("Host service is not running");
-			return getHostServiceClientByUrl(
-				activeHostUrl,
-			).modelProviders.delete.mutate({ id: providerId });
+			return apiTrpcClient.modelProvider.delete.mutate({ id: providerId });
 		},
 		onSuccess: async () => {
-			await queryClient.invalidateQueries({ queryKey });
+			if (activeHostUrl) {
+				await syncCloudModelProvidersToHost(activeHostUrl).catch((error) => {
+					console.warn(
+						"[models-settings] Failed to sync providers to host",
+						error,
+					);
+				});
+			}
+			await invalidateProviderCaches();
 			setForm(EMPTY_FORM);
 			toast.success("Model provider deleted");
 		},

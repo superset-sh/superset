@@ -233,6 +233,52 @@ describe("handleModelGatewayRequest", () => {
 		expect(response.status).toBe(200);
 	});
 
+	it("returns a sanitized provider failure when upstream fetch fails", async () => {
+		const db = createTestDb();
+		seedWorkspace(db);
+		const provider = upsertModelProvider(asHostDb(db), {
+			name: "OpenAI-compatible",
+			protocol: "openai-chat",
+			baseUrl: "http://upstream.test/v1",
+			enabled: true,
+			secret: "secret-key",
+			models: [{ modelId: "gpt-5.5" }],
+		});
+		db.insert(schema.workspaceAgentModelConfigs)
+			.values({
+				id: "config-1",
+				workspaceId: "workspace-1",
+				agent: "claude",
+				providerId: provider.id,
+				gatewayToken: "workspace-token",
+				haikuModelId: "gpt-5.5",
+				sonnetModelId: "gpt-5.5",
+				opusModelId: "gpt-5.5",
+			})
+			.run();
+
+		const response = await handleModelGatewayRequest({
+			db: asHostDb(db),
+			request: new Request("http://127.0.0.1/model-gateway/v1/messages", {
+				method: "POST",
+				headers: { authorization: "Bearer workspace-token" },
+				body: JSON.stringify({
+					model: "gpt-5.5",
+					messages: [{ role: "user", content: "hello" }],
+					max_tokens: 64,
+				}),
+			}),
+			fetchImpl: async () => {
+				throw new Error("secret-key low-level fetch failed");
+			},
+		});
+
+		expect(response.status).toBe(502);
+		const text = await response.text();
+		expect(text).toContain("Model provider request failed");
+		expect(text).not.toContain("secret-key");
+	});
+
 	it("does not let a workspace gateway token call another provider by encoded ref", async () => {
 		const db = createTestDb();
 		seedWorkspace(db);

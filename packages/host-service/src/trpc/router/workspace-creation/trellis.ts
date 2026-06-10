@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { constants } from "node:fs";
+import { constants, existsSync } from "node:fs";
 import {
 	access,
 	chmod,
@@ -501,10 +501,23 @@ export async function getTrellisStatusAtPath(
 	}
 }
 
-function resolveTrellisBinPath(): string {
+export function resolveUnpackedAsarPath(
+	path: string,
+	exists: (candidate: string) => boolean = existsSync,
+): string {
+	const unpackedPath = path.replace(/([/\\]app\.asar)([/\\])/, "$1.unpacked$2");
+	return unpackedPath !== path && exists(unpackedPath) ? unpackedPath : path;
+}
+
+export function resolveTrellisBinPath(): string {
+	const override = process.env.SUPERSET_TRELLIS_BIN_PATH?.trim();
+	if (override) return override;
+
 	const require = createRequire(import.meta.url);
 	const packageJsonPath = require.resolve("@mindfoldhq/trellis/package.json");
-	return join(dirname(packageJsonPath), "bin", "trellis.js");
+	return resolveUnpackedAsarPath(
+		join(dirname(packageJsonPath), "bin", "trellis.js"),
+	);
 }
 
 async function defaultTrellisCommandRunner(

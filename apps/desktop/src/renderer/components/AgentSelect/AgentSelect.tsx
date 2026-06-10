@@ -6,6 +6,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	getPresetIcon,
@@ -77,7 +78,12 @@ export function AgentSelect<T extends string>({
 			onValueChange={handleValueChange}
 			disabled={disabled}
 		>
-			<SelectTrigger className={triggerClassName}>
+			<SelectTrigger
+				className={cn(
+					"min-w-0 [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:flex-1 [&_[data-slot=select-value]]:truncate",
+					triggerClassName,
+				)}
+			>
 				<SelectValue placeholder={placeholder} />
 			</SelectTrigger>
 			<SelectContent className={contentClassName}>
@@ -88,9 +94,9 @@ export function AgentSelect<T extends string>({
 					const icon = getPresetIcon(agent.iconId ?? agent.id, isDark);
 					return (
 						<SelectItem key={agent.id} value={agent.id}>
-							<span className="flex items-center gap-2">
+							<span className="flex min-w-0 items-center gap-2">
 								{icon && <img src={icon} alt="" className={iconClassName} />}
-								{agent.label}
+								<span className="min-w-0 truncate">{agent.label}</span>
 							</span>
 						</SelectItem>
 					);

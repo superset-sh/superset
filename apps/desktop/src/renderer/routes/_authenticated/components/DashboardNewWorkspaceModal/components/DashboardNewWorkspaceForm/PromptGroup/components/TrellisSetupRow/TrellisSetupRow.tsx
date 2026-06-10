@@ -82,7 +82,7 @@ export function TrellisSetupRow({
 	return (
 		<div
 			className={cn(
-				"flex min-w-0 items-start gap-2 rounded-md border border-border/60 bg-background/70 px-2.5 py-2 text-left",
+				"flex min-w-0 max-w-full items-start gap-2 overflow-hidden rounded-md border border-border/60 bg-background/70 px-2.5 py-2 text-left",
 				canInitialize && "hover:bg-muted/40",
 				disabled && "opacity-60",
 			)}

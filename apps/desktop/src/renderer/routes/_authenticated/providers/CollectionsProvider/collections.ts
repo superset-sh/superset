@@ -127,10 +127,10 @@ interface SyncedRowUpsertUtils<T extends object> extends UtilsRecord {
 	upsertSyncedRow: (row: T) => boolean;
 }
 
-type SyncedTaskCollection = Collection<
-	SelectTask,
+type SyncedRowCollection<T extends object> = Collection<
+	T,
 	string | number,
-	SyncedRowUpsertUtils<SelectTask>
+	SyncedRowUpsertUtils<T>
 >;
 
 function withSyncedRowUpsertFor<T extends object>() {
@@ -212,14 +212,14 @@ type IntegrationConnectionDisplay = Omit<
 >;
 
 export interface OrgCollections {
-	tasks: SyncedTaskCollection;
+	tasks: SyncedRowCollection<SelectTask>;
 	taskStatuses: Collection<SelectTaskStatus>;
 	projects: Collection<SelectProject>;
 	v2Hosts: Collection<SelectV2Host>;
 	v2Clients: Collection<SelectV2Client>;
 	v2UsersHosts: Collection<SelectV2UsersHosts>;
-	v2Projects: Collection<SelectV2Project>;
-	v2Workspaces: Collection<SelectV2Workspace>;
+	v2Projects: SyncedRowCollection<SelectV2Project>;
+	v2Workspaces: SyncedRowCollection<SelectV2Workspace>;
 	workspaces: Collection<SelectWorkspace>;
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
@@ -370,7 +370,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 			}),
 		),
-	) as unknown as SyncedTaskCollection;
+	) as unknown as SyncedRowCollection<SelectTask>;
 
 	const taskStatuses = createPersistedElectricCollection(
 		electricCollectionOptions<SelectTaskStatus>({
@@ -407,37 +407,39 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2Projects = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Project>({
-			id: `v2_projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_projects",
-					organizationId,
+		withSyncedRowUpsertFor<SelectV2Project>()(
+			electricCollectionOptions<SelectV2Project>({
+				id: `v2_projects-${organizationId}`,
+				shapeOptions: {
+					url: electricUrl,
+					params: {
+						table: "v2_projects",
+						organizationId,
+					},
+					headers: electricHeaders,
+					columnMapper,
+					onError: handleElectricSyncError,
 				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const githubRepositoryId =
-					changes.githubRepositoryId === null &&
-					changes.repoCloneUrl !== undefined
-						? undefined
-						: changes.githubRepositoryId;
-				const result = await apiClient.v2Project.update.mutate({
-					id: original.id,
-					name: changes.name,
-					slug: changes.slug,
-					repoCloneUrl: changes.repoCloneUrl,
-					githubRepositoryId,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
+				getKey: (item) => item.id,
+				onUpdate: async ({ transaction }) => {
+					const { original, changes } = transaction.mutations[0];
+					const githubRepositoryId =
+						changes.githubRepositoryId === null &&
+						changes.repoCloneUrl !== undefined
+							? undefined
+							: changes.githubRepositoryId;
+					const result = await apiClient.v2Project.update.mutate({
+						id: original.id,
+						name: changes.name,
+						slug: changes.slug,
+						repoCloneUrl: changes.repoCloneUrl,
+						githubRepositoryId,
+					});
+					return electricTxidMatch(result.txid);
+				},
+			}),
+		),
+	) as unknown as SyncedRowCollection<SelectV2Project>;
 	v2Projects.createIndex(
 		(project) => project.githubRepositoryId,
 		basicIndexConfig,
@@ -542,46 +544,48 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	v2UsersHosts.createIndex((userHost) => userHost.userId, basicIndexConfig);
 
 	const v2Workspaces = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Workspace>({
-			id: `v2_workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_workspaces",
-					organizationId,
+		withSyncedRowUpsertFor<SelectV2Workspace>()(
+			electricCollectionOptions<SelectV2Workspace>({
+				id: `v2_workspaces-${organizationId}`,
+				shapeOptions: {
+					url: electricUrl,
+					params: {
+						table: "v2_workspaces",
+						organizationId,
+					},
+					headers: electricHeaders,
+					columnMapper,
+					onError: handleElectricSyncError,
 				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onInsert: async ({ transaction }) => {
-				const metadata = transaction.mutations[0]
-					.metadata as WorkspaceCreateMutationMetadata;
-				const client = getHostServiceClientByUrl(metadata.hostUrl);
-				const result = await client.workspaces.create.mutate(metadata.input);
-				metadata.result = result;
-				// Workspace creation performs local filesystem work after the cloud row is
-				// registered. By the time the host-service returns, the txid can already
-				// be old enough for Electric's confirmation wait to time out even though
-				// create succeeded. Treat the host-service result as the write barrier and
-				// let Electric catch up normally.
-				return undefined;
-			},
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const { branch, hostId, name, taskId } = changes;
-				const result = await apiClient.v2Workspace.update.mutate({
-					id: original.id,
-					branch,
-					hostId,
-					name,
-					taskId,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
+				getKey: (item) => item.id,
+				onInsert: async ({ transaction }) => {
+					const metadata = transaction.mutations[0]
+						.metadata as WorkspaceCreateMutationMetadata;
+					const client = getHostServiceClientByUrl(metadata.hostUrl);
+					const result = await client.workspaces.create.mutate(metadata.input);
+					metadata.result = result;
+					// Workspace creation performs local filesystem work after the cloud row is
+					// registered. By the time the host-service returns, the txid can already
+					// be old enough for Electric's confirmation wait to time out even though
+					// create succeeded. Treat the host-service result as the write barrier and
+					// let Electric catch up normally.
+					return undefined;
+				},
+				onUpdate: async ({ transaction }) => {
+					const { original, changes } = transaction.mutations[0];
+					const { branch, hostId, name, taskId } = changes;
+					const result = await apiClient.v2Workspace.update.mutate({
+						id: original.id,
+						branch,
+						hostId,
+						name,
+						taskId,
+					});
+					return electricTxidMatch(result.txid);
+				},
+			}),
+		),
+	) as unknown as SyncedRowCollection<SelectV2Workspace>;
 	v2Workspaces.createIndex((workspace) => workspace.hostId, basicIndexConfig);
 	v2Workspaces.createIndex(
 		(workspace) => workspace.projectId,

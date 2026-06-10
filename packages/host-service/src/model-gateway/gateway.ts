@@ -157,18 +157,28 @@ async function forwardAnthropic(args: {
 		...args.body,
 		model: resolveUpstreamModelId(args.body.model),
 	};
-	const upstream = await args.fetchImpl(
-		appendProviderPath(args.provider.baseUrl, "/v1/messages"),
-		{
-			method: "POST",
-			headers: {
-				"content-type": "application/json",
-				"x-api-key": args.provider.secret,
-				"anthropic-version": "2023-06-01",
+	let upstream: Response;
+	try {
+		upstream = await args.fetchImpl(
+			appendProviderPath(args.provider.baseUrl, "/v1/messages"),
+			{
+				method: "POST",
+				headers: {
+					"content-type": "application/json",
+					"x-api-key": args.provider.secret,
+					"anthropic-version": "2023-06-01",
+				},
+				body: JSON.stringify(upstreamBody),
 			},
-			body: JSON.stringify(upstreamBody),
-		},
-	);
+		);
+	} catch {
+		return jsonResponse(502, {
+			error: {
+				message:
+					"Model provider request failed before receiving a response. Check the provider URL, protocol, and network.",
+			},
+		});
+	}
 	return new Response(upstream.body, {
 		status: upstream.status,
 		headers: {
@@ -200,17 +210,27 @@ async function forwardTranslated(args: {
 		args.protocol === "openai-chat"
 			? buildOpenAIChatRequest(args.body)
 			: buildOpenAIResponsesRequest(args.body);
-	const upstream = await args.fetchImpl(
-		appendProviderPath(args.provider.baseUrl, upstreamPath(args.protocol)),
-		{
-			method: "POST",
-			headers: {
-				"content-type": "application/json",
-				authorization: `Bearer ${args.provider.secret}`,
+	let upstream: Response;
+	try {
+		upstream = await args.fetchImpl(
+			appendProviderPath(args.provider.baseUrl, upstreamPath(args.protocol)),
+			{
+				method: "POST",
+				headers: {
+					"content-type": "application/json",
+					authorization: `Bearer ${args.provider.secret}`,
+				},
+				body: JSON.stringify(upstreamBody),
 			},
-			body: JSON.stringify(upstreamBody),
-		},
-	);
+		);
+	} catch {
+		return jsonResponse(502, {
+			error: {
+				message:
+					"Model provider request failed before receiving a response. Check the provider URL, protocol, and network.",
+			},
+		});
+	}
 	const text = await upstream.text();
 	if (!upstream.ok) {
 		return new Response(text, {

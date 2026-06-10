@@ -14,6 +14,10 @@ describe("v2 workspace collection create persistence", () => {
 		source.indexOf("const v2Workspaces = createPersistedElectricCollection"),
 		source.indexOf("v2Workspaces.createIndex"),
 	);
+	const v2ProjectsBlock = source.slice(
+		source.indexOf("const v2Projects = createPersistedElectricCollection"),
+		source.indexOf("v2Projects.createIndex"),
+	);
 	const onInsertBlock = v2WorkspacesBlock.slice(
 		v2WorkspacesBlock.indexOf("onInsert: async"),
 		v2WorkspacesBlock.indexOf("onUpdate: async"),
@@ -35,5 +39,14 @@ describe("v2 workspace collection create persistence", () => {
 		);
 		expect(tasksBlock).toContain("withSyncedRowUpsertFor<SelectTask>()");
 		expect(tasksBlock).not.toContain("onInsert:");
+	});
+
+	test("v2 project setup can hydrate synced project and workspace rows immediately", () => {
+		expect(v2ProjectsBlock).toContain(
+			"withSyncedRowUpsertFor<SelectV2Project>()",
+		);
+		expect(v2WorkspacesBlock).toContain(
+			"withSyncedRowUpsertFor<SelectV2Workspace>()",
+		);
 	});
 });

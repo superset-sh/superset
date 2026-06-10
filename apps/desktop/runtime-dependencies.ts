@@ -94,6 +94,53 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 	},
 ];
 
+const trellisRuntimeModuleNames = [
+	"@mindfoldhq/trellis",
+	"@mindfoldhq/trellis-core",
+	"chalk",
+	"commander",
+	"figlet",
+	"giget",
+	"inquirer",
+	"@inquirer/external-editor",
+	"chardet",
+	"iconv-lite",
+	"safer-buffer",
+	"@inquirer/figures",
+	"ansi-escapes",
+	"environment",
+	"cli-width",
+	"mute-stream",
+	"ora",
+	"cli-cursor",
+	"restore-cursor",
+	"onetime",
+	"mimic-fn",
+	"signal-exit",
+	"cli-spinners",
+	"is-interactive",
+	"is-unicode-supported",
+	"log-symbols",
+	"yoctocolors",
+	"stdin-discarder",
+	"string-width",
+	"get-east-asian-width",
+	"strip-ansi",
+	"ansi-regex",
+	"run-async",
+	"rxjs",
+	"tslib",
+	"wrap-ansi",
+	"ansi-styles",
+	"yoctocolors-cjs",
+	"undici",
+	"zod",
+] as const;
+
+const trellisRuntimeModuleCopies = trellisRuntimeModuleNames.map((moduleName) =>
+	copyWholeModule(moduleName),
+);
+
 const packagedSupportModules = [
 	copyWholeModule("bindings"),
 	copyWholeModule("file-uri-to-path"),
@@ -117,12 +164,16 @@ export const mainExternalizedDependencies = [
 export const packagedNodeModuleCopies = [
 	...externalizedRuntimeModules.flatMap((module) => module.packagedCopies),
 	...packagedSupportModules,
+	...trellisRuntimeModuleCopies,
 ];
 
 export const packagedAsarUnpackGlobs = [
 	...externalizedRuntimeModules.flatMap((module) => module.asarUnpackGlobs),
 	"**/node_modules/bindings/**/*",
 	"**/node_modules/file-uri-to-path/**/*",
+	...trellisRuntimeModuleNames.map(
+		(moduleName) => `**/node_modules/${moduleName}/**/*`,
+	),
 ];
 
 export const requiredMaterializedNodeModules = [
@@ -134,4 +185,5 @@ export const requiredMaterializedNodeModules = [
 	"is-extglob",
 	"picomatch",
 	"node-addon-api",
+	...trellisRuntimeModuleNames,
 ];

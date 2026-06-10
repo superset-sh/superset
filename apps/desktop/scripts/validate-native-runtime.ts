@@ -7,6 +7,7 @@
  * 3) required native runtime packages are missing from apps/desktop/node_modules
  */
 
+import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { join } from "node:path";
@@ -525,6 +526,44 @@ function validateDuckdbPrepared(): void {
 	);
 }
 
+function validateTrellisCliRuntime(): void {
+	const nodeModulesDir = join(projectRoot, "node_modules");
+	const trellisBinPath = join(
+		nodeModulesDir,
+		"@mindfoldhq",
+		"trellis",
+		"bin",
+		"trellis.js",
+	);
+	assertExists(trellisBinPath, "Packaged Trellis CLI entrypoint is missing.");
+
+	const result = spawnSync(process.execPath, [trellisBinPath, "--version"], {
+		cwd: projectRoot,
+		encoding: "utf8",
+		env: {
+			...process.env,
+			CI: "1",
+		},
+	});
+
+	if (result.status !== 0) {
+		fail(
+			[
+				"Packaged Trellis CLI failed to start from materialized node_modules.",
+				`Command: ${process.execPath} ${trellisBinPath} --version`,
+				result.stderr?.trim() ? `stderr: ${result.stderr.trim()}` : "",
+				result.stdout?.trim() ? `stdout: ${result.stdout.trim()}` : "",
+			]
+				.filter(Boolean)
+				.join("\n"),
+		);
+	}
+
+	console.log(
+		`[validate:native-runtime] OK: Trellis CLI starts (${result.stdout.trim() || "version reported"})`,
+	);
+}
+
 function main(): void {
 	validateWorkspacePackagesBundled();
 	validateOnlyExpectedExternalRequires();
@@ -533,6 +572,7 @@ function main(): void {
 	validateNativeModulesPrepared();
 	validateParcelWatcherPrepared();
 	validateDuckdbPrepared();
+	validateTrellisCliRuntime();
 	console.log("[validate:native-runtime] All checks passed");
 }
 

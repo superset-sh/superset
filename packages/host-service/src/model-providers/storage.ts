@@ -23,7 +23,7 @@ export interface UpsertModelProviderInput {
 	protocol: ModelProviderProtocol;
 	baseUrl: string;
 	enabled: boolean;
-	secret?: string;
+	secret?: string | null;
 	models: UpsertProviderModelInput[];
 }
 
@@ -193,7 +193,7 @@ export function upsertModelProvider(
 	const existing = getModelProvider(db, id);
 	const secret =
 		input.secret !== undefined
-			? input.secret.trim()
+			? (input.secret?.trim() ?? "")
 			: (existing?.secret ?? undefined);
 	const row: typeof modelProviders.$inferInsert = {
 		id,
@@ -233,6 +233,28 @@ export function upsertModelProvider(
 	if (!saved) throw new Error("Failed to read saved model provider");
 	const { secret: _secret, ...summary } = saved;
 	return summary;
+}
+
+export function replaceModelProviders(
+	db: HostDb,
+	inputs: UpsertModelProviderInput[],
+): ModelProviderSummary[] {
+	const incomingIds = new Set(
+		inputs
+			.map((input) => input.id?.trim())
+			.filter((id): id is string => Boolean(id)),
+	);
+	for (const provider of listModelProviders(db)) {
+		if (!incomingIds.has(provider.id)) {
+			deleteModelProvider(db, provider.id);
+		}
+	}
+
+	for (const input of inputs) {
+		upsertModelProvider(db, input);
+	}
+
+	return listModelProviders(db);
 }
 
 export function deleteModelProvider(

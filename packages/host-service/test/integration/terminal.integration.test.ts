@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
+import { __resetSupervisorForTesting, getSupervisor } from "../../src/daemon";
 import {
 	disposeDaemonClient,
 	getDaemonClient,
@@ -44,6 +45,7 @@ describe("terminal router integration", () => {
 
 	afterEach(async () => {
 		__resetSessionsForTesting();
+		__resetSupervisorForTesting();
 		await disposeDaemonClient();
 		resetTerminalBaseEnvForTests();
 		__setAccountShellForTesting(undefined);
@@ -384,10 +386,62 @@ describe("terminal router integration", () => {
 			{
 				terminalId: activeTerminalId,
 				workspaceId: scenario.workspaceId,
+				createdAt: expect.any(Number),
 				pid: 123,
 				title: "Claude Code",
 			},
 		]);
+	});
+
+	test("listSessions and background count include live daemon sessions missing from host-service memory", async () => {
+		const terminalId = randomUUID();
+		seedTerminalSession(scenario.host, {
+			id: terminalId,
+			originWorkspaceId: scenario.workspaceId,
+		});
+
+		const supervisor = getSupervisor("/nonexistent");
+		(
+			supervisor as unknown as {
+				listSessions: typeof supervisor.listSessions;
+			}
+		).listSessions = async () => [
+			{
+				id: terminalId,
+				pid: 234,
+				cols: 80,
+				rows: 24,
+				alive: true,
+			},
+		];
+
+		const list = await scenario.host.trpc.terminal.listSessions.query({
+			workspaceId: scenario.workspaceId,
+		});
+		const count =
+			await scenario.host.trpc.terminal.countBackgroundSessions.query({
+				workspaceId: scenario.workspaceId,
+				attachedTerminalIds: [],
+			});
+		const attachedCount =
+			await scenario.host.trpc.terminal.countBackgroundSessions.query({
+				workspaceId: scenario.workspaceId,
+				attachedTerminalIds: [terminalId],
+			});
+
+		expect(list.sessions).toEqual([
+			{
+				terminalId,
+				workspaceId: scenario.workspaceId,
+				createdAt: expect.any(Number),
+				exited: false,
+				exitCode: 0,
+				attached: false,
+				title: null,
+			},
+		]);
+		expect(count.count).toBe(1);
+		expect(attachedCount.count).toBe(0);
 	});
 });
 

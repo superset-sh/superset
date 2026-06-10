@@ -69,6 +69,76 @@ Source: `apps/desktop/CLAUDE.md` and `apps/desktop/src/lib/trpc/routers/index.ts
 - Upgrade handoff preserves live sessions by passing PTY master fds to a successor process. Preserve tests in `packages/pty-daemon/test/handoff.test.ts` and `packages/host-service/src/terminal/terminal.adoption.node-test.ts` when changing adoption.
 - In desktop development, Electron spawns host-service children per organization and terminates them on app quit. PTY survival across host-service restarts comes from `packages/pty-daemon` adoption and replay, not from host-service itself. Treat "Electron closed but background work continues indefinitely" as a separate product/runtime requirement unless a task explicitly implements durable background supervision.
 
+### Scenario: Workspace Terminal Session Discovery
+
+#### 1. Scope / Trigger
+- Applies when editing `terminal.listSessions`, `terminal.countBackgroundSessions`,
+  remote workspace attach UI, daemon adoption, or anything that enumerates
+  existing terminal sessions for a workspace.
+
+#### 2. Signatures
+- tRPC list:
+  `terminal.listSessions({ workspaceId }) -> { sessions: TerminalSessionSummary[] }`.
+- tRPC count:
+  `terminal.countBackgroundSessions({ workspaceId, attachedTerminalIds }) -> { count: number }`.
+- Daemon source:
+  `DaemonSupervisor.listSessions(organizationId) -> SessionInfo[] | null`.
+- SQLite source:
+  `terminal_sessions.id`, `originWorkspaceId`, `status`, `createdAt`.
+
+#### 3. Contracts
+- Host-service memory (`listTerminalSessions`) is the best source for
+  `attached`, title, and active renderer sockets when this process created or
+  adopted the session.
+- The pty-daemon is the source of truth for PTYs that stayed alive across a
+  host-service restart or remote attach before any renderer websocket has
+  adopted them.
+- Workspace session discovery must merge memory sessions with daemon live
+  sessions joined to active SQLite `terminal_sessions` rows.
+- Listing/counting must not create a new PTY. It may probe the already
+  supervised daemon, and it must fall back to memory-only results if daemon
+  listing is unavailable.
+
+#### 4. Validation & Error Matrix
+- Daemon unavailable or no supervisor socket -> return memory sessions only.
+- Daemon reports a live id with no SQLite row -> ignore it.
+- SQLite row is `disposed`, `exited`, or has no `originWorkspaceId` -> ignore it.
+- Session exists in both memory and daemon -> keep the memory summary.
+- `attachedTerminalIds` contains a daemon-only session -> background count
+  excludes it.
+
+#### 5. Good/Base/Bad Cases
+- Good: host-service restarted, daemon still owns a PTY, SQLite row is active;
+  `terminal.listSessions({ workspaceId })` returns a detached attachable
+  summary with the original `createdAt`.
+- Base: daemon has no live sessions or is unreachable; existing local
+  memory-backed terminal lists continue to work.
+- Bad: list/count only reads the process-local `sessions` map, making remote
+  clients see zero terminals until a websocket manually opens the terminal id.
+
+#### 6. Tests Required
+- Host-service integration test stubs daemon `SessionInfo[]`, seeds
+  `terminal_sessions`, clears memory sessions, and asserts both
+  `terminal.listSessions` and `terminal.countBackgroundSessions`.
+- Resource-session join tests must cover active, disposed, exited, orphaned,
+  unknown, non-live, and invalid-pid daemon rows.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```typescript
+sessions: listTerminalSessions({ workspaceId, includeExited: false });
+```
+
+Correct:
+
+```typescript
+const memorySessions = listTerminalSessions({ workspaceId, includeExited: false });
+const daemonSessions = await getSupervisor().listSessions(ctx.organizationId);
+// Merge daemon live ids through terminal_sessions before returning summaries.
+```
+
 ## Local Startup And Runtime Gotchas
 
 - Host-service local DB is per organization at `${SUPERSET_HOME_DIR}/host/<organizationId>/host.db`. The coordinator passes this as `HOST_DB_PATH`.

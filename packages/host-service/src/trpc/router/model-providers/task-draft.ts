@@ -80,69 +80,78 @@ export async function generateTaskDraft(args: {
 	const { handleModelGatewayRequest } = await import(
 		"../../../model-gateway/gateway"
 	);
-	const response = await handleModelGatewayRequest({
-		db: args.ctx.db,
-		internalToken: args.ctx.hostServiceSecret,
-		request: new Request(
-			`${args.ctx.hostServiceBaseUrl}/model-gateway/v1/messages`,
-			{
-				method: "POST",
-				headers: {
-					authorization: `Bearer ${args.ctx.hostServiceSecret}`,
-					"content-type": "application/json",
-				},
-				body: JSON.stringify({
-					model,
-					system: SYSTEM_PROMPT,
-					max_tokens: 800,
-					temperature: 0.2,
-					messages: [
-						{
-							role: "user",
-							content: args.prompt,
-						},
-					],
-					tools: [
-						{
-							name: "propose_task_draft",
-							description: "Return an editable task draft.",
-							input_schema: {
-								type: "object",
-								additionalProperties: false,
-								required: ["title"],
-								properties: {
-									title: {
-										type: "string",
-										description: "Short task title.",
-									},
-									description: {
-										type: "string",
-										description: "Markdown task description.",
-									},
-									priority: {
-										type: "string",
-										enum: TASK_PRIORITIES,
-									},
-									labels: {
-										type: "array",
-										items: { type: "string" },
-									},
-									dueDate: {
-										type: ["string", "null"],
-										description: "YYYY-MM-DD or null.",
+	let response: Response;
+	try {
+		response = await handleModelGatewayRequest({
+			db: args.ctx.db,
+			internalToken: args.ctx.hostServiceSecret,
+			request: new Request(
+				`${args.ctx.hostServiceBaseUrl}/model-gateway/v1/messages`,
+				{
+					method: "POST",
+					headers: {
+						authorization: `Bearer ${args.ctx.hostServiceSecret}`,
+						"content-type": "application/json",
+					},
+					body: JSON.stringify({
+						model,
+						system: SYSTEM_PROMPT,
+						max_tokens: 800,
+						temperature: 0.2,
+						messages: [
+							{
+								role: "user",
+								content: args.prompt,
+							},
+						],
+						tools: [
+							{
+								name: "propose_task_draft",
+								description: "Return an editable task draft.",
+								input_schema: {
+									type: "object",
+									additionalProperties: false,
+									required: ["title"],
+									properties: {
+										title: {
+											type: "string",
+											description: "Short task title.",
+										},
+										description: {
+											type: "string",
+											description: "Markdown task description.",
+										},
+										priority: {
+											type: "string",
+											enum: TASK_PRIORITIES,
+										},
+										labels: {
+											type: "array",
+											items: { type: "string" },
+										},
+										dueDate: {
+											type: ["string", "null"],
+											description: "YYYY-MM-DD or null.",
+										},
 									},
 								},
 							},
+						],
+						tool_choice: {
+							type: "tool",
+							name: "propose_task_draft",
 						},
-					],
-					tool_choice: {
-						type: "tool",
-						name: "propose_task_draft",
-					},
-				}),
-			},
-		),
-	});
+					}),
+				},
+			),
+		});
+	} catch {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message:
+				"Model provider request failed. Check the provider URL, protocol, and network.",
+		});
+	}
 
 	const body = (await response.json()) as unknown;
 	if (!response.ok) {

@@ -27,7 +27,9 @@ import {
 	isDesktopChatDevMode,
 } from "renderer/lib/dev-chat";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { chatModelsQueryKey } from "renderer/lib/model-provider-query-keys";
 import { posthog } from "renderer/lib/posthog";
+import { syncCloudModelProvidersToHost } from "renderer/lib/sync-cloud-model-providers";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatMessageList } from "./components/ChatMessageList";
@@ -136,8 +138,13 @@ function useAvailableModels(workspaceId: string): {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const localModels = getDesktopChatModelOptions();
 	const { data } = useQuery({
-		queryKey: ["chat", "models", hostUrl],
+		queryKey: chatModelsQueryKey(hostUrl),
 		queryFn: async () => {
+			if (hostUrl) {
+				await syncCloudModelProvidersToHost(hostUrl).catch((error) => {
+					console.warn("[chat] Failed to sync cloud model providers", error);
+				});
+			}
 			const providerModels = hostUrl
 				? await getHostServiceClientByUrl(
 						hostUrl,
@@ -147,7 +154,7 @@ function useAvailableModels(workspaceId: string): {
 			return apiTrpcClient.chat.getModels.query();
 		},
 		enabled: !isDesktopChatDevMode(),
-		staleTime: Number.POSITIVE_INFINITY,
+		staleTime: 30_000,
 	});
 	const models = localModels.length > 0 ? localModels : (data?.models ?? []);
 	return { models, defaultModel: models[0] ?? null };

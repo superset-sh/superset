@@ -84,12 +84,14 @@ export function DevicePicker({
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<FormPickerTrigger
-					className={cn("max-w-[140px]", className)}
+					className={cn("max-w-[140px] overflow-hidden", className)}
 					aria-label={`Device: ${selectedLabel}`}
 					title={selectedLabel}
 				>
 					{getSelectedIcon(hostId, machineId)}
-					<span className="truncate">{selectedLabel}</span>
+					<span className="min-w-0 flex-1 truncate text-left">
+						{selectedLabel}
+					</span>
 					{selectedRemoteOnline !== null && (
 						<OnlineDot online={selectedRemoteOnline} />
 					)}
@@ -99,7 +101,7 @@ export function DevicePicker({
 			<DropdownMenuContent align="start" className="w-72">
 				<DropdownMenuItem onSelect={() => onSelectHostId(machineId)}>
 					<HiOutlineComputerDesktop className="size-4" />
-					<span className="flex-1">Local Device</span>
+					<span className="min-w-0 flex-1 truncate">Local Device</span>
 					{isLocal && <HiCheck className="size-4" />}
 				</DropdownMenuItem>
 				{otherHosts.length > 0 && (
@@ -120,7 +122,9 @@ export function DevicePicker({
 											onSelect={() => onSelectHostId(host.id)}
 										>
 											<HiOutlineServer className="size-4" />
-											<span className="min-w-0 truncate">{host.name}</span>
+											<span className="min-w-0 flex-1 truncate">
+												{host.name}
+											</span>
 											<OnlineDot online={host.isOnline} />
 											{isSelected && (
 												<HiCheck className="ml-auto size-4 shrink-0" />

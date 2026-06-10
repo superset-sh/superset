@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { rmSync } from "node:fs";
+import type { SelectV2Project, SelectV2Workspace } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { projects } from "../../../db/schema";
@@ -49,6 +50,8 @@ interface CreateResult {
 	projectId: string;
 	repoPath: string;
 	mainWorkspaceId: string;
+	project: SelectV2Project;
+	mainWorkspace: SelectV2Workspace;
 }
 
 // Cloud v2Project.create catches v2_projects_org_slug_unique and re-throws
@@ -62,23 +65,29 @@ function isSlugConflict(err: unknown): boolean {
 	return message === SLUG_CONFLICT_MESSAGE;
 }
 
+function stripTxid<T extends object>(row: T): Omit<T, "txid"> {
+	const { txid: _txid, ...rest } = row as T & { txid?: unknown };
+	return rest;
+}
+
 async function createCloudProjectWithSlugRetry(
 	ctx: HostServiceContext,
 	args: { id: string; name: string; repoCloneUrl?: string },
-) {
+): Promise<SelectV2Project> {
 	const baseSlug = slugifyProjectName(args.name);
 	let lastError: unknown;
 	const maxAttempts = 100;
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
 		const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
 		try {
-			return await ctx.api.v2Project.create.mutate({
+			const row = await ctx.api.v2Project.create.mutate({
 				organizationId: ctx.organizationId,
 				id: args.id,
 				name: args.name,
 				slug,
 				repoCloneUrl: args.repoCloneUrl,
 			});
+			return stripTxid(row) as SelectV2Project;
 		} catch (err) {
 			if (!isSlugConflict(err)) throw err;
 			lastError = err;
@@ -125,7 +134,7 @@ async function persistFromResolved(
 		persistLocalProject(ctx, projectId, args.resolved);
 		localProjectInserted = true;
 
-		await createCloudProjectWithSlugRetry(ctx, {
+		const project = await createCloudProjectWithSlugRetry(ctx, {
 			id: projectId,
 			name: args.name,
 			repoCloneUrl: args.repoCloneUrlForCloud,
@@ -142,6 +151,8 @@ async function persistFromResolved(
 			projectId,
 			repoPath: args.resolved.repoPath,
 			mainWorkspaceId: mainWorkspace.id,
+			project,
+			mainWorkspace,
 		};
 	} catch (err) {
 		if (cloudProjectCreated) {

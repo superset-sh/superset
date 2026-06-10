@@ -25,6 +25,8 @@ import {
 import { ModelProviderIcon } from "renderer/components/ModelProviderIcon";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { workspaceModelProvidersQueryKey } from "renderer/lib/model-provider-query-keys";
+import { syncCloudModelProvidersToHost } from "renderer/lib/sync-cloud-model-providers";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 type ModelProvider = RouterOutputs["modelProviders"]["list"][number];
@@ -333,7 +335,7 @@ export function ModelsTab({ workspaceId }: ModelsTabProps) {
 	const [form, setForm] = useState<ClaudeModelForm>(EMPTY_FORM);
 
 	const providersQueryKey = useMemo(
-		() => ["workspace-model-providers", hostUrl] as const,
+		() => workspaceModelProvidersQueryKey(hostUrl),
 		[hostUrl],
 	);
 	const configQueryKey = useMemo(
@@ -346,6 +348,12 @@ export function ModelsTab({ workspaceId }: ModelsTabProps) {
 		enabled: Boolean(hostUrl),
 		queryFn: async () => {
 			if (!hostUrl) return [];
+			await syncCloudModelProvidersToHost(hostUrl).catch((error) => {
+				console.warn(
+					"[models-tab] Failed to sync cloud model providers",
+					error,
+				);
+			});
 			return getHostServiceClientByUrl(hostUrl).modelProviders.list.query();
 		},
 	});

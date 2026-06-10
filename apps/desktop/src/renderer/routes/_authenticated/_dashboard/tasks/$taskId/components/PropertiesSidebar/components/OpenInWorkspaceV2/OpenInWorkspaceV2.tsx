@@ -276,7 +276,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	};
 
 	return (
-		<div className="flex flex-col gap-2">
+		<div className="flex min-w-0 max-w-full flex-col gap-2 overflow-hidden">
 			<span className="text-xs text-muted-foreground">Open in workspace</span>
 			<DevicePicker
 				hostId={hostId}
@@ -284,23 +284,23 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 					setHostId(next);
 					setLastHostId(next);
 				}}
-				className="w-full max-w-none h-8"
+				className="h-8 w-full max-w-full min-w-0"
 			/>
-			<div className="flex gap-1.5">
+			<div className="flex min-w-0 max-w-full gap-1.5">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button
 							variant="outline"
 							size="sm"
-							className="flex-1 justify-between font-normal h-8 min-w-0"
+							className="h-8 min-w-0 flex-1 justify-between font-normal"
 						>
-							<span className="flex items-center gap-2 truncate">
+							<span className="flex min-w-0 flex-1 items-center gap-2 truncate">
 								{selectedProject ? (
 									<>
 										<ProjectThumbnail
 											projectName={selectedProject.name}
 											iconUrl={selectedProject.iconUrl}
-											className="size-4"
+											className="size-4 shrink-0"
 										/>
 										<span className="truncate">{selectedProject.name}</span>
 									</>
@@ -355,18 +355,21 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				value={selectedAgent}
 				placeholder="Select agent"
 				onValueChange={setSelectedAgent}
-				triggerClassName="h-8 text-xs"
+				triggerClassName="h-8 w-full min-w-0 max-w-full text-xs"
+				contentClassName="max-w-80"
 				allowNone
 				noneLabel="No agent"
 				noneValue={NONE}
 			/>
-			<TrellisSetupRow
-				projectId={selectedProjectId}
-				hostId={hostId}
-				disabled={selectedProject?.needsSetup === true}
-				initialize={trellisInitialize}
-				onInitializeChange={setTrellisInitialize}
-			/>
+			<div className="min-w-0 max-w-full overflow-hidden">
+				<TrellisSetupRow
+					projectId={selectedProjectId}
+					hostId={hostId}
+					disabled={selectedProject?.needsSetup === true}
+					initialize={trellisInitialize}
+					onInitializeChange={setTrellisInitialize}
+				/>
+			</div>
 		</div>
 	);
 }

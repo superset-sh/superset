@@ -6,6 +6,7 @@ import { terminalSessions } from "../db/schema.ts";
 export interface TerminalResourceSession {
 	terminalId: string;
 	workspaceId: string;
+	createdAt: number;
 	pid: number;
 	title: string | null;
 }
@@ -36,6 +37,7 @@ export function listTerminalResourceSessions(
 			id: terminalSessions.id,
 			originWorkspaceId: terminalSessions.originWorkspaceId,
 			status: terminalSessions.status,
+			createdAt: terminalSessions.createdAt,
 		})
 		.from(terminalSessions)
 		.where(
@@ -63,6 +65,7 @@ export function listTerminalResourceSessions(
 			{
 				terminalId: session.id,
 				workspaceId: row.originWorkspaceId,
+				createdAt: row.createdAt,
 				pid: session.pid,
 				title: titlesByTerminalId.get(session.id) ?? null,
 			},

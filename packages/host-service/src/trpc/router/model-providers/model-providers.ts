@@ -17,6 +17,7 @@ import {
 	deleteModelProvider,
 	getModelProvider,
 	listModelProviders,
+	replaceModelProviders,
 	upsertModelProvider,
 } from "../../../model-providers/storage";
 import { protectedProcedure, queryProcedure, router } from "../../index";
@@ -39,6 +40,20 @@ const upsertProviderSchema = z.object({
 	enabled: z.boolean().default(true),
 	secret: z.string().optional(),
 	models: z.array(providerModelInputSchema).min(1),
+});
+
+const syncCloudProvidersSchema = z.object({
+	providers: z.array(
+		z.object({
+			id: z.string().trim().min(1),
+			name: z.string().trim().min(1),
+			protocol: protocolSchema,
+			baseUrl: z.url(),
+			enabled: z.boolean(),
+			secret: z.string().nullable(),
+			models: z.array(providerModelInputSchema).min(1),
+		}),
+	),
 });
 
 const fetchRemoteModelsSchema = z.object({
@@ -105,6 +120,23 @@ function claudeEnv(args: {
 
 export const modelProvidersRouter = router({
 	list: queryProcedure.query(({ ctx }) => listModelProviders(ctx.db)),
+
+	syncFromCloud: protectedProcedure
+		.input(syncCloudProvidersSchema)
+		.mutation(({ ctx, input }) =>
+			replaceModelProviders(
+				ctx.db,
+				input.providers.map((provider) => ({
+					id: provider.id,
+					name: provider.name,
+					protocol: provider.protocol as ModelProviderProtocol,
+					baseUrl: provider.baseUrl,
+					enabled: provider.enabled,
+					secret: provider.secret,
+					models: provider.models,
+				})),
+			),
+		),
 
 	listChatModels: queryProcedure.query(({ ctx }) =>
 		listModelProviders(ctx.db)

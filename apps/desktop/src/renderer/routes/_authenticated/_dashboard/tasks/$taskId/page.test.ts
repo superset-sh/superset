@@ -30,3 +30,35 @@ describe("Task detail sync fallback", () => {
 		expect(source).not.toContain("useOptimisticCollectionActions");
 	});
 });
+
+describe("Task detail properties layout", () => {
+	it("keeps the right sidebar and Open in workspace controls width-constrained", () => {
+		const sidebarSource = readTaskDetailFile(
+			"components/PropertiesSidebar/PropertiesSidebar.tsx",
+		);
+		const openInWorkspaceSource = readTaskDetailFile(
+			"components/PropertiesSidebar/components/OpenInWorkspaceV2/OpenInWorkspaceV2.tsx",
+		);
+		const devicePickerSource = readTaskDetailFile(
+			"../../../components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker.tsx",
+		);
+		const agentSelectSource = readTaskDetailFile(
+			"../../../../../components/AgentSelect/AgentSelect.tsx",
+		);
+
+		expect(sidebarSource).toContain("w-64 min-w-0");
+		expect(sidebarSource).toContain("overflow-hidden");
+		expect(openInWorkspaceSource).toContain("flex min-w-0 max-w-full flex-col");
+		expect(openInWorkspaceSource).toContain(
+			'className="h-8 w-full max-w-full min-w-0"',
+		);
+		expect(openInWorkspaceSource).toContain("flex min-w-0 max-w-full gap-1.5");
+		expect(openInWorkspaceSource).toContain(
+			'triggerClassName="h-8 w-full min-w-0 max-w-full text-xs"',
+		);
+		expect(devicePickerSource).toContain("max-w-[140px] overflow-hidden");
+		expect(devicePickerSource).toContain("min-w-0 flex-1 truncate");
+		expect(agentSelectSource).toContain("[&_[data-slot=select-value]]:min-w-0");
+		expect(agentSelectSource).toContain("min-w-0 truncate");
+	});
+});

@@ -149,4 +149,20 @@ describe("Run in Workspace selection wiring (#2641)", () => {
 			);
 		}
 	});
+
+	test("Task detail Open in Workspace keeps narrow sidebar controls constrained", () => {
+		const taskDetailSource = readComponent(
+			"../../$taskId/components/PropertiesSidebar/components/OpenInWorkspaceV2/OpenInWorkspaceV2.tsx",
+		);
+
+		expect(taskDetailSource).toContain(
+			'className="h-8 w-full max-w-full min-w-0"',
+		);
+		expect(taskDetailSource).toContain(
+			'triggerClassName="h-8 w-full min-w-0 max-w-full text-xs"',
+		);
+		expect(taskDetailSource).toContain(
+			'className="min-w-0 max-w-full overflow-hidden"',
+		);
+	});
 });
