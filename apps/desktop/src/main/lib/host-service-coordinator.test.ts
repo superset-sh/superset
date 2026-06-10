@@ -198,7 +198,26 @@ describe("HostServiceCoordinator relay exposure env", () => {
 		}
 	});
 
-	test("exposes the host-service via relay by default", async () => {
+	test("keeps host-service relay exposure disabled by default", async () => {
+		const previousRelayUrl = process.env.RELAY_URL;
+		process.env.RELAY_URL = "https://inherited-relay.example";
+		try {
+			const env = await (
+				coordinator as unknown as HostServiceCoordinatorBuildEnvInternals
+			).buildEnv("org-1", 40000, "secret", spawnConfig);
+
+			expect(env.RELAY_URL).toBeUndefined();
+		} finally {
+			if (previousRelayUrl === undefined) {
+				delete process.env.RELAY_URL;
+			} else {
+				process.env.RELAY_URL = previousRelayUrl;
+			}
+		}
+	});
+
+	test("exposes the host-service via relay when explicitly enabled", async () => {
+		localSettingsRow = { exposeHostServiceViaRelay: true };
 		const env = await (
 			coordinator as unknown as HostServiceCoordinatorBuildEnvInternals
 		).buildEnv("org-1", 40000, "secret", spawnConfig);
