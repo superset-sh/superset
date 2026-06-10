@@ -28,6 +28,90 @@ Source: `apps/desktop/CLAUDE.md` and `apps/desktop/src/lib/trpc/routers/index.ts
 - Primary terminal WebSocket output is binary; renderer/xterm consumes `Uint8Array`. Control messages remain JSON.
 - Current slow-renderer handling is bounded buffering, not protocol ACK flow control. The daemon broadcasts output without `ack-output`; host-service closes a renderer socket once its buffered amount exceeds the configured cap, then the renderer reconnects and replays the bounded terminal tail.
 
+### Scenario: Remote Observer Terminal Scrollback
+
+#### 1. Scope / Trigger
+- Applies when editing remote terminal attach/replay behavior in
+  `packages/host-service/src/terminal` or renderer xterm attach behavior in
+  `apps/desktop/src/renderer/lib/terminal`.
+- Trigger: a terminal hosted on one machine is observed from another machine
+  after output has already been produced.
+
+#### 2. Signatures
+- Server attach control frame:
+  `{ type: "attached"; terminalId: string; canResize?: boolean }`.
+- Host-service replay helpers:
+  `replayBuffer(session, socket)` and
+  `createReplaySnapshotTracker(cols, rows)`.
+- Snapshot tracker contract:
+  `feed(bytes)`, `resize(cols, rows)`, `serialize() -> Uint8Array | null`,
+  and `dispose()`.
+
+#### 3. Contracts
+- The owning host-service is responsible for remote observer scrollback. The
+  observing renderer cannot recover history that the owning host never sends.
+- Keep raw PTY bytes for live transport and bounded fallback replay, but do not
+  rely on a raw byte FIFO as the only late-attach replay source. TUIs and
+  agent CLIs can redraw the current screen with cursor movement/clear sequences,
+  causing a raw tail replay to produce no scrollback.
+- Each live terminal session should mirror PTY output through a headless xterm
+  snapshot tracker with scrollback. On attach, send mode preamble first, then
+  the serialized headless xterm state. Fall back to raw FIFO only when no
+  snapshot is available.
+- Resize both mode and replay trackers whenever the owning PTY is resized.
+  Secondary observers must not resize the shared PTY.
+- Dispose replay trackers wherever mode trackers are disposed: daemon
+  disconnect, test reset, and explicit session disposal.
+
+#### 4. Validation & Error Matrix
+- Observer wheel/trackpad focus is inside xterm but
+  `.xterm-viewport.scrollHeight === clientHeight` -> diagnose missing replayed
+  scrollback, not a wheel-event interception bug.
+- Owner host still running an old build -> observer-side dev changes cannot
+  fix that live terminal; update/restart the owning host-service.
+- Snapshot tracker construction fails because xterm internals changed -> fail
+  loudly at session construction, matching the mode tracker version-pinning
+  strategy.
+
+#### 5. Good/Base/Bad Cases
+- Good: work computer owns a terminal, Mac mini attaches later, and the
+  observer xterm has `scrollHeight > clientHeight` when prior output exceeds
+  the viewport.
+- Base: no previous output exists; snapshot serializes little or nothing and
+  the observer starts at the live screen.
+- Bad: only replay the last raw 64KB. Claude/Codex/TUI output may reconstruct
+  the current screen but no scrollback, so the remote observer cannot scroll.
+
+#### 6. Tests Required
+- Unit test `terminal-replay-snapshot.test.ts` asserts serialized snapshots
+  include output that scrolled beyond the viewport and continue tracking after
+  resize.
+- Existing terminal transport tests must keep asserting secondary observers do
+  not send resize messages.
+- Desktop acceptance for this path should inspect the accident scene with
+  DevTools/automation: attach to a remote terminal after output, assert
+  `.xterm-viewport.scrollHeight > clientHeight`, dispatch a wheel event, and
+  assert `scrollTop` changes.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```ts
+// Late observers only get raw bytes retained in a bounded FIFO.
+for (const chunk of session.buffer) {
+  sendBytes(socket, chunk);
+}
+```
+
+Correct:
+
+```ts
+const preamble = session.modeTracker.buildPreamble();
+const snapshot = session.replaySnapshot.serialize();
+sendBytes(socket, combine(preamble, snapshot ?? rawFifoFallback));
+```
+
 ### Scenario: Terminal Byte Transport And Slow Renderer Handling
 
 1. Scope / Trigger

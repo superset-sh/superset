@@ -39,6 +39,10 @@ import {
 	createModeTracker,
 	type ModeTracker,
 } from "./terminal-mode-tracker.ts";
+import {
+	createReplaySnapshotTracker,
+	type ReplaySnapshotTracker,
+} from "./terminal-replay-snapshot.ts";
 
 /**
  * Thin adapter exposing approximately the IPty surface that the rest of
@@ -250,6 +254,7 @@ interface TerminalSession {
 	 * paste, focus, mouse, etc. that the FIFO can't restore on its own.
 	 */
 	modeTracker: ModeTracker;
+	replaySnapshot: ReplaySnapshotTracker;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -292,6 +297,11 @@ onDaemonDisconnect((err) => {
 		} catch {
 			// best-effort
 		}
+		try {
+			session.replaySnapshot.dispose();
+		} catch {
+			// best-effort
+		}
 	}
 	sessions.clear();
 });
@@ -315,6 +325,11 @@ export function __resetSessionsForTesting(): void {
 		}
 		try {
 			session.modeTracker.dispose();
+		} catch {
+			// best-effort
+		}
+		try {
+			session.replaySnapshot.dispose();
 		} catch {
 			// best-effort
 		}
@@ -527,13 +542,19 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 }
 
 function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	// Preamble first, then FIFO. Mode-setting escapes (kitty keyboard,
+	// Preamble first, then serialized headless xterm state. Mode-setting escapes
+	// (kitty keyboard,
 	// bracketed paste, focus, …) are typically emitted once at startup, so a
 	// fresh xterm needs them re-asserted on every attach — even when the FIFO is
 	// empty.
 	const preamble = session.modeTracker.buildPreamble();
+	const snapshot = session.replaySnapshot.serialize();
 	let bufferTotal = 0;
-	for (const b of session.buffer) bufferTotal += b.byteLength;
+	if (snapshot) {
+		bufferTotal = snapshot.byteLength;
+	} else {
+		for (const b of session.buffer) bufferTotal += b.byteLength;
+	}
 	const preambleLen = preamble?.byteLength ?? 0;
 	if (preambleLen === 0 && bufferTotal === 0) return;
 
@@ -543,9 +564,13 @@ function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 		combined.set(preamble, offset);
 		offset += preamble.byteLength;
 	}
-	for (const b of session.buffer) {
-		combined.set(b, offset);
-		offset += b.byteLength;
+	if (snapshot) {
+		combined.set(snapshot, offset);
+	} else {
+		for (const b of session.buffer) {
+			combined.set(b, offset);
+			offset += b.byteLength;
+		}
 	}
 	sendBytes(socket, combined);
 }
@@ -568,6 +593,7 @@ function resolveShellReady(
 	if (session.scanState.heldBytes.length > 0) {
 		const heldBytes = Uint8Array.from(session.scanState.heldBytes);
 		session.modeTracker.feed(heldBytes);
+		session.replaySnapshot.feed(heldBytes);
 		bufferOutput(session, heldBytes);
 		session.scanState.heldBytes.length = 0;
 	}
@@ -721,6 +747,11 @@ export async function disposeSessionAndWait(
 		}
 		try {
 			session.modeTracker.dispose();
+		} catch {
+			// best-effort
+		}
+		try {
+			session.replaySnapshot.dispose();
 		} catch {
 			// best-effort
 		}
@@ -1058,6 +1089,7 @@ export async function createTerminalSessionInternal({
 		initialCommandQueued: isAdopted,
 		portHintDecoder: new StringDecoder("utf8"),
 		modeTracker: createModeTracker(cols, rows),
+		replaySnapshot: createReplaySnapshotTracker(cols, rows),
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
@@ -1116,6 +1148,7 @@ export async function createTerminalSessionInternal({
 				// Feed the tracker on every byte so startup mode escapes are available
 				// to every newly attached xterm.
 				session.modeTracker.feed(bytes);
+				session.replaySnapshot.feed(bytes);
 				broadcastBytes(session, bytes);
 			},
 			onExit({ code, signal }) {
@@ -1414,6 +1447,7 @@ export function registerWorkspaceTerminalRoute({
 						);
 						session.pty.resize(cols, rows);
 						session.modeTracker.resize(cols, rows);
+						session.replaySnapshot.resize(cols, rows);
 						session.cols = cols;
 						session.rows = rows;
 					}

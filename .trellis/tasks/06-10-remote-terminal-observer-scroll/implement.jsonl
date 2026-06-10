@@ -1,0 +1,3 @@
+{"file":".trellis/spec/host-service/backend/index.md","reason":"Host-service terminal session implementation must follow backend package conventions."}
+{"file":".trellis/spec/guides/terminal-and-host-runtime.md","reason":"Remote terminal attach/replay behavior is governed by the terminal and host runtime guide."}
+{"file":".trellis/spec/guides/quality-and-testing.md","reason":"Focused regression tests plus root lint/type checks are required before shipping."}
