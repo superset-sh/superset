@@ -419,3 +419,37 @@ Completed remote workspace/terminal attach fixes, cloud model provider sync, Tre
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: Canary host sync and release hardening
+
+**Date**: 2026-06-10
+**Task**: Canary host sync and release hardening
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Fixed remote terminal auto-attach and shared PTY resize behavior, added local Redis KV service for relay presence, pinned desktop canary/stable build env to the public production endpoints, and restored full lint/typecheck gates before release.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bce87902d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

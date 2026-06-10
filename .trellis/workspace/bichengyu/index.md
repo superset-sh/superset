@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
+- **Total Sessions**: 13
 - **Last Active**: 2026-06-10
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~421 | Active |
+| `journal-1.md` | ~455 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 13 | 2026-06-10 | Canary host sync and release hardening | `bce87902d` | `codex/model-provider-configuration-center` |
 | 12 | 2026-06-10 | Remote workspace attach and canary bugfix release | `f19e3b0aa` | `codex/model-provider-configuration-center` |
 | 11 | 2026-06-09 | Desktop performance phase 1 | `611757472` | `codex/model-provider-configuration-center` |
 | 10 | 2026-06-09 | Merge upstream official changes | `b1e93f946` | `codex/model-provider-configuration-center` |
