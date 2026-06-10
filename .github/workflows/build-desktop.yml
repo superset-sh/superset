@@ -48,6 +48,12 @@ on:
         type: string
         default: "auto"
 
+env:
+  DESKTOP_PRODUCTION_WEB_URL: http://bj1.v.lhb.ink:63000
+  DESKTOP_PRODUCTION_API_URL: http://bj1.v.lhb.ink:63001
+  DESKTOP_PRODUCTION_ELECTRIC_URL: http://bj1.v.lhb.ink:63012
+  DESKTOP_PRODUCTION_RELAY_URL: http://bj1.v.lhb.ink:63013
+
 jobs:
   build-macos:
     name: Build - macOS (${{ matrix.arch }})
@@ -118,14 +124,14 @@ jobs:
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
-          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ env.DESKTOP_PRODUCTION_WEB_URL }}
+          NEXT_PUBLIC_API_URL: ${{ env.DESKTOP_PRODUCTION_API_URL }}
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
-          NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
+          NEXT_PUBLIC_ELECTRIC_URL: ${{ env.DESKTOP_PRODUCTION_ELECTRIC_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          RELAY_URL: ${{ secrets.RELAY_URL }}
+          RELAY_URL: ${{ env.DESKTOP_PRODUCTION_RELAY_URL }}
           SUPERSET_WORKSPACE_NAME: superset
           TARGET_ARCH: ${{ matrix.arch }}
         run: bun run compile:app
@@ -319,14 +325,14 @@ jobs:
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
-          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ env.DESKTOP_PRODUCTION_WEB_URL }}
+          NEXT_PUBLIC_API_URL: ${{ env.DESKTOP_PRODUCTION_API_URL }}
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
-          NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
+          NEXT_PUBLIC_ELECTRIC_URL: ${{ env.DESKTOP_PRODUCTION_ELECTRIC_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          RELAY_URL: ${{ secrets.RELAY_URL }}
+          RELAY_URL: ${{ env.DESKTOP_PRODUCTION_RELAY_URL }}
           SUPERSET_WORKSPACE_NAME: superset
           TARGET_ARCH: x64
         run: bun run compile:app

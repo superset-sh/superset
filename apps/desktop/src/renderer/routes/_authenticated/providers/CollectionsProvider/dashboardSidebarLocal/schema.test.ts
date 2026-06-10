@@ -151,6 +151,22 @@ describe("healWorkspaceLocalState", () => {
 		expect(healed.sidebarState.isHidden).toBe(false);
 	});
 
+	it("resets invalid nested sidebarState enum values", () => {
+		const healed = healWorkspaceLocalState({
+			...baseStored,
+			sidebarState: {
+				...baseStored.sidebarState,
+				activeTab: "activeTab",
+				changesFilter: { kind: "stale-filter" },
+				changesViewMode: "stale-view-mode",
+			},
+		});
+
+		expect(healed.sidebarState.activeTab).toBe("changes");
+		expect(healed.sidebarState.changesFilter).toEqual({ kind: "all" });
+		expect(healed.sidebarState.changesViewMode).toBe("folders");
+	});
+
 	it("does not throw on null/non-object input (parser must never throw)", () => {
 		// Heal must never throw — a throw would take down the entire collection
 		// load (loadFromStorage swallows the error and returns an empty Map).

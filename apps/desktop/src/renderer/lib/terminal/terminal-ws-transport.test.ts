@@ -8,7 +8,7 @@ import {
 	test,
 } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { connect, createTransport } from "./terminal-ws-transport";
+import { connect, createTransport, sendResize } from "./terminal-ws-transport";
 
 type Listener = (event: {
 	data?: unknown;
@@ -165,6 +165,36 @@ describe("terminal-ws-transport", () => {
 			{ type: "resize", cols: 101, rows: 27 },
 			{ type: "input", data: "b" },
 		]);
+	});
+
+	test("does not resize shared terminals when attached as a secondary observer", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+
+		connect(transport, terminal, "ws://host/terminal/t1");
+
+		const socket = MockWebSocket.instances[0];
+		expect(socket).toBeDefined();
+		if (!socket) throw new Error("expected websocket instance");
+		const sentMessages = () =>
+			socket.sent.map((payload) => JSON.parse(payload) as unknown);
+
+		socket.open();
+		socket.message(
+			JSON.stringify({
+				type: "attached",
+				terminalId: "t1",
+				canResize: false,
+			}),
+		);
+
+		expect(transport.connectionState).toBe("open");
+		expect(transport.canResize).toBe(false);
+		expect(sentMessages()).toEqual([]);
+
+		sendResize(transport, 120, 40);
+		terminal.emitData("b");
+		expect(sentMessages()).toEqual([{ type: "input", data: "b" }]);
 	});
 
 	test("recovers a half-open socket after the machine resumes from sleep", () => {

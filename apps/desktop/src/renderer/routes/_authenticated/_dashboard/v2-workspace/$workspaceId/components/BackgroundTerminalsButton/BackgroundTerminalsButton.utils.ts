@@ -14,6 +14,7 @@ interface WorkspaceTabLike {
 export interface BackgroundTerminalSessionLike {
 	terminalId: string;
 	createdAt?: number;
+	exited?: boolean;
 }
 
 function getTerminalIdFromPaneData(data: unknown): string | null {
@@ -56,6 +57,31 @@ export function getBackgroundTerminalSessions<
 	return sessions
 		.filter((session) => !attached.has(session.terminalId))
 		.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+}
+
+export function getAutoAttachBackgroundTerminalId<
+	T extends BackgroundTerminalSessionLike,
+>({
+	sessions,
+	attachedTerminalIds,
+	suppressedTerminalIds = [],
+}: {
+	sessions: readonly T[];
+	attachedTerminalIds: Iterable<string>;
+	suppressedTerminalIds?: Iterable<string>;
+}): string | null {
+	const attached = new Set(attachedTerminalIds);
+	const liveSessions = sessions.filter((session) => !session.exited);
+	if (liveSessions.some((session) => attached.has(session.terminalId))) {
+		return null;
+	}
+
+	const suppressed = new Set(suppressedTerminalIds);
+	const [candidate] = getBackgroundTerminalSessions(
+		liveSessions,
+		attached,
+	).filter((session) => !suppressed.has(session.terminalId));
+	return candidate?.terminalId ?? null;
 }
 
 export function getUnattachedTerminalIds(

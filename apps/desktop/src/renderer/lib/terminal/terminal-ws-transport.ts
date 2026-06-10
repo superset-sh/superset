@@ -18,7 +18,7 @@ export interface TerminalLogEntry {
 // partial sequences internally). Control messages (title/error/exit) stay
 // JSON.
 type TerminalServerMessage =
-	| { type: "attached"; terminalId: string }
+	| { type: "attached"; terminalId: string; canResize?: boolean }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
@@ -28,6 +28,8 @@ export interface TerminalTransport {
 	connectionState: ConnectionState;
 	/** The URL the socket is currently connected (or connecting) to. */
 	currentUrl: string | null;
+	/** Whether this renderer may resize the shared PTY. */
+	canResize: boolean;
 	title: string | null | undefined;
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
@@ -148,6 +150,7 @@ export function createTransport(): TerminalTransport {
 		socket: null,
 		connectionState: "disconnected",
 		currentUrl: null,
+		canResize: true,
 		title: undefined,
 		onDataDisposable: null,
 		stateListeners: new Set(),
@@ -336,6 +339,7 @@ export function connect(
 
 	cancelReconnect(transport);
 	transport.currentUrl = wsUrl;
+	transport.canResize = true;
 	transport._terminal = terminal;
 	transport._terminated = false;
 	setupLiveness(transport);
@@ -435,6 +439,7 @@ function attachSocketListeners(
 		}
 
 		if (message.type === "attached") {
+			transport.canResize = message.canResize !== false;
 			setConnectionState(transport, "open");
 			sendResize(transport, terminal.cols, terminal.rows);
 			return;
@@ -501,6 +506,7 @@ export function disconnect(transport: TerminalTransport) {
 		transport.socket = null;
 	}
 	transport.currentUrl = null;
+	transport.canResize = true;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
 	setTerminalTitle(transport, undefined);
@@ -514,6 +520,7 @@ export function sendResize(
 	cols: number,
 	rows: number,
 ) {
+	if (!transport.canResize) return;
 	if (!transport.socket || transport.socket.readyState !== WebSocket.OPEN)
 		return;
 	if (transport.connectionState !== "open") return;
@@ -541,6 +548,7 @@ export function disposeTransport(transport: TerminalTransport) {
 		transport.socket = null;
 	}
 	transport.currentUrl = null;
+	transport.canResize = true;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
 	setTerminalTitle(transport, undefined);

@@ -32,6 +32,14 @@ export type ChangesFilter = z.infer<typeof changesFilterSchema>;
 
 export type ChangesViewMode = "folders" | "tree";
 
+const changesViewModeSchema = z.enum(["folders", "tree"]);
+const workspaceSidebarActiveTabSchema = z.enum([
+	"changes",
+	"files",
+	"review",
+	"models",
+]);
+
 const workspaceRunStateSchema = z.enum([
 	"running",
 	"stopped-by-user",
@@ -60,10 +68,8 @@ export const workspaceLocalStateSchema = z.object({
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
-		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
-		activeTab: z
-			.enum(["changes", "files", "review", "models"])
-			.default("changes"),
+		changesViewMode: changesViewModeSchema.default("folders"),
+		activeTab: workspaceSidebarActiveTabSchema.default("changes"),
 		isHidden: z.boolean().default(false),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
@@ -106,6 +112,15 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 		z.infer<typeof workspaceRunTerminalStateSchema>
 	>,
 };
+
+function safeParseWithDefault<TSchema extends z.ZodType>(
+	schema: TSchema,
+	value: unknown,
+	defaultValue: z.infer<TSchema>,
+): z.infer<TSchema> {
+	const parsed = schema.safeParse(value);
+	return parsed.success ? parsed.data : defaultValue;
+}
 
 export const dashboardSidebarSectionSchema = z.object({
 	sectionId: z.string().uuid(),
@@ -290,6 +305,21 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,
+			changesFilter: safeParseWithDefault(
+				changesFilterSchema,
+				sidebar.changesFilter,
+				SIDEBAR_STATE_DEFAULTS.changesFilter,
+			),
+			changesViewMode: safeParseWithDefault(
+				changesViewModeSchema,
+				sidebar.changesViewMode,
+				SIDEBAR_STATE_DEFAULTS.changesViewMode,
+			),
+			activeTab: safeParseWithDefault(
+				workspaceSidebarActiveTabSchema,
+				sidebar.activeTab,
+				SIDEBAR_STATE_DEFAULTS.activeTab,
+			),
 		} as WorkspaceLocalStateRow["sidebarState"],
 	} as WorkspaceLocalStateRow;
 }

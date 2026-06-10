@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	getAttachedTerminalIdsKey,
+	getAutoAttachBackgroundTerminalId,
 	getBackgroundTerminalCountRefetchInterval,
 	getBackgroundTerminalListRefetchInterval,
 	getBackgroundTerminalSessions,
@@ -43,6 +44,50 @@ describe("BackgroundTerminalsButton utils", () => {
 				["attached"],
 			).map((session) => session.terminalId),
 		).toEqual(["new", "old"]);
+	});
+
+	test("auto-attaches the newest live background session when no attached terminal is live", () => {
+		expect(
+			getAutoAttachBackgroundTerminalId({
+				sessions: [
+					{ terminalId: "old-live", createdAt: 1 },
+					{ terminalId: "exited-newer", createdAt: 10, exited: true },
+					{ terminalId: "new-live", createdAt: 5 },
+				],
+				attachedTerminalIds: [],
+			}),
+		).toBe("new-live");
+	});
+
+	test("does not auto-attach when an attached terminal is already live", () => {
+		expect(
+			getAutoAttachBackgroundTerminalId({
+				sessions: [
+					{ terminalId: "attached", createdAt: 1 },
+					{ terminalId: "background", createdAt: 5 },
+				],
+				attachedTerminalIds: ["attached"],
+			}),
+		).toBeNull();
+	});
+
+	test("can auto-attach when local layout points at a stale terminal id", () => {
+		expect(
+			getAutoAttachBackgroundTerminalId({
+				sessions: [{ terminalId: "remote-live", createdAt: 5 }],
+				attachedTerminalIds: ["stale-local"],
+			}),
+		).toBe("remote-live");
+	});
+
+	test("skips sessions that were intentionally backgrounded on this client", () => {
+		expect(
+			getAutoAttachBackgroundTerminalId({
+				sessions: [{ terminalId: "backgrounded-here", createdAt: 5 }],
+				attachedTerminalIds: [],
+				suppressedTerminalIds: ["backgrounded-here"],
+			}),
+		).toBeNull();
 	});
 
 	test("deduplicates optimistic background terminal markers and ignores attached terminals", () => {

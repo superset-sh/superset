@@ -88,6 +88,7 @@
 		"@mindfoldhq/trellis": "0.6.0-beta.23",
 		"@octokit/rest": "22.0.1",
 		"@superset/chat": "workspace:*",
+		"@superset/db": "workspace:*",
 		"@superset/port-scanner": "workspace:*",
 		"@superset/pty-daemon": "workspace:*",
 		"@superset/shared": "workspace:*",

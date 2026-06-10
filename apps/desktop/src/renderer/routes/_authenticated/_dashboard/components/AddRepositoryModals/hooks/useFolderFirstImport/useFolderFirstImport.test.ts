@@ -2,10 +2,6 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 const hostUrl = "http://host-service";
 const repoPath = "/repos/octocat";
-const setupResult = {
-	repoPath,
-	mainWorkspaceId: "workspace-1",
-};
 const hydratedProject = {
 	id: "project-1",
 	organizationId: "org-1",
@@ -29,6 +25,15 @@ const hydratedWorkspace = {
 	taskId: null,
 	createdAt: new Date("2026-01-01T00:00:00.000Z"),
 	updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+} as const;
+const setupResult: {
+	repoPath: string;
+	mainWorkspaceId: string;
+	project?: typeof hydratedProject;
+	mainWorkspace?: typeof hydratedWorkspace;
+} = {
+	repoPath,
+	mainWorkspaceId: "workspace-1",
 };
 const cloudError = {
 	url: "https://github.com/octocat/hello.git",

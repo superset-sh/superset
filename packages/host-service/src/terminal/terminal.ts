@@ -154,7 +154,7 @@ type TerminalClientMessage =
 // on attach) is a binary frame too; the renderer doesn't distinguish it
 // from live data.
 type TerminalServerMessage =
-	| { type: "attached"; terminalId: string }
+	| { type: "attached"; terminalId: string; canResize?: boolean }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
@@ -1251,8 +1251,9 @@ export function registerWorkspaceTerminalRoute({
 				ws: TerminalSocket,
 			): boolean => {
 				if (session.sockets.has(ws)) return false;
+				const canResize = pruneAndCountOpenSockets(session) === 0;
 				session.sockets.add(ws);
-				sendMessage(ws, { type: "attached", terminalId });
+				sendMessage(ws, { type: "attached", terminalId, canResize });
 
 				db.update(terminalSessions)
 					.set({ lastAttachedAt: Date.now() })

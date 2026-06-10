@@ -44,5 +44,33 @@ services:
       postgres:
         condition: service_healthy
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${LOCAL_REDIS_PORT:-6379}:6379"
+    volumes:
+      - superset_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  kv-rest:
+    build:
+      context: ./packages/local-kv-rest
+    image: superset-local-kv-rest:latest
+    environment:
+      KV_REST_API_TOKEN: ${KV_REST_API_TOKEN:-local-kv-token}
+      REDIS_ADDR: redis:6379
+      PORT: 80
+    ports:
+      - "${LOCAL_KV_REST_PORT:-8079}:80"
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   superset_db_data:
+  superset_redis_data:

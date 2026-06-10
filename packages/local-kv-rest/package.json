@@ -1,0 +1,9 @@
+{
+	"name": "@superset/local-kv-rest",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "docker build -t superset-local-kv-rest:latest ."
+	}
+}

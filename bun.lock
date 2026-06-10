@@ -799,6 +799,7 @@
         "@mindfoldhq/trellis": "0.6.0-beta.23",
         "@octokit/rest": "22.0.1",
         "@superset/chat": "workspace:*",
+        "@superset/db": "workspace:*",
         "@superset/port-scanner": "workspace:*",
         "@superset/pty-daemon": "workspace:*",
         "@superset/shared": "workspace:*",
@@ -850,6 +851,10 @@
         "drizzle-kit": "0.31.8",
         "typescript": "5.9.3",
       },
+    },
+    "packages/local-kv-rest": {
+      "name": "@superset/local-kv-rest",
+      "version": "0.1.0",
     },
     "packages/macos-process-metrics": {
       "name": "@superset/macos-process-metrics",
@@ -2659,6 +2664,8 @@
     "@superset/host-service": ["@superset/host-service@workspace:packages/host-service"],
 
     "@superset/local-db": ["@superset/local-db@workspace:packages/local-db"],
+
+    "@superset/local-kv-rest": ["@superset/local-kv-rest@workspace:packages/local-kv-rest"],
 
     "@superset/macos-process-metrics": ["@superset/macos-process-metrics@workspace:packages/macos-process-metrics"],
 
