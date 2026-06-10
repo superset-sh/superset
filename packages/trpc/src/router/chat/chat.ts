@@ -49,6 +49,11 @@ const AVAILABLE_MODELS = [
 		name: "GPT-5.3 Codex",
 		provider: "OpenAI",
 	},
+	{
+		id: "minimax/MiniMax-M3",
+		name: "MiniMax-M3",
+		provider: "MiniMax",
+	},
 ];
 
 export const chatRouter = {
