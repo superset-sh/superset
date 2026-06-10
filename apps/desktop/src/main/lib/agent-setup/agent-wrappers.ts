@@ -27,7 +27,11 @@ export {
 	OPENCODE_PLUGIN_MARKER,
 } from "./agent-wrappers-claude-codex-opencode";
 export {
+	buildNotifyHookCommand,
+	buildWindowsWrapperScript,
 	buildWrapperScript,
+	createWrapper,
+	getWindowsWrapperPath,
 	getWrapperPath,
 	WRAPPER_MARKER,
 } from "./agent-wrappers-common";

@@ -70,6 +70,7 @@ export interface CreateOrAttachInput {
 	allowKilled?: boolean;
 	themeType?: "dark" | "light";
 	command?: string;
+	commands?: string[];
 }
 
 /**

@@ -42,6 +42,9 @@ export class LocalModelProvider implements ModelProviderRuntimeResolver {
 		});
 		const runtimeEnv = buildAnthropicRuntimeEnv(
 			stripAnthropicCredentialEnvVariables(anthropicEnvConfig.variables),
+			{
+				suppressBedrock: hasUsableCredential(anthropicCredential),
+			},
 		);
 
 		return {

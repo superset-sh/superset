@@ -52,7 +52,7 @@ export const SupersetNotifyPlugin = async ({ $, client }) => {
       // SUPERSET_AGENT_ID=opencode is exported by the opencode wrapper and
       // inherited by every child of the opencode process, so the notify
       // script reads the right id from env without any explicit forwarding.
-      await $`bash ${notifyPath} ${payload}`;
+      await $`${notifyPath} ${payload}`;
       log('Notification sent successfully');
     } catch (err) {
       log('Notification failed:', err?.message || err);

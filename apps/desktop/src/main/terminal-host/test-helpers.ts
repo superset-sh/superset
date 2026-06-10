@@ -1,17 +1,18 @@
 import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { getTerminalHostSocketPath } from "../lib/terminal-host/paths";
 
 export function supportsLocalSocketBinding(): boolean {
-	if (process.platform === "win32") {
-		return false;
-	}
-
 	const probeDir = mkdtempSync(
 		join(realpathSync(tmpdir()), "superset-socket-probe-"),
 	);
-	const probeSocketPath = join(probeDir, "probe.sock");
+	const probeSocketPath = getTerminalHostSocketPath({
+		homeDir:
+			process.platform === "win32" ? join(probeDir, randomUUID()) : probeDir,
+	});
 
 	try {
 		const evalScript = `

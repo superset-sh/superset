@@ -82,7 +82,7 @@ export function DownloadButton({
 				items: [
 					{
 						id: "waitlist",
-						label: "Join waitlist for Windows & Linux",
+						label: "Desktop installer waitlist",
 						icon: <HiMiniClock className="size-4" />,
 						onClick: () => {
 							track("waitlist_clicked");
@@ -134,7 +134,7 @@ export function DownloadButton({
 				onJoinWaitlist?.();
 			}}
 		>
-			Join Waitlist
+			Desktop Installer Waitlist
 			<HiMiniClock className="size-4" />
 		</button>
 	);

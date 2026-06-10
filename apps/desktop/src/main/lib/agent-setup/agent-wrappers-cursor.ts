@@ -117,7 +117,7 @@ export function createCursorAgentWrapper(): void {
 	const script = buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`, {
 		agentId: "cursor-agent",
 	});
-	createWrapper("cursor-agent", script);
+	createWrapper("cursor-agent", script, { agentId: "cursor-agent" });
 }
 
 export function createCursorHooksJson(): void {

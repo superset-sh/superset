@@ -25,6 +25,8 @@ import warpIcon from "renderer/assets/app-icons/warp.png";
 import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
 import zedIcon from "renderer/assets/app-icons/zed.png";
+import { filterExternalAppsForPlatform } from "renderer/lib/external-app-platforms";
+import { getFileManagerName } from "renderer/lib/file-manager-labels";
 
 export interface OpenInExternalAppOption {
 	id: ExternalApp;
@@ -37,7 +39,7 @@ export interface OpenInExternalAppOption {
 export const FINDER_OPTIONS: OpenInExternalAppOption[] = [
 	{
 		id: "finder",
-		label: "Finder",
+		label: getFileManagerName(),
 		lightIcon: finderIcon,
 		darkIcon: finderIcon,
 	},
@@ -186,5 +188,15 @@ const ALL_APP_OPTIONS: OpenInExternalAppOption[] = [
 
 export const getAppOption = (
 	id: ExternalApp,
+	platform?: string | null,
 ): OpenInExternalAppOption | undefined =>
-	ALL_APP_OPTIONS.find((app) => app.id === id);
+	ALL_APP_OPTIONS.find(
+		(app) =>
+			app.id === id &&
+			filterExternalAppsForPlatform([app], platform).length > 0,
+	);
+
+export const getAppOptionsForPlatform = (
+	apps: OpenInExternalAppOption[],
+	platform?: string | null,
+): OpenInExternalAppOption[] => filterExternalAppsForPlatform(apps, platform);

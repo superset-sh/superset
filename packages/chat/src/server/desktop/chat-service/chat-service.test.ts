@@ -536,7 +536,7 @@ describe("ChatService OpenAI auth storage", () => {
 		});
 	});
 
-	it("passes through non-Anthropic env vars from settings", async () => {
+	it("suppresses Bedrock env vars when direct Anthropic auth is configured", async () => {
 		const chatService = new ChatService();
 		await chatService.setAnthropicEnvConfig({
 			envText:
@@ -545,8 +545,8 @@ describe("ChatService OpenAI auth storage", () => {
 
 		expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
 		expect(process.env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
-		expect(process.env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
-		expect(process.env.AWS_REGION).toBe("us-east-1");
+		expect(process.env.CLAUDE_CODE_USE_BEDROCK).toBeUndefined();
+		expect(process.env.AWS_REGION).toBeUndefined();
 		expect(fakeAuthStorage.setStoredApiKey).toHaveBeenCalledWith(
 			"anthropic",
 			"env-key",
@@ -560,6 +560,16 @@ describe("ChatService OpenAI auth storage", () => {
 				AWS_REGION: "us-east-1",
 			},
 		});
+	});
+
+	it("passes through Bedrock env vars when no direct Anthropic auth is configured", async () => {
+		const chatService = new ChatService();
+		await chatService.setAnthropicEnvConfig({
+			envText: "CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1",
+		});
+
+		expect(process.env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
+		expect(process.env.AWS_REGION).toBe("us-east-1");
 	});
 
 	it("clears Anthropic gateway env vars", async () => {

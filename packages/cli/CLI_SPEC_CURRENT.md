@@ -171,7 +171,9 @@ scripts for:
 | --- | --- |
 | `build:darwin-arm64` | `bun-darwin-arm64` |
 | `build:linux-x64` | `bun-linux-x64` |
-| `build:all` | darwin arm64 + linux x64 |
+| `build:win32-x64` | `bun-windows-x64` |
+| `build:all` | darwin arm64 + linux x64 + win32 x64 |
+| `build:dist -- --target=win32-x64` | standalone Windows archive with `superset.exe`, bundled `node.exe`, native modules, and `superset-host.cmd` |
 
 The desktop app has its own bundling script,
 `apps/desktop/scripts/build-bundled-cli.ts`, which compiles the CLI into

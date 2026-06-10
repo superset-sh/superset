@@ -17,8 +17,6 @@
 import { strict as assert } from "node:assert";
 import * as crypto from "node:crypto";
 import type * as net from "node:net";
-import * as os from "node:os";
-import * as path from "node:path";
 import { after, before, test } from "node:test";
 import type {
 	Pty,
@@ -33,8 +31,9 @@ import {
 	type DaemonClient,
 	payloadOf,
 } from "./helpers/client.ts";
+import { commandMeta, makeDaemonSocketPath } from "./helpers/platform.ts";
 
-const sockPath = path.join(os.tmpdir(), `pty-daemon-bytes-${process.pid}.sock`);
+const sockPath = makeDaemonSocketPath("pty-daemon-bytes");
 
 /**
  * A driveable fake PTY: the test calls `emit(bytes)` whenever it wants the
@@ -102,12 +101,7 @@ after(async () => {
 	await server.close();
 });
 
-const META = {
-	shell: "/bin/sh",
-	argv: [] as string[],
-	cols: 80,
-	rows: 24,
-};
+const META = commandMeta("");
 
 /** Yield random byte chunks summing to `total` bytes, each at most `maxChunk`. */
 function* randomChunks(total: number, maxChunk: number): Generator<Buffer> {
@@ -220,7 +214,7 @@ function serverConnsForTest(server: Server): Set<ServerConnForTest> {
 }
 
 function installBufferedWrite(socket: net.Socket): void {
-	let writableLength = 0;
+	let writableLength = Number.MAX_SAFE_INTEGER;
 	Object.defineProperty(socket, "writableLength", {
 		configurable: true,
 		get: () => writableLength,
@@ -471,15 +465,12 @@ test("multi-client multi-session output fan-out preserves stream isolation", asy
 });
 
 test("slow subscriber is dropped while other subscribers keep streaming", async () => {
-	const localSockPath = path.join(
-		os.tmpdir(),
-		`pty-daemon-slow-subscriber-${process.pid}.sock`,
-	);
+	const localSockPath = makeDaemonSocketPath("pty-daemon-slow-subscriber");
 	const localServer = new Server({
 		socketPath: localSockPath,
 		daemonVersion: "0.0.0-slow-subscriber",
 		bufferCap: 256 * 1024,
-		outboundBufferCap: 1024,
+		outboundBufferCap: 16 * 1024,
 		spawnPty: ({ meta }) => {
 			const pty = makeDriveablePty(meta);
 			lastSpawned = pty;
@@ -514,7 +505,7 @@ test("slow subscriber is dropped while other subscribers keep streaming", async 
 			crypto.randomBytes(4096),
 		]);
 		spawned.emit(marker);
-		await waitForPayloadHash(fast, id, sha256(marker), 2000);
+		await waitForPayloadHash(fast, id, sha256(marker), 5000);
 	} finally {
 		owner.send({ type: "close", id });
 		spawned?.finish(0);

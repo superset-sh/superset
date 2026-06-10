@@ -372,6 +372,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			cols = 80,
 			rows = 24,
 			command,
+			commands,
 			skipColdRestore,
 			themeType,
 		} = params;
@@ -481,6 +482,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					env,
 					shell,
 					command,
+					commands,
 				},
 				signal,
 			);

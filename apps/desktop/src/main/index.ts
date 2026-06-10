@@ -17,17 +17,21 @@ import {
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
-import { env as mainEnv } from "main/env.main";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
+import {
+	markAppQuitRequested,
+	resetAppQuitRequested,
+} from "./lib/app-quit-state";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { getMainApiUrl } from "./lib/desktop-runtime-flags";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
@@ -172,6 +176,7 @@ export function setSkipQuitConfirmation(): void {
 }
 
 export function quitApp(): void {
+	markAppQuitRequested();
 	setSkipQuitConfirmation();
 	app.quit();
 }
@@ -179,6 +184,7 @@ export function quitApp(): void {
 /** Quit + also stop background services. Tray "Quit Completely". */
 export function quitAppCompletely(): void {
 	forceFullCleanup = true;
+	markAppQuitRequested();
 	setSkipQuitConfirmation();
 	app.quit();
 }
@@ -215,6 +221,7 @@ app.on("before-quit", async (event) => {
 			});
 
 			if (response === 1) {
+				resetAppQuitRequested();
 				return;
 			}
 		} catch (error) {
@@ -222,6 +229,7 @@ app.on("before-quit", async (event) => {
 		}
 	}
 
+	markAppQuitRequested();
 	isQuitting = true;
 	try {
 		getHostServiceCoordinator().stopAll();
@@ -421,7 +429,7 @@ if (!gotTheLock) {
 			getHostServiceCoordinator().enableDevReload(async () => {
 				const { token } = await loadToken();
 				if (!token) return null;
-				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+				return { authToken: token, cloudApiUrl: getMainApiUrl() };
 			});
 		}
 

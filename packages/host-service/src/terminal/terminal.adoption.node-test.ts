@@ -39,8 +39,10 @@ import { __setAccountShellForTesting } from "./user-shell.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_HOME = path.join(os.tmpdir(), `host-svc-adopt-${process.pid}`);
-const SOCK = path.join(os.tmpdir(), `host-svc-adopt-${process.pid}.sock`);
+const SOCK = makeDaemonSocketPath("host-svc-adopt");
 const MIGRATIONS = path.resolve(__dirname, "../../drizzle");
+const IS_WINDOWS = process.platform === "win32";
+const TEST_SHELL = IS_WINDOWS ? (process.env.COMSPEC ?? "cmd.exe") : "/bin/sh";
 
 let server: Server;
 let db: HostDb;
@@ -49,6 +51,50 @@ let workspaceId: string;
 let otherWorkspaceId: string;
 let worktreePath: string;
 let otherWorktreePath: string;
+
+function makeDaemonSocketPath(prefix: string): string {
+	const id = `${prefix}-${process.pid}`;
+	if (process.platform === "win32") {
+		return String.raw`\\.\pipe\${id}`;
+	}
+	return path.join(os.tmpdir(), `${id}.sock`);
+}
+
+function quoteShellPath(value: string): string {
+	if (IS_WINDOWS) return `"${value.replaceAll('"', '""')}"`;
+	return `'${value.replaceAll("'", `'"'"'`)}'`;
+}
+
+function writeFileCommand(file: string, value: string): string {
+	return `echo ${value} > ${quoteShellPath(file)}`;
+}
+
+function echoCommand(value: string): string {
+	return `echo ${value}`;
+}
+
+function inputLine(command: string): string {
+	return `${command}${IS_WINDOWS ? "\r\n" : "\n"}`;
+}
+
+function heavyOutputCommand(iterations: number, marker: string): string {
+	const payload =
+		"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+	if (IS_WINDOWS) {
+		return `for /L %i in (1,1,${iterations}) do @echo ${payload}`;
+	}
+	return `i=0; while [ "$i" -lt ${iterations} ]; do printf '${payload}\\n'; i=$((i + 1)); done; echo ${marker}`;
+}
+
+async function waitForDaemonSessionGone(
+	terminalId: string,
+	ms: number,
+): Promise<void> {
+	await waitFor(async () => {
+		const daemon = await getDaemonClient();
+		return !(await daemon.list()).some((session) => session.id === terminalId);
+	}, ms);
+}
 
 before(async () => {
 	fs.mkdirSync(TEST_HOME, { recursive: true });
@@ -68,11 +114,13 @@ before(async () => {
 	process.env.HOST_SERVICE_VERSION = "0.0.0-adoption-e2e";
 	process.env.NODE_ENV = "development";
 
-	__setAccountShellForTesting("/bin/sh");
+	__setAccountShellForTesting(TEST_SHELL);
 	initTerminalBaseEnv({
-		PATH: process.env.PATH ?? "/usr/bin:/bin",
-		HOME: process.env.HOME ?? TEST_HOME,
-		SHELL: "/bin/sh",
+		COMSPEC: process.env.COMSPEC ?? "cmd.exe",
+		PATH: process.env.PATH ?? (IS_WINDOWS ? "" : "/usr/bin:/bin"),
+		HOME: process.env.HOME ?? process.env.USERPROFILE ?? TEST_HOME,
+		SHELL: TEST_SHELL,
+		USERPROFILE: process.env.USERPROFILE ?? TEST_HOME,
 	});
 
 	db = createDb(path.join(TEST_HOME, "host.db"), MIGRATIONS);
@@ -158,7 +206,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			workspaceId,
 			db,
 			listed: true,
-			initialCommand: `echo ok > ${sentinelFile}`,
+			initialCommand: writeFileCommand(sentinelFile, "ok"),
 		});
 		assert.ok(!("error" in second));
 		if ("error" in second) return;
@@ -168,41 +216,45 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
-	test("initialCommand runs promptly even when OSC 133;A never fires", async () => {
-		// Regression guard against reintroducing the SHELL_READY_TIMEOUT_MS
-		// stall: bash with no Superset wrapper on disk never emits OSC 133;A,
-		// but the preset command should still run as soon as the shell reads.
-		__setAccountShellForTesting("/bin/bash");
-		try {
-			const terminalId = `e2e-no-marker-${randomUUID().slice(0, 8)}`;
-			const sentinelFile = path.join(TEST_HOME, `no-marker-${terminalId}`);
+	test(
+		"initialCommand runs promptly even when OSC 133;A never fires",
+		{ skip: IS_WINDOWS ? "bash-specific readiness regression" : false },
+		async () => {
+			// Regression guard against reintroducing the SHELL_READY_TIMEOUT_MS
+			// stall: bash with no Superset wrapper on disk never emits OSC 133;A,
+			// but the preset command should still run as soon as the shell reads.
+			__setAccountShellForTesting("/bin/bash");
+			try {
+				const terminalId = `e2e-no-marker-${randomUUID().slice(0, 8)}`;
+				const sentinelFile = path.join(TEST_HOME, `no-marker-${terminalId}`);
 
-			const start = Date.now();
-			const result = await createTerminalSessionInternal({
-				terminalId,
-				workspaceId,
-				db,
-				listed: true,
-				initialCommand: `echo ok > ${sentinelFile}`,
-			});
-			assert.ok(!("error" in result));
-			if ("error" in result) return;
+				const start = Date.now();
+				const result = await createTerminalSessionInternal({
+					terminalId,
+					workspaceId,
+					db,
+					listed: true,
+					initialCommand: writeFileCommand(sentinelFile, "ok"),
+				});
+				assert.ok(!("error" in result));
+				if ("error" in result) return;
 
-			await waitFor(() => fs.existsSync(sentinelFile), 10_000);
-			const elapsed = Date.now() - start;
-			console.log(`[repro] initialCommand executed in ${elapsed}ms`);
-			// Pre-fix: SHELL_READY_TIMEOUT_MS forced this to 15 s. 5 s leaves
-			// generous headroom for CI overhead while still catching regression.
-			assert.ok(
-				elapsed < 5000,
-				`expected initialCommand to run promptly, took ${elapsed}ms`,
-			);
+				await waitFor(() => fs.existsSync(sentinelFile), 10_000);
+				const elapsed = Date.now() - start;
+				console.log(`[repro] initialCommand executed in ${elapsed}ms`);
+				// Pre-fix: SHELL_READY_TIMEOUT_MS forced this to 15 s. 5 s leaves
+				// generous headroom for CI overhead while still catching regression.
+				assert.ok(
+					elapsed < 5000,
+					`expected initialCommand to run promptly, took ${elapsed}ms`,
+				);
 
-			await disposeSessionAndWait(terminalId, db);
-		} finally {
-			__setAccountShellForTesting("/bin/sh");
-		}
-	});
+				await disposeSessionAndWait(terminalId, db);
+			} finally {
+				__setAccountShellForTesting(TEST_SHELL);
+			}
+		},
+	);
 
 	test("rejects reusing a live terminal id from another workspace", async () => {
 		const terminalId = `e2e-cross-live-${randomUUID().slice(0, 8)}`;
@@ -309,7 +361,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		if ("error" in first) return;
 		const originalPid = first.pty.pid;
 
-		first.pty.write("echo before-host-restart\n");
+		first.pty.write(inputLine(echoCommand("before-host-restart")));
 		await waitForOutput(first.pty, "before-host-restart", 3000);
 
 		// Simulate host-service crash + restart.
@@ -336,7 +388,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		const disposer = second.pty.onData((d) => {
 			buf += d;
 		});
-		second.pty.write("echo after-host-restart\n");
+		second.pty.write(inputLine(echoCommand("after-host-restart")));
 		await waitFor(() => buf.includes("after-host-restart"), 3000);
 		disposer.dispose();
 
@@ -424,7 +476,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		const sentinelFile = path.join(TEST_HOME, `initcmd-${terminalId}.sentinel`);
 		// Run on first lifetime: write a file. We then assert it isn't
 		// rewritten (would have a new mtime) on the second lifetime.
-		const initialCommand = `echo $$ > ${sentinelFile}`;
+		const initialCommand = writeFileCommand(sentinelFile, "started");
 
 		const first = await createTerminalSessionInternal({
 			terminalId,
@@ -501,11 +553,16 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		});
 		assert.ok(!("error" in first));
 
-		// User deletes workspace mid-restart: row gone, worktree dir removed.
+		// User deletes workspace mid-restart: row gone. On POSIX the worktree
+		// can also disappear while the shell is alive; on Windows the live shell's
+		// cwd keeps the directory locked, but the missing row still exercises the
+		// host-service adoption error path.
 		__resetSessionsForTesting();
 		await disposeDaemonClient();
 		db.delete(workspaces).where(eq(workspaces.id, ghostWorkspaceId)).run();
-		fs.rmSync(ghostWorktree, { recursive: true, force: true });
+		if (!IS_WINDOWS) {
+			fs.rmSync(ghostWorktree, { recursive: true, force: true });
+		}
 
 		const second = await createTerminalSessionInternal({
 			terminalId,
@@ -548,7 +605,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		// Seed the daemon's ring buffer with a sentinel — that's what would
 		// be replayed on a normal adoption.
 		const SENTINEL = `noreplay-sentinel-${randomUUID().slice(0, 6)}`;
-		first.pty.write(`echo ${SENTINEL}\n`);
+		first.pty.write(inputLine(echoCommand(SENTINEL)));
 		await waitForOutput(first.pty, SENTINEL, 3000);
 
 		// Simulate onDaemonDisconnect: host-service drops its in-memory
@@ -587,7 +644,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 
 		// Sanity check: live output still flows post-reattach.
 		const LIVE_SENTINEL = `live-after-reattach-${randomUUID().slice(0, 6)}`;
-		second.pty.write(`echo ${LIVE_SENTINEL}\n`);
+		second.pty.write(inputLine(echoCommand(LIVE_SENTINEL)));
 		await waitFor(() => {
 			const text = Buffer.concat(
 				second.buffer.map((b) => Buffer.from(b)),
@@ -616,10 +673,10 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 
 		await disposeSessionAndWait(terminalId, db);
 
-		// Wait for the daemon's onExit handler to mark the session exited
-		// (SIGTERM → shell exits → wireSession.onExit fires → session.exited
-		// flips to true → handleOpen can then recycle the id).
-		await new Promise((r) => setTimeout(r, 800));
+		// Wait for the daemon's onExit handler to delete the closed session.
+		// Windows ConPTY can report close before process teardown has fully
+		// propagated, so polling daemon.list() is less flaky than a fixed delay.
+		await waitForDaemonSessionGone(terminalId, 5000);
 
 		const second = await createTerminalSessionInternal({
 			terminalId,
@@ -660,9 +717,10 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		// ACK flow control removed, the daemon never pauses, so this completes;
 		// the bounded replay buffer just keeps the tail (incl. the marker).
 		const marker = `heavy-done-${randomUUID().slice(0, 6)}`;
-		result.pty.write(
-			`i=0; while [ "$i" -lt 48000 ]; do printf '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n'; i=$((i + 1)); done; echo ${marker}\n`,
-		);
+		result.pty.write(inputLine(heavyOutputCommand(48000, marker)));
+		if (IS_WINDOWS) {
+			result.pty.write(inputLine(echoCommand(marker)));
+		}
 
 		await waitFor(() => sessionBufferText(result).includes(marker), 15_000);
 		await disposeSessionAndWait(terminalId, db);
@@ -694,9 +752,10 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		result.sockets.add(stuckSocket);
 
 		const marker = `slow-done-${randomUUID().slice(0, 6)}`;
-		result.pty.write(
-			`i=0; while [ "$i" -lt 6000 ]; do printf '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\\n'; i=$((i + 1)); done; echo ${marker}\n`,
-		);
+		result.pty.write(inputLine(heavyOutputCommand(6000, marker)));
+		if (IS_WINDOWS) {
+			result.pty.write(inputLine(echoCommand(marker)));
+		}
 
 		// The stuck socket is closed and removed on the next broadcast, and the
 		// PTY keeps producing — the marker lands in the (now socketless) buffer.
@@ -708,9 +767,12 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 
 // ---------------- helpers ----------------
 
-async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
+async function waitFor(
+	predicate: () => boolean | Promise<boolean>,
+	ms: number,
+): Promise<void> {
 	const start = Date.now();
-	while (!predicate()) {
+	while (!(await predicate())) {
 		if (Date.now() - start > ms) throw new Error("waitFor timed out");
 		await new Promise((r) => setTimeout(r, 25));
 	}

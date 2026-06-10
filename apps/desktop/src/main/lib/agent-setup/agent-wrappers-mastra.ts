@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+	buildNotifyHookCommand,
 	buildWrapperScript,
 	createWrapper,
 	isSupersetManagedHookCommand,
@@ -35,10 +36,6 @@ interface MastraHooksJson {
 	[key: string]: unknown;
 }
 
-function quoteShellPath(filePath: string): string {
-	return `'${filePath.replaceAll("'", "'\\''")}'`;
-}
-
 export function getMastraGlobalHooksJsonPath(): string {
 	return path.join(os.homedir(), ".mastracode", "hooks.json");
 }
@@ -47,7 +44,7 @@ export function createMastraWrapper(): void {
 	const script = buildWrapperScript("mastracode", `exec "$REAL_BIN" "$@"`, {
 		agentId: "mastracode",
 	});
-	createWrapper("mastracode", script);
+	createWrapper("mastracode", script, { agentId: "mastracode" });
 }
 
 /**
@@ -68,7 +65,7 @@ export function getMastraHooksJsonContent(notifyScriptPath: string): string {
 		);
 	}
 
-	const notifyCommand = `SUPERSET_AGENT_ID=mastracode bash ${quoteShellPath(notifyScriptPath)}`;
+	const notifyCommand = buildNotifyHookCommand("mastracode", notifyScriptPath);
 	// Session lifecycle drives the pane icon binding; per-prompt drives status.
 	const managedEvents = [
 		"SessionStart",

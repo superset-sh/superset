@@ -1,6 +1,11 @@
 /**
  * UI state schemas (persisted from renderer zustand stores)
  */
+
+import {
+	type DesktopRuntimeFlags,
+	defaultDesktopRuntimeFlags,
+} from "shared/desktop-runtime-flags";
 import type { BaseTabsState } from "shared/tabs-types";
 import type { Theme } from "shared/themes";
 
@@ -24,6 +29,7 @@ export interface AppState {
 	tabsState: BaseTabsState;
 	themeState: ThemeState;
 	hotkeysState: LegacyHotkeysState;
+	desktopRuntimeFlags: DesktopRuntimeFlags;
 }
 
 export const defaultAppState: AppState = {
@@ -44,4 +50,5 @@ export const defaultAppState: AppState = {
 		version: 1,
 		byPlatform: { darwin: {}, win32: {}, linux: {} },
 	},
+	desktopRuntimeFlags: defaultDesktopRuntimeFlags,
 };

@@ -9,7 +9,7 @@
  * - Event streaming
  */
 
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import {
@@ -24,7 +24,6 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { connect, type Socket } from "node:net";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import {
 	isPositiveInteger,
@@ -34,6 +33,20 @@ import { app } from "electron";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import { throwIfAborted } from "../terminal/abort";
 import { TerminalAttachCanceledError } from "../terminal/errors";
+import { treeKillAsync } from "../tree-kill";
+import {
+	isTerminalHostNamedPipe,
+	SUPERSET_HOME_DIR,
+	TERMINAL_HOST_PID_PATH,
+	TERMINAL_HOST_SCRIPT_MTIME_PATH,
+	TERMINAL_HOST_SOCKET_PATH,
+	TERMINAL_HOST_SPAWN_LOCK_PATH,
+	TERMINAL_HOST_TOKEN_PATH,
+} from "./paths";
+import {
+	isTerminalHostDaemonCommandLine,
+	readProcessCommandLine,
+} from "./process-command-line";
 import {
 	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
@@ -73,14 +86,12 @@ enum ConnectionState {
 
 const DEBUG_CLIENT = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
-// Get from shared constants for multi-worktree support (imported at top of file)
-const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
-
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
-const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
-const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
-const SPAWN_LOCK_PATH = join(SUPERSET_HOME_DIR, "terminal-host.spawn.lock");
-const SCRIPT_MTIME_PATH = join(SUPERSET_HOME_DIR, "terminal-host.mtime");
+const SOCKET_PATH = TERMINAL_HOST_SOCKET_PATH;
+const TOKEN_PATH = TERMINAL_HOST_TOKEN_PATH;
+const PID_PATH = TERMINAL_HOST_PID_PATH;
+const SPAWN_LOCK_PATH = TERMINAL_HOST_SPAWN_LOCK_PATH;
+const SCRIPT_MTIME_PATH = TERMINAL_HOST_SCRIPT_MTIME_PATH;
+const SOCKET_IS_NAMED_PIPE = isTerminalHostNamedPipe(SOCKET_PATH);
 
 // Connection timeouts
 const CONNECT_TIMEOUT_MS = 5000;
@@ -286,7 +297,10 @@ export class TerminalHostClient extends EventEmitter {
 			const connected = await this.tryConnectControl();
 			if (!connected) {
 				this.resetConnectionState({ emitDisconnected: false });
-				if (!socketPathExisted && !existsSync(SOCKET_PATH)) {
+				if (
+					SOCKET_IS_NAMED_PIPE ||
+					(!socketPathExisted && !existsSync(SOCKET_PATH))
+				) {
 					return false;
 				}
 				throw new Error(
@@ -342,7 +356,7 @@ export class TerminalHostClient extends EventEmitter {
 			return true;
 		}
 
-		if (!existsSync(SOCKET_PATH)) {
+		if (!this.canUseSocketPath()) {
 			return false;
 		}
 
@@ -495,9 +509,9 @@ export class TerminalHostClient extends EventEmitter {
 			const raw = readFileSync(PID_PATH, "utf-8").trim();
 			const pid = Number.parseInt(raw, 10);
 			if (isPositiveInteger(pid) && this.isTerminalHostDaemonPid(pid)) {
-				this.signalDaemonProcessTreeAndGroups(pid, "SIGTERM");
+				await this.killDaemonProcessTree(pid, "SIGTERM");
 				if (!(await this.waitForPidExit(pid, 1500))) {
-					this.signalDaemonProcessTreeAndGroups(pid, "SIGKILL");
+					await this.killDaemonProcessTree(pid, "SIGKILL");
 					await this.waitForPidExit(pid, 500);
 				}
 			}
@@ -508,14 +522,22 @@ export class TerminalHostClient extends EventEmitter {
 
 	private isTerminalHostDaemonPid(pid: number): boolean {
 		if (!isPositiveInteger(pid)) return false;
-		const result = spawnSync("ps", ["-p", String(pid), "-o", "command="], {
-			encoding: "utf8",
-		});
-		if (result.error || result.status !== 0) return false;
-		const command = result.stdout.trim();
+		const command = readProcessCommandLine(pid);
 		if (!command) return false;
 		const daemonScript = this.getDaemonScriptPath();
-		return command.includes(daemonScript) || command.includes("terminal-host");
+		return isTerminalHostDaemonCommandLine(command, daemonScript);
+	}
+
+	private async killDaemonProcessTree(
+		pid: number,
+		signal: NodeJS.Signals,
+	): Promise<void> {
+		if (process.platform === "win32") {
+			await treeKillAsync(pid, signal);
+			return;
+		}
+
+		this.signalDaemonProcessTreeAndGroups(pid, signal);
 	}
 
 	private signalDaemonProcessTreeAndGroups(
@@ -550,7 +572,7 @@ export class TerminalHostClient extends EventEmitter {
 
 	private async tryConnectControl(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!this.canUseSocketPath()) {
 				resolve(false);
 				return;
 			}
@@ -598,7 +620,7 @@ export class TerminalHostClient extends EventEmitter {
 
 	private async tryConnectStream(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!this.canUseSocketPath()) {
 				resolve(false);
 				return;
 			}
@@ -952,7 +974,7 @@ export class TerminalHostClient extends EventEmitter {
 	}: {
 		killSessions?: boolean;
 	} = {}): Promise<void> {
-		if (!existsSync(SOCKET_PATH)) return;
+		if (!this.canUseSocketPath()) return;
 
 		const token = this.readAuthToken();
 
@@ -1047,7 +1069,6 @@ export class TerminalHostClient extends EventEmitter {
 		const timeoutMs = 2000;
 
 		while (Date.now() - startTime < timeoutMs) {
-			if (!existsSync(SOCKET_PATH)) return;
 			const live = await this.isSocketLive();
 			if (!live) return;
 			await this.sleep(100);
@@ -1064,7 +1085,7 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private isSocketLive(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!this.canUseSocketPath()) {
 				resolve(false);
 				return;
 			}
@@ -1146,7 +1167,7 @@ export class TerminalHostClient extends EventEmitter {
 	private async spawnDaemon(): Promise<void> {
 		// Check if socket is live first - this is the authoritative check
 		// PID file can be stale if daemon crashed and PID was reused by another process
-		if (existsSync(SOCKET_PATH)) {
+		if (this.canUseSocketPath()) {
 			const isLive = await this.isSocketLive();
 			if (isLive) {
 				if (DEBUG_CLIENT) {
@@ -1156,13 +1177,15 @@ export class TerminalHostClient extends EventEmitter {
 			}
 
 			// Socket exists but not responsive - safe to remove
-			if (DEBUG_CLIENT) {
-				console.log("[TerminalHostClient] Removing stale socket file");
-			}
-			try {
-				unlinkSync(SOCKET_PATH);
-			} catch {
-				// Ignore - might not have permission
+			if (!SOCKET_IS_NAMED_PIPE) {
+				if (DEBUG_CLIENT) {
+					console.log("[TerminalHostClient] Removing stale socket file");
+				}
+				try {
+					unlinkSync(SOCKET_PATH);
+				} catch {
+					// Ignore - might not have permission
+				}
 			}
 		}
 
@@ -1319,15 +1342,17 @@ export class TerminalHostClient extends EventEmitter {
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < SPAWN_WAIT_MS) {
-			if (existsSync(SOCKET_PATH)) {
-				// Give it a moment to start listening
-				await this.sleep(200);
+			if (await this.isSocketLive()) {
 				return;
 			}
 			await this.sleep(100);
 		}
 
 		throw new Error("Daemon failed to start in time");
+	}
+
+	private canUseSocketPath(): boolean {
+		return SOCKET_IS_NAMED_PIPE || existsSync(SOCKET_PATH);
 	}
 
 	private sleep(ms: number): Promise<void> {

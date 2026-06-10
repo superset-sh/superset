@@ -1,6 +1,4 @@
 import type { ExecutionMode } from "@superset/local-db/schema/zod";
-import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
-import { quote } from "shell-quote";
 
 export type PresetOpenTarget = "new-tab" | "active-tab";
 export type PresetMode = ExecutionMode;
@@ -50,25 +48,6 @@ export function getPresetLaunchPlan({
 	}
 
 	return hasMultipleCommands ? "new-tab-multi-pane" : "new-tab-single";
-}
-
-export function buildFocusedTerminalCommand({
-	commands,
-	cwd,
-}: {
-	commands: string[] | null | undefined;
-	cwd?: string | null;
-}): string | null {
-	const runnableCommands = commands?.filter((command) => command.trim());
-	const command = buildTerminalCommand(runnableCommands);
-	if (command === null) return null;
-
-	const trimmedCwd = cwd?.trim();
-	// Existing terminals cannot receive a session cwd, so preserve preset
-	// directory behavior by prepending an explicit cd before the commands.
-	if (!trimmedCwd) return command;
-
-	return `cd ${quote([trimmedCwd])} && ${command}`;
 }
 
 export function shouldApplyPresetPaneName({

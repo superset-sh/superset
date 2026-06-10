@@ -45,6 +45,10 @@ export interface ServerOptions {
 
 const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 
+function isWindowsNamedPipe(socketPath: string): boolean {
+	return process.platform === "win32" && /^\\\\[.?]\\pipe\\/i.test(socketPath);
+}
+
 interface ConnState extends Conn {
 	socket: net.Socket;
 	decoder: FrameDecoder;
@@ -64,13 +68,16 @@ export class Server {
 	}
 
 	async listen(): Promise<void> {
-		const dir = path.dirname(this.opts.socketPath);
-		fs.mkdirSync(dir, { recursive: true });
-		// Stale-socket cleanup: remove any prior socket file at this path.
-		try {
-			fs.unlinkSync(this.opts.socketPath);
-		} catch (err) {
-			if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+		const isNamedPipe = isWindowsNamedPipe(this.opts.socketPath);
+		if (!isNamedPipe) {
+			const dir = path.dirname(this.opts.socketPath);
+			fs.mkdirSync(dir, { recursive: true });
+			// Stale-socket cleanup: remove any prior socket file at this path.
+			try {
+				fs.unlinkSync(this.opts.socketPath);
+			} catch (err) {
+				if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+			}
 		}
 		await new Promise<void>((resolve, reject) => {
 			this.server.once("error", reject);
@@ -80,7 +87,9 @@ export class Server {
 			});
 		});
 		// Owner-only access. The socket file IS the auth boundary.
-		fs.chmodSync(this.opts.socketPath, 0o600);
+		if (!isNamedPipe) {
+			fs.chmodSync(this.opts.socketPath, 0o600);
+		}
 	}
 
 	/**
@@ -145,6 +154,13 @@ export class Server {
 		{ ok: true; successorPid: number } | { ok: false; reason: string }
 	> {
 		const liveSessions = [...this.store.all()].filter((s) => !s.exited);
+		if (process.platform === "win32" && liveSessions.length > 0) {
+			return {
+				ok: false,
+				reason:
+					"daemon fd-handoff is not available on Windows ConPTY; restart the daemon after closing live sessions",
+			};
+		}
 		const fdIndexBySessionId = new Map<string, number>();
 
 		// stdio array layout in the successor:
@@ -196,8 +212,9 @@ export class Server {
 		// Forward process.execArgv (--experimental-strip-types etc.) so the
 		// successor loads the same way we did. In tests and dev we run TS
 		// directly; in production (built bundle) execArgv is typically empty.
+		const ptyFds = liveSessions.map((s) => s.pty.getMasterFd());
 		process.stderr.write(
-			`[pty-daemon prep-upgrade pid=${process.pid}] spawning successor: ${process.execPath} ${[...process.execArgv, scriptPath].join(" ")} (sessions=${liveSessions.length}, ptyFds=${liveSessions.map((s) => s.pty.getMasterFd()).join(",")})\n`,
+			`[pty-daemon prep-upgrade pid=${process.pid}] spawning successor: ${process.execPath} ${[...process.execArgv, scriptPath].join(" ")} (sessions=${liveSessions.length}, ptyFds=${ptyFds.join(",")})\n`,
 		);
 		// Don't pass our own pinned version through to the successor — it
 		// would report it as its running version, and the supervisor would
@@ -302,10 +319,12 @@ export class Server {
 			}
 		}
 		await new Promise<void>((resolve) => this.server.close(() => resolve()));
-		try {
-			fs.unlinkSync(this.opts.socketPath);
-		} catch {
-			// ignore
+		if (!isWindowsNamedPipe(this.opts.socketPath)) {
+			try {
+				fs.unlinkSync(this.opts.socketPath);
+			} catch {
+				// ignore
+			}
 		}
 	}
 

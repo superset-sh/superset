@@ -261,6 +261,14 @@ describe("getShellLaunchArgs", () => {
 		expect(args).toEqual(["-l"]);
 	});
 
+	test("Windows Git Bash is recognized as bash", () => {
+		const args = getShellLaunchArgs({
+			shell: String.raw`C:\Program Files\Git\bin\bash.exe`,
+			supersetHomeDir,
+		});
+		expect(args).toEqual(["-l"]);
+	});
+
 	test("fish uses init-command", () => {
 		const args = getShellLaunchArgs({
 			shell: "/usr/bin/fish",
@@ -286,8 +294,20 @@ describe("getShellLaunchArgs", () => {
 
 	test("unsupported shells launch natively without bootstrap", () => {
 		expect(
-			getShellLaunchArgs({ shell: "/usr/bin/pwsh", supersetHomeDir }),
+			getShellLaunchArgs({ shell: "/usr/bin/nu", supersetHomeDir }),
 		).toEqual([]);
+	});
+
+	test("Windows shells use native interactive args", () => {
+		expect(getShellLaunchArgs({ shell: "cmd.exe", supersetHomeDir })).toEqual(
+			[],
+		);
+		expect(
+			getShellLaunchArgs({ shell: "powershell.exe", supersetHomeDir }),
+		).toEqual(["-NoLogo"]);
+		expect(getShellLaunchArgs({ shell: "pwsh.exe", supersetHomeDir })).toEqual([
+			"-NoLogo",
+		]);
 	});
 });
 
@@ -321,7 +341,7 @@ describe("getShellBootstrapEnv", () => {
 
 	test("unsupported shells return no bootstrap env", () => {
 		const result = getShellBootstrapEnv({
-			shell: "/usr/bin/pwsh",
+			shell: "pwsh.exe",
 			baseEnv: {},
 			supersetHomeDir: "/tmp/test",
 		});
@@ -343,9 +363,10 @@ describe("terminal base env preservation", () => {
 		// Simulate host-service startup: process.env = shellSnapshot + runtime keys
 		const originalProcessEnv = { ...process.env };
 		try {
+			const pathKey = process.platform === "win32" ? "Path" : "PATH";
 			// Set up process.env as if desktop spawned host-service
 			process.env.HOME = "/Users/test";
-			process.env.PATH = "/usr/bin";
+			process.env[pathKey] = "/usr/bin";
 			process.env.SHELL = "/bin/zsh";
 			process.env.NVM_DIR = "/Users/test/.nvm";
 			// Runtime keys that should be stripped
@@ -359,7 +380,7 @@ describe("terminal base env preservation", () => {
 
 			// Shell vars preserved
 			expect(baseEnv.HOME).toBe("/Users/test");
-			expect(baseEnv.PATH).toBe("/usr/bin");
+			expect(baseEnv[pathKey]).toBe("/usr/bin");
 			expect(baseEnv.SHELL).toBe("/bin/zsh");
 			expect(baseEnv.NVM_DIR).toBe("/Users/test/.nvm");
 

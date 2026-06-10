@@ -164,7 +164,9 @@ const config: Configuration = {
 	// NSIS installer (Windows)
 	nsis: {
 		oneClick: false,
+		perMachine: false,
 		allowToChangeInstallationDirectory: true,
+		include: join(pkg.resources, "build/installer/installer.nsh"),
 	},
 };
 

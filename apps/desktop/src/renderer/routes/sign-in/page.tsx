@@ -13,6 +13,7 @@ import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
 import { setAuthToken } from "renderer/lib/auth-client";
+import { getRuntimeApiUrl } from "renderer/lib/desktop-runtime-flags";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SupersetLogo } from "./components/SupersetLogo";
 import { useSessionRecovery } from "./hooks/useSessionRecovery";
@@ -58,7 +59,7 @@ function SignInPage() {
 		setDevError(null);
 
 		const postAuth = async (path: string, body: Record<string, unknown>) => {
-			const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
+			const response = await fetch(`${getRuntimeApiUrl()}${path}`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				credentials: "omit",

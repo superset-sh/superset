@@ -23,6 +23,7 @@ import {
 	useTerminalRestore,
 	useTerminalStream,
 } from "./hooks";
+import type { WorkspaceRunRestartCommand } from "./hooks/workspaceRun";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type {
@@ -59,12 +60,27 @@ export const Terminal = memo(function Terminal({
 			{ enabled: isWorkspaceRunPane },
 		);
 
+	const workspaceRunRestartCommands = workspaceRunConfig?.commands?.filter(
+		(command) => command.trim().length > 0,
+	);
 	const workspaceRunRestartCommand = isWorkspaceRunPane
-		? buildTerminalCommand(workspaceRunConfig?.commands)
+		? buildTerminalCommand(workspaceRunRestartCommands)
 		: null;
-	const defaultRestartCommandRef = useRef<string | undefined>(undefined);
+	const defaultRestartCommandRef = useRef<
+		WorkspaceRunRestartCommand | undefined
+	>(undefined);
 	defaultRestartCommandRef.current =
-		workspaceRunRestartCommand ?? pane?.workspaceRun?.command;
+		workspaceRunRestartCommand && workspaceRunRestartCommands?.length
+			? {
+					command: workspaceRunRestartCommand,
+					commands: workspaceRunRestartCommands,
+				}
+			: pane?.workspaceRun?.command && pane.workspaceRun.commands?.length
+				? {
+						command: pane.workspaceRun.command,
+						commands: pane.workspaceRun.commands,
+					}
+				: undefined;
 
 	const utils = electronTrpc.useUtils();
 	const updateWorkspace = electronTrpc.workspaces.update.useMutation({

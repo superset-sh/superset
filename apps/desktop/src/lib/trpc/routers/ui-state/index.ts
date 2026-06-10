@@ -83,6 +83,8 @@ const paneSchema = z.object({
 		.object({
 			workspaceId: z.string(),
 			state: z.enum(["running", "stopped-by-user", "stopped-by-exit"]),
+			command: z.string().optional(),
+			commands: z.array(z.string()).optional(),
 		})
 		.optional(),
 });

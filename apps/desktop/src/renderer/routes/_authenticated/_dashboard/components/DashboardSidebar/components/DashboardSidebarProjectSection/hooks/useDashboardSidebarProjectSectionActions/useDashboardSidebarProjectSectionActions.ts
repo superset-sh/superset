@@ -2,6 +2,7 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { getOpenInFileManagerLabel } from "renderer/lib/file-manager-labels";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
@@ -49,7 +50,7 @@ export function useDashboardSidebarProjectSectionActions({
 	};
 
 	const handleOpenInFinder = () => {
-		toast.info("Open in Finder is coming soon");
+		toast.info(`${getOpenInFileManagerLabel()} is coming soon`);
 	};
 
 	const handleOpenSettings = () => {

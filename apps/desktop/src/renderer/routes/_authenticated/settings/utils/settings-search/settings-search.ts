@@ -51,6 +51,7 @@ export const SETTING_ITEM_ID = {
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
+	EXPERIMENTAL_DESKTOP_RUNTIME_FLAGS: "experimental-desktop-runtime-flags",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -160,6 +161,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_DESKTOP_RUNTIME_FLAGS]: "shared",
 
 	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
 	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
@@ -895,6 +897,28 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"v2",
 			"projects",
 			"workspaces",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_DESKTOP_RUNTIME_FLAGS,
+		section: "experimental",
+		title: "Desktop Diagnostics",
+		description:
+			"Disable auto-updates and analytics while keeping cloud login and sync",
+		keywords: [
+			"experimental",
+			"diagnostics",
+			"windows",
+			"performance",
+			"slow",
+			"analytics",
+			"posthog",
+			"telemetry",
+			"auto update",
+			"updates",
+			"cloud",
+			"sync",
+			"restart",
 		],
 	},
 	{

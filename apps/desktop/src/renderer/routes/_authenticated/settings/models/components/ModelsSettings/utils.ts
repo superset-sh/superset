@@ -19,6 +19,42 @@ export const EMPTY_ANTHROPIC_FORM: AnthropicFormValues = {
 	extraEnv: "",
 };
 
+const ANTHROPIC_CREDENTIAL_PLACEHOLDERS = new Set([
+	"ANTHROPIC_API_KEY",
+	"ANTHROPIC_AUTH_TOKEN",
+]);
+
+const BEDROCK_ENV_KEYS = new Set([
+	"CLAUDE_CODE_USE_BEDROCK",
+	"AWS_REGION",
+	"AWS_DEFAULT_REGION",
+	"AWS_PROFILE",
+	"AWS_ACCESS_KEY_ID",
+	"AWS_SECRET_ACCESS_KEY",
+	"AWS_SESSION_TOKEN",
+]);
+
+function normalizeCredentialField(value: string): string {
+	const trimmed = value.trim();
+	return ANTHROPIC_CREDENTIAL_PLACEHOLDERS.has(trimmed) ? "" : trimmed;
+}
+
+function stripBedrockEnvWhenDirectAuthExists(extraEnv: string): string {
+	const lines = extraEnv
+		.split("\n")
+		.map((line) => line.trim())
+		.filter(Boolean);
+	return lines
+		.filter((line) => {
+			const normalized = line.replace(/^export\s+/, "");
+			const eqIndex = normalized.indexOf("=");
+			if (eqIndex === -1) return true;
+			const key = normalized.slice(0, eqIndex).trim();
+			return !BEDROCK_ENV_KEYS.has(key);
+		})
+		.join("\n");
+}
+
 export function parseAnthropicForm(envText: string): AnthropicFormValues {
 	const lines = envText
 		.split("\n")
@@ -39,10 +75,10 @@ export function parseAnthropicForm(envText: string): AnthropicFormValues {
 		const value = normalized.slice(eqIndex + 1).trim();
 		switch (key) {
 			case "ANTHROPIC_API_KEY":
-				values.apiKey = value;
+				values.apiKey = normalizeCredentialField(value);
 				break;
 			case "ANTHROPIC_AUTH_TOKEN":
-				values.authToken = value;
+				values.authToken = normalizeCredentialField(value);
 				break;
 			case "ANTHROPIC_BASE_URL":
 				values.baseUrl = value;
@@ -57,15 +93,19 @@ export function parseAnthropicForm(envText: string): AnthropicFormValues {
 }
 
 export function buildAnthropicEnvText(values: AnthropicFormValues): string {
+	const apiKey = normalizeCredentialField(values.apiKey);
+	const authToken = normalizeCredentialField(values.authToken);
+	const hasDirectAnthropicAuth = Boolean(apiKey || authToken);
+	const extraEnv = hasDirectAnthropicAuth
+		? stripBedrockEnvWhenDirectAuthExists(values.extraEnv)
+		: values.extraEnv.trim();
 	const lines = [
-		values.apiKey.trim() ? `ANTHROPIC_API_KEY=${values.apiKey.trim()}` : null,
-		values.authToken.trim()
-			? `ANTHROPIC_AUTH_TOKEN=${values.authToken.trim()}`
-			: null,
+		apiKey ? `ANTHROPIC_API_KEY=${apiKey}` : null,
+		authToken ? `ANTHROPIC_AUTH_TOKEN=${authToken}` : null,
 		values.baseUrl.trim()
 			? `ANTHROPIC_BASE_URL=${values.baseUrl.trim()}`
 			: null,
-		values.extraEnv.trim() ? values.extraEnv.trim() : null,
+		extraEnv ? extraEnv : null,
 	].filter((line): line is string => Boolean(line));
 
 	return lines.join("\n");

@@ -1,7 +1,7 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
-import { mkdir, rename } from "node:fs/promises";
+import { mkdir, rename, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { BranchPrefixMode } from "@superset/local-db";
@@ -18,6 +18,66 @@ import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 import { resolveTrackingRemoteName } from "./upstream-ref";
 
 const execFileAsync = promisify(execFile);
+
+type BackgroundRemovePlan =
+	| {
+			kind: "node-rm";
+			path: string;
+	  }
+	| {
+			kind: "spawn";
+			command: string;
+			args: string[];
+	  };
+
+export function buildBackgroundRemovePlan(
+	path: string,
+	platform: NodeJS.Platform = process.platform,
+): BackgroundRemovePlan {
+	if (platform === "win32") {
+		return { kind: "node-rm", path };
+	}
+
+	return { kind: "spawn", command: "/bin/rm", args: ["-rf", path] };
+}
+
+function removePathInBackground(path: string): void {
+	const plan = buildBackgroundRemovePlan(path);
+
+	if (plan.kind === "node-rm") {
+		void rm(plan.path, {
+			recursive: true,
+			force: true,
+			maxRetries: 3,
+			retryDelay: 100,
+		}).catch((err) => {
+			console.error(
+				`[removeWorktree] Background cleanup of ${plan.path} failed:`,
+				err instanceof Error ? err.message : String(err),
+			);
+		});
+		return;
+	}
+
+	const child = spawn(plan.command, plan.args, {
+		detached: true,
+		stdio: "ignore",
+	});
+	child.unref();
+	child.on("error", (err) => {
+		console.error(
+			`[removeWorktree] Failed to spawn ${plan.command} for ${path}:`,
+			err.message,
+		);
+	});
+	child.on("exit", (code: number | null) => {
+		if (code !== 0) {
+			console.error(
+				`[removeWorktree] Background cleanup of ${path} failed (exit ${code})`,
+			);
+		}
+	});
+}
 
 export class NotGitRepoError extends Error {
 	constructor(repoPath: string) {
@@ -134,7 +194,19 @@ async function isWorktreeRegistered({
 			}
 		}
 
-		return false;
+		return isGitWorktreePath(worktreePath);
+	} catch {
+		return isGitWorktreePath(worktreePath);
+	}
+}
+
+async function isGitWorktreePath(worktreePath: string): Promise<boolean> {
+	try {
+		const { stdout } = await execGitWithShellPath(
+			["-C", worktreePath, "rev-parse", "--is-inside-work-tree"],
+			{ timeout: 10_000 },
+		);
+		return stdout.trim() === "true";
 	} catch {
 		return false;
 	}
@@ -783,27 +855,10 @@ export async function removeWorktree(
 			timeout: 10_000,
 		});
 
-		// Delete the moved directory in the background — don't block the caller.
-		// Use spawned `rm -rf` instead of Node's fs.rm which can hang on macOS
-		// when encountering .app bundles with extended attributes.
-		const child = spawn("/bin/rm", ["-rf", tempPath], {
-			detached: true,
-			stdio: "ignore",
-		});
-		child.unref();
-		child.on("error", (err) => {
-			console.error(
-				`[removeWorktree] Failed to spawn rm for ${tempPath}:`,
-				err.message,
-			);
-		});
-		child.on("exit", (code: number | null) => {
-			if (code !== 0) {
-				console.error(
-					`[removeWorktree] Background cleanup of ${tempPath} failed (exit ${code})`,
-				);
-			}
-		});
+		// Delete the moved directory in the background without blocking the caller.
+		// Unix keeps the spawned rm path for macOS .app bundle cleanup behavior;
+		// Windows uses Node's native recursive removal because /bin/rm is absent.
+		removePathInBackground(tempPath);
 	} catch (error) {
 		const code = (error as NodeJS.ErrnoException).code;
 		// If the worktree directory is already gone, just prune metadata

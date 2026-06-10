@@ -1,7 +1,8 @@
 # @superset/pty-daemon
 
 Long-lived PTY-owning process for the v2 desktop terminal. host-service is a
-client over a Unix socket; routine host-service upgrades don't touch shells.
+client over a local transport: Unix sockets on POSIX and Windows named pipes on
+Windows. Routine host-service upgrades don't touch shells.
 
 Implements [Phase 1](../../apps/desktop/plans/done/20260429-pty-daemon-implementation.md)
 (daemon owns PTYs across host-service restarts) and
@@ -51,7 +52,7 @@ src/
 ├── handlers/                   # pure functions: open/input/resize/close/list/subscribe
 │   ├── handlers.ts
 │   └── index.ts
-└── Server/                     # AF_UNIX SOCK_STREAM accept loop, handshake, dispatch
+└── Server/                     # Local socket/named-pipe accept loop, handshake, dispatch
     ├── Server.ts
     └── index.ts
 
@@ -74,8 +75,10 @@ build.ts                        # Bun bundler → dist/pty-daemon.js (target: no
   full context. No client tracking, no session tombstones, no business
   rules. Single design principle from
   [the implementation plan](../../apps/desktop/plans/done/20260429-pty-daemon-implementation.md#the-single-design-principle).
-- **Auth boundary = Unix socket file mode 0600.** No in-band tokens. The
-  daemon trusts whoever can open the socket.
+- **Auth boundary = local OS transport.** On POSIX, the Unix socket file is
+  chmodded to 0600. On Windows, the daemon listens on a per-org named pipe.
+  There are no in-band tokens; the daemon trusts whoever can open the local
+  endpoint.
 - **Buffer is in-memory only.** Survives host-service restarts (because the
   daemon does), but never persisted to disk. No SQLite, no scrollback files.
   v1's `HistoryManager` is explicitly out of scope.
@@ -106,6 +109,8 @@ under Bun, so anything that spawns a real PTY runs under Node.
 
 ```sh
 bun run start --socket=/tmp/pty-daemon.sock
+# Windows:
+bun run start --socket=\\.\pipe\superset-ptyd-dev
 ```
 
 Logs go to stderr; stdout stays empty (so the daemon can later be supervised
@@ -113,7 +118,10 @@ by host-service with stdout reserved for protocol or kept dark).
 
 ## Out of scope
 
-- Windows ConPTY — not in the protocol; defer until Windows users justify it.
+- Windows fd-handoff for live ConPTY sessions. Regular Windows PTY spawn,
+  I/O, resize, close, and daemon restarts are supported; live-session
+  daemon-binary handoff remains POSIX-only because ConPTY does not expose a
+  Unix-style master fd for inheritance.
 - "since byte N" replay cursor — would close the gap where bytes the PTY
   produced during a WS-down window are dropped on reconnect (sub-second on
   a daemon swap; longer on host-service restart). Not built.

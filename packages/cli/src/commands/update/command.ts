@@ -8,6 +8,7 @@ import {
 	renameSync,
 	rmSync,
 	statSync,
+	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
@@ -24,13 +25,25 @@ import { env } from "../../lib/env";
 const ROLLING_DOWNLOAD_BASE =
 	"https://github.com/superset-sh/superset/releases/download/cli-latest";
 
+export function detectTargetFor(
+	platform: NodeJS.Platform,
+	arch: NodeJS.Architecture,
+): string {
+	const normalizedArch = arch === "arm64" ? "arm64" : "x64";
+	if (platform === "darwin") return `darwin-${normalizedArch}`;
+	if (platform === "linux") return `linux-${normalizedArch}`;
+	if (platform === "win32" && normalizedArch === "x64") return "win32-x64";
+	throw new CLIError(`Unsupported platform: ${platform}/${arch}`);
+}
+
 function detectTarget(): string {
-	const arch = process.arch === "arm64" ? "arm64" : "x64";
-	if (process.platform === "darwin") return `darwin-${arch}`;
-	if (process.platform === "linux") return `linux-${arch}`;
-	throw new CLIError(
-		`Unsupported platform: ${process.platform}/${process.arch}`,
-	);
+	return detectTargetFor(process.platform, process.arch);
+}
+
+export function isCliSelfUpdateSupported(
+	platform: NodeJS.Platform = process.platform,
+): boolean {
+	return platform !== "win32";
 }
 
 function getCurrentVersion(): string {
@@ -58,6 +71,14 @@ function tarballUrl(target: string, version?: string): string {
 		return `${ROLLING_DOWNLOAD_BASE}/superset-${target}.tar.gz`;
 	}
 	return `https://github.com/superset-sh/superset/releases/download/cli-v${version}/superset-${target}.tar.gz`;
+}
+
+export function cliBinaryNameForTarget(target: string): string {
+	return target.startsWith("win32-") ? "superset.exe" : "superset";
+}
+
+function hostBinaryNameForTarget(target: string): string {
+	return target.startsWith("win32-") ? "superset-host.cmd" : "superset-host";
 }
 
 const SEMVER_RE = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.]+)?$/;
@@ -118,6 +139,82 @@ function atomicReplace(installRoot: string, newRoot: string): void {
 	rmSync(backupRoot, { recursive: true, force: true });
 }
 
+function batchSetValue(value: string): string {
+	return value.replaceAll("%", "%%").replaceAll("\r", "").replaceAll("\n", "");
+}
+
+export function buildWindowsDeferredReplaceScript({
+	installRoot,
+	newRoot,
+	tempDir,
+	parentPid,
+}: {
+	installRoot: string;
+	newRoot: string;
+	tempDir: string;
+	parentPid: number;
+}): string {
+	const backupRoot = `${installRoot}.bak`;
+	return `@echo off
+setlocal
+set "PARENT_PID=${parentPid}"
+set "INSTALL_ROOT=${batchSetValue(installRoot)}"
+set "NEW_ROOT=${batchSetValue(newRoot)}"
+set "BACKUP_ROOT=${batchSetValue(backupRoot)}"
+set "TEMP_DIR=${batchSetValue(tempDir)}"
+
+:wait
+tasklist.exe /FI "PID eq %PARENT_PID%" /FO CSV /NH | findstr /C:"\\"%PARENT_PID%\\"" >nul 2>nul
+if not errorlevel 1 (
+  timeout.exe /T 1 /NOBREAK >nul
+  goto wait
+)
+
+if exist "%BACKUP_ROOT%" rmdir /S /Q "%BACKUP_ROOT%"
+if exist "%INSTALL_ROOT%" move /Y "%INSTALL_ROOT%" "%BACKUP_ROOT%" >nul || goto fail
+move /Y "%NEW_ROOT%" "%INSTALL_ROOT%" >nul || goto restore
+if exist "%BACKUP_ROOT%" rmdir /S /Q "%BACKUP_ROOT%"
+if exist "%TEMP_DIR%" rmdir /S /Q "%TEMP_DIR%"
+del "%~f0" >nul 2>nul
+exit /B 0
+
+:restore
+if exist "%BACKUP_ROOT%" if not exist "%INSTALL_ROOT%" move /Y "%BACKUP_ROOT%" "%INSTALL_ROOT%" >nul
+
+:fail
+echo Superset CLI update failed. >&2
+exit /B 1
+`;
+}
+
+function scheduleWindowsDeferredReplace({
+	installRoot,
+	newRoot,
+	tempDir,
+}: {
+	installRoot: string;
+	newRoot: string;
+	tempDir: string;
+}): string {
+	const scriptPath = `${installRoot}.update-${process.pid}.cmd`;
+	writeFileSync(
+		scriptPath,
+		buildWindowsDeferredReplaceScript({
+			installRoot,
+			newRoot,
+			tempDir,
+			parentPid: process.pid,
+		}),
+	);
+	const child = spawn("cmd.exe", ["/d", "/s", "/c", `"${scriptPath}"`], {
+		detached: true,
+		stdio: "ignore",
+		windowsVerbatimArguments: true,
+	});
+	child.unref();
+	return scriptPath;
+}
+
 function resolveInstallRoot(): string {
 	if (process.env.SUPERSET_INSTALL_ROOT) {
 		return process.env.SUPERSET_INSTALL_ROOT;
@@ -137,6 +234,13 @@ export default command({
 		),
 	},
 	run: async ({ options }) => {
+		if (!isCliSelfUpdateSupported()) {
+			throw new CLIError(
+				"`superset update` is not available on Windows",
+				"Use Superset desktop's built-in updater for Windows installs.",
+			);
+		}
+
 		const target = detectTarget();
 		const currentVersion = getCurrentVersion();
 		if (currentVersion === "0.0.0-dev") {
@@ -189,21 +293,38 @@ export default command({
 		// is an intra-filesystem move. tmpdir() is frequently a separate
 		// mount (tmpfs on Linux) — renaming across it fails with EXDEV.
 		const tempDir = mkdtempSync(`${installRoot}.update-`);
+		let preserveTempDir = false;
 
 		try {
 			await downloadAndExtract(tarballUrl(target, pinnedVersion), tempDir);
 			const newRoot = findExtractedRoot(tempDir);
-			const newBin = join(newRoot, "bin", "superset");
+			const newBin = join(newRoot, "bin", cliBinaryNameForTarget(target));
 			if (!existsSync(newBin)) {
 				throw new CLIError(
-					`Extracted archive missing bin/superset (expected at ${newBin})`,
+					`Extracted archive missing bin/${cliBinaryNameForTarget(target)} (expected at ${newBin})`,
 				);
 			}
-			chmodSync(newBin, 0o755);
-			const newHostBin = join(newRoot, "bin", "superset-host");
-			if (existsSync(newHostBin)) chmodSync(newHostBin, 0o755);
+			if (process.platform !== "win32") {
+				chmodSync(newBin, 0o755);
+				const newHostBin = join(
+					newRoot,
+					"bin",
+					hostBinaryNameForTarget(target),
+				);
+				if (existsSync(newHostBin)) chmodSync(newHostBin, 0o755);
+			}
 
-			atomicReplace(installRoot, newRoot);
+			let deferredScript: string | undefined;
+			if (process.platform === "win32") {
+				deferredScript = scheduleWindowsDeferredReplace({
+					installRoot,
+					newRoot,
+					tempDir,
+				});
+				preserveTempDir = true;
+			} else {
+				atomicReplace(installRoot, newRoot);
+			}
 
 			return {
 				data: {
@@ -211,13 +332,21 @@ export default command({
 					target: targetVersion,
 					updated: true,
 					installRoot,
+					deferred: !!deferredScript,
+					deferredScript,
 				},
 				message: pinnedVersion
-					? `Installed ${targetVersion} (${installRoot})`
-					: `Updated ${currentVersion} → ${targetVersion} (${installRoot})`,
+					? process.platform === "win32"
+						? `Staged ${targetVersion}; it will install after this process exits (${installRoot})`
+						: `Installed ${targetVersion} (${installRoot})`
+					: process.platform === "win32"
+						? `Staged update ${currentVersion} → ${targetVersion}; it will install after this process exits (${installRoot})`
+						: `Updated ${currentVersion} → ${targetVersion} (${installRoot})`,
 			};
 		} finally {
-			rmSync(tempDir, { recursive: true, force: true });
+			if (!preserveTempDir) {
+				rmSync(tempDir, { recursive: true, force: true });
+			}
 		}
 	},
 });

@@ -99,13 +99,21 @@ export function signalProcessTargets(
 	}
 }
 
-export function readProcessTable(): ProcessInfo[] {
+export function readProcessTable(
+	platform: NodeJS.Platform = process.platform,
+): ProcessInfo[] {
+	if (platform === "win32") return [];
+
 	const result = spawnSync("ps", ["-axo", "pid=,ppid=,pgid="], {
 		encoding: "utf8",
 	});
 	if (result.error || result.status !== 0) return [];
 
-	return result.stdout
+	return parseProcessTable(result.stdout);
+}
+
+export function parseProcessTable(output: string): ProcessInfo[] {
+	return output
 		.split("\n")
 		.map((line) => line.trim())
 		.filter(Boolean)

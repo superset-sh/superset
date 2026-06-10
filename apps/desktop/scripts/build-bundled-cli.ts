@@ -81,6 +81,51 @@ const desktopDir = resolve(import.meta.dirname, "..");
 const repoRoot = resolve(desktopDir, "../..");
 config({ path: resolve(repoRoot, ".env"), override: false, quiet: true });
 
+const packagedBuildUrlDefaults = {
+	SUPERSET_API_URL: "https://api.superset.sh",
+	SUPERSET_WEB_URL: "https://app.superset.sh",
+	RELAY_URL: "https://relay.superset.sh",
+} as const;
+
+function isLocalBuildUrl(value: string | undefined): boolean {
+	if (!value) return false;
+	try {
+		const { hostname } = new URL(value);
+		return (
+			hostname === "localhost" ||
+			hostname === "127.0.0.1" ||
+			hostname === "0.0.0.0" ||
+			hostname === "::1" ||
+			hostname.endsWith(".localtest.me")
+		);
+	} catch {
+		return false;
+	}
+}
+
+if (
+	process.env.NODE_ENV !== "development" &&
+	!process.env.SUPERSET_DESKTOP_ALLOW_LOCAL_BUILD_URLS
+) {
+	for (const [key, fallback] of Object.entries(packagedBuildUrlDefaults)) {
+		if (isLocalBuildUrl(process.env[key])) {
+			console.warn(
+				`[desktop:bundle-cli] Replacing local ${key}=${process.env[key]} with ${fallback} for packaged build`,
+			);
+			process.env[key] = fallback;
+		}
+	}
+	if (isLocalBuildUrl(process.env.NEXT_PUBLIC_API_URL)) {
+		process.env.NEXT_PUBLIC_API_URL = packagedBuildUrlDefaults.SUPERSET_API_URL;
+	}
+	if (isLocalBuildUrl(process.env.NEXT_PUBLIC_WEB_URL)) {
+		process.env.NEXT_PUBLIC_WEB_URL = packagedBuildUrlDefaults.SUPERSET_WEB_URL;
+	}
+	if (isLocalBuildUrl(process.env.NEXT_PUBLIC_RELAY_URL)) {
+		process.env.NEXT_PUBLIC_RELAY_URL = packagedBuildUrlDefaults.RELAY_URL;
+	}
+}
+
 const cliDir = resolve(repoRoot, "packages/cli");
 const outfile = resolve(
 	desktopDir,

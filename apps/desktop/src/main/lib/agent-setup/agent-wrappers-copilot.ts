@@ -106,5 +106,5 @@ export function createCopilotWrapper(): void {
 	const script = buildWrapperScript("copilot", buildCopilotWrapperExecLine(), {
 		agentId: "copilot",
 	});
-	createWrapper("copilot", script);
+	createWrapper("copilot", script, { agentId: "copilot" });
 }

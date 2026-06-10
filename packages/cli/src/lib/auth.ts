@@ -37,18 +37,43 @@ function generateState(): string {
 	return base64url(randomBytes(32));
 }
 
-async function openBrowser(url: string): Promise<void> {
-	const { exec } = await import("node:child_process");
-	switch (process.platform) {
-		case "darwin":
-			exec(`open "${url}"`);
-			break;
-		case "win32":
-			exec(`start "" "${url}"`);
-			break;
-		default:
-			exec(`xdg-open "${url}"`);
+interface BrowserSpawn {
+	command: string;
+	args: string[];
+	windowsVerbatimArguments?: boolean;
+}
+
+function cmdDoubleQuote(value: string): string {
+	return `"${value.replaceAll('"', '""').replaceAll("\r", "").replaceAll("\n", "")}"`;
+}
+
+export function buildOpenBrowserSpawn(
+	url: string,
+	platform: NodeJS.Platform = process.platform,
+	env: NodeJS.ProcessEnv = process.env,
+): BrowserSpawn {
+	if (platform === "darwin") {
+		return { command: "open", args: [url] };
 	}
+	if (platform === "win32") {
+		return {
+			command: env.COMSPEC || env.ComSpec || "cmd.exe",
+			args: ["/d", "/s", "/c", `start "" ${cmdDoubleQuote(url)}`],
+			windowsVerbatimArguments: true,
+		};
+	}
+	return { command: "xdg-open", args: [url] };
+}
+
+async function openBrowser(url: string): Promise<void> {
+	const { spawn } = await import("node:child_process");
+	const browser = buildOpenBrowserSpawn(url);
+	const child = spawn(browser.command, browser.args, {
+		detached: true,
+		stdio: "ignore",
+		windowsVerbatimArguments: browser.windowsVerbatimArguments,
+	});
+	child.unref();
 }
 
 export function getWebUrl(): string {

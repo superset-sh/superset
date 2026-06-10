@@ -1,5 +1,5 @@
 // Reusable test client for pty-daemon integration tests.
-// Speaks the daemon's wire protocol (v2) over a Unix socket.
+// Speaks the daemon's wire protocol (v2) over a local socket/named pipe.
 
 import * as net from "node:net";
 import {

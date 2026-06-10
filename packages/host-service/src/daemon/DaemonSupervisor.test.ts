@@ -33,6 +33,14 @@ import { readPtyDaemonManifest, writePtyDaemonManifest } from "./manifest.ts";
 const loggedEvents: { event: string; props: Record<string, unknown> }[] = [];
 const realConsoleLog = console.log;
 
+function makeTestSocketPath(prefix: string): string {
+	const id = `${prefix}-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+	if (process.platform === "win32") {
+		return `\\\\.\\pipe\\${id}`;
+	}
+	return path.join(os.tmpdir(), `${id}.sock`);
+}
+
 interface AdoptedForTest {
 	pid: number;
 	socketPath: string;
@@ -82,12 +90,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 	socketPath: string;
 	close: () => Promise<void>;
 }> {
-	const socketPath =
-		opts.socketPath ??
-		path.join(
-			os.tmpdir(),
-			`fake-pty-daemon-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
-		);
+	const socketPath = opts.socketPath ?? makeTestSocketPath("fake-pty-daemon");
 	const server = net.createServer((sock) => {
 		const decoder = new FrameDecoder();
 		sock.on("data", (chunk: Buffer) => {
@@ -140,6 +143,15 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 }
 
 describe("probeDaemonVersion", () => {
+	test("uses a Windows named pipe for daemon sockets on Windows", () => {
+		const socketPath = ptyDaemonSocketPath("org-socket-format");
+		if (process.platform === "win32") {
+			expect(socketPath).toMatch(/^\\\\\.\\pipe\\superset-ptyd-[a-f0-9]{12}$/);
+		} else {
+			expect(socketPath).toMatch(/superset-ptyd-[a-f0-9]{12}\.sock$/);
+		}
+	});
+
 	test("returns daemonVersion on valid hello-ack", async () => {
 		const fake = await startFakeDaemon({ respondWithVersion: "0.1.0" });
 		try {
@@ -150,10 +162,7 @@ describe("probeDaemonVersion", () => {
 	});
 
 	test("returns null when there is no listener on the socket path", async () => {
-		const dead = path.join(
-			os.tmpdir(),
-			`nonexistent-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
-		);
+		const dead = makeTestSocketPath("nonexistent");
 		expect(await probeDaemonVersion(dead, 500)).toBeNull();
 	});
 

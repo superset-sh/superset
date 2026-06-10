@@ -36,8 +36,8 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { common, createLowlight } from "lowlight";
 import { useEffect, useRef } from "react";
 import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
-import { env } from "renderer/env.renderer";
 import { useInlineUrlPolicy } from "renderer/lib/clickPolicy";
+import { getRuntimeApiUrl } from "renderer/lib/desktop-runtime-flags";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { Markdown } from "tiptap-markdown";
 import { CodeBlockView } from "./components/CodeBlockView";
@@ -63,7 +63,7 @@ function isLinearImageUrl(src: string): boolean {
 }
 
 function getLinearProxyUrl(linearUrl: string): string {
-	const proxyUrl = new URL(`${env.NEXT_PUBLIC_API_URL}/api/proxy/linear-image`);
+	const proxyUrl = new URL(`${getRuntimeApiUrl()}/api/proxy/linear-image`);
 	proxyUrl.searchParams.set("url", linearUrl);
 	return proxyUrl.toString();
 }

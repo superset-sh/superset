@@ -7,7 +7,7 @@ import {
 	organizationClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { env } from "renderer/env.renderer";
+import { getRuntimeApiUrl } from "./desktop-runtime-flags";
 
 let authToken: string | null = null;
 
@@ -36,7 +36,7 @@ export function getJwt(): string | null {
  * Server has bearer() plugin enabled to accept bearer tokens.
  */
 export const authClient = createAuthClient({
-	baseURL: env.NEXT_PUBLIC_API_URL,
+	baseURL: getRuntimeApiUrl(),
 	plugins: [
 		organizationClient({
 			teams: { enabled: true },

@@ -48,7 +48,7 @@ export function OpenInButton({
 		{ projectId: projectId as string },
 		{ enabled: !!projectId },
 	);
-	const resolvedApp: ExternalApp = defaultApp ?? "cursor";
+	const storedApp: ExternalApp = defaultApp ?? "cursor";
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: () => {
@@ -59,7 +59,8 @@ export function OpenInButton({
 	});
 	const { copyToClipboard } = useCopyToClipboard();
 
-	const currentApp = getAppOption(resolvedApp) ?? null;
+	const currentApp = getAppOption(storedApp) ?? getAppOption("finder") ?? null;
+	const resolvedApp: ExternalApp = currentApp?.id ?? "finder";
 
 	const isDark = activeTheme?.type === "dark";
 	const currentAppIcon = currentApp?.[isDark ? "darkIcon" : "lightIcon"];

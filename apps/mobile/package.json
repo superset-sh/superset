@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"main": "expo-router/entry",
 	"scripts": {
-		"dev": "EXPO_UNSTABLE_MCP_SERVER=1 expo start",
+		"dev": "bun run ../../scripts/with-env.ts EXPO_UNSTABLE_MCP_SERVER 1 expo start",
 		"android": "expo run:android",
 		"ios": "expo run:ios",
 		"web": "expo start --web",

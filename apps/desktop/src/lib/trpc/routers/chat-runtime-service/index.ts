@@ -1,7 +1,7 @@
 import type { LifecycleEvent } from "@superset/chat/server/trpc";
 import { ChatRuntimeService } from "@superset/chat/server/trpc";
-import { env } from "main/env.main";
 import { appState } from "main/lib/app-state";
+import { getMainApiUrl } from "main/lib/desktop-runtime-flags";
 import { notificationsEmitter } from "main/lib/notifications/server";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { loadToken } from "../auth/utils/auth-functions";
@@ -46,17 +46,22 @@ function handleLifecycleEvent(event: LifecycleEvent): void {
 	});
 }
 
-const service = new ChatRuntimeService({
-	headers: async (): Promise<Record<string, string>> => {
-		const { token } = await loadToken();
-		if (token) return { Authorization: `Bearer ${token}` };
-		return {};
-	},
-	apiUrl: env.NEXT_PUBLIC_API_URL,
-	onLifecycleEvent: handleLifecycleEvent,
-});
+let service: ChatRuntimeService | null = null;
 
-export const createChatRuntimeServiceRouter = () => service.createRouter();
+function getService(): ChatRuntimeService {
+	service ??= new ChatRuntimeService({
+		headers: async (): Promise<Record<string, string>> => {
+			const { token } = await loadToken();
+			if (token) return { Authorization: `Bearer ${token}` };
+			return {};
+		},
+		apiUrl: getMainApiUrl(),
+		onLifecycleEvent: handleLifecycleEvent,
+	});
+	return service;
+}
+
+export const createChatRuntimeServiceRouter = () => getService().createRouter();
 
 export type ChatRuntimeServiceDesktopRouter = ReturnType<
 	typeof createChatRuntimeServiceRouter

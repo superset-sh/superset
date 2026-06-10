@@ -3,6 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { ArrowUpRightIcon } from "lucide-react";
 import {
 	APP_OPTIONS,
+	getAppOptionsForPlatform,
 	type OpenInExternalAppOption,
 } from "renderer/components/OpenInExternalDropdown/constants";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -64,12 +65,15 @@ async function openIn(
 		}
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
-		toast.error(`Failed to open in ${app}: ${message}`);
+		const appLabel = findOption(app)?.label ?? app;
+		toast.error(`Failed to open in ${appLabel}: ${message}`);
 	}
 }
 
 function findOption(app: ExternalApp): OpenInExternalAppOption | undefined {
-	return APP_OPTIONS.find((option) => option.id === app);
+	return getAppOptionsForPlatform(APP_OPTIONS).find(
+		(option) => option.id === app,
+	);
 }
 
 export const openInProvider: CommandProvider = {
@@ -83,10 +87,11 @@ export const openInProvider: CommandProvider = {
 			return [];
 		}
 
+		const availableOptions = getAppOptionsForPlatform(APP_OPTIONS);
 		const preferredApp = context.workspace.preferredOpenInApp ?? "finder";
 		const preferredOption = findOption(preferredApp);
 
-		const submenuChildren: Command[] = APP_OPTIONS.map((option) => ({
+		const submenuChildren: Command[] = availableOptions.map((option) => ({
 			id: `openIn.${option.id}`,
 			title: option.label,
 			section: "workspace",

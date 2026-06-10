@@ -28,13 +28,21 @@ export PATH="$HOME/.superset/bin:$PATH"
 
 ### Standalone install
 
+macOS and Linux:
+
 ```bash
 curl -fsSL https://superset.sh/cli/install.sh | sh
 ```
 
-The script auto-detects your platform (macOS Apple Silicon or Linux x86_64),
-installs Superset under `~/superset` by default, and adds `~/superset/bin`
-to your shell `PATH`.
+Windows PowerShell:
+
+```powershell
+irm https://superset.sh/cli/install.ps1 | iex
+```
+
+The scripts auto-detect your platform (macOS Apple Silicon, Linux x86_64, or
+Windows x64), install Superset under `~/superset` by default, and add
+`~/superset/bin` to your shell `PATH`.
 
 ### Homebrew
 

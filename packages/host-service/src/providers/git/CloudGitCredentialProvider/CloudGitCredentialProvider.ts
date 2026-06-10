@@ -5,6 +5,7 @@ import { writeTempAskpass } from "./askpass";
 interface CachedCredential {
 	expiresAt: number;
 	askpassPath: string;
+	cleanupPaths: string[];
 }
 
 export class CloudGitCredentialProvider implements GitCredentialProvider {
@@ -38,14 +39,16 @@ export class CloudGitCredentialProvider implements GitCredentialProvider {
 			};
 		}
 
-		if (this.cachedCredential?.askpassPath) {
-			unlink(this.cachedCredential.askpassPath).catch(() => {});
+		if (this.cachedCredential) {
+			for (const filePath of this.cachedCredential.cleanupPaths) {
+				unlink(filePath).catch(() => {});
+			}
 		}
 
 		const { token, expiresAt } = await this.tokenFetcher(remoteUrl);
-		const askpassPath = await writeTempAskpass(token);
+		const { askpassPath, cleanupPaths } = await writeTempAskpass(token);
 
-		this.cachedCredential = { expiresAt, askpassPath };
+		this.cachedCredential = { expiresAt, askpassPath, cleanupPaths };
 
 		return {
 			env: {

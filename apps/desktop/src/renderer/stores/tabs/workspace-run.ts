@@ -10,15 +10,18 @@ export function createWorkspaceRun({
 	workspaceId,
 	state,
 	command,
+	commands,
 }: {
 	workspaceId: string;
 	state: WorkspaceRunState;
 	command?: string;
+	commands?: string[];
 }): PaneWorkspaceRun {
 	return {
 		workspaceId,
 		state,
 		...(command ? { command } : {}),
+		...(commands?.length ? { commands } : {}),
 	};
 }
 
@@ -53,6 +56,7 @@ export function setPaneWorkspaceRunState(
 		workspaceId: workspaceRun.workspaceId,
 		state,
 		command: workspaceRun.command,
+		commands: workspaceRun.commands,
 	});
 
 	useTabsStore.getState().setPaneWorkspaceRun(paneId, nextWorkspaceRun);

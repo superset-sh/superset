@@ -10,7 +10,15 @@ This skips environment variable validation and the sign-in screen. Desktop chat 
 
 # Release
 
-When building for release, make sure `node-pty` is built for the correct architecture with `bun run install:deps`, then run `bun run release`.
+When building for release, make sure native modules are built for the correct Electron architecture with `bun run install:deps`, then run `bun run release`.
+
+On Windows, `bun run install:deps`, `bun run build -- --win --x64`, `bun run package`, and `bun run release` require:
+
+- Visual Studio Build Tools 2022
+- MSVC v143 C++ x64/x86 Spectre-mitigated libraries
+- Windows 10 or Windows 11 SDK
+
+Install those from Visual Studio Installer > Build Tools 2022 > Individual components. The desktop scripts preflight these components before invoking Electron native rebuilds.
 
 # Linux (AppImage) local build
 

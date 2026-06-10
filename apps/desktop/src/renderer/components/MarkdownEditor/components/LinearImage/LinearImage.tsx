@@ -1,4 +1,4 @@
-import { env } from "renderer/env.renderer";
+import { getRuntimeApiUrl } from "renderer/lib/desktop-runtime-flags";
 
 const LINEAR_IMAGE_HOST = "uploads.linear.app";
 
@@ -18,7 +18,7 @@ function isLinearImageUrl(src: string): boolean {
  * Converts a Linear image URL to our proxy URL.
  */
 function getLinearProxyUrl(linearUrl: string): string {
-	const proxyUrl = new URL(`${env.NEXT_PUBLIC_API_URL}/api/proxy/linear-image`);
+	const proxyUrl = new URL(`${getRuntimeApiUrl()}/api/proxy/linear-image`);
 	proxyUrl.searchParams.set("url", linearUrl);
 	return proxyUrl.toString();
 }

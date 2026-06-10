@@ -124,6 +124,10 @@
 			"types": "./src/shell-ready-scanner.ts",
 			"default": "./src/shell-ready-scanner.ts"
 		},
+		"./shell": {
+			"types": "./src/shell.ts",
+			"default": "./src/shell.ts"
+		},
 		"./terminal-title-scanner": {
 			"types": "./src/terminal-title-scanner.ts",
 			"default": "./src/terminal-title-scanner.ts"

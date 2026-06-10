@@ -109,9 +109,9 @@ daemon.unref();  // Don't wait for daemon to exit
 
 Setting `ELECTRON_RUN_AS_NODE=1` tells Electron to act as a regular Node.js runtime, perfect for a background service that doesn't need Chromium.
 
-## The Protocol: NDJSON Over Unix Sockets
+## The Protocol: NDJSON Over Local Sockets
 
-Communication between the main process and daemon uses newline-delimited JSON over Unix domain sockets:
+Communication between the main process and daemon uses newline-delimited JSON over a local OS transport: Unix domain sockets on POSIX and named pipes on Windows:
 
 ```typescript
 // Request from main process
@@ -124,7 +124,7 @@ Communication between the main process and daemon uses newline-delimited JSON ov
 {"type":"data","sessionId":"pane-1","data":"$ npm install\r\n"}
 ```
 
-**Why Unix sockets?** They're fast (no TCP overhead), secure (file permissions), and support backpressure natively through kernel buffers.
+**Why local sockets?** They avoid TCP overhead, stay within the local OS security boundary, and support native backpressure through kernel buffers.
 
 ### The Two-Socket Split
 

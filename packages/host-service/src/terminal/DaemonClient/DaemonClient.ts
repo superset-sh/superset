@@ -83,7 +83,9 @@ export class DaemonClient {
 	async connect(): Promise<void> {
 		const socket = await openSocket(this.opts);
 		this.socket = socket;
-		socket.on("data", (chunk) => this.onData(chunk));
+		socket.on("data", (chunk) =>
+			this.onData(typeof chunk === "string" ? Buffer.from(chunk) : chunk),
+		);
 		socket.on("close", () => this.onClose());
 		socket.on("error", (err) => this.onClose(err));
 		try {

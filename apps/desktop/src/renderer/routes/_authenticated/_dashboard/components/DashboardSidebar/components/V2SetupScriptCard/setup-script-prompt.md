@@ -16,9 +16,9 @@ Setup and teardown commands run sequentially in the workspace directory.
 
 ```json
 {
-  "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"],
-  "teardown": ["docker-compose down"],
-  "run": ["./.superset/run.sh"]
+  "setup": ["bun ./.superset/setup.ts"],
+  "teardown": ["docker compose down"],
+  "run": ["bun run dev"]
 }
 ```
 
@@ -33,22 +33,23 @@ Setup and teardown commands run sequentially in the workspace directory.
 **Node.js**
 
 ```json
-{ "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"] }
+{ "setup": ["bun install"], "run": ["bun run dev"] }
 ```
 
 **Docker**
 
 ```json
 {
-  "setup": ["docker-compose up -d", "bun run db:migrate"],
-  "teardown": ["docker-compose down -v"]
+  "setup": ["docker compose up -d", "bun run db:migrate"],
+  "teardown": ["docker compose down -v"]
 }
 ```
 
 ## Tips
 
 - Keep setup fast — it runs on every workspace creation.
-- For anything non-trivial, put the logic in a shell script and call it: `"setup": ["./.superset/setup.sh"]` (create the script too).
+- For anything non-trivial, prefer a portable Bun/Node script and call it: `"setup": ["bun ./.superset/setup.ts"]` (create the script too).
+- If the project is platform-specific, use native script files for that platform: `.ps1`/`.cmd`/`.bat` on Windows, `.sh` on Unix shells.
 - Commit `.superset/` so your team shares the same setup.
 
 When you're done, briefly summarize what you configured and why.

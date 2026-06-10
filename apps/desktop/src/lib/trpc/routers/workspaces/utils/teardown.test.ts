@@ -25,9 +25,57 @@ const USER_CONFIG_DIR = join(
 const ORIGINAL_SUPERSET_HOME_DIR = process.env.SUPERSET_HOME_DIR;
 const ORIGINAL_SHELL = process.env.SHELL;
 const ORIGINAL_PATH = process.env.PATH;
+const ORIGINAL_Path = process.env.Path;
 const ORIGINAL_HOME = process.env.HOME;
 
-const { runTeardown } = await import("./teardown");
+const { buildTeardownCommand, resolveTeardownShell, runTeardown } =
+	await import("./teardown");
+
+const isWindows = process.platform === "win32";
+
+function quotePath(filePath: string): string {
+	return `"${filePath.replaceAll('"', '\\"')}"`;
+}
+
+function writeTextCommand(text: string, filePath: string): string {
+	return isWindows
+		? `echo ${text} > ${quotePath(filePath)}`
+		: `echo "${text}" > "${filePath}"`;
+}
+
+function assertFileCommand(filePath: string): string {
+	return isWindows
+		? `if not exist ${quotePath(filePath)} exit /b 1`
+		: `test -f "${filePath}"`;
+}
+
+function failCommand(): string {
+	return isWindows ? "exit /b 1" : "exit 1";
+}
+
+function envWriteCommand(filePath: string): string {
+	return isWindows
+		? `echo %SUPERSET_WORKSPACE_NAME%^|%SUPERSET_ROOT_PATH% > ${quotePath(filePath)}`
+		: `echo "$SUPERSET_WORKSPACE_NAME|$SUPERSET_ROOT_PATH" > "${filePath}"`;
+}
+
+function pathWith(first: string, rest: string[]): string {
+	return [first, ...rest].join(isWindows ? ";" : ":");
+}
+
+function writeExecutableCommand(filePath: string, output: string): void {
+	if (isWindows) {
+		writeFileSync(filePath, `@echo ${output}\r\n`);
+		return;
+	}
+	writeFileSync(
+		filePath,
+		`#!/usr/bin/env bash
+echo ${output}
+`,
+	);
+	chmodSync(filePath, 0o755);
+}
 
 describe("runTeardown", () => {
 	beforeEach(() => {
@@ -60,6 +108,11 @@ describe("runTeardown", () => {
 			delete process.env.PATH;
 		} else {
 			process.env.PATH = ORIGINAL_PATH;
+		}
+		if (ORIGINAL_Path === undefined) {
+			delete process.env.Path;
+		} else {
+			process.env.Path = ORIGINAL_Path;
 		}
 		if (ORIGINAL_HOME === undefined) {
 			delete process.env.HOME;
@@ -106,6 +159,34 @@ describe("runTeardown", () => {
 		expect(result.success).toBe(true);
 	});
 
+	test("uses cmd.exe as the default teardown shell on Windows", () => {
+		expect(resolveTeardownShell("win32", {})).toBe("cmd.exe");
+		expect(
+			resolveTeardownShell("win32", {
+				COMSPEC: "C:\\Windows\\System32\\cmd.exe",
+			}),
+		).toBe("C:\\Windows\\System32\\cmd.exe");
+	});
+
+	test("builds cmd-compatible teardown command chains on Windows", () => {
+		expect(
+			buildTeardownCommand(["echo one", "echo two"], "cmd.exe", "win32"),
+		).toBe("echo one && echo two");
+	});
+
+	test("builds PowerShell-compatible teardown command chains on Windows", () => {
+		const command = buildTeardownCommand(
+			["echo one", "echo two"],
+			"powershell.exe",
+			"win32",
+		);
+
+		expect(command).toBe(
+			"echo one; if (-not $?) { if ($LASTEXITCODE -is [int] -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; exit 1 }; echo two; if (-not $?) { if ($LASTEXITCODE -is [int] -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; exit 1 }",
+		);
+		expect(command).not.toContain(" && ");
+	});
+
 	test("reads config from mainRepoPath and executes teardown", async () => {
 		// This marker file will be created by the teardown command
 		// proving the config was read from mainRepoPath
@@ -113,7 +194,7 @@ describe("runTeardown", () => {
 
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
-			JSON.stringify({ teardown: [`echo "executed" > "${markerFile}"`] }),
+			JSON.stringify({ teardown: [writeTextCommand("executed", markerFile)] }),
 		);
 
 		const result = await runTeardown({
@@ -132,7 +213,9 @@ describe("runTeardown", () => {
 		mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
 		writeFileSync(
 			join(WORKTREE, ".superset", "config.json"),
-			JSON.stringify({ teardown: [`echo "executed" > "${worktreeMarker}"`] }),
+			JSON.stringify({
+				teardown: [writeTextCommand("executed", worktreeMarker)],
+			}),
 		);
 
 		const result = await runTeardown({
@@ -152,13 +235,15 @@ describe("runTeardown", () => {
 
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
-			JSON.stringify({ teardown: [`echo "main" > "${mainMarker}"`] }),
+			JSON.stringify({ teardown: [writeTextCommand("main", mainMarker)] }),
 		);
 
 		mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
 		writeFileSync(
 			join(WORKTREE, ".superset", "config.json"),
-			JSON.stringify({ teardown: [`echo "worktree" > "${worktreeMarker}"`] }),
+			JSON.stringify({
+				teardown: [writeTextCommand("worktree", worktreeMarker)],
+			}),
 		);
 
 		const result = await runTeardown({
@@ -175,7 +260,7 @@ describe("runTeardown", () => {
 	test("returns error when teardown command fails", async () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
-			JSON.stringify({ teardown: ["exit 1"] }),
+			JSON.stringify({ teardown: [failCommand()] }),
 		);
 
 		const result = await runTeardown({
@@ -192,7 +277,10 @@ describe("runTeardown", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
 			JSON.stringify({
-				teardown: [`echo "created" > "${testFile}"`, `test -f "${testFile}"`],
+				teardown: [
+					writeTextCommand("created", testFile),
+					assertFileCommand(testFile),
+				],
 			}),
 		);
 
@@ -210,9 +298,7 @@ describe("runTeardown", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
 			JSON.stringify({
-				teardown: [
-					`echo "$SUPERSET_WORKSPACE_NAME|$SUPERSET_ROOT_PATH" > "${envFile}"`,
-				],
+				teardown: [envWriteCommand(envFile)],
 			}),
 		);
 
@@ -233,13 +319,13 @@ describe("runTeardown", () => {
 
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
-			JSON.stringify({ teardown: [`echo "main" > "${mainMarker}"`] }),
+			JSON.stringify({ teardown: [writeTextCommand("main", mainMarker)] }),
 		);
 
 		mkdirSync(USER_CONFIG_DIR, { recursive: true });
 		writeFileSync(
 			join(USER_CONFIG_DIR, "config.json"),
-			JSON.stringify({ teardown: [`echo "user" > "${userMarker}"`] }),
+			JSON.stringify({ teardown: [writeTextCommand("user", userMarker)] }),
 		);
 
 		const result = await runTeardown({
@@ -260,7 +346,7 @@ describe("runTeardown", () => {
 
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
-			JSON.stringify({ teardown: [`echo "main" > "${mainMarker}"`] }),
+			JSON.stringify({ teardown: [writeTextCommand("main", mainMarker)] }),
 		);
 
 		const result = await runTeardown({
@@ -285,35 +371,33 @@ describe("runTeardown", () => {
 		mkdirSync(systemBinDir, { recursive: true });
 		mkdirSync(wrapperBinDir, { recursive: true });
 
-		writeFileSync(
-			join(shellHome, ".bash_profile"),
-			`export PATH="${systemBinDir}:/usr/bin:/bin"\n`,
-		);
+		if (!isWindows) {
+			writeFileSync(
+				join(shellHome, ".bash_profile"),
+				`export PATH="${systemBinDir}:/usr/bin:/bin"\n`,
+			);
+		}
 
-		writeFileSync(
-			join(systemBinDir, "claude"),
-			`#!/usr/bin/env bash
-echo system
-`,
-		);
-		chmodSync(join(systemBinDir, "claude"), 0o755);
-
-		writeFileSync(
-			join(wrapperBinDir, "claude"),
-			`#!/usr/bin/env bash
-echo wrapper
-`,
-		);
-		chmodSync(join(wrapperBinDir, "claude"), 0o755);
+		const commandFileName = isWindows ? "claude.cmd" : "claude";
+		writeExecutableCommand(join(systemBinDir, commandFileName), "system");
+		writeExecutableCommand(join(wrapperBinDir, commandFileName), "wrapper");
 
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
-			JSON.stringify({ teardown: [`claude > "${markerFile}"`] }),
+			JSON.stringify({ teardown: [`claude > ${quotePath(markerFile)}`] }),
 		);
 
-		process.env.SHELL = "/bin/bash";
+		if (!isWindows) {
+			process.env.SHELL = "/bin/bash";
+		}
 		process.env.HOME = shellHome;
-		process.env.PATH = `${systemBinDir}:/usr/bin:/bin`;
+		process.env.PATH = pathWith(
+			systemBinDir,
+			isWindows ? [] : ["/usr/bin", "/bin"],
+		);
+		if (isWindows) {
+			process.env.Path = process.env.PATH;
+		}
 
 		const result = await runTeardown({
 			mainRepoPath: MAIN_REPO,

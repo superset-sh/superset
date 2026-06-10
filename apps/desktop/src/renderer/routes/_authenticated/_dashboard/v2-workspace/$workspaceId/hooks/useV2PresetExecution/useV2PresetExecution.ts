@@ -5,10 +5,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { resolvePresetLaunchCommands } from "renderer/lib/agent-launch-command";
-import {
-	buildTerminalCommand,
-	normalizeTerminalCommand,
-} from "renderer/lib/terminal/launch-command";
+import { normalizeTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -19,7 +16,6 @@ import {
 	filterMatchingPresetsForProject,
 	isProjectTargetedPreset,
 } from "shared/preset-project-targeting";
-import { quote } from "shell-quote";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
@@ -46,6 +42,10 @@ function normalizePresetCwd(cwd: string | undefined): string | undefined {
 	return trimmed ? trimmed : undefined;
 }
 
+type TerminalLaunchItem =
+	| { command: string; commands?: never }
+	| { command?: never; commands: string[] };
+
 function isTerminalPane(
 	pane: Pane<PaneViewerData> | null | undefined,
 ): pane is Pane<TerminalPaneData> {
@@ -63,22 +63,17 @@ function getActiveTerminalPane(state: WorkspaceStore<PaneViewerData>) {
 	};
 }
 
-function buildFocusedTerminalCommand({
-	command,
+function resolveFocusedCwd({
 	cwd,
 	worktreePath,
 }: {
-	command: string;
 	cwd: string | undefined;
 	worktreePath: string | undefined;
-}) {
+}): string | undefined {
 	// Sequential presets write into an already-running shell, so the preset
 	// directory has to be applied as shell input instead of session metadata.
-	if (!cwd) return command;
-	const resolvedCwd = worktreePath
-		? toAbsoluteWorkspacePath(worktreePath, cwd)
-		: cwd;
-	return `cd ${quote([resolvedCwd])} && ${command}`;
+	if (!cwd) return undefined;
+	return worktreePath ? toAbsoluteWorkspacePath(worktreePath, cwd) : cwd;
 }
 
 function selectAutoApplyPresets(
@@ -119,6 +114,7 @@ export function useV2PresetExecution({
 		},
 	);
 	const writeInput = workspaceTrpc.terminal.writeInput.useMutation();
+	const writeCommands = workspaceTrpc.terminal.writeCommands.useMutation();
 
 	const { data: allPresets = [] } = useLiveQuery(
 		(query) =>
@@ -171,20 +167,20 @@ export function useV2PresetExecution({
 					: null;
 			// Sequential mode is one shell command sent to one terminal; every
 			// other grouped mode keeps one command per terminal session.
-			const launchCommands =
+			const launchItems: TerminalLaunchItem[] =
 				preset.executionMode === "sequential"
-					? [buildTerminalCommand(commands)].flatMap((command) =>
-							command === null ? [] : [command],
-						)
-					: commands;
+					? commands.length > 0
+						? [{ commands }]
+						: []
+					: commands.map((command) => ({ command }));
 			const cwd = normalizePresetCwd(preset.cwd);
-			const createTerminal = (command?: string) =>
-				launcher.create({ command, cwd });
+			const createTerminal = (item?: TerminalLaunchItem) =>
+				launcher.create({ ...(item ?? {}), cwd });
 
 			const plan = getPresetLaunchPlan({
 				mode: preset.executionMode,
 				target,
-				commandCount: launchCommands.length,
+				commandCount: launchItems.length,
 				hasActiveTab: !!activeTabId,
 				hasActiveTerminal: !!activeTerminal,
 			});
@@ -198,19 +194,25 @@ export function useV2PresetExecution({
 			try {
 				switch (plan) {
 					case "active-terminal": {
-						const command = launchCommands[0];
-						if (!activeTerminal || !command) break;
-						await writeInput.mutateAsync({
-							terminalId: activeTerminal.terminalId,
-							workspaceId,
-							data: normalizeTerminalCommand(
-								buildFocusedTerminalCommand({
-									command,
+						const item = launchItems[0];
+						if (!activeTerminal || !item) break;
+						if (Array.isArray(item.commands)) {
+							await writeCommands.mutateAsync({
+								terminalId: activeTerminal.terminalId,
+								workspaceId,
+								commands: item.commands,
+								cwd: resolveFocusedCwd({
 									cwd,
 									worktreePath: workspaceQuery.data?.worktreePath,
 								}),
-							),
-						});
+							});
+						} else if (item.command) {
+							await writeInput.mutateAsync({
+								terminalId: activeTerminal.terminalId,
+								workspaceId,
+								data: normalizeTerminalCommand(item.command),
+							});
+						}
 						if (title && !activeTerminal.titleOverride?.trim()) {
 							// Reused terminals keep their existing pane, so apply the
 							// first preset label explicitly instead of relying on creation
@@ -226,15 +228,15 @@ export function useV2PresetExecution({
 					}
 
 					case "new-tab-single": {
-						const terminalId = await createTerminal(launchCommands[0]);
+						const terminalId = await createTerminal(launchItems[0]);
 						state.addTab({ panes: [makeTerminalPane(terminalId, title)] });
 						break;
 					}
 
 					case "new-tab-multi-pane": {
 						const ids = await Promise.all(
-							launchCommands.length > 0
-								? launchCommands.map((command) => createTerminal(command))
+							launchItems.length > 0
+								? launchItems.map((item) => createTerminal(item))
 								: [createTerminal()],
 						);
 						state.addTab({
@@ -248,7 +250,7 @@ export function useV2PresetExecution({
 
 					case "new-tab-per-command": {
 						const ids = await Promise.all(
-							launchCommands.map((command) => createTerminal(command)),
+							launchItems.map((item) => createTerminal(item)),
 						);
 						for (const terminalId of ids) {
 							state.addTab({ panes: [makeTerminalPane(terminalId, title)] });
@@ -257,7 +259,7 @@ export function useV2PresetExecution({
 					}
 
 					case "active-tab-single": {
-						const terminalId = await createTerminal(launchCommands[0]);
+						const terminalId = await createTerminal(launchItems[0]);
 						const pane = makeTerminalPane(terminalId, title);
 						if (!activeTabId) {
 							state.addTab({ panes: [pane] });
@@ -269,8 +271,8 @@ export function useV2PresetExecution({
 
 					case "active-tab-multi-pane": {
 						const ids = await Promise.all(
-							launchCommands.length > 0
-								? launchCommands.map((command) => createTerminal(command))
+							launchItems.length > 0
+								? launchItems.map((item) => createTerminal(item))
 								: [createTerminal()],
 						);
 						const panes = ids.map((id) => makeTerminalPane(id, title));
@@ -305,6 +307,7 @@ export function useV2PresetExecution({
 			resolvePresetCommands,
 			workspaceId,
 			workspaceQuery.data?.worktreePath,
+			writeCommands,
 			writeInput,
 		],
 	);

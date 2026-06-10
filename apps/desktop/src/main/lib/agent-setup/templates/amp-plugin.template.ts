@@ -81,7 +81,8 @@ export default function supersetAmpLifecyclePlugin(amp: AmpApi) {
 	}
 
 	const supersetHome = env.SUPERSET_HOME_DIR || join(homedir(), ".superset");
-	const notifyPath = join(supersetHome, "hooks", "notify.sh");
+	const notifyName = process.platform === "win32" ? "notify.cmd" : "notify.sh";
+	const notifyPath = join(supersetHome, "hooks", notifyName);
 	if (!existsSync(notifyPath)) {
 		debugLog("disabled: notify hook missing at " + notifyPath);
 		return;

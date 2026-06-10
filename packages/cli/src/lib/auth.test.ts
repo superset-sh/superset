@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { CLIError } from "@superset/cli-framework";
-import { refreshAccessToken } from "./auth";
+import { buildOpenBrowserSpawn, refreshAccessToken } from "./auth";
 
 const originalFetch = globalThis.fetch;
 
@@ -40,5 +40,32 @@ describe("refreshAccessToken", () => {
 		expect(visibleText).not.toContain("refresh-secret");
 		expect(visibleText).not.toContain("session-secret");
 		expect(visibleText).not.toContain("code-secret");
+	});
+});
+
+describe("buildOpenBrowserSpawn", () => {
+	test("uses cmd.exe with verbatim arguments on Windows", () => {
+		const url =
+			"https://app.superset.test/callback?code=abc&state=state%20123&resource=https%3A%2F%2Fapi.superset.test";
+		const result = buildOpenBrowserSpawn(url, "win32", {
+			COMSPEC: "C:\\Windows\\System32\\cmd.exe",
+		});
+
+		expect(result).toEqual({
+			command: "C:\\Windows\\System32\\cmd.exe",
+			args: ["/d", "/s", "/c", `start "" "${url}"`],
+			windowsVerbatimArguments: true,
+		});
+	});
+
+	test("uses direct argument arrays on macOS and Linux", () => {
+		expect(buildOpenBrowserSpawn("https://superset.sh", "darwin")).toEqual({
+			command: "open",
+			args: ["https://superset.sh"],
+		});
+		expect(buildOpenBrowserSpawn("https://superset.sh", "linux")).toEqual({
+			command: "xdg-open",
+			args: ["https://superset.sh"],
+		});
 	});
 });

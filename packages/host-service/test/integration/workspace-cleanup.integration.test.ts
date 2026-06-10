@@ -23,6 +23,7 @@ import { __setAccountShellForTesting } from "../../src/terminal/user-shell";
 import { cloudFlows, cloudOk } from "../helpers/cloud-fakes";
 import { createTestHost } from "../helpers/createTestHost";
 import { createGitFixture } from "../helpers/git-fixture";
+import { makeTestDaemonSocketPath } from "../helpers/platform";
 import {
 	createBasicScenario,
 	createFeatureWorktreeScenario,
@@ -176,7 +177,7 @@ describe("workspaceCleanup.destroy integration", () => {
 
 	test("teardown failure blocks local and cloud delete until force retry", async () => {
 		teardownTmp = mkdtempSync(join(tmpdir(), "workspace-cleanup-teardown-"));
-		const socketPath = join(teardownTmp, "pty-daemon.sock");
+		const socketPath = makeTestDaemonSocketPath("workspace-cleanup-teardown");
 		const teardownWrites: string[] = [];
 		teardownServer = new Server({
 			socketPath,
@@ -329,8 +330,13 @@ describe("workspaceCleanup.destroy integration", () => {
 			"list",
 			"--porcelain",
 		]);
-		expect(worktreeList).not.toContain(scenario.worktreePath);
-		expect(worktreeList).toContain(otherWorktreePath);
+		const normalizedWorktreeList = normalizePathForGitOutput(worktreeList);
+		expect(normalizedWorktreeList).not.toContain(
+			normalizePathForGitOutput(scenario.worktreePath),
+		);
+		expect(normalizedWorktreeList).toContain(
+			"/.worktrees/feature-other-missing",
+		);
 	});
 
 	test("missing worktree that was locked is still removed without warnings", async () => {
@@ -494,4 +500,9 @@ function restoreEnv(name: string, previousValue: string | undefined): void {
 		return;
 	}
 	process.env[name] = previousValue;
+}
+
+function normalizePathForGitOutput(value: string): string {
+	const normalized = value.replaceAll("\\", "/");
+	return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }

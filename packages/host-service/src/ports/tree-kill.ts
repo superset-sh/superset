@@ -1,7 +1,32 @@
+import { execFile } from "node:child_process";
 import treeKill from "tree-kill";
 
 const DEFAULT_ESCALATION_TIMEOUT_MS = 2000;
 const POLL_INTERVAL_MS = 50;
+
+export function buildWindowsTaskkillArgs(pid: number): string[] {
+	return ["/PID", String(pid), "/T", "/F"];
+}
+
+export function killProcessTree(
+	pid: number,
+	signal: string,
+	callback: (err?: Error) => void,
+): void {
+	if (process.platform !== "win32") {
+		treeKill(pid, signal, callback);
+		return;
+	}
+
+	if (!isProcessAlive(pid)) {
+		callback();
+		return;
+	}
+
+	execFile("taskkill.exe", buildWindowsTaskkillArgs(pid), (error) => {
+		callback(error ?? undefined);
+	});
+}
 
 /**
  * Kill a process tree with escalation to SIGKILL if the process survives.
@@ -39,7 +64,7 @@ export function treeKillWithEscalation({
 			resolve(result);
 		};
 
-		treeKill(pid, signal, (err) => {
+		killProcessTree(pid, signal, (err) => {
 			if (resolved) return;
 
 			if (err) {
@@ -79,7 +104,7 @@ export function treeKillWithEscalation({
 				`[treeKillWithEscalation] Process ${pid} still alive after ${signal}, escalating to SIGKILL`,
 			);
 
-			treeKill(pid, "SIGKILL", (err) => {
+			killProcessTree(pid, "SIGKILL", (err) => {
 				if (resolved) return;
 
 				if (err) {
@@ -117,5 +142,9 @@ function isProcessNotFoundError(err: Error): boolean {
 	const code = (err as NodeJS.ErrnoException).code;
 	if (code === "ESRCH") return true;
 	const message = err.message ?? "";
-	return message.includes("ESRCH") || message.includes("No such process");
+	return (
+		message.includes("ESRCH") ||
+		message.includes("No such process") ||
+		message.includes("not found")
+	);
 }

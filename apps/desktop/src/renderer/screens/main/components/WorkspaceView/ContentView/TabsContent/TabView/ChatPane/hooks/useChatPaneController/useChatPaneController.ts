@@ -3,9 +3,9 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInterface/types";
-import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
+import { getRuntimeApiUrl } from "renderer/lib/desktop-runtime-flags";
 import {
 	isDesktopChatDevMode,
 	isDesktopChatSessionReady,
@@ -19,7 +19,7 @@ import type { ChatLaunchConfig } from "shared/tabs-types";
 import { reportChatError } from "../../utils/reportChatError";
 import { createSessionInitRunner } from "../../utils/session-init-runner";
 
-const apiUrl = env.NEXT_PUBLIC_API_URL;
+const apiUrl = getRuntimeApiUrl();
 const SESSION_INIT_RETRY_DELAY_MS = 1500;
 const SESSION_INIT_MAX_RETRIES = 3;
 

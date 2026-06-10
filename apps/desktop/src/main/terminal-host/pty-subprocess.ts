@@ -17,7 +17,7 @@ import {
 } from "@superset/pty-daemon/process-tree";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
-import treeKill from "tree-kill";
+import { killProcessTree } from "../lib/tree-kill";
 import {
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
@@ -398,7 +398,7 @@ function handleKill(payload: Buffer): void {
 
 	// Step 1: Signal descendants and process groups. tree-kill keeps legacy
 	// PPID traversal behavior for direct children.
-	treeKill(pid, signal, (err) => {
+	killProcessTree(pid, signal, (err) => {
 		if (err) {
 			console.error("[pty-subprocess] Failed to kill process tree:", err);
 		}
@@ -410,7 +410,7 @@ function handleKill(payload: Buffer): void {
 		if (!ptyProcess) return; // Already exited via onExit
 
 		signalProcessTargets(escalationTargets, "SIGKILL", logProcessSignalError);
-		treeKill(pid, "SIGKILL", (err) => {
+		killProcessTree(pid, "SIGKILL", (err) => {
 			if (err) {
 				console.error("[pty-subprocess] Failed to SIGKILL process tree:", err);
 			}
@@ -477,7 +477,7 @@ function handleDispose(): void {
 		signalProcessTreeGroups(pid, "SIGKILL");
 		// tree-kill spawns child processes (ps/pgrep) to discover descendants,
 		// so we must wait for the callback before exiting.
-		treeKill(pid, "SIGKILL", (err) => {
+		killProcessTree(pid, "SIGKILL", (err) => {
 			if (err) {
 				console.error("[pty-subprocess] Failed to kill process tree:", err);
 			}

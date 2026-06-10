@@ -58,7 +58,7 @@ If `ports.json` is malformed:
 
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
-- **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
+- **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. Portable Bun/Node scripts such as `.superset/setup.ts` and `.superset/teardown.ts` work across Windows, macOS, and Linux; Unix-only `.sh` scripts remain fine for teams that run a Unix shell.
 
 ## Discovery and Updates
 

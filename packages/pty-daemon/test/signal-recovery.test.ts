@@ -8,9 +8,7 @@
 
 import { strict as assert } from "node:assert";
 import * as childProcess from "node:child_process";
-import * as fs from "node:fs";
 import * as net from "node:net";
-import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -20,23 +18,18 @@ import {
 	FrameDecoder,
 	type ServerMessage,
 } from "../src/protocol/index.ts";
+import { makeDaemonSocketPath } from "./helpers/platform.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DAEMON_BUNDLE = path.resolve(__dirname, "../dist/pty-daemon.js");
-const SOCK = path.join(os.tmpdir(), `pty-daemon-sigkill-${process.pid}.sock`);
+const DAEMON_SCRIPT = path.resolve(__dirname, "../src/main.ts");
+const SOCK = makeDaemonSocketPath("pty-daemon-sigkill");
 
 let daemonProcess: childProcess.ChildProcess | null = null;
 
 before(async () => {
-	if (!fs.existsSync(DAEMON_BUNDLE)) {
-		throw new Error(
-			`Missing daemon bundle at ${DAEMON_BUNDLE}. Run \`bun run build:daemon\` first.`,
-		);
-	}
-
 	daemonProcess = childProcess.spawn(
 		process.execPath,
-		[DAEMON_BUNDLE, `--socket=${SOCK}`],
+		[...process.execArgv, DAEMON_SCRIPT, `--socket=${SOCK}`],
 		{
 			stdio: ["ignore", "pipe", "pipe"],
 			env: { ...process.env, NODE_ENV: "test" },
@@ -48,39 +41,37 @@ before(async () => {
 
 	// Wait for socket to become connectable.
 	const deadline = Date.now() + 5000;
+	let ready = false;
 	while (Date.now() < deadline) {
-		if (fs.existsSync(SOCK)) {
-			const ok = await new Promise<boolean>((resolve) => {
-				const s = net.createConnection({ path: SOCK });
-				const t = setTimeout(() => {
-					s.destroy();
-					resolve(false);
-				}, 200);
-				s.once("connect", () => {
-					clearTimeout(t);
-					s.end();
-					resolve(true);
-				});
-				s.once("error", () => {
-					clearTimeout(t);
-					resolve(false);
-				});
+		const ok = await new Promise<boolean>((resolve) => {
+			const s = net.createConnection({ path: SOCK });
+			const t = setTimeout(() => {
+				s.destroy();
+				resolve(false);
+			}, 200);
+			s.once("connect", () => {
+				clearTimeout(t);
+				s.end();
+				resolve(true);
 			});
-			if (ok) break;
+			s.once("error", () => {
+				clearTimeout(t);
+				resolve(false);
+			});
+		});
+		if (ok) {
+			ready = true;
+			break;
 		}
 		await new Promise((r) => setTimeout(r, 50));
 	}
+	assert.equal(ready, true, `socket ${SOCK} did not become connectable`);
 });
 
 after(async () => {
 	if (daemonProcess && !daemonProcess.killed) {
 		daemonProcess.kill("SIGKILL");
 		await new Promise((r) => daemonProcess?.once("exit", r));
-	}
-	try {
-		fs.unlinkSync(SOCK);
-	} catch {
-		// best-effort
 	}
 });
 
@@ -119,11 +110,6 @@ describe("daemon SIGKILL recovery", () => {
 
 		// Process is gone; ensure cleanup so `after` doesn't block.
 		daemonProcess = null;
-		try {
-			fs.unlinkSync(SOCK);
-		} catch {
-			// best-effort — daemon's atexit didn't run because of SIGKILL
-		}
 	});
 });
 

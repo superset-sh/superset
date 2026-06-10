@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import {
 	existsSync,
 	mkdirSync,
@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	branchExistsOnRemote,
+	buildBackgroundRemovePlan,
 	createWorktree,
 	getCurrentBranch,
 	getWorktreeCreatedAt,
@@ -27,24 +28,39 @@ const TEST_DIR = join(
 	`superset-test-git-${process.pid}`,
 );
 
+function git(args: string[], cwd: string): string {
+	return execFileSync("git", args, {
+		cwd,
+		encoding: "utf-8",
+		stdio: ["ignore", "pipe", "pipe"],
+	}).trim();
+}
+
+function gitQuiet(args: string[], cwd: string): void {
+	execFileSync("git", args, { cwd, stdio: "ignore" });
+}
+
+function configureGitUser(repoPath: string): void {
+	gitQuiet(["config", "user.email", "test@test.com"], repoPath);
+	gitQuiet(["config", "user.name", "Test"], repoPath);
+}
+
+function commitAll(repoPath: string, message: string): void {
+	gitQuiet(["add", "."], repoPath);
+	gitQuiet(["commit", "-m", message], repoPath);
+}
+
 function createTestRepo(name: string): string {
 	const repoPath = join(TEST_DIR, name);
 	mkdirSync(repoPath, { recursive: true });
 	execSync("git init", { cwd: repoPath, stdio: "ignore" });
-	execSync("git config user.email 'test@test.com'", {
-		cwd: repoPath,
-		stdio: "ignore",
-	});
-	execSync("git config user.name 'Test'", { cwd: repoPath, stdio: "ignore" });
+	configureGitUser(repoPath);
 	return repoPath;
 }
 
 function seedCommit(repoPath: string): void {
 	writeFileSync(join(repoPath, "README.md"), "# test\n");
-	execSync("git add . && git commit -m 'init'", {
-		cwd: repoPath,
-		stdio: "ignore",
-	});
+	commitAll(repoPath, "init");
 }
 
 function pathCreatedAt(path: string): number {
@@ -55,6 +71,34 @@ function pathCreatedAt(path: string): number {
 	}
 	return Math.trunc(stats.ctimeMs);
 }
+
+describe("buildBackgroundRemovePlan", () => {
+	test("uses Node recursive removal on Windows", () => {
+		const path = "C:\\repo\\.superset-delete-123";
+
+		expect(buildBackgroundRemovePlan(path, "win32")).toEqual({
+			kind: "node-rm",
+			path,
+		});
+	});
+
+	test("keeps the spawned rm cleanup path on Unix-like platforms", () => {
+		expect(
+			buildBackgroundRemovePlan("/tmp/.superset-delete-123", "darwin"),
+		).toEqual({
+			kind: "spawn",
+			command: "/bin/rm",
+			args: ["-rf", "/tmp/.superset-delete-123"],
+		});
+		expect(
+			buildBackgroundRemovePlan("/tmp/.superset-delete-123", "linux"),
+		).toEqual({
+			kind: "spawn",
+			command: "/bin/rm",
+			args: ["-rf", "/tmp/.superset-delete-123"],
+		});
+	});
+});
 
 describe("getDefaultBranch", () => {
 	// Import simpleGit directly to bypass any module mocks from other test files
@@ -309,6 +353,11 @@ describe("Shell Environment", () => {
 		const env = await getShellEnvironment();
 		const shellPath = env.PATH || env.Path || "";
 
+		if (process.platform === "win32") {
+			expect(shellPath.length).toBeGreaterThan(0);
+			return;
+		}
+
 		// The derived PATH should be richer than the minimal macOS GUI PATH
 		// (/usr/bin:/bin:/usr/sbin:/sbin). It should include at least one of
 		// these common user-installed tool directories.
@@ -421,7 +470,9 @@ describe("createWorktree hook tolerance", () => {
 			hookPath,
 			"#!/bin/sh\necho 'post-checkout failed' >&2\nexit 1\n",
 		);
-		execSync(`chmod +x "${hookPath}"`);
+		if (process.platform !== "win32") {
+			execFileSync("chmod", ["+x", hookPath], { stdio: "ignore" });
+		}
 
 		const worktreePath = join(TEST_DIR, "worktree-hook-failure-wt");
 		await createWorktree(
@@ -496,12 +547,15 @@ describe("createWorktree hook tolerance", () => {
 		expect(existsSync(worktreePath)).toBe(true);
 
 		// Verify the new branch does NOT track origin/main
-		const trackingResult = execSync(
-			"git config --get branch.feature/no-track-test.remote 2>&1 || true",
-			{ cwd: worktreePath },
-		)
-			.toString()
-			.trim();
+		let trackingResult = "";
+		try {
+			trackingResult = git(
+				["config", "--get", "branch.feature/no-track-test.remote"],
+				worktreePath,
+			);
+		} catch {
+			trackingResult = "";
+		}
 		expect(trackingResult).toBe("");
 	}, 15_000);
 
@@ -808,21 +862,12 @@ describe("hasUnpushedCommits", () => {
 
 		// Clone it
 		execSync(`git clone "${remotePath}" "${localPath}"`, { stdio: "ignore" });
-		execSync("git config user.email 'test@test.com'", {
-			cwd: localPath,
-			stdio: "ignore",
-		});
-		execSync("git config user.name 'Test'", {
-			cwd: localPath,
-			stdio: "ignore",
-		});
+		configureGitUser(localPath);
 
 		// Seed commit on main
 		writeFileSync(join(localPath, "README.md"), "# test\n");
-		execSync("git add . && git commit -m 'init' && git push", {
-			cwd: localPath,
-			stdio: "ignore",
-		});
+		commitAll(localPath, "init");
+		gitQuiet(["push"], localPath);
 
 		return { remotePath, localPath };
 	}
@@ -865,10 +910,7 @@ describe("hasUnpushedCommits", () => {
 
 		// Add an unpushed commit
 		writeFileSync(join(localPath, "new.txt"), "new");
-		execSync("git add . && git commit -m 'unpushed'", {
-			cwd: localPath,
-			stdio: "ignore",
-		});
+		commitAll(localPath, "unpushed");
 
 		expect(await hasUnpushedCommits(localPath)).toBe(true);
 	}, 10_000);
@@ -882,10 +924,7 @@ describe("hasUnpushedCommits", () => {
 			stdio: "ignore",
 		});
 		writeFileSync(join(localPath, "feature.txt"), "feature work");
-		execSync("git add . && git commit -m 'add feature'", {
-			cwd: localPath,
-			stdio: "ignore",
-		});
+		commitAll(localPath, "add feature");
 		execSync("git push -u origin feature/squash-test", {
 			cwd: localPath,
 			stdio: "ignore",
@@ -895,19 +934,10 @@ describe("hasUnpushedCommits", () => {
 		// a different commit (different SHA, same patch)
 		const squashClone = join(TEST_DIR, "squash-merge-squasher");
 		execSync(`git clone "${remotePath}" "${squashClone}"`, { stdio: "ignore" });
-		execSync("git config user.email 'test@test.com'", {
-			cwd: squashClone,
-			stdio: "ignore",
-		});
-		execSync("git config user.name 'Test'", {
-			cwd: squashClone,
-			stdio: "ignore",
-		});
+		configureGitUser(squashClone);
 		writeFileSync(join(squashClone, "feature.txt"), "feature work");
-		execSync("git add . && git commit -m 'squash: add feature' && git push", {
-			cwd: squashClone,
-			stdio: "ignore",
-		});
+		commitAll(squashClone, "squash: add feature");
+		gitQuiet(["push"], squashClone);
 
 		// Delete the remote branch (simulating GitHub's post-merge cleanup)
 		execSync("git push origin --delete feature/squash-test", {
@@ -932,10 +962,7 @@ describe("hasUnpushedCommits", () => {
 			stdio: "ignore",
 		});
 		writeFileSync(join(localPath, "unique.txt"), "unique work not on main");
-		execSync("git add . && git commit -m 'unique work'", {
-			cwd: localPath,
-			stdio: "ignore",
-		});
+		commitAll(localPath, "unique work");
 		execSync("git push -u origin feature/unmerged-test", {
 			cwd: localPath,
 			stdio: "ignore",

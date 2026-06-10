@@ -50,6 +50,15 @@ function hasAnthropicEnvCredential(variables: AnthropicEnvVariables): boolean {
 	);
 }
 
+function isUsableAnthropicApiKeyCandidate(apiKey: string): boolean {
+	const trimmed = apiKey.trim();
+	return (
+		trimmed.length > 0 &&
+		trimmed !== "ANTHROPIC_API_KEY" &&
+		trimmed !== "ANTHROPIC_AUTH_TOKEN"
+	);
+}
+
 function stripAnthropicCredentialEnvVariables(
 	variables: AnthropicEnvVariables,
 ): AnthropicEnvVariables {
@@ -160,6 +169,7 @@ export class ChatService {
 				credential.access.trim().length > 0 &&
 				(typeof credential.expires !== "number" ||
 					credential.expires > Date.now()),
+			isUsableAnthropicApiKeyCandidate,
 		);
 		const hasExpiredManagedOAuth =
 			storedCredential?.type === "oauth" &&
@@ -644,11 +654,35 @@ export class ChatService {
 	}
 
 	private applyAnthropicRuntimeEnv(variables: AnthropicEnvVariables): void {
-		const runtimeEnv = buildAnthropicRuntimeEnv(variables);
+		const runtimeEnv = buildAnthropicRuntimeEnv(variables, {
+			suppressBedrock: this.hasUsableAnthropicDirectCredential(),
+		});
 		applyAnthropicRuntimeEnvToProcess(runtimeEnv, {
 			previousRuntimeEnv: this.currentAnthropicRuntimeEnv,
 		});
 		this.currentAnthropicRuntimeEnv = runtimeEnv;
+	}
+
+	private hasUsableAnthropicDirectCredential(): boolean {
+		const configCredential = getAnthropicCredentialsFromConfig();
+		if (configCredential && !isClaudeCredentialExpired(configCredential)) {
+			return true;
+		}
+		const keychainCredential = getAnthropicCredentialsFromKeychain();
+		if (keychainCredential && !isClaudeCredentialExpired(keychainCredential)) {
+			return true;
+		}
+		return (
+			resolveAuthMethodForProvider(
+				this.getAuthStorage(),
+				ANTHROPIC_AUTH_PROVIDER_ID,
+				(credential) =>
+					credential.access.trim().length > 0 &&
+					(typeof credential.expires !== "number" ||
+						credential.expires > Date.now()),
+				isUsableAnthropicApiKeyCandidate,
+			) !== null
+		);
 	}
 
 	private logAuthResolution(

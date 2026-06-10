@@ -2,6 +2,7 @@ export type { OpenInExternalAppOption } from "./constants";
 export {
 	APP_OPTIONS,
 	getAppOption,
+	getAppOptionsForPlatform,
 	JETBRAINS_OPTIONS,
 	VSCODE_OPTIONS,
 } from "./constants";

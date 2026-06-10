@@ -2,6 +2,10 @@ import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useRef, useState } from "react";
 import { HiDocumentArrowUp } from "react-icons/hi2";
+import {
+	isScriptFileImportSupported,
+	SCRIPT_FILE_IMPORT_ACCEPT,
+} from "renderer/lib/script-file-imports";
 
 interface ScriptFieldProps {
 	placeholder: string;
@@ -24,7 +28,7 @@ export function ScriptField({
 	const importFirstFile = useCallback(
 		async (files: File[]) => {
 			const scriptFile = files.find((file) =>
-				file.name.match(/\.(sh|bash|zsh|command)$/i),
+				isScriptFileImportSupported(file.name),
 			);
 			if (!scriptFile) return;
 			try {
@@ -95,7 +99,7 @@ export function ScriptField({
 			<input
 				ref={fileInputRef}
 				type="file"
-				accept=".sh,.bash,.zsh,.command"
+				accept={SCRIPT_FILE_IMPORT_ACCEPT}
 				className="hidden"
 				onChange={async (e) => {
 					const files = e.target.files ? Array.from(e.target.files) : [];

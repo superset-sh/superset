@@ -1,4 +1,9 @@
 import { workspaces, worktrees } from "@superset/local-db";
+import {
+	appendShellLineEnding,
+	buildShellChangeDirectoryCommand,
+	buildShellCommandChain,
+} from "@superset/shared/shell";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -13,6 +18,7 @@ import {
 } from "main/lib/terminal/errors";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
+import type { TerminalRuntime } from "main/lib/workspace-runtime/types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
@@ -31,6 +37,18 @@ const SAFE_ID = z
 			!value.includes("/") && !value.includes("\\") && !value.includes(".."),
 		{ message: "Invalid id" },
 	);
+
+async function resolveTerminalShell(
+	terminal: TerminalRuntime,
+	paneId: string,
+): Promise<string | undefined> {
+	try {
+		const { sessions } = await terminal.management.listSessions();
+		return sessions.find((session) => session.sessionId === paneId)?.shell;
+	} catch {
+		return undefined;
+	}
+}
 
 /**
  * Terminal router using daemon-backed terminal runtime
@@ -69,6 +87,7 @@ export const createTerminalRouter = () => {
 					rows: z.number().optional(),
 					cwd: z.string().optional(),
 					command: z.string().trim().min(1).optional(),
+					commands: z.array(z.string().trim().min(1)).min(1).optional(),
 					skipColdRestore: z.boolean().optional(),
 					allowKilled: z.boolean().optional(),
 					themeType: z.enum(["dark", "light"]).optional(),
@@ -87,6 +106,7 @@ export const createTerminalRouter = () => {
 					rows,
 					cwd: cwdOverride,
 					command,
+					commands,
 					skipColdRestore,
 					allowKilled,
 					themeType,
@@ -130,7 +150,8 @@ export const createTerminalRouter = () => {
 						cols,
 						rows,
 						command,
-						skipColdRestore: skipColdRestore || !!command,
+						commands,
+						skipColdRestore: skipColdRestore || !!command || !!commands?.length,
 						allowKilled,
 						themeType: resolvedThemeType,
 					});
@@ -225,6 +246,61 @@ export const createTerminalRouter = () => {
 						error instanceof Error ? error.message : "Write failed";
 
 					// Emit exit instead of error for deleted sessions to prevent toast floods
+					if (message.includes("not found or not alive")) {
+						terminal.emit(`exit:${input.paneId}`, 0, 15);
+						if (shouldThrow) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message,
+							});
+						}
+						return;
+					}
+
+					terminal.emit(`error:${input.paneId}`, {
+						error: message,
+						code: "WRITE_FAILED",
+					});
+					if (shouldThrow) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message,
+						});
+					}
+				}
+			}),
+
+		writeCommands: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string(),
+					commands: z.array(z.string().trim().min(1)).min(1),
+					cwd: z.string().trim().min(1).optional(),
+					throwOnError: z.boolean().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const shouldThrow = input.throwOnError ?? false;
+				const shell = await resolveTerminalShell(terminal, input.paneId);
+				const commandChain = buildShellCommandChain(
+					input.cwd
+						? [
+								buildShellChangeDirectoryCommand(input.cwd, shell),
+								...input.commands,
+							]
+						: input.commands,
+					{ shell, platform: process.platform },
+				);
+
+				try {
+					terminal.write({
+						paneId: input.paneId,
+						data: appendShellLineEnding(commandChain, shell),
+					});
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : "Write failed";
+
 					if (message.includes("not found or not alive")) {
 						terminal.emit(`exit:${input.paneId}`, 0, 15);
 						if (shouldThrow) {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import {
 	chmodSync,
 	existsSync,
@@ -11,13 +11,21 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import {
+
+mock.module("electron", () => ({
+	app: {
+		getAppPath: () => process.cwd(),
+		isPackaged: false,
+	},
+}));
+
+const {
 	BUNDLED_CLI_SHIM_MARKER,
 	buildBundledCliShim,
 	getBundledCliBinaryName,
 	getBundledCliShimName,
 	installBundledCliShim,
-} from "./bundled-cli";
+} = await import("./bundled-cli");
 
 describe("bundled CLI", () => {
 	let tempDir: string;
@@ -54,6 +62,16 @@ describe("bundled CLI", () => {
 		);
 	});
 
+	it("builds a Windows cmd shim for the bundled executable", () => {
+		const cliPath = String.raw`C:\Program Files\Superset\resources\bin\superset.exe`;
+		const shim = buildBundledCliShim(cliPath, "win32");
+
+		expect(shim).toContain(BUNDLED_CLI_SHIM_MARKER);
+		expect(shim).toBe(
+			`@echo off\r\nrem ${BUNDLED_CLI_SHIM_MARKER}\r\n"C:\\Program Files\\Superset\\resources\\bin\\superset.exe" %*\r\n`,
+		);
+	});
+
 	it("installs an executable managed shim into the terminal bin directory", () => {
 		const status = installBundledCliShim({
 			binDir,
@@ -65,7 +83,9 @@ describe("bundled CLI", () => {
 		expect(status).toBe("installed");
 		expect(existsSync(shimPath)).toBe(true);
 		expect(readFileSync(shimPath, "utf-8")).toContain(BUNDLED_CLI_SHIM_MARKER);
-		expect(statSync(shimPath).mode & 0o111).not.toBe(0);
+		if (process.platform !== "win32") {
+			expect(statSync(shimPath).mode & 0o111).not.toBe(0);
+		}
 	});
 
 	it("updates an existing managed shim", () => {
@@ -99,6 +119,28 @@ describe("bundled CLI", () => {
 
 		expect(status).toBe("skipped");
 		expect(readFileSync(shimPath, "utf-8")).toBe("#!/bin/sh\necho custom\n");
+	});
+
+	it("installs a managed Windows cmd shim", () => {
+		const windowsCliPath = path.join(
+			tempDir,
+			"resources",
+			"bin",
+			"superset.exe",
+		);
+		writeFileSync(windowsCliPath, "");
+
+		const status = installBundledCliShim({
+			binDir,
+			bundledCliPath: windowsCliPath,
+			platform: "win32",
+		});
+		const shimPath = path.join(binDir, "superset.cmd");
+		const shim = readFileSync(shimPath, "utf-8");
+
+		expect(status).toBe("installed");
+		expect(shim).toContain(BUNDLED_CLI_SHIM_MARKER);
+		expect(shim).toContain(`"${windowsCliPath}" %*`);
 	});
 
 	it("returns missing when the bundled binary is unavailable", () => {

@@ -75,6 +75,20 @@ describe("parseAnthropicEnvText", () => {
 			"Please provide a valid .env block.",
 		);
 	});
+
+	it("ignores credential placeholder values", () => {
+		expect(
+			parseAnthropicEnvText(
+				[
+					"ANTHROPIC_API_KEY=ANTHROPIC_API_KEY",
+					"ANTHROPIC_AUTH_TOKEN=ANTHROPIC_AUTH_TOKEN",
+					"ANTHROPIC_BASE_URL=https://api.anthropic.com",
+				].join("\n"),
+			),
+		).toEqual({
+			ANTHROPIC_BASE_URL: "https://api.anthropic.com",
+		});
+	});
 });
 
 describe("Anthropic env config persistence", () => {
@@ -206,6 +220,23 @@ describe("Anthropic runtime env helpers", () => {
 		).toEqual({
 			ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh/v1",
 			ANTHROPIC_AUTH_TOKEN: "gw-token",
+		});
+	});
+
+	it("can suppress Bedrock env vars when direct Anthropic auth is available", () => {
+		expect(
+			buildAnthropicRuntimeEnv(
+				{
+					CLAUDE_CODE_USE_BEDROCK: "1",
+					AWS_REGION: "us-east-1",
+					ANTHROPIC_BASE_URL: "https://api.anthropic.com",
+					CUSTOM_ENV: "value",
+				},
+				{ suppressBedrock: true },
+			),
+		).toEqual({
+			ANTHROPIC_BASE_URL: "https://api.anthropic.com",
+			CUSTOM_ENV: "value",
 		});
 	});
 

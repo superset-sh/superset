@@ -86,6 +86,16 @@ export function buildMinimalEnv(): Record<string, string> {
 	return env;
 }
 
+function snapshotProcessEnv(): Record<string, string> {
+	const env: Record<string, string> = {};
+	for (const [key, value] of Object.entries(process.env)) {
+		if (typeof value === "string") {
+			env[key] = value;
+		}
+	}
+	return env;
+}
+
 function resolveShellForEnv(): string {
 	return resolveConfiguredShell(process.env);
 }
@@ -121,6 +131,10 @@ function truncateForDiagnostics(value: string): string {
 }
 
 function spawnCleanShellEnv(): Promise<Record<string, string>> {
+	if (process.platform === "win32") {
+		return Promise.resolve(snapshotProcessEnv());
+	}
+
 	return new Promise((resolve, reject) => {
 		const shell = resolveShellForEnv();
 		const env = buildMinimalEnv();

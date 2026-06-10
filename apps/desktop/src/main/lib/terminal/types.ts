@@ -105,6 +105,8 @@ export interface CreateSessionParams {
 	rows?: number;
 	/** Command to execute in the terminal instead of starting an interactive shell */
 	command?: string;
+	/** Commands to chain in the terminal shell instead of starting an interactive shell */
+	commands?: string[];
 	/** Skip cold restore detection (used when auto-resuming after cold restore) */
 	skipColdRestore?: boolean;
 	/** Allow restarting a session that was explicitly killed */

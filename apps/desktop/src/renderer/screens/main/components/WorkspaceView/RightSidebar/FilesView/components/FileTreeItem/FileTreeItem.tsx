@@ -19,6 +19,7 @@ import {
 	LuPencil,
 	LuTrash2,
 } from "react-icons/lu";
+import { getRevealInFileManagerLabel } from "renderer/lib/file-manager-labels";
 import type { DirectoryEntry } from "shared/file-tree-types";
 import { useFileDrag, usePathActions } from "../../../ChangesView/hooks";
 import { FileIcon } from "../../utils";
@@ -177,7 +178,7 @@ export function FileTreeItem({
 
 				<ContextMenuItem onClick={revealInFinder}>
 					<LuFolderOpen className="mr-2 size-4" />
-					Reveal in Finder
+					{getRevealInFileManagerLabel()}
 				</ContextMenuItem>
 				<ContextMenuItem onClick={openInEditor}>
 					<LuExternalLink className="mr-2 size-4" />

@@ -7,7 +7,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { writeCommandsInPane } from "renderer/lib/terminal/launch-command";
 import { isTerminalAttachCanceledMessage } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/attach-cancel";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -42,6 +41,8 @@ export function WorkspaceInitEffects() {
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
+	const terminalWriteCommands =
+		electronTrpc.terminal.writeCommands.useMutation();
 	const utils = electronTrpc.useUtils();
 
 	const openPresetsInActiveTab = useCallback(
@@ -125,13 +126,14 @@ export function WorkspaceInitEffects() {
 
 	const runSetupCommandsInPane = useCallback(
 		async (paneId: string, commands: string[] | null) => {
-			await writeCommandsInPane({
+			if (!commands?.length) return;
+			await terminalWriteCommands.mutateAsync({
 				paneId,
 				commands,
-				write: (input) => terminalWrite.mutateAsync(input),
+				throwOnError: true,
 			});
 		},
-		[terminalWrite],
+		[terminalWriteCommands],
 	);
 
 	const handleTerminalSetup = useCallback(

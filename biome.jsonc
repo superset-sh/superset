@@ -18,7 +18,8 @@
 		]
 	},
 	"formatter": {
-		"formatWithErrors": true
+		"formatWithErrors": true,
+		"lineEnding": "auto"
 	},
 	"css": {
 		"parser": {

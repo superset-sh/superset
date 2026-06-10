@@ -11,6 +11,10 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import {
+	getKnownShell,
+	getWindowsInteractiveShellArgs,
+} from "@superset/shared/shell";
+import {
 	type ResolveConfiguredShellOptions,
 	resolveConfiguredShell,
 } from "./user-shell.ts";
@@ -33,10 +37,6 @@ export function getSupersetShellPaths(supersetHomeDir: string): {
 		ZSH_DIR: path.join(supersetHomeDir, "zsh"),
 		BASH_DIR: path.join(supersetHomeDir, "bash"),
 	};
-}
-
-function getShellName(shell: string): string {
-	return path.basename(shell);
 }
 
 /**
@@ -74,7 +74,7 @@ export function getShellBootstrapEnv(
 	params: ShellBootstrapParams,
 ): Record<string, string> {
 	const { shell, baseEnv, supersetHomeDir } = params;
-	const shellName = getShellName(shell);
+	const shellName = getKnownShell(shell);
 	const paths = getSupersetShellPaths(supersetHomeDir);
 
 	if (shellName === "zsh") {
@@ -97,7 +97,12 @@ export interface ShellLaunchParams {
 
 export function getShellLaunchArgs(params: ShellLaunchParams): string[] {
 	const { shell, supersetHomeDir } = params;
-	const shellName = getShellName(shell);
+	const windowsArgs = getWindowsInteractiveShellArgs(shell);
+	if (windowsArgs) {
+		return windowsArgs;
+	}
+
+	const shellName = getKnownShell(shell);
 	const paths = getSupersetShellPaths(supersetHomeDir);
 
 	if (shellName === "zsh") {

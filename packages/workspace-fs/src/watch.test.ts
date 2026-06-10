@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { Event as ParcelWatcherEvent } from "@parcel/watcher";
 import type { InternalWatchEvent } from "./watch";
-import { coalesceWatchEvents, reconcileRenameEvents } from "./watch";
+import {
+	coalesceWatchEvents,
+	normalizeWatchEventPath,
+	reconcileRenameEvents,
+} from "./watch";
 
 function createEvent(
 	type: ParcelWatcherEvent["type"],
@@ -49,6 +53,47 @@ describe("coalesceWatchEvents", () => {
 
 		expect(events).toHaveLength(1);
 		expect(events[0]).toEqual(createEvent("update", "/workspace/src/file.ts"));
+	});
+});
+
+describe("normalizeWatchEventPath", () => {
+	it("normalizes extra backslashes from Windows drive-root watcher events", () => {
+		const normalizedPath = normalizeWatchEventPath(
+			String.raw`C:\\workspace\\src\\file.ts`,
+			{
+				absolutePath: "C:\\",
+				realPathNormalized: "C:\\",
+				realPathDiffers: false,
+				platform: "win32",
+			},
+		);
+
+		expect(normalizedPath).toEqual(String.raw`C:\workspace\src\file.ts`);
+	});
+
+	it("rebases Windows symlink event paths back to the requested watch path", () => {
+		const normalizedPath = normalizeWatchEventPath(
+			String.raw`C:\real-workspace\src\file.ts`,
+			{
+				absolutePath: String.raw`C:\link-workspace`,
+				realPathNormalized: String.raw`C:\real-workspace`,
+				realPathDiffers: true,
+				platform: "win32",
+			},
+		);
+
+		expect(normalizedPath).toEqual(String.raw`C:\link-workspace\src\file.ts`);
+	});
+
+	it("normalizes macOS decomposed filenames before symlink rebasing", () => {
+		const normalizedPath = normalizeWatchEventPath("/real/cafe\u0301.txt", {
+			absolutePath: "/link",
+			realPathNormalized: "/real",
+			realPathDiffers: true,
+			platform: "darwin",
+		});
+
+		expect(normalizedPath).toEqual("/link/caf\u00e9.txt");
 	});
 });
 

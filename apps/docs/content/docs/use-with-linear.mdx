@@ -36,8 +36,8 @@ Copy the `id` of the project you want issues to open against.
 
 ## 1. Create the wrapper script
 
-Save this as `~/.linear/open-in-superset.sh` and replace `PROJECT` with the ID
-from above:
+On macOS or Linux, save this as `~/.linear/open-in-superset.sh` and replace
+`PROJECT` with the ID from above:
 
 ```bash
 #!/usr/bin/env bash
@@ -81,6 +81,39 @@ If `superset` isn't on your `PATH`, use its full path (the desktop app installs
 a shim at `~/.superset/bin/superset`).
 </Callout>
 
+On Windows, save this as `%USERPROFILE%\.linear\open-in-superset.ps1`:
+
+```powershell
+$ErrorActionPreference = "Stop"
+
+$Project = "<your-project-id>"
+
+$Name = if ($env:LINEAR_ISSUE_IDENTIFIER) { $env:LINEAR_ISSUE_IDENTIFIER } else { "linear-task" }
+$Branch = if ($env:LINEAR_ISSUE_BRANCH_NAME) { $env:LINEAR_ISSUE_BRANCH_NAME } else { $Name }
+$Prompt = if ($env:LINEAR_PROMPT) { $env:LINEAR_PROMPT } else { "Work on Linear issue $Name." }
+
+superset start --daemon *> $null
+
+$Result = superset workspaces create `
+  --local `
+  --project $Project `
+  --name $Name `
+  --branch $Branch `
+  --agent claude `
+  --prompt $Prompt `
+  --json
+
+$Workspace = $Result | ConvertFrom-Json
+superset workspaces open $Workspace.workspace.id
+```
+
+Then save this launcher as `%USERPROFILE%\.linear\open-in-superset.cmd`:
+
+```batch
+@echo off
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%USERPROFILE%\.linear\open-in-superset.ps1"
+```
+
 The branch named by the issue won't exist yet — `workspaces create` forks it
 from the project's default branch automatically. Re-running on the same issue
 reuses the existing workspace instead of creating a duplicate.
@@ -104,6 +137,21 @@ Create `~/.linear/coding-tools.json`:
 
 Use the absolute path to your script (`~` is not expanded here).
 
+On Windows, point Linear at the `.cmd` launcher:
+
+```json
+{
+  "openIssue": {
+    "path": "C:\\Users\\you\\.linear\\open-in-superset.cmd",
+    "env": [
+      "LINEAR_ISSUE_IDENTIFIER",
+      "LINEAR_ISSUE_BRANCH_NAME",
+      "LINEAR_PROMPT"
+    ]
+  }
+}
+```
+
 <Callout type="info">
 If Linear regenerates this file with a starter config when you enable the
 feature, merge the `openIssue` block back in rather than letting it overwrite
@@ -123,8 +171,9 @@ Linear runs the script, and the workspace opens in Superset with the agent
 running on the issue.
 
 <Callout type="info">
-In any macOS file dialog, press **⌘⇧.** to reveal hidden dot-folders, or
-**⌘⇧G** to type a path directly.
+In macOS file dialogs, press **⌘⇧.** to reveal hidden dot-folders, or
+**⌘⇧G** to type a path directly. On Windows, paste the full path into the file
+picker address bar.
 </Callout>
 
 ## Customizing

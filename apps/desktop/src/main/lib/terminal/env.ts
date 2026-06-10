@@ -17,7 +17,14 @@ let cachedProcessEnvSnapshot: {
 } | null = null;
 let cachedMacosSystemCertAvailable: boolean | null = null;
 
+export function shouldStartLocaleProbe(
+	platform: NodeJS.Platform = os.platform(),
+): boolean {
+	return platform !== "win32";
+}
+
 function startLocaleProbe(): void {
+	if (!shouldStartLocaleProbe()) return;
 	if (cachedUtf8Locale || localeProbeInFlight) return;
 	localeProbeInFlight = true;
 
