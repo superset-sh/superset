@@ -67,21 +67,18 @@ const mockHead = {
 	})),
 };
 
-// Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE.
-// Reused by restoreAllMocks() because mock.restore() in one test file otherwise
-// leaves these undefined for whichever file bun loads next.
-function ensureWindowGlobals(): void {
-	if (typeof globalThis.window === "undefined") {
-		// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
-		(globalThis as any).window = globalThis;
-	}
-	const win = globalThis.window as unknown as Record<string, unknown>;
-	if (typeof win.addEventListener !== "function")
-		win.addEventListener = () => {};
-	if (typeof win.removeEventListener !== "function")
-		win.removeEventListener = () => {};
+// Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
+if (typeof globalThis.window !== "undefined") {
+	const win = globalThis.window as Record<string, unknown>;
+	if (!win.addEventListener) win.addEventListener = mock(() => {});
+	if (!win.removeEventListener) win.removeEventListener = mock(() => {});
+} else {
+	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
+	(globalThis as any).window = {
+		addEventListener: mock(() => {}),
+		removeEventListener: mock(() => {}),
+	};
 }
-ensureWindowGlobals();
 
 // =============================================================================
 // Electron Preload Mocks (exposed via contextBridge in real app)
@@ -98,68 +95,61 @@ ensureWindowGlobals();
 // Electron Module Mock (the actual electron package)
 // =============================================================================
 
-// Wrapped so restoreAllMocks() can re-register it: a bare mock.restore() in any
-// test file otherwise un-mocks electron for whichever file bun loads next, whose
-// static `import { dialog } from "electron"` then hits the real package and fails
-// to resolve named exports.
-function installElectronMock(): void {
-	mock.module("electron", () => ({
-		app: {
-			getPath: mock(() => testTmpDir),
-			getName: mock(() => "test-app"),
-			getVersion: mock(() => "1.0.0"),
-			getAppPath: mock(() => testTmpDir),
-			isPackaged: false,
-		},
-		dialog: {
-			showOpenDialog: mock(() =>
-				Promise.resolve({ canceled: false, filePaths: [] }),
-			),
-			showSaveDialog: mock(() =>
-				Promise.resolve({ canceled: false, filePath: "" }),
-			),
-			showMessageBox: mock(() => Promise.resolve({ response: 0 })),
-		},
-		BrowserWindow: mock(() => ({
-			webContents: { send: mock() },
-			loadURL: mock(),
-			on: mock(),
+mock.module("electron", () => ({
+	app: {
+		getPath: mock(() => testTmpDir),
+		getName: mock(() => "test-app"),
+		getVersion: mock(() => "1.0.0"),
+		getAppPath: mock(() => testTmpDir),
+		isPackaged: false,
+	},
+	dialog: {
+		showOpenDialog: mock(() =>
+			Promise.resolve({ canceled: false, filePaths: [] }),
+		),
+		showSaveDialog: mock(() =>
+			Promise.resolve({ canceled: false, filePath: "" }),
+		),
+		showMessageBox: mock(() => Promise.resolve({ response: 0 })),
+	},
+	BrowserWindow: mock(() => ({
+		webContents: { send: mock() },
+		loadURL: mock(),
+		on: mock(),
+	})),
+	ipcMain: {
+		handle: mock(),
+		on: mock(),
+	},
+	shell: {
+		openExternal: mock(() => Promise.resolve()),
+		openPath: mock(() => Promise.resolve("")),
+	},
+	clipboard: {
+		writeText: mock(),
+		readText: mock(() => ""),
+	},
+	screen: {
+		getPrimaryDisplay: mock(() => ({
+			workAreaSize: { width: 1920, height: 1080 },
+			bounds: { x: 0, y: 0, width: 1920, height: 1080 },
 		})),
-		ipcMain: {
-			handle: mock(),
-			on: mock(),
-		},
-		shell: {
-			openExternal: mock(() => Promise.resolve()),
-			openPath: mock(() => Promise.resolve("")),
-		},
-		clipboard: {
-			writeText: mock(),
-			readText: mock(() => ""),
-		},
-		screen: {
-			getPrimaryDisplay: mock(() => ({
-				workAreaSize: { width: 1920, height: 1080 },
+		getAllDisplays: mock(() => [
+			{
 				bounds: { x: 0, y: 0, width: 1920, height: 1080 },
-			})),
-			getAllDisplays: mock(() => [
-				{
-					bounds: { x: 0, y: 0, width: 1920, height: 1080 },
-					workAreaSize: { width: 1920, height: 1080 },
-				},
-			]),
-		},
-		Notification: mock(() => ({
-			show: mock(),
-			on: mock(),
-		})),
-		Menu: {
-			buildFromTemplate: mock(() => ({})),
-			setApplicationMenu: mock(),
-		},
-	}));
-}
-installElectronMock();
+				workAreaSize: { width: 1920, height: 1080 },
+			},
+		]),
+	},
+	Notification: mock(() => ({
+		show: mock(),
+		on: mock(),
+	})),
+	Menu: {
+		buildFromTemplate: mock(() => ({})),
+		setApplicationMenu: mock(),
+	},
+}));
 
 // =============================================================================
 // Analytics Mock (has Electron/API dependencies)
@@ -289,17 +279,3 @@ mock.module("main/lib/local-db", () => ({
 		})),
 	},
 }));
-
-// =============================================================================
-// Restore helper — drop-in for bun's mock.restore()
-// =============================================================================
-
-// bun's mock.restore() is global: it also tears down the electron mock and
-// window globals installed by this preload, breaking the next test file bun
-// loads. Test files that need to restore their own spies should call this
-// instead so the shared preload state is re-installed in the same tick.
-export function restoreAllMocks(): void {
-	mock.restore();
-	installElectronMock();
-	ensureWindowGlobals();
-}

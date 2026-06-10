@@ -8,7 +8,6 @@ import {
 	spyOn,
 	test,
 } from "bun:test";
-import { restoreAllMocks } from "~/test-setup";
 
 type GetCurrentBranch =
 	typeof import("../../workspaces/utils/git").getCurrentBranch;
@@ -135,7 +134,7 @@ describe("mergePullRequest", () => {
 	});
 
 	afterAll(() => {
-		restoreAllMocks();
+		mock.restore();
 	});
 
 	beforeEach(() => {

@@ -10,7 +10,6 @@ import {
 import * as fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
-import { restoreAllMocks } from "~/test-setup";
 
 const APP_VERSION = "1.2.3";
 let killedPids: Array<{ pid: number; signal: NodeJS.Signals | number }> = [];
@@ -238,5 +237,5 @@ describe("HostServiceCoordinator.reset", () => {
 });
 
 afterAll(() => {
-	restoreAllMocks();
+	mock.restore();
 });

@@ -1,5 +1,4 @@
 import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
-import { restoreAllMocks } from "~/test-setup";
 
 const getSmallModelMock = mock(
 	(async () => null) as (...args: unknown[]) => Promise<unknown | null>,
@@ -151,7 +150,7 @@ describe("generateWorkspaceNameFromPrompt", () => {
 });
 
 afterAll(() => {
-	restoreAllMocks();
+	mock.restore();
 });
 
 describe("attemptWorkspaceAutoRenameFromPrompt", () => {
