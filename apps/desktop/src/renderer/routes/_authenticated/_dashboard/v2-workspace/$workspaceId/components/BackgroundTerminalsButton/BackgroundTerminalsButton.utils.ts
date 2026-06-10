@@ -15,6 +15,7 @@ export interface BackgroundTerminalSessionLike {
 	terminalId: string;
 	createdAt?: number;
 	exited?: boolean;
+	title?: string | null;
 }
 
 function getTerminalIdFromPaneData(data: unknown): string | null {
@@ -65,22 +66,47 @@ export function getAutoAttachBackgroundTerminalId<
 	sessions,
 	attachedTerminalIds,
 	suppressedTerminalIds = [],
+	preferTitledBackgroundOverUntitledAttached = false,
 }: {
 	sessions: readonly T[];
 	attachedTerminalIds: Iterable<string>;
 	suppressedTerminalIds?: Iterable<string>;
+	preferTitledBackgroundOverUntitledAttached?: boolean;
 }): string | null {
 	const attached = new Set(attachedTerminalIds);
 	const liveSessions = sessions.filter((session) => !session.exited);
-	if (liveSessions.some((session) => attached.has(session.terminalId))) {
-		return null;
-	}
+	const attachedLiveSessions = liveSessions.filter((session) =>
+		attached.has(session.terminalId),
+	);
 
 	const suppressed = new Set(suppressedTerminalIds);
-	const [candidate] = getBackgroundTerminalSessions(
+	const candidates = getBackgroundTerminalSessions(
 		liveSessions,
 		attached,
 	).filter((session) => !suppressed.has(session.terminalId));
+
+	if (attachedLiveSessions.length > 0) {
+		if (!preferTitledBackgroundOverUntitledAttached) return null;
+
+		const newestUntitledAttachedSession = attachedLiveSessions
+			.filter((session) => !session.title?.trim())
+			.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0];
+		const newestTitledBackgroundSession = candidates.find((session) =>
+			session.title?.trim(),
+		);
+		if (!newestUntitledAttachedSession || !newestTitledBackgroundSession) {
+			return null;
+		}
+		if (
+			(newestTitledBackgroundSession.createdAt ?? 0) <=
+			(newestUntitledAttachedSession.createdAt ?? 0)
+		) {
+			return null;
+		}
+		return newestTitledBackgroundSession.terminalId;
+	}
+
+	const [candidate] = candidates;
 	return candidate?.terminalId ?? null;
 }
 

@@ -528,9 +528,9 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 
 function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 	// Preamble first, then FIFO. Mode-setting escapes (kitty keyboard,
-	// bracketed paste, focus, …) are typically emitted once at startup and
-	// broadcast away rather than buffered, so a fresh xterm needs them
-	// re-asserted on every attach — even when the FIFO is empty.
+	// bracketed paste, focus, …) are typically emitted once at startup, so a
+	// fresh xterm needs them re-asserted on every attach — even when the FIFO is
+	// empty.
 	const preamble = session.modeTracker.buildPreamble();
 	let bufferTotal = 0;
 	for (const b of session.buffer) bufferTotal += b.byteLength;
@@ -547,8 +547,6 @@ function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 		combined.set(b, offset);
 		offset += b.byteLength;
 	}
-	session.buffer.length = 0;
-	session.bufferBytes = 0;
 	sendBytes(socket, combined);
 }
 
@@ -1109,13 +1107,16 @@ export async function createTerminalSessionInternal({
 				);
 				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
 
-				// Feed the tracker on every byte — broadcast skips the FIFO,
-				// so this is the only path that catches startup mode escapes.
-				session.modeTracker.feed(bytes);
+				// Keep a bounded tail even while a renderer is attached. Remote
+				// observers can join an already-running TUI later and still receive
+				// useful current-screen bytes; reconnecting renderers pass replay=0
+				// once their xterm already has scrollback.
+				bufferOutput(session, bytes);
 
-				if (broadcastBytes(session, bytes) === 0) {
-					bufferOutput(session, bytes);
-				}
+				// Feed the tracker on every byte so startup mode escapes are available
+				// to every newly attached xterm.
+				session.modeTracker.feed(bytes);
+				broadcastBytes(session, bytes);
 			},
 			onExit({ code, signal }) {
 				session.exited = true;
@@ -1261,7 +1262,9 @@ export function registerWorkspaceTerminalRoute({
 					.run();
 
 				sendMessage(ws, { type: "title", title: session.title });
-				replayBuffer(session, ws);
+				if (c.req.query("replay") !== "0") {
+					replayBuffer(session, ws);
+				}
 				if (session.exited) {
 					sendMessage(ws, {
 						type: "exit",

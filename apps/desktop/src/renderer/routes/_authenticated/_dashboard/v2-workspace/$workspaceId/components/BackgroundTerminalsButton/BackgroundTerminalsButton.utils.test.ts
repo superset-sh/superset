@@ -71,6 +71,36 @@ describe("BackgroundTerminalsButton utils", () => {
 		).toBeNull();
 	});
 
+	test("can prefer a newer titled background session over an older untitled attached session", () => {
+		expect(
+			getAutoAttachBackgroundTerminalId({
+				sessions: [
+					{ terminalId: "blank-attached", createdAt: 1, title: null },
+					{
+						terminalId: "remote-claude",
+						createdAt: 5,
+						title: "claude --dangerously-skip-permissions",
+					},
+				],
+				attachedTerminalIds: ["blank-attached"],
+				preferTitledBackgroundOverUntitledAttached: true,
+			}),
+		).toBe("remote-claude");
+	});
+
+	test("does not replace a titled attached terminal with a background session", () => {
+		expect(
+			getAutoAttachBackgroundTerminalId({
+				sessions: [
+					{ terminalId: "active-shell", createdAt: 1, title: "zsh" },
+					{ terminalId: "remote-claude", createdAt: 5, title: "claude" },
+				],
+				attachedTerminalIds: ["active-shell"],
+				preferTitledBackgroundOverUntitledAttached: true,
+			}),
+		).toBeNull();
+	});
+
 	test("can auto-attach when local layout points at a stale terminal id", () => {
 		expect(
 			getAutoAttachBackgroundTerminalId({

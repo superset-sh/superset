@@ -668,6 +668,36 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
+	test("output is retained for later observers while a renderer is attached", async () => {
+		const terminalId = `e2e-retain-attached-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		const sent: Uint8Array[] = [];
+		const socket = {
+			send: (data: string | Uint8Array) => {
+				if (typeof data !== "string") sent.push(data);
+			},
+			close: () => {},
+			readyState: 1, // SOCKET_OPEN
+			raw: { bufferedAmount: 0 },
+		};
+		result.sockets.add(socket);
+
+		const marker = `retain-attached-${randomUUID().slice(0, 6)}`;
+		result.pty.write(`echo ${marker}\n`);
+
+		await waitFor(() => sent.length > 0, 3000);
+		await waitFor(() => sessionBufferText(result).includes(marker), 3000);
+		await disposeSessionAndWait(terminalId, db);
+	});
+
 	test("a renderer whose send buffer exceeds the cap is dropped; output keeps flowing", async () => {
 		const terminalId = `e2e-slow-renderer-${randomUUID().slice(0, 8)}`;
 		const result = await createTerminalSessionInternal({

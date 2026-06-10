@@ -85,6 +85,7 @@ export function useAutoAttachBackgroundTerminal({
 			sessions: sessionsQuery.data.sessions,
 			attachedTerminalIds,
 			suppressedTerminalIds: backgroundMarkerIds,
+			preferTitledBackgroundOverUntitledAttached: true,
 		});
 		if (!terminalId) return;
 		if (consumedTerminalIdsRef.current.has(terminalId)) return;
