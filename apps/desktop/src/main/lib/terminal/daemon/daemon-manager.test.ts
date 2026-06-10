@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
+import { restoreAllMocks } from "~/test-setup";
 import {
 	TERMINAL_ATTACH_CANCELED_MESSAGE,
 	TerminalAttachCanceledError,
@@ -245,7 +246,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 	});
 
 	afterAll(() => {
-		mock.restore();
+		restoreAllMocks();
 	});
 
 	it("waits for daemon exit and labels killed sessions", async () => {

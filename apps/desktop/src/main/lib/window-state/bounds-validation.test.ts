@@ -7,6 +7,7 @@ import {
 	type mock as MockType,
 	mock,
 } from "bun:test";
+import { restoreAllMocks } from "~/test-setup";
 
 const mockScreen = {
 	getPrimaryDisplay: mock(() => ({
@@ -34,7 +35,7 @@ beforeEach(() => {
 
 afterAll(() => {
 	setScreenForTesting(null);
-	mock.restore();
+	restoreAllMocks();
 });
 
 describe("isVisibleOnAnyDisplay", () => {

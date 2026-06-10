@@ -9,6 +9,7 @@ import {
 	spyOn,
 } from "bun:test";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
+import { restoreAllMocks } from "~/test-setup";
 
 let listSessionsIfRunningResult: ListSessionsResponse | null = null;
 let listSessionsIfRunningError: Error | null = null;
@@ -71,7 +72,7 @@ describe("terminal index", () => {
 	});
 
 	afterAll(() => {
-		mock.restore();
+		restoreAllMocks();
 	});
 
 	beforeEach(() => {
