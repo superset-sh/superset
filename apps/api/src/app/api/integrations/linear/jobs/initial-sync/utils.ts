@@ -1,6 +1,5 @@
 import type { LinearClient } from "@linear/sdk";
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
-import { subMonths } from "date-fns";
 
 export interface LinearIssue {
 	id: string;
@@ -125,12 +124,23 @@ const ISSUES_QUERY = `
   }
 `;
 
+export interface FetchAllIssuesOptions {
+	/**
+	 * When provided, only issues updated on or after this date are returned.
+	 * Leave undefined to fetch the full backlog (the default for initial sync).
+	 */
+	updatedSince?: Date;
+}
+
 export async function fetchAllIssues(
 	client: LinearClient,
+	options: FetchAllIssuesOptions = {},
 ): Promise<LinearIssue[]> {
 	const allIssues: LinearIssue[] = [];
 	let cursor: string | undefined;
-	const threeMonthsAgo = subMonths(new Date(), 3);
+	const filter: { updatedAt?: { gte: string } } = options.updatedSince
+		? { updatedAt: { gte: options.updatedSince.toISOString() } }
+		: {};
 
 	do {
 		const response = await client.client.request<
@@ -139,7 +149,7 @@ export async function fetchAllIssues(
 		>(ISSUES_QUERY, {
 			first: 100,
 			after: cursor,
-			filter: { updatedAt: { gte: threeMonthsAgo.toISOString() } },
+			filter,
 		});
 		allIssues.push(...response.issues.nodes);
 		cursor =
