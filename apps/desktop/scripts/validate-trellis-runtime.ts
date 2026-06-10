@@ -56,10 +56,10 @@ function resolveNodeModulesDir(): string {
 			"Resources",
 			"node_modules",
 		);
-		if (existsSync(macResources)) return macResources;
+		if (existsSync(macResources)) return resolve(macResources);
 
 		const linuxResources = join(args.appDir, "resources", "node_modules");
-		if (existsSync(linuxResources)) return linuxResources;
+		if (existsSync(linuxResources)) return resolve(linuxResources);
 
 		const macUnpacked = join(
 			args.appDir,
@@ -68,7 +68,7 @@ function resolveNodeModulesDir(): string {
 			"app.asar.unpacked",
 			"node_modules",
 		);
-		if (existsSync(macUnpacked)) return macUnpacked;
+		if (existsSync(macUnpacked)) return resolve(macUnpacked);
 
 		const linuxUnpacked = join(
 			args.appDir,
@@ -76,7 +76,7 @@ function resolveNodeModulesDir(): string {
 			"app.asar.unpacked",
 			"node_modules",
 		);
-		if (existsSync(linuxUnpacked)) return linuxUnpacked;
+		if (existsSync(linuxUnpacked)) return resolve(linuxUnpacked);
 
 		fail(
 			[
