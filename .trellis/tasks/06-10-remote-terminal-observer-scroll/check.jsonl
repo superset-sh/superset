@@ -1,3 +1,0 @@
-{"file":".trellis/spec/host-service/backend/index.md","reason":"Check that the terminal replay change stays within host-service backend conventions."}
-{"file":".trellis/spec/guides/terminal-and-host-runtime.md","reason":"Check remote observer replay contracts, resize behavior, and owner-host caveats."}
-{"file":".trellis/spec/guides/desktop-acceptance-tdd.md","reason":"Desktop-facing acceptance needs a real host update and non-brittle cross-machine validation."}
