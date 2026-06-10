@@ -47,7 +47,10 @@ import { ProjectPickerPill } from "./components/ProjectPickerPill";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
-import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
+import {
+	resolveEffectiveAgent,
+	useSubmitWorkspace,
+} from "./hooks/useSubmitWorkspace";
 import {
 	useFileIdsForHost,
 	useUploadAttachments,
@@ -267,9 +270,25 @@ export function PromptGroup({
 	});
 
 	// ── Submit (fork) ────────────────────────────────────────────────
+	// Resolve the launch agent synchronously at submit time. `selectedAgent`
+	// starts as the placeholder "none" and is only promoted to the first
+	// configured agent by the effect above after `v2AgentsFetched`. A quick
+	// submit can fire before that effect commits, which would otherwise drop
+	// the typed prompt to `namingPrompt` and never launch an agent (#5234).
+	const effectiveAgent = useMemo(() => {
+		const stored =
+			typeof window !== "undefined"
+				? window.localStorage.getItem(AGENT_STORAGE_KEY)
+				: null;
+		return resolveEffectiveAgent({
+			selectedAgent,
+			selectableAgentIds,
+			userChoseNone: stored === "none",
+		});
+	}, [selectedAgent, selectableAgentIds]);
 	const createWorkspace = useSubmitWorkspace(
 		projectId,
-		selectedAgent,
+		effectiveAgent,
 		uploadAttachments,
 		promptContext,
 	);
