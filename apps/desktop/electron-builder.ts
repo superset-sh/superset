@@ -10,6 +10,7 @@ import pkg from "./package.json";
 import {
 	packagedAsarUnpackGlobs,
 	packagedNodeModuleCopies,
+	packagedTrellisRuntimeResourceCopies,
 } from "./runtime-dependencies";
 
 const currentYear = new Date().getFullYear();
@@ -61,6 +62,10 @@ const config: Configuration = {
 
 	// Extra resources placed outside asar archive (accessible via process.resourcesPath)
 	extraResources: [
+		// Plugin runtimes must be real files, not files hidden inside app.asar.
+		// Trellis is executed by Bun from host-service when a task/workspace asks
+		// for guided workflow initialization.
+		...packagedTrellisRuntimeResourceCopies,
 		// Database migrations - must be outside asar for drizzle-orm to read
 		{
 			from: "dist/resources/migrations",

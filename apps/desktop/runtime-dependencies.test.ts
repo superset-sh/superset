@@ -5,6 +5,7 @@ import packageJson from "./package.json";
 import {
 	packagedAsarUnpackGlobs,
 	packagedNodeModuleCopies,
+	packagedTrellisRuntimeResourceCopies,
 	requiredMaterializedNodeModules,
 } from "./runtime-dependencies";
 
@@ -21,10 +22,16 @@ describe("Trellis bundled runtime packaging", () => {
 		"has-flag",
 	];
 
-	test("materializes and unpacks Trellis transitive CLI runtime modules", () => {
+	test("materializes Trellis CLI runtime modules as real resource files", () => {
 		for (const moduleName of trellisRuntimeModules) {
 			expect(requiredMaterializedNodeModules).toContain(moduleName);
-			expect(packagedNodeModuleCopies).toContainEqual(
+			expect(packagedTrellisRuntimeResourceCopies).toContainEqual(
+				expect.objectContaining({
+					from: `node_modules/${moduleName}`,
+					to: `node_modules/${moduleName}`,
+				}),
+			);
+			expect(packagedNodeModuleCopies).not.toContainEqual(
 				expect.objectContaining({
 					from: `node_modules/${moduleName}`,
 					to: `node_modules/${moduleName}`,

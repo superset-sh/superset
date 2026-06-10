@@ -469,6 +469,12 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_LEGACY_WORKTREE_BASE_DIR: row?.worktreeBaseDir ?? "",
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
+			SUPERSET_TRELLIS_BIN_PATH: app.isPackaged
+				? path.join(
+						process.resourcesPath,
+						"node_modules/@mindfoldhq/trellis/bin/trellis.js",
+					)
+				: "",
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_AUTH_CONFIG_PATH: path.join(SUPERSET_HOME_DIR, "config.json"),
 			SUPERSET_API_URL: config.cloudApiUrl,

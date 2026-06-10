@@ -168,8 +168,9 @@ export const mainExternalizedDependencies = [
 export const packagedNodeModuleCopies = [
 	...externalizedRuntimeModules.flatMap((module) => module.packagedCopies),
 	...packagedSupportModules,
-	...trellisRuntimeModuleCopies,
 ];
+
+export const packagedTrellisRuntimeResourceCopies = trellisRuntimeModuleCopies;
 
 export const packagedAsarUnpackGlobs = [
 	...externalizedRuntimeModules.flatMap((module) => module.asarUnpackGlobs),

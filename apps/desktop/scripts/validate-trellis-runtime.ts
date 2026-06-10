@@ -50,6 +50,17 @@ function resolveNodeModulesDir(): string {
 	if (args.nodeModulesDir) return resolve(args.nodeModulesDir);
 
 	if (args.appDir) {
+		const macResources = join(
+			args.appDir,
+			"Contents",
+			"Resources",
+			"node_modules",
+		);
+		if (existsSync(macResources)) return macResources;
+
+		const linuxResources = join(args.appDir, "resources", "node_modules");
+		if (existsSync(linuxResources)) return linuxResources;
+
 		const macUnpacked = join(
 			args.appDir,
 			"Contents",
@@ -69,7 +80,7 @@ function resolveNodeModulesDir(): string {
 
 		fail(
 			[
-				"Could not find app.asar.unpacked/node_modules for app bundle.",
+				"Could not find packaged node_modules for app bundle.",
 				`App dir: ${args.appDir}`,
 			].join("\n"),
 		);
