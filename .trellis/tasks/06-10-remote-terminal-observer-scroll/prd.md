@@ -26,7 +26,6 @@ Remote terminal sessions rendered from another host can stream output, but the o
 - The symptom is viewport-only: remote output streams, but observer-side scrolling does not move through history.
 - Accident-scene inspection on Mac mini showed wheel focus was inside xterm, but `.xterm-viewport.scrollHeight === clientHeight`; the observer had no scrollback to scroll.
 - The inspected terminal was hosted by the work computer (`MBP-LDJ7Y1JQCT-0524`), so Mac mini dev changes cannot affect that live session until the host-side app is updated.
-- Follow-up validation after installing the first Canary showed scrolling existed but the content was stale/misaligned and effectively one screen deep. Root causes: renderer-local persisted buffers were mixed with host replay, and alternate-screen snapshots were restored literally, making the observer active buffer unscrollable.
 
 ## Validation
 
@@ -35,4 +34,3 @@ Remote terminal sessions rendered from another host can stream output, but the o
 - Passed: `bun run lint`.
 - Passed: `git diff --check`.
 - Caveat: end-to-end scrolling on the original accident-scene terminal requires updating/restarting the owning host app on the work computer, then reopening/reconnecting the remote terminal observer.
-- Follow-up passed: replay snapshot flattens alternate-screen output into normal scrollback; renderer transport resets/clears speculative local xterm state before the first authoritative replay frame.

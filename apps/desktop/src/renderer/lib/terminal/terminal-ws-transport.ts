@@ -59,13 +59,6 @@ export interface TerminalTransport {
 	 * with no output still gets replay on the next connect.
 	 */
 	_hasReceivedBytes: boolean;
-	/**
-	 * True while this socket is waiting for the first authoritative replay frame.
-	 * Renderer-local persisted buffers are only a speculative placeholder; once
-	 * host-service sends replay bytes, reset xterm before applying them so stale
-	 * scrollback/modes/alternate-screen state cannot mix with the host snapshot.
-	 */
-	_resetBeforeNextBinary: boolean;
 	/** Internal: wall-clock-gap watchdog for laptop sleep/wake detection. */
 	_livenessTimer: ReturnType<typeof setInterval> | null;
 	/** Internal: Date.now() at the last watchdog tick. */
@@ -169,7 +162,6 @@ export function createTransport(): TerminalTransport {
 		_reconnectAttempt: 0,
 		_terminal: null,
 		_hasReceivedBytes: false,
-		_resetBeforeNextBinary: false,
 		_terminated: false,
 		_livenessTimer: null,
 		_lastLivenessTick: 0,
@@ -352,11 +344,9 @@ export function connect(
 	transport._terminated = false;
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
-	const shouldRequestReplay = !transport._hasReceivedBytes;
-	transport._resetBeforeNextBinary = shouldRequestReplay;
-	const actualUrl = shouldRequestReplay
-		? wsUrl
-		: appendQueryParam(wsUrl, "replay", "0");
+	const actualUrl = transport._hasReceivedBytes
+		? appendQueryParam(wsUrl, "replay", "0")
+		: wsUrl;
 
 	const openSocket = () => {
 		// Bail if the transport raced into a different URL or was disconnected
@@ -430,11 +420,6 @@ function attachSocketListeners(
 			// bounds this socket's send buffer and drops us (we reconnect and
 			// replay) if we fall hopelessly behind. That means a slow/stalled
 			// renderer can never wedge the shell — it just loses some scrollback.
-			if (transport._resetBeforeNextBinary) {
-				terminal.reset();
-				terminal.clear();
-				transport._resetBeforeNextBinary = false;
-			}
 			terminal.write(new Uint8Array(event.data));
 			transport._hasReceivedBytes = true;
 			return;
@@ -524,7 +509,6 @@ export function disconnect(transport: TerminalTransport) {
 	transport.canResize = true;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
-	transport._resetBeforeNextBinary = false;
 	setTerminalTitle(transport, undefined);
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();

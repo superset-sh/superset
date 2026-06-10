@@ -71,21 +71,14 @@ class MockWebSocket {
 
 const originalWebSocket = globalThis.WebSocket;
 
-type MockTerminal = XTerm & {
-	emitData(data: string): void;
-	resetCalls: number;
-	clearCalls: number;
-	writeCalls: unknown[];
-};
-
-function createMockTerminal(cols = 101, rows = 27): MockTerminal {
+function createMockTerminal(
+	cols = 101,
+	rows = 27,
+): XTerm & { emitData(data: string): void } {
 	let onDataListener: ((data: string) => void) | null = null;
 	return {
 		cols,
 		rows,
-		resetCalls: 0,
-		clearCalls: 0,
-		writeCalls: [],
 		onData: (listener: (data: string) => void) => {
 			onDataListener = listener;
 			return { dispose() {} };
@@ -93,17 +86,9 @@ function createMockTerminal(cols = 101, rows = 27): MockTerminal {
 		emitData(data: string) {
 			onDataListener?.(data);
 		},
-		reset(this: MockTerminal) {
-			this.resetCalls++;
-		},
-		clear(this: MockTerminal) {
-			this.clearCalls++;
-		},
-		write(this: MockTerminal, data: unknown) {
-			this.writeCalls.push(data);
-		},
+		write() {},
 		writeln() {},
-	} as unknown as MockTerminal;
+	} as unknown as XTerm & { emitData(data: string): void };
 }
 
 beforeEach(() => {
@@ -210,41 +195,6 @@ describe("terminal-ws-transport", () => {
 		sendResize(transport, 120, 40);
 		terminal.emitData("b");
 		expect(sentMessages()).toEqual([{ type: "input", data: "b" }]);
-	});
-
-	test("resets speculative local buffer before applying initial replay bytes", () => {
-		const transport = createTransport();
-		const terminal = createMockTerminal();
-
-		connect(transport, terminal, "ws://host/terminal/t1");
-		const socket = MockWebSocket.instances[0];
-		if (!socket) throw new Error("expected websocket instance");
-
-		socket.open();
-		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
-		socket.message(new Uint8Array([65, 66]).buffer);
-
-		expect(terminal.resetCalls).toBe(1);
-		expect(terminal.clearCalls).toBe(1);
-		expect(terminal.writeCalls).toHaveLength(1);
-		expect(terminal.writeCalls[0]).toBeInstanceOf(Uint8Array);
-
-		socket.close(1000, "done");
-
-		connect(transport, terminal, "ws://host/terminal/t1");
-		const reconnectSocket = MockWebSocket.instances[1];
-		if (!reconnectSocket) throw new Error("expected reconnect websocket");
-
-		expect(reconnectSocket.url).toContain("replay=0");
-		reconnectSocket.open();
-		reconnectSocket.message(
-			JSON.stringify({ type: "attached", terminalId: "t1" }),
-		);
-		reconnectSocket.message(new Uint8Array([67]).buffer);
-
-		expect(terminal.resetCalls).toBe(1);
-		expect(terminal.clearCalls).toBe(1);
-		expect(terminal.writeCalls).toHaveLength(2);
 	});
 
 	test("recovers a half-open socket after the machine resumes from sleep", () => {
