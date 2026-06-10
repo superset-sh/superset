@@ -133,6 +133,36 @@ describe("getAppCommand", () => {
 		});
 	});
 
+	describe("Antigravity (IDE vs agent manager — issue #5230)", () => {
+		test("targets the Antigravity IDE by bundle ID, not the ambiguous 'Antigravity' app name", () => {
+			// Google split the product into the "Antigravity" agent manager and the
+			// "Antigravity IDE". `open -a "Antigravity"` now launches the agent
+			// manager, so we must target the IDE by its bundle ID instead.
+			const result = getAppCommand("antigravity", "/path/to/file");
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-b", "com.google.antigravity-ide", "/path/to/file"],
+				},
+			]);
+		});
+
+		test("does not resolve to `open -a Antigravity` (opens the agent manager)", () => {
+			const result = getAppCommand("antigravity", "/path/to/file");
+			expect(result).not.toContainEqual({
+				command: "open",
+				args: ["-a", "Antigravity", "/path/to/file"],
+			});
+		});
+
+		test("returns the Linux CLI command on Linux", () => {
+			const result = getAppCommand("antigravity", "/path/to/file", "linux");
+			expect(result).toEqual([
+				{ command: "antigravity", args: ["/path/to/file"] },
+			]);
+		});
+	});
+
 	test("preserves paths with spaces", () => {
 		const result = getAppCommand("cursor", "/path/with spaces/file.ts");
 		expect(result).toEqual([
