@@ -4,6 +4,7 @@ export {
 export {
 	getMiniMaxCredentialsFromAnySource,
 	getMiniMaxCredentialsFromAuthStorage,
+	type MiniMaxAuthStorageLike,
 	type MiniMaxCredentials,
 	type MiniMaxEnvConfig,
 } from "./minimax";

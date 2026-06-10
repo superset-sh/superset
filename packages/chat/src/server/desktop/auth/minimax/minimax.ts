@@ -18,7 +18,7 @@
 import { createAuthStorage } from "mastracode";
 import { MINIMAX_AUTH_PROVIDER_ID } from "../provider-ids";
 
-interface MiniMaxAuthStorageLike {
+export interface MiniMaxAuthStorageLike {
 	reload: () => void;
 	get: (providerId: string) => unknown;
 }
@@ -44,6 +44,9 @@ export interface MiniMaxEnvConfig {
 /**
  * Read MiniMax credentials from the auth-storage file. Returns null if not set.
  * MiniMax has no OAuth flow — API key only.
+ *
+ * The `authStorage` parameter is exposed for testing — production callers
+ * should pass nothing and the default `createAuthStorage()` factory is used.
  */
 export function getMiniMaxCredentialsFromAuthStorage(
 	authStorage: MiniMaxAuthStorageLike = createAuthStorage(),
