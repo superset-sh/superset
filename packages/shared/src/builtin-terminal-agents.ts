@@ -137,6 +137,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description: "Factory's autonomous coding agent for terminal workflows.",
 		command: "droid",
 	}),
+	createBuiltinTerminalAgent({
+		id: "qwen",
+		label: "Qwen",
+		description:
+			"Alibaba's open-source terminal coding agent for editing, debugging, and task work.",
+		command: "qwen --approval-mode=auto_edit",
+		promptCommand: "qwen --approval-mode=auto_edit",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =
