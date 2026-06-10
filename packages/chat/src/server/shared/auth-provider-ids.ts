@@ -6,3 +6,7 @@ export const OPENAI_AUTH_PROVIDER_IDS = [
 	OPENAI_AUTH_PROVIDER_ID,
 	"openai",
 ] as const;
+
+// MiniMax (minimax.io) — Anthropic-protocol provider. Single key, no OAuth.
+// See packages/chat/src/server/desktop/auth/minimax/ for the resolver.
+export const MINIMAX_AUTH_PROVIDER_ID = "minimax";
