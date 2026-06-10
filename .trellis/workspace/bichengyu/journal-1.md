@@ -453,3 +453,37 @@ Fixed remote terminal auto-attach and shared PTY resize behavior, added local Re
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: Desktop release install guard
+
+**Date**: 2026-06-10
+**Task**: Desktop release install guard
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Updated the desktop release workflow to bypass Bun's minimum release age during CI installs so the pinned Trellis beta dependency can be installed from a fresh runner.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `68c57b94a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
