@@ -385,3 +385,37 @@ Completed phase-one desktop performance optimization: canary packaging/signing i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Remote workspace attach and canary bugfix release
+
+**Date**: 2026-06-10
+**Task**: Remote workspace attach and canary bugfix release
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Completed remote workspace/terminal attach fixes, cloud model provider sync, Trellis packaging/runtime fixes, workspace/sidebar/provider/polish bugfixes, applied backend migration, kept local API/web services online, pushed to TwitterIsGood main, and published desktop-canary macOS arm64 internal build from GitHub Actions run 27252331667.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f19e3b0aa` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

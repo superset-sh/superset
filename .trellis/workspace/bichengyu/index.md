@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
-- **Last Active**: 2026-06-09
+- **Total Sessions**: 12
+- **Last Active**: 2026-06-10
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~387 | Active |
+| `journal-1.md` | ~421 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-06-10 | Remote workspace attach and canary bugfix release | `f19e3b0aa` | `codex/model-provider-configuration-center` |
 | 11 | 2026-06-09 | Desktop performance phase 1 | `611757472` | `codex/model-provider-configuration-center` |
 | 10 | 2026-06-09 | Merge upstream official changes | `b1e93f946` | `codex/model-provider-configuration-center` |
 | 9 | 2026-06-08 | Trellis Superset task status sync | `5adc0ee3a`, `d495c7fd7` | `codex/model-provider-configuration-center` |
