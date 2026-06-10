@@ -76,6 +76,29 @@ export function createTerminalKeyEventHandler(
 			return false;
 		}
 
+		// Non-Latin IME (e.g. Korean 2-set) maps physical letter keys to
+		// non-ASCII glyphs: pressing O while Korean is active yields
+		// event.key="ㅐ" instead of "o". xterm derives the Ctrl+<letter>
+		// control byte from event.key, so it silently drops Ctrl+O, Ctrl+K,
+		// and every other Ctrl+<letter> chord typed while such an IME is
+		// active. Compute the byte from the physical key position
+		// (event.code) instead — that value is always layout-agnostic.
+		if (
+			event.type === "keydown" &&
+			event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey
+		) {
+			const codeMatch = event.code.match(/^Key([A-Z])$/);
+			if (codeMatch && event.key.charCodeAt(0) > 127) {
+				event.preventDefault();
+				const charCode = codeMatch[1].charCodeAt(0) - 64; // A→1 … Z→26
+				terminal.input(String.fromCharCode(charCode), false);
+				return false;
+			}
+		}
+
 		return true;
 	};
 }
