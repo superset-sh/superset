@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import type { Octokit } from "@octokit/rest";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray } from "drizzle-orm";
@@ -514,6 +515,13 @@ export class PullRequestRuntimeManager {
 	private async syncWorkspaceRow(
 		workspace: typeof workspaces.$inferSelect,
 	): Promise<string | null> {
+		// A deleted, tombstoned, or cross-host workspace has no worktree on this
+		// machine. Constructing simple-git against a missing baseDir throws
+		// GitConstructError, which used to surface as a recurring error log on
+		// every safety-net sweep (and, before per-workspace isolation, could abort
+		// the whole pass). There is nothing to branch-sync, so skip it quietly.
+		if (!existsSync(workspace.worktreePath)) return null;
+
 		try {
 			const git = await this.git(workspace.worktreePath);
 			const branch = await getCurrentBranchName(git);

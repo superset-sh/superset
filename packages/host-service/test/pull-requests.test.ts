@@ -1,12 +1,32 @@
-import { describe, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PullRequestRuntimeManager } from "../src/runtime/pull-requests/pull-requests";
+
+// syncWorkspaceRow skips workspaces whose worktree directory is missing
+// (see #5226), so these branch-sync tests run against a real on-disk dir.
+const tempDirs: string[] = [];
+function makeWorktreeDir() {
+	const dir = mkdtempSync(join(tmpdir(), "superset-worktree-"));
+	tempDirs.push(dir);
+	return dir;
+}
+
+afterEach(() => {
+	while (tempDirs.length > 0) {
+		const dir = tempDirs.pop();
+		if (dir) rmSync(dir, { recursive: true, force: true });
+	}
+});
 
 describe("PullRequestRuntimeManager branch sync", () => {
 	test("persists unborn branches even when HEAD has no commit", async () => {
+		const worktreePath = makeWorktreeDir();
 		const workspace = {
 			id: "ws-1",
 			projectId: "project-1",
-			worktreePath: "/tmp/unborn-worktree",
+			worktreePath,
 			branch: "stale-branch",
 			headSha: "stale-sha",
 			pullRequestId: null,
@@ -78,7 +98,7 @@ describe("PullRequestRuntimeManager branch sync", () => {
 			manager as unknown as { syncWorkspaceBranches: () => Promise<void> }
 		).syncWorkspaceBranches();
 
-		expect(git).toHaveBeenCalledWith("/tmp/unborn-worktree");
+		expect(git).toHaveBeenCalledWith(worktreePath);
 		expect(setMock).toHaveBeenCalledWith({
 			branch: "feature/unborn",
 			headSha: null,
@@ -94,7 +114,7 @@ describe("PullRequestRuntimeManager branch sync", () => {
 		const workspace = {
 			id: "ws-2",
 			projectId: "project-2",
-			worktreePath: "/tmp/broken-worktree",
+			worktreePath: makeWorktreeDir(),
 			branch: "stale-branch",
 			headSha: "stale-sha",
 			pullRequestId: null,
