@@ -28,6 +28,7 @@
 		"use-with-ide",
 		"use-with-linear",
 		"providers",
+		"minimax",
 		"using-monorepos",
 		"terminal-presets",
 		"keyboard-shortcuts",

@@ -1,0 +1,78 @@
+---
+title: MiniMax
+description: Connect Superset Chat to MiniMax (minimax.io) using a MiniMax-M3 API key
+---
+
+[MiniMax](https://minimax.io) exposes an Anthropic-protocol endpoint at
+`https://api.minimax.io/anthropic/v1`. Superset Chat can route requests to
+MiniMax-M3 (and other MiniMax models) using a single API key — no OAuth
+required.
+
+## Chat UI
+
+1. Open the model picker at the bottom of the chat panel.
+2. Click the **key icon** next to **MiniMax** in the provider list.
+3. Select **Use API key** and paste your MiniMax API key (issued as
+   `sk-cp-…`).
+4. Pick `MiniMax-M3` from the model list and send a message.
+
+The key is stored in the same auth-storage file Superset uses for Anthropic
+and OpenAI — under the provider id `minimax`. There is no separate
+credential file and no OAuth flow.
+
+## Default base URL
+
+```
+https://api.minimax.io/anthropic/v1
+```
+
+If you self-host the MiniMax Anthropic-protocol endpoint, override the base
+URL in **Settings → Advanced** for the MiniMax section. The request is sent
+with the `x-api-key` header (Anthropic convention), not `Authorization:
+Bearer`.
+
+## Available models
+
+| Model id                         | Notes                |
+|----------------------------------|----------------------|
+| `minimax/MiniMax-M3`             | Current flagship     |
+| `minimax/MiniMax-M2.7`           | Previous generation  |
+| `minimax/MiniMax-M2.7-highspeed` | Previous, fast variant |
+| `minimax/MiniMax-M2.5`           | Older generation     |
+| `minimax/MiniMax-M2.5-highspeed` | Older, fast variant  |
+
+MiniMax-M3 is registered by default in both the production
+`AVAILABLE_MODELS` list (`packages/trpc/src/router/chat/chat.ts`) and the
+local-dev fallback (`apps/desktop/src/renderer/lib/dev-chat.ts`).
+
+## Terminal / CLI
+
+Set the key in your shell or per workspace via **Settings > Env**:
+
+```bash
+MINIMAX_API_KEY=sk-cp-your-key
+```
+
+If you point a CLI agent at MiniMax directly, use the OpenAI protocol
+endpoint:
+
+```bash
+OPENAI_API_KEY=sk-cp-your-key
+OPENAI_BASE_URL=https://api.minimax.io/v1
+```
+
+The Chat panel always uses the Anthropic protocol endpoint above — it
+shares the same `MINIMAX_API_KEY`.
+
+## Troubleshooting
+
+- **401 Unauthorized** — The key is missing the `sk-cp-` prefix or has been
+  rotated. Re-paste the latest key from the MiniMax dashboard.
+- **Model not in picker** — Make sure the desktop app is on a build that
+  includes MiniMax-M3 in the registry. The model id is `minimax/MiniMax-M3`,
+  case-sensitive.
+- **No `x-api-key` header is sent** — MiniMax requires the Anthropic
+  protocol's `x-api-key` header, not `Authorization: Bearer`. The Superset
+  Chat integration uses `createAnthropic({ baseURL, apiKey })` so this is
+  handled for you; if you script against the API directly, set the header
+  explicitly.
