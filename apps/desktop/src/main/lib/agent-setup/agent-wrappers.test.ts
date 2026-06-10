@@ -1063,6 +1063,15 @@ describe("agent-wrappers claude settings.json", () => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
 	});
 
+	it("wraps Windows Claude hooks in cmd.exe for Claude's Bash runner", () => {
+		const command = getClaudeManagedHookCommand("win32");
+
+		expect(command.startsWith("cmd.exe /d /s /c ")).toBe(true);
+		expect(command.startsWith("if defined")).toBe(false);
+		expect(command).toContain("notify.cmd");
+		expect(command).toContain('set "SUPERSET_AGENT_ID=claude"');
+	});
+
 	it("creates Claude settings.json with hooks when no file exists", () => {
 		const notifyPath = "/tmp/.superset/hooks/notify.sh";
 		const content = getClaudeGlobalSettingsJsonContent(notifyPath);

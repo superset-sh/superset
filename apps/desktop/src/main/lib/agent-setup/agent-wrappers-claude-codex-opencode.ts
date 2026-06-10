@@ -91,7 +91,7 @@ export function getClaudeManagedHookCommand(
 	platform: NodeJS.Platform = process.platform,
 ): string {
 	if (platform === "win32") {
-		return `if defined SUPERSET_HOME_DIR if exist "%SUPERSET_HOME_DIR%\\hooks\\${WINDOWS_NOTIFY_SCRIPT_NAME}" (set "SUPERSET_AGENT_ID=claude" && "%SUPERSET_HOME_DIR%\\hooks\\${WINDOWS_NOTIFY_SCRIPT_NAME}")`;
+		return `cmd.exe /d /s /c 'if defined SUPERSET_HOME_DIR if exist "%SUPERSET_HOME_DIR%\\hooks\\${WINDOWS_NOTIFY_SCRIPT_NAME}" (set "SUPERSET_AGENT_ID=claude" && "%SUPERSET_HOME_DIR%\\hooks\\${WINDOWS_NOTIFY_SCRIPT_NAME}")'`;
 	}
 	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_AGENT_ID=claude "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
 }
