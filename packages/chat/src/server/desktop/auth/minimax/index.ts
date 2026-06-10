@@ -1,6 +1,4 @@
-export {
-	MINIMAX_AUTH_PROVIDER_ID,
-} from "../provider-ids";
+export { MINIMAX_AUTH_PROVIDER_ID } from "../provider-ids";
 export {
 	getMiniMaxCredentialsFromAnySource,
 	getMiniMaxCredentialsFromAuthStorage,

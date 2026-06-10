@@ -73,9 +73,7 @@ describe("getMiniMaxCredentialsFromAuthStorage", () => {
 
 	it("returns null when key is empty after trim", () => {
 		fakeAuthStorage.get.mockImplementation((providerId: string) =>
-			providerId === "minimax"
-				? { type: "api_key", key: "   " }
-				: undefined,
+			providerId === "minimax" ? { type: "api_key", key: "   " } : undefined,
 		);
 		expect(getMiniMaxCredentialsFromAuthStorage()).toBeNull();
 	});

@@ -4,11 +4,11 @@ import {
 	getCredentialsFromKeychain as getAnthropicCredentialsFromKeychain,
 	isClaudeCredentialExpired,
 } from "../auth/anthropic";
+import { getMiniMaxCredentialsFromAnySource } from "../auth/minimax";
 import {
 	getOpenAICredentialsFromAuthStorage,
 	isOpenAICredentialExpired,
 } from "../auth/openai";
-import { getMiniMaxCredentialsFromAnySource } from "../auth/minimax";
 import {
 	ANTHROPIC_AUTH_PROVIDER_ID,
 	MINIMAX_AUTH_PROVIDER_ID,
@@ -404,7 +404,9 @@ export class ChatService {
 		return status;
 	}
 
-	async setMiniMaxApiKey(input: { apiKey: string }): Promise<{ success: true }> {
+	async setMiniMaxApiKey(input: {
+		apiKey: string;
+	}): Promise<{ success: true }> {
 		setApiKeyForProvider(
 			this.getAuthStorage(),
 			MINIMAX_AUTH_PROVIDER_ID,
