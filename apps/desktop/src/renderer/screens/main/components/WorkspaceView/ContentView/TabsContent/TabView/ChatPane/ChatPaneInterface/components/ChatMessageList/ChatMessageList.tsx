@@ -34,7 +34,7 @@ import {
 
 const STANDALONE_ASSISTANT_MARKDOWN_CLASSNAME =
 	"text-[15px] leading-6 " +
-	"[&_p]:my-2 [&_p]:leading-6 [&_p]:!whitespace-normal " +
+	"[&_p]:my-2 [&_p]:leading-6 [&_p]:!whitespace-normal [&_p:has(br)]:leading-7 " +
 	"[&_ol]:my-2 [&_ul]:my-2 [&_ol]:pl-5 [&_ul]:pl-5 " +
 	"[&_ol]:list-decimal [&_ul]:list-disc " +
 	"[&_li]:my-0.5 [&_li]:pl-0 [&_li]:leading-6 [&_li]:!whitespace-normal " +
