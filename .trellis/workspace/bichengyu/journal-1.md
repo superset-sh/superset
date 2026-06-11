@@ -521,3 +521,37 @@ Bundled Trellis as a validated desktop plugin runtime, added release smoke gates
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Claude ACP standalone Chat runtime
+
+**Date**: 2026-06-11
+**Task**: Claude ACP standalone Chat runtime
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Rebuilt standalone Chat around a Claude-compatible ACP runtime, account-scoped session persistence, provider-backed model selection, Agent Timeline/Tool Card V2 rendering, per-chat cwd isolation, approval/timeline events, and fixed new-session streaming/cache races.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b35b535a5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

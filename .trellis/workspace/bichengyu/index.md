@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 15
-- **Last Active**: 2026-06-10
+- **Total Sessions**: 16
+- **Last Active**: 2026-06-11
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~523 | Active |
+| `journal-1.md` | ~557 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-06-11 | Claude ACP standalone Chat runtime | `b35b535a5` | `codex/model-provider-configuration-center` |
 | 15 | 2026-06-10 | Plugin Runtime Remote Task Runs | `7d9deb571` | `codex/model-provider-configuration-center` |
 | 14 | 2026-06-10 | Desktop release install guard | `68c57b94a` | `codex/model-provider-configuration-center` |
 | 13 | 2026-06-10 | Canary host sync and release hardening | `bce87902d` | `codex/model-provider-configuration-center` |
