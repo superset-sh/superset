@@ -126,12 +126,8 @@ export function DashboardSidebar({
 	const settingsHotkey = useHotkeyDisplay("OPEN_SETTINGS").text;
 	const isSettingsOpen = !!matchRoute({ to: "/settings", fuzzy: true });
 	const { activeHostUrl } = useLocalHostService();
-	const v2RouteMatch = matchRoute({
-		to: "/v2-workspace/$workspaceId",
-		fuzzy: true,
-	});
 	const activeV2WorkspaceId =
-		v2RouteMatch !== false ? v2RouteMatch.workspaceId : null;
+		location.pathname.match(/^\/v2-workspace\/([^/]+)/)?.[1] ?? null;
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -215,14 +211,6 @@ export function DashboardSidebar({
 			}
 
 			if (nextMode === "chat") {
-				if (activeV2WorkspaceId) {
-					void navigate({
-						to: "/v2-workspace/$workspaceId/chat",
-						params: { workspaceId: activeV2WorkspaceId },
-						search: {},
-					});
-					return;
-				}
 				void navigate({ to: "/chat" });
 				return;
 			}
@@ -319,7 +307,6 @@ export function DashboardSidebar({
 							</>
 						) : dashboardMode === "chat" ? (
 							<DashboardChatSidebar
-								activeWorkspaceId={activeV2WorkspaceId}
 								activeSessionId={activeChatSessionId}
 								isCollapsed={isCollapsed}
 							/>

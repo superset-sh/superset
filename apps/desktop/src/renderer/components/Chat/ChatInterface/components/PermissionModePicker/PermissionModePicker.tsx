@@ -9,9 +9,11 @@ import type { LucideIcon } from "lucide-react";
 import {
 	CheckIcon,
 	ChevronDownIcon,
+	ClipboardListIcon,
 	ShieldCheckIcon,
 	ShieldIcon,
 	ShieldOffIcon,
+	ShieldQuestionIcon,
 } from "lucide-react";
 import { PILL_BUTTON_CLASS } from "../../styles";
 import type { PermissionMode } from "../../types";
@@ -25,8 +27,14 @@ interface PermissionModeOption {
 
 const PERMISSION_MODES: PermissionModeOption[] = [
 	{
-		value: "bypassPermissions",
+		value: "auto",
 		label: "Auto",
+		description: "Claude decides when tools can run",
+		icon: ShieldCheckIcon,
+	},
+	{
+		value: "bypassPermissions",
+		label: "Bypass",
 		description: "Tools run without approval",
 		icon: ShieldOffIcon,
 	},
@@ -37,10 +45,22 @@ const PERMISSION_MODES: PermissionModeOption[] = [
 		icon: ShieldCheckIcon,
 	},
 	{
+		value: "plan",
+		label: "Plan",
+		description: "Read-only planning before execution",
+		icon: ClipboardListIcon,
+	},
+	{
 		value: "default",
 		label: "Manual",
 		description: "All tools require approval",
 		icon: ShieldIcon,
+	},
+	{
+		value: "dontAsk",
+		label: "Deny",
+		description: "Deny tools that need approval",
+		icon: ShieldQuestionIcon,
 	},
 ];
 

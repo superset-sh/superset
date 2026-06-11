@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import packageJson from "./package.json";
 import {
+	claudeAgentSdkPlatformPackageName,
 	packagedAsarUnpackGlobs,
 	packagedNodeModuleCopies,
 	packagedTrellisRuntimeResourceCopies,
@@ -75,5 +76,28 @@ describe("Trellis bundled runtime packaging", () => {
 		);
 		expect(workflow).toContain("Verify bundled Trellis runtime");
 		expect(workflow).toContain("bun run validate:trellis-runtime");
+	});
+
+	test("packages Claude Agent SDK runtime and platform binary", () => {
+		for (const moduleName of [
+			"@anthropic-ai/claude-agent-sdk",
+			"@anthropic-ai/sdk",
+			"@modelcontextprotocol/sdk",
+			claudeAgentSdkPlatformPackageName,
+		]) {
+			expect(requiredMaterializedNodeModules).toContain(moduleName);
+			expect(packagedNodeModuleCopies).toContainEqual(
+				expect.objectContaining({
+					from: `node_modules/${moduleName}`,
+					to: `node_modules/${moduleName}`,
+				}),
+			);
+		}
+		expect(packagedAsarUnpackGlobs).toContain(
+			"**/node_modules/@anthropic-ai/claude-agent-sdk/**/*",
+		);
+		expect(packagedAsarUnpackGlobs).toContain(
+			"**/node_modules/@anthropic-ai/claude-agent-sdk-*/*",
+		);
 	});
 });

@@ -14,6 +14,7 @@ type DisplayStateOutput = SessionOutputs["getDisplayState"];
 type ListMessagesOutput = SessionOutputs["listMessages"];
 type HistoryMessage = ListMessagesOutput[number];
 type HistoryMessagePart = HistoryMessage["content"][number];
+type HistoryMessageContent = HistoryMessagePart[];
 
 export type ChatDisplayState = DisplayStateOutput;
 export type ChatHistoryMessages = ListMessagesOutput;
@@ -142,7 +143,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	const queryInput = sessionCommandInput ?? skipToken;
 	const isQueryEnabled = enabled && Boolean(sessionId);
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
-	const queryOptions = {
+	const displayQueryOptions = {
 		enabled: isQueryEnabled,
 		refetchInterval: refetchIntervalMs,
 		refetchIntervalInBackground: true,
@@ -151,15 +152,20 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 
 	const displayQuery = chatRuntimeServiceTrpc.session.getDisplayState.useQuery(
 		queryInput,
-		queryOptions,
+		displayQueryOptions,
 	);
 
-	const messagesQuery = chatRuntimeServiceTrpc.session.listMessages.useQuery(
-		queryInput,
-		queryOptions,
-	);
-
-	const displayState = displayQuery.data ?? null;
+	const displayState = sessionId ? (displayQuery.data ?? null) : null;
+	const displayStateFields = displayState as
+		| (DisplayStateOutput & {
+				activeTools?: Map<string, unknown>;
+				toolInputBuffers?: Map<string, unknown>;
+				activeSubagents?: Map<string, unknown>;
+				pendingApproval?: unknown;
+				pendingPlanApproval?: unknown;
+				pendingQuestion?: unknown;
+		  })
+		| null;
 	const runtimeErrorMessage =
 		typeof displayState?.errorMessage === "string" &&
 		displayState.errorMessage.trim()
@@ -167,11 +173,23 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			: null;
 	const currentMessage = displayState?.currentMessage ?? null;
 	const isRunning = displayState?.isRunning ?? false;
+	const messagesQuery = chatRuntimeServiceTrpc.session.listMessages.useQuery(
+		queryInput,
+		{
+			enabled: isQueryEnabled,
+			refetchInterval: isRunning ? Math.max(1000, refetchIntervalMs) : false,
+			refetchIntervalInBackground: true,
+			refetchOnWindowFocus: false,
+			staleTime: 2000,
+		},
+	);
+	const queryError = displayQuery.error ?? messagesQuery.error ?? null;
 	const isConversationLoading =
 		isQueryEnabled &&
+		!queryError &&
 		messagesQuery.data === undefined &&
-		(messagesQuery.isLoading || messagesQuery.isFetching);
-	const historicalMessages = messagesQuery.data ?? [];
+		messagesQuery.isLoading;
+	const historicalMessages = sessionId ? (messagesQuery.data ?? []) : [];
 	const latestAssistantErrorMessage = isRunning
 		? null
 		: findLatestAssistantErrorMessage(historicalMessages);
@@ -237,6 +255,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 					throw error;
 				}
 				setCommandError(null);
+				const activeSessionInput = {
+					sessionId,
+					...(cwd ? { cwd } : {}),
+				};
 
 				const text =
 					typeof input.payload?.content === "string"
@@ -252,27 +274,27 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 						fileMessageCountAtSendRef.current =
 							countFileMessages(historicalMessages);
 					}
-					const content: ListMessagesOutput[number]["content"] = [];
+					const content: HistoryMessageContent = [];
 					for (const file of files) {
 						content.push({
 							type: "file",
 							data: file.data,
 							mediaType: file.mediaType,
 							filename: file.filename,
-						} as unknown as ListMessagesOutput[number]["content"][number]);
+						} as HistoryMessagePart);
 					}
 					for (const image of legacyImages) {
 						content.push({
 							type: "image",
 							data: image.data,
 							mimeType: image.mimeType,
-						} as unknown as ListMessagesOutput[number]["content"][number]);
+						} as HistoryMessagePart);
 					}
 					if (text) {
 						content.push({
 							type: "text",
 							text,
-						} as ListMessagesOutput[number]["content"][number]);
+						} as HistoryMessagePart);
 					}
 					setOptimisticUserMessage({
 						id: optimisticId,
@@ -283,11 +305,20 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 				}
 
 				try {
-					return await utils.client.session.sendMessage.mutate({
-						sessionId,
-						...(cwd ? { cwd } : {}),
+					const result = await utils.client.session.sendMessage.mutate({
+						...activeSessionInput,
 						...input,
 					});
+					const [nextMessages, nextDisplayState] = await Promise.all([
+						utils.client.session.listMessages.query(activeSessionInput),
+						utils.client.session.getDisplayState.query(activeSessionInput),
+					]);
+					utils.session.listMessages.setData(activeSessionInput, nextMessages);
+					utils.session.getDisplayState.setData(
+						activeSessionInput,
+						nextDisplayState,
+					);
+					return result;
 				} catch (error) {
 					setCommandError(error);
 					setOptimisticUserMessage(null);
@@ -368,13 +399,20 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 
 	return {
 		...displayState,
+		currentMessage,
+		isRunning,
+		activeTools: displayStateFields?.activeTools,
+		toolInputBuffers: displayStateFields?.toolInputBuffers,
+		activeSubagents: displayStateFields?.activeSubagents,
+		pendingApproval: displayStateFields?.pendingApproval ?? null,
+		pendingPlanApproval: displayStateFields?.pendingPlanApproval ?? null,
+		pendingQuestion: displayStateFields?.pendingQuestion ?? null,
 		messages,
 		isConversationLoading,
 		error:
 			runtimeErrorMessage ??
 			latestAssistantErrorMessage ??
-			displayQuery.error ??
-			messagesQuery.error ??
+			queryError ??
 			commandError ??
 			null,
 		commands,

@@ -88,6 +88,34 @@ function findLastUserMessageIndex(messages: ChatMessage[]): number {
 	return -1;
 }
 
+function getMessageTextSignature(message: ChatMessage): string | null {
+	const text = message.content
+		.map((part) =>
+			part.type === "text" && "text" in part && typeof part.text === "string"
+				? part.text.trim()
+				: "",
+		)
+		.filter(Boolean)
+		.join("\n")
+		.trim();
+
+	return text || null;
+}
+
+export function getActiveTurnKey(messages: ChatMessage[]): string {
+	for (let index = messages.length - 1; index >= 0; index -= 1) {
+		const message = messages[index];
+		if (message?.role !== "user") continue;
+		const textSignature = getMessageTextSignature(message);
+		if (textSignature) {
+			return `text:${textSignature}`;
+		}
+		return `message:${message.id}`;
+	}
+
+	return "empty";
+}
+
 export function getCurrentAssistantMessage(
 	currentMessage: ChatMessage | null,
 ): ChatMessage | null {

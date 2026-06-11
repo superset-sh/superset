@@ -785,6 +785,23 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
+			onInsert: async ({ transaction }) => {
+				const item = transaction.mutations[0].modified;
+				await apiClient.chat.createSession.mutate({
+					sessionId: item.id,
+					v2WorkspaceId: item.v2WorkspaceId,
+				});
+				return undefined;
+			},
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				await apiClient.chat.updateSession.mutate({
+					sessionId: original.id,
+					title: changes.title ?? undefined,
+					lastActiveAt: changes.lastActiveAt,
+				});
+				return undefined;
+			},
 			onDelete: async ({ transaction }) => {
 				const item = transaction.mutations[0].original;
 				const result = await apiClient.chat.deleteSession.mutate({

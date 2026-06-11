@@ -414,6 +414,13 @@
       "when": 1781145600000,
       "tag": "0058_add_model_providers",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1781162329219,
+      "tag": "0059_add_chat_messages",
+      "breakpoints": true
     }
   ]
 }

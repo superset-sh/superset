@@ -1,5 +1,7 @@
 import type { LifecycleEvent } from "@superset/chat/server/trpc";
 import { ChatRuntimeService } from "@superset/chat/server/trpc";
+import { session as electronSession } from "electron";
+import log from "electron-log/main";
 import { env } from "main/env.main";
 import { appState } from "main/lib/app-state";
 import { notificationsEmitter } from "main/lib/notifications/server";
@@ -37,6 +39,21 @@ function resolveNotificationIdsFromSession(sessionId: string): {
 	return {};
 }
 
+async function getApiCookieHeader(): Promise<string | null> {
+	try {
+		const cookies = await electronSession.defaultSession.cookies.get({
+			url: env.NEXT_PUBLIC_API_URL,
+		});
+		const cookieHeader = cookies
+			.map((cookie) => `${cookie.name}=${cookie.value}`)
+			.join("; ");
+		return cookieHeader.length > 0 ? cookieHeader : null;
+	} catch (error) {
+		console.warn("[chat-runtime-service] Failed to read API cookies", error);
+		return null;
+	}
+}
+
 function handleLifecycleEvent(event: LifecycleEvent): void {
 	const ids = resolveNotificationIdsFromSession(event.sessionId);
 	notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_LIFECYCLE, {
@@ -50,10 +67,17 @@ const service = new ChatRuntimeService({
 	headers: async (): Promise<Record<string, string>> => {
 		const { token } = await loadToken();
 		if (token) return { Authorization: `Bearer ${token}` };
+		const cookie = await getApiCookieHeader();
+		if (cookie) return { cookie };
 		return {};
 	},
 	apiUrl: env.NEXT_PUBLIC_API_URL,
 	onLifecycleEvent: handleLifecycleEvent,
+	standaloneRuntimeLogger: {
+		info: (message, meta) => log.info(message, meta ?? {}),
+		warn: (message, meta) => log.warn(message, meta ?? {}),
+		error: (message, meta) => log.error(message, meta ?? {}),
+	},
 });
 
 export const createChatRuntimeServiceRouter = () => service.createRouter();

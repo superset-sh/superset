@@ -1,5 +1,8 @@
 import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
-import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInterface/types";
+import type {
+	PermissionMode,
+	StartFreshSessionResult,
+} from "renderer/components/Chat/ChatInterface/types";
 
 export type ChatSendMessageInput = {
 	payload: {
@@ -12,7 +15,11 @@ export type ChatSendMessageInput = {
 	};
 	metadata: {
 		model?: string;
+		modelProviderId?: string;
+		modelProviderName?: string;
+		modelProviderProtocol?: string;
 		thinkingLevel?: ThinkingLevel;
+		permissionMode?: PermissionMode;
 	};
 };
 

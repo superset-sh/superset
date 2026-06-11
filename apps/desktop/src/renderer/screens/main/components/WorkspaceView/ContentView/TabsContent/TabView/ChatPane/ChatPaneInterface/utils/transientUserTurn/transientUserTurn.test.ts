@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
+	bindPendingUserTurnToSession,
 	getVisibleMessagesWithPendingUserTurn,
 	type PendingUserTurn,
 	shouldClearPendingUserTurn,
+	shouldRetainPendingUserTurnForSession,
 } from "./transientUserTurn";
 
 type TestMessage = {
@@ -87,6 +89,23 @@ describe("shouldClearPendingUserTurn", () => {
 		).toBe(false);
 	});
 
+	it("does not clear an append overlay while the assistant is still pending", () => {
+		const messages = [message("u1", "user", "hello")] as TestMessage[];
+		const pendingUserTurn: PendingUserTurn = {
+			kind: "append",
+			sessionId: "session-new",
+			message: message("optimistic-1", "user", "hello"),
+		};
+
+		expect(
+			shouldClearPendingUserTurn({
+				messages: messages as never,
+				pendingUserTurn: pendingUserTurn as never,
+				isAwaitingAssistant: true,
+			}),
+		).toBe(false);
+	});
+
 	it("clears a restart overlay once the restarted user message is persisted and streaming is done", () => {
 		const messages = [message("u1", "user", "hello")] as TestMessage[];
 		const pendingUserTurn: PendingUserTurn = {
@@ -102,5 +121,74 @@ describe("shouldClearPendingUserTurn", () => {
 				isAwaitingAssistant: false,
 			}),
 		).toBe(true);
+	});
+});
+
+describe("bindPendingUserTurnToSession", () => {
+	it("binds a pre-session pending user turn to the created session", () => {
+		const pendingUserTurn: PendingUserTurn = {
+			kind: "append",
+			sessionId: null,
+			message: message("optimistic-1", "user", "hello"),
+		};
+
+		expect(
+			bindPendingUserTurnToSession({
+				pendingUserTurn: pendingUserTurn as never,
+				messageId: "optimistic-1",
+				sessionId: "session-new",
+			}),
+		).toMatchObject({
+			kind: "append",
+			sessionId: "session-new",
+		});
+	});
+
+	it("does not rebind a different pending user turn", () => {
+		const pendingUserTurn: PendingUserTurn = {
+			kind: "append",
+			sessionId: null,
+			message: message("optimistic-1", "user", "hello"),
+		};
+
+		expect(
+			bindPendingUserTurnToSession({
+				pendingUserTurn: pendingUserTurn as never,
+				messageId: "optimistic-other",
+				sessionId: "session-new",
+			}),
+		).toBe(pendingUserTurn);
+	});
+});
+
+describe("shouldRetainPendingUserTurnForSession", () => {
+	it("keeps a fresh-session pending user turn when the route switches to that session", () => {
+		const pendingUserTurn: PendingUserTurn = {
+			kind: "append",
+			sessionId: "session-new",
+			message: message("optimistic-1", "user", "hello"),
+		};
+
+		expect(
+			shouldRetainPendingUserTurnForSession({
+				pendingUserTurn: pendingUserTurn as never,
+				sessionId: "session-new",
+			}),
+		).toBe(true);
+	});
+
+	it("drops a pending user turn that belongs to a different session", () => {
+		const pendingUserTurn: PendingUserTurn = {
+			kind: "append",
+			sessionId: "session-old",
+			message: message("optimistic-1", "user", "hello"),
+		};
+
+		expect(
+			shouldRetainPendingUserTurnForSession({
+				pendingUserTurn: pendingUserTurn as never,
+				sessionId: "session-new",
+			}),
+		).toBe(false);
 	});
 });

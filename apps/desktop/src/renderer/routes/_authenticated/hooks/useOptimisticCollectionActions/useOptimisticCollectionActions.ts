@@ -1,4 +1,5 @@
 import type { TaskPriority, V2UsersHostRole } from "@superset/db/enums";
+import type { SelectChatSession } from "@superset/db/schema";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo } from "react";
 import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
@@ -235,6 +236,40 @@ export function useOptimisticCollectionActions() {
 				},
 			},
 			chatSessions: {
+				createSession: (input: {
+					sessionId: string;
+					organizationId: string;
+					userId: string;
+					title?: string | null;
+				}) => {
+					if (isDesktopChatDevMode()) return null;
+
+					const now = new Date();
+					const row: SelectChatSession = {
+						id: input.sessionId,
+						organizationId: input.organizationId,
+						createdBy: input.userId,
+						workspaceId: null,
+						v2WorkspaceId: null,
+						title: input.title ?? null,
+						lastActiveAt: now,
+						createdAt: now,
+						updatedAt: now,
+					};
+
+					return runChatSessionMutation("Failed to create chat session", () =>
+						collections.chatSessions.insert(row),
+					);
+				},
+				updateTitle: (sessionId: string, title: string) => {
+					if (isDesktopChatDevMode()) return null;
+
+					return runChatSessionMutation("Failed to update chat title", () =>
+						collections.chatSessions.update(sessionId, (draft) => {
+							draft.title = title;
+						}),
+					);
+				},
 				deleteSession: (sessionId: string) => {
 					if (isDesktopChatDevMode()) return null;
 

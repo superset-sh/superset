@@ -1,4 +1,4 @@
-import { useMatchRoute, useParams } from "@tanstack/react-router";
+import { useLocation, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -13,14 +13,11 @@ import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
 import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
-	const matchRoute = useMatchRoute();
+	const location = useLocation();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const { workspaceId } = useParams({ strict: false });
-	const v2Match = matchRoute({
-		to: "/v2-workspace/$workspaceId",
-		fuzzy: true,
-	});
-	const v2WorkspaceId = v2Match !== false ? v2Match.workspaceId : null;
+	const v2WorkspaceMatch = location.pathname.match(/^\/v2-workspace\/([^/]+)/);
+	const v2WorkspaceId = v2WorkspaceMatch?.[1] ?? null;
 	const isV2WorkspaceRoute = v2WorkspaceId !== null;
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },

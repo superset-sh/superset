@@ -4,6 +4,8 @@ export type ModelCatalogOption = ModelOption & {
 	modelId?: string;
 	providerId?: string;
 	protocol?: string;
+	baseUrl?: string;
+	hasSecret?: boolean;
 };
 
 export type ModelGroup = [label: string, models: ModelOption[]];

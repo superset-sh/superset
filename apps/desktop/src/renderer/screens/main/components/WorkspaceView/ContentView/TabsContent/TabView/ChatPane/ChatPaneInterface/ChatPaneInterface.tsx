@@ -22,10 +22,7 @@ import type {
 } from "renderer/components/Chat/ChatInterface/types";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import {
-	getDesktopChatModelOptions,
-	isDesktopChatDevMode,
-} from "renderer/lib/dev-chat";
+import { getDesktopChatModelOptions } from "renderer/lib/dev-chat";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { chatModelsQueryKey } from "renderer/lib/model-provider-query-keys";
 import { posthog } from "renderer/lib/posthog";
@@ -46,9 +43,11 @@ import {
 	toSendFailureMessage,
 } from "./utils/sendMessage";
 import {
+	bindPendingUserTurnToSession,
 	getVisibleMessagesWithPendingUserTurn,
 	type PendingUserTurn,
 	shouldClearPendingUserTurn,
+	shouldRetainPendingUserTurnForSession,
 } from "./utils/transientUserTurn";
 import { uploadFiles } from "./utils/uploadFiles";
 
@@ -131,15 +130,53 @@ function ChatUploadFooter({
 	);
 }
 
-function useAvailableModels(workspaceId: string): {
+function toProviderModelOptions(
+	providers: Awaited<ReturnType<typeof apiTrpcClient.modelProvider.list.query>>,
+): ModelOption[] {
+	return providers.flatMap((provider) => {
+		if (!provider.enabled || !provider.hasSecret) return [];
+		return provider.models
+			.filter((model) => model.enabled)
+			.map((model) => ({
+				id: `${provider.id}/${model.modelId}`,
+				modelId: model.modelId,
+				name: model.displayName,
+				provider: provider.name,
+				providerId: provider.id,
+				protocol: provider.protocol,
+				baseUrl: provider.baseUrl,
+				hasSecret: provider.hasSecret,
+			}));
+	});
+}
+
+function buildModelMetadata(model: ModelOption | null) {
+	return {
+		model: model?.modelId ?? model?.id,
+		modelProviderId: model?.providerId,
+		modelProviderName: model?.provider,
+		modelProviderProtocol: model?.protocol,
+	};
+}
+
+function useAvailableModels(workspaceId: string | null): {
 	models: ModelOption[];
 	defaultModel: ModelOption | null;
 } {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const localModels = getDesktopChatModelOptions();
 	const { data } = useQuery({
-		queryKey: chatModelsQueryKey(hostUrl),
+		queryKey: chatModelsQueryKey(
+			hostUrl,
+			workspaceId ? `workspace:${workspaceId}` : "standalone",
+		),
 		queryFn: async () => {
+			if (!workspaceId) {
+				const cloudProviders = await apiTrpcClient.modelProvider.list.query();
+				const cloudModels = toProviderModelOptions(cloudProviders);
+				if (cloudModels.length > 0) return { models: cloudModels };
+				return apiTrpcClient.chat.getModels.query();
+			}
 			if (hostUrl) {
 				await syncCloudModelProvidersToHost(hostUrl).catch((error) => {
 					console.warn("[chat] Failed to sync cloud model providers", error);
@@ -151,12 +188,15 @@ function useAvailableModels(workspaceId: string): {
 					).modelProviders.listChatModels.query()
 				: [];
 			if (providerModels.length > 0) return { models: providerModels };
+			const cloudProviders = await apiTrpcClient.modelProvider.list.query();
+			const cloudModels = toProviderModelOptions(cloudProviders);
+			if (cloudModels.length > 0) return { models: cloudModels };
 			return apiTrpcClient.chat.getModels.query();
 		},
-		enabled: !isDesktopChatDevMode(),
 		staleTime: 30_000,
 	});
-	const models = localModels.length > 0 ? localModels : (data?.models ?? []);
+	const models =
+		data?.models && data.models.length > 0 ? data.models : localModels;
 	return { models, defaultModel: models[0] ?? null };
 }
 
@@ -171,23 +211,22 @@ const AUTO_LAUNCH_MAX_RETRIES = 3;
 const AUTO_LAUNCH_RETRY_DELAY_MS = 1500;
 
 type ChatMessage = NonNullable<UseChatDisplayReturn["messages"]>[number];
+type ChatMessageContent = Array<ChatMessage["content"][number]>;
 
 type InterruptedMessage = {
 	id: string;
 	sourceMessageId: string;
-	content: ChatMessage["content"];
+	content: ChatMessageContent;
 };
 
 type ChatAnalyticsProperties = Record<string, unknown>;
 
-function cloneMessageContent(
-	content: ChatMessage["content"],
-): ChatMessage["content"] {
+function cloneMessageContent(content: ChatMessageContent): ChatMessageContent {
 	if (typeof structuredClone === "function") {
-		return structuredClone(content);
+		return structuredClone(content) as ChatMessageContent;
 	}
 	try {
-		return JSON.parse(JSON.stringify(content)) as ChatMessage["content"];
+		return JSON.parse(JSON.stringify(content)) as ChatMessageContent;
 	} catch {
 		return content.map((part) => ({ ...part }));
 	}
@@ -217,6 +256,9 @@ export function ChatPaneInterface({
 	onStartFreshSession,
 	onConsumeLaunchConfig,
 	onUserMessageSubmitted,
+	onSessionReady,
+	placeholder,
+	messageListTopInset = "default",
 }: ChatPaneInterfaceProps) {
 	const { models: availableModels, defaultModel } =
 		useAvailableModels(workspaceId);
@@ -229,13 +271,16 @@ export function ChatPaneInterface({
 	const selectedModel =
 		availableModels.find((model) => model.id === selectedModelId) ?? null;
 	const activeModel = selectedModel ?? defaultModel;
+	const activeModelMetadata = useMemo(
+		() => buildModelMetadata(activeModel),
+		[activeModel],
+	);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 	const thinkingLevel = useChatPreferencesStore((state) => state.thinkingLevel);
 	const setThinkingLevel = useChatPreferencesStore(
 		(state) => state.setThinkingLevel,
 	);
-	const [permissionMode, setPermissionMode] =
-		useState<PermissionMode>("bypassPermissions");
+	const [permissionMode, setPermissionMode] = useState<PermissionMode>("auto");
 	const [submitStatus, setSubmitStatus] = useState<ChatStatus | undefined>(
 		undefined,
 	);
@@ -288,7 +333,7 @@ export function ChatPaneInterface({
 	const chat = useChatDisplay({
 		sessionId,
 		cwd,
-		enabled: Boolean(sessionId),
+		enabled: Boolean(sessionId) && (workspaceId !== null || isSessionReady),
 		fps: 60,
 	});
 	const {
@@ -354,6 +399,22 @@ export function ChatPaneInterface({
 					...(cwd ? { cwd } : {}),
 					...input,
 				});
+				const [nextMessages, nextDisplayState] = await Promise.all([
+					chatRuntimeServiceTrpcUtils.client.session.listMessages.query(
+						queryInput,
+					),
+					chatRuntimeServiceTrpcUtils.client.session.getDisplayState.query(
+						queryInput,
+					),
+				]);
+				chatRuntimeServiceTrpcUtils.session.listMessages.setData(
+					queryInput,
+					nextMessages,
+				);
+				chatRuntimeServiceTrpcUtils.session.getDisplayState.setData(
+					queryInput,
+					nextDisplayState,
+				);
 			} catch (error) {
 				if (optimisticMessage) {
 					chatRuntimeServiceTrpcUtils.session.listMessages.setData(
@@ -437,10 +498,10 @@ export function ChatPaneInterface({
 			setInterruptedMessage(snapshot);
 		}
 		captureChatEvent("chat_turn_aborted", {
-			model_id: activeModel?.id ?? null,
+			model_id: activeModelMetadata.model ?? null,
 		});
 	}, [
-		activeModel?.id,
+		activeModelMetadata,
 		captureChatEvent,
 		captureInterruptedMessage,
 		clearRuntimeError,
@@ -472,7 +533,14 @@ export function ChatPaneInterface({
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
 		setInterruptedMessage(null);
-		setPendingUserTurn(null);
+		setPendingUserTurn((previousTurn) => {
+			return shouldRetainPendingUserTurnForSession({
+				pendingUserTurn: previousTurn,
+				sessionId,
+			})
+				? previousTurn
+				: null;
+		});
 		setEditingUserMessageId(null);
 		resetMcpUi();
 		if (sessionId) {
@@ -481,6 +549,7 @@ export function ChatPaneInterface({
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
 
 	const clearDraftInStore = useCallback(() => {
+		if (!paneId) return;
 		const { panes, setChatLaunchConfig } = useTabsStore.getState();
 		setChatLaunchConfig(paneId, {
 			...(panes[paneId]?.chat?.launchConfig ?? null),
@@ -613,19 +682,46 @@ export function ChatPaneInterface({
 							: {}),
 					},
 					metadata: {
-						model: activeModel?.id,
+						...activeModelMetadata,
 						thinkingLevel,
+						permissionMode,
 					},
 				};
-				immediateUserMessage =
-					effectiveSessionId && !isSessionReady
-						? toOptimisticUserMessage(sendInput)
-						: null;
+				immediateUserMessage = toOptimisticUserMessage(sendInput);
 				if (immediateUserMessage) {
 					setPendingUserTurn({
 						kind: "append",
+						sessionId: effectiveSessionId,
 						message: immediateUserMessage,
 					});
+				}
+				if (!effectiveSessionId) {
+					const startResult = await onStartFreshSession();
+					if (!startResult.created || !startResult.sessionId) {
+						throw new Error(
+							startResult.errorMessage ??
+								"Failed to create a chat session. Please retry.",
+						);
+					}
+					effectiveSessionId = startResult.sessionId;
+				}
+				targetSessionId = effectiveSessionId;
+				if (immediateUserMessage) {
+					const pendingMessageId = immediateUserMessage.id;
+					const pendingSessionId = targetSessionId;
+					setPendingUserTurn((previousTurn) =>
+						bindPendingUserTurnToSession({
+							pendingUserTurn: previousTurn,
+							messageId: pendingMessageId,
+							sessionId: pendingSessionId,
+						}),
+					);
+				}
+				if (targetSessionId !== sessionId) {
+					onSessionReady?.(targetSessionId);
+				}
+				if (content) {
+					onUserMessageSubmitted?.(content, targetSessionId);
 				}
 
 				isSendingRef.current = true;
@@ -648,8 +744,8 @@ export function ChatPaneInterface({
 									sendMessageToSession(nextSessionId, sendInput),
 							});
 				targetSessionId = sendResult.targetSessionId;
-				if (content) {
-					onUserMessageSubmitted?.(content);
+				if (targetSessionId !== sessionId) {
+					onSessionReady?.(targetSessionId);
 				}
 			} catch (error) {
 				isSendingRef.current = false;
@@ -671,7 +767,7 @@ export function ChatPaneInterface({
 
 			captureChatEvent("chat_message_sent", {
 				session_id: targetSessionId,
-				model_id: activeModel?.id ?? null,
+				model_id: activeModelMetadata.model ?? null,
 				mention_count: 0,
 				attachment_count: payload.files?.length ?? 0,
 				is_slash_command: isSlashCommand,
@@ -682,13 +778,14 @@ export function ChatPaneInterface({
 			clearDraftInStore();
 		},
 		[
-			activeModel?.id,
+			activeModelMetadata,
 			captureChatEvent,
 			clearRuntimeError,
 			commands,
 			isSessionReady,
 			messages?.length,
 			onStartFreshSession,
+			onSessionReady,
 			resolveSlashCommandInput,
 			ensureSessionReady,
 			sessionId,
@@ -697,6 +794,7 @@ export function ChatPaneInterface({
 			onUserMessageSubmitted,
 			thinkingLevel,
 			clearDraftInStore,
+			permissionMode,
 		],
 	);
 
@@ -743,15 +841,19 @@ export function ChatPaneInterface({
 			clearRuntimeError();
 			setSubmitStatus("submitted");
 
-			const modelId = initialLaunchConfig.metadata?.model ?? activeModel?.id;
+			const launchModelMetadata = {
+				...activeModelMetadata,
+				model: initialLaunchConfig.metadata?.model ?? activeModelMetadata.model,
+			};
 			const sendInput: ChatSendMessageInput = {
 				payload: {
 					content: prompt ?? "",
 					files: launchFiles,
 				},
 				metadata: {
-					model: modelId,
+					...launchModelMetadata,
 					thinkingLevel,
+					permissionMode,
 				},
 			};
 
@@ -765,8 +867,11 @@ export function ChatPaneInterface({
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});
+				if (sendResult.targetSessionId !== sessionId) {
+					onSessionReady?.(sendResult.targetSessionId);
+				}
 				if (prompt) {
-					onUserMessageSubmitted?.(prompt);
+					onUserMessageSubmitted?.(prompt, sendResult.targetSessionId);
 				}
 
 				autoLaunchInFlightRef.current = null;
@@ -777,7 +882,7 @@ export function ChatPaneInterface({
 
 				captureChatEvent("chat_message_sent", {
 					session_id: sendResult.targetSessionId,
-					model_id: modelId ?? null,
+					model_id: launchModelMetadata.model ?? null,
 					mention_count: 0,
 					attachment_count: launchFiles?.length ?? 0,
 					is_slash_command: false,
@@ -812,7 +917,7 @@ export function ChatPaneInterface({
 			}
 		};
 	}, [
-		activeModel?.id,
+		activeModelMetadata,
 		captureChatEvent,
 		clearRuntimeError,
 		commands,
@@ -821,11 +926,13 @@ export function ChatPaneInterface({
 		isSessionReady,
 		onConsumeLaunchConfig,
 		onStartFreshSession,
+		onSessionReady,
 		sendMessageToSession,
 		sessionId,
 		setRuntimeErrorMessage,
 		onUserMessageSubmitted,
 		thinkingLevel,
+		permissionMode,
 	]);
 
 	const handleStop = useCallback(
@@ -853,13 +960,15 @@ export function ChatPaneInterface({
 			const optimisticMessage = toOptimisticUserMessage({
 				payload: request.payload,
 				metadata: {
-					model: activeModel?.id,
+					...activeModelMetadata,
 					thinkingLevel,
+					permissionMode,
 				},
 			});
 			if (optimisticMessage) {
 				setPendingUserTurn({
 					kind: "restart",
+					sessionId,
 					prefixMessages: request.prefixMessages,
 					message: optimisticMessage,
 				});
@@ -873,18 +982,19 @@ export function ChatPaneInterface({
 						messageId: request.messageId,
 						payload: request.payload,
 						metadata: {
-							model: activeModel?.id,
+							...activeModelMetadata,
 							thinkingLevel,
+							permissionMode,
 						},
 					},
 				);
 				setEditingUserMessageId(null);
 				if (request.payload.content) {
-					onUserMessageSubmitted?.(request.payload.content);
+					onUserMessageSubmitted?.(request.payload.content, sessionId);
 				}
 				captureChatEvent("chat_message_sent", {
 					session_id: sessionId,
-					model_id: activeModel?.id ?? null,
+					model_id: activeModelMetadata.model ?? null,
 					mention_count: 0,
 					attachment_count: request.payload.files?.length ?? 0,
 					is_slash_command: false,
@@ -905,7 +1015,7 @@ export function ChatPaneInterface({
 			}
 		},
 		[
-			activeModel?.id,
+			activeModelMetadata,
 			captureChatEvent,
 			chatRuntimeServiceTrpcUtils.client.session.restartFromMessage,
 			clearRuntimeError,
@@ -916,6 +1026,7 @@ export function ChatPaneInterface({
 			setRuntimeErrorMessage,
 			thinkingLevel,
 			clearDraftInStore,
+			permissionMode,
 		],
 	);
 	const handleResendUserMessage = useCallback(
@@ -979,7 +1090,9 @@ export function ChatPaneInterface({
 			setAnsweredQuestionId(trimmedQuestionId);
 			setQuestionResponsePending(true);
 			// Clear the orange dot immediately when the user submits their answer
-			useTabsStore.getState().setPaneStatus(paneId, "idle");
+			if (paneId) {
+				useTabsStore.getState().setPaneStatus(paneId, "idle");
+			}
 			try {
 				await commands.respondToQuestion({
 					payload: {
@@ -990,7 +1103,9 @@ export function ChatPaneInterface({
 			} catch (error) {
 				// Roll back optimistic UI if the RPC fails
 				setAnsweredQuestionId(null);
-				useTabsStore.getState().setPaneStatus(paneId, "permission");
+				if (paneId) {
+					useTabsStore.getState().setPaneStatus(paneId, "permission");
+				}
 				throw error;
 			} finally {
 				setQuestionResponsePending(false);
@@ -1003,11 +1118,13 @@ export function ChatPaneInterface({
 
 	return (
 		<PromptInputProvider initialInput={initialLaunchConfig?.draftInput}>
-			<DraftSaver
-				paneId={paneId}
-				sessionId={sessionId}
-				isSendingRef={isSendingRef}
-			/>
+			{paneId ? (
+				<DraftSaver
+					paneId={paneId}
+					sessionId={sessionId}
+					isSendingRef={isSendingRef}
+				/>
+			) : null}
 			<div className="flex h-full flex-col bg-background">
 				<ChatMessageList
 					messages={visibleMessages}
@@ -1017,7 +1134,7 @@ export function ChatPaneInterface({
 					isAwaitingAssistant={isAwaitingAssistant}
 					currentMessage={currentMessage ?? null}
 					interruptedMessage={interruptedMessage}
-					workspaceId={workspaceId}
+					workspaceId={workspaceId ?? ""}
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={cwd}
@@ -1038,6 +1155,7 @@ export function ChatPaneInterface({
 					onRestartUserMessage={handleResendUserMessage}
 					pendingQuestion={pendingQuestion}
 					answeredQuestionId={answeredQuestionId}
+					topInset={messageListTopInset}
 				/>
 				<McpControls mcpUi={mcpUi} />
 				<ChatUploadFooter
@@ -1057,9 +1175,9 @@ export function ChatPaneInterface({
 					setThinkingLevel={setThinkingLevel}
 					slashCommands={slashCommands}
 					sessionId={sessionId}
+					placeholder={placeholder}
 					onError={setRuntimeErrorMessage}
 					onSend={handleSend}
-					onSubmitStart={() => setSubmitStatus("submitted")}
 					onStop={handleStop}
 					pendingQuestion={
 						pendingQuestion?.questionId === answeredQuestionId

@@ -15,6 +15,7 @@ import {
 } from "./github";
 import {
 	agentCommands,
+	chatMessages,
 	chatSessions,
 	devicePresence,
 	integrationConnections,
@@ -52,6 +53,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	v2Workspaces: many(v2Workspaces),
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
+	chatMessages: many(chatMessages),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -91,6 +93,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
+	chatMessages: many(chatMessages),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -422,21 +425,40 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
 	chatSessions: many(chatSessions),
 }));
 
-export const chatSessionsRelations = relations(chatSessions, ({ one }) => ({
+export const chatSessionsRelations = relations(
+	chatSessions,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [chatSessions.organizationId],
+			references: [organizations.id],
+		}),
+		createdBy: one(users, {
+			fields: [chatSessions.createdBy],
+			references: [users.id],
+		}),
+		workspace: one(workspaces, {
+			fields: [chatSessions.workspaceId],
+			references: [workspaces.id],
+		}),
+		v2Workspace: one(v2Workspaces, {
+			fields: [chatSessions.v2WorkspaceId],
+			references: [v2Workspaces.id],
+		}),
+		messages: many(chatMessages),
+	}),
+);
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+	session: one(chatSessions, {
+		fields: [chatMessages.chatSessionId],
+		references: [chatSessions.id],
+	}),
 	organization: one(organizations, {
-		fields: [chatSessions.organizationId],
+		fields: [chatMessages.organizationId],
 		references: [organizations.id],
 	}),
 	createdBy: one(users, {
-		fields: [chatSessions.createdBy],
+		fields: [chatMessages.createdBy],
 		references: [users.id],
-	}),
-	workspace: one(workspaces, {
-		fields: [chatSessions.workspaceId],
-		references: [workspaces.id],
-	}),
-	v2Workspace: one(v2Workspaces, {
-		fields: [chatSessions.v2WorkspaceId],
-		references: [v2Workspaces.id],
 	}),
 }));

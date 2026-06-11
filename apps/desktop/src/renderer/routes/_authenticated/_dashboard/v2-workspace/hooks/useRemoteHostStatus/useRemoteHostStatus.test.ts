@@ -6,8 +6,6 @@ const baseInput = {
 	isLocal: false,
 	hostId: "host-1",
 	hostName: "Build Mac",
-	hostRowsReady: true,
-	hostIsOnline: true,
 	infoState: "success" as const,
 	hostVersion: "99.0.0",
 	minVersion: "1.0.0",
@@ -20,12 +18,33 @@ describe("deriveRemoteHostStatus", () => {
 		});
 	});
 
-	it("shows offline when cloud presence says the host is offline", () => {
+	it("keeps loading while probing a host that cloud presence marked offline", () => {
 		expect(
 			deriveRemoteHostStatus({
 				...baseInput,
-				hostIsOnline: false,
 				infoState: "idle",
+			}),
+		).toEqual({
+			status: "loading",
+		});
+	});
+
+	it("allows a reachable host even when cloud presence is stale offline", () => {
+		expect(
+			deriveRemoteHostStatus({
+				...baseInput,
+				infoState: "success",
+			}),
+		).toEqual({
+			status: "ready",
+		});
+	});
+
+	it("shows offline when a host probe fails", () => {
+		expect(
+			deriveRemoteHostStatus({
+				...baseInput,
+				infoState: "error",
 			}),
 		).toEqual({
 			status: "offline",
@@ -52,9 +71,13 @@ describe("deriveRemoteHostStatus", () => {
 		});
 	});
 
-	it("allows a reachable host even before host collection readiness settles", () => {
+	it("allows a reachable host even before host metadata resolves", () => {
 		expect(
-			deriveRemoteHostStatus({ ...baseInput, hostRowsReady: false }),
+			deriveRemoteHostStatus({
+				...baseInput,
+				hostName: null,
+				infoState: "success",
+			}),
 		).toEqual({
 			status: "ready",
 		});

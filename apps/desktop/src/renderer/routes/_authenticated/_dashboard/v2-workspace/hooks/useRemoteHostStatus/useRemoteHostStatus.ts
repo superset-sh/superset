@@ -23,14 +23,30 @@ export type RemoteHostStatus =
 	| { status: "ready" };
 
 const HOST_INFO_STALE_MS = 30_000;
+const HOST_INFO_TIMEOUT_MS = 5_000;
+
+async function withTimeout<T>(
+	promise: Promise<T>,
+	timeoutMs: number,
+	message: string,
+): Promise<T> {
+	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	const timeoutPromise = new Promise<never>((_, reject) => {
+		timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+	});
+
+	try {
+		return await Promise.race([promise, timeoutPromise]);
+	} finally {
+		if (timeoutId) clearTimeout(timeoutId);
+	}
+}
 
 export interface RemoteHostStatusInput {
 	workspaceExists: boolean;
 	isLocal: boolean;
 	hostId: string;
 	hostName: string | null;
-	hostRowsReady: boolean;
-	hostIsOnline: boolean | null;
 	infoState: "idle" | "pending" | "success" | "error";
 	hostVersion: string | null;
 	minVersion: string;
@@ -41,8 +57,6 @@ export function deriveRemoteHostStatus({
 	isLocal,
 	hostId,
 	hostName,
-	hostRowsReady,
-	hostIsOnline,
 	infoState,
 	hostVersion,
 	minVersion,
@@ -51,19 +65,8 @@ export function deriveRemoteHostStatus({
 	if (isLocal) return { status: "skip" };
 
 	const resolvedHostName = hostName ?? "Unknown host";
-	if (hostRowsReady && hostIsOnline === false) {
-		return {
-			status: "offline",
-			hostId,
-			hostName: resolvedHostName,
-		};
-	}
 
-	if (
-		(!hostRowsReady && infoState !== "success" && infoState !== "error") ||
-		infoState === "pending" ||
-		infoState === "idle"
-	) {
+	if (infoState === "pending" || infoState === "idle") {
 		return { status: "loading" };
 	}
 
@@ -99,7 +102,7 @@ export function useRemoteHostStatus(
 		workspace != null && machineId != null && workspace.hostId === machineId;
 	const filterMachineId = !workspace || isLocal ? "" : hostId;
 
-	const { data: hostRows = [], isReady: hostRowsReady } = useLiveQuery(
+	const { data: hostRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ hosts: collections.v2Hosts })
@@ -116,8 +119,6 @@ export function useRemoteHostStatus(
 		[collections, organizationId, filterMachineId],
 	);
 	const hostRow = hostRows[0] ?? null;
-	const hostLookupReady = hostRowsReady || hostRow != null;
-	const hostKnownOffline = hostLookupReady && hostRow?.isOnline === false;
 
 	const hostUrl = `${relayUrl}/hosts/${buildHostRoutingKey(
 		organizationId,
@@ -125,9 +126,14 @@ export function useRemoteHostStatus(
 	)}`;
 
 	const infoQuery = useQuery({
-		queryKey: ["remoteHostInfo", organizationId, hostId],
-		queryFn: () => getHostServiceClientByUrl(hostUrl).host.info.query(),
-		enabled: workspace != null && !isLocal && !hostKnownOffline,
+		queryKey: ["remoteHostInfo", organizationId, hostId, hostUrl],
+		queryFn: () =>
+			withTimeout(
+				getHostServiceClientByUrl(hostUrl).host.info.query(),
+				HOST_INFO_TIMEOUT_MS,
+				`Timed out checking host ${hostId}`,
+			),
+		enabled: workspace != null && !isLocal,
 		staleTime: HOST_INFO_STALE_MS,
 		retry: false,
 	});
@@ -137,8 +143,6 @@ export function useRemoteHostStatus(
 		isLocal,
 		hostId,
 		hostName: hostRow?.name ?? null,
-		hostRowsReady: hostLookupReady,
-		hostIsOnline: hostRow?.isOnline ?? null,
 		infoState: infoQuery.isPending
 			? "pending"
 			: infoQuery.isError

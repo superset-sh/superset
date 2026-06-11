@@ -6,6 +6,7 @@ import {
 	ConversationScrollButton,
 	useConversationContext,
 } from "@superset/ui/ai-elements/conversation";
+import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import type {
@@ -18,12 +19,11 @@ import { InterruptedFooter } from "./components/InterruptedFooter";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
-import { ThinkingMessage } from "./components/ThinkingMessage";
-import { ToolPreviewMessage } from "./components/ToolPreviewMessage";
 import { UserMessage } from "./components/UserMessage";
 import { useChatMessageSearch } from "./hooks/useChatMessageSearch";
 import {
 	findLatestSubmitPlanToolCallId,
+	getActiveTurnKey,
 	getCurrentAssistantMessage,
 	getInterruptedPreview,
 	getStreamingPreviewToolParts,
@@ -31,6 +31,14 @@ import {
 	removeInterruptedSourceMessage,
 	resolvePendingPlanToolCallId,
 } from "./utils/messageListHelpers";
+
+const STANDALONE_ASSISTANT_MARKDOWN_CLASSNAME =
+	"text-[15px] leading-7 " +
+	"[&_p]:my-3 [&_p]:leading-7 " +
+	"[&_ol]:my-3 [&_ul]:my-3 [&_li]:my-1.5 [&_li]:leading-7 " +
+	"[&_strong]:font-semibold " +
+	"[&_:not(pre)>code]:break-words [&_:not(pre)>code]:whitespace-normal " +
+	"[&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5";
 
 function ScrollAnchor({
 	questionId,
@@ -92,6 +100,7 @@ export function ChatMessageList({
 	onPlanRespond,
 	pendingQuestion,
 	answeredQuestionId,
+	topInset = "default",
 	editingUserMessageId,
 	isEditSubmitting,
 	onStartEditUserMessage,
@@ -174,25 +183,48 @@ export function ChatMessageList({
 	const shouldShowStandalonePendingPlan = Boolean(
 		pendingPlanApproval && !pendingPlanToolCallId,
 	);
+	const assistantMarkdownClassName =
+		topInset === "standalone"
+			? STANDALONE_ASSISTANT_MARKDOWN_CLASSNAME
+			: undefined;
+	const activeTurnKey = useMemo(
+		() => getActiveTurnKey(renderedMessages),
+		[renderedMessages],
+	);
 
 	const canShowPendingAssistantUi =
 		isAwaitingAssistant && !currentAssistantMessage && !pendingApproval;
-	const shouldShowThinking =
+	const shouldShowPendingAssistantPlaceholder =
 		canShowPendingAssistantUi &&
-		!pendingPlanApproval &&
 		!pendingQuestion &&
-		previewToolParts.length === 0;
-	const shouldShowToolPreview =
-		canShowPendingAssistantUi &&
-		previewToolParts.length > 0 &&
-		(!pendingPlanApproval || Boolean(pendingPlanToolCallId));
+		(!pendingPlanApproval ||
+			(previewToolParts.length > 0 && Boolean(pendingPlanToolCallId)));
+	const streamingAssistantMessage = useMemo((): ChatMessage | null => {
+		if (currentAssistantMessage) return currentAssistantMessage;
+		if (!shouldShowPendingAssistantPlaceholder) return null;
+
+		return {
+			id: `pending-assistant-${sessionId ?? "no-session"}`,
+			role: "assistant",
+			content: [],
+			createdAt: new Date(0),
+		} as ChatMessage;
+	}, [
+		currentAssistantMessage,
+		sessionId,
+		shouldShowPendingAssistantPlaceholder,
+	]);
 
 	const hasConversationContent =
-		renderedMessages.length > 0 || Boolean(interruptedPreview);
+		renderedMessages.length > 0 ||
+		Boolean(interruptedPreview) ||
+		Boolean(streamingAssistantMessage);
 	const shouldShowConversationLoading =
 		isConversationLoading && !isAwaitingAssistant && !hasConversationContent;
 	const shouldShowEmptyState =
-		!shouldShowConversationLoading && !hasConversationContent;
+		!isAwaitingAssistant &&
+		!shouldShowConversationLoading &&
+		!hasConversationContent;
 
 	const inlineToolStateProps = {
 		pendingPlanApproval,
@@ -203,7 +235,16 @@ export function ChatMessageList({
 
 	return (
 		<Conversation className="flex-1">
-			<ConversationContent className="mx-auto w-full max-w-[680px] py-6">
+			<ConversationContent
+				className={cn(
+					"mx-auto w-full max-w-[680px] pb-6",
+					topInset === "standalone" && hasConversationContent
+						? "pt-32"
+						: topInset === "standalone"
+							? "pt-20"
+							: "pt-6",
+				)}
+			>
 				<div ref={messageListRef} className="flex flex-col gap-6">
 					{shouldShowConversationLoading ? (
 						<ConversationLoadingState />
@@ -244,6 +285,7 @@ export function ChatMessageList({
 									workspaceCwd={workspaceCwd}
 									isStreaming={false}
 									previewToolParts={[]}
+									messageResponseClassName={assistantMarkdownClassName}
 									{...inlineToolStateProps}
 								/>
 							);
@@ -260,37 +302,25 @@ export function ChatMessageList({
 							isStreaming={false}
 							isInterrupted
 							previewToolParts={[]}
+							messageResponseClassName={assistantMarkdownClassName}
 							{...inlineToolStateProps}
 							footer={<InterruptedFooter />}
 						/>
 					)}
-					{isRunning && currentAssistantMessage && (
+					{isRunning && streamingAssistantMessage && (
 						<AssistantMessage
-							key={`current-${currentAssistantMessage.id}`}
-							message={currentAssistantMessage}
+							key={`streaming-assistant-${activeTurnKey}`}
+							message={streamingAssistantMessage}
 							workspaceId={workspaceId}
 							sessionId={sessionId}
 							organizationId={organizationId}
 							workspaceCwd={workspaceCwd}
 							isStreaming
 							previewToolParts={previewToolParts}
+							messageResponseClassName={assistantMarkdownClassName}
 							{...inlineToolStateProps}
 						/>
 					)}
-					{shouldShowThinking ? <ThinkingMessage /> : null}
-					{shouldShowToolPreview ? (
-						<ToolPreviewMessage
-							previewToolParts={previewToolParts}
-							workspaceId={workspaceId}
-							sessionId={sessionId}
-							organizationId={organizationId}
-							workspaceCwd={workspaceCwd}
-							pendingPlanApproval={pendingPlanApproval}
-							pendingPlanToolCallId={pendingPlanToolCallId}
-							isPlanSubmitting={isPlanSubmitting}
-							onPlanRespond={onPlanRespond}
-						/>
-					) : null}
 					{pendingApproval && (
 						<PendingApprovalMessage
 							approval={pendingApproval}

@@ -3,6 +3,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createFileRoute,
 	Outlet,
+	useLocation,
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
@@ -37,6 +38,7 @@ interface DeleteTarget {
 
 function DashboardLayout() {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const collections = useCollections();
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
@@ -131,13 +133,14 @@ function DashboardLayout() {
 
 	const sidebarOutsideColumn =
 		isWorkspaceSidebarOpen && !isWorkspaceSidebarCollapsed();
+	const isStandaloneChatRoute = location.pathname === "/chat";
 
 	return (
 		<div className="flex h-full w-full overflow-hidden">
 			<CommandPaletteHost />
 			{sidebarOutsideColumn && sidebarPanel}
 			<div className="flex flex-1 flex-col min-w-0 min-h-0">
-				<TopBar />
+				{!isStandaloneChatRoute && <TopBar />}
 				<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 					{!sidebarOutsideColumn && sidebarPanel}
 					<div className="flex flex-1 min-h-0 min-w-0">

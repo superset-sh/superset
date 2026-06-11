@@ -8,6 +8,9 @@ export function workspaceModelProvidersQueryKey(
 	return ["workspace-model-providers", hostUrl ?? null] as const;
 }
 
-export function chatModelsQueryKey(hostUrl: string | null | undefined) {
-	return ["chat", "models", hostUrl ?? null] as const;
+export function chatModelsQueryKey(
+	hostUrl: string | null | undefined,
+	scope?: string | null,
+) {
+	return ["chat", "models", hostUrl ?? null, scope ?? null] as const;
 }

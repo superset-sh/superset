@@ -21,3 +21,4 @@ Shared chat runtime, desktop auth storage, slash commands, and client hooks.
 - [Error Handling](./error-handling.md)
 - [Logging Guidelines](./logging-guidelines.md)
 - [Quality Guidelines](./quality-guidelines.md)
+- [Standalone Chat Runtime](./standalone-chat-runtime.md)

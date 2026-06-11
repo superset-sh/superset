@@ -6,10 +6,12 @@ import {
 export type PendingUserTurn =
 	| {
 			kind: "append";
+			sessionId?: string | null;
 			message: ChatHistoryMessage;
 	  }
 	| {
 			kind: "restart";
+			sessionId?: string | null;
 			message: ChatHistoryMessage;
 			prefixMessages: ChatHistoryMessage[];
 	  };
@@ -24,6 +26,7 @@ export function shouldClearPendingUserTurn({
 	isAwaitingAssistant: boolean;
 }): boolean {
 	if (!pendingUserTurn) return false;
+	if (isAwaitingAssistant) return false;
 	if (
 		!hasMatchingUserMessage({
 			messages,
@@ -33,11 +36,33 @@ export function shouldClearPendingUserTurn({
 		return false;
 	}
 
-	if (pendingUserTurn.kind === "restart" && isAwaitingAssistant) {
-		return false;
-	}
-
 	return true;
+}
+
+export function shouldRetainPendingUserTurnForSession({
+	pendingUserTurn,
+	sessionId,
+}: {
+	pendingUserTurn: PendingUserTurn | null;
+	sessionId: string | null;
+}): boolean {
+	return Boolean(
+		pendingUserTurn?.sessionId && pendingUserTurn.sessionId === sessionId,
+	);
+}
+
+export function bindPendingUserTurnToSession({
+	pendingUserTurn,
+	messageId,
+	sessionId,
+}: {
+	pendingUserTurn: PendingUserTurn | null;
+	messageId: string;
+	sessionId: string;
+}): PendingUserTurn | null {
+	if (!pendingUserTurn) return null;
+	if (pendingUserTurn.message.id !== messageId) return pendingUserTurn;
+	return { ...pendingUserTurn, sessionId };
 }
 
 export function getVisibleMessagesWithPendingUserTurn({

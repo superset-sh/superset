@@ -13,6 +13,7 @@ import { builtinModules } from "node:module";
 import { join } from "node:path";
 import ts from "typescript";
 import {
+	claudeAgentSdkPlatformPackageName,
 	mainExternalizedDependencies,
 	requiredMaterializedNodeModules,
 } from "../runtime-dependencies";
@@ -526,6 +527,32 @@ function validateDuckdbPrepared(): void {
 	);
 }
 
+function validateClaudeAgentSdkPrepared(): void {
+	const nodeModulesDir = join(projectRoot, "node_modules");
+	const binaryName = process.platform === "win32" ? "claude.exe" : "claude";
+	const binaryPath = join(
+		nodeModulesDir,
+		claudeAgentSdkPlatformPackageName,
+		binaryName,
+	);
+	assertExists(
+		binaryPath,
+		"Missing Claude Agent SDK platform binary for standalone Chat runtime.",
+	);
+	if (lstatSync(binaryPath).isSymbolicLink()) {
+		fail(
+			[
+				"Claude Agent SDK platform binary is still a symlink.",
+				`Path: ${binaryPath}`,
+				"Run `bun run copy:native-modules` and ensure Bun store symlinks are replaced with real files.",
+			].join("\n"),
+		);
+	}
+	console.log(
+		`[validate:native-runtime] OK: Claude Agent SDK platform binary present (${claudeAgentSdkPlatformPackageName})`,
+	);
+}
+
 function validateTrellisCliRuntime(): void {
 	const nodeModulesDir = join(projectRoot, "node_modules");
 	const trellisBinPath = join(
@@ -572,6 +599,7 @@ function main(): void {
 	validateNativeModulesPrepared();
 	validateParcelWatcherPrepared();
 	validateDuckdbPrepared();
+	validateClaudeAgentSdkPrepared();
 	validateTrellisCliRuntime();
 	console.log("[validate:native-runtime] All checks passed");
 }

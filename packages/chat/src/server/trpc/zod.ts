@@ -78,6 +78,15 @@ export const thinkingLevelSchema = z.enum([
 	"xhigh",
 ]);
 
+export const permissionModeSchema = z.enum([
+	"default",
+	"auto",
+	"acceptEdits",
+	"plan",
+	"dontAsk",
+	"bypassPermissions",
+]);
+
 export const sendMessageInput = z.object({
 	sessionId: z.uuid(),
 	cwd: z.string().optional(),
@@ -85,7 +94,11 @@ export const sendMessageInput = z.object({
 	metadata: z
 		.object({
 			model: z.string().optional(),
+			modelProviderId: z.uuid().optional(),
+			modelProviderName: z.string().optional(),
+			modelProviderProtocol: z.string().optional(),
 			thinkingLevel: thinkingLevelSchema.optional(),
+			permissionMode: permissionModeSchema.optional(),
 		})
 		.optional(),
 });
@@ -98,7 +111,11 @@ export const restartFromMessageInput = z.object({
 	metadata: z
 		.object({
 			model: z.string().optional(),
+			modelProviderId: z.uuid().optional(),
+			modelProviderName: z.string().optional(),
+			modelProviderProtocol: z.string().optional(),
 			thinkingLevel: thinkingLevelSchema.optional(),
+			permissionMode: permissionModeSchema.optional(),
 		})
 		.optional(),
 });
@@ -137,3 +154,4 @@ export type ApprovalRespondInput = z.infer<typeof approvalRespondInput>;
 export type QuestionRespondInput = z.infer<typeof questionRespondInput>;
 export type PlanRespondInput = z.infer<typeof planRespondInput>;
 export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>;
+export type PermissionModeInput = z.infer<typeof permissionModeSchema>;

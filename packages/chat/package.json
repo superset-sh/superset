@@ -36,9 +36,12 @@
 	"dependencies": {
 		"@ai-sdk/anthropic": "3.0.64",
 		"@ai-sdk/openai": "3.0.36",
+		"@anthropic-ai/claude-agent-sdk": "0.3.160",
+		"@anthropic-ai/sdk": "0.93.0",
 		"@mastra/core": "1.33.1",
 		"@mastra/mcp": "1.7.0",
 		"@mastra/memory": "1.18.0",
+		"@modelcontextprotocol/sdk": "1.29.0",
 		"@superset/trpc": "workspace:*",
 		"@superset/workspace-fs": "workspace:*",
 		"@trpc/client": "11.16.0",

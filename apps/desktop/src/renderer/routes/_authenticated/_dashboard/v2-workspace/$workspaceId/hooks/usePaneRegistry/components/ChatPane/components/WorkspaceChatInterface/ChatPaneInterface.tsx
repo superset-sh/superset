@@ -233,8 +233,7 @@ export function ChatPaneInterface({
 	const setThinkingLevel = useChatPreferencesStore(
 		(state) => state.setThinkingLevel,
 	);
-	const [permissionMode, setPermissionMode] =
-		useState<PermissionMode>("bypassPermissions");
+	const [permissionMode, setPermissionMode] = useState<PermissionMode>("auto");
 	const [submitStatus, setSubmitStatus] = useState<ChatStatus | undefined>(
 		undefined,
 	);

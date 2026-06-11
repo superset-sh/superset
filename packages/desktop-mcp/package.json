@@ -20,7 +20,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "1.28.0",
+		"@modelcontextprotocol/sdk": "1.29.0",
 		"dotenv": "17.3.1",
 		"puppeteer-core": "24.40.0",
 		"zod": "4.3.6"

@@ -2,10 +2,10 @@ import type { StartFreshSessionResult } from "renderer/components/Chat/ChatInter
 import type { ChatLaunchConfig } from "shared/tabs-types";
 
 export interface ChatPaneInterfaceProps {
-	paneId: string;
+	paneId?: string;
 	sessionId: string | null;
 	initialLaunchConfig: ChatLaunchConfig | null;
-	workspaceId: string;
+	workspaceId: string | null;
 	organizationId: string | null;
 	cwd: string;
 	isFocused: boolean;
@@ -13,5 +13,8 @@ export interface ChatPaneInterfaceProps {
 	ensureSessionReady: () => Promise<boolean>;
 	onStartFreshSession: () => Promise<StartFreshSessionResult>;
 	onConsumeLaunchConfig: () => void;
-	onUserMessageSubmitted?: (message: string) => void;
+	onUserMessageSubmitted?: (message: string, sessionId: string | null) => void;
+	onSessionReady?: (sessionId: string) => void;
+	placeholder?: string;
+	messageListTopInset?: "default" | "standalone";
 }

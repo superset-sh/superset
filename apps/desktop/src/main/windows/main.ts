@@ -161,17 +161,6 @@ export async function MainWindow() {
 				}
 			},
 		);
-
-		window.on("unresponsive", () => {
-			log.warn("[main-window] Renderer became unresponsive", {
-				url: window.webContents.getURL(),
-			});
-		});
-		window.on("responsive", () => {
-			log.info("[main-window] Renderer became responsive", {
-				url: window.webContents.getURL(),
-			});
-		});
 	}
 
 	if (ipcHandler) {
@@ -275,7 +264,39 @@ export async function MainWindow() {
 	// write isMaximized: true back to disk before the user touches the window.
 	let initialized = false;
 	let hasCompletedFirstLoad = false;
+	let rendererRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
+	let rendererRecoveryAttempts = 0;
 	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+	const clearRendererRecovery = () => {
+		if (!rendererRecoveryTimer) return;
+		clearTimeout(rendererRecoveryTimer);
+		rendererRecoveryTimer = null;
+	};
+	const scheduleRendererRecovery = (
+		reason: "gone" | "unresponsive",
+		delayMs: number,
+		details?: unknown,
+	) => {
+		if (window.isDestroyed() || rendererRecoveryTimer) return;
+		const url = window.webContents.getURL();
+		const level = reason === "gone" ? "error" : "warn";
+		log[level]("[main-window] Scheduling renderer recovery", {
+			reason,
+			url,
+			details,
+		});
+		rendererRecoveryTimer = setTimeout(() => {
+			rendererRecoveryTimer = null;
+			if (window.isDestroyed()) return;
+			rendererRecoveryAttempts += 1;
+			log.warn("[main-window] Reloading renderer after unhealthy state", {
+				reason,
+				attempt: rendererRecoveryAttempts,
+				url: window.webContents.getURL(),
+			});
+			window.webContents.reloadIgnoringCache();
+		}, delayMs);
+	};
 	const debouncedSave = () => {
 		if (!initialized || window.isDestroyed()) return;
 		if (saveTimeout) clearTimeout(saveTimeout);
@@ -308,6 +329,8 @@ export async function MainWindow() {
 	});
 
 	window.webContents.on("did-finish-load", () => {
+		clearRendererRecovery();
+		rendererRecoveryAttempts = 0;
 		markStartup("main-window:renderer-did-finish-load", {
 			url: window.webContents.getURL(),
 		});
@@ -343,6 +366,20 @@ export async function MainWindow() {
 	window.webContents.on("render-process-gone", (_event, details) => {
 		console.error("[main-window] Renderer process gone:", details);
 		log.error("[main-window] Renderer process gone", details);
+		scheduleRendererRecovery("gone", 250, details);
+	});
+
+	window.on("unresponsive", () => {
+		log.warn("[main-window] Renderer became unresponsive", {
+			url: window.webContents.getURL(),
+		});
+		scheduleRendererRecovery("unresponsive", 10_000);
+	});
+	window.on("responsive", () => {
+		log.info("[main-window] Renderer became responsive", {
+			url: window.webContents.getURL(),
+		});
+		clearRendererRecovery();
 	});
 
 	window.webContents.on("preload-error", (_event, preloadPath, error) => {

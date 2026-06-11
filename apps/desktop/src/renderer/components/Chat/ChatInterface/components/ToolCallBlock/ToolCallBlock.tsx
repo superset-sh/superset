@@ -1,3 +1,4 @@
+import { isKnownAgentDisplayToolName } from "@superset/chat/shared";
 import { BashTool } from "@superset/ui/ai-elements/bash-tool";
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
@@ -18,6 +19,7 @@ import {
 	normalizeToolName,
 	toWsToolState,
 } from "../../utils/tool-helpers";
+import { AgentToolCardV2 } from "../AgentTimeline";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { AskUserQuestionToolCall } from "./components/AskUserQuestionToolCall";
 import { CreateTaskToolCall } from "./components/CreateTaskToolCall";
@@ -81,7 +83,8 @@ export function ToolCallBlock({
 	const args = getArgs(part);
 	const result = getResult(part);
 	const state = toWsToolState(part);
-	const toolName = normalizeToolName(getToolName(part));
+	const rawToolName = getToolName(part);
+	const toolName = normalizeToolName(rawToolName);
 	const hideUnchangedRegions = useChangesStore(
 		(store) => store.hideUnchangedRegions,
 	);
@@ -191,6 +194,10 @@ export function ToolCallBlock({
 			workspaceId,
 		],
 	);
+
+	if (isKnownAgentDisplayToolName(rawToolName)) {
+		return <AgentToolCardV2 part={part} />;
+	}
 
 	const outputObject =
 		typeof result.output === "object" && result.output !== null

@@ -12,6 +12,7 @@ interface StreamingMessageTextProps {
 	isAnimating: boolean;
 	mermaid: MessageResponseProps["mermaid"];
 	components?: MessageResponseProps["components"];
+	className?: string;
 }
 
 export function StreamingMessageText({
@@ -19,6 +20,7 @@ export function StreamingMessageText({
 	isAnimating,
 	mermaid,
 	components,
+	className,
 }: StreamingMessageTextProps) {
 	const [displayText, setDisplayText] = useState(text);
 
@@ -47,6 +49,7 @@ export function StreamingMessageText({
 	return (
 		<MessageResponse
 			animated={false}
+			className={className}
 			isAnimating={isAnimating}
 			mermaid={mermaid}
 			components={components}

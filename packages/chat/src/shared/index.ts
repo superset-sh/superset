@@ -1,3 +1,10 @@
+export {
+	type AgentToolClassification,
+	type AgentToolKind,
+	classifyAgentToolName,
+	isKnownAgentDisplayToolName,
+	normalizeAgentToolName,
+} from "./agent-tool-normalization";
 export { tokenizeSlashCommandArguments } from "./slash-command-arguments";
 export {
 	findSlashCommandByNameOrAlias,

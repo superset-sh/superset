@@ -4,6 +4,10 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { initTRPC } from "@trpc/server";
 import { createMastraCode } from "mastracode";
 import superjson from "superjson";
+import {
+	type StandaloneChatRuntimeLogger,
+	StandaloneChatRuntimeManager,
+} from "./standalone-runtime";
 import { searchFiles } from "./utils/file-search";
 import {
 	authenticateRuntimeMcpServer,
@@ -40,6 +44,19 @@ const ENABLE_MASTRA_MCP_SERVERS = false;
 type RuntimeQuestionPayload = Parameters<
 	RuntimeSession["harness"]["respondToQuestion"]
 >[0];
+type RuntimeDisplayState = ReturnType<
+	RuntimeSession["harness"]["getDisplayState"]
+> & { errorMessage: string | null };
+type StandaloneDisplayState = ReturnType<
+	StandaloneChatRuntimeManager["getDisplayState"]
+>;
+type HarnessMessage = Awaited<
+	ReturnType<RuntimeSession["harness"]["listMessages"]>
+>[number];
+type StandaloneRuntimeMessage = Awaited<
+	ReturnType<StandaloneChatRuntimeManager["listMessages"]>
+>[number];
+type RuntimeMessages = Array<HarnessMessage | StandaloneRuntimeMessage>;
 
 function respondToQuestionWithOptimisticState(
 	runtime: RuntimeSession,
@@ -90,6 +107,7 @@ export interface ChatRuntimeServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
 	apiUrl: string;
 	onLifecycleEvent?: (event: LifecycleEvent) => void;
+	standaloneRuntimeLogger?: StandaloneChatRuntimeLogger;
 }
 
 export class ChatRuntimeService {
@@ -99,6 +117,7 @@ export class ChatRuntimeService {
 		Promise<RuntimeSession>
 	>();
 	private readonly apiClient: ReturnType<typeof createTRPCClient<AppRouter>>;
+	private readonly standaloneRuntime: StandaloneChatRuntimeManager;
 
 	constructor(readonly opts: ChatRuntimeServiceOptions) {
 		this.apiClient = createTRPCClient<AppRouter>({
@@ -112,6 +131,11 @@ export class ChatRuntimeService {
 				}),
 			],
 		});
+		this.standaloneRuntime = new StandaloneChatRuntimeManager(
+			this.apiClient,
+			undefined,
+			opts.standaloneRuntimeLogger,
+		);
 	}
 
 	private async getOrCreateRuntime(
@@ -229,6 +253,11 @@ export class ChatRuntimeService {
 				getDisplayState: t.procedure
 					.input(displayStateInput)
 					.query(async ({ input }) => {
+						if (!input.cwd) {
+							return this.standaloneRuntime.getDisplayState(input.sessionId) as
+								| RuntimeDisplayState
+								| StandaloneDisplayState;
+						}
 						const runtime = await this.getOrCreateRuntime(
 							input.sessionId,
 							input.cwd,
@@ -280,6 +309,12 @@ export class ChatRuntimeService {
 				listMessages: t.procedure
 					.input(listMessagesInput)
 					.query(async ({ input }) => {
+						if (!input.cwd) {
+							const messages = await this.standaloneRuntime.listMessages(
+								input.sessionId,
+							);
+							return messages as RuntimeMessages;
+						}
 						const runtime = await this.getOrCreateRuntime(
 							input.sessionId,
 							input.cwd,
@@ -290,6 +325,9 @@ export class ChatRuntimeService {
 				sendMessage: t.procedure
 					.input(sendMessageInput)
 					.mutation(async ({ input }) => {
+						if (!input.cwd) {
+							return this.standaloneRuntime.sendMessage(input);
+						}
 						const runtime = await this.getOrCreateRuntime(
 							input.sessionId,
 							input.cwd,
@@ -322,6 +360,9 @@ export class ChatRuntimeService {
 				restartFromMessage: t.procedure
 					.input(restartFromMessageInput)
 					.mutation(async ({ input }) => {
+						if (!input.cwd) {
+							return this.standaloneRuntime.restartFromMessage(input);
+						}
 						const runtime = await this.getOrCreateRuntime(
 							input.sessionId,
 							input.cwd,
@@ -345,6 +386,10 @@ export class ChatRuntimeService {
 					}),
 
 				stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
+					if (!input.cwd) {
+						this.standaloneRuntime.abort(input.sessionId);
+						return;
+					}
 					const runtime = await this.getOrCreateRuntime(
 						input.sessionId,
 						input.cwd,
@@ -353,6 +398,10 @@ export class ChatRuntimeService {
 				}),
 
 				abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
+					if (!input.cwd) {
+						this.standaloneRuntime.abort(input.sessionId);
+						return;
+					}
 					const runtime = await this.getOrCreateRuntime(
 						input.sessionId,
 						input.cwd,
@@ -364,6 +413,12 @@ export class ChatRuntimeService {
 					respond: t.procedure
 						.input(approvalRespondInput)
 						.mutation(async ({ input }) => {
+							if (!input.cwd) {
+								return this.standaloneRuntime.respondToApproval(
+									input.sessionId,
+									input.payload,
+								);
+							}
 							const runtime = await this.getOrCreateRuntime(
 								input.sessionId,
 								input.cwd,

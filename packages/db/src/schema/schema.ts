@@ -785,6 +785,151 @@ export const chatSessions = pgTable(
 export type InsertChatSession = typeof chatSessions.$inferInsert;
 export type SelectChatSession = typeof chatSessions.$inferSelect;
 
+export type ChatMessageContent =
+	| { type: "text"; text: string }
+	| { type: "reasoning"; text: string }
+	| { type: "thinking"; thinking: string }
+	| {
+			type: "tool_call";
+			id: string;
+			name: string;
+			args: Record<string, unknown>;
+	  }
+	| {
+			type: "tool_result";
+			id: string;
+			name: string;
+			result: unknown;
+			isError?: boolean;
+	  }
+	| {
+			type: "permission_requested";
+			id: string;
+			toolCallId: string;
+			toolName: string;
+			args: Record<string, unknown>;
+			title?: string;
+			displayName?: string;
+			description?: string;
+			decisionReason?: string;
+			blockedPath?: string;
+	  }
+	| {
+			type: "permission_resolved";
+			id: string;
+			requestId: string;
+			toolCallId: string;
+			toolName: string;
+			decision: "approve" | "decline" | "always_allow_category" | "denied";
+			message?: string;
+	  }
+	| {
+			type: "tool_progress";
+			id: string;
+			toolCallId: string;
+			toolName: string;
+			elapsedTimeSeconds?: number;
+			status?: "running" | "completed" | "failed" | "cancelled";
+			summary?: string;
+			taskId?: string;
+	  }
+	| {
+			type: "subagent_event";
+			id: string;
+			taskId: string;
+			toolCallId?: string;
+			status:
+				| "started"
+				| "progress"
+				| "updated"
+				| "completed"
+				| "failed"
+				| "stopped";
+			description?: string;
+			subagentType?: string;
+			summary?: string;
+			lastToolName?: string;
+			usage?: {
+				totalTokens?: number;
+				toolUses?: number;
+				durationMs?: number;
+			};
+	  }
+	| {
+			type: "mode_changed";
+			id: string;
+			provider: string;
+			mode: string;
+			label?: string;
+	  }
+	| {
+			type: "model_changed";
+			id: string;
+			provider: string;
+			model: string;
+			label?: string;
+	  }
+	| {
+			type: "context_attachment";
+			id: string;
+			kind: "file" | "image" | "url" | "tool_artifact";
+			title: string;
+			url?: string;
+			mediaType?: string;
+			filename?: string;
+			sourceToolCallId?: string;
+	  }
+	| {
+			type: "branch_marker";
+			id: string;
+			label: string;
+			branchId?: string;
+			status: "placeholder" | "available" | "active";
+	  }
+	| {
+			type: "file";
+			data: string;
+			mediaType: string;
+			filename?: string;
+	  }
+	| {
+			type: "image";
+			data: string;
+			mimeType: string;
+	  };
+
+export const chatMessages = pgTable(
+	"chat_messages",
+	{
+		id: text().primaryKey(),
+		chatSessionId: uuid("chat_session_id")
+			.notNull()
+			.references(() => chatSessions.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		createdBy: uuid("created_by")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		role: text().notNull().$type<"user" | "assistant">(),
+		content: jsonb().notNull().$type<ChatMessageContent[]>(),
+		stopReason: text("stop_reason").$type<"end_turn" | "error" | "aborted">(),
+		errorMessage: text("error_message"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("chat_messages_session_created_idx").on(
+			table.chatSessionId,
+			table.createdAt,
+		),
+		index("chat_messages_org_idx").on(table.organizationId),
+		index("chat_messages_created_by_idx").on(table.createdBy),
+	],
+);
+
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
+export type SelectChatMessage = typeof chatMessages.$inferSelect;
+
 export const chatAttachments = pgTable(
 	"chat_attachments",
 	{

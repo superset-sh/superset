@@ -1,6 +1,7 @@
 import type { UseChatDisplayReturn } from "@superset/chat/client";
 
 export type ChatMessage = NonNullable<UseChatDisplayReturn["messages"]>[number];
+export type ChatMessageContent = Array<ChatMessage["content"][number]>;
 
 export type ChatActiveTools = NonNullable<UseChatDisplayReturn["activeTools"]>;
 
@@ -35,7 +36,7 @@ export type ChatPendingQuestion = UseChatDisplayReturn["pendingQuestion"];
 export interface InterruptedMessagePreview {
 	id: string;
 	sourceMessageId: string;
-	content: ChatMessage["content"];
+	content: ChatMessageContent;
 }
 
 export interface UserMessageActionPayload {
@@ -82,6 +83,7 @@ export interface ChatMessageListProps {
 	}) => Promise<void>;
 	pendingQuestion: ChatPendingQuestion;
 	answeredQuestionId: string | null;
+	topInset?: "default" | "standalone";
 	editingUserMessageId: string | null;
 	isEditSubmitting: boolean;
 	onStartEditUserMessage: (messageId: string) => void;

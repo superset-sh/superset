@@ -56,6 +56,7 @@ interface ChatInputFooterProps {
 	isQuestionSubmitting?: boolean;
 	onQuestionRespond?: (questionId: string, answer: string) => Promise<void>;
 	onQuestionCancel?: () => void;
+	placeholder?: string;
 }
 
 export function ChatInputFooter({
@@ -84,6 +85,7 @@ export function ChatInputFooter({
 	isQuestionSubmitting,
 	onQuestionRespond,
 	onQuestionCancel,
+	placeholder = "Ask to make changes, @mention files, run /commands",
 }: ChatInputFooterProps) {
 	useFocusPromptOnPane(isFocused);
 
@@ -210,7 +212,7 @@ export function ChatInputFooter({
 									previewSlashCommand={previewSlashCommand}
 									slashCommands={slashCommands}
 									availableModels={availableModels}
-									placeholder="Ask to make changes, @mention files, run /commands"
+									placeholder={placeholder}
 									focusShortcutText={
 										showFocusHint ? focusShortcutText : undefined
 									}

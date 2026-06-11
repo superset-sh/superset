@@ -3,11 +3,11 @@ import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import { FileSearchIcon } from "lucide-react";
 import { type ReactNode, useCallback } from "react";
+import { AgentTimelinePart } from "renderer/components/Chat/ChatInterface/components/AgentTimeline";
 import { StreamingMessageText } from "renderer/components/Chat/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
 import { ReasoningBlock } from "renderer/components/Chat/ChatInterface/components/ReasoningBlock";
 import { ToolCallBlock } from "renderer/components/Chat/ChatInterface/components/ToolCallBlock";
 import type { ToolPart } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
-import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { AttachmentChip } from "../AttachmentChip";
 import { PendingPlanApprovalMessage } from "../PendingPlanApprovalMessage";
@@ -35,6 +35,7 @@ interface AssistantMessageProps {
 		action: "approved" | "rejected";
 		feedback?: string;
 	}) => Promise<void>;
+	messageResponseClassName?: string;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -75,7 +76,7 @@ function toToolPartFromCall({
 	isStreaming: boolean;
 }): ToolPart {
 	return {
-		type: `tool-${normalizeToolName(part.name)}` as ToolPart["type"],
+		type: `tool-${part.name}` as ToolPart["type"],
 		toolCallId: part.id,
 		state: result?.isError
 			? "output-error"
@@ -91,7 +92,7 @@ function toToolPartFromCall({
 
 function toToolPartFromResult(part: ChatToolResult): ToolPart {
 	return {
-		type: `tool-${normalizeToolName(part.name)}` as ToolPart["type"],
+		type: `tool-${part.name}` as ToolPart["type"],
 		toolCallId: part.id,
 		state: part.isError ? "output-error" : "output-available",
 		input: {},
@@ -113,6 +114,7 @@ export function AssistantMessage({
 	pendingPlanToolCallId = null,
 	isPlanSubmitting = false,
 	onPlanRespond,
+	messageResponseClassName,
 }: AssistantMessageProps) {
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
 	const nodes: ReactNode[] = [];
@@ -156,11 +158,15 @@ export function AssistantMessage({
 		const part = message.content[partIndex];
 
 		if (part.type === "text") {
+			if (part.text.trim().length === 0) {
+				continue;
+			}
 			nodes.push(
 				<StreamingMessageText
 					key={`${message.id}-${partIndex}`}
 					text={part.text}
 					isAnimating={isStreaming}
+					className={messageResponseClassName}
 					mermaid={{
 						config: {
 							theme: "default",
@@ -187,8 +193,19 @@ export function AssistantMessage({
 			image?: string;
 			mediaType?: string;
 			mimeType?: string;
+			text?: string;
 			type?: string;
 		};
+		if (rawPart.type === "reasoning" && rawPart.text) {
+			nodes.push(
+				<ReasoningBlock
+					key={`${message.id}-${partIndex}`}
+					reasoning={rawPart.text}
+				/>,
+			);
+			continue;
+		}
+
 		if (part.type === "image" || rawPart.type === "file") {
 			const mediaType =
 				rawPart.mediaType ?? rawPart.mimeType ?? "application/octet-stream";
@@ -293,6 +310,22 @@ export function AssistantMessage({
 				/>,
 			);
 			nodes.push(...getInlineToolStateNodes(part.id));
+			continue;
+		}
+
+		if (
+			part.type === "permission_requested" ||
+			part.type === "permission_resolved" ||
+			part.type === "tool_progress" ||
+			part.type === "subagent_event" ||
+			part.type === "context_attachment"
+		) {
+			nodes.push(
+				<AgentTimelinePart
+					key={`${message.id}-timeline-${part.id}`}
+					part={part}
+				/>,
+			);
 			continue;
 		}
 

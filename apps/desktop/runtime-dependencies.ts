@@ -41,6 +41,31 @@ function copyNestedModule(
 	};
 }
 
+function getClaudeAgentSdkPlatformPackageName(): string {
+	const targetArch = process.env.TARGET_ARCH || process.arch;
+	const targetPlatform = process.env.TARGET_PLATFORM || process.platform;
+
+	if (targetPlatform === "darwin") {
+		return targetArch === "arm64"
+			? "@anthropic-ai/claude-agent-sdk-darwin-arm64"
+			: "@anthropic-ai/claude-agent-sdk-darwin-x64";
+	}
+	if (targetPlatform === "win32") {
+		return targetArch === "arm64"
+			? "@anthropic-ai/claude-agent-sdk-win32-arm64"
+			: "@anthropic-ai/claude-agent-sdk-win32-x64";
+	}
+	if (targetPlatform === "linux") {
+		return targetArch === "arm64"
+			? "@anthropic-ai/claude-agent-sdk-linux-arm64"
+			: "@anthropic-ai/claude-agent-sdk-linux-x64";
+	}
+	return `@anthropic-ai/claude-agent-sdk-${targetPlatform}-${targetArch}`;
+}
+
+export const claudeAgentSdkPlatformPackageName =
+	getClaudeAgentSdkPlatformPackageName();
+
 const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 	{
 		specifier: "better-sqlite3",
@@ -102,6 +127,25 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 			copyWholeModule("@duckdb"),
 		],
 		asarUnpackGlobs: ["**/node_modules/@duckdb/**/*"],
+	},
+	{
+		specifier: "@anthropic-ai/claude-agent-sdk",
+		materialize: [
+			"@anthropic-ai/claude-agent-sdk",
+			"@anthropic-ai/sdk",
+			"@modelcontextprotocol/sdk",
+			claudeAgentSdkPlatformPackageName,
+		],
+		packagedCopies: [
+			copyWholeModule("@anthropic-ai/claude-agent-sdk"),
+			copyWholeModule("@anthropic-ai/sdk"),
+			copyWholeModule("@modelcontextprotocol/sdk"),
+			copyWholeModule(claudeAgentSdkPlatformPackageName),
+		],
+		asarUnpackGlobs: [
+			"**/node_modules/@anthropic-ai/claude-agent-sdk/**/*",
+			"**/node_modules/@anthropic-ai/claude-agent-sdk-*/*",
+		],
 	},
 ];
 

@@ -4,9 +4,20 @@ export interface ModelOption {
 	id: string;
 	name: string;
 	provider: string;
+	modelId?: string;
+	providerId?: string;
+	protocol?: "anthropic" | "openai-chat" | "openai-responses" | string;
+	baseUrl?: string;
+	hasSecret?: boolean;
 }
 
-export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions";
+export type PermissionMode =
+	| "default"
+	| "auto"
+	| "acceptEdits"
+	| "plan"
+	| "dontAsk"
+	| "bypassPermissions";
 
 export type McpServerState = "enabled" | "disabled" | "invalid";
 export type McpServerTransport = "remote" | "local" | "unknown";

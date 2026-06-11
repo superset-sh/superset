@@ -26,4 +26,18 @@ describe("normalizeToolName", () => {
 	it("preserves unknown names", () => {
 		expect(normalizeToolName("some_future_tool")).toBe("some_future_tool");
 	});
+
+	it("normalizes Claude Code native tool names to supported render targets", () => {
+		expect(normalizeToolName("Bash")).toBe("mastra_workspace_execute_command");
+		expect(normalizeToolName("Read")).toBe("mastra_workspace_read_file");
+		expect(normalizeToolName("Write")).toBe("mastra_workspace_write_file");
+		expect(normalizeToolName("Edit")).toBe("mastra_workspace_edit_file");
+		expect(normalizeToolName("MultiEdit")).toBe("mastra_workspace_edit_file");
+		expect(normalizeToolName("Grep")).toBe("mastra_workspace_search");
+		expect(normalizeToolName("Glob")).toBe("mastra_workspace_list_files");
+		expect(normalizeToolName("WebFetch")).toBe("web_fetch");
+		expect(normalizeToolName("WebSearch")).toBe("web_search");
+		expect(normalizeToolName("Task")).toBe("subagent");
+		expect(normalizeToolName("Skill")).toBe("skill");
+	});
 });
