@@ -1,5 +1,6 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withUniwindConfig } = require("uniwind/metro");
+const { withStorybook } = require("@storybook/react-native/withStorybook");
 const path = require("node:path");
 
 const projectRoot = __dirname;
@@ -24,7 +25,10 @@ config.resolver.extraNodeModules = {
 	"@superset/tab-bar": path.resolve(projectRoot, "modules/tab-bar"),
 };
 
-module.exports = withUniwindConfig(config, {
-	cssEntryFile: "./global.css",
-	dtsFile: "./uniwind-types.d.ts",
-});
+module.exports = withStorybook(
+	withUniwindConfig(config, {
+		cssEntryFile: "./global.css",
+		dtsFile: "./uniwind-types.d.ts",
+	}),
+	{ configPath: "./.rnstorybook" },
+);
