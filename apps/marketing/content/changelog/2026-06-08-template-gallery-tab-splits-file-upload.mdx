@@ -1,0 +1,54 @@
+---
+title: Template gallery, drag-tab-to-split, and file drag-and-drop
+date: 2026-06-08
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot of the template gallery modal */}
+
+## Start from a Template <PRBadge url="https://github.com/superset-sh/superset/pull/5180" />
+
+A new template gallery lets you scaffold a project from a curated set of popular starters. Access it from the onboarding screen or the dashboard's **+** button — pick a template and Superset clones it with a fresh git history into your projects folder.
+
+Available templates:
+
+- **gstack** — Garry Tan's full-stack starter
+- **Next.js** (Vercel postgres + auth starter)
+- **Next.js Chatbot** (Vercel AI chatbot)
+- **React Native** (Expo default template)
+- **T3 Turbo** (t3-oss monorepo)
+- **React Router + Hono** (Cloudflare fullstack template)
+
+## Drag a Tab into a Split <PRBadge url="https://github.com/superset-sh/superset/pull/5160" />
+
+You can now drag a tab from the tab bar and drop it onto any pane in the workspace. All panes from the dragged tab merge into the target at the chosen edge — the tab's internal split layout is preserved and the now-empty source tab is removed. Tab-bar reordering is unchanged.
+
+## Drag-and-Drop File Upload <PRBadge url="https://github.com/superset-sh/superset/pull/5082" />
+
+Drag files or folders from Finder (or any OS file picker) onto the Files tab to copy them into the workspace. The overlay shows the destination folder while you drag — drop on a folder row to land inside it, on a file row to land in its parent, or on empty space to land at the worktree root.
+
+## CLI: `terminals create`, `agents create`, `ws create --command` <PRBadge url="https://github.com/superset-sh/superset/pull/5027" />
+
+Three additions to the CLI, SDK, and MCP surface:
+
+- **`superset terminals create --workspace <id> --command <cmd>`** — open a terminal session in any workspace from the shell.
+- **`superset agents create`** — `agents run` is renamed to `agents create` for consistency.
+- **`superset ws create --command <cmd>`** — run a shell command in a freshly-spawned workspace (alongside or instead of `--agent`).
+
+## Improvements
+
+- **Delete and pin from Workspaces list** — workspace rows now have inline delete and pin-toggle actions <PRBadge url="https://github.com/superset-sh/superset/pull/5146" />
+- **Project deletion requires org owner** — only org owners can delete projects, preventing accidental deletions by members <PRBadge url="https://github.com/superset-sh/superset/pull/5066" />
+- **Active terminal pane auto-focus** — switching to a tab now focuses the active terminal pane automatically <PRBadge url="https://github.com/superset-sh/superset/pull/5054" />
+
+---
+
+**Bug fixes**
+
+- Fixed PTY back-pressure deadlock that could stall terminal output under heavy load <PRBadge url="https://github.com/superset-sh/superset/pull/5031" />
+- Remote terminal now recovers automatically after laptop sleep/wake <PRBadge url="https://github.com/superset-sh/superset/pull/5135" />
+- Deleting a workspace reliably tears down its terminal sessions <PRBadge url="https://github.com/superset-sh/superset/pull/5168" />
+- Restored tab drag-to-reorder in v2 (broken by a prior focus fix) <PRBadge url="https://github.com/superset-sh/superset/pull/5159" />
+- PR comments in the diff pane no longer overflow the pane bounds <PRBadge url="https://github.com/superset-sh/superset/pull/5157" />
+- SQLite local database now opens in WAL mode for better crash durability <PRBadge url="https://github.com/superset-sh/superset/pull/5155" />
+- Restored git-init for non-git folders imported into v2 <PRBadge url="https://github.com/superset-sh/superset/pull/5036" />
