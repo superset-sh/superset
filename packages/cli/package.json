@@ -30,6 +30,7 @@
 		"@types/mime-types": "3.0.1",
 		"@types/react": "19.2.14",
 		"bun-types": "1.3.11",
+		"ink-testing-library": "4.0.0",
 		"typescript": "5.9.3"
 	}
 }

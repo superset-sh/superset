@@ -55,10 +55,17 @@ export function getWebUrl(): string {
 	return env.SUPERSET_WEB_URL;
 }
 
-function shouldOpenBrowser(): boolean {
+export function shouldOpenBrowser(): boolean {
 	if (!process.stdout.isTTY) return false;
 	if (process.env.CI) return false;
 	if (process.env.SSH_CONNECTION || process.env.SSH_TTY) return false;
+	if (
+		process.platform === "linux" &&
+		!process.env.DISPLAY &&
+		!process.env.WAYLAND_DISPLAY
+	) {
+		return false;
+	}
 	return true;
 }
 
@@ -292,10 +299,6 @@ export async function login(
 	const codeChallenge = generateCodeChallenge(codeVerifier);
 	const state = generateState();
 
-	const loopback = await bindLoopbackServer();
-	const loopbackRedirectUri = loopback
-		? `http://127.0.0.1:${loopback.port}/callback`
-		: null;
 	const pasteRedirectUri = new URL(PASTE_REDIRECT_PATH, webUrl).toString();
 
 	const pasteAuthorizeUrl = buildAuthorizeUrl({
@@ -305,18 +308,24 @@ export async function login(
 		state,
 	}).toString();
 
-	const browserAuthorizeUrl = loopbackRedirectUri
-		? buildAuthorizeUrl({
+	callbacks.onAuthorizationUrl?.(pasteAuthorizeUrl);
+
+	const shouldOpen = shouldOpenBrowser();
+	let loopback: Awaited<ReturnType<typeof bindLoopbackServer>> = null;
+	let loopbackRedirectUri: string | null = null;
+	let browserAuthorizeUrl = pasteAuthorizeUrl;
+
+	if (shouldOpen) {
+		loopback = await bindLoopbackServer();
+		if (loopback) {
+			loopbackRedirectUri = `http://127.0.0.1:${loopback.port}/callback`;
+			browserAuthorizeUrl = buildAuthorizeUrl({
 				apiUrl,
 				redirectUri: loopbackRedirectUri,
 				codeChallenge,
 				state,
-			}).toString()
-		: pasteAuthorizeUrl;
-
-	callbacks.onAuthorizationUrl?.(pasteAuthorizeUrl);
-
-	if (shouldOpenBrowser()) {
+			}).toString();
+		}
 		void openBrowser(browserAuthorizeUrl);
 	}
 

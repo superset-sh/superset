@@ -3,7 +3,7 @@ import { CLIError, string } from "@superset/cli-framework";
 import { render } from "ink";
 import { createElement } from "react";
 import { type ApiClient, createApiClient } from "../../../lib/api-client";
-import { login } from "../../../lib/auth";
+import { login, shouldOpenBrowser } from "../../../lib/auth";
 import { command } from "../../../lib/command";
 import { readConfig, writeConfig } from "../../../lib/config";
 import { copyToClipboard } from "./copyToClipboard";
@@ -155,6 +155,7 @@ export default command({
 	},
 	run: async (opts) => {
 		const requestedOrganization = opts.options.organization;
+		const pasteOnly = !shouldOpenBrowser();
 		const apiKeyExplicit = apiKeyFlagInArgv();
 		const apiKeyFromCli = apiKeyExplicit
 			? opts.options.apiKey?.trim()
@@ -188,6 +189,7 @@ export default command({
 			onSubmit: (code) => pasteResolve?.(code),
 			onCancel: () => pasteReject?.(new CLIError("Login cancelled")),
 			onCopy: async () => false,
+			pasteOnly,
 		};
 
 		const inkInstance = useInk
@@ -215,7 +217,19 @@ export default command({
 							onCopy: () => copyToClipboard(url),
 						});
 					} else {
-						p.log.message("Browser didn't open? Use the url below to sign in");
+						const authHost = (() => {
+							try {
+								return new URL(url).host;
+							} catch {
+								return null;
+							}
+						})();
+						const copyText = pasteOnly
+							? authHost
+								? `Sign in to ${authHost} using the link below`
+								: "Open the link below to sign in"
+							: "Browser didn't open? Use the url below to sign in";
+						p.log.message(copyText);
 						p.log.message(url);
 					}
 				},
