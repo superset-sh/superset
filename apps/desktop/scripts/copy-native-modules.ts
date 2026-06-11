@@ -180,13 +180,13 @@ function copyDependencyForPackage(
 	dependencyName: string,
 	dependencyRange: string,
 	required: boolean,
-): void {
+): string | null {
 	const topLevelDependencyPath = join(nodeModulesDir, dependencyName);
 	const topLevelVersion = readInstalledModuleVersion(topLevelDependencyPath);
 
 	if (topLevelVersion && satisfies(topLevelVersion, dependencyRange)) {
 		copyModuleIfSymlink(nodeModulesDir, dependencyName, required);
-		return;
+		return topLevelDependencyPath;
 	}
 
 	if (!topLevelVersion) {
@@ -200,7 +200,7 @@ function copyDependencyForPackage(
 			topLevelDependencyPath,
 			required,
 		);
-		return;
+		return topLevelDependencyPath;
 	}
 
 	const nestedDependencyPath = join(
@@ -219,7 +219,7 @@ function copyDependencyForPackage(
 				recursive: true,
 			});
 		}
-		return;
+		return nestedDependencyPath;
 	}
 
 	console.log(
@@ -233,6 +233,50 @@ function copyDependencyForPackage(
 		nestedDependencyPath,
 		required,
 	);
+	return nestedDependencyPath;
+}
+
+function materializePackageDependencyTree(
+	nodeModulesDir: string,
+	packageName: string,
+	packagePath = join(nodeModulesDir, packageName),
+	visited = new Set<string>(),
+): void {
+	const packageJsonPath = join(packagePath, "package.json");
+	if (!existsSync(packageJsonPath)) return;
+
+	type PackageJson = {
+		dependencies?: Record<string, string>;
+		name?: string;
+		version?: string;
+	};
+	const packageJson = JSON.parse(
+		readFileSync(packageJsonPath, "utf8"),
+	) as PackageJson;
+	const resolvedPackageName = packageJson.name ?? packageName;
+	const visitKey = `${resolvedPackageName}@${packageJson.version ?? packagePath}`;
+	if (visited.has(visitKey)) return;
+	visited.add(visitKey);
+
+	const dependencies = packageJson.dependencies ?? {};
+	for (const [dependencyName, dependencyRange] of Object.entries(
+		dependencies,
+	)) {
+		const dependencyPath = copyDependencyForPackage(
+			nodeModulesDir,
+			resolvedPackageName,
+			dependencyName,
+			dependencyRange,
+			true,
+		);
+		if (!dependencyPath) continue;
+		materializePackageDependencyTree(
+			nodeModulesDir,
+			dependencyName,
+			dependencyPath,
+			visited,
+		);
+	}
 }
 
 function copyNestedDependencyForPackage(
@@ -596,6 +640,11 @@ function prepareNativeModules() {
 	for (const moduleName of requiredMaterializedNodeModules) {
 		copyModuleIfSymlink(nodeModulesDir, moduleName, true);
 	}
+
+	console.log("\nPreparing Claude ACP runtime dependency tree...");
+	materializePackageDependencyTree(nodeModulesDir, "@anthropic-ai/sdk");
+	materializePackageDependencyTree(nodeModulesDir, "@modelcontextprotocol/sdk");
+	materializePackageDependencyTree(nodeModulesDir, "json-schema-to-ts");
 
 	console.log("\nPreparing ast-grep platform package...");
 	copyAstGrepPlatformPackages(nodeModulesDir);

@@ -133,12 +133,18 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 		materialize: [
 			"@anthropic-ai/claude-agent-sdk",
 			"@anthropic-ai/sdk",
+			"json-schema-to-ts",
+			"@babel/runtime",
+			"ts-algebra",
 			"@modelcontextprotocol/sdk",
 			claudeAgentSdkPlatformPackageName,
 		],
 		packagedCopies: [
 			copyWholeModule("@anthropic-ai/claude-agent-sdk"),
 			copyWholeModule("@anthropic-ai/sdk"),
+			copyWholeModule("json-schema-to-ts"),
+			copyWholeModule("@babel/runtime"),
+			copyWholeModule("ts-algebra"),
 			copyWholeModule("@modelcontextprotocol/sdk"),
 			copyWholeModule(claudeAgentSdkPlatformPackageName),
 		],
