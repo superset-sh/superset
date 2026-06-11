@@ -91,6 +91,66 @@ describe("GitHub pull request REST queries", () => {
 		]);
 	});
 
+	test("prefers an open PR over a more recently updated closed PR (#4513)", async () => {
+		const { execGh } = createExecGh([
+			[
+				{
+					number: 100,
+					title: "Stale closed",
+					html_url: "https://github.com/superset-sh/superset/pull/100",
+					state: "closed",
+					draft: false,
+					merged_at: null,
+					updated_at: "2026-05-09T12:00:00Z",
+					head: {
+						ref: "feat/x",
+						sha: "closed-sha",
+						repo: {
+							name: "superset",
+							owner: { login: "superset-sh" },
+						},
+					},
+					base: {
+						repo: {
+							full_name: "superset-sh/superset",
+						},
+					},
+				},
+				{
+					number: 101,
+					title: "Active open",
+					html_url: "https://github.com/superset-sh/superset/pull/101",
+					state: "open",
+					draft: false,
+					merged_at: null,
+					updated_at: "2026-05-08T12:00:00Z",
+					head: {
+						ref: "feat/x",
+						sha: "open-sha",
+						repo: {
+							name: "superset",
+							owner: { login: "superset-sh" },
+						},
+					},
+					base: {
+						repo: {
+							full_name: "superset-sh/superset",
+						},
+					},
+				},
+			],
+		]);
+
+		const result = await fetchPullRequestByHeadFromGh(
+			execGh,
+			{ owner: "superset-sh", name: "superset" },
+			{ owner: "superset-sh", repo: "superset", branch: "feat/x" },
+		);
+
+		expect(result?.number).toBe(101);
+		expect(result?.state).toBe("OPEN");
+	});
+
 	test("filters REST head candidates by exact upstream repository", async () => {
 		const { execGh } = createExecGh([
 			[
