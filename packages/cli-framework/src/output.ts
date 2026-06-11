@@ -73,23 +73,28 @@ export function table(
 	if (data.length === 0) return "No results.";
 
 	const hdrs = headers ?? columns.map((c) => c.toUpperCase());
+	// ID columns hold values (UUIDs) that must stay intact to be usable in
+	// follow-up commands, so they're never truncated regardless of maxColWidth.
+	const noTruncate = columns.map((col) => isIdColumn(col));
 	const rows = data.map((row) =>
-		columns.map((col) => {
+		columns.map((col, i) => {
 			const val = getNestedValue(row, col);
 			const str = val === null || val === undefined ? "—" : String(val);
-			return str.length > maxColWidth
+			return !noTruncate[i] && str.length > maxColWidth
 				? `${str.slice(0, maxColWidth - 1)}…`
 				: str;
 		}),
 	);
 
-	// Calculate column widths (capped by terminal width heuristic)
-	const widths = hdrs.map((h, i) =>
-		Math.min(
-			maxColWidth,
-			Math.max(h.length, ...rows.map((r) => r[i]?.length ?? 0)),
-		),
-	);
+	// Calculate column widths (capped by terminal width heuristic, except for
+	// untruncated columns which are sized to fit their full content)
+	const widths = hdrs.map((h, i) => {
+		const contentWidth = Math.max(
+			h.length,
+			...rows.map((r) => r[i]?.length ?? 0),
+		);
+		return noTruncate[i] ? contentWidth : Math.min(maxColWidth, contentWidth);
+	});
 
 	// Render
 	const headerLine = hdrs.map((h, i) => h.padEnd(widths[i]!)).join("  ");
@@ -98,6 +103,13 @@ export function table(
 	);
 
 	return [headerLine, ...bodyLines].join("\n");
+}
+
+// Treats `id` and any `*Id`/`*.id` column as an identifier column whose value
+// (e.g. a UUID) should never be truncated.
+function isIdColumn(col: string): boolean {
+	const leaf = col.split(".").pop() ?? col;
+	return leaf === "id" || /Id$/.test(leaf);
 }
 
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
