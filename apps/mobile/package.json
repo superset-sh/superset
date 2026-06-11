@@ -7,6 +7,8 @@
 		"android": "expo run:android",
 		"ios": "expo run:ios",
 		"web": "expo start --web",
+		"storybook": "sb-rn-get-stories --config-path .rnstorybook && EXPO_PUBLIC_STORYBOOK=true expo start",
+		"storybook-generate": "sb-rn-get-stories --config-path .rnstorybook",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write ."
@@ -14,8 +16,11 @@
 	"dependencies": {
 		"@better-auth/expo": "1.6.13",
 		"@electric-sql/client": "1.5.15",
+		"@expo-google-fonts/geist": "0.4.2",
+		"@expo-google-fonts/geist-mono": "0.4.2",
 		"@expo/ui": "56.0.12",
 		"@expo/vector-icons": "15.1.1",
+		"@gorhom/bottom-sheet": "5.2.12",
 		"@react-native-async-storage/async-storage": "2.2.0",
 		"@rn-primitives/accordion": "1.4.0",
 		"@rn-primitives/alert-dialog": "1.4.0",
@@ -61,13 +66,16 @@
 		"expo-dev-client": "56.0.14",
 		"expo-device": "56.0.4",
 		"expo-file-system": "56.0.7",
+		"expo-font": "56.0.0",
 		"expo-glass-effect": "56.0.4",
 		"expo-image": "56.0.8",
+		"expo-linear-gradient": "56.0.4",
 		"expo-linking": "56.0.11",
 		"expo-localization": "56.0.6",
 		"expo-network": "56.0.4",
 		"expo-router": "56.2.5",
 		"expo-secure-store": "56.0.4",
+		"expo-splash-screen": "56.0.0",
 		"expo-status-bar": "56.0.4",
 		"expo-system-ui": "56.0.5",
 		"expo-web-browser": "56.0.5",
@@ -90,10 +98,14 @@
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
+		"@storybook/addon-ondevice-actions": "^9",
+		"@storybook/addon-ondevice-controls": "^9",
+		"@storybook/react-native": "^9",
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"babel-preset-expo": "56.0.11",
 		"expo-mcp": "0.2.4",
+		"storybook": "^9",
 		"typescript": "5.9.3"
 	},
 	"private": true

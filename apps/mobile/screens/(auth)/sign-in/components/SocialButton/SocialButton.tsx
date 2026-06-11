@@ -1,8 +1,8 @@
-import { useColorScheme } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { ButtonProps } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 export type SocialProvider = "github" | "google";
@@ -55,8 +55,10 @@ export function SocialButton({
 	className,
 	...props
 }: SocialButtonProps) {
-	const colorScheme = useColorScheme();
-	const iconColor = colorScheme === "dark" ? "white" : "black";
+	// Use the active app theme (not system colorScheme) so the icon color tracks
+	// our Uniwind theme rather than the OS appearance setting.
+	const theme = useTheme();
+	const iconColor = theme.foreground;
 
 	return (
 		<Button
