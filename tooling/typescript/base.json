@@ -9,6 +9,7 @@
 		"resolveJsonModule": true,
 		"moduleDetection": "force",
 		"isolatedModules": true,
+		"types": ["node"],
 
 		"incremental": true,
 		"disableSourceOfProjectReferenceRedirect": true,
@@ -21,7 +22,8 @@
 		"module": "Preserve",
 		"moduleResolution": "Bundler",
 		"noEmit": true,
-		"allowImportingTsExtensions": true
+		"allowImportingTsExtensions": true,
+		"noUncheckedSideEffectImports": false
 	},
 	"exclude": ["node_modules", "build", "dist", ".next"]
 }
