@@ -22,6 +22,11 @@ type SystemPreferencesApi = Pick<
 	typeof electronSystemPreferences,
 	"askForMediaAccess" | "getMediaAccessStatus" | "isTrustedAccessibilityClient"
 >;
+export type MicrophonePermissionStatus =
+	| "granted"
+	| "denied"
+	| "promptable"
+	| "unknown";
 
 function getElectronShell(): ShellApi {
 	return (require("electron") as Partial<typeof import("electron")>)
@@ -49,20 +54,41 @@ export function checkMicrophone({
 }: {
 	systemPreferencesApi?: Pick<SystemPreferencesApi, "getMediaAccessStatus">;
 } = {}): boolean {
+	return getMicrophonePermissionStatus({ systemPreferencesApi }) === "granted";
+}
+
+export function getMicrophonePermissionStatus({
+	systemPreferencesApi = getElectronSystemPreferences(),
+}: {
+	systemPreferencesApi?: Pick<SystemPreferencesApi, "getMediaAccessStatus">;
+} = {}): MicrophonePermissionStatus {
 	try {
-		return (
-			systemPreferencesApi?.getMediaAccessStatus("microphone") === "granted"
-		);
+		const status = systemPreferencesApi?.getMediaAccessStatus("microphone");
+
+		if (status === "granted") {
+			return "granted";
+		}
+		if (status === "denied" || status === "restricted") {
+			return "denied";
+		}
+		if (status === "not-determined") {
+			return "promptable";
+		}
+
+		return "unknown";
 	} catch {
-		return false;
+		return "unknown";
 	}
 }
 
 export function getPermissionStatus() {
+	const microphoneStatus = getMicrophonePermissionStatus();
+
 	return {
 		fullDiskAccess: checkFullDiskAccess(),
 		accessibility: checkAccessibility(),
-		microphone: checkMicrophone(),
+		microphone: microphoneStatus === "granted",
+		microphoneStatus,
 	};
 }
 

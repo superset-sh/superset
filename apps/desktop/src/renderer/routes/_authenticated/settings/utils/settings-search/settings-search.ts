@@ -28,6 +28,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	BEHAVIOR_VOICE_INPUT: "behavior-voice-input",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -136,6 +137,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
+	[SETTING_ITEM_ID.BEHAVIOR_VOICE_INPUT]: "shared",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
@@ -490,6 +492,11 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"bindings",
 			"keybindings",
 			"commands",
+			"voice control",
+			"voice shortcut",
+			"voice activation",
+			"dictation shortcut",
+			"push to talk shortcut",
 			"ctrl",
 			"cmd",
 			"alt",
@@ -619,6 +626,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_VOICE_INPUT,
+		section: "behavior",
+		title: "Voice Control",
+		description:
+			"Control Superset voice controls and OS dictation paste support",
+		keywords: [
+			"voice",
+			"voice control",
+			"voice input",
+			"dictation",
+			"wispr",
+			"speech",
+			"transcription",
+			"push to talk",
+			"behavior",
 		],
 	},
 	{
@@ -1192,6 +1217,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"permissions",
 			"microphone",
 			"mic",
+			"microphone permission",
+			"microphone permissions",
+			"microphone readiness",
 			"voice",
 			"transcription",
 			"audio",

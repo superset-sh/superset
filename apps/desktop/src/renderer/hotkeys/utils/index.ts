@@ -7,7 +7,13 @@ export {
 	translateLogicalChord,
 } from "./binding";
 export {
+	canonicalizeChord,
+	eventToChord,
+	isIgnorableKey,
 	isTerminalReservedEvent,
+	MODIFIERS,
 	matchesChord,
-	resolveHotkeyFromEvent,
-} from "./resolveHotkeyFromEvent";
+	normalizeToken,
+	TERMINAL_RESERVED_CHORDS,
+} from "./chord";
+export { resolveHotkeyFromEvent } from "./resolveHotkeyFromEvent";

@@ -3,6 +3,8 @@ export { formatHotkeyDisplay } from "./display";
 export {
 	getBinding,
 	getDispatchChord,
+	getUnsupportedShortcutReason,
+	UNSUPPORTED_FN_SHORTCUT_REASON,
 	useBinding,
 	useFormatBinding,
 	useHotkey,

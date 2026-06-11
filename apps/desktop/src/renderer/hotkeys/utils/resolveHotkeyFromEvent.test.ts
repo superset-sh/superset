@@ -123,11 +123,13 @@ describe("canonicalizeChord", () => {
 interface StubInit {
 	type?: string;
 	code?: string;
+	key?: string;
 	ctrlKey?: boolean;
 	metaKey?: boolean;
 	altKey?: boolean;
 	shiftKey?: boolean;
 	altGraph?: boolean;
+	fnKey?: boolean;
 	isComposing?: boolean;
 	keyCode?: number;
 }
@@ -135,7 +137,7 @@ function ev(init: StubInit): KeyboardEvent {
 	return {
 		type: init.type ?? "keydown",
 		code: init.code ?? "",
-		key: "",
+		key: init.key ?? "",
 		ctrlKey: !!init.ctrlKey,
 		metaKey: !!init.metaKey,
 		altKey: !!init.altKey,
@@ -143,7 +145,11 @@ function ev(init: StubInit): KeyboardEvent {
 		isComposing: !!init.isComposing,
 		keyCode: init.keyCode ?? 0,
 		getModifierState: (mod: string) =>
-			mod === "AltGraph" ? !!init.altGraph : false,
+			mod === "AltGraph"
+				? !!init.altGraph
+				: mod === "Fn" || mod === "FnLock"
+					? !!init.fnKey
+					: false,
 	} as unknown as KeyboardEvent;
 }
 
@@ -195,6 +201,24 @@ describe("resolveHotkeyFromEvent — live override index", () => {
 		});
 		const event = buildEventFromChord(sampleChord);
 		expect(resolveHotkeyFromEvent(event)).toBeNull();
+	});
+
+	it("resolves a standalone Fn/Globe binding without event.code", () => {
+		useHotkeyOverridesStore.setState({
+			overrides: {
+				VOICE_INPUT_TOGGLE: { version: 2, mode: "named", chord: "fn" },
+			},
+		});
+
+		expect(resolveHotkeyFromEvent(ev({ code: "", key: "Globe" }))).toBe(
+			"VOICE_INPUT_TOGGLE",
+		);
+		expect(resolveHotkeyFromEvent(ev({ code: "", key: "", fnKey: true }))).toBe(
+			"VOICE_INPUT_TOGGLE",
+		);
+		expect(
+			resolveHotkeyFromEvent(ev({ code: "KeyV", key: "v", fnKey: true })),
+		).toBeNull();
 	});
 });
 

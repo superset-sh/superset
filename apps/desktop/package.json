@@ -265,6 +265,7 @@
 		"electron": "40.8.5",
 		"electron-builder": "26.8.1",
 		"electron-vite": "4.0.1",
+		"happy-dom": "20.9.0",
 		"material-icon-theme": "5.32.0",
 		"rimraf": "6.1.3",
 		"rollup-plugin-inject-process-env": "1.3.1",

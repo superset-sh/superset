@@ -1,0 +1,1 @@
+export { VoiceDictationIndicator } from "./VoiceDictationIndicator";

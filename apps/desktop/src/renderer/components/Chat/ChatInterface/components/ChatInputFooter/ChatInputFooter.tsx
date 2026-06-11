@@ -13,6 +13,10 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusPromptOnPane } from "renderer/components/Chat/ChatInterface/hooks/useFocusPromptOnPane";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import {
+	rememberVoiceInputTargetElement,
+	rememberVoiceInputTargetFromEvent,
+} from "renderer/voice-input/focusTracking";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
 import { TiptapPromptEditor } from "../TiptapPromptEditor";
@@ -156,6 +160,12 @@ export function ChatInputFooter({
 		[linkedIssues, onSend],
 	);
 
+	useEffect(() => {
+		if (isFocused) {
+			rememberVoiceInputTargetElement(inputRootRef.current);
+		}
+	}, [isFocused]);
+
 	return (
 		<ChatInputDropZone className="relative bg-background px-4 pb-3 before:pointer-events-none before:absolute before:left-0 before:right-3 before:-top-8 before:h-8 before:bg-gradient-to-t before:from-background before:to-transparent">
 			{(dragType) => (
@@ -178,6 +188,9 @@ export function ChatInputFooter({
 					) : (
 						<div
 							ref={inputRootRef}
+							data-voice-input-target="chat"
+							onFocusCapture={rememberVoiceInputTargetFromEvent}
+							onPointerDownCapture={rememberVoiceInputTargetFromEvent}
 							className={
 								dragType === "path"
 									? "relative opacity-50 transition-opacity"

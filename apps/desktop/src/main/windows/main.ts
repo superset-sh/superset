@@ -127,6 +127,24 @@ export async function MainWindow() {
 		},
 	});
 
+	window.webContents.session.setPermissionRequestHandler(
+		(requestingWebContents, permission, callback, details) => {
+			if (requestingWebContents !== window.webContents) {
+				callback(false);
+				return;
+			}
+
+			if (permission === "media") {
+				const mediaTypes =
+					"mediaTypes" in details ? (details.mediaTypes ?? []) : [];
+				callback(mediaTypes.includes("audio") && !mediaTypes.includes("video"));
+				return;
+			}
+
+			callback(false);
+		},
+	);
+
 	createApplicationMenu();
 
 	currentWindow = window;

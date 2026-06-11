@@ -35,6 +35,10 @@ import { ScrollToBottomButton } from "renderer/screens/main/components/Workspace
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
+import {
+	rememberVoiceInputTargetElement,
+	rememberVoiceInputTargetFromEvent,
+} from "renderer/voice-input/focusTracking";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
@@ -67,6 +71,7 @@ export function TerminalPane({
 	const { terminalId } = paneData;
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
+	const voiceTargetRef = useRef<HTMLDivElement | null>(null);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 	const appearance = useTerminalAppearance();
@@ -343,6 +348,12 @@ export function TerminalPane({
 		preventDefault: true,
 	});
 
+	useEffect(() => {
+		if (ctx.isActive) {
+			rememberVoiceInputTargetElement(voiceTargetRef.current);
+		}
+	}, [ctx.isActive]);
+
 	// connectionState in deps ensures terminal ref re-derives after connect/disconnect
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
 	const terminal = useMemo(
@@ -407,8 +418,14 @@ export function TerminalPane({
 
 	return (
 		<div
+			ref={voiceTargetRef}
 			role="application"
+			data-voice-input-target="terminal"
+			data-voice-terminal-id={terminalId}
+			data-voice-terminal-instance-id={terminalInstanceId}
 			className="relative flex h-full w-full flex-col p-2"
+			onFocusCapture={rememberVoiceInputTargetFromEvent}
+			onPointerDownCapture={rememberVoiceInputTargetFromEvent}
 			onDragEnter={handleDragEnter}
 			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}

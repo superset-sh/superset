@@ -30,6 +30,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { FileIcon } from "renderer/lib/fileIcons";
 import {
+	VOICE_DICTATION_INSERT_EVENT,
+	type VoiceDictationInsertDetail,
+} from "renderer/voice-input/events";
+import {
 	getCommandMatchRank,
 	type SlashCommand,
 	shouldSuppressSlashMenuForCommittedCommand,
@@ -598,6 +602,33 @@ export function TiptapPromptEditor({
 			controller.__registerFocusCallback(null);
 		};
 	}, [controller, editor]);
+
+	useEffect(() => {
+		if (!editor) return;
+		const root = editor.view.dom.closest("[data-voice-input-target='chat']");
+		if (!(root instanceof HTMLElement)) return;
+
+		const handleVoiceDictationInsert = (event: Event) => {
+			const customEvent = event as CustomEvent<
+				VoiceDictationInsertDetail | undefined
+			>;
+			const detail = customEvent.detail;
+			if (!detail?.text) return;
+			detail.handled = true;
+			editor.chain().focus().insertContent(detail.text).run();
+		};
+
+		root.addEventListener(
+			VOICE_DICTATION_INSERT_EVENT,
+			handleVoiceDictationInsert,
+		);
+		return () => {
+			root.removeEventListener(
+				VOICE_DICTATION_INSERT_EVENT,
+				handleVoiceDictationInsert,
+			);
+		};
+	}, [editor]);
 
 	// Track chip node selection via ProseMirror transactions
 	useEffect(() => {

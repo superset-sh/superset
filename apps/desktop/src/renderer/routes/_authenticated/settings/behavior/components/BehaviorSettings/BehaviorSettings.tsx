@@ -1,4 +1,6 @@
 import type { FileOpenMode } from "@superset/local-db";
+import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -8,18 +10,114 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
+import { type MouseEvent, useEffect, useRef } from "react";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import {
+	LEGACY_VOICE_INPUT_SETTINGS_SECTION_ID,
+	VOICE_INPUT_SETTINGS_SECTION_ID,
+	VOICE_SHORTCUT_SETTINGS_HREF,
+} from "../../../utils/voice-shortcut-links";
 
 interface BehaviorSettingsProps {
+	focusedSection?: string | null;
+	onVoiceShortcutNavigate?: () => void;
 	visibleItems?: SettingItemId[] | null;
 }
 
-export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
+type MicrophonePermissionStatus =
+	| "granted"
+	| "denied"
+	| "promptable"
+	| "unknown";
+
+function getBehaviorSectionId(): string | null {
+	if (typeof window === "undefined") {
+		return null;
+	}
+
+	const hashQueryIndex = window.location.hash.indexOf("?");
+	const hashSearch =
+		hashQueryIndex >= 0 ? window.location.hash.slice(hashQueryIndex + 1) : "";
+	const params = new URLSearchParams(
+		hashSearch || window.location.search.slice(1),
+	);
+	return params.get("section");
+}
+
+function getMicrophoneReadinessCopy({
+	isLoading,
+	status,
+}: {
+	isLoading: boolean;
+	status: MicrophonePermissionStatus | undefined;
+}) {
+	if (isLoading) {
+		return {
+			actionLabel: null,
+			badge: "Checking",
+			description: "Checking microphone access before voice control starts.",
+			label: "Checking microphone access",
+			variant: "outline" as const,
+		};
+	}
+
+	if (status === "granted") {
+		return {
+			actionLabel: null,
+			badge: "Ready",
+			description: "Voice control can use the microphone.",
+			label: "Microphone is ready",
+			variant: "secondary" as const,
+		};
+	}
+
+	if (status === "denied") {
+		return {
+			actionLabel: "Open settings",
+			badge: "Blocked",
+			description:
+				"Allow microphone access in System Settings to use dictation.",
+			label: "Microphone access is blocked",
+			variant: "outline" as const,
+		};
+	}
+
+	if (status === "promptable") {
+		return {
+			actionLabel: "Grant access",
+			badge: "Action needed",
+			description:
+				"Grant microphone access when you are ready to use dictation.",
+			label: "Microphone access is needed",
+			variant: "outline" as const,
+		};
+	}
+
+	return {
+		actionLabel: "Open settings",
+		badge: "Unknown",
+		description: "Check microphone access in System Settings before dictating.",
+		label: "Microphone status is unavailable",
+		variant: "outline" as const,
+	};
+}
+
+export function BehaviorSettings({
+	focusedSection,
+	onVoiceShortcutNavigate,
+	visibleItems,
+}: BehaviorSettingsProps) {
+	const voiceInputSectionRef = useRef<HTMLDivElement>(null);
+	const activeSection = focusedSection ?? getBehaviorSectionId();
+	const shouldFocusVoiceInput =
+		activeSection === VOICE_INPUT_SETTINGS_SECTION_ID ||
+		activeSection === LEGACY_VOICE_INPUT_SETTINGS_SECTION_ID;
 	const showConfirmQuit = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
@@ -36,8 +134,16 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showVoiceInput = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_VOICE_INPUT,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
+	const voiceShortcutDisplay = useHotkeyDisplay("VOICE_INPUT_TOGGLE");
+	const voiceShortcutText = voiceShortcutDisplay.text;
+	const canDisplayVoiceShortcut =
+		voiceShortcutText.length > 0 && voiceShortcutText !== "Unassigned";
 
 	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
 		electronTrpc.settings.getConfirmOnQuit.useQuery();
@@ -124,6 +230,61 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 		},
 	);
+
+	const { data: voiceInputEnabled, isLoading: isVoiceInputLoading } =
+		electronTrpc.settings.getVoiceInputEnabled.useQuery();
+	const setVoiceInputEnabled =
+		electronTrpc.settings.setVoiceInputEnabled.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getVoiceInputEnabled.cancel();
+				const previous = utils.settings.getVoiceInputEnabled.getData();
+				utils.settings.getVoiceInputEnabled.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getVoiceInputEnabled.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getVoiceInputEnabled.invalidate();
+			},
+		});
+
+	const { data: permissionStatus, isLoading: isPermissionStatusLoading } =
+		electronTrpc.permissions.getStatus.useQuery(undefined, {
+			enabled: showVoiceInput,
+			refetchInterval: 2000,
+		});
+	const requestMicrophone =
+		electronTrpc.permissions.requestMicrophone.useMutation({
+			onSettled: () => {
+				utils.permissions.getStatus.invalidate();
+			},
+		});
+	const microphoneReadiness = getMicrophoneReadinessCopy({
+		isLoading: isPermissionStatusLoading,
+		status: permissionStatus?.microphoneStatus,
+	});
+
+	const handleVoiceShortcutClick = (event: MouseEvent<HTMLAnchorElement>) => {
+		if (!onVoiceShortcutNavigate) {
+			return;
+		}
+		event.preventDefault();
+		onVoiceShortcutNavigate();
+	};
+
+	useEffect(() => {
+		if (!showVoiceInput || !shouldFocusVoiceInput) return;
+		voiceInputSectionRef.current?.scrollIntoView?.({
+			behavior: "smooth",
+			block: "start",
+		});
+	}, [showVoiceInput, shouldFocusVoiceInput]);
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -225,6 +386,100 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
 						/>
+					</div>
+				)}
+
+				{showVoiceInput && (
+					<div
+						ref={voiceInputSectionRef}
+						id={VOICE_INPUT_SETTINGS_SECTION_ID}
+						data-focused-setting={shouldFocusVoiceInput ? "true" : undefined}
+						className="space-y-4 scroll-mt-6"
+					>
+						<div className="flex items-center justify-between gap-6">
+							<div className="min-w-0 flex-1 space-y-0.5">
+								<Label htmlFor="voice-input" className="text-sm font-medium">
+									Voice Control
+								</Label>
+								<p className="text-xs text-muted-foreground">
+									Enable Superset voice controls; OS dictation and paste
+									continue to work in focused inputs.
+								</p>
+								<p
+									id="voice-input-status"
+									className={
+										setVoiceInputEnabled.isError
+											? "text-xs text-destructive"
+											: "text-xs text-muted-foreground"
+									}
+								>
+									{setVoiceInputEnabled.isError
+										? "Voice preference could not be saved"
+										: isVoiceInputLoading
+											? "Loading voice preference"
+											: voiceInputEnabled
+												? "Voice control is enabled"
+												: "Voice control is disabled"}
+								</p>
+							</div>
+							<Switch
+								aria-describedby="voice-input-status"
+								id="voice-input"
+								checked={voiceInputEnabled ?? false}
+								onCheckedChange={(enabled) =>
+									setVoiceInputEnabled.mutate({ enabled })
+								}
+								disabled={isVoiceInputLoading || setVoiceInputEnabled.isPending}
+							/>
+						</div>
+						<div className="flex items-center justify-between gap-6 rounded-md border border-border/60 p-3">
+							<div className="min-w-0 flex-1 space-y-1">
+								<div className="flex flex-wrap items-center gap-2">
+									<Label className="text-sm font-medium">
+										Microphone readiness
+									</Label>
+									<Badge variant={microphoneReadiness.variant}>
+										{microphoneReadiness.badge}
+									</Badge>
+								</div>
+								<p className="text-xs text-muted-foreground">
+									{microphoneReadiness.label}
+								</p>
+								<p className="text-xs text-muted-foreground">
+									{microphoneReadiness.description}
+								</p>
+								<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+									<span className="font-medium text-foreground">
+										Voice Control Shortcut
+									</span>
+									{canDisplayVoiceShortcut ? (
+										<span>{voiceShortcutText}</span>
+									) : (
+										<span>Shortcut unavailable</span>
+									)}
+									<a
+										className="text-primary underline-offset-4 hover:underline"
+										data-testid="behavior-voice-shortcut-link"
+										href={VOICE_SHORTCUT_SETTINGS_HREF}
+										onClick={handleVoiceShortcutClick}
+									>
+										{canDisplayVoiceShortcut
+											? "Edit in Keyboard settings"
+											: "Set in Keyboard settings"}
+									</a>
+								</div>
+							</div>
+							{microphoneReadiness.actionLabel ? (
+								<Button
+									disabled={requestMicrophone.isPending}
+									onClick={() => requestMicrophone.mutate()}
+									size="sm"
+									variant="outline"
+								>
+									{microphoneReadiness.actionLabel}
+								</Button>
+							) : null}
+						</div>
 					</div>
 				)}
 			</div>

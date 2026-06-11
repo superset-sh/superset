@@ -20,6 +20,10 @@ import type {
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import {
+	rememberVoiceInputTargetElement,
+	rememberVoiceInputTargetFromEvent,
+} from "renderer/voice-input/focusTracking";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
 import { ChatShortcuts } from "./components/ChatShortcuts";
@@ -149,6 +153,12 @@ export function ChatInputFooter({
 		[linkedIssues, onSend],
 	);
 
+	useEffect(() => {
+		if (isFocused) {
+			rememberVoiceInputTargetElement(inputRootRef.current);
+		}
+	}, [isFocused]);
+
 	return (
 		<ChatInputDropZone className="bg-background px-4 py-3">
 			{(dragType) => (
@@ -172,6 +182,9 @@ export function ChatInputFooter({
 					) : (
 						<div
 							ref={inputRootRef}
+							data-voice-input-target="chat"
+							onFocusCapture={rememberVoiceInputTargetFromEvent}
+							onPointerDownCapture={rememberVoiceInputTargetFromEvent}
 							className={
 								dragType === "path"
 									? "relative opacity-50 transition-opacity"

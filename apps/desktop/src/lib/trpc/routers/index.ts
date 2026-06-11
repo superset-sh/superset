@@ -27,6 +27,7 @@ import { createSettingsRouter } from "./settings";
 import { createSystemRouter } from "./system";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
+import { createVoiceInputRouter } from "./voice-input";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
@@ -61,6 +62,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		hostServiceCoordinator: createHostServiceCoordinatorRouter(),
 		keyboardLayout: createKeyboardLayoutRouter(),
 		migration: createMigrationRouter(),
+		voiceInput: createVoiceInputRouter(),
 	});
 };
 

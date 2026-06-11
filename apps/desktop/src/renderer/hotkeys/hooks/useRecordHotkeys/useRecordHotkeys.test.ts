@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
 	captureHotkeyFromEvent,
+	getUnsupportedShortcutReason,
 	resolveCapturedBinding,
+	UNSUPPORTED_FN_SHORTCUT_REASON,
 } from "./useRecordHotkeys";
 
 /**
@@ -21,6 +23,7 @@ interface StubInit {
 	metaKey?: boolean;
 	altKey?: boolean;
 	shiftKey?: boolean;
+	fnKey?: boolean;
 }
 function ev(init: StubInit): KeyboardEvent {
 	return {
@@ -31,6 +34,7 @@ function ev(init: StubInit): KeyboardEvent {
 		metaKey: !!init.metaKey,
 		altKey: !!init.altKey,
 		shiftKey: !!init.shiftKey,
+		getModifierState: (key: string) => key === "Fn" && !!init.fnKey,
 		preventDefault() {},
 		stopPropagation() {},
 	} as unknown as KeyboardEvent;
@@ -205,6 +209,53 @@ describe("captureHotkeyFromEvent — classification & dual-form capture", () => 
 		);
 		expect(captured?.codeChord).toBe("meta+shift+equal");
 		expect(captured?.keyChord).toBe(captured?.codeChord);
+	});
+});
+
+describe("Fn/Globe key capture", () => {
+	it("records Fn/Globe when exposed as a standalone key", () => {
+		const captured = captureHotkeyFromEvent(ev({ code: "Fn", key: "Fn" }));
+		expect(captured).toEqual({
+			codeChord: "fn",
+			keyChord: "fn",
+			classification: "named",
+		});
+		expect(getUnsupportedShortcutReason(ev({ code: "Fn", key: "Fn" }))).toBe(
+			null,
+		);
+	});
+
+	it("records Fn/Globe when only event.key exposes it", () => {
+		const captured = captureHotkeyFromEvent(ev({ code: "", key: "Globe" }));
+		expect(captured).toEqual({
+			codeChord: "fn",
+			keyChord: "fn",
+			classification: "named",
+		});
+	});
+
+	it("records Fn/Globe when only modifier state exposes a standalone press", () => {
+		const event = ev({ code: "", key: "", fnKey: true });
+		expect(getUnsupportedShortcutReason(event)).toBeNull();
+		expect(captureHotkeyFromEvent(event)).toEqual({
+			codeChord: "fn",
+			keyChord: "fn",
+			classification: "named",
+		});
+	});
+
+	it("explains why Fn-combination shortcuts cannot be recorded", () => {
+		expect(
+			getUnsupportedShortcutReason(ev({ code: "KeyV", key: "v", fnKey: true })),
+		).toBe(UNSUPPORTED_FN_SHORTCUT_REASON);
+	});
+
+	it("doesNotRejectSupportedShortcutModifiers", () => {
+		expect(
+			getUnsupportedShortcutReason(
+				ev({ code: "KeyV", key: "v", metaKey: true, shiftKey: true }),
+			),
+		).toBeNull();
 	});
 });
 

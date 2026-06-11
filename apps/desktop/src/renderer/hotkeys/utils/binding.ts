@@ -1,5 +1,5 @@
 import type { ParsedBinding, ShortcutBinding } from "../types";
-import { canonicalizeChord, normalizeToken } from "./resolveHotkeyFromEvent";
+import { canonicalizeChord, normalizeToken } from "./chord";
 
 /**
  * Keys whose `event.code` is stable across keyboard layouts (Enter, arrows,
@@ -24,6 +24,10 @@ export const NAMED_KEYS = new Set([
 	"pageup",
 	"pagedown",
 	"insert",
+	"fn",
+	"function",
+	"fnlock",
+	"globe",
 ]);
 
 export function isFunctionKey(token: string): boolean {
