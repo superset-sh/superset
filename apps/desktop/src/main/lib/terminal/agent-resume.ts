@@ -135,6 +135,55 @@ function buildResumeCommand(
 	}
 }
 
+async function findClaudeTopLevelTranscriptPath(
+	sessionId: string,
+): Promise<string | null> {
+	const rootDir = join(getCurrentHomeDir(), ".claude", "projects");
+	const targetFileName = `${sessionId}.jsonl`;
+	const pendingDirs = [rootDir];
+
+	while (pendingDirs.length > 0) {
+		const dir = pendingDirs.pop();
+		if (!dir) {
+			continue;
+		}
+
+		let entries: Dirent[];
+		try {
+			entries = await fs.readdir(dir, { withFileTypes: true });
+		} catch (error) {
+			if (!isErrnoException(error, "ENOENT")) {
+				logResumeWarning(`Failed to read transcript directory ${dir}`, error);
+			}
+			continue;
+		}
+
+		for (const entry of entries) {
+			const fullPath = join(dir, entry.name);
+
+			if (entry.isDirectory()) {
+				if (entry.name === "subagents") {
+					continue;
+				}
+				pendingDirs.push(fullPath);
+				continue;
+			}
+
+			if (entry.isFile() && entry.name === targetFileName) {
+				return fullPath;
+			}
+		}
+	}
+
+	return null;
+}
+
+export async function hasClaudeTopLevelTranscript(
+	sessionId: string,
+): Promise<boolean> {
+	return (await findClaudeTopLevelTranscriptPath(sessionId)) !== null;
+}
+
 async function collectRecentFiles(
 	rootDir: string,
 	matchesFile: (path: string) => boolean,
@@ -348,12 +397,24 @@ export async function resolveAgentResumeTarget(params: {
 	);
 
 	if (normalizedAgentId && normalizedSessionId) {
-		return {
-			agentId: normalizedAgentId,
-			sessionId: normalizedSessionId,
-			resumeCommand: buildResumeCommand(normalizedAgentId, normalizedSessionId),
-			sourcePath: "session-location-log",
-		};
+		if (
+			normalizedAgentId === "claude" &&
+			!(await hasClaudeTopLevelTranscript(normalizedSessionId))
+		) {
+			logResumeWarning(
+				`Stored Claude session ${normalizedSessionId} has no top-level transcript; falling back to transcript scan`,
+			);
+		} else {
+			return {
+				agentId: normalizedAgentId,
+				sessionId: normalizedSessionId,
+				resumeCommand: buildResumeCommand(
+					normalizedAgentId,
+					normalizedSessionId,
+				),
+				sourcePath: "session-location-log",
+			};
+		}
 	}
 
 	if (searchPaths.length === 0) {

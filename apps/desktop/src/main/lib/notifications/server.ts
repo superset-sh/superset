@@ -5,8 +5,12 @@ import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
+import { hasClaudeTopLevelTranscript } from "../terminal/agent-resume";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
-import { updateSessionLocationAgentIdentity } from "../terminal/session-location-log";
+import {
+	getSessionLocation,
+	updateSessionLocationAgentIdentity,
+} from "../terminal/session-location-log";
 import { mapEventType } from "./map-event-type";
 import { resolvePaneId } from "./resolve-pane-id";
 
@@ -50,7 +54,7 @@ app.use((req, res, next) => {
 });
 
 // Agent lifecycle hook
-app.get("/hook/complete", (req, res) => {
+app.get("/hook/complete", async (req, res) => {
 	const {
 		paneId,
 		tabId,
@@ -116,11 +120,34 @@ app.get("/hook/complete", (req, res) => {
 			typeof agentId === "string" && agentId !== "" ? agentId : undefined;
 		const normalizedSessionId =
 			typeof sessionId === "string" && sessionId !== "" ? sessionId : undefined;
-		updateSessionLocationAgentIdentity({
-			paneId: locationPaneId,
-			agentId: normalizedAgentId,
-			agentSessionId: normalizedSessionId,
-		});
+		let shouldPersistAgentIdentity = true;
+		if (normalizedAgentId === "claude" && normalizedSessionId) {
+			const currentLocation = await getSessionLocation(locationPaneId);
+			if (
+				currentLocation?.agentId === "claude" &&
+				currentLocation.agentSessionId &&
+				currentLocation.agentSessionId !== normalizedSessionId
+			) {
+				shouldPersistAgentIdentity =
+					await hasClaudeTopLevelTranscript(normalizedSessionId);
+			}
+		}
+
+		if (shouldPersistAgentIdentity) {
+			updateSessionLocationAgentIdentity({
+				paneId: locationPaneId,
+				agentId: normalizedAgentId,
+				agentSessionId: normalizedSessionId,
+			});
+		} else if (DEBUG_HOOKS_ENABLED) {
+			console.log(
+				"[notifications] Ignoring Claude session identity update without a top-level transcript",
+				{
+					paneId: locationPaneId,
+					sessionId: normalizedSessionId,
+				},
+			);
+		}
 	}
 
 	if (DEBUG_HOOKS_ENABLED) {

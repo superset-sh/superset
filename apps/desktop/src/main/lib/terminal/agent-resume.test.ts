@@ -93,6 +93,23 @@ describe("resolveAgentResumeTarget", () => {
 	});
 
 	it("prefers the stored agent session id when it is already known", async () => {
+		const transcriptPath = join(
+			testHome,
+			".claude",
+			"projects",
+			"known",
+			"known-session.jsonl",
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			JSON.stringify({
+				type: "attachment",
+				cwd: "/tmp/workspaces/known",
+				sessionId: "known-session",
+			}),
+		);
+
 		const result = await resolveAgentResumeTarget({
 			agentId: "claude",
 			sessionId: "known-session",
@@ -104,6 +121,39 @@ describe("resolveAgentResumeTarget", () => {
 			sessionId: "known-session",
 			resumeCommand: "claude --resume known-session",
 			sourcePath: "session-location-log",
+		});
+	});
+
+	it("falls back from a stored Claude background session id to the transcript match", async () => {
+		const cwd = "/tmp/workspaces/claude";
+		const transcriptPath = join(
+			testHome,
+			".claude",
+			"projects",
+			"workspace",
+			"interactive-session.jsonl",
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			JSON.stringify({
+				type: "attachment",
+				cwd,
+				sessionId: "interactive-session",
+			}),
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "claude",
+			sessionId: "background-session",
+			cwd,
+		});
+
+		expect(result).toMatchObject({
+			agentId: "claude",
+			sessionId: "interactive-session",
+			resumeCommand: "claude --resume interactive-session",
+			sourcePath: transcriptPath,
 		});
 	});
 
