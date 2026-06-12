@@ -555,3 +555,37 @@ Rebuilt standalone Chat around a Claude-compatible ACP runtime, account-scoped s
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Chat markdown spacing follow-up
+
+**Date**: 2026-06-12
+**Task**: Chat markdown spacing follow-up
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Balanced standalone Chat markdown spacing for newline-heavy classification paragraphs while keeping list items compact, with a focused regression test and lint validation.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5ac2f375e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
