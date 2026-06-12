@@ -10,6 +10,7 @@ import type {
 	TerminalStreamEvent,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import { RESTORED_SESSION_CLEAN_EXIT_GRACE_MS } from "./terminal-exit-policy";
 
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
@@ -23,6 +24,7 @@ export interface UseTerminalColdRestoreOptions {
 	didFirstRenderRef: React.MutableRefObject<boolean>;
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
+	preserveCleanExitUntilRef: React.MutableRefObject<number>;
 	createOrAttachRef: React.MutableRefObject<CreateOrAttachMutate>;
 	setConnectionError: (error: string | null) => void;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
@@ -61,6 +63,7 @@ export function useTerminalColdRestore({
 	didFirstRenderRef,
 	pendingInitialStateRef,
 	pendingEventsRef,
+	preserveCleanExitUntilRef,
 	createOrAttachRef,
 	setConnectionError,
 	setExitStatus,
@@ -202,6 +205,8 @@ export function useTerminalColdRestore({
 		resetModes();
 
 		// Create new session with previous cwd
+		preserveCleanExitUntilRef.current =
+			Date.now() + RESTORED_SESSION_CLEAN_EXIT_GRACE_MS;
 		createOrAttachRef.current(
 			{
 				paneId,
@@ -254,6 +259,7 @@ export function useTerminalColdRestore({
 					if (isTerminalAttachCanceledMessage(error.message)) {
 						return;
 					}
+					preserveCleanExitUntilRef.current = 0;
 					console.error("[Terminal] Failed to start shell:", error);
 					setConnectionError(error.message || "Failed to start shell");
 					setIsRestoredMode(false);
@@ -274,6 +280,7 @@ export function useTerminalColdRestore({
 		wasKilledByUserRef,
 		pendingInitialStateRef,
 		pendingEventsRef,
+		preserveCleanExitUntilRef,
 		createOrAttachRef,
 		setConnectionError,
 		setExitStatus,

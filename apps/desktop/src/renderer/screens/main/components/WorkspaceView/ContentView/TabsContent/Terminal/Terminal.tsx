@@ -94,6 +94,7 @@ export const Terminal = memo(function Terminal({
 	);
 	const wasKilledByUserRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
+	const preserveCleanExitUntilRef = useRef(0);
 	const commandBufferRef = useRef("");
 	const tabIdRef = useRef(tabId);
 	tabIdRef.current = tabId;
@@ -234,6 +235,7 @@ export const Terminal = memo(function Terminal({
 		didFirstRenderRef,
 		pendingInitialStateRef,
 		pendingEventsRef,
+		preserveCleanExitUntilRef,
 		createOrAttachRef,
 		setConnectionError,
 		setExitStatus,
@@ -261,6 +263,7 @@ export const Terminal = memo(function Terminal({
 			isExitedRef,
 			wasKilledByUserRef,
 			pendingEventsRef,
+			preserveCleanExitUntilRef,
 			setExitStatus,
 			setConnectionError,
 			updateModesFromData,
