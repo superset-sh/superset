@@ -1,10 +1,9 @@
-import { Button, ContextMenu, Host, RNHostView } from "@expo/ui/swift-ui";
 import type {
 	SelectGithubPullRequest,
 	SelectV2Workspace,
 } from "@superset/db/schema";
 import { CircleDot, GitMerge, GitPullRequest } from "lucide-react-native";
-import { Alert, Linking, Pressable, View } from "react-native";
+import { ActionSheetIOS, Alert, Linking, Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { parseDate } from "@/lib/dates";
@@ -119,84 +118,82 @@ export function WorkspaceRow({
 		]);
 	};
 
+	const handleLongPress = () => {
+		ActionSheetIOS.showActionSheetWithOptions(
+			{
+				cancelButtonIndex: 2,
+				destructiveButtonIndex: 1,
+				options: ["Rename", "Delete", "Cancel"],
+				title: workspace.name,
+			},
+			(buttonIndex) => {
+				if (buttonIndex === 0) handleRename();
+				if (buttonIndex === 1) handleDelete();
+			},
+		);
+	};
+
 	return (
-		<Host matchContents>
-			<ContextMenu>
-				<ContextMenu.Items>
-					<Button label="Rename" onPress={handleRename} systemImage="pencil" />
-					{/* biome-ignore lint/a11y/useValidAriaRole: SwiftUI button role, not ARIA */}
-					<Button
-						label="Delete"
-						onPress={handleDelete}
-						role="destructive"
-						systemImage="trash"
-					/>
-				</ContextMenu.Items>
-				<ContextMenu.Trigger>
-					<RNHostView matchContents>
-						<Pressable
-							className="flex-row items-center gap-3 px-4 py-3"
-							onPress={onPress}
+		<Pressable
+			className="flex-row items-center gap-3 px-4 py-3"
+			onPress={onPress}
+			onLongPress={handleLongPress}
+		>
+			<OrganizationAvatar
+				name={creator?.name ?? workspace.name}
+				logo={creator?.image}
+				size={36}
+			/>
+			<View className="flex-1 gap-0.5">
+				<Text className="font-medium" numberOfLines={1}>
+					{workspace.name}
+				</Text>
+				<View className="flex-row items-center gap-1.5">
+					<Text
+						className="text-muted-foreground flex-shrink font-mono text-xs"
+						numberOfLines={1}
+					>
+						{workspace.branch}
+					</Text>
+					<Text className="text-muted-foreground text-xs">
+						· {relativeTime(workspace.updatedAt)}
+					</Text>
+				</View>
+			</View>
+			<View className="flex-row items-center gap-2">
+				{pullRequest ? (
+					<Text className="font-mono text-sm">
+						<Text
+							className="font-mono text-sm"
+							style={{ color: ADDITIONS_COLOR }}
 						>
-							<OrganizationAvatar
-								name={creator?.name ?? workspace.name}
-								logo={creator?.image}
-								size={36}
-							/>
-							<View className="flex-1 gap-0.5">
-								<Text className="font-medium" numberOfLines={1}>
-									{workspace.name}
-								</Text>
-								<View className="flex-row items-center gap-1.5">
-									<Text
-										className="text-muted-foreground flex-shrink font-mono text-xs"
-										numberOfLines={1}
-									>
-										{workspace.branch}
-									</Text>
-									<Text className="text-muted-foreground text-xs">
-										· {relativeTime(workspace.updatedAt)}
-									</Text>
-								</View>
-							</View>
-							<View className="flex-row items-center gap-2">
-								{pullRequest ? (
-									<Text className="font-mono text-sm">
-										<Text
-											className="font-mono text-sm"
-											style={{ color: ADDITIONS_COLOR }}
-										>
-											+{pullRequest.additions}
-										</Text>{" "}
-										<Text
-											className="font-mono text-sm"
-											style={{ color: DELETIONS_COLOR }}
-										>
-											−{pullRequest.deletions}
-										</Text>
-									</Text>
-								) : null}
-								{pullRequest && prBadge ? (
-									<Pressable
-										hitSlop={8}
-										onPress={() => Linking.openURL(pullRequest.url)}
-										className={`flex-row items-center gap-1 rounded-md px-2 py-1 ${prBadge.containerClassName}`}
-									>
-										<Icon
-											as={prBadge.icon}
-											className={`size-4 ${prBadge.iconClassName}`}
-											strokeWidth={1.75}
-										/>
-										<Text className="text-muted-foreground font-mono text-xs leading-none">
-											#{pullRequest.prNumber}
-										</Text>
-									</Pressable>
-								) : null}
-							</View>
-						</Pressable>
-					</RNHostView>
-				</ContextMenu.Trigger>
-			</ContextMenu>
-		</Host>
+							+{pullRequest.additions}
+						</Text>{" "}
+						<Text
+							className="font-mono text-sm"
+							style={{ color: DELETIONS_COLOR }}
+						>
+							−{pullRequest.deletions}
+						</Text>
+					</Text>
+				) : null}
+				{pullRequest && prBadge ? (
+					<Pressable
+						hitSlop={8}
+						onPress={() => Linking.openURL(pullRequest.url)}
+						className={`flex-row items-center gap-1 rounded-md px-2 py-1 ${prBadge.containerClassName}`}
+					>
+						<Icon
+							as={prBadge.icon}
+							className={`size-4 ${prBadge.iconClassName}`}
+							strokeWidth={1.75}
+						/>
+						<Text className="text-muted-foreground font-mono text-xs leading-none">
+							#{pullRequest.prNumber}
+						</Text>
+					</Pressable>
+				) : null}
+			</View>
+		</Pressable>
 	);
 }

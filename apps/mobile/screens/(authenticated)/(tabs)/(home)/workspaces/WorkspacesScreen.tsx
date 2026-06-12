@@ -1,11 +1,12 @@
+import { LegendList } from "@legendapp/list/react-native";
 import type {
 	SelectGithubPullRequest,
 	SelectV2Workspace,
 } from "@superset/db/schema";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Stack, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, useWindowDimensions, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { Pressable, useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
@@ -103,6 +104,22 @@ export function WorkspacesScreen() {
 		[users],
 	);
 
+	const renderItem = useCallback(
+		({ item }: { item: SelectV2Workspace }) => (
+			<WorkspaceRow
+				workspace={item}
+				pullRequest={pullRequestsByBranch.get(item.branch)}
+				creator={
+					item.createdByUserId ? usersById.get(item.createdByUserId) : undefined
+				}
+				onPress={() =>
+					router.push(`/(authenticated)/workspace/${item.id}/chat`)
+				}
+			/>
+		),
+		[pullRequestsByBranch, usersById, router],
+	);
+
 	const handleSwitchOrganization = (organizationId: string) => {
 		setSheetOpen(false);
 		switchOrganization(organizationId);
@@ -131,35 +148,22 @@ export function WorkspacesScreen() {
 					</Pressable>
 				</Stack.Toolbar.View>
 			</Stack.Toolbar>
-			<ScrollView
+			<LegendList
 				className="flex-1 bg-background"
 				contentInsetAdjustmentBehavior="automatic"
-				contentContainerClassName="py-2 pb-28"
-			>
-				{visibleWorkspaces.length === 0 ? (
+				contentContainerStyle={{ paddingBottom: 112, paddingVertical: 8 }}
+				data={visibleWorkspaces}
+				extraData={renderItem}
+				keyExtractor={(item: SelectV2Workspace) => item.id}
+				renderItem={renderItem}
+				ListEmptyComponent={
 					<View className="items-center justify-center py-20">
 						<Text className="text-center text-muted-foreground">
 							No workspaces in this project yet
 						</Text>
 					</View>
-				) : (
-					visibleWorkspaces.map((workspace) => (
-						<WorkspaceRow
-							key={workspace.id}
-							workspace={workspace}
-							pullRequest={pullRequestsByBranch.get(workspace.branch)}
-							creator={
-								workspace.createdByUserId
-									? usersById.get(workspace.createdByUserId)
-									: undefined
-							}
-							onPress={() =>
-								router.push(`/(authenticated)/workspace/${workspace.id}/chat`)
-							}
-						/>
-					))
-				)}
-			</ScrollView>
+				}
+			/>
 			<OrganizationSwitcherSheet
 				isPresented={sheetOpen}
 				onIsPresentedChange={setSheetOpen}
