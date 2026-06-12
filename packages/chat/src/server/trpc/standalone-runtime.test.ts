@@ -7,6 +7,7 @@ import type { createTRPCClient } from "@trpc/client";
 import {
 	type StandaloneChatProvider,
 	StandaloneChatRuntimeManager,
+	toSpawnableAsarUnpackedPath,
 } from "./standalone-runtime";
 
 const SESSION_ID = "11111111-1111-4111-8111-111111111111";
@@ -162,6 +163,25 @@ afterEach(() => {
 	} else {
 		process.env.OLDPWD = originalOldPwd;
 	}
+});
+
+describe("standalone Claude Code executable resolution", () => {
+	it("rewrites packaged executable paths out of app.asar", () => {
+		expect(
+			toSpawnableAsarUnpackedPath(
+				"/Applications/Superset Canary.app/Contents/Resources/app.asar/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
+			),
+		).toBe(
+			"/Applications/Superset Canary.app/Contents/Resources/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
+		);
+	});
+
+	it("leaves already-unpacked executable paths unchanged", () => {
+		const unpackedPath =
+			"/Applications/Superset Canary.app/Contents/Resources/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude";
+
+		expect(toSpawnableAsarUnpackedPath(unpackedPath)).toBe(unpackedPath);
+	});
 });
 
 describe("StandaloneChatRuntimeManager title generation", () => {

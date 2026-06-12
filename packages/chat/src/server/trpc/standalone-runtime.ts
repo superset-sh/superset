@@ -432,8 +432,27 @@ function claudeAgentExecutableName(): string {
 	return process.platform === "win32" ? "claude.exe" : "claude";
 }
 
-function resolveExistingPath(candidates: string[]): string | undefined {
-	return candidates.find((candidate) => existsSync(candidate));
+export function toSpawnableAsarUnpackedPath(candidate: string): string {
+	return candidate.replace(/([\\/])app\.asar([\\/])/, "$1app.asar.unpacked$2");
+}
+
+function isInsideAppAsar(candidate: string): boolean {
+	return /[\\/]app\.asar[\\/]/.test(candidate);
+}
+
+function resolveExistingSpawnablePath(
+	candidates: string[],
+): string | undefined {
+	const expandedCandidates = candidates.flatMap((candidate) => {
+		const unpackedCandidate = toSpawnableAsarUnpackedPath(candidate);
+		return unpackedCandidate === candidate
+			? [candidate]
+			: [unpackedCandidate, candidate];
+	});
+
+	return [...new Set(expandedCandidates)].find(
+		(candidate) => !isInsideAppAsar(candidate) && existsSync(candidate),
+	);
 }
 
 function nearestNodeModulesDirs(startDir: string): string[] {
@@ -465,7 +484,7 @@ function bunStorePackageCandidates(
 
 export function resolveClaudeCodeExecutablePath(): string | undefined {
 	const override = process.env.SUPERSET_CLAUDE_CODE_BIN_PATH?.trim();
-	if (override) return override;
+	if (override) return toSpawnableAsarUnpackedPath(override);
 
 	const packageName = claudeAgentPlatformPackageName();
 	if (!packageName) return undefined;
@@ -510,7 +529,7 @@ export function resolveClaudeCodeExecutablePath(): string | undefined {
 		}
 	}
 
-	return resolveExistingPath([...new Set(candidates)]);
+	return resolveExistingSpawnablePath([...new Set(candidates)]);
 }
 
 function withTimeout<T>(
