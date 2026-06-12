@@ -119,6 +119,102 @@ afterEach(() => {
 	jest.useRealTimers();
 });
 
+describe("PTY output write coalescing", () => {
+	let frameCallbacks: FrameRequestCallback[];
+	const originalRaf = globalThis.requestAnimationFrame;
+	const originalCancelRaf = globalThis.cancelAnimationFrame;
+
+	function fireFrame() {
+		const callbacks = [...frameCallbacks];
+		frameCallbacks = [];
+		for (const callback of callbacks) {
+			callback(performance.now());
+		}
+	}
+
+	beforeEach(() => {
+		frameCallbacks = [];
+		globalThis.requestAnimationFrame = (callback: FrameRequestCallback) => {
+			frameCallbacks.push(callback);
+			return frameCallbacks.length;
+		};
+		globalThis.cancelAnimationFrame = () => {
+			frameCallbacks = [];
+		};
+	});
+
+	afterEach(() => {
+		globalThis.requestAnimationFrame = originalRaf;
+		globalThis.cancelAnimationFrame = originalCancelRaf;
+	});
+
+	function connectWithRecordingTerminal() {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+		const writes: string[] = [];
+		const events: string[] = [];
+		(terminal as unknown as { write: (d: Uint8Array) => void }).write = (
+			data: Uint8Array,
+		) => {
+			const text = new TextDecoder().decode(data);
+			writes.push(text);
+			events.push(`write:${text}`);
+		};
+		(terminal as unknown as { writeln: (s: string) => void }).writeln = (
+			line: string,
+		) => {
+			events.push(`writeln:${line}`);
+		};
+		connect(transport, terminal, "ws://host/terminal/t1");
+		const socket = MockWebSocket.instances[0];
+		if (!socket) throw new Error("expected websocket instance");
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		return { transport, socket, writes, events };
+	}
+
+	function binaryFrame(text: string): ArrayBuffer {
+		const bytes = new TextEncoder().encode(text);
+		return bytes.buffer.slice(
+			bytes.byteOffset,
+			bytes.byteOffset + bytes.byteLength,
+		) as ArrayBuffer;
+	}
+
+	test("coalesces binary frames into one terminal.write per frame", () => {
+		const { writes, socket } = connectWithRecordingTerminal();
+
+		socket.message(binaryFrame("chunk1"));
+		socket.message(binaryFrame("chunk2"));
+		socket.message(binaryFrame("chunk3"));
+		expect(writes).toEqual([]);
+
+		fireFrame();
+		expect(writes).toEqual(["chunk1chunk2chunk3"]);
+	});
+
+	test("flushes pending PTY bytes before writing the exit notice", () => {
+		const { events, socket } = connectWithRecordingTerminal();
+
+		socket.message(binaryFrame("final output"));
+		socket.message(JSON.stringify({ type: "exit", exitCode: 0, signal: 0 }));
+
+		expect(events).toEqual([
+			"write:final output",
+			"writeln:\r\n[terminal] exited with code 0 (signal 0)",
+		]);
+	});
+
+	test("flushes pending PTY bytes when the socket closes", () => {
+		const { writes, socket } = connectWithRecordingTerminal();
+
+		socket.message(binaryFrame("tail"));
+		socket.close(1006, "host restart");
+
+		expect(writes).toEqual(["tail"]);
+	});
+});
+
 describe("terminal-ws-transport", () => {
 	test("server-sent error routes to logs, not xterm, and stops reconnect", () => {
 		const transport = createTransport();
