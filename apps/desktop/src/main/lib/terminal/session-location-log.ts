@@ -174,19 +174,21 @@ export function upsertSessionLocation(params: {
 
 export function updateSessionLocationAgentIdentity(params: {
 	paneId: string;
-	agentId?: string;
-	agentSessionId?: string;
+	agentId?: string | null;
+	agentSessionId?: string | null;
 }): void {
 	enqueueUpdate((log) => {
 		const entry = log.sessions[params.paneId];
 		if (!entry) return;
 
-		const nextAgentId = hasOwn(params, "agentId")
-			? normalizeOptionalIdentityValue(params.agentId)
-			: entry.agentId;
-		const nextAgentSessionId = hasOwn(params, "agentSessionId")
-			? normalizeOptionalIdentityValue(params.agentSessionId)
-			: entry.agentSessionId;
+		const nextAgentId =
+			hasOwn(params, "agentId") && params.agentId !== undefined
+				? normalizeOptionalIdentityValue(params.agentId)
+				: entry.agentId;
+		const nextAgentSessionId =
+			hasOwn(params, "agentSessionId") && params.agentSessionId !== undefined
+				? normalizeOptionalIdentityValue(params.agentSessionId)
+				: entry.agentSessionId;
 
 		if (
 			nextAgentId === entry.agentId &&

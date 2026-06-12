@@ -6,6 +6,19 @@ import {
 } from "../errors";
 import type { SessionInfo } from "./types";
 
+let mockAppStateData: unknown = null;
+let mockHistoryMetadata: {
+	cwd: string;
+	cols?: number;
+	rows?: number;
+	endedAt?: number;
+} | null = null;
+let mockHistoryScrollback: string | null = null;
+let mockResolveAgentResumeTarget: (params: unknown) => Promise<unknown> =
+	async (_params: unknown) => null;
+let mockGetSessionLocation: () => Promise<unknown> = async () => null;
+const mockUpdateSessionLocationAgentIdentityCalls: Array<unknown> = [];
+
 class MockTerminalHostClient extends EventEmitter {
 	createOrAttachCalls: Array<{ sessionId: string; requestId?: string }> = [];
 	cancelCreateOrAttachCalls: Array<{ sessionId: string; requestId: string }> =
@@ -181,7 +194,11 @@ mock.module("../env", () => ({
 }));
 
 mock.module("main/lib/app-state", () => ({
-	appState: { data: null },
+	appState: {
+		get data() {
+			return mockAppStateData;
+		},
+	},
 }));
 
 mock.module("main/lib/local-db", () => ({
@@ -199,6 +216,23 @@ mock.module("@superset/local-db", () => ({
 	workspaces: { id: "id" },
 }));
 
+mock.module("../../terminal-history", () => ({
+	HistoryReader: class {
+		async readMetadata() {
+			return mockHistoryMetadata;
+		}
+
+		async readScrollback() {
+			return mockHistoryScrollback;
+		}
+
+		async cleanup() {
+			return Promise.resolve();
+		}
+	},
+	truncateUtf8ToLastBytes: (value: string) => value,
+}));
+
 mock.module("../port-manager", () => ({
 	portManager: {
 		upsertSession: () => {},
@@ -208,7 +242,8 @@ mock.module("../port-manager", () => ({
 }));
 
 mock.module("../agent-resume", () => ({
-	resolveAgentResumeTarget: async () => null,
+	resolveAgentResumeTarget: (params: unknown) =>
+		mockResolveAgentResumeTarget(params),
 }));
 
 mock.module("../session-location-log", () => ({
@@ -222,9 +257,11 @@ mock.module("../session-location-log", () => ({
 		tabId: string;
 		paneId: string;
 	}) => `${workspaceId}:${tabId}:${paneId}`,
-	getSessionLocation: async () => null,
+	getSessionLocation: () => mockGetSessionLocation(),
 	markSessionLocationExited: () => {},
-	updateSessionLocationAgentIdentity: () => {},
+	updateSessionLocationAgentIdentity: (params: unknown) => {
+		mockUpdateSessionLocationAgentIdentityCalls.push(params);
+	},
 	upsertSessionLocation: () => {},
 }));
 
@@ -263,6 +300,12 @@ const { DaemonTerminalManager } = await import("./daemon-manager");
 describe("DaemonTerminalManager kill tracking", () => {
 	beforeEach(() => {
 		mockClient = new MockTerminalHostClient();
+		mockAppStateData = null;
+		mockHistoryMetadata = null;
+		mockHistoryScrollback = null;
+		mockResolveAgentResumeTarget = async () => null;
+		mockGetSessionLocation = async () => null;
+		mockUpdateSessionLocationAgentIdentityCalls.length = 0;
 	});
 
 	afterAll(() => {
@@ -324,6 +367,78 @@ describe("DaemonTerminalManager kill tracking", () => {
 
 		mockClient.emit("exit", paneId, 0, 15);
 		expect(exitReason).toBe("exited");
+	});
+
+	it("infers codex from the tab userTitle during cold restore when session identity is missing", async () => {
+		mockHistoryMetadata = {
+			cwd: "/repo",
+			cols: 120,
+			rows: 32,
+		};
+		mockHistoryScrollback = "restored scrollback";
+		mockAppStateData = {
+			tabsState: {
+				tabs: [
+					{
+						id: "tab-codex",
+						userTitle: "codex",
+					},
+				],
+				panes: {
+					"pane-codex": {
+						id: "pane-codex",
+						tabId: "tab-codex",
+					},
+				},
+			},
+		};
+		mockGetSessionLocation = async () => ({
+			paneId: "pane-codex",
+			tabId: "tab-codex",
+			workspaceId: "ws-1",
+			cwd: "/repo",
+			pid: null,
+			status: "exited",
+			createdAt: 0,
+			updatedAt: 0,
+			locationKey: "ws-1:tab-codex:pane-codex",
+			workspacePath: "/repo",
+			rootPath: "/root",
+		});
+
+		const resolveCalls: Array<Record<string, unknown>> = [];
+		mockResolveAgentResumeTarget = async (params) => {
+			resolveCalls.push(params as Record<string, unknown>);
+			return {
+				agentId: "codex",
+				sessionId: "session-123",
+				resumeCommand: "codex resume session-123",
+				sourcePath: "transcript",
+			};
+		};
+
+		const manager = new DaemonTerminalManager();
+		const result = await manager.createOrAttach({
+			paneId: "pane-codex",
+			tabId: "tab-codex",
+			workspaceId: "ws-1",
+		});
+
+		expect(resolveCalls).toHaveLength(1);
+		expect(resolveCalls[0]?.agentId).toBe("codex");
+		expect(resolveCalls[0]?.sessionId).toBeUndefined();
+		expect(result).toMatchObject({
+			isColdRestore: true,
+			previousCwd: "/repo",
+			resumeCommand: "codex resume session-123",
+		});
+		expect(mockUpdateSessionLocationAgentIdentityCalls).toEqual([
+			{
+				paneId: "pane-codex",
+				agentId: "codex",
+				agentSessionId: "session-123",
+			},
+		]);
 	});
 
 	it("supersedes older createOrAttach requests for the same pane", async () => {

@@ -33,6 +33,36 @@ import { HistoryManager } from "./history-manager";
 import { PrioritySemaphore } from "./priority-semaphore";
 import type { ColdRestoreInfo, SessionInfo } from "./types";
 
+type RestorableAgentId = "claude" | "codex";
+
+function normalizeRestorableAgentId(
+	value: string | null | undefined,
+): RestorableAgentId | null {
+	return value === "claude" || value === "codex" ? value : null;
+}
+
+function inferRestorableAgentIdFromTabsState(
+	paneId: string,
+	fallbackTabId?: string | null,
+): RestorableAgentId | null {
+	const tabsState = appState.data?.tabsState;
+	if (!tabsState) {
+		return null;
+	}
+
+	const pane = tabsState.panes?.[paneId];
+	const tabId = pane?.tabId || fallbackTabId || null;
+	if (!tabId) {
+		return null;
+	}
+
+	const userTitle = tabsState.tabs
+		?.find((tab) => tab.id === tabId)
+		?.userTitle?.trim()
+		.toLowerCase();
+	return normalizeRestorableAgentId(userTitle);
+}
+
 interface PendingCreateOrAttach {
 	requestId: string;
 	joinPending: boolean;
@@ -613,8 +643,11 @@ export class DaemonTerminalManager extends EventEmitter {
 				? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
 				: rawScrollback;
 		const sessionLocation = await getSessionLocation(paneId);
+		const restorableAgentId =
+			normalizeRestorableAgentId(sessionLocation?.agentId) ??
+			inferRestorableAgentIdFromTabsState(paneId, sessionLocation?.tabId);
 		const resumeTarget = await resolveAgentResumeTarget({
-			agentId: sessionLocation?.agentId,
+			agentId: restorableAgentId,
 			sessionId: sessionLocation?.agentSessionId,
 			cwd: metadata.cwd,
 			workspacePath: sessionLocation?.workspacePath,
