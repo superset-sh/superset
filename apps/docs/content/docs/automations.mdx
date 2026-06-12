@@ -1,11 +1,11 @@
 ---
 title: Automations
-description: Schedule agent sessions to run on a recurring basis
+description: Schedule recurring agent work and review run results
 ---
 
 ## Overview
 
-Automations run an agent session against a project on a schedule — like a cron job, but the output is a live workspace you (or a teammate) can open, review, and continue interactively.
+Automations run an agent session against a project on a schedule — like a cron job, but every firing creates a visible run with lifecycle status, target metadata, debug links, and a Markdown result panel.
 
 Typical uses:
 
@@ -44,11 +44,13 @@ Examples:
 
 Each time an automation fires, a **run** is recorded. Runs show up on the automation's detail page with status:
 
-- **dispatched** — the session was successfully handed off to the target device
-- **skipped (offline)** — the target device wasn't online at fire time; the run was skipped and the schedule advanced
-- **dispatch failed** — something broke during handoff; check the error message
+- **dispatching** — Superset is resolving the host/workspace and launching the agent
+- **running** — the agent session started and is expected to write back a result
+- **completed** — the agent wrote back a Markdown report/result
+- **failed** — dispatch or agent writeback reported a failure
+- **skipped** — the target device was unavailable, so the schedule advanced without launching
 
-When a run dispatches in "new workspace" mode, a fresh workspace is created from the project's repo for that run. Open it from the run row to see the agent's work.
+Click a run to open its result panel. Terminal or chat sessions remain available from that panel as debug/source links, but the result panel is the primary review surface.
 
 ## Pause, Run Now, Delete
 
@@ -61,8 +63,8 @@ From the automation's detail page:
 ## Limits
 
 - **At-least-once delivery** — Automations may dispatch more than once in rare cases (e.g. dispatcher retries). Design prompts that are safe to re-run.
-- **No completion tracking (v1)** — Runs land at `dispatched`; the detail page doesn't show success/failure of the agent itself. Open the workspace to see what happened.
-- **Offline hosts skip silently** — If your device is offline at fire time, the run is marked `skipped_offline` and the next occurrence is scheduled normally.
+- **Explicit writeback** — Agents should finish by calling the Superset CLI writeback command so the run can become `completed` or `failed`.
+- **Offline hosts are visible** — If your device is offline at fire time, the run is marked `skipped` with a failure reason and the next occurrence is scheduled normally.
 - **One prompt per automation** — Each automation has one prompt. To run multiple prompts on a schedule, create multiple automations.
 
 ## CLI
@@ -72,6 +74,8 @@ superset automations list
 superset automations create --name "Nightly audit" --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" --project <projectId> --prompt-file prompt.md --agent claude
 superset automations get <id>
 superset automations run <id>
+superset automations runs complete <runId> --result-file report.md
+superset automations runs fail <runId> --reason "short failure reason"
 superset automations pause <id>
 superset automations resume <id>
 superset automations delete <id>

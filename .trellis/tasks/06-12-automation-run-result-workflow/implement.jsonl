@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/database-and-migrations.md", "reason": "Cloud schema and generated migration boundaries for automation run result fields."}
+{"file": ".trellis/spec/guides/backend-data-and-trpc.md", "reason": "tRPC, host-service, relay, and Electric cross-layer contracts."}
+{"file": ".trellis/spec/guides/frontend-conventions.md", "reason": "Desktop React structure and cache-first TanStack DB/Electric rendering rules."}
+{"file": ".trellis/spec/guides/desktop-acceptance-tdd.md", "reason": "Real Electron acceptance and screenshot quality gate for Automation UI changes."}

@@ -21,15 +21,17 @@ type AgentRunResult =
 	| { kind: "chat"; sessionId: string; label: string };
 
 export type DispatchOutcome =
-	| { status: "dispatched"; runId: string }
-	| { status: "skipped_offline"; runId: string | null; error: string }
-	| { status: "dispatch_failed"; runId: string | null; error: string }
+	| { status: "running"; runId: string }
+	| { status: "skipped"; runId: string | null; error: string }
+	| { status: "failed"; runId: string | null; error: string }
 	| { status: "conflict" };
 
 export interface DispatchOptions {
 	automation: SelectAutomation;
 	scheduledFor: Date;
 	relayUrl: string;
+	apiUrl: string;
+	source: "manual" | "schedule";
 }
 
 /**
@@ -47,8 +49,14 @@ export async function dispatchAutomation(
 	const resolved = await resolveTargetHost(automation);
 	if (!resolved) {
 		const error = "no host available";
-		const inserted = await recordSkipped(automation, scheduledFor, null, error);
-		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
+		const inserted = await recordSkipped(
+			automation,
+			scheduledFor,
+			null,
+			error,
+			opts.source,
+		);
+		return { status: "skipped", runId: inserted?.id ?? null, error };
 	}
 	const host = resolved;
 	if (!host.isOnline) {
@@ -58,8 +66,9 @@ export async function dispatchAutomation(
 			scheduledFor,
 			host.machineId,
 			error,
+			opts.source,
 		);
-		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
+		return { status: "skipped", runId: inserted?.id ?? null, error };
 	}
 
 	const [run] = await dbWs
@@ -68,6 +77,7 @@ export async function dispatchAutomation(
 			automationId: automation.id,
 			organizationId: automation.organizationId,
 			title: automation.name,
+			source: opts.source,
 			scheduledFor,
 			hostId: host.machineId,
 			status: "dispatching",
@@ -87,13 +97,21 @@ export async function dispatchAutomation(
 			.where(eq(users.id, automation.ownerUserId))
 			.limit(1);
 
-		const jwt = await mintUserJwt({
+		const relayJwt = await mintUserJwt({
 			userId: automation.ownerUserId,
 			email: owner?.email,
 			organizationIds: [automation.organizationId],
 			scope: "automation-run",
 			runId: run.id,
 			ttlSeconds: 300,
+		});
+		const runJwt = await mintUserJwt({
+			userId: automation.ownerUserId,
+			email: owner?.email,
+			organizationIds: [automation.organizationId],
+			scope: "automation-run",
+			runId: run.id,
+			ttlSeconds: 6 * 60 * 60,
 		});
 
 		const routingKey = buildHostRoutingKey(
@@ -107,7 +125,7 @@ export async function dispatchAutomation(
 			const created = await createWorkspaceOnHost({
 				relayUrl,
 				hostId: routingKey,
-				jwt,
+				jwt: relayJwt,
 				projectId: automation.v2ProjectId,
 				automation,
 				runId: run.id,
@@ -118,20 +136,33 @@ export async function dispatchAutomation(
 		const result = await runAgentOnHost({
 			relayUrl,
 			hostId: routingKey,
-			jwt,
+			jwt: relayJwt,
 			workspaceId,
 			agent: automation.agent,
-			prompt: automation.prompt,
+			prompt: buildAutomationRunPrompt({
+				automationName: automation.name,
+				runId: run.id,
+				prompt: automation.prompt,
+			}),
+			env: {
+				SUPERSET_API_URL: opts.apiUrl,
+				SUPERSET_API_KEY: runJwt,
+				SUPERSET_AUTOMATION_ID: automation.id,
+				SUPERSET_AUTOMATION_RUN_ID: run.id,
+				SUPERSET_AUTOMATION_RUN_SOURCE: opts.source,
+				SUPERSET_AUTOMATION_RUN_TOKEN: runJwt,
+			},
 		});
 
 		await dbWs
 			.update(automationRuns)
 			.set({
-				status: "dispatched",
+				status: "running",
 				sessionKind: result.kind,
 				chatSessionId: result.kind === "chat" ? result.sessionId : null,
 				terminalSessionId: result.kind === "terminal" ? result.sessionId : null,
 				v2WorkspaceId: workspaceId,
+				startedAt: new Date(),
 				dispatchedAt: new Date(),
 			})
 			.where(eq(automationRuns.id, run.id));
@@ -140,15 +171,18 @@ export async function dispatchAutomation(
 		await dbWs
 			.update(automationRuns)
 			.set({
-				status: "dispatch_failed",
+				status: "failed",
 				v2WorkspaceId: workspaceId,
 				error,
+				failureReason: error,
+				resultSource: "system",
+				completedAt: new Date(),
 			})
 			.where(eq(automationRuns.id, run.id));
-		return { status: "dispatch_failed", runId: run.id, error };
+		return { status: "failed", runId: run.id, error };
 	}
 
-	return { status: "dispatched", runId: run.id };
+	return { status: "running", runId: run.id };
 }
 
 async function resolveTargetHost(
@@ -205,6 +239,7 @@ async function recordSkipped(
 	scheduledFor: Date,
 	hostId: string | null,
 	error: string,
+	source: "manual" | "schedule",
 ): Promise<{ id: string } | undefined> {
 	const [row] = await dbWs
 		.insert(automationRuns)
@@ -212,16 +247,32 @@ async function recordSkipped(
 			automationId: automation.id,
 			organizationId: automation.organizationId,
 			title: automation.name,
+			source,
 			scheduledFor,
 			hostId,
-			status: "skipped_offline",
+			status: "skipped",
 			error,
+			failureReason: error,
+			resultSource: "system",
+			completedAt: new Date(),
 		})
 		.onConflictDoNothing({
 			target: [automationRuns.automationId, automationRuns.scheduledFor],
 		})
 		.returning({ id: automationRuns.id });
-	return row;
+	if (row) return row;
+
+	const [existing] = await dbWs
+		.select({ id: automationRuns.id })
+		.from(automationRuns)
+		.where(
+			and(
+				eq(automationRuns.automationId, automation.id),
+				eq(automationRuns.scheduledFor, scheduledFor),
+			),
+		)
+		.limit(1);
+	return existing;
 }
 
 async function createWorkspaceOnHost(args: {
@@ -288,12 +339,14 @@ async function runAgentOnHost(args: {
 	workspaceId: string;
 	agent: string;
 	prompt: string;
+	env?: Record<string, string>;
 }): Promise<AgentRunResult> {
 	return relayMutation<
 		{
 			workspaceId: string;
 			agent: string;
 			prompt: string;
+			env?: Record<string, string>;
 		},
 		AgentRunResult
 	>(
@@ -303,8 +356,44 @@ async function runAgentOnHost(args: {
 			workspaceId: args.workspaceId,
 			agent: args.agent,
 			prompt: args.prompt,
+			env: args.env,
 		},
 	);
+}
+
+function buildAutomationRunPrompt(args: {
+	automationName: string;
+	runId: string;
+	prompt: string;
+}): string {
+	return `${args.prompt.trim()}
+
+---
+
+# Superset Automation Run
+
+You are running the Superset automation "${args.automationName}".
+
+Run id: ${args.runId}
+
+When the work is complete:
+
+1. Write a concise Markdown report with the final result.
+2. Save it to a temporary markdown file.
+3. Mark this run complete with:
+
+\`\`\`bash
+superset automations runs complete ${args.runId} --result-file /path/to/report.md
+\`\`\`
+
+If the work fails, mark the run failed with:
+
+\`\`\`bash
+superset automations runs fail ${args.runId} --reason "short failure reason"
+\`\`\`
+
+The environment includes SUPERSET_AUTOMATION_RUN_ID, SUPERSET_AUTOMATION_RUN_TOKEN, SUPERSET_API_KEY, and SUPERSET_API_URL for this run.
+Do not create your own cron job, scheduled reminder, recurring task, or background scheduler. This process is already being triggered by Superset Automations.`;
 }
 
 function describeError(err: unknown, context: string): string {

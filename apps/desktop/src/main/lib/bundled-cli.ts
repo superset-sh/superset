@@ -8,18 +8,20 @@ import {
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
-import { app } from "electron";
 import { BIN_DIR } from "./agent-setup/paths";
 
 export const BUNDLED_CLI_SHIM_MARKER = "# Superset bundled CLI shim v1";
 const SHIM_HEADER_BYTES = 2048;
+const require = createRequire(import.meta.url);
 
 export type BundledCliInstallStatus = "installed" | "missing" | "skipped";
 
 interface InstallBundledCliShimOptions {
 	binDir?: string;
 	bundledCliPath?: string | null;
+	devCliPackageDir?: string | null;
 	platform?: NodeJS.Platform;
 }
 
@@ -59,7 +61,15 @@ exec ${quoteShellLiteral(bundledCliPath)} "$@"
 `;
 }
 
+export function buildDevCliShim(cliPackageDir: string): string {
+	return `#!/bin/sh
+${BUNDLED_CLI_SHIM_MARKER}
+exec bun run --cwd ${quoteShellLiteral(cliPackageDir)} dev "$@"
+`;
+}
+
 function getBundledCliCandidates(platform: NodeJS.Platform): string[] {
+	const app = require("electron").app as Electron.App;
 	const binaryName = getBundledCliBinaryName(platform);
 	const candidates = [
 		app.isPackaged
@@ -79,6 +89,24 @@ export function resolveBundledCliPath(
 	return (
 		getBundledCliCandidates(platform).find((candidate) =>
 			existsSync(candidate),
+		) ?? null
+	);
+}
+
+function getDevCliPackageDirCandidates(): string[] {
+	const app = require("electron").app as Electron.App;
+	return [
+		path.resolve(app.getAppPath(), "../../packages/cli"),
+		path.resolve(process.cwd(), "packages/cli"),
+	];
+}
+
+export function resolveDevCliPackageDir(): string | null {
+	const app = require("electron").app as Electron.App;
+	if (app.isPackaged) return null;
+	return (
+		getDevCliPackageDirCandidates().find((candidate) =>
+			existsSync(path.join(candidate, "package.json")),
 		) ?? null
 	);
 }
@@ -107,8 +135,14 @@ export function installBundledCliShim(
 	const platform = options.platform ?? process.platform;
 	const bundledCliPath =
 		options.bundledCliPath ?? resolveBundledCliPath(platform);
+	const hasBundledCli = !!bundledCliPath && existsSync(bundledCliPath);
+	const devCliPackageDir = hasBundledCli
+		? null
+		: options.devCliPackageDir === undefined
+			? resolveDevCliPackageDir()
+			: options.devCliPackageDir;
 
-	if (!bundledCliPath || !existsSync(bundledCliPath)) {
+	if (!hasBundledCli && !devCliPackageDir) {
 		console.debug("[bundled-cli] No bundled CLI binary found");
 		return "missing";
 	}
@@ -126,9 +160,10 @@ export function installBundledCliShim(
 	if (existsSync(shimPath)) {
 		unlinkSync(shimPath);
 	}
-	writeFileSync(shimPath, buildBundledCliShim(bundledCliPath, platform), {
-		mode: platform === "win32" ? 0o644 : 0o755,
-	});
+	const shim = hasBundledCli
+		? buildBundledCliShim(bundledCliPath, platform)
+		: buildDevCliShim(devCliPackageDir as string);
+	writeFileSync(shimPath, shim, { mode: platform === "win32" ? 0o644 : 0o755 });
 
 	console.log(`[bundled-cli] Installed Superset CLI shim at ${shimPath}`);
 	return "installed";

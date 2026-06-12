@@ -792,6 +792,7 @@ interface CreateTerminalSessionOptions {
 	db: HostDb;
 	eventBus?: EventBus;
 	initialCommand?: string;
+	env?: Record<string, string>;
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
@@ -847,6 +848,7 @@ export async function createTerminalSessionInternal({
 	db,
 	eventBus,
 	initialCommand,
+	env: extraEnv,
 	cwd: cwdOverride,
 	listed = true,
 	cols: requestedCols,
@@ -917,23 +919,26 @@ export async function createTerminalSessionInternal({
 	const supersetHomeDir = process.env.SUPERSET_HOME_DIR || "";
 	const shell = resolveLaunchShell(baseEnv);
 	const shellArgs = getShellLaunchArgs({ shell, supersetHomeDir });
-	const ptyEnv = buildV2TerminalEnv({
-		baseEnv,
-		shell,
-		supersetHomeDir,
-		themeType,
-		cwd,
-		terminalId,
-		workspaceId,
-		workspacePath: workspace.worktreePath,
-		rootPath,
-		hostServiceVersion: process.env.HOST_SERVICE_VERSION || "unknown",
-		supersetEnv:
-			process.env.NODE_ENV === "development" ? "development" : "production",
-		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
-		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
-		hostAgentHookUrl: getHostAgentHookUrl(),
-	});
+	const ptyEnv = {
+		...buildV2TerminalEnv({
+			baseEnv,
+			shell,
+			supersetHomeDir,
+			themeType,
+			cwd,
+			terminalId,
+			workspaceId,
+			workspacePath: workspace.worktreePath,
+			rootPath,
+			hostServiceVersion: process.env.HOST_SERVICE_VERSION || "unknown",
+			supersetEnv:
+				process.env.NODE_ENV === "development" ? "development" : "production",
+			agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
+			agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
+			hostAgentHookUrl: getHostAgentHookUrl(),
+		}),
+		...(extraEnv ?? {}),
+	};
 
 	let daemon: DaemonClient;
 	let openResult: { pid: number };

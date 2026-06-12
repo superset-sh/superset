@@ -63,6 +63,8 @@ export async function POST(
 		automation,
 		scheduledFor: new Date(parsed.data.scheduledFor),
 		relayUrl: env.RELAY_URL,
+		apiUrl: env.NEXT_PUBLIC_API_URL,
+		source: "schedule",
 	});
 
 	return Response.json({ ok: true, outcome });

@@ -3,7 +3,7 @@ import { type ApiClient, createApiClient } from "./api-client";
 import { refreshAccessToken } from "./auth";
 import { readConfig, type SupersetConfig, writeConfig } from "./config";
 
-export type AuthSource = "override" | "config" | "oauth";
+export type AuthSource = "override" | "automation-run" | "config" | "oauth";
 
 export type ResolvedAuth = {
 	config: SupersetConfig;
@@ -20,12 +20,16 @@ export async function resolveAuth(
 	let config = readConfig();
 
 	const overrideKey = apiKeyOption?.trim();
+	const automationRunToken = process.env.SUPERSET_AUTOMATION_RUN_TOKEN?.trim();
 	let bearer: string | undefined;
 	let authSource: AuthSource;
 
 	if (overrideKey) {
 		bearer = overrideKey;
 		authSource = "override";
+	} else if (automationRunToken) {
+		bearer = automationRunToken;
+		authSource = "automation-run";
 	} else if (config.apiKey?.trim()) {
 		bearer = config.apiKey.trim();
 		authSource = "config";

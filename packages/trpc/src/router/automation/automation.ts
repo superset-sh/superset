@@ -16,7 +16,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, getTableColumns, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { protectedProcedure } from "../../trpc";
+import { jwtProcedure, protectedProcedure } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
@@ -25,7 +25,10 @@ import {
 	recordPromptVersion,
 } from "./helpers";
 import {
+	completeRunSchema,
 	createAutomationSchema,
+	failRunSchema,
+	getRunSchema,
 	listRunsSchema,
 	parseRruleSchema,
 	setAutomationPromptSchema,
@@ -35,6 +38,60 @@ import { automationVersionsRouter } from "./versions";
 
 function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
+
+const TERMINAL_RUN_STATUSES = new Set([
+	"completed",
+	"failed",
+	"skipped",
+	"dispatch_failed",
+	"skipped_offline",
+]);
+
+type AutomationJwtContext = {
+	userId: string;
+	organizationIds: string[];
+	jwtClaims: { scope?: string; runId?: string } | null;
+};
+
+async function getAutomationRunForJwtContext(
+	ctx: AutomationJwtContext,
+	runId: string,
+) {
+	const runColumns = getTableColumns(automationRuns);
+	const [row] = await db
+		.select({
+			...runColumns,
+			automationOwnerUserId: automations.ownerUserId,
+		})
+		.from(automationRuns)
+		.innerJoin(automations, eq(automations.id, automationRuns.automationId))
+		.where(eq(automationRuns.id, runId))
+		.limit(1);
+
+	if (!row || !ctx.organizationIds.includes(row.organizationId)) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Automation run not found",
+		});
+	}
+
+	if (ctx.jwtClaims?.scope === "automation-run") {
+		if (ctx.jwtClaims.runId !== runId) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Automation run token cannot access this run",
+			});
+		}
+	} else if (row.automationOwnerUserId !== ctx.userId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Automation run not found",
+		});
+	}
+
+	const { automationOwnerUserId: _ownerUserId, ...run } = row;
+	return run;
 }
 
 async function verifyHostAccess(
@@ -452,6 +509,8 @@ export const automationRouter = {
 				automation,
 				scheduledFor: new Date(),
 				relayUrl: env.RELAY_URL,
+				apiUrl: env.NEXT_PUBLIC_API_URL,
+				source: "manual",
 			});
 
 			if (outcome.status === "conflict") {
@@ -460,19 +519,12 @@ export const automationRouter = {
 					message: "A run for this automation is already in progress.",
 				});
 			}
-			if (outcome.status === "dispatch_failed") {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: outcome.error,
-				});
-			}
-			if (outcome.status === "skipped_offline") {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: outcome.error,
-				});
-			}
-			return { automationId: automation.id, runId: outcome.runId };
+			return {
+				automationId: automation.id,
+				runId: outcome.runId,
+				status: outcome.status,
+				error: "error" in outcome ? outcome.error : undefined,
+			};
 		}),
 
 	/** Run history for a given automation (paginated). */
@@ -492,6 +544,62 @@ export const automationRouter = {
 				.where(eq(automationRuns.automationId, input.automationId))
 				.orderBy(desc(automationRuns.createdAt))
 				.limit(input.limit);
+		}),
+
+	getRun: jwtProcedure.input(getRunSchema).query(async ({ ctx, input }) => {
+		return getAutomationRunForJwtContext(ctx, input.runId);
+	}),
+
+	completeRun: jwtProcedure
+		.input(completeRunSchema)
+		.mutation(async ({ ctx, input }) => {
+			const run = await getAutomationRunForJwtContext(ctx, input.runId);
+			if (TERMINAL_RUN_STATUSES.has(run.status)) return run;
+
+			const now = new Date();
+			const [updated] = await dbWs
+				.update(automationRuns)
+				.set({
+					status: "completed",
+					error: null,
+					failureReason: null,
+					resultMarkdown: input.resultMarkdown,
+					resultJson: input.resultJson ?? null,
+					resultSummary: input.resultSummary ?? null,
+					resultSource: "agent_writeback",
+					completedAt: now,
+					updatedAt: now,
+				})
+				.where(eq(automationRuns.id, input.runId))
+				.returning();
+
+			return updated ?? run;
+		}),
+
+	failRun: jwtProcedure
+		.input(failRunSchema)
+		.mutation(async ({ ctx, input }) => {
+			const run = await getAutomationRunForJwtContext(ctx, input.runId);
+			if (TERMINAL_RUN_STATUSES.has(run.status)) return run;
+
+			const now = new Date();
+			const [updated] = await dbWs
+				.update(automationRuns)
+				.set({
+					status: "failed",
+					error: input.failureReason,
+					failureReason: input.failureReason,
+					resultMarkdown: input.resultMarkdown ?? null,
+					resultJson: input.resultJson ?? null,
+					resultSummary: input.resultSummary ?? null,
+					resultSource: input.resultMarkdown ? "agent_writeback" : "system",
+					completedAt: now,
+					updatedAt: now,
+				})
+				.where(eq(automationRuns.id, input.runId))
+				.returning();
+
+			return updated ?? run;
 		}),
 
 	/** Validate an RRule body + preview its next occurrences. */

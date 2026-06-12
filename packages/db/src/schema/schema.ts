@@ -18,6 +18,8 @@ import {
 import { organizations, users } from "./auth";
 import {
 	automationPromptSourceValues,
+	automationRunResultSourceValues,
+	automationRunSourceValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
 	commandStatusValues,
@@ -963,6 +965,16 @@ export const automationRunStatus = pgEnum(
 	automationRunStatusValues,
 );
 
+export const automationRunSource = pgEnum(
+	"automation_run_source",
+	automationRunSourceValues,
+);
+
+export const automationRunResultSource = pgEnum(
+	"automation_run_result_source",
+	automationRunResultSourceValues,
+);
+
 export const automationSessionKind = pgEnum(
 	"automation_session_kind",
 	automationSessionKindValues,
@@ -1036,6 +1048,8 @@ export const automationRuns = pgTable(
 
 		title: text().notNull(),
 
+		source: automationRunSource("source").notNull().default("manual"),
+
 		scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
 
 		hostId: text("host_id"),
@@ -1049,11 +1063,23 @@ export const automationRuns = pgTable(
 
 		status: automationRunStatus().notNull(),
 		error: text(),
+		failureReason: text("failure_reason"),
+		resultMarkdown: text("result_markdown"),
+		resultJson: jsonb("result_json").$type<Record<string, unknown> | null>(),
+		resultSummary: text("result_summary"),
+		resultSource: automationRunResultSource("result_source"),
+		terminalExitCode: integer("terminal_exit_code"),
+		startedAt: timestamp("started_at", { withTimezone: true }),
+		completedAt: timestamp("completed_at", { withTimezone: true }),
 		dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
 
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
 	},
 	(t) => [
 		uniqueIndex("automation_runs_dedup_idx").on(t.automationId, t.scheduledFor),

@@ -73,13 +73,35 @@ export const v2WorkspaceTypeEnum = z.enum(v2WorkspaceTypeValues);
 export type V2WorkspaceType = z.infer<typeof v2WorkspaceTypeEnum>;
 
 export const automationRunStatusValues = [
+	"queued",
 	"dispatching",
+	"running",
+	"completed",
+	"failed",
+	"skipped",
+	// Legacy dispatch-only statuses kept readable while old rows exist.
 	"dispatched",
 	"skipped_offline",
 	"dispatch_failed",
 ] as const;
 export const automationRunStatusEnum = z.enum(automationRunStatusValues);
 export type AutomationRunStatus = z.infer<typeof automationRunStatusEnum>;
+
+export const automationRunSourceValues = ["manual", "schedule"] as const;
+export const automationRunSourceEnum = z.enum(automationRunSourceValues);
+export type AutomationRunSource = z.infer<typeof automationRunSourceEnum>;
+
+export const automationRunResultSourceValues = [
+	"agent_writeback",
+	"session_exit",
+	"system",
+] as const;
+export const automationRunResultSourceEnum = z.enum(
+	automationRunResultSourceValues,
+);
+export type AutomationRunResultSource = z.infer<
+	typeof automationRunResultSourceEnum
+>;
 
 export const automationSessionKindValues = ["chat", "terminal"] as const;
 export const automationSessionKindEnum = z.enum(automationSessionKindValues);

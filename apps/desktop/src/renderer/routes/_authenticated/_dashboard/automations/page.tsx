@@ -95,7 +95,18 @@ function AutomationsPage() {
 	const runNowMutation = useMutation({
 		mutationFn: ({ id }: { id: string; name: string }) =>
 			apiTrpcClient.automation.runNow.mutate({ id }),
-		onSuccess: (_, { name }) => toast.success(`Running "${name}" now`),
+		onSuccess: (result, { id, name }) => {
+			if (result.runId) {
+				toast.success(`Running "${name}" now`);
+				navigate({
+					to: "/automations/$automationId",
+					params: { automationId: id },
+					search: { runId: result.runId },
+				});
+				return;
+			}
+			toast.error(result.error ?? "Automation run did not start");
+		},
 		onError: (error) =>
 			toast.error(
 				error instanceof Error ? error.message : "Failed to trigger run",

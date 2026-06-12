@@ -22,11 +22,15 @@ import { SectionTitle } from "./components/SectionTitle";
 interface AutomationDetailSidebarProps {
 	automation: SelectAutomation;
 	recentRuns: SelectAutomationRun[];
+	selectedRunId?: string | null;
+	onSelectRun: (runId: string) => void;
 }
 
 export function AutomationDetailSidebar({
 	automation,
 	recentRuns,
+	selectedRunId,
+	onSelectRun,
 }: AutomationDetailSidebarProps) {
 	const recentProjects = useRecentProjects();
 	const { localHostId } = useWorkspaceHostOptions();
@@ -181,7 +185,11 @@ export function AutomationDetailSidebar({
 			<div className="mt-6 flex min-h-0 flex-1 flex-col gap-2 pl-5 pr-3 pb-5">
 				<SectionTitle>Previous runs</SectionTitle>
 				<div className="min-h-0 flex-1 overflow-y-auto">
-					<PreviousRunsList runs={recentRuns} />
+					<PreviousRunsList
+						runs={recentRuns}
+						selectedRunId={selectedRunId}
+						onSelectRun={onSelectRun}
+					/>
 				</div>
 			</div>
 		</aside>

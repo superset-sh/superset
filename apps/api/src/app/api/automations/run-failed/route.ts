@@ -96,12 +96,22 @@ export async function POST(request: Request): Promise<Response> {
 			organizationId: automation.organizationId,
 			title: automation.name,
 			scheduledFor: new Date(scheduledFor),
-			status: "dispatch_failed",
+			source: "schedule",
+			status: "failed",
 			error: errorText,
+			failureReason: errorText,
+			resultSource: "system",
+			completedAt: new Date(),
 		})
 		.onConflictDoUpdate({
 			target: [automationRuns.automationId, automationRuns.scheduledFor],
-			set: { status: "dispatch_failed", error: errorText },
+			set: {
+				status: "failed",
+				error: errorText,
+				failureReason: errorText,
+				resultSource: "system",
+				completedAt: new Date(),
+			},
 		});
 
 	Sentry.captureException(

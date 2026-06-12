@@ -61,6 +61,7 @@ export class Agents extends APIResource {
 			agent: params.agent,
 			prompt: params.prompt,
 			attachmentIds: params.attachmentIds,
+			env: params.env,
 		});
 	}
 
@@ -105,6 +106,8 @@ export interface AgentCreateParams {
 	prompt: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
 	attachmentIds?: string[];
+	/** Extra environment variables for this one launched agent process. */
+	env?: Record<string, string>;
 }
 
 interface HostLookup {

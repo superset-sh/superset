@@ -421,6 +421,13 @@
       "when": 1781162329219,
       "tag": "0059_add_chat_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1781256519105,
+      "tag": "0060_automation_run_result_workflow",
+      "breakpoints": true
     }
   ]
 }

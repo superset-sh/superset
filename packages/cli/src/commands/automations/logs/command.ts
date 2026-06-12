@@ -25,17 +25,18 @@ export default command({
 			(data as Record<string, unknown>[]).map((row) => ({
 				id: row.id,
 				status: row.status,
+				source: row.source ?? "—",
 				scheduledFor: formatAutomationDate(
 					row.scheduledFor as Date | string | null | undefined,
 					null,
 				),
-				dispatchedAt: formatAutomationDate(
-					row.dispatchedAt as Date | string | null | undefined,
+				completedAt: formatAutomationDate(
+					row.completedAt as Date | string | null | undefined,
 					null,
 				),
 				host: row.hostId ?? "—",
 			})),
-			["id", "status", "scheduledFor", "dispatchedAt", "host"],
-			["RUN ID", "STATUS", "SCHEDULED", "DISPATCHED", "HOST"],
+			["id", "status", "source", "scheduledFor", "completedAt", "host"],
+			["RUN ID", "STATUS", "SOURCE", "SCHEDULED", "COMPLETED", "HOST"],
 		),
 });

@@ -64,6 +64,25 @@ export const listRunsSchema = z.object({
 	limit: z.number().int().min(1).max(100).default(20),
 });
 
+export const getRunSchema = z.object({
+	runId: z.string().uuid(),
+});
+
+export const completeRunSchema = z.object({
+	runId: z.string().uuid(),
+	resultMarkdown: z.string().min(1).max(200_000),
+	resultJson: z.record(z.string(), z.unknown()).optional(),
+	resultSummary: z.string().max(2_000).optional(),
+});
+
+export const failRunSchema = z.object({
+	runId: z.string().uuid(),
+	failureReason: z.string().min(1).max(10_000),
+	resultMarkdown: z.string().max(200_000).optional(),
+	resultJson: z.record(z.string(), z.unknown()).optional(),
+	resultSummary: z.string().max(2_000).optional(),
+});
+
 export const parseRruleSchema = z.object({
 	rrule: rruleBody,
 	timezone: iana,

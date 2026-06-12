@@ -13,6 +13,8 @@ export default command({
 			authLine = "Session";
 		} else if (ctx.authSource === "override") {
 			authLine = "API key (from --api-key flag or SUPERSET_API_KEY env)";
+		} else if (ctx.authSource === "automation-run") {
+			authLine = "Automation run token";
 		} else {
 			authLine = "API key (stored via auth login --api-key)";
 		}

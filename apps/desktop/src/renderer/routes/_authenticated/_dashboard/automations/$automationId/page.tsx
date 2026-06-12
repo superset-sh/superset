@@ -6,7 +6,7 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -14,10 +14,17 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { AutomationBody } from "./components/AutomationBody";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
+import { AutomationRunResultPanel } from "./components/AutomationRunResultPanel";
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
+import { isAutomationRunTerminal } from "./utils/automationRunDisplay";
+import {
+	mergeSelectedAutomationRun,
+	pickFreshestAutomationRun,
+} from "./utils/automationRunSelection";
 
 type AutomationDetailSearch = {
 	history?: boolean;
+	runId?: string;
 };
 
 export const Route = createFileRoute(
@@ -28,6 +35,7 @@ export const Route = createFileRoute(
 		search: Record<string, unknown>,
 	): AutomationDetailSearch => ({
 		history: search.history === true,
+		runId: typeof search.runId === "string" ? search.runId : undefined,
 	}),
 });
 
@@ -35,10 +43,11 @@ const RECENT_RUNS_LIMIT = 10;
 
 function AutomationDetailPage() {
 	const { automationId } = Route.useParams();
-	const { history } = Route.useSearch();
+	const { history, runId } = Route.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
+	const selectedRunId = runId ?? null;
 
 	const { data: automationRows, isReady: automationReady } = useLiveQuery(
 		(q) =>
@@ -61,6 +70,30 @@ function AutomationDetailPage() {
 		[collections.automationRuns, automationId],
 	);
 	const recentRuns = runRows as SelectAutomationRun[];
+	const liveSelectedRun =
+		recentRuns.find((run) => run.id === selectedRunId) ?? null;
+
+	const selectedRunQuery = useQuery({
+		queryKey: ["automation-run", selectedRunId],
+		queryFn: () =>
+			apiTrpcClient.automation.getRun.query({ runId: selectedRunId ?? "" }),
+		enabled: !!selectedRunId,
+		refetchInterval: (query) => {
+			const fetchedRun = query.state.data as SelectAutomationRun | undefined;
+			const freshestRun = pickFreshestAutomationRun(
+				liveSelectedRun,
+				fetchedRun ?? null,
+			);
+			return freshestRun && !isAutomationRunTerminal(freshestRun)
+				? 3000
+				: false;
+		},
+	});
+	const selectedRun = pickFreshestAutomationRun(
+		liveSelectedRun,
+		(selectedRunQuery.data as SelectAutomationRun | undefined) ?? null,
+	);
+	const displayedRuns = mergeSelectedAutomationRun(recentRuns, selectedRun);
 
 	const setEnabledMutation = useMutation({
 		mutationFn: (enabled: boolean) =>
@@ -70,6 +103,22 @@ function AutomationDetailPage() {
 	const runNowMutation = useMutation({
 		mutationFn: () =>
 			apiTrpcClient.automation.runNow.mutate({ id: automationId }),
+		onSuccess: (result) => {
+			if (result.runId) {
+				navigate({
+					to: "/automations/$automationId",
+					params: { automationId },
+					search: { runId: result.runId },
+				});
+				toast.success("Automation run started");
+				return;
+			}
+			toast.error(result.error ?? "Automation run did not start");
+		},
+		onError: (error) =>
+			toast.error(
+				error instanceof Error ? error.message : "Failed to trigger run",
+			),
 	});
 
 	const deleteMutation = useMutation({
@@ -125,12 +174,35 @@ function AutomationDetailPage() {
 					runNowDisabled={runNowMutation.isPending}
 				/>
 
-				<AutomationBody key={automation.id} automation={automation} />
+				{selectedRunId ? (
+					<AutomationRunResultPanel
+						automation={automation}
+						run={selectedRun}
+						loading={selectedRunQuery.isLoading}
+						onEditPrompt={() =>
+							navigate({
+								to: "/automations/$automationId",
+								params: { automationId },
+								search: {},
+							})
+						}
+					/>
+				) : (
+					<AutomationBody key={automation.id} automation={automation} />
+				)}
 			</div>
 
 			<AutomationDetailSidebar
 				automation={automation}
-				recentRuns={recentRuns}
+				recentRuns={displayedRuns}
+				selectedRunId={selectedRunId}
+				onSelectRun={(nextRunId) =>
+					navigate({
+						to: "/automations/$automationId",
+						params: { automationId },
+						search: { runId: nextRunId },
+					})
+				}
 			/>
 
 			<VersionHistorySheet

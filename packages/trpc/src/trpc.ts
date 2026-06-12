@@ -35,6 +35,11 @@ export const createCallerFactory = t.createCallerFactory;
 
 export const publicProcedure = t.procedure;
 
+type JwtClaims = {
+	scope?: string;
+	runId?: string;
+};
+
 export const protectedProcedure = t.procedure
 	.use(async ({ ctx, next }) => {
 		if (!ctx.session) {
@@ -81,12 +86,17 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 			});
 			if (payload?.sub) {
 				const organizationIds = (payload.organizationIds as string[]) ?? [];
+				const jwtClaims: JwtClaims = {
+					scope: typeof payload.scope === "string" ? payload.scope : undefined,
+					runId: typeof payload.runId === "string" ? payload.runId : undefined,
+				};
 				return next({
 					ctx: {
 						userId: payload.sub,
 						email: (payload.email as string) ?? "",
 						organizationIds,
 						activeOrganizationId: organizationIds[0] ?? null,
+						jwtClaims,
 					},
 				});
 			}
@@ -115,6 +125,7 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 					ctx.session.session.activeOrganizationId ??
 					organizationIds[0] ??
 					null,
+				jwtClaims: null,
 			},
 		});
 	}

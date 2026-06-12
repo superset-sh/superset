@@ -133,13 +133,18 @@ export function buildAgentCommandString(
 	return `${buildArgvCommand(baseArgv)} <<'${delimiter}'\n${prompt}\n${delimiter}`;
 }
 
-function envOverlayPrefix(env: Record<string, string>): string {
-	const entries = Object.entries(env);
-	if (entries.length === 0) return "";
-	const assignments = entries
-		.map(([key, value]) => `${key}=${quoteSingleShell(value)}`)
-		.join(" ");
-	return `${assignments} `;
+export function buildAgentLaunchCommand(
+	config: ResolvedHostAgentConfig,
+	prompt: string,
+): string {
+	return buildAgentCommandString(config, prompt);
+}
+
+export function buildAgentLaunchEnv(
+	config: ResolvedHostAgentConfig,
+	env: Record<string, string> = {},
+): Record<string, string> {
+	return { ...config.env, ...env };
 }
 
 function buildAttachmentBlock(
@@ -157,6 +162,7 @@ export interface AgentRunInput {
 	agent: string;
 	prompt: string;
 	attachmentIds?: string[];
+	env?: Record<string, string>;
 }
 
 export type AgentRunResult =
@@ -251,8 +257,8 @@ async function runTerminalAgent(
 	}
 
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
-	const command = buildAgentCommandString(config, prompt);
-	const fullCommand = `${envOverlayPrefix(config.env)}${command}`;
+	const fullCommand = buildAgentLaunchCommand(config, prompt);
+	const launchEnv = buildAgentLaunchEnv(config, input.env);
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -261,6 +267,7 @@ async function runTerminalAgent(
 		db: ctx.db,
 		eventBus: ctx.eventBus,
 		initialCommand: fullCommand,
+		env: launchEnv,
 	});
 
 	if ("error" in result) {
@@ -295,6 +302,7 @@ export const agentsRouter = router({
 				agent: z.string().min(1),
 				prompt: z.string().min(1),
 				attachmentIds: z.array(z.string().uuid()).optional(),
+				env: z.record(z.string(), z.string()).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),

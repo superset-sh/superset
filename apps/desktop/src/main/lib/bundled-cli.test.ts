@@ -14,6 +14,7 @@ import path from "node:path";
 import {
 	BUNDLED_CLI_SHIM_MARKER,
 	buildBundledCliShim,
+	buildDevCliShim,
 	getBundledCliBinaryName,
 	getBundledCliShimName,
 	installBundledCliShim,
@@ -51,6 +52,16 @@ describe("bundled CLI", () => {
 		expect(shim).toContain(BUNDLED_CLI_SHIM_MARKER);
 		expect(shim).toContain(
 			`exec '/Applications/Superset Test.app/Contents/Resources/bin/super'"'"'set' "$@"`,
+		);
+	});
+
+	it("builds a development shim that runs the repo-local CLI package", () => {
+		const cliPackageDir = "/Users/test/Superset Project/packages/cli";
+		const shim = buildDevCliShim(cliPackageDir);
+
+		expect(shim).toContain(BUNDLED_CLI_SHIM_MARKER);
+		expect(shim).toContain(
+			`exec bun run --cwd '/Users/test/Superset Project/packages/cli' dev "$@"`,
 		);
 	});
 
@@ -105,9 +116,29 @@ describe("bundled CLI", () => {
 		const status = installBundledCliShim({
 			binDir,
 			bundledCliPath: path.join(tempDir, "missing", "superset"),
+			devCliPackageDir: null,
 			platform: "darwin",
 		});
 
 		expect(status).toBe("missing");
+	});
+
+	it("installs a development shim when no bundled binary exists", () => {
+		const cliPackageDir = path.join(tempDir, "repo", "packages", "cli");
+		mkdirSync(cliPackageDir, { recursive: true });
+		writeFileSync(path.join(cliPackageDir, "package.json"), "{}");
+
+		const status = installBundledCliShim({
+			binDir,
+			bundledCliPath: path.join(tempDir, "missing", "superset"),
+			devCliPackageDir: cliPackageDir,
+			platform: "darwin",
+		});
+		const shimPath = path.join(binDir, "superset");
+
+		expect(status).toBe("installed");
+		expect(readFileSync(shimPath, "utf-8")).toContain(
+			`--cwd '${cliPackageDir}' dev`,
+		);
 	});
 });

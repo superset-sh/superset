@@ -137,6 +137,47 @@ export class Automations extends APIResource {
 	}
 
 	/**
+	 * Retrieve one automation run.
+	 */
+	getRun(runId: string, options?: RequestOptions): APIPromise<AutomationRun> {
+		return this._client.query<AutomationRun>(
+			"automation.getRun",
+			{ runId },
+			options,
+		);
+	}
+
+	/**
+	 * Mark an automation run completed and attach its Markdown report.
+	 */
+	completeRun(
+		runId: string,
+		body: AutomationRunCompleteParams,
+		options?: RequestOptions,
+	): APIPromise<AutomationRun> {
+		return this._client.mutation<AutomationRun>(
+			"automation.completeRun",
+			{ runId, ...body },
+			options,
+		);
+	}
+
+	/**
+	 * Mark an automation run failed.
+	 */
+	failRun(
+		runId: string,
+		body: AutomationRunFailParams,
+		options?: RequestOptions,
+	): APIPromise<AutomationRun> {
+		return this._client.mutation<AutomationRun>(
+			"automation.failRun",
+			{ runId, ...body },
+			options,
+		);
+	}
+
+	/**
 	 * Get the prompt body (markdown) for an automation. `retrieve` and
 	 * `list` omit it because it can be large.
 	 *
@@ -248,13 +289,36 @@ export interface AutomationRun {
 	id: string;
 	automationId: string;
 	organizationId: string;
-	status: "dispatching" | "dispatched" | "skipped_offline" | "dispatch_failed";
+	title: string;
+	source: "manual" | "schedule";
+	status:
+		| "queued"
+		| "dispatching"
+		| "running"
+		| "completed"
+		| "failed"
+		| "skipped"
+		| "dispatched"
+		| "skipped_offline"
+		| "dispatch_failed";
 	scheduledFor: string;
 	dispatchedAt: string | null;
-	hostId: string | null;
-	error: string | null;
-	createdAt: string;
+	startedAt: string | null;
+	completedAt: string | null;
 	updatedAt: string;
+	hostId: string | null;
+	v2WorkspaceId: string | null;
+	sessionKind: "chat" | "terminal" | null;
+	chatSessionId: string | null;
+	terminalSessionId: string | null;
+	error: string | null;
+	failureReason: string | null;
+	resultMarkdown: string | null;
+	resultJson: Record<string, unknown> | null;
+	resultSummary: string | null;
+	resultSource: "agent_writeback" | "session_exit" | "system" | null;
+	terminalExitCode: number | null;
+	createdAt: string;
 }
 
 export interface AutomationLogsParams {
@@ -264,6 +328,19 @@ export interface AutomationLogsParams {
 
 export type AutomationLogsResponse = Array<AutomationRun>;
 
+export interface AutomationRunCompleteParams {
+	resultMarkdown: string;
+	resultJson?: Record<string, unknown>;
+	resultSummary?: string;
+}
+
+export interface AutomationRunFailParams {
+	failureReason: string;
+	resultMarkdown?: string;
+	resultJson?: Record<string, unknown>;
+	resultSummary?: string;
+}
+
 /**
  * What `automations.run()` returns — the API gives back identifiers for the
  * dispatched run, not the full `AutomationRun` row. Fetch the full row via
@@ -271,7 +348,9 @@ export type AutomationLogsResponse = Array<AutomationRun>;
  */
 export interface AutomationRunDispatched {
 	automationId: string;
-	runId: string;
+	runId: string | null;
+	status: AutomationRun["status"] | "conflict";
+	error?: string;
 }
 
 export declare namespace Automations {
@@ -283,7 +362,9 @@ export declare namespace Automations {
 		AutomationCreateParams,
 		AutomationUpdateParams,
 		AutomationRun,
+		AutomationRunCompleteParams,
 		AutomationRunDispatched,
+		AutomationRunFailParams,
 		AutomationLogsParams,
 		AutomationLogsResponse,
 	};

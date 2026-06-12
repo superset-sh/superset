@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/guides/database-and-migrations.md", "reason": "Verify schema changes respect migration boundaries and avoid production DB mutation."}
+{"file": ".trellis/spec/guides/backend-data-and-trpc.md", "reason": "Verify API, host-service, relay, and writeback contracts remain coherent."}
+{"file": ".trellis/spec/guides/frontend-conventions.md", "reason": "Verify desktop UI follows component and live-query conventions."}
+{"file": ".trellis/spec/guides/desktop-acceptance-tdd.md", "reason": "Verify the real desktop acceptance plan and artifacts."}

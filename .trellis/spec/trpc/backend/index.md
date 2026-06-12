@@ -18,6 +18,7 @@ Cloud API tRPC routers and shared server/client wiring.
 
 - [Directory Structure](./directory-structure.md)
 - [Database Guidelines](./database-guidelines.md)
+- [Automation Run Workflow](./automation-run-workflow.md)
 - [Error Handling](./error-handling.md)
 - [Logging Guidelines](./logging-guidelines.md)
 - [Quality Guidelines](./quality-guidelines.md)
