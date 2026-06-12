@@ -3,34 +3,35 @@ import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 
-export function OrganizationAvatar({
+export function ProjectAvatar({
 	name,
-	logo,
+	iconUrl,
 	size,
 }: {
 	name?: string | null;
-	logo?: string | null;
+	iconUrl?: string | null;
 	size: number;
 }) {
 	const theme = useTheme();
+	const radius = size * 0.28;
 
-	if (logo) {
+	if (iconUrl) {
 		return (
 			<Image
-				source={{ uri: logo }}
-				style={{ width: size, height: size, borderRadius: size / 2 }}
+				source={{ uri: iconUrl }}
+				style={{ width: size, height: size, borderRadius: radius }}
 			/>
 		);
 	}
 
-	const initial = (name ?? "O").charAt(0).toUpperCase();
+	const initial = (name ?? "P").charAt(0).toUpperCase();
 	return (
 		<View
 			className="items-center justify-center"
 			style={{
 				width: size,
 				height: size,
-				borderRadius: size / 2,
+				borderRadius: radius,
 				backgroundColor: theme.muted,
 			}}
 		>

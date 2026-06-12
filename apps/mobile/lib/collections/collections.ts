@@ -5,6 +5,7 @@ import {
 } from "@electric-sql/client";
 import type {
 	SelectChatSession,
+	SelectGithubPullRequest,
 	SelectInvitation,
 	SelectMember,
 	SelectOrganization,
@@ -60,6 +61,7 @@ interface OrgCollections {
 	v2Projects: Collection<SelectV2Project>;
 	v2Workspaces: Collection<SelectV2Workspace>;
 	chatSessions: Collection<SelectChatSession>;
+	githubPullRequests: Collection<SelectGithubPullRequest>;
 }
 
 const collectionsCache = new Map<string, OrgCollections>();
@@ -205,6 +207,20 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const githubPullRequests = createCollection(
+		electricCollectionOptions<SelectGithubPullRequest>({
+			id: `github-pull-requests-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: { table: "github_pull_requests", organizationId },
+				headers: electricHeaders,
+				columnMapper,
+				onError: handleElectricSyncError,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	const chatSessions = createCollection(
 		electricCollectionOptions<SelectChatSession>({
 			id: `chat-sessions-${organizationId}`,
@@ -229,6 +245,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2Projects,
 		v2Workspaces,
 		chatSessions,
+		githubPullRequests,
 	};
 }
 

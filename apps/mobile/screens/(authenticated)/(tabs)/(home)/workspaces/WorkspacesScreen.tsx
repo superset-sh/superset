@@ -1,4 +1,7 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
+import type {
+	SelectGithubPullRequest,
+	SelectV2Workspace,
+} from "@superset/db/schema";
 import { useLiveQuery } from "@tanstack/react-db";
 import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -8,17 +11,20 @@ import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizatio
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
-
-type ProjectGroup = {
-	projectId: string;
-	projectName: string;
-	workspaces: SelectV2Workspace[];
-};
+import { ProjectAvatar } from "./components/ProjectAvatar";
+import {
+	type FilterableProject,
+	WorkspaceFilterSheet,
+	type WorkspaceSort,
+} from "./components/WorkspaceFilterSheet";
+import { WorkspaceRow } from "./components/WorkspaceRow";
 
 export function WorkspacesScreen() {
 	const router = useRouter();
 	const [sheetOpen, setSheetOpen] = useState(false);
+	const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 	const [projectFilter, setProjectFilter] = useState<string | null>(null);
+	const [sort, setSort] = useState<WorkspaceSort>("updatedAt");
 	const { width } = useWindowDimensions();
 	const collections = useCollections();
 	const {
@@ -36,34 +42,65 @@ export function WorkspacesScreen() {
 		(q) => q.from({ v2Projects: collections.v2Projects }),
 		[collections],
 	);
+	const { data: pullRequests } = useLiveQuery(
+		(q) => q.from({ githubPullRequests: collections.githubPullRequests }),
+		[collections],
+	);
+	const { data: users } = useLiveQuery(
+		(q) => q.from({ users: collections.users }),
+		[collections],
+	);
 
-	const groups = useMemo<ProjectGroup[]>(() => {
-		const projectNames = new Map(
-			(projects ?? []).map((project) => [project.id, project.name]),
-		);
-		const byProject = new Map<string, SelectV2Workspace[]>();
-		const visible = (workspaces ?? []).filter(
-			(workspace) => !projectFilter || workspace.projectId === projectFilter,
-		);
-		for (const workspace of visible) {
-			const list = byProject.get(workspace.projectId) ?? [];
-			list.push(workspace);
-			byProject.set(workspace.projectId, list);
+	const sortedProjects = useMemo(
+		() => [...(projects ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+		[projects],
+	);
+
+	const filterableProjects = useMemo<FilterableProject[]>(() => {
+		const counts = new Map<string, number>();
+		for (const workspace of workspaces ?? []) {
+			counts.set(
+				workspace.projectId,
+				(counts.get(workspace.projectId) ?? 0) + 1,
+			);
 		}
-		return [...byProject.entries()]
-			.map(([projectId, items]) => ({
-				projectId,
-				projectName: projectNames.get(projectId) ?? "Project",
-				workspaces: items.sort(
-					(a, b) =>
-						new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-				),
-			}))
-			.sort((a, b) => a.projectName.localeCompare(b.projectName));
-	}, [workspaces, projects, projectFilter]);
+		return sortedProjects.map((project) => ({
+			id: project.id,
+			name: project.name,
+			iconUrl: project.iconUrl,
+			workspaceCount: counts.get(project.id) ?? 0,
+		}));
+	}, [sortedProjects, workspaces]);
 
-	const menuProjects = [...(projects ?? [])].sort((a, b) =>
-		a.name.localeCompare(b.name),
+	const selectedProjectId = projectFilter ?? sortedProjects[0]?.id ?? null;
+	const selectedProject = sortedProjects.find(
+		(project) => project.id === selectedProjectId,
+	);
+
+	const visibleWorkspaces = useMemo<SelectV2Workspace[]>(() => {
+		return (workspaces ?? [])
+			.filter((workspace) => workspace.projectId === selectedProjectId)
+			.sort(
+				(a, b) => new Date(b[sort]).getTime() - new Date(a[sort]).getTime(),
+			);
+	}, [workspaces, selectedProjectId, sort]);
+
+	const pullRequestsByBranch = useMemo(() => {
+		const byBranch = new Map<string, SelectGithubPullRequest>();
+		const rank = (state: string) =>
+			state === "open" ? 2 : state === "merged" ? 1 : 0;
+		for (const pullRequest of pullRequests ?? []) {
+			const existing = byBranch.get(pullRequest.headBranch);
+			if (!existing || rank(pullRequest.state) > rank(existing.state)) {
+				byBranch.set(pullRequest.headBranch, pullRequest);
+			}
+		}
+		return byBranch;
+	}, [pullRequests]);
+
+	const usersById = useMemo(
+		() => new Map((users ?? []).map((user) => [user.id, user])),
+		[users],
 	);
 
 	const handleSwitchOrganization = (organizationId: string) => {
@@ -79,68 +116,47 @@ export function WorkspacesScreen() {
 				onPress={() => setSheetOpen(true)}
 			/>
 			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Menu
-					icon={
-						projectFilter
-							? "line.3.horizontal.decrease.circle.fill"
-							: "line.3.horizontal.decrease.circle"
-					}
-				>
-					<Stack.Toolbar.MenuAction onPress={() => setProjectFilter(null)}>
-						All projects
-					</Stack.Toolbar.MenuAction>
-					{menuProjects.map((project) => (
-						<Stack.Toolbar.MenuAction
-							key={project.id}
-							onPress={() => setProjectFilter(project.id)}
-						>
-							{projectFilter === project.id
-								? `✓ ${project.name}`
-								: project.name}
-						</Stack.Toolbar.MenuAction>
-					))}
-				</Stack.Toolbar.Menu>
 				<Stack.Toolbar.Button icon="square.and.pencil" onPress={() => {}} />
+				<Stack.Toolbar.View>
+					<Pressable
+						hitSlop={8}
+						onPress={() => setFilterSheetOpen(true)}
+						style={{ height: 24, width: 24 }}
+					>
+						<ProjectAvatar
+							name={selectedProject?.name}
+							iconUrl={selectedProject?.iconUrl}
+							size={24}
+						/>
+					</Pressable>
+				</Stack.Toolbar.View>
 			</Stack.Toolbar>
 			<ScrollView
 				className="flex-1 bg-background"
 				contentInsetAdjustmentBehavior="automatic"
-				contentContainerClassName="p-4 pb-28 gap-6"
+				contentContainerClassName="py-2 pb-28"
 			>
-				{groups.length === 0 ? (
+				{visibleWorkspaces.length === 0 ? (
 					<View className="items-center justify-center py-20">
 						<Text className="text-center text-muted-foreground">
-							No workspaces yet. Create one from the desktop app to see it here.
+							No workspaces in this project yet
 						</Text>
 					</View>
 				) : (
-					groups.map((group) => (
-						<View key={group.projectId} className="gap-2">
-							<Text className="text-muted-foreground px-1 text-xs font-medium uppercase">
-								{group.projectName}
-							</Text>
-							{group.workspaces.map((workspace) => (
-								<Pressable
-									key={workspace.id}
-									className="bg-card border-border active:bg-accent rounded-xl border p-4"
-									onPress={() =>
-										router.push(
-											`/(authenticated)/workspace/${workspace.id}/chat`,
-										)
-									}
-								>
-									<Text className="font-medium" numberOfLines={1}>
-										{workspace.name}
-									</Text>
-									<Text
-										className="text-muted-foreground mt-1 font-mono text-xs"
-										numberOfLines={1}
-									>
-										{workspace.branch}
-									</Text>
-								</Pressable>
-							))}
-						</View>
+					visibleWorkspaces.map((workspace) => (
+						<WorkspaceRow
+							key={workspace.id}
+							workspace={workspace}
+							pullRequest={pullRequestsByBranch.get(workspace.branch)}
+							creator={
+								workspace.createdByUserId
+									? usersById.get(workspace.createdByUserId)
+									: undefined
+							}
+							onPress={() =>
+								router.push(`/(authenticated)/workspace/${workspace.id}/chat`)
+							}
+						/>
 					))
 				)}
 			</ScrollView>
@@ -150,6 +166,19 @@ export function WorkspacesScreen() {
 				organizations={organizations}
 				activeOrganizationId={activeOrganizationId}
 				onSwitchOrganization={handleSwitchOrganization}
+				width={width}
+			/>
+			<WorkspaceFilterSheet
+				isPresented={filterSheetOpen}
+				onIsPresentedChange={setFilterSheetOpen}
+				projects={filterableProjects}
+				selectedProjectId={selectedProjectId}
+				onSelectProject={(projectId) => {
+					setProjectFilter(projectId);
+					setFilterSheetOpen(false);
+				}}
+				sort={sort}
+				onChangeSort={setSort}
 				width={width}
 			/>
 		</>
