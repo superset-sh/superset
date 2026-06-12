@@ -21,6 +21,7 @@
  * duration instead of silently returning.
  */
 import { describe, expect, it } from "bun:test";
+import { shouldActivateCachedTerminalStream } from "./terminal-stream-activation";
 
 // ---------------------------------------------------------------------------
 // Minimal model of the scheduleReattachRecovery throttle mechanism.
@@ -165,5 +166,34 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		// FAILS with current code: calls is still 0 because no retry was scheduled
 		// PASSES after fix: the retry fires and recovery runs
 		expect(calls).toBe(1);
+	});
+});
+
+describe("shouldActivateCachedTerminalStream", () => {
+	it("stays inactive for stored cold-restore panes", () => {
+		expect(
+			shouldActivateCachedTerminalStream({
+				hasStoredColdRestore: true,
+				isColdRestore: false,
+			}),
+		).toBeFalse();
+	});
+
+	it("stays inactive for freshly detected cold restores", () => {
+		expect(
+			shouldActivateCachedTerminalStream({
+				hasStoredColdRestore: false,
+				isColdRestore: true,
+			}),
+		).toBeFalse();
+	});
+
+	it("activates only when a live daemon-backed session exists", () => {
+		expect(
+			shouldActivateCachedTerminalStream({
+				hasStoredColdRestore: false,
+				isColdRestore: false,
+			}),
+		).toBeTrue();
 	});
 });

@@ -36,6 +36,7 @@ import type {
 import { scrollToBottom } from "../utils";
 import * as v1TerminalCache from "../v1-terminal-cache";
 import { createAttachRequestId } from "./attach-request-id";
+import { shouldActivateCachedTerminalStream } from "./terminal-stream-activation";
 import {
 	getPaneWorkspaceRun,
 	hasPaneWorkspaceRun,
@@ -90,6 +91,7 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 		}
 	};
 }
+
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabIdRef: MutableRefObject<string>;
@@ -600,15 +602,24 @@ export function useTerminalLifecycle({
 									setConnectionError(null);
 									clearPaneInitialDataRef.current(paneId);
 
-									// Start the cache-owned stream subscription now that the
-									// backend session exists, and mark it ready so events
-									// flow through the component's registered handler.
-									v1TerminalCache.startStream(paneId);
-									v1TerminalCache.setStreamReady(paneId);
-									markTerminalSessionReady(paneId);
-									syncBackendDimensions();
-
 									const storedColdRestore = coldRestoreState.get(paneId);
+									const shouldActivateStream =
+										shouldActivateCachedTerminalStream({
+											hasStoredColdRestore: Boolean(
+												storedColdRestore?.isRestored,
+											),
+											isColdRestore: result.isColdRestore,
+										});
+									if (shouldActivateStream) {
+										// Only activate the live stream once a daemon-backed
+										// session exists. Cold restore snapshots render scrollback
+										// first and create the real session later via Start Shell.
+										v1TerminalCache.startStream(paneId);
+										v1TerminalCache.setStreamReady(paneId);
+										markTerminalSessionReady(paneId);
+										syncBackendDimensions();
+									}
+
 									if (storedColdRestore?.isRestored) {
 										setIsRestoredMode(true);
 										setRestoredCwd(storedColdRestore.cwd);

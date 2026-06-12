@@ -10,6 +10,7 @@ import type {
 	TerminalStreamEvent,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import * as v1TerminalCache from "../v1-terminal-cache";
 import { RESTORED_SESSION_CLEAN_EXIT_GRACE_MS } from "./terminal-exit-policy";
 
 export interface UseTerminalColdRestoreOptions {
@@ -82,6 +83,10 @@ export function useTerminalColdRestore({
 	restoredCwdRef.current = restoredCwd;
 	const restoredResumeCommandRef = useRef(restoredResumeCommand);
 	restoredResumeCommandRef.current = restoredResumeCommand;
+	const ensureCachedStreamActive = useCallback(() => {
+		v1TerminalCache.startStream(paneId);
+		v1TerminalCache.setStreamReady(paneId);
+	}, [paneId]);
 
 	const handleRetryConnection = useCallback(() => {
 		setConnectionError(null);
@@ -104,6 +109,8 @@ export function useTerminalColdRestore({
 					const currentXterm = xtermRef.current;
 					if (!currentXterm) return;
 
+					preserveCleanExitUntilRef.current =
+						Date.now() + RESTORED_SESSION_CLEAN_EXIT_GRACE_MS;
 					setConnectionError(null);
 					currentXterm.writeln("\x1b[90m[Reconnected]\x1b[0m");
 
@@ -134,6 +141,7 @@ export function useTerminalColdRestore({
 						return;
 					}
 
+					ensureCachedStreamActive();
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
 					setRestoredResumeCommand(null);
@@ -176,6 +184,8 @@ export function useTerminalColdRestore({
 		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
+		ensureCachedStreamActive,
+		preserveCleanExitUntilRef,
 	]);
 
 	const handleStartShell = useCallback(() => {
@@ -220,6 +230,7 @@ export function useTerminalColdRestore({
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
+					ensureCachedStreamActive();
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
 
@@ -287,6 +298,7 @@ export function useTerminalColdRestore({
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
+		ensureCachedStreamActive,
 	]);
 
 	return {
