@@ -1,5 +1,6 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
+import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { coldRestoreState } from "../state";
@@ -35,6 +36,7 @@ export interface UseTerminalColdRestoreReturn {
 	restoredCwd: string | null;
 	setIsRestoredMode: (value: boolean) => void;
 	setRestoredCwd: (value: string | null) => void;
+	setRestoredResumeCommand: (value: string | null) => void;
 	handleRetryConnection: () => void;
 	handleStartShell: () => void;
 }
@@ -68,10 +70,15 @@ export function useTerminalColdRestore({
 }: UseTerminalColdRestoreOptions): UseTerminalColdRestoreReturn {
 	const [isRestoredMode, setIsRestoredMode] = useState(false);
 	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
+	const [restoredResumeCommand, setRestoredResumeCommand] = useState<
+		string | null
+	>(null);
 
 	// Ref for restoredCwd to use in callbacks
 	const restoredCwdRef = useRef(restoredCwd);
 	restoredCwdRef.current = restoredCwd;
+	const restoredResumeCommandRef = useRef(restoredResumeCommand);
+	restoredResumeCommandRef.current = restoredResumeCommand;
 
 	const handleRetryConnection = useCallback(() => {
 		setConnectionError(null);
@@ -104,9 +111,11 @@ export function useTerminalColdRestore({
 							isRestored: true,
 							cwd: result.previousCwd || null,
 							scrollback,
+							resumeCommand: result.resumeCommand || null,
 						});
 						setIsRestoredMode(true);
 						setRestoredCwd(result.previousCwd || null);
+						setRestoredResumeCommand(result.resumeCommand || null);
 
 						currentXterm.clear();
 						if (scrollback) {
@@ -124,6 +133,7 @@ export function useTerminalColdRestore({
 
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
+					setRestoredResumeCommand(null);
 
 					if (isFocusedRef.current) {
 						currentXterm.focus();
@@ -209,7 +219,29 @@ export function useTerminalColdRestore({
 					maybeApplyInitialState();
 
 					setIsRestoredMode(false);
+					setRestoredResumeCommand(null);
 					coldRestoreState.delete(paneId);
+
+					const resumeCommand = restoredResumeCommandRef.current;
+					if (resumeCommand) {
+						void writeCommandInPane({
+							paneId,
+							command: resumeCommand,
+							write: (input) => trpcClient.terminal.write.mutate(input),
+						}).catch((error) => {
+							console.error(
+								"[Terminal] Failed to write agent resume command:",
+								error,
+							);
+							setConnectionError(
+								error instanceof Error
+									? error.message
+									: "Failed to resume the previous agent session",
+							);
+							isStreamReadyRef.current = true;
+							flushPendingEvents();
+						});
+					}
 
 					setTimeout(() => {
 						const currentXterm = xtermRef.current;
@@ -225,6 +257,7 @@ export function useTerminalColdRestore({
 					console.error("[Terminal] Failed to start shell:", error);
 					setConnectionError(error.message || "Failed to start shell");
 					setIsRestoredMode(false);
+					setRestoredResumeCommand(null);
 					coldRestoreState.delete(paneId);
 					isStreamReadyRef.current = true;
 					flushPendingEvents();
@@ -254,6 +287,7 @@ export function useTerminalColdRestore({
 		restoredCwd,
 		setIsRestoredMode,
 		setRestoredCwd,
+		setRestoredResumeCommand,
 		handleRetryConnection,
 		handleStartShell,
 	};

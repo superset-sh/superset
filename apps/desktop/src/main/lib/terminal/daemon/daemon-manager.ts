@@ -11,9 +11,16 @@ import {
 } from "../../terminal-host/client";
 import type { ListSessionsResponse } from "../../terminal-host/types";
 import { raceWithAbort, throwIfAborted } from "../abort";
+import { resolveAgentResumeTarget } from "../agent-resume";
 import { buildTerminalEnv, getDefaultShell } from "../env";
 import { TerminalKilledError } from "../errors";
 import { portManager } from "../port-manager";
+import {
+	getSessionLocation,
+	markSessionLocationExited,
+	updateSessionLocationAgentIdentity,
+	upsertSessionLocation,
+} from "../session-location-log";
 import type { CreateSessionParams, SessionResult } from "../types";
 import {
 	CREATE_OR_ATTACH_CONCURRENCY,
@@ -218,6 +225,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				if (session) {
 					session.exitReason = reason;
 				}
+				markSessionLocationExited({ paneId, exitReason: reason });
 				this.emit(`exit:${paneId}`, exitCode, signal, reason);
 				this.emit("terminalExit", { paneId, exitCode, signal, reason });
 
@@ -388,6 +396,7 @@ export class DaemonTerminalManager extends EventEmitter {
 						wasRecovered: true,
 						isColdRestore: true,
 						previousCwd: stickyRestore.previousCwd,
+						resumeCommand: stickyRestore.resumeCommand,
 						snapshot: {
 							snapshotAnsi: stickyRestore.scrollback,
 							rehydrateSequences: "",
@@ -510,6 +519,17 @@ export class DaemonTerminalManager extends EventEmitter {
 				cols: effectiveCols,
 				rows: effectiveRows,
 			});
+			upsertSessionLocation({
+				paneId,
+				tabId,
+				workspaceId,
+				workspaceName,
+				workspacePath,
+				rootPath,
+				cwd: sessionCwd,
+				command,
+				pid: response.pid,
+			});
 
 			portManager.upsertSession(paneId, workspaceId, response.pid);
 
@@ -592,11 +612,27 @@ export class DaemonTerminalManager extends EventEmitter {
 			rawScrollbackBytes > MAX_SCROLLBACK_BYTES
 				? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
 				: rawScrollback;
+		const sessionLocation = await getSessionLocation(paneId);
+		const resumeTarget = await resolveAgentResumeTarget({
+			agentId: sessionLocation?.agentId,
+			sessionId: sessionLocation?.agentSessionId,
+			cwd: metadata.cwd,
+			workspacePath: sessionLocation?.workspacePath,
+			rootPath: sessionLocation?.rootPath,
+		});
+		if (resumeTarget) {
+			updateSessionLocationAgentIdentity({
+				paneId,
+				agentId: resumeTarget.agentId,
+				agentSessionId: resumeTarget.sessionId,
+			});
+		}
 		this.coldRestoreInfo.set(paneId, {
 			scrollback,
 			previousCwd: metadata.cwd,
 			cols: metadata.cols || cols,
 			rows: metadata.rows || rows,
+			resumeCommand: resumeTarget?.resumeCommand,
 		});
 
 		return {
@@ -605,6 +641,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			wasRecovered: true,
 			isColdRestore: true,
 			previousCwd: metadata.cwd,
+			resumeCommand: resumeTarget?.resumeCommand,
 			snapshot: {
 				snapshotAnsi: scrollback,
 				rehydrateSequences: "",

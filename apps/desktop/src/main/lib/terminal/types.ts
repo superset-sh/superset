@@ -63,6 +63,8 @@ export interface SessionResult {
 	 * Use this to start the new shell in the same directory.
 	 */
 	previousCwd?: string;
+	/** Resume command for the previous agent session, when it can be recovered. */
+	resumeCommand?: string;
 	/** Snapshot from daemon (if using daemon mode) */
 	snapshot?: {
 		snapshotAnsi: string;

@@ -10,6 +10,7 @@ import {
 	SHELL_CRASH_THRESHOLD_MS,
 	sanitizeEnv,
 } from "./env";
+import { SESSION_LOCATION_LOG_PATH } from "./session-location-log";
 
 describe("env", () => {
 	beforeEach(() => {
@@ -672,8 +673,18 @@ describe("env", () => {
 				const result = buildTerminalEnv(baseParams);
 
 				expect(result.SUPERSET_PANE_ID).toBe("pane-1");
+				expect(result.SUPERSET_TERMINAL_ID).toBe("pane-1");
 				expect(result.SUPERSET_TAB_ID).toBe("tab-1");
 				expect(result.SUPERSET_WORKSPACE_ID).toBe("ws-1");
+			});
+
+			it("should expose the CLI session-location log path and lookup key", () => {
+				const result = buildTerminalEnv(baseParams);
+
+				expect(result.SUPERSET_SESSION_LOCATIONS_PATH).toBe(
+					SESSION_LOCATION_LOG_PATH,
+				);
+				expect(result.SUPERSET_SESSION_LOCATION_KEY).toBe("ws-1:tab-1:pane-1");
 			});
 
 			it("should handle optional workspace params", () => {

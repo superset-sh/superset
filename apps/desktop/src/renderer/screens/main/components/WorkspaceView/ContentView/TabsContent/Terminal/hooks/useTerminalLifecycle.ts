@@ -115,6 +115,7 @@ export interface UseTerminalLifecycleOptions {
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	setIsRestoredMode: (value: boolean) => void;
 	setRestoredCwd: (cwd: string | null) => void;
+	setRestoredResumeCommand: (command: string | null) => void;
 	createOrAttachRef: MutableRefObject<CreateOrAttachMutate>;
 	writeRef: MutableRefObject<TerminalWriteMutate>;
 	resizeRef: MutableRefObject<TerminalResizeMutate>;
@@ -176,6 +177,7 @@ export function useTerminalLifecycle({
 	setExitStatus,
 	setIsRestoredMode,
 	setRestoredCwd,
+	setRestoredResumeCommand,
 	createOrAttachRef,
 	writeRef,
 	resizeRef,
@@ -610,6 +612,9 @@ export function useTerminalLifecycle({
 									if (storedColdRestore?.isRestored) {
 										setIsRestoredMode(true);
 										setRestoredCwd(storedColdRestore.cwd);
+										setRestoredResumeCommand(
+											storedColdRestore.resumeCommand || null,
+										);
 										if (storedColdRestore.scrollback && xterm) {
 											xterm.write(
 												storedColdRestore.scrollback,
@@ -627,9 +632,11 @@ export function useTerminalLifecycle({
 											isRestored: true,
 											cwd: result.previousCwd || null,
 											scrollback,
+											resumeCommand: result.resumeCommand || null,
 										});
 										setIsRestoredMode(true);
 										setRestoredCwd(result.previousCwd || null);
+										setRestoredResumeCommand(result.resumeCommand || null);
 										if (scrollback && xterm) {
 											xterm.write(scrollback, scheduleScrollToBottom);
 										}

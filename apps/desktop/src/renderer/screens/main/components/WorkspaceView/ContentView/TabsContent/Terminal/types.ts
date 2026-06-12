@@ -24,6 +24,7 @@ export type CreateOrAttachResult = {
 	// Cold restore fields (for reboot recovery)
 	isColdRestore?: boolean;
 	previousCwd?: string;
+	resumeCommand?: string;
 	snapshot?: {
 		snapshotAnsi: string;
 		rehydrateSequences: string;
@@ -52,6 +53,7 @@ export interface ColdRestoreState {
 	isRestored: boolean;
 	cwd: string | null;
 	scrollback: string;
+	resumeCommand?: string | null;
 }
 
 /**

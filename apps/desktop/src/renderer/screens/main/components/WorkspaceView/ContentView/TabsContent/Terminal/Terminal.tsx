@@ -219,6 +219,7 @@ export const Terminal = memo(function Terminal({
 		isRestoredMode,
 		setIsRestoredMode,
 		setRestoredCwd,
+		setRestoredResumeCommand,
 		handleRetryConnection,
 		handleStartShell,
 	} = useTerminalColdRestore({
@@ -328,6 +329,7 @@ export const Terminal = memo(function Terminal({
 		setExitStatus,
 		setIsRestoredMode,
 		setRestoredCwd,
+		setRestoredResumeCommand,
 		createOrAttachRef,
 		writeRef,
 		resizeRef,

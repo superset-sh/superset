@@ -6,6 +6,7 @@ import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
+import { updateSessionLocationAgentIdentity } from "../terminal/session-location-log";
 import { mapEventType } from "./map-event-type";
 import { resolvePaneId } from "./resolve-pane-id";
 
@@ -56,6 +57,7 @@ app.get("/hook/complete", (req, res) => {
 		workspaceId,
 		sessionId,
 		terminalId,
+		agentId,
 		hookSessionId,
 		resourceId,
 		eventType,
@@ -102,9 +104,20 @@ app.get("/hook/complete", (req, res) => {
 		paneId: resolvedPaneId,
 		tabId: tabId as string | undefined,
 		workspaceId: workspaceId as string | undefined,
+		sessionId: sessionId as string | undefined,
 		terminalId: terminalId as string | undefined,
 		eventType: mappedEventType,
 	};
+
+	const locationPaneId =
+		(terminalId as string | undefined) || resolvedPaneId || undefined;
+	if (locationPaneId) {
+		updateSessionLocationAgentIdentity({
+			paneId: locationPaneId,
+			agentId: agentId as string | undefined,
+			agentSessionId: sessionId as string | undefined,
+		});
+	}
 
 	if (DEBUG_HOOKS_ENABLED) {
 		console.log("[notifications] hook event received", {
@@ -115,6 +128,7 @@ app.get("/hook/complete", (req, res) => {
 			workspaceId: workspaceId as string | undefined,
 			sessionId: sessionId as string | undefined,
 			terminalId: terminalId as string | undefined,
+			agentId: agentId as string | undefined,
 			hookSessionId: hookSessionId as string | undefined,
 			resourceId: resourceId as string | undefined,
 			resolvedPaneId,

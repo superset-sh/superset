@@ -207,6 +207,27 @@ mock.module("../port-manager", () => ({
 	},
 }));
 
+mock.module("../agent-resume", () => ({
+	resolveAgentResumeTarget: async () => null,
+}));
+
+mock.module("../session-location-log", () => ({
+	SESSION_LOCATION_LOG_PATH: "/tmp/session-locations.json",
+	buildSessionLocationKey: ({
+		workspaceId,
+		tabId,
+		paneId,
+	}: {
+		workspaceId: string;
+		tabId: string;
+		paneId: string;
+	}) => `${workspaceId}:${tabId}:${paneId}`,
+	getSessionLocation: async () => null,
+	markSessionLocationExited: () => {},
+	updateSessionLocationAgentIdentity: () => {},
+	upsertSessionLocation: () => {},
+}));
+
 mock.module("./history-manager", () => ({
 	HistoryManager: class {
 		cleanupHistory() {

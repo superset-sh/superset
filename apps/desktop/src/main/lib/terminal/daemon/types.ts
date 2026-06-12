@@ -16,4 +16,5 @@ export interface ColdRestoreInfo {
 	previousCwd: string | undefined;
 	cols: number;
 	rows: number;
+	resumeCommand?: string;
 }
