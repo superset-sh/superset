@@ -21,7 +21,7 @@
 		"@expo/ui": "56.0.16",
 		"@expo/vector-icons": "15.1.1",
 		"@legendapp/list": "3.0.3",
-		"@react-native-async-storage/async-storage": "2.2.0",
+		"@react-native-async-storage/async-storage": "3.1.1",
 		"@rn-primitives/accordion": "1.4.0",
 		"@rn-primitives/alert-dialog": "1.4.0",
 		"@rn-primitives/aspect-ratio": "1.4.0",
