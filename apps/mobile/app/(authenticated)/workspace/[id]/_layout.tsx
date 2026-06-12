@@ -1,24 +1,25 @@
-import { useLocalSearchParams } from "expo-router";
-import { TabList, TabSlot, Tabs, TabTrigger } from "expo-router/ui";
-import { WorkspaceTabBar } from "@/screens/(authenticated)/workspace/[id]/components/WorkspaceTabBar";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { THEME } from "@/lib/theme";
 
 export default function WorkspaceLayout() {
-	const { id } = useLocalSearchParams<{ id: string }>();
-
 	return (
-		<Tabs>
-			<TabSlot style={{ flex: 1 }} />
-			<TabList style={{ display: "none" }}>
-				<TabTrigger
-					name="chat"
-					href={`/(authenticated)/workspace/${id}/chat`}
+		<NativeTabs
+			tintColor={THEME.dark.foreground}
+			iconColor={THEME.dark.mutedForeground}
+		>
+			<NativeTabs.Trigger name="chat">
+				<NativeTabs.Trigger.Icon
+					sf={{
+						default: "bubble.left.and.bubble.right",
+						selected: "bubble.left.and.bubble.right.fill",
+					}}
 				/>
-				<TabTrigger
-					name="changes"
-					href={`/(authenticated)/workspace/${id}/changes`}
-				/>
-			</TabList>
-			<WorkspaceTabBar workspaceId={id} />
-		</Tabs>
+				<NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
+			</NativeTabs.Trigger>
+			<NativeTabs.Trigger name="changes">
+				<NativeTabs.Trigger.Icon sf="plus.forwardslash.minus" />
+				<NativeTabs.Trigger.Label>Changes</NativeTabs.Trigger.Label>
+			</NativeTabs.Trigger>
+		</NativeTabs>
 	);
 }
