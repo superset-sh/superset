@@ -589,3 +589,37 @@ Balanced standalone Chat markdown spacing for newline-heavy classification parag
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: Canary Chat spawn ENOTDIR fix
+
+**Date**: 2026-06-12
+**Task**: Canary Chat spawn ENOTDIR fix
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Fixed packaged standalone Chat resolving the Claude Code executable inside app.asar by rewriting to app.asar.unpacked and filtering non-spawnable asar paths. Added regression coverage for packaged executable path rewriting.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1359b8877` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
