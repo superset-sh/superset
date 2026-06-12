@@ -364,24 +364,8 @@ export async function resolveAgentResumeTarget(params: {
 		return null;
 	}
 
-	const candidates = await Promise.all(
-		[normalizedAgentId].map((agentId) =>
-			resolveCandidateFromTranscripts({
-				agentId,
-				searchPaths,
-			}),
-		),
-	);
-
-	return (
-		candidates
-			.filter(
-				(candidate): candidate is TranscriptCandidate => candidate !== null,
-			)
-			.sort((a, b) =>
-				b.matchScore !== a.matchScore
-					? b.matchScore - a.matchScore
-					: b.mtimeMs - a.mtimeMs,
-			)[0] ?? null
-	);
+	return resolveCandidateFromTranscripts({
+		agentId: normalizedAgentId,
+		searchPaths,
+	});
 }
