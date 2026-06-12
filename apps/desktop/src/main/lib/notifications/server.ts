@@ -112,10 +112,14 @@ app.get("/hook/complete", (req, res) => {
 	const locationPaneId =
 		(terminalId as string | undefined) || resolvedPaneId || undefined;
 	if (locationPaneId) {
+		const normalizedAgentId =
+			typeof agentId === "string" && agentId !== "" ? agentId : undefined;
+		const normalizedSessionId =
+			typeof sessionId === "string" && sessionId !== "" ? sessionId : undefined;
 		updateSessionLocationAgentIdentity({
 			paneId: locationPaneId,
-			agentId: agentId as string | undefined,
-			agentSessionId: sessionId as string | undefined,
+			agentId: normalizedAgentId,
+			agentSessionId: normalizedSessionId,
 		});
 	}
 

@@ -5,6 +5,7 @@ import { join, normalize } from "node:path";
 
 const MAX_RECENT_TRANSCRIPT_FILES = 200;
 const MAX_SNIPPET_BYTES = 64 * 1024;
+const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 type SupportedAgentId = "claude" | "codex";
 
@@ -25,7 +26,47 @@ function normalizePath(value: string | null | undefined): string | null {
 	if (typeof value !== "string") return null;
 	const trimmed = value.trim();
 	if (!trimmed) return null;
-	return normalize(trimmed).replaceAll("\\", "/").replace(/\/+$/, "");
+	const normalized = normalize(trimmed).replaceAll("\\", "/");
+	if (normalized === "/" || /^[A-Za-z]:\/$/.test(normalized)) {
+		return normalized;
+	}
+	return normalized.replace(/\/+$/, "");
+}
+
+function logResumeWarning(message: string, error?: unknown): void {
+	if (error === undefined) {
+		console.warn(`[agent-resume] ${message}`);
+		return;
+	}
+	console.warn(`[agent-resume] ${message}`, error);
+}
+
+function isErrnoException(
+	error: unknown,
+	code: string,
+): error is NodeJS.ErrnoException {
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		"code" in error &&
+		(error as NodeJS.ErrnoException).code === code
+	);
+}
+
+function normalizeSessionId(
+	value: string | null | undefined,
+	context?: string,
+): string | null {
+	if (typeof value !== "string") return null;
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	if (!SESSION_ID_PATTERN.test(trimmed)) {
+		logResumeWarning(
+			`Ignoring invalid session id${context ? ` from ${context}` : ""}`,
+		);
+		return null;
+	}
+	return trimmed;
 }
 
 function getCurrentHomeDir(): string {
@@ -102,17 +143,16 @@ async function collectRecentFiles(
 
 	const pushFile = (path: string, mtimeMs: number) => {
 		files.push({ path, mtimeMs });
-		files.sort((a, b) => b.mtimeMs - a.mtimeMs);
-		if (files.length > MAX_RECENT_TRANSCRIPT_FILES) {
-			files.length = MAX_RECENT_TRANSCRIPT_FILES;
-		}
 	};
 
 	const visit = async (dir: string): Promise<void> => {
 		let entries: Dirent[];
 		try {
 			entries = await fs.readdir(dir, { withFileTypes: true });
-		} catch {
+		} catch (error) {
+			if (!isErrnoException(error, "ENOENT")) {
+				logResumeWarning(`Failed to read transcript directory ${dir}`, error);
+			}
 			return;
 		}
 
@@ -133,14 +173,18 @@ async function collectRecentFiles(
 				try {
 					const stats = await fs.stat(fullPath);
 					pushFile(fullPath, stats.mtimeMs);
-				} catch {
-					// Best effort only.
+				} catch (error) {
+					logResumeWarning(`Failed to stat transcript file ${fullPath}`, error);
 				}
 			}),
 		);
 	};
 
 	await visit(rootDir);
+	files.sort((a, b) => b.mtimeMs - a.mtimeMs);
+	if (files.length > MAX_RECENT_TRANSCRIPT_FILES) {
+		files.length = MAX_RECENT_TRANSCRIPT_FILES;
+	}
 	return files;
 }
 
@@ -152,7 +196,8 @@ async function readSnippet(path: string): Promise<string | null> {
 		const buffer = Buffer.alloc(MAX_SNIPPET_BYTES);
 		const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
 		return buffer.subarray(0, bytesRead).toString("utf8");
-	} catch {
+	} catch (error) {
+		logResumeWarning(`Failed to read transcript snippet ${path}`, error);
 		return null;
 	} finally {
 		await handle?.close().catch(() => {});
@@ -253,17 +298,16 @@ async function resolveCandidateFromTranscripts(params: {
 
 		const normalizedCwd = normalizePath(parsed.cwd);
 		if (!normalizedCwd) continue;
+		const normalizedSessionId = normalizeSessionId(parsed.sessionId, file.path);
+		if (!normalizedSessionId) continue;
 
 		const matchScore = scoreCandidateCwd(normalizedCwd, params.searchPaths);
 		if (matchScore === 0) continue;
 
-		const resumeCommand = buildResumeCommand(params.agentId, parsed.sessionId);
-		if (!resumeCommand) continue;
-
 		const candidate: TranscriptCandidate = {
 			agentId: params.agentId,
-			sessionId: parsed.sessionId,
-			resumeCommand,
+			sessionId: normalizedSessionId,
+			resumeCommand: buildResumeCommand(params.agentId, normalizedSessionId),
 			sourcePath: file.path,
 			cwd: normalizedCwd,
 			mtimeMs: file.mtimeMs,
@@ -295,21 +339,19 @@ export async function resolveAgentResumeTarget(params: {
 		params.workspacePath,
 		params.rootPath,
 	]);
-	const normalizedAgentId =
-		isSupportedAgentId(params.agentId) ? params.agentId : null;
-	const normalizedSessionId =
-		typeof params.sessionId === "string" && params.sessionId
-			? params.sessionId
-			: null;
+	const normalizedAgentId = isSupportedAgentId(params.agentId)
+		? params.agentId
+		: null;
+	const normalizedSessionId = normalizeSessionId(
+		params.sessionId,
+		"session-location-log",
+	);
 
 	if (normalizedAgentId && normalizedSessionId) {
 		return {
 			agentId: normalizedAgentId,
 			sessionId: normalizedSessionId,
-			resumeCommand: buildResumeCommand(
-				normalizedAgentId,
-				normalizedSessionId,
-			),
+			resumeCommand: buildResumeCommand(normalizedAgentId, normalizedSessionId),
 			sourcePath: "session-location-log",
 		};
 	}
@@ -318,11 +360,12 @@ export async function resolveAgentResumeTarget(params: {
 		return null;
 	}
 
+	if (!normalizedAgentId) {
+		return null;
+	}
+
 	const candidates = await Promise.all(
-		(normalizedAgentId === "claude" || normalizedAgentId === "codex"
-			? [normalizedAgentId]
-			: (["claude", "codex"] as const)
-		).map((agentId) =>
+		[normalizedAgentId].map((agentId) =>
 			resolveCandidateFromTranscripts({
 				agentId,
 				searchPaths,

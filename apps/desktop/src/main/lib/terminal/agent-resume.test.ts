@@ -107,7 +107,7 @@ describe("resolveAgentResumeTarget", () => {
 		});
 	});
 
-	it("picks the most recent matching session when agentId is unknown", async () => {
+	it("scans the matching transcript store when the agent is known but the session id is missing", async () => {
 		const workspacePath = "/tmp/workspaces/shared";
 		const claudePath = join(
 			testHome,
@@ -151,6 +151,7 @@ describe("resolveAgentResumeTarget", () => {
 		);
 
 		const result = await resolveAgentResumeTarget({
+			agentId: "claude",
 			cwd: workspacePath,
 		});
 
@@ -158,6 +159,96 @@ describe("resolveAgentResumeTarget", () => {
 			agentId: "claude",
 			sessionId: "claude-session",
 			resumeCommand: "claude --resume claude-session",
+		});
+	});
+
+	it("does not guess a resume target when the pane never established an agent identity", async () => {
+		const workspacePath = "/tmp/workspaces/shared";
+		const claudePath = join(
+			testHome,
+			".claude",
+			"projects",
+			"shared",
+			"claude-session.jsonl",
+		);
+		mkdirSync(dirname(claudePath), { recursive: true });
+		writeFileSync(
+			claudePath,
+			JSON.stringify({
+				type: "attachment",
+				cwd: workspacePath,
+				sessionId: "claude-session",
+			}),
+		);
+
+		const result = await resolveAgentResumeTarget({
+			cwd: workspacePath,
+		});
+
+		expect(result).toBeNull();
+	});
+
+	it("ignores invalid session ids before building a resume command", async () => {
+		const cwd = "/tmp/workspaces/claude";
+		const transcriptPath = join(
+			testHome,
+			".claude",
+			"projects",
+			"workspace",
+			"invalid-session.jsonl",
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			JSON.stringify({
+				type: "attachment",
+				cwd,
+				sessionId: "claude-session; rm -rf /",
+			}),
+		);
+
+		const fromTranscript = await resolveAgentResumeTarget({
+			agentId: "claude",
+			cwd,
+		});
+		const fromStoredIdentity = await resolveAgentResumeTarget({
+			agentId: "claude",
+			sessionId: "known-session && whoami",
+			cwd,
+		});
+
+		expect(fromTranscript).toBeNull();
+		expect(fromStoredIdentity).toBeNull();
+	});
+
+	it("preserves root directories when matching transcript cwd values", async () => {
+		const sessionId = "root-session";
+		const transcriptPath = join(
+			testHome,
+			".claude",
+			"projects",
+			"root",
+			`${sessionId}.jsonl`,
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			JSON.stringify({
+				type: "attachment",
+				cwd: "/",
+				sessionId,
+			}),
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "claude",
+			cwd: "/",
+		});
+
+		expect(result).toMatchObject({
+			agentId: "claude",
+			sessionId,
+			resumeCommand: "claude --resume root-session",
 		});
 	});
 });

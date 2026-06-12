@@ -42,6 +42,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function hasOwn(value: object, key: PropertyKey): boolean {
+	return Object.hasOwn(value, key);
+}
+
+function normalizeOptionalIdentityValue(
+	value: string | null | undefined,
+): string | undefined {
+	if (typeof value !== "string") return undefined;
+	const trimmed = value.trim();
+	return trimmed ? trimmed : undefined;
+}
+
 export function buildSessionLocationKey(params: {
 	workspaceId: string;
 	tabId: string;
@@ -135,12 +147,20 @@ export function upsertSessionLocation(params: {
 		const now = Date.now();
 		const previous = log.sessions[params.paneId];
 		const locationKey = buildSessionLocationKey(params);
+		const shouldResetAgentIdentity =
+			previous?.status !== "available" ||
+			previous?.locationKey !== locationKey ||
+			previous?.pid !== params.pid;
 		if (previous?.locationKey && previous.locationKey !== locationKey) {
 			delete log.locations[previous.locationKey];
 		}
 		log.sessions[params.paneId] = {
 			...previous,
 			...params,
+			agentId: shouldResetAgentIdentity ? undefined : previous?.agentId,
+			agentSessionId: shouldResetAgentIdentity
+				? undefined
+				: previous?.agentSessionId,
 			status: "available",
 			createdAt: previous?.createdAt ?? now,
 			updatedAt: now,
@@ -161,14 +181,12 @@ export function updateSessionLocationAgentIdentity(params: {
 		const entry = log.sessions[params.paneId];
 		if (!entry) return;
 
-		const nextAgentId =
-			typeof params.agentId === "string" && params.agentId
-				? params.agentId
-				: entry.agentId;
-		const nextAgentSessionId =
-			typeof params.agentSessionId === "string" && params.agentSessionId
-				? params.agentSessionId
-				: entry.agentSessionId;
+		const nextAgentId = hasOwn(params, "agentId")
+			? normalizeOptionalIdentityValue(params.agentId)
+			: entry.agentId;
+		const nextAgentSessionId = hasOwn(params, "agentSessionId")
+			? normalizeOptionalIdentityValue(params.agentSessionId)
+			: entry.agentSessionId;
 
 		if (
 			nextAgentId === entry.agentId &&

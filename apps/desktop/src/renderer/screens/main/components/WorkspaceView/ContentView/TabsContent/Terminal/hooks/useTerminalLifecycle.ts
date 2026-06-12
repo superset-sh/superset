@@ -860,6 +860,7 @@ export function useTerminalLifecycle({
 		resetModes,
 		setIsRestoredMode,
 		setRestoredCwd,
+		setRestoredResumeCommand,
 	]);
 
 	return { xtermInstance, restartTerminal };
