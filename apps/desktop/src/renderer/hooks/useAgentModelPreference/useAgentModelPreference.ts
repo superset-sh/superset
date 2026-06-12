@@ -60,7 +60,12 @@ export function useAgentModelPreference(
 			} else {
 				delete map[presetId];
 			}
-			window.localStorage.setItem(storageKey, JSON.stringify(map));
+			try {
+				window.localStorage.setItem(storageKey, JSON.stringify(map));
+			} catch {
+				// Quota/security errors only cost persistence of the preference;
+				// the in-memory selection above still applies to this dialog.
+			}
 		},
 		[storageKey, presetId],
 	);

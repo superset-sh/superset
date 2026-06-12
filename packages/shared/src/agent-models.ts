@@ -102,8 +102,10 @@ export function getAgentModelSupport(
 /**
  * Argv tokens that select `model` for the given preset, e.g.
  * `["--model", "sonnet"]`. Returns `[]` for unknown presets, presets without
- * a CLI flag (superset chat), or an unset model — callers can spread the
- * result unconditionally.
+ * a CLI flag (superset chat), an unset model, or a model id that isn't in
+ * the preset's curated list — callers can spread the result unconditionally
+ * and a stale or arbitrary model id degrades to the CLI default instead of
+ * a broken launch.
  */
 export function buildAgentModelArgs(
 	presetId: string,
@@ -112,5 +114,6 @@ export function buildAgentModelArgs(
 	if (!model) return [];
 	const support = getAgentModelSupport(presetId);
 	if (!support?.modelFlag) return [];
+	if (!support.models.some((option) => option.id === model)) return [];
 	return [support.modelFlag, model];
 }

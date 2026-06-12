@@ -62,6 +62,11 @@ describe("buildAgentModelArgs", () => {
 		expect(buildAgentModelArgs("amp", "sonnet")).toEqual([]);
 	});
 
+	it("returns [] for model ids outside the preset's curated list", () => {
+		expect(buildAgentModelArgs("claude", "bad-model")).toEqual([]);
+		expect(buildAgentModelArgs("codex", "sonnet")).toEqual([]);
+	});
+
 	it("returns [] for superset (model travels via chat metadata)", () => {
 		expect(
 			buildAgentModelArgs("superset", "anthropic/claude-opus-4-8"),
