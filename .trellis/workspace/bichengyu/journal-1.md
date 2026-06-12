@@ -623,3 +623,37 @@ Fixed packaged standalone Chat resolving the Claude Code executable inside app.a
 ### Next Steps
 
 - None - task complete
+
+
+## Session 19: Automation run result workflow
+
+**Date**: 2026-06-12
+**Task**: Automation run result workflow
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Added result-aware Automation runs with lifecycle statuses, run-scoped writeback, CLI/SDK support, desktop result panel, stale live-row fallback, docs, tests, and acceptance validation.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5a6102e46` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
