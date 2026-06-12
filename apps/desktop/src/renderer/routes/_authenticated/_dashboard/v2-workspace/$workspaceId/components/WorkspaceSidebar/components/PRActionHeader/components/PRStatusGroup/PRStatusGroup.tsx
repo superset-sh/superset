@@ -93,9 +93,12 @@ export function PRStatusGroup({
 			? "merged"
 			: pr.state === "closed"
 				? "closed"
-				: "open";
+				: pr.state === "queued"
+					? "queued"
+					: "open";
 	const canMerge = pr.state === "open" && !pr.isDraft;
-	const showIndicators = pr.state === "open"; // includes draft
+	// Queued PRs are still actively running checks, so keep CI/review indicators.
+	const showIndicators = pr.state === "open" || pr.state === "queued";
 
 	const handleMerge = (mergeMethod: "merge" | "squash" | "rebase") => {
 		mergePRMutation.mutate({
@@ -238,6 +241,12 @@ function stateTintClasses(state: PRState): {
 				container: "border-border bg-muted/40",
 				hover: "hover:bg-muted/60 focus-visible:bg-muted/60",
 				divider: "bg-border",
+			};
+		case "queued":
+			return {
+				container: "border-amber-500/30 bg-amber-500/10",
+				hover: "hover:bg-amber-500/15 focus-visible:bg-amber-500/15",
+				divider: "bg-amber-500/30",
 			};
 	}
 }

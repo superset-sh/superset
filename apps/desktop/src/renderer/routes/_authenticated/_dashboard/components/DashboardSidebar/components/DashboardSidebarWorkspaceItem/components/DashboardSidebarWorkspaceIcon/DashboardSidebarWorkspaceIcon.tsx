@@ -5,6 +5,7 @@ import {
 	LuGitPullRequest,
 	LuGitPullRequestClosed,
 	LuGitPullRequestDraft,
+	LuListChecks,
 } from "react-icons/lu";
 import { RxDot } from "react-icons/rx";
 import { TbCloud, TbCloudOff } from "react-icons/tb";
@@ -38,6 +39,7 @@ const PR_ICON_BY_STATE = {
 	merged: LuGitMerge,
 	closed: LuGitPullRequestClosed,
 	draft: LuGitPullRequestDraft,
+	queued: LuListChecks,
 } as const;
 
 const PR_COLOR_BY_STATE = {
@@ -45,6 +47,7 @@ const PR_COLOR_BY_STATE = {
 	merged: "text-purple-500",
 	closed: "text-destructive",
 	draft: "text-muted-foreground",
+	queued: "text-amber-500",
 } as const;
 
 export function DashboardSidebarWorkspaceIcon({

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	fetchPullRequestByHeadFromGh,
 	fetchPullRequestChecksFromGh,
+	fetchPullRequestMergeQueueStateFromGh,
 	fetchPullRequestReviewDecisionFromGh,
 } from "./github-query";
 
@@ -274,5 +275,53 @@ describe("GitHub pull request REST queries", () => {
 				],
 			},
 		]);
+	});
+
+	test("detects a PR sitting in the merge queue via GraphQL", async () => {
+		const { calls, execGh } = createExecGh([
+			{
+				data: {
+					repository: { pullRequest: { mergeQueueEntry: { id: "MQE_1" } } },
+				},
+			},
+		]);
+
+		const result = await fetchPullRequestMergeQueueStateFromGh(
+			execGh,
+			{ owner: "superset-sh", name: "superset" },
+			42,
+		);
+
+		expect(result).toBe(true);
+		expect(calls).toEqual([
+			{
+				args: [
+					"api",
+					"graphql",
+					"-f",
+					"query=query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){mergeQueueEntry{id}}}}",
+					"-f",
+					"owner=superset-sh",
+					"-f",
+					"name=superset",
+					"-F",
+					"number=42",
+				],
+			},
+		]);
+	});
+
+	test("reports not-queued when mergeQueueEntry is null", async () => {
+		const { execGh } = createExecGh([
+			{ data: { repository: { pullRequest: { mergeQueueEntry: null } } } },
+		]);
+
+		const result = await fetchPullRequestMergeQueueStateFromGh(
+			execGh,
+			{ owner: "superset-sh", name: "superset" },
+			42,
+		);
+
+		expect(result).toBe(false);
 	});
 });

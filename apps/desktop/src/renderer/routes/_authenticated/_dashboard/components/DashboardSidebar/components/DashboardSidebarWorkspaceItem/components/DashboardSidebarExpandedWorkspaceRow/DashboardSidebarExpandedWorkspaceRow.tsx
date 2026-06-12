@@ -27,6 +27,7 @@ const PR_STATE_LABEL: Record<
 	merged: "Merged",
 	closed: "Closed",
 	draft: "Draft",
+	queued: "Queued",
 };
 
 interface DashboardSidebarExpandedWorkspaceRowProps
