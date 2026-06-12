@@ -64,6 +64,10 @@
 			"types": "./src/agent-custom.ts",
 			"default": "./src/agent-custom.ts"
 		},
+		"./agent-models": {
+			"types": "./src/agent-models.ts",
+			"default": "./src/agent-models.ts"
+		},
 		"./billing": {
 			"types": "./src/billing.ts",
 			"default": "./src/billing.ts"
