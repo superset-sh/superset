@@ -176,6 +176,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				const isAuthenticated = await providers.hostAuth.validate(c.req.raw);
 				return {
 					git,
+					credentials: providers.credentials,
 					github,
 					execGh,
 					api,

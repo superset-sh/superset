@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# storybook (generated on start)
+.rnstorybook/storybook.requires.ts

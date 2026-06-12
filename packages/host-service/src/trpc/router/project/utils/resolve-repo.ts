@@ -2,12 +2,22 @@ import { existsSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
+import type { GitCredentialProvider } from "../../../../runtime/git";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import {
 	findMatchingRemote,
 	getGitHubRemotes,
 	type ParsedGitHubRemote,
 } from "./git-remote";
+
+async function cloneEnv(
+	credentials: GitCredentialProvider | undefined,
+	remoteUrl: string,
+): Promise<Record<string, string> | undefined> {
+	if (!credentials) return undefined;
+	const { env } = await credentials.getCredentials(remoteUrl);
+	return env;
+}
 
 export interface ResolvedRepo {
 	repoPath: string;
@@ -269,6 +279,7 @@ export async function cloneTemplateInto(
 	templateUrl: string,
 	parentDir: string,
 	dirName: string,
+	credentials?: GitCredentialProvider,
 ): Promise<ResolvedRepo> {
 	if (!dirName.trim() || /[/\\]/.test(dirName)) {
 		throw new TRPCError({
@@ -284,7 +295,11 @@ export async function cloneTemplateInto(
 
 	try {
 		// --depth=1 since we're throwing away the template's history anyway.
-		await createUserSimpleGit().clone(templateUrl, targetPath, ["--depth=1"]);
+		const env = await cloneEnv(credentials, templateUrl);
+		const cloneGit = createUserSimpleGit();
+		await (env ? cloneGit.env(env) : cloneGit).clone(templateUrl, targetPath, [
+			"--depth=1",
+		]);
 		rmSync(join(targetPath, ".git"), { recursive: true, force: true });
 
 		await gitInitMainBranch(targetPath);
@@ -328,6 +343,7 @@ function deriveCloneDirectoryName(repoCloneUrl: string): string {
 export async function cloneRepoInto(
 	repoCloneUrl: string,
 	parentDir: string,
+	credentials?: GitCredentialProvider,
 ): Promise<ResolvedRepo> {
 	const parsedUrl = parseGitHubRemote(repoCloneUrl);
 	const expectedSlug = parsedUrl
@@ -342,7 +358,9 @@ export async function cloneRepoInto(
 	claimEmptyTargetDir(targetPath);
 
 	try {
-		await createUserSimpleGit().clone(repoCloneUrl, targetPath);
+		const env = await cloneEnv(credentials, repoCloneUrl);
+		const git = createUserSimpleGit();
+		await (env ? git.env(env) : git).clone(repoCloneUrl, targetPath);
 	} catch (err) {
 		rmSync(targetPath, { recursive: true, force: true });
 		throw new TRPCError({

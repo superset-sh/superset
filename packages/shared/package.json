@@ -148,6 +148,6 @@
 		"@superset/typescript": "workspace:*",
 		"@types/friendly-words": "1.2.2",
 		"bun-types": "1.3.11",
-		"typescript": "5.9.3"
+		"typescript": "6.0.3"
 	}
 }

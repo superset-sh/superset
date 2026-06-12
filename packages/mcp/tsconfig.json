@@ -2,7 +2,6 @@
 	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
 		"types": ["bun-types"],
-		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]
 		}

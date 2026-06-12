@@ -11,7 +11,6 @@ import {
 	type StyleProp,
 	StyleSheet,
 	Text,
-	type TextProps,
 	View,
 	type ViewStyle,
 } from "react-native";
@@ -34,12 +33,11 @@ function ContextMenuSubTrigger({
 	children,
 	iconClassName,
 	...props
-}: ContextMenuPrimitive.SubTriggerProps &
-	React.RefAttributes<ContextMenuPrimitive.SubTriggerRef> & {
-		children?: React.ReactNode;
-		iconClassName?: string;
-		inset?: boolean;
-	}) {
+}: React.ComponentProps<typeof ContextMenuPrimitive.SubTrigger> & {
+	children?: React.ReactNode;
+	iconClassName?: string;
+	inset?: boolean;
+}) {
 	const { open } = ContextMenuPrimitive.useSubContext();
 	const icon =
 		Platform.OS === "web" ? ChevronRight : open ? ChevronUp : ChevronDown;
@@ -56,6 +54,7 @@ function ContextMenuSubTrigger({
 					Platform.select({
 						web: "focus:bg-accent focus:text-accent-foreground cursor-default outline-none [&_svg]:pointer-events-none",
 					}),
+					className,
 					open && cn("bg-accent", Platform.select({ native: "mb-1" })),
 					inset && "pl-8",
 				)}
@@ -74,8 +73,7 @@ function ContextMenuSubTrigger({
 function ContextMenuSubContent({
 	className,
 	...props
-}: ContextMenuPrimitive.SubContentProps &
-	React.RefAttributes<ContextMenuPrimitive.SubContentRef>) {
+}: React.ComponentProps<typeof ContextMenuPrimitive.SubContent>) {
 	return (
 		<NativeOnlyAnimatedView entering={FadeIn}>
 			<ContextMenuPrimitive.SubContent
@@ -101,12 +99,11 @@ function ContextMenuContent({
 	overlayStyle,
 	portalHost,
 	...props
-}: ContextMenuPrimitive.ContentProps &
-	React.RefAttributes<ContextMenuPrimitive.ContentRef> & {
-		overlayStyle?: StyleProp<ViewStyle>;
-		overlayClassName?: string;
-		portalHost?: string;
-	}) {
+}: React.ComponentProps<typeof ContextMenuPrimitive.Content> & {
+	overlayStyle?: StyleProp<ViewStyle>;
+	overlayClassName?: string;
+	portalHost?: string;
+}) {
 	return (
 		<ContextMenuPrimitive.Portal hostName={portalHost}>
 			<FullWindowOverlay>
@@ -151,12 +148,11 @@ function ContextMenuItem({
 	inset,
 	variant,
 	...props
-}: ContextMenuPrimitive.ItemProps &
-	React.RefAttributes<ContextMenuPrimitive.ItemRef> & {
-		className?: string;
-		inset?: boolean;
-		variant?: "default" | "destructive";
-	}) {
+}: React.ComponentProps<typeof ContextMenuPrimitive.Item> & {
+	className?: string;
+	inset?: boolean;
+	variant?: "default" | "destructive";
+}) {
 	return (
 		<TextClassContext.Provider
 			value={cn(
@@ -191,10 +187,9 @@ function ContextMenuCheckboxItem({
 	className,
 	children,
 	...props
-}: ContextMenuPrimitive.CheckboxItemProps &
-	React.RefAttributes<ContextMenuPrimitive.CheckboxItemRef> & {
-		children?: React.ReactNode;
-	}) {
+}: React.ComponentProps<typeof ContextMenuPrimitive.CheckboxItem> & {
+	children?: React.ReactNode;
+}) {
 	return (
 		<TextClassContext.Provider value="text-sm text-popover-foreground select-none group-active:text-accent-foreground">
 			<ContextMenuPrimitive.CheckboxItem
@@ -229,10 +224,9 @@ function ContextMenuRadioItem({
 	className,
 	children,
 	...props
-}: ContextMenuPrimitive.RadioItemProps &
-	React.RefAttributes<ContextMenuPrimitive.RadioItemRef> & {
-		children?: React.ReactNode;
-	}) {
+}: React.ComponentProps<typeof ContextMenuPrimitive.RadioItem> & {
+	children?: React.ReactNode;
+}) {
 	return (
 		<TextClassContext.Provider value="text-sm text-popover-foreground select-none group-active:text-accent-foreground">
 			<ContextMenuPrimitive.RadioItem
@@ -261,11 +255,10 @@ function ContextMenuLabel({
 	className,
 	inset,
 	...props
-}: ContextMenuPrimitive.LabelProps &
-	React.RefAttributes<ContextMenuPrimitive.LabelRef> & {
-		className?: string;
-		inset?: boolean;
-	}) {
+}: React.ComponentProps<typeof ContextMenuPrimitive.Label> & {
+	className?: string;
+	inset?: boolean;
+}) {
 	return (
 		<ContextMenuPrimitive.Label
 			className={cn(
@@ -281,8 +274,7 @@ function ContextMenuLabel({
 function ContextMenuSeparator({
 	className,
 	...props
-}: ContextMenuPrimitive.SeparatorProps &
-	React.RefAttributes<ContextMenuPrimitive.SeparatorRef>) {
+}: React.ComponentProps<typeof ContextMenuPrimitive.Separator>) {
 	return (
 		<ContextMenuPrimitive.Separator
 			className={cn("bg-border -mx-1 my-1 h-px", className)}
@@ -294,7 +286,7 @@ function ContextMenuSeparator({
 function ContextMenuShortcut({
 	className,
 	...props
-}: TextProps & React.RefAttributes<Text>) {
+}: React.ComponentProps<typeof Text>) {
 	return (
 		<Text
 			className={cn(

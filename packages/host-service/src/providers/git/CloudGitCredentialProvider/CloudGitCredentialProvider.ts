@@ -1,6 +1,6 @@
 import { unlink } from "node:fs/promises";
 import type { GitCredentialProvider } from "../../../runtime/git/types";
-import { writeTempAskpass } from "./askpass";
+import { writeTempAskpass } from "../askpass";
 
 interface CachedCredential {
 	expiresAt: number;
