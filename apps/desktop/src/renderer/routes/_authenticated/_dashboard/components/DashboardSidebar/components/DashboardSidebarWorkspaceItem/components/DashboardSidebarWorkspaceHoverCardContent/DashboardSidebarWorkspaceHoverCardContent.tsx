@@ -125,12 +125,14 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 								#{pullRequest.number}
 							</span>
 							<PullRequestStatusBadge state={pullRequest.state} />
-							{pullRequest.state === "open" && pullRequest.reviewDecision && (
-								<ReviewStatus
-									status={pullRequest.reviewDecision}
-									requestedReviewers={pullRequest.requestedReviewers}
-								/>
-							)}
+							{(pullRequest.state === "open" ||
+								pullRequest.state === "queued") &&
+								pullRequest.reviewDecision && (
+									<ReviewStatus
+										status={pullRequest.reviewDecision}
+										requestedReviewers={pullRequest.requestedReviewers}
+									/>
+								)}
 						</div>
 						{diffStats && (
 							<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
@@ -146,7 +148,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 						{pullRequest.title}
 					</p>
 
-					{pullRequest.state === "open" && (
+					{(pullRequest.state === "open" || pullRequest.state === "queued") && (
 						<div className="space-y-2 pt-1">
 							<div className="flex items-center gap-2 text-xs">
 								<ChecksSummary
