@@ -134,11 +134,25 @@ app.get("/hook/complete", async (req, res) => {
 		}
 
 		if (shouldPersistAgentIdentity) {
-			updateSessionLocationAgentIdentity({
+			const identityUpdate: {
+				paneId: string;
+				agentId?: string;
+				agentSessionId?: string;
+			} = {
 				paneId: locationPaneId,
-				agentId: normalizedAgentId,
-				agentSessionId: normalizedSessionId,
-			});
+			};
+			if (normalizedAgentId !== undefined) {
+				identityUpdate.agentId = normalizedAgentId;
+			}
+			if (normalizedSessionId !== undefined) {
+				identityUpdate.agentSessionId = normalizedSessionId;
+			}
+			if (
+				identityUpdate.agentId !== undefined ||
+				identityUpdate.agentSessionId !== undefined
+			) {
+				updateSessionLocationAgentIdentity(identityUpdate);
+			}
 		} else if (DEBUG_HOOKS_ENABLED) {
 			console.log(
 				"[notifications] Ignoring Claude session identity update without a top-level transcript",

@@ -11,6 +11,7 @@ const setStreamReadyMock = mock(() => {});
 const ackColdRestoreMutateMock = mock(async () => {});
 const terminalWriteMutateMock = mock(async () => {});
 const writeCommandInPaneMock = mock(async () => {});
+const coldRestoreState = new Map<string, unknown>();
 
 mock.module("react", () => ({
 	useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
@@ -46,7 +47,7 @@ mock.module("../attach-cancel", () => ({
 }));
 
 mock.module("../state", () => ({
-	coldRestoreState: new Map<string, unknown>(),
+	coldRestoreState,
 }));
 
 mock.module("./terminal-exit-policy", () => ({
@@ -122,6 +123,7 @@ function createOptions(overrides?: {
 describe("useTerminalColdRestore", () => {
 	beforeEach(() => {
 		stateIndex = 0;
+		coldRestoreState.clear();
 		for (const fn of [
 			...stateSetters,
 			startStreamMock,

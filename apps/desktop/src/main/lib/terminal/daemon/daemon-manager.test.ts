@@ -18,6 +18,7 @@ let mockResolveAgentResumeTarget: (params: unknown) => Promise<unknown> =
 	async (_params: unknown) => null;
 let mockGetSessionLocation: () => Promise<unknown> = async () => null;
 const mockUpdateSessionLocationAgentIdentityCalls: Array<unknown> = [];
+const mockMarkSessionLocationExitedCalls: Array<unknown> = [];
 
 class MockTerminalHostClient extends EventEmitter {
 	createOrAttachCalls: Array<{ sessionId: string; requestId?: string }> = [];
@@ -258,7 +259,9 @@ mock.module("../session-location-log", () => ({
 		paneId: string;
 	}) => `${workspaceId}:${tabId}:${paneId}`,
 	getSessionLocation: () => mockGetSessionLocation(),
-	markSessionLocationExited: () => {},
+	markSessionLocationExited: (params: unknown) => {
+		mockMarkSessionLocationExitedCalls.push(params);
+	},
 	updateSessionLocationAgentIdentity: (params: unknown) => {
 		mockUpdateSessionLocationAgentIdentityCalls.push(params);
 	},
@@ -306,6 +309,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 		mockResolveAgentResumeTarget = async () => null;
 		mockGetSessionLocation = async () => null;
 		mockUpdateSessionLocationAgentIdentityCalls.length = 0;
+		mockMarkSessionLocationExitedCalls.length = 0;
 	});
 
 	afterAll(() => {
@@ -352,8 +356,75 @@ describe("DaemonTerminalManager kill tracking", () => {
 		});
 
 		await manager.kill({ paneId });
+		expect(mockMarkSessionLocationExitedCalls).toContainEqual({
+			paneId,
+			exitReason: "killed",
+		});
 		mockClient.emit("exit", paneId, 0, 15);
 		expect(exitReason).toBe("killed");
+	});
+
+	it("marks the session location exited when the daemon reports a missing session", () => {
+		void new DaemonTerminalManager();
+
+		mockClient.emit(
+			"terminalError",
+			"pane-missing",
+			"Session not found",
+			"ENOENT",
+		);
+
+		expect(mockMarkSessionLocationExitedCalls).toContainEqual({
+			paneId: "pane-missing",
+			exitReason: "error",
+		});
+	});
+
+	it("marks every workspace session exited before killByWorkspaceId tears them down", async () => {
+		const manager = new DaemonTerminalManager();
+		mockClient.listSessionsIfRunningResult = {
+			sessions: [
+				{
+					sessionId: "pane-1",
+					paneId: "pane-1",
+					workspaceId: "ws-1",
+					isAlive: true,
+				},
+				{
+					sessionId: "pane-2",
+					paneId: "pane-2",
+					workspaceId: "ws-1",
+					isAlive: true,
+				},
+			],
+		};
+
+		await manager.killByWorkspaceId("ws-1");
+
+		expect(mockMarkSessionLocationExitedCalls).toEqual([
+			{ paneId: "pane-1", exitReason: "killed" },
+			{ paneId: "pane-2", exitReason: "killed" },
+		]);
+	});
+
+	it("marks probed daemon sessions exited before forceKillAll clears local state", async () => {
+		const manager = new DaemonTerminalManager();
+		mockClient.listSessionsIfRunningResult = {
+			sessions: [
+				{
+					sessionId: "pane-1",
+					paneId: "pane-1",
+					workspaceId: "ws-1",
+					isAlive: true,
+				},
+			],
+		};
+
+		await manager.forceKillAll();
+
+		expect(mockMarkSessionLocationExitedCalls).toEqual([
+			{ paneId: "pane-1", exitReason: "killed" },
+		]);
 	});
 
 	it("defaults exit reason to exited when no kill tombstone exists", () => {

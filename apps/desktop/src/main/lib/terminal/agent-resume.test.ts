@@ -301,4 +301,35 @@ describe("resolveAgentResumeTarget", () => {
 			resumeCommand: "claude --resume root-session",
 		});
 	});
+
+	it("treats filesystem roots as ancestor paths during transcript matching", async () => {
+		const sessionId = "root-ancestor-session";
+		const transcriptPath = join(
+			testHome,
+			".claude",
+			"projects",
+			"root-ancestor",
+			`${sessionId}.jsonl`,
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			JSON.stringify({
+				type: "attachment",
+				cwd: "/",
+				sessionId,
+			}),
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "claude",
+			cwd: "/tmp/workspaces/project",
+		});
+
+		expect(result).toMatchObject({
+			agentId: "claude",
+			sessionId,
+			resumeCommand: "claude --resume root-ancestor-session",
+		});
+	});
 });

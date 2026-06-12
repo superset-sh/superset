@@ -313,6 +313,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					if (session) {
 						session.isAlive = false;
 					}
+					markSessionLocationExited({ paneId, exitReason: "error" });
 					console.log(
 						`[DaemonTerminalManager] Session ${paneId} lost - will trigger cold restore on next attach`,
 					);
@@ -791,6 +792,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		} else {
 			this.historyManager.closeHistoryWriter(paneId, 0);
 		}
+		markSessionLocationExited({ paneId, exitReason: "killed" });
 
 		try {
 			await this.client.kill({ sessionId: paneId, deleteHistory });
@@ -919,6 +921,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 				portManager.unregisterSession(paneId);
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
+				markSessionLocationExited({ paneId, exitReason: "killed" });
 				await this.client.kill({ sessionId: paneId, deleteHistory: true });
 			}),
 		);
@@ -1021,6 +1024,10 @@ export class DaemonTerminalManager extends EventEmitter {
 				localSession.isAlive = false;
 				localSession.pid = null;
 			}
+			markSessionLocationExited({
+				paneId: session.sessionId,
+				exitReason: "killed",
+			});
 		}
 
 		for (const timeout of this.cleanupTimeouts.values()) {

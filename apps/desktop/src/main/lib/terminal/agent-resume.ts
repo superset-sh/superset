@@ -91,7 +91,11 @@ function uniqueNonEmptyPaths(
 }
 
 function isPathAncestorOrSame(parent: string, child: string): boolean {
-	return child === parent || child.startsWith(`${parent}/`);
+	if (child === parent) {
+		return true;
+	}
+	const prefix = parent.endsWith("/") ? parent : `${parent}/`;
+	return child.startsWith(prefix);
 }
 
 function isSupportedAgentId(
