@@ -9,5 +9,5 @@
 		}
 	},
 	"include": ["**/*.ts", "**/*.tsx", "uniwind-env.d.ts", "uniwind-types.d.ts"],
-	"exclude": ["node_modules", "components/ai-elements/_web"]
+	"exclude": ["node_modules"]
 }
