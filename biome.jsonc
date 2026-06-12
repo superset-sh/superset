@@ -14,6 +14,7 @@
 			"!**/*.template.ts",
 			"!**/plans",
 			"!apps/mobile/uniwind-types.d.ts",
+			"!apps/mobile/components/ai-elements/_web",
 			"!packages/sdk/src"
 		]
 	},
