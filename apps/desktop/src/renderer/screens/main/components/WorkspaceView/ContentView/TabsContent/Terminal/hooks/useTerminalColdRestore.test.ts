@@ -5,6 +5,7 @@ import type { UseTerminalColdRestoreOptions } from "./useTerminalColdRestore";
 
 const stateSetters = [mock(() => {}), mock(() => {}), mock(() => {})];
 let stateIndex = 0;
+const stateValues: unknown[] = [];
 
 const startStreamMock = mock(() => {});
 const setStreamReadyMock = mock(() => {});
@@ -12,15 +13,18 @@ const ackColdRestoreMutateMock = mock(async () => {});
 const terminalWriteMutateMock = mock(async () => {});
 const writeCommandInPaneMock = mock(async () => {});
 const coldRestoreState = new Map<string, unknown>();
+const isTerminalAttachCanceledMessageMock = mock(() => false);
 
 mock.module("react", () => ({
 	useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
 		callback,
 	useRef: <T>(value: T) => ({ current: value }),
 	useState: <T>(initial: T) => {
+		const resolvedInitial =
+			stateValues[stateIndex] === undefined ? initial : (stateValues[stateIndex] as T);
 		const setter = stateSetters[stateIndex] ?? mock(() => {});
 		stateIndex += 1;
-		return [initial, setter] as const;
+		return [resolvedInitial, setter] as const;
 	},
 }));
 
@@ -43,7 +47,7 @@ mock.module("renderer/lib/terminal/launch-command", () => ({
 }));
 
 mock.module("../attach-cancel", () => ({
-	isTerminalAttachCanceledMessage: () => false,
+	isTerminalAttachCanceledMessage: isTerminalAttachCanceledMessageMock,
 }));
 
 mock.module("../state", () => ({
@@ -123,6 +127,7 @@ function createOptions(overrides?: {
 describe("useTerminalColdRestore", () => {
 	beforeEach(() => {
 		stateIndex = 0;
+		stateValues.length = 0;
 		coldRestoreState.clear();
 		for (const fn of [
 			...stateSetters,
@@ -131,6 +136,7 @@ describe("useTerminalColdRestore", () => {
 			ackColdRestoreMutateMock,
 			terminalWriteMutateMock,
 			writeCommandInPaneMock,
+			isTerminalAttachCanceledMessageMock,
 		]) {
 			fn.mockClear();
 		}
@@ -181,6 +187,7 @@ describe("useTerminalColdRestore", () => {
 	});
 
 	it("reactivates the cached terminal stream after starting a restored shell", () => {
+		stateValues[2] = "claude --resume abc123";
 		const { options } = createOptions();
 		const coldRestore = useTerminalColdRestore(options);
 
@@ -191,5 +198,29 @@ describe("useTerminalColdRestore", () => {
 		expect(setStreamReadyMock).toHaveBeenCalledWith("pane-1");
 		expect(options.maybeApplyInitialState).toHaveBeenCalledTimes(1);
 		expect(options.resetModes).toHaveBeenCalledTimes(1);
+		expect(writeCommandInPaneMock).toHaveBeenCalledTimes(1);
+		expect(writeCommandInPaneMock).toHaveBeenCalledWith({
+			paneId: "pane-1",
+			command: "claude --resume abc123",
+			write: expect.any(Function),
+		});
+	});
+
+	it("clears the clean-exit grace window when starting a restored shell is canceled", () => {
+		isTerminalAttachCanceledMessageMock.mockImplementation(
+			(message?: string) => message === "attach canceled",
+		);
+		const { options } = createOptions({
+			createOrAttachImpl: (_input, callbacks) => {
+				callbacks?.onError?.({ message: "attach canceled" });
+			},
+		});
+		const coldRestore = useTerminalColdRestore(options);
+
+		coldRestore.handleStartShell();
+
+		expect(options.preserveCleanExitUntilRef.current).toBe(0);
+		expect(options.setConnectionError).not.toHaveBeenCalled();
+		expect(startStreamMock).not.toHaveBeenCalled();
 	});
 });
