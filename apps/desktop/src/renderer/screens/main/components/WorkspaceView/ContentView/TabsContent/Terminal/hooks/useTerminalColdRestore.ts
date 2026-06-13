@@ -151,6 +151,7 @@ export function useTerminalColdRestore({
 					}
 				},
 				onError: (error: { message?: string }) => {
+					preserveCleanExitUntilRef.current = 0;
 					if (isTerminalAttachCanceledMessage(error.message)) {
 						return;
 					}

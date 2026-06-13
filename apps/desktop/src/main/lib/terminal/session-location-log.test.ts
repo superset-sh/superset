@@ -17,7 +17,6 @@ describe("session-location-log", () => {
 
 	const adapter: SessionLocationStoreAdapter = {
 		isAvailable: () => true,
-		hasAny: () => store.size > 0,
 		getByPaneId: (paneId) => store.get(paneId),
 		upsert: (entry) => {
 			store.set(entry.paneId, {
@@ -66,6 +65,11 @@ describe("session-location-log", () => {
 			getActiveHostDb: () => null,
 			getActiveHostDbPath: () =>
 				"/tmp/superset-test/host/organization-1/host.db",
+		});
+		setLegacySessionLocationSourceForTests({
+			exists: () => false,
+			read: () => "",
+			archive: () => {},
 		});
 		setSessionLocationStoreAdapterForTests(adapter);
 	});
@@ -252,10 +256,71 @@ describe("session-location-log", () => {
 		});
 
 		const currentEntry = await getSessionLocation("pane-1");
-		expect(readCalls).toBe(0);
+		expect(readCalls).toBe(1);
 		expect(currentEntry).toMatchObject({
 			cwd: "/tmp/current",
 			agentSessionId: "session-current",
+			pid: 123,
+		});
+		expect(archivedPath ?? "").toBe(LEGACY_SESSION_LOCATION_LOG_PATH);
+	});
+
+	it("finishes a partially imported legacy log without overwriting existing rows", async () => {
+		let archivedPath: string | null = null;
+
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/current",
+			pid: 123,
+		});
+
+		setLegacySessionLocationSourceForTests({
+			exists: () => true,
+			read: () =>
+				JSON.stringify({
+					sessions: {
+						"pane-1": {
+							paneId: "pane-1",
+							tabId: "tab-1",
+							workspaceId: "workspace-1",
+							cwd: "/tmp/stale",
+							pid: 999,
+							status: "available",
+							createdAt: 1,
+							updatedAt: 2,
+							locationKey: "workspace-1:tab-1:pane-1",
+						},
+						"pane-2": {
+							paneId: "pane-2",
+							tabId: "tab-2",
+							workspaceId: "workspace-1",
+							cwd: "/tmp/imported",
+							pid: 456,
+							agentId: "codex",
+							agentSessionId: "session-imported",
+							status: "available",
+							createdAt: 3,
+							updatedAt: 4,
+							locationKey: "workspace-1:tab-2:pane-2",
+						},
+					},
+				}),
+			archive: (path) => {
+				archivedPath = path;
+			},
+		});
+
+		const importedEntry = await getSessionLocation("pane-2");
+		expect(importedEntry).toMatchObject({
+			paneId: "pane-2",
+			cwd: "/tmp/imported",
+			agentId: "codex",
+			agentSessionId: "session-imported",
+		});
+		expect(store.get("pane-1")).toMatchObject({
+			cwd: "/tmp/current",
 			pid: 123,
 		});
 		expect(archivedPath ?? "").toBe(LEGACY_SESSION_LOCATION_LOG_PATH);

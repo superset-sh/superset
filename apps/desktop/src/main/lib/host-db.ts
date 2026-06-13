@@ -9,7 +9,7 @@ let cachedOrganizationId: string | null = null;
 let cachedDbPath: string | null = null;
 let cachedDb: HostDb | null = null;
 
-function getHostMigrationsDirectory(): string {
+function getHostMigrationsDirectory(): string | null {
 	const packagedPath = join(process.resourcesPath, "resources/host-migrations");
 	if (existsSync(packagedPath)) {
 		return packagedPath;
@@ -28,8 +28,12 @@ function getHostMigrationsDirectory(): string {
 		return monorepoPath;
 	}
 
-	console.warn(`[host-db] Migrations directory not found at: ${previewPath}`);
-	return previewPath;
+	console.error("[host-db] Migrations directory not found", {
+		packagedPath,
+		previewPath,
+		monorepoPath,
+	});
+	return null;
 }
 
 function getActiveOrganizationId(): string | null {
@@ -68,7 +72,25 @@ export function getActiveHostDb(): HostDb | null {
 		return cachedDb;
 	}
 
-	cachedDb = createDb(dbPath, getHostMigrationsDirectory());
+	if (cachedDb) {
+		try {
+			(
+				cachedDb as unknown as { $client?: { close: () => void } }
+			).$client?.close();
+		} catch (error) {
+			console.warn("[host-db] Failed to close previous host db", error);
+		}
+		cachedDb = null;
+		cachedOrganizationId = null;
+		cachedDbPath = null;
+	}
+
+	const migrationsDir = getHostMigrationsDirectory();
+	if (!migrationsDir) {
+		return null;
+	}
+
+	cachedDb = createDb(dbPath, migrationsDir);
 	cachedOrganizationId = organizationId;
 	cachedDbPath = dbPath;
 	return cachedDb;

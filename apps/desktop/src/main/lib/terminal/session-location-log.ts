@@ -45,7 +45,6 @@ type SessionLocationPatch = Partial<
 
 export interface SessionLocationStoreAdapter {
 	isAvailable(): boolean;
-	hasAny(): boolean;
 	getByPaneId(paneId: string): SessionLocationEntry | undefined;
 	upsert(entry: SessionLocationEntry): void;
 	update(paneId: string, patch: SessionLocationPatch): void;
@@ -131,18 +130,7 @@ function toEntry(record: TerminalSessionLocationRow): SessionLocationEntry {
 function createDbStoreAdapter(): SessionLocationStoreAdapter {
 	return {
 		isAvailable() {
-			return getHostDbAccess().getActiveHostDbPath() !== null;
-		},
-		hasAny() {
-			const db = getHostDbAccess().getActiveHostDb();
-			if (!db) return false;
-			return (
-				db
-					.select({ paneId: terminalSessionLocations.paneId })
-					.from(terminalSessionLocations)
-					.limit(1)
-					.get() !== undefined
-			);
+			return getHostDbAccess().getActiveHostDb() !== null;
 		},
 		getByPaneId(paneId) {
 			const db = getHostDbAccess().getActiveHostDb();
@@ -349,16 +337,13 @@ function ensureLegacyImportIfNeeded(): void {
 			return;
 		}
 
-		if (storeAdapter.hasAny()) {
-			legacySessionLocationSource.archive(LEGACY_SESSION_LOCATION_LOG_PATH);
-			legacyImportEnsured = true;
-			return;
-		}
-
 		const legacyEntries = parseLegacySessionLocationLog(
 			legacySessionLocationSource.read(LEGACY_SESSION_LOCATION_LOG_PATH),
 		);
 		for (const entry of legacyEntries) {
+			if (storeAdapter.getByPaneId(entry.paneId)) {
+				continue;
+			}
 			storeAdapter.upsert(entry);
 		}
 		legacySessionLocationSource.archive(LEGACY_SESSION_LOCATION_LOG_PATH);

@@ -576,13 +576,6 @@
             "updated_at"
           ],
           "isUnique": false
-        },
-        "terminal_session_locations_location_key_idx": {
-          "name": "terminal_session_locations_location_key_idx",
-          "columns": [
-            "location_key"
-          ],
-          "isUnique": false
         }
       },
       "foreignKeys": {

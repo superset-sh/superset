@@ -63,7 +63,6 @@ export const terminalSessionLocations = sqliteTable(
 		index("terminal_session_locations_workspace_id_idx").on(table.workspaceId),
 		index("terminal_session_locations_status_idx").on(table.status),
 		index("terminal_session_locations_updated_at_idx").on(table.updatedAt),
-		index("terminal_session_locations_location_key_idx").on(table.locationKey),
 	],
 );
 

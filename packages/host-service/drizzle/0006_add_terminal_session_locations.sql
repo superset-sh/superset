@@ -23,5 +23,4 @@ CREATE TABLE `terminal_session_locations` (
 CREATE UNIQUE INDEX `terminal_session_locations_location_key_unique` ON `terminal_session_locations` (`location_key`);--> statement-breakpoint
 CREATE INDEX `terminal_session_locations_workspace_id_idx` ON `terminal_session_locations` (`workspace_id`);--> statement-breakpoint
 CREATE INDEX `terminal_session_locations_status_idx` ON `terminal_session_locations` (`status`);--> statement-breakpoint
-CREATE INDEX `terminal_session_locations_updated_at_idx` ON `terminal_session_locations` (`updated_at`);--> statement-breakpoint
-CREATE INDEX `terminal_session_locations_location_key_idx` ON `terminal_session_locations` (`location_key`);
+CREATE INDEX `terminal_session_locations_updated_at_idx` ON `terminal_session_locations` (`updated_at`);

@@ -116,13 +116,14 @@ app.get("/hook/complete", async (req, res) => {
 	const locationPaneId =
 		(terminalId as string | undefined) || resolvedPaneId || undefined;
 	if (locationPaneId) {
+		const currentLocation = await getSessionLocation(locationPaneId);
 		const normalizedAgentId =
 			typeof agentId === "string" && agentId !== "" ? agentId : undefined;
 		const normalizedSessionId =
 			typeof sessionId === "string" && sessionId !== "" ? sessionId : undefined;
+		const effectiveAgentId = normalizedAgentId ?? currentLocation?.agentId;
 		let shouldPersistAgentIdentity = true;
-		if (normalizedAgentId === "claude" && normalizedSessionId) {
-			const currentLocation = await getSessionLocation(locationPaneId);
+		if (effectiveAgentId === "claude" && normalizedSessionId) {
 			if (
 				currentLocation?.agentId === "claude" &&
 				currentLocation.agentSessionId &&
@@ -131,6 +132,13 @@ app.get("/hook/complete", async (req, res) => {
 				shouldPersistAgentIdentity =
 					await hasClaudeTopLevelTranscript(normalizedSessionId);
 			}
+		}
+		if (
+			normalizedAgentId === undefined &&
+			normalizedSessionId !== undefined &&
+			currentLocation?.agentId === undefined
+		) {
+			shouldPersistAgentIdentity = false;
 		}
 
 		if (shouldPersistAgentIdentity) {

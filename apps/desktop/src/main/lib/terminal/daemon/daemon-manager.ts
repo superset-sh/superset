@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { basename } from "node:path";
 import { workspaces } from "@superset/local-db";
 import { track } from "main/lib/analytics";
 import { appState } from "main/lib/app-state";
@@ -41,26 +42,19 @@ function normalizeRestorableAgentId(
 	return value === "claude" || value === "codex" ? value : null;
 }
 
-function inferRestorableAgentIdFromTabsState(
-	paneId: string,
-	fallbackTabId?: string | null,
+function inferRestorableAgentIdFromCommand(
+	command: string | null | undefined,
 ): RestorableAgentId | null {
-	const tabsState = appState.data?.tabsState;
-	if (!tabsState) {
+	if (typeof command !== "string") {
 		return null;
 	}
 
-	const pane = tabsState.panes?.[paneId];
-	const tabId = pane?.tabId || fallbackTabId || null;
-	if (!tabId) {
+	const firstToken = command.trim().split(/\s+/, 1)[0];
+	if (!firstToken) {
 		return null;
 	}
 
-	const userTitle = tabsState.tabs
-		?.find((tab) => tab.id === tabId)
-		?.userTitle?.trim()
-		.toLowerCase();
-	return normalizeRestorableAgentId(userTitle);
+	return normalizeRestorableAgentId(basename(firstToken).toLowerCase());
 }
 
 interface PendingCreateOrAttach {
@@ -646,7 +640,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		const sessionLocation = await getSessionLocation(paneId);
 		const restorableAgentId =
 			normalizeRestorableAgentId(sessionLocation?.agentId) ??
-			inferRestorableAgentIdFromTabsState(paneId, sessionLocation?.tabId);
+			inferRestorableAgentIdFromCommand(sessionLocation?.command);
 		const resumeTarget = await resolveAgentResumeTarget({
 			agentId: restorableAgentId,
 			sessionId: sessionLocation?.agentSessionId,
@@ -792,13 +786,13 @@ export class DaemonTerminalManager extends EventEmitter {
 		} else {
 			this.historyManager.closeHistoryWriter(paneId, 0);
 		}
-		markSessionLocationExited({ paneId, exitReason: "killed" });
-
 		try {
 			await this.client.kill({ sessionId: paneId, deleteHistory });
+			markSessionLocationExited({ paneId, exitReason: "killed" });
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			if (message.toLowerCase().includes("not found")) {
+				markSessionLocationExited({ paneId, exitReason: "killed" });
 				return;
 			}
 			throw error;
@@ -921,8 +915,8 @@ export class DaemonTerminalManager extends EventEmitter {
 
 				portManager.unregisterSession(paneId);
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
-				markSessionLocationExited({ paneId, exitReason: "killed" });
 				await this.client.kill({ sessionId: paneId, deleteHistory: true });
+				markSessionLocationExited({ paneId, exitReason: "killed" });
 			}),
 		);
 
@@ -1014,20 +1008,18 @@ export class DaemonTerminalManager extends EventEmitter {
 	async forceKillAll(): Promise<void> {
 		const response = await this.listExistingDaemonSessions();
 		const sessionIds = response.sessions.map((s) => s.sessionId);
+		const killedPaneIds: string[] = [];
 
 		for (const session of response.sessions) {
 			if (!session.isAlive) continue;
 			this.recordKilledSession(session.sessionId);
+			killedPaneIds.push(session.sessionId);
 
 			const localSession = this.sessions.get(session.sessionId);
 			if (localSession?.isAlive) {
 				localSession.isAlive = false;
 				localSession.pid = null;
 			}
-			markSessionLocationExited({
-				paneId: session.sessionId,
-				exitReason: "killed",
-			});
 		}
 
 		for (const timeout of this.cleanupTimeouts.values()) {
@@ -1041,6 +1033,9 @@ export class DaemonTerminalManager extends EventEmitter {
 		// Revisit this if killAll ever grows daemon-side cleanup responsibilities.
 		if (sessionIds.length > 0) {
 			await this.client.killAll({});
+		}
+		for (const paneId of killedPaneIds) {
+			markSessionLocationExited({ paneId, exitReason: "killed" });
 		}
 		for (const paneId of sessionIds) {
 			portManager.unregisterSession(paneId);

@@ -253,7 +253,9 @@ async function readSnippet(path: string): Promise<string | null> {
 		logResumeWarning(`Failed to read transcript snippet ${path}`, error);
 		return null;
 	} finally {
-		await handle?.close().catch(() => {});
+		await handle?.close().catch((error) => {
+			logResumeWarning(`Failed to close transcript snippet ${path}`, error);
+		});
 	}
 }
 

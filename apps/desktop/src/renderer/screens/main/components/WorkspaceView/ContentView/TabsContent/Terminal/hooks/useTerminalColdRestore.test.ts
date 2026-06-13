@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import type { CreateOrAttachMutate, CreateOrAttachResult } from "../types";
 import type { UseTerminalColdRestoreOptions } from "./useTerminalColdRestore";
@@ -14,6 +14,7 @@ const terminalWriteMutateMock = mock(async () => {});
 const writeCommandInPaneMock = mock(async () => {});
 const coldRestoreState = new Map<string, unknown>();
 const isTerminalAttachCanceledMessageMock = mock(() => false);
+const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
 
 mock.module("react", () => ({
 	useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
@@ -148,6 +149,14 @@ describe("useTerminalColdRestore", () => {
 		}) as typeof requestAnimationFrame;
 	});
 
+	afterEach(() => {
+		if (originalRequestAnimationFrame) {
+			globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+			return;
+		}
+		Reflect.deleteProperty(globalThis, "requestAnimationFrame");
+	});
+
 	it("reactivates the cached terminal stream after a successful reconnect", () => {
 		const { options } = createOptions();
 		const coldRestore = useTerminalColdRestore(options);
@@ -188,6 +197,20 @@ describe("useTerminalColdRestore", () => {
 		expect(stateSetters[0]).toHaveBeenCalledWith(true);
 	});
 
+	it("clears the clean-exit grace window when reconnect retry fails", () => {
+		const { options } = createOptions({
+			createOrAttachImpl: (_input, callbacks) => {
+				callbacks?.onError?.({ message: "reconnect failed" });
+			},
+		});
+		const coldRestore = useTerminalColdRestore(options);
+
+		coldRestore.handleRetryConnection();
+
+		expect(options.preserveCleanExitUntilRef.current).toBe(0);
+		expect(options.setConnectionError).toHaveBeenCalledWith("reconnect failed");
+	});
+
 	it("reactivates the cached terminal stream after starting a restored shell", () => {
 		stateValues[2] = "claude --resume abc123";
 		const { options } = createOptions();
@@ -206,6 +229,7 @@ describe("useTerminalColdRestore", () => {
 			command: "claude --resume abc123",
 			write: expect.any(Function),
 		});
+		expect(options.preserveCleanExitUntilRef.current).toBeGreaterThan(0);
 	});
 
 	it("clears the clean-exit grace window when starting a restored shell is canceled", () => {

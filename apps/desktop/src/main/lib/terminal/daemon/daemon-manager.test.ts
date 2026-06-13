@@ -26,6 +26,8 @@ class MockTerminalHostClient extends EventEmitter {
 		[];
 	killCalls: Array<{ sessionId: string; deleteHistory?: boolean }> = [];
 	killAllCalls = 0;
+	killError: Error | null = null;
+	killAllError: Error | null = null;
 	listSessionsIfRunningResult: { sessions: Array<unknown> } | null = {
 		sessions: [],
 	};
@@ -76,10 +78,16 @@ class MockTerminalHostClient extends EventEmitter {
 
 	async kill(params: { sessionId: string; deleteHistory?: boolean }) {
 		this.killCalls.push(params);
+		if (this.killError) {
+			throw this.killError;
+		}
 	}
 
 	async killAll(_params?: object) {
 		this.killAllCalls++;
+		if (this.killAllError) {
+			throw this.killAllError;
+		}
 	}
 
 	async createOrAttach(
@@ -380,7 +388,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 		});
 	});
 
-	it("marks every workspace session exited before killByWorkspaceId tears them down", async () => {
+	it("marks every workspace session exited after killByWorkspaceId tears them down", async () => {
 		const manager = new DaemonTerminalManager();
 		mockClient.listSessionsIfRunningResult = {
 			sessions: [
@@ -407,7 +415,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 		]);
 	});
 
-	it("marks probed daemon sessions exited before forceKillAll clears local state", async () => {
+	it("marks probed daemon sessions exited after forceKillAll succeeds", async () => {
 		const manager = new DaemonTerminalManager();
 		mockClient.listSessionsIfRunningResult = {
 			sessions: [
@@ -427,6 +435,45 @@ describe("DaemonTerminalManager kill tracking", () => {
 		]);
 	});
 
+	it("does not mark sessions exited when killByWorkspaceId fails", async () => {
+		const manager = new DaemonTerminalManager();
+		mockClient.listSessionsIfRunningResult = {
+			sessions: [
+				{
+					sessionId: "pane-1",
+					paneId: "pane-1",
+					workspaceId: "ws-1",
+					isAlive: true,
+				},
+			],
+		};
+		mockClient.killError = new Error("daemon unavailable");
+
+		await expect(manager.killByWorkspaceId("ws-1")).resolves.toEqual({
+			killed: 0,
+			failed: 1,
+		});
+		expect(mockMarkSessionLocationExitedCalls).toEqual([]);
+	});
+
+	it("does not mark sessions exited when forceKillAll fails", async () => {
+		const manager = new DaemonTerminalManager();
+		mockClient.listSessionsIfRunningResult = {
+			sessions: [
+				{
+					sessionId: "pane-1",
+					paneId: "pane-1",
+					workspaceId: "ws-1",
+					isAlive: true,
+				},
+			],
+		};
+		mockClient.killAllError = new Error("killAll failed");
+
+		await expect(manager.forceKillAll()).rejects.toThrow("killAll failed");
+		expect(mockMarkSessionLocationExitedCalls).toEqual([]);
+	});
+
 	it("defaults exit reason to exited when no kill tombstone exists", () => {
 		const manager = new DaemonTerminalManager();
 		const paneId = "pane-exit-1";
@@ -440,29 +487,13 @@ describe("DaemonTerminalManager kill tracking", () => {
 		expect(exitReason).toBe("exited");
 	});
 
-	it("infers codex from the tab userTitle during cold restore when session identity is missing", async () => {
+	it("infers codex from the persisted command during cold restore when session identity is missing", async () => {
 		mockHistoryMetadata = {
 			cwd: "/repo",
 			cols: 120,
 			rows: 32,
 		};
 		mockHistoryScrollback = "restored scrollback";
-		mockAppStateData = {
-			tabsState: {
-				tabs: [
-					{
-						id: "tab-codex",
-						userTitle: "codex",
-					},
-				],
-				panes: {
-					"pane-codex": {
-						id: "pane-codex",
-						tabId: "tab-codex",
-					},
-				},
-			},
-		};
 		mockGetSessionLocation = async () => ({
 			paneId: "pane-codex",
 			tabId: "tab-codex",
@@ -475,6 +506,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 			locationKey: "ws-1:tab-codex:pane-codex",
 			workspacePath: "/repo",
 			rootPath: "/root",
+			command: "/usr/local/bin/codex --model gpt-5.4",
 		});
 
 		const resolveCalls: Array<Record<string, unknown>> = [];
