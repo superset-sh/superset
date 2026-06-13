@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
-- **Last Active**: 2026-06-13
+- **Total Sessions**: 22
+- **Last Active**: 2026-06-14
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~727 | Active |
+| `journal-1.md` | ~761 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-06-14 | Automation model selection injection | `19ae59446` | `codex/model-provider-configuration-center` |
 | 21 | 2026-06-13 | Fix Automation Previous Runs cross-device refresh | `0e2028575` | `codex/model-provider-configuration-center` |
 | 20 | 2026-06-13 | Automation orphan run reconciliation | `6ba4d6b30` | `codex/model-provider-configuration-center` |
 | 19 | 2026-06-12 | Automation run result workflow | `5a6102e46` | `codex/model-provider-configuration-center` |

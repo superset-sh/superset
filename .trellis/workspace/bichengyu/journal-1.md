@@ -725,3 +725,37 @@ Fixed Automation detail Previous Runs by merging Electric cached rows with fresh
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: Automation model selection injection
+
+**Date**: 2026-06-14
+**Task**: Automation model selection injection
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Added Automation provider/model selection, run-local model injection through host-service gateway, desktop E2E validation, and model row UI polish.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `19ae59446` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
