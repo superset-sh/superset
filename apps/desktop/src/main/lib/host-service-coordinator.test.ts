@@ -73,6 +73,9 @@ mock.module("electron", () => ({
 		isPackaged: false,
 		getAppPath: () => "/tmp/app",
 	},
+	dialog: {
+		showMessageBox: mock(() => Promise.resolve({ response: 0 })),
+	},
 }));
 
 mock.module("electron-log/main", () => ({

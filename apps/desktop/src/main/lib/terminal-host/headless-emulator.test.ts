@@ -12,14 +12,50 @@
  * terminal sessions across app restarts.
  */
 
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "bun:test";
 import { DEFAULT_MODES } from "./types";
 
+const testGlobal = globalThis as unknown as Record<string, unknown>;
+const previousWindow = testGlobal.window;
+const previousAddEventListener = testGlobal.addEventListener;
+const previousRemoveEventListener = testGlobal.removeEventListener;
+
 if (typeof window === "undefined") {
-	(globalThis as Record<string, unknown>).window = globalThis;
+	testGlobal.window = globalThis;
+}
+if (typeof testGlobal.addEventListener !== "function") {
+	testGlobal.addEventListener = () => {};
+}
+if (typeof testGlobal.removeEventListener !== "function") {
+	testGlobal.removeEventListener = () => {};
 }
 
 const { HeadlessEmulator, modesEqual } = await import("./headless-emulator");
+
+afterAll(() => {
+	if (previousWindow === undefined) {
+		delete testGlobal.window;
+	} else {
+		testGlobal.window = previousWindow;
+	}
+	if (previousAddEventListener === undefined) {
+		delete testGlobal.addEventListener;
+	} else {
+		testGlobal.addEventListener = previousAddEventListener;
+	}
+	if (previousRemoveEventListener === undefined) {
+		delete testGlobal.removeEventListener;
+	} else {
+		testGlobal.removeEventListener = previousRemoveEventListener;
+	}
+});
 
 // Escape sequences for testing
 const ESC = "\x1b";

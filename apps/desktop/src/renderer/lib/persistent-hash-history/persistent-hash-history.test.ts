@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+} from "bun:test";
 
 // Mock localStorage
 const storage = new Map<string, string>();
@@ -18,6 +26,10 @@ const mockReplaceState = mock(
 	(_state: unknown, _unused: string, _url?: string | URL | null) => {},
 );
 
+const testGlobal = globalThis as unknown as Record<string, unknown>;
+const previousLocalStorage = testGlobal.localStorage;
+const previousWindow = testGlobal.window;
+
 // Set up globals BEFORE importing the module (the singleton runs at import time)
 Object.defineProperty(globalThis, "localStorage", {
 	value: mockLocalStorage,
@@ -35,6 +47,8 @@ Object.defineProperty(globalThis, "window", {
 			pathname: "/",
 			search: "",
 		},
+		addEventListener: mock(() => {}),
+		removeEventListener: mock(() => {}),
 	},
 	writable: true,
 	configurable: true,
@@ -52,6 +66,19 @@ beforeEach(() => {
 
 afterEach(() => {
 	storage.clear();
+});
+
+afterAll(() => {
+	if (previousLocalStorage === undefined) {
+		delete testGlobal.localStorage;
+	} else {
+		testGlobal.localStorage = previousLocalStorage;
+	}
+	if (previousWindow === undefined) {
+		delete testGlobal.window;
+	} else {
+		testGlobal.window = previousWindow;
+	}
 });
 
 describe("createPersistentHashHistory", () => {

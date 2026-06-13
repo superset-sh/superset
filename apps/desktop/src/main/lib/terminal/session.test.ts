@@ -1,14 +1,43 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
 import type { TerminalSession } from "./types";
 
+const testGlobal = globalThis as unknown as Record<string, unknown>;
+const previousWindow = testGlobal.window;
+const previousAddEventListener = testGlobal.addEventListener;
+const previousRemoveEventListener = testGlobal.removeEventListener;
+
 if (typeof window === "undefined") {
-	(globalThis as Record<string, unknown>).window = globalThis;
+	testGlobal.window = globalThis;
+}
+if (typeof testGlobal.addEventListener !== "function") {
+	testGlobal.addEventListener = () => {};
+}
+if (typeof testGlobal.removeEventListener !== "function") {
+	testGlobal.removeEventListener = () => {};
 }
 
 const { SerializeAddon } = await import("@xterm/addon-serialize");
 const { Terminal: HeadlessTerminal } = await import("@xterm/headless");
 const { flushSession, getSerializedScrollback, recoverScrollback } =
 	await import("./session");
+
+afterAll(() => {
+	if (previousWindow === undefined) {
+		delete testGlobal.window;
+	} else {
+		testGlobal.window = previousWindow;
+	}
+	if (previousAddEventListener === undefined) {
+		delete testGlobal.addEventListener;
+	} else {
+		testGlobal.addEventListener = previousAddEventListener;
+	}
+	if (previousRemoveEventListener === undefined) {
+		delete testGlobal.removeEventListener;
+	} else {
+		testGlobal.removeEventListener = previousRemoveEventListener;
+	}
+});
 
 function createTestHeadless() {
 	const headless = new HeadlessTerminal({
