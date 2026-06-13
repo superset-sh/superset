@@ -657,3 +657,37 @@ Added result-aware Automation runs with lifecycle statuses, run-scoped writeback
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: Automation orphan run reconciliation
+
+**Date**: 2026-06-13
+**Task**: Automation orphan run reconciliation
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Finished Automation run reconciliation: run now no longer creates Code worktrees, host-service owns lightweight automation run directories, stale/orphan runs are reconciled, legacy Automation worktrees are hidden from the sidebar, and Runner/status UI plus desktop resource validation were completed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6ba4d6b30` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
