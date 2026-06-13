@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/guides/frontend-conventions.md", "reason": "TanStack DB / Electric cache-first rendering guidance for desktop renderer data flows."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer cloud data flow and live sync readiness rules."}
+{"file": ".trellis/spec/trpc/backend/automation-run-workflow.md", "reason": "Automation run lifecycle and detail UI fresh-query merge contract."}

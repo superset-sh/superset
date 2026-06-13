@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/desktop/frontend/quality-guidelines.md", "reason": "Desktop renderer quality gates and cache-first regression checks."}
+{"file": ".trellis/spec/trpc/backend/automation-run-workflow.md", "reason": "Required tests and acceptance matrix for Automation run history/result rendering."}

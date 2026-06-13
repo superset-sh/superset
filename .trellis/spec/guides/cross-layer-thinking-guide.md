@@ -35,6 +35,8 @@ Distinguish task `statusId` from task status `type`. UI filters and icons use th
 
 Electric live queries can return persisted rows before a collection is ready. Render rows first. Use readiness only when there are no rows and the UI must choose loading versus empty. Delay non-idempotent writes until strict readiness.
 
+When a user action is confirmed by a cloud API write, do not rely on Electric repaint timing for the next visible UI state. Merge cached live rows with a fresh tRPC query for the affected resource list or detail row, then de-dupe by stable id and choose the freshest row by timestamps. Cross-device flows make this mandatory because the acting device and observing device may see live sync at different times.
+
 ## Events And Subscriptions
 
 Host-service event bus, terminal websockets, and Electron tRPC subscriptions have transport-specific constraints. Electron IPC subscriptions must use `observable(...)`; terminal bytes should remain binary tails through `packages/pty-daemon` framing; relay websocket query tokens must be redacted from logs.
@@ -44,6 +46,7 @@ Host-service event bus, terminal websockets, and Electron tRPC subscriptions hav
 - Schema exports, zod schemas, and Drizzle migrations are consistent.
 - API router input/output types match CLI, MCP, SDK, and renderer callers.
 - Electric `where.ts` includes new organization-scoped tables.
+- Renderer views that follow a successful cloud write include a fresh-query backfill path instead of waiting only for Electric live sync.
 - Renderer collections include new rows and preserve cache-first rendering.
 - Host-service changes keep `no-electron-coupling.test.ts` passing.
 - Tests cover the layer where the behavior is easiest to isolate.

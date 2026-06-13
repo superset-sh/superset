@@ -45,6 +45,7 @@
 - New default Automation runs must not need workspace cleanup because no workspace/worktree was created.
 - Desktop detail UI must treat Terminal as debug/source transcript. The normal run view should show lifecycle status and rendered Markdown result.
 - Desktop selected-run UI must merge Electric/TanStack cached rows with a fresh `automation.getRun` query for the selected run. Pick the freshest row by timestamps so result panels converge after agent writeback even if live sync lags.
+- Desktop Previous Runs UI must merge Electric/TanStack cached rows with a fresh `automation.listRuns` query for the Automation. This is required after cross-device `Run now`: the API-created run must be visible when the user returns to the detail page even if Electric has not repainted locally.
 - Desktop list UI must merge Electric/TanStack cached Automation rows with a fresh `automation.list` query. Render cached rows first and de-dupe by id so create/update lag in Electric does not hide rows.
 
 ### 4. Validation & Error Matrix
@@ -77,6 +78,7 @@
 - Base: an old `dispatched` row remains readable in history while new rows use `running`.
 - Bad: `Run now` throws because the host is offline and no history row is created.
 - Bad: UI only reads Electric live rows and stays on stale `running` after the database row already has `completed` and `resultMarkdown`.
+- Bad: Previous Runs only reads `collections.automationRuns`; a newly-created run disappears after navigating away and back before Electric sync catches up.
 - Bad: the visible debug terminal command includes raw `SUPERSET_API_KEY=...` as a shell env prefix.
 - Bad: every scheduled run creates a worktree plus Postgres/Electric/Neon Docker containers.
 
@@ -95,6 +97,7 @@
 - Host-service tests proving `workspaceCleanup.destroy({ skipDirtyCheck: true, force: false })` bypasses dirty preflight while still preserving teardown semantics.
 - Automation cleanup tests proving isolated run workspaces are cleaned, runs without host/workspace are skipped, and explicit reusable workspaces are not destroyed.
 - Renderer unit tests for status labels, Markdown result rendering, and selected-run freshness merging.
+- Renderer unit tests for Previous Runs merge behavior: fresh `automation.listRuns` rows appear before Electric repaint, duplicate rows are de-duped by id, fresher rows win, and newest-created ordering is preserved.
 - Renderer unit tests for Automation list merge behavior: cloud rows appear before Electric repaint, fresher rows win, and live-only fields are preserved.
 - Real desktop acceptance: create or select an automation, click `Run now`, observe a running row, wait for completion, verify rendered Markdown result panel, then open debug terminal only as a secondary action.
 
@@ -115,6 +118,22 @@ const liveRun = runs.find((run) => run.id === selectedRunId) ?? null;
 const freshRun = await trpc.automation.getRun.query({ runId: selectedRunId });
 const selectedRun = pickFreshestAutomationRun(liveRun, freshRun);
 return <AutomationRunResultPanel run={selectedRun} />;
+```
+
+#### Wrong
+
+```ts
+const previousRuns = await automationRunsCollection.where({ automationId });
+return <PreviousRunsList runs={previousRuns} />;
+```
+
+#### Correct
+
+```ts
+const liveRuns = await automationRunsCollection.where({ automationId });
+const freshRuns = await trpc.automation.listRuns.query({ automationId, limit: 10 });
+const previousRuns = mergeAutomationRuns(liveRuns, freshRuns);
+return <PreviousRunsList runs={previousRuns} />;
 ```
 
 #### Wrong

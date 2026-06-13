@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { SelectAutomationRun } from "@superset/db/schema";
 import {
+	mergeAutomationRuns,
 	mergeSelectedAutomationRun,
 	pickFreshestAutomationRun,
 } from "./automationRunSelection";
@@ -74,5 +75,42 @@ describe("automationRunSelection", () => {
 			selectedRun,
 			existingRun,
 		]);
+	});
+
+	test("merges freshly fetched run history with cached Electric rows", () => {
+		const cachedOnlyRun = run({
+			id: "cached-run",
+			createdAt: new Date("2026-06-12T09:00:00.000Z"),
+		});
+		const staleLiveRun = run({
+			id: "shared-run",
+			status: "running",
+			createdAt: new Date("2026-06-12T09:01:00.000Z"),
+			updatedAt: new Date("2026-06-12T09:01:01.000Z"),
+		});
+		const freshFetchedRun = run({
+			id: "shared-run",
+			status: "completed",
+			resultMarkdown: "# Done",
+			createdAt: new Date("2026-06-12T09:01:00.000Z"),
+			completedAt: new Date("2026-06-12T09:01:30.000Z"),
+			updatedAt: new Date("2026-06-12T09:01:30.000Z"),
+		});
+		const fetchedOnlyRun = run({
+			id: "fetched-run",
+			createdAt: new Date("2026-06-12T09:02:00.000Z"),
+		});
+
+		const merged = mergeAutomationRuns(
+			[cachedOnlyRun, staleLiveRun],
+			[freshFetchedRun, fetchedOnlyRun],
+		);
+
+		expect(merged.map((item) => item.id)).toEqual([
+			"fetched-run",
+			"shared-run",
+			"cached-run",
+		]);
+		expect(merged[1]).toBe(freshFetchedRun);
 	});
 });

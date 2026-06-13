@@ -42,3 +42,24 @@ export function mergeSelectedAutomationRun(
 			: run,
 	);
 }
+
+export function mergeAutomationRuns(
+	liveRuns: SelectAutomationRun[],
+	fetchedRuns: SelectAutomationRun[],
+): SelectAutomationRun[] {
+	const byId = new Map<string, SelectAutomationRun>();
+
+	for (const run of liveRuns) {
+		byId.set(run.id, run);
+	}
+	for (const run of fetchedRuns) {
+		byId.set(
+			run.id,
+			pickFreshestAutomationRun(byId.get(run.id) ?? null, run) ?? run,
+		);
+	}
+
+	return Array.from(byId.values()).sort(
+		(a, b) => timestamp(b.createdAt) - timestamp(a.createdAt),
+	);
+}

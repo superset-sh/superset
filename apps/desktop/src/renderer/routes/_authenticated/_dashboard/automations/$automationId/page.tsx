@@ -18,6 +18,7 @@ import { AutomationRunResultPanel } from "./components/AutomationRunResultPanel"
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
 import { isAutomationRunTerminal } from "./utils/automationRunDisplay";
 import {
+	mergeAutomationRuns,
 	mergeSelectedAutomationRun,
 	pickFreshestAutomationRun,
 } from "./utils/automationRunSelection";
@@ -81,7 +82,24 @@ function AutomationDetailPage() {
 				.select(({ r }) => ({ ...r })),
 		[collections.automationRuns, automationId],
 	);
-	const recentRuns = runRows as SelectAutomationRun[];
+	const liveRecentRuns = runRows as SelectAutomationRun[];
+	const recentRunsQuery = useQuery({
+		queryKey: ["automation-runs", automationId, RECENT_RUNS_LIMIT],
+		queryFn: () =>
+			apiTrpcClient.automation.listRuns.query({
+				automationId,
+				limit: RECENT_RUNS_LIMIT,
+			}),
+		refetchInterval: (query) => {
+			const fetchedRuns = (query.state.data ?? []) as SelectAutomationRun[];
+			return fetchedRuns.some((run) => !isAutomationRunTerminal(run))
+				? 3000
+				: false;
+		},
+	});
+	const fetchedRecentRuns = (recentRunsQuery.data ??
+		[]) as SelectAutomationRun[];
+	const recentRuns = mergeAutomationRuns(liveRecentRuns, fetchedRecentRuns);
 	const liveSelectedRun =
 		recentRuns.find((run) => run.id === selectedRunId) ?? null;
 
@@ -170,6 +188,9 @@ function AutomationDetailPage() {
 					search: { runId: result.runId },
 				});
 				if (isRunNowAccepted(result.status)) {
+					void queryClient.invalidateQueries({
+						queryKey: ["automation-runs", automationId],
+					});
 					toast.success(
 						result.status === "dispatching"
 							? "Automation run created"
