@@ -1,8 +1,9 @@
 name: Deploy Production
 
 on:
-  push:
-    branches: [main]
+  # Superset's production backend runs on our Mac mini/OrbStack host for now.
+  # Keep this workflow manual-only so pushes do not try to deploy the upstream
+  # Vercel/Cloudflare/Neon production stack.
   workflow_dispatch:
 
 env:
