@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, renameSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import { terminalSessionLocations } from "@superset/host-service/db";
+import { terminalSessions } from "@superset/host-service/db";
 import { eq } from "drizzle-orm";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 
@@ -50,7 +50,7 @@ export interface SessionLocationStoreAdapter {
 	update(paneId: string, patch: SessionLocationPatch): void;
 }
 
-type TerminalSessionLocationRow = typeof terminalSessionLocations.$inferSelect;
+type TerminalSessionRow = typeof terminalSessions.$inferSelect;
 type HostDbAccess = {
 	getActiveHostDb: () => ReturnType<
 		typeof import("main/lib/host-db").getActiveHostDb
@@ -105,11 +105,20 @@ function readOptionalStringFromRecord(
 	);
 }
 
-function toEntry(record: TerminalSessionLocationRow): SessionLocationEntry {
+function toEntry(record: TerminalSessionRow): SessionLocationEntry | null {
+	if (
+		!record.originWorkspaceId ||
+		!record.tabId ||
+		!record.cwd ||
+		!record.locationKey
+	) {
+		return null;
+	}
+
 	return {
-		paneId: record.paneId,
+		paneId: record.id,
 		tabId: record.tabId,
-		workspaceId: record.workspaceId,
+		workspaceId: record.originWorkspaceId,
 		workspaceName: toOptionalString(record.workspaceName),
 		workspacePath: toOptionalString(record.workspacePath),
 		rootPath: toOptionalString(record.rootPath),
@@ -118,10 +127,10 @@ function toEntry(record: TerminalSessionLocationRow): SessionLocationEntry {
 		pid: record.pid,
 		agentId: toOptionalString(record.agentId),
 		agentSessionId: toOptionalString(record.agentSessionId),
-		status: record.status as SessionLocationEntry["status"],
+		status: record.status === "active" ? "available" : "exited",
 		createdAt: record.createdAt,
-		updatedAt: record.updatedAt,
-		exitedAt: record.exitedAt ?? undefined,
+		updatedAt: record.updatedAt ?? record.lastAttachedAt ?? record.createdAt,
+		exitedAt: record.endedAt ?? undefined,
 		exitReason: toOptionalString(record.exitReason),
 		locationKey: record.locationKey,
 	};
@@ -137,19 +146,24 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 			if (!db) return undefined;
 			const record = db
 				.select()
-				.from(terminalSessionLocations)
-				.where(eq(terminalSessionLocations.paneId, paneId))
+				.from(terminalSessions)
+				.where(eq(terminalSessions.id, paneId))
 				.get();
-			return record ? toEntry(record) : undefined;
+			if (!record) return undefined;
+			return toEntry(record) ?? undefined;
 		},
 		upsert(entry) {
 			const db = getHostDbAccess().getActiveHostDb();
 			if (!db) return;
-			db.insert(terminalSessionLocations)
+			db.insert(terminalSessions)
 				.values({
-					paneId: entry.paneId,
+					id: entry.paneId,
+					originWorkspaceId: entry.workspaceId,
+					status: entry.status === "available" ? "active" : "exited",
+					createdAt: entry.createdAt,
+					lastAttachedAt: null,
+					endedAt: entry.exitedAt ?? null,
 					tabId: entry.tabId,
-					workspaceId: entry.workspaceId,
 					workspaceName: toNullableString(entry.workspaceName),
 					workspacePath: toNullableString(entry.workspacePath),
 					rootPath: toNullableString(entry.rootPath),
@@ -158,18 +172,17 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 					pid: entry.pid,
 					agentId: toNullableString(entry.agentId),
 					agentSessionId: toNullableString(entry.agentSessionId),
-					status: entry.status,
-					createdAt: entry.createdAt,
 					updatedAt: entry.updatedAt,
-					exitedAt: entry.exitedAt ?? null,
 					exitReason: toNullableString(entry.exitReason),
 					locationKey: entry.locationKey,
 				})
 				.onConflictDoUpdate({
-					target: terminalSessionLocations.paneId,
+					target: terminalSessions.id,
 					set: {
+						originWorkspaceId: entry.workspaceId,
+						status: entry.status === "available" ? "active" : "exited",
+						endedAt: entry.exitedAt ?? null,
 						tabId: entry.tabId,
-						workspaceId: entry.workspaceId,
 						workspaceName: toNullableString(entry.workspaceName),
 						workspacePath: toNullableString(entry.workspacePath),
 						rootPath: toNullableString(entry.rootPath),
@@ -178,9 +191,7 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 						pid: entry.pid,
 						agentId: toNullableString(entry.agentId),
 						agentSessionId: toNullableString(entry.agentSessionId),
-						status: entry.status,
 						updatedAt: entry.updatedAt,
-						exitedAt: entry.exitedAt ?? null,
 						exitReason: toNullableString(entry.exitReason),
 						locationKey: entry.locationKey,
 					},
@@ -190,7 +201,7 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 		update(paneId, patch) {
 			const db = getHostDbAccess().getActiveHostDb();
 			if (!db) return;
-			const setValues: Partial<TerminalSessionLocationRow> = {};
+			const setValues: Partial<TerminalSessionRow> = {};
 			if ("agentId" in patch) {
 				setValues.agentId = patch.agentId ?? null;
 			}
@@ -198,7 +209,7 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 				setValues.agentSessionId = patch.agentSessionId ?? null;
 			}
 			if ("status" in patch && patch.status !== undefined) {
-				setValues.status = patch.status;
+				setValues.status = patch.status === "available" ? "active" : "exited";
 			}
 			if ("pid" in patch) {
 				setValues.pid = patch.pid ?? null;
@@ -207,7 +218,7 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 				setValues.updatedAt = patch.updatedAt;
 			}
 			if ("exitedAt" in patch) {
-				setValues.exitedAt = patch.exitedAt ?? null;
+				setValues.endedAt = patch.exitedAt ?? null;
 			}
 			if ("exitReason" in patch) {
 				setValues.exitReason = patch.exitReason ?? null;
@@ -215,9 +226,9 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 			if (Object.keys(setValues).length === 0) {
 				return;
 			}
-			db.update(terminalSessionLocations)
+			db.update(terminalSessions)
 				.set(setValues)
-				.where(eq(terminalSessionLocations.paneId, paneId))
+				.where(eq(terminalSessions.id, paneId))
 				.run();
 		},
 	};

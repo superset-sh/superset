@@ -209,7 +209,6 @@ const localDbMock = () => ({
 	workspaces: mockTable("workspaces"),
 	worktrees: mockTable("worktrees"),
 	settings: mockTable("settings"),
-	terminalSessionLocations: mockTable("terminal_session_locations"),
 	users: mockTable("users"),
 	organizations: mockTable("organizations"),
 	organizationMembers: mockTable("organization_members"),

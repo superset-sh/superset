@@ -50,6 +50,13 @@
       "when": 1781325904827,
       "tag": "0006_add_terminal_session_locations",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781358684730,
+      "tag": "0007_merge_terminal_session_locations_into_terminal_sessions",
+      "breakpoints": true
     }
   ]
 }
