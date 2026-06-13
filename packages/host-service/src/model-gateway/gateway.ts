@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import {
+	automationAgentModelConfigs,
 	type ModelProviderProtocol,
 	modelProviders,
 	workspaceAgentModelConfigs,
@@ -58,23 +59,40 @@ function selectConfigByToken(
 	internalToken?: string,
 ):
 	| {
-			kind: "workspace";
+			kind: "scoped";
 			providerId: string;
 			modelIds: string[];
 	  }
 	| { kind: "internal" }
 	| null {
 	if (internalToken && token === internalToken) return { kind: "internal" };
-	const row = db
+	const workspaceRow = db
 		.select()
 		.from(workspaceAgentModelConfigs)
 		.where(eq(workspaceAgentModelConfigs.gatewayToken, token))
 		.get();
-	if (!row) return null;
+	if (workspaceRow) {
+		return {
+			kind: "scoped",
+			providerId: workspaceRow.providerId,
+			modelIds: [
+				workspaceRow.haikuModelId,
+				workspaceRow.sonnetModelId,
+				workspaceRow.opusModelId,
+			],
+		};
+	}
+
+	const automationRow = db
+		.select()
+		.from(automationAgentModelConfigs)
+		.where(eq(automationAgentModelConfigs.gatewayToken, token))
+		.get();
+	if (!automationRow) return null;
 	return {
-		kind: "workspace",
-		providerId: row.providerId,
-		modelIds: [row.haikuModelId, row.sonnetModelId, row.opusModelId],
+		kind: "scoped",
+		providerId: automationRow.providerId,
+		modelIds: [automationRow.modelId],
 	};
 }
 
@@ -82,7 +100,7 @@ function resolveProviderForRequest(args: {
 	db: HostDb;
 	auth:
 		| {
-				kind: "workspace";
+				kind: "scoped";
 				providerId: string;
 				modelIds: string[];
 		  }
@@ -92,7 +110,7 @@ function resolveProviderForRequest(args: {
 	const decoded = decodeProviderModelRef(args.requestModel);
 	if (decoded) {
 		if (
-			args.auth.kind === "workspace" &&
+			args.auth.kind === "scoped" &&
 			(decoded.providerId !== args.auth.providerId ||
 				!args.auth.modelIds.includes(decoded.modelId))
 		) {
@@ -103,7 +121,7 @@ function resolveProviderForRequest(args: {
 		return { provider, upstreamModelId: decoded.modelId };
 	}
 
-	if (args.auth.kind === "workspace") {
+	if (args.auth.kind === "scoped") {
 		if (!args.auth.modelIds.includes(args.requestModel)) return null;
 		const provider = getModelProvider(args.db, args.auth.providerId);
 		if (!provider?.enabled) return null;
@@ -278,7 +296,7 @@ export async function handleModelGatewayRequest({
 		matchesGatewayEndpoint(url.pathname, "models")
 	) {
 		const modelIds =
-			auth.kind === "workspace"
+			auth.kind === "scoped"
 				? auth.modelIds
 				: db
 						.select()

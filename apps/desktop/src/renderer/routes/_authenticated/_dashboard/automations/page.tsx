@@ -579,9 +579,13 @@ function AutomationsPage() {
 				open={createOpen}
 				onOpenChange={handleDialogOpenChange}
 				initialTemplate={initialTemplate}
-				onCreated={() => {
+				onCreated={(automation) => {
 					void freshAutomationsQuery.refetch();
 					handleDialogOpenChange(false);
+					navigate({
+						to: "/automations/$automationId",
+						params: { automationId: automation.id },
+					});
 				}}
 			/>
 

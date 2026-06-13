@@ -11,12 +11,16 @@ type PickerTriggerProps = Omit<
 	label: React.ReactNode;
 	/** Rendered after the label and before the chevron (e.g. status dot). */
 	endAdornment?: React.ReactNode;
+	contentClassName?: string;
+	labelClassName?: string;
 };
 
 export function PickerTrigger({
 	icon,
 	label,
 	endAdornment,
+	contentClassName,
+	labelClassName,
 	className,
 	variant = "ghost",
 	...props
@@ -27,9 +31,16 @@ export function PickerTrigger({
 			{...props}
 			className={cn("justify-between gap-1 px-2 text-xs", className)}
 		>
-			<span className="flex min-w-0 flex-1 items-center gap-1.5">
+			<span
+				className={cn(
+					"flex min-w-0 flex-1 items-center gap-1.5",
+					contentClassName,
+				)}
+			>
 				{icon}
-				<span className="truncate text-left">{label}</span>
+				<span className={cn("truncate text-left", labelClassName)}>
+					{label}
+				</span>
 				{endAdornment}
 			</span>
 			<HiChevronUpDown className="size-3 shrink-0" />

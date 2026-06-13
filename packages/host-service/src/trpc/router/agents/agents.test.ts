@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ResolvedHostAgentConfig } from "./agents";
 import {
+	automationAgentRunInputSchema,
 	buildAgentLaunchCommand,
 	buildAgentLaunchEnv,
 	runAutomationAgent,
@@ -52,6 +53,28 @@ describe("buildAgentLaunchEnv", () => {
 		});
 
 		expect(env.SUPERSET_AUTOMATION_RUN_TOKEN).toBe("tok'en with spaces");
+	});
+});
+
+describe("automationAgentRunInputSchema", () => {
+	test("preserves model selection for run-local model injection", () => {
+		const parsed = automationAgentRunInputSchema.parse({
+			runId: "11111111-1111-4111-8111-111111111111",
+			automationId: "22222222-2222-4222-8222-222222222222",
+			agent: "claude",
+			prompt: "write a report",
+			modelSelection: {
+				providerId: "provider-1",
+				modelId: "gpt-5.5",
+				config: { reasoning: "high" },
+			},
+		});
+
+		expect(parsed.modelSelection).toEqual({
+			providerId: "provider-1",
+			modelId: "gpt-5.5",
+			config: { reasoning: "high" },
+		});
 	});
 });
 
@@ -124,16 +147,19 @@ describe("runAutomationAgent", () => {
 			} as never;
 
 			const runId = "11111111-1111-4111-8111-111111111111";
+			const automationId = "22222222-2222-4222-8222-222222222222";
 			const result = await runAutomationAgent(ctx, {
 				runId,
-				automationId: "22222222-2222-4222-8222-222222222222",
+				automationId,
 				agent: "agent-1",
 				prompt: "write a tiny report",
 			});
 
 			expect(result.kind).toBe("automation");
-			expect(result.runDirectory).toBe(join(root, runId));
-			expect(existsSync(join(root, runId, "prompt.md"))).toBe(true);
+			expect(result.runDirectory).toBe(join(root, automationId));
+			expect(
+				existsSync(join(root, automationId, "runs", `${runId}.prompt.md`)),
+			).toBe(true);
 
 			await waitFor(() => completed.length === 1);
 			expect(completed[0]?.runId).toBe(runId);

@@ -111,6 +111,7 @@ function claudeEnv(args: {
 		ANTHROPIC_BASE_URL: args.gatewayBaseUrl,
 		API_TIMEOUT_MS: "3000000",
 		CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+		ANTHROPIC_MODEL: args.sonnetModelId,
 		ANTHROPIC_DEFAULT_HAIKU_MODEL: args.haikuModelId,
 		ANTHROPIC_DEFAULT_SONNET_MODEL: args.sonnetModelId,
 		ANTHROPIC_DEFAULT_OPUS_MODEL: args.opusModelId,

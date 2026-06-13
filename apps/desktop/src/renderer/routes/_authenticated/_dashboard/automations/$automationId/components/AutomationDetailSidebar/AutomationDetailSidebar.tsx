@@ -4,15 +4,19 @@ import type {
 } from "@superset/db/schema";
 import { formatDateTimeInTimezone } from "@superset/shared/rrule";
 import { cn } from "@superset/ui/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
 import { AgentPicker } from "../../../components/AgentPicker";
+import { AutomationModelPicker } from "../../../components/AutomationModelPicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
 import { SchedulePicker } from "../../../components/SchedulePicker";
 import { TimezonePicker } from "../../../components/TimezonePicker";
 import { useRecentProjects } from "../../../hooks/useRecentProjects";
+import { supportsAutomationModelSelection } from "../../../utils/agentDisplay";
 import { PreviousRunsList } from "../PreviousRunsList";
 import { Row } from "./components/Row";
 import { Section } from "./components/Section";
@@ -31,6 +35,7 @@ export function AutomationDetailSidebar({
 	selectedRunId,
 	onSelectRun,
 }: AutomationDetailSidebarProps) {
+	const queryClient = useQueryClient();
 	const recentProjects = useRecentProjects();
 	const { localHostId } = useWorkspaceHostOptions();
 	const selectedProject = recentProjects.find(
@@ -38,6 +43,15 @@ export function AutomationDetailSidebar({
 	);
 
 	const hostId = automation.targetHostId ?? localHostId ?? null;
+	const hostUrl = useHostUrl(hostId);
+	const { agents: hostAgents } = useV2AgentChoices(hostUrl);
+	const modelSelection =
+		automation.modelProviderId && automation.modelId
+			? {
+					providerId: automation.modelProviderId,
+					modelId: automation.modelId,
+				}
+			: null;
 
 	const updateMutation = useMutation({
 		mutationFn: (
@@ -46,6 +60,12 @@ export function AutomationDetailSidebar({
 			>,
 		) =>
 			apiTrpcClient.automation.update.mutate({ id: automation.id, ...patch }),
+		onSuccess: (updated) => {
+			queryClient.setQueryData(["automation", automation.id], updated);
+			void queryClient.invalidateQueries({
+				queryKey: ["automations", "list"],
+			});
+		},
 	});
 
 	const lastRunAt = recentRuns
@@ -142,11 +162,40 @@ export function AutomationDetailSidebar({
 								hostId={hostId}
 								value={automation.agent}
 								onChange={(id) => {
-									updateMutation.mutate({ agent: id });
+									updateMutation.mutate({
+										agent: id,
+										...(supportsAutomationModelSelection(hostAgents, id)
+											? {}
+											: { modelProviderId: null, modelId: null }),
+									});
 								}}
 							/>
 						}
 					/>
+					{supportsAutomationModelSelection(hostAgents, automation.agent) ? (
+						<Row
+							label="Model"
+							value={
+								<AutomationModelPicker
+									align="end"
+									className="-mr-4 w-[210px]"
+									agent={automation.agent}
+									agents={hostAgents}
+									value={modelSelection}
+									onChange={(selection) => {
+										updateMutation.mutate(
+											selection
+												? {
+														modelProviderId: selection.providerId,
+														modelId: selection.modelId,
+													}
+												: { modelProviderId: null, modelId: null },
+										);
+									}}
+								/>
+							}
+						/>
+					) : null}
 					<Row
 						label="Timezone"
 						value={

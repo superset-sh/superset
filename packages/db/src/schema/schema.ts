@@ -999,6 +999,17 @@ export const automations = pgTable(
 		prompt: text().notNull(),
 
 		agent: text("agent").notNull(),
+		modelProviderId: uuid("model_provider_id").references(
+			() => modelProviders.id,
+			{
+				onDelete: "set null",
+			},
+		),
+		modelId: text("model_id"),
+		modelConfig: jsonb("model_config")
+			.$type<Record<string, unknown>>()
+			.notNull()
+			.default({}),
 
 		targetHostId: text("target_host_id"),
 
@@ -1029,6 +1040,7 @@ export const automations = pgTable(
 		index("automations_dispatcher_idx").on(t.enabled, t.nextRunAt),
 		index("automations_owner_idx").on(t.ownerUserId),
 		index("automations_organization_idx").on(t.organizationId),
+		index("automations_model_provider_idx").on(t.modelProviderId),
 	],
 );
 

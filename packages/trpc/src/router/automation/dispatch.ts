@@ -9,6 +9,7 @@ import {
 } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { and, desc, eq } from "drizzle-orm";
+import { getModelProviderSyncPayload } from "../model-provider/model-provider";
 import { chooseAutomationAgentForHost } from "./dispatch-agent-selection";
 import { describeDispatchError } from "./dispatch-errors";
 import { relayMutation, relayQuery } from "./relay-client";
@@ -322,6 +323,14 @@ async function continueAutomationDispatch(
 		});
 		timer?.mark("agent-resolved");
 
+		await syncAutomationModelProvidersOnHost({
+			automation,
+			relayUrl,
+			hostId: routingKey,
+			jwt: relayJwt,
+		});
+		timer?.mark("model-providers-synced");
+
 		const result = await runAgentOnHost({
 			relayUrl,
 			hostId: routingKey,
@@ -342,6 +351,14 @@ async function continueAutomationDispatch(
 				SUPERSET_AUTOMATION_RUN_SOURCE: opts.source,
 				SUPERSET_AUTOMATION_RUN_TOKEN: runJwt,
 			},
+			modelSelection:
+				automation.modelProviderId && automation.modelId
+					? {
+							providerId: automation.modelProviderId,
+							modelId: automation.modelId,
+							config: automation.modelConfig ?? {},
+						}
+					: undefined,
 		});
 		timer?.mark("automation-runner-started");
 
@@ -368,6 +385,33 @@ async function continueAutomationDispatch(
 	}
 
 	return { status: "running", runId: run.id };
+}
+
+async function syncAutomationModelProvidersOnHost(args: {
+	automation: SelectAutomation;
+	relayUrl: string;
+	hostId: string;
+	jwt: string;
+}): Promise<void> {
+	if (!args.automation.modelProviderId || !args.automation.modelId) return;
+
+	const providers = await getModelProviderSyncPayload(
+		args.automation.organizationId,
+	);
+	try {
+		await relayMutation<
+			{
+				providers: Awaited<ReturnType<typeof getModelProviderSyncPayload>>;
+			},
+			unknown
+		>(
+			{ relayUrl: args.relayUrl, hostId: args.hostId, jwt: args.jwt },
+			"modelProviders.syncFromCloud",
+			{ providers },
+		);
+	} catch {
+		throw new Error("Failed to sync model providers to target host");
+	}
 }
 
 async function recordDispatchingRun(args: {
@@ -589,6 +633,11 @@ async function runAgentOnHost(args: {
 	agent: string;
 	prompt: string;
 	env?: Record<string, string>;
+	modelSelection?: {
+		providerId: string;
+		modelId: string;
+		config?: Record<string, unknown>;
+	};
 }): Promise<AgentRunResult> {
 	return relayMutation<
 		{
@@ -597,6 +646,11 @@ async function runAgentOnHost(args: {
 			agent: string;
 			prompt: string;
 			env?: Record<string, string>;
+			modelSelection?: {
+				providerId: string;
+				modelId: string;
+				config?: Record<string, unknown>;
+			};
 		},
 		AgentRunResult
 	>(
@@ -608,6 +662,7 @@ async function runAgentOnHost(args: {
 			agent: args.agent,
 			prompt: args.prompt,
 			env: args.env,
+			modelSelection: args.modelSelection,
 		},
 	);
 }

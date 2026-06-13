@@ -231,6 +231,38 @@ export const workspaceAgentModelConfigs = sqliteTable(
 	],
 );
 
+export const automationAgentModelConfigs = sqliteTable(
+	"automation_agent_model_configs",
+	{
+		id: text().primaryKey(),
+		automationId: text("automation_id").notNull(),
+		agent: text().notNull(),
+		providerId: text("provider_id")
+			.notNull()
+			.references(() => modelProviders.id, { onDelete: "cascade" }),
+		gatewayToken: text("gateway_token").notNull(),
+		modelId: text("model_id").notNull(),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("automation_agent_model_configs_automation_id_idx").on(
+			table.automationId,
+		),
+		uniqueIndex("automation_agent_model_configs_automation_agent_unique").on(
+			table.automationId,
+			table.agent,
+		),
+		uniqueIndex("automation_agent_model_configs_gateway_token_unique").on(
+			table.gatewayToken,
+		),
+	],
+);
+
 export const workspaces = sqliteTable(
 	"workspaces",
 	{

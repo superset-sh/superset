@@ -33,10 +33,26 @@
 - Relay/host precondition errors must be normalized into concise run-facing reasons. Do not surface the raw relay JSON body, SQL dumps, or host stack trace in the result panel.
 - When background agent launch succeeds, write `status = "running"`, `hostId`, `startedAt`, and `dispatchedAt`. Default background Automation runs must leave `v2WorkspaceId`, `sessionKind`, `chatSessionId`, and `terminalSessionId` null.
 - Automation project context and execution runtime are separate. A null `automations.v2ProjectId` is valid and means the run has no project context. A non-null project id may support file mentions or future context tools, but it must not imply cloning, git worktree creation, `.superset/setup.sh`, or v2 workspace rows.
-- Default Automation execution must call a host-service Automation runner, not `workspaces.create` or `agents.run` with a workspace id. The runner owns a host-local run directory such as `~/.superset/automation-runs/<runId>` and process lifecycle.
+- Default Automation execution must call a host-service Automation runner, not `workspaces.create` or `agents.run` with a workspace id. The runner owns a host-local Automation task directory such as `~/.superset/automations/<automationId>` and process lifecycle. Individual runs should write lightweight artifacts under that directory, for example `runs/<runId>.stdout.log`, instead of creating a full working directory for every run.
+- The Automation task directory is also the stable materialization boundary for
+  Automation context. Future Skill, CLI, MCP, model, attachment, and project
+  context integrations should write automation-owned config/cache files under
+  `~/.superset[/dev]/automations/<automationId>` or an explicit
+  `SUPERSET_AUTOMATION_RUNS_DIR/<automationId>` override, never under user-global
+  tool config directories.
+- Individual runs may keep lightweight per-run artifacts, including the prompt,
+  stdout/stderr logs, metadata, and a context snapshot manifest under
+  `runs/<runId>.*`. A run snapshot should reference the Automation context
+  versions used for reproducibility; it must not copy full Skill/CLI/MCP
+  installations or raw provider/tool secrets into every run.
 - Project context is metadata only for default Automation execution. It must not influence host selection through clone URL, local setup state, workspace rows, or worktree availability. Choose the requested host when available, otherwise choose the first online accessible host.
 - Host-agent config ids are machine-local. If dispatch reroutes to a different host, resolve the selected host's agent configs, map the source instance id to its portable `presetId` when needed, and launch with the target host's matching preset/config.
 - Agent processes receive run-scoped env: `SUPERSET_API_URL`, `SUPERSET_API_KEY`, `SUPERSET_AUTOMATION_ID`, `SUPERSET_AUTOMATION_RUN_ID`, `SUPERSET_AUTOMATION_RUN_SOURCE`, and `SUPERSET_AUTOMATION_RUN_TOKEN`.
+- Agent processes may also receive automation-scoped context env such as
+  `SUPERSET_AUTOMATION_DIR` and runner-specific config env. These env values
+  should point at automation-owned files inside the Automation task directory.
+  Run-scoped env remains separate so a process can identify and write back to
+  the current run.
 - Run-scoped JWT access may only read/write its own run id. User JWT access must still respect organization membership and automation ownership.
 - Completed/failed/skipped rows are terminal. `completeRun` and `failRun` must be idempotent and return the existing terminal row when called again.
 - `reconcileRun` is conservative and idempotent. It may only move stale active statuses (`queued`, `dispatching`, `running`, or legacy `dispatched`) to `failed` with `resultSource = "system"`; it must return terminal rows unchanged.
@@ -61,6 +77,9 @@
 - Host missing/offline -> write or update a skipped row with `{ status: "skipped", runId, error }`; manual Run Now may initially return `{ status: "dispatching", runId }` before the background update lands.
 - Relay or host dispatch throws -> write or update a failed row with `{ status: "failed", runId, error }`; manual Run Now may initially return `{ status: "dispatching", runId }` before the background update lands. Do not create a v2 workspace while handling dispatch.
 - Project context references a local-only or not-yet-imported project -> default Automation dispatch still uses the selected host runner and does not clone, create a worktree, run setup, or fail preflight because of project setup.
+- Automation context references a Skill, CLI, or MCP entry unavailable on the
+  target host -> fail or skip the run with a concise context-preflight reason;
+  do not silently fall back to user-global tools or mutate user-global config.
 - Requested host is offline or inaccessible -> write a skipped/failed row with a concise host-facing reason.
 - Rerouted run with machine-local agent id -> map to the source config's preset id before `agents.runAutomation`.
 - Existing `v2WorkspaceId` points to any workspace -> ignore it for default Automation execution unless a future explicit legacy workspace mode is added. Do not create a replacement workspace.
@@ -73,7 +92,10 @@
 ### 5. Good/Base/Bad Cases
 
 - Good: manual `Run now` creates and selects a real `dispatching` run quickly, then the same row moves to `running` after host background runner startup, receives run-scoped env, and eventually updates to `completed` with a Markdown report without opening Terminal.
-- Good: a default Automation run creates only `~/.superset/automation-runs/<runId>` plus output files; it does not create a worktree or start project Docker services.
+- Good: a default Automation task uses `~/.superset/automations/<automationId>` as the stable working directory and writes each run's output files under `runs/<runId>.*`; it does not create a worktree or start project Docker services.
+- Good: Skill, CLI, MCP, and model configuration are materialized once per
+  Automation under `~/.superset/automations/<automationId>` and each run stores
+  only a small manifest describing which context versions were used.
 - Base: scheduled automation uses the same run lifecycle and result schema with `source = "schedule"`.
 - Base: an old `dispatched` row remains readable in history while new rows use `running`.
 - Bad: `Run now` throws because the host is offline and no history row is created.
@@ -81,6 +103,8 @@
 - Bad: Previous Runs only reads `collections.automationRuns`; a newly-created run disappears after navigating away and back before Electric sync catches up.
 - Bad: the visible debug terminal command includes raw `SUPERSET_API_KEY=...` as a shell env prefix.
 - Bad: every scheduled run creates a worktree plus Postgres/Electric/Neon Docker containers.
+- Bad: every scheduled run copies a full Skill bundle, CLI install, MCP config,
+  or model provider secret into a new run directory.
 
 ### 6. Tests Required
 
@@ -94,6 +118,8 @@
 - Dispatch agent selection tests proving machine-local source ids map to portable preset ids after host reroute.
 - Host-service tests proving one-off agent env is passed through without leaking token values into visible command strings.
 - Host-service tests proving `agents.runAutomation` uses a Superset-home run directory and does not require a workspace id.
+- Host-service tests proving Automation context materialization writes under the
+  Automation task directory and per-run snapshots stay lightweight and secret-free.
 - Host-service tests proving `workspaceCleanup.destroy({ skipDirtyCheck: true, force: false })` bypasses dirty preflight while still preserving teardown semantics.
 - Automation cleanup tests proving isolated run workspaces are cleaned, runs without host/workspace are skipped, and explicit reusable workspaces are not destroyed.
 - Renderer unit tests for status labels, Markdown result rendering, and selected-run freshness merging.

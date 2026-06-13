@@ -37,6 +37,36 @@ describe("automation run writeback schemas", () => {
 		).toThrow();
 	});
 
+	test("accepts provider and model selection on new automations", () => {
+		const parsed = createAutomationSchema.parse({
+			name: "Memory report",
+			prompt: "Report memory usage.",
+			agent: "claude",
+			modelProviderId: "33333333-3333-4333-8333-333333333333",
+			modelId: "gpt-5.5",
+			targetHostId: "host-1",
+			rrule: "FREQ=HOURLY;INTERVAL=1",
+			timezone: "Asia/Shanghai",
+		});
+
+		expect(parsed.modelProviderId).toBe("33333333-3333-4333-8333-333333333333");
+		expect(parsed.modelId).toBe("gpt-5.5");
+	});
+
+	test("rejects partial model selection", () => {
+		expect(() =>
+			createAutomationSchema.parse({
+				name: "Memory report",
+				prompt: "Report memory usage.",
+				agent: "claude",
+				modelProviderId: "33333333-3333-4333-8333-333333333333",
+				targetHostId: "host-1",
+				rrule: "FREQ=HOURLY;INTERVAL=1",
+				timezone: "Asia/Shanghai",
+			}),
+		).toThrow();
+	});
+
 	test("accepts a completed run report with optional structured result", () => {
 		const parsed = completeRunSchema.parse({
 			runId: RUN_ID,

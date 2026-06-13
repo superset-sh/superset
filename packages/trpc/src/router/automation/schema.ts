@@ -2,6 +2,11 @@ import { automationSessionKindValues } from "@superset/db/schema";
 import { z } from "zod";
 
 const agentSchema = z.string().min(1).max(200);
+const modelSelectionFields = {
+	modelProviderId: z.string().uuid().nullish(),
+	modelId: z.string().trim().min(1).max(500).nullish(),
+	modelConfig: z.record(z.string(), z.unknown()).optional(),
+} as const;
 
 function isValidIanaTimezone(timezone: string): boolean {
 	try {
@@ -23,31 +28,51 @@ const rruleBody = z
 	.max(500)
 	.describe("RFC 5545 RRULE body, no DTSTART prefix");
 
-export const createAutomationSchema = z.object({
-	name: z.string().min(1).max(200),
-	prompt: z.string().min(1).max(100_000),
-	agent: agentSchema,
-	targetHostId: z.string().min(1).nullish(),
-	v2ProjectId: z.string().uuid().nullish(),
-	v2WorkspaceId: z.null().optional(),
-	rrule: rruleBody,
-	dtstart: z.coerce.date().optional(),
-	timezone: iana,
-	mcpScope: z.array(z.string()).default([]),
-});
+function requireCompleteModelSelection(
+	input: { modelProviderId?: string | null; modelId?: string | null },
+	ctx: z.RefinementCtx,
+): void {
+	const hasProvider = input.modelProviderId != null;
+	const hasModel = input.modelId != null;
+	if (hasProvider === hasModel) return;
+	ctx.addIssue({
+		code: "custom",
+		path: hasProvider ? ["modelId"] : ["modelProviderId"],
+		message: "Model provider and model are both required",
+	});
+}
 
-export const updateAutomationSchema = z.object({
-	id: z.string().uuid(),
-	name: z.string().min(1).max(200).optional(),
-	agent: agentSchema.optional(),
-	targetHostId: z.string().min(1).nullish(),
-	v2ProjectId: z.string().uuid().nullish(),
-	v2WorkspaceId: z.null().optional(),
-	rrule: rruleBody.optional(),
-	dtstart: z.coerce.date().optional(),
-	timezone: iana.optional(),
-	mcpScope: z.array(z.string()).optional(),
-});
+export const createAutomationSchema = z
+	.object({
+		name: z.string().min(1).max(200),
+		prompt: z.string().min(1).max(100_000),
+		agent: agentSchema,
+		...modelSelectionFields,
+		targetHostId: z.string().min(1).nullish(),
+		v2ProjectId: z.string().uuid().nullish(),
+		v2WorkspaceId: z.null().optional(),
+		rrule: rruleBody,
+		dtstart: z.coerce.date().optional(),
+		timezone: iana,
+		mcpScope: z.array(z.string()).default([]),
+	})
+	.superRefine(requireCompleteModelSelection);
+
+export const updateAutomationSchema = z
+	.object({
+		id: z.string().uuid(),
+		name: z.string().min(1).max(200).optional(),
+		agent: agentSchema.optional(),
+		...modelSelectionFields,
+		targetHostId: z.string().min(1).nullish(),
+		v2ProjectId: z.string().uuid().nullish(),
+		v2WorkspaceId: z.null().optional(),
+		rrule: rruleBody.optional(),
+		dtstart: z.coerce.date().optional(),
+		timezone: iana.optional(),
+		mcpScope: z.array(z.string()).optional(),
+	})
+	.superRefine(requireCompleteModelSelection);
 
 export const setAutomationPromptSchema = z.object({
 	id: z.string().uuid(),

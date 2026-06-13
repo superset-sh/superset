@@ -3,6 +3,8 @@ import {
 	automationRuns,
 	automations,
 	members,
+	modelProviderModels,
+	modelProviders,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
@@ -191,6 +193,73 @@ async function verifyProjectInOrg(organizationId: string, projectId: string) {
 	}
 }
 
+async function validateAutomationModelSelection(args: {
+	organizationId: string;
+	modelProviderId?: string | null;
+	modelId?: string | null;
+}): Promise<{ modelProviderId: string | null; modelId: string | null }> {
+	const hasProvider = Boolean(args.modelProviderId);
+	const hasModel = Boolean(args.modelId);
+	if (!hasProvider && !hasModel) {
+		return { modelProviderId: null, modelId: null };
+	}
+	if (!hasProvider || !hasModel) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Model provider and model are both required",
+		});
+	}
+
+	const [row] = await db
+		.select({
+			providerId: modelProviders.id,
+			modelId: modelProviderModels.modelId,
+			providerEnabled: modelProviders.enabled,
+			providerSecretEncrypted: modelProviders.secretEncrypted,
+			modelEnabled: modelProviderModels.enabled,
+		})
+		.from(modelProviders)
+		.innerJoin(
+			modelProviderModels,
+			eq(modelProviderModels.providerId, modelProviders.id),
+		)
+		.where(
+			and(
+				eq(modelProviders.id, args.modelProviderId ?? ""),
+				eq(modelProviders.organizationId, args.organizationId),
+				eq(modelProviderModels.modelId, args.modelId ?? ""),
+			),
+		)
+		.limit(1);
+
+	if (!row) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Model is not configured for provider",
+		});
+	}
+	if (!row.providerEnabled) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Model provider is disabled",
+		});
+	}
+	if (!row.providerSecretEncrypted) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Model provider credential is required",
+		});
+	}
+	if (!row.modelEnabled) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Model is disabled for provider",
+		});
+	}
+
+	return { modelProviderId: row.providerId, modelId: row.modelId };
+}
+
 export const automationRouter = {
 	versions: automationVersionsRouter,
 
@@ -283,6 +352,11 @@ export const automationRouter = {
 			if (v2ProjectId) {
 				await verifyProjectInOrg(organizationId, v2ProjectId);
 			}
+			const modelSelection = await validateAutomationModelSelection({
+				organizationId,
+				modelProviderId: input.modelProviderId,
+				modelId: input.modelId,
+			});
 
 			const dtstart = input.dtstart ?? new Date();
 			const { nextRunAt } = parseRrule({
@@ -300,6 +374,9 @@ export const automationRouter = {
 						name: input.name,
 						prompt: input.prompt,
 						agent: input.agent,
+						modelProviderId: modelSelection.modelProviderId,
+						modelId: modelSelection.modelId,
+						modelConfig: input.modelConfig ?? {},
 						targetHostId: input.targetHostId ?? null,
 						v2ProjectId,
 						v2WorkspaceId: null,
@@ -361,6 +438,17 @@ export const automationRouter = {
 			if (input.v2WorkspaceId !== undefined) {
 				nextWorkspaceId = null;
 			}
+			const nextModelProviderId =
+				input.modelProviderId === undefined
+					? existing.modelProviderId
+					: input.modelProviderId;
+			const nextModelId =
+				input.modelId === undefined ? existing.modelId : input.modelId;
+			const modelSelection = await validateAutomationModelSelection({
+				organizationId,
+				modelProviderId: nextModelProviderId,
+				modelId: nextModelId,
+			});
 
 			const nextRrule = input.rrule ?? existing.rrule;
 			const nextDtstart = input.dtstart ?? existing.dtstart;
@@ -383,6 +471,9 @@ export const automationRouter = {
 				.set({
 					name: input.name ?? existing.name,
 					agent: input.agent ?? existing.agent,
+					modelProviderId: modelSelection.modelProviderId,
+					modelId: modelSelection.modelId,
+					modelConfig: input.modelConfig ?? existing.modelConfig,
 					targetHostId:
 						input.targetHostId === undefined
 							? existing.targetHostId

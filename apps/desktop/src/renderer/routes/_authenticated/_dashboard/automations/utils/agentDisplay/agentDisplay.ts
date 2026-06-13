@@ -60,3 +60,53 @@ export function getAutomationAgentDisplay(
 		isKnown: Boolean(value),
 	};
 }
+
+export type AutomationModelRunnerFamily =
+	| "claude"
+	| "codex"
+	| "gemini"
+	| "opencode";
+
+const AUTOMATION_MODEL_RUNNER_FAMILIES = new Set<string>([
+	"claude",
+	"codex",
+	"gemini",
+	"opencode",
+]);
+
+function normalizeAgentFamilySource(value: string): string {
+	return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function inferAutomationModelRunnerFamily(
+	value: string,
+): AutomationModelRunnerFamily | null {
+	const normalized = normalizeAgentFamilySource(value);
+	if (normalized.includes("claude")) return "claude";
+	if (normalized.includes("opencode")) return "opencode";
+	if (normalized.includes("codex")) return "codex";
+	if (normalized.includes("gemini")) return "gemini";
+	return AUTOMATION_MODEL_RUNNER_FAMILIES.has(normalized)
+		? (normalized as AutomationModelRunnerFamily)
+		: null;
+}
+
+export function getAutomationModelRunnerFamily(
+	agents: readonly AgentSelectAgent[],
+	value: string | null | undefined,
+): AutomationModelRunnerFamily | null {
+	if (!value) return null;
+	const choice = findAutomationAgentChoice(agents, value);
+	return inferAutomationModelRunnerFamily(
+		[choice?.iconId, choice?.id, choice?.label, value]
+			.filter((item): item is string => Boolean(item))
+			.join(" "),
+	);
+}
+
+export function supportsAutomationModelSelection(
+	agents: readonly AgentSelectAgent[],
+	value: string | null | undefined,
+): boolean {
+	return getAutomationModelRunnerFamily(agents, value) !== null;
+}

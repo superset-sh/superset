@@ -435,6 +435,13 @@
       "when": 1781339999125,
       "tag": "0061_automation_project_optional",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1781367506466,
+      "tag": "0062_automation_model_selection",
+      "breakpoints": true
     }
   ]
 }

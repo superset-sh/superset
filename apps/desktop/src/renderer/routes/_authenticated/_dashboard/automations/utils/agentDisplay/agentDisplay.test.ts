@@ -3,6 +3,7 @@ import type { AgentSelectAgent } from "renderer/components/AgentSelect";
 import {
 	findAutomationAgentChoice,
 	getAutomationAgentDisplay,
+	getAutomationModelRunnerFamily,
 	getPortableAutomationAgentId,
 } from "./agentDisplay";
 
@@ -44,5 +45,21 @@ describe("automation agent display", () => {
 
 	test("falls back to known preset labels", () => {
 		expect(getAutomationAgentDisplay([], "claude").label).toBe("Claude");
+	});
+
+	test("infers model runner family from host labels and preset variants", () => {
+		expect(
+			getAutomationModelRunnerFamily(
+				[
+					{
+						id: "host-local-claude-config",
+						label: "Claude",
+						iconId: "claude-code",
+					},
+				],
+				"host-local-claude-config",
+			),
+		).toBe("claude");
+		expect(getAutomationModelRunnerFamily([], "open-code")).toBe("opencode");
 	});
 });

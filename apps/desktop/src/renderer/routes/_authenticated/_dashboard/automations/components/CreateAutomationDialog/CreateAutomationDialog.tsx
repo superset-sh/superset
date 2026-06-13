@@ -25,8 +25,13 @@ import type { AutomationTemplate } from "../../templates";
 import {
 	findAutomationAgentChoice,
 	getPortableAutomationAgentId,
+	supportsAutomationModelSelection,
 } from "../../utils/agentDisplay";
 import { AgentPicker } from "../AgentPicker";
+import {
+	AutomationModelPicker,
+	type AutomationModelSelection,
+} from "../AutomationModelPicker";
 import { ProjectPicker } from "../ProjectPicker";
 import { SchedulePicker } from "../SchedulePicker";
 import { TemplateGalleryPanel } from "./components/TemplateGalleryPanel";
@@ -59,6 +64,8 @@ export function CreateAutomationDialog({
 		null,
 	);
 	const [agent, setAgent] = useState<string | null>(null);
+	const [modelSelection, setModelSelection] =
+		useState<AutomationModelSelection | null>(null);
 	const [rrule, setRrule] = useState(DEFAULT_RRULE);
 
 	const { localHostId } = useWorkspaceHostOptions();
@@ -83,6 +90,11 @@ export function CreateAutomationDialog({
 			? getPortableAutomationAgentId(hostAgents[0])
 			: null;
 		if (fallback !== agent) setAgent(fallback);
+	}, [agent, hostAgents]);
+
+	useEffect(() => {
+		if (supportsAutomationModelSelection(hostAgents, agent)) return;
+		setModelSelection(null);
 	}, [agent, hostAgents]);
 
 	// Track which (open session, template) we've already pre-filled so the
@@ -131,6 +143,7 @@ export function CreateAutomationDialog({
 			setHostId(null);
 			setSelectedProjectId(null);
 			setAgent(null);
+			setModelSelection(null);
 			setRrule(DEFAULT_RRULE);
 			appliedTemplateRef.current = null;
 			appliedAgentForTemplateRef.current = null;
@@ -144,6 +157,8 @@ export function CreateAutomationDialog({
 				name,
 				prompt,
 				agent: getPortableAutomationAgentId(selectedAgent),
+				modelProviderId: modelSelection?.providerId,
+				modelId: modelSelection?.modelId,
 				targetHostId: targetHostId ?? null,
 				v2ProjectId: selectedProjectId,
 				v2WorkspaceId: null,
@@ -251,8 +266,8 @@ export function CreateAutomationDialog({
 								)}
 							</div>
 
-							<DialogFooter className="flex-row items-center justify-between gap-2 border-t p-3 sm:justify-between">
-								<div className="flex items-center gap-2">
+							<DialogFooter className="flex-row items-center justify-between gap-3 border-t p-3 sm:justify-between">
+								<div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
 									<DevicePicker
 										className="w-[160px]"
 										hostId={hostId}
@@ -277,11 +292,25 @@ export function CreateAutomationDialog({
 										className="w-[100px]"
 										hostId={targetHostId}
 										value={agent ?? ""}
-										onChange={setAgent}
+										onChange={(nextAgent) => {
+											setAgent(nextAgent);
+											if (
+												!supportsAutomationModelSelection(hostAgents, nextAgent)
+											) {
+												setModelSelection(null);
+											}
+										}}
+									/>
+									<AutomationModelPicker
+										className="w-[180px]"
+										agent={agent}
+										agents={hostAgents}
+										value={modelSelection}
+										onChange={setModelSelection}
 									/>
 								</div>
 
-								<div className="flex items-center gap-2">
+								<div className="flex shrink-0 items-center gap-2">
 									<DialogClose asChild>
 										<Button variant="ghost">Cancel</Button>
 									</DialogClose>

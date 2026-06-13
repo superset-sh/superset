@@ -5,7 +5,7 @@ export {
 	type AutomationAgentRunResult,
 	agentsRouter,
 	buildAgentCommandString,
-	getAutomationRunDirectory,
+	getAutomationExecutionDirectory,
 	type ResolvedHostAgentConfig,
 	resolveHostAgentConfig,
 	runAgentInWorkspace,

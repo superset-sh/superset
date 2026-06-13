@@ -87,7 +87,7 @@ function publicProviderSummary(
 	};
 }
 
-async function listProvidersWithModels(organizationId: string) {
+export async function listProvidersWithModels(organizationId: string) {
 	const providerRows = await db
 		.select()
 		.from(modelProviders)
@@ -124,6 +124,14 @@ async function listProvidersWithModels(organizationId: string) {
 	return providerRows.map((provider) => ({
 		provider,
 		models: modelsByProvider.get(provider.id) ?? [],
+	}));
+}
+
+export async function getModelProviderSyncPayload(organizationId: string) {
+	const rows = await listProvidersWithModels(organizationId);
+	return rows.map(({ provider, models }) => ({
+		...publicProviderSummary(provider, models),
+		secret: decryptProviderSecret(provider),
 	}));
 }
 
@@ -218,11 +226,7 @@ export const modelProviderRouter = {
 
 	syncPayload: protectedProcedure.query(async ({ ctx }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
-		const rows = await listProvidersWithModels(organizationId);
-		return rows.map(({ provider, models }) => ({
-			...publicProviderSummary(provider, models),
-			secret: decryptProviderSecret(provider),
-		}));
+		return getModelProviderSyncPayload(organizationId);
 	}),
 
 	upsert: protectedProcedure

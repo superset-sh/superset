@@ -13,6 +13,10 @@ import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs } from "../../../db/schema";
 import {
+	type AutomationModelSelection,
+	prepareAutomationModelInjection,
+} from "../../../model-providers/automation-model-injection";
+import {
 	getShellBootstrapEnv,
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
@@ -191,6 +195,7 @@ export interface AutomationAgentRunInput {
 	prompt: string;
 	attachmentIds?: string[];
 	env?: Record<string, string>;
+	modelSelection?: AutomationModelSelection;
 }
 
 export interface AutomationAgentRunResult {
@@ -200,6 +205,22 @@ export interface AutomationAgentRunResult {
 	runDirectory: string;
 	pid: number;
 }
+
+export const automationAgentRunInputSchema = z.object({
+	runId: z.string().uuid(),
+	automationId: z.string().uuid(),
+	agent: z.string().min(1),
+	prompt: z.string().min(1),
+	attachmentIds: z.array(z.string().uuid()).optional(),
+	env: z.record(z.string(), z.string()).optional(),
+	modelSelection: z
+		.object({
+			providerId: z.string().min(1),
+			modelId: z.string().min(1),
+			config: z.record(z.string(), z.unknown()).optional(),
+		})
+		.optional(),
+});
 
 const SUPERSET_AGENT_ID = "superset";
 const SUPERSET_AGENT_LABEL = "Superset";
@@ -351,14 +372,43 @@ function getSupersetHomeDirForShell(): string {
 	return process.env.SUPERSET_HOME_DIR?.trim() || join(homedir(), ".superset");
 }
 
-export function getAutomationRunDirectory(runId: string): string {
+function getAutomationRootDirectory(): string {
 	const override = process.env.SUPERSET_AUTOMATION_RUNS_DIR?.trim();
-	if (override) return join(override, runId);
+	if (override) return override;
 
 	const suffix = process.env.NODE_ENV === "development" ? "dev" : "";
 	return suffix
-		? join(homedir(), ".superset", suffix, "automation-runs", runId)
-		: join(homedir(), ".superset", "automation-runs", runId);
+		? join(homedir(), ".superset", suffix, "automations")
+		: join(homedir(), ".superset", "automations");
+}
+
+export function getAutomationDirectory(automationId: string): string {
+	return join(getAutomationRootDirectory(), automationId);
+}
+
+export function getAutomationExecutionDirectory(automationId: string): string {
+	return getAutomationDirectory(automationId);
+}
+
+function getAutomationRunArtifactPaths(args: {
+	automationDirectory: string;
+	runId: string;
+}): {
+	runsDirectory: string;
+	promptPath: string;
+	metadataPath: string;
+	stdoutPath: string;
+	stderrPath: string;
+} {
+	const runsDirectory = join(args.automationDirectory, "runs");
+	const runPrefix = join(runsDirectory, args.runId);
+	return {
+		runsDirectory,
+		promptPath: `${runPrefix}.prompt.md`,
+		metadataPath: `${runPrefix}.metadata.json`,
+		stdoutPath: `${runPrefix}.stdout.log`,
+		stderrPath: `${runPrefix}.stderr.log`,
+	};
 }
 
 function buildAutomationRunnerEnv(args: {
@@ -551,19 +601,43 @@ export async function runAutomationAgent(
 		resolvedAttachments.push({ attachmentId, path: resolved.path });
 	}
 
-	const runDirectory = getAutomationRunDirectory(input.runId);
+	const runDirectory = getAutomationExecutionDirectory(input.automationId);
 	mkdirSync(runDirectory, { recursive: true, mode: 0o700 });
+	const artifactPaths = getAutomationRunArtifactPaths({
+		automationDirectory: runDirectory,
+		runId: input.runId,
+	});
+	mkdirSync(artifactPaths.runsDirectory, { recursive: true, mode: 0o700 });
 
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
-	writeFileSync(join(runDirectory, "prompt.md"), prompt, { mode: 0o600 });
+	writeFileSync(artifactPaths.promptPath, prompt, { mode: 0o600 });
+
+	const modelInjection = prepareAutomationModelInjection({
+		db: ctx.db,
+		config,
+		automationId: input.automationId,
+		runDirectory,
+		hostServiceBaseUrl: ctx.hostServiceBaseUrl,
+		selection: input.modelSelection,
+	});
+
 	writeFileSync(
-		join(runDirectory, "metadata.json"),
+		artifactPaths.metadataPath,
 		JSON.stringify(
 			{
 				runId: input.runId,
 				automationId: input.automationId,
 				agent: input.agent,
 				startedAt: new Date().toISOString(),
+				model:
+					modelInjection && input.modelSelection
+						? {
+								family: modelInjection.family,
+								providerId: input.modelSelection.providerId,
+								modelId: input.modelSelection.modelId,
+								configPath: modelInjection.configPath,
+							}
+						: null,
 			},
 			null,
 			2,
@@ -576,10 +650,13 @@ export async function runAutomationAgent(
 	const env = buildAutomationRunnerEnv({
 		config,
 		runDirectory,
-		extraEnv: input.env,
+		extraEnv: {
+			...(input.env ?? {}),
+			...(modelInjection?.env ?? {}),
+		},
 	});
-	const stdoutPath = join(runDirectory, "stdout.log");
-	const stderrPath = join(runDirectory, "stderr.log");
+	const stdoutPath = artifactPaths.stdoutPath;
+	const stderrPath = artifactPaths.stderrPath;
 	const stdoutStream = createWriteStream(stdoutPath, {
 		flags: "a",
 		mode: 0o600,
@@ -662,19 +739,17 @@ export const agentsRouter = router({
 				prompt: z.string().min(1),
 				attachmentIds: z.array(z.string().uuid()).optional(),
 				env: z.record(z.string(), z.string()).optional(),
+				modelSelection: z
+					.object({
+						providerId: z.string().min(1),
+						modelId: z.string().min(1),
+						config: z.record(z.string(), z.unknown()).optional(),
+					})
+					.optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),
 	runAutomation: protectedProcedure
-		.input(
-			z.object({
-				runId: z.string().uuid(),
-				automationId: z.string().uuid(),
-				agent: z.string().min(1),
-				prompt: z.string().min(1),
-				attachmentIds: z.array(z.string().uuid()).optional(),
-				env: z.record(z.string(), z.string()).optional(),
-			}),
-		)
+		.input(automationAgentRunInputSchema)
 		.mutation(async ({ ctx, input }) => runAutomationAgent(ctx, input)),
 });

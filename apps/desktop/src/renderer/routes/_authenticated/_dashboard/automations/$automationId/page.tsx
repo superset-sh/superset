@@ -68,8 +68,32 @@ function AutomationDetailPage() {
 		[collections.automations, automationId],
 	);
 	const liveAutomation = automationRows?.[0] as SelectAutomation | undefined;
-	const automation = liveAutomation
-		? ({ ...liveAutomation, ...(automationPatch ?? {}) } as SelectAutomation)
+	const freshAutomationQuery = useQuery({
+		queryKey: ["automation", automationId],
+		queryFn: () => apiTrpcClient.automation.get.query({ id: automationId }),
+		retry: false,
+	});
+	const promptQuery = useQuery({
+		queryKey: ["automation-prompt", automationId],
+		queryFn: () =>
+			apiTrpcClient.automation.getPrompt.query({ id: automationId }),
+		enabled: !liveAutomation && !!freshAutomationQuery.data,
+		retry: false,
+	});
+	const fetchedAutomation =
+		freshAutomationQuery.data && (liveAutomation || promptQuery.data)
+			? ({
+					...freshAutomationQuery.data,
+					prompt: liveAutomation?.prompt ?? promptQuery.data?.prompt ?? "",
+				} as SelectAutomation)
+			: undefined;
+	const baseAutomation = fetchedAutomation ?? liveAutomation;
+	const automation = baseAutomation
+		? ({
+				...(liveAutomation ?? {}),
+				...(fetchedAutomation ?? {}),
+				...(automationPatch ?? {}),
+			} as SelectAutomation)
 		: undefined;
 
 	const { data: runRows = [] } = useLiveQuery(
@@ -191,6 +215,9 @@ function AutomationDetailPage() {
 					void queryClient.invalidateQueries({
 						queryKey: ["automation-runs", automationId],
 					});
+					void queryClient.invalidateQueries({
+						queryKey: ["automation", automationId],
+					});
 					toast.success(
 						result.status === "dispatching"
 							? "Automation run created"
@@ -216,7 +243,13 @@ function AutomationDetailPage() {
 	});
 
 	if (!automation) {
-		if (!automationReady) return null;
+		if (
+			!automationReady ||
+			freshAutomationQuery.isLoading ||
+			promptQuery.isLoading
+		) {
+			return null;
+		}
 		return (
 			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
 				Automation not found.
