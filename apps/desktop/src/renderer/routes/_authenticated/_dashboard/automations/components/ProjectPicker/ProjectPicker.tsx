@@ -17,7 +17,7 @@ import { ProjectThumbnail } from "renderer/routes/_authenticated/components/Proj
 interface ProjectPickerProps {
 	selectedProject: ProjectOption | undefined;
 	recentProjects: ProjectOption[];
-	onSelectProject: (projectId: string) => void;
+	onSelectProject: (projectId: string | null) => void;
 	className?: string;
 }
 
@@ -45,7 +45,7 @@ export function ProjectPicker({
 							<LuFolder className="size-5 shrink-0" />
 						)
 					}
-					label={selectedProject?.name ?? "Select project"}
+					label={selectedProject?.name ?? "No project context"}
 				/>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-60 p-0">
@@ -54,6 +54,17 @@ export function ProjectPicker({
 					<CommandList>
 						<CommandEmpty>No projects found.</CommandEmpty>
 						<CommandGroup>
+							<CommandItem
+								value="__none__"
+								onSelect={() => {
+									onSelectProject(null);
+									setOpen(false);
+								}}
+							>
+								<LuFolder className="size-4" />
+								<span>No project context</span>
+								{!selectedProject && <HiCheck className="ml-auto size-4" />}
+							</CommandItem>
 							{recentProjects.map((project) => (
 								<CommandItem
 									key={project.id}

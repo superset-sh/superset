@@ -12,7 +12,6 @@ import { AgentPicker } from "../../../components/AgentPicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
 import { SchedulePicker } from "../../../components/SchedulePicker";
 import { TimezonePicker } from "../../../components/TimezonePicker";
-import { WorkspacePicker } from "../../../components/WorkspacePicker";
 import { useRecentProjects } from "../../../hooks/useRecentProjects";
 import { PreviousRunsList } from "../PreviousRunsList";
 import { Row } from "./components/Row";
@@ -104,34 +103,23 @@ export function AutomationDetailSidebar({
 								className="-mr-4"
 								hostId={hostId}
 								onSelectHostId={(nextHostId) => {
-									updateMutation.mutate({ targetHostId: nextHostId });
+									updateMutation.mutate({
+										targetHostId: nextHostId,
+										v2WorkspaceId: null,
+									});
 								}}
 							/>
 						}
 					/>
 					<Row
-						label="Project"
+						label="Context"
 						value={
 							<ProjectPicker
 								className="-mr-4"
 								selectedProject={selectedProject}
 								recentProjects={recentProjects}
 								onSelectProject={(v2ProjectId) =>
-									updateMutation.mutate({ v2ProjectId })
-								}
-							/>
-						}
-					/>
-					<Row
-						label="Workspace"
-						value={
-							<WorkspacePicker
-								className="-mr-4"
-								hostId={automation.targetHostId ?? null}
-								projectId={automation.v2ProjectId}
-								value={automation.v2WorkspaceId}
-								onChange={(v2WorkspaceId) =>
-									updateMutation.mutate({ v2WorkspaceId })
+									updateMutation.mutate({ v2ProjectId, v2WorkspaceId: null })
 								}
 							/>
 						}
@@ -147,24 +135,14 @@ export function AutomationDetailSidebar({
 						}
 					/>
 					<Row
-						label="Agent"
+						label="Runner"
 						value={
 							<AgentPicker
 								className="-mr-4"
 								hostId={hostId}
 								value={automation.agent}
 								onChange={(id) => {
-									// The picker is scoped to `hostId`; if the automation
-									// was previously auto-routed (targetHostId null), pin it
-									// to the host this id came from so a UUID-shaped agent
-									// can't be dispatched to a host that's never seen it.
-									const patch: { agent: string; targetHostId?: string } = {
-										agent: id,
-									};
-									if (!automation.targetHostId && hostId) {
-										patch.targetHostId = hostId;
-									}
-									updateMutation.mutate(patch);
+									updateMutation.mutate({ agent: id });
 								}}
 							/>
 						}

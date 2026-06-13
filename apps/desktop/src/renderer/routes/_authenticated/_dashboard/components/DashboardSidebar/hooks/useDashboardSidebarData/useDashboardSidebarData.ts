@@ -7,6 +7,8 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	getAutomationRunWorkspaceIds,
+	getNonAutomationRunWorkspaces,
 	getVisibleSidebarWorkspaces,
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -24,6 +26,10 @@ import {
 } from "./derivePullRequestQueryTargets";
 
 const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
+const PULL_REQUEST_REFETCH_INTERVAL_MS = 10_000;
+const PULL_REQUEST_ERROR_REFETCH_INTERVAL_MS = 120_000;
+
+type QueryRefetchState = { state: { error: unknown } };
 
 type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 type PullRequestWorkspaceRow = {
@@ -238,6 +244,32 @@ export function useDashboardSidebarData() {
 				})),
 		[collections],
 	);
+	const { data: automationRunWorkspaceRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ automationRuns: collections.automationRuns })
+				.select(({ automationRuns }) => ({
+					v2WorkspaceId: automationRuns.v2WorkspaceId,
+				})),
+		[collections],
+	);
+	const { data: automationNameRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ automations: collections.automations })
+				.select(({ automations }) => ({
+					name: automations.name,
+				})),
+		[collections],
+	);
+	const automationRunWorkspaceIds = useMemo(
+		() => getAutomationRunWorkspaceIds(automationRunWorkspaceRows),
+		[automationRunWorkspaceRows],
+	);
+	const automationNames = useMemo(
+		() => new Set(automationNameRows.map((automation) => automation.name)),
+		[automationNameRows],
+	);
 	const rawSidebarWorkspacesWithHostStatus = useMemo(
 		() =>
 			rawSidebarWorkspaces.map((workspace) => ({
@@ -247,15 +279,31 @@ export function useDashboardSidebarData() {
 			})),
 		[hostsByMachineId, rawSidebarWorkspaces, workspaceTransactionsById],
 	);
+	const userSidebarWorkspacesWithHostStatus = useMemo(
+		() =>
+			getNonAutomationRunWorkspaces(
+				rawSidebarWorkspacesWithHostStatus,
+				automationRunWorkspaceIds,
+				automationNames,
+			),
+		[
+			automationNames,
+			automationRunWorkspaceIds,
+			rawSidebarWorkspacesWithHostStatus,
+		],
+	);
 
 	const sidebarWorkspaces = useMemo(
-		() => getVisibleSidebarWorkspaces(rawSidebarWorkspacesWithHostStatus),
-		[rawSidebarWorkspacesWithHostStatus],
+		() => getVisibleSidebarWorkspaces(userSidebarWorkspacesWithHostStatus),
+		[userSidebarWorkspacesWithHostStatus],
 	);
 
 	const localStateWorkspaceIds = useMemo(
-		() => new Set(rawSidebarWorkspaces.map((workspace) => workspace.id)),
-		[rawSidebarWorkspaces],
+		() =>
+			new Set(
+				userSidebarWorkspacesWithHostStatus.map((workspace) => workspace.id),
+			),
+		[userSidebarWorkspacesWithHostStatus],
 	);
 
 	const { data: rawLocalMainWorkspaces = [] } = useLiveQuery(
@@ -342,7 +390,11 @@ export function useDashboardSidebarData() {
 	const pullRequestQueries = useQueries({
 		queries: pullRequestQueryTargets.map((target) => ({
 			queryKey: getDashboardSidebarPullRequestQueryKey(target),
-			refetchInterval: 10_000,
+			refetchInterval: (query: QueryRefetchState) =>
+				query.state.error
+					? PULL_REQUEST_ERROR_REFETCH_INTERVAL_MS
+					: PULL_REQUEST_REFETCH_INTERVAL_MS,
+			retry: false,
 			queryFn: async () => {
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				return client.pullRequests.getByWorkspaces.query({

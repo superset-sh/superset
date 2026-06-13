@@ -24,7 +24,7 @@ interface WorkspaceClientProviderProps {
 	cacheKey: string;
 	hostUrl: string;
 	children: ReactNode;
-	headers?: () => Record<string, string>;
+	headers?: () => Record<string, string> | Promise<Record<string, string>>;
 	wsToken?: () => string | null;
 }
 
@@ -42,7 +42,7 @@ const WorkspaceClientContext =
 function getWorkspaceClients(
 	cacheKey: string,
 	hostUrl: string,
-	headers?: () => Record<string, string>,
+	headers?: () => Record<string, string> | Promise<Record<string, string>>,
 	wsToken?: () => string | null,
 ): WorkspaceClients {
 	const clientKey = `${cacheKey}:${hostUrl}`;

@@ -73,6 +73,10 @@ interface ListenerEntry {
 
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
+const HOST_UNAVAILABLE_RECONNECT_BASE_MS = 30_000;
+const HOST_UNAVAILABLE_RECONNECT_MAX_MS = 120_000;
+
+type EventBusReconnectReason = "transient" | "host-unavailable";
 
 interface ConnectionState {
 	socket: WebSocket | null;
@@ -80,6 +84,7 @@ interface ConnectionState {
 	listeners: Set<ListenerEntry>;
 	fsWatchedWorkspaces: Map<string, number>;
 	reconnectAttempts: number;
+	reconnectReason: EventBusReconnectReason;
 	reconnectTimer: ReturnType<typeof setTimeout> | null;
 	disposed: boolean;
 }
@@ -186,12 +191,18 @@ function connect(
 	// machine before the WS upgrade. fly-replay isn't transparent to all WS
 	// clients on the upgrade itself, but is on plain HTTP, so a quick GET
 	// avoids the connect → 1006 close → reconnect flicker.
-	void primeRelayAffinity(wsUrl).then(() => {
+	void primeRelayAffinity(wsUrl).then((probe) => {
 		if (state.disposed || state.socket) return;
+		if (probe.hostUnavailable) {
+			state.reconnectReason = "host-unavailable";
+			scheduleReconnect(state, hostUrl, getWsToken);
+			return;
+		}
 		let socket: WebSocket;
 		try {
 			socket = new WebSocket(wsUrl);
 		} catch {
+			state.reconnectReason = "transient";
 			scheduleReconnect(state, hostUrl, getWsToken);
 			return;
 		}
@@ -199,6 +210,7 @@ function connect(
 
 		socket.onopen = () => {
 			state.reconnectAttempts = 0;
+			state.reconnectReason = "transient";
 
 			// Re-send all active fs:watch commands
 			for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
@@ -213,6 +225,7 @@ function connect(
 		socket.onclose = () => {
 			if (state.disposed) return;
 			state.socket = null;
+			state.reconnectReason = "transient";
 			scheduleReconnect(state, hostUrl, getWsToken);
 		};
 
@@ -229,10 +242,15 @@ function scheduleReconnect(
 ): void {
 	if (state.disposed || state.reconnectTimer) return;
 
-	const delay = Math.min(
-		RECONNECT_BASE_MS * 2 ** state.reconnectAttempts,
-		RECONNECT_MAX_MS,
-	);
+	const baseDelay =
+		state.reconnectReason === "host-unavailable"
+			? HOST_UNAVAILABLE_RECONNECT_BASE_MS
+			: RECONNECT_BASE_MS;
+	const maxDelay =
+		state.reconnectReason === "host-unavailable"
+			? HOST_UNAVAILABLE_RECONNECT_MAX_MS
+			: RECONNECT_MAX_MS;
+	const delay = Math.min(baseDelay * 2 ** state.reconnectAttempts, maxDelay);
 	state.reconnectAttempts++;
 
 	state.reconnectTimer = setTimeout(() => {
@@ -257,6 +275,7 @@ function getOrCreateConnection(
 		listeners: new Set(),
 		fsWatchedWorkspaces: new Map(),
 		reconnectAttempts: 0,
+		reconnectReason: "transient",
 		reconnectTimer: null,
 		disposed: false,
 	};

@@ -1,4 +1,9 @@
-import { getJwt } from "./auth-client";
+import {
+	ensureFreshJwt,
+	getJwt,
+	isJwtExpiringSoon,
+	refreshJwt,
+} from "./auth-client";
 
 const secrets = new Map<string, string>();
 
@@ -27,11 +32,36 @@ export function getHostServiceHeaders(hostUrl: string): Record<string, string> {
 	}
 	// Relay: use JWT
 	const jwt = getJwt();
+	if (jwt && isJwtExpiringSoon()) {
+		void refreshJwt();
+	}
+	if (jwt) headers.Authorization = `Bearer ${jwt}`;
+	return headers;
+}
+
+export async function getHostServiceHeadersAsync(
+	hostUrl: string,
+): Promise<Record<string, string>> {
+	const headers: Record<string, string> = clientMachineId
+		? { "x-superset-client-machine-id": clientMachineId }
+		: {};
+	const secret = secrets.get(hostUrl);
+	if (secret) {
+		headers.Authorization = `Bearer ${secret}`;
+		return headers;
+	}
+	const jwt = await ensureFreshJwt();
 	if (jwt) headers.Authorization = `Bearer ${jwt}`;
 	return headers;
 }
 
 export function getHostServiceWsToken(hostUrl: string): string | null {
 	// Local host-service: use PSK. Relay: fall back to user JWT.
-	return secrets.get(hostUrl) ?? getJwt();
+	const secret = secrets.get(hostUrl);
+	if (secret) return secret;
+	const jwt = getJwt();
+	if (jwt && isJwtExpiringSoon()) {
+		void refreshJwt();
+	}
+	return jwt;
 }

@@ -37,6 +37,7 @@ export interface DestroyWorkspaceInput {
 	workspaceId: string;
 	deleteBranch: boolean;
 	force: boolean;
+	skipDirtyCheck?: boolean;
 }
 
 /**
@@ -150,6 +151,11 @@ export const workspaceCleanupRouter = router({
 	 *     checkbox is the user's consent, so refusing unmerged branches
 	 *     would just silently drop the opt-in.
 	 *
+	 * skipDirtyCheck semantics:
+	 *   - skips only the dirty-worktree preflight (step 0)
+	 *   - still runs teardown, so ephemeral automation workspaces can stop
+	 *     Docker/services before the worktree is removed
+	 *
 	 * Typed errors for the renderer:
 	 *   - CONFLICT             → dirty worktree; prompt force-retry.
 	 *                            CONFLICT with `data.deleteInProgress` is a
@@ -168,6 +174,7 @@ export const workspaceCleanupRouter = router({
 				workspaceId: z.string(),
 				deleteBranch: z.boolean().default(false),
 				force: z.boolean().default(false),
+				skipDirtyCheck: z.boolean().default(false),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => destroyWorkspace(ctx, input)),
@@ -209,7 +216,7 @@ async function runDestroy(
 	// ─── Step 0: Preflight ─────────────────────────────────────────
 	// Block only on dirty worktree (the common "I forgot to commit"
 	// case). Missing/broken local state is handled by the cleanup phase.
-	if (!input.force && local && project) {
+	if (!input.force && !input.skipDirtyCheck && local && project) {
 		try {
 			const git = await ctx.git(local.worktreePath);
 			const status = await git.status();

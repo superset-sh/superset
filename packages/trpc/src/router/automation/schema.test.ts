@@ -1,9 +1,42 @@
 import { describe, expect, test } from "bun:test";
-import { completeRunSchema, failRunSchema } from "./schema";
+import {
+	completeRunSchema,
+	createAutomationSchema,
+	failRunSchema,
+	reconcileRunSchema,
+} from "./schema";
 
 const RUN_ID = "11111111-1111-4111-8111-111111111111";
 
 describe("automation run writeback schemas", () => {
+	test("allows creating an automation without project or workspace context", () => {
+		const parsed = createAutomationSchema.parse({
+			name: "Memory report",
+			prompt: "Report memory usage.",
+			agent: "claude",
+			targetHostId: "host-1",
+			rrule: "FREQ=HOURLY;INTERVAL=1",
+			timezone: "Asia/Shanghai",
+		});
+
+		expect(parsed.v2ProjectId).toBeUndefined();
+		expect(parsed.v2WorkspaceId).toBeUndefined();
+	});
+
+	test("rejects non-null workspace context on new automations", () => {
+		expect(() =>
+			createAutomationSchema.parse({
+				name: "Memory report",
+				prompt: "Report memory usage.",
+				agent: "claude",
+				targetHostId: "host-1",
+				v2WorkspaceId: "11111111-1111-4111-8111-111111111111",
+				rrule: "FREQ=HOURLY;INTERVAL=1",
+				timezone: "Asia/Shanghai",
+			}),
+		).toThrow();
+	});
+
 	test("accepts a completed run report with optional structured result", () => {
 		const parsed = completeRunSchema.parse({
 			runId: RUN_ID,
@@ -31,5 +64,11 @@ describe("automation run writeback schemas", () => {
 				failureReason: "",
 			}),
 		).toThrow();
+	});
+
+	test("accepts a run reconciliation request", () => {
+		expect(reconcileRunSchema.parse({ runId: RUN_ID })).toEqual({
+			runId: RUN_ID,
+		});
 	});
 });

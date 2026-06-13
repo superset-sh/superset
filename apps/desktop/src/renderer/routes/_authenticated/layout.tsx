@@ -16,6 +16,7 @@ import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
+import { shouldRecoverAuthenticatedSession } from "renderer/lib/auth-session-state";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
@@ -63,9 +64,25 @@ function AuthenticatedLayout() {
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
+	const shouldRecoverSession = shouldRecoverAuthenticatedSession({
+		hasLocalToken,
+		isOnline,
+		isSignedIn,
+		skipEnvValidation: env.SKIP_ENV_VALIDATION,
+	});
 
 	useAgentHookListener();
 	useUpdateListener();
+
+	useEffect(() => {
+		if (!shouldRecoverSession) return;
+
+		void refetch();
+		const interval = window.setInterval(() => {
+			void refetch();
+		}, 15_000);
+		return () => window.clearInterval(interval);
+	}, [refetch, shouldRecoverSession]);
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
@@ -183,7 +200,36 @@ function AuthenticatedLayout() {
 						Connect to the internet to continue
 					</p>
 				</div>
-				<Button variant="outline" size="sm" onClick={() => refetch()}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						void refetch();
+					}}
+				>
+					Retry
+				</Button>
+			</div>
+		);
+	}
+
+	if (shouldRecoverSession) {
+		return (
+			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+				<Spinner className="size-8" />
+				<div className="text-center">
+					<h2 className="text-lg font-medium">Restoring your session</h2>
+					<p className="text-sm text-muted-foreground">
+						Reconnecting to Superset services...
+					</p>
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						void refetch();
+					}}
+				>
 					Retry
 				</Button>
 			</div>

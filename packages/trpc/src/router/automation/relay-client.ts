@@ -26,6 +26,30 @@ export class RelayDispatchError extends Error {
 	}
 }
 
+function parseRelayResponse<TOutput>(rawBody: string, status: number): TOutput {
+	type TrpcEnvelope = { result?: { data?: unknown } };
+	let parsed: TrpcEnvelope;
+	try {
+		parsed = JSON.parse(rawBody) as TrpcEnvelope;
+	} catch {
+		throw new RelayDispatchError(
+			`invalid JSON from relay: ${rawBody.slice(0, 200)}`,
+			status,
+			rawBody,
+		);
+	}
+
+	if (!parsed.result || parsed.result.data === undefined) {
+		throw new RelayDispatchError(
+			`missing result.data in relay response: ${rawBody.slice(0, 200)}`,
+			status,
+			rawBody,
+		);
+	}
+
+	return SuperJSON.deserialize(parsed.result.data as never) as TOutput;
+}
+
 /**
  * Invoke a single host-service tRPC mutation through the relay proxy.
  *
@@ -71,25 +95,43 @@ export async function relayMutation<TInput, TOutput>(
 		);
 	}
 
-	type TrpcEnvelope = { result?: { data?: unknown } };
-	let parsed: TrpcEnvelope;
+	return parseRelayResponse<TOutput>(rawBody, response.status);
+}
+
+/**
+ * Invoke a single host-service tRPC query through the relay proxy.
+ */
+export async function relayQuery<TOutput>(
+	options: RelayClientOptions,
+	procedure: string,
+): Promise<TOutput> {
+	const url = `${options.relayUrl}/hosts/${options.hostId}/trpc/${procedure}`;
+
+	const controller = new AbortController();
+	const timer = setTimeout(
+		() => controller.abort(),
+		options.timeoutMs ?? 25_000,
+	);
+
+	let response: Response;
 	try {
-		parsed = JSON.parse(rawBody) as TrpcEnvelope;
-	} catch {
+		response = await fetch(url, {
+			method: "GET",
+			headers: { authorization: `Bearer ${options.jwt}` },
+			signal: controller.signal,
+		});
+	} finally {
+		clearTimeout(timer);
+	}
+
+	const rawBody = await response.text();
+	if (!response.ok) {
 		throw new RelayDispatchError(
-			`invalid JSON from relay: ${rawBody.slice(0, 200)}`,
+			`relay ${response.status}: ${rawBody.slice(0, 500)}`,
 			response.status,
 			rawBody,
 		);
 	}
 
-	if (!parsed.result || parsed.result.data === undefined) {
-		throw new RelayDispatchError(
-			`missing result.data in relay response: ${rawBody.slice(0, 200)}`,
-			response.status,
-			rawBody,
-		);
-	}
-
-	return SuperJSON.deserialize(parsed.result.data as never) as TOutput;
+	return parseRelayResponse<TOutput>(rawBody, response.status);
 }

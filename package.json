@@ -19,7 +19,8 @@
 	"scripts": {
 		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:all": "turbo dev",
-		"dev:desktop": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/desktop --filter=electric-proxy --filter=//",
+		"dev:desktop": "turbo run dev --filter=@superset/api --filter=@superset/relay --filter=@superset/desktop --filter=electric-proxy --filter=//",
+		"dev:desktop:caddy": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/relay --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
 		"mcp:desktop": "bun run packages/desktop-mcp/src/bin.ts",
 		"desktop:automation": "bun run packages/desktop-mcp/src/cli.ts",

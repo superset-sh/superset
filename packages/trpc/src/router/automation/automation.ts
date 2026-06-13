@@ -2,10 +2,10 @@ import { db, dbWs } from "@superset/db/client";
 import {
 	automationRuns,
 	automations,
+	members,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
-	v2Workspaces,
 } from "@superset/db/schema";
 import {
 	describeSchedule,
@@ -16,14 +16,20 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, getTableColumns, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { jwtProcedure, protectedProcedure } from "../../trpc";
-import { requireActiveOrgMembership } from "../utils/active-org";
-import { dispatchAutomation } from "./dispatch";
+import { jwtProcedure, protectedProcedure, type TRPCContext } from "../../trpc";
+import {
+	requireActiveOrgId,
+	requireActiveOrgMembership,
+} from "../utils/active-org";
+import { startAutomationDispatch } from "./dispatch";
 import {
 	getAutomationForUser,
 	promptSourceFromSession,
 	recordPromptVersion,
 } from "./helpers";
+import { decideAutomationRunReconciliation } from "./run-reconciliation";
+import { isTerminalAutomationRunStatus } from "./run-status";
+import { scheduleAutomationRunWorkspaceCleanup } from "./run-workspace-cleanup";
 import {
 	completeRunSchema,
 	createAutomationSchema,
@@ -31,6 +37,7 @@ import {
 	getRunSchema,
 	listRunsSchema,
 	parseRruleSchema,
+	reconcileRunSchema,
 	setAutomationPromptSchema,
 	updateAutomationSchema,
 } from "./schema";
@@ -40,19 +47,51 @@ function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
-const TERMINAL_RUN_STATUSES = new Set([
-	"completed",
-	"failed",
-	"skipped",
-	"dispatch_failed",
-	"skipped_offline",
-]);
-
 type AutomationJwtContext = {
 	userId: string;
 	organizationIds: string[];
 	jwtClaims: { scope?: string; runId?: string } | null;
 };
+
+type AutomationOwnerContext = {
+	session: NonNullable<TRPCContext["session"]>;
+	activeOrganizationId: string | null;
+};
+
+async function getOwnedAutomationForActiveMember(
+	ctx: AutomationOwnerContext,
+	automationId: string,
+): Promise<typeof automations.$inferSelect> {
+	const organizationId = requireActiveOrgId(ctx);
+	const automationColumns = getTableColumns(automations);
+	const [row] = await dbWs
+		.select(automationColumns)
+		.from(automations)
+		.innerJoin(
+			members,
+			and(
+				eq(members.organizationId, automations.organizationId),
+				eq(members.userId, ctx.session.user.id),
+			),
+		)
+		.where(
+			and(
+				eq(automations.id, automationId),
+				eq(automations.organizationId, organizationId),
+				eq(automations.ownerUserId, ctx.session.user.id),
+			),
+		)
+		.limit(1);
+
+	if (!row) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Automation not found",
+		});
+	}
+
+	return row;
+}
 
 async function getAutomationRunForJwtContext(
 	ctx: AutomationJwtContext,
@@ -135,29 +174,6 @@ async function verifyHostAccess(
 			message: "You don't have access to this host",
 		});
 	}
-}
-
-async function verifyWorkspaceInOrg(
-	organizationId: string,
-	workspaceId: string,
-): Promise<{ id: string; projectId: string }> {
-	const [workspace] = await db
-		.select({
-			id: v2Workspaces.id,
-			organizationId: v2Workspaces.organizationId,
-			projectId: v2Workspaces.projectId,
-		})
-		.from(v2Workspaces)
-		.where(eq(v2Workspaces.id, workspaceId))
-		.limit(1);
-
-	if (!workspace || workspace.organizationId !== organizationId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Workspace not found",
-		});
-	}
-	return { id: workspace.id, projectId: workspace.projectId };
 }
 
 async function verifyProjectInOrg(organizationId: string, projectId: string) {
@@ -263,28 +279,9 @@ export const automationRouter = {
 				);
 			}
 
-			let v2ProjectId = input.v2ProjectId;
-			if (input.v2WorkspaceId) {
-				const workspace = await verifyWorkspaceInOrg(
-					organizationId,
-					input.v2WorkspaceId,
-				);
-				if (v2ProjectId && v2ProjectId !== workspace.projectId) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "v2ProjectId does not match the workspace's project",
-					});
-				}
-				v2ProjectId = workspace.projectId;
-			} else if (v2ProjectId) {
+			const v2ProjectId = input.v2ProjectId ?? null;
+			if (v2ProjectId) {
 				await verifyProjectInOrg(organizationId, v2ProjectId);
-			}
-
-			if (!v2ProjectId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "v2ProjectId required when v2WorkspaceId is not provided",
-				});
 			}
 
 			const dtstart = input.dtstart ?? new Date();
@@ -305,7 +302,7 @@ export const automationRouter = {
 						agent: input.agent,
 						targetHostId: input.targetHostId ?? null,
 						v2ProjectId,
-						v2WorkspaceId: input.v2WorkspaceId ?? null,
+						v2WorkspaceId: null,
 						rrule: input.rrule,
 						dtstart,
 						timezone: input.timezone,
@@ -352,8 +349,17 @@ export const automationRouter = {
 					input.targetHostId,
 				);
 			}
-			if (input.v2WorkspaceId) {
-				await verifyWorkspaceInOrg(organizationId, input.v2WorkspaceId);
+			let nextProjectId = existing.v2ProjectId;
+			let nextWorkspaceId = existing.v2WorkspaceId;
+			if (input.v2ProjectId !== undefined) {
+				nextProjectId = input.v2ProjectId ?? null;
+				nextWorkspaceId = null;
+				if (nextProjectId) {
+					await verifyProjectInOrg(organizationId, nextProjectId);
+				}
+			}
+			if (input.v2WorkspaceId !== undefined) {
+				nextWorkspaceId = null;
 			}
 
 			const nextRrule = input.rrule ?? existing.rrule;
@@ -381,11 +387,8 @@ export const automationRouter = {
 						input.targetHostId === undefined
 							? existing.targetHostId
 							: input.targetHostId,
-					v2ProjectId: input.v2ProjectId ?? existing.v2ProjectId,
-					v2WorkspaceId:
-						input.v2WorkspaceId === undefined
-							? existing.v2WorkspaceId
-							: input.v2WorkspaceId,
+					v2ProjectId: nextProjectId,
+					v2WorkspaceId: nextWorkspaceId,
 					rrule: nextRrule,
 					dtstart: nextDtstart,
 					timezone: nextTimezone,
@@ -465,12 +468,7 @@ export const automationRouter = {
 	setEnabled: protectedProcedure
 		.input(z.object({ id: z.string().uuid(), enabled: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx);
-			const existing = await getAutomationForUser(
-				ctx.session.user.id,
-				organizationId,
-				input.id,
-			);
+			const existing = await getOwnedAutomationForActiveMember(ctx, input.id);
 
 			// When resuming, recompute next_run_at from now so we don't fire stale
 			// occurrences that accumulated while paused.
@@ -498,14 +496,9 @@ export const automationRouter = {
 	runNow: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = await requireActiveOrgMembership(ctx);
-			const automation = await getAutomationForUser(
-				ctx.session.user.id,
-				organizationId,
-				input.id,
-			);
+			const automation = await getOwnedAutomationForActiveMember(ctx, input.id);
 
-			const outcome = await dispatchAutomation({
+			const outcome = await startAutomationDispatch({
 				automation,
 				scheduledFor: new Date(),
 				relayUrl: env.RELAY_URL,
@@ -550,11 +543,41 @@ export const automationRouter = {
 		return getAutomationRunForJwtContext(ctx, input.runId);
 	}),
 
+	reconcileRun: jwtProcedure
+		.input(reconcileRunSchema)
+		.mutation(async ({ ctx, input }) => {
+			const run = await getAutomationRunForJwtContext(ctx, input.runId);
+			const decision = decideAutomationRunReconciliation(run);
+			if (!decision.shouldFail || !decision.failureReason) return run;
+
+			const now = new Date();
+			const [updated] = await dbWs
+				.update(automationRuns)
+				.set({
+					status: "failed",
+					error: decision.failureReason,
+					failureReason: decision.failureReason,
+					resultSource: "system",
+					completedAt: now,
+					updatedAt: now,
+				})
+				.where(eq(automationRuns.id, input.runId))
+				.returning();
+
+			const nextRun = updated ?? run;
+			scheduleAutomationRunWorkspaceCleanup({
+				runId: nextRun.id,
+				relayUrl: env.RELAY_URL,
+				reason: "reconcile-run",
+			});
+			return nextRun;
+		}),
+
 	completeRun: jwtProcedure
 		.input(completeRunSchema)
 		.mutation(async ({ ctx, input }) => {
 			const run = await getAutomationRunForJwtContext(ctx, input.runId);
-			if (TERMINAL_RUN_STATUSES.has(run.status)) return run;
+			if (isTerminalAutomationRunStatus(run.status)) return run;
 
 			const now = new Date();
 			const [updated] = await dbWs
@@ -573,14 +596,20 @@ export const automationRouter = {
 				.where(eq(automationRuns.id, input.runId))
 				.returning();
 
-			return updated ?? run;
+			const nextRun = updated ?? run;
+			scheduleAutomationRunWorkspaceCleanup({
+				runId: nextRun.id,
+				relayUrl: env.RELAY_URL,
+				reason: "complete-run",
+			});
+			return nextRun;
 		}),
 
 	failRun: jwtProcedure
 		.input(failRunSchema)
 		.mutation(async ({ ctx, input }) => {
 			const run = await getAutomationRunForJwtContext(ctx, input.runId);
-			if (TERMINAL_RUN_STATUSES.has(run.status)) return run;
+			if (isTerminalAutomationRunStatus(run.status)) return run;
 
 			const now = new Date();
 			const [updated] = await dbWs
@@ -599,7 +628,13 @@ export const automationRouter = {
 				.where(eq(automationRuns.id, input.runId))
 				.returning();
 
-			return updated ?? run;
+			const nextRun = updated ?? run;
+			scheduleAutomationRunWorkspaceCleanup({
+				runId: nextRun.id,
+				relayUrl: env.RELAY_URL,
+				reason: "fail-run",
+			});
+			return nextRun;
 		}),
 
 	/** Validate an RRule body + preview its next occurrences. */

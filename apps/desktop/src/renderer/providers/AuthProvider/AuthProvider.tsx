@@ -1,14 +1,17 @@
 import { type ReactNode, useEffect, useEffectEvent, useState } from "react";
-import { authClient, setAuthToken, setJwt } from "renderer/lib/auth-client";
+import {
+	authClient,
+	ensureFreshJwt,
+	setAuthToken,
+	setJwt,
+} from "renderer/lib/auth-client";
+import { isStoredAuthTokenCurrent } from "renderer/lib/auth-session-state";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
 
 async function refreshAuthJwt(logContext: string): Promise<void> {
 	try {
-		const res = await authClient.token();
-		if (res.data?.token) {
-			setJwt(res.data.token);
-		}
+		await ensureFreshJwt();
 	} catch (err) {
 		console.warn(`[AuthProvider] JWT refresh failed ${logContext}`, err);
 	}
@@ -33,8 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		async function hydrate() {
 			if (storedToken?.token && storedToken?.expiresAt) {
-				const isExpired = new Date(storedToken.expiresAt) < new Date();
-				if (!isExpired) {
+				if (isStoredAuthTokenCurrent(storedToken.expiresAt)) {
 					setAuthToken(storedToken.token);
 					try {
 						await refetchSession();
@@ -61,9 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
 		onData: async (data) => {
 			if (data?.token && data?.expiresAt) {
-				setAuthToken(null);
-				await authClient.signOut({ fetchOptions: { throw: false } });
 				setAuthToken(data.token);
+				setJwt(null);
 				try {
 					await refetchSession();
 				} catch (err) {
@@ -97,7 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			() => void refreshAuthJwt("on interval"),
 			50 * 60 * 1000,
 		);
-		return () => clearInterval(interval);
+		const refreshOnResume = () => void refreshAuthJwt("on resume");
+		window.addEventListener("focus", refreshOnResume);
+		window.addEventListener("online", refreshOnResume);
+		document.addEventListener("visibilitychange", refreshOnResume);
+		return () => {
+			clearInterval(interval);
+			window.removeEventListener("focus", refreshOnResume);
+			window.removeEventListener("online", refreshOnResume);
+			document.removeEventListener("visibilitychange", refreshOnResume);
+		};
 	}, [isHydrated]);
 
 	const syncCliAuthConfigForSession = useEffectEvent(

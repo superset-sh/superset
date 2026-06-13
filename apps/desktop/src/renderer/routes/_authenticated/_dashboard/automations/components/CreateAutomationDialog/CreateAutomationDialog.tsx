@@ -22,10 +22,13 @@ import { hideAll as hideAllTippy } from "tippy.js";
 import { useProjectFileSearch } from "../../hooks/useProjectFileSearch";
 import { useRecentProjects } from "../../hooks/useRecentProjects";
 import type { AutomationTemplate } from "../../templates";
+import {
+	findAutomationAgentChoice,
+	getPortableAutomationAgentId,
+} from "../../utils/agentDisplay";
 import { AgentPicker } from "../AgentPicker";
 import { ProjectPicker } from "../ProjectPicker";
 import { SchedulePicker } from "../SchedulePicker";
-import { WorkspacePicker } from "../WorkspacePicker";
 import { TemplateGalleryPanel } from "./components/TemplateGalleryPanel";
 
 export type AutomationCreatedPayload = { id: string; name: string };
@@ -57,7 +60,6 @@ export function CreateAutomationDialog({
 	);
 	const [agent, setAgent] = useState<string | null>(null);
 	const [rrule, setRrule] = useState(DEFAULT_RRULE);
-	const [v2WorkspaceId, setV2WorkspaceId] = useState<string | null>(null);
 
 	const { localHostId } = useWorkspaceHostOptions();
 	const targetHostId = hostId ?? localHostId;
@@ -71,21 +73,17 @@ export function CreateAutomationDialog({
 	const selectedProject = recentProjects.find(
 		(project) => project.id === selectedProjectId,
 	);
-	const selectedAgent = hostAgents.find((option) => option.id === agent);
+	const selectedAgent = agent
+		? findAutomationAgentChoice(hostAgents, agent)
+		: undefined;
 
 	useEffect(() => {
-		if (agent && hostAgents.some((option) => option.id === agent)) return;
-		const fallback = hostAgents[0]?.id ?? null;
+		if (agent && findAutomationAgentChoice(hostAgents, agent)) return;
+		const fallback = hostAgents[0]
+			? getPortableAutomationAgentId(hostAgents[0])
+			: null;
 		if (fallback !== agent) setAgent(fallback);
 	}, [agent, hostAgents]);
-
-	// Default to first project once the Electric-synced list lands.
-	useEffect(() => {
-		if (!open) return;
-		if (selectedProjectId) return;
-		const first = recentProjects[0];
-		if (first) setSelectedProjectId(first.id);
-	}, [open, selectedProjectId, recentProjects]);
 
 	// Track which (open session, template) we've already pre-filled so the
 	// effects don't re-run and stomp on user edits when `hostAgents` lands
@@ -121,7 +119,7 @@ export function CreateAutomationDialog({
 				option.id === initialTemplate.agentType ||
 				option.iconId === initialTemplate.agentType,
 		);
-		if (match) setAgent(match.id);
+		if (match) setAgent(getPortableAutomationAgentId(match));
 		appliedAgentForTemplateRef.current = initialTemplate;
 	}, [open, initialTemplate, hostAgents]);
 
@@ -134,7 +132,6 @@ export function CreateAutomationDialog({
 			setSelectedProjectId(null);
 			setAgent(null);
 			setRrule(DEFAULT_RRULE);
-			setV2WorkspaceId(null);
 			appliedTemplateRef.current = null;
 			appliedAgentForTemplateRef.current = null;
 		}
@@ -143,14 +140,13 @@ export function CreateAutomationDialog({
 	const createMutation = useMutation({
 		mutationFn: () => {
 			if (!selectedAgent) throw new Error("No agent selected");
-			if (!selectedProjectId) throw new Error("No project selected");
 			return apiTrpcClient.automation.create.mutate({
 				name,
 				prompt,
-				agent: selectedAgent.id,
+				agent: getPortableAutomationAgentId(selectedAgent),
 				targetHostId: targetHostId ?? null,
 				v2ProjectId: selectedProjectId,
-				v2WorkspaceId,
+				v2WorkspaceId: null,
 				rrule: rrule.trim(),
 				timezone: DEFAULT_TIMEZONE,
 				mcpScope: [],
@@ -178,7 +174,6 @@ export function CreateAutomationDialog({
 	const canSubmit =
 		name.trim().length > 0 &&
 		prompt.trim().length > 0 &&
-		!!selectedProjectId &&
 		!!targetHostId &&
 		!!selectedAgent &&
 		rrule.trim().length > 0 &&
@@ -263,7 +258,6 @@ export function CreateAutomationDialog({
 										hostId={hostId}
 										onSelectHostId={(next) => {
 											setHostId(next);
-											setV2WorkspaceId(null);
 										}}
 									/>
 									<ProjectPicker
@@ -272,15 +266,7 @@ export function CreateAutomationDialog({
 										recentProjects={recentProjects}
 										onSelectProject={(id) => {
 											setSelectedProjectId(id);
-											setV2WorkspaceId(null);
 										}}
-									/>
-									<WorkspacePicker
-										className="w-[160px]"
-										hostId={targetHostId ?? null}
-										projectId={selectedProjectId}
-										value={v2WorkspaceId}
-										onChange={setV2WorkspaceId}
 									/>
 									<SchedulePicker
 										className="w-[164px]"

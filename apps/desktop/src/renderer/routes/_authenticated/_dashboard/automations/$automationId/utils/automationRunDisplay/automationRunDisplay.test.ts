@@ -38,6 +38,8 @@ function run(status: SelectAutomationRun["status"]): SelectAutomationRun {
 
 describe("automationRunDisplay", () => {
 	test("maps running and terminal statuses", () => {
+		expect(getAutomationRunStatusView("dispatching").label).toBe("Dispatching");
+		expect(isAutomationRunTerminal(run("dispatching"))).toBe(false);
 		expect(getAutomationRunStatusView("running").label).toBe("Running");
 		expect(isAutomationRunTerminal(run("running"))).toBe(false);
 		expect(isAutomationRunTerminal(run("completed"))).toBe(true);

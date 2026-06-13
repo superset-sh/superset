@@ -24,6 +24,11 @@ interface WorkspaceHostRow {
 	branch: string;
 }
 
+interface HostStatusRow {
+	machineId: string;
+	isOnline: boolean;
+}
+
 interface HostNotificationSubscriberGroup {
 	hostUrl: string;
 	workspaces: HostNotificationWorkspaceState[];
@@ -59,6 +64,14 @@ export function V2NotificationController() {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
+	const { data: hosts = [] } = useLiveQuery(
+		(q) =>
+			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
+				machineId: hosts.machineId,
+				isOnline: hosts.isOnline,
+			})),
+		[collections],
+	);
 	const { data: allWorkspaceHosts = [] } = useLiveQuery(
 		(q) =>
 			q
@@ -81,6 +94,10 @@ export function V2NotificationController() {
 					paneLayout: v2WorkspaceLocalState.paneLayout,
 				})),
 		[collections],
+	);
+	const hostsByMachineId = useMemo(
+		() => new Map(hosts.map((host) => [host.machineId, host])),
+		[hosts],
 	);
 	const workspaceHosts = useMemo(
 		() =>
@@ -109,11 +126,19 @@ export function V2NotificationController() {
 			groupWorkspacesByHostUrl({
 				workspaceHosts,
 				workspaceStatesById,
+				hostsByMachineId,
 				machineId,
 				activeHostUrl,
 				relayUrl,
 			}),
-		[workspaceHosts, workspaceStatesById, machineId, activeHostUrl, relayUrl],
+		[
+			workspaceHosts,
+			workspaceStatesById,
+			hostsByMachineId,
+			machineId,
+			activeHostUrl,
+			relayUrl,
+		],
 	);
 
 	const handleElectronAgentLifecycle = useEffectEvent(
@@ -201,12 +226,14 @@ function getNotificationWorkspaceStatesById({
 function groupWorkspacesByHostUrl({
 	workspaceHosts,
 	workspaceStatesById,
+	hostsByMachineId,
 	machineId,
 	activeHostUrl,
 	relayUrl,
 }: {
 	workspaceHosts: WorkspaceHostRow[];
 	workspaceStatesById: Map<string, HostNotificationWorkspaceState>;
+	hostsByMachineId: Map<string, HostStatusRow>;
 	machineId: string | null;
 	activeHostUrl: string | null;
 	relayUrl: string;
@@ -215,6 +242,10 @@ function groupWorkspacesByHostUrl({
 	const hostedWorkspaceIds = new Set<string>();
 
 	for (const workspace of workspaceHosts) {
+		const isLocal = machineId != null && workspace.hostId === machineId;
+		if (!isLocal && hostsByMachineId.get(workspace.hostId)?.isOnline !== true) {
+			continue;
+		}
 		const hostUrl = getHostUrlForWorkspace({
 			organizationId: workspace.organizationId,
 			hostId: workspace.hostId,

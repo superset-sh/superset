@@ -6,9 +6,9 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { AutomationBody } from "./components/AutomationBody";
@@ -41,12 +41,21 @@ export const Route = createFileRoute(
 
 const RECENT_RUNS_LIMIT = 10;
 
+function isRunNowAccepted(status: string): boolean {
+	return status === "dispatching" || status === "running";
+}
+
 function AutomationDetailPage() {
 	const { automationId } = Route.useParams();
 	const { history, runId } = Route.useSearch();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const collections = useCollections();
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
+	const [reconciledRun, setReconciledRun] =
+		useState<SelectAutomationRun | null>(null);
+	const [automationPatch, setAutomationPatch] =
+		useState<Partial<SelectAutomation> | null>(null);
 	const selectedRunId = runId ?? null;
 
 	const { data: automationRows, isReady: automationReady } = useLiveQuery(
@@ -57,7 +66,10 @@ function AutomationDetailPage() {
 				.select(({ a }) => ({ ...a })),
 		[collections.automations, automationId],
 	);
-	const automation = automationRows?.[0] as SelectAutomation | undefined;
+	const liveAutomation = automationRows?.[0] as SelectAutomation | undefined;
+	const automation = liveAutomation
+		? ({ ...liveAutomation, ...(automationPatch ?? {}) } as SelectAutomation)
+		: undefined;
 
 	const { data: runRows = [] } = useLiveQuery(
 		(q) =>
@@ -89,15 +101,62 @@ function AutomationDetailPage() {
 				: false;
 		},
 	});
-	const selectedRun = pickFreshestAutomationRun(
+	const fetchedSelectedRun =
+		selectedRunQuery.data?.id === selectedRunId
+			? (selectedRunQuery.data as SelectAutomationRun)
+			: null;
+	const currentReconciledRun =
+		reconciledRun?.id === selectedRunId ? reconciledRun : null;
+	const selectedRunFromLiveAndFetch = pickFreshestAutomationRun(
 		liveSelectedRun,
-		(selectedRunQuery.data as SelectAutomationRun | undefined) ?? null,
+		fetchedSelectedRun,
+	);
+	const selectedRun = pickFreshestAutomationRun(
+		selectedRunFromLiveAndFetch,
+		currentReconciledRun,
 	);
 	const displayedRuns = mergeSelectedAutomationRun(recentRuns, selectedRun);
+	const selectedRunIsTerminal = selectedRun
+		? isAutomationRunTerminal(selectedRun)
+		: true;
+
+	useEffect(() => {
+		if (!selectedRunId || selectedRunIsTerminal) {
+			return;
+		}
+		let active = true;
+		const reconcile = async () => {
+			try {
+				const run = (await apiTrpcClient.automation.reconcileRun.mutate({
+					runId: selectedRunId,
+				})) as SelectAutomationRun;
+				if (!active) return;
+				setReconciledRun((previous) =>
+					pickFreshestAutomationRun(previous, run),
+				);
+			} catch (error) {
+				console.warn("[AutomationDetail] reconcileRun failed", error);
+			}
+		};
+		void reconcile();
+		const interval = window.setInterval(reconcile, 30_000);
+		return () => {
+			active = false;
+			window.clearInterval(interval);
+		};
+	}, [selectedRunId, selectedRunIsTerminal]);
 
 	const setEnabledMutation = useMutation({
 		mutationFn: (enabled: boolean) =>
 			apiTrpcClient.automation.setEnabled.mutate({ id: automationId, enabled }),
+		onSuccess: (updated) => {
+			setAutomationPatch({
+				enabled: updated.enabled,
+				nextRunAt: updated.nextRunAt,
+				updatedAt: updated.updatedAt,
+			});
+			void queryClient.invalidateQueries({ queryKey: ["automations", "list"] });
+		},
 	});
 
 	const runNowMutation = useMutation({
@@ -110,7 +169,15 @@ function AutomationDetailPage() {
 					params: { automationId },
 					search: { runId: result.runId },
 				});
-				toast.success("Automation run started");
+				if (isRunNowAccepted(result.status)) {
+					toast.success(
+						result.status === "dispatching"
+							? "Automation run created"
+							: "Automation run started",
+					);
+				} else {
+					toast.error(result.error ?? "Automation run did not start");
+				}
 				return;
 			}
 			toast.error(result.error ?? "Automation run did not start");

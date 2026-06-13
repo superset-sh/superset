@@ -50,6 +50,30 @@ function computeDuration(run: SelectAutomationRun): string {
 	return remaining > 0 ? `${minutes}m ${remaining}s` : `${minutes}m`;
 }
 
+function getWaitingCopy(run: SelectAutomationRun): {
+	title: string;
+	description: string;
+} {
+	if (isAutomationRunTerminal(run)) {
+		return {
+			title: "No report was written",
+			description: "Open the debug session to inspect what happened.",
+		};
+	}
+	if (run.status === "dispatching" || run.status === "queued") {
+		return {
+			title: "Preparing run",
+			description:
+				"Superset has created the run and is preparing the host automation runner.",
+		};
+	}
+	return {
+		title: "Waiting for result",
+		description:
+			"The automation runner is active. The agent should write back a Markdown report when it finishes.",
+	};
+}
+
 export function AutomationRunResultPanel({
 	automation,
 	run,
@@ -83,6 +107,7 @@ export function AutomationRunResultPanel({
 	const statusView = getAutomationRunStatusView(run.status);
 	const error = getAutomationRunError(run);
 	const hasDebugSession = !!run.v2WorkspaceId && !!run.sessionKind;
+	const waitingCopy = getWaitingCopy(run);
 
 	const openDebugSession = () => {
 		if (!run.v2WorkspaceId) return;
@@ -174,7 +199,10 @@ export function AutomationRunResultPanel({
 					/>
 					<Meta label="Duration" value={computeDuration(run)} />
 					<Meta label="Host" value={run.hostId ?? "Auto"} />
-					<Meta label="Workspace" value={run.v2WorkspaceId ?? "-"} />
+					<Meta
+						label="Runtime"
+						value={run.v2WorkspaceId ? "Workspace debug" : "Background"}
+					/>
 					<Meta label="Session" value={run.sessionKind ?? "-"} />
 					<Meta label="Result" value={run.resultSource ?? "-"} />
 				</div>
@@ -201,15 +229,9 @@ export function AutomationRunResultPanel({
 					/>
 				) : (
 					<div className="rounded-md border border-dashed border-border px-5 py-8 text-center">
-						<h2 className="text-sm font-medium">
-							{isAutomationRunTerminal(run)
-								? "No report was written"
-								: "Waiting for result"}
-						</h2>
+						<h2 className="text-sm font-medium">{waitingCopy.title}</h2>
 						<p className="mt-2 text-sm text-muted-foreground">
-							{isAutomationRunTerminal(run)
-								? "Open the debug session to inspect what happened."
-								: "The agent session is running and should write back a Markdown report when it finishes."}
+							{waitingCopy.description}
 						</p>
 					</div>
 				)}

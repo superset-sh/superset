@@ -1,4 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { JWTExpired } from "jose/errors";
 
 export interface AuthContext {
 	sub: string;
@@ -35,7 +36,11 @@ export async function verifyJWT(
 
 		return { sub, email: email ?? "", organizationIds };
 	} catch (error) {
-		console.error("[relay] JWT verification failed:", error);
+		if (error instanceof JWTExpired) {
+			console.warn("[relay] JWT verification failed: expired token");
+		} else {
+			console.error("[relay] JWT verification failed:", error);
+		}
 		return null;
 	}
 }

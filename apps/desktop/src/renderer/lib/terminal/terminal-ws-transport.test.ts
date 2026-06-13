@@ -8,6 +8,7 @@ import {
 	test,
 } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { setJwt } from "../auth-client";
 import { connect, createTransport, sendResize } from "./terminal-ws-transport";
 
 type Listener = (event: {
@@ -70,6 +71,7 @@ class MockWebSocket {
 }
 
 const originalWebSocket = globalThis.WebSocket;
+const originalFetch = globalThis.fetch;
 
 function createMockTerminal(
 	cols = 101,
@@ -94,16 +96,45 @@ function createMockTerminal(
 beforeEach(() => {
 	MockWebSocket.instances = [];
 	globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+	globalThis.fetch = Object.assign(
+		async () => new Response(null, { status: 200 }),
+		originalFetch,
+	) as typeof fetch;
 });
 
 afterEach(() => {
 	globalThis.WebSocket = originalWebSocket;
+	globalThis.fetch = originalFetch;
+	setJwt(null);
 	setSystemTime();
 	jest.useRealTimers();
 });
 
+function createUnsignedJwt(payload: Record<string, unknown>): string {
+	return [
+		"header",
+		Buffer.from(JSON.stringify(payload)).toString("base64url"),
+		"signature",
+	].join(".");
+}
+
+async function nextSocket(index = 0): Promise<MockWebSocket> {
+	for (let attempt = 0; attempt < 10; attempt += 1) {
+		await Promise.resolve();
+		const socket = MockWebSocket.instances[index];
+		if (socket) return socket;
+	}
+	throw new Error("expected websocket instance");
+}
+
+async function flushPromises(): Promise<void> {
+	await Promise.resolve();
+	await Promise.resolve();
+	await Promise.resolve();
+}
+
 describe("terminal-ws-transport", () => {
-	test("server-sent error routes to logs, not xterm, and stops reconnect", () => {
+	test("server-sent error routes to logs, not xterm, and stops reconnect", async () => {
 		const transport = createTransport();
 		const writelnCalls: string[] = [];
 		const terminal = createMockTerminal();
@@ -114,8 +145,7 @@ describe("terminal-ws-transport", () => {
 		};
 
 		connect(transport, terminal, "ws://host/terminal/t1");
-		const socket = MockWebSocket.instances[0];
-		if (!socket) throw new Error("expected websocket instance");
+		const socket = await nextSocket();
 		socket.open();
 
 		socket.message(
@@ -137,15 +167,13 @@ describe("terminal-ws-transport", () => {
 		expect(transport._reconnectTimer).toBeNull();
 	});
 
-	test("waits for server attach before sending resize or input", () => {
+	test("waits for server attach before sending resize or input", async () => {
 		const transport = createTransport();
 		const terminal = createMockTerminal();
 
 		connect(transport, terminal, "ws://host/terminal/t1");
 
-		const socket = MockWebSocket.instances[0];
-		expect(socket).toBeDefined();
-		if (!socket) throw new Error("expected websocket instance");
+		const socket = await nextSocket();
 		const sentMessages = () =>
 			socket.sent.map((payload) => JSON.parse(payload) as unknown);
 
@@ -167,15 +195,13 @@ describe("terminal-ws-transport", () => {
 		]);
 	});
 
-	test("does not resize shared terminals when attached as a secondary observer", () => {
+	test("does not resize shared terminals when attached as a secondary observer", async () => {
 		const transport = createTransport();
 		const terminal = createMockTerminal();
 
 		connect(transport, terminal, "ws://host/terminal/t1");
 
-		const socket = MockWebSocket.instances[0];
-		expect(socket).toBeDefined();
-		if (!socket) throw new Error("expected websocket instance");
+		const socket = await nextSocket();
 		const sentMessages = () =>
 			socket.sent.map((payload) => JSON.parse(payload) as unknown);
 
@@ -197,15 +223,14 @@ describe("terminal-ws-transport", () => {
 		expect(sentMessages()).toEqual([{ type: "input", data: "b" }]);
 	});
 
-	test("recovers a half-open socket after the machine resumes from sleep", () => {
+	test("recovers a half-open socket after the machine resumes from sleep", async () => {
 		jest.useFakeTimers();
 		setSystemTime(new Date("2026-01-01T00:00:00Z"));
 
 		const transport = createTransport();
 		connect(transport, createMockTerminal(), "ws://host/terminal/t1");
 
-		const socket = MockWebSocket.instances[0];
-		if (!socket) throw new Error("expected websocket instance");
+		const socket = await nextSocket();
 		socket.open();
 		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
 		expect(transport.connectionState).toBe("open");
@@ -215,9 +240,62 @@ describe("terminal-ws-transport", () => {
 		// minutes pass (clock jumps), then the watchdog tick runs on wake.
 		setSystemTime(new Date("2026-01-01T00:02:00Z"));
 		jest.advanceTimersByTime(120_000);
+		await nextSocket(1);
 
 		// Recovery: the wall-clock-gap watchdog drops the wedged socket and dials
 		// a fresh one. Without it, only the original socket would ever exist.
 		expect(MockWebSocket.instances.length).toBe(2);
+	});
+
+	test("refreshes relay URL token from current JWT before opening socket", async () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+		const freshToken = createUnsignedJwt({ exp: 4_102_444_800 });
+		setJwt(freshToken);
+
+		connect(
+			transport,
+			terminal,
+			"ws://relay.test/hosts/org:machine/terminal/t1?token=stale&workspaceId=ws1",
+		);
+
+		const socket = await nextSocket();
+		const url = new URL(socket.url);
+
+		expect(url.searchParams.get("token")).toBe(freshToken);
+		expect(url.searchParams.get("workspaceId")).toBe("ws1");
+		expect(socket.url).not.toContain("token=stale");
+	});
+
+	test("does not open relay terminal websocket when host preflight reports unavailable", async () => {
+		jest.useFakeTimers();
+		const freshToken = createUnsignedJwt({ exp: 4_102_444_800 });
+		setJwt(freshToken);
+		globalThis.fetch = Object.assign(
+			async () => new Response(null, { status: 503 }),
+			originalFetch,
+		) as typeof fetch;
+
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+
+		connect(
+			transport,
+			terminal,
+			"ws://relay.test/hosts/org:offline/terminal/t1?token=stale",
+		);
+
+		await flushPromises();
+
+		expect(MockWebSocket.instances).toHaveLength(0);
+		expect(transport.connectionState).toBe("closed");
+		expect(transport.logs.at(-1)?.level).toBe("warn");
+		expect(transport.logs.at(-1)?.message).toContain("Host is unavailable");
+		expect(transport._reconnectTimer).not.toBeNull();
+
+		jest.advanceTimersByTime(29_999);
+		await flushPromises();
+
+		expect(MockWebSocket.instances).toHaveLength(0);
 	});
 });

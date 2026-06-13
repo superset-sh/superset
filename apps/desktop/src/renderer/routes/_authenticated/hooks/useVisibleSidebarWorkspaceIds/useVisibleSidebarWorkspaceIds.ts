@@ -3,8 +3,10 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	getAutomationRunWorkspaceIds,
 	getSidebarWorkspaceIsHidden,
 	isAutoIncludedLocalMainWorkspace,
+	isLegacyAutomationRunWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
@@ -47,6 +49,28 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 					id: workspaces.id,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
+					name: workspaces.name,
+					branch: workspaces.branch,
+					type: workspaces.type,
+					taskId: workspaces.taskId,
+				})),
+		[collections],
+	);
+	const { data: automationRunWorkspaceRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ automationRuns: collections.automationRuns })
+				.select(({ automationRuns }) => ({
+					v2WorkspaceId: automationRuns.v2WorkspaceId,
+				})),
+		[collections],
+	);
+	const { data: automationNameRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ automations: collections.automations })
+				.select(({ automations }) => ({
+					name: automations.name,
 				})),
 		[collections],
 	);
@@ -68,12 +92,26 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
 		);
+		const automationRunWorkspaceIds = getAutomationRunWorkspaceIds(
+			automationRunWorkspaceRows,
+		);
+		const automationNames = new Set(
+			automationNameRows.map((automation) => automation.name),
+		);
 		const localStateWorkspaceIds = new Set(
-			localStateWorkspaces.map((workspace) => workspace.id),
+			localStateWorkspaces
+				.filter(
+					(workspace) =>
+						!automationRunWorkspaceIds.has(workspace.id) &&
+						!isLegacyAutomationRunWorkspace(workspace, automationNames),
+				)
+				.map((workspace) => workspace.id),
 		);
 		const visibleIds = new Set<string>();
 
 		for (const workspace of localStateWorkspaces) {
+			if (automationRunWorkspaceIds.has(workspace.id)) continue;
+			if (isLegacyAutomationRunWorkspace(workspace, automationNames)) continue;
 			if (getSidebarWorkspaceIsHidden(workspace)) continue;
 			if (!sidebarProjectIds.has(workspace.projectId)) continue;
 			visibleIds.add(workspace.id);
@@ -92,5 +130,12 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 		}
 
 		return visibleIds;
-	}, [sidebarProjects, localStateWorkspaces, mainWorkspaces, machineId]);
+	}, [
+		sidebarProjects,
+		localStateWorkspaces,
+		automationRunWorkspaceRows,
+		automationNameRows,
+		mainWorkspaces,
+		machineId,
+	]);
 }

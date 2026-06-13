@@ -3,7 +3,7 @@ import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { createContext, type ReactNode, useContext } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import {
-	getHostServiceHeaders,
+	getHostServiceHeadersAsync,
 	getHostServiceWsToken,
 } from "renderer/lib/host-service-auth";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -43,7 +43,7 @@ export function WorkspaceProvider({
 				cacheKey={workspace.id}
 				key={`${workspace.id}:${hostUrl}`}
 				hostUrl={hostUrl}
-				headers={() => getHostServiceHeaders(hostUrl)}
+				headers={() => getHostServiceHeadersAsync(hostUrl)}
 				wsToken={() => getHostServiceWsToken(hostUrl)}
 			>
 				{children}

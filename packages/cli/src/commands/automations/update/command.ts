@@ -14,7 +14,6 @@ export default command({
 		),
 		host: string().desc("New target host id"),
 		project: string().desc("New v2 project id"),
-		workspace: string().desc("New v2 workspace id"),
 		mcpScope: string().desc("Comma-separated MCP scope strings"),
 		enabled: boolean().desc("Enable or pause the automation"),
 	},
@@ -46,9 +45,6 @@ export default command({
 			...(options.host !== undefined ? { targetHostId: options.host } : {}),
 			...(options.project !== undefined
 				? { v2ProjectId: options.project }
-				: {}),
-			...(options.workspace !== undefined
-				? { v2WorkspaceId: options.workspace }
 				: {}),
 			...(mcpScope !== undefined ? { mcpScope } : {}),
 		});

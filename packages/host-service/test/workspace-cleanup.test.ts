@@ -520,6 +520,43 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 		}
 	});
 
+	test("skipDirtyCheck bypasses dirty preflight without using force", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		let cloudCallCount = 0;
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: tmp,
+					branch: "automation-run",
+				},
+				project: { id: "p-1", repoPath: "/repo" },
+				cloudType: "worktree",
+				gitStatus: { isClean: () => false },
+				cloudDelete: async () => {
+					cloudCallCount += 1;
+				},
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: true,
+				force: false,
+				skipDirtyCheck: true,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.cloudDeleted).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(result.branchDeleted).toBe(true);
+			expect(cloudCallCount).toBe(1);
+		} finally {
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	});
+
 	test("branch delete failure is reported as a warning after cloud delete", async () => {
 		let cloudCallCount = 0;
 		const ctx = makeCtx({

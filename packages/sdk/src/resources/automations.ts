@@ -225,7 +225,7 @@ export interface AutomationSummary {
 	/** Host agent instance id (UUID) or presetId. 'superset' = built-in chat. */
 	agent: string;
 	targetHostId: string | null;
-	v2ProjectId: string;
+	v2ProjectId: string | null;
 	v2WorkspaceId: string | null;
 	rrule: string;
 	dtstart: string;
@@ -261,9 +261,8 @@ export interface AutomationCreateParams {
 	agent: string;
 	rrule: string;
 	timezone: string;
-	/** One of `v2ProjectId` or `v2WorkspaceId` is required. */
-	v2ProjectId?: string;
-	v2WorkspaceId?: string | null;
+	/** Optional project context. Automation execution does not create worktrees. */
+	v2ProjectId?: string | null;
 	/** Pin the automation to a specific host. */
 	targetHostId?: string | null;
 	/** ISO timestamp; defaults to now if omitted. */
@@ -277,8 +276,7 @@ export interface AutomationUpdateParams {
 	name?: string;
 	agent?: string;
 	targetHostId?: string | null;
-	v2ProjectId?: string;
-	v2WorkspaceId?: string | null;
+	v2ProjectId?: string | null;
 	rrule?: string;
 	dtstart?: string;
 	timezone?: string;

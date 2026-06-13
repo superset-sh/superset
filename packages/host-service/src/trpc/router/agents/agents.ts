@@ -1,9 +1,24 @@
-import { readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import {
+	createWriteStream,
+	mkdirSync,
+	readFileSync,
+	writeFileSync,
+} from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs } from "../../../db/schema";
+import {
+	getShellBootstrapEnv,
+	getShellLaunchArgs,
+	getTerminalBaseEnv,
+	resolveLaunchShell,
+	stripTerminalRuntimeEnv,
+} from "../../../terminal/env";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
@@ -169,8 +184,38 @@ export type AgentRunResult =
 	| { kind: "terminal"; sessionId: string; label: string }
 	| { kind: "chat"; sessionId: string; label: string };
 
+export interface AutomationAgentRunInput {
+	runId: string;
+	automationId: string;
+	agent: string;
+	prompt: string;
+	attachmentIds?: string[];
+	env?: Record<string, string>;
+}
+
+export interface AutomationAgentRunResult {
+	kind: "automation";
+	sessionId: string;
+	label: string;
+	runDirectory: string;
+	pid: number;
+}
+
 const SUPERSET_AGENT_ID = "superset";
 const SUPERSET_AGENT_LABEL = "Superset";
+const AUTOMATION_RUN_OUTPUT_MAX = 120_000;
+const TERMINAL_AUTOMATION_RUN_STATUSES = new Set([
+	"completed",
+	"failed",
+	"skipped",
+	"dispatch_failed",
+	"skipped_offline",
+]);
+
+const automationProcesses = new Map<
+	string,
+	{ pid: number; runDirectory: string; startedAt: Date }
+>();
 
 async function resolveAttachmentsAsFiles(
 	attachmentIds: string[],
@@ -284,6 +329,320 @@ async function runTerminalAgent(
 	};
 }
 
+function snapshotStringEnv(
+	baseEnv: NodeJS.ProcessEnv | Record<string, string> = process.env,
+): Record<string, string> {
+	const snapshot: Record<string, string> = {};
+	for (const [key, value] of Object.entries(baseEnv)) {
+		if (typeof value === "string") snapshot[key] = value;
+	}
+	return snapshot;
+}
+
+function getAutomationRunnerBaseEnv(): Record<string, string> {
+	try {
+		return getTerminalBaseEnv();
+	} catch {
+		return stripTerminalRuntimeEnv(snapshotStringEnv(process.env));
+	}
+}
+
+function getSupersetHomeDirForShell(): string {
+	return process.env.SUPERSET_HOME_DIR?.trim() || join(homedir(), ".superset");
+}
+
+export function getAutomationRunDirectory(runId: string): string {
+	const override = process.env.SUPERSET_AUTOMATION_RUNS_DIR?.trim();
+	if (override) return join(override, runId);
+
+	const suffix = process.env.NODE_ENV === "development" ? "dev" : "";
+	return suffix
+		? join(homedir(), ".superset", suffix, "automation-runs", runId)
+		: join(homedir(), ".superset", "automation-runs", runId);
+}
+
+function buildAutomationRunnerEnv(args: {
+	config: ResolvedHostAgentConfig;
+	runDirectory: string;
+	extraEnv?: Record<string, string>;
+}): Record<string, string> {
+	const baseEnv = getAutomationRunnerBaseEnv();
+	const supersetHomeDir = getSupersetHomeDirForShell();
+	const shell = resolveLaunchShell(baseEnv);
+	const env = stripTerminalRuntimeEnv(baseEnv);
+
+	Object.assign(
+		env,
+		getShellBootstrapEnv({
+			shell,
+			baseEnv,
+			supersetHomeDir,
+		}),
+	);
+
+	env.TERM = env.TERM || "xterm-256color";
+	env.COLORTERM = env.COLORTERM || "truecolor";
+	env.PWD = args.runDirectory;
+	env.SUPERSET_HOME_DIR = supersetHomeDir;
+	env.SUPERSET_ENV =
+		process.env.NODE_ENV === "development" ? "development" : "production";
+	env.SUPERSET_AUTOMATION_RUN_DIR = args.runDirectory;
+
+	return {
+		...env,
+		...buildAgentLaunchEnv(args.config, args.extraEnv),
+	};
+}
+
+function buildAutomationShellLaunch(command: string): {
+	shell: string;
+	args: string[];
+} {
+	const baseEnv = getAutomationRunnerBaseEnv();
+	const supersetHomeDir = getSupersetHomeDirForShell();
+	const shell = resolveLaunchShell(baseEnv);
+	return {
+		shell,
+		args: [
+			...getShellLaunchArgs({
+				shell,
+				supersetHomeDir,
+			}),
+			"-c",
+			command,
+		],
+	};
+}
+
+function readFileTail(path: string, maxChars: number): string {
+	try {
+		const content = readFileSync(path, "utf-8");
+		if (content.length <= maxChars) return content;
+		return content.slice(content.length - maxChars);
+	} catch {
+		return "";
+	}
+}
+
+function buildFallbackResultMarkdown(args: {
+	title: string;
+	exitCode: number | null;
+	signal: NodeJS.Signals | null;
+	stdout: string;
+	stderr: string;
+	runDirectory: string;
+}): string {
+	const sections = [
+		`# ${args.title}`,
+		"",
+		`Run directory: \`${args.runDirectory}\``,
+		`Exit code: \`${args.exitCode ?? "-"}\``,
+		`Signal: \`${args.signal ?? "-"}\``,
+	];
+
+	if (args.stdout.trim()) {
+		sections.push("", "## stdout", "", "```text", args.stdout.trim(), "```");
+	}
+	if (args.stderr.trim()) {
+		sections.push("", "## stderr", "", "```text", args.stderr.trim(), "```");
+	}
+	if (!args.stdout.trim() && !args.stderr.trim()) {
+		sections.push("", "The agent process exited without writing output.");
+	}
+
+	return sections.join("\n").slice(0, 190_000);
+}
+
+async function finalizeAutomationProcess(args: {
+	ctx: HostServiceContext;
+	runId: string;
+	runDirectory: string;
+	stdoutPath: string;
+	stderrPath: string;
+	exitCode: number | null;
+	signal: NodeJS.Signals | null;
+}): Promise<void> {
+	automationProcesses.delete(args.runId);
+
+	const run = await args.ctx.api.automation.getRun.query({
+		runId: args.runId,
+	});
+	if (TERMINAL_AUTOMATION_RUN_STATUSES.has(run.status)) return;
+
+	const stdout = readFileTail(args.stdoutPath, AUTOMATION_RUN_OUTPUT_MAX);
+	const stderr = readFileTail(args.stderrPath, AUTOMATION_RUN_OUTPUT_MAX);
+	const exitedCleanly = args.exitCode === 0 && !args.signal;
+
+	if (exitedCleanly) {
+		await args.ctx.api.automation.completeRun.mutate({
+			runId: args.runId,
+			resultMarkdown: buildFallbackResultMarkdown({
+				title: "Automation completed",
+				exitCode: args.exitCode,
+				signal: args.signal,
+				stdout,
+				stderr,
+				runDirectory: args.runDirectory,
+			}),
+			resultSummary: "Automation completed",
+		});
+		return;
+	}
+
+	await args.ctx.api.automation.failRun.mutate({
+		runId: args.runId,
+		failureReason: args.signal
+			? `Agent exited by signal ${args.signal}`
+			: `Agent exited with code ${args.exitCode ?? "unknown"}`,
+		resultMarkdown: buildFallbackResultMarkdown({
+			title: "Automation failed",
+			exitCode: args.exitCode,
+			signal: args.signal,
+			stdout,
+			stderr,
+			runDirectory: args.runDirectory,
+		}),
+		resultSummary: "Automation failed",
+	});
+}
+
+export async function runAutomationAgent(
+	ctx: HostServiceContext,
+	input: AutomationAgentRunInput,
+): Promise<AutomationAgentRunResult> {
+	if (input.agent === SUPERSET_AGENT_ID) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Superset chat agent requires a workspace and is not supported for background automations yet. Choose Claude, Codex, OpenCode, Gemini, or another host agent.",
+		});
+	}
+
+	if (automationProcesses.has(input.runId)) {
+		const existing = automationProcesses.get(input.runId);
+		if (existing) {
+			return {
+				kind: "automation",
+				sessionId: input.runId,
+				label: "Automation",
+				runDirectory: existing.runDirectory,
+				pid: existing.pid,
+			};
+		}
+	}
+
+	const config = resolveHostAgentConfig(ctx.db, input.agent);
+	if (!config) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `No host agent config matching '${input.agent}' (tried instance id then preset id).`,
+		});
+	}
+
+	const resolvedAttachments: Array<{ attachmentId: string; path: string }> = [];
+	for (const attachmentId of input.attachmentIds ?? []) {
+		const resolved = resolveAttachmentPath(attachmentId);
+		if (!resolved) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: `Attachment not found: ${attachmentId}`,
+			});
+		}
+		resolvedAttachments.push({ attachmentId, path: resolved.path });
+	}
+
+	const runDirectory = getAutomationRunDirectory(input.runId);
+	mkdirSync(runDirectory, { recursive: true, mode: 0o700 });
+
+	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
+	writeFileSync(join(runDirectory, "prompt.md"), prompt, { mode: 0o600 });
+	writeFileSync(
+		join(runDirectory, "metadata.json"),
+		JSON.stringify(
+			{
+				runId: input.runId,
+				automationId: input.automationId,
+				agent: input.agent,
+				startedAt: new Date().toISOString(),
+			},
+			null,
+			2,
+		),
+		{ mode: 0o600 },
+	);
+
+	const command = buildAgentLaunchCommand(config, prompt);
+	const launch = buildAutomationShellLaunch(command);
+	const env = buildAutomationRunnerEnv({
+		config,
+		runDirectory,
+		extraEnv: input.env,
+	});
+	const stdoutPath = join(runDirectory, "stdout.log");
+	const stderrPath = join(runDirectory, "stderr.log");
+	const stdoutStream = createWriteStream(stdoutPath, {
+		flags: "a",
+		mode: 0o600,
+	});
+	const stderrStream = createWriteStream(stderrPath, {
+		flags: "a",
+		mode: 0o600,
+	});
+
+	const child = spawn(launch.shell, launch.args, {
+		cwd: runDirectory,
+		env,
+		stdio: ["ignore", "pipe", "pipe"],
+	});
+
+	child.stdout?.pipe(stdoutStream);
+	child.stderr?.pipe(stderrStream);
+
+	automationProcesses.set(input.runId, {
+		pid: child.pid ?? -1,
+		runDirectory,
+		startedAt: new Date(),
+	});
+
+	let finalized = false;
+	const finalize = (exitCode: number | null, signal: NodeJS.Signals | null) => {
+		if (finalized) return;
+		finalized = true;
+		stdoutStream.end();
+		stderrStream.end();
+		void finalizeAutomationProcess({
+			ctx,
+			runId: input.runId,
+			runDirectory,
+			stdoutPath,
+			stderrPath,
+			exitCode,
+			signal,
+		}).catch((error) => {
+			console.error("[automation-runner] failed to finalize run", {
+				runId: input.runId,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		});
+	};
+
+	child.on("error", (error) => {
+		stderrStream.write(`${error.message}\n`);
+		finalize(1, null);
+	});
+	child.on("close", (code, signal) => {
+		finalize(code, signal);
+	});
+
+	return {
+		kind: "automation",
+		sessionId: input.runId,
+		label: config.label,
+		runDirectory,
+		pid: child.pid ?? -1,
+	};
+}
+
 export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
@@ -306,4 +665,16 @@ export const agentsRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),
+	runAutomation: protectedProcedure
+		.input(
+			z.object({
+				runId: z.string().uuid(),
+				automationId: z.string().uuid(),
+				agent: z.string().min(1),
+				prompt: z.string().min(1),
+				attachmentIds: z.array(z.string().uuid()).optional(),
+				env: z.record(z.string(), z.string()).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => runAutomationAgent(ctx, input)),
 });

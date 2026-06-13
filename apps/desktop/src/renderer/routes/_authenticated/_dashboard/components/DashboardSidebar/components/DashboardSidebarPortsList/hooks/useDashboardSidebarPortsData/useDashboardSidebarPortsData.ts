@@ -27,7 +27,10 @@ export type {
 } from "./useDashboardSidebarPortsData.utils";
 
 const PORTS_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
+const PORTS_ERROR_REFETCH_INTERVAL_MS = 120_000;
 const PORT_EVENT_CACHE_BATCH_DELAY_MS = 100;
+
+type QueryRefetchState = { state: { error: unknown } };
 
 export function useDashboardSidebarPortsData(): {
 	workspacePortGroups: DashboardSidebarPortGroup[];
@@ -84,7 +87,11 @@ export function useDashboardSidebarPortsData(): {
 	const queries = useQueries({
 		queries: hostsToQuery.map((host) => ({
 			queryKey: getHostPortsQueryKey(host),
-			refetchInterval: PORTS_FALLBACK_REFETCH_INTERVAL_MS,
+			refetchInterval: (query: QueryRefetchState) =>
+				query.state.error
+					? PORTS_ERROR_REFETCH_INTERVAL_MS
+					: PORTS_FALLBACK_REFETCH_INTERVAL_MS,
+			retry: false,
 			queryFn: async (): Promise<HostPortsResult> => {
 				const client = getHostServiceClientByUrl(host.hostUrl);
 				const ports = await client.ports.getAll.query({

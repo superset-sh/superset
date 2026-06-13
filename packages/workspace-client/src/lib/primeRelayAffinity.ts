@@ -13,11 +13,25 @@
 
 const PROBE_TIMEOUT_MS = 3_000;
 
-export async function primeRelayAffinity(wsUrl: string): Promise<void> {
+export interface RelayAffinityProbeResult {
+	ok: boolean;
+	status: number | null;
+	hostUnavailable: boolean;
+}
+
+export function isRelayHostUnavailableStatus(status: number | null): boolean {
+	return status === 404 || status === 410 || status === 502 || status === 503;
+}
+
+export async function primeRelayAffinity(
+	wsUrl: string,
+): Promise<RelayAffinityProbeResult> {
 	try {
 		const url = new URL(wsUrl);
 		const match = url.pathname.match(/^(\/hosts\/[^/]+)/);
-		if (!match) return; // not a /hosts/<id>/* URL — nothing to prime
+		if (!match) {
+			return { ok: true, status: null, hostUnavailable: false };
+		}
 		url.pathname = `${match[1]}/_whoowns`;
 		url.protocol = url.protocol === "wss:" ? "https:" : "http:";
 		// Keep search (token query param) so the relay can authenticate.
@@ -25,15 +39,20 @@ export async function primeRelayAffinity(wsUrl: string): Promise<void> {
 		const controller = new AbortController();
 		const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 		try {
-			await fetch(url.toString(), {
+			const response = await fetch(url.toString(), {
 				method: "GET",
 				signal: controller.signal,
 				cache: "no-store",
 			});
+			return {
+				ok: response.ok,
+				status: response.status,
+				hostUnavailable: isRelayHostUnavailableStatus(response.status),
+			};
 		} finally {
 			clearTimeout(timer);
 		}
 	} catch {
-		// Best-effort.
+		return { ok: false, status: null, hostUnavailable: false };
 	}
 }

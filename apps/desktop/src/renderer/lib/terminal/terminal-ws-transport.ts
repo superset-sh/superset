@@ -1,5 +1,6 @@
 import { primeRelayAffinity } from "@superset/workspace-client";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { ensureFreshJwt, getJwt } from "renderer/lib/auth-client";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
@@ -144,6 +145,7 @@ export function clearLogs(transport: TerminalTransport) {
 const MAX_RECONNECT_DELAY = 10_000;
 const BASE_RECONNECT_DELAY = 500;
 const MAX_RECONNECT_ATTEMPTS = 10;
+const HOST_UNAVAILABLE_RECONNECT_DELAY = 30_000;
 
 export function createTransport(): TerminalTransport {
 	return {
@@ -262,15 +264,21 @@ function teardownLiveness(transport: TerminalTransport) {
 	}
 }
 
-function scheduleReconnect(transport: TerminalTransport) {
+function scheduleReconnect(
+	transport: TerminalTransport,
+	options?: { minDelayMs?: number },
+) {
 	if (transport._reconnectTimer) return;
 	if (transport._terminated) return;
 	if (!transport.currentUrl || !transport._terminal) return;
 	if (transport._reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) return;
 
-	const delay = Math.min(
-		BASE_RECONNECT_DELAY * 2 ** transport._reconnectAttempt,
-		MAX_RECONNECT_DELAY,
+	const delay = Math.max(
+		options?.minDelayMs ?? 0,
+		Math.min(
+			BASE_RECONNECT_DELAY * 2 ** transport._reconnectAttempt,
+			MAX_RECONNECT_DELAY,
+		),
 	);
 	transport._reconnectAttempt++;
 
@@ -321,16 +329,43 @@ function appendQueryParam(url: string, key: string, value: string): string {
 	}
 }
 
+function withCurrentRelayJwt(wsUrl: string): string {
+	try {
+		const url = new URL(wsUrl);
+		if (!url.pathname.startsWith("/hosts/")) return wsUrl;
+		const token = getJwt();
+		if (!token) return wsUrl;
+		url.searchParams.set("token", token);
+		return url.toString();
+	} catch {
+		return wsUrl;
+	}
+}
+
+async function withFreshRelayJwt(wsUrl: string): Promise<string> {
+	try {
+		const url = new URL(wsUrl);
+		if (!url.pathname.startsWith("/hosts/")) return wsUrl;
+		const token = await ensureFreshJwt();
+		if (!token) return wsUrl;
+		url.searchParams.set("token", token);
+		return url.toString();
+	} catch {
+		return wsUrl;
+	}
+}
+
 export function connect(
 	transport: TerminalTransport,
 	terminal: XTerm,
 	wsUrl: string,
 ) {
+	const targetUrl = withCurrentRelayJwt(wsUrl);
 	// Idempotent: skip if already connected/connecting to the same endpoint.
 	const isActive =
 		transport.connectionState === "open" ||
 		transport.connectionState === "connecting";
-	if (isActive && transport.currentUrl === wsUrl) return;
+	if (isActive && transport.currentUrl === targetUrl) return;
 
 	if (transport.socket) {
 		transport.socket.close();
@@ -338,21 +373,21 @@ export function connect(
 	}
 
 	cancelReconnect(transport);
-	transport.currentUrl = wsUrl;
+	transport.currentUrl = targetUrl;
 	transport.canResize = true;
 	transport._terminal = terminal;
 	transport._terminated = false;
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
-	const actualUrl = transport._hasReceivedBytes
-		? appendQueryParam(wsUrl, "replay", "0")
-		: wsUrl;
 
-	const openSocket = () => {
+	const openSocket = (targetUrlForSocket: string) => {
+		const actualUrl = transport._hasReceivedBytes
+			? appendQueryParam(targetUrlForSocket, "replay", "0")
+			: targetUrlForSocket;
 		// Bail if the transport raced into a different URL or was disconnected
 		// while the pre-flight was in flight.
 		if (
-			transport.currentUrl !== wsUrl ||
+			transport.currentUrl !== targetUrlForSocket ||
 			transport.connectionState !== "connecting"
 		) {
 			return;
@@ -385,17 +420,49 @@ export function connect(
 	// upgrade itself (browser sees 200 → 1006 close), but is on plain HTTP,
 	// so a quick GET avoids the connect → 1006 → reconnect flicker. Skip
 	// for non-/hosts URLs (tests, local dev) so connect stays synchronous.
-	let needsPreFlight = false;
-	try {
-		needsPreFlight = new URL(actualUrl).pathname.startsWith("/hosts/");
-	} catch {
-		needsPreFlight = false;
-	}
-	if (needsPreFlight) {
-		void primeRelayAffinity(actualUrl).then(openSocket);
-	} else {
-		openSocket();
-	}
+	void withFreshRelayJwt(targetUrl).then((freshTargetUrl) => {
+		if (
+			transport.currentUrl !== targetUrl ||
+			transport.connectionState !== "connecting"
+		) {
+			return;
+		}
+		transport.currentUrl = freshTargetUrl;
+		const actualUrl = transport._hasReceivedBytes
+			? appendQueryParam(freshTargetUrl, "replay", "0")
+			: freshTargetUrl;
+		let needsPreFlight = false;
+		try {
+			needsPreFlight = new URL(actualUrl).pathname.startsWith("/hosts/");
+		} catch {
+			needsPreFlight = false;
+		}
+		if (needsPreFlight) {
+			void primeRelayAffinity(actualUrl).then((probe) => {
+				if (
+					transport.currentUrl !== freshTargetUrl ||
+					transport.connectionState !== "connecting"
+				) {
+					return;
+				}
+				if (probe.hostUnavailable) {
+					pushLog(
+						transport,
+						"warn",
+						`Host is unavailable for ${formatWsEndpoint(freshTargetUrl)}. Reconnecting when the device comes online...`,
+					);
+					setConnectionState(transport, "closed");
+					scheduleReconnect(transport, {
+						minDelayMs: HOST_UNAVAILABLE_RECONNECT_DELAY,
+					});
+					return;
+				}
+				openSocket(freshTargetUrl);
+			});
+		} else {
+			openSocket(freshTargetUrl);
+		}
+	});
 }
 
 function attachSocketListeners(

@@ -3,13 +3,15 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { env } from "./env";
 
-const desktopDevPort = process.env.DESKTOP_VITE_PORT || "5173";
+const desktopDevPorts = Array.from(
+	new Set([process.env.DESKTOP_VITE_PORT, "5173"].filter(Boolean)),
+);
 const desktopDevOrigins =
 	process.env.NODE_ENV === "development"
-		? [
-				`http://localhost:${desktopDevPort}`,
-				`http://127.0.0.1:${desktopDevPort}`,
-			]
+		? desktopDevPorts.flatMap((port) => [
+				`http://localhost:${port}`,
+				`http://127.0.0.1:${port}`,
+			])
 		: [];
 
 function getAllowedOrigins(deploymentOrigin: string) {

@@ -1,9 +1,4 @@
-import type {
-	SelectAutomation,
-	SelectUser,
-	SelectV2Host,
-	SelectV2Workspace,
-} from "@superset/db/schema";
+import type { SelectUser, SelectV2Host } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
 import { describeSchedule } from "@superset/shared/rrule";
 import {
@@ -35,19 +30,17 @@ import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiOutlineComputerDesktop } from "react-icons/hi2";
 import {
 	LuClock,
 	LuEllipsis,
-	LuGitBranch,
 	LuPencil,
 	LuPlay,
 	LuPlus,
 	LuSearchX,
-	LuSparkles,
 	LuTerminal,
 	LuTrash2,
 	LuX,
@@ -62,6 +55,10 @@ import { CellWithIcon } from "./components/CellWithIcon";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { useRecentProjects } from "./hooks/useRecentProjects";
 import type { AutomationTemplate } from "./templates";
+import {
+	type AutomationListRow,
+	mergeAutomationListRows,
+} from "./utils/automationListSelection/automationListSelection";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 	{
@@ -72,10 +69,14 @@ export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 type Scope = "mine" | "team";
 
 const ROW_GRID_MINE =
-	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
+	"grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
 
 const ROW_GRID_TEAM =
-	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
+	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
+
+function isRunNowAccepted(status: string): boolean {
+	return status === "dispatching" || status === "running";
+}
 
 function AutomationsPage() {
 	const navigate = useNavigate();
@@ -88,16 +89,31 @@ function AutomationsPage() {
 		useState<AutomationTemplate | null>(null);
 	const [scope, setScope] = useState<Scope>("mine");
 	const [cliHintDismissed, setCliHintDismissed] = useState(false);
-	const [pendingDelete, setPendingDelete] = useState<SelectAutomation | null>(
+	const [pendingDelete, setPendingDelete] = useState<AutomationListRow | null>(
 		null,
 	);
+
+	const freshAutomationsQuery = useQuery({
+		queryKey: ["automations", "list"],
+		queryFn: () => apiTrpcClient.automation.list.query(),
+		staleTime: 10_000,
+		refetchInterval: 30_000,
+	});
 
 	const runNowMutation = useMutation({
 		mutationFn: ({ id }: { id: string; name: string }) =>
 			apiTrpcClient.automation.runNow.mutate({ id }),
 		onSuccess: (result, { id, name }) => {
 			if (result.runId) {
-				toast.success(`Running "${name}" now`);
+				if (isRunNowAccepted(result.status)) {
+					toast.success(
+						result.status === "dispatching"
+							? `Created run for "${name}"`
+							: `Running "${name}" now`,
+					);
+				} else {
+					toast.error(result.error ?? `"${name}" did not start`);
+				}
 				navigate({
 					to: "/automations/$automationId",
 					params: { automationId: id },
@@ -136,8 +152,16 @@ function AutomationsPage() {
 	);
 	// Live queries can briefly surface nullish rows while syncing.
 	const automations = useMemo(
-		() => automationRows.filter((automation) => automation != null),
-		[automationRows],
+		() =>
+			mergeAutomationListRows(
+				automationRows.filter(
+					(automation) => automation != null,
+				) as unknown as AutomationListRow[],
+				((freshAutomationsQuery.data ?? []) as AutomationListRow[]).filter(
+					(automation) => automation != null,
+				),
+			),
+		[automationRows, freshAutomationsQuery.data],
 	);
 
 	const { data: userRows = [] } = useLiveQuery(
@@ -150,13 +174,6 @@ function AutomationsPage() {
 		[collections.users],
 	);
 	const recentProjects = useRecentProjects();
-	const { data: workspaceRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ w: collections.v2Workspaces })
-				.select(({ w }) => ({ id: w.id, name: w.name })),
-		[collections.v2Workspaces],
-	);
 	const { data: hostRows = [] } = useLiveQuery(
 		(q) =>
 			q
@@ -179,15 +196,6 @@ function AutomationsPage() {
 		() =>
 			new Map(recentProjects.filter((p) => p != null).map((p) => [p.id, p])),
 		[recentProjects],
-	);
-	const workspacesById = useMemo(
-		() =>
-			new Map(
-				(workspaceRows as Pick<SelectV2Workspace, "id" | "name">[])
-					.filter((w) => w != null)
-					.map((w) => [w.id, w]),
-			),
-		[workspaceRows],
 	);
 	const hostsById = useMemo(
 		() =>
@@ -311,7 +319,7 @@ function AutomationsPage() {
 							</p>
 							<p className="text-sm leading-relaxed text-muted-foreground">
 								It&apos;s available in every Superset terminal. Tell the agent
-								to use it to spin up workspaces, run tasks, or manage other
+								to use it to inspect systems, write reports, or manage other
 								automations.{" "}
 								<a
 									href={`${COMPANY.DOCS_URL}/cli/getting-started`}
@@ -376,10 +384,9 @@ function AutomationsPage() {
 						>
 							<span>Name</span>
 							{scope === "team" && <span>Owner</span>}
-							<span>Project</span>
-							<span>Workspace</span>
+							<span>Context</span>
 							<span>Device</span>
-							<span>Agent</span>
+							<span>Runner</span>
 							<span>Schedule</span>
 							<span />
 						</div>
@@ -387,13 +394,9 @@ function AutomationsPage() {
 						<div className="min-h-0 flex-1 overflow-y-auto">
 							{visible.map((automation) => {
 								const owner = usersById.get(automation.ownerUserId);
-								const project = projectsById.get(automation.v2ProjectId);
-								const workspace = automation.v2WorkspaceId
-									? workspacesById.get(automation.v2WorkspaceId)
+								const project = automation.v2ProjectId
+									? projectsById.get(automation.v2ProjectId)
 									: null;
-								const workspaceLabel = !automation.v2WorkspaceId
-									? "New workspace"
-									: (workspace?.name ?? "Deleted");
 								const host = automation.targetHostId
 									? hostsById.get(automation.targetHostId)
 									: null;
@@ -472,21 +475,8 @@ function AutomationsPage() {
 												/>
 											) : null}
 											<span className="min-w-0 truncate">
-												{project?.name ?? "—"}
+												{project?.name ?? "None"}
 											</span>
-										</span>
-
-										<span className="min-w-0 text-xs text-muted-foreground">
-											<CellWithIcon
-												icon={
-													automation.v2WorkspaceId ? (
-														<LuGitBranch className="size-3 shrink-0" />
-													) : (
-														<LuSparkles className="size-3 shrink-0" />
-													)
-												}
-												label={workspaceLabel}
-											/>
 										</span>
 
 										<span className="min-w-0 text-xs text-muted-foreground">
@@ -589,7 +579,10 @@ function AutomationsPage() {
 				open={createOpen}
 				onOpenChange={handleDialogOpenChange}
 				initialTemplate={initialTemplate}
-				onCreated={() => handleDialogOpenChange(false)}
+				onCreated={() => {
+					void freshAutomationsQuery.refetch();
+					handleDialogOpenChange(false);
+				}}
 			/>
 
 			<AlertDialog

@@ -49,16 +49,17 @@ export function PreviousRunsList({
 							isSelected && "bg-accent text-accent-foreground",
 						)}
 					>
-						<span
-							role="img"
-							aria-label={statusView.label}
-							className={cn(
-								"inline-block size-2 shrink-0 rounded-full",
-								statusView.dotClassName,
-							)}
-						/>
 						<span className="min-w-0 flex-1 truncate">
 							{run.resultSummary || run.title || "Automation"}
+						</span>
+						<span
+							title={statusView.label}
+							className={cn(
+								"inline-flex h-5 shrink-0 items-center rounded-full border px-1.5 text-[10px] font-medium leading-none",
+								statusView.badgeClassName,
+							)}
+						>
+							{statusView.label}
 						</span>
 						<span className="ml-auto shrink-0 truncate text-muted-foreground">
 							{time ? formatAgo(new Date(time), now) : "—"}
