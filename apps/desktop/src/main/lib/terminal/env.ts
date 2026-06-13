@@ -6,7 +6,7 @@ import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 import {
 	buildSessionLocationKey,
-	SESSION_LOCATION_LOG_PATH,
+	SESSION_LOCATION_STORE_PATH,
 } from "./session-location-log";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
@@ -480,7 +480,7 @@ export function buildTerminalEnv(params: {
 		SUPERSET_WORKSPACE_NAME: workspaceName || "",
 		SUPERSET_WORKSPACE_PATH: workspacePath || "",
 		SUPERSET_ROOT_PATH: rootPath || "",
-		SUPERSET_SESSION_LOCATIONS_PATH: SESSION_LOCATION_LOG_PATH,
+		SUPERSET_SESSION_LOCATIONS_PATH: SESSION_LOCATION_STORE_PATH,
 		SUPERSET_SESSION_LOCATION_KEY: buildSessionLocationKey({
 			workspaceId,
 			tabId,

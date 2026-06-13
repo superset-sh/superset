@@ -21,7 +21,9 @@ mock.module("react", () => ({
 	useRef: <T>(value: T) => ({ current: value }),
 	useState: <T>(initial: T) => {
 		const resolvedInitial =
-			stateValues[stateIndex] === undefined ? initial : (stateValues[stateIndex] as T);
+			stateValues[stateIndex] === undefined
+				? initial
+				: (stateValues[stateIndex] as T);
 		const setter = stateSetters[stateIndex] ?? mock(() => {});
 		stateIndex += 1;
 		return [resolvedInitial, setter] as const;
