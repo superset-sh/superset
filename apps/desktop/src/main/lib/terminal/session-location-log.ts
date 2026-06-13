@@ -348,9 +348,16 @@ function ensureLegacyImportIfNeeded(): void {
 			return;
 		}
 
-		const legacyEntries = parseLegacySessionLocationLog(
-			legacySessionLocationSource.read(LEGACY_SESSION_LOCATION_LOG_PATH),
+		const legacyRaw = legacySessionLocationSource.read(
+			LEGACY_SESSION_LOCATION_LOG_PATH,
 		);
+		let legacyEntries: SessionLocationEntry[];
+		try {
+			legacyEntries = parseLegacySessionLocationLog(legacyRaw);
+		} catch (error) {
+			legacyImportEnsured = true;
+			throw error;
+		}
 		if (legacyEntries.length === 0) {
 			logSessionLocationWarning(
 				"Legacy session location log contained no importable entries; leaving source file in place",

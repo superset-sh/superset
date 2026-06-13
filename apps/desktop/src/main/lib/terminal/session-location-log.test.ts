@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
 	getSessionLocation,
 	LEGACY_SESSION_LOCATION_LOG_PATH,
@@ -357,5 +357,26 @@ describe("session-location-log", () => {
 		expect(await getSessionLocation("pane-1")).toBeNull();
 		expect(readCalls).toBe(1);
 		expect(archivedPath).toBeNull();
+	});
+
+	it("warns once and stops retrying when the legacy log is malformed", async () => {
+		let readCalls = 0;
+		const warningSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+		setLegacySessionLocationSourceForTests({
+			exists: () => true,
+			read: () => {
+				readCalls += 1;
+				return "{not-json";
+			},
+			archive: () => {},
+		});
+
+		expect(await getSessionLocation("pane-1")).toBeNull();
+		expect(await getSessionLocation("pane-1")).toBeNull();
+		expect(readCalls).toBe(1);
+		expect(warningSpy).toHaveBeenCalledTimes(1);
+
+		warningSpy.mockRestore();
 	});
 });

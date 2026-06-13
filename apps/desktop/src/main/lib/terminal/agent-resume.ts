@@ -142,44 +142,13 @@ function buildResumeCommand(
 async function findClaudeTopLevelTranscriptPath(
 	sessionId: string,
 ): Promise<string | null> {
-	const rootDir = join(getCurrentHomeDir(), ".claude", "projects");
 	const targetFileName = `${sessionId}.jsonl`;
-	const pendingDirs = [rootDir];
-
-	while (pendingDirs.length > 0) {
-		const dir = pendingDirs.pop();
-		if (!dir) {
-			continue;
-		}
-
-		let entries: Dirent[];
-		try {
-			entries = await fs.readdir(dir, { withFileTypes: true });
-		} catch (error) {
-			if (!isErrnoException(error, "ENOENT")) {
-				logResumeWarning(`Failed to read transcript directory ${dir}`, error);
-			}
-			continue;
-		}
-
-		for (const entry of entries) {
-			const fullPath = join(dir, entry.name);
-
-			if (entry.isDirectory()) {
-				if (entry.name === "subagents") {
-					continue;
-				}
-				pendingDirs.push(fullPath);
-				continue;
-			}
-
-			if (entry.isFile() && entry.name === targetFileName) {
-				return fullPath;
-			}
-		}
-	}
-
-	return null;
+	return findTranscriptPathInTree({
+		rootDir: join(getCurrentHomeDir(), ".claude", "projects"),
+		shouldSkipDirectory: (entry) => entry.name === "subagents",
+		matchesFile: async (entry, fullPath) =>
+			entry.isFile() && entry.name === targetFileName ? fullPath : null,
+	});
 }
 
 export async function hasClaudeTopLevelTranscript(
@@ -191,9 +160,43 @@ export async function hasClaudeTopLevelTranscript(
 async function findCodexTranscriptPath(
 	sessionId: string,
 ): Promise<string | null> {
-	const rootDir = join(getCurrentHomeDir(), ".codex", "sessions");
 	const targetSuffix = `${sessionId}.jsonl`;
-	const pendingDirs = [rootDir];
+	return findTranscriptPathInTree({
+		rootDir: join(getCurrentHomeDir(), ".codex", "sessions"),
+		matchesFile: async (entry, fullPath) => {
+			if (!entry.isFile() || !entry.name.endsWith(targetSuffix)) {
+				return null;
+			}
+
+			const snippet = await readSnippet(fullPath);
+			if (!snippet) {
+				return null;
+			}
+
+			const parsed = parseCodexSnippet(snippet);
+			if (!parsed) {
+				return null;
+			}
+
+			const normalizedSessionId = normalizeSessionId(
+				parsed.sessionId,
+				fullPath,
+			);
+			return normalizedSessionId === sessionId ? fullPath : null;
+		},
+	});
+}
+
+async function hasCodexTranscript(sessionId: string): Promise<boolean> {
+	return (await findCodexTranscriptPath(sessionId)) !== null;
+}
+
+async function findTranscriptPathInTree(params: {
+	rootDir: string;
+	shouldSkipDirectory?: (entry: Dirent) => boolean;
+	matchesFile: (entry: Dirent, fullPath: string) => Promise<string | null>;
+}): Promise<string | null> {
+	const pendingDirs = [params.rootDir];
 
 	while (pendingDirs.length > 0) {
 		const dir = pendingDirs.pop();
@@ -215,39 +218,21 @@ async function findCodexTranscriptPath(
 			const fullPath = join(dir, entry.name);
 
 			if (entry.isDirectory()) {
+				if (params.shouldSkipDirectory?.(entry)) {
+					continue;
+				}
 				pendingDirs.push(fullPath);
 				continue;
 			}
 
-			if (!entry.isFile() || !entry.name.endsWith(targetSuffix)) {
-				continue;
-			}
-
-			const snippet = await readSnippet(fullPath);
-			if (!snippet) {
-				continue;
-			}
-
-			const parsed = parseCodexSnippet(snippet);
-			if (!parsed) {
-				continue;
-			}
-
-			const normalizedSessionId = normalizeSessionId(
-				parsed.sessionId,
-				fullPath,
-			);
-			if (normalizedSessionId === sessionId) {
-				return fullPath;
+			const matchedPath = await params.matchesFile(entry, fullPath);
+			if (matchedPath) {
+				return matchedPath;
 			}
 		}
 	}
 
 	return null;
-}
-
-async function hasCodexTranscript(sessionId: string): Promise<boolean> {
-	return (await findCodexTranscriptPath(sessionId)) !== null;
 }
 
 async function collectRecentFiles(
