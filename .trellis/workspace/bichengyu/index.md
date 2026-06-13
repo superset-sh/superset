@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 20
+- **Total Sessions**: 21
 - **Last Active**: 2026-06-13
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~693 | Active |
+| `journal-1.md` | ~727 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 21 | 2026-06-13 | Fix Automation Previous Runs cross-device refresh | `0e2028575` | `codex/model-provider-configuration-center` |
 | 20 | 2026-06-13 | Automation orphan run reconciliation | `6ba4d6b30` | `codex/model-provider-configuration-center` |
 | 19 | 2026-06-12 | Automation run result workflow | `5a6102e46` | `codex/model-provider-configuration-center` |
 | 18 | 2026-06-12 | Canary Chat spawn ENOTDIR fix | `1359b8877` | `codex/model-provider-configuration-center` |

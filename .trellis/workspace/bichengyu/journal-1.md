@@ -691,3 +691,37 @@ Finished Automation run reconciliation: run now no longer creates Code worktrees
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: Fix Automation Previous Runs cross-device refresh
+
+**Date**: 2026-06-13
+**Task**: Fix Automation Previous Runs cross-device refresh
+**Package**: desktop
+**Branch**: `codex/model-provider-configuration-center`
+
+### Summary
+
+Fixed Automation detail Previous Runs by merging Electric cached rows with fresh automation.listRuns results, added regression coverage, and captured the cross-device sync lesson in Trellis specs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0e2028575` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
