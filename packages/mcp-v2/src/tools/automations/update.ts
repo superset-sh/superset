@@ -20,8 +20,11 @@ export function register(server: McpServer): void {
 					"Host agent instance id (UUID from /settings/agents) or presetId. Use 'superset' for the built-in chat agent.",
 				),
 			targetHostId: z.string().min(1).nullish(),
-			v2ProjectId: z.string().uuid().optional(),
-			v2WorkspaceId: z.string().uuid().nullish(),
+			v2ProjectId: z.string().uuid().nullish(),
+			v2WorkspaceId: z
+				.null()
+				.optional()
+				.describe("Deprecated workspace context. Pass null to clear it."),
 			rrule: z.string().min(1).max(500).optional(),
 			dtstart: z
 				.string()

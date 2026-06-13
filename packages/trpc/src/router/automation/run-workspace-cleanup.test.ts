@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	type AutomationRunWorkspaceCleanupTarget,
 	decideAutomationRunWorkspaceCleanup,
-} from "./run-workspace-cleanup";
+} from "./run-workspace-cleanup-decision";
 
 function target(
 	overrides: Partial<AutomationRunWorkspaceCleanupTarget> = {},

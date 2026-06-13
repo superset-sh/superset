@@ -7,7 +7,7 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_create",
 		description:
-			"Schedule a recurring agent run. Provide an RFC 5545 RRULE body for the schedule. Either v2ProjectId (run in a fresh workspace) or v2WorkspaceId (reuse an existing workspace) is required — call projects_list or workspaces_list first to get IDs. `agent` is the host-agent instance id (or presetId fallback) that runs the prompt; pass 'superset' for the built-in chat agent.",
+			"Schedule a recurring agent run. Provide an RFC 5545 RRULE body for the schedule. v2ProjectId is optional context only; automation execution runs in the host-service background runner, not in a Code workspace. `agent` is the host-agent instance id (or presetId fallback) that runs the prompt; pass 'superset' for the built-in chat agent.",
 		inputSchema: {
 			name: z
 				.string()
@@ -36,13 +36,14 @@ export function register(server: McpServer): void {
 			v2ProjectId: z
 				.string()
 				.uuid()
-				.optional()
-				.describe("Project UUID. Provide this OR v2WorkspaceId."),
-			v2WorkspaceId: z
-				.string()
-				.uuid()
 				.nullish()
-				.describe("Workspace UUID to reuse. Provide this OR v2ProjectId."),
+				.describe("Optional Project UUID used as context metadata."),
+			v2WorkspaceId: z
+				.null()
+				.optional()
+				.describe(
+					"Deprecated workspace context. New automations must omit it.",
+				),
 			rrule: z
 				.string()
 				.min(1)

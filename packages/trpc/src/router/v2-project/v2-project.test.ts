@@ -106,6 +106,19 @@ mock.module("@superset/db/client", () => ({
 }));
 
 mock.module("@superset/db/schema", () => ({
+	automationRuns: {
+		automationId: "automation_runs.automation_id",
+		hostId: "automation_runs.host_id",
+		id: "automation_runs.id",
+		organizationId: "automation_runs.organization_id",
+		v2WorkspaceId: "automation_runs.v2_workspace_id",
+	},
+	automations: {
+		id: "automations.id",
+		ownerUserId: "automations.owner_user_id",
+		v2WorkspaceId: "automations.v2_workspace_id",
+	},
+	automationSessionKindValues: ["chat", "terminal"],
 	v2Projects: {
 		id: "v2_projects.id",
 		organizationId: "v2_projects.organization_id",
@@ -147,6 +160,7 @@ mock.module("@superset/db/schema", () => ({
 		slug: "tasks.slug",
 	},
 	users: {
+		email: "users.email",
 		id: "users.id",
 		image: "users.image",
 		name: "users.name",
