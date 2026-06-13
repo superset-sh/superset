@@ -30,9 +30,41 @@ function createMockNotification(): MockNotification {
 	};
 }
 
+interface FakeScheduler {
+	setTimer: (fn: () => void, ms: number) => unknown;
+	clearTimer: (handle: unknown) => void;
+	/** Runs all scheduled-but-not-cancelled timers immediately. */
+	flush: () => void;
+	pendingCount: () => number;
+}
+
+function createFakeScheduler(): FakeScheduler {
+	const timers = new Map<number, () => void>();
+	let nextId = 1;
+	return {
+		setTimer(fn) {
+			const id = nextId++;
+			timers.set(id, fn);
+			return id;
+		},
+		clearTimer(handle) {
+			timers.delete(handle as number);
+		},
+		flush() {
+			const pending = [...timers.entries()];
+			timers.clear();
+			for (const [, fn] of pending) fn();
+		},
+		pendingCount() {
+			return timers.size;
+		},
+	};
+}
+
 interface TestDeps extends NotificationManagerDeps {
 	notifications: MockNotification[];
 	clickedIds: NotificationIds[];
+	scheduler: FakeScheduler;
 }
 
 function createDeps(
@@ -40,10 +72,12 @@ function createDeps(
 ): TestDeps {
 	const notifications: MockNotification[] = [];
 	const clickedIds: NotificationIds[] = [];
+	const scheduler = createFakeScheduler();
 
 	return {
 		notifications,
 		clickedIds,
+		scheduler,
 		isSupported: () => true,
 		createNotification: () => {
 			const n = createMockNotification();
@@ -59,6 +93,9 @@ function createDeps(
 		}),
 		getWorkspaceName: () => "Test Workspace",
 		getNotificationTitle: () => "Test Title",
+		stopDebounceMs: 4000,
+		setTimer: (fn, ms) => scheduler.setTimer(fn, ms),
+		clearTimer: (handle) => scheduler.clearTimer(handle),
 		...overrides,
 	};
 }
@@ -96,6 +133,7 @@ describe("NotificationManager", () => {
 
 		it("shows notification for Stop events", () => {
 			manager.handleAgentLifecycle(makeEvent({ eventType: "Stop" }));
+			deps.scheduler.flush();
 			expect(manager.activeCount).toBe(1);
 			expect(lastNotification(deps).show).toHaveBeenCalled();
 		});
@@ -116,17 +154,100 @@ describe("NotificationManager", () => {
 
 		it("plays sound on notification", () => {
 			manager.handleAgentLifecycle(makeEvent());
+			deps.scheduler.flush();
 			expect(deps.playSound).toHaveBeenCalled();
+		});
+	});
+
+	describe("Stop debounce (issue #5259 — per-turn notification spam)", () => {
+		it("does not notify or play sound until the debounce window elapses", () => {
+			manager.handleAgentLifecycle(makeEvent({ eventType: "Stop" }));
+
+			// Stop is still pending — nothing shown yet, no sound.
+			expect(manager.activeCount).toBe(0);
+			expect(deps.playSound).not.toHaveBeenCalled();
+			expect(deps.scheduler.pendingCount()).toBe(1);
+
+			deps.scheduler.flush();
+			expect(manager.activeCount).toBe(1);
+			expect(deps.playSound).toHaveBeenCalledTimes(1);
+		});
+
+		it("cancels the pending Stop when a Start follows for the same pane", () => {
+			// Cursor fires stop after a model turn, then immediately starts the next.
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: "pane-1" }),
+			);
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Start", paneId: "pane-1" }),
+			);
+			deps.scheduler.flush();
+
+			expect(manager.activeCount).toBe(0);
+			expect(deps.playSound).not.toHaveBeenCalled();
+		});
+
+		it("fires exactly once for a multi-turn task that ends with a Stop", () => {
+			// Three intermediate turns (Stop→Start) then a final Stop.
+			for (let i = 0; i < 3; i++) {
+				manager.handleAgentLifecycle(
+					makeEvent({ eventType: "Stop", paneId: "pane-1" }),
+				);
+				manager.handleAgentLifecycle(
+					makeEvent({ eventType: "Start", paneId: "pane-1" }),
+				);
+			}
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: "pane-1" }),
+			);
+			deps.scheduler.flush();
+
+			expect(manager.activeCount).toBe(1);
+			expect(deps.playSound).toHaveBeenCalledTimes(1);
+		});
+
+		it("does not let a Start cancel a Stop for a different pane", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: "pane-1" }),
+			);
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Start", paneId: "pane-2" }),
+			);
+			deps.scheduler.flush();
+
+			expect(manager.activeCount).toBe(1);
+		});
+
+		it("correlates by sessionId when paneId is absent", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: undefined, sessionId: "s1" }),
+			);
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Start", paneId: undefined, sessionId: "s1" }),
+			);
+			deps.scheduler.flush();
+
+			expect(manager.activeCount).toBe(0);
+		});
+
+		it("shows PermissionRequest immediately without debouncing", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "PermissionRequest" }),
+			);
+			expect(manager.activeCount).toBe(1);
+			expect(deps.scheduler.pendingCount()).toBe(0);
 		});
 	});
 
 	describe("tracking and replacement", () => {
 		it("replaces notification for the same paneId", () => {
 			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-1" }));
+			deps.scheduler.flush();
 			const first = lastNotification(deps);
 			expect(manager.activeCount).toBe(1);
 
 			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-1" }));
+			deps.scheduler.flush();
 			expect(manager.activeCount).toBe(1);
 			expect(first.close).toHaveBeenCalled();
 		});
@@ -134,17 +255,20 @@ describe("NotificationManager", () => {
 		it("tracks different panes independently", () => {
 			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-1" }));
 			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-2" }));
+			deps.scheduler.flush();
 			expect(manager.activeCount).toBe(2);
 		});
 
 		it("untracks on click", () => {
 			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-1" }));
+			deps.scheduler.flush();
 			lastNotification(deps).trigger("click");
 			expect(manager.activeCount).toBe(0);
 		});
 
 		it("untracks on close", () => {
 			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-1" }));
+			deps.scheduler.flush();
 			lastNotification(deps).trigger("close");
 			expect(manager.activeCount).toBe(0);
 		});
@@ -158,6 +282,7 @@ describe("NotificationManager", () => {
 				terminalId: "term-1",
 			});
 			manager.handleAgentLifecycle(event);
+			deps.scheduler.flush();
 			lastNotification(deps).trigger("click");
 			expect(deps.clickedIds).toEqual([
 				{
@@ -174,12 +299,14 @@ describe("NotificationManager", () => {
 			manager.handleAgentLifecycle(
 				makeEvent({ paneId: undefined, sessionId: "session-1" }),
 			);
+			deps.scheduler.flush();
 			const first = lastNotification(deps);
 			expect(manager.activeCount).toBe(1);
 
 			manager.handleAgentLifecycle(
 				makeEvent({ paneId: undefined, sessionId: "session-1" }),
 			);
+			deps.scheduler.flush();
 			expect(manager.activeCount).toBe(1);
 			expect(first.close).toHaveBeenCalled();
 		});
@@ -205,6 +332,7 @@ describe("NotificationManager", () => {
 					sessionId: "session-1",
 				}),
 			);
+			deps.scheduler.flush();
 
 			expect(manager.activeCount).toBe(1);
 			expect(first.close).toHaveBeenCalled();
@@ -214,6 +342,7 @@ describe("NotificationManager", () => {
 			manager.handleAgentLifecycle(
 				makeEvent({ paneId: undefined, sessionId: "session-1" }),
 			);
+			deps.scheduler.flush();
 			const first = lastNotification(deps);
 
 			manager.handleAgentLifecycle(
@@ -224,14 +353,19 @@ describe("NotificationManager", () => {
 					sessionId: "session-1",
 				}),
 			);
+			deps.scheduler.flush();
 			first.trigger("close");
 
 			expect(manager.activeCount).toBe(1);
 		});
 
 		it("assigns unique keys when paneId is missing", () => {
-			manager.handleAgentLifecycle(makeEvent({ paneId: undefined }));
-			manager.handleAgentLifecycle(makeEvent({ paneId: undefined }));
+			manager.handleAgentLifecycle(
+				makeEvent({ paneId: undefined, sessionId: undefined }),
+			);
+			manager.handleAgentLifecycle(
+				makeEvent({ paneId: undefined, sessionId: undefined }),
+			);
 			expect(manager.activeCount).toBe(2);
 		});
 	});
@@ -274,6 +408,7 @@ describe("NotificationManager", () => {
 			const localManager = new NotificationManager(localDeps);
 
 			localManager.handleAgentLifecycle(makeEvent());
+			localDeps.scheduler.flush();
 			expect(localManager.activeCount).toBe(1);
 		});
 	});
@@ -282,9 +417,19 @@ describe("NotificationManager", () => {
 		it("clears all tracked notifications", () => {
 			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-1" }));
 			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-2" }));
+			deps.scheduler.flush();
 			expect(manager.activeCount).toBe(2);
 
 			manager.dispose();
+			expect(manager.activeCount).toBe(0);
+		});
+
+		it("cancels pending Stop timers so they never fire", () => {
+			manager.handleAgentLifecycle(makeEvent({ paneId: "pane-1" }));
+			expect(deps.scheduler.pendingCount()).toBe(1);
+
+			manager.dispose();
+			deps.scheduler.flush();
 			expect(manager.activeCount).toBe(0);
 		});
 	});
@@ -319,6 +464,7 @@ describe("NotificationManager", () => {
 			const localManager = new NotificationManager(localDeps);
 
 			localManager.handleAgentLifecycle(makeEvent({ eventType: "Stop" }));
+			localDeps.scheduler.flush();
 
 			expect(createNotification).toHaveBeenCalledWith(
 				expect.objectContaining({

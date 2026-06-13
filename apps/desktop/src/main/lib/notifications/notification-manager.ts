@@ -7,6 +7,15 @@ import { isPaneVisible } from "./utils";
 const NOTIFICATION_TTL_MS = 10 * 60 * 1000;
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 
+/**
+ * How long to wait after a "Stop" hook before showing the completion
+ * notification. Some agents (Cursor Agent, Claude Code Agent Teams) fire their
+ * stop hook after *every* model turn and then immediately begin the next turn.
+ * If a "Start" arrives within this window we treat the stop as an intermediate
+ * turn boundary and suppress the (spammy) notification + sound.
+ */
+const DEFAULT_STOP_DEBOUNCE_MS = 4000;
+
 export interface NativeNotification {
 	show(): void;
 	close(): void;
@@ -35,6 +44,16 @@ export interface NotificationManagerDeps {
 	};
 	getWorkspaceName: (workspaceId: string | undefined) => string;
 	getNotificationTitle: (event: AgentLifecycleEvent) => string;
+	/**
+	 * Debounce window for "Stop" events. A "Start" for the same pane/session
+	 * within this window cancels the pending completion notification.
+	 * Defaults to {@link DEFAULT_STOP_DEBOUNCE_MS}.
+	 */
+	stopDebounceMs?: number;
+	/** Schedules a callback. Injectable for tests; defaults to setTimeout. */
+	setTimer?: (fn: () => void, ms: number) => unknown;
+	/** Cancels a scheduled callback. Injectable for tests; defaults to clearTimeout. */
+	clearTimer?: (handle: unknown) => void;
 }
 
 interface TrackedEntry {
@@ -44,10 +63,29 @@ interface TrackedEntry {
 
 export class NotificationManager {
 	private active = new Map<string, TrackedEntry>();
+	private pendingStops = new Map<string, unknown>();
 	private counter = 0;
 	private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
 	constructor(private deps: NotificationManagerDeps) {}
+
+	private get stopDebounceMs(): number {
+		return this.deps.stopDebounceMs ?? DEFAULT_STOP_DEBOUNCE_MS;
+	}
+
+	private setTimer(fn: () => void, ms: number): unknown {
+		return (this.deps.setTimer ?? ((cb, delay) => setTimeout(cb, delay)))(
+			fn,
+			ms,
+		);
+	}
+
+	private clearTimer(handle: unknown): void {
+		(
+			this.deps.clearTimer ??
+			((h) => clearTimeout(h as ReturnType<typeof setTimeout>))
+		)(handle);
+	}
 
 	start(): void {
 		if (this.sweepTimer) return;
@@ -55,11 +93,47 @@ export class NotificationManager {
 	}
 
 	handleAgentLifecycle(event: AgentLifecycleEvent): void {
-		if (event.eventType === "Start") return;
-		if (!this.deps.isSupported()) return;
+		// A new turn beginning cancels any pending completion notification for the
+		// same pane/session: the agent wasn't actually done, it just paused
+		// between turns (Cursor / Claude Agent Teams fire stop after every turn).
+		if (event.eventType === "Start") {
+			const startKey = this.correlationKey(event);
+			if (startKey) this.cancelPendingStop(startKey);
+			return;
+		}
 
+		if (!this.deps.isSupported()) return;
 		if (this.shouldSuppressForVisiblePane(event)) return;
 
+		// Permission requests / pending questions genuinely await user input, and
+		// uncorrelated events can't be debounced — show those immediately.
+		const correlationKey = this.correlationKey(event);
+		if (event.eventType !== "Stop" || !correlationKey) {
+			this.showNotification(event, correlationKey ?? `_anon_${this.counter++}`);
+			return;
+		}
+
+		// Debounce "Stop" so a fast follow-up "Start" can cancel it.
+		this.cancelPendingStop(correlationKey);
+		const handle = this.setTimer(() => {
+			this.pendingStops.delete(correlationKey);
+			this.showNotification(event, correlationKey);
+		}, this.stopDebounceMs);
+		this.pendingStops.set(correlationKey, handle);
+	}
+
+	private correlationKey(event: AgentLifecycleEvent): string | null {
+		return event.sessionId ?? event.paneId ?? null;
+	}
+
+	private cancelPendingStop(key: string): void {
+		const handle = this.pendingStops.get(key);
+		if (handle === undefined) return;
+		this.clearTimer(handle);
+		this.pendingStops.delete(key);
+	}
+
+	private showNotification(event: AgentLifecycleEvent, key: string): void {
 		const workspaceName = this.deps.getWorkspaceName(event.workspaceId);
 		const title = this.deps.getNotificationTitle(event);
 
@@ -77,7 +151,6 @@ export class NotificationManager {
 			silent: true,
 		});
 
-		const key = event.sessionId ?? event.paneId ?? `_anon_${this.counter++}`;
 		this.track(key, notification);
 
 		this.deps.playSound();
@@ -110,6 +183,10 @@ export class NotificationManager {
 			clearInterval(this.sweepTimer);
 			this.sweepTimer = null;
 		}
+		for (const handle of this.pendingStops.values()) {
+			this.clearTimer(handle);
+		}
+		this.pendingStops.clear();
 		this.active.clear();
 	}
 
