@@ -232,6 +232,35 @@ describe("useTerminalColdRestore", () => {
 		expect(options.preserveCleanExitUntilRef.current).toBeGreaterThan(0);
 	});
 
+	it("retains resume metadata when auto-resume injection fails", async () => {
+		stateValues[2] = "claude --resume abc123";
+		coldRestoreState.set("pane-1", {
+			isRestored: true,
+			cwd: "/repo",
+			scrollback: "restored scrollback",
+			resumeCommand: "claude --resume abc123",
+		});
+		writeCommandInPaneMock.mockImplementationOnce(async () => {
+			throw new Error("resume write failed");
+		});
+		const { options } = createOptions();
+		const coldRestore = useTerminalColdRestore(options);
+
+		coldRestore.handleStartShell();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(options.setConnectionError).toHaveBeenCalledWith(
+			"resume write failed",
+		);
+		expect(stateSetters[2]).not.toHaveBeenCalledWith(null);
+		expect(coldRestoreState.get("pane-1")).toEqual({
+			isRestored: true,
+			cwd: "/repo",
+			scrollback: "restored scrollback",
+			resumeCommand: "claude --resume abc123",
+		});
+	});
+
 	it("clears the clean-exit grace window when starting a restored shell is canceled", () => {
 		isTerminalAttachCanceledMessageMock.mockImplementation(
 			(message?: string) => message === "attach canceled",

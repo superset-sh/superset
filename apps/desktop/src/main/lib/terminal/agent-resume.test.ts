@@ -157,6 +157,40 @@ describe("resolveAgentResumeTarget", () => {
 		});
 	});
 
+	it("falls back from a stale stored Codex session id to the transcript match", async () => {
+		const cwd = "/tmp/workspaces/codex";
+		const transcriptPath = join(
+			testHome,
+			".codex",
+			"sessions",
+			"2026",
+			"06",
+			"12",
+			"rollout-2026-06-12T00-00-00-fresh-session.jsonl",
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			`${JSON.stringify({
+				type: "session_meta",
+				payload: { id: "fresh-session", cwd },
+			})}\n`,
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "codex",
+			sessionId: "stale-session",
+			cwd,
+		});
+
+		expect(result).toMatchObject({
+			agentId: "codex",
+			sessionId: "fresh-session",
+			resumeCommand: "codex resume fresh-session",
+			sourcePath: transcriptPath,
+		});
+	});
+
 	it("scans the matching transcript store when the agent is known but the session id is missing", async () => {
 		const workspacePath = "/tmp/workspaces/shared";
 		const claudePath = join(

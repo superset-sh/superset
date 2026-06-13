@@ -188,6 +188,68 @@ export async function hasClaudeTopLevelTranscript(
 	return (await findClaudeTopLevelTranscriptPath(sessionId)) !== null;
 }
 
+async function findCodexTranscriptPath(
+	sessionId: string,
+): Promise<string | null> {
+	const rootDir = join(getCurrentHomeDir(), ".codex", "sessions");
+	const targetSuffix = `${sessionId}.jsonl`;
+	const pendingDirs = [rootDir];
+
+	while (pendingDirs.length > 0) {
+		const dir = pendingDirs.pop();
+		if (!dir) {
+			continue;
+		}
+
+		let entries: Dirent[];
+		try {
+			entries = await fs.readdir(dir, { withFileTypes: true });
+		} catch (error) {
+			if (!isErrnoException(error, "ENOENT")) {
+				logResumeWarning(`Failed to read transcript directory ${dir}`, error);
+			}
+			continue;
+		}
+
+		for (const entry of entries) {
+			const fullPath = join(dir, entry.name);
+
+			if (entry.isDirectory()) {
+				pendingDirs.push(fullPath);
+				continue;
+			}
+
+			if (!entry.isFile() || !entry.name.endsWith(targetSuffix)) {
+				continue;
+			}
+
+			const snippet = await readSnippet(fullPath);
+			if (!snippet) {
+				continue;
+			}
+
+			const parsed = parseCodexSnippet(snippet);
+			if (!parsed) {
+				continue;
+			}
+
+			const normalizedSessionId = normalizeSessionId(
+				parsed.sessionId,
+				fullPath,
+			);
+			if (normalizedSessionId === sessionId) {
+				return fullPath;
+			}
+		}
+	}
+
+	return null;
+}
+
+async function hasCodexTranscript(sessionId: string): Promise<boolean> {
+	return (await findCodexTranscriptPath(sessionId)) !== null;
+}
+
 async function collectRecentFiles(
 	rootDir: string,
 	matchesFile: (path: string) => boolean,
@@ -403,12 +465,13 @@ export async function resolveAgentResumeTarget(params: {
 	);
 
 	if (normalizedAgentId && normalizedSessionId) {
-		if (
-			normalizedAgentId === "claude" &&
-			!(await hasClaudeTopLevelTranscript(normalizedSessionId))
-		) {
+		const hasStoredTranscript =
+			normalizedAgentId === "claude"
+				? await hasClaudeTopLevelTranscript(normalizedSessionId)
+				: await hasCodexTranscript(normalizedSessionId);
+		if (!hasStoredTranscript) {
 			logResumeWarning(
-				`Stored Claude session ${normalizedSessionId} has no top-level transcript; falling back to transcript scan`,
+				`Stored ${normalizedAgentId} session ${normalizedSessionId} has no transcript; falling back to transcript scan`,
 			);
 		} else {
 			return {

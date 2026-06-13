@@ -325,4 +325,37 @@ describe("session-location-log", () => {
 		});
 		expect(archivedPath ?? "").toBe(LEGACY_SESSION_LOCATION_LOG_PATH);
 	});
+
+	it("leaves the legacy log in place when it contains no importable entries", async () => {
+		let archivedPath: string | null = null;
+		let readCalls = 0;
+
+		setLegacySessionLocationSourceForTests({
+			exists: () => true,
+			read: () => {
+				readCalls += 1;
+				return JSON.stringify({
+					sessions: {
+						"pane-1": {
+							paneId: "pane-1",
+							tabId: "tab-1",
+							workspaceId: "workspace-1",
+							status: "available",
+							createdAt: 1,
+							updatedAt: 2,
+							locationKey: "workspace-1:tab-1:pane-1",
+						},
+					},
+				});
+			},
+			archive: (path) => {
+				archivedPath = path;
+			},
+		});
+
+		expect(await getSessionLocation("pane-1")).toBeNull();
+		expect(await getSessionLocation("pane-1")).toBeNull();
+		expect(readCalls).toBe(1);
+		expect(archivedPath).toBeNull();
+	});
 });

@@ -340,6 +340,13 @@ function ensureLegacyImportIfNeeded(): void {
 		const legacyEntries = parseLegacySessionLocationLog(
 			legacySessionLocationSource.read(LEGACY_SESSION_LOCATION_LOG_PATH),
 		);
+		if (legacyEntries.length === 0) {
+			logSessionLocationWarning(
+				"Legacy session location log contained no importable entries; leaving source file in place",
+			);
+			legacyImportEnsured = true;
+			return;
+		}
 		for (const entry of legacyEntries) {
 			if (storeAdapter.getByPaneId(entry.paneId)) {
 				continue;

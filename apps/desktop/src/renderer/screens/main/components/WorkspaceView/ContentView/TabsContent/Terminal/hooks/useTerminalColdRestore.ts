@@ -236,28 +236,35 @@ export function useTerminalColdRestore({
 					maybeApplyInitialState();
 
 					setIsRestoredMode(false);
-					setRestoredResumeCommand(null);
-					coldRestoreState.delete(paneId);
-
 					const resumeCommand = restoredResumeCommandRef.current;
+					const clearRestoreResumeState = () => {
+						setRestoredResumeCommand(null);
+						coldRestoreState.delete(paneId);
+					};
 					if (resumeCommand) {
 						void writeCommandInPane({
 							paneId,
 							command: resumeCommand,
 							write: (input) => trpcClient.terminal.write.mutate(input),
-						}).catch((error) => {
-							console.error(
-								"[Terminal] Failed to write agent resume command:",
-								error,
-							);
-							setConnectionError(
-								error instanceof Error
-									? error.message
-									: "Failed to resume the previous agent session",
-							);
-							isStreamReadyRef.current = true;
-							flushPendingEvents();
-						});
+						})
+							.then(() => {
+								clearRestoreResumeState();
+							})
+							.catch((error) => {
+								console.error(
+									"[Terminal] Failed to write agent resume command:",
+									error,
+								);
+								setConnectionError(
+									error instanceof Error
+										? error.message
+										: "Failed to resume the previous agent session",
+								);
+								isStreamReadyRef.current = true;
+								flushPendingEvents();
+							});
+					} else {
+						clearRestoreResumeState();
 					}
 
 					setTimeout(() => {
