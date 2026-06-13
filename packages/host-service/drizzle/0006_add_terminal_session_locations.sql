@@ -16,7 +16,6 @@ CREATE TABLE `terminal_session_locations` (
 	`exited_at` integer,
 	`exit_reason` text,
 	`location_key` text NOT NULL,
-	FOREIGN KEY (`pane_id`) REFERENCES `terminal_sessions`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`workspace_id`) REFERENCES `workspaces`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint

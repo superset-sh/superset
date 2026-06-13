@@ -579,19 +579,6 @@
         }
       },
       "foreignKeys": {
-        "terminal_session_locations_pane_id_terminal_sessions_id_fk": {
-          "name": "terminal_session_locations_pane_id_terminal_sessions_id_fk",
-          "tableFrom": "terminal_session_locations",
-          "tableTo": "terminal_sessions",
-          "columnsFrom": [
-            "pane_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "terminal_session_locations_workspace_id_workspaces_id_fk": {
           "name": "terminal_session_locations_workspace_id_workspaces_id_fk",
           "tableFrom": "terminal_session_locations",

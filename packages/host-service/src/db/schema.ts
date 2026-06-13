@@ -33,9 +33,7 @@ export const terminalSessions = sqliteTable(
 export const terminalSessionLocations = sqliteTable(
 	"terminal_session_locations",
 	{
-		paneId: text("pane_id")
-			.primaryKey()
-			.references(() => terminalSessions.id, { onDelete: "cascade" }),
+		paneId: text("pane_id").primaryKey(),
 		tabId: text("tab_id").notNull(),
 		workspaceId: text("workspace_id")
 			.notNull()

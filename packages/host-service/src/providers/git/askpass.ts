@@ -3,12 +3,16 @@ import { chmod, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+function shellSingleQuote(value: string): string {
+	return `'${value.replaceAll("'", `'"'"'`)}'`;
+}
+
 export async function writeTempAskpass(token: string): Promise<string> {
 	const filePath = join(tmpdir(), `git-askpass-${randomUUID()}.sh`);
 	const script = `#!/bin/sh
 case "$1" in
-  Username*) echo "x-access-token" ;;
-  *) echo "${token}" ;;
+  Username*) printf '%s\n' 'x-access-token' ;;
+  *) printf '%s\n' ${shellSingleQuote(token)} ;;
 esac
 `;
 	await writeFile(filePath, script);
