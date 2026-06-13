@@ -8,7 +8,7 @@ import {
 	unlink,
 	writeFile,
 } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
 	SUPERSET_HOME_DIR,
 	SUPERSET_HOME_DIR_MODE,
@@ -27,6 +27,13 @@ export type SupersetCliAuthConfig = Record<string, unknown> & {
 
 export const CLI_AUTH_CONFIG_PATH = join(SUPERSET_HOME_DIR, "config.json");
 
+export function getCliAuthConfigPath(): string {
+	return join(
+		process.env.SUPERSET_HOME_DIR || SUPERSET_HOME_DIR,
+		"config.json",
+	);
+}
+
 function isNodeErrno(error: unknown, code: string): boolean {
 	return (
 		typeof error === "object" &&
@@ -37,10 +44,11 @@ function isNodeErrno(error: unknown, code: string): boolean {
 }
 
 async function readCliAuthConfig(): Promise<SupersetCliAuthConfig> {
+	const configPath = getCliAuthConfigPath();
 	try {
-		const fileStat = await stat(CLI_AUTH_CONFIG_PATH);
+		const fileStat = await stat(configPath);
 		if ((fileStat.mode & 0o077) !== 0) {
-			await chmod(CLI_AUTH_CONFIG_PATH, SUPERSET_SENSITIVE_FILE_MODE).catch(
+			await chmod(configPath, SUPERSET_SENSITIVE_FILE_MODE).catch(
 				() => undefined,
 			);
 		}
@@ -50,7 +58,7 @@ async function readCliAuthConfig(): Promise<SupersetCliAuthConfig> {
 	}
 
 	try {
-		const parsed = JSON.parse(await readFile(CLI_AUTH_CONFIG_PATH, "utf-8"));
+		const parsed = JSON.parse(await readFile(configPath, "utf-8"));
 		return parsed && typeof parsed === "object" && !Array.isArray(parsed)
 			? (parsed as SupersetCliAuthConfig)
 			: {};
@@ -62,14 +70,16 @@ async function readCliAuthConfig(): Promise<SupersetCliAuthConfig> {
 async function writeCliAuthConfig(
 	config: SupersetCliAuthConfig,
 ): Promise<void> {
-	await mkdir(SUPERSET_HOME_DIR, {
+	const configPath = getCliAuthConfigPath();
+	const configDir = dirname(configPath);
+	await mkdir(configDir, {
 		recursive: true,
 		mode: SUPERSET_HOME_DIR_MODE,
 	});
-	await chmod(SUPERSET_HOME_DIR, SUPERSET_HOME_DIR_MODE).catch(() => undefined);
+	await chmod(configDir, SUPERSET_HOME_DIR_MODE).catch(() => undefined);
 
 	const tempPath = join(
-		SUPERSET_HOME_DIR,
+		configDir,
 		`.${randomUUID()}.${process.pid}.config.tmp`,
 	);
 	await writeFile(tempPath, JSON.stringify(config, null, 2), {
@@ -77,14 +87,12 @@ async function writeCliAuthConfig(
 	});
 	await chmod(tempPath, SUPERSET_SENSITIVE_FILE_MODE).catch(() => undefined);
 	try {
-		await rename(tempPath, CLI_AUTH_CONFIG_PATH);
+		await rename(tempPath, configPath);
 	} catch (error) {
 		await unlink(tempPath).catch(() => undefined);
 		throw error;
 	}
-	await chmod(CLI_AUTH_CONFIG_PATH, SUPERSET_SENSITIVE_FILE_MODE).catch(
-		() => undefined,
-	);
+	await chmod(configPath, SUPERSET_SENSITIVE_FILE_MODE).catch(() => undefined);
 }
 
 function parseExpiresAt(value: string): number {

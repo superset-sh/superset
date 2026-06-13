@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
 	existsSync,
@@ -14,7 +14,7 @@ const originalSupersetHomeDir = process.env.SUPERSET_HOME_DIR;
 const tempHome = join(tmpdir(), `superset-desktop-cli-auth-${randomUUID()}`);
 process.env.SUPERSET_HOME_DIR = tempHome;
 
-const { CLI_AUTH_CONFIG_PATH, clearCliAuthConfig, syncCliAuthConfig } =
+const { clearCliAuthConfig, getCliAuthConfigPath, syncCliAuthConfig } =
 	await import("./cli-auth-config");
 
 afterAll(() => {
@@ -26,8 +26,12 @@ afterAll(() => {
 	}
 });
 
+beforeEach(() => {
+	rmSync(tempHome, { recursive: true, force: true });
+});
+
 function readConfig(): Record<string, unknown> {
-	return JSON.parse(readFileSync(CLI_AUTH_CONFIG_PATH, "utf-8")) as Record<
+	return JSON.parse(readFileSync(getCliAuthConfigPath(), "utf-8")) as Record<
 		string,
 		unknown
 	>;
@@ -53,7 +57,7 @@ describe("desktop CLI auth config sync", () => {
 	test("desktop auth supersedes stale API key config", async () => {
 		mkdirSync(tempHome, { recursive: true });
 		writeFileSync(
-			CLI_AUTH_CONFIG_PATH,
+			getCliAuthConfigPath(),
 			JSON.stringify({
 				apiKey: "sk_live_old",
 				organizationId: "org-old",
@@ -78,6 +82,14 @@ describe("desktop CLI auth config sync", () => {
 	});
 
 	test("clear removes desktop auth and active organization", async () => {
+		mkdirSync(tempHome, { recursive: true });
+		writeFileSync(
+			getCliAuthConfigPath(),
+			JSON.stringify({
+				otherSetting: true,
+			}),
+		);
+
 		await syncCliAuthConfig({
 			token: "desktop-session-token-3",
 			expiresAt: "2026-06-08T14:00:00.000Z",
@@ -86,7 +98,7 @@ describe("desktop CLI auth config sync", () => {
 
 		await clearCliAuthConfig();
 
-		expect(existsSync(CLI_AUTH_CONFIG_PATH)).toBe(true);
+		expect(existsSync(getCliAuthConfigPath())).toBe(true);
 		expect(readConfig()).toEqual({ otherSetting: true });
 	});
 });

@@ -91,6 +91,7 @@ export class HostServiceCoordinator extends EventEmitter {
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
+	private resolveChildEnv = getProcessEnvWithShellPath;
 
 	async start(
 		organizationId: string,
@@ -448,7 +449,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		const exposeViaRelay =
 			row?.exposeHostServiceViaRelay ?? DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY;
 
-		const childEnv = await getProcessEnvWithShellPath({
+		const childEnv = await this.resolveChildEnv({
 			...(process.env as Record<string, string>),
 			ELECTRON_RUN_AS_NODE: "1",
 			NODE_ENV: app.isPackaged

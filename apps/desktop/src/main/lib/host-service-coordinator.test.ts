@@ -94,10 +94,6 @@ mock.module("./local-db", () => ({
 		select: () => ({ from: () => ({ get: () => localSettingsRow }) }),
 	},
 }));
-mock.module("../../lib/trpc/routers/workspaces/utils/shell-env", () => ({
-	getProcessEnvWithShellPath: (env: Record<string, string>) =>
-		Promise.resolve(env),
-}));
 mock.module("./relay-url", () => ({
 	getRelayUrl: () => Promise.resolve("https://relay.example"),
 }));
@@ -120,6 +116,7 @@ interface HostServiceCoordinatorInternals {
 }
 
 interface HostServiceCoordinatorBuildEnvInternals {
+	resolveChildEnv(env: Record<string, string>): Promise<Record<string, string>>;
 	buildEnv(
 		organizationId: string,
 		port: number,
@@ -147,6 +144,9 @@ describe("HostServiceCoordinator preferred ports", () => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
 		coordinator = new HostServiceCoordinator();
+		(
+			coordinator as unknown as HostServiceCoordinatorBuildEnvInternals
+		).resolveChildEnv = (env) => Promise.resolve(env);
 	});
 
 	afterEach(() => {
