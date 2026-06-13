@@ -1,19 +1,14 @@
 import { existsSync, readFileSync, renameSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
-import type { SelectTerminalSessionLocation } from "@superset/local-db/schema";
-import { terminalSessionLocations } from "@superset/local-db/schema";
+import { terminalSessionLocations } from "@superset/host-service/db";
 import { eq } from "drizzle-orm";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
-import { localDb } from "main/lib/local-db";
 
-export const SESSION_LOCATION_STORE_PATH = join(SUPERSET_HOME_DIR, "local.db");
 export const LEGACY_SESSION_LOCATION_LOG_PATH = join(
 	SUPERSET_HOME_DIR,
 	"session-locations.json",
 );
-
-// Kept for compatibility with existing terminal env wiring and tests.
-export const SESSION_LOCATION_LOG_PATH = SESSION_LOCATION_STORE_PATH;
 
 export interface SessionLocationEntry {
 	paneId: string;
@@ -35,34 +30,42 @@ export interface SessionLocationEntry {
 	locationKey: string;
 }
 
+type SessionLocationPatch = Partial<
+	Pick<
+		SessionLocationEntry,
+		| "agentId"
+		| "agentSessionId"
+		| "status"
+		| "pid"
+		| "updatedAt"
+		| "exitedAt"
+		| "exitReason"
+	>
+>;
+
 export interface SessionLocationStoreAdapter {
+	isAvailable(): boolean;
 	hasAny(): boolean;
-	getByPaneId(paneId: string): SelectTerminalSessionLocation | undefined;
+	getByPaneId(paneId: string): SessionLocationEntry | undefined;
 	upsert(entry: SessionLocationEntry): void;
-	update(
-		paneId: string,
-		patch: Partial<
-			Pick<
-				SessionLocationEntry,
-				| "agentId"
-				| "agentSessionId"
-				| "status"
-				| "pid"
-				| "updatedAt"
-				| "exitedAt"
-				| "exitReason"
-			>
-		>,
-	): void;
+	update(paneId: string, patch: SessionLocationPatch): void;
 }
+
+type TerminalSessionLocationRow = typeof terminalSessionLocations.$inferSelect;
+type HostDbAccess = {
+	getActiveHostDb: () => ReturnType<
+		typeof import("main/lib/host-db").getActiveHostDb
+	>;
+	getActiveHostDbPath: () => ReturnType<
+		typeof import("main/lib/host-db").getActiveHostDbPath
+	>;
+};
 
 interface LegacySessionLocationSource {
 	exists(path: string): boolean;
 	read(path: string): string;
 	archive(path: string): void;
 }
-
-type SessionLocationRecord = SelectTerminalSessionLocation;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -78,6 +81,10 @@ function normalizeOptionalIdentityValue(
 
 function toOptionalString(value: string | null): string | undefined {
 	return value ?? undefined;
+}
+
+function toNullableString(value: string | undefined): string | null {
+	return value ?? null;
 }
 
 function readRequiredString(
@@ -99,7 +106,7 @@ function readOptionalStringFromRecord(
 	);
 }
 
-function toEntry(record: SessionLocationRecord): SessionLocationEntry {
+function toEntry(record: TerminalSessionLocationRow): SessionLocationEntry {
 	return {
 		paneId: record.paneId,
 		tabId: record.tabId,
@@ -123,9 +130,14 @@ function toEntry(record: SessionLocationRecord): SessionLocationEntry {
 
 function createDbStoreAdapter(): SessionLocationStoreAdapter {
 	return {
+		isAvailable() {
+			return getHostDbAccess().getActiveHostDbPath() !== null;
+		},
 		hasAny() {
+			const db = getHostDbAccess().getActiveHostDb();
+			if (!db) return false;
 			return (
-				localDb
+				db
 					.select({ paneId: terminalSessionLocations.paneId })
 					.from(terminalSessionLocations)
 					.limit(1)
@@ -133,32 +145,36 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 			);
 		},
 		getByPaneId(paneId) {
-			return localDb
+			const db = getHostDbAccess().getActiveHostDb();
+			if (!db) return undefined;
+			const record = db
 				.select()
 				.from(terminalSessionLocations)
 				.where(eq(terminalSessionLocations.paneId, paneId))
 				.get();
+			return record ? toEntry(record) : undefined;
 		},
 		upsert(entry) {
-			localDb
-				.insert(terminalSessionLocations)
+			const db = getHostDbAccess().getActiveHostDb();
+			if (!db) return;
+			db.insert(terminalSessionLocations)
 				.values({
 					paneId: entry.paneId,
 					tabId: entry.tabId,
 					workspaceId: entry.workspaceId,
-					workspaceName: entry.workspaceName ?? null,
-					workspacePath: entry.workspacePath ?? null,
-					rootPath: entry.rootPath ?? null,
+					workspaceName: toNullableString(entry.workspaceName),
+					workspacePath: toNullableString(entry.workspacePath),
+					rootPath: toNullableString(entry.rootPath),
 					cwd: entry.cwd,
-					command: entry.command ?? null,
+					command: toNullableString(entry.command),
 					pid: entry.pid,
-					agentId: entry.agentId ?? null,
-					agentSessionId: entry.agentSessionId ?? null,
+					agentId: toNullableString(entry.agentId),
+					agentSessionId: toNullableString(entry.agentSessionId),
 					status: entry.status,
 					createdAt: entry.createdAt,
 					updatedAt: entry.updatedAt,
 					exitedAt: entry.exitedAt ?? null,
-					exitReason: entry.exitReason ?? null,
+					exitReason: toNullableString(entry.exitReason),
 					locationKey: entry.locationKey,
 				})
 				.onConflictDoUpdate({
@@ -166,25 +182,27 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 					set: {
 						tabId: entry.tabId,
 						workspaceId: entry.workspaceId,
-						workspaceName: entry.workspaceName ?? null,
-						workspacePath: entry.workspacePath ?? null,
-						rootPath: entry.rootPath ?? null,
+						workspaceName: toNullableString(entry.workspaceName),
+						workspacePath: toNullableString(entry.workspacePath),
+						rootPath: toNullableString(entry.rootPath),
 						cwd: entry.cwd,
-						command: entry.command ?? null,
+						command: toNullableString(entry.command),
 						pid: entry.pid,
-						agentId: entry.agentId ?? null,
-						agentSessionId: entry.agentSessionId ?? null,
+						agentId: toNullableString(entry.agentId),
+						agentSessionId: toNullableString(entry.agentSessionId),
 						status: entry.status,
 						updatedAt: entry.updatedAt,
 						exitedAt: entry.exitedAt ?? null,
-						exitReason: entry.exitReason ?? null,
+						exitReason: toNullableString(entry.exitReason),
 						locationKey: entry.locationKey,
 					},
 				})
 				.run();
 		},
 		update(paneId, patch) {
-			const setValues: Partial<SessionLocationRecord> = {};
+			const db = getHostDbAccess().getActiveHostDb();
+			if (!db) return;
+			const setValues: Partial<TerminalSessionLocationRow> = {};
 			if ("agentId" in patch) {
 				setValues.agentId = patch.agentId ?? null;
 			}
@@ -209,8 +227,7 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 			if (Object.keys(setValues).length === 0) {
 				return;
 			}
-			localDb
-				.update(terminalSessionLocations)
+			db.update(terminalSessionLocations)
 				.set(setValues)
 				.where(eq(terminalSessionLocations.paneId, paneId))
 				.run();
@@ -219,13 +236,19 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 }
 
 let storeAdapter = createDbStoreAdapter();
+const require = createRequire(import.meta.url);
 const defaultLegacySessionLocationSource: LegacySessionLocationSource = {
 	exists: existsSync,
 	read: (path) => readFileSync(path, "utf8"),
 	archive: (path) => renameSync(path, `${path}.migrated`),
 };
 let legacySessionLocationSource = defaultLegacySessionLocationSource;
+let hostDbAccessOverride: HostDbAccess | null = null;
 let legacyImportEnsured = false;
+
+function getHostDbAccess(): HostDbAccess {
+	return hostDbAccessOverride ?? (require("main/lib/host-db") as HostDbAccess);
+}
 
 export function setSessionLocationStoreAdapterForTests(
 	adapter: SessionLocationStoreAdapter | null,
@@ -239,6 +262,14 @@ export function setLegacySessionLocationSourceForTests(
 ): void {
 	legacySessionLocationSource = source ?? defaultLegacySessionLocationSource;
 	legacyImportEnsured = false;
+}
+
+export function setHostDbAccessForTests(access: HostDbAccess | null): void {
+	hostDbAccessOverride = access;
+}
+
+export function getSessionLocationStorePath(): string | null {
+	return getHostDbAccess().getActiveHostDbPath();
 }
 
 function logSessionLocationWarning(message: string, error?: unknown): void {
@@ -310,16 +341,17 @@ function parseLegacySessionLocationLog(raw: string): SessionLocationEntry[] {
 }
 
 function ensureLegacyImportIfNeeded(): void {
-	if (legacyImportEnsured) return;
-	legacyImportEnsured = true;
+	if (legacyImportEnsured || !storeAdapter.isAvailable()) return;
 
 	try {
 		if (!legacySessionLocationSource.exists(LEGACY_SESSION_LOCATION_LOG_PATH)) {
+			legacyImportEnsured = true;
 			return;
 		}
 
 		if (storeAdapter.hasAny()) {
 			legacySessionLocationSource.archive(LEGACY_SESSION_LOCATION_LOG_PATH);
+			legacyImportEnsured = true;
 			return;
 		}
 
@@ -330,6 +362,7 @@ function ensureLegacyImportIfNeeded(): void {
 			storeAdapter.upsert(entry);
 		}
 		legacySessionLocationSource.archive(LEGACY_SESSION_LOCATION_LOG_PATH);
+		legacyImportEnsured = true;
 	} catch (error) {
 		logSessionLocationWarning(
 			"Failed to migrate legacy session location log",
@@ -360,8 +393,7 @@ export function upsertSessionLocation(params: {
 	try {
 		ensureLegacyImportIfNeeded();
 		const now = Date.now();
-		const previousRecord = storeAdapter.getByPaneId(params.paneId);
-		const previous = previousRecord ? toEntry(previousRecord) : undefined;
+		const previous = storeAdapter.getByPaneId(params.paneId);
 		const locationKey = buildSessionLocationKey(params);
 		const shouldResetAgentIdentity =
 			previous?.status !== "available" ||
@@ -394,10 +426,9 @@ export function updateSessionLocationAgentIdentity(params: {
 }): void {
 	try {
 		ensureLegacyImportIfNeeded();
-		const record = storeAdapter.getByPaneId(params.paneId);
-		if (!record) return;
+		const entry = storeAdapter.getByPaneId(params.paneId);
+		if (!entry) return;
 
-		const entry = toEntry(record);
 		const nextAgentId =
 			Object.hasOwn(params, "agentId") && params.agentId !== undefined
 				? normalizeOptionalIdentityValue(params.agentId)
@@ -434,8 +465,8 @@ export function markSessionLocationExited(params: {
 }): void {
 	try {
 		ensureLegacyImportIfNeeded();
-		const record = storeAdapter.getByPaneId(params.paneId);
-		if (!record) return;
+		const entry = storeAdapter.getByPaneId(params.paneId);
+		if (!entry) return;
 		const now = Date.now();
 		storeAdapter.update(params.paneId, {
 			status: "exited",
@@ -454,8 +485,7 @@ export async function getSessionLocation(
 ): Promise<SessionLocationEntry | null> {
 	try {
 		ensureLegacyImportIfNeeded();
-		const record = storeAdapter.getByPaneId(paneId);
-		return record ? toEntry(record) : null;
+		return storeAdapter.getByPaneId(paneId) ?? null;
 	} catch (error) {
 		logSessionLocationWarning("Failed to read session location", error);
 		return null;

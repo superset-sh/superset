@@ -30,6 +30,43 @@ export const terminalSessions = sqliteTable(
 	],
 );
 
+export const terminalSessionLocations = sqliteTable(
+	"terminal_session_locations",
+	{
+		paneId: text("pane_id")
+			.primaryKey()
+			.references(() => terminalSessions.id, { onDelete: "cascade" }),
+		tabId: text("tab_id").notNull(),
+		workspaceId: text("workspace_id")
+			.notNull()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		workspaceName: text("workspace_name"),
+		workspacePath: text("workspace_path"),
+		rootPath: text("root_path"),
+		cwd: text("cwd").notNull(),
+		command: text("command"),
+		pid: integer("pid"),
+		agentId: text("agent_id"),
+		agentSessionId: text("agent_session_id"),
+		status: text("status").notNull().default("available"),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		exitedAt: integer("exited_at"),
+		exitReason: text("exit_reason"),
+		locationKey: text("location_key").notNull().unique(),
+	},
+	(table) => [
+		index("terminal_session_locations_workspace_id_idx").on(table.workspaceId),
+		index("terminal_session_locations_status_idx").on(table.status),
+		index("terminal_session_locations_updated_at_idx").on(table.updatedAt),
+		index("terminal_session_locations_location_key_idx").on(table.locationKey),
+	],
+);
+
 export const projects = sqliteTable(
 	"projects",
 	{

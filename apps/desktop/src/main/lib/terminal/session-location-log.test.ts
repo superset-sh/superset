@@ -1,47 +1,36 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import type { SelectTerminalSessionLocation } from "@superset/local-db/schema";
 import {
 	getSessionLocation,
 	LEGACY_SESSION_LOCATION_LOG_PATH,
 	markSessionLocationExited,
 	type SessionLocationEntry,
 	type SessionLocationStoreAdapter,
+	setHostDbAccessForTests,
 	setLegacySessionLocationSourceForTests,
 	setSessionLocationStoreAdapterForTests,
 	updateSessionLocationAgentIdentity,
 	upsertSessionLocation,
 } from "./session-location-log";
 
-function toRecord(entry: SessionLocationEntry): SelectTerminalSessionLocation {
-	return {
-		paneId: entry.paneId,
-		tabId: entry.tabId,
-		workspaceId: entry.workspaceId,
-		workspaceName: entry.workspaceName ?? null,
-		workspacePath: entry.workspacePath ?? null,
-		rootPath: entry.rootPath ?? null,
-		cwd: entry.cwd,
-		command: entry.command ?? null,
-		pid: entry.pid,
-		agentId: entry.agentId ?? null,
-		agentSessionId: entry.agentSessionId ?? null,
-		status: entry.status,
-		createdAt: entry.createdAt,
-		updatedAt: entry.updatedAt,
-		exitedAt: entry.exitedAt ?? null,
-		exitReason: entry.exitReason ?? null,
-		locationKey: entry.locationKey,
-	};
-}
-
 describe("session-location-log", () => {
-	let store = new Map<string, SelectTerminalSessionLocation>();
+	let store = new Map<string, SessionLocationEntry>();
 
 	const adapter: SessionLocationStoreAdapter = {
+		isAvailable: () => true,
 		hasAny: () => store.size > 0,
 		getByPaneId: (paneId) => store.get(paneId),
 		upsert: (entry) => {
-			store.set(entry.paneId, toRecord(entry));
+			store.set(entry.paneId, {
+				...entry,
+				workspaceName: entry.workspaceName,
+				workspacePath: entry.workspacePath,
+				rootPath: entry.rootPath,
+				command: entry.command,
+				agentId: entry.agentId,
+				agentSessionId: entry.agentSessionId,
+				exitedAt: entry.exitedAt,
+				exitReason: entry.exitReason,
+			});
 		},
 		update: (paneId, patch) => {
 			const entry = store.get(paneId);
@@ -49,10 +38,10 @@ describe("session-location-log", () => {
 			store.set(paneId, {
 				...entry,
 				...(Object.hasOwn(patch, "agentId")
-					? { agentId: patch.agentId ?? null }
+					? { agentId: patch.agentId ?? undefined }
 					: {}),
 				...(Object.hasOwn(patch, "agentSessionId")
-					? { agentSessionId: patch.agentSessionId ?? null }
+					? { agentSessionId: patch.agentSessionId ?? undefined }
 					: {}),
 				...(Object.hasOwn(patch, "status") && patch.status
 					? { status: patch.status }
@@ -62,10 +51,10 @@ describe("session-location-log", () => {
 					? { updatedAt: patch.updatedAt }
 					: {}),
 				...(Object.hasOwn(patch, "exitedAt")
-					? { exitedAt: patch.exitedAt ?? null }
+					? { exitedAt: patch.exitedAt ?? undefined }
 					: {}),
 				...(Object.hasOwn(patch, "exitReason")
-					? { exitReason: patch.exitReason ?? null }
+					? { exitReason: patch.exitReason ?? undefined }
 					: {}),
 			});
 		},
@@ -73,10 +62,16 @@ describe("session-location-log", () => {
 
 	beforeEach(() => {
 		store = new Map();
+		setHostDbAccessForTests({
+			getActiveHostDb: () => null,
+			getActiveHostDbPath: () =>
+				"/tmp/superset-test/host/organization-1/host.db",
+		});
 		setSessionLocationStoreAdapterForTests(adapter);
 	});
 
 	afterEach(() => {
+		setHostDbAccessForTests(null);
 		setLegacySessionLocationSourceForTests(null);
 		setSessionLocationStoreAdapterForTests(null);
 	});

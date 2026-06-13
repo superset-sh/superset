@@ -10,15 +10,24 @@ import {
 	SHELL_CRASH_THRESHOLD_MS,
 	sanitizeEnv,
 } from "./env";
-import { SESSION_LOCATION_STORE_PATH } from "./session-location-log";
+import {
+	getSessionLocationStorePath,
+	setHostDbAccessForTests,
+} from "./session-location-log";
 
 describe("env", () => {
 	beforeEach(() => {
 		resetTerminalEnvCachesForTests();
+		setHostDbAccessForTests({
+			getActiveHostDb: () => null,
+			getActiveHostDbPath: () =>
+				"/tmp/superset-test/host/organization-1/host.db",
+		});
 	});
 
 	afterEach(() => {
 		resetTerminalEnvCachesForTests();
+		setHostDbAccessForTests(null);
 	});
 
 	describe("constants", () => {
@@ -682,7 +691,7 @@ describe("env", () => {
 				const result = buildTerminalEnv(baseParams);
 
 				expect(result.SUPERSET_SESSION_LOCATIONS_PATH).toBe(
-					SESSION_LOCATION_STORE_PATH,
+					getSessionLocationStorePath() || "",
 				);
 				expect(result.SUPERSET_SESSION_LOCATION_KEY).toBe("ws-1:tab-1:pane-1");
 			});
