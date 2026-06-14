@@ -338,12 +338,53 @@ function buildResumeCommandFromOriginalLaunch(params: {
 		return null;
 	}
 
+	const originalArgs = removeExistingResumeArgs(params.agentId, parsed.args);
 	const args =
 		params.agentId === "claude"
-			? [...parsed.args, "--resume", params.sessionId]
-			: [...parsed.args, "resume", params.sessionId];
+			? [...originalArgs, "--resume", params.sessionId]
+			: [...originalArgs, "resume", params.sessionId];
 
 	return joinCommandArgsWithEnv(parsed.command, args, parsed.env);
+}
+
+function removeExistingResumeArgs(
+	agentId: SupportedAgentId,
+	args: string[],
+): string[] {
+	if (agentId === "claude") {
+		const withoutResume: string[] = [];
+		for (let index = 0; index < args.length; index += 1) {
+			const arg = args[index];
+			if (arg?.startsWith("--resume=")) {
+				const sessionId = arg.slice("--resume=".length);
+				if (SESSION_ID_PATTERN.test(sessionId)) {
+					continue;
+				}
+			}
+			if (
+				arg === "--resume" &&
+				index + 1 < args.length &&
+				SESSION_ID_PATTERN.test(args[index + 1] ?? "")
+			) {
+				index += 1;
+				continue;
+			}
+			withoutResume.push(arg);
+		}
+		return withoutResume;
+	}
+
+	const resumeIndex = args.findIndex(
+		(arg, index) =>
+			arg === "resume" &&
+			index + 1 < args.length &&
+			SESSION_ID_PATTERN.test(args[index + 1] ?? ""),
+	);
+	if (resumeIndex === -1) {
+		return args;
+	}
+
+	return [...args.slice(0, resumeIndex), ...args.slice(resumeIndex + 2)];
 }
 
 async function findClaudeTopLevelTranscriptPath(

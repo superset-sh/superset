@@ -127,6 +127,41 @@ describe("resolveAgentResumeTarget", () => {
 		});
 	});
 
+	it("replaces an existing Claude resume clause in the original launch command", async () => {
+		const cwd = "/tmp/workspaces/claude-resume";
+		const sessionId = "claude-session-current";
+		const transcriptPath = join(
+			testHome,
+			".claude",
+			"projects",
+			"workspace",
+			`${sessionId}.jsonl`,
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			[
+				JSON.stringify({ type: "last-prompt", sessionId }),
+				JSON.stringify({ cwd, sessionId, type: "attachment" }),
+			].join("\n"),
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "claude",
+			cwd,
+			originalCommand:
+				"ANTHROPIC_BASE_URL=https://example.test claude --dangerously-skip-permissions --resume claude-session-old",
+		});
+
+		expect(result).toMatchObject({
+			agentId: "claude",
+			sessionId,
+			resumeCommand:
+				"ANTHROPIC_BASE_URL=https://example.test claude --dangerously-skip-permissions --resume claude-session-current",
+			sourcePath: transcriptPath,
+		});
+	});
+
 	it("reuses the original Superset Codex launch command when building resume commands", async () => {
 		const cwd = "/tmp/workspaces/codex";
 		const sessionId = "codex-session-custom";
@@ -160,6 +195,43 @@ describe("resolveAgentResumeTarget", () => {
 			sessionId,
 			resumeCommand:
 				"OPENAI_API_KEY=abc codex -c model_reasoning_effort=high --dangerously-bypass-approvals-and-sandbox resume codex-session-custom",
+			sourcePath: transcriptPath,
+		});
+	});
+
+	it("replaces an existing Codex resume clause in the original launch command", async () => {
+		const cwd = "/tmp/workspaces/codex-resume";
+		const sessionId = "codex-session-current";
+		const transcriptPath = join(
+			testHome,
+			".codex",
+			"sessions",
+			"2026",
+			"06",
+			"12",
+			`rollout-2026-06-12T00-00-00-${sessionId}.jsonl`,
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			`${JSON.stringify({
+				type: "session_meta",
+				payload: { id: sessionId, cwd },
+			})}\n`,
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "codex",
+			cwd,
+			originalCommand:
+				"OPENAI_API_KEY=abc codex -c model_reasoning_effort=high resume codex-session-old",
+		});
+
+		expect(result).toMatchObject({
+			agentId: "codex",
+			sessionId,
+			resumeCommand:
+				"OPENAI_API_KEY=abc codex -c model_reasoning_effort=high resume codex-session-current",
 			sourcePath: transcriptPath,
 		});
 	});
