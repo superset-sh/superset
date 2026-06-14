@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, renameSync } from "node:fs";
-import { createRequire } from "node:module";
 import { join } from "node:path";
 import { terminalSessions } from "@superset/host-service/db";
 import { eq } from "drizzle-orm";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
+import { getActiveHostDb, getActiveHostDbPath } from "../host-db";
 
 export const LEGACY_SESSION_LOCATION_LOG_PATH = join(
 	SUPERSET_HOME_DIR,
@@ -52,12 +52,8 @@ export interface SessionLocationStoreAdapter {
 
 type TerminalSessionRow = typeof terminalSessions.$inferSelect;
 type HostDbAccess = {
-	getActiveHostDb: () => ReturnType<
-		typeof import("main/lib/host-db").getActiveHostDb
-	>;
-	getActiveHostDbPath: () => ReturnType<
-		typeof import("main/lib/host-db").getActiveHostDbPath
-	>;
+	getActiveHostDb: () => ReturnType<typeof getActiveHostDb>;
+	getActiveHostDbPath: () => ReturnType<typeof getActiveHostDbPath>;
 };
 
 interface LegacySessionLocationSource {
@@ -235,7 +231,6 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 }
 
 let storeAdapter = createDbStoreAdapter();
-const require = createRequire(import.meta.url);
 const defaultLegacySessionLocationSource: LegacySessionLocationSource = {
 	exists: existsSync,
 	read: (path) => readFileSync(path, "utf8"),
@@ -246,7 +241,12 @@ let hostDbAccessOverride: HostDbAccess | null = null;
 let legacyImportEnsured = false;
 
 function getHostDbAccess(): HostDbAccess {
-	return hostDbAccessOverride ?? (require("main/lib/host-db") as HostDbAccess);
+	return (
+		hostDbAccessOverride ?? {
+			getActiveHostDb,
+			getActiveHostDbPath,
+		}
+	);
 }
 
 export function setSessionLocationStoreAdapterForTests(
@@ -408,7 +408,9 @@ export function upsertSessionLocation(params: {
 		const shouldResetAgentIdentity =
 			previous?.status !== "available" ||
 			previous?.locationKey !== locationKey ||
-			previous?.pid !== params.pid;
+			(previous?.pid !== null &&
+				params.pid !== null &&
+				previous?.pid !== params.pid);
 
 		storeAdapter.upsert({
 			...previous,

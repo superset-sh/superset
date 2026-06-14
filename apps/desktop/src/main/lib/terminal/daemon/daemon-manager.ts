@@ -57,6 +57,24 @@ function inferRestorableAgentIdFromCommand(
 	return normalizeRestorableAgentId(basename(firstToken).toLowerCase());
 }
 
+function inferRestorableAgentIdFromTabTitle(
+	tabId: string | null | undefined,
+): RestorableAgentId | null {
+	if (!tabId) {
+		return null;
+	}
+
+	const tab = appState.data?.tabsState?.tabs?.find(
+		(candidate) => candidate.id === tabId,
+	);
+	const title = tab?.userTitle?.trim() || tab?.name?.trim() || null;
+	if (!title) {
+		return null;
+	}
+
+	return normalizeRestorableAgentId(title.toLowerCase());
+}
+
 interface PendingCreateOrAttach {
 	requestId: string;
 	joinPending: boolean;
@@ -446,7 +464,12 @@ export class DaemonTerminalManager extends EventEmitter {
 			if (!daemonHasSession && !skipColdRestore) {
 				const coldRestoreResult = await this.attemptColdRestore({
 					paneId,
+					tabId,
 					workspaceId,
+					workspaceName,
+					workspacePath,
+					rootPath,
+					command,
 					cols,
 					rows,
 				});
@@ -555,6 +578,29 @@ export class DaemonTerminalManager extends EventEmitter {
 				command,
 				pid: response.pid,
 			});
+			const sessionLocation = await getSessionLocation(paneId);
+			const restorableAgentId =
+				normalizeRestorableAgentId(sessionLocation?.agentId) ??
+				inferRestorableAgentIdFromCommand(
+					sessionLocation?.command ?? command,
+				) ??
+				inferRestorableAgentIdFromTabTitle(tabId);
+			if (restorableAgentId && !sessionLocation?.agentSessionId) {
+				const resumeTarget = await resolveAgentResumeTarget({
+					agentId: restorableAgentId,
+					sessionId: undefined,
+					cwd: sessionCwd,
+					workspacePath: sessionLocation?.workspacePath ?? workspacePath,
+					rootPath: sessionLocation?.rootPath ?? rootPath,
+				});
+				if (resumeTarget) {
+					updateSessionLocationAgentIdentity({
+						paneId,
+						agentId: resumeTarget.agentId,
+						agentSessionId: resumeTarget.sessionId,
+					});
+				}
+			}
 
 			portManager.upsertSession(paneId, workspaceId, response.pid);
 
@@ -609,12 +655,22 @@ export class DaemonTerminalManager extends EventEmitter {
 
 	private async attemptColdRestore({
 		paneId,
+		tabId,
 		workspaceId,
+		workspaceName,
+		workspacePath,
+		rootPath,
+		command,
 		cols,
 		rows,
 	}: {
 		paneId: string;
+		tabId: string;
 		workspaceId: string;
+		workspaceName?: string;
+		workspacePath?: string;
+		rootPath?: string;
+		command?: string;
 		cols: number;
 		rows: number;
 	}): Promise<SessionResult | null> {
@@ -638,15 +694,28 @@ export class DaemonTerminalManager extends EventEmitter {
 				? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
 				: rawScrollback;
 		const sessionLocation = await getSessionLocation(paneId);
+		const knownCommand = sessionLocation?.command ?? command;
 		const restorableAgentId =
 			normalizeRestorableAgentId(sessionLocation?.agentId) ??
-			inferRestorableAgentIdFromCommand(sessionLocation?.command);
+			inferRestorableAgentIdFromCommand(knownCommand) ??
+			inferRestorableAgentIdFromTabTitle(tabId);
 		const resumeTarget = await resolveAgentResumeTarget({
 			agentId: restorableAgentId,
 			sessionId: sessionLocation?.agentSessionId,
 			cwd: metadata.cwd,
 			workspacePath: sessionLocation?.workspacePath,
 			rootPath: sessionLocation?.rootPath,
+		});
+		upsertSessionLocation({
+			paneId,
+			tabId,
+			workspaceId,
+			workspaceName,
+			workspacePath,
+			rootPath,
+			cwd: metadata.cwd,
+			command: knownCommand,
+			pid: null,
 		});
 		if (resumeTarget) {
 			updateSessionLocationAgentIdentity({

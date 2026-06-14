@@ -11,10 +11,7 @@ export const terminalSessions = sqliteTable(
 	"terminal_sessions",
 	{
 		id: text().primaryKey(),
-		originWorkspaceId: text("origin_workspace_id").references(
-			() => workspaces.id,
-			{ onDelete: "set null" },
-		),
+		originWorkspaceId: text("origin_workspace_id"),
 		status: text().notNull().default("active"),
 		createdAt: integer("created_at")
 			.notNull()

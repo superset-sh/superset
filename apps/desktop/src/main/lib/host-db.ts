@@ -1,13 +1,24 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { createDb, type HostDb } from "@superset/host-service/db";
 import { settings } from "@superset/local-db";
 import { localDb } from "main/lib/local-db";
-import { manifestDir } from "./host-service-manifest";
+import { SUPERSET_HOME_DIR } from "./app-environment";
+import {
+	isProcessAlive,
+	manifestDir,
+	readManifest,
+} from "./host-service-manifest";
 
 let cachedOrganizationId: string | null = null;
 let cachedDbPath: string | null = null;
 let cachedDb: HostDb | null = null;
+
+export interface HostDbManifestCandidate {
+	organizationId: string;
+	startedAt: number;
+	isAlive: boolean;
+}
 
 function getHostMigrationsDirectory(): string | null {
 	const packagedPath = join(process.resourcesPath, "resources/host-migrations");
@@ -36,6 +47,17 @@ function getHostMigrationsDirectory(): string | null {
 	return null;
 }
 
+export function selectFallbackOrganizationId(
+	candidates: HostDbManifestCandidate[],
+): string | null {
+	return (
+		[...candidates].sort(
+			(a, b) =>
+				Number(b.isAlive) - Number(a.isAlive) || b.startedAt - a.startedAt,
+		)[0]?.organizationId ?? null
+	);
+}
+
 function getActiveOrganizationId(): string | null {
 	try {
 		const row = localDb
@@ -43,11 +65,44 @@ function getActiveOrganizationId(): string | null {
 			.from(settings)
 			.get();
 		const organizationId = row?.activeOrganizationId;
-		return typeof organizationId === "string" && organizationId.trim() !== ""
-			? organizationId
-			: null;
+		if (typeof organizationId === "string" && organizationId.trim() !== "") {
+			return organizationId;
+		}
 	} catch (error) {
 		console.warn("[host-db] Failed to read active organization id", error);
+	}
+
+	const hostRoot = join(SUPERSET_HOME_DIR, "host");
+	if (!existsSync(hostRoot)) {
+		return null;
+	}
+
+	try {
+		const candidates = readdirSync(hostRoot, { withFileTypes: true })
+			.filter((entry) => entry.isDirectory())
+			.map((entry) => {
+				const manifest = readManifest(entry.name);
+				if (!manifest) return null;
+
+				return {
+					organizationId: entry.name,
+					startedAt: manifest.startedAt,
+					isAlive: isProcessAlive(manifest.pid),
+				};
+			})
+			.filter(
+				(
+					candidate,
+				): candidate is {
+					organizationId: string;
+					startedAt: number;
+					isAlive: boolean;
+				} => candidate !== null,
+			);
+
+		return selectFallbackOrganizationId(candidates);
+	} catch (error) {
+		console.warn("[host-db] Failed to infer active organization id", error);
 		return null;
 	}
 }

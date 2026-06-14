@@ -14,8 +14,14 @@ const migrationPath = fileURLToPath(
 		import.meta.url,
 	),
 );
+const fkRemovalMigrationPath = fileURLToPath(
+	new URL(
+		"../../drizzle/0008_drop_terminal_sessions_workspace_fk.sql",
+		import.meta.url,
+	),
+);
 const snapshotPath = fileURLToPath(
-	new URL("../../drizzle/meta/0007_snapshot.json", import.meta.url),
+	new URL("../../drizzle/meta/0008_snapshot.json", import.meta.url),
 );
 
 describe("terminal session restore schema artifacts", () => {
@@ -36,10 +42,16 @@ describe("terminal session restore schema artifacts", () => {
 		expect(migrationSql).toContain(
 			"DROP TABLE IF EXISTS `terminal_session_locations`;",
 		);
+		const fkRemovalSql = readFileSync(fkRemovalMigrationPath, "utf8");
+		expect(fkRemovalSql).toContain("CREATE TABLE `__new_terminal_sessions`");
+		expect(fkRemovalSql).not.toContain("REFERENCES `workspaces`(`id`)");
 
 		const snapshotJson = readFileSync(snapshotPath, "utf8");
 		expect(snapshotJson).not.toContain('"terminal_session_locations"');
 		expect(snapshotJson).toContain('"tab_id"');
 		expect(snapshotJson).toContain('"location_key"');
+		expect(snapshotJson).not.toContain(
+			'"terminal_sessions_origin_workspace_id_workspaces_id_fk"',
+		);
 	});
 });

@@ -146,6 +146,39 @@ describe("session-location-log", () => {
 		});
 	});
 
+	it("preserves agent identity when a cold-restored pane later gets a live pid", async () => {
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+			pid: null,
+		});
+		updateSessionLocationAgentIdentity({
+			paneId: "pane-1",
+			agentId: "codex",
+			agentSessionId: "session-1",
+		});
+
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+			pid: 456,
+		});
+
+		const nextEntry = await getSessionLocation("pane-1");
+		expect(nextEntry).toMatchObject({
+			agentId: "codex",
+			agentSessionId: "session-1",
+			pid: 456,
+			status: "available",
+		});
+	});
+
 	it("marks the persisted row exited without deleting it", async () => {
 		upsertSessionLocation({
 			paneId: "pane-1",

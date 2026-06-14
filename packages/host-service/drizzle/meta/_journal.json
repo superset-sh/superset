@@ -57,6 +57,13 @@
       "when": 1781358684730,
       "tag": "0007_merge_terminal_session_locations_into_terminal_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781432000000,
+      "tag": "0008_drop_terminal_sessions_workspace_fk",
+      "breakpoints": true
     }
   ]
 }

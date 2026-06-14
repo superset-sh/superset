@@ -17,6 +17,7 @@ let mockHistoryScrollback: string | null = null;
 let mockResolveAgentResumeTarget: (params: unknown) => Promise<unknown> =
 	async (_params: unknown) => null;
 let mockGetSessionLocation: () => Promise<unknown> = async () => null;
+const mockUpsertSessionLocationCalls: Array<unknown> = [];
 const mockUpdateSessionLocationAgentIdentityCalls: Array<unknown> = [];
 const mockMarkSessionLocationExitedCalls: Array<unknown> = [];
 
@@ -273,7 +274,9 @@ mock.module("../session-location-log", () => ({
 	updateSessionLocationAgentIdentity: (params: unknown) => {
 		mockUpdateSessionLocationAgentIdentityCalls.push(params);
 	},
-	upsertSessionLocation: () => {},
+	upsertSessionLocation: (params: unknown) => {
+		mockUpsertSessionLocationCalls.push(params);
+	},
 }));
 
 mock.module("./history-manager", () => ({
@@ -316,6 +319,7 @@ describe("DaemonTerminalManager kill tracking", () => {
 		mockHistoryScrollback = null;
 		mockResolveAgentResumeTarget = async () => null;
 		mockGetSessionLocation = async () => null;
+		mockUpsertSessionLocationCalls.length = 0;
 		mockUpdateSessionLocationAgentIdentityCalls.length = 0;
 		mockMarkSessionLocationExitedCalls.length = 0;
 	});
@@ -542,6 +546,112 @@ describe("DaemonTerminalManager kill tracking", () => {
 				agentSessionId: "session-123",
 			},
 		]);
+		expect(mockUpsertSessionLocationCalls).toContainEqual({
+			paneId: "pane-codex",
+			tabId: "tab-codex",
+			workspaceId: "ws-1",
+			workspaceName: undefined,
+			workspacePath: undefined,
+			rootPath: undefined,
+			cwd: "/repo",
+			command: "/usr/local/bin/codex --model gpt-5.4",
+			pid: null,
+		});
+	});
+
+	it("infers codex from the current pane command when the session row is missing", async () => {
+		mockHistoryMetadata = {
+			cwd: "/repo",
+			cols: 120,
+			rows: 32,
+		};
+		mockHistoryScrollback = "restored scrollback";
+		mockGetSessionLocation = async () => null;
+
+		const resolveCalls: Array<Record<string, unknown>> = [];
+		mockResolveAgentResumeTarget = async (params) => {
+			resolveCalls.push(params as Record<string, unknown>);
+			return {
+				agentId: "codex",
+				sessionId: "session-456",
+				resumeCommand: "codex resume session-456",
+				sourcePath: "transcript",
+			};
+		};
+
+		const manager = new DaemonTerminalManager();
+		const result = await manager.createOrAttach({
+			paneId: "pane-codex-missing",
+			tabId: "tab-codex-missing",
+			workspaceId: "ws-1",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+		});
+
+		expect(resolveCalls).toHaveLength(1);
+		expect(resolveCalls[0]?.agentId).toBe("codex");
+		expect(result).toMatchObject({
+			isColdRestore: true,
+			previousCwd: "/repo",
+			resumeCommand: "codex resume session-456",
+		});
+		expect(mockUpsertSessionLocationCalls).toContainEqual({
+			paneId: "pane-codex-missing",
+			tabId: "tab-codex-missing",
+			workspaceId: "ws-1",
+			workspaceName: undefined,
+			workspacePath: undefined,
+			rootPath: undefined,
+			cwd: "/repo",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+			pid: null,
+		});
+	});
+
+	it("infers codex from the tab title when the session row and command are missing", async () => {
+		mockAppStateData = {
+			tabsState: {
+				tabs: [
+					{
+						id: "tab-codex-title",
+						name: "Terminal",
+						userTitle: "codex",
+					},
+				],
+			},
+		};
+		mockHistoryMetadata = {
+			cwd: "/repo",
+			cols: 120,
+			rows: 32,
+		};
+		mockHistoryScrollback = "restored scrollback";
+		mockGetSessionLocation = async () => null;
+
+		const resolveCalls: Array<Record<string, unknown>> = [];
+		mockResolveAgentResumeTarget = async (params) => {
+			resolveCalls.push(params as Record<string, unknown>);
+			return {
+				agentId: "codex",
+				sessionId: "session-789",
+				resumeCommand: "codex resume session-789",
+				sourcePath: "transcript",
+			};
+		};
+
+		const manager = new DaemonTerminalManager();
+		const result = await manager.createOrAttach({
+			paneId: "pane-codex-title",
+			tabId: "tab-codex-title",
+			workspaceId: "ws-1",
+		});
+
+		expect(resolveCalls).toHaveLength(1);
+		expect(resolveCalls[0]?.agentId).toBe("codex");
+		expect(result).toMatchObject({
+			isColdRestore: true,
+			previousCwd: "/repo",
+			resumeCommand: "codex resume session-789",
+		});
 	});
 
 	it("supersedes older createOrAttach requests for the same pane", async () => {
