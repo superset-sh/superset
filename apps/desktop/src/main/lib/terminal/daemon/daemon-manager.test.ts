@@ -21,6 +21,22 @@ const mockUpsertSessionLocationCalls: Array<unknown> = [];
 const mockUpdateSessionLocationAgentIdentityCalls: Array<unknown> = [];
 const mockMarkSessionLocationExitedCalls: Array<unknown> = [];
 
+function inferMockSupportedAgentIdFromLaunchCommand(
+	command: string | null | undefined,
+) {
+	if (!command) return null;
+	const afterLeadingCd = command.replace(/^cd\s+.+?\s+&&\s+/, "");
+	const withoutEnv = afterLeadingCd.replace(
+		/^([A-Za-z_][A-Za-z0-9_]*=\S+\s+)*/,
+		"",
+	);
+	const firstToken = withoutEnv.trim().split(/\s+/, 1)[0];
+	const executableName = firstToken?.split("/").pop()?.toLowerCase();
+	return executableName === "claude" || executableName === "codex"
+		? executableName
+		: null;
+}
+
 class MockTerminalHostClient extends EventEmitter {
 	createOrAttachCalls: Array<{ sessionId: string; requestId?: string }> = [];
 	cancelCreateOrAttachCalls: Array<{ sessionId: string; requestId: string }> =
@@ -252,6 +268,8 @@ mock.module("../port-manager", () => ({
 }));
 
 mock.module("../agent-resume", () => ({
+	inferSupportedAgentIdFromLaunchCommand:
+		inferMockSupportedAgentIdFromLaunchCommand,
 	resolveAgentResumeTarget: (params: unknown) =>
 		mockResolveAgentResumeTarget(params),
 }));
@@ -534,6 +552,9 @@ describe("DaemonTerminalManager kill tracking", () => {
 		expect(resolveCalls).toHaveLength(1);
 		expect(resolveCalls[0]?.agentId).toBe("codex");
 		expect(resolveCalls[0]?.sessionId).toBeUndefined();
+		expect(resolveCalls[0]?.originalCommand).toBe(
+			"/usr/local/bin/codex --model gpt-5.4",
+		);
 		expect(result).toMatchObject({
 			isColdRestore: true,
 			previousCwd: "/repo",
@@ -589,6 +610,9 @@ describe("DaemonTerminalManager kill tracking", () => {
 
 		expect(resolveCalls).toHaveLength(1);
 		expect(resolveCalls[0]?.agentId).toBe("codex");
+		expect(resolveCalls[0]?.originalCommand).toBe(
+			"codex --dangerously-bypass-approvals-and-sandbox",
+		);
 		expect(result).toMatchObject({
 			isColdRestore: true,
 			previousCwd: "/repo",
@@ -604,6 +628,47 @@ describe("DaemonTerminalManager kill tracking", () => {
 			cwd: "/repo",
 			command: "codex --dangerously-bypass-approvals-and-sandbox",
 			pid: null,
+		});
+	});
+
+	it("infers codex from an env and cd-prefixed launch command", async () => {
+		mockHistoryMetadata = {
+			cwd: "/repo",
+			cols: 120,
+			rows: 32,
+		};
+		mockHistoryScrollback = "restored scrollback";
+		mockGetSessionLocation = async () => null;
+
+		const resolveCalls: Array<Record<string, unknown>> = [];
+		mockResolveAgentResumeTarget = async (params) => {
+			resolveCalls.push(params as Record<string, unknown>);
+			return {
+				agentId: "codex",
+				sessionId: "session-cd-env",
+				resumeCommand:
+					"OPENAI_API_KEY=abc codex --model gpt-5.4 resume session-cd-env",
+				sourcePath: "transcript",
+			};
+		};
+
+		const manager = new DaemonTerminalManager();
+		const command = "cd /repo && OPENAI_API_KEY=abc codex --model gpt-5.4";
+		const result = await manager.createOrAttach({
+			paneId: "pane-codex-cd-env",
+			tabId: "tab-codex-cd-env",
+			workspaceId: "ws-1",
+			command,
+		});
+
+		expect(resolveCalls).toHaveLength(1);
+		expect(resolveCalls[0]?.agentId).toBe("codex");
+		expect(resolveCalls[0]?.originalCommand).toBe(command);
+		expect(result).toMatchObject({
+			isColdRestore: true,
+			previousCwd: "/repo",
+			resumeCommand:
+				"OPENAI_API_KEY=abc codex --model gpt-5.4 resume session-cd-env",
 		});
 	});
 
@@ -651,6 +716,43 @@ describe("DaemonTerminalManager kill tracking", () => {
 			isColdRestore: true,
 			previousCwd: "/repo",
 			resumeCommand: "codex resume session-789",
+		});
+	});
+
+	it("falls back to the original Superset launch command when no resume target exists", async () => {
+		mockHistoryMetadata = {
+			cwd: "/repo",
+			cols: 120,
+			rows: 32,
+		};
+		mockHistoryScrollback = "restored scrollback";
+		mockGetSessionLocation = async () => ({
+			paneId: "pane-workspace-run",
+			tabId: "tab-workspace-run",
+			workspaceId: "ws-1",
+			cwd: "/repo",
+			pid: null,
+			status: "exited",
+			createdAt: 0,
+			updatedAt: 0,
+			locationKey: "ws-1:tab-workspace-run:pane-workspace-run",
+			workspacePath: "/repo",
+			rootPath: "/root",
+			command: "pnpm dev --host 0.0.0.0",
+		});
+		mockResolveAgentResumeTarget = async () => null;
+
+		const manager = new DaemonTerminalManager();
+		const result = await manager.createOrAttach({
+			paneId: "pane-workspace-run",
+			tabId: "tab-workspace-run",
+			workspaceId: "ws-1",
+		});
+
+		expect(result).toMatchObject({
+			isColdRestore: true,
+			previousCwd: "/repo",
+			resumeCommand: "pnpm dev --host 0.0.0.0",
 		});
 	});
 

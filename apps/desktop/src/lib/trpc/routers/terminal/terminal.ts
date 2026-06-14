@@ -11,6 +11,7 @@ import {
 	TERMINAL_SESSION_KILLED_MESSAGE,
 	TerminalKilledError,
 } from "main/lib/terminal/errors";
+import { recordSessionLocationLaunchCommand } from "main/lib/terminal/session-location-log";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
@@ -248,6 +249,33 @@ export const createTerminalRouter = () => {
 						});
 					}
 				}
+			}),
+
+		recordLaunchCommand: publicProcedure
+			.input(
+				z.object({
+					paneId: SAFE_ID,
+					tabId: z.string(),
+					workspaceId: SAFE_ID,
+					cwd: z.string().optional(),
+					command: z.string().trim().min(1),
+				}),
+			)
+			.mutation(({ input }) => {
+				const { workspace, workspacePath, rootPath } =
+					getWorkspaceTerminalContext(input.workspaceId);
+				const cwd = resolveCwd(input.cwd, workspacePath) ?? workspacePath ?? "";
+				recordSessionLocationLaunchCommand({
+					paneId: input.paneId,
+					tabId: input.tabId,
+					workspaceId: input.workspaceId,
+					workspaceName: workspace?.name,
+					workspacePath,
+					rootPath,
+					cwd,
+					command: input.command,
+				});
+				return { success: true };
 			}),
 
 		ackColdRestore: publicProcedure

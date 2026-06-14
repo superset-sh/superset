@@ -1,13 +1,16 @@
 import type { Dirent } from "node:fs";
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
-import { join, normalize } from "node:path";
+import { basename, join, normalize } from "node:path";
+import { type ParseEntry, parse } from "shell-quote";
 
 const MAX_RECENT_TRANSCRIPT_FILES = 200;
 const MAX_SNIPPET_BYTES = 64 * 1024;
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+const SAFE_SHELL_TOKEN = /^[A-Za-z0-9_@%+=:,./~$-]+$/;
+const ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-type SupportedAgentId = "claude" | "codex";
+export type SupportedAgentId = "claude" | "codex";
 
 export interface AgentResumeTarget {
 	agentId: SupportedAgentId;
@@ -104,6 +107,15 @@ function isSupportedAgentId(
 	return value === "claude" || value === "codex";
 }
 
+function normalizeAgentExecutableName(
+	value: string | null | undefined,
+): SupportedAgentId | null {
+	if (!value) return null;
+	return isSupportedAgentId(basename(value).toLowerCase())
+		? (basename(value).toLowerCase() as SupportedAgentId)
+		: null;
+}
+
 function scoreCandidateCwd(
 	candidateCwd: string,
 	searchPaths: string[],
@@ -130,13 +142,208 @@ function scoreCandidateCwd(
 function buildResumeCommand(
 	agentId: SupportedAgentId,
 	sessionId: string,
+	originalCommand?: string | null,
 ): string {
+	const rebuiltFromOriginal = buildResumeCommandFromOriginalLaunch({
+		agentId,
+		sessionId,
+		originalCommand,
+	});
+	if (rebuiltFromOriginal) {
+		return rebuiltFromOriginal;
+	}
+
 	switch (agentId) {
 		case "claude":
 			return `claude --resume ${sessionId}`;
 		case "codex":
 			return `codex resume ${sessionId}`;
 	}
+}
+
+function quoteShellToken(value: string): string {
+	if (value === "") return "''";
+	if (SAFE_SHELL_TOKEN.test(value)) return value;
+	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function splitLeadingEnvAssignments(tokens: string[]): {
+	env: Record<string, string>;
+	rest: string[];
+} {
+	const env: Record<string, string> = {};
+	let firstCommandIndex = 0;
+
+	for (const token of tokens) {
+		const equalsIndex = token.indexOf("=");
+		const key = token.slice(0, equalsIndex);
+		if (equalsIndex <= 0 || !ENV_KEY.test(key)) {
+			break;
+		}
+
+		env[key] = token.slice(equalsIndex + 1);
+		firstCommandIndex += 1;
+	}
+
+	return { env, rest: tokens.slice(firstCommandIndex) };
+}
+
+function joinEnvAssignments(env: Record<string, string>): string {
+	return Object.entries(env)
+		.filter(([key]) => ENV_KEY.test(key))
+		.map(([key, value]) => `${key}=${quoteShellToken(value)}`)
+		.join(" ");
+}
+
+function joinCommandArgs(command: string, args: string[]): string {
+	const tokens = command.length === 0 ? args : [command, ...args];
+	if (tokens.length === 0) return "";
+	return tokens.map(quoteShellToken).join(" ");
+}
+
+function joinCommandArgsWithEnv(
+	command: string,
+	args: string[],
+	env: Record<string, string>,
+): string {
+	const envPrefix = joinEnvAssignments(env);
+	const commandText = joinCommandArgs(command, args);
+	if (!envPrefix) return commandText;
+	if (!commandText) return envPrefix;
+	return `${envPrefix} ${commandText}`;
+}
+
+function parseShellPreservingEnvRefs(input: string): ParseEntry[] {
+	return parse(input, (key) => `$${key}`);
+}
+
+function isControlOperatorToken(
+	token: ParseEntry,
+): token is Extract<ParseEntry, { op: unknown }> {
+	return typeof token === "object" && token !== null && "op" in token;
+}
+
+function splitShellCommandSegments(
+	tokens: ParseEntry[],
+): Array<{ tokens: string[]; operatorAfter?: string }> | null {
+	const segments: Array<{ tokens: string[]; operatorAfter?: string }> = [];
+	let current: string[] = [];
+
+	for (const token of tokens) {
+		if (typeof token === "string") {
+			current.push(token);
+			continue;
+		}
+
+		if (!isControlOperatorToken(token) || token.op === "glob") {
+			return null;
+		}
+
+		if (current.length === 0) {
+			return null;
+		}
+
+		segments.push({ tokens: current, operatorAfter: token.op });
+		current = [];
+	}
+
+	if (current.length > 0) {
+		segments.push({ tokens: current });
+	}
+
+	return segments.length > 0 ? segments : null;
+}
+
+function parseCommandSegment(tokens: string[]): {
+	command: string;
+	args: string[];
+	env: Record<string, string>;
+} | null {
+	const { env, rest } = splitLeadingEnvAssignments(tokens);
+	if (rest.length === 0) {
+		return null;
+	}
+
+	const [command, ...args] = rest;
+	if (!command) {
+		return null;
+	}
+
+	return { command, args, env };
+}
+
+function isCdSegment(segment: { tokens: string[] }): boolean {
+	const parsed = parseCommandSegment(segment.tokens);
+	return basename(parsed?.command ?? "") === "cd";
+}
+
+function parseLaunchCommandString(input: string): {
+	command: string;
+	args: string[];
+	env: Record<string, string>;
+} | null {
+	const parsedTokens = parseShellPreservingEnvRefs(input);
+	const segments = splitShellCommandSegments(parsedTokens);
+	if (!segments) return null;
+
+	if (segments.length === 1) {
+		return parseCommandSegment(segments[0].tokens);
+	}
+
+	if (
+		segments.length === 2 &&
+		segments[0].operatorAfter === "&&" &&
+		isCdSegment(segments[0])
+	) {
+		return parseCommandSegment(segments[1].tokens);
+	}
+
+	return null;
+}
+
+export function inferSupportedAgentIdFromLaunchCommand(
+	command: string | null | undefined,
+): SupportedAgentId | null {
+	if (typeof command !== "string" || !command.trim()) {
+		return null;
+	}
+
+	try {
+		const parsed = parseLaunchCommandString(command);
+		return normalizeAgentExecutableName(parsed?.command);
+	} catch {
+		return null;
+	}
+}
+
+function buildResumeCommandFromOriginalLaunch(params: {
+	agentId: SupportedAgentId;
+	sessionId: string;
+	originalCommand?: string | null;
+}): string | null {
+	if (!params.originalCommand?.trim()) {
+		return null;
+	}
+
+	let parsed: ReturnType<typeof parseLaunchCommandString>;
+	try {
+		parsed = parseLaunchCommandString(params.originalCommand);
+	} catch {
+		return null;
+	}
+	if (!parsed) {
+		return null;
+	}
+	if (normalizeAgentExecutableName(parsed.command) !== params.agentId) {
+		return null;
+	}
+
+	const args =
+		params.agentId === "claude"
+			? [...parsed.args, "--resume", params.sessionId]
+			: [...parsed.args, "resume", params.sessionId];
+
+	return joinCommandArgsWithEnv(parsed.command, args, parsed.env);
 }
 
 async function findClaudeTopLevelTranscriptPath(
@@ -375,6 +582,7 @@ function parseCodexSnippet(
 async function resolveCandidateFromTranscripts(params: {
 	agentId: SupportedAgentId;
 	searchPaths: string[];
+	originalCommand?: string | null;
 }): Promise<TranscriptCandidate | null> {
 	const rootDir =
 		params.agentId === "claude"
@@ -409,7 +617,11 @@ async function resolveCandidateFromTranscripts(params: {
 		const candidate: TranscriptCandidate = {
 			agentId: params.agentId,
 			sessionId: normalizedSessionId,
-			resumeCommand: buildResumeCommand(params.agentId, normalizedSessionId),
+			resumeCommand: buildResumeCommand(
+				params.agentId,
+				normalizedSessionId,
+				params.originalCommand,
+			),
 			sourcePath: file.path,
 			cwd: normalizedCwd,
 			mtimeMs: file.mtimeMs,
@@ -435,6 +647,7 @@ export async function resolveAgentResumeTarget(params: {
 	cwd?: string | null;
 	workspacePath?: string | null;
 	rootPath?: string | null;
+	originalCommand?: string | null;
 }): Promise<AgentResumeTarget | null> {
 	const searchPaths = uniqueNonEmptyPaths([
 		params.cwd,
@@ -465,6 +678,7 @@ export async function resolveAgentResumeTarget(params: {
 				resumeCommand: buildResumeCommand(
 					normalizedAgentId,
 					normalizedSessionId,
+					params.originalCommand,
 				),
 				sourcePath: "session-location-log",
 			};
@@ -482,5 +696,6 @@ export async function resolveAgentResumeTarget(params: {
 	return resolveCandidateFromTranscripts({
 		agentId: normalizedAgentId,
 		searchPaths,
+		originalCommand: params.originalCommand,
 	});
 }

@@ -92,6 +92,150 @@ describe("resolveAgentResumeTarget", () => {
 		});
 	});
 
+	it("reuses the original Superset Claude launch command when building resume commands", async () => {
+		const cwd = "/tmp/workspaces/claude";
+		const sessionId = "claude-session-custom";
+		const transcriptPath = join(
+			testHome,
+			".claude",
+			"projects",
+			"workspace",
+			`${sessionId}.jsonl`,
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			[
+				JSON.stringify({ type: "last-prompt", sessionId }),
+				JSON.stringify({ cwd, sessionId, type: "attachment" }),
+			].join("\n"),
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "claude",
+			cwd,
+			originalCommand:
+				"ANTHROPIC_BASE_URL=https://example.test claude --dangerously-skip-permissions",
+		});
+
+		expect(result).toMatchObject({
+			agentId: "claude",
+			sessionId,
+			resumeCommand:
+				"ANTHROPIC_BASE_URL=https://example.test claude --dangerously-skip-permissions --resume claude-session-custom",
+			sourcePath: transcriptPath,
+		});
+	});
+
+	it("reuses the original Superset Codex launch command when building resume commands", async () => {
+		const cwd = "/tmp/workspaces/codex";
+		const sessionId = "codex-session-custom";
+		const transcriptPath = join(
+			testHome,
+			".codex",
+			"sessions",
+			"2026",
+			"06",
+			"12",
+			`rollout-2026-06-12T00-00-00-${sessionId}.jsonl`,
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			`${JSON.stringify({
+				type: "session_meta",
+				payload: { id: sessionId, cwd },
+			})}\n`,
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "codex",
+			cwd,
+			originalCommand:
+				"OPENAI_API_KEY=abc codex -c model_reasoning_effort=high --dangerously-bypass-approvals-and-sandbox",
+		});
+
+		expect(result).toMatchObject({
+			agentId: "codex",
+			sessionId,
+			resumeCommand:
+				"OPENAI_API_KEY=abc codex -c model_reasoning_effort=high --dangerously-bypass-approvals-and-sandbox resume codex-session-custom",
+			sourcePath: transcriptPath,
+		});
+	});
+
+	it("reuses a cd-prefixed active-terminal Codex launch command", async () => {
+		const cwd = "/tmp/workspaces/codex project";
+		const sessionId = "codex-session-cd";
+		const transcriptPath = join(
+			testHome,
+			".codex",
+			"sessions",
+			"2026",
+			"06",
+			"12",
+			`rollout-2026-06-12T00-00-00-${sessionId}.jsonl`,
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			`${JSON.stringify({
+				type: "session_meta",
+				payload: { id: sessionId, cwd },
+			})}\n`,
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "codex",
+			cwd,
+			originalCommand:
+				"cd '/tmp/workspaces/codex project' && OPENAI_API_KEY=$OPENAI_API_KEY codex --model gpt-5.4",
+		});
+
+		expect(result).toMatchObject({
+			agentId: "codex",
+			sessionId,
+			resumeCommand:
+				"OPENAI_API_KEY=$OPENAI_API_KEY codex --model gpt-5.4 resume codex-session-cd",
+			sourcePath: transcriptPath,
+		});
+	});
+
+	it("ignores an unrelated original command when building resume commands", async () => {
+		const cwd = "/tmp/workspaces/codex";
+		const sessionId = "codex-session-unrelated";
+		const transcriptPath = join(
+			testHome,
+			".codex",
+			"sessions",
+			"2026",
+			"06",
+			"12",
+			`rollout-2026-06-12T00-00-00-${sessionId}.jsonl`,
+		);
+		mkdirSync(dirname(transcriptPath), { recursive: true });
+		writeFileSync(
+			transcriptPath,
+			`${JSON.stringify({
+				type: "session_meta",
+				payload: { id: sessionId, cwd },
+			})}\n`,
+		);
+
+		const result = await resolveAgentResumeTarget({
+			agentId: "codex",
+			cwd,
+			originalCommand: "pnpm dev --host 0.0.0.0",
+		});
+
+		expect(result).toMatchObject({
+			agentId: "codex",
+			sessionId,
+			resumeCommand: "codex resume codex-session-unrelated",
+			sourcePath: transcriptPath,
+		});
+	});
+
 	it("prefers the stored agent session id when it is already known", async () => {
 		const transcriptPath = join(
 			testHome,

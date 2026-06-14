@@ -1,5 +1,4 @@
 import { EventEmitter } from "node:events";
-import { basename } from "node:path";
 import { workspaces } from "@superset/local-db";
 import { track } from "main/lib/analytics";
 import { appState } from "main/lib/app-state";
@@ -12,7 +11,10 @@ import {
 } from "../../terminal-host/client";
 import type { ListSessionsResponse } from "../../terminal-host/types";
 import { raceWithAbort, throwIfAborted } from "../abort";
-import { resolveAgentResumeTarget } from "../agent-resume";
+import {
+	inferSupportedAgentIdFromLaunchCommand,
+	resolveAgentResumeTarget,
+} from "../agent-resume";
 import { buildTerminalEnv, getDefaultShell } from "../env";
 import { TerminalKilledError } from "../errors";
 import { portManager } from "../port-manager";
@@ -45,16 +47,7 @@ function normalizeRestorableAgentId(
 function inferRestorableAgentIdFromCommand(
 	command: string | null | undefined,
 ): RestorableAgentId | null {
-	if (typeof command !== "string") {
-		return null;
-	}
-
-	const firstToken = command.trim().split(/\s+/, 1)[0];
-	if (!firstToken) {
-		return null;
-	}
-
-	return normalizeRestorableAgentId(basename(firstToken).toLowerCase());
+	return inferSupportedAgentIdFromLaunchCommand(command);
 }
 
 function inferRestorableAgentIdFromTabTitle(
@@ -592,6 +585,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					cwd: sessionCwd,
 					workspacePath: sessionLocation?.workspacePath ?? workspacePath,
 					rootPath: sessionLocation?.rootPath ?? rootPath,
+					originalCommand: sessionLocation?.command ?? command,
 				});
 				if (resumeTarget) {
 					updateSessionLocationAgentIdentity({
@@ -705,6 +699,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			cwd: metadata.cwd,
 			workspacePath: sessionLocation?.workspacePath,
 			rootPath: sessionLocation?.rootPath,
+			originalCommand: knownCommand,
 		});
 		upsertSessionLocation({
 			paneId,
@@ -729,7 +724,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			previousCwd: metadata.cwd,
 			cols: metadata.cols || cols,
 			rows: metadata.rows || rows,
-			resumeCommand: resumeTarget?.resumeCommand,
+			resumeCommand: resumeTarget?.resumeCommand ?? knownCommand,
 		});
 
 		return {
@@ -738,7 +733,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			wasRecovered: true,
 			isColdRestore: true,
 			previousCwd: metadata.cwd,
-			resumeCommand: resumeTarget?.resumeCommand,
+			resumeCommand: resumeTarget?.resumeCommand ?? knownCommand,
 			snapshot: {
 				snapshotAnsi: scrollback,
 				rehydrateSequences: "",

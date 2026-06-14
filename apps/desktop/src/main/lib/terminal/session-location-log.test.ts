@@ -1,16 +1,34 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	spyOn,
+} from "bun:test";
+import type {
+	SessionLocationEntry,
+	SessionLocationStoreAdapter,
+} from "./session-location-log";
+
+mock.module("../host-db", () => ({
+	getActiveHostDb: () => null,
+	getActiveHostDbPath: () => "/tmp/superset-test/host/organization-1/host.db",
+}));
+
+const {
 	getSessionLocation,
 	LEGACY_SESSION_LOCATION_LOG_PATH,
 	markSessionLocationExited,
-	type SessionLocationEntry,
-	type SessionLocationStoreAdapter,
+	recordSessionLocationLaunchCommand,
 	setHostDbAccessForTests,
 	setLegacySessionLocationSourceForTests,
 	setSessionLocationStoreAdapterForTests,
 	updateSessionLocationAgentIdentity,
+	updateSessionLocationCommand,
 	upsertSessionLocation,
-} from "./session-location-log";
+} = await import("./session-location-log");
 
 describe("session-location-log", () => {
 	let store = new Map<string, SessionLocationEntry>();
@@ -41,6 +59,9 @@ describe("session-location-log", () => {
 					: {}),
 				...(Object.hasOwn(patch, "agentSessionId")
 					? { agentSessionId: patch.agentSessionId ?? undefined }
+					: {}),
+				...(Object.hasOwn(patch, "command")
+					? { command: patch.command ?? undefined }
 					: {}),
 				...(Object.hasOwn(patch, "status") && patch.status
 					? { status: patch.status }
@@ -121,6 +142,7 @@ describe("session-location-log", () => {
 			tabId: "tab-1",
 			workspaceId: "workspace-1",
 			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
 			pid: 123,
 		});
 		updateSessionLocationAgentIdentity({
@@ -141,6 +163,7 @@ describe("session-location-log", () => {
 		expect(nextEntry).toMatchObject({
 			agentId: undefined,
 			agentSessionId: undefined,
+			command: undefined,
 			pid: 456,
 			status: "available",
 		});
@@ -174,6 +197,61 @@ describe("session-location-log", () => {
 		expect(nextEntry).toMatchObject({
 			agentId: "codex",
 			agentSessionId: "session-1",
+			pid: 456,
+			status: "available",
+		});
+	});
+
+	it("updates the stored launch command without clearing session identity", async () => {
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "claude",
+			pid: 123,
+		});
+		updateSessionLocationAgentIdentity({
+			paneId: "pane-1",
+			agentId: "claude",
+			agentSessionId: "session-1",
+		});
+
+		updateSessionLocationCommand({
+			paneId: "pane-1",
+			command: "claude --dangerously-skip-permissions",
+		});
+
+		const nextEntry = await getSessionLocation("pane-1");
+		expect(nextEntry).toMatchObject({
+			command: "claude --dangerously-skip-permissions",
+			agentId: "claude",
+			agentSessionId: "session-1",
+			pid: 123,
+			status: "available",
+		});
+	});
+
+	it("keeps a preset launch command when attach records the live pid later", async () => {
+		recordSessionLocationLaunchCommand({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+		});
+
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			pid: 456,
+		});
+
+		const nextEntry = await getSessionLocation("pane-1");
+		expect(nextEntry).toMatchObject({
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
 			pid: 456,
 			status: "available",
 		});

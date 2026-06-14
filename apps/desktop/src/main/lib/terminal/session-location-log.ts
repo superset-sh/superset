@@ -35,6 +35,7 @@ type SessionLocationPatch = Partial<
 		SessionLocationEntry,
 		| "agentId"
 		| "agentSessionId"
+		| "command"
 		| "status"
 		| "pid"
 		| "updatedAt"
@@ -203,6 +204,9 @@ function createDbStoreAdapter(): SessionLocationStoreAdapter {
 			}
 			if ("agentSessionId" in patch) {
 				setValues.agentSessionId = patch.agentSessionId ?? null;
+			}
+			if ("command" in patch) {
+				setValues.command = patch.command ?? null;
 			}
 			if ("status" in patch && patch.status !== undefined) {
 				setValues.status = patch.status === "available" ? "active" : "exited";
@@ -411,10 +415,14 @@ export function upsertSessionLocation(params: {
 			(previous?.pid !== null &&
 				params.pid !== null &&
 				previous?.pid !== params.pid);
+		const nextCommand =
+			params.command ??
+			(shouldResetAgentIdentity ? undefined : previous?.command);
 
 		storeAdapter.upsert({
 			...previous,
 			...params,
+			command: nextCommand,
 			agentId: shouldResetAgentIdentity ? undefined : previous?.agentId,
 			agentSessionId: shouldResetAgentIdentity
 				? undefined
@@ -428,6 +436,39 @@ export function upsertSessionLocation(params: {
 		});
 	} catch (error) {
 		logSessionLocationWarning("Failed to upsert session location", error);
+	}
+}
+
+export function recordSessionLocationLaunchCommand(params: {
+	paneId: string;
+	tabId: string;
+	workspaceId: string;
+	workspaceName?: string;
+	workspacePath?: string;
+	rootPath?: string;
+	cwd: string;
+	command: string;
+}): void {
+	try {
+		ensureLegacyImportIfNeeded();
+		const entry = storeAdapter.getByPaneId(params.paneId);
+		if (entry) {
+			updateSessionLocationCommand({
+				paneId: params.paneId,
+				command: params.command,
+			});
+			return;
+		}
+
+		upsertSessionLocation({
+			...params,
+			pid: null,
+		});
+	} catch (error) {
+		logSessionLocationWarning(
+			"Failed to record session location launch command",
+			error,
+		);
 	}
 }
 
@@ -466,6 +507,30 @@ export function updateSessionLocationAgentIdentity(params: {
 	} catch (error) {
 		logSessionLocationWarning(
 			"Failed to update session location agent identity",
+			error,
+		);
+	}
+}
+
+export function updateSessionLocationCommand(params: {
+	paneId: string;
+	command: string;
+}): void {
+	try {
+		ensureLegacyImportIfNeeded();
+		const entry = storeAdapter.getByPaneId(params.paneId);
+		if (!entry) return;
+		if (entry.command === params.command) {
+			return;
+		}
+
+		storeAdapter.update(params.paneId, {
+			command: params.command,
+			updatedAt: Date.now(),
+		});
+	} catch (error) {
+		logSessionLocationWarning(
+			"Failed to update session location command",
 			error,
 		);
 	}
