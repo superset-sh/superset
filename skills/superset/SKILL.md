@@ -14,7 +14,7 @@ If the CLI is not installed, you can install it using `curl -fsSL https://supers
 
 1. **Pick a project and host**: `superset projects list` and `superset hosts list`.
 2. **Create a Workspace**: `superset workspaces create --project <id> --host <id> --name "..." --branch <branch>` (or `--pr <number>`, or `--local` instead of `--host`).
-3. **Spawn an agent**: `superset agents create --workspace <id> --agent claude --prompt "..."`.
+3. **Spawn an agent**: `superset agents create --workspace <id> --agent codex --prompt "..."`.
 4. **Plan work**: `superset tasks create --title "..."` then `tasks update <id-or-slug>` as work progresses.
 
 ## Runtime Context
@@ -41,7 +41,7 @@ Provide exactly one of `--branch` or `--pr`. With `--pr`, the host checks out th
 Optionally act on the new workspace as soon as it's materialized:
 
 ```bash
-superset workspaces create --project <id> --local --name "..." --branch <branch> --agent claude --prompt "fix the build"
+superset workspaces create --project <id> --local --name "..." --branch <branch> --agent codex --prompt "fix the build"
 superset workspaces create --project <id> --local --name "..." --branch <branch> --command "bun install && bun test"
 ```
 
@@ -55,10 +55,10 @@ The two are independent — pass either or both.
 ```bash
 superset agents list --host <id>                 # Configured agents on a host (LABEL, PRESET, COMMAND, ID)
 superset agents list --local                     # Same, for this machine
-superset agents create --workspace <id> --agent claude --prompt "..."
+superset agents create --workspace <id> --agent codex --prompt "..."
 ```
 
-`--agent` accepts a preset id (e.g. `claude`, `codex`) or a HostAgentConfig instance UUID. Pass `--attachment-id <uuid>` once per attachment. Use `agents list` first if you don't already know which agents are installed on the target host.
+`--agent` accepts a preset id (e.g. `codex`, `claude`) or a HostAgentConfig instance UUID. Pass `--attachment-id <uuid>` once per attachment. Use `agents list` first if you don't already know which agents are installed on the target host.
 
 ## Terminals
 
@@ -109,9 +109,9 @@ If a workspace is omitted, it will create a fresh clone of a repo for the automa
 superset automations list
 superset automations get <id-or-slug>
 superset automations create --name "..." --rrule "FREQ=DAILY;BYHOUR=9" \
-  --project <id> --agent claude --prompt-file prompt.md
+  --project <id> --agent codex --prompt-file prompt.md
 superset automations create --name "..." --rrule "FREQ=WEEKLY;BYDAY=MO" \
-  --workspace <id> --agent claude --prompt "Inline prompt"
+  --workspace <id> --agent codex --prompt "Inline prompt"
 superset automations update <id> --name "..."
 superset automations pause <id>
 superset automations resume <id>

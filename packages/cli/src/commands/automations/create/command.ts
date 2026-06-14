@@ -25,9 +25,9 @@ export default command({
 		workspace: string().desc("existing v2 workspace id — reuses it every run"),
 		host: string().desc("Target host id (default: owner's online host)"),
 		agent: string()
-			.default("claude")
+			.default("codex")
 			.desc(
-				"Host agent instance id or presetId (claude, codex, ...). Use 'superset' for the built-in chat agent.",
+				"Host agent instance id or presetId (codex, claude, ...). Use 'superset' for the built-in chat agent.",
 			),
 	},
 	run: async ({ ctx, options }) => {

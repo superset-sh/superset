@@ -10,7 +10,7 @@ export default command({
 		timezone: string().desc("New IANA timezone"),
 		dtstart: string().desc("New ISO 8601 start anchor"),
 		agent: string().desc(
-			"New host agent instance id or presetId (e.g. claude, codex, superset).",
+			"New host agent instance id or presetId (e.g. codex, claude, superset).",
 		),
 		host: string().desc("New target host id"),
 		project: string().desc("New v2 project id"),

@@ -87,11 +87,11 @@ Sleep 300ms
 Type "superset agents list"
 Enter
 Sleep 2.6s
-Type "# Spin up a workspace running Claude on it — one command:"
+Type "# Spin up a workspace running Codex on it — one command:"
 Sleep 800ms
 Enter
 Sleep 350ms
-Type `superset workspaces create --name dark-mode-fix --agent claude --prompt "fix the dark-mode flicker"`
+Type `superset workspaces create --name dark-mode-fix --agent codex --prompt "fix the dark-mode flicker"`
 Enter
 Sleep 3s
 
