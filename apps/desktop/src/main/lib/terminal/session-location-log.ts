@@ -403,8 +403,9 @@ export function upsertSessionLocation(params: {
 	cwd: string;
 	command?: string;
 	pid: number | null;
-}): void {
+}): boolean {
 	try {
+		if (!storeAdapter.isAvailable()) return false;
 		ensureLegacyImportIfNeeded();
 		const now = Date.now();
 		const previous = storeAdapter.getByPaneId(params.paneId);
@@ -434,8 +435,10 @@ export function upsertSessionLocation(params: {
 			exitReason: undefined,
 			locationKey,
 		});
+		return true;
 	} catch (error) {
 		logSessionLocationWarning("Failed to upsert session location", error);
+		return false;
 	}
 }
 
@@ -448,19 +451,19 @@ export function recordSessionLocationLaunchCommand(params: {
 	rootPath?: string;
 	cwd: string;
 	command: string;
-}): void {
+}): boolean {
 	try {
+		if (!storeAdapter.isAvailable()) return false;
 		ensureLegacyImportIfNeeded();
 		const entry = storeAdapter.getByPaneId(params.paneId);
 		if (entry) {
-			updateSessionLocationCommand({
+			return updateSessionLocationCommand({
 				paneId: params.paneId,
 				command: params.command,
 			});
-			return;
 		}
 
-		upsertSessionLocation({
+		return upsertSessionLocation({
 			...params,
 			pid: null,
 		});
@@ -469,6 +472,7 @@ export function recordSessionLocationLaunchCommand(params: {
 			"Failed to record session location launch command",
 			error,
 		);
+		return false;
 	}
 }
 
@@ -515,24 +519,27 @@ export function updateSessionLocationAgentIdentity(params: {
 export function updateSessionLocationCommand(params: {
 	paneId: string;
 	command: string;
-}): void {
+}): boolean {
 	try {
+		if (!storeAdapter.isAvailable()) return false;
 		ensureLegacyImportIfNeeded();
 		const entry = storeAdapter.getByPaneId(params.paneId);
-		if (!entry) return;
+		if (!entry) return false;
 		if (entry.command === params.command) {
-			return;
+			return true;
 		}
 
 		storeAdapter.update(params.paneId, {
 			command: params.command,
 			updatedAt: Date.now(),
 		});
+		return true;
 	} catch (error) {
 		logSessionLocationWarning(
 			"Failed to update session location command",
 			error,
 		);
+		return false;
 	}
 }
 

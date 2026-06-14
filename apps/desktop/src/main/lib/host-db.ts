@@ -107,6 +107,22 @@ function getActiveOrganizationId(): string | null {
 	}
 }
 
+function closeCachedHostDb(): void {
+	if (!cachedDb) return;
+
+	try {
+		(
+			cachedDb as unknown as { $client?: { close: () => void } }
+		).$client?.close();
+	} catch (error) {
+		console.warn("[host-db] Failed to close previous host db", error);
+	}
+
+	cachedDb = null;
+	cachedOrganizationId = null;
+	cachedDbPath = null;
+}
+
 export function getActiveHostDbPath(): string | null {
 	const organizationId = getActiveOrganizationId();
 	return organizationId ? join(manifestDir(organizationId), "host.db") : null;
@@ -115,6 +131,7 @@ export function getActiveHostDbPath(): string | null {
 export function getActiveHostDb(): HostDb | null {
 	const organizationId = getActiveOrganizationId();
 	if (!organizationId) {
+		closeCachedHostDb();
 		return null;
 	}
 
@@ -127,18 +144,7 @@ export function getActiveHostDb(): HostDb | null {
 		return cachedDb;
 	}
 
-	if (cachedDb) {
-		try {
-			(
-				cachedDb as unknown as { $client?: { close: () => void } }
-			).$client?.close();
-		} catch (error) {
-			console.warn("[host-db] Failed to close previous host db", error);
-		}
-		cachedDb = null;
-		cachedOrganizationId = null;
-		cachedDbPath = null;
-	}
+	closeCachedHostDb();
 
 	const migrationsDir = getHostMigrationsDirectory();
 	if (!migrationsDir) {

@@ -265,7 +265,7 @@ export const createTerminalRouter = () => {
 				const { workspace, workspacePath, rootPath } =
 					getWorkspaceTerminalContext(input.workspaceId);
 				const cwd = resolveCwd(input.cwd, workspacePath) ?? workspacePath ?? "";
-				recordSessionLocationLaunchCommand({
+				const success = recordSessionLocationLaunchCommand({
 					paneId: input.paneId,
 					tabId: input.tabId,
 					workspaceId: input.workspaceId,
@@ -275,7 +275,7 @@ export const createTerminalRouter = () => {
 					cwd,
 					command: input.command,
 				});
-				return { success: true };
+				return { success };
 			}),
 
 		ackColdRestore: publicProcedure

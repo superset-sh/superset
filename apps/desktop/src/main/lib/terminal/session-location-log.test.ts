@@ -12,9 +12,14 @@ import type {
 	SessionLocationStoreAdapter,
 } from "./session-location-log";
 
-mock.module("../host-db", () => ({
-	getActiveHostDb: () => null,
-	getActiveHostDbPath: () => "/tmp/superset-test/host/organization-1/host.db",
+mock.module("main/lib/local-db", () => ({
+	localDb: {
+		select: () => ({
+			from: () => ({
+				get: () => ({ activeOrganizationId: null }),
+			}),
+		}),
+	},
 }));
 
 const {
@@ -233,13 +238,14 @@ describe("session-location-log", () => {
 	});
 
 	it("keeps a preset launch command when attach records the live pid later", async () => {
-		recordSessionLocationLaunchCommand({
+		const recorded = recordSessionLocationLaunchCommand({
 			paneId: "pane-1",
 			tabId: "tab-1",
 			workspaceId: "workspace-1",
 			cwd: "/tmp/workspace",
 			command: "codex --dangerously-bypass-approvals-and-sandbox",
 		});
+		expect(recorded).toBe(true);
 
 		upsertSessionLocation({
 			paneId: "pane-1",
@@ -255,6 +261,30 @@ describe("session-location-log", () => {
 			pid: 456,
 			status: "available",
 		});
+	});
+
+	it("reports launch command persistence failure when the store is unavailable", () => {
+		setSessionLocationStoreAdapterForTests({
+			isAvailable: () => false,
+			getByPaneId: () => undefined,
+			upsert: () => {
+				throw new Error("unavailable store should not be written");
+			},
+			update: () => {
+				throw new Error("unavailable store should not be updated");
+			},
+		});
+
+		const recorded = recordSessionLocationLaunchCommand({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+		});
+
+		expect(recorded).toBe(false);
+		expect(store.size).toBe(0);
 	});
 
 	it("marks the persisted row exited without deleting it", async () => {
