@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { workspaces } from "@superset/local-db";
+import { AGENT_PRESET_COMMANDS } from "@superset/shared/agent-command";
 import { track } from "main/lib/analytics";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
@@ -66,6 +67,13 @@ function inferRestorableAgentIdFromTabTitle(
 	}
 
 	return normalizeRestorableAgentId(title.toLowerCase());
+}
+
+function getDefaultRestorableAgentCommand(
+	agentId: RestorableAgentId | null,
+): string | undefined {
+	if (!agentId) return undefined;
+	return AGENT_PRESET_COMMANDS[agentId]?.[0];
 }
 
 interface PendingCreateOrAttach {
@@ -688,11 +696,13 @@ export class DaemonTerminalManager extends EventEmitter {
 				? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
 				: rawScrollback;
 		const sessionLocation = await getSessionLocation(paneId);
-		const knownCommand = sessionLocation?.command ?? command;
+		const storedCommand = sessionLocation?.command ?? command;
 		const restorableAgentId =
 			normalizeRestorableAgentId(sessionLocation?.agentId) ??
-			inferRestorableAgentIdFromCommand(knownCommand) ??
+			inferRestorableAgentIdFromCommand(storedCommand) ??
 			inferRestorableAgentIdFromTabTitle(tabId);
+		const knownCommand =
+			storedCommand ?? getDefaultRestorableAgentCommand(restorableAgentId);
 		const resumeTarget = await resolveAgentResumeTarget({
 			agentId: restorableAgentId,
 			sessionId: sessionLocation?.agentSessionId,

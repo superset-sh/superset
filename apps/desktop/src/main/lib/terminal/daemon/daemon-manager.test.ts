@@ -580,6 +580,73 @@ describe("DaemonTerminalManager kill tracking", () => {
 		});
 	});
 
+	it("uses the Superset preset command when an existing agent row has no command", async () => {
+		mockHistoryMetadata = {
+			cwd: "/repo",
+			cols: 120,
+			rows: 32,
+		};
+		mockHistoryScrollback = "restored scrollback";
+		mockGetSessionLocation = async () => ({
+			paneId: "pane-codex-empty-command",
+			tabId: "tab-codex-empty-command",
+			workspaceId: "ws-1",
+			cwd: "/repo",
+			pid: null,
+			status: "exited",
+			createdAt: 0,
+			updatedAt: 0,
+			locationKey: "ws-1:tab-codex-empty-command:pane-codex-empty-command",
+			workspacePath: "/repo",
+			rootPath: "/root",
+			agentId: "codex",
+			agentSessionId: "session-legacy",
+		});
+
+		const resolveCalls: Array<Record<string, unknown>> = [];
+		mockResolveAgentResumeTarget = async (params) => {
+			resolveCalls.push(params as Record<string, unknown>);
+			return {
+				agentId: "codex",
+				sessionId: "session-legacy",
+				resumeCommand:
+					"codex --dangerously-bypass-approvals-and-sandbox resume session-legacy",
+				sourcePath: "session-location-log",
+			};
+		};
+
+		const manager = new DaemonTerminalManager();
+		const result = await manager.createOrAttach({
+			paneId: "pane-codex-empty-command",
+			tabId: "tab-codex-empty-command",
+			workspaceId: "ws-1",
+		});
+
+		expect(resolveCalls).toHaveLength(1);
+		expect(resolveCalls[0]?.agentId).toBe("codex");
+		expect(resolveCalls[0]?.sessionId).toBe("session-legacy");
+		expect(resolveCalls[0]?.originalCommand).toBe(
+			"codex --dangerously-bypass-approvals-and-sandbox",
+		);
+		expect(result).toMatchObject({
+			isColdRestore: true,
+			previousCwd: "/repo",
+			resumeCommand:
+				"codex --dangerously-bypass-approvals-and-sandbox resume session-legacy",
+		});
+		expect(mockUpsertSessionLocationCalls).toContainEqual({
+			paneId: "pane-codex-empty-command",
+			tabId: "tab-codex-empty-command",
+			workspaceId: "ws-1",
+			workspaceName: undefined,
+			workspacePath: undefined,
+			rootPath: undefined,
+			cwd: "/repo",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+			pid: null,
+		});
+	});
+
 	it("infers codex from the current pane command when the session row is missing", async () => {
 		mockHistoryMetadata = {
 			cwd: "/repo",
