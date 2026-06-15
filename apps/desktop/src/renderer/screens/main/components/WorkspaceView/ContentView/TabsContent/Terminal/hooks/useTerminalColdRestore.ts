@@ -272,6 +272,10 @@ export function useTerminalColdRestore({
 								);
 								isStreamReadyRef.current = true;
 								flushPendingEvents();
+								// Clear the cold-restore state so a component remount
+								// doesn't re-enter the cold-restore overlay for a shell
+								// that is already running.
+								clearRestoreResumeState();
 							});
 					} else {
 						clearRestoreResumeState();

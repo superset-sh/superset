@@ -256,7 +256,7 @@ describe("useTerminalColdRestore", () => {
 		expect(options.preserveCleanExitUntilRef.current).toBeGreaterThan(0);
 	});
 
-	it("retains resume metadata when auto-resume injection fails", async () => {
+	it("clears restore state and shows error when auto-resume injection fails", async () => {
 		stateValues[2] = "claude --resume abc123";
 		coldRestoreState.set("pane-1", {
 			isRestored: true,
@@ -276,13 +276,10 @@ describe("useTerminalColdRestore", () => {
 		expect(options.setConnectionError).toHaveBeenCalledWith(
 			"resume write failed",
 		);
-		expect(stateSetters[2]).not.toHaveBeenCalledWith(null);
-		expect(coldRestoreState.get("pane-1")).toEqual({
-			isRestored: true,
-			cwd: "/repo",
-			scrollback: "restored scrollback",
-			resumeCommand: "claude --resume abc123",
-		});
+		// Resume command state must be cleared so a remount doesn't re-enter
+		// the cold-restore overlay for a shell that is already running.
+		expect(stateSetters[2]).toHaveBeenCalledWith(null);
+		expect(coldRestoreState.get("pane-1")).toBeUndefined();
 	});
 
 	it("clears the clean-exit grace window when starting a restored shell is canceled", () => {
