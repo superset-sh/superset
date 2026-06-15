@@ -1,9 +1,10 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
+import { markTerminalSessionReady } from "renderer/lib/terminal/session-readiness";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
-import { coldRestoreState } from "../state";
+import { coldRestoreState, consumeColdRestoreScrollback } from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -86,6 +87,10 @@ export function useTerminalColdRestore({
 	const ensureCachedStreamActive = useCallback(() => {
 		v1TerminalCache.startStream(paneId);
 		v1TerminalCache.setStreamReady(paneId);
+		markTerminalSessionReady(paneId);
+		// Push current viewport dims to the new PTY; the ResizeObserver only
+		// fires on subsequent resizes, not at session-creation time.
+		v1TerminalCache.syncDimensions(paneId);
 	}, [paneId]);
 
 	const handleRetryConnection = useCallback(() => {
@@ -117,19 +122,24 @@ export function useTerminalColdRestore({
 					if (result.isColdRestore) {
 						const scrollback =
 							result.snapshot?.snapshotAnsi ?? result.scrollback;
-						coldRestoreState.set(paneId, {
+						const nextColdRestoreState = {
 							isRestored: true,
 							cwd: result.previousCwd || null,
 							scrollback,
 							resumeCommand: result.resumeCommand || null,
-						});
+						};
+						coldRestoreState.set(paneId, nextColdRestoreState);
 						setIsRestoredMode(true);
 						setRestoredCwd(result.previousCwd || null);
 						setRestoredResumeCommand(result.resumeCommand || null);
 
+						const restoredScrollback = consumeColdRestoreScrollback(
+							paneId,
+							nextColdRestoreState,
+						);
 						currentXterm.clear();
-						if (scrollback) {
-							currentXterm.write(scrollback, () => {
+						if (restoredScrollback) {
+							currentXterm.write(restoredScrollback, () => {
 								requestAnimationFrame(() => {
 									if (xtermRef.current !== currentXterm) return;
 									scrollToBottom(currentXterm);

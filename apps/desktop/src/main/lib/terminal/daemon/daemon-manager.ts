@@ -568,6 +568,8 @@ export class DaemonTerminalManager extends EventEmitter {
 				cols: effectiveCols,
 				rows: effectiveRows,
 			});
+			// Capture pre-upsert identity so we can guard the transcript scan below.
+			const existingLocation = await getSessionLocation(paneId);
 			upsertSessionLocation({
 				paneId,
 				tabId,
@@ -586,7 +588,16 @@ export class DaemonTerminalManager extends EventEmitter {
 					sessionLocation?.command ?? command,
 				) ??
 				inferRestorableAgentIdFromTabTitle(tabId);
-			if (restorableAgentId && !sessionLocation?.agentSessionId) {
+			// Only backfill transcript identity when reattaching to an already
+			// known daemon session. Brand-new Superset agent panes should wait for
+			// their hook payload; scanning immediately can pick an older transcript
+			// from the same cwd and persist the wrong session id.
+			if (
+				daemonHasSession &&
+				restorableAgentId &&
+				existingLocation?.agentId &&
+				!existingLocation?.agentSessionId
+			) {
 				const resumeTarget = await resolveAgentResumeTarget({
 					agentId: restorableAgentId,
 					sessionId: undefined,
@@ -869,6 +880,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				markSessionLocationExited({ paneId, exitReason: "killed" });
 				return;
 			}
+			markSessionLocationExited({ paneId, exitReason: "error" });
 			throw error;
 		}
 	}

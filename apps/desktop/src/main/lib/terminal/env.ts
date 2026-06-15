@@ -465,6 +465,7 @@ export function buildTerminalEnv(params: {
 	// COLORFGBG: "foreground;background" ANSI color indices — TUI apps use this to detect light/dark
 	const colorFgBg = themeType === "light" ? "0;15" : "15;0";
 
+	const sessionLocationsPath = getSessionLocationStorePath();
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
@@ -480,7 +481,9 @@ export function buildTerminalEnv(params: {
 		SUPERSET_WORKSPACE_NAME: workspaceName || "",
 		SUPERSET_WORKSPACE_PATH: workspacePath || "",
 		SUPERSET_ROOT_PATH: rootPath || "",
-		SUPERSET_SESSION_LOCATIONS_PATH: getSessionLocationStorePath() || "",
+		...(sessionLocationsPath
+			? { SUPERSET_SESSION_LOCATIONS_PATH: sessionLocationsPath }
+			: {}),
 		SUPERSET_SESSION_LOCATION_KEY: buildSessionLocationKey({
 			workspaceId,
 			tabId,

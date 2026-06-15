@@ -20,8 +20,13 @@
  * Fix: when the throttle fires, schedule a retry after the remaining throttle
  * duration instead of silently returning.
  */
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
+import { coldRestoreState, consumeColdRestoreScrollback } from "../state";
 import { shouldActivateCachedTerminalStream } from "./terminal-stream-activation";
+
+afterEach(() => {
+	coldRestoreState.clear();
+});
 
 // ---------------------------------------------------------------------------
 // Minimal model of the scheduleReattachRecovery throttle mechanism.
@@ -195,5 +200,24 @@ describe("shouldActivateCachedTerminalStream", () => {
 				isColdRestore: false,
 			}),
 		).toBeTrue();
+	});
+});
+
+describe("consumeColdRestoreScrollback", () => {
+	it("marks restored scrollback as consumed so remounts do not append it again", () => {
+		coldRestoreState.set("pane-1", {
+			isRestored: true,
+			cwd: "/repo",
+			scrollback: "restored scrollback",
+			resumeCommand: "codex resume session-1",
+		});
+
+		expect(
+			consumeColdRestoreScrollback("pane-1", coldRestoreState.get("pane-1")),
+		).toBe("restored scrollback");
+		expect(coldRestoreState.get("pane-1")?.scrollbackApplied).toBeTrue();
+		expect(
+			consumeColdRestoreScrollback("pane-1", coldRestoreState.get("pane-1")),
+		).toBeNull();
 	});
 });

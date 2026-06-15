@@ -28,6 +28,10 @@ export { resolvePaneId } from "./resolve-pane-id";
 const SERVER_ENV =
 	env.NODE_ENV === "development" ? "development" : "production";
 const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
+// Cache session IDs known to have a top-level Claude transcript so we don't
+// re-walk the filesystem on every hook event for the same session.
+const knownTopLevelTranscripts = new Set<string>();
+
 const DEBUG_HOOKS_ENABLED =
 	debugHooksOverride === undefined
 		? SERVER_ENV === "development"
@@ -129,8 +133,15 @@ app.get("/hook/complete", async (req, res) => {
 				currentLocation.agentSessionId &&
 				currentLocation.agentSessionId !== normalizedSessionId
 			) {
-				shouldPersistAgentIdentity =
-					await hasClaudeTopLevelTranscript(normalizedSessionId);
+				if (knownTopLevelTranscripts.has(normalizedSessionId)) {
+					shouldPersistAgentIdentity = true;
+				} else {
+					shouldPersistAgentIdentity =
+						await hasClaudeTopLevelTranscript(normalizedSessionId);
+					if (shouldPersistAgentIdentity) {
+						knownTopLevelTranscripts.add(normalizedSessionId);
+					}
+				}
 			}
 		}
 		if (

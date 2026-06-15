@@ -356,10 +356,8 @@ function removeExistingResumeArgs(
 		for (let index = 0; index < args.length; index += 1) {
 			const arg = args[index];
 			if (arg?.startsWith("--resume=")) {
-				const sessionId = arg.slice("--resume=".length);
-				if (SESSION_ID_PATTERN.test(sessionId)) {
-					continue;
-				}
+				// Drop all --resume= args, valid or malformed; the new one is appended below.
+				continue;
 			}
 			if (
 				arg === "--resume" &&

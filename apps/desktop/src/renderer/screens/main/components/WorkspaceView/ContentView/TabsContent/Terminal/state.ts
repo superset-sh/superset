@@ -15,3 +15,18 @@ export const pendingDetaches = new Map<string, NodeJS.Timeout>();
  * with fresh state, losing the cold restore detection.
  */
 export const coldRestoreState = new Map<string, ColdRestoreState>();
+
+export function consumeColdRestoreScrollback(
+	paneId: string,
+	state: ColdRestoreState | undefined,
+): string | null {
+	if (!state?.isRestored || !state.scrollback || state.scrollbackApplied) {
+		return null;
+	}
+
+	coldRestoreState.set(paneId, {
+		...state,
+		scrollbackApplied: true,
+	});
+	return state.scrollback;
+}

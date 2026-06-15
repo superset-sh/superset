@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import type { CreateOrAttachMutate, CreateOrAttachResult } from "../types";
+import type {
+	ColdRestoreState,
+	CreateOrAttachMutate,
+	CreateOrAttachResult,
+} from "../types";
 import type { UseTerminalColdRestoreOptions } from "./useTerminalColdRestore";
 
 const stateSetters = [mock(() => {}), mock(() => {}), mock(() => {})];
@@ -9,10 +13,25 @@ const stateValues: unknown[] = [];
 
 const startStreamMock = mock(() => {});
 const setStreamReadyMock = mock(() => {});
+const syncDimensionsMock = mock(() => {});
 const ackColdRestoreMutateMock = mock(async () => {});
 const terminalWriteMutateMock = mock(async () => {});
 const writeCommandInPaneMock = mock(async () => {});
-const coldRestoreState = new Map<string, unknown>();
+const coldRestoreState = new Map<string, ColdRestoreState>();
+const consumeColdRestoreScrollback = (
+	paneId: string,
+	state: ColdRestoreState | undefined,
+) => {
+	if (!state?.isRestored || !state.scrollback || state.scrollbackApplied) {
+		return null;
+	}
+
+	coldRestoreState.set(paneId, {
+		...state,
+		scrollbackApplied: true,
+	});
+	return state.scrollback;
+};
 const isTerminalAttachCanceledMessageMock = mock(() => false);
 const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
 
@@ -34,6 +53,7 @@ mock.module("react", () => ({
 mock.module("../v1-terminal-cache", () => ({
 	startStream: startStreamMock,
 	setStreamReady: setStreamReadyMock,
+	syncDimensions: syncDimensionsMock,
 }));
 
 mock.module("renderer/lib/trpc-client", () => ({
@@ -55,6 +75,7 @@ mock.module("../attach-cancel", () => ({
 
 mock.module("../state", () => ({
 	coldRestoreState,
+	consumeColdRestoreScrollback,
 }));
 
 mock.module("./terminal-exit-policy", () => ({
@@ -136,6 +157,7 @@ describe("useTerminalColdRestore", () => {
 			...stateSetters,
 			startStreamMock,
 			setStreamReadyMock,
+			syncDimensionsMock,
 			ackColdRestoreMutateMock,
 			terminalWriteMutateMock,
 			writeCommandInPaneMock,
@@ -165,6 +187,7 @@ describe("useTerminalColdRestore", () => {
 
 		expect(startStreamMock).toHaveBeenCalledWith("pane-1");
 		expect(setStreamReadyMock).toHaveBeenCalledWith("pane-1");
+		expect(syncDimensionsMock).toHaveBeenCalledWith("pane-1");
 		expect(options.maybeApplyInitialState).toHaveBeenCalledTimes(1);
 		expect(options.preserveCleanExitUntilRef.current).toBeGreaterThan(0);
 		expect(options.pendingInitialStateRef.current).toEqual({
@@ -221,6 +244,7 @@ describe("useTerminalColdRestore", () => {
 		expect(ackColdRestoreMutateMock).toHaveBeenCalledWith({ paneId: "pane-1" });
 		expect(startStreamMock).toHaveBeenCalledWith("pane-1");
 		expect(setStreamReadyMock).toHaveBeenCalledWith("pane-1");
+		expect(syncDimensionsMock).toHaveBeenCalledWith("pane-1");
 		expect(options.maybeApplyInitialState).toHaveBeenCalledTimes(1);
 		expect(options.resetModes).toHaveBeenCalledTimes(1);
 		expect(writeCommandInPaneMock).toHaveBeenCalledTimes(1);

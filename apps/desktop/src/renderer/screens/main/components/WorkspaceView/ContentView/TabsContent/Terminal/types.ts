@@ -59,6 +59,7 @@ export interface ColdRestoreState {
 	cwd: string | null;
 	scrollback: string;
 	resumeCommand?: string | null;
+	scrollbackApplied?: boolean;
 }
 
 /**

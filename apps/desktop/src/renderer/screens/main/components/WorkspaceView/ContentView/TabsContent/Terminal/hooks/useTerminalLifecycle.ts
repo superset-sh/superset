@@ -24,7 +24,11 @@ import {
 	setupFocusListener,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
-import { coldRestoreState, pendingDetaches } from "../state";
+import {
+	coldRestoreState,
+	consumeColdRestoreScrollback,
+	pendingDetaches,
+} from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -626,11 +630,13 @@ export function useTerminalLifecycle({
 										setRestoredResumeCommand(
 											storedColdRestore.resumeCommand || null,
 										);
-										if (storedColdRestore.scrollback && xterm) {
-											xterm.write(
-												storedColdRestore.scrollback,
-												scheduleScrollToBottom,
-											);
+										const restoredScrollback = consumeColdRestoreScrollback(
+											paneId,
+											storedColdRestore,
+										);
+										if (restoredScrollback && xterm) {
+											xterm.clear();
+											xterm.write(restoredScrollback, scheduleScrollToBottom);
 										}
 										didFirstRenderRef.current = true;
 										return;
@@ -639,17 +645,23 @@ export function useTerminalLifecycle({
 									if (result.isColdRestore) {
 										const scrollback =
 											result.snapshot?.snapshotAnsi ?? result.scrollback;
-										coldRestoreState.set(paneId, {
+										const nextColdRestoreState = {
 											isRestored: true,
 											cwd: result.previousCwd || null,
 											scrollback,
 											resumeCommand: result.resumeCommand || null,
-										});
+										};
+										coldRestoreState.set(paneId, nextColdRestoreState);
 										setIsRestoredMode(true);
 										setRestoredCwd(result.previousCwd || null);
 										setRestoredResumeCommand(result.resumeCommand || null);
-										if (scrollback && xterm) {
-											xterm.write(scrollback, scheduleScrollToBottom);
+										const restoredScrollback = consumeColdRestoreScrollback(
+											paneId,
+											nextColdRestoreState,
+										);
+										xterm.clear();
+										if (restoredScrollback && xterm) {
+											xterm.write(restoredScrollback, scheduleScrollToBottom);
 										}
 										didFirstRenderRef.current = true;
 										return;

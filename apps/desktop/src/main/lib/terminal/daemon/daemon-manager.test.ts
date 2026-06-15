@@ -823,6 +823,144 @@ describe("DaemonTerminalManager kill tracking", () => {
 		});
 	});
 
+	it("does not backfill transcript identity for a brand-new Superset agent shell", async () => {
+		const paneId = "pane-new-codex";
+		const tabId = "tab-new-codex";
+		const workspaceId = "ws-1";
+		const command = "codex --dangerously-bypass-approvals-and-sandbox";
+		mockGetSessionLocation = async () => ({
+			paneId,
+			tabId,
+			workspaceId,
+			cwd: "/repo",
+			pid: null,
+			status: "available",
+			createdAt: 0,
+			updatedAt: 0,
+			locationKey: `${workspaceId}:${tabId}:${paneId}`,
+			workspacePath: "/repo",
+			rootPath: "/root",
+			command,
+			agentId: "codex",
+		});
+
+		const resolveCalls: Array<Record<string, unknown>> = [];
+		mockResolveAgentResumeTarget = async (params) => {
+			resolveCalls.push(params as Record<string, unknown>);
+			return {
+				agentId: "codex",
+				sessionId: "stale-session",
+				resumeCommand: "codex resume stale-session",
+				sourcePath: "old-transcript",
+			};
+		};
+
+		const manager = new DaemonTerminalManager();
+		const attachPromise = manager.createOrAttach({
+			paneId,
+			tabId,
+			workspaceId,
+			cwd: "/repo",
+			command,
+			skipColdRestore: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		const requestId = mockClient.createOrAttachCalls[0]?.requestId;
+		expect(typeof requestId).toBe("string");
+		mockClient.resolveCreateOrAttach(requestId ?? "", 456);
+
+		await expect(attachPromise).resolves.toMatchObject({
+			isNew: true,
+			wasRecovered: false,
+		});
+		expect(resolveCalls).toEqual([]);
+		expect(mockUpdateSessionLocationAgentIdentityCalls).toEqual([]);
+		expect(mockUpsertSessionLocationCalls).toContainEqual({
+			paneId,
+			tabId,
+			workspaceId,
+			workspaceName: undefined,
+			workspacePath: undefined,
+			rootPath: undefined,
+			cwd: "/tmp",
+			command,
+			pid: 456,
+		});
+	});
+
+	it("can backfill transcript identity when reattaching to an existing daemon session", async () => {
+		const paneId = "pane-existing-codex";
+		const tabId = "tab-existing-codex";
+		const workspaceId = "ws-1";
+		const command = "codex --dangerously-bypass-approvals-and-sandbox";
+		const manager = new DaemonTerminalManager();
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set([paneId]);
+		mockGetSessionLocation = async () => ({
+			paneId,
+			tabId,
+			workspaceId,
+			cwd: "/repo",
+			pid: 123,
+			status: "available",
+			createdAt: 0,
+			updatedAt: 0,
+			locationKey: `${workspaceId}:${tabId}:${paneId}`,
+			workspacePath: "/repo",
+			rootPath: "/root",
+			command,
+			agentId: "codex",
+		});
+
+		const resolveCalls: Array<Record<string, unknown>> = [];
+		mockResolveAgentResumeTarget = async (params) => {
+			resolveCalls.push(params as Record<string, unknown>);
+			return {
+				agentId: "codex",
+				sessionId: "current-session",
+				resumeCommand: "codex resume current-session",
+				sourcePath: "transcript",
+			};
+		};
+
+		const attachPromise = manager.createOrAttach({
+			paneId,
+			tabId,
+			workspaceId,
+			cwd: "/repo",
+			command,
+			skipColdRestore: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		const requestId = mockClient.createOrAttachCalls[0]?.requestId;
+		expect(typeof requestId).toBe("string");
+		mockClient.resolveCreateOrAttach(requestId ?? "", 456);
+
+		await expect(attachPromise).resolves.toMatchObject({
+			isNew: true,
+			wasRecovered: false,
+		});
+		expect(resolveCalls).toHaveLength(1);
+		expect(resolveCalls[0]).toMatchObject({
+			agentId: "codex",
+			sessionId: undefined,
+			originalCommand: command,
+		});
+		expect(mockUpdateSessionLocationAgentIdentityCalls).toEqual([
+			{
+				paneId,
+				agentId: "codex",
+				agentSessionId: "current-session",
+			},
+		]);
+	});
+
 	it("supersedes older createOrAttach requests for the same pane", async () => {
 		const manager = new DaemonTerminalManager();
 		const paneId = "pane-attach-1";
