@@ -355,13 +355,10 @@ function ensureLegacyImportIfNeeded(): void {
 		const legacyRaw = legacySessionLocationSource.read(
 			LEGACY_SESSION_LOCATION_LOG_PATH,
 		);
-		let legacyEntries: SessionLocationEntry[];
-		try {
-			legacyEntries = parseLegacySessionLocationLog(legacyRaw);
-		} catch (error) {
-			legacyImportEnsured = true;
-			throw error;
-		}
+		// Intentionally no try/catch here: if parsing throws, legacyImportEnsured
+		// stays false so the next boot retries after a corrupt JSON file is repaired.
+		const legacyEntries: SessionLocationEntry[] =
+			parseLegacySessionLocationLog(legacyRaw);
 		if (legacyEntries.length === 0) {
 			logSessionLocationWarning(
 				"Legacy session location log contained no importable entries; leaving source file in place",
