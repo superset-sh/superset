@@ -1,0 +1,39 @@
+---
+title: Claude Opus 4.8 default, Fable 5, and merge queue status
+date: 2026-06-15
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot of the model picker showing Opus 4.8 and Fable 5 */}
+
+## Claude Opus 4.8 + Fable 5 in the model picker <PRBadge url="https://github.com/superset-sh/superset/pull/5203" />
+
+Claude Opus 4.8 is now the default model for agent sessions. Fable 5 is also available in the picker for the first time.
+
+- **Opus 4.8** replaces Opus 4.6 and becomes the top (default) entry
+- **Claude Fable 5** added as a selectable model
+- Opus 4.7 remains available; Opus 4.6 removed
+- Slack bot users with stored Opus 4.7 preferences are automatically migrated to 4.8
+
+## Merge Queue PR Status <PRBadge url="https://github.com/superset-sh/superset/pull/5249" />
+
+PRs sitting in a GitHub merge queue now show a distinct **Queued** state with an amber icon across the workspace sidebar, dashboard, and PR hover cards — no more confusing them with open or approved PRs.
+
+## Mobile Chat Components
+
+The full AI chat component library has been ported to the mobile app — 46 components covering messages, reasoning, tool calls, code blocks, the composer, and coding-agent artifacts. This is internal groundwork for the upcoming mobile chat feature, verified on iOS simulator with streaming markdown, native code highlighting, and the prompt composer.
+
+- **Expo SDK 56 + TypeScript 6.0.3** upgrade across all packages <PRBadge url="https://github.com/superset-sh/superset/pull/5242" />
+- **46 AI Elements components + 48 Storybook stories** for mobile chat <PRBadge url="https://github.com/superset-sh/superset/pull/5251" />
+
+## Improvements
+
+- **Relay performance** — Fixed a per-request memory leak that caused relay servers to grow ~0.2 GB/day under traffic load. Sentry's experimental console log buffering was retaining every request log; it's now disabled while keeping real error capture intact <PRBadge url="https://github.com/superset-sh/superset/pull/5208" />
+
+---
+
+**Bug fixes**
+
+- Fixed `superset workspaces list` truncating workspace IDs at 29 characters, making them unusable in other commands <PRBadge url="https://github.com/superset-sh/superset/pull/5245" />
+- Fixed project clone failing with "Device not configured" for users authenticated via `gh auth login` but without a git credential helper configured <PRBadge url="https://github.com/superset-sh/superset/pull/5228" />
+- Patched `shell-quote` to 1.8.4 to resolve a newline escaping security vulnerability (Dependabot #166) <PRBadge url="https://github.com/superset-sh/superset/pull/5267" />
