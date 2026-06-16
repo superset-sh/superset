@@ -42,7 +42,7 @@
 		"simplex-noise": "4.0.3",
 		"stripe-gradient": "1.0.1",
 		"three": "0.181.2",
-		"ua-parser-js": "2.0.9",
+		"ua-parser-js": "2.0.10",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
