@@ -958,6 +958,23 @@ export const PromptInputBody = ({
 	<div className={cn("contents", className)} {...props} />
 );
 
+/**
+ * Extract files from a clipboard/drag {@link DataTransferItemList}.
+ *
+ * `DataTransferItemList` is array-like but is **not** iterable — it has no
+ * `Symbol.iterator` — so `for...of` throws "is not iterable" against a real
+ * browser clipboard and the paste silently fails. Read it via `Array.from`,
+ * which falls back to the length/index protocol.
+ */
+export function getFilesFromDataTransferItems(
+	items: DataTransferItemList,
+): File[] {
+	return Array.from(items)
+		.filter((item) => item.kind === "file")
+		.map((item) => item.getAsFile())
+		.filter((file): file is File => file !== null);
+}
+
 export type PromptInputTextareaProps = ComponentProps<
 	typeof InputGroupTextarea
 >;
@@ -1024,16 +1041,7 @@ export const PromptInputTextarea = ({
 			return;
 		}
 
-		const files: File[] = [];
-
-		for (const item of items) {
-			if (item.kind === "file") {
-				const file = item.getAsFile();
-				if (file) {
-					files.push(file);
-				}
-			}
-		}
+		const files = getFilesFromDataTransferItems(items);
 
 		if (files.length > 0) {
 			event.preventDefault();
