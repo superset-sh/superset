@@ -550,7 +550,7 @@ export const createDeleteProcedures = () => {
 							}
 						} else {
 							console.warn(
-								`Worktree ${worktree.path} not found in git, skipping removal`,
+								`Worktree ${worktree.path} not found in git or on disk, skipping removal`,
 							);
 						}
 					}

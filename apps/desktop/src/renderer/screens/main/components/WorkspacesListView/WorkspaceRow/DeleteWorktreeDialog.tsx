@@ -52,9 +52,9 @@ export function DeleteWorktreeDialog({
 	const reason = canDeleteData?.reason;
 	const hasChanges = canDeleteData?.hasChanges ?? false;
 	const hasUnpushedCommits = canDeleteData?.hasUnpushedCommits ?? false;
-	const hasWarnings = hasChanges || hasUnpushedCommits;
 	const isImportedWorktree =
 		(canDeleteData?.worktree?.createdBySuperset ?? createdBySuperset) === false;
+	const hasWarnings = !isImportedWorktree && (hasChanges || hasUnpushedCommits);
 	const actionVerb = isImportedWorktree ? "Remove" : "Delete";
 
 	return (
