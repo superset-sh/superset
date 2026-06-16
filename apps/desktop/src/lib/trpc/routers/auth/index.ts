@@ -6,8 +6,8 @@ import { observable } from "@trpc/server/observable";
 import { shell } from "electron";
 import { env } from "main/env.main";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
+import { getNotificationsPort } from "main/lib/notifications/runtime-port";
 import { PLATFORM, PROTOCOL_SCHEME } from "shared/constants";
-import { env as sharedEnv } from "shared/env.shared";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -94,7 +94,7 @@ export const createAuthRouter = () => {
 					if (PLATFORM.IS_LINUX) {
 						connectUrl.searchParams.set(
 							"local_callback",
-							`http://127.0.0.1:${sharedEnv.DESKTOP_NOTIFICATIONS_PORT}/auth/callback`,
+							`http://127.0.0.1:${getNotificationsPort()}/auth/callback`,
 						);
 					}
 					await shell.openExternal(connectUrl.toString());

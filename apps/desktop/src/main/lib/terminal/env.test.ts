@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { setNotificationsPort } from "../notifications/runtime-port";
 import {
 	buildSafeEnv,
 	buildTerminalEnv,
@@ -706,6 +707,12 @@ describe("env", () => {
 				const result = buildTerminalEnv(baseParams);
 				expect(result.SUPERSET_PORT).toBeDefined();
 				expect(typeof result.SUPERSET_PORT).toBe("string");
+			});
+
+			it("should use the runtime notifications port", () => {
+				setNotificationsPort(43123);
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SUPERSET_PORT).toBe("43123");
 			});
 
 			it("should preserve SUPERSET_HOME_DIR for app-launched hooks", () => {
