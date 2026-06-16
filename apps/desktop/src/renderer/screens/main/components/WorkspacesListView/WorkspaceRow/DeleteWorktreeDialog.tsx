@@ -73,7 +73,9 @@ export function DeleteWorktreeDialog({
 							{isLoading ? (
 								"Checking status..."
 							) : !canDelete ? (
-								<span className="text-destructive">{reason}</span>
+								<span className="text-destructive select-text cursor-text">
+									{reason}
+								</span>
 							) : deletePresentation.isImported ? (
 								<span className="block">
 									This will remove the imported worktree from Superset. Its
