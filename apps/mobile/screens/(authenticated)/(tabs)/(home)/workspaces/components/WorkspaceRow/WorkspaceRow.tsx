@@ -2,12 +2,18 @@ import type {
 	SelectGithubPullRequest,
 	SelectV2Workspace,
 } from "@superset/db/schema";
-import { CircleDot, GitMerge, GitPullRequest } from "lucide-react-native";
+import {
+	Circle,
+	CircleDot,
+	Cloud,
+	CloudOff,
+	GitMerge,
+	GitPullRequest,
+} from "lucide-react-native";
 import { Linking, Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { parseDate } from "@/lib/dates";
-import { OrganizationAvatar } from "../OrganizationSwitcherSheet/components/OrganizationAvatar";
 
 const PR_BADGE_CONFIG = {
 	closed: {
@@ -54,13 +60,13 @@ export function relativeTime(date: Date | string): string {
 export function WorkspaceRow({
 	workspace,
 	pullRequest,
-	creator,
+	hostOnline,
 	onPress,
 	onLongPress,
 }: {
 	workspace: SelectV2Workspace;
 	pullRequest?: SelectGithubPullRequest;
-	creator?: { name?: string | null; image?: string | null };
+	hostOnline?: boolean;
 	onPress: () => void;
 	onLongPress: () => void;
 }) {
@@ -75,17 +81,22 @@ export function WorkspaceRow({
 		: null;
 	const prBadge = prState ? PR_BADGE_CONFIG[prState] : null;
 
+	const HostIcon =
+		hostOnline === undefined ? Circle : hostOnline ? Cloud : CloudOff;
+
 	return (
 		<Pressable
 			className="flex-row items-center gap-3 px-4 py-3"
 			onPress={onPress}
 			onLongPress={onLongPress}
 		>
-			<OrganizationAvatar
-				name={creator?.name ?? workspace.name}
-				logo={creator?.image}
-				size={36}
-			/>
+			<View className="size-9 items-center justify-center">
+				<Icon
+					as={HostIcon}
+					className="text-muted-foreground size-5"
+					strokeWidth={1.75}
+				/>
+			</View>
 			<View className="flex-1 gap-0.5">
 				<Text className="font-medium" numberOfLines={1}>
 					{workspace.name}

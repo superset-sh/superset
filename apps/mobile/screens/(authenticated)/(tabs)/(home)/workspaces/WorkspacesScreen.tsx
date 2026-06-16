@@ -50,8 +50,8 @@ export function WorkspacesScreen() {
 		(q) => q.from({ githubPullRequests: collections.githubPullRequests }),
 		[collections],
 	);
-	const { data: users } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
+	const { data: hosts } = useLiveQuery(
+		(q) => q.from({ v2Hosts: collections.v2Hosts }),
 		[collections],
 	);
 
@@ -102,9 +102,9 @@ export function WorkspacesScreen() {
 		return byBranch;
 	}, [pullRequests]);
 
-	const usersById = useMemo(
-		() => new Map((users ?? []).map((user) => [user.id, user])),
-		[users],
+	const hostsById = useMemo(
+		() => new Map((hosts ?? []).map((host) => [host.machineId, host])),
+		[hosts],
 	);
 
 	const renderItem = useCallback(
@@ -112,16 +112,14 @@ export function WorkspacesScreen() {
 			<WorkspaceRow
 				workspace={item}
 				pullRequest={pullRequestsByBranch.get(item.branch)}
-				creator={
-					item.createdByUserId ? usersById.get(item.createdByUserId) : undefined
-				}
+				hostOnline={hostsById.get(item.hostId)?.isOnline}
 				onPress={() =>
 					router.push(`/(authenticated)/workspace/${item.id}/chat`)
 				}
 				onLongPress={() => setActionsWorkspace(item)}
 			/>
 		),
-		[pullRequestsByBranch, usersById, router],
+		[pullRequestsByBranch, hostsById, router],
 	);
 
 	const handleSwitchOrganization = (organizationId: string) => {

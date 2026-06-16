@@ -13,6 +13,7 @@ import type {
 	SelectTask,
 	SelectTaskStatus,
 	SelectUser,
+	SelectV2Host,
 	SelectV2Project,
 	SelectV2Workspace,
 } from "@superset/db/schema";
@@ -60,6 +61,7 @@ interface OrgCollections {
 	invitations: Collection<SelectInvitation>;
 	v2Projects: Collection<SelectV2Project>;
 	v2Workspaces: Collection<SelectV2Workspace>;
+	v2Hosts: Collection<SelectV2Host>;
 	chatSessions: Collection<SelectChatSession>;
 	githubPullRequests: Collection<SelectGithubPullRequest>;
 }
@@ -207,6 +209,20 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const v2Hosts = createCollection(
+		electricCollectionOptions<SelectV2Host>({
+			id: `v2-hosts-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: { table: "v2_hosts", organizationId },
+				headers: electricHeaders,
+				columnMapper,
+				onError: handleElectricSyncError,
+			},
+			getKey: (item) => item.machineId,
+		}),
+	);
+
 	const githubPullRequests = createCollection(
 		electricCollectionOptions<SelectGithubPullRequest>({
 			id: `github-pull-requests-${organizationId}`,
@@ -244,6 +260,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		invitations,
 		v2Projects,
 		v2Workspaces,
+		v2Hosts,
 		chatSessions,
 		githubPullRequests,
 	};
