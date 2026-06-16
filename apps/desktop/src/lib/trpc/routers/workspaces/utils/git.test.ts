@@ -20,6 +20,7 @@ import {
 	isUnbornHeadError,
 	parsePorcelainStatusV2,
 	parsePrUrl,
+	removeWorktree,
 } from "./git";
 
 const TEST_DIR = join(
@@ -976,6 +977,42 @@ describe("hasUnpushedCommits", () => {
 			warnSpy.mockRestore();
 		}
 	});
+});
+
+describe("removeWorktree", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("removes stale leftover directory when git no longer tracks the worktree", async () => {
+		const repoPath = createTestRepo("remove-stale-worktree");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "remove-stale-worktree-wt");
+		execSync(`git worktree add "${worktreePath}" -b feature/remove-stale`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		rmSync(worktreePath, { recursive: true, force: true });
+		mkdirSync(join(worktreePath, ".vite"), { recursive: true });
+		writeFileSync(join(worktreePath, ".vite", "cache"), "leftover");
+
+		await removeWorktree(repoPath, worktreePath);
+
+		expect(existsSync(worktreePath)).toBe(false);
+		const worktreeList = execSync("git worktree list --porcelain", {
+			cwd: repoPath,
+			encoding: "utf-8",
+		});
+		expect(worktreeList).not.toContain(worktreePath);
+	}, 10_000);
 });
 
 describe("parsePrUrl", () => {

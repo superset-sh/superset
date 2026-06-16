@@ -186,10 +186,14 @@ export function WorkspaceRow({
 	// Determine the delete/close action label based on workspace type and state
 	const isOpenWorkspace = workspace.workspaceId !== null;
 	const isClosedWorktree = !isOpenWorkspace && workspace.worktreeId !== null;
+	const isImportedClosedWorktree =
+		isClosedWorktree && workspace.createdBySuperset === false;
 	const actionLabel = isBranch
 		? "Close workspace"
 		: isClosedWorktree
-			? "Delete worktree"
+			? isImportedClosedWorktree
+				? "Remove worktree"
+				: "Delete worktree"
 			: "Delete workspace";
 
 	// Can delete open workspaces or closed worktrees
@@ -233,6 +237,7 @@ export function WorkspaceRow({
 				<DeleteWorktreeDialog
 					worktreeId={workspace.worktreeId}
 					worktreeName={workspace.name}
+					createdBySuperset={workspace.createdBySuperset}
 					open={showDeleteDialog}
 					onOpenChange={setShowDeleteDialog}
 				/>

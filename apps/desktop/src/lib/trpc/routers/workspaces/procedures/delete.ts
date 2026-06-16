@@ -27,6 +27,7 @@ import {
 	worktreeExists,
 } from "../utils/git";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
+import { shouldRemoveWorktreeDirectory } from "../utils/worktree-delete-policy";
 
 const normalizePath = (p: string): string => {
 	try {
@@ -511,6 +512,10 @@ export const createDeleteProcedures = () => {
 							worktree_path: worktree.path,
 							reason: "untracked_worktree_detected",
 						});
+					} else if (!shouldRemoveWorktreeDirectory(worktree)) {
+						console.warn(
+							`[worktree/delete] Preserving imported worktree directory at ${worktree.path}`,
+						);
 					} else {
 						if (exists) {
 							const teardownResult = await runTeardown({
@@ -535,7 +540,7 @@ export const createDeleteProcedures = () => {
 							}
 						}
 
-						if (exists) {
+						if (exists || existsSync(worktree.path)) {
 							const removeResult = await removeWorktreeFromDisk({
 								mainRepoPath: project.mainRepoPath,
 								worktreePath: worktree.path,

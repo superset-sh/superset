@@ -15,6 +15,7 @@ import { deleteWithToast } from "renderer/routes/_authenticated/components/Teard
 interface DeleteWorktreeDialogProps {
 	worktreeId: string;
 	worktreeName: string;
+	createdBySuperset: boolean | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
@@ -22,6 +23,7 @@ interface DeleteWorktreeDialogProps {
 export function DeleteWorktreeDialog({
 	worktreeId,
 	worktreeName,
+	createdBySuperset,
 	open,
 	onOpenChange,
 }: DeleteWorktreeDialogProps) {
@@ -51,13 +53,16 @@ export function DeleteWorktreeDialog({
 	const hasChanges = canDeleteData?.hasChanges ?? false;
 	const hasUnpushedCommits = canDeleteData?.hasUnpushedCommits ?? false;
 	const hasWarnings = hasChanges || hasUnpushedCommits;
+	const isImportedWorktree =
+		(canDeleteData?.worktree?.createdBySuperset ?? createdBySuperset) === false;
+	const actionVerb = isImportedWorktree ? "Remove" : "Delete";
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
-						Delete worktree "{worktreeName}"?
+						{actionVerb} worktree "{worktreeName}"?
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div className="text-muted-foreground space-y-1.5">
@@ -65,6 +70,11 @@ export function DeleteWorktreeDialog({
 								"Checking status..."
 							) : !canDelete ? (
 								<span className="text-destructive">{reason}</span>
+							) : isImportedWorktree ? (
+								<span className="block">
+									This will remove the imported worktree from Superset. Its
+									files will stay on disk.
+								</span>
 							) : (
 								<span className="block">
 									This will permanently delete the worktree and its files from
@@ -105,11 +115,13 @@ export function DeleteWorktreeDialog({
 								onClick={handleDelete}
 								disabled={!canDelete || isLoading}
 							>
-								Delete
+								{actionVerb}
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="top" className="text-xs max-w-[200px]">
-							Permanently delete worktree from disk.
+							{isImportedWorktree
+								? "Remove imported worktree from Superset."
+								: "Permanently delete worktree from disk."}
 						</TooltipContent>
 					</Tooltip>
 				</AlertDialogFooter>
