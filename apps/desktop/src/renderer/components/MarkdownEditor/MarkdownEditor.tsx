@@ -143,6 +143,8 @@ interface MarkdownEditorProps {
 	onModEnter?: () => void;
 	/** If provided, enables @-mention file search for the editor. */
 	searchFiles?: FileMentionSearchFn;
+	/** If provided, pasted file items (e.g. clipboard images) are forwarded here. */
+	onPasteFiles?: (files: File[]) => void;
 	/** Toggle optional affordances. Each defaults to enabled. */
 	features?: {
 		slashCommand?: boolean;
@@ -183,6 +185,7 @@ export function MarkdownEditor({
 	editorClassName,
 	onModEnter,
 	searchFiles,
+	onPasteFiles,
 	features,
 }: MarkdownEditorProps) {
 	const showSlashCommand = features?.slashCommand ?? true;
@@ -194,6 +197,8 @@ export function MarkdownEditor({
 	// Thread through a ref so the extension reads the live callback each fire.
 	const searchFilesRef = useRef(searchFiles);
 	searchFilesRef.current = searchFiles;
+	const onPasteFilesRef = useRef(onPasteFiles);
+	onPasteFilesRef.current = onPasteFiles;
 	const editorRef = useRef<Editor | null>(null);
 
 	const urlPolicy = useInlineUrlPolicy();
@@ -332,6 +337,18 @@ export function MarkdownEditor({
 				return false;
 			},
 			handlePaste: (_, event) => {
+				const onPasteFiles = onPasteFilesRef.current;
+				if (onPasteFiles) {
+					const files = Array.from(event.clipboardData?.items ?? [])
+						.filter((item) => item.kind === "file")
+						.map((item) => item.getAsFile())
+						.filter((file): file is File => file != null);
+					if (files.length > 0) {
+						event.preventDefault();
+						onPasteFiles(files);
+						return true;
+					}
+				}
 				const text = event.clipboardData?.getData("text/plain") ?? "";
 				const currentEditor = editorRef.current;
 				if (!currentEditor || !isMarkdownTable(text)) {
