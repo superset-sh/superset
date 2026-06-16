@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
 import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
+import { getWorktreeDeletePresentation } from "./worktree-delete-presentation";
 
 interface DeleteWorktreeDialogProps {
 	worktreeId: string;
@@ -52,10 +53,13 @@ export function DeleteWorktreeDialog({
 	const reason = canDeleteData?.reason;
 	const hasChanges = canDeleteData?.hasChanges ?? false;
 	const hasUnpushedCommits = canDeleteData?.hasUnpushedCommits ?? false;
-	const isImportedWorktree =
-		(canDeleteData?.worktree?.createdBySuperset ?? createdBySuperset) === false;
-	const hasWarnings = !isImportedWorktree && (hasChanges || hasUnpushedCommits);
-	const actionVerb = isImportedWorktree ? "Remove" : "Delete";
+	const deletePresentation = getWorktreeDeletePresentation(
+		canDeleteData?.worktree?.createdBySuperset ?? createdBySuperset,
+	);
+	const hasWarnings =
+		deletePresentation.removesFilesFromDisk &&
+		(hasChanges || hasUnpushedCommits);
+	const actionVerb = deletePresentation.actionVerb;
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -70,10 +74,15 @@ export function DeleteWorktreeDialog({
 								"Checking status..."
 							) : !canDelete ? (
 								<span className="text-destructive">{reason}</span>
-							) : isImportedWorktree ? (
+							) : deletePresentation.isImported ? (
 								<span className="block">
 									This will remove the imported worktree from Superset. Its
 									files will stay on disk.
+								</span>
+							) : deletePresentation.isUnknown ? (
+								<span className="block">
+									This will remove the worktree from Superset. Files will stay
+									on disk unless Superset confirms it owns this worktree.
 								</span>
 							) : (
 								<span className="block">
@@ -119,9 +128,11 @@ export function DeleteWorktreeDialog({
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="top" className="text-xs max-w-[200px]">
-							{isImportedWorktree
+							{deletePresentation.isImported
 								? "Remove imported worktree from Superset."
-								: "Permanently delete worktree from disk."}
+								: deletePresentation.isUnknown
+									? "Remove worktree from Superset."
+									: "Permanently delete worktree from disk."}
 						</TooltipContent>
 					</Tooltip>
 				</AlertDialogFooter>

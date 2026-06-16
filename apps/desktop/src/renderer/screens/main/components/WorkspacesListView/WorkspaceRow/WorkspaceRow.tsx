@@ -22,6 +22,7 @@ import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/
 import type { WorkspaceItem } from "../types";
 import { getRelativeTime } from "../utils";
 import { DeleteWorktreeDialog } from "./DeleteWorktreeDialog";
+import { getWorktreeDeletePresentation } from "./worktree-delete-presentation";
 
 interface WorkspaceRowProps {
 	workspace: WorkspaceItem;
@@ -186,14 +187,13 @@ export function WorkspaceRow({
 	// Determine the delete/close action label based on workspace type and state
 	const isOpenWorkspace = workspace.workspaceId !== null;
 	const isClosedWorktree = !isOpenWorkspace && workspace.worktreeId !== null;
-	const isImportedClosedWorktree =
-		isClosedWorktree && workspace.createdBySuperset === false;
+	const deletePresentation = getWorktreeDeletePresentation(
+		workspace.createdBySuperset,
+	);
 	const actionLabel = isBranch
 		? "Close workspace"
 		: isClosedWorktree
-			? isImportedClosedWorktree
-				? "Remove worktree"
-				: "Delete worktree"
+			? deletePresentation.actionLabel
 			: "Delete workspace";
 
 	// Can delete open workspaces or closed worktrees
