@@ -49,6 +49,7 @@ mise.toml
 
 # Next.js
 .next
+apps/*/.next-*
 out
 next-env.d.ts
 

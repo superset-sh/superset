@@ -1,3 +1,5 @@
+export const AUTHENTICATED_SESSION_RECOVERY_TIMEOUT_MS = 20_000;
+
 export function isStoredAuthTokenCurrent(
 	expiresAt: string | null | undefined,
 	nowMs = Date.now(),
@@ -19,4 +21,18 @@ export function shouldRecoverAuthenticatedSession({
 	skipEnvValidation: boolean;
 }): boolean {
 	return !skipEnvValidation && hasLocalToken && !isSignedIn && isOnline;
+}
+
+export function hasAuthenticatedSessionRecoveryTimedOut({
+	recoveryStartedAtMs,
+	nowMs = Date.now(),
+	timeoutMs = AUTHENTICATED_SESSION_RECOVERY_TIMEOUT_MS,
+}: {
+	recoveryStartedAtMs: number | null;
+	nowMs?: number;
+	timeoutMs?: number;
+}): boolean {
+	return (
+		recoveryStartedAtMs !== null && nowMs - recoveryStartedAtMs >= timeoutMs
+	);
 }

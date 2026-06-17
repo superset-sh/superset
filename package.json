@@ -6,7 +6,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
-		"@mindfoldhq/trellis": "0.6.0-beta.23",
+		"@mindfoldhq/trellis": "0.6.0",
 		"dotenv-cli": "11.0.0",
 		"sherif": "1.11.0",
 		"turbo": "2.9.14"
@@ -40,6 +40,11 @@
 		"clean:workspaces": "turbo clean",
 		"release:desktop": "./apps/desktop/create-release.sh",
 		"release:canary": "./scripts/release-canary.sh",
+		"online:start": "./scripts/superset-online.sh start",
+		"online:stop": "./scripts/superset-online.sh stop",
+		"online:status": "./scripts/superset-online.sh status",
+		"online:install-launchd": "./scripts/superset-online.sh install-launchd",
+		"online:uninstall-launchd": "./scripts/superset-online.sh uninstall-launchd",
 		"db:push": "bun run --cwd packages/db push",
 		"db:migrate": "bun run --cwd packages/db migrate",
 		"db:seed-dev": "NODE_ENV=development bun run packages/auth/src/seed-dev.ts",

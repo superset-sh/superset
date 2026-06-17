@@ -8,15 +8,24 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
-import { authClient, getAuthToken } from "renderer/lib/auth-client";
-import { shouldRecoverAuthenticatedSession } from "renderer/lib/auth-session-state";
+import {
+	authClient,
+	getAuthToken,
+	setAuthToken,
+	setJwt,
+} from "renderer/lib/auth-client";
+import {
+	AUTHENTICATED_SESSION_RECOVERY_TIMEOUT_MS,
+	hasAuthenticatedSessionRecoveryTimedOut,
+	shouldRecoverAuthenticatedSession,
+} from "renderer/lib/auth-session-state";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
@@ -59,6 +68,12 @@ function AuthenticatedLayout() {
 	const utils = electronTrpc.useUtils();
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
 	const signOut = electronTrpc.auth.signOut.useMutation();
+	const [sessionRecoveryStartedAtMs, setSessionRecoveryStartedAtMs] = useState<
+		number | null
+	>(null);
+	const [sessionRecoveryAttempted, setSessionRecoveryAttempted] =
+		useState(false);
+	const [sessionRecoveryTimedOut, setSessionRecoveryTimedOut] = useState(false);
 
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -70,19 +85,102 @@ function AuthenticatedLayout() {
 		isSignedIn,
 		skipEnvValidation: env.SKIP_ENV_VALIDATION,
 	});
+	const handleSignInAgain = useCallback(async () => {
+		setAuthToken(null);
+		setJwt(null);
+		try {
+			await signOut.mutateAsync();
+		} catch (error) {
+			console.warn("[auth] Failed to clear stale saved session", error);
+		}
+		await navigate({ to: "/sign-in", replace: true });
+	}, [navigate, signOut.mutateAsync]);
 
 	useAgentHookListener();
 	useUpdateListener();
 
 	useEffect(() => {
-		if (!shouldRecoverSession) return;
+		if (!shouldRecoverSession) {
+			setSessionRecoveryStartedAtMs(null);
+			setSessionRecoveryAttempted(false);
+			setSessionRecoveryTimedOut(false);
+			return;
+		}
 
-		void refetch();
+		setSessionRecoveryStartedAtMs((startedAt) => startedAt ?? Date.now());
+	}, [shouldRecoverSession]);
+
+	useEffect(() => {
+		if (
+			!shouldRecoverSession ||
+			sessionRecoveryStartedAtMs === null ||
+			sessionRecoveryTimedOut
+		) {
+			return;
+		}
+
+		if (
+			hasAuthenticatedSessionRecoveryTimedOut({
+				recoveryStartedAtMs: sessionRecoveryStartedAtMs,
+			})
+		) {
+			setSessionRecoveryTimedOut(true);
+			return;
+		}
+
+		const remainingMs = Math.max(
+			AUTHENTICATED_SESSION_RECOVERY_TIMEOUT_MS -
+				(Date.now() - sessionRecoveryStartedAtMs),
+			0,
+		);
+		const timeout = window.setTimeout(() => {
+			setSessionRecoveryTimedOut(true);
+		}, remainingMs);
+		return () => window.clearTimeout(timeout);
+	}, [
+		shouldRecoverSession,
+		sessionRecoveryStartedAtMs,
+		sessionRecoveryTimedOut,
+	]);
+
+	useEffect(() => {
+		if (!shouldRecoverSession || sessionRecoveryTimedOut) return;
+
+		const recoverSession = async () => {
+			try {
+				await refetch();
+			} catch (error) {
+				console.warn("[auth] Session recovery refetch failed", error);
+			} finally {
+				setSessionRecoveryAttempted(true);
+			}
+		};
+
+		void recoverSession();
 		const interval = window.setInterval(() => {
-			void refetch();
+			void recoverSession();
 		}, 15_000);
 		return () => window.clearInterval(interval);
-	}, [refetch, shouldRecoverSession]);
+	}, [refetch, shouldRecoverSession, sessionRecoveryTimedOut]);
+
+	useEffect(() => {
+		if (
+			!shouldRecoverSession ||
+			!sessionRecoveryAttempted ||
+			sessionRecoveryTimedOut ||
+			session?.user
+		) {
+			return;
+		}
+
+		void handleSignInAgain();
+	}, [
+		handleSignInAgain,
+		session?.user,
+		sessionRecoveryAttempted,
+		sessionRecoveryTimedOut,
+		shouldRecoverSession,
+	]);
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
@@ -181,6 +279,7 @@ function AuthenticatedLayout() {
 	}
 	if (
 		(isPending || (isRefetching && !session?.user && hasLocalToken)) &&
+		!sessionRecoveryTimedOut &&
 		!env.SKIP_ENV_VALIDATION
 	) {
 		return (
@@ -209,6 +308,45 @@ function AuthenticatedLayout() {
 				>
 					Retry
 				</Button>
+			</div>
+		);
+	}
+
+	if (shouldRecoverSession && sessionRecoveryTimedOut) {
+		return (
+			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background px-6">
+				<div className="max-w-sm text-center">
+					<h2 className="text-lg font-medium">
+						Your saved session could not be restored
+					</h2>
+					<p className="mt-2 text-sm text-muted-foreground select-text cursor-text">
+						Sign in again to reconnect this device to Superset services.
+					</p>
+				</div>
+				<div className="flex gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => {
+							setSessionRecoveryStartedAtMs(Date.now());
+							setSessionRecoveryAttempted(false);
+							setSessionRecoveryTimedOut(false);
+							void refetch();
+						}}
+					>
+						Retry
+					</Button>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={signOut.isPending}
+						onClick={() => {
+							void handleSignInAgain();
+						}}
+					>
+						Sign in again
+					</Button>
+				</div>
 			</div>
 		);
 	}

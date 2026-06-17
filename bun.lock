@@ -6,7 +6,7 @@
       "name": "@superset/repo",
       "devDependencies": {
         "@biomejs/biome": "2.4.2",
-        "@mindfoldhq/trellis": "0.6.0-beta.23",
+        "@mindfoldhq/trellis": "0.6.0",
         "dotenv-cli": "11.0.0",
         "sherif": "1.11.0",
         "turbo": "2.9.14",
@@ -803,7 +803,7 @@
         "@hono/trpc-server": "0.3.4",
         "@mastra/core": "1.33.1",
         "@mastra/memory": "1.18.0",
-        "@mindfoldhq/trellis": "0.6.0-beta.23",
+        "@mindfoldhq/trellis": "0.6.0",
         "@octokit/rest": "22.0.1",
         "@superset/chat": "workspace:*",
         "@superset/db": "workspace:*",
@@ -1967,9 +1967,9 @@
 
     "@microsoft/fetch-event-source": ["@microsoft/fetch-event-source@2.0.1", "", {}, "sha512-W6CLUJ2eBMw3Rec70qrsEW0jOm/3twwJv21mrmj2yORiaVmVYGS4sSS5yUwvQc1ZlDLYGPnClVWmUUMagKNsfA=="],
 
-    "@mindfoldhq/trellis": ["@mindfoldhq/trellis@0.6.0-beta.23", "", { "dependencies": { "@mindfoldhq/trellis-core": "0.6.0-beta.23", "chalk": "^5.3.0", "commander": "^12.1.0", "figlet": "^1.9.4", "giget": "^3.1.1", "inquirer": "^9.3.7", "undici": "^6.21.0", "zod": "^4.4.2" }, "bin": { "tl": "bin/trellis.js", "trellis": "bin/trellis.js" } }, "sha512-Aa3JrKfsWQchDVGL9RCBYPPlIvG8PRi1L1cLVGn18kKvy5X4TjRvTtbbOne9dKy7bsVbCqovuDIUhzHwfy9BWw=="],
+    "@mindfoldhq/trellis": ["@mindfoldhq/trellis@0.6.0", "", { "dependencies": { "@mindfoldhq/trellis-core": "0.6.0", "chalk": "^5.3.0", "commander": "^12.1.0", "figlet": "^1.9.4", "giget": "^3.1.1", "inquirer": "^9.3.7", "undici": "^6.21.0", "zod": "^4.4.2" }, "bin": { "trellis": "bin/trellis.js", "tl": "bin/trellis.js" } }, "sha512-rW7IS4jX5lO6k0Vv0uARJ0FnxaV0+oeWEKu6mnSlc285YlLKNlM0Yu5NrQ38zRHMHUzwfKtH0ERkOCscFgv96A=="],
 
-    "@mindfoldhq/trellis-core": ["@mindfoldhq/trellis-core@0.6.0-beta.23", "", {}, "sha512-QLe4Dcnq3lgUMb6TMnwNe7NLQIpb164/snNsnrafEwxfBbeZ+ITgWsSOHGmIsHS+1jR1mE0tEd9LAGxdjaCJJA=="],
+    "@mindfoldhq/trellis-core": ["@mindfoldhq/trellis-core@0.6.0", "", {}, "sha512-qJTvPkff/T/mYRr885hzqc9u21EmmFj3ARg1hCLxNJf0ViwQt9xoYgaPKW/ELmRtuqzqxU0qlDrG5YHw7ql3ig=="],
 
     "@modelcontextprotocol/ext-apps": ["@modelcontextprotocol/ext-apps@1.7.1", "", { "dependencies": { "@standard-schema/spec": "^1.1.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.29.0", "react": "^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^17.0.0 || ^18.0.0 || ^19.0.0", "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-J3WdG1A4JSSKnSWKyU+895dBVYBV2Utgtf7fUsUK45mlkETm53a/1DR6Pm3hUGKqLLQthZLmpxOg8VPzJi/lyg=="],
 

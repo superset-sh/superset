@@ -70,7 +70,8 @@ function SignInPage() {
 	const [password, setPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [emailAuthError, setEmailAuthError] = useState<string | null>(null);
-	const { hasLocalToken, isPending, session } = useSessionRecovery();
+	const { hasLocalToken, isPending, session, sessionRecoveryTimedOut } =
+		useSessionRecovery();
 
 	// Dev bypass: skip sign-in entirely
 	if (env.SKIP_ENV_VALIDATION) {
@@ -182,7 +183,7 @@ function SignInPage() {
 							Welcome to Superset
 						</h1>
 						<p className="text-sm text-muted-foreground">
-							{hasLocalToken
+							{hasLocalToken && !sessionRecoveryTimedOut
 								? "Restoring your session"
 								: "Sign in or create an account"}
 						</p>
