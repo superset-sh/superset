@@ -9,7 +9,3 @@ export function getNotificationsPort(): number {
 export function setNotificationsPort(port: number): void {
 	notificationsPort = port;
 }
-
-export function resetNotificationsPortForTests(): void {
-	notificationsPort = env.DESKTOP_NOTIFICATIONS_PORT;
-}

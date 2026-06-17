@@ -70,7 +70,17 @@ export async function startNotificationsServer(
 		}
 
 		const retryPort = await findFreePort([preferredPort]);
-		const server = await listenOnPort(app, retryPort);
+		let server: Server;
+		try {
+			server = await listenOnPort(app, retryPort);
+		} catch (retryError) {
+			console.error(
+				`[notifications] Failed to start on fallback port ${retryPort}:`,
+				retryError,
+			);
+			throw retryError;
+		}
+
 		const port = getBoundPort(server);
 		setNotificationsPort(port);
 

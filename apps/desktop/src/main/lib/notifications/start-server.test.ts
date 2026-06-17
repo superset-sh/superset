@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createServer, type Server as NetServer } from "node:net";
 import express from "express";
+import { env } from "shared/env.shared";
 import { findFreePort } from "../host-service-utils";
-import {
-	getNotificationsPort,
-	resetNotificationsPortForTests,
-} from "./runtime-port";
+import { getNotificationsPort, setNotificationsPort } from "./runtime-port";
 import { startNotificationsServer } from "./start-server";
 
 const listeningServers: Array<{
@@ -44,13 +42,26 @@ function createNotificationsTestApp() {
 }
 
 afterEach(async () => {
+	const closeErrors: Error[] = [];
+
 	while (listeningServers.length > 0) {
 		const server = listeningServers.pop();
 		if (server) {
-			await closeServer(server);
+			try {
+				await closeServer(server);
+			} catch (error) {
+				closeErrors.push(
+					error instanceof Error ? error : new Error(String(error)),
+				);
+			}
 		}
 	}
-	resetNotificationsPortForTests();
+
+	setNotificationsPort(env.DESKTOP_NOTIFICATIONS_PORT);
+
+	if (closeErrors.length > 0) {
+		throw closeErrors[0];
+	}
 });
 
 describe("startNotificationsServer", () => {

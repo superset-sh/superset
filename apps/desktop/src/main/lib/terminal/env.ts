@@ -6,7 +6,7 @@ import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 import {
 	getNotificationsPort,
-	resetNotificationsPortForTests,
+	setNotificationsPort,
 } from "../notifications/runtime-port";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
@@ -178,7 +178,7 @@ export function resetTerminalEnvCachesForTests(): void {
 	cachedMacosSystemCertAvailable = null;
 	cachedUtf8Locale = null;
 	localeProbeInFlight = false;
-	resetNotificationsPortForTests();
+	setNotificationsPort(env.DESKTOP_NOTIFICATIONS_PORT);
 }
 
 /**
