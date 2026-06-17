@@ -2,5 +2,76 @@
 	"attribution": {
 		"commit": "",
 		"pr": ""
-	}
+	},
+	"env": {
+		"CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1"
+	},
+	"hooks": {
+		"SessionStart": [
+			{
+				"matcher": "startup",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "python3 .claude/hooks/session-start.py",
+						"timeout": 30
+					}
+				]
+			},
+			{
+				"matcher": "clear",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "python3 .claude/hooks/session-start.py",
+						"timeout": 30
+					}
+				]
+			},
+			{
+				"matcher": "compact",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "python3 .claude/hooks/session-start.py",
+						"timeout": 30
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"matcher": "Task",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "python3 .claude/hooks/inject-subagent-context.py",
+						"timeout": 30
+					}
+				]
+			},
+			{
+				"matcher": "Agent",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "python3 .claude/hooks/inject-subagent-context.py",
+						"timeout": 30
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "python3 .claude/hooks/inject-workflow-state.py",
+						"timeout": 15
+					}
+				]
+			}
+		]
+	},
+	"enabledPlugins": {}
 }
