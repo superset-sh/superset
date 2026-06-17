@@ -133,6 +133,32 @@ export function deduplicateBranchName(
 const MAX_BRANCH_LENGTH = 100;
 
 /**
+ * The branch-naming prompt asks the small model for a 2-4 word slug. Allow a
+ * little slack, but anything beyond this many words is a sentence — almost
+ * always a refusal or explanation ("I'd be happy to help, but I can't access
+ * that URL…") rather than a branch name.
+ */
+const MAX_GENERATED_BRANCH_WORDS = 6;
+
+/**
+ * Guard for AI-generated branch names. Returns `true` only when the raw model
+ * output plausibly IS a branch name rather than a refusal/explanation sentence.
+ *
+ * Small models occasionally ignore "return ONLY the branch name" — especially
+ * when the prompt contains a URL they can't open — and reply with a sentence.
+ * Slugified, that sentence becomes a long garbage branch name; worse, the same
+ * refusal text recurs across prompts, so the slugs collide. Callers should
+ * discard output that fails this check and fall back to a default name.
+ *
+ * See issue #5288.
+ */
+export function looksLikeGeneratedBranchName(raw: string): boolean {
+	const trimmed = raw.trim();
+	if (!trimmed) return false;
+	return trimmed.split(/\s+/).length <= MAX_GENERATED_BRANCH_WORDS;
+}
+
+/**
  * Turns arbitrary text (a prompt, a title) into a branch-name-shaped slug.
  * Lowercases, replaces spaces with dashes, strips special chars.
  * Use this when the input is NOT a branch name — it's a sentence.

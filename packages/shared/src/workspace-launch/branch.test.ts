@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	deduplicateBranchName,
+	looksLikeGeneratedBranchName,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
@@ -223,5 +224,39 @@ describe("deduplicateBranchName", () => {
 				"feature/test-2",
 			]),
 		).toBe("feature/test-3");
+	});
+});
+
+describe("looksLikeGeneratedBranchName", () => {
+	// Regression: issue #5288. When a prompt includes a URL (e.g. a Jira link),
+	// the small model sometimes ignores "return ONLY the branch name" and replies
+	// with a refusal/explanation sentence instead. Left unchecked, that sentence
+	// slugifies into a garbage branch name (and, because the refusal text is
+	// identical across similar prompts, into colliding branch names).
+	const REFUSALS = [
+		"I'd be happy to help you implement that task, but I don't have access to that URL",
+		"I cannot access the link you provided, could you paste the task details?",
+		"Sorry, I am unable to open external URLs.",
+	];
+
+	test("rejects model refusal/explanation sentences (issue #5288)", () => {
+		for (const refusal of REFUSALS) {
+			// Today the sanitizer happily turns the refusal into a "valid" branch
+			// name — that is exactly the reported bug.
+			expect(sanitizeBranchNameWithMaxLength(refusal)).not.toBe("");
+			// The guard must reject it so callers fall back to a default name.
+			expect(looksLikeGeneratedBranchName(refusal)).toBe(false);
+		}
+	});
+
+	test("accepts genuine concise branch names", () => {
+		expect(looksLikeGeneratedBranchName("implement-jira-task")).toBe(true);
+		expect(looksLikeGeneratedBranchName("fix login bug")).toBe(true);
+		expect(looksLikeGeneratedBranchName("add-dark-mode-toggle")).toBe(true);
+	});
+
+	test("rejects empty or whitespace-only output", () => {
+		expect(looksLikeGeneratedBranchName("")).toBe(false);
+		expect(looksLikeGeneratedBranchName("   ")).toBe(false);
 	});
 });

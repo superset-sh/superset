@@ -1,6 +1,9 @@
 import { generateTitleFromMessage } from "@superset/chat/server/desktop";
 import { getSmallModel } from "@superset/chat/server/shared";
-import { sanitizeBranchNameWithMaxLength } from "@superset/shared/workspace-launch";
+import {
+	looksLikeGeneratedBranchName,
+	sanitizeBranchNameWithMaxLength,
+} from "@superset/shared/workspace-launch";
 
 const BRANCH_NAME_INSTRUCTIONS =
 	"Generate a concise git branch name (2-4 words, kebab-case, descriptive, 20 characters or less). Return ONLY the branch name, nothing else.";
@@ -77,6 +80,9 @@ export async function generateBranchNameFromPrompt(
 	}
 
 	if (!generated) return null;
+	// Discard refusals/explanations the model returns instead of a branch name
+	// (e.g. when the prompt contains a URL it can't open) — see issue #5288.
+	if (!looksLikeGeneratedBranchName(generated)) return null;
 	const sanitized = sanitizeBranchNameWithMaxLength(generated);
 	if (!sanitized) return null;
 	return resolveConflict(sanitized, existingBranches, branchPrefix);
