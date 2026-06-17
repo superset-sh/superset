@@ -74,7 +74,7 @@ local_allocate_ports() {
   export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT
   # Export so migrate/seed (child bun processes) use these — an inherited env
   # var beats the .env file, so this overrides any stale DATABASE_URL.
-  export DATABASE_URL="postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main"
+  export DATABASE_URL="postgres://postgres:postgres@localhost:$LOCAL_NEON_PROXY_PORT/main"
   export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:$LOCAL_PG_PORT/main"
   LOCAL_DB_PROJECT="superset-$(sanitize_name "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}")"
   success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT (project $LOCAL_DB_PROJECT)"
@@ -114,7 +114,7 @@ local_db_up() {
   local j proxy_ready=0
   for j in $(seq 1 30); do
     if curl -s --max-time 3 -X POST "http://localhost:$LOCAL_NEON_PROXY_PORT/sql" \
-        -H "Neon-Connection-String: postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main" \
+        -H "Neon-Connection-String: postgres://postgres:postgres@localhost:$LOCAL_NEON_PROXY_PORT/main" \
         -H "Content-Type: application/json" \
         -d '{"query":"select 1","params":[]}' 2>/dev/null | grep -q '"command"'; then
       proxy_ready=1

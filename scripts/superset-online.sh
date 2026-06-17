@@ -79,7 +79,7 @@ apply_online_env() {
 	export LOCAL_REDIS_PORT="$ONLINE_REDIS_PORT"
 	export LOCAL_KV_REST_PORT="$ONLINE_KV_REST_PORT"
 
-	export DATABASE_URL="postgres://postgres:postgres@db.localtest.me:${ONLINE_NEON_PROXY_PORT}/main"
+	export DATABASE_URL="postgres://postgres:postgres@localhost:${ONLINE_NEON_PROXY_PORT}/main"
 	export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:${ONLINE_PG_PORT}/main"
 
 	export KV_REST_API_TOKEN="${KV_REST_API_TOKEN:-local-kv-token}"
