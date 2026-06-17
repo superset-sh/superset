@@ -71,6 +71,7 @@ apply_online_env() {
 	export SUPERSET_ONLINE_SERVICE="1"
 	export SUPERSET_NEXT_DIST_DIR=".next-online"
 	export SKIP_ENV_VALIDATION="${SKIP_ENV_VALIDATION:-}"
+	export ONLINE_SEED_DEV="${ONLINE_SEED_DEV:-0}"
 
 	export LOCAL_PG_PORT="$ONLINE_PG_PORT"
 	export LOCAL_NEON_PROXY_PORT="$ONLINE_NEON_PROXY_PORT"
@@ -150,7 +151,7 @@ compose() {
 
 start_data_services() {
 	log "starting isolated Docker data services on 430xx ports"
-	wait_for_docker
+	wait_for_docker "${ONLINE_DOCKER_WAIT_ATTEMPTS:-300}"
 	if ! compose up -d --build --wait postgres neon-proxy electric redis kv-rest; then
 		log "docker compose --wait failed or is unsupported; falling back to detached startup"
 		compose up -d --build postgres neon-proxy electric redis kv-rest
