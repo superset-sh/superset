@@ -759,3 +759,37 @@ Added Automation provider/model selection, run-local model injection through hos
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: Online service isolation and stale session recovery
+
+**Date**: 2026-06-17
+**Task**: Online service isolation and stale session recovery
+**Package**: desktop
+**Branch**: `main`
+
+### Summary
+
+Moved hosted Superset services to isolated 430xx ports with launchd startup, verified public probes, and fixed Canary stale desktop tokens so failed recovery clears local auth and returns to sign-in instead of looping.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `64418a443` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
