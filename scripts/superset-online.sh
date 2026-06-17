@@ -158,6 +158,35 @@ start_data_services() {
 	fi
 }
 
+db_proxy_query_ok() {
+	curl -sS --max-time 5 \
+		-X POST "http://localhost:${ONLINE_NEON_PROXY_PORT}/sql" \
+		-H "Neon-Connection-String: ${DATABASE_URL}" \
+		-H "Content-Type: application/json" \
+		-d '{"query":"select 1","params":[]}' 2>/dev/null |
+		grep -q '"command":"SELECT"'
+}
+
+wait_for_db_proxy_query() {
+	local max_attempts="${1:-60}"
+	local attempt=1
+
+	while true; do
+		if db_proxy_query_ok; then
+			log "neon proxy query ready"
+			return
+		fi
+		if (( attempt >= max_attempts )); then
+			fail "neon proxy did not serve SQL queries after ${max_attempts} attempts"
+		fi
+		if (( attempt == 1 )); then
+			log "waiting for neon proxy SQL queries..."
+		fi
+		sleep 2
+		attempt=$((attempt + 1))
+	done
+}
+
 run_migrations_and_seed() {
 	log "running database migrations against online database"
 	bun run --cwd "$ROOT_DIR/packages/db" migrate
@@ -267,6 +296,14 @@ probe_url() {
 	fi
 }
 
+probe_db_proxy_query() {
+	if db_proxy_query_ok; then
+		printf '  ✓ %-24s %s\n' "neon proxy SQL" "SELECT"
+	else
+		printf '  ✗ %-24s failed %s\n' "neon proxy SQL" "http://localhost:${ONLINE_NEON_PROXY_PORT}/sql"
+	fi
+}
+
 wait_for_probe() {
 	local label="$1"
 	local url="$2"
@@ -342,6 +379,7 @@ print_status() {
 	print_docker_status
 	echo
 	echo "local probes:"
+	probe_db_proxy_query
 	probe_url "web /sign-in" "http://localhost:${ONLINE_WEB_PORT}/sign-in" "200"
 	probe_url "api session" "http://localhost:${ONLINE_API_PORT}/api/auth/get-session" "200"
 	probe_url "electric auth gate" "http://localhost:${ONLINE_ELECTRIC_PROXY_PORT}/v1/shape" "401"
@@ -388,6 +426,13 @@ LAUNCHER
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>ThrottleInterval</key>
+	<integer>60</integer>
 	<key>StandardOutPath</key>
 	<string>${LAUNCH_SUPPORT_DIR}/logs/launchd.out.log</string>
 	<key>StandardErrorPath</key>
@@ -419,6 +464,7 @@ start_all() {
 	prepare_env
 	ensure_prereqs
 	start_data_services
+	wait_for_db_proxy_query
 	run_migrations_and_seed
 	start_app_services
 	wait_for_local_services
