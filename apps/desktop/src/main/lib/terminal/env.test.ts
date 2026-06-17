@@ -658,9 +658,9 @@ describe("env", () => {
 		});
 
 		describe("terminal metadata", () => {
-			it("should set TERM_PROGRAM to kitty", () => {
+			it("should set TERM_PROGRAM to superset", () => {
 				const result = buildTerminalEnv(baseParams);
-				expect(result.TERM_PROGRAM).toBe("kitty");
+				expect(result.TERM_PROGRAM).toBe("superset");
 			});
 
 			it("should set COLORTERM to truecolor", () => {
