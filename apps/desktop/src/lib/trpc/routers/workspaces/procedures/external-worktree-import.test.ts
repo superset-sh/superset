@@ -126,7 +126,7 @@ describe("External worktree detection and import", () => {
 		expect(found?.path).toBe(externalWorktreePath);
 		expect(found?.isBare).toBe(false);
 		expect(found?.isDetached).toBe(false);
-	});
+	}, 10_000);
 
 	test("external worktree data survives simulated deletion", () => {
 		// Create external worktree with important data

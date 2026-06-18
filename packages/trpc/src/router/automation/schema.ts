@@ -1,5 +1,6 @@
 import { automationSessionKindValues } from "@superset/db/schema";
 import { z } from "zod";
+import { capabilityBindingInputSchema } from "../capability/schema";
 
 const agentSchema = z.string().min(1).max(200);
 const modelSelectionFields = {
@@ -55,6 +56,7 @@ export const createAutomationSchema = z
 		dtstart: z.coerce.date().optional(),
 		timezone: iana,
 		mcpScope: z.array(z.string()).default([]),
+		capabilities: z.array(capabilityBindingInputSchema).max(100).default([]),
 	})
 	.superRefine(requireCompleteModelSelection);
 
@@ -71,6 +73,7 @@ export const updateAutomationSchema = z
 		dtstart: z.coerce.date().optional(),
 		timezone: iana.optional(),
 		mcpScope: z.array(z.string()).optional(),
+		capabilities: z.array(capabilityBindingInputSchema).max(100).optional(),
 	})
 	.superRefine(requireCompleteModelSelection);
 

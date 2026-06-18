@@ -17,6 +17,7 @@ import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
+import { ProjectCapabilitiesSection } from "./components/ProjectCapabilitiesSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 import { V2ScriptsEditor } from "./components/V2ScriptsEditor";
@@ -148,6 +149,12 @@ export function V2ProjectSettings({
 							projectId={projectId}
 							currentRepoCloneUrl={project.repoCloneUrl}
 						/>
+					</SettingsRow>
+					<SettingsRow
+						label="Default tools"
+						hint="Preselected for new Automations created with this Project."
+					>
+						<ProjectCapabilitiesSection projectId={projectId} />
 					</SettingsRow>
 					{targetHostUrl && hostProject && (
 						<SettingsRow

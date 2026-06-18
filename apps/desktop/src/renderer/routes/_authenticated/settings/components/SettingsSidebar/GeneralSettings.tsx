@@ -20,7 +20,7 @@ import {
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuBrain, LuGitBranch, LuKeyboard, LuWrench } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 import { getAllowedSectionsForVariant } from "../../utils/settings-search";
@@ -39,6 +39,7 @@ type SettingsRoute =
 	| "/settings/behavior"
 	| "/settings/git"
 	| "/settings/agents"
+	| "/settings/tools-and-skills"
 	| "/settings/terminal"
 	| "/settings/links"
 	| "/settings/models"
@@ -114,6 +115,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "agents",
 				label: "Agents",
 				icon: <HiOutlineCpuChip className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/tools-and-skills",
+				section: "toolsAndSkills",
+				label: "Tools & Skills",
+				icon: <LuWrench className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/terminal",

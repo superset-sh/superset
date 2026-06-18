@@ -8,8 +8,8 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
-import { useMutation } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuX } from "react-icons/lu";
 import { EmojiTextInput } from "renderer/components/EmojiTextInput";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
@@ -28,6 +28,11 @@ import {
 	supportsAutomationModelSelection,
 } from "../../utils/agentDisplay";
 import { AgentPicker } from "../AgentPicker";
+import {
+	AutomationCapabilitiesPicker,
+	type AutomationCapabilityBindingValue,
+	type AutomationCapabilitySelectedItem,
+} from "../AutomationCapabilitiesPicker";
 import {
 	AutomationModelPicker,
 	type AutomationModelSelection,
@@ -50,6 +55,40 @@ const DEFAULT_TIMEZONE =
 
 const DEFAULT_RRULE = "FREQ=DAILY;BYHOUR=9;BYMINUTE=0";
 
+type ProjectCapabilityBinding = Awaited<
+	ReturnType<typeof apiTrpcClient.capability.listProjectBindings.query>
+>[number];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function capabilityBindingsFromProjectDefaults(
+	bindings: ProjectCapabilityBinding[],
+): AutomationCapabilityBindingValue[] {
+	return bindings
+		.filter((binding) => binding.enabled)
+		.map((binding, index) => ({
+			capabilityVersionId: binding.capabilityVersionId,
+			enabled: true,
+			config: isRecord(binding.config) ? binding.config : {},
+			displayOrder: index,
+		}));
+}
+
+function selectedItemsFromProjectDefaults(
+	bindings: ProjectCapabilityBinding[],
+): AutomationCapabilitySelectedItem[] {
+	return bindings
+		.filter((binding) => binding.enabled)
+		.map((binding) => ({
+			capabilityVersionId: binding.capabilityVersionId,
+			name: binding.name,
+			type: binding.type,
+			version: binding.version,
+		}));
+}
+
 export function CreateAutomationDialog({
 	open,
 	onOpenChange,
@@ -67,6 +106,13 @@ export function CreateAutomationDialog({
 	const [modelSelection, setModelSelection] =
 		useState<AutomationModelSelection | null>(null);
 	const [rrule, setRrule] = useState(DEFAULT_RRULE);
+	const [capabilities, setCapabilities] = useState<
+		AutomationCapabilityBindingValue[]
+	>([]);
+	const [capabilitiesEdited, setCapabilitiesEdited] = useState(false);
+	const [projectDefaultsAppliedFor, setProjectDefaultsAppliedFor] = useState<
+		string | null
+	>(null);
 
 	const { localHostId } = useWorkspaceHostOptions();
 	const targetHostId = hostId ?? localHostId;
@@ -83,6 +129,21 @@ export function CreateAutomationDialog({
 	const selectedAgent = agent
 		? findAutomationAgentChoice(hostAgents, agent)
 		: undefined;
+	const projectCapabilitiesQuery = useQuery({
+		queryKey: ["project-capabilities", selectedProjectId],
+		queryFn: () => {
+			if (!selectedProjectId) return [];
+			return apiTrpcClient.capability.listProjectBindings.query({
+				projectId: selectedProjectId,
+			});
+		},
+		enabled: open && Boolean(selectedProjectId),
+		staleTime: 30_000,
+	});
+	const projectDefaultSelectedItems = useMemo(
+		() => selectedItemsFromProjectDefaults(projectCapabilitiesQuery.data ?? []),
+		[projectCapabilitiesQuery.data],
+	);
 
 	useEffect(() => {
 		if (agent && findAutomationAgentChoice(hostAgents, agent)) return;
@@ -145,10 +206,41 @@ export function CreateAutomationDialog({
 			setAgent(null);
 			setModelSelection(null);
 			setRrule(DEFAULT_RRULE);
+			setCapabilities([]);
+			setCapabilitiesEdited(false);
+			setProjectDefaultsAppliedFor(null);
 			appliedTemplateRef.current = null;
 			appliedAgentForTemplateRef.current = null;
 		}
 	}, [open]);
+
+	useEffect(() => {
+		if (!open || capabilitiesEdited) return;
+		if (!selectedProjectId) {
+			setCapabilities([]);
+			setProjectDefaultsAppliedFor(null);
+			return;
+		}
+		if (projectDefaultsAppliedFor === selectedProjectId) return;
+		if (!projectCapabilitiesQuery.data) return;
+		setCapabilities(
+			capabilityBindingsFromProjectDefaults(projectCapabilitiesQuery.data),
+		);
+		setProjectDefaultsAppliedFor(selectedProjectId);
+	}, [
+		open,
+		capabilitiesEdited,
+		selectedProjectId,
+		projectDefaultsAppliedFor,
+		projectCapabilitiesQuery.data,
+	]);
+
+	const handleCapabilitiesChange = (
+		next: AutomationCapabilityBindingValue[],
+	) => {
+		setCapabilities(next);
+		setCapabilitiesEdited(true);
+	};
 
 	const createMutation = useMutation({
 		mutationFn: () => {
@@ -165,6 +257,7 @@ export function CreateAutomationDialog({
 				rrule: rrule.trim(),
 				timezone: DEFAULT_TIMEZONE,
 				mcpScope: [],
+				capabilities,
 			});
 		},
 		onSuccess: (result) => {
@@ -307,6 +400,12 @@ export function CreateAutomationDialog({
 										agents={hostAgents}
 										value={modelSelection}
 										onChange={setModelSelection}
+									/>
+									<AutomationCapabilitiesPicker
+										className="w-[140px]"
+										value={capabilities}
+										selectedItems={projectDefaultSelectedItems}
+										onChange={handleCapabilitiesChange}
 									/>
 								</div>
 

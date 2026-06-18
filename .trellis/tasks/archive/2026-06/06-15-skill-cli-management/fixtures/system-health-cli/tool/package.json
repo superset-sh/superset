@@ -1,0 +1,9 @@
+{
+  "name": "@superset-demo/system-health-cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "system-health": "./bin/system-health.js"
+  }
+}

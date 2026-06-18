@@ -12,9 +12,10 @@ describe("augmentPathForMacOS", () => {
 		expect(env.PATH).toContain("/opt/homebrew/sbin");
 		expect(env.PATH).toContain("/usr/local/bin");
 		expect(env.PATH).toContain("/usr/local/sbin");
-		// Original paths should still be present
 		expect(env.PATH).toContain("/usr/bin");
 		expect(env.PATH).toContain("/bin");
+		expect(env.PATH).toContain("/usr/sbin");
+		expect(env.PATH).toContain("/sbin");
 	});
 
 	test("does not duplicate paths already present", () => {
@@ -36,6 +37,8 @@ describe("augmentPathForMacOS", () => {
 
 		expect(env.PATH).toContain("/opt/homebrew/bin");
 		expect(env.PATH).toContain("/usr/local/bin");
+		expect(env.PATH).toContain("/usr/bin");
+		expect(env.PATH).toContain("/bin");
 	});
 
 	test("handles missing PATH key", () => {
@@ -44,6 +47,8 @@ describe("augmentPathForMacOS", () => {
 
 		expect(env.PATH).toContain("/opt/homebrew/bin");
 		expect(env.PATH).toContain("/usr/local/bin");
+		expect(env.PATH).toContain("/usr/bin");
+		expect(env.PATH).toContain("/bin");
 	});
 
 	test("matches PATH entries exactly instead of using substrings", () => {
@@ -57,7 +62,7 @@ describe("augmentPathForMacOS", () => {
 
 	test("preserves existing PATH separators when nothing needs to be added", () => {
 		const originalPath =
-			"/opt/homebrew/bin::/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:";
+			"/opt/homebrew/bin::/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:";
 		const env: Record<string, string> = {
 			PATH: originalPath,
 		};

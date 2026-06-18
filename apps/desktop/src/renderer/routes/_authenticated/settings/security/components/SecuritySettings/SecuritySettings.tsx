@@ -2,7 +2,6 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { useState } from "react";
-import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
@@ -48,7 +47,6 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 
 	const [confirmOpen, setConfirmOpen] = useState(false);
 	const [confirmTargetEnabled, setConfirmTargetEnabled] = useState(false);
-	const { gateFeature } = usePaywall();
 
 	const runToggle = (enabled: boolean) => {
 		toast.promise(setExpose.mutateAsync({ enabled }), {
@@ -67,11 +65,7 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 	};
 
 	const handleChange = (next: boolean) => {
-		if (next) {
-			gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () => openConfirm(true));
-		} else {
-			openConfirm(false);
-		}
+		openConfirm(next);
 	};
 
 	return (

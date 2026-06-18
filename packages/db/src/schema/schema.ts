@@ -22,6 +22,10 @@ import {
 	automationRunSourceValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
+	capabilityPackageAuditStatusValues,
+	capabilityPackageSourceTypeValues,
+	capabilityPackageStatusValues,
+	capabilityPackageTypeValues,
 	commandStatusValues,
 	deviceTypeValues,
 	integrationProviderValues,
@@ -983,6 +987,22 @@ export const automationPromptSource = pgEnum(
 	"automation_prompt_source",
 	automationPromptSourceValues,
 );
+export const capabilityPackageType = pgEnum(
+	"capability_package_type",
+	capabilityPackageTypeValues,
+);
+export const capabilityPackageStatus = pgEnum(
+	"capability_package_status",
+	capabilityPackageStatusValues,
+);
+export const capabilityPackageSourceType = pgEnum(
+	"capability_package_source_type",
+	capabilityPackageSourceTypeValues,
+);
+export const capabilityPackageAuditStatus = pgEnum(
+	"capability_package_audit_status",
+	capabilityPackageAuditStatusValues,
+);
 
 export const automations = pgTable(
 	"automations",
@@ -1149,6 +1169,185 @@ export type InsertAutomationPromptVersion =
 	typeof automationPromptVersions.$inferInsert;
 export type SelectAutomationPromptVersion =
 	typeof automationPromptVersions.$inferSelect;
+
+export const capabilityPackages = pgTable(
+	"capability_packages",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		ownerUserId: uuid("owner_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+
+		type: capabilityPackageType().notNull(),
+		slug: text().notNull(),
+		name: text().notNull(),
+		description: text(),
+		currentVersionId: uuid("current_version_id"),
+		status: capabilityPackageStatus().notNull().default("active"),
+
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("capability_packages_organization_id_idx").on(table.organizationId),
+		index("capability_packages_owner_user_id_idx").on(table.ownerUserId),
+		index("capability_packages_type_idx").on(table.type),
+		index("capability_packages_current_version_id_idx").on(
+			table.currentVersionId,
+		),
+		unique("capability_packages_org_slug_unique").on(
+			table.organizationId,
+			table.slug,
+		),
+	],
+);
+
+export type InsertCapabilityPackage = typeof capabilityPackages.$inferInsert;
+export type SelectCapabilityPackage = typeof capabilityPackages.$inferSelect;
+
+export const capabilityPackageVersions = pgTable(
+	"capability_package_versions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		capabilityId: uuid("capability_id")
+			.notNull()
+			.references(() => capabilityPackages.id, { onDelete: "cascade" }),
+		version: text().notNull(),
+		manifest: jsonb().$type<Record<string, unknown>>().notNull(),
+		artifactUrl: text("artifact_url").notNull(),
+		artifactPathname: text("artifact_pathname").notNull(),
+		artifactSha256: text("artifact_sha256").notNull(),
+		artifactSizeBytes: integer("artifact_size_bytes").notNull(),
+		sourceType: capabilityPackageSourceType("source_type").notNull(),
+		sourceRef: text("source_ref"),
+		validationSummary: jsonb("validation_summary")
+			.$type<Record<string, unknown>>()
+			.notNull()
+			.default({}),
+		auditStatus: capabilityPackageAuditStatus("audit_status")
+			.notNull()
+			.default("pending"),
+		auditModelProviderId: uuid("audit_model_provider_id").references(
+			() => modelProviders.id,
+			{ onDelete: "set null" },
+		),
+		auditModelId: text("audit_model_id"),
+		auditSummary: text("audit_summary"),
+		auditFindings: jsonb("audit_findings")
+			.$type<Record<string, unknown>[]>()
+			.notNull()
+			.default([]),
+		createdByUserId: uuid("created_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		index("capability_package_versions_capability_id_idx").on(
+			table.capabilityId,
+		),
+		index("capability_package_versions_artifact_sha256_idx").on(
+			table.artifactSha256,
+		),
+		index("capability_package_versions_audit_status_idx").on(table.auditStatus),
+		unique("capability_package_versions_capability_version_unique").on(
+			table.capabilityId,
+			table.version,
+		),
+	],
+);
+
+export type InsertCapabilityPackageVersion =
+	typeof capabilityPackageVersions.$inferInsert;
+export type SelectCapabilityPackageVersion =
+	typeof capabilityPackageVersions.$inferSelect;
+
+export const projectCapabilities = pgTable(
+	"project_capabilities",
+	{
+		projectId: uuid("project_id")
+			.notNull()
+			.references(() => v2Projects.id, { onDelete: "cascade" }),
+		capabilityId: uuid("capability_id")
+			.notNull()
+			.references(() => capabilityPackages.id, { onDelete: "cascade" }),
+		capabilityVersionId: uuid("capability_version_id")
+			.notNull()
+			.references(() => capabilityPackageVersions.id, {
+				onDelete: "cascade",
+			}),
+		enabled: boolean().notNull().default(true),
+		config: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		primaryKey({ columns: [table.projectId, table.capabilityId] }),
+		index("project_capabilities_capability_id_idx").on(table.capabilityId),
+		index("project_capabilities_version_id_idx").on(table.capabilityVersionId),
+	],
+);
+
+export type InsertProjectCapability = typeof projectCapabilities.$inferInsert;
+export type SelectProjectCapability = typeof projectCapabilities.$inferSelect;
+
+export const automationCapabilities = pgTable(
+	"automation_capabilities",
+	{
+		automationId: uuid("automation_id")
+			.notNull()
+			.references(() => automations.id, { onDelete: "cascade" }),
+		capabilityId: uuid("capability_id")
+			.notNull()
+			.references(() => capabilityPackages.id, { onDelete: "cascade" }),
+		capabilityVersionId: uuid("capability_version_id")
+			.notNull()
+			.references(() => capabilityPackageVersions.id, {
+				onDelete: "cascade",
+			}),
+		enabled: boolean().notNull().default(true),
+		config: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+		displayOrder: integer("display_order").notNull().default(0),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		primaryKey({ columns: [table.automationId, table.capabilityId] }),
+		index("automation_capabilities_automation_order_idx").on(
+			table.automationId,
+			table.displayOrder,
+		),
+		index("automation_capabilities_capability_id_idx").on(table.capabilityId),
+		index("automation_capabilities_version_id_idx").on(
+			table.capabilityVersionId,
+		),
+	],
+);
+
+export type InsertAutomationCapability =
+	typeof automationCapabilities.$inferInsert;
+export type SelectAutomationCapability =
+	typeof automationCapabilities.$inferSelect;
 
 export const submittedPrompts = pgTable(
 	"submitted_prompts",

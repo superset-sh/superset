@@ -115,6 +115,42 @@ export const automationPromptSourceValues = [
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
 
+export const capabilityPackageTypeValues = ["skill", "cli"] as const;
+export const capabilityPackageTypeEnum = z.enum(capabilityPackageTypeValues);
+export type CapabilityPackageType = z.infer<typeof capabilityPackageTypeEnum>;
+
+export const capabilityPackageStatusValues = ["active", "disabled"] as const;
+export const capabilityPackageStatusEnum = z.enum(
+	capabilityPackageStatusValues,
+);
+export type CapabilityPackageStatus = z.infer<
+	typeof capabilityPackageStatusEnum
+>;
+
+export const capabilityPackageSourceTypeValues = [
+	"zip",
+	"git",
+	"local_folder",
+] as const;
+export const capabilityPackageSourceTypeEnum = z.enum(
+	capabilityPackageSourceTypeValues,
+);
+export type CapabilityPackageSourceType = z.infer<
+	typeof capabilityPackageSourceTypeEnum
+>;
+
+export const capabilityPackageAuditStatusValues = [
+	"pending",
+	"passed",
+	"failed",
+] as const;
+export const capabilityPackageAuditStatusEnum = z.enum(
+	capabilityPackageAuditStatusValues,
+);
+export type CapabilityPackageAuditStatus = z.infer<
+	typeof capabilityPackageAuditStatusEnum
+>;
+
 export const remoteControlSessionModeValues = ["command", "full"] as const;
 export const remoteControlSessionModeEnum = z.enum(
 	remoteControlSessionModeValues,

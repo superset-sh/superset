@@ -20,6 +20,10 @@ import { z } from "zod";
 import { env } from "../../env";
 import { jwtProcedure, protectedProcedure, type TRPCContext } from "../../trpc";
 import {
+	resolveBindableCapabilityVersions,
+	setAutomationCapabilityBindingsInTx,
+} from "../capability/bindings";
+import {
 	requireActiveOrgId,
 	requireActiveOrgMembership,
 } from "../utils/active-org";
@@ -357,6 +361,10 @@ export const automationRouter = {
 				modelProviderId: input.modelProviderId,
 				modelId: input.modelId,
 			});
+			const capabilityIdsByVersion = await resolveBindableCapabilityVersions({
+				organizationId,
+				versionIds: input.capabilities.map((item) => item.capabilityVersionId),
+			});
 
 			const dtstart = input.dtstart ?? new Date();
 			const { nextRunAt } = parseRrule({
@@ -401,6 +409,12 @@ export const automationRouter = {
 					authorUserId: ctx.session.user.id,
 					content: input.prompt,
 					source: promptSourceFromSession(ctx.session),
+				});
+				await setAutomationCapabilityBindingsInTx({
+					tx,
+					automationId: row.id,
+					capabilities: input.capabilities,
+					capabilityIdsByVersion,
 				});
 
 				return row;
@@ -449,6 +463,15 @@ export const automationRouter = {
 				modelProviderId: nextModelProviderId,
 				modelId: nextModelId,
 			});
+			const capabilityIdsByVersion =
+				input.capabilities === undefined
+					? null
+					: await resolveBindableCapabilityVersions({
+							organizationId,
+							versionIds: input.capabilities.map(
+								(item) => item.capabilityVersionId,
+							),
+						});
 
 			const nextRrule = input.rrule ?? existing.rrule;
 			const nextDtstart = input.dtstart ?? existing.dtstart;
@@ -466,28 +489,48 @@ export const automationRouter = {
 					}).nextRunAt
 				: existing.nextRunAt;
 
-			const [updated] = await dbWs
-				.update(automations)
-				.set({
-					name: input.name ?? existing.name,
-					agent: input.agent ?? existing.agent,
-					modelProviderId: modelSelection.modelProviderId,
-					modelId: modelSelection.modelId,
-					modelConfig: input.modelConfig ?? existing.modelConfig,
-					targetHostId:
-						input.targetHostId === undefined
-							? existing.targetHostId
-							: input.targetHostId,
-					v2ProjectId: nextProjectId,
-					v2WorkspaceId: nextWorkspaceId,
-					rrule: nextRrule,
-					dtstart: nextDtstart,
-					timezone: nextTimezone,
-					mcpScope: input.mcpScope ?? existing.mcpScope,
-					nextRunAt: recomputedNextRunAt,
-				})
-				.where(eq(automations.id, input.id))
-				.returning();
+			const updated = await dbWs.transaction(async (tx) => {
+				const [row] = await tx
+					.update(automations)
+					.set({
+						name: input.name ?? existing.name,
+						agent: input.agent ?? existing.agent,
+						modelProviderId: modelSelection.modelProviderId,
+						modelId: modelSelection.modelId,
+						modelConfig: input.modelConfig ?? existing.modelConfig,
+						targetHostId:
+							input.targetHostId === undefined
+								? existing.targetHostId
+								: input.targetHostId,
+						v2ProjectId: nextProjectId,
+						v2WorkspaceId: nextWorkspaceId,
+						rrule: nextRrule,
+						dtstart: nextDtstart,
+						timezone: nextTimezone,
+						mcpScope: input.mcpScope ?? existing.mcpScope,
+						nextRunAt: recomputedNextRunAt,
+					})
+					.where(eq(automations.id, input.id))
+					.returning();
+
+				if (!row) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Automation not found",
+					});
+				}
+
+				if (input.capabilities !== undefined && capabilityIdsByVersion) {
+					await setAutomationCapabilityBindingsInTx({
+						tx,
+						automationId: input.id,
+						capabilities: input.capabilities,
+						capabilityIdsByVersion,
+					});
+				}
+
+				return row;
+			});
 
 			return { ...updated, scheduleText: safeDescribeRrule(updated) };
 		}),

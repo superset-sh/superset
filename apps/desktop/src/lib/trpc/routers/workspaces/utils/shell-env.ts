@@ -100,6 +100,10 @@ const COMMON_MACOS_PATHS = [
 	"/opt/homebrew/sbin",
 	"/usr/local/bin",
 	"/usr/local/sbin",
+	"/usr/bin",
+	"/bin",
+	"/usr/sbin",
+	"/sbin",
 ];
 
 /**

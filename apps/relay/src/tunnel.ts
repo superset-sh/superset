@@ -16,6 +16,7 @@ const SET_ONLINE_RETRY_BASE_MS = 500;
 const SET_ONLINE_RETRY_MAX_MS = 8_000;
 const SET_ONLINE_MAX_ATTEMPTS = 3;
 const MAX_PENDING_REQUESTS_PER_TUNNEL = 1_000;
+const HTTP_REQUEST_TIMEOUT_MS = 120_000;
 
 interface PendingRequest {
 	resolve: (response: TunnelHttpResponse) => void;
@@ -49,7 +50,7 @@ export class TunnelManager {
 	private readonly onlineWriteVersions = new Map<string, number>();
 	private draining = false;
 
-	constructor(requestTimeoutMs = 30_000) {
+	constructor(requestTimeoutMs = HTTP_REQUEST_TIMEOUT_MS) {
 		this.requestTimeoutMs = requestTimeoutMs;
 	}
 

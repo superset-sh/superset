@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { SelectAutomationRun } from "@superset/db/schema";
 import {
+	createOptimisticAutomationRun,
 	mergeAutomationRuns,
 	mergeSelectedAutomationRun,
 	pickFreshestAutomationRun,
@@ -39,6 +40,58 @@ function run(
 }
 
 describe("automationRunSelection", () => {
+	test("creates a full optimistic manual run for a newly accepted Run now request", () => {
+		const now = new Date("2026-06-12T09:03:00.000Z");
+		const optimistic = createOptimisticAutomationRun({
+			runId: "new-run",
+			automation: {
+				id: "automation-1",
+				organizationId: "org-1",
+				name: "Daily report",
+			},
+			status: "dispatching",
+			now,
+		});
+
+		expect(optimistic).toMatchObject({
+			id: "new-run",
+			automationId: "automation-1",
+			organizationId: "org-1",
+			title: "Daily report",
+			source: "manual",
+			status: "dispatching",
+			startedAt: null,
+			completedAt: null,
+			resultSource: null,
+		});
+		expect(optimistic.createdAt).toBe(now);
+		expect(optimistic.updatedAt).toBe(now);
+	});
+
+	test("marks optimistic terminal runs as system results with a failure reason", () => {
+		const optimistic = createOptimisticAutomationRun({
+			runId: "new-run",
+			automation: {
+				id: "automation-1",
+				organizationId: "org-1",
+				name: "Daily report",
+			},
+			status: "failed",
+			error: "dispatch: fetch failed",
+			now: new Date("2026-06-12T09:03:00.000Z"),
+		});
+
+		expect(optimistic).toMatchObject({
+			status: "failed",
+			error: "dispatch: fetch failed",
+			failureReason: "dispatch: fetch failed",
+			resultSource: "system",
+		});
+		expect(optimistic.completedAt).toEqual(
+			new Date("2026-06-12T09:03:00.000Z"),
+		);
+	});
+
 	test("prefers the fetched run when it is fresher than the live row", () => {
 		const liveRun = run();
 		const fetchedRun = run({

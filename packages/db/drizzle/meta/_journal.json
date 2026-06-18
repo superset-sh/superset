@@ -442,6 +442,13 @@
       "when": 1781367506466,
       "tag": "0062_automation_model_selection",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1781793461976,
+      "tag": "0063_capability_packages",
+      "breakpoints": true
     }
   ]
 }

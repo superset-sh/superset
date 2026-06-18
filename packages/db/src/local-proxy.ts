@@ -15,7 +15,7 @@ export function isLocalProxy(databaseUrl: string): boolean {
 }
 
 export function configureLocalProxy(): void {
-	neonConfig.fetchEndpoint = (host, port) => `http://${host}:${port}/sql`;
-	neonConfig.wsProxy = (host, port) => `${host}:${port}/v2`;
+	neonConfig.fetchEndpoint = (_host, port) => `http://localhost:${port}/sql`;
+	neonConfig.wsProxy = (_host, port) => `localhost:${port}/v2`;
 	neonConfig.useSecureWebSocket = false;
 }

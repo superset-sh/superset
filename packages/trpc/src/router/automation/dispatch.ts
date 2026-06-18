@@ -9,6 +9,7 @@ import {
 } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { and, desc, eq } from "drizzle-orm";
+import { listAutomationCapabilityBindings } from "../capability/capability";
 import { getModelProviderSyncPayload } from "../model-provider/model-provider";
 import { chooseAutomationAgentForHost } from "./dispatch-agent-selection";
 import { describeDispatchError } from "./dispatch-errors";
@@ -25,6 +26,8 @@ type AgentRunResult =
 			pid: number;
 	  };
 
+const AUTOMATION_AGENT_RUN_TIMEOUT_MS = 120_000;
+
 interface HostAgentConfig {
 	id: string;
 	presetId: string;
@@ -35,6 +38,20 @@ interface HostAgentConfig {
 	promptArgs: string[];
 	env: Record<string, string>;
 	order: number;
+}
+
+export interface AutomationCapabilityDispatchPayload {
+	capabilityId: string;
+	capabilityVersionId: string;
+	type: "skill" | "cli";
+	slug: string;
+	name: string;
+	version: string;
+	manifest: Record<string, unknown>;
+	artifactUrl: string;
+	artifactSha256: string;
+	config: Record<string, unknown>;
+	displayOrder: number;
 }
 
 export type DispatchOutcome =
@@ -330,6 +347,10 @@ async function continueAutomationDispatch(
 			jwt: relayJwt,
 		});
 		timer?.mark("model-providers-synced");
+		const capabilities = await resolveAutomationCapabilitiesForDispatch(
+			automation.id,
+		);
+		timer?.mark("capabilities-resolved");
 
 		const result = await runAgentOnHost({
 			relayUrl,
@@ -359,6 +380,7 @@ async function continueAutomationDispatch(
 							config: automation.modelConfig ?? {},
 						}
 					: undefined,
+			capabilities,
 		});
 		timer?.mark("automation-runner-started");
 
@@ -385,6 +407,39 @@ async function continueAutomationDispatch(
 	}
 
 	return { status: "running", runId: run.id };
+}
+
+async function resolveAutomationCapabilitiesForDispatch(
+	automationId: string,
+): Promise<AutomationCapabilityDispatchPayload[]> {
+	const bindings = await listAutomationCapabilityBindings(automationId);
+	return bindings
+		.filter((binding) => binding.enabled)
+		.map((binding) => {
+			if (binding.packageStatus !== "active") {
+				throw new Error(
+					`Capability '${binding.name}' is disabled and cannot be used by this Automation.`,
+				);
+			}
+			if (binding.auditStatus !== "passed") {
+				throw new Error(
+					`Capability '${binding.name}' has not passed security audit.`,
+				);
+			}
+			return {
+				capabilityId: binding.capabilityId,
+				capabilityVersionId: binding.capabilityVersionId,
+				type: binding.type,
+				slug: binding.slug,
+				name: binding.name,
+				version: binding.version,
+				manifest: binding.manifest,
+				artifactUrl: binding.artifactUrl,
+				artifactSha256: binding.artifactSha256,
+				config: binding.config,
+				displayOrder: binding.displayOrder,
+			};
+		});
 }
 
 async function syncAutomationModelProvidersOnHost(args: {
@@ -638,6 +693,7 @@ async function runAgentOnHost(args: {
 		modelId: string;
 		config?: Record<string, unknown>;
 	};
+	capabilities?: AutomationCapabilityDispatchPayload[];
 }): Promise<AgentRunResult> {
 	return relayMutation<
 		{
@@ -651,10 +707,16 @@ async function runAgentOnHost(args: {
 				modelId: string;
 				config?: Record<string, unknown>;
 			};
+			capabilities?: AutomationCapabilityDispatchPayload[];
 		},
 		AgentRunResult
 	>(
-		{ relayUrl: args.relayUrl, hostId: args.hostId, jwt: args.jwt },
+		{
+			relayUrl: args.relayUrl,
+			hostId: args.hostId,
+			jwt: args.jwt,
+			timeoutMs: AUTOMATION_AGENT_RUN_TIMEOUT_MS,
+		},
 		"agents.runAutomation",
 		{
 			runId: args.runId,
@@ -663,6 +725,7 @@ async function runAgentOnHost(args: {
 			prompt: args.prompt,
 			env: args.env,
 			modelSelection: args.modelSelection,
+			capabilities: args.capabilities,
 		},
 	);
 }
