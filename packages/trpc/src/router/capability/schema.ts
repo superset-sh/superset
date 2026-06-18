@@ -2,7 +2,7 @@ import {
 	capabilityPackageAuditStatusValues,
 	capabilityPackageSourceTypeValues,
 	capabilityPackageTypeValues,
-} from "@superset/db/schema";
+} from "@superset/db/enums";
 import { z } from "zod";
 
 const slugSchema = z
