@@ -1,0 +1,1 @@
+export { capabilityRouter } from "./capability";

@@ -97,6 +97,21 @@ describe("desktop v2-only cleanup", () => {
 		expect(paywallConstants).not.toContain("TASKS");
 	});
 
+	test("remote workspace access does not invoke the paywall gate", () => {
+		const securitySettings = readRenderer(
+			"routes/_authenticated/settings/security/components/SecuritySettings/SecuritySettings.tsx",
+		);
+		const workspaceRow = readRenderer(
+			"routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesList/components/V2WorkspaceRow/V2WorkspaceRow.tsx",
+		);
+
+		for (const source of [securitySettings, workspaceRow]) {
+			expect(source).not.toContain("GATED_FEATURES.REMOTE_WORKSPACES");
+			expect(source).not.toContain("gateFeature");
+			expect(source).not.toContain("usePaywall");
+		}
+	});
+
 	test("deleted v1/v2 opt-in artifacts stay deleted", () => {
 		for (const deletedPath of [
 			"hooks/useIsV2CloudEnabled.ts",

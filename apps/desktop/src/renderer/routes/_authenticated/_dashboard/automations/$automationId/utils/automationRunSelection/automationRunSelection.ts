@@ -1,4 +1,7 @@
-import type { SelectAutomationRun } from "@superset/db/schema";
+import type {
+	SelectAutomation,
+	SelectAutomationRun,
+} from "@superset/db/schema";
 
 function timestamp(value: Date | string | null | undefined): number {
 	if (!value) return 0;
@@ -14,6 +17,55 @@ function runFreshness(run: SelectAutomationRun): number {
 		timestamp(run.dispatchedAt),
 		timestamp(run.createdAt),
 	);
+}
+
+function isTerminalStatus(status: SelectAutomationRun["status"]): boolean {
+	return (
+		status === "completed" ||
+		status === "failed" ||
+		status === "skipped" ||
+		status === "dispatch_failed" ||
+		status === "skipped_offline"
+	);
+}
+
+export function createOptimisticAutomationRun(args: {
+	runId: string;
+	automation: Pick<SelectAutomation, "id" | "organizationId" | "name">;
+	status: SelectAutomationRun["status"];
+	error?: string | null;
+	now?: Date;
+}): SelectAutomationRun {
+	const now = args.now ?? new Date();
+	const isRunning = args.status === "running" || args.status === "dispatched";
+	const isTerminal = isTerminalStatus(args.status);
+
+	return {
+		id: args.runId,
+		automationId: args.automation.id,
+		organizationId: args.automation.organizationId,
+		title: args.automation.name,
+		source: "manual",
+		scheduledFor: now,
+		hostId: null,
+		v2WorkspaceId: null,
+		sessionKind: null,
+		chatSessionId: null,
+		terminalSessionId: null,
+		status: args.status,
+		error: args.error ?? null,
+		failureReason: args.error ?? null,
+		resultMarkdown: null,
+		resultJson: null,
+		resultSummary: null,
+		resultSource: isTerminal ? "system" : null,
+		terminalExitCode: null,
+		startedAt: isRunning ? now : null,
+		completedAt: isTerminal ? now : null,
+		dispatchedAt: isRunning ? now : null,
+		createdAt: now,
+		updatedAt: now,
+	};
 }
 
 export function pickFreshestAutomationRun(

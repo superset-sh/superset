@@ -53,6 +53,32 @@ describe("automation run writeback schemas", () => {
 		expect(parsed.modelId).toBe("gpt-5.5");
 	});
 
+	test("accepts pinned capability version bindings", () => {
+		const parsed = createAutomationSchema.parse({
+			name: "Weibo digest",
+			prompt: "Fetch and summarize trends.",
+			agent: "codex",
+			targetHostId: "host-1",
+			rrule: "FREQ=HOURLY;INTERVAL=1",
+			timezone: "Asia/Shanghai",
+			capabilities: [
+				{
+					capabilityVersionId: "44444444-4444-4444-8444-444444444444",
+					enabled: true,
+					config: { limit: 20 },
+				},
+			],
+		});
+
+		expect(parsed.capabilities).toEqual([
+			{
+				capabilityVersionId: "44444444-4444-4444-8444-444444444444",
+				enabled: true,
+				config: { limit: 20 },
+			},
+		]);
+	});
+
 	test("rejects partial model selection", () => {
 		expect(() =>
 			createAutomationSchema.parse({

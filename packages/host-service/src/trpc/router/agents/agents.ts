@@ -10,12 +10,17 @@ import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
+import {
+	type AutomationCapabilityInput,
+	materializeAutomationCapabilities,
+} from "../../../automation-capabilities/materialize";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs } from "../../../db/schema";
 import {
 	type AutomationModelSelection,
 	prepareAutomationModelInjection,
 } from "../../../model-providers/automation-model-injection";
+import { treeKillWithEscalation } from "../../../ports/tree-kill";
 import {
 	getShellBootstrapEnv,
 	getShellLaunchArgs,
@@ -176,6 +181,37 @@ function buildAttachmentBlock(
 	return prompt + block;
 }
 
+function buildCapabilityPromptBlock(
+	prompt: string,
+	materialization: Awaited<
+		ReturnType<typeof materializeAutomationCapabilities>
+	>,
+): string {
+	if (materialization.capabilities.length === 0) return prompt;
+	const lines = materialization.capabilities.map((capability) => {
+		if (capability.type === "cli") {
+			return `- CLI ${capability.name} ${capability.version}: ${capability.toolsMarkdownPath}`;
+		}
+		return `- Skill ${capability.name} ${capability.version}: ${capability.path}`;
+	});
+
+	return `${prompt}
+
+# Superset Tools & Skills
+
+Superset materialized this run's selected capabilities under:
+
+${materialization.capabilitiesDirectory}
+
+Manifest:
+
+${materialization.manifestPath}
+
+Available capabilities:
+
+${lines.join("\n")}`;
+}
+
 export interface AgentRunInput {
 	workspaceId: string;
 	agent: string;
@@ -196,6 +232,7 @@ export interface AutomationAgentRunInput {
 	attachmentIds?: string[];
 	env?: Record<string, string>;
 	modelSelection?: AutomationModelSelection;
+	capabilities?: AutomationCapabilityInput[];
 }
 
 export interface AutomationAgentRunResult {
@@ -220,11 +257,29 @@ export const automationAgentRunInputSchema = z.object({
 			config: z.record(z.string(), z.unknown()).optional(),
 		})
 		.optional(),
+	capabilities: z
+		.array(
+			z.object({
+				capabilityId: z.string().uuid(),
+				capabilityVersionId: z.string().uuid(),
+				type: z.enum(["skill", "cli"]),
+				slug: z.string().min(1),
+				name: z.string().min(1),
+				version: z.string().min(1),
+				manifest: z.record(z.string(), z.unknown()),
+				artifactUrl: z.url(),
+				artifactSha256: z.string().min(64).max(64),
+				config: z.record(z.string(), z.unknown()).default({}),
+				displayOrder: z.number().int().min(0).default(0),
+			}),
+		)
+		.default([]),
 });
 
 const SUPERSET_AGENT_ID = "superset";
 const SUPERSET_AGENT_LABEL = "Superset";
 const AUTOMATION_RUN_OUTPUT_MAX = 120_000;
+const DEFAULT_AUTOMATION_AGENT_TIMEOUT_MS = 30 * 60 * 1000;
 const TERMINAL_AUTOMATION_RUN_STATUSES = new Set([
 	"completed",
 	"failed",
@@ -237,6 +292,27 @@ const automationProcesses = new Map<
 	string,
 	{ pid: number; runDirectory: string; startedAt: Date }
 >();
+
+function formatDuration(ms: number): string {
+	if (ms < 1000) return `${ms}ms`;
+	const seconds = ms / 1000;
+	if (seconds < 60) return `${seconds.toFixed(seconds % 1 === 0 ? 0 : 1)}s`;
+	const minutes = seconds / 60;
+	return `${minutes.toFixed(minutes % 1 === 0 ? 0 : 1)}m`;
+}
+
+export function resolveAutomationAgentTimeoutMs(
+	env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): number {
+	const raw = env.SUPERSET_AUTOMATION_AGENT_TIMEOUT_MS?.trim();
+	if (!raw) return DEFAULT_AUTOMATION_AGENT_TIMEOUT_MS;
+
+	const parsed = Number(raw);
+	if (!Number.isFinite(parsed) || parsed <= 0) {
+		return DEFAULT_AUTOMATION_AGENT_TIMEOUT_MS;
+	}
+	return parsed;
+}
 
 async function resolveAttachmentsAsFiles(
 	attachmentIds: string[],
@@ -511,6 +587,7 @@ async function finalizeAutomationProcess(args: {
 	stderrPath: string;
 	exitCode: number | null;
 	signal: NodeJS.Signals | null;
+	failureReasonOverride?: string | null;
 }): Promise<void> {
 	automationProcesses.delete(args.runId);
 
@@ -541,9 +618,11 @@ async function finalizeAutomationProcess(args: {
 
 	await args.ctx.api.automation.failRun.mutate({
 		runId: args.runId,
-		failureReason: args.signal
-			? `Agent exited by signal ${args.signal}`
-			: `Agent exited with code ${args.exitCode ?? "unknown"}`,
+		failureReason:
+			args.failureReasonOverride ??
+			(args.signal
+				? `Agent exited by signal ${args.signal}`
+				: `Agent exited with code ${args.exitCode ?? "unknown"}`),
 		resultMarkdown: buildFallbackResultMarkdown({
 			title: "Automation failed",
 			exitCode: args.exitCode,
@@ -608,8 +687,15 @@ export async function runAutomationAgent(
 		runId: input.runId,
 	});
 	mkdirSync(artifactPaths.runsDirectory, { recursive: true, mode: 0o700 });
+	const capabilityMaterialization = await materializeAutomationCapabilities({
+		automationDirectory: runDirectory,
+		capabilities: input.capabilities ?? [],
+	});
 
-	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
+	const prompt = buildCapabilityPromptBlock(
+		buildAttachmentBlock(input.prompt, resolvedAttachments),
+		capabilityMaterialization,
+	);
 	writeFileSync(artifactPaths.promptPath, prompt, { mode: 0o600 });
 
 	const modelInjection = prepareAutomationModelInjection({
@@ -638,6 +724,7 @@ export async function runAutomationAgent(
 								configPath: modelInjection.configPath,
 							}
 						: null,
+				capabilities: capabilityMaterialization.capabilities,
 			},
 			null,
 			2,
@@ -647,12 +734,25 @@ export async function runAutomationAgent(
 
 	const command = buildAgentLaunchCommand(config, prompt);
 	const launch = buildAutomationShellLaunch(command);
+	const pathWithCapabilities =
+		capabilityMaterialization.pathEntries.length > 0
+			? [
+					...capabilityMaterialization.pathEntries,
+					getAutomationRunnerBaseEnv().PATH ?? process.env.PATH,
+				]
+					.filter((entry): entry is string => Boolean(entry))
+					.join(":")
+			: undefined;
 	const env = buildAutomationRunnerEnv({
 		config,
 		runDirectory,
 		extraEnv: {
 			...(input.env ?? {}),
 			...(modelInjection?.env ?? {}),
+			SUPERSET_CAPABILITIES_DIR:
+				capabilityMaterialization.capabilitiesDirectory,
+			SUPERSET_CAPABILITY_MANIFEST: capabilityMaterialization.manifestPath,
+			...(pathWithCapabilities ? { PATH: pathWithCapabilities } : {}),
 		},
 	});
 	const stdoutPath = artifactPaths.stdoutPath;
@@ -682,9 +782,15 @@ export async function runAutomationAgent(
 	});
 
 	let finalized = false;
+	let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+	let failureReasonOverride: string | null = null;
 	const finalize = (exitCode: number | null, signal: NodeJS.Signals | null) => {
 		if (finalized) return;
 		finalized = true;
+		if (timeoutTimer) {
+			clearTimeout(timeoutTimer);
+			timeoutTimer = null;
+		}
 		stdoutStream.end();
 		stderrStream.end();
 		void finalizeAutomationProcess({
@@ -695,6 +801,7 @@ export async function runAutomationAgent(
 			stderrPath,
 			exitCode,
 			signal,
+			failureReasonOverride,
 		}).catch((error) => {
 			console.error("[automation-runner] failed to finalize run", {
 				runId: input.runId,
@@ -702,6 +809,30 @@ export async function runAutomationAgent(
 			});
 		});
 	};
+	const timeoutMs = resolveAutomationAgentTimeoutMs();
+	timeoutTimer = setTimeout(() => {
+		const duration = formatDuration(timeoutMs);
+		failureReasonOverride = `Automation agent timed out after ${duration}`;
+		stderrStream.write(`\n[${failureReasonOverride}]\n`);
+		if (child.pid && child.pid > 0) {
+			void treeKillWithEscalation({
+				pid: child.pid,
+				signal: "SIGTERM",
+			}).then((result) => {
+				if (!result.success) {
+					console.error("[automation-runner] failed to kill timed out run", {
+						runId: input.runId,
+						pid: child.pid,
+						error: result.error,
+					});
+				}
+			});
+		} else {
+			child.kill("SIGTERM");
+		}
+		finalize(null, "SIGTERM");
+	}, timeoutMs);
+	timeoutTimer.unref();
 
 	child.on("error", (error) => {
 		stderrStream.write(`${error.message}\n`);

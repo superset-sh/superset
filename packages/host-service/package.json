@@ -100,6 +100,7 @@
 		"@xterm/headless": "6.1.0-beta.220",
 		"better-sqlite3": "12.6.2",
 		"drizzle-orm": "0.45.2",
+		"fflate": "0.8.3",
 		"hono": "4.12.23",
 		"mastracode": "0.18.1",
 		"mime-types": "3.0.2",

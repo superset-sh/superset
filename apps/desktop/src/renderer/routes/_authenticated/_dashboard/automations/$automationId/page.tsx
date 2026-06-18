@@ -18,12 +18,14 @@ import { AutomationRunResultPanel } from "./components/AutomationRunResultPanel"
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
 import { isAutomationRunTerminal } from "./utils/automationRunDisplay";
 import {
+	createOptimisticAutomationRun,
 	mergeAutomationRuns,
 	mergeSelectedAutomationRun,
 	pickFreshestAutomationRun,
 } from "./utils/automationRunSelection";
 
 type AutomationDetailSearch = {
+	editPrompt?: boolean;
 	history?: boolean;
 	runId?: string;
 };
@@ -32,12 +34,13 @@ export const Route = createFileRoute(
 	"/_authenticated/_dashboard/automations/$automationId/",
 )({
 	component: AutomationDetailPage,
-	validateSearch: (
-		search: Record<string, unknown>,
-	): AutomationDetailSearch => ({
-		history: search.history === true,
-		runId: typeof search.runId === "string" ? search.runId : undefined,
-	}),
+	validateSearch: (search: Record<string, unknown>): AutomationDetailSearch => {
+		const parsed: AutomationDetailSearch = {};
+		if (search.editPrompt === true) parsed.editPrompt = true;
+		if (search.history === true) parsed.history = true;
+		if (typeof search.runId === "string") parsed.runId = search.runId;
+		return parsed;
+	},
 });
 
 const RECENT_RUNS_LIMIT = 10;
@@ -46,18 +49,27 @@ function isRunNowAccepted(status: string): boolean {
 	return status === "dispatching" || status === "running";
 }
 
+function toOptimisticRunStatus(status: string): SelectAutomationRun["status"] {
+	if (status === "running") return "running";
+	if (status === "failed") return "failed";
+	if (status === "skipped") return "skipped";
+	return "dispatching";
+}
+
 function AutomationDetailPage() {
 	const { automationId } = Route.useParams();
-	const { history, runId } = Route.useSearch();
+	const { editPrompt, history, runId } = Route.useSearch();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const collections = useCollections();
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
+	const [promptDraft, setPromptDraft] = useState("");
 	const [reconciledRun, setReconciledRun] =
 		useState<SelectAutomationRun | null>(null);
 	const [automationPatch, setAutomationPatch] =
 		useState<Partial<SelectAutomation> | null>(null);
 	const selectedRunId = runId ?? null;
+	const isEditingPrompt = editPrompt === true || !selectedRunId;
 
 	const { data: automationRows, isReady: automationReady } = useLiveQuery(
 		(q) =>
@@ -95,6 +107,16 @@ function AutomationDetailPage() {
 				...(automationPatch ?? {}),
 			} as SelectAutomation)
 		: undefined;
+
+	useEffect(() => {
+		if (!automation) return;
+		setPromptDraft(automation.prompt);
+	}, [automation?.id, automation]);
+
+	useEffect(() => {
+		if (!automation || isEditingPrompt) return;
+		setPromptDraft(automation.prompt);
+	}, [automation?.id, automation?.prompt, isEditingPrompt, automation]);
 
 	const { data: runRows = [] } = useLiveQuery(
 		(q) =>
@@ -206,6 +228,21 @@ function AutomationDetailPage() {
 			apiTrpcClient.automation.runNow.mutate({ id: automationId }),
 		onSuccess: (result) => {
 			if (result.runId) {
+				if (!automation) {
+					toast.error("Automation is still loading. Try again in a moment.");
+					return;
+				}
+				const optimisticRun = createOptimisticAutomationRun({
+					runId: result.runId,
+					automation,
+					status: toOptimisticRunStatus(result.status),
+					error: result.error ?? null,
+				});
+				setReconciledRun(optimisticRun);
+				queryClient.setQueryData<SelectAutomationRun[]>(
+					["automation-runs", automationId, RECENT_RUNS_LIMIT],
+					(existing) => mergeAutomationRuns(existing ?? [], [optimisticRun]),
+				);
 				navigate({
 					to: "/automations/$automationId",
 					params: { automationId },
@@ -242,6 +279,14 @@ function AutomationDetailPage() {
 		onSuccess: () => navigate({ to: "/automations" }),
 	});
 
+	const setPromptMutation = useMutation({
+		mutationFn: (next: string) =>
+			apiTrpcClient.automation.setPrompt.mutate({
+				id: automationId,
+				prompt: next,
+			}),
+	});
+
 	if (!automation) {
 		if (
 			!automationReady ||
@@ -257,12 +302,64 @@ function AutomationDetailPage() {
 		);
 	}
 
+	const returnRunId = selectedRunId ?? displayedRuns[0]?.id ?? null;
+	const returnToAutomationDetails = () => {
+		if (automation) {
+			setPromptDraft(automation.prompt);
+		}
+		navigate({
+			to: "/automations/$automationId",
+			params: { automationId },
+			search: returnRunId ? { runId: returnRunId } : {},
+		});
+	};
+
+	const savePromptAndReturn = async () => {
+		if (!automation) return;
+		if (!promptDraft.trim()) {
+			toast.error("Prompt cannot be empty");
+			return;
+		}
+
+		try {
+			if (promptDraft !== automation.prompt) {
+				const updated = await setPromptMutation.mutateAsync(promptDraft);
+				setAutomationPatch({
+					prompt: updated.prompt,
+					updatedAt: updated.updatedAt,
+				});
+				void queryClient.invalidateQueries({
+					queryKey: ["automation-versions", automation.id],
+				});
+				void queryClient.invalidateQueries({
+					queryKey: ["automation-prompt", automation.id],
+				});
+				void queryClient.invalidateQueries({
+					queryKey: ["automation", automation.id],
+				});
+				void queryClient.invalidateQueries({
+					queryKey: ["automations", "list"],
+				});
+			}
+			navigate({
+				to: "/automations/$automationId",
+				params: { automationId },
+				search: returnRunId ? { runId: returnRunId } : {},
+			});
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to save prompt",
+			);
+		}
+	};
+
 	return (
 		<div className="flex h-full w-full flex-1 overflow-hidden">
 			<div className="flex flex-1 flex-col overflow-hidden">
 				<AutomationDetailHeader
 					name={automation.name}
 					enabled={automation.enabled}
+					mode={isEditingPrompt ? "editPrompt" : "detail"}
 					onBack={() => navigate({ to: "/automations" })}
 					onToggleEnabled={() => setEnabledMutation.mutate(!automation.enabled)}
 					onDelete={() => {
@@ -290,12 +387,24 @@ function AutomationDetailPage() {
 					}}
 					onRunNow={() => runNowMutation.mutate()}
 					onOpenHistory={() => setHistoryOpen(true)}
+					onCancelPromptEdit={returnToAutomationDetails}
+					onSavePrompt={() => void savePromptAndReturn()}
 					toggleDisabled={setEnabledMutation.isPending}
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
+					savePromptDisabled={!promptDraft.trim()}
+					savePromptPending={setPromptMutation.isPending}
 				/>
 
-				{selectedRunId ? (
+				{isEditingPrompt ? (
+					<AutomationBody
+						key={automation.id}
+						automation={automation}
+						prompt={promptDraft}
+						onPromptChange={setPromptDraft}
+						onSaveShortcut={() => void savePromptAndReturn()}
+					/>
+				) : selectedRunId ? (
 					<AutomationRunResultPanel
 						automation={automation}
 						run={selectedRun}
@@ -304,12 +413,18 @@ function AutomationDetailPage() {
 							navigate({
 								to: "/automations/$automationId",
 								params: { automationId },
-								search: {},
+								search: { editPrompt: true, runId: selectedRunId },
 							})
 						}
 					/>
 				) : (
-					<AutomationBody key={automation.id} automation={automation} />
+					<AutomationBody
+						key={automation.id}
+						automation={automation}
+						prompt={promptDraft}
+						onPromptChange={setPromptDraft}
+						onSaveShortcut={() => void savePromptAndReturn()}
+					/>
 				)}
 			</div>
 

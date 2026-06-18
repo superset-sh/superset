@@ -1,4 +1,5 @@
 export {
+	createOptimisticAutomationRun,
 	mergeAutomationRuns,
 	mergeSelectedAutomationRun,
 	pickFreshestAutomationRun,

@@ -15,12 +15,19 @@ import {
 } from "./github";
 import {
 	agentCommands,
+	automationCapabilities,
+	automationPromptVersions,
+	automationRuns,
+	automations,
+	capabilityPackages,
+	capabilityPackageVersions,
 	chatMessages,
 	chatSessions,
 	devicePresence,
 	integrationConnections,
 	modelProviderModels,
 	modelProviders,
+	projectCapabilities,
 	projects,
 	sandboxImages,
 	secrets,
@@ -45,6 +52,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	assignedTasks: many(tasks, { relationName: "assignee" }),
 	connectedIntegrations: many(integrationConnections),
 	modelProviders: many(modelProviders),
+	capabilityPackages: many(capabilityPackages),
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	v2Hosts: many(v2Hosts),
@@ -54,6 +62,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
 	chatMessages: many(chatMessages),
+	automations: many(automations),
+	automationPromptVersions: many(automationPromptVersions),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -87,6 +97,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	taskStatuses: many(taskStatuses),
 	integrations: many(integrationConnections),
 	modelProviders: many(modelProviders),
+	capabilityPackages: many(capabilityPackages),
 	githubInstallations: many(githubInstallations),
 	githubRepositories: many(githubRepositories),
 	githubPullRequests: many(githubPullRequests),
@@ -94,6 +105,8 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
 	chatMessages: many(chatMessages),
+	automations: many(automations),
+	automationRuns: many(automationRuns),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -198,6 +211,47 @@ export const modelProviderModelsRelations = relations(
 			fields: [modelProviderModels.providerId],
 			references: [modelProviders.id],
 		}),
+	}),
+);
+
+export const capabilityPackagesRelations = relations(
+	capabilityPackages,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [capabilityPackages.organizationId],
+			references: [organizations.id],
+		}),
+		owner: one(users, {
+			fields: [capabilityPackages.ownerUserId],
+			references: [users.id],
+		}),
+		currentVersion: one(capabilityPackageVersions, {
+			fields: [capabilityPackages.currentVersionId],
+			references: [capabilityPackageVersions.id],
+		}),
+		versions: many(capabilityPackageVersions),
+		projectBindings: many(projectCapabilities),
+		automationBindings: many(automationCapabilities),
+	}),
+);
+
+export const capabilityPackageVersionsRelations = relations(
+	capabilityPackageVersions,
+	({ one, many }) => ({
+		capability: one(capabilityPackages, {
+			fields: [capabilityPackageVersions.capabilityId],
+			references: [capabilityPackages.id],
+		}),
+		auditModelProvider: one(modelProviders, {
+			fields: [capabilityPackageVersions.auditModelProviderId],
+			references: [modelProviders.id],
+		}),
+		createdBy: one(users, {
+			fields: [capabilityPackageVersions.createdByUserId],
+			references: [users.id],
+		}),
+		projectBindings: many(projectCapabilities),
+		automationBindings: many(automationCapabilities),
 	}),
 );
 
@@ -315,6 +369,7 @@ export const v2ProjectsRelations = relations(v2Projects, ({ one, many }) => ({
 	}),
 	tasks: many(tasks),
 	workspaces: many(v2Workspaces),
+	capabilities: many(projectCapabilities),
 }));
 
 export const v2HostsRelations = relations(v2Hosts, ({ one, many }) => ({
@@ -462,3 +517,95 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
 		references: [users.id],
 	}),
 }));
+
+export const automationsRelations = relations(automations, ({ one, many }) => ({
+	organization: one(organizations, {
+		fields: [automations.organizationId],
+		references: [organizations.id],
+	}),
+	owner: one(users, {
+		fields: [automations.ownerUserId],
+		references: [users.id],
+	}),
+	modelProvider: one(modelProviders, {
+		fields: [automations.modelProviderId],
+		references: [modelProviders.id],
+	}),
+	project: one(v2Projects, {
+		fields: [automations.v2ProjectId],
+		references: [v2Projects.id],
+	}),
+	runs: many(automationRuns),
+	promptVersions: many(automationPromptVersions),
+	capabilities: many(automationCapabilities),
+}));
+
+export const automationRunsRelations = relations(automationRuns, ({ one }) => ({
+	automation: one(automations, {
+		fields: [automationRuns.automationId],
+		references: [automations.id],
+	}),
+	organization: one(organizations, {
+		fields: [automationRuns.organizationId],
+		references: [organizations.id],
+	}),
+	chatSession: one(chatSessions, {
+		fields: [automationRuns.chatSessionId],
+		references: [chatSessions.id],
+	}),
+}));
+
+export const automationPromptVersionsRelations = relations(
+	automationPromptVersions,
+	({ one }) => ({
+		automation: one(automations, {
+			fields: [automationPromptVersions.automationId],
+			references: [automations.id],
+		}),
+		author: one(users, {
+			fields: [automationPromptVersions.authorUserId],
+			references: [users.id],
+		}),
+		restoredFromVersion: one(automationPromptVersions, {
+			fields: [automationPromptVersions.restoredFromVersionId],
+			references: [automationPromptVersions.id],
+			relationName: "restoredFromVersion",
+		}),
+	}),
+);
+
+export const projectCapabilitiesRelations = relations(
+	projectCapabilities,
+	({ one }) => ({
+		project: one(v2Projects, {
+			fields: [projectCapabilities.projectId],
+			references: [v2Projects.id],
+		}),
+		capability: one(capabilityPackages, {
+			fields: [projectCapabilities.capabilityId],
+			references: [capabilityPackages.id],
+		}),
+		version: one(capabilityPackageVersions, {
+			fields: [projectCapabilities.capabilityVersionId],
+			references: [capabilityPackageVersions.id],
+		}),
+	}),
+);
+
+export const automationCapabilitiesRelations = relations(
+	automationCapabilities,
+	({ one }) => ({
+		automation: one(automations, {
+			fields: [automationCapabilities.automationId],
+			references: [automations.id],
+		}),
+		capability: one(capabilityPackages, {
+			fields: [automationCapabilities.capabilityId],
+			references: [capabilityPackages.id],
+		}),
+		version: one(capabilityPackageVersions, {
+			fields: [automationCapabilities.capabilityVersionId],
+			references: [capabilityPackageVersions.id],
+		}),
+	}),
+);

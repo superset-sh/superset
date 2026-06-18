@@ -1,0 +1,43 @@
+{
+  "manifestVersion": 1,
+  "id": "system-health-cli",
+  "type": "cli",
+  "name": "System Health CLI",
+  "version": "1.0.1",
+  "description": "Collect local CPU, memory, disk, and uptime health information.",
+  "entry": "tool",
+  "keywords": ["system", "health", "cpu", "disk", "memory"],
+  "author": "Superset Local Demo",
+  "license": "UNLICENSED",
+  "display": {
+    "summary": "查看当前机器的 CPU、内存、硬盘和运行时间健康摘要。",
+    "overviewMarkdown": "## System Health CLI\n\n这个 CLI 用来给 Agent 快速读取本机健康信息，适合放进 Automation 里做定时巡检。\n\n### 能看什么\n\n- CPU 负载和核心数量\n- 内存总量、可用量和使用率\n- 根分区硬盘容量和使用率\n- 系统运行时间\n\n### 适合谁\n\n- 想定时检查机器状态的人\n- 需要让 Automation 判断机器是否健康的人\n- 想把系统巡检结果整理成报告的人",
+    "intendedUsers": ["运营人员", "老师", "开发者", "自动化任务维护者"],
+    "useCases": ["定时机器巡检", "生成系统健康报告", "排查硬盘或内存紧张"]
+  },
+  "cli": {
+    "install": {
+      "strategy": "none",
+      "commands": []
+    },
+    "commands": [
+      {
+        "name": "system-health",
+        "bin": "bin/system-health.js",
+        "title": "查看系统健康状态",
+        "description": "读取 CPU、内存、硬盘和运行时间，并输出为 Markdown 或 JSON。",
+        "examples": [
+          "生成一份当前机器健康摘要",
+          "输出 JSON 给 Automation 做后续判断",
+          "检查磁盘使用率是否过高"
+        ],
+        "commandExamples": [
+          "system-health",
+          "system-health --json"
+        ]
+      }
+    ],
+    "env": [],
+    "network": false
+  }
+}

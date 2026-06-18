@@ -4,13 +4,19 @@ import type {
 } from "@superset/db/schema";
 import { formatDateTimeInTimezone } from "@superset/shared/rrule";
 import { cn } from "@superset/ui/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useRef, useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
 import { AgentPicker } from "../../../components/AgentPicker";
+import {
+	AutomationCapabilitiesPicker,
+	type AutomationCapabilityBindingValue,
+	type AutomationCapabilitySelectedItem,
+} from "../../../components/AutomationCapabilitiesPicker";
 import { AutomationModelPicker } from "../../../components/AutomationModelPicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
 import { SchedulePicker } from "../../../components/SchedulePicker";
@@ -27,6 +33,52 @@ interface AutomationDetailSidebarProps {
 	recentRuns: SelectAutomationRun[];
 	selectedRunId?: string | null;
 	onSelectRun: (runId: string) => void;
+}
+
+type AutomationCapabilityBinding = Awaited<
+	ReturnType<typeof apiTrpcClient.capability.listAutomationBindings.query>
+>[number];
+
+interface CapabilityDraft {
+	automationId: string;
+	requestId: number;
+	value: AutomationCapabilityBindingValue[];
+}
+
+interface CapabilitySaveRequest {
+	automationId: string;
+	requestId: number;
+	capabilities: AutomationCapabilityBindingValue[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function capabilityBindingValuesFromAutomation(
+	bindings: AutomationCapabilityBinding[],
+): AutomationCapabilityBindingValue[] {
+	return bindings
+		.filter((binding) => binding.enabled)
+		.map((binding, index) => ({
+			capabilityVersionId: binding.capabilityVersionId,
+			enabled: true,
+			config: isRecord(binding.config) ? binding.config : {},
+			displayOrder: binding.displayOrder ?? index,
+		}));
+}
+
+function selectedItemsFromAutomationBindings(
+	bindings: AutomationCapabilityBinding[],
+): AutomationCapabilitySelectedItem[] {
+	return bindings
+		.filter((binding) => binding.enabled)
+		.map((binding) => ({
+			capabilityVersionId: binding.capabilityVersionId,
+			name: binding.name,
+			type: binding.type,
+			version: binding.version,
+		}));
 }
 
 export function AutomationDetailSidebar({
@@ -52,6 +104,38 @@ export function AutomationDetailSidebar({
 					modelId: automation.modelId,
 				}
 			: null;
+	const capabilitySaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+	const latestCapabilitySaveRequestIdRef = useRef(0);
+	const nextCapabilitySaveRequestIdRef = useRef(0);
+	const [capabilityDraft, setCapabilityDraft] =
+		useState<CapabilityDraft | null>(null);
+
+	const automationCapabilitiesQuery = useQuery({
+		queryKey: ["automation-capabilities", automation.id],
+		queryFn: () =>
+			apiTrpcClient.capability.listAutomationBindings.query({
+				automationId: automation.id,
+			}),
+		staleTime: 30_000,
+	});
+	const persistedCapabilityBindings = useMemo(
+		() =>
+			capabilityBindingValuesFromAutomation(
+				automationCapabilitiesQuery.data ?? [],
+			),
+		[automationCapabilitiesQuery.data],
+	);
+	const selectedCapabilityItems = useMemo(
+		() =>
+			selectedItemsFromAutomationBindings(
+				automationCapabilitiesQuery.data ?? [],
+			),
+		[automationCapabilitiesQuery.data],
+	);
+	const capabilityValue =
+		capabilityDraft?.automationId === automation.id
+			? capabilityDraft.value
+			: persistedCapabilityBindings;
 
 	const updateMutation = useMutation({
 		mutationFn: (
@@ -67,6 +151,49 @@ export function AutomationDetailSidebar({
 			});
 		},
 	});
+	const enqueueCapabilitySave = (request: CapabilitySaveRequest) => {
+		latestCapabilitySaveRequestIdRef.current = request.requestId;
+
+		capabilitySaveQueueRef.current = capabilitySaveQueueRef.current
+			.catch(() => undefined)
+			.then(async () => {
+				if (request.requestId !== latestCapabilitySaveRequestIdRef.current) {
+					return;
+				}
+
+				try {
+					const bindings =
+						await apiTrpcClient.capability.setAutomationBindings.mutate({
+							automationId: request.automationId,
+							capabilities: request.capabilities,
+						});
+					if (request.requestId !== latestCapabilitySaveRequestIdRef.current) {
+						return;
+					}
+					queryClient.setQueryData(
+						["automation-capabilities", request.automationId],
+						bindings,
+					);
+					setCapabilityDraft((draft) =>
+						draft?.requestId === request.requestId ? null : draft,
+					);
+					void queryClient.invalidateQueries({
+						queryKey: ["capability", "list"],
+					});
+				} catch (error) {
+					if (request.requestId !== latestCapabilitySaveRequestIdRef.current) {
+						return;
+					}
+					console.error(
+						"[AutomationDetailSidebar] failed to update capabilities:",
+						error,
+					);
+					setCapabilityDraft((draft) =>
+						draft?.requestId === request.requestId ? null : draft,
+					);
+				}
+			});
+	};
 
 	const lastRunAt = recentRuns
 		.map((run) => run.scheduledFor)
@@ -196,6 +323,31 @@ export function AutomationDetailSidebar({
 							}
 						/>
 					) : null}
+					<Row
+						label="Tools & Skills"
+						value={
+							<AutomationCapabilitiesPicker
+								align="end"
+								className="-mr-4 w-[210px]"
+								value={capabilityValue}
+								selectedItems={selectedCapabilityItems}
+								onChange={(next) => {
+									const requestId = nextCapabilitySaveRequestIdRef.current + 1;
+									nextCapabilitySaveRequestIdRef.current = requestId;
+									setCapabilityDraft({
+										automationId: automation.id,
+										requestId,
+										value: next,
+									});
+									enqueueCapabilitySave({
+										automationId: automation.id,
+										requestId,
+										capabilities: next,
+									});
+								}}
+							/>
+						}
+					/>
 					<Row
 						label="Timezone"
 						value={

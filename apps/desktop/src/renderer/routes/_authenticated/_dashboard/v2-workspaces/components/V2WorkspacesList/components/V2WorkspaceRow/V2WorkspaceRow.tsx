@@ -19,7 +19,6 @@ import {
 	LuTrash2,
 } from "react-icons/lu";
 import { RiPushpinFill, RiPushpinLine } from "react-icons/ri";
-import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { V2WorkspacePrHoverCardContent } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacePrHoverCardContent";
@@ -48,7 +47,6 @@ export function V2WorkspaceRow({
 	isCurrentRoute,
 }: V2WorkspaceRowProps) {
 	const navigate = useNavigate();
-	const { gateFeature } = usePaywall();
 	const {
 		ensureWorkspaceInSidebar,
 		removeWorkspaceFromSidebar,
@@ -65,32 +63,15 @@ export function V2WorkspaceRow({
 		!workspace.hostIsOnline && workspace.hostType !== "local-device";
 
 	const handleOpen = useCallback(() => {
-		const open = () => navigateToV2Workspace(workspace.id, navigate);
-		if (workspace.hostType === "local-device") {
-			open();
-			return;
-		}
-		gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, open);
-	}, [gateFeature, navigate, workspace.hostType, workspace.id]);
+		navigateToV2Workspace(workspace.id, navigate);
+	}, [navigate, workspace.id]);
 
 	const handleAddToSidebar = useCallback(
 		(event: React.MouseEvent) => {
 			event.stopPropagation();
-			const add = () =>
-				ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
-			if (workspace.hostType === "local-device") {
-				add();
-				return;
-			}
-			gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, add);
+			ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 		},
-		[
-			ensureWorkspaceInSidebar,
-			gateFeature,
-			workspace.hostType,
-			workspace.id,
-			workspace.projectId,
-		],
+		[ensureWorkspaceInSidebar, workspace.id, workspace.projectId],
 	);
 
 	const handleRemoveFromSidebar = useCallback(
