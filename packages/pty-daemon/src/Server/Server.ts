@@ -299,6 +299,13 @@ export class Server {
 				} catch {
 					// already dead, ignore
 				}
+				// Release the master fd too — kill() signals the process but
+				// doesn't close our end of the pty. See #5305.
+				try {
+					session.pty.dispose();
+				} catch {
+					// already torn down, ignore
+				}
 			}
 		}
 		await new Promise<void>((resolve) => this.server.close(() => resolve()));
@@ -483,6 +490,15 @@ export class Server {
 					c.send(ev);
 					c.subscriptions.delete(session.id);
 				}
+			}
+			// Release the PTY master fd now that the shell has exited. Without
+			// this, the daemon leaks one master fd per exited session and
+			// eventually exhausts the host's pty cap (kern.tty.ptmx_max),
+			// blocking all new agent spawns. See #5305.
+			try {
+				session.pty.dispose();
+			} catch {
+				// best-effort; the session is going away regardless
 			}
 			// Delete the session immediately. Without this, every closed
 			// terminal pane left a row in the store forever — list-reply
