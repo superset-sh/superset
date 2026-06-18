@@ -42,6 +42,19 @@ Desktop Automation CLI real app checks are required when the risk lives across E
 
 Long-lived services must clean up best-effort and independently. `packages/host-service/src/app.ts` isolates cleanup steps so one failed stop does not leak the rest. `apps/relay/src/index.ts` drains tunnels on SIGINT and SIGTERM before process exit.
 
+## Local Dev Service Contracts
+
+Local dev setup must keep `.env`, Docker published ports, and generated service files in sync. Setup scripts should replace their managed `.env` block instead of appending another copy, and should treat existing Docker port mappings as the source of truth after a stack has been created. For local Neon HTTP proxy URLs, prefer `localhost` over `db.localtest.me`; `db.localtest.me` can resolve away from loopback on this machine and cause `fetch failed` auth/database errors.
+
+When changing dev, worktree, online, Electric, Redis/KV, or relay startup scripts, validate the actual runtime contract, not just process existence:
+
+- API auth/session endpoint responds.
+- Neon HTTP proxy can execute a real SQL query.
+- Electric proxy returns the expected auth-gated response.
+- Relay health responds.
+- Redis/KV URL matches the Docker-published host port.
+- Desktop renderer reaches the sign-in or authenticated route without repeated renderer errors.
+
 ## Final Pass
 
 Before finishing spec or doc work, search `.trellis/spec` for generated scaffold language and stale status markers. The docs should describe this repository with concrete paths, not generic framework advice.

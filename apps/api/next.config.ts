@@ -6,7 +6,7 @@ import type { NextConfig } from "next";
 if (process.env.NODE_ENV !== "production") {
 	dotenvConfig({
 		path: join(process.cwd(), "../../.env"),
-		override: true,
+		override: process.env.SUPERSET_ONLINE_SERVICE !== "1",
 		quiet: true,
 	});
 }
@@ -14,6 +14,7 @@ if (process.env.NODE_ENV !== "production") {
 const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
+	distDir: process.env.SUPERSET_NEXT_DIST_DIR,
 
 	images: {
 		remotePatterns: [

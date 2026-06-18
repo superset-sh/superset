@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	hasAuthenticatedSessionRecoveryTimedOut,
 	isStoredAuthTokenCurrent,
 	shouldRecoverAuthenticatedSession,
 } from "./auth-session-state";
@@ -52,6 +53,32 @@ describe("auth session state", () => {
 				skipEnvValidation: false,
 			}),
 		).toBe(false);
+	});
+
+	it("times out authenticated session recovery only after the configured window", () => {
+		const now = Date.parse("2026-06-17T09:00:00.000Z");
+
+		expect(
+			hasAuthenticatedSessionRecoveryTimedOut({
+				recoveryStartedAtMs: null,
+				nowMs: now,
+				timeoutMs: 20_000,
+			}),
+		).toBe(false);
+		expect(
+			hasAuthenticatedSessionRecoveryTimedOut({
+				recoveryStartedAtMs: now - 19_999,
+				nowMs: now,
+				timeoutMs: 20_000,
+			}),
+		).toBe(false);
+		expect(
+			hasAuthenticatedSessionRecoveryTimedOut({
+				recoveryStartedAtMs: now - 20_000,
+				nowMs: now,
+				timeoutMs: 20_000,
+			}),
+		).toBe(true);
 	});
 
 	it("does not sign out when the Electron main process reports a saved token", async () => {

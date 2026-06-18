@@ -23,6 +23,8 @@ LOCAL_DB_PROJECT=""
 LOCAL_PG_PORT=""
 LOCAL_NEON_PROXY_PORT=""
 LOCAL_ELECTRIC_PORT=""
+LOCAL_REDIS_PORT=""
+LOCAL_KV_REST_PORT=""
 
 sanitize_name() {
   echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-48
@@ -66,19 +68,49 @@ local_allocate_ports() {
     return 1
   fi
   local base="$SUPERSET_PORT_BASE"
+  LOCAL_DB_PROJECT="superset-$(sanitize_name "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}")"
+
   # DB stack host ports live in the free tail of the 20-port window
   # (app ports use +0..+13; Electric reuses the +9 ELECTRIC_PORT slot).
   LOCAL_PG_PORT=$((base + 14))
   LOCAL_NEON_PROXY_PORT=$((base + 15))
   LOCAL_ELECTRIC_PORT=$((base + 9))
+  LOCAL_REDIS_PORT=$((base + 16))
+  LOCAL_KV_REST_PORT=$((base + 17))
+
+  # If this workspace already has a Docker stack, the existing published ports
+  # are the source of truth. This prevents .env from drifting away from long-lived
+  # containers after a reboot or repeated setup runs.
+  local existing_pg existing_proxy existing_electric existing_redis existing_kv
+  existing_pg="$(local_existing_host_port postgres 5432/tcp)"
+  existing_proxy="$(local_existing_host_port neon-proxy 4444/tcp)"
+  existing_electric="$(local_existing_host_port electric 3000/tcp)"
+  existing_redis="$(local_existing_host_port redis 6379/tcp)"
+  existing_kv="$(local_existing_host_port kv-rest 80/tcp)"
+  [ -n "$existing_pg" ] && LOCAL_PG_PORT="$existing_pg"
+  [ -n "$existing_proxy" ] && LOCAL_NEON_PROXY_PORT="$existing_proxy"
+  [ -n "$existing_electric" ] && LOCAL_ELECTRIC_PORT="$existing_electric"
+  [ -n "$existing_redis" ] && LOCAL_REDIS_PORT="$existing_redis"
+  [ -n "$existing_kv" ] && LOCAL_KV_REST_PORT="$existing_kv"
+
   export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT
+  export LOCAL_REDIS_PORT LOCAL_KV_REST_PORT
   # Export so migrate/seed (child bun processes) use these — an inherited env
   # var beats the .env file, so this overrides any stale DATABASE_URL.
-  export DATABASE_URL="postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main"
+  export DATABASE_URL="postgres://postgres:postgres@localhost:$LOCAL_NEON_PROXY_PORT/main"
   export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:$LOCAL_PG_PORT/main"
-  LOCAL_DB_PROJECT="superset-$(sanitize_name "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}")"
-  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT (project $LOCAL_DB_PROJECT)"
+  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT redis=$LOCAL_REDIS_PORT kv=$LOCAL_KV_REST_PORT (project $LOCAL_DB_PROJECT)"
   return 0
+}
+
+local_existing_host_port() {
+  local service="$1"
+  local container_port="$2"
+  local container="${LOCAL_DB_PROJECT}-${service}-1"
+
+  docker inspect "$container" \
+    --format "{{with index .NetworkSettings.Ports \"$container_port\"}}{{with index . 0}}{{.HostPort}}{{end}}{{end}}" \
+    2>/dev/null || true
 }
 
 local_db_up() {
@@ -114,7 +146,7 @@ local_db_up() {
   local j proxy_ready=0
   for j in $(seq 1 30); do
     if curl -s --max-time 3 -X POST "http://localhost:$LOCAL_NEON_PROXY_PORT/sql" \
-        -H "Neon-Connection-String: postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main" \
+        -H "Neon-Connection-String: postgres://postgres:postgres@localhost:$LOCAL_NEON_PROXY_PORT/main" \
         -H "Content-Type: application/json" \
         -d '{"query":"select 1","params":[]}' 2>/dev/null | grep -q '"command"'; then
       proxy_ready=1
@@ -127,7 +159,7 @@ local_db_up() {
     return 1
   fi
 
-  success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, electric :$LOCAL_ELECTRIC_PORT)"
+  success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, electric :$LOCAL_ELECTRIC_PORT, redis :$LOCAL_REDIS_PORT, kv :$LOCAL_KV_REST_PORT)"
   return 0
 }
 
@@ -158,6 +190,8 @@ local_write_env() {
     return 1
   fi
 
+  local_strip_managed_env_blocks
+
   local BASE="$SUPERSET_PORT_BASE"
   local WEB_PORT=$((BASE))
   local API_PORT=$((BASE + 1))
@@ -184,8 +218,13 @@ local_write_env() {
     write_env_var "LOCAL_PG_PORT" "$LOCAL_PG_PORT"
     write_env_var "LOCAL_NEON_PROXY_PORT" "$LOCAL_NEON_PROXY_PORT"
     write_env_var "LOCAL_ELECTRIC_PORT" "$LOCAL_ELECTRIC_PORT"
+    write_env_var "LOCAL_REDIS_PORT" "$LOCAL_REDIS_PORT"
+    write_env_var "LOCAL_KV_REST_PORT" "$LOCAL_KV_REST_PORT"
     write_env_var "DATABASE_URL" "$DATABASE_URL"
     write_env_var "DATABASE_URL_UNPOOLED" "$DATABASE_URL_UNPOOLED"
+    write_env_var "KV_REST_API_URL" "http://localhost:$LOCAL_KV_REST_PORT"
+    write_env_var "KV_REST_API_TOKEN" "local-kv-token"
+    write_env_var "KV_URL" "redis://localhost:$LOCAL_REDIS_PORT"
     echo ""
     echo "# Workspace ports"
     write_env_var "WEB_PORT" "$WEB_PORT"
@@ -262,13 +301,43 @@ DEVVARS
     { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
     { "port": $WRANGLER_PORT, "label": "Electric Proxy (Wrangler)" },
     { "port": $LOCAL_PG_PORT, "label": "Postgres" },
-    { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" }
+    { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" },
+    { "port": $LOCAL_REDIS_PORT, "label": "Redis" },
+    { "port": $LOCAL_KV_REST_PORT, "label": "KV REST" }
   ]
 }
 PORTSJSON
 
   success "Workspace .env, Caddyfile, electric-proxy/.dev.vars, ports.json written"
   return 0
+}
+
+local_strip_managed_env_blocks() {
+  if [ ! -f .env ]; then
+    return 0
+  fi
+
+  local tmp_env
+  tmp_env="$(mktemp)"
+  awk '
+    /^# ===== Local workspace overrides \(setup.local.sh\) =====$/ {
+      skip_tail = 1
+      next
+    }
+    /^# >>> superset (worktree|primary) dev managed$/ {
+      skip_marked = 1
+      next
+    }
+    /^# <<< superset (worktree|primary) dev managed$/ {
+      skip_marked = 0
+      next
+    }
+    skip_tail || skip_marked {
+      next
+    }
+    { print }
+  ' .env > "$tmp_env"
+  mv "$tmp_env" .env
 }
 
 local_write_config_overlay() {
