@@ -36,6 +36,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showHideMainWorkspaces = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_HIDE_MAIN_WORKSPACES,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -61,6 +65,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
 	};
+
+	const { data: hideMainWorkspaces, isLoading: isHideMainWorkspacesLoading } =
+		electronTrpc.settings.getHideMainWorkspaces.useQuery();
+	const setHideMainWorkspaces =
+		electronTrpc.settings.setHideMainWorkspaces.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getHideMainWorkspaces.cancel();
+				const previous = utils.settings.getHideMainWorkspaces.getData();
+				utils.settings.getHideMainWorkspaces.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getHideMainWorkspaces.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getHideMainWorkspaces.invalidate();
+			},
+		});
 
 	const { data: fileOpenMode, isLoading: isFileOpenModeLoading } =
 		electronTrpc.settings.getFileOpenMode.useQuery();
@@ -224,6 +251,33 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+
+				{showHideMainWorkspaces && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="hide-main-workspaces"
+								className="text-sm font-medium"
+							>
+								Hide main workspaces
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Don't show the main (default branch) workspace in the sidebar.
+								Useful when you only work in worktrees.
+							</p>
+						</div>
+						<Switch
+							id="hide-main-workspaces"
+							checked={hideMainWorkspaces ?? false}
+							onCheckedChange={(enabled) =>
+								setHideMainWorkspaces.mutate({ enabled })
+							}
+							disabled={
+								isHideMainWorkspacesLoading || setHideMainWorkspaces.isPending
+							}
 						/>
 					</div>
 				)}

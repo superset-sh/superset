@@ -295,6 +295,13 @@
       "when": 1776928440569,
       "tag": "0041_v1_migration_state",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1781785624949,
+      "tag": "0042_add_hide_main_workspaces_setting",
+      "breakpoints": true
     }
   ]
 }

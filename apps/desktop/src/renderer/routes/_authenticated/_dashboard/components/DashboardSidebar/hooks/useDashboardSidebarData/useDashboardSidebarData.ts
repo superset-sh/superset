@@ -3,6 +3,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -306,7 +307,17 @@ export function useDashboardSidebarData() {
 		workspaceTransactionsById,
 	]);
 
+	const { data: hideMainWorkspaces = false } =
+		electronTrpc.settings.getHideMainWorkspaces.useQuery();
+
 	const visibleSidebarWorkspaces = useMemo(() => {
+		// When the user opts to hide main workspaces, only drop the ones that are
+		// auto-included; mains the user explicitly placed in the sidebar (and so
+		// have a local-state row) still flow through `sidebarWorkspaces`.
+		if (hideMainWorkspaces) {
+			return sidebarWorkspaces;
+		}
+
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
 		);
@@ -320,6 +331,7 @@ export function useDashboardSidebarData() {
 
 		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
 	}, [
+		hideMainWorkspaces,
 		localMainWorkspaces,
 		localStateWorkspaceIds,
 		machineId,

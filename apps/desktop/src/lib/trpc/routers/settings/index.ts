@@ -45,6 +45,7 @@ import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_HIDE_MAIN_WORKSPACES,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
@@ -974,6 +975,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { openLinksInApp: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getHideMainWorkspaces: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.hideMainWorkspaces ?? DEFAULT_HIDE_MAIN_WORKSPACES;
+		}),
+
+		setHideMainWorkspaces: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, hideMainWorkspaces: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { hideMainWorkspaces: input.enabled },
 					})
 					.run();
 

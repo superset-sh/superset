@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `hide_main_workspaces` integer;
