@@ -191,6 +191,9 @@ describe("HostServiceCoordinator relay exposure env", () => {
 		resetMocks();
 		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
 		coordinator = new HostServiceCoordinator();
+		(
+			coordinator as unknown as HostServiceCoordinatorBuildEnvInternals
+		).resolveChildEnv = (env) => Promise.resolve(env);
 	});
 
 	afterEach(() => {

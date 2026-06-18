@@ -194,6 +194,100 @@ describe("materializeAutomationCapabilities", () => {
 		}
 	});
 
+	test("does not expose host-service secrets to CLI install commands", async () => {
+		const root = mkdtempSync(path.join(tmpdir(), "superset-capabilities-"));
+		const previousSecret = process.env.SUPERSET_INTERNAL_TEST_SECRET;
+		process.env.SUPERSET_INTERNAL_TEST_SECRET = "should-not-leak";
+		const archive = zipDataUrl({
+			"superset.capability.json": JSON.stringify({
+				manifestVersion: 1,
+				id: "secret-probe",
+				type: "cli",
+				name: "Secret Probe",
+				version: "1.0.0",
+				entry: "tool",
+				cli: {
+					install: {
+						strategy: "shell",
+						commands: [
+							'printf "%s" "$SUPERSET_INTERNAL_TEST_SECRET" > env-leak && printf "%s" "$NPM_CONFIG_PREFIX" > prefix-path && printf "%s" "$HOME" > home-path',
+						],
+					},
+					commands: [{ name: "secret-probe", bin: "secret-probe" }],
+					env: [],
+					network: false,
+				},
+			}),
+			"tool/package.json": "{}",
+		});
+
+		try {
+			await materializeAutomationCapabilities({
+				automationDirectory: root,
+				capabilities: [
+					{
+						capabilityId: "11111111-1111-4111-8111-111111111111",
+						capabilityVersionId: "22222222-2222-4222-8222-222222222222",
+						type: "cli",
+						slug: "secret-probe",
+						name: "Secret Probe",
+						version: "1.0.0",
+						manifest: {
+							type: "cli",
+							entry: "tool",
+							cli: {
+								install: {
+									strategy: "shell",
+									commands: [
+										'printf "%s" "$SUPERSET_INTERNAL_TEST_SECRET" > env-leak && printf "%s" "$NPM_CONFIG_PREFIX" > prefix-path && printf "%s" "$HOME" > home-path',
+									],
+								},
+								commands: [{ name: "secret-probe", bin: "secret-probe" }],
+								env: [],
+								network: false,
+							},
+						},
+						artifactUrl: archive.url,
+						artifactSha256: archive.sha,
+						config: {},
+						displayOrder: 0,
+					},
+				],
+			});
+
+			const packageDirectory = path.join(
+				root,
+				"capabilities",
+				"tools",
+				"secret-probe",
+				"package",
+			);
+			const installDirectory = path.join(
+				root,
+				"capabilities",
+				"tools",
+				"secret-probe",
+				"install",
+			);
+			expect(
+				readFileSync(path.join(packageDirectory, "env-leak"), "utf-8"),
+			).toBe("");
+			expect(
+				readFileSync(path.join(packageDirectory, "prefix-path"), "utf-8"),
+			).toBe(installDirectory);
+			expect(
+				readFileSync(path.join(packageDirectory, "home-path"), "utf-8"),
+			).toBe(path.join(installDirectory, "home"));
+		} finally {
+			if (previousSecret === undefined) {
+				delete process.env.SUPERSET_INTERNAL_TEST_SECRET;
+			} else {
+				process.env.SUPERSET_INTERNAL_TEST_SECRET = previousSecret;
+			}
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	test("reinstalls legacy CLI state that may be missing package-local install artifacts", async () => {
 		const root = mkdtempSync(path.join(tmpdir(), "superset-capabilities-"));
 		const installCommands = [

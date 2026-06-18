@@ -14,7 +14,21 @@ const MODEL = {
 	providerId: "11111111-1111-4111-8111-111111111111",
 	modelId: "gpt-5.5-security",
 	protocol: "openai-responses",
+	baseUrl: "https://audit-model.example/v1",
+	secret: "audit-secret",
 };
+
+const passingAuditFetch = async () =>
+	new Response(
+		JSON.stringify({
+			output_text: JSON.stringify({
+				status: "passed",
+				summary: "The model audit found no blocking issues.",
+				findings: [],
+			}),
+		}),
+		{ status: 200, headers: { "content-type": "application/json" } },
+	);
 
 function zipBase64(files: Record<string, string>): string {
 	const zipped = zipSync(
@@ -206,16 +220,17 @@ describe("capability package validation", () => {
 		).toThrow("duplicate normalized path");
 	});
 
-	test("failed audit blocks activation and passed audit records model", () => {
+	test("failed audit blocks activation and passed audit records model", async () => {
 		const safePackage = validateCapabilityZipPackage(
 			zipBase64({
 				"superset.capability.json": cliManifest,
 				"tool/package.json": "{}",
 			}),
 		);
-		const safeAudit = auditValidatedCapabilityPackage({
+		const safeAudit = await auditValidatedCapabilityPackage({
 			pkg: safePackage,
 			model: MODEL,
+			fetchImpl: passingAuditFetch,
 		});
 
 		expect(safeAudit.status).toBe("passed");
@@ -240,14 +255,40 @@ describe("capability package validation", () => {
 				"tool/package.json": "{}",
 			}),
 		);
-		const unsafeAudit = auditValidatedCapabilityPackage({
+		const unsafeAudit = await auditValidatedCapabilityPackage({
 			pkg: unsafePackage,
 			model: MODEL,
+			fetchImpl: passingAuditFetch,
 		});
 
 		expect(unsafeAudit.status).toBe("failed");
 		expect(
 			canActivateCapabilityVersion({ auditStatus: unsafeAudit.status }),
 		).toBe(false);
+	});
+
+	test("model audit failures fail closed", async () => {
+		const safePackage = validateCapabilityZipPackage(
+			zipBase64({
+				"superset.capability.json": skillManifest,
+				"skill/SKILL.md": "# Review SOP",
+			}),
+		);
+
+		const audit = await auditValidatedCapabilityPackage({
+			pkg: safePackage,
+			model: MODEL,
+			fetchImpl: async () =>
+				new Response("not json", {
+					status: 200,
+					headers: { "content-type": "text/plain" },
+				}),
+		});
+
+		expect(audit.status).toBe("failed");
+		expect(audit.findings[0]?.title).toBe("Model audit unavailable");
+		expect(canActivateCapabilityVersion({ auditStatus: audit.status })).toBe(
+			false,
+		);
 	});
 });

@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import { modelProviderModels, modelProviders } from "@superset/db/schema";
 import { and, eq, isNotNull } from "drizzle-orm";
+import { decryptSecret } from "../project/secrets/utils/crypto";
 import type { AuditModelSelection } from "./audit";
 
 function isPreferredAuditModel(selection: AuditModelSelection): boolean {
@@ -16,6 +17,8 @@ export async function resolveCapabilityAuditModel(
 		.select({
 			providerId: modelProviders.id,
 			protocol: modelProviders.protocol,
+			baseUrl: modelProviders.baseUrl,
+			secretEncrypted: modelProviders.secretEncrypted,
 			modelId: modelProviderModels.modelId,
 		})
 		.from(modelProviders)
@@ -32,10 +35,24 @@ export async function resolveCapabilityAuditModel(
 			),
 		);
 
+	const selections: AuditModelSelection[] = [];
+	for (const row of rows) {
+		if (!row.secretEncrypted) continue;
+		try {
+			selections.push({
+				providerId: row.providerId,
+				modelId: row.modelId,
+				protocol: row.protocol,
+				baseUrl: row.baseUrl,
+				secret: decryptSecret(row.secretEncrypted),
+			});
+		} catch {}
+	}
+
 	return (
-		rows.find((row) => isPreferredAuditModel(row)) ??
-		rows.find((row) => row.protocol.startsWith("openai")) ??
-		rows[0] ??
+		selections.find((row) => isPreferredAuditModel(row)) ??
+		selections.find((row) => row.protocol.startsWith("openai")) ??
+		selections[0] ??
 		null
 	);
 }

@@ -231,6 +231,32 @@ function readInstallState(statePath: string): {
 	}
 }
 
+function buildInstallCommandEnv(installDirectory: string) {
+	const homeDirectory = path.join(installDirectory, "home");
+	const tempDirectory = path.join(installDirectory, "tmp");
+	mkdirSync(homeDirectory, { recursive: true, mode: 0o700 });
+	mkdirSync(tempDirectory, { recursive: true, mode: 0o700 });
+
+	return {
+		PATH: process.env.PATH ?? "",
+		HOME: homeDirectory,
+		USERPROFILE: homeDirectory,
+		TMPDIR: tempDirectory,
+		TMP: tempDirectory,
+		TEMP: tempDirectory,
+		LANG: process.env.LANG ?? "C.UTF-8",
+		LC_ALL: process.env.LC_ALL ?? process.env.LANG ?? "C.UTF-8",
+		NPM_CONFIG_PREFIX: installDirectory,
+		npm_config_prefix: installDirectory,
+		NPM_CONFIG_CACHE: path.join(installDirectory, "npm-cache"),
+		npm_config_cache: path.join(installDirectory, "npm-cache"),
+		BUN_INSTALL: installDirectory,
+		BUN_INSTALL_CACHE_DIR: path.join(installDirectory, "bun-cache"),
+		PIP_CACHE_DIR: path.join(installDirectory, "pip-cache"),
+		PIP_TARGET: path.join(installDirectory, "python"),
+	};
+}
+
 function runInstallCommands(args: {
 	packageDirectory: string;
 	installDirectory: string;
@@ -239,16 +265,11 @@ function runInstallCommands(args: {
 	if (args.commands.length === 0) return;
 	mkdirSync(args.installDirectory, { recursive: true, mode: 0o700 });
 	const shell = process.env.SHELL || "/bin/sh";
+	const env = buildInstallCommandEnv(args.installDirectory);
 	for (const command of args.commands) {
 		const result = spawnSync(shell, ["-lc", command], {
 			cwd: args.packageDirectory,
-			env: {
-				...process.env,
-				NPM_CONFIG_PREFIX: args.installDirectory,
-				npm_config_prefix: args.installDirectory,
-				BUN_INSTALL_CACHE_DIR: path.join(args.installDirectory, "bun-cache"),
-				PIP_CACHE_DIR: path.join(args.installDirectory, "pip-cache"),
-			},
+			env,
 			encoding: "utf-8",
 			timeout: 10 * 60 * 1000,
 		});

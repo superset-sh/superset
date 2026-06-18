@@ -93,7 +93,7 @@ describe("selectExternalWorktreesForImport (real git worktrees)", () => {
 		expect(result.map((w) => w.branch).sort()).toEqual(
 			["feat-a", "feat-b", "feat-c"].sort(),
 		);
-	});
+	}, 10_000);
 
 	test("with requested = {wtA, wtC}, returns only those two", async () => {
 		const all = await listExternalWorktrees(mainRepoPath);

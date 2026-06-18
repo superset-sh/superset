@@ -309,7 +309,10 @@ export const capabilityRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const pkg = validateCapabilityZipPackage(input.fileData);
 			const auditModel = await resolveCapabilityAuditModel(organizationId);
-			const audit = auditValidatedCapabilityPackage({ pkg, model: auditModel });
+			const audit = await auditValidatedCapabilityPackage({
+				pkg,
+				model: auditModel,
+			});
 			return {
 				manifest: pkg.manifest,
 				archiveSha256: pkg.archiveSha256,
@@ -325,7 +328,10 @@ export const capabilityRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const pkg = validateCapabilityZipPackage(input.fileData);
 			const auditModel = await resolveCapabilityAuditModel(organizationId);
-			const audit = auditValidatedCapabilityPackage({ pkg, model: auditModel });
+			const audit = await auditValidatedCapabilityPackage({
+				pkg,
+				model: auditModel,
+			});
 			const archiveBuffer = bufferFromBase64Data(input.fileData);
 			const displaySummary =
 				pkg.validationSummary.display.summary ??
