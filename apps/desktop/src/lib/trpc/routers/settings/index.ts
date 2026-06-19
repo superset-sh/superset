@@ -41,6 +41,10 @@ import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { localDb } from "main/lib/local-db";
 import {
+	getNotificationSoundsMuted,
+	setNotificationSoundsMuted,
+} from "main/lib/notification-settings";
+import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
@@ -850,22 +854,13 @@ export const createSettingsRouter = () => {
 			}),
 
 		getNotificationSoundsMuted: publicProcedure.query(() => {
-			const row = getSettings();
-			return row.notificationSoundsMuted ?? false;
+			return getNotificationSoundsMuted();
 		}),
 
 		setNotificationSoundsMuted: publicProcedure
 			.input(z.object({ muted: z.boolean() }))
 			.mutation(({ input }) => {
-				localDb
-					.insert(settings)
-					.values({ id: 1, notificationSoundsMuted: input.muted })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { notificationSoundsMuted: input.muted },
-					})
-					.run();
-
+				setNotificationSoundsMuted(input.muted);
 				return { success: true };
 			}),
 
