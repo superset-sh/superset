@@ -24,6 +24,7 @@ export function createApplicationMenu() {
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
 	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
+	const notificationSoundsMuted = getNotificationSoundsMuted();
 
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
@@ -94,23 +95,20 @@ export function createApplicationMenu() {
 			label: "Notifications",
 			submenu: [
 				{
-					label: "Mute Notification Sounds",
-					type: "checkbox",
-					checked: getNotificationSoundsMuted(),
-					click: (menuItem) => {
+					label: notificationSoundsMuted
+						? "Unmute Notification Sounds"
+						: "Mute Notification Sounds",
+					click: () => {
 						try {
 							// Persisting emits "notifications-muted-changed", which both
-							// rebuilds this menu (via the listener below) and re-syncs the
-							// renderer.
-							setNotificationSoundsMuted(menuItem.checked);
+							// rebuilds this menu (so the label flips, via the listener
+							// below) and re-syncs the renderer.
+							setNotificationSoundsMuted(!notificationSoundsMuted);
 						} catch (error) {
 							console.error(
 								"[menu] Failed to persist notification mute state:",
 								error,
 							);
-							// Write failed — rebuild to revert the optimistic checkbox toggle
-							// back to the persisted value.
-							createApplicationMenu();
 						}
 					},
 				},
