@@ -717,10 +717,16 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.TERMINAL_SESSIONS,
 		section: "terminal",
-		title: "Active Sessions",
-		description: "View and manage active terminal sessions",
+		title: "Terminal Daemon",
+		description: "Manage the terminal daemon and active sessions",
 		keywords: [
 			"terminal",
+			"daemon",
+			"pty daemon",
+			"supervisor",
+			"restart daemon",
+			"update daemon",
+			"background",
 			"sessions",
 			"active",
 			"running",
