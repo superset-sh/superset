@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/desktop/frontend/quality-guidelines.md", "reason": "Verify source tests, root lint, typecheck, and desktop acceptance artifacts for the renderer change."}
+{"file": ".trellis/spec/guides/desktop-acceptance-tdd.md", "reason": "Check the real desktop acceptance path, route assertions, console health, screenshots, and remaining risks."}
+{"file": ".trellis/spec/guides/quality-and-testing.md", "reason": "Document full-test baseline results and separate unrelated pty-daemon failures from this fix."}

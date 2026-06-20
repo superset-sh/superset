@@ -3,4 +3,5 @@ export {
 	mergeAutomationRuns,
 	mergeSelectedAutomationRun,
 	pickFreshestAutomationRun,
+	resolveSelectedAutomationRunId,
 } from "./automationRunSelection";

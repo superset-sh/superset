@@ -8,12 +8,13 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { AutomationBody } from "./components/AutomationBody";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
+import { AutomationNoRunsPanel } from "./components/AutomationNoRunsPanel";
 import { AutomationRunResultPanel } from "./components/AutomationRunResultPanel";
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
 import { isAutomationRunTerminal } from "./utils/automationRunDisplay";
@@ -22,6 +23,7 @@ import {
 	mergeAutomationRuns,
 	mergeSelectedAutomationRun,
 	pickFreshestAutomationRun,
+	resolveSelectedAutomationRunId,
 } from "./utils/automationRunSelection";
 
 type AutomationDetailSearch = {
@@ -68,8 +70,9 @@ function AutomationDetailPage() {
 		useState<SelectAutomationRun | null>(null);
 	const [automationPatch, setAutomationPatch] =
 		useState<Partial<SelectAutomation> | null>(null);
-	const selectedRunId = runId ?? null;
-	const isEditingPrompt = editPrompt === true || !selectedRunId;
+	const lastPromptDraftAutomationIdRef = useRef<string | null>(null);
+	const requestedRunId = runId ?? null;
+	const isEditingPrompt = editPrompt === true;
 
 	const { data: automationRows, isReady: automationReady } = useLiveQuery(
 		(q) =>
@@ -107,16 +110,22 @@ function AutomationDetailPage() {
 				...(automationPatch ?? {}),
 			} as SelectAutomation)
 		: undefined;
+	const automationPromptDraftId = automation?.id ?? null;
+	const automationPromptDraftValue = automation?.prompt ?? "";
 
 	useEffect(() => {
-		if (!automation) return;
-		setPromptDraft(automation.prompt);
-	}, [automation?.id, automation]);
+		if (!automationPromptDraftId) return;
+		if (lastPromptDraftAutomationIdRef.current === automationPromptDraftId) {
+			return;
+		}
+		lastPromptDraftAutomationIdRef.current = automationPromptDraftId;
+		setPromptDraft(automationPromptDraftValue);
+	}, [automationPromptDraftId, automationPromptDraftValue]);
 
 	useEffect(() => {
-		if (!automation || isEditingPrompt) return;
-		setPromptDraft(automation.prompt);
-	}, [automation?.id, automation?.prompt, isEditingPrompt, automation]);
+		if (!automationPromptDraftId || isEditingPrompt) return;
+		setPromptDraft(automationPromptDraftValue);
+	}, [automationPromptDraftId, automationPromptDraftValue, isEditingPrompt]);
 
 	const { data: runRows = [] } = useLiveQuery(
 		(q) =>
@@ -146,6 +155,10 @@ function AutomationDetailPage() {
 	const fetchedRecentRuns = (recentRunsQuery.data ??
 		[]) as SelectAutomationRun[];
 	const recentRuns = mergeAutomationRuns(liveRecentRuns, fetchedRecentRuns);
+	const selectedRunId = resolveSelectedAutomationRunId(
+		requestedRunId,
+		recentRuns,
+	);
 	const liveSelectedRun =
 		recentRuns.find((run) => run.id === selectedRunId) ?? null;
 
@@ -418,12 +431,16 @@ function AutomationDetailPage() {
 						}
 					/>
 				) : (
-					<AutomationBody
-						key={automation.id}
-						automation={automation}
-						prompt={promptDraft}
-						onPromptChange={setPromptDraft}
-						onSaveShortcut={() => void savePromptAndReturn()}
+					<AutomationNoRunsPanel
+						onEditPrompt={() =>
+							navigate({
+								to: "/automations/$automationId",
+								params: { automationId },
+								search: { editPrompt: true },
+							})
+						}
+						onRunNow={() => runNowMutation.mutate()}
+						runNowDisabled={runNowMutation.isPending}
 					/>
 				)}
 			</div>

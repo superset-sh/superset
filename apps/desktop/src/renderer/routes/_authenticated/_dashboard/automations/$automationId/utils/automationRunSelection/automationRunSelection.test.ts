@@ -5,6 +5,7 @@ import {
 	mergeAutomationRuns,
 	mergeSelectedAutomationRun,
 	pickFreshestAutomationRun,
+	resolveSelectedAutomationRunId,
 } from "./automationRunSelection";
 
 function run(
@@ -128,6 +129,25 @@ describe("automationRunSelection", () => {
 			selectedRun,
 			existingRun,
 		]);
+	});
+
+	test("uses the requested run id when the URL selects one", () => {
+		expect(resolveSelectedAutomationRunId("requested-run", [run()])).toBe(
+			"requested-run",
+		);
+	});
+
+	test("defaults to the newest recent run when no run id is requested", () => {
+		expect(
+			resolveSelectedAutomationRunId(null, [
+				run({ id: "newest-run" }),
+				run({ id: "older-run" }),
+			]),
+		).toBe("newest-run");
+	});
+
+	test("keeps the detail page in an empty state when no runs exist", () => {
+		expect(resolveSelectedAutomationRunId(undefined, [])).toBeNull();
 	});
 
 	test("merges freshly fetched run history with cached Electric rows", () => {

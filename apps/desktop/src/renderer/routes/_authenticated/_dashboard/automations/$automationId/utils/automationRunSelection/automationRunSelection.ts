@@ -79,6 +79,13 @@ export function pickFreshestAutomationRun(
 		: liveRun;
 }
 
+export function resolveSelectedAutomationRunId(
+	requestedRunId: string | null | undefined,
+	recentRuns: Pick<SelectAutomationRun, "id">[],
+): string | null {
+	return requestedRunId ?? recentRuns[0]?.id ?? null;
+}
+
 export function mergeSelectedAutomationRun(
 	recentRuns: SelectAutomationRun[],
 	selectedRun: SelectAutomationRun | null,
