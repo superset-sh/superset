@@ -42,6 +42,35 @@ const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
 };
 
+/** VS Code-family apps that support the `-g <path>:<line>[:<column>]` goto flag on Linux */
+const VSCODE_GOTO_APPS = new Set<ExternalApp>([
+	"vscode",
+	"vscode-insiders",
+	"cursor",
+]);
+
+/** Sublime Text and Zed: accept `<path>:<line>[:<column>]` directly as the first argument */
+const SUBLIME_ZED_GOTO_APPS = new Set<ExternalApp>(["sublime", "zed"]);
+
+/**
+ * JetBrains IDEs that support `--line <line> [--column <column>] <path>` on Linux.
+ * Includes both single-edition apps (direct CLI) and multi-edition apps (LINUX_CLI_CANDIDATES).
+ */
+const JETBRAINS_LINE_APPS = new Set<ExternalApp>([
+	"intellij",
+	"webstorm",
+	"pycharm",
+	"phpstorm",
+	"rubymine",
+	"goland",
+	"clion",
+	"rider",
+	"datagrip",
+	"appcode",
+	"rustrover",
+	"android-studio",
+]);
+
 /** Map of app IDs to their Linux CLI commands */
 const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
@@ -83,17 +112,62 @@ const LINUX_CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 };
 
 /**
+ * Build the Linux args array for editors that support line/column goto.
+ * When `line` is undefined the returned args are byte-for-byte identical to
+ * the legacy `[targetPath]` baseline so existing callers are unaffected.
+ */
+function buildLinuxArgs(
+	app: ExternalApp,
+	targetPath: string,
+	line?: number,
+	column?: number,
+): string[] {
+	if (line === undefined) {
+		return [targetPath];
+	}
+
+	if (VSCODE_GOTO_APPS.has(app)) {
+		const loc =
+			column !== undefined
+				? `${targetPath}:${line}:${column}`
+				: `${targetPath}:${line}`;
+		return ["-g", loc];
+	}
+
+	if (SUBLIME_ZED_GOTO_APPS.has(app)) {
+		const loc =
+			column !== undefined
+				? `${targetPath}:${line}:${column}`
+				: `${targetPath}:${line}`;
+		return [loc];
+	}
+
+	if (JETBRAINS_LINE_APPS.has(app)) {
+		if (column !== undefined) {
+			return ["--line", String(line), "--column", String(column), targetPath];
+		}
+		return ["--line", String(line), targetPath];
+	}
+
+	return [targetPath];
+}
+
+/**
  * Get candidate commands to open a path in the specified app.
  * Returns an array of commands to try in order — for multi-edition apps (IntelliJ, PyCharm),
  * multiple candidates are returned so the caller can fall back if one isn't installed.
  *
  * macOS: Uses `open -b` (bundle ID) for multi-edition apps and `open -a` (app name) for others.
+ *   Line/column coordinates are ignored on macOS.
  * Linux: Uses direct CLI commands (e.g. `code`, `cursor`, `zed`).
+ *   When `line` is provided, editor-specific goto syntax is used.
  */
 export function getAppCommand(
 	app: ExternalApp,
 	targetPath: string,
 	platform: NodeJS.Platform = process.platform,
+	line?: number,
+	column?: number,
 ): { command: string; args: string[] }[] | null {
 	if (platform === "darwin") {
 		const bundleIds = BUNDLE_ID_CANDIDATES[app];
@@ -112,15 +186,21 @@ export function getAppCommand(
 	// Linux (and other non-macOS platforms)
 	const linuxCandidates = LINUX_CLI_CANDIDATES[app];
 	if (linuxCandidates) {
+		const args = buildLinuxArgs(app, targetPath, line, column);
 		return linuxCandidates.map((cmd) => ({
 			command: cmd,
-			args: [targetPath],
+			args,
 		}));
 	}
 
 	const cliCommand = LINUX_CLI_COMMANDS[app];
 	if (!cliCommand) return null;
-	return [{ command: cliCommand, args: [targetPath] }];
+	return [
+		{
+			command: cliCommand,
+			args: buildLinuxArgs(app, targetPath, line, column),
+		},
+	];
 }
 
 /**

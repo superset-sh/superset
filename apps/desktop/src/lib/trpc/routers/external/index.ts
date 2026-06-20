@@ -78,13 +78,15 @@ export function resolveDefaultEditor(projectId?: string): ExternalApp | null {
 async function openPathInApp(
 	filePath: string,
 	app: ExternalApp,
+	line?: number,
+	column?: number,
 ): Promise<void> {
 	if (app === "finder") {
 		shell.showItemInFolder(filePath);
 		return;
 	}
 
-	const candidates = getAppCommand(app, filePath);
+	const candidates = getAppCommand(app, filePath, undefined, line, column);
 	if (candidates) {
 		let lastError: Error | undefined;
 		for (const cmd of candidates) {
@@ -273,7 +275,7 @@ export const createExternalRouter = () => {
 						return;
 					}
 
-					await openPathInApp(filePath, app);
+					await openPathInApp(filePath, app, input.line, input.column);
 				}),
 			),
 	});
