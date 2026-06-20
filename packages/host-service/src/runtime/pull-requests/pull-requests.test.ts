@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import { pullRequests, workspaces } from "../../db/schema";
 import {
 	PullRequestRuntimeManager,
@@ -145,7 +145,7 @@ function createFakeDb(state: FakeState) {
 function createManager(
 	state: FakeState,
 	overrides: Partial<
-		Pick<PullRequestRuntimeManagerOptions, "execGh" | "github">
+		Pick<PullRequestRuntimeManagerOptions, "execGh" | "github" | "gitWatcher">
 	> = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -163,9 +163,42 @@ function createManager(
 			(async () => {
 				throw new Error("github should not be used for direct PR linking");
 			}),
-		gitWatcher: { onChanged: () => () => {} } as never,
+		gitWatcher:
+			overrides.gitWatcher ??
+			({ onChanged: () => () => {}, removeWorkspace: () => {} } as never),
 	});
 }
+
+describe("PullRequestRuntimeManager workspace cleanup", () => {
+	test("drops pending reruns and removes git watchers for a deleted workspace", () => {
+		const state = makeState("feature");
+		const removeWorkspace = mock(() => {});
+		const manager = createManager(state, {
+			gitWatcher: {
+				onChanged: () => () => {},
+				removeWorkspace,
+			} as never,
+		});
+		const internals = manager as unknown as {
+			workspaceSyncState: Map<
+				string,
+				{ running: Promise<void>; rerunPending: boolean }
+			>;
+		};
+
+		internals.workspaceSyncState.set(WORKSPACE_ID, {
+			running: Promise.resolve(),
+			rerunPending: true,
+		});
+
+		manager.removeWorkspace(WORKSPACE_ID);
+
+		expect(internals.workspaceSyncState.get(WORKSPACE_ID)?.rerunPending).toBe(
+			false,
+		);
+		expect(removeWorkspace).toHaveBeenCalledWith(WORKSPACE_ID);
+	});
+});
 
 describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 	test("links a fork PR workspace to the selected PR and records fork upstream", async () => {

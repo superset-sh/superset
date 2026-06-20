@@ -407,6 +407,12 @@ async function runDestroy(
 			warnings.push(`Failed to invalidate label cache: ${message}`);
 		}
 	}
+	try {
+		ctx.runtime.pullRequests.removeWorkspace(input.workspaceId);
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		warnings.push(`Failed to clear workspace runtime state: ${message}`);
+	}
 
 	return {
 		success: true,

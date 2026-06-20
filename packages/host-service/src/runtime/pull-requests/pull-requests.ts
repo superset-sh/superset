@@ -327,6 +327,12 @@ export class PullRequestRuntimeManager {
 		this.unsubscribeFromGitWatcher = null;
 	}
 
+	removeWorkspace(workspaceId: string): void {
+		const syncState = this.workspaceSyncState.get(workspaceId);
+		if (syncState) syncState.rerunPending = false;
+		this.gitWatcher.removeWorkspace(workspaceId);
+	}
+
 	async getPullRequestsByWorkspaces(
 		workspaceIds: string[],
 	): Promise<PullRequestWorkspaceSnapshot[]> {

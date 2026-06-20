@@ -40,6 +40,7 @@ interface ContextSpec {
 	branchExists?: boolean;
 	dbDeleteThrows?: boolean;
 	noApi?: boolean;
+	runtimeRemoveWorkspace?: (workspaceId: string) => void;
 }
 
 function makeCtx(spec: ContextSpec): HostServiceContext {
@@ -95,6 +96,9 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 	});
 	const dbDeleteWhere = mock(() => ({ run: dbDeleteRun }));
 	const terminalSelectAll = mock(() => []);
+	const runtimeRemoveWorkspace = mock(
+		spec.runtimeRemoveWorkspace ?? (() => undefined),
+	);
 
 	return {
 		isAuthenticated: true,
@@ -121,7 +125,9 @@ function makeCtx(spec: ContextSpec): HostServiceContext {
 			}),
 			delete: () => ({ where: dbDeleteWhere }),
 		} as never,
-		runtime: {} as never,
+		runtime: {
+			pullRequests: { removeWorkspace: runtimeRemoveWorkspace },
+		} as never,
 		eventBus: {} as never,
 	};
 }
@@ -580,5 +586,65 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 				w.includes("Failed to remove local workspace row"),
 			),
 		).toBe(true);
+	});
+
+	test("clears host runtime state after workspace delete commits", async () => {
+		const runtimeRemoveWorkspace = mock(() => {});
+		const ctx = makeCtx({
+			workspace: {
+				id: "ws-1",
+				projectId: "p-1",
+				worktreePath: "/branch/wt",
+				branch: "feature",
+			},
+			project: { id: "p-1", repoPath: "/repo" },
+			cloudType: "worktree",
+			runtimeRemoveWorkspace,
+		});
+		const caller = workspaceCleanupRouter.createCaller(ctx);
+
+		const result = await caller.destroy({
+			workspaceId: "ws-1",
+			deleteBranch: false,
+			force: true,
+		});
+
+		expect(result.success).toBe(true);
+		expect(runtimeRemoveWorkspace).toHaveBeenCalledWith("ws-1");
+	});
+
+	test("clears stale host runtime state even when local row is already absent", async () => {
+		const runtimeRemoveWorkspace = mock(() => {});
+		const ctx = makeCtx({ runtimeRemoveWorkspace });
+		const caller = workspaceCleanupRouter.createCaller(ctx);
+
+		const result = await caller.destroy({
+			workspaceId: "already-deleted",
+			deleteBranch: false,
+			force: true,
+		});
+
+		expect(result.success).toBe(true);
+		expect(runtimeRemoveWorkspace).toHaveBeenCalledWith("already-deleted");
+	});
+
+	test("does not clear host runtime state before cloud delete succeeds", async () => {
+		const runtimeRemoveWorkspace = mock(() => {});
+		const ctx = makeCtx({
+			cloudDelete: async () => {
+				throw new Error("cloud delete boom");
+			},
+			runtimeRemoveWorkspace,
+		});
+		const caller = workspaceCleanupRouter.createCaller(ctx);
+
+		await expect(
+			caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			}),
+		).rejects.toThrow("cloud delete boom");
+		expect(runtimeRemoveWorkspace).not.toHaveBeenCalled();
 	});
 });

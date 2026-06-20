@@ -111,6 +111,17 @@ export class GitWatcher {
 		this.watched.clear();
 	}
 
+	removeWorkspace(workspaceId: string): void {
+		this.clearPendingFlush(workspaceId);
+
+		const entry = this.watched.get(workspaceId);
+		if (!entry) return;
+
+		entry.watcher.close();
+		entry.disposeWorktreeWatch();
+		this.watched.delete(workspaceId);
+	}
+
 	private getOrCreateBatch(workspaceId: string): PendingBatch {
 		let batch = this.pendingBatches.get(workspaceId);
 		if (!batch) {
@@ -162,6 +173,13 @@ export class GitWatcher {
 		);
 	}
 
+	private clearPendingFlush(workspaceId: string): void {
+		const timer = this.debounceTimers.get(workspaceId);
+		if (timer) clearTimeout(timer);
+		this.debounceTimers.delete(workspaceId);
+		this.pendingBatches.delete(workspaceId);
+	}
+
 	private async rescan(): Promise<void> {
 		if (this.closed) return;
 
@@ -181,11 +199,9 @@ export class GitWatcher {
 		const currentIds = new Set(rows.map((r) => r.id));
 
 		// Remove watchers for workspaces that no longer exist
-		for (const [id, entry] of this.watched) {
+		for (const id of this.watched.keys()) {
 			if (!currentIds.has(id)) {
-				entry.watcher.close();
-				entry.disposeWorktreeWatch();
-				this.watched.delete(id);
+				this.removeWorkspace(id);
 			}
 		}
 
