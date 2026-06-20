@@ -1,4 +1,5 @@
 import type { SelectAutomationRun } from "@superset/db/schema";
+import { Skeleton } from "@superset/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { formatDistanceStrict } from "date-fns";
@@ -10,6 +11,7 @@ import {
 
 interface PreviousRunsListProps {
 	runs: SelectAutomationRun[];
+	loading?: boolean;
 	selectedRunId?: string | null;
 	onSelectRun: (runId: string) => void;
 }
@@ -22,10 +24,23 @@ function formatAgo(date: Date, now: Date): string {
 
 export function PreviousRunsList({
 	runs,
+	loading,
 	selectedRunId,
 	onSelectRun,
 }: PreviousRunsListProps) {
 	const now = useNow();
+
+	if (runs.length === 0 && loading) {
+		return (
+			<output
+				aria-label="Loading previous runs"
+				className="flex flex-col gap-1.5 pr-2"
+			>
+				<Skeleton className="h-8 w-full rounded-md" />
+				<Skeleton className="h-8 w-5/6 rounded-md" />
+			</output>
+		);
+	}
 
 	if (runs.length === 0) {
 		return <p className="text-sm italic text-muted-foreground">No runs yet</p>;

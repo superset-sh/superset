@@ -28,7 +28,10 @@ The correct product model is:
 - Preserve existing behavior when a specific run id is selected.
 - If no run id is requested and recent runs exist, select the newest recent run.
 - If no run id is requested and no recent runs exist, render an explicit no-runs
-  empty state.
+  empty state only after run-history live data and fresh query loading have
+  settled.
+- Do not show `No runs yet` while the Automation run-history live query is not
+  ready and no cached/fetched runs exist yet.
 - The no-runs empty state must expose `Edit prompt` and `Run now`.
 - Prompt editing must remain opt-in through `editPrompt=true`.
 - `Cancel` from prompt edit must return to the Automation detail route without
@@ -52,6 +55,8 @@ The correct product model is:
 - [x] Source-level regression tests cover the route state split.
 - [x] Unit tests cover selected-run id resolution for requested, recent, and
       empty run lists.
+- [x] The no-runs empty state is gated behind run-history readiness so cold
+      loads do not flash an incorrect empty state before previous runs arrive.
 - [x] Desktop Automation CLI acceptance validates the real Electron flow with
       screenshots and renderer console checks.
 - [x] Root lint and typecheck pass.

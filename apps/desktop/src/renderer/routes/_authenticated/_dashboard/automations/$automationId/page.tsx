@@ -127,7 +127,7 @@ function AutomationDetailPage() {
 		setPromptDraft(automationPromptDraftValue);
 	}, [automationPromptDraftId, automationPromptDraftValue, isEditingPrompt]);
 
-	const { data: runRows = [] } = useLiveQuery(
+	const { data: runRows = [], isReady: automationRunsReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ r: collections.automationRuns })
@@ -159,6 +159,9 @@ function AutomationDetailPage() {
 		requestedRunId,
 		recentRuns,
 	);
+	const showRunHistoryLoading =
+		recentRuns.length === 0 &&
+		(!automationRunsReady || recentRunsQuery.isLoading);
 	const liveSelectedRun =
 		recentRuns.find((run) => run.id === selectedRunId) ?? null;
 
@@ -430,6 +433,11 @@ function AutomationDetailPage() {
 							})
 						}
 					/>
+				) : showRunHistoryLoading ? (
+					<output
+						aria-label="Loading automation runs"
+						className="flex h-full min-h-0 flex-1 items-center justify-center"
+					/>
 				) : (
 					<AutomationNoRunsPanel
 						onEditPrompt={() =>
@@ -448,6 +456,7 @@ function AutomationDetailPage() {
 			<AutomationDetailSidebar
 				automation={automation}
 				recentRuns={displayedRuns}
+				runsLoading={showRunHistoryLoading}
 				selectedRunId={selectedRunId}
 				onSelectRun={(nextRunId) =>
 					navigate({

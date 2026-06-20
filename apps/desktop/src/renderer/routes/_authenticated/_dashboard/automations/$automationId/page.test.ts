@@ -21,4 +21,15 @@ describe("automation detail route source", () => {
 			"[automation?.id, automation?.prompt, isEditingPrompt, automation]",
 		);
 	});
+
+	test("does not show the no-runs empty state until run history has loaded", async () => {
+		const source = await readRouteSource();
+
+		expect(source).toContain("isReady: automationRunsReady");
+		expect(source).toContain("const showRunHistoryLoading =");
+		expect(source).toContain(
+			"recentRuns.length === 0 &&\n\t\t(!automationRunsReady || recentRunsQuery.isLoading)",
+		);
+		expect(source).toContain(") : showRunHistoryLoading ? (");
+	});
 });

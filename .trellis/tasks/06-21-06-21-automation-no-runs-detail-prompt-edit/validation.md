@@ -55,7 +55,14 @@ of the PR diff.
 ## Checks
 
 - `bun test apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/\$automationId/utils/automationRunSelection/automationRunSelection.test.ts apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/\$automationId/page.test.ts`
-  - 11 passed, 0 failed.
+  - 12 passed, 0 failed.
+- Reviewer P2 follow-up:
+  - Added `automationRunsReady` from the run-history `useLiveQuery`.
+  - Added `showRunHistoryLoading` so the main panel does not render
+    `AutomationNoRunsPanel` while run history is still loading and no cached or
+    fetched rows exist.
+  - Passed the same loading state into `PreviousRunsList` so the sidebar does
+    not flash `No runs yet` during cold load.
 - `bun run lint:fix`
   - Completed; no files changed.
 - `bun run lint`
