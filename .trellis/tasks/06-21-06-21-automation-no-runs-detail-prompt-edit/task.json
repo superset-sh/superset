@@ -16,7 +16,7 @@
   "base_branch": "main",
   "worktree_path": null,
   "commit": null,
-  "pr_url": null,
+  "pr_url": "https://github.com/TwitterIsGood/superset/pull/13",
   "subtasks": [],
   "children": [],
   "parent": null,
