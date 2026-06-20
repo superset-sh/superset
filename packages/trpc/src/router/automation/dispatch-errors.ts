@@ -3,6 +3,9 @@ import { RelayDispatchError } from "./relay-client";
 const PROJECT_NOT_SETUP_MESSAGE =
 	"Automation should not require a project workspace. Restart or update Superset on the selected host, then try again.";
 
+const CAPABILITY_ARTIFACT_UNAVAILABLE_MESSAGE =
+	"Capability package artifact is not available on the selected host. Update Superset and retry, or re-import the Tools & Skills package.";
+
 function extractRelayErrorMessage(body: string): string | null {
 	try {
 		const parsed = JSON.parse(body) as {
@@ -17,9 +20,19 @@ function extractRelayErrorMessage(body: string): string | null {
 	}
 }
 
+function isCapabilityArtifactLocalPathFailure(message: string): boolean {
+	return (
+		message.includes("capability-artifacts") &&
+		(message.includes("ENOENT") || message.includes("ENOTDIR"))
+	);
+}
+
 export function describeDispatchError(err: unknown, context: string): string {
 	if (err instanceof RelayDispatchError) {
 		const message = extractRelayErrorMessage(err.body) ?? err.message;
+		if (isCapabilityArtifactLocalPathFailure(message)) {
+			return `${context}: ${CAPABILITY_ARTIFACT_UNAVAILABLE_MESSAGE}`;
+		}
 		if (
 			err.status === 412 &&
 			message.includes("Project is not set up on this host")
@@ -28,6 +41,11 @@ export function describeDispatchError(err: unknown, context: string): string {
 		}
 		return `${context}: ${message}`;
 	}
-	if (err instanceof Error) return `${context}: ${err.message}`;
+	if (err instanceof Error) {
+		if (isCapabilityArtifactLocalPathFailure(err.message)) {
+			return `${context}: ${CAPABILITY_ARTIFACT_UNAVAILABLE_MESSAGE}`;
+		}
+		return `${context}: ${err.message}`;
+	}
 	return `${context}: unknown error`;
 }

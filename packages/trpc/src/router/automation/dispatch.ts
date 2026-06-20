@@ -9,6 +9,7 @@ import {
 } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { and, desc, eq } from "drizzle-orm";
+import { capabilityArtifactDownloadUrl } from "../capability/artifact-url";
 import { listAutomationCapabilityBindings } from "../capability/capability";
 import { getModelProviderSyncPayload } from "../model-provider/model-provider";
 import { chooseAutomationAgentForHost } from "./dispatch-agent-selection";
@@ -349,6 +350,7 @@ async function continueAutomationDispatch(
 		timer?.mark("model-providers-synced");
 		const capabilities = await resolveAutomationCapabilitiesForDispatch(
 			automation.id,
+			opts.apiUrl,
 		);
 		timer?.mark("capabilities-resolved");
 
@@ -411,6 +413,7 @@ async function continueAutomationDispatch(
 
 async function resolveAutomationCapabilitiesForDispatch(
 	automationId: string,
+	apiUrl: string,
 ): Promise<AutomationCapabilityDispatchPayload[]> {
 	const bindings = await listAutomationCapabilityBindings(automationId);
 	return bindings
@@ -434,7 +437,11 @@ async function resolveAutomationCapabilitiesForDispatch(
 				name: binding.name,
 				version: binding.version,
 				manifest: binding.manifest,
-				artifactUrl: binding.artifactUrl,
+				artifactUrl: capabilityArtifactDownloadUrl({
+					apiUrl,
+					versionId: binding.capabilityVersionId,
+					sha256: binding.artifactSha256,
+				}),
 				artifactSha256: binding.artifactSha256,
 				config: binding.config,
 				displayOrder: binding.displayOrder,

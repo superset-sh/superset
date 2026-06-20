@@ -69,6 +69,7 @@ load_base_env() {
 apply_online_env() {
 	export NODE_ENV="development"
 	export SUPERSET_ONLINE_SERVICE="1"
+	export SUPERSET_HOME_DIR="${SUPERSET_ONLINE_HOME_DIR:-$RUN_DIR/superset-home}"
 	export SUPERSET_NEXT_DIST_DIR=".next-online"
 	export SKIP_ENV_VALIDATION="${SKIP_ENV_VALIDATION:-}"
 	export ONLINE_SEED_DEV="${ONLINE_SEED_DEV:-0}"
@@ -116,7 +117,7 @@ apply_online_env() {
 prepare_env() {
 	load_base_env
 	apply_online_env
-	mkdir -p "$LOG_DIR" "$LAUNCH_SUPPORT_DIR"
+	mkdir -p "$LOG_DIR" "$LAUNCH_SUPPORT_DIR" "$SUPERSET_HOME_DIR"
 	write_electric_proxy_env_file
 }
 
