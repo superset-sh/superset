@@ -31,6 +31,7 @@ import { SectionTitle } from "./components/SectionTitle";
 interface AutomationDetailSidebarProps {
 	automation: SelectAutomation;
 	recentRuns: SelectAutomationRun[];
+	runsLoading?: boolean;
 	selectedRunId?: string | null;
 	onSelectRun: (runId: string) => void;
 }
@@ -84,6 +85,7 @@ function selectedItemsFromAutomationBindings(
 export function AutomationDetailSidebar({
 	automation,
 	recentRuns,
+	runsLoading,
 	selectedRunId,
 	onSelectRun,
 }: AutomationDetailSidebarProps) {
@@ -366,6 +368,7 @@ export function AutomationDetailSidebar({
 				<div className="min-h-0 flex-1 overflow-y-auto">
 					<PreviousRunsList
 						runs={recentRuns}
+						loading={runsLoading}
 						selectedRunId={selectedRunId}
 						onSelectRun={onSelectRun}
 					/>

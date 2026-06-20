@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/desktop/frontend/index.md", "reason": "Desktop renderer package guidance for component placement, routing, and validation."}
+{"file": ".trellis/spec/desktop/frontend/quality-guidelines.md", "reason": "Desktop quality gates, component structure, Electric/TanStack rendering rules, and Desktop Automation CLI expectations."}
+{"file": ".trellis/spec/guides/desktop-acceptance-tdd.md", "reason": "Real Electron acceptance requirements, screenshot artifacts, console checks, and service graph validation."}
+{"file": ".trellis/spec/guides/quality-and-testing.md", "reason": "Focused tests, source-level regression tests, and root lint/typecheck expectations."}
