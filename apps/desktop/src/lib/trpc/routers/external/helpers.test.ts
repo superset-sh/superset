@@ -617,3 +617,50 @@ describe("resolvePath guards against process.cwd() fallback", () => {
 		);
 	});
 });
+
+/**
+ * Reproduction for issue #5309:
+ * Cmd/Ctrl+clicking a `path:line:column` terminal link with
+ * "Terminal file links" set to "External editor" opens the file at line 1 —
+ * the line/column are dropped on the external-editor path (the in-app
+ * File viewer, which uses the same coordinates, jumps correctly).
+ *
+ * Root cause: terminal links forward `link.row`/`link.col` to
+ * `external.openFileInEditor`, but that mutation only forwards the path —
+ * it calls `openPathInApp(filePath, app)`, and neither `openPathInApp` nor
+ * `getAppCommand` accept line/column, so the coordinates never reach the
+ * editor command.
+ *
+ * These tests reproduce the exact server-side data flow
+ * (`resolvePath` -> `getAppCommand`, the same chain
+ * `openFileInEditor` -> `openPathInApp` uses) and assert that the command
+ * built to launch the editor carries the requested line/column. They FAIL
+ * today because the coordinates are dropped.
+ */
+describe("issue #5309: external editor opens at line 1, dropping line/column", () => {
+	/** Flattens getAppCommand candidates into a single searchable string. */
+	function commandText(candidates: ReturnType<typeof getAppCommand>): string {
+		return (candidates ?? [])
+			.map((c) => [c.command, ...c.args].join(" "))
+			.join("\n");
+	}
+
+	test("editor command for a path:line:col link includes the line number (cursor, linux)", () => {
+		// A terminal link "src/index.ts:42:10" is detected with row=42, col=10
+		// and forwarded as openFileInEditor({ path, line: 42, column: 10 }).
+		const filePath = resolvePath("src/index.ts", "/repo");
+		const candidates = getAppCommand("cursor", filePath, "linux");
+
+		// The editor should be told to jump to line 42 (column 10), but today
+		// the built command only references the bare file path.
+		expect(commandText(candidates)).toMatch(/\b42\b/);
+		expect(commandText(candidates)).toMatch(/\b10\b/);
+	});
+
+	test("editor command for a path:line:col link includes the line number (vscode, linux)", () => {
+		const filePath = resolvePath("src/index.ts", "/repo");
+		const candidates = getAppCommand("vscode", filePath, "linux");
+
+		expect(commandText(candidates)).toMatch(/\b42\b/);
+	});
+});
