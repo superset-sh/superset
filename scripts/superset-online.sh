@@ -258,12 +258,12 @@ run_service() {
 		api)
 			cd "$ROOT_DIR/apps/api"
 			rm -rf "$SUPERSET_NEXT_DIST_DIR"
-			exec bun run dev
+			exec ./node_modules/.bin/next dev --port "$API_PORT"
 			;;
 		web)
 			cd "$ROOT_DIR/apps/web"
 			rm -rf "$SUPERSET_NEXT_DIST_DIR"
-			exec bun run dev
+			exec ./node_modules/.bin/next dev --port "$WEB_PORT"
 			;;
 		relay)
 			cd "$ROOT_DIR/apps/relay"
