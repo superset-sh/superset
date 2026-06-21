@@ -53,6 +53,31 @@ export interface PortChangedMessage {
 	occurredAt: number;
 }
 
+export type WorkspaceCreateProgressStage =
+	| "queued"
+	| "preparing_project"
+	| "cloning_repository"
+	| "repository_ready"
+	| "syncing_remote"
+	| "resolving_branch"
+	| "fetching"
+	| "creating_worktree"
+	| "registering_workspace"
+	| "configuring_workspace"
+	| "starting_workspace"
+	| "ready"
+	| "failed";
+
+export interface WorkspaceCreateProgressMessage {
+	type: "workspace:create-progress";
+	workspaceId: string;
+	projectId: string;
+	stage: WorkspaceCreateProgressStage;
+	message: string;
+	percent: number | null;
+	occurredAt: number;
+}
+
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -64,6 +89,7 @@ export type ServerMessage =
 	| AgentLifecycleMessage
 	| TerminalLifecycleMessage
 	| PortChangedMessage
+	| WorkspaceCreateProgressMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

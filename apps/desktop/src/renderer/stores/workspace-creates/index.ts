@@ -9,6 +9,7 @@ export {
 export {
 	type TrackableWorkspaceTransactionState,
 	useWorkspaceTransactionsStore,
+	type WorkspaceTransactionProgress,
 	type WorkspaceTransactionSnapshot,
 	type WorkspaceTransactionState,
 	type WorkspaceTransactionType,

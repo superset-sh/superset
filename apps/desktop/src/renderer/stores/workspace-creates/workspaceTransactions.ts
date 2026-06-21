@@ -1,3 +1,4 @@
+import type { WorkspaceCreateProgressPayload } from "@superset/workspace-client";
 import { create } from "zustand";
 
 export type WorkspaceTransactionType = "insert" | "update" | "delete";
@@ -7,6 +8,14 @@ export type TrackableWorkspaceTransactionState =
 	| "completed"
 	| "failed";
 
+export interface WorkspaceTransactionProgress {
+	projectId: string;
+	stage: WorkspaceCreateProgressPayload["stage"];
+	message: string;
+	percent: number | null;
+	updatedAt: Date;
+}
+
 export interface WorkspaceTransactionSnapshot {
 	id: string;
 	workspaceId: string;
@@ -14,6 +23,7 @@ export interface WorkspaceTransactionSnapshot {
 	state: WorkspaceTransactionState;
 	createdAt: Date;
 	updatedAt: Date;
+	progress: WorkspaceTransactionProgress | null;
 }
 
 interface TrackableWorkspaceTransaction {
@@ -31,6 +41,10 @@ interface WorkspaceTransactionsState {
 	track: (
 		workspaceId: string,
 		transaction: TrackableWorkspaceTransaction,
+	) => void;
+	updateProgress: (
+		workspaceId: string,
+		progress: WorkspaceCreateProgressPayload,
 	) => void;
 	clear: (workspaceId: string) => void;
 }
@@ -56,6 +70,7 @@ export const useWorkspaceTransactionsStore = create<WorkspaceTransactionsState>(
 							state,
 							createdAt: transaction.createdAt,
 							updatedAt: new Date(),
+							progress: current.byWorkspaceId[workspaceId]?.progress ?? null,
 						},
 					},
 				}));
@@ -76,6 +91,27 @@ export const useWorkspaceTransactionsStore = create<WorkspaceTransactionsState>(
 				},
 			);
 		},
+		updateProgress: (workspaceId, progress) =>
+			set((state) => {
+				const existing = state.byWorkspaceId[workspaceId];
+				if (!existing) return state;
+				return {
+					byWorkspaceId: {
+						...state.byWorkspaceId,
+						[workspaceId]: {
+							...existing,
+							updatedAt: new Date(progress.occurredAt),
+							progress: {
+								projectId: progress.projectId,
+								stage: progress.stage,
+								message: progress.message,
+								percent: progress.percent,
+								updatedAt: new Date(progress.occurredAt),
+							},
+						},
+					},
+				};
+			}),
 		clear: (workspaceId) =>
 			set((state) => {
 				if (!state.byWorkspaceId[workspaceId]) return state;

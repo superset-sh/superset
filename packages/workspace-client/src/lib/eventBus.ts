@@ -2,6 +2,7 @@ import type {
 	AgentLifecycleEventType,
 	ClientMessage,
 	ServerMessage,
+	WorkspaceCreateProgressStage,
 } from "@superset/host-service/events";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
@@ -14,7 +15,8 @@ type EventType =
 	| "git:changed"
 	| "agent:lifecycle"
 	| "terminal:lifecycle"
-	| "port:changed";
+	| "port:changed"
+	| "workspace:create-progress";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -53,6 +55,14 @@ export interface PortChangedPayload {
 	occurredAt: number;
 }
 
+export interface WorkspaceCreateProgressPayload {
+	projectId: string;
+	stage: WorkspaceCreateProgressStage;
+	message: string;
+	percent: number | null;
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -63,7 +73,12 @@ type EventListener<T extends EventType> = T extends "fs:events"
 				? (workspaceId: string, payload: TerminalLifecyclePayload) => void
 				: T extends "port:changed"
 					? (workspaceId: string, payload: PortChangedPayload) => void
-					: never;
+					: T extends "workspace:create-progress"
+						? (
+								workspaceId: string,
+								payload: WorkspaceCreateProgressPayload,
+							) => void
+						: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -127,7 +142,8 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			message.type === "git:changed" ||
 			message.type === "agent:lifecycle" ||
 			message.type === "terminal:lifecycle" ||
-			message.type === "port:changed"
+			message.type === "port:changed" ||
+			message.type === "workspace:create-progress"
 				? message.workspaceId
 				: null;
 
@@ -175,6 +191,17 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				label: message.label,
 				occurredAt: message.occurredAt,
 			});
+		} else if (message.type === "workspace:create-progress") {
+			(entry.callback as EventListener<"workspace:create-progress">)(
+				message.workspaceId,
+				{
+					projectId: message.projectId,
+					stage: message.stage,
+					message: message.message,
+					percent: message.percent,
+					occurredAt: message.occurredAt,
+				},
+			);
 		}
 	}
 }

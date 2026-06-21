@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
@@ -19,6 +20,21 @@ export interface ResolvedGitHubRepo extends ResolvedRepo {
 	remoteName: string;
 	parsed: ParsedGitHubRemote;
 }
+
+export interface CloneRepoProgress {
+	stage: string;
+	percent: number | null;
+	message: string;
+}
+
+export interface CloneRepoOptions {
+	onProgress?: (progress: CloneRepoProgress) => void;
+}
+
+const ANSI_ESCAPE_PATTERN = new RegExp(
+	`${String.fromCharCode(27)}\\[[0-9;]*m`,
+	"g",
+);
 
 export function validateDirectoryPath(path: string, label: string): void {
 	if (!existsSync(path)) {
@@ -79,6 +95,109 @@ function claimEmptyTargetDir(targetPath: string): void {
 			}`,
 		});
 	}
+}
+
+export function parseGitCloneProgressLine(
+	line: string,
+): CloneRepoProgress | null {
+	const normalized = line
+		.replace(ANSI_ESCAPE_PATTERN, "")
+		.replace(/^remote:\s*/, "")
+		.trim();
+	if (!normalized) return null;
+
+	const percentMatch = normalized.match(/^([^:]+):\s+(\d{1,3})%/);
+	const percentStage = percentMatch?.[1];
+	const percentValue = percentMatch?.[2];
+	if (percentStage && percentValue) {
+		const stage = percentStage.trim();
+		const percent = Math.min(100, Math.max(0, Number(percentValue)));
+		return {
+			stage,
+			percent,
+			message: `${stage}: ${percent}%`,
+		};
+	}
+
+	const stageMatch = normalized.match(/^([^:]+):\s+(.+)$/);
+	const stageName = stageMatch?.[1];
+	const stageDetail = stageMatch?.[2];
+	if (!stageName || !stageDetail) return null;
+
+	const stage = stageName.trim();
+	return {
+		stage,
+		percent: null,
+		message: `${stage}: ${stageDetail.trim()}`,
+	};
+}
+
+function pushStderrTail(current: string, next: string): string {
+	const combined = `${current}${next}`;
+	return combined.length > 4000
+		? combined.slice(combined.length - 4000)
+		: combined;
+}
+
+async function cloneWithProgress(
+	repoCloneUrl: string,
+	targetPath: string,
+	options: CloneRepoOptions = {},
+): Promise<void> {
+	await new Promise<void>((resolve, reject) => {
+		const child = spawn(
+			"git",
+			["clone", "--progress", repoCloneUrl, targetPath],
+			{
+				stdio: ["ignore", "ignore", "pipe"],
+			},
+		);
+
+		let stderrTail = "";
+		let lineBuffer = "";
+		let spawnError: Error | null = null;
+
+		const emitProgressLines = (text: string) => {
+			const parts = `${lineBuffer}${text}`.split(/\r|\n/);
+			lineBuffer = parts.pop() ?? "";
+			for (const part of parts) {
+				const progress = parseGitCloneProgressLine(part);
+				if (progress) options.onProgress?.(progress);
+			}
+		};
+
+		child.stderr.on("data", (chunk: Buffer) => {
+			const text = chunk.toString("utf8");
+			stderrTail = pushStderrTail(stderrTail, text);
+			emitProgressLines(text);
+		});
+
+		child.on("error", (error) => {
+			spawnError = error;
+		});
+
+		child.on("close", (code, signal) => {
+			if (lineBuffer) {
+				const progress = parseGitCloneProgressLine(lineBuffer);
+				if (progress) options.onProgress?.(progress);
+				lineBuffer = "";
+			}
+			if (spawnError) {
+				reject(spawnError);
+				return;
+			}
+			if (code === 0) {
+				resolve();
+				return;
+			}
+			const suffix = stderrTail.trim() ? `: ${stderrTail.trim()}` : "";
+			reject(
+				new Error(
+					`git clone exited with ${signal ? `signal ${signal}` : `code ${code}`}${suffix}`,
+				),
+			);
+		});
+	});
 }
 
 /**
@@ -349,6 +468,7 @@ function deriveCloneDirectoryName(repoCloneUrl: string): string {
 export async function cloneRepoInto(
 	repoCloneUrl: string,
 	parentDir: string,
+	options: CloneRepoOptions = {},
 ): Promise<ResolvedRepo> {
 	const parsedUrl = parseGitHubRemote(repoCloneUrl);
 	const expectedSlug = parsedUrl
@@ -363,7 +483,7 @@ export async function cloneRepoInto(
 	claimEmptyTargetDir(targetPath);
 
 	try {
-		await createUserSimpleGit().clone(repoCloneUrl, targetPath);
+		await cloneWithProgress(repoCloneUrl, targetPath, options);
 	} catch (err) {
 		rmSync(targetPath, { recursive: true, force: true });
 		throw new TRPCError({

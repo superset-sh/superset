@@ -15,4 +15,6 @@ export type {
 	PortChangedMessage,
 	ServerMessage,
 	TerminalLifecycleMessage,
+	WorkspaceCreateProgressMessage,
+	WorkspaceCreateProgressStage,
 } from "./types.ts";

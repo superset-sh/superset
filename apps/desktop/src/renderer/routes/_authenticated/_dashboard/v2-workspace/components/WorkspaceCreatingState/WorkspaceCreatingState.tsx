@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { Check, GitBranch, Loader2, RotateCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { WorkspaceTransactionProgress } from "renderer/stores/workspace-creates";
 import "./WorkspaceCreatingState.css";
 
 interface Step {
@@ -9,19 +10,61 @@ interface Step {
 	label: string;
 	/** Cumulative seconds at which this step is considered complete. */
 	doneAt: number;
+	stages: readonly WorkspaceTransactionProgress["stage"][];
 }
 
-// Mirrors the v1 init step order in shared/types/workspace-init.ts so the
-// labels feel real — v2 workspaces.create runs the same git work server-side
-// without streaming progress events, so timings here are estimates.
+// Mirrors the v2 host-service creation stages. Timings are only a fallback for
+// very fast paths or missed events; real progress comes from the pending
+// workspace transaction when the host emits it.
 const STEPS: readonly Step[] = [
-	{ id: "preparing", label: "Preparing", doneAt: 1 },
-	{ id: "syncing", label: "Syncing with remote", doneAt: 4 },
-	{ id: "verifying", label: "Verifying base branch", doneAt: 5 },
-	{ id: "fetching", label: "Fetching latest changes", doneAt: 15 },
-	{ id: "creating_worktree", label: "Creating git worktree", doneAt: 18 },
-	{ id: "copying_config", label: "Copying configuration", doneAt: 20 },
-	{ id: "finalizing", label: "Finalizing setup", doneAt: 23 },
+	{
+		id: "preparing",
+		label: "Preparing",
+		doneAt: 1,
+		stages: ["queued", "preparing_project"],
+	},
+	{
+		id: "cloning_repository",
+		label: "Cloning repository",
+		doneAt: 10,
+		stages: ["cloning_repository"],
+	},
+	{
+		id: "syncing",
+		label: "Syncing with remote",
+		doneAt: 13,
+		stages: ["repository_ready", "syncing_remote"],
+	},
+	{
+		id: "verifying",
+		label: "Verifying base branch",
+		doneAt: 15,
+		stages: ["resolving_branch"],
+	},
+	{
+		id: "fetching",
+		label: "Fetching latest changes",
+		doneAt: 18,
+		stages: ["fetching"],
+	},
+	{
+		id: "creating_worktree",
+		label: "Creating git worktree",
+		doneAt: 21,
+		stages: ["creating_worktree"],
+	},
+	{
+		id: "copying_config",
+		label: "Copying configuration",
+		doneAt: 23,
+		stages: ["configuring_workspace"],
+	},
+	{
+		id: "finalizing",
+		label: "Finalizing setup",
+		doneAt: 26,
+		stages: ["registering_workspace", "starting_workspace", "ready", "failed"],
+	},
 ] as const;
 
 const TOTAL_SECONDS = STEPS[STEPS.length - 1].doneAt;
@@ -36,17 +79,20 @@ interface WorkspaceCreatingStateProps {
 	name?: string;
 	branch?: string;
 	startedAt?: number;
+	progress?: WorkspaceTransactionProgress | null;
 }
 
 export function WorkspaceCreatingState({
 	name,
 	branch,
 	startedAt,
+	progress: realProgress = null,
 }: WorkspaceCreatingStateProps) {
 	const elapsed = useElapsedSeconds(startedAt);
-	const activeIndex = getActiveIndex(elapsed);
-	const progress = Math.min(elapsed / TOTAL_SECONDS, PROGRESS_CAP);
+	const activeIndex = getActiveIndex(elapsed, realProgress);
+	const progress = getProgressValue(elapsed, activeIndex, realProgress);
 	const stuck = elapsed >= STUCK_AFTER_SECONDS;
+	const statusText = realProgress?.message ?? "Setting up local workspace";
 
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
@@ -63,6 +109,9 @@ export function WorkspaceCreatingState({
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name || "Untitled workspace"}
+					</p>
+					<p className="truncate text-[12px] leading-relaxed text-muted-foreground/80">
+						{statusText}
 					</p>
 				</div>
 
@@ -174,12 +223,39 @@ function StepIcon({ state }: { state: StepState }) {
 	);
 }
 
-function getActiveIndex(elapsed: number): number {
+function getActiveIndex(
+	elapsed: number,
+	progress: WorkspaceTransactionProgress | null,
+): number {
+	if (progress) {
+		const index = STEPS.findIndex((step) =>
+			step.stages.includes(progress.stage),
+		);
+		if (index !== -1) return index;
+	}
 	for (let i = 0; i < STEPS.length; i++) {
 		if (elapsed < STEPS[i].doneAt) return i;
 	}
 	// Past the synthetic budget — keep the last step active until real completion.
 	return STEPS.length - 1;
+}
+
+function getProgressValue(
+	elapsed: number,
+	activeIndex: number,
+	progress: WorkspaceTransactionProgress | null,
+): number {
+	if (progress?.stage === "ready") return 1;
+	if (progress?.percent !== null && progress?.percent !== undefined) {
+		return Math.min(
+			(activeIndex + progress.percent / 100) / STEPS.length,
+			PROGRESS_CAP,
+		);
+	}
+	if (progress) {
+		return Math.min((activeIndex + 0.35) / STEPS.length, PROGRESS_CAP);
+	}
+	return Math.min(elapsed / TOTAL_SECONDS, PROGRESS_CAP);
 }
 
 function formatElapsed(seconds: number): string {

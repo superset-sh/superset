@@ -1,8 +1,10 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
+import { getEventBus } from "@superset/workspace-client";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
+import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { WorkspaceCreateMutationMetadata } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
@@ -41,6 +43,9 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const relayUrl = useRelayUrl();
 	const trackWorkspaceTransaction = useWorkspaceTransactionsStore(
 		(state) => state.track,
+	);
+	const updateWorkspaceTransactionProgress = useWorkspaceTransactionsStore(
+		(state) => state.updateProgress,
 	);
 
 	const submit = useCallback(
@@ -120,10 +125,27 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				input: args.snapshot,
 			};
 
+			const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+			const removeProgressListener = bus.on(
+				"workspace:create-progress",
+				workspaceId,
+				(_workspaceId, progress) => {
+					updateWorkspaceTransactionProgress(workspaceId, progress);
+				},
+			);
+			const releaseProgressBus = bus.retain();
+
 			const transaction = collections.v2Workspaces.insert(optimisticRow, {
 				metadata,
 			});
 			trackWorkspaceTransaction(workspaceId, transaction);
+			updateWorkspaceTransactionProgress(workspaceId, {
+				projectId: args.snapshot.projectId,
+				stage: "queued",
+				message: "Creating workspace in background",
+				percent: null,
+				occurredAt: Date.now(),
+			});
 			writeWorkspacePaneLayout(
 				collections,
 				{ id: workspaceId, projectId: args.snapshot.projectId },
@@ -174,6 +196,10 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					deleteWorkspaceLocalState(workspaceId);
 					recordFailure(message);
 					return { ok: false, error: message };
+				})
+				.finally(() => {
+					removeProgressListener();
+					releaseProgressBus();
 				});
 
 			return { workspaceId, completed };
@@ -187,6 +213,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			relayUrl,
 			hostService,
 			trackWorkspaceTransaction,
+			updateWorkspaceTransactionProgress,
 		],
 	);
 

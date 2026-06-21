@@ -46,6 +46,8 @@ Long-lived services must clean up best-effort and independently. `packages/host-
 
 Local dev setup must keep `.env`, Docker published ports, and generated service files in sync. Setup scripts should replace their managed `.env` block instead of appending another copy, and should treat existing Docker port mappings as the source of truth after a stack has been created. For local Neon HTTP proxy URLs, prefer `localhost` over `db.localtest.me`; `db.localtest.me` can resolve away from loopback on this machine and cause `fetch failed` auth/database errors.
 
+For worktree-local desktop or E2E validation, prefer the lifecycle scripts over hand-starting processes: `bun run dev:worktree:start`, `bun run dev:worktree:status`, `bun run dev:worktree:stop`, and `bun run dev:worktree:cleanup -- --e2e-slug <slug> [--worktree-name <dir-name>]`. Seed disposable workspace/project rows with `bun run e2e:workspace-fixture -- seed ...` and clean them with `bun run e2e:workspace-fixture -- cleanup --slug <slug>` or the lifecycle cleanup command. See `desktop-acceptance-tdd.md` for the full contract.
+
 When changing dev, worktree, online, Electric, Redis/KV, or relay startup scripts, validate the actual runtime contract, not just process existence:
 
 - API auth/session endpoint responds.

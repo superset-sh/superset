@@ -11,6 +11,7 @@ import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import type { WorkspaceTransactionProgress } from "renderer/stores/workspace-creates";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspace,
@@ -84,6 +85,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			pendingTransaction,
 		} = workspace;
 		const isPending = pendingTransaction?.type === "insert";
+		const creationProgress = pendingTransaction?.progress ?? null;
 		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
@@ -97,7 +99,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			}
 		}, [isActive]);
 
-		const creationStatusText = isPending ? "Creating…" : null;
+		const creationStatusText = isPending
+			? getCreationStatusText(creationProgress)
+			: null;
+		const creationProgressPercent =
+			creationProgress?.percent !== null &&
+			creationProgress?.percent !== undefined
+				? creationProgress.percent
+				: null;
 		const isMainWorkspace = workspace.type === "main";
 		const workspaceKindTitle = isMainWorkspace
 			? "Main workspace"
@@ -335,8 +344,38 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							</div>
 						)}
 					</div>
+					{isPending && (
+						<div className="col-span-2 mt-1 h-0.5 overflow-hidden rounded-full bg-muted">
+							<div
+								className={cn(
+									"h-full rounded-full bg-foreground/50 transition-[width] duration-300",
+									creationProgressPercent === null && "w-1/3 animate-pulse",
+								)}
+								style={
+									creationProgressPercent === null
+										? undefined
+										: { width: `${creationProgressPercent}%` }
+								}
+							/>
+						</div>
+					)}
 				</div>
 			</div>
 		);
 	},
 );
+
+function getCreationStatusText(
+	progress: WorkspaceTransactionProgress | null,
+): string {
+	if (!progress) return "Creating…";
+	if (
+		progress.stage === "cloning_repository" &&
+		progress.percent !== null &&
+		progress.percent !== undefined
+	) {
+		return `Cloning ${Math.round(progress.percent)}%`;
+	}
+	if (progress.stage === "ready") return "Ready";
+	return progress.message;
+}

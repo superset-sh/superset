@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../db/schema";
+import type { WorkspaceCreateProgressStage } from "../../../events";
 import {
 	asRemoteRef,
 	type ResolvedRef,
@@ -109,6 +110,25 @@ const createInputSchema = z
 const workspaceCreateLocks = new Map<string, Promise<void>>();
 
 type WorkspaceAgentLaunch = z.infer<typeof agentLaunchSchema>;
+type CreateWorkspaceInput = z.infer<typeof createInputSchema>;
+
+function emitWorkspaceCreateProgress(
+	ctx: HostServiceContext,
+	input: CreateWorkspaceInput,
+	stage: WorkspaceCreateProgressStage,
+	message: string,
+	percent: number | null = null,
+): void {
+	if (!input.id) return;
+	ctx.eventBus.broadcastWorkspaceCreateProgress({
+		workspaceId: input.id,
+		projectId: input.projectId,
+		stage,
+		message,
+		percent,
+		occurredAt: Date.now(),
+	});
+}
 
 function resolveTrellisPlatformsForAgentLaunches(
 	ctx: HostServiceContext,
@@ -145,18 +165,43 @@ async function acquireWorkspaceCreateLock(key: string): Promise<() => void> {
 
 async function ensureLocalProjectForWorkspaceCreate(
 	ctx: HostServiceContext,
-	projectId: string,
+	input: CreateWorkspaceInput,
 ): Promise<LocalProject> {
+	const projectId = input.projectId;
 	const existing = findLocalProject(ctx, projectId);
-	if (existing) return existing;
+	if (existing) {
+		emitWorkspaceCreateProgress(
+			ctx,
+			input,
+			"repository_ready",
+			"Repository is ready on this host",
+			100,
+		);
+		return existing;
+	}
 
 	const releaseProjectSetupLock = await acquireWorkspaceCreateLock(
 		`project-setup:${projectId}`,
 	);
 	try {
 		const afterLock = findLocalProject(ctx, projectId);
-		if (afterLock) return afterLock;
+		if (afterLock) {
+			emitWorkspaceCreateProgress(
+				ctx,
+				input,
+				"repository_ready",
+				"Repository is ready on this host",
+				100,
+			);
+			return afterLock;
+		}
 
+		emitWorkspaceCreateProgress(
+			ctx,
+			input,
+			"preparing_project",
+			"Preparing repository on this host",
+		);
 		const cloudProject = await ctx.api.v2Project.get.query({
 			organizationId: ctx.organizationId,
 			id: projectId,
@@ -171,8 +216,32 @@ async function ensureLocalProjectForWorkspaceCreate(
 
 		const parentDir = getHostWorktreeBaseDir(ctx) ?? defaultWorktreesRoot();
 		mkdirSync(parentDir, { recursive: true });
-		const resolved = await cloneRepoInto(cloudProject.repoCloneUrl, parentDir);
+		emitWorkspaceCreateProgress(
+			ctx,
+			input,
+			"cloning_repository",
+			"Cloning repository",
+			0,
+		);
+		const resolved = await cloneRepoInto(cloudProject.repoCloneUrl, parentDir, {
+			onProgress: (progress) => {
+				emitWorkspaceCreateProgress(
+					ctx,
+					input,
+					"cloning_repository",
+					progress.message,
+					progress.percent,
+				);
+			},
+		});
 		persistLocalProject(ctx, projectId, resolved);
+		emitWorkspaceCreateProgress(
+			ctx,
+			input,
+			"repository_ready",
+			"Repository cloned",
+			100,
+		);
 		return requireLocalProject(ctx, projectId);
 	} finally {
 		releaseProjectSetupLock();
@@ -496,6 +565,7 @@ async function startHostEnsure(
 
 async function registerCloudAndLocal(args: {
 	ctx: HostServiceContext;
+	progressInput?: CreateWorkspaceInput;
 	id: string | undefined;
 	projectId: string;
 	name: string;
@@ -506,6 +576,14 @@ async function registerCloudAndLocal(args: {
 	hostPromise: Promise<{ machineId: string }>;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
+	if (args.progressInput) {
+		emitWorkspaceCreateProgress(
+			ctx,
+			args.progressInput,
+			"registering_workspace",
+			"Registering workspace",
+		);
+	}
 	let host: { machineId: string };
 	try {
 		host = await args.hostPromise;
@@ -600,9 +678,15 @@ export const workspacesRouter = router({
 	create: protectedProcedure
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
+			emitWorkspaceCreateProgress(
+				ctx,
+				input,
+				"queued",
+				"Creating workspace in background",
+			);
 			const localProject = await ensureLocalProjectForWorkspaceCreate(
 				ctx,
-				input.projectId,
+				input,
 			);
 
 			// Kick off host.ensure immediately so the cloud round-trip
@@ -637,6 +721,12 @@ export const workspacesRouter = router({
 					: null;
 			aiNamesPromise?.catch(() => {});
 
+			emitWorkspaceCreateProgress(
+				ctx,
+				input,
+				"syncing_remote",
+				"Preparing main workspace",
+			);
 			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
 			const git = await ctx.git(localProject.repoPath);
@@ -662,6 +752,12 @@ export const workspacesRouter = router({
 					`pr:${input.projectId}:${input.pr}`,
 				);
 				try {
+					emitWorkspaceCreateProgress(
+						ctx,
+						input,
+						"resolving_branch",
+						`Preparing PR #${input.pr}`,
+					);
 					const prMetadata = await fetchPrMetadata({
 						cwd: localProject.repoPath,
 						prNumber: input.pr,
@@ -675,6 +771,13 @@ export const workspacesRouter = router({
 						resolvedBranch,
 					);
 					if (existing) {
+						emitWorkspaceCreateProgress(
+							ctx,
+							input,
+							"ready",
+							"Workspace already exists",
+							100,
+						);
 						workspaceRow = existing;
 						alreadyExists = true;
 					} else {
@@ -734,6 +837,12 @@ export const workspacesRouter = router({
 						if (adoptLocalBranch && existingWorktreePath) {
 							await normalizeExistingPrBranch();
 							worktreePath = existingWorktreePath;
+							emitWorkspaceCreateProgress(
+								ctx,
+								input,
+								"registering_workspace",
+								"Registering existing worktree",
+							);
 							const result = await adoptExistingWorktree({
 								ctx,
 								git,
@@ -776,6 +885,12 @@ export const workspacesRouter = router({
 							if (adoptLocalBranch) {
 								await normalizeExistingPrBranch();
 								try {
+									emitWorkspaceCreateProgress(
+										ctx,
+										input,
+										"creating_worktree",
+										"Creating git worktree",
+									);
 									await git.raw([
 										"worktree",
 										"add",
@@ -819,6 +934,12 @@ export const workspacesRouter = router({
 									});
 									recordMaterializedWarning(materialized);
 									worktreeAddStarted = true;
+									emitWorkspaceCreateProgress(
+										ctx,
+										input,
+										"creating_worktree",
+										"Creating git worktree",
+									);
 									await git.raw([
 										"worktree",
 										"add",
@@ -844,6 +965,7 @@ export const workspacesRouter = router({
 
 							workspaceRow = await registerCloudAndLocal({
 								ctx,
+								progressInput: input,
 								id: input.id,
 								projectId: input.projectId,
 								name: input.name ?? prMetadata.title ?? resolvedBranch,
@@ -883,6 +1005,12 @@ export const workspacesRouter = router({
 				}
 				resolvedBranch = actualBranch;
 				worktreePath = input.worktreePath;
+				emitWorkspaceCreateProgress(
+					ctx,
+					input,
+					"registering_workspace",
+					"Registering existing worktree",
+				);
 				const result = await adoptExistingWorktree({
 					ctx,
 					git,
@@ -908,6 +1036,12 @@ export const workspacesRouter = router({
 				let aiTitle: string | null = null;
 
 				if (typedBranch) {
+					emitWorkspaceCreateProgress(
+						ctx,
+						input,
+						"resolving_branch",
+						`Resolving ${typedBranch}`,
+					);
 					// Typed branch: resolve start point via the existing-branch-
 					// aware planner. Title-rename can race with that lookup.
 					resolvedBranch = typedBranch;
@@ -937,6 +1071,12 @@ export const workspacesRouter = router({
 						}
 					}
 				} else {
+					emitWorkspaceCreateProgress(
+						ctx,
+						input,
+						"resolving_branch",
+						"Choosing workspace branch",
+					);
 					// Auto-gen branch: kick the LLM, the start-point resolve,
 					// and the dedupe list off in parallel — none of them depend
 					// on the others. Whichever finishes last gates the worktree
@@ -970,6 +1110,13 @@ export const workspacesRouter = router({
 					resolvedBranch,
 				);
 				if (existing) {
+					emitWorkspaceCreateProgress(
+						ctx,
+						input,
+						"ready",
+						"Workspace already exists",
+						100,
+					);
 					workspaceRow = existing;
 					alreadyExists = true;
 				} else {
@@ -986,6 +1133,12 @@ export const workspacesRouter = router({
 							!plan.usedExistingBranch && plan.startPoint.kind !== "head"
 								? plan.startPoint.shortName
 								: undefined;
+						emitWorkspaceCreateProgress(
+							ctx,
+							input,
+							"registering_workspace",
+							"Registering existing worktree",
+						);
 						const result = await adoptExistingWorktree({
 							ctx,
 							git,
@@ -1031,6 +1184,12 @@ export const workspacesRouter = router({
 
 						let adoptedRow: CloudWorkspace | undefined;
 						try {
+							emitWorkspaceCreateProgress(
+								ctx,
+								input,
+								"creating_worktree",
+								"Creating git worktree",
+							);
 							await addBranchWorktree({ git, plan, worktreePath });
 						} catch (err) {
 							// Branch is already claimed by another worktree that the
@@ -1046,6 +1205,12 @@ export const workspacesRouter = router({
 										!plan.usedExistingBranch && plan.startPoint.kind !== "head"
 											? plan.startPoint.shortName
 											: undefined;
+									emitWorkspaceCreateProgress(
+										ctx,
+										input,
+										"registering_workspace",
+										"Registering existing worktree",
+									);
 									const result = await adoptExistingWorktree({
 										ctx,
 										git,
@@ -1100,6 +1265,7 @@ export const workspacesRouter = router({
 
 							workspaceRow = await registerCloudAndLocal({
 								ctx,
+								progressInput: input,
 								id: input.id,
 								projectId: input.projectId,
 								name: input.name ?? aiTitle ?? resolvedBranch,
@@ -1116,6 +1282,12 @@ export const workspacesRouter = router({
 
 			const trellisSetupResult = input.trellisSetup?.initialize
 				? await (async () => {
+						emitWorkspaceCreateProgress(
+							ctx,
+							input,
+							"configuring_workspace",
+							"Configuring guided workflow",
+						);
 						const localWorkspace = ctx.db.query.workspaces
 							.findFirst({ where: eq(workspaces.id, workspaceRow.id) })
 							.sync();
@@ -1180,6 +1352,12 @@ export const workspacesRouter = router({
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];
 
 			if (!alreadyExists) {
+				emitWorkspaceCreateProgress(
+					ctx,
+					input,
+					"starting_workspace",
+					"Starting workspace setup",
+				);
 				const { terminal, warning } = await startSetupTerminalIfPresent({
 					ctx,
 					workspaceId: workspaceRow.id,
@@ -1195,6 +1373,14 @@ export const workspacesRouter = router({
 				}
 			}
 
+			if ((input.agents?.length ?? 0) > 0 || input.command) {
+				emitWorkspaceCreateProgress(
+					ctx,
+					input,
+					"starting_workspace",
+					"Launching workspace actions",
+				);
+			}
 			const [agentsResult, commandResult] = await Promise.all([
 				dispatchSugarAgents(ctx, workspaceRow.id, input.agents ?? []),
 				input.command
@@ -1217,6 +1403,8 @@ export const workspacesRouter = router({
 					label: commandResult.terminal.label,
 				});
 			}
+
+			emitWorkspaceCreateProgress(ctx, input, "ready", "Workspace ready", 100);
 
 			return {
 				workspace: workspaceRow,

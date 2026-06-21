@@ -19,4 +19,15 @@ describe("useSubmitWorkspace Trellis setup wiring", () => {
 		expect(source).toContain("outcome.trellisWarning");
 		expect(source).toContain("toast.warning(outcome.trellisWarning)");
 	});
+
+	test("keeps new workspace creation in the background by default", () => {
+		expect(source).toContain("Creating workspace in background");
+		expect(source).toContain('toast.success("Workspace ready"');
+
+		const immediateNavigationWindow = source.slice(
+			source.indexOf("const { completed } = submit"),
+			source.indexOf("const workspaceLabel"),
+		);
+		expect(immediateNavigationWindow).not.toContain("navigate");
+	});
 });

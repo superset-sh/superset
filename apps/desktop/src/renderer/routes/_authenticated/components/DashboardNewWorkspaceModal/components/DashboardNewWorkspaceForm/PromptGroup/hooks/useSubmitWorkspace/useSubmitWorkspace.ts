@@ -121,11 +121,24 @@ export function useSubmitWorkspace(
 
 		closeAndResetDraft();
 		const { completed } = submit({ hostId, snapshot });
-		void navigate({
-			to: "/v2-workspace/$workspaceId",
-			params: { workspaceId },
-		}).catch((error) => {
-			console.error("[useSubmitWorkspace] failed to open workspace", error);
+		const workspaceLabel =
+			snapshot.name ?? snapshot.branch ?? "Untitled workspace";
+		const toastId = toast.loading("Creating workspace in background", {
+			description: workspaceLabel,
+			action: {
+				label: "Open",
+				onClick: () => {
+					void navigate({
+						to: "/v2-workspace/$workspaceId",
+						params: { workspaceId },
+					}).catch((error) => {
+						console.error(
+							"[useSubmitWorkspace] failed to open workspace",
+							error,
+						);
+					});
+				},
+			},
 		});
 
 		const isViewingOptimisticWorkspace = () => {
@@ -138,10 +151,34 @@ export function useSubmitWorkspace(
 		};
 
 		void completed.then((outcome) => {
-			if (!outcome.ok) return;
+			if (!outcome.ok) {
+				toast.error("Workspace creation failed", {
+					id: toastId,
+					description: outcome.error,
+				});
+				return;
+			}
 			if (outcome.trellisWarning) {
 				toast.warning(outcome.trellisWarning);
 			}
+			toast.success("Workspace ready", {
+				id: toastId,
+				description: workspaceLabel,
+				action: {
+					label: "Open",
+					onClick: () => {
+						void navigate({
+							to: "/v2-workspace/$workspaceId",
+							params: { workspaceId: outcome.workspaceId },
+						}).catch((error) => {
+							console.error(
+								"[useSubmitWorkspace] failed to open workspace",
+								error,
+							);
+						});
+					},
+				},
+			});
 			if (outcome.workspaceId === workspaceId) return;
 			if (!isViewingOptimisticWorkspace()) return;
 			void navigate({

@@ -21,6 +21,7 @@ import simpleGit, { type SimpleGit } from "simple-git";
 import {
 	cloneRepoInto,
 	initLocalRepoInPlace,
+	parseGitCloneProgressLine,
 	resolveLocalRepo,
 } from "./resolve-repo";
 
@@ -58,6 +59,28 @@ beforeEach(() => {
 
 afterEach(() => {
 	rmSync(workRoot, { recursive: true, force: true });
+});
+
+describe("parseGitCloneProgressLine", () => {
+	test("extracts clone percentages from carriage-return progress lines", () => {
+		expect(
+			parseGitCloneProgressLine("Receiving objects:  42% (420/1000)"),
+		).toEqual({
+			stage: "Receiving objects",
+			percent: 42,
+			message: "Receiving objects: 42%",
+		});
+	});
+
+	test("accepts remote-prefixed counting progress", () => {
+		expect(
+			parseGitCloneProgressLine("remote: Counting objects: 100% (9/9)"),
+		).toEqual({
+			stage: "Counting objects",
+			percent: 100,
+			message: "Counting objects: 100%",
+		});
+	});
 });
 
 // ── resolveLocalRepo ──────────────────────────────────────────────

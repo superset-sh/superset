@@ -7,12 +7,10 @@ import {
 	PromptInputTools,
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
-import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -80,14 +78,12 @@ export function PromptGroup({
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
 	const { closeModal, draft, updateDraft, resetKey } =
 		useDashboardNewWorkspaceDraft();
-	const navigate = useNavigate();
 	const attachments = useProviderAttachments();
 	const hostService = useLocalHostService();
 	const { activeHostUrl, machineId } = hostService;
 	const relayUrl = useRelayUrl();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const needsSetup = selectedProject?.needsSetup === true;
 	const persistedBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
 		(state) =>
 			projectId ? (state.baseBranchesByProjectId[projectId] ?? null) : null,
@@ -101,18 +97,6 @@ export function PromptGroup({
 	const setLastHostId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastHostId,
 	);
-	const handleGoToSetup = useCallback(() => {
-		if (!selectedProject?.id) return;
-		const targetProjectId = selectedProject.id;
-		closeModal();
-		void navigate({
-			to: "/settings/projects/$projectId",
-			params: { projectId: targetProjectId },
-			search: {
-				hostId: draft.hostId ?? machineId ?? undefined,
-			},
-		});
-	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
 	const {
 		baseBranch,
 		hostId,
@@ -278,10 +262,6 @@ export function PromptGroup({
 		promptContext,
 	);
 	const handleSubmit = useCallback(() => {
-		if (needsSetup) {
-			handleGoToSetup();
-			return;
-		}
 		if (submitBlocker) {
 			if ((draft.hostId ?? machineId) === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
@@ -297,10 +277,8 @@ export function PromptGroup({
 		activeHostUrl,
 		createWorkspace,
 		draft.hostId,
-		handleGoToSetup,
 		hostService,
 		machineId,
-		needsSetup,
 		submitBlocker,
 	]);
 
@@ -520,7 +498,6 @@ export function PromptGroup({
 						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-							disabled={needsSetup}
 							onClick={(e) => {
 								e.preventDefault();
 								handleSubmit();
@@ -535,7 +512,7 @@ export function PromptGroup({
 			<TrellisSetupRow
 				projectId={projectId}
 				hostId={hostId}
-				disabled={needsSetup}
+				allowProjectPreparation
 				projectSetupState={getProjectSetupState(selectedProject?.needsSetup)}
 				initialize={draft.trellisInitialize}
 				onInitializeChange={(trellisInitialize) =>
@@ -586,21 +563,9 @@ export function PromptGroup({
 					</AnimatePresence>
 				</div>
 				<div className="flex items-center gap-1.5">
-					{needsSetup ? (
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							className="h-6 px-2 text-[11px] text-amber-500 hover:text-amber-500"
-							onClick={handleGoToSetup}
-						>
-							Set up project…
-						</Button>
-					) : (
-						<span className="text-[11px] text-muted-foreground/50">
-							{modKey}↵
-						</span>
-					)}
+					<span className="text-[11px] text-muted-foreground/50">
+						{modKey}↵
+					</span>
 				</div>
 			</div>
 		</div>

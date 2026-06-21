@@ -183,6 +183,20 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out workspace creation progress. V2 workspace creation runs through
+	 * a long host-service mutation, so these events let the renderer show clone
+	 * and worktree progress while the mutation continues in the background.
+	 */
+	broadcastWorkspaceCreateProgress(
+		message: Omit<
+			Extract<ServerMessage, { type: "workspace:create-progress" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "workspace:create-progress", ...message });
+	}
+
+	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while
 	 * keeping a slow refetch as a reconnect fallback.

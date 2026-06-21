@@ -88,6 +88,7 @@ function V2WorkspaceLayout() {
 				name={workspace.name}
 				branch={workspace.branch}
 				startedAt={new Date(workspace.createdAt).getTime()}
+				progress={pendingTransaction.progress}
 			/>
 		);
 	}

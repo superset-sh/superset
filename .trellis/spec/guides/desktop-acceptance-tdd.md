@@ -44,78 +44,115 @@ Do not add Playwright, WebDriver, or another desktop driver for routine Trellis 
 
 ## Local Desktop Startup Contract
 
-Use this contract before any desktop-facing Trellis acceptance run. The desktop app is not a single process in development; V2 auth, live workspace data, and host-service panes only work when the local service graph is up.
+Use this contract before any desktop-facing Trellis acceptance run in a Superset git worktree. The desktop app is not a single process in development; V2 auth, live workspace data, relay, Electric, host-service panes, and Desktop Automation only work when the worktree-local service graph is up.
 
 ### 1. Scope / Trigger
 
 - Trigger: validating the real Electron desktop app, authenticated V2 dashboard, workspace chat/code panes, host-service features, Electric/TanStack DB collections, or Desktop Automation CLI acceptance.
-- Goal: start the same local services the renderer expects, with local URLs only, before running `bun run desktop:automation -- ...`.
+- Goal: use the worktree lifecycle command as the default startup, status, and cleanup path so every worktree gets isolated ports, an isolated Docker compose project, an isolated desktop profile, and deterministic readiness probes before running `bun run desktop:automation -- ...`.
+- Only drop to manual service commands when debugging why the lifecycle command failed.
 
 ### 2. Signatures
 
-- Docker service graph: `docker compose up -d`
-- Preferred desktop graph when Caddy is installed: `bun run dev:desktop`
-- Manual graph when debugging pieces separately:
+- Worktree startup: `bun run dev:worktree:start`
+- Readiness/status report: `bun run dev:worktree:status`
+- Stop app and data services: `bun run dev:worktree:stop`
+- Cleanup app/data services, seeded fixture rows, and local clone/worktree directories: `bun run dev:worktree:cleanup -- --e2e-slug <slug> [--worktree-name <dir-name>]`
+- Fixture seed for desktop E2E: `bun run e2e:workspace-fixture -- seed --slug <slug> --name <name> --repo-url <url> [--id <uuid>] [--email <email>]`
+- Fixture cleanup without stopping services: `bun run e2e:workspace-fixture -- cleanup --slug <slug>`
+- Desktop Automation command against the worktree CDP port: `DESKTOP_AUTOMATION_PORT=<port> bun run desktop:automation -- <command> ...`
+- Manual graph for debugging lifecycle failures:
+  - Docker service graph: `COMPOSE_PROJECT_NAME=<LOCAL_DB_PROJECT> docker compose -p <LOCAL_DB_PROJECT> up -d postgres neon-proxy electric redis kv-rest`
   - API: `bun run --cwd apps/api dev`
+  - Relay: `bun --cwd apps/relay --hot src/index.ts`
   - Electric proxy Worker: `bun run --cwd apps/electric-proxy dev`
   - Desktop/Electron: `bun run --cwd apps/desktop dev`
-- Automation probe: `bun run desktop:automation -- window-info --json`
+- Automation probe: `DESKTOP_AUTOMATION_PORT=<port> bun run desktop:automation -- window-info --json`
 - Renderer env probe: `bun run desktop:automation -- evaluate-js --code "JSON.stringify({ electricUrl: process.env.NEXT_PUBLIC_ELECTRIC_URL, href: location.href })" --json`
 
 ### 3. Contracts
 
-- Local Docker ports come from `.env`: Postgres on `LOCAL_PG_PORT` (this workspace: `3014`), Neon HTTP proxy on `LOCAL_NEON_PROXY_PORT` (`3015`), raw Electric on `LOCAL_ELECTRIC_PORT` (`3009`).
-- API runs on `API_PORT` (`3001`) and is required for email/password login, registration, organization/project/workspace writes, and auth/session checks.
-- Desktop renderer runs on `DESKTOP_VITE_PORT` (`3005` in this workspace) and Electron exposes CDP automation on `DESKTOP_AUTOMATION_PORT` (`9322`).
-- `apps/electric-proxy` runs on `WRANGLER_PORT` (`3012`) and is the auth-aware Electric proxy used by V2 collections.
-- Caddy, when available, runs `dev:caddy` and exposes the Worker through `https://localhost:${CADDY_ELECTRIC_PORT}` (`3010`).
-- `NEXT_PUBLIC_ELECTRIC_URL` must point at the reachable auth-aware Electric proxy, not raw Electric. With Caddy use `https://localhost:${CADDY_ELECTRIC_PORT}`. Without Caddy use `http://localhost:${WRANGLER_PORT}`.
+- `.superset/setup.local.sh` writes worktree-local `.env` values and `.superset/config.local.json`. If `.env` is missing the managed local values, `bun run dev:worktree:start` runs setup first.
+- `SUPERSET_PORT_BASE` owns the per-worktree port family. Default derived ports are: API `${base + 1}`, desktop Vite `${base + 5}`, raw Electric `${base + 9}`, Wrangler/Electric proxy `${base + 12}`, relay `${base + 13}`, Postgres `${base + 14}`, Neon HTTP proxy `${base + 15}`, Redis `${base + 16}`, KV REST `${base + 17}`, and Desktop Automation/CDP `${base + 18}`.
+- `LOCAL_DB_PROJECT` is the Docker compose project name. It must be unique per worktree and is used with `docker compose -p "$LOCAL_DB_PROJECT"` so worktrees do not share containers or ports.
+- `SUPERSET_HOME_DIR` must point at a disposable worktree-local profile, normally `<repo>/superset-dev-data`, so E2E does not touch the developer's daily desktop profile.
+- `bun run dev:worktree:start` starts Docker data services (`postgres`, `neon-proxy`, `electric`, `redis`, `kv-rest`), runs `db:migrate`, runs `db:seed-dev`, prepares desktop predev state, and starts `api`, `relay`, `electric-proxy`, and `desktop` in tmux sessions.
+- Worktree tmux state lives under `.tmp/worktree-dev/`, with socket `.tmp/worktree-dev/tmux.sock` and logs `.tmp/worktree-dev/logs/<service>.log`.
+- API runs on `API_PORT` and is required for email/password login, registration, organization/project/workspace writes, and auth/session checks.
+- `apps/electric-proxy` runs on `WRANGLER_PORT` and is the auth-aware Electric proxy used by V2 collections.
+- `NEXT_PUBLIC_ELECTRIC_URL` must point at the reachable auth-aware Electric proxy, not raw Electric. In worktree development, prefer `http://localhost:${WRANGLER_PORT}` so Caddy is not a startup prerequisite.
 - `ELECTRIC_URL` is for server/Worker access to raw Electric shape endpoints; renderer code should not use it directly.
 - `apps/desktop/electron.vite.config.ts` loads root `.env` with `override: true`. Inline shell overrides such as `NEXT_PUBLIC_ELECTRIC_URL=... bun run --cwd apps/desktop dev` will not beat root `.env`; edit `.env` and restart desktop when changing renderer compile-time env.
+- `e2e:workspace-fixture` may only touch local database hosts by default (`localhost`, `127.0.0.1`, `::1`, or `db.localtest.me`). Use `--allow-remote` only for a disposable non-production test database.
+- `dev:worktree:cleanup` stops tmux services, tears down the worktree Docker compose project, removes fixture DB rows for supplied slugs/ids, and removes matching clone/worktree directories under `$HOME/.superset/worktrees`, `$SUPERSET_HOME_DIR/worktrees`, `$SUPERSET_HOME_DIR/repos`, and `$SUPERSET_HOME_DIR/clones`.
 
 ### 4. Validation & Error Matrix
 
-- Docker DB stack is down -> API auth and DB-backed workspace writes fail; start `docker compose up -d`.
-- API is down -> login/register blocks or renderer calls to `NEXT_PUBLIC_API_URL` fail; start `bun run --cwd apps/api dev`.
-- Electric proxy is down or `NEXT_PUBLIC_ELECTRIC_URL` is stale -> V2 collection-backed workspace/sidebar data can appear empty even when cloud rows exist; start `apps/electric-proxy` and restart desktop with a reachable proxy URL.
-- Caddy is missing -> `bun run dev:desktop` can fail in `dev:caddy`; use the manual graph and set `NEXT_PUBLIC_ELECTRIC_URL=http://localhost:${WRANGLER_PORT}` locally.
+- Docker/OrbStack is not ready -> `dev:worktree:start` waits, then fails before migrations; start Docker/OrbStack and rerun the command.
+- Docker DB stack is down -> API auth and DB-backed workspace writes fail; use `bun run dev:worktree:start` or inspect `bun run dev:worktree:status`.
+- Neon proxy cannot execute SQL -> migrations/seeding or fixture helpers are unsafe; fix `LOCAL_NEON_PROXY_PORT`, `DATABASE_URL`, or the Docker compose project before E2E.
+- API is down -> login/register blocks or renderer calls to `NEXT_PUBLIC_API_URL` fail; inspect `.tmp/worktree-dev/logs/api.log`.
+- Relay is down -> workspace runtime/tunnel flows fail; inspect `.tmp/worktree-dev/logs/relay.log`.
+- Electric proxy is down or `NEXT_PUBLIC_ELECTRIC_URL` is stale -> V2 collection-backed workspace/sidebar data can appear empty even when DB rows exist; inspect `.tmp/worktree-dev/logs/electric-proxy.log`, update `.env`, and restart desktop.
+- Desktop tmux session exits before CDP is ready -> `dev:worktree:start` fails; inspect `.tmp/worktree-dev/logs/desktop.log`.
+- Desktop Automation uses the wrong port -> CLI cannot see the worktree app or controls another app; export `DESKTOP_AUTOMATION_PORT` from `.env` or prefix the command.
+- Caddy is missing -> worktree lifecycle should still use direct Wrangler `NEXT_PUBLIC_ELECTRIC_URL=http://localhost:${WRANGLER_PORT}`. Do not make Caddy a required E2E dependency.
 - Renderer points at raw Electric (`LOCAL_ELECTRIC_PORT`/`ELECTRIC_URL`) -> shape requests bypass proxy auth and can be rejected; point renderer at `apps/electric-proxy` or Caddy.
 - `.env` changes are made after desktop starts -> renderer still uses the old compiled env; restart `apps/desktop`.
-- Host-service local DB lacks matching `projects`/`workspaces` rows -> cloud V2 rows may list, but local workspace operations and panes can fail; seed through app flows or ensure host DB rows exist.
+- Fixture helper refuses `DATABASE_URL` -> the DB host is not local; do not pass `--allow-remote` unless the target is a disposable non-production test database.
+- E2E creates clone/worktree directories -> run `bun run dev:worktree:cleanup -- --e2e-slug <slug> --worktree-name <name>` before handing back.
 
 ### 5. Good/Base/Bad Cases
 
-- Good: `docker compose up -d`, `bun run dev:desktop`, then `bun run desktop:automation -- smoke --url-includes "#/" --screenshot .trellis/tasks/<task>/artifacts/desktop.png --report .trellis/tasks/<task>/artifacts/desktop.json`.
-- Base: when Caddy is unavailable, run API, `apps/electric-proxy`, and desktop manually, set `NEXT_PUBLIC_ELECTRIC_URL=http://localhost:${WRANGLER_PORT}`, restart desktop, then run Desktop Automation CLI.
-- Bad: only running `bun run --cwd apps/desktop dev` and treating a visible Electron window as proof that auth, Electric collections, host-service, and workspace panes work.
+- Good: run `bun run dev:worktree:start`, confirm `bun run dev:worktree:status`, seed any E2E fixture with `bun run e2e:workspace-fixture -- seed ...`, run Desktop Automation smoke with the worktree `DESKTOP_AUTOMATION_PORT`, then run `bun run dev:worktree:cleanup -- --e2e-slug <slug> --worktree-name <name>`.
+- Base: when `dev:worktree:start` fails, debug the failing service manually using the same `.env`, `LOCAL_DB_PROJECT`, tmux logs, and readiness probes, then update the lifecycle script/spec if the manual fix reveals a missing contract.
+- Bad: only running `bun run --cwd apps/desktop dev`, relying on an existing Electron window, using the default CDP port from another worktree, or manually killing processes without fixture and clone cleanup.
 
 ### 6. Tests Required
 
-- Probe the service graph before desktop acceptance: API URL, Electric proxy URL, and Desktop Automation `window-info`.
+- Probe the service graph before desktop acceptance with `bun run dev:worktree:status`: Neon proxy SQL query, API session endpoint, relay health endpoint, Electric proxy auth gate, and Desktop Automation `window-info`.
 - For V2 workspace tasks, assert route/hash state and at least one collection-backed UI state with `wait-for`, `inspect-dom`, or `evaluate-js`.
 - Capture a screenshot and renderer console errors for any desktop smoke run.
-- Record which startup graph was used in the task validation notes.
+- For clone/workspace E2E, seed fixtures with a unique slug, assert the fixture row appears in the UI before creating a clone/workspace, and clean by slug/id after the run.
+- After cleanup, verify no listeners remain on the worktree ports, no `LOCAL_DB_PROJECT` containers remain, and no worktree tmux sessions remain when the task requires full teardown proof.
+- Record the startup command, status probes, screenshot/report paths, fixture slug/id, and cleanup result in task validation notes.
 
 ### 7. Wrong vs Correct
 
 Wrong:
 
 ```bash
-NEXT_PUBLIC_ELECTRIC_URL=http://localhost:3012 bun run --cwd apps/desktop dev
+bun run --cwd apps/desktop dev
+bun run desktop:automation -- smoke --url-includes "#/"
 ```
 
-This can still compile the renderer with the `.env` value because desktop Vite loads root `.env` with override enabled.
+This only starts Electron, may use the wrong automation port, and does not prove that DB, API, relay, Electric proxy, or fixture cleanup are correct.
 
 Correct:
 
 ```bash
-docker compose up -d
-bun run --cwd apps/api dev
-bun run --cwd apps/electric-proxy dev
-# If Caddy is absent, set NEXT_PUBLIC_ELECTRIC_URL="http://localhost:3012" in .env.
-bun run --cwd apps/desktop dev
-bun run desktop:automation -- window-info --json
+bun run dev:worktree:start
+bun run dev:worktree:status
+DESKTOP_AUTOMATION_PORT="$(grep '^DESKTOP_AUTOMATION_PORT=' .env | cut -d= -f2)" \
+  bun run desktop:automation -- smoke --url-includes "#/" \
+  --screenshot .trellis/tasks/<task>/artifacts/desktop-smoke.png \
+  --report .trellis/tasks/<task>/artifacts/desktop-smoke.json
+bun run dev:worktree:cleanup -- --e2e-slug <slug> --worktree-name <name>
 ```
+
+Wrong:
+
+```bash
+bun run e2e:workspace-fixture -- cleanup --slug clone-progress-test --allow-remote
+```
+
+Correct:
+
+```bash
+bun run e2e:workspace-fixture -- cleanup --slug clone-progress-test
+```
+
+Only pass `--allow-remote` for an explicitly disposable non-production database.
 
 ## Real Desktop Acceptance Requirements
 

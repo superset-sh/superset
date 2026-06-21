@@ -25,6 +25,7 @@ LOCAL_NEON_PROXY_PORT=""
 LOCAL_ELECTRIC_PORT=""
 LOCAL_REDIS_PORT=""
 LOCAL_KV_REST_PORT=""
+DESKTOP_AUTOMATION_PORT=""
 
 sanitize_name() {
   echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-48
@@ -77,6 +78,7 @@ local_allocate_ports() {
   LOCAL_ELECTRIC_PORT=$((base + 9))
   LOCAL_REDIS_PORT=$((base + 16))
   LOCAL_KV_REST_PORT=$((base + 17))
+  DESKTOP_AUTOMATION_PORT=$((base + 18))
 
   # If this workspace already has a Docker stack, the existing published ports
   # are the source of truth. This prevents .env from drifting away from long-lived
@@ -95,11 +97,12 @@ local_allocate_ports() {
 
   export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT
   export LOCAL_REDIS_PORT LOCAL_KV_REST_PORT
+  export DESKTOP_AUTOMATION_PORT
   # Export so migrate/seed (child bun processes) use these — an inherited env
   # var beats the .env file, so this overrides any stale DATABASE_URL.
   export DATABASE_URL="postgres://postgres:postgres@localhost:$LOCAL_NEON_PROXY_PORT/main"
   export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:$LOCAL_PG_PORT/main"
-  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT redis=$LOCAL_REDIS_PORT kv=$LOCAL_KV_REST_PORT (project $LOCAL_DB_PROJECT)"
+  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT redis=$LOCAL_REDIS_PORT kv=$LOCAL_KV_REST_PORT cdp=$DESKTOP_AUTOMATION_PORT (project $LOCAL_DB_PROJECT)"
   return 0
 }
 
@@ -206,6 +209,10 @@ local_write_env() {
   local CODE_INSPECTOR_PORT=$((BASE + 11))
   local WRANGLER_PORT=$((BASE + 12))
   local RELAY_PORT=$((BASE + 13))
+  local ELECTRIC_PROXY_PUBLIC_URL="http://localhost:$WRANGLER_PORT"
+  if command -v caddy &> /dev/null; then
+    ELECTRIC_PROXY_PUBLIC_URL="https://localhost:$CADDY_ELECTRIC_PORT"
+  fi
 
   {
     echo ""
@@ -213,6 +220,7 @@ local_write_env() {
     write_env_var "SUPERSET_WORKSPACE_NAME" "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
     write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
     write_env_var "SUPERSET_PORT_BASE" "$BASE"
+    write_env_var "LOCAL_DB_PROJECT" "$LOCAL_DB_PROJECT"
     echo ""
     echo "# Per-workspace local DB stack (docker compose project $LOCAL_DB_PROJECT)"
     write_env_var "LOCAL_PG_PORT" "$LOCAL_PG_PORT"
@@ -241,6 +249,7 @@ local_write_env() {
     write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
     write_env_var "ELECTRIC_PORT" "$LOCAL_ELECTRIC_PORT"
+    write_env_var "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
     write_env_var "ELECTRIC_SECRET" "$ELECTRIC_SECRET_VALUE"
     echo ""
     echo "# Cross-app URLs (allocated ports)"
@@ -260,10 +269,10 @@ local_write_env() {
     write_env_var "NEXT_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
     write_env_var "STREAMS_INTERNAL_URL" "http://127.0.0.1:$STREAMS_INTERNAL_PORT"
     echo ""
-    echo "# Electric URLs (per-workspace Electric :$LOCAL_ELECTRIC_PORT, fronted by Caddy)"
+    echo "# Electric URLs (per-workspace Electric :$LOCAL_ELECTRIC_PORT, auth proxy :$WRANGLER_PORT)"
     write_env_var "ELECTRIC_URL" "http://localhost:$LOCAL_ELECTRIC_PORT/v1/shape"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "$ELECTRIC_PROXY_PUBLIC_URL"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "$ELECTRIC_PROXY_PUBLIC_URL"
   } >> .env
 
   cat > Caddyfile <<-CADDYEOF
@@ -300,6 +309,7 @@ DEVVARS
     { "port": $LOCAL_ELECTRIC_PORT, "label": "Electric" },
     { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
     { "port": $WRANGLER_PORT, "label": "Electric Proxy (Wrangler)" },
+    { "port": $DESKTOP_AUTOMATION_PORT, "label": "Desktop Automation (CDP)" },
     { "port": $LOCAL_PG_PORT, "label": "Postgres" },
     { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" },
     { "port": $LOCAL_REDIS_PORT, "label": "Redis" },
@@ -345,10 +355,11 @@ local_write_config_overlay() {
   cat > "$SUPERSET_SCRIPT_DIR/config.local.json" <<'CONFIGLOCAL'
 {
   "setup": ["./.superset/setup.local.sh"],
-  "teardown": ["./.superset/teardown.local.sh"]
+  "teardown": ["./.superset/teardown.local.sh"],
+  "run": ["bun run dev:worktree:start"]
 }
 CONFIGLOCAL
-  success "config.local.json written — worktrees will use setup.local.sh"
+  success "config.local.json written — worktrees will use local setup and dev:worktree:start"
   return 0
 }
 

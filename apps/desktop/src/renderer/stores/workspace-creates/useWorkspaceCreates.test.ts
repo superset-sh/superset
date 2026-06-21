@@ -29,4 +29,11 @@ describe("useWorkspaceCreates sync confirmation fallback", () => {
 			catchBlock.indexOf("return completeFromHostResult(result);"),
 		).toBeLessThan(catchBlock.indexOf("recordFailure(message);"));
 	});
+
+	test("subscribes to host-service workspace creation progress while pending", () => {
+		expect(source).toContain("getEventBus(hostUrl");
+		expect(source).toContain('"workspace:create-progress"');
+		expect(source).toContain("updateWorkspaceTransactionProgress");
+		expect(source).toContain("removeProgressListener()");
+	});
 });
