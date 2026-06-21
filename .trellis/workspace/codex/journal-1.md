@@ -75,3 +75,37 @@ Adopted PR14 review findings by adding worktree path-hash compose project naming
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: PR14 worktree Electric URL follow-up
+
+**Date**: 2026-06-21
+**Task**: PR14 worktree Electric URL follow-up
+**Package**: desktop
+**Branch**: `codex/worktree-dev-startup-cleanup`
+
+### Summary
+
+Adopted review finding by making worktree setup and validation use direct Wrangler Electric URLs instead of optional Caddy URLs, with tests and spec updates.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `956e55490` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
