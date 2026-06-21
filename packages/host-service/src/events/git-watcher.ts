@@ -11,6 +11,54 @@ const execFileAsync = promisify(execFile);
 const RESCAN_INTERVAL_MS = 30_000;
 const DEBOUNCE_MS = 300;
 
+async function resolveGitDir(
+	worktreePath: string,
+	flag: "--git-dir" | "--git-common-dir",
+): Promise<string> {
+	const { stdout } = await execFileAsync("git", ["rev-parse", flag], {
+		cwd: worktreePath,
+	});
+	const dir = stdout.trim();
+	// If relative, resolve against the worktree path.
+	return dir.startsWith("/") ? dir : `${worktreePath}/${dir}`;
+}
+
+/**
+ * The git directories a workspace's watch must cover. For a linked worktree the
+ * per-worktree git-dir (`--git-dir`, e.g. `.git/worktrees/<name>`) and the
+ * shared common dir (`--git-common-dir`, e.g. `.git`) differ. The common dir is
+ * where a push establishes the branch's upstream tracking config and the
+ * remote-tracking refs — exactly the state PR linking keys on — so watching only
+ * the per-worktree git-dir misses the first push of a `--no-track` Superset
+ * branch and the PR never links (issue #5232). Returns absolute paths, deduped.
+ */
+export async function getWorktreeWatchPaths(
+	worktreePath: string,
+): Promise<string[]> {
+	const gitDir = await resolveGitDir(worktreePath, "--git-dir");
+	const commonDir = await resolveGitDir(worktreePath, "--git-common-dir");
+	return gitDir === commonDir ? [gitDir] : [gitDir, commonDir];
+}
+
+/**
+ * Whether a change under the shared common dir is one PR linking / tracking
+ * cares about. The common dir also holds high-churn `objects/` and `logs/` plus
+ * the per-worktree `worktrees/` subtree (already covered by the dedicated
+ * git-dir watch), so we react only to upstream-relevant metadata to avoid
+ * needless resyncs during fetch/gc.
+ */
+function isUpstreamRelevantCommonDirChange(filename: string | null): boolean {
+	// `null` filename (platform-dependent) — be safe and treat as relevant.
+	if (!filename) return true;
+	const normalized = filename.replace(/\\/g, "/");
+	return (
+		normalized === "config" ||
+		normalized === "packed-refs" ||
+		normalized === "FETCH_HEAD" ||
+		normalized.startsWith("refs/")
+	);
+}
+
 export interface GitChangedEvent {
 	workspaceId: string;
 	/**
@@ -35,6 +83,12 @@ interface WatchedWorkspace {
 	worktreePath: string;
 	gitDir: string;
 	watcher: FSWatcher;
+	/**
+	 * Watch on the shared common dir for linked worktrees (absent when the
+	 * git-dir IS the common dir, i.e. the main worktree). Catches push-time
+	 * upstream tracking + remote-ref changes the per-worktree git-dir misses.
+	 */
+	commonWatcher: FSWatcher | null;
 	disposeWorktreeWatch: () => void;
 }
 
@@ -106,6 +160,7 @@ export class GitWatcher {
 		this.pendingBatches.clear();
 		for (const entry of this.watched.values()) {
 			entry.watcher.close();
+			entry.commonWatcher?.close();
 			entry.disposeWorktreeWatch();
 		}
 		this.watched.clear();
@@ -184,6 +239,7 @@ export class GitWatcher {
 		for (const [id, entry] of this.watched) {
 			if (!currentIds.has(id)) {
 				entry.watcher.close();
+				entry.commonWatcher?.close();
 				entry.disposeWorktreeWatch();
 				this.watched.delete(id);
 			}
@@ -203,17 +259,12 @@ export class GitWatcher {
 		if (this.closed) return;
 
 		let gitDir: string;
+		let commonDir: string;
 		try {
-			const { stdout } = await execFileAsync(
-				"git",
-				["rev-parse", "--git-dir"],
-				{ cwd: worktreePath },
-			);
-			gitDir = stdout.trim();
-			// If relative, resolve against worktree path
-			if (!gitDir.startsWith("/")) {
-				gitDir = `${worktreePath}/${gitDir}`;
-			}
+			[gitDir, commonDir] = await Promise.all([
+				resolveGitDir(worktreePath, "--git-dir"),
+				resolveGitDir(worktreePath, "--git-common-dir"),
+			]);
 		} catch {
 			// Not a git repo or path doesn't exist — skip
 			return;
@@ -240,18 +291,46 @@ export class GitWatcher {
 			return;
 		}
 
-		watcher.on("error", () => {
+		// For linked worktrees the per-worktree git-dir doesn't contain the
+		// upstream tracking config or remote-tracking refs — those live in the
+		// shared common dir. A push (notably the first push of a `--no-track`
+		// Superset branch) establishes them there, so watch it too or PR linking
+		// never reacts to that push (issue #5232). Filtered to upstream-relevant
+		// paths to skip `objects/`/`logs/` churn and the per-worktree subtree.
+		let commonWatcher: FSWatcher | null = null;
+		if (commonDir !== gitDir) {
+			try {
+				commonWatcher = watch(
+					commonDir,
+					{ recursive: true },
+					(_eventType, filename) => {
+						if (isUpstreamRelevantCommonDirChange(filename)) {
+							this.markGitDirDirty(workspaceId);
+						}
+					},
+				);
+			} catch {
+				// Best-effort — the per-worktree git-dir watch still functions.
+				commonWatcher = null;
+			}
+		}
+
+		const cleanup = () => {
 			// Watcher died — clean up so rescan can re-add
 			disposeWorktreeWatch();
 			this.watched.delete(workspaceId);
 			watcher.close();
-		});
+			commonWatcher?.close();
+		};
+		watcher.on("error", cleanup);
+		commonWatcher?.on("error", cleanup);
 
 		this.watched.set(workspaceId, {
 			workspaceId,
 			worktreePath,
 			gitDir,
 			watcher,
+			commonWatcher,
 			disposeWorktreeWatch,
 		});
 	}
