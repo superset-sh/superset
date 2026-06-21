@@ -34,6 +34,14 @@
   - `bun run e2e:workspace-fixture -- help`
   - `bun run lint`
   - `git diff --check`
+- Post-merge validation after merging `origin/main` into `codex/worktree-dev-startup-cleanup`:
+  - `bash -n .superset/setup.local.sh && bash -n .superset/worktree-dev.sh && bash -n scripts/superset-online.sh`
+  - `bun test scripts/e2e-workspace-fixture.test.ts`
+  - `bun test apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/PromptGroup.test.ts apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/hooks/useSubmitWorkspace/useSubmitWorkspace.test.ts apps/desktop/src/renderer/stores/workspace-creates/useWorkspaceCreates.test.ts`
+  - `bun test packages/host-service/src/trpc/router/project/utils/resolve-repo.test.ts`
+  - `bun test packages/trpc/src/router/capability/artifact-storage.test.ts packages/trpc/src/router/automation/dispatch-errors.test.ts`
+  - `bun test 'apps/api/src/app/api/capability-artifacts/[versionId]/[sha256]/route.test.ts'`
+  - `bun run lint`
 
 ## Notes
 
