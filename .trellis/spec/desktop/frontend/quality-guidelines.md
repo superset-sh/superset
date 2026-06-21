@@ -20,6 +20,16 @@
 - Keep user-facing error text selectable in desktop renderer UI with `select-text cursor-text` when it is rendered in a body subtree with `user-select: none`.
 - Prefer non-brittle acceptance assertions: route/hash state, accessible labels/roles, persisted files/state, service probes, Desktop Automation CLI `wait-for` checks, and screenshot/report artifacts. Avoid CSS class or deep DOM selectors for desktop gates.
 
+## Clone Progress Contract
+
+- Scope / trigger: desktop clone UX changes must cover both entry points, not only workspace creation. `New Workspace` can use workspace creation progress, while `Add repository -> Clone a repository` uses `project.create` through `NewProjectModal`.
+- Signature: the project clone path passes `progressRequestId` into `client.project.create.mutate(...)` and listens for `project:create-progress` events on the host-service event bus keyed by the same request id.
+- Contract: visible progress must appear in the modal while it is open, and a persistent toast must continue updating after the user hides the modal. Hiding the modal must not cancel the clone.
+- Validation / errors: clone failures should replace the progress toast with a readable error and should not leak raw SQL error envelopes into the renderer UI.
+- Good: E2E the actual `Add repository -> Clone from URL` modal with a large enough repo to observe `Receiving objects` progress, then click `Hide` and verify progress continues in the toast.
+- Bad: only testing `New Workspace` creation progress and assuming the repository modal uses the same path.
+- Tests required: add or update a source/unit test that asserts `NewProjectModal` passes `progressRequestId`, subscribes to `project:create-progress`, renders progress text/percent, and exposes `Hide` while work continues.
+
 ## Examples
 
 - `apps/desktop/src/main/index.ts`

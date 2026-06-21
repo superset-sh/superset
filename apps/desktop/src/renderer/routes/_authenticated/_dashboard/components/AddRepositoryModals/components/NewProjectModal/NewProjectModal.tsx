@@ -10,9 +10,14 @@ import {
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
+import {
+	getEventBus,
+	type ProjectCreateProgressPayload,
+} from "@superset/workspace-client";
 import { useEffect, useState } from "react";
 import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useFinalizeProjectSetup } from "renderer/react-query/projects";
@@ -35,6 +40,16 @@ function deriveProjectNameFromUrl(url: string): string {
 	return segments[segments.length - 1] ?? "";
 }
 
+function createProgressRequestId(): string {
+	return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
+
+function formatProgressPercent(progress: ProjectCreateProgressPayload | null) {
+	return progress?.percent !== null && progress?.percent !== undefined
+		? `${Math.round(progress.percent)}%`
+		: null;
+}
+
 export function NewProjectModal({
 	open,
 	onOpenChange,
@@ -52,6 +67,9 @@ export function NewProjectModal({
 	const [name, setName] = useState("");
 	const [nameTouched, setNameTouched] = useState(false);
 	const [working, setWorking] = useState(false);
+	const [progress, setProgress] = useState<ProjectCreateProgressPayload | null>(
+		null,
+	);
 
 	useEffect(() => {
 		if (parentDir || !homeDir) return;
@@ -68,10 +86,14 @@ export function NewProjectModal({
 		setName("");
 		setNameTouched(false);
 		setWorking(false);
+		setProgress(null);
 	};
 
 	const handleOpenChange = (next: boolean) => {
-		if (!next && working) return;
+		if (!next && working) {
+			onOpenChange(false);
+			return;
+		}
 		if (!next) reset();
 		onOpenChange(next);
 	};
@@ -102,25 +124,65 @@ export function NewProjectModal({
 			return;
 		}
 
+		if (!activeHostUrl) {
+			showHostServiceUnavailableToast(hostService, {
+				action: "clone the repository",
+			});
+			return;
+		}
+
+		const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
+		if (!trimmedName) {
+			toast.error("Please enter a project name");
+			return;
+		}
+
+		const progressRequestId = createProgressRequestId();
+		const toastId = `project-clone-${progressRequestId}`;
+		const initialProgress: ProjectCreateProgressPayload = {
+			stage: "queued",
+			message: "Preparing clone",
+			percent: null,
+			occurredAt: Date.now(),
+		};
 		setWorking(true);
-		try {
-			if (!activeHostUrl) {
-				showHostServiceUnavailableToast(hostService, {
-					action: "clone the repository",
+		setProgress(initialProgress);
+		toast.loading("Cloning repository", {
+			id: toastId,
+			description: initialProgress.message,
+		});
+
+		const bus = getEventBus(activeHostUrl, () =>
+			getHostServiceWsToken(activeHostUrl),
+		);
+		const removeProgressListener = bus.on(
+			"project:create-progress",
+			progressRequestId,
+			(_requestId, nextProgress) => {
+				setProgress(nextProgress);
+				toast.loading("Cloning repository", {
+					id: toastId,
+					description:
+						formatProgressPercent(nextProgress) === null
+							? nextProgress.message
+							: `${nextProgress.message} (${formatProgressPercent(nextProgress)})`,
 				});
-				return;
-			}
-			const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
-			if (!trimmedName) {
-				toast.error("Please enter a project name");
-				return;
-			}
+			},
+		);
+		const releaseProgressBus = bus.retain();
+
+		try {
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			const result = await client.project.create.mutate({
 				name: trimmedName,
+				progressRequestId,
 				mode: { kind: "clone", parentDir: trimmedParent, url: trimmedUrl },
 			});
 			finalizeSetup(activeHostUrl, result);
+			toast.success("Project created", {
+				id: toastId,
+				description: trimmedName,
+			});
 			onSuccess?.({ projectId: result.projectId });
 			reset();
 			onOpenChange(false);
@@ -134,9 +196,20 @@ export function NewProjectModal({
 			const message = isLeakedSql
 				? "Could not create project. Please try a different name or check the logs."
 				: raw;
-			toast.error("Could not create project", { description: message });
+			setProgress({
+				stage: "failed",
+				message,
+				percent: null,
+				occurredAt: Date.now(),
+			});
+			toast.error("Could not create project", {
+				id: toastId,
+				description: message,
+			});
 			onError?.(message);
 		} finally {
+			removeProgressListener();
+			releaseProgressBus();
 			setWorking(false);
 		}
 	};
@@ -212,6 +285,38 @@ export function NewProjectModal({
 							</Button>
 						</div>
 					</div>
+
+					{working && progress ? (
+						<div
+							className="rounded-md border border-border/70 bg-muted/30 px-3 py-2"
+							aria-live="polite"
+						>
+							<div className="flex items-center justify-between gap-3 text-xs">
+								<span className="min-w-0 truncate text-muted-foreground">
+									{progress.message}
+								</span>
+								{formatProgressPercent(progress) ? (
+									<span className="shrink-0 tabular-nums text-foreground">
+										{formatProgressPercent(progress)}
+									</span>
+								) : null}
+							</div>
+							<div className="mt-2 h-1.5 overflow-hidden rounded-full bg-background">
+								<div
+									className={
+										progress.percent === null
+											? "h-full w-1/3 animate-pulse rounded-full bg-primary"
+											: "h-full rounded-full bg-primary transition-[width]"
+									}
+									style={
+										progress.percent === null
+											? undefined
+											: { width: `${progress.percent}%` }
+									}
+								/>
+							</div>
+						</div>
+					) : null}
 				</div>
 
 				<DialogFooter>
@@ -219,15 +324,16 @@ export function NewProjectModal({
 						type="button"
 						variant="ghost"
 						onClick={() => handleOpenChange(false)}
-						disabled={working}
 					>
-						Cancel
+						{working ? "Hide" : "Cancel"}
 					</Button>
 					<Button onClick={() => void createFromClone()} disabled={working}>
 						{working ? (
 							<>
 								<LuLoaderCircle className="size-4 animate-spin" />
-								Cloning…
+								{formatProgressPercent(progress)
+									? `Cloning ${formatProgressPercent(progress)}`
+									: "Cloning…"}
 							</>
 						) : (
 							"Clone"

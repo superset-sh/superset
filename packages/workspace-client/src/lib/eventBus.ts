@@ -1,6 +1,7 @@
 import type {
 	AgentLifecycleEventType,
 	ClientMessage,
+	ProjectCreateProgressStage,
 	ServerMessage,
 	WorkspaceCreateProgressStage,
 } from "@superset/host-service/events";
@@ -16,7 +17,8 @@ type EventType =
 	| "agent:lifecycle"
 	| "terminal:lifecycle"
 	| "port:changed"
-	| "workspace:create-progress";
+	| "workspace:create-progress"
+	| "project:create-progress";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -63,6 +65,13 @@ export interface WorkspaceCreateProgressPayload {
 	occurredAt: number;
 }
 
+export interface ProjectCreateProgressPayload {
+	stage: ProjectCreateProgressStage;
+	message: string;
+	percent: number | null;
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -78,7 +87,12 @@ type EventListener<T extends EventType> = T extends "fs:events"
 								workspaceId: string,
 								payload: WorkspaceCreateProgressPayload,
 							) => void
-						: never;
+						: T extends "project:create-progress"
+							? (
+									requestId: string,
+									payload: ProjectCreateProgressPayload,
+								) => void
+							: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -145,7 +159,9 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			message.type === "port:changed" ||
 			message.type === "workspace:create-progress"
 				? message.workspaceId
-				: null;
+				: message.type === "project:create-progress"
+					? message.requestId
+					: null;
 
 		if (
 			workspaceId &&
@@ -196,6 +212,16 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				message.workspaceId,
 				{
 					projectId: message.projectId,
+					stage: message.stage,
+					message: message.message,
+					percent: message.percent,
+					occurredAt: message.occurredAt,
+				},
+			);
+		} else if (message.type === "project:create-progress") {
+			(entry.callback as EventListener<"project:create-progress">)(
+				message.requestId,
+				{
 					stage: message.stage,
 					message: message.message,
 					percent: message.percent,

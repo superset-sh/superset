@@ -69,4 +69,35 @@ describe("EventBus port events", () => {
 		portManager.emit("port:add", port);
 		expect(sentMessages).toHaveLength(2);
 	});
+
+	it("broadcasts project creation progress by request id", () => {
+		const eventBus = createEventBus();
+		const sentMessages: string[] = [];
+		const socket = {
+			readyState: 1,
+			send(data: string) {
+				sentMessages.push(data);
+			},
+			close() {},
+		};
+
+		eventBus.handleOpen(socket);
+		eventBus.broadcastProjectCreateProgress({
+			requestId: "project-create-1",
+			stage: "cloning_repository",
+			message: "Receiving objects: 42%",
+			percent: 42,
+			occurredAt: 1_700_000_000_000,
+		});
+
+		expect(sentMessages).toHaveLength(1);
+		expect(JSON.parse(sentMessages[0] ?? "{}")).toMatchObject({
+			type: "project:create-progress",
+			requestId: "project-create-1",
+			stage: "cloning_repository",
+			message: "Receiving objects: 42%",
+			percent: 42,
+			occurredAt: 1_700_000_000_000,
+		});
+	});
 });

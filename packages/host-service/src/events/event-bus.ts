@@ -197,6 +197,20 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out project creation progress. Repository/project creation can clone a
+	 * large remote before any workspace row exists, so callers subscribe by a
+	 * renderer-generated request id instead of workspace id.
+	 */
+	broadcastProjectCreateProgress(
+		message: Omit<
+			Extract<ServerMessage, { type: "project:create-progress" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "project:create-progress", ...message });
+	}
+
+	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while
 	 * keeping a slow refetch as a reconnect fallback.

@@ -90,4 +90,68 @@ describe("eventBus", () => {
 		removeListener();
 		release();
 	});
+
+	test("dispatches project create progress events by request id", async () => {
+		globalThis.fetch = (async (_input: Parameters<typeof fetch>[0]) => {
+			return new Response(null, { status: 200 });
+		}) as unknown as typeof fetch;
+		const received: Array<{
+			requestId: string;
+			message: string;
+			percent: number | null;
+		}> = [];
+
+		const bus = getEventBus("http://host.test", () => "fresh-token");
+		const removeListener = bus.on(
+			"project:create-progress",
+			"project-create-1",
+			(requestId, payload) => {
+				received.push({
+					requestId,
+					message: payload.message,
+					percent: payload.percent,
+				});
+			},
+		);
+		const release = bus.retain();
+
+		await flushPromises();
+		const socket = MockWebSocket.instances[0];
+		expect(socket).toBeDefined();
+		if (!socket) throw new Error("expected mock socket");
+		socket.readyState = MockWebSocket.OPEN;
+		socket.onopen?.();
+
+		socket.onmessage?.({
+			data: JSON.stringify({
+				type: "project:create-progress",
+				requestId: "project-create-1",
+				stage: "cloning_repository",
+				message: "Receiving objects: 42%",
+				percent: 42,
+				occurredAt: 1_700_000_000_000,
+			}),
+		});
+		socket.onmessage?.({
+			data: JSON.stringify({
+				type: "project:create-progress",
+				requestId: "other-project-create",
+				stage: "cloning_repository",
+				message: "Receiving objects: 99%",
+				percent: 99,
+				occurredAt: 1_700_000_000_000,
+			}),
+		});
+
+		expect(received).toEqual([
+			{
+				requestId: "project-create-1",
+				message: "Receiving objects: 42%",
+				percent: 42,
+			},
+		]);
+
+		removeListener();
+		release();
+	});
 });

@@ -410,6 +410,7 @@ export const projectRouter = router({
 		.input(
 			z.object({
 				name: z.string().min(1),
+				progressRequestId: z.string().min(1).optional(),
 				mode: z.discriminatedUnion("kind", [
 					z.object({
 						kind: z.literal("empty"),
@@ -459,6 +460,7 @@ export const projectRouter = router({
 						name: input.name,
 						parentDir: input.mode.parentDir,
 						url: input.mode.url,
+						progressRequestId: input.progressRequestId,
 					});
 				case "importLocal":
 					return createFromImportLocal(ctx, {

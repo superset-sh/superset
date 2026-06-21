@@ -4,6 +4,7 @@ import type { SelectV2Project, SelectV2Workspace } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { projects } from "../../../db/schema";
+import type { ProjectCreateProgressStage } from "../../../events";
 import type { HostServiceContext } from "../../../types";
 import { ensureMainWorkspaceStrict } from "./utils/ensure-main-workspace";
 import { persistLocalProject } from "./utils/persist-project";
@@ -52,6 +53,23 @@ interface CreateResult {
 	mainWorkspaceId: string;
 	project: SelectV2Project;
 	mainWorkspace: SelectV2Workspace;
+}
+
+function emitProjectCreateProgress(
+	ctx: HostServiceContext,
+	requestId: string | undefined,
+	stage: ProjectCreateProgressStage,
+	message: string,
+	percent: number | null = null,
+): void {
+	if (!requestId) return;
+	ctx.eventBus.broadcastProjectCreateProgress({
+		requestId,
+		stage,
+		message,
+		percent,
+		occurredAt: Date.now(),
+	});
 }
 
 // Cloud v2Project.create catches v2_projects_org_slug_unique and re-throws
@@ -194,18 +212,71 @@ async function persistFromResolved(
 
 export async function createFromClone(
 	ctx: HostServiceContext,
-	args: { name: string; parentDir: string; url: string },
+	args: {
+		name: string;
+		parentDir: string;
+		url: string;
+		progressRequestId?: string;
+	},
 ): Promise<CreateResult> {
-	const resolved = await cloneRepoInto(args.url, args.parentDir);
-	return persistFromResolved(ctx, {
-		name: args.name,
-		resolved,
-		cleanupRepoPathOnFailure: true,
-		// Only forward to cloud if the cloned repo actually has a parseable
-		// GitHub remote — non-GitHub URLs and local paths become local-only
-		// projects with no cloud repoCloneUrl.
-		repoCloneUrlForCloud: resolved.parsed?.url,
-	});
+	try {
+		emitProjectCreateProgress(
+			ctx,
+			args.progressRequestId,
+			"cloning_repository",
+			"Cloning repository",
+			0,
+		);
+		const resolved = await cloneRepoInto(args.url, args.parentDir, {
+			onProgress: (progress) => {
+				emitProjectCreateProgress(
+					ctx,
+					args.progressRequestId,
+					"cloning_repository",
+					progress.message,
+					progress.percent,
+				);
+			},
+		});
+		emitProjectCreateProgress(
+			ctx,
+			args.progressRequestId,
+			"repository_ready",
+			"Repository cloned",
+			100,
+		);
+		emitProjectCreateProgress(
+			ctx,
+			args.progressRequestId,
+			"registering_project",
+			"Registering project",
+		);
+		const result = await persistFromResolved(ctx, {
+			name: args.name,
+			resolved,
+			cleanupRepoPathOnFailure: true,
+			// Only forward to cloud if the cloned repo actually has a parseable
+			// GitHub remote — non-GitHub URLs and local paths become local-only
+			// projects with no cloud repoCloneUrl.
+			repoCloneUrlForCloud: resolved.parsed?.url,
+		});
+		emitProjectCreateProgress(
+			ctx,
+			args.progressRequestId,
+			"ready",
+			"Project ready",
+			100,
+		);
+		return result;
+	} catch (err) {
+		emitProjectCreateProgress(
+			ctx,
+			args.progressRequestId,
+			"failed",
+			err instanceof Error ? err.message : String(err),
+		);
+		throw err;
+	}
 }
 
 /**

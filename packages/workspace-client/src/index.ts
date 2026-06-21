@@ -7,6 +7,7 @@ export {
 	type GitChangedPayload,
 	getEventBus,
 	type PortChangedPayload,
+	type ProjectCreateProgressPayload,
 	type TerminalLifecyclePayload,
 	type WorkspaceCreateProgressPayload,
 } from "./lib/eventBus";

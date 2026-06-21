@@ -13,6 +13,8 @@ export type {
 	FsWatchCommand,
 	GitChangedMessage,
 	PortChangedMessage,
+	ProjectCreateProgressMessage,
+	ProjectCreateProgressStage,
 	ServerMessage,
 	TerminalLifecycleMessage,
 	WorkspaceCreateProgressMessage,
