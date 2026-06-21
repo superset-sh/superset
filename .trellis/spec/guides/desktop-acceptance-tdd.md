@@ -82,7 +82,7 @@ Use this contract before any desktop-facing Trellis acceptance run in a Superset
 - Worktree tmux state lives under `.tmp/worktree-dev/`, with socket `.tmp/worktree-dev/tmux.sock` and logs `.tmp/worktree-dev/logs/<service>.log`.
 - API runs on `API_PORT` and is required for email/password login, registration, organization/project/workspace writes, and auth/session checks.
 - `apps/electric-proxy` runs on `WRANGLER_PORT` and is the auth-aware Electric proxy used by V2 collections.
-- `NEXT_PUBLIC_ELECTRIC_URL` must point at the reachable auth-aware Electric proxy, not raw Electric. In worktree development, prefer `http://localhost:${WRANGLER_PORT}` so Caddy is not a startup prerequisite.
+- `NEXT_PUBLIC_ELECTRIC_URL` and `NEXT_PUBLIC_ELECTRIC_PROXY_URL` must point at the reachable auth-aware Electric proxy, not raw Electric. In worktree development they must use direct Wrangler, `http://localhost:${WRANGLER_PORT}`, because `dev:worktree:start` does not start Caddy.
 - `ELECTRIC_URL` is for server/Worker access to raw Electric shape endpoints; renderer code should not use it directly.
 - `apps/desktop/electron.vite.config.ts` loads root `.env` with `override: true`. Inline shell overrides such as `NEXT_PUBLIC_ELECTRIC_URL=... bun run --cwd apps/desktop dev` will not beat root `.env`; edit `.env` and restart desktop when changing renderer compile-time env.
 - `e2e:workspace-fixture` may only touch local database hosts by default (`localhost`, `127.0.0.1`, `::1`, or `db.localtest.me`). Use `--allow-remote` only for a disposable non-production test database.
@@ -100,7 +100,7 @@ Use this contract before any desktop-facing Trellis acceptance run in a Superset
 - Electric proxy is down or `NEXT_PUBLIC_ELECTRIC_URL` is stale -> V2 collection-backed workspace/sidebar data can appear empty even when DB rows exist; inspect `.tmp/worktree-dev/logs/electric-proxy.log`, update `.env`, and restart desktop.
 - Desktop tmux session exits before CDP is ready -> `dev:worktree:start` fails; inspect `.tmp/worktree-dev/logs/desktop.log`.
 - Desktop Automation uses the wrong port -> CLI cannot see the worktree app or controls another app; export `DESKTOP_AUTOMATION_PORT` from `.env` or prefix the command.
-- Caddy is missing -> worktree lifecycle should still use direct Wrangler `NEXT_PUBLIC_ELECTRIC_URL=http://localhost:${WRANGLER_PORT}`. Do not make Caddy a required E2E dependency.
+- Caddy URL is written into `NEXT_PUBLIC_ELECTRIC_URL`/`NEXT_PUBLIC_ELECTRIC_PROXY_URL` -> worktree lifecycle can report Wrangler ready while the renderer points at an unstarted HTTPS proxy; rerun `.superset/setup.local.sh` so the frontend URL is direct Wrangler.
 - Renderer points at raw Electric (`LOCAL_ELECTRIC_PORT`/`ELECTRIC_URL`) -> shape requests bypass proxy auth and can be rejected; point renderer at `apps/electric-proxy` or Caddy.
 - `.env` changes are made after desktop starts -> renderer still uses the old compiled env; restart `apps/desktop`.
 - Fixture helper refuses `DATABASE_URL` -> the DB host is not local; do not pass `--allow-remote` unless the target is a disposable non-production test database.

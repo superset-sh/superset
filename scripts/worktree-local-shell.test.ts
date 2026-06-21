@@ -95,6 +95,11 @@ ENV
 				exit 1
 			fi
 			cp "$env_path.local" "$env_path"
+			sed -i.bak 's|^NEXT_PUBLIC_ELECTRIC_URL=.*|NEXT_PUBLIC_ELECTRIC_URL="https://localhost:3010"|' "$env_path"
+			if ! worktree_env_requires_local_setup "$root" "$env_path"; then
+				exit 1
+			fi
+			cp "$env_path.local" "$env_path"
 			sed -i.bak 's/^SUPERSET_WORKTREE_ID=.*/SUPERSET_WORKTREE_ID="stale"/' "$env_path"
 			if ! worktree_env_requires_local_setup "$root" "$env_path"; then
 				exit 1
@@ -102,7 +107,7 @@ ENV
 		`);
 
 		expect(result.status).toBe(0);
-	});
+	}, 10_000);
 
 	test("rejects non-local service URLs before destructive worktree actions", () => {
 		const root = join(workRoot, "remote-env", "superset");
@@ -146,5 +151,49 @@ ENV
 
 		expect(result.status).toBe(0);
 		expect(result.stderr + result.stdout).toContain("DATABASE_URL");
+	});
+
+	test("rejects caddy Electric URLs because worktree dev only starts Wrangler", () => {
+		const root = join(workRoot, "caddy-env", "superset");
+		mkdirSync(root, { recursive: true });
+
+		const result = runBash(`
+			set -euo pipefail
+			source .superset/lib/common.sh
+			source .superset/lib/worktree-local.sh
+			root=${shellString(root)}
+			export SUPERSET_WORKTREE_ID="$(worktree_path_hash "$root")"
+			export SUPERSET_WORKTREE_ROOT="$(worktree_physical_root "$root")"
+			export SUPERSET_HOME_DIR="$(worktree_expected_home_dir "$root")"
+			export SUPERSET_PORT_BASE=3000
+			export LOCAL_DB_PROJECT="$(worktree_default_db_project "$root")"
+			export LOCAL_PG_PORT=3014
+			export LOCAL_NEON_PROXY_PORT=3015
+			export LOCAL_ELECTRIC_PORT=3009
+			export LOCAL_REDIS_PORT=3016
+			export LOCAL_KV_REST_PORT=3017
+			export API_PORT=3001
+			export DESKTOP_VITE_PORT=3005
+			export WRANGLER_PORT=3012
+			export CADDY_ELECTRIC_PORT=3010
+			export RELAY_PORT=3013
+			export DATABASE_URL="postgres://postgres:postgres@localhost:3015/main"
+			export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:3014/main"
+			export KV_REST_API_URL="http://localhost:3017"
+			export KV_URL="redis://localhost:3016"
+			export ELECTRIC_URL="http://localhost:3009/v1/shape"
+			export NEXT_PUBLIC_ELECTRIC_URL="https://localhost:3010"
+			export NEXT_PUBLIC_ELECTRIC_PROXY_URL="https://localhost:3010"
+			export NEXT_PUBLIC_API_URL="http://localhost:3001"
+			export NEXT_PUBLIC_DESKTOP_URL="http://localhost:3005"
+			export RELAY_URL="http://localhost:3013"
+			export NEXT_PUBLIC_RELAY_URL="http://localhost:3013"
+			if worktree_assert_current_local_env "$root"; then
+				exit 1
+			fi
+		`);
+
+		expect(result.status).toBe(0);
+		expect(result.stderr + result.stdout).toContain("Wrangler Electric proxy");
 	});
 });

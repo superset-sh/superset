@@ -52,7 +52,7 @@ local_check_dependencies() {
   command -v bun &> /dev/null || missing+=("bun (https://bun.sh)")
   command -v docker &> /dev/null || missing+=("docker (https://docker.com)")
   command -v jq &> /dev/null || missing+=("jq (brew install jq)")
-  command -v caddy &> /dev/null || warn "caddy not found — Electric HTTPS proxy won't work (brew install caddy && caddy trust)"
+  command -v caddy &> /dev/null || warn "caddy not found — optional manual Electric HTTPS proxy won't work (brew install caddy && caddy trust)"
   if [ ${#missing[@]} -gt 0 ]; then
     error "Missing dependencies:"
     for dep in "${missing[@]}"; do echo "  - $dep"; done
@@ -225,9 +225,6 @@ local_write_env() {
   local WRANGLER_PORT=$((BASE + 12))
   local RELAY_PORT=$((BASE + 13))
   local ELECTRIC_PROXY_PUBLIC_URL="http://localhost:$WRANGLER_PORT"
-  if command -v caddy &> /dev/null; then
-    ELECTRIC_PROXY_PUBLIC_URL="https://localhost:$CADDY_ELECTRIC_PORT"
-  fi
 
   {
     echo ""

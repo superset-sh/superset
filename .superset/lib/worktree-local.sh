@@ -114,7 +114,7 @@ worktree_env_requires_local_setup() {
     [ -n "$(worktree_env_value "$env_path" "$required_key")" ] || return 0
   done
 
-  local local_pg local_neon local_electric local_redis local_kv api_port desktop_port wrangler_port relay_port caddy_port
+  local local_pg local_neon local_electric local_redis local_kv api_port desktop_port wrangler_port relay_port
   local_pg="$(worktree_env_value "$env_path" LOCAL_PG_PORT)"
   local_neon="$(worktree_env_value "$env_path" LOCAL_NEON_PROXY_PORT)"
   local_electric="$(worktree_env_value "$env_path" LOCAL_ELECTRIC_PORT)"
@@ -124,12 +124,10 @@ worktree_env_requires_local_setup() {
   desktop_port="$(worktree_env_value "$env_path" DESKTOP_VITE_PORT)"
   wrangler_port="$(worktree_env_value "$env_path" WRANGLER_PORT)"
   relay_port="$(worktree_env_value "$env_path" RELAY_PORT)"
-  caddy_port="$(worktree_env_value "$env_path" CADDY_ELECTRIC_PORT)"
   [ -n "$api_port" ] || return 0
   [ -n "$desktop_port" ] || return 0
   [ -n "$wrangler_port" ] || return 0
   [ -n "$relay_port" ] || return 0
-  [ -n "$caddy_port" ] || return 0
 
   worktree_url_uses_port "$(worktree_env_value "$env_path" DATABASE_URL)" "$local_neon" || return 0
   worktree_url_uses_port "$(worktree_env_value "$env_path" DATABASE_URL_UNPOOLED)" "$local_pg" || return 0
@@ -140,14 +138,8 @@ worktree_env_requires_local_setup() {
   worktree_url_uses_port "$(worktree_env_value "$env_path" NEXT_PUBLIC_DESKTOP_URL)" "$desktop_port" || return 0
   worktree_url_uses_port "$(worktree_env_value "$env_path" RELAY_URL)" "$relay_port" || return 0
   worktree_url_uses_port "$(worktree_env_value "$env_path" NEXT_PUBLIC_RELAY_URL)" "$relay_port" || return 0
-  if ! worktree_url_uses_port "$(worktree_env_value "$env_path" NEXT_PUBLIC_ELECTRIC_URL)" "$wrangler_port" \
-      && ! worktree_url_uses_port "$(worktree_env_value "$env_path" NEXT_PUBLIC_ELECTRIC_URL)" "$caddy_port"; then
-    return 0
-  fi
-  if ! worktree_url_uses_port "$(worktree_env_value "$env_path" NEXT_PUBLIC_ELECTRIC_PROXY_URL)" "$wrangler_port" \
-      && ! worktree_url_uses_port "$(worktree_env_value "$env_path" NEXT_PUBLIC_ELECTRIC_PROXY_URL)" "$caddy_port"; then
-    return 0
-  fi
+  worktree_url_uses_port "$(worktree_env_value "$env_path" NEXT_PUBLIC_ELECTRIC_URL)" "$wrangler_port" || return 0
+  worktree_url_uses_port "$(worktree_env_value "$env_path" NEXT_PUBLIC_ELECTRIC_PROXY_URL)" "$wrangler_port" || return 0
 
   return 1
 }
@@ -221,14 +213,12 @@ worktree_assert_current_local_env() {
   worktree_assert_url_port RELAY_URL "${RELAY_URL:-}" "${RELAY_PORT:-}" || return 1
   worktree_assert_url_port NEXT_PUBLIC_RELAY_URL "${NEXT_PUBLIC_RELAY_URL:-}" "${RELAY_PORT:-}" || return 1
 
-  if ! worktree_url_uses_port "${NEXT_PUBLIC_ELECTRIC_URL:-}" "${WRANGLER_PORT:-}" \
-      && ! worktree_url_uses_port "${NEXT_PUBLIC_ELECTRIC_URL:-}" "${CADDY_ELECTRIC_PORT:-}"; then
-    error "NEXT_PUBLIC_ELECTRIC_URL must point at the local Electric proxy ports $WRANGLER_PORT or $CADDY_ELECTRIC_PORT"
+  if ! worktree_url_uses_port "${NEXT_PUBLIC_ELECTRIC_URL:-}" "${WRANGLER_PORT:-}"; then
+    error "NEXT_PUBLIC_ELECTRIC_URL must point at the local Wrangler Electric proxy port $WRANGLER_PORT"
     return 1
   fi
-  if ! worktree_url_uses_port "${NEXT_PUBLIC_ELECTRIC_PROXY_URL:-}" "${WRANGLER_PORT:-}" \
-      && ! worktree_url_uses_port "${NEXT_PUBLIC_ELECTRIC_PROXY_URL:-}" "${CADDY_ELECTRIC_PORT:-}"; then
-    error "NEXT_PUBLIC_ELECTRIC_PROXY_URL must point at the local Electric proxy ports $WRANGLER_PORT or $CADDY_ELECTRIC_PORT"
+  if ! worktree_url_uses_port "${NEXT_PUBLIC_ELECTRIC_PROXY_URL:-}" "${WRANGLER_PORT:-}"; then
+    error "NEXT_PUBLIC_ELECTRIC_PROXY_URL must point at the local Wrangler Electric proxy port $WRANGLER_PORT"
     return 1
   fi
 }
