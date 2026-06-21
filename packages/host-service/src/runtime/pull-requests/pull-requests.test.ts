@@ -145,7 +145,10 @@ function createFakeDb(state: FakeState) {
 function createManager(
 	state: FakeState,
 	overrides: Partial<
-		Pick<PullRequestRuntimeManagerOptions, "execGh" | "github" | "gitWatcher">
+		Pick<
+			PullRequestRuntimeManagerOptions,
+			"execGh" | "git" | "github" | "gitWatcher"
+		>
 	> = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -155,9 +158,11 @@ function createManager(
 			(async () => {
 				throw new Error("gh should not be used for direct PR linking");
 			}),
-		git: async () => {
-			throw new Error("git should not be used when project metadata is set");
-		},
+		git:
+			overrides.git ??
+			(async () => {
+				throw new Error("git should not be used when project metadata is set");
+			}),
 		github:
 			overrides.github ??
 			(async () => {
@@ -170,7 +175,7 @@ function createManager(
 }
 
 describe("PullRequestRuntimeManager workspace cleanup", () => {
-	test("drops pending reruns and removes git watchers for a deleted workspace", () => {
+	test("drops pending sync state and removes git watchers for a deleted workspace", () => {
 		const state = makeState("feature");
 		const removeWorkspace = mock(() => {});
 		const manager = createManager(state, {
@@ -184,6 +189,7 @@ describe("PullRequestRuntimeManager workspace cleanup", () => {
 				string,
 				{ running: Promise<void>; rerunPending: boolean }
 			>;
+			cancelledWorkspaceSyncs: Set<string>;
 		};
 
 		internals.workspaceSyncState.set(WORKSPACE_ID, {
@@ -193,10 +199,27 @@ describe("PullRequestRuntimeManager workspace cleanup", () => {
 
 		manager.removeWorkspace(WORKSPACE_ID);
 
-		expect(internals.workspaceSyncState.get(WORKSPACE_ID)?.rerunPending).toBe(
-			false,
-		);
+		expect(internals.workspaceSyncState.has(WORKSPACE_ID)).toBe(false);
+		expect(internals.cancelledWorkspaceSyncs.has(WORKSPACE_ID)).toBe(true);
 		expect(removeWorkspace).toHaveBeenCalledWith(WORKSPACE_ID);
+	});
+
+	test("cancelled in-flight workspace syncs no-op before opening git", async () => {
+		const state = makeState("feature");
+		const git = mock(async () => {
+			throw new Error("git should not be opened for a cancelled workspace");
+		});
+		const manager = createManager(state, { git: git as never });
+		const internals = manager as unknown as {
+			cancelledWorkspaceSyncs: Set<string>;
+			syncOneWorkspace: (workspaceId: string) => Promise<void>;
+		};
+
+		internals.cancelledWorkspaceSyncs.add(WORKSPACE_ID);
+
+		await internals.syncOneWorkspace(WORKSPACE_ID);
+
+		expect(git).not.toHaveBeenCalled();
 	});
 });
 

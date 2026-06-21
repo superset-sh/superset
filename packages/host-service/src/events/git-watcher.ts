@@ -257,10 +257,8 @@ export class GitWatcher {
 		}
 
 		watcher.on("error", () => {
-			// Watcher died — clean up so rescan can re-add
-			disposeWorktreeWatch();
-			this.watched.delete(workspaceId);
-			watcher.close();
+			// Watcher died — clean up so rescan can re-add.
+			this.removeWorkspace(workspaceId);
 		});
 
 		this.watched.set(workspaceId, {

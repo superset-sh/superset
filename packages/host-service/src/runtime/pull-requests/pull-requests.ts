@@ -273,6 +273,7 @@ export class PullRequestRuntimeManager {
 		string,
 		{ running: Promise<void>; rerunPending: boolean }
 	>();
+	private readonly cancelledWorkspaceSyncs = new Set<string>();
 	private readonly pullRequestHeadCache = new Map<
 		string,
 		{ promise: Promise<GitHubPullRequestNode | null>; fetchedAt: number }
@@ -329,8 +330,12 @@ export class PullRequestRuntimeManager {
 
 	removeWorkspace(workspaceId: string): void {
 		const syncState = this.workspaceSyncState.get(workspaceId);
-		if (syncState) syncState.rerunPending = false;
 		this.gitWatcher.removeWorkspace(workspaceId);
+		if (syncState) {
+			syncState.rerunPending = false;
+			this.cancelledWorkspaceSyncs.add(workspaceId);
+		}
+		this.workspaceSyncState.delete(workspaceId);
 	}
 
 	async getPullRequestsByWorkspaces(
@@ -474,6 +479,10 @@ export class PullRequestRuntimeManager {
 	}
 
 	private enqueueWorkspaceSync(workspaceId: string): Promise<void> {
+		if (this.cancelledWorkspaceSyncs.has(workspaceId)) {
+			return Promise.resolve();
+		}
+
 		// Coalesce: if a sync is already running for this workspace, just mark
 		// "rerun pending" — there's no value in queuing N back-to-back syncs
 		// when only the final state matters. At most one sync runs and one
@@ -487,12 +496,17 @@ export class PullRequestRuntimeManager {
 		const run = async (): Promise<void> => {
 			try {
 				do {
+					if (this.cancelledWorkspaceSyncs.has(workspaceId)) return;
 					const state = this.workspaceSyncState.get(workspaceId);
 					if (state) state.rerunPending = false;
 					await this.syncOneWorkspace(workspaceId);
-				} while (this.workspaceSyncState.get(workspaceId)?.rerunPending);
+				} while (
+					!this.cancelledWorkspaceSyncs.has(workspaceId) &&
+					this.workspaceSyncState.get(workspaceId)?.rerunPending
+				);
 			} finally {
 				this.workspaceSyncState.delete(workspaceId);
+				this.cancelledWorkspaceSyncs.delete(workspaceId);
 			}
 		};
 
@@ -505,6 +519,8 @@ export class PullRequestRuntimeManager {
 	}
 
 	private async syncOneWorkspace(workspaceId: string): Promise<void> {
+		if (this.cancelledWorkspaceSyncs.has(workspaceId)) return;
+
 		// Look up the row fresh — the workspace may have been deleted between
 		// the GitWatcher event firing and this handler running. That's expected
 		// during teardown / workspace removal; silently no-op.
@@ -514,21 +530,28 @@ export class PullRequestRuntimeManager {
 			.where(eq(workspaces.id, workspaceId))
 			.get();
 		if (!workspace) return;
+		if (this.cancelledWorkspaceSyncs.has(workspaceId)) return;
 
 		const projectId = await this.syncWorkspaceRow(workspace);
-		if (projectId) await this.refreshProject(projectId);
+		if (projectId && !this.cancelledWorkspaceSyncs.has(workspaceId)) {
+			await this.refreshProject(projectId);
+		}
 	}
 
 	private async syncWorkspaceRow(
 		workspace: typeof workspaces.$inferSelect,
 	): Promise<string | null> {
+		if (this.cancelledWorkspaceSyncs.has(workspace.id)) return null;
+
 		try {
 			const git = await this.git(workspace.worktreePath);
+			if (this.cancelledWorkspaceSyncs.has(workspace.id)) return null;
 			const branch = await getCurrentBranchName(git);
 			if (!branch) return null;
 
 			const headSha = await getHeadSha(git);
 			const upstream = await resolveWorkspaceUpstream(git, branch);
+			if (this.cancelledWorkspaceSyncs.has(workspace.id)) return null;
 			const upstreamOwner = upstream?.owner ?? null;
 			const upstreamRepo = upstream?.name ?? null;
 			const upstreamBranch = upstream?.branch ?? null;
@@ -549,6 +572,8 @@ export class PullRequestRuntimeManager {
 				return null;
 			}
 
+			if (this.cancelledWorkspaceSyncs.has(workspace.id)) return null;
+
 			this.db
 				.update(workspaces)
 				.set({
@@ -564,6 +589,7 @@ export class PullRequestRuntimeManager {
 
 			return workspace.projectId;
 		} catch (error) {
+			if (this.cancelledWorkspaceSyncs.has(workspace.id)) return null;
 			console.warn(
 				"[host-service:pull-request-runtime] Failed to sync workspace branch",
 				{

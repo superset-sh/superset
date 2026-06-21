@@ -17,14 +17,15 @@ type GitWatcherInternals = {
 };
 
 describe("GitWatcher.removeWorkspace", () => {
-	test("closes removed workspace watchers and clears pending debounce state", () => {
+	test("closes removed workspace watchers and clears pending debounce state", async () => {
 		const watcher = new GitWatcher({} as never, {} as never);
 		const internals = watcher as unknown as GitWatcherInternals;
 		const closeRemoved = mock(() => {});
 		const disposeRemoved = mock(() => {});
 		const closeActive = mock(() => {});
 		const disposeActive = mock(() => {});
-		const timer = setTimeout(() => {}, 60_000);
+		const timerFired = mock(() => {});
+		const timer = setTimeout(timerFired, 10);
 
 		try {
 			internals.watched.set("deleted-workspace", {
@@ -57,6 +58,9 @@ describe("GitWatcher.removeWorkspace", () => {
 			expect(internals.watched.has("active-workspace")).toBe(true);
 			expect(closeActive).not.toHaveBeenCalled();
 			expect(disposeActive).not.toHaveBeenCalled();
+
+			await new Promise((resolve) => setTimeout(resolve, 25));
+			expect(timerFired).not.toHaveBeenCalled();
 
 			watcher.removeWorkspace("deleted-workspace");
 			expect(closeRemoved).toHaveBeenCalledTimes(1);
