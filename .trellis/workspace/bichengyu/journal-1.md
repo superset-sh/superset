@@ -827,3 +827,37 @@ Verified the isolated online service checklist, confirmed online local and publi
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: Capability artifact object storage
+
+**Date**: 2026-06-21
+**Task**: Capability artifact object storage
+**Package**: desktop
+**Branch**: `main`
+
+### Summary
+
+Moved capability package artifacts to server-owned object storage with internal artifact references, added MinIO to the online stack, updated API proxy downloads, repaired online capability artifact rows, and verified public artifact downloads.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `361516504` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

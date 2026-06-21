@@ -26,6 +26,8 @@ ONLINE_PG_PORT="43014"
 ONLINE_NEON_PROXY_PORT="43015"
 ONLINE_REDIS_PORT="43016"
 ONLINE_KV_REST_PORT="43017"
+ONLINE_S3_PORT="43018"
+ONLINE_S3_CONSOLE_PORT="43019"
 
 PUBLIC_WEB_URL="http://bj1.v.lhb.ink:63000"
 PUBLIC_API_URL="http://bj1.v.lhb.ink:63001"
@@ -79,6 +81,8 @@ apply_online_env() {
 	export LOCAL_ELECTRIC_PORT="$ONLINE_ELECTRIC_PORT"
 	export LOCAL_REDIS_PORT="$ONLINE_REDIS_PORT"
 	export LOCAL_KV_REST_PORT="$ONLINE_KV_REST_PORT"
+	export LOCAL_S3_PORT="$ONLINE_S3_PORT"
+	export LOCAL_S3_CONSOLE_PORT="$ONLINE_S3_CONSOLE_PORT"
 
 	export DATABASE_URL="postgres://postgres:postgres@localhost:${ONLINE_NEON_PROXY_PORT}/main"
 	export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:${ONLINE_PG_PORT}/main"
@@ -86,6 +90,15 @@ apply_online_env() {
 	export KV_REST_API_TOKEN="${KV_REST_API_TOKEN:-local-kv-token}"
 	export KV_REST_API_URL="http://localhost:${ONLINE_KV_REST_PORT}"
 	export KV_URL="redis://localhost:${ONLINE_REDIS_PORT}"
+
+	export MINIO_ROOT_USER="${MINIO_ROOT_USER:-superset}"
+	export MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-superset-local-artifacts}"
+	export SUPERSET_OBJECT_STORAGE_ENDPOINT="http://localhost:${ONLINE_S3_PORT}"
+	export SUPERSET_OBJECT_STORAGE_BUCKET="${SUPERSET_OBJECT_STORAGE_BUCKET:-superset-artifacts}"
+	export SUPERSET_OBJECT_STORAGE_REGION="${SUPERSET_OBJECT_STORAGE_REGION:-us-east-1}"
+	export SUPERSET_OBJECT_STORAGE_ACCESS_KEY="$MINIO_ROOT_USER"
+	export SUPERSET_OBJECT_STORAGE_SECRET_KEY="$MINIO_ROOT_PASSWORD"
+	export SUPERSET_OBJECT_STORAGE_FORCE_PATH_STYLE="1"
 
 	export WEB_PORT="$ONLINE_WEB_PORT"
 	export API_PORT="$ONLINE_API_PORT"
@@ -153,10 +166,11 @@ compose() {
 start_data_services() {
 	log "starting isolated Docker data services on 430xx ports"
 	wait_for_docker "${ONLINE_DOCKER_WAIT_ATTEMPTS:-300}"
-	if ! compose up -d --build --wait postgres neon-proxy electric redis kv-rest; then
+	if ! compose up -d --build --wait postgres neon-proxy electric redis kv-rest minio; then
 		log "docker compose --wait failed or is unsupported; falling back to detached startup"
-		compose up -d --build postgres neon-proxy electric redis kv-rest
+		compose up -d --build postgres neon-proxy electric redis kv-rest minio
 	fi
+	compose run --rm minio-init
 }
 
 db_proxy_query_ok() {
@@ -327,6 +341,10 @@ wait_for_probe() {
 	done
 }
 
+wait_for_object_storage() {
+	wait_for_probe "object-storage" "http://localhost:${ONLINE_S3_PORT}/minio/health/live" "200"
+}
+
 wait_for_local_services() {
 	log "waiting for online app services to become ready"
 	wait_for_probe "web" "http://localhost:${ONLINE_WEB_PORT}/sign-in" "200"
@@ -368,6 +386,8 @@ print_status() {
 	echo "  electric         localhost:${ONLINE_ELECTRIC_PORT}"
 	echo "  redis            localhost:${ONLINE_REDIS_PORT}"
 	echo "  kv-rest          localhost:${ONLINE_KV_REST_PORT}"
+	echo "  object-storage   localhost:${ONLINE_S3_PORT}"
+	echo "  object-console   localhost:${ONLINE_S3_CONSOLE_PORT}"
 	echo
 	echo "public router targets to configure:"
 	echo "  63000 -> ${ONLINE_WEB_PORT}"
@@ -381,6 +401,7 @@ print_status() {
 	echo
 	echo "local probes:"
 	probe_db_proxy_query
+	probe_url "object storage" "http://localhost:${ONLINE_S3_PORT}/minio/health/live" "200"
 	probe_url "web /sign-in" "http://localhost:${ONLINE_WEB_PORT}/sign-in" "200"
 	probe_url "api session" "http://localhost:${ONLINE_API_PORT}/api/auth/get-session" "200"
 	probe_url "electric auth gate" "http://localhost:${ONLINE_ELECTRIC_PROXY_PORT}/v1/shape" "401"
@@ -466,6 +487,7 @@ start_all() {
 	ensure_prereqs
 	start_data_services
 	wait_for_db_proxy_query
+	wait_for_object_storage
 	run_migrations_and_seed
 	start_app_services
 	wait_for_local_services

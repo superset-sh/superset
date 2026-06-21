@@ -68,6 +68,10 @@
 			"types": "./src/billing.ts",
 			"default": "./src/billing.ts"
 		},
+		"./capability-artifacts": {
+			"types": "./src/capability-artifacts.ts",
+			"default": "./src/capability-artifacts.ts"
+		},
 		"./workspace-launch": {
 			"types": "./src/workspace-launch/index.ts",
 			"default": "./src/workspace-launch/index.ts"

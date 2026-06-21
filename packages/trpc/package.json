@@ -15,6 +15,10 @@
 		"./automation-dispatch": {
 			"types": "./src/router/automation/dispatch.ts",
 			"default": "./src/router/automation/dispatch.ts"
+		},
+		"./capability-artifact-storage": {
+			"types": "./src/router/capability/artifact-storage.ts",
+			"default": "./src/router/capability/artifact-storage.ts"
 		}
 	},
 	"scripts": {
