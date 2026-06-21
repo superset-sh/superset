@@ -1,0 +1,43 @@
+# Journal - codex (Part 1)
+
+> AI development session journal
+> Started: 2026-06-21
+
+---
+
+
+
+## Session 1: Workspace clone progress and worktree lifecycle
+
+**Date**: 2026-06-21
+**Task**: Workspace clone progress and worktree lifecycle
+**Package**: desktop
+**Branch**: `codex/worktree-dev-startup-cleanup`
+
+### Summary
+
+Implemented background workspace clone progress, worktree-local desktop E2E lifecycle commands, fixture cleanup tooling, Trellis specs, merged origin/main, and recorded validation.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5b6f47c7e` | (see git log) |
+| `c75b52a0c` | (see git log) |
+| `8df496b68` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
