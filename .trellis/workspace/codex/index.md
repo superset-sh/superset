@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 3
+- **Total Sessions**: 4
 - **Last Active**: 2026-06-21
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~111 | Active |
+| `journal-1.md` | ~145 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 4 | 2026-06-21 | Fix project clone progress modal | `4768ae6ab` | `codex/worktree-dev-startup-cleanup` |
 | 3 | 2026-06-21 | PR14 worktree Electric URL follow-up | `956e55490` | `codex/worktree-dev-startup-cleanup` |
 | 2 | 2026-06-21 | PR14 worktree isolation review fixes | `96bb56482` | `codex/worktree-dev-startup-cleanup` |
 | 1 | 2026-06-21 | Workspace clone progress and worktree lifecycle | `5b6f47c7e`, `c75b52a0c`, `8df496b68` | `codex/worktree-dev-startup-cleanup` |

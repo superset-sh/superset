@@ -109,3 +109,37 @@ Adopted review finding by making worktree setup and validation use direct Wrangl
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Fix project clone progress modal
+
+**Date**: 2026-06-21
+**Task**: Fix project clone progress modal
+**Package**: desktop
+**Branch**: `codex/worktree-dev-startup-cleanup`
+
+### Summary
+
+Added project.create clone progress events and wired the Add repository clone modal to show progress, allow hiding while clone continues, and document the desktop clone progress acceptance contract.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4768ae6ab` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
