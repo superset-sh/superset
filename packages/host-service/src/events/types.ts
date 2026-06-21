@@ -81,6 +81,8 @@ export interface WorkspaceCreateProgressMessage {
 export type ProjectCreateProgressStage =
 	| "queued"
 	| "cloning_repository"
+	| "canceling"
+	| "canceled"
 	| "repository_ready"
 	| "registering_project"
 	| "ready"

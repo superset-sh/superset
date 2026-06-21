@@ -13,6 +13,7 @@ import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import { protectedProcedure, router } from "../../index";
 import { normalizeWorktreeBaseDir } from "../workspace-creation/shared/worktree-paths";
 import {
+	cancelProjectCreate,
 	createFromClone,
 	createFromEmpty,
 	createFromImportLocal,
@@ -470,6 +471,14 @@ export const projectRouter = router({
 					});
 			}
 		}),
+
+	cancelCreate: protectedProcedure
+		.input(
+			z.object({
+				progressRequestId: z.string().min(1),
+			}),
+		)
+		.mutation(({ ctx, input }) => cancelProjectCreate(ctx, input)),
 
 	setup: protectedProcedure
 		.input(

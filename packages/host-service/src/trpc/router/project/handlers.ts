@@ -13,6 +13,7 @@ import {
 	cloneTemplateInto,
 	initEmptyRepo,
 	initLocalRepoInPlace,
+	isCloneCanceledError,
 	type ResolvedRepo,
 	resolveLocalRepo,
 	tryRevParseGitRoot,
@@ -55,6 +56,18 @@ interface CreateResult {
 	mainWorkspace: SelectV2Workspace;
 }
 
+export type CancelProjectCreateResult =
+	| { status: "canceling" }
+	| { status: "not_found" };
+
+interface InFlightProjectCreate {
+	controller: AbortController;
+	canceling: boolean;
+	cancel: () => CancelProjectCreateResult;
+}
+
+const inFlightProjectCreates = new Map<string, InFlightProjectCreate>();
+
 function emitProjectCreateProgress(
 	ctx: HostServiceContext,
 	requestId: string | undefined,
@@ -70,6 +83,45 @@ function emitProjectCreateProgress(
 		percent,
 		occurredAt: Date.now(),
 	});
+}
+
+function registerCancelableClone(
+	ctx: HostServiceContext,
+	requestId: string | undefined,
+): { signal?: AbortSignal; dispose: () => void } {
+	if (!requestId) return { dispose: () => {} };
+
+	const controller = new AbortController();
+	const entry: InFlightProjectCreate = {
+		controller,
+		canceling: false,
+		cancel: () => {
+			if (entry.canceling) return { status: "canceling" };
+			entry.canceling = true;
+			emitProjectCreateProgress(ctx, requestId, "canceling", "Stopping clone");
+			controller.abort();
+			return { status: "canceling" };
+		},
+	};
+	inFlightProjectCreates.set(requestId, entry);
+
+	return {
+		signal: controller.signal,
+		dispose: () => {
+			if (inFlightProjectCreates.get(requestId) === entry) {
+				inFlightProjectCreates.delete(requestId);
+			}
+		},
+	};
+}
+
+export function cancelProjectCreate(
+	_ctx: HostServiceContext,
+	args: { progressRequestId: string },
+): CancelProjectCreateResult {
+	const entry = inFlightProjectCreates.get(args.progressRequestId);
+	if (!entry) return { status: "not_found" };
+	return entry.cancel();
 }
 
 // Cloud v2Project.create catches v2_projects_org_slug_unique and re-throws
@@ -219,6 +271,7 @@ export async function createFromClone(
 		progressRequestId?: string;
 	},
 ): Promise<CreateResult> {
+	const cancelableClone = registerCancelableClone(ctx, args.progressRequestId);
 	try {
 		emitProjectCreateProgress(
 			ctx,
@@ -227,17 +280,23 @@ export async function createFromClone(
 			"Cloning repository",
 			0,
 		);
-		const resolved = await cloneRepoInto(args.url, args.parentDir, {
-			onProgress: (progress) => {
-				emitProjectCreateProgress(
-					ctx,
-					args.progressRequestId,
-					"cloning_repository",
-					progress.message,
-					progress.percent,
-				);
-			},
-		});
+		let resolved: ResolvedRepo;
+		try {
+			resolved = await cloneRepoInto(args.url, args.parentDir, {
+				signal: cancelableClone.signal,
+				onProgress: (progress) => {
+					emitProjectCreateProgress(
+						ctx,
+						args.progressRequestId,
+						"cloning_repository",
+						progress.message,
+						progress.percent,
+					);
+				},
+			});
+		} finally {
+			cancelableClone.dispose();
+		}
 		emitProjectCreateProgress(
 			ctx,
 			args.progressRequestId,
@@ -269,6 +328,20 @@ export async function createFromClone(
 		);
 		return result;
 	} catch (err) {
+		cancelableClone.dispose();
+		if (isCloneCanceledError(err)) {
+			emitProjectCreateProgress(
+				ctx,
+				args.progressRequestId,
+				"canceled",
+				"Clone stopped",
+			);
+			throw new TRPCError({
+				code: "CLIENT_CLOSED_REQUEST",
+				message: "Clone stopped",
+				cause: err,
+			});
+		}
 		emitProjectCreateProgress(
 			ctx,
 			args.progressRequestId,

@@ -84,9 +84,9 @@ describe("EventBus port events", () => {
 		eventBus.handleOpen(socket);
 		eventBus.broadcastProjectCreateProgress({
 			requestId: "project-create-1",
-			stage: "cloning_repository",
-			message: "Receiving objects: 42%",
-			percent: 42,
+			stage: "canceled",
+			message: "Clone stopped",
+			percent: null,
 			occurredAt: 1_700_000_000_000,
 		});
 
@@ -94,9 +94,9 @@ describe("EventBus port events", () => {
 		expect(JSON.parse(sentMessages[0] ?? "{}")).toMatchObject({
 			type: "project:create-progress",
 			requestId: "project-create-1",
-			stage: "cloning_repository",
-			message: "Receiving objects: 42%",
-			percent: 42,
+			stage: "canceled",
+			message: "Clone stopped",
+			percent: null,
 			occurredAt: 1_700_000_000_000,
 		});
 	});

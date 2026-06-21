@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
+import { treeKillWithEscalation } from "../../../../ports/tree-kill";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import {
 	findMatchingRemote,
@@ -29,12 +30,27 @@ export interface CloneRepoProgress {
 
 export interface CloneRepoOptions {
 	onProgress?: (progress: CloneRepoProgress) => void;
+	signal?: AbortSignal;
 }
 
 const ANSI_ESCAPE_PATTERN = new RegExp(
 	`${String.fromCharCode(27)}\\[[0-9;]*m`,
 	"g",
 );
+
+export class CloneCanceledError extends Error {
+	constructor(message = "Clone stopped") {
+		super(message);
+		this.name = "CloneCanceledError";
+	}
+}
+
+export function isCloneCanceledError(err: unknown): err is CloneCanceledError {
+	return (
+		err instanceof CloneCanceledError ||
+		(err instanceof Error && err.name === "CloneCanceledError")
+	);
+}
 
 export function validateDirectoryPath(path: string, label: string): void {
 	if (!existsSync(path)) {
@@ -144,6 +160,10 @@ async function cloneWithProgress(
 	targetPath: string,
 	options: CloneRepoOptions = {},
 ): Promise<void> {
+	if (options.signal?.aborted) {
+		throw new CloneCanceledError();
+	}
+
 	await new Promise<void>((resolve, reject) => {
 		const child = spawn(
 			"git",
@@ -156,6 +176,42 @@ async function cloneWithProgress(
 		let stderrTail = "";
 		let lineBuffer = "";
 		let spawnError: Error | null = null;
+		let cancelRequested = false;
+		let settled = false;
+
+		const cleanupAbortListener = () => {
+			options.signal?.removeEventListener("abort", handleAbort);
+		};
+
+		const settleResolve = () => {
+			if (settled) return;
+			settled = true;
+			cleanupAbortListener();
+			resolve();
+		};
+
+		const settleReject = (error: Error) => {
+			if (settled) return;
+			settled = true;
+			cleanupAbortListener();
+			reject(error);
+		};
+
+		function handleAbort() {
+			if (cancelRequested || settled) return;
+			cancelRequested = true;
+			const pid = child.pid;
+			if (!pid) {
+				child.kill("SIGTERM");
+				return;
+			}
+			void treeKillWithEscalation({ pid }).then((result) => {
+				if (result.success || settled) return;
+				settleReject(
+					new Error(result.error ?? `Failed to stop git clone process ${pid}`),
+				);
+			});
+		}
 
 		const emitProgressLines = (text: string) => {
 			const parts = `${lineBuffer}${text}`.split(/\r|\n/);
@@ -183,20 +239,27 @@ async function cloneWithProgress(
 				lineBuffer = "";
 			}
 			if (spawnError) {
-				reject(spawnError);
+				settleReject(spawnError);
+				return;
+			}
+			if (cancelRequested) {
+				settleReject(new CloneCanceledError());
 				return;
 			}
 			if (code === 0) {
-				resolve();
+				settleResolve();
 				return;
 			}
 			const suffix = stderrTail.trim() ? `: ${stderrTail.trim()}` : "";
-			reject(
+			settleReject(
 				new Error(
 					`git clone exited with ${signal ? `signal ${signal}` : `code ${code}`}${suffix}`,
 				),
 			);
 		});
+
+		options.signal?.addEventListener("abort", handleAbort, { once: true });
+		if (options.signal?.aborted) handleAbort();
 	});
 }
 
@@ -501,6 +564,9 @@ export async function cloneRepoInto(
 		await cloneWithProgress(repoCloneUrl, targetPath, options);
 	} catch (err) {
 		rmSync(targetPath, { recursive: true, force: true });
+		if (isCloneCanceledError(err)) {
+			throw err;
+		}
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Failed to clone repository: ${

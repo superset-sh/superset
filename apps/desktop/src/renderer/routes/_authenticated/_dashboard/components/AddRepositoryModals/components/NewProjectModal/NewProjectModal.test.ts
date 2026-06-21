@@ -19,4 +19,13 @@ describe("NewProjectModal clone progress wiring", () => {
 		expect(source).toContain('aria-live="polite"');
 		expect(source).toContain('{working ? "Hide" : "Cancel"}');
 	});
+
+	test("wires Stop to project create cancellation without treating it as a failure", () => {
+		expect(source).toContain("client.project.cancelCreate.mutate");
+		expect(source).toContain("Clone stopped");
+		expect(source).toContain("isCloneCancelable(progress)");
+		expect(source).toContain('label: "Stop"');
+		expect(source).toContain("cloneWasCanceled");
+		expect(source).not.toContain('onError?.("Clone stopped")');
+	});
 });

@@ -8,6 +8,7 @@ import {
 	test,
 } from "bun:test";
 import {
+	chmodSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
@@ -463,6 +464,48 @@ describe("cloneRepoInto", () => {
 		);
 		// No orphan directory should be left behind for the next attempt.
 		expect(existsSync(expectedTarget)).toBe(false);
+	});
+
+	test("cancels an in-progress clone and removes the partial target directory", async () => {
+		const fakeBin = join(workRoot, "fake-bin");
+		mkdirSync(fakeBin);
+		const fakeGit = join(fakeBin, "git");
+		writeFileSync(
+			fakeGit,
+			[
+				"#!/bin/sh",
+				'target="$' + '{4:-}"',
+				'if [ -n "$target" ]; then echo partial > "$target/partial.txt"; fi',
+				"printf 'Receiving objects: 1% (1/100)\\r' >&2",
+				"sleep 30",
+			].join("\n"),
+		);
+		chmodSync(fakeGit, 0o755);
+
+		const originalPath = process.env.PATH;
+		process.env.PATH = `${fakeBin}:${originalPath ?? ""}`;
+		const controller = new AbortController();
+		const expectedTarget = join(parentDir, "fake-repo");
+		let resolveProgress!: () => void;
+		const sawProgress = new Promise<void>((resolve) => {
+			resolveProgress = resolve;
+		});
+
+		try {
+			const clone = cloneRepoInto("fake-repo", parentDir, {
+				signal: controller.signal,
+				onProgress: () => resolveProgress(),
+			});
+
+			await sawProgress;
+			expect(existsSync(join(expectedTarget, "partial.txt"))).toBe(true);
+			controller.abort();
+
+			await expect(clone).rejects.toThrow("Clone stopped");
+			expect(existsSync(expectedTarget)).toBe(false);
+		} finally {
+			process.env.PATH = originalPath;
+		}
 	});
 
 	test("does not delete a pre-existing target dir when clone fails on a separate path", async () => {

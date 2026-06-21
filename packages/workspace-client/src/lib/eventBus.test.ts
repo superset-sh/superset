@@ -126,9 +126,9 @@ describe("eventBus", () => {
 			data: JSON.stringify({
 				type: "project:create-progress",
 				requestId: "project-create-1",
-				stage: "cloning_repository",
-				message: "Receiving objects: 42%",
-				percent: 42,
+				stage: "canceled",
+				message: "Clone stopped",
+				percent: null,
 				occurredAt: 1_700_000_000_000,
 			}),
 		});
@@ -146,8 +146,8 @@ describe("eventBus", () => {
 		expect(received).toEqual([
 			{
 				requestId: "project-create-1",
-				message: "Receiving objects: 42%",
-				percent: 42,
+				message: "Clone stopped",
+				percent: null,
 			},
 		]);
 
