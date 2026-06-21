@@ -143,3 +143,37 @@ Added project.create clone progress events and wired the Add repository clone mo
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Stop project clone
+
+**Date**: 2026-06-21
+**Task**: Stop project clone
+**Package**: desktop
+**Branch**: `codex/worktree-dev-startup-cleanup`
+
+### Summary
+
+Added Stop for project clone: renderer modal/toast cancellation, host-service git clone abort and cleanup, progress canceled events, regression tests, spec update, and desktop acceptance with getpaseo/paseo cleanup.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e45b742a1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
