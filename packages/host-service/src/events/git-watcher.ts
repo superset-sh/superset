@@ -36,6 +36,7 @@ interface WatchedWorkspace {
 	gitDir: string;
 	watcher: FSWatcher;
 	disposeWorktreeWatch: () => void;
+	disposed: boolean;
 }
 
 /**
@@ -104,11 +105,42 @@ export class GitWatcher {
 		}
 		this.debounceTimers.clear();
 		this.pendingBatches.clear();
-		for (const entry of this.watched.values()) {
-			entry.watcher.close();
-			entry.disposeWorktreeWatch();
-		}
+		const entries = [...this.watched.values()];
 		this.watched.clear();
+		for (const entry of entries) {
+			this.disposeWorkspaceEntry(entry);
+		}
+	}
+
+	removeWorkspace(workspaceId: string): void {
+		this.clearPendingFlush(workspaceId);
+
+		const entry = this.watched.get(workspaceId);
+		if (!entry) return;
+
+		this.watched.delete(workspaceId);
+		this.disposeWorkspaceEntry(entry);
+	}
+
+	private handleWatcherError(
+		workspaceId: string,
+		entry: WatchedWorkspace,
+	): void {
+		const watchedEntry = this.watched.get(workspaceId);
+		if (!watchedEntry || watchedEntry === entry) {
+			this.clearPendingFlush(workspaceId);
+		}
+		if (watchedEntry === entry) {
+			this.watched.delete(workspaceId);
+		}
+		this.disposeWorkspaceEntry(entry);
+	}
+
+	private disposeWorkspaceEntry(entry: WatchedWorkspace): void {
+		if (entry.disposed) return;
+		entry.disposed = true;
+		entry.watcher.close();
+		entry.disposeWorktreeWatch();
 	}
 
 	private getOrCreateBatch(workspaceId: string): PendingBatch {
@@ -162,6 +194,13 @@ export class GitWatcher {
 		);
 	}
 
+	private clearPendingFlush(workspaceId: string): void {
+		const timer = this.debounceTimers.get(workspaceId);
+		if (timer) clearTimeout(timer);
+		this.debounceTimers.delete(workspaceId);
+		this.pendingBatches.delete(workspaceId);
+	}
+
 	private async rescan(): Promise<void> {
 		if (this.closed) return;
 
@@ -181,11 +220,9 @@ export class GitWatcher {
 		const currentIds = new Set(rows.map((r) => r.id));
 
 		// Remove watchers for workspaces that no longer exist
-		for (const [id, entry] of this.watched) {
+		for (const id of this.watched.keys()) {
 			if (!currentIds.has(id)) {
-				entry.watcher.close();
-				entry.disposeWorktreeWatch();
-				this.watched.delete(id);
+				this.removeWorkspace(id);
 			}
 		}
 
@@ -240,20 +277,27 @@ export class GitWatcher {
 			return;
 		}
 
-		watcher.on("error", () => {
-			// Watcher died — clean up so rescan can re-add
-			disposeWorktreeWatch();
-			this.watched.delete(workspaceId);
-			watcher.close();
-		});
-
-		this.watched.set(workspaceId, {
+		const entry: WatchedWorkspace = {
 			workspaceId,
 			worktreePath,
 			gitDir,
 			watcher,
 			disposeWorktreeWatch,
+			disposed: false,
+		};
+
+		watcher.on("error", () => {
+			// Watcher died — clean up so rescan can re-add. The entry may not be
+			// registered yet if fs.watch errors immediately after listener attach.
+			this.handleWatcherError(workspaceId, entry);
 		});
+
+		if (entry.disposed || this.closed || this.watched.has(workspaceId)) {
+			this.handleWatcherError(workspaceId, entry);
+			return;
+		}
+
+		this.watched.set(workspaceId, entry);
 	}
 
 	/**

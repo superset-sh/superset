@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import { pullRequests, workspaces } from "../../db/schema";
 import {
 	PullRequestRuntimeManager,
@@ -145,7 +145,10 @@ function createFakeDb(state: FakeState) {
 function createManager(
 	state: FakeState,
 	overrides: Partial<
-		Pick<PullRequestRuntimeManagerOptions, "execGh" | "github">
+		Pick<
+			PullRequestRuntimeManagerOptions,
+			"execGh" | "git" | "github" | "gitWatcher"
+		>
 	> = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -155,17 +158,70 @@ function createManager(
 			(async () => {
 				throw new Error("gh should not be used for direct PR linking");
 			}),
-		git: async () => {
-			throw new Error("git should not be used when project metadata is set");
-		},
+		git:
+			overrides.git ??
+			(async () => {
+				throw new Error("git should not be used when project metadata is set");
+			}),
 		github:
 			overrides.github ??
 			(async () => {
 				throw new Error("github should not be used for direct PR linking");
 			}),
-		gitWatcher: { onChanged: () => () => {} } as never,
+		gitWatcher:
+			overrides.gitWatcher ??
+			({ onChanged: () => () => {}, removeWorkspace: () => {} } as never),
 	});
 }
+
+describe("PullRequestRuntimeManager workspace cleanup", () => {
+	test("drops pending sync state and removes git watchers for a deleted workspace", () => {
+		const state = makeState("feature");
+		const removeWorkspace = mock(() => {});
+		const manager = createManager(state, {
+			gitWatcher: {
+				onChanged: () => () => {},
+				removeWorkspace,
+			} as never,
+		});
+		const internals = manager as unknown as {
+			workspaceSyncState: Map<
+				string,
+				{ running: Promise<void>; rerunPending: boolean }
+			>;
+			cancelledWorkspaceSyncs: Set<string>;
+		};
+
+		internals.workspaceSyncState.set(WORKSPACE_ID, {
+			running: Promise.resolve(),
+			rerunPending: true,
+		});
+
+		manager.removeWorkspace(WORKSPACE_ID);
+
+		expect(internals.workspaceSyncState.has(WORKSPACE_ID)).toBe(false);
+		expect(internals.cancelledWorkspaceSyncs.has(WORKSPACE_ID)).toBe(true);
+		expect(removeWorkspace).toHaveBeenCalledWith(WORKSPACE_ID);
+	});
+
+	test("cancelled in-flight workspace syncs no-op before opening git", async () => {
+		const state = makeState("feature");
+		const git = mock(async () => {
+			throw new Error("git should not be opened for a cancelled workspace");
+		});
+		const manager = createManager(state, { git: git as never });
+		const internals = manager as unknown as {
+			cancelledWorkspaceSyncs: Set<string>;
+			syncOneWorkspace: (workspaceId: string) => Promise<void>;
+		};
+
+		internals.cancelledWorkspaceSyncs.add(WORKSPACE_ID);
+
+		await internals.syncOneWorkspace(WORKSPACE_ID);
+
+		expect(git).not.toHaveBeenCalled();
+	});
+});
 
 describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 	test("links a fork PR workspace to the selected PR and records fork upstream", async () => {
