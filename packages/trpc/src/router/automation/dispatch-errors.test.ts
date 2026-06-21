@@ -52,4 +52,12 @@ describe("describeDispatchError", () => {
 			"dispatch: Capability package artifact is not available on the selected host. Update Superset and retry, or re-import the Tools & Skills package.",
 		);
 	});
+
+	test("normalizes capability artifact HTTP 404 download failures", () => {
+		const error = new Error("Failed to download capability archive: HTTP 404");
+
+		expect(describeDispatchError(error, "dispatch")).toBe(
+			"dispatch: Capability package artifact is not available on the selected host. Update Superset and retry, or re-import the Tools & Skills package.",
+		);
+	});
 });

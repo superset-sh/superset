@@ -1,6 +1,3 @@
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { db, dbWs } from "@superset/db/client";
 import {
 	automationCapabilities,
@@ -11,11 +8,14 @@ import {
 	v2Projects,
 } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { del, put } from "@vercel/blob";
 import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
+import {
+	capabilityArtifactPathname,
+	storeCapabilityArtifact,
+} from "./artifact-storage";
 import {
 	auditValidatedCapabilityPackage,
 	canActivateCapabilityVersion,
@@ -46,68 +46,6 @@ function badRequest(message: string): never {
 
 function conflict(message: string): never {
 	throw new TRPCError({ code: "CONFLICT", message });
-}
-
-function artifactPathname(args: {
-	organizationId: string;
-	slug: string;
-	version: string;
-	sha256: string;
-}) {
-	return [
-		"capability-packages",
-		args.organizationId,
-		args.slug,
-		args.version,
-		`${args.sha256}.zip`,
-	].join("/");
-}
-
-interface StoredCapabilityArtifact {
-	url: string;
-	pathname: string;
-	cleanup: () => Promise<void>;
-}
-
-function shouldUseLocalArtifactStorage() {
-	return (
-		process.env.NODE_ENV === "development" &&
-		(!process.env.BLOB_READ_WRITE_TOKEN ||
-			process.env.BLOB_READ_WRITE_TOKEN.includes("fake"))
-	);
-}
-
-function localArtifactRoot() {
-	return join(
-		process.env.SUPERSET_HOME_DIR ?? process.cwd(),
-		"capability-artifacts",
-	);
-}
-
-async function storeCapabilityArtifact(args: {
-	pathname: string;
-	archiveBuffer: Buffer;
-}): Promise<StoredCapabilityArtifact> {
-	if (shouldUseLocalArtifactStorage()) {
-		const filePath = join(localArtifactRoot(), ...args.pathname.split("/"));
-		await mkdir(dirname(filePath), { recursive: true, mode: 0o700 });
-		await writeFile(filePath, args.archiveBuffer);
-		return {
-			url: pathToFileURL(filePath).toString(),
-			pathname: args.pathname,
-			cleanup: () => unlink(filePath),
-		};
-	}
-
-	const blob = await put(args.pathname, args.archiveBuffer, {
-		access: "public",
-		contentType: "application/zip",
-	});
-	return {
-		url: blob.url,
-		pathname: blob.pathname,
-		cleanup: () => del(blob.url),
-	};
 }
 
 async function getCapabilityUsageCounts(capabilityId: string) {
@@ -337,7 +275,7 @@ export const capabilityRouter = {
 				pkg.validationSummary.display.summary ??
 				pkg.manifest.description ??
 				null;
-			const pathname = artifactPathname({
+			const pathname = capabilityArtifactPathname({
 				organizationId,
 				slug: pkg.manifest.id,
 				version: pkg.manifest.version,

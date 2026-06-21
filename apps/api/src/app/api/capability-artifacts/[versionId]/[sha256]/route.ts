@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { db } from "@superset/db/client";
 import { capabilityPackageVersions } from "@superset/db/schema";
+import { parseCapabilityArtifactReference } from "@superset/shared/capability-artifacts";
+import { readCapabilityArtifactReference } from "@superset/trpc/capability-artifact-storage";
 import { and, eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
@@ -14,8 +16,11 @@ const SHA256_REGEX = /^[a-f0-9]{64}$/i;
 type CapabilityArtifactRow = {
 	id: string;
 	artifactUrl: string;
+	artifactPathname: string;
 	artifactSha256: string;
 };
+
+type ReadArtifactReference = typeof readCapabilityArtifactReference;
 
 function sha256(bytes: Uint8Array): string {
 	return createHash("sha256").update(bytes).digest("hex");
@@ -35,9 +40,42 @@ function artifactHeaders(row: CapabilityArtifactRow): HeadersInit {
 	};
 }
 
+async function readFirstAvailableLocalArtifact(args: {
+	row: CapabilityArtifactRow;
+	candidates: Array<{ kind: string; path: string }>;
+}): Promise<Buffer | null> {
+	for (const candidate of args.candidates) {
+		try {
+			return await readFile(candidate.path);
+		} catch (error) {
+			console.warn("[capability-artifacts] local artifact candidate missing", {
+				versionId: args.row.id,
+				sha256: args.row.artifactSha256,
+				candidateKind: candidate.kind,
+				errorCode:
+					error instanceof Error && "code" in error
+						? String(error.code)
+						: "unknown",
+			});
+		}
+	}
+	return null;
+}
+
 export async function createCapabilityArtifactResponse(
 	row: CapabilityArtifactRow,
+	deps: { readArtifactReference?: ReadArtifactReference } = {},
 ): Promise<Response> {
+	const readArtifactReference =
+		deps.readArtifactReference ?? readCapabilityArtifactReference;
+	const artifactPathname = parseCapabilityArtifactReference(row.artifactUrl);
+	if (artifactPathname) {
+		const bytes = await readArtifactReference(artifactPathname);
+		return bytes
+			? createZipResponse({ row, bytes })
+			: new Response("Capability artifact not found", { status: 404 });
+	}
+
 	let artifactUrl: URL;
 	try {
 		artifactUrl = new URL(row.artifactUrl);
@@ -67,18 +105,24 @@ export async function createCapabilityArtifactResponse(
 		});
 	}
 
-	let bytes: Buffer;
-	try {
-		bytes = await readFile(fileURLToPath(artifactUrl));
-	} catch (error) {
-		console.error("[capability-artifacts] local artifact missing", {
-			versionId: row.id,
-			sha256: row.artifactSha256,
-			error: error instanceof Error ? error.message : String(error),
-		});
+	const bytes = await readFirstAvailableLocalArtifact({
+		row,
+		candidates: [{ kind: "legacy-file-url", path: fileURLToPath(artifactUrl) }],
+	});
+	const artifactBytes =
+		bytes ?? (await readArtifactReference(row.artifactPathname));
+	if (!artifactBytes) {
 		return new Response("Capability artifact not found", { status: 404 });
 	}
 
+	return createZipResponse({ row, bytes: artifactBytes });
+}
+
+function createZipResponse(args: {
+	row: CapabilityArtifactRow;
+	bytes: Buffer;
+}): Response {
+	const { row, bytes } = args;
 	if (sha256(bytes) !== row.artifactSha256) {
 		console.error("[capability-artifacts] local artifact checksum mismatch", {
 			versionId: row.id,
@@ -109,6 +153,7 @@ export async function GET(
 		.select({
 			id: capabilityPackageVersions.id,
 			artifactUrl: capabilityPackageVersions.artifactUrl,
+			artifactPathname: capabilityPackageVersions.artifactPathname,
 			artifactSha256: capabilityPackageVersions.artifactSha256,
 		})
 		.from(capabilityPackageVersions)

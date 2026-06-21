@@ -22,8 +22,9 @@ function extractRelayErrorMessage(body: string): string | null {
 
 function isCapabilityArtifactLocalPathFailure(message: string): boolean {
 	return (
-		message.includes("capability-artifacts") &&
-		(message.includes("ENOENT") || message.includes("ENOTDIR"))
+		(message.includes("capability-artifacts") &&
+			(message.includes("ENOENT") || message.includes("ENOTDIR"))) ||
+		message.includes("Failed to download capability archive: HTTP 404")
 	);
 }
 
