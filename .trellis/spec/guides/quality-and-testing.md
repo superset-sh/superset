@@ -48,6 +48,8 @@ Local dev setup must keep `.env`, Docker published ports, and generated service 
 
 For worktree-local desktop or E2E validation, prefer the lifecycle scripts over hand-starting processes: `bun run dev:worktree:start`, `bun run dev:worktree:status`, `bun run dev:worktree:stop`, and `bun run dev:worktree:cleanup -- --e2e-slug <slug> [--worktree-name <dir-name>]`. Seed disposable workspace/project rows with `bun run e2e:workspace-fixture -- seed ...` and clean them with `bun run e2e:workspace-fixture -- cleanup --slug <slug>` or the lifecycle cleanup command. See `desktop-acceptance-tdd.md` for the full contract.
 
+Worktree setup tests should cover two same-named physical worktree paths producing different compose projects, stale managed `.env` detection, and refusal of non-local critical URLs before migrations, seed, stop, or cleanup.
+
 When changing dev, worktree, online, Electric, Redis/KV, or relay startup scripts, validate the actual runtime contract, not just process existence:
 
 - API auth/session endpoint responds.

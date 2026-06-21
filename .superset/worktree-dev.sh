@@ -12,10 +12,8 @@ SESSIONS=("api" "relay" "electric-proxy" "desktop")
 
 # shellcheck source=/dev/null
 source "$SUPERSET_SCRIPT_DIR/lib/common.sh"
-
-sanitize_name() {
-  echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-48
-}
+# shellcheck source=/dev/null
+source "$SUPERSET_SCRIPT_DIR/lib/worktree-local.sh"
 
 load_env() {
   if [ -f "$ROOT_DIR/.env" ]; then
@@ -25,10 +23,12 @@ load_env() {
     set +a
   fi
 
-  SUPERSET_WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$ROOT_DIR")}"
-  SUPERSET_HOME_DIR="${SUPERSET_HOME_DIR:-$ROOT_DIR/superset-dev-data}"
+  SUPERSET_WORKTREE_ID="${SUPERSET_WORKTREE_ID:-$(worktree_path_hash "$ROOT_DIR")}"
+  SUPERSET_WORKTREE_ROOT="${SUPERSET_WORKTREE_ROOT:-$(worktree_physical_root "$ROOT_DIR")}"
+  SUPERSET_WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(worktree_default_workspace_name "$ROOT_DIR")}"
+  SUPERSET_HOME_DIR="${SUPERSET_HOME_DIR:-$(worktree_expected_home_dir "$ROOT_DIR")}"
   SUPERSET_PORT_BASE="${SUPERSET_PORT_BASE:-3000}"
-  LOCAL_DB_PROJECT="${LOCAL_DB_PROJECT:-superset-$(sanitize_name "$SUPERSET_WORKSPACE_NAME")}"
+  LOCAL_DB_PROJECT="${LOCAL_DB_PROJECT:-$(worktree_default_db_project "$ROOT_DIR")}"
 
   LOCAL_PG_PORT="${LOCAL_PG_PORT:-$((SUPERSET_PORT_BASE + 14))}"
   LOCAL_NEON_PROXY_PORT="${LOCAL_NEON_PROXY_PORT:-$((SUPERSET_PORT_BASE + 15))}"
@@ -40,6 +40,7 @@ load_env() {
   API_PORT="${API_PORT:-$((SUPERSET_PORT_BASE + 1))}"
   DESKTOP_VITE_PORT="${DESKTOP_VITE_PORT:-$((SUPERSET_PORT_BASE + 5))}"
   DESKTOP_NOTIFICATIONS_PORT="${DESKTOP_NOTIFICATIONS_PORT:-$((SUPERSET_PORT_BASE + 6))}"
+  CADDY_ELECTRIC_PORT="${CADDY_ELECTRIC_PORT:-$((SUPERSET_PORT_BASE + 10))}"
   WRANGLER_PORT="${WRANGLER_PORT:-$((SUPERSET_PORT_BASE + 12))}"
   RELAY_PORT="${RELAY_PORT:-$((SUPERSET_PORT_BASE + 13))}"
   DESKTOP_AUTOMATION_PORT="${DESKTOP_AUTOMATION_PORT:-$((SUPERSET_PORT_BASE + 18))}"
@@ -58,9 +59,9 @@ load_env() {
   RELAY_URL="${RELAY_URL:-http://localhost:$RELAY_PORT}"
   NEXT_PUBLIC_RELAY_URL="${NEXT_PUBLIC_RELAY_URL:-$RELAY_URL}"
 
-  export SUPERSET_WORKSPACE_NAME SUPERSET_HOME_DIR SUPERSET_PORT_BASE LOCAL_DB_PROJECT
+  export SUPERSET_WORKTREE_ID SUPERSET_WORKTREE_ROOT SUPERSET_WORKSPACE_NAME SUPERSET_HOME_DIR SUPERSET_PORT_BASE LOCAL_DB_PROJECT
   export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT LOCAL_REDIS_PORT LOCAL_KV_REST_PORT
-  export WEB_PORT API_PORT DESKTOP_VITE_PORT DESKTOP_NOTIFICATIONS_PORT WRANGLER_PORT RELAY_PORT DESKTOP_AUTOMATION_PORT
+  export WEB_PORT API_PORT DESKTOP_VITE_PORT DESKTOP_NOTIFICATIONS_PORT CADDY_ELECTRIC_PORT WRANGLER_PORT RELAY_PORT DESKTOP_AUTOMATION_PORT
   export DATABASE_URL DATABASE_URL_UNPOOLED KV_REST_API_TOKEN KV_REST_API_URL KV_URL
   export ELECTRIC_SECRET ELECTRIC_URL NEXT_PUBLIC_ELECTRIC_URL NEXT_PUBLIC_ELECTRIC_PROXY_URL
   export NEXT_PUBLIC_API_URL NEXT_PUBLIC_DESKTOP_URL RELAY_URL NEXT_PUBLIC_RELAY_URL
@@ -69,11 +70,17 @@ load_env() {
 }
 
 ensure_local_setup() {
-  if [ ! -f "$ROOT_DIR/.env" ] || ! grep -q "SUPERSET_HOME_DIR" "$ROOT_DIR/.env"; then
-    warn "workspace .env is missing local setup values; running .superset/setup.local.sh"
+  if worktree_env_requires_local_setup "$ROOT_DIR" "$ROOT_DIR/.env"; then
+    warn "workspace .env is missing or stale for this worktree; running .superset/setup.local.sh"
     "$SUPERSET_SCRIPT_DIR/setup.local.sh"
   fi
   load_env
+  worktree_assert_current_local_env "$ROOT_DIR"
+}
+
+load_and_assert_local_env() {
+  load_env
+  worktree_assert_current_local_env "$ROOT_DIR"
 }
 
 require_command() {
@@ -208,7 +215,7 @@ stop_data_services() {
 }
 
 run_service() {
-  load_env
+  load_and_assert_local_env
   local service="${1:-}"
   local log_file="$LOG_DIR/${service}.log"
   exec > >(tee -a "$log_file") 2>&1
@@ -409,7 +416,7 @@ remove_candidate_dirs() {
 }
 
 cleanup_all() {
-  load_env
+  load_and_assert_local_env
   ensure_prereqs
 
   local dry_run=0
@@ -502,7 +509,7 @@ start_all() {
 }
 
 stop_all() {
-  load_env
+  load_and_assert_local_env
   ensure_prereqs
   stop_app_services
   stop_data_services

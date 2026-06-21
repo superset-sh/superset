@@ -73,10 +73,12 @@ Use this contract before any desktop-facing Trellis acceptance run in a Superset
 ### 3. Contracts
 
 - `.superset/setup.local.sh` writes worktree-local `.env` values and `.superset/config.local.json`. If `.env` is missing the managed local values, `bun run dev:worktree:start` runs setup first.
+- The managed `.env` block must include `SUPERSET_WORKTREE_ID` and `SUPERSET_WORKTREE_ROOT` for the current physical worktree path. Do not treat `SUPERSET_HOME_DIR` alone as proof that the file is safe for this worktree.
 - `SUPERSET_PORT_BASE` owns the per-worktree port family. Default derived ports are: API `${base + 1}`, desktop Vite `${base + 5}`, raw Electric `${base + 9}`, Wrangler/Electric proxy `${base + 12}`, relay `${base + 13}`, Postgres `${base + 14}`, Neon HTTP proxy `${base + 15}`, Redis `${base + 16}`, KV REST `${base + 17}`, and Desktop Automation/CDP `${base + 18}`.
-- `LOCAL_DB_PROJECT` is the Docker compose project name. It must be unique per worktree and is used with `docker compose -p "$LOCAL_DB_PROJECT"` so worktrees do not share containers or ports.
+- `LOCAL_DB_PROJECT` is the Docker compose project name. It must be unique per worktree, include the current `SUPERSET_WORKTREE_ID`, and be used with `docker compose -p "$LOCAL_DB_PROJECT"` so worktrees do not share containers or ports. Never derive it from only `basename "$PWD"` because Codex worktrees usually end in the same `superset` directory name.
 - `SUPERSET_HOME_DIR` must point at a disposable worktree-local profile, normally `<repo>/superset-dev-data`, so E2E does not touch the developer's daily desktop profile.
 - `bun run dev:worktree:start` starts Docker data services (`postgres`, `neon-proxy`, `electric`, `redis`, `kv-rest`), runs `db:migrate`, runs `db:seed-dev`, prepares desktop predev state, and starts `api`, `relay`, `electric-proxy`, and `desktop` in tmux sessions.
+- Before migrations, seed, app service startup, stop, or cleanup, worktree lifecycle commands must reject stale `.env` values that do not point at the current worktree id/root or that point critical service URLs outside localhost/127.0.0.1 on the allocated local ports.
 - Worktree tmux state lives under `.tmp/worktree-dev/`, with socket `.tmp/worktree-dev/tmux.sock` and logs `.tmp/worktree-dev/logs/<service>.log`.
 - API runs on `API_PORT` and is required for email/password login, registration, organization/project/workspace writes, and auth/session checks.
 - `apps/electric-proxy` runs on `WRANGLER_PORT` and is the auth-aware Electric proxy used by V2 collections.
@@ -89,6 +91,8 @@ Use this contract before any desktop-facing Trellis acceptance run in a Superset
 ### 4. Validation & Error Matrix
 
 - Docker/OrbStack is not ready -> `dev:worktree:start` waits, then fails before migrations; start Docker/OrbStack and rerun the command.
+- Managed `.env` block is missing, has a stale `SUPERSET_WORKTREE_ID`, has a stale `SUPERSET_WORKTREE_ROOT`, or has a `LOCAL_DB_PROJECT` without the current id -> `dev:worktree:start` must rerun `.superset/setup.local.sh` before running migrations or app services.
+- Critical local URLs point at non-local hosts or ports that do not match the managed local allocation -> `dev:worktree:start` must rerun setup, and destructive commands such as `stop`, `cleanup`, or `run-service` must refuse to continue.
 - Docker DB stack is down -> API auth and DB-backed workspace writes fail; use `bun run dev:worktree:start` or inspect `bun run dev:worktree:status`.
 - Neon proxy cannot execute SQL -> migrations/seeding or fixture helpers are unsafe; fix `LOCAL_NEON_PROXY_PORT`, `DATABASE_URL`, or the Docker compose project before E2E.
 - API is down -> login/register blocks or renderer calls to `NEXT_PUBLIC_API_URL` fail; inspect `.tmp/worktree-dev/logs/api.log`.

@@ -20,6 +20,7 @@ import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
 import {
 	cloneRepoInto,
+	deriveCloneDirectoryName,
 	initLocalRepoInPlace,
 	parseGitCloneProgressLine,
 	resolveLocalRepo,
@@ -330,6 +331,23 @@ describe("initLocalRepoInPlace", () => {
 });
 
 // ── cloneRepoInto ─────────────────────────────────────────────────
+
+describe("deriveCloneDirectoryName", () => {
+	test("uses owner and repo for GitHub URLs to avoid same-name collisions", () => {
+		expect(deriveCloneDirectoryName("https://github.com/org-a/web.git")).toBe(
+			"org-a-web",
+		);
+		expect(deriveCloneDirectoryName("git@github.com:org-b/web.git")).toBe(
+			"org-b-web",
+		);
+	});
+
+	test("keeps local path clone names repo-like", () => {
+		expect(deriveCloneDirectoryName("/tmp/source-repo.git")).toBe(
+			"source-repo",
+		);
+	});
+});
 
 describe("cloneRepoInto", () => {
 	let parentDir: string;

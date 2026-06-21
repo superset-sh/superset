@@ -442,7 +442,22 @@ export async function cloneTemplateInto(
 	}
 }
 
-function deriveCloneDirectoryName(repoCloneUrl: string): string {
+function safeDirectoryName(value: string): string {
+	return value
+		.trim()
+		.replace(/\.git$/i, "")
+		.replace(/[^a-zA-Z0-9._-]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+}
+
+export function deriveCloneDirectoryName(repoCloneUrl: string): string {
+	const parsedUrl = parseGitHubRemote(repoCloneUrl);
+	if (parsedUrl) {
+		const owner = safeDirectoryName(parsedUrl.owner);
+		const name = safeDirectoryName(parsedUrl.name);
+		if (owner && name) return `${owner}-${name}`;
+	}
+
 	const normalized = repoCloneUrl
 		.trim()
 		.replace(/[?#].*$/, "")
@@ -474,7 +489,7 @@ export async function cloneRepoInto(
 	const expectedSlug = parsedUrl
 		? `${parsedUrl.owner}/${parsedUrl.name}`
 		: null;
-	const repoName = parsedUrl?.name ?? deriveCloneDirectoryName(repoCloneUrl);
+	const repoName = deriveCloneDirectoryName(repoCloneUrl);
 
 	const resolvedParentDir = resolvePath(parentDir);
 	ensureDirectoryPath(resolvedParentDir, "Parent directory");

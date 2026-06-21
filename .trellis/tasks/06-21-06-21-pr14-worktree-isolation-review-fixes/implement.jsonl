@@ -1,0 +1,4 @@
+{"file":".trellis/spec/guides/desktop-acceptance-tdd.md","reason":"Worktree lifecycle command and local service safety contract"}
+{"file":".trellis/spec/guides/quality-and-testing.md","reason":"Local dev service validation expectations"}
+{"file":".trellis/spec/guides/terminal-and-host-runtime.md","reason":"Host-service and local runtime boundaries"}
+{"file":".trellis/spec/host-service/backend/index.md","reason":"Host-service backend package index"}

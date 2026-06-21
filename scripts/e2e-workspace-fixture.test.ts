@@ -3,6 +3,7 @@ import {
 	assertSafeDatabaseUrl,
 	cleanupCandidatesForProject,
 	parseFixtureArgs,
+	repoDirectoryCandidatesFromUrl,
 	repoNameFromUrl,
 } from "./e2e-workspace-fixture";
 
@@ -42,6 +43,9 @@ describe("e2e workspace fixture helpers", () => {
 			"paseo",
 		);
 		expect(
+			repoDirectoryCandidatesFromUrl("git@github.com:getpaseo/paseo.git"),
+		).toEqual(["getpaseo-paseo", "paseo"]);
+		expect(
 			cleanupCandidatesForProject({
 				id: "10000000-0000-4000-8000-000000001286",
 				slug: "e2e-paseo-progress-1285",
@@ -52,6 +56,7 @@ describe("e2e workspace fixture helpers", () => {
 			"10000000-0000-4000-8000-000000001286",
 			"e2e-paseo-progress-1285",
 			"Paseo",
+			"getpaseo-paseo",
 			"paseo",
 		]);
 	});

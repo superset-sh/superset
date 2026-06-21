@@ -107,6 +107,35 @@ export function repoNameFromUrl(
 		: lastSegment;
 }
 
+function safeDirectoryName(value: string): string {
+	return value
+		.trim()
+		.replace(/\.git$/i, "")
+		.replace(/[^a-zA-Z0-9._-]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+}
+
+export function repoDirectoryCandidatesFromUrl(
+	repoUrl: string | null | undefined,
+): string[] {
+	if (!repoUrl) return [];
+	const repoName = repoNameFromUrl(repoUrl);
+	const withoutTrailingSlash = repoUrl
+		.replace(/\/+$/, "")
+		.replace(/\.git$/i, "");
+	const githubMatch = withoutTrailingSlash.match(
+		/github\.com[:/]([^/:\s]+)[/:]([^/:\s]+)$/i,
+	);
+	const owner = githubMatch?.[1] ? safeDirectoryName(githubMatch[1]) : null;
+	const name = githubMatch?.[2] ? safeDirectoryName(githubMatch[2]) : null;
+	return [owner && name ? `${owner}-${name}` : null, repoName]
+		.filter((value): value is string => Boolean(value))
+		.filter(
+			(value, index, values) =>
+				value.length > 0 && values.indexOf(value) === index,
+		);
+}
+
 export function cleanupCandidatesForProject(project: {
 	id: string;
 	slug: string;
@@ -117,7 +146,7 @@ export function cleanupCandidatesForProject(project: {
 		project.id,
 		project.slug,
 		project.name,
-		repoNameFromUrl(project.repoCloneUrl),
+		...repoDirectoryCandidatesFromUrl(project.repoCloneUrl),
 	]
 		.filter((value): value is string => Boolean(value))
 		.map((value) => value.trim())

@@ -12,6 +12,8 @@ ROOT_DIR="$(cd "$SUPERSET_SCRIPT_DIR/.." && pwd)"
 # shellcheck source=/dev/null
 source "$SUPERSET_SCRIPT_DIR/lib/common.sh"
 # shellcheck source=/dev/null
+source "$SUPERSET_SCRIPT_DIR/lib/worktree-local.sh"
+# shellcheck source=/dev/null
 source "$SUPERSET_SCRIPT_DIR/lib/setup/steps.sh" # reuse allocate_port_base + helpers
 
 cd "$ROOT_DIR" || exit 1
@@ -19,6 +21,8 @@ cd "$ROOT_DIR" || exit 1
 ELECTRIC_SECRET_VALUE="local_electric_dev_secret"
 
 # Set by local_allocate_ports; consumed by docker compose + .env writing.
+SUPERSET_WORKTREE_ID=""
+SUPERSET_WORKTREE_ROOT=""
 LOCAL_DB_PROJECT=""
 LOCAL_PG_PORT=""
 LOCAL_NEON_PROXY_PORT=""
@@ -26,10 +30,6 @@ LOCAL_ELECTRIC_PORT=""
 LOCAL_REDIS_PORT=""
 LOCAL_KV_REST_PORT=""
 DESKTOP_AUTOMATION_PORT=""
-
-sanitize_name() {
-  echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-48
-}
 
 local_ensure_env() {
   echo "📂 Preparing .env..."
@@ -69,7 +69,21 @@ local_allocate_ports() {
     return 1
   fi
   local base="$SUPERSET_PORT_BASE"
-  LOCAL_DB_PROJECT="superset-$(sanitize_name "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}")"
+  SUPERSET_WORKTREE_ID="$(worktree_path_hash "$PWD")"
+  SUPERSET_WORKTREE_ROOT="$(worktree_physical_root "$PWD")"
+  SUPERSET_WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(worktree_default_workspace_name "$PWD")}"
+  if [ -n "${LOCAL_DB_PROJECT:-}" ]; then
+    LOCAL_DB_PROJECT="$(worktree_sanitize_name "$LOCAL_DB_PROJECT")"
+    case "$LOCAL_DB_PROJECT" in
+      *"$SUPERSET_WORKTREE_ID"*) ;;
+      *)
+        local max_prefix_len=$((63 - ${#SUPERSET_WORKTREE_ID} - 1))
+        LOCAL_DB_PROJECT="$(printf '%s-%s' "$(printf '%s' "$LOCAL_DB_PROJECT" | cut -c1-"$max_prefix_len")" "$SUPERSET_WORKTREE_ID")"
+        ;;
+    esac
+  else
+    LOCAL_DB_PROJECT="$(worktree_default_db_project "$PWD")"
+  fi
 
   # DB stack host ports live in the free tail of the 20-port window
   # (app ports use +0..+13; Electric reuses the +9 ELECTRIC_PORT slot).
@@ -95,6 +109,7 @@ local_allocate_ports() {
   [ -n "$existing_redis" ] && LOCAL_REDIS_PORT="$existing_redis"
   [ -n "$existing_kv" ] && LOCAL_KV_REST_PORT="$existing_kv"
 
+  export SUPERSET_WORKTREE_ID SUPERSET_WORKTREE_ROOT SUPERSET_WORKSPACE_NAME LOCAL_DB_PROJECT
   export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT
   export LOCAL_REDIS_PORT LOCAL_KV_REST_PORT
   export DESKTOP_AUTOMATION_PORT
@@ -217,8 +232,10 @@ local_write_env() {
   {
     echo ""
     echo "# ===== Local workspace overrides (setup.local.sh) ====="
-    write_env_var "SUPERSET_WORKSPACE_NAME" "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
-    write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
+    write_env_var "SUPERSET_WORKTREE_ID" "$SUPERSET_WORKTREE_ID"
+    write_env_var "SUPERSET_WORKTREE_ROOT" "$SUPERSET_WORKTREE_ROOT"
+    write_env_var "SUPERSET_WORKSPACE_NAME" "$SUPERSET_WORKSPACE_NAME"
+    write_env_var "SUPERSET_HOME_DIR" "$(worktree_expected_home_dir "$PWD")"
     write_env_var "SUPERSET_PORT_BASE" "$BASE"
     write_env_var "LOCAL_DB_PROJECT" "$LOCAL_DB_PROJECT"
     echo ""
