@@ -570,8 +570,8 @@ export const workspacesRouter = router({
 					: null;
 			aiNamesPromise?.catch(() => {});
 
-			// True only when AI naming ran and returned nothing — never on the
-			// PR / worktree-adopt paths, which don't attempt naming.
+			// Stays false on the PR / worktree-adopt paths, which never attempt
+			// naming — so those can't produce a fallback warning.
 			let autoNameFellBack = false;
 
 			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
