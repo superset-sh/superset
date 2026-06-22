@@ -1,0 +1,32 @@
+---
+title: CLI deep links for agent sessions and terminal settings improvements
+date: 2026-06-22
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with actual screenshot */}
+
+## Open Specific Agent Sessions via Deep Link <PRBadge url="https://github.com/superset-sh/superset/pull/5032" />
+
+You can now deep-link directly into a specific chat or terminal session in the desktop app — not just a workspace. Pair `superset agents run --json` with the new URL scheme to land exactly where you need to be.
+
+- Use `?chatSessionId=` for Superset chat sessions, `?terminalId=` for terminal sessions
+- Add `&focusRequestId=` to force a re-focus if the link was already consumed
+- Works on macOS (`open`), Linux (`xdg-open`), and Windows (`start`)
+
+```bash
+# Start an agent and jump straight to its session
+result=$(superset agents run --agent superset --workspace <id> --json)
+sessionId=$(echo "$result" | jq -r '.sessionId')
+open "superset://v2-workspace/<workspaceId>?chatSessionId=$sessionId"
+```
+
+## Improvements
+
+- **Terminal daemon settings are now searchable** — The daemon controls section in Settings is titled "Terminal Daemon" and responds to keywords like `daemon`, `pty daemon`, `supervisor`, and `restart daemon`. Previously, searching "daemon" returned nothing. <PRBadge url="https://github.com/superset-sh/superset/pull/5308" />
+
+---
+
+**Bug fixes**
+
+- Fixed CLI binaries reporting the wrong version (`0.2.19` instead of `0.2.23`), which caused a permanent "update available" prompt for users on recent releases <PRBadge url="https://github.com/superset-sh/superset/pull/5296" />
