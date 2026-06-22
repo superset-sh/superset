@@ -990,6 +990,7 @@ ${sanitizeText(truncatedBody)}`;
 										)
 									: aiBranchName) || undefined,
 							compareBaseBranch: compareBaseBranch || undefined,
+							sectionId: draft.sectionId ?? undefined,
 						},
 						{
 							agentLaunchRequest: launchRequest ?? undefined,
@@ -1019,6 +1020,7 @@ ${sanitizeText(truncatedBody)}`;
 		[
 			attachments,
 			compareBaseBranch,
+			draft.sectionId,
 			branchName,
 			branchNameEdited,
 			buildLaunchRequest,
