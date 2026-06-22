@@ -137,12 +137,12 @@ export function createFsHostService(
 
 	return {
 		async listDirectory(input, options) {
-			const entries = await listDirectory({
+			const { entries, truncated } = await listDirectory({
 				rootPath,
 				absolutePath: input.absolutePath,
 				signal: options?.signal,
 			});
-			return { entries };
+			return { entries, truncated };
 		},
 
 		async readFile(input) {

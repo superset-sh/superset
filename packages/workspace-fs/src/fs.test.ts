@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createDirectory, readFile, writeFile } from "./fs";
+import { createDirectory, listDirectory, readFile, writeFile } from "./fs";
 
 const tempRoots: string[] = [];
 
@@ -279,5 +279,76 @@ describe("createDirectory", () => {
 		}
 
 		expect(didThrow).toEqual(true);
+	});
+});
+
+// Reproduces #5320: opening a workspace whose tree contains a large
+// non-gitignored directory (e.g. nested node_modules, ~150k+ entries) drives
+// the renderer's V8 heap to its ~4 GB ceiling and crashes it (exitCode 5),
+// then re-crashes on reload -> permanent crash loop.
+//
+// `listDirectory` is the enumeration primitive every Files View tree consumes
+// (renderer FilesView / useFileTree / v2 FilesTab all fetch through it via
+// `filesystem.listDirectory`). Unlike the search-index walk and the file
+// watcher — both of which bound themselves (`DEFAULT_IGNORE_PATTERNS`,
+// `FILE_PATHS_MAX`, `MAX_BUFFERED_EVENTS`) — this primitive returned every
+// entry in a directory with no cap, so a single huge directory forces the
+// renderer to materialize an unbounded number of tree nodes.
+describe("listDirectory", () => {
+	it("lists entries with directories sorted before files", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(path.join(rootPath, "b.txt"), "");
+		await fs.mkdir(path.join(rootPath, "a-dir"));
+
+		const { entries, truncated } = await listDirectory({
+			rootPath,
+			absolutePath: rootPath,
+		});
+
+		expect(entries.map((entry) => entry.name)).toEqual(["a-dir", "b.txt"]);
+		expect(truncated).toEqual(false);
+	});
+
+	it("caps the number of entries returned and flags truncation", async () => {
+		const rootPath = await createTempRoot();
+		// A directory with many direct children. Without a cap the renderer
+		// receives every entry and materializes a tree node per file.
+		const fileCount = 50;
+		await Promise.all(
+			Array.from({ length: fileCount }, (_, index) =>
+				fs.writeFile(
+					path.join(rootPath, `file-${String(index).padStart(4, "0")}.txt`),
+					"",
+				),
+			),
+		);
+
+		const limit = 10;
+		const { entries, truncated } = await listDirectory({
+			rootPath,
+			absolutePath: rootPath,
+			limit,
+		});
+
+		expect(entries.length).toEqual(limit);
+		expect(truncated).toEqual(true);
+	});
+
+	it("does not flag truncation when entry count is within the cap", async () => {
+		const rootPath = await createTempRoot();
+		await Promise.all(
+			Array.from({ length: 5 }, (_, index) =>
+				fs.writeFile(path.join(rootPath, `file-${index}.txt`), ""),
+			),
+		);
+
+		const { entries, truncated } = await listDirectory({
+			rootPath,
+			absolutePath: rootPath,
+			limit: 10,
+		});
+
+		expect(entries.length).toEqual(5);
+		expect(truncated).toEqual(false);
 	});
 });
