@@ -8,6 +8,7 @@ import { useEffect, useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
@@ -37,6 +38,7 @@ export function useDashboardSidebarPortsData(): {
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
+	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
 
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
@@ -48,7 +50,7 @@ export function useDashboardSidebarPortsData(): {
 		[collections],
 	);
 
-	const { data: workspaces = [] } = useLiveQuery(
+	const { data: allWorkspaces = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ workspaces: collections.v2Workspaces })
@@ -58,6 +60,13 @@ export function useDashboardSidebarPortsData(): {
 					hostId: workspaces.hostId,
 				})),
 		[collections],
+	);
+	const workspaces = useMemo(
+		() =>
+			allWorkspaces.filter((workspace) =>
+				visibleWorkspaceIds.has(workspace.id),
+			),
+		[allWorkspaces, visibleWorkspaceIds],
 	);
 
 	const hostsToQuery = useMemo(

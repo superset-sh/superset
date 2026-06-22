@@ -1,4 +1,5 @@
 export { processOpenNewResults } from "./processOpenNewResults";
+export { useCreateV1Project } from "./useCreateV1Project";
 export {
 	type ProjectSetupResult,
 	useFinalizeProjectSetup,

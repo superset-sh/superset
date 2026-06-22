@@ -26,7 +26,7 @@
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
-		"better-auth": "1.6.5",
+		"better-auth": "1.6.13",
 		"drizzle-orm": "0.45.2",
 		"superjson": "2.2.6",
 		"zod": "4.3.6"
@@ -35,6 +35,6 @@
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
 		"bun-types": "1.3.11",
-		"typescript": "5.9.3"
+		"typescript": "6.0.3"
 	}
 }

@@ -435,6 +435,7 @@ export function PromptGroup({
 					key={resetKey}
 					content={prompt}
 					onChange={(markdown) => updateDraft({ prompt: markdown })}
+					onPasteFiles={(files) => attachments.add(files)}
 					autoFocus="start"
 					placeholder="What do you want to do?"
 					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"

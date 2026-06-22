@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { workspaces } from "../../../db/schema";
+import { terminalSessions, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
@@ -12,6 +12,10 @@ import type {
 	TeardownFailureCause,
 } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
+import {
+	normalizeWorktreePath,
+	parseWorktreeList,
+} from "../workspace-creation/shared/worktree-list";
 import { isMainWorkspace } from "./is-main-workspace";
 
 /**
@@ -272,6 +276,26 @@ async function runDestroy(
 		warnings.push(`Failed to dispose terminal sessions: ${message}`);
 	}
 
+	// Drop this workspace's terminal rows so its session index dies with it
+	// rather than lingering as `set null` orphans. Confirmed-dead rows only:
+	// a still-`active` row is a failed kill we keep reachable for the reaper.
+	try {
+		ctx.db
+			.delete(terminalSessions)
+			.where(
+				and(
+					eq(terminalSessions.originWorkspaceId, input.workspaceId),
+					ne(terminalSessions.status, "active"),
+				),
+			)
+			.run();
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		warnings.push(
+			`Failed to clear terminal session rows for ${input.workspaceId}: ${message}`,
+		);
+	}
+
 	// 2b. Worktree. Double-force unlocks the rare locked-worktree case and
 	//     clears stale metadata when the directory was manually removed.
 	let worktreeRemoved = false;
@@ -303,26 +327,41 @@ async function runDestroy(
 		}
 
 		if (git) {
+			// Remove against git's canonical path so a symlinked stored path
+			// (macOS `/var` → `/private/var`) still matches its registration.
+			const canonicalPath = normalizeWorktreePath(local.worktreePath);
+			// Best-effort: we trust git's registry below, not the command's
+			// exit text, which is locale- and version-dependent. `--force
+			// --force` also unregisters a worktree whose directory is already
+			// gone, so no separate prune (which would clobber other stale
+			// worktrees' metadata) is needed.
+			await git
+				.raw(["worktree", "remove", "--force", "--force", canonicalPath])
+				.catch(() => {});
+
+			// A `worktree list` failure here means the post-remove state is
+			// unknown — treat that like "still registered" and block rather
+			// than risk orphaning disk past the cloud commit point.
+			let stillRegistered = true;
 			try {
-				await git.raw([
-					"worktree",
-					"remove",
-					"--force",
-					"--force",
-					local.worktreePath,
-				]);
-				worktreeRemoved = true;
+				stillRegistered = await isRegisteredWorktree(git, local.worktreePath);
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
-				if (!existsSync(local.worktreePath)) {
-					worktreeRemoved = true;
-				} else {
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: `Failed to remove worktree at ${local.worktreePath}: ${message}`,
-					});
-				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to verify worktree removal at ${local.worktreePath}: ${message}`,
+				});
 			}
+			if (stillRegistered) {
+				// git still tracks a live worktree here — removal genuinely
+				// failed. Keep the cloud row so the workspace stays visible and
+				// retryable instead of orphaning disk past the cloud commit point.
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to remove worktree at ${local.worktreePath}`,
+				});
+			}
+			worktreeRemoved = true;
 		}
 	}
 
@@ -334,7 +373,13 @@ async function runDestroy(
 	// workspace stays visible/retryable and the branch pointer remains intact.
 	if (git && local?.branch && input.deleteBranch) {
 		try {
-			await git.raw(["branch", "-D", local.branch]);
+			// An absent ref (renamed, pruned, or never materialized) already
+			// satisfies the goal, so skip the delete without a scary warning.
+			// A thrown git failure falls through to the warning below rather
+			// than being mistaken for "already gone".
+			if (await localBranchExists(git, local.branch)) {
+				await git.raw(["branch", "-D", local.branch]);
+			}
 			branchDeleted = true;
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
@@ -370,4 +415,30 @@ async function runDestroy(
 		branchDeleted,
 		warnings,
 	};
+}
+
+// Authoritative "is this still a worktree git tracks" check — reads git's own
+// registry (realpath-canonicalized) instead of parsing remove's error text.
+// Calls `git.raw` directly rather than the swallowing `listGitWorktrees` so a
+// failed `worktree list` throws (state unknown) instead of looking empty.
+async function isRegisteredWorktree(
+	git: Awaited<ReturnType<HostServiceContext["git"]>>,
+	worktreePath: string,
+): Promise<boolean> {
+	const target = normalizeWorktreePath(worktreePath);
+	const raw = await git.raw(["worktree", "list", "--porcelain"]);
+	return parseWorktreeList(raw).some(
+		(w) => normalizeWorktreePath(w.path) === target,
+	);
+}
+
+// `branch --list` exits 0 whether or not the branch exists (empty output when
+// absent), so a thrown error is a real git failure — not a missing ref — and
+// propagates instead of being misread as "already deleted".
+async function localBranchExists(
+	git: Awaited<ReturnType<HostServiceContext["git"]>>,
+	branch: string,
+): Promise<boolean> {
+	const out = await git.raw(["branch", "--list", branch]);
+	return out.trim().length > 0;
 }

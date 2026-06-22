@@ -8,6 +8,7 @@ import {
 	useFinalizeProjectSetup,
 } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useRequestGitInitConfirm } from "renderer/stores/git-init-confirm";
 
 export interface UseFolderFirstImportResult {
 	start: () => Promise<ProjectSetupResult | null>;
@@ -26,6 +27,7 @@ export function useFolderFirstImport(options?: {
 	const { activeHostUrl } = hostService;
 	const finalizeSetup = useFinalizeProjectSetup();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
+	const requestGitInit = useRequestGitInitConfirm();
 	const { onError, onMultipleProjects } = options ?? {};
 
 	const start = useCallback(async (): Promise<ProjectSetupResult | null> => {
@@ -54,6 +56,20 @@ export function useFolderFirstImport(options?: {
 		let candidates: MatchingProject[];
 		try {
 			const response = await client.project.findByPath.query({ repoPath });
+
+			// Folder isn't a git repo yet: offer to `git init` it, then import
+			// via the create path with init enabled.
+			if ("needsGitInit" in response && response.needsGitInit) {
+				const confirmed = await requestGitInit(repoPath);
+				if (!confirmed) return null;
+				const result = await client.project.create.mutate({
+					name: getBaseName(repoPath),
+					mode: { kind: "importLocal", repoPath, initIfNeeded: true },
+				});
+				finalizeSetup(activeHostUrl, result);
+				return result;
+			}
+
 			candidates = response.candidates;
 			if (candidates.length === 0 && response.cloudErrors.length > 0) {
 				const first = response.cloudErrors[0];
@@ -107,6 +123,7 @@ export function useFolderFirstImport(options?: {
 		hostService,
 		onError,
 		onMultipleProjects,
+		requestGitInit,
 		selectDirectory,
 	]);
 

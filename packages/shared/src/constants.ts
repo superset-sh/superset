@@ -59,12 +59,17 @@ export const TEARDOWN_TIMEOUT_MS = 60_000;
 // PostHog
 export const POSTHOG_COOKIE_NAME = "superset";
 
-// Users whose account was created at or after this instant are v2-only:
-// the v1↔v2 surface switch is hidden and v2 cloud is forced on. Pre-cutoff
-// users keep the existing opt-in toggle. Stored as an ISO string so the
-// value is identical on server, desktop renderer, web, and admin.
+// Users whose account was created within the window
+// [V2_ONLY_USER_CUTOFF, V2_NEW_USER_V1_EXPERIMENT_START) are v2-only: the v1↔v2
+// surface switch is hidden and v2 cloud is forced on. Pre-cutoff users keep the
+// existing opt-in toggle. Accounts created at or after the experiment start are
+// sent to v1 (the new-users-v1 experiment) and are never forced into v2. Stored
+// as ISO strings so the values are identical on server, desktop renderer, web,
+// and admin.
 // 2026-05-15 14:00 UTC = Fri 07:00 PDT / 10:00 EDT.
 export const V2_ONLY_USER_CUTOFF = "2026-05-15T14:00:00.000Z";
+// 2026-06-08 06:59 UTC = Sun 23:59 PDT (11:59pm Pacific).
+export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-08T06:59:00.000Z";
 
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
@@ -84,13 +89,6 @@ export const FEATURE_FLAGS = {
 	 * piggybacks on the existing All Access cohort. Off → v1.
 	 */
 	SLACK_MCP_V2: "slack-mcp-v2",
-	/**
-	 * Gates the v2 desktop terminal's "Share remote control" button.
-	 * Evaluated against the sharer's Superset user id — anyone with the
-	 * resulting share link can still open it (the per-session HMAC is
-	 * the credential), so this only controls who can START a session.
-	 */
-	WEB_REMOTE_CONTROL_ACCESS: "web-remote-control-access",
 	/**
 	 * Per-user override for the relay base URL. Payload shape:
 	 * `{ "url": "https://..." }`. When set, both the host-service tunnel and

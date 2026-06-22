@@ -19,6 +19,9 @@ const verifyOrgMembershipMock = mock(async () => ({
 const verifyOrgAdminMock = mock(async () => ({
 	membership: { role: "owner" },
 }));
+const verifyOrgOwnerMock = mock(async () => ({
+	membership: { role: "owner" },
+}));
 const verifyOrgMembershipWithSubscriptionMock = mock(async () => ({
 	membership: { role: "member" },
 	subscription: null,
@@ -178,6 +181,7 @@ mock.module("../../lib/upload", () => ({
 
 mock.module("../integration/utils", () => ({
 	verifyOrgAdmin: verifyOrgAdminMock,
+	verifyOrgOwner: verifyOrgOwnerMock,
 	verifyOrgMembership: verifyOrgMembershipMock,
 	verifyOrgMembershipWithSubscription: verifyOrgMembershipWithSubscriptionMock,
 }));
@@ -300,6 +304,10 @@ beforeEach(() => {
 	}));
 	verifyOrgAdminMock.mockReset();
 	verifyOrgAdminMock.mockImplementation(async () => ({
+		membership: { role: "owner" },
+	}));
+	verifyOrgOwnerMock.mockReset();
+	verifyOrgOwnerMock.mockImplementation(async () => ({
 		membership: { role: "owner" },
 	}));
 
@@ -546,8 +554,14 @@ describe("v2Project.delete", () => {
 		});
 	});
 
-	it("rejects when the caller is not a member of the organization", async () => {
-		setMembershipForJwt(OTHER_ORG_ID);
+	it("rejects when the caller is not an owner of the organization", async () => {
+		setMembershipForJwt();
+		verifyOrgOwnerMock.mockImplementationOnce(async () => {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Only owners can delete projects",
+			});
+		});
 		const caller = createCaller(authedContext());
 
 		await expect(caller.v2Project.delete(input)).rejects.toMatchObject({

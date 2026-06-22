@@ -30,7 +30,9 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 			? "Merged"
 			: pr.state === "closed"
 				? "Closed"
-				: "Open";
+				: pr.state === "queued"
+					? "Queued"
+					: "Open";
 	const statePillClass = stateLabelToPillClass(linkState);
 
 	const updatedRelative = pr.updatedAt
@@ -185,5 +187,7 @@ function stateLabelToPillClass(state: PRState): string {
 			return "bg-rose-500/10 text-rose-600 dark:text-rose-400";
 		case "draft":
 			return "bg-muted text-muted-foreground";
+		case "queued":
+			return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
 	}
 }

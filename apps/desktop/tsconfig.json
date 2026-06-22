@@ -2,9 +2,8 @@
 	"extends": "@superset/typescript/electron.json",
 	"compilerOptions": {
 		"types": ["bun"],
-		"baseUrl": ".",
 		"paths": {
-			"*": ["src/*"],
+			"*": ["./src/*"],
 			"~/*": ["./*"]
 		}
 	},

@@ -91,7 +91,7 @@ export type PRLinkVariant =
 	| { kind: "none" }
 	| {
 			kind: "pr-link";
-			state: "open" | "draft" | "merged" | "closed";
+			state: "open" | "draft" | "merged" | "closed" | "queued";
 			number: number;
 			url: string;
 	  };
@@ -105,7 +105,9 @@ export function selectPRLink(state: PRFlowState): PRLinkVariant {
 			? "merged"
 			: pr.state === "closed"
 				? "closed"
-				: "open";
+				: pr.state === "queued"
+					? "queued"
+					: "open";
 	return {
 		kind: "pr-link",
 		state: linkState,
@@ -126,6 +128,7 @@ export function selectStatusBadge(state: PRFlowState): string | null {
 			if (state.pr.isDraft) return "Draft";
 			if (state.pr.state === "merged") return "Merged";
 			if (state.pr.state === "closed") return "Closed";
+			if (state.pr.state === "queued") return "Queued";
 			return "Open";
 		case "busy":
 			return "Agent working…";

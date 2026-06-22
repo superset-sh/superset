@@ -30,11 +30,7 @@ jobs:
         run: bun install --frozen --ignore-scripts
 
       - name: Sherif
-        # Deliberate version split: web's RemoteTerminal viewer uses the
-        # stable @xterm/xterm@5.x track; desktop uses the beta 6.x track
-        # for kittyKeyboard / scrollbar options that aren't on stable yet.
-        # See the comment in apps/web/.../RemoteTerminal/RemoteTerminal.tsx.
-        run: bunx sherif -i @xterm/addon-fit -i @xterm/xterm
+        run: bunx sherif
 
   lint:
     name: Lint

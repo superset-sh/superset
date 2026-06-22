@@ -1,6 +1,5 @@
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiArrowLeft } from "react-icons/hi2";
 import { LuCircleHelp } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -11,8 +10,7 @@ interface OnboardingNavigationProps {
 	totalSteps: number;
 	onBack: (() => void) | null;
 	onContinue: (() => void) | null;
-	onSkip: (() => void) | null;
-	skipDisabled?: boolean;
+	continueDisabled?: boolean;
 	continueLabel: string;
 }
 
@@ -21,60 +19,50 @@ export function OnboardingNavigation({
 	totalSteps,
 	onBack,
 	onContinue,
-	onSkip,
-	skipDisabled,
+	continueDisabled,
 	continueLabel,
 }: OnboardingNavigationProps) {
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 
 	return (
-		<div className="border-t border-border">
-			{/* Same max-w / px as the step content so Back and Continue line up
-			    with the column edges above them. */}
-			<div className="mx-auto flex w-full max-w-2xl items-center gap-4 px-8 py-4">
-				<div className="flex flex-1 items-center justify-start gap-1">
+		<div className="mx-auto flex w-full max-w-[1200px] items-center px-12 pt-4 pb-8">
+			<div className="flex flex-1 justify-start">
+				<div className="w-[160px]">
 					{onBack && (
-						<Button size="sm" variant="ghost" onClick={onBack}>
+						<Button
+							size="sm"
+							variant="ghost"
+							className="w-full"
+							onClick={onBack}
+						>
 							<HiArrowLeft />
 							Back
 						</Button>
 					)}
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								size="icon-sm"
-								variant="ghost"
-								className="text-muted-foreground"
-								aria-label="Get support"
-								onClick={() => openUrl.mutate(COMPANY.REPORT_ISSUE_URL)}
-							>
-								<LuCircleHelp />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>Get support</TooltipContent>
-					</Tooltip>
 				</div>
-
+			</div>
+			<div className="flex flex-1 justify-center">
 				<PaginationDots current={currentStep} total={totalSteps} />
-
-				<div className="flex flex-1 items-center justify-end gap-2">
-					{onSkip && (
-						<Button
-							size="sm"
-							variant="ghost"
-							className="text-muted-foreground"
-							onClick={onSkip}
-							disabled={skipDisabled}
-						>
-							Skip for now
-						</Button>
-					)}
-					{onContinue && (
-						<Button size="sm" onClick={onContinue}>
-							{continueLabel}
-						</Button>
-					)}
-				</div>
+			</div>
+			<div className="flex flex-1 items-center justify-end gap-2">
+				<Button
+					size="sm"
+					variant="ghost"
+					onClick={() => openUrl.mutate(COMPANY.REPORT_ISSUE_URL)}
+				>
+					<LuCircleHelp />
+					Get support
+				</Button>
+				{onContinue && (
+					<Button
+						size="sm"
+						className="w-[160px]"
+						onClick={onContinue}
+						disabled={continueDisabled}
+					>
+						{continueLabel}
+					</Button>
+				)}
 			</div>
 		</div>
 	);

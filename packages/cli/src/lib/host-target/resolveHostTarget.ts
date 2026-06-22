@@ -57,7 +57,10 @@ export function resolveHostTarget(
 					httpBatchLink({
 						url: `${manifest.endpoint}/trpc`,
 						transformer: SuperJSON,
-						headers: { Authorization: `Bearer ${manifest.authToken}` },
+						headers: {
+							Authorization: `Bearer ${manifest.authToken}`,
+							"x-superset-client-machine-id": localHostId,
+						},
 					}),
 				],
 			}),
@@ -73,7 +76,10 @@ export function resolveHostTarget(
 				httpBatchLink({
 					url: `${env.RELAY_URL}/hosts/${routingKey}/trpc`,
 					transformer: SuperJSON,
-					headers: { Authorization: `Bearer ${options.userJwt}` },
+					headers: {
+						Authorization: `Bearer ${options.userJwt}`,
+						"x-superset-client-machine-id": localHostId,
+					},
 				}),
 			],
 		}),

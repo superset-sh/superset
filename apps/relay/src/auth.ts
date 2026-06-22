@@ -35,7 +35,17 @@ export async function verifyJWT(
 
 		return { sub, email: email ?? "", organizationIds };
 	} catch (error) {
-		console.error("[relay] JWT verification failed:", error);
+		// Don't log expected hourly-rotation expiries, and log only the terse
+		// message otherwise: the full error dumped a stack trace + decoded
+		// payload (plaintext emails) on every request at relay volume.
+		const code =
+			error instanceof Error && "code" in error
+				? (error as { code?: string }).code
+				: undefined;
+		if (code !== "ERR_JWT_EXPIRED") {
+			const message = error instanceof Error ? error.message : String(error);
+			console.warn(`[relay] JWT verification failed: ${message}`);
+		}
 		return null;
 	}
 }

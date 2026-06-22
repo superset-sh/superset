@@ -26,6 +26,7 @@
 		"---BookOpen Guides---",
 		"setup-teardown-scripts",
 		"use-with-ide",
+		"use-with-linear",
 		"providers",
 		"using-monorepos",
 		"terminal-presets",

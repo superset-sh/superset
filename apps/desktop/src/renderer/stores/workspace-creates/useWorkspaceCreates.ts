@@ -19,7 +19,7 @@ export interface SubmitArgs {
 }
 
 export type SubmitOutcome =
-	| { ok: true; workspaceId: string }
+	| { ok: true; workspaceId: string; autoNameWarning?: string }
 	| { ok: false; error: string };
 
 export interface SubmitHandle {
@@ -142,7 +142,11 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					if (result.workspace.id !== workspaceId) {
 						deleteWorkspaceLocalState(workspaceId);
 					}
-					return { ok: true, workspaceId: result.workspace.id };
+					return {
+						ok: true,
+						workspaceId: result.workspace.id,
+						autoNameWarning: result.autoNameWarning,
+					};
 				})
 				.catch<SubmitOutcome>((error: unknown) => {
 					const message =

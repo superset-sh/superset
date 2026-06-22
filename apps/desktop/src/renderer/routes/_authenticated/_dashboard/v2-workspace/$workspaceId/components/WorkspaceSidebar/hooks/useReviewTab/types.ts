@@ -3,7 +3,7 @@ export interface NormalizedPR {
 	number: number;
 	url: string;
 	title: string;
-	state: "open" | "closed" | "merged" | "draft";
+	state: "open" | "closed" | "merged" | "draft" | "queued";
 	reviewDecision: "approved" | "changes_requested" | "pending";
 	checksStatus: "success" | "failure" | "pending" | "none";
 	checks: NormalizedCheck[];

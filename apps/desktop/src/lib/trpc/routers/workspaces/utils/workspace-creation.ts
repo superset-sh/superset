@@ -257,6 +257,7 @@ export async function createWorkspaceFromExternalWorktree({
 			branch,
 			base_branch: compareBaseBranch,
 			source: "external_import_auto",
+			host_kind: "local",
 		});
 
 		return {
@@ -558,6 +559,7 @@ export async function openExternalWorktree({
 		branch,
 		base_branch: compareBaseBranch,
 		source: "external_import",
+		host_kind: "local",
 	});
 
 	await setBranchBaseConfig({

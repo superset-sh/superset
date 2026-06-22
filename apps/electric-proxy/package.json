@@ -17,7 +17,7 @@
 	"devDependencies": {
 		"@cloudflare/workers-types": "4.20260329.1",
 		"@superset/typescript": "workspace:*",
-		"typescript": "5.9.3",
+		"typescript": "6.0.3",
 		"wrangler": "4.78.0"
 	}
 }

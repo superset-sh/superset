@@ -68,25 +68,27 @@ export function table(
 	data: Record<string, unknown>[],
 	columns: string[],
 	headers?: string[],
-	maxColWidth = 60,
+	maxColWidth: number | (number | undefined)[] = 60,
 ): string {
 	if (data.length === 0) return "No results.";
 
+	const caps = columns.map((_, i) =>
+		Array.isArray(maxColWidth) ? (maxColWidth[i] ?? 60) : maxColWidth,
+	);
 	const hdrs = headers ?? columns.map((c) => c.toUpperCase());
 	const rows = data.map((row) =>
-		columns.map((col) => {
+		columns.map((col, i) => {
 			const val = getNestedValue(row, col);
 			const str = val === null || val === undefined ? "—" : String(val);
-			return str.length > maxColWidth
-				? `${str.slice(0, maxColWidth - 1)}…`
-				: str;
+			const cap = caps[i]!;
+			return str.length > cap ? `${str.slice(0, cap - 1)}…` : str;
 		}),
 	);
 
 	// Calculate column widths (capped by terminal width heuristic)
 	const widths = hdrs.map((h, i) =>
 		Math.min(
-			maxColWidth,
+			caps[i]!,
 			Math.max(h.length, ...rows.map((r) => r[i]?.length ?? 0)),
 		),
 	);

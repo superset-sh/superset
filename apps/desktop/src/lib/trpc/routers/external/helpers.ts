@@ -9,7 +9,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	"vscode-insiders": "Visual Studio Code - Insiders",
 	cursor: "Cursor",
 	antigravity: "Antigravity",
-	windsurf: "Windsurf",
+	devin: "Devin",
 	zed: "Zed",
 	xcode: "Xcode",
 	iterm: "iTerm",
@@ -49,7 +49,7 @@ const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	"vscode-insiders": "code-insiders",
 	cursor: "cursor",
 	antigravity: "antigravity",
-	windsurf: "windsurf",
+	devin: "devin-desktop",
 	zed: "zed",
 	xcode: null, // macOS only
 	iterm: null, // macOS only

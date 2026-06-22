@@ -25,6 +25,8 @@ import {
 	type ResolvedRepo,
 	resolveLocalRepo,
 	resolveMatchingSlug,
+	tryRevParseGitRoot,
+	validateDirectoryPath,
 } from "./utils/resolve-repo";
 
 export const projectRouter = router({
@@ -162,7 +164,22 @@ export const projectRouter = router({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const resolved = await resolveLocalRepo(input.repoPath);
+			// Detect "folder isn't a git repo yet" without throwing, so the import
+			// UI can offer to `git init` it (create importLocal + initIfNeeded)
+			// instead of dead-ending on a BAD_REQUEST. Additive optional field —
+			// repo paths never carry needsGitInit, so existing callers are
+			// unaffected.
+			const root = await tryRevParseGitRoot(input.repoPath);
+			if (root === null) {
+				validateDirectoryPath(input.repoPath, "Path"); // 400 on missing / not-a-dir
+				return {
+					candidates: [],
+					cloudErrors: [] as { url: string; message: string }[],
+					needsGitInit: true as const,
+				};
+			}
+
+			const resolved = await resolveLocalRepo(root);
 			const gitRoot = resolved.repoPath;
 
 			const expectedParsed =
@@ -391,11 +408,20 @@ export const projectRouter = router({
 					z.object({
 						kind: z.literal("importLocal"),
 						repoPath: z.string().min(1),
+						// When set, `git init` a non-git folder in place before
+						// importing. The UI sets this only after confirming intent
+						// with the user (see findByPath's needsGitInit).
+						initIfNeeded: z.boolean().optional().default(false),
 					}),
 					z.object({
 						kind: z.literal("template"),
 						parentDir: z.string().min(1),
-						templateId: z.string().min(1),
+						url: z
+							.string()
+							.min(1)
+							.refine((value) => /^https?:\/\//i.test(value), {
+								message: "Template URL must be http(s)",
+							}),
 					}),
 				]),
 			}),
@@ -411,7 +437,7 @@ export const projectRouter = router({
 					return createFromTemplate(ctx, {
 						name: input.name,
 						parentDir: input.mode.parentDir,
-						templateId: input.mode.templateId,
+						url: input.mode.url,
 					});
 				case "clone":
 					return createFromClone(ctx, {
@@ -423,6 +449,7 @@ export const projectRouter = router({
 					return createFromImportLocal(ctx, {
 						name: input.name,
 						repoPath: input.mode.repoPath,
+						initIfNeeded: input.mode.initIfNeeded,
 					});
 			}
 		}),
@@ -504,6 +531,7 @@ export const projectRouter = router({
 					const resolved = await cloneRepoInto(
 						cloudProject.repoCloneUrl,
 						input.mode.parentDir,
+						ctx.credentials,
 					);
 					persistLocalProject(ctx, input.projectId, resolved);
 					const mainWorkspace = await ensureMainWorkspace(

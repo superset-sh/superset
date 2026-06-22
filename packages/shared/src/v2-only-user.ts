@@ -1,4 +1,7 @@
-import { V2_ONLY_USER_CUTOFF } from "./constants";
+import {
+	V2_NEW_USER_V1_EXPERIMENT_START,
+	V2_ONLY_USER_CUTOFF,
+} from "./constants";
 
 export function isV2OnlyUser(
 	createdAt: Date | string | number | null | undefined,
@@ -9,5 +12,8 @@ export function isV2OnlyUser(
 			? createdAt.getTime()
 			: new Date(createdAt).getTime();
 	if (Number.isNaN(created)) return false;
-	return created >= new Date(V2_ONLY_USER_CUTOFF).getTime();
+	return (
+		created >= new Date(V2_ONLY_USER_CUTOFF).getTime() &&
+		created < new Date(V2_NEW_USER_V1_EXPERIMENT_START).getTime()
+	);
 }

@@ -15,10 +15,16 @@ const selectDirectoryMock = mock(async () => ({
 	canceled: false,
 	path: repoPath,
 }));
-const findByPathMock = mock(async () => ({
-	candidates: [] as { id: string; name: string }[],
-	cloudErrors: [] as (typeof cloudError)[],
-}));
+const findByPathMock = mock(
+	async (): Promise<{
+		candidates: { id: string; name: string }[];
+		cloudErrors: (typeof cloudError)[];
+		needsGitInit?: boolean;
+	}> => ({
+		candidates: [],
+		cloudErrors: [],
+	}),
+);
 const setupMock = mock(async () => setupResult);
 const createMock = mock(async () => ({
 	projectId: "created-project",
@@ -26,6 +32,7 @@ const createMock = mock(async () => ({
 	mainWorkspaceId: "workspace-created",
 }));
 const finalizeSetupMock = mock(() => undefined);
+const requestGitInitMock = mock(async () => false);
 
 mock.module("react", () => ({
 	useCallback: <T extends (...args: never[]) => unknown>(callback: T) =>
@@ -63,6 +70,10 @@ mock.module(
 	}),
 );
 
+mock.module("renderer/stores/git-init-confirm", () => ({
+	useRequestGitInitConfirm: () => requestGitInitMock,
+}));
+
 const { useFolderFirstImport } = await import("./useFolderFirstImport");
 
 describe("useFolderFirstImport", () => {
@@ -73,10 +84,12 @@ describe("useFolderFirstImport", () => {
 			setupMock,
 			createMock,
 			finalizeSetupMock,
+			requestGitInitMock,
 		]) {
 			fn.mockClear();
 		}
 		findByPathMock.mockResolvedValue({ candidates: [], cloudErrors: [] });
+		requestGitInitMock.mockResolvedValue(false);
 	});
 
 	it("reports cloud lookup errors instead of creating a duplicate local import when no candidates exist", async () => {
@@ -96,5 +109,52 @@ describe("useFolderFirstImport", () => {
 		expect(createMock).not.toHaveBeenCalled();
 		expect(setupMock).not.toHaveBeenCalled();
 		expect(finalizeSetupMock).not.toHaveBeenCalled();
+	});
+
+	it("imports with init after the user confirms a non-git folder", async () => {
+		findByPathMock.mockResolvedValue({
+			candidates: [],
+			cloudErrors: [],
+			needsGitInit: true,
+		});
+		requestGitInitMock.mockResolvedValue(true);
+		const onError = mock(() => undefined);
+
+		const result = await useFolderFirstImport({ onError }).start();
+
+		expect(requestGitInitMock).toHaveBeenCalledWith(repoPath);
+		expect(createMock).toHaveBeenCalledWith({
+			name: "octocat",
+			mode: { kind: "importLocal", repoPath, initIfNeeded: true },
+		});
+		expect(finalizeSetupMock).toHaveBeenCalledWith(hostUrl, {
+			projectId: "created-project",
+			repoPath,
+			mainWorkspaceId: "workspace-created",
+		});
+		expect(result).toEqual({
+			projectId: "created-project",
+			repoPath,
+			mainWorkspaceId: "workspace-created",
+		});
+		expect(onError).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the user cancels the git-init confirmation", async () => {
+		findByPathMock.mockResolvedValue({
+			candidates: [],
+			cloudErrors: [],
+			needsGitInit: true,
+		});
+		requestGitInitMock.mockResolvedValue(false);
+		const onError = mock(() => undefined);
+
+		const result = await useFolderFirstImport({ onError }).start();
+
+		expect(result).toBeNull();
+		expect(requestGitInitMock).toHaveBeenCalledWith(repoPath);
+		expect(createMock).not.toHaveBeenCalled();
+		expect(finalizeSetupMock).not.toHaveBeenCalled();
+		expect(onError).not.toHaveBeenCalled();
 	});
 });

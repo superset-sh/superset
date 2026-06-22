@@ -1,0 +1,1 @@
+export { TemplateCard } from "./TemplateCard";

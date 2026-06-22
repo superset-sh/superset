@@ -111,7 +111,8 @@ export function TabItem<TData>({
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
-				{/* biome-ignore lint/a11y/noStaticElementInteractions: mousedown selects tab immediately before drag threshold */}
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: clicking a tab selects it */}
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents: tabs are pointer-driven; keyboard nav is out of scope here */}
 				<div
 					ref={setRef}
 					className={cn(
@@ -122,12 +123,10 @@ export function TabItem<TData>({
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
-					onMouseDown={(event) => {
-						if (event.button === 0) {
-							event.preventDefault();
-							onSelect();
-						}
-					}}
+					// Select on click, not mousedown: the browser suppresses click after a
+					// drag, so starting a drag (reorder, or merging a tab into a pane) no
+					// longer switches the active tab mid-gesture.
+					onClick={() => onSelect()}
 				>
 					{isEditing ? (
 						<div className="flex h-full w-full shrink-0 items-center px-2">
@@ -147,7 +146,8 @@ export function TabItem<TData>({
 								open={isDragging ? false : undefined}
 							>
 								<TooltipTrigger asChild>
-									<button
+									{/* biome-ignore lint/a11y/noStaticElementInteractions: tab selection is handled by the wrapper's mousedown; this title element is intentionally a non-focusable div so clicking a tab never steals focus from the active pane (issue #4967) */}
+									<div
 										className="flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-xs transition-colors"
 										onAuxClick={(event) => {
 											if (event.button === 1) {
@@ -156,13 +156,12 @@ export function TabItem<TData>({
 											}
 										}}
 										onDoubleClick={startEditing}
-										type="button"
 									>
 										{icon && <span className="shrink-0">{icon}</span>}
 										<OverflowFadeText className="flex-1">
 											{title}
 										</OverflowFadeText>
-									</button>
+									</div>
 								</TooltipTrigger>
 								<TooltipContent side="bottom" showArrow={false}>
 									{title}

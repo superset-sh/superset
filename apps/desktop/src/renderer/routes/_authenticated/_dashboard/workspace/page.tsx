@@ -27,8 +27,9 @@ function WorkspaceIndexPage() {
 		if (isLoading || !workspaces) return;
 
 		if (allWorkspaces.length === 0) {
-			// Redirect to clean onboarding screen (no sidebar/topbar)
-			navigate({ to: "/welcome", replace: true });
+			// No workspaces yet: land on the projects list, which has the sidebar
+			// "Add repository" entry points.
+			navigate({ to: "/workspaces", replace: true });
 			return;
 		}
 
