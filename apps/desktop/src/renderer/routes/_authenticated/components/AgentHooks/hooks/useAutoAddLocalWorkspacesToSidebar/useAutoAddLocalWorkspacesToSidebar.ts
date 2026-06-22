@@ -6,9 +6,11 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 /**
- * Backfills `v2WorkspaceLocalState` entries for workspaces on this device that
- * have none. Only fills missing rows — a workspace the user explicitly hid
- * keeps its row with `isHidden: true` and is left alone.
+ * Backfills `v2WorkspaceLocalState` rows for workspaces on this device that have
+ * none — e.g. ones created via the CLI, which can't write renderer-local sidebar
+ * state. A missing row means "never seen here": removing or unpinning a workspace
+ * keeps its row with `isHidden: true` (a tombstone), so this never re-pins one the
+ * user dismissed.
  */
 export function useAutoAddLocalWorkspacesToSidebar(): void {
 	const collections = useCollections();
