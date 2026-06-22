@@ -112,10 +112,8 @@ async function reapOrphanedSessions(
 		.all();
 	const rowById = new Map(rows.map((row) => [row.id, row]));
 
-	// Keep the port scanner in sync with the daemon's live sessions on the same
-	// pass that lists them — registers ports for terminals running without an
-	// attached renderer, and drops scans for ones the daemon has dropped. Runs
-	// before the empty-list short-circuit so an empty daemon clears stale scans.
+	// Reuse the list + row join the reaper already did. Must run before the
+	// empty-list short-circuit so an empty daemon still clears stale scans.
 	applyPortScanSync(liveSessions, rowById);
 
 	if (liveSessions.length === 0) {

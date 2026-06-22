@@ -325,9 +325,9 @@ export function __resetSessionsForTesting(): void {
 /**
  * Whether a terminal id has a live in-memory session on this host-service
  * process. Such sessions already drive their own port scanning and unregister
- * themselves via the daemon exit subscription, so the port-scan reconciler
- * must leave them alone. Returns false for sessions the daemon still owns but
- * that this process hasn't re-created since its last restart.
+ * themselves via the daemon exit subscription, so the port-scan sync must leave
+ * them alone. Returns false for sessions the daemon still owns but that this
+ * process hasn't re-created since its last restart.
  */
 export function isLiveTerminalSession(terminalId: string): boolean {
 	const session = sessions.get(terminalId);
