@@ -48,6 +48,14 @@ import { derivePrLocalBranchName } from "../workspace-creation/utils/pr-branch-n
 import { resolveStartPoint } from "../workspace-creation/utils/resolve-start-point";
 import { deduplicateBranchName } from "../workspace-creation/utils/sanitize-branch";
 
+/**
+ * Returned by `create` when auto-naming was wanted but the LLM call came
+ * back empty: the workspace keeps a friendly-random fallback name (create
+ * does not fail) and the renderer shows this as a warning toast.
+ */
+const AUTO_NAME_FALLBACK_WARNING =
+	"Model naming was unavailable, so a fallback name was used.";
+
 const agentLaunchSchema = z
 	.object({
 		agent: z.string().min(1),
@@ -562,6 +570,8 @@ export const workspacesRouter = router({
 					: null;
 			aiNamesPromise?.catch(() => {});
 
+			let aiNamesResult: GeneratedWorkspaceNames | null = null;
+
 			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
 			const git = await ctx.git(localProject.repoPath);
@@ -842,6 +852,7 @@ export const workspacesRouter = router({
 						listBranchNames(ctx, localProject.repoPath),
 					]);
 					plan = planResult;
+					aiNamesResult = aiNames;
 					aiTitle = aiNames?.title ?? null;
 					// Namespace newly-created branches under the configured
 					// prefix. A typed branch that resolves to an existing ref is
@@ -872,6 +883,7 @@ export const workspacesRouter = router({
 						resolveNewBranchStartPoint(git, input.baseBranch),
 						listBranchNames(ctx, localProject.repoPath),
 					]);
+					aiNamesResult = aiNames;
 					aiTitle = aiNames?.title ?? null;
 					const prefix = await resolveProjectBranchPrefix({
 						ctx,
@@ -1080,11 +1092,17 @@ export const workspacesRouter = router({
 				});
 			}
 
+			const autoNameWarning =
+				wantAi && aiNamesResult === null
+					? AUTO_NAME_FALLBACK_WARNING
+					: undefined;
+
 			return {
 				workspace: workspaceRow,
 				terminals: terminalsResult,
 				agents: agentsResult,
 				alreadyExists,
+				autoNameWarning,
 				txid: extractCreateTxid(workspaceRow),
 			};
 		}),
