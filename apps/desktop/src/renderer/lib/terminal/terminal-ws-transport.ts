@@ -436,14 +436,11 @@ function attachSocketListeners(
 			return;
 		}
 
-		// Control messages may write to the terminal (exit notice, invalid
-		// payload); flush queued PTY bytes first so output stays ordered.
-		transport._writeCoalescer?.flushSync();
-
 		let message: TerminalServerMessage;
 		try {
 			message = JSON.parse(String(event.data)) as TerminalServerMessage;
 		} catch {
+			transport._writeCoalescer?.flushSync();
 			terminal.writeln("\r\n[terminal] invalid server payload");
 			return;
 		}
@@ -468,6 +465,7 @@ function attachSocketListeners(
 		}
 
 		if (message.type === "exit") {
+			transport._writeCoalescer?.flushSync();
 			transport._terminated = true;
 			cancelReconnect(transport);
 			terminal.writeln(

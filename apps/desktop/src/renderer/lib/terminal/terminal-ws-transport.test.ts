@@ -120,26 +120,29 @@ afterEach(() => {
 });
 
 describe("PTY output write coalescing", () => {
-	let frameCallbacks: FrameRequestCallback[];
+	let frameCallbacks: Map<number, FrameRequestCallback>;
+	let nextFrameId: number;
 	const originalRaf = globalThis.requestAnimationFrame;
 	const originalCancelRaf = globalThis.cancelAnimationFrame;
 
 	function fireFrame() {
-		const callbacks = [...frameCallbacks];
-		frameCallbacks = [];
+		const callbacks = [...frameCallbacks.values()];
+		frameCallbacks.clear();
 		for (const callback of callbacks) {
 			callback(performance.now());
 		}
 	}
 
 	beforeEach(() => {
-		frameCallbacks = [];
+		frameCallbacks = new Map();
+		nextFrameId = 1;
 		globalThis.requestAnimationFrame = (callback: FrameRequestCallback) => {
-			frameCallbacks.push(callback);
-			return frameCallbacks.length;
+			const id = nextFrameId++;
+			frameCallbacks.set(id, callback);
+			return id;
 		};
-		globalThis.cancelAnimationFrame = () => {
-			frameCallbacks = [];
+		globalThis.cancelAnimationFrame = (id: number) => {
+			frameCallbacks.delete(id);
 		};
 	});
 
@@ -203,6 +206,18 @@ describe("PTY output write coalescing", () => {
 			"write:final output",
 			"writeln:\r\n[terminal] exited with code 0 (signal 0)",
 		]);
+	});
+
+	test("does not flush pending PTY bytes for non-writing control messages", () => {
+		const { writes, socket } = connectWithRecordingTerminal();
+
+		socket.message(binaryFrame("prompt"));
+		socket.message(JSON.stringify({ type: "title", title: "agent" }));
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		expect(writes).toEqual([]);
+
+		fireFrame();
+		expect(writes).toEqual(["prompt"]);
 	});
 
 	test("flushes pending PTY bytes when the socket closes", () => {
