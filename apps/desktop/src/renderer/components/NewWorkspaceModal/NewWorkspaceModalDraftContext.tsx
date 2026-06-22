@@ -31,6 +31,7 @@ export type LinkedPR = {
 
 export interface NewWorkspaceModalDraft {
 	selectedProjectId: string | null;
+	sectionId: string | null;
 	prompt: string;
 	compareBaseBranch: string | null;
 	runSetupScript: boolean;
@@ -49,6 +50,7 @@ interface NewWorkspaceModalDraftState extends NewWorkspaceModalDraft {
 
 const initialDraft: NewWorkspaceModalDraft = {
 	selectedProjectId: null,
+	sectionId: null,
 	prompt: "",
 	compareBaseBranch: null,
 	runSetupScript: true,
@@ -157,6 +159,7 @@ export function NewWorkspaceModalDraftProvider({
 		() => ({
 			draft: {
 				selectedProjectId: state.selectedProjectId,
+				sectionId: state.sectionId,
 				prompt: state.prompt,
 				compareBaseBranch: state.compareBaseBranch,
 				runSetupScript: state.runSetupScript,
