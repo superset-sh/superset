@@ -175,6 +175,25 @@ function isMarkdownTable(text: string): boolean {
 	return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[1]);
 }
 
+function getClipboardFiles(data: DataTransfer | null): File[] {
+	if (!data) return [];
+
+	const files = Array.from(data.files ?? []);
+	const fileKeys = new Set(files.map((file) => `${file.name}:${file.size}`));
+
+	for (const item of Array.from(data.items ?? [])) {
+		if (item.kind !== "file") continue;
+		const file = item.getAsFile();
+		if (!file) continue;
+		const key = `${file.name}:${file.size}`;
+		if (fileKeys.has(key)) continue;
+		fileKeys.add(key);
+		files.push(file);
+	}
+
+	return files;
+}
+
 export function MarkdownEditor({
 	content,
 	onSave,
@@ -339,10 +358,7 @@ export function MarkdownEditor({
 			handlePaste: (_, event) => {
 				const onPasteFiles = onPasteFilesRef.current;
 				if (onPasteFiles) {
-					const files = Array.from(event.clipboardData?.items ?? [])
-						.filter((item) => item.kind === "file")
-						.map((item) => item.getAsFile())
-						.filter((file): file is File => file != null);
+					const files = getClipboardFiles(event.clipboardData);
 					if (files.length > 0) {
 						event.preventDefault();
 						onPasteFiles(files);
