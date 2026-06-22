@@ -27,7 +27,6 @@ import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
-import { PLATFORM } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -72,7 +71,6 @@ export function PromptGroup({
 	recentProjects,
 	onSelectProject,
 }: PromptGroupProps) {
-	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
 	const { closeModal, draft, updateDraft, resetKey } =
 		useDashboardNewWorkspaceDraft();
@@ -428,13 +426,15 @@ export function PromptGroup({
 					</div>
 				)}
 				{/* Markdown prompt editor. Submit stays on draft.prompt (now markdown):
-				    the editor swallows Cmd/Ctrl+Enter (no newline) and the window-level
-				    listener does the single submit, so onModEnter is intentionally unset
-				    to avoid a double-fire. resetKey remounts a clean editor on reset. */}
+				    plain Enter submits and Shift+Enter inserts a newline (via onEnter),
+				    matching the chat composer. Cmd/Ctrl+Enter still submits through the
+				    window-level listener, so onModEnter is intentionally unset to avoid a
+				    double-fire. resetKey remounts a clean editor on reset. */}
 				<MarkdownEditor
 					key={resetKey}
 					content={prompt}
 					onChange={(markdown) => updateDraft({ prompt: markdown })}
+					onEnter={handleSubmit}
 					autoFocus="start"
 					placeholder="What do you want to do?"
 					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"
@@ -582,9 +582,7 @@ export function PromptGroup({
 							Set up project…
 						</Button>
 					) : (
-						<span className="text-[11px] text-muted-foreground/50">
-							{modKey}↵
-						</span>
+						<span className="text-[11px] text-muted-foreground/50">↵</span>
 					)}
 				</div>
 			</div>

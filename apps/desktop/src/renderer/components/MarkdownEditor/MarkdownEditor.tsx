@@ -48,6 +48,7 @@ import {
 	FileMentionSuggestion,
 } from "./components/FileMention";
 import { SlashCommand } from "./components/SlashCommand";
+import { resolveEnterAction } from "./resolveEnterAction";
 
 const lowlight = createLowlight(common);
 
@@ -141,6 +142,12 @@ interface MarkdownEditorProps {
 	className?: string;
 	editorClassName?: string;
 	onModEnter?: () => void;
+	/**
+	 * If provided, plain Enter submits (calls this) and Shift+Enter inserts a
+	 * newline, matching the chat composer. When omitted, Enter keeps its default
+	 * editor behavior (new paragraph).
+	 */
+	onEnter?: () => void;
 	/** If provided, enables @-mention file search for the editor. */
 	searchFiles?: FileMentionSearchFn;
 	/** Toggle optional affordances. Each defaults to enabled. */
@@ -182,6 +189,7 @@ export function MarkdownEditor({
 	className,
 	editorClassName,
 	onModEnter,
+	onEnter,
 	searchFiles,
 	features,
 }: MarkdownEditorProps) {
@@ -194,6 +202,11 @@ export function MarkdownEditor({
 	// Thread through a ref so the extension reads the live callback each fire.
 	const searchFilesRef = useRef(searchFiles);
 	searchFilesRef.current = searchFiles;
+	// Thread the submit handler through a ref for the same reason: useEditor
+	// freezes the extensions on first render, so the shortcut must read the live
+	// callback each fire.
+	const onEnterRef = useRef(onEnter);
+	onEnterRef.current = onEnter;
 	const editorRef = useRef<Editor | null>(null);
 
 	const urlPolicy = useInlineUrlPolicy();
@@ -317,6 +330,35 @@ export function MarkdownEditor({
 						}),
 					]
 				: []),
+			// Enter → submit, Shift+Enter → newline (only when `onEnter` is wired).
+			// High priority so Enter submits before HardBreak inserts a line break.
+			Extension.create({
+				name: "submitOnEnter",
+				priority: 1000,
+				addKeyboardShortcuts() {
+					return {
+						Enter: ({ editor }) => {
+							const action = resolveEnterAction({
+								shiftKey: false,
+								hasSubmitHandler: !!onEnterRef.current,
+								isComposing: editor.view.composing,
+							});
+							if (action !== "submit") return false;
+							onEnterRef.current?.();
+							return true;
+						},
+						"Shift-Enter": ({ editor }) => {
+							const action = resolveEnterAction({
+								shiftKey: true,
+								hasSubmitHandler: !!onEnterRef.current,
+								isComposing: editor.view.composing,
+							});
+							if (action !== "newline") return false;
+							return editor.commands.setHardBreak();
+						},
+					};
+				},
+			}),
 			KeyboardHandler,
 		],
 		content,
