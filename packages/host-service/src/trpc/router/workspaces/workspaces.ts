@@ -570,7 +570,9 @@ export const workspacesRouter = router({
 					: null;
 			aiNamesPromise?.catch(() => {});
 
-			let aiNamesResult: GeneratedWorkspaceNames | null = null;
+			// True only when AI naming ran and returned nothing — never on the
+			// PR / worktree-adopt paths, which don't attempt naming.
+			let autoNameFellBack = false;
 
 			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
@@ -852,7 +854,7 @@ export const workspacesRouter = router({
 						listBranchNames(ctx, localProject.repoPath),
 					]);
 					plan = planResult;
-					aiNamesResult = aiNames;
+					autoNameFellBack = wantAi && aiNames === null;
 					aiTitle = aiNames?.title ?? null;
 					// Namespace newly-created branches under the configured
 					// prefix. A typed branch that resolves to an existing ref is
@@ -883,7 +885,7 @@ export const workspacesRouter = router({
 						resolveNewBranchStartPoint(git, input.baseBranch),
 						listBranchNames(ctx, localProject.repoPath),
 					]);
-					aiNamesResult = aiNames;
+					autoNameFellBack = wantAi && aiNames === null;
 					aiTitle = aiNames?.title ?? null;
 					const prefix = await resolveProjectBranchPrefix({
 						ctx,
@@ -1092,17 +1094,15 @@ export const workspacesRouter = router({
 				});
 			}
 
-			const autoNameWarning =
-				wantAi && aiNamesResult === null
-					? AUTO_NAME_FALLBACK_WARNING
-					: undefined;
-
 			return {
 				workspace: workspaceRow,
 				terminals: terminalsResult,
 				agents: agentsResult,
 				alreadyExists,
-				autoNameWarning,
+				autoNameWarning:
+					autoNameFellBack && !alreadyExists
+						? AUTO_NAME_FALLBACK_WARNING
+						: undefined,
 				txid: extractCreateTxid(workspaceRow),
 			};
 		}),
