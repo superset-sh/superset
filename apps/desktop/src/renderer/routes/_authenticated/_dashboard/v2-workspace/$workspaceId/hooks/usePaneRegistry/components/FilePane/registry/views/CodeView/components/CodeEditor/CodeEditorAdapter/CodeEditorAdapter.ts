@@ -1,11 +1,46 @@
 import { selectAll } from "@codemirror/commands";
 import { openSearchPanel } from "@codemirror/search";
-import { EditorSelection } from "@codemirror/state";
+import { EditorSelection, type EditorState } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 
 export interface EditorSelectionLines {
 	startLine: number;
 	endLine: number;
+}
+
+/** A captured, resolved selection ready to anchor an agent prompt. `path` is
+ *  supplied by the host (the adapter does not know its own file path); the
+ *  adapter fills lines + text from a single view.state read. Named
+ *  `CapturedEditorSelection` (not `EditorSelection`) to avoid colliding with
+ *  `@codemirror/state`'s exported `EditorSelection`. */
+export interface CapturedEditorSelection {
+	path: string;
+	startLine: number;
+	endLine: number;
+	text: string;
+}
+
+/** Snapshot the current selection from a single EditorState read, or null when
+ *  there is nothing sendable. Returns null when the selection is collapsed
+ *  (empty cursor) or the sliced text is whitespace-only (edge case #1). This
+ *  null is net-new logic — it is NOT inherited from getSelectionLines(), which
+ *  always returns a non-null range. Kept as a free function (not a closure over
+ *  a view) so the capture invariants are testable against a real EditorState
+ *  without an EditorView. */
+export function captureSelection(
+	state: EditorState,
+	path: string,
+): CapturedEditorSelection | null {
+	const selection = state.selection.main;
+	if (selection.empty) return null;
+	const text = state.sliceDoc(selection.from, selection.to);
+	if (text.trim() === "") return null;
+	return {
+		path,
+		startLine: state.doc.lineAt(selection.from).number,
+		endLine: state.doc.lineAt(selection.to).number,
+		text,
+	};
 }
 
 export interface CodeEditorAdapter {
@@ -14,6 +49,7 @@ export interface CodeEditorAdapter {
 	setValue(value: string): void;
 	revealPosition(line: number, column?: number): void;
 	getSelectionLines(): EditorSelectionLines | null;
+	getSelection(path: string): CapturedEditorSelection | null;
 	selectAll(): void;
 	cut(): void;
 	copy(): void;
@@ -58,6 +94,9 @@ export function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
 			const startLine = view.state.doc.lineAt(selection.from).number;
 			const endLine = view.state.doc.lineAt(selection.to).number;
 			return { startLine, endLine };
+		},
+		getSelection(path) {
+			return captureSelection(view.state, path);
 		},
 		selectAll() {
 			selectAll(view);

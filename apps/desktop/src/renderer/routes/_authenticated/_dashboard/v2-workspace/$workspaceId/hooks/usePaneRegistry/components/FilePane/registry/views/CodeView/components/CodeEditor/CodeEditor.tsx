@@ -50,6 +50,9 @@ interface CodeEditorProps {
 	editorRef?: MutableRefObject<CodeEditorAdapter | null>;
 	onChange?: (value: string) => void;
 	onSave?: () => void;
+	/** Fires whenever the selection changes, so a host can refresh selection-
+	 *  derived UI (e.g. the "Send selection to agent" affordance). */
+	onSelectionChange?: () => void;
 }
 
 export function CodeEditor({
@@ -61,6 +64,7 @@ export function CodeEditor({
 	editorRef,
 	onChange,
 	onSave,
+	onSelectionChange,
 }: CodeEditorProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const viewRef = useRef<EditorView | null>(null);
@@ -69,6 +73,7 @@ export function CodeEditor({
 	const editableCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
+	const onSelectionChangeRef = useRef(onSelectionChange);
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = useQuery({
@@ -82,12 +87,16 @@ export function CodeEditor({
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
+	onSelectionChangeRef.current = onSelectionChange;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Editor instance is created once and reconfigured via dedicated effects below
 	useEffect(() => {
 		if (!containerRef.current) return;
 
 		const updateListener = EditorView.updateListener.of((update) => {
+			if (update.selectionSet) {
+				onSelectionChangeRef.current?.();
+			}
 			if (!update.docChanged) return;
 			if (isExternalUpdateRef.current) return;
 			onChangeRef.current?.(update.state.doc.toString());

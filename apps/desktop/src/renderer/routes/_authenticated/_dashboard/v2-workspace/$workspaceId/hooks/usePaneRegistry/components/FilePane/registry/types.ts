@@ -37,6 +37,15 @@ export interface ViewProps {
 	isActive: boolean;
 	onChangeView: (viewId: string) => void;
 	onForceView: (viewId: string) => void;
+	/** New-terminal-session launcher, forwarded from usePaneRegistry through
+	 *  FilePane. Optional and additive so non-code renderers (ImageView,
+	 *  MarkdownPreviewView, …) ignore it and stay source-compatible; only
+	 *  CodeView consumes it (for "Send selection to agent" → new session). */
+	onCreateNewAgentSession?: (input: {
+		configId: string;
+		placement: "split-pane" | "new-tab";
+		prompt: string;
+	}) => Promise<{ terminalId: string } | null>;
 }
 
 export function resolveViewLabel(view: FileView, filePath: string): string {
