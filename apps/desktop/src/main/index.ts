@@ -43,7 +43,13 @@ import {
 import { disposeTray, initTray } from "./lib/tray";
 import { getFocusedOrLastWindow } from "./lib/window-registry/window-registry";
 import { startNetworkLogger, stopNetworkLogger } from "./network-logger";
-import { createPlatformWindow, initAppServices } from "./windows/main";
+import {
+	createPlatformWindow,
+	initAppServices,
+	markAppQuitting,
+	persistOpenWindows,
+	restoreWindows,
+} from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -213,6 +219,11 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
+	// Snapshot all open windows (bounds + org) before they close, so relaunch
+	// restores them. markAppQuitting() stops per-window close handlers from
+	// shrinking the set as windows close one-by-one.
+	markAppQuitting();
+	persistOpenWindows();
 	try {
 		getHostServiceCoordinator().stopAll();
 		if (isDev || forceFullCleanup) {
@@ -416,7 +427,10 @@ if (!gotTheLock) {
 		}
 
 		initAppServices();
-		await makeAppSetup(() => createPlatformWindow({ orgId: null }));
+		await makeAppSetup(
+			() => createPlatformWindow({ orgId: null }),
+			restoreWindows,
+		);
 		setupAutoUpdater();
 		initTray();
 

@@ -73,3 +73,70 @@ export function isValidWindowState(value: unknown): value is WindowState {
 		(v.zoomLevel === undefined || Number.isFinite(v.zoomLevel))
 	);
 }
+
+// ---------------------------------------------------------------------------
+// Multi-window restore
+// ---------------------------------------------------------------------------
+// Persists the full set of open platform windows (each window's bounds + the
+// organization it shows) so the app can reopen them on relaunch. Stored next to
+// the single-window record; falls back to the legacy single record on first run.
+
+const WINDOWS_STATE_PATH = join(
+	dirname(WINDOW_STATE_PATH),
+	"windows-state.json",
+);
+
+export interface PersistedWindow {
+	orgId: string | null;
+	state: WindowState;
+}
+
+export function isValidPersistedWindow(
+	value: unknown,
+): value is PersistedWindow {
+	if (!value || typeof value !== "object") return false;
+	const v = value as Record<string, unknown>;
+	return (
+		(v.orgId === null || typeof v.orgId === "string") &&
+		isValidWindowState(v.state)
+	);
+}
+
+/**
+ * Loads the set of windows to restore. Prefers the multi-window file; if absent,
+ * migrates from the legacy single-window record so existing users keep their
+ * window. Returns [] when nothing valid is saved.
+ */
+export function loadWindows(): PersistedWindow[] {
+	try {
+		if (existsSync(WINDOWS_STATE_PATH)) {
+			const parsed = JSON.parse(readFileSync(WINDOWS_STATE_PATH, "utf-8"));
+			if (Array.isArray(parsed)) {
+				return parsed.filter(isValidPersistedWindow);
+			}
+			return [];
+		}
+	} catch {
+		// fall through to legacy migration
+	}
+
+	const legacy = loadWindowState();
+	return legacy ? [{ orgId: null, state: legacy }] : [];
+}
+
+/** Saves the set of open windows atomically (temp file + rename). */
+export function saveWindows(windows: PersistedWindow[]): void {
+	const tempPath = join(
+		dirname(WINDOWS_STATE_PATH),
+		`.windows-state.${Date.now()}.tmp`,
+	);
+	try {
+		writeFileSync(tempPath, JSON.stringify(windows, null, 2), "utf-8");
+		renameSync(tempPath, WINDOWS_STATE_PATH);
+	} catch (error) {
+		try {
+			unlinkSync(tempPath);
+		} catch {}
+		console.error("[window-state] Failed to save windows:", error);
+	}
+}

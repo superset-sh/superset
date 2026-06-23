@@ -42,7 +42,10 @@ import {
 import {
 	getInitialWindowBounds,
 	loadWindowState,
+	loadWindows,
+	type PersistedWindow,
 	saveWindowState,
+	saveWindows,
 	type WindowState,
 } from "../lib/window-state";
 import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
@@ -240,6 +243,48 @@ function stopSharedServices(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Multi-window restore
+// ---------------------------------------------------------------------------
+
+// Set during app quit so per-window close handlers don't shrink the persisted
+// set as windows close one-by-one — the full set is snapshotted in before-quit.
+let appQuitting = false;
+export function markAppQuitting(): void {
+	appQuitting = true;
+}
+
+function snapshotWindowState(window: BrowserWindow): WindowState {
+	const isMaximized = window.isMaximized();
+	const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
+	return {
+		x: bounds.x,
+		y: bounds.y,
+		width: bounds.width,
+		height: bounds.height,
+		isMaximized,
+		zoomLevel: window.webContents.getZoomLevel(),
+	};
+}
+
+/** Persist every open window's bounds + org so they can be restored on relaunch. */
+export function persistOpenWindows(): void {
+	const persisted: PersistedWindow[] = getAllWindows()
+		.filter((w) => !w.isDestroyed())
+		.map((w) => ({ orgId: getOrg(w.id), state: snapshotWindowState(w) }));
+	if (persisted.length > 0) {
+		saveWindows(persisted);
+	}
+}
+
+/** Recreate the windows saved from the previous session (each on its org). */
+export async function restoreWindows(): Promise<void> {
+	const saved = loadWindows();
+	for (const pw of saved) {
+		await createPlatformWindow({ orgId: pw.orgId, bounds: pw.state });
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Per-window setup
 // ---------------------------------------------------------------------------
 
@@ -387,6 +432,8 @@ export async function createPlatformWindow({
 				zoomLevel,
 			});
 			persistedZoomLevel = zoomLevel;
+			// Keep the multi-window restore set fresh as windows move/resize.
+			persistOpenWindows();
 		}, 500);
 	};
 	window.on("move", debouncedSave);
@@ -456,6 +503,13 @@ export async function createPlatformWindow({
 
 		ipcHandler?.detachWindow(window);
 		unregisterWindow(window.id);
+
+		// A user closing one window (app keeps running) updates the restore set.
+		// During app quit we skip this — before-quit snapshots the full set so
+		// closing windows one-by-one doesn't shrink it.
+		if (!appQuitting) {
+			persistOpenWindows();
+		}
 
 		// Tear down app-wide shared services only when the last window closes.
 		if (getAllWindows().length === 0) {
