@@ -12,6 +12,8 @@ import { useDiffCommentTarget } from "../../../../../../../../DiffPane/component
 import type { CodeEditorAdapter } from "../../CodeEditorAdapter";
 import { buildSelectionPrompt } from "./buildSelectionPrompt";
 import { dispatchSelection } from "./dispatchSelection";
+import { isStillCurrent } from "./isStillCurrent";
+import { shouldRefuseSelection } from "./shouldRefuseSelection";
 
 interface UseSendSelectionToAgentArgs {
 	workspaceId: string;
@@ -48,10 +50,11 @@ interface UseSendSelectionToAgentResult {
 }
 
 /** Orchestrates capture → bound → format → dispatch for a file-viewer
- *  selection. Owns four of the five edge cases (#1 inert empty, #2 bound large,
- *  #3 no-session → new, #5 supersede guard + toast-on-error keep-for-retry).
- *  Mirrors useDiffCommentComposer's submit/dispatch/guard shape; the default
- *  target ladder is reused verbatim from the DiffPane sibling. */
+ *  selection. Owns all five edge cases (#1 inert empty, #2 bound large,
+ *  #3 no-session → new, #4 unresolvable path → refuse-only in PR1, #5 supersede
+ *  guard + toast-on-error keep-for-retry). Mirrors useDiffCommentComposer's
+ *  submit/dispatch/guard shape; the default target ladder is reused verbatim
+ *  from the DiffPane sibling. */
 export function useSendSelectionToAgent({
 	workspaceId,
 	filePath,
@@ -85,11 +88,26 @@ export function useSendSelectionToAgent({
 
 	const send = useCallback(
 		async (input?: SendSelectionInput) => {
+			// Capture is authoritative. A null region is REFUSED (no-op): it covers
+			// edge #1 (empty/whitespace selection) AND edge #4 (unresolvable path).
+			//
+			// Edge #4 — refuse-only in PR1, by design. `getSelection(path)` takes a
+			// required non-optional `path`, and this v2 CodeView host always mounts
+			// against a real on-disk `ViewProps.filePath`, so a non-empty selection
+			// here ALWAYS has a resolvable path + finite lines. The "real selection,
+			// no on-disk path" text-only case only arises in a host with NO
+			// CodeMirror adapter (diff/search/rendered-preview) — none exist in PR1,
+			// where the affordance simply is not mounted. The text-only fallback is
+			// therefore unreachable here and deferred to PR2 hosts. This refusal also
+			// structurally guarantees the formatter is never fed undefined/NaN.
 			const region = getEditor()?.getSelection(filePath);
-			if (!region) return; // edge #1 — inert, never formats or dispatches
+			if (shouldRefuseSelection(region)) return;
+			// shouldRefuseSelection narrows null/undefined, but TS can't infer that
+			// across the predicate boundary, so assert the resolved region here.
+			const resolvedRegion = region as NonNullable<typeof region>;
 
 			const token = ++dispatchTokenRef.current;
-			const { text } = buildSelectionPrompt(region, input?.instruction);
+			const { text } = buildSelectionPrompt(resolvedRegion, input?.instruction);
 			const target = input?.target ?? resolved;
 
 			const outcome = await dispatchSelection({
@@ -102,8 +120,11 @@ export function useSendSelectionToAgent({
 					toast.error("Couldn't start a new agent session"),
 			});
 
-			// Only react if this dispatch is still the current one.
-			if (dispatchTokenRef.current !== token) return;
+			// Supersede guard (edge #5): only run post-success cleanup if this
+			// dispatch is still the current one (a newer send would have bumped
+			// the ref). Extracted to isStillCurrent so the stale-token branch is
+			// unit-tested without a renderHook harness.
+			if (!isStillCurrent(token, dispatchTokenRef.current)) return;
 			if (outcome === "sent") refreshCanSend();
 		},
 		[

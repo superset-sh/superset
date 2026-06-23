@@ -26,6 +26,7 @@ import {
 import { colorPicker } from "@replit/codemirror-css-color-picker";
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
+import debounce from "lodash/debounce";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useResolvedTheme } from "renderer/stores/theme";
@@ -33,6 +34,7 @@ import {
 	type CodeEditorAdapter,
 	createCodeMirrorAdapter,
 } from "./CodeEditorAdapter";
+import { SELECTION_CHANGE_DEBOUNCE_MS } from "./constants";
 import { createCodeMirrorTheme } from "./createCodeMirrorTheme";
 import { contourSelectionLayer } from "./extensions/contourSelectionLayer";
 import { buildFoldChevron } from "./extensions/foldChevron";
@@ -93,9 +95,18 @@ export function CodeEditor({
 	useEffect(() => {
 		if (!containerRef.current) return;
 
+		// CodeMirror fires selectionSet on every cursor move. Debounce to the
+		// selection settle so selection-derived UI (the "Send selection to agent"
+		// affordance) is recomputed once the gesture ends, not per keystroke —
+		// mirroring the DiffPane sibling's onLineSelectionEnd cadence. Trailing
+		// edge so the final make/clear of a selection always notifies.
+		const notifySelectionChange = debounce(() => {
+			onSelectionChangeRef.current?.();
+		}, SELECTION_CHANGE_DEBOUNCE_MS);
+
 		const updateListener = EditorView.updateListener.of((update) => {
 			if (update.selectionSet) {
-				onSelectionChangeRef.current?.();
+				notifySelectionChange();
 			}
 			if (!update.docChanged) return;
 			if (isExternalUpdateRef.current) return;
@@ -171,6 +182,7 @@ export function CodeEditor({
 		}
 
 		return () => {
+			notifySelectionChange.cancel();
 			if (editorRef?.current === adapter) {
 				editorRef.current = null;
 			}
