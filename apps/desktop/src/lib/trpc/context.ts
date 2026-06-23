@@ -20,5 +20,12 @@ export async function createTrpcContext({
 }: {
 	event: IpcMainInvokeEvent;
 }): Promise<TrpcContext> {
-	return { senderWindow: BrowserWindow.fromWebContents(event.sender) };
+	// Only treat the sender as a window when it is that window's own top-level
+	// WebContents. `BrowserWindow.fromWebContents` returns the *host* window for a
+	// `<webview>` guest, so without this check an embedded webview could inherit
+	// the host window's organization on window-scoped procedures.
+	const window = BrowserWindow.fromWebContents(event.sender);
+	return {
+		senderWindow: window?.webContents === event.sender ? window : null,
+	};
 }

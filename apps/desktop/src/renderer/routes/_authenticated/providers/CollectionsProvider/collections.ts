@@ -217,39 +217,28 @@ function getCollectionsCacheKey(organizationId: string): string {
 	return organizationId;
 }
 
-// This window's active organization. Each window is its own renderer process,
-// so this module-level value is naturally per-window (mirrors how the auth
-// token is held in auth-client.ts). It scopes outgoing cloud API calls to the
-// window's org via the ORGANIZATION_HEADER, independent of the shared login
-// session's active org. Set by CollectionsProvider whenever the window's org
-// resolves or changes.
-let currentOrgId: string | null = null;
-
-export function setCurrentOrgId(id: string | null): void {
-	currentOrgId = id;
+// Per-org tRPC client. Each organization's collection callbacks use a client
+// whose `x-superset-organization-id` header is fixed to THAT org (closure-
+// scoped), so a deferred or batched write from one org's collection can never
+// be mis-scoped to whatever org a window later switched to. The auth token is
+// still read dynamically; only the organization is pinned per client.
+function createOrgApiClient(organizationId: string) {
+	return createTRPCProxyClient<AppRouter>({
+		links: [
+			httpBatchLink({
+				url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
+				headers: () => {
+					const token = getAuthToken();
+					return {
+						...(token ? { Authorization: `Bearer ${token}` } : {}),
+						[ORGANIZATION_HEADER]: organizationId,
+					};
+				},
+				transformer: superjson,
+			}),
+		],
+	});
 }
-
-export function getCurrentOrgId(): string | null {
-	return currentOrgId;
-}
-
-// Singleton API client with dynamic auth + per-window org headers
-const apiClient = createTRPCProxyClient<AppRouter>({
-	links: [
-		httpBatchLink({
-			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
-			headers: () => {
-				const token = getAuthToken();
-				const orgId = getCurrentOrgId();
-				return {
-					...(token ? { Authorization: `Bearer ${token}` } : {}),
-					...(orgId ? { [ORGANIZATION_HEADER]: orgId } : {}),
-				};
-			},
-			transformer: superjson,
-		}),
-	],
-});
 
 const electricHeaders = {
 	Authorization: () => {
@@ -291,6 +280,8 @@ const organizationsCollection = createPersistedElectricCollection(
 );
 
 function createOrgCollections(organizationId: string): OrgCollections {
+	// Org-pinned API client for all of this org's collection write callbacks.
+	const apiClient = createOrgApiClient(organizationId);
 	const tasks = createPersistedElectricCollection(
 		electricCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,

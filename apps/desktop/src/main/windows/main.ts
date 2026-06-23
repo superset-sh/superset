@@ -130,10 +130,20 @@ export function initAppServices(): void {
 	// File → New Window (Cmd+N): open another window on the same org as the
 	// currently focused window. Per-window org independence arrives in a later
 	// milestone; for now a new window mirrors the current org.
-	menuEmitter.on("new-window", () => {
+	menuEmitter.on("new-window", (payload?: { orgId?: string | null }) => {
+		// Prefer the org the caller passed (e.g. window.openNew, which captures the
+		// calling window deterministically). Fall back to the focused window's org
+		// for the menu-driven File → New Window.
 		const focused = getFocusedOrLastWindow();
-		const orgId = focused ? getOrg(focused.id) : null;
-		void createPlatformWindow({ orgId });
+		const orgId =
+			payload && "orgId" in payload
+				? (payload.orgId ?? null)
+				: focused
+					? getOrg(focused.id)
+					: null;
+		void createPlatformWindow({ orgId }).catch((error) => {
+			console.error("[main-window] Failed to open new window:", error);
+		});
 	});
 }
 
@@ -237,8 +247,13 @@ function stopSharedServices(): void {
 	notificationsServer = null;
 	notificationManager?.dispose();
 	notificationManager = null;
-	agentLifecycleHandler = null;
-	notificationsEmitter.removeAllListeners();
+	if (agentLifecycleHandler) {
+		notificationsEmitter.off(
+			NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
+			agentLifecycleHandler,
+		);
+		agentLifecycleHandler = null;
+	}
 	getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 }
 
@@ -271,9 +286,9 @@ export function persistOpenWindows(): void {
 	const persisted: PersistedWindow[] = getAllWindows()
 		.filter((w) => !w.isDestroyed())
 		.map((w) => ({ orgId: getOrg(w.id), state: snapshotWindowState(w) }));
-	if (persisted.length > 0) {
-		saveWindows(persisted);
-	}
+	// Write unconditionally — an empty array clears stale restore state when the
+	// last window closes, so previously-closed windows aren't reopened next launch.
+	saveWindows(persisted);
 }
 
 /** Recreate the windows saved from the previous session (each on its org). */
@@ -310,7 +325,10 @@ export async function createPlatformWindow({
 
 	const wasEmpty = getAllWindows().length === 0;
 
-	const savedWindowState = bounds ?? loadWindowState();
+	// Explicit bounds (restore) win. The first window falls back to the saved
+	// single-window position; an *additional* New Window opens fresh/centered so
+	// it doesn't land exactly on top of an existing window.
+	const savedWindowState = bounds ?? (wasEmpty ? loadWindowState() : null);
 	const initialBounds = getInitialWindowBounds(savedWindowState);
 	let persistedZoomLevel = savedWindowState?.zoomLevel;
 

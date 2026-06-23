@@ -13,11 +13,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { MOCK_ORG_ID } from "shared/constants";
-import {
-	getCollections,
-	preloadCollections,
-	setCurrentOrgId,
-} from "./collections";
+import { getCollections, preloadCollections } from "./collections";
 
 type CollectionsContextType = ReturnType<typeof getCollections> & {
 	activeOrganizationId: string;
@@ -71,7 +67,6 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		const resolved = windowOrgId ?? sessionOrgId ?? null;
 		if (!resolved) return;
 		initializedRef.current = true;
-		setCurrentOrgId(resolved);
 		setActiveOrganizationId(resolved);
 		if (!windowOrgId) {
 			void electronTrpcClient.window.setActiveOrg
@@ -90,13 +85,19 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 			if (organizationId === activeOrganizationId) return;
 			setIsSwitching(true);
 			try {
-				// Window-local switch: scope this window's API calls and registry
-				// entry to the new org, then warm its collections. The shared login
-				// session is intentionally NOT mutated, so other windows are unaffected.
-				setCurrentOrgId(organizationId);
+				// Window-local switch: record the org for this window and warm its
+				// collections, then flip the UI. The shared login session is NOT
+				// mutated, so other windows are unaffected. Each org's collections use
+				// their own org-pinned API client, so there is no global header to
+				// keep in sync. On failure the UI stays on the current org.
 				await electronTrpcClient.window.setActiveOrg.mutate({ organizationId });
 				await preloadCollections(organizationId);
 				setActiveOrganizationId(organizationId);
+			} catch (error) {
+				console.error(
+					"[collections-provider] Failed to switch organization:",
+					error,
+				);
 			} finally {
 				setIsSwitching(false);
 			}
