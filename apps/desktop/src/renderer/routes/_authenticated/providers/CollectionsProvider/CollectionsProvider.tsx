@@ -9,10 +9,17 @@ import {
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { MOCK_ORG_ID } from "shared/constants";
-import { getCollections, preloadCollections } from "./collections";
+import {
+	getCollections,
+	preloadCollections,
+	setCurrentOrgId,
+} from "./collections";
 
 type CollectionsContextType = ReturnType<typeof getCollections> & {
+	activeOrganizationId: string;
 	switchOrganization: (organizationId: string) => Promise<void>;
 };
 
@@ -31,25 +38,61 @@ export function preloadActiveOrganizationCollections(
 }
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
-	const { data: session, refetch: refetchSession } = authClient.useSession();
+	const { data: session } = authClient.useSession();
 	const [isSwitching, setIsSwitching] = useState(false);
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
+
+	// Per-window active org. The window registry (main process) is the source of
+	// truth: each window holds its own org, so switching in one window never
+	// affects another. For a window that has no org yet (the first window of an
+	// existing user), seed from the shared login session's active org and persist
+	// that seed back into the registry.
+	const { data: windowOrgId, isPending: windowOrgPending } =
+		electronTrpc.window.getActiveOrg.useQuery();
+
+	const sessionOrgId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
+
+	const [activeOrganizationId, setActiveOrganizationId] = useState<
+		string | null
+	>(null);
+
+	// Resolve the effective org once the window query settles. setCurrentOrgId
+	// keeps outgoing cloud API calls scoped to this window's org.
+	useEffect(() => {
+		if (windowOrgPending) return;
+		const resolved = windowOrgId ?? sessionOrgId ?? null;
+		setCurrentOrgId(resolved);
+		setActiveOrganizationId(resolved);
+		if (!windowOrgId && resolved) {
+			void electronTrpcClient.window.setActiveOrg
+				.mutate({ organizationId: resolved })
+				.catch((error) => {
+					console.error(
+						"[collections-provider] Failed to persist seeded org:",
+						error,
+					);
+				});
+		}
+	}, [windowOrgPending, windowOrgId, sessionOrgId]);
 
 	const switchOrganization = useCallback(
 		async (organizationId: string) => {
 			if (organizationId === activeOrganizationId) return;
 			setIsSwitching(true);
 			try {
-				await authClient.organization.setActive({ organizationId });
+				// Window-local switch: scope this window's API calls and registry
+				// entry to the new org, then warm its collections. The shared login
+				// session is intentionally NOT mutated, so other windows are unaffected.
+				setCurrentOrgId(organizationId);
+				await electronTrpcClient.window.setActiveOrg.mutate({ organizationId });
 				await preloadCollections(organizationId);
-				await refetchSession();
+				setActiveOrganizationId(organizationId);
 			} finally {
 				setIsSwitching(false);
 			}
 		},
-		[activeOrganizationId, refetchSession],
+		[activeOrganizationId],
 	);
 
 	useEffect(() => {
@@ -62,8 +105,11 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	);
 
 	const contextValue = useMemo<CollectionsContextType | null>(
-		() => (collections ? { ...collections, switchOrganization } : null),
-		[collections, switchOrganization],
+		() =>
+			collections && activeOrganizationId
+				? { ...collections, activeOrganizationId, switchOrganization }
+				: null,
+		[collections, activeOrganizationId, switchOrganization],
 	);
 
 	if (!contextValue || isSwitching) {

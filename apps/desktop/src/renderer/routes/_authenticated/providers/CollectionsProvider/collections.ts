@@ -29,6 +29,7 @@ import type {
 	SelectWorkspace,
 } from "@superset/db/schema";
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
+import { ORGANIZATION_HEADER } from "@superset/shared/constants";
 import type { AppRouter } from "@superset/trpc";
 import { BasicIndex } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
@@ -216,14 +217,34 @@ function getCollectionsCacheKey(organizationId: string): string {
 	return organizationId;
 }
 
-// Singleton API client with dynamic auth headers
+// This window's active organization. Each window is its own renderer process,
+// so this module-level value is naturally per-window (mirrors how the auth
+// token is held in auth-client.ts). It scopes outgoing cloud API calls to the
+// window's org via the ORGANIZATION_HEADER, independent of the shared login
+// session's active org. Set by CollectionsProvider whenever the window's org
+// resolves or changes.
+let currentOrgId: string | null = null;
+
+export function setCurrentOrgId(id: string | null): void {
+	currentOrgId = id;
+}
+
+export function getCurrentOrgId(): string | null {
+	return currentOrgId;
+}
+
+// Singleton API client with dynamic auth + per-window org headers
 const apiClient = createTRPCProxyClient<AppRouter>({
 	links: [
 		httpBatchLink({
 			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
 			headers: () => {
 				const token = getAuthToken();
-				return token ? { Authorization: `Bearer ${token}` } : {};
+				const orgId = getCurrentOrgId();
+				return {
+					...(token ? { Authorization: `Bearer ${token}` } : {}),
+					...(orgId ? { [ORGANIZATION_HEADER]: orgId } : {}),
+				};
 			},
 			transformer: superjson,
 		}),

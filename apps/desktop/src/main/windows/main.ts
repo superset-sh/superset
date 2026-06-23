@@ -5,6 +5,7 @@ import type { BrowserWindow } from "electron";
 import { app, Notification, nativeTheme } from "electron";
 import log from "electron-log/main";
 import { createWindow } from "lib/electron-app/factories/windows/create";
+import { createTrpcContext } from "lib/trpc/context";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
 import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
@@ -117,6 +118,7 @@ export function initAppServices(): void {
 	if (appServicesInitialized) return;
 	appServicesInitialized = true;
 	ipcHandler = createIPCHandler({
+		createContext: createTrpcContext,
 		router: createAppRouter(getWindow),
 		windows: [],
 	});
