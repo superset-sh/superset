@@ -5,6 +5,7 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
@@ -57,14 +58,22 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		string | null
 	>(null);
 
-	// Resolve the effective org once the window query settles. setCurrentOrgId
-	// keeps outgoing cloud API calls scoped to this window's org.
+	// Initialize the window's org exactly once. After this, the window's org is
+	// owned by local state (and switchOrganization); later — possibly transient —
+	// reads of the registry never override it. This prevents an empty/transient
+	// `getActiveOrg` read from snapping the window back to the shared session's
+	// default org. Seed the registry from the session only when the window has no
+	// org yet (the first window of an existing user).
+	const initializedRef = useRef(false);
 	useEffect(() => {
+		if (initializedRef.current) return;
 		if (windowOrgPending) return;
 		const resolved = windowOrgId ?? sessionOrgId ?? null;
+		if (!resolved) return;
+		initializedRef.current = true;
 		setCurrentOrgId(resolved);
 		setActiveOrganizationId(resolved);
-		if (!windowOrgId && resolved) {
+		if (!windowOrgId) {
 			void electronTrpcClient.window.setActiveOrg
 				.mutate({ organizationId: resolved })
 				.catch((error) => {
