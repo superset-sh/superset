@@ -7,10 +7,7 @@
 		"url": "https://superset.sh"
 	},
 	"homepage": "https://docs.superset.sh",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/superset-sh/superset"
-	},
+	"repository": "https://github.com/superset-sh/superset",
 	"license": "MIT",
 	"keywords": [
 		"superset",
