@@ -82,6 +82,9 @@ These are working assumptions that unblock planning. Each must be confirmed (and
   Rationale: `trpc-electron@0.1.2` supports `createContext({ event })` and exposes `event.sender` (verified in installed source — see Surprises & Discoveries). Procedure signatures in Milestones 2/3 use the context form (no `windowId` inputs).
   Date/Author: 2026-06-23 / plan author.
 - Decision **D4**: _pending_ — whether to ship the org-dropdown "Open in new window" item in v1.
+- Decision **D6 (2026-06-23)**: New Window ships as a **File-menu item with no keyboard shortcut**, and the hotkey registry is left untouched.
+  Rationale: Cmd+N is already New Workspace and ⇧⌘N is a reserved (currently unimplemented, single-reference, no-handler) `QUICK_CREATE_WORKSPACE` placeholder. Briefly trialed New Window on ⇧⌘N (moving the placeholder to ⌘⌃N), but for upstream acceptance the smallest single-concern diff wins: a new menu item collides with nothing, doesn't disturb a maintainer-reserved shortcut, and leaves shortcut philosophy to the maintainers. Locally the window still opens via File → New Window. A shortcut can be added if a maintainer requests it.
+  Date/Author: 2026-06-23 / plan author (per user steer toward easiest-to-accept).
 
 
 ## Outcomes & Retrospective
