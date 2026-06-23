@@ -179,6 +179,14 @@ export function buildV2TerminalEnv(
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
 	env.LANG = normalizeUtf8Locale(baseEnv);
+	// LC_ALL overrides every locale category (including LC_CTYPE), and LC_CTYPE
+	// overrides LANG for character encoding. A non-UTF-8 value here (e.g. the
+	// LC_ALL=C / LC_CTYPE=C that macOS GUI-launched shells often carry) silently
+	// re-corrupts the UTF-8 LANG we just set, producing mojibake in TUI box
+	// borders and CJK output. Drop any non-UTF-8 override so the UTF-8 LANG
+	// governs; deliberate UTF-8 values (e.g. fr_FR.UTF-8) are left intact.
+	if (env.LC_ALL && !UTF8_RE.test(env.LC_ALL)) delete env.LC_ALL;
+	if (env.LC_CTYPE && !UTF8_RE.test(env.LC_CTYPE)) delete env.LC_CTYPE;
 	env.PWD = cwd;
 
 	env.SUPERSET_TERMINAL_ID = terminalId;

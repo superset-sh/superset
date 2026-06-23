@@ -472,6 +472,52 @@ describe("buildV2TerminalEnv", () => {
 		expect(env.COLORFGBG).toBe("0;15");
 	});
 
+	test("does not let a non-UTF-8 LC_ALL override the UTF-8 LANG (mojibake repro)", () => {
+		// macOS GUI apps launch with an empty/POSIX locale; a user's shell
+		// snapshot can carry LC_ALL=C. POSIX precedence makes LC_ALL override
+		// LANG for every category, so a stale non-UTF-8 LC_ALL silently
+		// re-corrupts the UTF-8 LANG we set — garbling TUI box borders and CJK.
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			baseEnv: {
+				...baseParams.baseEnv,
+				LANG: "C",
+				LC_ALL: "C",
+			},
+		});
+		expect(env.LANG).toContain("UTF-8");
+		// LC_ALL must not remain a non-UTF-8 value that overrides LANG.
+		if (env.LC_ALL !== undefined) {
+			expect(env.LC_ALL).toMatch(/utf-?8/i);
+		}
+	});
+
+	test("does not let a non-UTF-8 LC_CTYPE override the UTF-8 LANG", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			baseEnv: {
+				...baseParams.baseEnv,
+				LC_CTYPE: "C",
+			},
+		});
+		expect(env.LANG).toContain("UTF-8");
+		if (env.LC_CTYPE !== undefined) {
+			expect(env.LC_CTYPE).toMatch(/utf-?8/i);
+		}
+	});
+
+	test("preserves a deliberate UTF-8 LC_ALL", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			baseEnv: {
+				...baseParams.baseEnv,
+				LC_ALL: "fr_FR.UTF-8",
+			},
+		});
+		expect(env.LANG).toBe("fr_FR.UTF-8");
+		expect(env.LC_ALL).toBe("fr_FR.UTF-8");
+	});
+
 	test("drops removed v1 metadata while preserving user shell vars", () => {
 		const env = buildV2TerminalEnv({
 			...baseParams,
