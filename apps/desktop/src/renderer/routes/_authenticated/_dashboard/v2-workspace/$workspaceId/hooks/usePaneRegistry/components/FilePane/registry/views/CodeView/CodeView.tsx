@@ -35,6 +35,7 @@ export function CodeView({
 				onChange={(next) => document.setContent(next)}
 				onSave={() => void document.save()}
 				onSelectionChange={refreshCanSend}
+				onSendSelection={() => void send({})}
 				fillHeight
 			/>
 			{canSend ? (

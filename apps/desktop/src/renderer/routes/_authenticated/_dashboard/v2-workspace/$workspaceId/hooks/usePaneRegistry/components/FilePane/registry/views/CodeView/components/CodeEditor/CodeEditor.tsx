@@ -32,6 +32,7 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useResolvedTheme } from "renderer/stores/theme";
 import {
 	type CodeEditorAdapter,
+	captureSelection,
 	createCodeMirrorAdapter,
 } from "./CodeEditorAdapter";
 import { SELECTION_CHANGE_DEBOUNCE_MS } from "./constants";
@@ -55,6 +56,12 @@ interface CodeEditorProps {
 	/** Fires whenever the selection changes, so a host can refresh selection-
 	 *  derived UI (e.g. the "Send selection to agent" affordance). */
 	onSelectionChange?: () => void;
+	/** Invoked by the Mod-Enter keybinding to send the current selection to an
+	 *  agent — the keyboard equivalent of the "Send selection to agent" button.
+	 *  Held in a ref so the keybinding always calls the latest handler. The
+	 *  chord only fires (and is consumed) when a non-empty selection exists;
+	 *  otherwise Mod-Enter falls through to default editor behavior. */
+	onSendSelection?: () => void;
 }
 
 export function CodeEditor({
@@ -67,6 +74,7 @@ export function CodeEditor({
 	onChange,
 	onSave,
 	onSelectionChange,
+	onSendSelection,
 }: CodeEditorProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const viewRef = useRef<EditorView | null>(null);
@@ -76,6 +84,7 @@ export function CodeEditor({
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
 	const onSelectionChangeRef = useRef(onSelectionChange);
+	const onSendSelectionRef = useRef(onSendSelection);
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = useQuery({
@@ -90,6 +99,7 @@ export function CodeEditor({
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
 	onSelectionChangeRef.current = onSelectionChange;
+	onSendSelectionRef.current = onSendSelection;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Editor instance is created once and reconfigured via dedicated effects below
 	useEffect(() => {
@@ -113,11 +123,27 @@ export function CodeEditor({
 			onChangeRef.current?.(update.state.doc.toString());
 		});
 
-		const saveKeymap = keymap.of([
+		const editorActionKeymap = keymap.of([
 			{
 				key: "Mod-s",
 				run: () => {
 					onSaveRef.current?.();
+					return true;
+				},
+			},
+			{
+				// Mod-Enter sends the current selection to an agent (keyboard
+				// equivalent of the "Send selection to agent" button). Reuse the
+				// adapter's captureSelection as the presence check — the path arg is
+				// irrelevant to its null decision (null iff empty/whitespace-only), so
+				// this does not duplicate the empty-selection logic. Consume the chord
+				// (return true) ONLY when there is a sendable selection; with no
+				// selection return false so Mod-Enter falls through to default
+				// behavior (no stray newline is suppressed needlessly).
+				key: "Mod-Enter",
+				run: (view) => {
+					if (captureSelection(view.state, "") == null) return false;
+					onSendSelectionRef.current?.();
 					return true;
 				},
 			},
@@ -156,7 +182,7 @@ export function CodeEditor({
 					...searchKeymap,
 					...foldKeymap,
 				]),
-				saveKeymap,
+				editorActionKeymap,
 				themeCompartment.of([
 					getCodeSyntaxHighlighting(activeTheme),
 					createCodeMirrorTheme(

@@ -13,7 +13,14 @@ import type { CodeEditorAdapter } from "../../CodeEditorAdapter";
 import { buildSelectionPrompt } from "./buildSelectionPrompt";
 import { dispatchSelection } from "./dispatchSelection";
 import { isStillCurrent } from "./isStillCurrent";
-import { shouldRefuseSelection } from "./shouldRefuseSelection";
+import { resolveSendOutcome } from "./resolveSendOutcome";
+
+/** Shown when a valid selection has nowhere to go: no live terminal agent AND
+ *  no agent config (the target ladder yields null). Actionable, not a generic
+ *  failure — parity-plus over the diff composer, which surfaces a misleading
+ *  "couldn't start a new session" here even though nothing could be launched. */
+const NO_AGENT_MESSAGE =
+	"No agent available to send to. Start an agent in this workspace, or add one in Settings → Agents.";
 
 interface UseSendSelectionToAgentArgs {
 	workspaceId: string;
@@ -101,14 +108,27 @@ export function useSendSelectionToAgent({
 			// therefore unreachable here and deferred to PR2 hosts. This refusal also
 			// structurally guarantees the formatter is never fed undefined/NaN.
 			const region = getEditor()?.getSelection(filePath);
-			if (shouldRefuseSelection(region)) return;
-			// shouldRefuseSelection narrows null/undefined, but TS can't infer that
-			// across the predicate boundary, so assert the resolved region here.
+			const target = input?.target ?? resolved;
+
+			// Classify the request before dispatching. `no-selection` is the inert
+			// refuse gate (edge #1 empty + edge #4 unresolvable). `no-agent` is the
+			// empty-ladder case (no live terminal agent AND no agent config): there
+			// is a sendable selection but nowhere to send it — surface a clear,
+			// actionable toast rather than dropping the selection or showing the
+			// misleading "couldn't start a new session" error. Never a silent drop.
+			const decision = resolveSendOutcome(region, target);
+			if (decision === "no-selection") return;
+			if (decision === "no-agent") {
+				toast.error(NO_AGENT_MESSAGE);
+				return;
+			}
+
+			// resolveSendOutcome already ran shouldRefuseSelection, but TS can't
+			// infer the narrowing across that boundary, so assert the region here.
 			const resolvedRegion = region as NonNullable<typeof region>;
 
 			const token = ++dispatchTokenRef.current;
 			const { text } = buildSelectionPrompt(resolvedRegion, input?.instruction);
-			const target = input?.target ?? resolved;
 
 			const outcome = await dispatchSelection({
 				workspaceId,
