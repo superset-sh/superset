@@ -27,7 +27,7 @@ How to see it working when done:
 
 These are working assumptions that unblock planning. Each must be confirmed (and moved to the Decision Log) or removed by the end of implementation.
 
-- **A1.** `trpc-electron@0.1.2` (the library that carries type-safe calls between the renderer and the main process — see "Context and Orientation") lets us build a per-call **context** that knows which window made the call, by exposing the underlying Electron IPC event whose `sender` is the calling window's web contents. This is the mechanism we rely on to route "set my window's org" to the correct window. Verified by **Spike 0** before any production code. (Dependencies are not installed in a fresh checkout, so this cannot be confirmed by reading source until `bun install` runs.)
+- **A1. (CONFIRMED — see D1, Spike 0 complete.)** `trpc-electron@0.1.2` lets us build a per-call **context** that knows which window made the call, by exposing the underlying Electron IPC event whose `sender` is the calling window's web contents. This is the mechanism we rely on to route "set my window's org" to the correct window.
 - **A2.** Setting `document.title` in the renderer propagates to the native window title (`BrowserWindow.getTitle()`), so each window can title itself with its org name from the renderer without a dedicated IPC call. If false, we add a small `window.setTitle` procedure (see Plan of Work, Milestone 3).
 - **A3.** The desktop renderer runs each `BrowserWindow` in its **own JavaScript context** (separate module instances), so module-level singletons such as the org id used for request headers are naturally per-window. This is standard Electron behavior and is the same reason the existing module-level `authToken` in `auth-client.ts` works per renderer.
 - **A4.** The cloud API already honors a per-request organization override header named `x-superset-organization-id` and validates that the user belongs to that org. (Confirmed by reading `packages/trpc/src/trpc.ts:51` and `packages/shared/src/constants.ts:5`; restated as Decision D2.)
@@ -36,7 +36,7 @@ These are working assumptions that unblock planning. Each must be confirmed (and
 
 ## Open Questions
 
-- **Q1 (Validation, Plan of Work / Spike 0).** Does `trpc-electron@0.1.2`'s `createIPCHandler` accept a `createContext` that receives the Electron IPC event (so we can read `event.sender` → `BrowserWindow.fromWebContents`)? → Decision **D1** (pending Spike 0).
+- **Q1 — RESOLVED (Spike 0, 2026-06-23).** `trpc-electron@0.1.2`'s `createIPCHandler` accepts `createContext?: (opts: { event: IpcMainInvokeEvent }) => Context`, and the event is invoked with the sender attached (`handleIPCMessage.ts:50`: `const ctx = (await createContext?.({ event })) ?? {}`). `event.sender` is the calling window's `WebContents`, so `BrowserWindow.fromWebContents(event.sender)` yields the calling window. → Decision **D1** (resolved below).
 - **Q2 (Plan of Work, Milestone 2).** When the very first window opens for an existing user who already has a server-side "active organization", what should that window's initial org be? Proposed: fall back to the session's `activeOrganizationId` when the per-window registry has no value yet, then record it. → Decision **D3** (proposed-resolved below; confirm during implementation).
 - **Q3 (Plan of Work, Milestone 3).** Should the organization dropdown also get an explicit "Open in new window" item per org, or is Cmd+N (open new window, then switch) sufficient for v1? Per the design discussion this is a secondary nicety. Proposed: include it because it is cheap once `window.openNew` exists. → Decision **D4** (proposed-resolved; confirm during implementation).
 - **Q4 (Plan of Work, Milestone 1).** With multiple windows, which window should receive a desktop notification click and OS deep links (`superset://…`)? Proposed for v1: the **last-focused** window (fallback: the first window). Finer per-window routing (route to the window that owns the workspace) is out of scope. → Decision **D5** (proposed-resolved).
@@ -46,7 +46,7 @@ These are working assumptions that unblock planning. Each must be confirmed (and
 
 - [x] (2026-06-23 07:20Z) Verified single-instance lock, window factory, menu, renderer org touchpoints, and the cloud org header against the working tree (see Context and Orientation).
 - [x] (2026-06-23 07:20Z) Drafted this ExecPlan end-to-end with milestones and a de-risking spike.
-- [ ] Spike 0: confirm `trpc-electron@0.1.2` per-window context mechanism (Q1 → D1).
+- [x] (2026-06-23 07:34Z) Spike 0: confirmed `trpc-electron@0.1.2` per-window context mechanism (Q1 → D1 resolved: `createContext({ event })` → `BrowserWindow.fromWebContents(event.sender)`). `bun install` running; package present and inspected.
 - [ ] Milestone 1: main-process refactor (app-services vs per-window) + window registry, single-window behavior unchanged.
 - [ ] Milestone 2: per-window org context (registry org id, `window.getActiveOrg`/`setActiveOrg`, renderer reads window org, `x-superset-organization-id` header, window-local switching).
 - [ ] Milestone 3: New Window UX (File → New Window + Cmd+N, `window.openNew`, optional org-dropdown action, per-window title).
@@ -56,6 +56,8 @@ These are working assumptions that unblock planning. Each must be confirmed (and
 
 ## Surprises & Discoveries
 
+- Observation (Spike 0): `trpc-electron@0.1.2` passes the Electron IPC event to `createContext`, so the calling window is identifiable per request.
+  Evidence: `apps/desktop/node_modules/trpc-electron/dist/main.d.ts` declares `createIPCHandler<TRouter>({ createContext?: (opts: { event: IpcMainInvokeEvent }) => MaybePromise<Context>; router; windows? })`; `src/main/handleIPCMessage.ts:50` calls `const ctx = (await createContext?.({ event })) ?? {}`; `event.sender` (a `WebContents`) is used at `src/main/createIPCHandler.ts:15` and `src/main/handleIPCMessage.ts:53`. Therefore `createContext: ({ event }) => ({ senderWindow: BrowserWindow.fromWebContents(event.sender) })` is the routing mechanism — the preferred path in the plan; no fallback needed.
 - Observation: The renderer's window loader ignores URL query parameters in development.
   Evidence: `apps/desktop/src/lib/window-loader.ts` loads a fixed `http://localhost:${DESKTOP_VITE_PORT}/#/` in dev and only uses `htmlFile` in production; the `query` field on `registerRoute` is never appended to the dev URL. Therefore we cannot seed a new window's org via a URL query param; the per-window org must be delivered over IPC (the `window.getActiveOrg` procedure). This shaped Milestone 2.
 - Observation: `MainWindow()` is a single-window "god function".
@@ -73,7 +75,9 @@ These are working assumptions that unblock planning. Each must be confirmed (and
 - Decision **D5 (proposed)**: Notification clicks and `superset://` deep links target the last-focused window (fallback: first window) for v1.
   Rationale: Smallest correct behavior; avoids building workspace-to-window ownership mapping now.
   Date/Author: 2026-06-23 / plan author.
-- Decision **D1**: _pending Spike 0_ — the concrete per-window routing mechanism.
+- Decision **D1 (RESOLVED 2026-06-23, Spike 0)**: Identify the calling window via a tRPC context built from the IPC sender — `createContext: ({ event }) => ({ senderWindow: BrowserWindow.fromWebContents(event.sender) })` — giving every procedure `ctx.senderWindow`. The fallback "explicit windowId input" is not needed.
+  Rationale: `trpc-electron@0.1.2` supports `createContext({ event })` and exposes `event.sender` (verified in installed source — see Surprises & Discoveries). Procedure signatures in Milestones 2/3 use the context form (no `windowId` inputs).
+  Date/Author: 2026-06-23 / plan author.
 - Decision **D4**: _pending_ — whether to ship the org-dropdown "Open in new window" item in v1.
 
 
@@ -517,3 +521,4 @@ Dependencies between milestones: Spike 0 → Milestone 1 → Milestone 2 → Mil
 ## Change Log (for this plan)
 
 - 2026-06-23: Initial plan authored from the locked design (issue #4018, option 3b). Captured the single-window "god function" constraint, the renderer org touchpoints, and the existing cloud org header. Added Spike 0 because `trpc-electron@0.1.2`'s per-window context mechanism cannot be confirmed from source until `bun install` runs, and because the dev window loader ignores URL query params (so org must be delivered over IPC, not via URL).
+- 2026-06-23 (07:34Z): Spike 0 complete. Confirmed D1 — `trpc-electron@0.1.2` exposes the IPC sender via `createContext({ event })`, so per-window routing uses `ctx.senderWindow = BrowserWindow.fromWebContents(event.sender)`; the explicit-`windowId` fallback is dropped. Updated Assumptions (A1), Open Questions (Q1), Progress, Decision Log (D1), and Surprises & Discoveries accordingly. Milestone 2/3 procedure signatures are the context form (no `windowId` inputs). Ready to begin Milestone 1 on approval.
