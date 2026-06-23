@@ -18,6 +18,7 @@ import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
 import { createApplicationMenu } from "../lib/menu";
+import { menuEmitter } from "../lib/menu-events";
 import { playNotificationSound } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
 import {
@@ -30,14 +31,29 @@ import {
 	getWorkspaceName,
 } from "../lib/notifications/utils";
 import {
+	getAllWindows,
+	getFocusedOrLastWindow,
+	getOrg,
+	markFocused,
+	registerWindow,
+	unregisterWindow,
+} from "../lib/window-registry/window-registry";
+import {
 	getInitialWindowBounds,
 	loadWindowState,
 	saveWindowState,
+	type WindowState,
 } from "../lib/window-state";
 import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
 
-// Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
+// Singleton IPC handler — created once, shared by every window. Each window is
+// attached/detached individually via attachWindow/detachWindow.
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
+
+// Routers receive this getter so they always act on the currently relevant
+// window. With multi-window support that is the most-recently-focused window
+// (tracked by the window registry) rather than a single stored reference.
+const getWindow = (): BrowserWindow | null => getFocusedOrLastWindow();
 
 function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
 	if (!workspaceId) return "Workspace";
@@ -61,11 +77,6 @@ function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
 	}
 }
 
-let currentWindow: BrowserWindow | null = null;
-
-// Routers receive this getter so they always see the current window, not a stale reference
-const getWindow = () => currentWindow;
-
 // invalidate() alone may not rebuild corrupted GPU layers — a tiny resize
 // forces Chromium to reconstruct the compositor layer tree.
 const forceRepaint = (win: BrowserWindow) => {
@@ -88,8 +99,171 @@ app.on("child-process-gone", (_event, details) => {
 	}
 });
 
-export async function MainWindow() {
-	const savedWindowState = loadWindowState();
+// ---------------------------------------------------------------------------
+// App-level services
+// ---------------------------------------------------------------------------
+// These exist once for the whole app, independent of how many windows are open.
+// Splitting them out of per-window setup is what makes opening a second window
+// safe: the notifications HTTP server binds a single fixed port and the
+// terminal/notification listeners must not be registered more than once.
+
+let appServicesInitialized = false;
+
+/**
+ * Initialize app-wide singletons (the tRPC IPC handler and the application
+ * menu). Idempotent — safe to call before each window is created.
+ */
+export function initAppServices(): void {
+	if (appServicesInitialized) return;
+	appServicesInitialized = true;
+	ipcHandler = createIPCHandler({
+		router: createAppRouter(getWindow),
+		windows: [],
+	});
+	createApplicationMenu();
+
+	// File → New Window (Cmd+N): open another window on the same org as the
+	// currently focused window. Per-window org independence arrives in a later
+	// milestone; for now a new window mirrors the current org.
+	menuEmitter.on("new-window", () => {
+		const focused = getFocusedOrLastWindow();
+		const orgId = focused ? getOrg(focused.id) : null;
+		void createPlatformWindow({ orgId });
+	});
+}
+
+// Shared services that should run while at least one window is open. Started
+// when the first window opens and torn down when the last window closes, so
+// they are never double-initialized by additional windows.
+let notificationsServer: ReturnType<typeof notificationsApp.listen> | null =
+	null;
+let notificationManager: NotificationManager | null = null;
+let agentLifecycleHandler: ((event: AgentLifecycleEvent) => void) | null = null;
+
+function startSharedServices(): void {
+	if (notificationManager) return;
+
+	notificationsServer = notificationsApp.listen(
+		env.DESKTOP_NOTIFICATIONS_PORT,
+		"127.0.0.1",
+		() => {
+			console.log(
+				`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
+			);
+		},
+	);
+
+	notificationManager = new NotificationManager({
+		isSupported: () => Notification.isSupported(),
+		createNotification: (opts) => new Notification(opts),
+		playSound: playNotificationSound,
+		onNotificationClick: (ids) => {
+			const win = getFocusedOrLastWindow();
+			win?.show();
+			win?.focus();
+			if (ids.workspaceId && ids.terminalId) {
+				notificationsEmitter.emit(
+					NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE,
+					{
+						workspaceId: ids.workspaceId,
+						source: { type: "terminal", id: ids.terminalId },
+					},
+				);
+				return;
+			}
+			notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, ids);
+		},
+		getVisibilityContext: () => {
+			const win = getFocusedOrLastWindow();
+			return {
+				isFocused: win?.isFocused() ?? false,
+				currentWorkspaceId: win
+					? extractWorkspaceIdFromUrl(win.webContents.getURL())
+					: null,
+				tabsState: appState.data?.tabsState,
+			};
+		},
+		getWorkspaceName: getWorkspaceNameFromDb,
+		getNotificationTitle: (event) =>
+			getNotificationTitle({
+				tabId: event.tabId,
+				paneId: event.paneId,
+				tabs: appState.data?.tabsState?.tabs,
+				panes: appState.data?.tabsState?.panes,
+			}),
+	});
+	notificationManager.start();
+
+	agentLifecycleHandler = (event: AgentLifecycleEvent) => {
+		notificationManager?.handleAgentLifecycle(event);
+	};
+	notificationsEmitter.on(
+		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
+		agentLifecycleHandler,
+	);
+
+	// Forward low-volume terminal lifecycle events to the renderer via the
+	// existing notifications subscription. Used only for correctness (e.g.
+	// clearing stuck agent lifecycle statuses when terminal panes aren't
+	// mounted).
+	getWorkspaceRuntimeRegistry()
+		.getDefault()
+		.terminal.on(
+			"terminalExit",
+			(event: {
+				paneId: string;
+				exitCode: number;
+				signal?: number;
+				reason?: "killed" | "exited" | "error";
+			}) => {
+				notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
+					paneId: event.paneId,
+					exitCode: event.exitCode,
+					signal: event.signal,
+					reason: event.reason,
+				});
+			},
+		);
+}
+
+function stopSharedServices(): void {
+	browserManager.unregisterAll();
+	notificationsServer?.close();
+	notificationsServer = null;
+	notificationManager?.dispose();
+	notificationManager = null;
+	agentLifecycleHandler = null;
+	notificationsEmitter.removeAllListeners();
+	getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
+}
+
+// ---------------------------------------------------------------------------
+// Per-window setup
+// ---------------------------------------------------------------------------
+
+/**
+ * Create one platform window. Safe to call multiple times — each call builds an
+ * independent BrowserWindow, registers it in the window registry, and attaches
+ * it to the shared IPC handler. The first window starts shared services; the
+ * last window to close stops them.
+ *
+ * @param orgId  The organization this window should show. Consumed by the
+ *               per-window organization context (Milestone 2); may be null
+ *               until the renderer resolves a default.
+ * @param bounds Optional saved bounds to restore (used by window restore).
+ */
+export async function createPlatformWindow({
+	orgId,
+	bounds,
+}: {
+	orgId: string | null;
+	bounds?: WindowState;
+}): Promise<BrowserWindow> {
+	initAppServices();
+
+	const wasEmpty = getAllWindows().length === 0;
+
+	const savedWindowState = bounds ?? loadWindowState();
 	const initialBounds = getInitialWindowBounds(savedWindowState);
 	let persistedZoomLevel = savedWindowState?.zoomLevel;
 
@@ -127,9 +301,12 @@ export async function MainWindow() {
 		},
 	});
 
-	createApplicationMenu();
+	registerWindow({ window, orgId });
+	window.on("focus", () => markFocused(window.id));
 
-	currentWindow = window;
+	if (wasEmpty) {
+		startSharedServices();
+	}
 
 	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
 	if (PLATFORM.IS_MAC) {
@@ -170,90 +347,7 @@ export async function MainWindow() {
 		});
 	}
 
-	if (ipcHandler) {
-		ipcHandler.attachWindow(window);
-	} else {
-		ipcHandler = createIPCHandler({
-			router: createAppRouter(getWindow),
-			windows: [window],
-		});
-	}
-
-	const server = notificationsApp.listen(
-		env.DESKTOP_NOTIFICATIONS_PORT,
-		"127.0.0.1",
-		() => {
-			console.log(
-				`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
-			);
-		},
-	);
-
-	const notificationManager = new NotificationManager({
-		isSupported: () => Notification.isSupported(),
-		createNotification: (opts) => new Notification(opts),
-		playSound: playNotificationSound,
-		onNotificationClick: (ids) => {
-			window.show();
-			window.focus();
-			if (ids.workspaceId && ids.terminalId) {
-				notificationsEmitter.emit(
-					NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE,
-					{
-						workspaceId: ids.workspaceId,
-						source: { type: "terminal", id: ids.terminalId },
-					},
-				);
-				return;
-			}
-			notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, ids);
-		},
-		getVisibilityContext: () => ({
-			isFocused: window.isFocused(),
-			currentWorkspaceId: extractWorkspaceIdFromUrl(
-				window.webContents.getURL(),
-			),
-			tabsState: appState.data?.tabsState,
-		}),
-		getWorkspaceName: getWorkspaceNameFromDb,
-		getNotificationTitle: (event) =>
-			getNotificationTitle({
-				tabId: event.tabId,
-				paneId: event.paneId,
-				tabs: appState.data?.tabsState?.tabs,
-				panes: appState.data?.tabsState?.panes,
-			}),
-	});
-	notificationManager.start();
-
-	notificationsEmitter.on(
-		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
-		(event: AgentLifecycleEvent) => {
-			notificationManager.handleAgentLifecycle(event);
-		},
-	);
-
-	// Forward low-volume terminal lifecycle events to the renderer via the existing
-	// notifications subscription. This is used only for correctness (e.g. clearing
-	// stuck agent lifecycle statuses when terminal panes aren't mounted).
-	getWorkspaceRuntimeRegistry()
-		.getDefault()
-		.terminal.on(
-			"terminalExit",
-			(event: {
-				paneId: string;
-				exitCode: number;
-				signal?: number;
-				reason?: "killed" | "exited" | "error";
-			}) => {
-				notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
-					paneId: event.paneId,
-					exitCode: event.exitCode,
-					signal: event.signal,
-					reason: event.reason,
-				});
-			},
-		);
+	ipcHandler?.attachWindow(window);
 
 	// macOS Sequoia+: occluded/minimized windows can lose compositor layers
 	if (PLATFORM.IS_MAC) {
@@ -358,13 +452,13 @@ export async function MainWindow() {
 		});
 		persistedZoomLevel = zoomLevel;
 
-		browserManager.unregisterAll();
-		server.close();
-		notificationManager.dispose();
-		notificationsEmitter.removeAllListeners();
-		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		ipcHandler?.detachWindow(window);
-		currentWindow = null;
+		unregisterWindow(window.id);
+
+		// Tear down app-wide shared services only when the last window closes.
+		if (getAllWindows().length === 0) {
+			stopSharedServices();
+		}
 	});
 
 	return window;

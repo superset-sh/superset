@@ -21,6 +21,14 @@ export function createApplicationMenu() {
 			label: "File",
 			submenu: [
 				{
+					label: "New Window",
+					accelerator: "CmdOrCtrl+N",
+					click: () => {
+						menuEmitter.emit("new-window");
+					},
+				},
+				{ type: "separator" },
+				{
 					label: "Open Repo...",
 					accelerator: "CmdOrCtrl+O",
 					click: () => {
