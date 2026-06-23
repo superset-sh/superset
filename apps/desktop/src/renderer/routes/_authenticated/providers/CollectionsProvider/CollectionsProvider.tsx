@@ -68,29 +68,36 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		if (!resolved) return;
 		initializedRef.current = true;
 		setActiveOrganizationId(resolved);
-		if (!windowOrgId) {
-			void electronTrpcClient.window.setActiveOrg
-				.mutate({ organizationId: resolved })
-				.catch((error) => {
-					console.error(
-						"[collections-provider] Failed to persist seeded org:",
-						error,
-					);
-				});
-		}
 	}, [windowOrgPending, windowOrgId, sessionOrgId]);
+
+	// Keep the main-process window registry in sync with this window's active
+	// org. Declarative and idempotent: re-asserted whenever the org changes, so
+	// the registry (which backs the window title, restore-on-relaunch, and
+	// openNew) always reflects the displayed org. This replaces a one-shot,
+	// fire-and-forget seed — a transient IPC failure self-corrects on the next
+	// change or next launch rather than leaving the registry permanently stale.
+	useEffect(() => {
+		if (!activeOrganizationId) return;
+		void electronTrpcClient.window.setActiveOrg
+			.mutate({ organizationId: activeOrganizationId })
+			.catch((error) => {
+				console.error(
+					"[collections-provider] Failed to sync window org to registry:",
+					error,
+				);
+			});
+	}, [activeOrganizationId]);
 
 	const switchOrganization = useCallback(
 		async (organizationId: string) => {
 			if (organizationId === activeOrganizationId) return;
 			setIsSwitching(true);
 			try {
-				// Window-local switch: record the org for this window and warm its
-				// collections, then flip the UI. The shared login session is NOT
-				// mutated, so other windows are unaffected. Each org's collections use
-				// their own org-pinned API client, so there is no global header to
-				// keep in sync. On failure the UI stays on the current org.
-				await electronTrpcClient.window.setActiveOrg.mutate({ organizationId });
+				// Window-local switch: warm the new org's collections, then flip the
+				// UI. The registry is updated by the sync effect above when
+				// activeOrganizationId changes. The shared login session is NOT
+				// mutated, so other windows are unaffected; each org's collections use
+				// their own org-pinned API client. On failure the UI stays put.
 				await preloadCollections(organizationId);
 				setActiveOrganizationId(organizationId);
 			} catch (error) {
