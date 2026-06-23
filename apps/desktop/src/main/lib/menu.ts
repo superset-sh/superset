@@ -15,10 +15,6 @@ export function createApplicationMenu() {
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
 	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
-	// VS Code–standard New Window on mac (⇧⌘N). On Windows/Linux Ctrl+Shift+N is
-	// already New Workspace, so use Ctrl+Alt+N there.
-	const newWindowAccelerator =
-		process.platform === "darwin" ? "Cmd+Shift+N" : "Ctrl+Alt+N";
 
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
@@ -26,7 +22,6 @@ export function createApplicationMenu() {
 			submenu: [
 				{
 					label: "New Window",
-					accelerator: newWindowAccelerator,
 					click: () => {
 						menuEmitter.emit("new-window");
 					},
