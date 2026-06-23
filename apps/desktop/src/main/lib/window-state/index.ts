@@ -6,10 +6,10 @@ export {
 export {
 	isValidPersistedWindow,
 	isValidWindowState,
-	loadWindows,
 	loadWindowState,
+	loadWindows,
 	type PersistedWindow,
-	saveWindows,
 	saveWindowState,
+	saveWindows,
 	type WindowState,
 } from "./window-state";
