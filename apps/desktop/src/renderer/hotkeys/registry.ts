@@ -199,7 +199,10 @@ export const HOTKEYS_REGISTRY = {
 	},
 	QUICK_CREATE_WORKSPACE: {
 		key: {
-			mac: L("meta+shift+n"),
+			// Moved off meta+shift+n so "New Window" (File menu) can use the
+			// VS Code–standard ⇧⌘N. Quick Create has no active handler today;
+			// this only keeps the Shortcuts panel accurate.
+			mac: L("meta+ctrl+n"),
 			windows: L("ctrl+shift+alt+n"),
 			linux: L("ctrl+shift+alt+n"),
 		},
