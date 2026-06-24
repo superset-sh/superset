@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import {
-	githubInstallations,
+	type GitLabConfig,
+	integrationConnections,
 	pullRequests,
 	repositories,
 } from "@superset/db/schema";
@@ -15,97 +16,117 @@ import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
-export const githubRouter = {
-	getInstallation: protectedProcedure
-		.input(z.object({ organizationId: z.string().uuid() }))
+/** Finds the org's GitLab connection id (active or not), or null. */
+async function findGitlabConnectionId(
+	organizationId: string,
+): Promise<string | null> {
+	const connection = await db.query.integrationConnections.findFirst({
+		where: and(
+			eq(integrationConnections.organizationId, organizationId),
+			eq(integrationConnections.provider, "gitlab"),
+		),
+		columns: { id: true },
+	});
+	return connection?.id ?? null;
+}
+
+export const gitlabRouter = {
+	getConnection: protectedProcedure
+		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-
-			const installation = await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
+			const connection = await db.query.integrationConnections.findFirst({
+				where: and(
+					eq(integrationConnections.organizationId, input.organizationId),
+					eq(integrationConnections.provider, "gitlab"),
+				),
 				columns: {
 					id: true,
-					accountLogin: true,
-					accountType: true,
-					suspended: true,
-					lastSyncedAt: true,
-					createdAt: true,
+					externalOrgId: true,
+					externalOrgName: true,
+					config: true,
+					disconnectedAt: true,
+					disconnectReason: true,
 				},
 			});
-
-			return installation ?? null;
+			if (!connection) return null;
+			return {
+				groupId: connection.externalOrgId,
+				groupName: connection.externalOrgName,
+				config: connection.config as GitLabConfig | null,
+				needsReconnect: !!connection.disconnectedAt,
+				disconnectReason: connection.disconnectReason,
+			};
 		}),
 
 	disconnect: protectedProcedure
-		.input(z.object({ organizationId: z.string().uuid() }))
+		.input(z.object({ organizationId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 
+			// Deleting the connection cascades to its repositories (connectionId FK)
+			// and their pull_requests (repositoryId FK), so no manual cleanup needed.
 			const result = await db
-				.delete(githubInstallations)
-				.where(eq(githubInstallations.organizationId, input.organizationId))
-				.returning({ id: githubInstallations.id });
+				.delete(integrationConnections)
+				.where(
+					and(
+						eq(integrationConnections.organizationId, input.organizationId),
+						eq(integrationConnections.provider, "gitlab"),
+					),
+				)
+				.returning({ id: integrationConnections.id });
 
 			if (result.length === 0) {
-				return { success: false, error: "No installation found" };
+				return { success: false, error: "No connection found" };
 			}
 
 			return { success: true };
 		}),
 
 	triggerSync: protectedProcedure
-		.input(z.object({ organizationId: z.string().uuid() }))
+		.input(z.object({ organizationId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-			const installation = await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
-				columns: { id: true },
-			});
-
-			if (!installation) {
+			const connectionId = await findGitlabConnectionId(input.organizationId);
+			if (!connectionId) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "GitHub installation not found",
+					message: "GitLab connection not found",
 				});
 			}
 
-			const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
+			const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/gitlab/jobs/initial-sync`;
 			const syncBody = {
-				installationDbId: installation.id,
+				connectionId,
 				organizationId: input.organizationId,
 			};
 
-			// In development, call the sync endpoint directly (QStash can't reach localhost)
+			// In development, call the sync endpoint directly (QStash can't reach localhost).
 			if (env.NODE_ENV === "development") {
 				fetch(syncUrl, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(syncBody),
 				}).catch((error) => {
-					console.error("[github/triggerSync] Dev sync failed:", error);
+					console.error("[gitlab/triggerSync] Dev sync failed:", error);
 				});
 			} else {
-				await qstash.publishJSON({
-					url: syncUrl,
-					body: syncBody,
-					retries: 3,
-				});
+				await qstash.publishJSON({ url: syncUrl, body: syncBody, retries: 3 });
 			}
 
 			return { success: true };
 		}),
 
 	listRepositories: protectedProcedure
-		.input(z.object({ organizationId: z.string().uuid() }))
+		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-			// Reads the generic tables (GitHub rows mirrored there via dual-write).
 			return db.query.repositories.findMany({
 				where: and(
 					eq(repositories.organizationId, input.organizationId),
-					eq(repositories.provider, "github"),
+					eq(repositories.provider, "gitlab"),
 				),
 				orderBy: [desc(repositories.updatedAt)],
 			});
@@ -114,8 +135,8 @@ export const githubRouter = {
 	listPullRequests: protectedProcedure
 		.input(
 			z.object({
-				organizationId: z.string().uuid(),
-				repositoryId: z.string().uuid().optional(),
+				organizationId: z.uuid(),
+				repositoryId: z.uuid().optional(),
 				state: z.enum(["open", "closed", "all"]).optional().default("open"),
 			}),
 		)
@@ -124,7 +145,7 @@ export const githubRouter = {
 
 			const conditions = [
 				eq(pullRequests.organizationId, input.organizationId),
-				eq(pullRequests.provider, "github"),
+				eq(pullRequests.provider, "gitlab"),
 			];
 			if (input.repositoryId) {
 				conditions.push(eq(pullRequests.repositoryId, input.repositoryId));
@@ -166,14 +187,14 @@ export const githubRouter = {
 		}),
 
 	getStats: protectedProcedure
-		.input(z.object({ organizationId: z.string().uuid() }))
+		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
 			const repos = await db.query.repositories.findMany({
 				where: and(
 					eq(repositories.organizationId, input.organizationId),
-					eq(repositories.provider, "github"),
+					eq(repositories.provider, "gitlab"),
 				),
 				columns: { id: true },
 			});
@@ -189,7 +210,7 @@ export const githubRouter = {
 			const openPrs = await db.query.pullRequests.findMany({
 				where: and(
 					eq(pullRequests.organizationId, input.organizationId),
-					eq(pullRequests.provider, "github"),
+					eq(pullRequests.provider, "gitlab"),
 					inArray(
 						pullRequests.repositoryId,
 						repos.map((r) => r.id),

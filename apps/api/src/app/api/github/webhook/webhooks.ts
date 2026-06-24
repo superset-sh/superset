@@ -9,6 +9,10 @@ import {
 import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
+import {
+	deleteGenericGithubRepo,
+	mirrorGithubToGeneric,
+} from "../mirror-to-generic";
 
 export const webhooks = new Webhooks({ secret: env.GH_WEBHOOK_SECRET });
 
@@ -109,6 +113,10 @@ webhooks.on(
 					},
 				});
 		}
+
+		await mirrorGithubToGeneric({
+			organizationId: installation.organizationId,
+		});
 	},
 );
 
@@ -122,12 +130,13 @@ webhooks.on(
 			await db
 				.delete(githubRepositories)
 				.where(eq(githubRepositories.repoId, String(repo.id)));
+			await deleteGenericGithubRepo(String(repo.id));
 		}
 	},
 );
 
-function upsertPullRequest(
-	repo: { id: string; organizationId: string },
+async function upsertPullRequest(
+	repo: { id: string; organizationId: string; repoId: string },
 	pr: {
 		number: number;
 		node_id: string;
@@ -147,7 +156,7 @@ function upsertPullRequest(
 	},
 ) {
 	const upstreamUpdatedAt = new Date(pr.updated_at);
-	return db
+	await db
 		.insert(githubPullRequests)
 		.values({
 			repositoryId: repo.id,
@@ -190,6 +199,8 @@ function upsertPullRequest(
 				updatedAt: upstreamUpdatedAt,
 			},
 		});
+
+	await mirrorGithubToGeneric({ repoId: repo.repoId });
 }
 
 webhooks.on(
@@ -319,6 +330,8 @@ webhooks.on(
 					),
 				);
 		}
+
+		await mirrorGithubToGeneric({ repoId: repo.repoId });
 	},
 );
 
@@ -411,5 +424,7 @@ webhooks.on(
 				})
 				.where(eq(githubPullRequests.id, currentPr.id));
 		}
+
+		await mirrorGithubToGeneric({ repoId: repo.repoId });
 	},
 );
