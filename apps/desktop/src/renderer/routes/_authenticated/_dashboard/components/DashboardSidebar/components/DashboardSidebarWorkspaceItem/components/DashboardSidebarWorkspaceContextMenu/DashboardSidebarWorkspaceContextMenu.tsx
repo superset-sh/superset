@@ -14,6 +14,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
+	LuBellOff,
 	LuCopy,
 	LuEye,
 	LuEyeOff,
@@ -34,6 +35,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	isLocalWorkspace: boolean;
 	isPinned?: boolean;
 	isUnread: boolean;
+	hasStatus: boolean;
 	showDeleteHotkey?: boolean;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
@@ -44,6 +46,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onRename: () => void;
 	onDelete?: () => void;
 	onToggleUnread: () => void;
+	onClearStatus: () => void;
 	children: React.ReactNode;
 }
 
@@ -53,6 +56,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	isLocalWorkspace,
 	isPinned = false,
 	isUnread,
+	hasStatus,
 	showDeleteHotkey = false,
 	onCreateSection,
 	onMoveToSection,
@@ -63,6 +67,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onRename,
 	onDelete,
 	onToggleUnread,
+	onClearStatus,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
@@ -126,6 +131,12 @@ export function DashboardSidebarWorkspaceContextMenu({
 						</>
 					)}
 				</ContextMenuItem>
+				{hasStatus && (
+					<ContextMenuItem onSelect={onClearStatus}>
+						<LuBellOff className="size-4 mr-2" />
+						Clear Status
+					</ContextMenuItem>
+				)}
 				{!isPinned && (
 					<>
 						<ContextMenuSeparator />
