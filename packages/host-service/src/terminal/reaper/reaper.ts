@@ -77,21 +77,39 @@ export function planPortScanSync({
 	return { register, unregister };
 }
 
+function loadTerminalRowsById(db: HostDb): Map<string, TerminalRow> {
+	const rows = db
+		.select({
+			id: terminalSessions.id,
+			status: terminalSessions.status,
+			originWorkspaceId: terminalSessions.originWorkspaceId,
+		})
+		.from(terminalSessions)
+		.all();
+	return new Map(rows.map((row) => [row.id, row]));
+}
+
+// Isolated from the reaper's main flow: port scanning is best-effort, so a
+// port-manager error must not abort the orphan cleanup that follows it.
 function applyPortScanSync(
 	liveSessions: { id: string; pid: number }[],
 	rowById: Map<string, TerminalRow>,
 ): void {
-	const plan = planPortScanSync({
-		liveSessions,
-		rowById,
-		registeredTerminalIds: portManager.getRegisteredTerminalIds(),
-		isLive: isLiveTerminalSession,
-	});
-	for (const entry of plan.register) {
-		portManager.upsertSession(entry.terminalId, entry.workspaceId, entry.pid);
-	}
-	for (const terminalId of plan.unregister) {
-		portManager.unregisterSession(terminalId);
+	try {
+		const plan = planPortScanSync({
+			liveSessions,
+			rowById,
+			registeredTerminalIds: portManager.getRegisteredTerminalIds(),
+			isLive: isLiveTerminalSession,
+		});
+		for (const entry of plan.register) {
+			portManager.upsertSession(entry.terminalId, entry.workspaceId, entry.pid);
+		}
+		for (const terminalId of plan.unregister) {
+			portManager.unregisterSession(terminalId);
+		}
+	} catch (err) {
+		console.warn("[host-service] port-scan sync failed:", err);
 	}
 }
 
@@ -102,18 +120,16 @@ async function reapOrphanedSessions(
 	const daemon = await getDaemonClient();
 	const liveSessions = (await daemon.list()).filter((session) => session.alive);
 
-	const rows = db
-		.select({
-			id: terminalSessions.id,
-			status: terminalSessions.status,
-			originWorkspaceId: terminalSessions.originWorkspaceId,
-		})
-		.from(terminalSessions)
-		.all();
-	const rowById = new Map(rows.map((row) => [row.id, row]));
+	// An idle daemon still needs a sync pass to drop stale scans, but the row
+	// join is only consulted to register live sessions — skip the DB hit when
+	// there are none.
+	const rowById =
+		liveSessions.length > 0
+			? loadTerminalRowsById(db)
+			: new Map<string, TerminalRow>();
 
-	// Reuse the list + row join the reaper already did. Must run before the
-	// empty-list short-circuit so an empty daemon still clears stale scans.
+	// Must run before the empty-list short-circuit so an empty daemon still
+	// clears stale scans.
 	applyPortScanSync(liveSessions, rowById);
 
 	if (liveSessions.length === 0) {
