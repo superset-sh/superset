@@ -4,13 +4,14 @@ import { authClient } from "@superset/auth/client";
 import { Button } from "@superset/ui/button";
 import Link from "next/link";
 import { useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
 
 export default function SignUpPage() {
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
+	const [isLoadingGitlab, setIsLoadingGitlab] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const signUpWithGoogle = async () => {
@@ -45,7 +46,23 @@ export default function SignUpPage() {
 		}
 	};
 
-	const isLoading = isLoadingGoogle || isLoadingGithub;
+	const signUpWithGitlab = async () => {
+		setIsLoadingGitlab(true);
+		setError(null);
+
+		try {
+			await authClient.signIn.social({
+				provider: "gitlab",
+				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+			});
+		} catch (err) {
+			console.error("Sign up failed:", err);
+			setError("Failed to sign up. Please try again.");
+			setIsLoadingGitlab(false);
+		}
+	};
+
+	const isLoading = isLoadingGoogle || isLoadingGithub || isLoadingGitlab;
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
@@ -78,6 +95,15 @@ export default function SignUpPage() {
 				>
 					<FcGoogle className="mr-2 size-4" />
 					{isLoadingGoogle ? "Loading..." : "Sign up with Google"}
+				</Button>
+				<Button
+					variant="outline"
+					disabled={isLoading}
+					onClick={signUpWithGitlab}
+					className="w-full"
+				>
+					<FaGitlab className="mr-2 size-4 text-[#FC6D26]" />
+					{isLoadingGitlab ? "Loading..." : "Sign up with GitLab"}
 				</Button>
 				<p className="text-muted-foreground px-8 text-center text-sm">
 					By clicking continue, you agree to our{" "}

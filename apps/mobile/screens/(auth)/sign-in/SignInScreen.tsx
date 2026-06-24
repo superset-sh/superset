@@ -56,6 +56,11 @@ export function SignInScreen() {
 					onPress={() => handleSignIn("google")}
 					className="w-4/5"
 				/>
+				<SocialButton
+					provider="gitlab"
+					onPress={() => handleSignIn("gitlab")}
+					className="w-4/5"
+				/>
 				{__DEV__ && <DevSignInButton />}
 			</View>
 

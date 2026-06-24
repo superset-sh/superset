@@ -1,5 +1,5 @@
 // Auth
-export const AUTH_PROVIDERS = ["github", "google"] as const;
+export const AUTH_PROVIDERS = ["github", "google", "gitlab"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
 export const ORGANIZATION_HEADER = "x-superset-organization-id";

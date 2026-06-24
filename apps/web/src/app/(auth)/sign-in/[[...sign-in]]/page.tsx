@@ -10,7 +10,7 @@ import { Button } from "@superset/ui/button";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
 
@@ -23,6 +23,7 @@ export default function SignInPage() {
 
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
+	const [isLoadingGitlab, setIsLoadingGitlab] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const signInWithGoogle = async () => {
@@ -54,6 +55,22 @@ export default function SignInPage() {
 			console.error("Sign in failed:", err);
 			setError("Failed to sign in. Please try again.");
 			setIsLoadingGithub(false);
+		}
+	};
+
+	const signInWithGitlab = async () => {
+		setIsLoadingGitlab(true);
+		setError(null);
+
+		try {
+			await authClient.signIn.social({
+				provider: "gitlab",
+				callbackURL,
+			});
+		} catch (err) {
+			console.error("Sign in failed:", err);
+			setError("Failed to sign in. Please try again.");
+			setIsLoadingGitlab(false);
 		}
 	};
 
@@ -89,7 +106,8 @@ export default function SignInPage() {
 		}
 	};
 
-	const isLoading = isLoadingGoogle || isLoadingGithub || isLoadingDev;
+	const isLoading =
+		isLoadingGoogle || isLoadingGithub || isLoadingGitlab || isLoadingDev;
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
@@ -130,6 +148,15 @@ export default function SignInPage() {
 				>
 					<FcGoogle className="mr-2 size-4" />
 					{isLoadingGoogle ? "Loading..." : "Sign in with Google"}
+				</Button>
+				<Button
+					variant="outline"
+					disabled={isLoading}
+					onClick={signInWithGitlab}
+					className="w-full"
+				>
+					<FaGitlab className="mr-2 size-4 text-[#FC6D26]" />
+					{isLoadingGitlab ? "Loading..." : "Sign in with GitLab"}
 				</Button>
 				<p className="text-muted-foreground px-8 text-center text-sm">
 					By clicking continue, you agree to our{" "}

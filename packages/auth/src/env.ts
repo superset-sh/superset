@@ -11,6 +11,10 @@ export const env = createEnv({
 		GH_CLIENT_SECRET: z.string(),
 		GOOGLE_CLIENT_ID: z.string(),
 		GOOGLE_CLIENT_SECRET: z.string(),
+		// GitLab (gitlab.com) OAuth credentials — optional so missing creds don't
+		// break startup. The server.ts provider is conditionally registered.
+		GITLAB_CLIENT_ID: z.string().optional(),
+		GITLAB_CLIENT_SECRET: z.string().optional(),
 		BETTER_AUTH_SECRET: z.string(),
 		RESEND_API_KEY: z.string(),
 		KV_REST_API_URL: z.string(),
