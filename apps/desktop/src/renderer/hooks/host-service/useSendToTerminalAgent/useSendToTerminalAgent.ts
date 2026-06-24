@@ -9,10 +9,8 @@ export interface AgentPromptFileContext {
 	path: string;
 	startLine: number;
 	endLine: number;
-	/** Which side of the diff the selection covers. When omitted, the prompt
-	 *  is rendered without a side annotation (single-file viewer case).
-	 *  `deletions` and `mixed` are tagged explicitly because their line
-	 *  numbers refer to the pre-diff file and would otherwise be ambiguous. */
+	/** Diff side the selection covers; omitted for single-file viewers.
+	 *  `deletions`/`mixed` are tagged since their lines refer to the pre-diff file. */
 	side?: AgentPromptFileSide;
 }
 
@@ -21,12 +19,7 @@ interface FormatPromptInput {
 	file: AgentPromptFileContext;
 }
 
-/**
- * Build the prompt body for sending a comment to a CLI agent that should
- * be anchored to a specific file/line range (e.g. inline diff comments,
- * file-viewer selections). Keep this stable so consumers can format the
- * same way without sharing logic.
- */
+/** Build a CLI-agent prompt body anchored to a file/line range. */
 export function formatAgentPromptWithFileContext({
 	comment,
 	file,
@@ -60,12 +53,8 @@ interface UseSendToTerminalAgentResult {
 	isPending: boolean;
 }
 
-/**
- * Shared writer for pushing a comment/prompt into an existing terminal
- * agent's pty via the host-service `terminal.writeInput` mutation.
- * Surfaces (DiffPane composer, file-viewer comments, etc.) should funnel
- * through this so the payload normalization + error toast stay consistent.
- */
+/** Shared writer for pushing a prompt into an existing terminal agent's pty,
+ *  keeping payload normalization + the error toast consistent across callers. */
 export function useSendToTerminalAgent(): UseSendToTerminalAgentResult {
 	const writeInput = workspaceTrpc.terminal.writeInput.useMutation();
 

@@ -1,19 +1,12 @@
 import type { SelectionSide } from "@pierre/diffs";
 
-// ponytail: this whole module reads @pierre/diffs ≥1.2.2 rendered-DOM internals.
-// @pierre/diffs exposes no text-selection API, so we read the line markers it
-// paints inside each <diffs-container> shadow root:
-//   - every line row carries `data-line` (line number) + `data-line-type`
-//     (context | change-addition | change-deletion)
-//   - the side of a pure context line (which has no change-* type) is read from
-//     its enclosing `<code data-additions>` / `<code data-deletions>` column.
-// These are undocumented internals. Upstream request to expose a real selection
-// API is github.com/pierredotco/diffs#248 (closed/completed). Re-verify the
-// attribute names on any @pierre/diffs upgrade.
+// ponytail: reads undocumented @pierre/diffs DOM internals (data-line /
+// data-line-type rows, data-additions/data-deletions columns) since there's no
+// selection API. Re-verify attribute names on upgrade. Upstream:
+// github.com/pierredotco/diffs#248.
 
-/** Minimal shape we need off a ShadowRoot — narrowed so the resolver is
- *  unit-testable against a hand-built fake without a real DOM. `getSelection`
- *  is non-standard (Chromium-only) and absent from lib.dom's ShadowRoot type. */
+/** Minimal ShadowRoot shape we read; narrowed for testing without a real DOM.
+ *  `getSelection` is non-standard (Chromium-only). */
 export interface DiffSelectionRoot {
 	getSelection?: () => DiffSelectionLike | null;
 }
@@ -23,9 +16,7 @@ interface DiffSelectionLike {
 	getRangeAt(index: number): DiffSelectionRange;
 }
 
-/** Selection boundaries are usually text nodes inside a line; we only need to
- *  reach the nearest ancestor element, so we accept any node that can either
- *  `closest` itself or hand us a `parentElement` to climb to. */
+/** A selection boundary node we can climb from to the nearest line element. */
 interface DiffSelectionNode {
 	closest?: (selectors: string) => DiffSelectionElement | null;
 	parentElement?: DiffSelectionElement | null;
@@ -64,7 +55,6 @@ function sideFromLineType(lineType: string | null): SelectionSide | undefined {
 function sideFromColumn(el: DiffSelectionElement): SelectionSide | undefined {
 	const code = el.closest("[data-code]");
 	if (!code) return undefined;
-	// 1.2.2 marks the column with boolean `data-additions`/`data-deletions`.
 	if (code.hasAttribute("data-additions")) return "additions";
 	if (code.hasAttribute("data-deletions")) return "deletions";
 	// Tolerate an older/future shape where the side is the `data-code` value.
@@ -73,14 +63,12 @@ function sideFromColumn(el: DiffSelectionElement): SelectionSide | undefined {
 	return undefined;
 }
 
-/** Walk up from a selection boundary node to the nearest `[data-line]` row and
- *  read its line number + side. Returns null if no line row is found or the
- *  `data-line` value isn't a number. */
+/** Climb from a selection boundary to the nearest `[data-line]` row and read its
+ *  line number + side. Null if there's no row or the line isn't a number. */
 function resolveLineFromNode(
 	node: DiffSelectionNode | null,
 ): ResolvedLine | null {
-	// Element nodes can `closest` from themselves; text nodes (the common case)
-	// can't, so climb to the parent element first.
+	// Text nodes (the common case) can't `closest`, so climb to the parent first.
 	const start =
 		typeof node?.closest === "function" ? node : node?.parentElement;
 	const el = start?.closest?.("[data-line]") ?? null;
@@ -94,14 +82,9 @@ function resolveLineFromNode(
 	};
 }
 
-/**
- * Resolve the line range a user highlighted (selected text) inside a
- * @pierre/diffs `<diffs-container>` shadow root into the same
- * `{ start, end, side }` shape the gutter line-selection produces.
- *
- * Returns null when there is no usable selection (feature-missing,
- * collapsed/empty, or the boundaries aren't inside diff line rows).
- */
+/** Resolve a highlighted text selection in a `<diffs-container>` shadow root
+ *  into the `{ start, end, side }` shape the gutter selection produces, or null
+ *  when there's no usable line selection. */
 export function resolveDiffSelectionLines(
 	root: DiffSelectionRoot | null | undefined,
 ): ResolvedDiffSelection | null {
@@ -115,8 +98,7 @@ export function resolveDiffSelectionLines(
 	const b = resolveLineFromNode(range.endContainer);
 	if (!a || !b) return null;
 
-	// Normalize reversed selections (anchor below focus) so start <= end, and
-	// take the side from whichever boundary is the actual start line.
+	// Normalize reversed selections so start <= end; side comes from the start.
 	const [first, second] = a.line <= b.line ? [a, b] : [b, a];
 	return { start: first.line, end: second.line, side: first.side };
 }

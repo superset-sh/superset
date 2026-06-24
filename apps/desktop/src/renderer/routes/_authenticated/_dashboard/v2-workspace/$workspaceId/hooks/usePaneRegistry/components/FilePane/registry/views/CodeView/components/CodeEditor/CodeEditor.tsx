@@ -53,14 +53,9 @@ interface CodeEditorProps {
 	editorRef?: MutableRefObject<CodeEditorAdapter | null>;
 	onChange?: (value: string) => void;
 	onSave?: () => void;
-	/** Fires whenever the selection changes, so a host can refresh selection-
-	 *  derived UI (e.g. the "Send selection to agent" affordance). */
+	/** Fires on selection change so a host can refresh selection-derived UI. */
 	onSelectionChange?: () => void;
-	/** Invoked by the Mod-Enter keybinding to send the current selection to an
-	 *  agent — the keyboard equivalent of the "Send selection to agent" button.
-	 *  Held in a ref so the keybinding always calls the latest handler. The
-	 *  chord only fires (and is consumed) when a non-empty selection exists;
-	 *  otherwise Mod-Enter falls through to default editor behavior. */
+	/** Mod-Enter handler to send the current selection to an agent. */
 	onSendSelection?: () => void;
 }
 
@@ -85,7 +80,7 @@ export function CodeEditor({
 	const onSaveRef = useRef(onSave);
 	const onSelectionChangeRef = useRef(onSelectionChange);
 	const onSendSelectionRef = useRef(onSendSelection);
-	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
+	// Guards against re-entrant onChange from the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = useQuery({
 		queryKey: ["electron", "settings", "getFontSettings"],
@@ -105,11 +100,8 @@ export function CodeEditor({
 	useEffect(() => {
 		if (!containerRef.current) return;
 
-		// CodeMirror fires selectionSet on every cursor move. Debounce to the
-		// selection settle so selection-derived UI (the "Send selection to agent"
-		// affordance) is recomputed once the gesture ends, not per keystroke —
-		// mirroring the DiffPane sibling's onLineSelectionEnd cadence. Trailing
-		// edge so the final make/clear of a selection always notifies.
+		// CodeMirror fires selectionSet on every cursor move; debounce (trailing
+		// edge) so selection-derived UI updates once the gesture settles.
 		const notifySelectionChange = debounce(() => {
 			onSelectionChangeRef.current?.();
 		}, SELECTION_CHANGE_DEBOUNCE_MS);
@@ -132,14 +124,8 @@ export function CodeEditor({
 				},
 			},
 			{
-				// Mod-Enter sends the current selection to an agent (keyboard
-				// equivalent of the "Send selection to agent" button). Reuse the
-				// adapter's captureSelection as the presence check — the path arg is
-				// irrelevant to its null decision (null iff empty/whitespace-only), so
-				// this does not duplicate the empty-selection logic. Consume the chord
-				// (return true) ONLY when there is a sendable selection; with no
-				// selection return false so Mod-Enter falls through to default
-				// behavior (no stray newline is suppressed needlessly).
+				// Mod-Enter sends the current selection. Only consume the chord
+				// when there's a sendable selection; otherwise fall through.
 				key: "Mod-Enter",
 				run: (view) => {
 					if (captureSelection(view.state, "") == null) return false;
@@ -224,7 +210,7 @@ export function CodeEditor({
 		const currentValue = view.state.doc.toString();
 		if (currentValue === value) return;
 
-		// Guarantee flag reset regardless of whether dispatch throws (e.g. view destroyed between null-check and dispatch).
+		// finally guarantees the flag resets even if dispatch throws.
 		isExternalUpdateRef.current = true;
 		try {
 			view.dispatch({

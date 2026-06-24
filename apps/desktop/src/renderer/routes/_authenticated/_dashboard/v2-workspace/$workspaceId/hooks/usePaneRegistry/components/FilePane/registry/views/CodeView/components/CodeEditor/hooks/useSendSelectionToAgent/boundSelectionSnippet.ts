@@ -5,18 +5,10 @@ export const SELECTION_MAX_CHARS = 20_000;
 
 const TRUNCATION_MARKER = "\n… [selection truncated]";
 
-export interface BoundedSnippet {
-	text: string;
-	truncated: boolean;
-}
-
-/** Bound a selected snippet to the prompt budget before it is embedded.
- *  Truncation keeps the HEAD of the selection (where the user began the
- *  highlight, the likeliest intent anchor) and appends an explicit elision
- *  marker so the agent knows the snippet is partial — the full L<a>-L<b> anchor
- *  in the prompt always reflects the COMPLETE range, so the agent can re-read
- *  the rest from disk. */
-export function boundSelectionSnippet(raw: string): BoundedSnippet {
+/** Bound a snippet to the prompt budget, keeping the head and appending an
+ *  elision marker when truncated. The full L<a>-L<b> anchor still reflects the
+ *  complete range, so the agent can re-read the rest from disk. */
+export function boundSelectionSnippet(raw: string): string {
 	let truncated = false;
 	let text = raw;
 
@@ -31,7 +23,5 @@ export function boundSelectionSnippet(raw: string): BoundedSnippet {
 		truncated = true;
 	}
 
-	return truncated
-		? { text: `${text}${TRUNCATION_MARKER}`, truncated: true }
-		: { text, truncated: false };
+	return truncated ? `${text}${TRUNCATION_MARKER}` : text;
 }

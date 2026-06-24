@@ -76,9 +76,7 @@ export function AgentCommentComposer({
 		try {
 			await onSubmit({ comment: comment.trim(), target: resolved });
 		} catch (error) {
-			// User-facing errors are the caller's responsibility (we toast in
-			// DiffPane's submit path). Catch here so a rejection doesn't leak
-			// as an unhandled promise out of the form's synchronous handlers.
+			// Caller toasts; catch here so a rejection isn't unhandled.
 			console.error("[AgentCommentComposer] submit failed", error);
 		} finally {
 			setSubmitting(false);

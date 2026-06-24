@@ -8,11 +8,8 @@ export interface EditorSelectionLines {
 	endLine: number;
 }
 
-/** A captured, resolved selection ready to anchor an agent prompt. `path` is
- *  supplied by the host (the adapter does not know its own file path); the
- *  adapter fills lines + text from a single view.state read. Named
- *  `CapturedEditorSelection` (not `EditorSelection`) to avoid colliding with
- *  `@codemirror/state`'s exported `EditorSelection`. */
+/** A captured selection ready to anchor an agent prompt; `path` is supplied by
+ *  the host since the adapter doesn't know its own file path. */
 export interface CapturedEditorSelection {
 	path: string;
 	startLine: number;
@@ -20,13 +17,9 @@ export interface CapturedEditorSelection {
 	text: string;
 }
 
-/** Snapshot the current selection from a single EditorState read, or null when
- *  there is nothing sendable. Returns null when the selection is collapsed
- *  (empty cursor) or the sliced text is whitespace-only (edge case #1). This
- *  null is net-new logic — it is NOT inherited from getSelectionLines(), which
- *  always returns a non-null range. Kept as a free function (not a closure over
- *  a view) so the capture invariants are testable against a real EditorState
- *  without an EditorView. */
+/** Snapshot the current selection, or null when nothing is sendable (collapsed
+ *  cursor or whitespace-only text). A free function so it's testable against a
+ *  bare EditorState. */
 export function captureSelection(
 	state: EditorState,
 	path: string,

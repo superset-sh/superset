@@ -9,13 +9,11 @@ function makeLines(count: number): string {
 	return Array.from({ length: count }, (_, i) => `line${i + 1}`).join("\n");
 }
 
-describe("boundSelectionSnippet (Contract 3 / edge case #2)", () => {
-	it("returns a small snippet verbatim with truncated:false", () => {
+describe("boundSelectionSnippet", () => {
+	it("returns a small snippet verbatim", () => {
 		const raw = "const x = 1;\nconst y = 2;";
 
-		const result = boundSelectionSnippet(raw);
-
-		expect(result).toEqual({ text: raw, truncated: false });
+		expect(boundSelectionSnippet(raw)).toBe(raw);
 	});
 
 	it("caps a selection exceeding SELECTION_MAX_LINES and keeps the head", () => {
@@ -23,11 +21,11 @@ describe("boundSelectionSnippet (Contract 3 / edge case #2)", () => {
 
 		const result = boundSelectionSnippet(raw);
 
-		expect(result.truncated).toBe(true);
+		expect(result.toLowerCase()).toContain("truncated");
 		// head-keep: the first kept line survives, the last source line does not.
-		expect(result.text.startsWith("line1\n")).toBe(true);
-		expect(result.text).not.toContain(`line${SELECTION_MAX_LINES + 50}`);
-		const keptLines = result.text
+		expect(result.startsWith("line1\n")).toBe(true);
+		expect(result).not.toContain(`line${SELECTION_MAX_LINES + 50}`);
+		const keptLines = result
 			.split("\n")
 			.filter((l) => /^line\d+$/.test(l)).length;
 		expect(keptLines).toBeLessThanOrEqual(SELECTION_MAX_LINES);
@@ -36,10 +34,7 @@ describe("boundSelectionSnippet (Contract 3 / edge case #2)", () => {
 	it("appends an explicit truncation marker when it truncates", () => {
 		const raw = makeLines(SELECTION_MAX_LINES + 10);
 
-		const result = boundSelectionSnippet(raw);
-
-		expect(result.truncated).toBe(true);
-		expect(result.text.toLowerCase()).toContain("truncated");
+		expect(boundSelectionSnippet(raw).toLowerCase()).toContain("truncated");
 	});
 
 	it("hard-cuts at SELECTION_MAX_CHARS for a single very long line under the line cap", () => {
@@ -47,18 +42,15 @@ describe("boundSelectionSnippet (Contract 3 / edge case #2)", () => {
 
 		const result = boundSelectionSnippet(raw);
 
-		expect(result.truncated).toBe(true);
+		expect(result.toLowerCase()).toContain("truncated");
 		// The kept body (excluding the marker) never exceeds the char budget.
-		const xs = result.text.replace(/[^x]/g, "").length;
+		const xs = result.replace(/[^x]/g, "").length;
 		expect(xs).toBeLessThanOrEqual(SELECTION_MAX_CHARS);
 	});
 
 	it("never emits a marker for content exactly at the line cap", () => {
 		const raw = makeLines(SELECTION_MAX_LINES);
 
-		const result = boundSelectionSnippet(raw);
-
-		expect(result.truncated).toBe(false);
-		expect(result.text).toBe(raw);
+		expect(boundSelectionSnippet(raw)).toBe(raw);
 	});
 });

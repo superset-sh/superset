@@ -23,7 +23,7 @@ function makeDeps(overrides?: {
 	return { sendToTerminalAgent, onCreateNewAgentSession, onMissingLauncher };
 }
 
-describe("dispatchSelection — target resolution (edge case #3)", () => {
+describe("dispatchSelection — target resolution", () => {
 	it("dispatches into the existing terminal via sendToTerminalAgent", async () => {
 		const deps = makeDeps();
 
@@ -81,7 +81,7 @@ describe("dispatchSelection — target resolution (edge case #3)", () => {
 		expect(deps.sendToTerminalAgent).not.toHaveBeenCalled();
 	});
 
-	it("signals the missing launcher when a new session is required but onCreateNewAgentSession is unwired (edge #3)", async () => {
+	it("signals the missing launcher when a new session is required but onCreateNewAgentSession is unwired", async () => {
 		const deps = makeDeps();
 
 		const outcome = await dispatchSelection({
@@ -98,7 +98,7 @@ describe("dispatchSelection — target resolution (edge case #3)", () => {
 	});
 });
 
-describe("dispatchSelection — error handling (edge case #5)", () => {
+describe("dispatchSelection — error handling", () => {
 	it("returns 'failed' (does not throw) when the terminal write rejects, so the caller can keep state for retry", async () => {
 		const deps = makeDeps({ sendToTerminalResolves: false });
 

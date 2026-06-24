@@ -10,19 +10,15 @@ type OnPostRender = NonNullable<
 	CodeViewOptions<DiffAnnotationMetadata>["onPostRender"]
 >;
 
-// ponytail: <diffs-container> is a shadow-DOM web component from @pierre/diffs
-// ≥1.2.2 with no text-selection API. We read its `shadowRoot.getSelection()`
-// (Chromium-only) and resolve lines from the rendered DOM in
-// resolveDiffSelectionLines. Upstream request for a real API is
-// github.com/pierredotco/diffs#248 (closed/completed).
+// ponytail: <diffs-container> is a @pierre/diffs shadow-DOM component with no
+// selection API, so we read its shadowRoot.getSelection() (Chromium-only).
+// Upstream: github.com/pierredotco/diffs#248.
 interface DiffsContainerElement extends HTMLElement {
 	shadowRoot: (ShadowRoot & DiffSelectionRoot) | null;
 }
 
 interface UseDiffTextSelectionArgs {
-	/** Opens the same composer the gutter line-selection uses, given a resolved
-	 *  item + range — so highlighted text and gutter selection share one
-	 *  pipeline. */
+	/** Opens the same composer the gutter line-selection uses. */
 	openForItem: (itemId: string, range: SelectedLineRange) => void;
 }
 
@@ -32,17 +28,8 @@ interface UseDiffTextSelectionResult {
 
 const SELECTION_SETTLE_MS = 50;
 
-/**
- * Lets a user open the agent composer by highlighting code text inside a
- * @pierre/diffs diff (not just via the gutter line-selection).
- *
- * @pierre/diffs renders each file into its own `<diffs-container>` shadow root
- * and exposes no selection hook, so we attach a `pointerup` listener to each
- * file's rendered host node (delivered by CodeView's `onPostRender`, which also
- * hands us `context.item.id` — a non-order-dependent itemId, so no path/index
- * correlation is needed). On pointer-up we resolve the shadow-root selection to
- * a line range and open the same composer the gutter selection uses.
- */
+/** Open the agent composer by highlighting diff text: bind a pointerup listener
+ *  per file host (from onPostRender) and resolve the shadow-root selection. */
 export function useDiffTextSelection({
 	openForItem,
 }: UseDiffTextSelectionArgs): UseDiffTextSelectionResult {
@@ -50,10 +37,8 @@ export function useDiffTextSelection({
 	const openForItemRef = useRef(openForItem);
 	openForItemRef.current = openForItem;
 
-	// node -> { itemId, cleanup }, so we bind once per file host and tear every
-	// listener down on unmount. onPostRender can fire repeatedly for the same
-	// node; itemId is held in a mutable entry so a host reused for a different
-	// file's item stays correct rather than dispatching to a stale itemId.
+	// Bind one listener per host; itemId lives in a mutable entry so a reused
+	// host can't dispatch to a stale item.
 	const cleanupByNode = useRef(
 		new Map<HTMLElement, { itemId: string; cleanup: () => void }>(),
 	);
@@ -73,8 +58,7 @@ export function useDiffTextSelection({
 
 		const existing = registry.get(host);
 		if (existing) {
-			// Same host re-rendered: refresh the itemId in case it now maps a
-			// different file, but keep the single listener already bound.
+			// Same host re-rendered: refresh the itemId, keep the bound listener.
 			existing.itemId = context.item.id;
 			return;
 		}
@@ -82,14 +66,13 @@ export function useDiffTextSelection({
 		const entry = { itemId: context.item.id, cleanup: () => {} };
 		let settleTimer: ReturnType<typeof setTimeout> | undefined;
 
-		// Wait a tick after pointer-up so the browser commits the final selection
-		// before we read it (avoids resolving a mid-drag/cleared selection).
+		// Wait a tick so the browser commits the final selection before we read it.
 		const handlePointerUp = () => {
 			if (settleTimer != null) clearTimeout(settleTimer);
 			settleTimer = setTimeout(() => {
-				if (!host.isConnected) return; // host detached between pointerup and settle
+				if (!host.isConnected) return;
 				const range = resolveDiffSelectionLines(host.shadowRoot);
-				if (!range) return; // collapsed / non-line selection: leave gutter alone
+				if (!range) return; // collapsed / non-line selection
 				openForItemRef.current(entry.itemId, range);
 			}, SELECTION_SETTLE_MS);
 		};
