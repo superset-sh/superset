@@ -58,12 +58,13 @@ export const createWindowRouter = () => {
 		setActiveOrg: publicProcedure
 			.input(z.object({ organizationId: z.string() }))
 			.mutation(({ ctx, input }) => {
-				if (ctx.senderWindow) {
-					setOrg({
-						windowId: ctx.senderWindow.id,
-						orgId: input.organizationId,
-					});
+				if (!ctx.senderWindow) {
+					return { success: false };
 				}
+				setOrg({
+					windowId: ctx.senderWindow.id,
+					orgId: input.organizationId,
+				});
 				return { success: true };
 			}),
 
