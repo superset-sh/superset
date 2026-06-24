@@ -41,7 +41,11 @@ export function formatAgentPromptWithFileContext({
 			: file.side === "mixed"
 				? " (across deletions and additions)"
 				: "";
-	return `In ${file.path}:${range}${sideSuffix}: ${comment}`;
+	// ponytail: empty comment → emit just the anchor (no dangling ": ").
+	const note = comment.trim();
+	return note
+		? `In ${file.path}:${range}${sideSuffix}: ${note}`
+		: `In ${file.path}:${range}${sideSuffix}`;
 }
 
 export interface SendToTerminalAgentInput {

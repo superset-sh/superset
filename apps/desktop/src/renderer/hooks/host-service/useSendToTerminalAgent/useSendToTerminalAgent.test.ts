@@ -57,6 +57,18 @@ describe("formatAgentPromptWithFileContext (selection carrier)", () => {
 		expect(result).toContain("```");
 		expect(result).toContain(snippet);
 	});
+
+	it("emits just the anchor (no trailing ': ') when the comment is empty (⌘↵ send, no message)", () => {
+		expect(
+			formatAgentPromptWithFileContext({ comment: "", file: fileContext() }),
+		).toBe("In src/a.ts:L40-L60");
+		expect(
+			formatAgentPromptWithFileContext({
+				comment: "   ",
+				file: fileContext({ startLine: 12, endLine: 12 }),
+			}),
+		).toBe("In src/a.ts:L12");
+	});
 });
 
 describe("adapter divergence parity (edge case #5)", () => {

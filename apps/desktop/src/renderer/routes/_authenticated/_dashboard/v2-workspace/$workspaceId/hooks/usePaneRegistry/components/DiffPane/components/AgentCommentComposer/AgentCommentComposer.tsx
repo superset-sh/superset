@@ -66,8 +66,8 @@ export function AgentCommentComposer({
 		startLine === endLine
 			? `Line ${startLine}`
 			: `Lines ${startLine}–${endLine}`;
-	const canSubmit =
-		comment.trim().length > 0 && !submitting && resolved != null;
+	// ponytail: empty comment is allowed — ⌘↵ sends just the line reference.
+	const canSubmit = !submitting && resolved != null;
 	const showPlacement = resolved?.kind === "new";
 
 	const handleSubmit = async () => {
