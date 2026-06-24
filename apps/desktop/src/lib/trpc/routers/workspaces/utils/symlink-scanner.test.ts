@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, expect, test } from "bun:test";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -65,7 +65,7 @@ test("finds tracked, untracked and external links; ignores real dirs", async () 
 		label: "branch-b",
 		ecosystem: "npm",
 	});
-	expect(byPkg["ext"]).toMatchObject({
+	expect(byPkg.ext).toMatchObject({
 		kind: "external",
 		label: "plain",
 		ecosystem: "composer",

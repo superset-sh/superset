@@ -13,6 +13,36 @@ const PRUNE = new Set([
 	"coverage",
 ]);
 const DEFAULT_MAX_DEPTH = 4;
+/** Cap on in-flight fs operations so large dep trees can't exhaust file descriptors. */
+const DEFAULT_CONCURRENCY = 32;
+
+/**
+ * Minimal promise concurrency limiter — keeps at most `max` thunks running at
+ * once and queues the rest. Used to bound readdir/lstat/realpath fan-out.
+ */
+function createLimiter(max: number) {
+	let active = 0;
+	const queue: Array<() => void> = [];
+	const pump = () => {
+		if (active >= max || queue.length === 0) return;
+		active++;
+		const run = queue.shift();
+		run?.();
+	};
+	return function limit<T>(fn: () => Promise<T>): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			queue.push(() => {
+				fn()
+					.then(resolve, reject)
+					.finally(() => {
+						active--;
+						pump();
+					});
+			});
+			pump();
+		});
+	};
+}
 
 export interface WorktreeIndexEntry {
 	/** Absolute worktree root path. */
@@ -29,6 +59,8 @@ export interface FindLinkedOptions {
 	resolveBranch?: (dir: string) => Promise<string | null>;
 	/** Max directory depth to descend from the worktree root (default 4). */
 	maxDepth?: number;
+	/** Max in-flight filesystem operations (default 32). */
+	concurrency?: number;
 }
 
 export async function findLinkedWorktrees(
@@ -38,14 +70,25 @@ export async function findLinkedWorktrees(
 ): Promise<LinkedTarget[]> {
 	const maxDepth = opts.maxDepth ?? DEFAULT_MAX_DEPTH;
 	const out: LinkedTarget[] = [];
+	const limit = createLimiter(opts.concurrency ?? DEFAULT_CONCURRENCY);
+	const readdir = (dir: string) =>
+		limit(() => fs.readdir(dir, { withFileTypes: true })).catch(() => []);
+
+	// Compare against canonical paths: targets below are realpath-resolved, so the
+	// index must be too, or symlinked/case-differing roots (e.g. macOS /var ->
+	// /private/var) would misclassify a tracked worktree as external.
+	const resolvedIndex = await Promise.all(
+		index.map(async (w) => ({
+			...w,
+			path: await limit(() => fs.realpath(w.path)).catch(() => w.path),
+		})),
+	);
 	// longest path first => the most specific worktree wins on a prefix match
-	const sorted = [...index].sort((a, b) => b.path.length - a.path.length);
+	const sorted = resolvedIndex.sort((a, b) => b.path.length - a.path.length);
 
 	async function walk(dir: string, depth: number): Promise<void> {
 		if (depth > maxDepth) return;
-		const entries = await fs
-			.readdir(dir, { withFileTypes: true })
-			.catch(() => []);
+		const entries = await readdir(dir);
 		await Promise.all(
 			entries.map(async (e) => {
 				if (PRUNE.has(e.name)) return;
@@ -62,18 +105,19 @@ export async function findLinkedWorktrees(
 	async function scanDepDir(depDir: string, dirName: string): Promise<void> {
 		const ecosystem: LinkedTarget["ecosystem"] =
 			dirName === "vendor" ? "composer" : "npm";
-		const entries = await fs
-			.readdir(depDir, { withFileTypes: true })
-			.catch(() => []);
+		const entries = await readdir(depDir);
 		await Promise.all(
 			entries.map(async (e) => {
-				if (e.name.startsWith("@") && e.isDirectory() && !e.isSymbolicLink()) {
+				if (
+					ecosystem === "npm" &&
+					e.name.startsWith("@") &&
+					e.isDirectory() &&
+					!e.isSymbolicLink()
+				) {
 					// npm scoped packages live one level deeper; keep the scope in the
 					// package name but report the link against the node_modules dir.
 					const scope = path.join(depDir, e.name);
-					const scoped = await fs
-						.readdir(scope, { withFileTypes: true })
-						.catch(() => []);
+					const scoped = await readdir(scope);
 					await Promise.all(
 						scoped.map((s) =>
 							considerLink(
@@ -92,9 +136,7 @@ export async function findLinkedWorktrees(
 					// composer packages live under vendor/<vendor-name>/<package>; the
 					// vendor-name dir is part of the source dir, the leaf is the package.
 					const vendorName = path.join(depDir, e.name);
-					const pkgs = await fs
-						.readdir(vendorName, { withFileTypes: true })
-						.catch(() => []);
+					const pkgs = await readdir(vendorName);
 					await Promise.all(
 						pkgs.map((p) =>
 							considerLink(
@@ -123,9 +165,9 @@ export async function findLinkedWorktrees(
 		depDir: string,
 		ecosystem: LinkedTarget["ecosystem"],
 	): Promise<void> {
-		const lst = await fs.lstat(entryPath).catch(() => null);
+		const lst = await limit(() => fs.lstat(entryPath)).catch(() => null);
 		if (!lst?.isSymbolicLink()) return;
-		const target = await fs.realpath(entryPath).catch(() => null);
+		const target = await limit(() => fs.realpath(entryPath)).catch(() => null);
 		if (!target) return;
 		const common = {
 			sourceDir: path.relative(root, depDir),

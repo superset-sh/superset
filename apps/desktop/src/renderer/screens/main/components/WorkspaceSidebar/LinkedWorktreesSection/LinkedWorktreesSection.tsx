@@ -4,20 +4,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { HiChevronRight, HiLink } from "react-icons/hi2";
 import { LuFolder } from "react-icons/lu";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import type { LinkedTarget } from "shared/linked-worktrees-types";
 import { skipNextActiveScroll } from "../skip-active-scroll";
 
-export function LinkedWorktreesSection({
-	worktreePath,
-}: {
-	worktreePath: string;
-}) {
-	const { data: links = [] } =
-		electronTrpc.workspaces.getLinkedWorktrees.useQuery({ worktreePath });
-
+export function LinkedWorktreesSection({ links }: { links: LinkedTarget[] }) {
 	if (links.length === 0) return null;
 
 	const groups = new Map<string, LinkedTarget[]>();
@@ -107,13 +99,16 @@ function LinkedRow({ target }: { target: LinkedTarget }) {
 
 	const handleClick = () => {
 		const workspaceId = target.targetWorkspaceId;
-		if (!tracked || !workspaceId) return; // untracked/external: no-op in v1
+		const projectId = target.targetProjectId;
+		// untracked/external: no-op in v1. A tracked target without a projectId is
+		// incomplete — bail rather than seed the selection store with "".
+		if (!tracked || !workspaceId || !projectId) return;
 		const store = useWorkspaceSelectionStore;
 		store.getState().clearSelection();
-		store.getState().toggle(workspaceId, target.targetProjectId ?? "");
+		store.getState().toggle(workspaceId, projectId);
 		store.setState({ lastClickedId: workspaceId });
 		// Open the target worktree without scrolling the sidebar away from here.
-		skipNextActiveScroll();
+		skipNextActiveScroll(workspaceId);
 		void navigateToWorkspace(workspaceId, navigate);
 	};
 

@@ -112,7 +112,7 @@ export function WorkspaceListItem({
 	const { data: linkedWorktrees = [] } =
 		electronTrpc.workspaces.getLinkedWorktrees.useQuery(
 			{ worktreePath },
-			{ enabled: isWorktree },
+			{ enabled: isWorktree, staleTime: GITHUB_STATUS_STALE_TIME },
 		);
 	const isMultiDragging = useActiveDragItemStore(
 		(s) =>
@@ -147,12 +147,12 @@ export function WorkspaceListItem({
 		if (!isActive) return;
 		// Activation may originate from a linked-worktree entry elsewhere in the
 		// sidebar; in that case keep the user's scroll position put.
-		if (consumeSkipActiveScroll()) return;
+		if (consumeSkipActiveScroll(id)) return;
 		const activeNode = isCollapsed
 			? collapsedItemRef.current
 			: expandedItemRef.current;
 		activeNode?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-	}, [isActive, isCollapsed]);
+	}, [isActive, isCollapsed, id]);
 
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
@@ -519,7 +519,7 @@ export function WorkspaceListItem({
 				{content}
 			</WorkspaceContextMenu>
 			{isWorktree && linksOpen && (
-				<LinkedWorktreesSection worktreePath={worktreePath} />
+				<LinkedWorktreesSection links={linkedWorktrees} />
 			)}
 			<DeleteWorkspaceDialog
 				workspaceId={id}
