@@ -9,6 +9,12 @@ import {
 	type TerminalAppearance,
 } from "./appearance";
 import { scheduleFontSettleRefit } from "./font-settle";
+import {
+	createParserIdleGate,
+	type ParserIdleGate,
+	runWhenParserIdle,
+	wrapWrite,
+} from "./parser-idle-gate";
 import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
@@ -30,6 +36,7 @@ export interface TerminalRuntime {
 	progressAddon: ProgressAddon | null;
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
+	gate: ParserIdleGate;
 	resizeObserver: ResizeObserver | null;
 	_disposeResizeObserver: (() => void) | null;
 	lastCols: number;
@@ -125,31 +132,48 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function measureAndResize(runtime: TerminalRuntime): boolean {
-	if (!hostIsVisible(runtime.container)) return false;
+// `fit()` calls `terminal.resize()`, which `flushSync()`s the write buffer and
+// re-enters the parser. Doing that while an async parser handler (inline image
+// decode) is in flight throws "improper continuation ..." and bricks the
+// terminal, so the actual fit is gated through `runWhenParserIdle`. `onResize`
+// fires (sync or deferred) only when the dimensions actually change.
+function measureAndResize(
+	runtime: TerminalRuntime,
+	onResize?: () => void,
+): void {
+	if (!hostIsVisible(runtime.container)) return;
 	const { terminal } = runtime;
-	const buffer = terminal.buffer.active;
-	const wasPinnedToBottom = buffer.viewportY >= buffer.baseY;
-	const savedViewportY = buffer.viewportY;
-	const prevCols = terminal.cols;
-	const prevRows = terminal.rows;
 
-	runtime.fitAddon.fit();
-	runtime.lastCols = terminal.cols;
-	runtime.lastRows = terminal.rows;
+	runWhenParserIdle(runtime.gate, () => {
+		// Re-check visibility: the host may have been hidden or detached while we
+		// waited for the parser to drain.
+		if (!hostIsVisible(runtime.container)) return;
 
-	if (wasPinnedToBottom) {
-		terminal.scrollToBottom();
-	} else {
-		const targetY = Math.min(savedViewportY, terminal.buffer.active.baseY);
-		if (terminal.buffer.active.viewportY !== targetY) {
-			terminal.scrollToLine(targetY);
+		const buffer = terminal.buffer.active;
+		const wasPinnedToBottom = buffer.viewportY >= buffer.baseY;
+		const savedViewportY = buffer.viewportY;
+		const prevCols = terminal.cols;
+		const prevRows = terminal.rows;
+
+		runtime.fitAddon.fit();
+		runtime.lastCols = terminal.cols;
+		runtime.lastRows = terminal.rows;
+
+		if (wasPinnedToBottom) {
+			terminal.scrollToBottom();
+		} else {
+			const targetY = Math.min(savedViewportY, terminal.buffer.active.baseY);
+			if (terminal.buffer.active.viewportY !== targetY) {
+				terminal.scrollToLine(targetY);
+			}
 		}
-	}
 
-	terminal.refresh(0, Math.max(0, terminal.rows - 1));
+		terminal.refresh(0, Math.max(0, terminal.rows - 1));
 
-	return terminal.cols !== prevCols || terminal.rows !== prevRows;
+		if (terminal.cols !== prevCols || terminal.rows !== prevRows) {
+			onResize?.();
+		}
+	});
 }
 
 function createResizeScheduler(
@@ -170,8 +194,7 @@ function createResizeScheduler(
 
 	const run = () => {
 		timeoutId = null;
-		const changed = measureAndResize(runtime);
-		if (changed) onResize?.();
+		measureAndResize(runtime, onResize);
 	};
 
 	const observe: ResizeObserverCallback = (entries) => {
@@ -206,6 +229,11 @@ export function createRuntime(
 		appearance,
 	);
 
+	// Count every write through this terminal so resizes can wait for the parser
+	// to drain (see parser-idle-gate). Installed before any write below.
+	const gate = createParserIdleGate();
+	terminal.write = wrapWrite(gate, terminal.write.bind(terminal));
+
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
@@ -237,6 +265,7 @@ export function createRuntime(
 		progressAddon: addonsResult.progressAddon,
 		wrapper,
 		container: null,
+		gate,
 		resizeObserver: null,
 		_disposeResizeObserver: null,
 		lastCols: cols,
@@ -264,12 +293,14 @@ export function attachToContainer(
 
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	if (measureAndResize(runtime)) onResize?.();
+	measureAndResize(runtime, onResize);
 	scheduleFontSettleRefit(
 		runtime.terminal,
 		() => hostIsVisible(runtime.container),
-		() => measureAndResize(runtime),
-		onResize,
+		() => {
+			measureAndResize(runtime, onResize);
+			return false;
+		},
 	);
 
 	runtime._disposeResizeObserver?.();
@@ -316,15 +347,17 @@ export function updateRuntimeAppearance(
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
 		if (hostIsVisible(runtime.container)) {
-			measureAndResize(runtime);
+			measureAndResize(runtime, onResize);
 		}
 		// The freshly-selected font may still be loading — schedule a follow-up
 		// refit once it resolves so dimensions track the rendered glyphs.
 		scheduleFontSettleRefit(
 			runtime.terminal,
 			() => hostIsVisible(runtime.container),
-			() => measureAndResize(runtime),
-			onResize,
+			() => {
+				measureAndResize(runtime, onResize);
+				return false;
+			},
 		);
 	}
 }
