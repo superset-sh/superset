@@ -10,6 +10,10 @@ import {
 } from "../../components/PRActionHeader/utils/computeChecksStatus";
 import type { SidebarTabDefinition } from "../../types";
 import { ReviewTabContent } from "./components/ReviewTabContent";
+import {
+	deriveDisplayReviewState,
+	parseGitLabReviewState,
+} from "./deriveDisplayReviewState/deriveDisplayReviewState";
 import type { NormalizedComment, NormalizedPR } from "./types";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
@@ -59,7 +63,11 @@ export function useReviewTab({
 			url: raw.url,
 			title: raw.title,
 			state: raw.isDraft ? "draft" : raw.state,
-			reviewDecision: normalizeReviewDecision(raw.reviewDecision),
+			reviewDecision: deriveDisplayReviewState(
+				raw.reviewStateJson,
+				raw.reviewDecision,
+			),
+			gitlabReviewState: parseGitLabReviewState(raw.reviewStateJson),
 			checksStatus: computeChecksRollup(raw.checks).overall,
 			checks: raw.checks.map((c) => ({
 				name: c.name,
@@ -108,14 +116,6 @@ export function useReviewTab({
 // ---------------------------------------------------------------------------
 // Normalization helpers
 // ---------------------------------------------------------------------------
-
-function normalizeReviewDecision(
-	decision: string | null,
-): "approved" | "changes_requested" | "pending" {
-	if (decision === "approved") return "approved";
-	if (decision === "changes_requested") return "changes_requested";
-	return "pending";
-}
 
 function computeDurationText(
 	startedAt: string | null,

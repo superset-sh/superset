@@ -29,6 +29,7 @@ const pr = (overrides: Partial<PullRequest> = {}): PullRequest => ({
 	state: "open",
 	isDraft: false,
 	reviewDecision: null,
+	reviewStateJson: null,
 	mergeable: "unknown",
 	headRefName: "feature-x",
 	updatedAt: "",

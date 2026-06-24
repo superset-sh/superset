@@ -17,6 +17,9 @@ import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import { GitHubProviderClient } from "./runtime/repo-providers/github/github-provider-client";
+import { GitLabProviderClient } from "./runtime/repo-providers/gitlab/gitlab-provider-client";
+import { registerProviderClient } from "./runtime/repo-providers/registry";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import { TerminalAgentStore } from "./terminal-agents";
 import { appRouter } from "./trpc/router";
@@ -84,6 +87,24 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			return new Octokit({ auth: token });
 		});
 	const execGh: ExecGh = options.execGh ?? defaultExecGh;
+
+	// Register provider factories so getProviderClient("github"|"gitlab", host)
+	// works at runtime. Must happen before the PullRequestRuntimeManager starts.
+	registerProviderClient(
+		"github",
+		(host) => new GitHubProviderClient({ execGh, github, host }),
+	);
+	registerProviderClient(
+		"gitlab",
+		(host) =>
+			new GitLabProviderClient({
+				host,
+				// TODO(token): credentials.getToken(host) must return the GitLab token
+				// for `host`; glab stores its token in glab-cli config, not the git
+				// credential manager — a follow-up bridges this or accepts a configured PAT.
+				token: () => providers.credentials.getToken(host),
+			}),
+	);
 
 	const filesystem = new WorkspaceFilesystemManager({ db });
 	// GitWatcher is the single source of truth for `.git/` and worktree fs
