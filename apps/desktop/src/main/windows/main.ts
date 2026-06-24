@@ -17,6 +17,7 @@ import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
+import { DockBadgeManager } from "../lib/dock-badge";
 import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
@@ -226,10 +227,32 @@ export async function MainWindow() {
 	});
 	notificationManager.start();
 
+	const dockBadgeManager = new DockBadgeManager({
+		setBadge: (text) => {
+			if (PLATFORM.IS_MAC) {
+				app.dock?.setBadge(text);
+			} else {
+				app.setBadgeCount(text === "" ? 0 : Number.parseInt(text, 10) || 0);
+			}
+		},
+		bounce: () => {
+			if (PLATFORM.IS_MAC) {
+				app.dock?.bounce("informational");
+			}
+		},
+		isFocused: () => window.isFocused(),
+	});
+
+	// Clear dock badge when the user focuses the window
+	window.on("focus", () => {
+		dockBadgeManager.clearAll();
+	});
+
 	notificationsEmitter.on(
 		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 		(event: AgentLifecycleEvent) => {
 			notificationManager.handleAgentLifecycle(event);
+			dockBadgeManager.handleAgentLifecycle(event);
 		},
 	);
 
@@ -361,6 +384,7 @@ export async function MainWindow() {
 		browserManager.unregisterAll();
 		server.close();
 		notificationManager.dispose();
+		dockBadgeManager.clearAll();
 		notificationsEmitter.removeAllListeners();
 		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		ipcHandler?.detachWindow(window);
