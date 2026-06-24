@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Octokit } from "@octokit/rest";
+import { parseGitRemote } from "@superset/shared/git-remote";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
@@ -7,15 +8,17 @@ import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
 import type { GitFactory } from "../git";
+import type { CheckContextNode, RepoRuntimeClient } from "../repo-providers";
 import {
-	fetchPullRequestByHead,
-	fetchPullRequestByHeadFromGh,
-	fetchPullRequestChecks,
-	fetchPullRequestChecksFromGh,
+	detectProvider as defaultDetectProvider,
+	GitHubProviderClient,
+} from "../repo-providers";
+import { getProviderClient } from "../repo-providers/registry";
+// Merge-queue state is the one runtime fetch not yet behind the provider
+// abstraction (GitHub-only feature); keep its direct github-query imports.
+import {
 	fetchPullRequestMergeQueueState,
 	fetchPullRequestMergeQueueStateFromGh,
-	fetchPullRequestReviewDecision,
-	fetchPullRequestReviewDecisionFromGh,
 } from "./utils/github-query";
 import type {
 	GitHubPullRequestHeadRef,
@@ -185,7 +188,7 @@ function upstreamKey(
 	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
-type RepoProvider = "github";
+type RepoProvider = "github" | "gitlab";
 
 export interface PullRequestStateSnapshot {
 	url: string;
@@ -193,6 +196,7 @@ export interface PullRequestStateSnapshot {
 	title: string;
 	state: PullRequestState;
 	reviewDecision: ReviewDecision;
+	reviewStateJson: string | null;
 	checksStatus: ChecksStatus;
 	checks: PullRequestCheck[];
 }
@@ -210,10 +214,13 @@ export interface PullRequestRuntimeManagerOptions {
 	git: GitFactory;
 	github: () => Promise<Octokit>;
 	gitWatcher: GitWatcher;
+	/** Override for testing; defaults to the module-level detectProvider probe. */
+	detectProvider?: (host: string) => Promise<"github" | "gitlab" | "unknown">;
 }
 
 interface NormalizedRepoIdentity {
 	provider: RepoProvider;
+	host: string;
 	owner: string;
 	name: string;
 	url: string;
@@ -261,10 +268,16 @@ function deriveCheckoutPullRequestUpstream(
 
 export class PullRequestRuntimeManager {
 	private readonly db: HostDb;
+	private readonly runtimeClient: RepoRuntimeClient;
+	// Retained for the merge-queue fetch (GitHub-only, not yet behind the provider
+	// abstraction). The runtimeClient wraps these for review/checks/by-head.
 	private readonly execGh: ExecGh;
-	private readonly git: GitFactory;
 	private readonly github: () => Promise<Octokit>;
+	private readonly git: GitFactory;
 	private readonly gitWatcher: GitWatcher;
+	private readonly detectProvider: (
+		host: string,
+	) => Promise<"github" | "gitlab" | "unknown">;
 	private safetyNetTimer: ReturnType<typeof setInterval> | null = null;
 	private projectRefreshTimer: ReturnType<typeof setInterval> | null = null;
 	private unsubscribeFromGitWatcher: (() => void) | null = null;
@@ -280,10 +293,15 @@ export class PullRequestRuntimeManager {
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
 		this.db = options.db;
+		this.runtimeClient = new GitHubProviderClient({
+			execGh: options.execGh,
+			github: options.github,
+		});
 		this.execGh = options.execGh;
-		this.git = options.git;
 		this.github = options.github;
+		this.git = options.git;
 		this.gitWatcher = options.gitWatcher;
+		this.detectProvider = options.detectProvider ?? defaultDetectProvider;
 	}
 
 	start() {
@@ -340,6 +358,7 @@ export class PullRequestRuntimeManager {
 				pullRequestTitle: pullRequests.title,
 				pullRequestState: pullRequests.state,
 				pullRequestReviewDecision: pullRequests.reviewDecision,
+				pullRequestReviewStateJson: pullRequests.reviewStateJson,
 				pullRequestChecksStatus: pullRequests.checksStatus,
 				pullRequestChecksJson: pullRequests.checksJson,
 				pullRequestLastFetchedAt: pullRequests.lastFetchedAt,
@@ -364,6 +383,7 @@ export class PullRequestRuntimeManager {
 							reviewDecision: coerceReviewDecision(
 								row.pullRequestReviewDecision,
 							),
+							reviewStateJson: row.pullRequestReviewStateJson ?? null,
 							checksStatus: coerceChecksStatus(row.pullRequestChecksStatus),
 							checks: parseChecksJson(row.pullRequestChecksJson),
 						}
@@ -428,6 +448,7 @@ export class PullRequestRuntimeManager {
 			headBranch: pullRequest.headRefName,
 			headSha: pullRequest.headRefOid,
 			reviewDecision: coerceReviewDecision(existing?.reviewDecision ?? null),
+			reviewStateJson: existing?.reviewStateJson ?? null,
 			checksStatus: coerceChecksStatus(existing?.checksStatus ?? null),
 			checksJson: JSON.stringify(existingChecks),
 			lastFetchedAt: existing?.lastFetchedAt ?? now,
@@ -699,14 +720,22 @@ export class PullRequestRuntimeManager {
 		if (!project) return null;
 
 		if (
-			project.repoProvider === "github" &&
+			(project.repoProvider === "github" ||
+				project.repoProvider === "gitlab") &&
 			project.repoOwner &&
 			project.repoName &&
 			project.repoUrl &&
 			project.remoteName
 		) {
+			// Stored github/gitlab projects: derive host from repoUrl; fall back to
+			// the canonical SaaS host for rows that predate multi-host support.
+			const parsed = parseGitRemote(project.repoUrl);
+			const fallbackHost =
+				project.repoProvider === "github" ? "github.com" : "gitlab.com";
+			const host = parsed?.host ?? fallbackHost;
 			return {
-				provider: "github",
+				provider: project.repoProvider,
+				host,
 				owner: project.repoOwner,
 				name: project.repoName,
 				url: project.repoUrl,
@@ -727,23 +756,45 @@ export class PullRequestRuntimeManager {
 			return null;
 		}
 
-		const parsedRemote = parseGitHubRemote(remoteUrl);
+		const parsedRemote = parseGitRemote(remoteUrl);
 		if (!parsedRemote) return null;
+
+		let { provider, host, owner, name, url } = parsedRemote;
+
+		// For well-known hosts (github.com, gitlab.com) parseGitRemote already
+		// classifies the provider. For self-managed hosts it returns "unknown",
+		// so we probe the host to detect GitLab.
+		if (provider === "unknown" && host) {
+			const detected = await this.detectProvider(host);
+			provider =
+				detected === "github" || detected === "gitlab" ? detected : "unknown";
+		}
+
+		// If the provider is still unknown (not github or gitlab), treat the
+		// project as local-only and skip PR sync — same as non-parseable remotes.
+		if (provider !== "github" && provider !== "gitlab") return null;
+
+		// Narrow the type now that we've confirmed a supported provider.
+		const resolvedProvider: RepoProvider = provider;
 
 		this.db
 			.update(projects)
 			.set({
-				repoProvider: parsedRemote.provider,
-				repoOwner: parsedRemote.owner,
-				repoName: parsedRemote.name,
-				repoUrl: parsedRemote.url,
+				repoProvider: resolvedProvider,
+				repoOwner: owner,
+				repoName: name,
+				repoUrl: url,
 				remoteName,
 			})
 			.where(eq(projects.id, projectId))
 			.run();
 
 		return {
-			...parsedRemote,
+			provider: resolvedProvider,
+			host,
+			owner,
+			name,
+			url,
 			remoteName,
 		};
 	}
@@ -791,6 +842,7 @@ export class PullRequestRuntimeManager {
 		headBranch,
 		headSha,
 		reviewDecision,
+		reviewStateJson,
 		checksStatus,
 		checksJson,
 		lastFetchedAt,
@@ -808,6 +860,7 @@ export class PullRequestRuntimeManager {
 		headBranch: string;
 		headSha: string;
 		reviewDecision: ReviewDecision;
+		reviewStateJson: string | null;
 		checksStatus: ChecksStatus;
 		checksJson: string;
 		lastFetchedAt: number | null;
@@ -828,6 +881,7 @@ export class PullRequestRuntimeManager {
 			headBranch,
 			headSha,
 			reviewDecision,
+			reviewStateJson,
 			checksStatus,
 			checksJson,
 			lastFetchedAt,
@@ -860,7 +914,10 @@ export class PullRequestRuntimeManager {
 		head: GitHubPullRequestHeadRef,
 		options: { bypassCache?: boolean } = {},
 	): Promise<GitHubPullRequestNode | null> {
+		// Include host in the cache key so self-managed GitLab slugs don't
+		// collide with same owner/name slugs on a different host.
 		const cacheKey = [
+			repo.host.toLowerCase(),
 			repo.owner.toLowerCase(),
 			repo.name.toLowerCase(),
 			head.owner.toLowerCase(),
@@ -878,37 +935,16 @@ export class PullRequestRuntimeManager {
 		}
 
 		const fetchedAt = Date.now();
-		const promise = (async () => {
-			try {
-				return await fetchPullRequestByHeadFromGh(
-					this.execGh,
-					{
-						owner: repo.owner,
-						name: repo.name,
-					},
-					head,
-				);
-			} catch (ghError) {
-				console.warn(
-					"[host-service:pull-request-runtime] gh PR head lookup failed; falling back to Octokit",
-					{
-						owner: repo.owner,
-						name: repo.name,
-						head,
-						error: ghError,
-					},
-				);
-				const octokit = await this.github();
-				return fetchPullRequestByHead(
-					octokit,
-					{
-						owner: repo.owner,
-						name: repo.name,
-					},
-					head,
-				);
-			}
-		})();
+		// For GitHub, use the pre-wired runtimeClient (gh CLI + Octokit fallback).
+		// For non-GitHub providers, route through the registry.
+		const headClient =
+			repo.provider === "github"
+				? this.runtimeClient
+				: getProviderClient(repo.provider, repo.host);
+		const promise = headClient.fetchPullRequestByHead(
+			{ owner: repo.owner, name: repo.name },
+			head,
+		);
 		// Observer to silence unhandledRejection warnings; real consumers
 		// observe the rejection via their own await on the cached promise.
 		promise.catch(() => {});
@@ -970,14 +1006,21 @@ export class PullRequestRuntimeManager {
 
 		const now = Date.now();
 
-		const checksByNumber = new Map<
-			number,
-			Awaited<ReturnType<typeof fetchPullRequestChecks>>
-		>();
+		const checksByNumber = new Map<number, CheckContextNode[]>();
 		const reviewDecisionByNumber = new Map<
 			number,
 			GitHubPullRequestReviewDecision
 		>();
+		const reviewStateByNumber = new Map<number, string>();
+
+		// For GitHub, use the pre-wired runtimeClient (gh CLI + Octokit fallback)
+		// which is identical to today's behavior. For non-GitHub providers, route
+		// through the registry so the correct adapter is used.
+		const repoClient =
+			repo.provider === "github"
+				? this.runtimeClient
+				: getProviderClient(repo.provider, repo.host);
+
 		// Only open, non-draft PRs can sit in a merge queue, so skip the extra
 		// GraphQL round-trip for everything else.
 		const mergeQueueByNumber = new Map<number, boolean>();
@@ -989,44 +1032,32 @@ export class PullRequestRuntimeManager {
 		await Promise.all(
 			Array.from(latestByKey.values()).map(async (node) => {
 				try {
-					const [reviewDecision, checks] = await Promise.all([
-						fetchPullRequestReviewDecisionFromGh(
-							this.execGh,
+					const [reviewState, checks] = await Promise.all([
+						repoClient.fetchReviewState(
 							repo,
 							node.number,
-							node.state,
+							mapPullRequestState(node.state, node.isDraft),
 						),
-						fetchPullRequestChecksFromGh(this.execGh, repo, node.headRefOid),
+						repoClient.fetchChecks(repo, node.headRefOid),
 					]);
+					const reviewDecision =
+						reviewState.provider === "github"
+							? reviewState.reviewDecision
+							: null;
 					reviewDecisionByNumber.set(node.number, reviewDecision);
+					reviewStateByNumber.set(node.number, JSON.stringify(reviewState));
 					checksByNumber.set(node.number, checks);
-				} catch (ghError) {
-					try {
-						const octokit = await getOctokit();
-						const [reviewDecision, checks] = await Promise.all([
-							fetchPullRequestReviewDecision(
-								octokit,
-								repo,
-								node.number,
-								node.state,
-							),
-							fetchPullRequestChecks(octokit, repo, node.headRefOid),
-						]);
-						reviewDecisionByNumber.set(node.number, reviewDecision);
-						checksByNumber.set(node.number, checks);
-					} catch (error) {
-						console.warn(
-							"[host-service:pull-request-runtime] Failed to fetch PR review/check state",
-							{
-								projectId,
-								owner: repo.owner,
-								name: repo.name,
-								prNumber: node.number,
-								ghError,
-								error,
-							},
-						);
-					}
+				} catch (error) {
+					console.warn(
+						"[host-service:pull-request-runtime] Failed to fetch PR review/check state",
+						{
+							projectId,
+							owner: repo.owner,
+							name: repo.name,
+							prNumber: node.number,
+							error,
+						},
+					);
 				}
 
 				// Merge-queue detection stays on its own error boundary: only open,
@@ -1078,6 +1109,9 @@ export class PullRequestRuntimeManager {
 			const reviewDecision = reviewDecisionByNumber.has(node.number)
 				? mapReviewDecision(reviewDecisionByNumber.get(node.number) ?? null)
 				: coerceReviewDecision(existing?.reviewDecision ?? null);
+			const reviewStateJson = reviewStateByNumber.has(node.number)
+				? (reviewStateByNumber.get(node.number) ?? null)
+				: (existing?.reviewStateJson ?? null);
 			const isInMergeQueue = mergeQueueByNumber.has(node.number)
 				? (mergeQueueByNumber.get(node.number) ?? false)
 				: coercePullRequestState(existing?.state ?? null) === "queued";
@@ -1093,6 +1127,7 @@ export class PullRequestRuntimeManager {
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,
 				reviewDecision,
+				reviewStateJson,
 				checksStatus: computeChecksStatus(checks),
 				checksJson: JSON.stringify(checks),
 				lastFetchedAt: now,
