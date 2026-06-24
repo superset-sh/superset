@@ -1,6 +1,6 @@
 "use client";
 
-import { FaGithub, FaSlack } from "react-icons/fa";
+import { FaGithub, FaGitlab, FaSlack } from "react-icons/fa";
 import { SiLinear } from "react-icons/si";
 import {
 	IntegrationCard,
@@ -23,6 +23,14 @@ const integrations: IntegrationCardProps[] = [
 		category: "Version Control",
 		accentColor: "#238636",
 		icon: <FaGithub className="size-8" />,
+	},
+	{
+		id: "gitlab",
+		name: "GitLab",
+		description: "Connect a group and sync merge requests.",
+		category: "Version Control",
+		accentColor: "#FC6D26",
+		icon: <FaGitlab className="size-8" />,
 	},
 	{
 		id: "slack",
