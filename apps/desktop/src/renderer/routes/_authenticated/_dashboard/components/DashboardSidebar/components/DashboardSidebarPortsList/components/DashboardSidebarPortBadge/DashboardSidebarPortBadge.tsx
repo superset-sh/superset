@@ -1,8 +1,8 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import type { MouseEvent } from "react";
 import { LuExternalLink, LuLoaderCircle, LuX } from "react-icons/lu";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
@@ -19,6 +19,7 @@ export function DashboardSidebarPortBadge({
 	const navigate = useNavigate();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { isPending, killPort } = useDashboardSidebarPortKill();
+	const { preferences } = useV2UserPreferences();
 	const canOpenInBrowser = port.hostType === "local-device";
 	const hostLabel =
 		port.hostType === "local-device" ? "Local device" : "Remote host";
@@ -32,14 +33,12 @@ export function DashboardSidebarPortBadge({
 		});
 	};
 
-	const handleOpenInBrowser = (event: MouseEvent<HTMLButtonElement>) => {
+	const handleOpenInBrowser = () => {
 		if (!canOpenInBrowser) return;
 
-		// Hardcoded modifier rule — this is an explicit "open in browser"
-		// affordance, not a configurable file row, so it shouldn't pick up
-		// whatever the user mapped sidebar files to.
+		// Where the port opens is configurable under Settings → Links → Ports.
 		const url = `http://localhost:${port.port}`;
-		if (event.metaKey || event.ctrlKey) {
+		if (preferences.portOpenAction === "external") {
 			if (openUrl.isPending) return;
 			openUrl.mutate(url);
 			return;
@@ -48,7 +47,8 @@ export function DashboardSidebarPortBadge({
 		void navigateToV2Workspace(port.workspaceId, navigate, {
 			search: {
 				openUrl: url,
-				openUrlTarget: event.shiftKey ? "new-tab" : "current-tab",
+				openUrlTarget:
+					preferences.portOpenAction === "newTab" ? "new-tab" : "current-tab",
 				openUrlRequestId: crypto.randomUUID(),
 			},
 		});
