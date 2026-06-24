@@ -21,6 +21,7 @@ import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { getHighestPriorityStatus } from "shared/tabs-types";
 import { LinkedWorktreesSection } from "../LinkedWorktreesSection/LinkedWorktreesSection";
+import { consumeSkipActiveScroll } from "../skip-active-scroll";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
 import { DeleteWorkspaceDialog } from "./components";
 import {
@@ -144,6 +145,9 @@ export function WorkspaceListItem({
 
 	useEffect(() => {
 		if (!isActive) return;
+		// Activation may originate from a linked-worktree entry elsewhere in the
+		// sidebar; in that case keep the user's scroll position put.
+		if (consumeSkipActiveScroll()) return;
 		const activeNode = isCollapsed
 			? collapsedItemRef.current
 			: expandedItemRef.current;

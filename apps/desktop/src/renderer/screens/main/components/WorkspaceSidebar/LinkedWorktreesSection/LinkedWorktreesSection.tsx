@@ -8,6 +8,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import type { LinkedTarget } from "shared/linked-worktrees-types";
+import { skipNextActiveScroll } from "../skip-active-scroll";
 
 export function LinkedWorktreesSection({
 	worktreePath,
@@ -111,6 +112,8 @@ function LinkedRow({ target }: { target: LinkedTarget }) {
 		store.getState().clearSelection();
 		store.getState().toggle(workspaceId, target.targetProjectId ?? "");
 		store.setState({ lastClickedId: workspaceId });
+		// Open the target worktree without scrolling the sidebar away from here.
+		skipNextActiveScroll();
 		void navigateToWorkspace(workspaceId, navigate);
 	};
 
