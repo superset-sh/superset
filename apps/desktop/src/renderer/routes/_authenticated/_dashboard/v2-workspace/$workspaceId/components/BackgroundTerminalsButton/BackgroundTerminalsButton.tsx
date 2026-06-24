@@ -52,8 +52,10 @@ interface BackgroundTerminalsButtonProps {
 
 /**
  * Tab-bar control that surfaces running terminal daemon sessions for the
- * workspace that have no pane attached (e.g. moved to background via the
- * terminal pane header). Renders nothing when there are none; otherwise a
+ * workspace that have no pane attached (e.g. sent to background via the
+ * "Send to background" action in the terminal session dropdown, or detached
+ * implicitly when switching/creating sessions). Renders nothing when there are
+ * none; otherwise a
  * single button with a dropdown to re-open or kill each background session.
  */
 export const BackgroundTerminalsButton = memo(

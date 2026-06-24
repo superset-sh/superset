@@ -11,7 +11,14 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Check, ChevronDown, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import {
+	Archive,
+	Check,
+	ChevronDown,
+	LoaderCircle,
+	Plus,
+	Trash2,
+} from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useRenderStressInstrumentation } from "renderer/lib/performance/stress-instrumentation";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
@@ -27,6 +34,7 @@ import { TerminalPaneIcon } from "../TerminalPaneIcon";
 import {
 	getTerminalDisplayTitle,
 	getTerminalSessionListRefetchInterval,
+	sendTerminalToBackground,
 	shouldQueryTerminalSessionList,
 	TERMINAL_SESSION_LIST_STALE_MS,
 } from "./TerminalSessionDropdown.utils";
@@ -243,6 +251,14 @@ export function TerminalSessionDropdown({
 		});
 	};
 
+	const handleSendToBackground = () => {
+		sendTerminalToBackground(
+			{ terminalId, workspaceId },
+			{ close: () => void context.actions.close() },
+		);
+		setIsOpen(false);
+	};
+
 	const handleNewTerminal = async () => {
 		if (isCreatingTerminal) return;
 		setIsCreatingTerminal(true);
@@ -320,6 +336,19 @@ export function TerminalSessionDropdown({
 			<DropdownMenuContent align="start" className="w-96">
 				<DropdownMenuLabel className="flex items-center gap-2 text-xs">
 					<span className="min-w-0 flex-1 truncate">Terminal Sessions</span>
+					<button
+						type="button"
+						aria-label="Send to background"
+						title="Send to background"
+						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+						onClick={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+							handleSendToBackground();
+						}}
+					>
+						<Archive className="size-3.5" />
+					</button>
 					<button
 						type="button"
 						aria-label="New terminal"
