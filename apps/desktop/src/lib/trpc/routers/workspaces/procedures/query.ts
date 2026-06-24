@@ -8,6 +8,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import type { LinkedTarget } from "shared/linked-worktrees-types";
 import { selectWorkspaceRunDefinition } from "shared/workspace-run-definition";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
@@ -16,8 +17,13 @@ import {
 	type PresetWithUnknownMode,
 } from "../../settings/preset-execution-mode";
 import { getWorkspace } from "../utils/db-helpers";
+import { getSimpleGitWithShellPath } from "../utils/git-client";
 import { getProjectChildItems } from "../utils/project-children-order";
 import { loadSetupConfig } from "../utils/setup";
+import {
+	findLinkedWorktrees,
+	type WorktreeIndexEntry,
+} from "../utils/symlink-scanner";
 import { computeVisualOrder } from "../utils/visual-order";
 import { getWorkspacePath } from "../utils/worktree";
 
@@ -330,6 +336,51 @@ export const createQueryProcedures = () => {
 				})
 				.sort((a, b) => a.project.tabOrder - b.project.tabOrder);
 		}),
+
+		getLinkedWorktrees: publicProcedure
+			.input(z.object({ worktreePath: z.string() }))
+			.query(async ({ input }): Promise<LinkedTarget[]> => {
+				const root = input.worktreePath;
+				if (!root) return [];
+
+				const allWorktrees = localDb.select().from(worktrees).all();
+				const allWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(isNull(workspaces.deletingAt))
+					.all();
+				const wsByWorktree = new Map(
+					allWorkspaces
+						.filter((w) => w.worktreeId)
+						.map((w) => [w.worktreeId as string, w]),
+				);
+
+				const index: WorktreeIndexEntry[] = allWorktrees
+					.filter((wt) => wt.path !== root) // never list the worktree against itself
+					.map((wt) => {
+						const ws = wsByWorktree.get(wt.id);
+						return {
+							path: wt.path,
+							label: wt.branch,
+							workspaceId: ws?.id,
+							projectId: ws?.projectId,
+						};
+					});
+
+				return findLinkedWorktrees(root, index, {
+					resolveBranch: async (dir) => {
+						try {
+							const git = await getSimpleGitWithShellPath(dir);
+							const branch = (
+								await git.revparse(["--abbrev-ref", "HEAD"])
+							).trim();
+							return branch && branch !== "HEAD" ? branch : null;
+						} catch {
+							return null;
+						}
+					},
+				});
+			}),
 
 		getPreviousWorkspace: publicProcedure
 			.input(z.object({ id: z.string() }))
