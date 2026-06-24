@@ -65,6 +65,9 @@ interface UseDiffCommentComposerResult {
 		DiffLineAnnotation<DiffAnnotationMetadata>[]
 	> | null;
 	onLineSelectionEnd: OnLineSelectionEnd;
+	/** Open the composer for a resolved range directly (used by the
+	 *  highlight-text path, which has no pierre selection context). */
+	openForItem: (itemId: string, range: SelectedLineRange) => void;
 	onGutterUtilityClick: () => void;
 	clear: () => void;
 	submit: (input: DiffCommentSubmitInput) => Promise<void>;
@@ -106,6 +109,13 @@ export function useDiffCommentComposer({
 		[clear],
 	);
 
+	const openForItem = useCallback(
+		(itemId: string, range: SelectedLineRange) => {
+			setComposer({ itemId, range });
+		},
+		[],
+	);
+
 	const onLineSelectionEnd = useCallback<OnLineSelectionEnd>(
 		(range, context) => {
 			if (context.type !== "diff") return;
@@ -113,9 +123,9 @@ export function useDiffCommentComposer({
 				setComposer(null);
 				return;
 			}
-			setComposer({ itemId: context.item.id, range });
+			openForItem(context.item.id, range);
 		},
-		[],
+		[openForItem],
 	);
 
 	// Pierre gates the gutter "+" button's pointer flow behind a non-null
@@ -206,6 +216,7 @@ export function useDiffCommentComposer({
 	return {
 		composerAnnotationsByItemId,
 		onLineSelectionEnd,
+		openForItem,
 		onGutterUtilityClick,
 		clear,
 		submit,

@@ -23,6 +23,7 @@ import { useDiffCodeViewItems } from "./hooks/useDiffCodeViewItems";
 import { useDiffCodeViewScroll } from "./hooks/useDiffCodeViewScroll";
 import { useDiffCodeViewTheme } from "./hooks/useDiffCodeViewTheme";
 import { useDiffCommentComposer } from "./hooks/useDiffCommentComposer";
+import { useDiffTextSelection } from "./hooks/useDiffTextSelection";
 
 interface CreateNewAgentSessionInput {
 	configId: string;
@@ -89,6 +90,7 @@ export function DiffPane({
 	const {
 		composerAnnotationsByItemId,
 		onLineSelectionEnd,
+		openForItem,
 		onGutterUtilityClick,
 		clear: clearComposer,
 		submit: submitComposer,
@@ -98,6 +100,10 @@ export function DiffPane({
 		getFile,
 		onCreateNewAgentSession,
 	});
+
+	// Highlighting code text opens the same composer the gutter line-selection
+	// does, by feeding the resolved text selection through the composer opener.
+	const { onPostRender } = useDiffTextSelection({ openForItem });
 
 	const { items, fileByItemId, pathToItemId, hasPendingDiff, hasDiffError } =
 		useDiffCodeViewItems({
@@ -128,8 +134,9 @@ export function DiffPane({
 			enableGutterUtility: true,
 			onGutterUtilityClick,
 			onLineSelectionEnd,
+			onPostRender,
 		}),
-		[options, onGutterUtilityClick, onLineSelectionEnd],
+		[options, onGutterUtilityClick, onLineSelectionEnd, onPostRender],
 	);
 
 	const renderHeaderPrefix = useCallback(
