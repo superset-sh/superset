@@ -50,14 +50,18 @@ export function useDiffTextSelection({
 	const openForItemRef = useRef(openForItem);
 	openForItemRef.current = openForItem;
 
-	// node -> cleanup, so we bind once per file host and tear every listener
-	// down on unmount. onPostRender can fire repeatedly for the same node.
-	const cleanupByNode = useRef(new Map<HTMLElement, () => void>());
+	// node -> { itemId, cleanup }, so we bind once per file host and tear every
+	// listener down on unmount. onPostRender can fire repeatedly for the same
+	// node; itemId is held in a mutable entry so a host reused for a different
+	// file's item stays correct rather than dispatching to a stale itemId.
+	const cleanupByNode = useRef(
+		new Map<HTMLElement, { itemId: string; cleanup: () => void }>(),
+	);
 
 	useEffect(() => {
 		const registry = cleanupByNode.current;
 		return () => {
-			for (const cleanup of registry.values()) cleanup();
+			for (const { cleanup } of registry.values()) cleanup();
 			registry.clear();
 		};
 	}, []);
@@ -66,9 +70,16 @@ export function useDiffTextSelection({
 		if (context.type !== "diff") return;
 		const host = node as DiffsContainerElement;
 		const registry = cleanupByNode.current;
-		if (registry.has(host)) return;
 
-		const itemId = context.item.id;
+		const existing = registry.get(host);
+		if (existing) {
+			// Same host re-rendered: refresh the itemId in case it now maps a
+			// different file, but keep the single listener already bound.
+			existing.itemId = context.item.id;
+			return;
+		}
+
+		const entry = { itemId: context.item.id, cleanup: () => {} };
 		let settleTimer: ReturnType<typeof setTimeout> | undefined;
 
 		// Wait a tick after pointer-up so the browser commits the final selection
@@ -76,17 +87,19 @@ export function useDiffTextSelection({
 		const handlePointerUp = () => {
 			if (settleTimer != null) clearTimeout(settleTimer);
 			settleTimer = setTimeout(() => {
+				if (!host.isConnected) return; // host detached between pointerup and settle
 				const range = resolveDiffSelectionLines(host.shadowRoot);
 				if (!range) return; // collapsed / non-line selection: leave gutter alone
-				openForItemRef.current(itemId, range);
+				openForItemRef.current(entry.itemId, range);
 			}, SELECTION_SETTLE_MS);
 		};
 
 		host.addEventListener("pointerup", handlePointerUp);
-		registry.set(host, () => {
+		entry.cleanup = () => {
 			if (settleTimer != null) clearTimeout(settleTimer);
 			host.removeEventListener("pointerup", handlePointerUp);
-		});
+		};
+		registry.set(host, entry);
 	}, []);
 
 	return { onPostRender };
