@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { HiChevronRight, HiLink } from "react-icons/hi2";
 import { LuFolder } from "react-icons/lu";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import type { LinkedTarget } from "shared/linked-worktrees-types";
@@ -89,20 +90,18 @@ function SourceGroup({
 
 function LinkedRow({ target }: { target: LinkedTarget }) {
 	const navigate = useNavigate();
+	const utils = electronTrpc.useUtils();
+	const openLinked = electronTrpc.workspaces.openLinkedWorktree.useMutation();
 	const isSelected = useWorkspaceSelectionStore((s) =>
 		target.targetWorkspaceId
 			? s.selectedIds.has(target.targetWorkspaceId)
 			: false,
 	);
 
-	const tracked = target.kind === "tracked" && !!target.targetWorkspaceId;
+	// `external` (non-git) cannot be opened; tracked + untracked can.
+	const openable = target.kind === "tracked" || target.kind === "untracked";
 
-	const handleClick = () => {
-		const workspaceId = target.targetWorkspaceId;
-		const projectId = target.targetProjectId;
-		// untracked/external: no-op in v1. A tracked target without a projectId is
-		// incomplete — bail rather than seed the selection store with "".
-		if (!tracked || !workspaceId || !projectId) return;
+	const navigateToTarget = (workspaceId: string, projectId: string) => {
 		const store = useWorkspaceSelectionStore;
 		store.getState().clearSelection();
 		store.getState().toggle(workspaceId, projectId);
@@ -112,14 +111,45 @@ function LinkedRow({ target }: { target: LinkedTarget }) {
 		void navigateToWorkspace(workspaceId, navigate);
 	};
 
+	const handleClick = () => {
+		if (!openable) return;
+
+		// Already tracked: navigate straight to the existing workspace.
+		if (target.kind === "tracked") {
+			const workspaceId = target.targetWorkspaceId;
+			const projectId = target.targetProjectId;
+			// A tracked target without a projectId is incomplete — bail rather than
+			// seed the selection store with "".
+			if (!workspaceId || !projectId) return;
+			navigateToTarget(workspaceId, projectId);
+			return;
+		}
+
+		// Untracked: import the parent project (hidden) + worktree, then navigate.
+		// Failure is a silent no-op (matches prior untracked behavior).
+		openLinked.mutate(
+			{ targetPath: target.targetPath },
+			{
+				onSuccess: ({ workspaceId, projectId }) => {
+					navigateToTarget(workspaceId, projectId);
+					// Reclassify this row (untracked -> tracked) and refresh selection.
+					void utils.workspaces.getLinkedWorktrees.invalidate();
+				},
+			},
+		);
+	};
+
 	return (
 		<button
 			type="button"
 			onClick={handleClick}
-			title={tracked ? undefined : "Linked worktree not imported into superset"}
+			disabled={openLinked.isPending}
+			title={
+				openable ? undefined : "Linked worktree not imported into superset"
+			}
 			className={cn(
 				"flex items-center gap-2 w-full pl-3 pr-2 py-1.5 text-sm text-left transition-colors",
-				tracked
+				openable
 					? "cursor-pointer hover:bg-muted/50"
 					: "cursor-default opacity-70",
 				isSelected && "bg-primary/10 ring-1 ring-inset ring-primary/30",
@@ -128,13 +158,13 @@ function LinkedRow({ target }: { target: LinkedTarget }) {
 			<HiLink
 				className={cn(
 					"size-3.5 shrink-0",
-					tracked ? "text-blue-400" : "text-muted-foreground",
+					openable ? "text-blue-400" : "text-muted-foreground",
 				)}
 			/>
 			<span className="truncate font-mono text-[11px] leading-tight">
 				{target.packageName}
 				<span className="opacity-50">~</span>
-				<span className={cn(tracked && "text-blue-400")}>{target.label}</span>
+				<span className={cn(openable && "text-blue-400")}>{target.label}</span>
 			</span>
 		</button>
 	);
