@@ -73,7 +73,7 @@ If it runs in a terminal, it runs on Superset
 
 | Requirement | Details |
 |:------------|:--------|
-| **OS** | macOS (Windows/Linux untested) |
+| **OS** | macOS, Linux (Arch, Ubuntu, Fedora) |
 | **Runtime** | [Bun](https://bun.sh/) v1.0+ |
 | **Version Control** | Git 2.20+ |
 | **GitHub CLI** | [gh](https://cli.github.com/) |

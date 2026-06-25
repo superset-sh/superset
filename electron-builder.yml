@@ -1,0 +1,20 @@
+appId: sh.superset.desktop
+productName: Superset
+directories:
+  output: release
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+linux:
+  target:
+    - AppImage
+    - tar.gz
+  category: Development
+  icon: assets/icon.png
+win:
+  target:
+    - nsis
+    - portable
+  icon: assets/icon.png
