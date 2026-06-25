@@ -10,13 +10,18 @@ import { uploadChatAttachment } from "./utils/upload-chat-attachment";
 
 const AVAILABLE_MODELS = [
 	{
+		id: "anthropic/claude-opus-4-8",
+		name: "Opus 4.8",
+		provider: "Anthropic",
+	},
+	{
 		id: "anthropic/claude-opus-4-7",
 		name: "Opus 4.7",
 		provider: "Anthropic",
 	},
 	{
-		id: "anthropic/claude-opus-4-6",
-		name: "Opus 4.6",
+		id: "anthropic/claude-fable-5",
+		name: "Fable 5",
 		provider: "Anthropic",
 	},
 	{

@@ -515,10 +515,14 @@ export class PortManager extends EventEmitter {
 		const detectedPort = this.ports.get(key);
 
 		if (!detectedPort) {
-			return Promise.resolve({
-				success: false,
-				error: "Port not found in tracked ports",
-			});
+			// The port is no longer tracked — nothing is listening on it, which is
+			// exactly the outcome a kill aims for. Treat it as success rather than a
+			// failure. This is the common case when closing several ports at once
+			// (e.g. "Close all"): killing one tears down a shared process tree, and a
+			// scan removes the now-dead sibling ports before their own kill calls run.
+			// Reporting failure here produced a spurious "Failed to close N port(s)"
+			// toast even though the ports were genuinely closed.
+			return Promise.resolve({ success: true });
 		}
 
 		if (detectedPort.workspaceId !== workspaceId) {

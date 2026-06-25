@@ -9,7 +9,10 @@ import {
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { setHostServiceSecret } from "renderer/lib/host-service-auth";
+import {
+	setClientMachineId,
+	setHostServiceSecret,
+} from "renderer/lib/host-service-auth";
 import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
 import { MOCK_ORG_ID } from "shared/constants";
 import { useCollections } from "../CollectionsProvider";
@@ -59,6 +62,12 @@ export function LocalHostServiceProvider({
 		undefined,
 		{ staleTime: Number.POSITIVE_INFINITY },
 	);
+
+	useEffect(() => {
+		if (machineIdData?.machineId) {
+			setClientMachineId(machineIdData.machineId);
+		}
+	}, [machineIdData]);
 
 	const { data: activeConnection } =
 		electronTrpc.hostServiceCoordinator.getConnection.useQuery(

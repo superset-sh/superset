@@ -178,6 +178,12 @@ export function buildV2TerminalEnv(
 	env.TERM_PROGRAM_VERSION = hostServiceVersion;
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
+	// TERM_THEME is an explicit light/dark hint that cursor-agent (and other
+	// TUIs) read before falling back to an OSC 11 background probe. Our PTY
+	// output round-trips through the renderer's xterm, so that probe routinely
+	// exceeds cursor-agent's ~100ms timeout and defaults to dark on a light
+	// theme. Setting it here resolves the theme without the probe race.
+	env.TERM_THEME = themeType === "light" ? "light" : "dark";
 	env.LANG = normalizeUtf8Locale(baseEnv);
 	env.PWD = cwd;
 

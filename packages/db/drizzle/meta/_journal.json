@@ -407,6 +407,13 @@
       "when": 1780460225448,
       "tag": "0057_drop_remote_control_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1781022905246,
+      "tag": "0058_backfill_slack_opus_4_8",
+      "breakpoints": true
     }
   ]
 }

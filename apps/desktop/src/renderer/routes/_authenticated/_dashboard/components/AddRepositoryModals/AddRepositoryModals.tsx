@@ -1,4 +1,5 @@
 import { toast } from "@superset/ui/sonner";
+import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import {
 	useAddRepositoryModalActive,
 	useCloseAddRepositoryModal,
@@ -20,6 +21,17 @@ export function AddRepositoryModals() {
 					if (!open) close();
 				}}
 				onSuccess={(result) => {
+					toast.success("Project created.");
+					resolveNewProject({ projectId: result.projectId });
+				}}
+				onError={(message) => toast.error(`Create failed: ${message}`)}
+			/>
+			<TemplateGalleryModal
+				open={active.kind === "template-gallery"}
+				onOpenChange={(open) => {
+					if (!open) close();
+				}}
+				onCreated={(result) => {
 					toast.success("Project created.");
 					resolveNewProject({ projectId: result.projectId });
 				}}

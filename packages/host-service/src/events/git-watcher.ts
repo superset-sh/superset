@@ -9,7 +9,47 @@ import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts"
 const execFileAsync = promisify(execFile);
 
 const RESCAN_INTERVAL_MS = 30_000;
-const DEBOUNCE_MS = 300;
+
+/** Debounce window for batches with worktree edits — flush fast, latency matters. */
+export const DEBOUNCE_MS = 300;
+
+/**
+ * Wider window for `.git/`-only batches: coalesces metadata bursts (commit, fetch
+ * ref update, branch switch) that survive the path filter, trading ~1s of refresh
+ * latency for fewer idle git subprocesses (#4198). Leading-anchored (see
+ * `scheduleFlush`) so a rapid sequence can't starve the flush past this bound.
+ */
+export const GIT_DIR_DEBOUNCE_MS = 1_000;
+
+/**
+ * `.git/` top-level dirs whose churn never changes `git status`: `objects/**`
+ * (fetch/gc/repack blobs — the bulk of idle churn), `lfs/**` (object cache),
+ * `logs/**` (reflog). A real state change always touches refs/index/HEAD too.
+ */
+const IGNORED_GIT_DIR_TOP_LEVELS = new Set(["objects", "lfs", "logs"]);
+
+/**
+ * `.git/` files whose churn never changes `git status`: `FETCH_HEAD`, rewritten
+ * by every fetch (status-affecting ref updates land in `refs/`/`packed-refs`).
+ */
+const IGNORED_GIT_DIR_FILES = new Set(["FETCH_HEAD"]);
+
+/**
+ * Whether a `.git/`-relative path could affect `git status`. Fails open on a
+ * null/empty filename so a real change is never dropped.
+ */
+export function isStatusRelevantGitDirEvent(
+	filename: string | null | undefined,
+): boolean {
+	if (filename == null) return true;
+	const normalized = filename.replace(/\\/g, "/");
+	if (normalized === "") return true;
+	if (IGNORED_GIT_DIR_FILES.has(normalized)) return false;
+	const firstSlash = normalized.indexOf("/");
+	const topLevel =
+		firstSlash === -1 ? normalized : normalized.slice(0, firstSlash);
+	return !IGNORED_GIT_DIR_TOP_LEVELS.has(topLevel);
+}
 
 export interface GitChangedEvent {
 	workspaceId: string;
@@ -47,8 +87,10 @@ interface WatchedWorkspace {
  * Two sources feed into the same debounced emit per workspace:
  *
  * 1. `.git/` directory (via `node:fs.watch`) — catches commits, staging,
- *    branch switches, fetches — anything that writes git metadata, including
- *    operations from an external terminal.
+ *    branch switches, fetches, including from an external terminal. Paths that
+ *    can't change `git status` (`objects/**`, `lfs/**`, `logs/**`, `FETCH_HEAD`)
+ *    are filtered via `isStatusRelevantGitDirEvent`; `.git/`-only batches use
+ *    the wider `GIT_DIR_DEBOUNCE_MS` window.
  * 2. Worktree root (via `@superset/workspace-fs` watcher manager) — catches
  *    working-tree file edits that change `git status` output. The underlying
  *    watcher honors `DEFAULT_IGNORE_PATTERNS`, which excludes `.git/`,
@@ -120,6 +162,18 @@ export class GitWatcher {
 		return batch;
 	}
 
+	/**
+	 * Handle a raw `.git/` watcher event, marking the workspace dirty only if it
+	 * could affect `git status` (drops `objects/**` fetch/gc/pack churn).
+	 */
+	private handleGitDirEvent(
+		workspaceId: string,
+		filename: string | null,
+	): void {
+		if (!isStatusRelevantGitDirEvent(filename)) return;
+		this.markGitDirDirty(workspaceId);
+	}
+
 	private markGitDirDirty(workspaceId: string): void {
 		this.getOrCreateBatch(workspaceId).hasGitDir = true;
 		this.scheduleFlush(workspaceId);
@@ -135,7 +189,15 @@ export class GitWatcher {
 
 	private scheduleFlush(workspaceId: string): void {
 		const existing = this.debounceTimers.get(workspaceId);
+		const batch = this.getOrCreateBatch(workspaceId);
+		// `.git/`-only batches use the wide window, leading-anchored: the first
+		// event arms it and later `.git/`-only events ride it rather than resetting,
+		// so a rapid metadata sequence (rebase, `git am`) can't push the flush past
+		// GIT_DIR_DEBOUNCE_MS. A worktree edit joining reverts to the short window.
+		const gitDirOnly = batch.hasGitDir && batch.paths.size === 0;
+		if (gitDirOnly && existing) return;
 		if (existing) clearTimeout(existing);
+		const delay = gitDirOnly ? GIT_DIR_DEBOUNCE_MS : DEBOUNCE_MS;
 		this.debounceTimers.set(
 			workspaceId,
 			setTimeout(() => {
@@ -158,7 +220,7 @@ export class GitWatcher {
 						});
 					}
 				}
-			}, DEBOUNCE_MS),
+			}, delay),
 		);
 	}
 
@@ -231,8 +293,8 @@ export class GitWatcher {
 
 		let watcher: FSWatcher;
 		try {
-			watcher = watch(gitDir, { recursive: true }, () => {
-				this.markGitDirDirty(workspaceId);
+			watcher = watch(gitDir, { recursive: true }, (_event, filename) => {
+				this.handleGitDirEvent(workspaceId, filename);
 			});
 		} catch {
 			// fs.watch failed (e.g. directory doesn't exist)

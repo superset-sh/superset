@@ -60,6 +60,7 @@ export interface CreateAppResult {
 	app: Hono;
 	injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 	api: ApiClient;
+	db: HostDb;
 	dispose: () => Promise<void>;
 }
 
@@ -122,7 +123,12 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		"*",
 		cors({
 			origin: config.allowedOrigins,
-			allowHeaders: ["Content-Type", "Authorization", "trpc-accept"],
+			allowHeaders: [
+				"Content-Type",
+				"Authorization",
+				"trpc-accept",
+				"x-superset-client-machine-id",
+			],
 		}),
 	);
 
@@ -170,6 +176,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				const isAuthenticated = await providers.hostAuth.validate(c.req.raw);
 				return {
 					git,
+					credentials: providers.credentials,
 					github,
 					execGh,
 					api,
@@ -179,6 +186,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					terminalAgentStore,
 					organizationId: config.organizationId,
 					isAuthenticated,
+					clientMachineId:
+						c.req.header("x-superset-client-machine-id") ?? undefined,
 				} as Record<string, unknown>;
 			},
 		}),
@@ -213,5 +222,5 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}
 	};
 
-	return { app, injectWebSocket, api, dispose };
+	return { app, injectWebSocket, api, db, dispose };
 }

@@ -472,6 +472,27 @@ describe("buildV2TerminalEnv", () => {
 		expect(env.COLORFGBG).toBe("0;15");
 	});
 
+	test("defaults TERM_THEME to dark", () => {
+		const env = buildV2TerminalEnv(baseParams);
+		expect(env.TERM_THEME).toBe("dark");
+	});
+
+	test("sets TERM_THEME to dark when themeType is dark", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			themeType: "dark",
+		});
+		expect(env.TERM_THEME).toBe("dark");
+	});
+
+	test("sets TERM_THEME to light when themeType is light", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			themeType: "light",
+		});
+		expect(env.TERM_THEME).toBe("light");
+	});
+
 	test("drops removed v1 metadata while preserving user shell vars", () => {
 		const env = buildV2TerminalEnv({
 			...baseParams,

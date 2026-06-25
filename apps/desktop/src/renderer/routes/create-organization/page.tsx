@@ -16,9 +16,9 @@ import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useSignOut } from "renderer/hooks/useSignOut";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { z } from "zod";
 
 export const Route = createFileRoute("/create-organization/")({
@@ -45,7 +45,7 @@ export function CreateOrganization() {
 	const { data: session } = authClient.useSession();
 	const isSignedIn = !!session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const signOutMutation = electronTrpc.auth.signOut.useMutation();
+	const signOut = useSignOut();
 	const navigate = useNavigate();
 
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,8 +99,7 @@ export function CreateOrganization() {
 	}, [slugValue]);
 
 	async function handleSignOut(): Promise<void> {
-		await authClient.signOut();
-		signOutMutation.mutate();
+		await signOut();
 	}
 
 	function renderSlugStatus(): ReactNode {

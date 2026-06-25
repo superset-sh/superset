@@ -1,0 +1,1 @@
+export { useAutoAddLocalWorkspacesToSidebar } from "./useAutoAddLocalWorkspacesToSidebar";

@@ -5,7 +5,7 @@ import type { HostServiceContext } from "../../../../types";
 
 export type EnsureMainWorkspaceContext = Pick<
 	HostServiceContext,
-	"api" | "db" | "git" | "organizationId"
+	"api" | "db" | "git" | "organizationId" | "clientMachineId"
 >;
 
 async function getCurrentBranchName(
@@ -82,6 +82,7 @@ export async function ensureMainWorkspaceStrict(
 		branch,
 		hostId: host.machineId,
 		type: "main",
+		clientMachineId: ctx.clientMachineId ?? getHostId(),
 	});
 
 	ctx.db

@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react-native";
 import * as React from "react";
-import { View, type ViewProps } from "react-native";
+import { View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text, TextClassContext } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ function Alert({
 	icon,
 	iconClassName,
 	...props
-}: ViewProps &
+}: React.ComponentProps<typeof View> &
 	React.RefAttributes<View> & {
 		icon: LucideIcon;
 		variant?: "default" | "destructive";
@@ -53,7 +53,7 @@ function Alert({
 function AlertTitle({
 	className,
 	...props
-}: React.ComponentProps<typeof Text> & React.RefAttributes<Text>) {
+}: React.ComponentProps<typeof Text>) {
 	return (
 		<Text
 			className={cn(
@@ -68,7 +68,7 @@ function AlertTitle({
 function AlertDescription({
 	className,
 	...props
-}: React.ComponentProps<typeof Text> & React.RefAttributes<Text>) {
+}: React.ComponentProps<typeof Text>) {
 	const textClass = React.useContext(TextClassContext);
 	return (
 		<Text

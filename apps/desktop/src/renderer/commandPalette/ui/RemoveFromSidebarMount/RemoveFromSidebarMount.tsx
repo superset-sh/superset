@@ -14,8 +14,7 @@ import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-fro
 export function RemoveFromSidebarMount() {
 	const target = useRemoveFromSidebarIntent((s) => s.target);
 	const clear = useRemoveFromSidebarIntent((s) => s.clear);
-	const { hideWorkspaceInSidebar, removeWorkspaceFromSidebar } =
-		useDashboardSidebarState();
+	const { hideWorkspaceInSidebar } = useDashboardSidebarState();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
 	useEffect(() => {
@@ -25,19 +24,9 @@ export function RemoveFromSidebarMount() {
 		// the collection writes are idempotent. clear() resets the intent so each
 		// request is handled exactly once.
 		navigateAwayFromWorkspace(target.workspaceId);
-		if (target.isMain) {
-			hideWorkspaceInSidebar(target.workspaceId, target.projectId);
-		} else {
-			removeWorkspaceFromSidebar(target.workspaceId);
-		}
+		hideWorkspaceInSidebar(target.workspaceId, target.projectId);
 		clear();
-	}, [
-		target,
-		navigateAwayFromWorkspace,
-		hideWorkspaceInSidebar,
-		removeWorkspaceFromSidebar,
-		clear,
-	]);
+	}, [target, navigateAwayFromWorkspace, hideWorkspaceInSidebar, clear]);
 
 	return null;
 }

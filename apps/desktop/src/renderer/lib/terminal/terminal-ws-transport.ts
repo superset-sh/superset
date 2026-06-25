@@ -1,5 +1,6 @@
 import { primeRelayAffinity } from "@superset/workspace-client";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { createWriteCoalescer, type WriteCoalescer } from "./write-coalescer";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
@@ -64,6 +65,12 @@ export interface TerminalTransport {
 	/** Internal: bound resume handler shared by the online/focus/visibility
 	 * listeners, so they can be removed on teardown. */
 	_resumeListener: (() => void) | null;
+	/**
+	 * Internal: batches PTY output into one xterm.write per animation frame.
+	 * Agent CLIs emit repaints as many small chunks; per-chunk writes trigger
+	 * a parse/render cycle each and overwhelm the renderer (#2241, #2244).
+	 */
+	_writeCoalescer: WriteCoalescer | null;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -163,6 +170,7 @@ export function createTransport(): TerminalTransport {
 		_livenessTimer: null,
 		_lastLivenessTick: 0,
 		_resumeListener: null,
+		_writeCoalescer: null,
 	};
 }
 
@@ -337,6 +345,12 @@ export function connect(
 	cancelReconnect(transport);
 	transport.currentUrl = wsUrl;
 	transport._terminal = terminal;
+	// Recreate per connect so the coalescer always targets the current
+	// terminal; dispose flushes anything the previous socket left pending.
+	transport._writeCoalescer?.dispose();
+	transport._writeCoalescer = createWriteCoalescer((data) =>
+		terminal.write(data),
+	);
 	transport._terminated = false;
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
@@ -411,12 +425,13 @@ function attachSocketListeners(
 		// channel; renderer treats them identically). Pipe straight into
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
-			// Pipe PTY bytes straight into xterm. There's no output ACK back to
-			// host-service: back-pressure lives entirely on the host side, which
-			// bounds this socket's send buffer and drops us (we reconnect and
-			// replay) if we fall hopelessly behind. That means a slow/stalled
-			// renderer can never wedge the shell — it just loses some scrollback.
-			terminal.write(new Uint8Array(event.data));
+			// Queue PTY bytes; the coalescer batches them into one xterm.write
+			// per animation frame. There's no output ACK back to host-service:
+			// back-pressure lives entirely on the host side, which bounds this
+			// socket's send buffer and drops us (we reconnect and replay) if we
+			// fall hopelessly behind. That means a slow/stalled renderer can
+			// never wedge the shell — it just loses some scrollback.
+			transport._writeCoalescer?.push(new Uint8Array(event.data));
 			transport._hasReceivedBytes = true;
 			return;
 		}
@@ -425,6 +440,7 @@ function attachSocketListeners(
 		try {
 			message = JSON.parse(String(event.data)) as TerminalServerMessage;
 		} catch {
+			transport._writeCoalescer?.flushSync();
 			terminal.writeln("\r\n[terminal] invalid server payload");
 			return;
 		}
@@ -449,6 +465,7 @@ function attachSocketListeners(
 		}
 
 		if (message.type === "exit") {
+			transport._writeCoalescer?.flushSync();
 			transport._terminated = true;
 			cancelReconnect(transport);
 			terminal.writeln(
@@ -459,6 +476,9 @@ function attachSocketListeners(
 
 	socket.addEventListener("close", (event) => {
 		if (transport.socket !== socket) return;
+		// Render whatever arrived before the close instead of holding it for a
+		// frame that may never come (e.g. hidden window).
+		transport._writeCoalescer?.flushSync();
 		setConnectionState(transport, "closed");
 		transport.socket = null;
 		if (!transport._terminated && event.code !== 1000) {
@@ -500,6 +520,8 @@ export function disconnect(transport: TerminalTransport) {
 		transport.socket.close();
 		transport.socket = null;
 	}
+	transport._writeCoalescer?.dispose();
+	transport._writeCoalescer = null;
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
@@ -540,6 +562,8 @@ export function disposeTransport(transport: TerminalTransport) {
 		transport.socket.close();
 		transport.socket = null;
 	}
+	transport._writeCoalescer?.dispose();
+	transport._writeCoalescer = null;
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;

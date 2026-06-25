@@ -15,7 +15,6 @@ import {
 	resolveLocalRepo,
 	tryRevParseGitRoot,
 } from "./utils/resolve-repo";
-import { templateUrlFor } from "./utils/templates";
 
 function slugifyProjectName(name: string): string {
 	const slug = name
@@ -186,7 +185,11 @@ export async function createFromClone(
 	ctx: HostServiceContext,
 	args: { name: string; parentDir: string; url: string },
 ): Promise<CreateResult> {
-	const resolved = await cloneRepoInto(args.url, args.parentDir);
+	const resolved = await cloneRepoInto(
+		args.url,
+		args.parentDir,
+		ctx.credentials,
+	);
 	return persistFromResolved(ctx, {
 		name: args.name,
 		resolved,
@@ -255,19 +258,13 @@ export async function createFromEmpty(
  */
 export async function createFromTemplate(
 	ctx: HostServiceContext,
-	args: { name: string; parentDir: string; templateId: string },
+	args: { name: string; parentDir: string; url: string },
 ): Promise<CreateResult> {
-	const url = templateUrlFor(args.templateId);
-	if (!url) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Unknown template: ${args.templateId}`,
-		});
-	}
 	const resolved = await cloneTemplateInto(
-		url,
+		args.url,
 		args.parentDir,
 		dirNameForEmpty(args.name),
+		ctx.credentials,
 	);
 	return persistFromResolved(ctx, {
 		name: args.name,

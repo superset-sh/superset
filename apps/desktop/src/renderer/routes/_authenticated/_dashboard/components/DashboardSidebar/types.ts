@@ -17,7 +17,7 @@ export interface DashboardSidebarWorkspacePullRequest {
 	url: string;
 	number: number;
 	title: string;
-	state: "open" | "merged" | "closed" | "draft";
+	state: "open" | "merged" | "closed" | "draft" | "queued";
 	reviewDecision: "approved" | "changes_requested" | "pending" | null;
 	requestedReviewers?: string[];
 	checksStatus: "success" | "failure" | "pending" | "none";

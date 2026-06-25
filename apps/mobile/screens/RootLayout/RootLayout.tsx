@@ -2,6 +2,7 @@ import { PortalHost } from "@rn-primitives/portal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { ThemeProvider } from "expo-router/react-navigation";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Uniwind } from "uniwind";
 import { useSession } from "@/lib/auth/client";
 import { NAV_THEME } from "@/lib/theme";
@@ -19,21 +20,23 @@ export function RootLayout() {
 	if (isPending) return null;
 
 	return (
-		<QueryClientProvider client={queryClient}>
-			<PostHogProvider>
-				<ThemeProvider value={NAV_THEME.dark}>
-					<Stack screenOptions={{ headerShown: false }}>
-						<Stack.Protected guard={!!session}>
-							<Stack.Screen name="(authenticated)" />
-						</Stack.Protected>
-						<Stack.Protected guard={!session}>
-							<Stack.Screen name="(auth)" />
-						</Stack.Protected>
-					</Stack>
-					<PostHogUserIdentifier />
-					<PortalHost />
-				</ThemeProvider>
-			</PostHogProvider>
-		</QueryClientProvider>
+		<GestureHandlerRootView style={{ flex: 1 }}>
+			<QueryClientProvider client={queryClient}>
+				<PostHogProvider>
+					<ThemeProvider value={NAV_THEME.dark}>
+						<Stack screenOptions={{ headerShown: false }}>
+							<Stack.Protected guard={!!session}>
+								<Stack.Screen name="(authenticated)" />
+							</Stack.Protected>
+							<Stack.Protected guard={!session}>
+								<Stack.Screen name="(auth)" />
+							</Stack.Protected>
+						</Stack>
+						<PostHogUserIdentifier />
+						<PortalHost />
+					</ThemeProvider>
+				</PostHogProvider>
+			</QueryClientProvider>
+		</GestureHandlerRootView>
 	);
 }

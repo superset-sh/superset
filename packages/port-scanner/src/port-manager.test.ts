@@ -290,6 +290,85 @@ describe("PortManager — port identity updates", () => {
 	});
 });
 
+describe("PortManager — killPort", () => {
+	it("kills a tracked port and reports success", async () => {
+		const killed: number[] = [];
+		const killManager = new PortManager({
+			killFn: async ({ pid }) => {
+				killed.push(pid);
+				return { success: true };
+			},
+		});
+
+		killManager.upsertSession("p1", "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 1001, address: "127.0.0.1", processName: "node" },
+		];
+		await killManager.forceScan();
+
+		const result = await killManager.killPort({
+			terminalId: "p1",
+			workspaceId: "ws1",
+			port: 3000,
+		});
+
+		expect(result.success).toBe(true);
+		expect(killed).toEqual([1001]);
+		killManager.stopPeriodicScan();
+	});
+
+	it("reports success when the port is no longer tracked (already closed)", async () => {
+		// Regression: closing several ports at once kills a shared process tree, and
+		// a scan removes the now-dead sibling ports before their own kill calls run.
+		// A port that is no longer tracked is already closed, so killPort must report
+		// success rather than the spurious "Failed to close N port(s)" toast.
+		const result = await manager.killPort({
+			terminalId: "p1",
+			workspaceId: "ws1",
+			port: 3000,
+		});
+
+		expect(result.success).toBe(true);
+		expect(result.error).toBeUndefined();
+	});
+
+	it("refuses to kill the terminal's own shell process", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 1000, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+
+		const result = await manager.killPort({
+			terminalId: "p1",
+			workspaceId: "ws1",
+			port: 3000,
+		});
+
+		expect(result.success).toBe(false);
+		expect(result.error).toBe("Cannot kill the terminal shell process");
+	});
+
+	it("rejects a kill whose workspace does not match the tracked port", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 1001, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+
+		const result = await manager.killPort({
+			terminalId: "p1",
+			workspaceId: "wrong-ws",
+			port: 3000,
+		});
+
+		expect(result.success).toBe(false);
+		expect(result.error).toBe(
+			"Port does not belong to the requested workspace",
+		);
+	});
+});
+
 describe("PortManager — #3372 hint regex narrowing", () => {
 	beforeEach(() => {
 		manager.upsertSession("p1", "ws1", 1000);

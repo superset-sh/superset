@@ -197,6 +197,7 @@ export const v2WorkspaceRouter = {
 				type: z.enum(v2WorkspaceTypeValues).default("worktree"),
 				taskId: z.string().uuid().optional(),
 				id: z.string().uuid().optional(),
+				clientMachineId: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -262,6 +263,12 @@ export const v2WorkspaceRouter = {
 							host_id: inserted.hostId,
 							branch: inserted.branch,
 							type: inserted.type,
+							host_kind:
+								input.clientMachineId &&
+								input.clientMachineId === inserted.hostId
+									? "local"
+									: "remote",
+							client_machine_id: input.clientMachineId ?? null,
 						},
 					});
 					const txid = await getCurrentTxid(tx);

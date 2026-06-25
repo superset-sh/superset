@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 function Avatar({
 	className,
 	...props
-}: AvatarPrimitive.RootProps & React.RefAttributes<AvatarPrimitive.RootRef>) {
+}: React.ComponentProps<typeof AvatarPrimitive.Root>) {
 	return (
 		<AvatarPrimitive.Root
 			className={cn(
@@ -19,7 +19,7 @@ function Avatar({
 function AvatarImage({
 	className,
 	...props
-}: AvatarPrimitive.ImageProps & React.RefAttributes<AvatarPrimitive.ImageRef>) {
+}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
 	return (
 		<AvatarPrimitive.Image
 			className={cn("aspect-square size-full", className)}
@@ -31,8 +31,7 @@ function AvatarImage({
 function AvatarFallback({
 	className,
 	...props
-}: AvatarPrimitive.FallbackProps &
-	React.RefAttributes<AvatarPrimitive.FallbackRef>) {
+}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
 	return (
 		<AvatarPrimitive.Fallback
 			className={cn(

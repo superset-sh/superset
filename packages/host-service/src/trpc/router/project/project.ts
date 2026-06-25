@@ -416,7 +416,12 @@ export const projectRouter = router({
 					z.object({
 						kind: z.literal("template"),
 						parentDir: z.string().min(1),
-						templateId: z.string().min(1),
+						url: z
+							.string()
+							.min(1)
+							.refine((value) => /^https?:\/\//i.test(value), {
+								message: "Template URL must be http(s)",
+							}),
 					}),
 				]),
 			}),
@@ -432,7 +437,7 @@ export const projectRouter = router({
 					return createFromTemplate(ctx, {
 						name: input.name,
 						parentDir: input.mode.parentDir,
-						templateId: input.mode.templateId,
+						url: input.mode.url,
 					});
 				case "clone":
 					return createFromClone(ctx, {
@@ -526,6 +531,7 @@ export const projectRouter = router({
 					const resolved = await cloneRepoInto(
 						cloudProject.repoCloneUrl,
 						input.mode.parentDir,
+						ctx.credentials,
 					);
 					persistLocalProject(ctx, input.projectId, resolved);
 					const mainWorkspace = await ensureMainWorkspace(

@@ -628,6 +628,39 @@ superset workspaces open ws_… --print
 ```
 </Command>
 
+#### Opening a specific session
+
+`workspaces open` targets a workspace, not a session. A session started with
+[`agents run`](#superset-agents-run) syncs to the desktop app but has no pane in
+the workspace view until you navigate to it — and there is no session list, so a
+freshly created session is effectively invisible until opened. `workspaces open`
+can't focus a session, so build the deep link yourself and append a query param
+chosen by the session `kind` returned by `agents run`:
+
+| `kind` | Example agents | Query param |
+| --- | --- | --- |
+| `chat` | `superset` | `?chatSessionId=<sessionId>` |
+| `terminal` | `claude`, `codex` | `?terminalId=<sessionId>` |
+
+```bash
+# Run the agent with --json, then pull kind + sessionId out of the payload:
+session=$(superset agents run --workspace ws_… --agent claude --prompt "…" --json)
+kind=$(echo "$session" | jq -r '.kind')           # "chat" or "terminal"
+sessionId=$(echo "$session" | jq -r '.sessionId')
+
+# Open the session using the query param that matches its kind:
+# chat session (kind: "chat")
+open "superset://v2-workspace/<workspaceId>?chatSessionId=$sessionId"
+
+# terminal session (kind: "terminal")
+open "superset://v2-workspace/<workspaceId>?terminalId=$sessionId"
+```
+
+Append `&focusRequestId=<unique>` to force a re-focus when opening the same link
+more than once. The session must belong to the workspace in the URL. On
+Linux/Windows substitute your platform's URL opener (`xdg-open`, `start`) for
+`open`.
+
 ---
 
 ### agents

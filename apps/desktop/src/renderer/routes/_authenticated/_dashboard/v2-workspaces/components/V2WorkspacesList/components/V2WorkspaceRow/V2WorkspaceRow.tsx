@@ -104,20 +104,14 @@ export function V2WorkspaceRow({
 			// through the intent store + RemoveFromSidebarMount effect, which adds
 			// an extra render cycle of latency. The list view is never a workspace
 			// route, so there's no active workspace to navigate away from.
-			if (isMainWorkspace) {
-				hideWorkspaceInSidebar(workspace.id, workspace.projectId);
-			} else {
-				removeWorkspaceFromSidebar(workspace.id);
-			}
+			//
+			// Always hide (keep the row with isHidden) rather than delete: the
+			// auto-add-local-workspaces hook treats a missing v2WorkspaceLocalState
+			// row as never-seen and would re-pin it. The tombstone row preserves the
+			// unpin intent.
+			hideWorkspaceInSidebar(workspace.id, workspace.projectId);
 		},
-		[
-			isCurrentRoute,
-			isMainWorkspace,
-			hideWorkspaceInSidebar,
-			removeWorkspaceFromSidebar,
-			workspace.id,
-			workspace.projectId,
-		],
+		[isCurrentRoute, hideWorkspaceInSidebar, workspace.id, workspace.projectId],
 	);
 
 	const handleDeleteClick = useCallback((event: React.MouseEvent) => {

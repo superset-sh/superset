@@ -1,5 +1,4 @@
 import { ChatServiceProvider } from "@superset/chat/client";
-import { toast } from "@superset/ui/sonner";
 import {
 	createFileRoute,
 	Navigate,
@@ -7,11 +6,8 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { track } from "renderer/lib/analytics";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
@@ -19,9 +15,6 @@ import { OnboardingNavigation } from "./components/OnboardingNavigation";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
 	component: OnboardingFlowLayout,
-	validateSearch: (search: Record<string, unknown>): { rerun?: boolean } => ({
-		rerun: search.rerun === true ? true : undefined,
-	}),
 });
 
 const STEPS = [
@@ -40,24 +33,15 @@ const STEPS = [
 ] as const;
 
 function OnboardingFlowLayout() {
-	const {
-		data: session,
-		isPending,
-		refetch: refetchSession,
-	} = authClient.useSession();
+	const { data: session, isPending } = authClient.useSession();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === undefined || platform === "darwin";
 	const chatClient = useMemo(() => createChatServiceIpcClient(), []);
 	const location = useLocation();
 	const navigate = useNavigate();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
-	const [skipping, setSkipping] = useState(false);
-	const { rerun } = Route.useSearch();
 
 	if (isPending) return null;
-	// Already-onboarded users are redirected out — unless they explicitly
-	// relaunched the flow from Settings (?rerun=true).
-	if (session?.user?.onboardedAt && !rerun) {
+	if (session?.user?.onboardedAt) {
 		return <Navigate to="/" replace />;
 	}
 
@@ -78,29 +62,6 @@ function OnboardingFlowLayout() {
 	const handleContinue = isFirstStep
 		? () => navigate({ to: "/onboarding/project" })
 		: null;
-
-	// Skip is always available, including on the required gh-cli step — setup is
-	// non-blocking. It marks the user onboarded so the _authenticated gate stops
-	// redirecting here; unfinished steps can be completed later from Settings.
-	const handleSkip = async () => {
-		setSkipping(true);
-		track("onboarding_finished", { outcome: "skipped" });
-		try {
-			await apiTrpcClient.user.completeOnboarding.mutate();
-			// Reactive refetch so the layout guards' useSession() sees onboardedAt
-			// before we navigate — otherwise the _authenticated guard bounces us back.
-			await refetchSession({ query: { disableCookieCache: true } });
-		} catch (error) {
-			console.error("[onboarding] skip failed", error);
-			toast.error("Could not skip setup. Please try again.");
-			setSkipping(false);
-			return;
-		}
-		await navigate({
-			to: isV2CloudEnabled ? "/v2-workspaces" : "/workspaces",
-			replace: true,
-		});
-	};
 
 	return (
 		<ChatServiceProvider client={chatClient} queryClient={electronQueryClient}>
@@ -132,8 +93,6 @@ function OnboardingFlowLayout() {
 						totalSteps={STEPS.length}
 						onBack={isFirstStep ? null : handleBack}
 						onContinue={handleContinue}
-						onSkip={handleSkip}
-						skipDisabled={skipping}
 						continueLabel="Continue"
 					/>
 				)}

@@ -251,6 +251,65 @@ export async function fetchPullRequestByHead(
 	return normalizePullRequestCandidates(response.data, head);
 }
 
+// GitHub's REST PR payloads don't expose merge-queue membership, so detect it
+// via GraphQL: a non-null `mergeQueueEntry` means the PR is sitting in the
+// repo's merge queue waiting its turn. Repos without a queue simply return null.
+const MERGE_QUEUE_ENTRY_QUERY =
+	"query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){mergeQueueEntry{id}}}}";
+
+function hasMergeQueueEntry(data: unknown): boolean {
+	if (!isRecord(data)) return false;
+	const repository = isRecord(data.repository) ? data.repository : null;
+	const pullRequest =
+		repository && isRecord(repository.pullRequest)
+			? repository.pullRequest
+			: null;
+	return Boolean(pullRequest && isRecord(pullRequest.mergeQueueEntry));
+}
+
+export async function fetchPullRequestMergeQueueStateFromGh(
+	execGh: ExecGh,
+	repository: {
+		owner: string;
+		name: string;
+	},
+	number: number,
+): Promise<boolean> {
+	const raw = await execGh([
+		"api",
+		"graphql",
+		"-f",
+		`query=${MERGE_QUEUE_ENTRY_QUERY}`,
+		"-f",
+		`owner=${repository.owner}`,
+		"-f",
+		`name=${repository.name}`,
+		"-F",
+		`number=${number}`,
+	]);
+
+	// `gh api graphql` wraps the payload in `{ data: ... }`; Octokit unwraps it.
+	const data = isRecord(raw) && isRecord(raw.data) ? raw.data : raw;
+	return hasMergeQueueEntry(data);
+}
+
+export async function fetchPullRequestMergeQueueState(
+	octokit: Octokit,
+	repository: {
+		owner: string;
+		name: string;
+	},
+	number: number,
+): Promise<boolean> {
+	const data = await octokit.graphql(MERGE_QUEUE_ENTRY_QUERY, {
+		owner: repository.owner,
+		name: repository.name,
+		number,
+	});
+
+	return hasMergeQueueEntry(data);
+}
+
 export async function fetchPullRequestReviewDecisionFromGh(
 	execGh: ExecGh,
 	repository: {

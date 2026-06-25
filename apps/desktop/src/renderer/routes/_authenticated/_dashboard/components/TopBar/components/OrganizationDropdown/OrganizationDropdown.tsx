@@ -23,8 +23,8 @@ import {
 } from "react-icons/hi2";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { useSignOut } from "renderer/hooks/useSignOut";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 export function OrganizationDropdown({
@@ -34,7 +34,7 @@ export function OrganizationDropdown({
 }) {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const signOutMutation = electronTrpc.auth.signOut.useMutation();
+	const signOut = useSignOut();
 	const navigate = useNavigate();
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
@@ -51,8 +51,7 @@ export function OrganizationDropdown({
 	const userEmail = session?.user?.email;
 
 	async function handleSignOut(): Promise<void> {
-		await authClient.signOut();
-		signOutMutation.mutate();
+		await signOut();
 	}
 
 	const userName = session?.user?.name;
