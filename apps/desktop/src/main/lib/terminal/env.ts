@@ -464,6 +464,10 @@ export function buildTerminalEnv(params: {
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
+		// We claim "superset" instead of "kitty" to prevent chat TUIs (e.g. Claude Code)
+		// from enabling the full kitty keyboard protocol, which CSI-u encodes ALL keys
+		// including arrows and corrupts interactive TUI prompts. Cmd+Enter newlines are
+		// handled via xterm's custom key event handler translating them to \x1b\r.
 		TERM_PROGRAM: "superset",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
