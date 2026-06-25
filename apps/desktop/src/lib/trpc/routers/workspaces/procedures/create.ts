@@ -45,6 +45,7 @@ import {
 	createWorkspaceFromExternalWorktree,
 	createWorkspaceFromWorktree,
 	openExternalWorktree,
+	openLinkedWorktree,
 } from "../utils/workspace-creation";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
 
@@ -921,6 +922,12 @@ export const createCreateProcedures = () => {
 					projectId: input.projectId,
 					worktreePath: input.worktreePath,
 				});
+			}),
+
+		openLinkedWorktree: publicProcedure
+			.input(z.object({ targetPath: z.string() }))
+			.mutation(async ({ input }) => {
+				return openLinkedWorktree(input.targetPath);
 			}),
 
 		createFromPr: publicProcedure
