@@ -74,6 +74,12 @@ export async function findLinkedWorktrees(
 	const readdir = (dir: string) =>
 		limit(() => fs.readdir(dir, { withFileTypes: true })).catch(() => []);
 
+	// Canonical root: package managers (bun/pnpm) hoist workspace + store
+	// packages as symlinks that resolve back INTO this same worktree. Those are
+	// install artifacts, not links to another worktree, so any target inside the
+	// root must be skipped. Realpath-resolve to match the resolved targets below.
+	const resolvedRoot = await limit(() => fs.realpath(root)).catch(() => root);
+
 	// Compare against canonical paths: targets below are realpath-resolved, so the
 	// index must be too, or symlinked/case-differing roots (e.g. macOS /var ->
 	// /private/var) would misclassify a tracked worktree as external.
@@ -169,6 +175,10 @@ export async function findLinkedWorktrees(
 		if (!lst?.isSymbolicLink()) return;
 		const target = await limit(() => fs.realpath(entryPath)).catch(() => null);
 		if (!target) return;
+		// Symlink resolving back inside the scanned worktree => package-manager
+		// hoist artifact, never a link to another worktree. Skip it.
+		if (target === resolvedRoot || target.startsWith(resolvedRoot + path.sep))
+			return;
 		const common = {
 			sourceDir: path.relative(root, depDir),
 			ecosystem,

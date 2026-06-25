@@ -74,6 +74,28 @@ test("finds tracked, untracked and external links; ignores real dirs", async () 
 	expect(byPkg["left-pad"]).toBeUndefined();
 });
 
+test("ignores symlinks that resolve back inside the scanned worktree", async () => {
+	// Bun/pnpm hoist workspace + store packages as symlinks pointing back into
+	// the same repo (e.g. node_modules/turbo -> node_modules/.bun/turbo@x/...).
+	// These are install artifacts, not links to OTHER worktrees, so they must
+	// never be reported — even though resolveBranch would succeed on them.
+	const selfTarget = path.join(consumer, "packages", "ui");
+	await fs.mkdir(selfTarget, { recursive: true });
+	const nm = path.join(consumer, "client", "node_modules");
+	await fs.symlink(selfTarget, path.join(nm, "self-link"));
+
+	// resolveBranch returns a branch for ANY git dir, mirroring the real impl
+	// running `git rev-parse` inside the current worktree.
+	const out = await findLinkedWorktrees(consumer, index(), {
+		resolveBranch: async () => "quick-open-workspace",
+	});
+
+	expect(out.some((l) => l.packageName === "self-link")).toBe(false);
+
+	await fs.rm(path.join(nm, "self-link"), { force: true });
+	await fs.rm(selfTarget, { recursive: true, force: true });
+});
+
 test("does not descend INTO node_modules (nested node_modules ignored)", async () => {
 	const nested = path.join(consumer, "client", "node_modules", "shared-a-real");
 	await fs.mkdir(path.join(nested, "node_modules", "deep"), {
