@@ -10,6 +10,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { writeCommandsInPane } from "renderer/lib/terminal/launch-command";
 import { isTerminalAttachCanceledMessage } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/attach-cancel";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
 	type PendingTerminalSetup,
@@ -43,6 +44,28 @@ export function WorkspaceInitEffects() {
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
 	const utils = electronTrpc.useUtils();
+	const setPaneStatus = useTabsStore((state) => state.setPaneStatus);
+
+	/** Mark workspace panes as "review" if the user is not currently viewing it. */
+	const notifyWorkspaceReady = useCallback(
+		(workspaceId: string) => {
+			const isViewingWorkspace =
+				window.location.pathname.includes(`/workspace/${workspaceId}`);
+			if (isViewingWorkspace) return;
+
+			const state = useTabsStore.getState();
+			for (const tab of state.tabs) {
+				if (tab.workspaceId !== workspaceId) continue;
+				for (const paneId of extractPaneIdsFromLayout(tab.layout)) {
+					const pane = state.panes[paneId];
+					if (pane && pane.status !== "working" && pane.status !== "permission") {
+						setPaneStatus(paneId, "review");
+					}
+				}
+			}
+		},
+		[setPaneStatus],
+	);
 
 	const openPresetsInActiveTab = useCallback(
 		(workspaceId: string, presets: PendingTerminalSetup["defaultPresets"]) => {
@@ -331,6 +354,7 @@ export function WorkspaceInitEffects() {
 				handleTerminalSetup(setup, () => {
 					removePendingTerminalSetup(workspaceId);
 					processingRef.current.delete(workspaceId);
+					notifyWorkspaceReady(workspaceId);
 				});
 				continue;
 			}
@@ -352,6 +376,7 @@ export function WorkspaceInitEffects() {
 								removePendingTerminalSetup(workspaceId);
 								clearProgress(workspaceId);
 								processingRef.current.delete(workspaceId);
+								notifyWorkspaceReady(workspaceId);
 							});
 						})
 						.catch((error) => {
@@ -363,6 +388,7 @@ export function WorkspaceInitEffects() {
 								removePendingTerminalSetup(workspaceId);
 								clearProgress(workspaceId);
 								processingRef.current.delete(workspaceId);
+								notifyWorkspaceReady(workspaceId);
 							});
 						});
 				} else {
@@ -370,6 +396,7 @@ export function WorkspaceInitEffects() {
 						removePendingTerminalSetup(workspaceId);
 						clearProgress(workspaceId);
 						processingRef.current.delete(workspaceId);
+						notifyWorkspaceReady(workspaceId);
 					});
 				}
 			}
@@ -412,6 +439,7 @@ export function WorkspaceInitEffects() {
 					handleTerminalSetup(fetchedSetup, () => {
 						clearProgress(workspaceId);
 						processingRef.current.delete(workspaceId);
+						notifyWorkspaceReady(workspaceId);
 					});
 				})
 				.catch((error) => {
@@ -429,6 +457,7 @@ export function WorkspaceInitEffects() {
 		removePendingTerminalSetup,
 		clearProgress,
 		handleTerminalSetup,
+		notifyWorkspaceReady,
 		utils.workspaces.getSetupCommands,
 	]);
 
