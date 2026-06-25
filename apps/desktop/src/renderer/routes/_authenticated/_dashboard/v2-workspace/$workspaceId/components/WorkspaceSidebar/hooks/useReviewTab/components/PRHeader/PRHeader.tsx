@@ -53,7 +53,8 @@ export function PRHeader({ pr }: PRHeaderProps) {
 	const approvalsChip: React.ReactNode = (() => {
 		if (!glState) return null;
 		const { approvalsRequired, approvalsLeft } = glState;
-		if (approvalsRequired == null) return null;
+		// No chip when the project has no approval rule (null or 0 required).
+		if (!approvalsRequired) return null;
 		const received = approvalsRequired - (approvalsLeft ?? approvalsRequired);
 		return (
 			<span
