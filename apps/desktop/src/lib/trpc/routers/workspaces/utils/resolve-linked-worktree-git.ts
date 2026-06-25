@@ -1,4 +1,4 @@
-import path from "node:path";
+import { dirname } from "node:path";
 import { getSimpleGitWithShellPath } from "./git-client";
 
 export interface ResolvedLinkedWorktreeGit {
@@ -20,6 +20,9 @@ export async function resolveLinkedWorktreeGit(
 	try {
 		const git = await getSimpleGitWithShellPath(targetPath);
 
+		// Inline rather than getCurrentBranch(): we want null for an unborn HEAD
+		// (uninitialized checkout — nothing to import), which its symbolic-ref
+		// fallback would instead resolve to a branch name.
 		const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 		if (!branch || branch === "HEAD") return null; // unborn or detached
 
@@ -33,10 +36,14 @@ export async function resolveLinkedWorktreeGit(
 		if (!commonDir) return null;
 
 		// The shared git dir is "<mainRepoRoot>/.git"; the main repo root is its parent.
-		const mainRepoPath = path.dirname(commonDir);
+		const mainRepoPath = dirname(commonDir);
 
 		return { mainRepoPath, toplevel, branch };
-	} catch {
+	} catch (error) {
+		console.warn(
+			`[resolve-linked-worktree-git] Could not resolve ${targetPath}:`,
+			error,
+		);
 		return null;
 	}
 }

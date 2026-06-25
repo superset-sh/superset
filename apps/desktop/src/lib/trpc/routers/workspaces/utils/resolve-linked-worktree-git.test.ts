@@ -86,4 +86,10 @@ describe("resolveLinkedWorktreeGit", () => {
 
 		expect(await resolveLinkedWorktreeGit(detached)).toBeNull();
 	});
+
+	test("returns null for a bare repo", async () => {
+		const bare = join(TEST_DIR, "bare.git");
+		execSync(`git init --bare "${bare}"`, { stdio: "ignore" });
+		expect(await resolveLinkedWorktreeGit(bare)).toBeNull();
+	});
 });
