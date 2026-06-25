@@ -9,6 +9,7 @@ import { resolveWorkspaceBaseBranch } from "./base-branch";
 import { setBranchBaseConfig } from "./base-branch-config";
 import {
 	activateProject,
+	getBranchWorkspace,
 	getMaxProjectChildTabOrder,
 	setLastActiveWorkspace,
 	touchWorkspace,
@@ -639,17 +640,7 @@ export async function openLinkedWorktree(
 
 	// Case A: the target IS the project's main checkout — use a branch workspace.
 	if (toplevel === mainRepoPath) {
-		const existingBranch = localDb
-			.select()
-			.from(workspaces)
-			.where(
-				and(
-					eq(workspaces.projectId, project.id),
-					eq(workspaces.type, "branch"),
-					isNull(workspaces.deletingAt),
-				),
-			)
-			.get();
+		const existingBranch = getBranchWorkspace(project.id);
 		if (existingBranch) {
 			return { workspaceId: existingBranch.id, projectId: project.id };
 		}
@@ -668,18 +659,12 @@ export async function openLinkedWorktree(
 		const workspaceId =
 			branchWorkspace?.id ??
 			// onConflictDoNothing hit the unique (projectId WHERE type='branch') index.
-			localDb
-				.select()
-				.from(workspaces)
-				.where(
-					and(
-						eq(workspaces.projectId, project.id),
-						eq(workspaces.type, "branch"),
-						isNull(workspaces.deletingAt),
-					),
-				)
-				.get()?.id;
+			getBranchWorkspace(project.id)?.id;
 		if (!workspaceId) {
+			// Unreachable in practice unless a branch workspace is mid-soft-delete:
+			// the partial unique index ignores deletingAt, so the insert conflicts
+			// while getBranchWorkspace (which filters it out) finds nothing. Same
+			// pre-existing edge as projects.ts ensureMainWorkspace.
 			throw new Error(
 				"Failed to create branch workspace for linked main checkout",
 			);
