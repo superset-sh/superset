@@ -133,7 +133,17 @@ function LinkedRow({ target }: { target: LinkedTarget }) {
 				onSuccess: ({ workspaceId, projectId }) => {
 					navigateToTarget(workspaceId, projectId);
 					// Reclassify this row (untracked -> tracked) and refresh selection.
+					// Broad invalidate (no worktreePath arg) on purpose: the row that
+					// reclassifies untracked -> tracked lives in a sibling worktree's
+					// section, whose path this row doesn't know.
 					void utils.workspaces.getLinkedWorktrees.invalidate();
+				},
+				onError: (error) => {
+					// Silent for the user (per spec); breadcrumb for debugging only.
+					console.warn(
+						`[LinkedWorktrees] Failed to open ${target.targetPath}:`,
+						error,
+					);
 				},
 			},
 		);
