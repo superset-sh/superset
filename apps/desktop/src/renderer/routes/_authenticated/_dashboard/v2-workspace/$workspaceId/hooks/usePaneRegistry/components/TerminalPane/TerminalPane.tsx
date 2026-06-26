@@ -350,6 +350,12 @@ export function TerminalPane({
 		[terminalId, terminalInstanceId, connectionState],
 	);
 
+	// Physically move keyboard focus when this pane becomes active via hotkey (e.g. FOCUS_PANE_*)
+	useEffect(() => {
+		if (!ctx.isActive || !terminal) return;
+		terminal.focus();
+	}, [ctx.isActive, terminal]);
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
 	const searchAddon = useMemo(
 		() =>
