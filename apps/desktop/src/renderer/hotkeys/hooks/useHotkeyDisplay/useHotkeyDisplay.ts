@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { formatHotkeyDisplay } from "../../display";
 import { PLATFORM } from "../../registry";
-import { useEffectiveLayoutMap } from "../../stores/keyboardPreferencesStore";
+import {
+	useEffectiveLayoutId,
+	useEffectiveLayoutMap,
+} from "../../stores/keyboardPreferencesStore";
 import type { HotkeyDisplay, ShortcutBinding } from "../../types";
 import { bindingToDispatchChord } from "../../utils/binding";
 import { useBinding } from "../useBinding";
@@ -9,10 +12,11 @@ import { useBinding } from "../useBinding";
 export function useHotkeyDisplay(id: string): HotkeyDisplay {
 	const binding = useBinding(id as Parameters<typeof useBinding>[0]);
 	const layoutMap = useEffectiveLayoutMap();
-	const chord = bindingToDispatchChord(binding, layoutMap);
+	const layoutId = useEffectiveLayoutId();
+	const chord = bindingToDispatchChord(binding, layoutMap, layoutId);
 	return useMemo(
-		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap),
-		[chord, layoutMap],
+		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap, layoutId),
+		[chord, layoutMap, layoutId],
 	);
 }
 
@@ -26,9 +30,10 @@ export function useFormatBinding(
 	binding: ShortcutBinding | null,
 ): HotkeyDisplay {
 	const layoutMap = useEffectiveLayoutMap();
-	const chord = bindingToDispatchChord(binding, layoutMap);
+	const layoutId = useEffectiveLayoutId();
+	const chord = bindingToDispatchChord(binding, layoutMap, layoutId);
 	return useMemo(
-		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap),
-		[chord, layoutMap],
+		() => formatHotkeyDisplay(chord, PLATFORM, layoutMap, layoutId),
+		[chord, layoutMap, layoutId],
 	);
 }

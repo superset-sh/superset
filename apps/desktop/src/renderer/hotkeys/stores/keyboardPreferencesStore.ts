@@ -50,3 +50,22 @@ export function getEffectiveLayoutMap(): ReadonlyMap<string, string> | null {
 	const adaptive = useKeyboardPreferencesStore.getState().adaptiveLayoutEnabled;
 	return adaptive ? useKeyboardLayoutStore.getState().map : null;
 }
+
+/**
+ * Active OS layout id (e.g. `"com.apple.keylayout.DVORAK-QWERTYCMD"`) when
+ * adaptive mapping is on; `null` otherwise. Consumers gate per-layout
+ * quirks (see {@link layoutQuirks.metaRevertsToQwerty}) on this — it goes
+ * to `null` whenever the user disables adaptive mapping so quirks track the
+ * same toggle as the layout map.
+ */
+export function useEffectiveLayoutId(): string | null {
+	const layoutId = useKeyboardLayoutStore((s) => s.layoutId);
+	const adaptive = useKeyboardPreferencesStore((s) => s.adaptiveLayoutEnabled);
+	return adaptive ? layoutId : null;
+}
+
+/** Imperative form of {@link useEffectiveLayoutId} for non-React contexts. */
+export function getEffectiveLayoutId(): string | null {
+	const adaptive = useKeyboardPreferencesStore.getState().adaptiveLayoutEnabled;
+	return adaptive ? useKeyboardLayoutStore.getState().layoutId : null;
+}

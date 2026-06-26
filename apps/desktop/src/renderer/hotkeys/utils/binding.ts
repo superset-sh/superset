@@ -1,5 +1,13 @@
 import type { ParsedBinding, ShortcutBinding } from "../types";
+import { metaRevertsToQwerty } from "./layoutQuirks";
 import { canonicalizeChord, normalizeToken } from "./resolveHotkeyFromEvent";
+
+function chordHasMeta(chord: string): boolean {
+	for (const part of chord.toLowerCase().split("+")) {
+		if (normalizeToken(part) === "meta") return true;
+	}
+	return false;
+}
 
 /**
  * Keys whose `event.code` is stable across keyboard layouts (Enter, arrows,
@@ -64,14 +72,23 @@ export function serializeBinding(parsed: ParsedBinding): ShortcutBinding {
  * lives on physical KeyY there). Single source of truth shared by useHotkey,
  * useHotkeyDisplay, useFormatBinding, the conflict detector, and the
  * terminal-forwarding reverse index.
+ *
+ * `layoutId` (optional) gates the special case for layouts where ⌘ reverts
+ * to QWERTY (e.g. macOS "Dvorak - QWERTY ⌘"): on those layouts, logical
+ * meta chords are kept on their QWERTY scan-code so ⌘S still fires on the
+ * physical "S" key the user is looking at. See {@link metaRevertsToQwerty}.
  */
 export function bindingToDispatchChord(
 	binding: ShortcutBinding | null,
 	layoutMap: ReadonlyMap<string, string> | null,
+	layoutId: string | null = null,
 ): string | null {
 	if (!binding) return null;
 	const parsed = parseBinding(binding);
 	if (parsed.mode !== "logical") return parsed.chord;
+	if (metaRevertsToQwerty(layoutId) && chordHasMeta(parsed.chord)) {
+		return canonicalizeChord(parsed.chord);
+	}
 	return translateLogicalChord(parsed.chord, layoutMap) ?? parsed.chord;
 }
 

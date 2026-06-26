@@ -254,6 +254,72 @@ describe("bindingToDispatchChord", () => {
 	});
 });
 
+// Issue #4674: on macOS "Dvorak - QWERTY ⌘", ⌘ chords use QWERTY semantics —
+// pressing physical KeyS with Cmd held types "s", not Dvorak's "o". But
+// native-keymap reports the no-modifier (Dvorak) glyph map, so naïve layout
+// translation maps logical ⌘+s → physical KeyO and the binding never fires.
+describe("bindingToDispatchChord — Dvorak-QWERTY-Cmd (issue #4674)", () => {
+	// Dvorak: physical KeyS prints "o", physical KeyO prints "s".
+	const dvorakMap = new Map<string, string>([
+		["KeyA", "a"],
+		["KeyS", "o"],
+		["KeyO", "s"],
+		["KeyP", "l"],
+		["KeyR", "p"],
+	]);
+	const QWERTY_REVERT_LAYOUT = "com.apple.keylayout.DVORAK-QWERTYCMD";
+	const PLAIN_DVORAK_LAYOUT = "com.apple.keylayout.Dvorak";
+
+	it("logical ⌘+s stays on physical KeyS (Cmd reverts to QWERTY)", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "meta+s" },
+				dvorakMap,
+				QWERTY_REVERT_LAYOUT,
+			),
+		).toBe("meta+s");
+	});
+
+	it("logical ⌘+shift+p stays on physical KeyP under Cmd-revert", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "meta+shift+p" },
+				dvorakMap,
+				QWERTY_REVERT_LAYOUT,
+			),
+		).toBe("meta+shift+p");
+	});
+
+	it("non-meta logical chords still translate through Dvorak (ctrl is not reverted)", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "ctrl+s" },
+				dvorakMap,
+				QWERTY_REVERT_LAYOUT,
+			),
+		).toBe("ctrl+o");
+	});
+
+	it("plain Dvorak (no Cmd revert) still translates meta chords through layout", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "meta+s" },
+				dvorakMap,
+				PLAIN_DVORAK_LAYOUT,
+			),
+		).toBe("meta+o");
+	});
+
+	it("falls back to current behavior when layoutId is omitted (backward compat)", () => {
+		expect(
+			bindingToDispatchChord(
+				{ version: 2, mode: "logical", chord: "meta+s" },
+				dvorakMap,
+			),
+		).toBe("meta+o");
+	});
+});
+
 describe("bindingsEqual", () => {
 	it("nulls match nulls", () => {
 		expect(bindingsEqual(null, null)).toBe(true);

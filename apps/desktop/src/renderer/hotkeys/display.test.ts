@@ -150,3 +150,54 @@ describe("formatHotkeyDisplay — layout-aware", () => {
 		);
 	});
 });
+
+// Issue #4674: on macOS "Dvorak - QWERTY ⌘", pressing physical KeyS while
+// holding Cmd produces "s" (QWERTY revert), but native-keymap reports the
+// Dvorak no-modifier map ("o" at KeyS). Naïve display would show ⌘O for a
+// `meta+s` binding — the user sees ⌘O but pressing the labeled "S" with Cmd
+// fires the binding. Suppress layout-glyph lookup for meta chords on these
+// layouts so the printed shortcut matches the user's keypress.
+describe("formatHotkeyDisplay — Dvorak-QWERTY-Cmd (issue #4674)", () => {
+	const dvorakMap = new Map<string, string>([
+		["KeyS", "o"],
+		["KeyO", "s"],
+		["KeyP", "l"],
+	]);
+	const QWERTY_REVERT_LAYOUT = "com.apple.keylayout.DVORAK-QWERTYCMD";
+	const PLAIN_DVORAK_LAYOUT = "com.apple.keylayout.Dvorak";
+
+	it("⌘S stays ⌘S (not ⌘O) on Dvorak-QWERTY-Cmd", () => {
+		expect(
+			formatHotkeyDisplay("meta+s", "mac", dvorakMap, QWERTY_REVERT_LAYOUT)
+				.text,
+		).toBe("⌘S");
+	});
+
+	it("⌘⇧P stays ⌘⇧P on Dvorak-QWERTY-Cmd", () => {
+		expect(
+			formatHotkeyDisplay(
+				"meta+shift+p",
+				"mac",
+				dvorakMap,
+				QWERTY_REVERT_LAYOUT,
+			).text,
+		).toBe("⌘⇧P");
+	});
+
+	it("non-meta chords still use the Dvorak layout glyph", () => {
+		expect(
+			formatHotkeyDisplay("ctrl+s", "linux", dvorakMap, QWERTY_REVERT_LAYOUT)
+				.text,
+		).toBe("Ctrl+O");
+	});
+
+	it("plain Dvorak (no Cmd revert) still translates meta chords for display", () => {
+		expect(
+			formatHotkeyDisplay("meta+s", "mac", dvorakMap, PLAIN_DVORAK_LAYOUT).text,
+		).toBe("⌘O");
+	});
+
+	it("falls back to layout-aware behavior when layoutId is omitted (backward compat)", () => {
+		expect(formatHotkeyDisplay("meta+s", "mac", dvorakMap).text).toBe("⌘O");
+	});
+});
