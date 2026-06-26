@@ -55,6 +55,13 @@ export interface CachedTerminal {
 	subscriptionErrorHandler: ((error: unknown) => void) | null;
 	/** ResizeObserver for the attached container. Managed by attach/detach. */
 	resizeObserver: ResizeObserver | null;
+	/**
+	 * Pending next-frame re-fit scheduled by the ResizeObserver. A single
+	 * synchronous fit can latch a stale `cols` on single-shot grow events
+	 * (maximize/fullscreen); the deferred fit corrects it. Cancelled on
+	 * detach/dispose. See #5021.
+	 */
+	pendingResizeRaf: number | null;
 	/** Live container, when attached. */
 	container: HTMLDivElement | null;
 }
@@ -66,7 +73,7 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function fitAndRefresh(entry: CachedTerminal): boolean {
+export function fitAndRefresh(entry: CachedTerminal): boolean {
 	if (!hostIsVisible(entry.container)) return false;
 
 	const { xterm } = entry;
@@ -93,6 +100,47 @@ function fitAndRefresh(entry: CachedTerminal): boolean {
 	xterm.refresh(0, Math.max(0, xterm.rows - 1));
 
 	return dimensionsChanged;
+}
+
+/**
+ * Handle a ResizeObserver tick: fit immediately for snappy live-drag shrink,
+ * then schedule a single deferred fit on the next animation frame.
+ *
+ * `FitAddon.fit()` derives `cols = floor(parentWidth / cellWidth)` from the
+ * parent's computed width at call time. A continuous shrink drag emits many
+ * events, so the last one lands after layout settles and `cols` is correct.
+ * A maximize/fullscreen is effectively one large grow event: the single
+ * synchronous fit can read intermediate/stale geometry and latch a too-small
+ * `cols`, and because the observed container is already at its final width no
+ * further ResizeObserver event fires to correct it — leaving the terminal
+ * stuck narrow. The next-frame re-fit reads settled geometry and recovers the
+ * full width. See #5021 (inverse-recovery cousin of #3281).
+ */
+export function performResizeFit(
+	entry: CachedTerminal,
+	onResize?: () => void,
+): void {
+	if (fitAndRefresh(entry)) onResize?.();
+
+	if (typeof requestAnimationFrame !== "function") return;
+
+	// Coalesce: only the latest tick keeps a pending deferred fit.
+	if (entry.pendingResizeRaf !== null) {
+		cancelAnimationFrame(entry.pendingResizeRaf);
+	}
+	entry.pendingResizeRaf = requestAnimationFrame(() => {
+		entry.pendingResizeRaf = null;
+		if (fitAndRefresh(entry)) onResize?.();
+	});
+}
+
+function cancelPendingResizeFit(entry: CachedTerminal): void {
+	if (entry.pendingResizeRaf !== null) {
+		if (typeof cancelAnimationFrame === "function") {
+			cancelAnimationFrame(entry.pendingResizeRaf);
+		}
+		entry.pendingResizeRaf = null;
+	}
 }
 
 export function has(paneId: string): boolean {
@@ -130,6 +178,7 @@ export function getOrCreate(
 		eventHandler: null,
 		subscriptionErrorHandler: null,
 		resizeObserver: null,
+		pendingResizeRaf: null,
 		container: null,
 		lastCols: xterm.cols,
 		lastRows: xterm.rows,
@@ -168,10 +217,9 @@ export function attachToContainer(
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
+	cancelPendingResizeFit(entry);
 	const observer = new ResizeObserver(() => {
-		if (fitAndRefresh(entry)) {
-			onResize?.();
-		}
+		performResizeFit(entry, onResize);
 	});
 	observer.observe(container);
 	entry.resizeObserver = observer;
@@ -186,6 +234,7 @@ export function detachFromContainer(paneId: string): void {
 	}
 	entry.resizeObserver?.disconnect();
 	entry.resizeObserver = null;
+	cancelPendingResizeFit(entry);
 	entry.container = null;
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
@@ -362,6 +411,7 @@ export function dispose(paneId: string): void {
 	}
 
 	entry.resizeObserver?.disconnect();
+	cancelPendingResizeFit(entry);
 	entry.subscription?.unsubscribe();
 	entry.cleanupCreation();
 	entry.wrapper.remove();
