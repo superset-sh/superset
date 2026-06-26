@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
@@ -149,6 +150,10 @@ export class Session {
 	private disposed = false;
 	private terminatingAt: number | null = null;
 	private subprocessDecoder: PtySubprocessFrameDecoder | null = null;
+	// UTF-8 decoder that buffers incomplete multi-byte codepoints across Data
+	// frames. Without it, the PTY subprocess's timer-based flushes can split a
+	// codepoint between frames and toString("utf8") emits U+FFFD on each half.
+	private dataDecoder = new StringDecoder("utf8");
 	private subprocessStdinQueue: Buffer[] = [];
 	private subprocessStdinQueuedBytes = 0;
 	private subprocessStdinDrainArmed = false;
@@ -376,16 +381,13 @@ export class Session {
 				}
 
 				if (bytes.length === 0) break;
-				// v1's emulator + IPC consumers want a string. UTF-8 decode the
-				// stripped bytes here. Boundary mangling is still possible at
-				// chunk edges (v1 has no per-session StringDecoder), but v1 is
-				// sunset — the v2 daemon-backed path is the supported one and
-				// it's clean end-to-end.
-				const data = Buffer.from(
-					bytes.buffer,
-					bytes.byteOffset,
-					bytes.byteLength,
-				).toString("utf8");
+				// v1's emulator + IPC consumers want a string. Use StringDecoder
+				// so multi-byte codepoints split across Data frames are buffered
+				// instead of decoded into U+FFFD replacement chars.
+				const data = this.dataDecoder.write(
+					Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+				);
+				if (data.length === 0) break;
 
 				this.enqueueEmulatorWrite(data);
 
@@ -1001,6 +1003,7 @@ export class Session {
 		this.subprocess = null;
 		this.subprocessReady = false;
 		this.subprocessDecoder = null;
+		this.dataDecoder = new StringDecoder("utf8");
 		const shellName = this.shell.split("/").pop() || this.shell;
 		this.shellReadyState = SHELLS_WITH_READY_MARKER.has(shellName)
 			? "pending"
