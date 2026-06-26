@@ -11,6 +11,7 @@ import {
 	branchExistsOnRemote,
 	createWorktree,
 	createWorktreeFromExistingBranch,
+	ensureRemoteHeadSymref,
 	fetchDefaultBranch,
 	hasOriginRemote,
 	refExistsLocally,
@@ -172,6 +173,12 @@ export async function initializeWorkspaceWorktree({
 				.where(eq(worktrees.id, worktreeId))
 				.run();
 
+			// Ensure origin/HEAD symref is set so tools like Claude Code can
+			// correctly detect the repository's default branch in their system prompt
+			if (effectiveCompareBaseBranch) {
+				await ensureRemoteHeadSymref(mainRepoPath, effectiveCompareBaseBranch);
+			}
+
 			await completeReadyState();
 
 			track("workspace_initialized", {
@@ -196,6 +203,11 @@ export async function initializeWorkspaceWorktree({
 					.where(eq(projects.id, projectId))
 					.run();
 			}
+		} else if (project?.defaultBranch) {
+			// Network refresh failed but we have a cached default branch — ensure
+			// origin/HEAD is set locally so tools like Claude Code can correctly
+			// detect the repository's default branch in their system prompt
+			await ensureRemoteHeadSymref(mainRepoPath, project.defaultBranch);
 		}
 
 		if (manager.isCancellationRequested(workspaceId)) {

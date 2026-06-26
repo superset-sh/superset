@@ -1064,7 +1064,19 @@ export async function refreshDefaultBranch(
 			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
 			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
 			if (symrefMatch) {
-				return symrefMatch[1];
+				const branch = symrefMatch[1];
+				// Also update the local symref so tools like Claude Code can read it
+				// without needing network access
+				try {
+					await git.raw([
+						"symbolic-ref",
+						"refs/remotes/origin/HEAD",
+						`refs/remotes/origin/${branch}`,
+					]);
+				} catch {
+					// Non-critical — best-effort symref update
+				}
+				return branch;
 			}
 		} catch {
 			// Network unavailable - caller will use cached value
@@ -1072,6 +1084,28 @@ export async function refreshDefaultBranch(
 	}
 
 	return null;
+}
+
+/**
+ * Sets refs/remotes/origin/HEAD to point to the given default branch without
+ * requiring network access. This is a best-effort local operation to ensure
+ * tools like Claude Code can correctly detect the repository's default branch
+ * even when the remote HEAD symref has not been fetched.
+ */
+export async function ensureRemoteHeadSymref(
+	mainRepoPath: string,
+	defaultBranch: string,
+): Promise<void> {
+	const git = await getSimpleGitWithShellPath(mainRepoPath);
+	try {
+		await git.raw([
+			"symbolic-ref",
+			"refs/remotes/origin/HEAD",
+			`refs/remotes/origin/${defaultBranch}`,
+		]);
+	} catch {
+		// Non-critical — best-effort
+	}
 }
 
 export async function checkNeedsRebase(
