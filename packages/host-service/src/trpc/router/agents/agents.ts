@@ -94,12 +94,20 @@ export function resolveHostAgentConfig(
 	return null;
 }
 
+const SAFE_SHELL_TOKEN = /^[A-Za-z0-9_@%+=:,./~-]+$/;
+
 function quoteSingleShell(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
+function quoteShellTokenIfNeeded(value: string): string {
+	if (value === "") return "''";
+	if (SAFE_SHELL_TOKEN.test(value)) return value;
+	return quoteSingleShell(value);
+}
+
 function buildArgvCommand(argv: string[]): string {
-	return argv.map(quoteSingleShell).join(" ");
+	return argv.map(quoteShellTokenIfNeeded).join(" ");
 }
 
 /**
