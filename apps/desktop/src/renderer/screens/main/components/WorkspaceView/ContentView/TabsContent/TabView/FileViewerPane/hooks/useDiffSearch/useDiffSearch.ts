@@ -1,7 +1,8 @@
 import type { RefObject } from "react";
-import { useCallback, useEffect } from "react";
-import { useHotkey } from "renderer/hotkeys";
-import { useTextSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/hooks";
+import {
+	type FindHotkeySearchController,
+	useFindHotkeySearch,
+} from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/hooks";
 import { getDiffSearchRoots } from "../../utils/diffRendererRoots";
 
 interface UseDiffSearchOptions {
@@ -11,73 +12,18 @@ interface UseDiffSearchOptions {
 	filePath: string;
 }
 
-interface UseDiffSearchReturn {
-	isSearchOpen: boolean;
-	query: string;
-	caseSensitive: boolean;
-	matchCount: number;
-	activeMatchIndex: number;
-	setQuery: (query: string) => void;
-	setCaseSensitive: (caseSensitive: boolean) => void;
-	findNext: () => void;
-	findPrevious: () => void;
-	closeSearch: () => void;
-}
-
 export function useDiffSearch({
 	containerRef,
 	isFocused,
 	isDiffMode,
 	filePath,
-}: UseDiffSearchOptions): UseDiffSearchReturn {
-	const getSearchRoots = useCallback(
-		(container: HTMLDivElement) => getDiffSearchRoots(container),
-		[],
-	);
-
-	const textSearch = useTextSearch({
+}: UseDiffSearchOptions): FindHotkeySearchController {
+	return useFindHotkeySearch({
 		containerRef,
-		getSearchRoots,
+		hotkeyId: "FIND_IN_FILE_VIEWER",
 		highlightPrefix: "diff-search",
+		isActive: isFocused && isDiffMode,
+		getSearchRoots: getDiffSearchRoots,
+		resetKey: filePath,
 	});
-
-	useEffect(() => {
-		if (!isFocused || !isDiffMode) {
-			if (textSearch.isSearchOpen) {
-				textSearch.closeSearch();
-			}
-		}
-	}, [isFocused, isDiffMode, textSearch.closeSearch, textSearch.isSearchOpen]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
-	useEffect(() => {
-		if (textSearch.isSearchOpen) {
-			textSearch.closeSearch();
-		}
-	}, [filePath]);
-
-	useHotkey(
-		"FIND_IN_FILE_VIEWER",
-		() => {
-			if (textSearch.isSearchOpen) {
-				textSearch.closeSearch();
-				return;
-			}
-			textSearch.setIsSearchOpen(true);
-		},
-		{ enabled: isFocused && isDiffMode, preventDefault: true },
-	);
-
-	return {
-		isSearchOpen: textSearch.isSearchOpen,
-		query: textSearch.query,
-		caseSensitive: textSearch.caseSensitive,
-		matchCount: textSearch.matchCount,
-		activeMatchIndex: textSearch.activeMatchIndex,
-		setQuery: textSearch.setQuery,
-		setCaseSensitive: textSearch.setCaseSensitive,
-		findNext: textSearch.findNext,
-		findPrevious: textSearch.findPrevious,
-		closeSearch: textSearch.closeSearch,
-	};
 }
