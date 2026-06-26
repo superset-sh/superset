@@ -182,164 +182,174 @@ export const createDeleteProcedures = () => {
 				markWorkspaceAsDeleting(input.id);
 				updateActiveWorkspaceIfRemoved(input.id);
 
-				if (workspaceInitManager.isInitializing(input.id)) {
-					console.log(
-						`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
-					);
-					workspaceInitManager.cancel(input.id);
-					try {
-						await workspaceInitManager.waitForInit(input.id, 30000);
-					} catch (error) {
-						console.error(
-							`[workspace/delete] Failed to wait for init cancellation:`,
-							error,
+				// Any throw between markWorkspaceAsDeleting and successful completion
+				// must clear deletingAt — otherwise the workspace is permanently
+				// blocked by canDelete's "Deletion already in progress" guard
+				// (see #4521). The success flag is set just before the final return
+				// so we don't double-clear after the row has already been deleted.
+				let succeeded = false;
+				try {
+					if (workspaceInitManager.isInitializing(input.id)) {
+						console.log(
+							`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
 						);
-						clearWorkspaceDeletingStatus(input.id);
-						return {
-							success: false,
-							error:
-								"Failed to cancel workspace initialization. Please try again.",
-						};
-					}
-				}
-
-				const project = getProject(workspace.projectId);
-
-				let worktree: SelectWorktree | undefined;
-
-				const terminalPromise = getWorkspaceRuntimeRegistry()
-					.getForWorkspaceId(input.id)
-					.terminal.killByWorkspaceId(input.id);
-
-				let teardownPromise:
-					| Promise<{ success: boolean; error?: string; output?: string }>
-					| undefined;
-				if (workspace.type === "worktree" && workspace.worktreeId) {
-					worktree = getWorktree(workspace.worktreeId);
-
-					if (worktree && project && existsSync(worktree.path)) {
-						teardownPromise = runTeardown({
-							mainRepoPath: project.mainRepoPath,
-							worktreePath: worktree.path,
-							workspaceName: workspace.name,
-							projectId: project.id,
-						});
-					} else {
-						console.warn(
-							`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktree ? existsSync(worktree.path) : "N/A"}`,
-						);
-					}
-				} else {
-					console.log(
-						`[workspace/delete] No teardown needed: type=${workspace.type}, worktreeId=${workspace.worktreeId ?? "null"}`,
-					);
-				}
-
-				const [terminalResult, teardownResult] = await Promise.all([
-					terminalPromise,
-					teardownPromise ?? Promise.resolve({ success: true as const }),
-				]);
-
-				if (teardownResult && !teardownResult.success) {
-					if (input.force) {
-						console.warn(
-							`[workspace/delete] Teardown failed but force=true, continuing deletion:`,
-							teardownResult.error,
-						);
-					} else {
-						console.error(
-							`[workspace/delete] Teardown failed:`,
-							teardownResult.error,
-						);
-						clearWorkspaceDeletingStatus(input.id);
-						return {
-							success: false,
-							error: `Teardown failed: ${teardownResult.error}`,
-							output: teardownResult.output,
-						};
-					}
-				}
-
-				if (worktree && project) {
-					await workspaceInitManager.acquireProjectLock(project.id);
-
-					try {
-						// Safety: prevent deletion of worktrees not tracked in our DB
-						const allGitWorktrees = await listExternalWorktrees(
-							project.mainRepoPath,
-						);
-
-						const trackedWorktrees = localDb
-							.select({ path: worktrees.path })
-							.from(worktrees)
-							.where(eq(worktrees.projectId, project.id))
-							.all();
-						const trackedPaths = new Set(
-							trackedWorktrees.map((wt) => normalizePath(wt.path)),
-						);
-
-						const worktreePathNorm = normalizePath(worktree.path);
-						const existsInGit = allGitWorktrees.some(
-							(wt) => normalizePath(wt.path) === worktreePathNorm,
-						);
-						const isActuallyExternal =
-							existsInGit && !trackedPaths.has(worktreePathNorm);
-
-						if (isActuallyExternal) {
-							console.warn(
-								`[workspace/delete] Worktree at ${worktree.path} exists in git but not tracked in database - preserving as safety measure`,
-							);
-							track("worktree_delete_safety_trigger", {
-								workspace_id: input.id,
-								worktree_id: worktree.id,
-								worktree_path: worktree.path,
-								reason: "untracked_worktree_detected",
-							});
-						} else {
-							const removeResult = await removeWorktreeFromDisk({
-								mainRepoPath: project.mainRepoPath,
-								worktreePath: worktree.path,
-							});
-							if (!removeResult.success) {
-								clearWorkspaceDeletingStatus(input.id);
-								return removeResult;
-							}
-						}
-					} finally {
-						workspaceInitManager.releaseProjectLock(project.id);
-					}
-
-					if (input.deleteLocalBranch && workspace.branch) {
+						workspaceInitManager.cancel(input.id);
 						try {
-							await deleteLocalBranch({
-								mainRepoPath: project.mainRepoPath,
-								branch: workspace.branch,
-							});
+							await workspaceInitManager.waitForInit(input.id, 30000);
 						} catch (error) {
 							console.error(
-								`[workspace/delete] Branch cleanup failed (non-blocking):`,
-								error instanceof Error ? error.message : String(error),
+								`[workspace/delete] Failed to wait for init cancellation:`,
+								error,
 							);
+							return {
+								success: false,
+								error:
+									"Failed to cancel workspace initialization. Please try again.",
+							};
 						}
 					}
+
+					const project = getProject(workspace.projectId);
+
+					let worktree: SelectWorktree | undefined;
+
+					const terminalPromise = getWorkspaceRuntimeRegistry()
+						.getForWorkspaceId(input.id)
+						.terminal.killByWorkspaceId(input.id);
+
+					let teardownPromise:
+						| Promise<{ success: boolean; error?: string; output?: string }>
+						| undefined;
+					if (workspace.type === "worktree" && workspace.worktreeId) {
+						worktree = getWorktree(workspace.worktreeId);
+
+						if (worktree && project && existsSync(worktree.path)) {
+							teardownPromise = runTeardown({
+								mainRepoPath: project.mainRepoPath,
+								worktreePath: worktree.path,
+								workspaceName: workspace.name,
+								projectId: project.id,
+							});
+						} else {
+							console.warn(
+								`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktree ? existsSync(worktree.path) : "N/A"}`,
+							);
+						}
+					} else {
+						console.log(
+							`[workspace/delete] No teardown needed: type=${workspace.type}, worktreeId=${workspace.worktreeId ?? "null"}`,
+						);
+					}
+
+					const [terminalResult, teardownResult] = await Promise.all([
+						terminalPromise,
+						teardownPromise ?? Promise.resolve({ success: true as const }),
+					]);
+
+					if (teardownResult && !teardownResult.success) {
+						if (input.force) {
+							console.warn(
+								`[workspace/delete] Teardown failed but force=true, continuing deletion:`,
+								teardownResult.error,
+							);
+						} else {
+							console.error(
+								`[workspace/delete] Teardown failed:`,
+								teardownResult.error,
+							);
+							return {
+								success: false,
+								error: `Teardown failed: ${teardownResult.error}`,
+								output: teardownResult.output,
+							};
+						}
+					}
+
+					if (worktree && project) {
+						await workspaceInitManager.acquireProjectLock(project.id);
+
+						try {
+							// Safety: prevent deletion of worktrees not tracked in our DB
+							const allGitWorktrees = await listExternalWorktrees(
+								project.mainRepoPath,
+							);
+
+							const trackedWorktrees = localDb
+								.select({ path: worktrees.path })
+								.from(worktrees)
+								.where(eq(worktrees.projectId, project.id))
+								.all();
+							const trackedPaths = new Set(
+								trackedWorktrees.map((wt) => normalizePath(wt.path)),
+							);
+
+							const worktreePathNorm = normalizePath(worktree.path);
+							const existsInGit = allGitWorktrees.some(
+								(wt) => normalizePath(wt.path) === worktreePathNorm,
+							);
+							const isActuallyExternal =
+								existsInGit && !trackedPaths.has(worktreePathNorm);
+
+							if (isActuallyExternal) {
+								console.warn(
+									`[workspace/delete] Worktree at ${worktree.path} exists in git but not tracked in database - preserving as safety measure`,
+								);
+								track("worktree_delete_safety_trigger", {
+									workspace_id: input.id,
+									worktree_id: worktree.id,
+									worktree_path: worktree.path,
+									reason: "untracked_worktree_detected",
+								});
+							} else {
+								const removeResult = await removeWorktreeFromDisk({
+									mainRepoPath: project.mainRepoPath,
+									worktreePath: worktree.path,
+								});
+								if (!removeResult.success) {
+									return removeResult;
+								}
+							}
+						} finally {
+							workspaceInitManager.releaseProjectLock(project.id);
+						}
+
+						if (input.deleteLocalBranch && workspace.branch) {
+							try {
+								await deleteLocalBranch({
+									mainRepoPath: project.mainRepoPath,
+									branch: workspace.branch,
+								});
+							} catch (error) {
+								console.error(
+									`[workspace/delete] Branch cleanup failed (non-blocking):`,
+									error instanceof Error ? error.message : String(error),
+								);
+							}
+						}
+					}
+
+					deleteWorkspace(input.id);
+
+					if (worktree) {
+						deleteWorktreeRecord(worktree.id);
+					}
+
+					const terminalWarning =
+						terminalResult.failed > 0
+							? `${terminalResult.failed} terminal process(es) may still be running`
+							: undefined;
+
+					track("workspace_deleted", { workspace_id: input.id });
+
+					workspaceInitManager.clearJob(input.id);
+
+					succeeded = true;
+					return { success: true, terminalWarning };
+				} finally {
+					if (!succeeded) {
+						clearWorkspaceDeletingStatus(input.id);
+					}
 				}
-
-				deleteWorkspace(input.id);
-
-				if (worktree) {
-					deleteWorktreeRecord(worktree.id);
-				}
-
-				const terminalWarning =
-					terminalResult.failed > 0
-						? `${terminalResult.failed} terminal process(es) may still be running`
-						: undefined;
-
-				track("workspace_deleted", { workspace_id: input.id });
-
-				workspaceInitManager.clearJob(input.id);
-
-				return { success: true, terminalWarning };
 			}),
 
 		close: publicProcedure
