@@ -1,4 +1,5 @@
 import { projects, workspaces, worktrees } from "@superset/local-db";
+import { resolveBranchNameForCheckout } from "@superset/shared/workspace-launch";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -35,7 +36,6 @@ import {
 	type PullRequestInfo,
 	parsePrUrl,
 	safeCheckoutBranch,
-	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
@@ -530,9 +530,6 @@ export const createCreateProcedures = () => {
 					}
 				}
 
-				const withPrefix = (name: string): string =>
-					branchPrefix ? `${branchPrefix}/${name}` : name;
-
 				let branch: string;
 				if (existingBranchName) {
 					if (!existingBranches.includes(existingBranchName)) {
@@ -542,11 +539,12 @@ export const createCreateProcedures = () => {
 					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
-					branch = sanitizeBranchNameWithMaxLength(
-						withPrefix(input.branchName),
-						undefined,
-						{ preserveFirstSegmentCase: true },
-					);
+					branch = resolveBranchNameForCheckout({
+						rawName: input.branchName,
+						branchPrefix,
+						existingBranches,
+						preserveFirstSegmentCase: true,
+					});
 				} else {
 					branch = generateBranchName({
 						existingBranches,
