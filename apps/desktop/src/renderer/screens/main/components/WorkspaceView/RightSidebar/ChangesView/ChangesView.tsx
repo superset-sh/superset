@@ -16,14 +16,14 @@ import {
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useChangesStore } from "renderer/stores/changes";
-import {
-	pathsMatch,
-	retargetAbsolutePath,
-	toAbsoluteWorkspacePath,
-} from "shared/absolute-paths";
+import { pathsMatch, toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
-import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { sidebarHeaderTabTriggerClassName } from "../headerTabStyles";
+import {
+	accumulateContentInvalidation,
+	type ContentInvalidationPlan,
+	createEmptyContentInvalidationPlan,
+} from "./changeInvalidation";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
@@ -44,38 +44,9 @@ interface ChangesViewProps {
 
 const INACTIVE_BRANCH_REFETCH_INTERVAL_MS = 10_000;
 
-interface PendingChangesRefresh {
-	invalidateBranches: boolean;
-	invalidateSelectedFile: boolean;
-}
+type PendingChangesRefresh = ContentInvalidationPlan;
 
 type ChangesSidebarTab = "diffs" | "review";
-
-function eventTargetsSelectedFile(
-	event: FileSystemChangeEvent,
-	selectedAbsolutePath: string | null,
-): boolean {
-	if (!selectedAbsolutePath) {
-		return false;
-	}
-
-	if (event.type === "overflow") {
-		return true;
-	}
-
-	if (event.type === "rename" && event.absolutePath && event.oldAbsolutePath) {
-		return (
-			retargetAbsolutePath(
-				selectedAbsolutePath,
-				event.oldAbsolutePath,
-				event.absolutePath,
-				Boolean(event.isDirectory),
-			) !== null
-		);
-	}
-
-	return event.absolutePath === selectedAbsolutePath;
-}
 
 export function ChangesView({
 	onFileOpen,
@@ -262,10 +233,9 @@ export function ChangesView({
 		isActive,
 	});
 	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const pendingRefreshRef = useRef<PendingChangesRefresh>({
-		invalidateBranches: false,
-		invalidateSelectedFile: false,
-	});
+	const pendingRefreshRef = useRef<PendingChangesRefresh>(
+		createEmptyContentInvalidationPlan(),
+	);
 	const {
 		data: githubComments = [],
 		isLoading: isGitHubCommentsLoading,
@@ -355,11 +325,7 @@ export function ChangesView({
 				return;
 			}
 
-			const selectedAbsolutePath = selectedFileState?.absolutePath ?? null;
-			pendingRefreshRef.current.invalidateBranches ||=
-				event.type === "overflow";
-			pendingRefreshRef.current.invalidateSelectedFile ||=
-				eventTargetsSelectedFile(event, selectedAbsolutePath);
+			accumulateContentInvalidation(pendingRefreshRef.current, event);
 
 			if (refreshTimerRef.current) {
 				clearTimeout(refreshTimerRef.current);
@@ -368,10 +334,7 @@ export function ChangesView({
 			refreshTimerRef.current = setTimeout(() => {
 				refreshTimerRef.current = null;
 				const pending = pendingRefreshRef.current;
-				pendingRefreshRef.current = {
-					invalidateBranches: false,
-					invalidateSelectedFile: false,
-				};
+				pendingRefreshRef.current = createEmptyContentInvalidationPlan();
 
 				const invalidations: Promise<unknown>[] = [
 					trpcUtils.changes.getStatus.invalidate({
@@ -386,32 +349,37 @@ export function ChangesView({
 					);
 				}
 
-				if (pending.invalidateSelectedFile && selectedFileState) {
-					const oldAbsPath = selectedFileState.file.oldPath
-						? toAbsoluteWorkspacePath(
-								worktreePath,
-								selectedFileState.file.oldPath,
-							)
-						: undefined;
+				// Content queries (`getGitFileContents`, `getGitOriginalContent`,
+				// `filesystem.readFile`) back the inline diff for EVERY changed file
+				// in the panel, not just the selected one. Invalidate the path that
+				// actually changed so follow-up edits refresh that file's diff instead
+				// of leaving a stale change set on screen (issue #5001).
+				if (pending.invalidateAllContent) {
 					invalidations.push(
-						trpcUtils.changes.getGitFileContents.invalidate({
-							worktreePath,
-							absolutePath: selectedFileState.absolutePath,
-							oldAbsolutePath: oldAbsPath,
-						}),
-						trpcUtils.changes.getGitOriginalContent.invalidate({
-							worktreePath,
-							absolutePath: selectedFileState.absolutePath,
-							oldAbsolutePath: oldAbsPath,
-						}),
+						trpcUtils.changes.getGitFileContents.invalidate(),
+						trpcUtils.changes.getGitOriginalContent.invalidate(),
+						trpcUtils.filesystem.readFile.invalidate(),
 					);
-					if (workspaceId) {
+				} else {
+					for (const absolutePath of pending.contentPaths) {
 						invalidations.push(
-							trpcUtils.filesystem.readFile.invalidate({
-								workspaceId,
-								absolutePath: selectedFileState.absolutePath,
+							trpcUtils.changes.getGitFileContents.invalidate({
+								worktreePath,
+								absolutePath,
+							}),
+							trpcUtils.changes.getGitOriginalContent.invalidate({
+								worktreePath,
+								absolutePath,
 							}),
 						);
+						if (workspaceId) {
+							invalidations.push(
+								trpcUtils.filesystem.readFile.invalidate({
+									workspaceId,
+									absolutePath,
+								}),
+							);
+						}
 					}
 				}
 
