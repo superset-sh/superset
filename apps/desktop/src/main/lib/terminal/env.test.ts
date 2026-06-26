@@ -727,6 +727,21 @@ describe("env", () => {
 			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
 		});
 
+		// Reproduction for #3931. notify-hook.template.sh dispatches to the v2
+		// host-service endpoint only when SUPERSET_HOST_AGENT_HOOK_URL is set,
+		// otherwise it falls back to the v1 /hook/complete endpoint. Desktop's
+		// buildTerminalEnv advertises hook protocol "2" but never provides the
+		// v2 URL, so every desktop terminal is permanently pinned to v1 — and
+		// the v2 sidebar (which subscribes to the host-service event bus, not
+		// the desktop notifications emitter) never sees status events. Sound
+		// and OS toasts still fire because notification-manager handles those
+		// from the v1 emitter, but the colored status dots stay missing.
+		it("should include SUPERSET_HOST_AGENT_HOOK_URL when declaring hook v2", () => {
+			const result = buildTerminalEnv(baseParams);
+			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
+			expect(result.SUPERSET_HOST_AGENT_HOOK_URL).toBeTruthy();
+		});
+
 		describe("SSL_CERT_FILE fallback on macOS", () => {
 			it("should set SSL_CERT_FILE to system cert bundle on macOS when not already set", () => {
 				delete process.env.SSL_CERT_FILE;
