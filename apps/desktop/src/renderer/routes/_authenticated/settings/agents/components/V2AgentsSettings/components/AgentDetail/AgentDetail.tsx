@@ -21,6 +21,7 @@ import { joinArgs, parseArgs } from "renderer/lib/argv";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { DeleteAgentDialog } from "../DeleteAgentDialog";
 
 interface AgentDetailProps {
 	config: HostAgentConfig;
@@ -48,6 +49,7 @@ export function AgentDetail({
 	const [promptTransport, setPromptTransport] = useState<PromptTransport>(
 		config.promptTransport,
 	);
+	const [confirmingDelete, setConfirmingDelete] = useState(false);
 
 	useEffect(() => {
 		setLabel(config.label);
@@ -106,7 +108,10 @@ export function AgentDetail({
 				activeHostUrl,
 			).settings.agentConfigs.remove.mutate({ id: config.id });
 		},
-		onSuccess: () => onDeleted(),
+		onSuccess: () => {
+			setConfirmingDelete(false);
+			onDeleted();
+		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to remove"),
 	});
@@ -252,7 +257,7 @@ export function AgentDetail({
 						<Button
 							variant="destructive"
 							size="sm"
-							onClick={() => removeMutation.mutate()}
+							onClick={() => setConfirmingDelete(true)}
 							disabled={removeMutation.isPending}
 							className="shrink-0 gap-1.5"
 						>
@@ -262,6 +267,15 @@ export function AgentDetail({
 					</div>
 				</div>
 			</div>
+			<DeleteAgentDialog
+				agentLabel={config.label}
+				open={confirmingDelete}
+				onOpenChange={(open) => {
+					if (!removeMutation.isPending) setConfirmingDelete(open);
+				}}
+				onConfirm={() => removeMutation.mutate()}
+				isDeleting={removeMutation.isPending}
+			/>
 		</div>
 	);
 }

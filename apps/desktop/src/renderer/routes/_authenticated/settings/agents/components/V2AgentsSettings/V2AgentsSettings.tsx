@@ -100,6 +100,23 @@ export function V2AgentsSettings({
 			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
 	});
 
+	const removeMutation = useMutation({
+		mutationFn: (id: string) => {
+			if (!activeHostUrl) throw new Error("Host service is not available");
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).settings.agentConfigs.remove.mutate({ id });
+		},
+		onSuccess: (_result, id) => {
+			invalidate();
+			if (id === selectedAgentId) setSelectedAgentId(null);
+		},
+		onError: (err) =>
+			toast.error(
+				err instanceof Error ? err.message : "Failed to remove agent",
+			),
+	});
+
 	const reorderMutation = useMutation({
 		mutationFn: (ids: string[]) => {
 			if (!activeHostUrl) {
@@ -222,9 +239,11 @@ export function V2AgentsSettings({
 					selectedAgentId={selectedAgentId}
 					onSelectAgent={setSelectedAgentId}
 					onAddAgent={(preset) => addMutation.mutate(preset)}
+					onRemoveAgent={(id) => removeMutation.mutate(id)}
 					onReorder={(ids) => reorderMutation.mutate(ids)}
 					onResetToDefaults={() => resetMutation.mutate()}
 					isAdding={addMutation.isPending}
+					isRemoving={removeMutation.isPending}
 					isResetting={resetMutation.isPending}
 				/>
 			)}

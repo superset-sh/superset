@@ -25,8 +25,8 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
-import { Plus } from "lucide-react";
-import { useMemo } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { LuGripVertical } from "react-icons/lu";
 import {
 	getPresetIcon,
@@ -36,6 +36,7 @@ import {
 	SettingsListSidebar,
 	settingsListItemClass,
 } from "../../../../../components/SettingsListSidebar";
+import { DeleteAgentDialog } from "../DeleteAgentDialog";
 
 interface AgentsSettingsSidebarProps {
 	configs: HostAgentConfig[];
@@ -43,9 +44,11 @@ interface AgentsSettingsSidebarProps {
 	selectedAgentId: string | null;
 	onSelectAgent: (id: string) => void;
 	onAddAgent: (preset: HostAgentPreset) => void;
+	onRemoveAgent: (id: string) => void;
 	onReorder: (orderedIds: string[]) => void;
 	onResetToDefaults: () => void;
 	isAdding: boolean;
+	isRemoving: boolean;
 	isResetting: boolean;
 }
 
@@ -55,13 +58,20 @@ export function AgentsSettingsSidebar({
 	selectedAgentId,
 	onSelectAgent,
 	onAddAgent,
+	onRemoveAgent,
 	onReorder,
 	onResetToDefaults,
 	isAdding,
+	isRemoving,
 	isResetting,
 }: AgentsSettingsSidebarProps) {
 	const isDark = useIsDarkTheme();
 	const sortableIds = useMemo(() => configs.map((c) => c.id), [configs]);
+	const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+		null,
+	);
+	const confirmingAgent =
+		configs.find((c) => c.id === confirmingDeleteId) ?? null;
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -123,38 +133,56 @@ export function AgentsSettingsSidebar({
 		</DropdownMenu>
 	);
 
+	const handleConfirmDelete = () => {
+		if (!confirmingDeleteId) return;
+		onRemoveAgent(confirmingDeleteId);
+		setConfirmingDeleteId(null);
+	};
+
 	return (
-		<DndContext
-			sensors={sensors}
-			collisionDetection={closestCenter}
-			onDragEnd={handleDragEnd}
-		>
-			<SortableContext
-				items={sortableIds}
-				strategy={verticalListSortingStrategy}
+		<>
+			<DndContext
+				sensors={sensors}
+				collisionDetection={closestCenter}
+				onDragEnd={handleDragEnd}
 			>
-				<SettingsListSidebar
-					searchPlaceholder="Filter agents..."
-					searchAriaLabel="Filter agents"
-					listHeader={listHeader}
-					groups={[{ id: "all", title: "Agents", rows: configs }]}
-					filterRow={(row, q) =>
-						row.label.toLowerCase().includes(q.toLowerCase())
-					}
-					getRowKey={(row) => row.id}
-					emptyLabel="No agents yet."
-					noMatchLabel={(q) => `No agents match "${q}".`}
-					renderRow={(row) => (
-						<AgentSidebarRow
-							row={row}
-							isActive={row.id === selectedAgentId}
-							onSelect={() => onSelectAgent(row.id)}
-							isDark={isDark}
-						/>
-					)}
-				/>
-			</SortableContext>
-		</DndContext>
+				<SortableContext
+					items={sortableIds}
+					strategy={verticalListSortingStrategy}
+				>
+					<SettingsListSidebar
+						searchPlaceholder="Filter agents..."
+						searchAriaLabel="Filter agents"
+						listHeader={listHeader}
+						groups={[{ id: "all", title: "Agents", rows: configs }]}
+						filterRow={(row, q) =>
+							row.label.toLowerCase().includes(q.toLowerCase())
+						}
+						getRowKey={(row) => row.id}
+						emptyLabel="No agents yet."
+						noMatchLabel={(q) => `No agents match "${q}".`}
+						renderRow={(row) => (
+							<AgentSidebarRow
+								row={row}
+								isActive={row.id === selectedAgentId}
+								onSelect={() => onSelectAgent(row.id)}
+								onRequestDelete={() => setConfirmingDeleteId(row.id)}
+								isDark={isDark}
+							/>
+						)}
+					/>
+				</SortableContext>
+			</DndContext>
+			<DeleteAgentDialog
+				agentLabel={confirmingAgent?.label ?? null}
+				open={!!confirmingDeleteId}
+				onOpenChange={(open) => {
+					if (!open) setConfirmingDeleteId(null);
+				}}
+				onConfirm={handleConfirmDelete}
+				isDeleting={isRemoving}
+			/>
+		</>
 	);
 }
 
@@ -162,6 +190,7 @@ interface AgentSidebarRowProps {
 	row: HostAgentConfig;
 	isActive: boolean;
 	onSelect: () => void;
+	onRequestDelete: () => void;
 	isDark: boolean;
 }
 
@@ -169,6 +198,7 @@ function AgentSidebarRow({
 	row,
 	isActive,
 	onSelect,
+	onRequestDelete,
 	isDark,
 }: AgentSidebarRowProps) {
 	const icon = getPresetIcon(row.presetId, isDark);
@@ -195,12 +225,30 @@ function AgentSidebarRow({
 			<button
 				type="button"
 				onClick={onSelect}
-				className={settingsListItemClass(isActive, "gap-2 w-full text-left")}
+				className={settingsListItemClass(
+					isActive,
+					"gap-2 w-full text-left pr-12",
+				)}
 			>
 				{icon ? (
 					<img src={icon} alt="" className="size-4 object-contain shrink-0" />
 				) : null}
 				<span className="truncate flex-1">{row.label}</span>
+			</button>
+			<button
+				type="button"
+				onClick={(e) => {
+					e.stopPropagation();
+					onRequestDelete();
+				}}
+				className={cn(
+					"absolute right-7 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/60 hover:text-destructive hover:bg-accent",
+					"opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity",
+				)}
+				aria-label={`Delete ${row.label}`}
+				title={`Delete ${row.label}`}
+			>
+				<Trash2 className="size-3.5" />
 			</button>
 			<button
 				type="button"
