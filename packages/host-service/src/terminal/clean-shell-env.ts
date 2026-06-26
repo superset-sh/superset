@@ -1,52 +1,13 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import * as os from "node:os";
 import { signalProcessTreeAndGroups } from "@superset/pty-daemon/process-tree";
+import { stripTerminalRuntimeEnv } from "./env-strip.ts";
 import { resolveConfiguredShell } from "./user-shell.ts";
 
 const SHELL_ENV_TIMEOUT_MS = 8_000;
 const CACHE_TTL_MS = 60_000;
 const DELIMITER = "__SUPERSET_SHELL_ENV__";
 const DIAGNOSTIC_OUTPUT_LIMIT = 200;
-
-const SHELL_BOOTSTRAP_KEYS = [
-	"HOME",
-	"USER",
-	"LOGNAME",
-	"SHELL",
-	"PATH",
-	"TERM",
-	"TMPDIR",
-	"LANG",
-	"LC_ALL",
-	"LC_CTYPE",
-	"__CF_USER_TEXT_ENCODING",
-	"Apple_PubSub_Socket_Render",
-	"COMSPEC",
-	"USERPROFILE",
-	"SYSTEMROOT",
-	// macOS launchd sets SSH_AUTH_SOCK in the GUI session env, not via shell
-	// rc files. Without these in the bootstrap, terminals lose the SSH agent
-	// and git pushes over SSH fail. (#4238)
-	"SSH_AUTH_SOCK",
-	"SSH_AGENT_PID",
-	// Proxy config — typically injected via `launchctl setenv` (corp networks),
-	// not by rc files. Without these, git/curl/npm in terminals bypass the proxy.
-	"HTTP_PROXY",
-	"HTTPS_PROXY",
-	"NO_PROXY",
-	"ALL_PROXY",
-	"http_proxy",
-	"https_proxy",
-	"no_proxy",
-	"all_proxy",
-	// Corporate CA bundles — same launchd-injected vector as proxies.
-	"SSL_CERT_FILE",
-	"SSL_CERT_DIR",
-	"NODE_EXTRA_CA_CERTS",
-	"REQUESTS_CA_BUNDLE",
-	// System-level timezone override.
-	"TZ",
-];
 
 const COMMON_MACOS_PATHS = [
 	"/opt/homebrew/bin",
@@ -70,17 +31,28 @@ export function augmentPathForMacOS(
 	env.PATH = [...missingPaths, currentPath].filter(Boolean).join(":");
 }
 
-export function buildMinimalEnv(): Record<string, string> {
-	const env: Record<string, string> = {
-		DISABLE_AUTO_UPDATE: "true",
-		ZSH_TMUX_AUTOSTARTED: "true",
-		ZSH_TMUX_AUTOSTART: "false",
-	};
-
-	for (const key of SHELL_BOOTSTRAP_KEYS) {
-		const value = process.env[key];
-		if (value) env[key] = value;
+/**
+ * Forward host-service's process.env to the snapshot shell, minus the runtime
+ * keys desktop main injects when spawning host-service (HOST_*, AUTH_TOKEN,
+ * ELECTRON_*, etc. — see env-strip.ts).
+ *
+ * VS Code pattern (src/vs/platform/shell/node/shellEnv.ts:112): pass
+ * process.env through so launchctl-injected user creds (DD_API_KEY,
+ * OPENAI_API_KEY, etc.) survive into the snapshot. An upstream allowlist
+ * silently drops anything the maintainers didn't anticipate — the snapshot
+ * shell's rc files then have no way to add it back, so it never reaches PTYs.
+ */
+export function buildBootstrapEnv(): Record<string, string> {
+	const stringEnv: Record<string, string> = {};
+	for (const [key, value] of Object.entries(process.env)) {
+		if (typeof value === "string") stringEnv[key] = value;
 	}
+
+	const env = stripTerminalRuntimeEnv(stringEnv);
+
+	env.DISABLE_AUTO_UPDATE = "true";
+	env.ZSH_TMUX_AUTOSTARTED = "true";
+	env.ZSH_TMUX_AUTOSTART = "false";
 
 	augmentPathForMacOS(env);
 	return env;
@@ -123,7 +95,7 @@ function truncateForDiagnostics(value: string): string {
 function spawnCleanShellEnv(): Promise<Record<string, string>> {
 	return new Promise((resolve, reject) => {
 		const shell = resolveShellForEnv();
-		const env = buildMinimalEnv();
+		const env = buildBootstrapEnv();
 		if (process.platform === "win32") {
 			env.COMSPEC = shell;
 		} else {
