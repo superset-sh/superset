@@ -114,7 +114,7 @@ export function BrowserPane({
 				</div>
 			)}
 		>
-			<div className="relative flex flex-1 h-full">
+			<div className="relative flex flex-1 h-full" data-browser-pane="true">
 				<div ref={containerRef} className="w-full h-full" style={{ flex: 1 }} />
 				{loadError && !isLoading && (
 					<BrowserErrorOverlay error={loadError} onRetry={reload} />

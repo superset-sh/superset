@@ -52,7 +52,7 @@ export function BrowserPane({ ctx }: BrowserPaneProps) {
 	const isBlankPage = !state.currentUrl || state.currentUrl === "about:blank";
 
 	return (
-		<div className="relative flex flex-1 h-full">
+		<div className="relative flex flex-1 h-full" data-browser-pane="true">
 			<div ref={placeholderRef} className="w-full h-full" style={{ flex: 1 }} />
 			{state.error && !state.isLoading && (
 				<BrowserErrorOverlay error={state.error} onRetry={reload} />
