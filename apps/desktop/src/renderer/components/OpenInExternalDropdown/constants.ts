@@ -21,6 +21,7 @@ import sublimeIcon from "renderer/assets/app-icons/sublime.svg";
 import terminalIcon from "renderer/assets/app-icons/terminal.png";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import vscodeInsidersIcon from "renderer/assets/app-icons/vscode-insiders.svg";
+import vscodiumIcon from "renderer/assets/app-icons/vscodium.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
 import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
@@ -109,6 +110,13 @@ export const VSCODE_OPTIONS: OpenInExternalAppOption[] = [
 		lightIcon: vscodeInsidersIcon,
 		darkIcon: vscodeInsidersIcon,
 		displayLabel: "VS Code Insiders",
+	},
+	{
+		id: "vscodium",
+		label: "VSCodium",
+		lightIcon: vscodiumIcon,
+		darkIcon: vscodiumIcon,
+		displayLabel: "VSCodium",
 	},
 ];
 

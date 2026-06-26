@@ -149,6 +149,7 @@ export const EXTERNAL_APPS = [
 	"finder",
 	"vscode",
 	"vscode-insiders",
+	"vscodium",
 	"cursor",
 	"antigravity",
 	"devin",
