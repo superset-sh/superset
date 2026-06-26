@@ -147,6 +147,32 @@ describe("generateWorkspaceNameFromPrompt", () => {
 				"A prompt-based title was used because model naming was unavailable.",
 		});
 	});
+
+	// Regression test for #4117: a hanging AI call (slow/dead provider) used to
+	// stall workspace creation forever at "Finalizing setup". Because workspace
+	// init holds a per-project lock until this resolves, the hang also blocked
+	// any subsequent worktree creation in the same project.
+	it("falls back when generation hangs past the timeout", async () => {
+		getSmallModelMock.mockResolvedValueOnce({ id: "test-model" });
+		generateTitleFromMessageMock.mockImplementationOnce(
+			() => new Promise(() => {}),
+		);
+
+		const start = Date.now();
+		const result = await generateWorkspaceNameFromPrompt(
+			"rename hung workspace",
+			{ timeoutMs: 50 },
+		);
+		const elapsed = Date.now() - start;
+
+		expect(result).toEqual({
+			name: "rename hung workspace",
+			usedPromptFallback: true,
+			warning:
+				"A prompt-based title was used because model naming was unavailable.",
+		});
+		expect(elapsed).toBeLessThan(2000);
+	}, 3000);
 });
 
 afterAll(() => {
