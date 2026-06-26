@@ -1,10 +1,26 @@
-import { describe, expect, it } from "bun:test";
-import {
-	getSubtreePids,
-	getSubtreeResources,
-	type ProcessInfo,
-	type ProcessSnapshot,
-} from "./process-tree";
+import { beforeEach, describe, expect, it, mock, test } from "bun:test";
+import type { ProcessInfo, ProcessSnapshot } from "./process-tree";
+
+type ExecCallback = (err: Error | null, stdout: string, stderr: string) => void;
+
+const execCalls: string[] = [];
+
+mock.module("node:child_process", () => ({
+	exec: (
+		cmd: string,
+		optsOrCb: ExecCallback | object,
+		maybeCb?: ExecCallback,
+	) => {
+		execCalls.push(cmd);
+		const cb: ExecCallback | undefined =
+			typeof optsOrCb === "function" ? optsOrCb : maybeCb;
+		cb?.(null, "1 0 0 1024\n2 1 0 2048\n", "");
+		return {} as never;
+	},
+}));
+
+const { captureProcessSnapshot, getSubtreePids, getSubtreeResources } =
+	await import("./process-tree");
 
 function buildSnapshot(processes: ProcessInfo[]): ProcessSnapshot {
 	const byPid = new Map<number, ProcessInfo>();
@@ -74,6 +90,31 @@ describe("getSubtreePids", () => {
 
 		const pids = getSubtreePids(snapshot, 10).sort();
 		expect(pids).toEqual([10, 11]);
+	});
+});
+
+describe("captureProcessSnapshot — issue #3908 reproduction", () => {
+	beforeEach(() => {
+		execCalls.length = 0;
+	});
+
+	test("shells out to `ps` on Unix to enumerate processes", async () => {
+		if (process.platform === "win32") return;
+
+		await captureProcessSnapshot();
+
+		expect(execCalls.length).toBeGreaterThanOrEqual(1);
+		expect(execCalls[0]).toMatch(/^ps\b/);
+	});
+
+	test("spawns one `ps` per call (no dedup at this layer)", async () => {
+		if (process.platform === "win32") return;
+
+		await captureProcessSnapshot();
+		await captureProcessSnapshot();
+		await captureProcessSnapshot();
+
+		expect(execCalls.length).toBe(3);
 	});
 });
 
