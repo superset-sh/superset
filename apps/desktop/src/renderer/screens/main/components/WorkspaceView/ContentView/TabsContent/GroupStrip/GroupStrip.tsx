@@ -2,6 +2,7 @@ import type { TerminalPreset } from "@superset/local-db";
 import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import {
 	useCallback,
 	useEffect,
@@ -27,6 +28,10 @@ import {
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
+import {
+	computeScrollState,
+	type ScrollState,
+} from "./utils/computeScrollState";
 
 const NO_WORKSPACE_MATCH = "__no_workspace__";
 
@@ -58,7 +63,12 @@ export function GroupStrip() {
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
-	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
+	const [scrollState, setScrollState] = useState<ScrollState>({
+		hasOverflow: false,
+		canScrollLeft: false,
+		canScrollRight: false,
+	});
+	const hasHorizontalOverflow = scrollState.hasOverflow;
 	const utils = electronTrpc.useUtils();
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
@@ -287,7 +297,31 @@ export function GroupStrip() {
 		const container = scrollContainerRef.current;
 		const track = tabsTrackRef.current;
 		if (!container || !track) return;
-		setHasHorizontalOverflow(track.scrollWidth > container.clientWidth + 1);
+		setScrollState((prev) => {
+			const next = computeScrollState({
+				scrollLeft: container.scrollLeft,
+				scrollWidth: track.scrollWidth,
+				clientWidth: container.clientWidth,
+			});
+			if (
+				prev.hasOverflow === next.hasOverflow &&
+				prev.canScrollLeft === next.canScrollLeft &&
+				prev.canScrollRight === next.canScrollRight
+			) {
+				return prev;
+			}
+			return next;
+		});
+	}, []);
+
+	const scrollByDirection = useCallback((direction: "left" | "right") => {
+		const container = scrollContainerRef.current;
+		if (!container) return;
+		const delta = Math.max(container.clientWidth * 0.8, 160);
+		container.scrollBy({
+			left: direction === "left" ? -delta : delta,
+			behavior: "smooth",
+		});
 	}, []);
 
 	useLayoutEffect(() => {
@@ -300,10 +334,12 @@ export function GroupStrip() {
 		resizeObserver.observe(container);
 		resizeObserver.observe(track);
 		window.addEventListener("resize", updateOverflow);
+		container.addEventListener("scroll", updateOverflow, { passive: true });
 
 		return () => {
 			resizeObserver.disconnect();
 			window.removeEventListener("resize", updateOverflow);
+			container.removeEventListener("scroll", updateOverflow);
 		};
 	}, [updateOverflow]);
 
@@ -337,6 +373,17 @@ export function GroupStrip() {
 
 	return (
 		<div className="flex h-10 min-w-0 flex-1 items-stretch">
+			{hasHorizontalOverflow && (
+				<button
+					type="button"
+					aria-label="Scroll tabs left"
+					disabled={!scrollState.canScrollLeft}
+					onClick={() => scrollByDirection("left")}
+					className="shrink-0 flex items-center justify-center w-7 h-full text-muted-foreground hover:text-foreground hover:bg-accent/60 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+				>
+					<ChevronLeftIcon className="size-4" />
+				</button>
+			)}
 			<div
 				ref={scrollContainerRef}
 				className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
@@ -381,7 +428,18 @@ export function GroupStrip() {
 				</div>
 			</div>
 			{hasHorizontalOverflow && (
-				<div className="shrink-0 bg-background/95 pr-1">{plusControl}</div>
+				<>
+					<button
+						type="button"
+						aria-label="Scroll tabs right"
+						disabled={!scrollState.canScrollRight}
+						onClick={() => scrollByDirection("right")}
+						className="shrink-0 flex items-center justify-center w-7 h-full text-muted-foreground hover:text-foreground hover:bg-accent/60 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+					>
+						<ChevronRightIcon className="size-4" />
+					</button>
+					<div className="shrink-0 bg-background/95 pr-1">{plusControl}</div>
+				</>
 			)}
 		</div>
 	);
