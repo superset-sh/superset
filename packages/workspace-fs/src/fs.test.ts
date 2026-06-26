@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createDirectory, readFile, writeFile } from "./fs";
+import { createDirectory, listDirectory, readFile, writeFile } from "./fs";
 
 const tempRoots: string[] = [];
 
@@ -279,5 +279,72 @@ describe("createDirectory", () => {
 		}
 
 		expect(didThrow).toEqual(true);
+	});
+});
+
+// Regression for https://github.com/anthropics/superset/issues/3704 — the
+// workspace file browser showed "file not found" when the workspace root was
+// reached via a symlink (e.g. macOS /tmp → /private/tmp, or a symlinked parent
+// directory). listDirectory worked, but readFile rejected every file because
+// the realpath validation compared the file's resolved path against the
+// un-resolved root path.
+describe("symlinked workspace root", () => {
+	it("reads files when the workspace root itself is accessed via a symlink", async () => {
+		const realBase = await createTempRoot();
+		const realRoot = path.join(realBase, "actual-workspace");
+		await fs.mkdir(realRoot);
+		const linkRoot = path.join(realBase, "link-to-workspace");
+		await fs.symlink(realRoot, linkRoot, "dir");
+
+		const fileName = "hello.txt";
+		await fs.writeFile(path.join(realRoot, fileName), "hello world");
+
+		const entries = await listDirectory({
+			rootPath: linkRoot,
+			absolutePath: linkRoot,
+		});
+		expect(entries).toHaveLength(1);
+		const entry = entries[0];
+		if (!entry) throw new Error("missing entry");
+		expect(entry.name).toEqual(fileName);
+
+		const result = await readFile({
+			rootPath: linkRoot,
+			absolutePath: entry.absolutePath,
+			encoding: "utf-8",
+		});
+
+		expect(result.kind).toEqual("text");
+		if (result.kind === "text") {
+			expect(result.content).toEqual("hello world");
+		}
+	});
+
+	it("still rejects files reached via a symlink that escapes the workspace", async () => {
+		const rootPath = await createTempRoot();
+		const outsidePath = await createTempRoot();
+
+		const secretFile = path.join(outsidePath, "secret.txt");
+		await fs.writeFile(secretFile, "secret");
+
+		const escapingLink = path.join(rootPath, "escape.txt");
+		await fs.symlink(secretFile, escapingLink, "file");
+
+		let didThrow = false;
+		let thrownMessage = "";
+		try {
+			await readFile({
+				rootPath,
+				absolutePath: escapingLink,
+				encoding: "utf-8",
+			});
+		} catch (error) {
+			didThrow = true;
+			thrownMessage =
+				error instanceof Error ? error.message.toLowerCase() : String(error);
+		}
+
+		expect(didThrow).toEqual(true);
+		expect(thrownMessage).toContain("outside");
 	});
 });
