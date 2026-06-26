@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type {
 	BranchSyncStatus,
 	PRFlowState,
+	PullRequest,
 } from "../../components/PRActionHeader/utils/getPRFlowState";
 import { planDispatch } from "./usePRFlowDispatch";
 
@@ -18,6 +19,28 @@ const sync: BranchSyncStatus = {
 };
 
 const noPrState: PRFlowState = { kind: "no-pr", sync };
+
+const prFixture: PullRequest = {
+	number: 42,
+	url: "https://github.com/org/repo/pull/42",
+	title: "Feature X",
+	body: null,
+	state: "open",
+	isDraft: false,
+	reviewDecision: null,
+	mergeable: "unknown",
+	headRefName: "feature-x",
+	updatedAt: "",
+	checks: [],
+	repoOwner: "org",
+	repoName: "repo",
+};
+
+const prExistsState: PRFlowState = {
+	kind: "pr-exists",
+	pr: prFixture,
+	sync,
+};
 
 describe("planDispatch", () => {
 	test("no-pr without draft → /pr/create-pr prompt", () => {
@@ -59,5 +82,24 @@ describe("planDispatch", () => {
 				{ draft: false },
 			),
 		).toBeNull();
+	});
+
+	test("pr-exists → /pr/update-pr prompt", () => {
+		const plan = planDispatch(prExistsState, { draft: false });
+		expect(plan).not.toBeNull();
+		expect(plan?.prompt).toBe("/pr/update-pr");
+	});
+
+	test("pr-exists attachment carries PR number + branch", () => {
+		const plan = planDispatch(prExistsState, { draft: false });
+		expect(plan?.attachment.filename).toBe("pr-context.md");
+		const base64 = plan?.attachment.data.replace(
+			"data:text/markdown;base64,",
+			"",
+		);
+		const decoded = Buffer.from(base64 ?? "", "base64").toString("utf-8");
+		expect(decoded).toContain("# PR context");
+		expect(decoded).toContain("#42");
+		expect(decoded).toContain("Current: `feature-x`");
 	});
 });

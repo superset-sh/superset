@@ -11,17 +11,13 @@ import { useSettings } from "renderer/stores/settings";
 import type { CommentPaneData, DiffFocusSide } from "../../types";
 import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
+import type { PRActionCreateNewAgentSession } from "./components/PRActionHeader/components/PRActionSplitButton";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
 import { type OpenChatFn, usePRFlowDispatch } from "./hooks/usePRFlowDispatch";
 import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
-
-// Gates the "Create PR" button only — the chat-driven create flow doesn't
-// exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
-// always renders so users can see PR state and merge once a PR exists.
-const CREATE_PR_BUTTON_ENABLED = false;
 
 type SidebarTabId = "changes" | "files" | "review";
 
@@ -46,6 +42,9 @@ interface WorkspaceSidebarProps {
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
 	onOpenChat?: OpenChatFn;
+	/** Plumbed from usePaneRegistry's createNewAgentSession — used by the PR
+	 *  action header when the user picks a "Start new" agent. */
+	onCreateNewAgentSession?: PRActionCreateNewAgentSession;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	pendingReveal?: PendingReveal | null;
@@ -83,6 +82,7 @@ export function WorkspaceSidebar({
 	onSelectDiffFile,
 	onOpenComment,
 	onOpenChat,
+	onCreateNewAgentSession,
 	onSearch,
 	selectedFilePath,
 	pendingReveal,
@@ -183,7 +183,7 @@ export function WorkspaceSidebar({
 				state={flowState}
 				dispatch={dispatch}
 				onRetry={onRetry}
-				createPREnabled={CREATE_PR_BUTTON_ENABLED}
+				onCreateNewAgentSession={onCreateNewAgentSession}
 			/>
 			<SidebarHeader
 				tabs={tabs}

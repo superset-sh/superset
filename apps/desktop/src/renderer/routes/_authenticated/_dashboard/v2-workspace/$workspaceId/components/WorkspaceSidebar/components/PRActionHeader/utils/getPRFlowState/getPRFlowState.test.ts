@@ -150,10 +150,10 @@ describe("selectActionButton", () => {
 	test("loading → hidden", () => {
 		expect(selectActionButton({ kind: "loading" })).toEqual({ kind: "hidden" });
 	});
-	test("pr-exists → hidden (post-PR actions land later)", () => {
+	test("pr-exists → update-pr-dropdown", () => {
 		expect(
 			selectActionButton({ kind: "pr-exists", pr: pr(), sync: sync() }),
-		).toEqual({ kind: "hidden" });
+		).toEqual({ kind: "update-pr-dropdown" });
 	});
 	test("unavailable → disabled-tooltip with reason", () => {
 		expect(

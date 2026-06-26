@@ -22,6 +22,7 @@ import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellIn
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
+import { useCreateNewAgentSession } from "./hooks/useCreateNewAgentSession";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDirtyTabCloseGuard } from "./hooks/useDirtyTabCloseGuard";
@@ -174,6 +175,7 @@ function V2WorkspaceContent() {
 		launcher,
 		store,
 	});
+	const createNewAgentSession = useCreateNewAgentSession({ store });
 	const defaultContextMenuActions = useDefaultContextMenuActions({
 		paneRegistry,
 		launcher,
@@ -360,6 +362,7 @@ function V2WorkspaceContent() {
 								onSelectFile={openFilePaneFromTreeClick}
 								onSelectDiffFile={openDiffPane}
 								onOpenComment={openCommentPane}
+								onCreateNewAgentSession={createNewAgentSession}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 								pendingReveal={pendingReveal}

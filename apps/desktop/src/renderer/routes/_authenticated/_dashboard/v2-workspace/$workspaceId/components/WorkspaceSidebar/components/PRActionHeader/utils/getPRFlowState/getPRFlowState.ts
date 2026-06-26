@@ -65,6 +65,7 @@ export type ActionButtonVariant =
 	| { kind: "hidden" }
 	| { kind: "disabled-tooltip"; reasonKind: UnavailableReason }
 	| { kind: "create-pr-dropdown" }
+	| { kind: "update-pr-dropdown" }
 	| { kind: "cancel-busy" }
 	| { kind: "retry" };
 
@@ -77,9 +78,7 @@ export function selectActionButton(state: PRFlowState): ActionButtonVariant {
 		case "no-pr":
 			return { kind: "create-pr-dropdown" };
 		case "pr-exists":
-			// Post-PR actions land in a later phase; for now the button hides
-			// once a PR exists. The PR link button remains visible on the left.
-			return { kind: "hidden" };
+			return { kind: "update-pr-dropdown" };
 		case "busy":
 			return { kind: "cancel-busy" };
 		case "error":

@@ -9,7 +9,7 @@ import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import {
 	LuArrowDownToLine,
 	LuClipboard,
@@ -43,6 +43,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { useCreateNewAgentSession } from "../useCreateNewAgentSession";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatPane } from "./components/ChatPane";
@@ -116,7 +117,6 @@ export function usePaneRegistry({
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
-	const runAgent = workspaceTrpc.agents.run.useMutation();
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
@@ -162,47 +162,7 @@ export function usePaneRegistry({
 		[collections.v2WorkspaceLocalState, workspaceId],
 	);
 
-	const createNewAgentSession = useCallback(
-		async (input: {
-			configId: string;
-			placement: "split-pane" | "new-tab";
-			prompt: string;
-		}): Promise<{ terminalId: string } | null> => {
-			try {
-				// Host pipeline bakes the prompt into the initialCommand using the
-				// agent's argv/stdin transport — no follow-up writeInput needed,
-				// no bind-wait race vs. the launching shell.
-				const result = await runAgent.mutateAsync({
-					workspaceId,
-					agent: input.configId,
-					prompt: input.prompt,
-				});
-				if (result.kind !== "terminal") {
-					toast.error("Selected agent isn't a terminal agent");
-					return null;
-				}
-				const terminalId = result.sessionId;
-				const state = store.getState();
-				const pane = {
-					kind: "terminal" as const,
-					titleOverride: result.label,
-					data: { terminalId } as TerminalPaneData,
-				};
-				if (input.placement === "split-pane" && state.activeTabId) {
-					state.addPane({ tabId: state.activeTabId, pane });
-				} else {
-					state.addTab({ panes: [pane] });
-				}
-				return { terminalId };
-			} catch (error) {
-				const description =
-					error instanceof Error ? error.message : "Unknown error";
-				toast.error("Couldn't start agent session", { description });
-				return null;
-			}
-		},
-		[runAgent, store, workspaceId],
-	);
+	const createNewAgentSession = useCreateNewAgentSession({ store });
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
