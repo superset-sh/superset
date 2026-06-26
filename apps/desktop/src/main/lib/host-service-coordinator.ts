@@ -11,15 +11,18 @@ import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import {
+	type HostServiceManifest,
 	isProcessAlive,
 	killProcess,
 	manifestDir,
 	readManifest,
 	removeManifest,
 } from "./host-service-manifest";
+import { reapPreviousHostService } from "./host-service-reap";
 import {
 	findFreePort,
 	HEALTH_POLL_TIMEOUT_MS,
+	healthCheckOnce,
 	MAX_HOST_LOG_BYTES,
 	openRotatingLogFd,
 	pollHealthCheck,
@@ -338,11 +341,53 @@ export class HostServiceCoordinator extends EventEmitter {
 
 	// ── Spawn ─────────────────────────────────────────────────────────
 
+	/**
+	 * Reap a host-service left running for this org by a previous process. See
+	 * `host-service-reap.ts` for why one can exist and the PID-reuse safety
+	 * rules. Identity is confirmed via the manifest's health endpoint (the
+	 * secret proves it's ours) with a best-effort argv check as a fallback for
+	 * a wedged child whose endpoint no longer answers.
+	 */
+	private async reapPreviousHostService(organizationId: string): Promise<void> {
+		await reapPreviousHostService(organizationId, {
+			readManifest,
+			removeManifest,
+			isProcessAlive,
+			killProcess,
+			isOwnLivePid: (pid) => {
+				const current = this.instances.get(organizationId);
+				return !!current && current.pid === pid && current.status !== "stopped";
+			},
+			confirmOurHostService: (manifest) => this.confirmOurHostService(manifest),
+			log: {
+				info: (message) => log.info(message),
+				warn: (message) => log.warn(message),
+			},
+		});
+	}
+
+	private async confirmOurHostService(
+		manifest: HostServiceManifest,
+	): Promise<boolean> {
+		// Strongest signal: the endpoint answers with the manifest secret.
+		if (await healthCheckOnce(manifest.endpoint, manifest.authToken, 1_500)) {
+			return true;
+		}
+		// Fallback for a wedged child whose endpoint no longer responds: match
+		// the pid's command line to our host-service script. POSIX only — on
+		// win32 we fall back to health-only and leave unrecognized pids alone.
+		return processLooksLikeHostService(manifest.pid, this.scriptPath);
+	}
+
 	private async spawn(
 		organizationId: string,
 		config: SpawnConfig,
 		preferredPorts: Iterable<number> = this.getPreferredPorts(organizationId),
 	): Promise<Connection> {
+		// Single-writer guarantee: reap any host-service left running for this
+		// org by a previous process before we bind a competitor to its host.db.
+		await this.reapPreviousHostService(organizationId);
+
 		const port = await findFreePort(preferredPorts);
 		this.rememberPort(organizationId, port);
 		const secret = randomBytes(32).toString("hex");
@@ -531,6 +576,27 @@ function pipeWithPrefix(
 		if (pending) target.write(`${tag} ${pending}\n`);
 		pending = "";
 	});
+}
+
+/**
+ * Best-effort identity check for a wedged host-service whose endpoint no longer
+ * answers: does the pid's command line reference our host-service script?
+ * POSIX only (uses `ps`); returns false on win32 and on any error, so an
+ * unrecognized pid is left alone rather than killed.
+ */
+function processLooksLikeHostService(pid: number, scriptPath: string): boolean {
+	if (process.platform === "win32") return false;
+	try {
+		const command = childProcess
+			.execFileSync("ps", ["-p", String(pid), "-o", "command="], {
+				encoding: "utf8",
+				timeout: 1_500,
+			})
+			.trim();
+		return command.includes(path.basename(scriptPath));
+	} catch {
+		return false;
+	}
 }
 
 let coordinator: HostServiceCoordinator | null = null;

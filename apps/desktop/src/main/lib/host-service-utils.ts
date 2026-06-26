@@ -93,6 +93,31 @@ function canBindPort(port: number): Promise<boolean> {
 	});
 }
 
+/**
+ * Single health probe. Returns true only if the endpoint answers
+ * `health.check` 2xx with the given secret — which doubles as proof of
+ * identity (only the host-service that wrote a manifest knows its secret).
+ */
+export async function healthCheckOnce(
+	endpoint: string,
+	secret: string,
+	timeoutMs = 2_000,
+): Promise<boolean> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), timeoutMs);
+	try {
+		const res = await fetch(`${endpoint}/trpc/health.check`, {
+			signal: controller.signal,
+			headers: { Authorization: `Bearer ${secret}` },
+		});
+		return res.ok;
+	} catch {
+		return false;
+	} finally {
+		clearTimeout(timeout);
+	}
+}
+
 export async function pollHealthCheck(
 	endpoint: string,
 	secret: string,
@@ -100,19 +125,7 @@ export async function pollHealthCheck(
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
-		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 2_000);
-		try {
-			const res = await fetch(`${endpoint}/trpc/health.check`, {
-				signal: controller.signal,
-				headers: { Authorization: `Bearer ${secret}` },
-			});
-			if (res.ok) return true;
-		} catch {
-			// Not ready yet
-		} finally {
-			clearTimeout(timeout);
-		}
+		if (await healthCheckOnce(endpoint, secret)) return true;
 		await new Promise((r) => setTimeout(r, HEALTH_POLL_INTERVAL_MS));
 	}
 	return false;
