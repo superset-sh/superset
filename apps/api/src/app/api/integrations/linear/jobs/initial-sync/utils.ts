@@ -173,8 +173,14 @@ export function mapIssueToTask(
 	}
 
 	const statusId = statusByExternalId.get(issue.state.id);
+	// Skip issues whose workflow state wasn't synced (e.g. team beyond the
+	// first `client.teams()` page). Throwing here aborted the entire batch
+	// and prevented *any* Linear issues from syncing — see issue #4184.
 	if (!statusId) {
-		throw new Error(`Status not found for state ${issue.state.id}`);
+		console.warn(
+			`[linear/initial-sync] Skipping issue ${issue.identifier}: workflow state ${issue.state.id} (${issue.state.name}) not found in synced statuses`,
+		);
+		return null;
 	}
 
 	return {
