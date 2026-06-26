@@ -25,12 +25,17 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import type { FileSystemChangeEvent } from "shared/file-tree-types";
 import { sidebarHeaderTabTriggerClassName } from "../headerTabStyles";
 import { CategorySection } from "./components/CategorySection";
+import { ChangesFilterInput } from "./components/ChangesFilterInput";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { DiscardConfirmDialog } from "./components/DiscardConfirmDialog";
 import { ReviewPanel } from "./components/ReviewPanel";
 import { useOrderedSections } from "./hooks";
-import { getPRActionState, shouldAutoCreatePRAfterPublish } from "./utils";
+import {
+	filterChangedFiles,
+	getPRActionState,
+	shouldAutoCreatePRAfterPublish,
+} from "./utils";
 
 interface ChangesViewProps {
 	onFileOpen?: (
@@ -333,10 +338,12 @@ export function ChangesView({
 	const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
 		new Set(),
 	);
+	const [filterTerm, setFilterTerm] = useState("");
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on workspace change
 	useEffect(() => {
 		setExpandedCommits(new Set());
+		setFilterTerm("");
 	}, [worktreePath]);
 
 	useEffect(() => {
@@ -511,10 +518,38 @@ export function ChangesView({
 		unstagedFiles.length > 0 ||
 		untrackedFiles.length > 0;
 
+	const isFilterActive = filterTerm.trim().length > 0;
+	const filteredAgainstBaseFiles = filterChangedFiles(
+		againstBaseFiles,
+		filterTerm,
+	);
+	const filteredStagedFiles = filterChangedFiles(stagedFiles, filterTerm);
+	const filteredUnstagedFiles = filterChangedFiles(
+		combinedUnstaged,
+		filterTerm,
+	);
+	const hasFilterMatches =
+		filteredAgainstBaseFiles.length > 0 ||
+		filteredStagedFiles.length > 0 ||
+		filteredUnstagedFiles.length > 0;
+
 	const commitsWithFiles = commits.map((commit) => ({
 		...commit,
 		files: commitFilesMap.get(commit.hash) || commit.files,
 	}));
+
+	// When a filter is active, only surface commits that contain a matching
+	// file and narrow each commit's file list to the matches.
+	const filteredCommitsWithFiles = isFilterActive
+		? commitsWithFiles
+				.map((commit) => ({
+					...commit,
+					files: filterChangedFiles(commit.files, filterTerm),
+				}))
+				.filter((commit) => commit.files.length > 0)
+		: commitsWithFiles;
+
+	const hasCommitFilterMatches = filteredCommitsWithFiles.length > 0;
 
 	useEffect(() => {
 		if (!workspaceId || !worktreePath || !selectedFileState) {
@@ -589,13 +624,13 @@ export function ChangesView({
 		worktreePath: worktreePath ?? "",
 		projectId,
 		isExpandedView,
-		againstBaseFiles,
+		againstBaseFiles: filteredAgainstBaseFiles,
 		onAgainstBaseFileSelect: (file) => handleFileSelect(file, "against-base"),
-		commitsWithFiles,
+		commitsWithFiles: filteredCommitsWithFiles,
 		expandedCommits,
 		onCommitToggle: handleCommitToggle,
 		onCommitFileSelect: handleCommitFileSelect,
-		stagedFiles,
+		stagedFiles: filteredStagedFiles,
 		onStagedFileSelect: (file) => handleFileSelect(file, "staged"),
 		onUnstageFile: (file) =>
 			unstageFileMutation.mutate({
@@ -619,7 +654,7 @@ export function ChangesView({
 			unstageFilesMutation.isPending ||
 			unstageAllMutation.isPending ||
 			discardAllStagedMutation.isPending,
-		unstagedFiles: combinedUnstaged,
+		unstagedFiles: filteredUnstagedFiles,
 		onUnstagedFileSelect: (file) => handleFileSelect(file, "unstaged"),
 		onStageFile: (file) =>
 			stageFileMutation.mutate({
@@ -786,27 +821,41 @@ export function ChangesView({
 							No changes detected
 						</div>
 					) : (
-						<div
-							className="min-h-0 flex-1 overflow-y-auto"
-							data-changes-scroll-container
-						>
-							{orderedSections
-								.filter((section) => section.count > 0)
-								.map((section) => (
-									<CategorySection
-										key={section.id}
-										id={section.id}
-										title={section.title}
-										count={section.count}
-										isExpanded={section.isExpanded}
-										onToggle={section.onToggle}
-										actions={section.actions}
-										onMove={moveSection}
-									>
-										{section.content}
-									</CategorySection>
-								))}
-						</div>
+						<>
+							<ChangesFilterInput
+								filterTerm={filterTerm}
+								onFilterChange={setFilterTerm}
+							/>
+							{isFilterActive &&
+							!hasFilterMatches &&
+							!hasCommitFilterMatches ? (
+								<div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+									No files match "{filterTerm.trim()}"
+								</div>
+							) : (
+								<div
+									className="min-h-0 flex-1 overflow-y-auto"
+									data-changes-scroll-container
+								>
+									{orderedSections
+										.filter((section) => section.count > 0)
+										.map((section) => (
+											<CategorySection
+												key={section.id}
+												id={section.id}
+												title={section.title}
+												count={section.count}
+												isExpanded={section.isExpanded}
+												onToggle={section.onToggle}
+												actions={section.actions}
+												onMove={moveSection}
+											>
+												{section.content}
+											</CategorySection>
+										))}
+								</div>
+							)}
+						</>
 					)}
 				</TabsContent>
 
