@@ -1,5 +1,11 @@
 import { db, dbWs } from "@superset/db/client";
-import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import {
+	accounts,
+	members,
+	taskStatuses,
+	tasks,
+	users,
+} from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { getCurrentTxid } from "@superset/db/utils";
 import {
@@ -7,7 +13,8 @@ import {
 	generateUniqueTaskSlug,
 } from "@superset/shared/task-slug";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ilike, isNull } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
@@ -27,6 +34,7 @@ import { taskStatusesRouter } from "./statuses";
 
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
+const TASK_SYNC_EXTERNAL_ACCOUNT_PROVIDER_IDS = ["linear"] as const;
 
 function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
@@ -41,6 +49,38 @@ function isConstraintError(error: unknown, constraint: string): boolean {
 
 	const maybeError = error as { code?: string; constraint?: string };
 	return maybeError.code === "23505" && maybeError.constraint === constraint;
+}
+
+async function getTaskSyncExternalAccountIds(userId: string) {
+	const linkedAccounts = await db
+		.select({ accountId: accounts.accountId })
+		.from(accounts)
+		.where(
+			and(
+				eq(accounts.userId, userId),
+				inArray(accounts.providerId, [
+					...TASK_SYNC_EXTERNAL_ACCOUNT_PROVIDER_IDS,
+				]),
+			),
+		);
+
+	return linkedAccounts.map((account) => account.accountId);
+}
+
+function getAssigneeMeFilter(
+	userId: string,
+	externalAccountIds: string[],
+): SQL<unknown> {
+	if (externalAccountIds.length === 0) {
+		return eq(tasks.assigneeId, userId);
+	}
+
+	return (
+		or(
+			eq(tasks.assigneeId, userId),
+			inArray(tasks.assigneeExternalId, externalAccountIds),
+		) ?? eq(tasks.assigneeId, userId)
+	);
 }
 
 async function getTaskAccess(
@@ -304,19 +344,24 @@ export const taskRouter = {
 		.input(taskListInputSchema)
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
+			const taskSyncExternalAccountIds = input?.assigneeMe
+				? await getTaskSyncExternalAccountIds(ctx.session.user.id)
+				: [];
 
 			const assignee = alias(users, "assignee");
 			const creator = alias(users, "creator");
 			const status = alias(taskStatuses, "status");
 
-			const filters = [
+			const filters: SQL<unknown>[] = [
 				eq(tasks.organizationId, organizationId),
 				isNull(tasks.deletedAt),
 			];
 			if (input?.priority) filters.push(eq(tasks.priority, input.priority));
 			if (input?.statusId) filters.push(eq(tasks.statusId, input.statusId));
 			if (input?.assigneeMe) {
-				filters.push(eq(tasks.assigneeId, ctx.session.user.id));
+				filters.push(
+					getAssigneeMeFilter(ctx.session.user.id, taskSyncExternalAccountIds),
+				);
 			} else if (input?.assigneeId) {
 				filters.push(eq(tasks.assigneeId, input.assigneeId));
 			}

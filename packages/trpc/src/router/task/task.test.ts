@@ -22,19 +22,60 @@ let dbSelectResults: unknown[][] = [];
 let selectResults: unknown[][] = [];
 let updateResults: unknown[][] = [];
 
+type SelectQuery = {
+	catch: Promise<unknown[]>["catch"];
+	finally: Promise<unknown[]>["finally"];
+	from: (...args: unknown[]) => SelectQuery;
+	innerJoin: (...args: unknown[]) => SelectQuery;
+	leftJoin: (...args: unknown[]) => SelectQuery;
+	limit: (...args: unknown[]) => SelectQuery;
+	offset: (...args: unknown[]) => SelectQuery;
+	orderBy: (...args: unknown[]) => SelectQuery;
+	then: Promise<unknown[]>["then"];
+	where: (...args: unknown[]) => SelectQuery;
+};
+
 function createDb() {
-	const selectLimitMock = mock(async () => dbSelectResults.shift() ?? []);
-	const selectOrderByMock = mock(async () => dbSelectResults.shift() ?? []);
-	const selectWhereMock = mock(() => ({
-		limit: selectLimitMock,
-		orderBy: selectOrderByMock,
-	}));
-	const selectFromMock = mock(() => ({
-		where: selectWhereMock,
-	}));
-	const selectMock = mock(() => ({
-		from: selectFromMock,
-	}));
+	let currentQuery: SelectQuery;
+	const selectLimitMock = mock((..._args: unknown[]) => currentQuery);
+	const selectOffsetMock = mock((..._args: unknown[]) => currentQuery);
+	const selectOrderByMock = mock((..._args: unknown[]) => currentQuery);
+	const selectWhereMock = mock((..._args: unknown[]) => currentQuery);
+	const selectInnerJoinMock = mock((..._args: unknown[]) => currentQuery);
+	const selectLeftJoinMock = mock((..._args: unknown[]) => currentQuery);
+	const selectFromMock = mock((..._args: unknown[]) => currentQuery);
+	const createSelectQuery = (): SelectQuery => {
+		let rowsPromise: Promise<unknown[]> | null = null;
+		const resolveRows = () => {
+			rowsPromise ??= Promise.resolve(dbSelectResults.shift() ?? []);
+			return rowsPromise;
+		};
+
+		return {
+			catch: ((onRejected) => resolveRows().catch(onRejected)) as Promise<
+				unknown[]
+			>["catch"],
+			finally: ((onFinally) => resolveRows().finally(onFinally)) as Promise<
+				unknown[]
+			>["finally"],
+			from: selectFromMock,
+			innerJoin: selectInnerJoinMock,
+			leftJoin: selectLeftJoinMock,
+			limit: selectLimitMock,
+			offset: selectOffsetMock,
+			orderBy: selectOrderByMock,
+			// biome-ignore lint/suspicious/noThenProperty: Mock Drizzle queries are awaited directly in the router.
+			then: ((onFulfilled, onRejected) =>
+				resolveRows().then(onFulfilled, onRejected)) as Promise<
+				unknown[]
+			>["then"],
+			where: selectWhereMock,
+		};
+	};
+	const selectMock = mock(() => {
+		currentQuery = createSelectQuery();
+		return currentQuery;
+	});
 
 	return {
 		db: {
@@ -42,6 +83,7 @@ function createDb() {
 		},
 		mocks: {
 			selectMock,
+			selectWhereMock,
 		},
 	};
 }
@@ -112,6 +154,11 @@ mock.module("@superset/db/client", () => ({
 }));
 
 mock.module("@superset/db/schema", () => ({
+	accounts: {
+		accountId: "accounts.accountId",
+		providerId: "accounts.providerId",
+		userId: "accounts.userId",
+	},
 	members: {
 		organizationId: "members.organizationId",
 		userId: "members.userId",
@@ -142,6 +189,7 @@ mock.module("@superset/db/schema", () => ({
 		organizationId: "task_statuses.organizationId",
 	},
 	tasks: {
+		assigneeExternalId: "tasks.assigneeExternalId",
 		assigneeId: "tasks.assigneeId",
 		createdAt: "tasks.createdAt",
 		creatorId: "tasks.creatorId",
@@ -150,7 +198,10 @@ mock.module("@superset/db/schema", () => ({
 		externalProvider: "tasks.externalProvider",
 		id: "tasks.id",
 		organizationId: "tasks.organizationId",
+		priority: "tasks.priority",
 		slug: "tasks.slug",
+		statusId: "tasks.statusId",
+		title: "tasks.title",
 	},
 	users: {
 		id: "users.id",
@@ -177,7 +228,13 @@ mock.module("drizzle-orm", () => ({
 	desc: (value: unknown) => ({ type: "desc", value }),
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
 	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
+	inArray: (left: unknown, values: unknown[]) => ({
+		type: "inArray",
+		left,
+		values,
+	}),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
+	or: (...conditions: unknown[]) => ({ type: "or", conditions }),
 	sql: Object.assign(
 		(strings: TemplateStringsArray, ...values: unknown[]) => ({
 			type: "sql",
@@ -217,6 +274,8 @@ const ASSIGNEE_ID = "22222222-2222-4222-8222-222222222222";
 const ORGANIZATION_ID = "33333333-3333-4333-8333-333333333333";
 const STATUS_ID = "44444444-4444-4444-8444-444444444444";
 const TASK_ID = "55555555-5555-4555-8555-555555555555";
+const LINEAR_ACCOUNT_ID = "99a67c67-11f1-4e3d-961a-8cc4987a1964";
+const OTHER_LINEAR_ACCOUNT_ID = "88888888-8888-4888-8888-888888888888";
 
 function createContext() {
 	return {
@@ -232,6 +291,51 @@ function createContext() {
 		auth: {} as never,
 		headers: new Headers(),
 	};
+}
+
+function conditionMatchesTaskAssignee(
+	condition: unknown,
+	task: { assigneeExternalId: string | null; assigneeId: string | null },
+): boolean {
+	if (!condition || typeof condition !== "object") {
+		return true;
+	}
+
+	const candidate = condition as {
+		conditions?: unknown[];
+		left?: unknown;
+		right?: unknown;
+		type?: string;
+		values?: unknown[];
+	};
+
+	if (candidate.type === "and") {
+		return (candidate.conditions ?? []).every((child) =>
+			conditionMatchesTaskAssignee(child, task),
+		);
+	}
+
+	if (candidate.type === "or") {
+		return (candidate.conditions ?? []).some((child) =>
+			conditionMatchesTaskAssignee(child, task),
+		);
+	}
+
+	if (candidate.type === "eq" && candidate.left === "tasks.assigneeId") {
+		return task.assigneeId === candidate.right;
+	}
+
+	if (
+		candidate.type === "inArray" &&
+		candidate.left === "tasks.assigneeExternalId"
+	) {
+		return (
+			task.assigneeExternalId !== null &&
+			(candidate.values ?? []).includes(task.assigneeExternalId)
+		);
+	}
+
+	return true;
 }
 
 describe("task router authorization", () => {
@@ -341,6 +445,98 @@ describe("task router authorization", () => {
 			slug: "demo-task",
 			title: "Scoped task",
 		});
+	});
+
+	it("returns Linear-synced tasks assigned to my linked external account", async () => {
+		const linearTaskRow = {
+			assignee: null,
+			creator: {
+				id: ACTOR_USER_ID,
+				image: null,
+				name: "Actor",
+			},
+			statusName: "In Progress",
+			task: {
+				assigneeExternalId: LINEAR_ACCOUNT_ID,
+				assigneeId: null,
+				id: TASK_ID,
+				organizationId: ORGANIZATION_ID,
+				slug: "SUPER-820",
+				title: "Linear assigned task",
+			},
+		};
+		dbSelectResults.push([{ accountId: LINEAR_ACCOUNT_ID }]);
+		dbSelectResults.push([linearTaskRow]);
+		const caller = createCaller(createContext());
+
+		const result = await caller.task.list({
+			assigneeMe: true,
+			statusId: STATUS_ID,
+		});
+
+		expect(result).toEqual([linearTaskRow]);
+		const accountWhere = dbState.mocks.selectWhereMock.mock.calls.at(-2)?.[0];
+		expect(accountWhere).toEqual(
+			expect.objectContaining({
+				conditions: expect.arrayContaining([
+					{
+						left: "accounts.providerId",
+						type: "inArray",
+						values: ["linear"],
+					},
+				]),
+				type: "and",
+			}),
+		);
+		const taskWhere = dbState.mocks.selectWhereMock.mock.calls.at(-1)?.[0];
+		expect(taskWhere).toEqual(
+			expect.objectContaining({
+				conditions: expect.arrayContaining([
+					{
+						conditions: [
+							{
+								left: "tasks.assigneeId",
+								right: ACTOR_USER_ID,
+								type: "eq",
+							},
+							{
+								left: "tasks.assigneeExternalId",
+								type: "inArray",
+								values: [LINEAR_ACCOUNT_ID],
+							},
+						],
+						type: "or",
+					},
+				]),
+				type: "and",
+			}),
+		);
+		expect(
+			conditionMatchesTaskAssignee(taskWhere, {
+				assigneeExternalId: LINEAR_ACCOUNT_ID,
+				assigneeId: null,
+			}),
+		).toBe(true);
+	});
+
+	it("excludes Linear-synced tasks assigned to a different external account", async () => {
+		dbSelectResults.push([{ accountId: LINEAR_ACCOUNT_ID }]);
+		dbSelectResults.push([]);
+		const caller = createCaller(createContext());
+
+		const result = await caller.task.list({
+			assigneeMe: true,
+			statusId: STATUS_ID,
+		});
+
+		expect(result).toEqual([]);
+		const taskWhere = dbState.mocks.selectWhereMock.mock.calls.at(-1)?.[0];
+		expect(
+			conditionMatchesTaskAssignee(taskWhere, {
+				assigneeExternalId: OTHER_LINEAR_ACCOUNT_ID,
+				assigneeId: null,
+			}),
+		).toBe(false);
 	});
 
 	it("rejects cross-tenant task updates before modifying the row", async () => {
