@@ -12,6 +12,7 @@ import {
 } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
+	authEvents,
 	handleAuthCallback,
 	loadToken,
 	parseAuthDeepLink,
@@ -96,6 +97,10 @@ async function processDeepLink(url: string): Promise<void> {
 	// e.g. superset://tasks/my-slug -> /tasks/my-slug
 	const path = `/${url.split("://")[1]}`;
 	focusMainWindow();
+
+	if (path.startsWith("/settings/billing") && path.includes("success=true")) {
+		authEvents.emit("session-refetch");
+	}
 
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
