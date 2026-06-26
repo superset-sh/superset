@@ -13,7 +13,7 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
@@ -27,6 +27,7 @@ import {
 	useKeyboardPreferencesStore,
 	useRecordHotkeys,
 } from "renderer/hotkeys";
+import { useSettingsOriginRoute } from "renderer/stores/settings-state";
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Navigation",
@@ -135,6 +136,9 @@ function KeyboardShortcutsPage() {
 		binding: ShortcutBinding;
 		conflictId: HotkeyId;
 	} | null>(null);
+
+	const navigate = useNavigate();
+	const originRoute = useSettingsOriginRoute();
 
 	const resetOverride = useHotkeyOverridesStore((s) => s.resetOverride);
 	const resetAll = useHotkeyOverridesStore((s) => s.resetAll);
@@ -250,9 +254,16 @@ function KeyboardShortcutsPage() {
 				<HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 				<Input
 					type="text"
+					autoFocus
 					placeholder="Search"
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === "Escape" && !e.defaultPrevented) {
+							e.preventDefault();
+							navigate({ to: originRoute });
+						}
+					}}
 					className="pl-9 bg-accent/30 border-transparent focus:border-accent"
 				/>
 			</div>
