@@ -101,28 +101,29 @@ export async function dispatchAutomation(
 			host.machineId,
 		);
 
+		let result: AgentRunResult;
 		if (automation.v2WorkspaceId) {
 			workspaceId = automation.v2WorkspaceId;
+			result = await runAgentOnHost({
+				relayUrl,
+				hostId: routingKey,
+				jwt,
+				workspaceId,
+				agent: automation.agent,
+				prompt: automation.prompt,
+			});
 		} else {
-			const created = await createWorkspaceOnHost({
+			const created = await createWorkspaceWithAgentOnHost({
 				relayUrl,
 				hostId: routingKey,
 				jwt,
 				projectId: automation.v2ProjectId,
 				automation,
-				runId: run.id,
+				agent: { agent: automation.agent, prompt: automation.prompt },
 			});
 			workspaceId = created.workspaceId;
+			result = created.agent;
 		}
-
-		const result = await runAgentOnHost({
-			relayUrl,
-			hostId: routingKey,
-			jwt,
-			workspaceId,
-			agent: automation.agent,
-			prompt: automation.prompt,
-		});
 
 		await dbWs
 			.update(automationRuns)
@@ -224,14 +225,14 @@ async function recordSkipped(
 	return row;
 }
 
-async function createWorkspaceOnHost(args: {
+async function createWorkspaceWithAgentOnHost(args: {
 	relayUrl: string;
 	hostId: string;
 	jwt: string;
 	projectId: string;
 	automation: SelectAutomation;
-	runId: string;
-}): Promise<{ workspaceId: string; branchName: string }> {
+	agent: { agent: string; prompt: string };
+}): Promise<{ workspaceId: string; agent: AgentRunResult }> {
 	// Full-precision timestamp keeps branch names readable AND collision-free
 	// for anything coarser than 1 second.
 	// e.g. "2026-04-19-17-30-00"
@@ -244,22 +245,20 @@ async function createWorkspaceOnHost(args: {
 	const branchName = deduplicateBranchName(candidateBranch, []);
 	const workspaceName = args.automation.name.slice(0, 100);
 
+	type AgentLaunchResult =
+		| ({ ok: true } & AgentRunResult)
+		| { ok: false; error: string };
+
 	const result = await relayMutation<
 		{
 			projectId: string;
 			name: string;
 			branch: string;
+			agents: Array<{ agent: string; prompt: string }>;
 		},
 		{
-			workspace: {
-				id: string;
-				projectId: string;
-				name: string;
-				branch: string;
-			};
-			terminals: Array<{ terminalId: string; label?: string }>;
-			agents: Array<unknown>;
-			alreadyExists: boolean;
+			workspace: { id: string };
+			agents: AgentLaunchResult[];
 		}
 	>(
 		{
@@ -275,10 +274,28 @@ async function createWorkspaceOnHost(args: {
 			projectId: args.projectId,
 			name: workspaceName,
 			branch: branchName,
+			agents: [args.agent],
 		},
 	);
 
-	return { workspaceId: result.workspace.id, branchName };
+	const agentResult = result.agents[0];
+	if (!agentResult) {
+		throw new Error(
+			`workspace ${result.workspace.id} created but host returned no agent result`,
+		);
+	}
+	if (!agentResult.ok) {
+		throw new Error(`agent launch failed: ${agentResult.error}`);
+	}
+
+	return {
+		workspaceId: result.workspace.id,
+		agent: {
+			kind: agentResult.kind,
+			sessionId: agentResult.sessionId,
+			label: agentResult.label,
+		},
+	};
 }
 
 async function runAgentOnHost(args: {
