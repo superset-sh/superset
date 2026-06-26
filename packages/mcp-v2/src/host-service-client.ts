@@ -1,11 +1,16 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import SuperJSON from "superjson";
 
+/** Default request timeout for host-service relay calls (30 s). */
+const HOST_SERVICE_TIMEOUT_MS = 30_000;
+
 export interface HostServiceCallOptions {
 	relayUrl: string;
 	organizationId: string;
 	hostId: string;
 	jwt: string;
+	/** Override the fetch timeout in milliseconds. Defaults to 30 000 ms. */
+	timeoutMs?: number;
 }
 
 export async function hostServiceCall<TOutput>(
@@ -37,11 +42,28 @@ export async function hostServiceCall<TOutput>(
 		body = JSON.stringify(SuperJSON.serialize(input));
 	}
 
-	const response = await fetch(url, {
-		method: method === "query" ? "GET" : "POST",
-		headers,
-		body,
-	});
+	const timeoutMs = options.timeoutMs ?? HOST_SERVICE_TIMEOUT_MS;
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+	let response: Response;
+	try {
+		response = await fetch(url, {
+			method: method === "query" ? "GET" : "POST",
+			headers,
+			body,
+			signal: controller.signal,
+		});
+	} catch (error) {
+		if (controller.signal.aborted) {
+			throw new Error(
+				`Host ${options.hostId} timed out after ${timeoutMs}ms for ${procedure}`,
+			);
+		}
+		throw error;
+	} finally {
+		clearTimeout(timeoutId);
+	}
 	const rawBody = await response.text();
 	if (!response.ok) {
 		throw new Error(
