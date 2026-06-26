@@ -34,6 +34,12 @@ export interface GitHubPullRequestNode {
 	isDraft: boolean;
 	headRefName: string;
 	headRefOid: string;
+	/**
+	 * True when the head ref is the head repository's default branch (trunk).
+	 * A PR whose head is trunk is anomalous; once merged/closed it must not be
+	 * surfaced as the default-branch workspace's PR status. See #4998.
+	 */
+	isHeadDefaultBranch: boolean;
 	isCrossRepository: boolean;
 	headRepositoryOwner: { login: string } | null;
 	headRepository: { name: string } | null;
