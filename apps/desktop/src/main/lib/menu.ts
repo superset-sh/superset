@@ -8,6 +8,7 @@ import {
 	simulateError,
 	simulateUpdateReady,
 } from "./auto-updater";
+import { OPEN_REPO_ACCELERATOR } from "./menu-accelerators";
 import { menuEmitter } from "./menu-events";
 
 export function createApplicationMenu() {
@@ -22,7 +23,7 @@ export function createApplicationMenu() {
 			submenu: [
 				{
 					label: "Open Repo...",
-					accelerator: "CmdOrCtrl+O",
+					accelerator: OPEN_REPO_ACCELERATOR,
 					click: () => {
 						menuEmitter.emit("open-project");
 					},

@@ -662,7 +662,10 @@ export const HOTKEYS_REGISTRY = {
 	// Window
 	OPEN_IN_APP: {
 		key: {
-			mac: L("meta+o"),
+			// Mac uses meta+shift+o to mirror the windows/linux ctrl+shift+o
+			// shape and to leave Cmd+O free for the File→Open Repo menu
+			// accelerator (#4964 — the two used to race on Cmd+O).
+			mac: L("meta+shift+o"),
 			windows: L("ctrl+shift+o"),
 			linux: L("ctrl+shift+o"),
 		},
