@@ -94,6 +94,80 @@ describe("git router integration", () => {
 		expect(result.baseBranch).toBeNull();
 	});
 
+	test("stageFile stages a single modified file without affecting others", async () => {
+		await scenario.repo.commit("seed", {
+			"a.txt": "original-a",
+			"b.txt": "original-b",
+		});
+		writeFileSync(join(scenario.repo.repoPath, "a.txt"), "modified-a");
+		writeFileSync(join(scenario.repo.repoPath, "b.txt"), "modified-b");
+
+		await scenario.host.trpc.git.stageFile.mutate({
+			workspaceId: scenario.workspaceId,
+			filePath: "a.txt",
+		});
+
+		const status = await scenario.host.trpc.git.getStatus.query({
+			workspaceId: scenario.workspaceId,
+		});
+		expect(status.staged.map((f) => f.path)).toEqual(["a.txt"]);
+		expect(status.unstaged.map((f) => f.path)).toEqual(["b.txt"]);
+	});
+
+	test("stageFile stages an untracked file", async () => {
+		writeFileSync(join(scenario.repo.repoPath, "new.txt"), "new file");
+
+		await scenario.host.trpc.git.stageFile.mutate({
+			workspaceId: scenario.workspaceId,
+			filePath: "new.txt",
+		});
+
+		const status = await scenario.host.trpc.git.getStatus.query({
+			workspaceId: scenario.workspaceId,
+		});
+		expect(status.staged.map((f) => f.path)).toContain("new.txt");
+		expect(status.unstaged.map((f) => f.path)).not.toContain("new.txt");
+	});
+
+	test("unstageFile unstages a single staged file without affecting others", async () => {
+		await scenario.repo.commit("seed", {
+			"a.txt": "original-a",
+			"b.txt": "original-b",
+		});
+		writeFileSync(join(scenario.repo.repoPath, "a.txt"), "modified-a");
+		writeFileSync(join(scenario.repo.repoPath, "b.txt"), "modified-b");
+		await scenario.repo.git.add(["a.txt", "b.txt"]);
+
+		await scenario.host.trpc.git.unstageFile.mutate({
+			workspaceId: scenario.workspaceId,
+			filePath: "a.txt",
+		});
+
+		const status = await scenario.host.trpc.git.getStatus.query({
+			workspaceId: scenario.workspaceId,
+		});
+		expect(status.staged.map((f) => f.path)).toEqual(["b.txt"]);
+		expect(status.unstaged.map((f) => f.path)).toContain("a.txt");
+	});
+
+	test("stageFile rejects absolute paths", async () => {
+		await expect(
+			scenario.host.trpc.git.stageFile.mutate({
+				workspaceId: scenario.workspaceId,
+				filePath: "/etc/passwd",
+			}),
+		).rejects.toBeInstanceOf(TRPCClientError);
+	});
+
+	test("stageFile rejects path traversal", async () => {
+		await expect(
+			scenario.host.trpc.git.stageFile.mutate({
+				workspaceId: scenario.workspaceId,
+				filePath: "../escape.txt",
+			}),
+		).rejects.toBeInstanceOf(TRPCClientError);
+	});
+
 	test("renameBranch renames an unpushed branch", async () => {
 		await scenario.repo.git.checkoutLocalBranch("feature/old");
 		await scenario.repo.commit("work", { "f.txt": "f" });

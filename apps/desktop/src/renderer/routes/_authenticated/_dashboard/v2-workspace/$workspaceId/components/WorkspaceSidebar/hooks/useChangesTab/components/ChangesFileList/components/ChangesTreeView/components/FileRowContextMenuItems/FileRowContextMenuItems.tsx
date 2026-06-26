@@ -7,6 +7,8 @@ import {
 	ExternalLink,
 	FileText,
 	GitCompare,
+	Minus,
+	Plus,
 	SquarePlus,
 	Trash2,
 	Undo2,
@@ -33,6 +35,8 @@ interface FileRowContextMenuItemsProps {
 	 * inside it before the user could confirm.
 	 */
 	onRequestDiscard?: (file: ChangesetFile) => void;
+	onStageFile?: (file: ChangesetFile) => void;
+	onUnstageFile?: (file: ChangesetFile) => void;
 }
 
 /**
@@ -48,11 +52,15 @@ export function FileRowContextMenuItems({
 	onOpenFile,
 	onOpenInEditor,
 	onRequestDiscard,
+	onStageFile,
+	onUnstageFile,
 }: FileRowContextMenuItemsProps) {
 	const absolutePath = worktreePath
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
 	const canDiscard = sectionKind === "unstaged";
+	const canStage = sectionKind === "unstaged";
+	const canUnstage = sectionKind === "staged";
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 
 	const policy = useChangesSidebarFilePolicy();
@@ -104,6 +112,23 @@ export function FileRowContextMenuItems({
 					</DropdownMenuShortcut>
 				)}
 			</DropdownMenuItem>
+			{((canStage && onStageFile) || (canUnstage && onUnstageFile)) && (
+				<>
+					<DropdownMenuSeparator />
+					{canStage && onStageFile && (
+						<DropdownMenuItem onSelect={() => onStageFile(file)}>
+							<Plus />
+							Stage file
+						</DropdownMenuItem>
+					)}
+					{canUnstage && onUnstageFile && (
+						<DropdownMenuItem onSelect={() => onUnstageFile(file)}>
+							<Minus />
+							Unstage file
+						</DropdownMenuItem>
+					)}
+				</>
+			)}
 			{absolutePath && (
 				<>
 					<DropdownMenuSeparator />
