@@ -32,6 +32,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { AppResourceSection } from "./components/AppResourceSection";
+import { HostResourceSection } from "./components/HostResourceSection";
 import { MetricBadge } from "./components/MetricBadge";
 import { WorkspaceResourceSection } from "./components/WorkspaceResourceSection";
 import {
@@ -485,6 +486,10 @@ function ResourceConsumptionContent({
 			</div>
 
 			<div className="max-h-[50vh] overflow-y-auto">
+				{normalizedSnapshot && (
+					<HostResourceSection host={normalizedSnapshot.host} />
+				)}
+
 				{normalizedSnapshot && (
 					<AppResourceSection
 						app={normalizedSnapshot.app}
