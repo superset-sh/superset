@@ -514,6 +514,14 @@ export const auth = betterAuth({
 				afterUpdateOrganization: async ({ organization }) => {
 					if (!organization?.stripeCustomerId) return;
 
+					const subscription = await db.query.subscriptions.findFirst({
+						where: and(
+							eq(subscriptions.referenceId, organization.id),
+							eq(subscriptions.status, "active"),
+						),
+					});
+					if (subscription?.plan === "enterprise") return;
+
 					await stripeClient.customers.update(organization.stripeCustomerId, {
 						name: organization.name,
 					});
@@ -833,10 +841,6 @@ export const auth = betterAuth({
 						name: "pro",
 						priceId: env.STRIPE_PRO_MONTHLY_PRICE_ID,
 						annualDiscountPriceId: env.STRIPE_PRO_YEARLY_PRICE_ID,
-					},
-					{
-						name: "enterprise",
-						priceId: env.STRIPE_ENTERPRISE_YEARLY_PRICE_ID,
 					},
 				],
 
