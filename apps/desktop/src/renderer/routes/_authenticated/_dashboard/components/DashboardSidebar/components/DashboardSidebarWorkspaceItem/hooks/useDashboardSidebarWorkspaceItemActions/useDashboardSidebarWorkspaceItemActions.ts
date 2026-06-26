@@ -6,6 +6,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -58,10 +59,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const handleClick = () => {
 		if (isRenaming) return;
 		clearWorkspaceAttention(workspaceId);
-		navigate({
-			to: "/v2-workspace/$workspaceId",
-			params: { workspaceId },
-		});
+		// Reset search params on switch — stale openUrl/terminalId/chatSessionId
+		// values inherited from the previous workspace's URL trigger side effects
+		// in the new workspace and make the click appear non-functional.
+		void navigateToV2Workspace(workspaceId, navigate);
 	};
 
 	const startRename = () => {
