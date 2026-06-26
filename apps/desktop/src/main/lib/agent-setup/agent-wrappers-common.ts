@@ -82,8 +82,31 @@ export function reconcileManagedEntries<T>({
 }
 
 function buildRealBinaryResolver(): string {
-	return `find_real_binary() {
+	return `_superset_canonicalize() {
+  # Resolve a path through its symlink chain so we can compare a PATH
+  # candidate against the wrapper's own canonical location. Uses bash
+  # parameter expansion for dirname so it does not depend on PATH lookups.
+  local target="$1" link dir
+  case "$target" in
+    /*) : ;;
+    *) target="$PWD/$target" ;;
+  esac
+  while [ -L "$target" ]; do
+    link="$(readlink "$target")"
+    case "$link" in
+      /*) target="$link" ;;
+      *) dir="\${target%/*}"; target="$dir/$link" ;;
+    esac
+  done
+  printf "%s\\n" "$target"
+}
+
+find_real_binary() {
   local name="$1"
+  # Canonical path of this wrapper, so we never resolve "the real binary" to
+  # one of our own symlinks and re-exec into an infinite loop (#4987).
+  local self
+  self="$(_superset_canonicalize "\${BASH_SOURCE[0]}")"
   local IFS=:
   for dir in $PATH; do
     [ -z "$dir" ] && continue
@@ -92,6 +115,7 @@ function buildRealBinaryResolver(): string {
       "${BIN_DIR}"|"$HOME"/.superset/bin|"$HOME"/.superset-*/bin) continue ;;
     esac
     if [ -x "$dir/$name" ] && [ ! -d "$dir/$name" ]; then
+      [ "$(_superset_canonicalize "$dir/$name")" = "$self" ] && continue
       printf "%s\\n" "$dir/$name"
       return 0
     fi

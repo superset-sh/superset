@@ -6,6 +6,7 @@ import {
 	mkdirSync,
 	readFileSync,
 	rmSync,
+	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import * as realOs from "node:os";
@@ -1609,6 +1610,58 @@ describe("agent-wrappers codex hooks.json", () => {
 		expect(
 			getCodexGlobalHooksJsonContent("/tmp/.superset/hooks/notify.sh"),
 		).toBeNull();
+	});
+});
+
+describe("agent-wrappers find_real_binary self-exclusion (#4987)", () => {
+	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	// Reproduces the infinite re-exec loop: when the wrapper is symlinked into a
+	// PATH dir that precedes the real binary (e.g. /usr/local/bin/codex ->
+	// wrapper), find_real_binary used to return that symlink — i.e. the wrapper
+	// itself — and re-exec forever. The resolver must skip any candidate that is
+	// (or symlinks to) the wrapper's own canonical path, regardless of directory.
+	it("does not resolve REAL_BIN to the wrapper's own symlink on PATH", () => {
+		const wrapperStoreDir = path.join(TEST_ROOT, "wrapper-store");
+		const firstBinDir = path.join(TEST_ROOT, "first-bin");
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const wrapperFile = path.join(wrapperStoreDir, "codex");
+		const wrapperSymlink = path.join(firstBinDir, "codex");
+		const realCodex = path.join(realBinDir, "codex");
+
+		mkdirSync(wrapperStoreDir, { recursive: true });
+		mkdirSync(firstBinDir, { recursive: true });
+		mkdirSync(realBinDir, { recursive: true });
+
+		// The wrapper just echoes the binary it resolved to, so the test
+		// terminates instead of recursing forever.
+		const wrapperScript = buildWrapperScript("codex", 'echo "$REAL_BIN"');
+		writeFileSync(wrapperFile, wrapperScript, { mode: 0o755 });
+		chmodSync(wrapperFile, 0o755);
+
+		// /usr/local/bin/codex -> wrapper, placed before the real codex on PATH.
+		symlinkSync(wrapperFile, wrapperSymlink);
+
+		writeFileSync(realCodex, "#!/bin/bash\necho real-codex\n", { mode: 0o755 });
+		chmodSync(realCodex, 0o755);
+
+		const resolved = execFileSync(wrapperSymlink, [], {
+			env: {
+				...process.env,
+				PATH: `${firstBinDir}:${realBinDir}:${process.env.PATH || ""}`,
+			},
+			encoding: "utf-8",
+		}).trim();
+
+		expect(resolved).toBe(realCodex);
 	});
 });
 
