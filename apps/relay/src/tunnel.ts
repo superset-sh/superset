@@ -2,6 +2,7 @@ import { createApiClient } from "./api-client";
 import * as directory from "./directory";
 import { env } from "./env";
 import type { TunnelHttpResponse, TunnelRequest } from "./types";
+import { TRPCClientError } from "@trpc/client";
 
 type WsSocket = {
 	send: (data: string | ArrayBuffer | Uint8Array<ArrayBuffer>) => void;
@@ -316,6 +317,21 @@ export class TunnelManager {
 				return;
 			} catch (err) {
 				if (this.onlineWriteVersions.get(hostId) !== version) return;
+				// UNAUTHORIZED means the token is expired/invalid — retrying won't help.
+				// Abort immediately rather than burning all attempts with the same stale token.
+				if (
+					err instanceof TRPCClientError &&
+					err.data?.httpStatus === 401
+				) {
+					console.warn(
+						`[relay] setOnline(${isOnline}) for ${hostId} aborted: token is unauthorized. Host-service must reconnect with a fresh token.`,
+					);
+					this.onlineState.delete(hostId);
+					if (this.onlineWriteVersions.get(hostId) === version) {
+						this.onlineWriteVersions.delete(hostId);
+					}
+					return;
+				}
 				if (attempt === SET_ONLINE_MAX_ATTEMPTS - 1) {
 					console.error(
 						`[relay] setOnline(${isOnline}) failed for ${hostId} after ${SET_ONLINE_MAX_ATTEMPTS} attempts`,
