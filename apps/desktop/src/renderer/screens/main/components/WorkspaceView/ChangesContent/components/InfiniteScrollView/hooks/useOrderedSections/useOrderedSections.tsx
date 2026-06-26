@@ -23,7 +23,9 @@ interface UseOrderedSectionsInput {
 	worktreePath: string;
 	scrollElementRef: RefObject<HTMLDivElement | null>;
 	collapsedFiles: Set<string>;
+	viewedFiles: Set<string>;
 	onToggleFile: (key: string) => void;
+	onResetFileToggle: (key: string) => void;
 	expandedSections: Record<ChangeCategory, boolean>;
 	toggleSection: (section: ChangeCategory) => void;
 	againstBaseFiles: ChangedFile[];
@@ -42,7 +44,9 @@ export function useOrderedSections({
 	worktreePath,
 	scrollElementRef,
 	collapsedFiles,
+	viewedFiles,
 	onToggleFile,
+	onResetFileToggle,
 	expandedSections,
 	toggleSection,
 	againstBaseFiles,
@@ -73,7 +77,9 @@ export function useOrderedSections({
 					worktreePath={worktreePath}
 					baseBranch={baseBranch}
 					collapsedFiles={collapsedFiles}
+					viewedFiles={viewedFiles}
 					onToggleFile={onToggleFile}
+					onResetFileToggle={onResetFileToggle}
 					scrollElementRef={scrollElementRef}
 				/>
 			) : null,
@@ -92,7 +98,9 @@ export function useOrderedSections({
 							commit={commit}
 							worktreePath={worktreePath}
 							collapsedFiles={collapsedFiles}
+							viewedFiles={viewedFiles}
 							onToggleFile={onToggleFile}
+					onResetFileToggle={onResetFileToggle}
 							scrollElementRef={scrollElementRef}
 						/>
 					))}
@@ -111,7 +119,9 @@ export function useOrderedSections({
 					category="staged"
 					worktreePath={worktreePath}
 					collapsedFiles={collapsedFiles}
+					viewedFiles={viewedFiles}
 					onToggleFile={onToggleFile}
+					onResetFileToggle={onResetFileToggle}
 					scrollElementRef={scrollElementRef}
 					onUnstage={onUnstageFile}
 					onDiscard={onDiscardFile}
@@ -131,7 +141,9 @@ export function useOrderedSections({
 					category="unstaged"
 					worktreePath={worktreePath}
 					collapsedFiles={collapsedFiles}
+					viewedFiles={viewedFiles}
 					onToggleFile={onToggleFile}
+					onResetFileToggle={onResetFileToggle}
 					scrollElementRef={scrollElementRef}
 					onStage={onStageFile}
 					onDiscard={onDiscardFile}

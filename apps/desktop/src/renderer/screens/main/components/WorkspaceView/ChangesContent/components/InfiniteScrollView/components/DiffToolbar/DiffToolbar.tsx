@@ -69,7 +69,7 @@ export function DiffToolbar({
 	isLastFile,
 }: DiffToolbarProps) {
 	return (
-		<div className="flex items-center gap-3 px-3 py-2.5 border-b border-r border-border bg-background sticky top-0 z-30">
+		<div className="flex items-center gap-3 px-3 py-2.5 border-b border-r border-border bg-background">
 			<div className="flex items-center gap-3 text-xs text-muted-foreground flex-1">
 				<span>
 					{viewedCount}/{totalFiles} viewed
