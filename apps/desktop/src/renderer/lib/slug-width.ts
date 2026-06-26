@@ -1,4 +1,7 @@
-const REM_PER_CHAR = 0.5 * 0.75;
+// Slugs are uppercase letters, digits, and a hyphen — characters that average
+// ~0.65em wide in proportional sans-serif at small sizes. text-xs is 0.75rem,
+// so reserve ~0.4875rem per character to keep the longest slug from truncating.
+const REM_PER_CHAR = 0.65 * 0.75;
 const PADDING_REM = 0.5;
 const MAX_SLUG_LENGTH = 11; // "SUPER-XXXXX"
 
