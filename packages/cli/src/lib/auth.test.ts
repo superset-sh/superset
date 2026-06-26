@@ -1,11 +1,63 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { CLIError } from "@superset/cli-framework";
-import { refreshAccessToken } from "./auth";
+import { isSafeBrowserUrl, refreshAccessToken } from "./auth";
 
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
 	globalThis.fetch = originalFetch;
+});
+
+describe("isSafeBrowserUrl", () => {
+	test("accepts a typical OAuth authorize URL with query params and ampersands", () => {
+		const url =
+			"https://api.superset.sh/api/auth/oauth2/authorize?client_id=cli&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A51789%2Fcallback&scope=openid%20profile&state=abc";
+		expect(isSafeBrowserUrl(url)).toBe(true);
+	});
+
+	test("accepts http://localhost", () => {
+		expect(isSafeBrowserUrl("http://127.0.0.1:3000/x")).toBe(true);
+	});
+
+	test("rejects non-http(s) schemes", () => {
+		expect(isSafeBrowserUrl("javascript:alert(1)")).toBe(false);
+		expect(isSafeBrowserUrl("file:///etc/passwd")).toBe(false);
+		expect(isSafeBrowserUrl("ssh://user@host")).toBe(false);
+	});
+
+	test("rejects garbage that doesn't parse", () => {
+		expect(isSafeBrowserUrl("not a url")).toBe(false);
+		expect(isSafeBrowserUrl("")).toBe(false);
+	});
+
+	test("rejects shell metacharacters that could escape quoting", () => {
+		// These are the chars that could break out of cmd.exe's `"..."`
+		// quoting if a URL ever contained them. Real URLs don't.
+		expect(isSafeBrowserUrl('https://x.com/"evil')).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/'evil")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/`evil")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/\\evil")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/<evil")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/>evil")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/^evil")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/|evil")).toBe(false);
+	});
+
+	test("accepts percent-encoded URLs", () => {
+		// rundll32 doesn't pass URLs through cmd, so %XX percent-encoding
+		// is safe to keep in the URL.
+		expect(
+			isSafeBrowserUrl("https://x.com/?redirect=http%3A%2F%2Fexample.com"),
+		).toBe(true);
+	});
+
+	test("rejects whitespace and control chars including DEL", () => {
+		expect(isSafeBrowserUrl("https://x.com/a b")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/a\nb")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/a\rb")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/a\x00b")).toBe(false);
+		expect(isSafeBrowserUrl("https://x.com/a\x7fb")).toBe(false);
+	});
 });
 
 describe("refreshAccessToken", () => {
