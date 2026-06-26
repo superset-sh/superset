@@ -6,6 +6,7 @@ import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
 import { TabBar } from "./components/TabBar";
 import { useWorkspaceInteractionState } from "./hooks/useWorkspaceInteractionState";
+import { pickActiveTab } from "./utils/pickActiveTab";
 
 export function Workspace<TData>({
 	store,
@@ -25,7 +26,7 @@ export function Workspace<TData>({
 }: WorkspaceProps<TData>) {
 	const tabs = useStore(store, (s) => s.tabs);
 	const activeTabId = useStore(store, (s) => s.activeTabId);
-	const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
+	const activeTab = pickActiveTab(tabs, activeTabId);
 	const { onSplitResizeDragging } = useWorkspaceInteractionState({
 		onInteractionStateChange,
 	});
