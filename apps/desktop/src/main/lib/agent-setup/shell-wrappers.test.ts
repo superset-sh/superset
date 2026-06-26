@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { execFileSync } from "node:child_process";
 import {
 	chmodSync,
@@ -871,6 +871,56 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			for (const wrapper of [zlogin, rcfile]) {
 				expect(wrapper).toContain("\\033]777;superset-shell-ready\\007");
 				expect(wrapper).toContain("\\033]133;A\\007");
+			}
+		});
+	});
+
+	// Regression test for https://github.com/AidenIO/superset/issues/4583
+	// The shell-mode diagnostic was deduplicated per-process, which made the
+	// daemon log look like only the first session ran agent-setup. Users
+	// (correctly) noticed the missing log lines but (incorrectly) concluded
+	// later sessions skipped setup — actually getShellArgs runs every time.
+	// The diagnostic must fire per call so the daemon log accurately reflects
+	// per-session activity.
+	describe("shell-mode diagnostic logging (issue #4583)", () => {
+		it("emits the mode diagnostic on every getShellArgs call", () => {
+			// Unique shell name avoids any dedup state from earlier tests in
+			// this file. Unknown shells return [] args but still log the mode.
+			const shell = `/bin/zsh-issue-4583-${process.pid}-${Date.now()}`;
+			const debugSpy = spyOn(console, "debug");
+			try {
+				getShellArgs(shell);
+				getShellArgs(shell);
+				getShellArgs(shell);
+
+				const matches = debugSpy.mock.calls.filter(
+					(call) =>
+						typeof call[0] === "string" &&
+						call[0].includes("[agent-setup] shell integration mode="),
+				);
+
+				expect(matches.length).toBe(3);
+			} finally {
+				debugSpy.mockRestore();
+			}
+		});
+
+		it("emits the mode diagnostic on every getCommandShellArgs call", () => {
+			const shell = `/bin/bash-issue-4583-${process.pid}-${Date.now()}`;
+			const debugSpy = spyOn(console, "debug");
+			try {
+				getCommandShellArgs(shell, "echo ok", TEST_PATHS);
+				getCommandShellArgs(shell, "echo ok", TEST_PATHS);
+
+				const matches = debugSpy.mock.calls.filter(
+					(call) =>
+						typeof call[0] === "string" &&
+						call[0].includes("[agent-setup] shell integration mode="),
+				);
+
+				expect(matches.length).toBe(2);
+			} finally {
+				debugSpy.mockRestore();
 			}
 		});
 	});
