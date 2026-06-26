@@ -187,6 +187,74 @@ describe("TerminalHost — PTY spawn failure handling", () => {
 		await session.dispose();
 	});
 
+	/**
+	 * Regression for #4322: dangling terminal processes detected in v2.
+	 *
+	 * Race window:
+	 *   1. Session.spawn() forks the pty-subprocess child; pendingSpawn is set.
+	 *   2. Caller decides to kill the session before the subprocess has sent
+	 *      its Ready frame (e.g., user closes the pane immediately, or the
+	 *      workspace is torn down during boot).
+	 *   3. Session.kill() takes the !subprocessReady fallback and sends
+	 *      SIGTERM to the subprocess directly. terminatingAt is set.
+	 *      pendingSpawn is left in place.
+	 *   4. The subprocess's Ready frame races the SIGTERM. If Ready wins,
+	 *      handleSubprocessFrame(Ready) fires, sees pendingSpawn, and dispatches
+	 *      a Spawn frame to a subprocess that we already asked to die.
+	 *
+	 * Result: the subprocess can call node-pty.spawn() and create a real PTY
+	 * process *after* the session was marked terminating. Whether SIGTERM
+	 * eventually reaps that PTY depends on tree-kill timing, leaving a window
+	 * where a fresh shell process is dangling outside any session bookkeeping.
+	 *
+	 * The fix should ensure no Spawn frame is sent once kill() has been called.
+	 */
+	it("does not spawn a PTY after kill() when Ready arrives mid-bootstrap (BUG)", () => {
+		const session = new Session({
+			sessionId: "session-kill-before-ready",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/bash",
+			spawnProcess: () => fakeChild as unknown as ChildProcess,
+		});
+
+		session.spawn({
+			cwd: "/tmp",
+			cols: 80,
+			rows: 24,
+			env: { PATH: "/usr/bin" },
+		});
+
+		// Caller kills the session before the subprocess emits Ready. Because
+		// subprocessReady is still false, kill() falls back to subprocess.kill().
+		session.kill();
+		expect(session.isTerminating).toBe(true);
+
+		// Race: subprocess had already queued its Ready frame on startup.
+		emitReadyOnly(fakeChild);
+
+		// All bytes the parent has written to the subprocess after kill().
+		const writtenBytes = Buffer.concat(fakeChild.stdin.writes);
+
+		// Walk the framed stream (5-byte header: u8 type, u32 LE length).
+		const sentFrameTypes: PtySubprocessIpcType[] = [];
+		let offset = 0;
+		while (offset + 5 <= writtenBytes.length) {
+			const type = writtenBytes.readUInt8(offset) as PtySubprocessIpcType;
+			const len = writtenBytes.readUInt32LE(offset + 1);
+			sentFrameTypes.push(type);
+			offset += 5 + len;
+		}
+
+		// A Spawn frame after kill() would tell the subprocess to fork a real
+		// shell process — exactly the dangling-PTY scenario we want to prevent.
+		expect(sentFrameTypes).not.toContain(PtySubprocessIpcType.Spawn);
+	});
+
 	it("healthy session has both isAlive=true and pid set", async () => {
 		const session = new Session({
 			sessionId: "session-healthy",
