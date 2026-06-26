@@ -430,15 +430,27 @@ export async function readFile({
 	offset,
 	maxBytes,
 	encoding,
+	allowSymlinkEscape = true,
 }: {
 	rootPath: string;
 	absolutePath: string;
 	offset?: number;
 	maxBytes?: number;
 	encoding?: string;
+	/**
+	 * Allow reads to follow an in-workspace symlink whose target resolves
+	 * outside the worktree root. The symlink itself must still live inside the
+	 * workspace (enforced by `ensureWithinRoot`). Defaults to `true` because
+	 * following an intentional in-workspace symlink (e.g. `.claude/commands`,
+	 * node_modules package links) is a legitimate, expected read operation in
+	 * the file viewer. See #5057.
+	 */
+	allowSymlinkEscape?: boolean;
 }): Promise<FsReadResult> {
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
-	await assertRealpathWithinRoot(rootPath, targetPath);
+	if (!allowSymlinkEscape) {
+		await assertRealpathWithinRoot(rootPath, targetPath);
+	}
 
 	const fileHandle = await fs.open(targetPath, "r");
 	try {

@@ -115,6 +115,51 @@ describe("readFile", () => {
 			expect(Buffer.from(result.content).toString("utf-8")).toEqual("hello");
 		}
 	});
+
+	// Regression test for #5057: opening an in-workspace symlink whose target
+	// resolves outside the worktree root must succeed for read operations.
+	it("reads an in-workspace symlink whose target resolves outside the root", async () => {
+		const rootPath = await createTempRoot();
+		// A sibling directory outside the workspace root holding the real file.
+		const outsideRoot = await createTempRoot();
+		const targetPath = path.join(outsideRoot, "shared-commands.md");
+		await fs.writeFile(targetPath, "shared content");
+
+		// The symlink itself lives inside the workspace (shows up in the tree),
+		// but points to a target outside the worktree root.
+		const linkPath = path.join(rootPath, "commands.md");
+		await fs.symlink(targetPath, linkPath);
+
+		const result = await readFile({
+			rootPath,
+			absolutePath: linkPath,
+			encoding: "utf-8",
+		});
+
+		expect(result.kind).toEqual("text");
+		if (result.kind === "text") {
+			expect(result.content).toEqual("shared content");
+		}
+	});
+
+	it("still rejects symlink escapes when allowSymlinkEscape is false", async () => {
+		const rootPath = await createTempRoot();
+		const outsideRoot = await createTempRoot();
+		const targetPath = path.join(outsideRoot, "secret.txt");
+		await fs.writeFile(targetPath, "secret");
+
+		const linkPath = path.join(rootPath, "link.txt");
+		await fs.symlink(targetPath, linkPath);
+
+		await expect(
+			readFile({
+				rootPath,
+				absolutePath: linkPath,
+				encoding: "utf-8",
+				allowSymlinkEscape: false,
+			}),
+		).rejects.toThrow("Path resolves outside workspace root");
+	});
 });
 
 describe("writeFile", () => {
