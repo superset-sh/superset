@@ -1,5 +1,4 @@
 import {
-	canInvite,
 	ORGANIZATION_ROLES,
 	type OrganizationRole,
 } from "@superset/shared/auth";
@@ -24,6 +23,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { authClient } from "renderer/lib/auth-client";
+import { handleInviteMember } from "./utils/handleInviteMember";
 
 interface InviteMemberDialogProps {
 	open: boolean;
@@ -47,29 +47,22 @@ export function InviteMemberDialog({
 	const [isInviting, setIsInviting] = useState(false);
 
 	const handleInvite = async () => {
-		if (!canInvite(currentUserRole, role)) {
-			toast.error(`Cannot invite users as ${ORGANIZATION_ROLES[role].name}`);
-			return;
-		}
-
 		setIsInviting(true);
-		try {
-			await authClient.organization.inviteMember({
-				organizationId,
-				email,
-				role,
-			});
+		const success = await handleInviteMember(
+			{ organizationId, email, role },
+			{
+				currentUserRole,
+				inviteMember: (args) => authClient.organization.inviteMember(args),
+				onSuccess: (message) => toast.success(message),
+				onError: (message) => toast.error(message),
+			},
+		);
+		setIsInviting(false);
 
-			toast.success(`Invitation sent to ${email}`);
+		if (success) {
 			setEmail("");
 			setRole("member");
 			onOpenChange(false);
-		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to send invitation",
-			);
-		} finally {
-			setIsInviting(false);
 		}
 	};
 
