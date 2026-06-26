@@ -19,19 +19,6 @@ function getErrorText(error: unknown): string {
 	return String(error);
 }
 
-export function isPostCheckoutHookFailure(error: unknown): boolean {
-	const text = getErrorText(error).toLowerCase();
-	if (!text.includes("post-checkout")) {
-		return false;
-	}
-
-	return (
-		text.includes("hook") ||
-		text.includes("husky") ||
-		text.includes("command not found")
-	);
-}
-
 export async function runWithPostCheckoutHookTolerance({
 	run,
 	didSucceed,
@@ -44,10 +31,6 @@ export async function runWithPostCheckoutHookTolerance({
 	try {
 		await run();
 	} catch (error) {
-		if (!isPostCheckoutHookFailure(error)) {
-			throw error;
-		}
-
 		let succeeded = false;
 		try {
 			succeeded = await didSucceed();
@@ -61,7 +44,7 @@ export async function runWithPostCheckoutHookTolerance({
 
 		const message = getErrorText(error);
 		console.warn(
-			`[git] ${context} but post-checkout hook failed (non-fatal): ${message}`,
+			`[git] ${context} but command exited non-zero (non-fatal): ${message}`,
 		);
 	}
 }
