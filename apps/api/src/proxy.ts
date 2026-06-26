@@ -64,9 +64,38 @@ export default function proxy(req: NextRequest) {
 	return response;
 }
 
+// Allowlist of browser-cross-origin endpoints. The api app is purely an API
+// (no pages), so default-deny is the right posture: anything not listed here
+// is treated as server-to-server, doesn't run the CORS shim, and doesn't
+// produce a per-request Vercel `serverless-middleware` log line. Adding a new
+// browser-facing route requires deliberately extending this list — same
+// posture you'd want for "what can cross-origin browsers reach".
+//
+// Verified callers (`NEXT_PUBLIC_API_URL`/`apiUrl` grep across web, admin,
+// desktop renderers):
+//   /api/trpc        — cross-origin tRPC from all three frontends
+//   /api/auth/*      — better-auth catch-all (sign-in, sign-out, get-session,
+//                      accept-invitation, callback/*); jwks + token excluded
+//                      since only relay/electric-proxy/mcp-v2/SDK/host-service
+//                      hit them, all server-to-server
+//   /api/proxy/*     — Linear image proxy, called by desktop MarkdownEditor
+//   /api/chat/*      — chat session GET + streaming SSE from desktop renderer
+//   /api/desktop/version — minimum-version probe. Orphaned on main (the
+//                      consuming useVersionCheck hook was unwired by an
+//                      earlier routing refactor) but still hit by older
+//                      shipped builds; kept here for backwards compat.
+//                      Migrate to a tRPC procedure when the gate is rewired
+//                      and let this REST entry age out.
+//
+// OAuth connect redirects (/api/github/install, /api/integrations/*/connect)
+// are `window.location.href` full-page navigations — browsers don't preflight
+// those, so no CORS needed.
 export const config = {
 	matcher: [
-		"/((?!_next|ingest|monitoring|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-		"/(api|trpc)(.*)",
+		"/api/trpc/:path*",
+		"/api/auth/((?!jwks|token).*)",
+		"/api/proxy/:path*",
+		"/api/chat/:path*",
+		"/api/desktop/version",
 	],
 };
