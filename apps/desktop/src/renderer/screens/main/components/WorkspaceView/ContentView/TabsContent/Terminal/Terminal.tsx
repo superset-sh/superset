@@ -249,6 +249,7 @@ export const Terminal = memo(function Terminal({
 
 	// Auto-retry connection with exponential backoff
 	const retryCountRef = useRef(0);
+	const didReportExhaustedRef = useRef(false);
 	const MAX_RETRIES = 5;
 
 	// Stream handling
@@ -274,7 +275,15 @@ export const Terminal = memo(function Terminal({
 	useEffect(() => {
 		if (!connectionError) return;
 		if (isExitedRef.current) return;
-		if (retryCountRef.current >= MAX_RETRIES) return;
+		if (retryCountRef.current >= MAX_RETRIES) {
+			if (!didReportExhaustedRef.current) {
+				didReportExhaustedRef.current = true;
+				xtermRef.current?.writeln(
+					`\r\n\x1b[90m[Reconnect failed after ${MAX_RETRIES} attempts. Restart this terminal to try again.]\x1b[0m`,
+				);
+			}
+			return;
+		}
 
 		if (retryCountRef.current === 0) {
 			xtermRef.current?.writeln(
@@ -367,6 +376,7 @@ export const Terminal = memo(function Terminal({
 				if (connectionErrorRef.current && event.type === "data") {
 					setConnectionError(null);
 					retryCountRef.current = 0;
+					didReportExhaustedRef.current = false;
 				}
 				handleStreamData(event);
 			},
