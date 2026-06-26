@@ -1,4 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import {
+	resetLaunchdEnvReaderForTests,
+	setLaunchdEnvReaderForTests,
+} from "./clean-shell-env.ts";
 import {
 	buildV2TerminalEnv,
 	getShellBootstrapEnv,
@@ -514,6 +518,136 @@ describe("buildV2TerminalEnv", () => {
 		expect(env.SUPERSET_WORKSPACE_NAME).toBeUndefined();
 		expect(env.NVM_DIR).toBe("/Users/test/.nvm");
 		expect(env.SSH_AUTH_SOCK).toBe("/tmp/ssh.sock");
+	});
+});
+
+// ── SSH agent socket refresh (#4805) ─────────────────────────────────
+
+describe("buildV2TerminalEnv SSH agent socket refresh", () => {
+	const sshBaseParams = {
+		shell: "/bin/zsh",
+		supersetHomeDir: "/Users/test/.superset",
+		cwd: "/tmp/workspace",
+		terminalId: "term-1",
+		workspaceId: "ws-1",
+		workspacePath: "/tmp/workspace",
+		rootPath: "/tmp/repo",
+		hostServiceVersion: "2.0.0",
+		supersetEnv: "production" as const,
+		agentHookPort: "51741",
+		agentHookVersion: "2",
+	};
+
+	afterEach(() => {
+		resetLaunchdEnvReaderForTests();
+	});
+
+	test("refreshes stale launchd SSH_AUTH_SOCK from current launchd session", () => {
+		setLaunchdEnvReaderForTests((key) =>
+			key === "SSH_AUTH_SOCK"
+				? "/private/tmp/com.apple.launchd.FRESH/Listeners"
+				: null,
+		);
+
+		const env = buildV2TerminalEnv({
+			...sshBaseParams,
+			baseEnv: {
+				HOME: "/Users/test",
+				PATH: "/usr/bin",
+				SHELL: "/bin/zsh",
+				SSH_AUTH_SOCK: "/private/tmp/com.apple.launchd.STALE/Listeners",
+			},
+		});
+
+		expect(env.SSH_AUTH_SOCK).toBe(
+			"/private/tmp/com.apple.launchd.FRESH/Listeners",
+		);
+	});
+
+	test("keeps cached SSH_AUTH_SOCK when launchctl returns nothing", () => {
+		setLaunchdEnvReaderForTests(() => null);
+
+		const env = buildV2TerminalEnv({
+			...sshBaseParams,
+			baseEnv: {
+				HOME: "/Users/test",
+				PATH: "/usr/bin",
+				SHELL: "/bin/zsh",
+				SSH_AUTH_SOCK: "/private/tmp/com.apple.launchd.STALE/Listeners",
+			},
+		});
+
+		expect(env.SSH_AUTH_SOCK).toBe(
+			"/private/tmp/com.apple.launchd.STALE/Listeners",
+		);
+	});
+
+	test("does not override custom (non-launchd) SSH_AUTH_SOCK", () => {
+		setLaunchdEnvReaderForTests(
+			() => "/private/tmp/com.apple.launchd.X/Listeners",
+		);
+
+		const env = buildV2TerminalEnv({
+			...sshBaseParams,
+			baseEnv: {
+				HOME: "/Users/test",
+				PATH: "/usr/bin",
+				SHELL: "/bin/zsh",
+				SSH_AUTH_SOCK: "/tmp/ssh-AAAA/agent.123",
+			},
+		});
+
+		expect(env.SSH_AUTH_SOCK).toBe("/tmp/ssh-AAAA/agent.123");
+	});
+
+	test("drops stale SSH_AGENT_PID when socket is refreshed but launchd has no PID", () => {
+		setLaunchdEnvReaderForTests((key) =>
+			key === "SSH_AUTH_SOCK"
+				? "/private/tmp/com.apple.launchd.FRESH/Listeners"
+				: null,
+		);
+
+		const env = buildV2TerminalEnv({
+			...sshBaseParams,
+			baseEnv: {
+				HOME: "/Users/test",
+				PATH: "/usr/bin",
+				SHELL: "/bin/zsh",
+				SSH_AUTH_SOCK: "/private/tmp/com.apple.launchd.STALE/Listeners",
+				SSH_AGENT_PID: "12345",
+			},
+		});
+
+		expect(env.SSH_AUTH_SOCK).toBe(
+			"/private/tmp/com.apple.launchd.FRESH/Listeners",
+		);
+		expect(env.SSH_AGENT_PID).toBeUndefined();
+	});
+
+	test("propagates fresh SSH_AGENT_PID alongside refreshed socket", () => {
+		setLaunchdEnvReaderForTests((key) => {
+			if (key === "SSH_AUTH_SOCK") {
+				return "/private/tmp/com.apple.launchd.FRESH/Listeners";
+			}
+			if (key === "SSH_AGENT_PID") return "99999";
+			return null;
+		});
+
+		const env = buildV2TerminalEnv({
+			...sshBaseParams,
+			baseEnv: {
+				HOME: "/Users/test",
+				PATH: "/usr/bin",
+				SHELL: "/bin/zsh",
+				SSH_AUTH_SOCK: "/private/tmp/com.apple.launchd.STALE/Listeners",
+				SSH_AGENT_PID: "12345",
+			},
+		});
+
+		expect(env.SSH_AUTH_SOCK).toBe(
+			"/private/tmp/com.apple.launchd.FRESH/Listeners",
+		);
+		expect(env.SSH_AGENT_PID).toBe("99999");
 	});
 });
 

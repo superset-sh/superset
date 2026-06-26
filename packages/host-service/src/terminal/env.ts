@@ -22,6 +22,7 @@ import os from "node:os";
 import {
 	augmentPathForMacOS,
 	clearStrictShellEnvCache,
+	getCurrentLaunchdEnv,
 	getStrictShellEnvironment,
 } from "./clean-shell-env.ts";
 import { stripTerminalRuntimeEnv } from "./env-strip.ts";
@@ -36,6 +37,34 @@ function hasMacosSystemCertBundle(): boolean {
 	}
 	cachedMacosSystemCertAvailable = fs.existsSync(MACOS_SYSTEM_CERT_FILE);
 	return cachedMacosSystemCertAvailable;
+}
+
+const LAUNCHD_SSH_AUTH_SOCK_RE = /^\/private\/tmp\/com\.apple\.launchd\./;
+
+// macOS launchd rotates SSH_AUTH_SOCK on user-session changes (logout/login,
+// fast user switching). The cached terminal base snapshot keeps the value
+// from host-service startup, so terminals spawned after a session change get
+// a stale socket and `ssh-add -l` fails with "Connection refused" until
+// Superset is restarted. Refresh from `launchctl getenv` per terminal spawn
+// when the cached socket is launchd-managed. The reader itself short-circuits
+// on non-darwin. (#4805)
+function refreshLaunchdSshAgentEnv(env: Record<string, string>): void {
+	const sock = env.SSH_AUTH_SOCK;
+	if (!sock || !LAUNCHD_SSH_AUTH_SOCK_RE.test(sock)) return;
+
+	const freshSock = getCurrentLaunchdEnv("SSH_AUTH_SOCK");
+	if (!freshSock) return;
+
+	env.SSH_AUTH_SOCK = freshSock;
+
+	const freshPid = getCurrentLaunchdEnv("SSH_AGENT_PID");
+	if (freshPid) {
+		env.SSH_AGENT_PID = freshPid;
+	} else {
+		// SSH_AGENT_PID isn't always set in the launchd domain. If we updated
+		// the socket, drop the stale PID rather than leaving a mismatched pair.
+		delete env.SSH_AGENT_PID;
+	}
 }
 
 // ── Shell snapshot preservation ──────────────────────────────────────
@@ -165,6 +194,8 @@ export function buildV2TerminalEnv(
 	// Defense in depth — baseEnv is pre-stripped at init, but strip again
 	// to guarantee no runtime keys reach PTYs regardless of call site
 	const env = stripTerminalRuntimeEnv(baseEnv);
+
+	refreshLaunchdSshAgentEnv(env);
 
 	Object.assign(env, getShellBootstrapEnv({ shell, baseEnv, supersetHomeDir }));
 

@@ -1,4 +1,4 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import * as os from "node:os";
 import { signalProcessTreeAndGroups } from "@superset/pty-daemon/process-tree";
 import { resolveConfiguredShell } from "./user-shell.ts";
@@ -7,6 +7,43 @@ const SHELL_ENV_TIMEOUT_MS = 8_000;
 const CACHE_TTL_MS = 60_000;
 const DELIMITER = "__SUPERSET_SHELL_ENV__";
 const DIAGNOSTIC_OUTPUT_LIMIT = 200;
+const LAUNCHCTL_TIMEOUT_MS = 1_000;
+
+export type LaunchdEnvReader = (key: string) => string | null;
+
+// macOS sets SSH_AUTH_SOCK in the launchd user-session domain, not via
+// shell rc. process.env captures that value at host-service startup, but
+// the launchd domain can change later (logout/login, fast user switching).
+// launchctl getenv returns the current per-session value, so we can refresh
+// it without restarting Superset. (#4805)
+function defaultLaunchdEnvReader(key: string): string | null {
+	if (process.platform !== "darwin") return null;
+	try {
+		const out = execFileSync("launchctl", ["getenv", key], {
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "ignore"],
+			timeout: LAUNCHCTL_TIMEOUT_MS,
+		});
+		const value = out.trim();
+		return value.length > 0 ? value : null;
+	} catch {
+		return null;
+	}
+}
+
+let launchdEnvReader: LaunchdEnvReader = defaultLaunchdEnvReader;
+
+export function getCurrentLaunchdEnv(key: string): string | null {
+	return launchdEnvReader(key);
+}
+
+export function setLaunchdEnvReaderForTests(reader: LaunchdEnvReader): void {
+	launchdEnvReader = reader;
+}
+
+export function resetLaunchdEnvReaderForTests(): void {
+	launchdEnvReader = defaultLaunchdEnvReader;
+}
 
 const SHELL_BOOTSTRAP_KEYS = [
 	"HOME",
