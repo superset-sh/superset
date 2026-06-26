@@ -1,5 +1,10 @@
 import { describe, expect, mock, test } from "bun:test";
-import { asLocalRef, asRemoteRef, resolveRef } from "./refs";
+import {
+	asLocalRef,
+	asRemoteRef,
+	resolveRef,
+	resolveRefCaseInsensitive,
+} from "./refs";
 
 /**
  * Mock git that knows about a fixed set of FULL refnames. Mirrors how
@@ -129,5 +134,89 @@ describe("resolveRef — input shape contract", () => {
 			expect(r.remote).toBe("upstream");
 			expect(r.remoteShortName).toBe("upstream/foo");
 		}
+	});
+});
+
+/**
+ * `resolveRefCaseInsensitive` calls `for-each-ref` rather than probing
+ * single refs, so it needs a different mock — one that returns the full
+ * stored refnames as a newline-separated list.
+ */
+function createForEachRefMock(refnames: string[]) {
+	return {
+		raw: mock(async (args: string[]) => {
+			if (args[0] === "for-each-ref") {
+				return `${refnames.join("\n")}\n`;
+			}
+			throw new Error(`Unexpected raw args: ${args.join(" ")}`);
+		}),
+	} as never;
+}
+
+describe("resolveRefCaseInsensitive", () => {
+	test("returns canonical-case local ref when input differs only by case", async () => {
+		const git = createForEachRefMock(["refs/heads/Claude/Auto-Balance-1UFT7"]);
+		const r = await resolveRefCaseInsensitive(git, "claude/auto-balance-1uft7");
+		expect(r?.kind).toBe("local");
+		if (r?.kind === "local") {
+			expect(r.shortName).toBe("Claude/Auto-Balance-1UFT7");
+			expect(r.fullRef).toBe("refs/heads/Claude/Auto-Balance-1UFT7");
+		}
+	});
+
+	test("returns remote-tracking ref when only the remote ref matches case-insensitively", async () => {
+		const git = createForEachRefMock([
+			"refs/remotes/origin/claude/Auto-Balance-1UFT7",
+		]);
+		const r = await resolveRefCaseInsensitive(git, "claude/auto-balance-1uft7");
+		expect(r?.kind).toBe("remote-tracking");
+		if (r?.kind === "remote-tracking") {
+			expect(r.shortName).toBe("claude/Auto-Balance-1UFT7");
+			expect(r.remoteShortName).toBe("origin/claude/Auto-Balance-1UFT7");
+		}
+	});
+
+	test("local match wins when both local and remote-tracking match", async () => {
+		const git = createForEachRefMock([
+			"refs/remotes/origin/Foo-Bar",
+			"refs/heads/foo-BAR",
+		]);
+		const r = await resolveRefCaseInsensitive(git, "FOO-bar");
+		expect(r?.kind).toBe("local");
+		if (r?.kind === "local") {
+			expect(r.shortName).toBe("foo-BAR");
+		}
+	});
+
+	test("returns null when nothing matches case-insensitively", async () => {
+		const git = createForEachRefMock([
+			"refs/heads/main",
+			"refs/remotes/origin/main",
+		]);
+		expect(await resolveRefCaseInsensitive(git, "totally-other")).toBeNull();
+	});
+
+	test("strips a leading `<remote>/` prefix before matching", async () => {
+		const git = createForEachRefMock(["refs/remotes/origin/Feature-X"]);
+		const r = await resolveRefCaseInsensitive(git, "origin/feature-x");
+		expect(r?.kind).toBe("remote-tracking");
+		if (r?.kind === "remote-tracking") {
+			expect(r.shortName).toBe("Feature-X");
+		}
+	});
+
+	test("ignores `refs/remotes/<remote>/HEAD`", async () => {
+		const git = createForEachRefMock([
+			"refs/remotes/origin/HEAD",
+			"refs/heads/main",
+		]);
+		// `head` should NOT case-insensitive-match `HEAD`.
+		expect(await resolveRefCaseInsensitive(git, "head")).toBeNull();
+	});
+
+	test("empty/whitespace input → null", async () => {
+		const git = createForEachRefMock(["refs/heads/foo"]);
+		expect(await resolveRefCaseInsensitive(git, "")).toBeNull();
+		expect(await resolveRefCaseInsensitive(git, "   ")).toBeNull();
 	});
 });
