@@ -51,16 +51,10 @@ export async function dispatchAutomation(
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
 	const host = resolved;
-	if (!host.isOnline) {
-		const error = "target host offline";
-		const inserted = await recordSkipped(
-			automation,
-			scheduledFor,
-			host.machineId,
-			error,
-		);
-		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
-	}
+	// v2_hosts.is_online is a debounced cache of the relay tunnel state and can
+	// lag reality (esp. just after a reconnect). Don't pre-skip on it — let the
+	// relay be the source of truth and bucket 503 "Host not connected" as
+	// skipped_offline below. Issue #4803.
 
 	const [run] = await dbWs
 		.insert(automationRuns)
@@ -136,6 +130,21 @@ export async function dispatchAutomation(
 			})
 			.where(eq(automationRuns.id, run.id));
 	} catch (err) {
+		// Relay reports 503 "Host not connected" when no tunnel is registered
+		// for the host. Surface that as skipped_offline so the UI's offline-host
+		// affordances kick in (instead of a generic dispatch failure crash).
+		if (err instanceof RelayDispatchError && err.status === 503) {
+			const error = "target host offline";
+			await dbWs
+				.update(automationRuns)
+				.set({
+					status: "skipped_offline",
+					v2WorkspaceId: workspaceId,
+					error,
+				})
+				.where(eq(automationRuns.id, run.id));
+			return { status: "skipped_offline", runId: run.id, error };
+		}
 		const error = describeError(err, "dispatch");
 		await dbWs
 			.update(automationRuns)
