@@ -10,10 +10,10 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
-import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenProject } from "renderer/react-query/projects";
+import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -45,8 +45,8 @@ function PromptInputResetSync() {
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
-	const navigate = useNavigate();
 	const { openNew } = useOpenProject();
+	const openNewProject = useOpenNewProjectModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
 
 	// Prevents AgentSelect from flashing "No agent" while presets load after refresh.
@@ -66,7 +66,7 @@ export function NewWorkspaceModal() {
 
 	const handleNewProject = () => {
 		closeModal();
-		navigate({ to: "/new-project" });
+		openNewProject();
 	};
 
 	return (

@@ -1,7 +1,12 @@
 import { cn } from "@superset/ui/utils";
-import { LuCircleDot, LuGitMerge, LuGitPullRequest } from "react-icons/lu";
+import {
+	LuCircleDot,
+	LuGitMerge,
+	LuGitPullRequest,
+	LuListChecks,
+} from "react-icons/lu";
 
-export type PRState = "open" | "merged" | "closed" | "draft";
+export type PRState = "open" | "merged" | "closed" | "draft" | "queued";
 
 interface PRIconProps {
 	state: PRState;
@@ -13,6 +18,7 @@ const stateStyles: Record<PRState, string> = {
 	merged: "text-violet-500",
 	closed: "text-red-500",
 	draft: "text-muted-foreground",
+	queued: "text-amber-500",
 };
 
 /**
@@ -21,6 +27,7 @@ const stateStyles: Record<PRState, string> = {
  * - merged: purple/violet merge icon
  * - closed: red dot icon
  * - draft: muted pull request icon
+ * - queued: amber queue icon (PR waiting in the merge queue)
  */
 export function PRIcon({ state, className }: PRIconProps) {
 	const baseClass = cn(stateStyles[state], className);
@@ -31,6 +38,10 @@ export function PRIcon({ state, className }: PRIconProps) {
 
 	if (state === "closed") {
 		return <LuCircleDot className={baseClass} />;
+	}
+
+	if (state === "queued") {
+		return <LuListChecks className={baseClass} />;
 	}
 
 	// open or draft

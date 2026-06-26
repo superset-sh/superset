@@ -42,9 +42,8 @@ function Toggle({
 	variant,
 	size,
 	...props
-}: TogglePrimitive.RootProps &
-	VariantProps<typeof toggleVariants> &
-	React.RefAttributes<TogglePrimitive.RootRef>) {
+}: React.ComponentProps<typeof TogglePrimitive.Root> &
+	VariantProps<typeof toggleVariants>) {
 	return (
 		<TextClassContext.Provider
 			value={cn(

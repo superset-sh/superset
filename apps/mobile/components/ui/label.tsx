@@ -10,7 +10,7 @@ function Label({
 	onPressOut,
 	disabled,
 	...props
-}: LabelPrimitive.TextProps & React.RefAttributes<LabelPrimitive.TextRef>) {
+}: React.ComponentProps<typeof LabelPrimitive.Text>) {
 	return (
 		<LabelPrimitive.Root
 			className={cn(

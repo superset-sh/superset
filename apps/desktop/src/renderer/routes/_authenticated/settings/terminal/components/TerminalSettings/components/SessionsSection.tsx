@@ -132,7 +132,7 @@ export function SessionsSection() {
 			<div className="rounded-md border border-border/60 p-4 space-y-3">
 				<div className="space-y-0.5">
 					<div className="flex items-center justify-between">
-						<Label className="text-sm font-medium">Manage sessions</Label>
+						<Label className="text-sm font-medium">Terminal daemon</Label>
 						<Button
 							variant="ghost"
 							size="sm"

@@ -5,6 +5,7 @@ import appcodeIcon from "renderer/assets/app-icons/appcode.svg";
 import clionIcon from "renderer/assets/app-icons/clion.svg";
 import cursorIcon from "renderer/assets/app-icons/cursor.svg";
 import datagripIcon from "renderer/assets/app-icons/datagrip.svg";
+import devinIcon from "renderer/assets/app-icons/devin.png";
 import finderIcon from "renderer/assets/app-icons/finder.png";
 import fleetIcon from "renderer/assets/app-icons/fleet.svg";
 import ghosttyIcon from "renderer/assets/app-icons/ghostty.svg";
@@ -22,8 +23,6 @@ import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import vscodeInsidersIcon from "renderer/assets/app-icons/vscode-insiders.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
 import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
-import windsurfIcon from "renderer/assets/app-icons/windsurf.svg";
-import windsurfWhiteIcon from "renderer/assets/app-icons/windsurf-white.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
 import zedIcon from "renderer/assets/app-icons/zed.png";
 
@@ -58,10 +57,10 @@ export const IDE_OPTIONS: OpenInExternalAppOption[] = [
 		darkIcon: antigravityIcon,
 	},
 	{
-		id: "windsurf",
-		label: "Windsurf",
-		lightIcon: windsurfIcon,
-		darkIcon: windsurfWhiteIcon,
+		id: "devin",
+		label: "Devin",
+		lightIcon: devinIcon,
+		darkIcon: devinIcon,
 	},
 	{ id: "zed", label: "Zed", lightIcon: zedIcon, darkIcon: zedIcon },
 	{

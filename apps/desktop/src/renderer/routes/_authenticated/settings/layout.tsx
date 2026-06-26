@@ -37,6 +37,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"models",
 	"organization",
 	"teams",
+	"project",
 	"integrations",
 	"billing",
 	"apikeys",
@@ -97,6 +98,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/permissions";
 		case "hosts":
 			return "/settings/hosts";
+		case "project":
+			return "/settings/projects";
 		default:
 			return "/settings/account";
 	}

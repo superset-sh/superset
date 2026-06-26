@@ -11,6 +11,7 @@ import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
 import { installProcessSafetyNet } from "./safety";
 import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
+import { startTerminalReaper } from "./terminal/reaper";
 import { connectRelay } from "./tunnel";
 
 async function main(): Promise<void> {
@@ -45,14 +46,13 @@ async function main(): Promise<void> {
 		apiUrl: env.SUPERSET_API_URL,
 	});
 
-	const { app, injectWebSocket, api } = createApp({
+	const { app, injectWebSocket, api, db } = createApp({
 		config: {
 			organizationId: env.ORGANIZATION_ID,
 			dbPath: env.HOST_DB_PATH,
 			cloudApiUrl: env.SUPERSET_API_URL,
 			migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
 			allowedOrigins: env.CORS_ORIGINS ?? [],
-			hostServiceSecret: env.HOST_SERVICE_SECRET,
 		},
 		providers: {
 			auth: authProvider,
@@ -95,6 +95,8 @@ async function main(): Promise<void> {
 		// reach `main().catch(...)` and exit with a non-zero code.
 		installProcessSafetyNet();
 		console.log(`[host-service] listening on http://localhost:${info.port}`);
+
+		startTerminalReaper(db);
 
 		if (env.RELAY_URL) {
 			void connectRelay({

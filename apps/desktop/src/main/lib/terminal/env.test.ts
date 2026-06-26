@@ -765,5 +765,22 @@ describe("env", () => {
 				expect(result.COLORFGBG).toBe("0;15");
 			});
 		});
+
+		describe("TERM_THEME hint for TUI light/dark detection", () => {
+			it("should set TERM_THEME to dark by default", () => {
+				const result = buildTerminalEnv(baseParams);
+				expect(result.TERM_THEME).toBe("dark");
+			});
+
+			it("should set TERM_THEME to dark when themeType is dark", () => {
+				const result = buildTerminalEnv({ ...baseParams, themeType: "dark" });
+				expect(result.TERM_THEME).toBe("dark");
+			});
+
+			it("should set TERM_THEME to light when themeType is light", () => {
+				const result = buildTerminalEnv({ ...baseParams, themeType: "light" });
+				expect(result.TERM_THEME).toBe("light");
+			});
+		});
 	});
 });

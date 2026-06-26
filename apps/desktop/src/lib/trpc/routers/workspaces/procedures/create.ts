@@ -392,6 +392,7 @@ async function handleNewWorktree({
 		source: "pr",
 		pr_number: prInfo.number,
 		is_fork: prInfo.isCrossRepository,
+		host_kind: "local",
 	});
 
 	await setBranchBaseConfig({
@@ -676,6 +677,7 @@ export const createCreateProcedures = () => {
 					branch: branch,
 					base_branch: compareBaseBranch,
 					use_existing_branch: input.useExistingBranch ?? false,
+					host_kind: "local",
 				});
 
 				await setBranchBaseConfig({

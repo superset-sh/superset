@@ -12,6 +12,8 @@ import {
 	fetchPullRequestByHeadFromGh,
 	fetchPullRequestChecks,
 	fetchPullRequestChecksFromGh,
+	fetchPullRequestMergeQueueState,
+	fetchPullRequestMergeQueueStateFromGh,
 	fetchPullRequestReviewDecision,
 	fetchPullRequestReviewDecisionFromGh,
 } from "./utils/github-query";
@@ -976,7 +978,14 @@ export class PullRequestRuntimeManager {
 			number,
 			GitHubPullRequestReviewDecision
 		>();
+		// Only open, non-draft PRs can sit in a merge queue, so skip the extra
+		// GraphQL round-trip for everything else.
+		const mergeQueueByNumber = new Map<number, boolean>();
 		let octokitPromise: Promise<Octokit> | null = null;
+		const getOctokit = () => {
+			octokitPromise ??= this.github();
+			return octokitPromise;
+		};
 		await Promise.all(
 			Array.from(latestByKey.values()).map(async (node) => {
 				try {
@@ -993,8 +1002,7 @@ export class PullRequestRuntimeManager {
 					checksByNumber.set(node.number, checks);
 				} catch (ghError) {
 					try {
-						octokitPromise ??= this.github();
-						const octokit = await octokitPromise;
+						const octokit = await getOctokit();
 						const [reviewDecision, checks] = await Promise.all([
 							fetchPullRequestReviewDecision(
 								octokit,
@@ -1020,6 +1028,45 @@ export class PullRequestRuntimeManager {
 						);
 					}
 				}
+
+				// Merge-queue detection stays on its own error boundary: only open,
+				// non-draft PRs can be queued, and the `mergeQueueEntry` GraphQL field
+				// is absent on older GitHub Enterprise schemas. Coupling it with the
+				// review/checks fetch above would let that failure stale their data.
+				if (node.state !== "OPEN" || node.isDraft) return;
+				try {
+					mergeQueueByNumber.set(
+						node.number,
+						await fetchPullRequestMergeQueueStateFromGh(
+							this.execGh,
+							repo,
+							node.number,
+						),
+					);
+				} catch (ghError) {
+					try {
+						mergeQueueByNumber.set(
+							node.number,
+							await fetchPullRequestMergeQueueState(
+								await getOctokit(),
+								repo,
+								node.number,
+							),
+						);
+					} catch (error) {
+						console.warn(
+							"[host-service:pull-request-runtime] Failed to fetch PR merge-queue state",
+							{
+								projectId,
+								owner: repo.owner,
+								name: repo.name,
+								prNumber: node.number,
+								ghError,
+								error,
+							},
+						);
+					}
+				}
 			}),
 		);
 
@@ -1031,6 +1078,9 @@ export class PullRequestRuntimeManager {
 			const reviewDecision = reviewDecisionByNumber.has(node.number)
 				? mapReviewDecision(reviewDecisionByNumber.get(node.number) ?? null)
 				: coerceReviewDecision(existing?.reviewDecision ?? null);
+			const isInMergeQueue = mergeQueueByNumber.has(node.number)
+				? (mergeQueueByNumber.get(node.number) ?? false)
+				: coercePullRequestState(existing?.state ?? null) === "queued";
 			const rowId = this.upsertPullRequestRow({
 				existing,
 				projectId,
@@ -1038,7 +1088,7 @@ export class PullRequestRuntimeManager {
 				repo,
 				url: node.url,
 				title: node.title,
-				state: mapPullRequestState(node.state, node.isDraft),
+				state: mapPullRequestState(node.state, node.isDraft, isInMergeQueue),
 				isDraft: node.isDraft,
 				headBranch: node.headRefName,
 				headSha: node.headRefOid,

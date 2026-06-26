@@ -1,5 +1,6 @@
 import { primeRelayAffinity } from "@superset/workspace-client";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import { createWriteCoalescer, type WriteCoalescer } from "./write-coalescer";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
 
@@ -57,6 +58,19 @@ export interface TerminalTransport {
 	 * with no output still gets replay on the next connect.
 	 */
 	_hasReceivedBytes: boolean;
+	/** Internal: wall-clock-gap watchdog for laptop sleep/wake detection. */
+	_livenessTimer: ReturnType<typeof setInterval> | null;
+	/** Internal: Date.now() at the last watchdog tick. */
+	_lastLivenessTick: number;
+	/** Internal: bound resume handler shared by the online/focus/visibility
+	 * listeners, so they can be removed on teardown. */
+	_resumeListener: (() => void) | null;
+	/**
+	 * Internal: batches PTY output into one xterm.write per animation frame.
+	 * Agent CLIs emit repaints as many small chunks; per-chunk writes trigger
+	 * a parse/render cycle each and overwhelm the renderer (#2241, #2244).
+	 */
+	_writeCoalescer: WriteCoalescer | null;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -153,7 +167,104 @@ export function createTransport(): TerminalTransport {
 		_terminal: null,
 		_hasReceivedBytes: false,
 		_terminated: false,
+		_livenessTimer: null,
+		_lastLivenessTick: 0,
+		_resumeListener: null,
+		_writeCoalescer: null,
 	};
+}
+
+// Wall-clock watchdog cadence and the gap that counts as a suspend. A tick gap
+// far larger than the interval means the process was paused (laptop sleep), so
+// any socket still reporting OPEN is almost certainly half-open — dead, but
+// without a `close` event ever firing. This is the dependable desktop signal:
+// app-suspend doesn't reliably fire focus/visibility when the window was
+// focused both before and after sleep.
+const LIVENESS_CHECK_INTERVAL_MS = 5_000;
+const LIVENESS_SUSPEND_GAP_MS = 20_000;
+
+// Drop the current socket and immediately reconnect, without waiting for a
+// `close` event that a half-open socket will never deliver. The host keeps the
+// PTY alive, so this just re-attaches (and replays anything missed).
+function reconnectNow(transport: TerminalTransport) {
+	if (transport._terminated) return;
+	if (!transport.currentUrl || !transport._terminal) return;
+	cancelReconnect(transport);
+	if (transport.socket) {
+		const dead = transport.socket;
+		transport.socket = null;
+		try {
+			dead.close();
+		} catch {
+			// best-effort; the close handler is a no-op once socket is detached
+		}
+	}
+	transport._reconnectAttempt = 0;
+	// connect() is idempotent while "open"/"connecting"; force "closed" so it
+	// actually re-dials the now-detached socket.
+	setConnectionState(transport, "closed");
+	connect(transport, transport._terminal, transport.currentUrl);
+}
+
+// DOM resume signal (online/focus/visibilitychange). Reset backoff and
+// reconnect only if the socket is actually dead — a healthy or still-connecting
+// socket is left alone. Mirrors TerminalConnection.handleResume on web.
+function handleResume(transport: TerminalTransport) {
+	if (transport._terminated) return;
+	if (!transport.currentUrl || !transport._terminal) return;
+	transport._reconnectAttempt = 0;
+	// Bail if a connect is already in flight. State "connecting" also covers the
+	// /hosts/ pre-flight window, where transport.socket is still null but
+	// reconnecting would orphan the socket the pending pre-flight is about to open.
+	const socket = transport.socket;
+	if (
+		transport.connectionState === "connecting" ||
+		socket?.readyState === WebSocket.OPEN
+	) {
+		return;
+	}
+	reconnectNow(transport);
+}
+
+function setupLiveness(transport: TerminalTransport) {
+	if (transport._livenessTimer === null) {
+		transport._lastLivenessTick = Date.now();
+		transport._livenessTimer = setInterval(() => {
+			const now = Date.now();
+			const gap = now - transport._lastLivenessTick;
+			transport._lastLivenessTick = now;
+			if (gap > LIVENESS_SUSPEND_GAP_MS) reconnectNow(transport);
+		}, LIVENESS_CHECK_INTERVAL_MS);
+	}
+	if (!transport._resumeListener) {
+		const listener = () => handleResume(transport);
+		transport._resumeListener = listener;
+		if (typeof window !== "undefined") {
+			window.addEventListener("online", listener);
+			window.addEventListener("focus", listener);
+		}
+		if (typeof document !== "undefined") {
+			document.addEventListener("visibilitychange", listener);
+		}
+	}
+}
+
+function teardownLiveness(transport: TerminalTransport) {
+	if (transport._livenessTimer !== null) {
+		clearInterval(transport._livenessTimer);
+		transport._livenessTimer = null;
+	}
+	const listener = transport._resumeListener;
+	if (listener) {
+		if (typeof window !== "undefined") {
+			window.removeEventListener("online", listener);
+			window.removeEventListener("focus", listener);
+		}
+		if (typeof document !== "undefined") {
+			document.removeEventListener("visibilitychange", listener);
+		}
+		transport._resumeListener = null;
+	}
 }
 
 function scheduleReconnect(transport: TerminalTransport) {
@@ -234,7 +345,14 @@ export function connect(
 	cancelReconnect(transport);
 	transport.currentUrl = wsUrl;
 	transport._terminal = terminal;
+	// Recreate per connect so the coalescer always targets the current
+	// terminal; dispose flushes anything the previous socket left pending.
+	transport._writeCoalescer?.dispose();
+	transport._writeCoalescer = createWriteCoalescer((data) =>
+		terminal.write(data),
+	);
 	transport._terminated = false;
+	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
 	const actualUrl = transport._hasReceivedBytes
 		? appendQueryParam(wsUrl, "replay", "0")
@@ -307,12 +425,13 @@ function attachSocketListeners(
 		// channel; renderer treats them identically). Pipe straight into
 		// xterm without any decoding step.
 		if (event.data instanceof ArrayBuffer) {
-			// Pipe PTY bytes straight into xterm. There's no output ACK back to
-			// host-service: back-pressure lives entirely on the host side, which
-			// bounds this socket's send buffer and drops us (we reconnect and
-			// replay) if we fall hopelessly behind. That means a slow/stalled
-			// renderer can never wedge the shell — it just loses some scrollback.
-			terminal.write(new Uint8Array(event.data));
+			// Queue PTY bytes; the coalescer batches them into one xterm.write
+			// per animation frame. There's no output ACK back to host-service:
+			// back-pressure lives entirely on the host side, which bounds this
+			// socket's send buffer and drops us (we reconnect and replay) if we
+			// fall hopelessly behind. That means a slow/stalled renderer can
+			// never wedge the shell — it just loses some scrollback.
+			transport._writeCoalescer?.push(new Uint8Array(event.data));
 			transport._hasReceivedBytes = true;
 			return;
 		}
@@ -321,6 +440,7 @@ function attachSocketListeners(
 		try {
 			message = JSON.parse(String(event.data)) as TerminalServerMessage;
 		} catch {
+			transport._writeCoalescer?.flushSync();
 			terminal.writeln("\r\n[terminal] invalid server payload");
 			return;
 		}
@@ -345,6 +465,7 @@ function attachSocketListeners(
 		}
 
 		if (message.type === "exit") {
+			transport._writeCoalescer?.flushSync();
 			transport._terminated = true;
 			cancelReconnect(transport);
 			terminal.writeln(
@@ -355,6 +476,9 @@ function attachSocketListeners(
 
 	socket.addEventListener("close", (event) => {
 		if (transport.socket !== socket) return;
+		// Render whatever arrived before the close instead of holding it for a
+		// frame that may never come (e.g. hidden window).
+		transport._writeCoalescer?.flushSync();
 		setConnectionState(transport, "closed");
 		transport.socket = null;
 		if (!transport._terminated && event.code !== 1000) {
@@ -391,10 +515,13 @@ function attachSocketListeners(
 
 export function disconnect(transport: TerminalTransport) {
 	cancelReconnect(transport);
+	teardownLiveness(transport);
 	if (transport.socket) {
 		transport.socket.close();
 		transport.socket = null;
 	}
+	transport._writeCoalescer?.dispose();
+	transport._writeCoalescer = null;
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
@@ -430,10 +557,13 @@ export function sendDispose(transport: TerminalTransport) {
 
 export function disposeTransport(transport: TerminalTransport) {
 	cancelReconnect(transport);
+	teardownLiveness(transport);
 	if (transport.socket) {
 		transport.socket.close();
 		transport.socket = null;
 	}
+	transport._writeCoalescer?.dispose();
+	transport._writeCoalescer = null;
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;

@@ -44,7 +44,7 @@ export function V2SessionsSection() {
 	if (!activeHostUrl) {
 		return (
 			<div className="space-y-1">
-				<h3 className="text-sm font-medium">Manage daemon</h3>
+				<h3 className="text-sm font-medium">Terminal daemon</h3>
 				<p className="text-sm text-muted-foreground">
 					Host service is starting…
 				</p>
@@ -176,7 +176,7 @@ function V2SessionsSectionInner() {
 				<div className="flex items-start justify-between gap-4">
 					<div>
 						<h3 className="text-sm font-medium flex items-baseline gap-2">
-							Manage daemon
+							Terminal daemon
 							{versionLabel ? (
 								<span className="text-xs font-mono font-normal text-muted-foreground/80">
 									{versionLabel}

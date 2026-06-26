@@ -42,7 +42,7 @@
 		"simplex-noise": "4.0.3",
 		"stripe-gradient": "1.0.1",
 		"three": "0.181.2",
-		"ua-parser-js": "2.0.9",
+		"ua-parser-js": "2.0.10",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
@@ -58,6 +58,6 @@
 		"babel-plugin-react-compiler": "1.0.0",
 		"dotenv": "17.3.1",
 		"tailwindcss": "4.2.2",
-		"typescript": "5.9.3"
+		"typescript": "6.0.3"
 	}
 }

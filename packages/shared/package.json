@@ -131,10 +131,6 @@
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
-		},
-		"./remote-control-protocol": {
-			"types": "./src/remote-control-protocol.ts",
-			"default": "./src/remote-control-protocol.ts"
 		}
 	},
 	"scripts": {
@@ -152,6 +148,6 @@
 		"@superset/typescript": "workspace:*",
 		"@types/friendly-words": "1.2.2",
 		"bun-types": "1.3.11",
-		"typescript": "5.9.3"
+		"typescript": "6.0.3"
 	}
 }

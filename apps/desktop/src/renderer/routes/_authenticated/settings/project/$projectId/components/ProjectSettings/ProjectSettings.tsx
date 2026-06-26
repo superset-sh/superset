@@ -511,7 +511,9 @@ export function ProjectSettings({
 						)}
 				</SettingsSection>
 
-				<ScriptsEditor projectId={project.id} />
+				{isItemVisible(SETTING_ITEM_ID.PROJECT_SCRIPTS, visibleItems) && (
+					<ScriptsEditor projectId={project.id} />
+				)}
 
 				<SettingsSection title="Appearance">
 					<div className="flex items-center justify-between gap-4">

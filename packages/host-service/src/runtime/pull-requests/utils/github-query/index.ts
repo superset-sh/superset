@@ -3,6 +3,8 @@ export {
 	fetchPullRequestByHeadFromGh,
 	fetchPullRequestChecks,
 	fetchPullRequestChecksFromGh,
+	fetchPullRequestMergeQueueState,
+	fetchPullRequestMergeQueueStateFromGh,
 	fetchPullRequestReviewDecision,
 	fetchPullRequestReviewDecisionFromGh,
 } from "./github-query";

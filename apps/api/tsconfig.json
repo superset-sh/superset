@@ -1,7 +1,6 @@
 {
 	"extends": "@superset/typescript/next.json",
 	"compilerOptions": {
-		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]
 		}

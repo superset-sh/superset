@@ -1,4 +1,4 @@
-import type { Pane, WorkspaceState } from "@superset/panes";
+import type { Pane } from "@superset/panes";
 import { useCallback } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
@@ -13,7 +13,13 @@ import {
 	getPrependTabOrder,
 	isSidebarWorkspaceVisible,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
+import {
+	createEmptyPaneLayout,
+	removeProjectFromSidebarState,
+	tombstoneSidebarWorkspaceRecord,
+} from "./sidebarMutations";
 
 type ProjectTopLevelItem = {
 	type: "workspace" | "section";
@@ -72,14 +78,6 @@ function getProjectTopLevelItems(
 function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
 	const firstSectionIndex = items.findIndex((item) => item.type === "section");
 	return firstSectionIndex === -1 ? items.length : firstSectionIndex;
-}
-
-function createEmptyPaneLayout(): WorkspaceState<unknown> {
-	return {
-		version: 1,
-		tabs: [],
-		activeTabId: null,
-	} satisfies WorkspaceState<unknown>;
 }
 
 /**
@@ -189,6 +187,7 @@ function cleanupWorkspacePaneRuntimes(rows: PaneLifecycleRow[]): void {
 
 export function useDashboardSidebarState() {
 	const collections = useCollections();
+	const { machineId } = useLocalHostService();
 
 	const ensureProjectInSidebar = useCallback(
 		(projectId: string) => {
@@ -455,57 +454,26 @@ export function useDashboardSidebarState() {
 
 	const hideWorkspaceInSidebar = useCallback(
 		(workspaceId: string, projectId: string) => {
-			const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
-			if (!workspace) {
-				collections.v2WorkspaceLocalState.insert({
-					workspaceId,
-					createdAt: new Date(),
-					sidebarState: {
-						projectId,
-						tabOrder: 0,
-						sectionId: null,
-						isHidden: true,
-					},
-					paneLayout: createEmptyPaneLayout(),
-				});
-				return;
-			}
-
-			cleanupWorkspacePaneRuntimes([workspace]);
-			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-				draft.sidebarState.projectId = projectId;
-				draft.sidebarState.sectionId = null;
-				draft.sidebarState.isHidden = true;
-				draft.paneLayout = createEmptyPaneLayout();
-			});
+			tombstoneSidebarWorkspaceRecord(
+				collections,
+				workspaceId,
+				projectId,
+				cleanupWorkspacePaneRuntimes,
+			);
 		},
 		[collections],
 	);
 
 	const removeProjectFromSidebar = useCallback(
 		(projectId: string) => {
-			const workspaceRows = Array.from(
-				collections.v2WorkspaceLocalState.state.values(),
-			).filter((item) => item.sidebarState.projectId === projectId);
-			const workspaceIds = workspaceRows.map((item) => item.workspaceId);
-			const sectionIds = Array.from(
-				collections.v2SidebarSections.state.values(),
-			)
-				.filter((item) => item.projectId === projectId)
-				.map((item) => item.sectionId);
-
-			if (workspaceIds.length > 0) {
-				cleanupWorkspacePaneRuntimes(workspaceRows);
-				collections.v2WorkspaceLocalState.delete(workspaceIds);
-			}
-			if (sectionIds.length > 0) {
-				collections.v2SidebarSections.delete(sectionIds);
-			}
-			if (collections.v2SidebarProjects.get(projectId)) {
-				collections.v2SidebarProjects.delete(projectId);
-			}
+			removeProjectFromSidebarState(
+				collections,
+				projectId,
+				machineId,
+				cleanupWorkspacePaneRuntimes,
+			);
 		},
-		[collections],
+		[collections, machineId],
 	);
 
 	return {

@@ -12,11 +12,12 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import {
-	type ProjectSetupResult,
+	useCreateV1Project,
 	useFinalizeProjectSetup,
 } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -24,7 +25,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 interface NewProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSuccess?: (result: ProjectSetupResult) => void;
+	onSuccess?: (result: { projectId: string }) => void;
 	onError?: (message: string) => void;
 }
 
@@ -44,9 +45,11 @@ export function NewProjectModal({
 	onSuccess,
 	onError,
 }: NewProjectModalProps) {
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const finalizeSetup = useFinalizeProjectSetup();
+	const createV1Project = useCreateV1Project();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 
@@ -94,12 +97,6 @@ export function NewProjectModal({
 	};
 
 	const createFromClone = async () => {
-		if (!activeHostUrl) {
-			showHostServiceUnavailableToast(hostService, {
-				action: "clone the repository",
-			});
-			return;
-		}
 		const trimmedUrl = url.trim();
 		const trimmedParent = parentDir.trim();
 		if (!trimmedUrl) {
@@ -110,21 +107,38 @@ export function NewProjectModal({
 			toast.error("Please select a project location");
 			return;
 		}
-		const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
-		if (!trimmedName) {
-			toast.error("Please enter a project name");
-			return;
-		}
 
 		setWorking(true);
 		try {
+			if (!isV2CloudEnabled) {
+				const projectId = await createV1Project.cloneFromUrl({
+					url: trimmedUrl,
+					parentDir: trimmedParent,
+				});
+				if (!projectId) return;
+				onSuccess?.({ projectId });
+				reset();
+				onOpenChange(false);
+				return;
+			}
+			if (!activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "clone the repository",
+				});
+				return;
+			}
+			const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
+			if (!trimmedName) {
+				toast.error("Please enter a project name");
+				return;
+			}
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			const result = await client.project.create.mutate({
 				name: trimmedName,
 				mode: { kind: "clone", parentDir: trimmedParent, url: trimmedUrl },
 			});
 			finalizeSetup(activeHostUrl, result);
-			onSuccess?.(result);
+			onSuccess?.({ projectId: result.projectId });
 			reset();
 			onOpenChange(false);
 		} catch (err) {
@@ -174,21 +188,23 @@ export function NewProjectModal({
 						/>
 					</div>
 
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="project-name" className="text-xs">
-							Project name
-						</Label>
-						<Input
-							id="project-name"
-							value={name}
-							onChange={(e) => {
-								setName(e.target.value);
-								setNameTouched(true);
-							}}
-							placeholder="my-project"
-							disabled={working}
-						/>
-					</div>
+					{isV2CloudEnabled && (
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="project-name" className="text-xs">
+								Project name
+							</Label>
+							<Input
+								id="project-name"
+								value={name}
+								onChange={(e) => {
+									setName(e.target.value);
+									setNameTouched(true);
+								}}
+								placeholder="my-project"
+								disabled={working}
+							/>
+						</div>
+					)}
 
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="project-path" className="text-xs">
