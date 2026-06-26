@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { env } from "renderer/env.renderer";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { lt } from "semver";
 
 interface VersionRequirements {
@@ -32,22 +32,7 @@ export function useVersionCheck(): UseVersionCheckResult {
 		}
 
 		try {
-			const response = await fetch(
-				`${env.NEXT_PUBLIC_API_URL}/api/desktop/version`,
-			);
-
-			if (!response.ok) {
-				// Fail open - if API is down, don't block users
-				setState({
-					isLoading: false,
-					isBlocked: false,
-					requirements: null,
-					error: null,
-				});
-				return;
-			}
-
-			const requirements: VersionRequirements = await response.json();
+			const requirements = await apiTrpcClient.desktop.minimumVersion.query();
 			const currentVersion = window.App.appVersion;
 			const isBlocked = lt(currentVersion, requirements.minimumVersion);
 
@@ -59,7 +44,7 @@ export function useVersionCheck(): UseVersionCheckResult {
 				error: null,
 			});
 		} catch (error) {
-			// Fail open on network errors
+			// Fail open on network/tRPC errors so a flaky API can't block users.
 			setState({
 				isLoading: false,
 				isBlocked: false,
