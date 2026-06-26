@@ -1,5 +1,6 @@
 export type { AnthropicProviderOptions, ClaudeCredentials } from "./anthropic";
 export {
+	clearAnthropicKeychainCache,
 	getAnthropicProviderOptions,
 	getCredentialsFromAnySource,
 	getCredentialsFromAuthStorage,
