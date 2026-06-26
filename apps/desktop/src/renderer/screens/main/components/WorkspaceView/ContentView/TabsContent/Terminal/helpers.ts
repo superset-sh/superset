@@ -144,6 +144,9 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 				xterm.refresh(0, xterm.rows - 1);
 			});
 			xterm.loadAddon(webglAddon);
+			// Force a full repaint so the WebGL renderer renders all
+			// existing content, including wide/CJK characters.
+			xterm.refresh(0, xterm.rows - 1);
 		} catch {
 			suggestedRendererType = "dom";
 			webglAddon = null;
