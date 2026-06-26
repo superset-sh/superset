@@ -11,6 +11,7 @@ import {
 } from "shared/changes-types";
 import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import {
+	type ActivePaneStatus,
 	acknowledgedStatus,
 	type BrowserPaneState,
 	type CommentPaneState,
@@ -18,6 +19,7 @@ import {
 	type DiffLayout,
 	type FileViewerMode,
 	type FileViewerState,
+	pickHigherStatus,
 } from "shared/tabs-types";
 import type {
 	AddChatTabOptions,
@@ -115,6 +117,41 @@ export function resolveActiveTabIdForWorkspace({
 	}
 
 	return firstWorkspaceTabId;
+}
+
+/**
+ * Aggregate the highest-priority pane status for each tab in the given
+ * workspace. The global `panes` map covers every workspace, so this
+ * function filters by tab membership before reducing — keeps a stray
+ * pane referencing another workspace's tab from polluting indicators on
+ * the active workspace's tab strip.
+ */
+export function computeTabStatusMap({
+	workspaceId,
+	tabs,
+	panes,
+}: {
+	workspaceId: string;
+	tabs: Tab[];
+	panes: Record<string, Pane>;
+}): Map<string, ActivePaneStatus> {
+	const workspaceTabIds = new Set<string>();
+	for (const tab of tabs) {
+		if (tab.workspaceId === workspaceId) {
+			workspaceTabIds.add(tab.id);
+		}
+	}
+
+	const result = new Map<string, ActivePaneStatus>();
+	for (const pane of Object.values(panes)) {
+		if (!pane.status || pane.status === "idle") continue;
+		if (!workspaceTabIds.has(pane.tabId)) continue;
+		const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
+		if (higher !== "idle") {
+			result.set(pane.tabId, higher);
+		}
+	}
+	return result;
 }
 
 /**
