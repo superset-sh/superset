@@ -7,6 +7,10 @@ import { homedir, hostname, platform } from "node:os";
 // stable for users already registered against the cloud.
 const APP_HOST_SALT = "superset-desktop-device-id-v1";
 
+// Bound platform-specific subprocesses so a wedged spawn (e.g. an EDR
+// intercepting `ioreg`) cannot freeze the synchronous caller — see #4396.
+const MACHINE_ID_SUBPROCESS_TIMEOUT_MS = 1500;
+
 function getRawMachineId(): string {
 	try {
 		const os = platform();
@@ -15,7 +19,7 @@ function getRawMachineId(): string {
 			const output = execFileSync(
 				"ioreg",
 				["-rd1", "-c", "IOPlatformExpertDevice"],
-				{ encoding: "utf8" },
+				{ encoding: "utf8", timeout: MACHINE_ID_SUBPROCESS_TIMEOUT_MS },
 			);
 			const match = output.match(/"IOPlatformUUID"\s*=\s*"([^"]+)"/);
 			if (match?.[1]) return match[1];
@@ -34,7 +38,7 @@ function getRawMachineId(): string {
 					"/v",
 					"MachineGuid",
 				],
-				{ encoding: "utf8" },
+				{ encoding: "utf8", timeout: MACHINE_ID_SUBPROCESS_TIMEOUT_MS },
 			);
 			const match = output.match(/MachineGuid\s+REG_SZ\s+(\S+)/);
 			if (match?.[1]) return match[1];
