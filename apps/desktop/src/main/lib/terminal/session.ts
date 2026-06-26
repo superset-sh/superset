@@ -1,6 +1,7 @@
 import os from "node:os";
 import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import * as pty from "node-pty";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
@@ -37,6 +38,10 @@ export function createHeadlessTerminal(params: {
 	headless.loadAddon(
 		serializer as unknown as Parameters<typeof headless.loadAddon>[0],
 	);
+	headless.loadAddon(
+		new Unicode11Addon() as unknown as Parameters<typeof headless.loadAddon>[0],
+	);
+	headless.unicode.activeVersion = "11";
 
 	return { headless, serializer };
 }

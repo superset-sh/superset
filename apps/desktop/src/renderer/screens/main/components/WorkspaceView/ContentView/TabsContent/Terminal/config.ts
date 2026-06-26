@@ -3,6 +3,7 @@ import {
 	DEFAULT_TERMINAL_FONT_FAMILY as SHARED_DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE as SHARED_DEFAULT_TERMINAL_FONT_SIZE,
 } from "renderer/lib/terminal/appearance";
+import { TERMINAL_RENDERING_OPTIONS } from "renderer/lib/terminal/xterm-options";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 
 // Use user's theme
@@ -35,6 +36,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	cursorInactiveStyle: "outline",
 	vtExtensions: { kittyKeyboard: true },
 	screenReaderMode: false,
+	...TERMINAL_RENDERING_OPTIONS,
 	// xterm's fit addon permanently reserves scrollbar width from usable columns.
 	// Hide the built-in scrollbar so terminal content can use the full pane width.
 	scrollbar: {

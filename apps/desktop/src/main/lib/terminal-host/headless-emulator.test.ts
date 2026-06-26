@@ -45,6 +45,7 @@ const EXIT_ALT_SCREEN = `${CSI}?1049l`;
 // Cursor movement
 const MOVE_CURSOR = (row: number, col: number) => `${CSI}${row};${col}H`;
 const CLEAR_SCREEN = `${CSI}2J`;
+const UNICODE_11_WIDE_SYMBOL = String.fromCodePoint(0x231a);
 
 // OSC-7 CWD reporting - format is file://hostname/path (path is NOT URL-encoded)
 const OSC7_CWD = (path: string) => `${OSC}7;file://localhost${path}${BEL}`;
@@ -64,6 +65,21 @@ describe("HeadlessEmulator", () => {
 		test("should initialize with default modes", () => {
 			const modes = emulator.getModes();
 			expect(modesEqual(modes, DEFAULT_MODES)).toBe(true);
+		});
+
+		test("should use Unicode 11 widths for wide symbol layout", async () => {
+			const narrowEmulator = new HeadlessEmulator({
+				cols: 2,
+				rows: 1,
+				scrollback: 1000,
+			});
+
+			try {
+				await narrowEmulator.writeSync(`${UNICODE_11_WIDE_SYMBOL}A`);
+				expect(narrowEmulator.getScrollbackLines()).toBe(2);
+			} finally {
+				narrowEmulator.dispose();
+			}
 		});
 
 		test("should write text to terminal", async () => {
