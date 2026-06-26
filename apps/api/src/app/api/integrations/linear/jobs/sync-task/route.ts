@@ -89,6 +89,7 @@ async function syncTaskToLinear(
 	teamId: string | null,
 ): Promise<{
 	success: boolean;
+	skipped?: boolean;
 	externalId?: string;
 	externalKey?: string;
 	externalUrl?: string;
@@ -97,7 +98,7 @@ async function syncTaskToLinear(
 	const client = await getLinearClient(task.organizationId);
 
 	if (!client) {
-		return { success: false, error: "No Linear connection found" };
+		return { success: false, skipped: true, error: "No Linear connection found" };
 	}
 
 	try {
@@ -106,7 +107,7 @@ async function syncTaskToLinear(
 		});
 
 		if (!taskStatus) {
-			return { success: false, error: "Task status not found" };
+			return { success: false, skipped: true, error: "Task status not found" };
 		}
 
 		if (task.externalProvider === "linear" && task.externalId) {
@@ -178,7 +179,7 @@ async function syncTaskToLinear(
 		}
 
 		if (!teamId) {
-			return { success: false, error: "No team configured" };
+			return { success: false, skipped: true, error: "No team configured" };
 		}
 
 		const stateId = await findLinearState(client, teamId, taskStatus.name);
@@ -290,6 +291,10 @@ export async function POST(request: Request) {
 	const result = await syncTaskToLinear(task, resolvedTeamId);
 
 	if (!result.success) {
+		// skipped = non-retryable business logic failure; return 200 so QStash does not retry.
+		if (result.skipped) {
+			return Response.json({ skipped: true, reason: result.error });
+		}
 		return Response.json({ error: result.error }, { status: 500 });
 	}
 
