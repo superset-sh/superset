@@ -115,7 +115,8 @@ export function usePersistentWebview({
 		electronTrpc.browserHistory.upsert.useMutation();
 
 	// Subscribe to new-window events (target="_blank" links, window.open)
-	// handled via setWindowOpenHandler in the main process
+	// handled via setWindowOpenHandler in the main process.
+	// Opens in a new tab to match standard browser behaviour (issue #3247).
 	electronTrpc.browser.onNewWindow.useSubscription(
 		{ paneId },
 		{
@@ -125,7 +126,7 @@ export function usePersistentWebview({
 				if (!pane) return;
 				const tab = state.tabs.find((t) => t.id === pane.tabId);
 				if (!tab) return;
-				state.openInBrowserPane(tab.workspaceId, url);
+				state.addBrowserTab(tab.workspaceId, url);
 			},
 		},
 	);
