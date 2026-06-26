@@ -4,7 +4,8 @@ import {
 	TERMINAL_ATTACH_CANCELED_MESSAGE,
 	TerminalAttachCanceledError,
 } from "../errors";
-import type { SessionInfo } from "./types";
+import { COLD_RESTORE_INPUT_MODE_RESET } from "./constants";
+import type { ColdRestoreInfo, SessionInfo } from "./types";
 
 class MockTerminalHostClient extends EventEmitter {
 	createOrAttachCalls: Array<{ sessionId: string; requestId?: string }> = [];
@@ -563,5 +564,50 @@ describe("DaemonTerminalManager kill tracking", () => {
 
 		await expect(manager.forceKillAll()).rejects.toThrow("probe failed");
 		expect(mockClient.killAllCalls).toBe(0);
+	});
+
+	// Regression test for #4129: scrollback recovered after an unclean shutdown
+	// can contain mode-enable sequences (e.g. mouse tracking) emitted by a TUI
+	// that died without cleaning up. Without a balancing reset, replaying that
+	// scrollback into xterm re-enables mouse tracking, and any mouse movement is
+	// echoed as escape sequences ("random numbers") in the terminal.
+	it("appends an input-mode reset to cold-restored scrollback", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-cold-restore-1";
+		const leakedScrollback =
+			"some output\x1b[?1000h\x1b[?1003h\x1b[?1006h\x1b[?1004hmore output";
+
+		const coldRestoreInfo = (
+			manager as unknown as { coldRestoreInfo: Map<string, ColdRestoreInfo> }
+		).coldRestoreInfo;
+		coldRestoreInfo.set(paneId, {
+			scrollback: leakedScrollback,
+			previousCwd: "/tmp",
+			cols: 80,
+			rows: 24,
+		});
+
+		const result = await manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+		});
+
+		expect(result.isColdRestore).toBe(true);
+		expect(result.snapshot?.snapshotAnsi).toBe(
+			leakedScrollback + COLD_RESTORE_INPUT_MODE_RESET,
+		);
+		expect(result.snapshot?.snapshotAnsi).toContain("\x1b[?1000l");
+		expect(result.snapshot?.snapshotAnsi).toContain("\x1b[?1002l");
+		expect(result.snapshot?.snapshotAnsi).toContain("\x1b[?1003l");
+		expect(result.snapshot?.snapshotAnsi).toContain("\x1b[?1006l");
+		expect(result.snapshot?.snapshotAnsi).toContain("\x1b[?1004l");
+		// The reset must come AFTER the leaked enables so it actually disables them.
+		const enableIdx =
+			result.snapshot?.snapshotAnsi.indexOf("\x1b[?1000h") ?? -1;
+		const disableIdx =
+			result.snapshot?.snapshotAnsi.indexOf("\x1b[?1000l") ?? -1;
+		expect(enableIdx).toBeGreaterThanOrEqual(0);
+		expect(disableIdx).toBeGreaterThan(enableIdx);
 	});
 });
