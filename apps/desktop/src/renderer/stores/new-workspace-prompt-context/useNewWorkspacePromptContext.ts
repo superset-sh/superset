@@ -13,7 +13,11 @@ import {
 	fetchInternalTaskBody,
 	fetchPrBody,
 } from "./fetchers";
-import { useNewWorkspacePromptContextStore } from "./store";
+import {
+	makePromptContextKey,
+	makePromptContextScope,
+	useNewWorkspacePromptContextStore,
+} from "./store";
 
 export interface NewWorkspacePromptContextApi {
 	build: (args: {
@@ -48,13 +52,18 @@ export function useNewWorkspacePromptContext(args: {
 		});
 	}, [hostId, machineId, activeHostUrl, activeOrganizationId, relayUrl]);
 
+	const contextScope = useMemo(
+		() => makePromptContextScope(projectId, hostUrl),
+		[projectId, hostUrl],
+	);
+
 	useEffect(() => {
-		if (!projectId || !hostUrl) return;
+		if (!projectId || !hostUrl || !contextScope) return;
 		const store = useNewWorkspacePromptContextStore.getState();
 
 		if (linkedPR) {
 			const prNumber = linkedPR.prNumber;
-			store.register(`pr:${prNumber}`, () =>
+			store.register(makePromptContextKey("pr", prNumber, contextScope), () =>
 				fetchPrBody({ prNumber, projectId, hostUrl }),
 			);
 		}
@@ -62,17 +71,18 @@ export function useNewWorkspacePromptContext(args: {
 		for (const issue of linkedIssues) {
 			if (issue.source === "github" && issue.number != null) {
 				const issueNumber = issue.number;
-				store.register(`github-issue:${issueNumber}`, () =>
-					fetchGitHubIssueBody({ issueNumber, projectId, hostUrl }),
+				store.register(
+					makePromptContextKey("github-issue", issueNumber, contextScope),
+					() => fetchGitHubIssueBody({ issueNumber, projectId, hostUrl }),
 				);
 			} else if (issue.source === "internal" && issue.taskId) {
 				const taskId = issue.taskId;
-				store.register(`task:${taskId}`, () =>
+				store.register(makePromptContextKey("task", taskId, contextScope), () =>
 					fetchInternalTaskBody({ taskId }),
 				);
 			}
 		}
-	}, [projectId, hostUrl, linkedPR, linkedIssues]);
+	}, [projectId, hostUrl, contextScope, linkedPR, linkedIssues]);
 
 	return useMemo<NewWorkspacePromptContextApi>(
 		() => ({
@@ -84,9 +94,10 @@ export function useNewWorkspacePromptContext(args: {
 					userPrompt: buildArgs.userPrompt,
 					linkedPR: buildArgs.linkedPR,
 					linkedIssues: buildArgs.linkedIssues,
+					contextScope,
 				});
 			},
 		}),
-		[],
+		[contextScope],
 	);
 }
