@@ -20,11 +20,13 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 		`[host-service:db] Initialized at ${dbPath}, migrations from ${migrationsFolder}`,
 	);
 
-	try {
-		migrate(db, { migrationsFolder });
-	} catch (error) {
-		console.error("[host-service:db] Migration failed:", error);
-	}
+	// No catch — fail closed. drizzle runs all pending migrations in a single
+	// BEGIN/COMMIT and ROLLBACKs on any error, so a failure leaves the DB at its
+	// prior version (never half-applied). Letting it throw propagates to
+	// `serve.ts` `main().catch(... process.exit(1))`, so the coordinator's health
+	// check fails and it recovers (kill the stale process, respawn) instead of
+	// silently serving a DB that's missing tables.
+	migrate(db, { migrationsFolder });
 
 	return db;
 }
