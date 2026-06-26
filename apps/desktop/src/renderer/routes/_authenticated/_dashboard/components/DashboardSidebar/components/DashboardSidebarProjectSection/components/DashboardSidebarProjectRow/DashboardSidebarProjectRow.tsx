@@ -9,6 +9,7 @@ interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
 	iconUrl: string | null;
+	projectColor: string | null;
 	totalWorkspaceCount: number;
 	isCollapsed: boolean;
 	isRenaming: boolean;
@@ -29,6 +30,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 		{
 			projectName,
 			iconUrl,
+			projectColor,
 			totalWorkspaceCount,
 			isCollapsed,
 			isRenaming,
@@ -74,6 +76,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 						<ProjectThumbnail
 							projectName={projectName}
 							iconUrl={iconUrl}
+							color={projectColor}
 							className="size-4 group-hover:hidden"
 						/>
 						<HiChevronRight
