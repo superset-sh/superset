@@ -8,6 +8,7 @@ export type GitHubStatusQuerySurface =
 	| "workspace-page"
 	| "workspace-hover-card"
 	| "workspace-list-item"
+	| "workspace-card"
 	| "workspace-row";
 
 export interface GitHubQueryPolicy {
@@ -32,6 +33,10 @@ const HOVER_SURFACES: ReadonlySet<GitHubStatusQuerySurface> = new Set([
 	"workspace-list-item",
 	"workspace-row",
 	"workspace-hover-card",
+	// Cards fetch eagerly on mount (caller passes isActive=true without a
+	// hover gate) but must never poll — one gh call per workspace per
+	// staleness window, refreshed by the existing hover path.
+	"workspace-card",
 ]);
 
 /**

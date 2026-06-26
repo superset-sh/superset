@@ -2,12 +2,36 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { projects, type SelectProject } from "@superset/local-db";
+import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
+import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
 import type { SetupAction, SetupDetectionResult } from "shared/types/config";
+import {
+	DEFAULT_WORKSPACE_CARD_CONFIG,
+	parseWorkspaceCardConfig,
+	type WorkspaceCardConfig,
+	workspaceCardConfigSchema,
+	workspaceCardConfigsEqual,
+} from "shared/workspace-card-config";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { loadSetupConfig } from "../workspaces/utils/setup";
+import { readRepoWorkspaceCardBlock } from "./workspace-card-config-read";
+import {
+	resolveWorkspaceCardRepoPath,
+	watchWorkspaceCardConfigFile,
+} from "./workspace-card-source";
+import {
+	commandSetHash,
+	resolveGatedWorkspaceCardConfig,
+} from "./workspace-card-trust";
+
+/**
+ * Validated projectId — rejects path traversal attempts before they reach
+ * any filesystem join. Used on all workspace-card procedures.
+ */
+const projectIdSchema = z.string().regex(/^[\w-]{1,64}$/);
 
 function hasConfiguredScripts(
 	project: Pick<SelectProject, "id" | "mainRepoPath">,
@@ -342,6 +366,16 @@ function getConfigPath(mainRepoPath: string): string {
 	return join(mainRepoPath, ".superset", "config.json");
 }
 
+/** What getWorkspaceCardConfig resolves to when no appState override exists. */
+function resolveRepoWorkspaceCardConfig(
+	projectId: string,
+): WorkspaceCardConfig {
+	const block = readRepoWorkspaceCardBlock(projectId);
+	return block !== undefined
+		? parseWorkspaceCardConfig(block)
+		: DEFAULT_WORKSPACE_CARD_CONFIG;
+}
+
 function ensureConfigExists(mainRepoPath: string): string {
 	const configPath = getConfigPath(mainRepoPath);
 	const supersetDir = join(mainRepoPath, ".superset");
@@ -391,6 +425,144 @@ export const createConfigRouter = () => {
 					.where(eq(projects.id, input.projectId))
 					.run();
 				return { success: true };
+			}),
+
+		// Sidebar workspace-card field visibility for a project. The repo's
+		// .superset/config.json "workspaceCard" block is the authoritative
+		// source (resolved for v1 projects via the local DB, for v2 cloud
+		// projects via the host-service DB -- see workspace-card-source.ts);
+		// the local appState only carries a per-machine override when the
+		// user diverged from the file through the in-app settings.
+		//
+		// Repo-sourced command lines are gated by the consent mechanism:
+		// they are stripped until the user explicitly approves the current
+		// command set via trustCardCommands. Component lines are always safe.
+		getWorkspaceCardConfig: publicProcedure
+			.input(z.object({ projectId: projectIdSchema }))
+			.query(({ input }): WorkspaceCardConfig => {
+				return resolveGatedWorkspaceCardConfig(input.projectId);
+			}),
+
+		// Where the effective card config comes from -- drives the settings
+		// UI's "Reset to repo config" affordance and the trust banner.
+		getWorkspaceCardConfigSource: publicProcedure
+			.input(z.object({ projectId: projectIdSchema }))
+			.query(({ input }): "override" | "repo" | "defaults" => {
+				if (appState.data.workspaceCardConfigs?.[input.projectId]) {
+					return "override";
+				}
+				return readRepoWorkspaceCardBlock(input.projectId) !== undefined
+					? "repo"
+					: "defaults";
+			}),
+
+		// Returns the trust state for repo-sourced command lines. When
+		// pendingCommandCount > 0 the UI should show the consent banner.
+		getWorkspaceCardTrustState: publicProcedure
+			.input(z.object({ projectId: projectIdSchema }))
+			.query(({ input }): { trusted: boolean; pendingCommandCount: number } => {
+				// Only relevant when source is "repo".
+				if (appState.data.workspaceCardConfigs?.[input.projectId]) {
+					return { trusted: true, pendingCommandCount: 0 };
+				}
+				const block = readRepoWorkspaceCardBlock(input.projectId);
+				if (block === undefined) {
+					return { trusted: true, pendingCommandCount: 0 };
+				}
+				const config = parseWorkspaceCardConfig(block);
+				const commandCount = config.customLines.filter(
+					(l) => l.type === "command" && l.enabled,
+				).length;
+				if (commandCount === 0) {
+					return { trusted: true, pendingCommandCount: 0 };
+				}
+				const trusted =
+					(appState.data.trustedCardCommandProjects?.[input.projectId] ??
+						null) === commandSetHash(config);
+				return {
+					trusted,
+					pendingCommandCount: trusted ? 0 : commandCount,
+				};
+			}),
+
+		// Approve the current repo command set for this project.
+		trustCardCommands: publicProcedure
+			.input(z.object({ projectId: projectIdSchema }))
+			.mutation(async ({ input }) => {
+				const block = readRepoWorkspaceCardBlock(input.projectId);
+				if (block === undefined) return { success: true };
+				const config = parseWorkspaceCardConfig(block);
+				const next = { ...appState.data.trustedCardCommandProjects };
+				next[input.projectId] = commandSetHash(config);
+				appState.data.trustedCardCommandProjects = next;
+				await appState.write();
+				return { success: true };
+			}),
+
+		// Revoke trust for this project's repo command lines.
+		untrustCardCommands: publicProcedure
+			.input(z.object({ projectId: projectIdSchema }))
+			.mutation(async ({ input }) => {
+				const next = { ...appState.data.trustedCardCommandProjects };
+				delete next[input.projectId];
+				appState.data.trustedCardCommandProjects = next;
+				await appState.write();
+				return { success: true };
+			}),
+
+		updateWorkspaceCardConfig: publicProcedure
+			.input(
+				z.object({
+					projectId: projectIdSchema,
+					workspaceCard: workspaceCardConfigSchema,
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const next = { ...appState.data.workspaceCardConfigs };
+				// When the submitted config still matches what the repo file
+				// resolves to, don't store an override -- otherwise a no-op save
+				// would permanently shadow future edits to the file.
+				if (
+					workspaceCardConfigsEqual(
+						input.workspaceCard,
+						resolveRepoWorkspaceCardConfig(input.projectId),
+					)
+				) {
+					delete next[input.projectId];
+				} else {
+					next[input.projectId] = input.workspaceCard;
+				}
+				appState.data.workspaceCardConfigs = next;
+				await appState.write();
+				return { success: true };
+			}),
+
+		// Drop the per-machine override so the repo file (or defaults) applies.
+		resetWorkspaceCardConfig: publicProcedure
+			.input(z.object({ projectId: projectIdSchema }))
+			.mutation(async ({ input }) => {
+				const next = { ...appState.data.workspaceCardConfigs };
+				delete next[input.projectId];
+				appState.data.workspaceCardConfigs = next;
+				await appState.write();
+				return { success: true };
+			}),
+
+		// Emits whenever the project's .superset/config.json changes on disk,
+		// so card configs live-reload without an app restart. Same
+		// observable-subscription pattern as hostServiceCoordinator.onStatusChange.
+		watchWorkspaceCardConfig: publicProcedure
+			.input(z.object({ projectId: projectIdSchema }))
+			.subscription(({ input }) => {
+				return observable<{ changedAt: number }>((emit) => {
+					const repoPath = resolveWorkspaceCardRepoPath(input.projectId);
+					if (!repoPath) {
+						return () => {};
+					}
+					return watchWorkspaceCardConfigFile(repoPath, () =>
+						emit.next({ changedAt: Date.now() }),
+					);
+				});
 			}),
 
 		// Get the config file path (creates it if it doesn't exist)

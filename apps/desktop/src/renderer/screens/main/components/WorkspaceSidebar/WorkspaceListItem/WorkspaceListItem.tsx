@@ -6,6 +6,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { useLinkedTicket } from "renderer/hooks/useLinkedTicket";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useHoverGitHubStatus } from "renderer/lib/githubQueryPolicy";
@@ -20,6 +21,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { getHighestPriorityStatus } from "shared/tabs-types";
+import { DEFAULT_WORKSPACE_CARD_CONFIG } from "shared/workspace-card-config";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
 import { DeleteWorkspaceDialog } from "./components";
 import {
@@ -28,6 +30,7 @@ import {
 } from "./constants";
 import { useWorkspaceDnD } from "./useWorkspaceDnD";
 import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
+import { WorkspaceCardLines } from "./WorkspaceCardLines";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceIcon } from "./WorkspaceIcon";
@@ -67,14 +70,23 @@ export function WorkspaceListItem({
 	const isBranchWorkspace = type === "branch";
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
+	const { data: cardConfigData } =
+		electronTrpc.config.getWorkspaceCardConfig.useQuery(
+			{ projectId },
+			{ staleTime: 60_000 },
+		);
+	const cardConfig = cardConfigData ?? DEFAULT_WORKSPACE_CARD_CONFIG;
+	const linkedTicket = useLinkedTicket(null, branch);
 	const {
 		githubStatus,
 		hasHovered,
 		onMouseEnter: onGithubMouseEnter,
 	} = useHoverGitHubStatus({
 		workspaceId: id,
-		surface: "workspace-list-item",
+		surface: "workspace-card",
 		isWorktree: type === "worktree",
+		// Cards show PR info inline, so fetch on mount when those lines are on.
+		eager: cardConfig.prTitle || cardConfig.prChecks,
 	});
 	const rename = useWorkspaceRename(id, name, branch);
 	const workspaceStatus = useTabsStore((state) => {
@@ -396,7 +408,7 @@ export function WorkspaceListItem({
 							)}
 
 							<div className="grid shrink-0 h-5 [&>*]:col-start-1 [&>*]:row-start-1 items-center">
-								{diffStats && (
+								{cardConfig.diffStats && diffStats && (
 									<WorkspaceDiffStats
 										additions={diffStats.additions}
 										deletions={diffStats.deletions}
@@ -454,6 +466,16 @@ export function WorkspaceListItem({
 								)}
 							</div>
 						)}
+						<WorkspaceCardLines
+							config={cardConfig}
+							pr={pr}
+							workspaceStatus={workspaceStatus}
+							linearTicket={linkedTicket}
+							workspaceId={id}
+							projectId={projectId}
+							branch={branch}
+							workspaceName={name}
+						/>
 					</div>
 				)}
 			</div>

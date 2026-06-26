@@ -8,6 +8,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { WorkspaceCardSettings } from "renderer/routes/_authenticated/settings/project/$projectId/components/ProjectSettings/components/WorkspaceCardSettings";
 import {
 	HostSelect,
 	type HostSelectOption,
@@ -205,6 +206,15 @@ export function V2ProjectSettings({
 							<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
 						</div>
 					)}
+					<div className="pt-4">
+						<div className="mb-3">
+							<h3 className="text-sm font-medium">Workspace cards</h3>
+							<p className="mt-0.5 text-xs text-muted-foreground">
+								Which lines the sidebar workspace cards show for this project.
+							</p>
+						</div>
+						<WorkspaceCardSettings projectId={projectId} />
+					</div>
 				</section>
 
 				<section>

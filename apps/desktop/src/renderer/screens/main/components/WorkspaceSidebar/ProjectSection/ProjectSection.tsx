@@ -3,6 +3,7 @@ import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
+import { useWorkspaceCardConfigSync } from "renderer/hooks/useWorkspaceCardConfigSync";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { useWorkspaceSidebarStore } from "renderer/stores";
@@ -72,6 +73,8 @@ export function ProjectSection({
 	const openModal = useOpenNewWorkspaceModal();
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
+	// Card configs live-reload when .superset/config.json changes on disk.
+	useWorkspaceCardConfigSync(projectId);
 
 	const isCollapsed = isProjectCollapsed(projectId);
 	const totalWorkspaceCount =
