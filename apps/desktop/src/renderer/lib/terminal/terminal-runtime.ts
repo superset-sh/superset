@@ -13,6 +13,7 @@ import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import { installTerminalWheelEventHandler } from "./terminal-wheel-event-handler";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -213,6 +214,7 @@ export function createRuntime(
 	terminal.open(wrapper);
 
 	installTerminalKeyEventHandler(terminal);
+	installTerminalWheelEventHandler(terminal);
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
