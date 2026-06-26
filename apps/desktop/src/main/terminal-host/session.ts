@@ -82,6 +82,36 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
 const SHELL_READY_TIMEOUT_MS = 15_000;
 
 /**
+ * Match Cursor Position Report (CPR) responses: ESC [ row ; col R
+ *
+ * The headless emulator generates these when it processes a DSR query
+ * (ESC[6n) from PTY output. Unlike DA1 responses (which shells like fish
+ * require at startup), CPR responses are timing-sensitive and can race
+ * with subprocess terminal-mode changes. When a subprocess (e.g. `gh`)
+ * briefly toggles raw mode, a CPR response arriving mid-transition leaks
+ * into the shell's stdin as visible text like `;1R`.
+ *
+ * Filtering these is safe because the headless emulator's cursor position
+ * does not reflect the real terminal cursor position seen by the user.
+ *
+ * @see https://github.com/AidenIO/superset/issues/3325
+ */
+function isCursorPositionReport(data: string): boolean {
+	// CPR format: ESC [ row ; col R  (e.g. \x1b[24;1R)
+	if (data.length < 6 || data.charCodeAt(0) !== 0x1b || data[1] !== "[") {
+		return false;
+	}
+	if (data[data.length - 1] !== "R") return false;
+	// Verify the middle is digits;digits
+	const middle = data.slice(2, -1);
+	const semi = middle.indexOf(";");
+	if (semi < 1 || semi === middle.length - 1) return false;
+	const row = middle.slice(0, semi);
+	const col = middle.slice(semi + 1);
+	return /^\d+$/.test(row) && /^\d+$/.test(col);
+}
+
+/**
  * Shell readiness lifecycle:
  * - `pending`     — shell is initializing; escape sequences dropped, other writes pass through
  * - `ready`       — marker detected; writes pass through
@@ -231,8 +261,13 @@ export class Session {
 		// and are correctly dropped during init to avoid appearing as
 		// typed text), headless emulator responses are written directly
 		// to the PTY and consumed by the shell as protocol data.
+		//
+		// Exception: Cursor Position Reports (CPR, ESC[row;colR) are
+		// filtered out. They can race with subprocess terminal-mode
+		// changes and leak as typed text (`;1R`). See issue #3325.
 		this.emulator.onData((data) => {
 			if (this.subprocess && this.subprocessReady) {
+				if (isCursorPositionReport(data)) return;
 				this.sendWriteToSubprocess(data);
 			}
 		});
