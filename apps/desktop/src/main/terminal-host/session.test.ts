@@ -246,10 +246,14 @@ describe("Terminal Host Session shell args", () => {
 
 		firstController.abort();
 		await expect(firstAttach).rejects.toThrow(TERMINAL_ATTACH_CANCELED_MESSAGE);
-		expect(session.clientCount).toBe(1);
+		// Socket is not attached until the snapshot is captured (after flush
+		// completes), so the second attach is still in-flight with clientCount 0.
+		expect(session.clientCount).toBe(0);
 
 		resolveBoundary(true);
 		await expect(secondAttach).resolves.toBeDefined();
+		// After the second attach resolves, the socket is now registered.
+		expect(session.clientCount).toBe(1);
 
 		(
 			session as unknown as {
