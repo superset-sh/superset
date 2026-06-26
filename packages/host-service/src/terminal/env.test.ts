@@ -511,9 +511,30 @@ describe("buildV2TerminalEnv", () => {
 		expect(env.SUPERSET_TAB_ID).toBeUndefined();
 		expect(env.SUPERSET_PORT).toBeUndefined();
 		expect(env.SUPERSET_HOOK_VERSION).toBeUndefined();
-		expect(env.SUPERSET_WORKSPACE_NAME).toBeUndefined();
 		expect(env.NVM_DIR).toBe("/Users/test/.nvm");
 		expect(env.SSH_AUTH_SOCK).toBe("/tmp/ssh.sock");
+	});
+
+	// Reproduction for issue #4807.
+	//
+	// Docs (`apps/docs/content/docs/setup-teardown-scripts.mdx`) advertise
+	// `SUPERSET_WORKSPACE_NAME` as the current workspace name, and v1 desktop
+	// terminals do surface `workspace.name` (the friendly name typed in the
+	// "Workspace name (optional)" field) — see
+	// `apps/desktop/src/main/lib/terminal/env.ts` and
+	// `apps/desktop/src/lib/trpc/routers/terminal/terminal.ts:126`.
+	//
+	// v2 host-service terminals never set the variable: `buildV2TerminalEnv`
+	// strips inbound `SUPERSET_*` keys and only re-adds an allowlist that
+	// excludes `SUPERSET_WORKSPACE_NAME`. Because the worktree directory is
+	// named after the branch, the `${SUPERSET_WORKSPACE_NAME:-$(basename $PWD)}`
+	// fallback in `.superset/lib/setup/steps.sh` then bakes the branch codename
+	// into the workspace `.env`, which is what the user observed when running
+	// `echo $SUPERSET_WORKSPACE_NAME`.
+	test("issue #4807: exposes the friendly workspace name in v2 terminals", () => {
+		const env = buildV2TerminalEnv(baseParams);
+		expect(env.SUPERSET_WORKSPACE_NAME).toBeDefined();
+		expect(env.SUPERSET_WORKSPACE_NAME).not.toBe("");
 	});
 });
 

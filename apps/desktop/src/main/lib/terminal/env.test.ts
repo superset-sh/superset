@@ -689,6 +689,24 @@ describe("env", () => {
 				expect(result.SUPERSET_ROOT_PATH).toBe("/root/path");
 			});
 
+			// Regression coverage for issue #4807. v1 already honors the contract that
+			// SUPERSET_WORKSPACE_NAME is sourced from the user-typed friendly name
+			// (workspace.name in the local DB), not the auto-generated branch codename.
+			// v2 host-service has a separate regression test that currently fails.
+			it("exposes the friendly workspace name, not the branch codename (#4807)", () => {
+				const friendlyName = "Second test";
+				const branchCodename = "yellow-iron";
+
+				const result = buildTerminalEnv({
+					...baseParams,
+					workspaceName: friendlyName,
+					workspacePath: `/worktrees/${branchCodename}`,
+				});
+
+				expect(result.SUPERSET_WORKSPACE_NAME).toBe(friendlyName);
+				expect(result.SUPERSET_WORKSPACE_NAME).not.toBe(branchCodename);
+			});
+
 			it("should default optional params to empty string", () => {
 				const result = buildTerminalEnv(baseParams);
 
