@@ -99,6 +99,7 @@ export const Terminal = memo(function Terminal({
 	tabIdRef.current = tabId;
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setPaneName = useTabsStore((s) => s.setPaneName);
+	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
 
@@ -169,6 +170,7 @@ export const Terminal = memo(function Terminal({
 		clearPaneInitialDataRef,
 		handleFileLinkClickRef,
 		setPaneNameRef,
+		setTabAutoTitleRef,
 		handleTerminalFocusRef,
 		registerClearCallbackRef,
 		unregisterClearCallbackRef,
@@ -187,6 +189,7 @@ export const Terminal = memo(function Terminal({
 		clearPaneInitialData,
 		handleFileLinkClick,
 		setPaneName,
+		setTabAutoTitle,
 		setFocusedPane,
 	});
 
@@ -341,6 +344,7 @@ export const Terminal = memo(function Terminal({
 		resetModes,
 		isAlternateScreenRef,
 		setPaneNameRef,
+		setTabAutoTitleRef,
 		renameUnnamedWorkspaceRef,
 		handleTerminalFocusRef,
 		registerClearCallbackRef,
