@@ -18,6 +18,7 @@ import { useMemo, useRef, useState } from "react";
 import {
 	LuArrowRightLeft,
 	LuBellOff,
+	LuBot,
 	LuCopy,
 	LuExternalLink,
 	LuEye,
@@ -25,10 +26,12 @@ import {
 	LuFolderOpen,
 	LuFolderPlus,
 	LuGitBranch,
+	LuLayoutList,
 	LuMinus,
 	LuPencil,
 	LuX,
 } from "react-icons/lu";
+import { useConfigureCardWithAgent } from "renderer/hooks/useConfigureCardWithAgent";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import {
 	useCreateSectionFromWorkspaces,
@@ -36,6 +39,7 @@ import {
 	useMoveWorkspaceToSection,
 } from "renderer/react-query/workspaces";
 import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
+import { WorkspaceCardDialog } from "renderer/screens/main/components/WorkspaceCardDialog";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { STROKE_WIDTH } from "../constants";
 import { RenameBranchDialog, WorkspaceHoverCardContent } from "./components";
@@ -81,6 +85,8 @@ export function WorkspaceContextMenu({
 	children,
 }: WorkspaceContextMenuProps) {
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+	const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
+	const configureCardWithAgent = useConfigureCardWithAgent(projectId);
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
 		null,
 	);
@@ -159,6 +165,14 @@ export function WorkspaceContextMenu({
 				<LuExternalLink className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Open in Editor
 			</ContextMenuItem>
+			<ContextMenuItem onSelect={() => setIsCardDialogOpen(true)}>
+				<LuLayoutList className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Customize Card…
+			</ContextMenuItem>
+			<ContextMenuItem onSelect={configureCardWithAgent}>
+				<LuBot className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Configure Card with Agent
+			</ContextMenuItem>
 			<ContextMenuItem onSelect={onCopyPath}>
 				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Copy Path
@@ -222,16 +236,23 @@ export function WorkspaceContextMenu({
 
 	if (isBranchWorkspace) {
 		return (
-			<ContextMenu onOpenChange={handleContextMenuOpenChange}>
-				<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-				<ContextMenuContent
-					onCloseAutoFocus={(event) => {
-						deleteDialogCoordinator.handleCloseAutoFocus(event);
-					}}
-				>
-					{commonContextMenuItems}
-				</ContextMenuContent>
-			</ContextMenu>
+			<>
+				<ContextMenu onOpenChange={handleContextMenuOpenChange}>
+					<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+					<ContextMenuContent
+						onCloseAutoFocus={(event) => {
+							deleteDialogCoordinator.handleCloseAutoFocus(event);
+						}}
+					>
+						{commonContextMenuItems}
+					</ContextMenuContent>
+				</ContextMenu>
+				<WorkspaceCardDialog
+					projectId={projectId}
+					open={isCardDialogOpen}
+					onOpenChange={setIsCardDialogOpen}
+				/>
+			</>
 		);
 	}
 
@@ -275,6 +296,11 @@ export function WorkspaceContextMenu({
 					}}
 				/>
 			)}
+			<WorkspaceCardDialog
+				projectId={projectId}
+				open={isCardDialogOpen}
+				onOpenChange={setIsCardDialogOpen}
+			/>
 		</HoverCard>
 	);
 }

@@ -11,21 +11,26 @@ import {
 } from "@superset/ui/context-menu";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useState } from "react";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
+	LuBot,
 	LuCopy,
 	LuEye,
 	LuEyeOff,
 	LuFolderOpen,
 	LuFolderPlus,
 	LuGitBranch,
+	LuLayoutList,
 	LuPencil,
 	LuTrash2,
 	LuX,
 } from "react-icons/lu";
+import { useConfigureCardWithAgent } from "renderer/hooks/useConfigureCardWithAgent";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { WorkspaceCardDialog } from "renderer/screens/main/components/WorkspaceCardDialog";
 import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
@@ -67,6 +72,8 @@ export function DashboardSidebarWorkspaceContextMenu({
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
 	const { setContextMenuOpen } = useDashboardSidebarHover();
+	const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
+	const configureCardWithAgent = useConfigureCardWithAgent(projectId);
 	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const showDeleteShortcut =
 		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
@@ -111,6 +118,15 @@ export function DashboardSidebarWorkspaceContextMenu({
 				<ContextMenuItem onSelect={onCopyBranchName}>
 					<LuGitBranch className="size-4 mr-2" />
 					Copy Branch Name
+				</ContextMenuItem>
+				<ContextMenuSeparator />
+				<ContextMenuItem onSelect={() => setIsCardDialogOpen(true)}>
+					<LuLayoutList className="size-4 mr-2" />
+					Customize Card…
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={configureCardWithAgent}>
+					<LuBot className="size-4 mr-2" />
+					Configure Card with Agent
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onToggleUnread}>
@@ -187,6 +203,11 @@ export function DashboardSidebarWorkspaceContextMenu({
 					</ContextMenuItem>
 				) : null}
 			</ContextMenuContent>
+			<WorkspaceCardDialog
+				projectId={projectId}
+				open={isCardDialogOpen}
+				onOpenChange={setIsCardDialogOpen}
+			/>
 		</ContextMenu>
 	);
 }

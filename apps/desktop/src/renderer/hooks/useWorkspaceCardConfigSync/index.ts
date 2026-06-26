@@ -1,0 +1,1 @@
+export { useWorkspaceCardConfigSync } from "./useWorkspaceCardConfigSync";

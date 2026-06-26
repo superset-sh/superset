@@ -5,6 +5,7 @@ import type {
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
+import { useWorkspaceCardConfigSync } from "renderer/hooks/useWorkspaceCardConfigSync";
 import type { DashboardSidebarProject } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
 import { DashboardSidebarCollapsedProjectContent } from "./components/DashboardSidebarCollapsedProjectContent";
@@ -38,6 +39,8 @@ export function DashboardSidebarProjectSection({
 		() => getProjectChildrenWorkspaces(project.children),
 		[project.children],
 	);
+	// Card configs live-reload when .superset/config.json changes on disk.
+	useWorkspaceCardConfigSync(project.id);
 
 	const {
 		cancelRename,

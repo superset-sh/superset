@@ -8,10 +8,13 @@ import {
 } from "react";
 import { HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
+import { useLinkedTicket } from "renderer/hooks/useLinkedTicket";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import { WorkspaceCardLines } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/WorkspaceCardLines";
 import type { ActivePaneStatus } from "shared/tabs-types";
+import { DEFAULT_WORKSPACE_CARD_CONFIG } from "shared/workspace-card-config";
 import type {
 	DashboardSidebarWorkspace,
 	DashboardSidebarWorkspacePullRequest,
@@ -85,6 +88,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			pendingTransaction,
 		} = workspace;
 		const isPending = pendingTransaction?.type === "insert";
+		const { data: cardConfigData } =
+			electronTrpc.config.getWorkspaceCardConfig.useQuery(
+				{ projectId: workspace.projectId },
+				{ staleTime: 60_000 },
+			);
+		const cardConfig = cardConfigData ?? DEFAULT_WORKSPACE_CARD_CONFIG;
+		const linkedTicket = useLinkedTicket(workspace.taskId, branch);
 		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
@@ -229,113 +239,128 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					</TooltipContent>
 				</Tooltip>
 
-				<div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5">
-					{isRenaming ? (
-						<RenameInput
-							value={renameValue}
-							onChange={onRenameValueChange}
-							onSubmit={onSubmitRename}
-							onCancel={onCancelRename}
-							className={cn(
-								"h-5 w-full -ml-1 border-none bg-transparent px-1 py-0 text-[13px] leading-tight outline-none",
-							)}
-						/>
-					) : (
-						<span
-							className={cn(
-								"truncate text-[13px] leading-tight transition-colors",
-								isActive ? "text-foreground" : "text-foreground/80",
-							)}
-						>
-							{name || branch}
-						</span>
-					)}
-
-					<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
-						{creationStatusText ? (
-							<span className="text-[11px] text-muted-foreground">
-								{creationStatusText}
-							</span>
+				<div className="min-w-0 flex-1">
+					<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5">
+						{isRenaming ? (
+							<RenameInput
+								value={renameValue}
+								onChange={onRenameValueChange}
+								onSubmit={onSubmitRename}
+								onCancel={onCancelRename}
+								className={cn(
+									"h-5 w-full -ml-1 border-none bg-transparent px-1 py-0 text-[13px] leading-tight outline-none",
+								)}
+							/>
 						) : (
-							diffStats &&
-							(diffStats.additions > 0 || diffStats.deletions > 0) && (
-								<DashboardSidebarWorkspaceDiffStats
-									additions={diffStats.additions}
-									deletions={diffStats.deletions}
-									isActive={isActive}
-								/>
-							)
-						)}
-						{!isPending && (
-							<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
-								{shortcutLabel && (
-									<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
-										{shortcutLabel}
-									</span>
+							<span
+								className={cn(
+									"truncate text-[13px] leading-tight transition-colors",
+									isActive ? "text-foreground" : "text-foreground/80",
 								)}
-								{isMainWorkspace ? (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<button
-												type="button"
-												onClick={(event) => {
-													event.stopPropagation();
-													onRemoveFromSidebarClick();
-												}}
-												onKeyDown={(event) => {
-													if (
-														event.key === "Enter" ||
-														event.key === " " ||
-														event.key === "Spacebar"
-													) {
-														event.stopPropagation();
-													}
-												}}
-												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-												aria-label="Remove from sidebar"
-											>
-												<HiMiniMinus className="size-3.5" />
-											</button>
-										</TooltipTrigger>
-										<TooltipContent side="top" sideOffset={4}>
-											<HotkeyLabel label="Remove from sidebar" />
-										</TooltipContent>
-									</Tooltip>
-								) : (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<button
-												type="button"
-												onClick={(event) => {
-													event.stopPropagation();
-													onCloseWorkspaceClick();
-												}}
-												onKeyDown={(event) => {
-													if (
-														event.key === "Enter" ||
-														event.key === " " ||
-														event.key === "Spacebar"
-													) {
-														event.stopPropagation();
-													}
-												}}
-												className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-												aria-label="Close workspace"
-											>
-												<HiMiniXMark className="size-3.5" />
-											</button>
-										</TooltipTrigger>
-										<TooltipContent side="top" sideOffset={4}>
-											<HotkeyLabel
-												label="Close workspace"
-												id={isActive ? "CLOSE_WORKSPACE" : undefined}
-											/>
-										</TooltipContent>
-									</Tooltip>
-								)}
-							</div>
+							>
+								{name || branch}
+							</span>
 						)}
+
+						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
+							{creationStatusText ? (
+								<span className="text-[11px] text-muted-foreground">
+									{creationStatusText}
+								</span>
+							) : (
+								cardConfig.diffStats &&
+								diffStats &&
+								(diffStats.additions > 0 || diffStats.deletions > 0) && (
+									<DashboardSidebarWorkspaceDiffStats
+										additions={diffStats.additions}
+										deletions={diffStats.deletions}
+										isActive={isActive}
+									/>
+								)
+							)}
+							{!isPending && (
+								<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
+									{shortcutLabel && (
+										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+											{shortcutLabel}
+										</span>
+									)}
+									{isMainWorkspace ? (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
+														event.stopPropagation();
+														onRemoveFromSidebarClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label="Remove from sidebar"
+												>
+													<HiMiniMinus className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												<HotkeyLabel label="Remove from sidebar" />
+											</TooltipContent>
+										</Tooltip>
+									) : (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(event) => {
+														event.stopPropagation();
+														onCloseWorkspaceClick();
+													}}
+													onKeyDown={(event) => {
+														if (
+															event.key === "Enter" ||
+															event.key === " " ||
+															event.key === "Spacebar"
+														) {
+															event.stopPropagation();
+														}
+													}}
+													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label="Close workspace"
+												>
+													<HiMiniXMark className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												<HotkeyLabel
+													label="Close workspace"
+													id={isActive ? "CLOSE_WORKSPACE" : undefined}
+												/>
+											</TooltipContent>
+										</Tooltip>
+									)}
+								</div>
+							)}
+						</div>
 					</div>
+					{!isPending && (
+						<WorkspaceCardLines
+							config={cardConfig}
+							pr={pullRequest}
+							workspaceStatus={workspaceStatus}
+							linearTicket={linkedTicket}
+							workspaceId={workspace.id}
+							projectId={workspace.projectId}
+							branch={branch}
+							workspaceName={name}
+						/>
+					)}
 				</div>
 			</div>
 		);
