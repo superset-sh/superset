@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
@@ -14,6 +14,11 @@ import { getRelayUrl } from "./relay-url";
 
 const HEALTH_POLL_INTERVAL_MS = 200;
 const HEALTH_POLL_TIMEOUT_MS = 10_000;
+// Failed startup means the host process never became healthy, so an
+// aggressive 1s SIGTERM->SIGKILL window is intentional: we want the port
+// released for the caller's retry, not a graceful drain.
+const KILL_GRACE_PERIOD_MS = 1_000;
+const KILL_HARD_DEADLINE_MS = 4_000;
 
 export interface SpawnHostOptions {
 	organizationId: string;
@@ -33,22 +38,93 @@ export interface SpawnHostResult {
 async function findFreePort(): Promise<number> {
 	return new Promise((resolve, reject) => {
 		const server = createServer();
-		server.listen(0, "127.0.0.1", () => {
+		const onError = (err: Error) => {
+			server.removeListener("listening", onListening);
+			reject(err);
+		};
+		const onListening = () => {
+			server.removeListener("error", onError);
 			const addr = server.address();
-			if (addr && typeof addr === "object") {
-				const { port } = addr;
-				server.close(() => resolve(port));
-			} else {
-				server.close(() => reject(new Error("Could not get port")));
+			if (!addr || typeof addr !== "object") {
+				server.close();
+				reject(new Error("Could not get port"));
+				return;
 			}
-		});
-		server.on("error", reject);
+			const { port } = addr;
+			server.close((closeErr) => {
+				if (closeErr) reject(closeErr);
+				else resolve(port);
+			});
+		};
+		server.once("error", onError);
+		server.once("listening", onListening);
+		server.listen(0, "127.0.0.1");
 	});
 }
 
-async function pollHealth(port: number, secret: string): Promise<boolean> {
+/**
+ * Send SIGTERM, then escalate to SIGKILL if the child is still alive after a
+ * short grace period. Resolves once the child has actually exited (or after
+ * the kill window elapses), so callers don't return while a zombie is still
+ * holding the port. `ChildProcess.kill()` returns false when the OS reports
+ * the process is already gone (ESRCH); we treat that as "already exited" so
+ * we don't wait on an exit event that won't fire.
+ */
+async function terminateChild(child: ChildProcess): Promise<void> {
+	if (child.exitCode !== null || child.signalCode !== null) return;
+	await new Promise<void>((resolve) => {
+		let settled = false;
+		// Declare the timer handles up front so `finish()` can always
+		// reach them. If `finish()` runs before the timers are set
+		// (kill() throws or returns false) these stay undefined, and
+		// the clearTimeout guards below are no-ops.
+		let escalation: ReturnType<typeof setTimeout> | undefined;
+		let hardDeadline: ReturnType<typeof setTimeout> | undefined;
+		const finish = () => {
+			if (settled) return;
+			settled = true;
+			if (escalation) clearTimeout(escalation);
+			if (hardDeadline) clearTimeout(hardDeadline);
+			child.removeListener("exit", onExit);
+			resolve();
+		};
+		const onExit = () => finish();
+		child.once("exit", onExit);
+		let sentSignal: boolean;
+		try {
+			sentSignal = child.kill("SIGTERM");
+		} catch {
+			finish();
+			return;
+		}
+		if (!sentSignal) {
+			// kill() returned false: the OS says the process is already gone.
+			// No exit event will fire, so resolve now.
+			finish();
+			return;
+		}
+		escalation = setTimeout(() => {
+			try {
+				child.kill("SIGKILL");
+			} catch {
+				// Process already gone; the hardDeadline will resolve us.
+			}
+		}, KILL_GRACE_PERIOD_MS);
+		escalation.unref();
+		// Absolute backstop so we don't hang the CLI if the OS misses the exit event.
+		hardDeadline = setTimeout(finish, KILL_HARD_DEADLINE_MS);
+		hardDeadline.unref();
+	});
+}
+
+async function pollHealth(
+	port: number,
+	secret: string,
+	hasExited: () => boolean = () => false,
+): Promise<boolean> {
 	const deadline = Date.now() + HEALTH_POLL_TIMEOUT_MS;
 	while (Date.now() < deadline) {
+		if (hasExited()) return false;
 		try {
 			const controller = new AbortController();
 			const timeout = setTimeout(() => controller.abort(), 2_000);
@@ -124,17 +200,61 @@ export async function spawnHostService(
 		},
 	});
 
+	// Attach the 'error' listener immediately after spawn, before the pid
+	// check. Spawn failures (e.g. ENOENT) emit 'error' asynchronously and
+	// would crash the CLI as an unhandled event if no listener is attached
+	// by the time the event loop processes them. `once` auto-detaches so a
+	// later error after startup doesn't fire into a stale closure.
+	let spawnError: Error | null = null;
+	const onSpawnError = (err: Error) => {
+		spawnError = err;
+	};
+	child.once("error", onSpawnError);
+
 	if (!child.pid) {
 		throw new Error("Failed to spawn host-service");
 	}
 
-	const healthy = await pollHealth(port, secret);
+	// Track early exit so health-check can stop polling instead of waiting
+	// for the full timeout when the child already died. Same detach pattern
+	// as above: once startup succeeds, we no longer care about this exit.
+	type ExitInfo = { code: number | null; signal: NodeJS.Signals | null };
+	const exitRef: { current: ExitInfo | null } = { current: null };
+	const onStartupExit = (
+		code: number | null,
+		signal: NodeJS.Signals | null,
+	) => {
+		exitRef.current = { code, signal };
+	};
+	child.once("exit", onStartupExit);
+
+	const healthy = await pollHealth(
+		port,
+		secret,
+		() => exitRef.current !== null,
+	);
 	if (!healthy) {
-		child.kill("SIGTERM");
+		// Always wait for actual termination so the port is released before
+		// we throw. Otherwise the caller's retry sees EADDRINUSE.
+		await terminateChild(child);
+		if (spawnError) throw spawnError;
+		const exit = exitRef.current;
+		if (exit) {
+			throw new Error(
+				`Host service exited during startup (code=${exit.code}, signal=${exit.signal})`,
+			);
+		}
 		throw new Error(
 			`Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
 		);
 	}
+
+	// Healthy: detach the startup-only listeners so any later
+	// 'error'/'exit' events surface through normal Node behavior instead
+	// of being silently captured by closure refs we no longer read.
+	// removeListener is a no-op for `once` listeners that already fired.
+	child.removeListener("error", onSpawnError);
+	child.removeListener("exit", onStartupExit);
 
 	const manifest: HostServiceManifest = {
 		pid: child.pid,
