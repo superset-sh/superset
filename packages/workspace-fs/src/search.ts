@@ -293,14 +293,18 @@ async function buildSearchIndex({
 	const entries = await fg("**/*", {
 		cwd: normalizedRootPath,
 		onlyFiles: true,
-		dot: includeHidden,
+		dot: true,
 		followSymbolicLinks: false,
 		unique: true,
 		suppressErrors: true,
 		ignore: DEFAULT_IGNORE_PATTERNS,
 	});
 
-	return entries.map((relativePath) =>
+	const visibleEntries = includeHidden
+		? entries
+		: entries.filter((relativePath) => !isHiddenRelativePath(relativePath));
+
+	return visibleEntries.map((relativePath) =>
 		createSearchIndexEntry(normalizedRootPath, relativePath),
 	);
 }
@@ -642,9 +646,8 @@ async function searchContentWithScan({
 }
 
 function isHiddenRelativePath(relativePath: string): boolean {
-	return normalizePathForGlob(relativePath)
-		.split("/")
-		.some((segment) => segment.startsWith(".") && segment.length > 1);
+	const basename = path.posix.basename(normalizePathForGlob(relativePath));
+	return basename.startsWith(".") && basename.length > 1;
 }
 
 function shouldIndexRelativePath(

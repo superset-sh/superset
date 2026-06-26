@@ -241,4 +241,62 @@ describe("searchFiles", () => {
 		expect(paths).toContain(nestedPath);
 		expect(paths).toHaveLength(2);
 	});
+
+	it("returns visible files inside dot directories by default", async () => {
+		const rootPath = await createTempRoot();
+		const dotDirFilePath = path.join(rootPath, ".test", "exists.md");
+
+		await fs.mkdir(path.dirname(dotDirFilePath), { recursive: true });
+		await fs.writeFile(dotDirFilePath, "# exists\n");
+
+		const results = await searchFiles({
+			rootPath,
+			query: "exists.md",
+			limit: 5,
+		});
+
+		expect(results.map((result) => result.absolutePath)).toContain(
+			dotDirFilePath,
+		);
+	});
+
+	it("still excludes files inside default-ignored dot directories", async () => {
+		const rootPath = await createTempRoot();
+		const ignoredFilePath = path.join(rootPath, ".git", "HEAD");
+
+		await fs.mkdir(path.dirname(ignoredFilePath), { recursive: true });
+		await fs.writeFile(ignoredFilePath, "ref: refs/heads/main\n");
+
+		const results = await searchFiles({
+			rootPath,
+			query: "HEAD",
+			limit: 5,
+		});
+
+		expect(results).toHaveLength(0);
+	});
+
+	it("still excludes top-level dotfiles by default", async () => {
+		const rootPath = await createTempRoot();
+		const dotFilePath = path.join(rootPath, ".env.local");
+
+		await fs.writeFile(dotFilePath, "SECRET_TOKEN=1\n");
+
+		const visibleResults = await searchFiles({
+			rootPath,
+			query: ".env",
+			limit: 5,
+		});
+		const hiddenResults = await searchFiles({
+			rootPath,
+			query: ".env",
+			includeHidden: true,
+			limit: 5,
+		});
+
+		expect(visibleResults).toHaveLength(0);
+		expect(hiddenResults.map((result) => result.absolutePath)).toContain(
+			dotFilePath,
+		);
+	});
 });
