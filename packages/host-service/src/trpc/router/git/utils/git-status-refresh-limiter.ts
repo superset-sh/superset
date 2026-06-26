@@ -2,6 +2,14 @@ import { cpus } from "node:os";
 
 const DEFAULT_CONCURRENCY = Math.max(1, Math.min(4, cpus().length - 1));
 
+// Floor on how often a workspace can spawn a fresh `getGitStatusSnapshot`.
+// Without this, sustained fs activity (e.g. git background writes during
+// `git status` itself, build tools, language servers) keeps triggering
+// `git:changed` invalidations and the limiter would start a new run the
+// instant the previous one finished — producing several git subprocess
+// bursts per second per worktree (#4937).
+const DEFAULT_MIN_INTERVAL_MS = 1_000;
+
 export type GitStatusRefreshPriority = "foreground" | "background";
 
 interface ActiveTask {
@@ -24,18 +32,34 @@ interface QueuedTask {
 interface WorkspaceQueue {
 	active: ActiveTask | null;
 	queued: QueuedTask[];
+	lastStartedAt: number;
+	cooldownTimer: ReturnType<typeof setTimeout> | null;
+}
+
+export interface GitStatusRefreshLimiterOptions {
+	/**
+	 * Minimum milliseconds between successive task starts for the same
+	 * workspace. Measured start-to-start so slow git operations don't stack
+	 * extra delay on top. Set to 0 to disable.
+	 */
+	minIntervalMs?: number;
 }
 
 export class GitStatusRefreshLimiter {
 	private readonly concurrency: number;
+	private readonly minIntervalMs: number;
 	private readonly workspaces = new Map<string, WorkspaceQueue>();
 	private readonly readyQueue: QueuedTask[] = [];
 	private activeCount = 0;
 	private sequence = 0;
 	private generation = 0;
 
-	constructor(concurrency = DEFAULT_CONCURRENCY) {
+	constructor(
+		concurrency = DEFAULT_CONCURRENCY,
+		options: GitStatusRefreshLimiterOptions = {},
+	) {
 		this.concurrency = Math.max(1, concurrency);
+		this.minIntervalMs = Math.max(0, options.minIntervalMs ?? 0);
 	}
 
 	run<T>({
@@ -65,8 +89,7 @@ export class GitStatusRefreshLimiter {
 		const task = this.createTask(workspaceId, requestKey, run, priority);
 		workspace.queued.push(task);
 		if (!workspace.active && workspace.queued[0] === task) {
-			this.readyQueue.push(task);
-			this.pump();
+			this.tryEnqueueReady(workspaceId, workspace);
 		}
 		return task.promise as Promise<T>;
 	}
@@ -77,6 +100,10 @@ export class GitStatusRefreshLimiter {
 		for (const workspace of this.workspaces.values()) {
 			for (const task of workspace.queued) {
 				queuedTasks.add(task);
+			}
+			if (workspace.cooldownTimer) {
+				clearTimeout(workspace.cooldownTimer);
+				workspace.cooldownTimer = null;
 			}
 		}
 		this.workspaces.clear();
@@ -90,10 +117,70 @@ export class GitStatusRefreshLimiter {
 	private getWorkspaceQueue(workspaceId: string): WorkspaceQueue {
 		let workspace = this.workspaces.get(workspaceId);
 		if (!workspace) {
-			workspace = { active: null, queued: [] };
+			workspace = {
+				active: null,
+				queued: [],
+				lastStartedAt: 0,
+				cooldownTimer: null,
+			};
 			this.workspaces.set(workspaceId, workspace);
 		}
 		return workspace;
+	}
+
+	/**
+	 * Push the workspace's head task onto the ready queue, or arm a cooldown
+	 * timer that does so once `minIntervalMs` has elapsed since the last start.
+	 */
+	private tryEnqueueReady(
+		workspaceId: string,
+		workspace: WorkspaceQueue,
+	): void {
+		if (workspace.active) return;
+		if (workspace.cooldownTimer) return;
+		const head = workspace.queued[0];
+		if (!head) return;
+
+		const remaining =
+			this.minIntervalMs > 0
+				? workspace.lastStartedAt + this.minIntervalMs - Date.now()
+				: 0;
+
+		if (remaining <= 0) {
+			this.readyQueue.push(head);
+			this.pump();
+			return;
+		}
+
+		this.armCooldownTimer(workspaceId, workspace, remaining);
+	}
+
+	/**
+	 * Hold the workspace entry open for `delay` ms after a task starts so a
+	 * burst of invalidations during the cooldown still enforces the rate
+	 * limit instead of bypassing it through a fresh `lastStartedAt = 0`
+	 * workspace entry.
+	 */
+	private armCooldownTimer(
+		workspaceId: string,
+		workspace: WorkspaceQueue,
+		delay: number,
+	): void {
+		const timer = setTimeout(() => {
+			workspace.cooldownTimer = null;
+			if (workspace.active) return;
+			const next = workspace.queued[0];
+			if (next) {
+				this.readyQueue.push(next);
+				this.pump();
+				return;
+			}
+			if (this.workspaces.get(workspaceId) === workspace) {
+				this.workspaces.delete(workspaceId);
+			}
+		}, delay);
+		timer.unref?.();
+		workspace.cooldownTimer = timer;
 	}
 
 	private createTask<T>(
@@ -170,6 +257,7 @@ export class GitStatusRefreshLimiter {
 			requestKey: task.requestKey,
 			promise: task.promise,
 		};
+		workspace.lastStartedAt = Date.now();
 		this.activeCount++;
 
 		void Promise.resolve()
@@ -183,9 +271,19 @@ export class GitStatusRefreshLimiter {
 				}
 
 				if (workspace.queued.length > 0) {
-					const next = workspace.queued[0];
-					if (next) this.readyQueue.push(next);
-				} else if (!workspace.active) {
+					this.tryEnqueueReady(task.workspaceId, workspace);
+				} else if (this.minIntervalMs > 0 && !workspace.cooldownTimer) {
+					// Hold the entry open until the cooldown window expires so a
+					// new task arriving inside the window can't bypass the rate
+					// limit by recreating a fresh workspace with lastStartedAt=0.
+					const remaining =
+						workspace.lastStartedAt + this.minIntervalMs - Date.now();
+					if (remaining > 0) {
+						this.armCooldownTimer(task.workspaceId, workspace, remaining);
+					} else if (!workspace.active) {
+						this.workspaces.delete(task.workspaceId);
+					}
+				} else if (!workspace.active && !workspace.cooldownTimer) {
 					this.workspaces.delete(task.workspaceId);
 				}
 
@@ -194,7 +292,9 @@ export class GitStatusRefreshLimiter {
 	}
 }
 
-export const gitStatusRefreshLimiter = new GitStatusRefreshLimiter();
+export const gitStatusRefreshLimiter = new GitStatusRefreshLimiter(undefined, {
+	minIntervalMs: DEFAULT_MIN_INTERVAL_MS,
+});
 
 function compareTaskPriority(a: QueuedTask, b: QueuedTask): number {
 	if (a.priority !== b.priority) {
