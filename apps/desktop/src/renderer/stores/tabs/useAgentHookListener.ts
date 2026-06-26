@@ -12,7 +12,10 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
  *
  * STATUS MAPPING:
  * - Start → "working" (amber pulsing indicator)
- * - Stop → "review" (green static) if pane's tab not active, "idle" if tab is active
+ * - Stop → "review" (green static) so the user gets a completion badge even on
+ *   the active/focused pane. It clears automatically on next tab switch / pane
+ *   refocus / next Start (see acknowledgedStatus in shared/tabs-types).
+ *   Exception: if pane was "permission", Stop → "idle" (user already engaged).
  * - PermissionRequest → "permission" (red pulsing indicator)
  * - Terminal Exit → "idle" (handled in Terminal.tsx when mounted; also forwarded via notifications for unmounted panes)
  *
@@ -31,21 +34,6 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
  * Note: Terminal exit detection (in Terminal.tsx) provides a reliable fallback
  * for clearing stuck indicators when agent hooks fail to fire.
  */
-
-/**
- * Returns the current workspace ID from the live URL hash.
- * The app uses hash routing: file:///.../index.html#/workspace/<id>
- * We must read window.location.hash (not pathname) at event time since the
- * _authenticated layout does not re-render on workspace navigation.
- */
-function getCurrentWorkspaceId(): string | null {
-	try {
-		const match = window.location.hash.match(/\/workspace\/([^/?#]+)/);
-		return match ? match[1] : null;
-	} catch {
-		return null;
-	}
-}
 
 export function useAgentHookListener() {
 	const navigate = useNavigate();
@@ -79,30 +67,17 @@ export function useAgentHookListener() {
 				) {
 					state.setPaneStatus(paneId, "permission");
 				} else if (eventType === "Stop") {
-					const activeTabId = state.activeTabIds[workspaceId];
 					const pane = state.panes[paneId];
-					const tabId = pane?.tabId;
-					// Tab must be active for this workspace
-					const isTabActive = tabId != null && tabId === activeTabId;
-					// User is on this workspace if the URL hash matches OR if they have this
-					// pane focused (more reliable than URL parsing which can lag behind navigation)
-					const isPaneFocused =
-						tabId != null && state.focusedPaneIds[tabId] === paneId;
-					const isInActiveTab =
-						isTabActive &&
-						(getCurrentWorkspaceId() === workspaceId || isPaneFocused);
 
-					// If stopping from a pending question state, always go idle (user already engaged)
-					const nextStatus =
-						pane?.status === "permission"
-							? "idle"
-							: isInActiveTab
-								? "idle"
-								: "review";
+					// Always surface a "review" badge on Stop so the user sees a
+					// completion indicator everywhere (sidebar / tab strip / pane).
+					// It auto-clears on tab switch, focused-pane change, or next
+					// Start event via acknowledgedStatus() in the tabs store.
+					// Exception: if pane was in "permission" the user already
+					// engaged with the prompt, so resolve to idle instead.
+					const nextStatus = pane?.status === "permission" ? "idle" : "review";
 
 					debugLog("agent-hooks", "Stop event:", {
-						isInActiveTab,
-						activeTabId,
 						paneTabId: pane?.tabId,
 						paneId,
 						paneStatus: pane?.status,
