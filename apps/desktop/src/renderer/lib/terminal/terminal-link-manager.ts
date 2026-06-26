@@ -58,6 +58,7 @@ export class TerminalLinkManager {
 	private _resolver: TerminalLinkResolver | null = null;
 	private _handlers: TerminalLinkHandlers | null = null;
 	private _oscLinkHandler: ILinkHandler | null = null;
+	private _lastUrlActivation: { event: MouseEvent; uri: string } | null = null;
 
 	constructor(private readonly _terminal: XTerm) {}
 
@@ -88,6 +89,7 @@ export class TerminalLinkManager {
 		this._resolver?.clearCache();
 		this._resolver = null;
 		this._handlers = null;
+		this._lastUrlActivation = null;
 	}
 
 	private _clearOscLinkHandler(): void {
@@ -134,11 +136,25 @@ export class TerminalLinkManager {
 		// 2. URL link provider (handles hard-wrapped URLs)
 		if (handlers.onUrlClick) {
 			const onUrlClick = handlers.onUrlClick;
+			// Dedupes the OSC 8 hyperlink path against the regex-based URL provider
+			// so a single click never opens two browser tabs. xterm dispatches the
+			// same MouseEvent through both paths whenever an OSC 8 hyperlink's
+			// visible text also matches the URL regex (e.g. Claude Code emits
+			// `\x1b]8;;URL\x1b\\URL\x1b]8;;\x1b\\`), and on cmd+shift+click that
+			// produces two `openUrl` calls. See #4168.
+			const dispatchUrlClick = (event: MouseEvent, uri: string) => {
+				if (
+					this._lastUrlActivation?.event === event &&
+					this._lastUrlActivation.uri === uri
+				) {
+					return;
+				}
+				this._lastUrlActivation = { event, uri };
+				onUrlClick(event, uri);
+			};
 			const urlProvider = new UrlLinkProvider(
 				this._terminal,
-				(event, uri) => {
-					onUrlClick(event, uri);
-				},
+				dispatchUrlClick,
 				onLinkHover
 					? (event) => onLinkHover(event, { kind: "url" })
 					: undefined,
@@ -152,7 +168,7 @@ export class TerminalLinkManager {
 			this._oscLinkHandler = {
 				allowNonHttpProtocols: false,
 				activate: (event, uri) => {
-					onUrlClick(event, uri);
+					dispatchUrlClick(event, uri);
 				},
 				hover: onLinkHover
 					? (event) => onLinkHover(event, { kind: "url" })
