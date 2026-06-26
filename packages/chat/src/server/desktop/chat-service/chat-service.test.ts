@@ -97,8 +97,13 @@ const MANAGED_ANTHROPIC_ENV_KEYS = [
 	"ANTHROPIC_API_KEY",
 	"ANTHROPIC_AUTH_TOKEN",
 	"CLAUDE_CODE_USE_BEDROCK",
+	"CLAUDE_CODE_USE_VERTEX",
+	"CLAUDE_CODE_USE_FOUNDRY",
 	"AWS_REGION",
 	"AWS_PROFILE",
+	"CLOUD_ML_REGION",
+	"ANTHROPIC_VERTEX_PROJECT_ID",
+	"ANTHROPIC_FOUNDRY_RESOURCE",
 ] as const;
 const EXTERNAL_OPENAI_ENV_KEYS = [
 	"OPENAI_API_KEY",
@@ -110,8 +115,13 @@ const originalAnthropicEnvValues = {
 	ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
 	ANTHROPIC_AUTH_TOKEN: process.env.ANTHROPIC_AUTH_TOKEN,
 	CLAUDE_CODE_USE_BEDROCK: process.env.CLAUDE_CODE_USE_BEDROCK,
+	CLAUDE_CODE_USE_VERTEX: process.env.CLAUDE_CODE_USE_VERTEX,
+	CLAUDE_CODE_USE_FOUNDRY: process.env.CLAUDE_CODE_USE_FOUNDRY,
 	AWS_REGION: process.env.AWS_REGION,
 	AWS_PROFILE: process.env.AWS_PROFILE,
+	CLOUD_ML_REGION: process.env.CLOUD_ML_REGION,
+	ANTHROPIC_VERTEX_PROJECT_ID: process.env.ANTHROPIC_VERTEX_PROJECT_ID,
+	ANTHROPIC_FOUNDRY_RESOURCE: process.env.ANTHROPIC_FOUNDRY_RESOURCE,
 };
 const originalOpenAIEnvValues = {
 	OPENAI_API_KEY: process.env.OPENAI_API_KEY,
@@ -823,6 +833,77 @@ describe("ChatService OpenAI auth storage", () => {
 		} finally {
 			process.off("unhandledRejection", onUnhandledRejection);
 		}
+	});
+
+	it("authenticates with Bedrock env config without API key", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicEnvConfig({
+			envText: "CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1",
+		});
+
+		expect(process.env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
+		expect(process.env.AWS_REGION).toBe("us-east-1");
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "env",
+			source: "managed",
+			issue: null,
+		});
+	});
+
+	it("authenticates with Vertex env config without API key", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"CLAUDE_CODE_USE_VERTEX=1\nCLOUD_ML_REGION=global\nANTHROPIC_VERTEX_PROJECT_ID=my-project",
+		});
+
+		expect(process.env.CLAUDE_CODE_USE_VERTEX).toBe("1");
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "env",
+			source: "managed",
+			issue: null,
+		});
+	});
+
+	it("authenticates with Foundry env config without API key", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"CLAUDE_CODE_USE_FOUNDRY=1\nANTHROPIC_FOUNDRY_RESOURCE=my-resource",
+		});
+
+		expect(process.env.CLAUDE_CODE_USE_FOUNDRY).toBe("1");
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "env",
+			source: "managed",
+			issue: null,
+		});
+	});
+
+	it("stores ANTHROPIC_AUTH_TOKEN when ANTHROPIC_API_KEY is empty string", async () => {
+		const chatService = new ChatService();
+
+		await chatService.setAnthropicEnvConfig({
+			envText:
+				"ANTHROPIC_BASE_URL=https://openrouter.ai/api\nANTHROPIC_AUTH_TOKEN=or-key\nANTHROPIC_API_KEY=",
+		});
+
+		expect(fakeAuthStorage.set).toHaveBeenCalledWith("anthropic", {
+			type: "api_key",
+			key: "or-key",
+		});
+		expect(chatService.getAnthropicAuthStatus()).toEqual({
+			authenticated: true,
+			method: "api_key",
+			source: "managed",
+			issue: null,
+		});
 	});
 
 	it("clears OpenAI OAuth session when auth-url wait times out", async () => {
