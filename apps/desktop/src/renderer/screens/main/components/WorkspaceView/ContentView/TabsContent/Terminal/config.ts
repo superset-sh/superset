@@ -35,8 +35,8 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	cursorInactiveStyle: "outline",
 	vtExtensions: { kittyKeyboard: true },
 	screenReaderMode: false,
-	// xterm's fit addon permanently reserves scrollbar width from usable columns.
-	// Hide the built-in scrollbar so terminal content can use the full pane width.
+	// Built-in xterm scrollbars reserve width from fitted terminal columns.
+	// TerminalOverlayScrollbar provides the hover affordance without a gutter.
 	scrollbar: {
 		showScrollbar: false,
 	},

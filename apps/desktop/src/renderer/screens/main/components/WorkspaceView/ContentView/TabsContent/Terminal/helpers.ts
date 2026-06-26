@@ -50,14 +50,6 @@ export function getDefaultTerminalTheme(): ITheme {
 		: { background: "#151110", foreground: "#eae8e6" };
 }
 
-/**
- * Get the default terminal background based on stored theme.
- * This reads from localStorage before store hydration to prevent flash.
- */
-export function getDefaultTerminalBg(): string {
-	return getDefaultTerminalTheme().background ?? "#151110";
-}
-
 // Once WebGL fails, skip it for all subsequent terminals (VS Code pattern).
 let suggestedRendererType: "webgl" | "dom" | undefined;
 

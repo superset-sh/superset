@@ -5,6 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 import {
 	useCallback,
 	useEffect,
+	useId,
 	useMemo,
 	useRef,
 	useState,
@@ -32,6 +33,7 @@ import type {
 import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInV2Workspace";
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
+import { TerminalOverlayScrollbar } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalOverlayScrollbar";
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
@@ -67,6 +69,7 @@ export function TerminalPane({
 	const { terminalId } = paneData;
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
+	const scrollAreaId = useId();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 	const appearance = useTerminalAppearance();
@@ -414,16 +417,22 @@ export function TerminalPane({
 			onDragLeave={handleDragLeave}
 			onDrop={handleDrop}
 		>
-			<div className="relative min-h-0 flex-1 overflow-hidden">
+			<div className="group/terminal-scroll relative min-h-0 flex-1 overflow-hidden">
 				<TerminalSearch
 					searchAddon={searchAddon}
 					isOpen={isSearchOpen}
 					onClose={() => setIsSearchOpen(false)}
 				/>
 				<div
+					id={scrollAreaId}
 					ref={containerRef}
 					className="h-full w-full"
 					style={{ backgroundColor: appearance.background }}
+				/>
+				<TerminalOverlayScrollbar
+					controlsId={scrollAreaId}
+					foregroundColor={appearance.theme.foreground}
+					terminal={terminal}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
 			</div>

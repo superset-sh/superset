@@ -2,7 +2,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
@@ -10,7 +10,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { SessionKilledOverlay } from "./components";
 import { DEFAULT_TERMINAL_FONT_SIZE } from "./config";
-import { getDefaultTerminalBg } from "./helpers";
+import { getDefaultTerminalTheme } from "./helpers";
 import {
 	useFileLinkClick,
 	useTerminalColdRestore,
@@ -24,6 +24,7 @@ import {
 	useTerminalStream,
 } from "./hooks";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
+import { TerminalOverlayScrollbar } from "./TerminalOverlayScrollbar";
 import { TerminalSearch } from "./TerminalSearch";
 import type {
 	TerminalExitReason,
@@ -88,6 +89,7 @@ export const Terminal = memo(function Terminal({
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
+	const scrollAreaId = useId();
 	const isExitedRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
@@ -423,7 +425,8 @@ export const Terminal = memo(function Terminal({
 		}
 	}, [paneId, fontSettings]);
 
-	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
+	const resolvedTerminalTheme = terminalTheme ?? getDefaultTerminalTheme();
+	const terminalBg = resolvedTerminalTheme.background ?? "#151110";
 
 	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();
@@ -452,7 +455,7 @@ export const Terminal = memo(function Terminal({
 	return (
 		<div
 			role="application"
-			className="relative h-full w-full overflow-hidden"
+			className="group/terminal-scroll relative h-full w-full overflow-hidden"
 			style={{ backgroundColor: terminalBg }}
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
@@ -462,6 +465,11 @@ export const Terminal = memo(function Terminal({
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
+			<TerminalOverlayScrollbar
+				controlsId={scrollAreaId}
+				foregroundColor={resolvedTerminalTheme.foreground}
+				terminal={xtermInstance}
+			/>
 			<ScrollToBottomButton terminal={xtermInstance} />
 			{exitStatus === "killed" &&
 				!connectionError &&
@@ -470,7 +478,7 @@ export const Terminal = memo(function Terminal({
 					<SessionKilledOverlay onRestart={restartTerminal} />
 				)}
 			<div className="h-full w-full p-2">
-				<div ref={terminalRef} className="h-full w-full" />
+				<div id={scrollAreaId} ref={terminalRef} className="h-full w-full" />
 			</div>
 		</div>
 	);
