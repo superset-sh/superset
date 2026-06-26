@@ -8,7 +8,11 @@ import {
 	test,
 } from "bun:test";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { connect, createTransport } from "./terminal-ws-transport";
+import {
+	connect,
+	createTransport,
+	type TerminalTransport,
+} from "./terminal-ws-transport";
 
 type Listener = (event: {
 	data?: unknown;
@@ -263,6 +267,62 @@ describe("terminal-ws-transport", () => {
 		// handler would otherwise schedule a reconnect.
 		socket.close(1011, "session not active");
 		expect(transport._reconnectTimer).toBeNull();
+	});
+
+	test("clean shell exit (code 0, signal 0) fires exit listeners and stays out of the xterm buffer", () => {
+		// Regression for #4757 — typing `exit` should give the pane a chance to
+		// close instead of leaving a "[terminal] exited with code 0 (signal 0)"
+		// status line in the buffer.
+		const transport: TerminalTransport = createTransport();
+		const writelnCalls: string[] = [];
+		const terminal = createMockTerminal();
+		(terminal as unknown as { writeln: (s: string) => void }).writeln = (
+			s: string,
+		) => {
+			writelnCalls.push(s);
+		};
+
+		const exitEvents: Array<{ exitCode: number; signal: number }> = [];
+		transport.exitListeners.add((exitCode, signal) => {
+			exitEvents.push({ exitCode, signal });
+		});
+
+		connect(transport, terminal, "ws://host/terminal/t1");
+		const socket = MockWebSocket.instances[0];
+		if (!socket) throw new Error("expected websocket instance");
+		socket.open();
+		socket.message(JSON.stringify({ type: "exit", exitCode: 0, signal: 0 }));
+
+		expect(exitEvents).toEqual([{ exitCode: 0, signal: 0 }]);
+		expect(writelnCalls).toEqual([]);
+		expect(transport._terminated).toBe(true);
+	});
+
+	test("non-zero exit still writes a status line so users can see why the shell died", () => {
+		const transport: TerminalTransport = createTransport();
+		const writelnCalls: string[] = [];
+		const terminal = createMockTerminal();
+		(terminal as unknown as { writeln: (s: string) => void }).writeln = (
+			s: string,
+		) => {
+			writelnCalls.push(s);
+		};
+
+		const exitEvents: Array<{ exitCode: number; signal: number }> = [];
+		transport.exitListeners.add((exitCode, signal) => {
+			exitEvents.push({ exitCode, signal });
+		});
+
+		connect(transport, terminal, "ws://host/terminal/t2");
+		const socket = MockWebSocket.instances[0];
+		if (!socket) throw new Error("expected websocket instance");
+		socket.open();
+		socket.message(JSON.stringify({ type: "exit", exitCode: 137, signal: 9 }));
+
+		expect(exitEvents).toEqual([{ exitCode: 137, signal: 9 }]);
+		expect(writelnCalls).toHaveLength(1);
+		expect(writelnCalls[0]).toContain("exited with code 137");
+		expect(writelnCalls[0]).toContain("signal 9");
 	});
 
 	test("waits for server attach before sending resize or input", () => {

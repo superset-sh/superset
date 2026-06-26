@@ -23,6 +23,7 @@ import {
 	sendDispose,
 	sendInput,
 	sendResize,
+	type TerminalExitListener,
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
@@ -432,6 +433,18 @@ class TerminalRuntimeRegistryImpl {
 			entry.transport.logListeners.delete(listener);
 		};
 	}
+
+	onExit(
+		terminalId: string,
+		listener: TerminalExitListener,
+		instanceId = terminalId,
+	): () => void {
+		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.transport.exitListeners.add(listener);
+		return () => {
+			entry.transport.exitListeners.delete(listener);
+		};
+	}
 }
 
 // Stable empty reference so useSyncExternalStore on a missing entry doesn't
@@ -455,6 +468,7 @@ if (import.meta.hot) {
 export type {
 	ConnectionState,
 	LinkHoverInfo,
+	TerminalExitListener,
 	TerminalLinkHandlers,
 	TerminalLogEntry,
 };

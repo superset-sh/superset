@@ -208,6 +208,23 @@ export function TerminalPane({
 		);
 	}, [terminalId, terminalInstanceId, baseWebsocketUrl]);
 
+	// Close the pane on a clean shell exit (issue #4757). Matches V1 behavior:
+	// typing `exit` (or `... && exit`) collapses the tab instead of leaving a
+	// "[terminal] exited" status line behind. Non-zero/signal exits still print
+	// the status so users can see why the shell died.
+	const closePane = ctx.actions.close;
+	useEffect(() => {
+		return terminalRuntimeRegistry.onExit(
+			terminalId,
+			(exitCode, signal) => {
+				if (exitCode === 0 && signal === 0) {
+					closePane();
+				}
+			},
+			terminalInstanceId,
+		);
+	}, [terminalId, terminalInstanceId, closePane]);
+
 	useEffect(() => {
 		terminalRuntimeRegistry.updateAppearance(
 			terminalId,
