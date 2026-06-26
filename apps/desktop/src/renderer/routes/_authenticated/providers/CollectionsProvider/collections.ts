@@ -73,6 +73,7 @@ import {
 	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
+import { type Preloadable, preloadCollectionsInTiers } from "./preloadPriority";
 import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
@@ -916,18 +917,21 @@ function createOrgCollections(organizationId: string): OrgCollections {
  * Preload collections for an organization by starting Electric sync.
  * Collections are lazy — they don't fetch data until subscribed or preloaded.
  * Call this eagerly so data is ready when the user switches orgs.
+ *
+ * Critical collections (the tiny ones the workspace shell and sidebar render
+ * from) are preloaded first so a workspace deep link can open promptly; heavy
+ * collections like `tasks` and `github_pull_requests` hydrate in the background
+ * rather than blocking route open. See issue #5015 and `preloadPriority.ts`.
  */
 export async function preloadCollections(
 	organizationId: string,
 ): Promise<void> {
-	const collections = getCollections(organizationId);
-	const collectionsToPreload = Object.entries(collections)
-		.filter(([name]) => name !== "organizations")
-		.map(([, collection]) => collection as Collection<object>);
+	const collections = getCollections(organizationId) as Record<
+		string,
+		Preloadable
+	>;
 
-	await Promise.allSettled(
-		collectionsToPreload.map((c) => (c as Collection<object>).preload()),
-	);
+	await preloadCollectionsInTiers(collections);
 }
 
 /**
