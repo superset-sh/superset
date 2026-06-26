@@ -145,7 +145,7 @@ function createFakeDb(state: FakeState) {
 function createManager(
 	state: FakeState,
 	overrides: Partial<
-		Pick<PullRequestRuntimeManagerOptions, "execGh" | "github">
+		Pick<PullRequestRuntimeManagerOptions, "execGh" | "github" | "git">
 	> = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -155,9 +155,11 @@ function createManager(
 			(async () => {
 				throw new Error("gh should not be used for direct PR linking");
 			}),
-		git: async () => {
-			throw new Error("git should not be used when project metadata is set");
-		},
+		git:
+			overrides.git ??
+			(async () => {
+				throw new Error("git should not be used when project metadata is set");
+			}),
 		github:
 			overrides.github ??
 			(async () => {
@@ -379,5 +381,179 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		}
 
 		expect(state.workspace.pullRequestId).toBe("pr-existing");
+	});
+});
+
+describe("PullRequestRuntimeManager default branch PR filtering", () => {
+	// Regression test for https://github.com/superset/superset/issues/4508
+	// — a closed/merged PR whose head ref happened to be the default branch
+	// (e.g. someone accidentally opened a "merge main into branch" PR) used
+	// to surface as the trunk workspace's PR icon.
+	test("does not auto-link a closed PR whose head ref is the default branch", async () => {
+		const state = makeState("main");
+		state.workspace = {
+			...state.workspace,
+			upstreamOwner: "base-owner",
+			upstreamRepo: "base-repo",
+			upstreamBranch: "main",
+		};
+
+		const fakeGit = {
+			raw: async (args: string[]) => {
+				if (
+					args[0] === "symbolic-ref" &&
+					args[1] === "refs/remotes/origin/HEAD"
+				) {
+					return "origin/main\n";
+				}
+				throw new Error(`unexpected git.raw call: ${args.join(" ")}`);
+			},
+		};
+
+		const manager = createManager(state, {
+			git: async () => fakeGit as never,
+			execGh: async (args) => {
+				const path = args.find((arg) => arg.startsWith("repos/"));
+				if (path === "repos/base-owner/base-repo/pulls") {
+					return [
+						{
+							number: 99,
+							title: "Accidentally merge main into feature",
+							html_url: "https://github.com/base-owner/base-repo/pull/99",
+							state: "closed",
+							draft: false,
+							merged_at: null,
+							updated_at: "2024-01-15T12:00:00Z",
+							head: {
+								ref: "main",
+								sha: "abc123",
+								repo: {
+									name: "base-repo",
+									owner: { login: "base-owner" },
+								},
+							},
+							base: {
+								ref: "some-other-branch",
+								repo: { full_name: "base-owner/base-repo" },
+							},
+						},
+					];
+				}
+				return [];
+			},
+		});
+
+		const originalWarn = console.warn;
+		console.warn = () => {};
+		try {
+			await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
+		} finally {
+			console.warn = originalWarn;
+		}
+
+		expect(state.workspace.pullRequestId).toBeNull();
+	});
+
+	test("clears a stale pullRequestId on a default-branch workspace", async () => {
+		const state = makeState("main");
+		state.workspace = {
+			...state.workspace,
+			upstreamOwner: "base-owner",
+			upstreamRepo: "base-repo",
+			upstreamBranch: "main",
+			pullRequestId: "pr-stale",
+		};
+
+		const fakeGit = {
+			raw: async (args: string[]) => {
+				if (
+					args[0] === "symbolic-ref" &&
+					args[1] === "refs/remotes/origin/HEAD"
+				) {
+					return "origin/main\n";
+				}
+				throw new Error(`unexpected git.raw call: ${args.join(" ")}`);
+			},
+		};
+
+		const manager = createManager(state, {
+			git: async () => fakeGit as never,
+		});
+
+		const originalWarn = console.warn;
+		console.warn = () => {};
+		try {
+			await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
+		} finally {
+			console.warn = originalWarn;
+		}
+
+		expect(state.workspace.pullRequestId).toBeNull();
+	});
+
+	test("still matches PRs for non-default workspaces when default lookup is available", async () => {
+		const state = makeState("fix/sidebar");
+		state.workspace = {
+			...state.workspace,
+			upstreamOwner: "base-owner",
+			upstreamRepo: "base-repo",
+			upstreamBranch: "fix/sidebar",
+		};
+
+		const fakeGit = {
+			raw: async (args: string[]) => {
+				if (
+					args[0] === "symbolic-ref" &&
+					args[1] === "refs/remotes/origin/HEAD"
+				) {
+					return "origin/main\n";
+				}
+				throw new Error(`unexpected git.raw call: ${args.join(" ")}`);
+			},
+		};
+
+		const manager = createManager(state, {
+			git: async () => fakeGit as never,
+			execGh: async (args) => {
+				const path = args.find((arg) => arg.startsWith("repos/"));
+				if (path === "repos/base-owner/base-repo/pulls") {
+					return [
+						{
+							number: 7,
+							title: "Fix sidebar",
+							html_url: "https://github.com/base-owner/base-repo/pull/7",
+							state: "open",
+							draft: false,
+							merged_at: null,
+							updated_at: "2024-05-01T12:00:00Z",
+							head: {
+								ref: "fix/sidebar",
+								sha: "deadbeef",
+								repo: {
+									name: "base-repo",
+									owner: { login: "base-owner" },
+								},
+							},
+							base: {
+								ref: "main",
+								repo: { full_name: "base-owner/base-repo" },
+							},
+						},
+					];
+				}
+				return [];
+			},
+		});
+
+		const originalWarn = console.warn;
+		console.warn = () => {};
+		try {
+			await manager.refreshPullRequestsByWorkspaces([WORKSPACE_ID]);
+		} finally {
+			console.warn = originalWarn;
+		}
+
+		expect(state.workspace.pullRequestId).not.toBeNull();
+		expect(state.pullRequest?.prNumber).toBe(7);
 	});
 });
