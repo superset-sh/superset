@@ -106,6 +106,45 @@ describe("buildPromptAgentLaunchRequest", () => {
 		expect(request.terminal.command).toStartWith("amp <<'SUPERSET_PROMPT_");
 		expect(request.terminal.command).not.toContain("amp -x");
 	});
+
+	test("honors overridden `command` for prompt launches when promptCommand is not separately overridden (issue #3866)", () => {
+		// The user edits Settings → Agents → claude and changes the command
+		// to `claude --dangerously-skip-permissions`. They didn't touch the
+		// prompt-command field, which built-in Claude defaults to the same
+		// value as `command`. When a session is launched with a prompt
+		// (e.g. from the new workspace modal), it should use the saved
+		// command — not the original builtin default.
+		const configsById = indexResolvedAgentConfigs(
+			resolveAgentConfigs({
+				overrideEnvelope: {
+					version: 1,
+					presets: [
+						{
+							id: "claude",
+							command: "claude --dangerously-skip-permissions",
+						},
+					],
+				},
+			}),
+		);
+		const request = buildPromptAgentLaunchRequest({
+			workspaceId: "workspace-1",
+			source: "new-workspace",
+			selectedAgent: "claude",
+			prompt: "hello",
+			configsById,
+		});
+
+		if (request?.kind !== "terminal") {
+			throw new Error("Expected terminal launch request");
+		}
+		expect(request.terminal.command).toContain(
+			"claude --dangerously-skip-permissions",
+		);
+		expect(request.terminal.command).not.toContain(
+			"claude --permission-mode acceptEdits",
+		);
+	});
 });
 
 describe("buildTaskAgentLaunchRequest", () => {
