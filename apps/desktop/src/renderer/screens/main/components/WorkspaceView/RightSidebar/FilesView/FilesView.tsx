@@ -35,6 +35,7 @@ import { ROW_HEIGHT, TREE_INDENT } from "./constants";
 import { useFileSearch } from "./hooks/useFileSearch";
 import { useFileTreeActions } from "./hooks/useFileTreeActions";
 import type { NewItemMode } from "./types";
+import { buildGetItem } from "./utils/buildGetItem";
 
 interface PendingTreeRefresh {
 	fullRefresh: boolean;
@@ -165,6 +166,20 @@ export function FilesView() {
 
 	const trpcUtils = electronTrpc.useUtils();
 
+	const getItem = useMemo(
+		() =>
+			buildGetItem({
+				worktreePathRef,
+				entryCacheRef,
+				listDirectory: (absolutePath: string) =>
+					trpcUtils.filesystem.listDirectory.fetch({
+						workspaceId: workspaceId ?? "",
+						absolutePath,
+					}),
+			}),
+		[trpcUtils, workspaceId],
+	);
+
 	const tree = useTree<DirectoryEntry>({
 		rootItemId: "root",
 		getItemName: (item: ItemInstance<DirectoryEntry>) =>
@@ -172,37 +187,7 @@ export function FilesView() {
 		isItemFolder: (item: ItemInstance<DirectoryEntry>) =>
 			item.getItemData()?.isDirectory ?? false,
 		dataLoader: {
-			getItem: async (itemId: string): Promise<DirectoryEntry> => {
-				if (itemId === "root") {
-					return {
-						id: "root",
-						name: "root",
-						path: worktreePathRef.current ?? "",
-						relativePath: "",
-						isDirectory: true,
-					};
-				}
-
-				const cachedEntry = entryCacheRef.current.get(itemId);
-				if (cachedEntry) {
-					return cachedEntry;
-				}
-
-				const currentPath = worktreePathRef.current;
-				const name = itemId.split(/[/\\]/).pop() ?? itemId;
-				const relativePath =
-					currentPath && itemId.startsWith(currentPath)
-						? itemId.slice(currentPath.length).replace(/^[/\\]/, "")
-						: itemId;
-
-				return {
-					id: itemId,
-					name,
-					path: itemId,
-					relativePath,
-					isDirectory: false,
-				};
-			},
+			getItem,
 			getChildren: async (itemId: string): Promise<string[]> => {
 				const currentPath = worktreePathRef.current;
 				if (!currentPath) return [];
