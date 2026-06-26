@@ -29,8 +29,7 @@ import {
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
 import { MOSAIC_ID } from "../TabView";
-
-const TAB_DRAG_NO_MATCH_ID = "__tab-drag-no-match__";
+import { computeTabDragHoverActions } from "./computeTabDragHoverActions";
 
 interface TabDragItem {
 	mosaicId: string;
@@ -68,27 +67,20 @@ export function GroupItem({
 	const displayName = getTabDisplayName(tab);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
-	const activeTabId = useTabsStore((s) =>
-		resolveActiveTabIdForWorkspace({
-			workspaceId: tab.workspaceId,
-			tabs: s.tabs,
-			activeTabIds: s.activeTabIds,
-			tabHistoryStacks: s.tabHistoryStacks,
-		}),
-	);
 
-	// Use MosaicDragType.WINDOW so Mosaic's built-in drop targets (blue split indicators) activate
+	// Use MosaicDragType.WINDOW so Mosaic's built-in drop targets (blue split indicators) activate.
+	// Always use MOSAIC_ID: hover on another tab in the strip activates it mid-drag (see drop spec
+	// below), and the active tab can change between drag-start and drop. The `end` callback below
+	// guards against merging a tab into itself via the freshActiveTabId check.
 	const [{ isDragging }, drag, preview] = useDrag<
 		TabDragItem,
 		{ path?: MosaicBranch[]; position?: string; handled?: true },
 		{ isDragging: boolean }
-	>(() => {
-		// Only show Mosaic split indicators when dragging onto a different (active) tab
-		const canDropOntoActiveTab = activeTabId != null && activeTabId !== tab.id;
-		return {
+	>(
+		() => ({
 			type: MosaicDragType.WINDOW,
 			item: {
-				mosaicId: canDropOntoActiveTab ? MOSAIC_ID : TAB_DRAG_NO_MATCH_ID,
+				mosaicId: MOSAIC_ID,
 				hideTimer: 0,
 				tabId: tab.id,
 				index,
@@ -119,8 +111,9 @@ export function GroupItem({
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
-		};
-	}, [tab.id, index, activeTabId]);
+		}),
+		[tab.id, index],
+	);
 
 	// Hide the default browser drag preview to prevent snap-back animation
 	useEffect(() => {
@@ -150,13 +143,23 @@ export function GroupItem({
 				);
 			},
 			hover: (item) => {
-				if (
-					item.isTabDrag &&
-					item.index !== undefined &&
-					item.index !== index
-				) {
-					onReorder?.(item.index, index);
-					item.index = index;
+				if (!item.isTabDrag) return;
+				const actions = computeTabDragHoverActions({
+					itemTabId: item.tabId,
+					itemIndex: item.index,
+					hoveredTabId: tab.id,
+					hoveredIndex: index,
+					isHoveredActive: isActive,
+				});
+				if (actions.reorder) {
+					onReorder?.(actions.reorder.fromIndex, actions.reorder.toIndex);
+					item.index = actions.reorder.toIndex;
+				}
+				// Activate the hovered tab so its panes (and their split drop zones)
+				// become visible — otherwise there's no way to merge a tab into
+				// another tab's layout. See issue #4958.
+				if (actions.activate) {
+					onSelect();
 				}
 			},
 			drop: (item) => {
@@ -182,7 +185,7 @@ export function GroupItem({
 				canDrop: monitor.canDrop(),
 			}),
 		}),
-		[onPaneDrop, onReorder, tab.id, index],
+		[onPaneDrop, onReorder, onSelect, tab.id, index, isActive],
 	);
 
 	const tabStyles = cn(
