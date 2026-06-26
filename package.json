@@ -36,6 +36,7 @@
 		"clean:workspaces": "turbo clean",
 		"release:desktop": "./apps/desktop/create-release.sh",
 		"release:canary": "./scripts/release-canary.sh",
+		"build:canary-artifacts": "./scripts/build-canary-artifacts.sh",
 		"db:push": "bun run --cwd packages/db push",
 		"db:migrate": "bun run --cwd packages/db migrate",
 		"db:seed-dev": "NODE_ENV=development bun run packages/auth/src/seed-dev.ts",
