@@ -21,3 +21,18 @@ export const PROJECT_CUSTOM_COLORS = PROJECT_COLORS;
 export const PROJECT_COLOR_VALUES: string[] = PROJECT_COLORS.map(
 	(color) => color.value,
 );
+
+/** Checks if a color value is a custom hex color (not the "default" value). */
+export function isCustomProjectColor(
+	color: string | null | undefined,
+): color is string {
+	return !!color && color !== PROJECT_COLOR_DEFAULT && color.startsWith("#");
+}
+
+/** Converts a hex color to an rgba string with the specified alpha. */
+export function hexToRgba(hex: string, alpha: number): string {
+	const r = Number.parseInt(hex.slice(1, 3), 16);
+	const g = Number.parseInt(hex.slice(3, 5), 16);
+	const b = Number.parseInt(hex.slice(5, 7), 16);
+	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

@@ -1,9 +1,11 @@
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
 interface ProjectMeta {
 	isCollapsed: boolean;
 	tabOrder: number;
+	color: string;
 }
 
 interface V2ProjectLocalMetaState {
@@ -12,11 +14,13 @@ interface V2ProjectLocalMetaState {
 	getProjectMeta: (id: string) => ProjectMeta;
 	toggleProjectCollapsed: (id: string) => void;
 	setProjectTabOrder: (id: string, order: number) => void;
+	setProjectColor: (id: string, color: string) => void;
 }
 
 const DEFAULT_PROJECT_META: ProjectMeta = {
 	isCollapsed: false,
 	tabOrder: 0,
+	color: PROJECT_COLOR_DEFAULT,
 };
 
 export const useV2ProjectLocalMetaStore = create<V2ProjectLocalMetaState>()(
@@ -48,6 +52,18 @@ export const useV2ProjectLocalMetaStore = create<V2ProjectLocalMetaState>()(
 							projects: {
 								...state.projects,
 								[id]: { ...current, tabOrder: order },
+							},
+						};
+					});
+				},
+
+				setProjectColor: (id, color) => {
+					set((state) => {
+						const current = state.projects[id] ?? DEFAULT_PROJECT_META;
+						return {
+							projects: {
+								...state.projects,
+								[id]: { ...current, color },
 							},
 						};
 					});

@@ -6,6 +6,8 @@ import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import type { DashboardSidebarProject } from "../../../../types";
 
 interface UseDashboardSidebarProjectSectionActionsOptions {
@@ -19,6 +21,12 @@ export function useDashboardSidebarProjectSectionActions({
 	const navigate = useNavigate();
 	const { v2Projects: projectActions } = useOptimisticCollectionActions();
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
+	const projectColor = useV2ProjectLocalMetaStore(
+		(state) => state.projects[project.id]?.color ?? PROJECT_COLOR_DEFAULT,
+	);
+	const setProjectColor = useV2ProjectLocalMetaStore(
+		(state) => state.setProjectColor,
+	);
 	const {
 		createSection,
 		deleteSection,
@@ -46,6 +54,10 @@ export function useDashboardSidebarProjectSectionActions({
 		const trimmed = renameValue.trim();
 		if (!trimmed || trimmed === project.name) return;
 		projectActions.renameProject(project.id, trimmed);
+	};
+
+	const handleSetColor = (color: string) => {
+		setProjectColor(project.id, color);
 	};
 
 	const handleOpenInFinder = () => {
@@ -95,7 +107,9 @@ export function useDashboardSidebarProjectSectionActions({
 		handleNewWorkspace,
 		handleOpenInFinder,
 		handleOpenSettings,
+		handleSetColor,
 		isRenaming,
+		projectColor,
 		renameSection,
 		renameValue,
 		setRenameValue,

@@ -12,6 +12,7 @@ interface ColorSelectorProps {
 	selectedColor?: string | null;
 	onSelectColor: (color: string) => void;
 	variant?: ColorSelectorVariant;
+	includeDefault?: boolean;
 	className?: string;
 }
 
@@ -43,14 +44,18 @@ export function ColorSelector({
 	selectedColor,
 	onSelectColor,
 	variant = "inline",
+	includeDefault = false,
 	className,
 }: ColorSelectorProps) {
 	const selectedValue = selectedColor ?? PROJECT_COLOR_DEFAULT;
+	const colorOptions = includeDefault
+		? [{ name: "Default", value: PROJECT_COLOR_DEFAULT }, ...PROJECT_COLORS]
+		: PROJECT_COLORS;
 
 	if (variant === "menu") {
 		return (
 			<>
-				{PROJECT_COLORS.map((color) => {
+				{colorOptions.map((color) => {
 					const isSelected = selectedValue === color.value;
 
 					return (
@@ -73,7 +78,7 @@ export function ColorSelector({
 
 	return (
 		<div className={cn("flex flex-wrap items-center gap-2", className)}>
-			{PROJECT_COLORS.map((color) => {
+			{colorOptions.map((color) => {
 				const isSelected = selectedValue === color.value;
 
 				return (
