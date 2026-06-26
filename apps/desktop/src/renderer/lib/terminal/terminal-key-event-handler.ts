@@ -36,6 +36,18 @@ function resolvePlatform(options: TerminalKeyEventHandlerOptions): string {
 // sidesteps this by suppressing all super/Cmd chords on macOS before the
 // encoder runs (ghostty/src/input/key_encode.zig:534-545). We do the same via
 // shouldBubbleClipboardShortcut's Mac branch.
+function isKittyKeyboardActive(terminal: XTerm): boolean {
+	// xterm doesn't expose this through public API. `flags > 0` means a TUI
+	// has pushed kitty mode (CSI > Ps u); when so, Enter chords should skip
+	// translation so the TUI receives the kitty CSI-u encoding it expects.
+	const flags = (
+		terminal as unknown as {
+			_core?: { coreService?: { kittyKeyboard?: { flags?: number } } };
+		}
+	)._core?.coreService?.kittyKeyboard?.flags;
+	return typeof flags === "number" && flags > 0;
+}
+
 export function createTerminalKeyEventHandler(
 	terminal: XTerm,
 	options: TerminalKeyEventHandlerOptions = {},
@@ -47,7 +59,11 @@ export function createTerminalKeyEventHandler(
 	return (event: KeyboardEvent): boolean => {
 		if (resolveHotkeyFromEvent(event) !== null) return false;
 
-		const translation = translateLineEditChord(event, { isMac, isWindows });
+		const translation = translateLineEditChord(event, {
+			isMac,
+			isWindows,
+			kittyKeyboardActive: isKittyKeyboardActive(terminal),
+		});
 		if (translation !== null) {
 			if (event.type === "keydown") {
 				event.preventDefault();
