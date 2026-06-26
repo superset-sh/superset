@@ -17,6 +17,7 @@ import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { compareStatusesForDropdown } from "../../utils/sorting";
 import { KanbanCard } from "./components/KanbanCard";
 import { KanbanColumn } from "./components/KanbanColumn";
+import { getBoardDropTarget } from "./utils/getBoardDropTarget";
 
 interface TasksBoardViewProps {
 	data: TaskWithStatus[];
@@ -78,24 +79,17 @@ export function TasksBoardView({
 			const { active, over } = event;
 			if (!over) return;
 
-			const taskId = active.id as string;
-			const overData = over.data.current;
+			const outcome = getBoardDropTarget({
+				activeTaskId: active.id as string,
+				tasks: data,
+				overData: over.data.current as Parameters<
+					typeof getBoardDropTarget
+				>[0]["overData"],
+			});
 
-			let targetStatusId: string | null = null;
-
-			if (overData?.type === "column") {
-				targetStatusId = overData.statusId as string;
-			} else if (overData?.type === "task") {
-				const overTask = overData.task as TaskWithStatus;
-				targetStatusId = overTask.statusId;
+			if (outcome.type === "moveToStatus") {
+				taskActions.updateStatus(outcome.taskId, outcome.targetStatusId);
 			}
-
-			if (!targetStatusId) return;
-
-			const task = data.find((t) => t.id === taskId);
-			if (!task || task.statusId === targetStatusId) return;
-
-			taskActions.updateStatus(taskId, targetStatusId);
 		},
 		[data, taskActions],
 	);
