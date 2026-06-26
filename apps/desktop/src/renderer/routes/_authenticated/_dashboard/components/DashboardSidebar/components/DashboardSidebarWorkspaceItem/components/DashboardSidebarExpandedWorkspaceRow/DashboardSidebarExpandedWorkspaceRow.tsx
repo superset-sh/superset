@@ -106,6 +106,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		const workspaceKindDescription = isMainWorkspace
 			? "Uses the repository checkout on this host"
 			: "Isolated copy for parallel development";
+		const mainWorkspaceHostLabel = isMainWorkspace
+			? hostType === "local-device"
+				? "local"
+				: hostType === "remote-device"
+					? "remote"
+					: "cloud"
+			: null;
 
 		return (
 			// biome-ignore lint/a11y/noStaticElementInteractions: Mirrors the legacy sidebar row UI, which includes nested action buttons.
@@ -240,6 +247,19 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								"h-5 w-full -ml-1 border-none bg-transparent px-1 py-0 text-[13px] leading-tight outline-none",
 							)}
 						/>
+					) : isMainWorkspace ? (
+						<span
+							className={cn(
+								"flex min-w-0 items-baseline gap-1.5 truncate text-[13px] leading-tight transition-colors",
+								isActive ? "text-foreground" : "text-foreground/80",
+							)}
+						>
+							<span className="shrink-0">{mainWorkspaceHostLabel}</span>
+							<span className="text-muted-foreground/60">·</span>
+							<span className="truncate font-mono text-[11px] text-muted-foreground/60">
+								{branch}
+							</span>
+						</span>
 					) : (
 						<span
 							className={cn(

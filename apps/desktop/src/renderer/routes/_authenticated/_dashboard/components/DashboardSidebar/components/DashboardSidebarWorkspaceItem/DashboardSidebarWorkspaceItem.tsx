@@ -1,7 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
@@ -39,6 +42,27 @@ export function DashboardSidebarWorkspaceItem({
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
+	const { activeHostUrl } = useLocalHostService();
+	const isLocalMainWorkspace = isMainWorkspace && hostType === "local-device";
+	const { data: liveBranch } = useQuery({
+		queryKey: ["dashboardSidebarLiveBranch", activeHostUrl, id],
+		queryFn: async () => {
+			if (!activeHostUrl) return null;
+			const result = await getHostServiceClientByUrl(
+				activeHostUrl,
+			).workspace.currentBranch.query({ id });
+			return result?.branch ?? null;
+		},
+		enabled: isLocalMainWorkspace && !!activeHostUrl && !creationStatus,
+		refetchInterval: 30_000,
+		refetchOnWindowFocus: true,
+		staleTime: 15_000,
+	});
+	const displayedBranch = liveBranch ?? branch;
+	const displayedWorkspace = useMemo<DashboardSidebarWorkspace>(() => {
+		if (displayedBranch === branch) return workspace;
+		return { ...workspace, branch: displayedBranch };
+	}, [branch, displayedBranch, workspace]);
 	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
@@ -65,7 +89,7 @@ export function DashboardSidebarWorkspaceItem({
 		workspaceId: id,
 		projectId,
 		workspaceName: name,
-		branch,
+		branch: displayedBranch,
 		isMainWorkspace,
 	});
 
@@ -90,8 +114,11 @@ export function DashboardSidebarWorkspaceItem({
 	const rowRef = useRef<HTMLDivElement>(null);
 	const hoverEligible = !isPending;
 	const hoverPayload = useMemo(
-		() => ({ workspace, onEditBranchClick: setRenameBranchTarget }),
-		[workspace],
+		() => ({
+			workspace: displayedWorkspace,
+			onEditBranchClick: setRenameBranchTarget,
+		}),
+		[displayedWorkspace],
 	);
 
 	const handleMouseEnter = useCallback(() => {
@@ -164,7 +191,7 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
-							onRename={startRename}
+							onRename={isMainWorkspace ? undefined : startRename}
 							onDelete={
 								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 							}
@@ -178,7 +205,7 @@ export function DashboardSidebarWorkspaceItem({
 				{!isPending && !isMainWorkspace && (
 					<DashboardSidebarDeleteDialog
 						workspaceId={id}
-						workspaceName={name || branch}
+						workspaceName={name || displayedBranch}
 						open={isDeleteDialogOpen}
 						onOpenChange={setIsDeleteDialogOpen}
 						onDeleted={handleDeleted}
@@ -207,7 +234,7 @@ export function DashboardSidebarWorkspaceItem({
 			onMouseLeave={handleMouseLeave}
 		>
 			<DashboardSidebarExpandedWorkspaceRow
-				workspace={workspace}
+				workspace={displayedWorkspace}
 				isActive={isActive}
 				isRenaming={isRenaming}
 				renameValue={renameValue}
@@ -216,7 +243,7 @@ export function DashboardSidebarWorkspaceItem({
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
 				onClick={handleClick}
-				onDoubleClick={isPending ? undefined : startRename}
+				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
 				onRenameValueChange={setRenameValue}
@@ -247,7 +274,7 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
-						onRename={startRename}
+						onRename={isMainWorkspace ? undefined : startRename}
 						onDelete={
 							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 						}
@@ -261,7 +288,7 @@ export function DashboardSidebarWorkspaceItem({
 			{!isPending && !isMainWorkspace && (
 				<DashboardSidebarDeleteDialog
 					workspaceId={id}
-					workspaceName={name || branch}
+					workspaceName={name || displayedBranch}
 					open={isDeleteDialogOpen}
 					onOpenChange={setIsDeleteDialogOpen}
 					onDeleted={handleDeleted}
