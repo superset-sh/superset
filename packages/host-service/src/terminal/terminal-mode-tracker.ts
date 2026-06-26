@@ -90,21 +90,30 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 		// synchronizedOutputMode intentionally omitted — re-asserting it on
 		// attach would suspend rendering until the next end-marker.
 
-		switch (m.mouseTrackingMode) {
-			case "x10":
-				parts.push("\x1b[?9h");
-				break;
-			case "vt200":
-				parts.push("\x1b[?1000h");
-				break;
-			case "drag":
-				parts.push("\x1b[?1002h");
-				break;
-			case "any":
-				parts.push("\x1b[?1003h");
-				break;
-			case "none":
-				break;
+		// Mouse tracking is only restored when alt screen is active. TUIs
+		// commonly enable mouse tracking on startup and exit the alt screen
+		// without disabling it, leaving the tracker recording the mode as
+		// on. Re-arming mouse tracking on a renderer that's about to land
+		// at a bare shell prompt causes wheel scrolls to leak SGR reports
+		// as literal text (issue #4949). When alt screen returns, the TUI
+		// re-enables tracking itself.
+		if (term.buffer.active.type === "alternate") {
+			switch (m.mouseTrackingMode) {
+				case "x10":
+					parts.push("\x1b[?9h");
+					break;
+				case "vt200":
+					parts.push("\x1b[?1000h");
+					break;
+				case "drag":
+					parts.push("\x1b[?1002h");
+					break;
+				case "any":
+					parts.push("\x1b[?1003h");
+					break;
+				case "none":
+					break;
+			}
 		}
 
 		const kittyFlags = internals._core?.coreService?.kittyKeyboard?.flags ?? 0;

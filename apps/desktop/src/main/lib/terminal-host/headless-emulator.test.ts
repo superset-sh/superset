@@ -238,6 +238,40 @@ describe("HeadlessEmulator", () => {
 			// Should have empty or minimal rehydrate sequences
 			expect(snapshot.rehydrateSequences).toBe("");
 		});
+
+		test("rehydrate skips mouse tracking after TUI exits alt screen (issue #4949)", async () => {
+			// A TUI (vim/htop/etc.) enters the alternate screen, enables mouse
+			// tracking + SGR encoding, then exits the alternate screen WITHOUT
+			// disabling mouse tracking — a very common omission in CLI tools.
+			//
+			// At this point the user is back at the bare shell prompt. The
+			// snapshot still records mouse tracking as enabled (because the
+			// TUI never sent a disable sequence), but rehydrating those modes
+			// onto a fresh xterm would arm mouse reports against the shell.
+			// The shell doesn't consume mouse reports, so any wheel scroll
+			// would leak the SGR mouse-tracking payload (`<Cb;Cx;Cy M`) as
+			// literal text at the prompt. That's the bug reported in #4949.
+			await emulator.writeSync(ENTER_ALT_SCREEN);
+			await emulator.writeSync(ENABLE_MOUSE_NORMAL);
+			await emulator.writeSync(ENABLE_MOUSE_SGR);
+			await emulator.writeSync(EXIT_ALT_SCREEN);
+
+			const snapshot = emulator.getSnapshot();
+
+			// We are no longer in alt screen — no TUI is on the foreground.
+			expect(snapshot.modes.alternateScreen).toBe(false);
+
+			// The rehydrate sequences must not re-enable mouse tracking; the
+			// foreground shell is not equipped to consume mouse reports, and
+			// re-enabling would cause wheel scrolls to leak SGR reports as
+			// literal text (issue #4949). A TUI launched later will re-enable
+			// the modes itself when it re-enters the alt screen.
+			expect(snapshot.rehydrateSequences).not.toContain("?9h");
+			expect(snapshot.rehydrateSequences).not.toContain("?1000h");
+			expect(snapshot.rehydrateSequences).not.toContain("?1002h");
+			expect(snapshot.rehydrateSequences).not.toContain("?1003h");
+			expect(snapshot.rehydrateSequences).not.toContain("?1006h");
+		});
 	});
 });
 
@@ -273,7 +307,12 @@ describe("Snapshot Round-Trip", () => {
 		const target = new HeadlessEmulator({ cols: 80, rows: 24 });
 
 		try {
-			// Set up modes in source
+			// Set up modes in source. Mouse tracking is enabled inside the
+			// alt screen — matching how real TUIs use it. Restoring mouse
+			// modes onto a normal-screen target would re-arm SGR reports
+			// against a bare shell (issue #4949), so the rehydrate path
+			// gates them behind alt-screen state.
+			await source.writeSync(ENTER_ALT_SCREEN);
 			await source.writeSync(ENABLE_APP_CURSOR);
 			await source.writeSync(ENABLE_BRACKETED_PASTE);
 			await source.writeSync(ENABLE_MOUSE_NORMAL);

@@ -540,16 +540,23 @@ export class HeadlessEmulator {
 		// Cursor visibility (mode 25)
 		addModeSequence(25, this.modes.cursorVisible, true);
 
-		// Mouse tracking modes (mutually exclusive typically, but we track all)
-		addModeSequence(9, this.modes.mouseTrackingX10, false);
-		addModeSequence(1000, this.modes.mouseTrackingNormal, false);
-		addModeSequence(1001, this.modes.mouseTrackingHighlight, false);
-		addModeSequence(1002, this.modes.mouseTrackingButtonEvent, false);
-		addModeSequence(1003, this.modes.mouseTrackingAnyEvent, false);
-
-		// Mouse encoding modes
-		addModeSequence(1005, this.modes.mouseUtf8, false);
-		addModeSequence(1006, this.modes.mouseSgr, false);
+		// Mouse tracking + encoding modes are only restored when a TUI is
+		// still on-screen (alt screen active). TUIs routinely enable mouse
+		// tracking on startup and exit the alt screen without disabling it,
+		// leaving the tracker recording the modes as on. Rehydrating those
+		// onto a fresh xterm at the bare shell prompt arms mouse reports
+		// against a shell that doesn't consume them, so wheel scrolls leak
+		// the SGR payload as literal text (issue #4949). When alt screen
+		// returns later, the TUI re-enables these modes itself.
+		if (this.modes.alternateScreen) {
+			addModeSequence(9, this.modes.mouseTrackingX10, false);
+			addModeSequence(1000, this.modes.mouseTrackingNormal, false);
+			addModeSequence(1001, this.modes.mouseTrackingHighlight, false);
+			addModeSequence(1002, this.modes.mouseTrackingButtonEvent, false);
+			addModeSequence(1003, this.modes.mouseTrackingAnyEvent, false);
+			addModeSequence(1005, this.modes.mouseUtf8, false);
+			addModeSequence(1006, this.modes.mouseSgr, false);
+		}
 
 		// Focus reporting (mode 1004)
 		addModeSequence(1004, this.modes.focusReporting, false);

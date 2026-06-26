@@ -58,17 +58,39 @@ describe("createModeTracker", () => {
 		t.dispose();
 	});
 
-	test("focus reporting and mouse tracking are captured", () => {
+	test("focus reporting and mouse tracking are captured inside alt screen", () => {
 		// `?1002h` is button-tracking, NOT SGR encoding (`?1006h`). xterm.js's
 		// public IModes doesn't expose mouse encoding format, so the preamble
 		// can't restore it — clients reattaching mid-session keep the default
 		// X10 encoding. Acceptable today; revisit if a TUI relying on SGR
 		// breaks on reattach.
+		//
+		// Mouse tracking is gated on alt-screen state — restoring it onto a
+		// bare-shell reattach would re-arm SGR reports against the shell
+		// (issue #4949). Enter alt screen so the preamble restores tracking.
 		const t = createModeTracker(120, 32);
-		t.feed(enc.encode("\x1b[?1004h\x1b[?1002h"));
+		t.feed(enc.encode("\x1b[?1049h\x1b[?1004h\x1b[?1002h"));
 		const preamble = preambleString(t);
 		expect(preamble).toContain("\x1b[?1004h");
 		expect(preamble).toContain("\x1b[?1002h");
+		t.dispose();
+	});
+
+	test("mouse tracking is dropped from preamble after TUI exits alt screen (issue #4949)", () => {
+		// Reproduces the leak path: a TUI enters alt screen, enables mouse
+		// tracking, then exits alt screen without disabling tracking. The
+		// tracker still records the mode as on. Without the alt-screen gate,
+		// a renderer reattaching now would get mouse tracking re-armed and
+		// every wheel scroll at the bare shell prompt would leak the SGR
+		// payload as literal text.
+		const t = createModeTracker(120, 32);
+		t.feed(enc.encode("\x1b[?1049h\x1b[?1002h\x1b[?1006h\x1b[?1049l"));
+		const preamble = t.buildPreamble();
+		const text = preamble ? new TextDecoder().decode(preamble) : "";
+		expect(text).not.toContain("?9h");
+		expect(text).not.toContain("?1000h");
+		expect(text).not.toContain("?1002h");
+		expect(text).not.toContain("?1003h");
 		t.dispose();
 	});
 
