@@ -31,7 +31,10 @@ import {
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
-import { invalidateProjectScriptQueries } from "renderer/lib/project-scripts";
+import {
+	invalidateProjectScriptQueries,
+	trackSetupScriptConfigured,
+} from "renderer/lib/project-scripts";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -267,6 +270,14 @@ function ProjectPage() {
 
 		try {
 			await updateConfigMutation.mutateAsync({
+				projectId,
+				setup: commands,
+				teardown: teardownCommands,
+			});
+			// This flow only edits setup/teardown — `run` is intentionally out of
+			// scope here, so it's omitted from the event rather than reported as
+			// absent.
+			trackSetupScriptConfigured({
 				projectId,
 				setup: commands,
 				teardown: teardownCommands,
