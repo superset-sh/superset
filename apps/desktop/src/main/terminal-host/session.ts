@@ -146,6 +146,7 @@ export class Session {
 	private subprocessStdoutPaused = false;
 	private lastAttachedAt: Date;
 	private exitCode: number | null = null;
+	private lastErrorMessage: string | null = null;
 	private disposed = false;
 	private terminatingAt: number | null = null;
 	private subprocessDecoder: PtySubprocessFrameDecoder | null = null;
@@ -425,6 +426,8 @@ export class Session {
 					`[Session ${this.sessionId}] Subprocess error:`,
 					errorMessage,
 				);
+
+				this.lastErrorMessage = errorMessage;
 
 				this.broadcastEvent("error", {
 					type: "error",
@@ -754,6 +757,16 @@ export class Session {
 	 */
 	get pid(): number | null {
 		return this.ptyPid;
+	}
+
+	/**
+	 * Last subprocess error message received, if any.
+	 * Set when the PTY subprocess emits an Error frame (e.g. failed
+	 * posix_spawnp). Used by TerminalHost to surface the actual reason for
+	 * a failed createOrAttach instead of the generic exit message.
+	 */
+	get lastError(): string | null {
+		return this.lastErrorMessage;
 	}
 
 	/**
