@@ -209,6 +209,8 @@ const ALLOWED_ENV_VARS = new Set([
 
 	// Terminal/display
 	"DISPLAY",
+	"XAUTHORITY", // X11 auth cookie — required for xclip/xsel clipboard image reads
+	"WAYLAND_DISPLAY", // Wayland display connection (counterpart to DISPLAY)
 	"COLORTERM",
 	"TERM_PROGRAM",
 	"TERM_PROGRAM_VERSION",

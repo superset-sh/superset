@@ -391,6 +391,31 @@ describe("env", () => {
 			});
 		});
 
+		describe("includes X11/Wayland display vars (clipboard image paste)", () => {
+			// Regression: terminal agents (Claude Code/Codex) shell out to xclip to
+			// read clipboard images on Linux. xclip needs DISPLAY + XAUTHORITY (X11)
+			// or WAYLAND_DISPLAY (Wayland) to reach the display server. If these are
+			// filtered out of the PTY env, the read fails with "no image in the
+			// clipboard". See GitHub issue #5003 (and #2738 / #3015 for Wayland).
+			it("should include DISPLAY (X11 connection)", () => {
+				const env = { DISPLAY: ":0", PATH: "/usr/bin" };
+				const result = buildSafeEnv(env);
+				expect(result.DISPLAY).toBe(":0");
+			});
+
+			it("should include XAUTHORITY (X11 auth cookie for xclip)", () => {
+				const env = { XAUTHORITY: "/home/user/.Xauthority", PATH: "/usr/bin" };
+				const result = buildSafeEnv(env);
+				expect(result.XAUTHORITY).toBe("/home/user/.Xauthority");
+			});
+
+			it("should include WAYLAND_DISPLAY (Wayland connection)", () => {
+				const env = { WAYLAND_DISPLAY: "wayland-0", PATH: "/usr/bin" };
+				const result = buildSafeEnv(env);
+				expect(result.WAYLAND_DISPLAY).toBe("wayland-0");
+			});
+		});
+
 		describe("includes developer tool config vars (non-secrets)", () => {
 			it("should include SSL/TLS config vars", () => {
 				const env = {
