@@ -3,6 +3,7 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
@@ -95,10 +96,6 @@ export function FileSearchResultItem({
 		}
 	};
 
-	const handleDoubleClick = () => {
-		onOpenInEditor(entry);
-	};
-
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter") {
 			e.preventDefault();
@@ -119,7 +116,6 @@ export function FileSearchResultItem({
 				"hover:bg-accent/50 transition-colors",
 			)}
 			onClick={handleClick}
-			onDoubleClick={handleDoubleClick}
 			onKeyDown={handleKeyDown}
 		>
 			<span className="flex items-center justify-center w-4 h-4 shrink-0" />
@@ -175,6 +171,7 @@ export function FileSearchResultItem({
 				<ContextMenuItem onClick={openInEditor}>
 					<LuExternalLink className="mr-2 size-4" />
 					Open in Editor
+					<ContextMenuShortcut>⌘+Click</ContextMenuShortcut>
 				</ContextMenuItem>
 
 				<ContextMenuSeparator />
