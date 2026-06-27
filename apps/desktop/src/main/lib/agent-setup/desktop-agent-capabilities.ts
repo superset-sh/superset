@@ -16,6 +16,7 @@ export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"opencode-plugin",
 	"opencode-wrapper",
 	"pi-extension",
+	"omp-extension",
 	"cursor-hook-script",
 	"cursor-agent-wrapper",
 	"cursor-hooks-json",
@@ -67,6 +68,10 @@ export const DESKTOP_AGENT_SETUP_TARGETS = [
 		id: "opencode",
 		setupActions: ["opencode-plugin", "opencode-wrapper"],
 		managedBinary: true,
+	},
+	{
+		id: "omp",
+		setupActions: ["omp-extension"],
 	},
 	{
 		id: "pi",

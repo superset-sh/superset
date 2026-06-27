@@ -44,6 +44,8 @@ its hook entries into these files while preserving user-defined entries:
 | `~/.claude/settings.json` | Claude Code hook registration merge |
 | `~/.codex/hooks.json` | Codex hook registration merge (`SessionStart`, `UserPromptSubmit`, `Stop`) |
 | `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
+| `~/.omp/agent/extensions/superset-hooks.ts` (or `$PI_CODING_AGENT_DIR/extensions/superset-hooks.ts`) | Oh My Pi lifecycle extension (`session_start`, `agent_start`, `tool_execution_end`, `agent_end`, `session_end`, `session_shutdown`) |
+| `~/.pi/agent/extensions/superset-hooks.ts` | Pi lifecycle extension (`session_start`, `before_agent_start`, `agent_end`, `session_end`) |
 
 For Codex specifically, Superset now relies on native `~/.codex/hooks.json`
 registration for durable prompt/tool lifecycle events, while the wrapper in

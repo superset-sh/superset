@@ -11,6 +11,7 @@ import {
 	resolveAgentConfigs,
 	upsertCustomAgentDefinition,
 } from "./agent-settings";
+import { DEFAULT_TERMINAL_PRESET_AGENT_TYPES } from "./builtin-terminal-agents";
 
 describe("resolveAgentConfigs", () => {
 	test("resolves built-in terminal and chat configs with overrides", () => {
@@ -55,7 +56,20 @@ describe("resolveAgentConfigs", () => {
 		});
 	});
 
-	test("includes pi as a built-in terminal config", () => {
+	test("includes Oh My Pi as a first-class built-in terminal config", () => {
+		const omp = resolveAgentConfigs({}).find((preset) => preset.id === "omp");
+
+		expect(omp).toMatchObject({
+			id: "omp",
+			kind: "terminal",
+			label: "Oh My Pi",
+			command: "omp",
+			promptCommand: "omp",
+			enabled: true,
+		});
+	});
+
+	test("preserves the legacy Pi built-in terminal config", () => {
 		const pi = resolveAgentConfigs({}).find((preset) => preset.id === "pi");
 
 		expect(pi).toMatchObject({
@@ -66,6 +80,11 @@ describe("resolveAgentConfigs", () => {
 			promptCommand: "pi",
 			enabled: true,
 		});
+	});
+
+	test("includes Oh My Pi in default terminal presets", () => {
+		expect(DEFAULT_TERMINAL_PRESET_AGENT_TYPES).toContain("omp");
+		expect(DEFAULT_TERMINAL_PRESET_AGENT_TYPES).not.toContain("pi");
 	});
 
 	test("uses amp as the built-in prompt command for Amp", () => {
