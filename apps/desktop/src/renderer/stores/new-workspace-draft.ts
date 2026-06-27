@@ -41,6 +41,8 @@ export interface NewWorkspaceDraft {
 	linkedPR: LinkedPR | null;
 	selectedAgentId: string | null;
 	attachments: DraftAttachment[];
+	/** True while `prompt` is the unedited setup-card seed; dropped on dismiss, cleared on edit. */
+	promptSeededFromSetupCard: boolean;
 }
 
 interface NewWorkspaceDraftState extends NewWorkspaceDraft {
@@ -50,6 +52,7 @@ interface NewWorkspaceDraftState extends NewWorkspaceDraft {
 	updateAttachment: (localId: string, patch: Partial<DraftAttachment>) => void;
 	removeAttachment: (localId: string) => void;
 	resetDraft: () => void;
+	seedSetupPrompt: (prompt: string) => void;
 }
 
 function buildInitialDraft(): NewWorkspaceDraft {
@@ -67,14 +70,23 @@ function buildInitialDraft(): NewWorkspaceDraft {
 		linkedPR: null,
 		selectedAgentId: null,
 		attachments: [],
+		promptSeededFromSetupCard: false,
 	};
 }
 
 export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
-	(set) => ({
+	(set, get) => ({
 		...buildInitialDraft(),
 		resetKey: 0,
-		updateDraft: (patch) => set((state) => ({ ...state, ...patch })),
+		updateDraft: (patch) =>
+			set((state) => ({
+				...state,
+				...patch,
+				// A prompt edit is user content; seeding bypasses updateDraft, so this only ever clears the flag.
+				...(patch.prompt !== undefined
+					? { promptSeededFromSetupCard: false }
+					: {}),
+			})),
 		addAttachment: (attachment) =>
 			set((state) => ({
 				...state,
@@ -103,6 +115,12 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 				updateAttachment: state.updateAttachment,
 				removeAttachment: state.removeAttachment,
 				resetDraft: state.resetDraft,
+				seedSetupPrompt: state.seedSetupPrompt,
 			})),
+		seedSetupPrompt: (prompt) => {
+			// resetDraft clears + bumps resetKey (remounts the editor); the shallow merge keeps the flag.
+			get().resetDraft();
+			set({ prompt, promptSeededFromSetupCard: true });
+		},
 	}),
 );

@@ -67,6 +67,7 @@ export function useDashboardNewWorkspaceDraft() {
 			linkedPR: store.linkedPR,
 			selectedAgentId: store.selectedAgentId,
 			attachments: store.attachments,
+			promptSeededFromSetupCard: store.promptSeededFromSetupCard,
 		})),
 	);
 	const updateDraft = useNewWorkspaceDraftStore((store) => store.updateDraft);

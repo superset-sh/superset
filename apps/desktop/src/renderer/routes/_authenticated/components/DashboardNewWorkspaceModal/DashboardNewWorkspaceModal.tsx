@@ -10,6 +10,7 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { useEffect, useRef } from "react";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -41,7 +42,16 @@ function PromptInputResetSync() {
 export function DashboardNewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
+	const resetDraft = useNewWorkspaceDraftStore((store) => store.resetDraft);
 	const preSelectedProjectId = usePreSelectedProjectId();
+
+	// Drop an unedited setup-card seed on dismiss; configure-agents/go-to-setup use closeModal() directly and keep it.
+	const handleDismiss = () => {
+		if (useNewWorkspaceDraftStore.getState().promptSeededFromSetupCard) {
+			resetDraft();
+		}
+		closeModal();
+	};
 
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={closeModal}>
@@ -50,7 +60,7 @@ export function DashboardNewWorkspaceModal() {
 				<Dialog
 					modal
 					open={isOpen}
-					onOpenChange={(open) => !open && closeModal()}
+					onOpenChange={(open) => !open && handleDismiss()}
 				>
 					<DialogHeader className="sr-only">
 						<DialogTitle>New Workspace</DialogTitle>
