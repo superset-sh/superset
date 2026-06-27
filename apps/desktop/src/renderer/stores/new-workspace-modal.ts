@@ -54,9 +54,9 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 			},
 
 			closeModal: () => {
-				// Drop an unedited setup-card seed on any close so it can't resurface in a later, unrelated open. Edited prompts cleared the flag and survive.
+				// Clear an unedited setup-card seed on any close so it can't resurface in a later, unrelated open. Only the prompt is dropped; other draft fields the user filled in are kept (and editing the prompt already cleared the flag).
 				const draft = useNewWorkspaceDraftStore.getState();
-				if (draft.promptSeededFromSetupCard) draft.resetDraft();
+				if (draft.promptSeededFromSetupCard) draft.updateDraft({ prompt: "" });
 				set({ isOpen: false, preSelectedProjectId: null });
 			},
 

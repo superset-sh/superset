@@ -31,6 +31,20 @@ describe("closeModal — setup-card seed cleanup", () => {
 		expect(draft().prompt).toBe("my edits");
 	});
 
+	test("closing the modal drops the seed but keeps other fields the user filled in", () => {
+		draft().seedSetupPrompt("seed");
+		// User fills in non-prompt fields but leaves the seeded prompt untouched.
+		draft().updateDraft({ workspaceName: "my-ws", selectedProjectId: "p1" });
+		modal().openModal("p1");
+
+		modal().closeModal();
+
+		expect(draft().prompt).toBe("");
+		expect(draft().promptSeededFromSetupCard).toBe(false);
+		expect(draft().workspaceName).toBe("my-ws");
+		expect(draft().selectedProjectId).toBe("p1");
+	});
+
 	test("closing the modal leaves a plain (unseeded) draft untouched", () => {
 		draft().updateDraft({ prompt: "typed from scratch" });
 		modal().openModal("p1");
