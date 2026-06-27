@@ -34,6 +34,7 @@ type PendingRequest = {
 	method: string;
 	resolve: (value: unknown) => void;
 	reject: (reason: unknown) => void;
+	timeout: ReturnType<typeof setTimeout>;
 };
 
 export interface AcpAgentClientOptions {
@@ -45,6 +46,8 @@ export interface AcpAgentClientOptions {
 	onPermissionRequest: (request: AcpPermissionRequest) => Promise<unknown>;
 	onError: (error: Error) => void;
 }
+
+const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
 
 export class AcpJsonRpcError extends Error {
 	readonly code: number;
@@ -60,6 +63,8 @@ export class AcpJsonRpcError extends Error {
 
 export class StdioAcpAgentClient {
 	private child: ChildProcessWithoutNullStreams | null = null;
+	private exited = false;
+	private disposing = false;
 	private lines: Interface | null = null;
 	private nextRequestId = 1;
 	private readonly pending = new Map<number | string, PendingRequest>();
@@ -108,18 +113,24 @@ export class StdioAcpAgentClient {
 
 	cancel(sessionId: string): void {
 		void this.notify("session/cancel", { sessionId });
+		this.rejectPendingRequests(
+			"session/prompt",
+			new Error("ACP prompt cancelled"),
+		);
 	}
 
 	async dispose(): Promise<void> {
 		const child = this.child;
+		this.disposing = true;
 		this.child = null;
 		this.lines?.close();
 		this.lines = null;
-		for (const { reject } of this.pending.values()) {
-			reject(new Error("ACP agent process disposed"));
+		for (const pending of this.pending.values()) {
+			clearTimeout(pending.timeout);
+			pending.reject(new Error("ACP agent process disposed"));
 		}
 		this.pending.clear();
-		if (!child || child.killed) return;
+		if (!child || this.exited) return;
 
 		const { promise, resolve } = Promise.withResolvers<void>();
 		const timeout = setTimeout(resolve, 1000);
@@ -129,11 +140,13 @@ export class StdioAcpAgentClient {
 		});
 		child.kill("SIGTERM");
 		await promise;
-		if (!child.killed) child.kill("SIGKILL");
+		if (!this.exited) child.kill("SIGKILL");
 	}
 
 	private startProcess(): void {
 		if (this.child) return;
+		this.exited = false;
+		this.disposing = false;
 		const child = spawn(this.options.command, this.options.args, {
 			cwd: this.options.cwd,
 			env: this.options.env ?? process.env,
@@ -156,10 +169,13 @@ export class StdioAcpAgentClient {
 			}
 		});
 		child.once("error", (error) => {
+			this.markExited();
 			this.rejectAll(error);
 			this.options.onError(error);
 		});
 		child.once("exit", (code, signal) => {
+			this.markExited();
+			if (this.disposing) return;
 			const suffix =
 				this.stderrLines.length > 0 ? `: ${this.stderrLines.join("\n")}` : "";
 			const error = new Error(
@@ -173,11 +189,19 @@ export class StdioAcpAgentClient {
 	private async request(method: string, params: unknown): Promise<unknown> {
 		const id = this.nextRequestId++;
 		const { promise, resolve, reject } = Promise.withResolvers<unknown>();
-		this.pending.set(id, { method, resolve, reject });
+		const timeout = setTimeout(() => {
+			if (!this.pending.delete(id)) return;
+			reject(new Error(`ACP request timed out: ${method}`));
+		}, DEFAULT_REQUEST_TIMEOUT_MS);
+		this.pending.set(id, { method, resolve, reject, timeout });
 		try {
 			await this.write({ jsonrpc: "2.0", id, method, params });
 		} catch (error) {
-			this.pending.delete(id);
+			const pending = this.pending.get(id);
+			if (pending) {
+				clearTimeout(pending.timeout);
+				this.pending.delete(id);
+			}
 			reject(error);
 		}
 		return promise;
@@ -229,6 +253,7 @@ export class StdioAcpAgentClient {
 		const pending = this.pending.get(message.id);
 		if (!pending) return;
 		this.pending.delete(message.id);
+		clearTimeout(pending.timeout);
 		if (message.error) {
 			pending.reject(new AcpJsonRpcError(message.error));
 			return;
@@ -273,8 +298,27 @@ export class StdioAcpAgentClient {
 	}
 
 	private rejectAll(error: Error): void {
-		for (const { reject } of this.pending.values()) reject(error);
+		for (const pending of this.pending.values()) {
+			clearTimeout(pending.timeout);
+			pending.reject(error);
+		}
 		this.pending.clear();
+	}
+
+	private rejectPendingRequests(method: string, error: Error): void {
+		for (const [id, pending] of this.pending) {
+			if (pending.method !== method) continue;
+			clearTimeout(pending.timeout);
+			this.pending.delete(id);
+			pending.reject(error);
+		}
+	}
+
+	private markExited(): void {
+		this.exited = true;
+		this.child = null;
+		this.lines?.close();
+		this.lines = null;
 	}
 }
 

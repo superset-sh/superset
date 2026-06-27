@@ -24,32 +24,37 @@ describe("AcpChatRuntime", () => {
 			args: [script],
 		});
 
-		await runtime.initialize();
-		const result = await runtime.sendMessage({ content: "Say hi" });
+		try {
+			await runtime.initialize();
+			const result = await runtime.sendMessage({ content: "Say hi" });
 
-		expect(result.stopReason).toBe("end_turn");
-		expect(runtime.getDisplayState().isRunning).toBe(false);
-		expect(runtime.getDisplayState().currentMessage).toBeNull();
-		expect(runtime.listMessages()).toHaveLength(2);
-		expect(runtime.listMessages()[0]?.role).toBe("user");
-		const assistant = runtime.listMessages()[1];
-		expect(assistant?.role).toBe("assistant");
-		expect(assistant?.content).toEqual([
-			{ type: "text", text: "Hello world" },
-			{
-				type: "tool_call",
-				id: "tool-1",
-				name: "read",
-				args: { path: "README.md" },
-			},
-			{
-				type: "tool_result",
-				id: "tool-1",
-				name: "read",
-				result: [{ type: "content", content: { type: "text", text: "done" } }],
-			},
-		]);
-		await runtime.dispose();
+			expect(result.stopReason).toBe("end_turn");
+			expect(runtime.getDisplayState().isRunning).toBe(false);
+			expect(runtime.getDisplayState().currentMessage).toBeNull();
+			expect(runtime.listMessages()).toHaveLength(2);
+			expect(runtime.listMessages()[0]?.role).toBe("user");
+			const assistant = runtime.listMessages()[1];
+			expect(assistant?.role).toBe("assistant");
+			expect(assistant?.content).toEqual([
+				{ type: "text", text: "Hello world" },
+				{
+					type: "tool_call",
+					id: "1",
+					name: "read",
+					args: { path: "README.md" },
+				},
+				{
+					type: "tool_result",
+					id: "1",
+					name: "read",
+					result: [
+						{ type: "content", content: { type: "text", text: "done" } },
+					],
+				},
+			]);
+		} finally {
+			await runtime.dispose();
+		}
 	});
 
 	test("surfaces ACP permission requests and resolves selected options", async () => {
@@ -63,23 +68,50 @@ describe("AcpChatRuntime", () => {
 			args: [script],
 		});
 
-		await runtime.initialize();
-		const sendPromise = runtime.sendMessage({ content: "Edit file" });
-		await waitFor(() => runtime.getDisplayState().pendingApproval !== null);
+		try {
+			await runtime.initialize();
+			const sendPromise = runtime.sendMessage({ content: "Edit file" });
+			await waitFor(() => runtime.getDisplayState().pendingApproval !== null);
 
-		expect(runtime.getDisplayState().pendingApproval).toEqual({
-			toolCallId: "perm-1",
-			toolName: "Edit file",
-			args: { path: "README.md" },
+			expect(runtime.getDisplayState().pendingApproval).toEqual({
+				toolCallId: "perm-1",
+				toolName: "Edit file",
+				args: { path: "README.md" },
+			});
+			runtime.respondToApproval({ decision: "approve" });
+			await sendPromise;
+
+			expect(runtime.getDisplayState().pendingApproval).toBeNull();
+			expect(runtime.listMessages()[1]?.content).toEqual([
+				{ type: "text", text: "permission:allow-once" },
+			]);
+		} finally {
+			await runtime.dispose();
+		}
+	});
+
+	test("rejects concurrent ACP prompts for one chat session", async () => {
+		const cwd = createTempDir();
+		const script = writeAgentScript(cwd, hangingAgentScript());
+		const runtime = new AcpChatRuntime({
+			supersetSessionId: crypto.randomUUID(),
+			workspaceId: crypto.randomUUID(),
+			cwd,
+			command: process.execPath,
+			args: [script],
 		});
-		runtime.respondToApproval({ decision: "approve" });
-		await sendPromise;
 
-		expect(runtime.getDisplayState().pendingApproval).toBeNull();
-		expect(runtime.listMessages()[1]?.content).toEqual([
-			{ type: "text", text: "permission:allow-once" },
-		]);
-		await runtime.dispose();
+		try {
+			await runtime.initialize();
+			const sendPromise = runtime.sendMessage({ content: "First" });
+			await expect(runtime.sendMessage({ content: "Second" })).rejects.toThrow(
+				"ACP chat already has a prompt in progress",
+			);
+			runtime.stop();
+			await expect(sendPromise).resolves.toEqual({ stopReason: "cancelled" });
+		} finally {
+			await runtime.dispose();
+		}
 	});
 });
 
@@ -136,8 +168,8 @@ function handleMessage(message) {
   if (message.method === "session/prompt") {
     send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "acp-session", update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Hello " } } } });
     send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "acp-session", update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "world" } } } });
-    send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "acp-session", update: { sessionUpdate: "tool_call", toolCallId: "tool-1", title: "read", rawInput: { path: "README.md" } } } });
-    send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "acp-session", update: { sessionUpdate: "tool_call_update", toolCallId: "tool-1", status: "completed", content: [{ type: "content", content: { type: "text", text: "done" } }] } } });
+    send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "acp-session", update: { sessionUpdate: "tool_call", toolCallId: 1, title: "read", rawInput: { path: "README.md" } } } });
+    send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "acp-session", update: { sessionUpdate: "tool_call_update", toolCallId: 1, status: "completed", content: [{ type: "content", content: { type: "text", text: "done" } }] } } });
     send({ jsonrpc: "2.0", id: message.id, result: { stopReason: "end_turn" } });
   }
 }
@@ -165,6 +197,21 @@ function handleMessage(message) {
     const optionId = message.result.outcome.optionId;
     send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "acp-session", update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "permission:" + optionId } } } });
     send({ jsonrpc: "2.0", id: promptId, result: { stopReason: "end_turn" } });
+  }
+}
+`);
+}
+
+function hangingAgentScript(): string {
+	return agentHarness(`
+function handleMessage(message) {
+  if (message.method === "initialize") {
+    send({ jsonrpc: "2.0", id: message.id, result: { protocolVersion: 1, agentCapabilities: {}, authMethods: [] } });
+    return;
+  }
+  if (message.method === "session/new") {
+    send({ jsonrpc: "2.0", id: message.id, result: { sessionId: "acp-session" } });
+    return;
   }
 }
 `);

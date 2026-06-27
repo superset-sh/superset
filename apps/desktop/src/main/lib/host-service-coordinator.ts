@@ -475,6 +475,15 @@ export class HostServiceCoordinator extends EventEmitter {
 			HOST_PARENT_PID: String(process.pid),
 		});
 
+		const experimentalAcpChat =
+			row?.experimentalAcpChat ??
+			isTruthyEnv(childEnv.SUPERSET_EXPERIMENTAL_ACP_CHAT);
+		if (experimentalAcpChat) {
+			childEnv.SUPERSET_EXPERIMENTAL_ACP_CHAT = "1";
+		} else {
+			delete childEnv.SUPERSET_EXPERIMENTAL_ACP_CHAT;
+		}
+
 		// `getProcessEnvWithShellPath` merges in the user's interactive shell env,
 		// which in dev has `RELAY_URL` set. Enforce the toggle *after* that merge
 		// so the child definitely doesn't see a relay URL when disabled. The
@@ -531,6 +540,11 @@ function pipeWithPrefix(
 		if (pending) target.write(`${tag} ${pending}\n`);
 		pending = "";
 	});
+}
+
+function isTruthyEnv(value: string | undefined): boolean {
+	const normalized = value?.trim().toLowerCase();
+	return normalized === "1" || normalized === "true" || normalized === "yes";
 }
 
 let coordinator: HostServiceCoordinator | null = null;

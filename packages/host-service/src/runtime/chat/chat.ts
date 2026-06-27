@@ -294,7 +294,9 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		try {
 			await runtime.initialize();
 		} catch (error) {
-			await runtime.dispose().catch(() => {});
+			await runtime.dispose().catch(() => {
+				// Best-effort cleanup after failed ACP initialization.
+			});
 			throw error;
 		}
 		this.acpRuntimes.set(sessionId, runtime);
@@ -372,12 +374,23 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		return promise;
 	}
 
-	async disposeRuntime(sessionId: string, workspaceId: string): Promise<void> {
-		if (this.shouldUseAcpChat()) {
-			await this.disposeAcpRuntime(sessionId, workspaceId);
-			return;
+	private getExistingAcpRuntime(
+		sessionId: string,
+		workspaceId: string,
+	): AcpChatRuntime | null {
+		const runtime = this.acpRuntimes.get(sessionId);
+		if (!runtime) return null;
+		if (runtime.workspaceId !== workspaceId) {
+			throw new Error(
+				`Session ${sessionId} is bound to workspace ${runtime.workspaceId}`,
+			);
 		}
+		return runtime;
+	}
+
+	async disposeRuntime(sessionId: string, workspaceId: string): Promise<void> {
 		await this.disposeMastraRuntime(sessionId, workspaceId);
+		await this.disposeAcpRuntime(sessionId, workspaceId);
 	}
 
 	private async disposeMastraRuntime(
@@ -394,6 +407,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			try {
 				await inflight.promise;
 			} catch {
+				// Creation already failed; no runtime was inserted to dispose.
 				return;
 			}
 		}
@@ -406,10 +420,14 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		}
 		try {
 			runtime.harness.abort();
-		} catch {}
+		} catch {
+			// Best-effort abort; continue with MCP disconnect and map cleanup.
+		}
 		try {
 			await runtime.mcpManager?.disconnect?.();
-		} catch {}
+		} catch {
+			// Best-effort disconnect; the process may already be torn down.
+		}
 		this.mastraRuntimes.delete(sessionId);
 	}
 
@@ -427,6 +445,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			try {
 				await inflight.promise;
 			} catch {
+				// Creation already failed; no runtime was inserted to dispose.
 				return;
 			}
 		}
@@ -561,12 +580,9 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	async restartFromMessage(input: RestartPayload): Promise<void> {
 		if (this.shouldUseAcpChat()) {
-			const runtime = await this.getOrCreateAcpRuntime(
-				input.sessionId,
-				input.workspaceId,
+			throw new Error(
+				"ACP chat does not support editing or restarting prior turns yet.",
 			);
-			await runtime.restartFromMessage();
-			return;
 		}
 		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
@@ -578,11 +594,11 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	async stop(input: { sessionId: string; workspaceId: string }): Promise<void> {
 		if (this.shouldUseAcpChat()) {
-			const runtime = await this.getOrCreateAcpRuntime(
+			const runtime = this.getExistingAcpRuntime(
 				input.sessionId,
 				input.workspaceId,
 			);
-			runtime.stop();
+			runtime?.stop();
 			return;
 		}
 		const runtime = await this.getOrCreateMastraRuntime(
@@ -598,10 +614,11 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		payload: ChatApprovalPayload;
 	}): Promise<unknown> {
 		if (this.shouldUseAcpChat()) {
-			const runtime = await this.getOrCreateAcpRuntime(
+			const runtime = this.getExistingAcpRuntime(
 				input.sessionId,
 				input.workspaceId,
 			);
+			if (!runtime) throw new Error("No ACP runtime exists for this session");
 			runtime.respondToApproval(input.payload);
 			return;
 		}
@@ -618,13 +635,10 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		payload: ChatQuestionPayload;
 	}): Promise<unknown> {
 		if (this.shouldUseAcpChat()) {
-			const runtime = await this.getOrCreateAcpRuntime(
-				input.sessionId,
-				input.workspaceId,
-			);
 			void input.payload;
-			await runtime.respondToQuestion();
-			return;
+			throw new Error(
+				"ACP chat question responses are not available for this request.",
+			);
 		}
 		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
@@ -639,13 +653,10 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		payload: ChatPlanPayload;
 	}): Promise<unknown> {
 		if (this.shouldUseAcpChat()) {
-			const runtime = await this.getOrCreateAcpRuntime(
-				input.sessionId,
-				input.workspaceId,
-			);
 			void input.payload;
-			await runtime.respondToPlan();
-			return;
+			throw new Error(
+				"ACP chat plan approval is not available for this request.",
+			);
 		}
 		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
@@ -809,7 +820,9 @@ function resolveAcpCommandConfig(): AcpCommandConfig {
 		) {
 			return { command, args: parsed };
 		}
-	} catch {}
+	} catch {
+		// Fall back to shell-style whitespace splitting below.
+	}
 	return {
 		command,
 		args: argsEnv.split(/\s+/).filter((arg) => arg.length > 0),

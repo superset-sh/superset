@@ -56,6 +56,7 @@ export class AcpChatRuntime {
 			onPermissionRequest: (request) => this.handlePermissionRequest(request),
 			onError: (error) => {
 				this.displayState.errorMessage = error.message;
+				this.resolvePendingPermission({ outcome: { outcome: "cancelled" } });
 				if (this.displayState.isRunning) {
 					finishCurrentAssistantMessage({
 						state: this.displayState,
@@ -92,6 +93,9 @@ export class AcpChatRuntime {
 	async sendMessage(
 		payload: ChatMessagePayload,
 	): Promise<{ stopReason?: string }> {
+		if (this.promptInFlight) {
+			throw new Error("ACP chat already has a prompt in progress");
+		}
 		const acpSessionId = this.requireAcpSessionId();
 		this.displayState.errorMessage = null;
 		this.displayState.pendingApproval = null;
@@ -118,6 +122,10 @@ export class AcpChatRuntime {
 			});
 			return result;
 		} catch (error) {
+			if (isPromptCancelledError(error)) {
+				return { stopReason: "cancelled" };
+			}
+			this.resolvePendingPermission({ outcome: { outcome: "cancelled" } });
 			const message = error instanceof Error ? error.message : String(error);
 			finishCurrentAssistantMessage({
 				state: this.displayState,
@@ -191,6 +199,9 @@ export class AcpChatRuntime {
 	private handlePermissionRequest(
 		request: AcpPermissionRequest,
 	): Promise<unknown> {
+		if (this.pendingPermission) {
+			return Promise.resolve({ outcome: { outcome: "cancelled" } });
+		}
 		const toolCallId = request.toolCall.toolCallId ?? crypto.randomUUID();
 		const title = request.toolCall.title ?? request.toolCall.kind ?? "tool";
 		this.displayState.pendingApproval = {
@@ -226,13 +237,17 @@ export class AcpChatRuntime {
 	}
 }
 
+function isPromptCancelledError(error: unknown): boolean {
+	return error instanceof Error && error.message === "ACP prompt cancelled";
+}
+
 function selectPermissionOption(
 	decision: ChatApprovalPayload["decision"],
 	options: AcpPermissionOption[],
 ): AcpPermissionOption | null {
 	const preferredKinds: Record<ChatApprovalPayload["decision"], string[]> = {
 		approve: ["allow_once", "allow_always"],
-		always_allow_category: ["allow_always", "allow_once"],
+		always_allow_category: ["allow_always"],
 		decline: ["reject_once", "reject_always"],
 	};
 	for (const kind of preferredKinds[decision]) {
@@ -241,7 +256,7 @@ function selectPermissionOption(
 	}
 	const labelNeedles: Record<ChatApprovalPayload["decision"], string[]> = {
 		approve: ["allow", "yes", "approve"],
-		always_allow_category: ["always", "allow"],
+		always_allow_category: ["always"],
 		decline: ["deny", "decline", "reject", "no"],
 	};
 	return (

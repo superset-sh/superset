@@ -1,11 +1,13 @@
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
+import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import {
 	useIsV2CloudEnabled,
 	useIsV2OnlyUser,
 } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 import {
@@ -29,10 +31,47 @@ export function ExperimentalSettings({
 		SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION,
 		visibleItems,
 	);
+	const showAcpChat = isItemVisible(
+		SETTING_ITEM_ID.EXPERIMENTAL_ACP_CHAT,
+		visibleItems,
+	);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isV2OnlyUser = useIsV2OnlyUser();
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const openV1ImportModal = useOpenV1ImportModal();
+	const utils = electronTrpc.useUtils();
+	const { data: acpChatEnabled = false, isLoading: isAcpChatLoading } =
+		electronTrpc.settings.getExperimentalAcpChat.useQuery();
+	const setAcpChat = electronTrpc.settings.setExperimentalAcpChat.useMutation({
+		onMutate: async ({ enabled }) => {
+			await utils.settings.getExperimentalAcpChat.cancel();
+			const previous = utils.settings.getExperimentalAcpChat.getData();
+			utils.settings.getExperimentalAcpChat.setData(undefined, enabled);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getExperimentalAcpChat.setData(
+					undefined,
+					context.previous,
+				);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getExperimentalAcpChat.invalidate();
+		},
+	});
+	const handleAcpChatChange = (enabled: boolean) => {
+		track("experimental_acp_chat_toggled", { enabled });
+		toast.promise(setAcpChat.mutateAsync({ enabled }), {
+			loading: "Restarting host services…",
+			success: ({ restartedOrgCount }) =>
+				restartedOrgCount > 0
+					? `Restarted ${restartedOrgCount} host service${restartedOrgCount === 1 ? "" : "s"}`
+					: "Setting saved",
+			error: (err: Error) => err.message ?? "Failed to update setting",
+		});
+	};
 
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto">
@@ -64,6 +103,29 @@ export function ExperimentalSettings({
 								});
 								setOptInV2(enabled);
 							}}
+						/>
+					</div>
+				)}
+				{showAcpChat && (
+					<div className="flex items-center justify-between gap-6">
+						<div className="min-w-0 flex-1 space-y-0.5">
+							<Label
+								htmlFor="experimental-acp-chat"
+								className="text-sm font-medium"
+							>
+								Use ACP chat runtime
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Run workspace chat through the Agent Client Protocol instead of
+								the default Mastra chat runtime. Host services restart when this
+								changes.
+							</p>
+						</div>
+						<Switch
+							id="experimental-acp-chat"
+							checked={acpChatEnabled}
+							disabled={isAcpChatLoading || setAcpChat.isPending}
+							onCheckedChange={handleAcpChatChange}
 						/>
 					</div>
 				)}

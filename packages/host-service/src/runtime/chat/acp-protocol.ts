@@ -177,7 +177,7 @@ export function appendAcpUpdateToDisplayState({
 	}
 
 	if (update.sessionUpdate === "tool_call") {
-		const toolCallId = stringValue(update.toolCallId) ?? crypto.randomUUID();
+		const toolCallId = idValue(update.toolCallId) ?? crypto.randomUUID();
 		const toolName =
 			stringValue(update.title) ?? stringValue(update.kind) ?? "tool";
 		const args = update.rawInput ?? update.content ?? {};
@@ -197,7 +197,7 @@ export function appendAcpUpdateToDisplayState({
 	}
 
 	if (update.sessionUpdate === "tool_call_update") {
-		const toolCallId = stringValue(update.toolCallId);
+		const toolCallId = idValue(update.toolCallId);
 		if (!toolCallId) return;
 		const status = stringValue(update.status) ?? "in_progress";
 		const message = ensureCurrentAssistantMessage(state, now);
@@ -214,10 +214,11 @@ export function appendAcpUpdateToDisplayState({
 			state.toolInputBuffers.delete(toolCallId);
 			return;
 		}
+		const existingTool = state.activeTools.get(toolCallId);
 		state.activeTools.set(toolCallId, {
 			toolCallId,
 			state: "input-streaming",
-			input: update.content ?? {},
+			input: update.content ?? recordProperty(existingTool, "input") ?? {},
 		});
 		return;
 	}
@@ -301,22 +302,32 @@ function findToolName(message: ChatMessage, toolCallId: string): string | null {
 
 function acpContentToText(content: unknown): string {
 	if (typeof content === "string") return content;
-	if (!content || typeof content !== "object") return "";
-	const block = content as Record<string, unknown>;
-	if (block.type === "text" && typeof block.text === "string")
-		return block.text;
-	const resource = block.resource;
-	if (block.type === "resource" && resource && typeof resource === "object") {
-		const record = resource as Record<string, unknown>;
-		return typeof record.text === "string" ? record.text : "";
+	if (!isRecord(content)) return "";
+	if (content.type === "text" && typeof content.text === "string") {
+		return content.text;
 	}
-	return "";
+	if (content.type !== "resource" || !isRecord(content.resource)) return "";
+	return typeof content.resource.text === "string" ? content.resource.text : "";
 }
 
 function stringValue(value: unknown): string | null {
 	return typeof value === "string" && value.trim().length > 0
 		? value.trim()
 		: null;
+}
+
+function idValue(value: unknown): string | null {
+	if (typeof value === "number" && Number.isFinite(value)) return String(value);
+	return stringValue(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function recordProperty(value: unknown, key: string): unknown {
+	if (!isRecord(value) || !(key in value)) return null;
+	return value[key];
 }
 
 function stripDataUrlPrefix(data: string): string {
