@@ -82,8 +82,8 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 			set((state) => ({
 				...state,
 				...patch,
-				// A prompt edit is user content; seeding bypasses updateDraft, so this only ever clears the flag.
-				...(patch.prompt !== undefined
+				// A real prompt edit is user content; seeding bypasses updateDraft, so this only ever clears the flag.
+				...(patch.prompt !== undefined && patch.prompt !== state.prompt
 					? { promptSeededFromSetupCard: false }
 					: {}),
 			})),

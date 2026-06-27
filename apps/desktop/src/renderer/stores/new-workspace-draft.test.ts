@@ -45,6 +45,14 @@ describe("useNewWorkspaceDraftStore — setup-card seeded prompt", () => {
 		expect(draft().promptSeededFromSetupCard).toBe(false);
 	});
 
+	test("re-applying the same seeded prompt value keeps the flag (no real edit)", () => {
+		draft().seedSetupPrompt("seed");
+
+		draft().updateDraft({ prompt: "seed" });
+
+		expect(draft().promptSeededFromSetupCard).toBe(true);
+	});
+
 	test("updating a non-prompt field keeps the seed flag intact", () => {
 		draft().seedSetupPrompt("seed");
 
