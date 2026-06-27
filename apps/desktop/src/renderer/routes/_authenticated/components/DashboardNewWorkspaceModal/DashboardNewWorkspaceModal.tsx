@@ -9,7 +9,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -41,7 +42,16 @@ function PromptInputResetSync() {
 export function DashboardNewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
+	const dismissDraft = useNewWorkspaceDraftStore((s) => s.dismissDraft);
 	const preSelectedProjectId = usePreSelectedProjectId();
+
+	// Dismissing without creating (Esc / click outside) must drop a
+	// Configure-seeded prompt so it doesn't reappear on the next open, while
+	// leaving a user-typed draft intact.
+	const handleDismiss = useCallback(() => {
+		dismissDraft();
+		closeModal();
+	}, [dismissDraft, closeModal]);
 
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={closeModal}>
@@ -50,7 +60,7 @@ export function DashboardNewWorkspaceModal() {
 				<Dialog
 					modal
 					open={isOpen}
-					onOpenChange={(open) => !open && closeModal()}
+					onOpenChange={(open) => !open && handleDismiss()}
 				>
 					<DialogHeader className="sr-only">
 						<DialogTitle>New Workspace</DialogTitle>

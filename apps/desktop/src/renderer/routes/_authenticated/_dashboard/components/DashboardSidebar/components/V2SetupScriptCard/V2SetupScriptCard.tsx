@@ -43,7 +43,10 @@ export function V2SetupScriptCard({
 	const handleConfigure = () => {
 		const draftStore = useNewWorkspaceDraftStore.getState();
 		draftStore.resetDraft();
-		draftStore.updateDraft({ prompt: setupScriptPrompt });
+		draftStore.updateDraft({
+			prompt: setupScriptPrompt,
+			seededFromConfigure: true,
+		});
 		openNewWorkspaceModal(projectId);
 	};
 

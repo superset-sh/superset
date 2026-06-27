@@ -41,6 +41,13 @@ export interface NewWorkspaceDraft {
 	linkedPR: LinkedPR | null;
 	selectedAgentId: string | null;
 	attachments: DraftAttachment[];
+	/**
+	 * True when the prompt was auto-seeded (e.g. the "Configure" setup-scripts
+	 * card) rather than typed by the user. A seeded draft is ephemeral: it must
+	 * be discarded when the modal is dismissed so it doesn't bleed into the next
+	 * "+ New Workspace" open, whereas a user-typed draft is preserved.
+	 */
+	seededFromConfigure: boolean;
 }
 
 interface NewWorkspaceDraftState extends NewWorkspaceDraft {
@@ -50,6 +57,12 @@ interface NewWorkspaceDraftState extends NewWorkspaceDraft {
 	updateAttachment: (localId: string, patch: Partial<DraftAttachment>) => void;
 	removeAttachment: (localId: string) => void;
 	resetDraft: () => void;
+	/**
+	 * Called when the modal is dismissed without creating a workspace. Clears a
+	 * Configure-seeded draft so it doesn't survive into the next open, but leaves
+	 * a user-typed draft untouched.
+	 */
+	dismissDraft: () => void;
 }
 
 function buildInitialDraft(): NewWorkspaceDraft {
@@ -67,11 +80,12 @@ function buildInitialDraft(): NewWorkspaceDraft {
 		linkedPR: null,
 		selectedAgentId: null,
 		attachments: [],
+		seededFromConfigure: false,
 	};
 }
 
 export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
-	(set) => ({
+	(set, get) => ({
 		...buildInitialDraft(),
 		resetKey: 0,
 		updateDraft: (patch) => set((state) => ({ ...state, ...patch })),
@@ -103,6 +117,10 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 				updateAttachment: state.updateAttachment,
 				removeAttachment: state.removeAttachment,
 				resetDraft: state.resetDraft,
+				dismissDraft: state.dismissDraft,
 			})),
+		dismissDraft: () => {
+			if (get().seededFromConfigure) get().resetDraft();
+		},
 	}),
 );
