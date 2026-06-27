@@ -102,6 +102,13 @@ terminals
 workspaces
   create
   delete
+  groups
+    create
+    delete
+    list
+    move
+    remove
+    rename
   list
   open
   update
