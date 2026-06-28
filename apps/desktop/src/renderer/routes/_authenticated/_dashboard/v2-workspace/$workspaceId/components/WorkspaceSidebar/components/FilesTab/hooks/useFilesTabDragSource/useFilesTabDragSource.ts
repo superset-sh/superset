@@ -40,6 +40,14 @@ export function useFilesTabDragSource({
 			clearStampedRow();
 			if (event.button !== 0) return;
 
+			const innermost = event.nativeEvent.composedPath()[0];
+			if (
+				innermost instanceof HTMLElement &&
+				innermost.closest("input, textarea, [contenteditable]")
+			) {
+				return;
+			}
+
 			const row = findRowInComposedPath(event.nativeEvent);
 			if (!row) return;
 
