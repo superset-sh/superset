@@ -43,9 +43,7 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 			return process.platform;
 		}),
 
-		// Authoritative page-zoom factor (1 = 100%). Top chrome that must stay
-		// aligned with macOS native traffic lights reads this to counter-scale,
-		// since native traffic lights don't move under Electron page zoom.
+		// Authoritative page-zoom factor (1 = 100%); see useZoomFactor.
 		getZoomFactor: publicProcedure.query(() => {
 			const window = getWindow();
 			if (!window) return 1;

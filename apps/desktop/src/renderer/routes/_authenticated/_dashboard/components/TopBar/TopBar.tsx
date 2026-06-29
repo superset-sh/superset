@@ -43,8 +43,7 @@ export function TopBar() {
 	const sidebarHostsChrome =
 		isV2CloudEnabled && isSidebarOpen && !isSidebarCollapsed;
 
-	// Counter-scale the traffic-light inset so it stays a constant physical 80px
-	// under page zoom (macOS traffic lights don't move with zoom). See useZoomFactor.
+	// Counter-scale so the inset stays a constant physical 80px under page zoom.
 	const trafficLightInset =
 		isMac && !sidebarHostsChrome ? `${80 / zoomFactor}px` : "16px";
 

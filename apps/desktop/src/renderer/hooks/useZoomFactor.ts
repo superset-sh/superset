@@ -2,18 +2,9 @@ import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 /**
- * Tracks the current Electron page-zoom factor (1 = 100%).
- *
- * Electron page zoom scales renderer CSS pixels, but macOS native traffic
- * lights stay fixed in native window coordinates. Chrome that reserves space
- * for the traffic lights counter-scales that reserved inset by `1 / zoomFactor`
- * so it keeps a constant physical width across zoom levels.
- *
- * Page zoom always changes `window.devicePixelRatio`, so every zoom change
- * (menu, keyboard, or wheel) is detected with a `matchMedia` resolution
- * listener; on each change we re-read the authoritative factor from the main
- * process. Reading from main on change also means the renderer can't miss the
- * persisted zoom that main applies on `did-finish-load`.
+ * Tracks the Electron page-zoom factor (1 = 100%), re-read from main on every
+ * zoom change. Lets chrome counter-scale by `1 / zoomFactor` to stay aligned
+ * with the macOS traffic lights, which don't move under page zoom.
  */
 export function useZoomFactor(): number {
 	const utils = electronTrpc.useUtils();
@@ -33,8 +24,8 @@ export function useZoomFactor(): number {
 			arm();
 		};
 
-		// Re-arm a media query keyed to the current devicePixelRatio; it fires
-		// as soon as the resolution (i.e. the zoom factor) moves away from it.
+		// Re-arm a media query at the current resolution; it fires as soon as
+		// the zoom factor moves away from it.
 		const arm = () => {
 			media?.removeEventListener("change", handleChange);
 			media = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);

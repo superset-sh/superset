@@ -225,10 +225,8 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
-			{/* -mx-2 cancels the parent's px-2 so this row owns its own horizontal
-			    inset, matching the TopBar's 80px traffic-light pad. The inset is
-			    counter-scaled to stay a constant physical 80px under page zoom
-			    (macOS traffic lights don't move with zoom). See useZoomFactor. */}
+			{/* -mx-2 cancels the parent's px-2 so this row owns the 80px traffic-light
+			    inset; counter-scaled to stay a constant physical 80px under page zoom. */}
 			<div
 				className="drag -mx-2 flex h-8 items-center gap-1.5 pr-2"
 				style={{ paddingLeft: isMac ? `${80 / zoomFactor}px` : "8px" }}
