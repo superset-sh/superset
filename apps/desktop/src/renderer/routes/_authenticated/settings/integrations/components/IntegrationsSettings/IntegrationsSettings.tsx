@@ -33,7 +33,8 @@ export function IntegrationsSettings({
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
-	const integrations = useIntegrationConnections(activeOrganizationId);
+	const { connections: integrations, isLoading: isLoadingIntegrations } =
+		useIntegrationConnections(activeOrganizationId);
 
 	const [githubInstallation, setGithubInstallation] =
 		useState<GithubInstallation | null>(null);
@@ -119,6 +120,7 @@ export function IntegrationsSettings({
 						icon={<SiLinear className="size-5" />}
 						isConnected={isLinearConnected}
 						connectedOrgName={linearConnection?.externalOrgName}
+						isLoading={isLoadingIntegrations}
 						onManage={() => handleOpenWeb("/integrations/linear")}
 					/>
 				)}
@@ -142,6 +144,7 @@ export function IntegrationsSettings({
 						icon={<FaSlack className="size-5" />}
 						isConnected={isSlackConnected}
 						connectedOrgName={slackConnection?.externalOrgName}
+						isLoading={isLoadingIntegrations}
 						onManage={() => handleOpenWeb("/integrations/slack")}
 					/>
 				)}

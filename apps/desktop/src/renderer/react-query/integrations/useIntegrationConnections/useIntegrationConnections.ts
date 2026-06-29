@@ -17,7 +17,7 @@ const REFETCH_INTERVAL_MS = 30_000;
 export function useIntegrationConnections(
 	organizationId: string | null | undefined,
 ) {
-	const { data } = useQuery({
+	const { data, isLoading } = useQuery({
 		queryKey: integrationConnectionsQueryKey(organizationId),
 		enabled: !!organizationId,
 		refetchInterval: REFETCH_INTERVAL_MS,
@@ -27,5 +27,8 @@ export function useIntegrationConnections(
 			}),
 	});
 
-	return data ?? [];
+	// `connections` defaults to an empty array; `isLoading` lets callers avoid
+	// flashing a "not connected" state before the first fetch resolves (the
+	// synced collection this replaced was cache-first / instant).
+	return { connections: data ?? [], isLoading };
 }

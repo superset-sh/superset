@@ -134,7 +134,8 @@ export function TasksView({
 
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const integrations = useIntegrationConnections(activeOrganizationId);
+	const { connections: integrations } =
+		useIntegrationConnections(activeOrganizationId);
 
 	const { data: v2Projects } = useLiveQuery(
 		(q) => q.from({ projects: collections.v2Projects }),
