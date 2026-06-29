@@ -1,30 +1,18 @@
 /**
- * CDP smoke test: verifies the integrations data path end-to-end against a
- * running dev build, with no Electric/sync involvement.
+ * Smoke test for the integrations data path against a running dev build.
  *
- * Usage:
- *   1. Launch the desktop app with remote debugging enabled (full local stack):
- *        RENDERER_REMOTE_DEBUG_PORT=9222 bun dev
- *   2. Run:
- *        bun run apps/desktop/scripts/cdp-smoke-integrations.ts
+ *   RENDERER_REMOTE_DEBUG_PORT=9222 bun dev      # then, signed in:
+ *   bun run apps/desktop/scripts/cdp-smoke-integrations.ts
  *
- * It attaches to the renderer over CDP and runs the assertion *inside the page*
- * (Runtime.evaluate) using the app's own session cookie — this is far more
- * reliable than sniffing Network.* traffic, which misses cached React Query
- * responses and is suppressed while the window is backgrounded. See the "CDP"
- * section in apps/desktop/AGENTS.md.
- *
- * Asserts that integration.list returns 200, is a well-formed tRPC payload, and
- * carries NO `accessToken` / `refreshToken` (server-side column masking). An
- * empty connection list is a valid pass. Org-scoping itself is enforced and
- * unit-tested server-side (the masked rows don't expose organizationId), so this
- * harness does not re-assert it.
+ * Asserts inside the page (Runtime.evaluate + session cookie) that
+ * integration.list returns 200, a well-formed tRPC array, and no
+ * accessToken/refreshToken. Empty list passes. In-page eval beats Network.*
+ * sniffing, which misses cached React Query responses — see AGENTS.md.
  *
  * Exits 0 on PASS, 1 on FAIL. Dependency-free (Bun WebSocket + fetch).
  */
 
 const PORT = process.env.RENDERER_REMOTE_DEBUG_PORT ?? "9222";
-// The dev app's backend origin (the renderer's NEXT_PUBLIC_API_URL).
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5881";
 
 interface CdpTarget {
@@ -34,9 +22,8 @@ interface CdpTarget {
 	webSocketDebuggerUrl?: string;
 }
 
-// Runs in the renderer. Reads the active org from the session, then calls
-// integration.list directly (bypassing the React Query cache) and reports
-// whether the response is a valid, token-free tRPC payload.
+// Runs in the renderer: reads the active org, then calls integration.list
+// directly (no React Query cache).
 const PROBE = `(async () => {
   const API = ${JSON.stringify(API)};
   const s = await fetch(API + "/api/auth/get-session", { credentials: "include" })
@@ -61,9 +48,8 @@ const PROBE = `(async () => {
 async function findRendererTarget(): Promise<CdpTarget> {
 	const res = await fetch(`http://localhost:${PORT}/json`);
 	const targets = (await res.json()) as CdpTarget[];
-	// The main app renderer is an http(s) localhost SPA using hash routing
-	// ("#/..."). Prefer that over any other page-like target (e.g. a webview),
-	// which would run outside the app session and miss the auth cookie.
+	// Prefer the app renderer (localhost SPA, hash route) over a webview/other
+	// page that would miss the session cookie.
 	const pages = targets.filter(
 		(t) =>
 			t.type === "page" &&
