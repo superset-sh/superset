@@ -1,12 +1,19 @@
+import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
 import {
 	chatLaunchConfigSchema,
 	normalizeAgentLaunchRequest,
 	STARTABLE_AGENT_TYPES,
 } from "@superset/shared/agent-launch";
 import {
+	buildFileCommandFromAgentConfig,
+	renderTaskPromptTemplate,
+	type ResolvedAgentConfig,
+} from "shared/utils/agent-settings";
+import {
 	launchAgentSession,
 	queueAgentSessionLaunch,
 } from "renderer/lib/agent-session-orchestrator";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { z } from "zod";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 
@@ -56,6 +63,49 @@ async function execute(
 				? { ...fallbackRequest, ...(params.request as Record<string, unknown>) }
 				: fallbackRequest;
 		const request = normalizeAgentLaunchRequest(mergedRequest);
+
+		// Rebuild terminal command and prompt using device-local agent settings.
+		// The MCP server sends a fallback command built from hardcoded builtins, but
+		// the user may have overridden agent settings on this device.
+		if (
+			request.kind === "terminal" &&
+			request.terminal.taskPromptFileName &&
+			request.agentType
+		) {
+			try {
+				const presets =
+					await electronTrpcClient.settings.getAgentPresets.query();
+				const agentId = request.agentType as AgentDefinitionId;
+				const config = presets.find(
+					(p: ResolvedAgentConfig) => p.id === agentId,
+				);
+				if (config && !config.enabled) {
+					return {
+						success: false,
+						error: `Agent "${request.agentType}" is disabled on this device`,
+					};
+				}
+				if (config && config.kind === "terminal") {
+					const rebuilt = buildFileCommandFromAgentConfig({
+						filePath: `.superset/${request.terminal.taskPromptFileName}`,
+						config,
+					});
+					if (rebuilt) {
+						request.terminal.command = rebuilt;
+					}
+					// Re-render prompt with local template when task data is available
+					if (request.terminal.taskInput) {
+						request.terminal.taskPromptContent =
+							renderTaskPromptTemplate(
+								config.taskPromptTemplate,
+								request.terminal.taskInput,
+							);
+					}
+				}
+			} catch {
+				// Fall back to the MCP-provided command
+			}
+		}
 
 		if (request.workspaceId !== params.workspaceId) {
 			return {
