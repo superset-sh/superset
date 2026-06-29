@@ -44,7 +44,7 @@
 		"next": "16.2.6",
 		"posthog-node": "5.28.8",
 		"react": "19.2.3",
-		"react-dom": "19.2.3",
+		"react-dom": "19.2.6",
 		"require-in-the-middle": "8.0.1",
 		"rrule": "2.8.1",
 		"stripe": "20.4.1",

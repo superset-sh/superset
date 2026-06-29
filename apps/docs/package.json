@@ -26,7 +26,7 @@
 		"next": "16.2.6",
 		"posthog-js": "1.310.1",
 		"react": "19.2.3",
-		"react-dom": "19.2.3",
+		"react-dom": "19.2.6",
 		"tailwind-merge": "3.5.0",
 		"zod": "4.3.6"
 	},
