@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
@@ -250,6 +251,25 @@ export const Terminal = memo(function Terminal({
 	// Auto-retry connection with exponential backoff
 	const retryCountRef = useRef(0);
 	const MAX_RETRIES = 5;
+	const daemonFailureToastShownRef = useRef(false);
+
+	const restartDaemonMutation = electronTrpc.terminal.restartDaemon.useMutation(
+		{
+			onSuccess: () => {
+				toast.success("Daemon restarted", {
+					description:
+						"All sessions killed and daemon restarted. The app will use a fresh daemon.",
+				});
+			},
+			onError: (error) => {
+				toast.error("Failed to restart daemon", {
+					description: error.message,
+				});
+			},
+		},
+	);
+	const restartDaemonMutationRef = useRef(restartDaemonMutation);
+	restartDaemonMutationRef.current = restartDaemonMutation;
 
 	// Stream handling
 	const { handleTerminalExit, handleStreamError, handleStreamData } =
@@ -272,9 +292,28 @@ export const Terminal = memo(function Terminal({
 
 	// Auto-retry when connection error is set
 	useEffect(() => {
-		if (!connectionError) return;
+		if (!connectionError) {
+			daemonFailureToastShownRef.current = false;
+			return;
+		}
 		if (isExitedRef.current) return;
-		if (retryCountRef.current >= MAX_RETRIES) return;
+		if (retryCountRef.current >= MAX_RETRIES) {
+			if (!daemonFailureToastShownRef.current) {
+				daemonFailureToastShownRef.current = true;
+				toast.error("Terminal daemon unreachable", {
+					description:
+						"Couldn't reconnect after several attempts. Restart the daemon to recover.",
+					duration: Number.POSITIVE_INFINITY,
+					action: {
+						label: "Restart daemon",
+						onClick: () => {
+							restartDaemonMutationRef.current.mutate();
+						},
+					},
+				});
+			}
+			return;
+		}
 
 		if (retryCountRef.current === 0) {
 			xtermRef.current?.writeln(
