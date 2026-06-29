@@ -224,12 +224,25 @@ export function DashboardSidebarHeader({
 	}
 
 	return (
-		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
+		<div
+			className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2"
+			// Pin the top inset so the traffic-light row stays a constant physical
+			// distance from the window top under page zoom (see the row below).
+			style={isMac ? { paddingTop: `${8 / zoomFactor}px` } : undefined}
+		>
 			{/* -mx-2 cancels the parent's px-2 so this row owns the 80px traffic-light
-			    inset; counter-scaled to stay a constant physical 80px under page zoom. */}
+			    inset; inset and height are counter-scaled to a constant physical size
+			    so the fixed macOS traffic lights stay aligned under page zoom. */}
 			<div
 				className="drag -mx-2 flex h-8 items-center gap-1.5 pr-2"
-				style={{ paddingLeft: isMac ? `${80 / zoomFactor}px` : "8px" }}
+				style={
+					isMac
+						? {
+								paddingLeft: `${80 / zoomFactor}px`,
+								height: `${32 / zoomFactor}px`,
+							}
+						: { paddingLeft: "8px" }
+				}
 			>
 				<SidebarToggle />
 				<NavigationControls />
