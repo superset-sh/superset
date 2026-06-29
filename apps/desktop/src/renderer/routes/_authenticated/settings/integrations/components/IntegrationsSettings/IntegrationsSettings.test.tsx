@@ -1,17 +1,14 @@
 /**
- * Renderer component test for IntegrationsSettings.
+ * Renderer test for IntegrationsSettings.
  *
- * The shared test-setup installs a *fake* document/window (not a real DOM).
- * happy-dom is registered in beforeAll (NOT at module load) and unregistered in
- * afterAll, so the rest of the (non-DOM) desktop suite — whose other test files
- * evaluate their module bodies before any beforeAll runs — keeps the fake DOM
- * and is unaffected. Queries come from render()'s return (container-scoped), not
- * the global `screen` (which binds to document at import, before beforeAll).
+ * The shared test-setup installs a fake document/window, so happy-dom is
+ * registered in beforeAll / unregistered in afterAll — other files evaluate
+ * before any beforeAll, so they keep the fake DOM. Queries come from render()'s
+ * return, not the global `screen` (which binds to document at import).
  *
- * Locks in the loading behavior: an integration row must show a loading state
- * (not "Not connected") while the connections query is still pending — the
- * regression that swapping the cache-first synced collection for `useQuery`
- * would otherwise reintroduce.
+ * Locks in the loading state: a row shows loading (not "Not connected") while
+ * the query is pending — the regression from swapping the cache-first synced
+ * collection for useQuery.
  */
 import {
 	afterAll,
@@ -73,8 +70,7 @@ mock.module("../../../utils/settings-search", () => ({
 const { render, cleanup, act } = await import("@testing-library/react");
 const { IntegrationsSettings } = await import("./IntegrationsSettings");
 
-// Flush the always-on github useEffect (async getInstallation) so its state
-// update doesn't fire outside act() after assertions.
+// Flush the always-on github useEffect so its state update stays inside act().
 async function renderAndSettle() {
 	let view: ReturnType<typeof render>;
 	await act(async () => {

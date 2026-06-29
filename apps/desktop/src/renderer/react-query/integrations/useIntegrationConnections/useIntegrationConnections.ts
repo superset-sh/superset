@@ -5,14 +5,12 @@ export const integrationConnectionsQueryKey = (
 	organizationId: string | null | undefined,
 ) => ["integration", "list", organizationId] as const;
 
-// Integration connections rarely change; poll while a screen using them is
-// mounted (Reference data — query + view-time polling, no live sync).
+// Poll while a consuming screen is mounted; connections rarely change.
 const REFETCH_INTERVAL_MS = 30_000;
 
 /**
- * Org-scoped integration connections (linear/slack/etc). Server-owned reference
- * data fetched via tRPC and cached, replacing the synced TanStack DB collection.
- * The `integration.list` procedure masks OAuth tokens server-side.
+ * Org-scoped integration connections, fetched via tRPC (replaces the synced
+ * collection). `integration.list` masks OAuth tokens server-side.
  */
 export function useIntegrationConnections(
 	organizationId: string | null | undefined,
@@ -27,8 +25,7 @@ export function useIntegrationConnections(
 			}),
 	});
 
-	// `connections` defaults to an empty array; `isLoading` lets callers avoid
-	// flashing a "not connected" state before the first fetch resolves (the
-	// synced collection this replaced was cache-first / instant).
+	// isLoading lets callers avoid flashing "not connected" before the first
+	// fetch — the synced collection this replaced was cache-first.
 	return { connections: data ?? [], isLoading };
 }
