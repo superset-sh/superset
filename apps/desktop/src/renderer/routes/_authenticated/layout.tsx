@@ -155,6 +155,8 @@ function AuthenticatedLayout() {
 				navigate({ to: `/settings/${section}` as "/settings/account" });
 			} else if (event.type === "open-workspace") {
 				navigate({ to: `/workspace/${event.data.workspaceId}` });
+			} else if (event.type === "notifications-muted-changed") {
+				utils.settings.getNotificationSoundsMuted.invalidate();
 			}
 		},
 	});

@@ -6,20 +6,9 @@ import {
 } from "../../shared/ringtones";
 import { getCustomRingtonePath } from "./custom-ringtones";
 import { localDb } from "./local-db";
+import { getNotificationSoundsMuted } from "./notification-settings";
 import { playSoundFile } from "./play-sound";
 import { getSoundPath } from "./sound-paths";
-
-/**
- * Checks if notification sounds are muted.
- */
-function areNotificationSoundsMuted(): boolean {
-	try {
-		const settingsRow = localDb.select().from(settings).get();
-		return settingsRow?.notificationSoundsMuted ?? false;
-	} catch {
-		return false;
-	}
-}
 
 /**
  * Gets the selected ringtone path from the database.
@@ -56,7 +45,7 @@ function getSelectedRingtonePath(): string | null {
  */
 export function playNotificationSound(): void {
 	// Check if sounds are muted
-	if (areNotificationSoundsMuted()) {
+	if (getNotificationSoundsMuted()) {
 		return;
 	}
 
