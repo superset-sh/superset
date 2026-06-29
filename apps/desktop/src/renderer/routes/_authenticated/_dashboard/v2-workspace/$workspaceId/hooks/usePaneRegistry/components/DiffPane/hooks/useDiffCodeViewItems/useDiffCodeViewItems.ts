@@ -1,6 +1,7 @@
 import {
 	type CodeViewItem,
 	type DiffLineAnnotation,
+	type LineAnnotation,
 	parseDiffFromFile,
 } from "@pierre/diffs";
 import type { AppRouter } from "@superset/host-service";
@@ -103,20 +104,24 @@ export function useDiffCodeViewItems({
 				// diff lines that don't exist here and silently disappear.
 				const threadAnnotations = (
 					getAnnotationsForFile(annotationsByPath, file) ?? []
-				).map((annotation) => ({
-					...annotation,
-					lineNumber: 1,
-					metadata:
-						annotation.metadata.kind === "thread"
-							? {
-									...annotation.metadata,
-									sourceLine: annotation.lineNumber,
-								}
-							: annotation.metadata,
-				}));
-				const annotations: DiffLineAnnotation<DiffAnnotationMetadata>[] = [
+				).map((annotation): LineAnnotation<DiffAnnotationMetadata> => {
+					const metadata = annotation.metadata;
+					if (metadata.kind === "thread") {
+						return {
+							lineNumber: 1,
+							metadata: {
+								...metadata,
+								sourceLine: annotation.lineNumber,
+							},
+						};
+					}
+					if (metadata.kind === "composer") {
+						return { lineNumber: 1, metadata };
+					}
+					return { lineNumber: 1, metadata };
+				});
+				const annotations: LineAnnotation<DiffAnnotationMetadata>[] = [
 					{
-						side: "additions",
 						lineNumber: 1,
 						metadata: { kind: "binary-placeholder" },
 					},
@@ -265,16 +270,22 @@ function getAnnotationsForFile(
 }
 
 function getAnnotationsVersion(
-	annotations: DiffLineAnnotation<DiffAnnotationMetadata>[] | undefined,
+	annotations:
+		| (
+				| DiffLineAnnotation<DiffAnnotationMetadata>
+				| LineAnnotation<DiffAnnotationMetadata>
+		  )[]
+		| undefined,
 ): string {
 	if (!annotations?.length) return "";
 	return annotations
 		.map((annotation) => {
 			const m = annotation.metadata;
+			const side = "side" in annotation ? annotation.side : "file";
 			if (m.kind === "composer") {
 				return [
 					"c",
-					annotation.side,
+					side,
 					annotation.lineNumber,
 					m.startLine,
 					m.endLine,
@@ -285,7 +296,7 @@ function getAnnotationsVersion(
 			if (m.kind !== "thread") return "local";
 			return [
 				"t",
-				annotation.side,
+				side,
 				annotation.lineNumber,
 				m.threadId,
 				m.isResolved ? "1" : "0",
