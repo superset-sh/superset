@@ -120,16 +120,13 @@ async function reapOrphanedSessions(
 	const daemon = await getDaemonClient();
 	const liveSessions = (await daemon.list()).filter((session) => session.alive);
 
-	// An idle daemon still needs a sync pass to drop stale scans, but the row
-	// join is only consulted to register live sessions — skip the DB hit when
-	// there are none.
+	// Sync the port scanner before the empty-list short-circuit below so an idle
+	// daemon still drops stale scans. rowById is only consulted to register live
+	// sessions, so skip the DB hit when there are none.
 	const rowById =
 		liveSessions.length > 0
 			? loadTerminalRowsById(db)
 			: new Map<string, TerminalRow>();
-
-	// Must run before the empty-list short-circuit so an empty daemon still
-	// clears stale scans.
 	applyPortScanSync(liveSessions, rowById);
 
 	if (liveSessions.length === 0) {
