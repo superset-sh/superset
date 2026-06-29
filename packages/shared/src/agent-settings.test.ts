@@ -80,6 +80,72 @@ describe("resolveAgentConfigs", () => {
 		});
 	});
 
+	test("uses overridden command for prompt launches unless prompt command is overridden", () => {
+		const presets = resolveAgentConfigs({
+			overrideEnvelope: {
+				version: 1,
+				presets: [
+					{
+						id: "claude",
+						command: "claude",
+					},
+					{
+						id: "codex",
+						command: "codex",
+					},
+					{
+						id: "copilot",
+						command: "copilot",
+					},
+				],
+			},
+		});
+		const claude = presets.find((preset) => preset.id === "claude");
+		const codex = presets.find((preset) => preset.id === "codex");
+		const copilot = presets.find((preset) => preset.id === "copilot");
+
+		expect(claude).toMatchObject({
+			id: "claude",
+			kind: "terminal",
+			command: "claude",
+			promptCommand: "claude",
+		});
+		expect(codex).toMatchObject({
+			id: "codex",
+			kind: "terminal",
+			command: "codex",
+			promptCommand: "codex --",
+		});
+		expect(copilot).toMatchObject({
+			id: "copilot",
+			kind: "terminal",
+			command: "copilot",
+			promptCommand: "copilot -i",
+		});
+	});
+
+	test("preserves an explicit prompt command override", () => {
+		const claude = resolveAgentConfigs({
+			overrideEnvelope: {
+				version: 1,
+				presets: [
+					{
+						id: "claude",
+						command: "claude",
+						promptCommand: "claude --permission-mode acceptEdits",
+					},
+				],
+			},
+		}).find((preset) => preset.id === "claude");
+
+		expect(claude).toMatchObject({
+			id: "claude",
+			kind: "terminal",
+			command: "claude",
+			promptCommand: "claude --permission-mode acceptEdits",
+		});
+	});
+
 	test("includes custom terminal configs from stored definitions", () => {
 		const custom = resolveAgentConfigs({
 			customDefinitions: [

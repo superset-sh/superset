@@ -301,6 +301,30 @@ function resolvePromptCommandSuffix(
 	return override.promptCommandSuffix ?? undefined;
 }
 
+function resolvePromptCommand(
+	definition: TerminalAgentDefinition,
+	override: AgentPresetOverride | undefined,
+): string {
+	if (!override) return definition.promptCommand;
+	if (Object.hasOwn(override, "promptCommand")) {
+		return override.promptCommand ?? definition.promptCommand;
+	}
+	if (Object.hasOwn(override, "command")) {
+		if (!override.command) {
+			return definition.promptCommand;
+		}
+
+		const promptCommandSuffix =
+			definition.promptCommand === definition.command ||
+			definition.promptCommand.startsWith(`${definition.command} `)
+				? definition.promptCommand.slice(definition.command.length)
+				: "";
+
+		return `${override.command}${promptCommandSuffix}`;
+	}
+	return definition.promptCommand;
+}
+
 function resolveModel(
 	model: string | undefined,
 	override: AgentPresetOverride | undefined,
@@ -324,7 +348,7 @@ function resolveAgentConfig(
 			description: resolveDescription(definition.description, override),
 			enabled: override?.enabled ?? definition.enabled,
 			command: override?.command ?? definition.command,
-			promptCommand: override?.promptCommand ?? definition.promptCommand,
+			promptCommand: resolvePromptCommand(definition, override),
 			promptCommandSuffix: resolvePromptCommandSuffix(
 				definition.promptCommandSuffix,
 				override,
