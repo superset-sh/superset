@@ -3,6 +3,7 @@ import {
 	type MessageResponseProps,
 } from "@superset/ui/ai-elements/message";
 import { useEffect, useState } from "react";
+import { advanceStreamingText } from "./advanceStreamingText";
 
 const STREAM_TEXT_TICK_MS = 16;
 const STREAM_TEXT_CHARS_PER_TICK = 2;
@@ -31,14 +32,9 @@ export function StreamingMessageText({
 		setDisplayText((previous) => (text.startsWith(previous) ? previous : text));
 
 		const intervalId = window.setInterval(() => {
-			setDisplayText((previous) => {
-				if (previous.length >= text.length) return previous;
-				const nextLength = Math.min(
-					text.length,
-					previous.length + STREAM_TEXT_CHARS_PER_TICK,
-				);
-				return text.slice(0, nextLength);
-			});
+			setDisplayText((previous) =>
+				advanceStreamingText(previous, text, STREAM_TEXT_CHARS_PER_TICK),
+			);
 		}, STREAM_TEXT_TICK_MS);
 
 		return () => window.clearInterval(intervalId);
