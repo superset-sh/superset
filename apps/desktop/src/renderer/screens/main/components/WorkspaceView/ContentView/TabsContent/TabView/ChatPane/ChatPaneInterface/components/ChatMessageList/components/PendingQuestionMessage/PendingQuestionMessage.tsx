@@ -7,6 +7,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatSelectedAnswer, toggleSelection } from "./selection";
 
 type PendingQuestion = UseChatDisplayReturn["pendingQuestion"];
 
@@ -31,6 +32,7 @@ export function PendingQuestionMessage({
 	const [selectedOptionLabel, setSelectedOptionLabel] = useState<string | null>(
 		null,
 	);
+	const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const inFlightResponseRef = useRef(false);
 	const previousQuestionIdRef = useRef<string | null>(null);
@@ -54,6 +56,7 @@ export function PendingQuestionMessage({
 		setFreeText("");
 		setOptimisticAnswer(null);
 		setSelectedOptionLabel(null);
+		setSelectedLabels([]);
 	}, [question]);
 
 	useEffect(() => {
@@ -66,11 +69,14 @@ export function PendingQuestionMessage({
 	const questionId = question.questionId?.trim() ?? "";
 	const questionText =
 		question.question?.trim() || "The agent asked a question.";
+	const isMultiSelect =
+		"multiSelect" in question && question.multiSelect === true;
 	const answerText = freeText.trim();
 	const canRespond = questionId.length > 0;
 	const hasOptimisticAnswer = optimisticAnswer !== null;
 	const controlsDisabled = isSubmitting || !canRespond || hasOptimisticAnswer;
 
+	// Single-select: clicking an option submits it immediately.
 	const handleOptionSelect = async (optionLabel: string): Promise<void> => {
 		if (!canRespond || isSubmitting || inFlightResponseRef.current) return;
 		inFlightResponseRef.current = true;
@@ -83,6 +89,35 @@ export function PendingQuestionMessage({
 			console.error("Failed to submit question option response", error);
 			setOptimisticAnswer(null);
 			setSelectedOptionLabel(previousSelection);
+		} finally {
+			inFlightResponseRef.current = false;
+		}
+	};
+
+	// Multi-select: clicking an option only toggles it; the user submits the
+	// accumulated set explicitly via the submit button.
+	const handleOptionToggle = (optionLabel: string): void => {
+		if (controlsDisabled) return;
+		setSelectedLabels((current) => toggleSelection(current, optionLabel));
+	};
+
+	const handleMultiSelectSubmit = async (): Promise<void> => {
+		if (
+			!canRespond ||
+			isSubmitting ||
+			selectedLabels.length === 0 ||
+			inFlightResponseRef.current
+		) {
+			return;
+		}
+		inFlightResponseRef.current = true;
+		const answer = formatSelectedAnswer(selectedLabels);
+		setOptimisticAnswer(answer);
+		try {
+			await onRespond(questionId, answer);
+		} catch (error) {
+			console.error("Failed to submit multi-select question response", error);
+			setOptimisticAnswer(null);
 		} finally {
 			inFlightResponseRef.current = false;
 		}
@@ -141,31 +176,56 @@ export function PendingQuestionMessage({
 						</div>
 					) : options.length > 0 ? (
 						<div className="space-y-2">
-							{options.map((option, index) => (
+							{options.map((option, index) => {
+								const isSelected = isMultiSelect
+									? selectedLabels.includes(option.label)
+									: selectedOptionLabel === option.label;
+								return (
+									<Button
+										key={`${option.label}-${index}`}
+										type="button"
+										variant="outline"
+										className={`h-auto w-full justify-start px-3 py-2 text-left ${
+											isSelected
+												? "border-primary bg-primary/10 text-primary"
+												: ""
+										}`}
+										disabled={controlsDisabled}
+										onClick={() => {
+											if (isMultiSelect) {
+												handleOptionToggle(option.label);
+											} else {
+												void handleOptionSelect(option.label);
+											}
+										}}
+									>
+										<span className="flex flex-col">
+											<span className="font-medium">{option.label}</span>
+											{option.description ? (
+												<span className="text-xs text-muted-foreground">
+													{option.description}
+												</span>
+											) : null}
+										</span>
+									</Button>
+								);
+							})}
+							{isMultiSelect ? (
 								<Button
-									key={`${option.label}-${index}`}
 									type="button"
-									variant="outline"
-									className={`h-auto w-full justify-start px-3 py-2 text-left ${
-										selectedOptionLabel === option.label
-											? "border-primary bg-primary/10 text-primary"
-											: ""
-									}`}
-									disabled={controlsDisabled}
+									className="w-full"
+									disabled={controlsDisabled || selectedLabels.length === 0}
 									onClick={() => {
-										void handleOptionSelect(option.label);
+										void handleMultiSelectSubmit();
 									}}
 								>
-									<span className="flex flex-col">
-										<span className="font-medium">{option.label}</span>
-										{option.description ? (
-											<span className="text-xs text-muted-foreground">
-												{option.description}
-											</span>
-										) : null}
-									</span>
+									{`Submit selection${
+										selectedLabels.length > 0
+											? ` (${selectedLabels.length})`
+											: ""
+									}`}
 								</Button>
-							))}
+							) : null}
 						</div>
 					) : (
 						<form

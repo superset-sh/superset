@@ -72,6 +72,12 @@ interface ChatPendingQuestion {
 	question: string;
 	description?: string;
 	options: ChatPendingQuestionOption[];
+	/**
+	 * When true the user may pick several options before submitting. Surfaced by
+	 * agents whose `ask_user` tool supports multi-select; the UI renders an
+	 * explicit submit control instead of auto-submitting on the first click.
+	 */
+	multiSelect?: boolean;
 }
 
 export type ChatDisplayState = RuntimeDisplayState & {
