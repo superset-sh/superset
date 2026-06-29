@@ -34,7 +34,7 @@ services:
         condition: service_healthy
 
   electric:
-    image: electricsql/electric:1.4.13
+    image: electricsql/electric:1.7.4
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/main?sslmode=disable
       ELECTRIC_SECRET: local_electric_dev_secret

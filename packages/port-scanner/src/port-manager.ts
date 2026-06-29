@@ -485,6 +485,15 @@ export class PortManager extends EventEmitter {
 		);
 	}
 
+	/**
+	 * Terminal IDs currently registered for scanning. Lets a host reconcile its
+	 * registered set against ground truth (e.g. the live daemon session list)
+	 * and unregister sessions it adopted but that have since exited.
+	 */
+	getRegisteredTerminalIds(): string[] {
+		return Array.from(this.sessions.keys());
+	}
+
 	getPortsByWorkspace(workspaceId: string): DetectedPort[] {
 		return this.getAllPorts().filter((p) => p.workspaceId === workspaceId);
 	}

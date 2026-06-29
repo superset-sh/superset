@@ -48,6 +48,7 @@ export function DashboardSidebarPortGroup({
 							onClick={handleCloseAll}
 							disabled={isPending}
 							aria-busy={isPending}
+							aria-label="Close all ports"
 							className={cn(
 								"ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted/50 hover:text-primary",
 								"disabled:pointer-events-none disabled:opacity-60",

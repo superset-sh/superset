@@ -1,4 +1,5 @@
 import type { ChangedFile } from "shared/changes-types";
+import { isVideoFile } from "shared/file-types";
 import {
 	FILE_DIFF_SECTION_COLLAPSED_HEIGHT,
 	FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT,
@@ -41,6 +42,14 @@ function isGeneratedFile(filePath: string): boolean {
 
 function getPlaceholderHeight(file: ChangedFile): number {
 	const changedLineCount = file.additions + file.deletions;
+
+	if (isVideoFile(file.path)) {
+		return LARGE_PLACEHOLDER_HEIGHT;
+	}
+
+	if (file.isBinary) {
+		return LARGE_PLACEHOLDER_HEIGHT;
+	}
 
 	if (isGeneratedFile(file.path)) {
 		return XL_PLACEHOLDER_HEIGHT;

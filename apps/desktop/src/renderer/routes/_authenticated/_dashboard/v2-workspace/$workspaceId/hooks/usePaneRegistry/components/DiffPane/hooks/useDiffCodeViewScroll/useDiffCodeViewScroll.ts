@@ -56,8 +56,9 @@ export function useDiffCodeViewScroll({
 		].join(":");
 		if (lastScrollTargetRef.current === scrollKey) return;
 
+		const targetItem = itemById.get(targetItemId);
 		const target: CodeViewScrollTarget =
-			data.focusLine != null
+			data.focusLine != null && targetItem?.type === "diff"
 				? {
 						type: "line",
 						id: targetItemId,

@@ -17,5 +17,6 @@ export interface ChangesetFile {
 	status: FileStatus;
 	additions: number;
 	deletions: number;
+	isBinary?: boolean;
 	source: DiffFileSource;
 }

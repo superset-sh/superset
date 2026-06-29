@@ -1,5 +1,9 @@
-import { readFile, realpath, stat } from "node:fs/promises";
+import { open, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
+import {
+	BINARY_SNIFF_BYTES,
+	isBinaryMediaFile,
+} from "@superset/shared/media-files";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import type { SimpleGit, StatusResult } from "simple-git";
 import { getStatusNoLock } from "../../workspaces/utils/git";
@@ -30,6 +34,9 @@ interface TrackingStatus {
 }
 
 const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
+// Chunk size for streaming untracked files when counting lines, so a file is
+// never fully held in memory. Comfortably covers the binary sniff window.
+const LINE_COUNT_CHUNK_SIZE = 64 * 1024;
 const WORKER_DEBUG = process.env.SUPERSET_WORKER_DEBUG === "1";
 
 function logWorkerWarning(message: string, error: unknown): void {
@@ -89,17 +96,63 @@ async function applyUntrackedLineCount(
 			if (!isPathWithinWorktree(worktreeReal, fileReal)) continue;
 
 			const stats = await stat(fileReal);
-			if (!stats.isFile() || stats.size > MAX_LINE_COUNT_SIZE) continue;
+			if (!stats.isFile()) continue;
 
-			const content = await readFile(fileReal, "utf-8");
-			const lineCount =
-				content === ""
-					? 0
-					: content.endsWith("\n")
-						? content.split(/\r?\n/).length - 1
-						: content.split(/\r?\n/).length;
-			file.additions = lineCount;
-			file.deletions = 0;
+			if (isBinaryMediaFile(file.path)) {
+				file.isBinary = true;
+				file.additions = 0;
+				file.deletions = 0;
+				continue;
+			}
+
+			// Stream in fixed chunks rather than slurping: readFile would pin
+			// the whole file in memory and, decoded as utf-8, would turn binary
+			// into U+FFFDs and report a bogus line count. Reuse one buffer,
+			// sniff the first 8KB for NULs (git's binary heuristic), and tally
+			// newlines as we go.
+			const handle = await open(fileReal, "r");
+			try {
+				const buf = Buffer.allocUnsafe(LINE_COUNT_CHUNK_SIZE);
+				let { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+
+				const sniffEnd = Math.min(bytesRead, BINARY_SNIFF_BYTES);
+				let isBinary = false;
+				for (let i = 0; i < sniffEnd; i++) {
+					if (buf[i] === 0) {
+						isBinary = true;
+						break;
+					}
+				}
+				if (isBinary) {
+					file.isBinary = true;
+					file.additions = 0;
+					file.deletions = 0;
+					continue;
+				}
+
+				// Over the budget: skip the LOC signal without reading the rest.
+				if (stats.size > MAX_LINE_COUNT_SIZE) continue;
+
+				let newlines = 0;
+				let lastByte = -1;
+				let offset = 0;
+				while (bytesRead > 0) {
+					for (let i = 0; i < bytesRead; i++) {
+						if (buf[i] === 0x0a) newlines++;
+					}
+					lastByte = buf[bytesRead - 1] ?? lastByte;
+					offset += bytesRead;
+					({ bytesRead } = await handle.read(buf, 0, buf.length, offset));
+				}
+				// Match `content.split(/\r?\n/)`: a trailing newline doesn't add
+				// a line, but a final non-empty line without one does. (\r\n
+				// shares the \n, so counting \n bytes is equivalent.)
+				file.additions =
+					lastByte === -1 ? 0 : lastByte === 0x0a ? newlines : newlines + 1;
+				file.deletions = 0;
+			} finally {
+				await handle.close();
+			}
 		} catch (error) {
 			logWorkerDebug(
 				`failed untracked line count for "${file.path}" in "${worktreePath}"`,
