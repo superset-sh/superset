@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	cancelParserIdleWork,
 	createParserIdleGate,
 	runWhenParserIdle,
 	wrapWrite,
@@ -93,6 +94,24 @@ describe("runWhenParserIdle", () => {
 		await flushMicrotasks();
 		// Only the latest fit-to-container matters; the earlier one is superseded.
 		expect(ran).toEqual(["second"]);
+	});
+
+	test("cancels parked work before in-flight writes drain", async () => {
+		const gate = createParserIdleGate();
+		const fake = fakeWrite();
+		const write = wrapWrite(gate, fake.raw);
+		write("img");
+
+		let ran = false;
+		runWhenParserIdle(gate, () => {
+			ran = true;
+		});
+
+		cancelParserIdleWork(gate);
+		fake.drain();
+		await flushMicrotasks();
+		await flushMicrotasks();
+		expect(ran).toBe(false);
 	});
 
 	test("preserves the caller's own write callback", () => {

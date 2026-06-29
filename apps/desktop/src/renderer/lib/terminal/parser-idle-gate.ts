@@ -40,6 +40,10 @@ export function createParserIdleGate(): ParserIdleGate {
 	return { pending: 0, queued: null };
 }
 
+export function cancelParserIdleWork(gate: ParserIdleGate): void {
+	gate.queued = null;
+}
+
 function flushQueued(gate: ParserIdleGate): void {
 	// A write may have snuck in after the count last hit zero; its own callback
 	// will re-trigger this once it settles, so just wait.

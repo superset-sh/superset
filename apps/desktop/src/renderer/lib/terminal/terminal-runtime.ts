@@ -10,6 +10,7 @@ import {
 } from "./appearance";
 import { scheduleFontSettleRefit } from "./font-settle";
 import {
+	cancelParserIdleWork,
 	createParserIdleGate,
 	type ParserIdleGate,
 	runWhenParserIdle,
@@ -324,6 +325,7 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	cancelParserIdleWork(runtime.gate);
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(runtime.wrapper);
@@ -379,6 +381,8 @@ export function disposeRuntime(
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	cancelParserIdleWork(runtime.gate);
+	runtime.container = null;
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
 	if (clearPersistedState) {
