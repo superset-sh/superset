@@ -15,11 +15,14 @@ export function sortFilesTreeOrder(files: ChangedFile[]): ChangedFile[] {
 	for (const file of files) {
 		const parts = file.path.split("/");
 		let current: Map<string, TreeNode> = root;
+		let pathSoFar = "";
 
 		for (let i = 0; i < parts.length; i++) {
 			const part = parts[i];
 			const isLast = i === parts.length - 1;
-			const pathSoFar = parts.slice(0, i + 1).join("/");
+			// Accumulate the path incrementally — rebuilding it with
+			// `parts.slice(0, i + 1).join("/")` here is O(depth^2) per file.
+			pathSoFar = pathSoFar ? `${pathSoFar}/${part}` : part;
 
 			if (!current.has(part)) {
 				current.set(part, {
