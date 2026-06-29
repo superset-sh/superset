@@ -47,26 +47,32 @@ export function WorkspacePicker({
 		[collections.v2Hosts],
 	);
 
-	const workspaces = useMemo(() => {
-		const rows = allWorkspaces as SelectV2Workspace[];
-		if (!hostId || !projectId) return [];
-		return rows.filter((w) => w.hostId === hostId && w.projectId === projectId);
-	}, [allWorkspaces, hostId, projectId]);
+	const workspaceRows = allWorkspaces as SelectV2Workspace[];
+	const hostRows = allHosts as SelectV2Host[];
+
+	const workspaces = useMemo(
+		() =>
+			hostId && projectId
+				? workspaceRows.filter(
+						(w) => w.hostId === hostId && w.projectId === projectId,
+					)
+				: [],
+		[workspaceRows, hostId, projectId],
+	);
 
 	// Resolve the pinned workspace from the FULL list, not the host-scoped
 	// subset: a workspace pinned to a different device must stay visible here
 	// instead of silently masquerading as "New workspace" (which hides the
 	// mismatch and lets dispatch keep failing with "Workspace not found").
 	const selected = value
-		? ((allWorkspaces as SelectV2Workspace[]).find((w) => w.id === value) ??
-			null)
+		? (workspaceRows.find((w) => w.id === value) ?? null)
 		: null;
 	const offScope =
 		!!selected &&
 		(selected.hostId !== hostId || selected.projectId !== projectId);
 	const offScopeHostName = offScope
-		? ((allHosts as SelectV2Host[]).find((h) => h.machineId === selected.hostId)
-				?.name ?? "another device")
+		? (hostRows.find((h) => h.machineId === selected.hostId)?.name ??
+			"another device")
 		: null;
 	// A pinned value we can't resolve yet (live query still hydrating) is loading,
 	// not an empty "New workspace" selection — don't flash the wrong label/warning.
