@@ -10,7 +10,7 @@ import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
-import { DashboardSidebarWorkspacePortsRow } from "./components/DashboardSidebarWorkspacePortsRow";
+import { DashboardSidebarWorkspaceDetails } from "./components/DashboardSidebarWorkspaceDetails";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
 
 interface DashboardSidebarWorkspaceItemProps {
@@ -225,7 +225,7 @@ export function DashboardSidebarWorkspaceItem({
 				onCancelRename={cancelRename}
 			>
 				{!isPending && (
-					<DashboardSidebarWorkspacePortsRow
+					<DashboardSidebarWorkspaceDetails
 						workspaceId={id}
 						isInSection={isInSection}
 					/>
