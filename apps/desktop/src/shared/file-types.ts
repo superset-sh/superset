@@ -13,6 +13,8 @@ const IMAGE_EXTENSIONS = new Set([
 	"svg",
 	"bmp",
 	"ico",
+	"tif",
+	"tiff",
 ]);
 
 /** MIME types for supported image extensions */
@@ -25,10 +27,34 @@ const IMAGE_MIME_TYPES: Record<string, string> = {
 	svg: "image/svg+xml",
 	bmp: "image/bmp",
 	ico: "image/x-icon",
+	tif: "image/tiff",
+	tiff: "image/tiff",
 };
 
-/** Supported browser-playable video extensions */
-const VIDEO_EXTENSIONS = new Set(["mp4", "m4v", "mov", "ogv", "webm"]);
+/** Common video extensions */
+const VIDEO_EXTENSIONS = new Set([
+	"3g2",
+	"3gp",
+	"avi",
+	"m4v",
+	"mkv",
+	"mov",
+	"mp4",
+	"mpeg",
+	"mpg",
+	"ogv",
+	"webm",
+	"wmv",
+]);
+
+/** Browser-playable video extensions */
+const PREVIEWABLE_VIDEO_EXTENSIONS = new Set([
+	"m4v",
+	"mov",
+	"mp4",
+	"ogv",
+	"webm",
+]);
 
 /** MIME types for supported video extensions */
 const VIDEO_MIME_TYPES: Record<string, string> = {
@@ -48,6 +74,7 @@ const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
 	"image/webp": "webp",
 	"image/svg+xml": "svg",
 	"image/bmp": "bmp",
+	"image/tiff": "tiff",
 	"image/x-icon": "ico",
 	"image/vnd.microsoft.icon": "ico",
 };
@@ -88,6 +115,13 @@ export function getImageMimeType(filePath: string): string | null {
  */
 export function isVideoFile(filePath: string): boolean {
 	return VIDEO_EXTENSIONS.has(getFileExtension(filePath));
+}
+
+/**
+ * Checks if a video file can be previewed by the browser video element.
+ */
+export function isPreviewableVideoFile(filePath: string): boolean {
+	return PREVIEWABLE_VIDEO_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**

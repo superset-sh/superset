@@ -1,7 +1,7 @@
 import { open, readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
-import { isVideoFile } from "shared/file-types";
+import { isImageFile, isVideoFile } from "shared/file-types";
 import type { SimpleGit, StatusResult } from "simple-git";
 import { getStatusNoLock } from "../../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
@@ -94,7 +94,11 @@ async function applyUntrackedLineCount(
 			if (!stats.isFile()) continue;
 
 			const sample = await readBinarySniffSample(fileReal);
-			if (sample.includes(0) || isVideoFile(file.path)) {
+			if (
+				sample.includes(0) ||
+				isImageFile(file.path) ||
+				isVideoFile(file.path)
+			) {
 				file.isBinary = true;
 				file.additions = 0;
 				file.deletions = 0;
