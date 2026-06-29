@@ -62,7 +62,7 @@ export function DashboardSidebarPortsList() {
 				<span className="text-[10px] font-normal">{totalPortCount}</span>
 			</div>
 			{!isCollapsed && (
-				<div className="max-h-72 space-y-2 overflow-y-auto pb-1 hide-scrollbar">
+				<div className="max-h-72 space-y-3 overflow-y-auto pb-1 hide-scrollbar">
 					{workspacePortGroups.map((group) => (
 						<DashboardSidebarPortGroup key={group.workspaceId} group={group} />
 					))}
