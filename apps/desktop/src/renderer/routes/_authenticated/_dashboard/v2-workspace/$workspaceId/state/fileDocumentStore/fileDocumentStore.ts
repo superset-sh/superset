@@ -103,6 +103,7 @@ async function loadEntry(
 		});
 
 		entry.byteSize = result.byteLength;
+		entry.isBinary = readAsBinary ? true : entry.isBinary;
 		entry.orphaned = false;
 		entry.hasExternalChange = false;
 

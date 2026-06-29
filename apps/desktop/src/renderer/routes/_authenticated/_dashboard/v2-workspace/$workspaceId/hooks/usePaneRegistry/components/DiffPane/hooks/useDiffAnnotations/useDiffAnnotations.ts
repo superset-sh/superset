@@ -18,6 +18,7 @@ export interface DiffCommentThread {
 	isResolved: boolean;
 	isOutdated: boolean;
 	url?: string;
+	sourceLine?: number;
 }
 
 /** Local-only metadata for a draft composer pinned to the end of a selection. */

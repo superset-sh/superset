@@ -153,6 +153,7 @@ export async function getGitStatusSnapshot({
 				status: rename.status,
 				additions: rename.additions,
 				deletions: rename.deletions,
+				isBinary: rename.isBinary,
 			});
 		}
 	}

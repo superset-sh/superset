@@ -74,7 +74,7 @@ describe("getEstimatedFileDiffSectionHeight", () => {
 	it("uses the unsupported diff placeholder for videos", () => {
 		expect(
 			getEstimatedFileDiffSectionHeight({
-				file: createFile("assets/demo.mp4", { isBinary: true }),
+				file: createFile("assets/demo.mp4"),
 				isCollapsed: false,
 			}),
 		).toBe(340);

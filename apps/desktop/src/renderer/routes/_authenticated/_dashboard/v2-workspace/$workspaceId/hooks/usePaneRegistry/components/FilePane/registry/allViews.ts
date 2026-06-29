@@ -6,7 +6,7 @@ import { markdownPreviewView } from "./views/MarkdownPreviewView";
 import { videoView } from "./views/VideoView";
 
 // Order is preserved as a stable tiebreaker for equal-priority views.
-// Exclusives (image, binary-warning) short-circuit resolution when matched.
+// Exclusive views short-circuit resolution when matched.
 export const ALL_VIEWS: FileView[] = [
 	imageView,
 	videoView,

@@ -204,10 +204,11 @@ export function DiffPane({
 			}
 			if (m.kind !== "thread") return null;
 			const annotationSide = "side" in annotation ? annotation.side : undefined;
+			const focusLine = m.sourceLine ?? annotation.lineNumber;
 			const focused =
 				item.id === targetItemId &&
 				data.focusLine != null &&
-				annotation.lineNumber === data.focusLine &&
+				focusLine === data.focusLine &&
 				(data.focusSide == null || annotationSide === data.focusSide);
 
 			return (
@@ -281,7 +282,7 @@ function BinaryDiffPlaceholder({
 	return (
 		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
 			<LuFileCode className="size-8" />
-			<p className="text-sm">Binary file hidden</p>
+			<p className="cursor-text select-text text-sm">Binary file hidden</p>
 			{canOpen ? (
 				<Button
 					variant="outline"

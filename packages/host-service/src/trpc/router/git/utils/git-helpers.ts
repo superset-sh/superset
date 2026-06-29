@@ -337,6 +337,7 @@ export interface DetectedRename {
 	status: "renamed";
 	additions: number;
 	deletions: number;
+	isBinary: boolean;
 }
 
 /**
@@ -406,6 +407,7 @@ export async function detectUnstagedRenames(
 				status: "renamed",
 				additions: stats.additions,
 				deletions: stats.deletions,
+				isBinary: stats.isBinary,
 			});
 		}
 		return result;

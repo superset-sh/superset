@@ -103,7 +103,17 @@ export function useDiffCodeViewItems({
 				// diff lines that don't exist here and silently disappear.
 				const threadAnnotations = (
 					getAnnotationsForFile(annotationsByPath, file) ?? []
-				).map((annotation) => ({ ...annotation, lineNumber: 1 }));
+				).map((annotation) => ({
+					...annotation,
+					lineNumber: 1,
+					metadata:
+						annotation.metadata.kind === "thread"
+							? {
+									...annotation.metadata,
+									sourceLine: annotation.lineNumber,
+								}
+							: annotation.metadata,
+				}));
 				const annotations: DiffLineAnnotation<DiffAnnotationMetadata>[] = [
 					{
 						side: "additions",
