@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	moveWorkspaceIntoSection,
 	removeProjectFromSidebarState,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
@@ -96,6 +97,23 @@ function asTombstoneArg(collections: Collections) {
 	return collections as unknown as Parameters<
 		typeof tombstoneSidebarWorkspaceRecord
 	>[0];
+}
+function asMoveArg(collections: Collections) {
+	return collections as unknown as Parameters<
+		typeof moveWorkspaceIntoSection
+	>[0];
+}
+
+/** Workspace ids in a section, ordered top-to-bottom (tabOrder ASC). */
+function sectionOrder(collections: Collections, sectionId: string): string[] {
+	return Array.from(collections.v2WorkspaceLocalState.state.values())
+		.filter(
+			(row) =>
+				row.sidebarState.sectionId === sectionId &&
+				row.sidebarState.isHidden !== true,
+		)
+		.sort((a, b) => a.sidebarState.tabOrder - b.sidebarState.tabOrder)
+		.map((row) => row.workspaceId);
 }
 
 const noopCleanup = () => {};
@@ -201,6 +219,92 @@ describe("removeProjectFromSidebarState", () => {
 			collections.v2WorkspaceLocalState.get("ws-other")?.sidebarState.isHidden,
 		).toBe(false);
 		expect(collections.v2WorkspaceLocalState.get("ws-remote")).toBeUndefined();
+	});
+});
+
+describe("moveWorkspaceIntoSection", () => {
+	// Regression for #5342: "Move to group" buried the moved workspace at the
+	// bottom of the target group. The most-recently-acted-on workspace should
+	// stay visible at the top instead.
+	it("places a moved workspace at the TOP of the target group, not the bottom", () => {
+		const collections = makeCollections();
+		// Two workspaces already sitting in the destination section.
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-existing-a", "proj-1", {
+				sectionId: "sec-1",
+				tabOrder: 1,
+			}),
+		);
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-existing-b", "proj-1", {
+				sectionId: "sec-1",
+				tabOrder: 2,
+			}),
+		);
+		// The workspace being moved in, currently ungrouped.
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-moved", "proj-1", { sectionId: null, tabOrder: 5 }),
+		);
+
+		moveWorkspaceIntoSection(
+			asMoveArg(collections),
+			"ws-moved",
+			"proj-1",
+			"sec-1",
+		);
+
+		const moved = collections.v2WorkspaceLocalState.get("ws-moved");
+		expect(moved?.sidebarState.sectionId).toBe("sec-1");
+		expect(moved?.sidebarState.isHidden).toBe(false);
+		// Lands first, above the two existing members.
+		expect(sectionOrder(collections, "sec-1")).toEqual([
+			"ws-moved",
+			"ws-existing-a",
+			"ws-existing-b",
+		]);
+	});
+
+	it("ignores hidden and other-section siblings when choosing the top slot", () => {
+		const collections = makeCollections();
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-visible", "proj-1", {
+				sectionId: "sec-1",
+				tabOrder: 3,
+			}),
+		);
+		// A tombstoned row in the same section must not affect placement.
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-hidden", "proj-1", {
+				sectionId: "sec-1",
+				tabOrder: -10,
+				isHidden: true,
+			}),
+		);
+		// A sibling in a different section is irrelevant.
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-other-section", "proj-1", {
+				sectionId: "sec-2",
+				tabOrder: -99,
+			}),
+		);
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-moved", "proj-1", { sectionId: null, tabOrder: 0 }),
+		);
+
+		moveWorkspaceIntoSection(
+			asMoveArg(collections),
+			"ws-moved",
+			"proj-1",
+			"sec-1",
+		);
+
+		const moved = collections.v2WorkspaceLocalState.get("ws-moved");
+		// Below the only visible same-section sibling (tabOrder 3) -> 2.
+		expect(moved?.sidebarState.tabOrder).toBe(2);
+		expect(sectionOrder(collections, "sec-1")).toEqual([
+			"ws-moved",
+			"ws-visible",
+		]);
 	});
 });
 

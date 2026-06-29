@@ -1,6 +1,10 @@
 import type { WorkspaceState } from "@superset/panes";
 import type { PaneLifecycleRow } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
+import {
+	getPrependTabOrder,
+	isSidebarWorkspaceVisible,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 
 /**
  * Pure sidebar local-state mutations, kept free of React/Electron imports so
@@ -17,6 +21,44 @@ export function createEmptyPaneLayout(): WorkspaceState<unknown> {
 }
 
 type CleanupPaneRuntimes = (rows: PaneLifecycleRow[]) => void;
+
+/**
+ * Moves a workspace into a sidebar section, placing it at the TOP of the group.
+ *
+ * A workspace you're moving into a group is almost always one you're actively
+ * working on, so it should stay immediately visible. Appending to the bottom
+ * buries it (often below the fold in a large group), forcing the user to scroll
+ * to find the thing they just touched. Prepending matches the
+ * "most-recently-acted-on stays on top" mental model (#5342).
+ */
+export function moveWorkspaceIntoSection(
+	collections: Pick<AppCollections, "v2WorkspaceLocalState">,
+	workspaceId: string,
+	projectId: string,
+	sectionId: string,
+): void {
+	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
+	if (!existing) return;
+
+	const siblingRows = Array.from(
+		collections.v2WorkspaceLocalState.state.values(),
+	)
+		.filter(
+			(item) =>
+				item.sidebarState.projectId === projectId &&
+				isSidebarWorkspaceVisible(item) &&
+				item.workspaceId !== workspaceId &&
+				item.sidebarState.sectionId === sectionId,
+		)
+		.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
+
+	collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+		draft.sidebarState.projectId = projectId;
+		draft.sidebarState.sectionId = sectionId;
+		draft.sidebarState.tabOrder = getPrependTabOrder(siblingRows);
+		draft.sidebarState.isHidden = false;
+	});
+}
 
 /**
  * Removes a workspace from the sidebar without deleting its local-state row.

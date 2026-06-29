@@ -17,6 +17,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
 	createEmptyPaneLayout,
+	moveWorkspaceIntoSection,
 	removeProjectFromSidebarState,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
@@ -379,24 +380,7 @@ export function useDashboardSidebarState() {
 				return;
 			}
 
-			const siblingRows = Array.from(
-				collections.v2WorkspaceLocalState.state.values(),
-			)
-				.filter(
-					(item) =>
-						item.sidebarState.projectId === projectId &&
-						isSidebarWorkspaceVisible(item) &&
-						item.workspaceId !== workspaceId &&
-						item.sidebarState.sectionId === sectionId,
-				)
-				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
-
-			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-				draft.sidebarState.projectId = projectId;
-				draft.sidebarState.sectionId = sectionId;
-				draft.sidebarState.tabOrder = getNextTabOrder(siblingRows);
-				draft.sidebarState.isHidden = false;
-			});
+			moveWorkspaceIntoSection(collections, workspaceId, projectId, sectionId);
 		},
 		[collections],
 	);
