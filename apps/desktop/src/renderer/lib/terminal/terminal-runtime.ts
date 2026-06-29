@@ -133,11 +133,6 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-// `fit()` calls `terminal.resize()`, which `flushSync()`s the write buffer and
-// re-enters the parser. Doing that while an async parser handler (inline image
-// decode) is in flight throws "improper continuation ..." and bricks the
-// terminal, so the actual fit is gated through `runWhenParserIdle`. `onResize`
-// fires (sync or deferred) only when the dimensions actually change.
 function measureAndResize(
 	runtime: TerminalRuntime,
 	onResize?: () => void,
@@ -146,8 +141,6 @@ function measureAndResize(
 	const { terminal } = runtime;
 
 	runWhenParserIdle(runtime.gate, () => {
-		// Re-check visibility: the host may have been hidden or detached while we
-		// waited for the parser to drain.
 		if (!hostIsVisible(runtime.container)) return;
 
 		const buffer = terminal.buffer.active;
@@ -230,8 +223,6 @@ export function createRuntime(
 		appearance,
 	);
 
-	// Count every write through this terminal so resizes can wait for the parser
-	// to drain (see parser-idle-gate). Installed before any write below.
 	const gate = createParserIdleGate();
 	terminal.write = wrapWrite(gate, terminal.write.bind(terminal));
 
@@ -298,10 +289,7 @@ export function attachToContainer(
 	scheduleFontSettleRefit(
 		runtime.terminal,
 		() => hostIsVisible(runtime.container),
-		() => {
-			measureAndResize(runtime, onResize);
-			return false;
-		},
+		() => measureAndResize(runtime, onResize),
 	);
 
 	runtime._disposeResizeObserver?.();
@@ -356,10 +344,7 @@ export function updateRuntimeAppearance(
 		scheduleFontSettleRefit(
 			runtime.terminal,
 			() => hostIsVisible(runtime.container),
-			() => {
-				measureAndResize(runtime, onResize);
-				return false;
-			},
+			() => measureAndResize(runtime, onResize),
 		);
 	}
 }
