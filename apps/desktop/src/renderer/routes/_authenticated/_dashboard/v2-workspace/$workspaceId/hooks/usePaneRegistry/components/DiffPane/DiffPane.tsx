@@ -5,7 +5,9 @@ import type {
 } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
+import { Button } from "@superset/ui/button";
 import { useCallback, useMemo, useRef } from "react";
+import { LuFileCode } from "react-icons/lu";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import { type ChangesetFile, useChangeset } from "../../../useChangeset";
 import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
@@ -181,8 +183,14 @@ export function DiffPane({
 				| DiffLineAnnotation<DiffAnnotationMetadata>,
 			item: CodeViewItem<DiffAnnotationMetadata>,
 		) => {
-			if (item.type !== "diff") return null;
 			const m = annotation.metadata;
+			if (item.type === "file") {
+				if (m.kind !== "binary-placeholder") return null;
+				const file = fileByItemId.get(item.id);
+				if (!file) return null;
+				return <BinaryDiffPlaceholder file={file} onOpenFile={onOpenFile} />;
+			}
+			if (item.type !== "diff") return null;
 			if (m.kind === "composer") {
 				return (
 					<AgentCommentComposer
@@ -194,6 +202,7 @@ export function DiffPane({
 					/>
 				);
 			}
+			if (m.kind !== "thread") return null;
 			const annotationSide = "side" in annotation ? annotation.side : undefined;
 			const focused =
 				item.id === targetItemId &&
@@ -221,6 +230,8 @@ export function DiffPane({
 			data.focusTick,
 			clearComposer,
 			submitComposer,
+			fileByItemId,
+			onOpenFile,
 		],
 	);
 
@@ -255,5 +266,31 @@ export function DiffPane({
 			renderHeaderMetadata={renderHeaderMetadata}
 			renderAnnotation={renderAnnotation}
 		/>
+	);
+}
+
+function BinaryDiffPlaceholder({
+	file,
+	onOpenFile,
+}: {
+	file: ChangesetFile;
+	onOpenFile: (path: string, openInNewTab?: boolean) => void;
+}) {
+	const canOpen = file.status !== "deleted";
+
+	return (
+		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
+			<LuFileCode className="size-8" />
+			<p className="text-sm">Binary file hidden</p>
+			{canOpen ? (
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => onOpenFile(file.path)}
+				>
+					Open file
+				</Button>
+			) : null}
+		</div>
 	);
 }

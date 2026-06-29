@@ -105,6 +105,12 @@ export function useDiffCodeViewItems({
 						name: file.path,
 						contents: "Binary file — cannot display diff",
 					},
+					annotations: [
+						{
+							lineNumber: 1,
+							metadata: { kind: "binary-placeholder" },
+						},
+					],
 					collapsed,
 					version: hashString(
 						[
@@ -256,6 +262,7 @@ function getAnnotationsVersion(
 					m.endSide,
 				].join(",");
 			}
+			if (m.kind !== "thread") return "local";
 			return [
 				"t",
 				annotation.side,

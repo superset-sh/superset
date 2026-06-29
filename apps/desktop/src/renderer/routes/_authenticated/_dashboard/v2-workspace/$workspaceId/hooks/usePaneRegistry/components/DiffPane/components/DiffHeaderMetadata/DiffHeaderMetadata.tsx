@@ -88,7 +88,6 @@ export function DiffHeaderMetadata({
 	}, [discardMutation, workspaceId, file.path]);
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 	const basename = file.path.split("/").pop() ?? file.path;
-	const openLabel = file.isBinary ? "Open preview" : "Open in file viewer";
 
 	return (
 		<>
@@ -98,22 +97,14 @@ export function DiffHeaderMetadata({
 						<button
 							type="button"
 							onClick={handleOpenClick}
-							aria-label={openLabel}
-							className={
-								file.isBinary
-									? "h-6 rounded border border-border bg-background px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-									: "rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
-							}
+							aria-label="Open in file viewer"
+							className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
 						>
-							{file.isBinary ? (
-								openLabel
-							) : (
-								<LuArrowUpRight className="size-3.5" />
-							)}
+							<LuArrowUpRight className="size-3.5" />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
-						{file.isBinary ? openLabel : policy.hint}
+						{policy.hint}
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>
