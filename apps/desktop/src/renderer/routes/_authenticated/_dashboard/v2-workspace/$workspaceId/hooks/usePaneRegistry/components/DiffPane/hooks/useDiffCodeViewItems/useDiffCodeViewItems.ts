@@ -103,7 +103,7 @@ export function useDiffCodeViewItems({
 					type: "file",
 					file: {
 						name: file.path,
-						contents: "Binary file — cannot display diff",
+						contents: "",
 					},
 					annotations: [
 						{
