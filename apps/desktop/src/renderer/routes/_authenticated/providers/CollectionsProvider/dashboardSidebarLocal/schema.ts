@@ -60,7 +60,7 @@ export const workspaceLocalStateSchema = z.object({
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
-		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
+		changesViewMode: z.enum(["folders", "tree"]).default("tree"),
 		activeTab: z.enum(["changes", "files", "review"]).default("changes"),
 		isHidden: z.boolean().default(false),
 	}),
@@ -87,7 +87,7 @@ const SIDEBAR_STATE_DEFAULTS = {
 	tabOrder: 0,
 	sectionId: null,
 	changesFilter: { kind: "all" },
-	changesViewMode: "folders",
+	changesViewMode: "tree",
 	activeTab: "changes",
 	isHidden: false,
 } as const;

@@ -42,7 +42,7 @@ export function useChangesTab({
 		kind: "all",
 	};
 	const viewMode: ChangesViewMode =
-		localState?.sidebarState?.changesViewMode ?? "folders";
+		localState?.sidebarState?.changesViewMode ?? "tree";
 
 	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
 		{ workspaceId },
