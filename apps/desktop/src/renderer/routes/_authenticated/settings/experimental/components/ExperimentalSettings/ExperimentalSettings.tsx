@@ -6,7 +6,10 @@ import {
 	useIsV2OnlyUser,
 } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
-import { useInlineWorkspacePortsStore } from "renderer/stores/inline-workspace-ports";
+import {
+	useInlineWorkspacePortsEnabled,
+	useInlineWorkspacePortsStore,
+} from "renderer/stores/inline-workspace-ports";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 import {
@@ -38,9 +41,7 @@ export function ExperimentalSettings({
 	const isV2OnlyUser = useIsV2OnlyUser();
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const openV1ImportModal = useOpenV1ImportModal();
-	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
-		(state) => state.enabled,
-	);
+	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
 	const setInlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
 		(state) => state.setEnabled,
 	);
