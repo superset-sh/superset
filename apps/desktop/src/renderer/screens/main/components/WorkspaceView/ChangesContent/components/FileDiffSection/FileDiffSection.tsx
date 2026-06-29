@@ -418,9 +418,7 @@ export function FileDiffSection({
 			style={{ minHeight: FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT }}
 		>
 			<span className="select-text cursor-text">
-				{isVideo
-					? "Video file — cannot display diff"
-					: "Binary file — cannot display diff"}
+				Binary file — cannot display diff
 			</span>
 			<span className="max-w-md text-xs">
 				Use the file header to open this file outside the diff viewer.
