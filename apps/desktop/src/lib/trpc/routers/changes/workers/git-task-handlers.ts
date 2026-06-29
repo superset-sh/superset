@@ -1,6 +1,7 @@
-import { readFile, realpath, stat } from "node:fs/promises";
+import { open, readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
+import { isVideoFile } from "shared/file-types";
 import type { SimpleGit, StatusResult } from "simple-git";
 import { getStatusNoLock } from "../../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
@@ -30,6 +31,7 @@ interface TrackingStatus {
 }
 
 const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
+const BINARY_SNIFF_BYTES = 8192;
 const WORKER_DEBUG = process.env.SUPERSET_WORKER_DEBUG === "1";
 
 function logWorkerWarning(message: string, error: unknown): void {
@@ -89,7 +91,17 @@ async function applyUntrackedLineCount(
 			if (!isPathWithinWorktree(worktreeReal, fileReal)) continue;
 
 			const stats = await stat(fileReal);
-			if (!stats.isFile() || stats.size > MAX_LINE_COUNT_SIZE) continue;
+			if (!stats.isFile()) continue;
+
+			const sample = await readBinarySniffSample(fileReal);
+			if (sample.includes(0) || isVideoFile(file.path)) {
+				file.isBinary = true;
+				file.additions = 0;
+				file.deletions = 0;
+				continue;
+			}
+
+			if (stats.size > MAX_LINE_COUNT_SIZE) continue;
 
 			const content = await readFile(fileReal, "utf-8");
 			const lineCount =
@@ -106,6 +118,17 @@ async function applyUntrackedLineCount(
 				error,
 			);
 		}
+	}
+}
+
+async function readBinarySniffSample(filePath: string): Promise<Buffer> {
+	const fileHandle = await open(filePath, "r");
+	try {
+		const buffer = Buffer.alloc(BINARY_SNIFF_BYTES);
+		const { bytesRead } = await fileHandle.read(buffer, 0, buffer.length, 0);
+		return buffer.subarray(0, bytesRead);
+	} finally {
+		await fileHandle.close();
 	}
 }
 

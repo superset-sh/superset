@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
 	getImageExtensionFromMimeType,
 	getImageMimeType,
+	getVideoMimeType,
+	isVideoFile,
 	parseBase64DataUrl,
 } from "./file-types";
 
@@ -21,6 +23,20 @@ describe("file-types", () => {
 		);
 		expect(getImageExtensionFromMimeType("image/webp")).toBe("webp");
 		expect(getImageExtensionFromMimeType("image/avif")).toBeNull();
+	});
+
+	test("detects supported video file paths", () => {
+		expect(isVideoFile("demo.mp4")).toBe(true);
+		expect(isVideoFile("clips/intro.webm")).toBe(true);
+		expect(isVideoFile("clips/INTRO.MOV")).toBe(true);
+		expect(isVideoFile("archive.zip")).toBe(false);
+	});
+
+	test("maps video file paths to MIME types", () => {
+		expect(getVideoMimeType("demo.mp4")).toBe("video/mp4");
+		expect(getVideoMimeType("demo.webm")).toBe("video/webm");
+		expect(getVideoMimeType("demo.mov")).toBe("video/quicktime");
+		expect(getVideoMimeType("demo.avi")).toBeNull();
 	});
 
 	test("parses base64 data URLs with extra MIME parameters", () => {

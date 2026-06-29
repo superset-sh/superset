@@ -27,6 +27,18 @@ const IMAGE_MIME_TYPES: Record<string, string> = {
 	ico: "image/x-icon",
 };
 
+/** Supported browser-playable video extensions */
+const VIDEO_EXTENSIONS = new Set(["mp4", "m4v", "mov", "ogv", "webm"]);
+
+/** MIME types for supported video extensions */
+const VIDEO_MIME_TYPES: Record<string, string> = {
+	mp4: "video/mp4",
+	m4v: "video/mp4",
+	mov: "video/quicktime",
+	ogv: "video/ogg",
+	webm: "video/webm",
+};
+
 /** Extensions for supported image MIME types */
 const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
 	"image/png": "png",
@@ -46,15 +58,20 @@ const MARKDOWN_EXTENSIONS = new Set(["md", "markdown", "mdx"]);
 /**
  * Gets the file extension from a path (lowercase, without dot)
  */
-function getExtension(filePath: string): string {
-	return filePath.split(".").pop()?.toLowerCase() ?? "";
+export function getFileExtension(filePath: string): string {
+	const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
+	const dotIndex = fileName.lastIndexOf(".");
+	if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
+		return "";
+	}
+	return fileName.slice(dotIndex + 1).toLowerCase();
 }
 
 /**
  * Checks if a file is an image based on extension
  */
 export function isImageFile(filePath: string): boolean {
-	return IMAGE_EXTENSIONS.has(getExtension(filePath));
+	return IMAGE_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**
@@ -62,8 +79,24 @@ export function isImageFile(filePath: string): boolean {
  * Returns null if not a supported image type
  */
 export function getImageMimeType(filePath: string): string | null {
-	const ext = getExtension(filePath);
+	const ext = getFileExtension(filePath);
 	return IMAGE_MIME_TYPES[ext] ?? null;
+}
+
+/**
+ * Checks if a file is a browser-previewable video based on extension
+ */
+export function isVideoFile(filePath: string): boolean {
+	return VIDEO_EXTENSIONS.has(getFileExtension(filePath));
+}
+
+/**
+ * Gets the MIME type for a video file
+ * Returns null if not a supported video type
+ */
+export function getVideoMimeType(filePath: string): string | null {
+	const ext = getFileExtension(filePath);
+	return VIDEO_MIME_TYPES[ext] ?? null;
 }
 
 /**
@@ -102,7 +135,7 @@ export function parseBase64DataUrl(dataUrl: string): {
  * Checks if a file is markdown based on extension
  */
 export function isMarkdownFile(filePath: string): boolean {
-	return MARKDOWN_EXTENSIONS.has(getExtension(filePath));
+	return MARKDOWN_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**
