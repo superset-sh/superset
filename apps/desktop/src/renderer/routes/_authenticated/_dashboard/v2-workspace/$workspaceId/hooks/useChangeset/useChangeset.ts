@@ -43,6 +43,7 @@ export function useChangeset({
 				status: file.status as FileStatus,
 				additions: file.additions,
 				deletions: file.deletions,
+				isBinary: file.isBinary,
 				source: {
 					kind: "commit",
 					commitHash: ref.commitHash,
@@ -62,6 +63,7 @@ export function useChangeset({
 					status: file.status as FileStatus,
 					additions: file.additions,
 					deletions: file.deletions,
+					isBinary: file.isBinary,
 					source: { kind: "unstaged" },
 				})),
 				...status.staged.map<ChangesetFile>((file) => ({
@@ -70,6 +72,7 @@ export function useChangeset({
 					status: file.status as FileStatus,
 					additions: file.additions,
 					deletions: file.deletions,
+					isBinary: file.isBinary,
 					source: { kind: "staged" },
 				})),
 			];
@@ -86,6 +89,7 @@ export function useChangeset({
 				status: file.status as FileStatus,
 				additions: file.additions,
 				deletions: file.deletions,
+				isBinary: file.isBinary,
 				source: { kind: "unstaged" },
 			});
 		}
@@ -97,6 +101,7 @@ export function useChangeset({
 				status: file.status as FileStatus,
 				additions: file.additions,
 				deletions: file.deletions,
+				isBinary: file.isBinary,
 				source: { kind: "staged" },
 			});
 		}
@@ -108,6 +113,7 @@ export function useChangeset({
 				status: file.status as FileStatus,
 				additions: file.additions,
 				deletions: file.deletions,
+				isBinary: file.isBinary,
 				source: { kind: "against-base", baseBranch: ref.baseBranch },
 			});
 		}

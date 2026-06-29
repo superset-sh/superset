@@ -5,28 +5,56 @@ describe("parseNumstat", () => {
 	test("regular file entry", () => {
 		const raw = "5\t2\tsrc/foo.ts\0";
 		const result = parseNumstat(raw);
-		expect(result.get("src/foo.ts")).toEqual({ additions: 5, deletions: 2 });
+		expect(result.get("src/foo.ts")).toEqual({
+			additions: 5,
+			deletions: 2,
+			isBinary: false,
+		});
 	});
 
 	test("multiple regular entries", () => {
 		const raw = "5\t2\tsrc/foo.ts\x003\t0\tsrc/bar.ts\x00";
 		const result = parseNumstat(raw);
-		expect(result.get("src/foo.ts")).toEqual({ additions: 5, deletions: 2 });
-		expect(result.get("src/bar.ts")).toEqual({ additions: 3, deletions: 0 });
+		expect(result.get("src/foo.ts")).toEqual({
+			additions: 5,
+			deletions: 2,
+			isBinary: false,
+		});
+		expect(result.get("src/bar.ts")).toEqual({
+			additions: 3,
+			deletions: 0,
+			isBinary: false,
+		});
 	});
 
 	test("exact rename with edits indexes both paths", () => {
 		const raw = "4\t3\t\x00src/old.ts\x00src/new.ts\x00";
 		const result = parseNumstat(raw);
-		expect(result.get("src/new.ts")).toEqual({ additions: 4, deletions: 3 });
-		expect(result.get("src/old.ts")).toEqual({ additions: 4, deletions: 3 });
+		expect(result.get("src/new.ts")).toEqual({
+			additions: 4,
+			deletions: 3,
+			isBinary: false,
+		});
+		expect(result.get("src/old.ts")).toEqual({
+			additions: 4,
+			deletions: 3,
+			isBinary: false,
+		});
 	});
 
 	test("pure rename with zero line changes", () => {
 		const raw = "0\t0\t\x00src/old.ts\x00src/new.ts\x00";
 		const result = parseNumstat(raw);
-		expect(result.get("src/new.ts")).toEqual({ additions: 0, deletions: 0 });
-		expect(result.get("src/old.ts")).toEqual({ additions: 0, deletions: 0 });
+		expect(result.get("src/new.ts")).toEqual({
+			additions: 0,
+			deletions: 0,
+			isBinary: false,
+		});
+		expect(result.get("src/old.ts")).toEqual({
+			additions: 0,
+			deletions: 0,
+			isBinary: false,
+		});
 	});
 
 	test("binary file with dash markers", () => {
@@ -35,6 +63,7 @@ describe("parseNumstat", () => {
 		expect(result.get("assets/image.png")).toEqual({
 			additions: 0,
 			deletions: 0,
+			isBinary: true,
 		});
 	});
 
@@ -44,12 +73,25 @@ describe("parseNumstat", () => {
 			"4\t3\t\x00src/old.ts\x00src/new.ts\x00" +
 			"-\t-\tassets/image.png\x00";
 		const result = parseNumstat(raw);
-		expect(result.get("src/foo.ts")).toEqual({ additions: 5, deletions: 2 });
-		expect(result.get("src/new.ts")).toEqual({ additions: 4, deletions: 3 });
-		expect(result.get("src/old.ts")).toEqual({ additions: 4, deletions: 3 });
+		expect(result.get("src/foo.ts")).toEqual({
+			additions: 5,
+			deletions: 2,
+			isBinary: false,
+		});
+		expect(result.get("src/new.ts")).toEqual({
+			additions: 4,
+			deletions: 3,
+			isBinary: false,
+		});
+		expect(result.get("src/old.ts")).toEqual({
+			additions: 4,
+			deletions: 3,
+			isBinary: false,
+		});
 		expect(result.get("assets/image.png")).toEqual({
 			additions: 0,
 			deletions: 0,
+			isBinary: true,
 		});
 	});
 
@@ -63,20 +105,33 @@ describe("parseNumstat", () => {
 		expect(result.get("weird\tpath.ts")).toEqual({
 			additions: 1,
 			deletions: 1,
+			isBinary: false,
 		});
 	});
 
 	test("rename where both paths contain tabs", () => {
 		const raw = "2\t1\t\x00weird\told.ts\x00weird\tnew.ts\x00";
 		const result = parseNumstat(raw);
-		expect(result.get("weird\told.ts")).toEqual({ additions: 2, deletions: 1 });
-		expect(result.get("weird\tnew.ts")).toEqual({ additions: 2, deletions: 1 });
+		expect(result.get("weird\told.ts")).toEqual({
+			additions: 2,
+			deletions: 1,
+			isBinary: false,
+		});
+		expect(result.get("weird\tnew.ts")).toEqual({
+			additions: 2,
+			deletions: 1,
+			isBinary: false,
+		});
 	});
 
 	test("non-ASCII path (raw UTF-8)", () => {
 		const raw = "3\t1\tsrc/日本語.ts\0";
 		const result = parseNumstat(raw);
-		expect(result.get("src/日本語.ts")).toEqual({ additions: 3, deletions: 1 });
+		expect(result.get("src/日本語.ts")).toEqual({
+			additions: 3,
+			deletions: 1,
+			isBinary: false,
+		});
 	});
 });
 

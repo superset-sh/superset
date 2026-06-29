@@ -23,6 +23,30 @@ const MAX_UNTRACKED_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 // doesn't exhaust the process file-descriptor limit.
 const UNTRACKED_IO_CONCURRENCY = 64;
 
+const BINARY_MEDIA_EXTENSIONS = new Set([
+	"3g2",
+	"3gp",
+	"avi",
+	"bmp",
+	"gif",
+	"ico",
+	"jpeg",
+	"jpg",
+	"m4v",
+	"mkv",
+	"mov",
+	"mp4",
+	"mpeg",
+	"mpg",
+	"ogv",
+	"png",
+	"tif",
+	"tiff",
+	"webm",
+	"webp",
+	"wmv",
+]);
+
 async function mapWithConcurrency<T>(
 	items: T[],
 	limit: number,
@@ -72,8 +96,11 @@ export function mapGitStatus(code: string): FileStatus {
  */
 export function parseNumstat(
 	raw: string,
-): Map<string, { additions: number; deletions: number }> {
-	const result = new Map<string, { additions: number; deletions: number }>();
+): Map<string, { additions: number; deletions: number; isBinary: boolean }> {
+	const result = new Map<
+		string,
+		{ additions: number; deletions: number; isBinary: boolean }
+	>();
 	const entries = raw.split("\0");
 	for (let i = 0; i < entries.length; i++) {
 		const entry = entries[i];
@@ -87,6 +114,7 @@ export function parseNumstat(
 		const stats = {
 			additions: add === "-" ? 0 : Number.parseInt(add || "0", 10),
 			deletions: del === "-" ? 0 : Number.parseInt(del || "0", 10),
+			isBinary: add === "-" && del === "-",
 		};
 		if (pathMaybe === "") {
 			const oldPath = entries[++i] ?? "";
@@ -98,6 +126,19 @@ export function parseNumstat(
 		}
 	}
 	return result;
+}
+
+function getFileExtension(filePath: string): string {
+	const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
+	const dotIndex = fileName.lastIndexOf(".");
+	if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
+		return "";
+	}
+	return fileName.slice(dotIndex + 1).toLowerCase();
+}
+
+function isBinaryMediaFile(filePath: string): boolean {
+	return BINARY_MEDIA_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**
@@ -266,7 +307,14 @@ export async function countUntrackedFileLines(
 			if (!isPathWithinWorktree(worktreeReal, fileReal)) return;
 
 			const stats = await stat(fileReal);
-			if (!stats.isFile() || stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
+			if (!stats.isFile()) {
+				return;
+			}
+
+			if (isBinaryMediaFile(file.path)) {
+				file.isBinary = true;
+				file.additions = 0;
+				file.deletions = 0;
 				return;
 			}
 
@@ -276,7 +324,16 @@ export async function countUntrackedFileLines(
 			const buf = await readFile(fileReal);
 			const sniffEnd = Math.min(buf.length, 8192);
 			for (let i = 0; i < sniffEnd; i++) {
-				if (buf[i] === 0) return;
+				if (buf[i] === 0) {
+					file.isBinary = true;
+					file.additions = 0;
+					file.deletions = 0;
+					return;
+				}
+			}
+
+			if (stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
+				return;
 			}
 
 			const content = buf.toString("utf-8");
@@ -354,7 +411,11 @@ export async function detectUnstagedRenames(
 			if (!entry.oldPath) continue;
 			const code = entry.status[0];
 			if (code !== "R") continue;
-			const stats = numstat.get(entry.path) ?? { additions: 0, deletions: 0 };
+			const stats = numstat.get(entry.path) ?? {
+				additions: 0,
+				deletions: 0,
+				isBinary: false,
+			};
 			result.push({
 				oldPath: entry.oldPath,
 				newPath: entry.path,
@@ -395,6 +456,7 @@ export async function getChangedFilesForDiff(
 				status: mapGitStatus(f.status),
 				additions: (numstat.get(f.path) ?? { additions: 0 }).additions,
 				deletions: (numstat.get(f.path) ?? { deletions: 0 }).deletions,
+				isBinary: (numstat.get(f.path) ?? { isBinary: false }).isBinary,
 			}));
 	} catch {
 		return [];

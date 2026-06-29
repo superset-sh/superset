@@ -49,10 +49,12 @@ export function useDiffCodeViewItems({
 
 	const diffRequests = useMemo(
 		() =>
-			files.map((file) => ({
-				file,
-				input: createGetDiffInput(workspaceId, file),
-			})),
+			files
+				.filter((file) => !file.isBinary)
+				.map((file) => ({
+					file,
+					input: createGetDiffInput(workspaceId, file),
+				})),
 		[files, workspaceId],
 	);
 
@@ -84,14 +86,44 @@ export function useDiffCodeViewItems({
 
 	const items = useMemo<CodeViewItem<DiffAnnotationMetadata>[]>(() => {
 		const nextItems: CodeViewItem<DiffAnnotationMetadata>[] = [];
+		const queryByItemId = new Map(
+			diffRequests.map((request, index) => [
+				getDiffItemId(request.file),
+				diffQueries[index],
+			]),
+		);
 
-		for (let index = 0; index < diffRequests.length; index++) {
-			const request = diffRequests[index];
-			const query = diffQueries[index];
-			if (!request || !query?.data) continue;
-
-			const { file } = request;
+		for (const file of files) {
 			const itemId = getDiffItemId(file);
+			const collapsed = collapsedSet.has(file.path);
+
+			if (file.isBinary) {
+				nextItems.push({
+					id: itemId,
+					type: "file",
+					file: {
+						name: file.path,
+						contents: "Binary file — cannot display diff",
+					},
+					collapsed,
+					version: hashString(
+						[
+							file.path,
+							file.oldPath ?? "",
+							file.status,
+							file.additions,
+							file.deletions,
+							"binary",
+							collapsed ? "1" : "0",
+						].join("\0"),
+					),
+				});
+				continue;
+			}
+
+			const query = queryByItemId.get(itemId);
+			if (!query?.data) continue;
+
 			const baseAnnotations = getAnnotationsForFile(annotationsByPath, file);
 			const extra = extraAnnotationsByItemId?.get(itemId);
 			const annotations =
@@ -108,7 +140,6 @@ export function useDiffCodeViewItems({
 					name: file.path,
 				},
 			);
-			const collapsed = collapsedSet.has(file.path);
 			const version = hashString(
 				[
 					query.dataUpdatedAt,
@@ -134,6 +165,7 @@ export function useDiffCodeViewItems({
 
 		return nextItems;
 	}, [
+		files,
 		diffRequests,
 		diffQueries,
 		annotationsByPath,
