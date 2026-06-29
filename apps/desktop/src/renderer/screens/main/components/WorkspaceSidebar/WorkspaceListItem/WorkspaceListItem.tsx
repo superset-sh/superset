@@ -3,8 +3,8 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
-import { HiMiniXMark } from "react-icons/hi2";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { HiLink, HiMiniChevronRight, HiMiniXMark } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -20,6 +20,8 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { getHighestPriorityStatus } from "shared/tabs-types";
+import { LinkedWorktreesSection } from "../LinkedWorktreesSection/LinkedWorktreesSection";
+import { consumeSkipActiveScroll } from "../skip-active-scroll";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
 import { DeleteWorkspaceDialog } from "./components";
 import {
@@ -103,6 +105,15 @@ export function WorkspaceListItem({
 	const utils = electronTrpc.useUtils();
 	const isSelected = useWorkspaceSelectionStore((s) => s.selectedIds.has(id));
 	const selectionStore = useWorkspaceSelectionStore;
+
+	// Linked worktrees symlinked into this worktree's dependency dirs.
+	const [linksOpen, setLinksOpen] = useState(false);
+	const isWorktree = type === "worktree" && !!worktreePath;
+	const { data: linkedWorktrees = [] } =
+		electronTrpc.workspaces.getLinkedWorktrees.useQuery(
+			{ worktreePath },
+			{ enabled: isWorktree, staleTime: GITHUB_STATUS_STALE_TIME },
+		);
 	const isMultiDragging = useActiveDragItemStore(
 		(s) =>
 			s.activeDragItem?.selectedIds?.includes(id) && s.activeDragItem.id !== id,
@@ -134,11 +145,14 @@ export function WorkspaceListItem({
 
 	useEffect(() => {
 		if (!isActive) return;
+		// Activation may originate from a linked-worktree entry elsewhere in the
+		// sidebar; in that case keep the user's scroll position put.
+		if (consumeSkipActiveScroll(id)) return;
 		const activeNode = isCollapsed
 			? collapsedItemRef.current
 			: expandedItemRef.current;
 		activeNode?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-	}, [isActive, isCollapsed]);
+	}, [isActive, isCollapsed, id]);
 
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
@@ -395,6 +409,28 @@ export function WorkspaceListItem({
 								/>
 							)}
 
+							{isWorktree && linkedWorktrees.length > 0 && (
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										setLinksOpen((v) => !v);
+									}}
+									className="flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums text-blue-400/80 hover:text-blue-400 transition-colors"
+									title={`${linkedWorktrees.length} linked worktree${linkedWorktrees.length === 1 ? "" : "s"}`}
+									aria-expanded={linksOpen}
+								>
+									<HiMiniChevronRight
+										className={cn(
+											"size-3 transition-transform duration-150",
+											linksOpen && "rotate-90",
+										)}
+									/>
+									<HiLink className="size-3" />
+									{linkedWorktrees.length}
+								</button>
+							)}
+
 							<div className="grid shrink-0 h-5 [&>*]:col-start-1 [&>*]:row-start-1 items-center">
 								{diffStats && (
 									<WorkspaceDiffStats
@@ -482,6 +518,9 @@ export function WorkspaceListItem({
 			>
 				{content}
 			</WorkspaceContextMenu>
+			{isWorktree && linksOpen && (
+				<LinkedWorktreesSection links={linkedWorktrees} />
+			)}
 			<DeleteWorkspaceDialog
 				workspaceId={id}
 				workspaceName={name}
