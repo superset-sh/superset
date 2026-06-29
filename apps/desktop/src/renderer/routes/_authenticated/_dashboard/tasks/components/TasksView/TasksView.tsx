@@ -7,6 +7,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { authClient } from "renderer/lib/auth-client";
+import { useIntegrationConnections } from "renderer/react-query/integrations/useIntegrationConnections";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	tasksSearchFromFilters,
@@ -130,15 +132,9 @@ export function TasksView({
 		storeSetProjectFilter(projectFilter);
 	}, [projectFilter, storeSetProjectFilter]);
 
-	const { data: integrations } = useLiveQuery(
-		(q) =>
-			q
-				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => ({
-					...integrationConnections,
-				})),
-		[collections],
-	);
+	const { data: session } = authClient.useSession();
+	const activeOrganizationId = session?.session?.activeOrganizationId;
+	const integrations = useIntegrationConnections(activeOrganizationId);
 
 	const { data: v2Projects } = useLiveQuery(
 		(q) => q.from({ projects: collections.v2Projects }),

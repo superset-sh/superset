@@ -10,7 +10,6 @@ import type {
 	SelectChatSession,
 	SelectGithubPullRequest,
 	SelectGithubRepository,
-	SelectIntegrationConnection,
 	SelectInvitation,
 	SelectMember,
 	SelectOrganization,
@@ -136,11 +135,6 @@ const apiKeyDisplaySchema = z.object({
 
 type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
 
-type IntegrationConnectionDisplay = Omit<
-	SelectIntegrationConnection,
-	"accessToken" | "refreshToken"
->;
-
 export interface OrgCollections {
 	tasks: Collection<SelectTask>;
 	taskStatuses: Collection<SelectTaskStatus>;
@@ -157,7 +151,6 @@ export interface OrgCollections {
 	teams: Collection<SelectTeam>;
 	teamMembers: Collection<SelectTeamMember>;
 	agentCommands: Collection<SelectAgentCommand>;
-	integrationConnections: Collection<IntegrationConnectionDisplay>;
 	subscriptions: Collection<SelectSubscription>;
 	apiKeys: Collection<ApiKeyDisplay>;
 	chatSessions: Collection<SelectChatSession>;
@@ -639,23 +632,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const integrationConnections = createPersistedElectricCollection(
-		electricCollectionOptions<IntegrationConnectionDisplay>({
-			id: `integration_connections-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "integration_connections",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
 	const subscriptions = createPersistedElectricCollection(
 		electricCollectionOptions<SelectSubscription>({
 			id: `subscriptions-${organizationId}`,
@@ -895,7 +871,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		teams,
 		teamMembers,
 		agentCommands,
-		integrationConnections,
 		subscriptions,
 		apiKeys,
 		chatSessions,

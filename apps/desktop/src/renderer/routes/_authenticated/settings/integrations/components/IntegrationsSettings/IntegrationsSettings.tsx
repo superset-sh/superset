@@ -1,6 +1,5 @@
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useState } from "react";
 import { FaGithub, FaSlack } from "react-icons/fa";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
@@ -8,7 +7,7 @@ import { SiLinear } from "react-icons/si";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useIntegrationConnections } from "renderer/react-query/integrations/useIntegrationConnections";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -33,17 +32,8 @@ export function IntegrationsSettings({
 }: IntegrationsSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const collections = useCollections();
 
-	const { data: integrations } = useLiveQuery(
-		(q) =>
-			q
-				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => ({
-					...integrationConnections,
-				})),
-		[collections],
-	);
+	const integrations = useIntegrationConnections(activeOrganizationId);
 
 	const [githubInstallation, setGithubInstallation] =
 		useState<GithubInstallation | null>(null);
