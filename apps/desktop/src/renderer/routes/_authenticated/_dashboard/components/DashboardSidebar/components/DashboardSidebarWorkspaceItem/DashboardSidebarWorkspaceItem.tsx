@@ -3,6 +3,7 @@ import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
+import { useInlineWorkspacePortsStore } from "renderer/stores/inline-workspace-ports";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
@@ -42,6 +43,9 @@ export function DashboardSidebarWorkspaceItem({
 	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
+	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
+		(state) => state.enabled,
+	);
 	const {
 		cancelRename,
 		handleClick,
@@ -224,7 +228,7 @@ export function DashboardSidebarWorkspaceItem({
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
 			>
-				{!isPending && (
+				{!isPending && inlineWorkspacePortsEnabled && (
 					<DashboardSidebarWorkspaceDetails
 						workspaceId={id}
 						isInSection={isInSection}

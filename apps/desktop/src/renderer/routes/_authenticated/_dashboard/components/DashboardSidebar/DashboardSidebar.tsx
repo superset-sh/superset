@@ -27,9 +27,11 @@ import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useInlineWorkspacePortsStore } from "renderer/stores/inline-workspace-ports";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHelpMenu } from "./components/DashboardSidebarHelpMenu";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
+import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
@@ -103,6 +105,9 @@ export function DashboardSidebar({
 	const settingsHotkey = useHotkeyDisplay("OPEN_SETTINGS").text;
 	const isSettingsOpen = !!matchRoute({ to: "/settings", fuzzy: true });
 	const { activeHostUrl } = useLocalHostService();
+	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
+		(state) => state.enabled,
+	);
 	const v2RouteMatch = matchRoute({ to: "/v2-workspace/$workspaceId" });
 	const activeV2WorkspaceId = v2RouteMatch ? v2RouteMatch.workspaceId : null;
 
@@ -230,6 +235,9 @@ export function DashboardSidebar({
 									)}
 								</DndContext>
 							</div>
+							{!isCollapsed && !inlineWorkspacePortsEnabled && (
+								<DashboardSidebarPortsList />
+							)}
 							{!isCollapsed && activeV2Project && activeHostUrl && (
 								<V2SetupScriptCard
 									hostUrl={activeHostUrl}

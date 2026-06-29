@@ -6,6 +6,7 @@ import {
 	useIsV2OnlyUser,
 } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
+import { useInlineWorkspacePortsStore } from "renderer/stores/inline-workspace-ports";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 import {
@@ -29,10 +30,20 @@ export function ExperimentalSettings({
 		SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION,
 		visibleItems,
 	);
+	const showInlineWorkspacePorts = isItemVisible(
+		SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS,
+		visibleItems,
+	);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isV2OnlyUser = useIsV2OnlyUser();
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const openV1ImportModal = useOpenV1ImportModal();
+	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
+		(state) => state.enabled,
+	);
+	const setInlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
+		(state) => state.setEnabled,
+	);
 
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto">
@@ -91,6 +102,27 @@ export function ExperimentalSettings({
 						>
 							Open importer
 						</Button>
+					</div>
+				)}
+				{showInlineWorkspacePorts && (
+					<div className="flex items-center justify-between gap-6">
+						<div className="min-w-0 flex-1 space-y-0.5">
+							<Label
+								htmlFor="inline-workspace-ports"
+								className="text-sm font-medium"
+							>
+								Inline workspace ports
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Show detected ports under each workspace in the sidebar instead
+								of a single panel at the bottom.
+							</p>
+						</div>
+						<Switch
+							id="inline-workspace-ports"
+							checked={inlineWorkspacePortsEnabled}
+							onCheckedChange={setInlineWorkspacePortsEnabled}
+						/>
 					</div>
 				)}
 			</div>
