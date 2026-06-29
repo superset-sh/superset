@@ -392,12 +392,18 @@ describe("cloneRepoInto", () => {
 		expect(existsSync(join(targetPath, "keep-me.txt"))).toBe(true);
 	});
 
-	test("rejects when parent directory does not exist", async () => {
-		const missingParent = join(workRoot, "no-such-parent");
+	test("creates the parent directory (and ancestors) when it does not exist", async () => {
+		// Mirrors the default `~/.superset/projects` location not existing on a
+		// fresh machine: clone should mkdir -p the parent rather than erroring.
+		const missingParent = join(workRoot, "deeply", "nested", "projects");
+		expect(existsSync(missingParent)).toBe(false);
 
-		await expect(cloneRepoInto(source, missingParent)).rejects.toThrow(
-			/Parent directory does not exist/,
-		);
+		const resolved = await cloneRepoInto(source, missingParent);
+
+		expect(existsSync(missingParent)).toBe(true);
+		expect(
+			eqRealpath(resolved.repoPath, join(missingParent, "source-repo")),
+		).toBe(true);
 	});
 
 	test("rejects when parent directory points at a file", async () => {
