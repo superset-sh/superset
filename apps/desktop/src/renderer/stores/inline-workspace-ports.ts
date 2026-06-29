@@ -12,7 +12,7 @@ export const useInlineWorkspacePortsStore = create<InlineWorkspacePortsState>()(
 	devtools(
 		persist(
 			(set) => ({
-				enabled: false,
+				enabled: true,
 				setEnabled: (enabled) => set({ enabled }),
 			}),
 			{ name: "inline-workspace-ports" },
