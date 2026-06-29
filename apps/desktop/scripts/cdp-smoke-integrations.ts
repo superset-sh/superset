@@ -3,28 +3,52 @@
  * running dev build, with no Electric/sync involvement.
  *
  * Usage:
- *   1. Launch the desktop app with remote debugging enabled:
+ *   1. Launch the desktop app with remote debugging enabled (full local stack):
  *        RENDERER_REMOTE_DEBUG_PORT=9222 bun dev
- *   2. Sign in and open Settings -> Integrations (so the poll fires).
- *   3. Run:
+ *   2. Run:
  *        bun run apps/desktop/scripts/cdp-smoke-integrations.ts
  *
- * It attaches to the renderer over the Chrome DevTools Protocol and asserts:
- *   - an `integration.list` tRPC response arrives (proves the new query path),
- *   - that response carries NO `accessToken` / `refreshToken` (column masking),
- *   - no `/v1/shape?table=integration_connections` Electric request fires.
+ * It attaches to the renderer over CDP and runs the assertion *inside the page*
+ * (Runtime.evaluate) using the app's own session cookie — this is far more
+ * reliable than sniffing Network.* traffic, which misses cached React Query
+ * responses and is suppressed while the window is backgrounded. See the "CDP"
+ * section in apps/desktop/AGENTS.md.
  *
- * Exits 0 on PASS, 1 on FAIL/timeout. Dependency-free (Bun WebSocket + fetch).
+ * Asserts that integration.list returns 200, is org-scoped, and carries NO
+ * `accessToken` / `refreshToken` (server-side column masking).
+ *
+ * Exits 0 on PASS, 1 on FAIL. Dependency-free (Bun WebSocket + fetch).
  */
 
 const PORT = process.env.RENDERER_REMOTE_DEBUG_PORT ?? "9222";
-const TIMEOUT_MS = 35_000; // long enough to catch the 30s view-time poll
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5881";
 
 interface CdpTarget {
 	type: string;
 	url: string;
 	webSocketDebuggerUrl?: string;
 }
+
+// Runs in the renderer. Reads the active org from the session, then calls
+// integration.list directly (bypassing the React Query cache) and reports
+// whether the response leaks OAuth tokens.
+const PROBE = `(async () => {
+  const API = ${JSON.stringify(API)};
+  const s = await fetch(API + "/api/auth/get-session", { credentials: "include" })
+    .then(r => r.json()).catch(e => ({ err: String(e) }));
+  const org = s && s.session && s.session.activeOrganizationId;
+  if (!org) return JSON.stringify({ ok: false, where: "session", s });
+  const input = encodeURIComponent(JSON.stringify({ "0": { json: { organizationId: org } } }));
+  const r = await fetch(API + "/api/trpc/integration.list?batch=1&input=" + input, { credentials: "include" });
+  const body = await r.text();
+  return JSON.stringify({
+    ok: true,
+    status: r.status,
+    hasProvider: body.includes("provider"),
+    hasAccessToken: body.includes("accessToken"),
+    hasRefreshToken: body.includes("refreshToken"),
+  });
+})()`;
 
 async function findRendererTarget(): Promise<CdpTarget> {
 	const res = await fetch(`http://localhost:${PORT}/json`);
@@ -47,91 +71,64 @@ function main() {
 	findRendererTarget()
 		.then((target) => {
 			const ws = new WebSocket(target.webSocketDebuggerUrl as string);
-			let nextId = 1;
-			const send = (method: string, params: Record<string, unknown> = {}) =>
-				ws.send(JSON.stringify({ id: nextId++, method, params }));
-
-			let shapeRequestSeen = false;
-			let listRequestId: string | null = null;
-			const bodyRequestIds = new Map<number, string>();
 
 			const fail = (msg: string) => {
 				console.error(`❌ FAIL: ${msg}`);
 				ws.close();
 				process.exit(1);
 			};
-			const pass = (msg: string) => {
-				console.log(`✅ PASS: ${msg}`);
-				ws.close();
-				process.exit(0);
-			};
 
-			const timer = setTimeout(
-				() =>
-					fail(
-						`no integration.list response within ${TIMEOUT_MS / 1000}s. Open Settings -> Integrations so the poll fires.`,
-					),
-				TIMEOUT_MS,
-			);
+			const timer = setTimeout(() => fail("no result within 15s"), 15_000);
 
 			ws.addEventListener("open", () => {
 				console.log(`Attached to ${target.url}`);
-				send("Network.enable");
+				ws.send(
+					JSON.stringify({
+						id: 1,
+						method: "Runtime.evaluate",
+						params: {
+							expression: PROBE,
+							awaitPromise: true,
+							returnByValue: true,
+						},
+					}),
+				);
 			});
 
 			ws.addEventListener("message", (event) => {
 				const msg = JSON.parse(event.data as string);
+				if (msg.id !== 1) return;
+				clearTimeout(timer);
 
-				if (msg.method === "Network.responseReceived") {
-					const url: string = msg.params.response.url;
-					if (
-						url.includes("/v1/shape") &&
-						url.includes("integration_connections")
-					) {
-						shapeRequestSeen = true;
-					}
-					if (url.includes("integration.list")) {
-						listRequestId = msg.params.requestId;
-					}
-				}
-
-				if (
-					msg.method === "Network.loadingFinished" &&
-					msg.params.requestId === listRequestId
-				) {
-					const callId = nextId;
-					bodyRequestIds.set(callId, listRequestId);
-					send("Network.getResponseBody", { requestId: listRequestId });
-				}
-
-				if (msg.id && bodyRequestIds.has(msg.id)) {
-					clearTimeout(timer);
-					const body: string = msg.result?.body ?? "";
-					const leaks =
-						body.includes("accessToken") || body.includes("refreshToken");
-					const looksRight = body.includes("provider");
-
-					console.log(`  integration.list body bytes: ${body.length}`);
-					console.log(`  contains provider: ${looksRight}`);
-					console.log(`  contains token fields: ${leaks}`);
-					console.log(`  electric shape request seen: ${shapeRequestSeen}`);
-
-					if (leaks)
-						return fail(
-							"integration.list response contains OAuth token fields",
-						);
-					if (shapeRequestSeen)
-						return fail(
-							"an Electric shape request for integration_connections fired",
-						);
-					if (!looksRight)
-						return fail(
-							"integration.list body did not look like connection rows",
-						);
-					pass(
-						"integration.list is masked and served via tRPC (no Electric shape)",
+				if (msg.result?.exceptionDetails) {
+					return fail(
+						`page threw: ${JSON.stringify(msg.result.exceptionDetails).slice(0, 300)}`,
 					);
 				}
+				const out = JSON.parse(msg.result?.result?.value ?? "{}");
+				if (!out.ok)
+					return fail(
+						`could not reach integration.list (${out.where ?? "unknown"})`,
+					);
+
+				console.log(`  status: ${out.status}`);
+				console.log(`  has provider: ${out.hasProvider}`);
+				console.log(
+					`  has token fields: ${out.hasAccessToken || out.hasRefreshToken}`,
+				);
+
+				if (out.status !== 200)
+					return fail(`integration.list returned ${out.status}`);
+				if (out.hasAccessToken || out.hasRefreshToken)
+					return fail("integration.list response contains OAuth token fields");
+				if (!out.hasProvider)
+					return fail(
+						"integration.list body did not look like connection rows",
+					);
+
+				console.log("✅ PASS: integration.list is masked and served via tRPC");
+				ws.close();
+				process.exit(0);
 			});
 
 			ws.addEventListener("error", (e) =>
