@@ -155,7 +155,6 @@ function V2WorkspaceContent() {
 	});
 
 	const {
-		openFilePane,
 		openFilePaneFromTreeClick,
 		revealPath,
 		selectedFilePath,
@@ -169,7 +168,7 @@ function V2WorkspaceContent() {
 	});
 
 	const paneRegistry = usePaneRegistry({
-		onOpenFile: openFilePane,
+		onOpenFile: openFilePaneFromTreeClick,
 		onRevealPath: revealPath,
 		launcher,
 		store,
@@ -207,15 +206,14 @@ function V2WorkspaceContent() {
 		[closeQuickOpen],
 	);
 	// Picking a file from Quick Open should surface the sidebar/Files tab so
-	// the reveal (expand + highlight + scroll) is actually visible. Tree
-	// clicks and other openFilePane callers already have the sidebar open.
+	// the reveal (expand + highlight + scroll) is actually visible.
 	const handleQuickOpenSelectFile = useCallback(
 		(filePath: string, openInNewTab?: boolean) => {
 			setRightSidebarOpen(true);
 			setRightSidebarTab("files");
-			openFilePane(filePath, openInNewTab);
+			openFilePaneFromTreeClick(filePath, openInNewTab);
 		},
-		[openFilePane, setRightSidebarOpen, setRightSidebarTab],
+		[openFilePaneFromTreeClick, setRightSidebarOpen, setRightSidebarTab],
 	);
 	const defaultPaneActions = useDefaultPaneActions({ launcher });
 	const onBeforeCloseTab = useDirtyTabCloseGuard();

@@ -3,6 +3,12 @@
  * Used by both main and renderer processes.
  */
 
+import { getFileExtension, isVideoFile } from "@superset/shared/media-files";
+
+// Re-exported so renderer/main code can keep importing extension helpers from
+// `shared/file-types`; the canonical definitions live in `@superset/shared`.
+export { getFileExtension, isVideoFile };
+
 /** Supported image extensions */
 const IMAGE_EXTENSIONS = new Set([
 	"png",
@@ -30,22 +36,6 @@ const IMAGE_MIME_TYPES: Record<string, string> = {
 	tif: "image/tiff",
 	tiff: "image/tiff",
 };
-
-/** Common video extensions */
-const VIDEO_EXTENSIONS = new Set([
-	"3g2",
-	"3gp",
-	"avi",
-	"m4v",
-	"mkv",
-	"mov",
-	"mp4",
-	"mpeg",
-	"mpg",
-	"ogv",
-	"webm",
-	"wmv",
-]);
 
 /** Browser-playable video extensions */
 const PREVIEWABLE_VIDEO_EXTENSIONS = new Set([
@@ -83,18 +73,6 @@ const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown", "mdx"]);
 
 /**
- * Gets the file extension from a path (lowercase, without dot)
- */
-export function getFileExtension(filePath: string): string {
-	const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
-	const dotIndex = fileName.lastIndexOf(".");
-	if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
-		return "";
-	}
-	return fileName.slice(dotIndex + 1).toLowerCase();
-}
-
-/**
  * Checks if a file is an image based on extension
  */
 export function isImageFile(filePath: string): boolean {
@@ -108,15 +86,6 @@ export function isImageFile(filePath: string): boolean {
 export function getImageMimeType(filePath: string): string | null {
 	const ext = getFileExtension(filePath);
 	return IMAGE_MIME_TYPES[ext] ?? null;
-}
-
-/**
- * Checks if a file is a video based on extension. Covers all known video
- * extensions, not just browser-playable ones — use isPreviewableVideoFile
- * to gate the inline <video> preview.
- */
-export function isVideoFile(filePath: string): boolean {
-	return VIDEO_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**
