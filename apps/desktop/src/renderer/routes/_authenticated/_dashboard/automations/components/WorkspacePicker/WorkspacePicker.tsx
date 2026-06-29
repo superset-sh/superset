@@ -33,7 +33,7 @@ export function WorkspacePicker({
 	const [open, setOpen] = useState(false);
 	const collections = useCollections();
 
-	const { data: allWorkspaces = [] } = useLiveQuery(
+	const { data: allWorkspaces = [], isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ w: collections.v2Workspaces })
@@ -68,7 +68,14 @@ export function WorkspacePicker({
 		? ((allHosts as SelectV2Host[]).find((h) => h.machineId === selected.hostId)
 				?.name ?? "another device")
 		: null;
-	const label = selected ? selected.name : "New workspace";
+	// A pinned value we can't resolve yet (live query still hydrating) is loading,
+	// not an empty "New workspace" selection — don't flash the wrong label/warning.
+	const resolving = !!value && !selected && !isReady;
+	const label = selected
+		? selected.name
+		: resolving
+			? "Loading…"
+			: "New workspace";
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -78,7 +85,7 @@ export function WorkspacePicker({
 					icon={
 						offScope ? (
 							<LuTriangleAlert className="size-4 shrink-0" />
-						) : selected ? (
+						) : selected || resolving ? (
 							<LuGitBranch className="size-4 shrink-0" />
 						) : (
 							<LuSparkles className="size-4 shrink-0" />
@@ -106,11 +113,14 @@ export function WorkspacePicker({
 							>
 								<LuSparkles className="size-4" />
 								<span>New workspace</span>
-								{!selected && <HiCheck className="ml-auto size-4" />}
+								{!selected && !resolving && (
+									<HiCheck className="ml-auto size-4" />
+								)}
 							</CommandItem>
 							{offScope && selected && (
 								<CommandItem
 									value={`__pinned__${selected.id}`}
+									keywords={[selected.name]}
 									onSelect={() => setOpen(false)}
 									className="text-amber-500"
 								>

@@ -320,7 +320,7 @@ export const automationRouter = {
 				input.targetHostId === undefined
 					? existing.targetHostId
 					: input.targetHostId;
-			const nextProjectId = input.v2ProjectId ?? existing.v2ProjectId;
+			let nextProjectId = input.v2ProjectId ?? existing.v2ProjectId;
 			let nextWorkspaceId =
 				input.v2WorkspaceId === undefined
 					? existing.v2WorkspaceId
@@ -343,12 +343,20 @@ export const automationRouter = {
 					organizationId,
 					nextWorkspaceId,
 				);
-				if (nextProjectId !== workspace.projectId) {
+				// Mirror create: derive the project from the workspace and only
+				// reject when the caller *explicitly* passed a conflicting project.
+				// Otherwise a legitimate cross-project workspace move (sending only
+				// v2WorkspaceId) would be wrongly rejected as a mismatch.
+				if (
+					input.v2ProjectId !== undefined &&
+					input.v2ProjectId !== workspace.projectId
+				) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "v2ProjectId does not match the workspace's project",
 					});
 				}
+				nextProjectId = workspace.projectId;
 				if (
 					input.targetHostId !== undefined &&
 					input.targetHostId !== null &&

@@ -272,6 +272,36 @@ describe("automation.update host/workspace reconciliation", () => {
 		});
 	});
 
+	it("derives the project from the workspace when moving across projects", async () => {
+		getAutomationForUserMock.mockResolvedValue({ ...existing });
+		// W2 lives in a different project (PROJECT_X) and on a different host
+		dbSelectResults.push([
+			{
+				id: WORKSPACE_W2,
+				organizationId: ORGANIZATION_ID,
+				projectId: PROJECT_X,
+				hostId: HOST_B,
+			},
+		]);
+		pushHostAccessOk(HOST_B);
+		updateResults.push([
+			{ id: AUTOMATION_ID, rrule: "FREQ=DAILY", timezone: "UTC" },
+		]);
+
+		const caller = createCaller(createContext());
+		await caller.automation.update({
+			id: AUTOMATION_ID,
+			v2WorkspaceId: WORKSPACE_W2,
+		});
+
+		expect(updateSetMock).toHaveBeenCalledTimes(1);
+		expect(updateSetMock.mock.calls[0]?.[0]).toMatchObject({
+			targetHostId: HOST_B,
+			v2ProjectId: PROJECT_X,
+			v2WorkspaceId: WORKSPACE_W2,
+		});
+	});
+
 	it("rejects re-pinning a workspace whose host disagrees with an explicit targetHostId", async () => {
 		getAutomationForUserMock.mockResolvedValue({ ...existing });
 		pushHostAccessOk(HOST_X); // verifyHostAccess(input.targetHostId)
