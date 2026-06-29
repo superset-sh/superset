@@ -1,4 +1,4 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
+import type { SelectV2Host, SelectV2Workspace } from "@superset/db/schema";
 import {
 	Command,
 	CommandGroup,
@@ -7,10 +7,11 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
-import { LuGitBranch, LuSparkles } from "react-icons/lu";
+import { LuGitBranch, LuSparkles, LuTriangleAlert } from "react-icons/lu";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
@@ -41,22 +42,43 @@ export function WorkspacePicker({
 		[collections.v2Workspaces],
 	);
 
+	const { data: allHosts = [] } = useLiveQuery(
+		(q) => q.from({ h: collections.v2Hosts }).select(({ h }) => ({ ...h })),
+		[collections.v2Hosts],
+	);
+
 	const workspaces = useMemo(() => {
 		const rows = allWorkspaces as SelectV2Workspace[];
 		if (!hostId || !projectId) return [];
 		return rows.filter((w) => w.hostId === hostId && w.projectId === projectId);
 	}, [allWorkspaces, hostId, projectId]);
 
-	const selected = value ? workspaces.find((w) => w.id === value) : null;
+	// Resolve the pinned workspace from the FULL list, not the host-scoped
+	// subset: a workspace pinned to a different device must stay visible here
+	// instead of silently masquerading as "New workspace" (which hides the
+	// mismatch and lets dispatch keep failing with "Workspace not found").
+	const selected = value
+		? ((allWorkspaces as SelectV2Workspace[]).find((w) => w.id === value) ??
+			null)
+		: null;
+	const offScope =
+		!!selected &&
+		(selected.hostId !== hostId || selected.projectId !== projectId);
+	const offScopeHostName = offScope
+		? ((allHosts as SelectV2Host[]).find((h) => h.machineId === selected.hostId)
+				?.name ?? "another device")
+		: null;
 	const label = selected ? selected.name : "New workspace";
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<PickerTrigger
-					className={className}
+					className={cn(offScope && "text-amber-500", className)}
 					icon={
-						selected ? (
+						offScope ? (
+							<LuTriangleAlert className="size-4 shrink-0" />
+						) : selected ? (
 							<LuGitBranch className="size-4 shrink-0" />
 						) : (
 							<LuSparkles className="size-4 shrink-0" />
@@ -86,6 +108,22 @@ export function WorkspacePicker({
 								<span>New workspace</span>
 								{!selected && <HiCheck className="ml-auto size-4" />}
 							</CommandItem>
+							{offScope && selected && (
+								<CommandItem
+									value={`__pinned__${selected.id}`}
+									onSelect={() => setOpen(false)}
+									className="text-amber-500"
+								>
+									<LuTriangleAlert className="size-4" />
+									<span className="flex min-w-0 flex-col">
+										<span className="truncate">{selected.name}</span>
+										<span className="truncate text-[10px] text-amber-500/70">
+											on {offScopeHostName} — won't run here
+										</span>
+									</span>
+									<HiCheck className="ml-auto size-4" />
+								</CommandItem>
+							)}
 							{workspaces.map((workspace) => (
 								<CommandItem
 									key={workspace.id}
