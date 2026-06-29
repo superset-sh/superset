@@ -234,6 +234,9 @@ export const settings = sqliteTable("settings", {
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",
 	}),
+	experimentalAcpChat: integer("experimental_acp_chat", {
+		mode: "boolean",
+	}),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

@@ -43,6 +43,7 @@ import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_EXPERIMENTAL_ACP_CHAT,
 	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
 	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_OPEN_LINKS_IN_APP,
@@ -660,6 +661,38 @@ export const createSettingsRouter = () => {
 
 				// Restart active host-service children so they pick up the new
 				// RELAY_URL from buildEnv(). No-op if the user isn't signed in.
+				const { token } = await loadToken();
+				if (!token) {
+					return { restartedOrgCount: 0 };
+				}
+
+				const coordinator = getHostServiceCoordinator();
+				const restartedOrgCount = coordinator.getActiveOrganizationIds().length;
+				await coordinator.restartAll({
+					authToken: token,
+					cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+				});
+
+				return { restartedOrgCount };
+			}),
+
+		getExperimentalAcpChat: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.experimentalAcpChat ?? DEFAULT_EXPERIMENTAL_ACP_CHAT;
+		}),
+
+		setExperimentalAcpChat: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(async ({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, experimentalAcpChat: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { experimentalAcpChat: input.enabled },
+					})
+					.run();
+
 				const { token } = await loadToken();
 				if (!token) {
 					return { restartedOrgCount: 0 };

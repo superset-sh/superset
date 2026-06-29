@@ -51,6 +51,7 @@ export const SETTING_ITEM_ID = {
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
+	EXPERIMENTAL_ACP_CHAT: "experimental-acp-chat",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -160,6 +161,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_ACP_CHAT]: "v2",
 
 	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
 	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
@@ -883,6 +885,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"workspaces",
 			"toggle",
 			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_ACP_CHAT,
+		section: "experimental",
+		title: "ACP Chat Runtime",
+		description: "Run workspace chat through Agent Client Protocol",
+		keywords: [
+			"experimental",
+			"acp",
+			"agent client protocol",
+			"chat",
+			"mastra",
+			"runtime",
+			"agent",
+			"omp",
+			"pi",
 		],
 	},
 	{

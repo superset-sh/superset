@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `experimental_acp_chat` integer;

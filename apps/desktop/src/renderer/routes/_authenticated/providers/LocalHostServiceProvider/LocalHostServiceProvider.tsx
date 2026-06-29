@@ -47,16 +47,19 @@ export function LocalHostServiceProvider({
 		[collections],
 	);
 
-	const organizationIds = useMemo(
-		() => organizations?.map((organization) => organization.id) ?? [],
-		[organizations],
-	);
+	const hostOrganizationIds = useMemo(() => {
+		const ids = new Set(
+			organizations?.map((organization) => organization.id) ?? [],
+		);
+		if (activeOrganizationId) ids.add(activeOrganizationId);
+		return [...ids];
+	}, [organizations, activeOrganizationId]);
 
 	useEffect(() => {
-		for (const organizationId of organizationIds) {
+		for (const organizationId of hostOrganizationIds) {
 			startHostService({ organizationId });
 		}
-	}, [organizationIds, startHostService]);
+	}, [hostOrganizationIds, startHostService]);
 
 	const { data: machineIdData } = electronTrpc.device.getMachineId.useQuery(
 		undefined,

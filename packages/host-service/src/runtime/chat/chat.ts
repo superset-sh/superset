@@ -11,55 +11,37 @@ import { createMastraCode } from "mastracode";
 import type { HostDb } from "../../db";
 import { workspaces } from "../../db/schema";
 import type { ModelProviderRuntimeResolver } from "../../providers/model-providers";
+import { AcpChatRuntime } from "./acp-chat-runtime";
+import type {
+	ChatDisplayState as AcpChatDisplayState,
+	ChatApprovalPayload,
+	ChatMessage,
+	ChatPlanPayload,
+	ChatQuestionPayload,
+	ChatSendMessageInput,
+	RestartPayload,
+} from "./acp-types";
 
-type RuntimeHarness = Awaited<ReturnType<typeof createMastraCode>>["harness"];
-type RuntimeMcpManager = Awaited<
-	ReturnType<typeof createMastraCode>
->["mcpManager"];
-type RuntimeHookManager = Awaited<
-	ReturnType<typeof createMastraCode>
->["hookManager"];
-type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
-type RuntimeMessages = Awaited<ReturnType<RuntimeHarness["listMessages"]>>;
-type RuntimeSendMessageResult = Awaited<
-	ReturnType<RuntimeHarness["sendMessage"]>
->;
-type RuntimeApprovalResult = Awaited<
-	ReturnType<RuntimeHarness["respondToToolApproval"]>
->;
-type RuntimeQuestionResult = Awaited<
-	ReturnType<RuntimeHarness["respondToQuestion"]>
->;
-type RuntimePlanResult = Awaited<
-	ReturnType<RuntimeHarness["respondToPlanApproval"]>
->;
 type ChatThinkingLevel = "off" | "low" | "medium" | "high" | "xhigh";
 
-interface ChatSendMessageInput {
-	sessionId: string;
-	workspaceId: string;
-	payload: {
-		content: string;
-		files?: Array<{
-			data: string;
-			mediaType: string;
-			filename?: string;
-		}>;
-	};
-	metadata?: {
-		model?: string;
-		thinkingLevel?: ChatThinkingLevel;
-	};
-}
+type ChatPayload = ChatSendMessageInput["payload"];
 
-interface RestartPayload extends ChatSendMessageInput {
-	messageId: string;
-}
-
-interface PendingSandboxQuestion {
+interface MastraPendingQuestion {
 	questionId: string;
-	path: string;
-	reason: string;
+	[key: string]: unknown;
+}
+
+interface MastraDisplayState {
+	isRunning?: boolean;
+	currentMessage?: (ChatMessage & { errorMessage?: string }) | null;
+	pendingQuestion?: MastraPendingQuestion | null;
+	pendingApproval?: unknown;
+	pendingPlanApproval?: unknown;
+	activeTools?: Map<string, unknown>;
+	toolInputBuffers?: Map<string, unknown>;
+	activeSubagents?: Map<string, unknown>;
+	errorMessage?: string | null;
+	[key: string]: unknown;
 }
 
 interface ChatPendingQuestionOption {
@@ -74,87 +56,14 @@ interface ChatPendingQuestion {
 	options: ChatPendingQuestionOption[];
 }
 
-export type ChatDisplayState = RuntimeDisplayState & {
-	pendingQuestion:
-		| RuntimeDisplayState["pendingQuestion"]
-		| ChatPendingQuestion
-		| null;
+export type ChatDisplayState = (MastraDisplayState | AcpChatDisplayState) & {
+	pendingQuestion: MastraPendingQuestion | ChatPendingQuestion | null;
 	errorMessage: string | null;
 };
 
-interface ChatApprovalPayload {
-	decision: "approve" | "decline" | "always_allow_category";
-}
-
-interface ChatQuestionPayload {
-	questionId: string;
-	answer: string;
-}
-
-interface ChatPlanPayload {
-	planId: string;
-	response: {
-		action: "approved" | "rejected";
-		feedback?: string;
-	};
-}
-
-interface RuntimeSession {
-	sessionId: string;
-	workspaceId: string;
-	cwd: string;
-	harness: RuntimeHarness;
-	mcpManager: RuntimeMcpManager;
-	hookManager: RuntimeHookManager;
-	lastErrorMessage: string | null;
-	pendingSandboxQuestion: PendingSandboxQuestion | null;
-	answeredQuestionIds: Set<string>;
-	pendingQuestionResponses: Map<string, Promise<RuntimeQuestionResult>>;
-}
-
-function respondToQuestionWithOptimisticState(
-	runtime: RuntimeSession,
-	payload: ChatQuestionPayload,
-): Promise<RuntimeQuestionResult> {
-	const questionId = payload.questionId;
-	const pendingResponse = runtime.pendingQuestionResponses.get(questionId);
-	if (pendingResponse) return pendingResponse;
-
-	const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
-	const previousSandboxQuestion = runtime.pendingSandboxQuestion;
-	const clearsSandboxQuestion =
-		previousSandboxQuestion?.questionId === questionId;
-
-	runtime.answeredQuestionIds.add(questionId);
-	if (clearsSandboxQuestion) {
-		runtime.pendingSandboxQuestion = null;
-	}
-
-	let responsePromise: Promise<RuntimeQuestionResult>;
-	responsePromise = Promise.resolve()
-		.then(() => runtime.harness.respondToQuestion(payload))
-		.catch((error) => {
-			if (
-				runtime.pendingQuestionResponses.get(questionId) === responsePromise
-			) {
-				if (!wasAlreadyAnswered) {
-					runtime.answeredQuestionIds.delete(questionId);
-				}
-				if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
-					runtime.pendingSandboxQuestion = previousSandboxQuestion;
-				}
-			}
-			throw error;
-		})
-		.finally(() => {
-			if (
-				runtime.pendingQuestionResponses.get(questionId) === responsePromise
-			) {
-				runtime.pendingQuestionResponses.delete(questionId);
-			}
-		});
-	runtime.pendingQuestionResponses.set(questionId, responsePromise);
-	return responsePromise;
+interface RuntimeChatSnapshot {
+	displayState: ChatDisplayState;
+	messages: ChatMessage[];
 }
 
 interface RuntimeStoredMessage {
@@ -181,15 +90,26 @@ interface RuntimeMemoryStore {
 		sourceThreadId: string;
 		resourceId?: string;
 		title?: string;
-		options?: {
-			messageFilter?: {
-				messageIds?: string[];
-			};
-		};
+		options?: { messageFilter?: { messageIds?: string[] } };
 	}): Promise<{ thread: RuntimeStoredThread }>;
 }
 
-interface HarnessWithConfig {
+interface RuntimeHarness {
+	init(): Promise<void>;
+	setResourceId(input: { resourceId: string }): void;
+	selectOrCreateThread(): Promise<void>;
+	getDisplayState(): MastraDisplayState;
+	listMessages(): Promise<ChatMessage[]>;
+	sendMessage(payload: ChatPayload): Promise<unknown>;
+	abort(): void;
+	switchModel(input: { modelId: string; scope: "thread" }): Promise<void>;
+	setState(input: { thinkingLevel: ChatThinkingLevel }): Promise<void>;
+	respondToToolApproval(payload: ChatApprovalPayload): Promise<unknown>;
+	respondToQuestion(payload: ChatQuestionPayload): Promise<unknown>;
+	respondToPlanApproval(payload: ChatPlanPayload): Promise<unknown>;
+	getCurrentThreadId(): string | null;
+	switchThread(input: { threadId: string }): Promise<void>;
+	subscribe(callback: (event: unknown) => void): void;
 	config?: {
 		storage?: {
 			getStore: (domain: "memory") => Promise<RuntimeMemoryStore | null>;
@@ -197,183 +117,63 @@ interface HarnessWithConfig {
 	};
 }
 
+interface RuntimeMcpManager {
+	disconnect?(): Promise<void>;
+}
+
+interface RuntimeHookManager {
+	setSessionId?(sessionId: string): void;
+}
+
+interface MastraRuntimeSession {
+	sessionId: string;
+	workspaceId: string;
+	cwd: string;
+	harness: RuntimeHarness;
+	mcpManager: RuntimeMcpManager | null;
+	hookManager: RuntimeHookManager | null;
+	lastErrorMessage: string | null;
+	pendingSandboxQuestion: {
+		questionId: string;
+		path: string;
+		reason: string;
+	} | null;
+	answeredQuestionIds: Set<string>;
+	pendingQuestionResponses: Map<string, Promise<unknown>>;
+}
+
+interface MastraInflightRuntimeCreation {
+	workspaceId: string;
+	promise: Promise<MastraRuntimeSession>;
+}
+
+interface AcpInflightRuntimeCreation {
+	workspaceId: string;
+	promise: Promise<AcpChatRuntime>;
+}
+
 export interface ChatRuntimeManagerOptions {
 	db: HostDb;
 	runtimeResolver: ModelProviderRuntimeResolver;
 }
 
-function isObjectRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null;
-}
-
-function isHarnessErrorEvent(
-	event: unknown,
-): event is { type: "error"; error: unknown } {
-	return isObjectRecord(event) && event.type === "error" && "error" in event;
-}
-
-function isHarnessWorkspaceErrorEvent(
-	event: unknown,
-): event is { type: "workspace_error"; error: unknown } {
-	return (
-		isObjectRecord(event) &&
-		event.type === "workspace_error" &&
-		"error" in event
-	);
-}
-
-function isHarnessSandboxAccessRequestEvent(event: unknown): event is {
-	type: "sandbox_access_request";
-	questionId: string;
-	path: string;
-	reason: string;
-} {
-	if (!isObjectRecord(event) || event.type !== "sandbox_access_request") {
-		return false;
-	}
-
-	return (
-		typeof event.questionId === "string" &&
-		typeof event.path === "string" &&
-		typeof event.reason === "string"
-	);
-}
-
-function normalizeErrorMessage(message: string): string {
-	return message.trim().replace(/^AI_APICallError\d*\s*:\s*/i, "");
-}
-
-function extractProviderMessage(error: unknown): string | null {
-	if (!isObjectRecord(error)) return null;
-
-	const data = error.data;
-	if (isObjectRecord(data)) {
-		const nestedError = data.error;
-		if (
-			isObjectRecord(nestedError) &&
-			typeof nestedError.message === "string"
-		) {
-			return normalizeErrorMessage(nestedError.message);
-		}
-	}
-
-	const nestedError = error.error;
-	if (isObjectRecord(nestedError) && typeof nestedError.message === "string") {
-		return normalizeErrorMessage(nestedError.message);
-	}
-
-	return null;
-}
-
-function toRuntimeErrorMessage(error: unknown): string {
-	const providerMessage = extractProviderMessage(error);
-	if (providerMessage) return providerMessage;
-	if (error instanceof Error && error.message.trim()) {
-		return normalizeErrorMessage(error.message);
-	}
-	if (typeof error === "string" && error.trim()) {
-		return normalizeErrorMessage(error);
-	}
-	if (isObjectRecord(error) && typeof error.message === "string") {
-		return normalizeErrorMessage(error.message);
-	}
-	return "Unexpected chat error";
-}
-
-async function getRuntimeMemoryStore(
-	runtime: RuntimeSession,
-): Promise<RuntimeMemoryStore> {
-	const harness = runtime.harness as unknown as HarnessWithConfig;
-	const storage = harness.config?.storage;
-	if (!storage) {
-		throw new Error("Mastra storage is not configured for this session");
-	}
-
-	const memoryStore = await storage.getStore("memory");
-	if (!memoryStore) {
-		throw new Error("Mastra memory storage is unavailable for this session");
-	}
-
-	return memoryStore;
-}
-
-async function restartRuntimeFromUserMessage(
-	runtime: RuntimeSession,
-	input: RestartPayload,
-): Promise<void> {
-	const threadId = runtime.harness.getCurrentThreadId();
-	if (!threadId) {
-		throw new Error("No active Mastra thread is available for editing");
-	}
-
-	const memoryStore = await getRuntimeMemoryStore(runtime);
-	const sourceThread = await memoryStore.getThreadById({ threadId });
-	if (!sourceThread) {
-		throw new Error(`Mastra thread not found: ${threadId}`);
-	}
-
-	const sourceMessages = await memoryStore.listMessages({
-		threadId,
-		perPage: false,
-		orderBy: { field: "createdAt", direction: "ASC" },
-	});
-	const targetIndex = sourceMessages.messages.findIndex(
-		(message) => message.id === input.messageId,
-	);
-	if (targetIndex === -1) {
-		throw new Error("The selected message is no longer available to edit");
-	}
-
-	const targetMessage = sourceMessages.messages[targetIndex];
-	if (targetMessage?.role !== "user") {
-		throw new Error("Only user messages can be edited or resent");
-	}
-
-	const clonedThread = await memoryStore.cloneThread({
-		sourceThreadId: threadId,
-		resourceId: sourceThread.resourceId,
-		title: sourceThread.title,
-		options: {
-			messageFilter: {
-				messageIds: sourceMessages.messages
-					.slice(0, targetIndex)
-					.map((message) => message.id),
-			},
-		},
-	});
-
-	runtime.harness.abort();
-	await runtime.harness.switchThread({ threadId: clonedThread.thread.id });
-
-	const selectedModel = input.metadata?.model?.trim();
-	if (selectedModel) {
-		await runtime.harness.switchModel({
-			modelId: selectedModel,
-			scope: "thread",
-		});
-	}
-
-	const thinkingLevel = input.metadata?.thinkingLevel;
-	if (thinkingLevel) {
-		await runtime.harness.setState({ thinkingLevel });
-	}
-
-	runtime.lastErrorMessage = null;
-	await runtime.harness.sendMessage(input.payload);
-}
-
-interface InflightRuntimeCreation {
-	workspaceId: string;
-	promise: Promise<RuntimeSession>;
+interface AcpCommandConfig {
+	command: string;
+	args: string[];
 }
 
 export class ChatRuntimeManager {
 	private readonly db: HostDb;
 	private readonly runtimeResolver: ModelProviderRuntimeResolver;
-	private readonly runtimes = new Map<string, RuntimeSession>();
-	private readonly runtimeCreations = new Map<
+	private readonly mastraRuntimes = new Map<string, MastraRuntimeSession>();
+	private readonly mastraRuntimeCreations = new Map<
 		string,
-		InflightRuntimeCreation
+		MastraInflightRuntimeCreation
+	>();
+	private readonly acpRuntimes = new Map<string, AcpChatRuntime>();
+	private readonly acpRuntimeCreations = new Map<
+		string,
+		AcpInflightRuntimeCreation
 	>();
 
 	constructor(options: ChatRuntimeManagerOptions) {
@@ -381,13 +181,18 @@ export class ChatRuntimeManager {
 		this.runtimeResolver = options.runtimeResolver;
 	}
 
-	private subscribeToSessionEvents(runtime: RuntimeSession): void {
+	private shouldUseAcpChat(): boolean {
+		const value =
+			process.env.SUPERSET_EXPERIMENTAL_ACP_CHAT?.trim().toLowerCase();
+		return value === "1" || value === "true" || value === "yes";
+	}
+
+	private subscribeToMastraSessionEvents(runtime: MastraRuntimeSession): void {
 		runtime.harness.subscribe((event: unknown) => {
 			if (isHarnessErrorEvent(event) || isHarnessWorkspaceErrorEvent(event)) {
 				runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
 				return;
 			}
-
 			if (isHarnessSandboxAccessRequestEvent(event)) {
 				runtime.pendingSandboxQuestion = {
 					questionId: event.questionId,
@@ -396,7 +201,6 @@ export class ChatRuntimeManager {
 				};
 				return;
 			}
-
 			if (isObjectRecord(event) && event.type === "agent_start") {
 				runtime.lastErrorMessage = null;
 				runtime.pendingSandboxQuestion = null;
@@ -404,7 +208,6 @@ export class ChatRuntimeManager {
 				runtime.pendingQuestionResponses.clear();
 				return;
 			}
-
 			if (isObjectRecord(event) && event.type === "agent_end") {
 				runtime.pendingSandboxQuestion = null;
 				runtime.answeredQuestionIds.clear();
@@ -413,14 +216,9 @@ export class ChatRuntimeManager {
 		});
 	}
 
-	/**
-	 * Ensures ~/.mastracode/AGENTS.md exists with Superset-specific instructions.
-	 * Only writes when the file is absent or was previously written by us (identified
-	 * by the managed-by marker). Skips silently on any filesystem error.
-	 */
 	private ensureGlobalAgentInstructions(): void {
-		const MANAGED_MARKER = "<!-- managed-by: superset -->";
-		const INSTRUCTIONS = `${MANAGED_MARKER}
+		const managedMarker = "<!-- managed-by: superset -->";
+		const instructions = `${managedMarker}
 ## Question Tool
 
 When you need to ask the user ANY question — including simple yes/no, confirmations, and clarifications — ALWAYS use the \`ask_user\` tool. Never ask questions in plain text. The Superset UI renders \`ask_user\` calls as an interactive overlay with clickable option buttons; plain-text questions will not be surfaced to the user in the same way.
@@ -430,71 +228,95 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			const filePath = join(dir, "AGENTS.md");
 			if (existsSync(filePath)) {
 				const existing = readFileSync(filePath, "utf-8");
-				if (!existing.includes(MANAGED_MARKER)) {
-					// User-managed file — don't overwrite
-					return;
-				}
+				if (!existing.includes(managedMarker)) return;
 			}
 			mkdirSync(dir, { recursive: true });
-			writeFileSync(filePath, INSTRUCTIONS, "utf-8");
+			writeFileSync(filePath, instructions, "utf-8");
 		} catch {
-			// Non-fatal — instructions enhancement is best-effort
+			// Best-effort compatibility for existing Mastra chat.
 		}
 	}
 
-	private async createRuntime(
+	private async createMastraRuntime(
 		sessionId: string,
 		workspaceId: string,
-	): Promise<RuntimeSession> {
+	): Promise<MastraRuntimeSession> {
 		if (!(await this.runtimeResolver.hasUsableRuntimeEnv())) {
 			throw new Error("No model provider credentials available");
 		}
-
-		const workspace = this.db.query.workspaces
-			.findFirst({ where: eq(workspaces.id, workspaceId) })
-			.sync();
-
-		if (!workspace) {
-			throw new Error(`Workspace not found: ${workspaceId}`);
-		}
-
-		const cwd = workspace.worktreePath;
-
+		const cwd = this.resolveWorkspaceCwd(workspaceId);
 		this.ensureGlobalAgentInstructions();
 		await this.runtimeResolver.prepareRuntimeEnv();
-
 		const runtime = await createMastraCode({
 			cwd,
 			disableMcp: true,
 			memory: new Memory({ options: { observationalMemory: false } }),
 		});
-		runtime.hookManager?.setSessionId(sessionId);
-		await runtime.harness.init();
-		runtime.harness.setResourceId({ resourceId: sessionId });
-		await runtime.harness.selectOrCreateThread();
-
-		const sessionRuntime: RuntimeSession = {
+		const harness = runtime.harness as unknown as RuntimeHarness;
+		const mcpManager = runtime.mcpManager as RuntimeMcpManager | null;
+		const hookManager = runtime.hookManager as RuntimeHookManager | null;
+		hookManager?.setSessionId?.(sessionId);
+		await harness.init();
+		harness.setResourceId({ resourceId: sessionId });
+		await harness.selectOrCreateThread();
+		const sessionRuntime: MastraRuntimeSession = {
 			sessionId,
 			workspaceId,
 			cwd,
-			harness: runtime.harness,
-			mcpManager: runtime.mcpManager,
-			hookManager: runtime.hookManager,
+			harness,
+			mcpManager,
+			hookManager,
 			lastErrorMessage: null,
 			pendingSandboxQuestion: null,
 			answeredQuestionIds: new Set(),
 			pendingQuestionResponses: new Map(),
 		};
-		this.subscribeToSessionEvents(sessionRuntime);
-		this.runtimes.set(sessionId, sessionRuntime);
+		this.subscribeToMastraSessionEvents(sessionRuntime);
+		this.mastraRuntimes.set(sessionId, sessionRuntime);
 		return sessionRuntime;
 	}
 
-	private async getOrCreateRuntime(
+	private async createAcpRuntime(
 		sessionId: string,
 		workspaceId: string,
-	): Promise<RuntimeSession> {
-		const existing = this.runtimes.get(sessionId);
+	): Promise<AcpChatRuntime> {
+		const cwd = this.resolveWorkspaceCwd(workspaceId);
+		await this.prepareOptionalRuntimeEnv();
+		const { command, args } = resolveAcpCommandConfig();
+		const runtime = new AcpChatRuntime({
+			supersetSessionId: sessionId,
+			workspaceId,
+			cwd,
+			command,
+			args,
+			env: process.env,
+		});
+		try {
+			await runtime.initialize();
+		} catch (error) {
+			await runtime.dispose().catch(() => {
+				// Best-effort cleanup after failed ACP initialization.
+			});
+			throw error;
+		}
+		this.acpRuntimes.set(sessionId, runtime);
+		return runtime;
+	}
+
+	private async prepareOptionalRuntimeEnv(): Promise<void> {
+		try {
+			await this.runtimeResolver.prepareRuntimeEnv();
+		} catch {
+			// ACP chat is experimental and additive. The ACP agent owns auth; existing
+			// provider env loading is best-effort for users who already configured keys.
+		}
+	}
+
+	private async getOrCreateMastraRuntime(
+		sessionId: string,
+		workspaceId: string,
+	): Promise<MastraRuntimeSession> {
+		const existing = this.mastraRuntimes.get(sessionId);
 		if (existing) {
 			if (existing.workspaceId !== workspaceId) {
 				throw new Error(
@@ -503,8 +325,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			}
 			return existing;
 		}
-
-		const inflight = this.runtimeCreations.get(sessionId);
+		const inflight = this.mastraRuntimeCreations.get(sessionId);
 		if (inflight) {
 			if (inflight.workspaceId !== workspaceId) {
 				throw new Error(
@@ -513,29 +334,70 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			}
 			return inflight.promise;
 		}
-
-		const promise = this.createRuntime(sessionId, workspaceId).finally(() => {
-			this.runtimeCreations.delete(sessionId);
-		});
-		this.runtimeCreations.set(sessionId, { workspaceId, promise });
+		const promise = this.createMastraRuntime(sessionId, workspaceId).finally(
+			() => {
+				this.mastraRuntimeCreations.delete(sessionId);
+			},
+		);
+		this.mastraRuntimeCreations.set(sessionId, { workspaceId, promise });
 		return promise;
 	}
 
-	/**
-	 * Tear down the in-memory runtime for a session. Aborts any in-flight
-	 * work, disconnects MCP servers, removes the runtime from the manager's
-	 * map, and is a no-op for unknown session ids. Should be called after
-	 * the cloud session row is deleted, or when a workspace is deleted.
-	 *
-	 * Validates `workspaceId` against the runtime / in-flight creation so a
-	 * caller can't dispose a session bound to a different workspace.
-	 *
-	 * If a creation is in-flight for this session, awaits it first so the
-	 * just-created runtime doesn't get inserted into `runtimes` after we
-	 * delete from it (which would leak).
-	 */
+	private async getOrCreateAcpRuntime(
+		sessionId: string,
+		workspaceId: string,
+	): Promise<AcpChatRuntime> {
+		const existing = this.acpRuntimes.get(sessionId);
+		if (existing) {
+			if (existing.workspaceId !== workspaceId) {
+				throw new Error(
+					`Session ${sessionId} is already bound to workspace ${existing.workspaceId}`,
+				);
+			}
+			return existing;
+		}
+		const inflight = this.acpRuntimeCreations.get(sessionId);
+		if (inflight) {
+			if (inflight.workspaceId !== workspaceId) {
+				throw new Error(
+					`Session ${sessionId} is already being created for workspace ${inflight.workspaceId}`,
+				);
+			}
+			return inflight.promise;
+		}
+		const promise = this.createAcpRuntime(sessionId, workspaceId).finally(
+			() => {
+				this.acpRuntimeCreations.delete(sessionId);
+			},
+		);
+		this.acpRuntimeCreations.set(sessionId, { workspaceId, promise });
+		return promise;
+	}
+
+	private getExistingAcpRuntime(
+		sessionId: string,
+		workspaceId: string,
+	): AcpChatRuntime | null {
+		const runtime = this.acpRuntimes.get(sessionId);
+		if (!runtime) return null;
+		if (runtime.workspaceId !== workspaceId) {
+			throw new Error(
+				`Session ${sessionId} is bound to workspace ${runtime.workspaceId}`,
+			);
+		}
+		return runtime;
+	}
+
 	async disposeRuntime(sessionId: string, workspaceId: string): Promise<void> {
-		const inflight = this.runtimeCreations.get(sessionId);
+		await this.disposeMastraRuntime(sessionId, workspaceId);
+		await this.disposeAcpRuntime(sessionId, workspaceId);
+	}
+
+	private async disposeMastraRuntime(
+		sessionId: string,
+		workspaceId: string,
+	): Promise<void> {
+		const inflight = this.mastraRuntimeCreations.get(sessionId);
 		if (inflight) {
 			if (inflight.workspaceId !== workspaceId) {
 				throw new Error(
@@ -545,56 +407,70 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			try {
 				await inflight.promise;
 			} catch {
-				// Creation failed — nothing to dispose.
+				// Creation already failed; no runtime was inserted to dispose.
 				return;
 			}
 		}
-
-		const runtime = this.runtimes.get(sessionId);
+		const runtime = this.mastraRuntimes.get(sessionId);
 		if (!runtime) return;
-
 		if (runtime.workspaceId !== workspaceId) {
 			throw new Error(
 				`Session ${sessionId} is bound to workspace ${runtime.workspaceId}`,
 			);
 		}
-
 		try {
 			runtime.harness.abort();
 		} catch {
-			// best-effort — proceed with cleanup even if abort fails
+			// Best-effort abort; continue with MCP disconnect and map cleanup.
 		}
 		try {
-			await runtime.mcpManager?.disconnect();
+			await runtime.mcpManager?.disconnect?.();
 		} catch {
-			// best-effort — MCP servers may already be disconnected
+			// Best-effort disconnect; the process may already be torn down.
 		}
-		this.runtimes.delete(sessionId);
+		this.mastraRuntimes.delete(sessionId);
 	}
 
-	/**
-	 * Shape the harness's raw display state into the shape the renderer
-	 * expects. Both getDisplayState and getSnapshot must apply the same
-	 * shaping — keep this the single source of truth so the two functions
-	 * cannot drift.
-	 */
-	private buildDisplayState(runtime: RuntimeSession): ChatDisplayState {
+	private async disposeAcpRuntime(
+		sessionId: string,
+		workspaceId: string,
+	): Promise<void> {
+		const inflight = this.acpRuntimeCreations.get(sessionId);
+		if (inflight) {
+			if (inflight.workspaceId !== workspaceId) {
+				throw new Error(
+					`Session ${sessionId} is being created for workspace ${inflight.workspaceId}`,
+				);
+			}
+			try {
+				await inflight.promise;
+			} catch {
+				// Creation already failed; no runtime was inserted to dispose.
+				return;
+			}
+		}
+		const runtime = this.acpRuntimes.get(sessionId);
+		if (!runtime) return;
+		if (runtime.workspaceId !== workspaceId) {
+			throw new Error(
+				`Session ${sessionId} is bound to workspace ${runtime.workspaceId}`,
+			);
+		}
+		await runtime.dispose();
+		this.acpRuntimes.delete(sessionId);
+	}
+
+	private buildMastraDisplayState(
+		runtime: MastraRuntimeSession,
+	): ChatDisplayState {
 		const displayState = runtime.harness.getDisplayState();
-		const currentMessage = displayState.currentMessage as {
-			role?: string;
-			errorMessage?: string;
-		} | null;
+		const currentMessage = displayState.currentMessage;
 		const currentMessageError =
 			currentMessage?.role === "assistant" &&
 			typeof currentMessage.errorMessage === "string" &&
 			currentMessage.errorMessage.trim()
 				? currentMessage.errorMessage.trim()
 				: null;
-
-		// Skip any pending question whose ID was already answered this turn.
-		// The harness only clears pendingQuestion on agent_end, so without this
-		// filter an answered ask_user question would permanently shadow the
-		// sandbox question that fired in the same turn.
 		const harnessPendingQuestion =
 			displayState.pendingQuestion &&
 			!runtime.answeredQuestionIds.has(displayState.pendingQuestion.questionId)
@@ -606,10 +482,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 					question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
 					description: runtime.pendingSandboxQuestion.reason,
 					options: [
-						{
-							label: "Yes",
-							description: "Allow access.",
-						},
+						{ label: "Yes", description: "Allow access." },
 						{ label: "No", description: "Deny access." },
 					],
 				}
@@ -618,70 +491,79 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			...displayState,
 			pendingQuestion: harnessPendingQuestion ?? sandboxPendingQuestion,
 			errorMessage: currentMessageError ?? runtime.lastErrorMessage,
-		};
+		} as ChatDisplayState;
 	}
 
 	async getDisplayState(input: {
 		sessionId: string;
 		workspaceId: string;
 	}): Promise<ChatDisplayState> {
-		const runtime = await this.getOrCreateRuntime(
+		if (this.shouldUseAcpChat()) {
+			const runtime = await this.getOrCreateAcpRuntime(
+				input.sessionId,
+				input.workspaceId,
+			);
+			return runtime.getDisplayState() as ChatDisplayState;
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
-		return this.buildDisplayState(runtime);
+		return this.buildMastraDisplayState(runtime);
 	}
 
 	async listMessages(input: {
 		sessionId: string;
 		workspaceId: string;
-	}): Promise<RuntimeMessages> {
-		const runtime = await this.getOrCreateRuntime(
+	}): Promise<ChatMessage[]> {
+		if (this.shouldUseAcpChat()) {
+			const runtime = await this.getOrCreateAcpRuntime(
+				input.sessionId,
+				input.workspaceId,
+			);
+			return runtime.listMessages();
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
 		return runtime.harness.listMessages();
 	}
 
-	/**
-	 * Single server-side observation that returns both displayState and messages
-	 * from one runtime acquisition. This avoids the dual-poll race between
-	 * independent getDisplayState / listMessages queries on the client.
-	 *
-	 * Note: not a fully locked atomic snapshot — listMessages() is async, so
-	 * harness state can change between the displayState read and the messages
-	 * read. This still removes the *client-side* two-query race, which is the
-	 * one that caused mismatched message/display state.
-	 */
 	async getSnapshot(input: {
 		sessionId: string;
 		workspaceId: string;
-	}): Promise<{
-		displayState: ChatDisplayState;
-		messages: RuntimeMessages;
-	}> {
-		const runtime = await this.getOrCreateRuntime(
+	}): Promise<RuntimeChatSnapshot> {
+		if (this.shouldUseAcpChat()) {
+			const runtime = await this.getOrCreateAcpRuntime(
+				input.sessionId,
+				input.workspaceId,
+			);
+			return runtime.getSnapshot();
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
-		const displayState = this.buildDisplayState(runtime);
-		const messages = await runtime.harness.listMessages();
-		// Intentionally no observedAt: when the harness state hasn't changed,
-		// the response object is structurally identical to the previous poll's
-		// response, so React Query's structuralSharing preserves the object
-		// identity and idle polls don't trigger downstream rerenders.
-		return { displayState, messages };
+		return {
+			displayState: this.buildMastraDisplayState(runtime),
+			messages: await runtime.harness.listMessages(),
+		};
 	}
 
-	async sendMessage(
-		input: ChatSendMessageInput,
-	): Promise<RuntimeSendMessageResult> {
-		const runtime = await this.getOrCreateRuntime(
+	async sendMessage(input: ChatSendMessageInput): Promise<unknown> {
+		if (this.shouldUseAcpChat()) {
+			const runtime = await this.getOrCreateAcpRuntime(
+				input.sessionId,
+				input.workspaceId,
+			);
+			return runtime.sendMessage(input.payload);
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
 		runtime.lastErrorMessage = null;
-
 		const selectedModel = input.metadata?.model?.trim();
 		if (selectedModel) {
 			await runtime.harness.switchModel({
@@ -689,26 +571,37 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 				scope: "thread",
 			});
 		}
-
 		const thinkingLevel = input.metadata?.thinkingLevel;
 		if (thinkingLevel) {
 			await runtime.harness.setState({ thinkingLevel });
 		}
-
 		return runtime.harness.sendMessage(input.payload);
 	}
 
 	async restartFromMessage(input: RestartPayload): Promise<void> {
-		const runtime = await this.getOrCreateRuntime(
+		if (this.shouldUseAcpChat()) {
+			throw new Error(
+				"ACP chat does not support editing or restarting prior turns yet.",
+			);
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
 		runtime.lastErrorMessage = null;
-		await restartRuntimeFromUserMessage(runtime, input);
+		await restartMastraRuntimeFromUserMessage(runtime, input);
 	}
 
 	async stop(input: { sessionId: string; workspaceId: string }): Promise<void> {
-		const runtime = await this.getOrCreateRuntime(
+		if (this.shouldUseAcpChat()) {
+			const runtime = this.getExistingAcpRuntime(
+				input.sessionId,
+				input.workspaceId,
+			);
+			runtime?.stop();
+			return;
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
@@ -719,8 +612,17 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		sessionId: string;
 		workspaceId: string;
 		payload: ChatApprovalPayload;
-	}): Promise<RuntimeApprovalResult> {
-		const runtime = await this.getOrCreateRuntime(
+	}): Promise<unknown> {
+		if (this.shouldUseAcpChat()) {
+			const runtime = this.getExistingAcpRuntime(
+				input.sessionId,
+				input.workspaceId,
+			);
+			if (!runtime) throw new Error("No ACP runtime exists for this session");
+			runtime.respondToApproval(input.payload);
+			return;
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
@@ -731,12 +633,17 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		sessionId: string;
 		workspaceId: string;
 		payload: ChatQuestionPayload;
-	}): Promise<RuntimeQuestionResult> {
-		const runtime = await this.getOrCreateRuntime(
+	}): Promise<unknown> {
+		if (this.shouldUseAcpChat()) {
+			void input.payload;
+			throw new Error(
+				"ACP chat question responses are not available for this request.",
+			);
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
-
 		return respondToQuestionWithOptimisticState(runtime, input.payload);
 	}
 
@@ -744,8 +651,14 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		sessionId: string;
 		workspaceId: string;
 		payload: ChatPlanPayload;
-	}): Promise<RuntimePlanResult> {
-		const runtime = await this.getOrCreateRuntime(
+	}): Promise<unknown> {
+		if (this.shouldUseAcpChat()) {
+			void input.payload;
+			throw new Error(
+				"ACP chat plan approval is not available for this request.",
+			);
+		}
+		const runtime = await this.getOrCreateMastraRuntime(
 			input.sessionId,
 			input.workspaceId,
 		);
@@ -756,9 +669,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		const workspace = this.db.query.workspaces
 			.findFirst({ where: eq(workspaces.id, workspaceId) })
 			.sync();
-		if (!workspace) {
-			throw new Error(`Workspace not found: ${workspaceId}`);
-		}
+		if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`);
 		return workspace.worktreePath;
 	}
 
@@ -796,4 +707,195 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 	}): Promise<{ sourcePath: string | null; servers: never[] }> {
 		return { sourcePath: null, servers: [] };
 	}
+}
+
+function respondToQuestionWithOptimisticState(
+	runtime: MastraRuntimeSession,
+	payload: ChatQuestionPayload,
+): Promise<unknown> {
+	const questionId = payload.questionId;
+	const pendingResponse = runtime.pendingQuestionResponses.get(questionId);
+	if (pendingResponse) return pendingResponse;
+	const wasAlreadyAnswered = runtime.answeredQuestionIds.has(questionId);
+	const previousSandboxQuestion = runtime.pendingSandboxQuestion;
+	const clearsSandboxQuestion =
+		previousSandboxQuestion?.questionId === questionId;
+	runtime.answeredQuestionIds.add(questionId);
+	if (clearsSandboxQuestion) runtime.pendingSandboxQuestion = null;
+	let responsePromise: Promise<unknown>;
+	responsePromise = Promise.resolve()
+		.then(() => runtime.harness.respondToQuestion(payload))
+		.catch((error) => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				if (!wasAlreadyAnswered) runtime.answeredQuestionIds.delete(questionId);
+				if (clearsSandboxQuestion && runtime.pendingSandboxQuestion === null) {
+					runtime.pendingSandboxQuestion = previousSandboxQuestion;
+				}
+			}
+			throw error;
+		})
+		.finally(() => {
+			if (
+				runtime.pendingQuestionResponses.get(questionId) === responsePromise
+			) {
+				runtime.pendingQuestionResponses.delete(questionId);
+			}
+		});
+	runtime.pendingQuestionResponses.set(questionId, responsePromise);
+	return responsePromise;
+}
+
+async function restartMastraRuntimeFromUserMessage(
+	runtime: MastraRuntimeSession,
+	input: RestartPayload,
+): Promise<void> {
+	const threadId = runtime.harness.getCurrentThreadId();
+	if (!threadId)
+		throw new Error("No active Mastra thread is available for editing");
+	const memoryStore = await getRuntimeMemoryStore(runtime);
+	const sourceThread = await memoryStore.getThreadById({ threadId });
+	if (!sourceThread) throw new Error(`Mastra thread not found: ${threadId}`);
+	const sourceMessages = await memoryStore.listMessages({
+		threadId,
+		perPage: false,
+		orderBy: { field: "createdAt", direction: "ASC" },
+	});
+	const targetIndex = sourceMessages.messages.findIndex(
+		(message) => message.id === input.messageId,
+	);
+	if (targetIndex === -1)
+		throw new Error("The selected message is no longer available to edit");
+	const targetMessage = sourceMessages.messages[targetIndex];
+	if (targetMessage?.role !== "user")
+		throw new Error("Only user messages can be edited or resent");
+	const clonedThread = await memoryStore.cloneThread({
+		sourceThreadId: threadId,
+		resourceId: sourceThread.resourceId,
+		title: sourceThread.title,
+		options: {
+			messageFilter: {
+				messageIds: sourceMessages.messages
+					.slice(0, targetIndex)
+					.map((message) => message.id),
+			},
+		},
+	});
+	runtime.harness.abort();
+	await runtime.harness.switchThread({ threadId: clonedThread.thread.id });
+	const selectedModel = input.metadata?.model?.trim();
+	if (selectedModel)
+		await runtime.harness.switchModel({
+			modelId: selectedModel,
+			scope: "thread",
+		});
+	const thinkingLevel = input.metadata?.thinkingLevel;
+	if (thinkingLevel) await runtime.harness.setState({ thinkingLevel });
+	runtime.lastErrorMessage = null;
+	await runtime.harness.sendMessage(input.payload);
+}
+
+async function getRuntimeMemoryStore(
+	runtime: MastraRuntimeSession,
+): Promise<RuntimeMemoryStore> {
+	const storage = runtime.harness.config?.storage;
+	if (!storage)
+		throw new Error("Mastra storage is not configured for this session");
+	const memoryStore = await storage.getStore("memory");
+	if (!memoryStore)
+		throw new Error("Mastra memory storage is unavailable for this session");
+	return memoryStore;
+}
+
+function resolveAcpCommandConfig(): AcpCommandConfig {
+	const command = process.env.SUPERSET_ACP_COMMAND?.trim() || "omp";
+	const argsEnv = process.env.SUPERSET_ACP_ARGS?.trim();
+	if (!argsEnv) return { command, args: ["acp"] };
+	try {
+		const parsed = JSON.parse(argsEnv) as unknown;
+		if (
+			Array.isArray(parsed) &&
+			parsed.every((arg) => typeof arg === "string")
+		) {
+			return { command, args: parsed };
+		}
+	} catch {
+		// Fall back to shell-style whitespace splitting below.
+	}
+	return {
+		command,
+		args: argsEnv.split(/\s+/).filter((arg) => arg.length > 0),
+	};
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isHarnessErrorEvent(
+	event: unknown,
+): event is { type: "error"; error: unknown } {
+	return isObjectRecord(event) && event.type === "error" && "error" in event;
+}
+
+function isHarnessWorkspaceErrorEvent(
+	event: unknown,
+): event is { type: "workspace_error"; error: unknown } {
+	return (
+		isObjectRecord(event) &&
+		event.type === "workspace_error" &&
+		"error" in event
+	);
+}
+
+function isHarnessSandboxAccessRequestEvent(event: unknown): event is {
+	type: "sandbox_access_request";
+	questionId: string;
+	path: string;
+	reason: string;
+} {
+	return (
+		isObjectRecord(event) &&
+		event.type === "sandbox_access_request" &&
+		typeof event.questionId === "string" &&
+		typeof event.path === "string" &&
+		typeof event.reason === "string"
+	);
+}
+
+function normalizeErrorMessage(message: string): string {
+	return message.trim().replace(/^AI_APICallError\d*\s*:\s*/i, "");
+}
+
+function extractProviderMessage(error: unknown): string | null {
+	if (!isObjectRecord(error)) return null;
+	const data = error.data;
+	if (isObjectRecord(data)) {
+		const nestedError = data.error;
+		if (
+			isObjectRecord(nestedError) &&
+			typeof nestedError.message === "string"
+		) {
+			return normalizeErrorMessage(nestedError.message);
+		}
+	}
+	const nestedError = error.error;
+	if (isObjectRecord(nestedError) && typeof nestedError.message === "string") {
+		return normalizeErrorMessage(nestedError.message);
+	}
+	return null;
+}
+
+function toRuntimeErrorMessage(error: unknown): string {
+	const providerMessage = extractProviderMessage(error);
+	if (providerMessage) return providerMessage;
+	if (error instanceof Error && error.message.trim())
+		return normalizeErrorMessage(error.message);
+	if (typeof error === "string" && error.trim())
+		return normalizeErrorMessage(error);
+	if (isObjectRecord(error) && typeof error.message === "string") {
+		return normalizeErrorMessage(error.message);
+	}
+	return "Unexpected chat error";
 }
