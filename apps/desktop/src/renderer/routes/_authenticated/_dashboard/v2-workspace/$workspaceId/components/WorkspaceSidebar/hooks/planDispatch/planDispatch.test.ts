@@ -30,6 +30,7 @@ const prFixture: PullRequest = {
 	reviewDecision: null,
 	mergeable: "unknown",
 	headRefName: "feature-x",
+	baseRefName: "main",
 	updatedAt: "",
 	checks: [],
 	repoOwner: "org",

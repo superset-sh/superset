@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { BranchSyncStatus, PRFlowState } from "../getPRFlowState";
+import type {
+	BranchSyncStatus,
+	PRFlowState,
+	PullRequest,
+} from "../getPRFlowState";
 import { buildPRContext } from "./buildPRContext";
 
 const sync = (overrides: Partial<BranchSyncStatus> = {}): BranchSyncStatus => ({
@@ -18,6 +22,24 @@ const sync = (overrides: Partial<BranchSyncStatus> = {}): BranchSyncStatus => ({
 const noPrState = (overrides: Partial<BranchSyncStatus> = {}): PRFlowState => ({
 	kind: "no-pr",
 	sync: sync(overrides),
+});
+
+const pr = (overrides: Partial<PullRequest> = {}): PullRequest => ({
+	number: 42,
+	url: "https://github.com/org/repo/pull/42",
+	title: "Feature X",
+	body: null,
+	state: "open",
+	isDraft: false,
+	reviewDecision: null,
+	mergeable: "unknown",
+	headRefName: "feature-x",
+	baseRefName: "release/2026.06",
+	updatedAt: "",
+	checks: [],
+	repoOwner: "org",
+	repoName: "repo",
+	...overrides,
 });
 
 describe("buildPRContext (no-pr)", () => {
@@ -67,5 +89,26 @@ describe("buildPRContext (other states)", () => {
 	test("returns stub for non-no-pr states", () => {
 		const md = buildPRContext({ kind: "loading" });
 		expect(md).toContain("# PR context (loading)");
+	});
+});
+
+describe("buildPRContext (pr-exists)", () => {
+	test("uses the PR base ref instead of the repository default", () => {
+		const md = buildPRContext({
+			kind: "pr-exists",
+			pr: pr(),
+			sync: sync({ defaultBranch: "main" }),
+		});
+		expect(md).toContain("Base: `release/2026.06`");
+		expect(md).not.toContain("Base: `main`");
+	});
+
+	test("falls back to the repository default when the PR base ref is missing", () => {
+		const md = buildPRContext({
+			kind: "pr-exists",
+			pr: pr({ baseRefName: null }),
+			sync: sync({ defaultBranch: "main" }),
+		});
+		expect(md).toContain("Base: `main`");
 	});
 });

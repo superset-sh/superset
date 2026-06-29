@@ -127,9 +127,10 @@ function renderPrExists(
 	lines.push("");
 
 	if (sync) {
+		const baseBranch = pr.baseRefName ?? sync.defaultBranch;
 		lines.push("## Branch");
 		lines.push(`- Current: \`${sync.currentBranch ?? "(detached)"}\``);
-		lines.push(`- Base: \`${sync.defaultBranch ?? "(unknown)"}\``);
+		lines.push(`- Base: \`${baseBranch ?? "(unknown)"}\``);
 		lines.push(`- Published: ${sync.hasUpstream ? "yes" : "no"}`);
 		lines.push("");
 

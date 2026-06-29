@@ -30,6 +30,7 @@ import {
 	parseGraphQLThreads,
 	REVIEW_THREADS_QUERY,
 } from "./utils/graphql";
+import { resolvePullRequestBaseRef } from "./utils/pr-base-ref";
 import { resolveWorktreePath } from "./utils/resolve-worktree";
 
 function assertSafeRelativePath(filePath: string): void {
@@ -514,8 +515,9 @@ export const gitRouter = router({
 		}),
 
 	getPullRequest: queryProcedure
+		.meta({ timeoutMs: 15_000 })
 		.input(z.object({ workspaceId: z.string() }))
-		.query(({ ctx, input }) => {
+		.query(async ({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
 				.sync();
@@ -554,6 +556,19 @@ export const gitRouter = router({
 				}
 			} catch {}
 
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			const branchName = pr.headBranch || workspace.branch;
+			const baseRefName = await resolvePullRequestBaseRef({
+				git,
+				execGh: ctx.execGh,
+				worktreePath,
+				branchName,
+				prNumber: pr.prNumber,
+				repoOwner: pr.repoOwner,
+				repoName: pr.repoName,
+			});
+
 			return {
 				number: pr.prNumber,
 				url: pr.url,
@@ -565,6 +580,7 @@ export const gitRouter = router({
 					null) as PullRequestReviewDecision | null,
 				mergeable: "unknown" as MergeableState,
 				headRefName: pr.headBranch ?? "",
+				baseRefName,
 				updatedAt: pr.updatedAt ? new Date(pr.updatedAt).toISOString() : "",
 				checks,
 				repoOwner: pr.repoOwner,

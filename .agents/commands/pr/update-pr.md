@@ -72,9 +72,8 @@ for no reason.
 
 ## 3. Ready for review (if draft)
 
-If the PR is currently a draft AND the user has marked the work as
-complete (signal: explicit "mark ready" in the message, or there is
-nothing left in their working changes), run:
+If the PR is currently a draft AND the user explicitly asked to mark
+it ready for review in this message, run:
 
 ```
 gh pr ready <number>

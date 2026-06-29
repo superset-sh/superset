@@ -31,6 +31,7 @@ const pr = (overrides: Partial<PullRequest> = {}): PullRequest => ({
 	reviewDecision: null,
 	mergeable: "unknown",
 	headRefName: "feature-x",
+	baseRefName: "main",
 	updatedAt: "",
 	checks: [],
 	repoOwner: "org",
