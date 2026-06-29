@@ -8,6 +8,7 @@ import { checkHostAccess } from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
 import * as directory from "./directory";
 import { env } from "./env";
+import { parseHostWsRequest } from "./host-ws-route";
 import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
@@ -308,9 +309,7 @@ app.get(
 	"/hosts/:hostId/*",
 	upgradeWebSocket((c) => {
 		const url = new URL(c.req.url);
-		const hostId = url.pathname.split("/")[2] ?? "";
-		const prefix = `/hosts/${hostId}`;
-		const path = url.pathname.slice(prefix.length) || "/";
+		const { hostId, path } = parseHostWsRequest(url.pathname);
 		const query = url.search.slice(1) || undefined;
 		let channelId: string | null = null;
 
