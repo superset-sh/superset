@@ -83,7 +83,15 @@ export function DashboardSidebarWorkspaceDetails({
 	const headerActions = sections.filter((section) => section.headerAction);
 
 	return (
-		<div className="pb-1">
+		// Stop pointer/touch starts from bubbling to the sortable workspace item's
+		// drag listeners, so scrolling overflowing ports or pressing a port control
+		// isn't captured as a workspace-reorder gesture.
+		// biome-ignore lint/a11y/noStaticElementInteractions: guards DnD only; no new interactive semantics
+		<div
+			className="pb-1"
+			onMouseDown={(event) => event.stopPropagation()}
+			onTouchStart={(event) => event.stopPropagation()}
+		>
 			<div className="group/details flex items-center">
 				<DashboardSidebarWorkspaceDetailsToggle
 					isExpanded={isExpanded}
@@ -92,7 +100,7 @@ export function DashboardSidebarWorkspaceDetails({
 					onToggle={() => toggleExpanded(workspaceId)}
 				/>
 				{headerActions.length > 0 && (
-					<div className="ml-auto flex items-center gap-0.5 pr-2 opacity-0 transition-opacity group-hover/details:opacity-100">
+					<div className="ml-auto flex items-center gap-0.5 pr-2 opacity-0 transition-opacity group-hover/details:opacity-100 group-focus-within/details:opacity-100">
 						{headerActions.map((section) => (
 							<Fragment key={section.key}>{section.headerAction}</Fragment>
 						))}

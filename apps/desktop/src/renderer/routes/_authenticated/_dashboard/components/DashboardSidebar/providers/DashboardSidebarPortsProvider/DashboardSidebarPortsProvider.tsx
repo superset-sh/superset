@@ -13,7 +13,7 @@ interface DashboardSidebarPortsContextValue {
 const DashboardSidebarPortsContext =
 	createContext<DashboardSidebarPortsContextValue | null>(null);
 
-export function DashboardSidebarPortsProvider({
+function DashboardSidebarPortsProviderInner({
 	children,
 }: {
 	children: ReactNode;
@@ -36,6 +36,27 @@ export function DashboardSidebarPortsProvider({
 		<DashboardSidebarPortsContext.Provider value={value}>
 			{children}
 		</DashboardSidebarPortsContext.Provider>
+	);
+}
+
+export function DashboardSidebarPortsProvider({
+	enabled = true,
+	children,
+}: {
+	// Port data drives per-host queries, polling, and `port:changed`
+	// subscriptions. Skip all of it when nothing will render ports (e.g. the
+	// collapsed sidebar). Consumers then read empty defaults, which is correct —
+	// there is intentionally no provider in that state.
+	enabled?: boolean;
+	children: ReactNode;
+}) {
+	if (!enabled) {
+		return <>{children}</>;
+	}
+	return (
+		<DashboardSidebarPortsProviderInner>
+			{children}
+		</DashboardSidebarPortsProviderInner>
 	);
 }
 

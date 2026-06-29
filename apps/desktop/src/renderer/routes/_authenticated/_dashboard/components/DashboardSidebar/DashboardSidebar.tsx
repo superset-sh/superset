@@ -178,7 +178,7 @@ export function DashboardSidebar({
 	return (
 		<DashboardSidebarSectionRenameProvider>
 			<DashboardSidebarHoverProvider>
-				<DashboardSidebarPortsProvider>
+				<DashboardSidebarPortsProvider enabled={!isCollapsed}>
 					<DashboardSidebarHoverCardOverlay>
 						<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
 							<DashboardSidebarHeader isCollapsed={isCollapsed} />
