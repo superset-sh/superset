@@ -123,7 +123,7 @@ export function AutomationDetailSidebar({
 						value={
 							<WorkspacePicker
 								className="-mr-4"
-								hostId={automation.targetHostId ?? null}
+								hostId={hostId}
 								projectId={automation.v2ProjectId}
 								value={automation.v2WorkspaceId}
 								onChange={(v2WorkspaceId) =>

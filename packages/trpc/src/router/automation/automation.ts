@@ -83,12 +83,13 @@ async function verifyHostAccess(
 async function verifyWorkspaceInOrg(
 	organizationId: string,
 	workspaceId: string,
-): Promise<{ id: string; projectId: string }> {
+): Promise<{ id: string; projectId: string; hostId: string }> {
 	const [workspace] = await db
 		.select({
 			id: v2Workspaces.id,
 			organizationId: v2Workspaces.organizationId,
 			projectId: v2Workspaces.projectId,
+			hostId: v2Workspaces.hostId,
 		})
 		.from(v2Workspaces)
 		.where(eq(v2Workspaces.id, workspaceId))
@@ -100,7 +101,11 @@ async function verifyWorkspaceInOrg(
 			message: "Workspace not found",
 		});
 	}
-	return { id: workspace.id, projectId: workspace.projectId };
+	return {
+		id: workspace.id,
+		projectId: workspace.projectId,
+		hostId: workspace.hostId,
+	};
 }
 
 async function verifyProjectInOrg(organizationId: string, projectId: string) {
@@ -206,12 +211,20 @@ export const automationRouter = {
 				);
 			}
 
+			let targetHostId = input.targetHostId ?? null;
 			let v2ProjectId = input.v2ProjectId;
 			if (input.v2WorkspaceId) {
 				const workspace = await verifyWorkspaceInOrg(
 					organizationId,
 					input.v2WorkspaceId,
 				);
+				if (targetHostId && targetHostId !== workspace.hostId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "targetHostId does not match the workspace's host",
+					});
+				}
+				targetHostId = workspace.hostId;
 				if (v2ProjectId && v2ProjectId !== workspace.projectId) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -228,6 +241,13 @@ export const automationRouter = {
 					code: "BAD_REQUEST",
 					message: "v2ProjectId required when v2WorkspaceId is not provided",
 				});
+			}
+			if (targetHostId && targetHostId !== input.targetHostId) {
+				await verifyHostAccess(
+					ctx.session.user.id,
+					organizationId,
+					targetHostId,
+				);
 			}
 
 			const dtstart = input.dtstart ?? new Date();
@@ -246,7 +266,7 @@ export const automationRouter = {
 						name: input.name,
 						prompt: input.prompt,
 						agent: input.agent,
-						targetHostId: input.targetHostId ?? null,
+						targetHostId,
 						v2ProjectId,
 						v2WorkspaceId: input.v2WorkspaceId ?? null,
 						rrule: input.rrule,
@@ -295,8 +315,67 @@ export const automationRouter = {
 					input.targetHostId,
 				);
 			}
-			if (input.v2WorkspaceId) {
-				await verifyWorkspaceInOrg(organizationId, input.v2WorkspaceId);
+
+			let nextTargetHostId =
+				input.targetHostId === undefined
+					? existing.targetHostId
+					: input.targetHostId;
+			const nextProjectId = input.v2ProjectId ?? existing.v2ProjectId;
+			let nextWorkspaceId =
+				input.v2WorkspaceId === undefined
+					? existing.v2WorkspaceId
+					: input.v2WorkspaceId;
+
+			if (input.v2WorkspaceId === undefined) {
+				const targetHostChanged =
+					input.targetHostId !== undefined &&
+					input.targetHostId !== existing.targetHostId;
+				const projectChanged =
+					input.v2ProjectId !== undefined &&
+					input.v2ProjectId !== existing.v2ProjectId;
+				if (targetHostChanged || projectChanged) {
+					nextWorkspaceId = null;
+				}
+			}
+
+			if (nextWorkspaceId) {
+				const workspace = await verifyWorkspaceInOrg(
+					organizationId,
+					nextWorkspaceId,
+				);
+				if (nextProjectId !== workspace.projectId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "v2ProjectId does not match the workspace's project",
+					});
+				}
+				if (
+					input.targetHostId !== undefined &&
+					input.targetHostId !== null &&
+					input.targetHostId !== workspace.hostId
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "targetHostId does not match the workspace's host",
+					});
+				}
+				nextTargetHostId = workspace.hostId;
+			} else if (
+				input.v2ProjectId !== undefined &&
+				input.v2ProjectId !== existing.v2ProjectId
+			) {
+				await verifyProjectInOrg(organizationId, input.v2ProjectId);
+			}
+			if (
+				nextTargetHostId &&
+				nextTargetHostId !== existing.targetHostId &&
+				nextTargetHostId !== input.targetHostId
+			) {
+				await verifyHostAccess(
+					ctx.session.user.id,
+					organizationId,
+					nextTargetHostId,
+				);
 			}
 
 			const nextRrule = input.rrule ?? existing.rrule;
@@ -320,15 +399,9 @@ export const automationRouter = {
 				.set({
 					name: input.name ?? existing.name,
 					agent: input.agent ?? existing.agent,
-					targetHostId:
-						input.targetHostId === undefined
-							? existing.targetHostId
-							: input.targetHostId,
-					v2ProjectId: input.v2ProjectId ?? existing.v2ProjectId,
-					v2WorkspaceId:
-						input.v2WorkspaceId === undefined
-							? existing.v2WorkspaceId
-							: input.v2WorkspaceId,
+					targetHostId: nextTargetHostId,
+					v2ProjectId: nextProjectId,
+					v2WorkspaceId: nextWorkspaceId,
 					rrule: nextRrule,
 					dtstart: nextDtstart,
 					timezone: nextTimezone,
