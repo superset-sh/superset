@@ -30,13 +30,13 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHelpMenu } from "./components/DashboardSidebarHelpMenu";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
-import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
 import { DashboardSidebarHoverProvider } from "./providers/DashboardSidebarHoverProvider";
+import { DashboardSidebarPortsProvider } from "./providers/DashboardSidebarPortsProvider";
 import type { DashboardSidebarProject } from "./types";
 
 interface DashboardSidebarProps {
@@ -175,125 +175,126 @@ export function DashboardSidebar({
 	return (
 		<DashboardSidebarSectionRenameProvider>
 			<DashboardSidebarHoverProvider>
-				<DashboardSidebarHoverCardOverlay>
-					<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
-						<DashboardSidebarHeader isCollapsed={isCollapsed} />
+				<DashboardSidebarPortsProvider>
+					<DashboardSidebarHoverCardOverlay>
+						<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
+							<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
-						<div className="flex-1 overflow-y-auto hide-scrollbar">
-							<DndContext
-								sensors={sensors}
-								collisionDetection={closestCenter}
-								measuring={{
-									droppable: { strategy: MeasuringStrategy.Always },
-								}}
-								onDragStart={({ active }) => {
-									const project = groups.find((p) => p.id === active.id);
-									setActiveProject(project ?? null);
-								}}
-								onDragEnd={handleDragEnd}
-								onDragCancel={() => setActiveProject(null)}
-							>
-								<SortableContext
-									items={projectOrder}
-									strategy={verticalListSortingStrategy}
+							<div className="flex-1 overflow-y-auto hide-scrollbar">
+								<DndContext
+									sensors={sensors}
+									collisionDetection={closestCenter}
+									measuring={{
+										droppable: { strategy: MeasuringStrategy.Always },
+									}}
+									onDragStart={({ active }) => {
+										const project = groups.find((p) => p.id === active.id);
+										setActiveProject(project ?? null);
+									}}
+									onDragEnd={handleDragEnd}
+									onDragCancel={() => setActiveProject(null)}
 								>
-									{orderedGroups.map((project) => (
-										<SortableProjectWrapper
-											key={project.id}
-											project={project}
-											isCollapsed={isCollapsed}
-											isDraggingProject={activeProject != null}
-											workspaceShortcutLabels={workspaceShortcutLabels}
-											onWorkspaceHover={refreshWorkspacePullRequest}
-											onToggleCollapse={toggleProjectCollapsed}
-										/>
-									))}
-								</SortableContext>
+									<SortableContext
+										items={projectOrder}
+										strategy={verticalListSortingStrategy}
+									>
+										{orderedGroups.map((project) => (
+											<SortableProjectWrapper
+												key={project.id}
+												project={project}
+												isCollapsed={isCollapsed}
+												isDraggingProject={activeProject != null}
+												workspaceShortcutLabels={workspaceShortcutLabels}
+												onWorkspaceHover={refreshWorkspacePullRequest}
+												onToggleCollapse={toggleProjectCollapsed}
+											/>
+										))}
+									</SortableContext>
 
-								{createPortal(
-									<DragOverlay dropAnimation={null}>
-										{activeProject && (
-											<div className="bg-background shadow-lg border-b border-border">
-												<DashboardSidebarProjectSection
-													project={activeProject}
-													isSidebarCollapsed={isCollapsed}
-													isDraggingProject
-													workspaceShortcutLabels={workspaceShortcutLabels}
-													onWorkspaceHover={() => {}}
-													onToggleCollapse={() => {}}
-												/>
-											</div>
-										)}
-									</DragOverlay>,
-									document.body,
+									{createPortal(
+										<DragOverlay dropAnimation={null}>
+											{activeProject && (
+												<div className="bg-background shadow-lg border-b border-border">
+													<DashboardSidebarProjectSection
+														project={activeProject}
+														isSidebarCollapsed={isCollapsed}
+														isDraggingProject
+														workspaceShortcutLabels={workspaceShortcutLabels}
+														onWorkspaceHover={() => {}}
+														onToggleCollapse={() => {}}
+													/>
+												</div>
+											)}
+										</DragOverlay>,
+										document.body,
+									)}
+								</DndContext>
+							</div>
+							{!isCollapsed && activeV2Project && activeHostUrl && (
+								<V2SetupScriptCard
+									hostUrl={activeHostUrl}
+									projectId={activeV2Project.id}
+									projectName={activeV2Project.name}
+								/>
+							)}
+							<div
+								className={cn(
+									"border-t border-border",
+									isCollapsed
+										? "flex flex-col items-center gap-1 py-1"
+										: "flex items-center gap-1 px-2 py-1",
 								)}
-							</DndContext>
-						</div>
-						{!isCollapsed && <DashboardSidebarPortsList />}
-						{!isCollapsed && activeV2Project && activeHostUrl && (
-							<V2SetupScriptCard
-								hostUrl={activeHostUrl}
-								projectId={activeV2Project.id}
-								projectName={activeV2Project.name}
-							/>
-						)}
-						<div
-							className={cn(
-								"border-t border-border",
-								isCollapsed
-									? "flex flex-col items-center gap-1 py-1"
-									: "flex items-center gap-1 px-2 py-1",
-							)}
-						>
-							{isCollapsed ? (
-								<Tooltip delayDuration={300}>
-									<TooltipTrigger asChild>
-										<button
-											type="button"
-											aria-label="Settings"
-											onClick={() => navigate({ to: "/settings/account" })}
-											className={cn(
-												"flex size-8 items-center justify-center rounded-md transition-colors",
-												isSettingsOpen
-													? "bg-accent text-foreground"
-													: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-											)}
-										>
-											<HiOutlineCog6Tooth className="size-4" />
-										</button>
-									</TooltipTrigger>
-									<TooltipContent side="right">Settings</TooltipContent>
-								</Tooltip>
-							) : (
-								<button
-									type="button"
-									onClick={() => navigate({ to: "/settings/account" })}
-									className={cn(
-										"group flex flex-1 min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-										isSettingsOpen
-											? "bg-accent text-foreground"
-											: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-									)}
-								>
-									<HiOutlineCog6Tooth className="size-4 shrink-0" />
-									<span className="flex-1 text-left">Settings</span>
-									{settingsHotkey !== "Unassigned" && (
-										<span
-											className={cn(
-												"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
-												"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
-											)}
-										>
-											{settingsHotkey}
-										</span>
-									)}
-								</button>
-							)}
+							>
+								{isCollapsed ? (
+									<Tooltip delayDuration={300}>
+										<TooltipTrigger asChild>
+											<button
+												type="button"
+												aria-label="Settings"
+												onClick={() => navigate({ to: "/settings/account" })}
+												className={cn(
+													"flex size-8 items-center justify-center rounded-md transition-colors",
+													isSettingsOpen
+														? "bg-accent text-foreground"
+														: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+												)}
+											>
+												<HiOutlineCog6Tooth className="size-4" />
+											</button>
+										</TooltipTrigger>
+										<TooltipContent side="right">Settings</TooltipContent>
+									</Tooltip>
+								) : (
+									<button
+										type="button"
+										onClick={() => navigate({ to: "/settings/account" })}
+										className={cn(
+											"group flex flex-1 min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+											isSettingsOpen
+												? "bg-accent text-foreground"
+												: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+										)}
+									>
+										<HiOutlineCog6Tooth className="size-4 shrink-0" />
+										<span className="flex-1 text-left">Settings</span>
+										{settingsHotkey !== "Unassigned" && (
+											<span
+												className={cn(
+													"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
+													"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+												)}
+											>
+												{settingsHotkey}
+											</span>
+										)}
+									</button>
+								)}
 
-							<DashboardSidebarHelpMenu isCollapsed={isCollapsed} />
+								<DashboardSidebarHelpMenu isCollapsed={isCollapsed} />
+							</div>
 						</div>
-					</div>
-				</DashboardSidebarHoverCardOverlay>
+					</DashboardSidebarHoverCardOverlay>
+				</DashboardSidebarPortsProvider>
 			</DashboardSidebarHoverProvider>
 		</DashboardSidebarSectionRenameProvider>
 	);
