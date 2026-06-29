@@ -62,7 +62,15 @@ export function createApplicationMenu() {
 						BrowserWindow.getFocusedWindow()?.reload();
 					},
 				},
-				{ role: "forceReload" },
+				// Explicit click handler (not `role: "forceReload"`) — the role adds
+				// an implicit CmdOrCtrl+Shift+R accelerator that prevents the renderer's
+				// Reopen Closed Tab shortcut from receiving the event.
+				{
+					label: "Force Reload",
+					click: () => {
+						BrowserWindow.getFocusedWindow()?.webContents.reloadIgnoringCache();
+					},
+				},
 				{ role: "toggleDevTools" },
 				{ type: "separator" },
 				{ role: "resetZoom" },
