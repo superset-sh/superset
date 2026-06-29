@@ -2,6 +2,7 @@ import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
+import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { NavigationControls } from "../NavigationControls";
@@ -29,6 +30,7 @@ export function TopBar() {
 		{ enabled: !!workspaceId && !isV2WorkspaceRoute },
 	);
 	const isOnline = useOnlineStatus();
+	const zoomFactor = useZoomFactor();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
 	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
@@ -41,13 +43,16 @@ export function TopBar() {
 	const sidebarHostsChrome =
 		isV2CloudEnabled && isSidebarOpen && !isSidebarCollapsed;
 
+	// Counter-scale the traffic-light inset so it stays a constant physical 80px
+	// under page zoom (macOS traffic lights don't move with zoom). See useZoomFactor.
+	const trafficLightInset =
+		isMac && !sidebarHostsChrome ? `${80 / zoomFactor}px` : "16px";
+
 	return (
 		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 border-b border-border relative dark:bg-muted/35">
 			<div
 				className="flex items-center gap-1.5 h-full"
-				style={{
-					paddingLeft: isMac && !sidebarHostsChrome ? "80px" : "16px",
-				}}
+				style={{ paddingLeft: trafficLightInset }}
 			>
 				{!sidebarHostsChrome && (
 					<>

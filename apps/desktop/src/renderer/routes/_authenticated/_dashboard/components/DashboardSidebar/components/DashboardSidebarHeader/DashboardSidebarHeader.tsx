@@ -18,6 +18,7 @@ import {
 	LuPlus,
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
@@ -73,6 +74,7 @@ export function DashboardSidebarHeader({
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	// Default to Mac while loading so we don't briefly cover the traffic lights.
 	const isMac = platform === undefined || platform === "darwin";
+	const zoomFactor = useZoomFactor();
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
@@ -223,12 +225,13 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
-			{/* -mx-2 cancels the parent's px-2 so this row owns its own
-			    horizontal inset — keeps traffic-light alignment matching the
-			    TopBar's 80px pad regardless of parent padding changes. */}
+			{/* -mx-2 cancels the parent's px-2 so this row owns its own horizontal
+			    inset, matching the TopBar's 80px traffic-light pad. The inset is
+			    counter-scaled to stay a constant physical 80px under page zoom
+			    (macOS traffic lights don't move with zoom). See useZoomFactor. */}
 			<div
 				className="drag -mx-2 flex h-8 items-center gap-1.5 pr-2"
-				style={{ paddingLeft: isMac ? "80px" : "8px" }}
+				style={{ paddingLeft: isMac ? `${80 / zoomFactor}px` : "8px" }}
 			>
 				<SidebarToggle />
 				<NavigationControls />
