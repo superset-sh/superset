@@ -1,0 +1,1 @@
+export { useDiffTextSelection } from "./useDiffTextSelection";

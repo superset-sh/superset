@@ -66,8 +66,8 @@ export function AgentCommentComposer({
 		startLine === endLine
 			? `Line ${startLine}`
 			: `Lines ${startLine}–${endLine}`;
-	const canSubmit =
-		comment.trim().length > 0 && !submitting && resolved != null;
+	// ponytail: empty comment is allowed — ⌘↵ sends just the line reference.
+	const canSubmit = !submitting && resolved != null;
 	const showPlacement = resolved?.kind === "new";
 
 	const handleSubmit = async () => {
@@ -76,9 +76,7 @@ export function AgentCommentComposer({
 		try {
 			await onSubmit({ comment: comment.trim(), target: resolved });
 		} catch (error) {
-			// User-facing errors are the caller's responsibility (we toast in
-			// DiffPane's submit path). Catch here so a rejection doesn't leak
-			// as an unhandled promise out of the form's synchronous handlers.
+			// Caller toasts; catch here so a rejection isn't unhandled.
 			console.error("[AgentCommentComposer] submit failed", error);
 		} finally {
 			setSubmitting(false);

@@ -225,7 +225,11 @@ export function usePaneRegistry({
 					);
 				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
-					<FilePane context={ctx} workspaceId={workspaceId} />
+					<FilePane
+						context={ctx}
+						workspaceId={workspaceId}
+						onCreateNewAgentSession={createNewAgentSession}
+					/>
 				),
 				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
 					<FilePaneHeaderExtras context={ctx} workspaceId={workspaceId} />

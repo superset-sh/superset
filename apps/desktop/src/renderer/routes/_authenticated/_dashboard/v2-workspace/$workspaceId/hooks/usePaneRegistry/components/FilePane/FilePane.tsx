@@ -13,9 +13,20 @@ import { resolveActivePaneView } from "./registry";
 interface FilePaneProps {
 	context: RendererContext<PaneViewerData>;
 	workspaceId: string;
+	/** Forwarded from usePaneRegistry onto ViewProps so CodeView can launch a
+	 *  new terminal agent session for "Send selection to agent". */
+	onCreateNewAgentSession?: (input: {
+		configId: string;
+		placement: "split-pane" | "new-tab";
+		prompt: string;
+	}) => Promise<{ terminalId: string } | null>;
 }
 
-export function FilePane({ context, workspaceId }: FilePaneProps) {
+export function FilePane({
+	context,
+	workspaceId,
+	onCreateNewAgentSession,
+}: FilePaneProps) {
 	const data = context.pane.data as FilePaneData;
 	const { filePath } = data;
 
@@ -150,6 +161,7 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 					isActive={context.isActive}
 					onChangeView={handleChangeView}
 					onForceView={handleForceView}
+					onCreateNewAgentSession={onCreateNewAgentSession}
 				/>
 			</div>
 		</div>

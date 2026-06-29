@@ -6,6 +6,7 @@ import type {
 import type { CodeViewHandle } from "@pierre/diffs/react";
 import { toast } from "@superset/ui/sonner";
 import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
+import { dispatchSelection } from "renderer/hooks/host-service/dispatchSelection";
 import {
 	type AgentPromptFileSide,
 	formatAgentPromptWithFileContext,
@@ -45,10 +46,8 @@ interface CreateNewAgentSessionInput {
 interface UseDiffCommentComposerArgs {
 	workspaceId: string;
 	codeViewRef: RefObject<CodeViewHandle<DiffAnnotationMetadata> | null>;
-	/** Resolves the changeset file behind a CodeView item id. We take a
-	 *  getter (not the map directly) because the map is produced by
-	 *  `useDiffCodeViewItems`, which itself consumes this hook's annotation
-	 *  output — passing a stable accessor breaks the dependency cycle. */
+	/** Getter (not the map) for the changeset file behind a CodeView item id;
+	 *  a stable accessor breaks the cycle with useDiffCodeViewItems. */
 	getFile: (itemId: string) => ChangesetFile | undefined;
 	onCreateNewAgentSession?: (
 		input: CreateNewAgentSessionInput,
@@ -65,21 +64,16 @@ interface UseDiffCommentComposerResult {
 		DiffLineAnnotation<DiffAnnotationMetadata>[]
 	> | null;
 	onLineSelectionEnd: OnLineSelectionEnd;
+	/** Open the composer for a resolved range directly (used by the
+	 *  highlight-text path, which has no pierre selection context). */
+	openForItem: (itemId: string, range: SelectedLineRange) => void;
 	onGutterUtilityClick: () => void;
 	clear: () => void;
 	submit: (input: DiffCommentSubmitInput) => Promise<void>;
 }
 
-/**
- * Owns the DiffPane's inline agent-comment composer:
- *   - tracks the live pierre selection that anchors the composer
- *   - synthesises the composer annotation injected via
- *     useDiffCodeViewItems' `extraAnnotationsByItemId`
- *   - dispatches submit between the existing-terminal writeInput path
- *     and the host `agents.run`-backed new-session path
- *
- * DiffPane only wires CodeView events; all composer state lives here.
- */
+/** Owns the DiffPane's inline agent-comment composer: its pierre selection
+ *  anchor, the injected composer annotation, and submit dispatch. */
 export function useDiffCommentComposer({
 	workspaceId,
 	codeViewRef,
@@ -96,14 +90,19 @@ export function useDiffCommentComposer({
 		codeViewRef.current?.clearSelectedLines();
 	}, [codeViewRef]);
 
-	// Only clear when the in-flight submit's composer is still the one on
-	// screen — protects against a slow send wiping a newer composer the user
-	// already opened on a different range.
+	// Only clear if a newer composer hasn't superseded the one that submitted.
 	const clearIfStillCurrent = useCallback(
 		(submitted: ComposerState) => {
 			if (composerRef.current === submitted) clear();
 		},
 		[clear],
+	);
+
+	const openForItem = useCallback(
+		(itemId: string, range: SelectedLineRange) => {
+			setComposer({ itemId, range });
+		},
+		[],
 	);
 
 	const onLineSelectionEnd = useCallback<OnLineSelectionEnd>(
@@ -113,16 +112,13 @@ export function useDiffCommentComposer({
 				setComposer(null);
 				return;
 			}
-			setComposer({ itemId: context.item.id, range });
+			openForItem(context.item.id, range);
 		},
-		[],
+		[openForItem],
 	);
 
-	// Pierre gates the gutter "+" button's pointer flow behind a non-null
-	// onGutterUtilityClick (InteractionManager.startGutterSelectionFromPointerDown
-	// early-returns otherwise). The gutter pointer-up path also fires
-	// notifySelectionEnd → onLineSelectionEnd, so the open is handled there;
-	// this stays as a required stub.
+	// Required stub: pierre gates the gutter "+" flow behind a non-null handler,
+	// but the open is handled via onLineSelectionEnd on pointer-up.
 	const onGutterUtilityClick = useCallback(() => {}, []);
 
 	const composerAnnotationsByItemId = useMemo(() => {
@@ -165,33 +161,18 @@ export function useDiffCommentComposer({
 				},
 			});
 
-			if (input.target.kind === "new") {
-				if (!onCreateNewAgentSession) {
-					toast.error("Couldn't start a new agent session");
-					return;
-				}
-				// Host bakes the prompt into the launch command (argv/stdin per
-				// the agent config), so no follow-up writeInput here.
-				const result = await onCreateNewAgentSession({
-					configId: input.target.configId,
-					placement: input.target.placement,
-					prompt: text,
-				});
-				if (result) clearIfStillCurrent(submitted);
-				return;
-			}
+			const outcome = await dispatchSelection({
+				workspaceId,
+				text,
+				target: input.target,
+				sendToTerminalAgent,
+				onCreateNewAgentSession,
+				onMissingLauncher: () =>
+					toast.error("Couldn't start a new agent session"),
+			});
 
-			try {
-				await sendToTerminalAgent({
-					workspaceId,
-					terminalId: input.target.terminalId,
-					text,
-				});
-				clearIfStillCurrent(submitted);
-			} catch {
-				// Toast surfaced by the hook; keep composer open so the user
-				// can retry or edit.
-			}
+			// Keep the composer open on failed/no-launcher so the user can retry.
+			if (outcome === "sent") clearIfStillCurrent(submitted);
 		},
 		[
 			composer,
@@ -206,6 +187,7 @@ export function useDiffCommentComposer({
 	return {
 		composerAnnotationsByItemId,
 		onLineSelectionEnd,
+		openForItem,
 		onGutterUtilityClick,
 		clear,
 		submit,

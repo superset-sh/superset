@@ -26,13 +26,16 @@ import {
 import { colorPicker } from "@replit/codemirror-css-color-picker";
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
+import debounce from "lodash/debounce";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useResolvedTheme } from "renderer/stores/theme";
 import {
 	type CodeEditorAdapter,
+	captureSelection,
 	createCodeMirrorAdapter,
 } from "./CodeEditorAdapter";
+import { SELECTION_CHANGE_DEBOUNCE_MS } from "./constants";
 import { createCodeMirrorTheme } from "./createCodeMirrorTheme";
 import { contourSelectionLayer } from "./extensions/contourSelectionLayer";
 import { buildFoldChevron } from "./extensions/foldChevron";
@@ -50,6 +53,10 @@ interface CodeEditorProps {
 	editorRef?: MutableRefObject<CodeEditorAdapter | null>;
 	onChange?: (value: string) => void;
 	onSave?: () => void;
+	/** Fires on selection change so a host can refresh selection-derived UI. */
+	onSelectionChange?: () => void;
+	/** Mod-Enter handler to send the current selection to an agent. */
+	onSendSelection?: () => void;
 }
 
 export function CodeEditor({
@@ -61,6 +68,8 @@ export function CodeEditor({
 	editorRef,
 	onChange,
 	onSave,
+	onSelectionChange,
+	onSendSelection,
 }: CodeEditorProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const viewRef = useRef<EditorView | null>(null);
@@ -69,7 +78,9 @@ export function CodeEditor({
 	const editableCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
-	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
+	const onSelectionChangeRef = useRef(onSelectionChange);
+	const onSendSelectionRef = useRef(onSendSelection);
+	// Guards against re-entrant onChange from the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = useQuery({
 		queryKey: ["electron", "settings", "getFontSettings"],
@@ -82,22 +93,43 @@ export function CodeEditor({
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
+	onSelectionChangeRef.current = onSelectionChange;
+	onSendSelectionRef.current = onSendSelection;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Editor instance is created once and reconfigured via dedicated effects below
 	useEffect(() => {
 		if (!containerRef.current) return;
 
+		// CodeMirror fires selectionSet on every cursor move; debounce (trailing
+		// edge) so selection-derived UI updates once the gesture settles.
+		const notifySelectionChange = debounce(() => {
+			onSelectionChangeRef.current?.();
+		}, SELECTION_CHANGE_DEBOUNCE_MS);
+
 		const updateListener = EditorView.updateListener.of((update) => {
+			if (update.selectionSet) {
+				notifySelectionChange();
+			}
 			if (!update.docChanged) return;
 			if (isExternalUpdateRef.current) return;
 			onChangeRef.current?.(update.state.doc.toString());
 		});
 
-		const saveKeymap = keymap.of([
+		const editorActionKeymap = keymap.of([
 			{
 				key: "Mod-s",
 				run: () => {
 					onSaveRef.current?.();
+					return true;
+				},
+			},
+			{
+				// Mod-Enter sends the current selection. Only consume the chord
+				// when there's a sendable selection; otherwise fall through.
+				key: "Mod-Enter",
+				run: (view) => {
+					if (captureSelection(view.state, "") == null) return false;
+					onSendSelectionRef.current?.();
 					return true;
 				},
 			},
@@ -136,7 +168,7 @@ export function CodeEditor({
 					...searchKeymap,
 					...foldKeymap,
 				]),
-				saveKeymap,
+				editorActionKeymap,
 				themeCompartment.of([
 					getCodeSyntaxHighlighting(activeTheme),
 					createCodeMirrorTheme(
@@ -162,6 +194,7 @@ export function CodeEditor({
 		}
 
 		return () => {
+			notifySelectionChange.cancel();
 			if (editorRef?.current === adapter) {
 				editorRef.current = null;
 			}
@@ -177,7 +210,7 @@ export function CodeEditor({
 		const currentValue = view.state.doc.toString();
 		if (currentValue === value) return;
 
-		// Guarantee flag reset regardless of whether dispatch throws (e.g. view destroyed between null-check and dispatch).
+		// finally guarantees the flag resets even if dispatch throws.
 		isExternalUpdateRef.current = true;
 		try {
 			view.dispatch({
