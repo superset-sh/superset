@@ -1,5 +1,13 @@
-import { describe, expect, test } from "bun:test";
-import { parseNameStatus, parseNumstat } from "./git-helpers";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { ChangedFile } from "../types";
+import {
+	countUntrackedFileLines,
+	parseNameStatus,
+	parseNumstat,
+} from "./git-helpers";
 
 describe("parseNumstat", () => {
 	test("regular file entry", () => {
@@ -190,5 +198,75 @@ describe("parseNameStatus", () => {
 
 	test("empty input returns empty array", () => {
 		expect(parseNameStatus("")).toEqual([]);
+	});
+});
+
+describe("countUntrackedFileLines", () => {
+	let dir: string;
+
+	beforeAll(async () => {
+		dir = await mkdtemp(join(tmpdir(), "untracked-lines-"));
+	});
+
+	afterAll(async () => {
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	const SENTINEL = -999;
+	function makeFile(path: string): ChangedFile {
+		return { path, status: "untracked", additions: SENTINEL, deletions: 0 };
+	}
+
+	async function count(name: string, contents: Buffer | string) {
+		await writeFile(join(dir, name), contents);
+		const file = makeFile(name);
+		await countUntrackedFileLines(dir, [file]);
+		return file;
+	}
+
+	test("counts lines with a trailing newline", async () => {
+		const file = await count("trailing.txt", "a\nb\nc\n");
+		expect(file.additions).toBe(3);
+		expect(file.isBinary).toBeUndefined();
+	});
+
+	test("counts a final line with no trailing newline", async () => {
+		const file = await count("no-trailing.txt", "a\nb\nc");
+		expect(file.additions).toBe(3);
+	});
+
+	test("empty file is zero lines", async () => {
+		const file = await count("empty.txt", "");
+		expect(file.additions).toBe(0);
+	});
+
+	test("CRLF counts the same as LF", async () => {
+		const file = await count("crlf.txt", "a\r\nb\r\nc\r\n");
+		expect(file.additions).toBe(3);
+	});
+
+	test("counts correctly across read-chunk boundaries", async () => {
+		// 64KB chunk size; 20000 short lines spans several chunks.
+		const lineCount = 20000;
+		const file = await count("big.txt", `${"x".repeat(8)}\n`.repeat(lineCount));
+		expect(file.additions).toBe(lineCount);
+	});
+
+	test("flags a NUL byte in the first 8KB as binary", async () => {
+		const file = await count("nul.bin", Buffer.from([0x61, 0x00, 0x62, 0x0a]));
+		expect(file.isBinary).toBe(true);
+		expect(file.additions).toBe(0);
+	});
+
+	test("flags by media extension without reading content", async () => {
+		const file = await count("clip.mp4", "not really a video\n");
+		expect(file.isBinary).toBe(true);
+		expect(file.additions).toBe(0);
+	});
+
+	test("skips the LOC signal for files over the size budget", async () => {
+		const file = await count("huge.txt", "a\n".repeat(600_000)); // ~1.2MB
+		expect(file.additions).toBe(SENTINEL);
+		expect(file.isBinary).toBeUndefined();
 	});
 });

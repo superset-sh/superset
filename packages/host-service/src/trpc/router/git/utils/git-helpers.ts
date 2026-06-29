@@ -1,14 +1,10 @@
-import {
-	copyFile,
-	mkdtemp,
-	open,
-	readFile,
-	realpath,
-	rm,
-	stat,
-} from "node:fs/promises";
+import { copyFile, mkdtemp, open, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import {
+	BINARY_SNIFF_BYTES,
+	isBinaryMediaFile,
+} from "@superset/shared/media-files";
 import type { SimpleGit } from "simple-git";
 import { resolveUpstream } from "../../../../runtime/git/refs";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
@@ -24,29 +20,10 @@ const MAX_UNTRACKED_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 // doesn't exhaust the process file-descriptor limit.
 const UNTRACKED_IO_CONCURRENCY = 64;
 
-const BINARY_MEDIA_EXTENSIONS = new Set([
-	"3g2",
-	"3gp",
-	"avi",
-	"bmp",
-	"gif",
-	"ico",
-	"jpeg",
-	"jpg",
-	"m4v",
-	"mkv",
-	"mov",
-	"mp4",
-	"mpeg",
-	"mpg",
-	"ogv",
-	"png",
-	"tif",
-	"tiff",
-	"webm",
-	"webp",
-	"wmv",
-]);
+// Chunk size for streaming untracked files when counting lines. Bounds
+// per-file memory to this × UNTRACKED_IO_CONCURRENCY instead of the full
+// file size, and comfortably covers the 8KB binary sniff window.
+const UNTRACKED_READ_CHUNK_SIZE = 64 * 1024;
 
 async function mapWithConcurrency<T>(
 	items: T[],
@@ -127,19 +104,6 @@ export function parseNumstat(
 		}
 	}
 	return result;
-}
-
-function getFileExtension(filePath: string): string {
-	const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
-	const dotIndex = fileName.lastIndexOf(".");
-	if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
-		return "";
-	}
-	return fileName.slice(dotIndex + 1).toLowerCase();
-}
-
-function isBinaryMediaFile(filePath: string): boolean {
-	return BINARY_MEDIA_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**
@@ -319,39 +283,50 @@ export async function countUntrackedFileLines(
 				return;
 			}
 
-			// `readFile(file, "utf-8")` happily turns binary into U+FFFDs
-			// and returns a non-zero line count, so sniff the first 8KB for
-			// NULs the way git's own binary heuristic does. Read only that
-			// prefix so a large file is never fully loaded just to skip it.
-			const sniffEnd = Math.min(stats.size, 8192);
-			const sniffBuf = Buffer.allocUnsafe(sniffEnd);
+			// Stream the file in fixed-size chunks rather than slurping it:
+			// readFile would pin the whole file in memory (×UNTRACKED_IO_CONCURRENCY)
+			// and, read as utf-8, would turn binary into U+FFFDs and report a
+			// bogus line count. We reuse one buffer, sniff the first 8KB for NULs
+			// (git's binary heuristic), and tally newlines as we go.
 			const handle = await open(fileReal, "r");
-			let bytesRead: number;
 			try {
-				({ bytesRead } = await handle.read(sniffBuf, 0, sniffEnd, 0));
+				const buf = Buffer.allocUnsafe(UNTRACKED_READ_CHUNK_SIZE);
+				let { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+
+				const sniffEnd = Math.min(bytesRead, BINARY_SNIFF_BYTES);
+				for (let i = 0; i < sniffEnd; i++) {
+					if (buf[i] === 0) {
+						file.isBinary = true;
+						file.additions = 0;
+						file.deletions = 0;
+						return;
+					}
+				}
+
+				// Over the budget: skip the LOC signal without reading the rest.
+				if (stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
+					return;
+				}
+
+				let newlines = 0;
+				let lastByte = -1;
+				let offset = 0;
+				while (bytesRead > 0) {
+					for (let i = 0; i < bytesRead; i++) {
+						if (buf[i] === 0x0a) newlines++;
+					}
+					lastByte = buf[bytesRead - 1] ?? lastByte;
+					offset += bytesRead;
+					({ bytesRead } = await handle.read(buf, 0, buf.length, offset));
+				}
+				// Match `content.split(/\r?\n/)`: a trailing newline doesn't add a
+				// line, but a final non-empty line without one does. (\r\n shares
+				// the \n, so counting \n bytes is equivalent.)
+				file.additions =
+					lastByte === -1 ? 0 : lastByte === 0x0a ? newlines : newlines + 1;
 			} finally {
 				await handle.close();
 			}
-			for (let i = 0; i < bytesRead; i++) {
-				if (sniffBuf[i] === 0) {
-					file.isBinary = true;
-					file.additions = 0;
-					file.deletions = 0;
-					return;
-				}
-			}
-
-			if (stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
-				return;
-			}
-
-			const content = await readFile(fileReal, "utf-8");
-			file.additions =
-				content === ""
-					? 0
-					: content.endsWith("\n")
-						? content.split(/\r?\n/).length - 1
-						: content.split(/\r?\n/).length;
 		} catch {}
 	});
 }
