@@ -184,14 +184,14 @@ export function DiffPane({
 			item: CodeViewItem<DiffAnnotationMetadata>,
 		) => {
 			const m = annotation.metadata;
-			if (item.type === "file") {
-				if (m.kind !== "binary-placeholder") return null;
+			if (m.kind === "binary-placeholder") {
+				if (item.type !== "file") return null;
 				const file = fileByItemId.get(item.id);
 				if (!file) return null;
 				return <BinaryDiffPlaceholder file={file} onOpenFile={onOpenFile} />;
 			}
-			if (item.type !== "diff") return null;
 			if (m.kind === "composer") {
+				if (item.type !== "diff") return null;
 				return (
 					<AgentCommentComposer
 						workspaceId={workspaceId}

@@ -98,6 +98,20 @@ export function useDiffCodeViewItems({
 			const collapsed = collapsedSet.has(file.path);
 
 			if (file.isBinary) {
+				// The placeholder item only has a single line, so re-anchor any
+				// existing review threads onto line 1 — otherwise they'd point at
+				// diff lines that don't exist here and silently disappear.
+				const threadAnnotations = (
+					getAnnotationsForFile(annotationsByPath, file) ?? []
+				).map((annotation) => ({ ...annotation, lineNumber: 1 }));
+				const annotations: DiffLineAnnotation<DiffAnnotationMetadata>[] = [
+					{
+						side: "additions",
+						lineNumber: 1,
+						metadata: { kind: "binary-placeholder" },
+					},
+					...threadAnnotations,
+				];
 				nextItems.push({
 					id: itemId,
 					type: "file",
@@ -105,12 +119,7 @@ export function useDiffCodeViewItems({
 						name: file.path,
 						contents: " ",
 					},
-					annotations: [
-						{
-							lineNumber: 1,
-							metadata: { kind: "binary-placeholder" },
-						},
-					],
+					annotations,
 					collapsed,
 					version: hashString(
 						[
@@ -121,6 +130,7 @@ export function useDiffCodeViewItems({
 							file.deletions,
 							"binary",
 							collapsed ? "1" : "0",
+							getAnnotationsVersion(annotations),
 						].join("\0"),
 					),
 				});

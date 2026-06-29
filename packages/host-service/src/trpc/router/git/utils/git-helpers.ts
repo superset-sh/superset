@@ -1,6 +1,7 @@
 import {
 	copyFile,
 	mkdtemp,
+	open,
 	readFile,
 	realpath,
 	rm,
@@ -319,12 +320,20 @@ export async function countUntrackedFileLines(
 			}
 
 			// `readFile(file, "utf-8")` happily turns binary into U+FFFDs
-			// and returns a non-zero line count, so sniff first 8KB for
-			// NULs the way git's own binary heuristic does.
-			const buf = await readFile(fileReal);
-			const sniffEnd = Math.min(buf.length, 8192);
-			for (let i = 0; i < sniffEnd; i++) {
-				if (buf[i] === 0) {
+			// and returns a non-zero line count, so sniff the first 8KB for
+			// NULs the way git's own binary heuristic does. Read only that
+			// prefix so a large file is never fully loaded just to skip it.
+			const sniffEnd = Math.min(stats.size, 8192);
+			const sniffBuf = Buffer.allocUnsafe(sniffEnd);
+			const handle = await open(fileReal, "r");
+			let bytesRead: number;
+			try {
+				({ bytesRead } = await handle.read(sniffBuf, 0, sniffEnd, 0));
+			} finally {
+				await handle.close();
+			}
+			for (let i = 0; i < bytesRead; i++) {
+				if (sniffBuf[i] === 0) {
 					file.isBinary = true;
 					file.additions = 0;
 					file.deletions = 0;
@@ -336,7 +345,7 @@ export async function countUntrackedFileLines(
 				return;
 			}
 
-			const content = buf.toString("utf-8");
+			const content = await readFile(fileReal, "utf-8");
 			file.additions =
 				content === ""
 					? 0

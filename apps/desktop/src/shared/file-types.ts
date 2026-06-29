@@ -111,7 +111,9 @@ export function getImageMimeType(filePath: string): string | null {
 }
 
 /**
- * Checks if a file is a browser-previewable video based on extension
+ * Checks if a file is a video based on extension. Covers all known video
+ * extensions, not just browser-playable ones — use isPreviewableVideoFile
+ * to gate the inline <video> preview.
  */
 export function isVideoFile(filePath: string): boolean {
 	return VIDEO_EXTENSIONS.has(getFileExtension(filePath));
