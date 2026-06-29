@@ -62,7 +62,18 @@ export function createApplicationMenu() {
 						BrowserWindow.getFocusedWindow()?.reload();
 					},
 				},
-				{ role: "forceReload" },
+				// Explicit click handler (not `role: "forceReload"`) — that role adds
+				// an implicit CmdOrCtrl+Shift+R accelerator that fires in the main
+				// process and force-reloads the window before the renderer's
+				// REOPEN_TAB ("Reopen Closed Tab") hotkey can run. `before-input-event`
+				// skips Shift, so it can't suppress it. No accelerator here keeps
+				// Cmd+Shift+R available to the renderer.
+				{
+					label: "Force Reload",
+					click: () => {
+						BrowserWindow.getFocusedWindow()?.webContents.reloadIgnoringCache();
+					},
+				},
 				{ role: "toggleDevTools" },
 				{ type: "separator" },
 				{ role: "resetZoom" },
