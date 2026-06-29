@@ -4,17 +4,17 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests, workspaces } from "../../../db/schema";
+import { GitHubProviderClient } from "../../../runtime/repo-providers/github/github-provider-client";
+import { getProviderClient } from "../../../runtime/repo-providers/registry";
 import { protectedProcedure, queryProcedure, router } from "../../index";
-import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
+import { resolveRepo } from "../workspace-creation/shared/project-helpers";
 import type {
 	CheckConclusionState,
 	CheckRun,
 	CheckStatusState,
 	Commit,
-	IssueComment,
 	MergeableState,
 	PullRequestReviewDecision,
-	PullRequestReviewThread,
 	PullRequestState,
 } from "./types";
 import { gitConfigWrite } from "./utils/config-write";
@@ -25,11 +25,6 @@ import {
 } from "./utils/git-helpers";
 import { getGitStatusSnapshot } from "./utils/git-status";
 import { gitStatusRefreshLimiter } from "./utils/git-status-refresh-limiter";
-import {
-	type GraphQLThreadsResult,
-	parseGraphQLThreads,
-	REVIEW_THREADS_QUERY,
-} from "./utils/graphql";
 import { resolveWorktreePath } from "./utils/resolve-worktree";
 
 function assertSafeRelativePath(filePath: string): void {
@@ -563,6 +558,7 @@ export const gitRouter = router({
 				isDraft: pr.isDraft ?? false,
 				reviewDecision: (pr.reviewDecision ??
 					null) as PullRequestReviewDecision | null,
+				reviewStateJson: pr.reviewStateJson ?? null,
 				mergeable: "unknown" as MergeableState,
 				headRefName: pr.headBranch ?? "",
 				updatedAt: pr.updatedAt ? new Date(pr.updatedAt).toISOString() : "",
@@ -599,12 +595,12 @@ export const gitRouter = router({
 				});
 			}
 
-			let repo: { owner: string; name: string };
+			let repo: Awaited<ReturnType<typeof resolveRepo>>;
 			try {
-				repo = await resolveGithubRepo(ctx, workspace.projectId);
+				repo = await resolveRepo(ctx, workspace.projectId);
 			} catch (err) {
 				// Expected resolver failures (project not set up locally, no
-				// GitHub remote) degrade silently — the review tab just stays
+				// recognizable remote) degrade silently — the review tab just stays
 				// empty. Anything else is a real bug; propagate it.
 				if (err instanceof TRPCError) {
 					return { reviewThreads: [], conversationComments: [] };
@@ -612,63 +608,22 @@ export const gitRouter = router({
 				throw err;
 			}
 
-			const octokit = await ctx.github();
-
-			let reviewThreads: PullRequestReviewThread[] = [];
-			try {
-				const result: GraphQLThreadsResult = await octokit.graphql(
-					REVIEW_THREADS_QUERY,
-					{
-						owner: repo.owner,
-						name: repo.name,
-						prNumber: pr.prNumber,
-					},
-				);
-				reviewThreads = parseGraphQLThreads(result);
-			} catch (error) {
-				console.warn(
-					"[git.getPullRequestThreads] Failed to fetch review threads:",
-					error,
-				);
+			if (repo.provider === "unknown") {
+				// TODO(§8): self-managed hosts resolve to "unknown" until a capability
+				// probe identifies the provider. Degrade silently.
+				return { reviewThreads: [], conversationComments: [] };
 			}
 
-			const conversationComments: IssueComment[] = [];
-			try {
-				let page = 1;
-				let hasMore = true;
-				while (hasMore) {
-					const { data: comments } = await octokit.issues.listComments({
-						owner: repo.owner,
-						repo: repo.name,
-						issue_number: pr.prNumber,
-						per_page: 100,
-						page,
-					});
-					for (const c of comments) {
-						const body = c.body?.trim();
-						if (!body) continue;
-						conversationComments.push({
-							id: c.id,
-							user: {
-								login: c.user?.login ?? "ghost",
-								avatarUrl: c.user?.avatar_url ?? "",
-							},
-							body,
-							createdAt: c.created_at ?? "",
-							htmlUrl: c.html_url ?? "",
-						});
-					}
-					hasMore = comments.length === 100;
-					page++;
-				}
-			} catch (error) {
-				console.warn(
-					"[git.getPullRequestThreads] Failed to fetch conversation comments:",
-					error,
-				);
-			}
-
-			return { reviewThreads, conversationComments };
+			// For GitHub, use a fresh request-scoped client (gh CLI + Octokit).
+			// For other providers, route through the registry.
+			const client =
+				repo.provider === "github"
+					? new GitHubProviderClient({ execGh: ctx.execGh, github: ctx.github })
+					: getProviderClient(repo.provider, repo.host);
+			return client.fetchReviewThreads(
+				{ owner: repo.owner, name: repo.name },
+				pr.prNumber,
+			);
 		}),
 
 	setReviewThreadResolution: protectedProcedure
@@ -690,21 +645,27 @@ export const gitRouter = router({
 				});
 			}
 
-			const octokit = await ctx.github();
-			const mutation = input.resolved
-				? `mutation($threadId: ID!) {
-					resolveReviewThread(input: {threadId: $threadId}) {
-						thread { id isResolved }
-					}
-				}`
-				: `mutation($threadId: ID!) {
-					unresolveReviewThread(input: {threadId: $threadId}) {
-						thread { id isResolved }
-					}
-				}`;
-
+			// Resolve provider so non-GitHub repos use the correct client.
+			let repo: Awaited<ReturnType<typeof resolveRepo>> | null = null;
 			try {
-				await octokit.graphql(mutation, { threadId: input.threadId });
+				repo = await resolveRepo(ctx, workspace.projectId);
+			} catch {
+				// Resolver failures fall through; GitHub client used as fallback
+				// so existing behavior is preserved when provider can't be determined.
+			}
+
+			// For GitHub (or when provider can't be determined), use a fresh
+			// request-scoped client (gh CLI + Octokit). For other known providers,
+			// route through the registry.
+			// TODO(§8): "unknown" hosts are treated as local-only until a
+			// capability probe resolves them. The GitHub client is used as a
+			// best-effort fallback so the mutation doesn't hard-error.
+			const client =
+				!repo || repo.provider === "github" || repo.provider === "unknown"
+					? new GitHubProviderClient({ execGh: ctx.execGh, github: ctx.github })
+					: getProviderClient(repo.provider, repo.host);
+			try {
+				await client.setReviewThreadResolution(input.threadId, input.resolved);
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "GraphQL mutation failed";

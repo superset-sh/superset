@@ -83,6 +83,7 @@ export const pullRequests = sqliteTable(
 		headBranch: text("head_branch").notNull(),
 		headSha: text("head_sha").notNull(),
 		reviewDecision: text("review_decision"),
+		reviewStateJson: text("review_state_json"),
 		checksStatus: text("checks_status").notNull().default("none"),
 		checksJson: text("checks_json").notNull().default("[]"),
 		lastFetchedAt: integer("last_fetched_at"),

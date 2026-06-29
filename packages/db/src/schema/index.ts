@@ -3,6 +3,7 @@ export * from "./enums";
 export * from "./github";
 export * from "./ingest";
 export * from "./relations";
+export * from "./repositories";
 export * from "./schema";
 export * from "./types";
 export * from "./zod";

@@ -1,3 +1,5 @@
+import type { GitLabReviewState } from "./deriveDisplayReviewState/deriveDisplayReviewState";
+
 /** Normalized PR shape used by review tab UI components. */
 export interface NormalizedPR {
 	number: number;
@@ -7,6 +9,8 @@ export interface NormalizedPR {
 	reviewDecision: "approved" | "changes_requested" | "pending";
 	checksStatus: "success" | "failure" | "pending" | "none";
 	checks: NormalizedCheck[];
+	/** Present only for GitLab MRs. Absent (undefined) for GitHub PRs. */
+	gitlabReviewState?: GitLabReviewState | null;
 }
 
 export interface NormalizedCheck {

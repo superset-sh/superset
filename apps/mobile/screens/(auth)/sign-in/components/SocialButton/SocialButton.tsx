@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 
-export type SocialProvider = "github" | "google";
+export type SocialProvider = "github" | "google" | "gitlab";
 
 export interface SocialButtonProps extends Omit<ButtonProps, "children"> {
 	provider: SocialProvider;
@@ -45,9 +45,22 @@ function GoogleIcon() {
 	);
 }
 
+// GitLab brand icon (inline SVG — react-icons is not a mobile dep)
+function GitlabIcon() {
+	return (
+		<Svg width={20} height={20} viewBox="0 0 24 24">
+			<Path
+				d="M23.955 13.587l-1.342-4.135-2.664-8.189a.455.455 0 0 0-.867 0L16.418 9.45H7.582L4.918 1.263a.455.455 0 0 0-.867 0L1.386 9.449.044 13.587a.924.924 0 0 0 .331 1.023L12 23.054l11.625-8.443a.924.924 0 0 0 .33-1.024"
+				fill="#FC6D26"
+			/>
+		</Svg>
+	);
+}
+
 const PROVIDER_NAME: Record<SocialProvider, string> = {
 	github: "GitHub",
 	google: "Google",
+	gitlab: "GitLab",
 };
 
 export function SocialButton({
@@ -67,8 +80,10 @@ export function SocialButton({
 		>
 			{provider === "github" ? (
 				<GithubIcon color={iconColor} />
-			) : (
+			) : provider === "google" ? (
 				<GoogleIcon />
+			) : (
+				<GitlabIcon />
 			)}
 			<Text>{`Continue with ${PROVIDER_NAME[provider]}`}</Text>
 		</Button>

@@ -1,5 +1,11 @@
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { workspaces } from "../../../db/schema";
+import { GitHubProviderClient } from "../../../runtime/repo-providers/github/github-provider-client";
+import { getProviderClient } from "../../../runtime/repo-providers/registry";
+import type { MergeResult } from "../../../runtime/repo-providers/types";
 import { protectedProcedure, router } from "../../index";
+import { resolveRepo } from "../workspace-creation/shared/project-helpers";
 
 export const githubRouter = router({
 	getPRStatus: protectedProcedure
@@ -138,16 +144,76 @@ export const githubRouter = router({
 				repo: z.string(),
 				pullNumber: z.number(),
 				mergeMethod: z.enum(["merge", "squash", "rebase"]).default("merge"),
+				/** Optional: direct project id for provider routing. */
+				projectId: z.string().optional(),
+				/**
+				 * Optional: workspace id. When `projectId` is absent but `workspaceId`
+				 * is provided, the workspace's projectId is resolved first. This lets
+				 * the renderer pass only the workspace id (which it always has) and
+				 * still get correct GitLab routing without plumbing projectId down to
+				 * every merge call site.
+				 */
+				workspaceId: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
-			const octokit = await ctx.github();
-			const { data } = await octokit.pulls.merge({
-				owner: input.owner,
-				repo: input.repo,
-				pull_number: input.pullNumber,
-				merge_method: input.mergeMethod,
+		.mutation(async ({ ctx, input }): Promise<MergeResult> => {
+			const repoRef = { owner: input.owner, name: input.repo };
+
+			// Resolve projectId: prefer the explicit field, fall back to looking
+			// up the workspace's projectId when only workspaceId was supplied.
+			let resolvedProjectId = input.projectId;
+			if (!resolvedProjectId && input.workspaceId) {
+				const ws = ctx.db
+					.select({ projectId: workspaces.projectId })
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
+				resolvedProjectId = ws?.projectId;
+			}
+
+			// Route via provider when a project can be resolved — picks the correct
+			// provider+host from the live git remote. Falls back to GitHub (Octokit)
+			// when no project context is available (existing callers that supply neither).
+			if (resolvedProjectId) {
+				let repo: Awaited<ReturnType<typeof resolveRepo>>;
+				try {
+					repo = await resolveRepo(ctx, resolvedProjectId);
+				} catch {
+					// resolveRepo can throw for local-only repos. Fall through to GitHub.
+					repo = {
+						provider: "github",
+						host: "github.com",
+						owner: input.owner,
+						name: input.repo,
+						repoPath: "",
+					};
+				}
+
+				if (repo.provider !== "unknown") {
+					const client =
+						repo.provider === "github"
+							? new GitHubProviderClient({
+									execGh: ctx.execGh,
+									github: ctx.github,
+								})
+							: getProviderClient(repo.provider, repo.host);
+					return client.mergePullRequest(
+						repoRef,
+						input.pullNumber,
+						input.mergeMethod,
+					);
+				}
+			}
+
+			// GitHub-default path (no project context, or resolveRepo failed/unknown).
+			const client = new GitHubProviderClient({
+				execGh: ctx.execGh,
+				github: ctx.github,
 			});
-			return data;
+			return client.mergePullRequest(
+				repoRef,
+				input.pullNumber,
+				input.mergeMethod,
+			);
 		}),
 });

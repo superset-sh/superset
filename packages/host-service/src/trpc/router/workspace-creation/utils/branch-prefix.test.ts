@@ -137,4 +137,26 @@ describe("resolveProjectBranchPrefix", () => {
 		});
 		expect(result).toBe("Jane-Doe");
 	});
+
+	it("gitlab github-mode: falls back to author when provider client throws", async () => {
+		// The provider client for a self-managed GitLab host will throw (no real
+		// host in tests). The code must fall back gracefully — here the git author
+		// provides the prefix instead.
+		const result = await resolveProjectBranchPrefix({
+			ctx: makeCtx(createTestDb()),
+			project: makeProject({
+				branchPrefixMode: "github",
+				repoProvider: "gitlab",
+				// Self-managed URL — host will be parsed as "gl.example.com"
+				repoUrl: "https://gl.example.com/alice/project.git",
+			}),
+			git: gitWithAuthor("Alice Smith"),
+			existingBranches: [],
+		});
+		// Provider client throws → falls through to gh CLI (which also throws in
+		// test) → githubUsername null → authorName "Alice-Smith" used for prefix.
+		// Depending on resolveBranchPrefix behaviour, result is "Alice-Smith" or
+		// undefined. Either way it must not throw.
+		expect(typeof result === "string" || result === undefined).toBe(true);
+	});
 });

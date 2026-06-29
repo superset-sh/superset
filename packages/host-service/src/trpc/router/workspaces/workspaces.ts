@@ -12,6 +12,9 @@ import {
 	resolveRef,
 	resolveUpstream,
 } from "../../../runtime/git/refs";
+import { GitHubProviderClient } from "../../../runtime/repo-providers/github/github-provider-client";
+import { getProviderClient } from "../../../runtime/repo-providers/registry";
+import type { PullRequestCheckoutMetadata } from "../../../runtime/repo-providers/types";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
@@ -25,6 +28,7 @@ import {
 import { startCommandTerminal } from "../workspace-creation/shared/command-terminal";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import { requireLocalProject } from "../workspace-creation/shared/local-project";
+import { resolveRepo } from "../workspace-creation/shared/project-helpers";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import type { GitClient } from "../workspace-creation/shared/types";
 import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
@@ -157,24 +161,53 @@ async function findExistingWorkspaceByBranch(
 	return cloud ?? null;
 }
 
-interface PrMetadata {
-	number: number;
-	url: string;
-	title: string;
-	headRefName: string;
-	headRefOid: string;
-	baseRefName: string;
-	headRepositoryOwner: string;
-	headRepositoryName: string;
-	isCrossRepository: boolean;
-	state: "open" | "closed" | "merged";
-}
+/** Checkout metadata shape — mirrors PullRequestCheckoutMetadata from types.ts. */
+type PrMetadata = PullRequestCheckoutMetadata;
 
+/**
+ * Fetch PR/MR checkout metadata for a workspace creation request.
+ *
+ * Routing:
+ * - Resolves the live git remote via `resolveRepo` to get provider + host
+ *   + owner + name (avoids stale cached snapshot fields — see hardening guard).
+ * - GitHub: delegates to GitHubProviderClient.fetchPullRequestMetadata
+ *   (`gh pr view --repo owner/name`).
+ * - GitLab: delegates to the registry client's fetchPullRequestMetadata
+ *   (REST GET /projects/{enc}/merge_requests/{iid}).
+ * - Fallback for unresolvable/unknown remotes: legacy `gh pr view --json` with
+ *   cwd (GitHub only; preserves behavior for local-only repos).
+ */
 async function fetchPrMetadata(args: {
 	cwd: string;
 	prNumber: number;
 	execGh: ExecGh;
+	ctx: HostServiceContext;
+	projectId: string;
 }): Promise<PrMetadata> {
+	// Resolve from the live git remote (not cached snapshot fields).
+	let resolved: Awaited<ReturnType<typeof resolveRepo>> | null = null;
+	try {
+		resolved = await resolveRepo(args.ctx, args.projectId);
+	} catch {
+		// resolveRepo throws for local-only repos or bad paths — fall through.
+	}
+
+	if (resolved && resolved.provider !== "unknown") {
+		const repo = { owner: resolved.owner, name: resolved.name };
+		if (resolved.provider === "github") {
+			const client = new GitHubProviderClient({
+				execGh: args.ctx.execGh,
+				github: args.ctx.github,
+			});
+			return client.fetchPullRequestMetadata(repo, args.prNumber);
+		}
+		if (resolved.provider === "gitlab") {
+			const client = getProviderClient("gitlab", resolved.host);
+			return client.fetchPullRequestMetadata(repo, args.prNumber);
+		}
+	}
+
+	// Legacy fallback: gh pr view with cwd (GitHub only, unresolvable remotes).
 	const result = await args.execGh(
 		[
 			"pr",
@@ -605,6 +638,8 @@ export const workspacesRouter = router({
 						cwd: localProject.repoPath,
 						prNumber: input.pr,
 						execGh: ctx.execGh,
+						ctx,
+						projectId: input.projectId,
 					});
 					resolvedBranch = derivePrLocalBranchName(prMetadata);
 

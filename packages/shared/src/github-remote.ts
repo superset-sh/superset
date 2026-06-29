@@ -1,3 +1,5 @@
+import { parseGitRemote } from "./git-remote";
+
 export interface ParsedGitHubRemote {
 	provider: "github";
 	owner: string;
@@ -5,27 +7,19 @@ export interface ParsedGitHubRemote {
 	url: string;
 }
 
+/**
+ * Back-compat wrapper over {@link parseGitRemote}. Returns a result only for
+ * github.com remotes, preserving the original GitHub-only behavior and shape.
+ */
 export function parseGitHubRemote(
 	remoteUrl: string,
 ): ParsedGitHubRemote | null {
-	const trimmed = remoteUrl.trim();
-	const patterns = [
-		/^git@github\.com:(?<owner>[^/]+)\/(?<name>[^/]+?)(?:\.git)?$/,
-		/^ssh:\/\/git@github\.com\/(?<owner>[^/]+)\/(?<name>[^/]+?)(?:\.git)?$/,
-		/^https:\/\/github\.com\/(?<owner>[^/]+)\/(?<name>[^/]+?)(?:\.git)?\/?$/,
-	];
-
-	for (const pattern of patterns) {
-		const match = pattern.exec(trimmed);
-		if (!match?.groups?.owner || !match.groups.name) continue;
-
-		return {
-			provider: "github",
-			owner: match.groups.owner,
-			name: match.groups.name,
-			url: `https://github.com/${match.groups.owner}/${match.groups.name}`,
-		};
-	}
-
-	return null;
+	const parsed = parseGitRemote(remoteUrl);
+	if (!parsed || parsed.provider !== "github") return null;
+	return {
+		provider: "github",
+		owner: parsed.owner,
+		name: parsed.name,
+		url: parsed.url,
+	};
 }

@@ -8,6 +8,7 @@ import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
+import { mirrorGithubToGeneric } from "../mirror-to-generic";
 import { githubApp } from "../octokit";
 
 const bodySchema = z.object({
@@ -219,6 +220,9 @@ export async function POST(request: Request) {
 			.update(githubInstallations)
 			.set({ lastSyncedAt: new Date() })
 			.where(eq(githubInstallations.id, installation.id));
+
+		// Dual-write: mirror this org's GitHub rows into the generic tables.
+		await mirrorGithubToGeneric({ organizationId });
 
 		console.log("[github/sync] Sync completed successfully");
 		return Response.json({

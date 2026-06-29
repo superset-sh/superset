@@ -1,45 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { GitHubProviderClient } from "../../../../runtime/repo-providers/github/github-provider-client";
+import { getProviderClient } from "../../../../runtime/repo-providers/registry";
+import type { NormalizedPullRequestContent } from "../../../../runtime/repo-providers/types";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
-import { execGh } from "../../workspace-creation/utils/exec-gh";
+import { resolveRepo } from "../../workspace-creation/shared/project-helpers";
 
 const getContentInputSchema = z.object({
 	projectId: z.string(),
 	prNumber: z.number().int().positive(),
 });
-
-const ghPullRequestContentSchema = z.object({
-	number: z.number(),
-	title: z.string(),
-	body: z.string().nullable().optional(),
-	url: z.string(),
-	state: z.string(),
-	headRefName: z.string(),
-	baseRefName: z.string(),
-	headRepositoryOwner: z.object({ login: z.string() }).nullable(),
-	isCrossRepository: z.boolean(),
-	isDraft: z.boolean(),
-	author: z.object({ login: z.string() }).optional(),
-	createdAt: z.string().optional(),
-	updatedAt: z.string().optional(),
-});
-
-type PullRequestContent = {
-	number: number;
-	title: string;
-	body: string;
-	url: string;
-	state: string;
-	branch: string;
-	baseBranch: string;
-	headRepositoryOwner: string | null;
-	isCrossRepository: boolean;
-	author: string | null;
-	isDraft: boolean;
-	createdAt: string | undefined;
-	updatedAt: string | undefined;
-};
 
 // Browsing the PR list re-opens the detail panel constantly; cache the
 // `gh pr view` response so we don't burn the user's GitHub token bucket on
@@ -47,14 +17,15 @@ type PullRequestContent = {
 const PULL_REQUEST_CONTENT_CACHE_TTL_MS = 30_000;
 const pullRequestContentCache = new Map<
 	string,
-	{ promise: Promise<PullRequestContent>; fetchedAt: number }
+	{ promise: Promise<NormalizedPullRequestContent>; fetchedAt: number }
 >();
 
 export const getContent = protectedProcedure
 	.input(getContentInputSchema)
 	.query(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
-		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${input.prNumber}`;
+		const repo = await resolveRepo(ctx, input.projectId);
+		// Include host in the cache key to avoid slug collisions across providers.
+		const cacheKey = `${repo.host}/${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${input.prNumber}`;
 		const cached = pullRequestContentCache.get(cacheKey);
 		if (
 			cached &&
@@ -63,34 +34,28 @@ export const getContent = protectedProcedure
 			return cached.promise;
 		}
 
+		if (repo.provider === "unknown") {
+			// TODO(§8): self-managed hosts resolve to "unknown" until a capability
+			// probe identifies the provider. No PR content available for local-only repos.
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Repository at ${repo.repoPath} has no recognized provider for pull request content.`,
+			});
+		}
+
 		const fetchedAt = Date.now();
-		const promise = (async (): Promise<PullRequestContent> => {
+		// For GitHub, use a fresh request-scoped client (gh CLI + Octokit).
+		// For other providers, route through the registry.
+		const client =
+			repo.provider === "github"
+				? new GitHubProviderClient({ execGh: ctx.execGh, github: ctx.github })
+				: getProviderClient(repo.provider, repo.host);
+		const promise = (async () => {
 			try {
-				const raw = await execGh([
-					"pr",
-					"view",
-					String(input.prNumber),
-					"--repo",
-					`${repo.owner}/${repo.name}`,
-					"--json",
-					"number,title,body,url,state,author,headRefName,baseRefName,headRepositoryOwner,isCrossRepository,isDraft,createdAt,updatedAt",
-				]);
-				const data = ghPullRequestContentSchema.parse(raw);
-				return {
-					number: data.number,
-					title: data.title,
-					body: data.body ?? "",
-					url: data.url,
-					state: data.state.toLowerCase(),
-					branch: data.headRefName,
-					baseBranch: data.baseRefName,
-					headRepositoryOwner: data.headRepositoryOwner?.login ?? null,
-					isCrossRepository: data.isCrossRepository,
-					author: data.author?.login ?? null,
-					isDraft: data.isDraft,
-					createdAt: data.createdAt,
-					updatedAt: data.updatedAt,
-				};
+				return await client.fetchPullRequestContent(
+					{ owner: repo.owner, name: repo.name },
+					input.prNumber,
+				);
 			} catch (err) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",

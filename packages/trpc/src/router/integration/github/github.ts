@@ -1,8 +1,8 @@
 import { db } from "@superset/db/client";
 import {
 	githubInstallations,
-	githubPullRequests,
-	githubRepositories,
+	pullRequests,
+	repositories,
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
@@ -101,18 +101,13 @@ export const githubRouter = {
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-			const installation = await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
-				columns: { id: true },
-			});
-
-			if (!installation) {
-				return [];
-			}
-
-			return db.query.githubRepositories.findMany({
-				where: eq(githubRepositories.installationId, installation.id),
-				orderBy: [desc(githubRepositories.updatedAt)],
+			// Reads the generic tables (GitHub rows mirrored there via dual-write).
+			return db.query.repositories.findMany({
+				where: and(
+					eq(repositories.organizationId, input.organizationId),
+					eq(repositories.provider, "github"),
+				),
+				orderBy: [desc(repositories.updatedAt)],
 			});
 		}),
 
@@ -127,57 +122,47 @@ export const githubRouter = {
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-			const installation = await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
-				columns: { id: true },
-			});
-
-			if (!installation) {
-				return [];
+			const conditions = [
+				eq(pullRequests.organizationId, input.organizationId),
+				eq(pullRequests.provider, "github"),
+			];
+			if (input.repositoryId) {
+				conditions.push(eq(pullRequests.repositoryId, input.repositoryId));
 			}
-
-			// Get repository IDs for this installation
-			const repos = await db.query.githubRepositories.findMany({
-				where: input.repositoryId
-					? and(
-							eq(githubRepositories.installationId, installation.id),
-							eq(githubRepositories.id, input.repositoryId),
-						)
-					: eq(githubRepositories.installationId, installation.id),
-				columns: { id: true },
-			});
-
-			if (repos.length === 0) {
-				return [];
-			}
-
-			const repoIds = repos.map((r) => r.id);
-
-			// Build query conditions
-			const conditions = [];
-			if (repoIds.length > 0) {
-				conditions.push(inArray(githubPullRequests.repositoryId, repoIds));
-			}
-
 			if (input.state !== "all") {
-				conditions.push(eq(githubPullRequests.state, input.state));
+				conditions.push(eq(pullRequests.state, input.state));
 			}
 
-			return db.query.githubPullRequests.findMany({
-				where: conditions.length > 0 ? and(...conditions) : undefined,
-				with: {
+			return db
+				.select({
+					id: pullRequests.id,
+					number: pullRequests.number,
+					title: pullRequests.title,
+					url: pullRequests.url,
+					state: pullRequests.state,
+					isDraft: pullRequests.isDraft,
+					authorLogin: pullRequests.authorLogin,
+					authorAvatarUrl: pullRequests.authorAvatarUrl,
+					headBranch: pullRequests.headBranch,
+					baseBranch: pullRequests.baseBranch,
+					reviewStateJson: pullRequests.reviewStateJson,
+					checksStatus: pullRequests.checksStatus,
+					checks: pullRequests.checks,
+					mergedAt: pullRequests.mergedAt,
+					closedAt: pullRequests.closedAt,
+					updatedAt: pullRequests.updatedAt,
 					repository: {
-						columns: {
-							id: true,
-							fullName: true,
-							owner: true,
-							name: true,
-						},
+						id: repositories.id,
+						fullName: repositories.fullName,
+						owner: repositories.owner,
+						name: repositories.name,
 					},
-				},
-				orderBy: [desc(githubPullRequests.updatedAt)],
-				limit: 100,
-			});
+				})
+				.from(pullRequests)
+				.innerJoin(repositories, eq(pullRequests.repositoryId, repositories.id))
+				.where(and(...conditions))
+				.orderBy(desc(pullRequests.updatedAt))
+				.limit(100);
 		}),
 
 	getStats: protectedProcedure
@@ -185,60 +170,42 @@ export const githubRouter = {
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-			const installation = await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
-				columns: { id: true },
-			});
-
-			if (!installation) {
-				return {
-					repositoryCount: 0,
-					openPullRequestCount: 0,
-					pendingChecksCount: 0,
-					failedChecksCount: 0,
-				};
-			}
-
-			const repos = await db.query.githubRepositories.findMany({
-				where: eq(githubRepositories.installationId, installation.id),
-				columns: { id: true },
-			});
-
-			if (repos.length === 0) {
-				return {
-					repositoryCount: 0,
-					openPullRequestCount: 0,
-					pendingChecksCount: 0,
-					failedChecksCount: 0,
-				};
-			}
-
-			const repoIds = repos.map((r) => r.id);
-
-			// Get open PRs
-			const openPrs = await db.query.githubPullRequests.findMany({
+			const repos = await db.query.repositories.findMany({
 				where: and(
-					eq(githubPullRequests.state, "open"),
-					inArray(githubPullRequests.repositoryId, repoIds),
+					eq(repositories.organizationId, input.organizationId),
+					eq(repositories.provider, "github"),
 				),
-				columns: {
-					id: true,
-					checksStatus: true,
-				},
+				columns: { id: true },
 			});
 
-			const pendingChecksCount = openPrs.filter(
-				(pr) => pr.checksStatus === "pending",
-			).length;
-			const failedChecksCount = openPrs.filter(
-				(pr) => pr.checksStatus === "failure",
-			).length;
+			const empty = {
+				repositoryCount: 0,
+				openPullRequestCount: 0,
+				pendingChecksCount: 0,
+				failedChecksCount: 0,
+			};
+			if (repos.length === 0) return empty;
+
+			const openPrs = await db.query.pullRequests.findMany({
+				where: and(
+					eq(pullRequests.organizationId, input.organizationId),
+					eq(pullRequests.provider, "github"),
+					inArray(
+						pullRequests.repositoryId,
+						repos.map((r) => r.id),
+					),
+					eq(pullRequests.state, "open"),
+				),
+				columns: { id: true, checksStatus: true },
+			});
 
 			return {
 				repositoryCount: repos.length,
 				openPullRequestCount: openPrs.length,
-				pendingChecksCount,
-				failedChecksCount,
+				pendingChecksCount: openPrs.filter((p) => p.checksStatus === "pending")
+					.length,
+				failedChecksCount: openPrs.filter((p) => p.checksStatus === "failure")
+					.length,
 			};
 		}),
 } satisfies TRPCRouterRecord;

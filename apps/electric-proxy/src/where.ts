@@ -11,6 +11,8 @@ import {
 	members,
 	organizations,
 	projects,
+	pullRequests,
+	repositories,
 	subscriptions,
 	taskStatuses,
 	tasks,
@@ -149,6 +151,15 @@ export function buildWhereClause(
 				githubPullRequests.organizationId,
 				organizationId,
 			);
+
+		// Provider-agnostic tables — both GitHub (dual-written) and GitLab flow
+		// here; this is the unified read path. The github_* shapes above stay as
+		// aliases for deployed clients until they roll over (B2).
+		case "repositories":
+			return build(repositories, repositories.organizationId, organizationId);
+
+		case "pull_requests":
+			return build(pullRequests, pullRequests.organizationId, organizationId);
 
 		case "automations":
 			return build(automations, automations.organizationId, organizationId);

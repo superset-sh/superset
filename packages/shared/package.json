@@ -116,6 +116,10 @@
 			"types": "./src/host-version.ts",
 			"default": "./src/host-version.ts"
 		},
+		"./git-remote": {
+			"types": "./src/git-remote.ts",
+			"default": "./src/git-remote.ts"
+		},
 		"./github-remote": {
 			"types": "./src/github-remote.ts",
 			"default": "./src/github-remote.ts"

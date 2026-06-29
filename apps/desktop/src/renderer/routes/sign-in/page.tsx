@@ -8,7 +8,7 @@ import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
@@ -174,6 +174,17 @@ function SignInPage() {
 						>
 							<FcGoogle className="size-5" />
 							Continue with Google
+						</Button>
+
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={() => signIn("gitlab")}
+							className="w-full gap-3"
+							disabled={signInMutation.isPending}
+						>
+							<FaGitlab className="size-5 text-[#FC6D26]" />
+							Continue with GitLab
 						</Button>
 					</div>
 

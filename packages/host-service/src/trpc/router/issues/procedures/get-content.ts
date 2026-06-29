@@ -1,23 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { GitHubProviderClient } from "../../../../runtime/repo-providers/github/github-provider-client";
+import { getProviderClient } from "../../../../runtime/repo-providers/registry";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
-import { execGh } from "../../workspace-creation/utils/exec-gh";
+import { resolveRepo } from "../../workspace-creation/shared/project-helpers";
 
 const getContentInputSchema = z.object({
 	projectId: z.string(),
 	issueNumber: z.number().int().positive(),
-});
-
-const ghIssueContentSchema = z.object({
-	number: z.number(),
-	title: z.string(),
-	body: z.string().nullable().optional(),
-	url: z.string(),
-	state: z.string(),
-	author: z.object({ login: z.string() }).optional(),
-	createdAt: z.string().optional(),
-	updatedAt: z.string().optional(),
 });
 
 // Shell out to the user's `gh` CLI rather than host-service's
@@ -26,28 +16,26 @@ const ghIssueContentSchema = z.object({
 export const getContent = protectedProcedure
 	.input(getContentInputSchema)
 	.query(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
+		const repo = await resolveRepo(ctx, input.projectId);
+		if (repo.provider === "unknown") {
+			// TODO(§8): self-managed hosts resolve to "unknown" until a capability
+			// probe identifies the provider. No issue content available for local-only repos.
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Repository at ${repo.repoPath} has no recognized provider for issue content.`,
+			});
+		}
+		// For GitHub, use a fresh request-scoped client (gh CLI + Octokit).
+		// For other providers, route through the registry.
+		const client =
+			repo.provider === "github"
+				? new GitHubProviderClient({ execGh: ctx.execGh, github: ctx.github })
+				: getProviderClient(repo.provider, repo.host);
 		try {
-			const raw = await execGh([
-				"issue",
-				"view",
-				String(input.issueNumber),
-				"--repo",
-				`${repo.owner}/${repo.name}`,
-				"--json",
-				"number,title,body,url,state,author,createdAt,updatedAt",
-			]);
-			const data = ghIssueContentSchema.parse(raw);
-			return {
-				number: data.number,
-				title: data.title,
-				body: data.body ?? "",
-				url: data.url,
-				state: data.state.toLowerCase(),
-				author: data.author?.login ?? null,
-				createdAt: data.createdAt,
-				updatedAt: data.updatedAt,
-			};
+			return await client.fetchIssueContent(
+				{ owner: repo.owner, name: repo.name },
+				input.issueNumber,
+			);
 		} catch (err) {
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",

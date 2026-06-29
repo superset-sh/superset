@@ -106,6 +106,9 @@ export function PRStatusGroup({
 			repo: pr.repoName,
 			pullNumber: pr.number,
 			mergeMethod,
+			// Pass workspaceId so the host-service can route to the correct
+			// provider (GitLab vs GitHub) without the renderer knowing the projectId.
+			workspaceId,
 		});
 	};
 

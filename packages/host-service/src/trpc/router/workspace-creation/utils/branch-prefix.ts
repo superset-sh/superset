@@ -1,9 +1,11 @@
+import { parseGitRemote } from "@superset/shared/git-remote";
 import {
 	type BranchPrefixMode,
 	resolveBranchPrefix,
 } from "@superset/shared/workspace-launch";
 import type { SimpleGit } from "simple-git";
 import { hostSettings } from "../../../../db/schema";
+import { getProviderClient } from "../../../../runtime/repo-providers/registry";
 import type { HostServiceContext } from "../../../../types";
 import type { LocalProject } from "../shared/local-project";
 import type { ExecGh } from "./exec-gh";
@@ -83,8 +85,32 @@ export async function resolveProjectBranchPrefix({
 	if (mode === "author") {
 		authorName = await getGitAuthorName(git);
 	} else if (mode === "github") {
+		// Route getAuthenticatedUser through the provider client when the project
+		// has a known provider. This gives GitLab users their GitLab username as
+		// the branch prefix instead of falling back to GitHub (or null).
+		// For self-managed GitLab instances, parse the host from project.repoUrl.
+		const repoProvider = project.repoProvider ?? null;
+		let providerUsername: string | null = null;
+		if (repoProvider === "gitlab") {
+			const gitlabHost =
+				(project.repoUrl ? parseGitRemote(project.repoUrl)?.host : null) ??
+				"gitlab.com";
+			try {
+				const client = getProviderClient("gitlab", gitlabHost);
+				const user = await client.getAuthenticatedUser();
+				providerUsername = user?.login ?? null;
+			} catch {
+				// Fall through to GitHub username below
+			}
+		} else {
+			// GitHub or unknown: use the existing gh CLI path
+			providerUsername = null;
+		}
+
 		[githubUsername, authorName] = await Promise.all([
-			getGitHubUsername(ctx.execGh),
+			providerUsername !== null
+				? Promise.resolve(providerUsername)
+				: getGitHubUsername(ctx.execGh),
 			getGitAuthorName(git),
 		]);
 	}

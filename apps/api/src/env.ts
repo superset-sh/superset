@@ -22,6 +22,12 @@ export const env = createEnv({
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),
 		GH_WEBHOOK_SECRET: z.string().min(1),
+		// GitLab integration OAuth (fork feature) — optional so deploys without
+		// GitLab configured don't fail env validation. The same GitLab application
+		// can back both login (packages/auth) and this integration; it just needs
+		// the /api/gitlab/callback redirect URI and the read_api scope added.
+		GITLAB_CLIENT_ID: z.string().optional(),
+		GITLAB_CLIENT_SECRET: z.string().optional(),
 		SLACK_CLIENT_ID: z.string().min(1),
 		SLACK_CLIENT_SECRET: z.string().min(1),
 		SLACK_SIGNING_SECRET: z.string(),

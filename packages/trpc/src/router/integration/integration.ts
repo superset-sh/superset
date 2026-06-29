@@ -5,12 +5,14 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 import { githubRouter } from "./github";
+import { gitlabRouter } from "./gitlab";
 import { linearRouter } from "./linear";
 import { slackRouter } from "./slack";
 import { verifyOrgMembership } from "./utils";
 
 export const integrationRouter = {
 	github: githubRouter,
+	gitlab: gitlabRouter,
 	linear: linearRouter,
 	slack: slackRouter,
 

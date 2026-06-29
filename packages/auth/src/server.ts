@@ -134,6 +134,17 @@ export const auth = betterAuth({
 			clientId: env.GOOGLE_CLIENT_ID,
 			clientSecret: env.GOOGLE_CLIENT_SECRET,
 		},
+		// gitlab.com only. Self-managed instances need a configured issuer/genericOAuth (follow-up).
+		// The `issuer` option in GitlabOptions accepts a custom base URL (e.g. "https://gitlab.example.com")
+		// and can be used for self-hosted GitLab once the follow-up is implemented.
+		...(env.GITLAB_CLIENT_ID && env.GITLAB_CLIENT_SECRET
+			? {
+					gitlab: {
+						clientId: env.GITLAB_CLIENT_ID,
+						clientSecret: env.GITLAB_CLIENT_SECRET,
+					},
+				}
+			: {}),
 	},
 	databaseHooks: {
 		user: {

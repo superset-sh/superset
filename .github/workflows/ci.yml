@@ -91,6 +91,63 @@ jobs:
           RELAY_URL: ${{ secrets.RELAY_URL }}
         run: bun run test
 
+  test-integration:
+    name: Integration Tests (DB)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      # Reuse the project's own local-dev DB stack: Postgres + the local neon-http
+      # proxy (host db.localtest.me, port 4444) that the db client targets.
+      - name: Start Postgres + Neon HTTP proxy
+        run: docker compose up -d --wait postgres neon-proxy
+
+      - name: Wait for the Neon proxy
+        run: |
+          for _ in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/4444) >/dev/null 2>&1; then
+              echo "proxy ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "neon proxy never became ready" >&2
+          docker compose logs postgres neon-proxy >&2 || true
+          exit 1
+
+      # Migrations run over the raw Postgres port (drizzle-kit speaks the pg wire
+      # protocol, not neon-http); the tests run through the proxy.
+      - name: Apply migrations
+        working-directory: packages/db
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/main
+          DATABASE_URL_UNPOOLED: postgres://postgres:postgres@localhost:5432/main
+        run: bunx drizzle-kit migrate
+
+      - name: Run DB-backed integration tests
+        working-directory: apps/api
+        env:
+          RUN_DB_TESTS: "1"
+          SKIP_ENV_VALIDATION: "1"
+          DATABASE_URL: postgres://postgres:postgres@db.localtest.me:4444/main
+          DATABASE_URL_UNPOOLED: postgres://postgres:postgres@db.localtest.me:4444/main
+        run: bun test
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
