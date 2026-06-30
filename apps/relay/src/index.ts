@@ -12,6 +12,7 @@ import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
 import { TunnelManager } from "./tunnel";
+import { parseHostWsRoute } from "./ws-route";
 
 // Bearer tokens we never want in stdout. Hosts put their JWT on the WS
 // upgrade URL because browser WebSockets can't send custom headers, and
@@ -307,11 +308,7 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 app.get(
 	"/hosts/:hostId/*",
 	upgradeWebSocket((c) => {
-		const url = new URL(c.req.url);
-		const hostId = url.pathname.split("/")[2] ?? "";
-		const prefix = `/hosts/${hostId}`;
-		const path = url.pathname.slice(prefix.length) || "/";
-		const query = url.search.slice(1) || undefined;
+		const { hostId, path, query } = parseHostWsRoute(c.req.url);
 		let channelId: string | null = null;
 
 		return {
