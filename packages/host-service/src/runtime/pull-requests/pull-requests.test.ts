@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { pullRequests, workspaces } from "../../db/schema";
 import {
 	PullRequestRuntimeManager,
@@ -349,6 +352,135 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 				url: "https://github.com/base-owner/base-repo/actions/1",
 			},
 		]);
+	});
+
+	test("does not git-sync a workspace whose worktree directory is missing", async () => {
+		// Reproduces #5226: the host service's workspace-branch sync constructs
+		// simple-git against each worktree path without checking the directory
+		// exists. For a deleted / tombstoned / cross-host workspace the directory
+		// is gone, so simple-git throws GitConstructError. Guarding on existence
+		// means we skip cleanly instead of spawning git and logging an error.
+		const gitCalls: string[] = [];
+		const warnings: unknown[][] = [];
+		const manager = new PullRequestRuntimeManager({
+			db: {
+				query: {
+					pullRequests: { findFirst: () => ({ sync: () => undefined }) },
+				},
+				update: () => ({ set: () => ({ where: () => ({ run: () => {} }) }) }),
+			} as never,
+			execGh: async () => {
+				throw new Error("gh should not be used");
+			},
+			git: async (path: string) => {
+				gitCalls.push(path);
+				// Mirror what simple-git actually throws for a missing baseDir.
+				throw new Error(
+					"Cannot use simple-git on a directory that does not exist",
+				);
+			},
+			github: async () => {
+				throw new Error("github should not be used");
+			},
+			gitWatcher: { onChanged: () => () => {} } as never,
+		});
+
+		const missingWorkspace = {
+			id: "ws-tombstoned",
+			projectId: PROJECT_ID,
+			worktreePath: "/definitely/not/a/real/path/.worktrees/gone",
+			branch: "feature",
+			headSha: null,
+			upstreamOwner: null,
+			upstreamRepo: null,
+			upstreamBranch: null,
+			pullRequestId: null,
+		};
+
+		const originalWarn = console.warn;
+		console.warn = (...args: unknown[]) => {
+			warnings.push(args);
+		};
+		let result: string | null;
+		try {
+			result = await (
+				manager as unknown as {
+					syncWorkspaceRow: (w: unknown) => Promise<string | null>;
+				}
+			).syncWorkspaceRow(missingWorkspace);
+		} finally {
+			console.warn = originalWarn;
+		}
+
+		// The directory is gone, so this workspace contributes no project to refresh.
+		expect(result).toBeNull();
+		// Root cause: git must not be constructed against a missing worktree path.
+		expect(gitCalls).toEqual([]);
+		// And the expected "deleted" case must not surface as a scary error log.
+		expect(warnings).toEqual([]);
+	});
+
+	test("still git-syncs a workspace whose worktree directory exists", async () => {
+		// Guard against over-correcting: a present worktree must still sync.
+		const tempDir = mkdtempSync(join(tmpdir(), "superset-worktree-"));
+		const gitCalls: string[] = [];
+		const fakeGit = {
+			raw: async (args: string[]) => {
+				if (args[0] === "symbolic-ref") return "feature\n";
+				throw new Error("unsupported");
+			},
+			revparse: async (args: string[]) => {
+				if (args[0] === "HEAD") return "deadbeef\n";
+				throw new Error("unsupported");
+			},
+			remote: async () => {
+				throw new Error("unsupported");
+			},
+		};
+		const manager = new PullRequestRuntimeManager({
+			db: {
+				query: {
+					pullRequests: { findFirst: () => ({ sync: () => undefined }) },
+				},
+				update: () => ({ set: () => ({ where: () => ({ run: () => {} }) }) }),
+			} as never,
+			execGh: async () => {
+				throw new Error("gh should not be used");
+			},
+			git: async (path: string) => {
+				gitCalls.push(path);
+				return fakeGit as never;
+			},
+			github: async () => {
+				throw new Error("github should not be used");
+			},
+			gitWatcher: { onChanged: () => () => {} } as never,
+		});
+
+		const liveWorkspace = {
+			id: "ws-live",
+			projectId: PROJECT_ID,
+			worktreePath: tempDir,
+			branch: "old-branch",
+			headSha: null,
+			upstreamOwner: null,
+			upstreamRepo: null,
+			upstreamBranch: null,
+			pullRequestId: null,
+		};
+
+		try {
+			const result = await (
+				manager as unknown as {
+					syncWorkspaceRow: (w: unknown) => Promise<string | null>;
+				}
+			).syncWorkspaceRow(liveWorkspace);
+
+			expect(gitCalls).toEqual([tempDir]);
+			expect(result).toBe(PROJECT_ID);
+		} finally {
+			rmSync(tempDir, { recursive: true, force: true });
+		}
 	});
 
 	test("preserves existing pullRequestId when head lookup fails", async () => {

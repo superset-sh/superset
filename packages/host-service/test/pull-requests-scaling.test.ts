@@ -1,4 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PullRequestRuntimeManager } from "../src/runtime/pull-requests/pull-requests";
 
 /**
@@ -19,11 +22,11 @@ interface RawCallLog {
 	args: string[];
 }
 
-function buildWorkspace(index: number) {
+function buildWorkspace(index: number, worktreePath: string) {
 	return {
 		id: `ws-${index}`,
 		projectId: `project-${index}`,
-		worktreePath: `/tmp/worktree-${index}`,
+		worktreePath,
 		// Match what the git mock will return so syncWorkspaceBranches treats
 		// every workspace as unchanged. This is the realistic steady-state:
 		// nothing changed, but we still pay full git-subprocess cost per tick.
@@ -78,9 +81,23 @@ function buildGitMock(rawCalls: RawCallLog[], worktreePath: string) {
 }
 
 async function runSync(workspaceCount: number) {
-	const workspaces = Array.from({ length: workspaceCount }, (_, i) =>
-		buildWorkspace(i),
-	);
+	// syncWorkspaceRow now skips workspaces whose worktree directory is missing
+	// (see #5226), so back each synthetic workspace with a real directory to
+	// exercise the per-workspace git cost this test pins.
+	const root = mkdtempSync(join(tmpdir(), "superset-scaling-"));
+	try {
+		return await runSyncInRoot(workspaceCount, root);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+}
+
+async function runSyncInRoot(workspaceCount: number, root: string) {
+	const workspaces = Array.from({ length: workspaceCount }, (_, i) => {
+		const worktreePath = join(root, `worktree-${i}`);
+		mkdirSync(worktreePath, { recursive: true });
+		return buildWorkspace(i, worktreePath);
+	});
 
 	const rawCalls: RawCallLog[] = [];
 
