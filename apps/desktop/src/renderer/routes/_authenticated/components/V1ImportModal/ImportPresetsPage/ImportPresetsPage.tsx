@@ -1,9 +1,4 @@
 import type { TerminalPreset } from "@superset/local-db";
-import {
-	AGENT_LABELS,
-	AGENT_TYPES,
-	type AgentType,
-} from "@superset/shared/agent-command";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { LuTerminal } from "react-icons/lu";
@@ -14,12 +9,15 @@ import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/provide
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
+import {
+	buildAgentConfigIdByPresetId,
+	buildImportedPresetIndex,
+	resolvePresetImport,
+} from "./importPresetDedup";
 
 interface ImportPresetsPageProps {
 	organizationId: string;
 }
-
-const BUILTIN_AGENT_IDS = new Set<string>(AGENT_TYPES);
 
 export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 	const collections = useCollections();
@@ -33,31 +31,17 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 		[collections],
 	);
 
-	const importedAgentIds = useMemo(
-		() => new Set(v2Presets.flatMap((p) => (p.agentId ? [p.agentId] : []))),
-		[v2Presets],
-	);
-	const importedNames = useMemo(
-		() => new Set(v2Presets.flatMap((p) => (p.agentId ? [] : [p.name]))),
+	const importedIndex = useMemo(
+		() => buildImportedPresetIndex(v2Presets),
 		[v2Presets],
 	);
 
 	const isLoading = presetsQuery.isPending;
 	const presets = presetsQuery.data ?? [];
-	const agentConfigIdByPresetId = useMemo(() => {
-		const map = new Map<AgentType, string>();
-		for (const agent of agents) {
-			if (!BUILTIN_AGENT_IDS.has(agent.presetId)) {
-				continue;
-			}
-			const presetId = agent.presetId as AgentType;
-			if (map.has(presetId)) {
-				continue;
-			}
-			map.set(presetId, agent.id);
-		}
-		return map;
-	}, [agents]);
+	const agentConfigIdByPresetId = useMemo(
+		() => buildAgentConfigIdByPresetId(agents),
+		[agents],
+	);
 
 	const refresh = async () => {
 		setIsRefreshing(true);
@@ -79,19 +63,11 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 			isRefreshing={isRefreshing}
 		>
 			{presets.map((preset, index) => {
-				const builtInAgentId = BUILTIN_AGENT_IDS.has(preset.name)
-					? (preset.name as AgentType)
-					: undefined;
-				const linkedAgentId = builtInAgentId
-					? (agentConfigIdByPresetId.get(builtInAgentId) ?? builtInAgentId)
-					: undefined;
-				const v2Name = builtInAgentId
-					? AGENT_LABELS[builtInAgentId]
-					: preset.name;
-				const alreadyImported = linkedAgentId
-					? importedAgentIds.has(linkedAgentId) ||
-						(!!builtInAgentId && importedAgentIds.has(builtInAgentId))
-					: importedNames.has(v2Name);
+				const { linkedAgentId, v2Name, alreadyImported } = resolvePresetImport({
+					presetName: preset.name,
+					agentConfigIdByPresetId,
+					index: importedIndex,
+				});
 				return (
 					<PresetRow
 						key={preset.id}
