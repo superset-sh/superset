@@ -3,21 +3,17 @@ import {
 	PromptInputSubmit,
 	PromptInputTools,
 } from "@superset/ui/ai-elements/prompt-input";
-import {
-	type ThinkingLevel,
-	ThinkingToggle,
-} from "@superset/ui/ai-elements/thinking-toggle";
+import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
 import type { ChatStatus } from "ai";
 import { ArrowUpIcon, Loader2Icon, SquareIcon } from "lucide-react";
 import type React from "react";
-import { PermissionModePicker } from "renderer/components/Chat/ChatInterface/components/PermissionModePicker";
 import { PlusMenu } from "renderer/components/Chat/ChatInterface/components/PlusMenu";
-import { PILL_BUTTON_CLASS } from "renderer/components/Chat/ChatInterface/styles";
 import type {
 	ModelOption,
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
 import { ModelPicker } from "../../../ModelPicker";
+import { ComposerSettingsMenu } from "./ComposerSettingsMenu";
 
 interface ChatComposerControlsProps {
 	availableModels: ModelOption[];
@@ -53,21 +49,21 @@ export function ChatComposerControls({
 	return (
 		<PromptInputFooter>
 			<PromptInputTools className="gap-1.5">
-				<PermissionModePicker
-					selectedMode={permissionMode}
-					onSelectMode={setPermissionMode}
+				<ComposerSettingsMenu
+					selectedModel={selectedModel}
+					setModelSelectorOpen={setModelSelectorOpen}
+					permissionMode={permissionMode}
+					setPermissionMode={setPermissionMode}
+					thinkingLevel={thinkingLevel}
+					setThinkingLevel={setThinkingLevel}
 				/>
 				<ModelPicker
+					triggerless
 					models={availableModels}
 					selectedModel={selectedModel}
 					onSelectModel={setSelectedModel}
 					open={modelSelectorOpen}
 					onOpenChange={setModelSelectorOpen}
-				/>
-				<ThinkingToggle
-					level={thinkingLevel}
-					onLevelChange={setThinkingLevel}
-					className={PILL_BUTTON_CLASS}
 				/>
 			</PromptInputTools>
 			<div className="flex items-center gap-2">
