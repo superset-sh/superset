@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { selectWorkspacesToAutoAdd } from "./selectWorkspacesToAutoAdd";
 
 /**
  * Backfills `v2WorkspaceLocalState` rows for workspaces on this device that have
@@ -40,12 +41,12 @@ export function useAutoAddLocalWorkspacesToSidebar(): void {
 	useEffect(() => {
 		if (!workspacesReady || !localStateReady) return;
 
-		const knownWorkspaceIds = new Set(
-			localStateRows.map((row) => row.workspaceId),
-		);
+		const knownWorkspaceIds = localStateRows.map((row) => row.workspaceId);
 
-		for (const workspace of localWorkspaces) {
-			if (knownWorkspaceIds.has(workspace.id)) continue;
+		for (const workspace of selectWorkspacesToAutoAdd(
+			localWorkspaces,
+			knownWorkspaceIds,
+		)) {
 			ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 		}
 	}, [
