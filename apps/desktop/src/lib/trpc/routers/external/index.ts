@@ -19,8 +19,6 @@ import {
 } from "./helpers";
 import { ExternalAppSchema, openFileInEditorInputSchema } from "./schemas";
 
-export { openFileInEditorInputSchema };
-
 /**
  * Wraps a tRPC handler so a `RelativePathWithoutCwdError` (thrown by
  * `resolvePath` when a relative path arrives without a `worktreePath`)
