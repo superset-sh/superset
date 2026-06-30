@@ -11,11 +11,13 @@ import {
 import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
 import { env } from "main/env.main";
 import { focusMainWindow, quitApp, quitAppCompletely } from "main/index";
+import { appState } from "main/lib/app-state";
 import {
 	getHostServiceCoordinator,
 	type HostServiceStatusEvent,
 } from "main/lib/host-service-coordinator";
 import { menuEmitter } from "main/lib/menu-events";
+import { shouldShowTray } from "./should-show-tray";
 
 /** Must have "Template" suffix for macOS dark/light mode support */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
@@ -50,6 +52,8 @@ function getTrayIconPath(): string | null {
 }
 
 let tray: Tray | null = null;
+let statusChangedHandler: ((event: HostServiceStatusEvent) => void) | null =
+	null;
 
 function createTrayIcon(): Electron.NativeImage | null {
 	const iconPath = getTrayIconPath();
@@ -268,14 +272,9 @@ async function updateTrayMenu(): Promise<void> {
 	tray.setContextMenu(menu);
 }
 
-/** Call once after app.whenReady() */
-export function initTray(): void {
+function createTray(): void {
 	if (tray) {
 		console.warn("[Tray] Already initialized");
-		return;
-	}
-
-	if (process.platform !== "darwin") {
 		return;
 	}
 
@@ -292,9 +291,10 @@ export function initTray(): void {
 		void updateTrayMenu();
 
 		const manager = getHostServiceCoordinator();
-		manager.on("status-changed", (_event: HostServiceStatusEvent) => {
+		statusChangedHandler = (_event: HostServiceStatusEvent) => {
 			void updateTrayMenu();
-		});
+		};
+		manager.on("status-changed", statusChangedHandler);
 
 		tray.on("mouse-enter", () => {
 			void updateTrayMenu();
@@ -306,8 +306,39 @@ export function initTray(): void {
 	}
 }
 
+/** Call once after app.whenReady() */
+export function initTray(): void {
+	if (
+		!shouldShowTray({
+			platform: process.platform,
+			showTrayIcon: appState.data.preferencesState.showTrayIcon,
+		})
+	) {
+		return;
+	}
+
+	createTray();
+}
+
+/**
+ * Show or hide the tray icon at runtime in response to a settings change.
+ * No-op on platforms where the tray is unsupported.
+ */
+export function setTrayVisible(visible: boolean): void {
+	if (!shouldShowTray({ platform: process.platform, showTrayIcon: visible })) {
+		disposeTray();
+		return;
+	}
+
+	createTray();
+}
+
 /** Call on app quit */
 export function disposeTray(): void {
+	if (statusChangedHandler) {
+		getHostServiceCoordinator().off("status-changed", statusChangedHandler);
+		statusChangedHandler = null;
+	}
 	if (tray) {
 		tray.destroy();
 		tray = null;

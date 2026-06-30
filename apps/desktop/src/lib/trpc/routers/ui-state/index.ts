@@ -1,5 +1,6 @@
 import { appState } from "main/lib/app-state";
 import type { TabsState, ThemeState } from "main/lib/app-state/schemas";
+import { setTrayVisible } from "main/lib/tray";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -271,6 +272,22 @@ export const createUiStateRouter = () => {
 			get: publicProcedure.query(() => {
 				return appState.data.hotkeysState;
 			}),
+		}),
+
+		// General app preferences
+		preferences: router({
+			getShowTrayIcon: publicProcedure.query((): boolean => {
+				return appState.data.preferencesState.showTrayIcon;
+			}),
+
+			setShowTrayIcon: publicProcedure
+				.input(z.object({ enabled: z.boolean() }))
+				.mutation(async ({ input }) => {
+					appState.data.preferencesState.showTrayIcon = input.enabled;
+					await appState.write();
+					setTrayVisible(input.enabled);
+					return { success: true };
+				}),
 		}),
 	});
 };

@@ -36,8 +36,16 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showTrayIconSetting = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_TRAY_ICON,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
+
+	// The menu bar (tray) icon is macOS-only.
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isMac = platform === "darwin";
 
 	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
 		electronTrpc.settings.getConfirmOnQuit.useQuery();
@@ -124,6 +132,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 		},
 	);
+
+	const { data: showTrayIcon, isLoading: isShowTrayIconLoading } =
+		electronTrpc.uiState.preferences.getShowTrayIcon.useQuery();
+	const setShowTrayIcon =
+		electronTrpc.uiState.preferences.setShowTrayIcon.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.uiState.preferences.getShowTrayIcon.cancel();
+				const previous = utils.uiState.preferences.getShowTrayIcon.getData();
+				utils.uiState.preferences.getShowTrayIcon.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.uiState.preferences.getShowTrayIcon.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.uiState.preferences.getShowTrayIcon.invalidate();
+			},
+		});
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -224,6 +255,25 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+
+				{showTrayIconSetting && isMac && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="show-tray-icon" className="text-sm font-medium">
+								Menu bar icon
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Show the Superset icon in the menu bar
+							</p>
+						</div>
+						<Switch
+							id="show-tray-icon"
+							checked={showTrayIcon ?? true}
+							onCheckedChange={(enabled) => setShowTrayIcon.mutate({ enabled })}
+							disabled={isShowTrayIconLoading || setShowTrayIcon.isPending}
 						/>
 					</div>
 				)}

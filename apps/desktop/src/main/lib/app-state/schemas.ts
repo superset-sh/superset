@@ -20,10 +20,17 @@ interface LegacyHotkeysState {
 	byPlatform: Record<string, Record<string, string | null>>;
 }
 
+/** General app preferences not tied to a specific feature store */
+export interface PreferencesState {
+	/** Whether the macOS menu bar (tray) icon is shown. Defaults to true. */
+	showTrayIcon: boolean;
+}
+
 export interface AppState {
 	tabsState: BaseTabsState;
 	themeState: ThemeState;
 	hotkeysState: LegacyHotkeysState;
+	preferencesState: PreferencesState;
 }
 
 export const defaultAppState: AppState = {
@@ -43,5 +50,8 @@ export const defaultAppState: AppState = {
 	hotkeysState: {
 		version: 1,
 		byPlatform: { darwin: {}, win32: {}, linux: {} },
+	},
+	preferencesState: {
+		showTrayIcon: true,
 	},
 };
