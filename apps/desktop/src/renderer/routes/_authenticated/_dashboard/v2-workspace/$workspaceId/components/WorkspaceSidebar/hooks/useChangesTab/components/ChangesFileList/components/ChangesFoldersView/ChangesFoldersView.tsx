@@ -34,7 +34,8 @@ interface FolderGroup {
  *    collapsed when it appeared later).
  *  - Per-folder bulk Stage/Unstage/Discard intentionally not ported —
  *    section-level bulk actions already cover the common case, and the
- *    per-folder buttons crowd the header.
+ *    per-folder buttons crowd the header. (The folder header's right-click
+ *    menu does offer the same path actions as the tree view's folder rows.)
  */
 export const ChangesFoldersView = memo(function ChangesFoldersView({
 	files,
@@ -83,9 +84,12 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 					<div key={group.folderPath}>
 						<FolderHeader
 							label={isRoot ? ROOT_FOLDER_LABEL : group.folderPath}
+							folderPath={group.folderPath}
 							fileCount={group.files.length}
 							isOpen={isOpen}
 							onToggle={() => toggleFolder(group.folderPath)}
+							worktreePath={worktreePath}
+							onOpenInEditor={onOpenInEditor}
 						/>
 						{isOpen &&
 							group.files.map((file) => (
