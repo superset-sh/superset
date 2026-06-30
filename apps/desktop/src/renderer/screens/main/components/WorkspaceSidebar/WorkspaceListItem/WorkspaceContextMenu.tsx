@@ -14,8 +14,10 @@ import {
 	HoverCardContent,
 	HoverCardTrigger,
 } from "@superset/ui/hover-card";
+import { toast } from "@superset/ui/sonner";
 import { useMemo, useRef, useState } from "react";
 import {
+	LuAppWindow,
 	LuArrowRightLeft,
 	LuBellOff,
 	LuCopy,
@@ -30,6 +32,7 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCreateSectionFromWorkspaces,
 	useMoveWorkspacesToSection,
@@ -96,6 +99,11 @@ export function WorkspaceContextMenu({
 		() => createContextMenuDeleteDialogCoordinator(onDelete),
 		[onDelete],
 	);
+	const openWorkspaceWindow =
+		electronTrpc.window.openWorkspaceWindow.useMutation({
+			onError: (error) =>
+				toast.error(`Failed to open new window: ${error.message}`),
+		});
 
 	const handleContextMenuOpenChange = (open: boolean) => {
 		setIsContextMenuOpen(open);
@@ -158,6 +166,12 @@ export function WorkspaceContextMenu({
 			<ContextMenuItem onSelect={onOpenInEditor}>
 				<LuExternalLink className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Open in Editor
+			</ContextMenuItem>
+			<ContextMenuItem
+				onSelect={() => openWorkspaceWindow.mutate({ workspaceId: id })}
+			>
+				<LuAppWindow className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Open in New Window
 			</ContextMenuItem>
 			<ContextMenuItem onSelect={onCopyPath}>
 				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />

@@ -6,6 +6,8 @@ export {
 export {
 	isValidWindowState,
 	loadWindowState,
+	loadWindowStateForKey,
 	saveWindowState,
+	saveWindowStateForKey,
 	type WindowState,
 } from "./window-state";

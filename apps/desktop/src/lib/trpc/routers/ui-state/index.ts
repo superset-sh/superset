@@ -1,7 +1,23 @@
+import { EventEmitter } from "node:events";
+import { observable } from "@trpc/server/observable";
 import { appState } from "main/lib/app-state";
 import type { TabsState, ThemeState } from "main/lib/app-state/schemas";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+
+/**
+ * Cross-window tabs-state change event. `sourceWebContentsId` lets windows
+ * ignore their own writes (echo suppression).
+ */
+export interface TabsStateChangeEvent {
+	state: TabsState;
+	sourceWebContentsId: number | null;
+}
+
+const tabsStateEvents = new EventEmitter();
+const TABS_STATE_CHANGED = "tabs-state-changed";
+// Every window subscribes; default max (10) would warn spuriously past a few windows.
+tabsStateEvents.setMaxListeners(100);
 
 /**
  * Zod schema for FileViewerState persistence.
@@ -244,11 +260,36 @@ export const createUiStateRouter = () => {
 
 			set: publicProcedure
 				.input(tabsStateSchema)
-				.mutation(async ({ input }) => {
+				.mutation(async ({ ctx, input }) => {
 					appState.data.tabsState = input;
 					await appState.write();
+					const event: TabsStateChangeEvent = {
+						state: input,
+						// Captured at context creation — safe even if the window is
+						// torn down before this async mutation resolves.
+						sourceWebContentsId: ctx.webContentsId,
+					};
+					tabsStateEvents.emit(TABS_STATE_CHANGED, event);
 					return { success: true };
 				}),
+
+			/**
+			 * Pushes every tabs-state write to all windows so multiple windows on
+			 * the same workspace stay structurally consistent. Renderers must drop
+			 * events whose sourceWebContentsId matches their own (echo) and apply
+			 * only structure — selection stays per-window.
+			 * Observable (not async generator) per apps/desktop/AGENTS.md —
+			 * trpc-electron only supports observables for IPC subscriptions.
+			 */
+			onChange: publicProcedure.subscription(() => {
+				return observable<TabsStateChangeEvent>((emit) => {
+					const handler = (event: TabsStateChangeEvent) => emit.next(event);
+					tabsStateEvents.on(TABS_STATE_CHANGED, handler);
+					return () => {
+						tabsStateEvents.off(TABS_STATE_CHANGED, handler);
+					};
+				});
+			}),
 		}),
 
 		// Theme state procedures

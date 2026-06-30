@@ -17,12 +17,16 @@ import { posthog } from "./lib/posthog";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { NotFound } from "./routes/not-found";
 import { routeTree } from "./routeTree.gen";
+import { startCrossWindowTabsSync } from "./stores/tabs/cross-window-sync";
 
 import "./globals.css";
 import "./styles/bundled-fonts.css";
 
 const rootElement = document.querySelector("app");
 initBootErrorHandling(rootElement);
+
+// Keep tab/pane structure consistent across windows of the same workspace.
+startCrossWindowTabsSync();
 
 const router = createRouter({
 	routeTree,

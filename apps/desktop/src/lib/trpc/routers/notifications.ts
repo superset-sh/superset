@@ -4,6 +4,7 @@ import type {
 	Notification as ElectronNotification,
 } from "electron";
 import { Notification } from "electron";
+// `BrowserWindow` is still used as a type below; runtime focus uses ctx.window.
 import {
 	type AgentLifecycleEvent,
 	type NotificationIds,
@@ -56,8 +57,7 @@ type ShowNativeInput = z.infer<typeof showNativeInputSchema>;
 const activeNativeNotifications = new Map<string, ElectronNotification>();
 let nativeNotificationCounter = 0;
 
-function focusWindow(getWindow: () => BrowserWindow | null): void {
-	const window = getWindow();
+function focusWindow(window: BrowserWindow | null): void {
 	if (!window) return;
 	if (window.isMinimized()) {
 		window.restore();
@@ -89,13 +89,11 @@ function trackNativeNotification(
 	notification.on("close", untrack);
 }
 
-export const createNotificationsRouter = (
-	getWindow: () => BrowserWindow | null,
-) => {
+export const createNotificationsRouter = () => {
 	return router({
 		showNative: publicProcedure
 			.input(showNativeInputSchema)
-			.mutation(({ input }) => {
+			.mutation(({ ctx, input }) => {
 				if (!Notification.isSupported()) {
 					return { success: false as const, reason: "unsupported" as const };
 				}
@@ -109,7 +107,7 @@ export const createNotificationsRouter = (
 				trackNativeNotification(key, notification);
 
 				notification.on("click", () => {
-					focusWindow(getWindow);
+					focusWindow(ctx.window);
 					if (!input.clickTarget) return;
 					notificationsEmitter.emit(
 						NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE,

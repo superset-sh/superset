@@ -10,9 +10,16 @@ import {
 } from "./auto-updater";
 import { menuEmitter } from "./menu-events";
 
+async function openNewWindow(): Promise<void> {
+	// Lazy import avoids menu.ts ↔ main.ts cycle.
+	const { MainWindow } = await import("../windows/main");
+	await MainWindow({ stagger: true });
+}
+
 export function createApplicationMenu() {
 	const reloadAccelerator = "CmdOrCtrl+R";
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
+	const newWindowAccelerator = "CmdOrCtrl+Shift+N";
 	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
 
@@ -75,6 +82,16 @@ export function createApplicationMenu() {
 		{
 			label: "Window",
 			submenu: [
+				{
+					label: "New Window",
+					accelerator: newWindowAccelerator,
+					click: () => {
+						void openNewWindow().catch((error) => {
+							console.error("[menu] Failed to open new window:", error);
+						});
+					},
+				},
+				{ type: "separator" },
 				{ role: "minimize" },
 				{ role: "zoom" },
 				{ type: "separator" },

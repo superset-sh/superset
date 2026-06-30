@@ -1,14 +1,33 @@
 import { createTRPCReact } from "@trpc/react-query";
 import { initTRPC } from "@trpc/server";
+import type { BrowserWindow } from "electron";
 import superjson from "superjson";
 import type { AppRouter } from "./routers";
 import { NotGitRepoError } from "./routers/workspaces/utils/git";
 
 /**
+ * Per-call context. `window` is the BrowserWindow that initiated the IPC call,
+ * resolved from `event.sender` in trpc-electron's createContext. Procedures
+ * that act on "the window" should use `ctx.window` so multi-window callers
+ * each affect their own window.
+ *
+ * `webContentsId` is the owning window's `webContents.id`, captured at
+ * context-creation time — the one moment the sender is provably alive (the IPC
+ * just arrived from it). Procedures must read this instead of
+ * `ctx.window.webContents.id`: reading `.webContents` later in an async
+ * mutation can throw "Object has been destroyed" if the window closes
+ * mid-call. `null` when the window could not be resolved.
+ */
+export interface TrpcContext {
+	window: BrowserWindow | null;
+	webContentsId: number | null;
+}
+
+/**
  * Core tRPC initialization
  * This provides the base router and procedure builders used by all routers
  */
-const t = initTRPC.create({
+const t = initTRPC.context<TrpcContext>().create({
 	transformer: superjson,
 	isServer: true,
 });

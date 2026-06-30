@@ -1,70 +1,41 @@
 import { join } from "node:path";
-import { workspaces, worktrees } from "@superset/local-db";
-import { eq } from "drizzle-orm";
-import type { BrowserWindow } from "electron";
-import { app, Notification, nativeTheme } from "electron";
+import {
+	app,
+	type BrowserWindow,
+	BrowserWindow as BrowserWindowCtor,
+	nativeTheme,
+} from "electron";
 import log from "electron-log/main";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
-import { localDb } from "main/lib/local-db";
-import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
+import { PLATFORM } from "shared/constants";
 import {
 	env,
 	getWorkspaceName as getEnvWorkspaceName,
 } from "shared/env.shared";
-import type { AgentLifecycleEvent } from "shared/notification-types";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
-import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
 import { createApplicationMenu } from "../lib/menu";
-import { playNotificationSound } from "../lib/notification-sound";
-import { NotificationManager } from "../lib/notifications/notification-manager";
-import {
-	notificationsApp,
-	notificationsEmitter,
-} from "../lib/notifications/server";
-import {
-	extractWorkspaceIdFromUrl,
-	getNotificationTitle,
-	getWorkspaceName,
-} from "../lib/notifications/utils";
 import {
 	getInitialWindowBounds,
-	loadWindowState,
-	saveWindowState,
+	loadWindowStateForKey,
+	saveWindowStateForKey,
 } from "../lib/window-state";
-import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
+import {
+	getAllManagedWindows,
+	getManagedWindowByWebContents,
+	type ManagedWindow,
+	registerWindow,
+} from "./manager";
 
-// Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
+// Singleton IPC handler to prevent duplicate handlers on window reopen (macOS).
+// IMPORTANT INVARIANT: `createContext` MUST stay closure-free over any individual
+// window. It resolves the sender's host window per-call so the same handler can
+// route calls from every BrowserWindow correctly.
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
-
-function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
-	if (!workspaceId) return "Workspace";
-	try {
-		const workspace = localDb
-			.select()
-			.from(workspaces)
-			.where(eq(workspaces.id, workspaceId))
-			.get();
-		const worktree = workspace?.worktreeId
-			? localDb
-					.select()
-					.from(worktrees)
-					.where(eq(worktrees.id, workspace.worktreeId))
-					.get()
-			: undefined;
-		return getWorkspaceName({ workspace, worktree });
-	} catch (error) {
-		console.error("[notifications] Failed to get workspace name:", error);
-		return "Workspace";
-	}
-}
-
-let currentWindow: BrowserWindow | null = null;
-
-// Routers receive this getter so they always see the current window, not a stale reference
-const getWindow = () => currentWindow;
+let menuInitialized = false;
+let gpuRepaintBound = false;
 
 // invalidate() alone may not rebuild corrupted GPU layers — a tiny resize
 // forces Chromium to reconstruct the compositor layer tree.
@@ -80,23 +51,62 @@ const forceRepaint = (win: BrowserWindow) => {
 };
 
 // GPU process restarts don't repaint existing compositor layers automatically.
-app.on("child-process-gone", (_event, details) => {
-	if (details.type === "GPU") {
+// Bind once: dev HMR re-evaluates this module, so without the sentinel each
+// reload would stack another listener and cause N resize jitters per crash.
+function bindGpuRepaintListener(): void {
+	if (gpuRepaintBound) return;
+	gpuRepaintBound = true;
+	app.on("child-process-gone", (_event, details) => {
+		if (details.type !== "GPU") return;
 		console.warn("[main-window] GPU process gone:", details.reason);
-		const win = getWindow();
-		if (win) forceRepaint(win);
-	}
-});
+		// GPU process is shared across every window — repaint all, not just
+		// the focused one, so background windows don't render stale frames.
+		for (const managed of getAllManagedWindows()) {
+			forceRepaint(managed.window);
+		}
+	});
+}
 
-export async function MainWindow() {
-	const savedWindowState = loadWindowState();
+export interface MainWindowOptions {
+	/** Persisted workspace identifier. Used to scope state, query param, and lookups. */
+	workspaceId?: string | null;
+	/** When true, stagger bounds off any existing window to avoid stacking. */
+	stagger?: boolean;
+	/** Tab to focus on first paint (forwarded to the renderer as a query param). */
+	focusTabId?: string;
+}
+
+export async function MainWindow(
+	options: MainWindowOptions = {},
+): Promise<BrowserWindow> {
+	const isDev = env.NODE_ENV === "development";
+	const devWorkspaceName = isDev ? getEnvWorkspaceName() : undefined;
+	const workspaceId = options.workspaceId ?? devWorkspaceName ?? null;
+
+	// Persist state ONLY when the window can be uniquely identified across
+	// launches (workspaceId set) or it's the primary "default" window.
+	// A secondary window opened via "New Window" with no workspaceId stays
+	// ephemeral — otherwise it would clobber the primary's persisted bounds.
+	const stateKey: string | null = workspaceId
+		? workspaceId
+		: options.stagger
+			? null
+			: "default";
+
+	const savedWindowState = stateKey ? loadWindowStateForKey(stateKey) : null;
 	const initialBounds = getInitialWindowBounds(savedWindowState);
 	let persistedZoomLevel = savedWindowState?.zoomLevel;
 
-	const isDev = env.NODE_ENV === "development";
-	const workspaceName = isDev ? getEnvWorkspaceName() : undefined;
-	const windowTitle = workspaceName
-		? `${productName} — ${workspaceName}`
+	// Stagger new windows so they don't stack perfectly on an existing one.
+	if (options.stagger) {
+		const STAGGER_PX = 32;
+		initialBounds.x = (initialBounds.x ?? 0) + STAGGER_PX;
+		initialBounds.y = (initialBounds.y ?? 0) + STAGGER_PX;
+		initialBounds.center = false;
+	}
+
+	const windowTitle = devWorkspaceName
+		? `${productName} — ${devWorkspaceName}`
 		: productName;
 
 	const window = createWindow({
@@ -118,6 +128,12 @@ export async function MainWindow() {
 		frame: false,
 		titleBarStyle: "hidden",
 		trafficLightPosition: { x: 16, y: 16 },
+		query: workspaceId
+			? {
+					workspaceId,
+					...(options.focusTabId ? { focusTabId: options.focusTabId } : {}),
+				}
+			: undefined,
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,
@@ -127,9 +143,15 @@ export async function MainWindow() {
 		},
 	});
 
-	createApplicationMenu();
+	if (!menuInitialized) {
+		createApplicationMenu();
+		menuInitialized = true;
+	}
+	bindGpuRepaintListener();
 
-	currentWindow = window;
+	const managed: ManagedWindow = registerWindow(window, {
+		workspaceId,
+	});
 
 	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
 	if (PLATFORM.IS_MAC) {
@@ -174,86 +196,28 @@ export async function MainWindow() {
 		ipcHandler.attachWindow(window);
 	} else {
 		ipcHandler = createIPCHandler({
-			router: createAppRouter(getWindow),
+			router: createAppRouter(),
 			windows: [window],
+			createContext: async ({ event }) => {
+				// IPC may originate from a <webview> pane, not the host renderer.
+				// Walk to hostWebContents to prefer resolving the owning
+				// BrowserWindow. If it can't be resolved, ctx.window stays null and
+				// dialog procedures no-op.
+				const host = event.sender.hostWebContents ?? event.sender;
+				const senderManaged = getManagedWindowByWebContents(host.id);
+				const senderWindow =
+					senderManaged?.window ?? BrowserWindowCtor.fromWebContents(host);
+				// Capture the id now, while the sender is provably alive — reading
+				// webContents off a stored BrowserWindow later can throw if the
+				// window has since been destroyed.
+				const webContentsId =
+					senderWindow && !senderWindow.isDestroyed()
+						? senderWindow.webContents.id
+						: null;
+				return { window: senderWindow, webContentsId };
+			},
 		});
 	}
-
-	const server = notificationsApp.listen(
-		env.DESKTOP_NOTIFICATIONS_PORT,
-		"127.0.0.1",
-		() => {
-			console.log(
-				`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
-			);
-		},
-	);
-
-	const notificationManager = new NotificationManager({
-		isSupported: () => Notification.isSupported(),
-		createNotification: (opts) => new Notification(opts),
-		playSound: playNotificationSound,
-		onNotificationClick: (ids) => {
-			window.show();
-			window.focus();
-			if (ids.workspaceId && ids.terminalId) {
-				notificationsEmitter.emit(
-					NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE,
-					{
-						workspaceId: ids.workspaceId,
-						source: { type: "terminal", id: ids.terminalId },
-					},
-				);
-				return;
-			}
-			notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, ids);
-		},
-		getVisibilityContext: () => ({
-			isFocused: window.isFocused(),
-			currentWorkspaceId: extractWorkspaceIdFromUrl(
-				window.webContents.getURL(),
-			),
-			tabsState: appState.data?.tabsState,
-		}),
-		getWorkspaceName: getWorkspaceNameFromDb,
-		getNotificationTitle: (event) =>
-			getNotificationTitle({
-				tabId: event.tabId,
-				paneId: event.paneId,
-				tabs: appState.data?.tabsState?.tabs,
-				panes: appState.data?.tabsState?.panes,
-			}),
-	});
-	notificationManager.start();
-
-	notificationsEmitter.on(
-		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
-		(event: AgentLifecycleEvent) => {
-			notificationManager.handleAgentLifecycle(event);
-		},
-	);
-
-	// Forward low-volume terminal lifecycle events to the renderer via the existing
-	// notifications subscription. This is used only for correctness (e.g. clearing
-	// stuck agent lifecycle statuses when terminal panes aren't mounted).
-	getWorkspaceRuntimeRegistry()
-		.getDefault()
-		.terminal.on(
-			"terminalExit",
-			(event: {
-				paneId: string;
-				exitCode: number;
-				signal?: number;
-				reason?: "killed" | "exited" | "error";
-			}) => {
-				notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
-					paneId: event.paneId,
-					exitCode: event.exitCode,
-					signal: event.signal,
-					reason: event.reason,
-				});
-			},
-		);
 
 	// macOS Sequoia+: occluded/minimized windows can lose compositor layers
 	if (PLATFORM.IS_MAC) {
@@ -282,7 +246,9 @@ export async function MainWindow() {
 				? window.getNormalBounds()
 				: window.getBounds();
 			const zoomLevel = window.webContents.getZoomLevel();
-			saveWindowState({
+			persistedZoomLevel = zoomLevel;
+			if (!stateKey) return;
+			saveWindowStateForKey(stateKey, {
 				x: bounds.x,
 				y: bounds.y,
 				width: bounds.width,
@@ -290,7 +256,6 @@ export async function MainWindow() {
 				isMaximized,
 				zoomLevel,
 			});
-			persistedZoomLevel = zoomLevel;
 		}, 500);
 	};
 	window.on("move", debouncedSave);
@@ -343,12 +308,22 @@ export async function MainWindow() {
 		console.error(`  Error:`, error);
 	});
 
+	// Snapshot the host webContents id while the window is still alive so the
+	// `closed` cleanup can find its panes after the wc has been destroyed.
+	const hostWebContentsId = window.webContents.id;
+
 	window.on("close", () => {
-		// Save window state first, before any cleanup
+		if (!stateKey || window.isDestroyed()) return;
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
-		const zoomLevel = window.webContents.getZoomLevel();
-		saveWindowState({
+		// webContents may be tearing down on Cmd+Q — fall back to last known zoom.
+		let zoomLevel = persistedZoomLevel ?? 0;
+		try {
+			zoomLevel = window.webContents.getZoomLevel();
+		} catch {
+			// wc already destroyed
+		}
+		saveWindowStateForKey(stateKey, {
 			x: bounds.x,
 			y: bounds.y,
 			width: bounds.width,
@@ -357,15 +332,19 @@ export async function MainWindow() {
 			zoomLevel,
 		});
 		persistedZoomLevel = zoomLevel;
-
-		browserManager.unregisterAll();
-		server.close();
-		notificationManager.dispose();
-		notificationsEmitter.removeAllListeners();
-		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
-		ipcHandler?.detachWindow(window);
-		currentWindow = null;
 	});
 
-	return window;
+	// Run scoped cleanup on `closed` (not `close`) so pane lookups happen after
+	// the wc has finished tearing down — avoids the half-destroyed window
+	// briefly staying in the manager registry with stale state.
+	window.on("closed", () => {
+		if (saveTimeout) clearTimeout(saveTimeout);
+		// Scoped cleanup: only this window's panes + its IPC binding.
+		// App-level services (notifications server/manager, terminal listeners)
+		// outlive any single window — see lib/app-services.ts.
+		browserManager.unregisterAllForWindow(hostWebContentsId);
+		ipcHandler?.detachWindow(window);
+	});
+
+	return managed.window;
 }

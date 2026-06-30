@@ -6,15 +6,17 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
 import { HiMiniXMark } from "react-icons/hi2";
-import { LuEyeOff, LuPencil } from "react-icons/lu";
+import { LuAppWindow, LuEyeOff, LuPencil } from "react-icons/lu";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicDragType } from "react-mosaic-component";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
@@ -68,6 +70,11 @@ export function GroupItem({
 	const displayName = getTabDisplayName(tab);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
+	const openWorkspaceWindow =
+		electronTrpc.window.openWorkspaceWindow.useMutation({
+			onError: (error) =>
+				toast.error(`Failed to open new window: ${error.message}`),
+		});
 	const activeTabId = useTabsStore((s) =>
 		resolveActiveTabIdForWorkspace({
 			workspaceId: tab.workspaceId,
@@ -288,6 +295,18 @@ export function GroupItem({
 				<ContextMenuItem onSelect={onMarkAsUnread}>
 					<LuEyeOff className="size-4 mr-2" />
 					Mark as Unread
+				</ContextMenuItem>
+				<ContextMenuSeparator />
+				<ContextMenuItem
+					onSelect={() =>
+						openWorkspaceWindow.mutate({
+							workspaceId: tab.workspaceId,
+							focusTabId: tab.id,
+						})
+					}
+				>
+					<LuAppWindow className="size-4 mr-2" />
+					Open Tab in New Window
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onClose}>

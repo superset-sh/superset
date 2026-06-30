@@ -1,42 +1,75 @@
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
-import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
+import { getManagedWindowByWebContents } from "main/windows/manager";
 import { getImageMimeType } from "shared/file-types";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
-export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
+export const createWindowRouter = () => {
 	return router({
-		minimize: publicProcedure.mutation(() => {
-			const window = getWindow();
-			if (!window) return { success: false };
-			window.minimize();
+		/**
+		 * Identity of the calling window. Lets renderers distinguish themselves
+		 * (e.g. to ignore self-originated cross-window state broadcasts).
+		 */
+		self: publicProcedure.query(({ ctx }) => {
+			if (ctx.webContentsId === null) return null;
+			const webContentsId = ctx.webContentsId;
+			const managed = getManagedWindowByWebContents(webContentsId);
+			return {
+				windowId: managed?.id ?? null,
+				webContentsId,
+				workspaceId: managed?.workspaceId ?? null,
+			};
+		}),
+
+		/**
+		 * Open a workspace in a new window, optionally focused on a tab.
+		 * Dynamic import: windows/main statically imports the app router, so a
+		 * static import here would create a cycle (same pattern as lib/menu.ts).
+		 */
+		openWorkspaceWindow: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					focusTabId: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const { MainWindow } = await import("main/windows/main");
+				await MainWindow({
+					workspaceId: input.workspaceId,
+					stagger: true,
+					focusTabId: input.focusTabId,
+				});
+				return { success: true };
+			}),
+
+		minimize: publicProcedure.mutation(({ ctx }) => {
+			if (!ctx.window) return { success: false };
+			ctx.window.minimize();
 			return { success: true };
 		}),
 
-		maximize: publicProcedure.mutation(() => {
-			const window = getWindow();
-			if (!window) return { success: false, isMaximized: false };
-			if (window.isMaximized()) {
-				window.unmaximize();
+		maximize: publicProcedure.mutation(({ ctx }) => {
+			if (!ctx.window) return { success: false, isMaximized: false };
+			if (ctx.window.isMaximized()) {
+				ctx.window.unmaximize();
 			} else {
-				window.maximize();
+				ctx.window.maximize();
 			}
-			return { success: true, isMaximized: window.isMaximized() };
+			return { success: true, isMaximized: ctx.window.isMaximized() };
 		}),
 
-		close: publicProcedure.mutation(() => {
-			const window = getWindow();
-			if (!window) return { success: false };
-			window.close();
+		close: publicProcedure.mutation(({ ctx }) => {
+			if (!ctx.window) return { success: false };
+			ctx.window.close();
 			return { success: true };
 		}),
 
-		isMaximized: publicProcedure.query(() => {
-			const window = getWindow();
-			if (!window) return false;
-			return window.isMaximized();
+		isMaximized: publicProcedure.query(({ ctx }) => {
+			if (!ctx.window) return false;
+			return ctx.window.isMaximized();
 		}),
 
 		getPlatform: publicProcedure.query(() => {
@@ -84,13 +117,12 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 					})
 					.optional(),
 			)
-			.mutation(async ({ input }) => {
-				const window = getWindow();
-				if (!window) {
+			.mutation(async ({ ctx, input }) => {
+				if (!ctx.window) {
 					return { canceled: true, path: null };
 				}
 
-				const result = await dialog.showOpenDialog(window, {
+				const result = await dialog.showOpenDialog(ctx.window, {
 					properties: ["openDirectory", "createDirectory"],
 					title: input?.title ?? "Select Directory",
 					defaultPath: input?.defaultPath ?? undefined,
@@ -103,13 +135,12 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 				return { canceled: false, path: result.filePaths[0] };
 			}),
 
-		selectImageFile: publicProcedure.mutation(async () => {
-			const window = getWindow();
-			if (!window) {
+		selectImageFile: publicProcedure.mutation(async ({ ctx }) => {
+			if (!ctx.window) {
 				return { canceled: true, dataUrl: null };
 			}
 
-			const result = await dialog.showOpenDialog(window, {
+			const result = await dialog.showOpenDialog(ctx.window, {
 				properties: ["openFile"],
 				title: "Select Organization Logo",
 				filters: [
