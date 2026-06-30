@@ -1,5 +1,6 @@
 import { generateTitleFromMessage } from "@superset/chat/server/desktop";
 import { getSmallModel } from "@superset/chat/server/shared";
+import { looksLikeGeneratedBranchName } from "@superset/shared/workspace-launch";
 import { deduplicateBranchName } from "./sanitize-branch";
 
 const BRANCH_NAME_INSTRUCTIONS =
@@ -58,6 +59,9 @@ export async function generateBranchNameFromPrompt(
 	}
 
 	if (!generated) return null;
+	// Discard refusals/explanations the model returns instead of a branch name
+	// (e.g. when the prompt contains a URL it can't open) — see issue #5288.
+	if (!looksLikeGeneratedBranchName(generated)) return null;
 	const sanitized = sanitizeGeneratedBranchName(generated);
 	if (!sanitized) return null;
 	return deduplicateBranchName(sanitized, existingBranches);
