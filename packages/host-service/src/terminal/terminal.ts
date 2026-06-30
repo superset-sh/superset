@@ -38,6 +38,7 @@ import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	createModeTracker,
 	type ModeTracker,
+	type TerminalSnapshot,
 } from "./terminal-mode-tracker.ts";
 
 /**
@@ -434,6 +435,52 @@ export function writeInputToSession({
 
 	session.pty.write(data);
 	return { success: true };
+}
+
+// Public "send a follow-up to whatever is running in this terminal" path.
+// Targets by terminalId alone (the sessions map key + the capability — no
+// workspace ownership check). Frames multi-line text as a bracketed paste when
+// the running program has that mode on, so embedded newlines reach a TUI agent
+// (claude/codex) as literal newlines rather than premature Enter presses.
+export function writeFramedInputToSession({
+	terminalId,
+	text,
+	submit,
+}: {
+	terminalId: string;
+	text: string;
+	submit: boolean;
+}): { success: true } | { error: string } {
+	const session = sessions.get(terminalId);
+	if (!session) {
+		return { error: "Terminal session not found" };
+	}
+	if (session.exited) {
+		return { error: "Terminal session has exited" };
+	}
+
+	const framed = session.modeTracker.isBracketedPasteActive()
+		? `\x1b[200~${text}\x1b[201~`
+		: text;
+	session.pty.write(submit ? `${framed}\r` : framed);
+	return { success: true };
+}
+
+// Non-destructive read of the terminal's current screen (and recent scrollback)
+// off the per-session headless emulator. For TUI agents this is the alt-screen
+// the agent renders to — i.e. its visible output.
+export function snapshotSession({
+	terminalId,
+	maxLines,
+}: {
+	terminalId: string;
+	maxLines?: number;
+}): ({ success: true } & TerminalSnapshot) | { error: string } {
+	const session = sessions.get(terminalId);
+	if (!session) {
+		return { error: "Terminal session not found" };
+	}
+	return { success: true, ...session.modeTracker.snapshot(maxLines) };
 }
 
 function sendMessage(
