@@ -12,7 +12,7 @@ export interface FsService {
 	listDirectory(
 		input: { absolutePath: string },
 		options?: { signal?: AbortSignal },
-	): Promise<{ entries: FsEntry[] }>;
+	): Promise<{ entries: FsEntry[]; truncated?: boolean }>;
 
 	readFile(input: {
 		absolutePath: string;
@@ -76,7 +76,7 @@ export interface FsService {
 export interface FsRequestMap {
 	listDirectory: {
 		input: { absolutePath: string };
-		output: { entries: FsEntry[] };
+		output: { entries: FsEntry[]; truncated?: boolean };
 	};
 	readFile: {
 		input: {

@@ -373,24 +373,56 @@ async function writeAtomically({
 // per-entry stat calls bounds how much zombie work continues after an abort.
 const LIST_DIRECTORY_STAT_BATCH_SIZE = 16;
 
+// Per-directory entry cap. Every Files View tree (renderer FilesView /
+// useFileTree / v2 FilesTab) materializes one node per returned entry, so an
+// unbounded listing of a large non-gitignored directory (e.g. node_modules,
+// 150k+ entries) drives the renderer's V8 heap to its ~4 GB ceiling and crashes
+// it — see #5320. Mirrors the watcher's FILE_PATHS_MAX: a single directory with
+// more direct children than this is pathological, and the renderer can't
+// usefully present that many rows anyway. We also cap *before* the per-entry
+// symlink stat loop so a huge directory can't trigger a stat storm.
+const DEFAULT_MAX_DIRECTORY_ENTRIES = 10_000;
+
 export async function listDirectory({
 	rootPath,
 	absolutePath,
 	signal,
+	limit = DEFAULT_MAX_DIRECTORY_ENTRIES,
 }: {
 	rootPath: string;
 	absolutePath: string;
 	signal?: AbortSignal;
-}): Promise<FsEntry[]> {
+	limit?: number;
+}): Promise<{ entries: FsEntry[]; truncated: boolean }> {
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
 	signal?.throwIfAborted();
-	const entries = await fs.readdir(targetPath, { withFileTypes: true });
+	const dirents = await fs.readdir(targetPath, { withFileTypes: true });
+
+	// Sort on the cheap dirent metadata (directories first, then name) before
+	// truncating so the retained slice is a stable, useful prefix rather than an
+	// arbitrary one. Symlinked-directory ordering is corrected by the final sort
+	// once kinds are resolved below.
+	dirents.sort((left, right) => {
+		const leftIsDir = left.isDirectory();
+		const rightIsDir = right.isDirectory();
+		if (leftIsDir !== rightIsDir) {
+			return leftIsDir ? -1 : 1;
+		}
+		return left.name.localeCompare(right.name);
+	});
+
+	const truncated = dirents.length > limit;
+	const limitedDirents = truncated ? dirents.slice(0, limit) : dirents;
 
 	const mapped: FsEntry[] = [];
-	for (let i = 0; i < entries.length; i += LIST_DIRECTORY_STAT_BATCH_SIZE) {
+	for (
+		let i = 0;
+		i < limitedDirents.length;
+		i += LIST_DIRECTORY_STAT_BATCH_SIZE
+	) {
 		signal?.throwIfAborted();
 		const batch = await Promise.all(
-			entries
+			limitedDirents
 				.slice(i, i + LIST_DIRECTORY_STAT_BATCH_SIZE)
 				.map(async (entry) => {
 					let kind = direntToKind(entry);
@@ -414,7 +446,7 @@ export async function listDirectory({
 		mapped.push(...batch);
 	}
 
-	return mapped.sort((left, right) => {
+	mapped.sort((left, right) => {
 		const leftIsDir = left.kind === "directory";
 		const rightIsDir = right.kind === "directory";
 		if (leftIsDir !== rightIsDir) {
@@ -422,6 +454,8 @@ export async function listDirectory({
 		}
 		return left.name.localeCompare(right.name);
 	});
+
+	return { entries: mapped, truncated };
 }
 
 export async function readFile({
