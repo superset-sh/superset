@@ -72,11 +72,12 @@ async function pollHealth(port: number, secret: string): Promise<boolean> {
  * When running as a compiled binary, it's a sibling file in the same bin/
  * directory as the current executable. In dev (`bun run dev`), allow
  * override via SUPERSET_HOST_BIN env var.
+ *
+ * `execPath` is injectable for tests; it defaults to the running executable.
  */
-function resolveHostBinary(): string {
+export function resolveHostBinary(execPath: string = process.execPath): string {
 	if (process.env.SUPERSET_HOST_BIN) return process.env.SUPERSET_HOST_BIN;
-	const cliBin = process.execPath;
-	return join(dirname(cliBin), "superset-host");
+	return join(dirname(execPath), "superset-host");
 }
 
 function resolveMigrationsFolder(): string {
