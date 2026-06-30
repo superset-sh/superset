@@ -1,9 +1,8 @@
-import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { HiArrowPath, HiMiniXMark } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { AUTO_UPDATE_STATUS } from "shared/auto-update";
+import { AUTO_UPDATE_STATUS, RELEASES_URL } from "shared/auto-update";
 
 interface UpdateToastProps {
 	toastId: string | number;
@@ -31,7 +30,7 @@ export function UpdateToast({
 	const isError = status === AUTO_UPDATE_STATUS.ERROR;
 
 	const handleSeeChanges = () => {
-		openUrl.mutate(COMPANY.CHANGELOG_URL);
+		openUrl.mutate(RELEASES_URL);
 	};
 
 	const handleInstall = () => {
