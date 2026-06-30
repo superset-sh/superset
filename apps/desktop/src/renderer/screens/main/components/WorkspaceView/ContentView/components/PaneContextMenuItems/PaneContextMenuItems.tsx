@@ -6,6 +6,7 @@ import {
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
 } from "@superset/ui/context-menu";
+import { useMemo } from "react";
 import {
 	LuColumns2,
 	LuEqual,
@@ -18,6 +19,7 @@ import {
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { Tab } from "renderer/stores/tabs/types";
+import { createSelectGuard } from "./utils/createSelectGuard";
 
 export interface PaneContextMenuActions {
 	onSplitHorizontal: () => void;
@@ -51,6 +53,8 @@ export function PaneContextMenuItems({
 	const targetTabs = actions.availableTabs.filter(
 		(tab) => tab.id !== actions.currentTabId,
 	);
+	const selectGuard = useMemo(() => createSelectGuard(), []);
+	const guardedClosePane = selectGuard.guard(actions.onClosePane);
 	const renderShortcut = (shortcut: string) => {
 		if (shortcut === "Unassigned") return null;
 		return <ContextMenuShortcut>{shortcut}</ContextMenuShortcut>;
@@ -112,7 +116,7 @@ export function PaneContextMenuItems({
 				</ContextMenuSubContent>
 			</ContextMenuSub>
 			<ContextMenuSeparator />
-			<ContextMenuItem variant="destructive" onSelect={actions.onClosePane}>
+			<ContextMenuItem variant="destructive" onSelect={guardedClosePane}>
 				<LuX className="size-4" />
 				{closeLabel}
 			</ContextMenuItem>
