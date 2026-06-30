@@ -43,6 +43,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { confirmCloseActiveTerminalPanes } from "../confirmTerminalClose";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatPane } from "./components/ChatPane";
@@ -298,6 +299,7 @@ export function usePaneRegistry({
 					),
 			},
 			terminal: {
+				onBeforeClose: (pane) => confirmCloseActiveTerminalPanes([pane]),
 				getIcon: (ctx) => {
 					const { terminalId } = ctx.pane.data as TerminalPaneData;
 					return (
