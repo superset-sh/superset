@@ -6,7 +6,12 @@ import {
 	isBinaryMediaFile,
 } from "@superset/shared/media-files";
 import type { SimpleGit } from "simple-git";
-import { resolveUpstream } from "../../../../runtime/git/refs";
+import {
+	asLocalRef,
+	asRemoteRef,
+	refExists,
+	resolveUpstream,
+} from "../../../../runtime/git/refs";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import type { Branch, ChangedFile, FileStatus } from "../types";
 
@@ -161,15 +166,30 @@ export async function resolveBaseComparison(
 	const branchName = explicitBranch ?? (await getDefaultBranchName(git));
 	if (!branchName) return null;
 	const upstream = await resolveUpstream(git, branchName);
-	// Git encodes a branch tracking another local branch as
-	// `branch.<name>.remote = .` — in that case the merge target is
-	// already a bare branch name in this repo, not `./<name>`.
-	const baseRef = upstream
-		? upstream.remote === "."
-			? upstream.remoteBranch
-			: `${upstream.remote}/${upstream.remoteBranch}`
-		: `origin/${branchName}`;
-	return { branchName, baseRef };
+	if (upstream) {
+		// Git encodes a branch tracking another local branch as
+		// `branch.<name>.remote = .` — in that case the merge target is
+		// already a bare branch name in this repo, not `./<name>`.
+		const baseRef =
+			upstream.remote === "."
+				? upstream.remoteBranch
+				: `${upstream.remote}/${upstream.remoteBranch}`;
+		return { branchName, baseRef };
+	}
+	// No tracking upstream. Prefer the remote-qualified ref (`origin/<name>`)
+	// when it exists — the common case for a pushed base — but fall back to
+	// the local branch so a local-only base (e.g. an unpushed parent branch in
+	// a stack, #5298) still produces a diff instead of silently resolving to a
+	// nonexistent `origin/<name>` and rendering an empty Changes tab.
+	if (await refExists(git, asRemoteRef("origin", branchName))) {
+		return { branchName, baseRef: `origin/${branchName}` };
+	}
+	if (await refExists(git, asLocalRef(branchName))) {
+		return { branchName, baseRef: branchName };
+	}
+	// Nothing resolves locally — preserve the prior origin-qualified fallback
+	// so existing default-branch callers behave unchanged.
+	return { branchName, baseRef: `origin/${branchName}` };
 }
 
 export async function buildBranch(

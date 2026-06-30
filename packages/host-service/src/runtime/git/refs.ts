@@ -39,7 +39,10 @@ export function asRemoteRef(
 	return `refs/remotes/${remote}/${name}`;
 }
 
-async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
+export async function refExists(
+	git: SimpleGit,
+	fullRef: string,
+): Promise<boolean> {
 	try {
 		// Don't use `--quiet` — simple-git's `raw` mis-resolves on empty
 		// stderr and reports the missing ref as a success with empty stdout.

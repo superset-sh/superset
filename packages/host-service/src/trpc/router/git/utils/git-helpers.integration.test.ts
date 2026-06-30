@@ -166,6 +166,26 @@ describe("resolveBaseComparison (integration)", () => {
 		});
 	});
 
+	test("local-only base branch (unpushed parent in a stack) resolves to the local ref", async () => {
+		// Reproduces #5298: a stacked workspace whose base is another local
+		// branch that was never pushed to origin. The base is recorded via
+		// `branch.<name>.base` and passed here as the explicit branch, but it
+		// has no tracking upstream and no `origin/<name>` ref. The base must
+		// resolve to the local branch so the diff is non-empty.
+		await git.raw(["checkout", "-b", "feature-a"]);
+		await commitFile(git, repo, "a.txt", "a\n", "feature-a work");
+		await git.raw(["checkout", "-b", "feature-b"]);
+		await commitFile(git, repo, "b.txt", "b\n", "feature-b work");
+
+		const result = await resolveBaseComparison(git, "feature-a");
+		expect(result).toEqual({ branchName: "feature-a", baseRef: "feature-a" });
+
+		// And the resulting ref must actually produce the incremental diff.
+		const baseRef = result?.baseRef ?? "HEAD";
+		const files = await getChangedFilesForDiff(git, [`${baseRef}...HEAD`]);
+		expect(files.map((f) => f.path)).toEqual(["b.txt"]);
+	});
+
 	test("returns null when no default branch can be resolved", async () => {
 		const emptyRepo = mkTmp();
 		try {
