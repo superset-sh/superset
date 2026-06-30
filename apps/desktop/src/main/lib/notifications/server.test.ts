@@ -16,8 +16,18 @@ describe("notifications/server", () => {
 			expect(mapEventType("Start")).toBe("Start");
 		});
 
-		it("should map 'SessionStart' to 'Start'", () => {
-			expect(mapEventType("SessionStart")).toBe("Start");
+		it("returns null for session-lifetime events (SessionStart/SessionEnd and aliases)", () => {
+			// SessionStart fires when the agent attaches and is idle waiting for
+			// the first prompt — must NOT flip the pane to "working", or the
+			// spinner is stuck until the first real Stop event. Same shape for
+			// SessionEnd: it's the session-lifetime counterpart to SessionStart,
+			// not a per-turn Stop signal, so it must not clear working either.
+			expect(mapEventType("SessionStart")).toBeNull();
+			expect(mapEventType("sessionStart")).toBeNull();
+			expect(mapEventType("session_start")).toBeNull();
+			expect(mapEventType("SessionEnd")).toBeNull();
+			expect(mapEventType("sessionEnd")).toBeNull();
+			expect(mapEventType("session_end")).toBeNull();
 		});
 
 		it("should map 'UserPromptSubmit' to 'Start'", () => {
@@ -25,7 +35,6 @@ describe("notifications/server", () => {
 		});
 
 		it("should map Codex snake_case start events to 'Start'", () => {
-			expect(mapEventType("session_start")).toBe("Start");
 			expect(mapEventType("user_prompt_submit")).toBe("Start");
 			expect(mapEventType("post_tool_use")).toBe("Start");
 			expect(mapEventType("task_started")).toBe("Start");

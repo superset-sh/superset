@@ -59,15 +59,14 @@ debug_log() {
 
 debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
 
+# Forward EVENT_TYPE as-is to the v1 fallback. Session-lifetime events
+# (SessionStart/SessionEnd and aliases) must NOT be rewritten to Start/Stop
+# here — the server's mapEventType drops them on purpose, because flipping
+# the pane to "working" on SessionStart leaves the spinner stuck until the
+# first real per-turn Stop. Keeping the raw event lets mapEventType apply
+# its canonical mapping (Attached/Detached are intentionally not mapped to
+# anything in v1 because v1 has no Attached/Detached pane state).
 V1_EVENT_TYPE="$EVENT_TYPE"
-case "$V1_EVENT_TYPE" in
-  Attached|attached|SessionStart|sessionStart|session_start)
-    V1_EVENT_TYPE="Start"
-    ;;
-  Detached|detached|SessionEnd|sessionEnd|session_end)
-    V1_EVENT_TYPE="Stop"
-    ;;
-esac
 
 json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
