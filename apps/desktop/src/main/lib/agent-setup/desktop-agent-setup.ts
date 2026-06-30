@@ -1,5 +1,8 @@
 import {
 	cleanupGlobalOpenCodePlugin,
+	createAgyHookScript,
+	createAgyHooksJson,
+	createAgyWrapper,
 	createAmpPlugin,
 	createAmpWrapper,
 	createClaudeSettingsJson,
@@ -33,6 +36,9 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 	{
 		"notify-script": createNotifyScript,
 		"cleanup-global-opencode-plugin": cleanupGlobalOpenCodePlugin,
+		"agy-hook-script": createAgyHookScript,
+		"agy-wrapper": createAgyWrapper,
+		"agy-hooks-json": createAgyHooksJson,
 		"amp-plugin": createAmpPlugin,
 		"amp-wrapper": createAmpWrapper,
 		"claude-settings-json": createClaudeSettingsJson,

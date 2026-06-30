@@ -5,6 +5,9 @@ export type SupersetManagedBinary = AgentType;
 export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"notify-script",
 	"cleanup-global-opencode-plugin",
+	"agy-hook-script",
+	"agy-wrapper",
+	"agy-hooks-json",
 	"amp-plugin",
 	"amp-wrapper",
 	"claude-settings-json",
@@ -43,6 +46,11 @@ export const DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS = [
 ] as const satisfies readonly DesktopAgentSetupAction[];
 
 export const DESKTOP_AGENT_SETUP_TARGETS = [
+	{
+		id: "agy",
+		setupActions: ["agy-hook-script", "agy-wrapper", "agy-hooks-json"],
+		managedBinary: true,
+	},
 	{
 		id: "amp",
 		setupActions: ["amp-plugin", "amp-wrapper"],
