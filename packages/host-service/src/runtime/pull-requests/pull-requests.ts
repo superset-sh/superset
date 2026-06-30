@@ -109,7 +109,40 @@ async function resolveRemoteValueToUrl(
 	}
 }
 
-async function resolveWorkspaceUpstream(
+// Historically `configurePrBranchTracking` wrote `branch.<n>.remote` without
+// `--replace-all`, so re-normalization could append a second value. `git config
+// --get` returns the LAST entry, which may not be the remote the branch was
+// actually pushed to. When duplicates exist, pick the remote that has the
+// branch on disk (`refs/remotes/<remote>/<branch>`) instead of trusting order.
+async function resolveBranchRemote(
+	git: Awaited<ReturnType<GitFactory>>,
+	localBranch: string,
+	trackedBranch: string,
+): Promise<string | null> {
+	const all = await tryRaw(git, [
+		"config",
+		"--get-all",
+		`branch.${localBranch}.remote`,
+	]);
+	const remotes = (all ?? "")
+		.split("\n")
+		.map((value) => value.trim())
+		.filter(Boolean);
+	if (remotes.length <= 1) return remotes[0] ?? null;
+	for (const remote of remotes) {
+		const onDisk = await tryRaw(git, [
+			"rev-parse",
+			"--verify",
+			"--quiet",
+			`refs/remotes/${remote}/${trackedBranch}`,
+		]);
+		if (onDisk) return remote;
+	}
+	// None resolve on disk — fall back to git's own `--get` (last) semantics.
+	return remotes[remotes.length - 1] ?? null;
+}
+
+export async function resolveWorkspaceUpstream(
 	git: Awaited<ReturnType<GitFactory>>,
 	localBranch: string,
 ): Promise<{ owner: string; name: string; branch: string } | null> {
@@ -144,7 +177,7 @@ async function resolveWorkspaceUpstream(
 	const remoteValue =
 		(await tryConfig(git, `branch.${localBranch}.pushRemote`)) ??
 		(await tryConfig(git, "remote.pushDefault")) ??
-		(await tryConfig(git, `branch.${localBranch}.remote`));
+		(await resolveBranchRemote(git, localBranch, trackedBranch));
 	if (!remoteValue) return null;
 
 	const url = await resolveRemoteValueToUrl(git, remoteValue);

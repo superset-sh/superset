@@ -259,15 +259,26 @@ export async function configurePrBranchTracking(args: {
 			args.remoteTrackingOid,
 		]);
 	}
+	// `--replace-all` is required: this runs on re-normalization too, and a
+	// plain `git config` set appends a second value when one already exists
+	// (e.g. from `git push -u`). `git config --get` then returns the wrong
+	// (last) entry, mis-resolving the tracking remote. See issue #5144.
 	await args.git.raw([
 		"config",
+		"--replace-all",
 		`branch.${args.branch}.remote`,
 		trackingRemote,
 	]);
-	await args.git.raw(["config", `branch.${args.branch}.merge`, args.mergeRef]);
+	await args.git.raw([
+		"config",
+		"--replace-all",
+		`branch.${args.branch}.merge`,
+		args.mergeRef,
+	]);
 	if (pushRemote) {
 		await args.git.raw([
 			"config",
+			"--replace-all",
 			`branch.${args.branch}.pushRemote`,
 			pushRemote,
 		]);

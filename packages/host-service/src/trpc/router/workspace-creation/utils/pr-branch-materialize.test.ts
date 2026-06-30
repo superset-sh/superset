@@ -65,11 +65,13 @@ describe("materializePrBranch", () => {
 		]);
 		expect(raw).toHaveBeenNthCalledWith(5, [
 			"config",
+			"--replace-all",
 			"branch.feature/x.remote",
 			"upstream",
 		]);
 		expect(raw).toHaveBeenNthCalledWith(6, [
 			"config",
+			"--replace-all",
 			"branch.feature/x.merge",
 			"refs/heads/feature/x",
 		]);
@@ -128,16 +130,19 @@ describe("materializePrBranch", () => {
 		]);
 		expect(raw).toHaveBeenNthCalledWith(8, [
 			"config",
+			"--replace-all",
 			"branch.alice/feature/x.remote",
 			"superset-pr-456",
 		]);
 		expect(raw).toHaveBeenNthCalledWith(9, [
 			"config",
+			"--replace-all",
 			"branch.alice/feature/x.merge",
 			"refs/heads/feature/x",
 		]);
 		expect(raw).toHaveBeenNthCalledWith(10, [
 			"config",
+			"--replace-all",
 			"branch.alice/feature/x.pushRemote",
 			"superset-pr-456",
 		]);
@@ -211,6 +216,7 @@ describe("materializePrBranch", () => {
 		]);
 		expect(raw).toHaveBeenCalledWith([
 			"config",
+			"--replace-all",
 			"branch.alice/feature/x.pushRemote",
 			"superset-pr-456",
 		]);
@@ -220,6 +226,54 @@ describe("materializePrBranch", () => {
 			"remote.superset-pr-456.push",
 			"HEAD:refs/heads/feature/x",
 		]);
+	});
+
+	test("re-normalizing tracking does not duplicate branch.<name>.remote (repro #5144)", async () => {
+		// Model git config storage so we can observe append-vs-replace behavior.
+		// `git push -u origin` has already recorded the fork as the tracking
+		// remote before Superset normalizes tracking.
+		const config = new Map<string, string[]>([
+			["branch.feature/x.remote", ["origin"]],
+		]);
+		const raw = mock(async (args: string[]) => {
+			if (args[0] === "rev-parse") {
+				return `${EXPECTED_HEAD_OID}\n`;
+			}
+			if (args[0] === "config") {
+				let i = 1;
+				let replaceAll = false;
+				if (args[i] === "--replace-all") {
+					replaceAll = true;
+					i += 1;
+				}
+				const key = args[i] ?? "";
+				const value = args[i + 1] ?? "";
+				if (replaceAll) {
+					config.set(key, [value]);
+				} else {
+					config.set(key, [...(config.get(key) ?? []), value]);
+				}
+				return "";
+			}
+			return "";
+		});
+		const git = { raw } as unknown as GitClient;
+
+		await normalizePrBranchTracking({
+			git,
+			branch: "feature/x",
+			remoteName: "upstream",
+			pr: {
+				number: 123,
+				headRefName: "feature/x",
+				headRefOid: EXPECTED_HEAD_OID,
+				isCrossRepository: false,
+			},
+		});
+
+		// Without `--replace-all`, the second write appends and leaves a stale
+		// `origin` entry, so `git config --get` returns the wrong remote.
+		expect(config.get("branch.feature/x.remote")).toEqual(["upstream"]);
 	});
 
 	test("deletes a materialized branch only when it still points at the verified PR head", async () => {
@@ -304,6 +358,7 @@ describe("materializePrBranch", () => {
 		]);
 		expect(raw).toHaveBeenCalledWith([
 			"config",
+			"--replace-all",
 			"branch.feature/x.remote",
 			"origin",
 		]);

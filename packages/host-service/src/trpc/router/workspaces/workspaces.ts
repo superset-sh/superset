@@ -781,6 +781,16 @@ export const workspacesRouter = router({
 								}
 							}
 
+							// Mirror the non-PR branch path: enable
+							// `push.autoSetupRemote` so `branch@{push}` resolves the
+							// tracking remote, avoiding the fragile fallback to
+							// `branch.<n>.remote` config. See issue #5144.
+							await enablePushAutoSetupRemote(
+								git,
+								worktreePath,
+								"[workspaces.create]",
+							);
+
 							workspaceRow = await registerCloudAndLocal({
 								ctx,
 								id: input.id,

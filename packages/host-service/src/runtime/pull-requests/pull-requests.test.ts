@@ -3,6 +3,7 @@ import { pullRequests, workspaces } from "../../db/schema";
 import {
 	PullRequestRuntimeManager,
 	type PullRequestRuntimeManagerOptions,
+	resolveWorkspaceUpstream,
 } from "./pull-requests";
 
 const PROJECT_ID = "project-1";
@@ -166,6 +167,84 @@ function createManager(
 		gitWatcher: { onChanged: () => () => {} } as never,
 	});
 }
+
+describe("resolveWorkspaceUpstream", () => {
+	// Repro #5144: a historical append bug can leave two values for
+	// `branch.<n>.remote`. `git config --get` returns the last (`upstream`),
+	// but the branch was actually pushed to `origin` (the fork). The upstream
+	// must be resolved from the remote that has the branch on disk.
+	function makeGit(opts: {
+		pushRef: string | null;
+		config: Record<string, string>;
+		configAll: Record<string, string[]>;
+		remotes: Record<string, string>;
+		refs: Set<string>;
+	}) {
+		return {
+			raw: async (args: string[]) => {
+				const key = args[2] ?? "";
+				if (args[0] === "rev-parse" && args[1] === "--abbrev-ref") {
+					if (opts.pushRef) return `${opts.pushRef}\n`;
+					throw new Error("no upstream configured for @{push}");
+				}
+				if (args[0] === "rev-parse" && args[1] === "--verify") {
+					const ref = args[args.length - 1] ?? "";
+					if (opts.refs.has(ref)) return "deadbeef\n";
+					throw new Error(`ref ${ref} not found`);
+				}
+				if (args[0] === "config" && args[1] === "--get") {
+					const value = opts.config[key];
+					if (value === undefined) throw new Error(`no config ${key}`);
+					return `${value}\n`;
+				}
+				if (args[0] === "config" && args[1] === "--get-all") {
+					const values = opts.configAll[key];
+					if (values === undefined) throw new Error(`no config ${key}`);
+					return `${values.join("\n")}\n`;
+				}
+				throw new Error(`unexpected git raw: ${args.join(" ")}`);
+			},
+			remote: async (args: string[]) => {
+				if (args[0] === "get-url") {
+					const name = args[1] ?? "";
+					const url = opts.remotes[name];
+					if (url === undefined) throw new Error(`no remote ${name}`);
+					return url;
+				}
+				throw new Error(`unexpected git remote: ${args.join(" ")}`);
+			},
+		} as never;
+	}
+
+	test("picks the remote that has the branch when branch.<n>.remote is duplicated", async () => {
+		const git = makeGit({
+			pushRef: null,
+			config: {
+				"branch.fix/makefile.merge": "refs/heads/fix/makefile",
+				// The pre-fix code read this via `--get`, getting the last
+				// (wrong) entry and resolving to the upstream repo.
+				"branch.fix/makefile.remote": "upstream",
+			},
+			configAll: {
+				"branch.fix/makefile.remote": ["origin", "upstream"],
+			},
+			remotes: {
+				origin: "https://github.com/Alex-ai-future/llm-d-kv-cache.git",
+				upstream: "https://github.com/llm-d/llm-d-kv-cache.git",
+			},
+			// The branch only exists on the fork remote.
+			refs: new Set(["refs/remotes/origin/fix/makefile"]),
+		});
+
+		const result = await resolveWorkspaceUpstream(git, "fix/makefile");
+
+		expect(result).toEqual({
+			owner: "Alex-ai-future",
+			name: "llm-d-kv-cache",
+			branch: "fix/makefile",
+		});
+	});
+});
 
 describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 	test("links a fork PR workspace to the selected PR and records fork upstream", async () => {
