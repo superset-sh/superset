@@ -8,7 +8,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	vscode: "Visual Studio Code",
 	"vscode-insiders": "Visual Studio Code - Insiders",
 	cursor: "Cursor",
-	antigravity: "Antigravity",
+	antigravity: null, // Uses bundle ID to target the IDE, not the agent manager
 	devin: "Devin",
 	zed: "Zed",
 	xcode: "Xcode",
@@ -33,13 +33,19 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 };
 
 /**
- * Bundle ID candidates for JetBrains IDEs with multiple editions.
- * `open -b <bundleId>` works regardless of the .app display name,
- * so "IntelliJ IDEA Ultimate.app" and "IntelliJ IDEA CE.app" both resolve correctly.
+ * Bundle ID candidates for apps that can't be reliably targeted by display name.
+ * `open -b <bundleId>` works regardless of the .app display name, so
+ * "IntelliJ IDEA Ultimate.app" and "IntelliJ IDEA CE.app" both resolve correctly.
+ *
+ * Antigravity: Google split the product into the "Antigravity" agent manager
+ * (`com.google.antigravity`) and the "Antigravity IDE" (`com.google.antigravity-ide`).
+ * `open -a "Antigravity"` now launches the agent manager, so target the IDE by
+ * bundle ID instead. See issue #5230.
  */
 const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	intellij: ["com.jetbrains.intellij", "com.jetbrains.intellij.ce"],
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
+	antigravity: ["com.google.antigravity-ide"],
 };
 
 /** Map of app IDs to their Linux CLI commands */

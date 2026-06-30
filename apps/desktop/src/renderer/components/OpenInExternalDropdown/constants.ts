@@ -52,7 +52,7 @@ export const IDE_OPTIONS: OpenInExternalAppOption[] = [
 	},
 	{
 		id: "antigravity",
-		label: "Antigravity",
+		label: "Antigravity IDE",
 		lightIcon: antigravityIcon,
 		darkIcon: antigravityIcon,
 	},
