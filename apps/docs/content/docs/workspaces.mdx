@@ -48,6 +48,28 @@ Hover a workspace to see review status, CI checks, and GitHub links. If the bran
 - **AI agents** - Run Claude Code in separate workspaces
 - **Code review** - Review PRs while continuing your work
 
+## Worktree Location
+
+By default, new workspaces are created under `~/.superset/worktrees`. You can change this in **Settings → Git → Worktree Location**.
+
+- **Host-level** — applies to all new workspaces on that machine
+- **Project-level** — overrides the host setting for a specific project
+
+The resolution order is: project override → host setting → `~/.superset/worktrees`.
+
+## Branch Prefixes
+
+Configure how new branch names are prefixed in **Settings → Git → Branch Prefix**.
+
+| Mode | Branch name |
+|------|-------------|
+| **None** | `my-branch` |
+| **GitHub username** | `username/my-branch` |
+| **Author (first name)** | `alex/my-branch` |
+| **Custom** | `<your-prefix>/my-branch` |
+
+Like worktree location, branch prefix can be set at the host level or overridden per project. Only applies to newly created branches.
+
 ## Best Practices
 
 - Use descriptive branch names: `feature/auth`, `fix/login-bug`
