@@ -27,6 +27,18 @@ export interface Pty {
 	onData(cb: PtyOnData): void;
 	onExit(cb: PtyOnExit): void;
 	/**
+	 * Release the kernel master fd backing this PTY. Idempotent. The daemon
+	 * calls this on session teardown (process exit, close, shutdown) so the fd
+	 * is reclaimed immediately rather than relying on node-pty's implicit,
+	 * timeout-based socket cleanup — which leaks under high session churn and
+	 * eventually exhausts the host's pty cap (kern.tty.ptmx_max). See #5305.
+	 *
+	 * Never call this on the daemon-upgrade handoff path: there the fd is
+	 * inherited by the successor process and closing it would kill a shell the
+	 * user just preserved.
+	 */
+	dispose(): void;
+	/**
 	 * The kernel master fd backing this PTY. Required for daemon-upgrade
 	 * fd-handoff (Phase 2): the successor daemon process inherits this fd
 	 * via stdio so the slave-side shell stays alive across the binary swap.
@@ -50,6 +62,7 @@ class NodePtyAdapter implements Pty {
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private exitCallbacks: PtyOnExit[] = [];
+	private disposed = false;
 
 	constructor(term: nodePty.IPty, meta: SessionMeta) {
 		this.term = term;
@@ -61,6 +74,27 @@ class NodePtyAdapter implements Pty {
 			this.exitInfo = { code: exitCode ?? null, signal: signal ?? null };
 			for (const cb of this.exitCallbacks) cb(this.exitInfo);
 		});
+	}
+
+	dispose(): void {
+		if (this.disposed) return;
+		this.disposed = true;
+		// NB: do NOT cancel killEscalationTimer here. dispose() runs on the
+		// root shell's exit, but a detached/backgrounded process group that
+		// ignored SIGHUP may still be alive — the escalation timer is what
+		// SIGKILLs it. It's unref()'d and self-clears, so leaving it is safe.
+		//
+		// node-pty's `destroy()` tears down the read socket (closing the master
+		// fd) and disposes the write stream. On its own, node-pty only closes
+		// the fd via a 200ms timeout / EIO heuristic that doesn't fire reliably
+		// under high churn (see #5305), so we force it here on every exit.
+		try {
+			// `destroy()` exists on node-pty's UnixTerminal but isn't on the
+			// public IPty type; cast like the `_fd` access above.
+			(this.term as unknown as { destroy(): void }).destroy();
+		} catch {
+			// Already torn down by node-pty's own exit path — nothing to release.
+		}
 	}
 
 	getMasterFd(): number {
@@ -202,7 +236,15 @@ export function spawn({ meta }: SpawnOptions): Pty {
 	}
 	const adapter = new NodePtyAdapter(term, meta);
 	// Validate the private-fd dependency at spawn time, not handoff time.
-	adapter.getMasterFd();
+	// If validation throws, the native pty was already forked (its master fd
+	// is open) but the caller never gets an adapter to tear it down — so the
+	// fd would leak. Dispose before rethrowing. See #5305.
+	try {
+		adapter.getMasterFd();
+	} catch (err) {
+		adapter.dispose();
+		throw err;
+	}
 	return adapter;
 }
 
@@ -230,6 +272,7 @@ class AdoptedPty implements Pty {
 	private readonly fd: number;
 	private readonly reader: tty.ReadStream;
 	private exitFired = false;
+	private disposed = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
 	private killEscalationTimer: NodeJS.Timeout | null = null;
 	private exitCallbacks: PtyOnExit[] = [];
@@ -264,6 +307,25 @@ class AdoptedPty implements Pty {
 			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });
 		}, 1000);
 		this.livenessTimer.unref();
+	}
+
+	dispose(): void {
+		if (this.disposed) return;
+		this.disposed = true;
+		// The liveness poll only detects exit; once we're disposing it's moot.
+		if (this.livenessTimer) {
+			clearInterval(this.livenessTimer);
+			this.livenessTimer = null;
+		}
+		// NB: do NOT cancel killEscalationTimer here — a detached process group
+		// that ignored SIGHUP may still need the escalating SIGKILL. It's
+		// unref()'d and self-clears. See #5305.
+		// tty.ReadStream owns the inherited fd; destroying it closes the fd.
+		try {
+			this.reader.destroy();
+		} catch {
+			// already closed
+		}
 	}
 
 	getMasterFd(): number {
