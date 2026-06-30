@@ -17,6 +17,7 @@ import type {
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { SidebarTabDefinition } from "../../types";
 import { ChangesTabContent } from "./components/ChangesTabContent";
+import { refreshChangesTab } from "./utils/refreshChangesTab";
 
 export type { ChangesFilter, ChangesViewMode };
 
@@ -150,13 +151,7 @@ export function useChangesTab({
 		if (isRefreshing) return;
 		setIsRefreshing(true);
 		try {
-			await Promise.all([
-				utils.git.getStatus.invalidate({ workspaceId }),
-				utils.git.getDiff.invalidate({ workspaceId }),
-				utils.git.listCommits.invalidate({ workspaceId }),
-				utils.git.listBranches.invalidate({ workspaceId }),
-				utils.git.getBaseBranch.invalidate({ workspaceId }),
-			]);
+			await refreshChangesTab(utils, workspaceId);
 		} catch (error) {
 			console.warn("Failed to refresh changes tab", error);
 			toast.error(
