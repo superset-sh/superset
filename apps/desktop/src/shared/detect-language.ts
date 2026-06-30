@@ -1,5 +1,14 @@
 export function detectLanguage(filePath: string): string {
-	const ext = filePath.split(".").pop()?.toLowerCase();
+	const fileName = filePath.split(/[/\\]/).pop()?.toLowerCase() ?? "";
+
+	// Env files (`.env`, `.env.local`, `.env.production`, …) are dotfiles with
+	// no usable extension, so match them by name. The `properties` mode
+	// highlights `KEY=value` pairs and `#` comments.
+	if (fileName === ".env" || fileName.startsWith(".env.")) {
+		return "properties";
+	}
+
+	const ext = fileName.split(".").pop();
 
 	const languageMap: Record<string, string> = {
 		// JavaScript/TypeScript
