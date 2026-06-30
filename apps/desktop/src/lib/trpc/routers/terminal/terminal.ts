@@ -16,7 +16,7 @@ import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
-import { resolveTerminalThemeType } from "./theme-type";
+import { resolveSessionTerminalThemeType } from "./resolve-session-theme-type";
 import { getWorkspaceTerminalContext, resolveCwd } from "./utils";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
@@ -111,7 +111,7 @@ export const createTerminalRouter = () => {
 					});
 				}
 
-				const resolvedThemeType = resolveTerminalThemeType({
+				const resolvedThemeType = resolveSessionTerminalThemeType({
 					requestedThemeType: themeType,
 					persistedThemeState: appState.data.themeState,
 				});
