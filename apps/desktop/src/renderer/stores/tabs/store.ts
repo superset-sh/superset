@@ -19,6 +19,7 @@ import {
 	movePaneToNewTab,
 	movePaneToTab,
 } from "./actions/move-pane";
+import { reorderTabsInState } from "./actions/reorder-tabs";
 import type {
 	AddFileViewerPaneOptions,
 	AddTabWithMultiplePanesOptions,
@@ -485,34 +486,14 @@ export const useTabsStore = create<TabsStore>()(
 
 				reorderTabs: (workspaceId, startIndex, endIndex) => {
 					const state = get();
-					const workspaceTabs = state.tabs.filter(
-						(t) => t.workspaceId === workspaceId,
+					const nextTabs = reorderTabsInState(
+						state.tabs,
+						workspaceId,
+						startIndex,
+						endIndex,
 					);
-					const otherTabs = state.tabs.filter(
-						(t) => t.workspaceId !== workspaceId,
-					);
-
-					// Prevent corrupting state by splicing undefined elements
-					if (
-						startIndex < 0 ||
-						startIndex >= workspaceTabs.length ||
-						!Number.isInteger(startIndex)
-					) {
-						return;
-					}
-
-					// Prevent out-of-bounds writes that would insert undefined elements
-					const clampedEndIndex = Math.max(
-						0,
-						Math.min(endIndex, workspaceTabs.length),
-					);
-
-					// Avoid mutating original state array to prevent side effects elsewhere
-					const reorderedTabs = [...workspaceTabs];
-					const [removed] = reorderedTabs.splice(startIndex, 1);
-					reorderedTabs.splice(clampedEndIndex, 0, removed);
-
-					set({ tabs: [...otherTabs, ...reorderedTabs] });
+					if (nextTabs === state.tabs) return;
+					set({ tabs: nextTabs });
 				},
 
 				reorderTabById: (tabId, targetIndex) => {

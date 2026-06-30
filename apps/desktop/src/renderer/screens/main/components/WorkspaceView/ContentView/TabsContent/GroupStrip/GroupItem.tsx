@@ -13,28 +13,26 @@ import { useDrag, useDrop } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
 import { HiMiniXMark } from "react-icons/hi2";
 import { LuEyeOff, LuPencil } from "react-icons/lu";
-import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicDragType } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
+import { resolveTabHeaderDrop } from "renderer/stores/tabs/actions/resolve-tab-drop";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type {
-	MosaicDropPosition,
-	PaneStatus,
-	Tab,
-} from "renderer/stores/tabs/types";
+import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
 import {
 	getTabDisplayName,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
-import { MOSAIC_ID } from "../TabView";
 
-const TAB_DRAG_NO_MATCH_ID = "__tab-drag-no-match__";
+/**
+ * Dedicated drag type for reordering tab headers within the strip. Kept
+ * distinct from `MosaicDragType.WINDOW` so a strip reorder never surfaces
+ * Mosaic's split indicators or merges the tab as a pane (see issue #5099).
+ */
+const TAB_REORDER_DRAG_TYPE = "TAB_REORDER";
 
 interface TabDragItem {
-	mosaicId: string;
-	hideTimer: number;
 	tabId: string;
 	index: number;
 	isTabDrag: true;
@@ -77,50 +75,47 @@ export function GroupItem({
 		}),
 	);
 
-	// Use MosaicDragType.WINDOW so Mosaic's built-in drop targets (blue split indicators) activate
+	// Dedicated reorder drag type — NOT MosaicDragType.WINDOW — so dragging a
+	// tab header in the strip only ever reorders and never surfaces Mosaic's
+	// split indicators or merges the tab as a pane (issue #5099).
 	const [{ isDragging }, drag, preview] = useDrag<
 		TabDragItem,
-		{ path?: MosaicBranch[]; position?: string; handled?: true },
+		{ path?: string[]; position?: string; handled?: true },
 		{ isDragging: boolean }
-	>(() => {
-		// Only show Mosaic split indicators when dragging onto a different (active) tab
-		const canDropOntoActiveTab = activeTabId != null && activeTabId !== tab.id;
-		return {
-			type: MosaicDragType.WINDOW,
+	>(
+		() => ({
+			type: TAB_REORDER_DRAG_TYPE,
 			item: {
-				mosaicId: canDropOntoActiveTab ? MOSAIC_ID : TAB_DRAG_NO_MATCH_ID,
-				hideTimer: 0,
 				tabId: tab.id,
 				index,
 				isTabDrag: true,
 			},
 			end: (item, monitor) => {
-				const dropResult = monitor.getDropResult();
-				if (!dropResult?.position || !dropResult?.path) return;
-
-				const state = useTabsStore.getState();
-				const sourceTab = state.tabs.find((t) => t.id === item.tabId);
-				if (!sourceTab) return;
-				const freshActiveTabId = resolveActiveTabIdForWorkspace({
-					workspaceId: sourceTab.workspaceId,
-					tabs: state.tabs,
-					activeTabIds: state.activeTabIds,
-					tabHistoryStacks: state.tabHistoryStacks,
+				// Policy lives in resolveTabHeaderDrop: tab-header drags always
+				// reorder (already applied optimistically during hover), so this
+				// never merges. The merge branch is kept for type completeness.
+				const resolution = resolveTabHeaderDrop({
+					draggedTabId: item.tabId,
+					mosaicDrop: monitor.getDropResult() ?? null,
+					activeTabId,
 				});
-				if (!freshActiveTabId || freshActiveTabId === item.tabId) return;
-
-				state.mergeTabIntoTab(
-					item.tabId,
-					freshActiveTabId,
-					dropResult.path as MosaicBranch[],
-					dropResult.position as MosaicDropPosition,
-				);
+				if (resolution.kind === "merge") {
+					useTabsStore
+						.getState()
+						.mergeTabIntoTab(
+							resolution.sourceTabId,
+							resolution.targetTabId,
+							resolution.path,
+							resolution.position,
+						);
+				}
 			},
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
-		};
-	}, [tab.id, index, activeTabId]);
+		}),
+		[tab.id, index, activeTabId],
+	);
 
 	// Hide the default browser drag preview to prevent snap-back animation
 	useEffect(() => {
@@ -134,7 +129,7 @@ export function GroupItem({
 		{ isOver: boolean; canDrop: boolean }
 	>(
 		() => ({
-			accept: MosaicDragType.WINDOW,
+			accept: [TAB_REORDER_DRAG_TYPE, MosaicDragType.WINDOW],
 			canDrop: (item) => {
 				if (item.isTabDrag) {
 					// Tab reordering - can drop on any other tab
