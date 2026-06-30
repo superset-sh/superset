@@ -106,7 +106,6 @@ export class TunnelClient {
 
 			socket.onopen = () => {
 				clearTimeout(deadline);
-				this.reconnectAttempts = 0;
 				this.connecting = false;
 				this.lastInboundAt = Date.now();
 				this.startWatchdog();
@@ -117,6 +116,13 @@ export class TunnelClient {
 
 			socket.onmessage = (event) => {
 				this.lastInboundAt = Date.now();
+				// Reset backoff only once the relay actually delivers a frame —
+				// proof it accepted us past the auth gate. The relay accepts the
+				// WS upgrade (firing onopen) *before* checking access, then closes
+				// with 1008 on failure without ever sending a frame; resetting in
+				// onopen instead defeated exponential backoff and produced a tight
+				// reconnect loop against an unauthorized relay (issue #5147).
+				this.reconnectAttempts = 0;
 				void this.handleMessage(event.data);
 			};
 
