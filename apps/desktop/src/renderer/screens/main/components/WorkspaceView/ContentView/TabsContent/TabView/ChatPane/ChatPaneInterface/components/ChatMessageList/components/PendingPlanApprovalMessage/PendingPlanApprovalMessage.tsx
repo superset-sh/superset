@@ -8,6 +8,12 @@ import { Button } from "@superset/ui/button";
 import { Switch } from "@superset/ui/switch";
 import { Textarea } from "@superset/ui/textarea";
 import { useEffect, useId, useRef, useState } from "react";
+import {
+	createPlanApprovalVisibilityState,
+	isPlanApprovalVisible,
+	planApprovalChanged,
+	planResponded,
+} from "./planApprovalVisibility";
 
 type PendingPlanApproval = UseChatDisplayReturn["pendingPlanApproval"];
 
@@ -32,7 +38,9 @@ export function PendingPlanApprovalMessage({
 		"approved" | "rejected" | null
 	>(null);
 	const [renderMarkdown, setRenderMarkdown] = useState(true);
-	const [resolvedPlanId, setResolvedPlanId] = useState<string | null>(null);
+	const [visibility, setVisibility] = useState(
+		createPlanApprovalVisibilityState,
+	);
 	const inFlightResponseRef = useRef(false);
 	const previousPlanIdRef = useRef<string | null>(null);
 	const feedbackTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -40,18 +48,20 @@ export function PendingPlanApprovalMessage({
 
 	useEffect(() => {
 		const currentPlanId = planApproval?.planId ?? null;
+		setVisibility((prev) => planApprovalChanged(prev, currentPlanId));
 		if (previousPlanIdRef.current === currentPlanId) return;
 		previousPlanIdRef.current = currentPlanId;
 		setFeedback("");
 		setSelectedAction(null);
 		setRenderMarkdown(true);
-		setResolvedPlanId(null);
 	}, [planApproval]);
 
 	if (!planApproval) return null;
 
 	const planId = planApproval.planId?.trim() ?? "";
-	if (resolvedPlanId && resolvedPlanId === planId) return null;
+	if (planId.length > 0 && !isPlanApprovalVisible(visibility, planId)) {
+		return null;
+	}
 	const title = planApproval.title?.trim() || "Implementation plan";
 	const planBody =
 		planApproval.plan?.trim() || "No plan details were provided.";
@@ -72,7 +82,7 @@ export function PendingPlanApprovalMessage({
 				action,
 				...(latestFeedback ? { feedback: latestFeedback } : {}),
 			});
-			setResolvedPlanId(planId);
+			setVisibility((prev) => planResponded(prev, planId));
 		} catch (error) {
 			console.error("Failed to submit plan approval response", error);
 			setSelectedAction(null);
