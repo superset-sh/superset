@@ -12,8 +12,8 @@ describe("buildAgentPromptCommand", () => {
 			agent: "codex",
 		});
 
-		expect(command).toContain(
-			"codex --dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+		expect(command).toStartWith(
+			"codex --dangerously-bypass-approvals-and-sandbox -- \"$(printf '%s'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
@@ -26,7 +26,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toStartWith(
-			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
+			"claude --dangerously-skip-permissions \"$(printf '%s'",
 		);
 	});
 
@@ -37,7 +37,7 @@ describe("buildAgentPromptCommand", () => {
 			agent: "amp",
 		});
 
-		expect(command).toStartWith("amp <<'SUPERSET_PROMPT_amp1234'");
+		expect(command).toStartWith("printf '%s' 'hello' | amp");
 		expect(command).not.toContain("amp -x");
 	});
 
@@ -57,7 +57,7 @@ describe("buildAgentPromptCommand", () => {
 			agent: "pi",
 		});
 
-		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
+		expect(command).toStartWith("pi \"$(printf '%s' 'hello')\"");
 		expect(command).not.toContain("pi -p");
 	});
 });
