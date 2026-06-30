@@ -964,27 +964,41 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 	const hasRemote = await hasOriginRemote(mainRepoPath);
 
 	if (hasRemote) {
-		// Try to get the default branch from origin/HEAD
+		// The actual remote-tracking branches we have locally. Used both to
+		// validate origin/HEAD and as the fallback source of truth.
+		let remoteBranches: string[] = [];
+		try {
+			const branches = await git.branch(["-r"]);
+			remoteBranches = branches.all
+				// `git branch -r` includes the "origin/HEAD -> origin/main" alias
+				// line; drop it so it can't be mistaken for a real branch.
+				.filter((b) => !b.includes("->"))
+				.map((b) => b.replace("origin/", ""));
+		} catch {}
+
+		// Try to get the default branch from origin/HEAD.
+		// Git does NOT auto-update this symref on fetch, so it can go stale when
+		// the remote renames its default branch (e.g. master -> main) or when a
+		// clone inherited an outdated origin/HEAD. Only trust it when the branch
+		// it points at still exists as a remote-tracking branch; otherwise fall
+		// through to detection from the actual remote branches.
 		try {
 			const headRef = await git.raw([
 				"symbolic-ref",
 				"refs/remotes/origin/HEAD",
 			]);
 			const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
-			if (match) return match[1];
+			if (match && remoteBranches.includes(match[1])) {
+				return match[1];
+			}
 		} catch {}
 
 		// Check remote branches for common default branch names
-		try {
-			const branches = await git.branch(["-r"]);
-			const remoteBranches = branches.all.map((b) => b.replace("origin/", ""));
-
-			for (const candidate of ["main", "master", "develop", "trunk"]) {
-				if (remoteBranches.includes(candidate)) {
-					return candidate;
-				}
+		for (const candidate of ["main", "master", "develop", "trunk"]) {
+			if (remoteBranches.includes(candidate)) {
+				return candidate;
 			}
-		} catch {}
+		}
 
 		// Try ls-remote as last resort for remote repos
 		try {

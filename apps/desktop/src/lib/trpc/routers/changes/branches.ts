@@ -200,13 +200,15 @@ async function getDefaultBranch(
 	try {
 		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
 		const match = headRef.match(/refs\/remotes\/origin\/(.+)/);
-		if (match) {
+		// origin/HEAD is a symref git never auto-updates, so it can go stale and
+		// point at a branch that no longer exists (e.g. after a master -> main
+		// rename). Only trust it when the target is still a real remote branch.
+		if (match && remoteBranches.includes(match[1].trim())) {
 			return match[1].trim();
 		}
-	} catch {
-		if (remoteBranches.includes("master") && !remoteBranches.includes("main")) {
-			return "master";
-		}
+	} catch {}
+	if (remoteBranches.includes("master") && !remoteBranches.includes("main")) {
+		return "master";
 	}
 	return "main";
 }

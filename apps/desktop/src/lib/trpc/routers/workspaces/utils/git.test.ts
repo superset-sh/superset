@@ -15,6 +15,7 @@ import {
 	branchExistsOnRemote,
 	createWorktree,
 	getCurrentBranch,
+	getDefaultBranch,
 	getWorktreeCreatedAt,
 	hasUnpushedCommits,
 	isUnbornHeadError,
@@ -243,6 +244,47 @@ describe("getDefaultBranch", () => {
 			});
 
 			const result = await getDefaultBranchForTest(repoPath);
+			expect(result).toBe("main");
+		} finally {
+			cleanup();
+		}
+	});
+
+	// Regression test for #5400: "Confusion on the default branch".
+	// origin/HEAD is a symref that git does NOT auto-update. After a remote
+	// renames its default branch (master -> main) or after a fresh clone of a
+	// repo whose origin/HEAD was set up before such a rename, the symref can
+	// still point at refs/remotes/origin/master even though origin/master no
+	// longer exists and the real default branch is origin/main. getDefaultBranch
+	// must not blindly trust a stale origin/HEAD that points at a missing ref.
+	test("ignores stale origin/HEAD pointing at a missing branch (#5400)", async () => {
+		const { repoPath, cleanup } = createIsolatedTestRepo("stale-head");
+		try {
+			writeFileSync(join(repoPath, "test.txt"), "test");
+			execSync("git add . && git commit -m 'init'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			execSync("git remote add origin https://example.com/repo.git", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			// The only branch the remote actually has is main...
+			execSync("git update-ref refs/remotes/origin/main HEAD", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			// ...but origin/HEAD is a stale symref left pointing at master.
+			execSync(
+				"git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/master",
+				{
+					cwd: repoPath,
+					stdio: "ignore",
+				},
+			);
+
+			const result = await getDefaultBranch(repoPath);
 			expect(result).toBe("main");
 		} finally {
 			cleanup();
