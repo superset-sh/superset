@@ -7,7 +7,11 @@ import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
 import { useCallback, useMemo, useRef } from "react";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
-import { type ChangesetFile, useChangeset } from "../../../useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+	useChangeset,
+} from "../../../useChangeset";
 import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
 import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
@@ -63,14 +67,14 @@ export function DiffPane({
 	dataRef.current = data;
 	const updateData = context.actions.updateData;
 	const setCollapsed = useCallback(
-		(path: string, value: boolean) => {
+		(changeKey: string, value: boolean) => {
 			const current = dataRef.current;
 			const collapsed = current.collapsedFiles ?? [];
-			const has = collapsed.includes(path);
+			const has = collapsed.includes(changeKey);
 			if (value === has) return;
 			const next = value
-				? [...collapsed, path]
-				: collapsed.filter((p) => p !== path);
+				? [...collapsed, changeKey]
+				: collapsed.filter((key) => key !== changeKey);
 			updateData({ ...current, collapsedFiles: next } as PaneViewerData);
 		},
 		[updateData],
@@ -99,7 +103,7 @@ export function DiffPane({
 		onCreateNewAgentSession,
 	});
 
-	const { items, fileByItemId, pathToItemId, hasPendingDiff, hasDiffError } =
+	const { items, fileByItemId, hasPendingDiff, hasDiffError } =
 		useDiffCodeViewItems({
 			workspaceId,
 			files,
@@ -113,7 +117,6 @@ export function DiffPane({
 		codeViewRef,
 		data,
 		fileByItemId,
-		pathToItemId,
 		items,
 		collapsedSet,
 		setCollapsed,
@@ -136,11 +139,12 @@ export function DiffPane({
 		(item: CodeViewItem<DiffAnnotationMetadata>) => {
 			const file = fileByItemId.get(item.id);
 			if (!file) return null;
+			const changeKey = getChangesetFileKey(file);
 			return (
 				<DiffHeaderPrefix
 					file={file}
-					collapsed={collapsedSet.has(file.path)}
-					onSetCollapsed={setCollapsed}
+					collapsed={collapsedSet.has(changeKey)}
+					onSetCollapsed={(value) => setCollapsed(changeKey, value)}
 				/>
 			);
 		},
@@ -151,11 +155,12 @@ export function DiffPane({
 		(item: CodeViewItem<DiffAnnotationMetadata>) => {
 			const file = fileByItemId.get(item.id);
 			if (!file) return null;
+			const changeKey = getChangesetFileKey(file);
 			return (
 				<DiffHeaderMetadata
 					file={file}
 					workspaceId={workspaceId}
-					onSetCollapsed={setCollapsed}
+					onSetCollapsed={(value) => setCollapsed(changeKey, value)}
 					viewed={viewedSet.has(file.path)}
 					onSetViewed={setViewed}
 					onOpenFile={onOpenFile}

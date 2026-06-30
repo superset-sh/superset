@@ -34,7 +34,10 @@ import { FileIcon } from "renderer/lib/fileIcons";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
 import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
-import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 
 function splitPath(path: string): { dir: string; basename: string } {
@@ -52,7 +55,7 @@ interface FileRowProps {
 	worktreePath?: string;
 	/** Hide the directory prefix — used when the row sits under a folder group. */
 	hideDir?: boolean;
-	onSelect?: (path: string, openInNewTab?: boolean) => void;
+	onSelect?: (path: string, openInNewTab?: boolean, changeKey?: string) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 }
@@ -75,6 +78,7 @@ export const FileRow = memo(function FileRow({
 	const absolutePath = worktreePath
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
+	const changeKey = getChangesetFileKey(file);
 	const canDiscard = file.source.kind === "unstaged";
 	const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
@@ -108,8 +112,9 @@ export const FileRow = memo(function FileRow({
 					if (intent === "external") onOpenInEditor?.(file.path);
 					else if (intent === "file" && absolutePath)
 						onOpenFile?.(absolutePath, false);
-					else if (intent === "diffNewTab") onSelect?.(file.path, true);
-					else if (intent === "diff") onSelect?.(file.path, false);
+					else if (intent === "diffNewTab")
+						onSelect?.(file.path, true, changeKey);
+					else if (intent === "diff") onSelect?.(file.path, false, changeKey);
 				}}
 			>
 				<FileIcon fileName={basename} className="size-3.5 shrink-0" />
@@ -171,11 +176,15 @@ export const FileRow = memo(function FileRow({
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-64">
-						<DropdownMenuItem onSelect={() => onSelect?.(file.path)}>
+						<DropdownMenuItem
+							onSelect={() => onSelect?.(file.path, false, changeKey)}
+						>
 							<GitCompare />
 							Open Diff
 						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={() => onSelect?.(file.path, true)}>
+						<DropdownMenuItem
+							onSelect={() => onSelect?.(file.path, true, changeKey)}
+						>
 							<SquarePlus />
 							Open Diff in New Tab
 							{diffNewTabTier && (
@@ -230,11 +239,15 @@ export const FileRow = memo(function FileRow({
 				<TooltipContent side="right">{policy.hint}</TooltipContent>
 			</Tooltip>
 			<ContextMenuContent className="w-64">
-				<ContextMenuItem onSelect={() => onSelect?.(file.path)}>
+				<ContextMenuItem
+					onSelect={() => onSelect?.(file.path, false, changeKey)}
+				>
 					<GitCompare />
 					Open Diff
 				</ContextMenuItem>
-				<ContextMenuItem onSelect={() => onSelect?.(file.path, true)}>
+				<ContextMenuItem
+					onSelect={() => onSelect?.(file.path, true, changeKey)}
+				>
 					<SquarePlus />
 					Open Diff in New Tab
 					{diffNewTabTier && (

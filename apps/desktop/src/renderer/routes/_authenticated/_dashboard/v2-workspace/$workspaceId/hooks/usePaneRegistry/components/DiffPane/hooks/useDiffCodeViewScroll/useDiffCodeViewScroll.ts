@@ -2,14 +2,16 @@ import type { CodeViewItem, CodeViewScrollTarget } from "@pierre/diffs";
 import type { CodeViewHandle } from "@pierre/diffs/react";
 import { type RefObject, useEffect, useMemo, useRef } from "react";
 import type { DiffPaneData } from "../../../../../../types";
-import type { ChangesetFile } from "../../../../../useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+} from "../../../../../useChangeset";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 interface UseDiffCodeViewScrollOptions {
 	codeViewRef: RefObject<CodeViewHandle<DiffAnnotationMetadata> | null>;
 	data: DiffPaneData;
 	fileByItemId: ReadonlyMap<string, ChangesetFile>;
-	pathToItemId: ReadonlyMap<string, string>;
 	items: CodeViewItem<DiffAnnotationMetadata>[];
 	collapsedSet: ReadonlySet<string>;
 	setCollapsed: (path: string, value: boolean) => void;
@@ -23,7 +25,6 @@ export function useDiffCodeViewScroll({
 	codeViewRef,
 	data,
 	fileByItemId,
-	pathToItemId,
 	items,
 	collapsedSet,
 	setCollapsed,
@@ -36,15 +37,16 @@ export function useDiffCodeViewScroll({
 		}
 		return map;
 	}, [items]);
-	const targetItemId = data.path ? pathToItemId.get(data.path) : undefined;
+	const targetItemId = data.changeKey ? `diff:${data.changeKey}` : undefined;
 
 	useEffect(() => {
-		if (!data.path || !targetItemId) return;
+		if (!targetItemId) return;
 		const file = fileByItemId.get(targetItemId);
 		if (!file) return;
 		if (!itemById.has(targetItemId)) return;
-		if (collapsedSet.has(file.path)) {
-			setCollapsed(file.path, false);
+		const changeKey = getChangesetFileKey(file);
+		if (collapsedSet.has(changeKey)) {
+			setCollapsed(changeKey, false);
 			return;
 		}
 
@@ -77,7 +79,6 @@ export function useDiffCodeViewScroll({
 		lastScrollTargetRef.current = scrollKey;
 	}, [
 		codeViewRef,
-		data.path,
 		data.focusLine,
 		data.focusSide,
 		data.focusTick,

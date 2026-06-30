@@ -2,6 +2,7 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import type { FileStatus } from "../../components/StatusIndicator";
 import { useWorkspaceGitStatus } from "../../providers/WorkspaceGitStatusProvider";
+import { buildChangesetFiles } from "./buildChangesetFiles";
 import type { ChangesetFile, DiffRef } from "./types";
 
 interface UseChangesetArgs {
@@ -54,64 +55,7 @@ export function useChangeset({
 		const status = gitStatus.data;
 		if (!status) return [];
 
-		if (ref.kind === "uncommitted") {
-			return [
-				...status.unstaged.map<ChangesetFile>((file) => ({
-					path: file.path,
-					oldPath: file.oldPath,
-					status: file.status as FileStatus,
-					additions: file.additions,
-					deletions: file.deletions,
-					source: { kind: "unstaged" },
-				})),
-				...status.staged.map<ChangesetFile>((file) => ({
-					path: file.path,
-					oldPath: file.oldPath,
-					status: file.status as FileStatus,
-					additions: file.additions,
-					deletions: file.deletions,
-					source: { kind: "staged" },
-				})),
-			];
-		}
-
-		// against-base: merge committed + dirty by path in the same order the
-		// sidebar renders sections. Dirty files win over committed files so
-		// downstream getDiff fetches the right bucket.
-		const seen = new Map<string, ChangesetFile>();
-		for (const file of status.unstaged) {
-			seen.set(file.path, {
-				path: file.path,
-				oldPath: file.oldPath,
-				status: file.status as FileStatus,
-				additions: file.additions,
-				deletions: file.deletions,
-				source: { kind: "unstaged" },
-			});
-		}
-		for (const file of status.staged) {
-			if (seen.has(file.path)) continue;
-			seen.set(file.path, {
-				path: file.path,
-				oldPath: file.oldPath,
-				status: file.status as FileStatus,
-				additions: file.additions,
-				deletions: file.deletions,
-				source: { kind: "staged" },
-			});
-		}
-		for (const file of status.againstBase) {
-			if (seen.has(file.path)) continue;
-			seen.set(file.path, {
-				path: file.path,
-				oldPath: file.oldPath,
-				status: file.status as FileStatus,
-				additions: file.additions,
-				deletions: file.deletions,
-				source: { kind: "against-base", baseBranch: ref.baseBranch },
-			});
-		}
-		return Array.from(seen.values());
+		return buildChangesetFiles(status, ref);
 	}, [ref, gitStatus.data, commitQuery.data?.files]);
 
 	const activeQuery = ref.kind === "commit" ? commitQuery : gitStatus;
