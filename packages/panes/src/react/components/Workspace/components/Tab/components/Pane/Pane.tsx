@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import type { StoreApi } from "zustand/vanilla";
 import type { WorkspaceStore } from "../../../../../../../core/store";
@@ -20,6 +20,7 @@ import { DropZoneOverlay } from "./components/DropZoneOverlay";
 import { PaneContent } from "./components/PaneContent";
 import { PaneContextMenu } from "./components/PaneContextMenu";
 import { PANE_DRAG_TYPE, PaneHeader } from "./components/PaneHeader";
+import { focusActivePane } from "./utils/focusActivePane";
 
 type PaneDropItem = { paneId: string } | { tabId: string; index: number };
 
@@ -230,6 +231,20 @@ export function Pane<TData>({
 		if (dropPosition !== null) setDropPosition(null);
 	}
 
+	// Keyboard pane selection only updates `activePaneId`; move the DOM cursor to
+	// follow it so keystrokes reach the newly selected pane without a mouse click.
+	// Pane-specific focus targets (terminal, editor) run their own focus effects
+	// first as children, so the containment guard leaves those intact. See #5317.
+	useEffect(() => {
+		if (!isActive) return;
+		focusActivePane({
+			isActive,
+			container: dropRef.current,
+			activeElement:
+				typeof document !== "undefined" ? document.activeElement : null,
+		});
+	}, [isActive]);
+
 	const title = definition
 		? (pane.titleOverride ?? definition.getTitle?.(pane) ?? pane.id)
 		: `Unknown: ${pane.kind}`;
@@ -245,7 +260,10 @@ export function Pane<TData>({
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: clicking anywhere in a pane focuses it (standard IDE behavior) */}
 			<div
 				ref={setRefs}
-				className={`relative flex h-full w-full ${PANE_MIN_SIZE_CLASS_NAME} flex-col overflow-hidden`}
+				// Focusable container so keyboard pane selection can move the DOM
+				// cursor here when the pane has no inner focus target of its own.
+				tabIndex={-1}
+				className={`relative flex h-full w-full ${PANE_MIN_SIZE_CLASS_NAME} flex-col overflow-hidden outline-none`}
 				onMouseDown={context.actions.focus}
 			>
 				<PaneHeader
