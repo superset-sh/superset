@@ -7,7 +7,10 @@ import { getEventBus } from "@superset/workspace-client";
 import { useEffect, useEffectEvent, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { useV2NotificationStore } from "renderer/stores/v2-notifications";
+import { deriveV2HydrationUpdates } from "../../lib/hydrateAgentStatus";
 import {
 	handleV2AgentLifecycleEvent,
 	handleV2TerminalLifecycleEvent,
@@ -63,6 +66,45 @@ export function HostNotificationSubscriber({
 			});
 		},
 	);
+
+	// Live `agent:lifecycle` events only carry state from this point forward, so
+	// an agent that started working before the bus connected (the common case
+	// for a remote host, whose relay subscription comes online well after the
+	// agent began) would leave the sidebar indicator static. Seed the store from
+	// the host's current agent bindings so the indicator reflects in-flight work.
+	useEffect(() => {
+		let cancelled = false;
+		const client = getHostServiceClientByUrl(hostUrl);
+		void Promise.all(
+			workspaces.map(async (workspace) => {
+				try {
+					const bindings = await client.terminalAgents.listByWorkspace.query({
+						workspaceId: workspace.workspaceId,
+					});
+					if (cancelled) return;
+					const store = useV2NotificationStore.getState();
+					const updates = deriveV2HydrationUpdates({
+						bindings,
+						existingSources: store.sources,
+					});
+					for (const update of updates) {
+						store.setSourceStatus(
+							update.source,
+							workspace.workspaceId,
+							update.status,
+							update.occurredAt,
+						);
+					}
+				} catch {
+					// Host unreachable or the query failed — live events will
+					// populate the status once the agent emits its next event.
+				}
+			}),
+		);
+		return () => {
+			cancelled = true;
+		};
+	}, [hostUrl, workspaces]);
 
 	useEffect(() => {
 		const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
