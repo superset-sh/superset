@@ -6,7 +6,7 @@ import {
 	isBinaryMediaFile,
 } from "@superset/shared/media-files";
 import type { SimpleGit } from "simple-git";
-import { resolveUpstream } from "../../../../runtime/git/refs";
+import { refExists, resolveUpstream } from "../../../../runtime/git/refs";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import type { Branch, ChangedFile, FileStatus } from "../types";
 
@@ -149,26 +149,53 @@ export async function getDefaultBranchName(
 }
 
 /**
+ * Conventional local default branch names, in priority order. Probed when
+ * `origin/HEAD` isn't set so "against main" still works in local-only
+ * repos and worktrees that never tracked the remote default.
+ */
+const LOCAL_DEFAULT_BRANCH_CANDIDATES = ["main", "master"];
+
+async function resolveLocalDefaultBranchName(
+	git: SimpleGit,
+): Promise<string | null> {
+	for (const candidate of LOCAL_DEFAULT_BRANCH_CANDIDATES) {
+		if (await refExists(git, candidate)) return candidate;
+	}
+	return null;
+}
+
+/**
  * Resolve the base comparison for "this branch vs its upstream default"
  * views. Honors the local default branch's configured upstream
- * (e.g. `upstream/main`) before falling back to `origin/<name>`. Returns
- * null when no default branch can be determined.
+ * (e.g. `upstream/main`) before falling back to `origin/<name>`, and then
+ * to the local default branch itself when no remote-tracking ref exists.
+ * Returns null when no default branch can be determined at all.
  */
 export async function resolveBaseComparison(
 	git: SimpleGit,
 	explicitBranch?: string,
 ): Promise<{ branchName: string; baseRef: string } | null> {
-	const branchName = explicitBranch ?? (await getDefaultBranchName(git));
+	const branchName =
+		explicitBranch ??
+		(await getDefaultBranchName(git)) ??
+		(await resolveLocalDefaultBranchName(git));
 	if (!branchName) return null;
 	const upstream = await resolveUpstream(git, branchName);
 	// Git encodes a branch tracking another local branch as
 	// `branch.<name>.remote = .` — in that case the merge target is
 	// already a bare branch name in this repo, not `./<name>`.
-	const baseRef = upstream
+	let baseRef = upstream
 		? upstream.remote === "."
 			? upstream.remoteBranch
 			: `${upstream.remote}/${upstream.remoteBranch}`
 		: `origin/${branchName}`;
+	// The remote-tracking ref may not exist (local-only repo, a worktree
+	// that never fetched, a CI clone without `origin/HEAD`). Without this,
+	// `${baseRef}...HEAD` errors out and "against main" silently shows
+	// nothing (#5114). Fall back to the local branch when it's present.
+	if (!(await refExists(git, baseRef)) && (await refExists(git, branchName))) {
+		baseRef = branchName;
+	}
 	return { branchName, baseRef };
 }
 

@@ -166,14 +166,36 @@ describe("resolveBaseComparison (integration)", () => {
 		});
 	});
 
-	test("returns null when no default branch can be resolved", async () => {
-		const emptyRepo = mkTmp();
+	test("falls back to local default branch when origin/HEAD is unset (#5114)", async () => {
+		// Local-only repo with no `refs/remotes/origin/HEAD`: "against main"
+		// must still resolve to the local default branch instead of giving
+		// up (which collapsed the comparison to HEAD...HEAD and showed
+		// nothing committed against main).
+		const localRepo = mkTmp();
 		try {
-			const emptyGit = await initRepo(emptyRepo);
-			await commitFile(emptyGit, emptyRepo, "a.txt", "a", "init");
-			expect(await resolveBaseComparison(emptyGit)).toBeNull();
+			const localGit = await initRepo(localRepo);
+			await commitFile(localGit, localRepo, "a.txt", "a", "init");
+			expect(await resolveBaseComparison(localGit)).toEqual({
+				branchName: "main",
+				baseRef: "main",
+			});
 		} finally {
-			rmSync(emptyRepo, { recursive: true, force: true });
+			rmSync(localRepo, { recursive: true, force: true });
+		}
+	});
+
+	test("returns null when neither a remote nor a local default exists", async () => {
+		const orphanRepo = mkTmp();
+		try {
+			const orphanGit = await initRepo(orphanRepo);
+			// Commit on a branch that isn't a conventional default name, and
+			// drop `main` so nothing resolves.
+			await orphanGit.raw(["checkout", "-b", "trunk"]);
+			await commitFile(orphanGit, orphanRepo, "a.txt", "a", "init");
+			await orphanGit.raw(["branch", "-D", "main"]).catch(() => {});
+			expect(await resolveBaseComparison(orphanGit)).toBeNull();
+		} finally {
+			rmSync(orphanRepo, { recursive: true, force: true });
 		}
 	});
 });
