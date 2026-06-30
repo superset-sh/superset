@@ -4,6 +4,10 @@ export type WorkspaceCreateAgent = string;
 // New key — old one held v1 preset slugs that won't match v2 UUIDs.
 export const AGENT_STORAGE_KEY = "lastSelectedV2WorkspaceCreateAgent";
 
+// JSON map of presetId → model id; keyed by preset (not config UUID) so the
+// preference survives host switches.
+export const MODEL_STORAGE_KEY = "lastSelectedV2WorkspaceCreateModelByPreset";
+
 export const PILL_BUTTON_CLASS =
 	"!h-[22px] min-h-0 rounded-md border-[0.5px] border-border bg-foreground/[0.04] shadow-none text-[11px]";
 

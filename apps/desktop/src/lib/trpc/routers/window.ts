@@ -43,6 +43,13 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 			return process.platform;
 		}),
 
+		// Authoritative page-zoom factor (1 = 100%); see useZoomFactor.
+		getZoomFactor: publicProcedure.query(() => {
+			const window = getWindow();
+			if (!window) return 1;
+			return window.webContents.getZoomFactor();
+		}),
+
 		getHomeDir: publicProcedure.query(() => {
 			return homedir();
 		}),

@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
+	type LinkAction,
 	type LinkTierMap,
 	V2_USER_PREFERENCES_ID,
 	type V2UserPreferencesRow,
@@ -16,6 +17,7 @@ export interface V2UserPreferencesApi {
 	setFileLinks: (next: LinkTierMap) => void;
 	setUrlLinks: (next: LinkTierMap) => void;
 	setSidebarFileLinks: (next: LinkTierMap) => void;
+	setPortOpenAction: (next: LinkAction) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
 	setRightSidebarTab: (next: RightSidebarTab) => void;
 	setRightSidebarWidth: (next: number) => void;
@@ -68,6 +70,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 	const setSidebarFileLinks = useCallback(
 		(next: LinkTierMap) => upsertTierMap("sidebarFileLinks", next),
 		[upsertTierMap],
+	);
+
+	const setPortOpenAction = useCallback(
+		(next: LinkAction) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					portOpenAction: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.portOpenAction = next;
+			});
+		},
+		[collections],
 	);
 
 	const setRightSidebarOpen = useCallback(
@@ -174,6 +195,7 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setFileLinks,
 		setUrlLinks,
 		setSidebarFileLinks,
+		setPortOpenAction,
 		setRightSidebarOpen,
 		setRightSidebarTab,
 		setRightSidebarWidth,

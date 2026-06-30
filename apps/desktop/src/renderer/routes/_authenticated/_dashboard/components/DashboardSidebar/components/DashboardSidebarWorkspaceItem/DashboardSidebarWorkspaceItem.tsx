@@ -3,6 +3,7 @@ import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
+import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
@@ -10,6 +11,7 @@ import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
+import { DashboardSidebarWorkspaceDetails } from "./components/DashboardSidebarWorkspaceDetails";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
 
 interface DashboardSidebarWorkspaceItemProps {
@@ -41,6 +43,7 @@ export function DashboardSidebarWorkspaceItem({
 	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
+	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
 	const {
 		cancelRename,
 		handleClick,
@@ -222,7 +225,14 @@ export function DashboardSidebarWorkspaceItem({
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
-			/>
+			>
+				{!isPending && inlineWorkspacePortsEnabled && (
+					<DashboardSidebarWorkspaceDetails
+						workspaceId={id}
+						isInSection={isInSection}
+					/>
+				)}
+			</DashboardSidebarExpandedWorkspaceRow>
 		</div>
 	);
 

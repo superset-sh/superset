@@ -1,3 +1,4 @@
+import { getAgentModelSupport } from "@superset/shared/agent-models";
 import { sanitizeUserBranchName } from "@superset/shared/workspace-launch";
 import {
 	PromptInput,
@@ -19,12 +20,14 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
+import { AgentModelSelect } from "renderer/components/AgentModelSelect";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
+import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { PLATFORM } from "renderer/hotkeys";
@@ -54,6 +57,7 @@ import {
 } from "./hooks/useUploadAttachments";
 import {
 	AGENT_STORAGE_KEY,
+	MODEL_STORAGE_KEY,
 	PILL_BUTTON_CLASS,
 	type ProjectOption,
 	type WorkspaceCreateAgent,
@@ -152,6 +156,20 @@ export function PromptGroup({
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: v2AgentsFetched,
 		});
+
+	// ── Model picker (per agent preset) ──────────────────────────────
+	// `iconId` carries the presetId for v2 agents ("superset" for chat).
+	const selectedPresetId = useMemo(
+		() => v2Agents.find((agent) => agent.id === selectedAgent)?.iconId ?? null,
+		[v2Agents, selectedAgent],
+	);
+	const modelSupport = selectedPresetId
+		? getAgentModelSupport(selectedPresetId)
+		: undefined;
+	const { selectedModel, setSelectedModel } = useAgentModelPreference(
+		MODEL_STORAGE_KEY,
+		modelSupport ? selectedPresetId : null,
+	);
 
 	// Promote the placeholder "none" → first configured agent whenever the
 	// current selection isn't a real agent and the user hasn't explicitly
@@ -270,6 +288,7 @@ export function PromptGroup({
 	const createWorkspace = useSubmitWorkspace(
 		projectId,
 		selectedAgent,
+		modelSupport ? selectedModel : null,
 		uploadAttachments,
 		promptContext,
 	);
@@ -461,6 +480,14 @@ export function PromptGroup({
 							noneLabel="No agent"
 							noneValue="none"
 						/>
+						{modelSupport && (
+							<AgentModelSelect
+								models={modelSupport.models}
+								value={selectedModel}
+								onValueChange={setSelectedModel}
+								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
+							/>
+						)}
 					</PromptInputTools>
 					<div className="flex items-center gap-2">
 						<AttachmentButtons

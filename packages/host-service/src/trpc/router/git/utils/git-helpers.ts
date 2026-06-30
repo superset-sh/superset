@@ -1,13 +1,10 @@
-import {
-	copyFile,
-	mkdtemp,
-	readFile,
-	realpath,
-	rm,
-	stat,
-} from "node:fs/promises";
+import { copyFile, mkdtemp, open, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import {
+	BINARY_SNIFF_BYTES,
+	isBinaryMediaFile,
+} from "@superset/shared/media-files";
 import type { SimpleGit } from "simple-git";
 import { resolveUpstream } from "../../../../runtime/git/refs";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
@@ -22,6 +19,11 @@ const MAX_UNTRACKED_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 // files (e.g. fresh checkout with un-gitignored build artifacts)
 // doesn't exhaust the process file-descriptor limit.
 const UNTRACKED_IO_CONCURRENCY = 64;
+
+// Chunk size for streaming untracked files when counting lines. Bounds
+// per-file memory to this × UNTRACKED_IO_CONCURRENCY instead of the full
+// file size, and comfortably covers the 8KB binary sniff window.
+const UNTRACKED_READ_CHUNK_SIZE = 64 * 1024;
 
 async function mapWithConcurrency<T>(
 	items: T[],
@@ -72,8 +74,11 @@ export function mapGitStatus(code: string): FileStatus {
  */
 export function parseNumstat(
 	raw: string,
-): Map<string, { additions: number; deletions: number }> {
-	const result = new Map<string, { additions: number; deletions: number }>();
+): Map<string, { additions: number; deletions: number; isBinary: boolean }> {
+	const result = new Map<
+		string,
+		{ additions: number; deletions: number; isBinary: boolean }
+	>();
 	const entries = raw.split("\0");
 	for (let i = 0; i < entries.length; i++) {
 		const entry = entries[i];
@@ -87,6 +92,7 @@ export function parseNumstat(
 		const stats = {
 			additions: add === "-" ? 0 : Number.parseInt(add || "0", 10),
 			deletions: del === "-" ? 0 : Number.parseInt(del || "0", 10),
+			isBinary: add === "-" && del === "-",
 		};
 		if (pathMaybe === "") {
 			const oldPath = entries[++i] ?? "";
@@ -266,26 +272,61 @@ export async function countUntrackedFileLines(
 			if (!isPathWithinWorktree(worktreeReal, fileReal)) return;
 
 			const stats = await stat(fileReal);
-			if (!stats.isFile() || stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
+			if (!stats.isFile()) {
 				return;
 			}
 
-			// `readFile(file, "utf-8")` happily turns binary into U+FFFDs
-			// and returns a non-zero line count, so sniff first 8KB for
-			// NULs the way git's own binary heuristic does.
-			const buf = await readFile(fileReal);
-			const sniffEnd = Math.min(buf.length, 8192);
-			for (let i = 0; i < sniffEnd; i++) {
-				if (buf[i] === 0) return;
+			if (isBinaryMediaFile(file.path)) {
+				file.isBinary = true;
+				file.additions = 0;
+				file.deletions = 0;
+				return;
 			}
 
-			const content = buf.toString("utf-8");
-			file.additions =
-				content === ""
-					? 0
-					: content.endsWith("\n")
-						? content.split(/\r?\n/).length - 1
-						: content.split(/\r?\n/).length;
+			// Stream the file in fixed-size chunks rather than slurping it:
+			// readFile would pin the whole file in memory (×UNTRACKED_IO_CONCURRENCY)
+			// and, read as utf-8, would turn binary into U+FFFDs and report a
+			// bogus line count. We reuse one buffer, sniff the first 8KB for NULs
+			// (git's binary heuristic), and tally newlines as we go.
+			const handle = await open(fileReal, "r");
+			try {
+				const buf = Buffer.allocUnsafe(UNTRACKED_READ_CHUNK_SIZE);
+				let { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+
+				const sniffEnd = Math.min(bytesRead, BINARY_SNIFF_BYTES);
+				for (let i = 0; i < sniffEnd; i++) {
+					if (buf[i] === 0) {
+						file.isBinary = true;
+						file.additions = 0;
+						file.deletions = 0;
+						return;
+					}
+				}
+
+				// Over the budget: skip the LOC signal without reading the rest.
+				if (stats.size > MAX_UNTRACKED_LINE_COUNT_SIZE) {
+					return;
+				}
+
+				let newlines = 0;
+				let lastByte = -1;
+				let offset = 0;
+				while (bytesRead > 0) {
+					for (let i = 0; i < bytesRead; i++) {
+						if (buf[i] === 0x0a) newlines++;
+					}
+					lastByte = buf[bytesRead - 1] ?? lastByte;
+					offset += bytesRead;
+					({ bytesRead } = await handle.read(buf, 0, buf.length, offset));
+				}
+				// Match `content.split(/\r?\n/)`: a trailing newline doesn't add a
+				// line, but a final non-empty line without one does. (\r\n shares
+				// the \n, so counting \n bytes is equivalent.)
+				file.additions =
+					lastByte === -1 ? 0 : lastByte === 0x0a ? newlines : newlines + 1;
+			} finally {
+				await handle.close();
+			}
 		} catch {}
 	});
 }
@@ -296,6 +337,7 @@ export interface DetectedRename {
 	status: "renamed";
 	additions: number;
 	deletions: number;
+	isBinary: boolean;
 }
 
 /**
@@ -354,13 +396,18 @@ export async function detectUnstagedRenames(
 			if (!entry.oldPath) continue;
 			const code = entry.status[0];
 			if (code !== "R") continue;
-			const stats = numstat.get(entry.path) ?? { additions: 0, deletions: 0 };
+			const stats = numstat.get(entry.path) ?? {
+				additions: 0,
+				deletions: 0,
+				isBinary: false,
+			};
 			result.push({
 				oldPath: entry.oldPath,
 				newPath: entry.path,
 				status: "renamed",
 				additions: stats.additions,
 				deletions: stats.deletions,
+				isBinary: stats.isBinary,
 			});
 		}
 		return result;
@@ -395,6 +442,7 @@ export async function getChangedFilesForDiff(
 				status: mapGitStatus(f.status),
 				additions: (numstat.get(f.path) ?? { additions: 0 }).additions,
 				deletions: (numstat.get(f.path) ?? { deletions: 0 }).deletions,
+				isBinary: (numstat.get(f.path) ?? { isBinary: false }).isBinary,
 			}));
 	} catch {
 		return [];
