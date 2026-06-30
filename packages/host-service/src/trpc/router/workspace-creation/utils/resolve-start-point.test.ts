@@ -218,6 +218,7 @@ describe("resolveStartPoint", () => {
 describe("resolveStartPoint — real git (upstream vs origin)", () => {
 	let workRoot: string;
 
+	/** Init a fresh git repo under `workRoot` with a committable identity. */
 	function initRepo(name: string): string {
 		const repo = join(workRoot, name);
 		mkdirSync(repo, { recursive: true });
@@ -234,12 +235,14 @@ describe("resolveStartPoint — real git (upstream vs origin)", () => {
 		return repo;
 	}
 
+	/** Write `file` and commit it in `repo`. */
 	function commit(repo: string, file: string, body: string, message: string) {
 		writeFileSync(join(repo, file), body);
 		execSync(`git add ${file}`, { cwd: repo, stdio: "ignore" });
 		execSync(`git commit -m "${message}"`, { cwd: repo, stdio: "ignore" });
 	}
 
+	/** Full commit SHA of `rev` in `repo`. */
 	function sha(repo: string, rev: string): string {
 		return execSync(`git rev-parse ${rev}`, {
 			cwd: repo,
