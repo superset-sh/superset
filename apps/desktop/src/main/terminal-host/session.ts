@@ -82,6 +82,20 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
 const SHELL_READY_TIMEOUT_MS = 15_000;
 
 /**
+ * Renderer-xterm replies to terminal queries (DA/DSR) that we drop while the
+ * shell is still initializing. Patterns matched, anchored to the whole write:
+ *   - DA1 primary:        `\x1b[?<params>c`
+ *   - DA2 secondary:      `\x1b[><params>c`
+ *   - DSR cursor position: `\x1b[<row>;<col>R`
+ *   - DSR device status:   `\x1b[<n>n`
+ * Bare CSI input from the user (arrow keys, bracketed paste, etc.) does not
+ * match and passes through.
+ */
+const TERMINAL_QUERY_RESPONSE_PATTERN =
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: ESC is intentional — matches DA/DSR replies
+	/^\x1b\[(?:\?[\d;]*c|>[\d;]*c|\d+;\d+R|\d+n)$/;
+
+/**
  * Shell readiness lifecycle:
  * - `pending`     — shell is initializing; escape sequences dropped, other writes pass through
  * - `ready`       — marker detected; writes pass through
@@ -859,12 +873,17 @@ export class Session {
 	/**
 	 * Write data to the PTY's stdin.
 	 *
-	 * Escape-sequence responses (`\x1b`-prefixed) are dropped while the shell
-	 * is still initializing — these are stale DA/DSR replies from the
-	 * renderer's xterm to terminal queries the shell sent during startup. If
-	 * forwarded, they appear as typed text like `?62;4;9;22c` at the shell
-	 * prompt. The headless emulator answers those queries directly (see
-	 * constructor), so dropping the renderer's duplicate is safe.
+	 * DA/DSR replies from the renderer's xterm are dropped while the shell is
+	 * still initializing — these answer queries the shell sent during startup
+	 * and, if forwarded, appear as typed text like `?62;4;9;22c` at the prompt.
+	 * The headless emulator answers those queries directly (see constructor),
+	 * so dropping the renderer's duplicate is safe.
+	 *
+	 * The filter must be tight: user keystrokes also begin with ESC (arrow
+	 * keys `\x1b[A`–`\x1b[D`, Shift+Enter `\x1b\r`, bracketed paste
+	 * `\x1b[200~…\x1b[201~`). Dropping every ESC-prefixed write made new tabs
+	 * feel frozen for ~10s while a TUI like Claude Code couldn't receive
+	 * navigation or paste. See #4951.
 	 *
 	 * All other data — user keystrokes and preset commands alike — passes
 	 * through immediately. Buffering here previously froze workspaces when
@@ -875,7 +894,10 @@ export class Session {
 		if (!this.subprocess || !this.subprocessReady) {
 			throw new Error("PTY not spawned");
 		}
-		if (this.shellReadyState === "pending" && data.startsWith("\x1b")) {
+		if (
+			this.shellReadyState === "pending" &&
+			TERMINAL_QUERY_RESPONSE_PATTERN.test(data)
+		) {
 			return;
 		}
 		this.sendWriteToSubprocess(data);

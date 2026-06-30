@@ -178,6 +178,32 @@ describe("Session shell-ready: write pass-through", () => {
 		expect(getWrittenData(proc)).toEqual(["claude\n"]);
 	});
 
+	it("forwards user keystrokes that start with ESC during pending state (#4951)", () => {
+		const { session, proc } = createTestSession("/bin/zsh");
+		spawnAndReady(session, proc);
+
+		// While the shell is still initializing, the user is interacting with
+		// a TUI in the new tab (e.g. Claude Code). The renderer translates
+		// these chords to escape-prefixed byte sequences. Dropping them as if
+		// they were stale xterm protocol replies makes the tab feel frozen
+		// for the duration of shell init (up to SHELL_READY_TIMEOUT_MS).
+		session.write("\x1b[A"); // ArrowUp
+		session.write("\x1b[B"); // ArrowDown
+		session.write("\x1b[C"); // ArrowRight
+		session.write("\x1b[D"); // ArrowLeft
+		session.write("\x1b\r"); // Shift+Enter (kitty mode → newline in chat TUIs)
+		session.write("\x1b[200~hello\x1b[201~"); // bracketed paste
+
+		expect(getWrittenData(proc)).toEqual([
+			"\x1b[A",
+			"\x1b[B",
+			"\x1b[C",
+			"\x1b[D",
+			"\x1b\r",
+			"\x1b[200~hello\x1b[201~",
+		]);
+	});
+
 	it("forwards escape sequences once shell is ready", () => {
 		const { session, proc } = createTestSession("/bin/zsh");
 		spawnAndReady(session, proc);
