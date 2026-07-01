@@ -6,8 +6,40 @@ const PARTITION = "persist:superset";
 const CURRENT_FILE = "current.json";
 const SESSION_PREFIX = "session-";
 const SESSION_SUFFIX = ".json";
-const MAX_FILE_BYTES = 1024 * 1024 * 1024;
+// Per-session cap. Electron's netLog rotates within this budget, and we retain
+// the last few archived sessions (see pruneOldSessions), so total on-disk usage
+// stays bounded. Previously this was 1 GiB, which let a single session grow to
+// ~1 GB and caused disk pressure (#5276).
+const DEFAULT_MAX_FILE_BYTES = 50 * 1024 * 1024;
 const MAX_RETAINED_SESSIONS = 3;
+
+const FALSEY = new Set(["false", "0", "off", "no"]);
+
+/**
+ * Network logging captures sensitive request data and can be disabled via the
+ * `SUPERSET_NETWORK_LOG` env var (escape hatch from #5276).
+ */
+export function isNetworkLoggingEnabled(
+	env: NodeJS.ProcessEnv = process.env,
+): boolean {
+	const raw = env.SUPERSET_NETWORK_LOG;
+	if (raw === undefined) return true;
+	return !FALSEY.has(raw.trim().toLowerCase());
+}
+
+/**
+ * Resolves the per-session size cap, optionally overridden by
+ * `SUPERSET_NETWORK_LOG_MAX_MB`. Invalid values fall back to the default.
+ */
+export function resolveMaxFileBytes(
+	env: NodeJS.ProcessEnv = process.env,
+): number {
+	const raw = env.SUPERSET_NETWORK_LOG_MAX_MB;
+	if (raw === undefined) return DEFAULT_MAX_FILE_BYTES;
+	const parsed = Number.parseInt(raw, 10);
+	if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_MAX_FILE_BYTES;
+	return parsed * 1024 * 1024;
+}
 
 let started = false;
 
@@ -79,12 +111,16 @@ function pruneOldSessions(): void {
 
 export async function startNetworkLogger(): Promise<void> {
 	if (started) return;
+	if (!isNetworkLoggingEnabled()) {
+		console.log("[network-logger] disabled via SUPERSET_NETWORK_LOG");
+		return;
+	}
 	archivePreviousSession();
 	pruneOldSessions();
 	const logPath = path.join(logsDir(), CURRENT_FILE);
 	await session.fromPartition(PARTITION).netLog.startLogging(logPath, {
 		captureMode: "includeSensitive",
-		maxFileSize: MAX_FILE_BYTES,
+		maxFileSize: resolveMaxFileBytes(),
 	});
 	started = true;
 	console.log("[network-logger] recording to", logPath);
