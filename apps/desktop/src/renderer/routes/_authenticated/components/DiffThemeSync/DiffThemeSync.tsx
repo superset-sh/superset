@@ -14,7 +14,14 @@ export function DiffThemeSync() {
 	const activeTheme = useResolvedTheme();
 
 	useEffect(() => {
-		void poolManager?.setRenderOptions(buildDiffPoolRenderOptions(activeTheme));
+		poolManager
+			?.setRenderOptions(buildDiffPoolRenderOptions(activeTheme))
+			.catch((error) => {
+				console.error(
+					"[DiffThemeSync] Failed to apply theme to diff pool:",
+					error,
+				);
+			});
 	}, [poolManager, activeTheme]);
 
 	return null;
