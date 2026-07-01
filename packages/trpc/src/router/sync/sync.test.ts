@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import type { TRPCRouterRecord } from "@trpc/server";
 
 const membersFindFirst = mock(async () => ({ role: "member" }) as unknown);
 const selectWhere = mock(async () => [] as unknown[]);
