@@ -149,11 +149,3 @@ jobs:
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
         run: bun turbo run build --filter=@superset/desktop
-
-  build-cli:
-    name: Build CLI
-    uses: ./.github/workflows/build-cli.yml
-    with:
-      targets: '[{"os":"ubuntu-latest","target":"linux-x64"},{"os":"macos-14","target":"darwin-arm64"},{"os":"ubuntu-24.04-arm","target":"linux-arm64"}]'
-      upload: false
-    secrets: inherit

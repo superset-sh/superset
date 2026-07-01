@@ -1,1 +1,0 @@
-export { ConsentForm } from "./ConsentForm";

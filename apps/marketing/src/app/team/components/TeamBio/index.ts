@@ -1,1 +1,0 @@
-export { TeamBio } from "./TeamBio";

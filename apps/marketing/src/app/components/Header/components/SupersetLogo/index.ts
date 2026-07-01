@@ -1,1 +1,0 @@
-export { SupersetLogo } from "./SupersetLogo";

@@ -1,1 +1,0 @@
-export { SelectorPill } from "./SelectorPill";

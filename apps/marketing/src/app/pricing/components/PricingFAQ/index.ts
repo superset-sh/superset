@@ -1,1 +1,0 @@
-export { PricingFAQ } from "./PricingFAQ";
