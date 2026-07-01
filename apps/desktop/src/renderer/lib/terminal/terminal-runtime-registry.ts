@@ -23,6 +23,7 @@ import {
 	sendDispose,
 	sendInput,
 	sendResize,
+	stripUrlToken,
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
@@ -176,10 +177,15 @@ class TerminalRuntimeRegistryImpl {
 	 *
 	 * Idempotent: no-op if already connected/connecting to the same URL.
 	 */
-	connect(terminalId: string, wsUrl: string, instanceId = terminalId) {
+	connect(
+		terminalId: string,
+		wsUrl: string,
+		instanceId = terminalId,
+		getToken?: () => string | null,
+	) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		connect(entry.transport, entry.runtime.terminal, wsUrl, getToken);
 	}
 
 	/**
@@ -194,12 +200,19 @@ class TerminalRuntimeRegistryImpl {
 	 * `"closed"` (previously live and mid-auto-reconnect — swap the URL so the
 	 * reconnect targets the new endpoint).
 	 */
-	reconnect(terminalId: string, wsUrl: string, instanceId = terminalId) {
+	reconnect(
+		terminalId: string,
+		wsUrl: string,
+		instanceId = terminalId,
+		getToken?: () => string | null,
+	) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
 		if (entry.transport.connectionState === "disconnected") return;
-		if (entry.transport.currentUrl === wsUrl) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		// currentUrl is token-less, so compare against the stripped incoming URL:
+		// a token refresh alone must not tear down a live shell.
+		if (entry.transport.currentUrl === stripUrlToken(wsUrl)) return;
+		connect(entry.transport, entry.runtime.terminal, wsUrl, getToken);
 	}
 
 	/**
