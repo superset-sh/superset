@@ -1,1 +1,0 @@
-export { DatabaseTable } from "./DatabaseTable";

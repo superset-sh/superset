@@ -1,1 +1,0 @@
-export { PricingHero } from "./PricingHero";

@@ -1,1 +1,0 @@
-export { MobileSearchIcon } from "./MobileSearchIcon";

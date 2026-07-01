@@ -1,1 +1,0 @@
-export { ResourceCard } from "./ResourceCard";

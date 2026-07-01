@@ -94,3 +94,6 @@ superset-dev-data/
 
 # Local-only plans (not tracked)
 plans/local/
+
+# Bun build artifacts
+*.bun-build

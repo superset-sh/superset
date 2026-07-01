@@ -1,1 +1,0 @@
-export { DesktopNav } from "./DesktopNav";

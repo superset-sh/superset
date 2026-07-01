@@ -1,1 +1,0 @@
-export { BlogCard } from "./BlogCard";
