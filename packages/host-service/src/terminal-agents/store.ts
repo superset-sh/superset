@@ -19,15 +19,31 @@ interface ListFilter {
 
 const EXIT_EVENT_TYPES = new Set(["Detached", "exit", "error"]);
 
+export interface TerminalAgentBindingPersistence {
+	load(): TerminalAgentBinding[];
+	upsert(binding: TerminalAgentBinding): void;
+	delete(terminalId: string): void;
+}
+
 /**
  * In-process tracker for which agent is alive in which terminal. Populated
- * by the hook receiver, drained on terminal exit. Absence is the only
- * signal — no history is retained.
+ * by the hook receiver, drained on terminal exit, and optionally restored
+ * from host-local persistence across host-service restarts.
  *
  * Emits `"change"` with the affected workspaceId after every mutation.
  */
 export class TerminalAgentStore extends EventEmitter {
 	private readonly byTerminal = new Map<string, TerminalAgentBinding>();
+	private readonly persistence: TerminalAgentBindingPersistence | undefined;
+
+	constructor(persistence?: TerminalAgentBindingPersistence) {
+		super();
+		this.persistence = persistence;
+
+		for (const binding of persistence?.load() ?? []) {
+			this.byTerminal.set(binding.terminalId, binding);
+		}
+	}
 
 	recordEvent(input: RecordEventInput): void {
 		const {
@@ -77,6 +93,7 @@ export class TerminalAgentStore extends EventEmitter {
 		};
 
 		this.byTerminal.set(terminalId, next);
+		this.persistence?.upsert(next);
 		this.emit("change", workspaceId);
 	}
 
@@ -125,6 +142,7 @@ export class TerminalAgentStore extends EventEmitter {
 		const existing = this.byTerminal.get(terminalId);
 		if (!existing) return;
 		this.byTerminal.delete(terminalId);
+		this.persistence?.delete(terminalId);
 		this.emit("change", existing.workspaceId);
 	}
 }

@@ -46,6 +46,7 @@ export function DashboardSidebarWorkspaceItem({
 	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
 	const {
 		cancelRename,
+		handleClearStatus,
 		handleClick,
 		handleCopyPath,
 		handleCopyBranchName,
@@ -156,6 +157,7 @@ export function DashboardSidebarWorkspaceItem({
 							projectId={projectId}
 							isInSection={isInSection}
 							isUnread={isUnread}
+							hasStatus={!!workspaceStatus}
 							isLocalWorkspace={hostType === "local-device"}
 							isPinned={isMainWorkspace && hostType === "local-device"}
 							onCreateSection={handleCreateSection}
@@ -172,6 +174,7 @@ export function DashboardSidebarWorkspaceItem({
 								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 							}
 							onToggleUnread={handleToggleUnread}
+							onClearStatus={handleClearStatus}
 						>
 							{content}
 						</DashboardSidebarWorkspaceContextMenu>
@@ -246,6 +249,7 @@ export function DashboardSidebarWorkspaceItem({
 						projectId={projectId}
 						isInSection={isInSection}
 						isUnread={isUnread}
+						hasStatus={!!workspaceStatus}
 						onCreateSection={handleCreateSection}
 						onMoveToSection={(targetSectionId) =>
 							moveWorkspaceToSection(id, projectId, targetSectionId)
@@ -262,6 +266,7 @@ export function DashboardSidebarWorkspaceItem({
 							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 						}
 						onToggleUnread={handleToggleUnread}
+						onClearStatus={handleClearStatus}
 					>
 						{expandedContent}
 					</DashboardSidebarWorkspaceContextMenu>
