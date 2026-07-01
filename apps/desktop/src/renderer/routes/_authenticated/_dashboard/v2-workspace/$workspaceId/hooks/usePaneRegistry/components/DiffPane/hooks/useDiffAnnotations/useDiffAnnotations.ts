@@ -18,6 +18,7 @@ export interface DiffCommentThread {
 	isResolved: boolean;
 	isOutdated: boolean;
 	url?: string;
+	sourceLine?: number;
 }
 
 /** Local-only metadata for a draft composer pinned to the end of a selection. */
@@ -31,7 +32,8 @@ export interface DiffAgentComposer {
 
 export type DiffAnnotationMetadata =
 	| ({ kind: "thread" } & DiffCommentThread)
-	| ({ kind: "composer" } & DiffAgentComposer);
+	| ({ kind: "composer" } & DiffAgentComposer)
+	| { kind: "binary-placeholder" };
 
 interface UseDiffAnnotationsByPathOptions {
 	workspaceId: string;

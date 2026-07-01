@@ -32,7 +32,7 @@ export function translateLineEditChord(
 	const { key } = event;
 
 	if (isMac && onlyMod(event, "meta")) {
-		if (key === "Backspace") return "\x15\x1b[D";
+		if (key === "Backspace") return "\x15";
 		if (key === "ArrowLeft") return "\x01";
 		if (key === "ArrowRight") return "\x05";
 		// Chat TUIs parse ESC+CR as Shift+Enter/newline in kitty mode.

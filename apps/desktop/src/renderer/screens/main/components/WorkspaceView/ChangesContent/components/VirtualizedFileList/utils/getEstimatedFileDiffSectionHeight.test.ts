@@ -61,4 +61,22 @@ describe("getEstimatedFileDiffSectionHeight", () => {
 			}),
 		).toBe(420);
 	});
+
+	it("uses the unsupported diff placeholder for binary files", () => {
+		expect(
+			getEstimatedFileDiffSectionHeight({
+				file: createFile("assets/logo.png", { isBinary: true }),
+				isCollapsed: false,
+			}),
+		).toBe(340);
+	});
+
+	it("uses the unsupported diff placeholder for videos", () => {
+		expect(
+			getEstimatedFileDiffSectionHeight({
+				file: createFile("assets/demo.mp4"),
+				isCollapsed: false,
+			}),
+		).toBe(340);
+	});
 });

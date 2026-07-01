@@ -18,7 +18,7 @@
 	"scripts": {
 		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:no-caddy": "turbo run dev --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//",
-		"dev:all": "turbo dev",
+		"dev:all": "turbo dev --concurrency=15",
 		"dev:desktop": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:caddy": "dotenv -- sh -c 'caddy reload --config Caddyfile || caddy run --config Caddyfile'",
 		"dev:docs": "turbo dev --filter=@superset/docs",

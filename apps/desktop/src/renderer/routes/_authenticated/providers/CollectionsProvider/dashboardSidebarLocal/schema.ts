@@ -172,8 +172,11 @@ export type V2TerminalPresetRow = z.infer<typeof v2TerminalPresetSchema>;
  *   - fileLinks / urlLinks: links embedded in terminal output and markdown.
  *     Terminal reads all 4 tiers; 2-tier surfaces (chat, task markdown)
  *     collapse shift→plain and metaShift→meta.
- *   - sidebarFileLinks: file rows in the sidebar (tree, changes, diff header)
- *     and similar in-app surfaces (port badges).
+ *   - sidebarFileLinks: file rows in the sidebar (tree, changes, diff header).
+ *
+ * portOpenAction is a single action (not a tier map) for detected-port
+ * badges: "pane" = in-app browser, "newTab" = new in-app tab,
+ * "external" = system browser.
  *
  * Resolution and labels live in src/renderer/lib/clickPolicy.
  */
@@ -212,6 +215,11 @@ const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
 	metaShift: "external",
 };
 
+// Clicking a port badge's open affordance opens http://localhost:<port>.
+// A single action chooses where: "pane" = in-app browser, "newTab" = new
+// in-app tab, "external" = system browser.
+const DEFAULT_PORT_OPEN_ACTION: LinkAction = "external";
+
 function isSameLinkTierMap(a: LinkTierMap, b: LinkTierMap): boolean {
 	return (
 		a.plain === b.plain &&
@@ -237,6 +245,7 @@ export const v2UserPreferencesSchema = z.object({
 	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
 	urlLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
 	sidebarFileLinks: linkTierMapSchema.default(DEFAULT_SIDEBAR_FILE_LINKS),
+	portOpenAction: linkActionSchema.default(DEFAULT_PORT_OPEN_ACTION),
 	terminalPresetsInitialized: z.boolean().default(false),
 	rightSidebarOpen: z.boolean().default(true),
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
@@ -254,6 +263,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	fileLinks: DEFAULT_LINK_TIER_MAP,
 	urlLinks: DEFAULT_LINK_TIER_MAP,
 	sidebarFileLinks: DEFAULT_SIDEBAR_FILE_LINKS,
+	portOpenAction: DEFAULT_PORT_OPEN_ACTION,
 	terminalPresetsInitialized: false,
 	rightSidebarOpen: true,
 	rightSidebarTab: "changes",

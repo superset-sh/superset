@@ -25,7 +25,10 @@ export function PickerTrigger({
 		<Button
 			variant={variant}
 			{...props}
-			className={cn("justify-between gap-1 px-2 text-xs", className)}
+			className={cn(
+				"min-w-0 max-w-full justify-between gap-1 px-2 text-xs",
+				className,
+			)}
 		>
 			<span className="flex min-w-0 flex-1 items-center gap-1.5">
 				{icon}

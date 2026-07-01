@@ -118,8 +118,11 @@ export function parseGitLog(logOutput: string): CommitInfo[] {
 
 export function parseDiffNumstat(
 	numstatOutput: string,
-): Map<string, { additions: number; deletions: number }> {
-	const stats = new Map<string, { additions: number; deletions: number }>();
+): Map<string, { additions: number; deletions: number; isBinary: boolean }> {
+	const stats = new Map<
+		string,
+		{ additions: number; deletions: number; isBinary: boolean }
+	>();
 
 	for (const line of numstatOutput.trim().split("\n")) {
 		if (!line.trim()) continue;
@@ -132,7 +135,11 @@ export function parseDiffNumstat(
 
 		const additions = addStr === "-" ? 0 : Number.parseInt(addStr, 10) || 0;
 		const deletions = delStr === "-" ? 0 : Number.parseInt(delStr, 10) || 0;
-		const statEntry = { additions, deletions };
+		const statEntry = {
+			additions,
+			deletions,
+			isBinary: addStr === "-" && delStr === "-",
+		};
 
 		const renameMatch = rawPath.match(/^(.+) => (.+)$/);
 		if (renameMatch) {
