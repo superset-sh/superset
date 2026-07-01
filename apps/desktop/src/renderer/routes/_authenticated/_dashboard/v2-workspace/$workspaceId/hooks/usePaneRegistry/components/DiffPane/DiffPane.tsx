@@ -5,7 +5,7 @@ import type {
 } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
 	type ChangesetFile,
@@ -19,6 +19,7 @@ import { AgentCommentComposer } from "./components/AgentCommentComposer";
 import { CommentThread } from "./components/CommentThread";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
 import { DiffHeaderPrefix } from "./components/DiffHeaderPrefix";
+import { DiffSectionBar } from "./components/DiffSectionBar";
 import {
 	type DiffAnnotationMetadata,
 	useDiffAnnotationsByPath,
@@ -121,6 +122,43 @@ export function DiffPane({
 		collapsedSet,
 		setCollapsed,
 	});
+
+	// Group the concatenated diff into unstaged / staged / committed … sections
+	// like the sidebar. A body-less section item can't stay pinned across its
+	// group (Pierre pins one header at a time, within its own box), so instead
+	// we render a single sticky section bar above the scroll area and update it
+	// to whichever source group the topmost visible file belongs to.
+	const { sectionByItemId, firstSection } = useMemo(() => {
+		const counts = new Map<ChangesetFile["source"]["kind"], number>();
+		for (const file of files) {
+			counts.set(file.source.kind, (counts.get(file.source.kind) ?? 0) + 1);
+		}
+		const byItemId = new Map<
+			string,
+			{ kind: ChangesetFile["source"]["kind"]; count: number }
+		>();
+		let first: { kind: ChangesetFile["source"]["kind"]; count: number } | null =
+			null;
+		for (const item of items) {
+			const kind = fileByItemId.get(item.id)?.source.kind;
+			if (!kind) continue;
+			const entry = { kind, count: counts.get(kind) ?? 0 };
+			byItemId.set(item.id, entry);
+			first ??= entry;
+		}
+		return { sectionByItemId: byItemId, firstSection: first };
+	}, [items, fileByItemId, files]);
+
+	const [topItemId, setTopItemId] = useState<string | null>(null);
+	const currentSection =
+		(topItemId != null ? sectionByItemId.get(topItemId) : undefined) ??
+		firstSection;
+
+	const handleScroll = useCallback(() => {
+		const rendered = codeViewRef.current?.getInstance()?.getRenderedItems();
+		const nextTopId = rendered?.[0]?.id ?? null;
+		setTopItemId((prev) => (prev === nextTopId ? prev : nextTopId));
+	}, []);
 
 	const { options, style } = useDiffCodeViewTheme();
 
@@ -250,15 +288,24 @@ export function DiffPane({
 	}
 
 	return (
-		<CodeView<DiffAnnotationMetadata>
-			ref={codeViewRef}
-			className="h-full w-full overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
-			style={style}
-			items={items}
-			options={codeViewOptions}
-			renderHeaderPrefix={renderHeaderPrefix}
-			renderHeaderMetadata={renderHeaderMetadata}
-			renderAnnotation={renderAnnotation}
-		/>
+		<div className="flex h-full w-full flex-col">
+			{currentSection ? (
+				<DiffSectionBar
+					kind={currentSection.kind}
+					count={currentSection.count}
+				/>
+			) : null}
+			<CodeView<DiffAnnotationMetadata>
+				ref={codeViewRef}
+				className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
+				style={style}
+				items={items}
+				options={codeViewOptions}
+				onScroll={handleScroll}
+				renderHeaderPrefix={renderHeaderPrefix}
+				renderHeaderMetadata={renderHeaderMetadata}
+				renderAnnotation={renderAnnotation}
+			/>
+		</div>
 	);
 }
