@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `vim_mode` integer;

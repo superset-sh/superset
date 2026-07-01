@@ -50,6 +50,7 @@ import {
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
+	DEFAULT_VIM_MODE,
 } from "shared/constants";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 import {
@@ -914,6 +915,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set,
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getVimMode: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.vimMode ?? DEFAULT_VIM_MODE;
+		}),
+
+		setVimMode: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, vimMode: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { vimMode: input.enabled },
 					})
 					.run();
 

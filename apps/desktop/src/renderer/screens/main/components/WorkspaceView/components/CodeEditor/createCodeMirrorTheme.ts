@@ -61,6 +61,15 @@ export function createCodeMirrorTheme(
 			".cm-cursor, .cm-dropCursor": {
 				borderLeftColor: editorTheme.colors.cursor,
 			},
+			".cm-fat-cursor": {
+				backgroundColor: editorTheme.colors.cursor,
+				color: `${editorTheme.colors.background} !important`,
+			},
+			"&:not(.cm-focused) .cm-fat-cursor": {
+				backgroundColor: "transparent",
+				outline: `1px solid ${editorTheme.colors.cursor}`,
+				color: "transparent !important",
+			},
 			".cm-searchMatch": {
 				backgroundColor: editorTheme.colors.search,
 				outline: "none",
@@ -77,6 +86,18 @@ export function createCodeMirrorTheme(
 				backgroundColor: editorTheme.colors.panelInputBackground,
 				color: editorTheme.colors.panelInputForeground,
 				border: `1px solid ${editorTheme.colors.panelInputBorder}`,
+			},
+			".cm-vim-panel": {
+				backgroundColor: editorTheme.colors.panel,
+				color: editorTheme.colors.foreground,
+				borderTop: `1px solid ${editorTheme.colors.panelBorder}`,
+				fontFamily: "inherit",
+				padding: "2px 10px",
+			},
+			".cm-vim-panel input": {
+				backgroundColor: "transparent",
+				color: editorTheme.colors.foreground,
+				fontFamily: "inherit",
 			},
 			".cm-button": {
 				backgroundImage: "none",

@@ -295,6 +295,13 @@
       "when": 1776928440569,
       "tag": "0041_v1_migration_state",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1778177996713,
+      "tag": "0042_legal_mastermind",
+      "breakpoints": true
     }
   ]
 }
