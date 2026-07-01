@@ -445,7 +445,13 @@ export const Terminal = memo(function Terminal({
 			text = shellEscapePaths([plainText]);
 		}
 		if (!isExitedRef.current) {
-			writeRef.current({ paneId, data: text });
+			// Wrap in bracketed paste sequences when BPM is enabled so TUI apps
+			// (OpenCode, vim, etc.) can distinguish drops from typed input and
+			// handle file paths as attachments/images.
+			const data = isBracketedPasteRef.current
+				? `\x1b[200~${text}\x1b[201~`
+				: text;
+			writeRef.current({ paneId, data });
 		}
 	};
 
