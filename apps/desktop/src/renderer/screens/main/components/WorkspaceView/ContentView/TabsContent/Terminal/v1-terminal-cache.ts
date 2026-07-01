@@ -57,6 +57,8 @@ export interface CachedTerminal {
 	resizeObserver: ResizeObserver | null;
 	/** Live container, when attached. */
 	container: HTMLDivElement | null;
+	/** Callback forwarded from attachToContainer to send current dims to the backend. */
+	onResize: (() => void) | null;
 }
 
 const cache = new Map<string, CachedTerminal>();
@@ -131,6 +133,7 @@ export function getOrCreate(
 		subscriptionErrorHandler: null,
 		resizeObserver: null,
 		container: null,
+		onResize: null,
 		lastCols: xterm.cols,
 		lastRows: xterm.rows,
 	};
@@ -150,6 +153,7 @@ export function attachToContainer(
 	if (!entry) return;
 
 	entry.container = container;
+	entry.onResize = onResize ?? null;
 	container.appendChild(entry.wrapper);
 
 	// Refit and repaint on reattach because the wrapper may have been parked
@@ -315,6 +319,18 @@ export function setStreamReady(paneId: string): void {
 	for (const event of pending) {
 		routeEvent(entry, event);
 	}
+}
+
+/**
+ * Re-fit the terminal and push the current dimensions to the backend.
+ * Call this after creating a new PTY session (e.g. cold-restore Start Shell)
+ * so the backend matches whatever viewport the user has now.
+ */
+export function syncDimensions(paneId: string): void {
+	const entry = cache.get(paneId);
+	if (!entry) return;
+	fitAndRefresh(entry);
+	entry.onResize?.();
 }
 
 /**

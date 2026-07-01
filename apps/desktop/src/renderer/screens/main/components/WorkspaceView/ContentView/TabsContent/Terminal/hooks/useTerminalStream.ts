@@ -5,6 +5,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { DEBUG_TERMINAL } from "../config";
 import type { TerminalExitReason, TerminalStreamEvent } from "../types";
+import { shouldAutoCloseTerminalOnCleanExit } from "./terminal-exit-policy";
 
 export interface UseTerminalStreamOptions {
 	paneId: string;
@@ -13,6 +14,7 @@ export interface UseTerminalStreamOptions {
 	isExitedRef: React.MutableRefObject<boolean>;
 	wasKilledByUserRef: React.MutableRefObject<boolean>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
+	preserveCleanExitUntilRef: React.MutableRefObject<number>;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	setConnectionError: (error: string | null) => void;
 	updateModesFromData: (data: string) => void;
@@ -39,6 +41,7 @@ export function useTerminalStream({
 	isExitedRef,
 	wasKilledByUserRef,
 	pendingEventsRef,
+	preserveCleanExitUntilRef,
 	setExitStatus,
 	setConnectionError,
 	updateModesFromData,
@@ -72,6 +75,15 @@ export function useTerminalStream({
 				setPaneWorkspaceRunState(paneId, nextState);
 			}
 
+			const shouldAutoCloseCleanExit = shouldAutoCloseTerminalOnCleanExit({
+				exitCode,
+				isWorkspaceRunPane,
+				preserveUntilMs: preserveCleanExitUntilRef.current,
+			});
+			if (!shouldAutoCloseCleanExit) {
+				preserveCleanExitUntilRef.current = 0;
+			}
+
 			if (wasKilledByUser) {
 				xterm.writeln("\r\n\r\n[Session killed]");
 				xterm.writeln(
@@ -79,7 +91,7 @@ export function useTerminalStream({
 						? "[Press any key to restart]"
 						: "[Restart to start a new session]",
 				);
-			} else if (exitCode === 0 && !isWorkspaceRunPane) {
+			} else if (shouldAutoCloseCleanExit) {
 				// Clean exit (e.g. typing "exit") — close the pane/tab
 				removePane(paneId);
 				return;
@@ -109,6 +121,7 @@ export function useTerminalStream({
 			setExitStatus,
 			setPaneStatus,
 			removePane,
+			preserveCleanExitUntilRef,
 		],
 	);
 

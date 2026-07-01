@@ -24,6 +24,12 @@ export type CreateOrAttachResult = {
 	// Cold restore fields (for reboot recovery)
 	isColdRestore?: boolean;
 	previousCwd?: string;
+	/**
+	 * Command to run after a cold restore shell starts.
+	 * Usually this is an agent resume command, but it can also be the original
+	 * Superset launch command when no resume target exists.
+	 */
+	resumeCommand?: string;
 	snapshot?: {
 		snapshotAnsi: string;
 		rehydrateSequences: string;
@@ -52,6 +58,8 @@ export interface ColdRestoreState {
 	isRestored: boolean;
 	cwd: string | null;
 	scrollback: string;
+	resumeCommand?: string | null;
+	scrollbackApplied?: boolean;
 }
 
 /**

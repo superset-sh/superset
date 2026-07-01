@@ -63,6 +63,12 @@ export interface SessionResult {
 	 * Use this to start the new shell in the same directory.
 	 */
 	previousCwd?: string;
+	/**
+	 * Command to run after a cold restore shell starts.
+	 * Usually this is an agent resume command, but for Superset-started sessions
+	 * it can fall back to the original launch command when no resume target exists.
+	 */
+	resumeCommand?: string;
 	/** Snapshot from daemon (if using daemon mode) */
 	snapshot?: {
 		snapshotAnsi: string;

@@ -4,6 +4,10 @@ import os from "node:os";
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
+import {
+	buildSessionLocationKey,
+	getSessionLocationStorePath,
+} from "./session-location-log";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedUtf8Locale: string | null = null;
@@ -467,6 +471,7 @@ export function buildTerminalEnv(params: {
 	// Setting it here resolves the theme without the probe race.
 	const termTheme = themeType === "light" ? "light" : "dark";
 
+	const sessionLocationsPath = getSessionLocationStorePath();
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
@@ -477,11 +482,20 @@ export function buildTerminalEnv(params: {
 		TERM_THEME: termTheme,
 		LANG: locale,
 		SUPERSET_PANE_ID: paneId,
+		SUPERSET_TERMINAL_ID: paneId,
 		SUPERSET_TAB_ID: tabId,
 		SUPERSET_WORKSPACE_ID: workspaceId,
 		SUPERSET_WORKSPACE_NAME: workspaceName || "",
 		SUPERSET_WORKSPACE_PATH: workspacePath || "",
 		SUPERSET_ROOT_PATH: rootPath || "",
+		...(sessionLocationsPath
+			? { SUPERSET_SESSION_LOCATIONS_PATH: sessionLocationsPath }
+			: {}),
+		SUPERSET_SESSION_LOCATION_KEY: buildSessionLocationKey({
+			workspaceId,
+			tabId,
+			paneId,
+		}),
 		SUPERSET_PORT: String(env.DESKTOP_NOTIFICATIONS_PORT),
 		// Environment identifier for dev/prod separation
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",

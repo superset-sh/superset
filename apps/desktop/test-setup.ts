@@ -236,6 +236,17 @@ mock.module("@superset/local-db", localDbMock);
 mock.module("@superset/local-db/schema", localDbMock);
 
 // =============================================================================
+// Host DB Mock (better-sqlite3 not supported in Bun tests)
+// =============================================================================
+
+mock.module("main/lib/host-db", () => ({
+	getActiveHostDb: mock(() => null),
+	getActiveHostDbPath: mock(
+		() => "/tmp/superset-test/host/organization-1/host.db",
+	),
+}));
+
+// =============================================================================
 // Local DB Mock (better-sqlite3 not supported in Bun tests)
 // =============================================================================
 

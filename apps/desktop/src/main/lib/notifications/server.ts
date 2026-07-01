@@ -5,7 +5,12 @@ import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
+import { hasClaudeTopLevelTranscript } from "../terminal/agent-resume";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
+import {
+	getSessionLocation,
+	updateSessionLocationAgentIdentity,
+} from "../terminal/session-location-log";
 import { mapEventType } from "./map-event-type";
 import { resolvePaneId } from "./resolve-pane-id";
 
@@ -23,6 +28,10 @@ export { resolvePaneId } from "./resolve-pane-id";
 const SERVER_ENV =
 	env.NODE_ENV === "development" ? "development" : "production";
 const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
+// Cache session IDs known to have a top-level Claude transcript so we don't
+// re-walk the filesystem on every hook event for the same session.
+const knownTopLevelTranscripts = new Set<string>();
+
 const DEBUG_HOOKS_ENABLED =
 	debugHooksOverride === undefined
 		? SERVER_ENV === "development"
@@ -49,13 +58,14 @@ app.use((req, res, next) => {
 });
 
 // Agent lifecycle hook
-app.get("/hook/complete", (req, res) => {
+app.get("/hook/complete", async (req, res) => {
 	const {
 		paneId,
 		tabId,
 		workspaceId,
 		sessionId,
 		terminalId,
+		agentId,
 		hookSessionId,
 		resourceId,
 		eventType,
@@ -102,9 +112,76 @@ app.get("/hook/complete", (req, res) => {
 		paneId: resolvedPaneId,
 		tabId: tabId as string | undefined,
 		workspaceId: workspaceId as string | undefined,
+		sessionId: sessionId as string | undefined,
 		terminalId: terminalId as string | undefined,
 		eventType: mappedEventType,
 	};
+
+	const locationPaneId =
+		(terminalId as string | undefined) || resolvedPaneId || undefined;
+	if (locationPaneId) {
+		const currentLocation = await getSessionLocation(locationPaneId);
+		const normalizedAgentId =
+			typeof agentId === "string" && agentId !== "" ? agentId : undefined;
+		const normalizedSessionId =
+			typeof sessionId === "string" && sessionId !== "" ? sessionId : undefined;
+		const effectiveAgentId = normalizedAgentId ?? currentLocation?.agentId;
+		let shouldPersistAgentIdentity = true;
+		if (effectiveAgentId === "claude" && normalizedSessionId) {
+			if (
+				currentLocation?.agentId === "claude" &&
+				currentLocation.agentSessionId &&
+				currentLocation.agentSessionId !== normalizedSessionId
+			) {
+				if (knownTopLevelTranscripts.has(normalizedSessionId)) {
+					shouldPersistAgentIdentity = true;
+				} else {
+					shouldPersistAgentIdentity =
+						await hasClaudeTopLevelTranscript(normalizedSessionId);
+					if (shouldPersistAgentIdentity) {
+						knownTopLevelTranscripts.add(normalizedSessionId);
+					}
+				}
+			}
+		}
+		if (
+			normalizedAgentId === undefined &&
+			normalizedSessionId !== undefined &&
+			currentLocation?.agentId === undefined
+		) {
+			shouldPersistAgentIdentity = false;
+		}
+
+		if (shouldPersistAgentIdentity) {
+			const identityUpdate: {
+				paneId: string;
+				agentId?: string;
+				agentSessionId?: string;
+			} = {
+				paneId: locationPaneId,
+			};
+			if (normalizedAgentId !== undefined) {
+				identityUpdate.agentId = normalizedAgentId;
+			}
+			if (normalizedSessionId !== undefined) {
+				identityUpdate.agentSessionId = normalizedSessionId;
+			}
+			if (
+				identityUpdate.agentId !== undefined ||
+				identityUpdate.agentSessionId !== undefined
+			) {
+				updateSessionLocationAgentIdentity(identityUpdate);
+			}
+		} else if (DEBUG_HOOKS_ENABLED) {
+			console.log(
+				"[notifications] Ignoring Claude session identity update without a top-level transcript",
+				{
+					paneId: locationPaneId,
+					sessionId: normalizedSessionId,
+				},
+			);
+		}
+	}
 
 	if (DEBUG_HOOKS_ENABLED) {
 		console.log("[notifications] hook event received", {
@@ -115,6 +192,7 @@ app.get("/hook/complete", (req, res) => {
 			workspaceId: workspaceId as string | undefined,
 			sessionId: sessionId as string | undefined,
 			terminalId: terminalId as string | undefined,
+			agentId: agentId as string | undefined,
 			hookSessionId: hookSessionId as string | undefined,
 			resourceId: resourceId as string | undefined,
 			resolvedPaneId,

@@ -1,0 +1,523 @@
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	spyOn,
+} from "bun:test";
+import type {
+	SessionLocationEntry,
+	SessionLocationStoreAdapter,
+} from "./session-location-log";
+
+mock.module("main/lib/local-db", () => ({
+	localDb: {
+		select: () => ({
+			from: () => ({
+				get: () => ({ activeOrganizationId: null }),
+			}),
+		}),
+	},
+}));
+
+const {
+	getSessionLocation,
+	LEGACY_SESSION_LOCATION_LOG_PATH,
+	markSessionLocationExited,
+	recordSessionLocationLaunchCommand,
+	setHostDbAccessForTests,
+	setLegacySessionLocationSourceForTests,
+	setSessionLocationStoreAdapterForTests,
+	updateSessionLocationAgentIdentity,
+	updateSessionLocationCommand,
+	upsertSessionLocation,
+} = await import("./session-location-log");
+
+describe("session-location-log", () => {
+	let store = new Map<string, SessionLocationEntry>();
+
+	const adapter: SessionLocationStoreAdapter = {
+		isAvailable: () => true,
+		getByPaneId: (paneId) => store.get(paneId),
+		upsert: (entry) => {
+			store.set(entry.paneId, {
+				...entry,
+				workspaceName: entry.workspaceName,
+				workspacePath: entry.workspacePath,
+				rootPath: entry.rootPath,
+				command: entry.command,
+				agentId: entry.agentId,
+				agentSessionId: entry.agentSessionId,
+				exitedAt: entry.exitedAt,
+				exitReason: entry.exitReason,
+			});
+		},
+		update: (paneId, patch) => {
+			const entry = store.get(paneId);
+			if (!entry) return;
+			store.set(paneId, {
+				...entry,
+				...(Object.hasOwn(patch, "agentId")
+					? { agentId: patch.agentId ?? undefined }
+					: {}),
+				...(Object.hasOwn(patch, "agentSessionId")
+					? { agentSessionId: patch.agentSessionId ?? undefined }
+					: {}),
+				...(Object.hasOwn(patch, "command")
+					? { command: patch.command ?? undefined }
+					: {}),
+				...(Object.hasOwn(patch, "status") && patch.status
+					? { status: patch.status }
+					: {}),
+				...(Object.hasOwn(patch, "pid") ? { pid: patch.pid ?? null } : {}),
+				...(Object.hasOwn(patch, "updatedAt") && patch.updatedAt !== undefined
+					? { updatedAt: patch.updatedAt }
+					: {}),
+				...(Object.hasOwn(patch, "exitedAt")
+					? { exitedAt: patch.exitedAt ?? undefined }
+					: {}),
+				...(Object.hasOwn(patch, "exitReason")
+					? { exitReason: patch.exitReason ?? undefined }
+					: {}),
+			});
+		},
+	};
+
+	beforeEach(() => {
+		store = new Map();
+		setHostDbAccessForTests({
+			getActiveHostDb: () => null,
+			getActiveHostDbPath: () =>
+				"/tmp/superset-test/host/organization-1/host.db",
+		});
+		setLegacySessionLocationSourceForTests({
+			exists: () => false,
+			read: () => "",
+			archive: () => {},
+		});
+		setSessionLocationStoreAdapterForTests(adapter);
+	});
+
+	afterEach(() => {
+		setHostDbAccessForTests(null);
+		setLegacySessionLocationSourceForTests(null);
+		setSessionLocationStoreAdapterForTests(null);
+	});
+
+	it("preserves an existing agent session id when a follow-up update omits it", async () => {
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			pid: 123,
+		});
+		await getSessionLocation("pane-1");
+
+		updateSessionLocationAgentIdentity({
+			paneId: "pane-1",
+			agentId: "codex",
+			agentSessionId: "session-1",
+		});
+
+		const beforeEmptyUpdate = await getSessionLocation("pane-1");
+		expect(beforeEmptyUpdate).toMatchObject({
+			agentId: "codex",
+			agentSessionId: "session-1",
+		});
+
+		updateSessionLocationAgentIdentity({
+			paneId: "pane-1",
+			agentId: "codex",
+			agentSessionId: undefined,
+		});
+
+		const afterEmptyUpdate = await getSessionLocation("pane-1");
+		expect(afterEmptyUpdate).toMatchObject({
+			agentId: "codex",
+			agentSessionId: "session-1",
+		});
+	});
+
+	it("clears agent identity when a new shell replaces the prior session", async () => {
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+			pid: 123,
+		});
+		updateSessionLocationAgentIdentity({
+			paneId: "pane-1",
+			agentId: "codex",
+			agentSessionId: "session-1",
+		});
+
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			pid: 456,
+		});
+
+		const nextEntry = await getSessionLocation("pane-1");
+		expect(nextEntry).toMatchObject({
+			agentId: undefined,
+			agentSessionId: undefined,
+			command: undefined,
+			pid: 456,
+			status: "available",
+		});
+	});
+
+	it("preserves agent identity when a cold-restored pane later gets a live pid", async () => {
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+			pid: null,
+		});
+		updateSessionLocationAgentIdentity({
+			paneId: "pane-1",
+			agentId: "codex",
+			agentSessionId: "session-1",
+		});
+
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+			pid: 456,
+		});
+
+		const nextEntry = await getSessionLocation("pane-1");
+		expect(nextEntry).toMatchObject({
+			agentId: "codex",
+			agentSessionId: "session-1",
+			pid: 456,
+			status: "available",
+		});
+	});
+
+	it("updates the stored launch command without clearing session identity", async () => {
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "claude",
+			pid: 123,
+		});
+		updateSessionLocationAgentIdentity({
+			paneId: "pane-1",
+			agentId: "claude",
+			agentSessionId: "session-1",
+		});
+
+		updateSessionLocationCommand({
+			paneId: "pane-1",
+			command: "claude --dangerously-skip-permissions",
+		});
+
+		const nextEntry = await getSessionLocation("pane-1");
+		expect(nextEntry).toMatchObject({
+			command: "claude --dangerously-skip-permissions",
+			agentId: "claude",
+			agentSessionId: "session-1",
+			pid: 123,
+			status: "available",
+		});
+	});
+
+	it("keeps a preset launch command when attach records the live pid later", async () => {
+		const recorded = recordSessionLocationLaunchCommand({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+		});
+		expect(recorded).toBe(true);
+
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			pid: 456,
+		});
+
+		const nextEntry = await getSessionLocation("pane-1");
+		expect(nextEntry).toMatchObject({
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+			pid: 456,
+			status: "available",
+		});
+	});
+
+	it("reports launch command persistence failure when the store is unavailable", () => {
+		setSessionLocationStoreAdapterForTests({
+			isAvailable: () => false,
+			getByPaneId: () => undefined,
+			upsert: () => {
+				throw new Error("unavailable store should not be written");
+			},
+			update: () => {
+				throw new Error("unavailable store should not be updated");
+			},
+		});
+
+		const recorded = recordSessionLocationLaunchCommand({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			command: "codex --dangerously-bypass-approvals-and-sandbox",
+		});
+
+		expect(recorded).toBe(false);
+		expect(store.size).toBe(0);
+	});
+
+	it("marks the persisted row exited without deleting it", async () => {
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/workspace",
+			pid: 123,
+		});
+
+		markSessionLocationExited({
+			paneId: "pane-1",
+			exitReason: "killed",
+		});
+
+		const exitedEntry = await getSessionLocation("pane-1");
+		expect(exitedEntry).toMatchObject({
+			status: "exited",
+			pid: null,
+			exitReason: "killed",
+		});
+		expect(exitedEntry?.exitedAt).toBeNumber();
+	});
+
+	it("migrates the legacy JSON log into the db-backed store", async () => {
+		let archivedPath: string | null = null;
+		setLegacySessionLocationSourceForTests({
+			exists: () => true,
+			read: () =>
+				JSON.stringify({
+					sessions: {
+						"pane-1": {
+							paneId: "pane-1",
+							tabId: "tab-1",
+							workspaceId: "workspace-1",
+							workspaceName: "Workspace One",
+							workspacePath: "/tmp/workspace",
+							rootPath: "/tmp",
+							cwd: "/tmp/workspace",
+							command: "codex",
+							pid: 321,
+							agentId: "codex",
+							agentSessionId: "session-legacy",
+							status: "available",
+							createdAt: 100,
+							updatedAt: 200,
+							locationKey: "workspace-1:tab-1:pane-1",
+						},
+					},
+				}),
+			archive: (path) => {
+				archivedPath = path;
+			},
+		});
+
+		const migratedEntry = await getSessionLocation("pane-1");
+		expect(migratedEntry).toMatchObject({
+			paneId: "pane-1",
+			agentId: "codex",
+			agentSessionId: "session-legacy",
+			cwd: "/tmp/workspace",
+			locationKey: "workspace-1:tab-1:pane-1",
+		});
+		expect(archivedPath ?? "").toBe(LEGACY_SESSION_LOCATION_LOG_PATH);
+	});
+
+	it("does not overwrite existing db state from a stale legacy JSON log", async () => {
+		let readCalls = 0;
+		let archivedPath: string | null = null;
+
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/current",
+			pid: 123,
+		});
+		updateSessionLocationAgentIdentity({
+			paneId: "pane-1",
+			agentId: "codex",
+			agentSessionId: "session-current",
+		});
+
+		setLegacySessionLocationSourceForTests({
+			exists: () => true,
+			read: () => {
+				readCalls += 1;
+				return JSON.stringify({
+					sessions: {
+						"pane-1": {
+							paneId: "pane-1",
+							tabId: "tab-1",
+							workspaceId: "workspace-1",
+							cwd: "/tmp/stale",
+							pid: 999,
+							agentId: "codex",
+							agentSessionId: "session-stale",
+							status: "available",
+							createdAt: 1,
+							updatedAt: 2,
+							locationKey: "workspace-1:tab-1:pane-1",
+						},
+					},
+				});
+			},
+			archive: (path) => {
+				archivedPath = path;
+			},
+		});
+
+		const currentEntry = await getSessionLocation("pane-1");
+		expect(readCalls).toBe(1);
+		expect(currentEntry).toMatchObject({
+			cwd: "/tmp/current",
+			agentSessionId: "session-current",
+			pid: 123,
+		});
+		expect(archivedPath ?? "").toBe(LEGACY_SESSION_LOCATION_LOG_PATH);
+	});
+
+	it("finishes a partially imported legacy log without overwriting existing rows", async () => {
+		let archivedPath: string | null = null;
+
+		upsertSessionLocation({
+			paneId: "pane-1",
+			tabId: "tab-1",
+			workspaceId: "workspace-1",
+			cwd: "/tmp/current",
+			pid: 123,
+		});
+
+		setLegacySessionLocationSourceForTests({
+			exists: () => true,
+			read: () =>
+				JSON.stringify({
+					sessions: {
+						"pane-1": {
+							paneId: "pane-1",
+							tabId: "tab-1",
+							workspaceId: "workspace-1",
+							cwd: "/tmp/stale",
+							pid: 999,
+							status: "available",
+							createdAt: 1,
+							updatedAt: 2,
+							locationKey: "workspace-1:tab-1:pane-1",
+						},
+						"pane-2": {
+							paneId: "pane-2",
+							tabId: "tab-2",
+							workspaceId: "workspace-1",
+							cwd: "/tmp/imported",
+							pid: 456,
+							agentId: "codex",
+							agentSessionId: "session-imported",
+							status: "available",
+							createdAt: 3,
+							updatedAt: 4,
+							locationKey: "workspace-1:tab-2:pane-2",
+						},
+					},
+				}),
+			archive: (path) => {
+				archivedPath = path;
+			},
+		});
+
+		const importedEntry = await getSessionLocation("pane-2");
+		expect(importedEntry).toMatchObject({
+			paneId: "pane-2",
+			cwd: "/tmp/imported",
+			agentId: "codex",
+			agentSessionId: "session-imported",
+		});
+		expect(store.get("pane-1")).toMatchObject({
+			cwd: "/tmp/current",
+			pid: 123,
+		});
+		expect(archivedPath ?? "").toBe(LEGACY_SESSION_LOCATION_LOG_PATH);
+	});
+
+	it("leaves the legacy log in place when it contains no importable entries", async () => {
+		let archivedPath: string | null = null;
+		let readCalls = 0;
+
+		setLegacySessionLocationSourceForTests({
+			exists: () => true,
+			read: () => {
+				readCalls += 1;
+				return JSON.stringify({
+					sessions: {
+						"pane-1": {
+							paneId: "pane-1",
+							tabId: "tab-1",
+							workspaceId: "workspace-1",
+							status: "available",
+							createdAt: 1,
+							updatedAt: 2,
+							locationKey: "workspace-1:tab-1:pane-1",
+						},
+					},
+				});
+			},
+			archive: (path) => {
+				archivedPath = path;
+			},
+		});
+
+		expect(await getSessionLocation("pane-1")).toBeNull();
+		expect(await getSessionLocation("pane-1")).toBeNull();
+		expect(readCalls).toBe(1);
+		expect(archivedPath).toBeNull();
+	});
+
+	it("warns once and stops retrying when the legacy log is malformed", async () => {
+		let readCalls = 0;
+		const warningSpy = spyOn(console, "warn").mockImplementation(() => {});
+
+		setLegacySessionLocationSourceForTests({
+			exists: () => true,
+			read: () => {
+				readCalls += 1;
+				return "{not-json";
+			},
+			archive: () => {},
+		});
+
+		expect(await getSessionLocation("pane-1")).toBeNull();
+		expect(await getSessionLocation("pane-1")).toBeNull();
+		expect(readCalls).toBe(1);
+		expect(warningSpy).toHaveBeenCalledTimes(1);
+
+		warningSpy.mockRestore();
+	});
+});

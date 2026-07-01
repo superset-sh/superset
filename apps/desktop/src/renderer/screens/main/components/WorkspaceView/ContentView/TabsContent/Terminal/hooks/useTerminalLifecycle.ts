@@ -24,7 +24,11 @@ import {
 	setupFocusListener,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
-import { coldRestoreState, pendingDetaches } from "../state";
+import {
+	coldRestoreState,
+	consumeColdRestoreScrollback,
+	pendingDetaches,
+} from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -36,6 +40,7 @@ import type {
 import { scrollToBottom } from "../utils";
 import * as v1TerminalCache from "../v1-terminal-cache";
 import { createAttachRequestId } from "./attach-request-id";
+import { shouldActivateCachedTerminalStream } from "./terminal-stream-activation";
 import {
 	getPaneWorkspaceRun,
 	hasPaneWorkspaceRun,
@@ -90,6 +95,7 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 		}
 	};
 }
+
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabIdRef: MutableRefObject<string>;
@@ -115,6 +121,7 @@ export interface UseTerminalLifecycleOptions {
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	setIsRestoredMode: (value: boolean) => void;
 	setRestoredCwd: (cwd: string | null) => void;
+	setRestoredResumeCommand: (command: string | null) => void;
 	createOrAttachRef: MutableRefObject<CreateOrAttachMutate>;
 	writeRef: MutableRefObject<TerminalWriteMutate>;
 	resizeRef: MutableRefObject<TerminalResizeMutate>;
@@ -176,6 +183,7 @@ export function useTerminalLifecycle({
 	setExitStatus,
 	setIsRestoredMode,
 	setRestoredCwd,
+	setRestoredResumeCommand,
 	createOrAttachRef,
 	writeRef,
 	resizeRef,
@@ -598,23 +606,37 @@ export function useTerminalLifecycle({
 									setConnectionError(null);
 									clearPaneInitialDataRef.current(paneId);
 
-									// Start the cache-owned stream subscription now that the
-									// backend session exists, and mark it ready so events
-									// flow through the component's registered handler.
-									v1TerminalCache.startStream(paneId);
-									v1TerminalCache.setStreamReady(paneId);
-									markTerminalSessionReady(paneId);
-									syncBackendDimensions();
-
 									const storedColdRestore = coldRestoreState.get(paneId);
+									const shouldActivateStream =
+										shouldActivateCachedTerminalStream({
+											hasStoredColdRestore: Boolean(
+												storedColdRestore?.isRestored,
+											),
+											isColdRestore: result.isColdRestore,
+										});
+									if (shouldActivateStream) {
+										// Only activate the live stream once a daemon-backed
+										// session exists. Cold restore snapshots render scrollback
+										// first and create the real session later via Start Shell.
+										v1TerminalCache.startStream(paneId);
+										v1TerminalCache.setStreamReady(paneId);
+										markTerminalSessionReady(paneId);
+										syncBackendDimensions();
+									}
+
 									if (storedColdRestore?.isRestored) {
 										setIsRestoredMode(true);
 										setRestoredCwd(storedColdRestore.cwd);
-										if (storedColdRestore.scrollback && xterm) {
-											xterm.write(
-												storedColdRestore.scrollback,
-												scheduleScrollToBottom,
-											);
+										setRestoredResumeCommand(
+											storedColdRestore.resumeCommand || null,
+										);
+										const restoredScrollback = consumeColdRestoreScrollback(
+											paneId,
+											storedColdRestore,
+										);
+										if (restoredScrollback && xterm) {
+											xterm.clear();
+											xterm.write(restoredScrollback, scheduleScrollToBottom);
 										}
 										didFirstRenderRef.current = true;
 										return;
@@ -623,15 +645,23 @@ export function useTerminalLifecycle({
 									if (result.isColdRestore) {
 										const scrollback =
 											result.snapshot?.snapshotAnsi ?? result.scrollback;
-										coldRestoreState.set(paneId, {
+										const nextColdRestoreState = {
 											isRestored: true,
 											cwd: result.previousCwd || null,
 											scrollback,
-										});
+											resumeCommand: result.resumeCommand || null,
+										};
+										coldRestoreState.set(paneId, nextColdRestoreState);
 										setIsRestoredMode(true);
 										setRestoredCwd(result.previousCwd || null);
-										if (scrollback && xterm) {
-											xterm.write(scrollback, scheduleScrollToBottom);
+										setRestoredResumeCommand(result.resumeCommand || null);
+										const restoredScrollback = consumeColdRestoreScrollback(
+											paneId,
+											nextColdRestoreState,
+										);
+										xterm.clear();
+										if (restoredScrollback && xterm) {
+											xterm.write(restoredScrollback, scheduleScrollToBottom);
 										}
 										didFirstRenderRef.current = true;
 										return;
@@ -853,6 +883,7 @@ export function useTerminalLifecycle({
 		resetModes,
 		setIsRestoredMode,
 		setRestoredCwd,
+		setRestoredResumeCommand,
 	]);
 
 	return { xtermInstance, restartTerminal };

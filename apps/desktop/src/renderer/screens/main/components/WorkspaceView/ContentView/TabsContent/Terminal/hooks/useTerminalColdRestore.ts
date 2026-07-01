@@ -1,14 +1,18 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
+import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
+import { markTerminalSessionReady } from "renderer/lib/terminal/session-readiness";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
-import { coldRestoreState } from "../state";
+import { coldRestoreState, consumeColdRestoreScrollback } from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
 	TerminalStreamEvent,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import * as v1TerminalCache from "../v1-terminal-cache";
+import { RESTORED_SESSION_CLEAN_EXIT_GRACE_MS } from "./terminal-exit-policy";
 
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
@@ -22,6 +26,7 @@ export interface UseTerminalColdRestoreOptions {
 	didFirstRenderRef: React.MutableRefObject<boolean>;
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
+	preserveCleanExitUntilRef: React.MutableRefObject<number>;
 	createOrAttachRef: React.MutableRefObject<CreateOrAttachMutate>;
 	setConnectionError: (error: string | null) => void;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
@@ -35,6 +40,7 @@ export interface UseTerminalColdRestoreReturn {
 	restoredCwd: string | null;
 	setIsRestoredMode: (value: boolean) => void;
 	setRestoredCwd: (value: string | null) => void;
+	setRestoredResumeCommand: (value: string | null) => void;
 	handleRetryConnection: () => void;
 	handleStartShell: () => void;
 }
@@ -59,6 +65,7 @@ export function useTerminalColdRestore({
 	didFirstRenderRef,
 	pendingInitialStateRef,
 	pendingEventsRef,
+	preserveCleanExitUntilRef,
 	createOrAttachRef,
 	setConnectionError,
 	setExitStatus,
@@ -68,10 +75,23 @@ export function useTerminalColdRestore({
 }: UseTerminalColdRestoreOptions): UseTerminalColdRestoreReturn {
 	const [isRestoredMode, setIsRestoredMode] = useState(false);
 	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
+	const [restoredResumeCommand, setRestoredResumeCommand] = useState<
+		string | null
+	>(null);
 
 	// Ref for restoredCwd to use in callbacks
 	const restoredCwdRef = useRef(restoredCwd);
 	restoredCwdRef.current = restoredCwd;
+	const restoredResumeCommandRef = useRef(restoredResumeCommand);
+	restoredResumeCommandRef.current = restoredResumeCommand;
+	const ensureCachedStreamActive = useCallback(() => {
+		v1TerminalCache.startStream(paneId);
+		v1TerminalCache.setStreamReady(paneId);
+		markTerminalSessionReady(paneId);
+		// Push current viewport dims to the new PTY; the ResizeObserver only
+		// fires on subsequent resizes, not at session-creation time.
+		v1TerminalCache.syncDimensions(paneId);
+	}, [paneId]);
 
 	const handleRetryConnection = useCallback(() => {
 		setConnectionError(null);
@@ -94,23 +114,32 @@ export function useTerminalColdRestore({
 					const currentXterm = xtermRef.current;
 					if (!currentXterm) return;
 
+					preserveCleanExitUntilRef.current =
+						Date.now() + RESTORED_SESSION_CLEAN_EXIT_GRACE_MS;
 					setConnectionError(null);
 					currentXterm.writeln("\x1b[90m[Reconnected]\x1b[0m");
 
 					if (result.isColdRestore) {
 						const scrollback =
 							result.snapshot?.snapshotAnsi ?? result.scrollback;
-						coldRestoreState.set(paneId, {
+						const nextColdRestoreState = {
 							isRestored: true,
 							cwd: result.previousCwd || null,
 							scrollback,
-						});
+							resumeCommand: result.resumeCommand || null,
+						};
+						coldRestoreState.set(paneId, nextColdRestoreState);
 						setIsRestoredMode(true);
 						setRestoredCwd(result.previousCwd || null);
+						setRestoredResumeCommand(result.resumeCommand || null);
 
+						const restoredScrollback = consumeColdRestoreScrollback(
+							paneId,
+							nextColdRestoreState,
+						);
 						currentXterm.clear();
-						if (scrollback) {
-							currentXterm.write(scrollback, () => {
+						if (restoredScrollback) {
+							currentXterm.write(restoredScrollback, () => {
 								requestAnimationFrame(() => {
 									if (xtermRef.current !== currentXterm) return;
 									scrollToBottom(currentXterm);
@@ -122,14 +151,17 @@ export function useTerminalColdRestore({
 						return;
 					}
 
+					ensureCachedStreamActive();
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
+					setRestoredResumeCommand(null);
 
 					if (isFocusedRef.current) {
 						currentXterm.focus();
 					}
 				},
 				onError: (error: { message?: string }) => {
+					preserveCleanExitUntilRef.current = 0;
 					if (isTerminalAttachCanceledMessage(error.message)) {
 						return;
 					}
@@ -163,6 +195,8 @@ export function useTerminalColdRestore({
 		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
+		ensureCachedStreamActive,
+		preserveCleanExitUntilRef,
 	]);
 
 	const handleStartShell = useCallback(() => {
@@ -192,6 +226,8 @@ export function useTerminalColdRestore({
 		resetModes();
 
 		// Create new session with previous cwd
+		preserveCleanExitUntilRef.current =
+			Date.now() + RESTORED_SESSION_CLEAN_EXIT_GRACE_MS;
 		createOrAttachRef.current(
 			{
 				paneId,
@@ -205,11 +241,45 @@ export function useTerminalColdRestore({
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
+					ensureCachedStreamActive();
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
 
 					setIsRestoredMode(false);
-					coldRestoreState.delete(paneId);
+					const resumeCommand = restoredResumeCommandRef.current;
+					const clearRestoreResumeState = () => {
+						setRestoredResumeCommand(null);
+						coldRestoreState.delete(paneId);
+					};
+					if (resumeCommand) {
+						void writeCommandInPane({
+							paneId,
+							command: resumeCommand,
+							write: (input) => trpcClient.terminal.write.mutate(input),
+						})
+							.then(() => {
+								clearRestoreResumeState();
+							})
+							.catch((error) => {
+								console.error(
+									"[Terminal] Failed to write agent resume command:",
+									error,
+								);
+								setConnectionError(
+									error instanceof Error
+										? error.message
+										: "Failed to resume the previous agent session",
+								);
+								isStreamReadyRef.current = true;
+								flushPendingEvents();
+								// Clear the cold-restore state so a component remount
+								// doesn't re-enter the cold-restore overlay for a shell
+								// that is already running.
+								clearRestoreResumeState();
+							});
+					} else {
+						clearRestoreResumeState();
+					}
 
 					setTimeout(() => {
 						const currentXterm = xtermRef.current;
@@ -220,11 +290,14 @@ export function useTerminalColdRestore({
 				},
 				onError: (error: { message?: string }) => {
 					if (isTerminalAttachCanceledMessage(error.message)) {
+						preserveCleanExitUntilRef.current = 0;
 						return;
 					}
+					preserveCleanExitUntilRef.current = 0;
 					console.error("[Terminal] Failed to start shell:", error);
 					setConnectionError(error.message || "Failed to start shell");
 					setIsRestoredMode(false);
+					setRestoredResumeCommand(null);
 					coldRestoreState.delete(paneId);
 					isStreamReadyRef.current = true;
 					flushPendingEvents();
@@ -241,12 +314,14 @@ export function useTerminalColdRestore({
 		wasKilledByUserRef,
 		pendingInitialStateRef,
 		pendingEventsRef,
+		preserveCleanExitUntilRef,
 		createOrAttachRef,
 		setConnectionError,
 		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
+		ensureCachedStreamActive,
 	]);
 
 	return {
@@ -254,6 +329,7 @@ export function useTerminalColdRestore({
 		restoredCwd,
 		setIsRestoredMode,
 		setRestoredCwd,
+		setRestoredResumeCommand,
 		handleRetryConnection,
 		handleStartShell,
 	};

@@ -11,16 +11,25 @@ export const terminalSessions = sqliteTable(
 	"terminal_sessions",
 	{
 		id: text().primaryKey(),
-		originWorkspaceId: text("origin_workspace_id").references(
-			() => workspaces.id,
-			{ onDelete: "set null" },
-		),
+		originWorkspaceId: text("origin_workspace_id"),
 		status: text().notNull().default("active"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
 		lastAttachedAt: integer("last_attached_at"),
 		endedAt: integer("ended_at"),
+		tabId: text("tab_id"),
+		workspaceName: text("workspace_name"),
+		workspacePath: text("workspace_path"),
+		rootPath: text("root_path"),
+		cwd: text("cwd"),
+		command: text("command"),
+		pid: integer("pid"),
+		agentId: text("agent_id"),
+		agentSessionId: text("agent_session_id"),
+		updatedAt: integer("updated_at"),
+		exitReason: text("exit_reason"),
+		locationKey: text("location_key"),
 	},
 	(table) => [
 		index("terminal_sessions_origin_workspace_id_idx").on(
