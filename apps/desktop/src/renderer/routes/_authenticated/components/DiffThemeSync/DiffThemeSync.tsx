@@ -14,8 +14,7 @@ export function DiffThemeSync() {
 	const activeTheme = useResolvedTheme();
 
 	useEffect(() => {
-		if (!poolManager) return;
-		void poolManager.setRenderOptions(buildDiffPoolRenderOptions(activeTheme));
+		void poolManager?.setRenderOptions(buildDiffPoolRenderOptions(activeTheme));
 	}, [poolManager, activeTheme]);
 
 	return null;
