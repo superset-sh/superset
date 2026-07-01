@@ -166,6 +166,26 @@ export function attachToContainer(
 		onResize,
 	);
 
+	// Deferred fit: xterm's cell metrics (dimensions.css.cell.width/height)
+	// may be 0 when the wrapper was just moved into the DOM, causing
+	// fitAddon.fit() to silently return without resizing (see FitAddon's
+	// proposeDimensions). Schedule a retry after the next paint frame so
+	// that xterm has rendered and cell metrics are available. Without this,
+	// the terminal stays at its default 80×24, producing the "1/4 size"
+	// bug reported in #3468.
+	requestAnimationFrame(() => {
+		if (!cache.has(paneId)) return;
+		if (container.clientWidth === 0 || container.clientHeight === 0) return;
+		const prevCols = entry.lastCols;
+		const prevRows = entry.lastRows;
+		entry.fitAddon.fit();
+		entry.lastCols = entry.xterm.cols;
+		entry.lastRows = entry.xterm.rows;
+		if (entry.lastCols !== prevCols || entry.lastRows !== prevRows) {
+			onResize?.();
+		}
+	});
+
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
 	const observer = new ResizeObserver(() => {
