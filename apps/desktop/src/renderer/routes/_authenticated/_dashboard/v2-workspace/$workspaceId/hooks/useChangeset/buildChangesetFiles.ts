@@ -29,33 +29,39 @@ function toChangesetFile(
 	};
 }
 
+/** Refs whose files come from the working tree. Commit refs are resolved from a
+ *  separate query in `useChangeset`, so they never reach this builder. */
+type WorkingTreeRef = Exclude<DiffRef, { kind: "commit" }>;
+
 export function buildChangesetFiles(
 	status: GitStatusChanges,
-	ref: DiffRef,
+	ref: WorkingTreeRef,
 ): ChangesetFile[] {
-	if (ref.kind === "uncommitted") {
-		return [
-			...status.unstaged.map((file) =>
-				toChangesetFile(file, { kind: "unstaged" }),
-			),
-			...status.staged.map((file) => toChangesetFile(file, { kind: "staged" })),
-		];
-	}
-
-	if (ref.kind !== "against-base") {
-		return [];
-	}
-
-	return [
+	const dirty = [
 		...status.unstaged.map((file) =>
 			toChangesetFile(file, { kind: "unstaged" }),
 		),
 		...status.staged.map((file) => toChangesetFile(file, { kind: "staged" })),
-		...status.againstBase.map((file) =>
-			toChangesetFile(file, {
-				kind: "against-base",
-				baseBranch: ref.baseBranch,
-			}),
-		),
 	];
+
+	switch (ref.kind) {
+		case "uncommitted":
+			return dirty;
+		case "against-base":
+			return [
+				...dirty,
+				...status.againstBase.map((file) =>
+					toChangesetFile(file, {
+						kind: "against-base",
+						baseBranch: ref.baseBranch,
+					}),
+				),
+			];
+		default: {
+			// Compile-time exhaustiveness: a new working-tree ref kind must be
+			// handled here rather than silently yielding an empty list.
+			const exhaustive: never = ref;
+			return exhaustive;
+		}
+	}
 }

@@ -37,7 +37,17 @@ export function useDiffCodeViewScroll({
 		}
 		return map;
 	}, [items]);
-	const targetItemId = data.changeKey ? `diff:${data.changeKey}` : undefined;
+	// Prefer the change key (disambiguates a path that appears in several source
+	// groups). Fall back to matching on path for diff panes persisted before
+	// change-key tracking, which only carry `path`.
+	const targetItemId = useMemo(() => {
+		if (data.changeKey) return `diff:${data.changeKey}`;
+		if (!data.path) return undefined;
+		for (const item of items) {
+			if (fileByItemId.get(item.id)?.path === data.path) return item.id;
+		}
+		return undefined;
+	}, [data.changeKey, data.path, items, fileByItemId]);
 
 	useEffect(() => {
 		if (!targetItemId) return;

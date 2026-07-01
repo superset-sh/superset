@@ -85,9 +85,11 @@ export function useWorkspacePaneOpeners({
 							...prev,
 							path: filePath,
 							changeKey,
-							collapsedFiles: (prev.collapsedFiles ?? []).filter(
-								(key) => key !== changeKey,
-							),
+							// Only the navigated file's key can be pruned; without a
+							// change key we can't identify it, so leave the set intact.
+							collapsedFiles: changeKey
+								? (prev.collapsedFiles ?? []).filter((key) => key !== changeKey)
+								: (prev.collapsedFiles ?? []),
 							...focusFields,
 						} as PaneViewerData,
 					});
