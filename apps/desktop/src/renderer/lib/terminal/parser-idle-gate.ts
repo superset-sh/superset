@@ -28,11 +28,14 @@ export function wrapWrite(gate: ParserIdleGate, write: WriteFn): WriteFn {
 	return (data, callback) => {
 		gate.pending++;
 		write(data, () => {
-			gate.pending--;
-			if (gate.pending === 0 && gate.queued) {
-				queueMicrotask(() => flushQueued(gate));
+			try {
+				callback?.();
+			} finally {
+				gate.pending--;
+				if (gate.pending === 0 && gate.queued) {
+					queueMicrotask(() => flushQueued(gate));
+				}
 			}
-			callback?.();
 		});
 	};
 }

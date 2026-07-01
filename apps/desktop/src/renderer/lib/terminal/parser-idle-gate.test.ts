@@ -96,6 +96,27 @@ describe("runWhenParserIdle", () => {
 		expect(ran).toEqual(["second"]);
 	});
 
+	test("keeps the gate closed until the write callback unwinds", async () => {
+		const gate = createParserIdleGate();
+		const fake = fakeWrite();
+		const write = wrapWrite(gate, fake.raw);
+
+		const ran: string[] = [];
+		write("first", () => {
+			runWhenParserIdle(gate, () => ran.push("idle"));
+			write("second");
+		});
+
+		fake.drain();
+		await flushMicrotasks();
+		expect(ran).toEqual([]);
+		expect(fake.hasPending()).toBe(true);
+
+		fake.drain();
+		await flushMicrotasks();
+		expect(ran).toEqual(["idle"]);
+	});
+
 	test("cancels parked work before in-flight writes drain", async () => {
 		const gate = createParserIdleGate();
 		const fake = fakeWrite();
