@@ -490,6 +490,11 @@ async function registerCloudAndLocal(args: {
 				projectId: args.projectId,
 				worktreePath: args.worktreePath,
 				branch: args.branch,
+				name: cloudRow.name,
+				type: cloudRow.type,
+				organizationId: cloudRow.organizationId,
+				taskId: cloudRow.taskId,
+				createdByUserId: cloudRow.createdByUserId,
 			})
 			.run();
 	} catch (err) {

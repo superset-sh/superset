@@ -13,6 +13,10 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 	const sqlite = new Database(dbPath);
 	sqlite.pragma("journal_mode = WAL");
 	sqlite.pragma("foreign_keys = ON");
+	// Without this, a concurrent writer makes migrate() fail with SQLITE_BUSY;
+	// the failure is logged and swallowed below, leaving the schema stale and
+	// later queries crashing on the missing columns (host-service 1.12.0 crash).
+	sqlite.pragma("busy_timeout = 5000");
 
 	const db = drizzle(sqlite, { schema });
 

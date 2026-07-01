@@ -151,6 +151,14 @@ export const workspaces = sqliteTable(
 		pullRequestId: text("pull_request_id").references(() => pullRequests.id, {
 			onDelete: "set null",
 		}),
+		// Workspace identity, mirrored from cloud today; the local-first plan
+		// (plans/20260629-v2-workspaces-local-authoritative.md) promotes this row
+		// to source of truth. Nullable so older rows backfill lazily.
+		name: text(),
+		type: text("type").$type<"worktree" | "main">(),
+		organizationId: text("organization_id"),
+		taskId: text("task_id"),
+		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),

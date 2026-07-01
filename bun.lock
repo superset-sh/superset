@@ -180,6 +180,7 @@
         "@tanstack/electron-db-sqlite-persistence": "0.1.14",
         "@tanstack/node-db-sqlite-persistence": "0.2.2",
         "@tanstack/query-async-storage-persister": "5.101.1",
+        "@tanstack/query-db-collection": "1.0.42",
         "@tanstack/react-db": "0.1.88",
         "@tanstack/react-query": "5.101.1",
         "@tanstack/react-query-persist-client": "5.101.1",
@@ -2873,6 +2874,8 @@
     "@tanstack/query-async-storage-persister": ["@tanstack/query-async-storage-persister@5.101.1", "", { "dependencies": { "@tanstack/query-core": "5.101.1", "@tanstack/query-persist-client-core": "5.101.1" } }, "sha512-QuHhCTLyQjiVFUYRW5xtgeuiP1NEmqL5wnuFgPGeO6SjTLKeN9VnAhAKsKzde3AcEZEe4PL7FehfKbVhM/9kLA=="],
 
     "@tanstack/query-core": ["@tanstack/query-core@5.101.1", "", {}, "sha512-Y6Y92dkXtNqx67m2pMSxUsA3zOCwv862JexZRP8/EPwvKXMPu9m8rv43spiXWzOUIggQ3SQApttALStzhA8B4g=="],
+
+    "@tanstack/query-db-collection": ["@tanstack/query-db-collection@1.0.42", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "@tanstack/db": "0.6.10" }, "peerDependencies": { "@tanstack/query-core": "^5.0.0", "typescript": ">=4.7" } }, "sha512-TFsY1+501HxWMPh+DgLl+oXVenz68uEyDGdJobOlE4rYg6ymLWPZLWqfd8VX2D220AECWLikXZZ/ImfDZuNrdA=="],
 
     "@tanstack/query-devtools": ["@tanstack/query-devtools@5.101.1", "", {}, "sha512-37RQ9U2PxlXQiv1era2t+uHgVhmiyvxqTMu30+KoVf0rufiucu6rpGRKFJk61Wh5OAZFKqCQd6lxTzFWfLZiuQ=="],
 

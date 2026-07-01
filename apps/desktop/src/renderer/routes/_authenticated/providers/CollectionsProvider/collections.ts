@@ -36,6 +36,7 @@ import {
 	createElectronSQLitePersistence,
 	persistedCollectionOptions,
 } from "@tanstack/electron-db-sqlite-persistence";
+import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import type {
 	Collection,
 	LocalStorageCollectionUtils,
@@ -44,6 +45,7 @@ import {
 	createCollection,
 	localStorageCollectionOptions,
 } from "@tanstack/react-db";
+import { QueryClient } from "@tanstack/react-query";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
@@ -53,7 +55,11 @@ import {
 	getJwt,
 	setJwt,
 } from "renderer/lib/auth-client";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import {
+	getActiveLocalHostUrl,
+	getActiveLocalMachineId,
+	getHostServiceClientByUrl,
+} from "renderer/lib/host-service-client";
 import superjson from "superjson";
 import { z } from "zod";
 import {
@@ -125,6 +131,53 @@ const createPersistedElectricCollection = ((config: ElectricSyncConfig) => {
 		// biome-ignore lint/suspicious/noExplicitAny: persisted utils widen generics
 	} as any);
 }) as unknown as typeof createCollection;
+
+// v2_workspaces is local-first: sourced from the local host-service, not Electric
+// (plans/20260629-v2-workspaces-local-authoritative.md).
+const queryClient = new QueryClient();
+const LOCAL_WORKSPACES_POLL_MS = 3_000;
+
+type QuerySyncConfig = ReturnType<typeof queryCollectionOptions>;
+const createPersistedQueryCollection = ((config: QuerySyncConfig) => {
+	const persisted = persistedCollectionOptions({
+		...config,
+		persistence,
+		// Bumped from the Electric collection: the local SQLite cache rebuilds
+		// cleanly when the sync source changes from shape to local query.
+		schemaVersion: 2,
+		// biome-ignore lint/suspicious/noExplicitAny: forces sync-wrapped overload
+	} as any);
+	return createCollection({
+		...persisted,
+		...indexDefaults,
+		// biome-ignore lint/suspicious/noExplicitAny: persisted utils widen generics
+	} as any);
+}) as unknown as typeof createCollection;
+
+// Workspaces for the renderer: this machine's from the local host-service
+// (authoritative), merged with other machines' from cloud presence. Cloud is
+// best-effort so the app still lists local workspaces offline. Empty until the
+// local host boots.
+async function fetchWorkspaces(): Promise<SelectV2Workspace[]> {
+	const url = getActiveLocalHostUrl();
+	if (!url) return [];
+	const client = getHostServiceClientByUrl(url);
+	const localMachineId = getActiveLocalMachineId();
+
+	const [local, cloud] = await Promise.all([
+		client.workspace.localList.query() as Promise<SelectV2Workspace[]>,
+		client.workspace.cloudList.query().catch(() => [] as unknown[]) as Promise<
+			SelectV2Workspace[]
+		>,
+	]);
+
+	// Local rows win; cloud only contributes other hosts' presence.
+	const localIds = new Set(local.map((w) => w.id));
+	const remote = cloud.filter(
+		(w) => w.hostId !== localMachineId && !localIds.has(w.id),
+	);
+	return [...local, ...remote];
+}
 
 const apiKeyDisplaySchema = z.object({
 	id: z.string(),
@@ -469,39 +522,38 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	v2UsersHosts.createIndex((userHost) => userHost.hostId, basicIndexConfig);
 	v2UsersHosts.createIndex((userHost) => userHost.userId, basicIndexConfig);
 
-	const v2Workspaces = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Workspace>({
+	const v2Workspaces = createPersistedQueryCollection(
+		queryCollectionOptions<SelectV2Workspace>({
 			id: `v2_workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_workspaces",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["local-workspaces", organizationId],
+			queryFn: fetchWorkspaces,
+			refetchInterval: LOCAL_WORKSPACES_POLL_MS,
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
 				const metadata = transaction.mutations[0]
 					.metadata as WorkspaceCreateMutationMetadata;
 				const client = getHostServiceClientByUrl(metadata.hostUrl);
-				const result = await client.workspaces.create.mutate(metadata.input);
-				metadata.result = result;
-				return electricTxidMatch(result.txid);
+				metadata.result = await client.workspaces.create.mutate(metadata.input);
 			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				const { branch, hostId, name, taskId } = changes;
-				const result = await apiClient.v2Workspace.update.mutate({
+				// Persist to the local row (source of truth) so the next poll keeps
+				// the change, then mirror to cloud presence.
+				const localUrl = getActiveLocalHostUrl();
+				if (localUrl && (name !== undefined || taskId !== undefined)) {
+					await getHostServiceClientByUrl(
+						localUrl,
+					).workspace.updateLocal.mutate({ id: original.id, name, taskId });
+				}
+				await apiClient.v2Workspace.update.mutate({
 					id: original.id,
 					branch,
 					hostId,
 					name,
 					taskId,
 				});
-				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
