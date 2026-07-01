@@ -13,7 +13,7 @@ import { OPENCODE_CONFIG_DIR, OPENCODE_PLUGIN_DIR } from "./paths";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
 
 const OPENCODE_PLUGIN_SIGNATURE = "// Superset opencode plugin";
-const OPENCODE_PLUGIN_VERSION = "v8";
+const OPENCODE_PLUGIN_VERSION = "v9";
 export const OPENCODE_PLUGIN_MARKER = `${OPENCODE_PLUGIN_SIGNATURE} ${OPENCODE_PLUGIN_VERSION}`;
 
 const OPENCODE_PLUGIN_TEMPLATE_PATH = path.join(
