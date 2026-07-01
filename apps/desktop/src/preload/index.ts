@@ -4,16 +4,25 @@ import { contextBridge, ipcRenderer } from "electron";
 
 // webUtils was added in Electron 29; use dynamic require to avoid TS errors on older Electron types
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const webUtils: { getPathForFile: (file: File) => string } | undefined =
-	(() => {
-		try {
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic require for forward-compatible API
-			return (require("electron") as any).webUtils;
-		} catch (err) {
-			console.warn("[preload] Failed to load webUtils:", err);
-			return undefined;
+type ElectronWebUtils = { getPathForFile: (file: File) => string };
+const webUtils: ElectronWebUtils | undefined = (() => {
+	try {
+		const electronModule = require("electron") as { webUtils?: unknown };
+		const candidate = electronModule.webUtils as
+			| { getPathForFile?: unknown }
+			| undefined;
+		if (typeof candidate?.getPathForFile === "function") {
+			return {
+				getPathForFile:
+					candidate.getPathForFile as ElectronWebUtils["getPathForFile"],
+			};
 		}
-	})();
+		return undefined;
+	} catch (err) {
+		console.warn("[preload] Failed to load webUtils:", err);
+		return undefined;
+	}
+})();
 
 import { exposeElectronTRPC } from "trpc-electron/main";
 
