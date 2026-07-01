@@ -148,7 +148,6 @@ export function clearLogs(transport: TerminalTransport) {
 
 const MAX_RECONNECT_DELAY = 10_000;
 const BASE_RECONNECT_DELAY = 500;
-const MAX_RECONNECT_ATTEMPTS = 10;
 
 export function createTransport(): TerminalTransport {
 	return {
@@ -271,13 +270,20 @@ function scheduleReconnect(transport: TerminalTransport) {
 	if (transport._reconnectTimer) return;
 	if (transport._terminated) return;
 	if (!transport.currentUrl || !transport._terminal) return;
-	if (transport._reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) return;
 
 	const delay = Math.min(
 		BASE_RECONNECT_DELAY * 2 ** transport._reconnectAttempt,
 		MAX_RECONNECT_DELAY,
 	);
-	transport._reconnectAttempt++;
+	// Keep retrying indefinitely at the capped delay. The host (often a
+	// long-lived VPS reached over SSH, or a fly relay) can come back well after
+	// the initial backoff burst, and the focus/online/visibility resume that
+	// would otherwise reset the counter isn't guaranteed to fire on a desktop
+	// window that stayed focused. Stop incrementing once the delay caps out so
+	// `2 ** attempt` can't overflow; a successful `open` resets it to 0 (#5380).
+	if (delay < MAX_RECONNECT_DELAY) {
+		transport._reconnectAttempt++;
+	}
 
 	transport._reconnectTimer = setTimeout(() => {
 		transport._reconnectTimer = null;
@@ -482,14 +488,10 @@ function attachSocketListeners(
 		setConnectionState(transport, "closed");
 		transport.socket = null;
 		if (!transport._terminated && event.code !== 1000) {
-			const willReconnect =
-				!transport._reconnectTimer &&
-				Boolean(transport.currentUrl && transport._terminal) &&
-				transport._reconnectAttempt < MAX_RECONNECT_ATTEMPTS;
 			pushLog(
 				transport,
-				willReconnect ? "warn" : "error",
-				`WebSocket closed while connected to ${formatWsEndpoint(transport.currentUrl)} (${formatCloseDetails(event)}). ${willReconnect ? "Reconnecting..." : "Max reconnect attempts reached."}`,
+				"warn",
+				`WebSocket closed while connected to ${formatWsEndpoint(transport.currentUrl)} (${formatCloseDetails(event)}). Reconnecting...`,
 			);
 		}
 		// Auto-reconnect on unexpected close (host-service restart, network blip)

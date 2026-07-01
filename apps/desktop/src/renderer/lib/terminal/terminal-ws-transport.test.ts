@@ -295,6 +295,34 @@ describe("terminal-ws-transport", () => {
 		]);
 	});
 
+	test("keeps retrying after the initial backoff burst is exhausted (#5380)", () => {
+		jest.useFakeTimers();
+
+		const transport = createTransport();
+		connect(transport, createMockTerminal(), "ws://host/terminal/t1");
+
+		// Simulate a host/relay that is briefly unreachable (e.g. a VPS reached
+		// over SSH, or fly edge affinity churn): every dial closes with 1006
+		// before it ever opens, so no "attached" arrives and the success path
+		// that resets the backoff counter never runs. Drive far more failures
+		// than the internal backoff burst length.
+		const FAILURES = 25;
+		for (let i = 0; i < FAILURES; i++) {
+			const socket = MockWebSocket.instances.at(-1);
+			if (!socket) throw new Error("expected a websocket to dial");
+			socket.close(1006, "connection refused");
+			// Let the scheduled reconnect fire; max backoff is well under 20s.
+			jest.advanceTimersByTime(20_000);
+		}
+
+		// The transport must still be dialing. A long-lived host can come back
+		// minutes later, and a focused desktop window won't emit the
+		// focus/online/visibility resume event that would otherwise reset the
+		// counter — so giving up here strands the terminal as "Disconnected".
+		expect(transport.connectionState).toBe("connecting");
+		expect(MockWebSocket.instances.length).toBeGreaterThan(FAILURES);
+	});
+
 	test("recovers a half-open socket after the machine resumes from sleep", () => {
 		jest.useFakeTimers();
 		setSystemTime(new Date("2026-01-01T00:00:00Z"));
