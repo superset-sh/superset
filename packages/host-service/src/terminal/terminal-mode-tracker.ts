@@ -34,6 +34,14 @@ type HeadlessInternals = {
 	_core?: {
 		_writeBuffer?: { writeSync(data: string | Uint8Array): void };
 		coreService?: { kittyKeyboard?: { flags: number } };
+		// Mouse *encoding* (SGR vs default X10) isn't on the public IModes —
+		// only the tracking protocol is. Reach into the state service the same
+		// way kitty flags are read so the preamble can restore SGR.
+		_inputHandler?: {
+			_mouseStateService?: {
+				activeEncoding?: "DEFAULT" | "SGR" | "SGR_PIXELS";
+			};
+		};
 		optionsService?: {
 			rawOptions: { vtExtensions?: { kittyKeyboard?: boolean } };
 		};
@@ -55,11 +63,18 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 	// rather than silently throwing inside every PTY-output callback.
 	const optionsRaw = internals._core?.optionsService?.rawOptions;
 	const writeBuffer = internals._core?._writeBuffer;
-	if (!optionsRaw || typeof writeBuffer?.writeSync !== "function") {
+	const mouseState = internals._core?._inputHandler?._mouseStateService;
+	if (
+		!optionsRaw ||
+		typeof writeBuffer?.writeSync !== "function" ||
+		!mouseState ||
+		!("activeEncoding" in mouseState)
+	) {
 		throw new Error(
 			"@xterm/headless internals not found (optionsService.rawOptions, " +
-				"_writeBuffer.writeSync). Likely a version-pinning regression — " +
-				"check that the pinned version still exposes these.",
+				"_writeBuffer.writeSync, _inputHandler._mouseStateService." +
+				"activeEncoding). Likely a version-pinning regression — check that " +
+				"the pinned version still exposes these.",
 		);
 	}
 
@@ -76,6 +91,14 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 	const buildPreamble = (): Uint8Array | null => {
 		const m = term.modes;
 		const parts: string[] = [];
+
+		// Alt-screen first so every following mode-set applies in the buffer the
+		// running program believes is active. Programs (vim, codex, opencode)
+		// enter the alternate screen once at startup; on a background-adopted
+		// session those bytes fall out of the FIFO replay, so a reattaching
+		// xterm would otherwise sit in the normal buffer and the mouse wheel
+		// would scroll empty scrollback instead of reaching the TUI (#5038).
+		if (term.buffer.active.type === "alternate") parts.push("\x1b[?1049h");
 
 		if (m.applicationCursorKeysMode) parts.push("\x1b[?1h");
 		if (m.applicationKeypadMode) parts.push("\x1b[?66h");
@@ -105,6 +128,18 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 				break;
 			case "none":
 				break;
+		}
+
+		// Restore the mouse *encoding* alongside the tracking protocol. TUIs
+		// that opt into SGR (`?1006h`) only parse SGR-encoded reports; without
+		// this the reattached xterm keeps the default X10 encoding and wheel
+		// ticks arrive as bytes the program can't read (#5038). Only meaningful
+		// while tracking is active.
+		if (m.mouseTrackingMode !== "none") {
+			const encoding =
+				internals._core?._inputHandler?._mouseStateService?.activeEncoding;
+			if (encoding === "SGR") parts.push("\x1b[?1006h");
+			else if (encoding === "SGR_PIXELS") parts.push("\x1b[?1016h");
 		}
 
 		const kittyFlags = internals._core?.coreService?.kittyKeyboard?.flags ?? 0;

@@ -59,16 +59,16 @@ describe("createModeTracker", () => {
 	});
 
 	test("focus reporting and mouse tracking are captured", () => {
-		// `?1002h` is button-tracking, NOT SGR encoding (`?1006h`). xterm.js's
-		// public IModes doesn't expose mouse encoding format, so the preamble
-		// can't restore it — clients reattaching mid-session keep the default
-		// X10 encoding. Acceptable today; revisit if a TUI relying on SGR
-		// breaks on reattach.
+		// `?1002h` is button-tracking; SGR encoding (`?1006h`) is tracked
+		// separately via the mouse state service (see #5038 tests below). Here
+		// the program never opts into SGR, so the encoding stays X10 and only
+		// the tracking + focus modes are restored.
 		const t = createModeTracker(120, 32);
 		t.feed(enc.encode("\x1b[?1004h\x1b[?1002h"));
 		const preamble = preambleString(t);
 		expect(preamble).toContain("\x1b[?1004h");
 		expect(preamble).toContain("\x1b[?1002h");
+		expect(preamble).not.toContain("?1006");
 		t.dispose();
 	});
 
@@ -110,5 +110,46 @@ describe("createModeTracker", () => {
 		t.feed(enc.encode("u"));
 		expect(preambleString(t)).toBe("\x1b[=7;1u");
 		t.dispose();
+	});
+
+	// Reproduces #5038: a background-adopted alt-screen TUI (opencode, Codex,
+	// vim) loses mouse-wheel scrolling. Those programs enter the alternate
+	// screen and request SGR mouse reporting ONCE at startup; on a background
+	// session the FIFO replay evicts those bytes, so a reattaching renderer
+	// must rebuild them from the preamble. Without them the fresh xterm sits in
+	// the normal buffer with default (X10) mouse encoding and the wheel either
+	// scrolls empty scrollback (frozen) or the app misreads the X10 bytes.
+	describe("alt-screen TUI reattach (#5038)", () => {
+		test("alternate screen buffer is restored", () => {
+			const t = createModeTracker(120, 32);
+			t.feed(enc.encode("\x1b[?1049h"));
+			expect(preambleString(t)).toContain("\x1b[?1049h");
+			t.feed(enc.encode("\x1b[?1049l"));
+			expect(preambleString(t)).not.toContain("?1049");
+			t.dispose();
+		});
+
+		test("SGR mouse encoding is restored alongside tracking", () => {
+			const t = createModeTracker(120, 32);
+			t.feed(enc.encode("\x1b[?1002h\x1b[?1006h"));
+			const p = preambleString(t);
+			expect(p).toContain("\x1b[?1002h");
+			expect(p).toContain("\x1b[?1006h");
+			t.dispose();
+		});
+
+		test("full opencode/Codex startup is reconstructed after eviction", () => {
+			const t = createModeTracker(120, 32);
+			// Alt screen + button-tracking + SGR encoding, as a real TUI emits.
+			t.feed(enc.encode("\x1b[?1049h\x1b[?1002h\x1b[?1006h"));
+			// Megabytes of redraw frames — well past the 64 KiB FIFO cap.
+			const frame = "x".repeat(4096);
+			for (let i = 0; i < 256; i += 1) t.feed(enc.encode(frame));
+			const p = preambleString(t);
+			expect(p).toContain("\x1b[?1049h");
+			expect(p).toContain("\x1b[?1002h");
+			expect(p).toContain("\x1b[?1006h");
+			t.dispose();
+		});
 	});
 });
