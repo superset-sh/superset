@@ -5,7 +5,7 @@ import type {
 } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
 	type ChangesetFile,
@@ -154,10 +154,42 @@ export function DiffPane({
 		(topItemId != null ? sectionByItemId.get(topItemId) : undefined) ??
 		firstSection;
 
-	const handleScroll = useCallback(() => {
-		const rendered = codeViewRef.current?.getInstance()?.getRenderedItems();
-		const nextTopId = rendered?.[0]?.id ?? null;
+	// Track the topmost item by geometry rather than `getRenderedItems()[0]`,
+	// which can lag by the virtualization buffer. Items stack top→bottom with
+	// monotonically increasing offsets, so binary-search for the last one whose
+	// top has passed the viewport top: its header is the pinned one.
+	const rafRef = useRef<number | null>(null);
+	const updateActiveSection = useCallback(() => {
+		rafRef.current = null;
+		const instance = codeViewRef.current?.getInstance();
+		if (!instance) return;
+		const scrollTop = instance.getScrollTop();
+		let lo = 0;
+		let hi = items.length - 1;
+		let nextTopId: string | null = null;
+		while (lo <= hi) {
+			const mid = (lo + hi) >> 1;
+			const top = instance.getTopForItem(items[mid].id);
+			if (top != null && top <= scrollTop + 1) {
+				nextTopId = items[mid].id;
+				lo = mid + 1;
+			} else {
+				hi = mid - 1;
+			}
+		}
 		setTopItemId((prev) => (prev === nextTopId ? prev : nextTopId));
+	}, [items]);
+
+	// Coalesce bursts of scroll events into one measurement per frame.
+	const handleScroll = useCallback(() => {
+		if (rafRef.current != null) return;
+		rafRef.current = requestAnimationFrame(updateActiveSection);
+	}, [updateActiveSection]);
+
+	useEffect(() => {
+		return () => {
+			if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+		};
 	}, []);
 
 	const { options, style } = useDiffCodeViewTheme();
