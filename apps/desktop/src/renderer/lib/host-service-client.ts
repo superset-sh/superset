@@ -14,6 +14,17 @@ export function getHostServiceClient(port: number): HostServiceClient {
 	return getHostServiceClientByUrl(`http://127.0.0.1:${port}`);
 }
 
+// The local host-service URL, mirrored out of LocalHostServiceProvider so that
+// the (non-React) workspace collection's queryFn can reach the local host to
+// list workspaces. Null until the local host has booted.
+let activeLocalHostUrl: string | null = null;
+export function setActiveLocalHostUrl(url: string | null) {
+	activeLocalHostUrl = url;
+}
+export function getActiveLocalHostUrl(): string | null {
+	return activeLocalHostUrl;
+}
+
 export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 	const cached = clientCache.get(hostUrl);
 	if (cached) return cached;
