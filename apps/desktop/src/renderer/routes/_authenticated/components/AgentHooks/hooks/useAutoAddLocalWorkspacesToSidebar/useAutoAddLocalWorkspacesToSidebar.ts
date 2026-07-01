@@ -1,4 +1,4 @@
-import { eq } from "@tanstack/db";
+import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -11,6 +11,13 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
  * state. A missing row means "never seen here": removing or unpinning a workspace
  * keeps its row with `isHidden: true` (a tombstone), so this never re-pins one the
  * user dismissed.
+ *
+ * Scoped to `worktree` workspaces. A `main` workspace exists for every project
+ * cloned/opened on the device, so backfilling those would force every
+ * locally-known project into the sidebar — even ones the user never added. Main
+ * workspaces are instead surfaced by the gated `isAutoIncludedLocalMainWorkspace`
+ * path, which shows them only when their project is already in the sidebar and
+ * never creates a project record.
  */
 export function useAutoAddLocalWorkspacesToSidebar(): void {
 	const collections = useCollections();
@@ -21,7 +28,12 @@ export function useAutoAddLocalWorkspacesToSidebar(): void {
 		(query) =>
 			query
 				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.hostId, machineId))
+				.where(({ workspaces }) =>
+					and(
+						eq(workspaces.hostId, machineId),
+						eq(workspaces.type, "worktree"),
+					),
+				)
 				.select(({ workspaces }) => ({
 					id: workspaces.id,
 					projectId: workspaces.projectId,
