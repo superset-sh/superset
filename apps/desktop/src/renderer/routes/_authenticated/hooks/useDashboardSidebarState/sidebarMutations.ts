@@ -19,10 +19,11 @@ export function createEmptyPaneLayout(): WorkspaceState<unknown> {
 type CleanupPaneRuntimes = (rows: PaneLifecycleRow[]) => void;
 
 /**
- * Removes a workspace from the sidebar without deleting its local-state row.
- * Instead of hard-deleting, we leave a hidden "tombstone" row so
- * `useAutoAddLocalWorkspacesToSidebar` (which treats a missing row as "never
- * seen here") doesn't immediately re-pin a workspace the user dismissed.
+ * Hides a single workspace while keeping its project in the sidebar, by leaving
+ * a hidden "tombstone" row rather than deleting it. A local `main` workspace
+ * with no local-state row is re-surfaced by the gated auto-include path, so
+ * hiding one requires a row (`isHidden: true`) to suppress it; a hard-delete
+ * would let it reappear.
  */
 export function tombstoneSidebarWorkspaceRecord(
 	collections: Pick<AppCollections, "v2WorkspaceLocalState">,
@@ -56,48 +57,29 @@ export function tombstoneSidebarWorkspaceRecord(
 }
 
 /**
- * Removes a whole project from the sidebar. Workspaces are tombstoned rather
- * than hard-deleted so the auto-add hook doesn't immediately re-pin them (and,
- * via `ensureWorkspaceInSidebar`, recreate the project record). The union below
- * covers both explicitly-placed workspaces and this machine's workspaces that
- * have no local-state row yet (auto-included main/CLI workspaces).
- *
- * `machineId` is required (not nullable): `LocalHostServiceProvider` doesn't
- * render the authenticated tree until it resolves, so any caller has a real id.
- * Keeping it non-null guarantees the `hostId === machineId` filter below can't
- * silently skip row-less workspaces (which would let the auto-add hook re-pin
- * them once an id arrived).
+ * Removes a whole project from the sidebar by deleting the one fact that makes
+ * it visible: its `v2SidebarProjects` row. Workspace visibility is derived from
+ * project membership — main workspaces are gated on their project being in the
+ * sidebar, and `buildDashboardSidebarProjects` drops any workspace whose project
+ * isn't there — so deleting the project row hides the project and everything
+ * under it. The project's workspace local-state rows are hard-deleted (after
+ * runtime cleanup) so no stale UI state lingers; nothing re-derives them.
  */
 export function removeProjectFromSidebarState(
 	collections: Pick<
 		AppCollections,
-		| "v2WorkspaceLocalState"
-		| "v2Workspaces"
-		| "v2SidebarSections"
-		| "v2SidebarProjects"
+		"v2WorkspaceLocalState" | "v2SidebarSections" | "v2SidebarProjects"
 	>,
 	projectId: string,
-	machineId: string,
 	cleanupPaneRuntimes: CleanupPaneRuntimes,
 ): void {
-	const workspaceIds = new Set<string>();
-	for (const row of collections.v2WorkspaceLocalState.state.values()) {
-		if (row.sidebarState.projectId === projectId) {
-			workspaceIds.add(row.workspaceId);
-		}
-	}
-	for (const workspace of collections.v2Workspaces.state.values()) {
-		if (workspace.projectId === projectId && workspace.hostId === machineId) {
-			workspaceIds.add(workspace.id);
-		}
-	}
-
-	for (const workspaceId of workspaceIds) {
-		tombstoneSidebarWorkspaceRecord(
-			collections,
-			workspaceId,
-			projectId,
-			cleanupPaneRuntimes,
+	const workspaceRows = Array.from(
+		collections.v2WorkspaceLocalState.state.values(),
+	).filter((row) => row.sidebarState.projectId === projectId);
+	if (workspaceRows.length > 0) {
+		cleanupPaneRuntimes(workspaceRows);
+		collections.v2WorkspaceLocalState.delete(
+			workspaceRows.map((row) => row.workspaceId),
 		);
 	}
 

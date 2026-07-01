@@ -100,19 +100,11 @@ function asTombstoneArg(collections: Collections) {
 
 const noopCleanup = () => {};
 
-/** Mirrors `useAutoAddLocalWorkspacesToSidebar`: re-pins this-machine workspaces with no local-state row. */
-function workspacesAutoAddWouldRepin(
-	collections: Collections,
-	machineId: string,
-): string[] {
-	const known = new Set(collections.v2WorkspaceLocalState.state.keys());
-	return Array.from(collections.v2Workspaces.state.values())
-		.filter((w) => w.hostId === machineId && !known.has(w.id))
-		.map((w) => w.id);
-}
-
 describe("removeProjectFromSidebarState", () => {
-	it("keeps an auto-included main workspace removed (no local-state row) so the auto-add hook can't re-pin it", () => {
+	it("deletes only the project record when its main workspace has no local-state row", () => {
+		// A row-less main workspace is visible via the gated auto-include path,
+		// which is keyed off the project being in the sidebar. Deleting the
+		// project record hides it — no tombstone row is needed or created.
 		const collections = makeCollections();
 		collections.v2Workspaces.insert({
 			id: "ws-main",
@@ -124,29 +116,18 @@ describe("removeProjectFromSidebarState", () => {
 		removeProjectFromSidebarState(
 			asRemoveArg(collections),
 			"proj-1",
-			"machine-1",
 			noopCleanup,
 		);
 
-		// Project record gone -> project no longer rendered.
 		expect(collections.v2SidebarProjects.get("proj-1")).toBeUndefined();
-		// A tombstone row now exists for the previously row-less main workspace.
-		const tombstone = collections.v2WorkspaceLocalState.get("ws-main");
-		expect(tombstone?.sidebarState.isHidden).toBe(true);
-		// Regression guard: the auto-add hook would NOT re-pin it.
-		expect(workspacesAutoAddWouldRepin(collections, "machine-1")).toEqual([]);
+		expect(collections.v2WorkspaceLocalState.get("ws-main")).toBeUndefined();
 	});
 
-	it("tombstones an explicitly-placed workspace and deletes the project's sections and record", () => {
+	it("hard-deletes the project's workspace rows and sections and cleans up their runtimes", () => {
 		const collections = makeCollections();
 		collections.v2WorkspaceLocalState.insert(
 			localStateRow("ws-1", "proj-1", { sectionId: "sec-1", tabOrder: 3 }),
 		);
-		collections.v2Workspaces.insert({
-			id: "ws-1",
-			projectId: "proj-1",
-			hostId: "machine-1",
-		});
 		collections.v2SidebarSections.insert({
 			sectionId: "sec-1",
 			projectId: "proj-1",
@@ -157,50 +138,31 @@ describe("removeProjectFromSidebarState", () => {
 		removeProjectFromSidebarState(
 			asRemoveArg(collections),
 			"proj-1",
-			"machine-1",
 			(rows) => {
 				for (const row of rows) cleaned.push(String(row.workspaceId));
 			},
 		);
 
-		const row = collections.v2WorkspaceLocalState.get("ws-1");
-		expect(row?.sidebarState.isHidden).toBe(true);
-		expect(row?.sidebarState.sectionId).toBeNull();
+		expect(collections.v2WorkspaceLocalState.get("ws-1")).toBeUndefined();
 		expect(collections.v2SidebarSections.get("sec-1")).toBeUndefined();
 		expect(collections.v2SidebarProjects.get("proj-1")).toBeUndefined();
-		// Existing rows have their pane runtimes cleaned up.
 		expect(cleaned).toEqual(["ws-1"]);
 	});
 
-	it("leaves workspaces from other projects and other hosts untouched", () => {
+	it("leaves workspaces from other projects untouched", () => {
 		const collections = makeCollections();
 		collections.v2WorkspaceLocalState.insert(
 			localStateRow("ws-other", "proj-2"),
 		);
-		collections.v2Workspaces.insert({
-			id: "ws-other",
-			projectId: "proj-2",
-			hostId: "machine-1",
-		});
-		// Same project, different host, no local-state row -> must not be tombstoned.
-		collections.v2Workspaces.insert({
-			id: "ws-remote",
-			projectId: "proj-1",
-			hostId: "machine-2",
-		});
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
 
 		removeProjectFromSidebarState(
 			asRemoveArg(collections),
 			"proj-1",
-			"machine-1",
 			noopCleanup,
 		);
 
-		expect(
-			collections.v2WorkspaceLocalState.get("ws-other")?.sidebarState.isHidden,
-		).toBe(false);
-		expect(collections.v2WorkspaceLocalState.get("ws-remote")).toBeUndefined();
+		expect(collections.v2WorkspaceLocalState.get("ws-other")).toBeDefined();
 	});
 });
 
