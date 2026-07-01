@@ -1,1 +1,0 @@
-export { SocialLinks } from "./SocialLinks";

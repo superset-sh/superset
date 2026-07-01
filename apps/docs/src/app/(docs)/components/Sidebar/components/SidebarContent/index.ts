@@ -1,1 +1,0 @@
-export { sections } from "./SidebarContent";

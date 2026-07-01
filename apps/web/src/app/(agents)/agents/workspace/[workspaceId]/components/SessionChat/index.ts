@@ -1,1 +1,0 @@
-export { SessionChat } from "./SessionChat";

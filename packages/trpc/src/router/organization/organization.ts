@@ -485,7 +485,7 @@ export const organizationRouter = {
 					// Already removed or demoted by a concurrent request — nothing to do.
 					if (targetUnderLock[0]?.role !== "owner") return;
 
-					const [{ count }] = await tx
+					const [{ count } = { count: 0 }] = await tx
 						.select({ count: sql<number>`count(*)::int` })
 						.from(members)
 						.where(
@@ -498,7 +498,8 @@ export const organizationRouter = {
 					if (count <= 1) {
 						throw new TRPCError({
 							code: "FORBIDDEN",
-							message: "Cannot remove the last owner. Transfer ownership first.",
+							message:
+								"Cannot remove the last owner. Transfer ownership first.",
 						});
 					}
 
@@ -559,7 +560,7 @@ export const organizationRouter = {
 						.limit(1);
 
 					if (memberUnderLock[0]?.role === "owner") {
-						const [{ count }] = await tx
+						const [{ count } = { count: 0 }] = await tx
 							.select({ count: sql<number>`count(*)::int` })
 							.from(members)
 							.where(
@@ -696,7 +697,7 @@ export const organizationRouter = {
 
 					// Re-check under lock in case a concurrent request already demoted them.
 					if (targetUnderLock[0]?.role === "owner") {
-						const [{ count }] = await tx
+						const [{ count } = { count: 0 }] = await tx
 							.select({ count: sql<number>`count(*)::int` })
 							.from(members)
 							.where(

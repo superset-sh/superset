@@ -1,1 +1,0 @@
-export { GitHubStarCounter } from "./GitHubStarCounter";

@@ -1,1 +1,0 @@
-export { SettingsScreen } from "./SettingsScreen";

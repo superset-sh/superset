@@ -1,1 +1,0 @@
-export { GridBackground } from "./GridBackground";
