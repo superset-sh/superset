@@ -22,6 +22,19 @@ describe("translateLineEditChord", () => {
 		).toBe("\x1b\r");
 	});
 
+	// Repro for #4924: Cmd+Backspace previously sent "\x15\x1b[D" (Ctrl+U +
+	// Escape-Left). The trailing left-arrow detaches Claude Code's agent view
+	// when the input is empty. macOS Cmd+Backspace should only clear to the
+	// start of the line (Ctrl+U / \x15) and leave the cursor where it is.
+	it("maps Mac Cmd+Backspace to Ctrl+U with no trailing arrow", () => {
+		expect(
+			translateLineEditChord(event({ key: "Backspace", metaKey: true }), {
+				isMac: true,
+				isWindows: false,
+			}),
+		).toBe("\x15");
+	});
+
 	it("does not map Cmd+Shift+Enter", () => {
 		expect(
 			translateLineEditChord(
