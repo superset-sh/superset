@@ -1,3 +1,5 @@
+import type { RenderDiffOptions } from "@pierre/diffs";
+
 /**
  * Diff render options governed by the @pierre/diffs worker pool.
  *
@@ -16,4 +18,4 @@ export const DIFF_POOL_RENDER_OPTIONS = {
 	lineDiffType: "word-alt",
 	maxLineDiffLength: 5_000,
 	tokenizeMaxLineLength: 5_000,
-} as const;
+} as const satisfies Partial<RenderDiffOptions>;
