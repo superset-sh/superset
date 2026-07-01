@@ -57,18 +57,23 @@ export function tombstoneSidebarWorkspaceRecord(
 }
 
 /**
- * Removes a whole project from the sidebar by deleting the one fact that makes
- * it visible: its `v2SidebarProjects` row. Workspace visibility is derived from
- * project membership — main workspaces are gated on their project being in the
- * sidebar, and `buildDashboardSidebarProjects` drops any workspace whose project
- * isn't there — so deleting the project row hides the project and everything
- * under it. The project's workspace local-state rows are hard-deleted (after
- * runtime cleanup) so no stale UI state lingers; nothing re-derives them.
+ * Removes a project from the sidebar by deleting the one fact that makes it
+ * visible: its `v2SidebarProjects` row. Membership is explicit, and display
+ * gates on it — `buildDashboardSidebarProjects` drops any workspace whose
+ * project is absent, and a local `main` only surfaces under a project in the
+ * sidebar — so deleting this row hides the project and everything under it.
+ *
+ * The project's workspace local-state rows are kept (only their live pane
+ * runtimes are torn down): a missing row reads as "never placed" to
+ * `usePlaceLocalWorktreesInSidebar`, which would re-add the worktree and
+ * recreate the project. Keeping them also lets re-adding the project restore
+ * its workspaces and sections. This discards `defaultOpenInApp` (stored on the
+ * project row and nowhere else); it resets to default on re-add.
  */
 export function removeProjectFromSidebarState(
 	collections: Pick<
 		AppCollections,
-		"v2WorkspaceLocalState" | "v2SidebarSections" | "v2SidebarProjects"
+		"v2WorkspaceLocalState" | "v2SidebarProjects"
 	>,
 	projectId: string,
 	cleanupPaneRuntimes: CleanupPaneRuntimes,
@@ -78,16 +83,6 @@ export function removeProjectFromSidebarState(
 	).filter((row) => row.sidebarState.projectId === projectId);
 	if (workspaceRows.length > 0) {
 		cleanupPaneRuntimes(workspaceRows);
-		collections.v2WorkspaceLocalState.delete(
-			workspaceRows.map((row) => row.workspaceId),
-		);
-	}
-
-	const sectionIds = Array.from(collections.v2SidebarSections.state.values())
-		.filter((item) => item.projectId === projectId)
-		.map((item) => item.sectionId);
-	if (sectionIds.length > 0) {
-		collections.v2SidebarSections.delete(sectionIds);
 	}
 
 	if (collections.v2SidebarProjects.get(projectId)) {

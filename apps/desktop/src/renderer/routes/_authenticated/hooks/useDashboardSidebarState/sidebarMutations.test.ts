@@ -123,15 +123,13 @@ describe("removeProjectFromSidebarState", () => {
 		expect(collections.v2WorkspaceLocalState.get("ws-main")).toBeUndefined();
 	});
 
-	it("hard-deletes the project's workspace rows and sections and cleans up their runtimes", () => {
+	it("keeps the project's workspace rows and tears down their runtimes, deleting only the project record", () => {
+		// The row is kept so the worktree reconciler reads it as already-placed
+		// and won't re-add the workspace (which would recreate the project).
 		const collections = makeCollections();
 		collections.v2WorkspaceLocalState.insert(
-			localStateRow("ws-1", "proj-1", { sectionId: "sec-1", tabOrder: 3 }),
+			localStateRow("ws-1", "proj-1", { tabOrder: 3 }),
 		);
-		collections.v2SidebarSections.insert({
-			sectionId: "sec-1",
-			projectId: "proj-1",
-		});
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
 
 		const cleaned: string[] = [];
@@ -143,9 +141,8 @@ describe("removeProjectFromSidebarState", () => {
 			},
 		);
 
-		expect(collections.v2WorkspaceLocalState.get("ws-1")).toBeUndefined();
-		expect(collections.v2SidebarSections.get("sec-1")).toBeUndefined();
 		expect(collections.v2SidebarProjects.get("proj-1")).toBeUndefined();
+		expect(collections.v2WorkspaceLocalState.get("ws-1")).toBeDefined();
 		expect(cleaned).toEqual(["ws-1"]);
 	});
 
