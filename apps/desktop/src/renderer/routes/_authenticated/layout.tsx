@@ -24,6 +24,7 @@ import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showW
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
+import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -216,6 +217,7 @@ function AuthenticatedLayout() {
 							poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
 							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
 						>
+							<DiffThemeSync />
 							<AgentHooks />
 							<FileMenuListener />
 							<V2NotificationController />
