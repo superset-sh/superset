@@ -59,4 +59,27 @@ describe("buildAgentCommandString", () => {
 			"'claude' '--dangerously-skip-permissions' '--model' 'x'\\''; rm -rf /' 'p'",
 		);
 	});
+
+	it("strips escape sequences and control chars from the prompt (argv transport)", () => {
+		expect(
+			buildAgentCommandString(argvConfig, "fix \x1b[31mred\x1b[0m bug\x07"),
+		).toBe("'claude' '--dangerously-skip-permissions' 'fix [31mred[0m bug'");
+	});
+
+	it("normalizes CR to LF and keeps tabs (stdin transport)", () => {
+		expect(buildAgentCommandString(stdinConfig, "line1\r\nline2\r\tend")).toBe(
+			"'amp' <<'SUPERSET_PROMPT'\nline1\nline2\n\tend\nSUPERSET_PROMPT",
+		);
+	});
+
+	it("resolves heredoc delimiter collisions created by sanitization", () => {
+		// The delimiter line only appears after control chars are stripped; the
+		// collision scan must run on the sanitized prompt or the heredoc would
+		// terminate early and execute the remainder as shell input.
+		expect(
+			buildAgentCommandString(stdinConfig, "SUPERSET\x07_PROMPT\nrm -rf /"),
+		).toBe(
+			"'amp' <<'SUPERSET_PROMPT_1'\nSUPERSET_PROMPT\nrm -rf /\nSUPERSET_PROMPT_1",
+		);
+	});
 });

@@ -7,6 +7,22 @@ export const PROMPT_TRANSPORTS = ["argv", "stdin"] as const;
 
 export type PromptTransport = (typeof PROMPT_TRANSPORTS)[number];
 
+/**
+ * Strip control characters from a prompt destined for a PTY. Launch commands
+ * are written to the shell as if typed, so ESC/C1 bytes in the prompt would be
+ * interpreted by the line editor as keystrokes (mangling the command or firing
+ * arbitrary keybindings) and a lone CR would submit the line early. Keeps
+ * newlines and tabs; normalizes CRLF/CR to LF.
+ */
+export function sanitizePromptForPty(prompt: string): string {
+	return (
+		prompt
+			.replace(/\r\n?/g, "\n")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars intentionally
+			.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g, "")
+	);
+}
+
 function resolveDelimiter(prompt: string, randomId: string): string {
 	let delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
 	while (prompt.includes(delimiter)) {
@@ -27,7 +43,7 @@ export function buildPromptCommandString({
 	command,
 	suffix,
 	transport,
-	prompt,
+	prompt: rawPrompt,
 	randomId,
 }: {
 	command: string;
@@ -36,6 +52,7 @@ export function buildPromptCommandString({
 	prompt: string;
 	randomId: string;
 }): string {
+	const prompt = sanitizePromptForPty(rawPrompt);
 	const delimiter = resolveDelimiter(prompt, randomId);
 	const fullCommand = joinCommand(command, suffix);
 

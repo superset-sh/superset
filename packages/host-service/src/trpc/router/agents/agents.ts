@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { buildAgentModelArgs } from "@superset/shared/agent-models";
+import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -114,9 +115,13 @@ function buildArgvCommand(argv: string[]): string {
  */
 export function buildAgentCommandString(
 	config: ResolvedHostAgentConfig,
-	prompt: string,
+	rawPrompt: string,
 	modelArgs: string[] = [],
 ): string {
+	// The command string is written to the PTY as if typed, so control
+	// characters in the prompt would hit the shell's line editor as
+	// keystrokes (ESC sequences fire keybindings, CR submits early).
+	const prompt = sanitizePromptForPty(rawPrompt);
 	const baseArgv = [
 		config.command,
 		...config.args,
