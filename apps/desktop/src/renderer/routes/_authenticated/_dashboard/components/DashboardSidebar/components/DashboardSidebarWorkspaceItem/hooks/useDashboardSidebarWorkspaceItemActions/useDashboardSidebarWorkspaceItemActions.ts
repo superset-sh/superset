@@ -40,6 +40,9 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const clearWorkspaceAttention = useV2NotificationStore(
 		(s) => s.clearWorkspaceAttention,
 	);
+	const clearWorkspaceStatuses = useV2NotificationStore(
+		(s) => s.clearWorkspaceStatuses,
+	);
 	const setManualUnread = useV2NotificationStore((s) => s.setManualUnread);
 	const isUnread = useV2WorkspaceIsUnread(workspaceId);
 	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
@@ -150,6 +153,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
+	const handleClearStatus = () => {
+		clearWorkspaceStatuses(workspaceId);
+	};
+
 	const handleCopyBranchName = async () => {
 		if (!branch) {
 			toast.error("Branch name is not available");
@@ -167,6 +174,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	return {
 		cancelRename,
+		handleClearStatus,
 		handleClick,
 		handleCopyPath,
 		handleCopyBranchName,

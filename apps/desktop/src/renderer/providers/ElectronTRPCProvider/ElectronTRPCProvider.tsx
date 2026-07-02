@@ -47,6 +47,7 @@ const PERSIST_KEY_PREFIXES = new Set([
 	"tasks", // PR/issue list infinite queries
 	"pull-request-detail",
 	"issue-detail",
+	"dashboard-sidebar", // sidebar per-workspace PR state (badges/checks)
 ]);
 
 export function ElectronTRPCProvider({
