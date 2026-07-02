@@ -1,4 +1,3 @@
-import { snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectInvitation,
 	SelectMember,
@@ -8,15 +7,28 @@ import type {
 	SelectTaskStatus,
 	SelectUser,
 } from "@superset/db/schema";
-import { electricCollectionOptions } from "@tanstack/electric-db-collection";
+import type { RouterInputs } from "@superset/trpc";
+import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
-import { authClient } from "../auth/client";
-import { env } from "../env";
+import { QueryClient } from "@tanstack/react-query";
 import { apiClient } from "../trpc/client";
 
-const columnMapper = snakeCamelMapper();
-const electricUrl = `${env.EXPO_PUBLIC_API_URL}/api/electric/v1/shape`;
+// Poll the tRPC sync.pull endpoint instead of Electric shapes. Optimistic
+// writes still update the UI instantly; this interval bounds how quickly changes
+// made elsewhere appear.
+const SYNC_POLL_INTERVAL_MS = 5_000;
+
+type SyncTable = RouterInputs["sync"]["pull"]["table"];
+
+const queryClient = new QueryClient();
+
+function pull<T>(table: SyncTable, organizationId?: string): Promise<T[]> {
+	return apiClient.sync.pull.query({
+		table,
+		organizationId,
+	}) as unknown as Promise<T[]>;
+}
 
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
@@ -29,114 +41,88 @@ interface OrgCollections {
 
 const collectionsCache = new Map<string, OrgCollections>();
 
-// Organizations collection (global)
 const organizationsCollection = createCollection(
-	electricCollectionOptions<SelectOrganization>({
+	queryCollectionOptions<SelectOrganization>({
 		id: "organizations",
-		shapeOptions: {
-			url: electricUrl,
-			params: { table: "auth.organizations" },
-			headers: {
-				Cookie: () => authClient.getCookie() || "",
-			},
-			columnMapper,
-		},
+		queryClient,
+		queryKey: ["sync", "auth.organizations"],
+		queryFn: () => pull<SelectOrganization>("auth.organizations"),
+		refetchInterval: SYNC_POLL_INTERVAL_MS,
 		getKey: (item) => item.id,
 	}),
 );
 
 function createOrgCollections(organizationId: string): OrgCollections {
-	const headers = {
-		Cookie: () => authClient.getCookie() || "",
-	};
-
 	const tasks = createCollection(
-		electricCollectionOptions<SelectTask>({
+		queryCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "tasks", organizationId },
-				headers,
-				columnMapper,
-			},
+			queryClient,
+			queryKey: ["sync", "tasks", organizationId],
+			queryFn: () => pull<SelectTask>("tasks", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
-				const result = await apiClient.task.update.mutate({
-					...changes,
-					id: original.id,
-				});
-				return { txid: result.txid };
+				await apiClient.task.update.mutate({ ...changes, id: original.id });
 			},
 			onDelete: async ({ transaction }) => {
 				const item = transaction.mutations[0].original;
-				const result = await apiClient.task.delete.mutate(item.id);
-				return { txid: result.txid };
+				await apiClient.task.delete.mutate(item.id);
 			},
 		}),
 	);
 
 	const taskStatuses = createCollection(
-		electricCollectionOptions<SelectTaskStatus>({
+		queryCollectionOptions<SelectTaskStatus>({
 			id: `task_statuses-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "task_statuses", organizationId },
-				headers,
-				columnMapper,
-			},
+			queryClient,
+			queryKey: ["sync", "task_statuses", organizationId],
+			queryFn: () => pull<SelectTaskStatus>("task_statuses", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
 	const projects = createCollection(
-		electricCollectionOptions<SelectProject>({
+		queryCollectionOptions<SelectProject>({
 			id: `projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "projects", organizationId },
-				headers,
-				columnMapper,
-			},
+			queryClient,
+			queryKey: ["sync", "projects", organizationId],
+			queryFn: () => pull<SelectProject>("projects", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
 	const members = createCollection(
-		electricCollectionOptions<SelectMember>({
+		queryCollectionOptions<SelectMember>({
 			id: `members-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "auth.members", organizationId },
-				headers,
-				columnMapper,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.members", organizationId],
+			queryFn: () => pull<SelectMember>("auth.members", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
 	const users = createCollection(
-		electricCollectionOptions<SelectUser>({
+		queryCollectionOptions<SelectUser>({
 			id: `users-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "auth.users", organizationId },
-				headers,
-				columnMapper,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.users", organizationId],
+			queryFn: () => pull<SelectUser>("auth.users", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
 	const invitations = createCollection(
-		electricCollectionOptions<SelectInvitation>({
+		queryCollectionOptions<SelectInvitation>({
 			id: `invitations-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "auth.invitations", organizationId },
-				headers,
-				columnMapper,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.invitations", organizationId],
+			queryFn: () => pull<SelectInvitation>("auth.invitations", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
