@@ -90,6 +90,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 				return (
 					<ChangesSection
 						key={key}
+						sectionKey={key}
 						title={GROUP_TITLES[key]}
 						count={groupFiles.length}
 						stagingActions={

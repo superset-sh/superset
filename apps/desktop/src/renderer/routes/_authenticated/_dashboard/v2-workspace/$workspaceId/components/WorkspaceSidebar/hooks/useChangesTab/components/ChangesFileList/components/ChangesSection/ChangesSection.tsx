@@ -11,25 +11,36 @@ import { ChevronRight, Minus, Plus } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { LuUndo2 } from "react-icons/lu";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
+import {
+	useV2ChangesSectionsStore,
+	type V2ChangesSectionKey,
+} from "renderer/stores/v2-changes-sections";
 
 type SectionKind = "unstaged" | "staged";
 
 interface ChangesSectionProps {
+	sectionKey: V2ChangesSectionKey;
 	title: string;
 	count: number;
-	defaultOpen?: boolean;
 	stagingActions?: { kind: SectionKind; workspaceId: string };
 	children: ReactNode;
 }
 
 export function ChangesSection({
+	sectionKey,
 	title,
 	count,
-	defaultOpen = true,
 	stagingActions,
 	children,
 }: ChangesSectionProps) {
-	const [open, setOpen] = useState(defaultOpen);
+	const collapsed = useV2ChangesSectionsStore(
+		(state) => state.collapsed[sectionKey] ?? false,
+	);
+	const toggle = useV2ChangesSectionsStore((state) => state.toggle);
+	const open = !collapsed;
+	const setOpen = (next: boolean) => {
+		if (next !== open) toggle(sectionKey);
+	};
 	const [showConfirm, setShowConfirm] = useState(false);
 	const utils = workspaceTrpc.useUtils();
 
