@@ -37,7 +37,9 @@ export function OrganizationDropdown({
 	const signOut = useSignOut();
 	const navigate = useNavigate();
 
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window active org (from CollectionsProvider), not the shared session —
+	// so the checkmark reflects what THIS window is showing.
+	const activeOrganizationId = collections.activeOrganizationId;
 
 	const { data: organizations } = useLiveQuery(
 		(q) => q.from({ organizations: collections.organizations }),
