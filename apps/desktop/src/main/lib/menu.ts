@@ -9,6 +9,7 @@ import {
 	simulateUpdateReady,
 } from "./auto-updater";
 import { menuEmitter } from "./menu-events";
+import { confirmAndQuitCompletely } from "./quit-completely";
 
 export function createApplicationMenu() {
 	const reloadAccelerator = "CmdOrCtrl+R";
@@ -184,6 +185,12 @@ export function createApplicationMenu() {
 				{ role: "unhide" },
 				{ type: "separator" },
 				{ role: "quit" },
+				{
+					label: "Quit Superset Completely",
+					click: () => {
+						void confirmAndQuitCompletely();
+					},
+				},
 			],
 		});
 	}
