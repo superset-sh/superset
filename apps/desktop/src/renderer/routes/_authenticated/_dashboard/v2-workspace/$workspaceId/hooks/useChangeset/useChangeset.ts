@@ -44,6 +44,7 @@ export function useChangeset({
 				status: file.status as FileStatus,
 				additions: file.additions,
 				deletions: file.deletions,
+				isBinary: file.isBinary,
 				source: {
 					kind: "commit",
 					commitHash: ref.commitHash,

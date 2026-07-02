@@ -7,6 +7,7 @@ interface GitChangedFile {
 	status: string;
 	additions: number;
 	deletions: number;
+	isBinary?: boolean;
 }
 
 interface GitStatusChanges {
@@ -25,6 +26,7 @@ function toChangesetFile(
 		status: file.status as FileStatus,
 		additions: file.additions,
 		deletions: file.deletions,
+		isBinary: file.isBinary,
 		source,
 	};
 }

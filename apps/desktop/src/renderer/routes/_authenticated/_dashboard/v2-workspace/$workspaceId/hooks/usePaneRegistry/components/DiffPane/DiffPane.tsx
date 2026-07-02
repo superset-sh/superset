@@ -5,7 +5,9 @@ import type {
 } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
+import { Button } from "@superset/ui/button";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LuFileCode } from "react-icons/lu";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
 	type ChangesetFile,
@@ -256,9 +258,15 @@ export function DiffPane({
 				| DiffLineAnnotation<DiffAnnotationMetadata>,
 			item: CodeViewItem<DiffAnnotationMetadata>,
 		) => {
-			if (item.type !== "diff") return null;
 			const m = annotation.metadata;
+			if (m.kind === "binary-placeholder") {
+				if (item.type !== "file") return null;
+				const file = fileByItemId.get(item.id);
+				if (!file) return null;
+				return <BinaryDiffPlaceholder file={file} onOpenFile={onOpenFile} />;
+			}
 			if (m.kind === "composer") {
+				if (item.type !== "diff") return null;
 				return (
 					<AgentCommentComposer
 						workspaceId={workspaceId}
@@ -269,11 +277,13 @@ export function DiffPane({
 					/>
 				);
 			}
+			if (m.kind !== "thread") return null;
 			const annotationSide = "side" in annotation ? annotation.side : undefined;
+			const focusLine = m.sourceLine ?? annotation.lineNumber;
 			const focused =
 				item.id === targetItemId &&
 				data.focusLine != null &&
-				annotation.lineNumber === data.focusLine &&
+				focusLine === data.focusLine &&
 				(data.focusSide == null || annotationSide === data.focusSide);
 
 			return (
@@ -296,6 +306,8 @@ export function DiffPane({
 			data.focusTick,
 			clearComposer,
 			submitComposer,
+			fileByItemId,
+			onOpenFile,
 		],
 	);
 
@@ -338,6 +350,32 @@ export function DiffPane({
 				renderHeaderMetadata={renderHeaderMetadata}
 				renderAnnotation={renderAnnotation}
 			/>
+		</div>
+	);
+}
+
+function BinaryDiffPlaceholder({
+	file,
+	onOpenFile,
+}: {
+	file: ChangesetFile;
+	onOpenFile: (path: string, openInNewTab?: boolean) => void;
+}) {
+	const canOpen = file.status !== "deleted";
+
+	return (
+		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
+			<LuFileCode className="size-8" />
+			<p className="cursor-text select-text text-sm">Binary file hidden</p>
+			{canOpen ? (
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => onOpenFile(file.path)}
+				>
+					Open file
+				</Button>
+			) : null}
 		</div>
 	);
 }

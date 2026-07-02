@@ -77,6 +77,7 @@ export async function getGitStatusSnapshot({
 			const stats = stagedNumstat.get(file.path) ?? {
 				additions: 0,
 				deletions: 0,
+				isBinary: false,
 			};
 			staged.push({
 				path: file.path,
@@ -84,6 +85,7 @@ export async function getGitStatusSnapshot({
 				status: mapGitStatus(idx),
 				additions: stats.additions,
 				deletions: stats.deletions,
+				isBinary: stats.isBinary,
 			});
 		}
 	}
@@ -108,12 +110,14 @@ export async function getGitStatusSnapshot({
 			const stats = unstagedNumstat.get(file.path) ?? {
 				additions: 0,
 				deletions: 0,
+				isBinary: false,
 			};
 			unstaged.push({
 				path: file.path,
 				status: mapGitStatus(wd),
 				additions: stats.additions,
 				deletions: stats.deletions,
+				isBinary: stats.isBinary,
 			});
 		}
 	}
@@ -149,6 +153,7 @@ export async function getGitStatusSnapshot({
 				status: rename.status,
 				additions: rename.additions,
 				deletions: rename.deletions,
+				isBinary: rename.isBinary,
 			});
 		}
 	}

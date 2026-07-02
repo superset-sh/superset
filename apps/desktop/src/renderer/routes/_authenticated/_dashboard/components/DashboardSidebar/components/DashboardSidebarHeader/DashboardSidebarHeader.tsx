@@ -18,6 +18,7 @@ import {
 	LuPlus,
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
@@ -73,6 +74,7 @@ export function DashboardSidebarHeader({
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	// Default to Mac while loading so we don't briefly cover the traffic lights.
 	const isMac = platform === undefined || platform === "darwin";
+	const zoomFactor = useZoomFactor();
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
@@ -222,13 +224,25 @@ export function DashboardSidebarHeader({
 	}
 
 	return (
-		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
-			{/* -mx-2 cancels the parent's px-2 so this row owns its own
-			    horizontal inset — keeps traffic-light alignment matching the
-			    TopBar's 80px pad regardless of parent padding changes. */}
+		<div
+			className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2"
+			// Pin the top inset so the traffic-light row stays a constant physical
+			// distance from the window top under page zoom (see the row below).
+			style={isMac ? { paddingTop: `${8 / zoomFactor}px` } : undefined}
+		>
+			{/* -mx-2 cancels the parent's px-2 so this row owns the 80px traffic-light
+			    inset; inset and height are counter-scaled to a constant physical size
+			    so the fixed macOS traffic lights stay aligned under page zoom. */}
 			<div
 				className="drag -mx-2 flex h-8 items-center gap-1.5 pr-2"
-				style={{ paddingLeft: isMac ? "80px" : "8px" }}
+				style={
+					isMac
+						? {
+								paddingLeft: `${80 / zoomFactor}px`,
+								height: `${32 / zoomFactor}px`,
+							}
+						: { paddingLeft: "8px" }
+				}
 			>
 				<SidebarToggle />
 				<NavigationControls />
