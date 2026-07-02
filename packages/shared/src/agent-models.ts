@@ -58,6 +58,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "claude",
 		modelFlag: "--model",
 		models: [
+			{ id: "fable", label: "Fable" },
 			{ id: "opus", label: "Opus" },
 			{ id: "sonnet", label: "Sonnet" },
 			{ id: "haiku", label: "Haiku" },
