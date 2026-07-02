@@ -27,6 +27,10 @@ import {
 } from "../utils/github";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { getWorkspacePath } from "../utils/worktree";
+import {
+	findActiveWorkspace,
+	worktreeHasClaimingWorkspace,
+} from "../utils/worktree-workspace-state";
 
 const gitHubPRCommentsInputSchema = z.object({
 	workspaceId: z.string(),
@@ -319,21 +323,22 @@ export const createGitStatusProcedures = () => {
 					.all();
 
 				return projectWorktrees.map((wt) => {
-					const workspace = localDb
+					// Fetch every workspace referencing this worktree, including ones
+					// whose deletion is in progress. A worktree mid-deletion must stay
+					// "claimed" so it is not offered as a closed/openable worktree while
+					// teardown is still running (see #5370).
+					const workspacesForWorktree = localDb
 						.select()
 						.from(workspaces)
-						.where(
-							and(
-								eq(workspaces.worktreeId, wt.id),
-								isNull(workspaces.deletingAt),
-							),
-						)
-						.get();
+						.where(eq(workspaces.worktreeId, wt.id))
+						.all();
 					return {
 						...wt,
-						hasActiveWorkspace: workspace !== undefined,
+						hasActiveWorkspace: worktreeHasClaimingWorkspace(
+							workspacesForWorktree,
+						),
 						existsOnDisk: existsSync(wt.path),
-						workspace: workspace ?? null,
+						workspace: findActiveWorkspace(workspacesForWorktree),
 					};
 				});
 			}),
