@@ -1,4 +1,3 @@
-import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { cn } from "@superset/ui/utils";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
 import { DashboardSidebarPortBadge } from "../../../DashboardSidebarPortsList/components/DashboardSidebarPortBadge";
@@ -19,10 +18,9 @@ export function DashboardSidebarWorkspacePortsRow({
 	}
 
 	return (
-		<OverflowFadeContainer
-			observeChildren
+		<div
 			className={cn(
-				"grid auto-cols-max grid-flow-col grid-rows-2 gap-1 overflow-x-auto pr-2 pb-1 hide-scrollbar",
+				"flex flex-wrap gap-1 pr-2 pb-1",
 				isInSection ? "pl-14" : "pl-12",
 			)}
 		>
@@ -32,6 +30,6 @@ export function DashboardSidebarWorkspacePortsRow({
 					port={port}
 				/>
 			))}
-		</OverflowFadeContainer>
+		</div>
 	);
 }

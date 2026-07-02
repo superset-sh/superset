@@ -13,6 +13,10 @@ import {
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 import {
+	useWorkspaceAgentsRowEnabled,
+	useWorkspaceAgentsRowStore,
+} from "renderer/stores/workspace-agents-row";
+import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
@@ -37,12 +41,20 @@ export function ExperimentalSettings({
 		SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS,
 		visibleItems,
 	);
+	const showWorkspaceAgents = isItemVisible(
+		SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS,
+		visibleItems,
+	);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isV2OnlyUser = useIsV2OnlyUser();
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const openV1ImportModal = useOpenV1ImportModal();
 	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
 	const setInlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
+		(state) => state.setEnabled,
+	);
+	const workspaceAgentsEnabled = useWorkspaceAgentsRowEnabled();
+	const setWorkspaceAgentsEnabled = useWorkspaceAgentsRowStore(
 		(state) => state.setEnabled,
 	);
 
@@ -123,6 +135,24 @@ export function ExperimentalSettings({
 							id="inline-workspace-ports"
 							checked={inlineWorkspacePortsEnabled}
 							onCheckedChange={setInlineWorkspacePortsEnabled}
+						/>
+					</div>
+				)}
+				{showWorkspaceAgents && (
+					<div className="flex items-center justify-between gap-6">
+						<div className="min-w-0 flex-1 space-y-0.5">
+							<Label htmlFor="workspace-agents" className="text-sm font-medium">
+								Workspace agents
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Show running agents under each workspace in the sidebar, with
+								their live status.
+							</p>
+						</div>
+						<Switch
+							id="workspace-agents"
+							checked={workspaceAgentsEnabled}
+							onCheckedChange={setWorkspaceAgentsEnabled}
 						/>
 					</div>
 				)}

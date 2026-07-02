@@ -2,8 +2,12 @@ import { Fragment, type ReactNode } from "react";
 import { LuX } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useWorkspaceDetailsStore } from "renderer/stores";
+import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
+import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
 import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/hooks/useDashboardSidebarPortKill";
+import { DashboardSidebarWorkspaceAgentsRow } from "../DashboardSidebarWorkspaceAgentsRow";
+import { useDashboardSidebarWorkspaceRunningAgents } from "../DashboardSidebarWorkspaceAgentsRow/hooks/useDashboardSidebarWorkspaceRunningAgents";
 import { DashboardSidebarWorkspacePortsRow } from "../DashboardSidebarWorkspacePortsRow";
 import { DashboardSidebarWorkspaceDetailsAction } from "./components/DashboardSidebarWorkspaceDetailsAction";
 import { DashboardSidebarWorkspaceDetailsToggle } from "./components/DashboardSidebarWorkspaceDetailsToggle";
@@ -45,13 +49,15 @@ export function DashboardSidebarWorkspaceDetails({
 	);
 	const { isPending: isKillingPorts, killPorts } =
 		useDashboardSidebarPortKill();
+	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
+	const workspaceAgentsRowEnabled = useWorkspaceAgentsRowEnabled();
 
 	// --- Section registry -----------------------------------------------------
 	const sections: WorkspaceDetailSection[] = [];
 
 	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
 	const portCount = portGroup?.ports.length ?? 0;
-	if (portGroup && portCount > 0) {
+	if (inlineWorkspacePortsEnabled && portGroup && portCount > 0) {
 		sections.push({
 			key: "ports",
 			summary: `${portCount} ${portCount === 1 ? "port" : "ports"}`,
@@ -72,7 +78,23 @@ export function DashboardSidebarWorkspaceDetails({
 		});
 	}
 
-	// Add more detail rows here (e.g. running agents).
+	const runningAgents = useDashboardSidebarWorkspaceRunningAgents(
+		workspaceId,
+		workspaceAgentsRowEnabled,
+	);
+	const agentCount = runningAgents.length;
+	if (workspaceAgentsRowEnabled && agentCount > 0) {
+		sections.push({
+			key: "agents",
+			summary: `${agentCount} ${agentCount === 1 ? "agent" : "agents"}`,
+			content: (
+				<DashboardSidebarWorkspaceAgentsRow
+					workspaceId={workspaceId}
+					isInSection={isInSection}
+				/>
+			),
+		});
+	}
 	// --------------------------------------------------------------------------
 
 	if (sections.length === 0) {
