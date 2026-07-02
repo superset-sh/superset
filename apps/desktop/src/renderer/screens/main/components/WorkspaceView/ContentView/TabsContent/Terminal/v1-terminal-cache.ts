@@ -162,8 +162,11 @@ export function attachToContainer(
 	scheduleFontSettleRefit(
 		entry.xterm,
 		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
-		() => fitAndRefresh(entry),
-		onResize,
+		() => {
+			if (fitAndRefresh(entry)) {
+				onResize?.();
+			}
+		},
 	);
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
@@ -225,10 +228,11 @@ export function updateAppearance(
 	scheduleFontSettleRefit(
 		xterm,
 		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
-		() => fitAndRefresh(entry),
-		onDeferredResize
-			? () => onDeferredResize({ cols: xterm.cols, rows: xterm.rows })
-			: undefined,
+		() => {
+			if (fitAndRefresh(entry)) {
+				onDeferredResize?.({ cols: xterm.cols, rows: xterm.rows });
+			}
+		},
 	);
 
 	return {
