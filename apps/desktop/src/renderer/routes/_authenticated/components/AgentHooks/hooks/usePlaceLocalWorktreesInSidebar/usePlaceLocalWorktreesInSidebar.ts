@@ -1,9 +1,10 @@
-import { and, eq } from "@tanstack/db";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { selectWorktreesToPlace } from "./selectWorktreesToPlace";
 
 /**
  * Places deliberately-created worktrees into the sidebar exactly once.
@@ -26,19 +27,15 @@ export function usePlaceLocalWorktreesInSidebar(): void {
 	const { machineId } = useLocalHostService();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 
-	const { data: localWorktrees = [], isReady: worktreesReady } = useLiveQuery(
+	const { data: localWorkspaces = [], isReady: workspacesReady } = useLiveQuery(
 		(query) =>
 			query
 				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) =>
-					and(
-						eq(workspaces.hostId, machineId),
-						eq(workspaces.type, "worktree"),
-					),
-				)
+				.where(({ workspaces }) => eq(workspaces.hostId, machineId))
 				.select(({ workspaces }) => ({
 					id: workspaces.id,
 					projectId: workspaces.projectId,
+					type: workspaces.type,
 				})),
 		[collections, machineId],
 	);
@@ -52,21 +49,23 @@ export function usePlaceLocalWorktreesInSidebar(): void {
 	);
 
 	useEffect(() => {
-		if (!worktreesReady || !localStateReady) return;
+		if (!workspacesReady || !localStateReady) return;
 
 		const placedWorkspaceIds = new Set(
 			localStateRows.map((row) => row.workspaceId),
 		);
 
-		for (const worktree of localWorktrees) {
-			if (placedWorkspaceIds.has(worktree.id)) continue;
+		for (const worktree of selectWorktreesToPlace(
+			localWorkspaces,
+			placedWorkspaceIds,
+		)) {
 			ensureWorkspaceInSidebar(worktree.id, worktree.projectId);
 		}
 	}, [
 		ensureWorkspaceInSidebar,
 		localStateReady,
 		localStateRows,
-		localWorktrees,
-		worktreesReady,
+		localWorkspaces,
+		workspacesReady,
 	]);
 }
