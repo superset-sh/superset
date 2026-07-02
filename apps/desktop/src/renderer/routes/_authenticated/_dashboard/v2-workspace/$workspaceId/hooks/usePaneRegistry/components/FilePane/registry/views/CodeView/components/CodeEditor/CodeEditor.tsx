@@ -78,6 +78,8 @@ export function CodeEditor({
 	});
 	const editorFontFamily = fontSettings?.editorFontFamily ?? undefined;
 	const editorFontSize = fontSettings?.editorFontSize ?? undefined;
+	const editorFontWeight = fontSettings?.editorFontWeight ?? undefined;
+	const editorLineHeight = fontSettings?.editorLineHeight ?? undefined;
 	const activeTheme = useResolvedTheme();
 
 	onChangeRef.current = onChange;
@@ -141,7 +143,12 @@ export function CodeEditor({
 					getCodeSyntaxHighlighting(activeTheme),
 					createCodeMirrorTheme(
 						activeTheme,
-						{ fontFamily: editorFontFamily, fontSize: editorFontSize },
+						{
+							fontFamily: editorFontFamily,
+							fontSize: editorFontSize,
+							fontWeight: editorFontWeight,
+							lineHeight: editorLineHeight,
+						},
 						fillHeight,
 					),
 				]),
@@ -201,7 +208,12 @@ export function CodeEditor({
 				getCodeSyntaxHighlighting(activeTheme),
 				createCodeMirrorTheme(
 					activeTheme,
-					{ fontFamily: editorFontFamily, fontSize: editorFontSize },
+					{
+						fontFamily: editorFontFamily,
+						fontSize: editorFontSize,
+						fontWeight: editorFontWeight,
+						lineHeight: editorLineHeight,
+					},
 					fillHeight,
 				),
 			]),
@@ -210,6 +222,8 @@ export function CodeEditor({
 		activeTheme,
 		editorFontFamily,
 		editorFontSize,
+		editorFontWeight,
+		editorLineHeight,
 		fillHeight,
 		themeCompartment,
 	]);

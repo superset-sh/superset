@@ -2,7 +2,8 @@
 .tufte-markdown {
 	font-family: Georgia, "Times New Roman", serif;
 	font-size: 1.1rem;
-	line-height: 1.6;
+	line-height: var(--md-line-height, 1.6);
+	font-weight: var(--md-font-weight, 400);
 	color: var(--foreground);
 }
 
@@ -116,7 +117,7 @@
 
 .tufte-markdown li {
 	margin-bottom: 0.35rem;
-	line-height: 1.5;
+	line-height: var(--md-line-height, 1.5);
 }
 
 /* Links */

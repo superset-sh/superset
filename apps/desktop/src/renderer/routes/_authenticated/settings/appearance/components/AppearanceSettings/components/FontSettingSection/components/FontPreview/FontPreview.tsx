@@ -44,11 +44,16 @@ const TERMINAL_PREVIEW = `~/agent $ mastra dev
 export function FontPreview({
 	fontFamily,
 	fontSize,
+	fontWeight,
+	lineHeight,
 	variant,
 	isCustomFont,
 }: {
 	fontFamily: string;
 	fontSize: number;
+	fontWeight: number;
+	/** Line-height multiplier (unitless). */
+	lineHeight: number;
 	variant: "editor" | "terminal";
 	isCustomFont: boolean;
 }) {
@@ -69,7 +74,8 @@ export function FontPreview({
 					style={{
 						fontFamily: fontFamilyStyle,
 						fontSize: `${fontSize}px`,
-						lineHeight: 1.5,
+						fontWeight,
+						lineHeight,
 						whiteSpace: "pre-wrap",
 					}}
 				>
@@ -83,13 +89,15 @@ export function FontPreview({
 						margin: 0,
 						padding: "12px",
 						fontSize: `${fontSize}px`,
-						lineHeight: 1.5,
+						fontWeight,
+						lineHeight,
 						fontFamily: fontFamilyStyle,
 						background: "transparent",
 					}}
 					codeTagProps={{
 						style: {
 							fontFamily: fontFamilyStyle,
+							fontWeight,
 						},
 					}}
 				>

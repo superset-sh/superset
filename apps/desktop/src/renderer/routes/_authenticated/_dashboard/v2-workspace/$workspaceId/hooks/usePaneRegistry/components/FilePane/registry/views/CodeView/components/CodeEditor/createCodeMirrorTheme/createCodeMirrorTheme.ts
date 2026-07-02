@@ -3,11 +3,16 @@ import { getEditorTheme, type Theme, withAlpha } from "shared/themes";
 import {
 	DEFAULT_CODE_EDITOR_FONT_FAMILY,
 	DEFAULT_CODE_EDITOR_FONT_SIZE,
+	DEFAULT_CODE_EDITOR_FONT_WEIGHT,
+	DEFAULT_CODE_EDITOR_LINE_HEIGHT,
 } from "../constants";
 
 interface CodeEditorFontSettings {
 	fontFamily?: string;
 	fontSize?: number;
+	fontWeight?: number;
+	/** Line-height multiplier applied to the font size. */
+	lineHeight?: number;
 }
 
 export function createCodeMirrorTheme(
@@ -16,7 +21,10 @@ export function createCodeMirrorTheme(
 	fillHeight: boolean,
 ) {
 	const fontSize = fontSettings.fontSize ?? DEFAULT_CODE_EDITOR_FONT_SIZE;
-	const lineHeight = Math.round(fontSize * 1.5);
+	const fontWeight = fontSettings.fontWeight ?? DEFAULT_CODE_EDITOR_FONT_WEIGHT;
+	const lineHeightMultiplier =
+		fontSettings.lineHeight ?? DEFAULT_CODE_EDITOR_LINE_HEIGHT;
+	const lineHeight = Math.round(fontSize * lineHeightMultiplier);
 	const editorTheme = getEditorTheme(theme);
 	const accentOverlay = withAlpha(theme.ui.accent, 0.5);
 	const activeLineBackground = accentOverlay;
@@ -30,6 +38,7 @@ export function createCodeMirrorTheme(
 				color: editorTheme.colors.foreground,
 				fontFamily: fontSettings.fontFamily ?? DEFAULT_CODE_EDITOR_FONT_FAMILY,
 				fontSize: `${fontSize}px`,
+				fontWeight: `${fontWeight}`,
 			},
 			".cm-scroller": {
 				fontFamily: "inherit",

@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
 	DEFAULT_TERMINAL_FONT_SIZE,
+	DEFAULT_TERMINAL_FONT_WEIGHT,
+	DEFAULT_TERMINAL_LINE_HEIGHT,
 	getDefaultTerminalAppearance,
 	sanitizeTerminalFontFamily,
 	type TerminalAppearance,
@@ -26,12 +28,18 @@ export function useTerminalAppearance(): TerminalAppearance {
 		);
 		const fontSize =
 			fontSettings?.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
+		const fontWeight =
+			fontSettings?.terminalFontWeight ?? DEFAULT_TERMINAL_FONT_WEIGHT;
+		const lineHeight =
+			fontSettings?.terminalLineHeight ?? DEFAULT_TERMINAL_LINE_HEIGHT;
 
 		return {
 			theme,
 			background: theme.background ?? "#151110",
 			fontFamily,
 			fontSize,
+			fontWeight,
+			lineHeight,
 		};
 	}, [terminalTheme, fontSettings]);
 }

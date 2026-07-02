@@ -11,6 +11,8 @@ export interface TerminalAppearance {
 	background: string;
 	fontFamily: string;
 	fontSize: number;
+	fontWeight: number;
+	lineHeight: number;
 }
 
 export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =
@@ -70,6 +72,13 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = serializeFontFamilyList([
 ]);
 
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
+
+// xterm's default normal-text weight ("normal" === 400) and line-height
+// multiplier (1.0). Keeping these as the defaults preserves the existing
+// terminal appearance when no override is set.
+export const DEFAULT_TERMINAL_FONT_WEIGHT = 400;
+
+export const DEFAULT_TERMINAL_LINE_HEIGHT = 1.0;
 
 const MONOSPACE_GENERIC_FAMILIES = new Set(["monospace", "ui-monospace"]);
 
@@ -187,6 +196,8 @@ export function getDefaultTerminalAppearance(): TerminalAppearance {
 		background: theme.background ?? "#151110",
 		fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 		fontSize: DEFAULT_TERMINAL_FONT_SIZE,
+		fontWeight: DEFAULT_TERMINAL_FONT_WEIGHT,
+		lineHeight: DEFAULT_TERMINAL_LINE_HEIGHT,
 	};
 }
 

@@ -3,6 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
+	DEFAULT_CODE_EDITOR_FONT_SIZE,
+	DEFAULT_CODE_EDITOR_FONT_WEIGHT,
+	DEFAULT_CODE_EDITOR_LINE_HEIGHT,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/registry/views/CodeView/components/CodeEditor/constants";
+import {
 	getDiffsTheme,
 	getDiffViewerStyle,
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
@@ -29,6 +34,14 @@ export function useDiffCodeViewTheme() {
 				: Number.NaN;
 	const surfaceBg = terminalTheme?.background ?? "var(--background)";
 
+	const effectiveFontSize = Number.isFinite(parsedEditorFontSize)
+		? parsedEditorFontSize
+		: DEFAULT_CODE_EDITOR_FONT_SIZE;
+	const fontWeight =
+		fontSettings?.editorFontWeight ?? DEFAULT_CODE_EDITOR_FONT_WEIGHT;
+	const lineHeightMultiplier =
+		fontSettings?.editorLineHeight ?? DEFAULT_CODE_EDITOR_LINE_HEIGHT;
+
 	const style = useMemo(
 		() => ({
 			...getDiffViewerStyle(activeTheme, {
@@ -37,12 +50,21 @@ export function useDiffCodeViewTheme() {
 					? parsedEditorFontSize
 					: undefined,
 			}),
+			// Weight + line-height aren't part of the shared diff util (it also
+			// backs the v1 light diff viewer), so apply them here. Pierre drives
+			// per-token weights from the syntax theme and falls back to `inherit`,
+			// so the host font-weight only adjusts non-bold (inheriting) tokens.
+			"--diffs-line-height": `${Math.round(effectiveFontSize * lineHeightMultiplier)}px`,
+			fontWeight,
 			backgroundColor: surfaceBg,
 		}),
 		[
 			activeTheme,
 			fontSettings?.editorFontFamily,
 			parsedEditorFontSize,
+			effectiveFontSize,
+			fontWeight,
+			lineHeightMultiplier,
 			surfaceBg,
 		],
 	);
