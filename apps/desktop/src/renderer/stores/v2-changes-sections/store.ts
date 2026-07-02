@@ -1,11 +1,8 @@
+import type { DiffFileSource } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-export type V2ChangesSectionKey =
-	| "unstaged"
-	| "staged"
-	| "against-base"
-	| "commit";
+export type V2ChangesSectionKey = DiffFileSource["kind"];
 
 interface V2ChangesSectionsState {
 	collapsed: Partial<Record<V2ChangesSectionKey, boolean>>;
