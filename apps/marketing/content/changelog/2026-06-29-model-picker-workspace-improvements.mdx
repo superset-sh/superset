@@ -1,0 +1,38 @@
+---
+title: Model picker for workspaces, command palette search button, and terminal improvements
+date: 2026-06-29
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot of the model picker dropdown in the new workspace dialog */}
+
+## Model Picker in New Workspace Dialog <PRBadge url="https://github.com/superset-sh/superset/pull/5248" />
+
+You can now select an AI model directly when creating a new workspace — no need to edit CLI configs or restart with different flags. The picker appears next to the agent selector and supports Claude (Opus, Sonnet, Haiku), Codex, Gemini, Copilot, Cursor Agent, and OpenCode. Your last-used model per agent is remembered across sessions.
+
+- Choose **Default** to let the agent use its own configured model
+- Per-agent model preference is persisted and restored when you reopen the dialog
+- Model selection is injected into the agent launch command (e.g. `claude --model sonnet`)
+
+## Command Palette Search Button <PRBadge url="https://github.com/superset-sh/superset/pull/5346" />
+
+A magnifying-glass button now appears in the dashboard navigation bar, next to the Recently Viewed button. It opens the command palette — the same as `Cmd+Shift+K` — making it more discoverable without a keyboard shortcut.
+
+## Improvements
+
+- **Paste images into new workspace prompt** - Screenshots and images pasted from the clipboard now appear as attachment pills in the new workspace creation dialog <PRBadge url="https://github.com/superset-sh/superset/pull/5283" />
+- **Faster terminal rendering** - PTY output is now batched per animation frame instead of one write per WebSocket chunk, reducing CPU overhead and improving smoothness for agent CLIs like Claude Code <PRBadge url="https://github.com/superset-sh/superset/pull/5255" />
+- **Quieter git watcher** - `.git` directory events are filtered out and debounce is now adaptive, reducing background noise from the file watcher <PRBadge url="https://github.com/superset-sh/superset/pull/5239" />
+- **Settings search covers Scripts section** - The project setup/teardown scripts section now appears in settings search results <PRBadge url="https://github.com/superset-sh/superset/pull/5335" />
+
+---
+
+**Bug fixes**
+
+- Fixed `Cmd+Backspace` in the desktop terminal sending an extra Left arrow (now correctly sends bare Ctrl-U) <PRBadge url="https://github.com/superset-sh/superset/pull/5388" />
+- Fixed spurious "Failed to close N port(s)" toast appearing on port close-all <PRBadge url="https://github.com/superset-sh/superset/pull/5339" />
+- Fixed terminal cursor-agent not detecting light/dark theme (`TERM_THEME` now set correctly) <PRBadge url="https://github.com/superset-sh/superset/pull/5338" />
+- Fixed removed projects reappearing in the sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/5327" />
+- Workspaces created via the CLI are now automatically added to the sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/5083" />
+- Extended auto-name fallback toast duration to 15s for better visibility <PRBadge url="https://github.com/superset-sh/superset/pull/5336" />
+- Added toast notification when workspace auto-naming falls back to a default name <PRBadge url="https://github.com/superset-sh/superset/pull/5323" />
