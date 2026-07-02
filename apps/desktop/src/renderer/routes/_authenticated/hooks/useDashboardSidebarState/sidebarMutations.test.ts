@@ -211,6 +211,29 @@ describe("removeProjectFromSidebarState", () => {
 			collections.v2WorkspaceLocalState.get("ws-other")?.sidebarState.isHidden,
 		).toBe(false);
 	});
+
+	it("does not tombstone a same-project worktree on another host (guards the hostId filter)", () => {
+		const collections = makeCollections();
+		// Same project, different host, no local-state row: the local reconciler
+		// can't re-pin it and it isn't rendered here, so it must not get a
+		// tombstone row — only this device's row-less worktrees do.
+		collections.v2Workspaces.insert({
+			id: "ws-remote",
+			projectId: "proj-1",
+			hostId: "machine-2",
+			type: "worktree",
+		});
+		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
+
+		removeProjectFromSidebarState(
+			asRemoveArg(collections),
+			"proj-1",
+			"machine-1",
+			noopCleanup,
+		);
+
+		expect(collections.v2WorkspaceLocalState.get("ws-remote")).toBeUndefined();
+	});
 });
 
 describe("tombstoneSidebarWorkspaceRecord", () => {
