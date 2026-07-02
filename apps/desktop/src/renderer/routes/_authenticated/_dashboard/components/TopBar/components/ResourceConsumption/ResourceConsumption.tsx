@@ -186,6 +186,9 @@ function ResourceConsumptionContent({
 			q
 				.from({ sp: collections.v2SidebarProjects })
 				.orderBy(({ sp }) => sp.tabOrder, "asc")
+				// Unique tiebreaker so duplicate `tabOrder`s can't destabilize the
+				// live query result (see #5214).
+				.orderBy(({ sp }) => sp.projectId, "asc")
 				.select(({ sp }) => ({ projectId: sp.projectId })),
 		[collections],
 	);
@@ -195,6 +198,9 @@ function ResourceConsumptionContent({
 			q
 				.from({ ws: collections.v2WorkspaceLocalState })
 				.orderBy(({ ws }) => ws.sidebarState.tabOrder, "asc")
+				// Unique tiebreaker so duplicate `tabOrder`s can't destabilize the
+				// live query result (see #5214).
+				.orderBy(({ ws }) => ws.workspaceId, "asc")
 				.select(({ ws }) => ({
 					workspaceId: ws.workspaceId,
 					isHidden: ws.sidebarState.isHidden,

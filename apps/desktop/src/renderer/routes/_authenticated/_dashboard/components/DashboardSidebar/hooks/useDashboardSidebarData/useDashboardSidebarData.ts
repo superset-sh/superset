@@ -166,6 +166,9 @@ export function useDashboardSidebarData() {
 					({ projects, repos }) => eq(projects.githubRepositoryId, repos.id),
 				)
 				.orderBy(({ sidebarProjects }) => sidebarProjects.tabOrder, "asc")
+				// Unique tiebreaker so duplicate `tabOrder`s can't destabilize the
+				// live query result (see #5214).
+				.orderBy(({ projects }) => projects.id, "asc")
 				.select(({ sidebarProjects, projects, repos }) => ({
 					id: projects.id,
 					name: projects.name,
@@ -196,6 +199,9 @@ export function useDashboardSidebarData() {
 			q
 				.from({ sidebarSections: collections.v2SidebarSections })
 				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
+				// Unique tiebreaker so duplicate `tabOrder`s can't destabilize the
+				// live query result (see #5214).
+				.orderBy(({ sidebarSections }) => sidebarSections.sectionId, "asc")
 				.select(({ sidebarSections }) => ({
 					id: sidebarSections.sectionId,
 					projectId: sidebarSections.projectId,
@@ -221,6 +227,9 @@ export function useDashboardSidebarData() {
 					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
 					"asc",
 				)
+				// Unique tiebreaker so duplicate `tabOrder`s can't destabilize the
+				// live query result (see #5214).
+				.orderBy(({ workspaces }) => workspaces.id, "asc")
 				.select(({ sidebarWorkspaces, workspaces }) => ({
 					id: workspaces.id,
 					projectId: sidebarWorkspaces.sidebarState.projectId,

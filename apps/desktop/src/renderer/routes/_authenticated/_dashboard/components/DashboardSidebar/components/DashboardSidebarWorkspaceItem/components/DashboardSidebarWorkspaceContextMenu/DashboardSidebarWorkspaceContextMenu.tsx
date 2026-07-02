@@ -83,6 +83,9 @@ export function DashboardSidebarWorkspaceContextMenu({
 					eq(sidebarSections.projectId, projectId),
 				)
 				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
+				// Unique tiebreaker so duplicate `tabOrder`s can't destabilize the
+				// live query result (see #5214).
+				.orderBy(({ sidebarSections }) => sidebarSections.sectionId, "asc")
 				.select(({ sidebarSections }) => ({
 					id: sidebarSections.sectionId,
 					name: sidebarSections.name,
