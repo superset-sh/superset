@@ -66,27 +66,23 @@ export function useDiffActiveSection({
 		firstSection;
 
 	// Track the topmost item by geometry rather than `getRenderedItems()[0]`,
-	// which can lag by the virtualization buffer. Items stack top→bottom with
-	// monotonically increasing offsets, so binary-search for the last one whose
-	// top has passed the viewport top: its header is the pinned one.
+	// which can lag by the virtualization buffer. Items stack top→bottom, so the
+	// last one whose top has passed the viewport top is the pinned header. A
+	// linear scan (one item per changed file — few) stays correct even while
+	// some items are momentarily unmeasured mid-reflow, where a binary search
+	// could discard the visible half on a `null` midpoint.
 	const rafRef = useRef<number | null>(null);
 	const updateActiveSection = useCallback(() => {
 		rafRef.current = null;
 		const instance = codeViewRef.current?.getInstance();
 		if (!instance) return;
 		const scrollTop = instance.getScrollTop();
-		let lo = 0;
-		let hi = items.length - 1;
 		let nextTopId: string | null = null;
-		while (lo <= hi) {
-			const mid = (lo + hi) >> 1;
-			const top = instance.getTopForItem(items[mid].id);
-			if (top != null && top <= scrollTop + 1) {
-				nextTopId = items[mid].id;
-				lo = mid + 1;
-			} else {
-				hi = mid - 1;
-			}
+		for (const item of items) {
+			const top = instance.getTopForItem(item.id);
+			if (top == null) continue;
+			if (top > scrollTop + 1) break;
+			nextTopId = item.id;
 		}
 		setTopItemId((prev) => (prev === nextTopId ? prev : nextTopId));
 	}, [codeViewRef, items]);
@@ -97,11 +93,15 @@ export function useDiffActiveSection({
 		rafRef.current = requestAnimationFrame(updateActiveSection);
 	}, [updateActiveSection]);
 
+	// Resync when the item list changes (collapse, filter, changeset update)
+	// even without a scroll, and drop any frame queued against the old list —
+	// `updateActiveSection` is recreated whenever `items` change.
 	useEffect(() => {
+		updateActiveSection();
 		return () => {
 			if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
 		};
-	}, []);
+	}, [updateActiveSection]);
 
 	return { currentSection, onScroll };
 }
