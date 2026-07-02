@@ -11,6 +11,7 @@ import {
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useSidebarVisibility } from "renderer/routes/_authenticated/providers/SidebarVisibilityProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarProject,
@@ -130,6 +131,7 @@ export function useDashboardSidebarData() {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
+	const { visibleWorkspaceIds } = useSidebarVisibility();
 	const queryClient = useQueryClient();
 	const workspaceTransactionsById = useWorkspaceTransactionsStore(
 		(state) => state.byWorkspaceId,
@@ -318,13 +320,19 @@ export function useDashboardSidebarData() {
 			}),
 		);
 
-		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
+		// Gate the rendered tree on the shared visibility set so the sidebar,
+		// ports, and notifications never disagree about what "in the sidebar"
+		// means. Membership is identical by rule; this ties them to one source.
+		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces].filter(
+			(workspace) => visibleWorkspaceIds.has(workspace.id),
+		);
 	}, [
 		localMainWorkspaces,
 		localStateWorkspaceIds,
 		machineId,
 		sidebarProjects,
 		sidebarWorkspaces,
+		visibleWorkspaceIds,
 	]);
 
 	const pullRequestQueryTargets = useMemo<PullRequestQueryTarget[]>(

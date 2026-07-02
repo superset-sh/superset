@@ -41,6 +41,7 @@ import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { DeletingWorkspacesProvider } from "./providers/DeletingWorkspacesProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
+import { SidebarVisibilityProvider } from "./providers/SidebarVisibilityProvider";
 
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
@@ -216,21 +217,23 @@ function AuthenticatedLayout() {
 							poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
 							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
 						>
-							<AgentHooks />
-							<FileMenuListener />
-							<V2NotificationController />
-							<DaemonAutoUpdateFailureDialog />
-							<Outlet />
-							<V1ImportModal />
-							<WorkspaceInitEffects />
-							{isV2CloudEnabled ? (
-								<DashboardNewWorkspaceModal />
-							) : (
-								<NewWorkspaceModal />
-							)}
-							<InitGitDialog />
-							<TeardownLogsDialog />
-							<Paywall />
+							<SidebarVisibilityProvider>
+								<AgentHooks />
+								<FileMenuListener />
+								<V2NotificationController />
+								<DaemonAutoUpdateFailureDialog />
+								<Outlet />
+								<V1ImportModal />
+								<WorkspaceInitEffects />
+								{isV2CloudEnabled ? (
+									<DashboardNewWorkspaceModal />
+								) : (
+									<NewWorkspaceModal />
+								)}
+								<InitGitDialog />
+								<TeardownLogsDialog />
+								<Paywall />
+							</SidebarVisibilityProvider>
 						</WorkerPoolContextProvider>
 					</DeletingWorkspacesProvider>
 				</LocalHostServiceProvider>
