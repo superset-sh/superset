@@ -22,6 +22,7 @@
 		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
+		"dev:relay": "turbo dev --filter=@superset/relay",
 		"build": "turbo build --filter=@superset/desktop",
 		"test": "turbo test --concurrency=2",
 		"lint": "./scripts/lint.sh",
