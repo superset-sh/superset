@@ -19,7 +19,11 @@ interface ChangesFileListProps {
 	worktreePath?: string;
 	selectedFilePath?: string;
 	foldSignal: FoldSignal;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 }

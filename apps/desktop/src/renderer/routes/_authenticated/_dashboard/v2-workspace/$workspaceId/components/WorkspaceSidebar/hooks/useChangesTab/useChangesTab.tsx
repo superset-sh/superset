@@ -24,7 +24,11 @@ interface UseChangesTabParams {
 	workspaceId: string;
 	/** Absolute path of the file whose diff/preview is currently open. */
 	selectedFilePath?: string;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 }
 
