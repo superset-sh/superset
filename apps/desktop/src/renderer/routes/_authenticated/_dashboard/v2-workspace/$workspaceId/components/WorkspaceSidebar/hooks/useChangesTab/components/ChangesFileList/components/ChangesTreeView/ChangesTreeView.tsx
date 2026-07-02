@@ -24,6 +24,7 @@ import {
 	createPierreTreeStyle,
 	FILE_STATUS_TO_PIERRE,
 	type PierreGitStatusEntry,
+	resolveTreePathCollisions,
 	stripTrailingSlash,
 } from "renderer/lib/pierreTree";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
@@ -96,7 +97,13 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	onOpenFile,
 	onOpenInEditor,
 }: ChangesTreeViewProps) {
-	const paths = useMemo(() => files.map((f) => f.path), [files]);
+	// A tracked symlink-to-directory (git mode 120000) yields both a leaf path
+	// (the symlink) and deeper paths under the same name; Pierre's builder throws
+	// on that collision and crashes the whole view, so resolve it first (#5224).
+	const paths = useMemo(
+		() => resolveTreePathCollisions(files.map((f) => f.path)),
+		[files],
+	);
 	const fileByPath = useMemo(() => {
 		const map = new Map<string, ChangesetFile>();
 		for (const file of files) map.set(file.path, file);

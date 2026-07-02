@@ -5,4 +5,4 @@ export {
 	type PierreGitStatus,
 	type PierreGitStatusEntry,
 } from "./pierreGitStatus";
-export { stripTrailingSlash } from "./treePaths";
+export { resolveTreePathCollisions, stripTrailingSlash } from "./treePaths";
