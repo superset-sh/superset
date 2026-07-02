@@ -12,9 +12,13 @@ describe("buildAgentPromptCommand", () => {
 			agent: "codex",
 		});
 
+		// Wrapped in `bash -c '...'` so a fish login shell never parses the
+		// heredoc directly (#5398); inner single quotes become '\''.
+		expect(command).toStartWith("bash -c '");
 		expect(command).toContain(
-			"codex --dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			'codex --dangerously-bypass-approvals-and-sandbox -- "$(cat <<',
 		);
+		expect(command).toContain("SUPERSET_PROMPT_12345678");
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
 
@@ -26,8 +30,9 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toStartWith(
-			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
+			"bash -c 'claude --dangerously-skip-permissions \"$(cat <<",
 		);
+		expect(command).toContain("SUPERSET_PROMPT_abcdefgh");
 	});
 
 	it("uses Amp interactive stdin mode for prompt launches", () => {
@@ -37,7 +42,8 @@ describe("buildAgentPromptCommand", () => {
 			agent: "amp",
 		});
 
-		expect(command).toStartWith("amp <<'SUPERSET_PROMPT_amp1234'");
+		expect(command).toStartWith("bash -c 'amp <<");
+		expect(command).toContain("SUPERSET_PROMPT_amp1234");
 		expect(command).not.toContain("amp -x");
 	});
 
@@ -57,7 +63,8 @@ describe("buildAgentPromptCommand", () => {
 			agent: "pi",
 		});
 
-		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
+		expect(command).toStartWith("bash -c 'pi \"$(cat <<");
+		expect(command).toContain("SUPERSET_PROMPT_pi1234");
 		expect(command).not.toContain("pi -p");
 	});
 });

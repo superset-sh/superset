@@ -103,7 +103,10 @@ describe("buildPromptAgentLaunchRequest", () => {
 		if (request?.kind !== "terminal") {
 			throw new Error("Expected terminal launch request");
 		}
-		expect(request.terminal.command).toStartWith("amp <<'SUPERSET_PROMPT_");
+		// Heredoc launches are wrapped for bash so fish login shells can run them
+		// without hitting "found a redirection" (#5398).
+		expect(request.terminal.command).toStartWith("bash -c 'amp <<");
+		expect(request.terminal.command).toContain("SUPERSET_PROMPT_");
 		expect(request.terminal.command).not.toContain("amp -x");
 	});
 });

@@ -19,6 +19,18 @@ function quoteSingleShell(value: string): string {
 	return value.replaceAll("'", "'\\''");
 }
 
+/**
+ * Bash heredocs (`<<`) are invalid syntax in non-POSIX shells such as fish,
+ * which abort the whole line with "Expected a string, but found a redirection"
+ * before running anything. Launch commands are written verbatim into the user's
+ * interactive login shell, so wrap heredoc-bearing commands to always execute
+ * under bash regardless of that shell. Mirrors the teardown launcher, which
+ * `exec bash` for the same cross-shell reason.
+ */
+function wrapForBash(command: string): string {
+	return `bash -c '${quoteSingleShell(command)}'`;
+}
+
 function joinCommand(command: string, suffix?: string): string {
 	return suffix ? `${command} ${suffix}` : command;
 }
@@ -40,10 +52,14 @@ export function buildPromptCommandString({
 	const fullCommand = joinCommand(command, suffix);
 
 	if (transport === "stdin") {
-		return `${fullCommand} <<'${delimiter}'\n${prompt}\n${delimiter}`;
+		return wrapForBash(
+			`${fullCommand} <<'${delimiter}'\n${prompt}\n${delimiter}`,
+		);
 	}
 
-	return `${command} "$(cat <<'${delimiter}'\n${prompt}\n${delimiter}\n)"${suffix ? ` ${suffix}` : ""}`;
+	return wrapForBash(
+		`${command} "$(cat <<'${delimiter}'\n${prompt}\n${delimiter}\n)"${suffix ? ` ${suffix}` : ""}`,
+	);
 }
 
 export function buildPromptFileCommandString({
