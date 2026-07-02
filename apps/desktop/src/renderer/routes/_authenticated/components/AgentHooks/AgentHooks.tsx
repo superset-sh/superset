@@ -1,13 +1,11 @@
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { useAutoAddLocalWorkspacesToSidebar } from "./hooks/useAutoAddLocalWorkspacesToSidebar";
 import { useCommandWatcher } from "./hooks/useCommandWatcher";
 import { useDefaultV2TerminalPresets } from "./hooks/useDefaultV2TerminalPresets";
 import { useDevicePresence } from "./hooks/useDevicePresence";
 
-/**
- * Component that runs agent-related hooks requiring CollectionsProvider context.
- * useCommandWatcher uses useCollections which must be inside the provider.
- */
+/** Must be rendered inside CollectionsProvider — child hooks depend on useCollections. */
 export function AgentHooks() {
 	const { activeHostUrl } = useLocalHostService();
 	useDevicePresence();
@@ -16,5 +14,6 @@ export function AgentHooks() {
 	// config cache for Settings.
 	useDefaultV2TerminalPresets(activeHostUrl);
 	useAutoAddLocalWorkspacesToSidebar();
+	useAgentHookListener();
 	return null;
 }

@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NOTIFICATION_EVENTS } from "shared/constants";
@@ -49,6 +50,7 @@ function getCurrentWorkspaceId(): string | null {
 
 export function useAgentHookListener() {
 	const navigate = useNavigate();
+	const updateLastActivityAt = useUpdateLastActivityAt();
 
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
@@ -110,6 +112,10 @@ export function useAgentHookListener() {
 					});
 
 					state.setPaneStatus(paneId, nextStatus);
+				}
+
+				if (eventType === "Stop" || eventType === "PermissionRequest") {
+					updateLastActivityAt(workspaceId);
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.TERMINAL_EXIT) {
 				// Clear transient status for unmounted panes (mounted panes handle this via stream subscription)

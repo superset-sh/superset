@@ -3,6 +3,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -137,6 +138,8 @@ export function useDashboardSidebarData() {
 	const clearWorkspaceTransaction = useWorkspaceTransactionsStore(
 		(state) => state.clear,
 	);
+	const { data: sidebarSortMode } =
+		electronTrpc.settings.getSidebarSortMode.useQuery();
 
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
@@ -235,6 +238,7 @@ export function useDashboardSidebarData() {
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
+					lastActivityAt: sidebarWorkspaces.lastActivityAt ?? null,
 				})),
 		[collections],
 	);
@@ -310,13 +314,18 @@ export function useDashboardSidebarData() {
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
 		);
-		const autoLocalMainWorkspaces = localMainWorkspaces.filter((workspace) =>
-			isAutoIncludedLocalMainWorkspace(workspace, {
-				localStateWorkspaceIds,
-				sidebarProjectIds,
-				machineId,
-			}),
-		);
+		const autoLocalMainWorkspaces = localMainWorkspaces
+			.filter((workspace) =>
+				isAutoIncludedLocalMainWorkspace(workspace, {
+					localStateWorkspaceIds,
+					sidebarProjectIds,
+					machineId,
+				}),
+			)
+			.map((workspace) => ({
+				...workspace,
+				lastActivityAt: null as Date | null,
+			}));
 
 		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
 	}, [
@@ -400,12 +409,14 @@ export function useDashboardSidebarData() {
 				visibleSidebarWorkspaces,
 				machineId,
 				pullRequestsByWorkspaceId,
+				sidebarSortMode,
 			}),
 		[
 			machineId,
 			pullRequestsByWorkspaceId,
 			sidebarProjects,
 			sidebarSections,
+			sidebarSortMode,
 			visibleSidebarWorkspaces,
 		],
 	);

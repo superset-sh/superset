@@ -73,6 +73,10 @@ export function ProjectSection({
 	const reorderProjects = useReorderProjects();
 	const utils = electronTrpc.useUtils();
 
+	const { data: sidebarSortMode, isLoading: isSortModeLoading } =
+		electronTrpc.settings.getSidebarSortMode.useQuery();
+	const isDnDDisabled = isSortModeLoading || sidebarSortMode === "recent";
+
 	const isCollapsed = isProjectCollapsed(projectId);
 	const totalWorkspaceCount =
 		workspaces.length +
@@ -158,6 +162,7 @@ export function ProjectSection({
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: PROJECT_TYPE,
+			canDrag: !isDnDDisabled,
 			item: { projectId, index, originalIndex: index },
 			end: (item, monitor) => {
 				if (!item) return;
@@ -177,11 +182,12 @@ export function ProjectSection({
 				isDragging: monitor.isDragging(),
 			}),
 		}),
-		[projectId, index, reorderProjects],
+		[projectId, index, reorderProjects, isDnDDisabled],
 	);
 
 	const [, drop] = useDrop({
 		accept: PROJECT_TYPE,
+		canDrop: () => !isDnDDisabled,
 		hover: (item: {
 			projectId: string;
 			index: number;

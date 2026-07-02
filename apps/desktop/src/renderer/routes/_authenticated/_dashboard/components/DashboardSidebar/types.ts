@@ -44,6 +44,7 @@ export interface DashboardSidebarWorkspace {
 	updatedAt: Date;
 	taskId: string | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	lastActivityAt: Date | null;
 }
 
 export interface DashboardSidebarSection {

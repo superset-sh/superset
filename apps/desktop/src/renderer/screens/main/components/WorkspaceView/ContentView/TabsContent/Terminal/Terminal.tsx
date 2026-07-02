@@ -3,6 +3,7 @@ import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useUpdateLastActivityAt } from "renderer/hooks/useUpdateLastActivityAt";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
@@ -89,6 +90,12 @@ export const Terminal = memo(function Terminal({
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const isExitedRef = useRef(false);
+	const lastActivityUpdateRef = useRef<number>(0);
+	const subscriptionStartRef = useRef<number>(Date.now());
+	const ACTIVITY_DEBOUNCE_MS = 30_000;
+	// Skips the shell prompt redraw that fires when switching to a workspace
+	const ACTIVITY_GRACE_PERIOD_MS = 3_000;
+	const updateLastActivityAt = useUpdateLastActivityAt();
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
 	);
@@ -362,6 +369,9 @@ export const Terminal = memo(function Terminal({
 	useEffect(() => {
 		if (!xtermInstance) return;
 
+		// Reset grace period on fresh subscription
+		subscriptionStartRef.current = Date.now();
+
 		const queuedEvents = v1TerminalCache.registerHandlers(paneId, {
 			onEvent: (event) => {
 				if (connectionErrorRef.current && event.type === "data") {
@@ -369,6 +379,20 @@ export const Terminal = memo(function Terminal({
 					retryCountRef.current = 0;
 				}
 				handleStreamData(event);
+
+				// Track terminal activity for sidebar sort-by-recent
+				if (event.type === "data") {
+					const now = Date.now();
+					const sinceStart = now - subscriptionStartRef.current;
+					const sinceLast = now - lastActivityUpdateRef.current;
+					if (
+						sinceStart > ACTIVITY_GRACE_PERIOD_MS &&
+						sinceLast > ACTIVITY_DEBOUNCE_MS
+					) {
+						lastActivityUpdateRef.current = now;
+						updateLastActivityAt(workspaceId);
+					}
+				}
 			},
 			onError: (error) => {
 				console.error("[Terminal] Stream subscription error:", {
@@ -392,7 +416,14 @@ export const Terminal = memo(function Terminal({
 		return () => {
 			v1TerminalCache.unregisterHandlers(paneId);
 		};
-	}, [paneId, xtermInstance, handleStreamData, setConnectionError]);
+	}, [
+		paneId,
+		xtermInstance,
+		handleStreamData,
+		setConnectionError,
+		updateLastActivityAt,
+		workspaceId,
+	]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;

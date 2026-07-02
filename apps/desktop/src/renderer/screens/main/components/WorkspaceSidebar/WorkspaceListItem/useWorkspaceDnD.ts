@@ -21,6 +21,7 @@ interface UseWorkspaceDnDOptions {
 	projectId: string;
 	sectionId: string | null;
 	index: number;
+	disabled?: boolean;
 }
 
 export function useWorkspaceDnD({
@@ -28,6 +29,7 @@ export function useWorkspaceDnD({
 	projectId,
 	sectionId,
 	index,
+	disabled,
 }: UseWorkspaceDnDOptions) {
 	const utils = electronTrpc.useUtils();
 	const reorderProjectChildren = useReorderProjectChildren();
@@ -72,6 +74,7 @@ export function useWorkspaceDnD({
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: WORKSPACE_DND_TYPE,
+			canDrag: !disabled,
 			item: () => {
 				const selection = selectionStore.getState();
 				const isPartOfSelection = selection.selectedIds.has(id);
@@ -103,7 +106,7 @@ export function useWorkspaceDnD({
 			},
 			collect: (monitor) => ({ isDragging: monitor.isDragging() }),
 		}),
-		[id, projectId, sectionId, index, handleReorder],
+		[id, projectId, sectionId, index, handleReorder, disabled],
 	);
 
 	const [, drop] = useDrop({
@@ -111,6 +114,7 @@ export function useWorkspaceDnD({
 			sectionId === null
 				? [WORKSPACE_DND_TYPE, SECTION_DND_TYPE]
 				: WORKSPACE_DND_TYPE,
+		canDrop: () => !disabled,
 		hover: (item: DragItem | SectionDragItem) => {
 			if (item.kind === "section") {
 				if (

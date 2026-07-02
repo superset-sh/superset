@@ -7,6 +7,16 @@ const persistedDateSchema = z
 	.union([z.string(), z.date()])
 	.transform((value) => (typeof value === "string" ? new Date(value) : value));
 
+/**
+ * Coerce a persisted value back into a Date (or null). The persistedDateSchema
+ * transform only runs on parse, but localStorage reloads rows via JSON.parse
+ * (Dates serialize to ISO strings) without re-running it — so persisted date
+ * fields come back as strings. Uses the repo's z.coerce.date() idiom; nullable
+ * + catch(null) heals missing/invalid/undefined values to null so the read
+ * heal never throws. Used by heal to restore the Date contract on read.
+ */
+const persistedNullableDateSchema = z.coerce.date().nullable().catch(null);
+
 export const dashboardSidebarProjectSchema = z.object({
 	projectId: z.string().uuid(),
 	createdAt: persistedDateSchema,
@@ -66,6 +76,7 @@ export const workspaceLocalStateSchema = z.object({
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	viewedFiles: z.array(z.string()).default([]),
+	lastActivityAt: persistedDateSchema.nullable().default(null),
 	recentlyViewedFiles: z
 		.array(
 			z.object({
@@ -277,6 +288,8 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
  * fields (workspaceId, projectId, paneLayout, createdAt) pass through from
  * the stored row — they have no synthesizable default. Optional fields with
  * intrinsic defaults get filled at both the top level and inside sidebarState.
+ * Date fields persisted as ISO strings (e.g. lastActivityAt) are coerced back
+ * to Date so consumers can rely on Date methods like getTime().
  */
 export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 	const r = (
@@ -295,6 +308,7 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		workspaceRunTerminals:
 			r.workspaceRunTerminals ??
 			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.workspaceRunTerminals,
+		lastActivityAt: persistedNullableDateSchema.parse(r.lastActivityAt),
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,
