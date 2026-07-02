@@ -93,9 +93,14 @@ export default defineConfig({
 				process.env.DESKTOP_NOTIFICATIONS_PORT,
 			),
 			"process.env.ELECTRIC_PORT": defineEnv(process.env.ELECTRIC_PORT),
-			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
-				process.env.SUPERSET_WORKSPACE_NAME,
-			),
+			// Workspace isolation only applies in dev (each worktree's setup.sh writes a
+			// per-workspace SUPERSET_WORKSPACE_NAME to .env). In production builds the env
+			// var must NOT be baked in — a stray value (e.g. inherited from a dev shell)
+			// would silently redirect ~/.superset → ~/.superset-<value>, hiding all user data.
+			"process.env.SUPERSET_WORKSPACE_NAME":
+				process.env.NODE_ENV === "development"
+					? defineEnv(process.env.SUPERSET_WORKSPACE_NAME)
+					: JSON.stringify("superset"),
 		},
 
 		build: {
@@ -210,9 +215,11 @@ export default defineConfig({
 				process.env.DESKTOP_NOTIFICATIONS_PORT,
 			),
 			"process.env.ELECTRIC_PORT": defineEnv(process.env.ELECTRIC_PORT),
-			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
-				process.env.SUPERSET_WORKSPACE_NAME,
-			),
+			// See main define block above for rationale.
+			"process.env.SUPERSET_WORKSPACE_NAME":
+				process.env.NODE_ENV === "development"
+					? defineEnv(process.env.SUPERSET_WORKSPACE_NAME)
+					: JSON.stringify("superset"),
 		},
 
 		server: {

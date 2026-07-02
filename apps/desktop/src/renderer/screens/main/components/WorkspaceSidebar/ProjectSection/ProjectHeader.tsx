@@ -31,6 +31,7 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
 import { STROKE_WIDTH } from "../constants";
 import { RenameInput } from "../RenameInput";
+import { WorkspaceShortcutBadge } from "../WorkspaceListItem/WorkspaceShortcutBadge";
 import { CloseProjectDialog } from "./CloseProjectDialog";
 import { ProjectThumbnail } from "./ProjectThumbnail";
 
@@ -49,6 +50,8 @@ interface ProjectHeaderProps {
 	onToggleCollapse: () => void;
 	workspaceCount: number;
 	onNewWorkspace: () => void;
+	/** Shortcut labels to display as badges when project is collapsed and modifier is held */
+	shortcutLabels?: string[];
 }
 
 export function ProjectHeader({
@@ -64,6 +67,7 @@ export function ProjectHeader({
 	onToggleCollapse,
 	workspaceCount,
 	onNewWorkspace,
+	shortcutLabels = [],
 }: ProjectHeaderProps) {
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
@@ -206,6 +210,13 @@ export function ProjectHeader({
 							<span className="text-xs text-muted-foreground">
 								{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}
 							</span>
+							{shortcutLabels.length > 0 && (
+								<div className="flex items-center gap-1 mt-1">
+									{shortcutLabels.map((label) => (
+										<WorkspaceShortcutBadge key={label} label={label} />
+									))}
+								</div>
+							)}
 						</TooltipContent>
 					</Tooltip>
 					<ContextMenuContent>
@@ -303,6 +314,13 @@ export function ProjectHeader({
 								<span className="text-xs text-muted-foreground tabular-nums font-normal">
 									({workspaceCount})
 								</span>
+								{shortcutLabels.length > 0 && (
+									<div className="flex items-center gap-1 ml-auto">
+										{shortcutLabels.map((label) => (
+											<WorkspaceShortcutBadge key={label} label={label} />
+										))}
+									</div>
+								)}
 							</button>
 						)}
 

@@ -1030,5 +1030,25 @@ export const createSettingsRouter = () => {
 			.mutation(() => {
 				return { success: true };
 			}),
+
+		getShowWorkspaceNumbersOnModifier: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showWorkspaceNumbersOnModifier ?? false;
+		}),
+
+		setShowWorkspaceNumbersOnModifier: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, showWorkspaceNumbersOnModifier: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showWorkspaceNumbersOnModifier: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
 	});
 };

@@ -6,6 +6,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { useWorkspaceShortcutModifiers } from "renderer/hooks/useWorkspaceShortcutModifiers";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useHoverGitHubStatus } from "renderer/lib/githubQueryPolicy";
@@ -16,6 +17,7 @@ import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranch
 import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useActiveDragItemStore } from "renderer/stores/active-drag-item";
+import { useModifierKeyStateStore } from "renderer/stores/modifier-key-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
@@ -31,6 +33,7 @@ import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
 import { WorkspaceContextMenu } from "./WorkspaceContextMenu";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceIcon } from "./WorkspaceIcon";
+import { WorkspaceShortcutBadge } from "./WorkspaceShortcutBadge";
 import { WorkspaceStatusBadge } from "./WorkspaceStatusBadge";
 
 interface WorkspaceListItemProps {
@@ -107,6 +110,15 @@ export function WorkspaceListItem({
 		(s) =>
 			s.activeDragItem?.selectedIds?.includes(id) && s.activeDragItem.id !== id,
 	);
+
+	const isModifierHeld = useModifierKeyStateStore((s) => s.isModifierHeld);
+	const { shortcutLabels } = useWorkspaceShortcutModifiers();
+	const shortcutLabel =
+		shortcutIndex !== undefined ? shortcutLabels.get(shortcutIndex) : undefined;
+	const showShortcutBadge =
+		isModifierHeld &&
+		shortcutIndex !== undefined &&
+		shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX;
 
 	const isActive = !!matchRoute({
 		to: "/workspace/$workspaceId",
@@ -395,46 +407,50 @@ export function WorkspaceListItem({
 								/>
 							)}
 
-							<div className="grid shrink-0 h-5 [&>*]:col-start-1 [&>*]:row-start-1 items-center">
-								{diffStats && (
-									<WorkspaceDiffStats
-										additions={diffStats.additions}
-										deletions={diffStats.deletions}
-										isActive={isActive}
-									/>
-								)}
-								<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
-									{shortcutIndex !== undefined &&
-										shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
-											<span className="text-[10px] text-muted-foreground font-mono tabular-nums shrink-0">
-												⌘{shortcutIndex + 1}
-											</span>
-										)}
-									{!isBranchWorkspace && (
-										<Tooltip delayDuration={300}>
-											<TooltipTrigger asChild>
-												<button
-													type="button"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleDeleteClick();
-													}}
-													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label="Close workspace"
-												>
-													<HiMiniXMark className="size-3.5" />
-												</button>
-											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
-												<HotkeyLabel
-													label="Close workspace"
-													id={isActive ? "CLOSE_WORKSPACE" : undefined}
-												/>
-											</TooltipContent>
-										</Tooltip>
+							{showShortcutBadge && shortcutLabel ? (
+								<WorkspaceShortcutBadge
+									label={shortcutLabel}
+									className="shrink-0"
+								/>
+							) : (
+								<div className="grid shrink-0 h-5 [&>*]:col-start-1 [&>*]:row-start-1 items-center">
+									{diffStats && (
+										<WorkspaceDiffStats
+											additions={diffStats.additions}
+											deletions={diffStats.deletions}
+											isActive={isActive}
+										/>
 									)}
+									<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
+										{shortcutLabel && (
+											<WorkspaceShortcutBadge label={shortcutLabel} />
+										)}
+										{!isBranchWorkspace && (
+											<Tooltip delayDuration={300}>
+												<TooltipTrigger asChild>
+													<button
+														type="button"
+														onClick={(e) => {
+															e.stopPropagation();
+															handleDeleteClick();
+														}}
+														className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+														aria-label="Close workspace"
+													>
+														<HiMiniXMark className="size-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="top" sideOffset={4}>
+													<HotkeyLabel
+														label="Close workspace"
+														id={isActive ? "CLOSE_WORKSPACE" : undefined}
+													/>
+												</TooltipContent>
+											</Tooltip>
+										)}
+									</div>
 								</div>
-							</div>
+							)}
 						</div>
 
 						{(showBranchSubtitle || pr) && (
