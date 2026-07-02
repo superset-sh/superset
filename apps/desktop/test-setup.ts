@@ -9,7 +9,7 @@
  * DO NOT mock internal code here - tests should use real implementations
  * or mock at the individual test level when necessary.
  */
-import { mock } from "bun:test";
+import { beforeEach, mock } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -86,6 +86,10 @@ const localStorageData = new Map<string, string>();
 		localStorageData.set(key, value);
 	},
 };
+
+beforeEach(() => {
+	localStorageData.clear();
+});
 
 // Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
 if (typeof globalThis.window !== "undefined") {
