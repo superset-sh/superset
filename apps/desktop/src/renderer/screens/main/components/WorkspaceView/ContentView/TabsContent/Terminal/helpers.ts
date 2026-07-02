@@ -12,6 +12,7 @@ import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appear
 import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
+import { installVisibilityRefresh } from "renderer/lib/terminal/terminal-visibility-refresh";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
@@ -205,6 +206,10 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 
 	xterm.unicode.activeVersion = "11";
 
+	// Repaint after screen unlock / display wake — the WebGL atlas can go stale
+	// without firing onContextLoss, leaving garbled glyphs (#5261).
+	const disposeVisibilityRefresh = installVisibilityRefresh(xterm);
+
 	return {
 		xterm,
 		fitAddon,
@@ -216,6 +221,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
 			linkManager.dispose();
+			disposeVisibilityRefresh();
 			try {
 				webglAddon?.dispose();
 			} catch {}

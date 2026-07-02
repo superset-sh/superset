@@ -13,6 +13,7 @@ import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import { installVisibilityRefresh } from "./terminal-visibility-refresh";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -36,6 +37,7 @@ export interface TerminalRuntime {
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
 	_disposeImagePasteFallback: (() => void) | null;
+	_disposeVisibilityRefresh: (() => void) | null;
 }
 
 function createTerminal(
@@ -228,6 +230,10 @@ export function createRuntime(
 		wrapper,
 	);
 
+	// Repaint after screen unlock / display wake — the WebGL atlas can go stale
+	// without firing onContextLoss, leaving garbled glyphs (#5261).
+	const disposeVisibilityRefresh = installVisibilityRefresh(terminal);
+
 	return {
 		terminalId,
 		terminal,
@@ -243,6 +249,7 @@ export function createRuntime(
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
+		_disposeVisibilityRefresh: disposeVisibilityRefresh,
 	};
 }
 
@@ -340,6 +347,8 @@ export function disposeRuntime(
 	}
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
+	runtime._disposeVisibilityRefresh?.();
+	runtime._disposeVisibilityRefresh = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime._disposeResizeObserver?.();
