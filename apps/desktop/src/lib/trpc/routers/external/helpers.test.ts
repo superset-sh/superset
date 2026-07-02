@@ -47,10 +47,17 @@ describe("getAppCommand", () => {
 		]);
 	});
 
-	test("returns single-element array for xcode", () => {
+	test("uses bundle ID for xcode so Xcodes-renamed installs resolve", () => {
+		// Repro for #4688: users who manage Xcode via the Xcodes tool have
+		// the app renamed by version (e.g. "Xcode-26.5.0.app"), so `open -a Xcode`
+		// fails to locate it. `open -b <bundleId>` resolves via LaunchServices
+		// regardless of the .app filename.
 		const result = getAppCommand("xcode", "/path/to/file");
 		expect(result).toEqual([
-			{ command: "open", args: ["-a", "Xcode", "/path/to/file"] },
+			{
+				command: "open",
+				args: ["-b", "com.apple.dt.Xcode", "/path/to/file"],
+			},
 		]);
 	});
 
