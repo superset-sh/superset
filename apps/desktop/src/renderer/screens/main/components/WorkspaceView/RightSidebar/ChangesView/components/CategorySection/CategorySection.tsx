@@ -37,20 +37,19 @@ export function CategorySection({
 		return null;
 	}
 
-	const isLiveWork = id === "unstaged" || id === "staged";
-	const countBadgeClass =
-		id === "unstaged"
-			? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-			: id === "staged"
-				? "bg-green-500/15 text-green-700 dark:text-green-400"
-				: "text-muted-foreground";
+	const liveWorkBadgeClass: Partial<Record<ChangeCategory, string>> = {
+		unstaged: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+		staged: "bg-green-500/15 text-green-700 dark:text-green-400",
+	};
+	const countBadgeClass = liveWorkBadgeClass[id];
+	const isLiveWork = countBadgeClass !== undefined;
 
 	return (
 		<Collapsible
 			open={isExpanded}
 			onOpenChange={onToggle}
 			className={cn(
-				"min-w-0 overflow-hidden border-t border-border/40 transition-opacity",
+				"min-w-0 overflow-hidden border-t border-border/40 transition-opacity first:border-t-0",
 				isDragging && "opacity-45",
 			)}
 		>
