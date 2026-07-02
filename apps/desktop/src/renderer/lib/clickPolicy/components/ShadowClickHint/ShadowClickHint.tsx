@@ -1,18 +1,11 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/** Match the radix Tooltip `delayDuration` used elsewhere in the sidebar. */
 const DEFAULT_HINT_DELAY_MS = 500;
 
 interface ShadowClickHintProps {
 	hint: string;
 	side?: "top" | "right" | "bottom" | "left";
-	/**
-	 * Delay before the hint appears after a row is hovered, in ms. Mirrors the
-	 * radix Tooltip delay used by the changes tree rows so both trees feel the
-	 * same. This tooltip is forced `open`, so the delay lives in the hover
-	 * timer rather than in radix's `delayDuration`.
-	 */
 	delayMs?: number;
 	/**
 	 * Walk an event's composed path to find the row to anchor on. Return null
@@ -63,7 +56,6 @@ export function ShadowClickHint({
 			clearTimer();
 			setHoverRect(null);
 			timerRef.current = setTimeout(() => {
-				// Re-read the rect on fire in case the row shifted during the delay.
 				if (hoverRowRef.current === row) {
 					setHoverRect(row.getBoundingClientRect());
 				}
