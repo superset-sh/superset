@@ -46,6 +46,36 @@ export function validateDirectoryPath(path: string, label: string): void {
 }
 
 /**
+ * Ensure the parent directory we're about to create a project under exists,
+ * creating it (and any missing ancestors) when it doesn't. Unlike
+ * `validateDirectoryPath`, a missing parent is a recoverable condition: the
+ * default project location (e.g. `~/.superset/projects`) won't exist on a
+ * fresh machine, and the user shouldn't have to pre-create it before their
+ * first clone. Still rejects when the path exists but is a file.
+ */
+function ensureParentDirectory(path: string): void {
+	if (existsSync(path)) {
+		if (!statSync(path).isDirectory()) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Parent directory is not a directory: ${path}`,
+			});
+		}
+		return;
+	}
+	try {
+		mkdirSync(path, { recursive: true });
+	} catch (err) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Could not create parent directory: ${path}: ${
+				err instanceof Error ? err.message : String(err)
+			}`,
+		});
+	}
+}
+
+/**
  * Atomic claim: `mkdir` without `recursive` throws EEXIST when the path is
  * present, which avoids the TOCTOU window between an `existsSync` check
  * and the work that follows. If anything fails after this, the caller
@@ -246,7 +276,7 @@ export async function initEmptyRepo(
 	}
 
 	const resolvedParentDir = resolvePath(parentDir);
-	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	ensureParentDirectory(resolvedParentDir);
 	const targetPath = join(resolvedParentDir, dirName);
 	claimEmptyTargetDir(targetPath);
 
@@ -289,7 +319,7 @@ export async function cloneTemplateInto(
 	}
 
 	const resolvedParentDir = resolvePath(parentDir);
-	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	ensureParentDirectory(resolvedParentDir);
 	const targetPath = join(resolvedParentDir, dirName);
 	claimEmptyTargetDir(targetPath);
 
@@ -352,7 +382,7 @@ export async function cloneRepoInto(
 	const repoName = parsedUrl?.name ?? deriveCloneDirectoryName(repoCloneUrl);
 
 	const resolvedParentDir = resolvePath(parentDir);
-	validateDirectoryPath(resolvedParentDir, "Parent directory");
+	ensureParentDirectory(resolvedParentDir);
 
 	const targetPath = join(resolvedParentDir, repoName);
 	claimEmptyTargetDir(targetPath);

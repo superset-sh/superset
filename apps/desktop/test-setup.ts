@@ -9,7 +9,7 @@
  * DO NOT mock internal code here - tests should use real implementations
  * or mock at the individual test level when necessary.
  */
-import { mock } from "bun:test";
+import { beforeEach, mock } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -66,6 +66,30 @@ const mockHead = {
 		textContent: text,
 	})),
 };
+
+// zustand's persist middleware defaults to `window.localStorage`. The
+// xterm-env-polyfill preload aliases `window` to globalThis, so that lookup
+// resolves to `undefined` without throwing and persist crashes on the first
+// setState. Provide an in-memory Storage so persisted stores work in tests.
+const localStorageData = new Map<string, string>();
+(globalThis as { localStorage?: Storage }).localStorage = {
+	get length() {
+		return localStorageData.size;
+	},
+	clear: () => localStorageData.clear(),
+	getItem: (key: string) => localStorageData.get(key) ?? null,
+	key: (index: number) => [...localStorageData.keys()][index] ?? null,
+	removeItem: (key: string) => {
+		localStorageData.delete(key);
+	},
+	setItem: (key: string, value: string) => {
+		localStorageData.set(key, value);
+	},
+};
+
+beforeEach(() => {
+	localStorageData.clear();
+});
 
 // Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
 if (typeof globalThis.window !== "undefined") {

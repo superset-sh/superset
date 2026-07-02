@@ -5,9 +5,15 @@ import type {
 } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
+import { Button } from "@superset/ui/button";
 import { useCallback, useMemo, useRef } from "react";
+import { LuFileCode } from "react-icons/lu";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
-import { type ChangesetFile, useChangeset } from "../../../useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+	useChangeset,
+} from "../../../useChangeset";
 import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
 import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
@@ -15,6 +21,8 @@ import { AgentCommentComposer } from "./components/AgentCommentComposer";
 import { CommentThread } from "./components/CommentThread";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
 import { DiffHeaderPrefix } from "./components/DiffHeaderPrefix";
+import { DiffSectionBar } from "./components/DiffSectionBar";
+import { useDiffActiveSection } from "./hooks/useDiffActiveSection";
 import {
 	type DiffAnnotationMetadata,
 	useDiffAnnotationsByPath,
@@ -63,14 +71,14 @@ export function DiffPane({
 	dataRef.current = data;
 	const updateData = context.actions.updateData;
 	const setCollapsed = useCallback(
-		(path: string, value: boolean) => {
+		(changeKey: string, value: boolean) => {
 			const current = dataRef.current;
 			const collapsed = current.collapsedFiles ?? [];
-			const has = collapsed.includes(path);
+			const has = collapsed.includes(changeKey);
 			if (value === has) return;
 			const next = value
-				? [...collapsed, path]
-				: collapsed.filter((p) => p !== path);
+				? [...collapsed, changeKey]
+				: collapsed.filter((key) => key !== changeKey);
 			updateData({ ...current, collapsedFiles: next } as PaneViewerData);
 		},
 		[updateData],
@@ -99,7 +107,7 @@ export function DiffPane({
 		onCreateNewAgentSession,
 	});
 
-	const { items, fileByItemId, pathToItemId, hasPendingDiff, hasDiffError } =
+	const { items, fileByItemId, hasPendingDiff, hasDiffError } =
 		useDiffCodeViewItems({
 			workspaceId,
 			files,
@@ -113,10 +121,19 @@ export function DiffPane({
 		codeViewRef,
 		data,
 		fileByItemId,
-		pathToItemId,
 		items,
 		collapsedSet,
 		setCollapsed,
+	});
+
+	// The section bar lives outside the scroller: Pierre pins one header at a
+	// time within its own box, so a body-less in-flow section item couldn't stay
+	// pinned across its group.
+	const { currentSection, onScroll } = useDiffActiveSection({
+		codeViewRef,
+		items,
+		fileByItemId,
+		files,
 	});
 
 	const { options, style } = useDiffCodeViewTheme();
@@ -136,11 +153,12 @@ export function DiffPane({
 		(item: CodeViewItem<DiffAnnotationMetadata>) => {
 			const file = fileByItemId.get(item.id);
 			if (!file) return null;
+			const changeKey = getChangesetFileKey(file);
 			return (
 				<DiffHeaderPrefix
 					file={file}
-					collapsed={collapsedSet.has(file.path)}
-					onSetCollapsed={setCollapsed}
+					collapsed={collapsedSet.has(changeKey)}
+					onSetCollapsed={(value) => setCollapsed(changeKey, value)}
 				/>
 			);
 		},
@@ -151,11 +169,12 @@ export function DiffPane({
 		(item: CodeViewItem<DiffAnnotationMetadata>) => {
 			const file = fileByItemId.get(item.id);
 			if (!file) return null;
+			const changeKey = getChangesetFileKey(file);
 			return (
 				<DiffHeaderMetadata
 					file={file}
 					workspaceId={workspaceId}
-					onSetCollapsed={setCollapsed}
+					onSetCollapsed={(value) => setCollapsed(changeKey, value)}
 					viewed={viewedSet.has(file.path)}
 					onSetViewed={setViewed}
 					onOpenFile={onOpenFile}
@@ -181,9 +200,15 @@ export function DiffPane({
 				| DiffLineAnnotation<DiffAnnotationMetadata>,
 			item: CodeViewItem<DiffAnnotationMetadata>,
 		) => {
-			if (item.type !== "diff") return null;
 			const m = annotation.metadata;
+			if (m.kind === "binary-placeholder") {
+				if (item.type !== "file") return null;
+				const file = fileByItemId.get(item.id);
+				if (!file) return null;
+				return <BinaryDiffPlaceholder file={file} onOpenFile={onOpenFile} />;
+			}
 			if (m.kind === "composer") {
+				if (item.type !== "diff") return null;
 				return (
 					<AgentCommentComposer
 						workspaceId={workspaceId}
@@ -194,11 +219,13 @@ export function DiffPane({
 					/>
 				);
 			}
+			if (m.kind !== "thread") return null;
 			const annotationSide = "side" in annotation ? annotation.side : undefined;
+			const focusLine = m.sourceLine ?? annotation.lineNumber;
 			const focused =
 				item.id === targetItemId &&
 				data.focusLine != null &&
-				annotation.lineNumber === data.focusLine &&
+				focusLine === data.focusLine &&
 				(data.focusSide == null || annotationSide === data.focusSide);
 
 			return (
@@ -221,6 +248,8 @@ export function DiffPane({
 			data.focusTick,
 			clearComposer,
 			submitComposer,
+			fileByItemId,
+			onOpenFile,
 		],
 	);
 
@@ -245,15 +274,50 @@ export function DiffPane({
 	}
 
 	return (
-		<CodeView<DiffAnnotationMetadata>
-			ref={codeViewRef}
-			className="h-full w-full overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
-			style={style}
-			items={items}
-			options={codeViewOptions}
-			renderHeaderPrefix={renderHeaderPrefix}
-			renderHeaderMetadata={renderHeaderMetadata}
-			renderAnnotation={renderAnnotation}
-		/>
+		<div className="flex h-full w-full flex-col">
+			{currentSection ? (
+				<DiffSectionBar
+					kind={currentSection.kind}
+					count={currentSection.count}
+				/>
+			) : null}
+			<CodeView<DiffAnnotationMetadata>
+				ref={codeViewRef}
+				className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
+				style={style}
+				items={items}
+				options={codeViewOptions}
+				onScroll={onScroll}
+				renderHeaderPrefix={renderHeaderPrefix}
+				renderHeaderMetadata={renderHeaderMetadata}
+				renderAnnotation={renderAnnotation}
+			/>
+		</div>
+	);
+}
+
+function BinaryDiffPlaceholder({
+	file,
+	onOpenFile,
+}: {
+	file: ChangesetFile;
+	onOpenFile: (path: string, openInNewTab?: boolean) => void;
+}) {
+	const canOpen = file.status !== "deleted";
+
+	return (
+		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
+			<LuFileCode className="size-8" />
+			<p className="cursor-text select-text text-sm">Binary file hidden</p>
+			{canOpen ? (
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => onOpenFile(file.path)}
+				>
+					Open file
+				</Button>
+			) : null}
+		</div>
 	);
 }

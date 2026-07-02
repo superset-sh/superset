@@ -1,6 +1,7 @@
 import {
 	type CodeViewItem,
 	type DiffLineAnnotation,
+	type LineAnnotation,
 	parseDiffFromFile,
 } from "@pierre/diffs";
 import type { AppRouter } from "@superset/host-service";
@@ -9,7 +10,10 @@ import { useQueries } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import type { inferRouterInputs } from "@trpc/server";
 import { useMemo } from "react";
-import type { ChangesetFile } from "../../../../../useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+} from "../../../../../useChangeset";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 type GetDiffInput = inferRouterInputs<AppRouter>["git"]["getDiff"];
@@ -33,7 +37,6 @@ interface UseDiffCodeViewItemsOptions {
 interface UseDiffCodeViewItemsResult {
 	items: CodeViewItem<DiffAnnotationMetadata>[];
 	fileByItemId: Map<string, ChangesetFile>;
-	pathToItemId: Map<string, string>;
 	hasPendingDiff: boolean;
 	hasDiffError: boolean;
 }
@@ -49,10 +52,12 @@ export function useDiffCodeViewItems({
 
 	const diffRequests = useMemo(
 		() =>
-			files.map((file) => ({
-				file,
-				input: createGetDiffInput(workspaceId, file),
-			})),
+			files
+				.filter((file) => !file.isBinary)
+				.map((file) => ({
+					file,
+					input: createGetDiffInput(workspaceId, file),
+				})),
 		[files, workspaceId],
 	);
 
@@ -72,26 +77,76 @@ export function useDiffCodeViewItems({
 		return map;
 	}, [files]);
 
-	const pathToItemId = useMemo(() => {
-		const map = new Map<string, string>();
-		for (const file of files) {
-			const itemId = getDiffItemId(file);
-			if (!map.has(file.path)) map.set(file.path, itemId);
-			if (file.oldPath && !map.has(file.oldPath)) map.set(file.oldPath, itemId);
-		}
-		return map;
-	}, [files]);
-
 	const items = useMemo<CodeViewItem<DiffAnnotationMetadata>[]>(() => {
 		const nextItems: CodeViewItem<DiffAnnotationMetadata>[] = [];
+		const queryByItemId = new Map(
+			diffRequests.map((request, index) => [
+				getDiffItemId(request.file),
+				diffQueries[index],
+			]),
+		);
 
-		for (let index = 0; index < diffRequests.length; index++) {
-			const request = diffRequests[index];
-			const query = diffQueries[index];
-			if (!request || !query?.data) continue;
-
-			const { file } = request;
+		for (const file of files) {
 			const itemId = getDiffItemId(file);
+			const collapsed = collapsedSet.has(getChangesetFileKey(file));
+
+			if (file.isBinary) {
+				// The placeholder item only has a single line, so re-anchor any
+				// existing review threads onto line 1 — otherwise they'd point at
+				// diff lines that don't exist here and silently disappear.
+				const threadAnnotations = (
+					getAnnotationsForFile(annotationsByPath, file) ?? []
+				).map((annotation): LineAnnotation<DiffAnnotationMetadata> => {
+					const metadata = annotation.metadata;
+					if (metadata.kind === "thread") {
+						return {
+							lineNumber: 1,
+							metadata: {
+								...metadata,
+								sourceLine: annotation.lineNumber,
+							},
+						};
+					}
+					if (metadata.kind === "composer") {
+						return { lineNumber: 1, metadata };
+					}
+					return { lineNumber: 1, metadata };
+				});
+				const annotations: LineAnnotation<DiffAnnotationMetadata>[] = [
+					{
+						lineNumber: 1,
+						metadata: { kind: "binary-placeholder" },
+					},
+					...threadAnnotations,
+				];
+				nextItems.push({
+					id: itemId,
+					type: "file",
+					file: {
+						name: file.path,
+						contents: " ",
+					},
+					annotations,
+					collapsed,
+					version: hashString(
+						[
+							file.path,
+							file.oldPath ?? "",
+							file.status,
+							file.additions,
+							file.deletions,
+							"binary",
+							collapsed ? "1" : "0",
+							getAnnotationsVersion(annotations),
+						].join("\0"),
+					),
+				});
+				continue;
+			}
+
+			const query = queryByItemId.get(itemId);
+			if (!query?.data) continue;
+
 			const baseAnnotations = getAnnotationsForFile(annotationsByPath, file);
 			const extra = extraAnnotationsByItemId?.get(itemId);
 			const annotations =
@@ -108,7 +163,6 @@ export function useDiffCodeViewItems({
 					name: file.path,
 				},
 			);
-			const collapsed = collapsedSet.has(file.path);
 			const version = hashString(
 				[
 					query.dataUpdatedAt,
@@ -134,6 +188,7 @@ export function useDiffCodeViewItems({
 
 		return nextItems;
 	}, [
+		files,
 		diffRequests,
 		diffQueries,
 		annotationsByPath,
@@ -144,7 +199,6 @@ export function useDiffCodeViewItems({
 	return {
 		items,
 		fileByItemId,
-		pathToItemId,
 		hasPendingDiff: diffQueries.some((query) => query.isPending),
 		hasDiffError: diffQueries.some((query) => query.isError),
 	};
@@ -180,14 +234,7 @@ function createGetDiffInput(
 }
 
 function getDiffItemId(file: ChangesetFile): string {
-	const { source } = file;
-	if (source.kind === "against-base") {
-		return `diff:against-base:${source.baseBranch ?? ""}:${file.path}`;
-	}
-	if (source.kind === "commit") {
-		return `diff:commit:${source.fromHash ?? ""}:${source.commitHash}:${file.path}`;
-	}
-	return `diff:${source.kind}:${file.path}`;
+	return `diff:${getChangesetFileKey(file)}`;
 }
 
 function getAnnotationsForFile(
@@ -207,16 +254,22 @@ function getAnnotationsForFile(
 }
 
 function getAnnotationsVersion(
-	annotations: DiffLineAnnotation<DiffAnnotationMetadata>[] | undefined,
+	annotations:
+		| (
+				| DiffLineAnnotation<DiffAnnotationMetadata>
+				| LineAnnotation<DiffAnnotationMetadata>
+		  )[]
+		| undefined,
 ): string {
 	if (!annotations?.length) return "";
 	return annotations
 		.map((annotation) => {
 			const m = annotation.metadata;
+			const side = "side" in annotation ? annotation.side : "file";
 			if (m.kind === "composer") {
 				return [
 					"c",
-					annotation.side,
+					side,
 					annotation.lineNumber,
 					m.startLine,
 					m.endLine,
@@ -224,9 +277,10 @@ function getAnnotationsVersion(
 					m.endSide,
 				].join(",");
 			}
+			if (m.kind !== "thread") return "local";
 			return [
 				"t",
-				annotation.side,
+				side,
 				annotation.lineNumber,
 				m.threadId,
 				m.isResolved ? "1" : "0",

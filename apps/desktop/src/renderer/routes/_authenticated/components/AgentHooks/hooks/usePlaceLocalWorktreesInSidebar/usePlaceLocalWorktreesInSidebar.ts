@@ -4,15 +4,25 @@ import { useEffect } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { selectWorktreesToPlace } from "./selectWorktreesToPlace";
 
 /**
- * Backfills `v2WorkspaceLocalState` rows for workspaces on this device that have
- * none — e.g. ones created via the CLI, which can't write renderer-local sidebar
- * state. A missing row means "never seen here": removing or unpinning a workspace
- * keeps its row with `isHidden: true` (a tombstone), so this never re-pins one the
- * user dismissed.
+ * Places deliberately-created worktrees into the sidebar exactly once.
+ *
+ * A `worktree` is always an explicit creation (renderer, CLI, or automation),
+ * so it should surface even when created outside the renderer — the CLI and
+ * automations go through the host service and can't write renderer-local
+ * sidebar state. An ambient `main` workspace is excluded: the host creates one
+ * for every project on the device, so placing those would drag every
+ * locally-known project into the sidebar. Main workspaces surface only under a
+ * project already in the sidebar (`isAutoIncludedLocalMainWorkspace`).
+ *
+ * "Placed once, then respected": a present `v2WorkspaceLocalState` row means
+ * "already seen". Hiding a worktree keeps a hidden tombstone row, and removing
+ * its project keeps the row while dropping the project record — so neither is
+ * ever re-placed. Only a genuinely new (row-less) worktree is added.
  */
-export function useAutoAddLocalWorkspacesToSidebar(): void {
+export function usePlaceLocalWorktreesInSidebar(): void {
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
@@ -25,6 +35,7 @@ export function useAutoAddLocalWorkspacesToSidebar(): void {
 				.select(({ workspaces }) => ({
 					id: workspaces.id,
 					projectId: workspaces.projectId,
+					type: workspaces.type,
 				})),
 		[collections, machineId],
 	);
@@ -40,13 +51,15 @@ export function useAutoAddLocalWorkspacesToSidebar(): void {
 	useEffect(() => {
 		if (!workspacesReady || !localStateReady) return;
 
-		const knownWorkspaceIds = new Set(
+		const placedWorkspaceIds = new Set(
 			localStateRows.map((row) => row.workspaceId),
 		);
 
-		for (const workspace of localWorkspaces) {
-			if (knownWorkspaceIds.has(workspace.id)) continue;
-			ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
+		for (const worktree of selectWorktreesToPlace(
+			localWorkspaces,
+			placedWorkspaceIds,
+		)) {
+			ensureWorkspaceInSidebar(worktree.id, worktree.projectId);
 		}
 	}, [
 		ensureWorkspaceInSidebar,

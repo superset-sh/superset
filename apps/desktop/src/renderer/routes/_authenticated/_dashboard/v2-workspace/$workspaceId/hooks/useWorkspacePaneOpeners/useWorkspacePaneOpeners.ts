@@ -32,6 +32,7 @@ export function useWorkspacePaneOpeners({
 		openInNewTab?: boolean,
 		line?: number,
 		side?: DiffFocusSide,
+		changeKey?: string,
 	) => void;
 	addTerminalTab: () => Promise<void>;
 	addChatTab: () => void;
@@ -44,6 +45,7 @@ export function useWorkspacePaneOpeners({
 			openInNewTab?: boolean,
 			line?: number,
 			side?: DiffFocusSide,
+			changeKey?: string,
 		) => {
 			const state = store.getState();
 			// Bump tick on every request so the scroll effect re-fires on repeat
@@ -64,6 +66,7 @@ export function useWorkspacePaneOpeners({
 							kind: "diff",
 							data: {
 								path: filePath,
+								changeKey,
 								collapsedFiles: [],
 								...focusFields,
 							} as DiffPaneData,
@@ -81,9 +84,12 @@ export function useWorkspacePaneOpeners({
 						data: {
 							...prev,
 							path: filePath,
-							collapsedFiles: (prev.collapsedFiles ?? []).filter(
-								(p) => p !== filePath,
-							),
+							changeKey,
+							// Only the navigated file's key can be pruned; without a
+							// change key we can't identify it, so leave the set intact.
+							collapsedFiles: changeKey
+								? (prev.collapsedFiles ?? []).filter((key) => key !== changeKey)
+								: (prev.collapsedFiles ?? []),
 							...focusFields,
 						} as PaneViewerData,
 					});
@@ -97,6 +103,7 @@ export function useWorkspacePaneOpeners({
 					kind: "diff",
 					data: {
 						path: filePath,
+						changeKey,
 						collapsedFiles: [],
 						...focusFields,
 					} as DiffPaneData,

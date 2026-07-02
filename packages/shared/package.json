@@ -12,6 +12,10 @@
 			"types": "./src/dev-credentials.ts",
 			"default": "./src/dev-credentials.ts"
 		},
+		"./media-files": {
+			"types": "./src/media-files.ts",
+			"default": "./src/media-files.ts"
+		},
 		"./v2-only-user": {
 			"types": "./src/v2-only-user.ts",
 			"default": "./src/v2-only-user.ts"

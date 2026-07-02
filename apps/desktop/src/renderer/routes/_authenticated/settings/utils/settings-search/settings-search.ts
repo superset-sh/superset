@@ -52,6 +52,8 @@ export const SETTING_ITEM_ID = {
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
+	EXPERIMENTAL_INLINE_WORKSPACE_PORTS: "experimental-inline-workspace-ports",
+	EXPERIMENTAL_WORKSPACE_AGENTS: "experimental-workspace-agents",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -162,6 +164,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS]: "v2",
 
 	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
 	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
@@ -930,6 +934,45 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"v2",
 			"projects",
 			"workspaces",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS,
+		section: "experimental",
+		title: "Inline workspace ports",
+		description:
+			"Show detected ports under each workspace in the sidebar instead of a single panel at the bottom",
+		keywords: [
+			"experimental",
+			"ports",
+			"port",
+			"inline",
+			"sidebar",
+			"workspace",
+			"workspaces",
+			"dev server",
+			"toggle",
+			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS,
+		section: "experimental",
+		title: "Workspace agents",
+		description:
+			"Show running agents under each workspace in the sidebar, with their live status",
+		keywords: [
+			"experimental",
+			"agents",
+			"agent",
+			"running",
+			"inline",
+			"sidebar",
+			"workspace",
+			"workspaces",
+			"status",
+			"toggle",
+			"switch",
 		],
 	},
 	{

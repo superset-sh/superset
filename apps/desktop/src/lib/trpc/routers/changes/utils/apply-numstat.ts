@@ -18,6 +18,7 @@ export async function applyNumstatToFiles(
 			if (fileStat) {
 				file.additions = fileStat.additions;
 				file.deletions = fileStat.deletions;
+				file.isBinary = fileStat.isBinary;
 			}
 		}
 	} catch {}

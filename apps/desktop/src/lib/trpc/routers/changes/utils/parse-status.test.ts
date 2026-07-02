@@ -98,8 +98,16 @@ describe("parseDiffNumstat", () => {
 
 		const stats = parseDiffNumstat(numstatOutput);
 
-		expect(stats.get("src/file1.ts")).toEqual({ additions: 10, deletions: 5 });
-		expect(stats.get("src/file2.ts")).toEqual({ additions: 20, deletions: 3 });
+		expect(stats.get("src/file1.ts")).toEqual({
+			additions: 10,
+			deletions: 5,
+			isBinary: false,
+		});
+		expect(stats.get("src/file2.ts")).toEqual({
+			additions: 20,
+			deletions: 3,
+			isBinary: false,
+		});
 	});
 
 	test("handles binary files with dash markers", () => {
@@ -108,8 +116,16 @@ describe("parseDiffNumstat", () => {
 
 		const stats = parseDiffNumstat(numstatOutput);
 
-		expect(stats.get("image.png")).toEqual({ additions: 0, deletions: 0 });
-		expect(stats.get("src/code.ts")).toEqual({ additions: 10, deletions: 5 });
+		expect(stats.get("image.png")).toEqual({
+			additions: 0,
+			deletions: 0,
+			isBinary: true,
+		});
+		expect(stats.get("src/code.ts")).toEqual({
+			additions: 10,
+			deletions: 5,
+			isBinary: false,
+		});
 	});
 
 	test("handles renamed files with arrow format", () => {
@@ -118,8 +134,16 @@ describe("parseDiffNumstat", () => {
 		const stats = parseDiffNumstat(numstatOutput);
 
 		// Should be accessible by both old and new paths
-		expect(stats.get("new/path.ts")).toEqual({ additions: 5, deletions: 2 });
-		expect(stats.get("old/path.ts")).toEqual({ additions: 5, deletions: 2 });
+		expect(stats.get("new/path.ts")).toEqual({
+			additions: 5,
+			deletions: 2,
+			isBinary: false,
+		});
+		expect(stats.get("old/path.ts")).toEqual({
+			additions: 5,
+			deletions: 2,
+			isBinary: false,
+		});
 	});
 
 	test("handles copied files with arrow format", () => {
@@ -127,8 +151,16 @@ describe("parseDiffNumstat", () => {
 
 		const stats = parseDiffNumstat(numstatOutput);
 
-		expect(stats.get("copy.ts")).toEqual({ additions: 0, deletions: 0 });
-		expect(stats.get("source.ts")).toEqual({ additions: 0, deletions: 0 });
+		expect(stats.get("copy.ts")).toEqual({
+			additions: 0,
+			deletions: 0,
+			isBinary: false,
+		});
+		expect(stats.get("source.ts")).toEqual({
+			additions: 0,
+			deletions: 0,
+			isBinary: false,
+		});
 	});
 
 	test("handles paths with spaces in rename format", () => {
@@ -136,8 +168,16 @@ describe("parseDiffNumstat", () => {
 
 		const stats = parseDiffNumstat(numstatOutput);
 
-		expect(stats.get("new file.ts")).toEqual({ additions: 3, deletions: 1 });
-		expect(stats.get("old file.ts")).toEqual({ additions: 3, deletions: 1 });
+		expect(stats.get("new file.ts")).toEqual({
+			additions: 3,
+			deletions: 1,
+			isBinary: false,
+		});
+		expect(stats.get("old file.ts")).toEqual({
+			additions: 3,
+			deletions: 1,
+			isBinary: false,
+		});
 	});
 
 	test("returns empty map for empty input", () => {
@@ -153,7 +193,11 @@ describe("parseDiffNumstat", () => {
 		const stats = parseDiffNumstat(numstatOutput);
 
 		expect(stats.size).toBe(1);
-		expect(stats.get("valid/path.ts")).toEqual({ additions: 20, deletions: 3 });
+		expect(stats.get("valid/path.ts")).toEqual({
+			additions: 20,
+			deletions: 3,
+			isBinary: false,
+		});
 	});
 
 	test("handles non-numeric additions/deletions gracefully", () => {
@@ -161,7 +205,11 @@ describe("parseDiffNumstat", () => {
 
 		const stats = parseDiffNumstat(numstatOutput);
 
-		expect(stats.get("file.ts")).toEqual({ additions: 0, deletions: 0 });
+		expect(stats.get("file.ts")).toEqual({
+			additions: 0,
+			deletions: 0,
+			isBinary: false,
+		});
 	});
 });
 

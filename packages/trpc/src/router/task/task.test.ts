@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+// Captured before any mock.module registers, so it holds the real schema
+// exports. Spread into the schema mock below so this partial mock doesn't
+// drop barrel exports other test files rely on (bun's mock.module is global
+// and never restored between files).
+import * as realDbSchema from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 
 const getCurrentTxidMock = mock(async () => "txid-123");
@@ -112,6 +117,7 @@ mock.module("@superset/db/client", () => ({
 }));
 
 mock.module("@superset/db/schema", () => ({
+	...realDbSchema,
 	members: {
 		organizationId: "members.organizationId",
 		userId: "members.userId",

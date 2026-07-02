@@ -18,6 +18,7 @@ export type TerminalAgentBinding = TerminalAgentBindings[number];
  */
 export function useTerminalAgentBindings(
 	workspaceId: string,
+	options?: { enabled?: boolean },
 ): Map<string, TerminalAgentBinding> {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
@@ -26,7 +27,8 @@ export function useTerminalAgentBindings(
 		[hostUrl, workspaceId],
 	);
 
-	const enabled = Boolean(workspaceId) && Boolean(hostUrl);
+	const enabled =
+		(options?.enabled ?? true) && Boolean(workspaceId) && Boolean(hostUrl);
 
 	const { data } = useQuery({
 		queryKey,

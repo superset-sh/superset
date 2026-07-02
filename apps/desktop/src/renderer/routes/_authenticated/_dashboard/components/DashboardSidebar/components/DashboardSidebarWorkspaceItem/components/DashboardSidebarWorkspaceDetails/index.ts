@@ -1,0 +1,1 @@
+export { DashboardSidebarWorkspaceDetails } from "./DashboardSidebarWorkspaceDetails";

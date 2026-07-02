@@ -60,7 +60,7 @@ export function DashboardSidebarPortBadge({
 	};
 
 	return (
-		<Tooltip>
+		<Tooltip delayDuration={700}>
 			<TooltipTrigger asChild>
 				<div
 					className={cn(
@@ -121,23 +121,23 @@ export function DashboardSidebarPortBadge({
 				<div className="space-y-1 text-xs">
 					{port.label && <div className="font-medium">{port.label}</div>}
 					<div
-						className={`font-mono ${port.label ? "text-muted-foreground" : "font-medium"}`}
+						className={`font-mono ${port.label ? "text-background/70" : "font-medium"}`}
 					>
 						localhost:{port.port}
 					</div>
-					<div className="text-muted-foreground">{hostLabel}</div>
+					<div className="text-background/70">{hostLabel}</div>
 					{(port.processName || port.pid != null) && (
-						<div className="text-muted-foreground">
+						<div className="text-background/70">
 							{port.processName}
 							{port.pid != null && ` (pid ${port.pid})`}
 						</div>
 					)}
 					{!canOpenInBrowser && (
-						<div className="text-[10px] text-muted-foreground/70">
+						<div className="text-[10px] text-background/60">
 							Browser open unavailable from this device
 						</div>
 					)}
-					<div className="text-[10px] text-muted-foreground/70">
+					<div className="text-[10px] text-background/60">
 						Click to open workspace
 					</div>
 				</div>

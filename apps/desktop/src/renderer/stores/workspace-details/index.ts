@@ -1,0 +1,1 @@
+export { useWorkspaceDetailsStore } from "./store";

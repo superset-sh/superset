@@ -1,5 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import type { FoldSignal } from "../../ChangesFileList";
 import { FileRow } from "../FileRow";
 import { FolderHeader } from "./components/FolderHeader";
@@ -13,7 +16,11 @@ interface ChangesFoldersViewProps {
 	worktreePath?: string;
 	/** Bumped by the toolbar's expand-all / collapse-all buttons. */
 	foldSignal: FoldSignal;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 }
@@ -90,7 +97,7 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 						{isOpen &&
 							group.files.map((file) => (
 								<FileRow
-									key={`${file.source.kind}:${file.path}`}
+									key={getChangesetFileKey(file)}
 									file={file}
 									workspaceId={workspaceId}
 									worktreePath={worktreePath}
