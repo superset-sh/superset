@@ -1,32 +1,42 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
+import {
+	BUILTIN_AGENT_LABELS,
+	type BuiltinAgentId,
+} from "@superset/shared/agent-catalog";
 import { useMemo } from "react";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import {
 	useV2NotificationStore,
 	type V2NotificationSource,
 } from "renderer/stores/v2-notifications";
+import type { PaneStatus } from "shared/tabs-types";
 import { useShallow } from "zustand/react/shallow";
 
-/** Statuses that count as a "running" agent (excludes finished `review`). */
-export type RunningAgentStatus = "working" | "permission";
+/**
+ * State of a bound agent. `idle` means the agent process is alive but not
+ * currently `working` / awaiting `permission` / ready for `review`.
+ */
+export type RunningAgentStatus = PaneStatus;
 
 export interface DashboardSidebarRunningAgent {
 	/** Stable key for React lists, derived from the notification source. */
 	sourceKey: string;
 	source: V2NotificationSource;
-	/** `working` (actively processing) or `permission` (blocked, needs input). */
+	/** Host terminal the agent is bound to. */
+	terminalId: string;
+	/** Built-in agent id (`claude`, `codex`, …) — drives label + icon. */
+	agentId: BuiltinAgentId;
+	/** `idle` | `working` | `permission` | `review`. */
 	status: RunningAgentStatus;
-	/** When the agent entered its current status (ms since epoch). */
-	occurredAt: number;
-	/** Best-effort human label — chat session title, else a generic fallback. */
+	/** When the agent process was bound (ms since epoch), used for stable order. */
+	startedAt: number;
+	/** Agent display name (e.g. "Claude"). */
 	label: string;
 }
 
 /**
- * Live list of "running" agents for a workspace: notification sources currently
- * `working` or awaiting `permission`, newest first. Chat agents resolve to their
- * session title; terminal agents fall back to a generic label.
+ * Live list of agents bound to a workspace's terminals, newest binding last.
+ * Every live agent process is included regardless of state; its `status` comes
+ * from the notification store (or `idle` when it has no active status).
  *
  * Mirrors {@link useDashboardSidebarWorkspacePorts} so a workspace detail row
  * can render agents the same way it renders ports.
@@ -34,51 +44,37 @@ export interface DashboardSidebarRunningAgent {
 export function useDashboardSidebarWorkspaceRunningAgents(
 	workspaceId: string,
 ): DashboardSidebarRunningAgent[] {
-	const entries = useV2NotificationStore(
+	const bindings = useTerminalAgentBindings(workspaceId);
+
+	const statusByTerminal = useV2NotificationStore(
 		useShallow((state) => {
-			const running = [];
+			const map: Record<string, RunningAgentStatus> = {};
 			for (const entry of Object.values(state.sources)) {
 				if (
 					entry.workspaceId === workspaceId &&
-					(entry.status === "working" || entry.status === "permission")
+					entry.source.type === "terminal"
 				) {
-					running.push(entry);
+					map[entry.source.id] = entry.status;
 				}
 			}
-			running.sort((a, b) => b.occurredAt - a.occurredAt);
-			return running;
+			return map;
 		}),
 	);
 
-	const collections = useCollections();
-	const { data: sessions } = useLiveQuery(
-		(q) =>
-			q
-				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) =>
-					eq(chatSessions.v2WorkspaceId, workspaceId),
-				)
-				.select(({ chatSessions }) => ({
-					id: chatSessions.id,
-					title: chatSessions.title,
-				})),
-		[collections.chatSessions, workspaceId],
-	);
-
 	return useMemo(() => {
-		const titleById = new Map<string, string | null>();
-		for (const session of sessions ?? []) {
-			titleById.set(session.id, session.title);
+		const agents: DashboardSidebarRunningAgent[] = [];
+		for (const binding of bindings.values()) {
+			agents.push({
+				sourceKey: `terminal:${binding.terminalId}`,
+				source: { type: "terminal", id: binding.terminalId },
+				terminalId: binding.terminalId,
+				agentId: binding.agentId,
+				status: statusByTerminal[binding.terminalId] ?? "idle",
+				startedAt: binding.startedAt,
+				label: BUILTIN_AGENT_LABELS[binding.agentId] ?? binding.agentId,
+			});
 		}
-		return entries.map((entry) => ({
-			sourceKey: entry.sourceKey,
-			source: entry.source,
-			status: entry.status as RunningAgentStatus,
-			occurredAt: entry.occurredAt,
-			label:
-				entry.source.type === "chat"
-					? titleById.get(entry.source.id)?.trim() || "Chat agent"
-					: "Agent",
-		}));
-	}, [entries, sessions]);
+		agents.sort((a, b) => a.startedAt - b.startedAt);
+		return agents;
+	}, [bindings, statusByTerminal]);
 }
