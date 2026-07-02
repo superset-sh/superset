@@ -2,6 +2,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
+import { withMouseReportingReset } from "../mouseModeReset";
 import { coldRestoreState } from "../state";
 import type {
 	CreateOrAttachMutate,
@@ -110,7 +111,10 @@ export function useTerminalColdRestore({
 
 						currentXterm.clear();
 						if (scrollback) {
-							currentXterm.write(scrollback, () => {
+							// The restored snapshot may re-enable mouse tracking that the
+							// (now-dead) foreground program had on; disable it so pointer
+							// moves aren't echoed as text into the restored shell (#5358).
+							currentXterm.write(withMouseReportingReset(scrollback), () => {
 								requestAnimationFrame(() => {
 									if (xtermRef.current !== currentXterm) return;
 									scrollToBottom(currentXterm);

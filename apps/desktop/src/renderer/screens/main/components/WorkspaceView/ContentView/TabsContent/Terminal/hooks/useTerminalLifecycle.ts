@@ -23,6 +23,7 @@ import {
 	setupCopyHandler,
 	setupFocusListener,
 } from "../helpers";
+import { withMouseReportingReset } from "../mouseModeReset";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
 import type {
@@ -612,7 +613,7 @@ export function useTerminalLifecycle({
 										setRestoredCwd(storedColdRestore.cwd);
 										if (storedColdRestore.scrollback && xterm) {
 											xterm.write(
-												storedColdRestore.scrollback,
+												withMouseReportingReset(storedColdRestore.scrollback),
 												scheduleScrollToBottom,
 											);
 										}
@@ -631,7 +632,12 @@ export function useTerminalLifecycle({
 										setIsRestoredMode(true);
 										setRestoredCwd(result.previousCwd || null);
 										if (scrollback && xterm) {
-											xterm.write(scrollback, scheduleScrollToBottom);
+											// Strip stale mouse tracking carried in the restored
+											// snapshot so pointer moves aren't typed as text (#5358).
+											xterm.write(
+												withMouseReportingReset(scrollback),
+												scheduleScrollToBottom,
+											);
 										}
 										didFirstRenderRef.current = true;
 										return;
