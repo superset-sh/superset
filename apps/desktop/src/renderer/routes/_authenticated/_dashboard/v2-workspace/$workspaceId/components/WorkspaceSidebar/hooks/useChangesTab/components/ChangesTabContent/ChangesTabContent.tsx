@@ -32,7 +32,11 @@ interface ChangesTabContentProps {
 	totalDeletions: number;
 	worktreePath?: string;
 	selectedFilePath?: string;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 	onFilterChange: (filter: ChangesFilter) => void;
