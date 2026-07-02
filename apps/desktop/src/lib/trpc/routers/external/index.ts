@@ -1,11 +1,6 @@
 import fs from "node:fs";
 import nodePath from "node:path";
-import {
-	EXTERNAL_APPS,
-	NON_EDITOR_APPS,
-	projects,
-	settings,
-} from "@superset/local-db";
+import { NON_EDITOR_APPS, projects, settings } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { clipboard, shell } from "electron";
@@ -22,6 +17,7 @@ import {
 	resolvePath,
 	spawnAsync,
 } from "./helpers";
+import { ExternalAppSchema, openFileInEditorInputSchema } from "./schemas";
 
 /**
  * Wraps a tRPC handler so a `RelativePathWithoutCwdError` (thrown by
@@ -39,8 +35,6 @@ async function withResolveGuard<T>(fn: () => Promise<T> | T): Promise<T> {
 		throw err;
 	}
 }
-
-const ExternalAppSchema = z.enum(EXTERNAL_APPS);
 
 const nonEditorSet = new Set<ExternalApp>(NON_EDITOR_APPS);
 
@@ -78,13 +72,15 @@ export function resolveDefaultEditor(projectId?: string): ExternalApp | null {
 async function openPathInApp(
 	filePath: string,
 	app: ExternalApp,
+	line?: number,
+	column?: number,
 ): Promise<void> {
 	if (app === "finder") {
 		shell.showItemInFolder(filePath);
 		return;
 	}
 
-	const candidates = getAppCommand(app, filePath);
+	const candidates = getAppCommand(app, filePath, undefined, line, column);
 	if (candidates) {
 		let lastError: Error | undefined;
 		for (const cmd of candidates) {
@@ -236,30 +232,7 @@ export const createExternalRouter = () => {
 			),
 
 		openFileInEditor: publicProcedure
-			.input(
-				z.object({
-					path: z.string(),
-					line: z.number().optional(),
-					column: z.number().optional(),
-					/**
-					 * Absolute workspace worktree path. Required when `path` is
-					 * relative; ignored when `path` is already absolute. Using the
-					 * workspace's worktreePath (rather than an arbitrary cwd) means
-					 * relative diff/tree paths always resolve against the workspace
-					 * the user is in, never Electron's process cwd.
-					 */
-					worktreePath: z.string().optional(),
-					projectId: z.string().optional(),
-					/**
-					 * Explicit app override from the caller (e.g. the v2 CMD+O
-					 * choice stored client-side in tanstack-db). When provided,
-					 * bypasses the server-side `resolveDefaultEditor` lookup —
-					 * which only knows about v1 localDb tables and would
-					 * otherwise return a stale global default for v2 projects.
-					 */
-					app: ExternalAppSchema.optional(),
-				}),
-			)
+			.input(openFileInEditorInputSchema)
 			.mutation(({ input }) =>
 				withResolveGuard(async () => {
 					const filePath = resolvePath(input.path, input.worktreePath);
@@ -273,7 +246,7 @@ export const createExternalRouter = () => {
 						return;
 					}
 
-					await openPathInApp(filePath, app);
+					await openPathInApp(filePath, app, input.line, input.column);
 				}),
 			),
 	});

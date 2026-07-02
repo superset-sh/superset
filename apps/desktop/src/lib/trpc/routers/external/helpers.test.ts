@@ -586,6 +586,209 @@ describe("stripPathWrappers", () => {
 	});
 });
 
+describe("getAppCommand — line/column jump", () => {
+	const originalPlatform = process.platform;
+
+	beforeEach(() => {
+		Object.defineProperty(process, "platform", { value: "linux" });
+	});
+
+	afterEach(() => {
+		Object.defineProperty(process, "platform", { value: originalPlatform });
+	});
+
+	describe("Linux VS Code family", () => {
+		test("vscode: line and column → -g path:line:col", () => {
+			const result = getAppCommand("vscode", "/path/to/file", "linux", 10, 5);
+			expect(result).toEqual([
+				{ command: "code", args: ["-g", "/path/to/file:10:5"] },
+			]);
+		});
+
+		test("vscode: line only, no column → -g path:line", () => {
+			const result = getAppCommand(
+				"vscode",
+				"/path/to/file",
+				"linux",
+				10,
+				undefined,
+			);
+			expect(result).toEqual([
+				{ command: "code", args: ["-g", "/path/to/file:10"] },
+			]);
+		});
+
+		test("cursor: line and column → -g path:line:col", () => {
+			const result = getAppCommand("cursor", "/path/to/file", "linux", 1, 1);
+			expect(result).toEqual([
+				{ command: "cursor", args: ["-g", "/path/to/file:1:1"] },
+			]);
+		});
+	});
+
+	describe("Linux Sublime/Zed family", () => {
+		test("sublime: line and column → path:line:col", () => {
+			const result = getAppCommand("sublime", "/path/to/file", "linux", 42, 8);
+			expect(result).toEqual([
+				{ command: "subl", args: ["/path/to/file:42:8"] },
+			]);
+		});
+
+		test("sublime: line only, no column → path:line", () => {
+			const result = getAppCommand(
+				"sublime",
+				"/path/to/file",
+				"linux",
+				42,
+				undefined,
+			);
+			expect(result).toEqual([{ command: "subl", args: ["/path/to/file:42"] }]);
+		});
+
+		test("zed: line and column → path:line:col", () => {
+			const result = getAppCommand("zed", "/path/to/file", "linux", 5, 3);
+			expect(result).toEqual([{ command: "zed", args: ["/path/to/file:5:3"] }]);
+		});
+	});
+
+	describe("Linux JetBrains family", () => {
+		test("webstorm: line and column → --line line --column col path", () => {
+			const result = getAppCommand("webstorm", "/path/to/file", "linux", 20, 1);
+			expect(result).toEqual([
+				{
+					command: "webstorm",
+					args: ["--line", "20", "--column", "1", "/path/to/file"],
+				},
+			]);
+		});
+
+		test("webstorm: line only, no column → --line line path", () => {
+			const result = getAppCommand(
+				"webstorm",
+				"/path/to/file",
+				"linux",
+				20,
+				undefined,
+			);
+			expect(result).toEqual([
+				{ command: "webstorm", args: ["--line", "20", "/path/to/file"] },
+			]);
+		});
+
+		test("intellij (multi-edition): line and column → each candidate gets --line --column path", () => {
+			const result = getAppCommand("intellij", "/path/to/file", "linux", 10, 2);
+			expect(result).toEqual([
+				{
+					command: "idea",
+					args: ["--line", "10", "--column", "2", "/path/to/file"],
+				},
+				{
+					command: "intellij-idea-ultimate",
+					args: ["--line", "10", "--column", "2", "/path/to/file"],
+				},
+				{
+					command: "intellij-idea-community",
+					args: ["--line", "10", "--column", "2", "/path/to/file"],
+				},
+			]);
+		});
+	});
+
+	describe("Linux coordinate-ignored apps", () => {
+		test("warp: line provided → coordinate ignored, args is [path]", () => {
+			const result = getAppCommand("warp", "/path/to/file", "linux", 10);
+			expect(result).toEqual([
+				{ command: "warp-terminal", args: ["/path/to/file"] },
+			]);
+		});
+
+		test("antigravity: line provided → coordinate ignored, args is [path]", () => {
+			const result = getAppCommand("antigravity", "/path/to/file", "linux", 10);
+			expect(result).toEqual([
+				{ command: "antigravity", args: ["/path/to/file"] },
+			]);
+		});
+
+		test("devin: line provided → coordinate ignored, args is [path]", () => {
+			const result = getAppCommand("devin", "/path/to/file", "linux", 10);
+			expect(result).toEqual([
+				{ command: "devin-desktop", args: ["/path/to/file"] },
+			]);
+		});
+
+		test("fleet: line provided → coordinate ignored, args is [path]", () => {
+			const result = getAppCommand("fleet", "/path/to/file", "linux", 10);
+			expect(result).toEqual([{ command: "fleet", args: ["/path/to/file"] }]);
+		});
+	});
+
+	describe("macOS regression — coordinates always ignored", () => {
+		test("darwin + cursor: line and column → unchanged open -a args", () => {
+			const result = getAppCommand("cursor", "/path/to/file", "darwin", 10, 5);
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "Cursor", "/path/to/file"] },
+			]);
+		});
+
+		test("darwin + webstorm: line and column → unchanged open -a args", () => {
+			const result = getAppCommand(
+				"webstorm",
+				"/path/to/file",
+				"darwin",
+				10,
+				5,
+			);
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "WebStorm", "/path/to/file"] },
+			]);
+		});
+
+		test("darwin + intellij: line provided → unchanged open -b bundle ID candidates", () => {
+			const result = getAppCommand("intellij", "/path/to/file", "darwin", 10);
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-b", "com.jetbrains.intellij", "/path/to/file"],
+				},
+				{
+					command: "open",
+					args: ["-b", "com.jetbrains.intellij.ce", "/path/to/file"],
+				},
+			]);
+		});
+	});
+
+	describe("regression — no coordinates means identical to existing behavior", () => {
+		test("vscode: no line/column → same as before", () => {
+			const result = getAppCommand("vscode", "/path/to/file", "linux");
+			expect(result).toEqual([{ command: "code", args: ["/path/to/file"] }]);
+		});
+
+		test("webstorm: no line/column → same as before", () => {
+			const result = getAppCommand("webstorm", "/path/to/file", "linux");
+			expect(result).toEqual([
+				{ command: "webstorm", args: ["/path/to/file"] },
+			]);
+		});
+
+		test("intellij: no line/column → same as before", () => {
+			const result = getAppCommand("intellij", "/path/to/file", "linux");
+			expect(result).toEqual([
+				{ command: "idea", args: ["/path/to/file"] },
+				{ command: "intellij-idea-ultimate", args: ["/path/to/file"] },
+				{ command: "intellij-idea-community", args: ["/path/to/file"] },
+			]);
+		});
+
+		test("darwin + cursor: no line/column → same as before", () => {
+			const result = getAppCommand("cursor", "/path/to/file", "darwin");
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "Cursor", "/path/to/file"] },
+			]);
+		});
+	});
+});
+
 describe("resolvePath guards against process.cwd() fallback", () => {
 	test("throws RelativePathWithoutCwdError for a relative path with no cwd", () => {
 		expect(() => resolvePath("apps/desktop/src/index.ts")).toThrow(
