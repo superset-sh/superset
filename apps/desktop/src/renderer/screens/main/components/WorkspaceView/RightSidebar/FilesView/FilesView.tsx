@@ -59,6 +59,21 @@ function getPathSegmentSeparator(absolutePath: string): string {
 	return absolutePath.includes("\\") ? "\\" : "/";
 }
 
+function getBasename(absolutePath: string): string {
+	const trimmedPath = absolutePath.replace(/[\\/]+$/, "");
+	const lastSeparatorIndex = Math.max(
+		trimmedPath.lastIndexOf("/"),
+		trimmedPath.lastIndexOf("\\"),
+	);
+	return lastSeparatorIndex === -1
+		? trimmedPath
+		: trimmedPath.slice(lastSeparatorIndex + 1);
+}
+
+function affectsIgnoreState(absolutePath: string): boolean {
+	return getBasename(absolutePath) === ".gitignore";
+}
+
 function getParentPath(absolutePath: string): string {
 	const trimmedPath = absolutePath.replace(/[\\/]+$/, "");
 	const lastSeparatorIndex = Math.max(
@@ -221,6 +236,7 @@ export function FilesView() {
 						path: entry.absolutePath,
 						relativePath: getEntryRelativePath(currentPath, entry.absolutePath),
 						isDirectory: entry.kind === "directory",
+						isIgnored: entry.isIgnored ?? false,
 					}));
 					for (const entry of nextEntries) {
 						entryCacheRef.current.set(entry.path, entry);
@@ -289,7 +305,14 @@ export function FilesView() {
 			if (event) {
 				pendingRefreshRef.current.invalidateSearch = true;
 
-				if (event.type === "overflow" || !currentRoot) {
+				// `.gitignore` edits change the `isIgnored` state of every
+				// descendant of the file's directory. The cheapest correct
+				// option is a full refresh — gitignore edits are infrequent.
+				const gitignoreChanged =
+					(event.absolutePath && affectsIgnoreState(event.absolutePath)) ||
+					(event.oldAbsolutePath && affectsIgnoreState(event.oldAbsolutePath));
+
+				if (event.type === "overflow" || !currentRoot || gitignoreChanged) {
 					pendingRefreshRef.current.fullRefresh = true;
 				} else if (
 					event.type === "rename" &&

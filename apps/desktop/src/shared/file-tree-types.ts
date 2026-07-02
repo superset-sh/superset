@@ -24,4 +24,5 @@ export interface DirectoryEntry {
 	path: string;
 	relativePath: string;
 	isDirectory: boolean;
+	isIgnored?: boolean;
 }
