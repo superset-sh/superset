@@ -15,7 +15,7 @@ Superset does not assign per-workspace port ranges. It discovers listening ports
 - **Kill processes** - Stop a process by clicking its port
 - **Workspace grouping** - Ports are grouped by the workspace that owns the process
 - **Terminal focus** - Select a port to jump back to the terminal that owns it
-- **Browser actions** - Open local web servers in the in-app browser or externally from the port action
+- **Browser actions** - Open local web servers in the in-app browser, a new in-app tab, or your default browser from the port action
 
 ## Port Labels
 
@@ -59,6 +59,14 @@ If `ports.json` is malformed:
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
 - **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
+
+## Where Ports Open
+
+Choose what happens when you click a port badge's open affordance in **Settings → Links → Ports**:
+
+- **Open in in-app browser** - Current tab
+- **Open in new browser tab** - New in-app tab
+- **Open in default browser** - System browser (default)
 
 ## Discovery and Updates
 
