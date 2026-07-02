@@ -126,10 +126,9 @@ export function DiffPane({
 		setCollapsed,
 	});
 
-	// Pin a single section bar above the scroll area and update it to whichever
-	// source group the topmost visible file belongs to. A body-less section item
-	// can't stay pinned across its group (Pierre pins one header at a time,
-	// within its own box), so the bar lives outside the scroller instead.
+	// The section bar lives outside the scroller: Pierre pins one header at a
+	// time within its own box, so a body-less in-flow section item couldn't stay
+	// pinned across its group.
 	const { currentSection, onScroll } = useDiffActiveSection({
 		codeViewRef,
 		items,
