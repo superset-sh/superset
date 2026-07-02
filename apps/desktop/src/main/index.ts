@@ -1,3 +1,10 @@
+import { createRequire } from "node:module";
+try {
+	const require = createRequire(import.meta.url);
+	require("./patch-node-stream");
+} catch (err) {
+	console.error('[patch-node-stream] failed to require patch at runtime', err && (err as Error).message);
+}
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
@@ -360,12 +367,17 @@ if (!gotTheLock) {
 
 		// Serve system fonts (e.g. SF Mono on macOS) via custom protocol
 		// so the renderer can use @font-face with font-src 'self' CSP
-		if (process.platform === "darwin") {
-			const SYSTEM_FONT_DIRS = [
-				"/System/Applications/Utilities/Terminal.app/Contents/Resources/Fonts",
-				"/System/Library/Fonts",
-				"/Library/Fonts",
-			];
+		{
+			const SYSTEM_FONT_DIRS =
+				process.platform === "darwin"
+					? [
+							"/System/Applications/Utilities/Terminal.app/Contents/Resources/Fonts",
+							"/System/Library/Fonts",
+							"/Library/Fonts",
+						]
+					: process.platform === "linux"
+						? ["/usr/share/fonts", "/usr/local/share/fonts", `${path.join(app.getPath("home"), ".local/share/fonts")}`]
+						: [];
 			const fontProtocolHandler = async (request: Request) => {
 				const url = new URL(request.url);
 				const filename = path.basename(url.pathname);
