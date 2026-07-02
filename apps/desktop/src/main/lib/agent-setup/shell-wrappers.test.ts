@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { execFileSync } from "node:child_process";
+import {
+	execFileSync,
+	type SpawnSyncOptions,
+	spawnSync,
+} from "node:child_process";
 import {
 	chmodSync,
 	mkdirSync,
@@ -9,6 +13,32 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+/**
+ * Test helper that mirrors execFileSync's throw-on-failure contract while
+ * exposing spawnSync's `detached` option. We need detached:true so the test
+ * children get a fresh session via setsid() and cannot SIGTTIN-stop the test
+ * runner by attempting to attach to the parent's controlling TTY.
+ */
+function runSync(
+	file: string,
+	args: readonly string[],
+	options: SpawnSyncOptions & { encoding: "utf-8"; detached?: boolean },
+): string {
+	const result = spawnSync(file, args, options);
+	if (result.error) throw result.error;
+	if (result.signal) {
+		throw new Error(`${file} terminated by signal ${result.signal}`);
+	}
+	if (result.status !== 0) {
+		const stderr = String(result.stderr ?? "").trim();
+		throw new Error(
+			`${file} exited with status ${result.status}${stderr ? `: ${stderr}` : ""}`,
+		);
+	}
+	return String(result.stdout ?? "");
+}
+
 import {
 	createBashWrapper,
 	createZshWrapper,
@@ -206,19 +236,18 @@ fi
 		writeFileSync(legacyWrapperPath, legacyWrapper);
 
 		const runNode = (wrapperPath: string): string => {
-			const output = execFileSync(
-				"zsh",
-				["-ic", `source "${wrapperPath}"; node`],
-				{
-					encoding: "utf-8",
-					env: {
-						HOME: homeDir,
-						PATH: `${systemBinDir}:/usr/bin:/bin`,
-						SUPERSET_ORIG_ZDOTDIR: homeDir,
-						ZDOTDIR: integrationZshDir,
-					},
+			const output = runSync("zsh", ["-ic", `source "${wrapperPath}"; node`], {
+				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 5_000,
+				detached: true,
+				env: {
+					HOME: homeDir,
+					PATH: `${systemBinDir}:/usr/bin:/bin`,
+					SUPERSET_ORIG_ZDOTDIR: homeDir,
+					ZDOTDIR: integrationZshDir,
 				},
-			).trim();
+			}).trim();
 
 			const lines = output
 				.split("\n")
@@ -302,8 +331,11 @@ echo wrapper
 		chmodSync(path.join(TEST_BIN_DIR, "claude"), 0o755);
 
 		const args = getCommandShellArgs("/bin/bash", "claude", TEST_PATHS);
-		const output = execFileSync("bash", args, {
+		const output = runSync("bash", args, {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 5_000,
+			detached: true,
 			env: {
 				...process.env,
 				HOME: homeDir,
@@ -337,8 +369,11 @@ echo system
 		createBashWrapper(fallbackPaths);
 
 		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
-		const output = execFileSync("bash", args, {
+		const output = runSync("bash", args, {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 5_000,
+			detached: true,
 			env: {
 				...process.env,
 				HOME: homeDir,
@@ -384,8 +419,11 @@ echo wrapper
 		createBashWrapper(fallbackPaths);
 
 		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
-		const output = execFileSync("bash", args, {
+		const output = runSync("bash", args, {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 5_000,
+			detached: true,
 			env: {
 				...process.env,
 				HOME: homeDir,
@@ -460,7 +498,7 @@ precmd_functions+=(_mise_hook_precmd)
 
 		// Start a real interactive login shell so startup order includes .zlogin.
 		// Then run precmd hooks (simulating prompt rendering) and verify wrapper wins.
-		const output = execFileSync(
+		const output = runSync(
 			"zsh",
 			[
 				"-lic",
@@ -468,6 +506,9 @@ precmd_functions+=(_mise_hook_precmd)
 			],
 			{
 				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 10_000,
+				detached: true,
 				env: {
 					HOME: homeDir,
 					PATH: `${systemBinDir}:/usr/bin:/bin`,
@@ -513,8 +554,11 @@ precmd_functions+=(_mise_hook_precmd)
 			BASH_DIR: integrationBashDir,
 		});
 
-		const output = execFileSync("zsh", ["-lic", "claude"], {
+		const output = runSync("zsh", ["-lic", "claude"], {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 10_000,
+			detached: true,
 			env: {
 				HOME: homeDir,
 				PATH: "/usr/bin:/bin",
@@ -555,8 +599,11 @@ typeset -gr -a precmd_functions
 			BASH_DIR: integrationBashDir,
 		});
 
-		const output = execFileSync("zsh", ["-lic", "echo STARTUP_OK"], {
+		const output = runSync("zsh", ["-lic", "echo STARTUP_OK"], {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 10_000,
+			detached: true,
 			env: {
 				HOME: homeDir,
 				PATH: "/usr/bin:/bin",
@@ -602,8 +649,11 @@ echo wrapper
 		createBashWrapper(specialPaths);
 
 		const args = getCommandShellArgs("/bin/bash", "claude", specialPaths);
-		const output = execFileSync("bash", args, {
+		const output = runSync("bash", args, {
 			encoding: "utf-8",
+			stdio: ["ignore", "pipe", "pipe"],
+			timeout: 10_000,
+			detached: true,
 			env: {
 				...process.env,
 				HOME: homeDir,
@@ -634,8 +684,11 @@ echo wrapper
 				"-ic",
 				'echo "$SUPERSET_WORKSPACE_NAME"',
 			];
-			const output = execFileSync("bash", args, {
+			const output = runSync("bash", args, {
 				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 10_000,
+				detached: true,
 				env: {
 					HOME: homeDir,
 					PATH: "/usr/bin:/bin",
@@ -669,8 +722,11 @@ echo wrapper
 				"-ic",
 				'echo "$SUPERSET_WORKSPACE_NAME"',
 			];
-			const output = execFileSync("bash", args, {
+			const output = runSync("bash", args, {
 				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 10_000,
+				detached: true,
 				env: {
 					HOME: homeDir,
 					PATH: "/usr/bin:/bin",
@@ -705,8 +761,11 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				"-ic",
 				'echo "$SUPERSET_WORKSPACE_NAME|$SUPERSET_WORKSPACE_PATH"',
 			];
-			const output = execFileSync("bash", args, {
+			const output = runSync("bash", args, {
 				encoding: "utf-8",
+				stdio: ["ignore", "pipe", "pipe"],
+				timeout: 10_000,
+				detached: true,
 				env: {
 					HOME: homeDir,
 					PATH: "/usr/bin:/bin",
@@ -748,11 +807,14 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				BASH_DIR: integrationBashDir,
 			});
 
-			const output = execFileSync(
+			const output = runSync(
 				"zsh",
 				["-lic", 'echo "$SUPERSET_WORKSPACE_NAME"'],
 				{
 					encoding: "utf-8",
+					stdio: ["ignore", "pipe", "pipe"],
+					timeout: 10_000,
+					detached: true,
 					env: {
 						HOME: homeDir,
 						PATH: "/usr/bin:/bin",
@@ -795,11 +857,14 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 				BASH_DIR: integrationBashDir,
 			});
 
-			const output = execFileSync(
+			const output = runSync(
 				"zsh",
 				["-lic", 'echo "$SUPERSET_WORKSPACE_NAME"'],
 				{
 					encoding: "utf-8",
+					stdio: ["ignore", "pipe", "pipe"],
+					timeout: 10_000,
+					detached: true,
 					env: {
 						HOME: homeDir,
 						PATH: "/usr/bin:/bin",
