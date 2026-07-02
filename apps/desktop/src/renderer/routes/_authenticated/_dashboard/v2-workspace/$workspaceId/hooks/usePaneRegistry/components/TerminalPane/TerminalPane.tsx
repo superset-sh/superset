@@ -1,6 +1,6 @@
 import type { RendererContext } from "@superset/panes";
 import { cn } from "@superset/ui/utils";
-import { workspaceTrpc } from "@superset/workspace-client";
+import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
 import {
 	useCallback,
@@ -86,6 +86,11 @@ export function TerminalPane({
 	const websocketUrl = themedUrl.toString();
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
+	// The transport re-mints the token on every (re)dial, so the JWT stays fresh
+	// across reconnects instead of replaying the one baked into websocketUrl.
+	const { getWsToken } = useWorkspaceClient();
+	const getWsTokenRef = useRef(getWsToken);
+	getWsTokenRef.current = getWsToken;
 	const workspaceIdRef = useRef(workspaceId);
 	workspaceIdRef.current = workspaceId;
 
@@ -147,6 +152,7 @@ export function TerminalPane({
 			terminalId,
 			websocketUrlRef.current,
 			terminalInstanceId,
+			getWsTokenRef.current,
 		);
 
 		return () => {
@@ -205,6 +211,7 @@ export function TerminalPane({
 			terminalId,
 			websocketUrlRef.current,
 			terminalInstanceId,
+			getWsTokenRef.current,
 		);
 	}, [terminalId, terminalInstanceId, baseWebsocketUrl]);
 

@@ -27,8 +27,13 @@ type TerminalServerMessage =
 export interface TerminalTransport {
 	socket: WebSocket | null;
 	connectionState: ConnectionState;
-	/** The URL the socket is currently connected (or connecting) to. */
+	/** The token-less URL the socket is currently connected (or connecting) to.
+	 * The auth token is appended per-dial (see _getToken), never stored here. */
 	currentUrl: string | null;
+	/** Mints a fresh auth token for each (re)dial. Kept separate from currentUrl
+	 * so a reconnect after the JWT's 1h expiry presents a valid token instead of
+	 * replaying the stale one baked in at first connect. */
+	_getToken: (() => string | null) | null;
 	title: string | null | undefined;
 	onDataDisposable: { dispose(): void } | null;
 	stateListeners: Set<() => void>;
@@ -155,6 +160,7 @@ export function createTransport(): TerminalTransport {
 		socket: null,
 		connectionState: "disconnected",
 		currentUrl: null,
+		_getToken: null,
 		title: undefined,
 		onDataDisposable: null,
 		stateListeners: new Set(),
@@ -326,16 +332,30 @@ function appendQueryParam(url: string, key: string, value: string): string {
 	}
 }
 
+export function stripUrlToken(url: string): string {
+	try {
+		const u = new URL(url);
+		u.searchParams.delete("token");
+		return u.toString();
+	} catch {
+		return url;
+	}
+}
+
 export function connect(
 	transport: TerminalTransport,
 	terminal: XTerm,
 	wsUrl: string,
+	getToken?: () => string | null,
 ) {
+	if (getToken !== undefined) transport._getToken = getToken;
+	const baseUrl = stripUrlToken(wsUrl);
+
 	// Idempotent: skip if already connected/connecting to the same endpoint.
 	const isActive =
 		transport.connectionState === "open" ||
 		transport.connectionState === "connecting";
-	if (isActive && transport.currentUrl === wsUrl) return;
+	if (isActive && transport.currentUrl === baseUrl) return;
 
 	if (transport.socket) {
 		transport.socket.close();
@@ -343,7 +363,7 @@ export function connect(
 	}
 
 	cancelReconnect(transport);
-	transport.currentUrl = wsUrl;
+	transport.currentUrl = baseUrl;
 	transport._terminal = terminal;
 	// Recreate per connect so the coalescer always targets the current
 	// terminal; dispose flushes anything the previous socket left pending.
@@ -354,27 +374,36 @@ export function connect(
 	transport._terminated = false;
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
-	const actualUrl = transport._hasReceivedBytes
-		? appendQueryParam(wsUrl, "replay", "0")
-		: wsUrl;
+	const replayUrl = transport._hasReceivedBytes
+		? appendQueryParam(baseUrl, "replay", "0")
+		: baseUrl;
+
+	// Mint the auth token here rather than reading it off currentUrl: the JWT
+	// lives 1h, so a reconnect that replayed a baked token would be rejected 401
+	// by the relay. Every (re)dial — including the affinity pre-flight — gets a
+	// fresh token.
+	const buildDialUrl = () => {
+		const token = transport._getToken?.() ?? null;
+		return token ? appendQueryParam(replayUrl, "token", token) : replayUrl;
+	};
 
 	const openSocket = () => {
 		// Bail if the transport raced into a different URL or was disconnected
 		// while the pre-flight was in flight.
 		if (
-			transport.currentUrl !== wsUrl ||
+			transport.currentUrl !== baseUrl ||
 			transport.connectionState !== "connecting"
 		) {
 			return;
 		}
 		let socket: WebSocket;
 		try {
-			socket = new WebSocket(actualUrl);
+			socket = new WebSocket(buildDialUrl());
 		} catch (err) {
 			pushLog(
 				transport,
 				"error",
-				`WebSocket construction failed for ${formatWsEndpoint(actualUrl)}: ${
+				`WebSocket construction failed for ${formatWsEndpoint(replayUrl)}: ${
 					err instanceof Error ? err.message : String(err)
 				}`,
 			);
@@ -397,12 +426,12 @@ export function connect(
 	// for non-/hosts URLs (tests, local dev) so connect stays synchronous.
 	let needsPreFlight = false;
 	try {
-		needsPreFlight = new URL(actualUrl).pathname.startsWith("/hosts/");
+		needsPreFlight = new URL(replayUrl).pathname.startsWith("/hosts/");
 	} catch {
 		needsPreFlight = false;
 	}
 	if (needsPreFlight) {
-		void primeRelayAffinity(actualUrl).then(openSocket);
+		void primeRelayAffinity(buildDialUrl()).then(openSocket);
 	} else {
 		openSocket();
 	}
