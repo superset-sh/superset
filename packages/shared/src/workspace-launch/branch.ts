@@ -210,9 +210,9 @@ export function resolveBranchPrefix({
 		default:
 			return null;
 	}
+	// Sanitize per slash-separated segment so multi-level prefixes (e.g.
+	// `user/my-name`) keep their slashes — orgs use nested branch namespaces.
 	return prefix
-		? sanitizeSegment(prefix, DEFAULT_BRANCH_SEGMENT_MAX_LENGTH, {
-				preserveCase: true,
-			})
+		? sanitizeBranchName(prefix, { preserveCase: true }) || null
 		: null;
 }

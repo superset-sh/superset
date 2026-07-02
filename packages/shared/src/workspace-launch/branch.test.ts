@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	deduplicateBranchName,
+	resolveBranchPrefix,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
@@ -223,5 +224,52 @@ describe("deduplicateBranchName", () => {
 				"feature/test-2",
 			]),
 		).toBe("feature/test-3");
+	});
+});
+
+describe("resolveBranchPrefix", () => {
+	test("returns null for none mode", () => {
+		expect(resolveBranchPrefix({ mode: "none" })).toBeNull();
+	});
+
+	test("resolves a single-segment custom prefix", () => {
+		expect(resolveBranchPrefix({ mode: "custom", customPrefix: "team" })).toBe(
+			"team",
+		);
+	});
+
+	// Regression: multi-level custom prefixes (e.g. `user/my-name/`) must keep
+	// their slashes — orgs use nested branch namespaces. See issue #5367.
+	test("preserves slashes in a multi-level custom prefix", () => {
+		expect(
+			resolveBranchPrefix({ mode: "custom", customPrefix: "user/my-name" }),
+		).toBe("user/my-name");
+	});
+
+	test("preserves deeply nested custom prefixes", () => {
+		expect(
+			resolveBranchPrefix({
+				mode: "custom",
+				customPrefix: "org/team/my-name",
+			}),
+		).toBe("org/team/my-name");
+	});
+
+	test("sanitizes each segment of a custom prefix while keeping slashes", () => {
+		expect(
+			resolveBranchPrefix({ mode: "custom", customPrefix: "User/My Name!" }),
+		).toBe("User/My-Name");
+	});
+
+	test("drops empty segments from a custom prefix", () => {
+		expect(
+			resolveBranchPrefix({ mode: "custom", customPrefix: "user//name/" }),
+		).toBe("user/name");
+	});
+
+	test("preserves author-name case for author mode", () => {
+		expect(
+			resolveBranchPrefix({ mode: "author", authorPrefix: "Jane Doe" }),
+		).toBe("Jane-Doe");
 	});
 });

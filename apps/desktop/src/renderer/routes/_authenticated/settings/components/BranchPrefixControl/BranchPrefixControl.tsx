@@ -1,6 +1,6 @@
 import {
 	type BranchPrefixMode,
-	sanitizeSegment,
+	sanitizeBranchName,
 } from "@superset/shared/workspace-launch";
 import { Input } from "@superset/ui/input";
 import {
@@ -70,7 +70,11 @@ export function BranchPrefixControl({
 	};
 
 	const handleCustomPrefixBlur = () => {
-		const sanitized = sanitizeSegment(customPrefixInput);
+		// Sanitize per slash-separated segment so multi-level prefixes (e.g.
+		// `user/my-name`) keep their slashes — orgs use nested branch namespaces.
+		const sanitized = sanitizeBranchName(customPrefixInput, {
+			preserveCase: true,
+		});
 		setCustomPrefixInput(sanitized);
 		// Empty sanitized prefix: don't persist `mode=custom, customPrefix=null`
 		// — that lies about user intent. Leave the dropdown alone so they can
