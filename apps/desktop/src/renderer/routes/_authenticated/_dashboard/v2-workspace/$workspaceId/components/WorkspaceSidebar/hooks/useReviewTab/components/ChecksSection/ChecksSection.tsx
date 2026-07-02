@@ -4,10 +4,12 @@ import {
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
-import { useMemo, useState } from "react";
+import { workspaceTrpc } from "@superset/workspace-client";
+import { type MouseEvent, useMemo, useRef, useState } from "react";
 import {
 	LuArrowUpRight,
 	LuCheck,
+	LuClipboard,
 	LuLoaderCircle,
 	LuMinus,
 	LuX,
@@ -37,12 +39,14 @@ const checkSummaryIconConfig = {
 } as const;
 
 interface ChecksSectionProps {
+	workspaceId: string;
 	checks: NormalizedCheck[];
 	checksStatus: NormalizedPR["checksStatus"];
 	prUrl: string;
 }
 
 export function ChecksSection({
+	workspaceId,
 	checks,
 	checksStatus,
 	prUrl,
@@ -113,6 +117,7 @@ export function ChecksSection({
 					relevantChecks.map((check, index) => (
 						<CheckRow
 							key={`${check.name}-${index}`}
+							workspaceId={workspaceId}
 							check={check}
 							prUrl={prUrl}
 						/>
@@ -133,9 +138,19 @@ function resolveCheckUrl(
 	return undefined;
 }
 
-function CheckRow({ check, prUrl }: { check: NormalizedCheck; prUrl: string }) {
+function CheckRow({
+	workspaceId,
+	check,
+	prUrl,
+}: {
+	workspaceId: string;
+	check: NormalizedCheck;
+	prUrl: string;
+}) {
 	const { icon: CheckIcon, className } = checkIconConfig[check.status];
 	const checkUrl = resolveCheckUrl(check, prUrl);
+	const canCopyLogs =
+		check.status === "failure" && !!check.url && /\/job\/\d+/.test(check.url);
 
 	const inner = (
 		<div className="flex min-w-0 items-center gap-1 rounded-sm px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">
@@ -152,6 +167,9 @@ function CheckRow({ check, prUrl }: { check: NormalizedCheck; prUrl: string }) {
 					<LuArrowUpRight className="size-3.5 shrink-0 text-muted-foreground/70 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
 				)}
 			</div>
+			{canCopyLogs && check.url && (
+				<CopyLogsButton workspaceId={workspaceId} detailsUrl={check.url} />
+			)}
 			{check.durationText && (
 				<span className="shrink-0 text-[10px] text-muted-foreground">
 					{check.durationText}
@@ -171,5 +189,67 @@ function CheckRow({ check, prUrl }: { check: NormalizedCheck; prUrl: string }) {
 		</a>
 	) : (
 		inner
+	);
+}
+
+function CopyLogsButton({
+	workspaceId,
+	detailsUrl,
+}: {
+	workspaceId: string;
+	detailsUrl: string;
+}) {
+	const utils = workspaceTrpc.useUtils();
+	const [state, setState] = useState<"idle" | "loading" | "copied" | "error">(
+		"idle",
+	);
+	const resetTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+	const handleCopy = async (event: MouseEvent) => {
+		// The row is wrapped in a link; don't navigate when copying.
+		event.preventDefault();
+		event.stopPropagation();
+		if (state === "loading") return;
+		// Cancel a pending reset so it can't fire mid-flight on a quick re-click.
+		clearTimeout(resetTimer.current);
+		setState("loading");
+		try {
+			const { logs } = await utils.git.getCheckJobLogs.fetch({
+				workspaceId,
+				detailsUrl,
+			});
+			await navigator.clipboard.writeText(logs);
+			setState("copied");
+		} catch {
+			setState("error");
+		}
+		resetTimer.current = setTimeout(() => setState("idle"), 2000);
+	};
+
+	const Icon =
+		state === "loading"
+			? LuLoaderCircle
+			: state === "copied"
+				? LuCheck
+				: state === "error"
+					? LuX
+					: LuClipboard;
+
+	return (
+		<button
+			type="button"
+			onClick={handleCopy}
+			title="Copy job logs to clipboard"
+			aria-label="Copy job logs to clipboard"
+			className={cn(
+				"shrink-0 rounded-sm p-0.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground",
+				"opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+				state !== "idle" && "opacity-100",
+				state === "copied" && "text-emerald-600 dark:text-emerald-400",
+				state === "error" && "text-red-600 dark:text-red-400",
+			)}
+		>
+			<Icon className={cn("size-3", state === "loading" && "animate-spin")} />
+		</button>
 	);
 }
