@@ -43,8 +43,9 @@ export interface DashboardSidebarRunningAgent {
  */
 export function useDashboardSidebarWorkspaceRunningAgents(
 	workspaceId: string,
+	enabled = true,
 ): DashboardSidebarRunningAgent[] {
-	const bindings = useTerminalAgentBindings(workspaceId);
+	const bindings = useTerminalAgentBindings(workspaceId, { enabled });
 
 	const statusByTerminal = useV2NotificationStore(
 		useShallow((state) => {

@@ -3,6 +3,7 @@ import { LuX } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useWorkspaceDetailsStore } from "renderer/stores";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
+import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
 import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/hooks/useDashboardSidebarPortKill";
 import { DashboardSidebarWorkspaceAgentsRow } from "../DashboardSidebarWorkspaceAgentsRow";
@@ -49,6 +50,7 @@ export function DashboardSidebarWorkspaceDetails({
 	const { isPending: isKillingPorts, killPorts } =
 		useDashboardSidebarPortKill();
 	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
+	const workspaceAgentsRowEnabled = useWorkspaceAgentsRowEnabled();
 
 	// --- Section registry -----------------------------------------------------
 	const sections: WorkspaceDetailSection[] = [];
@@ -76,9 +78,12 @@ export function DashboardSidebarWorkspaceDetails({
 		});
 	}
 
-	const runningAgents = useDashboardSidebarWorkspaceRunningAgents(workspaceId);
+	const runningAgents = useDashboardSidebarWorkspaceRunningAgents(
+		workspaceId,
+		workspaceAgentsRowEnabled,
+	);
 	const agentCount = runningAgents.length;
-	if (agentCount > 0) {
+	if (workspaceAgentsRowEnabled && agentCount > 0) {
 		sections.push({
 			key: "agents",
 			summary: `${agentCount} ${agentCount === 1 ? "agent" : "agents"}`,
