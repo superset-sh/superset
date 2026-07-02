@@ -36,11 +36,8 @@ export function ChangesSection({
 	const collapsed = useV2ChangesSectionsStore(
 		(state) => state.collapsed[sectionKey] ?? false,
 	);
-	const toggle = useV2ChangesSectionsStore((state) => state.toggle);
+	const setCollapsed = useV2ChangesSectionsStore((state) => state.setCollapsed);
 	const open = !collapsed;
-	const setOpen = (next: boolean) => {
-		if (next !== open) toggle(sectionKey);
-	};
 	const [showConfirm, setShowConfirm] = useState(false);
 	const utils = workspaceTrpc.useUtils();
 
@@ -123,7 +120,10 @@ export function ChangesSection({
 	const StagingToggleIcon = isUnstaged ? Plus : Minus;
 
 	return (
-		<Collapsible open={open} onOpenChange={setOpen}>
+		<Collapsible
+			open={open}
+			onOpenChange={(next) => setCollapsed(sectionKey, !next)}
+		>
 			<div className="flex items-center">
 				<CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left text-xs hover:bg-accent/30">
 					<ChevronRight

@@ -6,7 +6,7 @@ export type V2ChangesSectionKey = DiffFileSource["kind"];
 
 interface V2ChangesSectionsState {
 	collapsed: Partial<Record<V2ChangesSectionKey, boolean>>;
-	toggle: (key: V2ChangesSectionKey) => void;
+	setCollapsed: (key: V2ChangesSectionKey, collapsed: boolean) => void;
 }
 
 export const useV2ChangesSectionsStore = create<V2ChangesSectionsState>()(
@@ -14,9 +14,9 @@ export const useV2ChangesSectionsStore = create<V2ChangesSectionsState>()(
 		persist(
 			(set) => ({
 				collapsed: {},
-				toggle: (key) =>
+				setCollapsed: (key, collapsed) =>
 					set((state) => ({
-						collapsed: { ...state.collapsed, [key]: !state.collapsed[key] },
+						collapsed: { ...state.collapsed, [key]: collapsed },
 					})),
 			}),
 			{
