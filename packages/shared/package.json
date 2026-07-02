@@ -136,6 +136,10 @@
 			"types": "./src/terminal-title-scanner.ts",
 			"default": "./src/terminal-title-scanner.ts"
 		},
+		"./sidebar-groups-cli": {
+			"types": "./src/sidebar-groups-cli.ts",
+			"default": "./src/sidebar-groups-cli.ts"
+		},
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
