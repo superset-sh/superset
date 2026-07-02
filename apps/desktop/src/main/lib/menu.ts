@@ -10,7 +10,10 @@ import {
 } from "./auto-updater";
 import { menuEmitter } from "./menu-events";
 
-export function createApplicationMenu() {
+export function buildMenuTemplate(
+	platform: NodeJS.Platform = process.platform,
+	nodeEnv: string = env.NODE_ENV,
+): Electron.MenuItemConstructorOptions[] {
 	const reloadAccelerator = "CmdOrCtrl+R";
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
 	const showHotkeysAccelerator = "CmdOrCtrl+/";
@@ -74,6 +77,15 @@ export function createApplicationMenu() {
 		},
 		{
 			label: "Window",
+			// `role: "windowMenu"` designates this as the macOS Window menu, which
+			// lets AppKit inject the native tiling commands (Fill, Center, Move &
+			// Resize, Full-Screen Tile → Left/Right of Screen) and their system
+			// shortcuts. Without the role, macOS never registers the windows menu
+			// and the tiling commands are absent. The custom submenu is preserved
+			// so the Cmd+Shift+Q close accelerator survives. Off macOS the role is
+			// a no-op for tiling, so we only set it on darwin to keep behavior
+			// identical elsewhere.
+			role: platform === "darwin" ? "windowMenu" : undefined,
 			submenu: [
 				{ role: "minimize" },
 				{ role: "zoom" },
@@ -122,7 +134,7 @@ export function createApplicationMenu() {
 	];
 
 	// DEV ONLY: Add Dev menu
-	if (env.NODE_ENV === "development") {
+	if (nodeEnv === "development") {
 		template.push({
 			label: "Dev",
 			submenu: [
@@ -157,7 +169,7 @@ export function createApplicationMenu() {
 		});
 	}
 
-	if (process.platform === "darwin") {
+	if (platform === "darwin") {
 		template.unshift({
 			label: app.name,
 			submenu: [
@@ -188,6 +200,10 @@ export function createApplicationMenu() {
 		});
 	}
 
-	const menu = Menu.buildFromTemplate(template);
+	return template;
+}
+
+export function createApplicationMenu() {
+	const menu = Menu.buildFromTemplate(buildMenuTemplate());
 	Menu.setApplicationMenu(menu);
 }
