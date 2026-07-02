@@ -223,7 +223,7 @@ export const FileRow = memo(function FileRow({
 
 	return (
 		<ContextMenu>
-			<Tooltip>
+			<Tooltip delayDuration={500}>
 				<ContextMenuTrigger asChild>
 					<TooltipTrigger asChild>{rowButton}</TooltipTrigger>
 				</ContextMenuTrigger>

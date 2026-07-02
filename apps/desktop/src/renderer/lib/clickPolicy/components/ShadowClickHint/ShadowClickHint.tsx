@@ -1,9 +1,19 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+/** Match the radix Tooltip `delayDuration` used elsewhere in the sidebar. */
+const DEFAULT_HINT_DELAY_MS = 500;
 
 interface ShadowClickHintProps {
 	hint: string;
 	side?: "top" | "right" | "bottom" | "left";
+	/**
+	 * Delay before the hint appears after a row is hovered, in ms. Mirrors the
+	 * radix Tooltip delay used by the changes tree rows so both trees feel the
+	 * same. This tooltip is forced `open`, so the delay lives in the hover
+	 * timer rather than in radix's `delayDuration`.
+	 */
+	delayMs?: number;
 	/**
 	 * Walk an event's composed path to find the row to anchor on. Return null
 	 * to dismiss. Pierre's open shadow root retargets event.target to the
@@ -22,11 +32,20 @@ interface ShadowClickHintProps {
 export function ShadowClickHint({
 	hint,
 	side = "right",
+	delayMs = DEFAULT_HINT_DELAY_MS,
 	findRow,
 	children,
 }: ShadowClickHintProps) {
 	const [hoverRect, setHoverRect] = useState<DOMRect | null>(null);
 	const hoverRowRef = useRef<HTMLElement | null>(null);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const clearTimer = useCallback(() => {
+		if (timerRef.current) {
+			clearTimeout(timerRef.current);
+			timerRef.current = null;
+		}
+	}, []);
 
 	const handleMouseOver = useCallback(
 		(e: React.MouseEvent<HTMLDivElement>) => {
@@ -34,21 +53,32 @@ export function ShadowClickHint({
 			if (!row) {
 				if (hoverRowRef.current) {
 					hoverRowRef.current = null;
+					clearTimer();
 					setHoverRect(null);
 				}
 				return;
 			}
 			if (hoverRowRef.current === row) return;
 			hoverRowRef.current = row;
-			setHoverRect(row.getBoundingClientRect());
+			clearTimer();
+			setHoverRect(null);
+			timerRef.current = setTimeout(() => {
+				// Re-read the rect on fire in case the row shifted during the delay.
+				if (hoverRowRef.current === row) {
+					setHoverRect(row.getBoundingClientRect());
+				}
+			}, delayMs);
 		},
-		[findRow],
+		[findRow, delayMs, clearTimer],
 	);
 
 	const handleMouseLeave = useCallback(() => {
 		hoverRowRef.current = null;
+		clearTimer();
 		setHoverRect(null);
-	}, []);
+	}, [clearTimer]);
+
+	useEffect(() => clearTimer, [clearTimer]);
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: wraps a custom-element host with its own keyboard nav

@@ -62,7 +62,7 @@ export function SidebarHeader({
 
 					if (compact) {
 						return (
-							<Tooltip key={tab.id} delayDuration={500}>
+							<Tooltip key={tab.id}>
 								<TooltipTrigger asChild>{btn}</TooltipTrigger>
 								<TooltipContent side="bottom" showArrow={false}>
 									{label}

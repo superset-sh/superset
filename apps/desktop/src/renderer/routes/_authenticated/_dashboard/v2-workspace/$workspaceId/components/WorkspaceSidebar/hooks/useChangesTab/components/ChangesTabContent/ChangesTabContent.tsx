@@ -1,6 +1,6 @@
 import type { AppRouter } from "@superset/host-service";
+import { Spinner } from "@superset/ui/spinner";
 import type { inferRouterOutputs } from "@trpc/server";
-import { Loader2 } from "lucide-react";
 import { memo, useCallback, useState } from "react";
 import type {
 	ChangesFilter,
@@ -87,7 +87,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	if (status.isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-				<Loader2 className="size-3.5 animate-spin" />
+				<Spinner className="size-3.5" />
 				<span>Loading changes...</span>
 			</div>
 		);
