@@ -6,7 +6,7 @@ import type {
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
 import { Button } from "@superset/ui/button";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { LuFileCode } from "react-icons/lu";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
@@ -22,6 +22,7 @@ import { CommentThread } from "./components/CommentThread";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
 import { DiffHeaderPrefix } from "./components/DiffHeaderPrefix";
 import { DiffSectionBar } from "./components/DiffSectionBar";
+import { useDiffActiveSection } from "./hooks/useDiffActiveSection";
 import {
 	type DiffAnnotationMetadata,
 	useDiffAnnotationsByPath,
@@ -125,74 +126,16 @@ export function DiffPane({
 		setCollapsed,
 	});
 
-	// Group the concatenated diff into unstaged / staged / committed … sections
-	// like the sidebar. A body-less section item can't stay pinned across its
-	// group (Pierre pins one header at a time, within its own box), so instead
-	// we render a single sticky section bar above the scroll area and update it
-	// to whichever source group the topmost visible file belongs to.
-	const { sectionByItemId, firstSection } = useMemo(() => {
-		const counts = new Map<ChangesetFile["source"]["kind"], number>();
-		for (const file of files) {
-			counts.set(file.source.kind, (counts.get(file.source.kind) ?? 0) + 1);
-		}
-		const byItemId = new Map<
-			string,
-			{ kind: ChangesetFile["source"]["kind"]; count: number }
-		>();
-		let first: { kind: ChangesetFile["source"]["kind"]; count: number } | null =
-			null;
-		for (const item of items) {
-			const kind = fileByItemId.get(item.id)?.source.kind;
-			if (!kind) continue;
-			const entry = { kind, count: counts.get(kind) ?? 0 };
-			byItemId.set(item.id, entry);
-			first ??= entry;
-		}
-		return { sectionByItemId: byItemId, firstSection: first };
-	}, [items, fileByItemId, files]);
-
-	const [topItemId, setTopItemId] = useState<string | null>(null);
-	const currentSection =
-		(topItemId != null ? sectionByItemId.get(topItemId) : undefined) ??
-		firstSection;
-
-	// Track the topmost item by geometry rather than `getRenderedItems()[0]`,
-	// which can lag by the virtualization buffer. Items stack top→bottom with
-	// monotonically increasing offsets, so binary-search for the last one whose
-	// top has passed the viewport top: its header is the pinned one.
-	const rafRef = useRef<number | null>(null);
-	const updateActiveSection = useCallback(() => {
-		rafRef.current = null;
-		const instance = codeViewRef.current?.getInstance();
-		if (!instance) return;
-		const scrollTop = instance.getScrollTop();
-		let lo = 0;
-		let hi = items.length - 1;
-		let nextTopId: string | null = null;
-		while (lo <= hi) {
-			const mid = (lo + hi) >> 1;
-			const top = instance.getTopForItem(items[mid].id);
-			if (top != null && top <= scrollTop + 1) {
-				nextTopId = items[mid].id;
-				lo = mid + 1;
-			} else {
-				hi = mid - 1;
-			}
-		}
-		setTopItemId((prev) => (prev === nextTopId ? prev : nextTopId));
-	}, [items]);
-
-	// Coalesce bursts of scroll events into one measurement per frame.
-	const handleScroll = useCallback(() => {
-		if (rafRef.current != null) return;
-		rafRef.current = requestAnimationFrame(updateActiveSection);
-	}, [updateActiveSection]);
-
-	useEffect(() => {
-		return () => {
-			if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-		};
-	}, []);
+	// Pin a single section bar above the scroll area and update it to whichever
+	// source group the topmost visible file belongs to. A body-less section item
+	// can't stay pinned across its group (Pierre pins one header at a time,
+	// within its own box), so the bar lives outside the scroller instead.
+	const { currentSection, onScroll } = useDiffActiveSection({
+		codeViewRef,
+		items,
+		fileByItemId,
+		files,
+	});
 
 	const { options, style } = useDiffCodeViewTheme();
 
@@ -345,7 +288,7 @@ export function DiffPane({
 				style={style}
 				items={items}
 				options={codeViewOptions}
-				onScroll={handleScroll}
+				onScroll={onScroll}
 				renderHeaderPrefix={renderHeaderPrefix}
 				renderHeaderMetadata={renderHeaderMetadata}
 				renderAnnotation={renderAnnotation}
