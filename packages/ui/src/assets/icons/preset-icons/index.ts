@@ -27,6 +27,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
+	omp: { light: piIcon, dark: piWhiteIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },

@@ -52,14 +52,21 @@ describe("createDefaultV2TerminalPresetRows", () => {
 					order: 2,
 				}),
 				createAgent({
+					id: "omp-config",
+					presetId: "omp",
+					label: "Oh My Pi",
+					command: "omp",
+					order: 3,
+				}),
+				createAgent({
 					id: "copilot-config",
 					presetId: "copilot",
 					label: "Copilot",
 					command: "copilot",
 					args: ["--allow-tool=write"],
-					order: 3,
+					order: 4,
 				}),
-				createAgent({ presetId: "amp", order: 4 }),
+				createAgent({ presetId: "amp", order: 5 }),
 			],
 			existingPresets: [],
 			createId: () =>
@@ -71,15 +78,17 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"claude-config",
 			"codex-config",
 			"opencode-config",
+			"omp-config",
 			"copilot-config",
 		]);
 		expect(rows.map((row) => row.name)).toEqual([
 			"Claude",
 			"Codex",
 			"OpenCode",
+			"Oh My Pi",
 			"Copilot",
 		]);
-		expect(rows.map((row) => row.tabOrder)).toEqual([0, 1, 2, 3]);
+		expect(rows.map((row) => row.tabOrder)).toEqual([0, 1, 2, 3, 4]);
 		expect(rows[0]?.commands).toEqual([
 			"claude --dangerously-skip-permissions",
 		]);
@@ -87,7 +96,8 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"codex --dangerously-bypass-approvals-and-sandbox",
 		]);
 		expect(rows[2]?.commands).toEqual(["opencode"]);
-		expect(rows[3]?.commands).toEqual(["copilot --allow-tool=write"]);
+		expect(rows[3]?.commands).toEqual(["omp"]);
+		expect(rows[4]?.commands).toEqual(["copilot --allow-tool=write"]);
 	});
 
 	it("includes structured agent env in seeded preset command snapshots", () => {

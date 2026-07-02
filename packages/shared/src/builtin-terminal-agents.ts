@@ -109,6 +109,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		promptCommand: "opencode --prompt",
 	}),
 	createBuiltinTerminalAgent({
+		id: "omp",
+		label: "Oh My Pi",
+		description:
+			"Oh My Pi's coding agent for terminal-first coding, session-aware workflows, and task work.",
+		command: "omp",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "pi",
 		label: "Pi",
 		description:
