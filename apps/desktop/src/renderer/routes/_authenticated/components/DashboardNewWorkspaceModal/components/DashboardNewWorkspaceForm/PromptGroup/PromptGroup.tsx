@@ -1,4 +1,7 @@
-import { getAgentModelSupport } from "@superset/shared/agent-models";
+import {
+	getAgentEffortSupport,
+	getAgentModelSupport,
+} from "@superset/shared/agent-models";
 import { sanitizeUserBranchName } from "@superset/shared/workspace-launch";
 import {
 	PromptInput,
@@ -26,6 +29,7 @@ import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/componen
 import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useAgentEffortPreference } from "renderer/hooks/useAgentEffortPreference";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -57,6 +61,7 @@ import {
 } from "./hooks/useUploadAttachments";
 import {
 	AGENT_STORAGE_KEY,
+	EFFORT_STORAGE_KEY,
 	MODEL_STORAGE_KEY,
 	PILL_BUTTON_CLASS,
 	type ProjectOption,
@@ -169,6 +174,13 @@ export function PromptGroup({
 	const { selectedModel, setSelectedModel } = useAgentModelPreference(
 		MODEL_STORAGE_KEY,
 		modelSupport ? selectedPresetId : null,
+	);
+	const effortSupport = selectedPresetId
+		? getAgentEffortSupport(selectedPresetId)
+		: undefined;
+	const { selectedEffort, setSelectedEffort } = useAgentEffortPreference(
+		EFFORT_STORAGE_KEY,
+		effortSupport ? selectedPresetId : null,
 	);
 
 	// Promote the placeholder "none" → first configured agent whenever the
@@ -289,6 +301,7 @@ export function PromptGroup({
 		projectId,
 		selectedAgent,
 		modelSupport ? selectedModel : null,
+		effortSupport ? selectedEffort : null,
 		uploadAttachments,
 		promptContext,
 	);
@@ -485,6 +498,14 @@ export function PromptGroup({
 								models={modelSupport.models}
 								value={selectedModel}
 								onValueChange={setSelectedModel}
+								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
+							/>
+						)}
+						{effortSupport && (
+							<AgentModelSelect
+								models={effortSupport.efforts}
+								value={selectedEffort}
+								onValueChange={setSelectedEffort}
 								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							/>
 						)}

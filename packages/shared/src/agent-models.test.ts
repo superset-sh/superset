@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
+	AGENT_EFFORT_SUPPORT,
 	AGENT_MODEL_SUPPORT,
+	buildAgentEffortArgs,
 	buildAgentModelArgs,
+	getAgentEffortSupport,
 	getAgentModelSupport,
 } from "./agent-models";
 import { BUILTIN_TERMINAL_AGENT_TYPES } from "./builtin-terminal-agents";
@@ -71,5 +74,68 @@ describe("buildAgentModelArgs", () => {
 		expect(
 			buildAgentModelArgs("superset", "anthropic/claude-opus-4-8"),
 		).toEqual([]);
+	});
+
+	it("includes fable in claude's curated list", () => {
+		expect(buildAgentModelArgs("claude", "fable")).toEqual([
+			"--model",
+			"fable",
+		]);
+	});
+});
+
+describe("AGENT_EFFORT_SUPPORT", () => {
+	it("only references builtin presets", () => {
+		const validIds = new Set<string>(BUILTIN_TERMINAL_AGENT_TYPES);
+		for (const entry of AGENT_EFFORT_SUPPORT) {
+			expect(validIds.has(entry.presetId)).toBe(true);
+		}
+	});
+
+	it("lists at least one effort per entry", () => {
+		for (const entry of AGENT_EFFORT_SUPPORT) {
+			expect(entry.efforts.length).toBeGreaterThan(0);
+		}
+	});
+});
+
+describe("getAgentEffortSupport", () => {
+	it("returns the entry for a supported preset", () => {
+		expect(getAgentEffortSupport("claude")?.effortFlag).toBe("--effort");
+	});
+
+	it("returns undefined for presets without effort support", () => {
+		expect(getAgentEffortSupport("gemini")).toBeUndefined();
+		expect(getAgentEffortSupport("superset")).toBeUndefined();
+	});
+});
+
+describe("buildAgentEffortArgs", () => {
+	it("builds flag + value tokens", () => {
+		expect(buildAgentEffortArgs("claude", "high")).toEqual([
+			"--effort",
+			"high",
+		]);
+	});
+
+	it("prefixes the value for codex config overrides", () => {
+		expect(buildAgentEffortArgs("codex", "high")).toEqual([
+			"-c",
+			"model_reasoning_effort=high",
+		]);
+	});
+
+	it("returns [] when no effort is set", () => {
+		expect(buildAgentEffortArgs("claude", undefined)).toEqual([]);
+		expect(buildAgentEffortArgs("claude", "")).toEqual([]);
+	});
+
+	it("returns [] for unsupported presets", () => {
+		expect(buildAgentEffortArgs("gemini", "high")).toEqual([]);
+	});
+
+	it("returns [] for effort ids outside the preset's curated list", () => {
+		expect(buildAgentEffortArgs("claude", "bogus")).toEqual([]);
+		expect(buildAgentEffortArgs("copilot", "max")).toEqual([]);
 	});
 });

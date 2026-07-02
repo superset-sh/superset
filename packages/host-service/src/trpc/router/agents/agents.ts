@@ -1,5 +1,8 @@
 import { readFileSync } from "node:fs";
-import { buildAgentModelArgs } from "@superset/shared/agent-models";
+import {
+	buildAgentEffortArgs,
+	buildAgentModelArgs,
+} from "@superset/shared/agent-models";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -165,6 +168,7 @@ export interface AgentRunInput {
 	prompt: string;
 	attachmentIds?: string[];
 	model?: string;
+	effort?: string;
 }
 
 export type AgentRunResult =
@@ -258,7 +262,11 @@ async function runTerminalAgent(
 
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const modelArgs = buildAgentModelArgs(config.presetId, input.model);
-	const command = buildAgentCommandString(config, prompt, modelArgs);
+	const effortArgs = buildAgentEffortArgs(config.presetId, input.effort);
+	const command = buildAgentCommandString(config, prompt, [
+		...modelArgs,
+		...effortArgs,
+	]);
 	const fullCommand = `${envOverlayPrefix(config.env)}${command}`;
 
 	const terminalId = crypto.randomUUID();
@@ -303,6 +311,7 @@ export const agentsRouter = router({
 				prompt: z.string().min(1),
 				attachmentIds: z.array(z.string().uuid()).optional(),
 				model: z.string().min(1).optional(),
+				effort: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),

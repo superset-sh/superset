@@ -1,5 +1,6 @@
 /**
- * Curated per-agent model catalogs for the workspace-create model picker.
+ * Curated per-agent model and effort catalogs for the workspace-create
+ * pickers.
  *
  * Entries are keyed by terminal-agent presetId (see
  * `builtin-terminal-agents.ts`) plus the virtual `"superset"` chat agent.
@@ -114,10 +115,123 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 	},
 ];
 
+export interface AgentEffortSupport {
+	presetId: string;
+	effortFlag: string;
+	/**
+	 * Prepended to the selected effort id to form the flag's value token.
+	 * Codex has no dedicated effort flag, so effort rides a config override:
+	 * `-c model_reasoning_effort=high`.
+	 */
+	effortValuePrefix?: string;
+	efforts: AgentModelOption[];
+}
+
+/**
+ * Curated per-agent reasoning-effort catalogs, mirroring
+ * `AGENT_MODEL_SUPPORT`. Flags and accepted values were verified against each
+ * CLI's `--help` (or its own validator) — agents absent from this list
+ * (gemini, opencode, cursor-agent, droid, superset chat) expose no effort
+ * control on their interactive launch command.
+ */
+export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
+	{
+		presetId: "claude",
+		effortFlag: "--effort",
+		efforts: [
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+			{ id: "max", label: "Max" },
+		],
+	},
+	{
+		presetId: "amp",
+		effortFlag: "--effort",
+		efforts: [
+			{ id: "none", label: "None" },
+			{ id: "minimal", label: "Minimal" },
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+			{ id: "max", label: "Max" },
+		],
+	},
+	{
+		presetId: "codex",
+		effortFlag: "-c",
+		effortValuePrefix: "model_reasoning_effort=",
+		efforts: [
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+	{
+		presetId: "mastracode",
+		effortFlag: "--thinking-level",
+		efforts: [
+			{ id: "off", label: "Off" },
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+	{
+		presetId: "pi",
+		effortFlag: "--thinking",
+		efforts: [
+			{ id: "off", label: "Off" },
+			{ id: "minimal", label: "Minimal" },
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+	{
+		presetId: "copilot",
+		effortFlag: "--effort",
+		efforts: [
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+];
+
 export function getAgentModelSupport(
 	presetId: string,
 ): AgentModelSupport | undefined {
 	return AGENT_MODEL_SUPPORT.find((entry) => entry.presetId === presetId);
+}
+
+export function getAgentEffortSupport(
+	presetId: string,
+): AgentEffortSupport | undefined {
+	return AGENT_EFFORT_SUPPORT.find((entry) => entry.presetId === presetId);
+}
+
+/**
+ * Argv tokens that select `effort` for the given preset, e.g.
+ * `["--effort", "high"]` (codex: `["-c", "model_reasoning_effort=high"]`).
+ * Same degrade-to-default contract as `buildAgentModelArgs`: unknown presets
+ * or effort ids outside the curated list return `[]`.
+ */
+export function buildAgentEffortArgs(
+	presetId: string,
+	effort: string | undefined,
+): string[] {
+	if (!effort) return [];
+	const support = getAgentEffortSupport(presetId);
+	if (!support) return [];
+	if (!support.efforts.some((option) => option.id === effort)) return [];
+	return [support.effortFlag, `${support.effortValuePrefix ?? ""}${effort}`];
 }
 
 /**
