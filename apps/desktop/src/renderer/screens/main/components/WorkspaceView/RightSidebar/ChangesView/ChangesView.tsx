@@ -173,17 +173,16 @@ export function ChangesView({
 		},
 	});
 
-	const discardChangesMutation =
-		electronTrpc.changes.discardChanges.useMutation({
-			onSuccess: () => refetch(),
-			onError: (error, variables) => {
-				console.error(
-					`Failed to discard changes for ${variables.filePath}:`,
-					error,
-				);
-				toast.error(`Failed to discard changes: ${error.message}`);
-			},
-		});
+	const discardFilesMutation = electronTrpc.changes.discardFiles.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(
+				`Failed to discard changes for ${variables.filePaths.join(", ")}:`,
+				error,
+			);
+			toast.error(`Failed to discard changes: ${error.message}`);
+		},
+	});
 
 	const deleteUntrackedMutation =
 		electronTrpc.changes.deleteUntracked.useMutation({
@@ -299,17 +298,25 @@ export function ChangesView({
 		}
 	};
 
-	const handleDiscard = (file: ChangedFile) => {
+	const handleDiscardFiles = (files: ChangedFile[]) => {
 		if (!worktreePath) return;
-		if (file.status === "untracked" || file.status === "added") {
+		const isUntracked = (file: ChangedFile) =>
+			file.status === "untracked" || file.status === "added";
+		// Untracked/added files are deleted from disk; git never touches the
+		// index for them, so per-file deletes can't race on index.lock.
+		for (const file of files.filter(isUntracked)) {
 			deleteUntrackedMutation.mutate({
 				worktreePath,
 				filePath: file.path,
 			});
-		} else {
-			discardChangesMutation.mutate({
+		}
+		const trackedPaths = files
+			.filter((file) => !isUntracked(file))
+			.map((file) => file.path);
+		if (trackedPaths.length > 0) {
+			discardFilesMutation.mutate({
 				worktreePath,
-				filePath: file.path,
+				filePaths: trackedPaths,
 			});
 		}
 	};
@@ -631,7 +638,7 @@ export function ChangesView({
 				worktreePath: worktreePath || "",
 				filePaths: files.map((f) => f.path),
 			}),
-		onDiscardFile: handleDiscard,
+		onDiscardFiles: handleDiscardFiles,
 		onShowDiscardUnstagedDialog: () => setShowDiscardUnstagedDialog(true),
 		onStageAll: () =>
 			stageAllMutation.mutate({
@@ -643,7 +650,7 @@ export function ChangesView({
 			stageFileMutation.isPending ||
 			stageFilesMutation.isPending ||
 			stageAllMutation.isPending ||
-			discardChangesMutation.isPending ||
+			discardFilesMutation.isPending ||
 			deleteUntrackedMutation.isPending ||
 			discardAllUnstagedMutation.isPending,
 	});

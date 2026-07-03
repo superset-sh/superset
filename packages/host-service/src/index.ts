@@ -20,6 +20,7 @@ export {
 } from "./providers/model-providers";
 export type { GitCredentialProvider, GitFactory } from "./runtime/git";
 export { installProcessSafetyNet } from "./safety";
+export { startTerminalReaper } from "./terminal/reaper";
 export type {
 	DeleteInProgressCause,
 	TeardownFailureCause,
