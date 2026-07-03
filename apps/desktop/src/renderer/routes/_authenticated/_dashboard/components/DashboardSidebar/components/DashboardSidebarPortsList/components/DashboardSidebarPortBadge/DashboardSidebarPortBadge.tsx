@@ -1,13 +1,20 @@
 import {
-	ContextMenu,
-	ContextMenuContent,
-	ContextMenuItem,
-	ContextMenuTrigger,
-} from "@superset/ui/context-menu";
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { LuExternalLink, LuLoaderCircle, LuX } from "react-icons/lu";
+import {
+	LuEllipsisVertical,
+	LuExternalLink,
+	LuLoaderCircle,
+	LuSquareTerminal,
+	LuX,
+} from "react-icons/lu";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -60,47 +67,46 @@ export function DashboardSidebarPortBadge({
 		});
 	};
 
+	// Opening the port is the primary action; remote ports can't open a local
+	// browser tab, so clicking those jumps to the workspace instead.
+	const handlePrimaryClick = canOpenInBrowser
+		? handleOpenInBrowser
+		: handleWorkspaceClick;
+
 	const handleClose = () => {
 		if (isPending) return;
 		void killPort(port);
 	};
 
 	return (
-		<ContextMenu>
+		<div
+			className={cn(
+				"group flex max-w-44 shrink-0 items-center rounded",
+				"bg-muted/60 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+				isPending && "opacity-70",
+			)}
+		>
 			<Tooltip delayDuration={700}>
-				<ContextMenuTrigger asChild>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleWorkspaceClick}
-							disabled={isPending}
-							aria-busy={isPending}
-							className={cn(
-								"flex max-w-40 min-w-0 shrink-0 items-center gap-1 rounded px-1.5 py-0.5",
-								"bg-muted/60 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-								"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-								isPending && "opacity-70",
-							)}
-						>
-							{port.label ? (
-								<>
-									<span className="min-w-0 truncate">{port.label}</span>
-									<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground/60">
-										{port.port}
-									</span>
-								</>
-							) : (
-								<span className="font-mono tabular-nums">{port.port}</span>
-							)}
-							{isPending && (
-								<LuLoaderCircle
-									className="size-3 shrink-0 animate-spin"
-									strokeWidth={STROKE_WIDTH}
-								/>
-							)}
-						</button>
-					</TooltipTrigger>
-				</ContextMenuTrigger>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={handlePrimaryClick}
+						disabled={isPending}
+						aria-busy={isPending}
+						className="flex min-w-0 items-center gap-1 rounded-l py-0.5 pl-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+					>
+						{port.label ? (
+							<>
+								<span className="min-w-0 truncate">{port.label}</span>
+								<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground/60">
+									{port.port}
+								</span>
+							</>
+						) : (
+							<span className="font-mono tabular-nums">{port.port}</span>
+						)}
+					</button>
+				</TooltipTrigger>
 				<TooltipContent side="top" sideOffset={6} showArrow={false}>
 					<div className="space-y-1 text-xs">
 						{port.label && <div className="font-medium">{port.label}</div>}
@@ -116,32 +122,63 @@ export function DashboardSidebarPortBadge({
 								{port.pid != null && ` (pid ${port.pid})`}
 							</div>
 						)}
-						{!canOpenInBrowser && (
-							<div className="text-[10px] text-background/60">
-								Browser open unavailable from this device
-							</div>
-						)}
 						<div className="text-[10px] text-background/60">
-							Click to open workspace · Right-click for actions
+							{canOpenInBrowser
+								? "Click to open in browser"
+								: "Click to open workspace"}
 						</div>
 					</div>
 				</TooltipContent>
 			</Tooltip>
-			<ContextMenuContent>
-				{canOpenInBrowser && (
-					<ContextMenuItem
-						onSelect={handleOpenInBrowser}
-						disabled={openUrl.isPending}
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<button
+						type="button"
+						aria-label={`Actions for ${port.label || `port ${port.port}`}`}
+						disabled={isPending}
+						className="flex shrink-0 items-center self-stretch rounded-r px-1 text-muted-foreground/50 opacity-0 transition-[opacity,color] hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring group-hover:opacity-100 data-[state=open]:text-foreground data-[state=open]:opacity-100"
 					>
-						<LuExternalLink className="size-4 mr-2" />
-						Open in Browser
-					</ContextMenuItem>
-				)}
-				<ContextMenuItem onSelect={handleClose} disabled={isPending}>
-					<LuX className="size-4 mr-2" />
-					Close Port
-				</ContextMenuItem>
-			</ContextMenuContent>
-		</ContextMenu>
+						{isPending ? (
+							<LuLoaderCircle
+								className="size-3 animate-spin"
+								strokeWidth={STROKE_WIDTH}
+							/>
+						) : (
+							<LuEllipsisVertical
+								className="size-3"
+								strokeWidth={STROKE_WIDTH}
+							/>
+						)}
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent
+					align="start"
+					onCloseAutoFocus={(event) => event.preventDefault()}
+				>
+					{canOpenInBrowser && (
+						<DropdownMenuItem
+							onSelect={handleOpenInBrowser}
+							disabled={openUrl.isPending}
+						>
+							<LuExternalLink />
+							Open in Browser
+						</DropdownMenuItem>
+					)}
+					<DropdownMenuItem onSelect={handleWorkspaceClick}>
+						<LuSquareTerminal />
+						Go to Workspace
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						variant="destructive"
+						onSelect={handleClose}
+						disabled={isPending}
+					>
+						<LuX />
+						Close Port
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
 	);
 }
