@@ -225,6 +225,12 @@ interface TerminalSession {
 	 */
 	buffer: Uint8Array[];
 	bufferBytes: number;
+	/**
+	 * Deliver SESSION_RESTORED_NOTICE ahead of the next replay. Kept out of
+	 * the FIFO so MAX_BUFFER_BYTES eviction can't drop it before a client
+	 * attaches. Cleared on first replay.
+	 */
+	restoredNoticePending: boolean;
 	createdAt: number;
 	exited: boolean;
 	exitCode: number;
@@ -544,27 +550,35 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 	return sent;
 }
 
-function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	// Preamble first, then FIFO. Mode-setting escapes (kitty keyboard,
-	// bracketed paste, focus, …) are typically emitted once at startup and
-	// broadcast away rather than buffered, so a fresh xterm needs them
-	// re-asserted on every attach — even when the FIFO is empty.
+export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
+	// Preamble first, then the restored notice, then FIFO. Mode-setting
+	// escapes (kitty keyboard, bracketed paste, focus, …) are typically
+	// emitted once at startup and broadcast away rather than buffered, so a
+	// fresh xterm needs them re-asserted on every attach — even when the
+	// FIFO is empty.
 	const preamble = session.modeTracker.buildPreamble();
+	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
 	let bufferTotal = 0;
 	for (const b of session.buffer) bufferTotal += b.byteLength;
 	const preambleLen = preamble?.byteLength ?? 0;
-	if (preambleLen === 0 && bufferTotal === 0) return;
+	const noticeLen = notice?.byteLength ?? 0;
+	if (preambleLen === 0 && noticeLen === 0 && bufferTotal === 0) return;
 
-	const combined = new Uint8Array(preambleLen + bufferTotal);
+	const combined = new Uint8Array(preambleLen + noticeLen + bufferTotal);
 	let offset = 0;
 	if (preamble) {
 		combined.set(preamble, offset);
 		offset += preamble.byteLength;
 	}
+	if (notice) {
+		combined.set(notice, offset);
+		offset += notice.byteLength;
+	}
 	for (const b of session.buffer) {
 		combined.set(b, offset);
 		offset += b.byteLength;
 	}
+	session.restoredNoticePending = false;
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
 	sendBytes(socket, combined);
@@ -827,8 +841,8 @@ interface CreateTerminalSessionOptions {
 	 */
 	replayOnAdoption?: boolean;
 	/**
-	 * Prefix the replay buffer with a "session restored" separator. Set on the
-	 * cold-restore respawn path, where the renderer paints stale scrollback
+	 * Deliver a "session restored" separator ahead of the first replay. Set on
+	 * the cold-restore respawn path, where the renderer paints stale scrollback
 	 * above a brand-new shell.
 	 */
 	restoredNotice?: boolean;
@@ -1064,6 +1078,8 @@ export async function createTerminalSessionInternal({
 		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
+		// Adopted sessions kept a live shell — nothing was restored.
+		restoredNoticePending: restoredNotice && !isAdopted,
 		createdAt,
 		exited: false,
 		exitCode: 0,
@@ -1088,12 +1104,6 @@ export async function createTerminalSessionInternal({
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
-
-	// Buffer is empty here (subscribe hasn't started), so the notice lands
-	// before the new shell's first output on replay.
-	if (restoredNotice && !isAdopted) {
-		bufferOutput(session, SESSION_RESTORED_NOTICE);
-	}
 
 	// If the marker never arrives (broken wrapper, unsupported config),
 	// the timeout unblocks so the session degrades gracefully.

@@ -34,6 +34,7 @@ import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	listTerminalSessions,
+	replayBuffer,
 } from "./terminal.ts";
 import { __setAccountShellForTesting } from "./user-shell.ts";
 
@@ -343,7 +344,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
-	test("restoredNotice on a fresh spawn puts the separator first in the replay buffer", async () => {
+	test("restoredNotice delivers the separator ahead of shell output on first replay only", async () => {
 		const terminalId = `e2e-notice-${randomUUID().slice(0, 8)}`;
 		const result = await createTerminalSessionInternal({
 			terminalId,
@@ -355,11 +356,55 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.ok(!("error" in result));
 		if ("error" in result) return;
 
-		assert.ok(result.buffer.length > 0, "replay buffer should not be empty");
+		const first = makeCaptureSocket();
+		replayBuffer(result, first.socket);
 		assert.match(
-			new TextDecoder().decode(result.buffer[0]),
+			first.received(),
 			/Session Contents Restored/,
-			"first buffered chunk should be the restored-session separator",
+			"first replay should carry the restored-session separator",
+		);
+
+		const second = makeCaptureSocket();
+		replayBuffer(result, second.socket);
+		assert.doesNotMatch(
+			second.received(),
+			/Session Contents Restored/,
+			"separator should not repeat on later replays",
+		);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("restoredNotice survives FIFO eviction when the shell floods output before attach", async () => {
+		const terminalId = `e2e-notice-flood-${randomUUID().slice(0, 8)}`;
+		const suffix = randomUUID().slice(0, 6);
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			restoredNotice: true,
+			// > MAX_BUFFER_BYTES (64 KiB) so the FIFO drops its oldest chunks
+			// before any socket attaches. The marker is assembled by printf so
+			// the PTY echo of the command line doesn't match it.
+			initialCommand: `head -c 200000 /dev/zero | tr '\\0' x; printf 'flood-done-%s\\n' "${suffix}"`,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		await waitFor(
+			() => sessionBufferText(result).includes(`flood-done-${suffix}`),
+			15_000,
+		);
+
+		const capture = makeCaptureSocket();
+		replayBuffer(result, capture.socket);
+		const replayed = capture.received();
+		const noticeIndex = replayed.indexOf("Session Contents Restored");
+		assert.ok(noticeIndex >= 0, "separator should survive buffer eviction");
+		assert.ok(
+			noticeIndex < replayed.indexOf("xxxx"),
+			"separator should precede the flooded shell output",
 		);
 
 		await disposeSessionAndWait(terminalId, db);
@@ -388,11 +433,11 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.ok(!("error" in second));
 		if ("error" in second) return;
 
-		const decoder = new TextDecoder();
-		assert.ok(
-			second.buffer.every(
-				(chunk) => !decoder.decode(chunk).includes("Session Contents Restored"),
-			),
+		const capture = makeCaptureSocket();
+		replayBuffer(second, capture.socket);
+		assert.doesNotMatch(
+			capture.received(),
+			/Session Contents Restored/,
 			"adopted (still-live) session should not get the restored separator",
 		);
 
@@ -792,4 +837,21 @@ function sessionBufferText(session: { buffer: Uint8Array[] }): string {
 	return Buffer.concat(session.buffer.map((b) => Buffer.from(b))).toString(
 		"utf8",
 	);
+}
+
+function makeCaptureSocket() {
+	const chunks: Uint8Array[] = [];
+	return {
+		socket: {
+			send: (data: string | Uint8Array) => {
+				chunks.push(
+					typeof data === "string" ? Buffer.from(data, "utf8") : data,
+				);
+			},
+			close: () => {},
+			readyState: 1, // SOCKET_OPEN
+		},
+		received: () =>
+			Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8"),
+	};
 }
