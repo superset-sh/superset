@@ -19,6 +19,7 @@ import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import {
+	reconcileTerminalAgentBindings,
 	SqliteTerminalAgentBindingPersistence,
 	TerminalAgentStore,
 } from "./terminal-agents";
@@ -141,6 +142,14 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const terminalAgentStore = new TerminalAgentStore(
 		new SqliteTerminalAgentBindingPersistence(db),
 	);
+	// Drain bindings persisted for terminals that died while the host-service
+	// was down.
+	reconcileTerminalAgentBindings({ db, store: terminalAgentStore });
+	// A pty exit is the authoritative end of any agent bound to that terminal —
+	// agent exit hooks don't fire when the process is killed or crashes.
+	eventBus.onTerminalLifecycle(({ terminalId }) => {
+		terminalAgentStore.markTerminalExited(terminalId);
+	});
 
 	// Backfill `kind='main'` v2 workspaces for projects already set up before
 	// this column shipped. Idempotent; runs in the background so it doesn't

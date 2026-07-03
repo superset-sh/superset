@@ -67,6 +67,9 @@ export class EventBus {
 	private readonly clients = new Map<WsSocket, ClientState>();
 	private readonly gitWatcher: GitWatcher;
 	private readonly filesystem: WorkspaceFilesystemManager;
+	private readonly terminalLifecycleListeners = new Set<
+		(message: Extract<ServerMessage, { type: "terminal:lifecycle" }>) => void
+	>();
 	private removeGitListener: (() => void) | null = null;
 	private removePortListeners: (() => void) | null = null;
 
@@ -179,7 +182,30 @@ export class EventBus {
 			"type"
 		>,
 	): void {
-		this.broadcast({ type: "terminal:lifecycle", ...message });
+		const full: Extract<ServerMessage, { type: "terminal:lifecycle" }> = {
+			type: "terminal:lifecycle",
+			...message,
+		};
+		for (const listener of this.terminalLifecycleListeners) {
+			listener(full);
+		}
+		this.broadcast(full);
+	}
+
+	/**
+	 * In-process subscription to terminal lifecycle events, for host-side
+	 * consumers that must react to a pty exiting (e.g. pruning terminal-agent
+	 * bindings) — the ws broadcast above only reaches renderer clients.
+	 */
+	onTerminalLifecycle(
+		listener: (
+			message: Extract<ServerMessage, { type: "terminal:lifecycle" }>,
+		) => void,
+	): () => void {
+		this.terminalLifecycleListeners.add(listener);
+		return () => {
+			this.terminalLifecycleListeners.delete(listener);
+		};
 	}
 
 	/**

@@ -266,4 +266,18 @@ describe("TerminalAgentStore", () => {
 		persistentStore.markTerminalExited("t1");
 		expect(persisted.has("t1")).toBe(false);
 	});
+
+	it("markTerminalExited deletes the persisted row even without an in-memory binding", () => {
+		const deleted: string[] = [];
+		const persistentStore = new TerminalAgentStore({
+			load: () => [],
+			upsert: () => {},
+			delete: (terminalId) => {
+				deleted.push(terminalId);
+			},
+		});
+
+		persistentStore.markTerminalExited("never-hydrated");
+		expect(deleted).toEqual(["never-hydrated"]);
+	});
 });

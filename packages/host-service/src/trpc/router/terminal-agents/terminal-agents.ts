@@ -9,9 +9,10 @@ import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 } from "../../../terminal/terminal";
-import type {
-	TerminalAgentBinding,
-	TerminalAgentId,
+import {
+	listDefunctBindingTerminalIds,
+	type TerminalAgentBinding,
+	type TerminalAgentId,
 } from "../../../terminal-agents";
 import { protectedProcedure, router } from "../../index";
 
@@ -49,10 +50,23 @@ export const terminalAgentsRouter = router({
 		)
 		.query(({ ctx, input }) => {
 			const { workspaceId, agentId, definitionId } = input;
-			return ctx.terminalAgentStore.listByWorkspace(workspaceId, {
+			const bindings = ctx.terminalAgentStore.listByWorkspace(workspaceId, {
 				...(agentId ? { agentId } : {}),
 				...(definitionId ? { definitionId } : {}),
 			});
+			// Read-time guard on top of exit-event pruning: never surface an agent
+			// for a dead terminal, even if a prune was missed. Loud on purpose —
+			// this filter dropping rows at steady state means a prune bug.
+			const defunct = listDefunctBindingTerminalIds(ctx.db);
+			const live = bindings.filter(
+				(binding) => !defunct.has(binding.terminalId),
+			);
+			if (live.length !== bindings.length) {
+				console.warn(
+					`[terminal-agents] filtered ${bindings.length - live.length} stale binding(s) for workspace ${workspaceId} — exit pruning missed these`,
+				);
+			}
+			return live;
 		}),
 
 	findActive: protectedProcedure

@@ -1,8 +1,55 @@
-import { eq, ne } from "drizzle-orm";
+import { eq, inArray, isNull, ne, or } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { terminalAgentBindings, terminalSessions } from "../db/schema";
-import type { TerminalAgentBindingPersistence } from "./store";
+import type {
+	TerminalAgentBindingPersistence,
+	TerminalAgentStore,
+} from "./store";
 import type { TerminalAgentBinding } from "./types";
+
+/**
+ * Terminal ids whose bindings are defunct: the session row is missing,
+ * `exited`/`disposed`, or workspace-less (the same orphan criteria the
+ * terminal reaper uses). The single source of the staleness criteria — the
+ * startup drain deletes matching bindings and the `listByWorkspace` read
+ * filter excludes them, so the two layers can't drift apart.
+ */
+export function listDefunctBindingTerminalIds(db: HostDb): Set<string> {
+	const rows = db
+		.select({ terminalId: terminalAgentBindings.terminalId })
+		.from(terminalAgentBindings)
+		.leftJoin(
+			terminalSessions,
+			eq(terminalAgentBindings.terminalId, terminalSessions.id),
+		)
+		.where(
+			or(
+				isNull(terminalSessions.id),
+				inArray(terminalSessions.status, ["exited", "disposed"]),
+				isNull(terminalSessions.originWorkspaceId),
+			),
+		)
+		.all();
+	return new Set(rows.map((row) => row.terminalId));
+}
+
+/**
+ * Prune bindings whose terminal can no longer be hosting an agent. Exit-event
+ * pruning only covers terminals that die while the host-service is up, so run
+ * this once at startup, after hydrating the store, to drain bindings
+ * persisted for terminals that died in between.
+ */
+export function reconcileTerminalAgentBindings({
+	db,
+	store,
+}: {
+	db: HostDb;
+	store: TerminalAgentStore;
+}): void {
+	for (const terminalId of listDefunctBindingTerminalIds(db)) {
+		store.markTerminalExited(terminalId);
+	}
+}
 
 export class SqliteTerminalAgentBindingPersistence
 	implements TerminalAgentBindingPersistence
