@@ -1,5 +1,31 @@
-import { beforeEach, describe, expect, it } from "bun:test";
-import {
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+
+// The store persists via zustand's `persist`, whose default storage resolves
+// `localStorage` once at module load. Install a mock BEFORE importing the store
+// (matching persistent-hash-history.test.ts) so the store binds a working
+// storage regardless of Bun test file ordering. A static import would be
+// hoisted above this setup, so the store must be imported dynamically below.
+const localStorageBacking = new Map<string, string>();
+Object.defineProperty(globalThis, "localStorage", {
+	value: {
+		getItem: mock((key: string) => localStorageBacking.get(key) ?? null),
+		setItem: mock((key: string, value: string) => {
+			localStorageBacking.set(key, value);
+		}),
+		removeItem: mock((key: string) => {
+			localStorageBacking.delete(key);
+		}),
+		clear: mock(() => localStorageBacking.clear()),
+		get length() {
+			return localStorageBacking.size;
+		},
+		key: mock((_index: number) => null as string | null),
+	},
+	writable: true,
+	configurable: true,
+});
+
+const {
 	getV2NotificationSourcesForPane,
 	getV2NotificationSourcesForTab,
 	selectV2ChatNotificationStatus,
@@ -9,7 +35,7 @@ import {
 	selectV2TerminalNotificationStatus,
 	selectV2WorkspaceNotificationStatus,
 	useV2NotificationStore,
-} from "./store";
+} = await import("./store");
 
 const terminalPane = {
 	id: "pane-1",
