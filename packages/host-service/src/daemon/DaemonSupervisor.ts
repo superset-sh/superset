@@ -965,7 +965,7 @@ export class DaemonSupervisor {
 				// namespace and causing GUI subprocesses (Chromium/Playwright/Lighthouse) to
 				// abort with SIGABRT (bootstrap_check_in error 141). On other platforms the
 				// original prod/dev split is preserved. See: https://github.com/superset-sh/superset/issues/5423
-				detached: process.platform === 'darwin' ? false : !isDev,
+				detached: process.platform === "darwin" ? false : !isDev,
 				stdio,
 				env: childEnv,
 				windowsHide: true,
