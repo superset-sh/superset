@@ -959,7 +959,12 @@ export class DaemonSupervisor {
 						`--socket=${socketPath}`,
 					];
 			child = childProcess.spawn(command, commandArgs, {
-				detached: !isDev,
+				// macOS: do NOT use detached:true (setsid) here. It detaches the daemon from
+				// the Aqua launchd bootstrap namespace, breaking GUI subprocess launch
+				// (Chromium, Playwright, Lighthouse) with SIGABRT (bootstrap_check_in error 141).
+				// child.unref() below is sufficient for PTY survival across Electron quit+relaunch.
+				// See: https://github.com/superset-sh/superset/issues/5423
+				detached: false,
 				stdio,
 				env: childEnv,
 				windowsHide: true,
