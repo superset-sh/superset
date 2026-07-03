@@ -359,17 +359,16 @@ export function useV2WorkspaceIsUnread(workspaceId: string) {
 }
 
 /**
- * Number of distinct workspaces that currently carry any notification status
- * (working/permission/review, including manual unread). Every stored entry is a
- * non-idle {@link ActivePaneStatus} and cleared entries are removed, so the
- * distinct workspace count is the combined unread + attention-needed total used
- * for the OS dock/taskbar badge.
+ * Number of distinct workspaces that are done (review, including manual
+ * unread) or need attention (permission), used for the OS dock/taskbar badge.
+ * Workspaces where an agent is merely still working are excluded.
  */
 export function selectV2AttentionWorkspaceCount(
 	state: V2NotificationState,
 ): number {
 	const workspaceIds = new Set<string>();
 	for (const entry of Object.values(state.sources)) {
+		if (entry.status === "working") continue;
 		workspaceIds.add(entry.workspaceId);
 	}
 	return workspaceIds.size;

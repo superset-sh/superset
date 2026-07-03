@@ -264,13 +264,12 @@ export function setWorkspaceDockIcon(): void {
  *   badge; `0` clears it. No-op where the desktop environment lacks support.
  */
 export function setBadgeCount(count: number): void {
-	const safeCount = Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0;
 	try {
 		if (process.platform === "darwin") {
-			app.dock?.setBadge(safeCount > 0 ? String(safeCount) : "");
+			app.dock?.setBadge(count > 0 ? String(count) : "");
 			return;
 		}
-		app.setBadgeCount(safeCount);
+		app.setBadgeCount(count);
 	} catch (error) {
 		console.error("[dock-icon] Failed to set badge count:", error);
 	}
