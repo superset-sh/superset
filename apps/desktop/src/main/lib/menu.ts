@@ -14,7 +14,7 @@ import {
 	setNotificationSoundsMuted,
 } from "./notification-settings";
 
-// Registered once (see createApplicationMenu) so the menu-bar checkbox stays in
+// Registered once (see createApplicationMenu) so the menu-bar label stays in
 // sync when the mute state changes from other surfaces (command palette,
 // settings). Guards against re-registering on every menu rebuild.
 let muteSyncListenerRegistered = false;
@@ -225,9 +225,9 @@ export function createApplicationMenu() {
 	Menu.setApplicationMenu(menu);
 
 	// Rebuild the menu whenever the mute state changes — from this menu, the
-	// command palette, or the settings page — so the checkbox reflects the
-	// persisted value. Registered once; the rebuild itself does not emit, so
-	// this can't loop.
+	// command palette, or the settings page — so the Mute/Unmute label reflects
+	// the persisted value. Registered once; the rebuild itself does not emit,
+	// so this can't loop.
 	if (!muteSyncListenerRegistered) {
 		muteSyncListenerRegistered = true;
 		menuEmitter.on("notifications-muted-changed", () => {
