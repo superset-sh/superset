@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
+	LuAppWindow,
 	LuEllipsisVertical,
 	LuExternalLink,
 	LuLoaderCircle,
@@ -46,25 +47,34 @@ export function DashboardSidebarPortBadge({
 		});
 	};
 
-	const handleOpenInBrowser = () => {
+	const portUrl = `http://localhost:${port.port}`;
+
+	const handleOpenExternal = () => {
+		if (!canOpenInBrowser || openUrl.isPending) return;
+		openUrl.mutate(portUrl);
+	};
+
+	const handleOpenInApp = (target: "new-tab" | "current-tab") => {
 		if (!canOpenInBrowser) return;
-
-		// Where the port opens is configurable under Settings → Links → Ports.
-		const url = `http://localhost:${port.port}`;
-		if (preferences.portOpenAction === "external") {
-			if (openUrl.isPending) return;
-			openUrl.mutate(url);
-			return;
-		}
-
 		void navigateToV2Workspace(port.workspaceId, navigate, {
 			search: {
-				openUrl: url,
-				openUrlTarget:
-					preferences.portOpenAction === "newTab" ? "new-tab" : "current-tab",
+				openUrl: portUrl,
+				openUrlTarget: target,
 				openUrlRequestId: crypto.randomUUID(),
 			},
 		});
+	};
+
+	// Where a plain click opens the port is configurable under
+	// Settings → Links → Ports.
+	const handleOpenInBrowser = () => {
+		if (preferences.portOpenAction === "external") {
+			handleOpenExternal();
+			return;
+		}
+		handleOpenInApp(
+			preferences.portOpenAction === "newTab" ? "new-tab" : "current-tab",
+		);
 	};
 
 	// Opening the port is the primary action; remote ports can't open a local
@@ -156,13 +166,27 @@ export function DashboardSidebarPortBadge({
 					onCloseAutoFocus={(event) => event.preventDefault()}
 				>
 					{canOpenInBrowser && (
-						<DropdownMenuItem
-							onSelect={handleOpenInBrowser}
-							disabled={openUrl.isPending}
-						>
-							<LuExternalLink />
-							Open in Browser
-						</DropdownMenuItem>
+						<>
+							<DropdownMenuItem
+								onSelect={handleOpenExternal}
+								disabled={openUrl.isPending}
+							>
+								<LuExternalLink />
+								Open in External Browser
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onSelect={() =>
+									handleOpenInApp(
+										preferences.portOpenAction === "pane"
+											? "current-tab"
+											: "new-tab",
+									)
+								}
+							>
+								<LuAppWindow />
+								Open in Superset Browser
+							</DropdownMenuItem>
+						</>
 					)}
 					<DropdownMenuItem onSelect={handleWorkspaceClick}>
 						<LuSquareTerminal />
