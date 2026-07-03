@@ -343,6 +343,62 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
+	test("restoredNotice on a fresh spawn puts the separator first in the replay buffer", async () => {
+		const terminalId = `e2e-notice-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			restoredNotice: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		assert.ok(result.buffer.length > 0, "replay buffer should not be empty");
+		assert.match(
+			new TextDecoder().decode(result.buffer[0]),
+			/Session Contents Restored/,
+			"first buffered chunk should be the restored-session separator",
+		);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("restoredNotice is skipped when the daemon session is adopted", async () => {
+		const terminalId = `e2e-notice-adopt-${randomUUID().slice(0, 8)}`;
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			restoredNotice: true,
+		});
+		assert.ok(!("error" in second));
+		if ("error" in second) return;
+
+		const decoder = new TextDecoder();
+		assert.ok(
+			second.buffer.every(
+				(chunk) => !decoder.decode(chunk).includes("Session Contents Restored"),
+			),
+			"adopted (still-live) session should not get the restored separator",
+		);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
 	test("adopted session keeps listed/exited bookkeeping", async () => {
 		const terminalId = `e2e-bookkeeping-${randomUUID().slice(0, 8)}`;
 		const first = await createTerminalSessionInternal({

@@ -160,6 +160,12 @@ type TerminalServerMessage =
 	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+// Dim separator delivered ahead of a respawned shell's output so users can
+// tell restored scrollback from the fresh session (cf. VS Code's "History
+// restored" line).
+const SESSION_RESTORED_NOTICE = new TextEncoder().encode(
+	"\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n",
+);
 // Cap on a single renderer socket's unflushed WebSocket send buffer. With no
 // ACK flow control, a renderer that stops draining (slow paint, pinned main
 // thread, dead tab) would let this buffer grow without bound → host OOM (the
@@ -820,6 +826,12 @@ interface CreateTerminalSessionOptions {
 	 * the WS-down window are dropped (sub-second on a daemon swap).
 	 */
 	replayOnAdoption?: boolean;
+	/**
+	 * Prefix the replay buffer with a "session restored" separator. Set on the
+	 * cold-restore respawn path, where the renderer paints stale scrollback
+	 * above a brand-new shell.
+	 */
+	restoredNotice?: boolean;
 }
 
 function resolveTerminalCwd(
@@ -867,6 +879,7 @@ export async function createTerminalSessionInternal({
 	rows: requestedRows,
 	adoptOnly = false,
 	replayOnAdoption = true,
+	restoredNotice = false,
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
@@ -1075,6 +1088,12 @@ export async function createTerminalSessionInternal({
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
+
+	// Buffer is empty here (subscribe hasn't started), so the notice lands
+	// before the new shell's first output on replay.
+	if (restoredNotice && !isAdopted) {
+		bufferOutput(session, SESSION_RESTORED_NOTICE);
+	}
 
 	// If the marker never arrives (broken wrapper, unsupported config),
 	// the timeout unblocks so the session degrades gracefully.
@@ -1352,6 +1371,7 @@ export function registerWorkspaceTerminalRoute({
 					themeType,
 					db,
 					eventBus,
+					restoredNotice: true,
 				});
 			};
 
