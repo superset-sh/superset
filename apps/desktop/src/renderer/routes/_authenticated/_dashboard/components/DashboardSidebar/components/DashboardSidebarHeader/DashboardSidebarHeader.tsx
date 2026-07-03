@@ -18,6 +18,7 @@ import {
 	LuPlus,
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { ZoomStable } from "renderer/components/ZoomStable";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -233,11 +234,11 @@ export function DashboardSidebarHeader({
 			{/* -mx-2 cancels the parent's px-2 so this row owns the 80px traffic-light
 			    inset; inset and height are counter-scaled to a constant physical size
 			    so the fixed macOS traffic lights stay aligned under page zoom. On Mac
-			    the control clusters below use `zoom: 1 / zoomFactor` so the collapse/nav
-			    icons and usage badge keep a constant physical size instead of scaling
-			    with page zoom and overflowing this fixed-height row. The zoom is Mac-only
-			    because the pinned row height it matches is Mac-only; elsewhere the row
-			    height (h-8) scales with zoom, so the controls should scale with it. */}
+			    the control clusters below use ZoomStable so the collapse/nav icons and
+			    usage badge keep a constant physical size instead of scaling with page
+			    zoom and overflowing this fixed-height row. It's Mac-only because the
+			    pinned row height it matches is Mac-only; elsewhere the row height (h-8)
+			    scales with zoom, so the controls should scale with it. */}
 			<div
 				className="drag -mx-2 flex h-8 items-center gap-1.5 pr-2"
 				style={
@@ -249,19 +250,13 @@ export function DashboardSidebarHeader({
 						: { paddingLeft: "8px" }
 				}
 			>
-				<div
-					className="flex items-center gap-1.5"
-					style={isMac ? { zoom: 1 / zoomFactor } : undefined}
-				>
+				<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 					<SidebarToggle />
 					<NavigationControls />
-				</div>
-				<div
-					className="ml-auto"
-					style={isMac ? { zoom: 1 / zoomFactor } : undefined}
-				>
+				</ZoomStable>
+				<ZoomStable enabled={isMac} className="ml-auto">
 					<ResourceConsumption surface="v2" />
-				</div>
+				</ZoomStable>
 			</div>
 			<OrganizationDropdown variant="expanded" />
 

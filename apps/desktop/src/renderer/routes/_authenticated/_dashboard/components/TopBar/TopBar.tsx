@@ -1,5 +1,6 @@
 import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
+import { ZoomStable } from "renderer/components/ZoomStable";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
@@ -55,15 +56,15 @@ export function TopBar() {
 			style={barStyle}
 		>
 			<div
-				className="flex items-center gap-1.5 h-full"
+				className="flex items-center h-full"
 				style={{ paddingLeft: trafficLightInset }}
 			>
 				{!sidebarHostsChrome && (
-					<>
+					<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 						<SidebarToggle />
 						<NavigationControls />
 						{!isV2CloudEnabled && <ResourceConsumption surface="v1" />}
-					</>
+					</ZoomStable>
 				)}
 			</div>
 
