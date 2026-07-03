@@ -115,6 +115,7 @@ async function main(): Promise<void> {
 			// reach `main().catch(...)` and exit with a non-zero code.
 			installProcessSafetyNet();
 
+			// Orphan reaping + port detection for terminals no renderer has attached.
 			startTerminalReaper(db);
 
 			if (env.ORGANIZATION_ID) {
