@@ -7,24 +7,20 @@ import { playRingtone } from "renderer/lib/ringtones/play";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useRingtoneStore } from "renderer/stores/ringtone";
-import {
-	getV2TerminalNotificationSource,
-	useV2NotificationStore,
-	type V2NotificationSourceInput,
-} from "renderer/stores/v2-notifications";
+import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 import { getV2NativeNotificationContent } from "./notificationContent";
 import {
 	isV2NotificationTargetVisible,
 	resolveV2NotificationTarget,
 	type V2NotificationTarget,
 } from "./resolveV2NotificationTarget";
-import { resolveV2AgentStatusTransition } from "./statusTransitions";
 
 /**
- * Updates pane status indicators (working/review/permission/idle) and plays
- * the completion chime client-side, so the playback path works when
- * host-service runs off-machine. The chime is suppressed when the target
- * pane is visible and the window is focused.
+ * Marks visible targets as seen (terminal statuses are derived from host
+ * agent bindings, so an event landing while the user watches must not turn
+ * into `review`) and plays the completion chime client-side, so the playback
+ * path works when host-service runs off-machine. The chime is suppressed
+ * when the target pane is visible and the window is focused.
  */
 export function handleV2AgentLifecycleEvent({
 	workspaceId,
@@ -46,12 +42,7 @@ export function handleV2AgentLifecycleEvent({
 		payload,
 		paneLayout,
 	});
-	updateV2AgentLifecycleStatus({
-		workspaceId,
-		payload,
-		paneLayout,
-		target,
-	});
+	markSeenIfTargetVisible({ payload, paneLayout, target });
 
 	// Only Stop and PermissionRequest deserve sound. Start fires per-prompt
 	// (the working spinner is feedback enough); Attached/Detached fire on
@@ -77,7 +68,11 @@ export function handleV2AgentLifecycleEvent({
 	});
 }
 
-export function handleV2AgentLifecycleStatusEvent({
+/**
+ * Seen-marking half of `handleV2AgentLifecycleEvent`, for event paths that
+ * must not chime (e.g. the Electron fallback for adopted shells).
+ */
+export function markV2AgentLifecycleTargetSeen({
 	workspaceId,
 	payload,
 	paneLayout,
@@ -91,69 +86,37 @@ export function handleV2AgentLifecycleStatusEvent({
 		payload,
 		paneLayout,
 	});
-	updateV2AgentLifecycleStatus({
-		workspaceId,
-		payload,
-		paneLayout,
-		target,
-	});
+	markSeenIfTargetVisible({ payload, paneLayout, target });
 }
 
 export function handleV2TerminalLifecycleEvent({
-	workspaceId,
 	payload,
 }: {
 	workspaceId: string;
 	payload: TerminalLifecyclePayload;
 }): void {
 	if (payload.eventType !== "exit") return;
-	clearSources(workspaceId, [
-		getV2TerminalNotificationSource(payload.terminalId),
-	]);
+	useV2NotificationStore.getState().pruneTerminalSeen(payload.terminalId);
 }
 
-function updatePaneStatus(
-	workspaceId: string,
-	payload: AgentLifecyclePayload,
-	target: V2NotificationTarget,
-	paneLayout: WorkspaceState<PaneViewerData> | null | undefined,
-): void {
-	const store = useV2NotificationStore.getState();
+function markSeenIfTargetVisible({
+	payload,
+	paneLayout,
+	target,
+}: {
+	payload: AgentLifecyclePayload;
+	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
+	target: V2NotificationTarget;
+}): void {
 	const targetVisible = isV2NotificationTargetVisible({
 		currentWorkspaceId: getCurrentWorkspaceId(),
 		paneLayout,
 		target,
 	});
-	const transition = resolveV2AgentStatusTransition({
-		workspaceId,
-		payload,
-		statuses: store.sources,
-		targetVisible,
-	});
-
-	clearSources(workspaceId, transition.clearSources);
-	if (transition.setStatus) {
-		store.setSourceStatus(
-			transition.setStatus.source,
-			workspaceId,
-			transition.setStatus.status,
-			payload.occurredAt,
-		);
-	}
-}
-
-function updateV2AgentLifecycleStatus({
-	workspaceId,
-	payload,
-	paneLayout,
-	target,
-}: {
-	workspaceId: string;
-	payload: AgentLifecyclePayload;
-	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
-	target: V2NotificationTarget;
-}): void {
-	updatePaneStatus(workspaceId, payload, target, paneLayout);
+	if (!targetVisible) return;
+	useV2NotificationStore
+		.getState()
+		.markTerminalSeen(payload.terminalId, payload.occurredAt);
 }
 
 function getCurrentWorkspaceId(): string | null {
@@ -212,17 +175,4 @@ function showNativeNotification({
 				error,
 			);
 		});
-}
-
-function clearSources(
-	workspaceId: string,
-	sources: Array<V2NotificationSourceInput | null | undefined>,
-): void {
-	const store = useV2NotificationStore.getState();
-	store.clearSourceStatuses(
-		sources.filter((source): source is V2NotificationSourceInput =>
-			Boolean(source),
-		),
-		workspaceId,
-	);
 }

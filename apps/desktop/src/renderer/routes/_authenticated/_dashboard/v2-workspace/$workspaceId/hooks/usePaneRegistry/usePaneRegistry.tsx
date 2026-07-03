@@ -25,8 +25,8 @@ import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
-	clearV2TerminalRunStatus,
 	getV2NotificationSourcesForPane,
+	markTerminalSeenNow,
 } from "renderer/stores/v2-notifications";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
@@ -330,7 +330,7 @@ export function usePaneRegistry({
 						terminalRuntimeRegistry.release(terminalId);
 						return;
 					}
-					clearV2TerminalRunStatus(terminalId, workspaceId);
+					markTerminalSeenNow(terminalId);
 					clearWorkspaceRunTerminal(terminalId);
 					terminalRuntimeRegistry.dispose(terminalId);
 					killTerminalSessionSilently({ terminalId, workspaceId });

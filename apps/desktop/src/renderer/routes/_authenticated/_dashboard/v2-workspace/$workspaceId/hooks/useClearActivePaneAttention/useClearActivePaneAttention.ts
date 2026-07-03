@@ -1,10 +1,10 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { useEffect } from "react";
+import { useV2PaneNotificationStatus } from "renderer/hooks/host-service/useV2NotificationStatus";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import {
 	getV2NotificationSourcesForPane,
 	useV2NotificationStore,
-	useV2PaneNotificationStatus,
 } from "renderer/stores/v2-notifications";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
@@ -26,14 +26,16 @@ export function useClearActivePaneAttention({
 		workspace.id,
 		activePane,
 	);
-	const clearSourceAttention = useV2NotificationStore(
-		(state) => state.clearSourceAttention,
+	const markTerminalSeen = useV2NotificationStore(
+		(state) => state.markTerminalSeen,
 	);
 
 	useEffect(() => {
 		if (activePaneStatus !== "review") return;
 		for (const source of getV2NotificationSourcesForPane(activePane)) {
-			clearSourceAttention(source, workspace.id);
+			if (source.type === "terminal") {
+				markTerminalSeen(source.id);
+			}
 		}
-	}, [activePane, activePaneStatus, clearSourceAttention, workspace.id]);
+	}, [activePane, activePaneStatus, markTerminalSeen]);
 }

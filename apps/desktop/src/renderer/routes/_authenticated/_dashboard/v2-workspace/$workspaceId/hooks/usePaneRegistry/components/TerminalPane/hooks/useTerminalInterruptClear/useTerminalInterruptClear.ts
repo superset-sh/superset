@@ -1,9 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useEffectEvent } from "react";
+import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
+import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
 } from "renderer/lib/terminal/terminal-runtime-registry";
-import { clearV2TerminalRunStatus } from "renderer/stores/v2-notifications";
+import { markTerminalSeenNow } from "renderer/stores/v2-notifications";
 
 interface UseTerminalInterruptClearOptions {
 	terminalId: string;
@@ -13,10 +16,11 @@ interface UseTerminalInterruptClearOptions {
 }
 
 /**
- * The host's `terminal:lifecycle` exit only fires when the pty dies. Ctrl+C
- * kills the foreground agent process while the shell stays alive, and Claude
- * Code's Stop hook doesn't fire on user interrupt — so without this hook,
- * "working" / "permission" stays stuck in the sidebar.
+ * Ctrl+C / Escape kills the foreground agent turn while the shell stays
+ * alive, and Claude Code's Stop hook doesn't fire on user interrupt — so the
+ * host binding (the status source of truth) would stay "working". Record a
+ * synthetic Stop with the host and mark the terminal seen locally; a real
+ * hook event arriving later harmlessly overwrites the synthetic one.
  */
 export function useTerminalInterruptClear({
 	terminalId,
@@ -24,6 +28,25 @@ export function useTerminalInterruptClear({
 	workspaceId,
 	connectionState,
 }: UseTerminalInterruptClearOptions): void {
+	const hostUrl = useWorkspaceHostUrl(workspaceId);
+	const binding = useTerminalAgentBinding(workspaceId, terminalId);
+
+	const recordInterrupt = useEffectEvent(() => {
+		markTerminalSeenNow(terminalId);
+		const agentActive =
+			binding?.lastEventType === "Start" ||
+			binding?.lastEventType === "PermissionRequest";
+		if (!agentActive || !hostUrl) return;
+		getHostServiceClientByUrl(hostUrl)
+			.notifications.hook.mutate({ terminalId, eventType: "Stop" })
+			.catch((error) => {
+				console.warn(
+					"[terminal] failed to record synthetic agent stop:",
+					error,
+				);
+			});
+	});
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState re-runs the effect on reconnect so we subscribe to the new xterm instance
 	useEffect(() => {
 		const terminal = terminalRuntimeRegistry.getTerminal(
@@ -35,8 +58,8 @@ export function useTerminalInterruptClear({
 			const isInterrupt =
 				(domEvent.key === "c" && domEvent.ctrlKey) || domEvent.key === "Escape";
 			if (!isInterrupt) return;
-			clearV2TerminalRunStatus(terminalId, workspaceId);
+			recordInterrupt();
 		});
 		return () => subscription.dispose();
-	}, [terminalId, terminalInstanceId, workspaceId, connectionState]);
+	}, [terminalId, terminalInstanceId, connectionState]);
 }
