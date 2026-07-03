@@ -88,21 +88,27 @@ export async function gitSwitchBranch(
 }
 
 /**
- * Checkout (restore) a file path, discarding local changes.
+ * Checkout (restore) file paths in a single git command,
+ * discarding local changes.
  *
- * Uses `git checkout -- <path>` - the `--` is REQUIRED here
- * to indicate path mode (not branch mode).
+ * Uses `git checkout -- <paths...>` - the `--` is REQUIRED here
+ * to indicate path mode (not branch mode). A single command avoids
+ * index.lock races when discarding multiple files.
  */
-export async function gitCheckoutFile(
+export async function gitCheckoutFiles(
 	worktreePath: string,
-	filePath: string,
+	filePaths: string[],
 ): Promise<void> {
+	if (filePaths.length === 0) {
+		throw new Error("filePaths must not be empty");
+	}
 	assertRegisteredWorktree(worktreePath);
-	assertValidGitPath(filePath);
+	for (const filePath of filePaths) {
+		assertValidGitPath(filePath);
+	}
 
 	const git = await getGitWithShellPath(worktreePath);
-	// `--` is correct here - we want path semantics
-	await git.checkout(["--", filePath]);
+	await git.checkout(["--", ...filePaths]);
 }
 
 /**

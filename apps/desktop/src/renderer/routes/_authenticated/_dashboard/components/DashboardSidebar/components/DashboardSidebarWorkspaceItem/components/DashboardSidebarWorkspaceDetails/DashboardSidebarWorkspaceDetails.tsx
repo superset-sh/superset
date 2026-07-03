@@ -44,6 +44,9 @@ const STAGGER_STEP_MS = 25;
  * into the individual port pills with a slight stagger — and retracts the
  * same way in reverse. Everything is one layer, so the motion is real
  * geometry, not a cross-fade.
+ *
+ * Agent chips appear only when more than one agent is running; a lone agent
+ * is the norm for a workspace and showing it adds no signal.
  */
 export function DashboardSidebarWorkspaceDetails({
 	workspaceId,
@@ -61,7 +64,9 @@ export function DashboardSidebarWorkspaceDetails({
 		workspaceId,
 		workspaceAgentsRowEnabled,
 	);
-	const agents = workspaceAgentsRowEnabled ? runningAgents : [];
+	const hasMultipleAgents = runningAgents.length > 1;
+	const showAgentChips = workspaceAgentsRowEnabled && hasMultipleAgents;
+	const agents = showAgentChips ? runningAgents : [];
 
 	if (ports.length === 0 && agents.length === 0) {
 		return null;
