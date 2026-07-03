@@ -35,6 +35,25 @@ export const useWorkspaceDetailsStore = create<WorkspaceDetailsState>()(
 			}),
 			{
 				name: "workspace-details-store",
+				version: 1,
+				// v0 persisted one `collapsedWorkspaceIds[workspaceId]` flag for the
+				// whole details area; expand it to every per-section key.
+				migrate: (persisted, version) => {
+					if (version === 0) {
+						const old = persisted as {
+							collapsedWorkspaceIds?: Record<string, true>;
+						};
+						const collapsedSectionKeys: Record<string, true> = {};
+						for (const workspaceId of Object.keys(
+							old.collapsedWorkspaceIds ?? {},
+						)) {
+							collapsedSectionKeys[`${workspaceId}:ports`] = true;
+							collapsedSectionKeys[`${workspaceId}:agents`] = true;
+						}
+						return { collapsedSectionKeys };
+					}
+					return persisted as { collapsedSectionKeys: Record<string, true> };
+				},
 				partialize: (state) => ({
 					collapsedSectionKeys: state.collapsedSectionKeys,
 				}),

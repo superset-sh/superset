@@ -4,6 +4,7 @@ import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/
 import { useWorkspaceDetailsStore } from "renderer/stores";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
+import { useShallow } from "zustand/react/shallow";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
 import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/hooks/useDashboardSidebarPortKill";
 import { DashboardSidebarWorkspaceAgentsRow } from "../DashboardSidebarWorkspaceAgentsRow";
@@ -43,8 +44,15 @@ export function DashboardSidebarWorkspaceDetails({
 	workspaceId,
 	isInSection = false,
 }: DashboardSidebarWorkspaceDetailsProps) {
+	// Narrowed to this workspace's section keys (matching the registry below)
+	// so toggling one workspace's sections doesn't re-render every other panel.
 	const collapsedSectionKeys = useWorkspaceDetailsStore(
-		(state) => state.collapsedSectionKeys,
+		useShallow((state) => ({
+			[`${workspaceId}:ports`]:
+				state.collapsedSectionKeys[`${workspaceId}:ports`],
+			[`${workspaceId}:agents`]:
+				state.collapsedSectionKeys[`${workspaceId}:agents`],
+		})),
 	);
 	const toggleExpanded = useWorkspaceDetailsStore(
 		(state) => state.toggleExpanded,

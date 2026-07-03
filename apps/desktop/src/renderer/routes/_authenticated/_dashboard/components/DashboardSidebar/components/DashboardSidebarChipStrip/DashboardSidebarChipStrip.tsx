@@ -65,7 +65,11 @@ export function DashboardSidebarChipStrip({
 			ref={containerRef}
 			observeChildren
 			className={cn(
-				isTwoRows ? "grid auto-cols-max grid-flow-col grid-rows-2" : "flex",
+				// justify-items-start keeps chips at natural width in grid mode;
+				// stretched chips would inflate the offsetWidths measure() sums.
+				isTwoRows
+					? "grid auto-cols-max grid-flow-col grid-rows-2 justify-items-start"
+					: "flex",
 				"items-center gap-1.5 overflow-x-auto hide-scrollbar",
 				className,
 			)}
