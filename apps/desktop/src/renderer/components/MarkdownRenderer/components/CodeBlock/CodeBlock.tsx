@@ -1,10 +1,8 @@
-import { mermaid } from "@streamdown/mermaid";
 import { ShowCode } from "@superset/ui/ai-elements/show-code";
+import { mermaidConfig, mermaidPlugins } from "@superset/ui/lib/mermaid";
 import type { ReactNode } from "react";
 import { useTheme } from "renderer/stores";
 import { Streamdown } from "streamdown";
-
-const mermaidPlugins = { mermaid };
 
 interface CodeNode {
 	position?: {
@@ -43,7 +41,7 @@ export function CodeBlock({ children, className, node }: CodeBlockProps) {
 			<Streamdown
 				mode="static"
 				plugins={mermaidPlugins}
-				mermaid={{ config: { theme: isDark ? "dark" : "default" } }}
+				mermaid={mermaidConfig({ theme: isDark ? "dark" : "default" })}
 			>
 				{`\`\`\`mermaid\n${codeString}\n\`\`\``}
 			</Streamdown>

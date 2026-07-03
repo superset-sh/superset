@@ -1,5 +1,5 @@
-import { mermaid } from "@streamdown/mermaid";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { mermaidConfig, mermaidPlugins } from "@superset/ui/lib/mermaid";
 import {
 	type ReactNode,
 	useCallback,
@@ -195,8 +195,6 @@ export function CommentPane({
 	);
 }
 
-const mermaidPlugins = { mermaid };
-
 const MERMAID_DARK_VARS = {
 	background: "#1e1e2e",
 	primaryColor: "#313244",
@@ -246,12 +244,10 @@ function CommentCodeBlock({
 			<Streamdown
 				mode="static"
 				plugins={mermaidPlugins}
-				mermaid={{
-					config: {
-						theme: "base",
-						themeVariables: isDark ? MERMAID_DARK_VARS : MERMAID_LIGHT_VARS,
-					},
-				}}
+				mermaid={mermaidConfig({
+					theme: "base",
+					themeVariables: isDark ? MERMAID_DARK_VARS : MERMAID_LIGHT_VARS,
+				})}
 			>
 				{`\`\`\`mermaid\n${codeString}\n\`\`\``}
 			</Streamdown>
