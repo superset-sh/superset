@@ -1,5 +1,6 @@
 import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { cn } from "@superset/ui/utils";
+import type { CSSProperties } from "react";
 import { LuRadioTower, LuX } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
@@ -82,10 +83,14 @@ export function DashboardSidebarWorkspaceDetails({
 			onTouchStart={(event) => event.stopPropagation()}
 			onClick={(event) => {
 				if (!onClick) return;
+				const target = event.target as HTMLElement;
+				// Radix dropdown selections render in a portal; React bubbling still
+				// reaches this handler but the target isn't inside the strip's DOM.
+				if (!event.currentTarget.contains(target)) return;
 				// Chips handle their own clicks (open agent, open port, menus);
 				// only clicks on the strip's empty area open the workspace.
-				const target = event.target as HTMLElement;
-				if (target.closest("button, a, [role='button']")) return;
+				if (target.closest("button, a, [role='button'], [role='menuitem']"))
+					return;
 				onClick();
 			}}
 		>
@@ -119,10 +124,17 @@ export function DashboardSidebarWorkspaceDetails({
 			{ports.map((port, index) => (
 				<div
 					key={`${port.hostId}:${port.terminalId}:${port.port}`}
-					className={cn(UNFOLD_WRAPPER, "details-expanded:max-w-44")}
-					style={{
-						transitionDelay: `${Math.min(index, MAX_STAGGERED_PORTS) * STAGGER_STEP_MS}ms`,
-					}}
+					// The stagger delay only applies while expanding; retraction is
+					// uniform so the strip clears in one motion.
+					className={cn(
+						UNFOLD_WRAPPER,
+						"details-expanded:max-w-44 details-expanded:[transition-delay:var(--unfold-delay)]",
+					)}
+					style={
+						{
+							"--unfold-delay": `${Math.min(index, MAX_STAGGERED_PORTS) * STAGGER_STEP_MS}ms`,
+						} as CSSProperties
+					}
 				>
 					<DashboardSidebarPortBadge port={port} />
 				</div>
