@@ -16,6 +16,13 @@ interface DashboardSidebarWorkspaceAgentBadgeProps {
 	agent: DashboardSidebarRunningAgent;
 }
 
+/**
+ * One agent chip of the workspace activity strip. At rest it's a facepile
+ * circle (icon + status dot) overlapping its neighbors; when the strip is
+ * `details-expanded` it morphs into a labeled pill — the overlap margin and
+ * the label's max-width animate, so the circle visibly grows into the pill
+ * and retracts back. Clickable in both states.
+ */
 export function DashboardSidebarWorkspaceAgentBadge({
 	workspaceId,
 	agent,
@@ -42,23 +49,37 @@ export function DashboardSidebarWorkspaceAgentBadge({
 					type="button"
 					onClick={handleClick}
 					className={cn(
-						"inline-flex max-w-40 shrink-0 items-center gap-1 rounded px-1.5 py-0.5",
-						"bg-muted/60 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+						"flex h-[18px] shrink-0 items-center rounded-full px-[3px]",
+						"bg-muted text-[11px] text-muted-foreground",
+						"-ml-1.5 first:ml-0",
+						"transition-[margin,padding,color] duration-500 ease-out motion-reduce:transition-none",
+						"details-expanded:ml-1 details-expanded:pl-1 details-expanded:pr-1.5 details-expanded:duration-200 details-expanded:first:ml-0",
+						"hover:text-foreground",
 						"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 					)}
 				>
-					<span className="flex size-3 shrink-0 items-center justify-center">
-						{agent.status === "idle" ? (
-							iconUrl ? (
-								<img src={iconUrl} alt="" className="size-3 object-contain" />
-							) : (
-								<LuBot className="size-3" strokeWidth={STROKE_WIDTH} />
-							)
+					<span className="relative flex size-3 shrink-0 items-center justify-center">
+						{iconUrl ? (
+							<img src={iconUrl} alt="" className="size-3 object-contain" />
 						) : (
-							<StatusIndicator status={agent.status} />
+							<LuBot className="size-3" strokeWidth={STROKE_WIDTH} />
+						)}
+						{agent.status !== "idle" && (
+							<StatusIndicator
+								status={agent.status}
+								className="absolute -top-0.5 -right-0.5"
+							/>
 						)}
 					</span>
-					<span className="min-w-0 truncate">{agent.label}</span>
+					<span
+						className={cn(
+							"max-w-0 truncate opacity-0",
+							"transition-[max-width,margin,opacity] duration-500 ease-out motion-reduce:transition-none",
+							"details-expanded:ml-1 details-expanded:max-w-28 details-expanded:opacity-100 details-expanded:duration-200",
+						)}
+					>
+						{agent.label}
+					</span>
 				</button>
 			</TooltipTrigger>
 			<TooltipContent side="top" sideOffset={6} showArrow={false}>

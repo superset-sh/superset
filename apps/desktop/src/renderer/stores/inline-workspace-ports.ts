@@ -16,8 +16,8 @@ import { devtools, persist } from "zustand/middleware";
  *      `DashboardSidebarWorkspaceDetails`).
  *   5. The components belonging to the losing layout:
  *      - bottom: `DashboardSidebarPortsList` (keep its `hooks/` + `DashboardSidebarPortBadge`).
- *      - inline: `DashboardSidebarWorkspaceDetails`, `DashboardSidebarWorkspacePortsRow`,
- *        and the `workspace-details` store.
+ *      - inline: `DashboardSidebarWorkspaceDetails` (and its nested
+ *        components/hooks).
  *
  * Both layouts read port data from `DashboardSidebarPortsProvider`, which stays
  * regardless of the outcome.
