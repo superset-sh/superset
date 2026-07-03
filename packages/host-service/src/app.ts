@@ -12,6 +12,7 @@ import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
 import { ChatRuntimeManager } from "./runtime/chat";
+import { flushCloudDeleteOutbox } from "./runtime/cloud-delete-outbox";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
@@ -137,6 +138,24 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 
 	const terminalAgentStore = new TerminalAgentStore();
 
+	// Retry cloud presence deletes that failed at rollback time (boot +
+	// hourly). Idempotent; ghost rows otherwise stay visible on other machines.
+	const flushOutbox = () =>
+		flushCloudDeleteOutbox(db, api)
+			.then(({ deleted, pending }) => {
+				if (deleted > 0 || pending > 0) {
+					console.warn("[host-service] cloud-delete outbox flush", {
+						deleted,
+						pending,
+					});
+				}
+			})
+			.catch((err) => {
+				console.warn("[host-service] cloud-delete outbox flush failed:", err);
+			});
+	void flushOutbox();
+	const outboxTimer = setInterval(flushOutbox, 60 * 60 * 1000);
+
 	// Backfill `kind='main'` v2 workspaces for projects already set up before
 	// this column shipped. Idempotent; runs in the background so it doesn't
 	// block server startup.
@@ -198,6 +217,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Each step is best-effort and isolated: a throw in one cleanup must
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
+		clearInterval(outboxTimer);
 		try {
 			pullRequestRuntime.stop();
 		} catch (err) {

@@ -49,7 +49,7 @@ describe("mergeWorkspacePresence", () => {
 	});
 
 	it("adopts newer cloud identity edits and emits a patch", () => {
-		const { rows, patches } = mergeWorkspacePresence({
+		const { rows, patches, cloudPatches } = mergeWorkspacePresence({
 			local: [ws({ updatedAt: new Date("2026-01-01T00:00:00Z") })],
 			cloud: [
 				ws({
@@ -66,10 +66,11 @@ describe("mergeWorkspacePresence", () => {
 		expect(patches).toEqual([
 			{ id: "ws-1", name: "renamed-remotely", taskId: "task-9" },
 		]);
+		expect(cloudPatches).toEqual([]);
 	});
 
-	it("keeps local identity when the local edit is newer", () => {
-		const { rows, patches } = mergeWorkspacePresence({
+	it("pushes a newer local edit to the stale cloud mirror", () => {
+		const { rows, patches, cloudPatches } = mergeWorkspacePresence({
 			local: [
 				ws({ name: "local-wins", updatedAt: new Date("2026-01-03T00:00:00Z") }),
 			],
@@ -84,6 +85,34 @@ describe("mergeWorkspacePresence", () => {
 		});
 		expect(rows[0]?.name).toBe("local-wins");
 		expect(patches).toEqual([]);
+		expect(cloudPatches).toEqual([{ id: "ws-1", name: "local-wins" }]);
+	});
+
+	it("adopts cloud identity for never-locally-edited rows even when cloud is older", () => {
+		// Pre-flip rows: local name may be a branch-coalesced placeholder while
+		// cloud holds the real (possibly generated) name. Timestamps can't rank
+		// these — cloud must win or the placeholder would clobber the real name.
+		const { rows, patches, cloudPatches } = mergeWorkspacePresence({
+			local: [
+				ws({
+					name: "feat/alpha",
+					createdAt: new Date("2026-01-02T00:00:00Z"),
+					updatedAt: new Date("2026-01-02T00:00:00Z"),
+				}),
+			],
+			cloud: [
+				ws({
+					name: "quick-stranger",
+					createdAt: new Date("2026-01-01T00:00:00Z"),
+					updatedAt: new Date("2026-01-01T00:00:00Z"),
+				}),
+			],
+			organizationId: ORG,
+			localMachineId: LOCAL_MACHINE,
+		});
+		expect(rows[0]?.name).toBe("quick-stranger");
+		expect(patches).toEqual([{ id: "ws-1", name: "quick-stranger" }]);
+		expect(cloudPatches).toEqual([]);
 	});
 
 	it("does not patch when values already match, even if cloud is newer", () => {

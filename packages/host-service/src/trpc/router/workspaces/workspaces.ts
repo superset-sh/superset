@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../db/schema";
+import { enqueueCloudDelete } from "../../../runtime/cloud-delete-outbox";
 import {
 	asRemoteRef,
 	type ResolvedRef,
@@ -507,6 +508,8 @@ async function registerCloudAndLocal(args: {
 					workspaceId: cloudRow.id,
 					err: cleanupErr,
 				});
+				// Ghost row on other machines until deleted — retry via outbox.
+				enqueueCloudDelete(ctx.db, cloudRow.id);
 			});
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",

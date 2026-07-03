@@ -57,6 +57,13 @@
       "when": 1783040264786,
       "tag": "0007_workspace_updated_at",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1783044516787,
+      "tag": "0008_cloud_delete_outbox",
+      "breakpoints": true
     }
   ]
 }

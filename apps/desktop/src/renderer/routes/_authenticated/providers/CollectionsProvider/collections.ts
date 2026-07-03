@@ -200,17 +200,22 @@ async function fetchWorkspaces(
 			: new Error("local workspaces unavailable");
 	}
 
-	const { rows, patches } = mergeWorkspacePresence({
+	const { rows, patches, cloudPatches } = mergeWorkspacePresence({
 		local,
 		cloud,
 		organizationId,
 		localMachineId,
 	});
+	// Best-effort both directions: a failed patch recurs next poll until it lands.
 	if (patches.length > 0 && url) {
 		const client = getHostServiceClientByUrl(url);
-		// Best-effort: a failed patch recurs on the next poll until it lands.
 		await Promise.allSettled(
 			patches.map((patch) => client.workspace.updateLocal.mutate(patch)),
+		);
+	}
+	if (cloudPatches.length > 0) {
+		await Promise.allSettled(
+			cloudPatches.map((patch) => apiClient.v2Workspace.update.mutate(patch)),
 		);
 	}
 	return rows;

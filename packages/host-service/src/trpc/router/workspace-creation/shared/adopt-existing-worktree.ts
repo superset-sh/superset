@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, ne, or } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
+import { enqueueCloudDelete } from "../../../../runtime/cloud-delete-outbox";
 import type { HostServiceContext } from "../../../../types";
 import { gitConfigWrite } from "../../git/utils/config-write";
 import type { GitClient } from "./types";
@@ -208,6 +209,8 @@ export async function adoptExistingWorktree(
 					"[adoptExistingWorktree] failed to rollback cloud workspace",
 					{ workspaceId: cloudRow.id, err: cleanupErr },
 				);
+				// Ghost row on other machines until deleted — retry via outbox.
+				enqueueCloudDelete(ctx.db, cloudRow.id);
 			});
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
