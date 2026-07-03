@@ -203,6 +203,41 @@ describe("agentConfigsRouter", () => {
 			expect(withIcon.iconId).toBe("claude");
 		});
 
+		it("stores an uploaded data-URI icon", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANS";
+			const created = await caller.add({
+				label: "Uploaded",
+				command: "uploaded",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+				iconId: dataUrl,
+			});
+
+			expect(created.iconId).toBe(dataUrl);
+		});
+
+		it("rejects an oversized iconId", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			await expect(
+				caller.add({
+					label: "Too Big",
+					command: "too-big",
+					args: [],
+					promptTransport: "argv",
+					promptArgs: [],
+					env: {},
+					iconId: `data:image/png;base64,${"A".repeat(256 * 1024)}`,
+				}),
+			).rejects.toThrow();
+		});
+
 		it("seeds bundled defaults with a null iconId", async () => {
 			const caller = createCaller();
 			const rows = await caller.list();

@@ -129,8 +129,13 @@ function seedDefaultsIfEmpty(db: HostDb): HostAgentConfigRow[] {
 	return listOrdered(db);
 }
 
+// An icon override is either a built-in icon key ("claude") or an uploaded
+// `data:` image URI. Capped so an oversized upload can't bloat the per-machine
+// SQLite DB — the client downscales images before sending.
+const MAX_ICON_ID_LENGTH = 256 * 1024;
+const iconIdSchema = z.string().trim().min(1).max(MAX_ICON_ID_LENGTH);
 // `null` clears the icon override (fall back to `presetId`); a string sets it.
-const iconIdPatchSchema = z.string().trim().min(1).nullable();
+const iconIdPatchSchema = iconIdSchema.nullable();
 
 const updatePatchSchema = z
 	.object({
@@ -162,7 +167,7 @@ const addInputSchema = z.object({
 	promptArgs: argvSchema,
 	env: envSchema,
 	presetId: z.string().trim().min(1).optional(),
-	iconId: z.string().trim().min(1).optional(),
+	iconId: iconIdSchema.optional(),
 });
 
 export const agentConfigsRouter = router({

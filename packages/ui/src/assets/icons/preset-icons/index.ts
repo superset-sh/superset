@@ -39,6 +39,10 @@ export function getPresetIcon(
 	presetName: string,
 	isDark: boolean,
 ): string | undefined {
+	// A user-uploaded icon is stored as a `data:` URI rather than a preset key.
+	// Return it as-is (before normalizing — base64 is case-sensitive) so every
+	// icon render site handles uploaded images without extra branching.
+	if (presetName.startsWith("data:image/")) return presetName;
 	const normalizedName = presetName.toLowerCase().trim();
 	const iconSet = PRESET_ICONS[normalizedName];
 	if (!iconSet) return undefined;
