@@ -13,6 +13,7 @@ import {
 	LocalGitCredentialProvider,
 	LocalModelProvider,
 	PskHostAuthProvider,
+	startTerminalReaper,
 } from "@superset/host-service";
 import {
 	initTerminalBaseEnv,
@@ -87,7 +88,7 @@ async function main(): Promise<void> {
 		apiUrl: env.SUPERSET_API_URL,
 	});
 
-	const { app, injectWebSocket, api } = createApp({
+	const { app, injectWebSocket, api, db } = createApp({
 		config: {
 			organizationId: env.ORGANIZATION_ID,
 			dbPath: env.HOST_DB_PATH,
@@ -113,6 +114,13 @@ async function main(): Promise<void> {
 			// Install only after the server is listening so startup throws still
 			// reach `main().catch(...)` and exit with a non-zero code.
 			installProcessSafetyNet();
+
+			// Orphan reaping + port-scan registration for daemon sessions no
+			// renderer has attached (e.g. adopted across a restart). serve.ts
+			// wires this for standalone runs; without it here, the packaged
+			// app never scans those sessions and their ports stay invisible
+			// until the workspace is opened.
+			startTerminalReaper(db);
 
 			if (env.ORGANIZATION_ID) {
 				try {
