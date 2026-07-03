@@ -27,12 +27,12 @@ const RANDOM_ID = "test-1234";
 const DELIMITER = "SUPERSET_PROMPT_test1234";
 
 describe("buildAgentCommandString", () => {
-	it("delivers the prompt via a quoted heredoc substitution (argv transport)", () => {
+	it("appends the prompt as a quoted positional (argv transport)", () => {
+		// Not the shared "$(cat <<…)" form: the command must parse in non-POSIX
+		// shells like fish, which have no heredocs.
 		expect(
 			buildAgentCommandString(argvConfig, "do the thing", [], RANDOM_ID),
-		).toBe(
-			`'claude' '--dangerously-skip-permissions' "$(cat <<'${DELIMITER}'\ndo the thing\n${DELIMITER}\n)"`,
-		);
+		).toBe("'claude' '--dangerously-skip-permissions' 'do the thing'");
 	});
 
 	it("inserts model args between base args and the prompt (argv transport)", () => {
@@ -44,7 +44,7 @@ describe("buildAgentCommandString", () => {
 				RANDOM_ID,
 			),
 		).toBe(
-			`'claude' '--dangerously-skip-permissions' '--model' 'sonnet' "$(cat <<'${DELIMITER}'\ndo the thing\n${DELIMITER}\n)"`,
+			"'claude' '--dangerously-skip-permissions' '--model' 'sonnet' 'do the thing'",
 		);
 	});
 
@@ -61,23 +61,23 @@ describe("buildAgentCommandString", () => {
 		);
 	});
 
-	it("shell-quotes hostile model values", () => {
+	it("shell-quotes hostile model and prompt values", () => {
 		expect(
 			buildAgentCommandString(
 				argvConfig,
-				"p",
+				"p'; rm -rf /",
 				["--model", "x'; rm -rf /"],
 				RANDOM_ID,
 			),
 		).toBe(
-			`'claude' '--dangerously-skip-permissions' '--model' 'x'\\''; rm -rf /' "$(cat <<'${DELIMITER}'\np\n${DELIMITER}\n)"`,
+			"'claude' '--dangerously-skip-permissions' '--model' 'x'\\''; rm -rf /' 'p'\\''; rm -rf /'",
 		);
 	});
 
 	it("includes promptArgs before the prompt when a prompt is present", () => {
 		const config = { ...argvConfig, promptArgs: ["-p"] };
 		expect(buildAgentCommandString(config, "p", [], RANDOM_ID)).toBe(
-			`'claude' '--dangerously-skip-permissions' '-p' "$(cat <<'${DELIMITER}'\np\n${DELIMITER}\n)"`,
+			"'claude' '--dangerously-skip-permissions' '-p' 'p'",
 		);
 	});
 

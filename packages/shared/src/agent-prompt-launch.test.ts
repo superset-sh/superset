@@ -20,6 +20,12 @@ describe("sanitizePromptForPty", () => {
 		);
 	});
 
+	it("keeps text after an unterminated OSC, stripping only the lead byte", () => {
+		expect(sanitizePromptForPty("hello \x1b]world more text")).toBe(
+			"hello ]world more text",
+		);
+	});
+
 	it("expands tabs to spaces so they can't fire shell completion", () => {
 		expect(sanitizePromptForPty("if x:\n\treturn\tearly")).toBe(
 			"if x:\n    return    early",

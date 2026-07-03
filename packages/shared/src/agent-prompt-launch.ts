@@ -22,8 +22,10 @@ export function sanitizePromptForPty(prompt: string): string {
 			.replace(/\r\n?/g, "\n")
 			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars intentionally
 			.replace(/(?:\x1b\[|\x9b)[0-?]*[ -/]*[@-~]/g, "")
+			// Terminator is required: an unterminated OSC must not swallow the
+			// rest of the line — its lead byte falls through to the strip below.
 			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars intentionally
-			.replace(/(?:\x1b\]|\x9d)[^\x07\x1b\x9c\n]*(?:\x07|\x1b\\|\x9c)?/g, "")
+			.replace(/(?:\x1b\]|\x9d)[^\x07\x1b\x9c\n]*(?:\x07|\x1b\\|\x9c)/g, "")
 			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars intentionally
 			.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g, "")
 			.replaceAll("\t", "    ")

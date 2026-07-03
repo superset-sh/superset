@@ -106,8 +106,9 @@ export function resolveHostAgentConfig(
 
 /**
  * Build a shell command string that runs the resolved agent config with the
- * given prompt, delegating prompt delivery (heredoc assembly, delimiter
- * collision handling) to the shared prompt-launch pipeline.
+ * given prompt. argv transport appends the prompt as a quoted positional;
+ * stdin transport delegates heredoc assembly and delimiter collision handling
+ * to the shared prompt-launch pipeline.
  *
  * Prompts that sanitize to empty drop `promptArgs` and the prompt payload so
  * codex/opencode/copilot don't get stray prompt-mode flags during promptless
@@ -127,9 +128,15 @@ export function buildAgentCommandString(
 		return buildArgvCommand(baseArgv);
 	}
 
+	if (config.promptTransport === "argv") {
+		// Plain quoted positional, not the shared "$(cat <<…)" form: the command
+		// is typed into the user's configured shell, and fish has no heredocs.
+		return buildArgvCommand([...baseArgv, ...config.promptArgs, prompt]);
+	}
+
 	return buildPromptCommandString({
 		command: buildArgvCommand([...baseArgv, ...config.promptArgs]),
-		transport: config.promptTransport,
+		transport: "stdin",
 		prompt,
 		randomId,
 	});
