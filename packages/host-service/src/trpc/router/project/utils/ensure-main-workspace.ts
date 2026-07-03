@@ -85,6 +85,13 @@ export async function ensureMainWorkspaceStrict(
 		clientMachineId: ctx.clientMachineId ?? getHostId(),
 	});
 
+	const identity = {
+		name: cloudRow.name,
+		type: cloudRow.type,
+		organizationId: cloudRow.organizationId,
+		taskId: cloudRow.taskId,
+		createdByUserId: cloudRow.createdByUserId,
+	};
 	ctx.db
 		.insert(workspaces)
 		.values({
@@ -92,6 +99,7 @@ export async function ensureMainWorkspaceStrict(
 			projectId,
 			worktreePath: repoPath,
 			branch,
+			...identity,
 		})
 		.onConflictDoUpdate({
 			target: workspaces.id,
@@ -99,6 +107,7 @@ export async function ensureMainWorkspaceStrict(
 				projectId,
 				worktreePath: repoPath,
 				branch,
+				...identity,
 			},
 		})
 		.run();

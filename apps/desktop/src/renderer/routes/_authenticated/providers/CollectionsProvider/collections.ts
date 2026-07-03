@@ -127,13 +127,15 @@ const createPersistedQueryCollection = ((config: QuerySyncConfig) => {
 
 // Workspaces for the renderer: this machine's from the local host-service
 // (authoritative), merged with other machines' from cloud presence. Cloud is
-// best-effort so the app still lists local workspaces offline. Empty until the
-// local host boots.
+// best-effort so the app still lists local workspaces offline.
 async function fetchWorkspaces(
 	organizationId: string,
 ): Promise<SelectV2Workspace[]> {
 	const url = getActiveLocalHostUrl();
-	if (!url) return [];
+	// Throw (not []) while the host boots: a query-collection result is
+	// authoritative full state, and [] would wipe the persisted rows. An error
+	// keeps the previous snapshot until the next successful poll.
+	if (!url) throw new Error("local host-service not ready");
 	const client = getHostServiceClientByUrl(url);
 	const localMachineId = getActiveLocalMachineId();
 

@@ -161,4 +161,21 @@ describe("sync.pull", () => {
 			createCaller(ctx()).sync.pull({ table: "tasks" }),
 		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	});
+
+	it("derives auth.organizations from the caller's memberships, skipping the org gate", async () => {
+		const rows = await createCaller(ctx()).sync.pull({
+			table: "auth.organizations",
+		});
+		// No org membership gate — the list is membership-derived.
+		expect(membersFindFirst).not.toHaveBeenCalled();
+		// Memberships are looked up by the caller, not a client-supplied org.
+		expect(selectWhere.mock.calls[0]?.[0]).toEqual({
+			type: "eq",
+			left: "members.userId",
+			right: ACTOR,
+		});
+		// No memberships → no organizations, without querying the orgs table.
+		expect(rows).toEqual([]);
+		expect(selectMock).toHaveBeenCalledTimes(1);
+	});
 });

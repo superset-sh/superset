@@ -74,10 +74,10 @@ export async function adoptExistingWorktree(
 				keepWorkspaceId: existingCloud.id,
 			});
 			persistLocalWorkspace(ctx, {
-				id: existingCloud.id,
 				projectId,
 				worktreePath,
 				branch,
+				cloudRow: existingCloud,
 			});
 			return {
 				workspace: existingCloud,
@@ -195,10 +195,10 @@ export async function adoptExistingWorktree(
 
 	try {
 		persistLocalWorkspace(ctx, {
-			id: cloudRow.id,
 			projectId,
 			worktreePath,
 			branch,
+			cloudRow,
 		});
 	} catch (err) {
 		await ctx.api.v2Workspace.delete
@@ -241,27 +241,30 @@ function deleteLocalWorkspace(
 function persistLocalWorkspace(
 	ctx: HostServiceContext,
 	args: {
-		id: string;
 		projectId: string;
 		worktreePath: string;
 		branch: string;
+		cloudRow: AdoptedWorkspace;
 	},
 ): void {
+	const row = {
+		projectId: args.projectId,
+		worktreePath: args.worktreePath,
+		branch: args.branch,
+		// Local rows are the local-first source of truth, so carry the full
+		// workspace identity, not just the disk location.
+		name: args.cloudRow.name,
+		type: args.cloudRow.type,
+		organizationId: args.cloudRow.organizationId,
+		taskId: args.cloudRow.taskId,
+		createdByUserId: args.cloudRow.createdByUserId,
+	};
 	ctx.db
 		.insert(workspaces)
-		.values({
-			id: args.id,
-			projectId: args.projectId,
-			worktreePath: args.worktreePath,
-			branch: args.branch,
-		})
+		.values({ id: args.cloudRow.id, ...row })
 		.onConflictDoUpdate({
 			target: workspaces.id,
-			set: {
-				projectId: args.projectId,
-				worktreePath: args.worktreePath,
-				branch: args.branch,
-			},
+			set: row,
 		})
 		.run();
 }

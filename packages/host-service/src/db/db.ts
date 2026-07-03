@@ -13,9 +13,8 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 	const sqlite = new Database(dbPath);
 	sqlite.pragma("journal_mode = WAL");
 	sqlite.pragma("foreign_keys = ON");
-	// Without this, a concurrent writer makes migrate() fail with SQLITE_BUSY;
-	// the failure is logged and swallowed below, leaving the schema stale and
-	// later queries crashing on the missing columns (host-service 1.12.0 crash).
+	// Without this, a concurrent writer makes migrate() fail with SQLITE_BUSY
+	// (host-service 1.12.0 crash).
 	sqlite.pragma("busy_timeout = 5000");
 
 	const db = drizzle(sqlite, { schema });
@@ -27,7 +26,10 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 	try {
 		migrate(db, { migrationsFolder });
 	} catch (error) {
+		// Fail fast: returning a handle with a stale schema just defers the
+		// crash to the first query on a missing column, with a worse error.
 		console.error("[host-service:db] Migration failed:", error);
+		throw error;
 	}
 
 	return db;

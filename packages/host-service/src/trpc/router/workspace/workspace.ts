@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { getHostId } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../db/schema";
 import { protectedProcedure, router } from "../../index";
@@ -78,7 +78,15 @@ export const workspaceRouter = router({
 			const result = ctx.db
 				.update(workspaces)
 				.set(patch)
-				.where(eq(workspaces.id, input.id))
+				.where(
+					and(
+						eq(workspaces.id, input.id),
+						or(
+							eq(workspaces.organizationId, ctx.organizationId),
+							isNull(workspaces.organizationId),
+						),
+					),
+				)
 				.run();
 			if (result.changes === 0) {
 				throw new TRPCError({
@@ -91,12 +99,32 @@ export const workspaceRouter = router({
 
 	// Local-first source of truth for this host's workspaces, shaped like the
 	// cloud v2_workspaces row so the renderer collection can read it without
-	// Electric. Legacy rows (pre-identity migration) coalesce to sane defaults.
+	// Electric. Scoped to the host's org; legacy rows (pre-identity migration,
+	// null org) are treated as this org and coalesce to sane defaults.
 	localList: protectedProcedure.query(({ ctx }) => {
 		const hostId = getHostId();
-		const rows = ctx.db.query.workspaces.findMany().sync();
+		const rows = ctx.db.query.workspaces
+			.findMany({
+				where: or(
+					eq(workspaces.organizationId, ctx.organizationId),
+					isNull(workspaces.organizationId),
+				),
+			})
+			.sync();
+		const repoPathByProjectId = new Map(
+			ctx.db.query.projects
+				.findMany()
+				.sync()
+				.map((p) => [p.id, p.repoPath]),
+		);
 		return rows.map((row) => {
 			const createdAt = new Date(row.createdAt);
+			// Legacy main rows predate the type column but were inserted with
+			// worktreePath === the project's repoPath (see isMainWorkspace).
+			const fallbackType =
+				row.worktreePath === repoPathByProjectId.get(row.projectId)
+					? "main"
+					: "worktree";
 			return {
 				id: row.id,
 				organizationId: row.organizationId ?? ctx.organizationId,
@@ -104,7 +132,7 @@ export const workspaceRouter = router({
 				hostId,
 				name: row.name ?? row.branch,
 				branch: row.branch,
-				type: row.type ?? "worktree",
+				type: row.type ?? fallbackType,
 				createdByUserId: row.createdByUserId ?? null,
 				taskId: row.taskId ?? null,
 				createdAt,

@@ -68,7 +68,9 @@ describe("workspaces identity columns (migration 0006)", () => {
 
 		const row = readWorkspace(db);
 		expect(row?.name).toBeNull();
+		expect(row?.type).toBeNull();
 		expect(row?.organizationId).toBeNull();
+		expect(row?.taskId).toBeNull();
 		expect(row?.createdByUserId).toBeNull();
 	});
 });
