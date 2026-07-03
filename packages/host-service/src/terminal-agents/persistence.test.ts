@@ -61,8 +61,7 @@ describe("reconcileTerminalAgentBindings", () => {
 		});
 		seedSession(db, { id: "t-orphan", status: "active", workspaceId: null });
 
-		// The shared staleness predicate feeds both the drain below and the
-		// listByWorkspace read filter.
+		// Shared predicate: also feeds the listByWorkspace read filter.
 		expect([...listDefunctBindingTerminalIds(db)].sort()).toEqual([
 			"t-disposed",
 			"t-exited",

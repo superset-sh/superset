@@ -143,7 +143,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		new SqliteTerminalAgentBindingPersistence(db),
 	);
 	// Drain bindings persisted for terminals that died while the host-service
-	// was down (or leaked before exit pruning existed).
+	// was down.
 	reconcileTerminalAgentBindings({ db, store: terminalAgentStore });
 	// A pty exit is the authoritative end of any agent bound to that terminal —
 	// agent exit hooks don't fire when the process is killed or crashes.
