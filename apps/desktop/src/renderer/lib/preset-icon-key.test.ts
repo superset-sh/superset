@@ -10,6 +10,7 @@ function createAgent(
 	return {
 		id,
 		presetId,
+		iconId: null,
 		label: presetId,
 		command: presetId,
 		args: [],

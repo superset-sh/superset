@@ -3,8 +3,6 @@ import {
 	createFsHostService,
 	type FsHostService,
 	FsWatcherManager,
-	toRelativePath,
-	type WorkspaceFsPathError,
 } from "@superset/workspace-fs/host";
 import { shell } from "electron";
 import { getWorkspace } from "./workspaces/utils/db-helpers";
@@ -86,6 +84,3 @@ export function toRegisteredWorktreeRelativePath(
 
 	return relativePath.replace(/\\/g, "/");
 }
-
-export { toRelativePath };
-export type { WorkspaceFsPathError };

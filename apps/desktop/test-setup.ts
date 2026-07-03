@@ -104,6 +104,32 @@ if (typeof globalThis.window !== "undefined") {
 	};
 }
 
+// localStorage: renderer stores persisted with zustand's `persist` middleware
+// write to it on every setState, and zustand resolves the storage once at
+// module load. Install a working mock unconditionally (some environments expose
+// a present-but-nonfunctional `localStorage`, so a `typeof === "undefined"`
+// guard is not enough) and before any store module is imported.
+const localStorageBacking = new Map<string, string>();
+const mockLocalStorage: Storage = {
+	get length() {
+		return localStorageBacking.size;
+	},
+	clear: () => localStorageBacking.clear(),
+	getItem: (key: string) => localStorageBacking.get(key) ?? null,
+	key: (index: number) => Array.from(localStorageBacking.keys())[index] ?? null,
+	removeItem: (key: string) => {
+		localStorageBacking.delete(key);
+	},
+	setItem: (key: string, value: string) => {
+		localStorageBacking.set(key, String(value));
+	},
+};
+Object.defineProperty(globalThis, "localStorage", {
+	value: mockLocalStorage,
+	writable: true,
+	configurable: true,
+});
+
 // =============================================================================
 // Electron Preload Mocks (exposed via contextBridge in real app)
 // =============================================================================

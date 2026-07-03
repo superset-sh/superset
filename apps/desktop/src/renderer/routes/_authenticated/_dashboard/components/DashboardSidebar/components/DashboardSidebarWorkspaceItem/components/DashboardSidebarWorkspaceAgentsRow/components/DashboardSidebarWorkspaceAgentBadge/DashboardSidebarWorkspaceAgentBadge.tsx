@@ -42,17 +42,17 @@ export function DashboardSidebarWorkspaceAgentBadge({
 					type="button"
 					onClick={handleClick}
 					className={cn(
-						"inline-flex max-w-40 items-center gap-1 rounded-md px-1.5 py-0.5",
-						"bg-primary/10 text-xs font-medium text-primary transition-colors hover:bg-primary/20",
+						"inline-flex max-w-40 shrink-0 items-center gap-1 rounded px-1.5 py-0.5",
+						"bg-muted/60 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
 						"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 					)}
 				>
-					<span className="flex size-3.5 shrink-0 items-center justify-center">
+					<span className="flex size-3 shrink-0 items-center justify-center">
 						{agent.status === "idle" ? (
 							iconUrl ? (
-								<img src={iconUrl} alt="" className="size-3.5 object-contain" />
+								<img src={iconUrl} alt="" className="size-3 object-contain" />
 							) : (
-								<LuBot className="size-3.5" strokeWidth={STROKE_WIDTH} />
+								<LuBot className="size-3" strokeWidth={STROKE_WIDTH} />
 							)
 						) : (
 							<StatusIndicator status={agent.status} />

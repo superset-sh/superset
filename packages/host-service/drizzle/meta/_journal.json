@@ -50,6 +50,13 @@
       "when": 1782705692725,
       "tag": "0006_ambitious_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1783034111888,
+      "tag": "0007_host_agent_icon_id",
+      "breakpoints": true
     }
   ]
 }

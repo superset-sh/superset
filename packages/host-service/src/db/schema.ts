@@ -139,6 +139,10 @@ export const hostAgentConfigs = sqliteTable(
 	{
 		id: text().primaryKey(),
 		presetId: text("preset_id").notNull(),
+		// Optional icon override. When null the client falls back to the icon
+		// implied by `presetId`. User-authored ("custom") agents set this to a
+		// built-in icon key (e.g. "claude") to pick a recognizable icon.
+		iconId: text("icon_id"),
 		label: text().notNull(),
 		command: text().notNull(),
 		argsJson: text("args_json").notNull().default("[]"),

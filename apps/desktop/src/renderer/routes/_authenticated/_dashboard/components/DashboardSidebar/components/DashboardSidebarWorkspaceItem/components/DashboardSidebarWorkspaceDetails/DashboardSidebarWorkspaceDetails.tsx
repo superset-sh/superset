@@ -1,9 +1,10 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { LuX } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { useWorkspaceDetailsStore } from "renderer/stores";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
+import { useShallow } from "zustand/react/shallow";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
 import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/hooks/useDashboardSidebarPortKill";
 import { DashboardSidebarWorkspaceAgentsRow } from "../DashboardSidebarWorkspaceAgentsRow";
@@ -30,19 +31,28 @@ interface DashboardSidebarWorkspaceDetailsProps {
 
 /**
  * Collapsible area rendered beneath a workspace row. It hosts the per-workspace
- * "detail" rows (ports today, running agents / other status rows in future).
+ * "detail" sections (ports today, running agents / other status rows in
+ * future). Each section renders its own toggle row and collapses
+ * independently, keyed by `${workspaceId}:${sectionKey}`.
  *
- * To add a new detail row: call its data hook unconditionally in the section
- * registry below, then push a {@link WorkspaceDetailSection} when it has
- * something to show. Everything else — the toggle, summary, header actions,
- * persisted collapse state — is handled here.
+ * To add a new detail section: call its data hook unconditionally in the
+ * section registry below, then push a {@link WorkspaceDetailSection} when it
+ * has something to show. Everything else — the toggle, summary, header
+ * actions, persisted collapse state — is handled here.
  */
 export function DashboardSidebarWorkspaceDetails({
 	workspaceId,
 	isInSection = false,
 }: DashboardSidebarWorkspaceDetailsProps) {
-	const isCollapsed = useWorkspaceDetailsStore(
-		(state) => !!state.collapsedWorkspaceIds[workspaceId],
+	// Narrowed to this workspace's section keys (matching the registry below)
+	// so toggling one workspace's sections doesn't re-render every other panel.
+	const collapsedSectionKeys = useWorkspaceDetailsStore(
+		useShallow((state) => ({
+			[`${workspaceId}:ports`]:
+				state.collapsedSectionKeys[`${workspaceId}:ports`],
+			[`${workspaceId}:agents`]:
+				state.collapsedSectionKeys[`${workspaceId}:agents`],
+		})),
 	);
 	const toggleExpanded = useWorkspaceDetailsStore(
 		(state) => state.toggleExpanded,
@@ -101,9 +111,6 @@ export function DashboardSidebarWorkspaceDetails({
 		return null;
 	}
 
-	const isExpanded = !isCollapsed;
-	const headerActions = sections.filter((section) => section.headerAction);
-
 	return (
 		// Stop pointer/touch starts from bubbling to the sortable workspace item's
 		// drag listeners, so scrolling overflowing ports or pressing a port control
@@ -114,28 +121,28 @@ export function DashboardSidebarWorkspaceDetails({
 			onMouseDown={(event) => event.stopPropagation()}
 			onTouchStart={(event) => event.stopPropagation()}
 		>
-			<div className="group/details flex items-center">
-				<DashboardSidebarWorkspaceDetailsToggle
-					isExpanded={isExpanded}
-					summary={sections.map((section) => section.summary).join(" · ")}
-					isInSection={isInSection}
-					onToggle={() => toggleExpanded(workspaceId)}
-				/>
-				{headerActions.length > 0 && (
-					<div className="ml-auto flex items-center gap-0.5 pr-2 opacity-0 transition-opacity group-hover/details:opacity-100 group-focus-within/details:opacity-100">
-						{headerActions.map((section) => (
-							<Fragment key={section.key}>{section.headerAction}</Fragment>
-						))}
+			{sections.map((section) => {
+				const sectionKey = `${workspaceId}:${section.key}`;
+				const isExpanded = !collapsedSectionKeys[sectionKey];
+				return (
+					<div key={section.key}>
+						<div className="group/details flex items-center">
+							<DashboardSidebarWorkspaceDetailsToggle
+								isExpanded={isExpanded}
+								summary={section.summary}
+								isInSection={isInSection}
+								onToggle={() => toggleExpanded(sectionKey)}
+							/>
+							{section.headerAction && (
+								<div className="ml-auto flex items-center pr-2 opacity-0 transition-opacity group-hover/details:opacity-100 group-focus-within/details:opacity-100">
+									{section.headerAction}
+								</div>
+							)}
+						</div>
+						{isExpanded && <div className="mt-0.5 mb-1">{section.content}</div>}
 					</div>
-				)}
-			</div>
-			{isExpanded && (
-				<div className="mt-1 space-y-1">
-					{sections.map((section) => (
-						<div key={section.key}>{section.content}</div>
-					))}
-				</div>
-			)}
+				);
+			})}
 		</div>
 	);
 }

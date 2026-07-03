@@ -30,7 +30,7 @@ export function DashboardSidebarWorkspaceDetailsToggle({
 		>
 			<LuChevronRight
 				className={cn(
-					"size-3 shrink-0 transition-transform",
+					"size-3 shrink-0 opacity-0 transition-[opacity,transform] group-hover/details:opacity-100 group-focus-within/details:opacity-100",
 					isExpanded && "rotate-90",
 				)}
 				strokeWidth={STROKE_WIDTH}
