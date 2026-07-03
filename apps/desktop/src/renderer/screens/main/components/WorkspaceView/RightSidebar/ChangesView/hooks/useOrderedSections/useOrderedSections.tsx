@@ -52,7 +52,7 @@ interface UseOrderedSectionsInput {
 	onUnstagedFileSelect: (file: ChangedFile) => void;
 	onStageFile: (file: ChangedFile) => void;
 	onStageFiles: (files: ChangedFile[]) => void;
-	onDiscardFile: (file: ChangedFile) => void;
+	onDiscardFiles: (files: ChangedFile[]) => void;
 	onShowDiscardUnstagedDialog: () => void;
 	onStageAll: () => void;
 	isDiscardAllUnstagedPending: boolean;
@@ -90,7 +90,7 @@ export function useOrderedSections({
 	onUnstagedFileSelect,
 	onStageFile,
 	onStageFiles,
-	onDiscardFile,
+	onDiscardFiles,
 	onShowDiscardUnstagedDialog,
 	onStageAll,
 	isDiscardAllUnstagedPending,
@@ -246,7 +246,7 @@ export function useOrderedSections({
 					isActioning={isUnstagedActioning}
 					worktreePath={worktreePath}
 					projectId={projectId}
-					onDiscard={onDiscardFile}
+					onDiscardFiles={onDiscardFiles}
 					category="unstaged"
 					isExpandedView={isExpandedView}
 				/>
