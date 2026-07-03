@@ -3,7 +3,11 @@ import {
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
 } from "@superset/shared/agent-models";
-import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
+import {
+	buildPromptCommandString,
+	quoteSingleShell,
+	sanitizePromptForPty,
+} from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -99,53 +103,39 @@ export function resolveHostAgentConfig(
 	return null;
 }
 
-function quoteSingleShell(value: string): string {
-	return `'${value.replaceAll("'", "'\\''")}'`;
-}
-
 function buildArgvCommand(argv: string[]): string {
 	return argv.map(quoteSingleShell).join(" ");
 }
 
 /**
  * Build a shell command string that runs the resolved agent config with the
- * given prompt. argv transport appends the prompt as the final positional;
- * stdin transport pipes the prompt via a heredoc so the agent can read from
- * fd 0.
+ * given prompt, delegating prompt delivery (heredoc assembly, delimiter
+ * collision handling) to the shared prompt-launch pipeline.
  *
- * Empty prompts drop `promptArgs` so codex/opencode/copilot don't get stray
- * prompt-mode flags during promptless launches.
+ * Prompts that sanitize to empty drop `promptArgs` and the prompt payload so
+ * codex/opencode/copilot don't get stray prompt-mode flags during promptless
+ * launches — emptiness is only knowable after sanitization, so the check
+ * lives here rather than in the router's zod schema.
  */
 export function buildAgentCommandString(
 	config: ResolvedHostAgentConfig,
 	rawPrompt: string,
 	modelArgs: string[] = [],
+	randomId: string = crypto.randomUUID(),
 ): string {
-	// The command string is written to the PTY as if typed, so control
-	// characters in the prompt would hit the shell's line editor as
-	// keystrokes (ESC sequences fire keybindings, CR submits early).
 	const prompt = sanitizePromptForPty(rawPrompt);
-	const baseArgv = [
-		config.command,
-		...config.args,
-		...modelArgs,
-		...config.promptArgs,
-	];
+	const baseArgv = [config.command, ...config.args, ...modelArgs];
 
-	if (config.promptTransport === "argv") {
-		return buildArgvCommand([...baseArgv, prompt]);
+	if (prompt === "") {
+		return buildArgvCommand(baseArgv);
 	}
 
-	// stdin: pipe the prompt to the spawned process via heredoc. Delimiter is
-	// constructed to avoid collision with any line in the prompt content.
-	const baseDelimiter = "SUPERSET_PROMPT";
-	let delimiter = baseDelimiter;
-	let counter = 0;
-	while (prompt.split("\n").some((line) => line === delimiter)) {
-		counter += 1;
-		delimiter = `${baseDelimiter}_${counter}`;
-	}
-	return `${buildArgvCommand(baseArgv)} <<'${delimiter}'\n${prompt}\n${delimiter}`;
+	return buildPromptCommandString({
+		command: buildArgvCommand([...baseArgv, ...config.promptArgs]),
+		transport: config.promptTransport,
+		prompt,
+		randomId,
+	});
 }
 
 function envOverlayPrefix(env: Record<string, string>): string {

@@ -11,9 +11,24 @@ describe("sanitizePromptForPty", () => {
 		).toBe("abcdefghij");
 	});
 
-	it("keeps newlines, tabs, and non-ASCII text", () => {
-		expect(sanitizePromptForPty("line1\n\tindented émoji 🎉 中文")).toBe(
-			"line1\n\tindented émoji 🎉 中文",
+	it("removes ANSI CSI and OSC sequences whole, not just the lead byte", () => {
+		expect(sanitizePromptForPty("fix \x1b[31mred\x1b[0m bug")).toBe(
+			"fix red bug",
+		);
+		expect(sanitizePromptForPty("\x1b]0;title\x07before \x9b1mafter")).toBe(
+			"before after",
+		);
+	});
+
+	it("expands tabs to spaces so they can't fire shell completion", () => {
+		expect(sanitizePromptForPty("if x:\n\treturn\tearly")).toBe(
+			"if x:\n    return    early",
+		);
+	});
+
+	it("keeps newlines and non-ASCII text", () => {
+		expect(sanitizePromptForPty("line1\nline2 émoji 🎉 中文")).toBe(
+			"line1\nline2 émoji 🎉 中文",
 		);
 	});
 
@@ -22,12 +37,12 @@ describe("sanitizePromptForPty", () => {
 	});
 
 	it("is idempotent", () => {
-		const once = sanitizePromptForPty("x\x1b[31m\r\ny");
+		const once = sanitizePromptForPty("x\x1b[31m\r\n\ty");
 		expect(sanitizePromptForPty(once)).toBe(once);
 	});
 
 	it("returns an empty string for an all-control-character prompt", () => {
-		expect(sanitizePromptForPty("\x1b\x07\x00")).toBe("");
+		expect(sanitizePromptForPty("\x1b\x07\x00")).toBe("");
 	});
 });
 

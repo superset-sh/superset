@@ -18,20 +18,6 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
 
-	it("strips escape sequences and control chars from the prompt", () => {
-		const command = buildAgentPromptCommand({
-			prompt: "fix \x1b[31mred\x1b[0m bug\x07\r\nnext\u009b1m line",
-			randomId: "esc-1234",
-			agent: "claude",
-		});
-
-		expect(command).toContain("fix [31mred[0m bug\nnext1m line");
-		expect(command).not.toContain("\x1b");
-		expect(command).not.toContain("\x07");
-		expect(command).not.toContain("\r");
-		expect(command).not.toContain("\u009b");
-	});
-
 	it("does not change non-codex commands", () => {
 		const command = buildAgentPromptCommand({
 			prompt: "hello",
