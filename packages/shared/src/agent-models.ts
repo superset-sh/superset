@@ -86,6 +86,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "copilot",
 		modelFlag: "--model",
 		models: [
+			{ id: "claude-fable-5", label: "Claude Fable 5" },
 			{ id: "claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
 			{ id: "gpt-5.1", label: "GPT-5.1" },
 		],
@@ -94,6 +95,10 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "cursor-agent",
 		modelFlag: "--model",
 		models: [
+			// cursor-agent has no effort flag, so Fable's thinking level is
+			// baked into the model id (`--list-models` exposes high and xhigh).
+			{ id: "claude-fable-5-thinking-high", label: "Fable 5" },
+			{ id: "claude-fable-5-thinking-xhigh", label: "Fable 5 xHigh" },
 			{ id: "opus", label: "Opus" },
 			{ id: "sonnet-4.5", label: "Sonnet 4.5" },
 			{ id: "gpt-5", label: "GPT-5" },
@@ -104,6 +109,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "opencode",
 		modelFlag: "--model",
 		models: [
+			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
 			{ id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
 			{ id: "openai/gpt-5", label: "GPT-5" },
 		],

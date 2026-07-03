@@ -82,6 +82,19 @@ describe("buildAgentModelArgs", () => {
 			"fable",
 		]);
 	});
+
+	it("includes fable for the other CLIs that support it", () => {
+		expect(buildAgentModelArgs("copilot", "claude-fable-5")).toEqual([
+			"--model",
+			"claude-fable-5",
+		]);
+		expect(
+			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-high"),
+		).toEqual(["--model", "claude-fable-5-thinking-high"]);
+		expect(buildAgentModelArgs("opencode", "anthropic/claude-fable-5")).toEqual(
+			["--model", "anthropic/claude-fable-5"],
+		);
+	});
 });
 
 describe("AGENT_EFFORT_SUPPORT", () => {
