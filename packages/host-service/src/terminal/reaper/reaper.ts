@@ -132,14 +132,7 @@ function applyPortScanSync(
 	}
 }
 
-/**
- * Re-register the port scanner against the daemon's live sessions. Extracted so
- * it can run on its own cadence — decoupled from the 5-minute orphan reap —
- * because restored dev-server ports must appear promptly after a host-service
- * restart. Returns the daemon's live sessions so the reap pass can reuse them
- * without a second `daemon.list()`.
- */
-async function syncPortScans(db: HostDb) {
+async function runPortScanSync(db: HostDb) {
 	const daemon = await getDaemonClient();
 	const liveSessions = (await daemon.list()).filter((session) => session.alive);
 	const rowById =
@@ -148,6 +141,28 @@ async function syncPortScans(db: HostDb) {
 			: new Map<string, TerminalRow>();
 	applyPortScanSync(liveSessions, rowById);
 	return { liveSessions, rowById };
+}
+
+let inFlightPortScanSync: ReturnType<typeof runPortScanSync> | null = null;
+
+/**
+ * Re-register the port scanner against the daemon's live sessions. Extracted so
+ * it can run on its own cadence — decoupled from the 5-minute orphan reap —
+ * because restored dev-server ports must appear promptly after a host-service
+ * restart. Returns the daemon's live sessions so the reap pass can reuse them
+ * without a second `daemon.list()`.
+ *
+ * Coalesces concurrent callers onto one in-flight run: the warm-up timers and
+ * the reap pass both call this, and a slow `daemon.list()` right after adoption
+ * (exactly when the warm-up fires) could otherwise let a second sync observe a
+ * transiently-empty list and unregister sessions the first just registered.
+ */
+function syncPortScans(db: HostDb): ReturnType<typeof runPortScanSync> {
+	if (inFlightPortScanSync) return inFlightPortScanSync;
+	inFlightPortScanSync = runPortScanSync(db).finally(() => {
+		inFlightPortScanSync = null;
+	});
+	return inFlightPortScanSync;
 }
 
 async function reapOrphanedSessions(
