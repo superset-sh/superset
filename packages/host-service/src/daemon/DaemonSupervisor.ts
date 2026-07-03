@@ -939,9 +939,11 @@ export class DaemonSupervisor {
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
-			// Prod: detached so PTYs survive host-service restarts via socket
-			// adoption. Dev: attached as defense-in-depth in case serve.ts's
-			// dev shutdown doesn't fire (e.g. host-service crash).
+			// PTY survival: child.unref() (below) is sufficient on all platforms —
+			// the OS reparents the daemon to launchd/init on parent exit, preserving
+			// open PTYs without a new process session. On macOS, detached:true calls
+			// setsid() which severs the Aqua bootstrap namespace (see issue #5423).
+			// Dev: keep attached as defense-in-depth (serve.ts shutdown may not fire).
 			// Raise RLIMIT_NOFILE before exec: macOS's 256 soft default starves a
 			// daemon hosting many worktrees' PTYs and surfaces as node-pty
 			// "posix_spawnp failed" (EMFILE). The raised limit is inherited by
@@ -959,12 +961,11 @@ export class DaemonSupervisor {
 						`--socket=${socketPath}`,
 					];
 			child = childProcess.spawn(command, commandArgs, {
-				// macOS: do NOT use detached:true (setsid) here. It detaches the daemon from
-				// the Aqua launchd bootstrap namespace, breaking GUI subprocess launch
-				// (Chromium, Playwright, Lighthouse) with SIGABRT (bootstrap_check_in error 141).
-				// child.unref() below is sufficient for PTY survival across Electron quit+relaunch.
-				// See: https://github.com/superset-sh/superset/issues/5423
-				detached: false,
+				// macOS: detached:true triggers setsid(), severing the Aqua launchd bootstrap
+				// namespace and causing GUI subprocesses (Chromium/Playwright/Lighthouse) to
+				// abort with SIGABRT (bootstrap_check_in error 141). On other platforms the
+				// original prod/dev split is preserved. See: https://github.com/superset-sh/superset/issues/5423
+				detached: process.platform === 'darwin' ? false : !isDev,
 				stdio,
 				env: childEnv,
 				windowsHide: true,
