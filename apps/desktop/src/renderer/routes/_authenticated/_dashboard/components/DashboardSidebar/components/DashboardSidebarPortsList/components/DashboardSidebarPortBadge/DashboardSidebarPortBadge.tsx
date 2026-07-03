@@ -1,3 +1,9 @@
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -60,88 +66,82 @@ export function DashboardSidebarPortBadge({
 	};
 
 	return (
-		<Tooltip delayDuration={700}>
-			<TooltipTrigger asChild>
-				<div
-					className={cn(
-						"group relative mb-1 inline-flex max-w-full items-center gap-1 rounded-md",
-						"bg-primary/10 text-xs text-primary transition-colors hover:bg-primary/20",
-						isPending && "opacity-70",
-					)}
-				>
-					<button
-						type="button"
-						onClick={handleWorkspaceClick}
-						className="flex max-w-40 min-w-0 items-center gap-1 rounded-md px-2 py-1 font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-					>
-						{port.label ? (
-							<>
-								<span className="min-w-0 truncate">{port.label}</span>
-								<span className="shrink-0 font-mono font-normal text-muted-foreground">
-									{port.port}
-								</span>
-							</>
-						) : (
-							<span className="font-mono text-muted-foreground">
-								{port.port}
-							</span>
-						)}
-					</button>
-					{canOpenInBrowser && (
+		<ContextMenu>
+			<Tooltip delayDuration={700}>
+				<ContextMenuTrigger asChild>
+					<TooltipTrigger asChild>
 						<button
 							type="button"
-							onClick={handleOpenInBrowser}
-							disabled={openUrl.isPending}
-							aria-label={`Open ${port.label || `port ${port.port}`} in browser`}
-							className="text-muted-foreground opacity-0 transition-opacity hover:text-primary focus-visible:opacity-100 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 group-hover:opacity-100"
+							onClick={handleWorkspaceClick}
+							disabled={isPending}
+							aria-busy={isPending}
+							className={cn(
+								"flex max-w-40 min-w-0 shrink-0 items-center gap-1 rounded px-1.5 py-0.5",
+								"bg-muted/60 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+								"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+								isPending && "opacity-70",
+							)}
 						>
-							<LuExternalLink className="size-3.5" strokeWidth={STROKE_WIDTH} />
+							{port.label ? (
+								<>
+									<span className="min-w-0 truncate">{port.label}</span>
+									<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground/60">
+										{port.port}
+									</span>
+								</>
+							) : (
+								<span className="font-mono tabular-nums">{port.port}</span>
+							)}
+							{isPending && (
+								<LuLoaderCircle
+									className="size-3 shrink-0 animate-spin"
+									strokeWidth={STROKE_WIDTH}
+								/>
+							)}
 						</button>
-					)}
-					<button
-						type="button"
-						onClick={handleClose}
-						disabled={isPending}
-						aria-busy={isPending}
-						aria-label={`Close ${port.label || `port ${port.port}`}`}
-						className="pr-1 text-muted-foreground opacity-0 transition-opacity hover:text-primary focus-visible:opacity-100 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-70 group-hover:opacity-100"
-					>
-						{isPending ? (
-							<LuLoaderCircle
-								className="size-3.5 animate-spin"
-								strokeWidth={STROKE_WIDTH}
-							/>
-						) : (
-							<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
+					</TooltipTrigger>
+				</ContextMenuTrigger>
+				<TooltipContent side="top" sideOffset={6} showArrow={false}>
+					<div className="space-y-1 text-xs">
+						{port.label && <div className="font-medium">{port.label}</div>}
+						<div
+							className={`font-mono ${port.label ? "text-background/70" : "font-medium"}`}
+						>
+							localhost:{port.port}
+						</div>
+						<div className="text-background/70">{hostLabel}</div>
+						{(port.processName || port.pid != null) && (
+							<div className="text-background/70">
+								{port.processName}
+								{port.pid != null && ` (pid ${port.pid})`}
+							</div>
 						)}
-					</button>
-				</div>
-			</TooltipTrigger>
-			<TooltipContent side="top" sideOffset={6} showArrow={false}>
-				<div className="space-y-1 text-xs">
-					{port.label && <div className="font-medium">{port.label}</div>}
-					<div
-						className={`font-mono ${port.label ? "text-background/70" : "font-medium"}`}
-					>
-						localhost:{port.port}
-					</div>
-					<div className="text-background/70">{hostLabel}</div>
-					{(port.processName || port.pid != null) && (
-						<div className="text-background/70">
-							{port.processName}
-							{port.pid != null && ` (pid ${port.pid})`}
-						</div>
-					)}
-					{!canOpenInBrowser && (
+						{!canOpenInBrowser && (
+							<div className="text-[10px] text-background/60">
+								Browser open unavailable from this device
+							</div>
+						)}
 						<div className="text-[10px] text-background/60">
-							Browser open unavailable from this device
+							Click to open workspace · Right-click for actions
 						</div>
-					)}
-					<div className="text-[10px] text-background/60">
-						Click to open workspace
 					</div>
-				</div>
-			</TooltipContent>
-		</Tooltip>
+				</TooltipContent>
+			</Tooltip>
+			<ContextMenuContent>
+				{canOpenInBrowser && (
+					<ContextMenuItem
+						onSelect={handleOpenInBrowser}
+						disabled={openUrl.isPending}
+					>
+						<LuExternalLink className="size-4 mr-2" />
+						Open in Browser
+					</ContextMenuItem>
+				)}
+				<ContextMenuItem onSelect={handleClose} disabled={isPending}>
+					<LuX className="size-4 mr-2" />
+					Close Port
+				</ContextMenuItem>
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }

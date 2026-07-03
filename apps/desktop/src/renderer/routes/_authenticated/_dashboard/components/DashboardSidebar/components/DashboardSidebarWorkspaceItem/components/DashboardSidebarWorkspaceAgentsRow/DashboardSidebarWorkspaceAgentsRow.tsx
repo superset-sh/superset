@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { DashboardSidebarChipStrip } from "../../../../components/DashboardSidebarChipStrip";
 import { DashboardSidebarWorkspaceAgentBadge } from "./components/DashboardSidebarWorkspaceAgentBadge";
 import { useDashboardSidebarWorkspaceRunningAgents } from "./hooks/useDashboardSidebarWorkspaceRunningAgents";
 
@@ -18,11 +19,9 @@ export function DashboardSidebarWorkspaceAgentsRow({
 	}
 
 	return (
-		<div
-			className={cn(
-				"flex flex-wrap gap-1 pr-2 pb-1",
-				isInSection ? "pl-14" : "pl-12",
-			)}
+		<DashboardSidebarChipStrip
+			// pl lines the chips up with the summary label text above.
+			className={cn("pr-2", isInSection ? "pl-11" : "pl-9")}
 		>
 			{agents.map((agent) => (
 				<DashboardSidebarWorkspaceAgentBadge
@@ -31,6 +30,6 @@ export function DashboardSidebarWorkspaceAgentsRow({
 					agent={agent}
 				/>
 			))}
-		</div>
+		</DashboardSidebarChipStrip>
 	);
 }

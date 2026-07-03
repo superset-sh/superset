@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { DashboardSidebarChipStrip } from "../../../../components/DashboardSidebarChipStrip";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
 import { DashboardSidebarPortBadge } from "../../../DashboardSidebarPortsList/components/DashboardSidebarPortBadge";
 
@@ -18,11 +19,9 @@ export function DashboardSidebarWorkspacePortsRow({
 	}
 
 	return (
-		<div
-			className={cn(
-				"flex flex-wrap gap-1 pr-2 pb-1",
-				isInSection ? "pl-14" : "pl-12",
-			)}
+		<DashboardSidebarChipStrip
+			// pl lines the chips up with the summary label text above.
+			className={cn("pr-2", isInSection ? "pl-11" : "pl-9")}
 		>
 			{group.ports.map((port) => (
 				<DashboardSidebarPortBadge
@@ -30,6 +29,6 @@ export function DashboardSidebarWorkspacePortsRow({
 					port={port}
 				/>
 			))}
-		</div>
+		</DashboardSidebarChipStrip>
 	);
 }

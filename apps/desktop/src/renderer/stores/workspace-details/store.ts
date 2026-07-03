@@ -2,41 +2,41 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
 interface WorkspaceDetailsState {
-	// Workspaces are expanded by default; we only persist the ones the user has
-	// explicitly collapsed so the map stays small and new workspaces show their
-	// details automatically.
-	collapsedWorkspaceIds: Record<string, true>;
+	// Sections are expanded by default; we only persist the ones the user has
+	// explicitly collapsed so the map stays small and new sections show their
+	// details automatically. Keys are `${workspaceId}:${sectionKey}`.
+	collapsedSectionKeys: Record<string, true>;
 
-	setExpanded: (workspaceId: string, expanded: boolean) => void;
-	toggleExpanded: (workspaceId: string) => void;
+	setExpanded: (sectionKey: string, expanded: boolean) => void;
+	toggleExpanded: (sectionKey: string) => void;
 }
 
 export const useWorkspaceDetailsStore = create<WorkspaceDetailsState>()(
 	devtools(
 		persist(
 			(set, get) => ({
-				collapsedWorkspaceIds: {},
+				collapsedSectionKeys: {},
 
-				setExpanded: (workspaceId, expanded) =>
+				setExpanded: (sectionKey, expanded) =>
 					set((state) => {
-						const next = { ...state.collapsedWorkspaceIds };
+						const next = { ...state.collapsedSectionKeys };
 						if (expanded) {
-							delete next[workspaceId];
+							delete next[sectionKey];
 						} else {
-							next[workspaceId] = true;
+							next[sectionKey] = true;
 						}
-						return { collapsedWorkspaceIds: next };
+						return { collapsedSectionKeys: next };
 					}),
 
-				toggleExpanded: (workspaceId) => {
-					const isCollapsed = !!get().collapsedWorkspaceIds[workspaceId];
-					get().setExpanded(workspaceId, isCollapsed);
+				toggleExpanded: (sectionKey) => {
+					const isCollapsed = !!get().collapsedSectionKeys[sectionKey];
+					get().setExpanded(sectionKey, isCollapsed);
 				},
 			}),
 			{
 				name: "workspace-details-store",
 				partialize: (state) => ({
-					collapsedWorkspaceIds: state.collapsedWorkspaceIds,
+					collapsedSectionKeys: state.collapsedSectionKeys,
 				}),
 			},
 		),
