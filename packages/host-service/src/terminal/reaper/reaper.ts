@@ -103,8 +103,8 @@ function loadTerminalRowsById(db: HostDb): Map<string, TerminalRow> {
 	return new Map(rows.map((row) => [row.id, row]));
 }
 
-// Isolated from the reaper's main flow: port scanning is best-effort, so a
-// port-manager error must not abort the orphan cleanup that follows it.
+// Port scanning is best-effort: a port-manager error must not propagate to the
+// caller — the reap pass (whose orphan cleanup must still run) or a warm-up sync.
 function applyPortScanSync(
 	liveSessions: { id: string; pid: number }[],
 	rowById: Map<string, TerminalRow>,
