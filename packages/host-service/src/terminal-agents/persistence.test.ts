@@ -7,6 +7,7 @@ import type { HostDb } from "../db";
 import * as schema from "../db/schema";
 import { terminalAgentBindings, terminalSessions } from "../db/schema";
 import {
+	listDefunctBindingTerminalIds,
 	reconcileTerminalAgentBindings,
 	SqliteTerminalAgentBindingPersistence,
 } from "./persistence";
@@ -59,6 +60,14 @@ describe("reconcileTerminalAgentBindings", () => {
 			workspaceId: "ws-1",
 		});
 		seedSession(db, { id: "t-orphan", status: "active", workspaceId: null });
+
+		// The shared staleness predicate feeds both the drain below and the
+		// listByWorkspace read filter.
+		expect([...listDefunctBindingTerminalIds(db)].sort()).toEqual([
+			"t-disposed",
+			"t-exited",
+			"t-orphan",
+		]);
 
 		const store = new TerminalAgentStore(
 			new SqliteTerminalAgentBindingPersistence(db),

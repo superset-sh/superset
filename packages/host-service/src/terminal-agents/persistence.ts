@@ -8,21 +8,14 @@ import type {
 import type { TerminalAgentBinding } from "./types";
 
 /**
- * Prune bindings whose terminal can no longer be hosting an agent: the
- * session row is missing, `exited`/`disposed`, or workspace-less (the same
- * orphan criteria the terminal reaper uses). Exit-event pruning only covers
- * terminals that die while the host-service is up, so run this once at
- * startup, after hydrating the store, to drain bindings persisted for
- * terminals that died in between.
+ * Terminal ids whose bindings are defunct: the session row is missing,
+ * `exited`/`disposed`, or workspace-less (the same orphan criteria the
+ * terminal reaper uses). The single source of the staleness criteria — the
+ * startup drain deletes matching bindings and the `listByWorkspace` read
+ * filter excludes them, so the two layers can't drift apart.
  */
-export function reconcileTerminalAgentBindings({
-	db,
-	store,
-}: {
-	db: HostDb;
-	store: TerminalAgentStore;
-}): void {
-	const defunct = db
+export function listDefunctBindingTerminalIds(db: HostDb): Set<string> {
+	const rows = db
 		.select({ terminalId: terminalAgentBindings.terminalId })
 		.from(terminalAgentBindings)
 		.leftJoin(
@@ -37,9 +30,24 @@ export function reconcileTerminalAgentBindings({
 			),
 		)
 		.all();
+	return new Set(rows.map((row) => row.terminalId));
+}
 
-	for (const row of defunct) {
-		store.markTerminalExited(row.terminalId);
+/**
+ * Prune bindings whose terminal can no longer be hosting an agent. Exit-event
+ * pruning only covers terminals that die while the host-service is up, so run
+ * this once at startup, after hydrating the store, to drain bindings
+ * persisted for terminals that died in between.
+ */
+export function reconcileTerminalAgentBindings({
+	db,
+	store,
+}: {
+	db: HostDb;
+	store: TerminalAgentStore;
+}): void {
+	for (const terminalId of listDefunctBindingTerminalIds(db)) {
+		store.markTerminalExited(terminalId);
 	}
 }
 

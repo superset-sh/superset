@@ -1,4 +1,5 @@
 export {
+	listDefunctBindingTerminalIds,
 	reconcileTerminalAgentBindings,
 	SqliteTerminalAgentBindingPersistence,
 } from "./persistence";
