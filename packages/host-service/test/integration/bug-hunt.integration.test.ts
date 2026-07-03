@@ -13,7 +13,13 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
@@ -78,7 +84,6 @@ describe("bug-hunt: filesystem sandbox", () => {
 			expect(result.kind).toBe("text");
 			expect(result.content).toBe("outside content");
 		} finally {
-			const { rmSync } = await import("node:fs");
 			rmSync(sibling, { force: true });
 		}
 	});
@@ -87,7 +92,6 @@ describe("bug-hunt: filesystem sandbox", () => {
 		const outside = join(repo.repoPath, "..", `symlink-target-${randomUUID()}`);
 		writeFileSync(outside, "secret");
 		const link = join(repo.repoPath, "innocent-looking.txt");
-		const { symlinkSync, rmSync } = await import("node:fs");
 		symlinkSync(outside, link);
 		try {
 			await expect(
@@ -117,8 +121,6 @@ describe("bug-hunt: filesystem sandbox", () => {
 		).rejects.toThrow();
 		expect(existsSync(join(sibling, "marker"))).toBe(true);
 
-		// Cleanup
-		const { rmSync } = await import("node:fs");
 		rmSync(sibling, { recursive: true, force: true });
 	});
 
