@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+} from "bun:test";
 
 // Mock localStorage
 const storage = new Map<string, string>();
@@ -18,7 +26,14 @@ const mockReplaceState = mock(
 	(_state: unknown, _unused: string, _url?: string | URL | null) => {},
 );
 
-// Set up globals BEFORE importing the module (the singleton runs at import time)
+// Set up globals BEFORE importing the module (the singleton runs at import time).
+// The originals MUST be restored afterAll: later test files in the same process
+// create zustand persist stores that read `window.localStorage` at import time,
+// and a leaked bare-mock `window` makes that undefined and crashes their setState.
+const originalWindow = (globalThis as { window?: unknown }).window;
+const originalLocalStorage = (globalThis as { localStorage?: unknown })
+	.localStorage;
+
 Object.defineProperty(globalThis, "localStorage", {
 	value: mockLocalStorage,
 	writable: true,
@@ -52,6 +67,19 @@ beforeEach(() => {
 
 afterEach(() => {
 	storage.clear();
+});
+
+afterAll(() => {
+	Object.defineProperty(globalThis, "window", {
+		value: originalWindow,
+		writable: true,
+		configurable: true,
+	});
+	Object.defineProperty(globalThis, "localStorage", {
+		value: originalLocalStorage,
+		writable: true,
+		configurable: true,
+	});
 });
 
 describe("createPersistentHashHistory", () => {
