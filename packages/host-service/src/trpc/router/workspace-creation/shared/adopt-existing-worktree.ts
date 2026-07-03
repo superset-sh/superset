@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, ne, or } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
-import { enqueueCloudDelete } from "../../../../runtime/cloud-delete-outbox";
+import { enqueueCloudPresence } from "../../../../runtime/cloud-presence-outbox";
 import type { HostServiceContext } from "../../../../types";
 import { gitConfigWrite } from "../../git/utils/config-write";
 import type { GitClient } from "./types";
@@ -210,7 +210,7 @@ export async function adoptExistingWorktree(
 					{ workspaceId: cloudRow.id, err: cleanupErr },
 				);
 				// Ghost row on other machines until deleted — retry via outbox.
-				enqueueCloudDelete(ctx.db, cloudRow.id);
+				enqueueCloudPresence(ctx.db, cloudRow.id, "delete");
 			});
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",

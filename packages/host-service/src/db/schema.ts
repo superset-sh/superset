@@ -163,14 +163,17 @@ export const hostAgentConfigs = sqliteTable(
 );
 
 /**
- * Cloud presence deletes that failed and must be retried (boot + interval).
- * Only ids this host itself tried to delete go here — never inferred from
- * "cloud row without a local row": hostId is machine-derived, so dev and prod
+ * Cloud presence mirrors that failed and must be retried (boot + interval):
+ * op='create' re-mirrors a locally committed workspace, op='delete' removes
+ * stale presence. One row per workspace; the latest local action wins.
+ * Only ids this host itself acted on go here — never inferred from "cloud row
+ * without a local row": hostId is machine-derived, so dev and prod
  * host-services on one machine share it and an inference sweep would delete
  * each other's presence.
  */
-export const cloudDeleteOutbox = sqliteTable("cloud_delete_outbox", {
+export const cloudPresenceOutbox = sqliteTable("cloud_presence_outbox", {
 	workspaceId: text("workspace_id").primaryKey(),
+	op: text("op").$type<"create" | "delete">().notNull(),
 	createdAt: integer("created_at")
 		.notNull()
 		.$defaultFn(() => Date.now()),

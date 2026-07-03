@@ -12,7 +12,7 @@ import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
 import { ChatRuntimeManager } from "./runtime/chat";
-import { flushCloudDeleteOutbox } from "./runtime/cloud-delete-outbox";
+import { flushCloudPresenceOutbox } from "./runtime/cloud-presence-outbox";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
@@ -143,20 +143,22 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		new SqliteTerminalAgentBindingPersistence(db),
 	);
 
-	// Retry cloud presence deletes that failed at rollback time (boot +
-	// hourly). Idempotent; ghost rows otherwise stay visible on other machines.
+	// Retry cloud presence mirrors (creates + deletes) that failed at commit
+	// time (boot + hourly). Idempotent; other machines otherwise miss local
+	// workspaces or keep showing ghosts.
 	const flushOutbox = () =>
-		flushCloudDeleteOutbox(db, api)
-			.then(({ deleted, pending }) => {
-				if (deleted > 0 || pending > 0) {
-					console.warn("[host-service] cloud-delete outbox flush", {
-						deleted,
+		flushCloudPresenceOutbox(db, api, config.organizationId)
+			.then(({ flushed, dropped, pending }) => {
+				if (flushed > 0 || dropped > 0 || pending > 0) {
+					console.warn("[host-service] cloud-presence outbox flush", {
+						flushed,
+						dropped,
 						pending,
 					});
 				}
 			})
 			.catch((err) => {
-				console.warn("[host-service] cloud-delete outbox flush failed:", err);
+				console.warn("[host-service] cloud-presence outbox flush failed:", err);
 			});
 	void flushOutbox();
 	const outboxTimer = setInterval(flushOutbox, 60 * 60 * 1000);

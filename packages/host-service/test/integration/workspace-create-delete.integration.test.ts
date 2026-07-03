@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
-import { workspaces } from "../../src/db/schema";
+import { cloudPresenceOutbox, workspaces } from "../../src/db/schema";
 import { cloudFlows, cloudOk } from "../helpers/cloud-fakes";
 import {
 	createBasicScenario,
@@ -349,7 +349,7 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(existsSync(persisted?.worktreePath ?? "")).toBe(true);
 	});
 
-	test("create() rolls back the worktree if cloud v2Workspace.create fails", async () => {
+	test("create() commits locally and queues the mirror when cloud is down", async () => {
 		const scenario = await createProjectScenario({
 			hostOptions: {
 				apiOverrides: {
@@ -362,18 +362,30 @@ describe("workspace.create + workspace.delete integration", () => {
 		});
 		dispose = scenario.dispose;
 
-		await expect(
-			scenario.host.trpc.workspaces.create.mutate({
-				projectId: scenario.projectId,
-				name: "ws",
-				branch: "feature/rollback",
-			}),
-		).rejects.toThrow(/cloud-down/);
+		// Local-first: the create succeeds offline — the local row is the
+		// commit point, the cloud mirror drains later via the presence outbox.
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "ws",
+			branch: "feature/offline",
+		});
 
-		// New worktree scheme is `~/.superset/worktrees/<projectId>/<branch>`.
-		// Rollback should leave nothing behind in the workspaces table either.
-		const rows = scenario.host.db.select().from(workspaces).all();
-		expect(rows).toHaveLength(0);
+		const persisted = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
+			.get();
+		expect(persisted?.branch).toBe("feature/offline");
+		expect(persisted?.name).toBe("ws");
+		expect(existsSync(persisted?.worktreePath ?? "")).toBe(true);
+
+		const queued = scenario.host.db.select().from(cloudPresenceOutbox).all();
+		expect(queued).toEqual([
+			expect.objectContaining({
+				workspaceId: result?.workspace?.id,
+				op: "create",
+			}),
+		]);
 	});
 
 	test("delete() rejects deleting a main workspace by path equality", async () => {

@@ -148,25 +148,19 @@ describe("bug-hunt-2: partial-failure consistency", () => {
 		repo.dispose();
 	});
 
-	test("workspace.create (v1) does NOT roll back the worktree when persistLocalWorkspace fails post-cloud", async () => {
+	test("workspaces.create rolls back the worktree when the local insert fails", async () => {
 		host = await createTestHost({
 			apiOverrides: {
 				"host.ensure.mutate": () => ({ machineId: "m1" }),
-				// Return a fresh id for ensureMainWorkspace's call, then a colliding
-				// id for the feature workspace's call so the local insert throws.
-				"v2Workspace.create.mutate": (() => {
-					let n = 0;
-					return (input: unknown) => {
-						n++;
-						const i = input as { branch: string; name: string };
-						return {
-							id: n === 1 ? randomUUID() : "duplicate-id",
-							projectId,
-							branch: i.branch,
-							name: i.name,
-						};
+				"v2Workspace.create.mutate": (input: unknown) => {
+					const i = input as { id?: string; branch: string; name: string };
+					return {
+						id: i.id ?? randomUUID(),
+						projectId,
+						branch: i.branch,
+						name: i.name,
 					};
-				})(),
+				},
 			},
 		});
 		host.db
@@ -174,30 +168,26 @@ describe("bug-hunt-2: partial-failure consistency", () => {
 			.values({ id: projectId, repoPath: repo.repoPath })
 			.run();
 
-		// First create succeeds; ensureMainWorkspace consumes call #1 and
-		// the feature workspace consumes call #2 ("duplicate-id"). Now
-		// preload "duplicate-id" into the workspaces table so the post-
-		// cloud insert hits the PK and throws.
+		// Local-first: the local insert is the commit point and happens before
+		// any cloud call. Preload a row with the id the create will use so the
+		// insert hits the PK and throws — the worktree must be rolled back.
+		const collidingId = randomUUID();
 		host.db
 			.insert(workspaces)
 			.values({
-				id: "duplicate-id",
+				id: collidingId,
 				projectId,
 				worktreePath: "/tmp/preload-conflict",
 				branch: "preload",
 			})
 			.run();
 
-		// The new canonical `workspaces.create` rolls back the worktree
-		// when the local DB insert fails (the old v1 surface deliberately
-		// did not, to leave a recoverable artefact — that surface is now
-		// gone). Pin the rollback: the call must throw AND the worktree
-		// must be cleaned up.
 		await expect(
 			host.trpc.workspaces.create.mutate({
 				projectId,
 				name: "ws",
 				branch: "feature/post-cloud-fail",
+				id: collidingId,
 			}),
 		).rejects.toBeDefined();
 

@@ -1,16 +1,23 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9a57b712-d995-46cf-a430-7e8d3a59a014",
+  "id": "6a9cdd30-5c4c-4c42-a86f-c0a4e3a6746b",
   "prevId": "7110a50e-1099-4a1e-bc62-22b45a8bbf54",
   "tables": {
-    "cloud_delete_outbox": {
-      "name": "cloud_delete_outbox",
+    "cloud_presence_outbox": {
+      "name": "cloud_presence_outbox",
       "columns": {
         "workspace_id": {
           "name": "workspace_id",
           "type": "text",
           "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "op": {
+          "name": "op",
+          "type": "text",
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },

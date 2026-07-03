@@ -61,8 +61,8 @@
     {
       "idx": 8,
       "version": "6",
-      "when": 1783047180749,
-      "tag": "0008_workspace_identity_and_outbox",
+      "when": 1783102182756,
+      "tag": "0008_workspace_identity_and_presence_outbox",
       "breakpoints": true
     }
   ]

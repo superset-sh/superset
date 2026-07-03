@@ -555,7 +555,7 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 		expect(cloudCallCount).toBe(1);
 	});
 
-	test("sqlite row-delete failure after cloud delete becomes a warning", async () => {
+	test("sqlite row-delete failure blocks the destroy (local row is the commit point)", async () => {
 		const ctx = makeCtx({
 			workspace: {
 				id: "ws-1",
@@ -568,17 +568,12 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			dbDeleteThrows: true,
 		});
 		const caller = workspaceCleanupRouter.createCaller(ctx);
-		const result = await caller.destroy({
-			workspaceId: "ws-1",
-			deleteBranch: false,
-			force: true,
-		});
-		expect(result.success).toBe(true);
-		expect(result.cloudDeleted).toBe(true);
-		expect(
-			result.warnings.some((w) =>
-				w.includes("Failed to remove local workspace row"),
-			),
-		).toBe(true);
+		await expect(
+			caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			}),
+		).rejects.toThrow(/Failed to remove local workspace row/);
 	});
 });
