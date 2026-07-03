@@ -4,8 +4,9 @@ import {
 	buildAgentModelArgs,
 } from "@superset/shared/agent-models";
 import {
+	buildArgvCommand,
 	buildPromptCommandString,
-	quoteSingleShell,
+	envOverlayPrefix,
 	sanitizePromptForPty,
 } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
@@ -103,10 +104,6 @@ export function resolveHostAgentConfig(
 	return null;
 }
 
-function buildArgvCommand(argv: string[]): string {
-	return argv.map(quoteSingleShell).join(" ");
-}
-
 /**
  * Build a shell command string that runs the resolved agent config with the
  * given prompt, delegating prompt delivery (heredoc assembly, delimiter
@@ -136,15 +133,6 @@ export function buildAgentCommandString(
 		prompt,
 		randomId,
 	});
-}
-
-function envOverlayPrefix(env: Record<string, string>): string {
-	const entries = Object.entries(env);
-	if (entries.length === 0) return "";
-	const assignments = entries
-		.map(([key, value]) => `${key}=${quoteSingleShell(value)}`)
-		.join(" ");
-	return `${assignments} `;
 }
 
 function buildAttachmentBlock(

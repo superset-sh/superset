@@ -42,6 +42,17 @@ export function quoteSingleShell(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
+export function buildArgvCommand(argv: string[]): string {
+	return argv.map(quoteSingleShell).join(" ");
+}
+
+export function envOverlayPrefix(env: Record<string, string>): string {
+	const assignments = Object.entries(env).map(
+		([key, value]) => `${key}=${quoteSingleShell(value)}`,
+	);
+	return assignments.length > 0 ? `${assignments.join(" ")} ` : "";
+}
+
 function joinCommand(command: string, suffix?: string): string {
 	return suffix ? `${command} ${suffix}` : command;
 }
