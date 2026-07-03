@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { cloudPresenceOutbox, workspaces } from "../../../db/schema";
+import { resolveWorkspaceType } from "../../../db/workspace-shape";
 import { protectedProcedure, router } from "../../index";
 import { destroyWorkspace } from "../workspace-cleanup";
 
@@ -79,7 +80,12 @@ export const workspaceRouter = router({
 			if (Object.keys(patch).length === 0) {
 				return { ok: true };
 			}
-			patch.updatedAt = Date.now();
+			// updatedAt is the identity-LWW stamp; updatedAt === createdAt marks
+			// "never identity-edited" in mergeWorkspacePresence, so branch-only
+			// patches must not bump it.
+			if (input.name !== undefined || input.taskId !== undefined) {
+				patch.updatedAt = Date.now();
+			}
 			const result = ctx.db
 				.update(workspaces)
 				.set(patch)
@@ -116,20 +122,18 @@ export const workspaceRouter = router({
 				),
 			})
 			.sync();
-		const repoPathByProjectId = new Map(
-			ctx.db.query.projects
-				.findMany()
-				.sync()
-				.map((p) => [p.id, p.repoPath]),
-		);
+		// Only legacy null-type rows need the repoPath fallback; skip the
+		// projects scan on the 3s poll when every row already carries a type.
+		const repoPathByProjectId = rows.some((row) => row.type === null)
+			? new Map(
+					ctx.db.query.projects
+						.findMany()
+						.sync()
+						.map((p) => [p.id, p.repoPath]),
+				)
+			: new Map<string, string>();
 		return rows.map((row) => {
 			const createdAt = new Date(row.createdAt);
-			// Legacy main rows predate the type column but were inserted with
-			// worktreePath === the project's repoPath (see isMainWorkspace).
-			const fallbackType =
-				row.worktreePath === repoPathByProjectId.get(row.projectId)
-					? "main"
-					: "worktree";
 			return {
 				id: row.id,
 				organizationId: row.organizationId ?? ctx.organizationId,
@@ -137,7 +141,7 @@ export const workspaceRouter = router({
 				hostId,
 				name: row.name ?? row.branch,
 				branch: row.branch,
-				type: row.type ?? fallbackType,
+				type: resolveWorkspaceType(row, repoPathByProjectId.get(row.projectId)),
 				createdByUserId: row.createdByUserId ?? null,
 				taskId: row.taskId ?? null,
 				createdAt,

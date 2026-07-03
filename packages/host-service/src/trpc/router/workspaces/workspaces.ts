@@ -6,7 +6,11 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../db/schema";
-import { enqueueCloudPresence } from "../../../runtime/cloud-presence-outbox";
+import { resolveWorkspaceTypeFromDb } from "../../../db/workspace-shape";
+import {
+	dequeueCloudPresence,
+	enqueueCloudPresence,
+} from "../../../runtime/cloud-presence-outbox";
 import {
 	asRemoteRef,
 	type ResolvedRef,
@@ -153,7 +157,7 @@ function toCloudWorkspaceShape(
 		hostId: getHostId(),
 		name: local.name ?? local.branch,
 		branch: local.branch,
-		type: local.type ?? "worktree",
+		type: resolveWorkspaceTypeFromDb(ctx.db, local),
 		createdByUserId: local.createdByUserId ?? null,
 		taskId: local.taskId ?? null,
 		createdAt,
@@ -475,21 +479,26 @@ async function registerCloudAndLocal(args: {
 	const now = Date.now();
 
 	try {
-		ctx.db
-			.insert(workspaces)
-			.values({
-				id,
-				projectId: args.projectId,
-				worktreePath: args.worktreePath,
-				branch: args.branch,
-				name: args.name,
-				type: "worktree",
-				organizationId: ctx.organizationId,
-				taskId: args.taskId ?? null,
-				createdAt: now,
-				updatedAt: now,
-			})
-			.run();
+		// One transaction: the local commit and its cloud-presence retry entry
+		// land together, so a crash before the mirror below can't strand a
+		// workspace that never reaches other machines. Dequeued on mirror success.
+		ctx.db.transaction((tx) => {
+			tx.insert(workspaces)
+				.values({
+					id,
+					projectId: args.projectId,
+					worktreePath: args.worktreePath,
+					branch: args.branch,
+					name: args.name,
+					type: "worktree",
+					organizationId: ctx.organizationId,
+					taskId: args.taskId ?? null,
+					createdAt: now,
+					updatedAt: now,
+				})
+				.run();
+			enqueueCloudPresence(tx, id, "create");
+		});
 	} catch (err) {
 		await args.rollbackWorktree();
 		throw new TRPCError({
@@ -529,8 +538,8 @@ async function registerCloudAndLocal(args: {
 			{ workspaceId: id, err },
 		);
 	}
-	if (!mirrored) {
-		enqueueCloudPresence(ctx.db, id, "create");
+	if (mirrored) {
+		dequeueCloudPresence(ctx.db, id);
 	}
 	// Always answer from the local row — it is the source of truth and its id
 	// is what every later lookup (terminals, agents, renderer nav) uses.

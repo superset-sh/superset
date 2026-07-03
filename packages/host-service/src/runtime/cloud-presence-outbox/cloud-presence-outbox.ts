@@ -2,16 +2,22 @@ import { getHostId, getHostName } from "@superset/shared/host-info";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { cloudPresenceOutbox, workspaces } from "../../db/schema";
+import { resolveWorkspaceTypeFromDb } from "../../db/workspace-shape";
 import type { ApiClient } from "../../types";
 
 export type PresenceOp = "create" | "delete";
 
-// Records a cloud presence mirror that must be retried later. Called when a
-// local-first create/delete commits but its cloud mirror fails — without
-// this, other machines miss the workspace (or keep showing a ghost). See
-// schema.ts for why this is an outbox and not an inference sweep.
+// Also satisfied by a drizzle transaction, so the outbox entry can commit
+// atomically with the local-first create/delete it mirrors.
+type PresenceDb = Pick<HostDb, "insert" | "delete">;
+
+// Records a cloud presence mirror that must be (re)tried. Enqueued together
+// with the local commit — not only after a failed cloud call — so a crash
+// before the mirror lands can't strand the commit unmirrored; without this,
+// other machines miss the workspace (or keep showing a ghost). See schema.ts
+// for why this is an outbox and not an inference sweep.
 export function enqueueCloudPresence(
-	db: HostDb,
+	db: PresenceDb,
 	workspaceId: string,
 	op: PresenceOp,
 ): void {
@@ -22,6 +28,16 @@ export function enqueueCloudPresence(
 			target: cloudPresenceOutbox.workspaceId,
 			set: { op },
 		})
+		.run();
+}
+
+// Clears the retry entry once cloud confirmed the mirror.
+export function dequeueCloudPresence(
+	db: PresenceDb,
+	workspaceId: string,
+): void {
+	db.delete(cloudPresenceOutbox)
+		.where(eq(cloudPresenceOutbox.workspaceId, workspaceId))
 		.run();
 }
 
@@ -101,7 +117,7 @@ export async function flushCloudPresenceOutbox(
 				name: local.name ?? local.branch,
 				branch: local.branch,
 				hostId: getHostId(),
-				type: local.type ?? "worktree",
+				type: resolveWorkspaceTypeFromDb(db, local),
 				taskId: local.taskId ?? undefined,
 				id: local.id,
 			});

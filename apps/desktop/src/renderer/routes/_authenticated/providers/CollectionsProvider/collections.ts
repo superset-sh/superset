@@ -101,7 +101,16 @@ const createIndexedCollection = ((
 
 // v2_workspaces is local-first: sourced from the local host-service, not Electric
 // (plans/20260629-v2-workspaces-local-authoritative.md).
-const queryClient = new QueryClient();
+// refetchIntervalInBackground: TanStack Query pauses interval refetches while
+// the window is hidden (minimized/occluded) by default. Electric pushed
+// regardless of visibility; polling must too — agent_commands otherwise sit
+// until they expire against timeoutAt. queryCollectionOptions doesn't forward
+// this option, so it must come from the client's defaults.
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: { refetchIntervalInBackground: true },
+	},
+});
 const LOCAL_WORKSPACES_POLL_MS = 3_000;
 // All other org-scoped collections poll the tRPC `sync.pull` endpoint instead of
 // Electric shapes. Freshness of changes made elsewhere is bounded by this.
@@ -159,6 +168,25 @@ interface LocalWorkspaceSnapshot {
 const lastGoodLocalWorkspaces = new Map<string, LocalWorkspaceSnapshot>();
 const lastGoodCloudWorkspaces = new Map<string, SelectV2Workspace[]>();
 
+// Called after a confirmed destroy: a fully-successful delete leaves no
+// pendingCloudDeletes mask, so if the next cloud poll fails, the stale
+// last-good snapshot would resurrect the row as presence until a poll
+// succeeds. Ids are globally unique, so evicting across orgs is safe.
+export function evictWorkspaceFromPresenceCache(workspaceId: string): void {
+	for (const [org, rows] of lastGoodCloudWorkspaces) {
+		lastGoodCloudWorkspaces.set(
+			org,
+			rows.filter((w) => w.id !== workspaceId),
+		);
+	}
+	for (const [org, snapshot] of lastGoodLocalWorkspaces) {
+		lastGoodLocalWorkspaces.set(org, {
+			...snapshot,
+			rows: snapshot.rows.filter((w) => w.id !== workspaceId),
+		});
+	}
+}
+
 // Workspaces for the renderer: this machine's from the local host-service
 // (authoritative), merged with other machines' from cloud presence. Identity
 // edits that arrived in cloud from other machines are adopted back into the
@@ -202,8 +230,22 @@ async function fetchWorkspaces(
 		cloudResult.status === "fulfilled"
 			? cloudResult.value
 			: (lastGoodCloudWorkspaces.get(organizationId) ?? []);
-	// No local list and nothing cached: throw (not []) while the host boots —
-	// [] would wipe the persisted rows; an error keeps the previous snapshot.
+	// No local list and nothing cached: if cloud presence answered, render it
+	// alone — a never-booted local host (fresh install, crash-looping service)
+	// must not hide remote machines' workspaces forever. Own-host rows render
+	// from their cloud mirror until the host comes up; only a not-yet-mirrored
+	// offline create is briefly invisible, and offline implies the cloud fetch
+	// failed too, which takes the throw below instead.
+	if (!local && cloudResult.status === "fulfilled") {
+		return mergeWorkspacePresence({
+			local: [],
+			cloud,
+			organizationId,
+			pendingCloudDeleteIds: new Set(),
+		}).rows;
+	}
+	// Neither side available: throw (not []) while the host boots — [] would
+	// wipe the persisted rows; an error keeps the previous snapshot.
 	if (!local) {
 		throw localResult.status === "rejected"
 			? localResult.reason
@@ -525,6 +567,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				// have no local row; for those the cloud update is authoritative.
 				const localUrl = getActiveLocalHostUrl();
 				const isLocalWorkspace = original.hostId === getActiveLocalMachineId();
+				let localCommitted = false;
 				if (
 					localUrl &&
 					isLocalWorkspace &&
@@ -534,22 +577,35 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					// host-service profile on this machine (dev vs prod) may own it.
 					// For those the cloud update below is the effective write and the
 					// owning profile adopts it on its next reconcile poll.
-					await getHostServiceClientByUrl(localUrl)
-						.workspace.updateLocal.mutate({
+					try {
+						await getHostServiceClientByUrl(
+							localUrl,
+						).workspace.updateLocal.mutate({
 							id: original.id,
 							name,
 							taskId,
 							branch,
-						})
-						.catch(() => {});
+						});
+						localCommitted = true;
+					} catch {
+						// No local row or host hiccup — cloud is the effective write.
+					}
 				}
-				await apiClient.v2Workspace.update.mutate({
-					id: original.id,
-					branch,
-					hostId,
-					name,
-					taskId,
-				});
+				try {
+					await apiClient.v2Workspace.update.mutate({
+						id: original.id,
+						branch,
+						hostId,
+						name,
+						taskId,
+					});
+				} catch (err) {
+					// Once the source-of-truth local row committed, a failed cloud
+					// mirror (offline rename, unmirrored row → NOT_FOUND) must not
+					// roll back the optimistic edit; the reconcile poll pushes it
+					// to cloud later.
+					if (!localCommitted) throw err;
+				}
 			},
 		}),
 	);

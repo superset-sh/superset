@@ -4,7 +4,10 @@ import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
-import { enqueueCloudPresence } from "../../../runtime/cloud-presence-outbox";
+import {
+	dequeueCloudPresence,
+	enqueueCloudPresence,
+} from "../../../runtime/cloud-presence-outbox";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -371,10 +374,14 @@ async function runDestroy(
 	// Cloud presence below is a best-effort mirror, so deletes work offline.
 	if (local) {
 		try {
-			ctx.db
-				.delete(workspaces)
-				.where(eq(workspaces.id, input.workspaceId))
-				.run();
+			// One transaction: the delete commit and its cloud-presence retry
+			// entry land together — a crash between them would otherwise leave
+			// a permanently unmasked ghost cloud row (no local row, no outbox
+			// entry, nothing left to retry or mask).
+			ctx.db.transaction((tx) => {
+				tx.delete(workspaces).where(eq(workspaces.id, input.workspaceId)).run();
+				enqueueCloudPresence(tx, input.workspaceId, "delete");
+			});
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			throw new TRPCError({
@@ -413,14 +420,19 @@ async function runDestroy(
 	let cloudDeleted = true;
 	try {
 		await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+		dequeueCloudPresence(ctx.db, input.workspaceId);
 	} catch (err) {
 		const code = (err as { data?: { code?: string } })?.data?.code;
-		if (code !== "NOT_FOUND") {
+		if (code === "NOT_FOUND") {
+			// Cloud row already gone — the mirror goal is satisfied.
+			dequeueCloudPresence(ctx.db, input.workspaceId);
+		} else {
 			cloudDeleted = false;
 			console.warn(
 				"[workspaceCleanup] cloud presence delete failed; queued for retry",
 				{ workspaceId: input.workspaceId, err },
 			);
+			// Covers the no-local-row path where Step 3 didn't enqueue.
 			enqueueCloudPresence(ctx.db, input.workspaceId, "delete");
 		}
 	}
