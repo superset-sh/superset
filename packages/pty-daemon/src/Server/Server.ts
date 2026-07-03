@@ -33,6 +33,8 @@ import {
 export interface ServerOptions {
 	socketPath: string;
 	daemonVersion: string;
+	/** macOS trustd reachability, probed once at daemon startup; see main.ts. */
+	trustdHealthy?: boolean;
 	bufferCap?: number;
 	outboundBufferCap?: number;
 	/**
@@ -373,6 +375,7 @@ export class Server {
 				protocol: negotiated,
 				daemonVersion: this.opts.daemonVersion,
 				daemonPid: process.pid,
+				trustdHealthy: this.opts.trustdHealthy,
 			});
 			return;
 		}

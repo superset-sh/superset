@@ -25,6 +25,7 @@ import {
 	type ServerMessage,
 	type SessionInfo,
 } from "@superset/pty-daemon/protocol";
+import { probeTrustdHealthy } from "@superset/pty-daemon/trustd-probe";
 import semver from "semver";
 import { DaemonClient } from "../terminal/DaemonClient/index.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
@@ -50,11 +51,17 @@ interface DaemonInstance {
 	updatePending: boolean;
 	/** Last failed background update attempt for this still-running daemon. */
 	autoUpdateFailure?: DaemonAutoUpdateFailure;
+	/**
+	 * macOS trustd reachability the daemon self-reported. `false` = degraded
+	 * (its terminals hit `gh -26276`); undefined = pre-probe daemon version.
+	 */
+	trustdHealthy?: boolean;
 }
 
 interface DaemonProbeResult {
 	daemonVersion: string;
 	daemonPid?: number;
+	trustdHealthy?: boolean;
 }
 
 export interface DaemonAutoUpdateFailure {
@@ -177,9 +184,45 @@ export class DaemonSupervisor {
 		string,
 		Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }>
 	>();
+	/** Whether host-service itself can reach trustd; probed once, cached. */
+	private hostTrustdHealthyCache: boolean | null = null;
 
 	constructor(opts: DaemonSupervisorOptions) {
 		this.opts = opts;
+	}
+
+	/**
+	 * Whether host-service's own Mach bootstrap can reach com.apple.trustd. Used
+	 * to gate healing a trustd-degraded daemon: only worth respawning from here
+	 * if we're healthy. Cached — a process's bootstrap doesn't change under it.
+	 */
+	private hostTrustdHealthy(): boolean {
+		if (this.hostTrustdHealthyCache === null) {
+			this.hostTrustdHealthyCache = probeTrustdHealthy();
+		}
+		return this.hostTrustdHealthyCache;
+	}
+
+	/**
+	 * Terminate an adopted daemon so ensure() can respawn a fresh one. An
+	 * adopted daemon has no child handle or crash-respawn hook attached yet, so
+	 * this just kills its process tree and clears its manifest + socket. Its PTY
+	 * sessions are lost — acceptable, since a trustd-degraded daemon's shells are
+	 * already broken for `gh`/TLS.
+	 */
+	private async killAdoptedDaemon(
+		organizationId: string,
+		instance: DaemonInstance,
+	): Promise<void> {
+		await terminateProcessTreeAndGroups(instance.pid, "SIGTERM");
+		removePtyDaemonManifest(organizationId);
+		try {
+			if (fs.existsSync(instance.socketPath)) {
+				fs.unlinkSync(instance.socketPath);
+			}
+		} catch {
+			// best-effort; the fresh daemon unlinks a stale socket on bind anyway
+		}
 	}
 
 	/**
@@ -705,7 +748,26 @@ export class DaemonSupervisor {
 			await this.killStaleDaemonForDev(organizationId);
 		}
 
-		const adopted = await this.tryAdopt(organizationId);
+		let adopted = await this.tryAdopt(organizationId);
+		// Heal a trustd-degraded daemon: it inherited a Mach bootstrap that can't
+		// reach com.apple.trustd, so its terminals hit `gh: x509: OSStatus -26276`.
+		// Adopting it keeps the breakage — if WE (host-service) can reach trustd,
+		// kill it and respawn fresh from our healthy context below. If we're also
+		// degraded, a respawn wouldn't help; adopt and let the next healthy launch
+		// heal it.
+		if (
+			adopted &&
+			adopted.trustdHealthy === false &&
+			this.hostTrustdHealthy()
+		) {
+			logEvent("pty_daemon_trustd_degraded_respawn", {
+				organizationId,
+				pid: adopted.pid,
+				runningVersion: adopted.runningVersion,
+			});
+			await this.killAdoptedDaemon(organizationId, adopted);
+			adopted = null;
+		}
 		if (adopted) {
 			this.instances.set(organizationId, adopted);
 			console.log(
@@ -828,6 +890,7 @@ export class DaemonSupervisor {
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending,
+			trustdHealthy: probe.trustdHealthy,
 		};
 	}
 
@@ -895,6 +958,7 @@ export class DaemonSupervisor {
 				probe.daemonVersion,
 				`>=${EXPECTED_DAEMON_VERSION}`,
 			),
+			trustdHealthy: probe.trustdHealthy,
 		};
 	}
 
@@ -1085,6 +1149,9 @@ export class DaemonSupervisor {
 			runningVersion: EXPECTED_DAEMON_VERSION,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: false,
+			// A freshly spawned daemon inherits host-service's bootstrap, so its
+			// trustd reachability matches ours.
+			trustdHealthy: this.hostTrustdHealthy(),
 		};
 		this.instances.set(organizationId, instance);
 		console.log(
@@ -1376,6 +1443,7 @@ function probeDaemonHello(
 						cleanup({
 							daemonVersion,
 							daemonPid: msg.daemonPid,
+							trustdHealthy: msg.trustdHealthy,
 						});
 						return;
 					}

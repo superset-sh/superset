@@ -20,6 +20,7 @@ import packageJson from "../package.json" with { type: "json" };
 import type { HandoffMessage } from "./protocol/index.ts";
 import { Server } from "./Server/index.ts";
 import { clearSnapshot, readSnapshot } from "./SessionStore/index.ts";
+import { probeTrustdHealthy } from "./trustd-probe.ts";
 
 const DAEMON_VERSION: string = packageJson.version;
 
@@ -75,6 +76,7 @@ async function runFresh(): Promise<void> {
 	const server = new Server({
 		socketPath: args.socket,
 		daemonVersion,
+		trustdHealthy: probeTrustdHealthy(),
 		bufferCap: args.bufferBytes,
 	});
 	await server.listen();
@@ -136,7 +138,11 @@ async function runHandoffReceiver(): Promise<void> {
 		return;
 	}
 	log(`read snapshot: sessions=${snapshot.sessions.length}`);
-	const server = new Server({ socketPath, daemonVersion });
+	const server = new Server({
+		socketPath,
+		daemonVersion,
+		trustdHealthy: probeTrustdHealthy(),
+	});
 
 	try {
 		log(`adopting ${snapshot.sessions.length} sessions`);

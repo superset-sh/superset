@@ -41,6 +41,13 @@ export interface HelloAckMessage {
 	 * missing or stale.
 	 */
 	daemonPid?: number;
+	/**
+	 * macOS only: whether the daemon's Mach bootstrap can reach `com.apple.trustd`
+	 * (Security-framework TLS trust evaluation). False means terminals it spawns
+	 * hit `gh: x509: OSStatus -26276`; the supervisor respawns such a daemon from
+	 * its own healthy context. Absent from pre-probe daemon versions.
+	 */
+	trustdHealthy?: boolean;
 }
 
 // ---------- Client -> Daemon ----------
