@@ -1,33 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import {
-	PORT_SCAN_WARMUP_DELAYS_MS,
-	planPortScanSync,
-	REAP_INTERVAL_MS,
-} from "./reaper.ts";
+import { planPortScanSync } from "./reaper.ts";
 
 const noneLive = () => false;
-
-describe("port-scan warm-up schedule", () => {
-	it("re-syncs multiple times after startup so ports recover without a reap tick", () => {
-		expect(PORT_SCAN_WARMUP_DELAYS_MS.length).toBeGreaterThanOrEqual(3);
-	});
-
-	it("runs strictly increasing offsets", () => {
-		for (let i = 1; i < PORT_SCAN_WARMUP_DELAYS_MS.length; i += 1) {
-			expect(PORT_SCAN_WARMUP_DELAYS_MS[i]).toBeGreaterThan(
-				PORT_SCAN_WARMUP_DELAYS_MS[i - 1] as number,
-			);
-		}
-	});
-
-	it("fully precedes the first scheduled reap so it covers the gap", () => {
-		// Every warm-up must fire before the 5-minute reap would otherwise be the
-		// first re-sync — that's the window this fix closes.
-		for (const delay of PORT_SCAN_WARMUP_DELAYS_MS) {
-			expect(delay).toBeLessThan(REAP_INTERVAL_MS);
-		}
-	});
-});
 
 describe("planPortScanSync", () => {
 	it("registers alive daemon sessions that map to an active workspace row", () => {

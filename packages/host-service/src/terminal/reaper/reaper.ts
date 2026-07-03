@@ -9,21 +9,7 @@ interface ReapResult {
 	failed: number;
 }
 
-export const REAP_INTERVAL_MS = 5 * 60 * 1000;
-
-/**
- * A host-service restart begins with an empty port scanner while the detached
- * pty-daemon keeps dev servers alive. The reap pass re-registers those sessions,
- * but it runs only once immediately and then every {@link REAP_INTERVAL_MS} — and
- * the just-adopted daemon may not yet list its sessions the instant that first
- * pass runs. Re-sync the port scanner a few times over the first ~90s so restored
- * dev-server ports appear promptly, instead of waiting for the next reap tick or
- * a renderer attach. All offsets stay below REAP_INTERVAL_MS so the warm-up fully
- * covers the gap before the first scheduled reap.
- */
-export const PORT_SCAN_WARMUP_DELAYS_MS = [
-	2_000, 5_000, 10_000, 20_000, 45_000, 90_000,
-];
+const REAP_INTERVAL_MS = 5 * 60 * 1000;
 
 interface TerminalRow {
 	status: string;
@@ -103,8 +89,8 @@ function loadTerminalRowsById(db: HostDb): Map<string, TerminalRow> {
 	return new Map(rows.map((row) => [row.id, row]));
 }
 
-// Port scanning is best-effort: a port-manager error must not propagate to the
-// caller — the reap pass (whose orphan cleanup must still run) or a warm-up sync.
+// Isolated from the reaper's main flow: port scanning is best-effort, so a
+// port-manager error must not abort the orphan cleanup that follows it.
 function applyPortScanSync(
 	liveSessions: { id: string; pid: number }[],
 	rowById: Map<string, TerminalRow>,
@@ -119,11 +105,6 @@ function applyPortScanSync(
 		for (const entry of plan.register) {
 			portManager.upsertSession(entry.terminalId, entry.workspaceId, entry.pid);
 		}
-		if (plan.register.length > 0) {
-			console.log(
-				`[host-service] port-scan sync: registered ${plan.register.length} unattached daemon session(s) for scanning`,
-			);
-		}
 		for (const terminalId of plan.unregister) {
 			portManager.unregisterSession(terminalId);
 		}
@@ -132,46 +113,21 @@ function applyPortScanSync(
 	}
 }
 
-async function runPortScanSync(db: HostDb) {
+async function reapOrphanedSessions(
+	db: HostDb,
+	rowlessPendingSecondPass: Set<string>,
+): Promise<ReapResult> {
 	const daemon = await getDaemonClient();
 	const liveSessions = (await daemon.list()).filter((session) => session.alive);
+
+	// Sync the port scanner before the empty-list short-circuit below so an idle
+	// daemon still drops stale scans. rowById is only consulted to register live
+	// sessions, so skip the DB hit when there are none.
 	const rowById =
 		liveSessions.length > 0
 			? loadTerminalRowsById(db)
 			: new Map<string, TerminalRow>();
 	applyPortScanSync(liveSessions, rowById);
-	return { liveSessions, rowById };
-}
-
-let inFlightPortScanSync: ReturnType<typeof runPortScanSync> | null = null;
-
-/**
- * Re-register the port scanner against the daemon's live sessions. Extracted so
- * it can run on its own cadence — decoupled from the 5-minute orphan reap —
- * because restored dev-server ports must appear promptly after a host-service
- * restart. Returns the daemon's live sessions so the reap pass can reuse them
- * without a second `daemon.list()`.
- *
- * Coalesces concurrent callers onto one in-flight run: the warm-up timers and
- * the reap pass both call this, and a slow `daemon.list()` right after adoption
- * (exactly when the warm-up fires) could otherwise let a second sync observe a
- * transiently-empty list and unregister sessions the first just registered.
- */
-function syncPortScans(db: HostDb): ReturnType<typeof runPortScanSync> {
-	if (inFlightPortScanSync) return inFlightPortScanSync;
-	inFlightPortScanSync = runPortScanSync(db).finally(() => {
-		inFlightPortScanSync = null;
-	});
-	return inFlightPortScanSync;
-}
-
-async function reapOrphanedSessions(
-	db: HostDb,
-	rowlessPendingSecondPass: Set<string>,
-): Promise<ReapResult> {
-	// Sync the port scanner before the empty-list short-circuit below so an idle
-	// daemon still drops stale scans.
-	const { liveSessions, rowById } = await syncPortScans(db);
 
 	if (liveSessions.length === 0) {
 		rowlessPendingSecondPass.clear();
@@ -248,20 +204,5 @@ export function startTerminalReaper(db: HostDb): () => void {
 	run();
 	const interval = setInterval(run, REAP_INTERVAL_MS);
 	interval.unref();
-
-	// Runs only the port-scan sync, not the full reap, so the warm-up never
-	// disturbs the reaper's two-pass rowless-orphan clock.
-	const warmupTimers = PORT_SCAN_WARMUP_DELAYS_MS.map((delay) =>
-		setTimeout(() => {
-			void syncPortScans(db).catch((err) => {
-				console.warn("[host-service] port-scan warm-up sync failed:", err);
-			});
-		}, delay),
-	);
-	for (const timer of warmupTimers) timer.unref();
-
-	return () => {
-		clearInterval(interval);
-		for (const timer of warmupTimers) clearTimeout(timer);
-	};
+	return () => clearInterval(interval);
 }
