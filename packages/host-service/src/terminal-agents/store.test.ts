@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { TerminalAgentStore } from "./store";
+import {
+	type TerminalAgentBindingPersistence,
+	TerminalAgentStore,
+} from "./store";
+import type { TerminalAgentBinding } from "./types";
 
 const WORKSPACE = "ws-1";
 
@@ -214,5 +218,52 @@ describe("TerminalAgentStore", () => {
 			occurredAt: 100,
 		});
 		expect(store.get("t1")).toBeUndefined();
+	});
+
+	it("hydrates persisted bindings", () => {
+		const persisted: TerminalAgentBinding = {
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			agentId: "claude",
+			agentSessionId: "s1",
+			startedAt: 100,
+			lastEventAt: 200,
+			lastEventType: "Start",
+		};
+
+		const hydratedStore = new TerminalAgentStore({
+			load: () => [persisted],
+			upsert: () => {},
+			delete: () => {},
+		});
+
+		expect(hydratedStore.get("t1")).toEqual(persisted);
+		expect(hydratedStore.listByWorkspace(WORKSPACE)).toEqual([persisted]);
+	});
+
+	it("persists binding updates and deletes", () => {
+		const persisted = new Map<string, TerminalAgentBinding>();
+		const persistence: TerminalAgentBindingPersistence = {
+			load: () => [],
+			upsert: (binding) => {
+				persisted.set(binding.terminalId, binding);
+			},
+			delete: (terminalId) => {
+				persisted.delete(terminalId);
+			},
+		};
+		const persistentStore = new TerminalAgentStore(persistence);
+
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		expect(persisted.get("t1")?.lastEventType).toBe("Attached");
+
+		persistentStore.markTerminalExited("t1");
+		expect(persisted.has("t1")).toBe(false);
 	});
 });

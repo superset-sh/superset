@@ -1,7 +1,19 @@
+import { Label } from "@superset/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
-import type { LinkTierMap } from "renderer/lib/clickPolicy";
+import {
+	actionLabel,
+	type LinkAction,
+	type LinkTierMap,
+} from "renderer/lib/clickPolicy";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -9,13 +21,20 @@ import {
 } from "../../../utils/settings-search";
 import { LinkTierMapper } from "../LinkTierMapper";
 
+const PORT_ACTIONS: LinkAction[] = ["pane", "newTab", "external"];
+
 interface LinksSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
 export function LinksSettings({ visibleItems }: LinksSettingsProps) {
-	const { preferences, setFileLinks, setUrlLinks, setSidebarFileLinks } =
-		useV2UserPreferences();
+	const {
+		preferences,
+		setFileLinks,
+		setUrlLinks,
+		setSidebarFileLinks,
+		setPortOpenAction,
+	} = useV2UserPreferences();
 
 	const showFile = isItemVisible(SETTING_ITEM_ID.LINKS_FILE, visibleItems);
 	const showUrl = isItemVisible(SETTING_ITEM_ID.LINKS_URL, visibleItems);
@@ -23,6 +42,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		SETTING_ITEM_ID.LINKS_SIDEBAR_FILE,
 		visibleItems,
 	);
+	const showPort = isItemVisible(SETTING_ITEM_ID.LINKS_PORT, visibleItems);
 
 	const handleFileChange = useCallback(
 		(next: LinkTierMap) => {
@@ -48,6 +68,14 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		[setSidebarFileLinks],
 	);
 
+	const handlePortChange = useCallback(
+		(next: LinkAction) => {
+			setPortOpenAction(next);
+			toast.success("Changes saved");
+		},
+		[setPortOpenAction],
+	);
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -62,12 +90,48 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 				{showSidebar && (
 					<LinkTierMapper
 						title="Sidebar file rows"
-						description="Applies to the file tree, changes list, diff header, and port badges."
+						description="Applies to the file tree, changes list, and diff header."
 						value={preferences.sidebarFileLinks}
 						onChange={handleSidebarChange}
 						idPrefix="links-sidebar-file"
 						surface="file"
 					/>
+				)}
+
+				{showPort && (
+					<div>
+						<h3 className="text-sm font-medium mb-1">Ports</h3>
+						<p className="text-xs text-muted-foreground mb-3">
+							Where detected-port badges in the sidebar open when clicked.
+						</p>
+						<div className="flex items-center justify-between gap-4">
+							<Label
+								htmlFor="links-port-action"
+								className="text-sm font-medium"
+							>
+								On click
+							</Label>
+							<Select
+								value={preferences.portOpenAction}
+								onValueChange={(v) => handlePortChange(v as LinkAction)}
+							>
+								<SelectTrigger
+									id="links-port-action"
+									size="sm"
+									className="w-44"
+								>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{PORT_ACTIONS.map((action) => (
+										<SelectItem key={action} value={action}>
+											{actionLabel(action, "url")}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
 				)}
 
 				{showFile && (

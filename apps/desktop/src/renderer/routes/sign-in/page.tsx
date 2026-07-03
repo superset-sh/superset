@@ -21,12 +21,24 @@ export const Route = createFileRoute("/sign-in/")({
 	component: SignInPage,
 });
 
+const LAST_USED_METHOD_KEY = "superset-last-auth-method";
+
+type AuthMethod = AuthProvider | "dev";
+
+function readLastUsedMethod(): AuthMethod | null {
+	const stored = window.localStorage.getItem(LAST_USED_METHOD_KEY);
+	return stored === "github" || stored === "google" || stored === "dev"
+		? stored
+		: null;
+}
+
 function SignInPage() {
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
 	const persistToken = electronTrpc.auth.persistToken.useMutation();
 	const navigate = useNavigate();
 	const [isLoadingDev, setIsLoadingDev] = useState(false);
 	const [devError, setDevError] = useState<string | null>(null);
+	const [lastUsedMethod, setLastUsedMethod] = useState(readLastUsedMethod);
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
 
 	// Dev bypass: skip sign-in entirely
@@ -48,14 +60,21 @@ function SignInPage() {
 		return <Navigate to="/workspace" replace />;
 	}
 
+	const rememberLastUsedMethod = (method: AuthMethod) => {
+		window.localStorage.setItem(LAST_USED_METHOD_KEY, method);
+		setLastUsedMethod(method);
+	};
+
 	const signIn = (provider: AuthProvider) => {
 		track("auth_started", { provider });
+		rememberLastUsedMethod(provider);
 		signInMutation.mutate({ provider });
 	};
 
 	const signInAsDev = async () => {
 		setIsLoadingDev(true);
 		setDevError(null);
+		rememberLastUsedMethod("dev");
 
 		const postAuth = async (path: string, body: Record<string, unknown>) => {
 			const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
@@ -114,6 +133,12 @@ function SignInPage() {
 		}
 	};
 
+	const lastUsedBadge = (
+		<span className="absolute right-3 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+			Last used
+		</span>
+	);
+
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
 			<div className="h-12 w-full drag shrink-0" />
@@ -141,12 +166,13 @@ function SignInPage() {
 								variant="outline"
 								size="lg"
 								onClick={signInAsDev}
-								className="w-full gap-3"
+								className="relative w-full gap-3"
 								disabled={isLoadingDev}
 							>
 								{isLoadingDev
 									? "Signing in..."
 									: "Sign in as Local Admin (dev)"}
+								{lastUsedMethod === "dev" && lastUsedBadge}
 							</Button>
 						)}
 						{devError && (
@@ -158,22 +184,24 @@ function SignInPage() {
 							variant="outline"
 							size="lg"
 							onClick={() => signIn("github")}
-							className="w-full gap-3"
+							className="relative w-full gap-3"
 							disabled={signInMutation.isPending}
 						>
 							<FaGithub className="size-5" />
 							Continue with GitHub
+							{lastUsedMethod === "github" && lastUsedBadge}
 						</Button>
 
 						<Button
 							variant="outline"
 							size="lg"
 							onClick={() => signIn("google")}
-							className="w-full gap-3"
+							className="relative w-full gap-3"
 							disabled={signInMutation.isPending}
 						>
 							<FcGoogle className="size-5" />
 							Continue with Google
+							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
 					</div>
 

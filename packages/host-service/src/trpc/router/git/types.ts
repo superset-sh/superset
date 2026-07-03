@@ -122,6 +122,7 @@ export interface ChangedFile {
 	status: FileStatus;
 	additions: number;
 	deletions: number;
+	isBinary?: boolean;
 }
 
 export interface Commit {

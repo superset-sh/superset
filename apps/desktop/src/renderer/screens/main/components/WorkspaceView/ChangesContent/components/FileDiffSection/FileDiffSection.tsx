@@ -11,6 +11,7 @@ import { useChangesStore } from "renderer/stores/changes";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
+import { isVideoFile } from "shared/file-types";
 import {
 	getStatusColor,
 	getStatusIndicator,
@@ -123,9 +124,11 @@ export function FileDiffSection({
 		});
 
 	const totalChanges = file.additions + file.deletions;
+	const isVideo = isVideoFile(file.path);
+	const isBinaryFile = file.isBinary === true || isVideo;
 	const isLargeDiff = totalChanges > LARGE_DIFF_THRESHOLD;
 	const isGenerated = isGeneratedFile(file.path);
-	const isHiddenByDefault = isLargeDiff || isGenerated;
+	const isHiddenByDefault = !isBinaryFile && (isLargeDiff || isGenerated);
 
 	const fileKey = createFileKey(file, category, commitHash, worktreePath);
 	const isViewed = viewedFiles.has(fileKey);
@@ -241,9 +244,12 @@ export function FileDiffSection({
 
 	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
-	const showStats = file.additions > 0 || file.deletions > 0;
+	const showStats = !isBinaryFile && (file.additions > 0 || file.deletions > 0);
 	const canShowDiffBody =
-		isExpanded && (!isHiddenByDefault || loadHiddenDiff) && !!worktreePath;
+		isExpanded &&
+		!isBinaryFile &&
+		(!isHiddenByDefault || loadHiddenDiff) &&
+		!!worktreePath;
 	const shouldLoadDiff =
 		canShowDiffBody && hasBeenVisible && (isInLoadRange || isEditing);
 
@@ -406,6 +412,20 @@ export function FileDiffSection({
 		</div>
 	);
 
+	const binaryFilePreview = (
+		<div
+			className="flex flex-col items-center justify-center gap-1 bg-background px-4 text-center text-sm text-muted-foreground"
+			style={{ minHeight: FILE_DIFF_SECTION_PLACEHOLDER_HEIGHT }}
+		>
+			<span className="select-text cursor-text">
+				Binary file — cannot display diff
+			</span>
+			<span className="max-w-md text-xs">
+				Use the file header to open this file outside the diff viewer.
+			</span>
+		</div>
+	);
+
 	return (
 		<div
 			ref={sectionRef}
@@ -426,7 +446,7 @@ export function FileDiffSection({
 					onCopyPath={handleCopyPath}
 					isCopied={isCopied}
 					isEditing={isEditing}
-					onToggleEdit={handleToggleEdit}
+					onToggleEdit={isBinaryFile ? undefined : handleToggleEdit}
 					onStage={onStage}
 					onUnstage={onUnstage}
 					onDiscard={onDiscard}
@@ -434,7 +454,9 @@ export function FileDiffSection({
 				/>
 
 				<CollapsibleContent>
-					{isHiddenByDefault && !loadHiddenDiff ? (
+					{isBinaryFile ? (
+						binaryFilePreview
+					) : isHiddenByDefault && !loadHiddenDiff ? (
 						<div className="flex flex-col items-center justify-center gap-3 py-8 text-muted-foreground bg-muted/30">
 							<LuFileCode className="w-8 h-8" />
 							<p className="text-sm">

@@ -1,3 +1,7 @@
+import type {
+	AgentDefinitionId,
+	BuiltinAgentId,
+} from "@superset/shared/agent-catalog";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import {
 	index,
@@ -27,6 +31,25 @@ export const terminalSessions = sqliteTable(
 			table.originWorkspaceId,
 		),
 		index("terminal_sessions_status_idx").on(table.status),
+	],
+);
+
+export const terminalAgentBindings = sqliteTable(
+	"terminal_agent_bindings",
+	{
+		terminalId: text("terminal_id")
+			.primaryKey()
+			.references(() => terminalSessions.id, { onDelete: "cascade" }),
+		workspaceId: text("workspace_id").notNull(),
+		agentId: text("agent_id").notNull().$type<BuiltinAgentId>(),
+		agentSessionId: text("agent_session_id"),
+		definitionId: text("definition_id").$type<AgentDefinitionId>(),
+		startedAt: integer("started_at").notNull(),
+		lastEventAt: integer("last_event_at").notNull(),
+		lastEventType: text("last_event_type").notNull(),
+	},
+	(table) => [
+		index("terminal_agent_bindings_workspace_id_idx").on(table.workspaceId),
 	],
 );
 
@@ -116,6 +139,10 @@ export const hostAgentConfigs = sqliteTable(
 	{
 		id: text().primaryKey(),
 		presetId: text("preset_id").notNull(),
+		// Optional icon override. When null the client falls back to the icon
+		// implied by `presetId`. User-authored ("custom") agents set this to a
+		// built-in icon key (e.g. "claude") to pick a recognizable icon.
+		iconId: text("icon_id"),
 		label: text().notNull(),
 		command: text().notNull(),
 		argsJson: text("args_json").notNull().default("[]"),

@@ -4,6 +4,7 @@ import {
 	getHighestPriorityStatus,
 } from "shared/tabs-types";
 import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
 
 export type V2NotificationPaneLike = Pick<Pane<unknown>, "kind" | "data">;
 export type V2NotificationTabLike = Pick<Tab<unknown>, "panes">;
@@ -64,127 +65,151 @@ export interface V2NotificationState {
 	clearWorkspaceAttention: (workspaceId: string) => void;
 }
 
-export const useV2NotificationStore = create<V2NotificationState>()((set) => ({
-	sources: {},
-	setSourceStatus: (source, workspaceId, status, occurredAt = Date.now()) => {
-		const sourceKey = getV2NotificationSourceKey(source);
-		set((state) => ({
-			sources: {
-				...state.sources,
-				[sourceKey]: {
-					sourceKey,
+export const useV2NotificationStore = create<V2NotificationState>()(
+	devtools(
+		persist(
+			(set) => ({
+				sources: {},
+				setSourceStatus: (
 					source,
 					workspaceId,
 					status,
-					occurredAt,
+					occurredAt = Date.now(),
+				) => {
+					const sourceKey = getV2NotificationSourceKey(source);
+					set((state) => ({
+						sources: {
+							...state.sources,
+							[sourceKey]: {
+								sourceKey,
+								source,
+								workspaceId,
+								status,
+								occurredAt,
+							},
+						},
+					}));
 				},
+				setTerminalStatus: (terminalId, workspaceId, status, occurredAt) => {
+					useV2NotificationStore
+						.getState()
+						.setSourceStatus(
+							getV2TerminalNotificationSource(terminalId),
+							workspaceId,
+							status,
+							occurredAt,
+						);
+				},
+				setChatStatus: (chatId, workspaceId, status, occurredAt) => {
+					useV2NotificationStore
+						.getState()
+						.setSourceStatus(
+							getV2ChatNotificationSource(chatId),
+							workspaceId,
+							status,
+							occurredAt,
+						);
+				},
+				setManualUnread: (workspaceId) => {
+					useV2NotificationStore
+						.getState()
+						.setSourceStatus(
+							getV2ManualNotificationSource(workspaceId),
+							workspaceId,
+							"review",
+						);
+				},
+				clearSourceStatus: (source, workspaceId) => {
+					const sourceKey = getV2NotificationSourceKey(source);
+					set((state) => {
+						const entry = state.sources[sourceKey];
+						if (!entry || (workspaceId && entry.workspaceId !== workspaceId)) {
+							return state;
+						}
+						const { [sourceKey]: _removed, ...sources } = state.sources;
+						return { sources };
+					});
+				},
+				clearSourceStatuses: (sourceInputs, workspaceId) => {
+					set((state) => {
+						const sourceKeys = new Set(
+							[...sourceInputs].map(getV2NotificationSourceKey),
+						);
+						const sources: Record<string, V2NotificationStatusEntry> = {};
+						let changed = false;
+						for (const [sourceKey, source] of Object.entries(state.sources)) {
+							if (
+								sourceKeys.has(sourceKey as V2NotificationSourceKey) &&
+								(!workspaceId || source.workspaceId === workspaceId)
+							) {
+								changed = true;
+								continue;
+							}
+							sources[sourceKey] = source;
+						}
+						return changed ? { sources } : state;
+					});
+				},
+				clearSourceAttention: (source, workspaceId) => {
+					const sourceKey = getV2NotificationSourceKey(source);
+					set((state) => {
+						const entry = state.sources[sourceKey];
+						if (
+							!entry ||
+							entry.status !== "review" ||
+							(workspaceId && entry.workspaceId !== workspaceId)
+						) {
+							return state;
+						}
+						const { [sourceKey]: _removed, ...sources } = state.sources;
+						return { sources };
+					});
+				},
+				clearWorkspaceStatuses: (workspaceId) => {
+					set((state) => {
+						const sources: Record<string, V2NotificationStatusEntry> = {};
+						let changed = false;
+						for (const [sourceKey, source] of Object.entries(state.sources)) {
+							if (source.workspaceId === workspaceId) {
+								changed = true;
+								continue;
+							}
+							sources[sourceKey] = source;
+						}
+						return changed ? { sources } : state;
+					});
+				},
+				clearWorkspaceAttention: (workspaceId) => {
+					set((state) => {
+						const sources: Record<string, V2NotificationStatusEntry> = {};
+						let changed = false;
+						for (const [sourceKey, source] of Object.entries(state.sources)) {
+							if (
+								source.workspaceId === workspaceId &&
+								source.status === "review"
+							) {
+								changed = true;
+								continue;
+							}
+							sources[sourceKey] = source;
+						}
+						return changed ? { sources } : state;
+					});
+				},
+			}),
+			{
+				name: "v2-notifications-v1",
+				version: 1,
+				// Persist only the status map; methods are re-supplied by the
+				// initializer on rehydrate. Survives restart so sidebar agent
+				// status dots (working/permission/review) are restored
+				// immediately; live lifecycle events reconcile from there.
+				partialize: (state) => ({ sources: state.sources }),
 			},
-		}));
-	},
-	setTerminalStatus: (terminalId, workspaceId, status, occurredAt) => {
-		useV2NotificationStore
-			.getState()
-			.setSourceStatus(
-				getV2TerminalNotificationSource(terminalId),
-				workspaceId,
-				status,
-				occurredAt,
-			);
-	},
-	setChatStatus: (chatId, workspaceId, status, occurredAt) => {
-		useV2NotificationStore
-			.getState()
-			.setSourceStatus(
-				getV2ChatNotificationSource(chatId),
-				workspaceId,
-				status,
-				occurredAt,
-			);
-	},
-	setManualUnread: (workspaceId) => {
-		useV2NotificationStore
-			.getState()
-			.setSourceStatus(
-				getV2ManualNotificationSource(workspaceId),
-				workspaceId,
-				"review",
-			);
-	},
-	clearSourceStatus: (source, workspaceId) => {
-		const sourceKey = getV2NotificationSourceKey(source);
-		set((state) => {
-			const entry = state.sources[sourceKey];
-			if (!entry || (workspaceId && entry.workspaceId !== workspaceId)) {
-				return state;
-			}
-			const { [sourceKey]: _removed, ...sources } = state.sources;
-			return { sources };
-		});
-	},
-	clearSourceStatuses: (sourceInputs, workspaceId) => {
-		set((state) => {
-			const sourceKeys = new Set(
-				[...sourceInputs].map(getV2NotificationSourceKey),
-			);
-			const sources: Record<string, V2NotificationStatusEntry> = {};
-			let changed = false;
-			for (const [sourceKey, source] of Object.entries(state.sources)) {
-				if (
-					sourceKeys.has(sourceKey as V2NotificationSourceKey) &&
-					(!workspaceId || source.workspaceId === workspaceId)
-				) {
-					changed = true;
-					continue;
-				}
-				sources[sourceKey] = source;
-			}
-			return changed ? { sources } : state;
-		});
-	},
-	clearSourceAttention: (source, workspaceId) => {
-		const sourceKey = getV2NotificationSourceKey(source);
-		set((state) => {
-			const entry = state.sources[sourceKey];
-			if (
-				!entry ||
-				entry.status !== "review" ||
-				(workspaceId && entry.workspaceId !== workspaceId)
-			) {
-				return state;
-			}
-			const { [sourceKey]: _removed, ...sources } = state.sources;
-			return { sources };
-		});
-	},
-	clearWorkspaceStatuses: (workspaceId) => {
-		set((state) => {
-			const sources: Record<string, V2NotificationStatusEntry> = {};
-			let changed = false;
-			for (const [sourceKey, source] of Object.entries(state.sources)) {
-				if (source.workspaceId === workspaceId) {
-					changed = true;
-					continue;
-				}
-				sources[sourceKey] = source;
-			}
-			return changed ? { sources } : state;
-		});
-	},
-	clearWorkspaceAttention: (workspaceId) => {
-		set((state) => {
-			const sources: Record<string, V2NotificationStatusEntry> = {};
-			let changed = false;
-			for (const [sourceKey, source] of Object.entries(state.sources)) {
-				if (source.workspaceId === workspaceId && source.status === "review") {
-					changed = true;
-					continue;
-				}
-				sources[sourceKey] = source;
-			}
-			return changed ? { sources } : state;
-		});
-	},
-}));
+		),
+		{ name: "V2Notifications" },
+	),
+);
 
 export function getV2NotificationSourceKey(
 	source: V2NotificationSourceInput,

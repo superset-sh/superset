@@ -2,6 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
 	getImageExtensionFromMimeType,
 	getImageMimeType,
+	getVideoMimeType,
+	isImageFile,
+	isPreviewableVideoFile,
+	isVideoFile,
 	parseBase64DataUrl,
 } from "./file-types";
 
@@ -11,7 +15,14 @@ describe("file-types", () => {
 	test("maps image file paths to MIME types", () => {
 		expect(getImageMimeType("logo.svg")).toBe("image/svg+xml");
 		expect(getImageMimeType("logo.ico")).toBe("image/x-icon");
+		expect(getImageMimeType("logo.tiff")).toBe("image/tiff");
 		expect(getImageMimeType("logo.unknown")).toBeNull();
+	});
+
+	test("detects supported image file paths", () => {
+		expect(isImageFile("sample.bmp")).toBe(true);
+		expect(isImageFile("sample.tiff")).toBe(true);
+		expect(isImageFile("sample.txt")).toBe(false);
 	});
 
 	test("maps image MIME types to preferred extensions", () => {
@@ -21,6 +32,29 @@ describe("file-types", () => {
 		);
 		expect(getImageExtensionFromMimeType("image/webp")).toBe("webp");
 		expect(getImageExtensionFromMimeType("image/avif")).toBeNull();
+	});
+
+	test("detects supported video file paths", () => {
+		expect(isVideoFile("demo.mp4")).toBe(true);
+		expect(isVideoFile("clips/intro.webm")).toBe(true);
+		expect(isVideoFile("clips/INTRO.MOV")).toBe(true);
+		expect(isVideoFile("clips/intro.avi")).toBe(true);
+		expect(isVideoFile("clips/intro.mkv")).toBe(true);
+		expect(isVideoFile("archive.zip")).toBe(false);
+	});
+
+	test("detects browser-previewable video file paths", () => {
+		expect(isPreviewableVideoFile("demo.mp4")).toBe(true);
+		expect(isPreviewableVideoFile("demo.webm")).toBe(true);
+		expect(isPreviewableVideoFile("demo.avi")).toBe(false);
+		expect(isPreviewableVideoFile("demo.mkv")).toBe(false);
+	});
+
+	test("maps video file paths to MIME types", () => {
+		expect(getVideoMimeType("demo.mp4")).toBe("video/mp4");
+		expect(getVideoMimeType("demo.webm")).toBe("video/webm");
+		expect(getVideoMimeType("demo.mov")).toBe("video/quicktime");
+		expect(getVideoMimeType("demo.avi")).toBeNull();
 	});
 
 	test("parses base64 data URLs with extra MIME parameters", () => {
