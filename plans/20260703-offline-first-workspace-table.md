@@ -93,15 +93,34 @@ consumed client-side over Electric.
   exists today and lands as `dispatch_failed` — cloud validation never protected
   run time.
 
-## Open decisions (walkthrough to resume)
+| 4 | Renderer read path | **Local mirror db, no TanStack collection.** The desktop maintains a merged local db of last-seen workspaces (fed by per-host fan-out queries + new `workspace:changed` events on the host `/events` bus); the renderer reads that db. Consumers migrate off `useLiveQuery(collections.v2Workspaces)`. |
+| 5 | MCP / CLI / SDK | **No cloud list endpoint.** `v2Workspace.list` is deleted; external clients resolve connected hosts (from `v2_hosts`) and query each host directly over relay for its workspaces. |
+| 6 | apps/web pages | **Delete both** `/workspaces` pages (list+create and the web terminal). They are orphaned — nothing links to them. |
+| 7 | Host authorization | **Org membership only.** A host serves its workspace list to any caller whose JWT carries the host's organizationId — parity with today's Electric shape (which is org-scoped; `users_hosts` filtering was already client-side). No cloud lookup in the read path. |
+| 8 | Rollout | **Staged with read-through fallback.** R1: host.db schema expands, host backfills full fields from cloud, dual-write. R2: desktop reads flip to local mirror; if a row isn't backfilled yet, read falls back to cloud and seeds the backfill. R3: cloud writes stop; router/shape/proxy WHERE/pages deleted. |
 
-- **Renderer read mechanism** — how ~25 `useLiveQuery` sites consume the host-backed
-  list: host-fed TanStack DB collection with `/events` WS invalidation (likely) vs
-  plain tRPC/react-query rewrite.
-- **apps/web `/workspaces` pages** — delete (they're orphaned) vs re-point at relay
-  fan-out; the web terminal page only needs `id → hostId` (could carry hostId in URL).
-- **Authorization** — with hosts serving lists, who enforces `v2_users_hosts` scoping;
-  note Electric today only scopes by org, host scoping is already client-side.
-- **Rollout/migration** — backfill host.db with full workspace fields from cloud
-  snapshot; dual-write transition vs hard cutover; when to drop the cloud table and
-  `chat_sessions` FK (cloud/API deploys precede desktop releases).
+### Decision 4 grounding (existing renderer patterns surveyed)
+
+- Per-host react-query tRPC exists (`packages/workspace-client`), **in-memory only** —
+  no host response survives restart today.
+- Fan-out template exists: sidebar ports hook
+  (`useDashboardSidebarPortsData.ts:65-102`) does per-host `useQueries` + WS event
+  cache patching + polling fallback.
+- `/events` bus has **no `workspace:*` lifecycle events** — must be added regardless
+  (`packages/host-service/src/events/types.ts`).
+- v1 proves IPC-tRPC subscriptions from a main-process SQLite work
+  (`AuthProvider.tsx:58`), and idb-keyval react-query persistence exists as precedent
+  (`ElectronTRPCProvider.tsx:31-84`).
+
+## Forced moves (consequences, not decisions)
+
+- Host mints workspace UUIDs (cloud no longer generates ids).
+- `host.db.workspaces` gains `name`, `type`, `taskId`, `createdByUserId`,
+  `createdAt`/`updatedAt`; one-main-per-project partial unique index moves local.
+- `chat_sessions.v2WorkspaceId` FK drops to a plain uuid tag (never read cloud-side).
+- PostHog `workspace_created`/`workspace_deleted` capture moves to host-service.
+- Cleanup's is-main check (`is-main-workspace.ts:57`) reads the local table.
+- Delete UX confirms locally instead of `waitForWorkspaceDeleted` over Electric.
+- Main-workspace sweep / `ensure-main-workspace` become purely local.
+- Renderer rename path unifies through host-service (today it hits the cloud API
+  directly).
