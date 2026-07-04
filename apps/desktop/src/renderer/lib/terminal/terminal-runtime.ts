@@ -336,9 +336,7 @@ export function updateRuntimeAppearance(
 		applyTerminalFontFamilyCssVariable(runtime.wrapper, appearance.fontFamily);
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
-		if (hostIsVisible(runtime.container)) {
-			measureAndResize(runtime, onResize);
-		}
+		measureAndResize(runtime, onResize);
 		// The freshly-selected font may still be loading — schedule a follow-up
 		// refit once it resolves so dimensions track the rendered glyphs.
 		scheduleFontSettleRefit(
