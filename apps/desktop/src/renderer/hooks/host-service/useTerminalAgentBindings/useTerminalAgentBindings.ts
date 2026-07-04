@@ -1,10 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import {
-	useWorkspaceEvent,
-	useWorkspaceEventBusReconnect,
-} from "../useWorkspaceEvent";
+import { useWorkspaceEvent } from "../useWorkspaceEvent";
 import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
 type ListByWorkspaceClient = ReturnType<
@@ -42,8 +39,10 @@ export function useTerminalAgentBindings(
 				hostUrl,
 			).terminalAgents.listByWorkspace.query({ workspaceId });
 		},
-		refetchOnWindowFocus: false,
-		staleTime: Number.POSITIVE_INFINITY,
+		// Lifecycle events invalidate for instant updates; the finite
+		// staleTime lets focus/remount refetches self-heal any staleness
+		// from events missed while the WS was down (host restart, sleep).
+		staleTime: 30_000,
 	});
 
 	const invalidate = useCallback(() => {
@@ -52,9 +51,6 @@ export function useTerminalAgentBindings(
 
 	useWorkspaceEvent("agent:lifecycle", workspaceId, invalidate, enabled);
 	useWorkspaceEvent("terminal:lifecycle", workspaceId, invalidate, enabled);
-	// Lifecycle events during a WS outage are lost — resync on reconnect so
-	// bindings can't go stale across host-service restarts or machine sleep.
-	useWorkspaceEventBusReconnect(workspaceId, invalidate, enabled);
 
 	return useMemo(() => {
 		const map = new Map<string, TerminalAgentBinding>();

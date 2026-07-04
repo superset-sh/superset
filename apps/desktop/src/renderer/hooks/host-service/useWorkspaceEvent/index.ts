@@ -1,4 +1,1 @@
-export {
-	useWorkspaceEvent,
-	useWorkspaceEventBusReconnect,
-} from "./useWorkspaceEvent";
+export { useWorkspaceEvent } from "./useWorkspaceEvent";
