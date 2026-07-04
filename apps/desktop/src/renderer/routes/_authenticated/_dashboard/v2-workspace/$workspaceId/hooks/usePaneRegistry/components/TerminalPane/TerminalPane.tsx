@@ -35,6 +35,7 @@ import { ScrollToBottomButton } from "renderer/screens/main/components/Workspace
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
+import { TerminalRichInput } from "./components/TerminalRichInput";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
@@ -68,6 +69,7 @@ export function TerminalPane({
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [isRichInputOpen, setIsRichInputOpen] = useState(false);
 
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
@@ -156,11 +158,13 @@ export function TerminalPane({
 
 	useEffect(() => {
 		if (!ctx.isActive) return;
+		// Don't pull focus back to xterm while the rich-input overlay owns it.
+		if (isRichInputOpen) return;
 
 		terminalRuntimeRegistry
 			.getTerminal(terminalId, terminalInstanceId)
 			?.focus();
-	}, [ctx.isActive, terminalId, terminalInstanceId]);
+	}, [ctx.isActive, terminalId, terminalInstanceId, isRichInputOpen]);
 
 	const lastInvalidatedOpenSessionRef = useRef<string | null>(null);
 	useEffect(() => {
@@ -343,6 +347,19 @@ export function TerminalPane({
 		preventDefault: true,
 	});
 
+	useHotkey(
+		"TOGGLE_TERMINAL_RICH_INPUT",
+		() => setIsRichInputOpen((prev) => !prev),
+		{ enabled: ctx.isActive, preventDefault: true },
+	);
+
+	const closeRichInput = useCallback(() => {
+		setIsRichInputOpen(false);
+		terminalRuntimeRegistry
+			.getTerminal(terminalId, terminalInstanceId)
+			?.focus();
+	}, [terminalId, terminalInstanceId]);
+
 	// connectionState in deps ensures terminal ref re-derives after connect/disconnect
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
 	const terminal = useMemo(
@@ -426,6 +443,13 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
+				<TerminalRichInput
+					workspaceId={workspaceId}
+					terminalId={terminalId}
+					terminalInstanceId={terminalInstanceId}
+					isOpen={isRichInputOpen}
+					onClose={closeRichInput}
+				/>
 			</div>
 			<div
 				className={cn(
