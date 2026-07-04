@@ -33,9 +33,6 @@ export interface CachedTerminal {
 	wrapper: HTMLDivElement;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
-	/** Last known dimensions — used to skip no-op resize events. */
-	lastCols: number;
-	lastRows: number;
 
 	// --- Stream management ---
 
@@ -84,8 +81,6 @@ function fitAndRefresh(entry: CachedTerminal): boolean {
 	const prevRows = xterm.rows;
 
 	entry.fitAddon.fit();
-	entry.lastCols = xterm.cols;
-	entry.lastRows = xterm.rows;
 
 	if (wasPinnedToBottom) {
 		xterm.scrollToBottom();
@@ -152,8 +147,6 @@ export function getOrCreate(
 		subscriptionErrorHandler: null,
 		resizeObserver: null,
 		container: null,
-		lastCols: xterm.cols,
-		lastRows: xterm.rows,
 	};
 
 	cache.set(paneId, entry);

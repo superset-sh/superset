@@ -117,6 +117,29 @@ describe("runWhenParserIdle", () => {
 		expect(ran).toEqual(["idle"]);
 	});
 
+	test("re-parks when a write lands between drain and the microtask flush", async () => {
+		const gate = createParserIdleGate();
+		const fake = fakeWrite();
+		const write = wrapWrite(gate, fake.raw);
+		write("first");
+
+		let runs = 0;
+		runWhenParserIdle(gate, () => {
+			runs++;
+		});
+
+		// First write drains (queuing the flush microtask), but a new write
+		// arrives before that microtask runs — the flush must bail and re-arm.
+		fake.drain();
+		write("second");
+		await flushMicrotasks();
+		expect(runs).toBe(0);
+
+		fake.drain();
+		await flushMicrotasks();
+		expect(runs).toBe(1);
+	});
+
 	test("cancels parked work before in-flight writes drain", async () => {
 		const gate = createParserIdleGate();
 		const fake = fakeWrite();

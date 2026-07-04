@@ -239,9 +239,7 @@ class TerminalRuntimeRegistryImpl {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
 
-		// The refit may be deferred until the parser drains, so we can't read the
-		// new dimensions synchronously here — `updateRuntimeAppearance` notifies
-		// via the callback whenever a fit actually changes them (sync or async).
+		// The refit may defer until the parser drains; the callback reports it.
 		const transport = entry.transport;
 		updateRuntimeAppearance(entry.runtime, appearance, () => {
 			const runtime = entry.runtime;
