@@ -78,9 +78,11 @@ interface ConnectionState {
 	socket: WebSocket | null;
 	refCount: number;
 	listeners: Set<ListenerEntry>;
+	reconnectListeners: Set<() => void>;
 	fsWatchedWorkspaces: Map<string, number>;
 	reconnectAttempts: number;
 	reconnectTimer: ReturnType<typeof setTimeout> | null;
+	everConnected: boolean;
 	disposed: boolean;
 }
 
@@ -199,10 +201,24 @@ function connect(
 
 		socket.onopen = () => {
 			state.reconnectAttempts = 0;
+			const isReconnect = state.everConnected;
+			state.everConnected = true;
 
 			// Re-send all active fs:watch commands
 			for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
 				sendCommand(state, { type: "fs:watch", workspaceId });
+			}
+
+			// Events emitted while the socket was down are gone; let
+			// subscribers resync state they invalidate via events.
+			if (isReconnect) {
+				for (const listener of state.reconnectListeners) {
+					try {
+						listener();
+					} catch {
+						// listener errors must not break the socket handlers
+					}
+				}
 			}
 		};
 
@@ -255,9 +271,11 @@ function getOrCreateConnection(
 		socket: null,
 		refCount: 0,
 		listeners: new Set(),
+		reconnectListeners: new Set(),
 		fsWatchedWorkspaces: new Map(),
 		reconnectAttempts: 0,
 		reconnectTimer: null,
+		everConnected: false,
 		disposed: false,
 	};
 	connections.set(key, state);
@@ -270,7 +288,13 @@ function maybeCleanupConnection(hostUrl: string): void {
 	const state = connections.get(key);
 	if (!state) return;
 
-	if (state.refCount > 0 || state.listeners.size > 0) return;
+	if (
+		state.refCount > 0 ||
+		state.listeners.size > 0 ||
+		state.reconnectListeners.size > 0
+	) {
+		return;
+	}
 
 	state.disposed = true;
 	if (state.reconnectTimer) {
@@ -296,6 +320,12 @@ export interface EventBusHandle {
 	): () => void;
 	watchFs(workspaceId: string): void;
 	unwatchFs(workspaceId: string): void;
+	/**
+	 * Fires after the shared socket re-establishes following a drop (never
+	 * on the initial connect). Events emitted during the outage are lost —
+	 * use this to refetch state that is otherwise event-invalidated.
+	 */
+	onReconnect(listener: () => void): () => void;
 	retain(): () => void;
 }
 
@@ -324,6 +354,14 @@ export function getEventBus(
 
 			return () => {
 				state.listeners.delete(entry);
+				maybeCleanupConnection(hostUrl);
+			};
+		},
+
+		onReconnect(listener: () => void): () => void {
+			state.reconnectListeners.add(listener);
+			return () => {
+				state.reconnectListeners.delete(listener);
 				maybeCleanupConnection(hostUrl);
 			};
 		},

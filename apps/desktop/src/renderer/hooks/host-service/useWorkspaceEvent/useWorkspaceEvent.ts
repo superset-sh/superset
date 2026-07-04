@@ -128,3 +128,29 @@ export function useWorkspaceEvent(
 		};
 	}, [enabled, hostUrl, type, workspaceId]);
 }
+
+/**
+ * Runs `callback` after the workspace's event bus reconnects following a
+ * drop. Events emitted during the outage are lost, so consumers that
+ * invalidate caches on events need this to resync (e.g. after host-service
+ * restarts or machine sleep).
+ */
+export function useWorkspaceEventBusReconnect(
+	workspaceId: string,
+	callback: () => void,
+	enabled = true,
+): void {
+	const hostUrl = useWorkspaceHostUrl(workspaceId);
+	const handler = useEffectEvent(callback);
+
+	useEffect(() => {
+		if (!enabled || !hostUrl) return;
+		const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+		const removeListener = bus.onReconnect(() => handler());
+		const release = bus.retain();
+		return () => {
+			removeListener();
+			release();
+		};
+	}, [enabled, hostUrl]);
+}
