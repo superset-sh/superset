@@ -13,6 +13,10 @@ import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import {
+	createWebglRendererController,
+	type WebglRendererController,
+} from "./webgl-renderer";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -34,7 +38,7 @@ export interface TerminalRuntime {
 	_disposeResizeObserver: (() => void) | null;
 	lastCols: number;
 	lastRows: number;
-	_disposeAddons: (() => void) | null;
+	webglController: WebglRendererController;
 	_disposeImagePasteFallback: (() => void) | null;
 }
 
@@ -217,6 +221,9 @@ export function createRuntime(
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
 	const addonsResult = loadAddons(terminal);
+	// WebGL is acquired on attach (not here) so parked terminals never hold a
+	// GPU context — see webgl-renderer.ts.
+	const webglController = createWebglRendererController(terminal);
 	if (options.initialBuffer !== undefined) {
 		terminal.write(options.initialBuffer);
 	} else {
@@ -241,7 +248,7 @@ export function createRuntime(
 		_disposeResizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
-		_disposeAddons: addonsResult.dispose,
+		webglController,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
 	};
 }
@@ -252,6 +259,10 @@ export function attachToContainer(
 	onResize?: () => void,
 	options: { focus?: boolean } = {},
 ) {
+	// Acquire the GPU renderer whenever the terminal becomes visible — before
+	// the same-container early return, so a terminal that lost its WebGL
+	// context while attached recovers here. Idempotent while active.
+	runtime.webglController.acquire();
 	// If we're already attached to this exact container, do nothing. Prevents
 	// redundant refresh/fit from transient remounts during provider key
 	// churn — VSCode setVisible() is idempotent for the same host element.
@@ -287,6 +298,10 @@ export function attachToContainer(
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
+	// Release the GPU context while parked: xterm pauses rendering off-viewport
+	// anyway, so a parked context is pure pressure on Chromium's ~16-context
+	// cap. Reacquired on the next attach.
+	runtime.webglController.release();
 	persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	runtime._disposeResizeObserver?.();
@@ -340,8 +355,7 @@ export function disposeRuntime(
 	}
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
-	runtime._disposeAddons?.();
-	runtime._disposeAddons = null;
+	runtime.webglController.dispose();
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();

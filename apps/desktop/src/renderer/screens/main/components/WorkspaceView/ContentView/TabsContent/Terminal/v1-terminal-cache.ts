@@ -5,6 +5,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import { scheduleFontSettleRefit } from "renderer/lib/terminal/font-settle";
 import { getTerminalParkingContainer } from "renderer/lib/terminal/terminal-parking";
+import type { WebglRendererController } from "renderer/lib/terminal/webgl-renderer";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { DEBUG_TERMINAL } from "./config";
 import { type CreateTerminalOptions, createTerminalInWrapper } from "./helpers";
@@ -24,8 +25,10 @@ export interface CachedTerminal {
 	fitAddon: FitAddon;
 	searchAddon: SearchAddon;
 	wrapper: HTMLDivElement;
-	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
+	/** Disposes query suppression, link manager, GPU renderer, etc. */
 	cleanupCreation: () => void;
+	/** GPU renderer lifecycle — acquired on attach, released on park. */
+	webglController: WebglRendererController;
 	/** Last known dimensions — used to skip no-op resize events. */
 	lastCols: number;
 	lastRows: number;
@@ -114,7 +117,7 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, wrapper, cleanup } =
+	const { xterm, fitAddon, searchAddon, wrapper, webglController, cleanup } =
 		createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
@@ -123,6 +126,7 @@ export function getOrCreate(
 		searchAddon,
 		wrapper,
 		cleanupCreation: cleanup,
+		webglController,
 		subscription: null,
 		streamReady: false,
 		pendingStreamEvents: [],
@@ -149,6 +153,9 @@ export function attachToContainer(
 	const entry = cache.get(paneId);
 	if (!entry) return;
 
+	// Acquire the GPU renderer whenever the terminal becomes visible; released
+	// again on detach so parked terminals don't hold WebGL contexts.
+	entry.webglController.acquire();
 	entry.container = container;
 	container.appendChild(entry.wrapper);
 
@@ -184,6 +191,9 @@ export function detachFromContainer(paneId: string): void {
 	if (DEBUG_TERMINAL) {
 		console.log(`[v1-terminal-cache] detachFromContainer: ${paneId}`);
 	}
+	// Parked terminals render nothing (xterm pauses off-viewport), so the GPU
+	// context is pure pressure on Chromium's ~16-context cap. Release it.
+	entry.webglController.release();
 	entry.resizeObserver?.disconnect();
 	entry.resizeObserver = null;
 	entry.container = null;
