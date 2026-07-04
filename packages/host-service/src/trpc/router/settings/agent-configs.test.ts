@@ -112,10 +112,10 @@ describe("agentConfigsRouter", () => {
 			const caller = createCaller();
 			await caller.list();
 
-			const created = await caller.add(presetBody("pi"));
+			const created = await caller.add(presetBody("omp"));
 
-			expect(created.presetId).toBe("pi");
-			expect(created.command).toBe("pi");
+			expect(created.presetId).toBe("omp");
+			expect(created.command).toBe("omp");
 			expect(created.promptTransport).toBe("argv");
 			expect(created.order).toBe(DEFAULT_PRESET_IDS.length);
 			const all = await caller.list();
@@ -430,15 +430,15 @@ describe("agentConfigsRouter", () => {
 				id: seedFirst.id,
 				patch: { label: "Renamed" },
 			});
-			await caller.add(presetBody("pi"));
+			await caller.add(presetBody("omp"));
 
 			const result = await caller.resetToDefaults();
 
 			expect(result.map((row) => row.presetId)).toEqual(DEFAULT_PRESET_IDS);
 			expect(result.find((row) => row.label === "Renamed")).toBeUndefined();
-			// `pi` is in defaults now, so reset re-seeds exactly one — the
+			// `omp` is in defaults now, so reset re-seeds exactly one — the
 			// extra row added above is dropped.
-			expect(result.filter((row) => row.presetId === "pi")).toHaveLength(1);
+			expect(result.filter((row) => row.presetId === "omp")).toHaveLength(1);
 		});
 	});
 });

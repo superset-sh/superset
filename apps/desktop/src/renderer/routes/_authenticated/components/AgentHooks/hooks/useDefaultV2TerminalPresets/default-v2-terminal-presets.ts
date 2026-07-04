@@ -7,6 +7,7 @@ export const DEFAULT_V2_TERMINAL_PRESET_IDS = [
 	"claude",
 	"codex",
 	"opencode",
+	"omp",
 	"copilot",
 ] as const;
 

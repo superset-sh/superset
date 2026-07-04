@@ -76,6 +76,13 @@ export {
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
 export {
+	createOmpExtension,
+	getOmpExtensionContent,
+	getOmpExtensionPath,
+	OMP_EXTENSION_FILE,
+	OMP_EXTENSION_MARKER,
+} from "./agent-wrappers-omp";
+export {
 	createPiExtension,
 	getPiExtensionContent,
 	getPiExtensionPath,

@@ -50,7 +50,18 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toBe("amp < '.superset/task-demo.md'");
 	});
 
-	it("uses pi interactive mode for prompt launches", () => {
+	it("uses OMP interactive mode for prompt launches", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "omp-1234",
+			agent: "omp",
+		});
+
+		expect(command).toStartWith("omp \"$(cat <<'SUPERSET_PROMPT_omp1234'");
+		expect(command).not.toContain("omp -p");
+	});
+
+	it("preserves legacy Pi interactive mode for prompt launches", () => {
 		const command = buildAgentPromptCommand({
 			prompt: "hello",
 			randomId: "pi-1234",
@@ -58,6 +69,5 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
-		expect(command).not.toContain("pi -p");
 	});
 });

@@ -71,6 +71,7 @@ const {
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
+	createOmpExtension,
 	createPiExtension,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
@@ -83,6 +84,9 @@ const {
 	getAmpPluginContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
+	getOmpExtensionContent,
+	getOmpExtensionPath,
+	OMP_EXTENSION_MARKER,
 	getPiExtensionContent,
 	getPiExtensionPath,
 	PI_EXTENSION_MARKER,
@@ -1629,11 +1633,6 @@ describe("agent-wrappers pi", () => {
 		expect(content).not.toContain("{{MARKER}}");
 	});
 
-	it("renders pi extension content as a valid extension default-export shape", () => {
-		const content = getPiExtensionContent();
-		expect(content).toContain("export default function");
-	});
-
 	it("installs the pi extension into the global ~/.pi/agent/extensions directory", () => {
 		const extensionPath = getPiExtensionPath();
 		expect(extensionPath).toBe(
@@ -1651,5 +1650,103 @@ describe("agent-wrappers pi", () => {
 		const installed = readFileSync(extensionPath, "utf-8");
 		expect(installed).toContain(PI_EXTENSION_MARKER);
 		expect(installed).toContain("export default function");
+	});
+});
+
+describe("agent-wrappers omp", () => {
+	let originalPiCodingAgentDir: string | undefined;
+
+	beforeEach(() => {
+		originalPiCodingAgentDir = process.env.PI_CODING_AGENT_DIR;
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		delete process.env.PI_CODING_AGENT_DIR;
+	});
+
+	afterEach(() => {
+		if (originalPiCodingAgentDir === undefined) {
+			delete process.env.PI_CODING_AGENT_DIR;
+		} else {
+			process.env.PI_CODING_AGENT_DIR = originalPiCodingAgentDir;
+		}
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("renders Oh My Pi extension content with the marker substituted", () => {
+		const content = getOmpExtensionContent();
+		expect(content).toContain(OMP_EXTENSION_MARKER);
+		expect(content).not.toContain("{{MARKER}}");
+	});
+
+	it("renders Oh My Pi extension content as a valid extension default-export shape", () => {
+		const content = getOmpExtensionContent();
+		expect(content).toContain("export default function");
+	});
+
+	it("maps OMP lifecycle events to Superset lifecycle hooks", () => {
+		const content = getOmpExtensionContent();
+		expect(content).toContain('["session_start", "SessionStart"]');
+		expect(content).toContain('["agent_start", "UserPromptSubmit"]');
+		expect(content).toContain('["before_agent_start", "UserPromptSubmit"]');
+		expect(content).toContain('["tool_execution_end", "PostToolUse"]');
+		expect(content).toContain('["agent_end", "Stop"]');
+		expect(content).toContain('["session_end", "SessionEnd"]');
+		expect(content).toContain('["session_shutdown", "Stop"]');
+		expect(content).toContain(
+			"for (const [eventName, hookEventName] of lifecycleMappings)",
+		);
+		expect(content).toContain("pi.on(eventName");
+		expect(content).toContain("fire(hookEventName)");
+		expect(content).toContain('SUPERSET_AGENT_ID: "omp"');
+	});
+
+	it("installs the Oh My Pi extension into the global ~/.omp/agent/extensions directory", () => {
+		const extensionPath = getOmpExtensionPath();
+		expect(extensionPath).toBe(
+			path.join(
+				mockedHomeDir,
+				".omp",
+				"agent",
+				"extensions",
+				"superset-hooks.ts",
+			),
+		);
+
+		createOmpExtension();
+
+		const installed = readFileSync(extensionPath, "utf-8");
+		expect(installed).toContain(OMP_EXTENSION_MARKER);
+		expect(installed).toContain("export default function");
+	});
+
+	it("honors PI_CODING_AGENT_DIR when locating the Oh My Pi extension", () => {
+		const customAgentDir = path.join(mockedHomeDir, "custom-omp-agent");
+		process.env.PI_CODING_AGENT_DIR = customAgentDir;
+
+		expect(getOmpExtensionPath()).toBe(
+			path.join(customAgentDir, "extensions", "superset-hooks.ts"),
+		);
+	});
+
+	it("expands leading tildes in PI_CODING_AGENT_DIR", () => {
+		process.env.PI_CODING_AGENT_DIR = "~/custom-omp-agent";
+		expect(getOmpExtensionPath()).toBe(
+			path.join(
+				mockedHomeDir,
+				"custom-omp-agent",
+				"extensions",
+				"superset-hooks.ts",
+			),
+		);
+
+		process.env.PI_CODING_AGENT_DIR = "~\\custom-omp-agent";
+		expect(getOmpExtensionPath()).toBe(
+			path.join(
+				`${mockedHomeDir}\\custom-omp-agent`,
+				"extensions",
+				"superset-hooks.ts",
+			),
+		);
 	});
 });
