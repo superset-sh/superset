@@ -26,13 +26,16 @@ export interface V2NotificationState {
 	/** Workspaces manually marked unread from the sidebar. */
 	manualUnread: Record<string, true>;
 	/**
-	 * terminalId → last time the user saw that terminal's pane. Compared to
-	 * the host binding's lastEventAt to derive `review` (unseen Stop).
+	 * terminalId → last agent event the user has seen for that terminal.
+	 * Compared to the host binding's lastEventAt to derive `review` (unseen
+	 * Stop). `at` must be a HOST-clock value (event occurredAt or binding
+	 * lastEventAt) — never the renderer clock, which can drift either way
+	 * and, with the monotonic guard, poison the comparison.
 	 */
 	terminalSeenAt: Record<string, number>;
 	setManualUnread: (workspaceId: string) => void;
 	clearManualUnread: (workspaceId: string) => void;
-	markTerminalSeen: (terminalId: string, at?: number) => void;
+	markTerminalSeen: (terminalId: string, at: number) => void;
 	pruneTerminalSeen: (terminalId: string) => void;
 }
 
@@ -55,7 +58,7 @@ export const useV2NotificationStore = create<V2NotificationState>()(
 						return { manualUnread };
 					});
 				},
-				markTerminalSeen: (terminalId, at = Date.now()) => {
+				markTerminalSeen: (terminalId, at) => {
 					set((state) => {
 						const prev = state.terminalSeenAt[terminalId];
 						// Monotonic: a late event must not roll the seen mark back.
@@ -127,11 +130,6 @@ export function migrateV2NotificationState(
 		}
 	}
 	return { manualUnread, terminalSeenAt: {} };
-}
-
-/** Marks a terminal's pane as seen right now (derived `review` clears). */
-export function markTerminalSeenNow(terminalId: string): void {
-	useV2NotificationStore.getState().markTerminalSeen(terminalId);
 }
 
 export function getV2NotificationSourceKey(

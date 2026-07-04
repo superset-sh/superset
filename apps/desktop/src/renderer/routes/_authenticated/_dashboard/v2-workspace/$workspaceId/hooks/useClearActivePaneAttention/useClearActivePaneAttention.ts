@@ -36,10 +36,12 @@ export function useClearActivePaneAttention({
 		if (activePaneStatus !== "review") return;
 		for (const source of getV2NotificationSourcesForPane(activePane)) {
 			if (source.type !== "terminal") continue;
-			// Clamp to the binding's host-clock lastEventAt so a host clock
-			// ahead of the renderer can't leave an unclearable review.
-			const lastEventAt = bindings.get(source.id)?.lastEventAt ?? 0;
-			markTerminalSeen(source.id, Math.max(Date.now(), lastEventAt));
+			// Seen marks are host-clock only: mark "seen through the binding's
+			// last event". Mixing in the renderer clock would poison the
+			// monotonic comparison whenever the clocks drift.
+			const binding = bindings.get(source.id);
+			if (!binding) continue;
+			markTerminalSeen(source.id, binding.lastEventAt);
 		}
 	}, [activePane, activePaneStatus, bindings, markTerminalSeen]);
 }

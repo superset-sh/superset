@@ -97,13 +97,9 @@ export function useMarkWorkspaceTerminalsSeen(workspaceId: string): () => void {
 		(state) => state.markTerminalSeen,
 	);
 	return useCallback(() => {
-		// Clamp to the binding's host-clock lastEventAt so a host clock ahead
-		// of the renderer can't leave an unclearable review.
+		// Host-clock only: "seen through the binding's last event".
 		for (const binding of bindings.values()) {
-			markTerminalSeen(
-				binding.terminalId,
-				Math.max(Date.now(), binding.lastEventAt),
-			);
+			markTerminalSeen(binding.terminalId, binding.lastEventAt);
 		}
 	}, [bindings, markTerminalSeen]);
 }

@@ -6,7 +6,6 @@ import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
 } from "renderer/lib/terminal/terminal-runtime-registry";
-import { markTerminalSeenNow } from "renderer/stores/v2-notifications";
 
 interface UseTerminalInterruptClearOptions {
 	terminalId: string;
@@ -19,8 +18,10 @@ interface UseTerminalInterruptClearOptions {
  * Ctrl+C / Escape kills the foreground agent turn while the shell stays
  * alive, and Claude Code's Stop hook doesn't fire on user interrupt — so the
  * host binding (the status source of truth) would stay "working". Record a
- * synthetic Stop with the host and mark the terminal seen locally; a real
- * hook event arriving later harmlessly overwrites the synthetic one.
+ * synthetic Stop with the host; a real hook event arriving later harmlessly
+ * overwrites it. The Stop may derive as `review` for one refetch cycle, then
+ * `useClearActivePaneAttention` marks it seen with the host-clock timestamp
+ * (the interrupted pane is by definition the active one).
  */
 export function useTerminalInterruptClear({
 	terminalId,
@@ -32,18 +33,12 @@ export function useTerminalInterruptClear({
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
 
 	const recordInterrupt = useEffectEvent(() => {
-		markTerminalSeenNow(terminalId);
 		const agentActive =
 			binding?.lastEventType === "Start" ||
 			binding?.lastEventType === "PermissionRequest";
 		if (!agentActive || !hostUrl) return;
 		getHostServiceClientByUrl(hostUrl)
 			.notifications.hook.mutate({ terminalId, eventType: "Stop" })
-			.then(() => {
-				// The host stamped the Stop after our first seen-mark; mark again
-				// so the synthetic Stop can't derive as an unseen review.
-				markTerminalSeenNow(terminalId);
-			})
 			.catch((error) => {
 				console.warn(
 					"[terminal] failed to record synthetic agent stop:",

@@ -3,7 +3,6 @@ export {
 	getV2NotificationSourcesForPane,
 	getV2NotificationSourcesForTab,
 	getV2TerminalNotificationSource,
-	markTerminalSeenNow,
 	useV2NotificationStore,
 	type V2NotificationPaneLike,
 	type V2NotificationSource,
