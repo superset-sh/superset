@@ -4,6 +4,11 @@ import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import { scheduleFontSettleRefit } from "renderer/lib/terminal/font-settle";
+import {
+	cancelParserIdleWork,
+	type ParserIdleGate,
+	runWhenParserIdle,
+} from "renderer/lib/terminal/parser-idle-gate";
 import { getTerminalParkingContainer } from "renderer/lib/terminal/terminal-parking";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { DEBUG_TERMINAL } from "./config";
@@ -23,6 +28,8 @@ export interface CachedTerminal {
 	xterm: XTerm;
 	fitAddon: FitAddon;
 	searchAddon: SearchAddon;
+	/** Counts in-flight writes so fits can wait out async image decodes. */
+	gate: ParserIdleGate;
 	wrapper: HTMLDivElement;
 	/** Disposes renderer RAF, query suppression, GPU renderer, etc. */
 	cleanupCreation: () => void;
@@ -95,6 +102,19 @@ function fitAndRefresh(entry: CachedTerminal): boolean {
 	return dimensionsChanged;
 }
 
+/** Fit once the parser is idle — xterm's resize re-enters the parser and
+ * bricks it if an async image decode is mid-flight (see parser-idle-gate). */
+function scheduleFitAndRefresh(
+	entry: CachedTerminal,
+	onChanged?: () => void,
+): void {
+	runWhenParserIdle(entry.gate, () => {
+		if (fitAndRefresh(entry)) {
+			onChanged?.();
+		}
+	});
+}
+
 export function has(paneId: string): boolean {
 	return cache.has(paneId);
 }
@@ -114,13 +134,14 @@ export function getOrCreate(
 		console.log(`[v1-terminal-cache] Creating new terminal: ${paneId}`);
 	}
 
-	const { xterm, fitAddon, searchAddon, wrapper, cleanup } =
+	const { xterm, fitAddon, searchAddon, gate, wrapper, cleanup } =
 		createTerminalInWrapper(options);
 
 	const entry: CachedTerminal = {
 		xterm,
 		fitAddon,
 		searchAddon,
+		gate,
 		wrapper,
 		cleanupCreation: cleanup,
 		subscription: null,
@@ -153,8 +174,9 @@ export function attachToContainer(
 	container.appendChild(entry.wrapper);
 
 	// Refit and repaint on reattach because the wrapper may have been parked
-	// while its live container changed size.
-	fitAndRefresh(entry);
+	// while its live container changed size. Reports through onResize since a
+	// gated fit may run after this call returns.
+	scheduleFitAndRefresh(entry, onResize);
 	// xterm's initial cell-width measurement may have run before the configured
 	// font finished loading, baking wrong glyph metrics into the renderer
 	// (#4617). Refit once fonts are ready so the layout matches the rendered
@@ -162,20 +184,14 @@ export function attachToContainer(
 	scheduleFontSettleRefit(
 		entry.xterm,
 		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
-		() => {
-			if (fitAndRefresh(entry)) {
-				onResize?.();
-			}
-		},
+		() => scheduleFitAndRefresh(entry, onResize),
 	);
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
-	const observer = new ResizeObserver(() => {
-		if (fitAndRefresh(entry)) {
-			onResize?.();
-		}
-	});
+	const observer = new ResizeObserver(() =>
+		scheduleFitAndRefresh(entry, onResize),
+	);
 	observer.observe(container);
 	entry.resizeObserver = observer;
 }
@@ -187,6 +203,7 @@ export function detachFromContainer(paneId: string): void {
 	if (DEBUG_TERMINAL) {
 		console.log(`[v1-terminal-cache] detachFromContainer: ${paneId}`);
 	}
+	cancelParserIdleWork(entry.gate);
 	entry.resizeObserver?.disconnect();
 	entry.resizeObserver = null;
 	entry.container = null;
@@ -198,48 +215,39 @@ export function detachFromContainer(paneId: string): void {
 // --- Appearance ---
 
 /**
- * Update font settings on a cached terminal. If font changed and the
- * terminal is visible, re-fit and return true so the caller can send
- * a backend resize if needed.
+ * Update font settings on a cached terminal. If the font changed and the
+ * terminal is visible, re-fits (once the parser is idle) and reports any
+ * dimension change through onResize so the caller can send a backend resize.
  */
 export function updateAppearance(
 	paneId: string,
 	fontFamily: string,
 	fontSize: number,
-	onDeferredResize?: (dims: { cols: number; rows: number }) => void,
-): { cols: number; rows: number; changed: boolean } | null {
+	onResize?: (dims: { cols: number; rows: number }) => void,
+): void {
 	const entry = cache.get(paneId);
-	if (!entry) return null;
+	if (!entry) return;
 
 	const { xterm } = entry;
 	const fontChanged =
 		xterm.options.fontFamily !== fontFamily ||
 		xterm.options.fontSize !== fontSize;
-	if (!fontChanged) return null;
+	if (!fontChanged) return;
 
 	applyTerminalFontFamilyCssVariable(entry.wrapper, fontFamily);
 	xterm.options.fontFamily = fontFamily;
 	xterm.options.fontSize = fontSize;
 
-	const changed = fitAndRefresh(entry);
+	const reportResize = () => onResize?.({ cols: xterm.cols, rows: xterm.rows });
+	scheduleFitAndRefresh(entry, reportResize);
 
 	// The new font may still be loading — schedule a second refit once it
 	// resolves so dimensions match the actually-rendered glyphs.
 	scheduleFontSettleRefit(
 		xterm,
 		() => cache.get(paneId) === entry && hostIsVisible(entry.container),
-		() => {
-			if (fitAndRefresh(entry)) {
-				onDeferredResize?.({ cols: xterm.cols, rows: xterm.rows });
-			}
-		},
+		() => scheduleFitAndRefresh(entry, reportResize),
 	);
-
-	return {
-		cols: xterm.cols,
-		rows: xterm.rows,
-		changed,
-	};
 }
 
 // --- Stream subscription ---
@@ -365,6 +373,7 @@ export function dispose(paneId: string): void {
 		console.log(`[v1-terminal-cache] Disposing: ${paneId}`);
 	}
 
+	cancelParserIdleWork(entry.gate);
 	entry.resizeObserver?.disconnect();
 	entry.subscription?.unsubscribe();
 	entry.cleanupCreation();
