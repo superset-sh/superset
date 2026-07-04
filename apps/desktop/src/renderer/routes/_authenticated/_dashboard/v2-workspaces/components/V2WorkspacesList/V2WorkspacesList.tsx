@@ -316,6 +316,7 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 						type="button"
 						onClick={() => toggleCollapsed(project.projectId)}
 						aria-expanded={!isCollapsed}
+						aria-controls={`v2-workspaces-project-${project.projectId}`}
 						className="flex w-full items-center gap-2 bg-muted px-6 py-1.5 text-left transition-colors hover:bg-muted/80"
 					>
 						<Chevron className="size-3 shrink-0 text-muted-foreground" />

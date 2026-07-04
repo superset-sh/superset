@@ -47,6 +47,7 @@ export function AutomationRow({
 	onDelete,
 }: AutomationRowProps) {
 	const navigate = useNavigate();
+	const scheduleLabel = describeSchedule(automation.rrule);
 
 	const openDetail = () =>
 		navigate({
@@ -164,9 +165,9 @@ export function AutomationRow({
 
 					<TableCell
 						className="truncate text-xs text-muted-foreground"
-						title={describeSchedule(automation.rrule)}
+						title={scheduleLabel}
 					>
-						{describeSchedule(automation.rrule)}
+						{scheduleLabel}
 					</TableCell>
 
 					<TableCell className="pr-4">

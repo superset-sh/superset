@@ -330,11 +330,11 @@ export function V2WorkspaceRow({
 					onCloseAutoFocus={(event) => event.preventDefault()}
 				>
 					<ContextMenuItem onSelect={handleOpen}>
-						<LuArrowUpRight className="size-4 mr-2" />
+						<LuArrowUpRight className="size-4" />
 						Open
 					</ContextMenuItem>
 					<ContextMenuItem onSelect={handleCopyBranchName}>
-						<LuGitBranch className="size-4 mr-2" />
+						<LuGitBranch className="size-4" />
 						Copy Branch Name
 					</ContextMenuItem>
 					<ContextMenuSeparator />
@@ -343,12 +343,12 @@ export function V2WorkspaceRow({
 							onSelect={removeFromSidebar}
 							disabled={isCurrentRoute}
 						>
-							<RiPushpinLine className="size-4 mr-2" />
+							<RiPushpinLine className="size-4" />
 							Unpin from Sidebar
 						</ContextMenuItem>
 					) : (
 						<ContextMenuItem onSelect={addToSidebar}>
-							<RiPushpinFill className="size-4 mr-2" />
+							<RiPushpinFill className="size-4" />
 							Pin to Sidebar
 						</ContextMenuItem>
 					)}
@@ -359,7 +359,7 @@ export function V2WorkspaceRow({
 								onSelect={() => setIsDeleteDialogOpen(true)}
 								className="text-destructive focus:text-destructive"
 							>
-								<LuTrash2 className="size-4 mr-2 text-destructive" />
+								<LuTrash2 className="size-4 text-destructive" />
 								Delete
 							</ContextMenuItem>
 						</>

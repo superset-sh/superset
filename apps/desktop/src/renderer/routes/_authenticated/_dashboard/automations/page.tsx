@@ -198,6 +198,14 @@ function AutomationsPage() {
 		}
 	};
 
+	const handleScopeChange = (value: string) => {
+		if (!value) return;
+		const next = value as Scope;
+		setScope(next);
+		// The Owner column only exists on the team tab; drop the sort with it.
+		if (next !== "team" && sortField === "owner") setSortField(null);
+	};
+
 	// Default order (no active sort) is createdAt desc from the live query.
 	const sortedVisible = useMemo(() => {
 		if (!sortField) return visible;
@@ -245,12 +253,7 @@ function AutomationsPage() {
 				<div className="flex items-center gap-3">
 					<h1 className="text-sm font-semibold tracking-tight">Automations</h1>
 					<div className="h-4 w-px bg-border" />
-					<Tabs
-						value={scope}
-						onValueChange={(value) => {
-							if (value) setScope(value as Scope);
-						}}
-					>
+					<Tabs value={scope} onValueChange={handleScopeChange}>
 						<TabsList className="h-8 bg-transparent p-0 gap-1">
 							<TabsTrigger
 								value="mine"
