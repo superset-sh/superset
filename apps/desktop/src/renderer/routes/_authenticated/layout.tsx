@@ -38,6 +38,7 @@ import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2NotificationController } from "./components/V2NotificationController";
 import { createPierreWorker } from "./lib/pierreWorker";
+import { AutomationFailureNotifier } from "./providers/AutomationFailureNotifier";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { DeletingWorkspacesProvider } from "./providers/DeletingWorkspacesProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
@@ -202,6 +203,7 @@ function AuthenticatedLayout() {
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
 				<GlobalBrowserLifecycle />
+				<AutomationFailureNotifier />
 				<LocalHostServiceProvider>
 					<DeletingWorkspacesProvider>
 						<WorkerPoolContextProvider
