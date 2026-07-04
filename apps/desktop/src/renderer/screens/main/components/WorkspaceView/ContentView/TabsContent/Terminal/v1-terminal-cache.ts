@@ -55,6 +55,17 @@ export interface CachedTerminal {
 	subscriptionErrorHandler: ((error: unknown) => void) | null;
 	/** ResizeObserver for the attached container. Managed by attach/detach. */
 	resizeObserver: ResizeObserver | null;
+	/** Pending rAF id for the deferred resize refit. Cancelled on detach/dispose. */
+	resizeRafId: number | null;
+	/**
+	 * True when a synchronous fit has changed dims but the backend PTY has not
+	 * yet been notified (the deferred rAF hasn't delivered onResize). Lives on
+	 * the entry — not in the attach closure — so the signal survives both rAF
+	 * cancellation by a later event AND a detach/reattach cycle. Without this,
+	 * switching tabs mid-resize would drop the notification and leave the PTY
+	 * out of sync with xterm. Cleared once onResize is delivered.
+	 */
+	pendingResizeChange: boolean;
 	/** Live container, when attached. */
 	container: HTMLDivElement | null;
 }
@@ -130,6 +141,8 @@ export function getOrCreate(
 		eventHandler: null,
 		subscriptionErrorHandler: null,
 		resizeObserver: null,
+		resizeRafId: null,
+		pendingResizeChange: false,
 		container: null,
 		lastCols: xterm.cols,
 		lastRows: xterm.rows,
@@ -154,7 +167,15 @@ export function attachToContainer(
 
 	// Refit and repaint on reattach because the wrapper may have been parked
 	// while its live container changed size.
-	fitAndRefresh(entry);
+	if (fitAndRefresh(entry)) entry.pendingResizeChange = true;
+	// Flush any resize whose backend notification was dropped: a synchronous fit
+	// can change xterm's size while its deferred onResize is still pending, and a
+	// detach (tab switch mid-resize) then cancels that rAF. Reconcile the PTY on
+	// reattach so it never stays out of sync with xterm. (#5022)
+	if (entry.pendingResizeChange) {
+		entry.pendingResizeChange = false;
+		onResize?.();
+	}
 	// xterm's initial cell-width measurement may have run before the configured
 	// font finished loading, baking wrong glyph metrics into the renderer
 	// (#4617). Refit once fonts are ready so the layout matches the rendered
@@ -168,10 +189,41 @@ export function attachToContainer(
 
 	// Manage ResizeObserver lifecycle in the cache, not in React.
 	entry.resizeObserver?.disconnect();
+	if (entry.resizeRafId !== null) {
+		cancelAnimationFrame(entry.resizeRafId);
+		entry.resizeRafId = null;
+	}
 	const observer = new ResizeObserver(() => {
-		if (fitAndRefresh(entry)) {
-			onResize?.();
+		// Fit immediately so shrinking the window stays snappy, then re-fit on
+		// the next frame. A single-shot grow (window maximize / native
+		// fullscreen) delivers one ResizeObserver event before layout and the
+		// WebGL renderer's cell metrics have settled; the synchronous fit then
+		// latches a too-small `cols`, and because the container is already at
+		// its final size no further event arrives to correct it — leaving the
+		// terminal stuck at the old narrow width. The deferred refit re-reads
+		// the settled geometry. (superset-sh/superset#5021)
+		//
+		// `entry.pendingResizeChange` (not a local) accumulates the "dims
+		// changed" signal so it survives the rAF cancellation below — when a
+		// later event cancels a pending deferred refit, the earlier event's
+		// change must not be lost — and a detach/reattach in between (flushed in
+		// attachToContainer above). (#5022)
+		if (fitAndRefresh(entry)) entry.pendingResizeChange = true;
+		if (entry.resizeRafId !== null) {
+			cancelAnimationFrame(entry.resizeRafId);
 		}
+		// onResize (backend PTY resize) is intentionally deferred to the rAF
+		// rather than fired synchronously: the deferred fit is authoritative, so
+		// we send a single notification with the settled dims. Cost is a
+		// ~1-frame PTY-resize delay on continuous drags, which is imperceptible.
+		entry.resizeRafId = requestAnimationFrame(() => {
+			entry.resizeRafId = null;
+			if (fitAndRefresh(entry)) entry.pendingResizeChange = true;
+			if (entry.pendingResizeChange) {
+				entry.pendingResizeChange = false;
+				onResize?.();
+			}
+		});
 	});
 	observer.observe(container);
 	entry.resizeObserver = observer;
@@ -186,6 +238,13 @@ export function detachFromContainer(paneId: string): void {
 	}
 	entry.resizeObserver?.disconnect();
 	entry.resizeObserver = null;
+	if (entry.resizeRafId !== null) {
+		cancelAnimationFrame(entry.resizeRafId);
+		entry.resizeRafId = null;
+	}
+	// Deliberately preserve `entry.pendingResizeChange`: if the cancelled rAF
+	// still owed an onResize, attachToContainer flushes it on reattach so the
+	// backend PTY is reconciled. (#5022)
 	entry.container = null;
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
@@ -362,6 +421,10 @@ export function dispose(paneId: string): void {
 	}
 
 	entry.resizeObserver?.disconnect();
+	if (entry.resizeRafId !== null) {
+		cancelAnimationFrame(entry.resizeRafId);
+		entry.resizeRafId = null;
+	}
 	entry.subscription?.unsubscribe();
 	entry.cleanupCreation();
 	entry.wrapper.remove();
