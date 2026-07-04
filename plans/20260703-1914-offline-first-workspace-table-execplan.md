@@ -8,7 +8,7 @@ Reference: This plan follows conventions from AGENTS.md and the ExecPlan templat
 
 A "workspace" in Superset v2 is a git worktree on a specific machine, wrapped with a name, a branch, and terminal/agent sessions. Today the canonical record of every workspace lives in a cloud Postgres table (`v2_workspaces` in Neon), even though the thing it describes is entirely local to one machine. Consequence: creating, renaming, or deleting a workspace requires a synchronous round-trip to the cloud, and the cloud mints the workspace's UUID — so with no internet you cannot create a workspace at all, and deletes block the UI waiting for a cloud sync round-trip.
 
-After this plan is implemented, the host-service (a per-organization daemon that runs on the user's machine and already owns the git worktrees) owns the workspace records outright in its local SQLite database. Creating, renaming, listing, and deleting workspaces works with zero cloud availability. The desktop app reads workspaces from the local host-service's database instead of a cloud sync stream. The cloud table, its tRPC router, its Electric sync shape, and the orphaned `apps/web` workspace pages are deleted.
+After this plan is implemented, the host-service (a per-organization daemon that runs on the user's machine and already owns the git worktrees) owns the workspace records outright in its local SQLite database. Creating, renaming, listing, and deleting workspaces works with zero cloud availability. The desktop app reads workspaces directly from host-services instead of a cloud sync stream. The cloud table, its tRPC router, its Electric sync shape, and the orphaned `apps/web` workspace pages are deleted.
 
 Observable outcome at the end: disconnect the machine from the network, launch the desktop app, and create a new workspace — it appears in the sidebar, gets a worktree on disk, opens a terminal, and can be renamed and destroyed, all offline. Reconnect, and workspaces on other machines ("hosts") reappear in the sidebar via direct host-to-host queries.
 
@@ -17,13 +17,13 @@ Observable outcome at the end: disconnect the machine from the network, launch t
 These were decided in the design walkthrough and are not up for re-litigation here:
 
 1. Host-service owns workspaces outright; no cloud `v2_workspaces` usage remains.
-2. Cross-host visibility: the **local host-service** fans out to peer hosts over the relay and caches their last-seen lists; the desktop reads one merged list from the local host-service. (Revised 2026-07-04 — originally the renderer fanned out; moved host-side to keep the work v2-scoped.)
+2. Cross-host visibility: each client fans out to hosts itself (local host directly, remote via relay) and merges. Rationale: the client owns what it sees; a host serves only what it has; no client depends on a host-service aggregator, so mobile/web/CLI can consume hosts the same way. (A brief 2026-07-04 revision moved fan-out into the local host-service with a `peer_workspaces` cache; Kiet reverted it the same day during the decision re-walkthrough.)
 3. Automations denormalize `hostId`/`projectId` onto the automation row at create time (the cloud-side `verifyWorkspaceInOrg` check is deleted); a host rejects runs for workspace ids it doesn't have.
-4. The desktop renderer reads workspaces from a local database — the local host-service's host.db — not a TanStack DB collection. Nothing v1 (`packages/local-db`, Electron-main IPC routers' database) is touched.
+4. The desktop renderer reads workspaces through a fan-out hook: parallel per-host `workspace.list` queries merged client-side, live-updated by `workspace:changed` events, with per-host query caches persisted to IndexedDB so remote machines' last-seen lists survive restarts. Not a TanStack DB collection; nothing v1 (`packages/local-db`) is touched. The local host needs no cache — its daemon is on the same machine, so own-machine workspaces are always live, even offline.
 5. The cloud list endpoint is deleted; MCP/CLI/SDK clients resolve connected hosts and query each host directly.
 6. Both `apps/web` `/workspaces` pages are deleted (they are orphaned — nothing links to them).
 7. A host serves its workspace list to any caller whose JWT carries the host's organizationId (parity with today's Electric shape scoping). No cloud lookup in the host's read path.
-8. Staged rollout with read-through fallback: R1 host backfill + dual-write, R2 desktop reads flip to the local mirror (falling back to cloud rows not yet backfilled), R3 cloud surface deleted.
+8. Staged rollout with read-through fallback: R1 host backfill + dual-write, R2 desktop reads flip to the fan-out hook (falling back to still-synced cloud rows no host returned), R3 cloud surface deleted. The legacy cloud path stays fully operational until telemetry shows old-client usage is negligible — the R3 gate is adoption, not a date.
 
 ## Context and Orientation
 
@@ -44,7 +44,7 @@ Terms used below:
 - "Relay" — the cloud tunnel that routes HTTP/WS to a host by routing key `buildHostRoutingKey(orgId, hostId)`; remote host URLs look like `${relayUrl}/hosts/<routingKey>`.
 - "Electric" — Electric SQL, the Postgres→client sync engine feeding the renderer's TanStack DB collections. Its per-table subscriptions are called "shapes".
 - "`/events` bus" — host-service's WebSocket event stream (`packages/host-service/src/events/`), currently emitting `git:changed`, `port:changed`, `agent:lifecycle`, `terminal:lifecycle`, `fs:events`. There are no workspace lifecycle events today; this plan adds them.
-- "Peer cache" — the new `peer_workspaces` table in the local host-service's host.db holding last-seen workspace rows from other hosts, maintained by the local host-service.
+- "Fan-out hook" — the new renderer hook that queries every known host's `workspace.list` in parallel and merges the results; "IndexedDB" — the browser's built-in local database, used here to persist each remote host's last-seen list across restarts.
 
 Key current-state facts the plan relies on (verified in the audit):
 
@@ -70,8 +70,8 @@ Key current-state facts the plan relies on (verified in the audit):
 
 - [ ] Milestone 1 (R1): host.db owns full workspace rows — schema, backfill, dual-write, events, list endpoint, JWT org check
 - [ ] Milestone 2 (R1): cloud accepts client-minted ids; automations denormalized (cloud side); PostHog moves host-side
-- [ ] Milestone 3 (R2): peer-workspace cache + fan-out in the local host-service; merged `workspace.listAll`
-- [ ] Milestone 4 (R2): renderer consumers flip to `workspace.listAll`; writes unify through host; cloud read-through fallback
+- [ ] Milestone 3 (R2): renderer fan-out layer — per-host queries, `workspace:changed` subscriptions, IndexedDB persistence
+- [ ] Milestone 4 (R2): renderer consumers flip to the fan-out hook; writes unify through host; cloud read-through fallback
 - [ ] Milestone 5 (R2): MCP/CLI/SDK query hosts directly
 - [ ] Milestone 6 (R3): delete the cloud surface (router, shape, proxy case, Electric collection, web pages, FK, table)
 
@@ -82,9 +82,10 @@ Key current-state facts the plan relies on (verified in the audit):
 ## Decision Log
 
 - Decision: SUPERSEDED (2026-07-04) — the mirror was originally a `host_workspaces` table in `packages/local-db` read over Electron IPC-tRPC, with the renderer supplying the host set to a main-process syncer. Kiet directed the plan to be v2-scoped only; `packages/local-db` and the main-process plumbing are v1-era surface.
-- Decision: The merged workspace store lives in the local host-service's host.db: a new `peer_workspaces` cache table plus the host's own authoritative `workspaces` table, served together as `workspace.listAll`. The local host-service performs the peer fan-out (discovering peers via cloud `v2Host.list`, which stays cloud-owned) and subscribes to peer `/events` over the relay; the renderer reads only from the local host-service over the existing v2 HTTP tRPC + `/events` path.
-  Rationale: keeps every new component inside `packages/host-service`, which already has the database, drizzle migrations, auth, relay clients, and an event bus; the desktop below the renderer is untouched; CLI and the web terminal get the same merged endpoint for free. Trade-off accepted: workspace reads require the local daemon to be up, which v2 already requires for essentially everything.
-  Date/Author: 2026-07-04 / Kiet via walkthrough revision.
+- Decision: SUPERSEDED (2026-07-04, same day) — the host-side `peer_workspaces` cache + `workspace.listAll` aggregation was reverted during the full decision re-walkthrough.
+- Decision: The renderer performs the fan-out itself: parallel `workspace.list` queries per known host, merged in a hook, live-updated by per-host `workspace:changed` subscriptions, with the per-host query caches persisted to IndexedDB (idb-keyval, precedent in `ElectronTRPCProvider.tsx:31-84`) so remote hosts' last-seen lists survive restarts. No host-side peer replication of any kind.
+  Rationale (Kiet): the client owns what it sees and a host-service serves only what it has; with no aggregation layer, other clients (mobile, web, CLI) can consume hosts the same way without depending on a host-service being up as an aggregator. The local host is always reachable offline, so persistence only affects visibility of other machines.
+  Date/Author: 2026-07-04 / Kiet via decision re-walkthrough.
 - Decision: Host backfill iterates its existing local rows and calls cloud `v2Workspace.getFromHost` per id to fetch the missing fields (name/type/taskId/createdByUserId/timestamps).
   Rationale: getFromHost is org-scoped and already used by the host; per-id iteration avoids adding a new cloud endpoint that would be deleted two releases later. Rows missing locally entirely are covered by the R2 read-through fallback.
   Date/Author: 2026-07-03 / plan authoring.
@@ -134,31 +135,30 @@ Acceptance:
 
 Acceptance: `bun run typecheck && bun test packages/trpc`; create a workspace from a new host build and verify exactly one `workspace_created` PostHog event.
 
-### Milestone 3 (R2): peer-workspace cache and fan-out in the local host-service
+### Milestone 3 (R2): renderer fan-out layer with persistent per-host cache
 
-All work in this milestone lives inside `packages/host-service` — nothing v1 and nothing in Electron main is touched.
+All work in this milestone lives in the renderer and `packages/workspace-client` — no new host-service or Electron-main surface, nothing v1.
 
-1. Schema. In `packages/host-service/src/db/schema.ts` add a `peerWorkspaces` table: columns matching the full workspace row (`id` PK, `hostId`, `projectId`, `name`, `branch`, `type`, `taskId`, `createdByUserId`, `createdAt`, `updatedAt`) plus cache bookkeeping `lastSeenAt` and `hostReachable` (integer boolean). Generate migration: `cd packages/host-service && bunx drizzle-kit generate --name="peer_workspaces_cache"` (can ride the same release as Milestone 1's migration).
-2. Peer syncer. New runtime module `packages/host-service/src/runtime/peer-workspace-sync.ts`: discovers peer hosts via cloud `v2Host.list` (hosts remain cloud-owned; refresh on an interval, and keep serving cached `peerWorkspaces` rows when discovery or a peer is unreachable). For each online peer it (a) fetches the peer's `workspace.list` over the relay (`${relayUrl}/hosts/<routingKey>`, authenticated with the host's own session JWT — the same token source the host already uses for cloud calls), replacing that peer's rows in a transaction, and (b) subscribes to the peer's `/events` WebSocket and applies `workspace:changed` events as row upserts/deletes, with reconnect backoff copying `packages/workspace-client/src/lib/eventBus.ts` semantics. On connection loss it marks `hostReachable=false` but keeps the rows — they are the offline cache.
-3. Merged read + re-broadcast. Add `workspace.listAll` to the workspace router: the host's own authoritative `workspaces` rows (with `worktreeExists`) plus `peerWorkspaces` rows, each tagged with `hostId`, `hostReachable`, `lastSeenAt`. Re-emit applied peer changes as `workspace:changed` on the host's own `/events` bus so a single WebSocket gives consumers live updates for every host.
+1. Persistence. Attach an IndexedDB persister (idb-keyval; the repo precedent is `apps/desktop/src/renderer/providers/ElectronTRPCProvider/ElectronTRPCProvider.tsx:31-84`) to the per-host `QueryClient`s created in `packages/workspace-client/src/providers/WorkspaceClientProvider/WorkspaceClientProvider.tsx`, whitelisted to workspace-list query keys, keyed per host URL. Each remote host's last-seen list now survives app restarts.
+2. Fan-out hook. New hook `apps/desktop/src/renderer/hooks/host-workspaces/useHostWorkspaces/`: derive one query target per known host — the host set comes from the `v2Hosts` Electric collection (hosts stay cloud-owned) plus the local coordinator's `activeHostUrl`; the sidebar ports hook (`useDashboardSidebarPortsData.ts:65-102`) is the exact template. Run parallel `useQueries` against each host's `workspace.list`, merge rows tagged with `hostId` and reachability, and subscribe per host to `workspace:changed` on the existing `/events` client (`useWorkspaceEvent` / `packages/workspace-client/src/lib/eventBus.ts`), patching or invalidating the matching query. Unreachable hosts render their persisted last-seen rows.
+3. Read-through fallback (Decision D-fallback). Inside the same hook, merge in any row present in the still-synced Electric `collections.v2Workspaces` whose id no host returned — this covers org hosts still on pre-R1 builds (no `workspace.list` yet) and rows the backfill hasn't reached. Honor the AGENTS.md cache-first rule: existing rows always render; readiness gates only the empty state.
 
-What exists at the end: `~/.superset/host/<orgId>/host.db` contains a live merged view of every reachable host's workspaces, surviving restarts, updating within a second of any change anywhere. Nothing consumes it yet.
+What exists at the end: a hook that returns the live merged workspace list across all hosts, offline-correct for the local host (its daemon is on-machine) and last-seen for remote hosts. Nothing consumes it yet.
 
 Acceptance:
 
-    bun test packages/host-service
-    # Manual: run desktop dev with a second host in the org; create/rename/delete on it, watch
-    # sqlite3 ~/.superset/host/<orgId>/host.db 'select id,name,host_id,host_reachable from peer_workspaces'
-    # Take the peer offline; rows persist with host_reachable=0.
+    bun test apps/desktop/src/renderer/hooks/host-workspaces
+    # Manual: run desktop dev with a second host in the org; create/rename/delete on it and watch
+    # the hook's output update live. Take the peer offline and relaunch the app: its rows still
+    # render from IndexedDB, flagged unreachable.
 
-### Milestone 4 (R2): renderer flips reads to `workspace.listAll`; writes unify through the host
+### Milestone 4 (R2): renderer consumers flip to the fan-out hook; writes unify through the host
 
-1. New hook `apps/desktop/src/renderer/hooks/host-workspaces/useHostWorkspaces/` wrapping a `workspaceTrpc` query of the **local** host-service's `workspace.listAll` plus a host-wide `workspace:changed` subscription over the existing `/events` client (`useWorkspaceEvent` / `packages/workspace-client/src/lib/eventBus.ts`) that patches or invalidates the query — the sidebar ports hook (`useDashboardSidebarPortsData.ts`) is the template. It returns rows shaped like today's `SelectV2Workspace` plus `worktreePath`/`hostReachable`, and implements the read-through fallback (Decision D-fallback): merge in any row present in the still-synced Electric `collections.v2Workspaces` whose id is absent from `listAll` (covers not-yet-backfilled hosts and hosts on old builds). The fallback honors the AGENTS.md cache-first rule: existing rows always render; readiness gates only the empty state. Offline cold start works because the local host-service launches with the app and serves `listAll` from host.db immediately.
-2. Migrate the ~25 `useLiveQuery(… collections.v2Workspaces …)` call sites to `useHostWorkspaces` (sidebar data, layout guards, top bar, command palette, notifications, automations pages, `useAccessibleV2Workspaces`, `useNavigateAwayFromWorkspace`, `sidebarMutations`). Joins against `v2Hosts`/`v2Projects` collections move into the consuming hooks (the ports hook at `useDashboardSidebarPortsData.ts` is the template for mixing collection reads with host-backed reads).
-3. Writes. Create already goes renderer → host `workspaces.create`; keep it, but confirmation now comes from the local host (the optimistic entry in `useWorkspaceCreates` resolves when the `workspace:changed` event delivers the row) instead of Electric txid matching. Rename/update: replace direct cloud `v2Workspace.update` calls in `useOptimisticCollectionActions` with host `workspace.update`. Delete: replace `waitForWorkspaceDeleted` (Electric) with waiting for the `workspace:changed` deletion event.
-4. Delete the `onInsert`/`onUpdate` mutation handlers from the Electric `v2Workspaces` collection definition (it becomes read-only fallback data until R3 removes it).
+1. Migrate the ~25 `useLiveQuery(… collections.v2Workspaces …)` call sites to Milestone 3's `useHostWorkspaces` (sidebar data, layout guards, top bar, command palette, notifications, automations pages, `useAccessibleV2Workspaces`, `useNavigateAwayFromWorkspace`, `sidebarMutations`). The hook returns rows shaped like today's `SelectV2Workspace` plus `worktreePath`/`hostReachable`, so most call sites change mechanically. Joins against `v2Hosts`/`v2Projects` collections move into the consuming hooks (the ports hook at `useDashboardSidebarPortsData.ts` is the template for mixing collection reads with host-backed reads).
+2. Writes. Create already goes renderer → host `workspaces.create`; keep it, but confirmation now comes from the local host (the optimistic entry in `useWorkspaceCreates` resolves when the `workspace:changed` event delivers the row) instead of Electric txid matching. Rename/update: replace direct cloud `v2Workspace.update` calls in `useOptimisticCollectionActions` with host `workspace.update`. Delete: replace `waitForWorkspaceDeleted` (Electric) with waiting for the `workspace:changed` deletion event.
+3. Delete the `onInsert`/`onUpdate` mutation handlers from the Electric `v2Workspaces` collection definition (it becomes read-only fallback data until R3 removes it).
 
-What exists at the end: the desktop renders, creates, renames, and destroys workspaces entirely against local data — full offline operation for the local host; remote hosts render from the last-seen peer cache.
+What exists at the end: the desktop renders, creates, renames, and destroys workspaces entirely against host data — full offline operation for the local host; remote hosts render from the last-seen IndexedDB cache.
 
 Acceptance:
 
@@ -194,7 +194,6 @@ Work happens in this monorepo root (`bun install` already done). Per-milestone c
 Migration generation commands (never hand-edit generated drizzle files):
 
     cd packages/host-service && bunx drizzle-kit generate --name="workspace_full_fields"
-    cd packages/host-service && bunx drizzle-kit generate --name="peer_workspaces_cache"
     # R3 Neon migration is generated on a Neon branch and RUN BY THE USER, not the agent.
 
 ## Validation and Acceptance
@@ -234,16 +233,21 @@ New/changed interfaces that must exist (names are prescriptive):
     // packages/trpc — v2-workspace create input (R1, removed in R3)
     create.input: { ...existing, id?: string /* uuid, client-minted */ }
 
-    // packages/host-service — trpc/router/workspace/workspace.ts (R2)
-    workspace.listAll: protectedProcedure.query() =>
-      Array<HostWorkspace & { hostId: string; worktreeExists?: boolean;
-                              hostReachable: boolean; lastSeenAt: number }>
+    // apps/desktop — renderer/hooks/host-workspaces/useHostWorkspaces (R2)
+    useHostWorkspaces(): {
+      workspaces: Array<SelectV2WorkspaceShape & { worktreePath?: string;
+                                                   hostReachable: boolean }>
+      isReady: boolean
+    }
 
-    // packages/host-service — runtime/peer-workspace-sync.ts (R2)
-    startPeerWorkspaceSync({ db, api, eventBus, relayUrl, organizationId, machineId })
+    // packages/workspace-client — WorkspaceClientProvider (R2)
+    // per-host QueryClient gains an IndexedDB persister whitelisted to
+    // workspace-list query keys (idb-keyval)
 
 No new third-party libraries are required; every mechanism (drizzle SQLite migrations, per-host HTTP tRPC clients, `/events` WebSockets, reconnect backoff) already exists in the repo and is named above as the template to copy.
 
 ---
 
-Revision note (2026-07-04): Rescoped to v2-only at Kiet's direction. The desktop-side mirror (new table in `packages/local-db`, Electron-main syncer, IPC-tRPC surface) was replaced by a `peer_workspaces` cache inside the local host-service's host.db, with the host-service performing peer fan-out and the renderer reading a merged `workspace.listAll` over the existing v2 tRPC + `/events` path. Legacy v1 surfaces (v1 `workspaces` Neon table, its Electric shape/collection, `packages/local-db`) are now explicitly out of scope. Milestones 3–4, the Decision Log, Interfaces, and Concrete Steps were updated accordingly.
+Revision note (2026-07-04, first pass): Rescoped to v2-only at Kiet's direction. The desktop-side mirror (new table in `packages/local-db`, Electron-main syncer, IPC-tRPC surface) was replaced by a `peer_workspaces` cache inside the local host-service's host.db. Legacy v1 surfaces (v1 `workspaces` Neon table, its Electric shape/collection, `packages/local-db`) became explicitly out of scope.
+
+Revision note (2026-07-04, second pass — full decision re-walkthrough with Kiet): The host-side `peer_workspaces` cache/aggregation was reverted. Final read path: the renderer fans out per-host `workspace.list` queries itself, merged in `useHostWorkspaces`, live-updated by per-host `workspace:changed` subscriptions, with per-host query caches persisted to IndexedDB. Rationale: the client owns what it sees; a host serves only what it has; no client depends on a host-service aggregator (keeps mobile/web/CLI viable consumers). Decision 8 clarified: the legacy cloud path stays operational until old-client usage is negligible — the R3 gate is adoption, not a date. Milestones 3–4, Decision Log, Interfaces, and Concrete Steps updated accordingly.
