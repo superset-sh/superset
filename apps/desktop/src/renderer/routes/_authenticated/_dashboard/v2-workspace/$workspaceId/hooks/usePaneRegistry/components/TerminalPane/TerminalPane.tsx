@@ -69,7 +69,13 @@ export function TerminalPane({
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
-	const [isRichInputOpen, setIsRichInputOpen] = useState(false);
+	// Keyed by terminalId so open/closed is remembered per terminal while the
+	// mounted pane gets re-pointed across terminals (tab switch, session
+	// dropdown).
+	const [richInputOpenTerminalIds, setRichInputOpenTerminalIds] = useState<
+		ReadonlySet<string>
+	>(new Set());
+	const isRichInputOpen = richInputOpenTerminalIds.has(terminalId);
 
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
@@ -349,12 +355,23 @@ export function TerminalPane({
 
 	useHotkey(
 		"TOGGLE_TERMINAL_RICH_INPUT",
-		() => setIsRichInputOpen((prev) => !prev),
+		() =>
+			setRichInputOpenTerminalIds((prev) => {
+				const next = new Set(prev);
+				if (next.has(terminalId)) next.delete(terminalId);
+				else next.add(terminalId);
+				return next;
+			}),
 		{ enabled: ctx.isActive, preventDefault: true },
 	);
 
 	const closeRichInput = useCallback(() => {
-		setIsRichInputOpen(false);
+		setRichInputOpenTerminalIds((prev) => {
+			if (!prev.has(terminalId)) return prev;
+			const next = new Set(prev);
+			next.delete(terminalId);
+			return next;
+		});
 		terminalRuntimeRegistry
 			.getTerminal(terminalId, terminalInstanceId)
 			?.focus();
