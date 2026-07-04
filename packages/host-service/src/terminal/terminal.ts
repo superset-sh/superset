@@ -238,6 +238,12 @@ interface TerminalSession {
 	listed: boolean;
 	title: string | null;
 	titleScanState: TerminalTitleScanState;
+	/**
+	 * Bus for lifecycle broadcasts. Kept on the session so dispose (which
+	 * unsubscribes daemon callbacks before the pty dies, muting onExit) can
+	 * still announce the exit to renderers.
+	 */
+	eventBus: EventBus | undefined;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -773,10 +779,26 @@ export async function disposeSessionAndWait(
 		: { attempted: false, succeeded: true };
 
 	if (closeResult.succeeded) {
+		const endedAt = Date.now();
 		db.update(terminalSessions)
-			.set({ status: "disposed", endedAt: Date.now() })
+			.set({ status: "disposed", endedAt })
 			.where(eq(terminalSessions.id, terminalId))
 			.run();
+
+		// Dispose unsubscribed the daemon callbacks above, so onExit will
+		// never fire for this session — announce the exit here (after the
+		// row flips to disposed, so refetching readers see it dead). Skip
+		// sessions whose pty already exited: onExit broadcast that one.
+		if (session && !session.exited) {
+			session.eventBus?.broadcastTerminalLifecycle({
+				workspaceId: session.workspaceId,
+				terminalId,
+				eventType: "exit",
+				exitCode: 0,
+				signal: 0,
+				occurredAt: endedAt,
+			});
+		}
 	}
 
 	return {
@@ -1090,6 +1112,7 @@ export async function createTerminalSessionInternal({
 		listed,
 		title: null,
 		titleScanState: createTerminalTitleScanState(),
+		eventBus,
 		shellReadyState: shellSupportsReady
 			? "pending"
 			: isAdopted
