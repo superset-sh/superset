@@ -132,6 +132,17 @@ describe("SqliteTerminalAgentBindingPersistence live reads", () => {
 			workspaceId: "ws-1",
 		});
 		seedSession(db, { id: "t-orphan", status: "active", workspaceId: null });
+		// Binding with no session row at all (FK unenforced in bun:sqlite).
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId: "t-missing",
+				workspaceId: "ws-1",
+				agentId: "claude",
+				startedAt: 1,
+				lastEventAt: 2,
+				lastEventType: "Start",
+			})
+			.run();
 
 		new SqliteTerminalAgentBindingPersistence(db).deleteDefunct();
 

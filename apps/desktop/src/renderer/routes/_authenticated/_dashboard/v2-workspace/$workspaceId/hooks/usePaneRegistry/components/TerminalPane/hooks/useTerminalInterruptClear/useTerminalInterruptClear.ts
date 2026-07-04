@@ -39,6 +39,11 @@ export function useTerminalInterruptClear({
 		if (!agentActive || !hostUrl) return;
 		getHostServiceClientByUrl(hostUrl)
 			.notifications.hook.mutate({ terminalId, eventType: "Stop" })
+			.then(() => {
+				// The host stamped the Stop after our first seen-mark; mark again
+				// so the synthetic Stop can't derive as an unseen review.
+				markTerminalSeenNow(terminalId);
+			})
 			.catch((error) => {
 				console.warn(
 					"[terminal] failed to record synthetic agent stop:",

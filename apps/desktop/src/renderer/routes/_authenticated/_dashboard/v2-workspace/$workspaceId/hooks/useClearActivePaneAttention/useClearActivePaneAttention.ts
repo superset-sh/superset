@@ -1,5 +1,6 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { useEffect } from "react";
+import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useV2PaneNotificationStatus } from "renderer/hooks/host-service/useV2NotificationStatus";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import {
@@ -29,13 +30,16 @@ export function useClearActivePaneAttention({
 	const markTerminalSeen = useV2NotificationStore(
 		(state) => state.markTerminalSeen,
 	);
+	const bindings = useTerminalAgentBindings(workspace.id);
 
 	useEffect(() => {
 		if (activePaneStatus !== "review") return;
 		for (const source of getV2NotificationSourcesForPane(activePane)) {
-			if (source.type === "terminal") {
-				markTerminalSeen(source.id);
-			}
+			if (source.type !== "terminal") continue;
+			// Clamp to the binding's host-clock lastEventAt so a host clock
+			// ahead of the renderer can't leave an unclearable review.
+			const lastEventAt = bindings.get(source.id)?.lastEventAt ?? 0;
+			markTerminalSeen(source.id, Math.max(Date.now(), lastEventAt));
 		}
-	}, [activePane, activePaneStatus, markTerminalSeen]);
+	}, [activePane, activePaneStatus, bindings, markTerminalSeen]);
 }

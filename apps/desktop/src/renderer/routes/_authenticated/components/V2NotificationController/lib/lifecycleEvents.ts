@@ -92,7 +92,6 @@ export function markV2AgentLifecycleTargetSeen({
 export function handleV2TerminalLifecycleEvent({
 	payload,
 }: {
-	workspaceId: string;
 	payload: TerminalLifecyclePayload;
 }): void {
 	if (payload.eventType !== "exit") return;
