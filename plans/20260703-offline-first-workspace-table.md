@@ -77,8 +77,14 @@ consumed client-side over Electric.
 | # | Decision | Choice |
 |---|---|---|
 | 1 | Source of truth | **Host-service owns workspaces outright.** No cloud `v2_workspaces` usage remains; all querying moves to the host service. |
-| 2 | Cross-host visibility | **Renderer fans out to each known host** (local direct, remote via relay) and merges, caching the last-seen list per host. Offline remote hosts show the cached list. |
+| 2 | Cross-host visibility | **Local host-service fans out to peer hosts** over relay and caches their last-seen lists; the renderer reads one merged list from the local host-service. Offline peers show the cached list. *(Revised 2026-07-04: fan-out moved from renderer to local host-service to keep the work v2-scoped — see Decision 4.)* |
 | 3 | Automations | **Denormalize at create + host rejects stale pins.** Client sends `hostId`/`projectId` alongside a pinned `v2WorkspaceId`; cloud stores without validating (`verifyWorkspaceInOrg` deleted). Dispatch already routes off the denormalized `targetHostId` and never reads `v2_workspaces`; the host naturally 404s on unknown workspace ids at run time — same stale-pin semantics as today, but attributable. |
+
+| 4 | Renderer read path | **Local db = host.db, no TanStack collection.** The local host-service caches peer hosts' workspaces in a `peer_workspaces` table in host.db and serves a merged `workspace.listAll` (own rows + peer cache) over the existing v2 tRPC + `/events` path, with new `workspace:changed` events for live updates. Consumers migrate off `useLiveQuery(collections.v2Workspaces)`. **No new tables in `packages/local-db`** — the v1 world stays untouched. *(Revised 2026-07-04: originally an Electron-main mirror in local.db; moved into host-service to stay v2-scoped.)* |
+| 5 | MCP / CLI / SDK | **No cloud list endpoint.** `v2Workspace.list` is deleted; external clients resolve connected hosts (from `v2_hosts`) and query each host directly over relay for its workspaces. |
+| 6 | apps/web pages | **Delete both** `/workspaces` pages (list+create and the web terminal). They are orphaned — nothing links to them. |
+| 7 | Host authorization | **Org membership only.** A host serves its workspace list to any caller whose JWT carries the host's organizationId — parity with today's Electric shape (which is org-scoped; `users_hosts` filtering was already client-side). No cloud lookup in the read path. |
+| 8 | Rollout | **Staged with read-through fallback.** R1: host.db schema expands, host backfills full fields from cloud, dual-write. R2: desktop reads flip to local mirror; if a row isn't backfilled yet, read falls back to cloud and seeds the backfill. R3: cloud writes stop; router/shape/proxy WHERE/pages deleted. |
 
 ### Decision 3 rationale (current-state walkthrough)
 
@@ -93,12 +99,6 @@ consumed client-side over Electric.
   exists today and lands as `dispatch_failed` — cloud validation never protected
   run time.
 
-| 4 | Renderer read path | **Local mirror db, no TanStack collection.** The desktop maintains a merged local db of last-seen workspaces (fed by per-host fan-out queries + new `workspace:changed` events on the host `/events` bus); the renderer reads that db. Consumers migrate off `useLiveQuery(collections.v2Workspaces)`. |
-| 5 | MCP / CLI / SDK | **No cloud list endpoint.** `v2Workspace.list` is deleted; external clients resolve connected hosts (from `v2_hosts`) and query each host directly over relay for its workspaces. |
-| 6 | apps/web pages | **Delete both** `/workspaces` pages (list+create and the web terminal). They are orphaned — nothing links to them. |
-| 7 | Host authorization | **Org membership only.** A host serves its workspace list to any caller whose JWT carries the host's organizationId — parity with today's Electric shape (which is org-scoped; `users_hosts` filtering was already client-side). No cloud lookup in the read path. |
-| 8 | Rollout | **Staged with read-through fallback.** R1: host.db schema expands, host backfills full fields from cloud, dual-write. R2: desktop reads flip to local mirror; if a row isn't backfilled yet, read falls back to cloud and seeds the backfill. R3: cloud writes stop; router/shape/proxy WHERE/pages deleted. |
-
 ### Decision 4 grounding (existing renderer patterns surveyed)
 
 - Per-host react-query tRPC exists (`packages/workspace-client`), **in-memory only** —
@@ -111,6 +111,12 @@ consumed client-side over Electric.
 - v1 proves IPC-tRPC subscriptions from a main-process SQLite work
   (`AuthProvider.tsx:58`), and idb-keyval react-query persistence exists as precedent
   (`ElectronTRPCProvider.tsx:31-84`).
+
+## Scope guard
+
+This effort is **v2-only**. The legacy v1 `workspaces` Neon table, its Electric
+shape/collection, `chat_sessions.workspaceId` (legacy column), and `packages/local-db`
+are all explicitly out of scope — they belong to the separate v1 sunset.
 
 ## Forced moves (consequences, not decisions)
 
