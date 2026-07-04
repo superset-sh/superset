@@ -834,9 +834,7 @@ async function waitForOutput(
 }
 
 function sessionBufferText(session: { buffer: Uint8Array[] }): string {
-	return Buffer.concat(session.buffer.map((b) => Buffer.from(b))).toString(
-		"utf8",
-	);
+	return Buffer.concat(session.buffer).toString("utf8");
 }
 
 function makeCaptureSocket() {
@@ -851,7 +849,6 @@ function makeCaptureSocket() {
 			close: () => {},
 			readyState: 1, // SOCKET_OPEN
 		},
-		received: () =>
-			Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8"),
+		received: () => Buffer.concat(chunks).toString("utf8"),
 	};
 }
