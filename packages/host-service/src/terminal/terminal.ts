@@ -551,6 +551,9 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 }
 
 export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
+	// sendBytes below no-ops on a non-open socket — bail before clearing the
+	// buffer/notice so the next attach can still replay them.
+	if (socket.readyState !== SOCKET_OPEN) return;
 	// Preamble first, then the restored notice, then FIFO. Mode-setting
 	// escapes (kitty keyboard, bracketed paste, focus, …) are typically
 	// emitted once at startup and broadcast away rather than buffered, so a
