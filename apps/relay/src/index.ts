@@ -8,6 +8,7 @@ import { checkHostAccess } from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
 import * as directory from "./directory";
 import { env } from "./env";
+import { computeReplay, type ReplayInstruction } from "./replay";
 import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
@@ -111,35 +112,21 @@ function extractToken(c: {
 	return c.req.query("token") ?? null;
 }
 
-async function maybeReplay(hostId: string): Promise<{
-	header: Record<string, string>;
-	kind: "instance" | "region";
-} | null> {
+async function maybeReplay(hostId: string): Promise<ReplayInstruction | null> {
 	if (tunnelManager.hasTunnel(hostId)) return null;
 	const owner = await directory.lookup(hostId).catch((err) => {
 		captureSentryException(err, { op: "directory.lookup", hostId });
 		return null;
 	});
 	if (!owner) return null;
-	// Guard against directory thinking we own a tunnel we don't have locally
-	// (sweep race window, or a register write that hasn't landed yet). Without
-	// this, fly would replay the request right back to us → infinite loop.
-	if (
-		owner.region === env.FLY_REGION &&
-		owner.machineId === env.FLY_MACHINE_ID
-	) {
-		return null;
-	}
-	if (owner.region === env.FLY_REGION) {
-		return {
-			header: { "fly-replay": `instance=${owner.machineId}` },
-			kind: "instance",
-		};
-	}
-	return {
-		header: { "fly-replay": `region=${owner.region}` },
-		kind: "region",
-	};
+	// computeReplay returns null when the owner is this exact machine, guarding
+	// against the directory thinking we own a tunnel we don't have locally
+	// (sweep race window, or a register write that hasn't landed yet) — without
+	// it, fly would replay the request right back to us → infinite loop.
+	return computeReplay(owner, {
+		region: env.FLY_REGION,
+		machineId: env.FLY_MACHINE_ID,
+	});
 }
 
 function pathAfterHost(c: Context<AppContext>): string {
