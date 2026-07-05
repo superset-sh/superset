@@ -53,12 +53,9 @@ async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
 }
 
 /**
- * Enumerate the true branch refnames git knows about. Used instead of
- * per-ref `rev-parse` probes for branch resolution: on case-insensitive
- * filesystems (macOS default) a loose-ref probe like
- * `rev-parse refs/heads/foo` happily resolves the `refs/heads/Foo` file,
- * so probing can't distinguish exact matches from case drift.
- * `for-each-ref` reports refnames as git stores them.
+ * Enumerate branch refnames as git stores them. Used instead of `rev-parse`
+ * probes because on a case-insensitive filesystem (macOS default) probing
+ * `refs/heads/foo` resolves the `refs/heads/Foo` file, hiding case drift.
  */
 async function listBranchShortNames(
 	git: SimpleGit,
@@ -68,10 +65,9 @@ async function listBranchShortNames(
 	const remoteTracking: string[] = [];
 	let raw: string;
 	try {
-		// An unborn/empty repo isn't an error here — `for-each-ref` exits 0 with
-		// empty output. A throw means a real git failure; don't silently mask it
-		// as "no branches", which would make an existing branch look absent and
-		// let a case-twin be created. Log it and re-throw so callers surface it.
+		// A real git failure must not be masked as "no branches" — that hides an
+		// existing branch and lets a case-twin be created. (An empty repo isn't
+		// a failure: for-each-ref exits 0 with no output.)
 		raw = await git.raw([
 			"for-each-ref",
 			"--format=%(refname)",
@@ -147,12 +143,10 @@ export async function resolveRef(
 		return options.headFallback ? { kind: "head" } : null;
 	}
 
-	// Branch matching goes through the enumerated refname lists so casing is
-	// authoritative — see `listBranchShortNames`. Exact matches keep the
-	// original precedence (local wins over remote-tracking, including local
-	// names like `origin/foo`); case-insensitive matches are a fallback tier
-	// so we adopt an existing branch's canonical casing instead of minting a
-	// case-twin that shares its loose-ref file on case-insensitive disks.
+	// Match against enumerated refnames so casing is authoritative. Exact
+	// matches keep precedence (local > remote-tracking); a case-insensitive
+	// match is a fallback tier that adopts the existing branch's canonical
+	// casing rather than minting a case-twin sharing its loose-ref file.
 	const branches = await listBranchShortNames(git, remote);
 
 	// For the remote form, accept both bare names (`foo`) and the natural

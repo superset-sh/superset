@@ -177,13 +177,10 @@ async function tryConfig(
 	return tryRaw(git, ["config", "--get", key]);
 }
 
-// Canonical identity for a workspace's upstream branch, used as the dedup key
-// for fetches and the join key for workspace→PR link assignment. Branch stays
-// case-sensitive: on a case-sensitive host `feature` and `Feature` are
-// distinct branches with distinct PRs, and collapsing them here would link a
-// workspace to the wrong PR. Case drift (a local branch whose casing diverged
-// from the PR head on a case-insensitive filesystem) is handled only in the
-// best-effort fallback in `fetchRepoPullRequests`, never in this key.
+// Dedup + link-assignment key. Branch stays case-sensitive: `feature` and
+// `Feature` are distinct branches with distinct PRs, so collapsing them here
+// would mislink. Case drift is tolerated only in the fallback in
+// `fetchRepoPullRequests`, never in this key.
 function upstreamKey(
 	owner: string | null,
 	repo: string | null,
@@ -939,11 +936,9 @@ export class PullRequestRuntimeManager {
 		);
 	}
 
-	// Repo-wide listing was deliberately removed in #4268/#4291 because the
-	// old GraphQL sweep (100 PRs × 50 status contexts) 504'd on large repos.
-	// This one is different on purpose: a shallow REST `pulls?state=open`
-	// page with no checks/statuses, fired at most once per repo per TTL and
-	// only when a per-head lookup came up empty. Detail fetches stay per-PR.
+	// Deliberately narrow: repo-wide listing was removed in #4268/#4291 (the
+	// GraphQL sweep 504'd on large repos). This is a shallow `pulls?state=open`
+	// page, no checks, once per repo per TTL, only when a per-head lookup missed.
 	private async getCachedOpenPullRequests(
 		repo: NormalizedRepoIdentity,
 		options: { bypassCache?: boolean } = {},
@@ -1030,10 +1025,9 @@ export class PullRequestRuntimeManager {
 		if (unmatchedKeys.length > 0) {
 			try {
 				const openNodes = await this.getCachedOpenPullRequests(repo, options);
-				// Case-insensitive index — this is the one place drift is tolerated.
-				// `upstreamKey` already lowercases owner/repo, so lowercasing the
-				// whole key only relaxes the branch component. latestByKey stays
-				// keyed by the exact workspace key so link assignment is unchanged.
+				// The one place drift is tolerated: index open PRs by a lowercased
+				// key. latestByKey stays keyed by the exact workspace key, so link
+				// assignment downstream is unchanged.
 				const openByLowerKey = new Map<string, GitHubPullRequestNode>();
 				for (const node of openNodes) {
 					const nodeKey = upstreamKey(

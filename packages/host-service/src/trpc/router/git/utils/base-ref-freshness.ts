@@ -1,12 +1,10 @@
 import { resolve } from "node:path";
 import type { SimpleGit } from "simple-git";
 
-// The Changes panel diffs `<remote>/<base>...HEAD`, but nothing in the status
-// path fetches — the remote-tracking ref is only as fresh as the last fetch
-// some other flow happened to run. Once a branch is rebased onto a newer
-// upstream base, the stale merge-base counts every upstream commit as
-// workspace changes. This refreshes the base ref in the background on a TTL;
-// the ref update is picked up by GitWatcher, which re-triggers status queries.
+// The Changes panel diffs `<remote>/<base>...HEAD` but never fetches the base,
+// so after a rebase onto a newer upstream the stale merge-base counts every
+// upstream commit as a workspace change. This refreshes the base ref in the
+// background; GitWatcher picks up the ref change and re-triggers the query.
 const BASE_REF_FETCH_TTL_MS = 5 * 60_000;
 
 export interface BaseRefFetchTarget {
@@ -14,17 +12,14 @@ export interface BaseRefFetchTarget {
 	branch: string;
 }
 
-// Keyed by the repo's common git dir so N worktrees of one repo share a
-// single TTL window instead of each fetching independently. Bounded by
-// distinct (repo, base-ref) pairs, not by workspace lifecycles.
+// Keyed by common git dir so N worktrees of one repo share one TTL window.
+// Bounded by (repo, base-ref) pairs, not workspace lifecycles.
 const lastFetchStartedAt = new Map<string, number>();
 const inFlightFetches = new Map<string, Promise<void>>();
 
-// Resolved fresh each call rather than cached by path: a worktree path can be
-// reused by a different repo over the host-service's lifetime, and a stale
-// path→dir mapping would key the fetch dedup wrong and suppress a needed
-// fetch. `rev-parse --git-common-dir` is a local, near-instant call, dwarfed
-// by the `git fetch` it precedes.
+// Resolved fresh, not path-cached: a worktree path can be reused by a
+// different repo, and a stale mapping would key the dedup off the wrong repo
+// and suppress a needed fetch.
 async function resolveCommonDir(
 	git: SimpleGit,
 	worktreePath: string,
@@ -35,13 +30,10 @@ async function resolveCommonDir(
 }
 
 /**
- * Fetch the base branch's remote-tracking ref if the TTL for this repo+ref
- * has lapsed. Failures (offline, missing remote branch) consume the TTL
- * window too, so an unreachable remote is retried at the same cadence instead
- * of on every status poll.
- *
- * Callers use this fire-and-forget (the status path never awaits it); the
- * returned promise, which never rejects, exists so it can be awaited in tests.
+ * Fetch the base branch's remote-tracking ref if the TTL has lapsed. Failures
+ * consume the TTL too, so an unreachable remote isn't retried every poll.
+ * Fire-and-forget (the status path never awaits); the returned promise never
+ * rejects and exists only so tests can await it.
  */
 export function scheduleBaseRefFetch(
 	git: SimpleGit,

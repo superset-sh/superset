@@ -253,12 +253,9 @@ export async function fetchPullRequestByHead(
 	return normalizePullRequestCandidates(response.data, head);
 }
 
-// Fallback for the case-drifted-branch scenario: GitHub's `head=` filter is
-// case-sensitive on the branch component (empirically verified), so a lookup
-// keyed on a local branch whose casing drifted from the PR's headRefName
-// returns nothing. A repo-wide open-PR sweep lets the caller match heads
-// case-insensitively. Open PRs only — an exhaustive `state=all` sweep is
-// unbounded, and the live workspace↔PR link is what case drift breaks.
+// GitHub's `head=` filter is case-sensitive on the branch (verified), so a
+// drifted-case lookup returns nothing. This repo-wide sweep lets the caller
+// match heads case-insensitively. Open PRs only — `state=all` is unbounded.
 export async function fetchOpenPullRequestsFromGh(
 	execGh: ExecGh,
 	repository: {

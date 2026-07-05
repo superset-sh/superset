@@ -865,8 +865,7 @@ export const workspacesRouter = router({
 						listBranchNames(ctx, localProject.repoPath),
 					]);
 					plan = planResult;
-					// Adopt the plan's branch name — it may carry an existing
-					// branch's canonical casing rather than the typed input.
+					// plan.branch may carry an existing branch's canonical casing.
 					resolvedBranch = plan.branch;
 					autoNameFellBack = wantAi && aiNames === null;
 					aiTitle = aiNames?.title ?? null;

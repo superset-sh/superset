@@ -36,10 +36,8 @@ export async function getGitStatusSnapshot({
 	const defaultBranchName = base?.branchName ?? null;
 	const baseRef = base?.baseRef ?? "HEAD";
 
-	// Keep the base's remote-tracking ref from going stale — a rebase onto a
-	// newer upstream otherwise balloons the against-base diff with upstream
-	// commits. TTL'd and non-blocking; GitWatcher re-triggers status when the
-	// fetch moves the ref.
+	// Non-blocking refresh so the against-base diff stops ballooning after a
+	// rebase; see base-ref-freshness.
 	if (base?.fetchTarget) {
 		scheduleBaseRefFetch(git, worktreePath, base.fetchTarget);
 	}
