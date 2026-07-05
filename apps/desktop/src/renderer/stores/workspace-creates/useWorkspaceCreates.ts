@@ -1,12 +1,12 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { WorkspaceCreateMutationMetadata } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import type { WorkspacesCreateInput } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceTransactionsStore } from "./workspaceTransactions";
 import { writeWorkspacePaneLayout } from "./writeWorkspacePaneLayout";
@@ -38,6 +38,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const organizationId = session?.session?.activeOrganizationId;
 	const userId = session?.user?.id ?? null;
 	const collections = useCollections();
+	const { cache: hostWorkspacesCache } = useHostWorkspaces();
 	const relayUrl = useRelayUrl();
 	const trackWorkspaceTransaction = useWorkspaceTransactionsStore(
 		(state) => state.track,
@@ -97,7 +98,9 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			}
 
 			const now = new Date();
-			const optimisticRow = {
+			// Optimistic entry in the host's cached list; the host's
+			// workspace:changed broadcast replaces it with the real row.
+			hostWorkspacesCache.upsertWorkspace({
 				id: workspaceId,
 				organizationId,
 				projectId: args.snapshot.projectId,
@@ -109,17 +112,21 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				taskId: args.snapshot.taskId ?? null,
 				createdAt: now,
 				updatedAt: now,
-			} satisfies SelectV2Workspace;
-
-			const metadata: WorkspaceCreateMutationMetadata = {
-				hostUrl,
-				input: args.snapshot,
-			};
-
-			const transaction = collections.v2Workspaces.insert(optimisticRow, {
-				metadata,
+				worktreePath: "",
+				worktreeExists: true,
 			});
-			trackWorkspaceTransaction(workspaceId, transaction);
+
+			const createPromise = getHostServiceClientByUrl(
+				hostUrl,
+			).workspaces.create.mutate(args.snapshot);
+
+			trackWorkspaceTransaction(workspaceId, {
+				id: workspaceId,
+				state: "persisting",
+				createdAt: now,
+				mutations: [{ type: "insert" }],
+				isPersisted: { promise: createPromise },
+			});
 			writeWorkspacePaneLayout(
 				collections,
 				{ id: workspaceId, projectId: args.snapshot.projectId },
@@ -127,12 +134,8 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				[],
 			);
 
-			const completed = transaction.isPersisted.promise
-				.then<SubmitOutcome>(() => {
-					const result = metadata.result;
-					if (!result) {
-						return { ok: true, workspaceId };
-					}
+			const completed = createPromise
+				.then<SubmitOutcome>((result) => {
 					writeWorkspacePaneLayout(
 						collections,
 						result.workspace,
@@ -141,6 +144,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					);
 					if (result.workspace.id !== workspaceId) {
 						deleteWorkspaceLocalState(workspaceId);
+						hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
 					}
 					return {
 						ok: true,
@@ -151,6 +155,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				.catch<SubmitOutcome>((error: unknown) => {
 					const message =
 						error instanceof Error ? error.message : String(error);
+					hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
 					deleteWorkspaceLocalState(workspaceId);
 					recordFailure(message);
 					return { ok: false, error: message };
@@ -164,6 +169,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			organizationId,
 			userId,
 			collections,
+			hostWorkspacesCache,
 			relayUrl,
 			hostService,
 			trackWorkspaceTransaction,

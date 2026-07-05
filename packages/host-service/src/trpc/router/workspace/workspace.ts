@@ -47,21 +47,25 @@ export const workspaceRouter = router({
 	}),
 
 	/**
-	 * Rename / task-link update, local-first: the host.db row commits and
-	 * broadcasts immediately; the cloud mirror push is best-effort (the
-	 * reconciler retries when unreachable).
+	 * Rename / branch-repoint / task-link update, local-first: the host.db
+	 * row commits and broadcasts immediately; the cloud mirror push is
+	 * best-effort (the reconciler retries when unreachable). `branch` only
+	 * re-points the record — callers rename the git branch themselves.
 	 */
 	update: protectedProcedure
 		.input(
 			z.object({
 				id: z.string().uuid(),
 				name: z.string().min(1).optional(),
+				branch: z.string().min(1).optional(),
 				taskId: z.string().uuid().nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const patch: { name?: string; taskId?: string | null } = {};
+			const patch: { name?: string; branch?: string; taskId?: string | null } =
+				{};
 			if (input.name !== undefined) patch.name = input.name;
+			if (input.branch !== undefined) patch.branch = input.branch;
 			if (input.taskId !== undefined) patch.taskId = input.taskId;
 			const updated = updateLocalWorkspace(
 				{ db: ctx.db, eventBus: ctx.eventBus },

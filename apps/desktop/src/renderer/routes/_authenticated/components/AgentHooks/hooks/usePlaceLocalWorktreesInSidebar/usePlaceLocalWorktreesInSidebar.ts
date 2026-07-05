@@ -1,8 +1,8 @@
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { selectWorktreesToPlace } from "./selectWorktreesToPlace";
 
@@ -27,17 +27,17 @@ export function usePlaceLocalWorktreesInSidebar(): void {
 	const { machineId } = useLocalHostService();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 
-	const { data: localWorkspaces = [], isReady: workspacesReady } = useLiveQuery(
-		(query) =>
-			query
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.hostId, machineId))
-				.select(({ workspaces }) => ({
-					id: workspaces.id,
-					projectId: workspaces.projectId,
-					type: workspaces.type,
+	const { workspaces, isReady: workspacesReady } = useHostWorkspaces();
+	const localWorkspaces = useMemo(
+		() =>
+			workspaces
+				.filter((workspace) => workspace.hostId === machineId)
+				.map((workspace) => ({
+					id: workspace.id,
+					projectId: workspace.projectId,
+					type: workspace.type,
 				})),
-		[collections, machineId],
+		[workspaces, machineId],
 	);
 
 	const { data: localStateRows = [], isReady: localStateReady } = useLiveQuery(

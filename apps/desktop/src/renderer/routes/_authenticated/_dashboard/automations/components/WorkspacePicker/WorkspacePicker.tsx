@@ -1,4 +1,4 @@
-import type { SelectV2Host, SelectV2Workspace } from "@superset/db/schema";
+import type { SelectV2Host } from "@superset/db/schema";
 import {
 	Command,
 	CommandGroup,
@@ -14,6 +14,7 @@ import { HiCheck } from "react-icons/hi2";
 import { LuGitBranch, LuSparkles, LuTriangleAlert } from "react-icons/lu";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface WorkspacePickerProps {
 	hostId: string | null;
@@ -33,13 +34,14 @@ export function WorkspacePicker({
 	const [open, setOpen] = useState(false);
 	const collections = useCollections();
 
-	const { data: allWorkspaces = [], isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ w: collections.v2Workspaces })
-				.orderBy(({ w }) => w.createdAt, "desc")
-				.select(({ w }) => ({ ...w })),
-		[collections.v2Workspaces],
+	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
+	const workspaceRows = useMemo(
+		() =>
+			[...hostWorkspaces].sort(
+				(a, b) =>
+					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+			),
+		[hostWorkspaces],
 	);
 
 	const { data: allHosts = [] } = useLiveQuery(
@@ -47,7 +49,6 @@ export function WorkspacePicker({
 		[collections.v2Hosts],
 	);
 
-	const workspaceRows = allWorkspaces as SelectV2Workspace[];
 	const hostRows = allHosts as SelectV2Host[];
 
 	const workspaces = useMemo(

@@ -127,7 +127,18 @@ export function AutomationDetailSidebar({
 								projectId={automation.v2ProjectId}
 								value={automation.v2WorkspaceId}
 								onChange={(v2WorkspaceId) =>
-									updateMutation.mutate({ v2WorkspaceId })
+									updateMutation.mutate({
+										v2WorkspaceId,
+										// Denormalized pin: the picker is scoped to this
+										// host/project, so send both — the cloud stores them
+										// without a workspace-registry lookup.
+										...(v2WorkspaceId && hostId && automation.v2ProjectId
+											? {
+													targetHostId: hostId,
+													v2ProjectId: automation.v2ProjectId,
+												}
+											: {}),
+									})
 								}
 							/>
 						}

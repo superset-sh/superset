@@ -40,6 +40,7 @@ import { V2NotificationController } from "./components/V2NotificationController"
 import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { DeletingWorkspacesProvider } from "./providers/DeletingWorkspacesProvider";
+import { HostWorkspacesProvider } from "./providers/HostWorkspacesProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -211,28 +212,30 @@ function AuthenticatedLayout() {
 			<CollectionsProvider>
 				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
-					<DeletingWorkspacesProvider>
-						<WorkerPoolContextProvider
-							poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
-							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
-						>
-							<AgentHooks />
-							<FileMenuListener />
-							<V2NotificationController />
-							<DaemonAutoUpdateFailureDialog />
-							<Outlet />
-							<V1ImportModal />
-							<WorkspaceInitEffects />
-							{isV2CloudEnabled ? (
-								<DashboardNewWorkspaceModal />
-							) : (
-								<NewWorkspaceModal />
-							)}
-							<InitGitDialog />
-							<TeardownLogsDialog />
-							<Paywall />
-						</WorkerPoolContextProvider>
-					</DeletingWorkspacesProvider>
+					<HostWorkspacesProvider>
+						<DeletingWorkspacesProvider>
+							<WorkerPoolContextProvider
+								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
+								highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
+							>
+								<AgentHooks />
+								<FileMenuListener />
+								<V2NotificationController />
+								<DaemonAutoUpdateFailureDialog />
+								<Outlet />
+								<V1ImportModal />
+								<WorkspaceInitEffects />
+								{isV2CloudEnabled ? (
+									<DashboardNewWorkspaceModal />
+								) : (
+									<NewWorkspaceModal />
+								)}
+								<InitGitDialog />
+								<TeardownLogsDialog />
+								<Paywall />
+							</WorkerPoolContextProvider>
+						</DeletingWorkspacesProvider>
+					</HostWorkspacesProvider>
 				</LocalHostServiceProvider>
 			</CollectionsProvider>
 		</DndProvider>

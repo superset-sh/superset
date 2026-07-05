@@ -1,8 +1,9 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { getFlattenedV2WorkspaceIds } from "../../utils/getFlattenedV2WorkspaceIds";
 import { resolveWorkspaceRemovalNavigationTarget } from "./navigationTarget";
 
@@ -20,6 +21,11 @@ export function useNavigateAwayFromWorkspace() {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const collections = useCollections();
+	const { workspaces } = useHostWorkspaces();
+	const workspaceIds = useMemo(
+		() => new Set(workspaces.map((workspace) => workspace.id)),
+		[workspaces],
+	);
 	const { isDeleting } = useDeletingWorkspaces();
 
 	const navigateAwayFromWorkspace = useCallback(
@@ -34,8 +40,7 @@ export function useNavigateAwayFromWorkspace() {
 				activeWorkspaceId,
 				removedWorkspaceId: workspaceId,
 				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections),
-				isWorkspaceValid: (id) =>
-					collections.v2Workspaces.get(id) !== undefined,
+				isWorkspaceValid: (id) => workspaceIds.has(id),
 				isWorkspaceDeleting: (id) => isDeleting(id),
 			});
 
@@ -50,7 +55,7 @@ export function useNavigateAwayFromWorkspace() {
 				reportRemovalNavigationError,
 			);
 		},
-		[collections, isDeleting, matchRoute, navigate],
+		[collections, workspaceIds, isDeleting, matchRoute, navigate],
 	);
 
 	return { navigateAwayFromWorkspace };

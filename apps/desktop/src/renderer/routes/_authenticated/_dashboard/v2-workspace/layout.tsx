@@ -1,9 +1,10 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
@@ -35,12 +36,14 @@ function V2WorkspaceLayout() {
 	);
 	const isCreatePending = pendingTransaction?.type === "insert";
 
-	const { data: workspaces, isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Workspaces: collections.v2Workspaces })
-				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
-		[collections, workspaceId],
+	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
+	const workspace = useMemo(
+		() =>
+			workspaceId != null
+				? (hostWorkspaces.find((candidate) => candidate.id === workspaceId) ??
+					null)
+				: null,
+		[hostWorkspaces, workspaceId],
 	);
 	const { data: failedEntries } = useLiveQuery(
 		(q) =>
@@ -49,11 +52,11 @@ function V2WorkspaceLayout() {
 				.where(({ failed }) => eq(failed.id, workspaceId ?? "")),
 		[collections, workspaceId],
 	);
-	const workspace = workspaces?.[0] ?? null;
 	const failedEntry = failedEntries?.[0] ?? null;
 
 	useEffect(() => {
-		if (workspace?.$synced === true && pendingTransaction?.type === "insert") {
+		// A host-served row is the create confirmation (replaces Electric $synced).
+		if (workspace?.source === "host" && pendingTransaction?.type === "insert") {
 			clearWorkspaceTransaction(workspace.id);
 		}
 	}, [clearWorkspaceTransaction, pendingTransaction, workspace]);
@@ -68,7 +71,7 @@ function V2WorkspaceLayout() {
 
 	const hostStatus = useRemoteHostStatus(workspace);
 
-	if (!workspaceId || !workspaces || (!workspace && !isReady)) {
+	if (!workspaceId || (!workspace && !isReady)) {
 		return <div className="flex h-full w-full" />;
 	}
 
