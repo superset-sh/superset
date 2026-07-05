@@ -96,13 +96,16 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = false;
 
-		// Tear down locally-tracked sessions
+		// Tear down locally-tracked sessions. Cleanup is unconditional because a
+		// session may already be marked dead (e.g. "Session not found") without its
+		// port/history state released; only the disconnect emit is gated on wasAlive.
 		for (const [paneId, session] of this.sessions.entries()) {
-			if (session.isAlive) {
-				session.isAlive = false;
-				session.pid = null;
-				portManager.unregisterDaemonSession(paneId);
-				this.historyManager.closeHistoryWriter(paneId);
+			const wasAlive = session.isAlive;
+			session.isAlive = false;
+			session.pid = null;
+			portManager.unregisterDaemonSession(paneId);
+			this.historyManager.closeHistoryWriter(paneId);
+			if (wasAlive) {
 				this.emit(`disconnect:${paneId}`, reason);
 			}
 		}
