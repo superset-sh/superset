@@ -1,9 +1,18 @@
+import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { resolve } from "node:path";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import type { HostDb } from "../../db";
+import * as schema from "../../db/schema";
 import { pullRequests, workspaces } from "../../db/schema";
 import {
 	PullRequestRuntimeManager,
 	type PullRequestRuntimeManagerOptions,
 } from "./pull-requests";
+
+const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../drizzle");
 
 const PROJECT_ID = "project-1";
 const WORKSPACE_ID = "workspace-1";
@@ -480,5 +489,203 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		}
 
 		expect(state.workspace.pullRequestId).toBe("pr-existing");
+	});
+});
+
+// ── Multi-workspace regression suite (real in-memory DB) ──────────────────
+//
+// The single-workspace fake DB above cannot express two workspaces at once,
+// so a whole class of cross-linking bugs was untestable — including case-
+// variant branches on a case-sensitive host collapsing onto one PR identity.
+// These tests run the real manager against a real (migrated, in-memory)
+// SQLite DB so those scenarios are expressible and asserted.
+
+const REPO = { owner: "base-owner", name: "base-repo" };
+
+function makePrNode(overrides: {
+	number: number;
+	headRef: string;
+	headSha: string;
+	title?: string;
+}) {
+	return {
+		number: overrides.number,
+		title: overrides.title ?? `PR ${overrides.number}`,
+		html_url: `https://github.com/${REPO.owner}/${REPO.name}/pull/${overrides.number}`,
+		state: "open",
+		draft: false,
+		merged_at: null,
+		updated_at: "2026-05-08T12:00:00Z",
+		head: {
+			ref: overrides.headRef,
+			sha: overrides.headSha,
+			repo: { name: REPO.name, owner: { login: REPO.owner } },
+		},
+		base: { repo: { full_name: `${REPO.owner}/${REPO.name}` } },
+	};
+}
+
+// Routes gh REST/GraphQL calls to fixtures keyed by the exact head branch,
+// so a wrong-case cache hit or key collision surfaces as the wrong PR number.
+function routeGh(prsByHeadRef: Record<string, ReturnType<typeof makePrNode>>) {
+	return async (args: string[]): Promise<unknown> => {
+		if (args.includes("graphql")) {
+			return {
+				data: { repository: { pullRequest: { mergeQueueEntry: null } } },
+			};
+		}
+		const path = args.find(
+			(arg) => typeof arg === "string" && arg.startsWith("repos/"),
+		);
+		if (!path) throw new Error(`unexpected gh args: ${args.join(" ")}`);
+		if (path.endsWith("/reviews")) return [];
+		if (path.endsWith("/check-runs")) return { check_runs: [] };
+		if (path.endsWith("/statuses")) return [];
+		if (path === `repos/${REPO.owner}/${REPO.name}/pulls`) {
+			const headArg = args.find((a) => a.startsWith("head="));
+			if (headArg) {
+				const ref = headArg.slice(`head=${REPO.owner}:`.length);
+				const pr = prsByHeadRef[ref];
+				return pr ? [pr] : [];
+			}
+			// Open-PR sweep (state=open, no head filter): return everything.
+			return Object.values(prsByHeadRef);
+		}
+		throw new Error(`unexpected gh path: ${path}`);
+	};
+}
+
+function createRealDb(): HostDb {
+	const sqlite = new Database(":memory:");
+	sqlite.exec("PRAGMA foreign_keys = ON;");
+	const db = drizzle(sqlite, { schema });
+	migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+	return db as unknown as HostDb;
+}
+
+function seedProjectAndWorkspaces(
+	db: HostDb,
+	branches: { id: string; branch: string }[],
+) {
+	const now = Date.now();
+	db.insert(schema.projects)
+		.values({
+			id: PROJECT_ID,
+			repoPath: "/repo",
+			createdAt: now,
+			repoProvider: "github",
+			repoOwner: REPO.owner,
+			repoName: REPO.name,
+			repoUrl: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+			remoteName: "origin",
+		})
+		.run();
+	for (const { id, branch } of branches) {
+		db.insert(schema.workspaces)
+			.values({
+				id,
+				projectId: PROJECT_ID,
+				worktreePath: `/repo/.worktrees/${id}`,
+				branch,
+				createdAt: now,
+				headSha: `sha-${branch}`,
+				upstreamOwner: REPO.owner,
+				upstreamRepo: REPO.name,
+				upstreamBranch: branch,
+			})
+			.run();
+	}
+}
+
+function createRealManager(
+	db: HostDb,
+	execGh: (args: string[]) => Promise<unknown>,
+) {
+	return new PullRequestRuntimeManager({
+		db,
+		execGh: execGh as never,
+		git: (async () => {
+			throw new Error("git should not be used when project metadata is set");
+		}) as never,
+		github: (async () => {
+			throw new Error("octokit should not be used");
+		}) as never,
+		gitWatcher: { onChanged: () => () => {} } as never,
+	});
+}
+
+function linkedPrNumber(db: HostDb, workspaceId: string): number | null {
+	const rows = db
+		.select({ prNumber: pullRequests.prNumber })
+		.from(workspaces)
+		.leftJoin(pullRequests, eq(workspaces.pullRequestId, pullRequests.id))
+		.where(eq(workspaces.id, workspaceId))
+		.all();
+	return rows[0]?.prNumber ?? null;
+}
+
+describe("case-variant branch isolation (real DB)", () => {
+	// P1: `feature` and `Feature` are distinct branches with distinct PRs on a
+	// case-sensitive host. A branch-lowercased identity key collapses them and
+	// links one workspace to the other's PR. bypassCache path isolates the
+	// identity key (upstreamKey) from the per-head cache.
+	test("distinct case-variant branches link to their own PRs (bypass path)", async () => {
+		const db = createRealDb();
+		seedProjectAndWorkspaces(db, [
+			{ id: "ws-lower", branch: "feature" },
+			{ id: "ws-upper", branch: "Feature" },
+		]);
+		const execGh = routeGh({
+			feature: makePrNode({
+				number: 101,
+				headRef: "feature",
+				headSha: "sha-feature",
+			}),
+			Feature: makePrNode({
+				number: 102,
+				headRef: "Feature",
+				headSha: "sha-Feature",
+			}),
+		});
+		const manager = createRealManager(db, execGh);
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-lower", "ws-upper"]);
+
+		expect(linkedPrNumber(db, "ws-lower")).toBe(101);
+		expect(linkedPrNumber(db, "ws-upper")).toBe(102);
+	});
+
+	// P2: the per-head cache is exercised by the non-bypass refresh path. A
+	// branch-lowercased cache key makes `feature` and `Feature` share an entry,
+	// so the second lookup returns the first's PR.
+	test("per-head cache does not cross-serve case-variant branches (cache path)", async () => {
+		const db = createRealDb();
+		seedProjectAndWorkspaces(db, [
+			{ id: "ws-lower", branch: "feature" },
+			{ id: "ws-upper", branch: "Feature" },
+		]);
+		const execGh = routeGh({
+			feature: makePrNode({
+				number: 101,
+				headRef: "feature",
+				headSha: "sha-feature",
+			}),
+			Feature: makePrNode({
+				number: 102,
+				headRef: "Feature",
+				headSha: "sha-Feature",
+			}),
+		});
+		const manager = createRealManager(db, execGh);
+
+		// refreshProject (private) uses the cache (bypassCache defaults false).
+		await (
+			manager as unknown as {
+				refreshProject: (id: string) => Promise<void>;
+			}
+		).refreshProject(PROJECT_ID);
+
+		expect(linkedPrNumber(db, "ws-lower")).toBe(101);
+		expect(linkedPrNumber(db, "ws-upper")).toBe(102);
 	});
 });
