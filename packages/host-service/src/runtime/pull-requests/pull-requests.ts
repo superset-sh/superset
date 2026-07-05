@@ -177,17 +177,20 @@ async function tryConfig(
 	return tryRaw(git, ["config", "--get", key]);
 }
 
+// Canonical identity for a workspace's upstream branch, used as the dedup key
+// for fetches and the join key for workspace→PR link assignment. Branch stays
+// case-sensitive: on a case-sensitive host `feature` and `Feature` are
+// distinct branches with distinct PRs, and collapsing them here would link a
+// workspace to the wrong PR. Case drift (a local branch whose casing diverged
+// from the PR head on a case-insensitive filesystem) is handled only in the
+// best-effort fallback in `fetchRepoPullRequests`, never in this key.
 function upstreamKey(
 	owner: string | null,
 	repo: string | null,
 	branch: string,
 ): string | null {
 	if (!owner || !repo) return null;
-	// Branch compared case-insensitively too: git branch names are
-	// case-sensitive, but on case-insensitive filesystems (macOS default)
-	// the local casing can drift from the PR's headRefName — a case-sensitive
-	// key permanently strands such workspaces with pullRequestId = null.
-	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch.toLowerCase()}`;
+	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
 type RepoProvider = "github";
@@ -900,12 +903,14 @@ export class PullRequestRuntimeManager {
 		head: GitHubPullRequestHeadRef,
 		options: { bypassCache?: boolean } = {},
 	): Promise<GitHubPullRequestNode | null> {
+		// Branch stays case-sensitive so two case-variant branches can't share
+		// a cache entry and return each other's PR.
 		const cacheKey = [
 			repo.owner.toLowerCase(),
 			repo.name.toLowerCase(),
 			head.owner.toLowerCase(),
 			head.repo.toLowerCase(),
-			head.branch.toLowerCase(),
+			head.branch,
 		].join("/");
 		return this.cachedGitHubFetch(
 			this.pullRequestHeadCache,
@@ -1025,18 +1030,24 @@ export class PullRequestRuntimeManager {
 		if (unmatchedKeys.length > 0) {
 			try {
 				const openNodes = await this.getCachedOpenPullRequests(repo, options);
-				const openByKey = new Map<string, GitHubPullRequestNode>();
+				// Case-insensitive index — this is the one place drift is tolerated.
+				// `upstreamKey` already lowercases owner/repo, so lowercasing the
+				// whole key only relaxes the branch component. latestByKey stays
+				// keyed by the exact workspace key so link assignment is unchanged.
+				const openByLowerKey = new Map<string, GitHubPullRequestNode>();
 				for (const node of openNodes) {
 					const nodeKey = upstreamKey(
 						node.headRepositoryOwner?.login ?? null,
 						node.headRepository?.name ?? null,
 						node.headRefName,
 					);
+					if (!nodeKey) continue;
+					const lower = nodeKey.toLowerCase();
 					// Sweep is sorted by updated desc; first hit per key wins.
-					if (nodeKey && !openByKey.has(nodeKey)) openByKey.set(nodeKey, node);
+					if (!openByLowerKey.has(lower)) openByLowerKey.set(lower, node);
 				}
 				for (const key of unmatchedKeys) {
-					const node = openByKey.get(key);
+					const node = openByLowerKey.get(key.toLowerCase());
 					if (node) latestByKey.set(key, node);
 				}
 			} catch (error) {

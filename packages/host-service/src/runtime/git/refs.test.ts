@@ -180,6 +180,29 @@ describe("resolveRef — input shape contract", () => {
 		expect(await resolveRef(git, "head")).toBeNull();
 	});
 
+	// A genuine for-each-ref failure must propagate, not degrade to "no
+	// branches" — masking it would make an existing branch look absent and let
+	// a case-twin be created (the bug this module exists to prevent).
+	test("propagates a for-each-ref failure instead of returning null", async () => {
+		const git = {
+			raw: mock(async (args: string[]) => {
+				if (args[0] === "for-each-ref") {
+					throw new Error("fatal: not a git repository");
+				}
+				throw new Error(`Unexpected raw args: ${args.join(" ")}`);
+			}),
+		} as never;
+		const originalWarn = console.warn;
+		console.warn = () => {};
+		try {
+			await expect(resolveRef(git, "foo")).rejects.toThrow(
+				"not a git repository",
+			);
+		} finally {
+			console.warn = originalWarn;
+		}
+	});
+
 	test("custom remote name probes that remote, not origin", async () => {
 		const git = createMockGit(new Set(["refs/remotes/upstream/foo"]));
 		const r = await resolveRef(git, "foo", { remote: "upstream" });

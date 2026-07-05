@@ -66,24 +66,33 @@ async function listBranchShortNames(
 ): Promise<{ local: string[]; remoteTracking: string[] }> {
 	const local: string[] = [];
 	const remoteTracking: string[] = [];
+	let raw: string;
 	try {
-		const raw = await git.raw([
+		// An unborn/empty repo isn't an error here — `for-each-ref` exits 0 with
+		// empty output. A throw means a real git failure; don't silently mask it
+		// as "no branches", which would make an existing branch look absent and
+		// let a case-twin be created. Log it and re-throw so callers surface it.
+		raw = await git.raw([
 			"for-each-ref",
 			"--format=%(refname)",
 			"refs/heads/",
 			`refs/remotes/${remote}/`,
 		]);
-		const remotePrefix = `refs/remotes/${remote}/`;
-		for (const refname of raw.trim().split("\n").filter(Boolean)) {
-			if (refname.startsWith("refs/heads/")) {
-				local.push(refname.slice("refs/heads/".length));
-			} else if (refname.startsWith(remotePrefix)) {
-				const name = refname.slice(remotePrefix.length);
-				if (name !== "HEAD") remoteTracking.push(name);
-			}
+	} catch (error) {
+		console.warn("[host-service:git] for-each-ref failed in resolveRef", {
+			remote,
+			error,
+		});
+		throw error;
+	}
+	const remotePrefix = `refs/remotes/${remote}/`;
+	for (const refname of raw.trim().split("\n").filter(Boolean)) {
+		if (refname.startsWith("refs/heads/")) {
+			local.push(refname.slice("refs/heads/".length));
+		} else if (refname.startsWith(remotePrefix)) {
+			const name = refname.slice(remotePrefix.length);
+			if (name !== "HEAD") remoteTracking.push(name);
 		}
-	} catch {
-		// Unborn/empty repos have no refs; fall through with empty lists.
 	}
 	return { local, remoteTracking };
 }

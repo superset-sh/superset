@@ -15,36 +15,40 @@ export interface BaseRefFetchTarget {
 }
 
 // Keyed by the repo's common git dir so N worktrees of one repo share a
-// single TTL window instead of each fetching independently.
-const commonDirByWorktree = new Map<string, string>();
+// single TTL window instead of each fetching independently. Bounded by
+// distinct (repo, base-ref) pairs, not by workspace lifecycles.
 const lastFetchStartedAt = new Map<string, number>();
 const inFlightFetches = new Map<string, Promise<void>>();
 
+// Resolved fresh each call rather than cached by path: a worktree path can be
+// reused by a different repo over the host-service's lifetime, and a stale
+// path→dir mapping would key the fetch dedup wrong and suppress a needed
+// fetch. `rev-parse --git-common-dir` is a local, near-instant call, dwarfed
+// by the `git fetch` it precedes.
 async function resolveCommonDir(
 	git: SimpleGit,
 	worktreePath: string,
 ): Promise<string> {
-	const cached = commonDirByWorktree.get(worktreePath);
-	if (cached) return cached;
 	// `--git-common-dir` may print a path relative to the worktree root.
 	const raw = (await git.raw(["rev-parse", "--git-common-dir"])).trim();
-	const commonDir = resolve(worktreePath, raw);
-	commonDirByWorktree.set(worktreePath, commonDir);
-	return commonDir;
+	return resolve(worktreePath, raw);
 }
 
 /**
- * Fire-and-forget: fetch the base branch's remote-tracking ref if the TTL
- * for this repo+ref has lapsed. Failures (offline, missing remote branch)
- * consume the TTL window too, so an unreachable remote is retried at the
- * same cadence instead of on every status poll.
+ * Fetch the base branch's remote-tracking ref if the TTL for this repo+ref
+ * has lapsed. Failures (offline, missing remote branch) consume the TTL
+ * window too, so an unreachable remote is retried at the same cadence instead
+ * of on every status poll.
+ *
+ * Callers use this fire-and-forget (the status path never awaits it); the
+ * returned promise, which never rejects, exists so it can be awaited in tests.
  */
 export function scheduleBaseRefFetch(
 	git: SimpleGit,
 	worktreePath: string,
 	target: BaseRefFetchTarget,
-): void {
-	void (async () => {
+): Promise<void> {
+	return (async () => {
 		const commonDir = await resolveCommonDir(git, worktreePath);
 		const key = `${commonDir}#${target.remote}/${target.branch}`;
 

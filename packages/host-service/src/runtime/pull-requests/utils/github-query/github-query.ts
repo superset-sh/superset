@@ -114,10 +114,10 @@ function headKey(
 	branch: string,
 ): string | null {
 	if (!owner || !repo) return null;
-	// Branch compared case-insensitively too: on case-insensitive filesystems
-	// (macOS default) the local branch casing can drift from the PR's
-	// headRefName, and refusing the match strands the workspace with no PR.
-	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch.toLowerCase()}`;
+	// Exact match on the branch: this filters the results of a per-head query,
+	// which GitHub already scopes case-sensitively server-side. Case drift is
+	// recovered separately by the repo-wide open-PR sweep in the runtime.
+	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
 function normalizePullRequestCandidates(

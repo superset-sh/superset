@@ -154,10 +154,10 @@ describe("GitHub pull request REST queries", () => {
 		expect(result?.headRepository?.name).toBe("fork-repo");
 	});
 
-	// Case drift: local branch casing can diverge from the PR's headRefName
-	// on case-insensitive filesystems; the candidate filter must not drop
-	// the match over casing.
-	test("matches head candidates case-insensitively on the branch", async () => {
+	// The per-head candidate filter is exact on the branch: it must NOT match a
+	// case-variant head, so distinct case-variant branches never cross-match
+	// here. Case drift is recovered by the runtime's open-PR sweep instead.
+	test("does not match a case-variant branch in per-head filtering", async () => {
 		const { execGh } = createExecGh([
 			[
 				{
@@ -191,8 +191,7 @@ describe("GitHub pull request REST queries", () => {
 			{ owner: "superset-sh", repo: "superset", branch: "roshvan/fix-thing" },
 		);
 
-		expect(result?.number).toBe(43);
-		expect(result?.headRefName).toBe("Roshvan/fix-thing");
+		expect(result).toBeNull();
 	});
 
 	test("sweeps open PRs sorted by most recently updated", async () => {
