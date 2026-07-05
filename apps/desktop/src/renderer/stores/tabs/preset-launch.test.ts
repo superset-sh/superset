@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { normalizeExecutionMode } from "@superset/local-db/schema/zod";
-import { getPresetLaunchPlan } from "./preset-launch";
+import {
+	buildFocusedTerminalCommand,
+	getPresetLaunchPlan,
+	shouldApplyPresetPaneName,
+} from "./preset-launch";
 
 describe("normalizeExecutionMode", () => {
 	it("returns new-tab for new-tab mode", () => {
@@ -13,12 +17,83 @@ describe("normalizeExecutionMode", () => {
 		);
 	});
 
-	it("maps legacy modes to split-pane and defaults unknown modes to new-tab", () => {
+	it("keeps sequential, maps legacy parallel to split-pane, and defaults unknown modes to new-tab", () => {
 		expect(normalizeExecutionMode("split-pane")).toBe("split-pane");
 		expect(normalizeExecutionMode("parallel")).toBe("split-pane");
-		expect(normalizeExecutionMode("sequential")).toBe("split-pane");
+		expect(normalizeExecutionMode("sequential")).toBe("sequential");
 		expect(normalizeExecutionMode(undefined)).toBe("new-tab");
 		expect(normalizeExecutionMode("unknown")).toBe("new-tab");
+	});
+});
+
+describe("shouldApplyPresetPaneName", () => {
+	it("allows preset names for default terminal panes", () => {
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "Terminal",
+				presetName: "echo sequence",
+			}),
+		).toBe(true);
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "",
+				presetName: "desktop",
+			}),
+		).toBe(true);
+	});
+
+	it("preserves existing pane labels", () => {
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "echo sequence",
+				presetName: "desktop",
+			}),
+		).toBe(false);
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "Terminal",
+				presetName: "desktop",
+				userTitle: "my shell",
+			}),
+		).toBe(false);
+	});
+
+	it("ignores blank preset names", () => {
+		expect(
+			shouldApplyPresetPaneName({
+				currentName: "Terminal",
+				presetName: "  ",
+			}),
+		).toBe(false);
+	});
+});
+
+describe("buildFocusedTerminalCommand", () => {
+	it("prepends an explicit cd when a current terminal launch has a cwd", () => {
+		expect(
+			buildFocusedTerminalCommand({
+				commands: ["echo one", "echo two"],
+				cwd: "apps/my app",
+			}),
+		).toBe("cd 'apps/my app' && echo one && echo two");
+	});
+
+	it("leaves commands unchanged when cwd is blank", () => {
+		expect(
+			buildFocusedTerminalCommand({
+				commands: ["pwd"],
+				cwd: "  ",
+			}),
+		).toBe("pwd");
+	});
+
+	it("returns null when no runnable command exists", () => {
+		expect(
+			buildFocusedTerminalCommand({
+				commands: ["  "],
+				cwd: "apps/desktop",
+			}),
+		).toBeNull();
 	});
 });
 
@@ -76,5 +151,28 @@ describe("getPresetLaunchPlan", () => {
 				hasActiveTab: true,
 			}),
 		).toBe("new-tab-multi-pane");
+	});
+
+	it("uses the active terminal for sequential commands", () => {
+		expect(
+			getPresetLaunchPlan({
+				mode: "sequential",
+				target: "active-tab",
+				commandCount: 2,
+				hasActiveTab: true,
+				hasActiveTerminal: true,
+			}),
+		).toBe("active-terminal");
+	});
+
+	it("uses one new-tab pane for sequential commands without an active terminal", () => {
+		expect(
+			getPresetLaunchPlan({
+				mode: "sequential",
+				target: "active-tab",
+				commandCount: 2,
+				hasActiveTab: true,
+			}),
+		).toBe("new-tab-single");
 	});
 });

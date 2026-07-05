@@ -64,7 +64,7 @@ export function FileTreeItem({
 		usePathActions({
 			absolutePath: entry.path,
 			relativePath: entry.relativePath,
-			cwd: worktreePath,
+			worktreePath,
 			projectId,
 		});
 
@@ -72,14 +72,16 @@ export function FileTreeItem({
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		if (isFolder) {
+		if (e.metaKey || e.ctrlKey) {
+			onOpenInEditor(entry);
+		} else if (isFolder) {
 			if (isExpanded) {
 				item.collapse();
 			} else {
 				item.expand();
 			}
-		} else if (e.metaKey || e.ctrlKey) {
-			onOpenInEditor(entry);
+		} else if (e.shiftKey) {
+			onActivate(entry, true);
 		} else {
 			onActivate(entry);
 		}

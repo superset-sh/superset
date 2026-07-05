@@ -12,6 +12,8 @@ export type SubagentStatus = "running" | "completed" | "error";
 interface SubagentToolCall {
 	name: string;
 	isError: boolean;
+	args: Record<string, unknown> | null;
+	result: string | null;
 }
 
 export interface SubagentViewModel {
@@ -88,6 +90,16 @@ function toToolCalls(value: unknown): SubagentToolCall[] {
 			return {
 				name,
 				isError: record.isError === true,
+				args:
+					typeof record.args === "object" && record.args !== null
+						? (record.args as Record<string, unknown>)
+						: null,
+				result:
+					typeof record.result === "string"
+						? record.result
+						: record.result !== null && record.result !== undefined
+							? String(record.result)
+							: null,
 			};
 		})
 		.filter((item): item is SubagentToolCall => item !== null);

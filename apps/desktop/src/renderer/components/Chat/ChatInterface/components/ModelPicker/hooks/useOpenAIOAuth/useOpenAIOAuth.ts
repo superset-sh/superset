@@ -1,7 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -14,6 +13,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 interface UseOpenAIOAuthParams {
 	isModelSelectorOpen: boolean;
 	onModelSelectorOpenChange: (open: boolean) => void;
+	onAuthStateChange?: () => Promise<void> | void;
 }
 
 interface OpenAIOAuthDialogState {
@@ -41,13 +41,13 @@ interface UseOpenAIOAuthResult {
 export function useOpenAIOAuth({
 	isModelSelectorOpen,
 	onModelSelectorOpenChange,
+	onAuthStateChange,
 }: UseOpenAIOAuthParams): UseOpenAIOAuthResult {
 	const [oauthDialogOpen, setOauthDialogOpen] = useState(false);
 	const [oauthUrl, setOauthUrl] = useState<string | null>(null);
 	const [oauthCode, setOauthCode] = useState("");
 	const [oauthError, setOauthError] = useState<string | null>(null);
 	const [hasPendingOAuthSession, setHasPendingOAuthSession] = useState(false);
-	const electronUtils = electronTrpc.useUtils();
 
 	const { data: openAIStatus, refetch: refetchOpenAIStatus } =
 		chatServiceTrpc.auth.getOpenAIStatus.useQuery();
@@ -92,13 +92,14 @@ export function useOpenAIOAuth({
 			setOauthCode("");
 			setHasPendingOAuthSession(true);
 			setOauthDialogOpen(true);
+			await openExternalUrl(result.url);
 		} catch (error) {
 			setOauthDialogOpen(true);
 			setOauthError(
 				getErrorMessage(error, "Failed to start OpenAI OAuth flow"),
 			);
 		}
-	}, [startOpenAIOAuthMutation]);
+	}, [openExternalUrl, startOpenAIOAuthMutation]);
 
 	const { copyToClipboard } = useCopyToClipboard();
 	const copyOAuthUrl = useCallback(() => {
@@ -110,11 +111,8 @@ export function useOpenAIOAuth({
 	const syncOpenAIAuthUi = useCallback(
 		async (action: "complete" | "disconnect") => {
 			try {
-				await electronTrpcClient.modelProviders.clearIssue.mutate({
-					providerId: "openai",
-				});
-				await electronUtils.modelProviders.getStatuses.invalidate();
 				await refetchOpenAIStatus();
+				await onAuthStateChange?.();
 			} catch (error) {
 				console.error(
 					`[model-picker] OpenAI OAuth ${action} follow-up refresh failed:`,
@@ -122,31 +120,57 @@ export function useOpenAIOAuth({
 				);
 			}
 		},
-		[electronUtils.modelProviders.getStatuses.invalidate, refetchOpenAIStatus],
+		[onAuthStateChange, refetchOpenAIStatus],
 	);
 
-	const completeOpenAIOAuth = useCallback(async () => {
-		setOauthError(null);
-		try {
-			const code = oauthCode.trim();
-			await completeOpenAIOAuthMutation.mutateAsync({
-				code: code.length > 0 ? code : undefined,
-			});
-			setHasPendingOAuthSession(false);
-			setOauthDialogOpen(false);
-			setOauthUrl(null);
-			setOauthCode("");
-			onModelSelectorOpenChange(true);
-		} catch (error) {
-			setOauthError(getErrorMessage(error, "Failed to complete OpenAI OAuth"));
-			return;
-		}
-		await syncOpenAIAuthUi("complete");
+	const completeOpenAIOAuth = useCallback(
+		async (codeOverride?: string) => {
+			setOauthError(null);
+			try {
+				const code = (codeOverride ?? oauthCode).trim();
+				await completeOpenAIOAuthMutation.mutateAsync({
+					code: code.length > 0 ? code : undefined,
+				});
+				setHasPendingOAuthSession(false);
+				setOauthDialogOpen(false);
+				setOauthUrl(null);
+				setOauthCode("");
+				onModelSelectorOpenChange(true);
+			} catch (error) {
+				setOauthError(
+					getErrorMessage(error, "Failed to complete OpenAI OAuth"),
+				);
+				return;
+			}
+			await syncOpenAIAuthUi("complete");
+		},
+		[
+			completeOpenAIOAuthMutation,
+			oauthCode,
+			onModelSelectorOpenChange,
+			syncOpenAIAuthUi,
+		],
+	);
+
+	const { data: pendingLoopbackCallback } =
+		chatServiceTrpc.auth.consumeOpenAIOAuthCallback.useQuery(undefined, {
+			enabled: oauthDialogOpen && hasPendingOAuthSession,
+			refetchInterval: oauthDialogOpen && hasPendingOAuthSession ? 1500 : false,
+			refetchOnWindowFocus: false,
+		});
+
+	useEffect(() => {
+		const callbackUrl = pendingLoopbackCallback?.callbackUrl;
+		if (!callbackUrl) return;
+		if (!oauthDialogOpen || !hasPendingOAuthSession) return;
+		if (completeOpenAIOAuthMutation.isPending) return;
+		void completeOpenAIOAuth(callbackUrl);
 	}, [
-		completeOpenAIOAuthMutation,
-		oauthCode,
-		onModelSelectorOpenChange,
-		syncOpenAIAuthUi,
+		pendingLoopbackCallback?.callbackUrl,
+		oauthDialogOpen,
+		hasPendingOAuthSession,
+		completeOpenAIOAuthMutation.isPending,
+		completeOpenAIOAuth,
 	]);
 
 	const disconnectOpenAIOAuth = useCallback(async () => {

@@ -1,0 +1,1 @@
+export { TemplateGalleryModal } from "./TemplateGalleryModal";

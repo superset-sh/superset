@@ -1,3 +1,4 @@
+import { sanitizeSegment } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
@@ -36,7 +37,6 @@ import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseB
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { NotFound } from "renderer/routes/not-found";
 import type { SetupAction } from "shared/types/config";
-import { sanitizeSegment } from "shared/utils/branch";
 import { ExternalWorktreesBanner } from "./components/ExternalWorktreesBanner";
 
 export const Route = createFileRoute(

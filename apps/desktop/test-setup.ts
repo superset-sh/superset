@@ -9,7 +9,7 @@
  * DO NOT mock internal code here - tests should use real implementations
  * or mock at the individual test level when necessary.
  */
-import { mock } from "bun:test";
+import { beforeEach, mock } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -33,6 +33,8 @@ const mockHead = {
 
 // biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).document = {
+	addEventListener: mock(() => {}),
+	removeEventListener: mock(() => {}),
 	documentElement: {
 		style: {
 			setProperty: (key: string, value: string) => mockStyleMap.set(key, value),
@@ -64,6 +66,69 @@ const mockHead = {
 		textContent: text,
 	})),
 };
+
+// zustand's persist middleware defaults to `window.localStorage`. The
+// xterm-env-polyfill preload aliases `window` to globalThis, so that lookup
+// resolves to `undefined` without throwing and persist crashes on the first
+// setState. Provide an in-memory Storage so persisted stores work in tests.
+const localStorageData = new Map<string, string>();
+(globalThis as { localStorage?: Storage }).localStorage = {
+	get length() {
+		return localStorageData.size;
+	},
+	clear: () => localStorageData.clear(),
+	getItem: (key: string) => localStorageData.get(key) ?? null,
+	key: (index: number) => [...localStorageData.keys()][index] ?? null,
+	removeItem: (key: string) => {
+		localStorageData.delete(key);
+	},
+	setItem: (key: string, value: string) => {
+		localStorageData.set(key, value);
+	},
+};
+
+beforeEach(() => {
+	localStorageData.clear();
+});
+
+// Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
+if (typeof globalThis.window !== "undefined") {
+	const win = globalThis.window as Record<string, unknown>;
+	if (!win.addEventListener) win.addEventListener = mock(() => {});
+	if (!win.removeEventListener) win.removeEventListener = mock(() => {});
+} else {
+	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
+	(globalThis as any).window = {
+		addEventListener: mock(() => {}),
+		removeEventListener: mock(() => {}),
+	};
+}
+
+// localStorage: renderer stores persisted with zustand's `persist` middleware
+// write to it on every setState, and zustand resolves the storage once at
+// module load. Install a working mock unconditionally (some environments expose
+// a present-but-nonfunctional `localStorage`, so a `typeof === "undefined"`
+// guard is not enough) and before any store module is imported.
+const localStorageBacking = new Map<string, string>();
+const mockLocalStorage: Storage = {
+	get length() {
+		return localStorageBacking.size;
+	},
+	clear: () => localStorageBacking.clear(),
+	getItem: (key: string) => localStorageBacking.get(key) ?? null,
+	key: (index: number) => Array.from(localStorageBacking.keys())[index] ?? null,
+	removeItem: (key: string) => {
+		localStorageBacking.delete(key);
+	},
+	setItem: (key: string, value: string) => {
+		localStorageBacking.set(key, String(value));
+	},
+};
+Object.defineProperty(globalThis, "localStorage", {
+	value: mockLocalStorage,
+	writable: true,
+	configurable: true,
+});
 
 // =============================================================================
 // Electron Preload Mocks (exposed via contextBridge in real app)
@@ -144,6 +209,9 @@ mock.module("main/lib/analytics", () => ({
 	track: mock(() => {}),
 	clearUserCache: mock(() => {}),
 	shutdown: mock(() => Promise.resolve()),
+	getPosthogClient: mock(() => null),
+	getUserId: mock(() => null),
+	setUserId: mock(() => {}),
 }));
 
 // =============================================================================
@@ -161,6 +229,8 @@ const agentPresetOverrideSchema = z.object({
 	promptCommand: z.string().optional(),
 	promptCommandSuffix: z.string().nullable().optional(),
 	taskPromptTemplate: z.string().optional(),
+	contextPromptTemplateSystem: z.string().optional(),
+	contextPromptTemplateUser: z.string().optional(),
 	model: z.string().optional(),
 });
 
@@ -179,6 +249,8 @@ const agentCustomDefinitionSchema = z.object({
 	promptCommandSuffix: z.string().optional(),
 	promptTransport: z.enum(["argv", "stdin"]).optional(),
 	taskPromptTemplate: z.string(),
+	contextPromptTemplateSystem: z.string().optional(),
+	contextPromptTemplateUser: z.string().optional(),
 	enabled: z.boolean().optional(),
 });
 
@@ -197,7 +269,12 @@ const localDbMock = () => ({
 	agentCustomDefinitionSchema,
 	PROMPT_TRANSPORTS: ["argv", "stdin"],
 	EXTERNAL_APPS: [],
-	EXECUTION_MODES: ["sequential", "parallel"],
+	EXECUTION_MODES: [
+		"split-pane",
+		"new-tab",
+		"new-tab-split-pane",
+		"sequential",
+	],
 	BRANCH_PREFIX_MODES: ["none", "github", "author", "custom"],
 	TERMINAL_LINK_BEHAVIORS: ["external-editor", "file-viewer"],
 	FILE_OPEN_MODES: ["split-pane", "new-tab"],

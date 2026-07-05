@@ -1,5 +1,4 @@
 export * from "./chat-preferences";
-export * from "./hotkeys";
 export * from "./markdown-preferences";
 export * from "./ports";
 export * from "./ringtone";

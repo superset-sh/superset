@@ -1,73 +1,163 @@
 /**
  * Workspace Service — Desktop Entry Point
  *
- * Run with: ELECTRON_RUN_AS_NODE=1 electron dist/main/host-service.js
- *
- * Starts the host-service HTTP server on a random local port.
- * The parent Electron process reads the port from the IPC channel.
+ * Starts the host-service HTTP server on a port assigned by the coordinator.
+ * The coordinator polls health.check to know when it's ready.
  */
 
 import { serve } from "@hono/node-server";
 import {
 	createApp,
+	installProcessSafetyNet,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
+	LocalModelProvider,
 	PskHostAuthProvider,
+	startTerminalReaper,
 } from "@superset/host-service";
+import {
+	initTerminalBaseEnv,
+	resolveTerminalBaseEnv,
+} from "@superset/host-service/terminal-env";
+import { connectRelay } from "@superset/host-service/tunnel";
+import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
+import { writeManifest } from "main/lib/host-service-manifest";
+import { env } from "./env";
 
-const authToken = process.env.AUTH_TOKEN;
-const cloudApiUrl = process.env.CLOUD_API_URL;
-const dbPath = process.env.HOST_DB_PATH;
-const deviceClientId = process.env.DEVICE_CLIENT_ID;
-const deviceName = process.env.DEVICE_NAME;
-const hostServiceSecret = process.env.HOST_SERVICE_SECRET;
-const desktopVitePort = process.env.DESKTOP_VITE_PORT ?? "5173";
+const SHUTDOWN_GRACE_MS = 3_000;
+const WATCHDOG_INTERVAL_MS = 2_000;
 
-const auth =
-	authToken && cloudApiUrl ? new JwtApiAuthProvider(authToken) : undefined;
-const hostAuth = hostServiceSecret
-	? new PskHostAuthProvider(hostServiceSecret)
-	: undefined;
+type Server = ReturnType<typeof serve>;
 
-const { app, injectWebSocket } = createApp({
-	credentials: new LocalGitCredentialProvider(),
-	auth,
-	hostAuth,
-	cloudApiUrl,
-	dbPath,
-	deviceClientId,
-	deviceName,
-	allowedOrigins: [
-		`http://localhost:${desktopVitePort}`,
-		`http://127.0.0.1:${desktopVitePort}`,
-	],
-});
+async function main(): Promise<void> {
+	// Install the parent watchdog before any awaits so a crash during
+	// startup can still reap this child. `serverRef` is filled in once
+	// serve() returns; shutdown handles both pre- and post-bind states.
+	const serverRef: { current: Server | null } = { current: null };
+	let shuttingDown = false;
+	const shutdown = (reason: string) => {
+		if (shuttingDown) return;
+		shuttingDown = true;
+		console.log(`[host-service] shutdown (${reason}), draining connections`);
+		const server = serverRef.current;
+		if (!server) {
+			process.exit(0);
+		}
+		server.close();
+		// SSE/WS streams (chat, watchers) ignore server.close() — give in-flight
+		// HTTP a brief window, then forcibly tear sockets down.
+		const forceExit = setTimeout(() => {
+			const httpServer = server as unknown as {
+				closeAllConnections?: () => void;
+			};
+			httpServer.closeAllConnections?.();
+			process.exit(0);
+		}, SHUTDOWN_GRACE_MS);
+		forceExit.unref();
+	};
 
-const server = serve(
-	{ fetch: app.fetch, port: 0, hostname: "127.0.0.1" },
-	(info: { port: number }) => {
-		process.send?.({ type: "ready", port: info.port });
-	},
-);
-injectWebSocket(server);
+	process.on("SIGTERM", () => shutdown("SIGTERM"));
+	process.on("SIGINT", () => shutdown("SIGINT"));
 
-const shutdown = () => {
-	server.close();
-	process.exit(0);
-};
+	// Self-exit if our Electron parent dies without sending SIGTERM
+	// (orphan reparenting to init/launchd). CLI-spawned host-services
+	// don't set HOST_PARENT_PID and skip this.
+	const parentPid = Number(process.env.HOST_PARENT_PID);
+	if (Number.isInteger(parentPid) && parentPid > 1) {
+		const interval = setInterval(() => {
+			if (!isParentAlive(parentPid)) {
+				clearInterval(interval);
+				shutdown("parent-exit");
+			}
+		}, WATCHDOG_INTERVAL_MS);
+		interval.unref();
+	}
 
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+	const terminalBaseEnv = await resolveTerminalBaseEnv();
+	initTerminalBaseEnv(terminalBaseEnv);
 
-// Orphan cleanup: exit if parent Electron process dies
-const parentPid = process.ppid;
-const parentCheck = setInterval(() => {
+	const authProvider = new JwtApiAuthProvider({
+		// Read fresh from disk every time we need to mint a new JWT, so that
+		// re-logins in the desktop renderer (which rewrites auth-token.enc)
+		// are picked up without restarting the host-service child. Falls back
+		// to the boot-time token if the file is missing for any reason.
+		getSessionToken: async () => {
+			const { token } = await loadToken();
+			return token ?? env.AUTH_TOKEN;
+		},
+		apiUrl: env.SUPERSET_API_URL,
+	});
+
+	const { app, injectWebSocket, api, db } = createApp({
+		config: {
+			organizationId: env.ORGANIZATION_ID,
+			dbPath: env.HOST_DB_PATH,
+			cloudApiUrl: env.SUPERSET_API_URL,
+			migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
+			allowedOrigins: [
+				`http://localhost:${env.DESKTOP_VITE_PORT}`,
+				`http://127.0.0.1:${env.DESKTOP_VITE_PORT}`,
+			],
+		},
+		providers: {
+			auth: authProvider,
+			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
+			credentials: new LocalGitCredentialProvider(),
+			modelResolver: new LocalModelProvider(),
+		},
+	});
+
+	const startedAt = Date.now();
+	const server = serve(
+		{ fetch: app.fetch, port: env.HOST_SERVICE_PORT, hostname: "127.0.0.1" },
+		(info: { port: number }) => {
+			// Install only after the server is listening so startup throws still
+			// reach `main().catch(...)` and exit with a non-zero code.
+			installProcessSafetyNet();
+
+			// Orphan reaping + port detection for terminals no renderer has attached.
+			startTerminalReaper(db);
+
+			if (env.ORGANIZATION_ID) {
+				try {
+					writeManifest({
+						pid: process.pid,
+						endpoint: `http://127.0.0.1:${info.port}`,
+						authToken: env.HOST_SERVICE_SECRET,
+						startedAt,
+						organizationId: env.ORGANIZATION_ID,
+					});
+				} catch (error) {
+					console.error("[host-service] Failed to write manifest:", error);
+				}
+			}
+
+			if (env.RELAY_URL && env.ORGANIZATION_ID) {
+				void connectRelay({
+					api,
+					relayUrl: env.RELAY_URL,
+					localPort: info.port,
+					organizationId: env.ORGANIZATION_ID,
+					authProvider,
+					hostServiceSecret: env.HOST_SERVICE_SECRET,
+				});
+			}
+		},
+	);
+	serverRef.current = server;
+	injectWebSocket(server);
+}
+
+function isParentAlive(parentPid: number): boolean {
 	try {
 		process.kill(parentPid, 0);
+		return process.ppid === parentPid;
 	} catch {
-		clearInterval(parentCheck);
-		console.log("[host-service] Parent process exited, shutting down");
-		shutdown();
+		return false;
 	}
-}, 2000);
-parentCheck.unref();
+}
+
+void main().catch((error) => {
+	console.error("[host-service] Failed to start:", error);
+	process.exit(1);
+});

@@ -155,11 +155,18 @@ describe("NotificationManager", () => {
 				tabId: "t1",
 				workspaceId: "w1",
 				sessionId: "s1",
+				terminalId: "term-1",
 			});
 			manager.handleAgentLifecycle(event);
 			lastNotification(deps).trigger("click");
 			expect(deps.clickedIds).toEqual([
-				{ paneId: "p1", tabId: "t1", workspaceId: "w1", sessionId: "s1" },
+				{
+					paneId: "p1",
+					tabId: "t1",
+					workspaceId: "w1",
+					sessionId: "s1",
+					terminalId: "term-1",
+				},
 			]);
 		});
 
@@ -297,8 +304,8 @@ describe("NotificationManager", () => {
 
 			expect(createNotification).toHaveBeenCalledWith(
 				expect.objectContaining({
-					title: "Input Needed — Test Workspace",
-					body: '"Test Title" needs your attention',
+					title: "Awaiting Response — Test Workspace",
+					body: '"Test Title" is waiting for your reply',
 				}),
 			);
 		});

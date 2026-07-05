@@ -10,14 +10,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { memo, useCallback, useMemo } from "react";
 import { HiChevronDown } from "react-icons/hi2";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import {
 	getAppOption,
 	OpenInExternalDropdownItems,
 } from "renderer/components/OpenInExternalDropdown";
+import { HotkeyLabel, useHotkey, useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useThemeStore } from "renderer/stores";
-import { useAppHotkey, useHotkeyText } from "renderer/stores/hotkeys";
 
 interface OpenInMenuButtonProps {
 	worktreePath: string;
@@ -54,10 +53,10 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		() => getAppOption(resolvedApp) ?? null,
 		[resolvedApp],
 	);
-	const openInShortcut = useHotkeyText("OPEN_IN_APP");
-	const copyPathShortcut = useHotkeyText("COPY_PATH");
-	const showOpenInShortcut = openInShortcut !== "Unassigned";
-	const showCopyPathShortcut = copyPathShortcut !== "Unassigned";
+	const openInDisplay = useHotkeyDisplay("OPEN_IN_APP");
+	const copyPathDisplay = useHotkeyDisplay("COPY_PATH");
+	const showOpenInShortcut = openInDisplay.text !== "Unassigned";
+	const showCopyPathShortcut = copyPathDisplay.text !== "Unassigned";
 	const isLoading = openInApp.isPending || copyPath.isPending;
 
 	const isDark = activeTheme?.type === "dark";
@@ -80,9 +79,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		copyPath.mutate(worktreePath);
 	}, [worktreePath, copyPath, openInApp.isPending]);
 
-	useAppHotkey("OPEN_IN_APP", handleOpenInEditor, undefined, [
-		handleOpenInEditor,
-	]);
+	useHotkey("OPEN_IN_APP", handleOpenInEditor);
 
 	return (
 		<div className="flex items-center no-drag">
@@ -126,9 +123,9 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={6}>
 					{currentApp ? (
-						<HotkeyTooltipContent
+						<HotkeyLabel
 							label={`Open in ${currentApp.displayLabel ?? currentApp.label}`}
-							hotkeyId="OPEN_IN_APP"
+							id="OPEN_IN_APP"
 						/>
 					) : (
 						"Select an editor from the dropdown"
@@ -170,12 +167,16 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 								return null;
 							}
 							return (
-								<DropdownMenuShortcut>{openInShortcut}</DropdownMenuShortcut>
+								<DropdownMenuShortcut>
+									{openInDisplay.text}
+								</DropdownMenuShortcut>
 							);
 						}}
 						copyPathTrailing={
 							showCopyPathShortcut ? (
-								<DropdownMenuShortcut>{copyPathShortcut}</DropdownMenuShortcut>
+								<DropdownMenuShortcut>
+									{copyPathDisplay.text}
+								</DropdownMenuShortcut>
 							) : null
 						}
 						subContentClassName="w-40"

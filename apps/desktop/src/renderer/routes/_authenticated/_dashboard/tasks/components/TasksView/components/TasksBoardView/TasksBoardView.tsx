@@ -12,7 +12,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { SelectTaskStatus } from "@superset/db/schema";
 import { useCallback, useMemo, useState } from "react";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { compareStatusesForDropdown } from "../../utils/sorting";
 import { KanbanCard } from "./components/KanbanCard";
@@ -29,7 +29,7 @@ export function TasksBoardView({
 	allStatuses,
 	onTaskClick,
 }: TasksBoardViewProps) {
-	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [activeTask, setActiveTask] = useState<TaskWithStatus | null>(null);
 
 	const sensors = useSensors(
@@ -95,11 +95,9 @@ export function TasksBoardView({
 			const task = data.find((t) => t.id === taskId);
 			if (!task || task.statusId === targetStatusId) return;
 
-			collections.tasks.update(taskId, (draft) => {
-				draft.statusId = targetStatusId;
-			});
+			taskActions.updateStatus(taskId, targetStatusId);
 		},
-		[data, collections],
+		[data, taskActions],
 	);
 
 	const handleDragCancel = useCallback(() => {

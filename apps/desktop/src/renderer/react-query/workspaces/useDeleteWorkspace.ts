@@ -1,6 +1,10 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import {
+	getWorkspaceFocusTargetAfterRemoval,
+	removeWorkspaceFromGroups,
+} from "./utils/workspace-removal";
 
 type DeleteContext = {
 	previousGrouped: ReturnType<
@@ -14,7 +18,6 @@ type DeleteContext = {
 		? R
 		: never;
 	wasViewingDeleted: boolean;
-	navigatedTo: string | null;
 };
 
 export function useDeleteWorkspace(
@@ -28,65 +31,41 @@ export function useDeleteWorkspace(
 		...options,
 		onMutate: async ({ id }) => {
 			const wasViewingDeleted = params.workspaceId === id;
-			let navigatedTo: string | null = null;
-
-			if (wasViewingDeleted) {
-				const prevWorkspaceId =
-					await utils.workspaces.getPreviousWorkspace.fetch({ id });
-				const nextWorkspaceId = await utils.workspaces.getNextWorkspace.fetch({
-					id,
-				});
-				const targetWorkspaceId = prevWorkspaceId ?? nextWorkspaceId;
-
-				if (targetWorkspaceId) {
-					navigatedTo = targetWorkspaceId;
-					navigateToWorkspace(targetWorkspaceId, navigate);
-				} else {
-					navigatedTo = "/workspace";
-					navigate({ to: "/workspace" });
-				}
-			}
 
 			await Promise.all([
 				utils.workspaces.getAll.cancel(),
 				utils.workspaces.getAllGrouped.cancel(),
 			]);
 
-			const previousGrouped = utils.workspaces.getAllGrouped.getData();
+			const previousGrouped =
+				utils.workspaces.getAllGrouped.getData() ??
+				(wasViewingDeleted
+					? await utils.workspaces.getAllGrouped.fetch().catch((error) => {
+							console.warn(
+								"Failed to fetch grouped workspaces during delete",
+								error,
+							);
+							return undefined;
+						})
+					: undefined);
 			const previousAll = utils.workspaces.getAll.getData();
+
+			if (wasViewingDeleted) {
+				const targetWorkspaceId = getWorkspaceFocusTargetAfterRemoval(
+					previousGrouped,
+					id,
+				);
+				if (targetWorkspaceId) {
+					navigateToWorkspace(targetWorkspaceId, navigate);
+				} else {
+					navigate({ to: "/workspace" });
+				}
+			}
 
 			if (previousGrouped) {
 				utils.workspaces.getAllGrouped.setData(
 					undefined,
-					previousGrouped
-						.map((group) => {
-							const isTopLevelWorkspace = group.workspaces.some(
-								(w) => w.id === id,
-							);
-							const workspaces = group.workspaces.filter((w) => w.id !== id);
-							const sections = group.sections.map((section) => ({
-								...section,
-								workspaces: section.workspaces.filter((w) => w.id !== id),
-							}));
-
-							return {
-								...group,
-								workspaces,
-								sections,
-								topLevelItems: isTopLevelWorkspace
-									? group.topLevelItems.filter((item) => item.id !== id)
-									: group.topLevelItems,
-							};
-						})
-						.filter(
-							(group) =>
-								group.workspaces.length +
-									group.sections.reduce(
-										(sum, section) => sum + section.workspaces.length,
-										0,
-									) >
-								0,
-						),
+					removeWorkspaceFromGroups(previousGrouped, id),
 				);
 			}
 
@@ -101,7 +80,6 @@ export function useDeleteWorkspace(
 				previousGrouped,
 				previousAll,
 				wasViewingDeleted,
-				navigatedTo,
 			} as DeleteContext;
 		},
 		onSettled: async (...args) => {

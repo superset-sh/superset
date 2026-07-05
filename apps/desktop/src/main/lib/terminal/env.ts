@@ -460,14 +460,21 @@ export function buildTerminalEnv(params: {
 
 	// COLORFGBG: "foreground;background" ANSI color indices — TUI apps use this to detect light/dark
 	const colorFgBg = themeType === "light" ? "0;15" : "15;0";
+	// TERM_THEME: explicit light/dark hint that cursor-agent (and other TUIs)
+	// read before falling back to an OSC 11 background probe. Our PTY output
+	// round-trips through the renderer's xterm, so that probe routinely exceeds
+	// cursor-agent's ~100ms timeout and defaults to dark on a light theme.
+	// Setting it here resolves the theme without the probe race.
+	const termTheme = themeType === "light" ? "light" : "dark";
 
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
-		TERM_PROGRAM: "Superset",
+		TERM_PROGRAM: "kitty",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
 		COLORFGBG: colorFgBg,
+		TERM_THEME: termTheme,
 		LANG: locale,
 		SUPERSET_PANE_ID: paneId,
 		SUPERSET_TAB_ID: tabId,

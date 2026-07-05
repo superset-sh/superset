@@ -1,0 +1,66 @@
+/**
+ * Edge-fade mask utilities.
+ *
+ * Fades out one or more edges of an element via a linear-gradient mask.
+ * Composable: `class="fade-edge-r fade-edge-b"` fades both edges.
+ * Override the fade size per element with `[--fade-edge-size:2rem]`.
+ */
+
+@layer utilities {
+	.fade-edge-t,
+	.fade-edge-r,
+	.fade-edge-b,
+	.fade-edge-l {
+		--fade-edge-size: 1.5rem;
+		--fade-edge-t-size: 0px;
+		--fade-edge-r-size: 0px;
+		--fade-edge-b-size: 0px;
+		--fade-edge-l-size: 0px;
+
+		mask-image:
+			linear-gradient(
+				to bottom,
+				transparent,
+				black var(--fade-edge-t-size),
+				black calc(100% - var(--fade-edge-b-size)),
+				transparent
+			),
+			linear-gradient(
+				to right,
+				transparent,
+				black var(--fade-edge-l-size),
+				black calc(100% - var(--fade-edge-r-size)),
+				transparent
+			);
+		-webkit-mask-image:
+			linear-gradient(
+				to bottom,
+				transparent,
+				black var(--fade-edge-t-size),
+				black calc(100% - var(--fade-edge-b-size)),
+				transparent
+			),
+			linear-gradient(
+				to right,
+				transparent,
+				black var(--fade-edge-l-size),
+				black calc(100% - var(--fade-edge-r-size)),
+				transparent
+			);
+		mask-composite: intersect;
+		-webkit-mask-composite: source-in;
+	}
+
+	.fade-edge-t {
+		--fade-edge-t-size: var(--fade-edge-size);
+	}
+	.fade-edge-r {
+		--fade-edge-r-size: var(--fade-edge-size);
+	}
+	.fade-edge-b {
+		--fade-edge-b-size: var(--fade-edge-size);
+	}
+	.fade-edge-l {
+		--fade-edge-l-size: var(--fade-edge-size);
+	}
+}

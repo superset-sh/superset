@@ -2,6 +2,17 @@ When contributing to this repository, please first discuss the change you wish t
 
 Please note we have a [code of conduct](./CODE_OF_CONDUCT.md), please follow it in all your interactions with the project.
 
+## Local Development Setup
+
+See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide. TL;DR:
+
+```bash
+./.superset/setup.local.sh
+bun run dev
+```
+
+No Neon or third-party credentials required for local development.
+
 ## Pull Request Process
 
 1. To create a Pull Request (PR), [create a fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) of the project. 

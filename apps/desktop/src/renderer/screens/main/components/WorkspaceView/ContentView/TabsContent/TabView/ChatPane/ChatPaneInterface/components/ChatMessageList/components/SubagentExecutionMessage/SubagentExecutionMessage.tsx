@@ -1,7 +1,10 @@
-import { Message, MessageContent } from "@superset/ui/ai-elements/message";
+import {
+	Message,
+	MessageContent,
+	MessageResponse,
+} from "@superset/ui/ai-elements/message";
 import { cn } from "@superset/ui/lib/utils";
-import { useState } from "react";
-import { MarkdownToggleContent } from "renderer/components/Chat/components/MarkdownToggleContent";
+import { SubagentInnerToolCall } from "renderer/components/Chat/components/SubagentInnerToolCall";
 import {
 	type SubagentEntries,
 	toSubagentViewModels,
@@ -32,9 +35,6 @@ export function SubagentExecutionMessage({
 	subagents,
 	inline = false,
 }: SubagentExecutionMessageProps) {
-	const [markdownBySubagent, setMarkdownBySubagent] = useState<
-		Record<string, boolean>
-	>({});
 	if (subagents.length === 0) return null;
 	const viewModels = toSubagentViewModels(subagents);
 
@@ -62,45 +62,31 @@ export function SubagentExecutionMessage({
 								{getStatusLabel(subagent.status)}
 							</span>
 						</div>
-						<div className="text-xs text-muted-foreground">
-							{subagent.agentType}
-							{subagent.modelId ? ` • ${subagent.modelId}` : ""}
-							{subagent.durationMs !== undefined
-								? ` • ${Math.round(subagent.durationMs)} ms`
-								: ""}
-						</div>
-						{subagent.text ? (
-							<MarkdownToggleContent
-								toggleId={`subagent-markdown-${subagent.toolCallId}`}
-								checked={markdownBySubagent[subagent.toolCallId] ?? true}
-								onCheckedChange={(checked) =>
-									setMarkdownBySubagent((previous) => ({
-										...previous,
-										[subagent.toolCallId]: checked,
-									}))
-								}
-								content={subagent.text}
-								labelClassName="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
-								markdownContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2"
-								plainContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
-							/>
-						) : null}
 						{subagent.toolCalls.length > 0 ? (
-							<div className="flex flex-wrap items-center gap-1.5">
+							<div className="space-y-1">
 								{subagent.toolCalls.map((tool, index) => (
-									<span
+									<SubagentInnerToolCall
 										key={`${subagent.toolCallId}-${tool.name}-${index}`}
-										className={cn(
-											"rounded-full border px-2 py-0.5 text-xs",
-											tool.isError
-												? "border-destructive/40 bg-destructive/10 text-destructive"
-												: "border-muted-foreground/30 bg-background/80 text-muted-foreground",
-										)}
-									>
-										{tool.name}
-									</span>
+										name={tool.name}
+										isError={tool.isError}
+										isPending={
+											subagent.status === "running" &&
+											index === subagent.toolCalls.length - 1
+										}
+										args={tool.args}
+										result={tool.result}
+									/>
 								))}
 							</div>
+						) : null}
+						{subagent.text ? (
+							<MessageResponse
+								animated={false}
+								isAnimating={false}
+								mermaid={{ config: { theme: "default" } }}
+							>
+								{subagent.text}
+							</MessageResponse>
 						) : null}
 					</div>
 				))}

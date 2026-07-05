@@ -1,0 +1,141 @@
+---
+title: Linear Integration
+description: Open Linear issues as Superset workspaces with a custom script
+---
+
+Linear's [custom coding tool](https://linear.app/docs/open-issues-with-custom-scripts)
+feature can hand an issue off to any local command. With a small wrapper script,
+**Work on issue → Custom script** creates a Superset workspace for the issue —
+checked out on the issue's branch, with an agent already working on it — and
+opens it in the desktop app.
+
+## How it works
+
+Linear doesn't use a URL scheme here. It runs a local executable defined in
+`~/.linear/coding-tools.json` and passes issue context through `LINEAR_*`
+environment variables (`LINEAR_ISSUE_IDENTIFIER`, `LINEAR_ISSUE_BRANCH_NAME`,
+`LINEAR_PROMPT`, and others). The wrapper script chains two CLI calls:
+
+1. `superset workspaces create` — creates a local workspace on the issue's
+   branch and launches an agent with the issue as its prompt.
+2. `superset workspaces open` — opens that workspace in the desktop app via its
+   deep link.
+
+## Prerequisites
+
+- The [Superset CLI](/docs/cli/getting-started) installed and signed in
+  (`superset auth login`).
+- The Superset desktop app installed (the script opens workspaces in it).
+- A project that's set up locally. Find its ID with:
+
+```bash
+superset projects list
+```
+
+Copy the `id` of the project you want issues to open against.
+
+## 1. Create the wrapper script
+
+Save this as `~/.linear/open-in-superset.sh` and replace `PROJECT` with the ID
+from above:
+
+```bash
+#!/usr/bin/env bash
+# Linear custom script -> open the issue as a Superset workspace.
+set -euo pipefail
+
+PROJECT="<your-project-id>"
+
+NAME="${LINEAR_ISSUE_IDENTIFIER:-linear-task}"
+BRANCH="${LINEAR_ISSUE_BRANCH_NAME:-$NAME}"
+PROMPT="${LINEAR_PROMPT:-Work on Linear issue ${NAME}.}"
+
+# Make sure the local host service is running (idempotent).
+superset start --daemon >/dev/null 2>&1 || true
+
+result="$(
+  superset workspaces create \
+    --local \
+    --project "$PROJECT" \
+    --name "$NAME" \
+    --branch "$BRANCH" \
+    --agent claude \
+    --prompt "$PROMPT" \
+    --json
+)"
+
+id="$(printf '%s' "$result" | jq -r '.workspace.id')"
+
+superset workspaces open "$id"
+```
+
+Make it executable:
+
+```bash
+chmod +x ~/.linear/open-in-superset.sh
+```
+
+<Callout type="info">
+The script depends on `superset` being on your `PATH` and `jq` being installed.
+If `superset` isn't on your `PATH`, use its full path (the desktop app installs
+a shim at `~/.superset/bin/superset`).
+</Callout>
+
+The branch named by the issue won't exist yet — `workspaces create` forks it
+from the project's default branch automatically. Re-running on the same issue
+reuses the existing workspace instead of creating a duplicate.
+
+## 2. Point Linear at the script
+
+Create `~/.linear/coding-tools.json`:
+
+```json
+{
+  "openIssue": {
+    "path": "/Users/you/.linear/open-in-superset.sh",
+    "env": [
+      "LINEAR_ISSUE_IDENTIFIER",
+      "LINEAR_ISSUE_BRANCH_NAME",
+      "LINEAR_PROMPT"
+    ]
+  }
+}
+```
+
+Use the absolute path to your script (`~` is not expanded here).
+
+<Callout type="info">
+If Linear regenerates this file with a starter config when you enable the
+feature, merge the `openIssue` block back in rather than letting it overwrite
+your version.
+</Callout>
+
+## 3. Enable and run
+
+1. In Linear, open **Settings → Code & reviews → Configure coding tools** and
+   enable **Custom script**.
+2. On any issue, choose **Work on issue → Custom script**. The first time,
+   Linear asks you to **Choose a directory** — this is the working directory
+   passed to the script, so pick your repo. (The script above doesn't read it,
+   but Linear requires one.)
+
+Linear runs the script, and the workspace opens in Superset with the agent
+running on the issue.
+
+<Callout type="info">
+In any macOS file dialog, press **⌘⇧.** to reveal hidden dot-folders, or
+**⌘⇧G** to type a path directly.
+</Callout>
+
+## Customizing
+
+- **No agent.** To open an empty workspace on the branch without starting an
+  agent, drop the `--agent` and `--prompt` flags (they're required together).
+- **A different agent.** Replace `claude` with any agent preset id (`codex`,
+  `opencode`, …).
+- **Multiple repos.** The project ID is fixed in the script. To route different
+  Linear teams or projects to different Superset projects, branch on a
+  `LINEAR_*` variable (for example `LINEAR_PROJECT_NAME`) and set `PROJECT`
+  accordingly. The `env` array in `coding-tools.json` is an allowlist — any
+  `LINEAR_*` variable you read in the script must also be added there, or it
+  won't be present in the script's environment.

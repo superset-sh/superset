@@ -1,9 +1,15 @@
 import type {
-	GraphQLCheckContextNode,
-	GraphQLPullRequestNode,
+	GitHubCheckContextNode,
+	GitHubPullRequestNode,
+	GitHubPullRequestReviewDecision,
 } from "../github-query";
 
-export type PullRequestState = "open" | "draft" | "merged" | "closed";
+export type PullRequestState =
+	| "open"
+	| "draft"
+	| "merged"
+	| "closed"
+	| "queued";
 export type ReviewDecision =
 	| "approved"
 	| "changes_requested"
@@ -19,17 +25,19 @@ export interface PullRequestCheck {
 }
 
 export function mapPullRequestState(
-	state: GraphQLPullRequestNode["state"],
+	state: GitHubPullRequestNode["state"],
 	isDraft: boolean,
+	isInMergeQueue = false,
 ): PullRequestState {
 	if (state === "MERGED") return "merged";
 	if (state === "CLOSED") return "closed";
 	if (isDraft) return "draft";
+	if (isInMergeQueue) return "queued";
 	return "open";
 }
 
 export function mapReviewDecision(
-	value: GraphQLPullRequestNode["reviewDecision"],
+	value: GitHubPullRequestReviewDecision,
 ): ReviewDecision {
 	if (value === "APPROVED") return "approved";
 	if (value === "CHANGES_REQUESTED") return "changes_requested";
@@ -38,11 +46,11 @@ export function mapReviewDecision(
 }
 
 export function parseCheckContexts(
-	nodes: GraphQLCheckContextNode[],
+	nodes: GitHubCheckContextNode[],
 ): PullRequestCheck[] {
 	const checks = nodes
 		.filter(
-			(node): node is NonNullable<GraphQLCheckContextNode> => node !== null,
+			(node): node is NonNullable<GitHubCheckContextNode> => node !== null,
 		)
 		.map((node) => {
 			if (node.__typename === "CheckRun") {
@@ -88,7 +96,12 @@ export function computeChecksStatus(checks: PullRequestCheck[]): ChecksStatus {
 }
 
 export function coercePullRequestState(value: string | null): PullRequestState {
-	if (value === "merged" || value === "closed" || value === "draft") {
+	if (
+		value === "merged" ||
+		value === "closed" ||
+		value === "draft" ||
+		value === "queued"
+	) {
 		return value;
 	}
 	return "open";
@@ -171,7 +184,7 @@ function mapStatusContextState(state: string): CheckStatus {
 }
 
 function getCheckRunRecency(
-	node: Extract<GraphQLCheckContextNode, { __typename: "CheckRun" }>,
+	node: Extract<GitHubCheckContextNode, { __typename: "CheckRun" }>,
 ): number {
 	const workflowRunId = node.checkSuite?.workflowRun?.databaseId;
 	if (typeof workflowRunId === "number") {
@@ -188,7 +201,7 @@ function getCheckRunRecency(
 }
 
 function getStatusContextRecency(
-	node: Extract<GraphQLCheckContextNode, { __typename: "StatusContext" }>,
+	node: Extract<GitHubCheckContextNode, { __typename: "StatusContext" }>,
 ): number {
 	if (!node.createdAt) {
 		return 0;

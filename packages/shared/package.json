@@ -8,6 +8,18 @@
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
 		},
+		"./dev-credentials": {
+			"types": "./src/dev-credentials.ts",
+			"default": "./src/dev-credentials.ts"
+		},
+		"./media-files": {
+			"types": "./src/media-files.ts",
+			"default": "./src/media-files.ts"
+		},
+		"./v2-only-user": {
+			"types": "./src/v2-only-user.ts",
+			"default": "./src/v2-only-user.ts"
+		},
 		"./names": {
 			"types": "./src/names/index.ts",
 			"default": "./src/names/index.ts"
@@ -36,6 +48,14 @@
 			"types": "./src/agent-catalog.ts",
 			"default": "./src/agent-catalog.ts"
 		},
+		"./agent-identity": {
+			"types": "./src/agent-identity.ts",
+			"default": "./src/agent-identity.ts"
+		},
+		"./host-agent-presets": {
+			"types": "./src/host-agent-presets.ts",
+			"default": "./src/host-agent-presets.ts"
+		},
 		"./agent-launch": {
 			"types": "./src/agent-launch.ts",
 			"default": "./src/agent-launch.ts"
@@ -43,6 +63,34 @@
 		"./agent-prompt-template": {
 			"types": "./src/agent-prompt-template.ts",
 			"default": "./src/agent-prompt-template.ts"
+		},
+		"./agent-custom": {
+			"types": "./src/agent-custom.ts",
+			"default": "./src/agent-custom.ts"
+		},
+		"./agent-models": {
+			"types": "./src/agent-models.ts",
+			"default": "./src/agent-models.ts"
+		},
+		"./billing": {
+			"types": "./src/billing.ts",
+			"default": "./src/billing.ts"
+		},
+		"./workspace-launch": {
+			"types": "./src/workspace-launch/index.ts",
+			"default": "./src/workspace-launch/index.ts"
+		},
+		"./agent-settings": {
+			"types": "./src/agent-settings.ts",
+			"default": "./src/agent-settings.ts"
+		},
+		"./agent-launch-request": {
+			"types": "./src/agent-launch-request.ts",
+			"default": "./src/agent-launch-request.ts"
+		},
+		"./agent-permissions-migration": {
+			"types": "./src/agent-permissions-migration.ts",
+			"default": "./src/agent-permissions-migration.ts"
 		},
 		"./task-slug": {
 			"types": "./src/task-slug.ts",
@@ -55,6 +103,42 @@
 		"./vercel-preview-origins": {
 			"types": "./src/vercel-preview-origins.ts",
 			"default": "./src/vercel-preview-origins.ts"
+		},
+		"./tunnel-protocol": {
+			"types": "./src/tunnel-protocol.ts",
+			"default": "./src/tunnel-protocol.ts"
+		},
+		"./host-info": {
+			"types": "./src/host-info.ts",
+			"default": "./src/host-info.ts"
+		},
+		"./host-routing": {
+			"types": "./src/host-routing.ts",
+			"default": "./src/host-routing.ts"
+		},
+		"./host-version": {
+			"types": "./src/host-version.ts",
+			"default": "./src/host-version.ts"
+		},
+		"./github-remote": {
+			"types": "./src/github-remote.ts",
+			"default": "./src/github-remote.ts"
+		},
+		"./simple-git-options": {
+			"types": "./src/simple-git-options.ts",
+			"default": "./src/simple-git-options.ts"
+		},
+		"./shell-ready-scanner": {
+			"types": "./src/shell-ready-scanner.ts",
+			"default": "./src/shell-ready-scanner.ts"
+		},
+		"./terminal-title-scanner": {
+			"types": "./src/terminal-title-scanner.ts",
+			"default": "./src/terminal-title-scanner.ts"
+		},
+		"./rrule": {
+			"types": "./src/rrule.ts",
+			"default": "./src/rrule.ts"
 		}
 	},
 	"scripts": {
@@ -63,11 +147,15 @@
 		"test": "bun test"
 	},
 	"dependencies": {
-		"zod": "^4.3.5"
+		"@date-fns/tz": "1.4.1",
+		"friendly-words": "1.3.1",
+		"rrule": "2.8.1",
+		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"bun-types": "^1.3.1",
-		"typescript": "^5.9.3"
+		"@types/friendly-words": "1.2.2",
+		"bun-types": "1.3.11",
+		"typescript": "6.0.3"
 	}
 }

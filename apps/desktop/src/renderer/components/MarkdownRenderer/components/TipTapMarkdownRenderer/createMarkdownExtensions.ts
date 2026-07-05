@@ -16,10 +16,7 @@ import { ListItem } from "@tiptap/extension-list-item";
 import { OrderedList } from "@tiptap/extension-ordered-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import { Strike } from "@tiptap/extension-strike";
-import { Table } from "@tiptap/extension-table";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import TableRow from "@tiptap/extension-table-row";
+import { TableKit } from "@tiptap/extension-table";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
@@ -158,21 +155,23 @@ export function createMarkdownExtensions({
 			},
 		}),
 		SafeImage,
-		Table.configure({
-			resizable: false,
-			HTMLAttributes: {
-				class: "markdown-table my-4 min-w-full border-collapse",
+		TableKit.configure({
+			table: {
+				resizable: false,
+				cellMinWidth: 192,
+				HTMLAttributes: {
+					class: "markdown-table my-4 min-w-full border-collapse",
+				},
 			},
-		}),
-		TableRow,
-		TableHeader.configure({
-			HTMLAttributes: {
-				class: "bg-muted px-4 py-2 text-left text-sm font-semibold align-top",
+			tableHeader: {
+				HTMLAttributes: {
+					class: "bg-muted px-4 py-2 text-left text-sm font-semibold align-top",
+				},
 			},
-		}),
-		TableCell.configure({
-			HTMLAttributes: {
-				class: "border-t border-border px-4 py-2 text-sm align-top",
+			tableCell: {
+				HTMLAttributes: {
+					class: "border-t border-border px-4 py-2 text-sm align-top",
+				},
 			},
 		}),
 		Markdown.configure({

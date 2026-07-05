@@ -16,7 +16,7 @@ import {
 	LuRows2,
 	LuX,
 } from "react-icons/lu";
-import { useHotkeyText } from "renderer/stores/hotkeys";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { Tab } from "renderer/stores/tabs/types";
 
 export interface PaneContextMenuActions {
@@ -41,11 +41,13 @@ export function PaneContextMenuItems({
 	actions,
 	closeLabel,
 }: PaneContextMenuItemsProps) {
-	const splitDownShortcut = useHotkeyText("SPLIT_DOWN");
-	const splitRightShortcut = useHotkeyText("SPLIT_RIGHT");
-	const splitWithChatShortcut = useHotkeyText("SPLIT_WITH_CHAT");
-	const splitWithBrowserShortcut = useHotkeyText("SPLIT_WITH_BROWSER");
-	const equalizePaneSplitsShortcut = useHotkeyText("EQUALIZE_PANE_SPLITS");
+	const splitDownShortcut = useHotkeyDisplay("SPLIT_DOWN").text;
+	const splitRightShortcut = useHotkeyDisplay("SPLIT_RIGHT").text;
+	const splitWithChatShortcut = useHotkeyDisplay("SPLIT_WITH_CHAT").text;
+	const splitWithBrowserShortcut = useHotkeyDisplay("SPLIT_WITH_BROWSER").text;
+	const equalizePaneSplitsShortcut = useHotkeyDisplay(
+		"EQUALIZE_PANE_SPLITS",
+	).text;
 	const targetTabs = actions.availableTabs.filter(
 		(tab) => tab.id !== actions.currentTabId,
 	);

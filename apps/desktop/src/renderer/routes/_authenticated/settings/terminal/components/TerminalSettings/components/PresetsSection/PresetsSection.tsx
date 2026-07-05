@@ -11,14 +11,13 @@ import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
-import { PresetEditorSheet } from "./components/PresetEditorSheet";
+import { PresetEditorDialog } from "./components/PresetEditorDialog";
 import { PresetsTable } from "./components/PresetsTable";
-import { QuickAddPresets } from "./components/QuickAddPresets";
 import {
-	type AutoApplyField,
-	PRESET_TEMPLATES,
-	type PresetTemplate,
-} from "./constants";
+	type QuickAddAgentPill,
+	QuickAddPresets,
+} from "./components/QuickAddPresets";
+import { type AutoApplyField, PRESET_TEMPLATES } from "./constants";
 import type { PresetProjectOption } from "./preset-project-options";
 
 interface PresetsSectionProps {
@@ -148,8 +147,19 @@ export function PresetsSection({
 		[serverPresets],
 	);
 
-	const isTemplateAdded = useCallback(
-		(template: PresetTemplate) => existingPresetNames.has(template.preset.name),
+	const quickAddPills = useMemo<QuickAddAgentPill[]>(
+		() =>
+			PRESET_TEMPLATES.map((template) => ({
+				agentId: template.name,
+				label: template.preset.name,
+				description: template.preset.description,
+				commands: template.preset.commands,
+			})),
+		[],
+	);
+
+	const isPillAdded = useCallback(
+		(pill: QuickAddAgentPill) => existingPresetNames.has(pill.label),
 		[existingPresetNames],
 	);
 
@@ -269,10 +279,15 @@ export function PresetsSection({
 		[createPreset],
 	);
 
-	const handleAddTemplate = useCallback(
-		(template: PresetTemplate) => {
-			if (existingPresetNames.has(template.preset.name)) return;
-			createPreset.mutate(template.preset);
+	const handleAddPill = useCallback(
+		(pill: QuickAddAgentPill) => {
+			if (existingPresetNames.has(pill.label)) return;
+			createPreset.mutate({
+				name: pill.label,
+				description: pill.description,
+				cwd: "",
+				commands: pill.commands,
+			});
 		},
 		[createPreset, existingPresetNames],
 	);
@@ -312,11 +327,21 @@ export function PresetsSection({
 		[setPresetAutoApply],
 	);
 
-	const handleTogglePin = useCallback(
-		(presetId: string, pinned: boolean) => {
+	const handleToggleWorkspaceRun = useCallback(
+		(presetId: string, enabled: boolean) => {
 			updatePreset.mutate({
 				id: presetId,
-				patch: { pinnedToBar: pinned },
+				patch: { useAsWorkspaceRun: enabled },
+			});
+		},
+		[updatePreset],
+	);
+
+	const handleToggleVisibility = useCallback(
+		(presetId: string, visible: boolean) => {
+			updatePreset.mutate({
+				id: presetId,
+				patch: { pinnedToBar: visible },
 			});
 		},
 		[updatePreset],
@@ -352,12 +377,13 @@ export function PresetsSection({
 	}, [editingRowIndex, handleDeleteRow, setEditingPreset]);
 
 	const isWorkspaceCreation = !!editingPreset?.applyOnWorkspaceCreated;
+	const isWorkspaceRun = !!editingPreset?.useAsWorkspaceRun;
 	const isNewTab = !!editingPreset?.applyOnNewTab;
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
 	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
 	const modeValue: ExecutionMode = hasMultipleCommands
 		? normalizedMode
-		: normalizedMode === "split-pane"
+		: normalizedMode === "split-pane" || normalizedMode === "sequential"
 			? "split-pane"
 			: "new-tab";
 
@@ -442,6 +468,14 @@ export function PresetsSection({
 		[editingPreset, handleToggleAutoApply],
 	);
 
+	const handleEditorWorkspaceRunToggle = useCallback(
+		(enabled: boolean) => {
+			if (!editingPreset) return;
+			handleToggleWorkspaceRun(editingPreset.id, enabled);
+		},
+		[editingPreset, handleToggleWorkspaceRun],
+	);
+
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
@@ -467,11 +501,11 @@ export function PresetsSection({
 
 			{showQuickAdd && (
 				<QuickAddPresets
-					templates={PRESET_TEMPLATES}
+					pills={quickAddPills}
 					isDark={isDark}
-					isCreatePending={createPreset.isPending}
-					isTemplateAdded={isTemplateAdded}
-					onAddTemplate={handleAddTemplate}
+					isAddDisabled={createPreset.isPending}
+					isPillAdded={isPillAdded}
+					onAddPill={handleAddPill}
 				/>
 			)}
 
@@ -485,7 +519,7 @@ export function PresetsSection({
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
 						onPersistReorder={handlePersistReorder}
-						onTogglePin={handleTogglePin}
+						onToggleVisibility={handleToggleVisibility}
 					/>
 					<p className="text-xs text-muted-foreground">
 						Click a preset row to edit details.
@@ -493,7 +527,7 @@ export function PresetsSection({
 				</>
 			)}
 
-			<PresetEditorSheet
+			<PresetEditorDialog
 				preset={editingPreset}
 				projects={projectOptions}
 				open={!!editingPreset}
@@ -507,8 +541,10 @@ export function PresetsSection({
 				onCommandsBlur={handleEditorCommandsBlur}
 				onModeChange={handleEditorModeChange}
 				onToggleAutoApply={handleEditorAutoApplyToggle}
+				onToggleWorkspaceRun={handleEditorWorkspaceRunToggle}
 				modeValue={modeValue}
 				hasMultipleCommands={hasMultipleCommands}
+				isWorkspaceRun={isWorkspaceRun}
 				isWorkspaceCreation={isWorkspaceCreation}
 				isNewTab={isNewTab}
 			/>

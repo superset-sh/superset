@@ -1,23 +1,21 @@
-import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
+import { ClickableFilePath } from "@superset/ui/ai-elements/clickable-file-path";
+import { ReadFileTool } from "@superset/ui/ai-elements/read-file-tool";
 import { ToolInput, ToolOutput } from "@superset/ui/ai-elements/tool";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
+import { ToolCallRow } from "@superset/ui/ai-elements/tool-call-row";
 import { getToolName } from "ai";
 import {
-	CheckIcon,
-	ExternalLinkIcon,
 	FileIcon,
 	FileSearchIcon,
 	FolderTreeIcon,
-	Loader2Icon,
 	SearchIcon,
-	XIcon,
 } from "lucide-react";
-import { useState } from "react";
-import { getWorkspaceToolFilePath } from "../../utils/file-paths";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { detectLanguage } from "shared/detect-language";
+import type { BundledLanguage } from "shiki";
+import {
+	getWorkspaceToolFilePath,
+	normalizeWorkspaceFilePath,
+} from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
 import {
 	getArgs,
@@ -34,51 +32,19 @@ function stringify(value: unknown): string {
 	}
 }
 
-function toRecord(value: unknown): Record<string, unknown> | undefined {
-	if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-		return value as Record<string, unknown>;
-	}
-	return undefined;
-}
-
-function toStringValue(value: unknown): string | undefined {
-	if (typeof value === "string") return value;
-	if (typeof value === "number" || typeof value === "boolean") {
-		return String(value);
-	}
-	return undefined;
-}
-
-function extractReadFileContent(output: unknown): string | undefined {
-	const direct = toStringValue(output);
-	if (direct) return direct;
-
-	const record = toRecord(output);
-	if (!record) return undefined;
-
-	const nestedResult = toRecord(record.result);
-
-	return (
-		toStringValue(record.content) ??
-		toStringValue(record.text) ??
-		toStringValue(record.stdout) ??
-		toStringValue(record.data) ??
-		toStringValue(nestedResult?.content) ??
-		toStringValue(nestedResult?.text) ??
-		toStringValue(nestedResult?.stdout)
-	);
-}
-
 interface ReadOnlyToolCallProps {
 	part: ToolPart;
+	workspaceId?: string;
+	workspaceCwd?: string;
 	onOpenFileInPane?: (filePath: string) => void;
 }
 
 export function ReadOnlyToolCall({
 	part,
+	workspaceId,
+	workspaceCwd,
 	onOpenFileInPane,
 }: ReadOnlyToolCallProps) {
-	const [isOpen, setIsOpen] = useState(false);
 	const args = getArgs(part);
 	const toolName = normalizeToolName(getToolName(part));
 	const output =
@@ -92,10 +58,43 @@ export function ReadOnlyToolCall({
 		part.state !== "output-available" && part.state !== "output-error";
 	const displayState = toToolDisplayState(part);
 	const isReadFileTool = toolName === "mastra_workspace_read_file";
-	const readFileContent = isReadFileTool
-		? extractReadFileContent(output)
-		: undefined;
 	const hasDetails = part.input != null || output != null || isError;
+
+	const rawFilePath = isReadFileTool
+		? String(args.path ?? args.filePath ?? args.file_path ?? args.file ?? "")
+		: "";
+	const absoluteFilePath = rawFilePath
+		? normalizeWorkspaceFilePath({
+				filePath: rawFilePath,
+				workspaceRoot: workspaceCwd,
+			})
+		: null;
+
+	const fileQuery = electronTrpc.filesystem.readFile.useQuery(
+		{
+			workspaceId: workspaceId ?? "",
+			absolutePath: absoluteFilePath ?? "",
+			encoding: "utf-8",
+		},
+		{
+			enabled:
+				isReadFileTool && !isPending && !!absoluteFilePath && !!workspaceId,
+			retry: false,
+			refetchOnWindowFocus: false,
+			staleTime: Infinity,
+		},
+	);
+
+	const fileContent = fileQuery.data?.content as string | undefined;
+	const hasFileContent = fileContent !== undefined;
+
+	const lineRange = hasFileContent
+		? (() => {
+				// The disk read always returns the whole file, so report 1–N
+				const lineCount = fileContent.trimEnd().split("\n").length;
+				return `1–${lineCount}`;
+			})()
+		: null;
 
 	let title = "Read file";
 	let subtitle = String(args.path ?? args.filePath ?? args.query ?? "");
@@ -153,77 +152,76 @@ export function ReadOnlyToolCall({
 	const filePath = getWorkspaceToolFilePath({ toolName, args });
 	const canOpenFile = Boolean(filePath && onOpenFileInPane);
 
+	// Prevent a flash of raw output while the disk read is in flight
+	if (
+		isReadFileTool &&
+		!isError &&
+		!isPending &&
+		!hasFileContent &&
+		fileQuery.isLoading
+	) {
+		return (
+			<ToolCallRow
+				icon={Icon}
+				isPending
+				title="Reading"
+				description={subtitle}
+			/>
+		);
+	}
+
+	if (isReadFileTool && !isError && hasFileContent) {
+		const displayPath = absoluteFilePath ?? rawFilePath;
+		const filename = displayPath.split("/").pop() ?? displayPath;
+		return (
+			<ReadFileTool
+				filename={filename}
+				content={fileContent}
+				lineRange={lineRange ?? undefined}
+				language={detectLanguage(displayPath) as BundledLanguage}
+				isError={isError}
+				isPending={isPending}
+				onOpenInPane={
+					canOpenFile && filePath
+						? () => onOpenFileInPane?.(filePath)
+						: undefined
+				}
+			/>
+		);
+	}
+
+	// For file-path tools (e.g. file_stat), make the filename clickable.
+	// Search queries and directory listings stay as plain text.
+	const descriptionNode =
+		canOpenFile && filePath && subtitle ? (
+			<ClickableFilePath
+				path={filePath}
+				display={subtitle}
+				onOpen={() => onOpenFileInPane?.(filePath)}
+			/>
+		) : (
+			subtitle || undefined
+		);
+
 	return (
-		<Collapsible
-			className="overflow-hidden rounded-md"
-			onOpenChange={(open) => hasDetails && setIsOpen(open)}
-			open={hasDetails ? isOpen : false}
+		<ToolCallRow
+			description={descriptionNode}
+			icon={Icon}
+			isError={isError || displayState === "output-error"}
+			isPending={isPending}
+			title={title}
 		>
-			<div className="flex items-center">
-				<CollapsibleTrigger asChild>
-					<button
-						className={
-							hasDetails
-								? "flex h-7 min-w-0 flex-1 items-center justify-between px-2.5 text-left transition-colors duration-150 hover:bg-muted/30"
-								: "flex h-7 min-w-0 flex-1 items-center justify-between px-2.5 text-left"
-						}
-						disabled={!hasDetails}
-						type="button"
-					>
-						<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
-							<Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
-							<ShimmerLabel
-								className="truncate text-xs text-muted-foreground"
-								isShimmering={isPending}
-							>
-								{subtitle ? `${title} ${subtitle}` : title}
-							</ShimmerLabel>
-						</div>
-						<div className="ml-2 flex h-6 w-6 items-center justify-center text-muted-foreground">
-							{isPending ? (
-								<Loader2Icon className="h-3 w-3 animate-spin" />
-							) : isError || displayState === "output-error" ? (
-								<XIcon className="h-3 w-3" />
-							) : (
-								<CheckIcon className="h-3 w-3" />
-							)}
-						</div>
-					</button>
-				</CollapsibleTrigger>
-				{canOpenFile && filePath && (
-					<button
-						type="button"
-						aria-label={`Open ${filePath} in file pane`}
-						className="mr-1 flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-						onClick={() => onOpenFileInPane?.(filePath)}
-					>
-						<ExternalLinkIcon className="h-3 w-3" />
-					</button>
-				)}
-			</div>
-			{hasDetails && (
-				<CollapsibleContent className="data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in">
-					{isReadFileTool && !isError && readFileContent ? (
-						<div className="mt-0.5 max-h-[300px] overflow-y-auto">
-							<pre className="whitespace-pre-wrap break-words px-2.5 py-2 font-mono text-xs text-foreground">
-								{readFileContent}
-							</pre>
-						</div>
-					) : (
-						<div className="mt-0.5">
-							{part.input != null && <ToolInput input={part.input} />}
-							{(output != null || isError) && (
-								<ToolOutput
-									output={!isError ? output : undefined}
-									errorText={
-										isError ? stringify(outputError ?? output) : undefined
-									}
-								/>
-							)}
-						</div>
+			{hasDetails ? (
+				<div className="space-y-2 pl-2">
+					{part.input != null && <ToolInput input={part.input} />}
+					{(output != null || isError) && (
+						<ToolOutput
+							output={!isError ? output : undefined}
+							errorText={isError ? stringify(outputError ?? output) : undefined}
+						/>
 					)}
-				</CollapsibleContent>
-			)}
-		</Collapsible>
+				</div>
+			) : undefined}
+		</ToolCallRow>
 	);
 }

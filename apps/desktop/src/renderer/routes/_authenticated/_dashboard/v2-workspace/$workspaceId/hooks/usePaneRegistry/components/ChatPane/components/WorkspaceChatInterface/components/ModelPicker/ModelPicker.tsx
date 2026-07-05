@@ -9,9 +9,10 @@ import {
 } from "@superset/ui/ai-elements/model-selector";
 import { PromptInputButton } from "@superset/ui/ai-elements/prompt-input";
 import { claudeIcon } from "@superset/ui/icons/preset-icons";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { PILL_BUTTON_CLASS } from "renderer/components/Chat/ChatInterface/styles";
 import type { ModelOption } from "renderer/components/Chat/ChatInterface/types";
 import { ModelProviderGroup } from "./components/ModelProviderGroup";
@@ -41,6 +42,15 @@ export function ModelPicker({
 	const selectedLogo = selectedModel
 		? providerToLogo(selectedModel.provider)
 		: null;
+	const { data: anthropicStatus, refetch: refetchAnthropicStatus } =
+		workspaceTrpc.auth.getAnthropicStatus.useQuery();
+	const { data: openAIStatus, refetch: refetchOpenAIStatus } =
+		workspaceTrpc.auth.getOpenAIStatus.useQuery();
+
+	useEffect(() => {
+		if (!open) return;
+		void Promise.all([refetchAnthropicStatus(), refetchOpenAIStatus()]);
+	}, [open, refetchAnthropicStatus, refetchOpenAIStatus]);
 
 	const openModelsSettings = () => {
 		onOpenChange(false);
@@ -71,11 +81,11 @@ export function ModelPicker({
 							key={provider}
 							provider={provider}
 							models={providerModels}
-							isAnthropicAuthenticated={true}
+							isAnthropicAuthenticated={anthropicStatus?.authenticated ?? false}
 							isAnthropicOAuthPending={false}
 							isAnthropicApiKeyPending={false}
 							onOpenAnthropicAuthModal={openModelsSettings}
-							isOpenAIAuthenticated={true}
+							isOpenAIAuthenticated={openAIStatus?.authenticated ?? false}
 							isOpenAIOAuthPending={false}
 							isOpenAIApiKeyPending={false}
 							onOpenOpenAIAuthModal={openModelsSettings}

@@ -1,6 +1,7 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import { integrationConnections, members } from "@superset/db/schema";
+import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
 import { Client } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 
@@ -73,8 +74,7 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const tokenData: { access_token: string; expires_in?: number } =
-		await tokenResponse.json();
+	const tokenData = linearTokenResponseSchema.parse(await tokenResponse.json());
 
 	const linearClient = new LinearClient({
 		accessToken: tokenData.access_token,
@@ -82,9 +82,7 @@ export async function GET(request: Request) {
 	const viewer = await linearClient.viewer;
 	const linearOrg = await viewer.organization;
 
-	const tokenExpiresAt = tokenData.expires_in
-		? new Date(Date.now() + tokenData.expires_in * 1000)
-		: null;
+	const tokenExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
 	await db
 		.insert(integrationConnections)
@@ -93,6 +91,7 @@ export async function GET(request: Request) {
 			connectedByUserId: userId,
 			provider: "linear",
 			accessToken: tokenData.access_token,
+			refreshToken: tokenData.refresh_token,
 			tokenExpiresAt,
 			externalOrgId: linearOrg.id,
 			externalOrgName: linearOrg.name,
@@ -104,7 +103,10 @@ export async function GET(request: Request) {
 			],
 			set: {
 				accessToken: tokenData.access_token,
+				refreshToken: tokenData.refresh_token,
 				tokenExpiresAt,
+				disconnectedAt: null,
+				disconnectReason: null,
 				externalOrgId: linearOrg.id,
 				externalOrgName: linearOrg.name,
 				connectedByUserId: userId,

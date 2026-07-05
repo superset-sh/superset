@@ -15,9 +15,9 @@ import {
 	HiMiniStop,
 	HiMiniXMark,
 } from "react-icons/hi2";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRunCommand } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRunCommand";
-import { useHotkeyText } from "renderer/stores/hotkeys";
 import { useSetSettingsSearchQuery } from "renderer/stores/settings-state";
 
 interface WorkspaceRunButtonProps {
@@ -33,7 +33,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 }: WorkspaceRunButtonProps) {
 	const navigate = useNavigate();
 	const setSettingsSearchQuery = useSetSettingsSearchQuery();
-	const hotkeyText = useHotkeyText("RUN_WORKSPACE_COMMAND");
+	const hotkeyText = useHotkeyDisplay("RUN_WORKSPACE_COMMAND").text;
 	const {
 		canForceStop,
 		forceStopWorkspaceRun,
@@ -44,12 +44,12 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		workspaceId,
 		worktreePath,
 	});
-	const { data: runConfig } =
-		electronTrpc.workspaces.getResolvedRunCommands.useQuery(
+	const { data: runDefinition } =
+		electronTrpc.workspaces.getWorkspaceRunDefinition.useQuery(
 			{ workspaceId },
 			{ enabled: !!workspaceId },
 		);
-	const hasRunCommand = (runConfig?.commands ?? []).some(
+	const hasRunCommand = (runDefinition?.commands ?? []).some(
 		(command) => command.trim().length > 0,
 	);
 
@@ -57,7 +57,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		if (!hasRunCommand && projectId) {
 			setSettingsSearchQuery("scripts");
 			void navigate({
-				to: "/settings/project/$projectId/general",
+				to: "/settings/projects/$projectId",
 				params: { projectId },
 			});
 			return;
@@ -73,13 +73,20 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 	]);
 
 	const handleConfigureClick = useCallback(() => {
+		if (runDefinition?.source === "terminal-preset") {
+			void navigate({
+				to: "/settings/terminal",
+				search: { editPresetId: runDefinition.presetId },
+			});
+			return;
+		}
 		if (!projectId) return;
 		setSettingsSearchQuery("scripts");
 		void navigate({
-			to: "/settings/project/$projectId/general",
+			to: "/settings/projects/$projectId",
 			params: { projectId },
 		});
-	}, [navigate, projectId, setSettingsSearchQuery]);
+	}, [navigate, projectId, runDefinition, setSettingsSearchQuery]);
 
 	const handleForceStopClick = useCallback(() => {
 		void forceStopWorkspaceRun();
@@ -167,7 +174,9 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 					)}
 					<DropdownMenuItem onClick={handleConfigureClick}>
 						<HiMiniCog6Tooth className="mr-2 size-4" />
-						Configure
+						{runDefinition?.source === "terminal-preset"
+							? "Edit Run Preset"
+							: "Configure"}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

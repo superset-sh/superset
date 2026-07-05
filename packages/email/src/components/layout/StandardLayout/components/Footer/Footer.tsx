@@ -6,6 +6,8 @@ interface FooterProps {
 }
 
 export function Footer({ showSocial = true }: FooterProps) {
+	const currentYear = new Date().getFullYear();
+
 	const socialIcons = {
 		x: `${env.NEXT_PUBLIC_MARKETING_URL}/assets/emails/x.png`,
 		instagram: `${env.NEXT_PUBLIC_MARKETING_URL}/assets/emails/instagram.png`,
@@ -73,21 +75,21 @@ export function Footer({ showSocial = true }: FooterProps) {
 			{/* Legal Links */}
 			<Text className="text-muted text-xs leading-none m-0 mb-4">
 				<Link
-					href="https://superset.sh/privacy"
+					href={`${env.NEXT_PUBLIC_MARKETING_URL}/privacy`}
 					className="text-muted no-underline"
 				>
 					Privacy
 				</Link>
 				{" • "}
 				<Link
-					href="https://superset.sh/terms"
+					href={`${env.NEXT_PUBLIC_MARKETING_URL}/terms`}
 					className="text-muted no-underline"
 				>
 					Terms
 				</Link>
 				{" • "}
 				<Link
-					href="https://superset.sh/contact"
+					href={`${env.NEXT_PUBLIC_MARKETING_URL}/contact`}
 					className="text-muted no-underline"
 				>
 					Contact
@@ -96,7 +98,7 @@ export function Footer({ showSocial = true }: FooterProps) {
 
 			{/* Company Info */}
 			<Text className="text-muted text-xs leading-none m-0">
-				© 2026 Superset. All rights reserved.
+				© {currentYear} Superset. All rights reserved.
 			</Text>
 		</Section>
 	);

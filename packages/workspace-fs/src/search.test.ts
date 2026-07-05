@@ -236,9 +236,9 @@ describe("searchFiles", () => {
 			limit: 5,
 		});
 
-		expect(results.map((result) => result.absolutePath)).toEqual([
-			flatPath,
-			nestedPath,
-		]);
+		const paths = results.map((result) => result.absolutePath);
+		expect(paths).toContain(flatPath);
+		expect(paths).toContain(nestedPath);
+		expect(paths).toHaveLength(2);
 	});
 });

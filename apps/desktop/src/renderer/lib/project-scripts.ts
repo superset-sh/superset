@@ -9,6 +9,7 @@ export async function invalidateProjectScriptQueries(
 	await Promise.all([
 		utils.config.getConfigContent.invalidate({ projectId }),
 		utils.config.shouldShowSetupCard.invalidate({ projectId }),
+		utils.workspaces.getWorkspaceRunDefinition.invalidate(),
 		utils.workspaces.getResolvedRunCommands.invalidate(),
 	]);
 }

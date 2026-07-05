@@ -11,6 +11,7 @@ import {
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { localDb } from "main/lib/local-db";
+import { invalidatePortLabelCache } from "../../ports/label-cache";
 import { computeNextProjectChildTabOrder } from "./project-children-order";
 
 /**
@@ -86,37 +87,6 @@ export function activateProject(project: SelectProject): void {
 		})
 		.where(eq(projects.id, project.id))
 		.run();
-}
-
-/**
- * Hide a project from the sidebar by setting tabOrder to null.
- * Called when the last workspace in a project is deleted/closed.
- */
-export function hideProject(projectId: string): void {
-	localDb
-		.update(projects)
-		.set({ tabOrder: null })
-		.where(eq(projects.id, projectId))
-		.run();
-}
-
-/**
- * Check if a project has any remaining workspaces.
- * If not, hide it from the sidebar.
- *
- * Note: We check for ANY workspaces (including those being deleted) to avoid
- * prematurely hiding the project when multiple workspaces are being deleted
- * concurrently. The project should only be hidden when all deletions complete.
- */
-export function hideProjectIfNoWorkspaces(projectId: string): void {
-	const remainingWorkspaces = localDb
-		.select()
-		.from(workspaces)
-		.where(eq(workspaces.projectId, projectId))
-		.all();
-	if (remainingWorkspaces.length === 0) {
-		hideProject(projectId);
-	}
 }
 
 /**
@@ -273,6 +243,7 @@ export function clearWorkspaceDeletingStatus(workspaceId: string): void {
  */
 export function deleteWorkspace(workspaceId: string): void {
 	localDb.delete(workspaces).where(eq(workspaces.id, workspaceId)).run();
+	invalidatePortLabelCache(workspaceId);
 }
 
 /**

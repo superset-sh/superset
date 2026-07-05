@@ -4,6 +4,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
@@ -55,16 +56,22 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	const collections = activeOrganizationId
-		? getCollections(activeOrganizationId)
-		: null;
+	const collections = useMemo(
+		() => (activeOrganizationId ? getCollections(activeOrganizationId) : null),
+		[activeOrganizationId],
+	);
 
-	if (!collections || isSwitching) {
+	const contextValue = useMemo<CollectionsContextType | null>(
+		() => (collections ? { ...collections, switchOrganization } : null),
+		[collections, switchOrganization],
+	);
+
+	if (!contextValue || isSwitching) {
 		return null;
 	}
 
 	return (
-		<CollectionsContext.Provider value={{ ...collections, switchOrganization }}>
+		<CollectionsContext.Provider value={contextValue}>
 			{children}
 		</CollectionsContext.Provider>
 	);

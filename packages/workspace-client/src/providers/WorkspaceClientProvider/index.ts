@@ -4,5 +4,4 @@ export {
 	useWorkspaceWsUrl,
 	type WorkspaceClientContextValue,
 	WorkspaceClientProvider,
-	type WorkspaceFsSubscriptionInput,
 } from "./WorkspaceClientProvider";

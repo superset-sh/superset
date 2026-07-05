@@ -1,4 +1,4 @@
-import type { ResolvedAgentConfig } from "shared/utils/agent-settings";
+import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 
 export interface AgentCardProps {
 	preset: ResolvedAgentConfig;

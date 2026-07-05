@@ -2,6 +2,7 @@ import type { AppRouter } from "@superset/host-service";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { hasAnsweredQuestionToolCall } from "renderer/components/Chat/ChatInterface/utils/messageHelpers";
 
 interface UseChatDisplayOptions {
 	sessionId: string | null;
@@ -19,8 +20,9 @@ type RouterInputs = inferRouterInputs<AppRouter>;
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 type ChatInputs = RouterInputs["chat"];
 type ChatOutputs = RouterOutputs["chat"];
-type DisplayStateOutput = ChatOutputs["getDisplayState"];
-type ListMessagesOutput = ChatOutputs["listMessages"];
+type SnapshotOutput = ChatOutputs["getSnapshot"];
+type DisplayStateOutput = SnapshotOutput["displayState"];
+type ListMessagesOutput = SnapshotOutput["messages"];
 type HistoryMessage = ListMessagesOutput[number];
 type HistoryMessagePart = HistoryMessage["content"][number];
 type SendMessageInput = ChatInputs["sendMessage"];
@@ -62,7 +64,7 @@ function withoutActiveTurnAssistantHistory({
 	isRunning,
 }: {
 	messages: ListMessagesOutput;
-	currentMessage: NonNullable<DisplayStateOutput>["currentMessage"] | null;
+	currentMessage: DisplayStateOutput["currentMessage"] | null;
 	isRunning: boolean;
 }): ListMessagesOutput {
 	if (!isRunning || !currentMessage || currentMessage.role !== "assistant") {
@@ -73,7 +75,10 @@ function withoutActiveTurnAssistantHistory({
 	const previousTurns = messages.slice(0, turnStartIndex);
 	const activeTurnNonAssistant = messages
 		.slice(turnStartIndex)
-		.filter((message) => message.role !== "assistant");
+		.filter(
+			(message) =>
+				message.role !== "assistant" || hasAnsweredQuestionToolCall(message),
+		);
 
 	return [...previousTurns, ...activeTurnNonAssistant];
 }
@@ -107,8 +112,7 @@ function getLegacyImagePayload(
 }
 
 export function useChatDisplay(options: UseChatDisplayOptions) {
-	const { sessionId, workspaceId, enabled = true, fps = 60 } = options;
-	const utils = workspaceTrpc.useUtils();
+	const { sessionId, workspaceId, enabled = true, fps = 4 } = options;
 	const [commandError, setCommandError] = useState<unknown>(null);
 	const queryInput =
 		sessionId === null ? undefined : { sessionId, workspaceId };
@@ -119,16 +123,9 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		refetchInterval: refetchIntervalMs,
 		refetchIntervalInBackground: true,
 		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
 	} as const;
 
-	const displayQuery = workspaceTrpc.chat.getDisplayState.useQuery(
-		queryInput as { sessionId: string; workspaceId: string },
-		queryOptions,
-	);
-
-	const messagesQuery = workspaceTrpc.chat.listMessages.useQuery(
+	const snapshotQuery = workspaceTrpc.chat.getSnapshot.useQuery(
 		queryInput as { sessionId: string; workspaceId: string },
 		queryOptions,
 	);
@@ -141,7 +138,8 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		workspaceTrpc.chat.respondToQuestion.useMutation();
 	const respondToPlanMutation = workspaceTrpc.chat.respondToPlan.useMutation();
 
-	const displayState = displayQuery.data ?? null;
+	const snapshot = snapshotQuery.data ?? null;
+	const displayState = snapshot?.displayState ?? null;
 	const runtimeErrorMessage =
 		typeof displayState?.errorMessage === "string" &&
 		displayState.errorMessage.trim()
@@ -151,9 +149,9 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	const isRunning = displayState?.isRunning ?? false;
 	const isConversationLoading =
 		isQueryEnabled &&
-		messagesQuery.data === undefined &&
-		(messagesQuery.isLoading || messagesQuery.isFetching);
-	const historicalMessages = messagesQuery.data ?? [];
+		snapshotQuery.data === undefined &&
+		(snapshotQuery.isLoading || snapshotQuery.isFetching);
+	const historicalMessages = snapshot?.messages ?? [];
 	const latestAssistantErrorMessage = isRunning
 		? null
 		: findLatestAssistantErrorMessage(historicalMessages);
@@ -351,20 +349,6 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		],
 	);
 
-	useEffect(() => {
-		if (!queryInput) return;
-		if (!isRunning) return;
-		void Promise.all([
-			utils.chat.getDisplayState.invalidate(queryInput),
-			utils.chat.listMessages.invalidate(queryInput),
-		]);
-	}, [
-		isRunning,
-		queryInput,
-		utils.chat.getDisplayState,
-		utils.chat.listMessages,
-	]);
-
 	return {
 		...displayState,
 		messages,
@@ -372,8 +356,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		error:
 			runtimeErrorMessage ??
 			latestAssistantErrorMessage ??
-			displayQuery.error ??
-			messagesQuery.error ??
+			snapshotQuery.error ??
 			commandError ??
 			null,
 		commands,

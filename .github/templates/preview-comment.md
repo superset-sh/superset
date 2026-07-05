@@ -14,11 +14,6 @@
 <td>$DATABASE_LINK</td>
 </tr>
 <tr>
-<td><img src="https://fly.io/phx/ui/images/favicon/favicon-595d1312b35dfe32838befdf8505515e.ico" width="20" height="20" alt="Fly.io"> <strong>Electric (Fly.io)</strong></td>
-<td align="center">$ELECTRIC_STATUS</td>
-<td>$ELECTRIC_LINK</td>
-</tr>
-<tr>
 <td><img src="https://vercel.com/favicon.ico" width="20" height="20" alt="Vercel"> <strong>API (Vercel)</strong></td>
 <td align="center">$API_STATUS</td>
 <td>$API_LINK</td>

@@ -1,4 +1,8 @@
 import type { BranchPrefixMode } from "@superset/local-db";
+import {
+	resolveBranchPrefix,
+	sanitizeSegment,
+} from "@superset/shared/workspace-launch";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -11,17 +15,13 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
-import {
-	useDefaultWorktreePath,
-	WorktreeLocationPicker,
-} from "../../../components/WorktreeLocationPicker";
 import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { UserWorktreeLocationSection } from "./components/UserWorktreeLocationSection";
 
 interface GitSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -107,30 +107,6 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 		});
 	};
 
-	const { data: worktreeBaseDir, isLoading: isWorktreeBaseDirLoading } =
-		electronTrpc.settings.getWorktreeBaseDir.useQuery();
-	const setWorktreeBaseDir =
-		electronTrpc.settings.setWorktreeBaseDir.useMutation({
-			onMutate: async ({ path }) => {
-				await utils.settings.getWorktreeBaseDir.cancel();
-				const previous = utils.settings.getWorktreeBaseDir.getData();
-				utils.settings.getWorktreeBaseDir.setData(undefined, path);
-				return { previous };
-			},
-			onError: (_err, _vars, context) => {
-				if (context?.previous !== undefined) {
-					utils.settings.getWorktreeBaseDir.setData(
-						undefined,
-						context.previous,
-					);
-				}
-			},
-			onSettled: () => {
-				utils.settings.getWorktreeBaseDir.invalidate();
-			},
-		});
-	const defaultWorktreePath = useDefaultWorktreePath();
-
 	const previewPrefix =
 		resolveBranchPrefix({
 			mode: branchPrefix?.mode ?? "none",
@@ -147,7 +123,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Git & Worktrees</h2>
+				<h2 className="text-xl font-semibold">Git & worktrees</h2>
 				<p className="text-sm text-muted-foreground mt-1">
 					Configure git branch and worktree behavior
 				</p>
@@ -180,9 +156,9 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 				{showBranchPrefix && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Branch Prefix</Label>
+							<Label className="text-sm font-medium">Branch prefix</Label>
 							<p className="text-xs text-muted-foreground">
-								Preview:{" "}
+								Group new branches under a folder.{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
 										? `${previewPrefix}/branch-name`
@@ -228,24 +204,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 					</div>
 				)}
 
-				{showWorktreeLocation && (
-					<div className="space-y-0.5">
-						<Label className="text-sm font-medium">Worktree location</Label>
-						<p className="text-xs text-muted-foreground">
-							Base directory for new worktrees
-						</p>
-						<WorktreeLocationPicker
-							currentPath={worktreeBaseDir}
-							defaultPathLabel={`Default (${defaultWorktreePath})`}
-							defaultBrowsePath={worktreeBaseDir}
-							disabled={
-								isWorktreeBaseDirLoading || setWorktreeBaseDir.isPending
-							}
-							onSelect={(path) => setWorktreeBaseDir.mutate({ path })}
-							onReset={() => setWorktreeBaseDir.mutate({ path: null })}
-						/>
-					</div>
-				)}
+				{showWorktreeLocation && <UserWorktreeLocationSection />}
 			</div>
 		</div>
 	);

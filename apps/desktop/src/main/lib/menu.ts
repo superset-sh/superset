@@ -1,15 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 import { app, BrowserWindow, Menu, shell } from "electron";
 import { env } from "main/env.main";
-import { appState } from "main/lib/app-state";
-import { hotkeysEmitter } from "main/lib/hotkeys-events";
 import { resetTerminalStateDev } from "main/lib/terminal/dev-reset";
-import {
-	getCurrentPlatform,
-	getEffectiveHotkey,
-	type HotkeyId,
-	toElectronAccelerator,
-} from "shared/hotkeys";
 import {
 	checkForUpdatesInteractive,
 	simulateDownloading,
@@ -17,32 +9,38 @@ import {
 	simulateUpdateReady,
 } from "./auto-updater";
 import { menuEmitter } from "./menu-events";
-
-let isHotkeyListenerRegistered = false;
-
-function getMenuAccelerator(id: HotkeyId): string | undefined {
-	const platform = getCurrentPlatform();
-	const overrides = appState.data.hotkeysState.byPlatform[platform];
-	const keys = getEffectiveHotkey(id, overrides, platform);
-	const accelerator = toElectronAccelerator(keys, platform);
-	return accelerator ?? undefined;
-}
-
-export function registerMenuHotkeyUpdates() {
-	if (isHotkeyListenerRegistered) return;
-	isHotkeyListenerRegistered = true;
-	hotkeysEmitter.on("change", () => {
-		createApplicationMenu();
-	});
-}
+import { confirmAndQuitCompletely } from "./quit-completely";
 
 export function createApplicationMenu() {
-	const reloadAccelerator = getMenuAccelerator("RELOAD_WINDOW");
-	const closeAccelerator = getMenuAccelerator("CLOSE_WINDOW");
-	const showHotkeysAccelerator = getMenuAccelerator("SHOW_HOTKEYS");
-	const openSettingsAccelerator = getMenuAccelerator("OPEN_SETTINGS");
+	const reloadAccelerator = "CmdOrCtrl+R";
+	const closeAccelerator = "CmdOrCtrl+Shift+Q";
+	const showHotkeysAccelerator = "CmdOrCtrl+/";
+	const openSettingsAccelerator = "CmdOrCtrl+,";
 
 	const template: Electron.MenuItemConstructorOptions[] = [
+		{
+			label: "File",
+			submenu: [
+				{
+					label: "Open Repo...",
+					accelerator: "CmdOrCtrl+O",
+					click: () => {
+						menuEmitter.emit("open-project");
+					},
+				},
+				{ type: "separator" },
+				// Explicit click handler (not `role: "close"`) — `role: "close"` adds
+				// an implicit CmdOrCtrl+W accelerator that overrides browser-manager's
+				// `before-input-event` interception and closes the window instead of
+				// the focused pane.
+				{
+					label: "Close Window",
+					click: () => {
+						BrowserWindow.getFocusedWindow()?.close();
+					},
+				},
+			],
+		},
 		{
 			label: "Edit",
 			submenu: [
@@ -65,7 +63,15 @@ export function createApplicationMenu() {
 						BrowserWindow.getFocusedWindow()?.reload();
 					},
 				},
-				{ role: "forceReload" },
+				// Explicit click handler (not `role: "forceReload"`) — the role adds
+				// an implicit CmdOrCtrl+Shift+R accelerator that prevents the renderer's
+				// Reopen Closed Tab shortcut from receiving the event.
+				{
+					label: "Force Reload",
+					click: () => {
+						BrowserWindow.getFocusedWindow()?.webContents.reloadIgnoringCache();
+					},
+				},
 				{ role: "toggleDevTools" },
 				{ type: "separator" },
 				{ role: "resetZoom" },
@@ -187,6 +193,12 @@ export function createApplicationMenu() {
 				{ role: "unhide" },
 				{ type: "separator" },
 				{ role: "quit" },
+				{
+					label: "Quit Superset Completely",
+					click: () => {
+						void confirmAndQuitCompletely();
+					},
+				},
 			],
 		});
 	}

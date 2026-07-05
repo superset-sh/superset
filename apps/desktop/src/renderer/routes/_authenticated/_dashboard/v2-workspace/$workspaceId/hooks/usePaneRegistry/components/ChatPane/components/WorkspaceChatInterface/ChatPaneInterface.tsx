@@ -1,3 +1,4 @@
+import type { AppRouter } from "@superset/host-service";
 import {
 	PromptInputAttachment,
 	type PromptInputMessage,
@@ -6,10 +7,10 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useQuery } from "@tanstack/react-query";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
 	ModelOption,
 	PermissionMode,
@@ -119,7 +120,6 @@ function ChatUploadFooter({
 	return (
 		<ChatInputFooter
 			{...footerProps}
-			sessionId={sessionId}
 			workspaceId={workspaceId}
 			submitDisabled={sessionId ? isUploading : false}
 			renderAttachment={renderAttachment}
@@ -190,6 +190,7 @@ function getLaunchConfigKey(
 export function ChatPaneInterface({
 	sessionId,
 	initialLaunchConfig,
+	onConsumeLaunchConfig,
 	workspaceId,
 	organizationId,
 	cwd,
@@ -197,7 +198,6 @@ export function ChatPaneInterface({
 	getOrCreateSession,
 	onResetSession,
 	onUserMessageSubmitted,
-	onRawSnapshotChange,
 }: ChatPaneInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
 	const selectedModelId = useChatPreferencesStore(
@@ -225,6 +225,11 @@ export function ChatPaneInterface({
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
+	const [footerScrollTrigger, setFooterScrollTrigger] = useState(0);
+	const bumpFooterScroll = useCallback(
+		() => setFooterScrollTrigger((n) => n + 1),
+		[],
+	);
 	const [editingUserMessageId, setEditingUserMessageId] = useState<
 		string | null
 	>(null);
@@ -255,31 +260,40 @@ export function ChatPaneInterface({
 		[organizationId, sessionId, workspaceId],
 	);
 
+	// Memoize the select mapper so React Query can preserve the result's
+	// identity across polls — without this, every render produces a new
+	// mapper, every poll produces a new array, and every consumer of
+	// `slashCommands` rerenders even when nothing has changed.
+	const selectSlashCommands = useCallback(
+		(
+			commands: NonNullable<
+				inferRouterOutputs<AppRouter>["chat"]["getSlashCommands"]
+			>,
+		) =>
+			commands.map((command) => ({
+				...command,
+				kind:
+					command.kind === "builtin"
+						? ("builtin" as const)
+						: ("custom" as const),
+				source:
+					command.kind === "builtin"
+						? ("builtin" as const)
+						: ("project" as const),
+			})),
+		[],
+	);
+
 	const { data: slashCommands = [] } =
 		workspaceTrpc.chat.getSlashCommands.useQuery(
-			{ sessionId: sessionId ?? "", workspaceId },
-			{
-				enabled: Boolean(sessionId),
-				select: (commands) =>
-					commands.map((command) => ({
-						...command,
-						kind:
-							command.kind === "builtin"
-								? ("builtin" as const)
-								: ("custom" as const),
-						source:
-							command.kind === "builtin"
-								? ("builtin" as const)
-								: ("project" as const),
-					})),
-			},
+			{ workspaceId },
+			{ select: selectSlashCommands },
 		);
 
 	const chat = useChatDisplay({
 		sessionId,
 		workspaceId,
 		enabled: Boolean(sessionId),
-		fps: 60,
 	});
 	const {
 		commands,
@@ -326,38 +340,20 @@ export function ChatPaneInterface({
 
 	const sendMessageToSession = useCallback(
 		async (targetSessionId: string, input: ChatSendMessageInput) => {
-			const queryInput = {
+			// Optimistic state for this path lives in `pendingUserTurn` (set by
+			// the caller in handleSend), NOT in the snapshot cache. Writing to
+			// the cache here was racing with the 4fps snapshot polls — a poll
+			// could resolve mid-mutation with the harness's pre-message state
+			// and clobber the optimistic write, making the user message vanish
+			// briefly. The pendingUserTurn local state is merged in via
+			// getVisibleMessagesWithPendingUserTurn so it survives stale polls.
+			await sendMessageMutation.mutateAsync({
 				sessionId: targetSessionId,
 				workspaceId,
-			};
-			const optimisticMessage = toOptimisticUserMessage(input);
-			if (optimisticMessage) {
-				workspaceTrpcUtils.chat.listMessages.setData(
-					queryInput,
-					(existingMessages = []) => [...existingMessages, optimisticMessage],
-				);
-			}
-
-			try {
-				await sendMessageMutation.mutateAsync({
-					sessionId: targetSessionId,
-					workspaceId,
-					...input,
-				});
-			} catch (error) {
-				if (optimisticMessage) {
-					workspaceTrpcUtils.chat.listMessages.setData(
-						queryInput,
-						(existingMessages = []) =>
-							existingMessages.filter(
-								(message) => message.id !== optimisticMessage.id,
-							),
-					);
-				}
-				throw error;
-			}
+				...input,
+			});
 		},
-		[workspaceTrpcUtils.chat.listMessages, sendMessageMutation, workspaceId],
+		[sendMessageMutation, workspaceId],
 	);
 
 	const canAbort = Boolean(isRunning);
@@ -495,22 +491,11 @@ export function ChatPaneInterface({
 		setSubmitStatus(undefined);
 	}, [isRunning]);
 
+	// Scroll chat to bottom whenever the footer question overlay appears, changes, or disappears
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pendingQuestion is an intentional re-run trigger
 	useEffect(() => {
-		onRawSnapshotChange?.({
-			sessionId,
-			isRunning: canAbort,
-			currentMessage: currentMessage ?? null,
-			messages: messages ?? [],
-			error,
-		});
-	}, [
-		canAbort,
-		currentMessage,
-		error,
-		messages,
-		onRawSnapshotChange,
-		sessionId,
-	]);
+		bumpFooterScroll();
+	}, [bumpFooterScroll, pendingQuestion]);
 
 	useEffect(() => {
 		messagesLengthRef.current = messages?.length ?? 0;
@@ -589,7 +574,25 @@ export function ChatPaneInterface({
 				if (sessionId && targetSessionId === sessionId) {
 					await commands.sendMessage(sendInput);
 				} else {
-					await sendMessageToSession(targetSessionId, sendInput);
+					// New-session path: the existing-session path's optimistic
+					// state lives inside useChatDisplay, but we don't have a
+					// session subscribed there yet. Hold the user message in
+					// pendingUserTurn so getVisibleMessagesWithPendingUserTurn
+					// keeps it visible across stale snapshot polls until the
+					// harness's response includes it.
+					const optimisticMessage = toOptimisticUserMessage(sendInput);
+					if (optimisticMessage) {
+						setPendingUserTurn({
+							kind: "append",
+							message: optimisticMessage,
+						});
+					}
+					try {
+						await sendMessageToSession(targetSessionId, sendInput);
+					} catch (error) {
+						setPendingUserTurn(null);
+						throw error;
+					}
 				}
 				if (content) {
 					onUserMessageSubmitted?.(content);
@@ -701,6 +704,7 @@ export function ChatPaneInterface({
 				consumedLaunchConfigRef.current = launchConfigKey;
 				delete autoLaunchAttemptsRef.current[launchConfigKey];
 				delete autoLaunchSessionLockRef.current[launchConfigKey];
+				onConsumeLaunchConfig?.();
 
 				captureChatEvent("chat_message_sent", {
 					session_id: targetSessionId,
@@ -750,6 +754,7 @@ export function ChatPaneInterface({
 		setRuntimeErrorMessage,
 		onUserMessageSubmitted,
 		thinkingLevel,
+		onConsumeLaunchConfig,
 	]);
 
 	const handleStop = useCallback(
@@ -760,14 +765,6 @@ export function ChatPaneInterface({
 		[stopActiveResponse],
 	);
 
-	const handleSlashCommandSend = useCallback(
-		(command: SlashCommand) => {
-			void handleSend({ content: `/${command.name}` }).catch((error) => {
-				console.debug("[chat] handleSlashCommandSend error", error);
-			});
-		},
-		[handleSend],
-	);
 	const restartFromUserMessage = useCallback(
 		async (
 			request: UserMessageRestartRequest,
@@ -903,6 +900,7 @@ export function ChatPaneInterface({
 			const trimmedAnswer = answer.trim();
 			if (!trimmedQuestionId || !trimmedAnswer) return;
 			clearRuntimeError();
+			bumpFooterScroll();
 			setQuestionResponsePending(true);
 			try {
 				await commands.respondToQuestion({
@@ -915,14 +913,14 @@ export function ChatPaneInterface({
 				setQuestionResponsePending(false);
 			}
 		},
-		[clearRuntimeError, commands],
+		[bumpFooterScroll, clearRuntimeError, commands],
 	);
 
 	const errorMessage = runtimeError ?? toErrorMessage(error);
 
 	return (
 		<PromptInputProvider initialInput={initialLaunchConfig?.draftInput}>
-			<div className="flex h-full flex-col bg-background">
+			<div className="flex h-full w-full flex-col bg-background">
 				<ChatMessageList
 					messages={visibleMessages}
 					isFocused={isFocused}
@@ -944,15 +942,13 @@ export function ChatPaneInterface({
 					pendingPlanApproval={pendingPlanApproval}
 					isPlanSubmitting={planResponsePending}
 					onPlanRespond={handlePlanResponse}
-					pendingQuestion={pendingQuestion}
-					isQuestionSubmitting={questionResponsePending}
-					onQuestionRespond={handleQuestionResponse}
 					editingUserMessageId={editingUserMessageId}
 					isEditSubmitting={isAwaitingAssistant}
 					onStartEditUserMessage={setEditingUserMessageId}
 					onCancelEditUserMessage={() => setEditingUserMessageId(null)}
 					onSubmitEditedUserMessage={handleSubmitEditedUserMessage}
 					onRestartUserMessage={handleResendUserMessage}
+					footerScrollTrigger={footerScrollTrigger}
 				/>
 				<McpControls mcpUi={mcpUi} />
 				<ChatUploadFooter
@@ -977,7 +973,13 @@ export function ChatPaneInterface({
 					onSend={handleSend}
 					onSubmitStart={() => setSubmitStatus("submitted")}
 					onStop={handleStop}
-					onSlashCommandSend={handleSlashCommandSend}
+					pendingQuestion={pendingQuestion}
+					isQuestionSubmitting={questionResponsePending}
+					onQuestionRespond={handleQuestionResponse}
+					onQuestionCancel={() => {
+						bumpFooterScroll();
+						void stopActiveResponse();
+					}}
 				/>
 			</div>
 		</PromptInputProvider>

@@ -1,4 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { V2WorkspacesHeader } from "./components/V2WorkspacesHeader";
+import { V2WorkspacesList } from "./components/V2WorkspacesList";
+import { useAccessibleV2Workspaces } from "./hooks/useAccessibleV2Workspaces";
+import { useV2WorkspacesFilterStore } from "./stores/v2WorkspacesFilterStore";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspaces/",
@@ -7,26 +12,38 @@ export const Route = createFileRoute(
 });
 
 function V2WorkspacesPage() {
-	return (
-		<div className="flex h-full flex-col overflow-y-auto p-6">
-			<div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-				<div className="space-y-2">
-					<h1 className="text-2xl font-semibold tracking-tight">Workspaces</h1>
-					<p className="max-w-2xl text-sm text-muted-foreground">
-						This page will become the browse surface for all accessible V2
-						workspaces, with sidebar workspaces prioritized first.
-					</p>
-				</div>
+	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
+	const deviceFilter = useV2WorkspacesFilterStore(
+		(state) => state.deviceFilter,
+	);
+	const projectFilter = useV2WorkspacesFilterStore(
+		(state) => state.projectFilter,
+	);
+	const setSearchQuery = useV2WorkspacesFilterStore(
+		(state) => state.setSearchQuery,
+	);
 
-				<div className="rounded-xl border border-border bg-card p-5">
-					<h2 className="text-sm font-medium">WIP</h2>
-					<p className="mt-2 text-sm text-muted-foreground">
-						Next up is splitting local sidebar workspaces from the full set of
-						accessible shared workspaces and giving this page proper search,
-						filtering, and recents.
-					</p>
-				</div>
-			</div>
+	useEffect(() => {
+		setSearchQuery("");
+	}, [setSearchQuery]);
+
+	const { all, counts, hostOptions, projectOptions, hostsById, projectsById } =
+		useAccessibleV2Workspaces({
+			searchQuery,
+			deviceFilter,
+			projectFilter,
+		});
+
+	return (
+		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
+			<V2WorkspacesHeader
+				counts={counts}
+				hostOptions={hostOptions}
+				projectOptions={projectOptions}
+				hostsById={hostsById}
+				projectsById={projectsById}
+			/>
+			<V2WorkspacesList workspaces={all} />
 		</div>
 	);
 }

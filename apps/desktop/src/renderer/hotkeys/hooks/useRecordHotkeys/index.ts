@@ -1,0 +1,1 @@
+export { useRecordHotkeys } from "./useRecordHotkeys";

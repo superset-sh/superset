@@ -44,6 +44,12 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 		asarUnpackGlobs: ["**/node_modules/node-pty/**/*"],
 	},
 	{
+		specifier: "native-keymap",
+		materialize: ["native-keymap"],
+		packagedCopies: [copyWholeModule("native-keymap")],
+		asarUnpackGlobs: ["**/node_modules/native-keymap/**/*"],
+	},
+	{
 		specifier: "@superset/macos-process-metrics",
 		materialize: ["@superset/macos-process-metrics"],
 		packagedCopies: [copyWholeModule("@superset/macos-process-metrics")],
@@ -73,6 +79,19 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 		],
 		asarUnpackGlobs: ["**/node_modules/@libsql/**/*"],
 	},
+	{
+		specifier: "@mastra/duckdb",
+		materialize: [
+			"@mastra/duckdb",
+			"@duckdb/node-api",
+			"@duckdb/node-bindings",
+		],
+		packagedCopies: [
+			copyWholeModule("@mastra/duckdb"),
+			copyWholeModule("@duckdb"),
+		],
+		asarUnpackGlobs: ["**/node_modules/@duckdb/**/*"],
+	},
 ];
 
 const packagedSupportModules = [
@@ -88,6 +107,11 @@ const packagedSupportModules = [
 export const mainExternalizedDependencies = [
 	...externalizedRuntimeModules.map((module) => module.specifier),
 	"pg-native",
+	// mastracode transitively loads @mastra/fastembed → onnxruntime-node, whose
+	// native binding is loaded via a dynamic `require` that @rollup/plugin-commonjs
+	// can't resolve at bundle time. Externalizing lets Node handle the require at
+	// runtime from node_modules. Also keeps the bundle size sane (~20 MB chunk).
+	"mastracode",
 ];
 
 export const packagedNodeModuleCopies = [

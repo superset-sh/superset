@@ -1,7 +1,11 @@
+import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
+
 export type DashboardSidebarWorkspaceHostType =
 	| "local-device"
 	| "remote-device"
 	| "cloud";
+
+export type DashboardSidebarWorkspaceType = "main" | "worktree";
 
 export interface DashboardSidebarWorkspacePullRequestCheck {
 	name: string;
@@ -13,7 +17,7 @@ export interface DashboardSidebarWorkspacePullRequest {
 	url: string;
 	number: number;
 	title: string;
-	state: "open" | "merged" | "closed" | "draft";
+	state: "open" | "merged" | "closed" | "draft" | "queued";
 	reviewDecision: "approved" | "changes_requested" | "pending" | null;
 	requestedReviewers?: string[];
 	checksStatus: "success" | "failure" | "pending" | "none";
@@ -23,8 +27,10 @@ export interface DashboardSidebarWorkspacePullRequest {
 export interface DashboardSidebarWorkspace {
 	id: string;
 	projectId: string;
-	deviceId: string;
+	hostId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
+	type: DashboardSidebarWorkspaceType;
+	hostIsOnline: boolean | null;
 	accentColor: string | null;
 	name: string;
 	branch: string;
@@ -36,7 +42,8 @@ export interface DashboardSidebarWorkspace {
 	behindCount: number | null;
 	createdAt: Date;
 	updatedAt: Date;
-	creationStatus?: "preparing" | "generating-branch" | "creating";
+	taskId: string | null;
+	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
 
 export interface DashboardSidebarSection {
@@ -67,6 +74,7 @@ export interface DashboardSidebarProject {
 	githubRepositoryId: string | null;
 	githubOwner: string | null;
 	githubRepoName: string | null;
+	iconUrl: string | null;
 	createdAt: Date;
 	updatedAt: Date;
 	isCollapsed: boolean;

@@ -1,6 +1,5 @@
 "use client";
 
-import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
@@ -280,9 +279,7 @@ export function ParallelExecutionDemo() {
 								<div className="mt-1">
 									Try us out,{" "}
 									<a
-										href={DOWNLOAD_URL_MAC_ARM64}
-										target="_blank"
-										rel="noopener noreferrer"
+										href="/download"
 										className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
 									>
 										download Superset

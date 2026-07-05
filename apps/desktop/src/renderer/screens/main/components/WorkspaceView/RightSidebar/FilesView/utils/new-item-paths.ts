@@ -1,3 +1,7 @@
+import { getBaseName } from "renderer/lib/pathBasename";
+
+export { getBaseName };
+
 export function getPathSeparator(absolutePath: string): string {
 	return absolutePath.includes("\\") ? "\\" : "/";
 }
@@ -8,10 +12,6 @@ export function joinAbsolutePath(
 ): string {
 	const separator = getPathSeparator(parentAbsolutePath);
 	return `${parentAbsolutePath.replace(/[\\/]+$/, "")}${separator}${name}`;
-}
-
-export function getBaseName(absolutePath: string): string {
-	return absolutePath.split(/[/\\]/).pop() ?? absolutePath;
 }
 
 export function getParentPath(absolutePath: string): string {

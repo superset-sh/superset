@@ -39,7 +39,7 @@ export function MemberActions({
 }) {
 	const [isChangingRole, setIsChangingRole] = useState(false);
 	const { refetch: refetchSession } = authClient.useSession();
-	const plan = useCurrentPlan();
+	const { plan } = useCurrentPlan();
 	const navigate = useNavigate();
 
 	const availableRoles = getAvailableRoleChanges(

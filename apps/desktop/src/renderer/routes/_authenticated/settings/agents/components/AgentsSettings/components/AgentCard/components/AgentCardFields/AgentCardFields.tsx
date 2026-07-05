@@ -1,7 +1,7 @@
+import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { Textarea } from "@superset/ui/textarea";
-import type { ResolvedAgentConfig } from "shared/utils/agent-settings";
 import type { AgentEditableField } from "../../agent-card.types";
 
 interface AgentCardFieldsProps {

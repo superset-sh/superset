@@ -8,14 +8,20 @@ import type {
 	Tab,
 } from "../../../../../../../types";
 import type {
+	ContextMenuActionConfig,
 	PaneActionConfig,
 	PaneRegistry,
 	RendererContext,
 } from "../../../../../../types";
 import { PaneHeaderActions } from "../../../../../PaneHeaderActions";
+import { TAB_DRAG_TYPE } from "../../../TabBar/components/TabItem";
+import { PANE_MIN_SIZE_CLASS_NAME } from "../../constants";
 import { DropZoneOverlay } from "./components/DropZoneOverlay";
 import { PaneContent } from "./components/PaneContent";
+import { PaneContextMenu } from "./components/PaneContextMenu";
 import { PANE_DRAG_TYPE, PaneHeader } from "./components/PaneHeader";
+
+type PaneDropItem = { paneId: string } | { tabId: string; index: number };
 
 interface PaneComponentProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -27,19 +33,19 @@ interface PaneComponentProps<TData> {
 	paneActions?:
 		| PaneActionConfig<TData>[]
 		| ((context: RendererContext<TData>) => PaneActionConfig<TData>[]);
+	contextMenuActions?:
+		| ContextMenuActionConfig<TData>[]
+		| ((context: RendererContext<TData>) => ContextMenuActionConfig<TData>[]);
 }
 
-function resolveActions<TData>(
+function resolveActions<TData, TAction>(
 	config:
-		| PaneActionConfig<TData>[]
-		| ((
-				context: RendererContext<TData>,
-				defaults: PaneActionConfig<TData>[],
-		  ) => PaneActionConfig<TData>[])
+		| TAction[]
+		| ((context: RendererContext<TData>, defaults: TAction[]) => TAction[])
 		| undefined,
 	context: RendererContext<TData>,
-	defaults: PaneActionConfig<TData>[],
-): PaneActionConfig<TData>[] {
+	defaults: TAction[],
+): TAction[] {
 	if (!config) return defaults;
 	if (typeof config === "function") return config(context, defaults);
 	return config;
@@ -68,6 +74,7 @@ export function Pane<TData>({
 	registry,
 	parentDirection = null,
 	paneActions,
+	contextMenuActions,
 }: PaneComponentProps<TData>) {
 	const definition = registry[pane.kind];
 
@@ -143,14 +150,33 @@ export function Pane<TData>({
 		tabPosition,
 	]);
 
+	const resolvedContextMenuActions = useMemo(() => {
+		const workspaceResolved =
+			typeof contextMenuActions === "function"
+				? contextMenuActions(context)
+				: (contextMenuActions ?? []);
+
+		return resolveActions(
+			definition?.contextMenuActions,
+			context,
+			workspaceResolved,
+		);
+	}, [context, contextMenuActions, definition]);
+
 	const dropPositionRef = useRef<SplitPosition | null>(null);
 	const [dropPosition, setDropPosition] = useState<SplitPosition | null>(null);
 	const dropRef = useRef<HTMLDivElement>(null);
 
 	const [{ isOver, canDrop }, connectDrop] = useDrop(
 		() => ({
-			accept: PANE_DRAG_TYPE,
-			canDrop: (item: { paneId: string }) => item.paneId !== pane.id,
+			accept: [PANE_DRAG_TYPE, TAB_DRAG_TYPE],
+			canDrop: (item: PaneDropItem, monitor) => {
+				// Can't drop a tab onto a pane it already owns, or a pane onto itself.
+				if (monitor.getItemType() === TAB_DRAG_TYPE) {
+					return "tabId" in item && item.tabId !== tab.id;
+				}
+				return "paneId" in item && item.paneId !== pane.id;
+			},
 			hover: (_item, monitor) => {
 				const offset = monitor.getClientOffset();
 				const el = dropRef.current;
@@ -162,14 +188,24 @@ export function Pane<TData>({
 					setDropPosition(pos);
 				}
 			},
-			drop: (item: { paneId: string }) => {
+			drop: (item: PaneDropItem, monitor) => {
 				const pos = dropPositionRef.current;
 				if (!pos) return;
-				store.getState().movePaneToSplit({
-					sourcePaneId: item.paneId,
-					targetPaneId: pane.id,
-					position: pos,
-				});
+				if (monitor.getItemType() === TAB_DRAG_TYPE && "tabId" in item) {
+					store.getState().moveTabToSplit({
+						sourceTabId: item.tabId,
+						targetPaneId: pane.id,
+						position: pos,
+					});
+					return;
+				}
+				if ("paneId" in item) {
+					store.getState().movePaneToSplit({
+						sourcePaneId: item.paneId,
+						targetPaneId: pane.id,
+						position: pos,
+					});
+				}
 			},
 			collect: (monitor) => ({
 				isOver: monitor.isOver(),
@@ -195,7 +231,7 @@ export function Pane<TData>({
 	}
 
 	const title = definition
-		? (pane.titleOverride ?? definition.getTitle?.(context) ?? pane.id)
+		? (pane.titleOverride ?? definition.getTitle?.(pane) ?? pane.id)
 		: `Unknown: ${pane.kind}`;
 	const icon = definition?.getIcon?.(context);
 	const titleContent = definition?.renderTitle?.(context);
@@ -205,38 +241,40 @@ export function Pane<TData>({
 	const isDropTarget = isOver && canDrop;
 
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: clicking anywhere in a pane focuses it (standard IDE behavior)
-		<div
-			ref={setRefs}
-			className="relative flex h-full w-full flex-col overflow-hidden"
-			onMouseDown={context.actions.focus}
-		>
-			<PaneHeader
-				title={title}
-				icon={icon}
-				isActive={isActive}
-				titleContent={titleContent}
-				headerExtras={headerExtras}
-				toolbar={toolbar}
-				actionsContent={<context.components.PaneHeaderActions />}
-				paneId={pane.id}
-				onClick={
-					definition?.onHeaderClick
-						? () => definition.onHeaderClick?.(context)
-						: context.actions.pin
-				}
-				onMiddleClick={context.actions.close}
-			/>
-			<PaneContent>
-				{definition ? (
-					definition.renderPane(context)
-				) : (
-					<div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-						Unknown pane kind: {pane.kind}
-					</div>
-				)}
-			</PaneContent>
-			{isDropTarget && <DropZoneOverlay position={dropPosition} />}
-		</div>
+		<PaneContextMenu actions={resolvedContextMenuActions} context={context}>
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: clicking anywhere in a pane focuses it (standard IDE behavior) */}
+			<div
+				ref={setRefs}
+				className={`relative flex h-full w-full ${PANE_MIN_SIZE_CLASS_NAME} flex-col overflow-hidden`}
+				onMouseDown={context.actions.focus}
+			>
+				<PaneHeader
+					title={title}
+					icon={icon}
+					isActive={isActive}
+					titleContent={titleContent}
+					headerExtras={headerExtras}
+					toolbar={toolbar}
+					actionsContent={<context.components.PaneHeaderActions />}
+					paneId={pane.id}
+					onClick={
+						definition?.onHeaderClick
+							? () => definition.onHeaderClick?.(context)
+							: context.actions.pin
+					}
+					onMiddleClick={context.actions.close}
+				/>
+				<PaneContent>
+					{definition ? (
+						definition.renderPane(context)
+					) : (
+						<div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+							Unknown pane kind: {pane.kind}
+						</div>
+					)}
+				</PaneContent>
+				{isDropTarget && <DropZoneOverlay position={dropPosition} />}
+			</div>
+		</PaneContextMenu>
 	);
 }

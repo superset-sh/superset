@@ -1,60 +1,100 @@
 import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { HiOutlineCheck } from "react-icons/hi2";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { cn } from "@superset/ui/utils";
+import { HiMiniCommandLine } from "react-icons/hi2";
+import { LuCheck, LuChevronDown, LuPlus } from "react-icons/lu";
 import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
-import type { PresetTemplate } from "../../constants";
+
+export interface QuickAddAgentPill {
+	agentId: string;
+	iconId?: string;
+	label: string;
+	description: string;
+	commands: string[];
+}
 
 interface QuickAddPresetsProps {
-	templates: PresetTemplate[];
+	pills: QuickAddAgentPill[];
 	isDark: boolean;
-	isCreatePending: boolean;
-	isTemplateAdded: (template: PresetTemplate) => boolean;
-	onAddTemplate: (template: PresetTemplate) => void;
+	isAddDisabled?: boolean;
+	keepOpenOnAdd?: boolean;
+	isPillAdded: (pill: QuickAddAgentPill) => boolean;
+	onAddPill: (pill: QuickAddAgentPill) => void;
 }
 
 export function QuickAddPresets({
-	templates,
+	pills,
 	isDark,
-	isCreatePending,
-	isTemplateAdded,
-	onAddTemplate,
+	isAddDisabled,
+	keepOpenOnAdd,
+	isPillAdded,
+	onAddPill,
 }: QuickAddPresetsProps) {
 	return (
-		<div className="flex flex-wrap gap-2">
-			<span className="text-xs text-muted-foreground mr-1 self-center">
-				Quick add:
-			</span>
-			{templates.map((template) => {
-				const alreadyAdded = isTemplateAdded(template);
-				const presetIcon = getPresetIcon(template.name, isDark);
-				return (
-					<Tooltip key={template.name}>
-						<TooltipTrigger asChild>
-							<Button
-								variant="outline"
-								size="sm"
-								className="gap-1.5 text-xs h-7"
-								onClick={() => onAddTemplate(template)}
-								disabled={alreadyAdded || isCreatePending}
-							>
-								{alreadyAdded ? (
-									<HiOutlineCheck className="h-3 w-3" />
-								) : presetIcon ? (
-									<img
-										src={presetIcon}
-										alt=""
-										className="h-3 w-3 object-contain"
-									/>
-								) : null}
-								{template.name}
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							{alreadyAdded ? "Already added" : template.preset.description}
-						</TooltipContent>
-					</Tooltip>
-				);
-			})}
-		</div>
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={isAddDisabled || pills.length === 0}
+				>
+					<LuPlus className="size-4" />
+					Import agent
+					<LuChevronDown className="size-4 opacity-60" />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="w-80">
+				{pills.map((pill) => {
+					const alreadyAdded = isPillAdded(pill);
+					const icon = getPresetIcon(pill.iconId ?? pill.agentId, isDark);
+					return (
+						<DropdownMenuItem
+							key={pill.agentId}
+							disabled={alreadyAdded}
+							onSelect={(event) => {
+								if (alreadyAdded) {
+									event.preventDefault();
+									return;
+								}
+								if (keepOpenOnAdd) {
+									event.preventDefault();
+								}
+								onAddPill(pill);
+							}}
+							className={cn(
+								"flex items-start gap-3 py-2",
+								alreadyAdded && "opacity-60",
+							)}
+						>
+							<div className="mt-0.5 flex size-5 shrink-0 items-center justify-center">
+								{icon ? (
+									<img src={icon} alt="" className="size-4 object-contain" />
+								) : (
+									<HiMiniCommandLine className="size-4 text-muted-foreground" />
+								)}
+							</div>
+							<div className="min-w-0 flex-1">
+								<div className="text-sm font-medium leading-tight">
+									{pill.label}
+								</div>
+								{pill.description && (
+									<div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+										{pill.description}
+									</div>
+								)}
+							</div>
+							{alreadyAdded && (
+								<LuCheck className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+							)}
+						</DropdownMenuItem>
+					);
+				})}
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }

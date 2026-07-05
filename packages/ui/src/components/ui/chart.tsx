@@ -7,6 +7,8 @@ import { cn } from "../../lib/utils";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
+const chartIdPattern = /[^a-zA-Z0-9_-]/g;
+const cssVariableNamePattern = /^[a-zA-Z_][a-zA-Z0-9_-]*$/;
 
 export type ChartConfig = {
 	[k in string]: {
@@ -47,7 +49,10 @@ function ChartContainer({
 	>["children"];
 }) {
 	const uniqueId = React.useId();
-	const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+	const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`.replace(
+		chartIdPattern,
+		"-",
+	);
 
 	return (
 		<ChartContext.Provider value={{ config }}>
@@ -78,30 +83,53 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 		return null;
 	}
 
-	return (
-		<style
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: required for dynamic CSS variable injection
-			dangerouslySetInnerHTML={{
-				__html: Object.entries(THEMES)
-					.map(
-						([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-	.map(([key, itemConfig]) => {
-		const color =
-			itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-			itemConfig.color;
-		return color ? `  --color-${key}: ${color};` : null;
-	})
-	.join("\n")}
-}
-`,
-					)
-					.join("\n"),
-			}}
-		/>
-	);
+	const css = Object.entries(THEMES)
+		.map(([theme, prefix]) => {
+			const variables = colorConfig
+				.map(([key, itemConfig]) => {
+					const color =
+						itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+						itemConfig.color;
+
+					if (
+						!color ||
+						!cssVariableNamePattern.test(key) ||
+						!isSafeCssColor(color)
+					) {
+						return null;
+					}
+
+					return `  --color-${key}: ${color};`;
+				})
+				.filter((line): line is string => line !== null);
+
+			if (variables.length === 0) {
+				return null;
+			}
+
+			return `${prefix} [data-chart="${id}"] {\n${variables.join("\n")}\n}`;
+		})
+		.filter((rule): rule is string => rule !== null)
+		.join("\n");
+
+	return css ? <style>{css}</style> : null;
 };
+
+function isSafeCssColor(color: string): boolean {
+	const value = color.trim();
+
+	if (
+		!value ||
+		/[;{}<>]/.test(value) ||
+		/(?:@import|expression|url)\s*\(/i.test(value)
+	) {
+		return false;
+	}
+
+	return /^(#[\da-f]{3,8}|[a-z]+|(?:rgb|hsl|oklch|oklab|color-mix)\([\w\s.,%#+\-/*]+\)|var\(--[a-zA-Z0-9_-]+(?:,\s*[\w\s.,%#+\-/*]+)?\))$/i.test(
+		value,
+	);
+}
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 

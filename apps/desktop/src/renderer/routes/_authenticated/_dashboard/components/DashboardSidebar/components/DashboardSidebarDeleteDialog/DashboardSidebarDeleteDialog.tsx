@@ -1,61 +1,74 @@
-import {
-	AlertDialog,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
+import { DestroyConfirmPane } from "./components/DestroyConfirmPane";
+import { TeardownFailedPane } from "./components/TeardownFailedPane";
+import { useDestroyDialogState } from "./hooks/useDestroyDialogState";
 
 interface DashboardSidebarDeleteDialogProps {
+	workspaceId: string;
+	workspaceName: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onConfirm: () => void;
-	title: string;
-	description: string;
-	isPending?: boolean;
+	/** Fires after a successful destroy (any warnings reported via toast). */
+	onDeleted?: () => void;
 }
 
+/**
+ * Dispatches between confirm and teardown-failed panes based on the error
+ * returned by `workspaceCleanup.destroy`. Dirty-worktree state is surfaced
+ * inline as a banner on the confirm pane so the user only sees one warning
+ * before the destroy runs.
+ */
 export function DashboardSidebarDeleteDialog({
+	workspaceId,
+	workspaceName,
 	open,
 	onOpenChange,
-	onConfirm,
-	title,
-	description,
-	isPending = false,
+	onDeleted,
 }: DashboardSidebarDeleteDialogProps) {
+	const {
+		deleteBranch,
+		setDeleteBranch,
+		hasChanges,
+		hasUnpushedCommits,
+		canConfirm,
+		blockingReason,
+		error,
+		handleOpenChange,
+		run,
+	} = useDestroyDialogState({
+		workspaceId,
+		workspaceName,
+		open,
+		onOpenChange,
+		onDeleted,
+	});
+
+	if (error?.kind === "teardown-failed") {
+		return (
+			<TeardownFailedPane
+				open={open}
+				onOpenChange={handleOpenChange}
+				cause={error.cause}
+				onForceDelete={() => run(true)}
+			/>
+		);
+	}
+
+	const hasWarnings = hasChanges || hasUnpushedCommits;
+	const confirmLabel = hasWarnings ? "Delete anyway" : "Delete";
+
 	return (
-		<AlertDialog
+		<DestroyConfirmPane
 			open={open}
-			onOpenChange={isPending ? undefined : onOpenChange}
-		>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
-				<AlertDialogHeader className="px-4 pt-4 pb-2">
-					<AlertDialogTitle className="font-medium">{title}</AlertDialogTitle>
-					<AlertDialogDescription>{description}</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={() => onOpenChange(false)}
-						disabled={isPending}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="destructive"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={onConfirm}
-						disabled={isPending}
-					>
-						{isPending ? "Deleting..." : "Delete"}
-					</Button>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+			onOpenChange={handleOpenChange}
+			workspaceName={workspaceName}
+			deleteBranch={deleteBranch}
+			onDeleteBranchChange={setDeleteBranch}
+			hasChanges={hasChanges}
+			hasUnpushedCommits={hasUnpushedCommits}
+			canConfirm={canConfirm}
+			blockingReason={blockingReason}
+			onConfirm={() => run(hasWarnings)}
+			confirmLabel={confirmLabel}
+		/>
 	);
 }

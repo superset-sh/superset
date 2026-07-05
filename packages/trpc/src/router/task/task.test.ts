@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+// Captured before any mock.module registers, so it holds the real schema
+// exports. Spread into the schema mock below so this partial mock doesn't
+// drop barrel exports other test files rely on (bun's mock.module is global
+// and never restored between files).
+import * as realDbSchema from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 
 const getCurrentTxidMock = mock(async () => "txid-123");
@@ -7,8 +12,15 @@ const syncTaskMock = mock(() => undefined);
 const verifyOrgAdminMock = mock(async () => ({
 	membership: { role: "owner" },
 }));
+const verifyOrgOwnerMock = mock(async () => ({
+	membership: { role: "owner" },
+}));
 const verifyOrgMembershipMock = mock(async () => ({
 	membership: { role: "member" },
+}));
+const verifyOrgMembershipWithSubscriptionMock = mock(async () => ({
+	membership: { role: "member" },
+	subscription: null,
 }));
 
 let dbSelectResults: unknown[][] = [];
@@ -105,9 +117,31 @@ mock.module("@superset/db/client", () => ({
 }));
 
 mock.module("@superset/db/schema", () => ({
+	...realDbSchema,
 	members: {
 		organizationId: "members.organizationId",
 		userId: "members.userId",
+	},
+	v2Projects: {
+		id: "v2_projects.id",
+		organizationId: "v2_projects.organization_id",
+		name: "v2_projects.name",
+		slug: "v2_projects.slug",
+		repoCloneUrl: "v2_projects.repo_clone_url",
+		githubRepositoryId: "v2_projects.github_repository_id",
+		iconUrl: "v2_projects.icon_url",
+	},
+	githubRepositories: {
+		id: "github_repositories.id",
+		organizationId: "github_repositories.organization_id",
+		fullName: "github_repositories.full_name",
+	},
+	organizations: {
+		id: "organizations.id",
+		name: "organizations.name",
+	},
+	subscriptions: {
+		referenceId: "subscriptions.referenceId",
 	},
 	taskStatuses: {
 		id: "task_statuses.id",
@@ -150,6 +184,14 @@ mock.module("drizzle-orm", () => ({
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
 	ilike: (left: unknown, right: unknown) => ({ type: "ilike", left, right }),
 	isNull: (value: unknown) => ({ type: "isNull", value }),
+	sql: Object.assign(
+		(strings: TemplateStringsArray, ...values: unknown[]) => ({
+			type: "sql",
+			strings,
+			values,
+		}),
+		{ raw: (s: string) => ({ type: "raw", s }) },
+	),
 }));
 
 mock.module("drizzle-orm/pg-core", () => ({
@@ -162,7 +204,9 @@ mock.module("../../lib/integrations/sync", () => ({
 
 mock.module("../integration/utils", () => ({
 	verifyOrgAdmin: verifyOrgAdminMock,
+	verifyOrgOwner: verifyOrgOwnerMock,
 	verifyOrgMembership: verifyOrgMembershipMock,
+	verifyOrgMembershipWithSubscription: verifyOrgMembershipWithSubscriptionMock,
 }));
 
 const { createCallerFactory, createTRPCRouter } = await import("../../trpc");

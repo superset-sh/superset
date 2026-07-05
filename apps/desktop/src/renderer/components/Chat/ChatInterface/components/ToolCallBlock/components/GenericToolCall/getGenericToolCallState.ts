@@ -5,6 +5,7 @@ import { toToolDisplayState } from "../../../../utils/tool-helpers";
 export type GenericToolCallState = {
 	output: unknown;
 	isError: boolean;
+	isNotConfigured: boolean;
 	displayState: ToolDisplayState;
 	errorText?: string;
 };
@@ -48,9 +49,15 @@ export function getGenericToolCallState(part: ToolPart): GenericToolCallState {
 		}
 	}
 
+	const isNotConfigured =
+		isError &&
+		typeof errorText === "string" &&
+		errorText.toLowerCase().includes("not configured");
+
 	return {
 		output,
 		isError,
+		isNotConfigured,
 		displayState,
 		errorText,
 	};

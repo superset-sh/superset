@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -12,19 +13,26 @@ import {
 
 export const authSchema = pgSchema("auth");
 
-export const users = authSchema.table("users", {
-	id: uuid("id").primaryKey().defaultRandom(),
-	name: text("name").notNull(),
-	email: text("email").notNull().unique(),
-	emailVerified: boolean("email_verified").default(false).notNull(),
-	image: text("image"),
-	organizationIds: uuid("organization_ids").array().default([]).notNull(),
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.$onUpdate(() => new Date())
-		.notNull(),
-});
+export const users = authSchema.table(
+	"users",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		email: text("email").notNull().unique(),
+		emailVerified: boolean("email_verified").default(false).notNull(),
+		image: text("image"),
+		organizationIds: uuid("organization_ids").array().default([]).notNull(),
+		onboardedAt: timestamp("onboarded_at"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("users_organization_ids_idx").using("gin", table.organizationIds),
+	],
+);
 
 export type SelectUser = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -45,6 +53,7 @@ export const sessions = authSchema.table(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		activeOrganizationId: uuid("active_organization_id"),
+		activeTeamId: uuid("active_team_id"),
 	},
 	(table) => [index("sessions_user_id_idx").on(table.userId)],
 );
@@ -135,6 +144,59 @@ export const members = authSchema.table(
 export type SelectMember = typeof members.$inferSelect;
 export type InsertMember = typeof members.$inferInsert;
 
+export const teams = authSchema.table(
+	"teams",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		slug: text("slug").notNull(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("teams_organization_id_idx").on(table.organizationId),
+		uniqueIndex("teams_org_slug_unique").on(table.organizationId, table.slug),
+	],
+);
+
+export type SelectTeam = typeof teams.$inferSelect;
+export type InsertTeam = typeof teams.$inferInsert;
+
+export const teamMembers = authSchema.table(
+	"team_members",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		// Denormalized from teams.organization_id so Electric can shape-filter
+		// by org with a simple WHERE. Populated by a BEFORE INSERT trigger
+		// (see 0049 migration) so neither better-auth's API nor app code needs
+		// to remember to set it.
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").defaultNow(),
+	},
+	(table) => [
+		index("team_members_team_id_idx").on(table.teamId),
+		index("team_members_user_id_idx").on(table.userId),
+		index("team_members_organization_id_idx").on(table.organizationId),
+		uniqueIndex("team_members_team_user_unique").on(table.teamId, table.userId),
+	],
+);
+
+export type SelectTeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
+
 export const invitations = authSchema.table(
 	"invitations",
 	{
@@ -150,6 +212,9 @@ export const invitations = authSchema.table(
 		inviterId: uuid("inviter_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		teamId: uuid("team_id").references(() => teams.id, {
+			onDelete: "set null",
+		}),
 	},
 	(table) => [
 		index("invitations_organization_id_idx").on(table.organizationId),
@@ -187,6 +252,8 @@ export const oauthClients = authSchema.table("oauth_clients", {
 	responseTypes: text("response_types").array(),
 	public: boolean("public"),
 	type: text("type"),
+	requirePKCE: boolean("require_pkce"),
+	subjectType: text("subject_type"),
 	referenceId: text("reference_id"),
 	metadata: jsonb("metadata"),
 });
@@ -207,6 +274,7 @@ export const oauthRefreshTokens = authSchema.table("oauth_refresh_tokens", {
 	expiresAt: timestamp("expires_at"),
 	createdAt: timestamp("created_at"),
 	revoked: timestamp("revoked"),
+	authTime: timestamp("auth_time"),
 	scopes: text("scopes").array().notNull(),
 });
 
@@ -245,13 +313,12 @@ export const apikeys = authSchema.table(
 	"apikeys",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
+		configId: text("config_id").default("default").notNull(),
 		name: text("name"),
 		start: text("start"),
+		referenceId: text("reference_id").notNull(),
 		prefix: text("prefix"),
 		key: text("key").notNull(),
-		userId: uuid("user_id")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
 		refillInterval: integer("refill_interval"),
 		refillAmount: integer("refill_amount"),
 		lastRefillAt: timestamp("last_refill_at"),
@@ -270,15 +337,49 @@ export const apikeys = authSchema.table(
 			.$onUpdate(() => new Date()),
 		permissions: text("permissions"),
 		metadata: text("metadata"),
+		// Derived from metadata so Electric's shape WHERE clause can reference a
+		// real column (`organization_id = $1`) instead of a `LIKE` over JSON text.
+		// See https://electric.ax/docs/sync/guides/shapes#optimized-where-clauses —
+		// only direct column references qualify as optimized predicates; JSON
+		// operators do not. The CASE guards against NULL/empty/non-JSON metadata
+		// and against malformed UUID strings so the STORED expression never raises.
+		organizationId: uuid("organization_id").generatedAlwaysAs(
+			sql`CASE
+				WHEN metadata IS NULL OR metadata = '' THEN NULL
+				WHEN NOT (metadata IS JSON OBJECT) THEN NULL
+				WHEN (metadata::jsonb->>'organizationId') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+					THEN (metadata::jsonb->>'organizationId')::uuid
+				ELSE NULL
+			END`,
+		),
 	},
 	(table) => [
+		index("apikeys_configId_idx").on(table.configId),
+		index("apikeys_referenceId_idx").on(table.referenceId),
 		index("apikeys_key_idx").on(table.key),
-		index("apikeys_user_id_idx").on(table.userId),
+		index("apikeys_organization_id_idx").on(table.organizationId),
+		index("apikeys_metadata_trgm_idx").using(
+			"gin",
+			sql`${table.metadata} gin_trgm_ops`,
+		),
 	],
 );
 
 export type SelectApikey = typeof apikeys.$inferSelect;
 export type InsertApikey = typeof apikeys.$inferInsert;
+
+export const deviceCodes = authSchema.table("device_codes", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	deviceCode: text("device_code").notNull(),
+	userCode: text("user_code").notNull(),
+	userId: text("user_id"),
+	expiresAt: timestamp("expires_at").notNull(),
+	status: text("status").notNull(),
+	lastPolledAt: timestamp("last_polled_at"),
+	pollingInterval: integer("polling_interval"),
+	clientId: text("client_id"),
+	scope: text("scope"),
+});
 
 export const jwkss = authSchema.table("jwkss", {
 	id: uuid("id").primaryKey().defaultRandom(),

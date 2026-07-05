@@ -3,6 +3,7 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuSub,
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
@@ -23,10 +24,12 @@ import {
 	LuEyeOff,
 	LuFolderOpen,
 	LuFolderPlus,
+	LuGitBranch,
 	LuMinus,
 	LuPencil,
 	LuX,
 } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import {
 	useCreateSectionFromWorkspaces,
 	useMoveWorkspacesToSection,
@@ -35,7 +38,7 @@ import {
 import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { STROKE_WIDTH } from "../constants";
-import { WorkspaceHoverCardContent } from "./components";
+import { RenameBranchDialog, WorkspaceHoverCardContent } from "./components";
 import { HOVER_CARD_CLOSE_DELAY, HOVER_CARD_OPEN_DELAY } from "./constants";
 
 interface WorkspaceContextMenuProps {
@@ -44,12 +47,14 @@ interface WorkspaceContextMenuProps {
 	name: string;
 	isBranchWorkspace: boolean;
 	isUnread: boolean;
+	showDeleteHotkey?: boolean;
 	workspaceStatus: string | null | undefined;
 	sections: { id: string; name: string }[];
 	onRename: () => void;
 	onOpenInFinder: () => void;
 	onOpenInEditor: () => void;
 	onCopyPath: () => void;
+	onCopyBranchName: () => void;
 	onSetUnread: (isUnread: boolean) => void;
 	onResetStatus: () => void;
 	onDelete: () => void;
@@ -62,23 +67,31 @@ export function WorkspaceContextMenu({
 	name,
 	isBranchWorkspace,
 	isUnread,
+	showDeleteHotkey = false,
 	workspaceStatus,
 	sections,
 	onRename,
 	onOpenInFinder,
 	onOpenInEditor,
 	onCopyPath,
+	onCopyBranchName,
 	onSetUnread,
 	onResetStatus,
 	onDelete,
 	children,
 }: WorkspaceContextMenuProps) {
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
+		null,
+	);
 	const contextMenuSelectionRef = useRef<string[]>([]);
 	const selectionStore = useWorkspaceSelectionStore;
 	const moveToSection = useMoveWorkspaceToSection();
 	const bulkMoveToSection = useMoveWorkspacesToSection();
 	const createSectionFromWorkspaces = useCreateSectionFromWorkspaces();
+	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
+	const showDeleteShortcut =
+		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
 	const deleteDialogCoordinator = useMemo(
 		() => createContextMenuDeleteDialogCoordinator(onDelete),
 		[onDelete],
@@ -150,6 +163,10 @@ export function WorkspaceContextMenu({
 				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				Copy Path
 			</ContextMenuItem>
+			<ContextMenuItem onSelect={onCopyBranchName}>
+				<LuGitBranch className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Copy Branch Name
+			</ContextMenuItem>
 			<ContextMenuSeparator />
 			<ContextMenuSub>
 				<ContextMenuSubTrigger>
@@ -196,6 +213,9 @@ export function WorkspaceContextMenu({
 			>
 				<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 				{isBranchWorkspace ? "Close Workspace" : "Close Worktree"}
+				{showDeleteShortcut && (
+					<ContextMenuShortcut>{deleteHotkeyText}</ContextMenuShortcut>
+				)}
 			</ContextMenuItem>
 		</>
 	);
@@ -239,8 +259,22 @@ export function WorkspaceContextMenu({
 				</ContextMenuContent>
 			</ContextMenu>
 			<HoverCardContent side="right" align="start" className="w-72">
-				<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
+				<WorkspaceHoverCardContent
+					workspaceId={id}
+					workspaceAlias={name}
+					onEditBranchClick={setRenameBranchTarget}
+				/>
 			</HoverCardContent>
+			{renameBranchTarget && (
+				<RenameBranchDialog
+					workspaceId={id}
+					currentBranchName={renameBranchTarget}
+					open={renameBranchTarget !== null}
+					onOpenChange={(open) => {
+						if (!open) setRenameBranchTarget(null);
+					}}
+				/>
+			)}
 		</HoverCard>
 	);
 }

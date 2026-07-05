@@ -1,0 +1,73 @@
+---
+title: Remote Workspaces
+description: Access workspaces hosted on another machine
+pro: true
+---
+
+## Overview
+
+A workspace lives on the machine that hosts its files, terminal, and ports. **Remote workspaces** let you reach a workspace that's hosted on a different machine, like a Mac mini under your desk, a sandbox your team shares, or a spare laptop in the office.
+
+**Superset Relay** is a service that provides a secure way to route traffic between your different devices. There are two ways to grant a device remote access through the relay:
+
+## Option 1 — Desktop
+
+<Callout type="warn">
+Exposing your primary workstation through the relay means anything reachable by your local host service — files, terminals, agent runs — becomes reachable by clients you grant access to. The recommended setup is a **separate machine** provisioned with only the repos and credentials you intend to share. That way a misclick or compromised client can't wipe an unrelated project or leak unrelated secrets.
+
+Use the desktop toggle when you genuinely need it on this machine. Otherwise prefer the CLI path on a dedicated host.
+</Callout>
+
+Open the desktop app and go to **Settings → Security**. Flip on **Allow remote workspaces to access this device via relay**.
+
+![Settings → Security relay toggle](/images/remote-workspaces-security-toggle.png)
+
+Enabling the toggle restarts the host service, so any running terminals on this device will be interrupted. You'll be asked to type a confirmation phrase before the change applies.
+
+## Option 2 — CLI
+
+<Callout type="info">
+See the CLI's [Getting Started](/cli/getting-started) and [Host Server](/cli/host-server) docs to get set up.
+</Callout>
+
+On the machine you want to add to your shared relay network, sign in and start the host server.
+
+```bash
+superset auth login
+superset start --daemon
+```
+
+`superset start --daemon` runs a small HTTP server in the background and registers the machine with the relay so other clients in your organization can find it.
+
+Verify it's online:
+
+```bash
+superset status
+```
+
+## Grant teammates access
+
+When a host first comes online, the user who started it is the only one with access. Other members of your organization won't see it in their workspaces list until you add them.
+
+Open **Settings → Hosts** in the desktop app, pick the host, and use **Add member** to grant teammates access. Owners can promote members to owner or remove them from the host.
+
+![Settings → Hosts members table](/images/remote-workspaces-hosts-members.png)
+
+## Access remote workspaces from another device
+
+On any other device signed into the same organization, open the desktop app's **Workspaces** list. Use the **Device** filter in the top right to pick a remote host:
+
+- **This device** — workspaces on the machine you're using now
+- **All devices** — everything you can reach
+- **Other devices** — each remote host that has opted in, with an online indicator
+
+![Device filter in the workspaces list](/images/remote-workspaces-device-filter.png)
+
+Pick a remote host to see the workspaces hosted there. Open one and you get the full Superset experience — terminals, ports, agent runs, the diff viewer — proxied through the relay to the host machine.
+
+## Turning access off
+
+- **Desktop**: flip the toggle in **Settings → Security** back off. The host service restarts and stops accepting relay traffic.
+- **CLI**: run `superset stop` on the host machine.
+
+In both cases, in-flight terminals and host-backed work on that machine are interrupted.

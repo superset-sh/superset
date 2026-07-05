@@ -19,6 +19,13 @@ export interface PendingTerminalSetup {
 interface WorkspaceInitState {
 	initProgress: Record<string, WorkspaceInitProgress>;
 	pendingTerminalSetups: Record<string, PendingTerminalSetup>;
+	/**
+	 * Workspace IDs we witnessed reach "ready" during this app session. Outlives
+	 * `initProgress` entries (which get cleared after terminal setup runs) so
+	 * consumers can reliably tell that a workspace is not "stuck mid-init" even
+	 * after the progress record has been wiped.
+	 */
+	completedInits: Record<string, true>;
 	updateProgress: (progress: WorkspaceInitProgress) => void;
 	clearProgress: (workspaceId: string) => void;
 	addPendingTerminalSetup: (setup: PendingTerminalSetup) => void;
@@ -30,6 +37,7 @@ export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 		(set, get) => ({
 			initProgress: {},
 			pendingTerminalSetups: {},
+			completedInits: {},
 
 			updateProgress: (progress) => {
 				set((state) => ({
@@ -37,6 +45,13 @@ export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 						...state.initProgress,
 						[progress.workspaceId]: progress,
 					},
+					completedInits:
+						progress.step === "ready"
+							? {
+									...state.completedInits,
+									[progress.workspaceId]: true,
+								}
+							: state.completedInits,
 				}));
 
 				if (progress.step === "ready") {
@@ -97,3 +112,6 @@ export const useHasWorkspaceFailed = (workspaceId: string) =>
 		const progress = state.initProgress[workspaceId];
 		return progress?.step === "failed";
 	});
+
+export const useHasCompletedInitThisSession = (workspaceId: string) =>
+	useWorkspaceInitStore((state) => state.completedInits[workspaceId] === true);

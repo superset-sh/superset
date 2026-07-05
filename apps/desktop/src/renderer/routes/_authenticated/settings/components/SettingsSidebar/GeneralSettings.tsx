@@ -1,21 +1,30 @@
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useMemo } from "react";
 import {
+	HiOutlineBeaker,
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
+	HiOutlineComputerDesktop,
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
+	HiOutlineFolder,
 	HiOutlineKey,
+	HiOutlineLink,
+	HiOutlineLockClosed,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
 	HiOutlineShieldCheck,
 	HiOutlineSparkles,
 	HiOutlineUser,
+	HiOutlineUserGroup,
 } from "react-icons/hi2";
 import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
+import { getAllowedSectionsForVariant } from "../../utils/settings-search";
 
 interface GeneralSettingsProps {
 	matchCounts: Partial<Record<SettingsSection, number>> | null;
@@ -24,6 +33,7 @@ interface GeneralSettingsProps {
 type SettingsRoute =
 	| "/settings/account"
 	| "/settings/organization"
+	| "/settings/teams"
 	| "/settings/appearance"
 	| "/settings/ringtones"
 	| "/settings/keyboard"
@@ -31,11 +41,16 @@ type SettingsRoute =
 	| "/settings/git"
 	| "/settings/agents"
 	| "/settings/terminal"
+	| "/settings/links"
 	| "/settings/models"
+	| "/settings/experimental"
 	| "/settings/integrations"
 	| "/settings/billing"
 	| "/settings/api-keys"
-	| "/settings/permissions";
+	| "/settings/security"
+	| "/settings/permissions"
+	| "/settings/projects"
+	| "/settings/hosts";
 
 interface SectionItem {
 	id: SettingsRoute;
@@ -72,12 +87,6 @@ const SECTION_GROUPS: SectionGroup[] = [
 				label: "Notifications",
 				icon: <HiOutlineBell className="h-4 w-4" />,
 			},
-			{
-				id: "/settings/keyboard",
-				section: "keyboard",
-				label: "Keyboard",
-				icon: <LuKeyboard className="h-4 w-4" />,
-			},
 		],
 	},
 	{
@@ -88,6 +97,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "behavior",
 				label: "General",
 				icon: <HiOutlineSparkles className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/keyboard",
+				section: "keyboard",
+				label: "Keyboard",
+				icon: <LuKeyboard className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/git",
@@ -108,6 +123,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				icon: <HiOutlineCommandLine className="h-4 w-4" />,
 			},
 			{
+				id: "/settings/links",
+				section: "links",
+				label: "Links",
+				icon: <HiOutlineLink className="h-4 w-4" />,
+			},
+			{
 				id: "/settings/models",
 				section: "models",
 				label: "Models",
@@ -123,6 +144,24 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "organization",
 				label: "Organization",
 				icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/teams",
+				section: "teams",
+				label: "Teams",
+				icon: <HiOutlineUserGroup className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/projects",
+				section: "project",
+				label: "Projects",
+				icon: <HiOutlineFolder className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/hosts",
+				section: "hosts",
+				label: "Hosts",
+				icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/integrations",
@@ -148,11 +187,23 @@ const SECTION_GROUPS: SectionGroup[] = [
 		label: "System",
 		items: [
 			{
+				id: "/settings/security",
+				section: "security",
+				label: "Security",
+				icon: <HiOutlineLockClosed className="h-4 w-4" />,
+			},
+			{
 				id: "/settings/permissions",
 				section: "permissions",
 				label: "Permissions",
 				icon: <HiOutlineShieldCheck className="h-4 w-4" />,
 				macOnly: true,
+			},
+			{
+				id: "/settings/experimental",
+				section: "experimental",
+				label: "Experimental",
+				icon: <HiOutlineBeaker className="h-4 w-4" />,
 			},
 		],
 	},
@@ -162,12 +213,18 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const allowedSections = useMemo(
+		() => getAllowedSectionsForVariant(isV2CloudEnabled),
+		[isV2CloudEnabled],
+	);
 
 	return (
 		<>
 			{SECTION_GROUPS.map((group, groupIndex) => {
 				const platformItems = group.items.filter(
-					(item) => !item.macOnly || isMac,
+					(item) =>
+						(!item.macOnly || isMac) && allowedSections.has(item.section),
 				);
 				const filteredItems = matchCounts
 					? platformItems.filter((item) => (matchCounts[item.section] ?? 0) > 0)
@@ -182,7 +239,10 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 						</h2>
 						<nav className="flex flex-col">
 							{filteredItems.map((section) => {
-								const isActive = matchRoute({ to: section.id });
+								const isActive = !!matchRoute({
+									to: section.id,
+									fuzzy: true,
+								});
 								const count = matchCounts?.[section.section];
 
 								return (

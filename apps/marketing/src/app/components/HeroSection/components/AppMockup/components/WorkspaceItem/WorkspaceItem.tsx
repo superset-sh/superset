@@ -1,6 +1,7 @@
 "use client";
 
-import { LuFolderGit2, LuGitPullRequest } from "react-icons/lu";
+import { LuGitBranch } from "react-icons/lu";
+import { TbCloud } from "react-icons/tb";
 import type { WorkspaceStatus } from "../../types";
 import { AsciiSpinner } from "../AsciiSpinner";
 import { StatusIndicator } from "../StatusIndicator";
@@ -17,64 +18,56 @@ interface WorkspaceItemProps {
 
 export function WorkspaceItem({
 	name,
-	branch,
 	add,
 	del,
-	pr,
 	isActive,
 	status,
 }: WorkspaceItemProps) {
+	const isCloud = name === "see changes";
+	const isBranch = name === "forward ports";
 	return (
 		<div
-			className={`relative flex cursor-pointer items-start gap-3 px-3 py-2 text-[11px] ${isActive ? "bg-white/[0.08]" : "hover:bg-white/[0.03]"}`}
+			className={`relative flex h-7 cursor-pointer items-center gap-2.5 pl-4 pr-3 text-[11px] ${
+				isActive
+					? "bg-foreground/[0.06] text-foreground"
+					: "text-foreground/80 hover:bg-foreground/[0.025] hover:text-foreground/95"
+			}`}
 		>
 			{isActive && (
-				<div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-r bg-orange-500/80" />
+				<span className="absolute inset-y-0.5 left-0 w-[2px] bg-brand" />
 			)}
-			<div className="relative mt-0.5 text-muted-foreground/30">
+
+			<div className="flex size-3 shrink-0 items-center justify-center">
 				{status === "working" ? (
-					<AsciiSpinner className="text-xs" />
+					<AsciiSpinner
+						className="text-[10px]"
+						toneClassName="text-brand-light"
+					/>
+				) : status ? (
+					<StatusIndicator status={status} />
+				) : isCloud ? (
+					<TbCloud className="size-3.5 text-muted-foreground/70" />
+				) : isBranch ? (
+					<LuGitBranch className="size-3 text-muted-foreground/70" />
 				) : (
-					<LuFolderGit2 className="size-4" />
-				)}
-				{status && status !== "working" && (
-					<span className="absolute -top-0.5 -right-0.5">
-						<StatusIndicator status={status} />
-					</span>
+					<span className="size-1 rounded-full bg-muted-foreground/40" />
 				)}
 			</div>
-			<div className="flex-1 min-w-0">
-				<div className="flex items-center justify-between gap-1">
-					<span
-						className={`truncate ${isActive ? "text-foreground font-medium" : "text-foreground/55"}`}
-					>
-						{name}
-					</span>
-					{(add !== undefined || pr) && (
-						<div className="flex items-center gap-1 shrink-0">
-							{add !== undefined && (
-								<span className="text-[10px] font-medium tabular-nums">
-									<span className="text-emerald-300/75">+{add}</span>
-									{del !== undefined && del > 0 && (
-										<span className="ml-0.5 text-rose-300/75">-{del}</span>
-									)}
-								</span>
-							)}
-						</div>
+
+			<span
+				className={`min-w-0 flex-1 truncate ${isActive ? "font-medium" : ""}`}
+			>
+				{name}
+			</span>
+
+			{add !== undefined && (
+				<span className="shrink-0 font-mono text-[10px] tabular-nums">
+					<span className="text-emerald-400/80">+{add}</span>
+					{del !== undefined && del > 0 && (
+						<span className="ml-1 text-rose-400/75">−{del}</span>
 					)}
-				</div>
-				<div className="flex items-center justify-between">
-					<span className="truncate font-mono text-[10px] text-muted-foreground/28">
-						{branch}
-					</span>
-					{pr && (
-						<span className="flex items-center gap-0.5 text-[10px] text-muted-foreground/24">
-							<LuGitPullRequest className="size-3" />
-							{pr}
-						</span>
-					)}
-				</div>
-			</div>
+				</span>
+			)}
 		</div>
 	);
 }

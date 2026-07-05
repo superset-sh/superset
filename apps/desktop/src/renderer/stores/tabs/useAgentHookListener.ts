@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NOTIFICATION_EVENTS } from "shared/constants";
@@ -32,21 +31,31 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
  * Note: Terminal exit detection (in Terminal.tsx) provides a reliable fallback
  * for clearing stuck indicators when agent hooks fail to fire.
  */
+
+/**
+ * Returns the current workspace ID from the live URL hash.
+ * The app uses hash routing: file:///.../index.html#/workspace/<id>
+ * We must read window.location.hash (not pathname) at event time since the
+ * _authenticated layout does not re-render on workspace navigation.
+ */
+function getCurrentWorkspaceId(): string | null {
+	try {
+		const match = window.location.hash.match(/\/workspace\/([^/?#]+)/);
+		return match ? match[1] : null;
+	} catch {
+		return null;
+	}
+}
+
 export function useAgentHookListener() {
 	const navigate = useNavigate();
-
-	// Ref avoids stale closure; parsed from URL since hook runs in _authenticated/layout
-	const currentWorkspaceIdRef = useRef<string | null>(null);
-	try {
-		const match = window.location.pathname.match(/\/workspace\/([^/]+)/);
-		currentWorkspaceIdRef.current = match ? match[1] : null;
-	} catch {
-		currentWorkspaceIdRef.current = null;
-	}
 
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (!event.data) return;
+			if (event.type === NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE) {
+				return;
+			}
 
 			const state = useTabsStore.getState();
 			const target = resolveNotificationTarget(event.data, state);
@@ -64,24 +73,43 @@ export function useAgentHookListener() {
 
 				if (eventType === "Start") {
 					state.setPaneStatus(paneId, "working");
-				} else if (eventType === "PermissionRequest") {
+				} else if (
+					eventType === "PermissionRequest" ||
+					eventType === "PendingQuestion"
+				) {
 					state.setPaneStatus(paneId, "permission");
 				} else if (eventType === "Stop") {
 					const activeTabId = state.activeTabIds[workspaceId];
 					const pane = state.panes[paneId];
+					const tabId = pane?.tabId;
+					// Tab must be active for this workspace
+					const isTabActive = tabId != null && tabId === activeTabId;
+					// User is on this workspace if the URL hash matches OR if they have this
+					// pane focused (more reliable than URL parsing which can lag behind navigation)
+					const isPaneFocused =
+						tabId != null && state.focusedPaneIds[tabId] === paneId;
 					const isInActiveTab =
-						currentWorkspaceIdRef.current === workspaceId &&
-						pane?.tabId === activeTabId;
+						isTabActive &&
+						(getCurrentWorkspaceId() === workspaceId || isPaneFocused);
+
+					// If stopping from a pending question state, always go idle (user already engaged)
+					const nextStatus =
+						pane?.status === "permission"
+							? "idle"
+							: isInActiveTab
+								? "idle"
+								: "review";
 
 					debugLog("agent-hooks", "Stop event:", {
 						isInActiveTab,
 						activeTabId,
 						paneTabId: pane?.tabId,
 						paneId,
-						willSetTo: isInActiveTab ? "idle" : "review",
+						paneStatus: pane?.status,
+						willSetTo: nextStatus,
 					});
 
-					state.setPaneStatus(paneId, isInActiveTab ? "idle" : "review");
+					state.setPaneStatus(paneId, nextStatus);
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.TERMINAL_EXIT) {
 				// Clear transient status for unmounted panes (mounted panes handle this via stream subscription)

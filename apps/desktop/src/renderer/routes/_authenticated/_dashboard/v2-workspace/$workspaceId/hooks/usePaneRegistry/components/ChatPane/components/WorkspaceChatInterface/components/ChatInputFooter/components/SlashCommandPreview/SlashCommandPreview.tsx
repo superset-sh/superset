@@ -15,7 +15,6 @@ import {
 } from "./slash-command-preview.model";
 
 interface SlashCommandPreviewProps {
-	sessionId: string | null;
 	workspaceId: string;
 	slashCommands: Array<{
 		name: string;
@@ -45,7 +44,6 @@ function isRequiredField(
 }
 
 export function SlashCommandPreview({
-	sessionId,
 	workspaceId,
 	slashCommands,
 }: SlashCommandPreviewProps) {
@@ -72,7 +70,7 @@ export function SlashCommandPreview({
 	} | null>(null);
 
 	useEffect(() => {
-		if (!sessionId || debouncedSlashPreviewInput.length <= 1) {
+		if (debouncedSlashPreviewInput.length <= 1) {
 			setSlashPreview(null);
 			return;
 		}
@@ -80,7 +78,6 @@ export function SlashCommandPreview({
 		let cancelled = false;
 		void previewSlashCommand
 			.mutateAsync({
-				sessionId,
 				workspaceId,
 				text: debouncedSlashPreviewInput,
 			})
@@ -107,7 +104,7 @@ export function SlashCommandPreview({
 		return () => {
 			cancelled = true;
 		};
-	}, [debouncedSlashPreviewInput, previewSlashCommand, sessionId, workspaceId]);
+	}, [debouncedSlashPreviewInput, previewSlashCommand, workspaceId]);
 
 	const commandDefinition = useMemo(() => {
 		if (!parsedInput?.commandName) return null;

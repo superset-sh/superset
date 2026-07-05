@@ -1,27 +1,22 @@
-import type { WorkspaceFilesystemServerMessage } from "@superset/host-service/filesystem";
-import { buildWorkspaceFilesystemEventsPath } from "@superset/host-service/filesystem";
-import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink } from "@trpc/client";
+import { httpBatchStreamLink, TRPCClientError } from "@trpc/client";
 import { createContext, type ReactNode, useContext } from "react";
 import superjson from "superjson";
 import { workspaceTrpc } from "../../workspace-trpc";
 
 const STALE_TIME_MS = 5_000;
 const GC_TIME_MS = 30 * 60 * 1_000;
+const MAX_TIMEOUT_RETRIES = 2;
+const TIMEOUT_RETRY_BASE_DELAY_MS = 300;
 
-export interface WorkspaceFsSubscriptionInput {
-	workspaceId: string;
-	onEvent: (event: FsWatchEvent) => void;
-	onError?: (error: unknown) => void;
+function isTimeoutError(error: unknown): boolean {
+	return error instanceof TRPCClientError && error.data?.code === "TIMEOUT";
 }
 
 export interface WorkspaceClientContextValue {
 	hostUrl: string;
 	queryClient: QueryClient;
-	subscribeToWorkspaceFsEvents: (
-		input: WorkspaceFsSubscriptionInput,
-	) => () => void;
+	trpcClient: ReturnType<typeof workspaceTrpc.createClient>;
 	getWsToken: () => string | null;
 }
 
@@ -37,103 +32,12 @@ interface WorkspaceClients {
 	hostUrl: string;
 	queryClient: QueryClient;
 	trpcClient: ReturnType<typeof workspaceTrpc.createClient>;
-	subscribeToWorkspaceFsEvents: (
-		input: WorkspaceFsSubscriptionInput,
-	) => () => void;
 	getWsToken: () => string | null;
 }
 
 const workspaceClientsCache = new Map<string, WorkspaceClients>();
 const WorkspaceClientContext =
 	createContext<WorkspaceClientContextValue | null>(null);
-
-function toWorkspaceFilesystemEventsUrl(
-	hostUrl: string,
-	workspaceId: string,
-	getWsToken?: () => string | null,
-): string {
-	const url = new URL(buildWorkspaceFilesystemEventsPath(workspaceId), hostUrl);
-	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-	const token = getWsToken?.();
-	if (token) {
-		url.searchParams.set("token", token);
-	}
-	return url.toString();
-}
-
-function toSubscriptionError(message: string, event?: CloseEvent): Error {
-	return new Error(event ? `${message} (code ${event.code})` : message);
-}
-
-function createWorkspaceFsSubscription(
-	hostUrl: string,
-	input: WorkspaceFsSubscriptionInput,
-	getWsToken?: () => string | null,
-): () => void {
-	const socket = new WebSocket(
-		toWorkspaceFilesystemEventsUrl(hostUrl, input.workspaceId, getWsToken),
-	);
-	let disposed = false;
-	let opened = false;
-
-	socket.onopen = () => {
-		opened = true;
-	};
-
-	socket.onmessage = (messageEvent) => {
-		let message: WorkspaceFilesystemServerMessage;
-		try {
-			message = JSON.parse(
-				String(messageEvent.data),
-			) as WorkspaceFilesystemServerMessage;
-		} catch (error) {
-			input.onError?.(error);
-			return;
-		}
-
-		if (message.type === "error") {
-			input.onError?.(new Error(message.message));
-			return;
-		}
-
-		for (const event of message.events) {
-			input.onEvent(event);
-		}
-	};
-
-	socket.onerror = () => {
-		input.onError?.(
-			toSubscriptionError(
-				"Workspace filesystem event stream encountered an error",
-			),
-		);
-	};
-
-	socket.onclose = (event) => {
-		if (disposed) {
-			return;
-		}
-
-		if (!opened || !event.wasClean) {
-			input.onError?.(
-				toSubscriptionError(
-					"Workspace filesystem event stream closed unexpectedly",
-					event,
-				),
-			);
-		}
-	};
-
-	return () => {
-		disposed = true;
-		if (
-			socket.readyState === WebSocket.CONNECTING ||
-			socket.readyState === WebSocket.OPEN
-		) {
-			socket.close(1000, "Client unsubscribed");
-		}
-	};
-}
 
 function getWorkspaceClients(
 	cacheKey: string,
@@ -151,7 +55,18 @@ function getWorkspaceClients(
 		defaultOptions: {
 			queries: {
 				refetchOnWindowFocus: false,
-				retry: 1,
+				// Retry server-side TIMEOUT errors a couple of times — these come
+				// from `queryProcedure`'s middleware when a host-service query
+				// (filesystem, git) takes longer than its budget. Other errors
+				// fall back to a single retry as before.
+				retry: (failureCount, error) => {
+					if (isTimeoutError(error)) return failureCount < MAX_TIMEOUT_RETRIES;
+					return failureCount < 1;
+				},
+				retryDelay: (attempt, error) =>
+					isTimeoutError(error)
+						? TIMEOUT_RETRY_BASE_DELAY_MS * (attempt + 1)
+						: Math.min(1000 * 2 ** attempt, 30_000),
 				staleTime: STALE_TIME_MS,
 				gcTime: GC_TIME_MS,
 			},
@@ -160,7 +75,7 @@ function getWorkspaceClients(
 
 	const trpcClient = workspaceTrpc.createClient({
 		links: [
-			httpBatchLink({
+			httpBatchStreamLink({
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,
 				headers: headers ?? (() => ({})),
@@ -174,9 +89,6 @@ function getWorkspaceClients(
 		queryClient,
 		trpcClient,
 		getWsToken,
-		subscribeToWorkspaceFsEvents(input) {
-			return createWorkspaceFsSubscription(hostUrl, input, getWsToken);
-		},
 	};
 	workspaceClientsCache.set(clientKey, clients);
 	return clients;
@@ -193,7 +105,7 @@ export function WorkspaceClientProvider({
 	const contextValue: WorkspaceClientContextValue = {
 		hostUrl: clients.hostUrl,
 		queryClient: clients.queryClient,
-		subscribeToWorkspaceFsEvents: clients.subscribeToWorkspaceFsEvents,
+		trpcClient: clients.trpcClient,
 		getWsToken: clients.getWsToken,
 	};
 
@@ -231,7 +143,7 @@ export function useWorkspaceWsUrl(
 	params?: Record<string, string>,
 ): string {
 	const { hostUrl, getWsToken } = useWorkspaceClient();
-	const url = new URL(path, hostUrl);
+	const url = new URL(`${hostUrl}${path}`);
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
 	if (params) {
 		for (const [key, value] of Object.entries(params)) {

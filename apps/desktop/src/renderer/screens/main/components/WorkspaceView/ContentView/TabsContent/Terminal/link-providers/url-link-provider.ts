@@ -313,8 +313,18 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 	constructor(
 		terminal: Terminal,
 		private readonly onOpen: (event: MouseEvent, uri: string) => void,
+		private readonly onHover?: (event: MouseEvent, uri: string) => void,
+		private readonly onLeave?: () => void,
 	) {
 		super(terminal);
+	}
+
+	protected handleHover(event: MouseEvent, text: string): void {
+		this.onHover?.(event, text);
+	}
+
+	protected handleLeave(): void {
+		this.onLeave?.();
 	}
 
 	protected getPattern(): RegExp {
@@ -343,11 +353,6 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 	}
 
 	protected handleActivation(event: MouseEvent, text: string): void {
-		if (!event.metaKey && !event.ctrlKey) {
-			return;
-		}
-
-		event.preventDefault();
 		this.onOpen(event, text);
 	}
 }

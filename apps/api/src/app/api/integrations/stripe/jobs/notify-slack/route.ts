@@ -37,9 +37,26 @@ const basePayload = z.object({
 	stripeSubscriptionId: z.string(),
 });
 
+const optionalNullableString = z.preprocess(
+	(value) => (typeof value === "string" || value == null ? value : null),
+	z.string().nullable().optional(),
+);
+
+const cancellationDetailsSchema = z
+	.object({
+		comment: optionalNullableString,
+		feedback: optionalNullableString,
+		reason: optionalNullableString,
+	})
+	.nullable()
+	.catch(null);
+
 const payloadSchema = z.discriminatedUnion("eventType", [
 	basePayload.extend({ eventType: z.literal("subscription_started") }),
-	basePayload.extend({ eventType: z.literal("subscription_cancelled") }),
+	basePayload.extend({
+		eventType: z.literal("subscription_cancelled"),
+		cancellationDetails: cancellationDetailsSchema.optional(),
+	}),
 	basePayload.extend({
 		eventType: z.literal("seat_added"),
 		memberName: z.string(),
@@ -111,6 +128,7 @@ async function enrichFromSubscription(
 		interval,
 		discount: getDiscountInfo(stripeSub),
 		accessEndsAt: dbSub?.periodEnd ?? null,
+		cancellationDetails: stripeSub.cancellation_details,
 	};
 }
 
@@ -134,7 +152,15 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
-	const parsed = payloadSchema.safeParse(JSON.parse(body));
+	let rawPayload: unknown;
+	try {
+		rawPayload = JSON.parse(body);
+	} catch (error) {
+		console.error("[stripe/notify-slack] Invalid JSON payload:", error);
+		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+	}
+
+	const parsed = payloadSchema.safeParse(rawPayload);
 	if (!parsed.success) {
 		console.error("[stripe/notify-slack] Invalid payload:", parsed.error);
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
@@ -157,7 +183,11 @@ export async function POST(request: Request) {
 			blocks = formatSubscriptionStarted(enriched);
 			break;
 		case "subscription_cancelled":
-			blocks = formatSubscriptionCancelled(enriched);
+			blocks = formatSubscriptionCancelled({
+				...enriched,
+				cancellationDetails:
+					payload.cancellationDetails ?? enriched.cancellationDetails,
+			});
 			break;
 		case "seat_added":
 			blocks = formatSeatAdded(

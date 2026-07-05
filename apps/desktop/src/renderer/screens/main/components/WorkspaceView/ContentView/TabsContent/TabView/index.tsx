@@ -21,6 +21,7 @@ import {
 import { useTheme } from "renderer/stores/theme";
 import { BrowserPane } from "./BrowserPane";
 import { ChatPane } from "./ChatPane";
+import { CommentPane } from "./CommentPane";
 import { MosaicSplitOverlay } from "./components";
 import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
@@ -239,6 +240,20 @@ export function TabView({ tab }: TabViewProps) {
 						path={path}
 						tabId={tab.id}
 						targetPaneId={paneInfo.devtools.targetPaneId}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Route comment panes
+			if (paneInfo.type === "comment") {
+				return (
+					<CommentPane
+						paneId={paneId}
+						path={path}
+						tabId={tab.id}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}

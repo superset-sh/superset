@@ -30,8 +30,6 @@ export type ChatPendingApproval = UseChatDisplayReturn["pendingApproval"];
 export type ChatPendingPlanApproval =
 	UseChatDisplayReturn["pendingPlanApproval"];
 
-export type ChatPendingQuestion = UseChatDisplayReturn["pendingQuestion"];
-
 export interface InterruptedMessagePreview {
 	id: string;
 	sourceMessageId: string;
@@ -80,9 +78,6 @@ export interface ChatMessageListProps {
 		action: "approved" | "rejected";
 		feedback?: string;
 	}) => Promise<void>;
-	pendingQuestion: ChatPendingQuestion;
-	isQuestionSubmitting: boolean;
-	onQuestionRespond: (questionId: string, answer: string) => Promise<void>;
 	editingUserMessageId: string | null;
 	isEditSubmitting: boolean;
 	onStartEditUserMessage: (messageId: string) => void;
@@ -91,4 +86,5 @@ export interface ChatMessageListProps {
 		request: UserMessageRestartRequest,
 	) => Promise<void>;
 	onRestartUserMessage: (request: UserMessageRestartRequest) => Promise<void>;
+	footerScrollTrigger?: number;
 }

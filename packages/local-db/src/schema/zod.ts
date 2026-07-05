@@ -79,6 +79,7 @@ export const EXECUTION_MODES = [
 	"split-pane",
 	"new-tab",
 	"new-tab-split-pane",
+	"sequential",
 ] as const;
 
 export type ExecutionMode = (typeof EXECUTION_MODES)[number];
@@ -87,12 +88,13 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 	if (
 		mode === "split-pane" ||
 		mode === "new-tab" ||
-		mode === "new-tab-split-pane"
+		mode === "new-tab-split-pane" ||
+		mode === "sequential"
 	) {
 		return mode;
 	}
 
-	if (mode === "parallel" || mode === "sequential") {
+	if (mode === "parallel") {
 		return "split-pane";
 	}
 
@@ -110,6 +112,7 @@ export const terminalPresetSchema = z.object({
 	commands: z.array(z.string()),
 	projectIds: z.array(z.string()).nullable().optional(),
 	pinnedToBar: z.boolean().optional(),
+	useAsWorkspaceRun: z.boolean().optional(),
 	applyOnWorkspaceCreated: z.boolean().optional(),
 	applyOnNewTab: z.boolean().optional(),
 	executionMode: z.enum(EXECUTION_MODES).optional(),
@@ -117,60 +120,20 @@ export const terminalPresetSchema = z.object({
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
 
-export const AGENT_PRESET_FIELDS = [
-	"enabled",
-	"label",
-	"description",
-	"command",
-	"promptCommand",
-	"promptCommandSuffix",
-	"taskPromptTemplate",
-	"model",
-] as const;
-
-export type AgentPresetField = (typeof AGENT_PRESET_FIELDS)[number];
-
-export const PROMPT_TRANSPORTS = ["argv", "stdin"] as const;
-
-export type PromptTransport = (typeof PROMPT_TRANSPORTS)[number];
-
-export const agentPresetOverrideSchema = z.object({
-	id: z.string(),
-	enabled: z.boolean().optional(),
-	label: z.string().optional(),
-	description: z.string().nullable().optional(),
-	command: z.string().optional(),
-	promptCommand: z.string().optional(),
-	promptCommandSuffix: z.string().nullable().optional(),
-	taskPromptTemplate: z.string().optional(),
-	model: z.string().optional(),
-});
-
-export type AgentPresetOverride = z.infer<typeof agentPresetOverrideSchema>;
-
-export const agentPresetOverrideEnvelopeSchema = z.object({
-	version: z.literal(1),
-	presets: z.array(agentPresetOverrideSchema),
-});
-
-export type AgentPresetOverrideEnvelope = z.infer<
-	typeof agentPresetOverrideEnvelopeSchema
->;
-
-export const agentCustomDefinitionSchema = z.object({
-	id: z.string().regex(/^custom:/),
-	kind: z.literal("terminal"),
-	label: z.string(),
-	description: z.string().optional(),
-	command: z.string(),
-	promptCommand: z.string().optional(),
-	promptCommandSuffix: z.string().optional(),
-	promptTransport: z.enum(PROMPT_TRANSPORTS).optional(),
-	taskPromptTemplate: z.string(),
-	enabled: z.boolean().optional(),
-});
-
-export type AgentCustomDefinition = z.infer<typeof agentCustomDefinitionSchema>;
+export {
+	AGENT_PRESET_FIELDS,
+	type AgentCustomDefinition,
+	type AgentPresetField,
+	type AgentPresetOverride,
+	type AgentPresetOverrideEnvelope,
+	agentCustomDefinitionSchema,
+	agentPresetOverrideEnvelopeSchema,
+	agentPresetOverrideSchema,
+} from "@superset/shared/agent-custom";
+export {
+	PROMPT_TRANSPORTS,
+	type PromptTransport,
+} from "@superset/shared/agent-prompt-launch";
 
 /**
  * Workspace type
@@ -188,7 +151,7 @@ export const EXTERNAL_APPS = [
 	"vscode-insiders",
 	"cursor",
 	"antigravity",
-	"windsurf",
+	"devin",
 	"zed",
 	"sublime",
 	"xcode",
@@ -233,17 +196,10 @@ export const TERMINAL_LINK_BEHAVIORS = [
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
 
-/**
- * Branch prefix modes for workspace branch naming
- */
-export const BRANCH_PREFIX_MODES = [
-	"none",
-	"github",
-	"author",
-	"custom",
-] as const;
-
-export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
+export {
+	BRANCH_PREFIX_MODES,
+	type BranchPrefixMode,
+} from "@superset/shared/workspace-launch";
 
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 

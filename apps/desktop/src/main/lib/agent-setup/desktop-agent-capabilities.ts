@@ -1,10 +1,11 @@
 import type { AgentType } from "@superset/shared/agent-command";
 
-export type SupersetManagedBinary = AgentType | "droid";
+export type SupersetManagedBinary = AgentType;
 
 export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"notify-script",
 	"cleanup-global-opencode-plugin",
+	"amp-plugin",
 	"amp-wrapper",
 	"claude-settings-json",
 	"claude-wrapper",
@@ -14,6 +15,7 @@ export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"droid-settings-json",
 	"opencode-plugin",
 	"opencode-wrapper",
+	"pi-extension",
 	"cursor-hook-script",
 	"cursor-agent-wrapper",
 	"cursor-hooks-json",
@@ -30,7 +32,7 @@ export type DesktopAgentSetupAction =
 	(typeof DESKTOP_AGENT_SETUP_ACTIONS)[number];
 
 interface DesktopAgentSetupTarget {
-	id: AgentType | "droid";
+	id: AgentType;
 	setupActions: readonly DesktopAgentSetupAction[];
 	managedBinary?: boolean;
 }
@@ -43,7 +45,7 @@ export const DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS = [
 export const DESKTOP_AGENT_SETUP_TARGETS = [
 	{
 		id: "amp",
-		setupActions: ["amp-wrapper"],
+		setupActions: ["amp-plugin", "amp-wrapper"],
 		managedBinary: true,
 	},
 	{
@@ -65,6 +67,10 @@ export const DESKTOP_AGENT_SETUP_TARGETS = [
 		id: "opencode",
 		setupActions: ["opencode-plugin", "opencode-wrapper"],
 		managedBinary: true,
+	},
+	{
+		id: "pi",
+		setupActions: ["pi-extension"],
 	},
 	{
 		id: "cursor-agent",

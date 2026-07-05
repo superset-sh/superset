@@ -7,6 +7,7 @@ interface TextSegment {
 	text: string;
 	className?: string;
 	style?: React.CSSProperties;
+	render?: (visibleText: string) => React.ReactNode;
 }
 
 interface TypewriterTextProps {
@@ -70,6 +71,18 @@ export function TypewriterText({
 				0,
 				Math.min(segment.text.length, displayedText.length - segStart),
 			);
+
+			if (segment.render) {
+				return (
+					<span
+						key={segment.text}
+						className={segment.className}
+						style={segment.style}
+					>
+						{segment.render(visibleText)}
+					</span>
+				);
+			}
 
 			return (
 				<span

@@ -1,3 +1,4 @@
+import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
 	CommandEmpty,
@@ -10,7 +11,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@superset/ui/popover";
 import Fuse from "fuse.js";
 import type React from "react";
 import type { RefObject } from "react";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	IssueIcon,
@@ -46,9 +47,11 @@ export function GitHubIssueLinkCommand({
 	anchorRef,
 }: GitHubIssueLinkCommandProps) {
 	const [searchQuery, setSearchQuery] = useState("");
+	const [showClosed, setShowClosed] = useState(false);
+	const showClosedId = useId();
 
 	const { data: issues, isLoading } = electronTrpc.projects.listIssues.useQuery(
-		{ projectId: projectId ?? "" },
+		{ projectId: projectId ?? "", includeClosed: showClosed },
 		{ enabled: !!projectId && open },
 	);
 
@@ -122,14 +125,39 @@ export function GitHubIssueLinkCommand({
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
+					<div className="flex items-center gap-2 border-b px-3 py-2">
+						<Checkbox
+							id={showClosedId}
+							checked={showClosed}
+							onCheckedChange={(checked) => setShowClosed(checked === true)}
+						/>
+						<label
+							htmlFor={showClosedId}
+							className="cursor-pointer select-none text-xs text-muted-foreground"
+						>
+							Show closed
+						</label>
+					</div>
 					<CommandList className="max-h-[280px]">
 						{searchResults.length === 0 && (
 							<CommandEmpty>
-								{isLoading ? "Loading issues..." : "No open issues found."}
+								{isLoading
+									? "Loading issues..."
+									: showClosed
+										? "No issues found."
+										: "No open issues found."}
 							</CommandEmpty>
 						)}
 						{searchResults.length > 0 && (
-							<CommandGroup heading={searchQuery ? "Results" : "Open issues"}>
+							<CommandGroup
+								heading={
+									searchQuery
+										? "Results"
+										: showClosed
+											? "Recent issues"
+											: "Open issues"
+								}
+							>
 								{searchResults.map((issue) => (
 									<CommandItem
 										key={issue.issueNumber}

@@ -29,11 +29,10 @@ export function useTasksData({
 }: UseTasksDataParams): {
 	data: TaskWithStatus[];
 	allStatuses: SelectTaskStatus[];
-	isLoading: boolean;
 } {
 	const collections = useCollections();
 
-	const { data: allData, isLoading } = useLiveQuery(
+	const { data: allData } = useLiveQuery(
 		(q) =>
 			q
 				.from({ tasks: collections.tasks })
@@ -52,7 +51,7 @@ export function useTasksData({
 		[collections],
 	);
 
-	const { data: statusData, isLoading: isStatusesLoading } = useLiveQuery(
+	const { data: statusData } = useLiveQuery(
 		(q) =>
 			q
 				.from({ taskStatuses: collections.taskStatuses })
@@ -119,6 +118,5 @@ export function useTasksData({
 	return {
 		data: filteredData,
 		allStatuses,
-		isLoading: isLoading || isStatusesLoading,
 	};
 }

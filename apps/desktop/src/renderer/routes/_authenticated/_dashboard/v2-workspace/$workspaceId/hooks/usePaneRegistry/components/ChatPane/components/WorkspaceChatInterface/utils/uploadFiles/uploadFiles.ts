@@ -63,7 +63,12 @@ async function uploadFile(
 		mediaType: file.mediaType,
 		fileData,
 	});
-	return { type: "file", ...result };
+	return {
+		type: "file",
+		url: fileData,
+		mediaType: result.mediaType,
+		filename: result.filename,
+	};
 }
 
 export async function uploadFiles(

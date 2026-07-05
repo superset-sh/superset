@@ -120,11 +120,10 @@ export function useTerminalRestore({
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
 		try {
-			const scheduleFitAndScroll = () => {
+			const scheduleScrollToBottom = () => {
 				requestAnimationFrame(() => {
 					if (xtermRef.current !== xterm) return;
 					if (restoreSequenceRef.current !== restoreSequence) return;
-					fitAddon.fit();
 					scrollToBottom(xterm);
 				});
 			};
@@ -185,7 +184,7 @@ export function useTerminalRestore({
 					}
 					flushPendingEvents();
 
-					scheduleFitAndScroll();
+					scheduleScrollToBottom();
 				});
 
 				if (result.snapshot?.cwd) {
@@ -200,7 +199,7 @@ export function useTerminalRestore({
 
 			const finalizeRestore = () => {
 				isStreamReadyRef.current = true;
-				scheduleFitAndScroll();
+				scheduleScrollToBottom();
 				if (DEBUG_TERMINAL) {
 					console.log(
 						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,

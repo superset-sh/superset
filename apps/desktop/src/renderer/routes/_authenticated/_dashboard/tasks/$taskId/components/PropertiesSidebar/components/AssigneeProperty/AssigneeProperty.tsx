@@ -8,6 +8,7 @@ import {
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 
@@ -17,6 +18,7 @@ interface AssigneePropertyProps {
 
 export function AssigneeProperty({ task }: AssigneePropertyProps) {
 	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const { data: allUsers } = useLiveQuery(
@@ -32,14 +34,10 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 			return;
 		}
 
-		setOpen(false);
-
-		collections.tasks.update(task.id, (draft) => {
-			draft.assigneeId = userId;
-			draft.assigneeExternalId = null;
-			draft.assigneeDisplayName = null;
-			draft.assigneeAvatarUrl = null;
-		});
+		const transaction = taskActions.updateAssignee(task.id, userId);
+		if (transaction) {
+			setOpen(false);
+		}
 	};
 
 	return (

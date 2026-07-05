@@ -1,7 +1,6 @@
 {
 	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
-		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]
 		}

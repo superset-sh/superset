@@ -1,8 +1,9 @@
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
-import { members, subscriptions } from "@superset/db/schema";
+import { members, organizations, subscriptions } from "@superset/db/schema";
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type Stripe from "stripe";
 import { z } from "zod";
 import { env } from "../../env";
@@ -27,12 +28,10 @@ function subtractMonthsClamped(date: Date, months: number) {
 }
 
 async function requireOwnerWithCustomer(ctx: {
-	session: {
-		session: { activeOrganizationId: string | null };
-		user: { id: string };
-	};
+	session: { user: { id: string } };
+	activeOrganizationId: string | null;
 }) {
-	const activeOrgId = ctx.session.session.activeOrganizationId;
+	const activeOrgId = ctx.activeOrganizationId;
 	if (!activeOrgId) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -40,15 +39,16 @@ async function requireOwnerWithCustomer(ctx: {
 		});
 	}
 
-	const [member, subscription] = await Promise.all([
+	const [member, organization] = await Promise.all([
 		db.query.members.findFirst({
 			where: and(
 				eq(members.userId, ctx.session.user.id),
 				eq(members.organizationId, activeOrgId),
 			),
 		}),
-		db.query.subscriptions.findFirst({
-			where: eq(subscriptions.referenceId, activeOrgId),
+		db.query.organizations.findFirst({
+			where: eq(organizations.id, activeOrgId),
+			columns: { stripeCustomerId: true },
 		}),
 	]);
 
@@ -59,16 +59,31 @@ async function requireOwnerWithCustomer(ctx: {
 		});
 	}
 
-	if (!subscription?.stripeCustomerId) {
-		return null;
-	}
-
-	return subscription.stripeCustomerId;
+	return organization?.stripeCustomerId ?? null;
 }
 
 export const billingRouter = {
+	activePlan: protectedProcedure.query(async ({ ctx }) => {
+		const activeOrgId = ctx.activeOrganizationId;
+		if (!activeOrgId) return { plan: "free" as const, status: null };
+
+		const subscription = await db.query.subscriptions.findFirst({
+			where: and(
+				eq(subscriptions.referenceId, activeOrgId),
+				inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
+			),
+			orderBy: desc(subscriptions.createdAt),
+		});
+
+		if (!subscription) {
+			return { plan: "free" as const, status: null };
+		}
+
+		return { plan: subscription.plan, status: subscription.status };
+	}),
+
 	invoices: protectedProcedure.query(async ({ ctx }) => {
-		const activeOrgId = ctx.session.session.activeOrganizationId;
+		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
@@ -76,30 +91,33 @@ export const billingRouter = {
 			});
 		}
 
-		const subscription = await db.query.subscriptions.findFirst({
-			where: eq(subscriptions.referenceId, activeOrgId),
+		const organization = await db.query.organizations.findFirst({
+			where: eq(organizations.id, activeOrgId),
+			columns: { stripeCustomerId: true },
 		});
 
-		if (!subscription?.stripeCustomerId) {
+		if (!organization?.stripeCustomerId) {
 			return [];
 		}
 
 		const twelveMonthsAgo = subtractMonthsClamped(new Date(), 12);
 
-		const stripeInvoices = await stripeClient.invoices.list({
-			customer: subscription.stripeCustomerId,
+		const invoiceList = await stripeClient.invoices.list({
+			customer: organization.stripeCustomerId,
 			limit: 100,
 			status: "paid",
 			created: { gte: Math.floor(twelveMonthsAgo.getTime() / 1000) },
 		});
 
-		return stripeInvoices.data.map((invoice) => ({
-			id: invoice.id,
-			date: invoice.created,
-			amount: invoice.amount_paid,
-			currency: invoice.currency,
-			hostedInvoiceUrl: invoice.hosted_invoice_url,
-		}));
+		return invoiceList.data
+			.sort((a, b) => b.created - a.created)
+			.map((invoice) => ({
+				id: invoice.id,
+				date: invoice.created,
+				amount: invoice.amount_paid,
+				currency: invoice.currency,
+				hostedInvoiceUrl: invoice.hosted_invoice_url,
+			}));
 	}),
 
 	details: protectedProcedure.query(async ({ ctx }) => {

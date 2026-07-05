@@ -1,0 +1,10 @@
+/* Animate the sidebar hover card sliding between rows. Targets the
+ * Radix popper wrapper (which carries the position transform) only after
+ * it has been placed at its anchor (`data-…="ready"`), so the initial
+ * measuring jump from translate(0, -200%) is not animated. */
+[data-radix-popper-content-wrapper]:has(
+		> [data-dashboard-sidebar-hover-card="ready"]
+	) {
+	transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+	will-change: transform;
+}

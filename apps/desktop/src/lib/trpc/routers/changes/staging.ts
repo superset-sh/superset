@@ -4,7 +4,7 @@ import { publicProcedure, router } from "../..";
 import { getServiceForRootPath } from "../workspace-fs-service";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import {
-	gitCheckoutFile,
+	gitCheckoutFiles,
 	gitDiscardAllStaged,
 	gitDiscardAllUnstaged,
 	gitStageAll,
@@ -88,7 +88,20 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitCheckoutFile(input.worktreePath, input.filePath);
+				await gitCheckoutFiles(input.worktreePath, [input.filePath]);
+				clearStatusCacheForWorktree(input.worktreePath);
+				return { success: true };
+			}),
+
+		discardFiles: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePaths: z.array(z.string()).min(1),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				await gitCheckoutFiles(input.worktreePath, input.filePaths);
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),

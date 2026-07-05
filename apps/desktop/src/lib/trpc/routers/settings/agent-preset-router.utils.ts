@@ -1,11 +1,11 @@
 import { PROMPT_TRANSPORTS } from "@superset/local-db";
 import type { AgentDefinition } from "@superset/shared/agent-catalog";
-import { TRPCError } from "@trpc/server";
 import type {
 	AgentPresetPatch,
 	CustomAgentDefinitionPatch,
-} from "shared/utils/agent-settings";
-import { validateTaskPromptTemplate } from "shared/utils/agent-settings";
+} from "@superset/shared/agent-settings";
+import { validateTaskPromptTemplate } from "@superset/shared/agent-settings";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 export const updateAgentPresetInputSchema = z.object({

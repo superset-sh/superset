@@ -1,0 +1,1 @@
+export { PaginationDots } from "./PaginationDots";

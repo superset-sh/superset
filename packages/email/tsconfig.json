@@ -3,8 +3,7 @@
 	"compilerOptions": {
 		"lib": ["ES2022"],
 		"jsx": "react-jsx",
-		"moduleResolution": "bundler",
-		"baseUrl": "."
+		"moduleResolution": "bundler"
 	},
 	"include": ["src/**/*.ts", "src/**/*.tsx"],
 	"exclude": ["node_modules", "dist"]

@@ -168,7 +168,7 @@ export function getCredentialsFromKeychain(): ClaudeCredentials | null {
 	return null;
 }
 
-export function getCredentialsFromAuthStorage(): ClaudeCredentials | null {
+export async function getCredentialsFromAuthStorage(): Promise<ClaudeCredentials | null> {
 	try {
 		const authStorage = createAuthStorage();
 		authStorage.reload();
@@ -187,18 +187,22 @@ export function getCredentialsFromAuthStorage(): ClaudeCredentials | null {
 			};
 		}
 
-		if (
-			credential.type === "oauth" &&
-			typeof credential.access === "string" &&
-			credential.access.trim().length > 0
-		) {
+		if (credential.type === "oauth") {
+			// mastracode's getApiKey triggers refreshToken() when expires <= now,
+			// and persists the refreshed credential back into auth storage.
+			const accessToken = await authStorage.getApiKey(
+				ANTHROPIC_AUTH_PROVIDER_ID,
+			);
+			if (!accessToken || accessToken.trim().length === 0) return null;
+			authStorage.reload();
+			const refreshed = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
 			return {
-				apiKey: credential.access.trim(),
+				apiKey: accessToken.trim(),
 				source: "auth-storage",
 				kind: "oauth",
 				expiresAt:
-					typeof credential.expires === "number"
-						? credential.expires
+					refreshed?.type === "oauth" && typeof refreshed.expires === "number"
+						? refreshed.expires
 						: undefined,
 			};
 		}
@@ -209,24 +213,22 @@ export function getCredentialsFromAuthStorage(): ClaudeCredentials | null {
 	return null;
 }
 
-export function getCredentialsFromAnySource(): ClaudeCredentials | null {
-	const resolvers = [
-		getCredentialsFromConfig,
-		getCredentialsFromKeychain,
-		getCredentialsFromAuthStorage,
-	];
+export async function getCredentialsFromAnySource(): Promise<ClaudeCredentials | null> {
+	const syncResolvers = [getCredentialsFromConfig, getCredentialsFromKeychain];
 	let firstExpired: ClaudeCredentials | null = null;
 
-	for (const resolve of resolvers) {
+	for (const resolve of syncResolvers) {
 		const credential = resolve();
-		if (!credential) {
-			continue;
-		}
-		if (!isClaudeCredentialExpired(credential)) {
-			return credential;
-		}
+		if (!credential) continue;
+		if (!isClaudeCredentialExpired(credential)) return credential;
 		firstExpired ??= credential;
 	}
+
+	const storageCredential = await getCredentialsFromAuthStorage();
+	if (storageCredential && !isClaudeCredentialExpired(storageCredential)) {
+		return storageCredential;
+	}
+	firstExpired ??= storageCredential ?? null;
 
 	return firstExpired;
 }

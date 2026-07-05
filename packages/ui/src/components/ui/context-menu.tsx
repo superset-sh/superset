@@ -2,7 +2,7 @@
 
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
@@ -95,11 +95,51 @@ function ContextMenuSubContent({
 
 function ContextMenuContent({
 	className,
+	ref,
 	...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
+	// Wayland delivers a stray pointerup with the opening `contextmenu`,
+	// landing on the just-mounted item under the cursor. Radix's MenuItem
+	// treats pointerup with no prior pointerdown as a drag-release and calls
+	// `event.currentTarget?.click()` → onSelect, so opening the menu fires
+	// whatever item sits under the cursor (usually destructive Close Pane).
+	// Intercept pointerup, not mouseup — mouseup arrives too late. Reset per
+	// event so the guard re-arms for force-mounted content. Callback ref
+	// (not useEffect): Portal renders its child only when open, so useEffect
+	// on the wrapper would see a null ref. See superset-sh/superset#4939.
+	const forwardedRef = React.useRef(ref);
+	forwardedRef.current = ref;
+	const cleanupRef = React.useRef<(() => void) | null>(null);
+	const setRef = React.useCallback((node: HTMLDivElement | null) => {
+		cleanupRef.current?.();
+		cleanupRef.current = null;
+		const forwarded = forwardedRef.current;
+		if (typeof forwarded === "function") forwarded(node);
+		else if (forwarded) forwarded.current = node;
+		if (!node) return;
+		let sawPointerDown = false;
+		const onDown = () => {
+			sawPointerDown = true;
+		};
+		const onUp = (event: PointerEvent) => {
+			if (!sawPointerDown) {
+				event.stopPropagation();
+				event.preventDefault();
+			}
+			sawPointerDown = false;
+		};
+		node.addEventListener("pointerdown", onDown, true);
+		node.addEventListener("pointerup", onUp, true);
+		cleanupRef.current = () => {
+			node.removeEventListener("pointerdown", onDown, true);
+			node.removeEventListener("pointerup", onUp, true);
+		};
+	}, []);
+
 	return (
 		<ContextMenuPrimitive.Portal>
 			<ContextMenuPrimitive.Content
+				ref={setRef}
 				data-slot="context-menu-content"
 				className={cn(
 					"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-context-menu-content-available-height) min-w-[8rem] origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",

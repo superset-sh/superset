@@ -16,13 +16,9 @@ export {
 export { ChatService } from "./chat-service";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";
-export type {
-	SmallModelCredential,
-	SmallModelProvider,
-	SmallModelProviderId,
-} from "./small-model";
-export { getDefaultSmallModelProviders } from "./small-model";
+export type { SlashCommand } from "./slash-commands";
 export {
-	generateTitleFromMessage,
-	generateTitleFromMessageWithStreamingModel,
-} from "./title-generation";
+	getSlashCommands,
+	resolveSlashCommand,
+} from "./slash-commands";
+export { generateTitleFromMessage } from "./title-generation";

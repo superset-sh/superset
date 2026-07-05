@@ -3,6 +3,12 @@
  * Used by both main and renderer processes.
  */
 
+import { getFileExtension, isVideoFile } from "@superset/shared/media-files";
+
+// Re-exported so renderer/main code can keep importing extension helpers from
+// `shared/file-types`; the canonical definitions live in `@superset/shared`.
+export { getFileExtension, isVideoFile };
+
 /** Supported image extensions */
 const IMAGE_EXTENSIONS = new Set([
 	"png",
@@ -13,6 +19,8 @@ const IMAGE_EXTENSIONS = new Set([
 	"svg",
 	"bmp",
 	"ico",
+	"tif",
+	"tiff",
 ]);
 
 /** MIME types for supported image extensions */
@@ -25,6 +33,26 @@ const IMAGE_MIME_TYPES: Record<string, string> = {
 	svg: "image/svg+xml",
 	bmp: "image/bmp",
 	ico: "image/x-icon",
+	tif: "image/tiff",
+	tiff: "image/tiff",
+};
+
+/** Browser-playable video extensions */
+const PREVIEWABLE_VIDEO_EXTENSIONS = new Set([
+	"m4v",
+	"mov",
+	"mp4",
+	"ogv",
+	"webm",
+]);
+
+/** MIME types for supported video extensions */
+const VIDEO_MIME_TYPES: Record<string, string> = {
+	mp4: "video/mp4",
+	m4v: "video/mp4",
+	mov: "video/quicktime",
+	ogv: "video/ogg",
+	webm: "video/webm",
 };
 
 /** Extensions for supported image MIME types */
@@ -36,6 +64,7 @@ const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
 	"image/webp": "webp",
 	"image/svg+xml": "svg",
 	"image/bmp": "bmp",
+	"image/tiff": "tiff",
 	"image/x-icon": "ico",
 	"image/vnd.microsoft.icon": "ico",
 };
@@ -44,17 +73,10 @@ const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown", "mdx"]);
 
 /**
- * Gets the file extension from a path (lowercase, without dot)
- */
-function getExtension(filePath: string): string {
-	return filePath.split(".").pop()?.toLowerCase() ?? "";
-}
-
-/**
  * Checks if a file is an image based on extension
  */
 export function isImageFile(filePath: string): boolean {
-	return IMAGE_EXTENSIONS.has(getExtension(filePath));
+	return IMAGE_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**
@@ -62,8 +84,24 @@ export function isImageFile(filePath: string): boolean {
  * Returns null if not a supported image type
  */
 export function getImageMimeType(filePath: string): string | null {
-	const ext = getExtension(filePath);
+	const ext = getFileExtension(filePath);
 	return IMAGE_MIME_TYPES[ext] ?? null;
+}
+
+/**
+ * Checks if a video file can be previewed by the browser video element.
+ */
+export function isPreviewableVideoFile(filePath: string): boolean {
+	return PREVIEWABLE_VIDEO_EXTENSIONS.has(getFileExtension(filePath));
+}
+
+/**
+ * Gets the MIME type for a video file
+ * Returns null if not a supported video type
+ */
+export function getVideoMimeType(filePath: string): string | null {
+	const ext = getFileExtension(filePath);
+	return VIDEO_MIME_TYPES[ext] ?? null;
 }
 
 /**
@@ -102,7 +140,7 @@ export function parseBase64DataUrl(dataUrl: string): {
  * Checks if a file is markdown based on extension
  */
 export function isMarkdownFile(filePath: string): boolean {
-	return MARKDOWN_EXTENSIONS.has(getExtension(filePath));
+	return MARKDOWN_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**

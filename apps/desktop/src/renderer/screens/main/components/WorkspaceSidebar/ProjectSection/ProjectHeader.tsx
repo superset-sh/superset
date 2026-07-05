@@ -134,7 +134,7 @@ export function ProjectHeader({
 	};
 
 	const handleOpenSettings = () => {
-		navigate({ to: "/settings/project/$projectId", params: { projectId } });
+		navigate({ to: "/settings/projects/$projectId", params: { projectId } });
 	};
 
 	const updateProject = useUpdateProject({

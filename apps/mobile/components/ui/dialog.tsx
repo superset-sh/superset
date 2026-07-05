@@ -23,10 +23,9 @@ function DialogOverlay({
 	className,
 	children,
 	...props
-}: Omit<DialogPrimitive.OverlayProps, "asChild"> &
-	React.RefAttributes<DialogPrimitive.OverlayRef> & {
-		children?: React.ReactNode;
-	}) {
+}: Omit<React.ComponentProps<typeof DialogPrimitive.Overlay>, "asChild"> & {
+	children?: React.ReactNode;
+}) {
 	return (
 		<FullWindowOverlay>
 			<DialogPrimitive.Overlay
@@ -60,10 +59,9 @@ function DialogContent({
 	portalHost,
 	children,
 	...props
-}: DialogPrimitive.ContentProps &
-	React.RefAttributes<DialogPrimitive.ContentRef> & {
-		portalHost?: string;
-	}) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+	portalHost?: string;
+}) {
 	return (
 		<DialogPortal hostName={portalHost}>
 			<DialogOverlay>
@@ -125,7 +123,7 @@ function DialogFooter({ className, ...props }: ViewProps) {
 function DialogTitle({
 	className,
 	...props
-}: DialogPrimitive.TitleProps & React.RefAttributes<DialogPrimitive.TitleRef>) {
+}: React.ComponentProps<typeof DialogPrimitive.Title>) {
 	return (
 		<DialogPrimitive.Title
 			className={cn(
@@ -140,8 +138,7 @@ function DialogTitle({
 function DialogDescription({
 	className,
 	...props
-}: DialogPrimitive.DescriptionProps &
-	React.RefAttributes<DialogPrimitive.DescriptionRef>) {
+}: React.ComponentProps<typeof DialogPrimitive.Description>) {
 	return (
 		<DialogPrimitive.Description
 			className={cn("text-muted-foreground text-sm", className)}

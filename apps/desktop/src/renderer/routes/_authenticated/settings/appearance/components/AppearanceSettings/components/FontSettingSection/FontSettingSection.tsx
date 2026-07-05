@@ -16,7 +16,7 @@ import { useSystemFonts } from "./hooks/useSystemFonts";
 
 const VARIANT_CONFIG = {
 	editor: {
-		title: "Editor Font",
+		title: "Editor font",
 		description: "Font used in diff views and file editors",
 		defaultFamily: DEFAULT_CODE_EDITOR_FONT_FAMILY,
 		defaultSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
@@ -24,7 +24,7 @@ const VARIANT_CONFIG = {
 		sizeKey: "editorFontSize",
 	},
 	terminal: {
-		title: "Terminal Font",
+		title: "Terminal font",
 		description: "Font used in terminal panels.",
 		defaultFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 		defaultSize: DEFAULT_TERMINAL_FONT_SIZE,
@@ -108,7 +108,7 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 	return (
 		<div>
 			<h3 className="text-sm font-medium mb-1">{config.title}</h3>
-			<p className="text-sm text-muted-foreground mb-3">
+			<p className="text-xs text-muted-foreground mb-3">
 				{config.description}
 				{variant === "terminal" && (
 					<>
@@ -147,12 +147,13 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 					}}
 					disabled={isLoading}
 					className="w-20"
+					aria-label={`${config.title} size`}
 				/>
 				{(currentFamily || currentSize) && (
 					<Button
-						variant="ghost"
+						variant="outline"
 						size="sm"
-						className="text-xs text-muted-foreground shrink-0"
+						className="shrink-0"
 						onClick={() => {
 							setFontSettings.mutate({
 								[config.familyKey]: null,

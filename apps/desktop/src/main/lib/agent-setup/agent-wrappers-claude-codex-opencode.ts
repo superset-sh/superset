@@ -76,9 +76,13 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * Returns the shell command written into Claude's global hook config.
  * The notify path is resolved at runtime from SUPERSET_HOME_DIR so one
  * shared ~/.claude/settings.json works for both dev and prod installs.
+ *
+ * `SUPERSET_AGENT_ID=claude` is inlined so the v2 hook payload carries the
+ * wrapper-level identity even when Claude is launched outside the Superset
+ * wrapper (system PATH resolves to the real binary directly).
  */
 export function getClaudeManagedHookCommand(): string {
-	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
+	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_AGENT_ID=claude "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
 }
 
 function isManagedClaudeHookCommand(
@@ -172,6 +176,8 @@ export function getClaudeGlobalSettingsJsonContent(
 
 	const managedEvents: Array<{
 		eventName:
+			| "SessionStart"
+			| "SessionEnd"
 			| "UserPromptSubmit"
 			| "Stop"
 			| "PostToolUse"
@@ -180,16 +186,20 @@ export function getClaudeGlobalSettingsJsonContent(
 		definition: ClaudeHookDefinition;
 	}> = [
 		{
+			eventName: "SessionStart",
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
+		},
+		{
+			eventName: "SessionEnd",
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
+		},
+		{
 			eventName: "UserPromptSubmit",
-			definition: {
-				hooks: [{ type: "command", command: managedHookCommand }],
-			},
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{
 			eventName: "Stop",
-			definition: {
-				hooks: [{ type: "command", command: managedHookCommand }],
-			},
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{
 			eventName: "PostToolUse",
@@ -263,14 +273,14 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 }
 
 /**
- * Creates the Claude wrapper that forwards SUPERSET_* env vars into the agent.
+ * Pass-through wrapper for Claude. Hooks live in ~/.claude/settings.json
+ * (createClaudeSettingsJson); the wrapper exists only to forward SUPERSET_*
+ * env vars into the agent process tree.
  */
 export function createClaudeWrapper(): void {
-	// Hooks are now written directly to ~/.claude/settings.json via
-	// createClaudeSettingsJson(), so the wrapper is a plain pass-through.
-	// We still create the wrapper so SUPERSET_* env vars flow through
-	// and the notify script can identify the Superset terminal context.
-	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`);
+	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`, {
+		agentId: "claude",
+	});
 	createWrapper("claude", script);
 }
 
@@ -282,6 +292,7 @@ export function createCodexWrapper(): void {
 	const script = buildWrapperScript(
 		"codex",
 		buildCodexWrapperExecLine(notifyPath),
+		{ agentId: "codex" },
 	);
 	createWrapper("codex", script);
 }
@@ -384,27 +395,27 @@ export function getCodexGlobalHooksJsonContent(
 		existing.hooks[eventName] = filtered;
 	}
 
+	// Inline SUPERSET_AGENT_ID like getClaudeManagedHookCommand so the v2
+	// payload carries identity even when codex is launched outside the wrapper.
+	// Quote the path: codex executes via /bin/sh -lc, so a space in $HOME
+	// (e.g. "/Users/Some User/...") would otherwise word-split.
+	const codexCommand = `SUPERSET_AGENT_ID=codex "${notifyScriptPath}"`;
+
 	const managedEvents: Array<{
 		eventName: "SessionStart" | "UserPromptSubmit" | "Stop";
 		definition: ClaudeHookDefinition;
 	}> = [
 		{
 			eventName: "SessionStart",
-			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
-			},
+			definition: { hooks: [{ type: "command", command: codexCommand }] },
 		},
 		{
 			eventName: "UserPromptSubmit",
-			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
-			},
+			definition: { hooks: [{ type: "command", command: codexCommand }] },
 		},
 		{
 			eventName: "Stop",
-			definition: {
-				hooks: [{ type: "command", command: notifyScriptPath }],
-			},
+			definition: { hooks: [{ type: "command", command: codexCommand }] },
 		},
 	];
 
@@ -491,6 +502,7 @@ export function createOpenCodeWrapper(): void {
 	const script = buildWrapperScript(
 		"opencode",
 		`export OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR}"\nexec "$REAL_BIN" "$@"`,
+		{ agentId: "opencode" },
 	);
 	createWrapper("opencode", script);
 }

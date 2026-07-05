@@ -1,5 +1,10 @@
 import { cn } from "@superset/ui/utils";
-import { LuCircleDot, LuGitMerge, LuGitPullRequest } from "react-icons/lu";
+import {
+	LuCircleDot,
+	LuGitMerge,
+	LuGitPullRequest,
+	LuListChecks,
+} from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { DashboardSidebarWorkspacePullRequest } from "../../../../types";
 
@@ -55,6 +60,15 @@ export function DashboardSidebarWorkspaceStatusBadge({
 				/>
 			),
 			bgColor: "bg-muted",
+		},
+		queued: {
+			icon: (
+				<LuListChecks
+					className={cn(iconClass, "text-amber-500")}
+					strokeWidth={1.75}
+				/>
+			),
+			bgColor: "bg-amber-500/10",
 		},
 	};
 
