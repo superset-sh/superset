@@ -68,7 +68,7 @@ Key current-state facts the plan relies on (verified in the audit):
 
 ## Progress
 
-- [ ] Milestone 1 (R1): host.db owns full workspace rows — schema, backfill, dual-write, events, list endpoint, JWT org check
+- [x] (2026-07-04) Milestone 1 (R1): host.db owns full workspace rows — schema migration 0008 (name/type/taskId/createdByUserId/updatedAt/cloudSyncedAt + one-main-per-project partial index + `workspace_cloud_deletes` tombstones); `workspace:changed` on the `/events` bus; local-first writes with host-minted UUIDs across create/adopt/ensure-main/AI-rename/destroy/project-remove; cloud dual-write via `pushWorkspaceCreateToCloud` with per-row LWW name merge; 60s reconciler; startup backfill; `workspace.list`/`workspace.update` endpoints; is-main check reads local `type`. Typecheck, lint, and the full host-service suite (751 pass / 0 fail) are green. Remaining for M1 sign-off: the manual offline drill (create offline → verify host.db row → reconnect → verify cloud reconcile).
 - [ ] Milestone 2 (R1): cloud accepts client-minted ids; automations denormalized (cloud side); PostHog moves host-side
 - [ ] Milestone 3 (R2): renderer fan-out layer — per-host queries, `workspace:changed` subscriptions, IndexedDB persistence
 - [ ] Milestone 4 (R2): renderer consumers flip to the fan-out hook; writes unify through host; cloud read-through fallback
@@ -77,7 +77,15 @@ Key current-state facts the plan relies on (verified in the audit):
 
 ## Surprises & Discoveries
 
-(none yet)
+- Observation: No host-side JWT validation is needed at all (D-auth resolved better than assumed).
+  Evidence: the relay verifies the caller's JWT and org membership (`apps/relay/src/access.ts:31`, plus a cached `host.checkAccess`), and the tunnel client rewrites the Authorization header to the host's own PSK before forwarding (`packages/host-service/src/tunnel/tunnel-client.ts:247,282`). `protectedProcedure` was already the right gate for both local and relay callers.
+- Observation: Cloud `v2Workspace.create` already accepted a client-supplied `id` (used as an optimistic-UI idempotency key), so Milestone 2's id work was pre-existing.
+  Evidence: `packages/trpc/src/router/v2-workspace/v2-workspace.ts:199`.
+- Observation: Dual-write has a two-writer hazard on `name`/`taskId`: renderer renames still write the cloud directly in R1, so a host push could clobber a newer cloud-side rename.
+  Evidence: handled with per-row last-write-wins in `pushWorkspaceCreateToCloud` — branch is always host-truth; name/taskId go to whichever side has the newer `updatedAt` (clock-skew-tolerant enough for the transitional era; gone in R3).
+- Observation: `ensureMainWorkspaceStrict` no longer fails the create-project saga on cloud unavailability — the local main row commits and the reconciler pushes later. The saga's own cloud project commit still gates the fully-offline case.
+- Observation: Destroy semantics changed shape: the local row delete is the commit point (broadcast + tombstone), cloud delete degrades to a warning, and a sqlite row-delete failure is now a hard error instead of a warning. Offline deletes replay via `workspace_cloud_deletes` tombstones. Six test files were updated to pin the new contract (`workspace-cleanup.test.ts`, `workspace-cleanup.integration`, `workspace-create-delete.integration`, `workspace-create-pr.integration`, `bug-hunt-2/4`).
+- Observation: PR-runtime branch-rename detection writes the local row directly without events; flagged cloud-dirty for the reconciler, but R2's live view will want a `workspace:changed` emit there too (noted for Milestone 3/4).
 
 ## Decision Log
 
@@ -92,7 +100,8 @@ Key current-state facts the plan relies on (verified in the audit):
 - Decision: Cloud `v2Workspace.create` gains an optional client-supplied `id` (uuid) in R1 so the host can mint ids locally and dual-write the same id to the cloud.
   Rationale: offline create requires local id minting; during dual-write both stores must agree on the id. Additive and backward compatible (old clients omit it).
   Date/Author: 2026-07-03 / plan authoring.
-- Decision: D-auth — placeholder pending Milestone 1 verification of host-side JWT validation.
+- Decision: D-auth RESOLVED (2026-07-04) — no host-side change: the relay already enforces JWT org membership + host access before forwarding, and the tunnel rewrites Authorization to the host PSK, so `protectedProcedure` covers local and relay callers alike.
+  Date/Author: 2026-07-04 / implementation (Milestone 1).
 - Decision: D-fallback — R2 read-through fallback merges the still-synced Electric `v2Workspaces` collection renderer-side rather than adding a main-process cloud client.
   Rationale: the collection is already persisted offline and being deleted in R3 anyway; the merge lives in one hook and is deleted with it.
   Date/Author: 2026-07-03 / plan authoring (revisit if hook complexity grows).

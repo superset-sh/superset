@@ -4,7 +4,7 @@ import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { workspaces } from "../../../db/schema";
+import { projects, workspaces } from "../../../db/schema";
 import {
 	asRemoteRef,
 	type ResolvedRef,
@@ -12,7 +12,13 @@ import {
 	resolveRef,
 	resolveUpstream,
 } from "../../../runtime/git/refs";
+import { pushWorkspaceCreateToCloud } from "../../../runtime/workspace-cloud-sync";
 import type { HostServiceContext } from "../../../types";
+import {
+	getLocalWorkspace,
+	insertLocalWorkspace,
+	toCloudShape,
+} from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
@@ -136,11 +142,15 @@ function extractCreateTxid(row: CloudWorkspace): number | null {
 	return typeof txid === "number" ? txid : null;
 }
 
-async function findExistingWorkspaceByBranch(
+/**
+ * Idempotency lookup — the local table is authoritative, so an existing
+ * (project, branch) row answers without a cloud round-trip.
+ */
+function findExistingWorkspaceByBranch(
 	ctx: HostServiceContext,
 	projectId: string,
 	branch: string,
-): Promise<CloudWorkspace | null> {
+): CloudWorkspace | null {
 	const local = ctx.db.query.workspaces
 		.findFirst({
 			where: and(
@@ -149,13 +159,7 @@ async function findExistingWorkspaceByBranch(
 			),
 		})
 		.sync();
-	if (!local) return null;
-
-	const cloud = await ctx.api.v2Workspace.getFromHost.query({
-		organizationId: ctx.organizationId,
-		id: local.id,
-	});
-	return cloud ?? null;
+	return local ? toCloudShape(local, ctx.organizationId) : null;
 }
 
 interface PrMetadata {
@@ -436,6 +440,12 @@ async function startHostEnsure(
 	});
 }
 
+/**
+ * Local-first registration: the host mints the id and commits the local row
+ * (the authoritative record), then mirrors to the cloud best-effort. Cloud
+ * unavailability no longer fails the create or rolls back the worktree —
+ * the row stays cloud-dirty and the reconciler pushes it later.
+ */
 async function registerCloudAndLocal(args: {
 	ctx: HostServiceContext;
 	id: string | undefined;
@@ -448,68 +458,41 @@ async function registerCloudAndLocal(args: {
 	hostPromise: Promise<{ machineId: string }>;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
-	let host: { machineId: string };
-	try {
-		host = await args.hostPromise;
-	} catch (err) {
-		await args.rollbackWorktree();
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
-		});
-	}
 
-	const cloudRow = await ctx.api.v2Workspace.create
-		.mutate({
-			organizationId: ctx.organizationId,
-			projectId: args.projectId,
-			name: args.name,
-			branch: args.branch,
-			hostId: host.machineId,
-			taskId: args.taskId,
+	let localRow: ReturnType<typeof insertLocalWorkspace>;
+	try {
+		localRow = insertLocalWorkspace(ctx, {
 			id: args.id,
-			clientMachineId: ctx.clientMachineId,
-		})
-		.catch(async (err) => {
-			await args.rollbackWorktree();
-			throw err;
+			projectId: args.projectId,
+			worktreePath: args.worktreePath,
+			branch: args.branch,
+			name: args.name,
+			taskId: args.taskId ?? null,
 		});
-
-	if (!cloudRow) {
-		await args.rollbackWorktree();
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Cloud workspace create returned no row",
-		});
-	}
-
-	try {
-		ctx.db
-			.insert(workspaces)
-			.values({
-				id: cloudRow.id,
-				projectId: args.projectId,
-				worktreePath: args.worktreePath,
-				branch: args.branch,
-			})
-			.run();
 	} catch (err) {
 		await args.rollbackWorktree();
-		await ctx.api.v2Workspace.delete
-			.mutate({ id: cloudRow.id })
-			.catch((cleanupErr) => {
-				console.warn("[workspaces.create] failed to rollback cloud workspace", {
-					workspaceId: cloudRow.id,
-					err: cleanupErr,
-				});
-			});
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: `Failed to persist workspace locally: ${err instanceof Error ? err.message : String(err)}`,
 		});
 	}
 
-	return cloudRow;
+	// The pre-warmed host.ensure keeps registration latency off this path;
+	// pushWorkspaceCreateToCloud runs its own ensure, so failures here are
+	// non-fatal and already suppressed at the creation site.
+	await args.hostPromise.catch(() => {});
+
+	const cloudRow = await pushWorkspaceCreateToCloud(
+		{
+			api: ctx.api,
+			db: ctx.db,
+			eventBus: ctx.eventBus,
+			organizationId: ctx.organizationId,
+			clientMachineId: ctx.clientMachineId,
+		},
+		localRow,
+	);
+	return cloudRow ?? toCloudShape(localRow, ctx.organizationId);
 }
 
 async function dispatchSugarAgents(
@@ -610,7 +593,7 @@ export const workspacesRouter = router({
 					});
 					resolvedBranch = derivePrLocalBranchName(prMetadata);
 
-					const existing = await findExistingWorkspaceByBranch(
+					const existing = findExistingWorkspaceByBranch(
 						ctx,
 						input.projectId,
 						resolvedBranch,
@@ -907,7 +890,7 @@ export const workspacesRouter = router({
 					};
 				}
 
-				const existing = await findExistingWorkspaceByBranch(
+				const existing = findExistingWorkspaceByBranch(
 					ctx,
 					input.projectId,
 					resolvedBranch,
@@ -1119,27 +1102,15 @@ export const workspacesRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const local = ctx.db.query.workspaces
-				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
-				.sync();
+			const local = getLocalWorkspace(ctx.db, input.workspaceId);
 			if (!local) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: `Workspace not found: ${input.workspaceId}`,
 				});
 			}
-			const cloud = await ctx.api.v2Workspace.getFromHost.query({
-				organizationId: ctx.organizationId,
-				id: input.workspaceId,
-			});
-			if (!cloud) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: `Cloud workspace not found: ${input.workspaceId}`,
-				});
-			}
 			const project = ctx.db.query.projects
-				.findFirst({ where: eq(workspaces.projectId, local.projectId) })
+				.findFirst({ where: eq(projects.id, local.projectId) })
 				.sync();
 			if (!project) {
 				throw new TRPCError({
@@ -1152,8 +1123,8 @@ export const workspacesRouter = router({
 				workspaceId: input.workspaceId,
 				repoPath: project.repoPath ?? "",
 				worktreePath: local.worktreePath,
-				oldBranchName: cloud.branch,
-				oldWorkspaceName: cloud.name,
+				oldBranchName: local.branch,
+				oldWorkspaceName: local.name || local.branch,
 				prompt: input.prompt,
 				renameTitle: true,
 				renameBranch: true,

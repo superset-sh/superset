@@ -1,11 +1,16 @@
-import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
+import { pushWorkspaceCreateToCloud } from "../../../../runtime/workspace-cloud-sync";
 import type { HostServiceContext } from "../../../../types";
+import {
+	insertLocalWorkspace,
+	updateLocalWorkspace,
+} from "../../../../workspaces/local-workspace-store";
 
 export type EnsureMainWorkspaceContext = Pick<
 	HostServiceContext,
-	"api" | "db" | "git" | "organizationId" | "clientMachineId"
+	"api" | "db" | "git" | "organizationId" | "clientMachineId" | "eventBus"
 >;
 
 async function getCurrentBranchName(
@@ -28,7 +33,7 @@ async function getCurrentBranchName(
 
 /**
  * Idempotent log-and-continue variant. Returns null on any failure so a
- * transient cloud blip during setup or sweep doesn't fail the caller — the
+ * transient blip during setup or sweep doesn't fail the caller — the
  * startup sweep retries on the next boot. Create flows want strict
  * semantics instead; see `ensureMainWorkspaceStrict`.
  */
@@ -49,10 +54,11 @@ export async function ensureMainWorkspace(
 }
 
 /**
- * Strict variant: ensure a `type='main'` v2 workspace exists for
- * (projectId, currentHost) with a matching local `workspaces` row, or
- * throw. The create-project saga uses this so a workspace failure rolls
- * back the whole saga, including the cloud project commit.
+ * Strict variant: ensure a `type='main'` workspace row exists locally for
+ * this project, or throw. Local-first — the row commits to host.db and the
+ * cloud mirror is pushed best-effort (a cloud failure no longer fails the
+ * caller; the reconciler retries). The one-main-per-project invariant is
+ * enforced by the `workspaces_one_main_per_project` partial unique index.
  */
 export async function ensureMainWorkspaceStrict(
 	ctx: EnsureMainWorkspaceContext,
@@ -69,39 +75,50 @@ export async function ensureMainWorkspaceStrict(
 		});
 	}
 
-	const host = await ctx.api.host.ensure.mutate({
+	const store = { db: ctx.db, eventBus: ctx.eventBus };
+	const syncCtx = {
+		api: ctx.api,
+		db: ctx.db,
+		eventBus: ctx.eventBus,
 		organizationId: ctx.organizationId,
-		machineId: getHostId(),
-		name: getHostName(),
-	});
+		clientMachineId: ctx.clientMachineId,
+	};
 
-	const cloudRow = await ctx.api.v2Workspace.create.mutate({
-		organizationId: ctx.organizationId,
-		projectId,
-		name: branch,
-		branch,
-		hostId: host.machineId,
-		type: "main",
-		clientMachineId: ctx.clientMachineId ?? getHostId(),
-	});
-
-	ctx.db
-		.insert(workspaces)
-		.values({
-			id: cloudRow.id,
-			projectId,
-			worktreePath: repoPath,
-			branch,
+	const existing = ctx.db.query.workspaces
+		.findFirst({
+			where: and(
+				eq(workspaces.projectId, projectId),
+				eq(workspaces.type, "main"),
+			),
 		})
-		.onConflictDoUpdate({
-			target: workspaces.id,
-			set: {
-				projectId,
-				worktreePath: repoPath,
+		.sync();
+	if (existing) {
+		if (existing.branch !== branch || existing.worktreePath !== repoPath) {
+			// The repo's checked-out branch moved; follow it. A name that was
+			// just the branch follows too (parity with the cloud upsert).
+			const updated = updateLocalWorkspace(store, existing.id, {
 				branch,
-			},
-		})
-		.run();
+				worktreePath: repoPath,
+				...(existing.name === existing.branch ? { name: branch } : {}),
+			});
+			if (updated) void pushWorkspaceCreateToCloud(syncCtx, updated);
+		} else if (existing.cloudSyncedAt === null) {
+			void pushWorkspaceCreateToCloud(syncCtx, existing);
+		}
+		return { id: existing.id };
+	}
 
-	return { id: cloudRow.id };
+	const inserted = insertLocalWorkspace(store, {
+		projectId,
+		worktreePath: repoPath,
+		branch,
+		name: branch,
+		type: "main",
+	});
+
+	// Cloud may already hold a main for this (project, host) under another
+	// id (created by an older build); the push re-keys the local row onto
+	// the surviving cloud id in that case.
+	const cloudRow = await pushWorkspaceCreateToCloud(syncCtx, inserted);
+	return { id: cloudRow?.id ?? inserted.id };
 }

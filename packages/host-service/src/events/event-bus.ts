@@ -183,6 +183,20 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out workspace lifecycle changes (create/rename/delete) from the
+	 * host-owned workspaces table. Broadcast to all clients — list consumers
+	 * subscribe host-wide rather than per-workspace.
+	 */
+	broadcastWorkspaceChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "workspace:changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "workspace:changed", ...message });
+	}
+
+	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while
 	 * keeping a slow refetch as a reconnect fallback.

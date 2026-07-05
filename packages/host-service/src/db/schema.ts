@@ -3,6 +3,7 @@ import type {
 	BuiltinAgentId,
 } from "@superset/shared/agent-catalog";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
+import { sql } from "drizzle-orm";
 import {
 	index,
 	integer,
@@ -178,9 +179,20 @@ export const workspaces = sqliteTable(
 		pullRequestId: text("pull_request_id").references(() => pullRequests.id, {
 			onDelete: "set null",
 		}),
+		// Empty string means "not yet backfilled from cloud" — the startup
+		// backfill sweep targets these rows.
+		name: text().notNull().default(""),
+		type: text().$type<"main" | "worktree">().notNull().default("worktree"),
+		taskId: text("task_id"),
+		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
+		// 0 means "predates local ownership"; write paths always set it.
+		updatedAt: integer("updated_at").notNull().default(0),
+		// Null = local changes not yet pushed to the cloud mirror (dual-write
+		// era only; the column and reconciler go away in R3).
+		cloudSyncedAt: integer("cloud_synced_at"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
@@ -190,5 +202,20 @@ export const workspaces = sqliteTable(
 			table.upstreamBranch,
 		),
 		index("workspaces_pull_request_id_idx").on(table.pullRequestId),
+		uniqueIndex("workspaces_one_main_per_project")
+			.on(table.projectId)
+			.where(sql`type = 'main'`),
 	],
 );
+
+/**
+ * Tombstones for workspaces deleted while the cloud was unreachable. The
+ * reconciler drains this into `v2Workspace.delete` calls; rows are removed
+ * once the cloud confirms. Dual-write era only — dropped in R3.
+ */
+export const workspaceCloudDeletes = sqliteTable("workspace_cloud_deletes", {
+	id: text().primaryKey(),
+	queuedAt: integer("queued_at")
+		.notNull()
+		.$defaultFn(() => Date.now()),
+});
