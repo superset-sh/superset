@@ -220,10 +220,22 @@ export interface AutomationCreateParams {
 	agent: string;
 	rrule: string;
 	timezone: string;
-	/** One of `v2ProjectId` or `v2WorkspaceId` is required. */
+	/**
+	 * One of `v2ProjectId` or `v2WorkspaceId` is required. When passing
+	 * `v2WorkspaceId`, also set this to the workspace's `projectId` — workspace
+	 * records are host-owned, so supplying the full pin lets the API skip its
+	 * workspace-registry lookup (which is being retired).
+	 */
 	v2ProjectId?: string;
+	/**
+	 * Reuse an existing workspace every run. Pair it with `targetHostId` and
+	 * `v2ProjectId` from the same workspace row.
+	 */
 	v2WorkspaceId?: string | null;
-	/** Pin the automation to a specific host. */
+	/**
+	 * Pin the automation to a specific host. When passing `v2WorkspaceId`, set
+	 * this to the workspace's `hostId`.
+	 */
 	targetHostId?: string | null;
 	/** ISO timestamp; defaults to now if omitted. */
 	dtstart?: string;
@@ -235,8 +247,19 @@ export interface AutomationUpdateParams {
 	id: string;
 	name?: string;
 	agent?: string;
+	/**
+	 * When passing `v2WorkspaceId`, set this to the workspace's `hostId` —
+	 * workspace records are host-owned, so supplying the full pin
+	 * (`targetHostId` + `v2ProjectId`) lets the API skip its
+	 * workspace-registry lookup (which is being retired).
+	 */
 	targetHostId?: string | null;
+	/** When passing `v2WorkspaceId`, set this to the workspace's `projectId`. */
 	v2ProjectId?: string;
+	/**
+	 * Reuse an existing workspace every run. Pair it with `targetHostId` and
+	 * `v2ProjectId` from the same workspace row.
+	 */
 	v2WorkspaceId?: string | null;
 	rrule?: string;
 	dtstart?: string;
