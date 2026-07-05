@@ -1,4 +1,6 @@
 export {
+	fetchOpenPullRequests,
+	fetchOpenPullRequestsFromGh,
 	fetchPullRequestByHead,
 	fetchPullRequestByHeadFromGh,
 	fetchPullRequestChecks,
