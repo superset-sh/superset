@@ -213,7 +213,16 @@ export const automationRouter = {
 
 			let targetHostId = input.targetHostId ?? null;
 			let v2ProjectId = input.v2ProjectId;
-			if (input.v2WorkspaceId) {
+			if (input.v2WorkspaceId && targetHostId && v2ProjectId) {
+				// Denormalized pin: the client resolved the workspace on its host
+				// and supplies hostId/projectId alongside the id — no workspace
+				// registry lookup (hosts own workspace records). Host access and
+				// project scoping are still verified below; a stale pin surfaces
+				// as a host-side error at run time, same as today.
+				await verifyProjectInOrg(organizationId, v2ProjectId);
+			} else if (input.v2WorkspaceId) {
+				// Legacy clients (pre-denormalization) — resolve via the cloud
+				// table while it still exists; this branch is deleted in R3.
 				const workspace = await verifyWorkspaceInOrg(
 					organizationId,
 					input.v2WorkspaceId,
@@ -338,7 +347,20 @@ export const automationRouter = {
 				}
 			}
 
-			if (nextWorkspaceId) {
+			if (
+				nextWorkspaceId &&
+				input.v2WorkspaceId &&
+				input.targetHostId &&
+				input.v2ProjectId
+			) {
+				// Denormalized pin (see create): the client supplies host and
+				// project with the workspace id; no workspace registry lookup.
+				await verifyProjectInOrg(organizationId, input.v2ProjectId);
+				nextProjectId = input.v2ProjectId;
+				nextTargetHostId = input.targetHostId;
+			} else if (nextWorkspaceId) {
+				// Legacy clients — resolve via the cloud table while it still
+				// exists; this branch is deleted in R3.
 				const workspace = await verifyWorkspaceInOrg(
 					organizationId,
 					nextWorkspaceId,

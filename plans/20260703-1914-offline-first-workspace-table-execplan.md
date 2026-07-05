@@ -69,7 +69,7 @@ Key current-state facts the plan relies on (verified in the audit):
 ## Progress
 
 - [x] (2026-07-04) Milestone 1 (R1): host.db owns full workspace rows — schema migration 0008 (name/type/taskId/createdByUserId/updatedAt/cloudSyncedAt + one-main-per-project partial index + `workspace_cloud_deletes` tombstones); `workspace:changed` on the `/events` bus; local-first writes with host-minted UUIDs across create/adopt/ensure-main/AI-rename/destroy/project-remove; cloud dual-write via `pushWorkspaceCreateToCloud` with per-row LWW name merge; 60s reconciler; startup backfill; `workspace.list`/`workspace.update` endpoints; is-main check reads local `type`. Typecheck, lint, and the full host-service suite (751 pass / 0 fail) are green. Remaining for M1 sign-off: the manual offline drill (create offline → verify host.db row → reconnect → verify cloud reconcile).
-- [ ] Milestone 2 (R1): cloud accepts client-minted ids; automations denormalized (cloud side); PostHog moves host-side
+- [x] (2026-07-04) Milestone 2 (R1, cloud side): client-minted id acceptance already existed on `create`; automation create/update now accept a fully denormalized pin (`v2WorkspaceId`+`targetHostId`+`v2ProjectId` → no `verifyWorkspaceInOrg`, legacy branch kept for old clients until R3). PostHog capture move DEFERRED to R3 (see Decision Log) — cloud capture keeps working through dual-write with no double-counting.
 - [ ] Milestone 3 (R2): renderer fan-out layer — per-host queries, `workspace:changed` subscriptions, IndexedDB persistence
 - [ ] Milestone 4 (R2): renderer consumers flip to the fan-out hook; writes unify through host; cloud read-through fallback
 - [ ] Milestone 5 (R2): MCP/CLI/SDK query hosts directly
@@ -102,6 +102,9 @@ Key current-state facts the plan relies on (verified in the audit):
   Date/Author: 2026-07-03 / plan authoring.
 - Decision: D-auth RESOLVED (2026-07-04) — no host-side change: the relay already enforces JWT org membership + host access before forwarding, and the tunnel rewrites Authorization to the host PSK, so `protectedProcedure` covers local and relay callers alike.
   Date/Author: 2026-07-04 / implementation (Milestone 1).
+- Decision: PostHog `workspace_created`/`workspace_deleted` capture stays cloud-side until R3 (instead of M2's planned host-side capture with a gated cloud capture).
+  Rationale: deletes carry no marker distinguishing self-capturing hosts, so dual-capture would double-count them; dual-write means the cloud router still observes every create (possibly late, via reconcile) and delete (via tombstone replay), so events keep flowing with zero double-counting. Capture moves into host-service in R3 when the cloud router is deleted.
+  Date/Author: 2026-07-04 / implementation (Milestone 2).
 - Decision: D-fallback — R2 read-through fallback merges the still-synced Electric `v2Workspaces` collection renderer-side rather than adding a main-process cloud client.
   Rationale: the collection is already persisted offline and being deleted in R3 anyway; the merge lives in one hook and is deleted with it.
   Date/Author: 2026-07-03 / plan authoring (revisit if hook complexity grows).
