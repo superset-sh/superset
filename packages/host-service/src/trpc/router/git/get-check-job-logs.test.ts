@@ -43,7 +43,10 @@ function createCaller(opts: {
 	return { caller: gitRouter.createCaller(ctx), downloadCalls };
 }
 
-async function expectTrpcError(promise: Promise<unknown>, code: string) {
+async function expectTrpcError(
+	promise: Promise<unknown>,
+	code: TRPCError["code"],
+) {
 	try {
 		await promise;
 		throw new Error("expected the call to reject");
