@@ -2,7 +2,7 @@ import { auth } from "@superset/auth/server";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { isPublicRoute } from "./proxy-routes";
+import { isAuthPageRoute, isPublicRoute } from "./proxy-routes";
 
 export default async function proxy(req: NextRequest) {
 	const session = await auth.api.getSession({
@@ -11,10 +11,7 @@ export default async function proxy(req: NextRequest) {
 
 	const pathname = req.nextUrl.pathname;
 
-	if (
-		session &&
-		(pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))
-	) {
+	if (session && isAuthPageRoute(pathname)) {
 		return NextResponse.redirect(new URL("/", req.url));
 	}
 
