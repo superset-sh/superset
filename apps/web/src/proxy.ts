@@ -2,18 +2,7 @@ import { auth } from "@superset/auth/server";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
-const publicRoutes = [
-	"/sign-in",
-	"/sign-up",
-	"/auth/desktop",
-	"/api/auth/desktop",
-	"/accept-invitation",
-	"/cli/auth/code",
-];
-
-function isPublicRoute(pathname: string): boolean {
-	return publicRoutes.some((route) => pathname.startsWith(route));
-}
+import { isPublicRoute } from "./proxy-routes";
 
 export default async function proxy(req: NextRequest) {
 	const session = await auth.api.getSession({
