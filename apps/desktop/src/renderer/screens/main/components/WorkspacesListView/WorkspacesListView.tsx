@@ -5,6 +5,7 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuSearch, LuX } from "react-icons/lu";
+import { disambiguateProjectLabels } from "renderer/lib/disambiguateProjectLabels";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { FilterMode, ProjectGroup, WorkspaceItem } from "./types";
@@ -130,6 +131,19 @@ export function WorkspacesListView() {
 		return items;
 	}, [allItems, searchQuery, filterMode]);
 
+	// Map each project to its filesystem path so same-named projects can be
+	// disambiguated in the grouped headers.
+	const projectPaths = useMemo(() => {
+		const paths = new Map<string, string>();
+		for (const group of groups) {
+			paths.set(group.project.id, group.project.mainRepoPath);
+		}
+		for (const project of allProjects) {
+			paths.set(project.id, project.mainRepoPath);
+		}
+		return paths;
+	}, [groups, allProjects]);
+
 	// Group by project
 	const projectGroups = useMemo<ProjectGroup[]>(() => {
 		const groupsMap = new Map<string, ProjectGroup>();
@@ -139,10 +153,23 @@ export function WorkspacesListView() {
 				groupsMap.set(item.projectId, {
 					projectId: item.projectId,
 					projectName: item.projectName,
+					pathContext: null,
 					workspaces: [],
 				});
 			}
 			groupsMap.get(item.projectId)?.workspaces.push(item);
+		}
+
+		// Only compute disambiguation across the projects actually shown.
+		const contexts = disambiguateProjectLabels(
+			Array.from(groupsMap.values()).map((group) => ({
+				id: group.projectId,
+				name: group.projectName,
+				path: projectPaths.get(group.projectId) ?? group.projectName,
+			})),
+		);
+		for (const group of groupsMap.values()) {
+			group.pathContext = contexts.get(group.projectId) ?? null;
 		}
 
 		// Sort workspaces within each group: active first, then by lastOpenedAt
@@ -161,7 +188,7 @@ export function WorkspacesListView() {
 			const bRecent = Math.max(...b.workspaces.map((w) => w.lastOpenedAt));
 			return bRecent - aRecent;
 		});
-	}, [filteredItems]);
+	}, [filteredItems, projectPaths]);
 
 	const handleSwitch = (item: WorkspaceItem) => {
 		if (item.workspaceId) {
@@ -243,6 +270,14 @@ export function WorkspacesListView() {
 							<span className="text-xs font-medium text-foreground/70">
 								{group.projectName}
 							</span>
+							{group.pathContext && (
+								<span
+									className="text-xs text-foreground/40 ml-2"
+									title={group.pathContext}
+								>
+									{group.pathContext}
+								</span>
+							)}
 							<span className="text-xs text-foreground/40 ml-2">
 								{group.workspaces.length}
 							</span>

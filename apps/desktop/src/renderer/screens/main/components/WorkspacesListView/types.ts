@@ -20,6 +20,11 @@ export interface WorkspaceItem {
 export interface ProjectGroup {
 	projectId: string;
 	projectName: string;
+	/**
+	 * Disambiguating parent-path fragment shown when another project shares the
+	 * same name; `null` when the name is already unique.
+	 */
+	pathContext: string | null;
 	workspaces: WorkspaceItem[];
 }
 

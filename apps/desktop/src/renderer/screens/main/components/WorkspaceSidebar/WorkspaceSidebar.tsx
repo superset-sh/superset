@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
+import { disambiguateProjectLabels } from "renderer/lib/disambiguateProjectLabels";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
 import { PortsList } from "./PortsList";
@@ -22,6 +23,20 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
 	const clearSelection = useWorkspaceSelectionStore((s) => s.clearSelection);
+
+	// When two projects share the same folder name, surface a parent-path
+	// fragment beside each so they can be told apart.
+	const projectPathContexts = useMemo(
+		() =>
+			disambiguateProjectLabels(
+				groups.map((group) => ({
+					id: group.project.id,
+					name: group.project.name,
+					path: group.project.mainRepoPath,
+				})),
+			),
+		[groups],
+	);
 
 	const projectShortcutIndices = useMemo(
 		() =>
@@ -83,6 +98,9 @@ export function WorkspaceSidebar({
 						key={group.project.id}
 						projectId={group.project.id}
 						projectName={group.project.name}
+						projectPathContext={
+							projectPathContexts.get(group.project.id) ?? null
+						}
 						projectColor={group.project.color}
 						githubOwner={group.project.githubOwner}
 						mainRepoPath={group.project.mainRepoPath}

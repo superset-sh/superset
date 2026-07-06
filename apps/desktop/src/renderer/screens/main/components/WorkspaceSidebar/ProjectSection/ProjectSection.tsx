@@ -32,6 +32,8 @@ type TopLevelChild =
 interface ProjectSectionProps {
 	projectId: string;
 	projectName: string;
+	/** Parent-path fragment shown when another project shares this name. */
+	projectPathContext?: string | null;
 	projectColor: string;
 	githubOwner: string | null;
 	mainRepoPath: string;
@@ -55,6 +57,7 @@ interface ProjectSectionProps {
 export function ProjectSection({
 	projectId,
 	projectName,
+	projectPathContext = null,
 	projectColor,
 	githubOwner,
 	mainRepoPath,
@@ -237,6 +240,7 @@ export function ProjectSection({
 					<ProjectHeader
 						projectId={projectId}
 						projectName={projectName}
+						projectPathContext={projectPathContext}
 						projectColor={projectColor}
 						githubOwner={githubOwner}
 						mainRepoPath={mainRepoPath}
@@ -339,6 +343,7 @@ export function ProjectSection({
 				<ProjectHeader
 					projectId={projectId}
 					projectName={projectName}
+					projectPathContext={projectPathContext}
 					projectColor={projectColor}
 					githubOwner={githubOwner}
 					mainRepoPath={mainRepoPath}

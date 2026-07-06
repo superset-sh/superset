@@ -37,6 +37,8 @@ import { ProjectThumbnail } from "./ProjectThumbnail";
 interface ProjectHeaderProps {
 	projectId: string;
 	projectName: string;
+	/** Parent-path fragment shown when another project shares this name. */
+	projectPathContext?: string | null;
 	projectColor: string;
 	githubOwner: string | null;
 	mainRepoPath: string;
@@ -54,6 +56,7 @@ interface ProjectHeaderProps {
 export function ProjectHeader({
 	projectId,
 	projectName,
+	projectPathContext = null,
 	projectColor,
 	githubOwner,
 	mainRepoPath,
@@ -203,6 +206,11 @@ export function ProjectHeader({
 						</ContextMenuTrigger>
 						<TooltipContent className="flex flex-col gap-0.5">
 							<span className="font-medium">{projectName}</span>
+							{projectPathContext && (
+								<span className="text-xs text-muted-foreground">
+									{projectPathContext}
+								</span>
+							)}
 							<span className="text-xs text-muted-foreground">
 								{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}
 							</span>
@@ -300,6 +308,14 @@ export function ProjectHeader({
 									iconUrl={iconUrl}
 								/>
 								<span className="truncate">{projectName}</span>
+								{projectPathContext && (
+									<span
+										className="text-xs text-muted-foreground font-normal truncate shrink-0 max-w-[40%]"
+										title={projectPathContext}
+									>
+										{projectPathContext}
+									</span>
+								)}
 								<span className="text-xs text-muted-foreground tabular-nums font-normal">
 									({workspaceCount})
 								</span>
