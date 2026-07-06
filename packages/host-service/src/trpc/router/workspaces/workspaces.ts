@@ -61,8 +61,8 @@ const agentLaunchSchema = z
 		agent: z.string().min(1),
 		prompt: z.string(),
 		attachmentIds: z.array(z.string().uuid()).optional(),
-		model: z.string().min(1).optional(),
-		effort: z.string().min(1).optional(),
+		model: z.string().optional(),
+		effort: z.string().optional(),
 	})
 	.refine(
 		(value) =>
