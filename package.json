@@ -49,7 +49,7 @@
 		"tooling/*"
 	],
 	"overrides": {
-		"axios": "1.14.0",
+		"axios": "1.18.1",
 		"hono": "4.12.25",
 		"kysely": "0.28.17",
 		"shell-quote": "1.8.4"
