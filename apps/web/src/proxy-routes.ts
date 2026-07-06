@@ -1,13 +1,13 @@
-const publicRoutes = [
-	"/sign-in",
-	"/sign-up",
+const authPageRoutes = ["/sign-in", "/sign-up"] as const;
+
+const otherPublicRoutes = [
 	"/auth/desktop",
 	"/api/auth/desktop",
 	"/accept-invitation",
 	"/cli/auth/code",
 ] as const;
 
-const authPageRoutes = ["/sign-in", "/sign-up"] as const;
+const publicRoutes = [...authPageRoutes, ...otherPublicRoutes] as const;
 
 function matchesRouteOrChild(pathname: string, route: string): boolean {
 	return pathname === route || pathname.startsWith(`${route}/`);
