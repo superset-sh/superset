@@ -1,5 +1,6 @@
 import type { RendererContext } from "@superset/panes";
 import { useCallback, useEffect, useRef } from "react";
+import { type HotkeyId, resolveHotkeyFromEvent } from "renderer/hotkeys";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type {
 	BrowserPaneData,
@@ -7,6 +8,25 @@ import type {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { DEFAULT_BROWSER_URL } from "../../constants";
+
+// Hotkeys the browser pane replays onto the host document when the guest
+// webview forwards a keystroke. Scoped to tab switching: these have no menu
+// accelerator (so replaying can't double-fire) and aren't page shortcuts.
+const FORWARDABLE_HOTKEYS = new Set<HotkeyId>([
+	"PREV_TAB",
+	"NEXT_TAB",
+	"PREV_TAB_ALT",
+	"NEXT_TAB_ALT",
+	"JUMP_TO_TAB_1",
+	"JUMP_TO_TAB_2",
+	"JUMP_TO_TAB_3",
+	"JUMP_TO_TAB_4",
+	"JUMP_TO_TAB_5",
+	"JUMP_TO_TAB_6",
+	"JUMP_TO_TAB_7",
+	"JUMP_TO_TAB_8",
+	"JUMP_TO_TAB_9",
+]);
 
 interface UsePersistentWebviewOptions {
 	paneId: string;
@@ -98,11 +118,38 @@ export function usePersistentWebview({
 				},
 			},
 		);
+		// The guest webview swallows keystrokes, so host hotkeys never fire while
+		// the browser is focused. Replay forwarded chords onto the host document
+		// so react-hotkeys-hook picks them up — gated to tab-switch hotkeys.
+		const keyForwardSub = electronTrpcClient.browser.onKeyForward.subscribe(
+			{ paneId },
+			{
+				onData: (key) => {
+					const init: KeyboardEventInit = {
+						key: key.key,
+						code: key.code,
+						metaKey: key.meta,
+						ctrlKey: key.control,
+						altKey: key.alt,
+						shiftKey: key.shift,
+						bubbles: true,
+						cancelable: true,
+					};
+					const id = resolveHotkeyFromEvent(new KeyboardEvent("keydown", init));
+					if (!id || !FORWARDABLE_HOTKEYS.has(id)) return;
+					document.dispatchEvent(new KeyboardEvent("keydown", init));
+					// Balance react-hotkeys-hook's global pressed-key set — a keydown
+					// without a keyup would leave the key stuck as "pressed".
+					document.dispatchEvent(new KeyboardEvent("keyup", init));
+				},
+			},
+		);
 		return () => {
 			newWindowSub.unsubscribe();
 			contextMenuSub.unsubscribe();
 			closePaneSub.unsubscribe();
 			reloadPaneSub.unsubscribe();
+			keyForwardSub.unsubscribe();
 		};
 	}, [paneId]);
 

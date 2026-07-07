@@ -125,7 +125,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 			/>
 			<div className="flex shrink-0 items-center pr-1">
 				<div className="mx-1.5 h-3.5 w-px bg-muted-foreground/60" />
-				<Tooltip>
+				<Tooltip disableHoverableContent>
 					<TooltipTrigger asChild>
 						<button
 							type="button"

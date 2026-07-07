@@ -8,6 +8,15 @@ interface ConsoleEntry {
 	timestamp: number;
 }
 
+export interface ForwardedKey {
+	key: string;
+	code: string;
+	meta: boolean;
+	control: boolean;
+	alt: boolean;
+	shift: boolean;
+}
+
 const MAX_CONSOLE_ENTRIES = 500;
 
 function sanitizeUrl(url: string): string {
@@ -242,25 +251,38 @@ class BrowserManager extends EventEmitter {
 	// accelerator closes the whole window. `before-input-event` fires in the
 	// main process before both, and `preventDefault()` suppresses both.
 	//
-	// keyDown guard prevents a second fire on keyUp. Shift guard preserves
-	// Cmd+Shift+W (CLOSE_TAB) and Cmd+Shift+R (forceReload).
+	// CmdOrCtrl+W/R are intercepted here (menu accelerators fire even when the
+	// guest holds focus). Every other chord is forwarded to the host renderer,
+	// which replays it into its hotkey system so shortcuts like tab switching
+	// keep working while the browser is focused. keyDown guard prevents a
+	// second fire on keyUp.
 	private setupBeforeInput(paneId: string, wc: Electron.WebContents): void {
 		const handler = (event: Electron.Event, input: Electron.Input): void => {
 			if (input.type !== "keyDown") return;
-			if (input.shift || input.alt) return;
 			if (!(input.meta || input.control)) return;
 
-			const key = input.key.toLowerCase();
-			if (key === "w") {
-				event.preventDefault();
-				this.emit(`close-pane:${paneId}`);
-				return;
+			if (!input.shift && !input.alt) {
+				const key = input.key.toLowerCase();
+				if (key === "w") {
+					event.preventDefault();
+					this.emit(`close-pane:${paneId}`);
+					return;
+				}
+				if (key === "r") {
+					event.preventDefault();
+					this.emit(`reload-pane:${paneId}`);
+					return;
+				}
 			}
-			if (key === "r") {
-				event.preventDefault();
-				this.emit(`reload-pane:${paneId}`);
-				return;
-			}
+
+			this.emit(`key-forward:${paneId}`, {
+				key: input.key,
+				code: input.code,
+				meta: input.meta,
+				control: input.control,
+				alt: input.alt,
+				shift: input.shift,
+			} satisfies ForwardedKey);
 		};
 
 		wc.on("before-input-event", handler);
