@@ -27,7 +27,7 @@ type ProjectTopLevelItem = {
 	tabOrder: number;
 };
 
-type ProjectTopLevelCollections = Pick<
+export type ProjectTopLevelCollections = Pick<
 	AppCollections,
 	"v2SidebarSections" | "v2WorkspaceLocalState"
 >;
@@ -42,7 +42,7 @@ function compareProjectTopLevelItems(
 	return left.type === "section" ? -1 : 1;
 }
 
-function getProjectTopLevelItems(
+export function getProjectTopLevelItems(
 	collections: ProjectTopLevelCollections,
 	projectId: string,
 	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
@@ -75,7 +75,7 @@ function getProjectTopLevelItems(
 	].sort(compareProjectTopLevelItems);
 }
 
-function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
+export function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
 	const firstSectionIndex = items.findIndex((item) => item.type === "section");
 	return firstSectionIndex === -1 ? items.length : firstSectionIndex;
 }
@@ -84,7 +84,7 @@ function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
  * Rewrites the flat top-level project lane. Workspace items are explicitly
  * ungrouped by setting sidebarState.projectId and clearing sidebarState.sectionId.
  */
-function writeProjectTopLevelOrder(
+export function writeProjectTopLevelOrder(
 	collections: ProjectTopLevelCollections,
 	projectId: string,
 	items: ProjectTopLevelItem[],
@@ -109,7 +109,7 @@ function writeProjectTopLevelOrder(
 	});
 }
 
-function ensureSidebarProjectRecord(
+export function ensureSidebarProjectRecord(
 	collections: Pick<AppCollections, "v2SidebarProjects">,
 	projectId: string,
 ): void {
