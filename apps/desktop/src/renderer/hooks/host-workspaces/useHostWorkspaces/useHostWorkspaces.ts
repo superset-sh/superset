@@ -123,6 +123,18 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 			queryKey: getHostWorkspacesQueryKey(target),
 			enabled: target.hostUrl !== null,
 			refetchInterval: WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS,
+			// The local host is reachable at 127.0.0.1 even with the machine
+			// offline — the default "online" networkMode would pause these
+			// queries the moment navigator.onLine goes false, defeating
+			// offline-first entirely.
+			networkMode: "always" as const,
+			// The interval is the healing path for missed workspace:changed
+			// events; keep it running while the window is backgrounded
+			// (automation/CLI creates land without the app focused).
+			refetchIntervalInBackground: true,
+			// Bounded retries so an online-per-cloud but tunnel-less relay
+			// target settles into isError quickly instead of holding isReady.
+			retry: 1,
 			queryFn: async (): Promise<HostWorkspaceRow[]> => {
 				if (!target.hostUrl) return [];
 				const client = getHostServiceClientByUrl(target.hostUrl);
