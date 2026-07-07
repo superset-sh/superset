@@ -1,8 +1,3 @@
-import {
-	FetchError,
-	type ShapeStreamOptions,
-	snakeCamelMapper,
-} from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
 	SelectAutomation,
@@ -31,11 +26,11 @@ import type {
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
 import type { AppRouter } from "@superset/trpc";
 import { BasicIndex } from "@tanstack/db";
-import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
 	createElectronSQLitePersistence,
 	persistedCollectionOptions,
 } from "@tanstack/electron-db-sqlite-persistence";
+import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import type {
 	Collection,
 	LocalStorageCollectionUtils,
@@ -44,16 +39,16 @@ import {
 	createCollection,
 	localStorageCollectionOptions,
 } from "@tanstack/react-db";
+import { QueryClient } from "@tanstack/react-query";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
-import type { inferRouterOutputs } from "@trpc/server";
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
+import { getAuthToken } from "renderer/lib/auth-client";
 import {
-	authClient,
-	getAuthToken,
-	getJwt,
-	setJwt,
-} from "renderer/lib/auth-client";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+	getActiveLocalHostUrl,
+	getActiveLocalMachineId,
+	getHostServiceClientByUrl,
+} from "renderer/lib/host-service-client";
 import superjson from "superjson";
 import { z } from "zod";
 import {
@@ -73,18 +68,11 @@ import {
 	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
+import { mergeWorkspacePresence } from "./mergeWorkspacePresence";
 import { withReadHeal } from "./withReadHeal";
 
-const columnMapper = snakeCamelMapper();
-
-const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
-
-export const ELECTRIC_WRITE_SYNC_TIMEOUT_MS = 30_000;
-
-function electricTxidMatch(txid: unknown) {
-	if (typeof txid !== "number") return undefined;
-	return { txid, timeout: ELECTRIC_WRITE_SYNC_TIMEOUT_MS };
-}
+// How long workspaceSyncWaits waits for a delete to land in the collection.
+export const WRITE_SYNC_TIMEOUT_MS = 30_000;
 
 type HostWorkspacesCreateResult =
 	inferRouterOutputs<HostServiceAppRouter>["workspaces"]["create"];
@@ -111,12 +99,33 @@ const createIndexedCollection = ((
 ) =>
 	createCollection({ ...config, ...indexDefaults })) as typeof createCollection;
 
-type ElectricSyncConfig = ReturnType<typeof electricCollectionOptions>;
-const createPersistedElectricCollection = ((config: ElectricSyncConfig) => {
+// v2_workspaces is local-first: sourced from the local host-service, not Electric
+// (plans/20260629-v2-workspaces-local-authoritative.md).
+// refetchIntervalInBackground: TanStack Query pauses interval refetches while
+// the window is hidden (minimized/occluded) by default. Electric pushed
+// regardless of visibility; polling must too — agent_commands otherwise sit
+// until they expire against timeoutAt. queryCollectionOptions doesn't forward
+// this option, so it must come from the client's defaults.
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: { refetchIntervalInBackground: true },
+	},
+});
+const LOCAL_WORKSPACES_POLL_MS = 3_000;
+// All other org-scoped collections poll the tRPC `sync.pull` endpoint instead of
+// Electric shapes. Freshness of changes made elsewhere is bounded by this.
+const SYNC_POLL_INTERVAL_MS = 5_000;
+
+type SyncTable = inferRouterInputs<AppRouter>["sync"]["pull"]["table"];
+
+type QuerySyncConfig = ReturnType<typeof queryCollectionOptions>;
+const createPersistedQueryCollection = ((config: QuerySyncConfig) => {
 	const persisted = persistedCollectionOptions({
 		...config,
 		persistence,
-		schemaVersion: 1,
+		// Bumped from the Electric collection: the local SQLite cache rebuilds
+		// cleanly when the sync source changes from shape to local query.
+		schemaVersion: 2,
 		// biome-ignore lint/suspicious/noExplicitAny: forces sync-wrapped overload
 	} as any);
 	return createCollection({
@@ -125,6 +134,144 @@ const createPersistedElectricCollection = ((config: ElectricSyncConfig) => {
 		// biome-ignore lint/suspicious/noExplicitAny: persisted utils widen generics
 	} as any);
 }) as unknown as typeof createCollection;
+
+// Cloud presence fetched directly from the renderer (session auth), not via
+// the local host-service — remote hosts' workspaces must stay visible even
+// when the local host is down or its cloud auth is stale.
+async function fetchCloudWorkspacePresence(
+	organizationId: string,
+): Promise<SelectV2Workspace[]> {
+	const rows = await apiClient.v2Workspace.list.query({ organizationId });
+	return rows.map((row) => ({
+		id: row.id,
+		organizationId,
+		projectId: row.projectId,
+		hostId: row.hostId,
+		name: row.name,
+		branch: row.branch,
+		type: row.type,
+		createdByUserId: row.createdByUserId ?? null,
+		taskId: row.taskId ?? null,
+		createdAt: new Date(row.createdAt),
+		updatedAt: new Date(row.updatedAt ?? row.createdAt),
+	}));
+}
+
+// Last-good snapshots per org. A query-collection result is authoritative
+// full state, so a transient failure of either side must not drop that
+// side's rows — that would wipe them (and their persisted copies) until the
+// next successful poll.
+interface LocalWorkspaceSnapshot {
+	rows: SelectV2Workspace[];
+	pendingCloudDeletes: string[];
+}
+const lastGoodLocalWorkspaces = new Map<string, LocalWorkspaceSnapshot>();
+const lastGoodCloudWorkspaces = new Map<string, SelectV2Workspace[]>();
+
+// Called after a confirmed destroy: a fully-successful delete leaves no
+// pendingCloudDeletes mask, so if the next cloud poll fails, the stale
+// last-good snapshot would resurrect the row as presence until a poll
+// succeeds. Ids are globally unique, so evicting across orgs is safe.
+export function evictWorkspaceFromPresenceCache(workspaceId: string): void {
+	for (const [org, rows] of lastGoodCloudWorkspaces) {
+		lastGoodCloudWorkspaces.set(
+			org,
+			rows.filter((w) => w.id !== workspaceId),
+		);
+	}
+	for (const [org, snapshot] of lastGoodLocalWorkspaces) {
+		lastGoodLocalWorkspaces.set(org, {
+			...snapshot,
+			rows: snapshot.rows.filter((w) => w.id !== workspaceId),
+		});
+	}
+}
+
+// Workspaces for the renderer: this machine's from the local host-service
+// (authoritative), merged with other machines' from cloud presence. Identity
+// edits that arrived in cloud from other machines are adopted back into the
+// local row (see mergeWorkspacePresence).
+async function fetchWorkspaces(
+	organizationId: string,
+): Promise<SelectV2Workspace[]> {
+	const url = getActiveLocalHostUrl();
+
+	const [localResult, cloudResult] = await Promise.allSettled([
+		(async (): Promise<LocalWorkspaceSnapshot> => {
+			if (!url) throw new Error("local host-service not ready");
+			const client = getHostServiceClientByUrl(url);
+			const [rows, pendingCloudDeletes] = await Promise.all([
+				client.workspace.localList.query() as Promise<SelectV2Workspace[]>,
+				// Fail open ([]): a host-service predating this query must not
+				// take the whole local list down with it.
+				client.workspace.pendingCloudDeletes
+					.query()
+					.catch(() => [] as string[]),
+			]);
+			return { rows, pendingCloudDeletes };
+		})(),
+		fetchCloudWorkspacePresence(organizationId),
+	]);
+
+	if (localResult.status === "fulfilled") {
+		lastGoodLocalWorkspaces.set(organizationId, localResult.value);
+	}
+	if (cloudResult.status === "fulfilled") {
+		lastGoodCloudWorkspaces.set(organizationId, cloudResult.value);
+	}
+
+	const local =
+		localResult.status === "fulfilled"
+			? localResult.value
+			: lastGoodLocalWorkspaces.get(organizationId);
+	// No cloud and nothing cached (e.g. offline boot): local-only is fine —
+	// remote workspaces are unreachable offline anyway.
+	const cloud =
+		cloudResult.status === "fulfilled"
+			? cloudResult.value
+			: (lastGoodCloudWorkspaces.get(organizationId) ?? []);
+	// No local list and nothing cached: if cloud presence answered, render it
+	// alone — a never-booted local host (fresh install, crash-looping service)
+	// must not hide remote machines' workspaces forever. Own-host rows render
+	// from their cloud mirror until the host comes up; only a not-yet-mirrored
+	// offline create is briefly invisible, and offline implies the cloud fetch
+	// failed too, which takes the throw below instead.
+	if (!local && cloudResult.status === "fulfilled") {
+		return mergeWorkspacePresence({
+			local: [],
+			cloud,
+			organizationId,
+			pendingCloudDeleteIds: new Set(),
+		}).rows;
+	}
+	// Neither side available: throw (not []) while the host boots — [] would
+	// wipe the persisted rows; an error keeps the previous snapshot.
+	if (!local) {
+		throw localResult.status === "rejected"
+			? localResult.reason
+			: new Error("local workspaces unavailable");
+	}
+
+	const { rows, patches, cloudPatches } = mergeWorkspacePresence({
+		local: local.rows,
+		cloud,
+		organizationId,
+		pendingCloudDeleteIds: new Set(local.pendingCloudDeletes),
+	});
+	// Best-effort both directions: a failed patch recurs next poll until it lands.
+	if (patches.length > 0 && url) {
+		const client = getHostServiceClientByUrl(url);
+		await Promise.allSettled(
+			patches.map((patch) => client.workspace.updateLocal.mutate(patch)),
+		);
+	}
+	if (cloudPatches.length > 0) {
+		await Promise.allSettled(
+			cloudPatches.map((patch) => apiClient.v2Workspace.update.mutate(patch)),
+		);
+	}
+	return rows;
+}
 
 const apiKeyDisplaySchema = z.object({
 	id: z.string(),
@@ -230,123 +377,75 @@ const apiClient = createTRPCProxyClient<AppRouter>({
 	],
 });
 
-const electricHeaders = {
-	Authorization: () => {
-		const token = getJwt();
-		return token ? `Bearer ${token}` : "";
-	},
-};
+// Pull an org-scoped table's rows from the API (org-scoping + column masking
+// applied server-side in sync.pull), replacing the Electric shape.
+function pull<T>(table: SyncTable, organizationId?: string): Promise<T[]> {
+	return apiClient.sync.pull.query({
+		table,
+		organizationId,
+	}) as unknown as Promise<T[]>;
+}
 
-type ElectricSyncErrorHandler = NonNullable<ShapeStreamOptions["onError"]>;
-
-const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
-	if (error instanceof FetchError && error.status === 401) {
-		try {
-			const result = await authClient.token();
-			if (result.data?.token) {
-				setJwt(result.data.token);
-			}
-		} catch (refreshError) {
-			console.error("[collections] JWT refresh after 401 failed", refreshError);
-		}
-	} else {
-		console.error("[collections] Electric sync error", error);
-	}
-	return {};
-};
-
-const organizationsCollection = createPersistedElectricCollection(
-	electricCollectionOptions<SelectOrganization>({
+const organizationsCollection = createPersistedQueryCollection(
+	queryCollectionOptions<SelectOrganization>({
 		id: "organizations",
-		shapeOptions: {
-			url: electricUrl,
-			params: { table: "auth.organizations" },
-			headers: electricHeaders,
-			columnMapper,
-			onError: handleElectricSyncError,
-		},
+		queryClient,
+		queryKey: ["sync", "auth.organizations"],
+		queryFn: () => pull<SelectOrganization>("auth.organizations"),
+		refetchInterval: SYNC_POLL_INTERVAL_MS,
 		getKey: (item) => item.id,
 	}),
 );
 
 function createOrgCollections(organizationId: string): OrgCollections {
-	const tasks = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTask>({
+	const tasks = createPersistedQueryCollection(
+		queryCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "tasks",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "tasks", organizationId],
+			queryFn: () => pull<SelectTask>("tasks", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
-				const result = await apiClient.task.update.mutate({
-					...changes,
-					id: original.id,
-				});
-				return electricTxidMatch(result.txid);
+				await apiClient.task.update.mutate({ ...changes, id: original.id });
 			},
 			onDelete: async ({ transaction }) => {
 				const item = transaction.mutations[0].original;
-				const result = await apiClient.task.delete.mutate(item.id);
-				return electricTxidMatch(result.txid);
+				await apiClient.task.delete.mutate(item.id);
 			},
 		}),
 	);
 
-	const taskStatuses = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTaskStatus>({
+	const taskStatuses = createPersistedQueryCollection(
+		queryCollectionOptions<SelectTaskStatus>({
 			id: `task_statuses-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "task_statuses",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "task_statuses", organizationId],
+			queryFn: () => pull<SelectTaskStatus>("task_statuses", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const projects = createPersistedElectricCollection(
-		electricCollectionOptions<SelectProject>({
+	const projects = createPersistedQueryCollection(
+		queryCollectionOptions<SelectProject>({
 			id: `projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "projects", organizationId],
+			queryFn: () => pull<SelectProject>("projects", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const v2Projects = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Project>({
+	const v2Projects = createPersistedQueryCollection(
+		queryCollectionOptions<SelectV2Project>({
 			id: `v2_projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "v2_projects", organizationId],
+			queryFn: () => pull<SelectV2Project>("v2_projects", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
@@ -355,14 +454,13 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					changes.repoCloneUrl !== undefined
 						? undefined
 						: changes.githubRepositoryId;
-				const result = await apiClient.v2Project.update.mutate({
+				await apiClient.v2Project.update.mutate({
 					id: original.id,
 					name: changes.name,
 					slug: changes.slug,
 					repoCloneUrl: changes.repoCloneUrl,
 					githubRepositoryId,
 				});
-				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
@@ -371,19 +469,13 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		basicIndexConfig,
 	);
 
-	const v2Hosts = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Host>({
+	const v2Hosts = createPersistedQueryCollection(
+		queryCollectionOptions<SelectV2Host>({
 			id: `v2_hosts-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_hosts",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "v2_hosts", organizationId],
+			queryFn: () => pull<SelectV2Host>("v2_hosts", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			// Composite PK on (organization_id, machine_id); within an
 			// org-scoped collection, machineId alone is unique.
 			getKey: (item) => item.machineId,
@@ -392,116 +484,128 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				if (changes.name === undefined) {
 					throw new Error("Only name updates are supported on v2_hosts");
 				}
-				const result = await apiClient.v2Host.rename.mutate({
+				await apiClient.v2Host.rename.mutate({
 					hostId: original.machineId,
 					name: changes.name,
 				});
-				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
 	v2Hosts.createIndex((host) => host.machineId, basicIndexConfig);
 
-	const v2Clients = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Client>({
+	const v2Clients = createPersistedQueryCollection(
+		queryCollectionOptions<SelectV2Client>({
 			id: `v2_clients-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_clients",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "v2_clients", organizationId],
+			queryFn: () => pull<SelectV2Client>("v2_clients", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			// Composite PK on (organization_id, user_id, machine_id); within
 			// an org-scoped collection, (user_id, machine_id) is unique.
 			getKey: (item) => `${item.userId}:${item.machineId}`,
 		}),
 	);
 
-	const v2UsersHosts = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2UsersHosts>({
+	const v2UsersHosts = createPersistedQueryCollection(
+		queryCollectionOptions<SelectV2UsersHosts>({
 			id: `v2_users_hosts-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_users_hosts",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "v2_users_hosts", organizationId],
+			queryFn: () => pull<SelectV2UsersHosts>("v2_users_hosts", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => `${item.userId}:${item.hostId}`,
 			onInsert: async ({ transaction }) => {
 				const item = transaction.mutations[0].modified;
-				const result = await apiClient.v2Host.addMember.mutate({
+				await apiClient.v2Host.addMember.mutate({
 					hostId: item.hostId,
 					userId: item.userId,
 					role: item.role,
 				});
-				return electricTxidMatch(result.txid);
 			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				if (changes.role === undefined) {
 					throw new Error("Only role updates are supported on v2_users_hosts");
 				}
-				const result = await apiClient.v2Host.setMemberRole.mutate({
+				await apiClient.v2Host.setMemberRole.mutate({
 					hostId: original.hostId,
 					userId: original.userId,
 					role: changes.role,
 				});
-				return electricTxidMatch(result.txid);
 			},
 			onDelete: async ({ transaction }) => {
 				const item = transaction.mutations[0].original;
-				const result = await apiClient.v2Host.removeMember.mutate({
+				await apiClient.v2Host.removeMember.mutate({
 					hostId: item.hostId,
 					userId: item.userId,
 				});
-				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
 	v2UsersHosts.createIndex((userHost) => userHost.hostId, basicIndexConfig);
 	v2UsersHosts.createIndex((userHost) => userHost.userId, basicIndexConfig);
 
-	const v2Workspaces = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Workspace>({
+	const v2Workspaces = createPersistedQueryCollection(
+		queryCollectionOptions<SelectV2Workspace>({
 			id: `v2_workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_workspaces",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["local-workspaces", organizationId],
+			queryFn: () => fetchWorkspaces(organizationId),
+			refetchInterval: LOCAL_WORKSPACES_POLL_MS,
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
 				const metadata = transaction.mutations[0]
 					.metadata as WorkspaceCreateMutationMetadata;
 				const client = getHostServiceClientByUrl(metadata.hostUrl);
-				const result = await client.workspaces.create.mutate(metadata.input);
-				metadata.result = result;
-				return electricTxidMatch(result.txid);
+				metadata.result = await client.workspaces.create.mutate(metadata.input);
 			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				const { branch, hostId, name, taskId } = changes;
-				const result = await apiClient.v2Workspace.update.mutate({
-					id: original.id,
-					branch,
-					hostId,
-					name,
-					taskId,
-				});
-				return electricTxidMatch(result.txid);
+				// Persist to the local row (source of truth) so the next poll keeps
+				// the change, then mirror to cloud presence. Remote hosts' workspaces
+				// have no local row; for those the cloud update is authoritative.
+				const localUrl = getActiveLocalHostUrl();
+				const isLocalWorkspace = original.hostId === getActiveLocalMachineId();
+				let localCommitted = false;
+				if (
+					localUrl &&
+					isLocalWorkspace &&
+					(name !== undefined || taskId !== undefined || branch !== undefined)
+				) {
+					// Matching hostId doesn't guarantee a local row: another
+					// host-service profile on this machine (dev vs prod) may own it.
+					// For those the cloud update below is the effective write and the
+					// owning profile adopts it on its next reconcile poll.
+					try {
+						await getHostServiceClientByUrl(
+							localUrl,
+						).workspace.updateLocal.mutate({
+							id: original.id,
+							name,
+							taskId,
+							branch,
+						});
+						localCommitted = true;
+					} catch {
+						// No local row or host hiccup — cloud is the effective write.
+					}
+				}
+				try {
+					await apiClient.v2Workspace.update.mutate({
+						id: original.id,
+						branch,
+						hostId,
+						name,
+						taskId,
+					});
+				} catch (err) {
+					// Once the source-of-truth local row committed, a failed cloud
+					// mirror (offline rename, unmirrored row → NOT_FOUND) must not
+					// roll back the optimistic edit; the reconcile poll pushes it
+					// to cloud later.
+					if (!localCommitted) throw err;
+				}
 			},
 		}),
 	);
@@ -512,197 +616,135 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 	v2Workspaces.createIndex((workspace) => workspace.type, basicIndexConfig);
 
-	const workspaces = createPersistedElectricCollection(
-		electricCollectionOptions<SelectWorkspace>({
+	const workspaces = createPersistedQueryCollection(
+		queryCollectionOptions<SelectWorkspace>({
 			id: `workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "workspaces",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "workspaces", organizationId],
+			queryFn: () => pull<SelectWorkspace>("workspaces", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const members = createPersistedElectricCollection(
-		electricCollectionOptions<SelectMember>({
+	const members = createPersistedQueryCollection(
+		queryCollectionOptions<SelectMember>({
 			id: `members-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.members",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.members", organizationId],
+			queryFn: () => pull<SelectMember>("auth.members", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const users = createPersistedElectricCollection(
-		electricCollectionOptions<SelectUser>({
+	const users = createPersistedQueryCollection(
+		queryCollectionOptions<SelectUser>({
 			id: `users-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.users",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.users", organizationId],
+			queryFn: () => pull<SelectUser>("auth.users", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const invitations = createPersistedElectricCollection(
-		electricCollectionOptions<SelectInvitation>({
+	const invitations = createPersistedQueryCollection(
+		queryCollectionOptions<SelectInvitation>({
 			id: `invitations-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.invitations",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.invitations", organizationId],
+			queryFn: () => pull<SelectInvitation>("auth.invitations", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const teams = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTeam>({
+	const teams = createPersistedQueryCollection(
+		queryCollectionOptions<SelectTeam>({
 			id: `teams-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.teams",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.teams", organizationId],
+			queryFn: () => pull<SelectTeam>("auth.teams", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const teamMembers = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTeamMember>({
+	const teamMembers = createPersistedQueryCollection(
+		queryCollectionOptions<SelectTeamMember>({
 			id: `team-members-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.team_members",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.team_members", organizationId],
+			queryFn: () =>
+				pull<SelectTeamMember>("auth.team_members", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const agentCommands = createPersistedElectricCollection(
-		electricCollectionOptions<SelectAgentCommand>({
+	const agentCommands = createPersistedQueryCollection(
+		queryCollectionOptions<SelectAgentCommand>({
 			id: `agent_commands-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "agent_commands",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "agent_commands", organizationId],
+			queryFn: () => pull<SelectAgentCommand>("agent_commands", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
-				const result = await apiClient.agent.updateCommand.mutate({
+				await apiClient.agent.updateCommand.mutate({
 					...changes,
 					id: original.id,
 				});
-				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
 
-	const integrationConnections = createPersistedElectricCollection(
-		electricCollectionOptions<IntegrationConnectionDisplay>({
+	const integrationConnections = createPersistedQueryCollection(
+		queryCollectionOptions<IntegrationConnectionDisplay>({
 			id: `integration_connections-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "integration_connections",
+			queryClient,
+			queryKey: ["sync", "integration_connections", organizationId],
+			queryFn: () =>
+				pull<IntegrationConnectionDisplay>(
+					"integration_connections",
 					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+				),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const subscriptions = createPersistedElectricCollection(
-		electricCollectionOptions<SelectSubscription>({
+	const subscriptions = createPersistedQueryCollection(
+		queryCollectionOptions<SelectSubscription>({
 			id: `subscriptions-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "subscriptions",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "subscriptions", organizationId],
+			queryFn: () => pull<SelectSubscription>("subscriptions", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const apiKeys = createPersistedElectricCollection(
-		electricCollectionOptions<ApiKeyDisplay>({
+	const apiKeys = createPersistedQueryCollection(
+		queryCollectionOptions<ApiKeyDisplay>({
 			id: `apikeys-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.apikeys",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "auth.apikeys", organizationId],
+			queryFn: () => pull<ApiKeyDisplay>("auth.apikeys", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const chatSessions = createPersistedElectricCollection(
-		electricCollectionOptions<SelectChatSession>({
+	const chatSessions = createPersistedQueryCollection(
+		queryCollectionOptions<SelectChatSession>({
 			id: `chat_sessions-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "chat_sessions",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "chat_sessions", organizationId],
+			queryFn: () => pull<SelectChatSession>("chat_sessions", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 			onDelete: async ({ transaction }) => {
 				const item = transaction.mutations[0].original;
@@ -712,75 +754,53 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				if (!result.deleted) {
 					throw new Error("Chat session was not deleted");
 				}
-				return electricTxidMatch(result.txid);
 			},
 		}),
 	);
 
-	const githubRepositories = createPersistedElectricCollection(
-		electricCollectionOptions<SelectGithubRepository>({
+	const githubRepositories = createPersistedQueryCollection(
+		queryCollectionOptions<SelectGithubRepository>({
 			id: `github_repositories-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "github_repositories",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "github_repositories", organizationId],
+			queryFn: () =>
+				pull<SelectGithubRepository>("github_repositories", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const githubPullRequests = createPersistedElectricCollection(
-		electricCollectionOptions<SelectGithubPullRequest>({
+	const githubPullRequests = createPersistedQueryCollection(
+		queryCollectionOptions<SelectGithubPullRequest>({
 			id: `github_pull_requests-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "github_pull_requests",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "github_pull_requests", organizationId],
+			queryFn: () =>
+				pull<SelectGithubPullRequest>("github_pull_requests", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const automations = createPersistedElectricCollection(
-		electricCollectionOptions<SelectAutomation>({
+	const automations = createPersistedQueryCollection(
+		queryCollectionOptions<SelectAutomation>({
 			id: `automations-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "automations",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "automations", organizationId],
+			queryFn: () => pull<SelectAutomation>("automations", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);
 
-	const automationRuns = createPersistedElectricCollection(
-		electricCollectionOptions<SelectAutomationRun>({
+	const automationRuns = createPersistedQueryCollection(
+		queryCollectionOptions<SelectAutomationRun>({
 			id: `automation_runs-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "automation_runs",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
+			queryClient,
+			queryKey: ["sync", "automation_runs", organizationId],
+			queryFn: () =>
+				pull<SelectAutomationRun>("automation_runs", organizationId),
+			refetchInterval: SYNC_POLL_INTERVAL_MS,
 			getKey: (item) => item.id,
 		}),
 	);

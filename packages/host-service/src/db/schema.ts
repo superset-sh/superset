@@ -162,6 +162,23 @@ export const hostAgentConfigs = sqliteTable(
 	],
 );
 
+/**
+ * Cloud presence mirrors that failed and must be retried (boot + interval):
+ * op='create' re-mirrors a locally committed workspace, op='delete' removes
+ * stale presence. One row per workspace; the latest local action wins.
+ * Only ids this host itself acted on go here — never inferred from "cloud row
+ * without a local row": hostId is machine-derived, so dev and prod
+ * host-services on one machine share it and an inference sweep would delete
+ * each other's presence.
+ */
+export const cloudPresenceOutbox = sqliteTable("cloud_presence_outbox", {
+	workspaceId: text("workspace_id").primaryKey(),
+	op: text("op").$type<"create" | "delete">().notNull(),
+	createdAt: integer("created_at")
+		.notNull()
+		.$defaultFn(() => Date.now()),
+});
+
 export const workspaces = sqliteTable(
 	"workspaces",
 	{
@@ -178,9 +195,21 @@ export const workspaces = sqliteTable(
 		pullRequestId: text("pull_request_id").references(() => pullRequests.id, {
 			onDelete: "set null",
 		}),
+		// Workspace identity, mirrored from cloud today; the local-first plan
+		// (plans/20260629-v2-workspaces-local-authoritative.md) promotes this row
+		// to source of truth. Nullable so older rows backfill lazily.
+		name: text(),
+		type: text("type").$type<"worktree" | "main">(),
+		organizationId: text("organization_id"),
+		taskId: text("task_id"),
+		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
+		// Identity-edit timestamp for last-write-wins against cloud presence
+		// (renderer reconciles cross-host renames). Nullable: legacy rows
+		// coalesce to createdAt in localList.
+		updatedAt: integer("updated_at"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),

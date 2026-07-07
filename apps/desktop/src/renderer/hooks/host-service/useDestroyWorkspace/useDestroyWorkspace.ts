@@ -5,6 +5,7 @@ import type {
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { evictWorkspaceFromPresenceCache } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	useWorkspaceHostTarget,
@@ -91,11 +92,13 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 		): Promise<DestroyWorkspaceSuccess> => {
 			const client = getReadyClient(hostUrl, hostStatus);
 			try {
-				return await client.workspaceCleanup.destroy.mutate({
+				const result = await client.workspaceCleanup.destroy.mutate({
 					workspaceId,
 					deleteBranch: input.deleteBranch ?? false,
 					force: input.force ?? false,
 				});
+				evictWorkspaceFromPresenceCache(workspaceId);
+				return result;
 			} catch (err) {
 				throw normalizeError(err);
 			}

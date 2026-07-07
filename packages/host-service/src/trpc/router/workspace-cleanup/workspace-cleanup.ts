@@ -4,6 +4,10 @@ import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
+import {
+	dequeueCloudPresence,
+	enqueueCloudPresence,
+} from "../../../runtime/cloud-presence-outbox";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -341,7 +345,7 @@ async function runDestroy(
 
 			// A `worktree list` failure here means the post-remove state is
 			// unknown — treat that like "still registered" and block rather
-			// than risk orphaning disk past the cloud commit point.
+			// than risk orphaning disk past the local commit point.
 			let stillRegistered = true;
 			try {
 				stillRegistered = await isRegisteredWorktree(git, local.worktreePath);
@@ -354,8 +358,8 @@ async function runDestroy(
 			}
 			if (stillRegistered) {
 				// git still tracks a live worktree here — removal genuinely
-				// failed. Keep the cloud row so the workspace stays visible and
-				// retryable instead of orphaning disk past the cloud commit point.
+				// failed. Keep the local row so the workspace stays visible and
+				// retryable instead of orphaning disk past the commit point.
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Failed to remove worktree at ${local.worktreePath}`,
@@ -365,12 +369,35 @@ async function runDestroy(
 		}
 	}
 
-	// ─── Step 3: Cloud delete ──────────────────────────────────────
-	await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+	// ─── Step 3: Host sqlite row (the local-first commit point) ───────
+	// The local row is the source of truth; deleting it commits the delete.
+	// Cloud presence below is a best-effort mirror, so deletes work offline.
+	if (local) {
+		try {
+			// One transaction: the delete commit and its cloud-presence retry
+			// entry land together — a crash between them would otherwise leave
+			// a permanently unmasked ghost cloud row (no local row, no outbox
+			// entry, nothing left to retry or mask).
+			ctx.db.transaction((tx) => {
+				tx.delete(workspaces).where(eq(workspaces.id, input.workspaceId)).run();
+				enqueueCloudPresence(tx, input.workspaceId, "delete");
+			});
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Failed to remove local workspace row for ${input.workspaceId}: ${message}`,
+			});
+		}
+		try {
+			invalidateLabelCache(input.workspaceId);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			warnings.push(`Failed to invalidate label cache: ${message}`);
+		}
+	}
 
 	// ─── Step 4: Optional branch delete ────────────────────────────
-	// Keep this after the cloud commit point. If cloud delete fails, the
-	// workspace stays visible/retryable and the branch pointer remains intact.
 	if (git && local?.branch && input.deleteBranch) {
 		try {
 			// An absent ref (renamed, pruned, or never materialized) already
@@ -387,30 +414,32 @@ async function runDestroy(
 		}
 	}
 
-	// ─── Step 5: Host sqlite row ───────────────────────────────────
-	if (local) {
-		try {
-			ctx.db
-				.delete(workspaces)
-				.where(eq(workspaces.id, input.workspaceId))
-				.run();
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			warnings.push(
-				`Failed to remove local workspace row for ${input.workspaceId}: ${message}`,
+	// ─── Step 5: Cloud presence delete (best-effort mirror) ───────────
+	// Other machines keep showing the ghost row until this lands; the merge
+	// masks it on this machine, and the outbox retries until cloud confirms.
+	let cloudDeleted = true;
+	try {
+		await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+		dequeueCloudPresence(ctx.db, input.workspaceId);
+	} catch (err) {
+		const code = (err as { data?: { code?: string } })?.data?.code;
+		if (code === "NOT_FOUND") {
+			// Cloud row already gone — the mirror goal is satisfied.
+			dequeueCloudPresence(ctx.db, input.workspaceId);
+		} else {
+			cloudDeleted = false;
+			console.warn(
+				"[workspaceCleanup] cloud presence delete failed; queued for retry",
+				{ workspaceId: input.workspaceId, err },
 			);
-		}
-		try {
-			invalidateLabelCache(input.workspaceId);
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			warnings.push(`Failed to invalidate label cache: ${message}`);
+			// Covers the no-local-row path where Step 3 didn't enqueue.
+			enqueueCloudPresence(ctx.db, input.workspaceId, "delete");
 		}
 	}
 
 	return {
 		success: true,
-		cloudDeleted: true,
+		cloudDeleted,
 		worktreeRemoved,
 		branchDeleted,
 		warnings,

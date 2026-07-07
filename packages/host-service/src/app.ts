@@ -12,6 +12,7 @@ import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
 import { ChatRuntimeManager } from "./runtime/chat";
+import { flushCloudPresenceOutbox } from "./runtime/cloud-presence-outbox";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
@@ -153,6 +154,26 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	}
 	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
 
+	// Retry cloud presence mirrors (creates + deletes) that failed at commit
+	// time (boot + hourly). Idempotent; other machines otherwise miss local
+	// workspaces or keep showing ghosts.
+	const flushOutbox = () =>
+		flushCloudPresenceOutbox(db, api, config.organizationId)
+			.then(({ flushed, dropped, pending }) => {
+				if (flushed > 0 || dropped > 0 || pending > 0) {
+					console.warn("[host-service] cloud-presence outbox flush", {
+						flushed,
+						dropped,
+						pending,
+					});
+				}
+			})
+			.catch((err) => {
+				console.warn("[host-service] cloud-presence outbox flush failed:", err);
+			});
+	void flushOutbox();
+	const outboxTimer = setInterval(flushOutbox, 60 * 60 * 1000);
+
 	// Backfill `kind='main'` v2 workspaces for projects already set up before
 	// this column shipped. Idempotent; runs in the background so it doesn't
 	// block server startup.
@@ -214,6 +235,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Each step is best-effort and isolated: a throw in one cleanup must
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
+		clearInterval(outboxTimer);
 		try {
 			pullRequestRuntime.stop();
 		} catch (err) {

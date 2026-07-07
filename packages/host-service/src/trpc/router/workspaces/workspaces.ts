@@ -1,10 +1,16 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { getHostId } from "@superset/shared/host-info";
 import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../db/schema";
+import { resolveWorkspaceTypeFromDb } from "../../../db/workspace-shape";
+import {
+	dequeueCloudPresence,
+	enqueueCloudPresence,
+} from "../../../runtime/cloud-presence-outbox";
 import {
 	asRemoteRef,
 	type ResolvedRef,
@@ -136,6 +142,29 @@ function extractCreateTxid(row: CloudWorkspace): number | null {
 	return typeof txid === "number" ? txid : null;
 }
 
+// Local row → the cloud v2_workspaces row shape callers expect. The local db
+// is the source of truth, so lookups and offline creates answer from it
+// without a cloud round-trip.
+function toCloudWorkspaceShape(
+	ctx: HostServiceContext,
+	local: typeof workspaces.$inferSelect,
+): CloudWorkspace {
+	const createdAt = new Date(local.createdAt);
+	return {
+		id: local.id,
+		organizationId: local.organizationId ?? ctx.organizationId,
+		projectId: local.projectId,
+		hostId: getHostId(),
+		name: local.name ?? local.branch,
+		branch: local.branch,
+		type: resolveWorkspaceTypeFromDb(ctx.db, local),
+		createdByUserId: local.createdByUserId ?? null,
+		taskId: local.taskId ?? null,
+		createdAt,
+		updatedAt: local.updatedAt ? new Date(local.updatedAt) : createdAt,
+	} as CloudWorkspace;
+}
+
 async function findExistingWorkspaceByBranch(
 	ctx: HostServiceContext,
 	projectId: string,
@@ -149,13 +178,7 @@ async function findExistingWorkspaceByBranch(
 			),
 		})
 		.sync();
-	if (!local) return null;
-
-	const cloud = await ctx.api.v2Workspace.getFromHost.query({
-		organizationId: ctx.organizationId,
-		id: local.id,
-	});
-	return cloud ?? null;
+	return local ? toCloudWorkspaceShape(ctx, local) : null;
 }
 
 interface PrMetadata {
@@ -443,6 +466,10 @@ async function startHostEnsure(
 	});
 }
 
+// Local-first create commit: the local row is written unconditionally (no
+// cloud involvement), then cloud presence is mirrored best-effort — a failed
+// mirror is queued in the presence outbox and drained on boot/hourly, so
+// creating a workspace works offline.
 async function registerCloudAndLocal(args: {
 	ctx: HostServiceContext;
 	id: string | undefined;
@@ -455,68 +482,84 @@ async function registerCloudAndLocal(args: {
 	hostPromise: Promise<{ machineId: string }>;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
-	let host: { machineId: string };
-	try {
-		host = await args.hostPromise;
-	} catch (err) {
-		await args.rollbackWorktree();
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: `Failed to register host: ${err instanceof Error ? err.message : String(err)}`,
-		});
-	}
-
-	const cloudRow = await ctx.api.v2Workspace.create
-		.mutate({
-			organizationId: ctx.organizationId,
-			projectId: args.projectId,
-			name: args.name,
-			branch: args.branch,
-			hostId: host.machineId,
-			taskId: args.taskId,
-			id: args.id,
-			clientMachineId: ctx.clientMachineId,
-		})
-		.catch(async (err) => {
-			await args.rollbackWorktree();
-			throw err;
-		});
-
-	if (!cloudRow) {
-		await args.rollbackWorktree();
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: "Cloud workspace create returned no row",
-		});
-	}
+	const id = args.id ?? crypto.randomUUID();
+	const now = Date.now();
 
 	try {
-		ctx.db
-			.insert(workspaces)
-			.values({
-				id: cloudRow.id,
-				projectId: args.projectId,
-				worktreePath: args.worktreePath,
-				branch: args.branch,
-			})
-			.run();
+		// One transaction: the local commit and its cloud-presence retry entry
+		// land together, so a crash before the mirror below can't strand a
+		// workspace that never reaches other machines. Dequeued on mirror success.
+		ctx.db.transaction((tx) => {
+			tx.insert(workspaces)
+				.values({
+					id,
+					projectId: args.projectId,
+					worktreePath: args.worktreePath,
+					branch: args.branch,
+					name: args.name,
+					type: "worktree",
+					organizationId: ctx.organizationId,
+					taskId: args.taskId ?? null,
+					createdAt: now,
+					updatedAt: now,
+				})
+				.run();
+			enqueueCloudPresence(tx, id, "create");
+		});
 	} catch (err) {
 		await args.rollbackWorktree();
-		await ctx.api.v2Workspace.delete
-			.mutate({ id: cloudRow.id })
-			.catch((cleanupErr) => {
-				console.warn("[workspaces.create] failed to rollback cloud workspace", {
-					workspaceId: cloudRow.id,
-					err: cleanupErr,
-				});
-			});
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: `Failed to persist workspace locally: ${err instanceof Error ? err.message : String(err)}`,
 		});
 	}
 
-	return cloudRow;
+	let mirrored = false;
+	try {
+		const host = await args.hostPromise;
+		const cloudRow = await ctx.api.v2Workspace.create.mutate({
+			organizationId: ctx.organizationId,
+			projectId: args.projectId,
+			name: args.name,
+			branch: args.branch,
+			hostId: host.machineId,
+			taskId: args.taskId,
+			id,
+			clientMachineId: ctx.clientMachineId,
+		});
+		if (cloudRow) {
+			mirrored = true;
+			// Backfill audit identity the local insert couldn't know (derived
+			// from the host's cloud auth, not available offline).
+			if (cloudRow.createdByUserId) {
+				ctx.db
+					.update(workspaces)
+					.set({ createdByUserId: cloudRow.createdByUserId })
+					.where(eq(workspaces.id, id))
+					.run();
+			}
+		}
+	} catch (err) {
+		console.warn(
+			"[workspaces.create] cloud presence mirror failed; queued for retry",
+			{ workspaceId: id, err },
+		);
+	}
+	if (mirrored) {
+		dequeueCloudPresence(ctx.db, id);
+	}
+	// Always answer from the local row — it is the source of truth and its id
+	// is what every later lookup (terminals, agents, renderer nav) uses.
+	const local = ctx.db.query.workspaces
+		.findFirst({ where: eq(workspaces.id, id) })
+		.sync();
+	if (!local) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Workspace row vanished after local insert",
+		});
+	}
+	return toCloudWorkspaceShape(ctx, local);
 }
 
 async function dispatchSugarAgents(

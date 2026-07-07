@@ -57,6 +57,13 @@
       "when": 1783034111888,
       "tag": "0007_host_agent_icon_id",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1783102182756,
+      "tag": "0008_workspace_identity_and_presence_outbox",
+      "breakpoints": true
     }
   ]
 }

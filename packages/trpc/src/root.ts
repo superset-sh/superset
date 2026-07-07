@@ -13,6 +13,7 @@ import { integrationRouter } from "./router/integration";
 import { organizationRouter } from "./router/organization";
 import { projectRouter } from "./router/project";
 import { supportRouter } from "./router/support/support";
+import { syncRouter } from "./router/sync/sync";
 import { taskRouter } from "./router/task";
 import { teamRouter } from "./router/team";
 import { userRouter } from "./router/user";
@@ -36,6 +37,7 @@ export const appRouter = createTRPCRouter({
 	organization: organizationRouter,
 	project: projectRouter,
 	support: supportRouter,
+	sync: syncRouter,
 	task: taskRouter,
 	team: teamRouter,
 	user: userRouter,

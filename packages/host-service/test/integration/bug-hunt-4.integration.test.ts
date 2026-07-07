@@ -116,7 +116,7 @@ describe("bug-hunt-4: double-call cloud propagation", () => {
 		repo.dispose();
 	});
 
-	test("workspaceCleanup.destroy called twice: first succeeds, second propagates cloud's response", async () => {
+	test("workspaceCleanup.destroy called twice: both succeed (local-first delete is idempotent)", async () => {
 		// Mock cloud to return success the first time, then 404 on second call.
 		let callCount = 0;
 		host = await createTestHost({
@@ -147,14 +147,16 @@ describe("bug-hunt-4: double-call cloud propagation", () => {
 			workspaceId,
 		});
 		expect(first.success).toBe(true);
+		expect(first.cloudDeleted).toBe(true);
 
-		// Second call: local row is gone, but cloud delete is still
-		// attempted. The procedure currently throws on cloud failure —
-		// pin that behavior so a future "swallow 404 on second-destroy"
-		// fix flips this test.
-		await expect(
-			host.trpc.workspaceCleanup.destroy.mutate({ workspaceId }),
-		).rejects.toThrow(/not found/i);
+		// Second call: the local row (the commit point) is already gone; the
+		// cloud mirror failure doesn't fail the destroy — it's queued in the
+		// presence outbox for retry instead.
+		const second = await host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId,
+		});
+		expect(second.success).toBe(true);
+		expect(second.cloudDeleted).toBe(false);
 	});
 
 	void worktreePath; // keep variable name for line-skew stability

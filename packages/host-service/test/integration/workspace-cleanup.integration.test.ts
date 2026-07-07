@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { Server, type ServerOptions } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
-import { workspaces } from "../../src/db/schema";
+import { cloudPresenceOutbox, workspaces } from "../../src/db/schema";
 import { disposeDaemonClient } from "../../src/terminal/daemon-client-singleton";
 import {
 	initTerminalBaseEnv,
@@ -361,68 +361,70 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(branches.all).not.toContain(scenario.branch);
 	});
 
-	test("cloud delete failure after local removal keeps row so delete can retry", async () => {
+	test("cloud delete failure commits locally and queues the mirror for retry", async () => {
 		let cloudDeleteCalls = 0;
 		scenario.host.setApi("v2Workspace.delete.mutate", () => {
 			cloudDeleteCalls += 1;
-			if (cloudDeleteCalls === 1) {
-				throw new Error("cloud delete unavailable");
-			}
-			return { success: true };
+			throw new Error("cloud delete unavailable");
 		});
 
-		await expect(
-			scenario.host.trpc.workspaceCleanup.destroy.mutate({
-				workspaceId: scenario.featureWorkspaceId,
-			}),
-		).rejects.toThrow(/cloud delete unavailable/i);
-		expect(cloudDeleteCalls).toBe(1);
-		expect(existsSync(scenario.worktreePath)).toBe(false);
-
-		let remaining = scenario.host.db
-			.select()
-			.from(workspaces)
-			.where(eq(workspaces.id, scenario.featureWorkspaceId))
-			.all();
-		expect(remaining).toHaveLength(1);
-
+		// Local-first: the local row is the commit point, so the destroy
+		// succeeds; the failed cloud mirror is queued in the presence outbox.
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
 		});
 		expect(result.success).toBe(true);
+		expect(result.cloudDeleted).toBe(false);
 		expect(result.worktreeRemoved).toBe(true);
-		expect(cloudDeleteCalls).toBe(2);
-
-		remaining = scenario.host.db
-			.select()
-			.from(workspaces)
-			.where(eq(workspaces.id, scenario.featureWorkspaceId))
-			.all();
-		expect(remaining).toHaveLength(0);
-	});
-
-	test("cloud delete failure does not delete the optional branch", async () => {
-		scenario.host.setApi("v2Workspace.delete.mutate", () => {
-			throw new Error("cloud delete unavailable");
-		});
-
-		await expect(
-			scenario.host.trpc.workspaceCleanup.destroy.mutate({
-				workspaceId: scenario.featureWorkspaceId,
-				deleteBranch: true,
-			}),
-		).rejects.toThrow(/cloud delete unavailable/i);
+		expect(cloudDeleteCalls).toBe(1);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
-
-		const branches = await scenario.repo.git.branchLocal();
-		expect(branches.all).toContain(scenario.branch);
 
 		const remaining = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
-		expect(remaining).toHaveLength(1);
+		expect(remaining).toHaveLength(0);
+
+		const queued = scenario.host.db.select().from(cloudPresenceOutbox).all();
+		expect(queued).toEqual([
+			expect.objectContaining({
+				workspaceId: scenario.featureWorkspaceId,
+				op: "delete",
+			}),
+		]);
+
+		// The renderer masks exactly these ids from cloud presence.
+		const pending =
+			await scenario.host.trpc.workspace.pendingCloudDeletes.query();
+		expect(pending).toEqual([scenario.featureWorkspaceId]);
+	});
+
+	test("cloud delete failure still honors the optional branch delete", async () => {
+		scenario.host.setApi("v2Workspace.delete.mutate", () => {
+			throw new Error("cloud delete unavailable");
+		});
+
+		// The local commit (row + branch) proceeds regardless of the cloud
+		// mirror — offline deletes must not strand the branch.
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			deleteBranch: true,
+		});
+		expect(result.success).toBe(true);
+		expect(result.cloudDeleted).toBe(false);
+		expect(result.branchDeleted).toBe(true);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).not.toContain(scenario.branch);
+
+		const remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(0);
 	});
 
 	test("returns success when no local workspace row exists, still calls cloud delete", async () => {

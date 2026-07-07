@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import simpleGit, { type SimpleGit } from "simple-git";
-import { workspaces } from "../../src/db/schema";
+import { cloudPresenceOutbox, workspaces } from "../../src/db/schema";
 import { safeResolveWorktreePath } from "../../src/trpc/router/workspace-creation/shared/worktree-paths";
 import { cloudFlows } from "../helpers/cloud-fakes";
 import { createProjectScenario } from "../helpers/scenarios";
@@ -310,7 +310,7 @@ describe("workspaces.create PR checkout integration", () => {
 		);
 	});
 
-	test("removes a materialized PR branch when registration fails after worktree add", async () => {
+	test("keeps the PR worktree and queues the mirror when cloud create fails", async () => {
 		const prNumber = 6062;
 		let prHeadOid = "";
 
@@ -384,27 +384,21 @@ describe("workspaces.create PR checkout integration", () => {
 		await scenario.repo.git.checkout("main");
 		await scenario.repo.git.deleteLocalBranch("feature/rollback", true);
 
-		const error = await scenario.host.trpc.workspaces.create
-			.mutate({
-				projectId: scenario.projectId,
-				name: "Rollback PR workspace",
-				pr: prNumber,
-			})
-			.catch((err: unknown) => err);
+		// Local-first: cloud create failure no longer rolls anything back —
+		// the local row/worktree/branch are the commit, the mirror is queued.
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "Rollback PR workspace",
+			pr: prNumber,
+		});
 
-		expect(error).toBeInstanceOf(TRPCClientError);
-		expect(String((error as Error).message)).toContain(
-			"cloud workspace create failed",
-		);
-		expect(getWorkspaceRow(scenario, expectedBranch)).toBeUndefined();
-		expect(existsSync(expectedWorktreePath)).toBe(false);
-		const branchStillExists = await scenario.repo.git
-			.raw(["rev-parse", "--verify", `refs/heads/${expectedBranch}`])
-			.then(
-				() => true,
-				() => false,
-			);
-		expect(branchStillExists).toBe(false);
+		const row = getWorkspaceRow(scenario, expectedBranch);
+		expect(row?.id).toBe(result?.workspace?.id ?? "");
+		expect(existsSync(expectedWorktreePath)).toBe(true);
+		const queued = scenario.host.db.select().from(cloudPresenceOutbox).all();
+		expect(queued).toEqual([
+			expect.objectContaining({ workspaceId: row?.id, op: "create" }),
+		]);
 	});
 
 	test("reports PR head verification failures as internal errors", async () => {
