@@ -12,6 +12,7 @@ import { Trash2 } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { HiPlus } from "react-icons/hi2";
 import { useHotkey } from "renderer/hotkeys";
+import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -45,6 +46,8 @@ export function DashboardSidebarChats({
 	const matchRoute = useMatchRoute();
 	const { activeHostUrl } = useLocalHostService();
 	const { chatSessions: chatSessionActions } = useOptimisticCollectionActions();
+	const { data: session } = authClient.useSession();
+	const userId = session?.user?.id;
 
 	// Freeform chats have no workspace (both workspace links are null). Filter in
 	// JS: tanstack/db `eq(col, null)` uses SQL-style equality and never matches
@@ -60,12 +63,23 @@ export function DashboardSidebarChats({
 					lastActiveAt: chatSessions.lastActiveAt,
 					v2WorkspaceId: chatSessions.v2WorkspaceId,
 					workspaceId: chatSessions.workspaceId,
+					createdBy: chatSessions.createdBy,
 				})),
 		[collections.chatSessions],
 	);
+	// Only the current user's freeform chats: the collection syncs every org
+	// member's sessions, but freeform chats are personal and only their creator
+	// can delete them — showing others' would be un-deletable clutter. When the
+	// user id isn't resolved yet, don't hide everything — fall back to all.
 	const chats = useMemo(
-		() => allChats.filter((c) => !c.v2WorkspaceId && !c.workspaceId),
-		[allChats],
+		() =>
+			allChats.filter(
+				(c) =>
+					!c.v2WorkspaceId &&
+					!c.workspaceId &&
+					(userId ? c.createdBy === userId : true),
+			),
+		[allChats, userId],
 	);
 
 	const chatMatch = matchRoute({ to: "/chat/$sessionId", fuzzy: true });
