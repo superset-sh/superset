@@ -37,7 +37,7 @@ type ChatThinkingLevel = "off" | "low" | "medium" | "high" | "xhigh";
 
 interface ChatSendMessageInput {
 	sessionId: string;
-	workspaceId: string;
+	workspaceId?: string;
 	payload: {
 		content: string;
 		files?: Array<{
@@ -101,7 +101,8 @@ interface ChatPlanPayload {
 
 interface RuntimeSession {
 	sessionId: string;
-	workspaceId: string;
+	// null = freeform session (no workspace); runs in the host's home dir.
+	workspaceId: string | null;
 	cwd: string;
 	harness: RuntimeHarness;
 	mcpManager: RuntimeMcpManager;
@@ -363,7 +364,7 @@ async function restartRuntimeFromUserMessage(
 }
 
 interface InflightRuntimeCreation {
-	workspaceId: string;
+	workspaceId: string | null;
 	promise: Promise<RuntimeSession>;
 }
 
@@ -444,21 +445,13 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	private async createRuntime(
 		sessionId: string,
-		workspaceId: string,
+		workspaceId: string | null,
 	): Promise<RuntimeSession> {
 		if (!(await this.runtimeResolver.hasUsableRuntimeEnv())) {
 			throw new Error("No model provider credentials available");
 		}
 
-		const workspace = this.db.query.workspaces
-			.findFirst({ where: eq(workspaces.id, workspaceId) })
-			.sync();
-
-		if (!workspace) {
-			throw new Error(`Workspace not found: ${workspaceId}`);
-		}
-
-		const cwd = workspace.worktreePath;
+		const cwd = this.resolveSessionCwd(workspaceId);
 
 		this.ensureGlobalAgentInstructions();
 		await this.runtimeResolver.prepareRuntimeEnv();
@@ -492,8 +485,9 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	private async getOrCreateRuntime(
 		sessionId: string,
-		workspaceId: string,
+		workspaceIdInput: string | null | undefined,
 	): Promise<RuntimeSession> {
+		const workspaceId = workspaceIdInput ?? null;
 		const existing = this.runtimes.get(sessionId);
 		if (existing) {
 			if (existing.workspaceId !== workspaceId) {
@@ -534,7 +528,11 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 	 * just-created runtime doesn't get inserted into `runtimes` after we
 	 * delete from it (which would leak).
 	 */
-	async disposeRuntime(sessionId: string, workspaceId: string): Promise<void> {
+	async disposeRuntime(
+		sessionId: string,
+		workspaceIdInput: string | null | undefined,
+	): Promise<void> {
+		const workspaceId = workspaceIdInput ?? null;
 		const inflight = this.runtimeCreations.get(sessionId);
 		if (inflight) {
 			if (inflight.workspaceId !== workspaceId) {
@@ -623,7 +621,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	async getDisplayState(input: {
 		sessionId: string;
-		workspaceId: string;
+		workspaceId?: string;
 	}): Promise<ChatDisplayState> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
@@ -634,7 +632,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	async listMessages(input: {
 		sessionId: string;
-		workspaceId: string;
+		workspaceId?: string;
 	}): Promise<RuntimeMessages> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
@@ -655,7 +653,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 	 */
 	async getSnapshot(input: {
 		sessionId: string;
-		workspaceId: string;
+		workspaceId?: string;
 	}): Promise<{
 		displayState: ChatDisplayState;
 		messages: RuntimeMessages;
@@ -707,7 +705,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		await restartRuntimeFromUserMessage(runtime, input);
 	}
 
-	async stop(input: { sessionId: string; workspaceId: string }): Promise<void> {
+	async stop(input: { sessionId: string; workspaceId?: string }): Promise<void> {
 		const runtime = await this.getOrCreateRuntime(
 			input.sessionId,
 			input.workspaceId,
@@ -717,7 +715,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	async respondToApproval(input: {
 		sessionId: string;
-		workspaceId: string;
+		workspaceId?: string;
 		payload: ChatApprovalPayload;
 	}): Promise<RuntimeApprovalResult> {
 		const runtime = await this.getOrCreateRuntime(
@@ -729,7 +727,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	async respondToQuestion(input: {
 		sessionId: string;
-		workspaceId: string;
+		workspaceId?: string;
 		payload: ChatQuestionPayload;
 	}): Promise<RuntimeQuestionResult> {
 		const runtime = await this.getOrCreateRuntime(
@@ -742,7 +740,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	async respondToPlan(input: {
 		sessionId: string;
-		workspaceId: string;
+		workspaceId?: string;
 		payload: ChatPlanPayload;
 	}): Promise<RuntimePlanResult> {
 		const runtime = await this.getOrCreateRuntime(
@@ -752,7 +750,13 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		return runtime.harness.respondToPlanApproval(input.payload);
 	}
 
-	private resolveWorkspaceCwd(workspaceId: string): string {
+	// Resolve the working directory for a session. Freeform sessions (no
+	// workspace) run in the host's home dir; workspace sessions run in their
+	// worktree.
+	private resolveSessionCwd(workspaceId: string | null | undefined): string {
+		if (!workspaceId) {
+			return homedir();
+		}
 		const workspace = this.db.query.workspaces
 			.findFirst({ where: eq(workspaces.id, workspaceId) })
 			.sync();
@@ -762,7 +766,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		return workspace.worktreePath;
 	}
 
-	async getSlashCommands(input: { workspaceId: string }): Promise<
+	async getSlashCommands(input: { workspaceId?: string }): Promise<
 		Array<{
 			name: string;
 			aliases: string[];
@@ -771,7 +775,7 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			kind: "builtin" | "custom";
 		}>
 	> {
-		const cwd = this.resolveWorkspaceCwd(input.workspaceId);
+		const cwd = this.resolveSessionCwd(input.workspaceId);
 		return getSlashCommandsFromCwd(cwd).map((command) => ({
 			name: command.name,
 			aliases: command.aliases,
@@ -781,18 +785,18 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		}));
 	}
 
-	async resolveSlashCommand(input: { workspaceId: string; text: string }) {
-		const cwd = this.resolveWorkspaceCwd(input.workspaceId);
+	async resolveSlashCommand(input: { workspaceId?: string; text: string }) {
+		const cwd = this.resolveSessionCwd(input.workspaceId);
 		return resolveSlashCommandFromCwd(cwd, input.text);
 	}
 
-	async previewSlashCommand(input: { workspaceId: string; text: string }) {
+	async previewSlashCommand(input: { workspaceId?: string; text: string }) {
 		return this.resolveSlashCommand(input);
 	}
 
 	async getMcpOverview(_input: {
 		sessionId: string;
-		workspaceId: string;
+		workspaceId?: string;
 	}): Promise<{ sourcePath: string | null; servers: never[] }> {
 		return { sourcePath: null, servers: [] };
 	}

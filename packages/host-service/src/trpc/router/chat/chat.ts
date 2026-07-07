@@ -5,14 +5,17 @@ const thinkingLevelSchema = z.enum(["off", "low", "medium", "high", "xhigh"]);
 
 const sessionInput = z.object({
 	sessionId: z.uuid(),
-	workspaceId: z.uuid(),
+	// Omitted for freeform sessions (no workspace) — the runtime falls back to
+	// the host's home dir.
+	workspaceId: z.uuid().optional(),
 });
 
 // Slash-command discovery / preview / resolve are workspace-scoped, not
 // session-scoped — they only need a workspaceId so they work in fresh
-// chats before the first message creates a session.
+// chats before the first message creates a session. Omitted for freeform
+// sessions, which resolve slash commands against the host's home dir.
 const workspaceSlashInput = z.object({
-	workspaceId: z.uuid(),
+	workspaceId: z.uuid().optional(),
 });
 
 const sendMessagePayloadSchema = z.object({

@@ -26,7 +26,8 @@ export const chatRouter = {
 		.input(
 			z.object({
 				sessionId: z.uuid(),
-				v2WorkspaceId: z.uuid(),
+				// Omitted for freeform sessions — chats not tied to a workspace.
+				v2WorkspaceId: z.uuid().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -46,7 +47,7 @@ export const chatRouter = {
 						id: input.sessionId,
 						organizationId,
 						createdBy: ctx.session.user.id,
-						v2WorkspaceId: input.v2WorkspaceId,
+						v2WorkspaceId: input.v2WorkspaceId ?? null,
 					})
 					.onConflictDoNothing()
 					.returning({ id: chatSessions.id });
