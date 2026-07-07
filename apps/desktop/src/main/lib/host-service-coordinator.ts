@@ -7,8 +7,6 @@ import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { app, dialog } from "electron";
 import log from "electron-log/main";
-import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
-import { env as mainEnv } from "main/env.main";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
@@ -418,13 +416,13 @@ export class HostServiceCoordinator extends EventEmitter {
 			// Reaching here = an exit we didn't initiate via stop(). A death while
 			// "running" is a crash; deaths during startup surface via start()'s
 			// rejection, so don't double-alert those.
-			const crashed = current.status === "running";
+			const previousStatus = current.status;
 			this.rememberPort(organizationId, current.port);
 			this.instances.delete(organizationId);
 			removeManifest(organizationId);
-			this.emitStatus(organizationId, "stopped", "running");
+			this.emitStatus(organizationId, "stopped", previousStatus);
 
-			if (crashed) {
+			if (previousStatus === "running") {
 				this.alertChildCrashed(organizationId, code, signal);
 			}
 		});
@@ -519,8 +517,8 @@ export class HostServiceCoordinator extends EventEmitter {
 
 	/**
 	 * A running host-service child died unexpectedly. Alert the user with a
-	 * native dialog (its workspaces/terminals are now down) and offer a Restart,
-	 * rather than letting the failure pass as a silent status change.
+	 * native dialog rather than letting the failure pass as a silent status
+	 * change; recovery is the existing tray > Host Service > Restart.
 	 */
 	private alertChildCrashed(
 		organizationId: string,
@@ -530,31 +528,10 @@ export class HostServiceCoordinator extends EventEmitter {
 		const cause =
 			signal != null ? `signal ${signal}` : `exit code ${code ?? "unknown"}`;
 		log.error(`[host-service:${organizationId}] crashed (${cause})`);
-		void dialog
-			.showMessageBox({
-				type: "error",
-				title: "Host service crashed",
-				message: "The Superset host service stopped unexpectedly.",
-				detail: `Workspaces and terminals for this organization are unavailable until it restarts (${cause}).`,
-				buttons: ["Restart", "Dismiss"],
-				defaultId: 0,
-				cancelId: 1,
-			})
-			.then(async ({ response }) => {
-				if (response !== 0) return;
-				const { token } = await loadToken();
-				if (!token) return;
-				await this.restart(organizationId, {
-					authToken: token,
-					cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL,
-				});
-			})
-			.catch((error) => {
-				log.error(
-					`[host-service:${organizationId}] crash-alert restart failed:`,
-					error,
-				);
-			});
+		dialog.showErrorBox(
+			"Host service crashed",
+			`The Superset host service stopped unexpectedly (${cause}). Workspaces and terminals for this organization are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.`,
+		);
 	}
 }
 
