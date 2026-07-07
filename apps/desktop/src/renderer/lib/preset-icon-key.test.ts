@@ -61,6 +61,18 @@ describe("resolveV2PresetIconKey", () => {
 		expect(resolveV2PresetIconKey({ agentId: "codex" }, [])).toBe("codex");
 	});
 
+	it("does not apply icon overrides to legacy rows whose agentId is already a preset id", () => {
+		expect(
+			resolveV2PresetIconKey({ agentId: "codex" }, [
+				createAgent({
+					id: "custom-codex-config",
+					presetId: "codex",
+					iconId: "claude",
+				}),
+			]),
+		).toBe("codex");
+	});
+
 	it("infers the icon from stored commands when the agent link is stale", () => {
 		expect(
 			resolveV2PresetIconKey(
@@ -100,6 +112,30 @@ describe("resolveV2PresetIconKey", () => {
 				],
 			),
 		).toBe("claude");
+	});
+
+	it("falls back to a shared preset id when command matches have different icon overrides", () => {
+		expect(
+			resolveV2PresetIconKey(
+				{
+					commands: ["codex"],
+				},
+				[
+					createAgent({
+						id: "codex-config-a",
+						presetId: "codex",
+						iconId: "claude",
+						command: "codex",
+					}),
+					createAgent({
+						id: "codex-config-b",
+						presetId: "codex",
+						iconId: "opencode",
+						command: "codex",
+					}),
+				],
+			),
+		).toBe("codex");
 	});
 
 	it("does not infer from editable preset names", () => {
