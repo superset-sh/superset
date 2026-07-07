@@ -90,12 +90,14 @@ export async function pushWorkspaceCreateToCloud(
 			clientMachineId: ctx.clientMachineId ?? getHostId(),
 		});
 		if (cloudRow.id !== row.id) {
-			relinkLocalWorkspaceId(
+			const relinked = relinkLocalWorkspaceId(
 				{ db: ctx.db, eventBus: ctx.eventBus },
 				row.id,
 				cloudRow.id,
 			);
-			markWorkspaceCloudSynced(ctx.db, cloudRow.id);
+			markWorkspaceCloudSynced(ctx.db, cloudRow.id, {
+				expectedUpdatedAt: relinked?.updatedAt,
+			});
 			return cloudRow;
 		}
 		// The idempotent-create may return a pre-existing cloud row that
@@ -105,13 +107,17 @@ export async function pushWorkspaceCreateToCloud(
 		// went dirty for unrelated reasons.
 		const localName = row.name || row.branch;
 		const cloudNewer = cloudRow.updatedAt.getTime() > (row.updatedAt || 0);
+		// Guard against clearing a dirty flag set by a write that landed while
+		// this push was in flight — CAS on the updatedAt we pushed.
+		let expectedUpdatedAt = row.updatedAt;
 		if (cloudNewer && cloudRow.name !== localName) {
-			updateLocalWorkspace(
+			const adopted = updateLocalWorkspace(
 				{ db: ctx.db, eventBus: ctx.eventBus },
 				row.id,
 				{ name: cloudRow.name, taskId: cloudRow.taskId },
 				{ cloudDirty: false },
 			);
+			if (adopted) expectedUpdatedAt = adopted.updatedAt;
 		}
 		const namePatch =
 			!cloudNewer && cloudRow.name !== localName ? { name: localName } : {};
@@ -122,7 +128,7 @@ export async function pushWorkspaceCreateToCloud(
 				...namePatch,
 			});
 		}
-		markWorkspaceCloudSynced(ctx.db, row.id);
+		markWorkspaceCloudSynced(ctx.db, row.id, { expectedUpdatedAt });
 		return cloudRow;
 	} catch (err) {
 		console.warn(

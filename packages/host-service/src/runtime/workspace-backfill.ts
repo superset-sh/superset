@@ -3,7 +3,6 @@ import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
 import type { EventBus } from "../events";
 import type { ApiClient } from "../types";
-import { deleteLocalWorkspace } from "../workspaces/local-workspace-store";
 
 export interface WorkspaceBackfillContext {
 	api: ApiClient;
@@ -21,9 +20,15 @@ export interface WorkspaceBackfillContext {
  * Must run while the cloud table is still populated (R1/R2) — it is the only
  * source for these fields on pre-existing rows.
  *
+ * Backfill ONLY fills; it never deletes. In the host-owned model the host is
+ * the source of truth, so a row's validity is a local/disk question
+ * (`worktreeExists`), not "does the cloud still remember it" — and a cloud
+ * null is ambiguous (genuinely-deleted vs wrong-org/auth), so deleting on it
+ * risks wiping every row on a misconfig. A cloud-missing row is simply left
+ * as-is: it renders with its branch as the name and the user can destroy it.
+ *
  * - Cloud row found  → copy fields, mark cloud-synced.
- * - Cloud row absent → the local row was stale under the old semantics
- *   (cloud was authoritative when it was written); drop it.
+ * - Cloud row absent → leave the row untouched (retried next boot; harmless).
  * - Cloud unreachable → leave the row; retried on next boot.
  */
 export async function runWorkspaceBackfill(
@@ -37,7 +42,6 @@ export async function runWorkspaceBackfill(
 	if (pending.length === 0) return;
 
 	let filled = 0;
-	let dropped = 0;
 	for (const row of pending) {
 		let cloud: Awaited<
 			ReturnType<ApiClient["v2Workspace"]["getFromHost"]["query"]>
@@ -57,13 +61,8 @@ export async function runWorkspaceBackfill(
 			continue;
 		}
 
-		if (!cloud) {
-			deleteLocalWorkspace({ db: ctx.db, eventBus: ctx.eventBus }, row.id, {
-				queueCloudDelete: false,
-			});
-			dropped++;
-			continue;
-		}
+		// No cloud counterpart (or wrong-org null): leave it alone, never delete.
+		if (!cloud) continue;
 
 		ctx.db
 			.update(workspaces)
@@ -80,7 +79,5 @@ export async function runWorkspaceBackfill(
 			.run();
 		filled++;
 	}
-	console.log(
-		`[workspace-backfill] backfilled ${filled} row(s), dropped ${dropped} stale row(s)`,
-	);
+	console.log(`[workspace-backfill] backfilled ${filled} row(s)`);
 }

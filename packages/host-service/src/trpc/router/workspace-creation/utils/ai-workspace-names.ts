@@ -203,7 +203,9 @@ export async function applyAiWorkspaceRename(
 			...patch,
 			...(titleChanged ? { expectedCurrentName: oldWorkspaceName } : {}),
 		});
-		markWorkspaceCloudSynced(ctx.db, workspaceId);
+		markWorkspaceCloudSynced(ctx.db, workspaceId, {
+			expectedUpdatedAt: updated.updatedAt,
+		});
 	} catch (err) {
 		console.warn(
 			"[applyAiWorkspaceRename] cloud mirror push failed; reconciler will retry",

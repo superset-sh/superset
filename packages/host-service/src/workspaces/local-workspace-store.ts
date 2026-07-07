@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getHostId } from "@superset/shared/host-info";
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { workspaceCloudDeletes, workspaces } from "../db/schema";
 import type { EventBus } from "../events";
@@ -155,14 +155,26 @@ export function updateLocalWorkspace(
 	return row;
 }
 
+/**
+ * Mark a row cloud-synced. Pass `expectedUpdatedAt` (the row's updatedAt as
+ * of the push) so a write that landed mid-push keeps its dirty flag —
+ * otherwise an in-flight push could silently clear a concurrent rename.
+ */
 export function markWorkspaceCloudSynced(
 	db: HostDb,
 	id: string,
-	syncedAt = Date.now(),
+	opts?: { expectedUpdatedAt?: number; syncedAt?: number },
 ): void {
 	db.update(workspaces)
-		.set({ cloudSyncedAt: syncedAt })
-		.where(eq(workspaces.id, id))
+		.set({ cloudSyncedAt: opts?.syncedAt ?? Date.now() })
+		.where(
+			opts?.expectedUpdatedAt !== undefined
+				? and(
+						eq(workspaces.id, id),
+						eq(workspaces.updatedAt, opts.expectedUpdatedAt),
+					)
+				: eq(workspaces.id, id),
+		)
 		.run();
 }
 

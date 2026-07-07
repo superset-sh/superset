@@ -416,7 +416,7 @@ describe("runWorkspaceBackfill", () => {
 		expect(after?.cloudSyncedAt).not.toBeNull();
 	});
 
-	test("drops rows whose cloud counterpart is gone (stale under old semantics)", async () => {
+	test("leaves rows whose cloud counterpart is gone untouched (never deletes on null)", async () => {
 		const id = randomUUID();
 		const { ctx, db, broadcastWorkspaceChanged } = makeSyncCtx({
 			getFromHost: () => null,
@@ -425,14 +425,15 @@ describe("runWorkspaceBackfill", () => {
 
 		await runWorkspaceBackfill(ctx);
 
-		expect(
-			db.query.workspaces.findFirst({ where: eq(workspaces.id, id) }).sync(),
-		).toBeUndefined();
-		// Dropped without a tombstone — the cloud row never existed.
+		// Backfill only fills — a cloud null (genuinely-gone OR wrong-org) must
+		// not delete the local row; validity is a disk question, not a cloud one.
+		const after = db.query.workspaces
+			.findFirst({ where: eq(workspaces.id, id) })
+			.sync();
+		expect(after?.name).toBe("");
+		expect(after?.cloudSyncedAt).toBeNull();
 		expect(db.select().from(workspaceCloudDeletes).all()).toHaveLength(0);
-		expect(broadcastWorkspaceChanged).toHaveBeenCalledWith(
-			expect.objectContaining({ eventType: "deleted", workspaceId: id }),
-		);
+		expect(broadcastWorkspaceChanged).not.toHaveBeenCalled();
 	});
 
 	test("leaves rows untouched when the cloud is unreachable", async () => {
