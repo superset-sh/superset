@@ -1,19 +1,20 @@
 import { cn } from "@superset/ui/utils";
 import { LuChevronDown, LuChevronsUpDown, LuChevronUp } from "react-icons/lu";
-import type { SortDirection, SortField } from "../../types";
 
-interface SortableHeaderProps {
-	field: SortField;
+export type SortDirection = "asc" | "desc";
+
+interface SortableHeaderProps<F extends string> {
+	field: F;
 	label: string;
 	align?: "start" | "center";
 	className?: string;
-	sortField: SortField;
+	sortField: F | null;
 	sortDirection: SortDirection;
-	onSort: (field: SortField) => void;
+	onSort: (field: F) => void;
 	srOnlyLabel?: boolean;
 }
 
-export function SortableHeader({
+export function SortableHeader<F extends string>({
 	field,
 	label,
 	align = "start",
@@ -22,7 +23,7 @@ export function SortableHeader({
 	sortDirection,
 	onSort,
 	srOnlyLabel = false,
-}: SortableHeaderProps) {
+}: SortableHeaderProps<F>) {
 	const isActive = sortField === field;
 	const Icon = !isActive
 		? LuChevronsUpDown

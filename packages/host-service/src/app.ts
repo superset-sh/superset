@@ -140,9 +140,20 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
 
-	const terminalAgentStore = new TerminalAgentStore(
-		new SqliteTerminalAgentBindingPersistence(db),
+	const terminalAgentPersistence = new SqliteTerminalAgentBindingPersistence(
+		db,
 	);
+	// Hygiene only — reads hide defunct bindings via the session-liveness
+	// join regardless, so a failure here must not block startup.
+	try {
+		terminalAgentPersistence.deleteDefunct();
+	} catch (error) {
+		console.warn(
+			"[terminal-agents] failed to prune defunct binding rows",
+			error,
+		);
+	}
+	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
 
 	// Startup sweeps + the dual-write reconciler run in the background so
 	// they don't block server startup. Ordering matters: the backfill fills

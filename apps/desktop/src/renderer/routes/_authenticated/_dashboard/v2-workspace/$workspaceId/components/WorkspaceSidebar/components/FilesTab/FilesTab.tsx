@@ -72,9 +72,15 @@ export function FilesTab({
 	workspaceId,
 	gitStatus,
 }: FilesTabProps) {
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
-	});
+	// Shares the query cache with V2WorkspacePage's workspace.get query, so
+	// the first render after a workspace switch typically already has cached
+	// data from React Query (the parent route resolves it first). staleTime
+	// is set high enough that intra-session switches to a previously-visited
+	// workspace render instantly without a refetch.
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspaceId },
+		{ staleTime: 30_000 },
+	);
 	const rootPath = workspaceQuery.data?.worktreePath ?? "";
 
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);

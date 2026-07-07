@@ -24,6 +24,7 @@ import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showW
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
+import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -33,6 +34,7 @@ import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
+import { DockBadgeController } from "./components/DockBadgeController";
 import { FileMenuListener } from "./components/FileMenuListener";
 import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
@@ -218,9 +220,11 @@ function AuthenticatedLayout() {
 								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
 								highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
 							>
+								<DiffThemeSync />
 								<AgentHooks />
 								<FileMenuListener />
 								<V2NotificationController />
+								<DockBadgeController />
 								<DaemonAutoUpdateFailureDialog />
 								<Outlet />
 								<V1ImportModal />

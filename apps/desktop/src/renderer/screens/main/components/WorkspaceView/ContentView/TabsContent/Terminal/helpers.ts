@@ -11,6 +11,11 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
 import type { DetectedLink } from "renderer/lib/terminal/links";
+import {
+	createParserIdleGate,
+	type ParserIdleGate,
+	wrapWrite,
+} from "renderer/lib/terminal/parser-idle-gate";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
@@ -84,6 +89,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
 	searchAddon: SearchAddon;
+	gate: ParserIdleGate;
 	wrapper: HTMLDivElement;
 	linkManager: TerminalLinkManager;
 	cleanup: () => void;
@@ -98,6 +104,8 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const theme = initialTheme ?? getDefaultTerminalTheme();
 	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
 	const xterm = new XTerm(terminalOptions);
+	const gate = createParserIdleGate();
+	xterm.write = wrapWrite(gate, xterm.write.bind(xterm));
 	const fitAddon = new FitAddon();
 	const searchAddon = new SearchAddon();
 
@@ -209,6 +217,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		xterm,
 		fitAddon,
 		searchAddon,
+		gate,
 		wrapper,
 		linkManager,
 		cleanup: () => {

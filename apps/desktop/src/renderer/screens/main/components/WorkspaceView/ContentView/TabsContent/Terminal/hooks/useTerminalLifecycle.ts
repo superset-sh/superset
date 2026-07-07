@@ -5,6 +5,7 @@ import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { writeCommandInPane } from "renderer/lib/terminal/launch-command";
 import type { DetectedLink } from "renderer/lib/terminal/links";
+import { runWhenParserIdle } from "renderer/lib/terminal/parser-idle-gate";
 import {
 	clearTerminalSessionReady,
 	markTerminalSessionReady,
@@ -264,24 +265,19 @@ export function useTerminalLifecycle({
 		// terminal-ws-transport sendResize-on-open.
 		const syncBackendDimensions = () => {
 			if (container.clientWidth === 0 || container.clientHeight === 0) return;
-			fitAddon.fit();
-			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+			runWhenParserIdle(cached.gate, () => {
+				if (container.clientWidth === 0 || container.clientHeight === 0) return;
+				fitAddon.fit();
+				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+			});
 		};
 
 		// Attach the wrapper div to the live container.
-		// The cache creates a ResizeObserver that calls fitAddon.fit() and
-		// forwards resize events to the backend — no separate resize handler needed.
-		const prevCols = xterm.cols;
-		const prevRows = xterm.rows;
+		// The cache fits on attach and on container resizes (ResizeObserver),
+		// invoking the callback whenever dimensions actually change.
 		v1TerminalCache.attachToContainer(paneId, container, () => {
 			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
 		});
-		// If dimensions changed during attach (container resized while hidden),
-		// notify the backend PTY immediately — the ResizeObserver only fires on
-		// subsequent changes, not the initial fit.
-		if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
-			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
-		}
 
 		const scheduleScrollToBottom = () => {
 			requestAnimationFrame(() => {
