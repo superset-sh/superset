@@ -60,7 +60,7 @@ export interface ChatMessageListProps {
 	isAwaitingAssistant: boolean;
 	currentMessage: ChatMessage | null;
 	interruptedMessage: InterruptedMessagePreview | null;
-	workspaceId: string;
+	workspaceId?: string;
 	sessionId: string | null;
 	organizationId: string | null;
 	workspaceCwd?: string;

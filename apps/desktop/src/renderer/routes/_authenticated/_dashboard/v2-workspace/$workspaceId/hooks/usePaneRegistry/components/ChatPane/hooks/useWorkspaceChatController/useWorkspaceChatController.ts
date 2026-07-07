@@ -40,7 +40,7 @@ function toSessionSelectorItem(session: {
 
 async function createSessionRecord(input: {
 	sessionId: string;
-	v2WorkspaceId: string;
+	v2WorkspaceId?: string;
 }): Promise<void> {
 	if (isDesktopChatDevMode()) return;
 	await apiTrpcClient.chat.createSession.mutate({
@@ -56,7 +56,8 @@ export function useWorkspaceChatController({
 }: {
 	sessionId: string | null;
 	onSessionIdChange: (sessionId: string | null) => void;
-	workspaceId: string;
+	// Omitted for freeform chats (no workspace).
+	workspaceId?: string;
 }) {
 	const { data: session } = authClient.useSession();
 	const organizationId = resolveDesktopChatOrganizationId(
@@ -67,7 +68,7 @@ export function useWorkspaceChatController({
 	const { chatSessions: chatSessionActions } = useOptimisticCollectionActions();
 
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
-		{ id: workspaceId },
+		{ id: workspaceId ?? "" },
 		{ enabled: Boolean(workspaceId) },
 	);
 
@@ -75,8 +76,10 @@ export function useWorkspaceChatController({
 		(q) =>
 			q
 				.from({ chatSessions: collections.chatSessions })
+				// Freeform chats have no workspace (v2WorkspaceId IS NULL); a
+				// workspace pane lists only that workspace's sessions.
 				.where(({ chatSessions }) =>
-					eq(chatSessions.v2WorkspaceId, workspaceId),
+					eq(chatSessions.v2WorkspaceId, workspaceId ?? null),
 				)
 				.orderBy(({ chatSessions }) => chatSessions.lastActiveAt, "desc")
 				.select(({ chatSessions }) => ({ ...chatSessions })),

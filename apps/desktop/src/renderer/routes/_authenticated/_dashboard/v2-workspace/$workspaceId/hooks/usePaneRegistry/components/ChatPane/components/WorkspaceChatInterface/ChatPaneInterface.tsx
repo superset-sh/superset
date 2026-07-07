@@ -61,7 +61,7 @@ function ChatUploadFooter({
 	...footerProps
 }: {
 	sessionId: string | null;
-	workspaceId: string;
+	workspaceId?: string;
 	onError: (message: string) => void;
 	onSend: (payload: {
 		content: string;

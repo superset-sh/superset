@@ -9,7 +9,8 @@ export interface ChatPaneInterfaceProps {
 	 * launchConfig and not re-trigger on re-render.
 	 */
 	onConsumeLaunchConfig?: () => void;
-	workspaceId: string;
+	// Omitted for freeform chats (no workspace).
+	workspaceId?: string;
 	organizationId: string | null;
 	cwd: string;
 	isFocused: boolean;

@@ -28,6 +28,7 @@ import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
+import { DashboardSidebarChats } from "./components/DashboardSidebarChats";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHelpMenu } from "./components/DashboardSidebarHelpMenu";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
@@ -232,6 +233,8 @@ export function DashboardSidebar({
 										document.body,
 									)}
 								</DndContext>
+
+								<DashboardSidebarChats isCollapsed={isCollapsed} />
 							</div>
 							{!isCollapsed && !inlineWorkspacePortsEnabled && (
 								<DashboardSidebarPortsList />

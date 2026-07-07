@@ -8,7 +8,7 @@ import { SessionSelector } from "../SessionSelector";
 
 interface ChatPaneTitleProps {
 	context: RendererContext<PaneViewerData>;
-	workspaceId: string;
+	workspaceId?: string;
 }
 
 export function ChatPaneTitle({ context, workspaceId }: ChatPaneTitleProps) {
