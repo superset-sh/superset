@@ -19,7 +19,7 @@ A workspace is a git worktree on one machine, but its canonical record lives in 
 | 5 | Cloud list endpoint deleted; MCP/CLI/SDK query hosts directly. |
 | 6 | Delete both orphaned `apps/web/workspaces` pages. |
 | 7 | Host serves its list to any caller with its orgId in the JWT; per-user scope enforced at the **relay**. |
-| 8 | Staged rollout, R3 gated on **adoption telemetry, not a date**. |
+| 8 | Ship R1+R2 as **one desktop release** (dual-write + Electric fallback ride along as the mixed-version net); R3 (delete cloud endpoint) is a **separate** release gated on **adoption telemetry, not a date**. |
 
 ## Progress
 
@@ -29,14 +29,16 @@ A workspace is a git worktree on one machine, but its canonical record lives in 
 | **M2 (R1)** cloud: client-minted id accepted, automation denormalized pin, PostHog capture stays cloud-side (deferred to R3) | ✅ |
 | **M3 (R2)** `useHostWorkspaces` fan-out hook: per-host queries, live `workspace:changed` patches, IndexedDB snapshots, Electric read-through fallback | ✅ |
 | **M4 (R2)** ~25 `useLiveQuery` consumers migrated; writes unify through owning host; Electric collection now read-only fallback | ✅ CDP offline drill passed |
-| **M5 (R2)** MCP/CLI fan out over relay; SDK `list` stays cloud-backed till R3 | ✅ (manual MCP drill pending) |
+| **M5 (R2)** MCP/CLI/SDK fan out over relay; all cloud `v2Workspace.*` removed from clients (CI-guarded) | ✅ (manual MCP drill pending) |
 | **M6 (R3)** delete cloud surface (router, shape, pages, FK, table) | ⛔ gated on desktop adoption |
 
-## Milestones (what each release does)
+## Releases (deploy order)
 
-- **R1** — host.db gains full fields + one-main-per-project index + tombstones. Writes go local-first with host-minted UUIDs; cloud dual-write is best-effort, reconciled every 60s. Cloud `create` accepts a client id; automations accept the denormalized pin. Old clients unaffected (dual-write).
-- **R2** — desktop reads flip to the fan-out hook (falls back to still-synced Electric rows for hosts that served nothing). Writes confirm on local host events, not Electric txids. MCP/CLI query hosts directly.
-- **R3** — delete dual-write/reconcile, the cloud router + Electric shape + web pages, drop `chat_sessions.v2WorkspaceId` FK, drop the table (Neon migration is **user-run**, per AGENTS.md). Move PostHog capture host-side.
+R1+R2 ship together (M1–M5 in one desktop build); R3 is separate. Note: one desktop *release* still reaches machines one-by-one via auto-update, so an org passes through a mixed-version window — the dual-write + Electric fallback are the net for it, which is why R3 stays adoption-gated.
+
+1. **Cloud/API deploy** (additive, first) — `create` accepts a client-minted id; automations accept the denormalized `hostId`/`projectId` pin. Safe for old desktops.
+2. **Desktop release (R1+R2 combined)** — host.db owns full rows (schema 0008, one-main index, tombstones); writes are local-first with host-minted UUIDs + best-effort cloud dual-write (60s reconciler); reads flip to the fan-out hook (Electric read-through fallback for hosts that served nothing); MCP/CLI/SDK query hosts directly. Old/not-yet-updated machines keep working via dual-write + Electric.
+3. **R3 (separate, adoption-gated)** — delete dual-write/reconcile, cloud router + Electric shape + web pages; drop `chat_sessions.v2WorkspaceId` FK and the table (Neon migration **user-run**, per AGENTS.md); move PostHog capture host-side.
 
 ## Key discoveries
 
@@ -50,12 +52,13 @@ A workspace is a git worktree on one machine, but its canonical record lives in 
 
 - PostHog capture stays cloud-side until R3 (dual-write avoids double-counting).
 - **Drop the remote-host IndexedDB cache?** (saddlepaddle, PR review) — ~40 lines; without it, offline machines' workspaces vanish from the sidebar instead of showing last-seen. Kiet to call it.
-- SDK `workspaces.list` stays cloud-backed until R3 (changing it breaks the public return type).
+- SDK `workspaces.list`/`update` now fan out to hosts (async; dropped the cloud-only `projectName` filter + `txid`) — a public return-shape change to land with the combined release.
 - Manual MCP `workspaces_list` drill against a live host still to run.
-- **No true Wi-Fi-off cold-boot test yet** — process-kill drills can't exercise `navigator.onLine`. Do before R2 ships broadly.
+- **No true Wi-Fi-off cold-boot test yet** — process-kill drills can't exercise `navigator.onLine`. Do before the combined release ships broadly.
+- **Cross-version hosts** (saddlepaddle): reads degrade gracefully (old remote host's rows still surface via Electric fallback); rename/task-link to an old *remote* host's workspace fails (new `workspace.update` absent there), and CLI/SDK/MCP can't see old hosts (no fallback). Acceptable under "we don't support host version skew" — or add a rename→cloud fallback for the window. Kiet to call it.
 - **`hostReachable` is computed but no consumer reads it** — offline remote rows render as live and their write affordances aren't disabled. Wire it in or drop the "flagged unreachable" claim.
 
 ## Safety
 
-- R1/R2 are git-revertable; dual-write means either store rebuilds the other.
-- Nothing destructive until M6's Neon migration — user-run and adoption-gated.
+- The combined release is git-revertable; dual-write means either store rebuilds the other.
+- Nothing destructive until R3's Neon migration — user-run and adoption-gated.
