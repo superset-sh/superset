@@ -55,10 +55,25 @@ describe("teardown initial command", () => {
 		}
 	});
 
-	test("single-quotes config command strings for exec bash -c", () => {
-		expect(buildTeardownCommandString("echo 'hi' && exit")).toBe(
-			`exec bash -c 'echo '\\''hi'\\'' && exit'`,
-		);
+	test("joins config commands for the user's shell like setup does", () => {
+		const command = buildTeardownCommandString([
+			"./scripts/down.sh",
+			"echo done",
+		]);
+
+		expect(command).toBe("./scripts/down.sh && echo done; exit");
+		expect(command).not.toContain("$?");
+	});
+
+	test("config command exit propagates the last status under fish", () => {
+		if (!isFishAvailable()) return;
+
+		const result = spawnSync("fish", [
+			"-c",
+			buildTeardownCommandString(["sh -c 'exit 7'"]),
+		]);
+
+		expect(result.status).toBe(7);
 	});
 });
 
@@ -95,7 +110,7 @@ describe("resolveTeardownCommand", () => {
 			);
 
 			expect(resolveTeardownCommand(args)).toBe(
-				"exec bash -c './scripts/teardown.sh && echo done'",
+				"./scripts/teardown.sh && echo done; exit",
 			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });

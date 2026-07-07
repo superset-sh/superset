@@ -60,7 +60,7 @@ export function resolveTeardownCommand(args: {
 	const config = loadSetupConfig(args);
 	const commands = getResolvedTeardownCommands(config);
 	if (commands.length > 0) {
-		return buildTeardownCommandString(commands.join(" && "));
+		return buildTeardownCommandString(commands);
 	}
 
 	for (const root of [args.worktreePath, args.repoPath]) {
@@ -195,9 +195,15 @@ export function buildTeardownInitialCommand(scriptPath: string): string {
 	return `exec bash ${singleQuote(scriptPath)}`;
 }
 
-/** Same `exec bash` trick as above, for config-declared command strings. */
-export function buildTeardownCommandString(command: string): string {
-	return `exec bash -c ${singleQuote(command)}`;
+/**
+ * Config commands run in the user's login shell — the same contract as setup
+ * (`resolveInitialCommand` joins with ` && ` and types into the terminal), so
+ * shell-specific commands that worked at create don't break at delete. The
+ * trailing `exit` closes the hidden PTY; with no argument it propagates the
+ * last command's status in bash, zsh, and fish alike (no `$?` needed).
+ */
+export function buildTeardownCommandString(commands: string[]): string {
+	return `${commands.join(" && ")}; exit`;
 }
 
 /** POSIX single-quote escape: safe for any byte sequence in a path. */
