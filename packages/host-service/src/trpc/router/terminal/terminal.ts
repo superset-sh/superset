@@ -15,7 +15,8 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 
 const createSessionInputSchema = z.object({
-	workspaceId: z.string(),
+	// Omitted for freeform terminals (no workspace); cwd defaults to home dir.
+	workspaceId: z.string().optional(),
 	terminalId: z.string().optional(),
 	initialCommand: z.string().trim().min(1).optional(),
 	cwd: z.string().optional(),
@@ -138,7 +139,7 @@ export const terminalRouter = router({
 		.input(
 			z.object({
 				terminalId: z.string(),
-				workspaceId: z.string(),
+				workspaceId: z.string().optional(),
 				data: z.string(),
 			}),
 		)
@@ -157,19 +158,22 @@ export const terminalRouter = router({
 		.input(
 			z.object({
 				terminalId: z.string(),
-				workspaceId: z.string(),
+				// Omitted for freeform terminals (no workspace).
+				workspaceId: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const workspace = ctx.db.query.workspaces
-				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
-				.sync();
+			if (input.workspaceId) {
+				const workspace = ctx.db.query.workspaces
+					.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+					.sync();
 
-			if (!workspace) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Workspace not found",
-				});
+				if (!workspace) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Workspace not found",
+					});
+				}
 			}
 
 			const session = ctx.db.query.terminalSessions
@@ -183,7 +187,7 @@ export const terminalRouter = router({
 				});
 			}
 
-			if (session.originWorkspaceId !== input.workspaceId) {
+			if ((session.originWorkspaceId ?? null) !== (input.workspaceId ?? null)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Terminal session does not belong to this workspace",
