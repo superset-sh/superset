@@ -90,6 +90,8 @@ Key current-state facts the plan relies on (verified in the audit):
 - Observation: PR-runtime branch-rename detection writes the local row directly without events; flagged cloud-dirty for the reconciler, but R2's live view will want a `workspace:changed` emit there too (noted for Milestone 3/4).
 - Observation: In the dev environment, a few backfilled `main` rows stay permanently cloud-dirty because their local project no longer exists in the cloud org ("Project not found in this organization"); the reconciler correctly logs and retries each pass without crashing. Harmless-but-noisy — R2 could add a permanent-rejection classifier that stops retrying rows the cloud rejects with BAD_REQUEST/NOT_FOUND.
   Evidence: dev drill 2026-07-05, three pre-existing stale rows in the dev org's host.db.
+- Observation: The fan-out queries initially ran with react-query's default `networkMode: "online"` — with Wi-Fi genuinely off, `navigator.onLine` goes false and react-query PAUSES queries to 127.0.0.1, which would have defeated offline-first on a real cold start. Found while debugging a sidebar-placement flake (an automation-created workspace didn't appear until the next boot; the missed-event healing refetch was paused in the backgrounded window). Fixed 2026-07-06: `networkMode: "always"`, `refetchIntervalInBackground: true`, and bounded `retry: 1` so tunnel-less relay targets settle isReady quickly. The process-kill drills can't catch onLine-dependent bugs — a true Wi-Fi-off pass before release would.
+  Evidence: automation CDP drill 2026-07-06; fresh boot placed the workspace correctly, isolating the transient legs.
 
 ## Decision Log
 
