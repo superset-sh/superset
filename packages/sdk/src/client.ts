@@ -94,9 +94,18 @@ import {
 	TaskUpdateParams,
 } from "./resources/tasks";
 import {
+	TerminalCloseParams,
+	TerminalCloseResult,
 	TerminalCreateParams,
 	TerminalCreateResult,
+	TerminalListParams,
+	TerminalListResult,
+	TerminalReadParams,
+	TerminalReadResult,
+	TerminalSendParams,
+	TerminalSendResult,
 	Terminals,
+	TerminalSummary,
 } from "./resources/terminals";
 import {
 	HostWorkspace,
@@ -1126,7 +1135,7 @@ export class Superset {
 	automations: API.Automations = new API.Automations(this);
 	/** Agents (per-host terminal-agent rows): list, create. */
 	agents: API.Agents = new API.Agents(this);
-	/** Terminals (per-host PTY sessions): create. */
+	/** Terminals (per-host PTY sessions): create, list, send (follow-up), read, close. */
 	terminals: API.Terminals = new API.Terminals(this);
 	/** Active-organization config: nested `organization.members.list`. */
 	organization: API.Organization = new API.Organization(this);
@@ -1206,5 +1215,18 @@ export declare namespace Superset {
 		PromptTransport,
 	};
 
-	export { Terminals, TerminalCreateParams, TerminalCreateResult };
+	export {
+		Terminals,
+		TerminalCreateParams,
+		TerminalCreateResult,
+		TerminalListParams,
+		TerminalSummary,
+		TerminalListResult,
+		TerminalCloseParams,
+		TerminalCloseResult,
+		TerminalSendParams,
+		TerminalSendResult,
+		TerminalReadParams,
+		TerminalReadResult,
+	};
 }

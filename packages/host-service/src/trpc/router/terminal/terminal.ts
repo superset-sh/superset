@@ -9,6 +9,8 @@ import {
 	disposeSessionAndWait,
 	listTerminalSessions,
 	parseThemeType,
+	snapshotSession,
+	writeFramedInputToSession,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -151,6 +153,49 @@ export const terminalRouter = router({
 				});
 			}
 			return { success: true as const };
+		}),
+
+	// Send a follow-up message into an already-running terminal (e.g. a claude/
+	// codex agent) instead of spawning a new session. Targets by terminalId
+	// alone; frames multi-line text as a bracketed paste server-side.
+	send: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				text: z.string().min(1),
+				submit: z.boolean().default(true),
+			}),
+		)
+		.mutation(({ input }) => {
+			const result = writeFramedInputToSession(input);
+			if ("error" in result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: result.error,
+				});
+			}
+			return { terminalId: input.terminalId, submitted: input.submit };
+		}),
+
+	// Non-destructive snapshot of the terminal's current screen + recent
+	// scrollback (read off the per-session headless emulator).
+	snapshot: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				maxLines: z.number().int().positive().optional(),
+			}),
+		)
+		.query(({ input }) => {
+			const result = snapshotSession(input);
+			if ("error" in result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: result.error,
+				});
+			}
+			const { success: _success, ...snapshot } = result;
+			return { terminalId: input.terminalId, ...snapshot };
 		}),
 
 	killSession: protectedProcedure
