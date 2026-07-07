@@ -1,131 +1,43 @@
-# Offline-first workspaces: move `v2_workspaces` authority to host-service local table
+# Design: offline-first workspaces (host-owned `v2_workspaces`)
 
-Audit of current state + design decisions. Goal: a workspace should be creatable,
-renamable, deletable, and renderable with zero cloud availability, because the thing
-it represents (a git worktree on this machine) is entirely local.
+Decision record from the 2026-07-03/04 walkthroughs with Kiet. Execution: `20260703-1914-...-execplan.md`. End-state map: `offline-first-workspace-table-reference.md`.
 
-## Current state (audited 2026-07-03)
+**Goal:** a workspace (a git worktree on one machine) must be creatable, renamable, deletable, and renderable with zero cloud availability.
 
-### The three "workspace" tables
+## Why it wasn't offline-first
 
-| Table | Store | Role |
+Cloud Postgres (`v2_workspaces`) was the canonical registry: every write was a synchronous cloud round-trip, the cloud minted UUIDs, delete UX blocked on an Electric sync round-trip, and rename had two divergent write paths (renderer→cloud, host→cloud). host.db's row was too thin to render from (no name/type/taskId).
+
+## Cloud usage inventory (what actually needed the table)
+
+Notably: **apps/api and apps/mobile had zero references**; `chat_sessions.v2WorkspaceId` and `taskId` are write-only tags never read cloud-side.
+
+| Consumer | Need | Deprecation |
 |---|---|---|
-| `v2_workspaces` | Neon (`packages/db/src/schema/schema.ts:531`) | **Canonical registry.** Org-scoped, one row per worktree/main workspace on any host. |
-| `workspaces` (host.db) | Per-org SQLite (`packages/host-service/src/db/schema.ts:165`) | Partial mirror: cloud id → `worktreePath`, branch, headSha, PR link. **No name/type/taskId/timestamps** — cannot render a sidebar from it. |
-| `workspaces` (local.db) | `packages/local-db` | v1 world (desktop main). Sunset; out of scope except as precedent. |
-
-### Data flow today
-
-- **Read (desktop renderer):** Electric shape `v2_workspaces` (org-scoped WHERE via
-  `apps/electric-proxy/src/where.ts:70`) → TanStack DB collection
-  (`apps/desktop/.../CollectionsProvider/collections.ts:472`) → persisted to
-  `~/.superset/tanstack-db.sqlite`. Reads are already offline-capable (cache-first).
-- **Create:** renderer optimistic insert → collection `onInsert` → host-service
-  `workspaces.create` → `registerCloudAndLocal`
-  (`packages/host-service/src/trpc/router/workspace-creation/workspace-creation.ts:439`):
-  worktree created locally, then **inline cloud `v2Workspace.create`** (cloud mints the
-  UUID), then host.db insert. Cloud down ⇒ create fails and worktree is rolled back.
-- **Rename/update:** two paths — renderer → **cloud API directly**
-  (`v2Workspace.update`, bypasses host-service), and AI rename → host-service → cloud
-  `updateNameFromHost`. host.db is patched separately.
-- **Delete:** renderer → host-service cleanup saga → cloud `v2Workspace.delete`; UI
-  blocks on `waitForWorkspaceDeleted` until Electric drops the row.
-- **Write confirmation:** optimistic state held until the mutation's Postgres `txid`
-  replays over Electric (30s timeout).
-
-### Why it's not offline-first
-
-1. Every workspace **write** requires a synchronous cloud round-trip; the cloud mints
-   workspace IDs, so offline create is structurally impossible.
-2. host.db's workspace row is too thin to serve as a read model (no name/type/taskId).
-3. Delete UX literally waits for a cloud→Electric round-trip.
-4. Rename has two divergent write paths (renderer→cloud vs host→cloud), so any
-   local-first change must unify them or fix both.
-
-### Constraints that keep the cloud table alive
-
-- **Multi-host visibility:** the sidebar/org list shows workspaces from *other* hosts
-  (`useAccessibleV2Workspaces`); a local table only knows its own host.
-- **Cloud FKs:** `chat_sessions.v2WorkspaceId`, `automation_runs.v2WorkspaceId`, and
-  the one-main-per-host partial unique index all live in Neon.
-- **apps/web** reads workspaces via plain tRPC (`v2Workspace.list/getFromHost`).
-- So "move to local" realistically means **local authority + cloud projection**, not
-  cloud removal.
-
-## Cloud usage inventory (what actually needs `v2_workspaces`)
-
-Every consumer of the cloud table, and what it truly needs. Notably: **apps/api and
-apps/mobile have zero references**; nothing in the cloud ever *reads*
-`chat_sessions.v2WorkspaceId` or `v2Workspaces.taskId` — those are write-only tags
-consumed client-side over Electric.
-
-| # | Consumer | Actual need | Deprecation path |
-|---|---|---|---|
-| 1 | Desktop renderer (Electric shape + ~25 `useLiveQuery` sites) | live org-wide workspace list | replace with host-backed collection + fan-out (Decisions 2, D-read) |
-| 2 | apps/web `/workspaces` list+create (`page.tsx:78,179`) | per-user list; create. **Orphaned — no nav links into it** | delete or re-point at relay fan-out |
-| 3 | apps/web `/workspaces/[id]` web terminal (`page.tsx:77`) | only `id → hostId` routing | carry hostId in URL, or drop |
-| 4 | Automations (`automation.ts:83`, `dispatch.ts:104`) | verify workspace in org; derive `projectId`/`hostId` for relay routing | denormalize hostId/projectId onto automation row at create; or query host at dispatch |
-| 5 | `chat_sessions.v2WorkspaceId` FK (`schema.ts:683`) | valid FK target on insert (never read in cloud) | drop FK → plain uuid tag |
-| 6 | `v2Workspaces.taskId` (`setTask`, create/update) | write-only linkage, consumed on desktop via Electric | moves into host table; taskId = plain uuid → cloud task |
-| 7 | Authz: `list` joins `v2_users_hosts`; electric-proxy scopes shape by org only | org membership + per-user host scoping | host/relay must enforce; note Electric today is org-scoped only, host scoping is already client-side |
-| 8 | PostHog `workspace_created/deleted` (`v2-workspace.ts:256,611`) | analytics | capture from host-service instead |
-| 9 | host-service `is-main-workspace.ts:57` (cloud `getFromHost` for `type`) | is-main check before cleanup | reads local table once `type` is local |
-| 10 | MCP `workspaces_list`, CLI `--workspace`, SDK automation types | find workspace ids to pin automations | route through host fan-out or automation-create-time resolution |
+| Desktop renderer (Electric shape, ~25 `useLiveQuery` sites) | live org list | host fan-out hook |
+| apps/web `/workspaces` pages (orphaned, no nav links) | list/create; id→hostId | delete both |
+| Automations (`verifyWorkspaceInOrg`) | derive hostId/projectId for relay routing | denormalize at create |
+| `chat_sessions.v2WorkspaceId` FK | valid FK target (never read) | drop FK → uuid tag |
+| Authz (`list` joins `v2_users_hosts`; Electric scopes by org only) | org + per-user host scoping | relay already enforces both |
+| PostHog capture, is-main check, MCP/CLI/SDK list | analytics; cleanup guard; pin lookup | host-side (R3); local `type`; host fan-out |
 
 ## Decisions
 
 | # | Decision | Choice |
 |---|---|---|
-| 1 | Source of truth | **Host-service owns workspaces outright.** No cloud `v2_workspaces` usage remains; all querying moves to the host service. |
-| 2 | Cross-host visibility | **Each client fans out to hosts itself** (local host directly, remote via relay) and merges. Rationale: the client owns what it sees; a host-service serves only what it has. No aggregation layer means any client (desktop, mobile, web, CLI) can consume hosts the same way without depending on a host-service aggregator. *(Re-affirmed 2026-07-04 after briefly moving fan-out host-side; that revision is reverted.)* |
-| 3 | Automations | **Denormalize at create + host rejects stale pins.** Client sends `hostId`/`projectId` alongside a pinned `v2WorkspaceId`; cloud stores without validating (`verifyWorkspaceInOrg` deleted). Dispatch already routes off the denormalized `targetHostId` and never reads `v2_workspaces`; the host naturally 404s on unknown workspace ids at run time — same stale-pin semantics as today, but attributable. |
-| 4 | Renderer read path | **Renderer fan-out hook + IndexedDB cache, no TanStack collection.** Parallel per-host `workspace.list`, merged and live-updated by `workspace:changed`; remote hosts' last-seen lists persist to IndexedDB. Consumers migrate off `useLiveQuery(collections.v2Workspaces)`. See grounding below. *(Reversed twice 2026-07-04: local.db → host.db peer cache → fan-out.)* |
-| 5 | MCP / CLI / SDK | **No cloud list endpoint.** `v2Workspace.list` is deleted; external clients resolve connected hosts (from `v2_hosts`) and query each host directly over relay for its workspaces. |
-| 6 | apps/web pages | **Delete both** `/workspaces` pages (list+create and the web terminal). They are orphaned — nothing links to them. |
-| 7 | Host authorization | **Org membership only.** A host serves its workspace list to any caller whose JWT carries the host's organizationId — parity with today's Electric shape (which is org-scoped; `users_hosts` filtering was already client-side). No cloud lookup in the read path. |
-| 8 | Rollout | **Staged with read-through fallback; legacy cloud path lives until old clients are gone.** R1: host.db expands, backfill from cloud, dual-write. R2: desktop reads flip to fan-out; rows no host returned fall back to still-synced cloud rows. R3: cloud surface (dual-write, router, shape, pages, table) removed once telemetry shows old-client usage negligible — gate is adoption, not a date. |
+| 1 | Source of truth | Host-service owns workspaces outright; no cloud reads remain |
+| 2 | Cross-host visibility | Each client fans out to hosts itself (local direct, remote via relay) — client owns what it sees; a host serves only what it has; no aggregator, so mobile/web/CLI consume hosts the same way |
+| 3 | Automations | Denormalize `hostId`/`projectId` on the pin at create; host 404s stale pins at run time (same semantics as today — dispatch never read the table) |
+| 4 | Renderer read path | Fan-out hook + per-host IndexedDB last-seen cache; live `workspace:changed` events; no TanStack collection; nothing v1 touched |
+| 5 | MCP/CLI/SDK | Cloud list endpoint deleted; clients query hosts directly over relay |
+| 6 | apps/web pages | Delete both (orphaned) |
+| 7 | Host authorization | Org membership in the JWT — parity with today's Electric scoping; relay additionally enforces per-user host access |
+| 8 | Rollout | Staged R1→R3 with read-through fallback; legacy cloud path lives until old-client usage is negligible (adoption-gated, not dated) |
 
-### Decision 3 rationale (current-state walkthrough)
-
-- The only cloud read of `v2_workspaces` in the automation world is
-  `verifyWorkspaceInOrg` at automation create/update (`automation.ts:216-234`),
-  used to validate the pin and derive `targetHostId`/`v2ProjectId`.
-- Dispatch (`dispatch.ts:42`) never reads the workspace table: host resolution uses
-  `v2Hosts`/`v2_users_hosts`; a pinned `v2WorkspaceId` is used verbatim
-  (`dispatch.ts:104`); project-only automations mint a workspace on the host over
-  relay (`dispatch.ts:227`).
-- The stale-pin failure mode (workspace deleted after automation created) already
-  exists today and lands as `dispatch_failed` — cloud validation never protected
-  run time.
-
-### Decision 4 grounding (existing renderer patterns surveyed)
-
-- Per-host react-query tRPC exists (`packages/workspace-client`), **in-memory only** —
-  no host response survives restart today.
-- Fan-out template exists: sidebar ports hook
-  (`useDashboardSidebarPortsData.ts:65-102`) does per-host `useQueries` + WS event
-  cache patching + polling fallback.
-- `/events` bus has **no `workspace:*` lifecycle events** — must be added regardless
-  (`packages/host-service/src/events/types.ts`).
-- v1 proves IPC-tRPC subscriptions from a main-process SQLite work
-  (`AuthProvider.tsx:58`), and idb-keyval react-query persistence exists as precedent
-  (`ElectronTRPCProvider.tsx:31-84`).
-
-## Scope guard
-
-This effort is **v2-only**. The legacy v1 `workspaces` Neon table, its Electric
-shape/collection, `chat_sessions.workspaceId` (legacy column), and `packages/local-db`
-are all explicitly out of scope — they belong to the separate v1 sunset.
+Revisions: D2/D4 briefly moved fan-out into the host-service (`peer_workspaces` cache) on 2026-07-04 to stay v2-scoped; reverted the same day in the re-walkthrough — client-owned fan-out won.
 
 ## Forced moves (consequences, not decisions)
 
-- Host mints workspace UUIDs (cloud no longer generates ids).
-- `host.db.workspaces` gains `name`, `type`, `taskId`, `createdByUserId`,
-  `createdAt`/`updatedAt`; one-main-per-project partial unique index moves local.
-- `chat_sessions.v2WorkspaceId` FK drops to a plain uuid tag (never read cloud-side).
-- PostHog `workspace_created`/`workspace_deleted` capture moves to host-service.
-- Cleanup's is-main check (`is-main-workspace.ts:57`) reads the local table.
-- Delete UX confirms locally instead of `waitForWorkspaceDeleted` over Electric.
-- Main-workspace sweep / `ensure-main-workspace` become purely local.
-- Renderer rename path unifies through host-service (today it hits the cloud API
-  directly).
+Host mints UUIDs; host.db gains `name/type/taskId/createdByUserId/timestamps` + one-main-per-project index; `chat_sessions.v2WorkspaceId` FK becomes a plain uuid tag; delete confirms locally; main-workspace sweep and is-main check go local; renderer rename unifies through host-service.
+
+**Scope guard:** v2-only. Legacy v1 `workspaces` table/shape/collection and `packages/local-db` are untouched (separate sunset).

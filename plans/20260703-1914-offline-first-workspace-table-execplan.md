@@ -44,10 +44,12 @@ A workspace is a git worktree on one machine, but its canonical record lives in 
 - **No host-side JWT work needed** (D-auth): the relay verifies org membership + host access, then rewrites Authorization to the host PSK. `protectedProcedure` already covers local + relay callers.
 - **Name/taskId two-writer hazard**: renderer still writes cloud directly in R1, so the reconciler uses per-row last-write-wins by `updatedAt`; branch is always host-truth. Gone in R3.
 - **Destroy semantics changed**: local row delete is the commit point; cloud delete degrades to a warning + tombstone; a sqlite delete failure is now a hard error.
+- **PR review pass (2026-07-07)**: `host.ensure` memoized (was 2×/create + 1×/dirty row), backfill skips failing rows, relink re-keys in a transaction, `workspace.update` no-ops empty patches. Declined: SQLite CHECK on `type` (table rebuild; typed store guards), async `existsSync` (µs at real counts).
 
 ## Deferrals / open
 
 - PostHog capture stays cloud-side until R3 (dual-write avoids double-counting).
+- **Drop the remote-host IndexedDB cache?** (saddlepaddle, PR review) — ~40 lines; without it, offline machines' workspaces vanish from the sidebar instead of showing last-seen. Kiet to call it.
 - SDK `workspaces.list` stays cloud-backed until R3 (changing it breaks the public return type).
 - Manual MCP `workspaces_list` drill against a live host still to run.
 - **No true Wi-Fi-off cold-boot test yet** — process-kill drills can't exercise `navigator.onLine`. Do before R2 ships broadly.
