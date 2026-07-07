@@ -353,7 +353,7 @@ describe("startWorkspaceCloudSync", () => {
 	});
 
 	test("keeps tombstones when the cloud delete fails", async () => {
-		const { ctx, db } = makeSyncCtx({ deleteThrows: true });
+		const { ctx, db, api } = makeSyncCtx({ deleteThrows: true });
 		const tombstoneId = randomUUID();
 		db.insert(workspaceCloudDeletes)
 			.values({ id: tombstoneId, queuedAt: Date.now() })
@@ -365,6 +365,7 @@ describe("startWorkspaceCloudSync", () => {
 		} finally {
 			sync.stop();
 		}
+		expect(api.del).toHaveBeenCalledWith({ id: tombstoneId });
 		expect(db.select().from(workspaceCloudDeletes).all()).toHaveLength(1);
 	});
 });

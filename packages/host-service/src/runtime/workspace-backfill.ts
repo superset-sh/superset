@@ -48,11 +48,13 @@ export async function runWorkspaceBackfill(
 				id: row.id,
 			});
 		} catch (err) {
+			// Skip rather than abort: one row with a persistent cloud error must
+			// not starve the rest of the sweep. Unfilled rows retry next boot.
 			console.warn(
-				"[workspace-backfill] cloud unreachable; retrying next boot",
+				"[workspace-backfill] cloud lookup failed; retrying next boot",
 				{ workspaceId: row.id, err },
 			);
-			return;
+			continue;
 		}
 
 		if (!cloud) {

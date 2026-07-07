@@ -187,7 +187,15 @@ export async function applyAiWorkspaceRename(
 		workspaceId,
 		patch,
 	);
-	if (!updated) return;
+	if (!updated) {
+		// The git branch may already be renamed at this point; make the
+		// row-vs-git divergence observable instead of failing silently.
+		console.warn(
+			"[applyAiWorkspaceRename] workspace row missing after git rename",
+			{ workspaceId, patch },
+		);
+		return;
+	}
 
 	try {
 		await ctx.api.v2Workspace.updateNameFromHost.mutate({

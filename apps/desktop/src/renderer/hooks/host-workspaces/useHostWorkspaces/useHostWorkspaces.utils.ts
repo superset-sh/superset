@@ -106,7 +106,9 @@ function snapshotKey(organizationId: string, machineId: string): string {
 /**
  * Last-seen per-host snapshots in IndexedDB. Dates survive the structured
  * clone, so rows round-trip as-is. Only affects offline visibility of
- * remote hosts — the local host answers live even offline.
+ * remote hosts — the local host answers live even offline. Persistence
+ * failures are deliberately swallowed: the snapshot is a best-effort cache
+ * and every failure mode degrades to "fetch live next time".
  */
 export async function loadHostWorkspacesSnapshot(
 	organizationId: string,

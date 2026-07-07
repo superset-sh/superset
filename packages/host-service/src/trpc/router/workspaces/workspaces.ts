@@ -12,7 +12,10 @@ import {
 	resolveRef,
 	resolveUpstream,
 } from "../../../runtime/git/refs";
-import { pushWorkspaceCreateToCloud } from "../../../runtime/workspace-cloud-sync";
+import {
+	ensureHostRegistered,
+	pushWorkspaceCreateToCloud,
+} from "../../../runtime/workspace-cloud-sync";
 import type { HostServiceContext } from "../../../types";
 import {
 	getLocalWorkspace,
@@ -421,23 +424,14 @@ async function recordBaseBranchConfig(args: {
 
 /**
  * Kicks off `host.ensure` so the cloud round-trip overlaps with the
- * git work in `workspaces.create`. Returned promise is awaited inside
- * `registerCloudAndLocal` once we actually need the hostId.
- *
- * `host.ensure` is idempotent — fine to start it before we know
- * whether we'll end up creating a workspace at all (e.g. the
- * idempotency short-circuit returns early). Worst case is one wasted
- * cloud call, no observable side effect.
+ * git work in `workspaces.create`. Shares the sync module's cached
+ * registration, so the later `pushWorkspaceCreateToCloud` reuses this
+ * result instead of re-registering.
  */
-async function startHostEnsure(
+function startHostEnsure(
 	ctx: HostServiceContext,
 ): Promise<{ machineId: string }> {
-	const { getHostId, getHostName } = await import("@superset/shared/host-info");
-	return ctx.api.host.ensure.mutate({
-		organizationId: ctx.organizationId,
-		machineId: getHostId(),
-		name: getHostName(),
-	});
+	return ensureHostRegistered(ctx);
 }
 
 /**

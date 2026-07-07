@@ -24,6 +24,45 @@ export type CloudCreateResult = Awaited<
 	ReturnType<ApiClient["v2Workspace"]["create"]["mutate"]>
 >;
 
+const HOST_ENSURE_TTL_MS = 60_000;
+interface HostEnsureCacheEntry {
+	at: number;
+	promise: Promise<{ machineId: string }>;
+}
+// Keyed on the ApiClient instance (prod has exactly one per process) so
+// test harnesses with fresh fake clients never share a stale entry.
+const hostEnsureCache = new WeakMap<ApiClient, HostEnsureCacheEntry>();
+
+/**
+ * `host.ensure` is idempotent registration; every create/reconcile push
+ * needs the machineId but re-registering per call is wasted round-trips
+ * (the reconciler would otherwise call it once per dirty row). Cache the
+ * in-flight/recent promise; failures evict so retries re-register.
+ */
+export function ensureHostRegistered(
+	ctx: Pick<WorkspaceCloudSyncContext, "api" | "organizationId">,
+): Promise<{ machineId: string }> {
+	const now = Date.now();
+	const cached = hostEnsureCache.get(ctx.api);
+	if (cached && now - cached.at < HOST_ENSURE_TTL_MS) {
+		return cached.promise;
+	}
+	const promise = ctx.api.host.ensure
+		.mutate({
+			organizationId: ctx.organizationId,
+			machineId: getHostId(),
+			name: getHostName(),
+		})
+		.catch((err: unknown) => {
+			if (hostEnsureCache.get(ctx.api)?.promise === promise) {
+				hostEnsureCache.delete(ctx.api);
+			}
+			throw err;
+		});
+	hostEnsureCache.set(ctx.api, { at: now, promise });
+	return promise;
+}
+
 /**
  * Best-effort push of a local workspace row to the cloud mirror. Returns the
  * cloud row (with txid) on success, null when the cloud is unreachable or
@@ -38,11 +77,7 @@ export async function pushWorkspaceCreateToCloud(
 	row: HostWorkspaceRow,
 ): Promise<CloudCreateResult | null> {
 	try {
-		const host = await ctx.api.host.ensure.mutate({
-			organizationId: ctx.organizationId,
-			machineId: getHostId(),
-			name: getHostName(),
-		});
+		const host = await ensureHostRegistered(ctx);
 		const cloudRow = await ctx.api.v2Workspace.create.mutate({
 			organizationId: ctx.organizationId,
 			projectId: row.projectId,

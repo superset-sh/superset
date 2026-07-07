@@ -67,6 +67,18 @@ export const workspaceRouter = router({
 			if (input.name !== undefined) patch.name = input.name;
 			if (input.branch !== undefined) patch.branch = input.branch;
 			if (input.taskId !== undefined) patch.taskId = input.taskId;
+			if (Object.keys(patch).length === 0) {
+				const current = ctx.db.query.workspaces
+					.findFirst({ where: eq(workspaces.id, input.id) })
+					.sync();
+				if (!current) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Workspace not found",
+					});
+				}
+				return toCloudShape(current, ctx.organizationId);
+			}
 			const updated = updateLocalWorkspace(
 				{ db: ctx.db, eventBus: ctx.eventBus },
 				input.id,

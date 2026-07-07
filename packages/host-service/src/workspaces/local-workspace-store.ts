@@ -84,6 +84,7 @@ export interface InsertLocalWorkspaceValues {
 	name: string;
 	type?: "main" | "worktree";
 	taskId?: string | null;
+	createdByUserId?: string | null;
 }
 
 /**
@@ -107,6 +108,7 @@ export function insertLocalWorkspace(
 			name: values.name,
 			type: values.type ?? "worktree",
 			taskId: values.taskId ?? null,
+			createdByUserId: values.createdByUserId ?? null,
 			createdAt: now,
 			updatedAt: now,
 			cloudSyncedAt: null,
@@ -231,16 +233,37 @@ export function relinkLocalWorkspaceId(
 		deleteLocalWorkspace(ctx, oldId, { queueCloudDelete: false });
 		return target;
 	}
-	deleteLocalWorkspace(ctx, oldId, { queueCloudDelete: false });
-	return insertLocalWorkspace(ctx, {
-		id: newId,
-		projectId: existing.projectId,
-		worktreePath: existing.worktreePath,
-		branch: existing.branch,
-		name: existing.name || existing.branch,
-		type: existing.type,
-		taskId: existing.taskId,
+	// Atomic re-key: a crash between delete and insert must not lose the
+	// only record of the workspace. Events broadcast after commit.
+	const now = Date.now();
+	ctx.db.transaction((tx) => {
+		tx.delete(workspaces).where(eq(workspaces.id, oldId)).run();
+		tx.insert(workspaces)
+			.values({
+				id: newId,
+				projectId: existing.projectId,
+				worktreePath: existing.worktreePath,
+				branch: existing.branch,
+				name: existing.name || existing.branch,
+				type: existing.type,
+				taskId: existing.taskId,
+				createdByUserId: existing.createdByUserId,
+				createdAt: now,
+				updatedAt: now,
+				cloudSyncedAt: null,
+			})
+			.run();
 	});
+	ctx.eventBus.broadcastWorkspaceChanged({
+		workspaceId: oldId,
+		eventType: "deleted",
+		workspace: null,
+		occurredAt: Date.now(),
+	});
+	const row = getLocalWorkspace(ctx.db, newId);
+	if (!row) throw new Error(`Workspace relink readback failed: ${newId}`);
+	emitWorkspaceChanged(ctx.eventBus, "created", row);
+	return row;
 }
 
 function emitWorkspaceChanged(

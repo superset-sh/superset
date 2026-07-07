@@ -112,7 +112,12 @@ export async function resolveWorkspacePin(
 		return pin;
 	}
 
-	const { workspaces } = await listHostWorkspaces(ctx);
+	// A known targetHostId narrows the lookup to that host instead of
+	// fanning out to every online host.
+	const { workspaces } = await listHostWorkspaces(
+		ctx,
+		input.targetHostId ?? undefined,
+	);
 	const workspace = workspaces.find((row) => row.id === input.v2WorkspaceId);
 	if (!workspace) return pin;
 	return {
