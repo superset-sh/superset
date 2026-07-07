@@ -84,6 +84,10 @@ export async function loadLanguageSupport(
 			const { go } = await import("@codemirror/lang-go");
 			return go();
 		}
+		case "elixir": {
+			const { elixir } = await import("codemirror-lang-elixir");
+			return elixir();
+		}
 		case "shell":
 			return loadLegacyLanguage(
 				() => import("@codemirror/legacy-modes/mode/shell"),

@@ -47,6 +47,8 @@ export function detectLanguage(filePath: string): string {
 		java: "java",
 		kt: "kotlin",
 		swift: "swift",
+		ex: "elixir",
+		exs: "elixir",
 		c: "c",
 		cpp: "cpp",
 		h: "c",

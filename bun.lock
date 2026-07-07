@@ -111,7 +111,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.13.0",
+      "version": "1.13.1",
       "dependencies": {
         "@ai-sdk/anthropic": "3.0.64",
         "@ai-sdk/openai": "3.0.36",
@@ -243,6 +243,7 @@
         "bindings": "1.5.0",
         "bufferutil": "4.1.0",
         "clsx": "2.1.1",
+        "codemirror-lang-elixir": "^4.0.1",
         "culori": "4.0.2",
         "date-fns": "4.1.0",
         "default-shell": "2.2.0",
@@ -789,7 +790,7 @@
     },
     "packages/host-service": {
       "name": "@superset/host-service",
-      "version": "0.8.23",
+      "version": "0.8.24",
       "dependencies": {
         "@hono/node-server": "1.19.13",
         "@hono/node-ws": "1.3.0",
@@ -3736,6 +3737,8 @@
 
     "code-inspector-plugin": ["code-inspector-plugin@1.4.5", "", { "dependencies": { "@code-inspector/core": "1.4.5", "@code-inspector/esbuild": "1.4.5", "@code-inspector/mako": "1.4.5", "@code-inspector/turbopack": "1.4.5", "@code-inspector/vite": "1.4.5", "@code-inspector/webpack": "1.4.5", "chalk": "4.1.1" } }, "sha512-yp3zHd5AZhtVoBNOzKQuJVo1wZe7AIO2vAiVhF8WIAK02IwM9+gY+Pr9deajx+XyJLbzMW+3CgdfLIh+xxW2Hg=="],
 
+    "codemirror-lang-elixir": ["codemirror-lang-elixir@4.0.1", "", { "dependencies": { "@codemirror/language": "^6.0.0", "lezer-elixir": "^1.0.0" } }, "sha512-z6W/XB4b7TZrp9EZYBGVq93vQfvKbff+1iM8YZaVErL0dguBAeLmVRlEv1NuDZHOP1qjJ3NwyibkUkNWn7q9VQ=="],
+
     "collapse-white-space": ["collapse-white-space@2.1.0", "", {}, "sha512-loKTxY1zCOuG4j9f6EPnuyyYkf58RnhhWTvRoZEokgB+WbdXehfjFviyOVYkqzEWz1Q5kRiZdBYS5SwxbQYwzw=="],
 
     "color": ["color@4.2.3", "", { "dependencies": { "color-convert": "^2.0.1", "color-string": "^1.9.0" } }, "sha512-1rXeuUUiGGrykh+CeBdu5Ie7OJwinCgQY0bc7GCRxy5xVHy+moaqkpL/jqQq0MtQOeYcrqEz4abc5f0KtU7W4A=="],
@@ -4789,6 +4792,8 @@
     "leac": ["leac@0.6.0", "", {}, "sha512-y+SqErxb8h7nE/fiEX07jsbuhrpO9lL8eca7/Y1nuWV2moNlXhyd59iDGcRf6moVyDMbmTNzL40SUyrFU/yDpg=="],
 
     "leven": ["leven@3.1.0", "", {}, "sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A=="],
+
+    "lezer-elixir": ["lezer-elixir@1.1.3", "", { "dependencies": { "@lezer/highlight": "^1.2.0", "@lezer/lr": "^1.3.0" } }, "sha512-Ymc58/WhxdZS9yEOlnKbF3rdeBdFcPm4OEm26KMqA1Za9vztXi7I5qwGw1KxYmm3Nv0iDHq//EQyBwSEzKG9Mg=="],
 
     "libsql": ["libsql@0.5.22", "", { "dependencies": { "@neon-rs/load": "^0.0.4", "detect-libc": "2.0.2" }, "optionalDependencies": { "@libsql/darwin-arm64": "0.5.22", "@libsql/darwin-x64": "0.5.22", "@libsql/linux-arm-gnueabihf": "0.5.22", "@libsql/linux-arm-musleabihf": "0.5.22", "@libsql/linux-arm64-gnu": "0.5.22", "@libsql/linux-arm64-musl": "0.5.22", "@libsql/linux-x64-gnu": "0.5.22", "@libsql/linux-x64-musl": "0.5.22", "@libsql/win32-x64-msvc": "0.5.22" }, "os": [ "linux", "win32", "darwin", ], "cpu": [ "arm", "x64", "arm64", ] }, "sha512-NscWthMQt7fpU8lqd7LXMvT9pi+KhhmTHAJWUB/Lj6MWa0MKFv0F2V4C6WKKpjCVZl0VwcDz4nOI3CyaT1DDiA=="],
 
