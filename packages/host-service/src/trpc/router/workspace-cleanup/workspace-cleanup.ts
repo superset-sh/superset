@@ -37,6 +37,8 @@ export interface DestroyWorkspaceInput {
 	workspaceId: string;
 	deleteBranch: boolean;
 	force: boolean;
+	/** Skip the teardown script (retry-after-teardown-failure only). */
+	skipTeardown?: boolean;
 }
 
 /**
@@ -142,13 +144,18 @@ export const workspaceCleanupRouter = router({
 	 * while the path still exists, the cloud row remains so the workspace is
 	 * still visible and delete can be retried instead of orphaning disk state.
 	 *
-	 * Force semantics:
+	 * Force semantics ("delete despite dirty files" — NOT "skip teardown"):
 	 *   - skips preflight (step 0)
-	 *   - skips teardown  (step 1)
+	 *   - teardown (step 1) still runs; a failure becomes a warning
+	 *     instead of blocking
 	 *   - step 2b always uses `--force --force`
 	 *   - step 4 always uses `-D` regardless: the `deleteBranch`
 	 *     checkbox is the user's consent, so refusing unmerged branches
 	 *     would just silently drop the opt-in.
+	 *
+	 * Skip-teardown semantics: `skipTeardown` bypasses step 1 entirely.
+	 * Reserved for the retry after a teardown failure, where re-running
+	 * the script would just fail (or time out) again.
 	 *
 	 * Typed errors for the renderer:
 	 *   - CONFLICT             → dirty worktree; prompt force-retry.
@@ -168,6 +175,7 @@ export const workspaceCleanupRouter = router({
 				workspaceId: z.string(),
 				deleteBranch: z.boolean().default(false),
 				force: z.boolean().default(false),
+				skipTeardown: z.boolean().default(false),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => destroyWorkspace(ctx, input)),
@@ -237,29 +245,44 @@ async function runDestroy(
 
 	// ─── Step 1: Teardown ──────────────────────────────────────────
 	// Script is the user's last chance to stop services / flush state
-	// before the workspace goes away. Failure here is recoverable
-	// via force-retry, which skips this step.
-	if (!input.force && local && project) {
+	// before the workspace goes away. Failure here is recoverable via
+	// retry with `skipTeardown` (the TeardownFailedPane's "Delete
+	// anyway"), which is the only thing that skips this step. `force`
+	// still runs teardown — it means "delete despite dirty files", so a
+	// failure is downgraded to a warning instead of blocking.
+	let teardownStatus: "ok" | "skipped" | "failed" | "not-run" = "not-run";
+	if (!input.skipTeardown && local && project) {
 		const teardown: TeardownResult = await runTeardown({
 			db: ctx.db,
 			workspaceId: input.workspaceId,
 			worktreePath: local.worktreePath,
+			repoPath: project.repoPath,
+			projectId: project.id,
 		});
+		teardownStatus = teardown.status;
 		if (teardown.status === "failed") {
-			const cause: TeardownFailureCause = {
-				kind: "TEARDOWN_FAILED",
-				exitCode: teardown.exitCode,
-				signal: teardown.signal,
-				timedOut: teardown.timedOut,
-				outputTail: teardown.outputTail,
-			};
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Teardown script failed",
-				cause,
-			});
+			if (!input.force) {
+				const cause: TeardownFailureCause = {
+					kind: "TEARDOWN_FAILED",
+					exitCode: teardown.exitCode,
+					signal: teardown.signal,
+					timedOut: teardown.timedOut,
+					outputTail: teardown.outputTail,
+				};
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Teardown script failed",
+					cause,
+				});
+			}
+			warnings.push(
+				`Teardown script failed (exit ${teardown.exitCode ?? "?"}); continued because force was set`,
+			);
 		}
 	}
+	console.log(
+		`[workspaceCleanup.destroy] teardown ${teardownStatus} for ${input.workspaceId} (force=${input.force}, skipTeardown=${input.skipTeardown ?? false})`,
+	);
 
 	// ─── Step 2: Local cleanup ─────────────────────────────────────
 	// 2a. PTYs
@@ -413,6 +436,7 @@ async function runDestroy(
 		cloudDeleted: true,
 		worktreeRemoved,
 		branchDeleted,
+		teardownStatus,
 		warnings,
 	};
 }

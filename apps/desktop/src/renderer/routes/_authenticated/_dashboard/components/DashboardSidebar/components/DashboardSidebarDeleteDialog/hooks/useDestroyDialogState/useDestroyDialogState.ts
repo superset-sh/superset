@@ -96,7 +96,13 @@ export function useDestroyDialogState({
 	);
 
 	const run = useCallback(
-		async (force: boolean) => {
+		async ({
+			force,
+			skipTeardown = false,
+		}: {
+			force: boolean;
+			skipTeardown?: boolean;
+		}) => {
 			if (inFlight.current) return;
 			inFlight.current = true;
 			let keepDeleting = false;
@@ -112,17 +118,18 @@ export function useDestroyDialogState({
 			try {
 				let result: DestroyWorkspaceSuccess;
 				try {
-					result = await destroy({ deleteBranch, force });
+					result = await destroy({ deleteBranch, force, skipTeardown });
 				} catch (firstErr) {
 					const e = firstErr as DestroyWorkspaceError;
 					// Silent force-retry on the dirty-worktree race: preflight said
 					// clean but the worktree was dirty by destroy time. The user
 					// already confirmed once — don't bounce them back through a
-					// second warning. Do NOT extend this to `in-progress` (that's
-					// a different CONFLICT cause; retrying just races the same
-					// guard).
+					// second warning. Teardown still runs on the retry (the dirty
+					// conflict fires before teardown does). Do NOT extend this to
+					// `in-progress` (that's a different CONFLICT cause; retrying
+					// just races the same guard).
 					if (e.kind === "conflict" && !force) {
-						result = await destroy({ deleteBranch, force: true });
+						result = await destroy({ deleteBranch, force: true, skipTeardown });
 					} else {
 						throw firstErr;
 					}

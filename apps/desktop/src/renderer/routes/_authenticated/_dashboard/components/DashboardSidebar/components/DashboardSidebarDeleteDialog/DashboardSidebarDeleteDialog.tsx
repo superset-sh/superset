@@ -48,7 +48,7 @@ export function DashboardSidebarDeleteDialog({
 				open={open}
 				onOpenChange={handleOpenChange}
 				cause={error.cause}
-				onForceDelete={() => run(true)}
+				onForceDelete={() => run({ force: true, skipTeardown: true })}
 			/>
 		);
 	}
@@ -67,7 +67,7 @@ export function DashboardSidebarDeleteDialog({
 			hasUnpushedCommits={hasUnpushedCommits}
 			canConfirm={canConfirm}
 			blockingReason={blockingReason}
-			onConfirm={() => run(hasWarnings)}
+			onConfirm={() => run({ force: hasWarnings })}
 			confirmLabel={confirmLabel}
 		/>
 	);

@@ -14,6 +14,8 @@ import {
 export interface DestroyWorkspaceInput {
 	deleteBranch?: boolean;
 	force?: boolean;
+	/** Skip the teardown script — retry-after-teardown-failure only. */
+	skipTeardown?: boolean;
 }
 
 export interface DestroyWorkspaceSuccess {
@@ -21,6 +23,7 @@ export interface DestroyWorkspaceSuccess {
 	worktreeRemoved: boolean;
 	branchDeleted: boolean;
 	cloudDeleted: boolean;
+	teardownStatus: "ok" | "skipped" | "failed" | "not-run";
 	warnings: string[];
 }
 
@@ -95,6 +98,7 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 					workspaceId,
 					deleteBranch: input.deleteBranch ?? false,
 					force: input.force ?? false,
+					skipTeardown: input.skipTeardown ?? false,
 				});
 			} catch (err) {
 				throw normalizeError(err);

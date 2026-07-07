@@ -7,6 +7,7 @@ import {
 	createTerminalSessionInternal,
 	disposeSession,
 } from "../../terminal/terminal";
+import { getResolvedTeardownCommands, loadSetupConfig } from "../setup/config";
 
 export { TEARDOWN_TIMEOUT_MS };
 
@@ -31,7 +32,45 @@ interface RunTeardownOptions {
 	db: HostDb;
 	workspaceId: string;
 	worktreePath: string;
+	repoPath: string;
+	projectId: string;
 	timeoutMs?: number;
+	/** Override $HOME for tests (forwarded to `loadSetupConfig`). */
+	homeDir?: string;
+}
+
+/**
+ * Resolve what teardown should execute, mirroring setup's source order
+ * (`resolveInitialCommand` in workspace-creation/shared/setup-terminal.ts):
+ *
+ *   1. `teardown` commands from `.superset/config.json` (+ user override and
+ *      `config.local.json` overlay) — joined with ` && `.
+ *   2. `<worktreePath>/.superset/teardown.sh`
+ *   3. `<repoPath>/.superset/teardown.sh` — the main repo is authoritative;
+ *      worktrees skip gitignored files.
+ *
+ * Returns null when nothing is configured.
+ */
+export function resolveTeardownCommand(args: {
+	repoPath: string;
+	worktreePath: string;
+	projectId: string;
+	homeDir?: string;
+}): string | null {
+	const config = loadSetupConfig(args);
+	const commands = getResolvedTeardownCommands(config);
+	if (commands.length > 0) {
+		return buildTeardownCommandString(commands.join(" && "));
+	}
+
+	for (const root of [args.worktreePath, args.repoPath]) {
+		const scriptPath = join(root, TEARDOWN_SCRIPT_REL_PATH);
+		if (existsSync(scriptPath)) {
+			return buildTeardownInitialCommand(scriptPath);
+		}
+	}
+
+	return null;
 }
 
 /**
@@ -47,13 +86,25 @@ export async function runTeardown({
 	db,
 	workspaceId,
 	worktreePath,
+	repoPath,
+	projectId,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
+	homeDir,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const scriptPath = join(worktreePath, TEARDOWN_SCRIPT_REL_PATH);
-	if (!existsSync(scriptPath)) return { status: "skipped" };
+	const initialCommand = resolveTeardownCommand({
+		repoPath,
+		worktreePath,
+		projectId,
+		homeDir,
+	});
+	if (!initialCommand) {
+		console.log(
+			`[teardown] Nothing to run for workspace ${workspaceId}: no teardown commands in config and no ${TEARDOWN_SCRIPT_REL_PATH} in ${worktreePath} or ${repoPath}`,
+		);
+		return { status: "skipped" };
+	}
 
 	const terminalId = randomUUID();
-	const initialCommand = buildTeardownInitialCommand(scriptPath);
 
 	const session = await createTerminalSessionInternal({
 		terminalId,
@@ -142,6 +193,11 @@ export function buildTeardownInitialCommand(scriptPath: string): string {
 	// avoids shell-specific exit-status syntax like `$?`, which breaks in fish
 	// and leaves the hidden teardown terminal open until timeout.
 	return `exec bash ${singleQuote(scriptPath)}`;
+}
+
+/** Same `exec bash` trick as above, for config-declared command strings. */
+export function buildTeardownCommandString(command: string): string {
+	return `exec bash -c ${singleQuote(command)}`;
 }
 
 /** POSIX single-quote escape: safe for any byte sequence in a path. */
