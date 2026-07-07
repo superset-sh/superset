@@ -160,6 +160,15 @@ export const createBrowserRouter = () => {
 				});
 			}),
 
+		// Renderer-registered canonical chords the main process should suppress in
+		// the focused guest and forward for replay (override/layout-aware).
+		setForwardableChords: publicProcedure
+			.input(z.object({ chords: z.array(z.string()) }))
+			.mutation(({ input }) => {
+				browserManager.setForwardableChords(input.chords);
+				return { success: true };
+			}),
+
 		// Keystrokes intercepted from the focused guest webview, replayed by the
 		// renderer into its hotkey system (guest focus hides them from the host).
 		onKeyForward: publicProcedure

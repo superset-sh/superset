@@ -1,17 +1,27 @@
 import type { RendererContext } from "@superset/panes";
 import { useCallback, useEffect, useRef } from "react";
-import { type HotkeyId, resolveHotkeyFromEvent } from "renderer/hotkeys";
+import {
+	getDispatchChord,
+	type HotkeyId,
+	resolveHotkeyFromEvent,
+	useHotkeyOverridesStore,
+	useKeyboardPreferencesStore,
+} from "renderer/hotkeys";
+import { useKeyboardLayoutStore } from "renderer/hotkeys/stores/keyboardLayoutStore";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type {
 	BrowserPaneData,
 	PaneViewerData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { canonicalizeChord } from "shared/hotkey-chord";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { DEFAULT_BROWSER_URL } from "../../constants";
 
 // Hotkeys the browser pane replays onto the host document when the guest
 // webview forwards a keystroke. Scoped to tab switching: these have no menu
-// accelerator (so replaying can't double-fire) and aren't page shortcuts.
+// accelerator (so replaying can't double-fire) and aren't page shortcuts. The
+// main process is told these chords (override/layout-aware) so it suppresses +
+// forwards only them — see the forwardable-chord sync below.
 const FORWARDABLE_HOTKEYS = new Set<HotkeyId>([
 	"PREV_TAB",
 	"NEXT_TAB",
@@ -152,6 +162,31 @@ export function usePersistentWebview({
 			keyForwardSub.unsubscribe();
 		};
 	}, [paneId]);
+
+	// Keep the main process's forwardable-chord set in sync with the current
+	// (override/layout-aware) bindings so it suppresses + forwards exactly the
+	// tab-switch chords the renderer will replay. Recomputes on remap / layout
+	// change — the same triggers `resolveHotkeyFromEvent`'s index rebuilds on.
+	useEffect(() => {
+		const push = () => {
+			const chords = [...FORWARDABLE_HOTKEYS]
+				.map((id) => getDispatchChord(id))
+				.filter((chord): chord is string => chord !== null)
+				.map(canonicalizeChord);
+			electronTrpcClient.browser.setForwardableChords
+				.mutate({ chords })
+				.catch(() => {});
+		};
+		push();
+		const unsubs = [
+			useHotkeyOverridesStore.subscribe(push),
+			useKeyboardLayoutStore.subscribe(push),
+			useKeyboardPreferencesStore.subscribe(push),
+		];
+		return () => {
+			for (const unsub of unsubs) unsub();
+		};
+	}, []);
 
 	const goBack = useCallback(() => {
 		browserRuntimeRegistry.goBack(paneId);
