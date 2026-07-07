@@ -7,6 +7,7 @@ import {
 	createTerminalSessionInternal,
 	disposeSession,
 } from "../../terminal/terminal";
+import { getResolvedTeardownCommands, loadSetupConfig } from "../setup/config";
 
 export { TEARDOWN_TIMEOUT_MS };
 
@@ -30,15 +31,25 @@ export type TeardownResult =
 interface RunTeardownOptions {
 	db: HostDb;
 	workspaceId: string;
+	/** Main repo path — source of truth for `.superset/config.json`. */
+	repoPath: string;
+	projectId: string;
 	worktreePath: string;
 	timeoutMs?: number;
+	/** Override $HOME for tests. */
+	homeDir?: string;
 }
 
 /**
- * Runs `.superset/teardown.sh` inside the workspace, reusing the same
- * terminal primitive v2 uses for interactive sessions. This gives the
- * script full environment parity with the user's terminals (login shell
- * rcfiles, PATH, nvm/rbenv, etc.), matching how setup.sh runs.
+ * Runs the workspace's teardown, reusing the same terminal primitive v2 uses
+ * for interactive sessions. This gives the commands full environment parity
+ * with the user's terminals (login shell rcfiles, PATH, nvm/rbenv, etc.),
+ * matching how setup runs.
+ *
+ * Source order mirrors setup (see `setup-terminal.ts`):
+ *   1. Resolved `teardown` array from `.superset/config.json` (+ user override
+ *      and `config.local.json` overlay), joined with ` && `.
+ *   2. Fallback: `<worktree>/.superset/teardown.sh` if present.
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
@@ -46,14 +57,21 @@ interface RunTeardownOptions {
 export async function runTeardown({
 	db,
 	workspaceId,
+	repoPath,
+	projectId,
 	worktreePath,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
+	homeDir,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const scriptPath = join(worktreePath, TEARDOWN_SCRIPT_REL_PATH);
-	if (!existsSync(scriptPath)) return { status: "skipped" };
+	const initialCommand = resolveTeardownCommand({
+		repoPath,
+		projectId,
+		worktreePath,
+		homeDir,
+	});
+	if (!initialCommand) return { status: "skipped" };
 
 	const terminalId = randomUUID();
-	const initialCommand = buildTeardownInitialCommand(scriptPath);
 
 	const session = await createTerminalSessionInternal({
 		terminalId,
@@ -135,6 +153,38 @@ export async function runTeardown({
 		}, timeoutMs);
 		timer.unref();
 	});
+}
+
+/**
+ * Resolve the command run by the teardown terminal, or null if nothing is
+ * configured. Exported for tests. Mirrors setup's `resolveInitialCommand`:
+ * configured `teardown` commands win, else the worktree `teardown.sh` script.
+ */
+export function resolveTeardownCommand(args: {
+	repoPath: string;
+	projectId: string;
+	worktreePath: string;
+	/** Override $HOME for tests. */
+	homeDir?: string;
+}): string | null {
+	const config = loadSetupConfig({
+		repoPath: args.repoPath,
+		projectId: args.projectId,
+		homeDir: args.homeDir,
+	});
+	const commands = getResolvedTeardownCommands(config);
+	if (commands.length > 0) {
+		// `exec bash -c` replaces the login shell (see below) and `&&` short-
+		// circuits so a failing earlier command surfaces a non-zero exit.
+		return `exec bash -c ${singleQuote(commands.join(" && "))}`;
+	}
+
+	const fallbackScript = join(args.worktreePath, TEARDOWN_SCRIPT_REL_PATH);
+	if (existsSync(fallbackScript)) {
+		return buildTeardownInitialCommand(fallbackScript);
+	}
+
+	return null;
 }
 
 export function buildTeardownInitialCommand(scriptPath: string): string {
