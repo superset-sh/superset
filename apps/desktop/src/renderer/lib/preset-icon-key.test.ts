@@ -31,6 +31,32 @@ describe("resolveV2PresetIconKey", () => {
 		).toBe("claude");
 	});
 
+	it("prefers linked host-agent icon overrides", () => {
+		expect(
+			resolveV2PresetIconKey({ agentId: "custom-config" }, [
+				createAgent({
+					id: "custom-config",
+					presetId: "custom",
+					iconId: "codex",
+				}),
+			]),
+		).toBe("codex");
+	});
+
+	it("resolves linked host-agent uploaded image icons", () => {
+		const dataUri = "data:image/png;base64,abc123";
+
+		expect(
+			resolveV2PresetIconKey({ agentId: "custom-config" }, [
+				createAgent({
+					id: "custom-config",
+					presetId: "custom",
+					iconId: dataUri,
+				}),
+			]),
+		).toBe(dataUri);
+	});
+
 	it("keeps supporting legacy rows whose agentId is already a preset id", () => {
 		expect(resolveV2PresetIconKey({ agentId: "codex" }, [])).toBe("codex");
 	});
@@ -56,6 +82,24 @@ describe("resolveV2PresetIconKey", () => {
 				[],
 			),
 		).toBe("cursor-agent");
+	});
+
+	it("prefers matching agent icon overrides when inferring from commands", () => {
+		expect(
+			resolveV2PresetIconKey(
+				{
+					commands: ["custom-agent"],
+				},
+				[
+					createAgent({
+						id: "custom-config",
+						presetId: "custom",
+						iconId: "claude",
+						command: "custom-agent",
+					}),
+				],
+			),
+		).toBe("claude");
 	});
 
 	it("does not infer from editable preset names", () => {
