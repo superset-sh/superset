@@ -76,7 +76,7 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 		[collections],
 	);
 
-	const { data: cloudRows = [], isReady: cloudReady } = useLiveQuery(
+	const { data: cloudRows = [] } = useLiveQuery(
 		(q) => q.from({ workspaces: collections.v2Workspaces }),
 		[collections],
 	);
@@ -214,15 +214,18 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 		[targets, queries, snapshots, cloudRows],
 	);
 
-	const isReady =
-		cloudReady &&
-		queries.every(
-			(query, index) =>
-				query.isSuccess ||
-				query.isError ||
-				targets[index]?.hostUrl === null ||
-				snapshots.has(targets[index]?.machineId ?? ""),
-		);
+	// Readiness reflects host-query settlement only. The Electric collection
+	// is a fallback merge, NOT a gate: an Electric collection can stay
+	// !isReady indefinitely on an offline cold start (it serves persisted
+	// rows without reaching ready), so gating on cloudReady would hang the
+	// empty state forever for a genuinely-empty local host while offline.
+	const isReady = queries.every(
+		(query, index) =>
+			query.isSuccess ||
+			query.isError ||
+			targets[index]?.hostUrl === null ||
+			snapshots.has(targets[index]?.machineId ?? ""),
+	);
 
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
 		const targetFor = (hostId: string) =>

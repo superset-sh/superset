@@ -108,13 +108,30 @@ export async function ensureMainWorkspaceStrict(
 		return { id: existing.id };
 	}
 
-	const inserted = insertLocalWorkspace(store, {
-		projectId,
-		worktreePath: repoPath,
-		branch,
-		name: branch,
-		type: "main",
-	});
+	let inserted: ReturnType<typeof insertLocalWorkspace>;
+	try {
+		inserted = insertLocalWorkspace(store, {
+			projectId,
+			worktreePath: repoPath,
+			branch,
+			name: branch,
+			type: "main",
+		});
+	} catch (err) {
+		// A concurrent caller (e.g. the startup sweep racing a create saga)
+		// won the one-main-per-project unique index. That's the desired
+		// invariant, not a failure — re-query and return the winner's row.
+		const winner = ctx.db.query.workspaces
+			.findFirst({
+				where: and(
+					eq(workspaces.projectId, projectId),
+					eq(workspaces.type, "main"),
+				),
+			})
+			.sync();
+		if (winner) return { id: winner.id };
+		throw err;
+	}
 
 	// Cloud may already hold a main for this (project, host) under another
 	// id (created by an older build); the push re-keys the local row onto
