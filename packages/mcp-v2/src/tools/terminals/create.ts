@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
 import { hostServiceCall } from "../../host-service-client";
+import { listHostWorkspaces } from "../../host-workspaces";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
@@ -29,13 +29,14 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
-			const caller = createMcpCaller(ctx);
-			const workspace = await caller.v2Workspace.getFromHost({
-				organizationId: ctx.organizationId,
-				id: input.workspaceId,
-			});
+			// Workspace records are host-owned: resolve the owning host across
+			// the org's reachable hosts.
+			const { workspaces } = await listHostWorkspaces(ctx);
+			const workspace = workspaces.find((row) => row.id === input.workspaceId);
 			if (!workspace) {
-				throw new Error(`Workspace not found: ${input.workspaceId}`);
+				throw new Error(
+					`Workspace not found on any reachable host: ${input.workspaceId}`,
+				);
 			}
 
 			return hostServiceCall<{ terminalId: string; status: string }>(
