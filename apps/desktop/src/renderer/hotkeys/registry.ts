@@ -187,6 +187,46 @@ export const HOTKEYS_REGISTRY = {
 		category: "Workspace",
 		description: "Close or delete the current workspace",
 	},
+	NEW_FREEFORM_CHAT: {
+		key: {
+			mac: L("meta+ctrl+n"),
+			windows: L("ctrl+alt+n"),
+			linux: L("ctrl+alt+n"),
+		},
+		label: "New Chat",
+		category: "Navigation",
+		description: "Start a new freeform chat session",
+	},
+	NEXT_FREEFORM_CHAT: {
+		key: {
+			mac: "meta+ctrl+down",
+			windows: "ctrl+alt+pagedown",
+			linux: "ctrl+alt+pagedown",
+		},
+		label: "Next Chat",
+		category: "Navigation",
+		description: "Navigate to the next chat in the sidebar",
+	},
+	PREV_FREEFORM_CHAT: {
+		key: {
+			mac: "meta+ctrl+up",
+			windows: "ctrl+alt+pageup",
+			linux: "ctrl+alt+pageup",
+		},
+		label: "Previous Chat",
+		category: "Navigation",
+		description: "Navigate to the previous chat in the sidebar",
+	},
+	DELETE_FREEFORM_CHAT: {
+		key: {
+			mac: "meta+ctrl+backspace",
+			windows: "ctrl+alt+backspace",
+			linux: "ctrl+alt+backspace",
+		},
+		label: "Delete Chat",
+		category: "Navigation",
+		description: "Delete the current freeform chat session",
+	},
 	NEW_WORKSPACE: {
 		key: {
 			mac: L("meta+n"),

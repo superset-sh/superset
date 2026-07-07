@@ -1,10 +1,21 @@
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { Trash2 } from "lucide-react";
+import { useCallback, useMemo } from "react";
 import { HiPlus } from "react-icons/hi2";
+import { useHotkey } from "renderer/hotkeys";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 const MS_PER_MINUTE = 60_000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
@@ -32,6 +43,8 @@ export function DashboardSidebarChats({
 	const collections = useCollections();
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
+	const { activeHostUrl } = useLocalHostService();
+	const { chatSessions: chatSessionActions } = useOptimisticCollectionActions();
 
 	// Freeform chats have no workspace (both workspace links are null). Filter in
 	// JS: tanstack/db `eq(col, null)` uses SQL-style equality and never matches
@@ -55,12 +68,60 @@ export function DashboardSidebarChats({
 		[allChats],
 	);
 
-	const startNewChat = () => {
-		navigate({
-			to: "/chat/$sessionId",
-			params: { sessionId: crypto.randomUUID() },
-		});
-	};
+	const chatMatch = matchRoute({ to: "/chat/$sessionId", fuzzy: true });
+	const currentChatId = chatMatch !== false ? chatMatch.sessionId : null;
+
+	const goToChat = useCallback(
+		(sessionId: string) =>
+			navigate({ to: "/chat/$sessionId", params: { sessionId } }),
+		[navigate],
+	);
+
+	const startNewChat = useCallback(
+		() => goToChat(crypto.randomUUID()),
+		[goToChat],
+	);
+
+	const deleteChat = useCallback(
+		(sessionId: string) => {
+			const remaining = chats.filter((c) => c.id !== sessionId);
+			chatSessionActions.deleteSession(sessionId);
+			// Best-effort teardown of the host-side runtime so it doesn't leak.
+			if (activeHostUrl) {
+				void getHostServiceClientByUrl(activeHostUrl)
+					.chat.endSession.mutate({ sessionId })
+					.catch(() => {});
+			}
+			// If we deleted the chat we're viewing, move to a neighbour (or a fresh
+			// chat if none remain) so we're not left on a dead route.
+			if (sessionId === currentChatId) {
+				goToChat(remaining[0]?.id ?? crypto.randomUUID());
+			}
+		},
+		[chats, chatSessionActions, activeHostUrl, currentChatId, goToChat],
+	);
+
+	const cycleChat = useCallback(
+		(direction: 1 | -1) => {
+			if (chats.length === 0) return;
+			const index = chats.findIndex((c) => c.id === currentChatId);
+			if (index === -1) {
+				// Not on a chat — enter the list from the appropriate end.
+				goToChat((direction === 1 ? chats[0] : chats[chats.length - 1]).id);
+				return;
+			}
+			const nextIndex = (index + direction + chats.length) % chats.length;
+			goToChat(chats[nextIndex].id);
+		},
+		[chats, currentChatId, goToChat],
+	);
+
+	useHotkey("NEW_FREEFORM_CHAT", startNewChat);
+	useHotkey("NEXT_FREEFORM_CHAT", () => cycleChat(1));
+	useHotkey("PREV_FREEFORM_CHAT", () => cycleChat(-1));
+	useHotkey("DELETE_FREEFORM_CHAT", () => {
+		if (currentChatId) deleteChat(currentChatId);
+	});
 
 	if (isCollapsed) return null;
 
@@ -93,29 +154,48 @@ export function DashboardSidebarChats({
 							params: { sessionId: chat.id },
 						}) !== false;
 					return (
-						<button
-							key={chat.id}
-							type="button"
-							onClick={() =>
-								navigate({
-									to: "/chat/$sessionId",
-									params: { sessionId: chat.id },
-								})
-							}
-							className={cn(
-								"group/row flex min-h-9 items-center gap-2 pl-3 pr-2 py-1.5 text-sm transition-colors",
-								isActive
-									? "bg-accent text-foreground"
-									: "text-foreground/90 hover:bg-accent/50",
-							)}
-						>
-							<span className="min-w-0 flex-1 truncate text-left">
-								{chat.title?.trim() || "New chat"}
-							</span>
-							<span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-								{formatTimeAgo(chat.lastActiveAt)}
-							</span>
-						</button>
+						<ContextMenu key={chat.id}>
+							<ContextMenuTrigger asChild>
+								<div
+									className={cn(
+										"group/row relative flex min-h-9 items-center pl-3 pr-2 text-sm transition-colors",
+										isActive
+											? "bg-accent text-foreground"
+											: "text-foreground/90 hover:bg-accent/50",
+									)}
+								>
+									<button
+										type="button"
+										onClick={() => goToChat(chat.id)}
+										className="flex min-h-9 min-w-0 flex-1 items-center py-1.5 text-left"
+									>
+										<span className="min-w-0 flex-1 truncate">
+											{chat.title?.trim() || "New chat"}
+										</span>
+									</button>
+									<span className="ml-2 shrink-0 text-[10px] tabular-nums text-muted-foreground group-hover/row:hidden">
+										{formatTimeAgo(chat.lastActiveAt)}
+									</span>
+									<button
+										type="button"
+										aria-label="Delete chat"
+										onClick={() => deleteChat(chat.id)}
+										className="ml-1 hidden size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-background hover:text-destructive group-hover/row:flex"
+									>
+										<Trash2 className="size-3.5" />
+									</button>
+								</div>
+							</ContextMenuTrigger>
+							<ContextMenuContent>
+								<ContextMenuItem
+									variant="destructive"
+									onSelect={() => deleteChat(chat.id)}
+								>
+									<Trash2 className="size-4" />
+									Delete chat
+								</ContextMenuItem>
+							</ContextMenuContent>
+						</ContextMenu>
 					);
 				})}
 			</div>
