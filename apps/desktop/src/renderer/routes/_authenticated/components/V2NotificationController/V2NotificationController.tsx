@@ -8,6 +8,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import type { AgentLifecycleEvent } from "shared/notification-types";
@@ -60,18 +61,17 @@ export function V2NotificationController() {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
-	const { data: allWorkspaceHosts = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Workspaces: collections.v2Workspaces })
-				.select(({ v2Workspaces }) => ({
-					workspaceId: v2Workspaces.id,
-					organizationId: v2Workspaces.organizationId,
-					hostId: v2Workspaces.hostId,
-					name: v2Workspaces.name,
-					branch: v2Workspaces.branch,
-				})),
-		[collections],
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const allWorkspaceHosts = useMemo<WorkspaceHostRow[]>(
+		() =>
+			hostWorkspaces.map((workspace) => ({
+				workspaceId: workspace.id,
+				organizationId: workspace.organizationId,
+				hostId: workspace.hostId,
+				name: workspace.name,
+				branch: workspace.branch,
+			})),
+		[hostWorkspaces],
 	);
 	const { data: allLocalWorkspaceRows = [] } = useLiveQuery(
 		(q) =>

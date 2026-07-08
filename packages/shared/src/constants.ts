@@ -59,17 +59,25 @@ export const TEARDOWN_TIMEOUT_MS = 60_000;
 // PostHog
 export const POSTHOG_COOKIE_NAME = "superset";
 
-// Users whose account was created within the window
-// [V2_ONLY_USER_CUTOFF, V2_NEW_USER_V1_EXPERIMENT_START) are v2-only: the v1↔v2
-// surface switch is hidden and v2 cloud is forced on. Pre-cutoff users keep the
-// existing opt-in toggle. Accounts created at or after the experiment start are
-// sent to v1 (the new-users-v1 experiment) and are never forced into v2. Stored
-// as ISO strings so the values are identical on server, desktop renderer, web,
-// and admin.
+// v2-only users have the v1↔v2 surface switch hidden and v2 cloud forced on.
+// Two windows of account-creation time qualify (stored as ISO strings so the
+// values are identical on server, desktop renderer, web, and admin):
+//   [V2_ONLY_USER_CUTOFF, V2_NEW_USER_V1_EXPERIMENT_START) — the original v2-only
+//     cohort.
+//   [V2_NEW_USER_V2_DEFAULT_START, ∞) — new users now default to v2.
+// The gap [V2_NEW_USER_V1_EXPERIMENT_START, V2_NEW_USER_V2_DEFAULT_START) is the
+// new-users-v1 experiment cohort; they started in v1 and stay there — flipping
+// the default must never pull existing v1 users into v2. Pre-cutoff users keep
+// the existing opt-in toggle.
 // 2026-05-15 14:00 UTC = Fri 07:00 PDT / 10:00 EDT.
 export const V2_ONLY_USER_CUTOFF = "2026-05-15T14:00:00.000Z";
 // 2026-06-08 06:59 UTC = Sun 23:59 PDT (11:59pm Pacific).
 export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-08T06:59:00.000Z";
+// Rollout boundary: accounts created at/after this default to v2. Set to the
+// 2026-07-09 release cutover, 10:00 AM Pacific (PDT, UTC-7) = 17:00 UTC. Everyone
+// who signed up before the cutover stays on v1, so no existing v1 user flips.
+// Bump this if the release slips.
+export const V2_NEW_USER_V2_DEFAULT_START = "2026-07-09T17:00:00.000Z";
 
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */

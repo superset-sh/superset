@@ -15,6 +15,7 @@ import {
 } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { CommandContext } from "./types";
 
@@ -43,21 +44,19 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 	const v2Match = matchRoute({ to: "/v2-workspace/$workspaceId", fuzzy: true });
 	const v2WorkspaceId = v2Match !== false ? v2Match.workspaceId : null;
 
-	const { data: v2WorkspaceRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.id, v2WorkspaceId ?? ""))
-				.select(({ workspaces }) => ({
-					id: workspaces.id,
-					name: workspaces.name,
-					projectId: workspaces.projectId,
-					type: workspaces.type,
-					hostId: workspaces.hostId,
-				})),
-		[collections, v2WorkspaceId],
-	);
-	const v2Workspace = v2WorkspaceId ? (v2WorkspaceRows[0] ?? null) : null;
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const v2Workspace = useMemo(() => {
+		if (!v2WorkspaceId) return null;
+		const workspace = hostWorkspaces.find((w) => w.id === v2WorkspaceId);
+		if (!workspace) return null;
+		return {
+			id: workspace.id,
+			name: workspace.name,
+			projectId: workspace.projectId,
+			type: workspace.type,
+			hostId: workspace.hostId,
+		};
+	}, [hostWorkspaces, v2WorkspaceId]);
 	const projectId = v2Workspace?.projectId ?? null;
 
 	const { data: preferredAppRows = [] } = useLiveQuery(

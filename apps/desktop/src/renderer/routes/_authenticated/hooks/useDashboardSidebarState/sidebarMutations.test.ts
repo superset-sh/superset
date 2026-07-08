@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	removeProjectFromSidebarState,
+	type SidebarWorkspaceRow,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
 
@@ -68,12 +69,6 @@ function makeCollections() {
 		v2WorkspaceLocalState: makeCollection<LocalStateRow>(
 			(row) => row.workspaceId,
 		),
-		v2Workspaces: makeCollection<{
-			id: string;
-			projectId: string;
-			hostId: string;
-			type: "main" | "worktree";
-		}>((row) => row.id),
 		v2SidebarSections: makeCollection<{
 			sectionId: string;
 			projectId: string;
@@ -108,19 +103,21 @@ describe("removeProjectFromSidebarState", () => {
 		collections.v2WorkspaceLocalState.insert(
 			localStateRow("ws-placed", "proj-1", { sectionId: "sec-1" }),
 		);
-		collections.v2Workspaces.insert({
-			id: "ws-placed",
-			projectId: "proj-1",
-			hostId: "machine-1",
-			type: "worktree",
-		});
-		// This device's worktree with no row yet — the reconciler would re-pin it.
-		collections.v2Workspaces.insert({
-			id: "ws-rowless",
-			projectId: "proj-1",
-			hostId: "machine-1",
-			type: "worktree",
-		});
+		const workspaces: SidebarWorkspaceRow[] = [
+			{
+				id: "ws-placed",
+				projectId: "proj-1",
+				hostId: "machine-1",
+				type: "worktree",
+			},
+			// This device's worktree with no row yet — the reconciler would re-pin it.
+			{
+				id: "ws-rowless",
+				projectId: "proj-1",
+				hostId: "machine-1",
+				type: "worktree",
+			},
+		];
 		collections.v2SidebarSections.insert({
 			sectionId: "sec-1",
 			projectId: "proj-1",
@@ -130,6 +127,7 @@ describe("removeProjectFromSidebarState", () => {
 		const cleaned: string[] = [];
 		removeProjectFromSidebarState(
 			asRemoveArg(collections),
+			workspaces,
 			"proj-1",
 			"machine-1",
 			(rows) => {
@@ -156,22 +154,20 @@ describe("removeProjectFromSidebarState", () => {
 		collections.v2WorkspaceLocalState.insert(
 			localStateRow("ws-main", "proj-1"),
 		);
-		collections.v2Workspaces.insert({
-			id: "ws-main",
-			projectId: "proj-1",
-			hostId: "machine-1",
-			type: "main",
-		});
-		collections.v2Workspaces.insert({
-			id: "ws-main-rowless",
-			projectId: "proj-1",
-			hostId: "machine-1",
-			type: "main",
-		});
+		const workspaces: SidebarWorkspaceRow[] = [
+			{ id: "ws-main", projectId: "proj-1", hostId: "machine-1", type: "main" },
+			{
+				id: "ws-main-rowless",
+				projectId: "proj-1",
+				hostId: "machine-1",
+				type: "main",
+			},
+		];
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
 
 		removeProjectFromSidebarState(
 			asRemoveArg(collections),
+			workspaces,
 			"proj-1",
 			"machine-1",
 			noopCleanup,
@@ -192,16 +188,19 @@ describe("removeProjectFromSidebarState", () => {
 		collections.v2WorkspaceLocalState.insert(
 			localStateRow("ws-other", "proj-2"),
 		);
-		collections.v2Workspaces.insert({
-			id: "ws-other",
-			projectId: "proj-2",
-			hostId: "machine-1",
-			type: "worktree",
-		});
+		const workspaces: SidebarWorkspaceRow[] = [
+			{
+				id: "ws-other",
+				projectId: "proj-2",
+				hostId: "machine-1",
+				type: "worktree",
+			},
+		];
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
 
 		removeProjectFromSidebarState(
 			asRemoveArg(collections),
+			workspaces,
 			"proj-1",
 			"machine-1",
 			noopCleanup,
@@ -217,16 +216,19 @@ describe("removeProjectFromSidebarState", () => {
 		// Same project, different host, no local-state row: the local reconciler
 		// can't re-pin it and it isn't rendered here, so it must not get a
 		// tombstone row — only this device's row-less worktrees do.
-		collections.v2Workspaces.insert({
-			id: "ws-remote",
-			projectId: "proj-1",
-			hostId: "machine-2",
-			type: "worktree",
-		});
+		const workspaces: SidebarWorkspaceRow[] = [
+			{
+				id: "ws-remote",
+				projectId: "proj-1",
+				hostId: "machine-2",
+				type: "worktree",
+			},
+		];
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
 
 		removeProjectFromSidebarState(
 			asRemoveArg(collections),
+			workspaces,
 			"proj-1",
 			"machine-1",
 			noopCleanup,

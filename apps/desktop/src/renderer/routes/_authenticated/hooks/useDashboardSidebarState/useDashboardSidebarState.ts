@@ -13,6 +13,7 @@ import {
 	getPrependTabOrder,
 	isSidebarWorkspaceVisible,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
@@ -187,6 +188,7 @@ function cleanupWorkspacePaneRuntimes(rows: PaneLifecycleRow[]): void {
 
 export function useDashboardSidebarState() {
 	const collections = useCollections();
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const { machineId } = useLocalHostService();
 
 	const ensureProjectInSidebar = useCallback(
@@ -468,12 +470,13 @@ export function useDashboardSidebarState() {
 		(projectId: string) => {
 			removeProjectFromSidebarState(
 				collections,
+				hostWorkspaces,
 				projectId,
 				machineId,
 				cleanupWorkspacePaneRuntimes,
 			);
 		},
-		[collections, machineId],
+		[collections, hostWorkspaces, machineId],
 	);
 
 	return {

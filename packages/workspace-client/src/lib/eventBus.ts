@@ -14,7 +14,8 @@ type EventType =
 	| "git:changed"
 	| "agent:lifecycle"
 	| "terminal:lifecycle"
-	| "port:changed";
+	| "port:changed"
+	| "workspace:changed";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -53,6 +54,22 @@ export interface PortChangedPayload {
 	occurredAt: number;
 }
 
+type WorkspaceChangedMessage = Extract<
+	ServerMessage,
+	{ type: "workspace:changed" }
+>;
+
+export type WorkspaceSnapshotPayload = NonNullable<
+	WorkspaceChangedMessage["workspace"]
+>;
+
+export interface WorkspaceChangedPayload {
+	eventType: WorkspaceChangedMessage["eventType"];
+	/** Null for `deleted` — the row is already gone. */
+	workspace: WorkspaceChangedMessage["workspace"];
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -63,7 +80,9 @@ type EventListener<T extends EventType> = T extends "fs:events"
 				? (workspaceId: string, payload: TerminalLifecyclePayload) => void
 				: T extends "port:changed"
 					? (workspaceId: string, payload: PortChangedPayload) => void
-					: never;
+					: T extends "workspace:changed"
+						? (workspaceId: string, payload: WorkspaceChangedPayload) => void
+						: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -122,7 +141,8 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			message.type === "git:changed" ||
 			message.type === "agent:lifecycle" ||
 			message.type === "terminal:lifecycle" ||
-			message.type === "port:changed"
+			message.type === "port:changed" ||
+			message.type === "workspace:changed"
 				? message.workspaceId
 				: null;
 
@@ -170,6 +190,15 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				label: message.label,
 				occurredAt: message.occurredAt,
 			});
+		} else if (message.type === "workspace:changed") {
+			(entry.callback as EventListener<"workspace:changed">)(
+				message.workspaceId,
+				{
+					eventType: message.eventType,
+					workspace: message.workspace,
+					occurredAt: message.occurredAt,
+				},
+			);
 		}
 	}
 }

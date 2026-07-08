@@ -1,27 +1,14 @@
 import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { ChevronRight, GitBranch } from "lucide-react";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface V2WorkspaceTitleProps {
 	workspaceId: string;
 }
 
 export function V2WorkspaceTitle({ workspaceId }: V2WorkspaceTitleProps) {
-	const collections = useCollections();
-	const { data: workspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.id, workspaceId))
-				.select(({ workspaces }) => ({
-					name: workspaces.name,
-					branch: workspaces.branch,
-				})),
-		[collections, workspaceId],
-	);
-	const workspace = workspaces[0] ?? null;
+	const { workspaces } = useHostWorkspaces();
+	const workspace = workspaces.find((w) => w.id === workspaceId) ?? null;
 	const name = workspace?.name ?? null;
 	const branch = workspace?.branch ?? null;
 

@@ -1,6 +1,7 @@
 import { boolean, CLIError, string, table } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveHostFilter } from "../../../lib/host-target";
+import { listHostWorkspaces } from "../../../lib/host-workspaces";
 
 const UUID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -33,25 +34,60 @@ export default command({
 			local: options.local ?? undefined,
 		});
 
-		const projectInput = options.project ?? undefined;
-		const projectId =
-			projectInput && UUID_RE.test(projectInput) ? projectInput : undefined;
-		const projectName = projectInput && !projectId ? projectInput : undefined;
-
-		const [workspaces, hosts] = await Promise.all([
-			ctx.api.v2Workspace.list.query({
+		// Workspace records are host-owned: fan out to each online host's
+		// workspace.list and merge (the cloud only supplies host/project names).
+		const [{ workspaces, hosts, warnings }, projects] = await Promise.all([
+			listHostWorkspaces({
+				api: ctx.api,
 				organizationId,
+				userJwt: ctx.bearer,
 				hostId,
-				projectId,
-				projectName,
-				search: options.search ?? undefined,
 			}),
-			ctx.api.host.list.query({ organizationId }),
+			ctx.api.v2Project.list
+				.query({ organizationId })
+				.catch(() => [] as Array<{ id: string; name: string }>),
 		]);
+		for (const warning of warnings) {
+			process.stderr.write(`Warning: ${warning}\n`);
+		}
+
+		const projectNameById = new Map(
+			projects.map((project) => [project.id, project.name]),
+		);
+
+		const projectInput = options.project ?? undefined;
+		let projectId =
+			projectInput && UUID_RE.test(projectInput) ? projectInput : undefined;
+		if (projectInput && !projectId) {
+			const wanted = projectInput.toLowerCase();
+			projectId = projects.find(
+				(project) => project.name.toLowerCase() === wanted,
+			)?.id;
+			if (!projectId) {
+				throw new CLIError(
+					`Project not found: ${projectInput}`,
+					projects.length === 0
+						? "Project names resolve via the cloud API — pass --project <uuid> when offline"
+						: "Run: superset projects list",
+				);
+			}
+		}
+
+		const search = options.search?.toLowerCase();
 		const hostNameById = new Map(hosts.map((host) => [host.id, host.name]));
-		return workspaces.map((workspace) => ({
-			...workspace,
-			hostName: hostNameById.get(workspace.hostId) ?? workspace.hostId,
-		}));
+		return workspaces
+			.filter((workspace) => !projectId || workspace.projectId === projectId)
+			.filter(
+				(workspace) =>
+					!search ||
+					workspace.name.toLowerCase().includes(search) ||
+					workspace.branch.toLowerCase().includes(search),
+			)
+			.map((workspace) => ({
+				...workspace,
+				projectName:
+					projectNameById.get(workspace.projectId) ?? workspace.projectId,
+				hostName: hostNameById.get(workspace.hostId) ?? workspace.hostId,
+			}));
 	},
 });

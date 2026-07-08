@@ -1,5 +1,7 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveHostTarget } from "../../../lib/host-target";
+import { findHostWorkspace } from "../../../lib/host-workspaces";
 
 export default command({
 	description: "Update a workspace",
@@ -36,7 +38,28 @@ export default command({
 			);
 		}
 
-		const updated = await ctx.api.v2Workspace.update.mutate({
+		// Workspace records are host-owned: find the owning host across the
+		// org's reachable hosts, then route the update to it.
+		const { workspace, warnings } = await findHostWorkspace(
+			{ api: ctx.api, organizationId, userJwt: ctx.bearer },
+			id,
+		);
+		for (const warning of warnings) {
+			process.stderr.write(`Warning: ${warning}\n`);
+		}
+		if (!workspace) {
+			throw new CLIError(
+				`Workspace not found on any reachable host: ${id}`,
+				"List workspaces with: superset workspaces list",
+			);
+		}
+
+		const target = resolveHostTarget({
+			requestedHostId: workspace.hostId,
+			organizationId,
+			userJwt: ctx.bearer,
+		});
+		const updated = await target.client.workspace.update.mutate({
 			id,
 			...(options.name !== undefined ? { name: options.name } : {}),
 			...(taskId !== undefined ? { taskId } : {}),

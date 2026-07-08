@@ -53,6 +53,33 @@ export interface PortChangedMessage {
 	occurredAt: number;
 }
 
+/**
+ * Snapshot of a host-owned workspace row as carried on the event bus.
+ * Structural (not the drizzle inferred type) so workspace-client consumers
+ * don't couple to the host's schema module.
+ */
+export interface WorkspaceSnapshot {
+	id: string;
+	projectId: string;
+	name: string;
+	branch: string;
+	type: "main" | "worktree";
+	worktreePath: string;
+	taskId: string | null;
+	createdByUserId: string | null;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface WorkspaceChangedMessage {
+	type: "workspace:changed";
+	workspaceId: string;
+	eventType: "created" | "updated" | "deleted";
+	/** Null for `deleted` — the row is already gone. */
+	workspace: WorkspaceSnapshot | null;
+	occurredAt: number;
+}
+
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -64,6 +91,7 @@ export type ServerMessage =
 	| AgentLifecycleMessage
 	| TerminalLifecycleMessage
 	| PortChangedMessage
+	| WorkspaceChangedMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────
