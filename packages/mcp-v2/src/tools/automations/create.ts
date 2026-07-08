@@ -2,7 +2,6 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
-import { resolveWorkspacePin } from "../../host-workspaces";
 
 export function register(server: McpServer): void {
 	defineTool(server, {
@@ -32,22 +31,18 @@ export function register(server: McpServer): void {
 				.min(1)
 				.nullish()
 				.describe(
-					"Host that should run the automation. Defaults to the owner's online host. When passing v2WorkspaceId, set this to the workspace's hostId (from its workspaces_list row).",
+					"Host that should run the automation. Defaults to the owner's online host.",
 				),
 			v2ProjectId: z
 				.string()
 				.uuid()
 				.optional()
-				.describe(
-					"Project UUID. Provide this OR v2WorkspaceId. When passing v2WorkspaceId, also set this to the workspace's projectId (from its workspaces_list row).",
-				),
+				.describe("Project UUID. Provide this OR v2WorkspaceId."),
 			v2WorkspaceId: z
 				.string()
 				.uuid()
 				.nullish()
-				.describe(
-					"Workspace UUID to reuse. Provide this OR v2ProjectId. Pair it with targetHostId + v2ProjectId from the same workspaces_list row.",
-				),
+				.describe("Workspace UUID to reuse. Provide this OR v2ProjectId."),
 			rrule: z
 				.string()
 				.min(1)
@@ -71,10 +66,7 @@ export function register(server: McpServer): void {
 		},
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
-			// Workspace records are host-owned: fill in the denormalized pin
-			// (targetHostId + v2ProjectId) from the owning host when omitted.
-			const pin = await resolveWorkspacePin(ctx, input);
-			return caller.automation.create({ ...input, ...pin });
+			return caller.automation.create(input);
 		},
 	});
 }
