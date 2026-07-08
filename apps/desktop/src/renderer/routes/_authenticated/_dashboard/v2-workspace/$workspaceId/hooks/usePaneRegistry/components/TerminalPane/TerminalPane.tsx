@@ -40,6 +40,10 @@ import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 import { useTerminalInterruptClear } from "./hooks/useTerminalInterruptClear";
+import {
+	terminalRichInputOpenStore,
+	useTerminalRichInputOpen,
+} from "./richInputOpenStore";
 import { shellEscapePaths } from "./utils";
 
 interface TerminalPaneProps {
@@ -69,13 +73,11 @@ export function TerminalPane({
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
-	// Keyed by terminalId so open/closed is remembered per terminal while the
-	// mounted pane gets re-pointed across terminals (tab switch, session
+	// Open/closed is tracked per terminalId in a shared store so the header
+	// button and the ⌘I hotkey toggle the same overlay, and the state survives
+	// the mounted pane being re-pointed across terminals (tab switch, session
 	// dropdown).
-	const [richInputOpenTerminalIds, setRichInputOpenTerminalIds] = useState<
-		ReadonlySet<string>
-	>(new Set());
-	const isRichInputOpen = richInputOpenTerminalIds.has(terminalId);
+	const isRichInputOpen = useTerminalRichInputOpen(terminalId);
 
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
@@ -355,23 +357,12 @@ export function TerminalPane({
 
 	useHotkey(
 		"TOGGLE_TERMINAL_RICH_INPUT",
-		() =>
-			setRichInputOpenTerminalIds((prev) => {
-				const next = new Set(prev);
-				if (next.has(terminalId)) next.delete(terminalId);
-				else next.add(terminalId);
-				return next;
-			}),
+		() => terminalRichInputOpenStore.toggle(terminalId),
 		{ enabled: ctx.isActive, preventDefault: true },
 	);
 
 	const closeRichInput = useCallback(() => {
-		setRichInputOpenTerminalIds((prev) => {
-			if (!prev.has(terminalId)) return prev;
-			const next = new Set(prev);
-			next.delete(terminalId);
-			return next;
-		});
+		terminalRichInputOpenStore.close(terminalId);
 		terminalRuntimeRegistry
 			.getTerminal(terminalId, terminalInstanceId)
 			?.focus();
