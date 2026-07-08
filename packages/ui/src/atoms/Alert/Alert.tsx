@@ -129,14 +129,16 @@ const Alerter = () => {
 	);
 };
 
-const alert = (options: AlertOptions) => {
+/** Returns true if the dialog was shown, false if no <Alerter /> is mounted. */
+const alert = (options: AlertOptions): boolean => {
 	if (!showAlertFn) {
 		console.error(
 			"[alert] Alerter not mounted. Make sure to render <Alerter /> in your app",
 		);
-		return;
+		return false;
 	}
 	showAlertFn(options);
+	return true;
 };
 
 export { Alerter, alert };

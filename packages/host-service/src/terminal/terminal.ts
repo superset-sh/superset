@@ -356,11 +356,16 @@ export function isLiveTerminalSession(terminalId: string): boolean {
 /**
  * Whether a live session has a foreground command running (vs. sitting at an
  * idle shell prompt). Drives the "close anyway?" confirm on pane close. Unknown
- * sessions and idle prompts return false.
+ * sessions, idle prompts, and sessions owned by another workspace return false.
  */
-export function sessionHasRunningProcess(terminalId: string): boolean {
+export function sessionHasRunningProcess(
+	terminalId: string,
+	workspaceId: string,
+): boolean {
 	const session = sessions.get(terminalId);
 	if (!session || session.exited) return false;
+	// Ownership gate: don't let one workspace probe another's terminals.
+	if (session.workspaceId !== workspaceId) return false;
 	return hasRunningForegroundProcess(session.pty.pid);
 }
 

@@ -143,7 +143,7 @@ export const terminalRouter = router({
 			}),
 		)
 		.query(({ input }) => ({
-			running: sessionHasRunningProcess(input.terminalId),
+			running: sessionHasRunningProcess(input.terminalId, input.workspaceId),
 		})),
 
 	writeInput: protectedProcedure
