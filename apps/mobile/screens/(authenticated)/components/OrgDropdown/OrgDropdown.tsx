@@ -72,7 +72,7 @@ export function OrgDropdown() {
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-56" align="start" side="bottom">
 				<DropdownMenuItem
-					onPress={() => router.push("/(authenticated)/settings")}
+					onPress={() => router.push("/(authenticated)/(tabs)/(more)/settings")}
 				>
 					<Icon as={Settings} className="text-foreground size-4" />
 					<Text>Settings</Text>

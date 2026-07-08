@@ -20,11 +20,18 @@ import type {
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
+import { parseISO } from "date-fns";
 import { authClient, getJwt, setJwt } from "../auth/client";
 import { env } from "../env";
 import { apiClient } from "../trpc/client";
 
 const columnMapper = snakeCamelMapper();
+
+// Hermes can't parse Postgres timestamp strings, so convert to Date during sync
+const parser = {
+	timestamp: (value: string) => parseISO(value),
+	timestamptz: (value: string) => parseISO(value),
+};
 const electricUrl = `${env.EXPO_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
 const electricHeaders = {
@@ -92,6 +99,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "tasks", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -119,6 +127,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "task_statuses", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -133,6 +142,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "projects", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -147,6 +157,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "auth.members", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -161,6 +172,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "auth.users", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -175,6 +187,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "auth.invitations", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -189,6 +202,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "v2_projects", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -203,6 +217,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "v2_workspaces", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -217,6 +232,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "v2_hosts", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.machineId,
@@ -231,6 +247,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "github_pull_requests", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
@@ -245,6 +262,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "chat_sessions", organizationId },
 				headers: electricHeaders,
 				columnMapper,
+				parser,
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,

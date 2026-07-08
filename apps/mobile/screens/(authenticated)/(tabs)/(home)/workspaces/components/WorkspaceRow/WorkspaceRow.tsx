@@ -2,6 +2,7 @@ import type {
 	SelectGithubPullRequest,
 	SelectV2Workspace,
 } from "@superset/db/schema";
+import { formatDistanceToNow } from "date-fns";
 import {
 	Circle,
 	CircleDot,
@@ -13,7 +14,6 @@ import {
 import { Linking, Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { parseDate } from "@/lib/dates";
 
 const PR_BADGE_CONFIG = {
 	closed: {
@@ -42,20 +42,6 @@ type PrBadgeState = keyof typeof PR_BADGE_CONFIG;
 
 const ADDITIONS_COLOR = "#3fb950";
 const DELETIONS_COLOR = "#f85149";
-
-export function relativeTime(date: Date | string): string {
-	const ms = Date.now() - parseDate(date).getTime();
-	const minutes = Math.max(1, Math.floor(ms / 60_000));
-	if (minutes < 60) return `${minutes}m`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h`;
-	const days = Math.floor(hours / 24);
-	if (days < 7) return `${days}d`;
-	const weeks = Math.floor(days / 7);
-	if (weeks < 5) return `${weeks}w`;
-	const months = Math.floor(days / 30);
-	return `${months}mo`;
-}
 
 export function WorkspaceRow({
 	workspace,
@@ -109,7 +95,7 @@ export function WorkspaceRow({
 						{workspace.branch}
 					</Text>
 					<Text className="text-muted-foreground text-xs">
-						· {relativeTime(workspace.updatedAt)}
+						· {formatDistanceToNow(workspace.updatedAt, { addSuffix: true })}
 					</Text>
 				</View>
 			</View>

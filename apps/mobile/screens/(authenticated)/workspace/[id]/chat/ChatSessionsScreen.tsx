@@ -1,4 +1,5 @@
 import { useLiveQuery } from "@tanstack/react-db";
+import { compareDesc } from "date-fns";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FlatList, Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
@@ -10,17 +11,15 @@ export function ChatSessionsScreen() {
 	const router = useRouter();
 	const collections = useCollections();
 
-	const { data: sessions } = useLiveQuery(
+	const { data: sessions, isReady: sessionsReady } = useLiveQuery(
 		(q) => q.from({ chatSessions: collections.chatSessions }),
 		[collections],
 	);
 
 	const workspaceSessions = (sessions ?? [])
 		.filter((session) => session.v2WorkspaceId === id)
-		.sort(
-			(a, b) =>
-				new Date(b.updatedAt ?? b.createdAt).getTime() -
-				new Date(a.updatedAt ?? a.createdAt).getTime(),
+		.sort((a, b) =>
+			compareDesc(a.updatedAt ?? a.createdAt, b.updatedAt ?? b.createdAt),
 		);
 
 	return (
@@ -33,11 +32,13 @@ export function ChatSessionsScreen() {
 				keyExtractor={(item) => item.id}
 				contentContainerClassName="p-4 pb-28 gap-2"
 				ListEmptyComponent={
-					<View className="items-center justify-center py-20">
-						<Text className="text-center text-muted-foreground">
-							No chat sessions yet
-						</Text>
-					</View>
+					sessionsReady ? (
+						<View className="items-center justify-center py-20">
+							<Text className="text-center text-muted-foreground">
+								No chat sessions yet
+							</Text>
+						</View>
+					) : null
 				}
 				renderItem={({ item }) => (
 					<Pressable
@@ -50,7 +51,7 @@ export function ChatSessionsScreen() {
 							{item.title ?? "Untitled chat"}
 						</Text>
 						<Text className="text-muted-foreground mt-1 text-xs">
-							{new Date(item.updatedAt ?? item.createdAt).toLocaleString()}
+							{(item.updatedAt ?? item.createdAt).toLocaleString()}
 						</Text>
 					</Pressable>
 				)}

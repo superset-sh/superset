@@ -4,6 +4,7 @@ import type {
 	SelectV2Workspace,
 } from "@superset/db/schema";
 import { useLiveQuery } from "@tanstack/react-db";
+import { compareDesc } from "date-fns";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
@@ -38,7 +39,7 @@ export function WorkspacesScreen() {
 		switchOrganization,
 	} = useOrganizations();
 
-	const { data: workspaces } = useLiveQuery(
+	const { data: workspaces, isReady: workspacesReady } = useLiveQuery(
 		(q) => q.from({ v2Workspaces: collections.v2Workspaces }),
 		[collections],
 	);
@@ -84,9 +85,7 @@ export function WorkspacesScreen() {
 	const visibleWorkspaces = useMemo<SelectV2Workspace[]>(() => {
 		return (workspaces ?? [])
 			.filter((workspace) => workspace.projectId === selectedProjectId)
-			.sort(
-				(a, b) => new Date(b[sort]).getTime() - new Date(a[sort]).getTime(),
-			);
+			.sort((a, b) => compareDesc(a[sort], b[sort]));
 	}, [workspaces, selectedProjectId, sort]);
 
 	const pullRequestsByBranch = useMemo(() => {
@@ -159,11 +158,13 @@ export function WorkspacesScreen() {
 				keyExtractor={(item: SelectV2Workspace) => item.id}
 				renderItem={renderItem}
 				ListEmptyComponent={
-					<View className="items-center justify-center py-20">
-						<Text className="text-center text-muted-foreground">
-							No workspaces in this project yet
-						</Text>
-					</View>
+					workspacesReady ? (
+						<View className="items-center justify-center py-20">
+							<Text className="text-center text-muted-foreground">
+								No workspaces in this project yet
+							</Text>
+						</View>
+					) : null
 				}
 			/>
 			<OrganizationSwitcherSheet

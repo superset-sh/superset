@@ -1,5 +1,6 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import { useLiveQuery } from "@tanstack/react-db";
+import { compareDesc } from "date-fns";
 import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
@@ -12,7 +13,7 @@ export function SearchScreen() {
 	const collections = useCollections();
 	const [query, setQuery] = useState("");
 
-	const { data: workspaces } = useLiveQuery(
+	const { data: workspaces, isReady: workspacesReady } = useLiveQuery(
 		(q) => q.from({ v2Workspaces: collections.v2Workspaces }),
 		[collections],
 	);
@@ -36,10 +37,7 @@ export function SearchScreen() {
 						.toLowerCase()
 						.includes(needle),
 			)
-			.sort(
-				(a, b) =>
-					new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-			)
+			.sort((a, b) => compareDesc(a.updatedAt, b.updatedAt))
 			.slice(0, 50);
 	}, [workspaces, projects, query]);
 
@@ -65,13 +63,15 @@ export function SearchScreen() {
 				contentContainerClassName="p-4 pb-28 gap-2"
 				keyboardDismissMode="on-drag"
 				ListEmptyComponent={
-					<View className="items-center justify-center py-20">
-						<Text className="text-center text-muted-foreground">
-							{query.trim()
-								? "No workspaces match your search"
-								: "Search your workspaces by name, branch, or project"}
-						</Text>
-					</View>
+					query.trim() && !workspacesReady ? null : (
+						<View className="items-center justify-center py-20">
+							<Text className="text-center text-muted-foreground">
+								{query.trim()
+									? "No workspaces match your search"
+									: "Search your workspaces by name, branch, or project"}
+							</Text>
+						</View>
+					)
 				}
 				renderItem={({ item }) => (
 					<Pressable
