@@ -70,29 +70,42 @@ let gate: JwtRefreshState = {
 	lastAttemptAt: 0,
 	consecutiveFailures: 0,
 };
+let inFlightRefresh: Promise<void> | null = null;
 
 /**
  * Refresh the Electric JWT after a 401, subject to the gate. Safe to call from
  * every shape's `onError` — concurrent calls dedupe to one network request and
  * a broken session backs off instead of storming `/api/auth/token`.
+ *
+ * Callers await the shared in-flight refresh so a shape only retries once the
+ * new JWT has actually been set (not with the stale one). When the gate is
+ * backed off or the circuit is open there's nothing to await — it resolves
+ * immediately and the caller falls back to Electric's own retry backoff.
  */
 export async function refreshJwtAfterUnauthorized(
 	now: number = Date.now(),
 ): Promise<void> {
+	if (inFlightRefresh) {
+		return inFlightRefresh;
+	}
 	if (!shouldAttemptJwtRefresh(gate, now)) {
 		return;
 	}
 	gate = { ...gate, inFlight: true, lastAttemptAt: now };
-	let succeeded = false;
-	try {
-		const result = await authClient.token();
-		if (result.data?.token) {
-			setJwt(result.data.token);
-			succeeded = true;
+	inFlightRefresh = (async () => {
+		let succeeded = false;
+		try {
+			const result = await authClient.token();
+			if (result.data?.token) {
+				setJwt(result.data.token);
+				succeeded = true;
+			}
+		} catch (error) {
+			console.error("[collections] JWT refresh after 401 failed", error);
+		} finally {
+			gate = applyJwtRefreshResult(gate, succeeded);
+			inFlightRefresh = null;
 		}
-	} catch (error) {
-		console.error("[collections] JWT refresh after 401 failed", error);
-	} finally {
-		gate = applyJwtRefreshResult(gate, succeeded);
-	}
+	})();
+	return inFlightRefresh;
 }

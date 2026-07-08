@@ -26,8 +26,8 @@ describe("nextRecoveryDelayMs", () => {
 	});
 
 	it("caps the backoff at the max delay", () => {
-		// random=1 → jitter factor 1.0, so the returned value equals the raw
-		// capped backoff — this asserts the cap is applied before jitter.
+		// random=1 → factor 1.5, so backoff*1.5 exceeds the max and the outer
+		// Math.min clamps it back to MAX. Verifies the post-jitter ceiling holds.
 		// 2**8 * 15s = 3.84M ms, well past the 5-min cap.
 		expect(nextRecoveryDelayMs(9, 1)).toBe(SESSION_RECOVERY_MAX_DELAY_MS);
 		expect(nextRecoveryDelayMs(10, 1)).toBe(SESSION_RECOVERY_MAX_DELAY_MS);
