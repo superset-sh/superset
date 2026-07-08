@@ -425,7 +425,31 @@ export async function readFile({
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
 	await assertRealpathWithinRoot(rootPath, targetPath);
 
-	const fileHandle = await fs.open(targetPath, "r");
+	return await readFileAtPath({ absolutePath: targetPath, offset, maxBytes, encoding });
+}
+
+/**
+ * Reads a file at an explicit absolute path WITHOUT the workspace-root jail.
+ *
+ * `readFile` layers the root/symlink-escape checks on top of this. Callers
+ * that reach for this directly are responsible for authorizing the path out of
+ * band — it exists for host-side flows that have already validated the target
+ * (e.g. opening a terminal link the user explicitly clicked, whose existence
+ * was confirmed by an unjailed stat and which may legitimately live outside the
+ * workspace root).
+ */
+export async function readFileAtPath({
+	absolutePath,
+	offset,
+	maxBytes,
+	encoding,
+}: {
+	absolutePath: string;
+	offset?: number;
+	maxBytes?: number;
+	encoding?: string;
+}): Promise<FsReadResult> {
+	const fileHandle = await fs.open(absolutePath, "r");
 	try {
 		const stats = await fileHandle.stat();
 		const revision = toRevision(stats);

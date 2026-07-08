@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createDirectory, readFile, writeFile } from "./fs";
+import { createDirectory, readFile, readFileAtPath, writeFile } from "./fs";
 
 const tempRoots: string[] = [];
 
@@ -113,6 +113,45 @@ describe("readFile", () => {
 		expect(result.exceededLimit).toEqual(false);
 		if (result.kind === "bytes") {
 			expect(Buffer.from(result.content).toString("utf-8")).toEqual("hello");
+		}
+	});
+});
+
+describe("readFileAtPath", () => {
+	it("reads a file at an absolute path without a root jail", async () => {
+		const rootPath = await createTempRoot();
+		const absolutePath = path.join(rootPath, "notes.txt");
+		await fs.writeFile(absolutePath, "hello");
+
+		const result = await readFileAtPath({ absolutePath, encoding: "utf-8" });
+
+		expect(result.kind).toEqual("text");
+		if (result.kind === "text") {
+			expect(result.content).toEqual("hello");
+		}
+	});
+
+	it("reads a path that a jailed readFile rejects as outside the root", async () => {
+		// Mirrors the terminal-link case: the file lives outside the workspace
+		// root (like ~/tmp/commit_1234.txt), so a jailed read fails while the
+		// unjailed primitive the router falls back to succeeds.
+		const rootPath = await createTempRoot();
+		const outsideRoot = await createTempRoot();
+		const outsidePath = path.join(outsideRoot, "commit_1234.txt");
+		await fs.writeFile(outsidePath, "outside the workspace");
+
+		await expect(
+			readFile({ rootPath, absolutePath: outsidePath, encoding: "utf-8" }),
+		).rejects.toThrow();
+
+		const result = await readFileAtPath({
+			absolutePath: outsidePath,
+			encoding: "utf-8",
+		});
+
+		expect(result.kind).toEqual("text");
+		if (result.kind === "text") {
+			expect(result.content).toEqual("outside the workspace");
 		}
 	});
 });
