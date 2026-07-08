@@ -1,7 +1,15 @@
+import type { AppRouter } from "@superset/host-service";
+import {
+	PromptInputProvider,
+	usePromptInputController,
+} from "@superset/ui/ai-elements/prompt-input";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { workspaceTrpc } from "@superset/workspace-client";
+import type { inferRouterOutputs } from "@trpc/server";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuCornerDownLeft, LuLoaderCircle } from "react-icons/lu";
+import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor/TiptapPromptEditor";
 import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
@@ -11,6 +19,7 @@ import {
 	type AgentTarget,
 	useDiffCommentTarget,
 } from "./hooks/useDiffCommentTarget";
+import { prepareDiffCommentSubmission } from "./prepareDiffCommentSubmission";
 
 export type {
 	AgentSessionPlacement,
@@ -28,13 +37,32 @@ interface AgentCommentComposerProps {
 	}) => void | Promise<void>;
 }
 
-export function AgentCommentComposer({
+/**
+ * Inline diff-comment composer. Reuses the chat/terminal rich-input stack
+ * (PromptInputProvider + TiptapPromptEditor) so slash commands and @file
+ * mentions work here too — parity with the workspace chat input and the
+ * terminal rich-input overlay (`TerminalRichInput`). The editor serializes
+ * chips back to plain text on submit, so the send payload
+ * (`comment.trim()` + resolved agent target) is identical to the previous
+ * plain-<textarea> implementation.
+ */
+export function AgentCommentComposer(props: AgentCommentComposerProps) {
+	return (
+		<PromptInputProvider>
+			<AgentCommentComposerInner {...props} />
+		</PromptInputProvider>
+	);
+}
+
+function AgentCommentComposerInner({
 	workspaceId,
 	startLine,
 	endLine,
 	onCancel,
 	onSubmit,
 }: AgentCommentComposerProps) {
+	const controller = usePromptInputController();
+
 	const bindings = useTerminalAgentBindings(workspaceId);
 	const sessions = useMemo(
 		() =>
@@ -50,31 +78,101 @@ export function AgentCommentComposer({
 	const { value, placement, resolved, onValueChange, onPlacementChange } =
 		useDiffCommentTarget({ sessions, configs });
 
-	const [comment, setComment] = useState("");
-	const [submitting, setSubmitting] = useState(false);
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	// Slash commands + file search + cwd, wired exactly like the v2 chat input
+	// so the rich editor's `/` and `@` popovers behave identically here.
+	const { data: workspaceStatus } = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspaceId },
+		{ refetchOnWindowFocus: false, retry: false },
+	);
+	const cwd = workspaceStatus?.worktreePath ?? "";
 
+	const trpcUtils = workspaceTrpc.useUtils();
+	const searchFiles = useCallback(
+		async (query: string) => {
+			const { matches } = await trpcUtils.filesystem.searchFiles.fetch({
+				workspaceId,
+				query,
+				includeHidden: false,
+				limit: 20,
+			});
+			return matches.map((m) => ({
+				id: m.absolutePath,
+				name: m.name,
+				relativePath: m.relativePath,
+			}));
+		},
+		[trpcUtils, workspaceId],
+	);
+
+	const selectSlashCommands = useCallback(
+		(
+			commands: NonNullable<
+				inferRouterOutputs<AppRouter>["chat"]["getSlashCommands"]
+			>,
+		) =>
+			commands.map((command) => ({
+				...command,
+				kind:
+					command.kind === "builtin"
+						? ("builtin" as const)
+						: ("custom" as const),
+				source:
+					command.kind === "builtin"
+						? ("builtin" as const)
+						: ("project" as const),
+			})),
+		[],
+	);
+	const { data: slashCommands = [] } =
+		workspaceTrpc.chat.getSlashCommands.useQuery(
+			{ workspaceId },
+			{ select: selectSlashCommands },
+		);
+
+	const [submitting, setSubmitting] = useState(false);
+
+	// Autofocus the editor on open. A single focus() can land before the Tiptap
+	// editor is created (immediatelyRender: false), so retry across frames until
+	// focus is actually inside the overlay — mirrors TerminalRichInput.
+	const rootRef = useRef<HTMLFormElement | null>(null);
 	useEffect(() => {
-		const el = textareaRef.current;
-		if (!el) return;
-		el.focus();
-		const len = el.value.length;
-		el.setSelectionRange(len, len);
-	}, []);
+		let cancelled = false;
+		const attempt = (triesLeft: number) => {
+			if (cancelled || triesLeft <= 0) return;
+			controller.textInput.focus();
+			requestAnimationFrame(() => {
+				if (cancelled) return;
+				const root = rootRef.current;
+				if (root?.contains(document.activeElement)) return;
+				attempt(triesLeft - 1);
+			});
+		};
+		attempt(30);
+		return () => {
+			cancelled = true;
+		};
+	}, [controller]);
 
 	const lineLabel =
 		startLine === endLine
 			? `Line ${startLine}`
 			: `Lines ${startLine}–${endLine}`;
 	const canSubmit =
-		comment.trim().length > 0 && !submitting && resolved != null;
+		controller.textInput.value.trim().length > 0 &&
+		!submitting &&
+		resolved != null;
 	const showPlacement = resolved?.kind === "new";
 
 	const handleSubmit = async () => {
-		if (!canSubmit || !resolved) return;
+		const submission = prepareDiffCommentSubmission({
+			text: controller.textInput.value,
+			target: resolved,
+		});
+		if (!submission || submitting) return;
 		setSubmitting(true);
 		try {
-			await onSubmit({ comment: comment.trim(), target: resolved });
+			await onSubmit(submission);
+			controller.textInput.clear();
 		} catch (error) {
 			// User-facing errors are the caller's responsibility (we toast in
 			// DiffPane's submit path). Catch here so a rejection doesn't leak
@@ -87,6 +185,7 @@ export function AgentCommentComposer({
 
 	return (
 		<form
+			ref={rootRef}
 			className={cn(
 				"diff-comment mx-3 my-1.5 overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground",
 				"shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12),0_2px_4px_-2px_rgba(0,0,0,0.06)]",
@@ -115,20 +214,13 @@ export function AgentCommentComposer({
 				</span>
 			</div>
 
-			<div className="px-3 pb-2">
-				<textarea
-					ref={textareaRef}
-					value={comment}
-					onChange={(e) => setComment(e.target.value)}
-					placeholder="Ask the AI about these lines…"
-					rows={3}
-					className={cn(
-						"block w-full resize-none bg-transparent text-[13px] leading-snug text-foreground",
-						"placeholder:text-muted-foreground/60",
-						"focus:outline-none focus-visible:outline-none",
-					)}
-				/>
-			</div>
+			<TiptapPromptEditor
+				cwd={cwd}
+				searchFiles={searchFiles}
+				slashCommands={slashCommands}
+				placeholder="Ask the AI about these lines…"
+				className="min-h-16 py-2 text-[13px] leading-snug"
+			/>
 
 			<div className="flex items-center justify-between gap-2 border-t border-border/60 bg-muted/30 px-2.5 py-1.5">
 				<AgentPickerSelect
