@@ -222,8 +222,11 @@ export function WorkspacesScreen() {
 			</Stack.Toolbar>
 			<LegendList
 				className="flex-1 bg-background"
-				contentInsetAdjustmentBehavior="automatic"
-				contentContainerStyle={{ flexGrow: 1, paddingVertical: 8 }}
+				contentContainerStyle={{
+					flexGrow: 1,
+					paddingBottom: 112,
+					paddingTop: 8,
+				}}
 				data={visibleWorkspaces}
 				extraData={renderItem}
 				keyExtractor={(item: HostWorkspaceItem) => item.id}
