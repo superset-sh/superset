@@ -64,6 +64,9 @@ export function useFileContent({
 			absolutePath: filePath,
 			encoding: "utf-8",
 			maxBytes: MAX_FILE_SIZE,
+			// The viewer opens paths the user points at (e.g. terminal links),
+			// which may live outside the workspace root.
+			allowOutsideRoot: true,
 		},
 		{
 			enabled: rawReadEnabled,
@@ -110,6 +113,7 @@ export function useFileContent({
 			workspaceId: workspaceId ?? "",
 			absolutePath: filePath,
 			maxBytes: MAX_IMAGE_SIZE,
+			allowOutsideRoot: true,
 		},
 		{ enabled: imageReadEnabled, retry: false },
 	);

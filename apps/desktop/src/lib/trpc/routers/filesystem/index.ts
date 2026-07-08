@@ -5,7 +5,6 @@ import {
 	normalizeAbsolutePath,
 	readFileAtPath,
 	toErrorMessage,
-	WorkspaceFsPathError,
 } from "@superset/workspace-fs/host";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
@@ -17,23 +16,19 @@ import {
 } from "../workspace-fs-service";
 
 /**
- * Reads a file for a workspace, transparently handling paths that resolve
- * OUTSIDE the workspace root.
+ * Reads a file for a workspace. Reads are jailed to the workspace root.
  *
- * Terminal file links (and other explicit "open this path" affordances) can
- * point at files outside the worktree — e.g. `~/tmp/commit_1234.txt`. The link
- * detector validates those with an UNJAILED stat, so they render as clickable
- * links; if the viewer then read them through the jailed workspace service
- * they'd throw "outside workspace root" and surface as "File not found" even
- * though the file exists (and `vim` opens it fine). Falling back to an unjailed
- * read for out-of-root paths keeps the in-app viewer consistent with what the
- * detector already validated.
+ * `allowOutsideRoot` lets a caller opt into reading an explicit absolute path
+ * that resolves OUTSIDE the root. This exists only for the file viewer opening
+ * a path the user explicitly pointed at — e.g. a terminal link to
+ * `~/tmp/commit_1234.txt`, which the link detector already validated with an
+ * unjailed stat, and which would otherwise surface as "File not found" even
+ * though the file exists (and `vim` opens it fine). Every other caller omits
+ * the flag and stays jailed, so this never becomes a general arbitrary-read
+ * primitive.
  *
- * In-root reads keep going through the jailed service unchanged. The lexical
- * within-root pre-check routes normal files to the jailed path; the
- * WorkspaceFsPathError catch additionally covers workspaces whose root is
- * itself reached through a symlink (path is lexically in-root but its realpath
- * escapes the non-realpath'd root).
+ * In-root paths always go through the jailed service, keeping its
+ * symlink-escape protection intact.
  */
 async function readWorkspaceFile(
 	workspaceId: string,
@@ -43,32 +38,22 @@ async function readWorkspaceFile(
 		maxBytes?: number;
 		encoding?: string;
 	},
+	allowOutsideRoot: boolean,
 ): Promise<FsReadResult> {
 	const rootPath = resolveWorkspaceRootPath(workspaceId);
 
-	// Only an explicit absolute path that lands outside the root counts as an
-	// intentional out-of-root open (a terminal link to ~/tmp/foo). Everything
-	// else stays on the jailed service exactly as before.
-	const isAbsolute = path.isAbsolute(args.absolutePath);
-	const outsideRoot = isAbsolute && !isPathWithinRoot(rootPath, args.absolutePath);
-
-	if (!outsideRoot) {
-		try {
-			return await getServiceForRootPath(rootPath).readFile(args);
-		} catch (error) {
-			// Symlinked workspace root: an in-root path whose realpath escapes the
-			// (non-realpath'd) root. Fall through to an unjailed read; re-throw
-			// anything else (missing file, EISDIR, …) unchanged.
-			if (!(error instanceof WorkspaceFsPathError) || !isAbsolute) {
-				throw error;
-			}
-		}
+	if (
+		allowOutsideRoot &&
+		path.isAbsolute(args.absolutePath) &&
+		!isPathWithinRoot(rootPath, args.absolutePath)
+	) {
+		return await readFileAtPath({
+			...args,
+			absolutePath: normalizeAbsolutePath(args.absolutePath),
+		});
 	}
 
-	return await readFileAtPath({
-		...args,
-		absolutePath: normalizeAbsolutePath(args.absolutePath),
-	});
+	return await getServiceForRootPath(rootPath).readFile(args);
 }
 
 function isClosedStreamError(error: unknown): boolean {
@@ -119,15 +104,23 @@ export const createFilesystemRouter = () => {
 					offset: z.number().optional(),
 					maxBytes: z.number().optional(),
 					encoding: z.string().optional(),
+					// Opt-in for the file viewer to open a user-pointed path outside
+					// the workspace root (e.g. a terminal link). Defaults off so every
+					// other caller stays jailed.
+					allowOutsideRoot: z.boolean().optional(),
 				}),
 			)
 			.query(async ({ input }) => {
-				const result = await readWorkspaceFile(input.workspaceId, {
-					absolutePath: input.absolutePath,
-					offset: input.offset,
-					maxBytes: input.maxBytes,
-					encoding: input.encoding,
-				});
+				const result = await readWorkspaceFile(
+					input.workspaceId,
+					{
+						absolutePath: input.absolutePath,
+						offset: input.offset,
+						maxBytes: input.maxBytes,
+						encoding: input.encoding,
+					},
+					input.allowOutsideRoot ?? false,
+				);
 
 				if (result.kind === "bytes") {
 					return {
