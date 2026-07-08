@@ -8,7 +8,7 @@ export function WorkspaceBackButton() {
 			router.back();
 			return;
 		}
-		router.replace("/(authenticated)/(tabs)/(home)");
+		router.replace("/(authenticated)/(home)");
 	};
 
 	return (

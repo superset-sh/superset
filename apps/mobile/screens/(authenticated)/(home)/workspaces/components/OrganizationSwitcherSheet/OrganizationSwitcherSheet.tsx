@@ -5,6 +5,7 @@ import {
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useSignOut } from "@/hooks/useSignOut";
@@ -35,12 +36,18 @@ export function OrganizationSwitcherSheet({
 	width: number;
 }) {
 	const theme = useTheme();
+	const router = useRouter();
 	const { data: session } = useSession();
 	const { signOut, isSigningOut } = useSignOut();
 
 	const handleSignOut = () => {
 		onIsPresentedChange(false);
 		void signOut();
+	};
+
+	const handleOpenSettings = () => {
+		onIsPresentedChange(false);
+		router.push("/(authenticated)/settings");
 	};
 
 	return (
@@ -139,6 +146,22 @@ export function OrganizationSwitcherSheet({
 									</View>
 								</View>
 							) : null}
+							<Pressable
+								onPress={handleOpenSettings}
+								className="flex-row items-center gap-2.5 py-2.5"
+							>
+								<Ionicons
+									name="settings-outline"
+									size={28}
+									color={theme.mutedForeground}
+								/>
+								<Text
+									className="text-sm font-medium"
+									style={{ color: theme.foreground }}
+								>
+									Settings
+								</Text>
+							</Pressable>
 							<Pressable
 								onPress={handleSignOut}
 								disabled={isSigningOut}
