@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
+import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
 import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
@@ -350,6 +351,17 @@ export function __resetSessionsForTesting(): void {
 export function isLiveTerminalSession(terminalId: string): boolean {
 	const session = sessions.get(terminalId);
 	return session !== undefined && !session.exited;
+}
+
+/**
+ * Whether a live session has a foreground command running (vs. sitting at an
+ * idle shell prompt). Drives the "close anyway?" confirm on pane close. Unknown
+ * sessions and idle prompts return false.
+ */
+export function sessionHasRunningProcess(terminalId: string): boolean {
+	const session = sessions.get(terminalId);
+	if (!session || session.exited) return false;
+	return hasRunningForegroundProcess(session.pty.pid);
 }
 
 function pruneAndCountOpenSockets(session: TerminalSession): number {

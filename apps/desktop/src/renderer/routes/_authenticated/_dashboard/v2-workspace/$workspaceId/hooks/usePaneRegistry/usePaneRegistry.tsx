@@ -24,6 +24,7 @@ import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useTerminalCloseConfirmStore } from "renderer/stores/terminal-close-confirm/store";
 import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
@@ -322,6 +323,49 @@ export function usePaneRegistry({
 								?.trim() || undefined,
 					};
 				},
+				onBeforeClose: async (pane) => {
+					if (useTerminalCloseConfirmStore.getState().suppressed) return true;
+					const { terminalId } = pane.data as TerminalPaneData;
+					let running = false;
+					try {
+						running = (
+							await workspaceTrpcUtils.terminal.hasRunningProcess.fetch({
+								terminalId,
+								workspaceId,
+							})
+						).running;
+					} catch {
+						// If we can't tell, don't block the user from closing.
+						return true;
+					}
+					if (!running) return true;
+					return new Promise<boolean>((resolve) => {
+						alert({
+							title: "A process is still running in this terminal",
+							description:
+								"Closing this terminal will end the running process.",
+							checkbox: { label: "Don't ask again" },
+							onDismiss: () => resolve(false),
+							actions: [
+								{
+									label: "Close terminal",
+									variant: "destructive",
+									onClick: ({ checkboxChecked }) => {
+										if (checkboxChecked) {
+											useTerminalCloseConfirmStore.getState().suppress();
+										}
+										resolve(true);
+									},
+								},
+								{
+									label: "Cancel",
+									variant: "ghost",
+									onClick: () => resolve(false),
+								},
+							],
+						});
+					});
+				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
 					if (consumeTerminalBackgroundIntent(terminalId)) {
@@ -561,6 +605,7 @@ export function usePaneRegistry({
 			onOpenFile,
 			onRevealPath,
 			createNewAgentSession,
+			workspaceTrpcUtils.terminal.hasRunningProcess.fetch,
 		],
 	);
 }

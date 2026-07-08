@@ -9,6 +9,7 @@ import {
 	disposeSessionAndWait,
 	listTerminalSessions,
 	parseThemeType,
+	sessionHasRunningProcess,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -132,6 +133,17 @@ export const terminalRouter = router({
 				includeExited: false,
 				excludeTerminalIds: input.attachedTerminalIds,
 			}),
+		})),
+
+	hasRunningProcess: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+			}),
+		)
+		.query(({ input }) => ({
+			running: sessionHasRunningProcess(input.terminalId),
 		})),
 
 	writeInput: protectedProcedure

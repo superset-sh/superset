@@ -129,6 +129,34 @@ export function readProcessTable(): ProcessInfo[] {
 		});
 }
 
+/**
+ * Whether a foreground command (something other than the shell's own prompt) is
+ * currently running in the shell's controlling terminal.
+ *
+ * Uses the tty's foreground process group (`tpgid`): at an idle prompt it equals
+ * the shell's own process group; while a command runs in the foreground the
+ * shell has handed the terminal to the command's group, so they differ. This is
+ * precise — unlike a "shell has descendants" check it does not false-positive on
+ * suspended or background jobs. Fails closed (returns false) on any ps error.
+ */
+export function hasRunningForegroundProcess(shellPid: number): boolean {
+	if (!isPositiveInteger(shellPid)) return false;
+
+	const result = spawnSync(
+		"ps",
+		["-o", "tpgid=", "-o", "pgid=", "-p", String(shellPid)],
+		{ encoding: "utf8" },
+	);
+	if (result.error || result.status !== 0) return false;
+
+	const [tpgidText, pgidText] = result.stdout.trim().split(/\s+/);
+	const tpgid = Number(tpgidText);
+	const pgid = Number(pgidText);
+	if (!isPositiveInteger(tpgid) || !isPositiveInteger(pgid)) return false;
+
+	return tpgid !== pgid;
+}
+
 export function collectProcessTree(
 	rootPid: number,
 	table: ProcessInfo[],
