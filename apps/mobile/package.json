@@ -113,6 +113,8 @@
 	"devDependencies": {
 		"@babel/preset-typescript": "7.29.7",
 		"@gorhom/bottom-sheet": "5.2.14",
+		"@superset/host-service": "workspace:*",
+		"@trpc/server": "11.16.0",
 		"@storybook/addon-ondevice-actions": "10.4.2",
 		"@storybook/addon-ondevice-controls": "10.4.2",
 		"@storybook/react-native": "10.4.2",

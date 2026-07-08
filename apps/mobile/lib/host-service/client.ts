@@ -1,63 +1,26 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
+import type { AppRouter } from "@superset/host-service/router";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import { createTRPCClient, httpLink } from "@trpc/client";
+import { createTRPCClient, httpLink, type TRPCClient } from "@trpc/client";
+import type { inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
 import { getJwt } from "../auth/client";
 import { env } from "../env";
 
-export interface HostWorkspaceRow extends SelectV2Workspace {
-	worktreePath: string;
-	worktreeExists: boolean;
-}
+export type HostServiceClient = TRPCClient<AppRouter>;
 
-export interface ChangedFileStats {
-	path: string;
-	additions: number;
-	deletions: number;
-}
+type RouterOutputs = inferRouterOutputs<AppRouter>;
 
-export interface GitStatusSnapshot {
-	againstBase: ChangedFileStats[];
-	staged: ChangedFileStats[];
-	unstaged: ChangedFileStats[];
-}
-
-export interface DestroyWorkspaceResult {
-	success: boolean;
-	cloudDeleted: boolean;
-	worktreeRemoved: boolean;
-	branchDeleted: boolean;
-	warnings: string[];
-}
-
-// Procedures mirrored from packages/host-service/src/trpc/router — the real
-// AppRouter type graph is Node-flavored source that cannot compile under
-// Expo's TS environment. Inputs are validated by zod on the host.
-export interface HostServiceClient {
-	workspace: {
-		list: { query(): Promise<HostWorkspaceRow[]> };
-		update: {
-			mutate(input: { id: string; name?: string }): Promise<SelectV2Workspace>;
-		};
-	};
-	workspaceCleanup: {
-		destroy: {
-			mutate(input: {
-				workspaceId: string;
-				deleteBranch?: boolean;
-				force?: boolean;
-			}): Promise<DestroyWorkspaceResult>;
-		};
-	};
-	git: {
-		getStatus: {
-			query(input: {
-				workspaceId: string;
-				priority?: "foreground" | "background";
-			}): Promise<GitStatusSnapshot>;
-		};
-	};
-}
+export type HostWorkspaceRow = RouterOutputs["workspace"]["list"][number];
+export type GitStatusSnapshot = RouterOutputs["git"]["getStatus"];
+export type ChangedFileStats = GitStatusSnapshot["againstBase"][number];
+export type DestroyWorkspaceResult =
+	RouterOutputs["workspaceCleanup"]["destroy"];
+export type CreateWorkspaceResult = RouterOutputs["workspaces"]["create"];
+export type AgentLaunchResult = CreateWorkspaceResult["agents"][number];
+export type BranchSearchResult =
+	RouterOutputs["workspaceCreation"]["searchBranches"];
+export type BranchSearchRow = BranchSearchResult["items"][number];
+export type HostProjectRow = RouterOutputs["project"]["list"][number];
 
 const clientCache = new Map<string, HostServiceClient>();
 
@@ -72,8 +35,7 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 	const cached = clientCache.get(hostUrl);
 	if (cached) return cached;
 
-	// biome-ignore lint/suspicious/noExplicitAny: see HostServiceClient
-	const client = createTRPCClient<any>({
+	const client = createTRPCClient<AppRouter>({
 		links: [
 			httpLink({
 				url: `${hostUrl}/trpc`,
@@ -84,7 +46,7 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 				},
 			}),
 		],
-	}) as unknown as HostServiceClient;
+	});
 
 	clientCache.set(hostUrl, client);
 	return client;

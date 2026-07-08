@@ -40,12 +40,16 @@
 			"types": "./src/trpc/router/attachments/index.ts",
 			"default": "./src/trpc/router/attachments/index.ts"
 		},
+		"./router": {
+			"types": "./dist-types/trpc/router/router.d.ts"
+		},
 		"./package.json": "./package.json"
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"dev": "bun run src/serve.ts",
 		"build:host": "bun run build.ts",
+		"build:types": "tsc -p tsconfig.types.json",
 		"generate": "drizzle-kit generate",
 		"test": "bun test --pass-with-no-tests",
 		"test:integration": "bun test --pass-with-no-tests test/integration",
