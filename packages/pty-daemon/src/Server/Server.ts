@@ -33,6 +33,8 @@ import {
 export interface ServerOptions {
 	socketPath: string;
 	daemonVersion: string;
+	/** macOS trustd reachability, probed once at daemon startup; see main.ts. */
+	trustdHealthy?: boolean;
 	bufferCap?: number;
 	outboundBufferCap?: number;
 	/**
@@ -56,11 +58,24 @@ export class Server {
 	private readonly store: SessionStore;
 	private readonly conns = new Set<ConnState>();
 	private readonly opts: ServerOptions;
+	/**
+	 * macOS trustd reachability, surfaced in the hello-ack. Mutable so the
+	 * (blocking) probe can run AFTER the socket binds / handoff-ack is sent
+	 * rather than delaying either — see main.ts. Until set, hello-ack omits it
+	 * and the supervisor treats that as "unknown" (no respawn).
+	 */
+	private trustdHealthy: boolean | undefined;
 
 	constructor(opts: ServerOptions) {
 		this.opts = opts;
+		this.trustdHealthy = opts.trustdHealthy;
 		this.store = new SessionStore({ bufferCap: opts.bufferCap });
 		this.server = net.createServer((socket) => this.onConnection(socket));
+	}
+
+	/** Update the trustd-health value reported in subsequent hello-acks. */
+	setTrustdHealthy(healthy: boolean): void {
+		this.trustdHealthy = healthy;
 	}
 
 	async listen(): Promise<void> {
@@ -373,6 +388,7 @@ export class Server {
 				protocol: negotiated,
 				daemonVersion: this.opts.daemonVersion,
 				daemonPid: process.pid,
+				trustdHealthy: this.trustdHealthy,
 			});
 			return;
 		}
