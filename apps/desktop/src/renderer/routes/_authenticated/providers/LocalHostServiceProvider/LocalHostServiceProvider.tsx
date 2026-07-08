@@ -42,7 +42,7 @@ export function LocalHostServiceProvider({
 				// Surface the failure — React Query otherwise settles it silently.
 				console.error("[host-service] start failed:", error);
 				// Auth preconditions resolve once the token lands; not a real failure.
-				if (error.message.toLowerCase().includes("auth token")) return;
+				if (error.data?.code === "UNAUTHORIZED") return;
 				toast.error("Host service failed to start", {
 					description: error.message,
 				});
