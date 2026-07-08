@@ -52,6 +52,7 @@ import { DiffPaneHeaderExtras } from "./components/DiffPane/components/DiffPaneH
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
+import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
@@ -342,6 +343,9 @@ export function usePaneRegistry({
 							sources={getV2NotificationSourcesForPane(ctx.pane)}
 						/>
 					</div>
+				),
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
+					<TerminalPaneHeaderExtras context={ctx} />
 				),
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane

@@ -550,6 +550,7 @@ step_write_env() {
     echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with Electric SSE streams)"
     write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
     write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
+    write_env_var "EXPO_PUBLIC_ELECTRIC_URL" "http://localhost:$WRANGLER_PORT"
   } >> .env
 
   success "Workspace .env written"
