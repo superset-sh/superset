@@ -39,7 +39,7 @@ export function LocalHostServiceProvider({
 	const { mutate: startHostService } =
 		electronTrpc.hostServiceCoordinator.start.useMutation({
 			onError: (error) => {
-				// Don't let a start failure vanish into unread mutation state.
+				// Surface the failure — React Query otherwise settles it silently.
 				console.error("[host-service] start failed:", error);
 				// Auth preconditions resolve once the token lands; not a real failure.
 				if (error.message.toLowerCase().includes("auth token")) return;

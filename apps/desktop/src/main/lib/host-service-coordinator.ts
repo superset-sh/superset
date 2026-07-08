@@ -413,9 +413,8 @@ export class HostServiceCoordinator extends EventEmitter {
 			if (!current || current.pid !== childPid || current.status === "stopped")
 				return;
 
-			// Reaching here = an exit we didn't initiate via stop(). A death while
-			// "running" is a crash; deaths during startup surface via start()'s
-			// rejection, so don't double-alert those.
+			// Only alert a crash of a running child; startup deaths surface via
+			// start()'s rejection instead.
 			const previousStatus = current.status;
 			this.rememberPort(organizationId, current.port);
 			this.instances.delete(organizationId);
@@ -516,9 +515,8 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	/**
-	 * A running host-service child died unexpectedly. Alert the user with a
-	 * native dialog rather than letting the failure pass as a silent status
-	 * change; recovery is the existing tray > Host Service > Restart.
+	 * Alert on an unexpected crash of a running child. Recovery is the existing
+	 * tray > Host Service > Restart.
 	 */
 	private alertChildCrashed(
 		organizationId: string,
