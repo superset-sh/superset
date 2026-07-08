@@ -138,9 +138,20 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
 
-	const terminalAgentStore = new TerminalAgentStore(
-		new SqliteTerminalAgentBindingPersistence(db),
+	const terminalAgentPersistence = new SqliteTerminalAgentBindingPersistence(
+		db,
 	);
+	// Hygiene only — reads hide defunct bindings via the session-liveness
+	// join regardless, so a failure here must not block startup.
+	try {
+		terminalAgentPersistence.deleteDefunct();
+	} catch (error) {
+		console.warn(
+			"[terminal-agents] failed to prune defunct binding rows",
+			error,
+		);
+	}
+	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
 
 	// Backfill `kind='main'` v2 workspaces for projects already set up before
 	// this column shipped. Idempotent; runs in the background so it doesn't

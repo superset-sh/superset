@@ -239,20 +239,13 @@ class TerminalRuntimeRegistryImpl {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
 
-		const prevCols = entry.runtime.terminal.cols;
-		const prevRows = entry.runtime.terminal.rows;
-
+		// The refit may defer until the parser drains; the callback reports it.
 		const transport = entry.transport;
 		updateRuntimeAppearance(entry.runtime, appearance, () => {
 			const runtime = entry.runtime;
 			if (!runtime) return;
 			sendResize(transport, runtime.terminal.cols, runtime.terminal.rows);
 		});
-
-		const { cols, rows } = entry.runtime.terminal;
-		if (cols !== prevCols || rows !== prevRows) {
-			sendResize(entry.transport, cols, rows);
-		}
 	}
 
 	private disposeEntry(

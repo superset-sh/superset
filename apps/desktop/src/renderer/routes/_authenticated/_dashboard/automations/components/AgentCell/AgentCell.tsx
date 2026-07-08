@@ -20,7 +20,7 @@ export function AgentCell({
 	const icon = usePresetIcon(iconKey);
 
 	return (
-		<span className="inline-flex items-center gap-1.5">
+		<span className="flex min-w-0 items-center gap-1.5" title={label}>
 			{icon ? (
 				<img src={icon} alt="" className="size-3.5 shrink-0 object-contain" />
 			) : (

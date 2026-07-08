@@ -25,6 +25,11 @@ export interface UseChatDisplayOptions {
 	fps?: number;
 }
 
+// Retention window for an inactive session's cached messages/display state.
+// Overrides the global 30-min gcTime so visited sessions' data is freed shortly
+// after their pane unmounts instead of accumulating on the heap.
+const CHAT_QUERY_GC_TIME_MS = 60_000;
+
 function toRefetchIntervalMs(fps: number): number {
 	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
 	return Math.max(16, Math.floor(1000 / fps));
@@ -147,6 +152,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		refetchInterval: refetchIntervalMs,
 		refetchIntervalInBackground: true,
 		refetchOnWindowFocus: false,
+		gcTime: CHAT_QUERY_GC_TIME_MS,
 	} as const;
 
 	const displayQuery = chatRuntimeServiceTrpc.session.getDisplayState.useQuery(

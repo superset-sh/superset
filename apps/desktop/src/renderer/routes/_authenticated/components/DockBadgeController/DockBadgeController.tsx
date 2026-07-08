@@ -1,6 +1,6 @@
 import { useEffect } from "react";
+import { useV2AttentionWorkspaceCount } from "renderer/hooks/host-service/useV2NotificationStatus";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { useV2AttentionWorkspaceCount } from "renderer/stores/v2-notifications";
 
 /**
  * Mirrors the unread + attention-needed workspace count onto the OS

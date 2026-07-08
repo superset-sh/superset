@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
+	DIFF_POOL_RENDER_OPTIONS,
 	getDiffsTheme,
 	getDiffViewerStyle,
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
@@ -69,12 +70,13 @@ export function useDiffCodeViewTheme() {
 				paddingBottom: 8,
 				gap: 0,
 			},
-			// Degrade gracefully on lockfiles / minified bundles instead of
-			// blocking the worker. Pierre's defaults are 100k for whole-file
-			// tokenization and unbounded for the rest.
-			tokenizeMaxLineLength: 5_000,
+			// Diff/tokenize options shared with the diff worker pool
+			// (DIFF_POOL_RENDER_OPTIONS / buildDiffPoolRenderOptions) so the
+			// per-item and pool configs can't diverge. They degrade gracefully
+			// on lockfiles / minified bundles instead of blocking the worker.
+			...DIFF_POOL_RENDER_OPTIONS,
+			// tokenizeMaxLength is not a pool option, so it stays per-item.
 			tokenizeMaxLength: 200_000,
-			maxLineDiffLength: 5_000,
 			unsafeCSS: `
 				* { user-select: text; -webkit-user-select: text; }
 				/* Query container for slotted PR-comment bubbles

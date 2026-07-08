@@ -16,14 +16,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
-import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
 import {
 	Empty,
 	EmptyDescription,
@@ -32,33 +25,27 @@ import {
 	EmptyTitle,
 } from "@superset/ui/empty";
 import { toast } from "@superset/ui/sonner";
+import { Table, TableBody, TableHead, TableRow } from "@superset/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { HiOutlineComputerDesktop } from "react-icons/hi2";
-import {
-	LuClock,
-	LuEllipsis,
-	LuGitBranch,
-	LuPencil,
-	LuPlay,
-	LuPlus,
-	LuSearchX,
-	LuSparkles,
-	LuTerminal,
-	LuTrash2,
-	LuX,
-} from "react-icons/lu";
+import { LuPlus, LuSearchX, LuTerminal, LuX } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import {
+	DATA_TABLE_HEAD_CELL,
+	DataTableHeader,
+} from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
+import {
+	SortableHeader,
+	type SortDirection,
+} from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { AgentCell } from "./components/AgentCell";
+import { AutomationRow } from "./components/AutomationRow";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
-import { CellWithIcon } from "./components/CellWithIcon";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { useRecentProjects } from "./hooks/useRecentProjects";
 import type { AutomationTemplate } from "./templates";
@@ -71,14 +58,9 @@ export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 
 type Scope = "mine" | "team";
 
-const ROW_GRID_MINE =
-	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
-
-const ROW_GRID_TEAM =
-	"grid grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem] items-center gap-4";
+type AutomationSortField = "name" | "owner" | "project" | "schedule";
 
 function AutomationsPage() {
-	const navigate = useNavigate();
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
@@ -204,6 +186,49 @@ function AutomationsPage() {
 			: automations.filter((a) => a.ownerUserId !== currentUserId);
 	}, [automations, scope, currentUserId]);
 
+	const [sortField, setSortField] = useState<AutomationSortField | null>(null);
+	const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+	const handleSort = (field: AutomationSortField) => {
+		if (sortField === field) {
+			setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+		} else {
+			setSortField(field);
+			setSortDirection("asc");
+		}
+	};
+
+	const handleScopeChange = (value: string) => {
+		if (!value) return;
+		const next = value as Scope;
+		setScope(next);
+		// The Owner column only exists on the team tab; drop the sort with it.
+		if (next !== "team" && sortField === "owner") setSortField(null);
+	};
+
+	// Default order (no active sort) is createdAt desc from the live query.
+	const sortedVisible = useMemo(() => {
+		if (!sortField) return visible;
+		const sortValue = (automation: SelectAutomation): string => {
+			switch (sortField) {
+				case "name":
+					return automation.name;
+				case "owner": {
+					const owner = usersById.get(automation.ownerUserId);
+					return owner?.name ?? owner?.email ?? "";
+				}
+				case "project":
+					return projectsById.get(automation.v2ProjectId)?.name ?? "";
+				case "schedule":
+					return describeSchedule(automation.rrule);
+			}
+		};
+		return [...visible].sort((a, b) => {
+			const cmp = sortValue(a).localeCompare(sortValue(b));
+			return sortDirection === "asc" ? cmp : -cmp;
+		});
+	}, [visible, sortField, sortDirection, usersById, projectsById]);
+
 	const handleSelectTemplate = (template: AutomationTemplate) => {
 		setInitialTemplate(template);
 		setCreateOpen(true);
@@ -214,7 +239,8 @@ function AutomationsPage() {
 		if (!next) setInitialTemplate(null);
 	};
 
-	const rowGrid = scope === "team" ? ROW_GRID_TEAM : ROW_GRID_MINE;
+	const colWidth = scope === "team" ? "w-[13%]" : "w-[15%]";
+	const scheduleWidth = scope === "team" ? "w-[16%]" : "w-[18%]";
 	const showAutomationLoading = !automationsReady && visible.length === 0;
 	const showMineEmptyState =
 		automationsReady && visible.length === 0 && scope === "mine";
@@ -227,12 +253,7 @@ function AutomationsPage() {
 				<div className="flex items-center gap-3">
 					<h1 className="text-sm font-semibold tracking-tight">Automations</h1>
 					<div className="h-4 w-px bg-border" />
-					<Tabs
-						value={scope}
-						onValueChange={(value) => {
-							if (value) setScope(value as Scope);
-						}}
-					>
+					<Tabs value={scope} onValueChange={handleScopeChange}>
 						<TabsList className="h-8 bg-transparent p-0 gap-1">
 							<TabsTrigger
 								value="mine"
@@ -356,220 +377,98 @@ function AutomationsPage() {
 						</EmptyHeader>
 					</Empty>
 				) : (
-					<div className="flex min-h-0 flex-1 flex-col">
-						<div
-							className={cn(
-								rowGrid,
-								"sticky top-0 z-10 h-8 border-b border-border bg-background px-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80",
-							)}
+					<div className="min-h-0 flex-1">
+						<Table
+							containerClassName="h-full overflow-y-auto"
+							className="table-fixed"
 						>
-							<span>Name</span>
-							{scope === "team" && <span>Owner</span>}
-							<span>Project</span>
-							<span>Workspace</span>
-							<span>Device</span>
-							<span>Agent</span>
-							<span>Schedule</span>
-							<span />
-						</div>
-
-						<div className="min-h-0 flex-1 overflow-y-auto">
-							{visible.map((automation) => {
-								const owner = usersById.get(automation.ownerUserId);
-								const project = projectsById.get(automation.v2ProjectId);
-								const workspace = automation.v2WorkspaceId
-									? workspacesById.get(automation.v2WorkspaceId)
-									: null;
-								const workspaceLabel = !automation.v2WorkspaceId
-									? "New workspace"
-									: (workspace?.name ?? "Deleted");
-								const host = automation.targetHostId
-									? hostsById.get(automation.targetHostId)
-									: null;
-								const isOwner = automation.ownerUserId === currentUserId;
-
-								return (
-									// biome-ignore lint/a11y/useSemanticElements: row needs nested interactive elements
-									<div
-										key={automation.id}
-										role="button"
-										tabIndex={0}
-										onClick={() =>
-											navigate({
-												to: "/automations/$automationId",
-												params: { automationId: automation.id },
-											})
-										}
-										onKeyDown={(event) => {
-											if (event.target !== event.currentTarget) return;
-											if (event.key === "Enter" || event.key === " ") {
-												event.preventDefault();
-												navigate({
-													to: "/automations/$automationId",
-													params: { automationId: automation.id },
-												});
-											}
-										}}
-										className={cn(
-											rowGrid,
-											"group/row h-10 min-w-0 cursor-pointer border-b border-border/50 px-4 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
-										)}
+							<DataTableHeader>
+								<TableRow className="hover:bg-transparent">
+									<TableHead className={cn(DATA_TABLE_HEAD_CELL, "pl-4")}>
+										<SortableHeader
+											field="name"
+											label="Name"
+											sortField={sortField}
+											sortDirection={sortDirection}
+											onSort={handleSort}
+										/>
+									</TableHead>
+									{scope === "team" && (
+										<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-[12%]")}>
+											<SortableHeader
+												field="owner"
+												label="Owner"
+												sortField={sortField}
+												sortDirection={sortDirection}
+												onSort={handleSort}
+											/>
+										</TableHead>
+									)}
+									<TableHead className={cn(DATA_TABLE_HEAD_CELL, colWidth)}>
+										<SortableHeader
+											field="project"
+											label="Project"
+											sortField={sortField}
+											sortDirection={sortDirection}
+											onSort={handleSort}
+										/>
+									</TableHead>
+									<TableHead className={cn(DATA_TABLE_HEAD_CELL, colWidth)}>
+										Workspace
+									</TableHead>
+									<TableHead className={cn(DATA_TABLE_HEAD_CELL, colWidth)}>
+										Device
+									</TableHead>
+									<TableHead className={cn(DATA_TABLE_HEAD_CELL, colWidth)}>
+										Agent
+									</TableHead>
+									<TableHead
+										className={cn(DATA_TABLE_HEAD_CELL, scheduleWidth)}
 									>
-										<span className="flex min-w-0 items-center gap-2">
-											<span
-												className={cn(
-													"inline-block size-2 shrink-0 rounded-full",
-													automation.enabled
-														? "bg-emerald-500"
-														: "border border-muted-foreground/60",
-												)}
-											/>
-											<span
-												className={cn(
-													"min-w-0 truncate font-medium",
-													!automation.enabled && "text-muted-foreground",
-												)}
-												title={automation.name}
-											>
-												{automation.name}
-											</span>
-											{!automation.enabled && (
-												<Badge
-													variant="secondary"
-													className="shrink-0 text-[10px]"
-												>
-													paused
-												</Badge>
-											)}
-										</span>
+										<SortableHeader
+											field="schedule"
+											label="Schedule"
+											sortField={sortField}
+											sortDirection={sortDirection}
+											onSort={handleSort}
+										/>
+									</TableHead>
+									<TableHead
+										className={cn(DATA_TABLE_HEAD_CELL, "w-12 pr-4")}
+									/>
+								</TableRow>
+							</DataTableHeader>
+							<TableBody>
+								{sortedVisible.map((automation) => {
+									const workspace = automation.v2WorkspaceId
+										? workspacesById.get(automation.v2WorkspaceId)
+										: null;
+									const workspaceLabel = !automation.v2WorkspaceId
+										? "New workspace"
+										: (workspace?.name ?? "Deleted");
+									const host = automation.targetHostId
+										? hostsById.get(automation.targetHostId)
+										: null;
 
-										{scope === "team" && (
-											<span
-												className="min-w-0 truncate text-xs text-muted-foreground"
-												title={owner?.email ?? undefined}
-											>
-												{owner?.name ?? owner?.email ?? "—"}
-											</span>
-										)}
-
-										<span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-											{project ? (
-												<ProjectThumbnail
-													projectName={project.name}
-													iconUrl={project.iconUrl}
-													className="!size-3.5 shrink-0"
-												/>
-											) : null}
-											<span className="min-w-0 truncate">
-												{project?.name ?? "—"}
-											</span>
-										</span>
-
-										<span className="min-w-0 text-xs text-muted-foreground">
-											<CellWithIcon
-												icon={
-													automation.v2WorkspaceId ? (
-														<LuGitBranch className="size-3 shrink-0" />
-													) : (
-														<LuSparkles className="size-3 shrink-0" />
-													)
-												}
-												label={workspaceLabel}
-											/>
-										</span>
-
-										<span className="min-w-0 text-xs text-muted-foreground">
-											<CellWithIcon
-												icon={
-													<HiOutlineComputerDesktop className="size-3 shrink-0" />
-												}
-												label={host?.name ?? "Auto"}
-											/>
-										</span>
-
-										<span className="min-w-0 text-xs text-muted-foreground">
-											<AgentCell
-												agentId={automation.agent}
-												hostId={automation.targetHostId ?? null}
-											/>
-										</span>
-
-										<span
-											className="min-w-0 truncate text-xs text-muted-foreground"
-											title={describeSchedule(automation.rrule)}
-										>
-											{describeSchedule(automation.rrule)}
-										</span>
-
-										<span className="flex items-center justify-end">
-											{isOwner && (
-												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button
-															variant="ghost"
-															size="icon-sm"
-															onClick={(e) => e.stopPropagation()}
-															aria-label="Row actions"
-															className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100"
-														>
-															<LuEllipsis className="size-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent
-														align="end"
-														onClick={(e) => e.stopPropagation()}
-													>
-														<DropdownMenuItem
-															onSelect={() =>
-																navigate({
-																	to: "/automations/$automationId",
-																	params: {
-																		automationId: automation.id,
-																	},
-																})
-															}
-														>
-															<LuPencil className="size-4" />
-															Edit
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onSelect={() =>
-																runNowMutation.mutate({
-																	id: automation.id,
-																	name: automation.name,
-																})
-															}
-														>
-															<LuPlay className="size-4" />
-															Run now
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onSelect={() =>
-																navigate({
-																	to: "/automations/$automationId",
-																	params: { automationId: automation.id },
-																	search: { history: true },
-																})
-															}
-														>
-															<LuClock className="size-4" />
-															Version history
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															variant="destructive"
-															onSelect={() => setPendingDelete(automation)}
-														>
-															<LuTrash2 className="size-4" />
-															Delete
-														</DropdownMenuItem>
-													</DropdownMenuContent>
-												</DropdownMenu>
-											)}
-										</span>
-									</div>
-								);
-							})}
-						</div>
+									return (
+										<AutomationRow
+											key={automation.id}
+											automation={automation}
+											owner={usersById.get(automation.ownerUserId)}
+											showOwner={scope === "team"}
+											project={projectsById.get(automation.v2ProjectId)}
+											workspaceLabel={workspaceLabel}
+											hostLabel={host?.name ?? "Auto"}
+											isOwner={automation.ownerUserId === currentUserId}
+											onRunNow={(a) =>
+												runNowMutation.mutate({ id: a.id, name: a.name })
+											}
+											onDelete={setPendingDelete}
+										/>
+									);
+								})}
+							</TableBody>
+						</Table>
 					</div>
 				)}
 			</div>

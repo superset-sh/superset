@@ -197,7 +197,7 @@ export function V2PresetsSection({
 			}
 			pills.push({
 				agentId: agent.id,
-				iconId: agent.presetId,
+				iconId: agent.iconId ?? agent.presetId,
 				label: agent.label,
 				description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId) ?? "",
 				commands: [getAgentCommandText(agent)],

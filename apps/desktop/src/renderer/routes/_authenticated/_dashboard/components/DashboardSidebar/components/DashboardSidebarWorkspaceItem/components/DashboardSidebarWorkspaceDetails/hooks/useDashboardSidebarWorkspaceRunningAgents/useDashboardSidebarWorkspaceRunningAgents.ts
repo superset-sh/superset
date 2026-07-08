@@ -4,12 +4,9 @@ import {
 } from "@superset/shared/agent-catalog";
 import { useMemo } from "react";
 import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
-import {
-	useV2NotificationStore,
-	type V2NotificationSource,
-} from "renderer/stores/v2-notifications";
+import { useTerminalAgentStatuses } from "renderer/hooks/host-service/useTerminalAgentStatuses";
+import type { V2NotificationSource } from "renderer/stores/v2-notifications";
 import type { PaneStatus } from "shared/tabs-types";
-import { useShallow } from "zustand/react/shallow";
 
 /**
  * State of a bound agent. `idle` means the agent process is alive but not
@@ -46,21 +43,7 @@ export function useDashboardSidebarWorkspaceRunningAgents(
 	enabled = true,
 ): DashboardSidebarRunningAgent[] {
 	const bindings = useTerminalAgentBindings(workspaceId, { enabled });
-
-	const statusByTerminal = useV2NotificationStore(
-		useShallow((state) => {
-			const map: Record<string, RunningAgentStatus> = {};
-			for (const entry of Object.values(state.sources)) {
-				if (
-					entry.workspaceId === workspaceId &&
-					entry.source.type === "terminal"
-				) {
-					map[entry.source.id] = entry.status;
-				}
-			}
-			return map;
-		}),
-	);
+	const statuses = useTerminalAgentStatuses(workspaceId, { enabled });
 
 	return useMemo(() => {
 		const agents: DashboardSidebarRunningAgent[] = [];
@@ -70,12 +53,12 @@ export function useDashboardSidebarWorkspaceRunningAgents(
 				source: { type: "terminal", id: binding.terminalId },
 				terminalId: binding.terminalId,
 				agentId: binding.agentId,
-				status: statusByTerminal[binding.terminalId] ?? "idle",
+				status: statuses.get(binding.terminalId) ?? "idle",
 				startedAt: binding.startedAt,
 				label: BUILTIN_AGENT_LABELS[binding.agentId] ?? binding.agentId,
 			});
 		}
 		agents.sort((a, b) => a.startedAt - b.startedAt);
 		return agents;
-	}, [bindings, statusByTerminal]);
+	}, [bindings, statuses]);
 }

@@ -5,8 +5,8 @@ import { useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
-import { OrganizationSwitcherSheet } from "@/screens/(authenticated)/(home)/workspaces/components/OrganizationSwitcherSheet";
-import { OrganizationAvatar } from "@/screens/(authenticated)/(home)/workspaces/components/OrganizationSwitcherSheet/components/OrganizationAvatar";
+import { OrganizationSwitcherSheet } from "@/screens/(authenticated)/(tabs)/(home)/workspaces/components/OrganizationSwitcherSheet";
+import { OrganizationAvatar } from "@/screens/(authenticated)/(tabs)/(home)/workspaces/components/OrganizationSwitcherSheet/components/OrganizationAvatar";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 
 export function TabBarAccessory() {
@@ -47,7 +47,7 @@ export function TabBarAccessory() {
 					<ChevronsUpDown size={12} color={theme.mutedForeground} />
 				</Pressable>
 				<Pressable
-					onPress={() => router.push("/(authenticated)/(more)/settings")}
+					onPress={() => router.push("/(authenticated)/(tabs)/(more)/settings")}
 					hitSlop={8}
 				>
 					<Ionicons

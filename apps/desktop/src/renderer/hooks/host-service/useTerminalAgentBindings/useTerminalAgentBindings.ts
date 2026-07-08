@@ -39,8 +39,10 @@ export function useTerminalAgentBindings(
 				hostUrl,
 			).terminalAgents.listByWorkspace.query({ workspaceId });
 		},
-		refetchOnWindowFocus: false,
-		staleTime: Number.POSITIVE_INFINITY,
+		// Lifecycle events invalidate for instant updates; the finite
+		// staleTime lets focus/remount refetches self-heal any staleness
+		// from events missed while the WS was down (host restart, sleep).
+		staleTime: 30_000,
 	});
 
 	const invalidate = useCallback(() => {

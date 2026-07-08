@@ -137,6 +137,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description: "Factory's autonomous coding agent for terminal workflows.",
 		command: "droid",
 	}),
+	createBuiltinTerminalAgent({
+		id: "polygraph",
+		label: "Polygraph",
+		description:
+			"The meta-harness that gives agents cross-repo visibility and memory that survives every session.",
+		command: "polygraph session start",
+		promptCommand: "polygraph session start --",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =
