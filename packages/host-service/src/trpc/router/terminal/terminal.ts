@@ -8,6 +8,7 @@ import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	disposeSessionsByWorkspaceId,
+	disposeSessionsByWorktreePath,
 	listTerminalSessions,
 	parseThemeType,
 	sessionHasRunningProcess,
@@ -231,6 +232,14 @@ export const terminalRouter = router({
 				.run();
 			return result;
 		}),
+
+	// Like disposeWorkspaceSessions but for a closed worktree, which no longer
+	// has a workspace id — resolve sessions through the shared worktree path.
+	disposeWorktreeSessions: protectedProcedure
+		.input(z.object({ worktreePath: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorktreePath(input.worktreePath, ctx.db),
+		),
 
 	daemon: daemonRouter,
 });

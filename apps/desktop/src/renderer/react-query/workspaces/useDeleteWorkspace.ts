@@ -1,32 +1,12 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { disposeHostSessionsForWorkspace } from "renderer/lib/dispose-host-sessions";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useLocalHostServiceOptional } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	getWorkspaceFocusTargetAfterRemoval,
 	removeWorkspaceFromGroups,
 } from "./utils/workspace-removal";
-
-/**
- * The electron delete path only kills the main-process daemon's terminals, so a
- * v2 workspace's host-service sessions (backgrounded ones included) would leak.
- * Best-effort: tell the local host-service to dispose them. Never blocks delete.
- */
-function disposeHostSessionsForWorkspace(
-	activeHostUrl: string | null,
-	workspaceId: string,
-): void {
-	if (!activeHostUrl) return;
-	getHostServiceClientByUrl(activeHostUrl)
-		.terminal.disposeWorkspaceSessions.mutate({ workspaceId })
-		.catch((error) => {
-			console.warn("Failed to dispose host sessions for deleted workspace", {
-				workspaceId,
-				error,
-			});
-		});
-}
 
 type DeleteContext = {
 	previousGrouped: ReturnType<

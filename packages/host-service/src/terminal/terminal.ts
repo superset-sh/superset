@@ -861,6 +861,31 @@ export async function disposeSessionsByWorkspaceId(
 	return { terminated, failed };
 }
 
+/**
+ * Dispose every active session for any workspace mapped to the given worktree
+ * path. Deleting a closed worktree has no workspace id, so we join through the
+ * workspaces table on the shared worktree path.
+ */
+export async function disposeSessionsByWorktreePath(
+	worktreePath: string,
+	db: HostDb,
+): Promise<{ terminated: number; failed: number }> {
+	const workspaceRows = db
+		.select({ id: workspaces.id })
+		.from(workspaces)
+		.where(eq(workspaces.worktreePath, worktreePath))
+		.all();
+
+	let terminated = 0;
+	let failed = 0;
+	for (const { id } of workspaceRows) {
+		const result = await disposeSessionsByWorkspaceId(id, db);
+		terminated += result.terminated;
+		failed += result.failed;
+	}
+	return { terminated, failed };
+}
+
 interface CreateTerminalSessionOptions {
 	terminalId: string;
 	workspaceId: string;
