@@ -73,11 +73,11 @@ export const POSTHOG_COOKIE_NAME = "superset";
 export const V2_ONLY_USER_CUTOFF = "2026-05-15T14:00:00.000Z";
 // 2026-06-08 06:59 UTC = Sun 23:59 PDT (11:59pm Pacific).
 export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-08T06:59:00.000Z";
-// Rollout boundary: accounts created at/after this default to v2. Anchored to the
-// end of the 2026-07-09 desktop release day (start of 2026-07-10 UTC) so every
-// signup during the release stays on v1 regardless of when the build reaches
-// them — no existing v1 user flips. Bump this if the release slips.
-export const V2_NEW_USER_V2_DEFAULT_START = "2026-07-10T00:00:00.000Z";
+// Rollout boundary: accounts created at/after this default to v2. Set to the
+// 2026-07-09 release cutover, 10:00 AM Pacific (PDT, UTC-7) = 17:00 UTC. Everyone
+// who signed up before the cutover stays on v1, so no existing v1 user flips.
+// Bump this if the release slips.
+export const V2_NEW_USER_V2_DEFAULT_START = "2026-07-09T17:00:00.000Z";
 
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
