@@ -1,4 +1,4 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import {
@@ -12,6 +12,7 @@ export interface DiffStats {
 }
 
 const DIFF_STATS_STALE_MS = 60_000;
+const DIFF_STATS_GC_MS = 30 * 60_000;
 
 function aggregateDiffStats(status: GitStatusSnapshot): DiffStats {
 	const byPath = new Map<string, { additions: number; deletions: number }>();
@@ -32,8 +33,10 @@ function aggregateDiffStats(status: GitStatusSnapshot): DiffStats {
 }
 
 /**
- * Live working-tree diff stats for the workspaces currently settled in the
- * viewport — bounded per screenful, not per project.
+ * Live working-tree diff stats. Fetching is viewport-bounded (only settled
+ * visible rows subscribe — one screenful, not the whole project), but the
+ * returned map is built from the whole query cache so rows scrolling back
+ * into view render their last-known stats instead of flickering in.
  */
 export function useVisibleDiffStats({
 	visibleIds,
@@ -44,6 +47,8 @@ export function useVisibleDiffStats({
 	workspacesById: Map<string, HostWorkspaceItem>;
 	resolveHostUrl: (hostId: string) => string | null;
 }): Map<string, DiffStats> {
+	const queryClient = useQueryClient();
+
 	const eligible = useMemo(() => {
 		const result: Array<{ workspaceId: string; hostUrl: string }> = [];
 		for (const workspaceId of visibleIds) {
@@ -62,10 +67,11 @@ export function useVisibleDiffStats({
 		return result;
 	}, [visibleIds, workspacesById, resolveHostUrl]);
 
-	const queries = useQueries({
+	const _queries = useQueries({
 		queries: eligible.map(({ workspaceId, hostUrl }) => ({
 			queryKey: ["diff-stats", hostUrl, workspaceId] as const,
 			staleTime: DIFF_STATS_STALE_MS,
+			gcTime: DIFF_STATS_GC_MS,
 			retry: 1,
 			networkMode: "always" as const,
 			queryFn: () =>
@@ -78,10 +84,17 @@ export function useVisibleDiffStats({
 
 	return useMemo(() => {
 		const map = new Map<string, DiffStats>();
-		eligible.forEach(({ workspaceId }, index) => {
-			const status = queries[index]?.data;
-			if (status) map.set(workspaceId, aggregateDiffStats(status));
-		});
+		for (const [
+			queryKey,
+			status,
+		] of queryClient.getQueriesData<GitStatusSnapshot>({
+			queryKey: ["diff-stats"],
+		})) {
+			const workspaceId = queryKey[2];
+			if (typeof workspaceId === "string" && status) {
+				map.set(workspaceId, aggregateDiffStats(status));
+			}
+		}
 		return map;
-	}, [eligible, queries]);
+	}, [queryClient]);
 }
