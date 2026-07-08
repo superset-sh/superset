@@ -40,7 +40,22 @@ For **local (branch-based) workspaces**, the sidebar shows how far the active br
 
 PR-based workspaces show pull request state in the sidebar.
 
-Hover a workspace to see review status, CI checks, and GitHub links. If the branch has a deployment preview, you'll also see an **Open Preview** button.
+Hover a workspace to see review status, CI checks, and GitHub links. If the branch has a deployment preview, you'll also see an **Open Preview** button. For a failed GitHub Actions check, use **Copy logs** to copy the job's logs to your clipboard for pasting into a prompt.
+
+## Running Agents & Ports
+
+Each workspace row in the sidebar shows inline detail below it:
+
+- **Running agents** - Every agent bound to the workspace's terminals, with live status (working, needs permission, ready for review) or its icon when idle. Click a badge to jump to that agent's terminal.
+- **Active ports** - Ports detected in that workspace; see [Port Management](/ports).
+
+Both rows are enabled by default. Toggle them in **Settings → Experimental**.
+
+## Attention Badge
+
+The dock icon (macOS) or taskbar icon shows how many workspaces are ready for review or need your attention (e.g. waiting on permission). Workspaces where an agent is still working aren't counted.
+
+Right-click a workspace and choose **Clear Status** to dismiss its indicator manually.
 
 ## Use Cases
 

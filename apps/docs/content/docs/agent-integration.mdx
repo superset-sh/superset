@@ -18,6 +18,7 @@ Run AI coding agents in isolated workspaces. Each agent works independently with
 - **Pi** - Minimal terminal coding harness
 - **Gemini CLI** - Google's CLI agent
 - **Cursor Agent** - Cursor AI agent
+- **Polygraph** - Meta-harness that runs on top of Claude Code, Codex, or OpenCode, adding cross-repo visibility and session-persistent memory
 
 ## Chat
 
@@ -38,6 +39,21 @@ Go to **Settings → Agents** to customize launch behavior for each built-in age
 - **Task Prompt Template** - Template used when launching an agent from a task
 - **Model Override** - Optional model override for Superset Chat
 - **Reset to Defaults** - Restore the shipped configuration for that agent
+
+## Custom Agents
+
+Go to **Settings → Agents → Add agent → Custom agent…** to add your own terminal agent alongside the built-ins.
+
+- **Icon** - Pick a built-in icon, upload your own image, or use no icon
+- **Launch command** - The command to run, with optional prompt-only args
+- Custom agents behave like built-ins everywhere else: they appear in the sidebar, the new-workspace/run agent picker, and can be edited, reordered, or deleted from their detail pane
+- No model picker is available for custom agents
+
+## Models & Reasoning Effort
+
+The new-workspace model picker offers **Fable** for Claude Code, plus Claude Fable 5 for Copilot, Cursor Agent, and OpenCode.
+
+Supported agents (Claude Code, Amp, Copilot, Pi, Mastra Code) also expose a **reasoning effort** picker in the new-workspace form. Your last selection is remembered per agent; leaving it on Default omits the flag and uses the CLI's own default.
 
 ## Usage
 
