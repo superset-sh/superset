@@ -36,6 +36,8 @@ const ENABLE_MOUSE_SGR = `${CSI}?1006h`;
 const DISABLE_MOUSE_SGR = `${CSI}?1006l`;
 const ENABLE_MOUSE_NORMAL = `${CSI}?1000h`;
 const DISABLE_MOUSE_NORMAL = `${CSI}?1000l`;
+const ENABLE_MOUSE_BUTTON_EVENT = `${CSI}?1002h`;
+const ENABLE_MOUSE_ANY_EVENT = `${CSI}?1003h`;
 const ENABLE_FOCUS_REPORTING = `${CSI}?1004h`;
 const HIDE_CURSOR = `${CSI}?25l`;
 const SHOW_CURSOR = `${CSI}?25h`;
@@ -520,6 +522,91 @@ describe("Edge Cases", () => {
 		} finally {
 			source.dispose();
 			target.dispose();
+		}
+	});
+});
+
+/**
+ * Reproduction for issue #5508:
+ * "Restored terminal sessions replay stale mouse/kitty input modes, spamming
+ *  escape sequences into the shell"
+ *
+ * A mode-arming TUI (e.g. Claude Code) enters the alternate screen and arms
+ * input-reporting modes: button/any-event mouse tracking (1002/1003), SGR mouse
+ * encoding (1006), focus reporting (1004) and bracketed paste (2004). When that
+ * TUI dies uncleanly (Session.dispose SIGKILLs the process tree, or the machine
+ * reboots), it never writes its disarm sequences (?1002l/?1006l/?1004l/?1049l …).
+ *
+ * The emulator therefore keeps those modes latched as `true`. On restore the app
+ * re-arms them: `generateRehydrateSequences()` deliberately does NOT restore the
+ * alternate screen (see the note in headless-emulator.ts) yet still re-emits every
+ * input-reporting mode. Those sequences are written into the fresh xterm that now
+ * hosts a plain shell, so mouse movement and keystrokes at the zsh prompt get
+ * encoded as escape reports (the `35;45;20M…` / CSI-u junk from the issue).
+ *
+ * The desired post-fix behavior: restoring a snapshot whose alternate screen we do
+ * NOT restore must not re-arm the input-reporting modes owned by the (now gone)
+ * full-screen app. These assertions describe that desired behavior, so the test is
+ * expected to FAIL against current code — `test.failing` keeps CI green while the
+ * bug stands and will flip to red the moment a fix lands.
+ */
+describe("stale input-mode replay on restore (issue #5508)", () => {
+	test("rehydrate sequences re-arm the dead TUI's input modes (mechanism)", async () => {
+		const source = new HeadlessEmulator({ cols: 80, rows: 24 });
+		try {
+			// TUI arms its modes inside the alternate screen, then is SIGKILLed
+			// (no disarm sequences are ever written).
+			await source.writeSync(ENTER_ALT_SCREEN);
+			await source.writeSync(ENABLE_MOUSE_BUTTON_EVENT);
+			await source.writeSync(ENABLE_MOUSE_ANY_EVENT);
+			await source.writeSync(ENABLE_MOUSE_SGR);
+			await source.writeSync(ENABLE_FOCUS_REPORTING);
+			await source.writeSync(ENABLE_BRACKETED_PASTE);
+
+			const snapshot = source.getSnapshot();
+
+			// The rehydrate sequences skip the alternate screen but still re-arm the
+			// input-reporting modes that only made sense inside it.
+			expect(snapshot.rehydrateSequences).not.toContain("?1049h");
+			expect(snapshot.rehydrateSequences).toContain("?1002h");
+			expect(snapshot.rehydrateSequences).toContain("?1003h");
+			expect(snapshot.rehydrateSequences).toContain("?1006h");
+			expect(snapshot.rehydrateSequences).toContain("?1004h");
+		} finally {
+			source.dispose();
+		}
+	});
+
+	test.failing("restored shell pane must not have stale mouse/focus modes armed", async () => {
+		const source = new HeadlessEmulator({ cols: 80, rows: 24 });
+		const restored = new HeadlessEmulator({ cols: 80, rows: 24 });
+		try {
+			// Mode-arming TUI running in the alternate screen.
+			await source.writeSync(ENTER_ALT_SCREEN);
+			await source.writeSync(ENABLE_MOUSE_BUTTON_EVENT);
+			await source.writeSync(ENABLE_MOUSE_ANY_EVENT);
+			await source.writeSync(ENABLE_MOUSE_SGR);
+			await source.writeSync(ENABLE_FOCUS_REPORTING);
+			await source.writeSync(ENABLE_BRACKETED_PASTE);
+			await source.writeSync("(claude code drawing its UI)\r\n");
+
+			// TUI dies uncleanly: no ?1002l/?1003l/?1006l/?1004l/?1049l disarm.
+			const snapshot = source.getSnapshot();
+
+			// App restores the pane into a fresh xterm and attaches a plain shell.
+			await applySnapshotAsync(restored, snapshot);
+
+			// A plain shell is now in the foreground. None of the input-reporting
+			// modes the dead TUI armed should be latched — otherwise mouse motion
+			// and keystrokes get echoed as escape reports at the prompt.
+			const modes = restored.getModes();
+			expect(modes.mouseTrackingButtonEvent).toBe(false);
+			expect(modes.mouseTrackingAnyEvent).toBe(false);
+			expect(modes.mouseSgr).toBe(false);
+			expect(modes.focusReporting).toBe(false);
+		} finally {
+			source.dispose();
+			restored.dispose();
 		}
 	});
 });
