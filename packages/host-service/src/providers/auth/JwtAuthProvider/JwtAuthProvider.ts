@@ -3,6 +3,15 @@ import type { ApiAuthProvider } from "../types";
 const JWT_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const JWT_CACHE_DURATION_MS = 55 * 60 * 1000;
 
+// Circuit breaker for a wedged session (#5513). When /api/auth/token keeps
+// failing, a client that mints per request would otherwise fire hundreds of
+// requests with no backoff — enough to trip an upstream per-IP rate limit and
+// lock the user out of the login endpoint too. After a failure we refuse to
+// touch the network again until an exponentially growing cooldown elapses, so
+// a broken session degrades to at most a trickle of retries.
+const JWT_FAILURE_BASE_BACKOFF_MS = 1000;
+const JWT_FAILURE_MAX_BACKOFF_MS = 5 * 60 * 1000;
+
 function looksLikeJwt(token: string): boolean {
 	const parts = token.split(".");
 	return parts.length === 3 && parts.every(Boolean);
@@ -25,6 +34,10 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 	private readonly apiUrl: string;
 	private cachedJwt: string | null = null;
 	private cachedJwtExpiresAt = 0;
+	private inflight: Promise<string> | null = null;
+	private failureCount = 0;
+	private backoffUntil = 0;
+	private lastFailure: Error | null = null;
 
 	constructor(options: JwtApiAuthProviderOptions) {
 		this.getSessionToken = options.getSessionToken;
@@ -51,6 +64,43 @@ export class JwtApiAuthProvider implements ApiAuthProvider {
 			return this.cachedJwt;
 		}
 
+		// Circuit breaker: while a recent mint failure's cooldown is still
+		// active, reject immediately without touching the network so a wedged
+		// session can't storm /api/auth/token (#5513).
+		if (Date.now() < this.backoffUntil) {
+			throw this.lastFailure ?? new Error("Failed to mint JWT");
+		}
+
+		// Coalesce concurrent callers onto a single mint so a burst of
+		// requests on a cold cache doesn't fan out N token exchanges.
+		if (this.inflight) return this.inflight;
+		this.inflight = this.mintJwt().finally(() => {
+			this.inflight = null;
+		});
+		return this.inflight;
+	}
+
+	private async mintJwt(): Promise<string> {
+		try {
+			const jwt = await this.exchangeSessionForJwt();
+			this.failureCount = 0;
+			this.backoffUntil = 0;
+			this.lastFailure = null;
+			return jwt;
+		} catch (error) {
+			this.failureCount += 1;
+			const backoff = Math.min(
+				JWT_FAILURE_BASE_BACKOFF_MS * 2 ** (this.failureCount - 1),
+				JWT_FAILURE_MAX_BACKOFF_MS,
+			);
+			this.backoffUntil = Date.now() + backoff;
+			this.lastFailure =
+				error instanceof Error ? error : new Error(String(error));
+			throw this.lastFailure;
+		}
+	}
+
+	private async exchangeSessionForJwt(): Promise<string> {
 		const sessionToken = await this.getSessionToken();
 
 		// CLI OAuth code+PKCE login stores the OAuth access token directly,

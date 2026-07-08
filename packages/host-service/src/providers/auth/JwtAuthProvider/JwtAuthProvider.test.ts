@@ -357,6 +357,55 @@ describe("JwtApiAuthProvider with config-backed host auth", () => {
 		}
 	});
 
+	// Regression: #5513 — a broken session must not let the client hammer
+	// /api/auth/token unbounded. Every failed mint used to re-hit the network
+	// with no backoff, which tripped Vercel's per-IP firewall and 403'd the
+	// login endpoint too, locking the user out.
+	test("repeated failing mints back off instead of hammering /api/auth/token", async () => {
+		const fetchMock = mockFetch(
+			async () => new Response("Forbidden", { status: 403 }),
+		);
+		const authProvider = new JwtApiAuthProvider({
+			getSessionToken: async () => "sk_live_broken_session",
+			apiUrl: API_URL,
+		});
+
+		// Simulate a wedged client generating a burst of auth-needing requests.
+		for (let i = 0; i < 50; i++) {
+			await authProvider.getHeaders().catch(() => {});
+		}
+
+		// Without a circuit breaker this fans out one fetch per call (50). A
+		// backoff window should collapse the burst to a handful of attempts.
+		expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(3);
+	});
+
+	test("concurrent failing mints share a single in-flight request", async () => {
+		let releaseFetch: (() => void) | undefined;
+		const fetchGate = new Promise<void>((resolve) => {
+			releaseFetch = resolve;
+		});
+		const fetchMock = mockFetch(async () => {
+			await fetchGate;
+			return new Response("Forbidden", { status: 403 });
+		});
+		const authProvider = new JwtApiAuthProvider({
+			getSessionToken: async () => "sk_live_broken_session",
+			apiUrl: API_URL,
+		});
+
+		const inflight = Promise.all(
+			Array.from({ length: 10 }, () =>
+				authProvider.getHeaders().catch(() => {}),
+			),
+		);
+		await Promise.resolve();
+		releaseFetch?.();
+		await inflight;
+
+		expect(fetchMock.mock.calls.length).toBe(1);
+	});
+
 	test("static AUTH_TOKEN behavior is unchanged without a config source", async () => {
 		const fetchMock = mockFetch(async () => {
 			throw new Error("unexpected fetch");
