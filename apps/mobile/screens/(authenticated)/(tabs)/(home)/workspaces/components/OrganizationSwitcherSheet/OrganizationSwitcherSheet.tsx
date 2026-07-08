@@ -7,7 +7,9 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
+import { useSession } from "@/lib/auth/client";
 import { OrganizationAvatar } from "./components/OrganizationAvatar";
 
 export interface Organization {
@@ -33,6 +35,13 @@ export function OrganizationSwitcherSheet({
 	width: number;
 }) {
 	const theme = useTheme();
+	const { data: session } = useSession();
+	const { signOut, isSigningOut } = useSignOut();
+
+	const handleSignOut = () => {
+		onIsPresentedChange(false);
+		void signOut();
+	};
 
 	return (
 		<Host style={{ position: "absolute", width }}>
@@ -97,6 +106,56 @@ export function OrganizationSwitcherSheet({
 									</Pressable>
 								);
 							})}
+							<View
+								className="my-3 h-px"
+								style={{ backgroundColor: theme.border }}
+							/>
+							<Text
+								className="mb-2 text-sm font-semibold"
+								style={{ color: theme.mutedForeground }}
+							>
+								Settings
+							</Text>
+							{session?.user ? (
+								<View className="flex-row items-center gap-2.5 py-2.5">
+									<Ionicons
+										name="person-circle-outline"
+										size={28}
+										color={theme.mutedForeground}
+									/>
+									<View className="flex-1">
+										<Text
+											className="text-sm font-medium"
+											style={{ color: theme.foreground }}
+										>
+											{session.user.name}
+										</Text>
+										<Text
+											className="text-xs"
+											style={{ color: theme.mutedForeground }}
+										>
+											{session.user.email}
+										</Text>
+									</View>
+								</View>
+							) : null}
+							<Pressable
+								onPress={handleSignOut}
+								disabled={isSigningOut}
+								className="flex-row items-center gap-2.5 py-2.5"
+							>
+								<Ionicons
+									name="log-out-outline"
+									size={28}
+									color={theme.destructive}
+								/>
+								<Text
+									className="text-sm font-medium"
+									style={{ color: theme.destructive }}
+								>
+									Log out
+								</Text>
+							</Pressable>
 						</View>
 					</RNHostView>
 				</Group>

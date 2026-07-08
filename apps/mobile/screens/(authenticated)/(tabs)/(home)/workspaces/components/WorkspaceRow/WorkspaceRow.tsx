@@ -1,20 +1,25 @@
 import type { SelectGithubPullRequest } from "@superset/db/schema";
 import { formatDistanceToNow } from "date-fns";
 import {
-	Circle,
 	CircleDot,
 	Cloud,
 	CloudOff,
 	GitMerge,
 	GitPullRequest,
 } from "lucide-react-native";
-import { Linking, Pressable, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withTiming,
+} from "react-native-reanimated";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import type {
 	HostWorkspaceItem,
 	HostWorkspacesCacheOps,
 } from "@/hooks/useHostWorkspaces";
+import { useTheme } from "@/hooks/useTheme";
 import type { DiffStats } from "../../hooks/useVisibleDiffStats";
 import { WorkspaceRowMenu } from "./components/WorkspaceRowMenu";
 
@@ -66,22 +71,41 @@ export function WorkspaceRow({
 }) {
 	const prBadge = pullRequest ? PR_BADGE_CONFIG[prStateFor(pullRequest)] : null;
 
-	const HostIcon =
-		workspace.source === "cloud"
-			? Circle
-			: workspace.hostReachable
-				? Cloud
-				: CloudOff;
+	const theme = useTheme();
+	const pressProgress = useSharedValue(0);
+	const highlightStyle = useAnimatedStyle(() => ({
+		opacity: pressProgress.value,
+	}));
 
 	return (
 		<WorkspaceRowMenu workspace={workspace} cache={cache}>
-			<Pressable className="bg-background flex-row items-center gap-3 px-4 py-3">
+			<Pressable
+				className="bg-background flex-row items-center gap-3 px-4 py-3"
+				onPressIn={() => {
+					pressProgress.value = withTiming(1, { duration: 300 });
+				}}
+				onPressOut={() => {
+					pressProgress.value = withTiming(0, { duration: 150 });
+				}}
+			>
+				<Animated.View
+					pointerEvents="none"
+					style={[
+						StyleSheet.absoluteFill,
+						{ backgroundColor: theme.muted },
+						highlightStyle,
+					]}
+				/>
 				<View className="size-9 items-center justify-center">
-					<Icon
-						as={HostIcon}
-						className="text-muted-foreground size-5"
-						strokeWidth={1.75}
-					/>
+					{workspace.source === "cloud" ? (
+						<View className="bg-muted-foreground/50 size-2 rounded-full" />
+					) : (
+						<Icon
+							as={workspace.hostReachable ? Cloud : CloudOff}
+							className="text-muted-foreground size-5"
+							strokeWidth={1.75}
+						/>
+					)}
 				</View>
 				<View className="flex-1 gap-0.5">
 					<Text className="font-medium" numberOfLines={1}>
