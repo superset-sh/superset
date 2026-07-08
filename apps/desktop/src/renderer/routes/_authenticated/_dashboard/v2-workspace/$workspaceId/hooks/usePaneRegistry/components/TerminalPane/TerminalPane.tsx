@@ -451,14 +451,14 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
-				<TerminalRichInput
-					workspaceId={workspaceId}
-					terminalId={terminalId}
-					terminalInstanceId={terminalInstanceId}
-					isOpen={isRichInputOpen}
-					onClose={closeRichInput}
-				/>
 			</div>
+			<TerminalRichInput
+				workspaceId={workspaceId}
+				terminalId={terminalId}
+				terminalInstanceId={terminalInstanceId}
+				isOpen={isRichInputOpen}
+				onClose={closeRichInput}
+			/>
 			<div
 				className={cn(
 					"pointer-events-none absolute inset-0 bg-primary/10 transition-opacity duration-100",

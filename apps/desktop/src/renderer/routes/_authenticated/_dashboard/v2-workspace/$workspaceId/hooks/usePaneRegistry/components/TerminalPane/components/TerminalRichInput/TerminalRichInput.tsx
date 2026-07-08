@@ -142,58 +142,65 @@ function TerminalRichInputInner({
 	}, [isOpen, controller]);
 
 	return (
-		// Stays mounted while closed so open/close can transition both ways —
-		// a light fade + center scale, the same weight as the app's button
-		// transitions. pointer-events-none + inert keep the hidden overlay out
-		// of mouse and tab reach.
-		// Pane root already pads p-2 (8px); inset-x-2 lands total side padding at
-		// 16px and bottom-2.5 at 18px — the chat composer's px-4 / py-3+spacer.
+		// Docked below the terminal rather than floating over it: opening adds
+		// real layout height, which shrinks the flex-1 terminal box and drives
+		// the terminal's ResizeObserver to refit + push content up (instead of
+		// covering the last output lines). The grid-rows 0fr→1fr collapse
+		// animates that height; the panel stays mounted so drafts and undo
+		// survive close/reopen. inert + pointer-events-none keep the collapsed
+		// panel out of mouse and tab reach.
 		<div
-			ref={rootRef}
-			inert={!isOpen || undefined}
 			className={cn(
-				"absolute inset-x-2 bottom-2.5 z-10 mx-auto w-auto max-w-[680px] transition-[opacity,transform] duration-150 ease-out",
-				isOpen
-					? "scale-100 opacity-100"
-					: "pointer-events-none scale-[0.97] opacity-0",
+				"grid shrink-0 transition-[grid-template-rows] duration-150 ease-out",
+				isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
 			)}
 		>
-			{hotkeyText !== "Unassigned" && (
-				<span className="pointer-events-none absolute top-3 right-3 z-10 text-xs text-muted-foreground/50">
-					{hotkeyText} to hide
-				</span>
-			)}
-			{/* Opaque backdrop: the chat composer's translucent bg-foreground/[0.02]
-			    sits on bg-background in the chat pane; replicate that surface here
-			    so terminal output doesn't bleed through. */}
-			<PromptInput
-				className="rounded-[13px] bg-background [&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
-				onSubmit={handleSubmit}
-				onKeyDown={(e) => {
-					if (e.key === "Escape") {
-						e.stopPropagation();
-						onClose();
-					}
-				}}
+			<div
+				ref={rootRef}
+				inert={!isOpen || undefined}
+				className={cn(
+					"min-h-0 overflow-hidden transition-opacity duration-150 ease-out",
+					isOpen ? "opacity-100" : "pointer-events-none opacity-0",
+				)}
 			>
-				<TiptapPromptEditor
-					cwd={cwd}
-					searchFiles={searchFiles}
-					slashCommands={[]}
-					placeholder="Ask to make changes"
-				/>
-				<PromptInputFooter>
-					<span className="flex items-center pl-1">
-						<TerminalPaneIcon
-							workspaceId={workspaceId}
-							terminalId={terminalId}
+				{/* Pane root pads p-2 (8px); pt-2 sets the gap to the terminal and
+				    the mx-auto max-w keeps the card centered like the chat composer. */}
+				<div className="relative mx-auto w-full max-w-[680px] pt-2">
+					{hotkeyText !== "Unassigned" && (
+						<span className="pointer-events-none absolute top-5 right-3 z-10 text-xs text-muted-foreground/50">
+							{hotkeyText} to hide
+						</span>
+					)}
+					<PromptInput
+						className="rounded-[13px] bg-background [&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+						onSubmit={handleSubmit}
+						onKeyDown={(e) => {
+							if (e.key === "Escape") {
+								e.stopPropagation();
+								onClose();
+							}
+						}}
+					>
+						<TiptapPromptEditor
+							cwd={cwd}
+							searchFiles={searchFiles}
+							slashCommands={[]}
+							placeholder="Ask to make changes"
 						/>
-					</span>
-					<PromptInputSubmit className="size-[23px] rounded-full border border-transparent bg-foreground/10 p-[5px] shadow-none hover:bg-foreground/20">
-						<ArrowUpIcon className="size-3.5 text-muted-foreground" />
-					</PromptInputSubmit>
-				</PromptInputFooter>
-			</PromptInput>
+						<PromptInputFooter>
+							<span className="flex items-center pl-1">
+								<TerminalPaneIcon
+									workspaceId={workspaceId}
+									terminalId={terminalId}
+								/>
+							</span>
+							<PromptInputSubmit className="size-[23px] rounded-full border border-transparent bg-foreground/10 p-[5px] shadow-none hover:bg-foreground/20">
+								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+							</PromptInputSubmit>
+						</PromptInputFooter>
+					</PromptInput>
+				</div>
+			</div>
 		</div>
 	);
 }
