@@ -21,8 +21,19 @@ export const db = drizzle({
 	casing: "snake_case",
 });
 
+const wsPool = new Pool({ connectionString: env.DATABASE_URL });
+
+// Attach an error handler so a transient socket close (e.g. "Connection
+// terminated unexpectedly") surfaces only the error message. Without a
+// listener, node emits the error as an uncaught exception and the default
+// logger serializes the whole NeonClient object — including
+// `config.connectionString` with the embedded password — into logs.
+wsPool.on("error", (error: Error) => {
+	console.error(`[db] neon pool error: ${error.message}`);
+});
+
 export const dbWs = drizzleWs({
-	client: new Pool({ connectionString: env.DATABASE_URL }),
+	client: wsPool,
 	schema,
 	casing: "snake_case",
 });
