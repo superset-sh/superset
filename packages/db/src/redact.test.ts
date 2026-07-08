@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 
 import { redactDbError } from "./redact";
 
@@ -43,9 +43,7 @@ describe("redactDbError", () => {
 
 		const redacted = redactDbError(error) as Error;
 
-		expect(redacted.message).toBe(
-			"NeonDbError: Error connecting to database",
-		);
+		expect(redacted.message).toBe("NeonDbError: Error connecting to database");
 	});
 
 	it("passes through non-Error values unchanged", () => {
