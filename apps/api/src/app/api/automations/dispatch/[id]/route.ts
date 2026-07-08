@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { env } from "@/env";
 
-export const maxDuration = 60;
+export const maxDuration = 800;
 export const dynamic = "force-dynamic";
 
 const receiver = new Receiver({
