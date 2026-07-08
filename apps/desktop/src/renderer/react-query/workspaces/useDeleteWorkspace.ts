@@ -1,10 +1,32 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useLocalHostServiceOptional } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	getWorkspaceFocusTargetAfterRemoval,
 	removeWorkspaceFromGroups,
 } from "./utils/workspace-removal";
+
+/**
+ * The electron delete path only kills the main-process daemon's terminals, so a
+ * v2 workspace's host-service sessions (backgrounded ones included) would leak.
+ * Best-effort: tell the local host-service to dispose them. Never blocks delete.
+ */
+function disposeHostSessionsForWorkspace(
+	activeHostUrl: string | null,
+	workspaceId: string,
+): void {
+	if (!activeHostUrl) return;
+	getHostServiceClientByUrl(activeHostUrl)
+		.terminal.disposeWorkspaceSessions.mutate({ workspaceId })
+		.catch((error) => {
+			console.warn("Failed to dispose host sessions for deleted workspace", {
+				workspaceId,
+				error,
+			});
+		});
+}
 
 type DeleteContext = {
 	previousGrouped: ReturnType<
@@ -26,6 +48,7 @@ export function useDeleteWorkspace(
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
 	const params = useParams({ strict: false });
+	const activeHostUrl = useLocalHostServiceOptional()?.activeHostUrl ?? null;
 
 	return electronTrpc.workspaces.delete.useMutation({
 		...options,
@@ -87,6 +110,11 @@ export function useDeleteWorkspace(
 			await options?.onSettled?.(...args);
 		},
 		onSuccess: async (data, variables, context, ...rest) => {
+			// Delete succeeded on the electron path — dispose the workspace's
+			// host-service terminals so backgrounded sessions don't leak.
+			if (data.success) {
+				disposeHostSessionsForWorkspace(activeHostUrl, variables.id);
+			}
 			// tRPC treats { success: false } as a successful response, so roll back optimistic updates
 			if (!data.success) {
 				if (context?.previousGrouped !== undefined) {

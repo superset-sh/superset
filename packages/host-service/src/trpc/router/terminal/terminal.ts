@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
@@ -7,6 +7,7 @@ import {
 	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
+	disposeSessionsByWorkspaceId,
 	listTerminalSessions,
 	parseThemeType,
 	sessionHasRunningProcess,
@@ -205,6 +206,30 @@ export const terminalRouter = router({
 			await disposeSessionAndWait(input.terminalId, ctx.db);
 			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
+		}),
+
+	// Kill every session (including backgrounded, renderer-detached ones) for a
+	// workspace. Called by delete paths that don't run the full
+	// workspaceCleanup.destroy, so their terminals don't leak in the daemon.
+	disposeWorkspaceSessions: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const result = await disposeSessionsByWorkspaceId(
+				input.workspaceId,
+				ctx.db,
+			);
+			// Drop the now-disposed rows so the workspace's session index dies with
+			// it; still-active rows are failed kills we keep reachable for the reaper.
+			ctx.db
+				.delete(terminalSessions)
+				.where(
+					and(
+						eq(terminalSessions.originWorkspaceId, input.workspaceId),
+						ne(terminalSessions.status, "active"),
+					),
+				)
+				.run();
+			return result;
 		}),
 
 	daemon: daemonRouter,
