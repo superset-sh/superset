@@ -15,6 +15,7 @@ import { installTerminalKeyEventHandler } from "renderer/lib/terminal/terminal-k
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
+import { INPUT_MODE_DISARM_SEQUENCE } from "shared/terminal-input-modes";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
@@ -363,6 +364,10 @@ export function useTerminalLifecycle({
 				wasKilledByUserRef.current = false;
 				setExitStatus(null);
 				resetModes();
+				// The exited session may have left input-reporting modes armed
+				// (e.g. a TUI killed mid-run); disarm before the fresh session
+				// attaches (#5508). clear() only wipes the buffer, not modes.
+				xterm.write(INPUT_MODE_DISARM_SEQUENCE);
 				xterm.clear();
 				const attach = () => {
 					const requestId = nextAttachRequestId();

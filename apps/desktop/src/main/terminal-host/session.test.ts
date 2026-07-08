@@ -489,3 +489,84 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
 	});
 });
+
+describe("Terminal Host Session stale input modes after TUI death", () => {
+	const PROMPT_MARKER = "\x1b]133;A\x07";
+
+	beforeEach(() => {
+		fakeChildProcess = new FakeChildProcess();
+		spawnCalls = [];
+	});
+
+	function createZshSession(sessionId: string): InstanceType<typeof Session> {
+		return new Session({
+			sessionId,
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			shell: "/bin/zsh",
+			spawnProcess: () => fakeChildProcess as unknown as ChildProcess,
+		});
+	}
+
+	function sendPtyData(data: string): void {
+		sendFrame(
+			fakeChildProcess,
+			PtySubprocessIpcType.Data,
+			Buffer.from(data, "utf8"),
+		);
+	}
+
+	const fakeSocket = () =>
+		({ write: () => true }) as unknown as import("node:net").Socket;
+
+	it("rehydrates mouse modes for a TUI still alive at attach", async () => {
+		const session = createZshSession("session-live-tui-modes");
+		spawnAndReadySession(session);
+
+		// First prompt: the shell-ready scanner consumes this marker.
+		sendPtyData(`welcome\r\n${PROMPT_MARKER}$ `);
+		// A TUI armed mouse reporting and is still in the foreground.
+		sendPtyData("\x1b[?1002h\x1b[?1006h");
+
+		const snapshot = await session.attach(fakeSocket());
+
+		expect(snapshot.modes.mouseTrackingButtonEvent).toBe(true);
+		expect(snapshot.modes.mouseSgr).toBe(true);
+		expect(snapshot.rehydrateSequences).toContain("?1002h");
+		expect(snapshot.rehydrateSequences).toContain("?1006h");
+		expect(snapshot.snapshotAnsi).toContain("?1002h");
+	});
+
+	it("drops leaked mouse modes once the shell prompts after a TUI died", async () => {
+		const session = createZshSession("session-dead-tui-modes");
+		spawnAndReadySession(session);
+
+		sendPtyData(`welcome\r\n${PROMPT_MARKER}$ `);
+		// TUI armed input reporting, then was SIGKILLed without disarming.
+		sendPtyData("\x1b[?1002h\x1b[?1003h\x1b[?1006h\x1b[?2004h");
+		// The shell prompts again; zle re-arms bracketed paste for itself.
+		sendPtyData(`\r\n${PROMPT_MARKER}$ \x1b[?2004h`);
+
+		const snapshot = await session.attach(fakeSocket());
+
+		expect(snapshot.modes.mouseTrackingButtonEvent).toBe(false);
+		expect(snapshot.modes.mouseTrackingAnyEvent).toBe(false);
+		expect(snapshot.modes.mouseSgr).toBe(false);
+		expect(snapshot.rehydrateSequences).not.toContain("1002");
+		expect(snapshot.rehydrateSequences).not.toContain("1003");
+		expect(snapshot.rehydrateSequences).not.toContain("1006");
+		// The serialized snapshot is written to the renderer after the rehydrate
+		// sequences, so it must be clean too — else warm reattach re-arms the
+		// mouse the marker just cleared (#5508).
+		expect(snapshot.snapshotAnsi).not.toContain("?1002h");
+		expect(snapshot.snapshotAnsi).not.toContain("?1003h");
+		// Bracketed paste is a shell line-editor mode, not a pointer report, so
+		// the marker leaves it armed and warm reattach still restores it.
+		expect(snapshot.modes.bracketedPaste).toBe(true);
+		expect(snapshot.rehydrateSequences).toContain("?2004h");
+	});
+});

@@ -11,6 +11,7 @@ import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal } from "@xterm/headless";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
+import { FOREGROUND_RECLAIM_RESET_PARAMS } from "shared/terminal-input-modes";
 import {
 	DEFAULT_MODES,
 	type TerminalModes,
@@ -24,6 +25,14 @@ import {
 // Escape character
 const ESC = "\x1b";
 const BEL = "\x07";
+
+/**
+ * OSC 133;A — FinalTerm prompt-start marker, emitted before every prompt by
+ * the zsh/bash/fish shell wrappers (see shell-wrappers.ts). Its arrival means
+ * the shell owns the foreground again, so any input-reporting modes still
+ * armed were leaked by a TUI that died without disarming them (#5508).
+ */
+const PROMPT_MARKER_PREFIX = `${ESC}]133;A`;
 
 const DEBUG_EMULATOR_TIMING =
 	process.env.SUPERSET_TERMINAL_EMULATOR_DEBUG === "1";
@@ -72,6 +81,11 @@ export class HeadlessEmulator {
 
 	// Buffer for partial escape sequences that span chunk boundaries
 	private escapeSequenceBuffer = "";
+
+	// Set when a prompt marker cleared the foreground-reclaimed modes in the
+	// shadow map; drives a matching disarm into the underlying terminal so the
+	// serialized snapshot stays consistent (see takeReclaimDisarmSequence).
+	private foregroundReclaimPending = false;
 
 	// Maximum buffer size to prevent unbounded growth (safety cap)
 	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
@@ -132,6 +146,9 @@ export class HeadlessEmulator {
 			this.parseEscapeSequences(data);
 			// Write to headless terminal (buffered/async)
 			this.terminal.write(data);
+			// Queued after the data so a mode re-armed after the marker survives.
+			const disarm = this.takeReclaimDisarmSequence();
+			if (disarm) this.terminal.write(disarm);
 			return;
 		}
 
@@ -141,6 +158,8 @@ export class HeadlessEmulator {
 
 		const terminalStart = performance.now();
 		this.terminal.write(data);
+		const disarm = this.takeReclaimDisarmSequence();
+		if (disarm) this.terminal.write(disarm);
 		const terminalTime = performance.now() - terminalStart;
 
 		if (parseTime > 2 || terminalTime > 2) {
@@ -159,10 +178,19 @@ export class HeadlessEmulator {
 
 		// Parse escape sequences with chunk-safe buffering
 		this.parseEscapeSequences(data);
+		const disarm = this.takeReclaimDisarmSequence();
 
-		// Write to headless terminal and wait for completion
+		// Write to headless terminal and wait for completion. The reclaim
+		// disarm (if any) is queued after the data and awaited too, so callers
+		// that snapshot right after see a consistent terminal.
 		return new Promise<void>((resolve) => {
-			this.terminal.write(data, () => resolve());
+			this.terminal.write(data, () => {
+				if (disarm) {
+					this.terminal.write(disarm, () => resolve());
+				} else {
+					resolve();
+				}
+			});
 		});
 	}
 
@@ -370,12 +398,14 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Find an incomplete DECSET/DECRST or OSC-7 sequence at the end of data.
-	 * Returns the incomplete sequence string, or null if none found.
+	 * Find an incomplete DECSET/DECRST, OSC-7, or prompt-marker sequence at
+	 * the end of data. Returns the incomplete sequence string, or null if
+	 * none found.
 	 *
 	 * We ONLY buffer sequences we track:
 	 * - DECSET/DECRST: ESC[?...h or ESC[?...l
 	 * - OSC-7: ESC]7;...BEL or ESC]7;...ESC\
+	 * - Prompt marker: ESC]133;A
 	 *
 	 * Other CSI sequences (ESC[31m, ESC[H, etc.) are NOT buffered.
 	 */
@@ -429,6 +459,15 @@ export class HeadlessEmulator {
 		if (afterLastEsc === `${ESC}[`) return afterLastEsc; // ESC[
 		if (afterLastEsc === `${ESC}]`) return afterLastEsc; // ESC]
 		if (afterLastEsc === `${ESC}]7`) return afterLastEsc; // ESC]7
+		// Prefix of the OSC 133;A prompt marker (ESC]1 ... ESC]133;A). The full
+		// prefix itself is included: the marker only counts once a param
+		// separator or terminator follows, which may arrive in the next chunk.
+		if (
+			afterLastEsc.length <= PROMPT_MARKER_PREFIX.length &&
+			PROMPT_MARKER_PREFIX.startsWith(afterLastEsc)
+		) {
+			return afterLastEsc;
+		}
 		const incompleteDecset = new RegExp(`^${escEscaped}\\[\\?[0-9;]*$`);
 		if (incompleteDecset.test(afterLastEsc)) return afterLastEsc; // ESC[?123
 
@@ -437,20 +476,35 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Parse DECSET/DECRST sequences from terminal data
+	 * Parse DECSET/DECRST sequences and prompt-start markers from terminal
+	 * data, applying them in stream order.
+	 *
+	 * Order matters: a TUI arming mouse tracking after the shell's last
+	 * prompt marker must keep it armed (so live-TUI reattach still restores
+	 * it), while a marker after the arming means the TUI is gone and its
+	 * leaked modes must not survive into the next rehydrate.
 	 */
 	private parseModeChanges(data: string): void {
 		// Match CSI ? Pm h (DECSET) and CSI ? Pm l (DECRST)
 		// Examples: ESC[?1h (enable app cursor), ESC[?2004l (disable bracketed paste)
 		// Also handles multiple modes: ESC[?1;2004h
+		// The second alternative matches the OSC 133;A prompt marker. Requiring
+		// a param separator or terminator right after the "A" keeps payloads
+		// like "133;AB" from counting as prompt starts.
 		// Using string-based regex to avoid control character linter errors
-		const modeRegex = new RegExp(
-			`${escapeRegex(ESC)}\\[\\?([0-9;]+)([hl])`,
+		const escEscaped = escapeRegex(ESC);
+		const scanRegex = new RegExp(
+			`${escEscaped}\\[\\?([0-9;]+)([hl])|${escapeRegex(PROMPT_MARKER_PREFIX)}(?=;|${escapeRegex(BEL)}|${escEscaped})`,
 			"g",
 		);
 
-		for (const match of data.matchAll(modeRegex)) {
+		for (const match of data.matchAll(scanRegex)) {
 			const modesStr = match[1];
+			if (modesStr === undefined) {
+				// Prompt marker: the shell owns the foreground again.
+				this.resetForegroundReclaimedModes();
+				continue;
+			}
 			const action = match[2]; // 'h' = set (enable), 'l' = reset (disable)
 			const enable = action === "h";
 
@@ -468,6 +522,54 @@ export class HeadlessEmulator {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Reset the pointer/focus reporting modes a dead TUI can leave latched,
+	 * so warm reattach stops rehydrating them once the shell has the
+	 * foreground. Display modes (alt screen, cursor visibility, origin, wrap)
+	 * and the shell's own line-editor modes (app cursor keys, bracketed paste)
+	 * are left untouched — see FOREGROUND_RECLAIM_RESET_PARAMS.
+	 *
+	 * Only the shadow map is updated here; the underlying terminal is disarmed
+	 * separately (takeReclaimDisarmSequence) so the update lands in stream
+	 * order relative to any re-arming in the same chunk.
+	 */
+	private resetForegroundReclaimedModes(): void {
+		this.foregroundReclaimPending = true;
+		for (const modeNum of FOREGROUND_RECLAIM_RESET_PARAMS) {
+			const modeName = MODE_MAP[modeNum];
+			if (modeName) {
+				this.modes[modeName] = DEFAULT_MODES[modeName];
+			}
+		}
+	}
+
+	/**
+	 * DECRSTs to bring the underlying terminal in line with a foreground
+	 * reclaim, consumed once per marker-bearing write and queued after the data.
+	 *
+	 * SerializeAddon re-derives DECSET arming from live terminal state, so
+	 * without this the snapshot would re-arm the mouse/focus modes the marker
+	 * cleared from the shadow map. Only the modes serialize emits matter:
+	 * mouse tracking (a single collapsed protocol — resetting any level clears
+	 * it, so emit one DECRST only when no level remains armed, or a re-armed
+	 * live TUI would lose its mouse) and focus reporting.
+	 */
+	private takeReclaimDisarmSequence(): string {
+		if (!this.foregroundReclaimPending) return "";
+		this.foregroundReclaimPending = false;
+
+		let disarm = "";
+		const anyMouseTracking =
+			this.modes.mouseTrackingX10 ||
+			this.modes.mouseTrackingNormal ||
+			this.modes.mouseTrackingHighlight ||
+			this.modes.mouseTrackingButtonEvent ||
+			this.modes.mouseTrackingAnyEvent;
+		if (!anyMouseTracking) disarm += `${ESC}[?1003l`;
+		if (!this.modes.focusReporting) disarm += `${ESC}[?1004l`;
+		return disarm;
 	}
 
 	/**
