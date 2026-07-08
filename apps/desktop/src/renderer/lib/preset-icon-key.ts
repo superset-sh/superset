@@ -25,26 +25,24 @@ function getExecutableName(command: string): string | undefined {
 	return segments.at(-1)?.toLowerCase();
 }
 
-function singlePresetId(ids: Iterable<string | undefined>): string | undefined {
+function singleValue(values: Iterable<string | undefined>): string | undefined {
 	const uniqueIds = new Set<string>();
-	for (const id of ids) {
-		const trimmed = id?.trim();
+	for (const value of values) {
+		const trimmed = value?.trim();
 		if (trimmed) uniqueIds.add(trimmed);
 	}
 	return uniqueIds.size === 1 ? uniqueIds.values().next().value : undefined;
 }
 
-function getLinkedPresetId(
+function getLinkedIconKey(
 	preset: PresetIconSource,
 	agents: HostAgentConfig[] | undefined,
 ): string | undefined {
 	const agentId = preset.agentId?.trim();
 	if (!agentId) return undefined;
 
-	const linkedAgentPresetId =
-		agents?.find((agent) => agent.id === agentId)?.presetId ??
-		agents?.find((agent) => agent.presetId === agentId)?.presetId;
-	if (linkedAgentPresetId) return linkedAgentPresetId;
+	const linkedAgent = agents?.find((agent) => agent.id === agentId);
+	if (linkedAgent) return linkedAgent.iconId ?? linkedAgent.presetId;
 
 	const normalizedAgentId = agentId.toLowerCase();
 	return BUILTIN_PRESET_IDS.has(normalizedAgentId)
@@ -52,43 +50,47 @@ function getLinkedPresetId(
 		: undefined;
 }
 
-function getPresetIdFromExecutable(
+function getIconKeyFromExecutable(
 	executable: string,
 	agents: HostAgentConfig[] | undefined,
 ): string | undefined {
-	const agentPresetId = singlePresetId(
-		(agents ?? [])
-			.filter((agent) => getExecutableName(agent.command) === executable)
-			.map((agent) => agent.presetId),
+	const matchingAgents = (agents ?? []).filter(
+		(agent) => getExecutableName(agent.command) === executable,
+	);
+	const agentIconKey = singleValue(
+		matchingAgents.map((agent) => agent.iconId ?? agent.presetId),
+	);
+	if (agentIconKey) return agentIconKey;
+
+	const agentPresetId = singleValue(
+		matchingAgents.map((agent) => agent.presetId),
 	);
 	if (agentPresetId) return agentPresetId;
 
-	return singlePresetId(
+	return singleValue(
 		HOST_AGENT_PRESETS.filter(
 			(preset) => getExecutableName(preset.command) === executable,
 		).map((preset) => preset.presetId),
 	);
 }
 
-function getCommandPresetId(
+function getCommandIconKey(
 	preset: PresetIconSource,
 	agents: HostAgentConfig[] | undefined,
 ): string | undefined {
-	const presetIds = new Set<string>();
+	const iconKeys = new Set<string>();
 	for (const command of preset.commands ?? []) {
 		const executable = getExecutableName(command);
 		if (!executable) continue;
-		const presetId = getPresetIdFromExecutable(executable, agents);
-		if (presetId) presetIds.add(presetId);
+		const iconKey = getIconKeyFromExecutable(executable, agents);
+		if (iconKey) iconKeys.add(iconKey);
 	}
-	return presetIds.size === 1 ? presetIds.values().next().value : undefined;
+	return iconKeys.size === 1 ? iconKeys.values().next().value : undefined;
 }
 
 export function resolveV2PresetIconKey(
 	preset: PresetIconSource,
 	agents: HostAgentConfig[] | undefined,
 ): string | undefined {
-	return (
-		getLinkedPresetId(preset, agents) ?? getCommandPresetId(preset, agents)
-	);
+	return getLinkedIconKey(preset, agents) ?? getCommandIconKey(preset, agents);
 }

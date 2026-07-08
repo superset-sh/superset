@@ -1,9 +1,7 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 export type WorkspaceHostTarget =
@@ -22,23 +20,13 @@ export type WorkspaceHostTarget =
 export function useWorkspaceHostTarget(
 	workspaceId: string | null,
 ): WorkspaceHostTarget {
-	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 
-	const { data: workspaceRows = [], isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.id, workspaceId ?? ""))
-				.select(({ workspaces }) => ({
-					organizationId: workspaces.organizationId,
-					hostId: workspaces.hostId,
-				})),
-		[collections, workspaceId],
-	);
-
-	const match = workspaceId ? (workspaceRows[0] ?? null) : null;
+	const { workspaces, isReady } = useHostWorkspaces();
+	const match = workspaceId
+		? (workspaces.find((w) => w.id === workspaceId) ?? null)
+		: null;
 
 	return useMemo(() => {
 		if (!workspaceId || (!isReady && !match)) return { status: "loading" };

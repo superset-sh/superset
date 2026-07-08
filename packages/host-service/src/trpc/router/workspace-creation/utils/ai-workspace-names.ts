@@ -1,9 +1,11 @@
 import { Agent } from "@mastra/core/agent";
 import { getSmallModel } from "@superset/chat/server/shared";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
+import {
+	markWorkspaceCloudSynced,
+	updateLocalWorkspace,
+} from "../../../../workspaces/local-workspace-store";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -123,9 +125,9 @@ interface ApplyAiRenameArgs {
 /**
  * Generates an AI title+branch for a freshly-created workspace and
  * applies whichever side the caller asked for. Git rename runs first
- * (cheap to roll back); cloud update is source of truth; host-local
- * DB only writes after cloud confirms. On cloud failure the git
- * rename is reverted so git, host-local DB, and cloud stay in lockstep.
+ * (cheap to roll back); the host-local row is the source of truth and
+ * commits next; the cloud mirror is pushed best-effort afterwards (a
+ * failure leaves the row cloud-dirty for the reconciler).
  *
  * `renameTitle` / `renameBranch` let callers preserve user-typed
  * values: skip replacing whichever side the user supplied directly.
@@ -175,41 +177,39 @@ export async function applyAiWorkspaceRename(
 		}
 	}
 
-	const patch: {
-		id: string;
-		name?: string;
-		branch?: string;
-		expectedCurrentName?: string;
-	} = { id: workspaceId };
-	if (titleChanged) {
-		patch.name = aiNames.title;
-		patch.expectedCurrentName = oldWorkspaceName;
-	}
+	const patch: { name?: string; branch?: string } = {};
+	if (titleChanged) patch.name = aiNames.title;
 	if (gitRenamed) patch.branch = deduped;
 	if (patch.name === undefined && patch.branch === undefined) return;
 
-	try {
-		await ctx.api.v2Workspace.updateNameFromHost.mutate(patch);
-	} catch (err) {
-		if (gitRenamed) {
-			await ctx
-				.git(worktreePath)
-				.then((g) => g.raw(["branch", "-m", deduped, oldBranchName]))
-				.catch((rollbackErr) => {
-					console.warn(
-						`[applyAiWorkspaceRename] git branch rollback failed (workspace ${workspaceId}, ${deduped} → ${oldBranchName})`,
-						rollbackErr,
-					);
-				});
-		}
-		throw err;
+	const updated = updateLocalWorkspace(
+		{ db: ctx.db, eventBus: ctx.eventBus },
+		workspaceId,
+		patch,
+	);
+	if (!updated) {
+		// The git branch may already be renamed at this point; make the
+		// row-vs-git divergence observable instead of failing silently.
+		console.warn(
+			"[applyAiWorkspaceRename] workspace row missing after git rename",
+			{ workspaceId, patch },
+		);
+		return;
 	}
 
-	if (gitRenamed) {
-		ctx.db
-			.update(workspaces)
-			.set({ branch: deduped })
-			.where(eq(workspaces.id, workspaceId))
-			.run();
+	try {
+		await ctx.api.v2Workspace.updateNameFromHost.mutate({
+			id: workspaceId,
+			...patch,
+			...(titleChanged ? { expectedCurrentName: oldWorkspaceName } : {}),
+		});
+		markWorkspaceCloudSynced(ctx.db, workspaceId, {
+			expectedUpdatedAt: updated.updatedAt,
+		});
+	} catch (err) {
+		console.warn(
+			"[applyAiWorkspaceRename] cloud mirror push failed; reconciler will retry",
+			{ workspaceId, err },
+		);
 	}
 }

@@ -10,6 +10,7 @@ import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	applyPortEventsToHostPortsResult,
@@ -50,22 +51,16 @@ export function useDashboardSidebarPortsData(): {
 		[collections],
 	);
 
-	const { data: allWorkspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.select(({ workspaces }) => ({
-					id: workspaces.id,
-					name: workspaces.name,
-					hostId: workspaces.hostId,
-				})),
-		[collections],
-	);
+	const { workspaces: allWorkspaces } = useHostWorkspaces();
 	const workspaces = useMemo(
 		() =>
-			allWorkspaces.filter((workspace) =>
-				visibleWorkspaceIds.has(workspace.id),
-			),
+			allWorkspaces
+				.filter((workspace) => visibleWorkspaceIds.has(workspace.id))
+				.map((workspace) => ({
+					id: workspace.id,
+					name: workspace.name,
+					hostId: workspace.hostId,
+				})),
 		[allWorkspaces, visibleWorkspaceIds],
 	);
 

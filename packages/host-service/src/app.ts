@@ -17,6 +17,8 @@ import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import { runWorkspaceBackfill } from "./runtime/workspace-backfill";
+import { startWorkspaceCloudSync } from "./runtime/workspace-cloud-sync";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import {
 	SqliteTerminalAgentBindingPersistence,
@@ -153,17 +155,40 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	}
 	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
 
-	// Backfill `kind='main'` v2 workspaces for projects already set up before
-	// this column shipped. Idempotent; runs in the background so it doesn't
-	// block server startup.
-	void runMainWorkspaceSweep({
-		api,
-		db,
-		git,
-		organizationId: config.organizationId,
-	}).catch((err) => {
-		console.warn("[host-service] main-workspace sweep failed:", err);
-	});
+	// Startup sweeps + the dual-write reconciler run in the background so
+	// they don't block server startup. Ordering matters: the backfill fills
+	// cloud-only fields on pre-existing rows before the main-workspace sweep
+	// or reconciler touch them (the reconciler skips unbackfilled rows).
+	let workspaceCloudSync: ReturnType<typeof startWorkspaceCloudSync> | null =
+		null;
+	void (async () => {
+		await runWorkspaceBackfill({
+			api,
+			db,
+			eventBus,
+			organizationId: config.organizationId,
+		}).catch((err) => {
+			console.warn("[host-service] workspace backfill failed:", err);
+		});
+		// Backfill `kind='main'` workspaces for projects already set up before
+		// this column shipped. Idempotent — only does real work the first
+		// time after upgrade.
+		await runMainWorkspaceSweep({
+			api,
+			db,
+			git,
+			eventBus,
+			organizationId: config.organizationId,
+		}).catch((err) => {
+			console.warn("[host-service] main-workspace sweep failed:", err);
+		});
+		workspaceCloudSync = startWorkspaceCloudSync({
+			api,
+			db,
+			eventBus,
+			organizationId: config.organizationId,
+		});
+	})();
 
 	const wsAuth: MiddlewareHandler = async (c, next) => {
 		const token = c.req.query("token");
@@ -214,6 +239,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Each step is best-effort and isolated: a throw in one cleanup must
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
+		try {
+			workspaceCloudSync?.stop();
+		} catch (err) {
+			console.warn("[host-service] workspaceCloudSync.stop failed:", err);
+		}
 		try {
 			pullRequestRuntime.stop();
 		} catch (err) {

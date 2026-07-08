@@ -349,7 +349,7 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(existsSync(persisted?.worktreePath ?? "")).toBe(true);
 	});
 
-	test("create() rolls back the worktree if cloud v2Workspace.create fails", async () => {
+	test("create() succeeds locally when cloud v2Workspace.create fails (offline-first)", async () => {
 		const scenario = await createProjectScenario({
 			hostOptions: {
 				apiOverrides: {
@@ -362,18 +362,24 @@ describe("workspace.create + workspace.delete integration", () => {
 		});
 		dispose = scenario.dispose;
 
-		await expect(
-			scenario.host.trpc.workspaces.create.mutate({
-				projectId: scenario.projectId,
-				name: "ws",
-				branch: "feature/rollback",
-			}),
-		).rejects.toThrow(/cloud-down/);
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "ws",
+			branch: "feature/rollback",
+		});
+		expect(result.workspace.id).toBeDefined();
+		expect(result.alreadyExists).toBe(false);
 
-		// New worktree scheme is `~/.superset/worktrees/<projectId>/<branch>`.
-		// Rollback should leave nothing behind in the workspaces table either.
-		const rows = scenario.host.db.select().from(workspaces).all();
-		expect(rows).toHaveLength(0);
+		// The local row is authoritative and stays cloud-dirty so the
+		// reconciler pushes it once the cloud is reachable again.
+		const rows = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.name, "ws"))
+			.all();
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.cloudSyncedAt).toBeNull();
+		expect(existsSync(rows[0]?.worktreePath ?? "")).toBe(true);
 	});
 
 	test("delete() rejects deleting a main workspace by path equality", async () => {

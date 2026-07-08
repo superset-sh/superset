@@ -2,7 +2,9 @@ import type { TaskPriority, V2UsersHostRole } from "@superset/db/enums";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo } from "react";
 import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import {
 	type TrackableWorkspaceTransactionState,
 	useWorkspaceTransactionsStore,
@@ -29,8 +31,25 @@ interface V2ProjectPatch {
 interface V2WorkspacePatch {
 	name?: string;
 	branch?: string;
-	hostId?: string;
 	taskId?: string | null;
+}
+
+/**
+ * Host workspace writes aren't collection transactions, but the pending-
+ * rename UI tracks transaction-shaped objects; wrap the host mutate
+ * promise in one.
+ */
+function makeHostWorkspaceTransaction(
+	type: WorkspaceTransactionType,
+	promise: Promise<unknown>,
+): PersistableTransaction {
+	return {
+		id: crypto.randomUUID(),
+		state: "persisting",
+		createdAt: new Date(),
+		mutations: [{ type }],
+		isPersisted: { promise },
+	};
 }
 
 function getErrorMessage(error: unknown): string {
@@ -81,6 +100,8 @@ function useOptimisticMutationRunner() {
 
 export function useOptimisticCollectionActions() {
 	const collections = useCollections();
+	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
+		useHostWorkspaces();
 	const runMutation = useOptimisticMutationRunner();
 	const trackWorkspaceTransaction = useWorkspaceTransactionsStore(
 		(state) => state.track,
@@ -190,24 +211,47 @@ export function useOptimisticCollectionActions() {
 					),
 			},
 			v2Workspaces: {
+				// Workspace records are host-owned: the write goes to the owning
+				// host, the cache is patched optimistically, and the host's
+				// workspace:changed broadcast (or a rollback refetch) converges it.
 				updateWorkspace: (workspaceId: string, patch: V2WorkspacePatch) => {
 					const transaction = runWorkspaceMutation(
 						"Failed to update workspace",
-						() =>
-							collections.v2Workspaces.update(workspaceId, (draft) => {
-								if (patch.name !== undefined) {
-									draft.name = patch.name;
-								}
-								if (patch.branch !== undefined) {
-									draft.branch = patch.branch;
-								}
-								if (patch.hostId !== undefined) {
-									draft.hostId = patch.hostId;
-								}
-								if (patch.taskId !== undefined) {
-									draft.taskId = patch.taskId;
-								}
-							}),
+						() => {
+							const workspace = hostWorkspaces.find(
+								(item) => item.id === workspaceId,
+							);
+							if (!workspace) {
+								throw new Error("Workspace not found");
+							}
+							const hostUrl = hostWorkspacesCache.resolveHostUrl(
+								workspace.hostId,
+							);
+							if (!hostUrl) {
+								throw new Error(
+									"The workspace's host is offline — try again when it reconnects.",
+								);
+							}
+							hostWorkspacesCache.upsertWorkspace({
+								...workspace,
+								...patch,
+								worktreePath: workspace.worktreePath ?? "",
+								worktreeExists: workspace.worktreeExists ?? true,
+								updatedAt: new Date(),
+							});
+							const promise = getHostServiceClientByUrl(hostUrl)
+								.workspace.update.mutate({
+									id: workspaceId,
+									name: patch.name,
+									branch: patch.branch,
+									taskId: patch.taskId,
+								})
+								.catch((error: unknown) => {
+									hostWorkspacesCache.invalidateHost(workspace.hostId);
+									throw error;
+								});
+							return makeHostWorkspaceTransaction("update", promise);
+						},
 					);
 					if (transaction) {
 						trackWorkspaceTransaction(workspaceId, transaction);
@@ -217,10 +261,36 @@ export function useOptimisticCollectionActions() {
 				renameWorkspace: (workspaceId: string, name: string) => {
 					const transaction = runWorkspaceMutation(
 						"Failed to rename workspace",
-						() =>
-							collections.v2Workspaces.update(workspaceId, (draft) => {
-								draft.name = name;
-							}),
+						() => {
+							const workspace = hostWorkspaces.find(
+								(item) => item.id === workspaceId,
+							);
+							if (!workspace) {
+								throw new Error("Workspace not found");
+							}
+							const hostUrl = hostWorkspacesCache.resolveHostUrl(
+								workspace.hostId,
+							);
+							if (!hostUrl) {
+								throw new Error(
+									"The workspace's host is offline — try again when it reconnects.",
+								);
+							}
+							hostWorkspacesCache.upsertWorkspace({
+								...workspace,
+								name,
+								worktreePath: workspace.worktreePath ?? "",
+								worktreeExists: workspace.worktreeExists ?? true,
+								updatedAt: new Date(),
+							});
+							const promise = getHostServiceClientByUrl(hostUrl)
+								.workspace.update.mutate({ id: workspaceId, name })
+								.catch((error: unknown) => {
+									hostWorkspacesCache.invalidateHost(workspace.hostId);
+									throw error;
+								});
+							return makeHostWorkspaceTransaction("update", promise);
+						},
 					);
 					if (transaction) {
 						trackWorkspaceTransaction(workspaceId, transaction);
@@ -275,5 +345,11 @@ export function useOptimisticCollectionActions() {
 					),
 			},
 		};
-	}, [collections, runMutation, trackWorkspaceTransaction]);
+	}, [
+		collections,
+		hostWorkspaces,
+		hostWorkspacesCache,
+		runMutation,
+		trackWorkspaceTransaction,
+	]);
 }

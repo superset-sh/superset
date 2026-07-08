@@ -28,6 +28,7 @@ const mentionSuggestionKey = new PluginKey("fileMentionSuggestion");
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
+import { resolveHotkeyFromEvent } from "renderer/hotkeys";
 import { FileIcon } from "renderer/lib/fileIcons";
 import {
 	getCommandMatchRank,
@@ -554,10 +555,13 @@ export function TiptapPromptEditor({
 					return false;
 				},
 				keydown: (_view, event) => {
-					// Stop modifier+arrow propagation so pane-navigation hotkeys don't fire
+					// Keep bare Cmd/Ctrl+Arrow line-nav inside the editor, but let chords
+					// that resolve to a real hotkey (e.g. ⌘⌥←/→ = prev/next tab) bubble to
+					// react-hotkeys-hook instead of the editor swallowing them.
 					if (
 						(event.key === "ArrowLeft" || event.key === "ArrowRight") &&
-						(event.metaKey || event.ctrlKey)
+						(event.metaKey || event.ctrlKey) &&
+						resolveHotkeyFromEvent(event) === null
 					) {
 						event.stopPropagation();
 					}
