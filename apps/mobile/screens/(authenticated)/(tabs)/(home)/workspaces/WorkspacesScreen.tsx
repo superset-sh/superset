@@ -5,12 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { compareDesc, isAfter } from "date-fns";
 import { Stack, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import {
-	Pressable,
-	RefreshControl,
-	useWindowDimensions,
-	View,
-} from "react-native";
+import { RefreshControl, useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import {
 	type HostWorkspaceItem,
@@ -20,7 +15,6 @@ import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizatio
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
-import { ProjectAvatar } from "./components/ProjectAvatar";
 import {
 	type FilterableHost,
 	type FilterableProject,
@@ -221,24 +215,15 @@ export function WorkspacesScreen() {
 				onPress={() => setSheetOpen(true)}
 			/>
 			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.View>
-					<Pressable
-						hitSlop={8}
-						onPress={() => setFilterSheetOpen(true)}
-						style={{ height: 24, width: 24 }}
-					>
-						<ProjectAvatar
-							name={selectedProject?.name}
-							iconUrl={selectedProject?.iconUrl}
-							size={24}
-						/>
-					</Pressable>
-				</Stack.Toolbar.View>
+				<Stack.Toolbar.Button
+					icon="line.3.horizontal.decrease"
+					onPress={() => setFilterSheetOpen(true)}
+				/>
 			</Stack.Toolbar>
 			<LegendList
 				className="flex-1 bg-background"
 				contentInsetAdjustmentBehavior="automatic"
-				contentContainerStyle={{ paddingBottom: 112, paddingVertical: 8 }}
+				contentContainerStyle={{ flexGrow: 1, paddingVertical: 8 }}
 				data={visibleWorkspaces}
 				extraData={renderItem}
 				keyExtractor={(item: HostWorkspaceItem) => item.id}
@@ -271,10 +256,7 @@ export function WorkspacesScreen() {
 				onIsPresentedChange={setFilterSheetOpen}
 				projects={filterableProjects}
 				selectedProjectId={selectedProjectId}
-				onSelectProject={(projectId) => {
-					setProjectFilter(projectId);
-					setFilterSheetOpen(false);
-				}}
+				onSelectProject={setProjectFilter}
 				hosts={filterableHosts}
 				selectedHostId={hostFilter}
 				onSelectHost={setHostFilter}

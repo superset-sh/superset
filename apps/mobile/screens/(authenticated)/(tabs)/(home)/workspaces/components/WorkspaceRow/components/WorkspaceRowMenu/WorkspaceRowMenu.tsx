@@ -112,7 +112,7 @@ export function WorkspaceRowMenu({
 					Rename
 				</Link.MenuAction>
 				{workspace.type !== "main" ? (
-					<Link.MenuAction destructive icon="trash" onPress={deleteWorkspace}>
+					<Link.MenuAction icon="trash" onPress={deleteWorkspace}>
 						Delete
 					</Link.MenuAction>
 				) : null}

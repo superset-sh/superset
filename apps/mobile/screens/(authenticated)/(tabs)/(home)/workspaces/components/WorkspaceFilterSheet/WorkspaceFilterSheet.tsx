@@ -2,10 +2,14 @@ import { BottomSheet, Group, Host, RNHostView } from "@expo/ui/swift-ui";
 import {
 	background,
 	environment,
+	frame,
+	presentationDetents,
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { type ReactNode, useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { ProjectAvatar } from "../ProjectAvatar";
@@ -30,6 +34,84 @@ const SORT_OPTIONS: { value: WorkspaceSort; label: string }[] = [
 	{ label: "Last updated", value: "updatedAt" },
 	{ label: "Date created", value: "createdAt" },
 ];
+
+const ONLINE_COLOR = "#3fb950";
+
+type FilterView = "root" | "sort" | "project" | "host";
+
+function HostStatusDot({ isOnline }: { isOnline: boolean }) {
+	const theme = useTheme();
+	return (
+		<View
+			className="size-2 rounded-full"
+			style={{
+				backgroundColor: isOnline ? ONLINE_COLOR : theme.mutedForeground,
+			}}
+		/>
+	);
+}
+
+function SheetHeader({
+	title,
+	onBack,
+}: {
+	title: string;
+	onBack?: () => void;
+}) {
+	const theme = useTheme();
+	return (
+		<View className="mb-3 flex-row items-center gap-2">
+			{onBack ? (
+				<Pressable hitSlop={8} onPress={onBack} className="-ml-2 p-1">
+					<Ionicons name="chevron-back" size={22} color={theme.foreground} />
+				</Pressable>
+			) : null}
+			<Text
+				className="text-xl font-semibold"
+				style={{ color: theme.foreground }}
+			>
+				{title}
+			</Text>
+		</View>
+	);
+}
+
+function SheetRow({
+	icon,
+	label,
+	trailing,
+	onPress,
+	isLast,
+}: {
+	icon?: ReactNode;
+	label: string;
+	trailing: ReactNode;
+	onPress: () => void;
+	isLast?: boolean;
+}) {
+	const theme = useTheme();
+	return (
+		<>
+			<Pressable onPress={onPress} className="flex-row items-center gap-3 py-4">
+				{icon ? <View className="w-7 items-center">{icon}</View> : null}
+				<Text className="text-base" style={{ color: theme.foreground }}>
+					{label}
+				</Text>
+				<View className="flex-1 flex-row items-center justify-end gap-2">
+					{trailing}
+				</View>
+			</Pressable>
+			{isLast ? null : <Separator className={icon ? "ml-10" : undefined} />}
+		</>
+	);
+}
+
+function CheckMark({ visible }: { visible: boolean }) {
+	const theme = useTheme();
+	return visible ? (
+		<Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+	) : null;
+}
 
 export function WorkspaceFilterSheet({
 	isPresented,
@@ -57,160 +139,191 @@ export function WorkspaceFilterSheet({
 	width: number;
 }) {
 	const theme = useTheme();
+	const [view, setView] = useState<FilterView>("root");
+
+	useEffect(() => {
+		if (isPresented) setView("root");
+	}, [isPresented]);
+
+	const selectedProject = projects.find(
+		(project) => project.id === selectedProjectId,
+	);
+	const selectedHost = hosts.find((host) => host.machineId === selectedHostId);
+	const sortLabel =
+		SORT_OPTIONS.find((option) => option.value === sort)?.label ?? "";
+
+	const mutedIcon = (name: keyof typeof Ionicons.glyphMap) => (
+		<Ionicons name={name} size={20} color={theme.mutedForeground} />
+	);
+
+	const trailingValue = (value: string, accessory?: ReactNode) => (
+		<>
+			{accessory}
+			<Text
+				className="flex-shrink text-base"
+				style={{ color: theme.mutedForeground }}
+				numberOfLines={1}
+			>
+				{value}
+			</Text>
+			<Ionicons
+				name="chevron-forward"
+				size={18}
+				color={theme.mutedForeground}
+			/>
+		</>
+	);
 
 	return (
 		<Host style={{ position: "absolute", width }}>
 			<BottomSheet
 				isPresented={isPresented}
 				onIsPresentedChange={onIsPresentedChange}
-				fitToContents
 			>
 				<Group
 					modifiers={[
 						environment("colorScheme", "dark"),
+						presentationDetents(["large"]),
 						presentationDragIndicator("visible"),
+						frame({ maxHeight: 10_000, alignment: "top" }),
 						background(theme.background),
 					]}
 				>
 					<RNHostView matchContents>
-						<View className="px-5 pb-3 pt-6">
-							<Text
-								className="mb-2 text-sm font-semibold"
-								style={{ color: theme.mutedForeground }}
-							>
-								Sort by
-							</Text>
-							{SORT_OPTIONS.map((option) => {
-								const isActive = option.value === sort;
-								return (
-									<Pressable
-										key={option.value}
-										onPress={() => onChangeSort(option.value)}
-										className="flex-row items-center gap-2.5 py-2.5"
-									>
-										<Text
-											className="flex-1 text-sm font-medium"
-											style={{ color: theme.foreground }}
-										>
-											{option.label}
-										</Text>
-										{isActive ? (
-											<Ionicons
-												name="checkmark-circle"
-												size={18}
-												color={theme.primary}
-											/>
-										) : null}
-									</Pressable>
-								);
-							})}
-							<Text
-								className="mb-2 mt-4 text-sm font-semibold"
-								style={{ color: theme.mutedForeground }}
-							>
-								Project
-							</Text>
-							<ScrollView style={{ maxHeight: 320 }}>
-								{projects.map((project) => {
-									const isActive = project.id === selectedProjectId;
-									return (
-										<Pressable
-											key={project.id}
-											onPress={() => onSelectProject(project.id)}
-											className="flex-row items-center gap-2.5 py-2.5"
-										>
-											<ProjectAvatar
-												name={project.name}
-												iconUrl={project.iconUrl}
-												size={28}
-											/>
-											<Text
-												className="flex-1 text-sm font-medium"
-												style={{ color: theme.foreground }}
-												numberOfLines={1}
-											>
-												{project.name}
-											</Text>
-											<Text
-												className="text-xs"
-												style={{ color: theme.mutedForeground }}
-											>
-												{project.workspaceCount}
-											</Text>
-											{isActive ? (
-												<Ionicons
-													name="checkmark-circle"
-													size={18}
-													color={theme.primary}
+						<View className="px-6 pb-8 pt-6">
+							{view === "root" ? (
+								<>
+									<SheetHeader title="Filter" />
+									<SheetRow
+										icon={mutedIcon("folder-outline")}
+										label="Project"
+										trailing={trailingValue(
+											selectedProject?.name ?? "All",
+											selectedProject ? (
+												<ProjectAvatar
+													name={selectedProject.name}
+													iconUrl={selectedProject.iconUrl}
+													size={22}
 												/>
-											) : null}
-										</Pressable>
-									);
-								})}
-							</ScrollView>
-							<Text
-								className="mb-2 mt-4 text-sm font-semibold"
-								style={{ color: theme.mutedForeground }}
-							>
-								Host
-							</Text>
-							<Pressable
-								onPress={() => onSelectHost(null)}
-								className="flex-row items-center gap-2.5 py-2.5"
-							>
-								<Text
-									className="flex-1 text-sm font-medium"
-									style={{ color: theme.foreground }}
-								>
-									All hosts
-								</Text>
-								{selectedHostId === null ? (
-									<Ionicons
-										name="checkmark-circle"
-										size={18}
-										color={theme.primary}
+											) : undefined,
+										)}
+										onPress={() => setView("project")}
 									/>
-								) : null}
-							</Pressable>
-							{hosts.map((host) => {
-								const isActive = host.machineId === selectedHostId;
-								return (
-									<Pressable
-										key={host.machineId}
-										onPress={() => onSelectHost(host.machineId)}
-										className="flex-row items-center gap-2.5 py-2.5"
-									>
-										<View
-											className="size-2 rounded-full"
-											style={{
-												backgroundColor: host.isOnline
-													? "#3fb950"
-													: theme.mutedForeground,
+									<SheetRow
+										icon={mutedIcon("desktop-outline")}
+										label="Host"
+										trailing={trailingValue(
+											selectedHost?.name ?? "All hosts",
+											selectedHost ? (
+												<HostStatusDot isOnline={selectedHost.isOnline} />
+											) : undefined,
+										)}
+										onPress={() => setView("host")}
+									/>
+									<SheetRow
+										icon={mutedIcon("swap-vertical")}
+										label="Sort"
+										trailing={trailingValue(sortLabel)}
+										onPress={() => setView("sort")}
+										isLast
+									/>
+								</>
+							) : null}
+							{view === "sort" ? (
+								<>
+									<SheetHeader title="Sort" onBack={() => setView("root")} />
+									{SORT_OPTIONS.map((option, index) => (
+										<SheetRow
+											key={option.value}
+											label={option.label}
+											trailing={<CheckMark visible={option.value === sort} />}
+											onPress={() => {
+												onChangeSort(option.value);
+												setView("root");
+											}}
+											isLast={index === SORT_OPTIONS.length - 1}
+										/>
+									))}
+								</>
+							) : null}
+							{view === "project" ? (
+								<>
+									<SheetHeader title="Project" onBack={() => setView("root")} />
+									<ScrollView style={{ maxHeight: 640 }}>
+										{projects.map((project, index) => (
+											<SheetRow
+												key={project.id}
+												icon={
+													<ProjectAvatar
+														name={project.name}
+														iconUrl={project.iconUrl}
+														size={28}
+													/>
+												}
+												label={project.name}
+												trailing={
+													<>
+														<Text
+															className="text-sm"
+															style={{ color: theme.mutedForeground }}
+														>
+															{project.workspaceCount}
+														</Text>
+														<CheckMark
+															visible={project.id === selectedProjectId}
+														/>
+													</>
+												}
+												onPress={() => {
+													onSelectProject(project.id);
+													setView("root");
+												}}
+												isLast={index === projects.length - 1}
+											/>
+										))}
+									</ScrollView>
+								</>
+							) : null}
+							{view === "host" ? (
+								<>
+									<SheetHeader title="Host" onBack={() => setView("root")} />
+									<ScrollView style={{ maxHeight: 640 }}>
+										<SheetRow
+											label="All hosts"
+											trailing={<CheckMark visible={selectedHostId === null} />}
+											onPress={() => {
+												onSelectHost(null);
+												setView("root");
 											}}
 										/>
-										<Text
-											className="flex-1 text-sm font-medium"
-											style={{ color: theme.foreground }}
-											numberOfLines={1}
-										>
-											{host.name}
-										</Text>
-										<Text
-											className="text-xs"
-											style={{ color: theme.mutedForeground }}
-										>
-											{host.workspaceCount}
-										</Text>
-										{isActive ? (
-											<Ionicons
-												name="checkmark-circle"
-												size={18}
-												color={theme.primary}
+										{hosts.map((host, index) => (
+											<SheetRow
+												key={host.machineId}
+												icon={<HostStatusDot isOnline={host.isOnline} />}
+												label={host.name}
+												trailing={
+													<>
+														<Text
+															className="text-sm"
+															style={{ color: theme.mutedForeground }}
+														>
+															{host.workspaceCount}
+														</Text>
+														<CheckMark
+															visible={host.machineId === selectedHostId}
+														/>
+													</>
+												}
+												onPress={() => {
+													onSelectHost(host.machineId);
+													setView("root");
+												}}
+												isLast={index === hosts.length - 1}
 											/>
-										) : null}
-									</Pressable>
-								);
-							})}
+										))}
+									</ScrollView>
+								</>
+							) : null}
 						</View>
 					</RNHostView>
 				</Group>
