@@ -8,8 +8,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { type ReactNode, useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
-import { Separator } from "@/components/ui/separator";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { ProjectAvatar } from "../ProjectAvatar";
@@ -91,18 +90,26 @@ function SheetRow({
 }) {
 	const theme = useTheme();
 	return (
-		<>
-			<Pressable onPress={onPress} className="flex-row items-center gap-3 py-4">
-				{icon ? <View className="w-7 items-center">{icon}</View> : null}
-				<Text className="text-base" style={{ color: theme.foreground }}>
-					{label}
-				</Text>
-				<View className="flex-1 flex-row items-center justify-end gap-2">
-					{trailing}
-				</View>
-			</Pressable>
-			{isLast ? null : <Separator className={icon ? "ml-10" : undefined} />}
-		</>
+		<Pressable
+			onPress={onPress}
+			className="flex-row items-center gap-3 py-4"
+			style={
+				isLast
+					? undefined
+					: {
+							borderBottomColor: theme.border,
+							borderBottomWidth: StyleSheet.hairlineWidth,
+						}
+			}
+		>
+			{icon ? <View className="w-7 items-center">{icon}</View> : null}
+			<Text className="text-base" style={{ color: theme.foreground }}>
+				{label}
+			</Text>
+			<View className="flex-1 flex-row items-center justify-end gap-2">
+				{trailing}
+			</View>
+		</Pressable>
 	);
 }
 

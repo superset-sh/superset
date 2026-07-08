@@ -8,8 +8,9 @@ export default function AuthenticatedLayout() {
 	return (
 		<CollectionsProvider>
 			<Stack screenOptions={{ headerShown: false }}>
-				<Stack.Screen name="(tabs)" />
+				<Stack.Screen name="(home)" />
 				<Stack.Screen name="workspace/[id]" />
+				<Stack.Screen name="settings" />
 			</Stack>
 		</CollectionsProvider>
 	);

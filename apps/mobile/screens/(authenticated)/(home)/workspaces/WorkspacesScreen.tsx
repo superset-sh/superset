@@ -11,6 +11,7 @@ import {
 	type HostWorkspaceItem,
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
+import { THEME } from "@/lib/theme";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
@@ -37,6 +38,7 @@ export function WorkspacesScreen() {
 	const [projectFilter, setProjectFilter] = useState<string | null>(null);
 	const [hostFilter, setHostFilter] = useState<string | null>(null);
 	const [sort, setSort] = useState<WorkspaceSort>("updatedAt");
+	const [searchQuery, setSearchQuery] = useState("");
 	const [visibleIds, setVisibleIds] = useState<string[]>([]);
 	const [refreshing, setRefreshing] = useState(false);
 	const { width } = useWindowDimensions();
@@ -86,9 +88,6 @@ export function WorkspacesScreen() {
 	}, [sortedProjects, workspaces]);
 
 	const selectedProjectId = projectFilter ?? sortedProjects[0]?.id ?? null;
-	const selectedProject = sortedProjects.find(
-		(project) => project.id === selectedProjectId,
-	);
 
 	const filterableHosts = useMemo<FilterableHost[]>(() => {
 		const counts = new Map<string, number>();
@@ -106,15 +105,37 @@ export function WorkspacesScreen() {
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}, [hosts, workspaces, selectedProjectId]);
 
+	const projectNamesById = useMemo(
+		() =>
+			new Map((projects ?? []).map((project) => [project.id, project.name])),
+		[projects],
+	);
+
 	const visibleWorkspaces = useMemo<HostWorkspaceItem[]>(() => {
-		return workspaces
-			.filter(
-				(workspace) =>
-					workspace.projectId === selectedProjectId &&
-					(hostFilter === null || workspace.hostId === hostFilter),
-			)
-			.sort((a, b) => compareDesc(a[sort], b[sort]));
-	}, [workspaces, selectedProjectId, hostFilter, sort]);
+		const needle = searchQuery.trim().toLowerCase();
+		const matches = needle
+			? workspaces.filter(
+					(workspace) =>
+						workspace.name.toLowerCase().includes(needle) ||
+						workspace.branch.toLowerCase().includes(needle) ||
+						(projectNamesById.get(workspace.projectId) ?? "")
+							.toLowerCase()
+							.includes(needle),
+				)
+			: workspaces.filter(
+					(workspace) =>
+						workspace.projectId === selectedProjectId &&
+						(hostFilter === null || workspace.hostId === hostFilter),
+				);
+		return matches.sort((a, b) => compareDesc(a[sort], b[sort]));
+	}, [
+		workspaces,
+		selectedProjectId,
+		hostFilter,
+		sort,
+		searchQuery,
+		projectNamesById,
+	]);
 
 	const workspacesById = useMemo(
 		() => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
@@ -182,24 +203,34 @@ export function WorkspacesScreen() {
 		setRefreshing(false);
 	}, [queryClient]);
 
-	const projectRepositoryId = selectedProject?.githubRepositoryId ?? null;
+	const repositoryIdsByProject = useMemo(
+		() =>
+			new Map(
+				(projects ?? []).map((project) => [
+					project.id,
+					project.githubRepositoryId,
+				]),
+			),
+		[projects],
+	);
 
 	const renderItem = useCallback(
-		({ item }: { item: HostWorkspaceItem }) => (
-			<WorkspaceRow
-				workspace={item}
-				pullRequest={
-					projectRepositoryId
-						? pullRequestsByRepoBranch.get(
-								`${projectRepositoryId}::${item.branch}`,
-							)
-						: undefined
-				}
-				diffStats={diffStats.get(item.id) ?? null}
-				cache={cache}
-			/>
-		),
-		[pullRequestsByRepoBranch, projectRepositoryId, diffStats, cache],
+		({ item }: { item: HostWorkspaceItem }) => {
+			const repositoryId = repositoryIdsByProject.get(item.projectId);
+			return (
+				<WorkspaceRow
+					workspace={item}
+					pullRequest={
+						repositoryId
+							? pullRequestsByRepoBranch.get(`${repositoryId}::${item.branch}`)
+							: undefined
+					}
+					diffStats={diffStats.get(item.id) ?? null}
+					cache={cache}
+				/>
+			);
+		},
+		[pullRequestsByRepoBranch, repositoryIdsByProject, diffStats, cache],
 	);
 
 	const handleSwitchOrganization = (organizationId: string) => {
@@ -220,6 +251,17 @@ export function WorkspacesScreen() {
 					onPress={() => setFilterSheetOpen(true)}
 				/>
 			</Stack.Toolbar>
+			<Stack.SearchBar
+				placeholder="Search workspaces"
+				placement="integrated"
+				allowToolbarIntegration
+				hideNavigationBar={false}
+				textColor={THEME.dark.foreground}
+				hintTextColor={THEME.dark.mutedForeground}
+				tintColor={THEME.dark.foreground}
+				onChangeText={(event) => setSearchQuery(event.nativeEvent.text)}
+				onCancelButtonPress={() => setSearchQuery("")}
+			/>
 			<LegendList
 				className="flex-1 bg-background"
 				contentContainerStyle={{
@@ -240,7 +282,9 @@ export function WorkspacesScreen() {
 					isReady ? (
 						<View className="items-center justify-center py-20">
 							<Text className="text-center text-muted-foreground">
-								No workspaces in this project yet
+								{searchQuery.trim()
+									? "No workspaces match your search"
+									: "No workspaces in this project yet"}
 							</Text>
 						</View>
 					) : null
