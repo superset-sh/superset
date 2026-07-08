@@ -12,6 +12,7 @@ node_modules
 dist
 dist-ssr
 dist-electron
+dist-types
 release
 *.local
 

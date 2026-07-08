@@ -5,30 +5,31 @@
 	"type": "module",
 	"exports": {
 		"./client": {
-			"types": "./src/client/index.ts",
+			"types": "./dist-types/client/index.d.ts",
 			"default": "./src/client/index.ts"
 		},
 		"./core": {
-			"types": "./src/core/index.ts",
+			"types": "./dist-types/core/index.d.ts",
 			"default": "./src/core/index.ts"
 		},
 		"./server": {
-			"types": "./src/host/index.ts",
+			"types": "./dist-types/host/index.d.ts",
 			"default": "./src/host/index.ts"
 		},
 		"./host": {
-			"types": "./src/host/index.ts",
+			"types": "./dist-types/host/index.d.ts",
 			"default": "./src/host/index.ts"
 		},
 		"./resource-uri": {
-			"types": "./src/resource-uri.ts",
+			"types": "./dist-types/resource-uri.d.ts",
 			"default": "./src/resource-uri.ts"
 		}
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
 		"test": "bun test --pass-with-no-tests",
-		"bench": "bun test src/cache-and-paths-memory.bench.ts"
+		"bench": "bun test src/cache-and-paths-memory.bench.ts",
+		"build:types": "tsc -p tsconfig.types.json"
 	},
 	"dependencies": {
 		"@parcel/watcher": "2.5.6",

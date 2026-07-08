@@ -53,8 +53,11 @@
 			"dependsOn": ["^build"],
 			"outputs": ["coverage/**"]
 		},
+		"build:types": {
+			"outputs": ["dist-types/**"]
+		},
 		"typecheck": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["^build", "^build:types"],
 			"outputs": [".cache/tsbuildinfo.json"]
 		},
 		"lint": {
