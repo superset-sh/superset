@@ -3,13 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { ChevronDownIcon, PlusIcon } from "lucide-react-native";
 import { useState } from "react";
-import {
-	Alert,
-	KeyboardAvoidingView,
-	Pressable,
-	StyleSheet,
-	View,
-} from "react-native";
+import { Alert, KeyboardAvoidingView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
 	PromptInput,
@@ -25,6 +19,7 @@ import {
 	PromptInputTools,
 	usePromptInputController,
 } from "@/components/ai-elements/prompt-input";
+import { PickerTrigger } from "@/components/PickerTrigger";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
@@ -132,9 +127,10 @@ function NewChatWidgetInner({
 				>
 					<PromptInput className="bg-card/95" onSubmit={handleSubmit}>
 						{expanded ? (
-							<PromptInputHeader className="gap-3">
-								<Pressable
-									className="flex-row items-center gap-1.5"
+							<PromptInputHeader className="px-1 pt-2">
+								<PickerTrigger
+									accessibilityLabel="Select a project"
+									className="gap-1.5"
 									disabled={targets.length === 0}
 									onPress={() =>
 										router.push("/(authenticated)/(home)/new-chat/project")
@@ -148,9 +144,9 @@ function NewChatWidgetInner({
 									<Text className="text-foreground text-sm font-medium">
 										{selectedTarget?.projectName ?? "No project"}
 									</Text>
-								</Pressable>
-								<Pressable
-									className="flex-row items-center gap-1"
+								</PickerTrigger>
+								<PickerTrigger
+									accessibilityLabel="Select a branch"
 									disabled={!selectedTarget}
 									onPress={() =>
 										router.push("/(authenticated)/(home)/new-chat/branch")
@@ -166,7 +162,7 @@ function NewChatWidgetInner({
 										as={ChevronDownIcon}
 										className="size-3.5 text-muted-foreground"
 									/>
-								</Pressable>
+								</PickerTrigger>
 							</PromptInputHeader>
 						) : null}
 						<PromptInputAttachments />
@@ -186,9 +182,8 @@ function NewChatWidgetInner({
 									>
 										<Icon as={PlusIcon} className="size-4" />
 									</PromptInputButton>
-									<Pressable
+									<PickerTrigger
 										accessibilityLabel="Select a model"
-										className="flex-row items-center gap-1 rounded-lg px-2 py-1.5"
 										onPress={() =>
 											router.push("/(authenticated)/(home)/new-chat/model")
 										}
@@ -200,7 +195,7 @@ function NewChatWidgetInner({
 											as={ChevronDownIcon}
 											className="size-3.5 text-muted-foreground"
 										/>
-									</Pressable>
+									</PickerTrigger>
 								</PromptInputTools>
 								<PromptInputSubmit
 									status={createChatWorkspace.isPending ? "submitted" : "ready"}
