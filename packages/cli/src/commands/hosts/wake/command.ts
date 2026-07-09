@@ -11,6 +11,10 @@ import { resolveHost } from "../../../lib/host/resolve";
  */
 function runLocally(cmd: string, signal: AbortSignal): Promise<number> {
 	return new Promise((resolve, reject) => {
+		if (signal.aborted) {
+			reject(new CLIError("Cancelled before wake command started"));
+			return;
+		}
 		const child = spawn(cmd, { shell: true, stdio: "inherit" });
 		const onAbort = () => child.kill("SIGTERM");
 		signal.addEventListener("abort", onAbort, { once: true });
