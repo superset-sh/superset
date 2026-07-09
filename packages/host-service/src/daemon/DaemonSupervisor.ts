@@ -98,19 +98,32 @@ export function shouldKillStaleDaemonForDev(
 }
 
 /**
- * Per-organization socket path. **Must stay short** — Darwin's `sun_path`
+ * Per-instance socket path. **Must stay short** — Darwin's `sun_path`
  * is 104 bytes, and `$SUPERSET_HOME_DIR/host/{orgId}/pty-daemon.sock` blows
- * past that in dev (worktree-relative SUPERSET_HOME_DIR + 36-char UUID).
- *
- * We put the socket in `os.tmpdir()` with a hash of the org id. Owner-only
+ * past that in dev (worktree-relative SUPERSET_HOME_DIR + 36-char UUID), so
+ * the socket lives in `os.tmpdir()` under a fixed-length hash. Owner-only
  * file mode (0600, set by the daemon's Server.listen) is the auth boundary;
  * the directory permissions don't matter.
+ *
+ * Development manifests are per-home, so a home-agnostic socket lets a dev
+ * instance adopt the packaged app's daemon through the manifest-missing
+ * socket-probe fallback. Namespace only development worktrees with a
+ * non-default `SUPERSET_HOME_DIR`; all production paths deliberately keep the
+ * legacy org-only socket so existing packaged daemons remain adoptable.
  */
-export function ptyDaemonSocketPath(organizationId: string): string {
-	const shortId = createHash("sha256")
-		.update(organizationId)
-		.digest("hex")
-		.slice(0, 12);
+export function ptyDaemonSocketPath(
+	organizationId: string,
+	env: NodeJS.ProcessEnv = process.env,
+): string {
+	const home = env.SUPERSET_HOME_DIR;
+	const defaultHome = path.join(os.homedir(), ".superset");
+	const isDefaultHome =
+		!home || path.resolve(home) === path.resolve(defaultHome);
+	const key =
+		env.NODE_ENV === "development" && !isDefaultHome
+			? `${organizationId}:${home}`
+			: organizationId;
+	const shortId = createHash("sha256").update(key).digest("hex").slice(0, 12);
 	return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
 }
 
