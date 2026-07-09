@@ -17,6 +17,8 @@ import piWhiteIcon from "./pi-white.svg";
 import polygraphIcon from "./polygraph.svg";
 import polygraphWhiteIcon from "./polygraph-white.svg";
 import supersetIcon from "./superset.svg";
+import vibeIcon from "./vibe.svg";
+import vibeWhiteIcon from "./vibe-white.svg";
 
 export interface PresetIconSet {
 	light: string;
@@ -36,6 +38,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	droid: { light: droidIcon, dark: droidWhiteIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
+	vibe: { light: vibeIcon, dark: vibeWhiteIcon },
 };
 
 /** True when a value is an inline `data:` image URI rather than a preset key. */
@@ -77,4 +80,6 @@ export {
 	polygraphIcon,
 	polygraphWhiteIcon,
 	supersetIcon,
+	vibeIcon,
+	vibeWhiteIcon,
 };
