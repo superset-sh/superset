@@ -68,7 +68,7 @@ export function useWorkspaceHost(
 				host = target;
 			}
 		});
-		const isResolving = !workspace && queries.some((query) => query.isPending);
+		const isResolving = !workspace && queries.some((query) => query.isLoading);
 		return { workspace, host, isResolving };
 	}, [targets, queries, workspaceId]);
 }
