@@ -32,39 +32,34 @@ function aggregateDiffStats(status: GitStatusSnapshot): DiffStats {
 	return { additions, deletions };
 }
 
+const MAX_DIFF_STAT_ROWS = 30;
+
 /**
- * Live working-tree diff stats. Fetching is viewport-bounded (only settled
- * visible rows subscribe — one screenful, not the whole project), but the
- * returned map is built from the whole query cache so rows scrolling back
- * into view render their last-known stats instead of flickering in.
+ * Live working-tree diff stats for the top rows of the sorted list (they're
+ * what's on or near screen with recency sorting). The returned map is built
+ * from the whole query cache so rows keep their last-known stats.
  */
-export function useVisibleDiffStats({
-	visibleIds,
-	workspacesById,
+export function useWorkspaceDiffStats({
+	workspaces,
 	resolveHostUrl,
 }: {
-	visibleIds: string[];
-	workspacesById: Map<string, HostWorkspaceItem>;
+	/** Sorted rows currently rendered by the list. */
+	workspaces: HostWorkspaceItem[];
 	resolveHostUrl: (hostId: string) => string | null;
 }): Map<string, DiffStats> {
 	const queryClient = useQueryClient();
 
 	const eligible = useMemo(() => {
 		const result: Array<{ workspaceId: string; hostUrl: string }> = [];
-		for (const workspaceId of visibleIds) {
-			const workspace = workspacesById.get(workspaceId);
-			if (
-				!workspace ||
-				!workspace.hostReachable ||
-				workspace.worktreeExists === false
-			) {
+		for (const workspace of workspaces.slice(0, MAX_DIFF_STAT_ROWS)) {
+			if (!workspace.hostReachable || workspace.worktreeExists === false) {
 				continue;
 			}
 			const hostUrl = resolveHostUrl(workspace.hostId);
-			if (hostUrl) result.push({ workspaceId, hostUrl });
+			if (hostUrl) result.push({ workspaceId: workspace.id, hostUrl });
 		}
 		return result;
-	}, [visibleIds, workspacesById, resolveHostUrl]);
+	}, [workspaces, resolveHostUrl]);
 
 	const _queries = useQueries({
 		queries: eligible.map(({ workspaceId, hostUrl }) => ({
