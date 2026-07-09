@@ -9,7 +9,7 @@ bun run release           # interactive: pick Desktop or CLI hotfix
 bun run release desktop   # desktop release directly
 ```
 
-The release toolchain is TypeScript under `scripts/release/` (run by Bun).
+The release toolchain is TypeScript under `scripts/release-tools/` (run by Bun).
 
 The flow will:
 1. Show current version and prompt for new version (patch/minor/major/custom)
