@@ -9,13 +9,21 @@
 			"distribution": "internal"
 		},
 		"preview": {
-			"distribution": "internal"
+			"distribution": "internal",
+			"environment": "preview"
 		},
 		"production": {
-			"autoIncrement": true
+			"autoIncrement": true,
+			"environment": "production"
 		}
 	},
 	"submit": {
-		"production": {}
+		"production": {
+			"ios": {
+				"ascAppId": "6788926383",
+				"appleTeamId": "NV9657CS5A",
+				"metadataPath": "./store.config.json"
+			}
+		}
 	}
 }
