@@ -172,7 +172,6 @@ jobs:
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
-          ENABLE_TEST_AUTH: "1"
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -224,8 +223,7 @@ jobs:
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
             --env TAVILY_API_KEY=$TAVILY_API_KEY \
-            --env RELAY_URL=$RELAY_URL \
-            --env ENABLE_TEST_AUTH=$ENABLE_TEST_AUTH)
+            --env RELAY_URL=$RELAY_URL)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
