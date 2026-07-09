@@ -4,16 +4,24 @@ import { boolean, CLIError, positional } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveHost } from "../../../lib/host/resolve";
 
-/** Run a command locally in a shell, streaming its output. Resolves the exit code. */
+/**
+ * Run a command locally in a shell, streaming its output. Resolves the exit
+ * code, or rejects if the process was killed by a signal (e.g. SIGTERM from an
+ * abort) — a killed process is not a successful wake.
+ */
 function runLocally(cmd: string, signal: AbortSignal): Promise<number> {
 	return new Promise((resolve, reject) => {
 		const child = spawn(cmd, { shell: true, stdio: "inherit" });
 		const onAbort = () => child.kill("SIGTERM");
 		signal.addEventListener("abort", onAbort, { once: true });
 		child.on("error", reject);
-		child.on("close", (code) => {
+		child.on("close", (code, sig) => {
 			signal.removeEventListener("abort", onAbort);
-			resolve(code ?? 0);
+			if (code === null) {
+				reject(new CLIError(`Wake command terminated by ${sig ?? "signal"}`));
+				return;
+			}
+			resolve(code);
 		});
 	});
 }

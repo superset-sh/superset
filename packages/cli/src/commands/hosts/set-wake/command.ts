@@ -27,7 +27,14 @@ export default command({
 			args.host as string,
 		);
 
+		const wakeCommand = ((args.command as string[] | undefined) ?? [])
+			.join(" ")
+			.trim();
+
 		if (options.clear) {
+			if (wakeCommand) {
+				throw new CLIError("Pass either a command or --clear, not both");
+			}
 			await ctx.api.host.setWakeCommand.mutate({
 				organizationId,
 				machineId: host.id,
@@ -39,9 +46,6 @@ export default command({
 			};
 		}
 
-		const wakeCommand = ((args.command as string[] | undefined) ?? [])
-			.join(" ")
-			.trim();
 		if (!wakeCommand) {
 			throw new CLIError(
 				"Provide a command to run, or pass --clear to remove it",

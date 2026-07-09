@@ -272,18 +272,20 @@ export const hostRouter = {
 				});
 			}
 
+			// Owner-only: the wake command is shared and executed locally by any
+			// member who runs `hosts wake`, so only the owner may set it.
 			const access = await db.query.v2UsersHosts.findFirst({
 				where: and(
 					eq(v2UsersHosts.userId, ctx.userId),
 					eq(v2UsersHosts.organizationId, input.organizationId),
 					eq(v2UsersHosts.hostId, input.machineId),
 				),
-				columns: { hostId: true },
+				columns: { role: true },
 			});
-			if (!access) {
+			if (!access || access.role !== "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "No access to this host",
+					message: "Only the host owner can set its wake command",
 				});
 			}
 
