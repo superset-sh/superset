@@ -9,9 +9,9 @@ bun run release           # interactive: pick Desktop or CLI hotfix
 bun run release desktop   # desktop release directly
 ```
 
-(`bun run release desktop` runs `apps/desktop/create-release.sh`; both work.)
+The release toolchain is TypeScript under `scripts/release/` (run by Bun).
 
-The script will:
+The flow will:
 1. Show current version and prompt for new version (patch/minor/major/custom)
 2. Set desktop, `host-service`, and `cli` all to the new version (unified) and refresh `bun.lock`
 3. Create and push a `desktop-v<version>` tag
@@ -26,14 +26,18 @@ The script will:
 
 ```bash
 # Interactive version selection (recommended)
-./apps/desktop/create-release.sh
+bun run release desktop
 
 # Explicit version
-./apps/desktop/create-release.sh 0.0.50
+bun run release desktop 0.0.50
 
 # Auto-publish (skip draft)
-./apps/desktop/create-release.sh --publish
-./apps/desktop/create-release.sh 0.0.50 --publish
+bun run release desktop --publish
+bun run release desktop 0.0.50 --publish
+
+# Non-interactive (e.g. an agent): pass a version; use --republish to
+# recreate an existing tag instead of being prompted.
+bun run release desktop 0.0.50 --republish
 ```
 
 To publish a draft:
