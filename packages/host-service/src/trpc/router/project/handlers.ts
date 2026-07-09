@@ -45,7 +45,7 @@ function dirNameForEmpty(name: string): string {
 	return slug;
 }
 
-interface CreateResult {
+export interface CreateResult {
 	projectId: string;
 	repoPath: string;
 	mainWorkspaceId: string;

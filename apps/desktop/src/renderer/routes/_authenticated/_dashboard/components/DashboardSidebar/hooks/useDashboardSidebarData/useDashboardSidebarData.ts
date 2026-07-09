@@ -1,7 +1,7 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -135,9 +135,6 @@ export function useDashboardSidebarData() {
 	const workspaceTransactionsById = useWorkspaceTransactionsStore(
 		(state) => state.byWorkspaceId,
 	);
-	const clearWorkspaceTransaction = useWorkspaceTransactionsStore(
-		(state) => state.clear,
-	);
 
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
@@ -248,8 +245,6 @@ export function useDashboardSidebarData() {
 						taskId: workspace.taskId,
 						createdAt: workspace.createdAt,
 						updatedAt: workspace.updatedAt,
-						// Host-served rows are confirmed (replaces Electric $synced).
-						isSynced: workspace.source === "host",
 						tabOrder: localState.tabOrder,
 						sectionId: localState.sectionId,
 						isHidden: localState.isHidden,
@@ -292,8 +287,6 @@ export function useDashboardSidebarData() {
 					taskId: workspace.taskId,
 					createdAt: workspace.createdAt,
 					updatedAt: workspace.updatedAt,
-					// Host-served rows are confirmed (replaces Electric $synced).
-					isSynced: workspace.source === "host",
 					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
 					sectionId: null as string | null,
 				})),
@@ -308,23 +301,6 @@ export function useDashboardSidebarData() {
 			})),
 		[hostsByMachineId, rawLocalMainWorkspaces, workspaceTransactionsById],
 	);
-
-	useEffect(() => {
-		for (const workspace of [
-			...rawSidebarWorkspaces,
-			...rawLocalMainWorkspaces,
-		]) {
-			const transaction = workspaceTransactionsById[workspace.id];
-			if (workspace.isSynced && transaction?.type === "insert") {
-				clearWorkspaceTransaction(workspace.id);
-			}
-		}
-	}, [
-		clearWorkspaceTransaction,
-		rawLocalMainWorkspaces,
-		rawSidebarWorkspaces,
-		workspaceTransactionsById,
-	]);
 
 	const visibleSidebarWorkspaces = useMemo(() => {
 		const sidebarProjectIds = new Set(

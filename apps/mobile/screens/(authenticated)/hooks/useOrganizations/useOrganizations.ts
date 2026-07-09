@@ -23,7 +23,7 @@ export function useOrganizations() {
 		if (organizationId === activeOrganizationId) return;
 		try {
 			await authClient.organization.setActive({ organizationId });
-			router.replace("/(authenticated)/(tabs)/(home)");
+			router.replace("/(authenticated)/(home)");
 		} catch (error) {
 			console.error(
 				"[organization/switch] Failed to switch organization:",
