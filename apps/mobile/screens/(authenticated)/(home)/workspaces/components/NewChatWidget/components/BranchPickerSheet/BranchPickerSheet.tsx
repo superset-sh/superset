@@ -2,6 +2,7 @@ import { BottomSheet, Group, Host, RNHostView } from "@expo/ui/swift-ui";
 import {
 	background,
 	environment,
+	presentationDetents,
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -14,7 +15,10 @@ import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 
-const LIST_MAX_HEIGHT = 320;
+// RNHostView sizes to its RN content, so the full-height sheet needs an
+// explicit content height; the large detent is roughly the screen minus
+// the top inset.
+const LARGE_DETENT_FRACTION = 0.88;
 
 function BranchRow({
 	name,
@@ -59,7 +63,7 @@ export function BranchPickerSheet({
 	onSelect: (branch: string | null) => void;
 }) {
 	const theme = useTheme();
-	const { width } = useWindowDimensions();
+	const { width, height } = useWindowDimensions();
 	const [query, setQuery] = useState("");
 
 	const trimmedQuery = query.trim();
@@ -102,17 +106,20 @@ export function BranchPickerSheet({
 			<BottomSheet
 				isPresented={isPresented}
 				onIsPresentedChange={handlePresentedChange}
-				fitToContents
 			>
 				<Group
 					modifiers={[
 						environment("colorScheme", "dark"),
+						presentationDetents(["large"]),
 						presentationDragIndicator("visible"),
 						background(theme.background),
 					]}
 				>
 					<RNHostView matchContents>
-						<View className="px-5 pb-6 pt-5">
+						<View
+							className="px-5 pb-6 pt-5"
+							style={{ height: height * LARGE_DETENT_FRACTION }}
+						>
 							<Text
 								className="mb-3 text-center text-lg font-semibold"
 								style={{ color: theme.foreground }}
@@ -128,7 +135,7 @@ export function BranchPickerSheet({
 								value={query}
 							/>
 							<ScrollView
-								style={{ maxHeight: LIST_MAX_HEIGHT }}
+								style={{ flex: 1 }}
 								contentContainerStyle={{ flexGrow: 1 }}
 								keyboardShouldPersistTaps="handled"
 							>
