@@ -19,6 +19,7 @@
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "11.16.0",
+		"@vercel/sandbox": "2.5.0",
 		"date-fns": "4.1.0",
 		"ink": "7.0.1",
 		"mime-types": "3.0.2",
