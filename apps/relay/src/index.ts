@@ -8,6 +8,7 @@ import { checkHostAccess } from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
 import * as directory from "./directory";
 import { env } from "./env";
+import { createProxyBridge, internalProxyUrl, PROXY_HOP_PARAM } from "./proxy";
 import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
@@ -145,33 +146,6 @@ async function maybeReplay(hostId: string): Promise<{
 		header: { "fly-replay": `region=${owner.region}` },
 		kind: "region",
 	};
-}
-
-// Query marker on a relay-to-relay proxy hop. Guards against an infinite
-// bridge loop when the directory is briefly stale: a hop that lands on a node
-// which doesn't own the tunnel is failed rather than re-proxied.
-const PROXY_HOP_PARAM = "_rlp";
-
-// Build the private-network URL for the relay instance that owns the tunnel.
-// Fly resolves `<machine-id>.vm.<app>.internal` to that specific machine over
-// the encrypted 6PN network, so plain `ws://` on the internal port is fine.
-function internalProxyUrl(
-	owner: { machineId: string },
-	hostId: string,
-	pathAfterHost: string,
-	search: string,
-): string {
-	const base = `ws://${owner.machineId}.vm.${env.FLY_APP_NAME}.internal:${env.RELAY_PORT}`;
-	const sep = search ? "&" : "?";
-	return `${base}/hosts/${hostId}${pathAfterHost}${search}${sep}${PROXY_HOP_PARAM}=1`;
-}
-
-// Only 1000 and the 3000-4999 app range may be sent on a WS close frame;
-// anything else (1005/1006/1015, protocol codes) throws. Fall back to 1000.
-function safeCloseCode(code: number | undefined): number {
-	return code === 1000 || (code != null && code >= 3000 && code <= 4999)
-		? code
-		: 1000;
 }
 
 function pathAfterHost(c: Context<AppContext>): string {
@@ -384,68 +358,11 @@ app.get(
 		// both ways. The owning node runs the normal access check + channel path.
 		const proxyOwner = c.get("proxyOwner");
 		if (proxyOwner) {
-			const target = internalProxyUrl(proxyOwner, hostId, path, url.search);
-			let upstream: WebSocket | null = null;
-			let clientClosed = false;
-			// Client→host frames ride the tunnel as strings (see the owning
-			// node's `String(event.data)` below), and terminal input is always
-			// JSON text — so forward this direction as text to preserve framing.
-			const pending: string[] = [];
-			const MAX_PENDING_FRAMES = 512;
-
-			return {
-				onOpen: (_event, ws) => {
-					try {
-						upstream = new WebSocket(target);
-					} catch {
-						ws.close(1011, "Upstream connect failed");
-						return;
-					}
-					upstream.binaryType = "arraybuffer";
-					upstream.addEventListener("open", () => {
-						for (const frame of pending) upstream?.send(frame);
-						pending.length = 0;
-					});
-					upstream.addEventListener("message", (event) => {
-						if (ws.readyState !== 1) return;
-						ws.send(event.data as string | ArrayBuffer);
-					});
-					upstream.addEventListener("close", (event) => {
-						if (!clientClosed && ws.readyState === 1) {
-							ws.close(safeCloseCode(event.code), "Upstream closed");
-						}
-					});
-					upstream.addEventListener("error", () => {
-						if (!clientClosed && ws.readyState === 1) {
-							ws.close(1011, "Upstream error");
-						}
-					});
-				},
-				onMessage: (event) => {
-					const frame = String(event.data);
-					if (upstream?.readyState === 1) {
-						upstream.send(frame);
-					} else if (pending.length < MAX_PENDING_FRAMES) {
-						pending.push(frame);
-					}
-				},
-				onClose: () => {
-					clientClosed = true;
-					try {
-						upstream?.close();
-					} catch {
-						// already closed
-					}
-				},
-				onError: () => {
-					clientClosed = true;
-					try {
-						upstream?.close();
-					} catch {
-						// already closed
-					}
-				},
-			};
+			const target = internalProxyUrl(proxyOwner, hostId, path, url.search, {
+				appName: env.FLY_APP_NAME,
+				port: env.RELAY_PORT,
+			});
+			return createProxyBridge(target);
 		}
 
 		let channelId: string | null = null;
