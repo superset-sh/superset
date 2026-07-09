@@ -76,7 +76,7 @@ export default command({
 		};
 
 		if (options.field) {
-			if (!(options.field in detail)) {
+			if (!Object.hasOwn(detail, options.field)) {
 				throw new CLIError(
 					`Unknown field: ${options.field}`,
 					`Available fields: ${Object.keys(detail).join(", ")}`,

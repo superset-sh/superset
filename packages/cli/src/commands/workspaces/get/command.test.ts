@@ -121,6 +121,13 @@ describe("workspaces get", () => {
 		).rejects.toThrow(/Unknown field: bogus/);
 	});
 
+	test("--field rejects inherited Object.prototype keys", async () => {
+		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
+		await expect(
+			invoke({ id: WORKSPACE.id }, { field: "toString" }),
+		).rejects.toThrow(/Unknown field: toString/);
+	});
+
 	test("errors when no reachable host knows the id", async () => {
 		findResult = { workspace: undefined, warnings: [] };
 		await expect(invoke({ id: WORKSPACE.id })).rejects.toThrow(/not found/);
