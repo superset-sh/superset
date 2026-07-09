@@ -4,7 +4,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 import { compareDesc, isAfter } from "date-fns";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
@@ -35,14 +35,6 @@ const NAVIGATION_BAR_HEIGHT = 44;
 
 export function WorkspacesScreen() {
 	const router = useRouter();
-	// TEMP: auto-open branch sheet for layout debugging — remove
-	useEffect(() => {
-		const timer = setTimeout(
-			() => router.push("/(authenticated)/(home)/new-chat/branch"),
-			1500,
-		);
-		return () => clearTimeout(timer);
-	}, [router]);
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const projectFilter = useWorkspacesFilterStore(
 		(store) => store.projectFilter,

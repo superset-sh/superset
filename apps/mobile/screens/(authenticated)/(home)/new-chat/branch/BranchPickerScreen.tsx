@@ -159,6 +159,6 @@ export function BranchPickerScreen() {
 					</Text>
 				) : null}
 			</ScrollView>
-		</View>
+		</>
 	);
 }
