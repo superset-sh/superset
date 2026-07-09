@@ -2,8 +2,9 @@
 # Local-development setup. Provisions a fully self-contained, PER-WORKSPACE
 # Superset stack backed by a local Postgres container + fake credentials — no
 # Neon account, no real third-party keys. Mirrors setup.sh, but replaces the
-# Neon branch with a docker-compose bundle (Postgres + neon-proxy + Electric)
-# on per-workspace allocated ports so multiple worktrees never collide.
+# Neon branch with a docker-compose bundle (Postgres + neon-proxy + Electric +
+# Redis/SRH) on per-workspace allocated ports so multiple worktrees never
+# collide.
 set -uo pipefail
 
 SUPERSET_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,12 +18,16 @@ source "$SUPERSET_SCRIPT_DIR/lib/setup/steps.sh" # reuse allocate_port_base + he
 cd "$ROOT_DIR" || exit 1
 
 ELECTRIC_SECRET_VALUE="local_electric_dev_secret"
+# Must match SRH_TOKEN in docker-compose.yml.
+LOCAL_KV_TOKEN_VALUE="local_dev_token"
 
 # Set by local_allocate_ports; consumed by docker compose + .env writing.
 LOCAL_DB_PROJECT=""
 LOCAL_PG_PORT=""
 LOCAL_NEON_PROXY_PORT=""
 LOCAL_ELECTRIC_PORT=""
+LOCAL_REDIS_PORT=""
+LOCAL_SRH_PORT=""
 
 sanitize_name() {
   echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-48
@@ -71,13 +76,16 @@ local_allocate_ports() {
   LOCAL_PG_PORT=$((base + 14))
   LOCAL_NEON_PROXY_PORT=$((base + 15))
   LOCAL_ELECTRIC_PORT=$((base + 9))
+  LOCAL_REDIS_PORT=$((base + 16))
+  LOCAL_SRH_PORT=$((base + 17))
   export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT
+  export LOCAL_REDIS_PORT LOCAL_SRH_PORT
   # Export so migrate/seed (child bun processes) use these — an inherited env
   # var beats the .env file, so this overrides any stale DATABASE_URL.
   export DATABASE_URL="postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main"
   export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:$LOCAL_PG_PORT/main"
   LOCAL_DB_PROJECT="superset-$(sanitize_name "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}")"
-  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT (project $LOCAL_DB_PROJECT)"
+  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT redis=$LOCAL_REDIS_PORT srh=$LOCAL_SRH_PORT (project $LOCAL_DB_PROJECT)"
   return 0
 }
 
@@ -127,7 +135,27 @@ local_db_up() {
     return 1
   fi
 
-  success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, electric :$LOCAL_ELECTRIC_PORT)"
+  # Same story for SRH: redis being healthy doesn't mean the HTTP shim is
+  # serving yet. Probe a real command. The Content-Type header is required —
+  # SRH rejects the request without it.
+  echo "  Waiting for serverless-redis-http to serve commands on :$LOCAL_SRH_PORT..."
+  local k srh_ready=0
+  for k in $(seq 1 30); do
+    if curl -s --max-time 3 -X POST "http://localhost:$LOCAL_SRH_PORT/" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $LOCAL_KV_TOKEN_VALUE" \
+        -d '["PING"]' 2>/dev/null | grep -q 'PONG'; then
+      srh_ready=1
+      break
+    fi
+    sleep 1
+  done
+  if [ "$srh_ready" -ne 1 ]; then
+    error "serverless-redis-http did not become ready within 30s"
+    return 1
+  fi
+
+  success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, electric :$LOCAL_ELECTRIC_PORT, redis :$LOCAL_REDIS_PORT, srh :$LOCAL_SRH_PORT)"
   return 0
 }
 
@@ -184,8 +212,15 @@ local_write_env() {
     write_env_var "LOCAL_PG_PORT" "$LOCAL_PG_PORT"
     write_env_var "LOCAL_NEON_PROXY_PORT" "$LOCAL_NEON_PROXY_PORT"
     write_env_var "LOCAL_ELECTRIC_PORT" "$LOCAL_ELECTRIC_PORT"
+    write_env_var "LOCAL_REDIS_PORT" "$LOCAL_REDIS_PORT"
+    write_env_var "LOCAL_SRH_PORT" "$LOCAL_SRH_PORT"
     write_env_var "DATABASE_URL" "$DATABASE_URL"
     write_env_var "DATABASE_URL_UNPOOLED" "$DATABASE_URL_UNPOOLED"
+    echo ""
+    echo "# Relay host directory: real redis behind the SRH HTTP shim"
+    write_env_var "KV_REST_API_URL" "http://localhost:$LOCAL_SRH_PORT"
+    write_env_var "KV_REST_API_TOKEN" "$LOCAL_KV_TOKEN_VALUE"
+    write_env_var "KV_URL" "redis://localhost:$LOCAL_REDIS_PORT"
     echo ""
     echo "# Workspace ports"
     write_env_var "WEB_PORT" "$WEB_PORT"
@@ -267,7 +302,9 @@ DEVVARS
     { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
     { "port": $WRANGLER_PORT, "label": "Electric Proxy (Wrangler)" },
     { "port": $LOCAL_PG_PORT, "label": "Postgres" },
-    { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" }
+    { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" },
+    { "port": $LOCAL_REDIS_PORT, "label": "Redis" },
+    { "port": $LOCAL_SRH_PORT, "label": "Redis HTTP (SRH)" }
   ]
 }
 PORTSJSON

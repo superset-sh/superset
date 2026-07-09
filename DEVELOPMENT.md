@@ -29,7 +29,7 @@ That's it. **You do not need a Neon account, Stripe keys, or any other third-par
 
 1. Copies `.env.local.example` → `.env`
 2. Allocates a per-workspace port range so multiple worktrees don't collide
-3. Brings up Postgres + neon-proxy + Electric via `docker compose` (project-scoped to this worktree)
+3. Brings up Postgres + neon-proxy + Electric + Redis (behind an HTTP shim, for the relay) via `docker compose` (project-scoped to this worktree)
 4. Runs `bun install` and `bun run db:migrate`
 5. Seeds a `Local Admin` dev account via `bun run db:seed-dev`
 6. Writes a gitignored `.superset/config.local.json` overlay so subsequent worktrees automatically use this setup
