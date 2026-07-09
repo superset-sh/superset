@@ -77,7 +77,6 @@ describe("workspaces get", () => {
 		expect(result.data.projectName).toBe("Superset");
 		expect(result.data.hostName).toBe("Town-Hall");
 		expect(result.data.worktreePath).toBe(WORKSPACE.worktreePath);
-		// Human view is an aligned key/value block.
 		expect(result.message).toContain("name");
 		expect(result.message).toContain("ludicrous-candytuft");
 	});
