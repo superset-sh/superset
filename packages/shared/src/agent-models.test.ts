@@ -98,6 +98,12 @@ describe("buildAgentModelArgs", () => {
 			["--model", "anthropic/claude-fable-5"],
 		);
 	});
+
+	it("includes every GPT-5.6 Codex model", () => {
+		for (const model of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]) {
+			expect(buildAgentModelArgs("codex", model)).toEqual(["--model", model]);
+		}
+	});
 });
 
 describe("AGENT_EFFORT_SUPPORT", () => {
