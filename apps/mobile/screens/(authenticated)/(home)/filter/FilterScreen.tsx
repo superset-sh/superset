@@ -2,7 +2,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
+import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { SheetCloseButton } from "@/screens/(authenticated)/(home)/components/SheetCloseButton";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import {
 	SORT_OPTIONS,
@@ -40,6 +42,17 @@ export function FilterScreen() {
 
 	return (
 		<View className="bg-background flex-1 px-6">
+			<View className="relative mb-2 mt-5 items-center justify-center">
+				<View className="absolute left-0">
+					<SheetCloseButton onPress={() => router.back()} />
+				</View>
+				<Text
+					className="text-center text-lg font-semibold"
+					style={{ color: theme.foreground }}
+				>
+					Filter
+				</Text>
+			</View>
 			<ListRow
 				icon={
 					<Ionicons

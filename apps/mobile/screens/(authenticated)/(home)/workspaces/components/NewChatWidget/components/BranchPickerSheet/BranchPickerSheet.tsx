@@ -15,6 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { SheetCloseButton } from "@/screens/(authenticated)/(home)/components/SheetCloseButton";
 import { hslToHex } from "../../../../utils/hslToHex";
 
 // RNHostView sizes to its RN content, so the full-height sheet needs an
@@ -123,20 +124,36 @@ export function BranchPickerSheet({
 							className="px-5 pb-6 pt-5"
 							style={{ height: height * LARGE_DETENT_FRACTION }}
 						>
-							<Text
-								className="mb-3 text-center text-lg font-semibold"
-								style={{ color: theme.foreground }}
-							>
-								Branch
-							</Text>
-							<Input
-								autoCapitalize="none"
-								autoCorrect={false}
-								className="rounded-full"
-								onChangeText={setQuery}
-								placeholder="Branches..."
-								value={query}
-							/>
+							<View className="relative mb-3 items-center justify-center">
+								<View className="absolute left-0">
+									<SheetCloseButton
+										onPress={() => handlePresentedChange(false)}
+									/>
+								</View>
+								<Text
+									className="text-center text-lg font-semibold"
+									style={{ color: theme.foreground }}
+								>
+									Branch
+								</Text>
+							</View>
+							<View className="relative justify-center">
+								<View className="absolute left-3 z-10">
+									<Ionicons
+										name="search"
+										size={16}
+										color={theme.mutedForeground}
+									/>
+								</View>
+								<Input
+									autoCapitalize="none"
+									autoCorrect={false}
+									className="rounded-full pl-9"
+									onChangeText={setQuery}
+									placeholder="Branches..."
+									value={query}
+								/>
+							</View>
 							<ScrollView
 								style={{ flex: 1 }}
 								contentContainerStyle={{ flexGrow: 1 }}

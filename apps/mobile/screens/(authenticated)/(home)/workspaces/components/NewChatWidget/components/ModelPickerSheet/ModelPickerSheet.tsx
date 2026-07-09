@@ -10,6 +10,7 @@ import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { SheetCloseButton } from "@/screens/(authenticated)/(home)/components/SheetCloseButton";
 import { hslToHex } from "../../../../utils/hslToHex";
 
 export function ModelPickerSheet({
@@ -42,13 +43,20 @@ export function ModelPickerSheet({
 					]}
 				>
 					<RNHostView matchContents>
-						<View className="px-5 pb-6 pt-6">
-							<Text
-								className="mb-2 text-sm font-semibold"
-								style={{ color: theme.mutedForeground }}
-							>
-								Model
-							</Text>
+						<View className="px-5 pb-6 pt-5">
+							<View className="relative mb-2 items-center justify-center">
+								<View className="absolute left-0">
+									<SheetCloseButton
+										onPress={() => onIsPresentedChange(false)}
+									/>
+								</View>
+								<Text
+									className="text-center text-lg font-semibold"
+									style={{ color: theme.foreground }}
+								>
+									Model
+								</Text>
+							</View>
 							{SUPERSET_CHAT_MODELS.map((model) => {
 								const isSelected = model.id === selectedModelId;
 								return (

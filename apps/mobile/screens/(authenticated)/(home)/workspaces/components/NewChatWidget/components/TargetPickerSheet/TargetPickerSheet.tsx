@@ -9,6 +9,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { SheetCloseButton } from "@/screens/(authenticated)/(home)/components/SheetCloseButton";
 import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/components/ProjectAvatar";
 import { hslToHex } from "../../../../utils/hslToHex";
 import type { NewChatTarget } from "../../hooks/useNewChatTargets";
@@ -45,13 +46,20 @@ export function TargetPickerSheet({
 					]}
 				>
 					<RNHostView matchContents>
-						<View className="px-5 pb-6 pt-6">
-							<Text
-								className="mb-2 text-sm font-semibold"
-								style={{ color: theme.mutedForeground }}
-							>
-								Projects
-							</Text>
+						<View className="px-5 pb-6 pt-5">
+							<View className="relative mb-2 items-center justify-center">
+								<View className="absolute left-0">
+									<SheetCloseButton
+										onPress={() => onIsPresentedChange(false)}
+									/>
+								</View>
+								<Text
+									className="text-center text-lg font-semibold"
+									style={{ color: theme.foreground }}
+								>
+									Project
+								</Text>
+							</View>
 							{targets.length === 0 ? (
 								<Text
 									className="py-4 text-center text-sm"

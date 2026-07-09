@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { SheetCloseButton } from "@/screens/(authenticated)/(home)/components/SheetCloseButton";
 import { hslToHex } from "../../../../utils/hslToHex";
 import { PhotoCarousel } from "./components/PhotoCarousel";
 import { ScreenshotGrid } from "./components/ScreenshotGrid";
@@ -228,12 +229,19 @@ export function ContextSheet({
 							</View>
 						) : (
 							<View className="pb-6 pt-5">
-								<Text
-									className="mb-3 px-5 text-center text-lg font-semibold"
-									style={{ color: theme.foreground }}
-								>
-									Context
-								</Text>
+								<View className="relative mb-3 items-center justify-center px-5">
+									<View className="absolute left-5">
+										<SheetCloseButton
+											onPress={() => handlePresentedChange(false)}
+										/>
+									</View>
+									<Text
+										className="text-center text-lg font-semibold"
+										style={{ color: theme.foreground }}
+									>
+										Context
+									</Text>
+								</View>
 								<PhotoCarousel
 									active={isPresented}
 									selected={selected}
