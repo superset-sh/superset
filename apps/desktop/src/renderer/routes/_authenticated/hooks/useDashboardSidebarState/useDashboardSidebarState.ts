@@ -7,74 +7,22 @@ import {
 	type PaneLifecycleRow,
 } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import {
 	getNextTabOrder,
-	getPrependTabOrder,
 	isSidebarWorkspaceVisible,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
-	createEmptyPaneLayout,
+	ensureSidebarProjectRecord,
+	ensureSidebarWorkspaceRecord,
+	getProjectTopLevelItems,
+	type ProjectTopLevelCollections,
+	type ProjectTopLevelItem,
 	removeProjectFromSidebarState,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
-
-type ProjectTopLevelItem = {
-	type: "workspace" | "section";
-	id: string;
-	tabOrder: number;
-};
-
-type ProjectTopLevelCollections = Pick<
-	AppCollections,
-	"v2SidebarSections" | "v2WorkspaceLocalState"
->;
-
-function compareProjectTopLevelItems(
-	left: ProjectTopLevelItem,
-	right: ProjectTopLevelItem,
-): number {
-	const orderDelta = left.tabOrder - right.tabOrder;
-	if (orderDelta !== 0) return orderDelta;
-	if (left.type === right.type) return 0;
-	return left.type === "section" ? -1 : 1;
-}
-
-function getProjectTopLevelItems(
-	collections: ProjectTopLevelCollections,
-	projectId: string,
-	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
-): ProjectTopLevelItem[] {
-	return [
-		...Array.from(collections.v2WorkspaceLocalState.state.values())
-			.filter(
-				(item) =>
-					item.sidebarState.projectId === projectId &&
-					isSidebarWorkspaceVisible(item) &&
-					item.sidebarState.sectionId === null &&
-					item.workspaceId !== options.excludeWorkspaceId,
-			)
-			.map((item) => ({
-				type: "workspace" as const,
-				id: item.workspaceId,
-				tabOrder: item.sidebarState.tabOrder,
-			})),
-		...Array.from(collections.v2SidebarSections.state.values())
-			.filter(
-				(item) =>
-					item.projectId === projectId &&
-					item.sectionId !== options.excludeSectionId,
-			)
-			.map((item) => ({
-				type: "section" as const,
-				id: item.sectionId,
-				tabOrder: item.tabOrder,
-			})),
-	].sort(compareProjectTopLevelItems);
-}
 
 function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
 	const firstSectionIndex = items.findIndex((item) => item.type === "section");
@@ -107,62 +55,6 @@ function writeProjectTopLevelOrder(
 		collections.v2SidebarSections.update(item.id, (draft) => {
 			draft.tabOrder = tabOrder;
 		});
-	});
-}
-
-function ensureSidebarProjectRecord(
-	collections: Pick<AppCollections, "v2SidebarProjects">,
-	projectId: string,
-): void {
-	if (collections.v2SidebarProjects.get(projectId)) {
-		return;
-	}
-
-	collections.v2SidebarProjects.insert({
-		projectId,
-		createdAt: new Date(),
-		tabOrder: getNextTabOrder([
-			...collections.v2SidebarProjects.state.values(),
-		]),
-		isCollapsed: false,
-	});
-}
-
-function ensureSidebarWorkspaceRecord(
-	collections: Pick<
-		AppCollections,
-		"v2SidebarSections" | "v2WorkspaceLocalState"
-	>,
-	workspaceId: string,
-	projectId: string,
-): void {
-	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
-	if (existing && isSidebarWorkspaceVisible(existing)) {
-		return;
-	}
-
-	const topLevelItems = getProjectTopLevelItems(collections, projectId);
-
-	if (existing) {
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.sidebarState.projectId = projectId;
-			draft.sidebarState.tabOrder = getPrependTabOrder(topLevelItems);
-			draft.sidebarState.sectionId = null;
-			draft.sidebarState.isHidden = false;
-		});
-		return;
-	}
-
-	collections.v2WorkspaceLocalState.insert({
-		workspaceId,
-		createdAt: new Date(),
-		sidebarState: {
-			projectId,
-			tabOrder: getPrependTabOrder(topLevelItems),
-			sectionId: null,
-			isHidden: false,
-		},
-		paneLayout: createEmptyPaneLayout(),
 	});
 }
 

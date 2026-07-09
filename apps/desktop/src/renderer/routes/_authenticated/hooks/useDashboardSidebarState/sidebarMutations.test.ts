@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	ensureSidebarWorkspaceRecord,
 	removeProjectFromSidebarState,
 	type SidebarWorkspaceRow,
 	tombstoneSidebarWorkspaceRecord,
@@ -278,5 +279,64 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 		expect(row?.sidebarState.isHidden).toBe(true);
 		expect(row?.sidebarState.sectionId).toBeNull();
 		expect(cleaned).toEqual(["ws-1"]);
+	});
+});
+
+/**
+ * Reproduction for https://github.com/.../issues/5537 — "Upgrading to 1.14.0
+ * loses all sections and workspaces that are not active".
+ *
+ * v1 stored a workspace's section membership on the workspace row
+ * (`workspaces.section_id`, see packages/local-db schema). In v2 the sidebar is
+ * seeded through `ensureSidebarWorkspaceRecord` (called by
+ * `ensureWorkspaceInSidebar`, which the v1 import's `adoptWorkspace` and the
+ * workspace layout mount both invoke). That seeding path hard-codes
+ * `sectionId: null` and has no parameter to carry a workspace's original
+ * section, and the migration read layer never surfaces v1 sections at all — so
+ * a workspace that lived in a user-created section lands ungrouped at the top
+ * level, and the sections themselves are never recreated. This is why the
+ * organizational sections "are gone" after upgrading.
+ */
+describe("ensureSidebarWorkspaceRecord — v1 section membership is dropped on import (repro #5537)", () => {
+	// `it.failing` documents the current defect while keeping CI green: the body
+	// asserts the *correct* behaviour, so this test starts passing (and Bun flags
+	// it as "unexpectedly passing") the moment the bug is fixed.
+	it.failing("does not place an imported workspace back into its v1 section", () => {
+		const sections = makeCollection<{
+			sectionId: string;
+			projectId: string;
+			name: string;
+			tabOrder: number;
+			isCollapsed: boolean;
+			color: string | null;
+			createdAt: Date;
+		}>((row) => row.sectionId);
+		const localState = makeCollection<LocalStateRow>((row) => row.workspaceId);
+
+		// The user's v1 "Backend" section, as it would exist after being migrated.
+		sections.insert({
+			sectionId: "sec-backend",
+			projectId: "proj-1",
+			name: "Backend",
+			tabOrder: 1,
+			isCollapsed: false,
+			color: null,
+			createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		});
+
+		const collections = {
+			v2SidebarSections: sections,
+			v2WorkspaceLocalState: localState,
+		} as unknown as Parameters<typeof ensureSidebarWorkspaceRecord>[0];
+
+		// The v1 import brings the workspace into the sidebar. In v1 this workspace
+		// belonged to the "Backend" section, but the import only knows its id and
+		// project — the section is never threaded through.
+		ensureSidebarWorkspaceRecord(collections, "ws-api", "proj-1");
+
+		const seeded = localState.get("ws-api");
+		// The workspace should be restored into its original section; instead its
+		// membership is silently dropped and it appears ungrouped.
+		expect(seeded?.sidebarState.sectionId).toBe("sec-backend");
 	});
 });
