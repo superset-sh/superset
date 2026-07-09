@@ -40,29 +40,59 @@ function buildVibeManagedHooksBlock(): string {
 	].join("\n");
 }
 
+const MANAGED_HOOK_NAME_PREFIX = "superset-notify-";
+
+/**
+ * Remove an orphaned managed block (start marker present, end marker lost to a
+ * partial/interrupted write) without deleting user hooks that follow it. Our
+ * block only ever contains `[[hooks]]` tables named `superset-notify-*`, so we
+ * drop the marker and our own tables and stop at the first foreign TOML table.
+ */
+function stripOrphanedManagedBlock(base: string, start: number): string {
+	const before = base.slice(0, start);
+	const lines = base.slice(start).split("\n");
+	const isTableHeader = (line: string) => /^\s*\[/.test(line);
+	// Default: nothing foreign follows the orphaned block — strip to end-of-file.
+	let cut = lines.length;
+	for (let i = 1; i < lines.length; i++) {
+		if (!isTableHeader(lines[i])) continue;
+		let name: string | null = null;
+		for (let j = i + 1; j < lines.length && !isTableHeader(lines[j]); j++) {
+			const match = lines[j].match(/^\s*name\s*=\s*"([^"]*)"/);
+			if (match) {
+				name = match[1];
+				break;
+			}
+		}
+		if (name !== null && !name.startsWith(MANAGED_HOOK_NAME_PREFIX)) {
+			cut = i;
+			break;
+		}
+	}
+	// Keep any user comments/blank lines sitting just above the foreign table.
+	while (
+		cut > 1 &&
+		(lines[cut - 1].trim() === "" || lines[cut - 1].trimStart().startsWith("#"))
+	) {
+		cut--;
+	}
+	return before + lines.slice(cut).join("\n");
+}
+
 /**
  * Merge our managed block into an existing hooks.toml: strip any prior managed
- * block (between markers), then append the fresh one. Preserves user hooks and
- * is idempotent — no TOML parser needed since we own the block content.
- *
- * A prior interrupted/partial write can leave an orphaned start marker with no
- * end marker; in that case we strip from the start marker to end-of-file so we
- * never accumulate duplicate `[[hooks]]` blocks or leave a dangling marker.
+ * block, then append the fresh one. Preserves user hooks and is idempotent —
+ * no TOML parser needed since we own the block content.
  */
 export function getVibeHooksTomlContent(existing: string): string {
 	let base = existing;
 	const start = base.indexOf(VIBE_HOOKS_MARKER_START);
 	if (start !== -1) {
 		const end = base.indexOf(VIBE_HOOKS_MARKER_END, start);
-		if (end !== -1) {
-			base =
-				base.slice(0, start) + base.slice(end + VIBE_HOOKS_MARKER_END.length);
-		} else {
-			// Orphaned start marker (partial/interrupted write) — strip from the
-			// start marker to end-of-file rather than leaving the stale block in
-			// place and appending a fresh one (which would duplicate the hooks).
-			base = base.slice(0, start);
-		}
+		base =
+			end !== -1
+				? base.slice(0, start) + base.slice(end + VIBE_HOOKS_MARKER_END.length)
+				: stripOrphanedManagedBlock(base, start);
 	}
 	base = base.replace(/\s+$/, "");
 	const block = buildVibeManagedHooksBlock();

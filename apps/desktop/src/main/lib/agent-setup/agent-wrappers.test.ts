@@ -1673,6 +1673,32 @@ describe("vibe hooks.toml", () => {
 		expect(out.split('type = "before_tool"').length - 1).toBe(1);
 		expect(out.split('type = "post_agent_turn"').length - 1).toBe(1);
 	});
+	it("preserves user hooks that follow an orphaned start marker", () => {
+		// End marker lost to a hand-edit/crash, with a user hook AFTER our block.
+		const partial = [
+			VIBE_HOOKS_MARKER_START,
+			"[[hooks]]",
+			'name = "superset-notify-before-tool"',
+			'type = "before_tool"',
+			"command = 'true'",
+			// NO end marker
+			"",
+			"# my own hook",
+			"[[hooks]]",
+			'name = "my-lint-on-save"',
+			'type = "before_tool"',
+			'command = "run-my-linter.sh"',
+		].join("\n");
+		const out = getVibeHooksTomlContent(partial);
+		expect(out).toContain('name = "my-lint-on-save"');
+		expect(out).toContain("# my own hook");
+		// Exactly one complete managed block, no dangling/duplicate markers.
+		expect(out.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
+		expect(out.split(VIBE_HOOKS_MARKER_END).length - 1).toBe(1);
+		expect(out.split('name = "superset-notify-before-tool"').length - 1).toBe(
+			1,
+		);
+	});
 });
 
 describe("agent-wrappers pi", () => {
