@@ -3,12 +3,14 @@ import type { ReactNode } from "react";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 
-export function FilterRowValue({
+export function ListRowValue({
 	value,
 	accessory,
+	chevron = true,
 }: {
 	value: string;
 	accessory?: ReactNode;
+	chevron?: boolean;
 }) {
 	const theme = useTheme();
 	return (
@@ -21,11 +23,13 @@ export function FilterRowValue({
 			>
 				{value}
 			</Text>
-			<Ionicons
-				name="chevron-forward"
-				size={18}
-				color={theme.mutedForeground}
-			/>
+			{chevron ? (
+				<Ionicons
+					name="chevron-forward"
+					size={18}
+					color={theme.mutedForeground}
+				/>
+			) : null}
 		</>
 	);
 }

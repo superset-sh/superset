@@ -7,10 +7,10 @@ import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
 } from "@/screens/(authenticated)/(home)/workspaces/stores/workspacesFilterStore";
+import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
+import { ListRow } from "@/screens/(authenticated)/components/ListRow";
+import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
-import { FilterRow } from "./components/FilterRow";
-import { FilterRowValue } from "./components/FilterRowValue";
-import { HostStatusDot } from "./components/HostStatusDot";
 import { ProjectAvatar } from "./components/ProjectAvatar";
 
 export function FilterScreen() {
@@ -46,7 +46,7 @@ export function FilterScreen() {
 
 	return (
 		<View className="bg-background flex-1 px-6">
-			<FilterRow
+			<ListRow
 				icon={
 					<Ionicons
 						name="folder-outline"
@@ -56,7 +56,7 @@ export function FilterScreen() {
 				}
 				label="Project"
 				trailing={
-					<FilterRowValue
+					<ListRowValue
 						value={selectedProject?.name ?? "All"}
 						accessory={
 							selectedProject ? (
@@ -71,7 +71,7 @@ export function FilterScreen() {
 				}
 				onPress={() => router.push("/(authenticated)/(home)/filter/project")}
 			/>
-			<FilterRow
+			<ListRow
 				icon={
 					<Ionicons
 						name="desktop-outline"
@@ -81,7 +81,7 @@ export function FilterScreen() {
 				}
 				label="Host"
 				trailing={
-					<FilterRowValue
+					<ListRowValue
 						value={selectedHost?.name ?? "All hosts"}
 						accessory={
 							selectedHost ? (
@@ -92,7 +92,7 @@ export function FilterScreen() {
 				}
 				onPress={() => router.push("/(authenticated)/(home)/filter/host")}
 			/>
-			<FilterRow
+			<ListRow
 				icon={
 					<Ionicons
 						name="swap-vertical"
@@ -101,7 +101,7 @@ export function FilterScreen() {
 					/>
 				}
 				label="Sort"
-				trailing={<FilterRowValue value={sortLabel} />}
+				trailing={<ListRowValue value={sortLabel} />}
 				onPress={() => router.push("/(authenticated)/(home)/filter/sort")}
 				isLast
 			/>

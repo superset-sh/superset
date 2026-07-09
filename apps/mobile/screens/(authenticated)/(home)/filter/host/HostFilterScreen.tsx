@@ -5,10 +5,10 @@ import { ScrollView, Text } from "react-native";
 import { useHostWorkspaces } from "@/hooks/useHostWorkspaces";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/workspaces/stores/workspacesFilterStore";
+import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
+import { ListRow } from "@/screens/(authenticated)/components/ListRow";
+import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
-import { FilterCheck } from "../components/FilterCheck";
-import { FilterRow } from "../components/FilterRow";
-import { HostStatusDot } from "../components/HostStatusDot";
 
 export function HostFilterScreen() {
 	const router = useRouter();
@@ -66,13 +66,13 @@ export function HostFilterScreen() {
 			className="bg-background flex-1"
 			contentContainerClassName="px-6 pb-10"
 		>
-			<FilterRow
+			<ListRow
 				label="All hosts"
-				trailing={<FilterCheck visible={hostFilter === null} />}
+				trailing={<ListRowCheck visible={hostFilter === null} />}
 				onPress={() => selectHost(null)}
 			/>
 			{sortedHosts.map((host, index) => (
-				<FilterRow
+				<ListRow
 					key={host.machineId}
 					icon={<HostStatusDot isOnline={host.isOnline} />}
 					label={host.name}
@@ -84,7 +84,7 @@ export function HostFilterScreen() {
 							>
 								{host.workspaceCount}
 							</Text>
-							<FilterCheck visible={host.machineId === hostFilter} />
+							<ListRowCheck visible={host.machineId === hostFilter} />
 						</>
 					}
 					onPress={() => selectHost(host.machineId)}

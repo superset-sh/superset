@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { ChevronsUpDown } from "lucide-react-native";
 import { Pressable } from "react-native";
 import { Text } from "@/components/ui/text";
-import { OrganizationAvatar } from "../OrganizationSwitcherSheet/components/OrganizationAvatar";
+import { OrganizationAvatar } from "@/screens/(authenticated)/components/OrganizationAvatar";
 
 export function OrganizationHeaderButton({
 	name,

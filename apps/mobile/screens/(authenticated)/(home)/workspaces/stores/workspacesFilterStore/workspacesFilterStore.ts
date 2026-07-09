@@ -1,4 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export type WorkspaceSort = "updatedAt" | "createdAt";
 
@@ -16,13 +18,19 @@ interface WorkspacesFilterStore {
 	setSort: (sort: WorkspaceSort) => void;
 }
 
-export const useWorkspacesFilterStore = create<WorkspacesFilterStore>(
-	(set) => ({
-		projectFilter: null,
-		hostFilter: null,
-		sort: "updatedAt",
-		setProjectFilter: (projectId) => set({ projectFilter: projectId }),
-		setHostFilter: (machineId) => set({ hostFilter: machineId }),
-		setSort: (sort) => set({ sort }),
-	}),
+export const useWorkspacesFilterStore = create<WorkspacesFilterStore>()(
+	persist(
+		(set) => ({
+			projectFilter: null,
+			hostFilter: null,
+			sort: "updatedAt",
+			setProjectFilter: (projectId) => set({ projectFilter: projectId }),
+			setHostFilter: (machineId) => set({ hostFilter: machineId }),
+			setSort: (sort) => set({ sort }),
+		}),
+		{
+			name: "workspaces-filter",
+			storage: createJSONStorage(() => AsyncStorage),
+		},
+	),
 );
