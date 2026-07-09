@@ -22,6 +22,11 @@ export interface AgentModelOption {
 export interface AgentModelSupport {
 	presetId: string;
 	modelFlag: string | null;
+	/**
+	 * Env var that carries the model when the CLI has no model flag (e.g. Vibe's
+	 * `VIBE_ACTIVE_MODEL`). Mutually exclusive with `modelFlag` in practice.
+	 */
+	modelEnv?: string;
 	models: AgentModelOption[];
 }
 
@@ -112,6 +117,15 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
 			{ id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
 			{ id: "openai/gpt-5", label: "GPT-5" },
+		],
+	},
+	{
+		presetId: "vibe",
+		modelFlag: null,
+		modelEnv: "VIBE_ACTIVE_MODEL",
+		models: [
+			{ id: "mistral-medium-3.5", label: "Mistral Medium 3.5" },
+			{ id: "devstral-small", label: "Devstral Small" },
 		],
 	},
 	{
@@ -257,4 +271,21 @@ export function buildAgentModelArgs(
 	if (!support?.modelFlag) return [];
 	if (!support.models.some((option) => option.id === model)) return [];
 	return [support.modelFlag, model];
+}
+
+/**
+ * Env vars that select `model` for env-based agents (Vibe has no `--model`
+ * flag; the model rides `VIBE_ACTIVE_MODEL`). Same degrade-to-default contract
+ * as `buildAgentModelArgs`: unknown presets, presets without `modelEnv`, an
+ * unset model, or a model id outside the curated list return `{}`.
+ */
+export function buildAgentModelEnv(
+	presetId: string,
+	model: string | undefined,
+): Record<string, string> {
+	if (!model) return {};
+	const support = getAgentModelSupport(presetId);
+	if (!support?.modelEnv) return {};
+	if (!support.models.some((option) => option.id === model)) return {};
+	return { [support.modelEnv]: model };
 }

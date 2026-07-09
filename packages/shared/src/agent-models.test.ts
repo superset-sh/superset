@@ -4,6 +4,7 @@ import {
 	AGENT_MODEL_SUPPORT,
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
+	buildAgentModelEnv,
 	getAgentEffortSupport,
 	getAgentModelSupport,
 } from "./agent-models";
@@ -20,9 +21,12 @@ describe("AGENT_MODEL_SUPPORT", () => {
 		}
 	});
 
-	it("has a CLI flag for every terminal preset and none for superset", () => {
+	it("has a model flag, a model env, or (superset) neither", () => {
 		for (const entry of AGENT_MODEL_SUPPORT) {
 			if (entry.presetId === "superset") {
+				expect(entry.modelFlag).toBeNull();
+			} else if (entry.modelEnv) {
+				// env-based presets (Vibe) carry the model via an env var, no flag
 				expect(entry.modelFlag).toBeNull();
 			} else {
 				expect(entry.modelFlag).toBe("--model");
@@ -153,5 +157,31 @@ describe("buildAgentEffortArgs", () => {
 	it("returns [] for effort ids outside the preset's curated list", () => {
 		expect(buildAgentEffortArgs("claude", "bogus")).toEqual([]);
 		expect(buildAgentEffortArgs("copilot", "max")).toEqual([]);
+	});
+});
+
+describe("buildAgentModelEnv (vibe)", () => {
+	it("returns VIBE_ACTIVE_MODEL for a valid vibe model", () => {
+		expect(buildAgentModelEnv("vibe", "mistral-medium-3.5")).toEqual({
+			VIBE_ACTIVE_MODEL: "mistral-medium-3.5",
+		});
+	});
+	it("returns {} for an unknown model id (degrade to Vibe default)", () => {
+		expect(buildAgentModelEnv("vibe", "not-a-model")).toEqual({});
+	});
+	it("returns {} when no model is selected", () => {
+		expect(buildAgentModelEnv("vibe", undefined)).toEqual({});
+	});
+	it("returns {} for a preset without modelEnv", () => {
+		expect(buildAgentModelEnv("claude", "opus")).toEqual({});
+	});
+	it("keeps buildAgentModelArgs empty for vibe (no --model flag)", () => {
+		expect(buildAgentModelArgs("vibe", "mistral-medium-3.5")).toEqual([]);
+	});
+	it("exposes a vibe model catalog", () => {
+		expect(getAgentModelSupport("vibe")?.models.map((m) => m.id)).toEqual([
+			"mistral-medium-3.5",
+			"devstral-small",
+		]);
 	});
 });
