@@ -200,11 +200,28 @@ Outcome: selecting a model for `vibe` prepends `VIBE_ACTIVE_MODEL=<id>` to the l
 - Modify: `packages/shared/src/agent-models.ts`
 - Test: `packages/shared/src/agent-models.test.ts`
 
-- [ ] **Step 1: Write failing tests** — append to `agent-models.test.ts`:
+- [ ] **Step 1a: Add `buildAgentModelEnv` to the existing import** at the top of `agent-models.test.ts` (the file already imports `buildAgentModelArgs`, `getAgentModelSupport`, etc. — add `buildAgentModelEnv` to that same import block; do NOT add a second `import … from "./agent-models"`).
+
+- [ ] **Step 1b: Amend the existing invariant test.** The current test `it("has a CLI flag for every terminal preset and none for superset")` (`agent-models.test.ts:23-31`) asserts every non-`superset` entry has `modelFlag === "--model"`. The new env-based `vibe` entry (`modelFlag: null`) would fail it. Replace that test with:
 
 ```ts
-import { buildAgentModelArgs, buildAgentModelEnv, getAgentModelSupport } from "./agent-models";
+	it("has a model flag, a model env, or (superset) neither", () => {
+		for (const entry of AGENT_MODEL_SUPPORT) {
+			if (entry.presetId === "superset") {
+				expect(entry.modelFlag).toBeNull();
+			} else if (entry.modelEnv) {
+				// env-based presets (Vibe) carry the model via an env var, no flag
+				expect(entry.modelFlag).toBeNull();
+			} else {
+				expect(entry.modelFlag).toBe("--model");
+			}
+		}
+	});
+```
 
+- [ ] **Step 1c: Write the failing `buildAgentModelEnv` tests** — append to `agent-models.test.ts` (no import line — added in Step 1a):
+
+```ts
 describe("buildAgentModelEnv (vibe)", () => {
   it("returns VIBE_ACTIVE_MODEL for a valid vibe model", () => {
     expect(buildAgentModelEnv("vibe", "mistral-medium-3.5")).toEqual({
@@ -431,7 +448,9 @@ describe("vibe hooks.toml", () => {
     expect(once).toContain('name = "mine"');
     // Re-running does not duplicate the managed block.
     const twice = getVibeHooksTomlContent(once);
-    expect(twice.match(new RegExp(VIBE_HOOKS_MARKER_START, "g"))?.length).toBe(1);
+    // Count by splitting: the marker contains regex metachars ("(do not edit)"),
+    // so `new RegExp(marker)` would not match the literal text.
+    expect(twice.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
     expect(twice).toContain('name = "mine"');
   });
 });
