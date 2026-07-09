@@ -69,20 +69,24 @@ Vibe has no `--model` flag, so the existing argv path (`buildAgentModelArgs`) ca
 
 ### Phase 4 — Lifecycle hooks (working indicator + completion chime)
 - New `apps/desktop/src/main/lib/agent-setup/agent-wrappers-vibe.ts`:
-  - `createVibeWrapper()` — PATH-shadow wrapper (managed binary) that exports `SUPERSET_AGENT_ID=vibe` and `VIBE_ENABLE_EXPERIMENTAL_HOOKS=true`, then `exec`s the real `vibe`. Modeled on `createCodexWrapper`.
-  - `createVibeHooksToml()` — merge-by-name, marker-guarded, into `~/.vibe/hooks.toml`: two `[[hooks]]` entries (`type = "before_tool"` and `type = "post_agent_turn"`) whose `command` invokes Superset's shared notify script with the event name. Merge (don't overwrite) to preserve any user hooks.
+  - `createVibeWrapper()` — PATH-shadow wrapper (managed binary) that exports `SUPERSET_AGENT_ID=vibe` and `VIBE_ENABLE_EXPERIMENTAL_HOOKS=true`, then `exec`s the real `vibe`. Model it on `createOpenCodeWrapper` (plain `export … ; exec "$REAL_BIN" "$@"`, `agent-wrappers-claude-codex-opencode.ts:501`), **not** `createCodexWrapper` — the codex wrapper pulls in a session-log watcher template Vibe doesn't need.
+  - `createVibeHooksToml()` — merge-by-name, marker-guarded, into `~/.vibe/hooks.toml`: two `[[hooks]]` entries (`type = "before_tool"` and `type = "post_agent_turn"`) whose `command` invokes Superset's shared notify script. Merge (don't overwrite) to preserve any user hooks.
+    - **New plumbing / dependency:** every existing hook-file creator uses `JSON.parse`/`JSON.stringify` (claude `settings.json`, codex/mastra `hooks.json`) and there is **no TOML library in the repo today**. A "merge, don't overwrite" writer for `~/.vibe/hooks.toml` needs either a small TOML parse+serialize dep (e.g. `smol-toml`) or a minimal hand-rolled `[[hooks]]` writer. This is the one non-trivial unaccounted cost — the implementation plan must pick one.
+  - **No notify-template change needed:** the shared notify hook template already extracts `hook_event_name` from the stdin JSON, and Vibe's hook invocation JSON carries exactly `"hook_event_name": "before_tool" | "post_agent_turn"`. So the Vibe hook `command` just pipes to the existing notify script.
 - Register the new agent in the desktop setup pipeline:
   - `desktop-agent-capabilities.ts`: add action slugs (`vibe-wrapper`, `vibe-hooks-toml`) to `DESKTOP_AGENT_SETUP_ACTIONS`, and a `DESKTOP_AGENT_SETUP_TARGETS` entry `{ id: "vibe", setupActions: ["vibe-hooks-toml", "vibe-wrapper"], managedBinary: true }`.
   - `desktop-agent-setup.ts`: map the new slugs to their creators in `DESKTOP_AGENT_SETUP_RUNNERS` (compile-enforced against the actions union).
   - `agent-wrappers.ts`: barrel-export the new creators.
 - `packages/host-service/src/events/map-event-type.ts`: map Vibe's event names → canonical types: `before_tool → Start`, `post_agent_turn → Stop`. (Unmapped names are silently ignored, so this is required for the chime/indicator.)
 
+**Wrapper is load-bearing for hooks:** unlike claude/codex (whose global `settings.json`/`hooks.json` enable hooks even outside the wrapper), Vibe's hooks only fire when it's launched through the managed wrapper — that's what sets `VIBE_ENABLE_EXPERIMENTAL_HOOKS=true`. This is fine because `vibe` is a managed binary always shadowed on PATH in Superset terminals. (Alternative: also set `enable_experimental_hooks = true` in `~/.vibe/config.toml`, but that adds a second TOML-merge surface; prefer the env var in the wrapper.)
+
 **Known coarseness (acceptable for v1):** no hook fires between prompt-submit and the first tool call, so the working indicator lights on first tool use, not immediately. With `--auto-approve` there are no permission prompts to surface.
 
 **Verification:** launch Vibe on a task → working indicator turns on at first tool call, completion chime fires once when the agent returns to idle (`post_agent_turn`), indicator clears.
 
 ### Phase 5 — Polish / completeness
-- `apps/desktop/.../useDefaultV2TerminalPresets/default-v2-terminal-presets.ts`: add `"vibe"` to `DEFAULT_V2_TERMINAL_PRESET_IDS` (seeds it as a default terminal tab; array position = tab order). Keep consistent with `includeInDefaultTerminalPresets: true`.
+- `apps/desktop/.../useDefaultV2TerminalPresets/default-v2-terminal-presets.ts`: add `"vibe"` to `DEFAULT_V2_TERMINAL_PRESET_IDS` (seeds it as a default terminal tab; array position = tab order). Note this list and the registry's `includeInDefaultTerminalPresets` flag are independent (they already diverge for other agents) — add `vibe` to both to make it a default in v1 and v2 paths.
 - `apps/desktop/.../settings-search/settings-search.ts`: add `vibe` / `mistral` keywords so Settings search surfaces it.
 - Root `AGENTS.md`: extend the agent-compatibility notes (rules #3/#4) — Vibe reads `AGENTS.md` + `.agents/skills/` (no `.agents/commands`), config is TOML at `.vibe/config.toml`, MCP is `[[mcp_servers]]` TOML.
 - Marketing/docs surfaces (trimmable, can be a follow-up PR): `UniversalCompatibilityDemo.tsx`, `AppMockup/constants.ts` + `apps/marketing/public/app-icons/vibe.svg`, `apps/docs/.../mcp.mdx` + `terminal-presets.mdx`, `apps/mobile/store.config.json` keywords.
@@ -99,6 +103,14 @@ Vibe has no `--model` flag, so the existing argv path (`buildAgentModelArgs`) ca
 
 1. A **turn-start / prompt-submitted hook** so the working indicator can light immediately on prompt submit instead of on first tool call.
 2. A **permission-requested hook/event** so Superset could surface approval notifications if an approvals-on mode is ever added (not needed while defaulting to `--auto-approve`).
+
+## Tests
+
+Existing suites to extend (they use representative examples and derive from `SUPERSET_MANAGED_BINARIES`, so nothing breaks automatically — but new coverage is expected):
+- `agent-models` — unit-test `buildAgentModelEnv` (valid model → `{ VIBE_ACTIVE_MODEL: <id> }`; unknown/absent model → `{}`; non-`vibe` preset → `{}`) and that `buildAgentModelArgs("vibe", …)` still returns `[]`.
+- `agents.ts` (`runTerminalAgent`) — assert the env overlay includes `VIBE_ACTIVE_MODEL` when a model is selected for `vibe`, and omits it otherwise.
+- `agent-wrappers.test.ts` — the new `createVibeWrapper` (exports `SUPERSET_AGENT_ID=vibe` + `VIBE_ENABLE_EXPERIMENTAL_HOOKS=true`, execs real binary) and `createVibeHooksToml` (produces valid TOML with the two `[[hooks]]`, merges rather than clobbers an existing file).
+- `map-event-type.test.ts` — `before_tool → Start`, `post_agent_turn → Stop`.
 
 ## Smoke test
 
