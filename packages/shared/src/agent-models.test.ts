@@ -35,6 +35,12 @@ describe("AGENT_MODEL_SUPPORT", () => {
 			expect(entry.models.length).toBeGreaterThan(0);
 		}
 	});
+	it("includes MiniMax-M3 for the superset chat model picker", () => {
+		expect(getAgentModelSupport("superset")?.models).toContainEqual({
+			id: "minimax/MiniMax-M3",
+			label: "MiniMax-M3",
+		});
+	});
 });
 
 describe("getAgentModelSupport", () => {

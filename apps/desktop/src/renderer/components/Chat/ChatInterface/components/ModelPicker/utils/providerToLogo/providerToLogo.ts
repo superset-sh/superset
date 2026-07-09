@@ -1,10 +1,12 @@
 export const ANTHROPIC_LOGO_PROVIDER = "anthropic";
 export const OPENAI_LOGO_PROVIDER = "openai";
+export const MINIMAX_LOGO_PROVIDER = "minimax";
 
 /** Derive a logo provider slug from the provider name */
 export function providerToLogo(provider: string): string {
 	const lower = provider.toLowerCase();
 	const isO3Model = lower === "o3" || lower.startsWith("o3-");
+	if (lower.includes("minimax")) return MINIMAX_LOGO_PROVIDER;
 	if (lower.includes("anthropic") || lower.includes("claude")) {
 		return ANTHROPIC_LOGO_PROVIDER;
 	}
