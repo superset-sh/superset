@@ -176,6 +176,16 @@ export function buildV2TerminalEnv(
 	// they're parsed instead of submitted as plain Enter.
 	env.TERM_PROGRAM = "kitty";
 	env.TERM_PROGRAM_VERSION = hostServiceVersion;
+	// The kitty claim above has a side effect: claude-code assumes kitty-class
+	// terminals natively amplify wheel events and disables its own scroll
+	// multiplier — but our xterm.js sends roughly one throttled scroll report
+	// per wheel notch (like VS Code), so transcript scrolling crawls at ~1/3
+	// speed. 3 is claude's documented vim-parity value and restores
+	// native-terminal scroll distance per gesture. Respect a user override
+	// from their shell profile.
+	if (!env.CLAUDE_CODE_SCROLL_SPEED) {
+		env.CLAUDE_CODE_SCROLL_SPEED = "3";
+	}
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
 	// TERM_THEME is an explicit light/dark hint that cursor-agent (and other

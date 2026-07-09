@@ -437,6 +437,19 @@ describe("buildV2TerminalEnv", () => {
 		expect(env.LANG).toContain("UTF-8");
 	});
 
+	test("defaults CLAUDE_CODE_SCROLL_SPEED to compensate the kitty claim", () => {
+		const env = buildV2TerminalEnv(baseParams);
+		expect(env.CLAUDE_CODE_SCROLL_SPEED).toBe("3");
+	});
+
+	test("keeps a user-provided CLAUDE_CODE_SCROLL_SPEED", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			baseEnv: { ...baseParams.baseEnv, CLAUDE_CODE_SCROLL_SPEED: "5" },
+		});
+		expect(env.CLAUDE_CODE_SCROLL_SPEED).toBe("5");
+	});
+
 	test("sets SHELL to the selected launch shell even when base env was stale", () => {
 		const env = buildV2TerminalEnv({
 			...baseParams,
