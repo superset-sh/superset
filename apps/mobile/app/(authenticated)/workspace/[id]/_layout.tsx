@@ -1,27 +1,8 @@
-import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { THEME } from "@/lib/theme";
+import { Stack } from "expo-router";
 
+// Chat is the workspace's primary surface, so we render its sections in a plain
+// Stack rather than a floating Chat/Changes tab bar (which overlapped the chat
+// composer). `index` redirects to `chat`; `changes` is reachable via navigation.
 export default function WorkspaceLayout() {
-	return (
-		<NativeTabs
-			tintColor={THEME.dark.foreground}
-			iconColor={THEME.dark.mutedForeground}
-			blurEffect="systemThickMaterialDark"
-			minimizeBehavior="never"
-		>
-			<NativeTabs.Trigger name="chat">
-				<NativeTabs.Trigger.Icon
-					sf={{
-						default: "bubble.left.and.bubble.right",
-						selected: "bubble.left.and.bubble.right.fill",
-					}}
-				/>
-				<NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
-			</NativeTabs.Trigger>
-			<NativeTabs.Trigger name="changes">
-				<NativeTabs.Trigger.Icon sf="plus.forwardslash.minus" />
-				<NativeTabs.Trigger.Label>Changes</NativeTabs.Trigger.Label>
-			</NativeTabs.Trigger>
-		</NativeTabs>
-	);
+	return <Stack screenOptions={{ headerShown: false }} />;
 }

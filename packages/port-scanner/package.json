@@ -5,14 +5,15 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./src/index.ts",
+			"types": "./dist-types/index.d.ts",
 			"default": "./src/index.ts"
 		}
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test"
+		"test": "bun test",
+		"build:types": "tsc -p tsconfig.types.json"
 	},
 	"dependencies": {
 		"pidtree": "0.6.0"

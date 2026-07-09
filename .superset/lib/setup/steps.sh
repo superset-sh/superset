@@ -551,6 +551,7 @@ step_write_env() {
     write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
     write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
     write_env_var "EXPO_PUBLIC_ELECTRIC_URL" "http://localhost:$WRANGLER_PORT"
+    write_env_var "EXPO_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
   } >> .env
 
   success "Workspace .env written"

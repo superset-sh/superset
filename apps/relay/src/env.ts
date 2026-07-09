@@ -9,6 +9,9 @@ export const env = createEnv({
 		KV_REST_API_TOKEN: z.string().min(1),
 		FLY_REGION: z.string().default("local"),
 		FLY_MACHINE_ID: z.string().default("local"),
+		// Fly sets this automatically; used to build `<machine>.vm.<app>.internal`
+		// addresses for relay-to-relay WebSocket proxying across instances.
+		FLY_APP_NAME: z.string().default("local"),
 		RELAY_SENTRY_DSN: z.string().url().optional(),
 		RELAY_SYNTHETIC_JWT: z.string().min(1).optional(),
 		RELAY_PUBLIC_URL: z.url().default("https://relay.superset.sh"),

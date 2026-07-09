@@ -1,7 +1,7 @@
 # Region topology is NOT in this file — fly.toml has no per-region count syntax.
 # The fleet shape is asserted by `apps/relay/scripts/deploy.sh`, which runs
-# `fly scale count` after `fly deploy`. Current target: 6 machines, 1 per region:
-#   sjc (primary), iad, fra, nrt, sin, gru.
+# `fly scale count` after `fly deploy`. Current target: 7 machines, 1 per region:
+#   sjc (primary), iad, fra, nrt, sin, syd, gru.
 # Update the REGIONS array in scripts/deploy.sh to change the topology.
 
 app = "superset-relay"

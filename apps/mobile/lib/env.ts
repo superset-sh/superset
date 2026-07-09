@@ -6,6 +6,7 @@ const envSchema = z.object({
 		.default("development"),
 	EXPO_PUBLIC_API_URL: z.url(),
 	EXPO_PUBLIC_ELECTRIC_URL: z.url(),
+	EXPO_PUBLIC_RELAY_URL: z.url(),
 	EXPO_PUBLIC_WEB_URL: z.url().optional(),
 	EXPO_PUBLIC_DEEP_LINK_SCHEME: z.string().default("superset"),
 	EXPO_PUBLIC_DEEP_LINK_DOMAIN: z.string().optional(),
@@ -17,6 +18,7 @@ export const env = envSchema.parse({
 	NODE_ENV: process.env.NODE_ENV as unknown,
 	EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL as unknown,
 	EXPO_PUBLIC_ELECTRIC_URL: process.env.EXPO_PUBLIC_ELECTRIC_URL as unknown,
+	EXPO_PUBLIC_RELAY_URL: process.env.EXPO_PUBLIC_RELAY_URL as unknown,
 	EXPO_PUBLIC_WEB_URL: process.env.EXPO_PUBLIC_WEB_URL as unknown,
 	EXPO_PUBLIC_DEEP_LINK_SCHEME: process.env
 		.EXPO_PUBLIC_DEEP_LINK_SCHEME as unknown,
