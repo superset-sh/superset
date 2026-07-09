@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useHostWorkspaces } from "@/hooks/useHostWorkspaces";
@@ -28,6 +28,9 @@ export function ProjectPickerScreen() {
 			className="bg-background flex-1 px-6"
 			contentContainerStyle={{ flexGrow: 1, paddingVertical: 8 }}
 		>
+			<Stack.Toolbar placement="left">
+				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
+			</Stack.Toolbar>
 			{targets.length === 0 ? (
 				<Text
 					className="py-6 text-center text-sm"

@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Input } from "@/components/ui/input";
@@ -87,6 +87,9 @@ export function BranchPickerScreen() {
 
 	return (
 		<View className="bg-background flex-1 px-6 pt-3">
+			<Stack.Toolbar placement="left">
+				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
+			</Stack.Toolbar>
 			<View className="relative justify-center">
 				<View className="absolute left-3 z-10">
 					<Ionicons name="search" size={16} color={theme.mutedForeground} />

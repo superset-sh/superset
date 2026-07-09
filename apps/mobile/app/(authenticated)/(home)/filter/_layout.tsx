@@ -1,5 +1,4 @@
 import { Stack } from "expo-router";
-import { SheetCloseButton } from "@/screens/(authenticated)/(home)/components/SheetCloseButton";
 
 export default function FilterLayout() {
 	return (
@@ -9,13 +8,7 @@ export default function FilterLayout() {
 				headerShadowVisible: false,
 			}}
 		>
-			<Stack.Screen
-				name="index"
-				options={{
-					title: "Filter",
-					headerLeft: () => <SheetCloseButton />,
-				}}
-			/>
+			<Stack.Screen name="index" options={{ title: "Filter" }} />
 			<Stack.Screen name="project" options={{ title: "Project" }} />
 			<Stack.Screen name="host" options={{ title: "Host" }} />
 			<Stack.Screen name="sort" options={{ title: "Sort" }} />

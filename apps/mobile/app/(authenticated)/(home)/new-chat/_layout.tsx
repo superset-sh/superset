@@ -1,5 +1,4 @@
 import { Stack } from "expo-router";
-import { SheetCloseButton } from "@/screens/(authenticated)/(home)/components/SheetCloseButton";
 
 export default function NewChatLayout() {
 	return (
@@ -7,7 +6,6 @@ export default function NewChatLayout() {
 			screenOptions={{
 				headerBackButtonDisplayMode: "minimal",
 				headerShadowVisible: false,
-				headerLeft: () => <SheetCloseButton />,
 			}}
 		>
 			<Stack.Screen name="branch" options={{ title: "Branch" }} />

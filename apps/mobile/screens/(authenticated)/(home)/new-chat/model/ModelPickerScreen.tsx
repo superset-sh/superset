@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
@@ -17,6 +17,9 @@ export function ModelPickerScreen() {
 			className="bg-background flex-1 px-6"
 			contentContainerStyle={{ flexGrow: 1, paddingVertical: 8 }}
 		>
+			<Stack.Toolbar placement="left">
+				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
+			</Stack.Toolbar>
 			{SUPERSET_CHAT_MODELS.map((model) => {
 				const isSelected = model.id === modelId;
 				return (

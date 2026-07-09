@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { View } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
@@ -40,6 +40,9 @@ export function FilterScreen() {
 
 	return (
 		<View className="bg-background flex-1 px-6">
+			<Stack.Toolbar placement="left">
+				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
+			</Stack.Toolbar>
 			<ListRow
 				icon={
 					<Ionicons
