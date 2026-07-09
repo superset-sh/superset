@@ -44,6 +44,10 @@ function buildVibeManagedHooksBlock(): string {
  * Merge our managed block into an existing hooks.toml: strip any prior managed
  * block (between markers), then append the fresh one. Preserves user hooks and
  * is idempotent — no TOML parser needed since we own the block content.
+ *
+ * A prior interrupted/partial write can leave an orphaned start marker with no
+ * end marker; in that case we strip from the start marker to end-of-file so we
+ * never accumulate duplicate `[[hooks]]` blocks or leave a dangling marker.
  */
 export function getVibeHooksTomlContent(existing: string): string {
 	let base = existing;
@@ -53,6 +57,11 @@ export function getVibeHooksTomlContent(existing: string): string {
 		if (end !== -1) {
 			base =
 				base.slice(0, start) + base.slice(end + VIBE_HOOKS_MARKER_END.length);
+		} else {
+			// Orphaned start marker (partial/interrupted write) — strip from the
+			// start marker to end-of-file rather than leaving the stale block in
+			// place and appending a fresh one (which would duplicate the hooks).
+			base = base.slice(0, start);
 		}
 	}
 	base = base.replace(/\s+$/, "");

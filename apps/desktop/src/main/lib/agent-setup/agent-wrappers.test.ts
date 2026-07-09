@@ -1649,6 +1649,30 @@ describe("vibe hooks.toml", () => {
 		expect(twice.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
 		expect(twice).toContain('name = "mine"');
 	});
+	it("cleans up an orphaned start marker left by a partial write", () => {
+		// Simulate a prior interrupted write: a user hook, then a start marker and
+		// a half-written managed block with NO end marker.
+		const partial = [
+			"[[hooks]]",
+			'name = "mine"',
+			'type = "after_tool"',
+			'command = "echo hi"',
+			"",
+			VIBE_HOOKS_MARKER_START,
+			"[[hooks]]",
+			'name = "superset-notify-before-tool"',
+			'type = "before_tool"',
+			"",
+		].join("\n");
+		const out = getVibeHooksTomlContent(partial);
+		// User hook survives, and exactly one complete managed block is emitted —
+		// no duplicate hook entries and no dangling marker.
+		expect(out).toContain('name = "mine"');
+		expect(out.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
+		expect(out.split(VIBE_HOOKS_MARKER_END).length - 1).toBe(1);
+		expect(out.split('type = "before_tool"').length - 1).toBe(1);
+		expect(out.split('type = "post_agent_turn"').length - 1).toBe(1);
+	});
 });
 
 describe("agent-wrappers pi", () => {
