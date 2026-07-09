@@ -10,7 +10,7 @@ bun run release desktop   # desktop release directly
 ```
 
 The release toolchain is TypeScript under `scripts/release/` (run by Bun). For the
-full runbook — all flows, the **merge-first** rule, and cleanup — see
+full runbook — all flows, release-branch usage, and cleanup — see
 [`scripts/release/README.md`](../../scripts/release/README.md). This file covers
 desktop-specific details (build output, signing, auto-update, troubleshooting).
 

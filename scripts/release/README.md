@@ -25,18 +25,30 @@ step). One entry point: **`bun run release`**. Design/rationale lives in
 `version` for a desktop release is `MAJOR.MINOR.PATCH` (or omit for the
 patch/minor/major menu). See `bun run release desktop --help`.
 
-## ⚠️ Merge first
+## Cut from a release branch (not `main`)
 
-**Cut real releases from `main`, after the PR is merged.** This repo
-**squash-merges**, so a tag cut on a feature branch points at a commit that
-becomes unreachable from `main` after squash — the release won't trace to
-mainline, and `cli-latest` / `/releases/latest` would serve unmerged code.
-Releasing from a branch is fine **only** for testing the pipeline.
+Releases are cut on a **dedicated release branch**, not on `main` and not on your
+feature branch. Two ways:
+
+**A — release a specific commit (canary-style).** Provisions an ephemeral release
+branch from the commit in a worktree, applies the version bump there, tags, and
+pushes; your working tree is untouched:
 
 ```bash
-git checkout main && git pull
+bun run release desktop 1.15.0 <commit-sha>   # commit to release (e.g. a main SHA)
+```
+
+**B — from a release branch you're on.** Bumps the version, pushes the branch,
+opens a PR, and tags:
+
+```bash
+git switch -c release-1.15.0
 bun run release desktop 1.15.0
 ```
+
+Either way, the `desktop-v<version>` tag triggers `release-desktop.yml`. The
+version-bump commit lives on the release branch/tag; merge it however you
+normally do.
 
 ## Desktop: draft → publish
 

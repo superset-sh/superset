@@ -69,8 +69,8 @@ bun run release cli        # interim CLI hotfix (<desktop>-N prerelease)
 bun run check:versions     # assert versions are unified
 ```
 
-Cut real releases from `main` after merge — this repo squash-merges, so a tag
-on a feature branch orphans from mainline. Full runbook: `scripts/release/README.md`.
+Cut releases on a dedicated release branch (not `main`); `bun run release desktop
+<version> <commit>` provisions one from a commit. Full runbook: `scripts/release/README.md`.
 
 ## Code Quality
 
