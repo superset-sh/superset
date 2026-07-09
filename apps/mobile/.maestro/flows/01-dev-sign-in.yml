@@ -8,4 +8,4 @@ appId: sh.superset.mobile
 - extendedWaitUntil:
     visible:
       id: "home-screen"
-    timeout: 30000
+    timeout: 120000

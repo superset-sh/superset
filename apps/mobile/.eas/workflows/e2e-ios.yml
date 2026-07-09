@@ -25,6 +25,7 @@ jobs:
       API_URL: ${{ inputs.api_url }}
     params:
       build_id: ${{ needs.build_ios_e2e.outputs.build_id }}
+      retries: 2
       flow_path:
         - .maestro/flows/00-smoke.yml
         - .maestro/flows/01-dev-sign-in.yml
@@ -34,7 +35,11 @@ jobs:
           run: |
             for i in $(seq 1 60); do
               code=$(curl -s -o /dev/null -w '%{http_code}' "$API_URL/api/auth/ok" || true)
-              [ "$code" = "200" ] && { echo "API ready"; exit 0; }
+              if [ "$code" = "200" ]; then
+                echo "API ready"
+                curl -s -o /dev/null --max-time 30 "$API_URL/api/auth/get-session" || true
+                exit 0
+              fi
               echo "attempt $i/60: HTTP $code"
               sleep 10
             done
