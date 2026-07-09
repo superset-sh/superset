@@ -76,12 +76,8 @@ export interface TerminalTransport {
 	 * a parse/render cycle each and overwhelm the renderer (#2241, #2244).
 	 */
 	_writeCoalescer: WriteCoalescer | null;
-	/**
-	 * Internal: result of the most recent relay `_whoowns` preflight. The
-	 * WebSocket API hides the upgrade's HTTP status (a 502/503 surfaces only as
-	 * close code 1006), so this is the one client-visible signal for *why* a
-	 * failed connection failed. Used to classify the give-up message + telemetry.
-	 */
+	/** Internal: most recent relay `_whoowns` preflight result, used to explain
+	 * a failed connection (see `classifyTerminalFailure`). */
 	_lastProbe: RelayAffinityProbe | null;
 }
 
@@ -420,8 +416,7 @@ export function connect(
 	// upgrade itself (browser sees 200 → 1006 close), but is on plain HTTP,
 	// so a quick GET avoids the connect → 1006 → reconnect flicker. Skip
 	// for non-/hosts URLs (tests, local dev) so connect stays synchronous.
-	// The probe result is also kept to explain a later failure (see close
-	// handler) since the WS API hides the upgrade's HTTP status.
+	// The probe result is also kept to explain a later failure (see close handler).
 	if (isRelayHostUrl(actualUrl)) {
 		transport._lastProbe = null;
 		void primeRelayAffinity(actualUrl).then((probe) => {
@@ -519,9 +514,8 @@ function attachSocketListeners(
 					`WebSocket closed while connected to ${endpoint} (${formatCloseDetails(event)}). Reconnecting...`,
 				);
 			} else {
-				// Gave up. Classify *why* from the preflight probe (the WS close
-				// code alone can't tell host-offline from a relay routing failure)
-				// and record it so this failure mode is queryable, not silent.
+				// Gave up. Classify why from the preflight probe and record it so
+				// this failure mode is queryable, not silent.
 				const diagnosis = classifyTerminalFailure(
 					transport._lastProbe,
 					isRelayHostUrl(transport.currentUrl),

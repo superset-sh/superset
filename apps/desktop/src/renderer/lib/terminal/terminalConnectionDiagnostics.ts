@@ -14,14 +14,10 @@ export interface TerminalFailureClassification {
 }
 
 /**
- * Turn the `_whoowns` preflight result into a cause for a failed terminal WS.
- *
- * The browser WebSocket API never exposes the upgrade's HTTP status — a
- * relay 502/503 just surfaces as close code 1006 — so the preflight probe is
- * the only client-side signal for *why* the stream won't connect. The key
- * case is `stream-blocked`: the host tunnel is present (probe 200) yet the WS
- * still drops, which is the fingerprint of a relay routing problem (e.g. the
- * cross-region 6PN path) rather than an offline host.
+ * Turn the `_whoowns` preflight result (see `primeRelayAffinity`) into a cause
+ * for a failed terminal WS. The key case is `stream-blocked`: the host tunnel
+ * is present (probe 200) yet the WS still drops — the fingerprint of a relay
+ * routing problem (e.g. the cross-region 6PN path), not an offline host.
  */
 export function classifyTerminalFailure(
 	probe: RelayAffinityProbe | null,
