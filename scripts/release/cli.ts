@@ -41,7 +41,9 @@ export async function runCli(argv: string[]): Promise<void> {
 		if (arg === "--no-tag") noTag = true;
 		else if (arg === "--daemon") withDaemon = true;
 		else if (arg.startsWith("-"))
-			fail(`Unknown option: ${arg}\nUsage: release cli [suffix] [--daemon] [--no-tag]`);
+			fail(
+				`Unknown option: ${arg}\nUsage: release cli [suffix] [--daemon] [--no-tag]`,
+			);
 		else if (/^\d+$/.test(arg)) forceSuffix = Number(arg);
 		else fail(`Suffix must be a positive integer, got: ${arg}`);
 	}
@@ -67,7 +69,9 @@ export async function runCli(argv: string[]): Promise<void> {
 	console.log("");
 
 	if ((await $`git rev-parse ${tag}`.nothrow().quiet()).exitCode === 0) {
-		fail(`Tag ${tag} already exists. Pass a higher suffix or delete the tag first.`);
+		fail(
+			`Tag ${tag} already exists. Pass a higher suffix or delete the tag first.`,
+		);
 	}
 
 	info("Diffing against the previous release...");
@@ -134,7 +138,9 @@ export async function runCli(argv: string[]): Promise<void> {
 	const runId = await findWorkflowRun(root, "release-cli.yml", sha);
 	if (!runId) {
 		warn("Could not find the workflow run automatically.");
-		console.log(`  Check: https://github.com/${repo}/actions/workflows/release-cli.yml`);
+		console.log(
+			`  Check: https://github.com/${repo}/actions/workflows/release-cli.yml`,
+		);
 	} else {
 		console.log(`  https://github.com/${repo}/actions/runs/${runId}`);
 		await $`gh run watch ${runId}`.nothrow();

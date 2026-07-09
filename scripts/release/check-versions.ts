@@ -22,12 +22,16 @@ export async function runCheck(): Promise<boolean> {
 		console.error(
 			`\nVersion drift detected. Unified rule: ${DESKTOP_PACKAGE} == ${UNIFIED_PACKAGES.join(" == ")}`,
 		);
-		console.error(`(interim CLI releases may add a -N suffix, e.g. ${desktop}-1).`);
+		console.error(
+			`(interim CLI releases may add a -N suffix, e.g. ${desktop}-1).`,
+		);
 		return false;
 	}
 
 	const summary = entries.map((e) => `${e.name}=${e.version}`).join(" ");
-	console.log(`✓ versions unified at ${desktop}: ${DESKTOP_PACKAGE} ${summary}`);
+	console.log(
+		`✓ versions unified at ${desktop}: ${DESKTOP_PACKAGE} ${summary}`,
+	);
 	return true;
 }
 

@@ -63,9 +63,9 @@ describe("latestReleaseTag", () => {
 		expect(latestReleaseTag(["cli-v1.14.0-1", "cli-v0.2.24"], "cli")).toBe(
 			"cli-v1.14.0-1",
 		);
-		expect(
-			latestReleaseTag(["cli-v1.14.0-1", "cli-v1.14.0-2"], "cli"),
-		).toBe("cli-v1.14.0-2");
+		expect(latestReleaseTag(["cli-v1.14.0-1", "cli-v1.14.0-2"], "cli")).toBe(
+			"cli-v1.14.0-2",
+		);
 	});
 	test("no matching tags -> undefined", () => {
 		expect(latestReleaseTag(["random", "v1.0.0"], "cli")).toBeUndefined();

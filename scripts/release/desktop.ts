@@ -8,8 +8,7 @@
 //
 // Usage: [version] [commit] [--publish] [--merge] [--daemon]
 
-import { existsSync } from "node:fs";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { $ } from "bun";
@@ -62,9 +61,12 @@ export async function runDesktop(argv: string[]): Promise<void> {
 		if (arg === "--publish") autoPublish = true;
 		else if (arg === "--merge") autoMerge = true;
 		else if (arg === "--daemon") withDaemon = true;
-		else if (arg === "--republish" || arg === "--yes" || arg === "-y") republish = true;
+		else if (arg === "--republish" || arg === "--yes" || arg === "-y")
+			republish = true;
 		else if (arg.startsWith("-"))
-			fail(`Unknown option: ${arg}\nUsage: release desktop [version] [commit] [--publish] [--merge] [--daemon] [--republish]`);
+			fail(
+				`Unknown option: ${arg}\nUsage: release desktop [version] [commit] [--publish] [--merge] [--daemon] [--republish]`,
+			);
 		else if (!version) version = arg;
 		else if (!commitInput) commitInput = arg;
 		else fail(`Unexpected argument: ${arg}`);
@@ -106,13 +108,10 @@ export async function runDesktop(argv: string[]): Promise<void> {
 	await handleExistingTag(tag, republish);
 
 	let prNumber = "";
-	let branch = "";
 	if (commitInput) {
-		({ branch } = await releaseFromCommit(root, version, commitInput, tag, withDaemon));
+		await releaseFromCommit(version, commitInput, tag, withDaemon);
 	} else {
-		const r = await releaseFromHead(root, version, tag, withDaemon);
-		prNumber = r.prNumber;
-		branch = r.branch;
+		prNumber = (await releaseFromHead(root, version, tag, withDaemon)).prNumber;
 	}
 
 	await monitorAndPublish(root, tag, { autoPublish, autoMerge, prNumber });
@@ -150,7 +149,8 @@ async function promptVersion(root: string): Promise<string> {
 			return major;
 		case "4": {
 			const v = prompt("Enter version (e.g. 1.2.3):") ?? "";
-			if (!PLAIN.test(v)) fail("Invalid version format. Expected MAJOR.MINOR.PATCH.");
+			if (!PLAIN.test(v))
+				fail("Invalid version format. Expected MAJOR.MINOR.PATCH.");
 			return v;
 		}
 		default:
@@ -158,7 +158,10 @@ async function promptVersion(root: string): Promise<string> {
 	}
 }
 
-async function handleExistingTag(tag: string, republish: boolean): Promise<void> {
+async function handleExistingTag(
+	tag: string,
+	republish: boolean,
+): Promise<void> {
 	info(`Checking if tag ${tag} already exists...`);
 	if (!(await tagExists(tag))) {
 		success(`Tag ${tag} is available`);
@@ -171,7 +174,9 @@ async function handleExistingTag(tag: string, republish: boolean): Promise<void>
 				`Tag ${tag} exists. Pass --republish to delete and recreate it, or choose a new version.`,
 			);
 		}
-		const choice = prompt("1) Republish (delete + recreate)  2) Cancel  [1-2]:");
+		const choice = prompt(
+			"1) Republish (delete + recreate)  2) Cancel  [1-2]:",
+		);
 		if (choice !== "1") {
 			info("Cancelled. No changes made.");
 			process.exit(0);
@@ -228,7 +233,12 @@ async function releaseFromHead(
 	const current = readVersion(root, DESKTOP_DIR);
 	if (current !== version) {
 		await writeVersion(root, DESKTOP_DIR, version);
-		const { message, daemonAdd } = await bumpUnified(root, version, withDaemon, "desktop");
+		const { message, daemonAdd } = await bumpUnified(
+			root,
+			version,
+			withDaemon,
+			"desktop",
+		);
 		await $`git add ${`${DESKTOP_DIR}/package.json`} packages/host-service/package.json packages/cli/package.json ${daemonAdd} bun.lock`;
 		await $`git commit -m ${`chore(desktop): bump version to ${version} (${message})`}`;
 		success(`Committed version bump (${message})`);
@@ -250,7 +260,9 @@ async function releaseFromHead(
 		if (existing) {
 			prNumber = existing;
 		} else if (
-			Number((await $`git rev-list --count ${"main..HEAD"}`.nothrow().text()).trim()) > 0
+			Number(
+				(await $`git rev-list --count ${"main..HEAD"}`.nothrow().text()).trim(),
+			) > 0
 		) {
 			const r =
 				await $`gh pr create --title ${`chore(desktop): bump version to ${version}`} --body ${"Automated by scripts/release/desktop.ts."} --base main --head ${branch}`
@@ -272,14 +284,15 @@ async function releaseFromHead(
 }
 
 async function releaseFromCommit(
-	root: string,
 	version: string,
 	commitInput: string,
 	tag: string,
 	withDaemon: boolean,
-): Promise<{ branch: string }> {
+): Promise<void> {
 	const fullSha = (
-		await $`git rev-parse --verify ${`${commitInput}^{commit}`}`.nothrow().text()
+		await $`git rev-parse --verify ${`${commitInput}^{commit}`}`
+			.nothrow()
+			.text()
 	).trim();
 	if (!fullSha) fail(`Could not resolve commit: ${commitInput}`);
 	const shortSha = fullSha.slice(0, 9);
@@ -296,9 +309,18 @@ async function releaseFromCommit(
 		const wtVersion = readVersion(worktree, DESKTOP_DIR);
 		if (wtVersion !== version) {
 			await writeVersion(worktree, DESKTOP_DIR, version);
-			const { message, daemonAdd } = await bumpUnified(worktree, version, withDaemon, "desktop");
-			await $`git add ${`${DESKTOP_DIR}/package.json`} packages/host-service/package.json packages/cli/package.json ${daemonAdd} bun.lock`.cwd(worktree);
-			await $`git commit -m ${`chore(desktop): bump version to ${version} (${message})`}`.cwd(worktree);
+			const { message, daemonAdd } = await bumpUnified(
+				worktree,
+				version,
+				withDaemon,
+				"desktop",
+			);
+			await $`git add ${`${DESKTOP_DIR}/package.json`} packages/host-service/package.json packages/cli/package.json ${daemonAdd} bun.lock`.cwd(
+				worktree,
+			);
+			await $`git commit -m ${`chore(desktop): bump version to ${version} (${message})`}`.cwd(
+				worktree,
+			);
 			success(`Committed ${wtVersion} -> ${version} on top of ${shortSha}`);
 		} else {
 			warn(`Commit ${shortSha} already has version ${version}; skipping bump`);
@@ -312,7 +334,6 @@ async function releaseFromCommit(
 		await $`git worktree remove --force ${worktree}`.nothrow().quiet();
 		rmSync(worktree, { recursive: true, force: true });
 	}
-	return { branch: tempBranch };
 }
 
 async function monitorAndPublish(
@@ -363,7 +384,8 @@ async function monitorAndPublish(
 		await $`gh release edit ${tag} --draft=false`;
 		success("Release published!");
 		if (opts.autoMerge && opts.prNumber) {
-			const r = await $`gh pr merge ${opts.prNumber} --squash --delete-branch`.nothrow();
+			const r =
+				await $`gh pr merge ${opts.prNumber} --squash --delete-branch`.nothrow();
 			if (r.exitCode === 0) success(`PR #${opts.prNumber} merged`);
 			else warn(`Could not merge PR #${opts.prNumber}`);
 		}

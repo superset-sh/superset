@@ -144,7 +144,10 @@ export async function writeVersion(
 	await $`bunx biome format --write ${rel}`.cwd(root).quiet();
 }
 
-export async function syncUnified(root: string, version: string): Promise<void> {
+export async function syncUnified(
+	root: string,
+	version: string,
+): Promise<void> {
 	for (const pkg of UNIFIED_PACKAGES) await writeVersion(root, pkg, version);
 }
 
@@ -241,7 +244,9 @@ export async function releaseDiffReport(
 		return;
 	}
 	const changed = await changedComponents(root, prev);
-	console.log(`  Since ${prev}: changed = ${changed.length ? changed.join(" ") : "none"}`);
+	console.log(
+		`  Since ${prev}: changed = ${changed.length ? changed.join(" ") : "none"}`,
+	);
 }
 
 /** HARD-BLOCK if pty-daemon/src changed since its last version bump but this
@@ -286,10 +291,11 @@ export async function findWorkflowRun(
 	const jq = `.[] | select(.headSha == "${sha}" and .event == "push") | .databaseId`;
 	for (let i = 0; i < retries; i++) {
 		await sleep(delayMs);
-		const out = await $`gh run list --workflow=${workflow} --json databaseId,headSha,event --jq ${jq}`
-			.cwd(root)
-			.nothrow()
-			.text();
+		const out =
+			await $`gh run list --workflow=${workflow} --json databaseId,headSha,event --jq ${jq}`
+				.cwd(root)
+				.nothrow()
+				.text();
 		const id = out
 			.split("\n")
 			.map((s) => s.trim())
