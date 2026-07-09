@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useHostWorkspaces } from "@/hooks/useHostWorkspaces";
 import { useTheme } from "@/hooks/useTheme";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { THEME } from "@/lib/theme";
 import { useNewChatTargets } from "@/screens/(authenticated)/(home)/workspaces/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewChatPreferencesStore } from "@/screens/(authenticated)/(home)/workspaces/components/NewChatWidget/stores/newChatPreferencesStore";
 
@@ -86,24 +86,25 @@ export function BranchPickerScreen() {
 	};
 
 	return (
-		<View className="bg-background flex-1 px-6">
+		<View className="bg-background flex-1 px-6 pt-3">
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
 			</Stack.Toolbar>
-			<Stack.SearchBar
-				autoCapitalize="none"
-				hideNavigationBar={false}
-				hideWhenScrolling={false}
-				placeholder="Branches..."
-				textColor={THEME.dark.foreground}
-				hintTextColor={THEME.dark.mutedForeground}
-				tintColor={THEME.dark.foreground}
-				onChangeText={(event) => setQuery(event.nativeEvent.text)}
-				onCancelButtonPress={() => setQuery("")}
-			/>
+			<View className="relative justify-center">
+				<View className="absolute left-3 z-10">
+					<Ionicons name="search" size={16} color={theme.mutedForeground} />
+				</View>
+				<Input
+					autoCapitalize="none"
+					autoCorrect={false}
+					className="rounded-full pl-9"
+					onChangeText={setQuery}
+					placeholder="Branches..."
+					value={query}
+				/>
+			</View>
 			<ScrollView
 				style={{ flex: 1 }}
-				contentInsetAdjustmentBehavior="automatic"
 				contentContainerStyle={{ flexGrow: 1 }}
 				keyboardShouldPersistTaps="handled"
 			>
