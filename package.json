@@ -13,7 +13,7 @@
 	"description": "Superset Monorepo",
 	"homepage": "https://superset.sh",
 	"license": "Elastic-2.0",
-	"packageManager": "bun@1.3.11",
+	"packageManager": "bun@1.3.14",
 	"private": true,
 	"scripts": {
 		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//",
