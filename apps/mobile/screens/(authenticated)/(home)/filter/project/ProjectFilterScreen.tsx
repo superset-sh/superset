@@ -5,9 +5,9 @@ import { ScrollView, Text } from "react-native";
 import { useHostWorkspaces } from "@/hooks/useHostWorkspaces";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/workspaces/stores/workspacesFilterStore";
+import { ListRow } from "@/screens/(authenticated)/components/ListRow";
+import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
-import { FilterCheck } from "../components/FilterCheck";
-import { FilterRow } from "../components/FilterRow";
 import { ProjectAvatar } from "../components/ProjectAvatar";
 
 export function ProjectFilterScreen() {
@@ -51,7 +51,7 @@ export function ProjectFilterScreen() {
 			contentContainerClassName="px-6 pb-10"
 		>
 			{sortedProjects.map((project, index) => (
-				<FilterRow
+				<ListRow
 					key={project.id}
 					icon={
 						<ProjectAvatar
@@ -69,7 +69,7 @@ export function ProjectFilterScreen() {
 							>
 								{workspaceCounts.get(project.id) ?? 0}
 							</Text>
-							<FilterCheck visible={project.id === selectedProjectId} />
+							<ListRowCheck visible={project.id === selectedProjectId} />
 						</>
 					}
 					onPress={() => {

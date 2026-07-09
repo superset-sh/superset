@@ -4,8 +4,8 @@ import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
 } from "@/screens/(authenticated)/(home)/workspaces/stores/workspacesFilterStore";
-import { FilterCheck } from "../components/FilterCheck";
-import { FilterRow } from "../components/FilterRow";
+import { ListRow } from "@/screens/(authenticated)/components/ListRow";
+import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck";
 
 export function SortFilterScreen() {
 	const router = useRouter();
@@ -15,10 +15,10 @@ export function SortFilterScreen() {
 	return (
 		<View className="bg-background flex-1 px-6">
 			{SORT_OPTIONS.map((option, index) => (
-				<FilterRow
+				<ListRow
 					key={option.value}
 					label={option.label}
-					trailing={<FilterCheck visible={option.value === sort} />}
+					trailing={<ListRowCheck visible={option.value === sort} />}
 					onPress={() => {
 						setSort(option.value);
 						router.back();
