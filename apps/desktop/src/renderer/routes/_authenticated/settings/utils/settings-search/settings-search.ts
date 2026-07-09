@@ -663,6 +663,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"pi",
 			"copilot",
 			"cursor",
+			"vibe",
+			"mistral",
 		],
 	},
 	{
@@ -718,6 +720,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"pi",
 			"ai",
 			"assistant",
+			"vibe",
+			"mistral",
 		],
 	},
 	{
