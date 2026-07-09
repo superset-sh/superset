@@ -2,11 +2,14 @@
 
 ## Quick Start
 
-From the monorepo root:
+From the monorepo root, use the unified entry point:
 
 ```bash
-./apps/desktop/create-release.sh
+bun run release           # interactive: pick Desktop or CLI hotfix
+bun run release desktop   # desktop release directly
 ```
+
+(`bun run release desktop` runs `apps/desktop/create-release.sh`; both work.)
 
 The script will:
 1. Show current version and prompt for new version (patch/minor/major/custom)
@@ -46,12 +49,12 @@ gh release edit desktop-v0.0.50 --draft=false
 
 ## Interim CLI releases
 
-To ship a CLI-side fix **between** desktop releases, use the CLI bumper (from the
+To ship a CLI-side fix **between** desktop releases, use the CLI flow (from the
 monorepo root):
 
 ```bash
-./scripts/bump-cli.sh            # bumps cli + host-service to <desktop>-N (e.g. 1.14.0-1)
-./scripts/bump-cli.sh --daemon   # ...and patch-bumps pty-daemon (0.2.5 -> 0.2.6) to ship a daemon fix
+bun run release cli            # bumps cli + host-service to <desktop>-N (e.g. 1.14.0-1)
+bun run release cli --daemon   # ...and patch-bumps pty-daemon (0.2.5 -> 0.2.6) to ship a daemon fix
 ```
 
 The `-N` suffix is a prerelease **below** the desktop version, so the CLI never

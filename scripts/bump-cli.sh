@@ -8,6 +8,8 @@
 # above desktop. Tags cli-v<version> to trigger release-cli.yml (which bundles
 # host-service).
 #
+# Prefer `bun run release cli` (the unified entry point). Direct use is fine too.
+#
 # pty-daemon stays on its OWN monotonic track (0.x) and is only bumped with
 # --daemon. It must never take the CLI prerelease version: a daemon at
 # 1.14.0-1 sorts BELOW desktop's bundled 1.14.0, so a shared-org desktop would
@@ -16,8 +18,8 @@
 # plans/20260709-unified-version-bumping.md.
 #
 # For a version that matches desktop exactly (e.g. shipping the CLI alongside a
-# desktop release), use apps/desktop/create-release.sh instead — it sets all
-# three to the same plain version.
+# desktop release), use `bun run release desktop` instead — it sets all three to
+# the same plain version.
 #
 # Usage:
 #   ./scripts/bump-cli.sh              # auto-increment suffix, commit, tag, watch
@@ -26,6 +28,10 @@
 #   ./scripts/bump-cli.sh --no-tag     # bump + commit only (no tag/push/watch)
 
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/release-lib.sh
+source "${SCRIPT_DIR}/lib/release-lib.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -67,12 +73,12 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "${REPO_ROOT}"
 [ -f "package.json" ] && [ -d "apps/desktop" ] || error "Run this from the monorepo root."
 
-DESKTOP=$(jq -r .version apps/desktop/package.json)
+DESKTOP=$(pkg_version "${REPO_ROOT}/${DESKTOP_PACKAGE}")
 if ! [[ "$DESKTOP" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   error "Desktop version '${DESKTOP}' is not a plain MAJOR.MINOR.PATCH release; cannot base a CLI prerelease on it."
 fi
 
-CLI_CUR=$(jq -r .version packages/cli/package.json)
+CLI_CUR=$(pkg_version "${REPO_ROOT}/packages/cli")
 
 # Determine the next prerelease suffix under the current desktop version.
 # If cli is already "<desktop>-<N>", continue from N+1; otherwise start at 1.
@@ -96,40 +102,28 @@ if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
   error "Tag ${TAG_NAME} already exists. Pass a higher suffix or delete the tag first."
 fi
 
-set_pkg_version() {
-  local pkg="$1" version="$2" file="packages/$1/package.json" tmp
-  tmp=$(mktemp)
-  jq ".version = \"${version}\"" "${file}" >"${tmp}" && mv "${tmp}" "${file}"
-  bunx biome format --write "${file}" >/dev/null
-}
-
-increment_patch() {
-  local major minor patch
-  IFS='.' read -r major minor patch <<<"$1"
-  echo "${major}.${minor}.$((patch + 1))"
-}
-
-info "Setting cli and host-service to ${NEW_VERSION}..."
-set_pkg_version cli "${NEW_VERSION}"
-set_pkg_version host-service "${NEW_VERSION}"
+info "Setting ${UNIFIED_PACKAGES[*]} to ${NEW_VERSION}..."
+sync_unified_versions "${REPO_ROOT}" "${NEW_VERSION}"
 
 # Optionally patch-bump pty-daemon on its own track so this interim release can
 # ship a daemon fix. Kept OFF the CLI prerelease version on purpose (see header).
 DAEMON_MSG=""
 GIT_ADD_DAEMON=()
 if [ "$WITH_DAEMON" = true ]; then
-  DAEMON_OLD=$(jq -r .version packages/pty-daemon/package.json)
+  DAEMON_OLD=$(pkg_version "${REPO_ROOT}/packages/pty-daemon")
   DAEMON_NEW=$(increment_patch "${DAEMON_OLD}")
-  set_pkg_version pty-daemon "${DAEMON_NEW}"
+  set_pkg_version "${REPO_ROOT}" "packages/pty-daemon" "${DAEMON_NEW}"
   DAEMON_MSG=", pty-daemon ${DAEMON_OLD} -> ${DAEMON_NEW}"
   GIT_ADD_DAEMON=(packages/pty-daemon/package.json)
   info "Patch-bumped pty-daemon ${DAEMON_OLD} -> ${DAEMON_NEW}"
 fi
 
-bun install --lockfile-only >/dev/null 2>&1 || true
+refresh_lockfile "${REPO_ROOT}"
 success "Versions written"
 
-git add packages/cli/package.json packages/host-service/package.json "${GIT_ADD_DAEMON[@]}" bun.lock
+GIT_ADD_PKGS=()
+for pkg in "${UNIFIED_PACKAGES[@]}"; do GIT_ADD_PKGS+=("${pkg}/package.json"); done
+git add "${GIT_ADD_PKGS[@]}" "${GIT_ADD_DAEMON[@]}" bun.lock
 git commit -m "chore(cli): release ${NEW_VERSION} (cli + host-service ${CLI_CUR} -> ${NEW_VERSION}${DAEMON_MSG})"
 success "Committed ${CLI_CUR} -> ${NEW_VERSION}${DAEMON_MSG}"
 

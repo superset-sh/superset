@@ -4,6 +4,19 @@ Make **desktop, host-service, and cli** ship one shared version, enforced in CI.
 `pty-daemon` is **deliberately excluded** — it keeps its own monotonic `0.x`
 track (see "Why the daemon stays separate").
 
+## One way to run it
+
+`bun run release` (`scripts/release.sh`) is the single entry point:
+
+- `bun run release` — interactive menu (Desktop / CLI hotfix)
+- `bun run release desktop [version] [--publish] [--merge]`
+- `bun run release cli [suffix] [--daemon] [--no-tag]`
+- `bun run release check` — verify versions are unified
+
+All flows and the CI guard read **one** source of truth,
+`scripts/lib/release-lib.sh` (`UNIFIED_PACKAGES` + the version primitives), so
+the desktop flow, CLI flow, and `check-versions` can't drift.
+
 ## Rules
 
 - **Desktop is the ceiling.** It is always a plain `MAJOR.MINOR.PATCH` release.

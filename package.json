@@ -35,6 +35,7 @@
 		"postinstall": "./scripts/postinstall.sh",
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean",
+		"release": "./scripts/release.sh",
 		"release:desktop": "./apps/desktop/create-release.sh",
 		"release:cli": "./scripts/bump-cli.sh",
 		"release:canary": "./scripts/release-canary.sh",

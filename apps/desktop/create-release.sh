@@ -40,6 +40,12 @@
 
 set -e  # Exit on error
 
+# Shared release primitives (increment_*, set_pkg_version, sync_unified_versions,
+# refresh_lockfile, UNIFIED_PACKAGES) — the single source of truth so this flow,
+# the CLI flow, and check-versions can't drift.
+# shellcheck source=../../scripts/lib/release-lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/scripts/lib/release-lib.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -63,48 +69,6 @@ warn() {
 error() {
     echo -e "${RED}✗${NC} $1"
     exit 1
-}
-
-# Semver increment functions
-increment_patch() {
-    local version="$1"
-    local major minor patch
-    IFS='.' read -r major minor patch <<< "$version"
-    echo "${major}.${minor}.$((patch + 1))"
-}
-
-increment_minor() {
-    local version="$1"
-    local major minor patch
-    IFS='.' read -r major minor patch <<< "$version"
-    echo "${major}.$((minor + 1)).0"
-}
-
-increment_major() {
-    local version="$1"
-    local major minor patch
-    IFS='.' read -r major minor patch <<< "$version"
-    echo "$((major + 1)).0.0"
-}
-
-# Set <pkg>/package.json version under the given repo root, then format it.
-set_pkg_version() {
-    local repo_root="$1" pkg="$2" version="$3"
-    local file="${repo_root}/${pkg}/package.json" tmp
-    tmp=$(mktemp)
-    jq ".version = \"${version}\"" "${file}" > "${tmp}" && mv "${tmp}" "${file}"
-    (cd "${repo_root}" && bunx biome format --write "${pkg}/package.json" >/dev/null)
-}
-
-# Pin the CLI bundle (host-service + cli) to the desktop version so everything
-# ships one unified version, then refresh the lockfile. pty-daemon is
-# intentionally excluded for now (tracks its own version). See
-# plans/20260709-unified-version-bumping.md.
-sync_cli_side_versions() {
-    local repo_root="$1" version="$2"
-    set_pkg_version "${repo_root}" "packages/host-service" "${version}"
-    set_pkg_version "${repo_root}" "packages/cli" "${version}"
-    (cd "${repo_root}" && bun install --lockfile-only >/dev/null 2>&1 || true)
 }
 
 # Parse arguments
@@ -325,7 +289,8 @@ if [ -n "$COMMIT_INPUT" ]; then
         set_pkg_version "${WORKTREE_DIR}" "${DESKTOP_DIR}" "${VERSION}"
         HOST_SERVICE_OLD=$(jq -r .version "packages/host-service/package.json")
         CLI_OLD=$(jq -r .version "packages/cli/package.json")
-        sync_cli_side_versions "${WORKTREE_DIR}" "${VERSION}"
+        sync_unified_versions "${WORKTREE_DIR}" "${VERSION}"
+        refresh_lockfile "${WORKTREE_DIR}"
         git add "${DESKTOP_DIR}/package.json" "packages/host-service/package.json" "packages/cli/package.json" bun.lock
         git commit -m "chore(desktop): bump version to ${VERSION} (host-service ${HOST_SERVICE_OLD} -> ${VERSION}, cli ${CLI_OLD} -> ${VERSION})"
         success "Committed version bump ${WORKTREE_VERSION} -> ${VERSION} (host-service ${HOST_SERVICE_OLD} -> ${VERSION}, cli ${CLI_OLD} -> ${VERSION}) on top of ${SHORT_SHA}"
@@ -364,7 +329,8 @@ else
         REPO_ROOT_FOR_HS=$(git rev-parse --show-toplevel)
         HOST_SERVICE_OLD=$(jq -r .version "${REPO_ROOT_FOR_HS}/packages/host-service/package.json")
         CLI_OLD=$(jq -r .version "${REPO_ROOT_FOR_HS}/packages/cli/package.json")
-        sync_cli_side_versions "${REPO_ROOT_FOR_HS}" "${VERSION}"
+        sync_unified_versions "${REPO_ROOT_FOR_HS}" "${VERSION}"
+        refresh_lockfile "${REPO_ROOT_FOR_HS}"
         success "Synced host-service ${HOST_SERVICE_OLD} -> ${VERSION}, cli ${CLI_OLD} -> ${VERSION}"
 
         # Commit the version change
