@@ -1,7 +1,8 @@
 # Unified Version Bumping
 
 Make **desktop, host-service, and cli** ship one shared version, enforced in CI.
-`pty-daemon` is **excluded for now** (keeps its own track).
+`pty-daemon` is **deliberately excluded** — it keeps its own monotonic `0.x`
+track (see "Why the daemon stays separate").
 
 ## Rules
 
@@ -31,9 +32,29 @@ Between desktop releases, ship a CLI-side fix without a desktop release:
 - Base = current desktop version `D`.
 - Suffix auto-increments: if cli is `D-N` → `D-(N+1)`, else `D-1`.
 - Sets `cli` + `host-service` to `D-N`, refreshes lock, commits.
+- `--daemon` also **patch-bumps `pty-daemon`** on its own track (e.g. `0.2.5 →
+  0.2.6`) so the release can carry a daemon fix. The daemon never takes the
+  `D-N` version (see below).
 - Tags `cli-v D-N` → triggers `release-cli.yml` (bundles host-service).
 
-`./scripts/bump-cli.sh [suffix] [--no-tag]`.
+`./scripts/bump-cli.sh [suffix] [--daemon] [--no-tag]`.
+
+## Why the daemon stays separate
+
+The daemon version is **load-bearing**: `EXPECTED_DAEMON_VERSION` (from
+`pty-daemon/package.json`) drives host-service's adopt/handoff — a bump forces a
+live fd-handoff of all sessions. Two problems if it joined the unified scheme:
+
+1. **Semver inversion.** An interim daemon at `1.14.0-1` sorts *below* desktop's
+   bundled `1.14.0`. Since the daemon socket is keyed on orgId only, a
+   shared-org desktop would see `satisfies("1.14.0-1", ">=1.14.0") == false` and
+   re-upgrade it **every launch**. On its own track a fix (`0.2.6`) is *above*
+   everyone, so it wins the handoff once and sticks.
+2. **Needless churn.** Forcing daemon == desktop would hand off every session on
+   every desktop release even when the daemon binary is byte-identical.
+
+So the daemon moves only when it actually changes (`--daemon`), on `0.x`, and is
+excluded from `check-versions.sh`.
 
 ## Enforcement (`scripts/check-versions.sh`, CI `Version Sync` job)
 
@@ -45,8 +66,7 @@ Runs as its own `pull_request` job in `.github/workflows/ci.yml`.
 - **Homebrew:** `bump-homebrew.yml` already accepts `-<prerelease>` tags
   (regex `(-[A-Za-z0-9.]+)?`). First interim release should be spot-checked —
   Homebrew's `version "1.14.0-1"` parsing is untested here.
-- **Shared daemon socket:** an interim CLI's bundled daemon may run alongside a
-  desktop daemon on the same org socket. pty-daemon is excluded from this scheme
-  for now, so its version handshake is unchanged.
+- **Shared daemon socket:** handled by keeping pty-daemon on its own track — see
+  "Why the daemon stays separate".
 - `bun.lock` stores workspace `version` fields; scripts refresh it with
   `bun install --lockfile-only` so `--frozen` CI installs stay consistent.
