@@ -90,7 +90,7 @@ describe("workspaces get", () => {
 	});
 
 	test("errors when no id is passed and the env var is unset", async () => {
-		expect(invoke({})).rejects.toThrow(/No workspace id/);
+		await expect(invoke({})).rejects.toThrow(/No workspace id/);
 	});
 
 	test("--field prints the raw value as the message, data stays full", async () => {
@@ -116,14 +116,14 @@ describe("workspaces get", () => {
 
 	test("--field rejects an unknown field name", async () => {
 		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
-		expect(invoke({ id: WORKSPACE.id }, { field: "bogus" })).rejects.toThrow(
-			/Unknown field: bogus/,
-		);
+		await expect(
+			invoke({ id: WORKSPACE.id }, { field: "bogus" }),
+		).rejects.toThrow(/Unknown field: bogus/);
 	});
 
 	test("errors when no reachable host knows the id", async () => {
 		findResult = { workspace: undefined, warnings: [] };
-		expect(invoke({ id: WORKSPACE.id })).rejects.toThrow(/not found/);
+		await expect(invoke({ id: WORKSPACE.id })).rejects.toThrow(/not found/);
 	});
 
 	test("falls back to ids when cloud project/host lookups fail", async () => {
