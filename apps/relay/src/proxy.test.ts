@@ -20,6 +20,32 @@ type FakeClient = {
 	close: (code?: number, reason?: string) => void;
 };
 
+test("closes the client with 1011 when the upstream never finishes opening", async () => {
+	// Accepts the connect but never fires "open" (dead-but-in-DNS peer).
+	const stalledUpstream = {
+		binaryType: "",
+		readyState: 0,
+		addEventListener: () => {},
+		send: () => {},
+		close: () => {},
+	} as unknown as WebSocket;
+
+	let closedCode: number | undefined;
+	const client: FakeClient = {
+		readyState: 1,
+		send: () => {},
+		close: (code) => {
+			closedCode = code;
+		},
+	};
+
+	const bridge = createProxyBridge("ws://unused/", () => stalledUpstream, 20);
+	bridge.onOpen(null, client as never);
+
+	await waitFor(() => closedCode !== undefined);
+	expect(closedCode).toBe(1011);
+});
+
 test("internalProxyUrl targets the owner machine over 6PN with the loop guard", () => {
 	const url = internalProxyUrl(
 		{ machineId: "abc123" },
@@ -40,12 +66,16 @@ test("internalProxyUrl targets the owner machine over 6PN with the loop guard", 
 	).toBe("ws://m.vm.app.internal:80/hosts/h/events?_rlp=1");
 });
 
-test("safeCloseCode only lets 1000 / 3000-4999 through", () => {
+test("safeCloseCode preserves sendable codes and only remaps unsendable ones", () => {
 	expect(safeCloseCode(1000)).toBe(1000);
+	expect(safeCloseCode(1001)).toBe(1001);
+	expect(safeCloseCode(1011)).toBe(1011);
 	expect(safeCloseCode(4001)).toBe(4001);
-	expect(safeCloseCode(1006)).toBe(1000);
-	expect(safeCloseCode(1011)).toBe(1000);
-	expect(safeCloseCode(undefined)).toBe(1000);
+	// Unsendable / missing codes collapse to 1011, never 1000.
+	expect(safeCloseCode(1006)).toBe(1011);
+	expect(safeCloseCode(1005)).toBe(1011);
+	expect(safeCloseCode(1015)).toBe(1011);
+	expect(safeCloseCode(undefined)).toBe(1011);
 });
 
 test("bridge pipes client→upstream text and upstream→client binary (framing preserved)", async () => {

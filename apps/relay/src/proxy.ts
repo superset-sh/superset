@@ -1,13 +1,9 @@
 import type { WSContext } from "hono/ws";
 
-// Query marker on a relay-to-relay proxy hop. Guards against an infinite
-// bridge loop when the directory is briefly stale: a hop that lands on a node
-// which doesn't own the tunnel is failed rather than re-proxied.
+// Loop guard: a hop marked with this on a non-owning node is failed, not re-proxied.
 export const PROXY_HOP_PARAM = "_rlp";
 
-// Build the private-network URL for the relay instance that owns the tunnel.
-// Fly resolves `<machine-id>.vm.<app>.internal` to that specific machine over
-// the encrypted 6PN network, so plain `ws://` on the internal port is fine.
+// Owning instance's 6PN address; plain ws:// is fine on Fly's encrypted network.
 export function internalProxyUrl(
 	owner: { machineId: string },
 	hostId: string,
@@ -20,16 +16,27 @@ export function internalProxyUrl(
 	return `${base}/hosts/${hostId}${pathAfterHost}${search}${sep}${PROXY_HOP_PARAM}=1`;
 }
 
-// Only 1000 and the 3000-4999 app range may be sent on a WS close frame;
-// anything else (1005/1006/1015, protocol codes) throws. Fall back to 1000.
+// Remap only unsendable codes to 1011; never to 1000, which the client reads as
+// a clean exit and stops reconnecting.
+const NON_SENDABLE_CLOSE_CODES = new Set([1004, 1005, 1006, 1015]);
+
 export function safeCloseCode(code: number | undefined): number {
-	return code === 1000 || (code != null && code >= 3000 && code <= 4999)
-		? code
-		: 1000;
+	if (code == null || NON_SENDABLE_CLOSE_CODES.has(code)) return 1011;
+	if (
+		code === 1000 ||
+		(code >= 1001 && code <= 1014) ||
+		(code >= 3000 && code <= 4999)
+	) {
+		return code;
+	}
+	return 1011;
 }
 
 // Buffer cap for client frames that arrive before the upstream WS is open.
 const MAX_PENDING_FRAMES = 512;
+
+// Tear the bridge down if the upstream never opens (dead peer still in DNS).
+const UPSTREAM_OPEN_TIMEOUT_MS = 10_000;
 
 type WsEventHandlers = {
 	onOpen: (evt: unknown, ws: WSContext) => void;
@@ -38,24 +45,25 @@ type WsEventHandlers = {
 	onError: () => void;
 };
 
-/**
- * Bridge a client terminal/events WebSocket to the relay instance that owns the
- * host tunnel, over Fly's private network. Frames are piped both ways with
- * framing preserved: client→host rides as text (the tunnel carries client
- * frames as strings and terminal input is JSON), host→client preserves binary
- * (PTY bytes) vs text (JSON control). The owning node runs the normal access
- * check + channel path on the far end.
- *
- * `connect` defaults to the global WebSocket; injectable so tests can point at
- * a local upstream without Fly 6PN.
- */
+// Bridge a client WS to the owning relay instance over 6PN, preserving framing
+// (client→host text, host→client binary/text). `connect`/`openTimeoutMs` are
+// injectable for tests.
 export function createProxyBridge(
 	target: string,
 	connect: (url: string) => WebSocket = (url) => new WebSocket(url),
+	openTimeoutMs: number = UPSTREAM_OPEN_TIMEOUT_MS,
 ): WsEventHandlers {
 	let upstream: WebSocket | null = null;
 	let clientClosed = false;
+	let openTimer: ReturnType<typeof setTimeout> | null = null;
 	const pending: string[] = [];
+
+	const clearOpenTimer = () => {
+		if (openTimer != null) {
+			clearTimeout(openTimer);
+			openTimer = null;
+		}
+	};
 
 	return {
 		onOpen: (_evt, ws) => {
@@ -66,7 +74,18 @@ export function createProxyBridge(
 				return;
 			}
 			upstream.binaryType = "arraybuffer";
+			openTimer = setTimeout(() => {
+				openTimer = null;
+				if (clientClosed) return;
+				try {
+					upstream?.close();
+				} catch {
+					// already closed
+				}
+				if (ws.readyState === 1) ws.close(1011, "Upstream connect timeout");
+			}, openTimeoutMs);
 			upstream.addEventListener("open", () => {
+				clearOpenTimer();
 				for (const frame of pending) upstream?.send(frame);
 				pending.length = 0;
 			});
@@ -75,11 +94,13 @@ export function createProxyBridge(
 				ws.send(event.data as string | ArrayBuffer);
 			});
 			upstream.addEventListener("close", (event) => {
+				clearOpenTimer();
 				if (!clientClosed && ws.readyState === 1) {
 					ws.close(safeCloseCode(event.code), "Upstream closed");
 				}
 			});
 			upstream.addEventListener("error", () => {
+				clearOpenTimer();
 				if (!clientClosed && ws.readyState === 1) {
 					ws.close(1011, "Upstream error");
 				}
@@ -95,6 +116,7 @@ export function createProxyBridge(
 		},
 		onClose: () => {
 			clientClosed = true;
+			clearOpenTimer();
 			try {
 				upstream?.close();
 			} catch {
@@ -103,6 +125,7 @@ export function createProxyBridge(
 		},
 		onError: () => {
 			clientClosed = true;
+			clearOpenTimer();
 			try {
 				upstream?.close();
 			} catch {
