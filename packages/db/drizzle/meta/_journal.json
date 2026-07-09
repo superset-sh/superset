@@ -414,6 +414,13 @@
       "when": 1781022905246,
       "tag": "0058_backfill_slack_opus_4_8",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1783632192405,
+      "tag": "0059_add_host_wake_command",
+      "breakpoints": true
     }
   ]
 }

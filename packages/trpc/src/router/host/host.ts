@@ -33,6 +33,7 @@ export const hostRouter = {
 					machineId: v2Hosts.machineId,
 					name: v2Hosts.name,
 					isOnline: v2Hosts.isOnline,
+					wakeCommand: v2Hosts.wakeCommand,
 					organizationId: v2Hosts.organizationId,
 				})
 				.from(v2Hosts)
@@ -54,6 +55,7 @@ export const hostRouter = {
 				id: row.machineId,
 				name: row.name,
 				online: row.isOnline,
+				wakeCommand: row.wakeCommand,
 				organizationId: row.organizationId,
 			}));
 		}),
@@ -248,6 +250,50 @@ export const hostRouter = {
 					and(
 						eq(v2Hosts.organizationId, parsed.organizationId),
 						eq(v2Hosts.machineId, parsed.machineId),
+					),
+				);
+			return { success: true };
+		}),
+
+	setWakeCommand: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				machineId: z.string().min(1),
+				// The command to run to wake this host; null clears it.
+				wakeCommand: z.string().trim().min(1).nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No access to this host",
+				});
+			}
+
+			const access = await db.query.v2UsersHosts.findFirst({
+				where: and(
+					eq(v2UsersHosts.userId, ctx.userId),
+					eq(v2UsersHosts.organizationId, input.organizationId),
+					eq(v2UsersHosts.hostId, input.machineId),
+				),
+				columns: { hostId: true },
+			});
+			if (!access) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "No access to this host",
+				});
+			}
+
+			await dbWs
+				.update(v2Hosts)
+				.set({ wakeCommand: input.wakeCommand })
+				.where(
+					and(
+						eq(v2Hosts.organizationId, input.organizationId),
+						eq(v2Hosts.machineId, input.machineId),
 					),
 				);
 			return { success: true };
