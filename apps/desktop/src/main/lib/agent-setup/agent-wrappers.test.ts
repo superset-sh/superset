@@ -1612,6 +1612,45 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 });
 
+import {
+	getVibeHooksTomlContent,
+	getVibeWrapperScript,
+	VIBE_HOOKS_MARKER_END,
+	VIBE_HOOKS_MARKER_START,
+} from "./agent-wrappers-vibe";
+
+describe("vibe wrapper", () => {
+	it("enables experimental hooks and stamps the agent id", () => {
+		const script = getVibeWrapperScript();
+		expect(script).toContain('export SUPERSET_AGENT_ID="vibe"');
+		expect(script).toContain("export VIBE_ENABLE_EXPERIMENTAL_HOOKS=true");
+		expect(script).toContain('exec "$REAL_BIN" "$@"');
+	});
+});
+
+describe("vibe hooks.toml", () => {
+	it("writes both managed hooks inside markers on an empty file", () => {
+		const out = getVibeHooksTomlContent("");
+		expect(out).toContain(VIBE_HOOKS_MARKER_START);
+		expect(out).toContain(VIBE_HOOKS_MARKER_END);
+		expect(out).toContain('type = "before_tool"');
+		expect(out).toContain('type = "post_agent_turn"');
+		expect(out).toContain("SUPERSET_AGENT_ID=vibe");
+	});
+	it("preserves user hooks and is idempotent", () => {
+		const user =
+			'[[hooks]]\nname = "mine"\ntype = "after_tool"\ncommand = "echo hi"\n';
+		const once = getVibeHooksTomlContent(user);
+		expect(once).toContain('name = "mine"');
+		// Re-running does not duplicate the managed block.
+		const twice = getVibeHooksTomlContent(once);
+		// Count by splitting: the marker contains regex metachars ("(do not edit)"),
+		// so `new RegExp(marker)` would not match the literal text.
+		expect(twice.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
+		expect(twice).toContain('name = "mine"');
+	});
+});
+
 describe("agent-wrappers pi", () => {
 	beforeEach(() => {
 		mockedHomeDir = path.join(TEST_ROOT, "home");
