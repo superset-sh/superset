@@ -4,6 +4,7 @@ import path from "node:path";
 import {
 	buildWrapperScript,
 	createWrapper,
+	getManagedNotifyHookCommand,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 
@@ -11,14 +12,9 @@ export const VIBE_HOOKS_MARKER_START =
 	"# >>> superset-managed-hooks v1 (do not edit) >>>";
 export const VIBE_HOOKS_MARKER_END = "# <<< superset-managed-hooks v1 <<<";
 
-/**
- * Resolve the notify script from SUPERSET_HOME_DIR at runtime (mirrors
- * getClaudeManagedHookCommand) so one shared ~/.vibe/hooks.toml works for both
- * dev and prod installs. Vibe runs the command via a shell and pipes the hook
- * invocation JSON (which carries `hook_event_name`) on stdin.
- */
-const VIBE_MANAGED_HOOK_COMMAND =
-	'[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/hooks/notify.sh" ] && SUPERSET_AGENT_ID=vibe "$SUPERSET_HOME_DIR/hooks/notify.sh" || true';
+// Vibe runs the command via a shell and pipes the hook invocation JSON (which
+// carries `hook_event_name`) on stdin.
+const VIBE_MANAGED_HOOK_COMMAND = getManagedNotifyHookCommand("vibe");
 
 export function getVibeHooksTomlPath(): string {
 	return path.join(os.homedir(), ".vibe", "hooks.toml");
