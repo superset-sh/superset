@@ -2,6 +2,7 @@ import { BottomSheet, Group, Host, RNHostView } from "@expo/ui/swift-ui";
 import {
 	background,
 	environment,
+	presentationBackground,
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -9,6 +10,7 @@ import { Pressable, useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/components/ProjectAvatar";
+import { hslToHex } from "../../../../utils/hslToHex";
 import type { NewChatTarget } from "../../hooks/useNewChatTargets";
 
 export function TargetPickerSheet({
@@ -39,6 +41,7 @@ export function TargetPickerSheet({
 						environment("colorScheme", "dark"),
 						presentationDragIndicator("visible"),
 						background(theme.background),
+						presentationBackground(hslToHex(theme.background)),
 					]}
 				>
 					<RNHostView matchContents>

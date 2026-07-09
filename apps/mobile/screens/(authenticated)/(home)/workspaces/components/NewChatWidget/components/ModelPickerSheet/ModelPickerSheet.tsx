@@ -2,6 +2,7 @@ import { BottomSheet, Group, Host, RNHostView } from "@expo/ui/swift-ui";
 import {
 	background,
 	environment,
+	presentationBackground,
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -9,6 +10,7 @@ import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { hslToHex } from "../../../../utils/hslToHex";
 
 export function ModelPickerSheet({
 	isPresented,
@@ -36,6 +38,7 @@ export function ModelPickerSheet({
 						environment("colorScheme", "dark"),
 						presentationDragIndicator("visible"),
 						background(theme.background),
+						presentationBackground(hslToHex(theme.background)),
 					]}
 				>
 					<RNHostView matchContents>

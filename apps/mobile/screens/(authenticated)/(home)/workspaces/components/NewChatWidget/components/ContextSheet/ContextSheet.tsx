@@ -3,6 +3,7 @@ import {
 	background,
 	environment,
 	frame,
+	presentationBackground,
 	presentationDetents,
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { hslToHex } from "../../../../utils/hslToHex";
 import { PhotoCarousel } from "./components/PhotoCarousel";
 
 // Pickers present their own view controller; wait for the sheet's
@@ -139,6 +141,7 @@ export function ContextSheet({
 						presentationDetents(["medium", "large"]),
 						presentationDragIndicator("visible"),
 						background(theme.background),
+						presentationBackground(hslToHex(theme.background)),
 						frame({ maxHeight: 10_000, alignment: "top" }),
 					]}
 				>

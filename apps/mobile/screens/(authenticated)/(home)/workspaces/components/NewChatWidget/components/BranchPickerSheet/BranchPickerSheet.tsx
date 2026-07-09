@@ -2,6 +2,7 @@ import { BottomSheet, Group, Host, RNHostView } from "@expo/ui/swift-ui";
 import {
 	background,
 	environment,
+	presentationBackground,
 	presentationDetents,
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
@@ -14,6 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { hslToHex } from "../../../../utils/hslToHex";
 
 // RNHostView sizes to its RN content, so the full-height sheet needs an
 // explicit content height; the large detent is roughly the screen minus
@@ -113,6 +115,7 @@ export function BranchPickerSheet({
 						presentationDetents(["large"]),
 						presentationDragIndicator("visible"),
 						background(theme.background),
+						presentationBackground(hslToHex(theme.background)),
 					]}
 				>
 					<RNHostView matchContents>

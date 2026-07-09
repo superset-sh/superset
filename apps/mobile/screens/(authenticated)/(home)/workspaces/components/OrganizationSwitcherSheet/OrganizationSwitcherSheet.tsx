@@ -2,6 +2,7 @@ import { BottomSheet, Group, Host, RNHostView } from "@expo/ui/swift-ui";
 import {
 	background,
 	environment,
+	presentationBackground,
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -11,6 +12,7 @@ import { Text } from "@/components/ui/text";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
 import { OrganizationAvatar } from "@/screens/(authenticated)/components/OrganizationAvatar";
+import { hslToHex } from "../../utils/hslToHex";
 
 export interface Organization {
 	id: string;
@@ -60,6 +62,7 @@ export function OrganizationSwitcherSheet({
 						environment("colorScheme", "dark"),
 						presentationDragIndicator("visible"),
 						background(theme.background),
+						presentationBackground(hslToHex(theme.background)),
 					]}
 				>
 					<RNHostView matchContents>
