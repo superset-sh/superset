@@ -3,6 +3,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
+import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
@@ -20,15 +21,11 @@ export function FilterScreen() {
 	const projectFilter = useWorkspacesFilterStore(
 		(store) => store.projectFilter,
 	);
-	const hostFilter = useWorkspacesFilterStore((store) => store.hostFilter);
+	const selectedHost = useSelectedHost();
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 
 	const { data: projects } = useLiveQuery(
 		(q) => q.from({ v2Projects: collections.v2Projects }),
-		[collections],
-	);
-	const { data: hosts } = useLiveQuery(
-		(q) => q.from({ v2Hosts: collections.v2Hosts }),
 		[collections],
 	);
 
@@ -38,9 +35,6 @@ export function FilterScreen() {
 	const selectedProject =
 		sortedProjects.find((project) => project.id === projectFilter) ??
 		sortedProjects[0];
-	const selectedHost = (hosts ?? []).find(
-		(host) => host.machineId === hostFilter,
-	);
 	const sortLabel =
 		SORT_OPTIONS.find((option) => option.value === sort)?.label ?? "";
 
@@ -82,7 +76,7 @@ export function FilterScreen() {
 				label="Host"
 				trailing={
 					<ListRowValue
-						value={selectedHost?.name ?? "All hosts"}
+						value={selectedHost?.name ?? ""}
 						accessory={
 							selectedHost ? (
 								<HostStatusDot isOnline={selectedHost.isOnline} />

@@ -1,4 +1,3 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
 import {
 	buildRelayHostUrl,
 	type HostWorkspaceRow,
@@ -6,13 +5,9 @@ import {
 
 export type { HostWorkspaceRow } from "@/lib/host-service/client";
 
-export interface HostWorkspaceItem extends SelectV2Workspace {
-	worktreePath?: string;
-	worktreeExists?: boolean;
-	/** False when the row came from the cloud fallback and the host didn't answer. */
+export interface HostWorkspaceItem extends HostWorkspaceRow {
+	/** False when the row is a cached result and the host stopped answering. */
 	hostReachable: boolean;
-	/** "host" = served by a host; "cloud" = Electric fallback. */
-	source: "host" | "cloud";
 }
 
 export interface HostWorkspacesQueryTarget {
@@ -52,50 +47,22 @@ export function deriveHostWorkspacesQueryTargets(
 	}));
 }
 
-/**
- * Merge per-host results with the Electric fallback. A host that answered
- * is authoritative for its rows — cloud rows for that host are ignored (a
- * deleted row must not resurrect). Cloud rows only fill in for hosts with
- * no host-served data. The fallback is deleted in R3 along with the cloud
- * table.
- */
-export function mergeHostWorkspaces({
-	hostResults,
-	cloudRows,
-}: {
+export function mergeHostWorkspaces(
 	hostResults: Array<{
-		target: HostWorkspacesQueryTarget;
 		rows: HostWorkspaceRow[] | undefined;
 		reachable: boolean;
-	}>;
-	cloudRows: SelectV2Workspace[];
-}): HostWorkspaceItem[] {
+	}>,
+): HostWorkspaceItem[] {
 	const items: HostWorkspaceItem[] = [];
-	const hostsWithData = new Set<string>();
 	const seenIds = new Set<string>();
 
 	for (const result of hostResults) {
 		if (!result.rows) continue;
-		hostsWithData.add(result.target.machineId);
 		for (const row of result.rows) {
 			if (seenIds.has(row.id)) continue;
 			seenIds.add(row.id);
-			items.push({
-				...row,
-				hostReachable: result.reachable,
-				source: "host",
-			});
+			items.push({ ...row, hostReachable: result.reachable });
 		}
-	}
-
-	for (const row of cloudRows) {
-		if (seenIds.has(row.id) || hostsWithData.has(row.hostId)) continue;
-		seenIds.add(row.id);
-		items.push({
-			...row,
-			hostReachable: false,
-			source: "cloud",
-		});
 	}
 
 	return items;

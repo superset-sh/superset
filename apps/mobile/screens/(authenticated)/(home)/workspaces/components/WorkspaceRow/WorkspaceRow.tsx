@@ -97,15 +97,11 @@ export function WorkspaceRow({
 					]}
 				/>
 				<View className="size-9 items-center justify-center">
-					{workspace.source === "cloud" ? (
-						<View className="bg-muted-foreground/50 size-2 rounded-full" />
-					) : (
-						<Icon
-							as={workspace.hostReachable ? Cloud : CloudOff}
-							className="text-muted-foreground size-5"
-							strokeWidth={1.75}
-						/>
-					)}
+					<Icon
+						as={workspace.hostReachable ? Cloud : CloudOff}
+						className="text-muted-foreground size-5"
+						strokeWidth={1.75}
+					/>
 				</View>
 				<View className="flex-1 gap-0.5">
 					<Text className="font-medium" numberOfLines={1}>

@@ -13,8 +13,10 @@ import {
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
 import { THEME } from "@/lib/theme";
+import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
@@ -37,7 +39,6 @@ export function WorkspacesScreen() {
 	const projectFilter = useWorkspacesFilterStore(
 		(store) => store.projectFilter,
 	);
-	const hostFilter = useWorkspacesFilterStore((store) => store.hostFilter);
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [visibleIds, setVisibleIds] = useState<string[]>([]);
@@ -54,6 +55,7 @@ export function WorkspacesScreen() {
 	} = useOrganizations();
 
 	const { workspaces, isReady, cache } = useHostWorkspaces();
+	const selectedHost = useSelectedHost();
 
 	const { data: projects } = useLiveQuery(
 		(q) => q.from({ v2Projects: collections.v2Projects }),
@@ -91,13 +93,13 @@ export function WorkspacesScreen() {
 			: workspaces.filter(
 					(workspace) =>
 						workspace.projectId === selectedProjectId &&
-						(hostFilter === null || workspace.hostId === hostFilter),
+						workspace.hostId === selectedHost?.machineId,
 				);
 		return matches.sort((a, b) => compareDesc(a[sort], b[sort]));
 	}, [
 		workspaces,
 		selectedProjectId,
-		hostFilter,
+		selectedHost,
 		sort,
 		searchQuery,
 		projectNamesById,
@@ -228,36 +230,48 @@ export function WorkspacesScreen() {
 					onPress={() => router.push("/(authenticated)/(home)/filter")}
 				/>
 			</Stack.Toolbar>
-			<LegendList
-				className="flex-1 bg-background"
-				contentInsetAdjustmentBehavior="automatic"
-				contentContainerStyle={{
-					minHeight:
-						windowHeight - insets.top - NAVIGATION_BAR_HEIGHT - insets.bottom,
-					paddingBottom: 112,
-					paddingTop: 8,
-				}}
-				data={visibleWorkspaces}
-				extraData={renderItem}
-				keyExtractor={(item: HostWorkspaceItem) => item.id}
-				renderItem={renderItem}
-				viewabilityConfig={VIEWABILITY_CONFIG}
-				onViewableItemsChanged={onViewableItemsChanged}
-				refreshControl={
-					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-				}
-				ListEmptyComponent={
-					isReady ? (
-						<View className="items-center justify-center py-20">
-							<Text className="text-center text-muted-foreground">
-								{searchQuery.trim()
-									? "No workspaces match your search"
-									: "No workspaces in this project yet"}
-							</Text>
-						</View>
-					) : null
-				}
-			/>
+			{selectedHost && !selectedHost.isOnline ? (
+				<View
+					className="bg-background flex-1"
+					style={{
+						minHeight:
+							windowHeight - insets.top - NAVIGATION_BAR_HEIGHT - insets.bottom,
+					}}
+				>
+					<HostOfflineView hostName={selectedHost.name} />
+				</View>
+			) : (
+				<LegendList
+					className="flex-1 bg-background"
+					contentInsetAdjustmentBehavior="automatic"
+					contentContainerStyle={{
+						minHeight:
+							windowHeight - insets.top - NAVIGATION_BAR_HEIGHT - insets.bottom,
+						paddingBottom: 112,
+						paddingTop: 8,
+					}}
+					data={visibleWorkspaces}
+					extraData={renderItem}
+					keyExtractor={(item: HostWorkspaceItem) => item.id}
+					renderItem={renderItem}
+					viewabilityConfig={VIEWABILITY_CONFIG}
+					onViewableItemsChanged={onViewableItemsChanged}
+					refreshControl={
+						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+					}
+					ListEmptyComponent={
+						isReady ? (
+							<View className="items-center justify-center py-20">
+								<Text className="text-center text-muted-foreground">
+									{searchQuery.trim()
+										? "No workspaces match your search"
+										: "No workspaces in this project yet"}
+								</Text>
+							</View>
+						) : null
+					}
+				/>
+			)}
 			<NewChatWidget workspaces={workspaces} />
 			<OrganizationSwitcherSheet
 				isPresented={sheetOpen}

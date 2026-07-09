@@ -38,10 +38,10 @@ export interface UseHostWorkspacesResult {
 
 /**
  * The workspace read path (mobile port of desktop's useHostWorkspaces):
- * fan out `workspace.list` to every online host via the relay, merge, and
- * fall back to the Electric cloud collection for hosts that served
- * nothing. No local host, no event bus — the 30s poll plus focus/pull
- * refetch is the healing path.
+ * fan out `workspace.list` to every online host via the relay and merge.
+ * No local host, no event bus — the 30s poll plus focus/pull refetch is
+ * the healing path. Offline hosts serve nothing; the UI shows them as a
+ * placeholder.
  */
 export function useHostWorkspaces(): UseHostWorkspacesResult {
 	const collections = useCollections();
@@ -49,10 +49,6 @@ export function useHostWorkspaces(): UseHostWorkspacesResult {
 
 	const { data: hosts } = useLiveQuery(
 		(q) => q.from({ v2Hosts: collections.v2Hosts }),
-		[collections],
-	);
-	const { data: cloudRows } = useLiveQuery(
-		(q) => q.from({ v2Workspaces: collections.v2Workspaces }),
 		[collections],
 	);
 
@@ -77,18 +73,16 @@ export function useHostWorkspaces(): UseHostWorkspacesResult {
 
 	const workspaces = useMemo(
 		() =>
-			mergeHostWorkspaces({
-				hostResults: targets.map((target, index) => {
+			mergeHostWorkspaces(
+				targets.map((_target, index) => {
 					const query = queries[index];
 					return {
-						target,
 						rows: query?.data,
 						reachable: query?.data !== undefined && !query?.isError,
 					};
 				}),
-				cloudRows: cloudRows ?? [],
-			}),
-		[targets, queries, cloudRows],
+			),
+		[targets, queries],
 	);
 
 	const isReady = queries.every(

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { ScrollView, Text } from "react-native";
 import { useHostWorkspaces } from "@/hooks/useHostWorkspaces";
 import { useTheme } from "@/hooks/useTheme";
+import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/workspaces/stores/workspacesFilterStore";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck";
@@ -15,6 +16,7 @@ export function ProjectFilterScreen() {
 	const theme = useTheme();
 	const collections = useCollections();
 	const { workspaces } = useHostWorkspaces();
+	const selectedHost = useSelectedHost();
 	const projectFilter = useWorkspacesFilterStore(
 		(store) => store.projectFilter,
 	);
@@ -35,13 +37,14 @@ export function ProjectFilterScreen() {
 	const workspaceCounts = useMemo(() => {
 		const counts = new Map<string, number>();
 		for (const workspace of workspaces) {
+			if (workspace.hostId !== selectedHost?.machineId) continue;
 			counts.set(
 				workspace.projectId,
 				(counts.get(workspace.projectId) ?? 0) + 1,
 			);
 		}
 		return counts;
-	}, [workspaces]);
+	}, [workspaces, selectedHost]);
 
 	const selectedProjectId = projectFilter ?? sortedProjects[0]?.id ?? null;
 

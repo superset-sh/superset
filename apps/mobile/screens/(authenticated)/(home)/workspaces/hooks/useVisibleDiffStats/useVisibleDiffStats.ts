@@ -55,7 +55,6 @@ export function useVisibleDiffStats({
 			const workspace = workspacesById.get(workspaceId);
 			if (
 				!workspace ||
-				workspace.source !== "host" ||
 				!workspace.hostReachable ||
 				workspace.worktreeExists === false
 			) {
