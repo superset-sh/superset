@@ -155,7 +155,6 @@ export function buildV2TerminalEnv(
 		workspaceId,
 		workspacePath,
 		rootPath,
-		hostServiceVersion,
 		supersetEnv,
 		agentHookPort,
 		agentHookVersion,
@@ -170,22 +169,20 @@ export function buildV2TerminalEnv(
 
 	env.TERM = "xterm-256color";
 	env.SHELL = shell;
-	// claude-code and similar chat TUIs only parse kitty CSI-u (e.g. Shift+Enter
-	// → \x1b[13;2u) when TERM_PROGRAM ∈ {ghostty, kitty, iTerm.app, WezTerm,
-	// WarpTerminal}. xterm.js already emits the right bytes — claim kitty so
-	// they're parsed instead of submitted as plain Enter.
-	env.TERM_PROGRAM = "kitty";
-	env.TERM_PROGRAM_VERSION = hostServiceVersion;
-	// The kitty claim above has a side effect: claude-code assumes kitty-class
-	// terminals natively amplify wheel events and disables its own scroll
-	// multiplier — but our xterm.js sends roughly one throttled scroll report
-	// per wheel notch (like VS Code), so transcript scrolling crawls at ~1/3
-	// speed. 3 is claude's documented vim-parity value and restores
-	// native-terminal scroll distance per gesture. Respect a user override
-	// from their shell profile.
-	if (!env.CLAUDE_CODE_SCROLL_SPEED) {
-		env.CLAUDE_CODE_SCROLL_SPEED = "3";
-	}
+	// Identify as the VS Code integrated terminal: agent TUIs (claude-code
+	// especially) tune wheel-scroll compensation, link handling, and selection
+	// hints per TERM_PROGRAM, and every assumption they make for vscode holds
+	// for our xterm.js-based terminal — notably that it sends ~one throttled
+	// scroll event per wheel notch, so claude applies its own scroll multiplier
+	// and acceleration. The previous "kitty" claim suppressed that compensation
+	// and made claude transcript scrolling crawl at ~1/3 speed. Shift+Enter does
+	// NOT depend on this: line-edit-translations.ts sends ESC+CR directly.
+	// Kitty *keyboard protocol* support is separate — TUIs detect it via the
+	// CSI-u capability probe, which xterm's vtExtensions still answers.
+	env.TERM_PROGRAM = "vscode";
+	// Claude version-gates terminal quirks against real VS Code releases, so
+	// send a plausible VS Code version rather than the host-service one.
+	env.TERM_PROGRAM_VERSION = "1.128.0";
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
 	// TERM_THEME is an explicit light/dark hint that cursor-agent (and other

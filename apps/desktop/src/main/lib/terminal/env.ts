@@ -470,8 +470,11 @@ export function buildTerminalEnv(params: {
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
-		TERM_PROGRAM: "kitty",
-		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
+		// vscode, not kitty: agent TUIs tune scroll compensation and terminal
+		// quirks per TERM_PROGRAM, and the vscode assumptions match our
+		// xterm.js terminal. See packages/host-service/src/terminal/env.ts.
+		TERM_PROGRAM: "vscode",
+		TERM_PROGRAM_VERSION: "1.128.0",
 		COLORTERM: "truecolor",
 		COLORFGBG: colorFgBg,
 		TERM_THEME: termTheme,
