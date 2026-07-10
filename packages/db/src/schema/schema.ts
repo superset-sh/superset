@@ -541,6 +541,7 @@ export const v2Workspaces = pgTable(
 		projectId: uuid("project_id")
 			.notNull()
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
+		// Soft reference so workspace records survive host removal and reconnect.
 		hostId: text("host_id").notNull(),
 		name: text().notNull(),
 		branch: text().notNull(),
@@ -560,11 +561,6 @@ export const v2Workspaces = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
-		foreignKey({
-			columns: [table.organizationId, table.hostId],
-			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
-			name: "v2_workspaces_host_fk",
-		}),
 		index("v2_workspaces_project_id_idx").on(table.projectId),
 		index("v2_workspaces_organization_id_idx").on(table.organizationId),
 		index("v2_workspaces_host_id_idx").on(table.hostId),

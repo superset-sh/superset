@@ -1,15 +1,9 @@
 import { db, dbWs } from "@superset/db/client";
 import { v2UsersHostRoleValues } from "@superset/db/enums";
-import {
-	automations,
-	members,
-	v2Hosts,
-	v2UsersHosts,
-	v2Workspaces,
-} from "@superset/db/schema";
+import { members, v2Hosts, v2UsersHosts } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq, inArray, ne, or } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
@@ -192,48 +186,6 @@ export const v2HostRouter = {
 						message: "Only host owners can delete this host",
 					});
 				}
-
-				const hostWorkspaces = await tx
-					.select({ id: v2Workspaces.id })
-					.from(v2Workspaces)
-					.where(
-						and(
-							eq(v2Workspaces.organizationId, organizationId),
-							eq(v2Workspaces.hostId, input.hostId),
-						),
-					)
-					.for("update");
-				const workspaceIds = hostWorkspaces.map((workspace) => workspace.id);
-
-				// Preserve both pins because the host-owned workspace may still exist
-				// if this machine returns. Legacy automations may only carry a workspace
-				// pin, so pause matches for either identifier before removing cloud rows.
-				await tx
-					.update(automations)
-					.set({ enabled: false })
-					.where(
-						and(
-							eq(automations.organizationId, organizationId),
-							workspaceIds.length > 0
-								? or(
-										eq(automations.targetHostId, input.hostId),
-										inArray(automations.v2WorkspaceId, workspaceIds),
-									)
-								: eq(automations.targetHostId, input.hostId),
-						),
-					);
-
-				// v2_workspaces intentionally has a restrictive host FK, so remove
-				// the legacy cloud registry rows before deleting the host. Any chat
-				// session links are nulled by their workspace FK.
-				await tx
-					.delete(v2Workspaces)
-					.where(
-						and(
-							eq(v2Workspaces.organizationId, organizationId),
-							eq(v2Workspaces.hostId, input.hostId),
-						),
-					);
 
 				const [deleted] = await tx
 					.delete(v2Hosts)

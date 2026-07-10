@@ -267,49 +267,6 @@ export const automationRouter = {
 			});
 
 			const created = await dbWs.transaction(async (tx) => {
-				// Match host deletion's lock order so deletion either pauses this
-				// automation after insert or wins first and makes this recheck fail.
-				if (targetHostId) {
-					const [host] = await tx
-						.select({ machineId: v2Hosts.machineId })
-						.from(v2Hosts)
-						.where(
-							and(
-								eq(v2Hosts.organizationId, organizationId),
-								eq(v2Hosts.machineId, targetHostId),
-							),
-						)
-						.limit(1)
-						.for("key share");
-
-					if (!host) {
-						throw new TRPCError({
-							code: "NOT_FOUND",
-							message: "Host not found",
-						});
-					}
-
-					const [membership] = await tx
-						.select({ hostId: v2UsersHosts.hostId })
-						.from(v2UsersHosts)
-						.where(
-							and(
-								eq(v2UsersHosts.userId, ctx.session.user.id),
-								eq(v2UsersHosts.organizationId, organizationId),
-								eq(v2UsersHosts.hostId, targetHostId),
-							),
-						)
-						.limit(1)
-						.for("key share");
-
-					if (!membership) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "You don't have access to this host",
-						});
-					}
-				}
-
 				const inserted = await tx
 					.insert(automations)
 					.values({

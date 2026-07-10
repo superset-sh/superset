@@ -61,8 +61,6 @@ export function DeleteHostSection({
 		} catch {
 			// The shared mutation runner reports the error, and the collection
 			// restores the host without disrupting wherever the user navigated.
-		} finally {
-			setIsDeleting(false);
 		}
 	};
 
@@ -71,8 +69,8 @@ export function DeleteHostSection({
 			<div className="min-w-0 flex-1">
 				<p className="text-sm font-medium">Delete host</p>
 				<p className="mt-0.5 text-xs text-muted-foreground">
-					Removes this host and synced workspace records for everyone.
-					Automations pause; device files stay.
+					Removes this host and its access. Workspaces, files, conversations,
+					and automations stay.
 				</p>
 				{isLocalHost ? (
 					<p
@@ -106,9 +104,9 @@ export function DeleteHostSection({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete "{hostName}"?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This removes the host and synced workspace records for everyone.
-							Automations pause; files and conversations stay. Workspace links
-							are removed. Running hosts may reappear. This can’t be undone.
+							This removes only the host and its access. Workspaces, files,
+							conversations, and automations stay. A running host may reappear.
+							This can’t be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="space-y-2">

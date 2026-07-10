@@ -19,16 +19,12 @@ const deleteReturningMock = mock(async () => hostDeleteResults);
 const deleteWhereMock = mock(() => ({ returning: deleteReturningMock }));
 const deleteMock = mock(() => ({ where: deleteWhereMock }));
 
-const updateWhereMock = mock(async () => undefined);
-const updateSetMock = mock(() => ({ where: updateWhereMock }));
-const updateMock = mock(() => ({ set: updateSetMock }));
 const executeMock = mock(async () => ({ rows: [{ txid: "456" }] }));
 
 const tx = {
 	delete: deleteMock,
 	execute: executeMock,
 	select: selectMock,
-	update: updateMock,
 };
 
 const transactionMock = mock(async (callback: (tx: unknown) => unknown) =>
@@ -71,13 +67,7 @@ mock.module("drizzle-orm", () => ({
 	...realDrizzle,
 	and: (...conditions: unknown[]) => ({ type: "and", conditions }),
 	eq: (left: unknown, right: unknown) => ({ type: "eq", left, right }),
-	inArray: (left: unknown, right: unknown[]) => ({
-		left,
-		right,
-		type: "inArray",
-	}),
 	ne: (left: unknown, right: unknown) => ({ type: "ne", left, right }),
-	or: (...conditions: unknown[]) => ({ type: "or", conditions }),
 }));
 
 const { createCallerFactory, createTRPCRouter } = await import("../../trpc");
@@ -92,7 +82,6 @@ const createCaller = createCallerFactory(
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const ORGANIZATION_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_ORGANIZATION_ID = "33333333-3333-4333-8333-333333333333";
-const WORKSPACE_ID = "44444444-4444-4444-8444-444444444444";
 const MEMBERSHIP_ID = "55555555-5555-4555-8555-555555555555";
 const HOST_ID = "host-machine-id";
 
@@ -127,9 +116,6 @@ beforeEach(() => {
 	deleteReturningMock.mockClear();
 	deleteWhereMock.mockClear();
 	deleteMock.mockClear();
-	updateWhereMock.mockClear();
-	updateSetMock.mockClear();
-	updateMock.mockClear();
 	executeMock.mockClear();
 	transactionMock.mockClear();
 	membersFindFirstMock.mockClear();
@@ -183,7 +169,6 @@ describe("v2Host.delete", () => {
 		});
 		expect(selectForMock).toHaveBeenCalledWith("update");
 		expect(deleteMock).not.toHaveBeenCalled();
-		expect(updateMock).not.toHaveBeenCalled();
 		expect(executeMock).not.toHaveBeenCalled();
 	});
 
@@ -207,7 +192,6 @@ describe("v2Host.delete", () => {
 			type: "and",
 		});
 		expect(deleteMock).not.toHaveBeenCalled();
-		expect(updateMock).not.toHaveBeenCalled();
 		expect(executeMock).not.toHaveBeenCalled();
 	});
 
@@ -230,16 +214,14 @@ describe("v2Host.delete", () => {
 		expect(selectForMock).toHaveBeenNthCalledWith(2, "update");
 		expect(selectForMock).toHaveBeenNthCalledWith(3, "update");
 		expect(deleteMock).not.toHaveBeenCalled();
-		expect(updateMock).not.toHaveBeenCalled();
 		expect(executeMock).not.toHaveBeenCalled();
 	});
 
-	it("pauses direct and workspace-only automations before deleting the host", async () => {
+	it("deletes only the host row", async () => {
 		selectResults.push(
 			[{ id: MEMBERSHIP_ID }],
 			[{ machineId: HOST_ID }],
 			[{ role: "owner" }],
-			[{ id: WORKSPACE_ID }],
 		);
 		hostDeleteResults = [{ machineId: HOST_ID }];
 		const caller = createCaller(createContext());
@@ -253,45 +235,15 @@ describe("v2Host.delete", () => {
 		expect(selectForMock).toHaveBeenNthCalledWith(1, "update");
 		expect(selectForMock).toHaveBeenNthCalledWith(2, "update");
 		expect(selectForMock).toHaveBeenNthCalledWith(3, "update");
-		expect(selectForMock).toHaveBeenNthCalledWith(4, "update");
-		expect(selectFromMock).toHaveBeenNthCalledWith(
-			4,
-			realDbSchema.v2Workspaces,
-		);
-		expect(deleteMock).toHaveBeenNthCalledWith(1, realDbSchema.v2Workspaces);
-		expect(updateMock).toHaveBeenCalledWith(realDbSchema.automations);
-		expect(updateSetMock).toHaveBeenCalledWith({ enabled: false });
-		expect(updateSetMock.mock.calls[0]?.[0]).not.toHaveProperty("targetHostId");
-		expect(updateSetMock.mock.calls[0]?.[0]).not.toHaveProperty(
-			"v2WorkspaceId",
-		);
-		expect(deleteMock).toHaveBeenNthCalledWith(2, realDbSchema.v2Hosts);
+		expect(selectForMock).toHaveBeenCalledTimes(3);
+		expect(deleteMock).toHaveBeenCalledTimes(1);
+		expect(deleteMock).toHaveBeenCalledWith(realDbSchema.v2Hosts);
 		expect(deleteReturningMock).toHaveBeenCalledWith({
 			machineId: realDbSchema.v2Hosts.machineId,
 		});
 		expect(executeMock).toHaveBeenCalledTimes(1);
 
 		expect(deleteWhereMock.mock.calls[0]?.[0]).toMatchObject({
-			conditions: [
-				{ right: ORGANIZATION_ID, type: "eq" },
-				{ right: HOST_ID, type: "eq" },
-			],
-			type: "and",
-		});
-		expect(updateWhereMock.mock.calls[0]?.[0]).toMatchObject({
-			conditions: [
-				{ right: ORGANIZATION_ID, type: "eq" },
-				{
-					conditions: [
-						{ right: HOST_ID, type: "eq" },
-						{ right: [WORKSPACE_ID], type: "inArray" },
-					],
-					type: "or",
-				},
-			],
-			type: "and",
-		});
-		expect(deleteWhereMock.mock.calls[1]?.[0]).toMatchObject({
 			conditions: [
 				{ right: ORGANIZATION_ID, type: "eq" },
 				{ right: HOST_ID, type: "eq" },

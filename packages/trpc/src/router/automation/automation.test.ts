@@ -16,7 +16,6 @@ const HOST_X = "cccccccccccccccccccccccccccccccc";
 
 // --- queued db results -----------------------------------------------------
 let dbSelectResults: unknown[][] = [];
-let transactionSelectResults: unknown[][] = [];
 let insertResults: unknown[][] = [];
 let updateResults: unknown[][] = [];
 
@@ -43,26 +42,8 @@ const dbSelectProxyMock = mock((...args: unknown[]) =>
 	(dbState.selectMock as (...a: unknown[]) => unknown)(...args),
 );
 
-const transactionSelectForMock = mock(
-	async () => transactionSelectResults.shift() ?? [],
-);
-const transactionSelectLimitMock = mock(() => ({
-	for: transactionSelectForMock,
-}));
-const transactionSelectWhereMock = mock(() => ({
-	limit: transactionSelectLimitMock,
-}));
-const transactionSelectFromMock = mock(() => ({
-	where: transactionSelectWhereMock,
-}));
-const transactionSelectMock = mock(() => ({
-	from: transactionSelectFromMock,
-}));
 const transactionMock = mock(async (callback: (tx: unknown) => unknown) =>
-	callback({
-		select: transactionSelectMock,
-		insert: mock(() => ({ values: insertValuesMock })),
-	}),
+	callback({ insert: mock(() => ({ values: insertValuesMock })) }),
 );
 
 // --- module mocks ----------------------------------------------------------
@@ -134,20 +115,12 @@ function pushHostAccessOk(hostId: string) {
 	dbSelectResults.push([{ hostId }]);
 }
 
-function pushLockedHostAccessOk(hostId: string) {
-	transactionSelectResults.push([{ machineId: hostId }]);
-	transactionSelectResults.push([{ hostId }]);
-}
-
 beforeEach(() => {
 	dbSelectResults = [];
-	transactionSelectResults = [];
 	insertResults = [];
 	updateResults = [];
 	dbState = createDb();
 	insertValuesMock.mockClear();
-	transactionSelectForMock.mockClear();
-	transactionSelectMock.mockClear();
 	updateSetMock.mockClear();
 	getAutomationForUserMock.mockReset();
 });
@@ -164,7 +137,6 @@ describe("automation.create host/workspace reconciliation", () => {
 			},
 		]);
 		pushHostAccessOk(HOST_A);
-		pushLockedHostAccessOk(HOST_A);
 		insertResults.push([
 			{
 				id: AUTOMATION_ID,
@@ -180,61 +152,11 @@ describe("automation.create host/workspace reconciliation", () => {
 		});
 
 		expect(insertValuesMock).toHaveBeenCalledTimes(1);
-		expect(transactionSelectForMock.mock.calls).toEqual([
-			["key share"],
-			["key share"],
-		]);
 		expect(insertValuesMock.mock.calls[0]?.[0]).toMatchObject({
 			targetHostId: HOST_A,
 			v2ProjectId: PROJECT_P,
 			v2WorkspaceId: WORKSPACE_W,
 		});
-	});
-
-	it("rejects creation if the host is deleted before the locked recheck", async () => {
-		pushHostAccessOk(HOST_A);
-		dbSelectResults.push([{ id: PROJECT_P, organizationId: ORGANIZATION_ID }]);
-		transactionSelectResults.push([]);
-
-		const caller = createCaller(createContext());
-		await expect(
-			caller.automation.create({
-				...baseCreateInput,
-				targetHostId: HOST_A,
-				v2ProjectId: PROJECT_P,
-			}),
-		).rejects.toMatchObject({
-			code: "NOT_FOUND",
-			message: "Host not found",
-		});
-
-		expect(transactionSelectForMock).toHaveBeenCalledWith("key share");
-		expect(insertValuesMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects creation if host access is removed before the locked recheck", async () => {
-		pushHostAccessOk(HOST_A);
-		dbSelectResults.push([{ id: PROJECT_P, organizationId: ORGANIZATION_ID }]);
-		transactionSelectResults.push([{ machineId: HOST_A }]);
-		transactionSelectResults.push([]);
-
-		const caller = createCaller(createContext());
-		await expect(
-			caller.automation.create({
-				...baseCreateInput,
-				targetHostId: HOST_A,
-				v2ProjectId: PROJECT_P,
-			}),
-		).rejects.toMatchObject({
-			code: "FORBIDDEN",
-			message: "You don't have access to this host",
-		});
-
-		expect(transactionSelectForMock.mock.calls).toEqual([
-			["key share"],
-			["key share"],
-		]);
-		expect(insertValuesMock).not.toHaveBeenCalled();
 	});
 
 	it("rejects a targetHostId that disagrees with the workspace's host", async () => {
