@@ -33,7 +33,11 @@ export function ModelSelect({
 	const isCustom = value !== null && !ALIAS_SET.has(value);
 	const [customMode, setCustomMode] = useState(isCustom);
 	const selectValue =
-		value === null ? DEFAULT_VALUE : customMode || isCustom ? CUSTOM_VALUE : value;
+		value === null
+			? DEFAULT_VALUE
+			: customMode || isCustom
+				? CUSTOM_VALUE
+				: value;
 
 	return (
 		<div className="flex items-center gap-2">

@@ -21,8 +21,8 @@ import {
 	getDefinition,
 	listDefinitions,
 	removeDefinition,
-	saveDefinition,
 	type ScopeRoot,
+	saveDefinition,
 	transferDefinition,
 } from "./definition-store";
 
@@ -86,7 +86,10 @@ function getProjectScopeRoot(
 	}
 }
 
-function resolveScopeRoot(ctx: HostServiceContext, scopeKey: string): ScopeRoot {
+function resolveScopeRoot(
+	ctx: HostServiceContext,
+	scopeKey: string,
+): ScopeRoot {
 	const scope = parseScopeKey(scopeKey);
 	if (!scope) {
 		throw new TRPCError({
@@ -190,10 +193,12 @@ export const agentLibraryRouter = router({
 					where: (projects, { eq }) => eq(projects.id, scope.projectId),
 				})
 				.sync();
+			// Label from the live local path, not cached repo-name snapshot
+			// fields (see test/integration/no-snapshot-fields-for-queries).
 			return {
 				scopeKey: encodeScopeKey(scope),
 				kind: "project" as const,
-				label: project?.repoName ?? basename(project?.repoPath ?? ""),
+				label: basename(project?.repoPath ?? ""),
 				rootPath: project?.repoPath ?? "",
 			};
 		});

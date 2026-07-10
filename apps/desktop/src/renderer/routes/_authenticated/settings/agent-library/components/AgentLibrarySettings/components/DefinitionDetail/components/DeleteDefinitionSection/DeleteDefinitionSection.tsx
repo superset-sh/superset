@@ -37,13 +37,13 @@ export function DeleteDefinitionSection({
 					}),
 				);
 			}
-			return getHostServiceClientByUrl(activeHostUrl).agentLibrary.remove.mutate(
-				{
-					scopeKey: summary.scopeKey,
-					kind: summary.kind,
-					name: summary.name,
-				},
-			);
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).agentLibrary.remove.mutate({
+				scopeKey: summary.scopeKey,
+				kind: summary.kind,
+				name: summary.name,
+			});
 		},
 		onSuccess: () => {
 			toast.success(`Deleted ${summary.kind} "${summary.name}".`);

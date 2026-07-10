@@ -1,1 +1,5 @@
-export { AgentLibrarySettings, refKeyOf, type DefinitionRefKey } from "./AgentLibrarySettings";
+export {
+	AgentLibrarySettings,
+	type DefinitionRefKey,
+	refKeyOf,
+} from "./AgentLibrarySettings";

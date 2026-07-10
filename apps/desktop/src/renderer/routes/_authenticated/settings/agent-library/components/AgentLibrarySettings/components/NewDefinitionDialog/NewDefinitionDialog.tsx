@@ -62,9 +62,9 @@ export function NewDefinitionDialog({
 					}),
 				);
 			}
-			return getHostServiceClientByUrl(activeHostUrl).agentLibrary.create.mutate(
-				{ scopeKey, kind, name, description },
-			);
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).agentLibrary.create.mutate({ scopeKey, kind, name, description });
 		},
 		onSuccess: () => {
 			toast.success(
@@ -85,7 +85,8 @@ export function NewDefinitionDialog({
 				<DialogHeader>
 					<DialogTitle>New {kind}</DialogTitle>
 					<DialogDescription>
-						Creates {kind === "agent" ? "agents/<name>.md" : "skills/<name>/SKILL.md"}{" "}
+						Creates{" "}
+						{kind === "agent" ? "agents/<name>.md" : "skills/<name>/SKILL.md"}{" "}
 						in the chosen scope.
 					</DialogDescription>
 				</DialogHeader>

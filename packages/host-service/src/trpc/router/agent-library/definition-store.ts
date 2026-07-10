@@ -93,7 +93,11 @@ async function resolveWriteDir(
 	return { absDir: join(root.rootPath, relDir), relDir };
 }
 
-function definitionFilePath(dir: CanonicalDir, kind: DefinitionKind, name: string) {
+function definitionFilePath(
+	dir: CanonicalDir,
+	kind: DefinitionKind,
+	name: string,
+) {
 	return kind === "agent"
 		? join(dir.absDir, `${name}.md`)
 		: join(dir.absDir, name, SKILL_FILE);
@@ -322,7 +326,9 @@ export async function removeDefinition(
 		);
 	}
 	const target =
-		input.kind === "agent" ? found.filePath : join(found.dir.absDir, input.name);
+		input.kind === "agent"
+			? found.filePath
+			: join(found.dir.absDir, input.name);
 	await root.fs.deletePath({ absolutePath: target, permanent: true });
 }
 

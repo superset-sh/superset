@@ -17,8 +17,8 @@ import {
 	getDefinition,
 	listDefinitions,
 	removeDefinition,
-	saveDefinition,
 	type ScopeRoot,
+	saveDefinition,
 	transferDefinition,
 } from "./definition-store";
 

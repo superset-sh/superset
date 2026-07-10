@@ -69,16 +69,16 @@ export function TransferMenu({
 					}),
 				);
 			}
-			return getHostServiceClientByUrl(activeHostUrl).agentLibrary.transfer.mutate(
-				{
-					scopeKey: summary.scopeKey,
-					kind: summary.kind,
-					name: summary.name,
-					toScopeKey,
-					mode,
-					overwrite,
-				},
-			);
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).agentLibrary.transfer.mutate({
+				scopeKey: summary.scopeKey,
+				kind: summary.kind,
+				name: summary.name,
+				toScopeKey,
+				mode,
+				overwrite,
+			});
 		},
 		onSuccess: (_data, { mode }) => {
 			setPendingOverwrite(null);
