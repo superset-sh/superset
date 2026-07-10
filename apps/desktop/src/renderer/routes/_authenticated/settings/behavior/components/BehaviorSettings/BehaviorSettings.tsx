@@ -36,6 +36,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showWorkspaceNumbers = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_WORKSPACE_NUMBERS,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -124,6 +128,37 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 		},
 	);
+
+	const { data: showWorkspaceNumbersOnModifier, isLoading: isNumbersLoading } =
+		electronTrpc.settings.getShowWorkspaceNumbersOnModifier.useQuery();
+	const setShowWorkspaceNumbersOnModifier =
+		electronTrpc.settings.setShowWorkspaceNumbersOnModifier.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowWorkspaceNumbersOnModifier.cancel();
+				const previous =
+					utils.settings.getShowWorkspaceNumbersOnModifier.getData();
+				utils.settings.getShowWorkspaceNumbersOnModifier.setData(
+					undefined,
+					enabled,
+				);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowWorkspaceNumbersOnModifier.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowWorkspaceNumbersOnModifier.invalidate();
+			},
+		});
+
+	const handleNumbersToggle = (enabled: boolean) => {
+		setShowWorkspaceNumbersOnModifier.mutate({ enabled });
+	};
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -224,6 +259,30 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+				{showWorkspaceNumbers && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="show-workspace-numbers"
+								className="text-sm font-medium"
+							>
+								Show workspace numbers on modifier hold
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Display numbered badges on workspaces when holding the shortcut
+								modifier key
+							</p>
+						</div>
+						<Switch
+							id="show-workspace-numbers"
+							checked={showWorkspaceNumbersOnModifier ?? false}
+							onCheckedChange={handleNumbersToggle}
+							disabled={
+								isNumbersLoading || setShowWorkspaceNumbersOnModifier.isPending
+							}
 						/>
 					</div>
 				)}
