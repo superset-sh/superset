@@ -28,12 +28,12 @@ None — the three planning forks (surface placement, "global" scope meaning, AI
 - [x] (2026-07-10 21:00Z) Codebase reconnaissance complete (discovery scanner precedent, filesystem router capabilities and root-confinement, settings UI patterns, chat/editor components, live-reload semantics of Claude Code verified against docs).
 - [x] (2026-07-10 21:35Z) ExecPlan drafted.
 - [x] (2026-07-10 21:45Z) Open questions answered by user; Decision Log updated (D5 settings section, D6 user+project scopes, D7 full agent session).
-- [ ] Milestone 1: shared types + host-service `agentLibrary` router (list/get) with tests.
-- [ ] Milestone 2: read-only Agents & Skills page (list by scope + detail view).
-- [ ] Milestone 3: editing — frontmatter form, instructions editor, save with revision check, delete, bulk set-model.
-- [ ] Milestone 4: copy/move across scopes.
-- [ ] Milestone 5: embedded AI chat that edits the draft.
-- [ ] Validation battery green (`bun run typecheck`, `bun run lint`, `bun test`) and manual acceptance walked through.
+- [x] (2026-07-10 22:15Z) Milestone 1: shared types (`packages/shared/src/agent-library.ts`) + host-service `agentLibrary` router (list/listScopes/get/save/create/remove/transfer) with 26 unit tests (frontmatter round-trip, symlink dedupe, revision conflicts, transfer matrix).
+- [x] (2026-07-10 22:45Z) Milestones 2+3: Agents & Skills settings page — section registration (layout, nav, search index), scope-grouped sidebar with filter + multi-select, detail view with model/effort selects (+ free-text custom model), description, CodeMirror body editor, raw-file mode, Save with revision check + conflict banner, delete with confirm, BulkModelBar.
+- [x] (2026-07-10 22:45Z) Milestone 4: TransferMenu — copy/move to any other scope, overwrite confirm dialog on CONFLICT.
+- [x] (2026-07-10 23:10Z) Milestone 5: AiChatPanel — persistent per-definition agent session with filesystem tools (see revision note: implemented over the existing desktop `chatRuntimeService`, not a host-service ChatRuntimeManager extension), approval/question bars, post-turn editor reload with dirty-draft conflict protection.
+- [x] (2026-07-10 23:20Z) Validation battery green: `bun run lint` exit 0, `bun run typecheck` 32/32 tasks, `bun test packages/host-service` 806 pass / 0 fail (one repo guard test initially caught a snapshot-field read in `listScopes`; fixed by labeling scopes from `repoPath` basename), `bunx sherif` clean.
+- [ ] Manual acceptance walkthrough in the running desktop app (blocked on this machine: fresh checkout, no signed-in dev session; walk through after the PR build).
 
 ## Surprises & Discoveries
 
@@ -46,6 +46,10 @@ None — the three planning forks (surface placement, "global" scope meaning, AI
 - Observation: the existing hand-rolled frontmatter parser (`packages/chat/src/server/desktop/slash-commands/frontmatter.ts`) reads only three scalar keys line-by-line; it cannot round-trip YAML (multi-line strings, lists, unknown keys). No YAML library exists anywhere in the workspace today.
   Evidence: grep for `"yaml"|"gray-matter"|"js-yaml"` across all package.json files returns nothing.
 - Observation: in this very repo `.claude/skills` is a symlink to `.agents/skills` (per root AGENTS.md convention), so a naive scan of both directories double-lists every skill. The scanner must dedupe by realpath.
+- Observation (implementation): the desktop's existing `chatRuntimeService` (packages/chat `service.ts`, mounted in the Electron main process over IPC) already creates Mastra runtimes keyed by `sessionId + cwd` with **no workspace coupling** — `getOrCreateRuntime(sessionId, cwd)` takes any directory. The planned host-service `ChatRuntimeManager` extension was unnecessary for the local case; Milestone 5 became pure UI.
+  Evidence: `packages/chat/src/server/trpc/service.ts:118-173`, `zod.ts:28-31` (`sessionIdInput = { sessionId: uuid, cwd?: string }`).
+- Observation (implementation): operating paths handed to a scope-rooted `FsService` must be built lexically from the same `rootPath` string the service was created with; realpath-resolved paths fail the service's lexical containment check (bit us via macOS's `/var -> /private/var` tmpdir symlink in tests). Realpath is used only as the dedupe key.
+- Observation (implementation): host-service has a guard test (`test/integration/no-snapshot-fields-for-queries.test.ts`) forbidding reads of cached `repoName`/`repoOwner`/`repoCloneUrl` outside an allowlist. `listScopes` initially read `project.repoName` for a display label and tripped it; labels now come from `basename(project.repoPath)`.
 
 ## Decision Log
 
@@ -73,6 +77,9 @@ None — the three planning forks (surface placement, "global" scope meaning, AI
 - Decision (D8): v1 parses/edits Claude Code format only, but the scanner also indexes `.agents/skills` and `.agents/agents` directories (the cross-agent convention this repo itself uses), deduped by realpath against their `.claude` symlinks.
   Rationale: covers the user's actual setup including this repo's layout without committing to Codex/OpenCode format support.
   Date/Author: 2026-07-10 / Claude planning session.
+- Decision (D9): the AI chat session runs on the desktop's existing `chatRuntimeService` (Electron main process, `{ sessionId, cwd }`-keyed Mastra runtimes) with the definition context injected as a first-message preamble — no `ChatRuntimeManager` extension, no new server code. Tool cwd-confinement is not hardened beyond the prompt; the session has the same trust level as the terminal agents Superset already launches with permission bypasses on the same machine.
+  Rationale: the planned host-service extension turned out to be unnecessary for the v1 local-host scope — the transport already supports arbitrary-cwd sessions, making Milestone 5 pure UI. Supersedes D7's mechanism while preserving its user-facing behavior; the host-service path remains the route to remote-host support later.
+  Date/Author: 2026-07-10 / implementation.
 
 ## Context and Orientation
 
@@ -243,8 +250,16 @@ All writes are atomic (workspace-fs temp-file + rename) and guarded by `ifMatch`
 
 ## Outcomes & Retrospective
 
-(To be written at completion.)
+Implemented 2026-07-10 in three commits on `feat/agents-skills-library` (PR opened the same day): the `agentLibrary` host-service router + shared types + 26 tests, the Agents & Skills settings page (list by scope, model/effort/description editing, raw mode, bulk set-model, create/delete), cross-scope copy/move with overwrite confirm, and the AI edit chat panel running a persistent per-definition Mastra agent session with filesystem tools.
+
+Against the original purpose: every requirement landed — scoped listing, agent model/effort/instruction editing, skill instruction editing, AI chat that applies edits itself, copy/move/delete across scopes, and live-apply-on-save (free via Claude Code's own file watchers, honestly surfaced in the save toast). The bulk set-model bar addresses the motivating pain directly.
+
+Gaps / follow-ups: (1) manual acceptance walkthrough in the running app still pending — this machine had no signed-in dev session; run the Validation and Acceptance section after checkout. (2) AI-chat tool calls render as compact rows (tool name), not full diff blocks — the editor reloading with the agent's changes carries the "what changed" moment instead; revisit if diffs-in-chat are missed. (3) mastracode tool cwd-confinement was NOT hardened (D9) — same trust level as Superset's existing terminal agents, revisit if agent-library sessions ever run against untrusted scopes. (4) Deferred as planned: cloud cross-host scope, plugin-provided definitions, non-Claude formats, transcript persistence across restarts.
+
+Lesson: the biggest planning miss was assuming chat needed host-service runtime work — the desktop chat service was already cwd-parameterized. Reading the *transport* layer before the *runtime* layer would have found this sooner.
 
 ---
 
 Revision note (2026-07-10): initial draft carried three open questions; the user resolved them the same day (Settings-section placement; user+project scopes for v1; full-agent-session chat instead of the recommended stateless procedure). Plan of Work §4, Milestone 5, the router interface, and Decision Log D5–D7 were rewritten accordingly — the AI chat moved from a structured-output procedure on the `agentLibrary` router to an agent-library context on `ChatRuntimeManager`, because the user explicitly values cross-file context reading and multi-step edits over the simpler draft-return shape.
+
+Revision note (2026-07-10, implementation): Milestone 5 shipped WITHOUT touching `ChatRuntimeManager` — the desktop's existing `chatRuntimeService` (Electron main, IPC) already accepts `{ sessionId, cwd }`, so the AiChatPanel creates a per-definition session with `cwd` = scope root and injects the definition context as a first-message preamble instead of a server-side system prompt (Decision D9, superseding the mechanism in D7 while keeping its user-facing behavior: real tools, cross-file reads, direct file edits, persistent in-app session). Consequences: works desktop-local only (remote hosts would need the host-service extension originally planned — matches v1's local-host scope); tool confinement relies on prompt + user visibility rather than a wrapped toolset, consistent with how Superset already runs terminal agents with permissions bypassed. Tool calls render as compact rows rather than full diff blocks; the detail editor reloads after each turn, with unsaved drafts protected by the same conflict banner as external edits.
