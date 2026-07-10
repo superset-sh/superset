@@ -10,9 +10,11 @@ import {
 	AlertDialogTrigger,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
+import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 
 interface DeleteHostSectionProps {
@@ -30,10 +32,17 @@ export function DeleteHostSection({
 	const actions = useOptimisticCollectionActions();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
+	const [confirmation, setConfirmation] = useState("");
 	const localHostDescriptionId = `delete-host-${hostId}-local-description`;
+	const confirmationInputId = `delete-host-${hostId}-confirmation`;
+	const canDelete = confirmation === hostName;
+
+	useEffect(() => {
+		if (!isOpen) setConfirmation("");
+	}, [isOpen]);
 
 	const handleDelete = async () => {
-		if (isLocalHost) return;
+		if (isLocalHost || !canDelete) return;
 
 		setIsDeleting(true);
 		const transaction = actions.v2Hosts.deleteHost(hostId);
@@ -96,6 +105,24 @@ export function DeleteHostSection({
 							are removed. Running hosts may reappear. This can’t be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
+					<div className="space-y-2">
+						<Label htmlFor={confirmationInputId} className="text-xs">
+							Type{" "}
+							<span className="font-mono font-medium text-foreground">
+								{hostName}
+							</span>{" "}
+							to confirm
+						</Label>
+						<Input
+							id={confirmationInputId}
+							autoFocus
+							value={confirmation}
+							onChange={(event) => setConfirmation(event.target.value)}
+							placeholder={hostName}
+							autoComplete="off"
+							spellCheck={false}
+						/>
+					</div>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
 						<AlertDialogAction
@@ -104,7 +131,7 @@ export function DeleteHostSection({
 								event.preventDefault();
 								void handleDelete();
 							}}
-							disabled={isDeleting}
+							disabled={isDeleting || !canDelete}
 							aria-busy={isDeleting}
 						>
 							{isDeleting ? "Deleting…" : "Delete"}
