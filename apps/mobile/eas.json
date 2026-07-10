@@ -18,9 +18,7 @@
 				"simulator": true
 			},
 			"env": {
-				"EXPO_PUBLIC_E2E": "1",
-				"EXPO_PUBLIC_ELECTRIC_URL": "https://electric-proxy.avi-6ac.workers.dev",
-				"EXPO_PUBLIC_RELAY_URL": "https://relay.superset.sh"
+				"EXPO_PUBLIC_E2E": "1"
 			}
 		},
 		"production": {
