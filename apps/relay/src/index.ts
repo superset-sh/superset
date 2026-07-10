@@ -4,7 +4,7 @@ import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { checkHostAccess } from "./access";
+import { accessDenialMessage, checkHostAccess } from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
 import * as directory from "./directory";
 import { env } from "./env";
@@ -217,11 +217,13 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 			: c.json({ error: "Host not connected" }, 503);
 	}
 
-	const hasAccess = await checkHostAccess(auth, token, hostId);
-	if (!hasAccess)
+	const access = await checkHostAccess(auth, token, hostId);
+	if (!access.ok) {
+		const detail = `Forbidden: ${accessDenialMessage(access.reason)}`;
 		return wantsTrpc
-			? trpcErrorResponse(c, "FORBIDDEN", "Forbidden")
-			: c.json({ error: "Forbidden" }, 403);
+			? trpcErrorResponse(c, "FORBIDDEN", detail)
+			: c.json({ error: detail }, 403);
+	}
 
 	c.set("auth", auth);
 	c.set("token", token);
@@ -257,9 +259,9 @@ app.get(
 					return;
 				}
 
-				const hasAccess = await checkHostAccess(auth, token, hostId);
-				if (!hasAccess) {
-					ws.close(1008, "Forbidden");
+				const access = await checkHostAccess(auth, token, hostId);
+				if (!access.ok) {
+					ws.close(1008, `Forbidden: ${accessDenialMessage(access.reason)}`);
 					return;
 				}
 

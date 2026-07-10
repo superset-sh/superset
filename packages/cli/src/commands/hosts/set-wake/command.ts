@@ -1,6 +1,7 @@
-import { boolean, CLIError, positional } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveHost } from "../../../lib/host/resolve";
+import { resolveOrganizationFromContext } from "../../../lib/resolve-org";
 
 export default command({
 	description: "Set (or clear) the command used to wake a host",
@@ -14,12 +15,14 @@ export default command({
 	],
 	options: {
 		clear: boolean().desc("Remove the wake command"),
+		org: string().desc("Organization (id, slug, or name); defaults to active"),
 	},
 	run: async ({ ctx, args, options }) => {
-		const organizationId = ctx.config.organizationId;
-		if (!organizationId) {
-			throw new CLIError("No active organization", "Run: superset auth login");
-		}
+		const { id: organizationId } = await resolveOrganizationFromContext(
+			ctx.api,
+			ctx.config.organizationId,
+			options.org,
+		);
 
 		const host = await resolveHost(
 			ctx.api,

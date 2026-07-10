@@ -123,6 +123,93 @@ export const v2HostRouter = {
 			return { success: true, txid };
 		}),
 
+	delete: protectedProcedure
+		.input(z.object({ hostId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = requireActiveOrgId(ctx);
+
+			const txid = await dbWs.transaction(async (tx) => {
+				const [membership] = await tx
+					.select({ id: members.id })
+					.from(members)
+					.where(
+						and(
+							eq(members.userId, ctx.session.user.id),
+							eq(members.organizationId, organizationId),
+						),
+					)
+					.limit(1)
+					.for("update");
+
+				if (!membership) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Not a member of this organization",
+					});
+				}
+
+				const [host] = await tx
+					.select({ machineId: v2Hosts.machineId })
+					.from(v2Hosts)
+					.where(
+						and(
+							eq(v2Hosts.organizationId, organizationId),
+							eq(v2Hosts.machineId, input.hostId),
+						),
+					)
+					.limit(1)
+					.for("update");
+
+				if (!host) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Host not found in this organization",
+					});
+				}
+
+				const [access] = await tx
+					.select({ role: v2UsersHosts.role })
+					.from(v2UsersHosts)
+					.where(
+						and(
+							eq(v2UsersHosts.organizationId, organizationId),
+							eq(v2UsersHosts.userId, ctx.session.user.id),
+							eq(v2UsersHosts.hostId, input.hostId),
+						),
+					)
+					.limit(1)
+					.for("update");
+
+				if (!access || access.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only host owners can delete this host",
+					});
+				}
+
+				const [deleted] = await tx
+					.delete(v2Hosts)
+					.where(
+						and(
+							eq(v2Hosts.organizationId, organizationId),
+							eq(v2Hosts.machineId, input.hostId),
+						),
+					)
+					.returning({ machineId: v2Hosts.machineId });
+
+				if (!deleted) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Host not found in this organization",
+					});
+				}
+
+				return await getCurrentTxid(tx);
+			});
+
+			return { success: true, txid };
+		}),
+
 	addMember: protectedProcedure
 		.input(
 			z.object({

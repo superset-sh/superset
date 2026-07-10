@@ -28,6 +28,10 @@
 			"types": "./src/seed-default-statuses.ts",
 			"default": "./src/seed-default-statuses.ts"
 		},
+		"./task-list-query": {
+			"types": "./src/task-list-query.ts",
+			"default": "./src/task-list-query.ts"
+		},
 		"./utils": {
 			"types": "./src/utils/index.ts",
 			"default": "./src/utils/index.ts"

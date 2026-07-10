@@ -53,10 +53,13 @@ const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 		} catch (refreshError) {
 			console.error("[collections] JWT refresh after 401 failed", refreshError);
 		}
-	} else {
-		console.error("[collections] Electric sync error", error);
+		return {}; // retry once with the refreshed token
 	}
-	return {};
+	// 5xx/network/429 are retried inside Electric forever and never reach here, so
+	// a 4xx that does is terminal — return void to stop the stream instead of
+	// looping the same doomed request until Electric's 50-retry guard trips.
+	console.error("[collections] Electric sync stopped", error);
+	return;
 };
 
 interface OrgCollections {

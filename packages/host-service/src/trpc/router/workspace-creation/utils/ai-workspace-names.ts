@@ -32,30 +32,36 @@ function trimTitle(raw: string): string {
 		.slice(0, WORKSPACE_TITLE_MAX);
 }
 
-// Forgiving transforms: coerce anything the model sends into shape
-// rather than failing the whole rename. The small model has been
-// reliable with `.describe()` guidance so hard bounds aren't needed.
-// Empty fields fall through to the caller, which skips the respective
-// rename step.
-const workspaceNamesSchema = z.object({
+const workspaceNamesOutputSchema = z.object({
 	title: z
 		.string()
-		.transform(trimTitle)
 		.describe(
 			`Short human-readable workspace title. Up to ${WORKSPACE_TITLE_MAX} characters. No trailing punctuation. Prefer whole words; never truncate mid-word.`,
 		),
 	branchName: z
 		.string()
-		.transform(sanitizeBranchCandidate)
 		.describe(
 			`Git branch name in kebab-case (lowercase, dashes). 2-4 words, up to ${BRANCH_NAME_MAX} characters. Only [a-z0-9-]. No leading/trailing dashes. No prefixes.`,
 		),
 });
 
+// Keep transforms out of the provider-facing schema: transformed Zod fields
+// lose their JSON Schema type in the current converter, which Anthropic's
+// native structured-output endpoint rejects. Coerce the validated response
+// locally instead. Empty fields still fall through to the caller, which skips
+// the respective rename step.
+const workspaceNamesSchema = workspaceNamesOutputSchema.transform(
+	({ title, branchName }) => ({
+		title: trimTitle(title),
+		branchName: sanitizeBranchCandidate(branchName),
+	}),
+);
+
 export type GeneratedWorkspaceNames = z.infer<typeof workspaceNamesSchema>;
 
 const INSTRUCTIONS = [
 	"You name new code workspaces from the user's initial prompt.",
+	"The prompt describes work to do in an existing repository. Name that work; do not answer the prompt, ask questions, or request more context. Always infer useful names, even when the prompt is vague.",
 	"Return a structured object with two fields:",
 	`- title: a short human-readable label (<= ${WORKSPACE_TITLE_MAX} chars). Full words only; never cut mid-word. No trailing punctuation.`,
 	`- branchName: a kebab-case git branch name (<= ${BRANCH_NAME_MAX} chars, 2-4 words). Only a-z 0-9 and dashes. No prefixes.`,
@@ -87,8 +93,7 @@ export async function generateWorkspaceNamesFromPrompt(
 		const { object } = await Promise.race([
 			agent.generate(cleaned, {
 				structuredOutput: {
-					schema: workspaceNamesSchema,
-					jsonPromptInjection: true,
+					schema: workspaceNamesOutputSchema,
 				},
 			}),
 			new Promise<never>((_, reject) =>
@@ -98,7 +103,7 @@ export async function generateWorkspaceNamesFromPrompt(
 				),
 			),
 		]);
-		return object;
+		return workspaceNamesSchema.parse(object);
 	} catch (error) {
 		console.warn(
 			"[generateWorkspaceNamesFromPrompt] generation failed:",

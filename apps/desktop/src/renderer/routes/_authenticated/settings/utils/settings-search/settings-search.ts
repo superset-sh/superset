@@ -87,6 +87,7 @@ export const SETTING_ITEM_ID = {
 	HOST_INVITE_MEMBER: "host-invite-member",
 	HOST_MEMBER_ROLE: "host-member-role",
 	HOST_WORKTREE_LOCATION: "host-worktree-location",
+	HOST_DELETE: "host-delete",
 } as const;
 
 export type SettingItemId =
@@ -198,6 +199,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
 	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
 	[SETTING_ITEM_ID.HOST_WORKTREE_LOCATION]: "v2",
+	[SETTING_ITEM_ID.HOST_DELETE]: "shared",
 };
 
 export function isItemAllowedForVariant(
@@ -1399,6 +1401,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"member",
 			"permission",
 			"admin",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_DELETE,
+		section: "hosts",
+		title: "Delete host",
+		description:
+			"Remove a host and its synced workspace records from the organization",
+		keywords: [
+			"host",
+			"hosts",
+			"delete",
+			"remove",
+			"machine",
+			"device",
+			"workspace",
+			"owner",
+			"danger zone",
 		],
 	},
 ];

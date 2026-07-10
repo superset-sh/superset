@@ -1,0 +1,43 @@
+name: Deploy Relay
+
+# The relay ships to Fly (not Vercel), so it's not part of deploy-production.yml.
+# Auto-deploys only when relay-relevant code changes — a 7-region rolling Fly
+# deploy is too heavy to run on every unrelated push to main. Use the manual
+# "Run workflow" button (workflow_dispatch) to force a deploy, e.g. to ship a
+# relay change that merged before this workflow existed.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/relay/**"
+      - "packages/shared/**"
+      - ".github/workflows/deploy-relay.yml"
+  workflow_dispatch:
+
+# Never let two relay deploys overlap — rolling deploys mutate the live fleet.
+concurrency:
+  group: deploy-relay
+  cancel-in-progress: false
+
+jobs:
+  deploy-relay:
+    name: Deploy Relay to Fly
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # The deploy script only reads the working tree; no git auth needed.
+          persist-credentials: false
+
+      - name: Install flyctl
+        run: |
+          curl -L https://fly.io/install.sh | sh
+          echo "$HOME/.fly/bin" >> "$GITHUB_PATH"
+
+      - name: Deploy relay (scale + rolling deploy + smoke test)
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: apps/relay/scripts/deploy.sh

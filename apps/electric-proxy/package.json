@@ -9,7 +9,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@electric-sql/client": "1.5.22",
+		"@electric-sql/client": "1.5.23",
 		"@superset/db": "workspace:*",
 		"drizzle-orm": "0.45.2",
 		"jose": "6.2.2"
