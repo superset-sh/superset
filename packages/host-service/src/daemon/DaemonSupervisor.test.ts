@@ -11,6 +11,7 @@
 
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import * as childProcess from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
@@ -1037,3 +1038,39 @@ function isProcessAliveForTest(pid: number): boolean {
 		return (err as NodeJS.ErrnoException).code === "EPERM";
 	}
 }
+
+describe("ptyDaemonSocketPath", () => {
+	const ORG = "org-socket-path";
+	const legacyPath = () => {
+		const shortId = createHash("sha256").update(ORG).digest("hex").slice(0, 12);
+		return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
+	};
+
+	test("default home keeps the legacy org-only path", () => {
+		expect(ptyDaemonSocketPath(ORG, {})).toBe(legacyPath());
+		expect(
+			ptyDaemonSocketPath(ORG, {
+				SUPERSET_HOME_DIR: path.join(os.homedir(), ".superset"),
+			}),
+		).toBe(legacyPath());
+	});
+
+	test("non-default homes get their own stable daemon socket", () => {
+		const a = ptyDaemonSocketPath(ORG, { SUPERSET_HOME_DIR: "/tmp/home-a" });
+		const b = ptyDaemonSocketPath(ORG, { SUPERSET_HOME_DIR: "/tmp/home-b" });
+		expect(a).not.toBe(legacyPath());
+		expect(b).not.toBe(legacyPath());
+		expect(a).not.toBe(b);
+		expect(ptyDaemonSocketPath(ORG, { SUPERSET_HOME_DIR: "/tmp/home-a" })).toBe(
+			a,
+		);
+	});
+
+	test("stays under Darwin's 104-byte sun_path limit for long worktree homes", () => {
+		const socket = ptyDaemonSocketPath("a1b2c3d4-e5f6-7890-abcd-ef1234567890", {
+			SUPERSET_HOME_DIR:
+				"/Users/someone/.superset/worktrees/0123456789abcdef-0123/very-long-branch-name-for-a-feature/superset-dev-data",
+		});
+		expect(Buffer.byteLength(socket)).toBeLessThan(104);
+	});
+});
