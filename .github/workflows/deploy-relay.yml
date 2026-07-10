@@ -28,6 +28,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # The deploy script only reads the working tree; no git auth needed.
+          persist-credentials: false
 
       - name: Install flyctl
         run: |
