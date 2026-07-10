@@ -8,7 +8,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { ChevronsUpDownIcon } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, useWindowDimensions, View } from "react-native";
-import { Button } from "@/components/ui/button";
+import { PickerTrigger } from "@/components/PickerTrigger";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
@@ -69,20 +69,17 @@ export function ModelPicker({
 
 	return (
 		<>
-			<Button
+			<PickerTrigger
 				accessibilityLabel="Select a model"
-				className="h-auto flex-row items-center gap-1 rounded-full border-0 bg-transparent px-2 py-1"
 				disabled={disabled}
 				onPress={() => setIsPresented(true)}
-				size="sm"
-				variant="ghost"
 			>
 				<Text className="text-muted-foreground text-xs">{label}</Text>
 				<Icon
 					as={ChevronsUpDownIcon}
 					className="size-3.5 text-muted-foreground"
 				/>
-			</Button>
+			</PickerTrigger>
 
 			<Host style={{ position: "absolute", width }}>
 				<BottomSheet
