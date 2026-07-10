@@ -20,14 +20,12 @@ import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/h
 interface DeleteHostSectionProps {
 	hostId: string;
 	hostName: string;
-	hasWorkspaces: boolean;
 	isLocalHost: boolean;
 }
 
 export function DeleteHostSection({
 	hostId,
 	hostName,
-	hasWorkspaces,
 	isLocalHost,
 }: DeleteHostSectionProps) {
 	const navigate = useNavigate();
@@ -52,7 +50,7 @@ export function DeleteHostSection({
 	}, [isOpen]);
 
 	const handleDelete = async () => {
-		if (isLocalHost || hasWorkspaces || !canDelete) return;
+		if (isLocalHost || !canDelete) return;
 
 		setIsDeleting(true);
 		const transaction = actions.v2Hosts.deleteHost(hostId);
@@ -81,8 +79,8 @@ export function DeleteHostSection({
 					id={deleteHostDescriptionId}
 					className="mt-0.5 text-xs text-muted-foreground"
 				>
-					Only hosts without workspaces can be deleted. Files, conversations,
-					and automations stay.
+					Deletes this host and access. Workspaces, files, conversations, and
+					automations stay.
 				</p>
 				{isLocalHost ? (
 					<p
@@ -102,7 +100,7 @@ export function DeleteHostSection({
 						size="sm"
 						aria-describedby={deleteButtonDescriptionIds}
 						className="shrink-0"
-						disabled={isLocalHost || hasWorkspaces || isDeleting}
+						disabled={isLocalHost || isDeleting}
 					>
 						Delete host
 					</Button>
@@ -116,9 +114,9 @@ export function DeleteHostSection({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete "{hostName}"?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This deletes the host and its access. Hosts with workspaces can’t
-							be deleted. Files, conversations, and automations stay. A running
-							host may reappear. This can’t be undone.
+							This removes only the host and its access. Workspaces, files,
+							conversations, and automations stay. A running host may reappear.
+							This can’t be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="space-y-2">

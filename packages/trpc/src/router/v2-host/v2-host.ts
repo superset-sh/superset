@@ -1,11 +1,6 @@
 import { db, dbWs } from "@superset/db/client";
 import { v2UsersHostRoleValues } from "@superset/db/enums";
-import {
-	members,
-	v2Hosts,
-	v2UsersHosts,
-	v2Workspaces,
-} from "@superset/db/schema";
+import { members, v2Hosts, v2UsersHosts } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
@@ -189,25 +184,6 @@ export const v2HostRouter = {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "Only host owners can delete this host",
-					});
-				}
-
-				const [workspace] = await tx
-					.select({ id: v2Workspaces.id })
-					.from(v2Workspaces)
-					.where(
-						and(
-							eq(v2Workspaces.organizationId, organizationId),
-							eq(v2Workspaces.hostId, input.hostId),
-						),
-					)
-					.limit(1)
-					.for("key share");
-
-				if (workspace) {
-					throw new TRPCError({
-						code: "CONFLICT",
-						message: "This host still has workspaces and can’t be deleted",
 					});
 				}
 

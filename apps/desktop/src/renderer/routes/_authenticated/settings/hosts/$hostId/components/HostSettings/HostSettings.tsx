@@ -58,15 +58,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				.select(({ uh }) => ({ ...uh })),
 		[collections, hostId],
 	);
-	const { data: hostWorkspaceRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspace: collections.v2Workspaces })
-				.where(({ workspace }) => eq(workspace.hostId, hostId))
-				.select(({ workspace }) => ({ id: workspace.id })),
-		[collections, hostId],
-	);
-
 	const { data: orgUsers = [] } = useLiveQuery(
 		(q) =>
 			q.from({ users: collections.users }).select(({ users }) => ({
@@ -214,7 +205,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					<DeleteHostSection
 						hostId={hostId}
 						hostName={host.name}
-						hasWorkspaces={hostWorkspaceRows.length > 0}
 						isLocalHost={hostId === machineId}
 					/>
 				) : null}
