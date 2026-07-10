@@ -32,6 +32,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"keyboard",
 	"behavior",
 	"git",
+	"agentLibrary",
 	"terminal",
 	"links",
 	"models",
@@ -55,6 +56,7 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/keyboard")) return "keyboard";
 	if (pathname.includes("/settings/behavior")) return "behavior";
 	if (pathname.includes("/settings/git")) return "git";
+	if (pathname.includes("/settings/agent-library")) return "agentLibrary";
 	if (pathname.includes("/settings/terminal")) return "terminal";
 	if (pathname.includes("/settings/links")) return "links";
 	if (pathname.includes("/settings/models")) return "models";
@@ -84,6 +86,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/behavior";
 		case "git":
 			return "/settings/git";
+		case "agentLibrary":
+			return "/settings/agent-library";
 		case "terminal":
 			return "/settings/terminal";
 		case "links":
@@ -162,7 +166,8 @@ function SettingsLayout() {
 	const usesInnerSidebar =
 		location.pathname.startsWith("/settings/projects") ||
 		location.pathname.startsWith("/settings/hosts") ||
-		location.pathname.startsWith("/settings/agents");
+		location.pathname.startsWith("/settings/agents") ||
+		location.pathname.startsWith("/settings/agent-library");
 
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">

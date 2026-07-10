@@ -17,6 +17,7 @@ import {
 	HiOutlinePuzzlePiece,
 	HiOutlineShieldCheck,
 	HiOutlineSparkles,
+	HiOutlineSquares2X2,
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
@@ -40,6 +41,7 @@ type SettingsRoute =
 	| "/settings/behavior"
 	| "/settings/git"
 	| "/settings/agents"
+	| "/settings/agent-library"
 	| "/settings/terminal"
 	| "/settings/links"
 	| "/settings/models"
@@ -115,6 +117,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "agents",
 				label: "Agents",
 				icon: <HiOutlineCpuChip className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/agent-library",
+				section: "agentLibrary",
+				label: "Agents & Skills",
+				icon: <HiOutlineSquares2X2 className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/terminal",
