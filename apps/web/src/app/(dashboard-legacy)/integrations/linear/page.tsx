@@ -6,7 +6,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@superset/ui/card";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { SiLinear } from "react-icons/si";
 import { api } from "@/trpc/server";
@@ -32,6 +32,7 @@ export default async function LinearIntegrationPage() {
 		organizationId: organization.id,
 	});
 	const isConnected = !!connection;
+	const needsReconnect = !!connection?.needsReconnect;
 
 	return (
 		<div className="space-y-8">
@@ -52,7 +53,12 @@ export default async function LinearIntegrationPage() {
 				<div className="flex-1">
 					<div className="flex items-center gap-3">
 						<h1 className="text-2xl font-semibold">Linear</h1>
-						{isConnected ? (
+						{needsReconnect ? (
+							<Badge variant="destructive" className="gap-1">
+								<AlertTriangle className="size-3" />
+								Reconnect required
+							</Badge>
+						) : isConnected ? (
 							<Badge variant="default" className="gap-1">
 								<CheckCircle2 className="size-3" />
 								Connected
@@ -79,6 +85,7 @@ export default async function LinearIntegrationPage() {
 					<ConnectionControls
 						organizationId={organization.id}
 						isConnected={isConnected}
+						needsReconnect={needsReconnect}
 					/>
 				</CardContent>
 			</Card>

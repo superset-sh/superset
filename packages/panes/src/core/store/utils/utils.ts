@@ -23,26 +23,29 @@ export function findFirstPaneId(node: LayoutNode): string | null {
 	return findFirstPaneId(node.first) ?? findFirstPaneId(node.second);
 }
 
-export function findSiblingPaneId(
-	node: LayoutNode,
-	paneId: string,
+export function getPaneIdsInLayout(node: LayoutNode): string[] {
+	if (node.type === "pane") {
+		return [node.paneId];
+	}
+	return [
+		...getPaneIdsInLayout(node.first),
+		...getPaneIdsInLayout(node.second),
+	];
+}
+
+export function getActiveIdAfterRemoval(
+	orderedIds: readonly string[],
+	activeId: string | null | undefined,
+	removedId: string,
 ): string | null {
-	if (node.type === "pane") return null;
-
-	const inFirst = findPaneInLayout(node.first, paneId);
-	const inSecond = findPaneInLayout(node.second, paneId);
-
-	if (inFirst && !inSecond) {
-		// Target is in the first branch — sibling is the nearest pane in second
-		const deeper = findSiblingPaneId(node.first, paneId);
-		return deeper ?? findFirstPaneId(node.second);
-	}
-	if (inSecond && !inFirst) {
-		const deeper = findSiblingPaneId(node.second, paneId);
-		return deeper ?? findFirstPaneId(node.first);
+	if (activeId !== removedId) {
+		return activeId ?? null;
 	}
 
-	return null;
+	const removedIndex = orderedIds.indexOf(removedId);
+	return removedIndex === -1
+		? (orderedIds[0] ?? null)
+		: (orderedIds[removedIndex + 1] ?? orderedIds[removedIndex - 1] ?? null);
 }
 
 export function removePaneFromLayout(
@@ -83,32 +86,48 @@ export function replacePaneIdInLayout(
 	};
 }
 
-export function splitPaneInLayout(
+// Splits the target pane, placing `subtree` (a single pane or a whole layout
+// tree) on the side given by `position`. Used both to split in a new pane and
+// to graft an entire tab's layout next to a pane when merging tabs.
+export function graftSubtreeAtPane(
 	node: LayoutNode,
 	targetPaneId: string,
-	newPaneId: string,
+	subtree: LayoutNode,
 	position: SplitPosition,
 ): LayoutNode {
 	if (node.type === "pane") {
 		if (node.paneId !== targetPaneId) return node;
 
 		const direction = positionToDirection(position);
-		const newPaneNode: LayoutNode = { type: "pane", paneId: newPaneId };
 		const isFirst = position === "left" || position === "top";
 
 		return {
 			type: "split",
 			direction,
-			first: isFirst ? newPaneNode : node,
-			second: isFirst ? node : newPaneNode,
+			first: isFirst ? subtree : node,
+			second: isFirst ? node : subtree,
 		};
 	}
 
 	return {
 		...node,
-		first: splitPaneInLayout(node.first, targetPaneId, newPaneId, position),
-		second: splitPaneInLayout(node.second, targetPaneId, newPaneId, position),
+		first: graftSubtreeAtPane(node.first, targetPaneId, subtree, position),
+		second: graftSubtreeAtPane(node.second, targetPaneId, subtree, position),
 	};
+}
+
+export function splitPaneInLayout(
+	node: LayoutNode,
+	targetPaneId: string,
+	newPaneId: string,
+	position: SplitPosition,
+): LayoutNode {
+	return graftSubtreeAtPane(
+		node,
+		targetPaneId,
+		{ type: "pane", paneId: newPaneId },
+		position,
+	);
 }
 
 export function getNodeAtPath(
@@ -168,4 +187,77 @@ export function positionToDirection(position: SplitPosition): SplitDirection {
 
 export function generateId(prefix: string): string {
 	return `${prefix}-${crypto.randomUUID()}`;
+}
+
+export type FocusDirection = "left" | "right" | "up" | "down";
+
+export function findPanePath(
+	node: LayoutNode,
+	paneId: string,
+	currentPath: SplitBranch[] = [],
+): SplitPath | null {
+	if (node.type === "pane") {
+		return node.paneId === paneId ? currentPath : null;
+	}
+	const firstPath = findPanePath(node.first, paneId, [...currentPath, "first"]);
+	if (firstPath) return firstPath;
+	return findPanePath(node.second, paneId, [...currentPath, "second"]);
+}
+
+// Descent into a sibling subtree once a pivot split has been chosen.
+// - On splits matching the arrow axis: pick the near edge (first for
+//   right/down, second for left/up), preserving alignmentPath.
+// - On perpendicular splits: consume one entry from alignmentPath to
+//   preserve the source pane's cross-axis position; if exhausted, fall
+//   back to `first`.
+function findEdgePaneId(
+	node: LayoutNode,
+	dir: FocusDirection,
+	alignmentPath: SplitPath = [],
+): string | null {
+	if (node.type === "pane") return node.paneId;
+	const axis: SplitDirection =
+		dir === "left" || dir === "right" ? "horizontal" : "vertical";
+	if (node.direction === axis) {
+		const nearEdge: SplitBranch =
+			dir === "right" || dir === "down" ? "first" : "second";
+		return findEdgePaneId(node[nearEdge], dir, alignmentPath);
+	}
+	const [alignedBranch = "first", ...rest] = alignmentPath;
+	return findEdgePaneId(node[alignedBranch], dir, rest);
+}
+
+export function getPaneParentDirection(
+	root: LayoutNode,
+	paneId: string,
+): SplitDirection | null {
+	const path = findPanePath(root, paneId);
+	if (!path || path.length === 0) return null;
+	const parent = getNodeAtPath(root, path.slice(0, -1));
+	return parent && parent.type === "split" ? parent.direction : null;
+}
+
+export function getSpatialNeighborPaneId(
+	root: LayoutNode,
+	paneId: string,
+	dir: FocusDirection,
+): string | null {
+	const path = findPanePath(root, paneId);
+	if (!path) return null;
+
+	const axis: SplitDirection =
+		dir === "left" || dir === "right" ? "horizontal" : "vertical";
+	const wantSecond = dir === "right" || dir === "down";
+
+	for (let i = path.length - 1; i >= 0; i--) {
+		const ancestor = getNodeAtPath(root, path.slice(0, i));
+		if (!ancestor || ancestor.type !== "split") continue;
+		if (ancestor.direction !== axis) continue;
+		const cameFrom = path[i];
+		if (wantSecond && cameFrom !== "first") continue;
+		if (!wantSecond && cameFrom !== "second") continue;
+		const siblingBranch: SplitBranch = wantSecond ? "second" : "first";
+		return findEdgePaneId(ancestor[siblingBranch], dir, path.slice(i + 1));
+	}
+	return null;
 }

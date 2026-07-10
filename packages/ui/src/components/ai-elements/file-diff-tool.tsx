@@ -10,6 +10,7 @@ import {
 	DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { ShimmerLabel } from "./shimmer-label";
+import { ToolCallRow } from "./tool-call-row";
 
 type FileDiffToolState =
 	| "input-streaming"
@@ -120,12 +121,10 @@ export const FileDiffTool = ({
 	className,
 }: FileDiffToolProps) => {
 	const hasExpandedRenderer = Boolean(renderExpandedContent);
-	const [expanded, setExpanded] = useState(hasExpandedRenderer);
 	const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
 
 	useEffect(() => {
 		if (!hasAutoExpanded && hasExpandedRenderer) {
-			setExpanded(true);
 			setHasAutoExpanded(true);
 		}
 	}, [hasAutoExpanded, hasExpandedRenderer]);
@@ -166,114 +165,97 @@ export const FileDiffTool = ({
 		[filePath, oldString, newString, content, isWriteMode],
 	);
 
-	return (
-		<div className={cn("overflow-hidden rounded-md", className)}>
-			{/* Header - fixed height */}
-			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
-			<div
-				className={cn(
-					"flex h-7 items-center justify-between px-2.5",
-					hasDiff &&
-						"cursor-pointer transition-colors duration-150 hover:bg-muted/30",
+	// Title node: shimmer while streaming with no path, otherwise "Wrote/Edited filename"
+	const titleNode =
+		isStreaming && !filePath ? (
+			<ShimmerLabel className="text-xs text-foreground" isShimmering>
+				{isWriteMode ? "Writing file..." : "Editing file..."}
+			</ShimmerLabel>
+		) : (
+			<span className="min-w-0 truncate text-muted-foreground">
+				<span className="text-foreground">
+					{isWriteMode ? "Wrote" : "Edited"}
+				</span>{" "}
+				{canOpenFile && filePath ? (
+					<button
+						type="button"
+						className="inline cursor-pointer truncate text-foreground transition-colors hover:text-muted-foreground"
+						onClick={(event) => {
+							event.stopPropagation();
+							onFilePathClick?.(filePath);
+						}}
+					>
+						{extractFilename(filePath)}
+					</button>
+				) : (
+					<span className="text-foreground">
+						{filePath ? extractFilename(filePath) : "file"}
+					</span>
 				)}
-				onClick={() => hasDiff && setExpanded((prev) => !prev)}
+			</span>
+		);
+
+	// Status slot: diff stats (+N -N)
+	const statusNode =
+		stats.additions > 0 || stats.removals > 0 ? (
+			<span className="flex items-center gap-1.5 text-xs">
+				{stats.additions > 0 && (
+					<span className="text-green-500">+{stats.additions}</span>
+				)}
+				{stats.removals > 0 && (
+					<span className="text-red-500">-{stats.removals}</span>
+				)}
+			</span>
+		) : null;
+
+	// Extra header element: "Open" button/dropdown (outside trigger to avoid stopPropagation)
+	const headerExtra =
+		hasOpenMenu && filePath ? (
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<button
+						type="button"
+						aria-label={`Open ${filePath}`}
+						className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+					>
+						<ExternalLinkIcon className="h-3 w-3" />
+						Open
+						<ChevronDownIcon className="h-3 w-3" />
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end">
+					<DropdownMenuItem onClick={() => onFilePathClick?.(filePath)}>
+						Open in File pane
+					</DropdownMenuItem>
+					<DropdownMenuItem onClick={() => onDiffPathClick?.(filePath)}>
+						Open in Changes pane
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+		) : canOpenFile && filePath ? (
+			<button
+				type="button"
+				aria-label={`Open ${filePath}`}
+				className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+				onClick={() => onFilePathClick?.(filePath)}
 			>
-				<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
-					<FileCode2Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
-					{isStreaming && !filePath ? (
-						<ShimmerLabel className="text-xs text-muted-foreground">
-							{isWriteMode ? "Writing file..." : "Editing file..."}
-						</ShimmerLabel>
-					) : (
-						<span className="min-w-0 truncate text-muted-foreground">
-							{isWriteMode ? "Wrote" : "Edited"}{" "}
-							{canOpenFile && filePath ? (
-								<button
-									type="button"
-									className="inline cursor-pointer truncate text-foreground transition-colors hover:text-muted-foreground"
-									onClick={(event) => {
-										event.stopPropagation();
-										onFilePathClick?.(filePath);
-									}}
-								>
-									{extractFilename(filePath)}
-								</button>
-							) : (
-								<span className="text-foreground">
-									{filePath ? extractFilename(filePath) : "file"}
-								</span>
-							)}
-						</span>
-					)}
-				</div>
+				<ExternalLinkIcon className="h-3 w-3" />
+				Open
+			</button>
+		) : undefined;
 
-				<div className="ml-2 flex shrink-0 items-center gap-1.5 text-xs">
-					{hasOpenMenu && filePath ? (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<button
-									type="button"
-									aria-label={`Open ${filePath}`}
-									className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-									onClick={(event) => {
-										event.stopPropagation();
-									}}
-								>
-									<ExternalLinkIcon className="h-3 w-3" />
-									Open
-									<ChevronDownIcon className="h-3 w-3" />
-								</button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								align="end"
-								onClick={(event) => {
-									event.stopPropagation();
-								}}
-							>
-								<DropdownMenuItem onClick={() => onFilePathClick?.(filePath)}>
-									Open in File pane
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => onDiffPathClick?.(filePath)}>
-									Open in Changes pane
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					) : (
-						canOpenFile &&
-						filePath && (
-							<button
-								type="button"
-								aria-label={`Open ${filePath}`}
-								className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-								onClick={(event) => {
-									event.stopPropagation();
-									onFilePathClick?.(filePath);
-								}}
-							>
-								<ExternalLinkIcon className="h-3 w-3" />
-								Open
-							</button>
-						)
-					)}
-
-					{/* Diff stats */}
-					{(stats.additions > 0 || stats.removals > 0) && (
-						<span className="flex items-center gap-1.5">
-							{stats.additions > 0 && (
-								<span className="text-green-500">+{stats.additions}</span>
-							)}
-							{stats.removals > 0 && (
-								<span className="text-red-500">-{stats.removals}</span>
-							)}
-						</span>
-					)}
-				</div>
-			</div>
-
-			{/* Diff body */}
-			{hasDiff && expanded && (
+	return (
+		<ToolCallRow
+			className={className}
+			headerExtra={headerExtra}
+			icon={FileCode2Icon}
+			isPending={isStreaming}
+			statusNode={statusNode}
+			title={titleNode}
+		>
+			{hasDiff ? (
 				<div
-					className="mt-0.5 overflow-y-auto"
+					className="overflow-y-auto"
 					style={{ maxHeight: EXPANDED_MAX_HEIGHT }}
 				>
 					{renderExpandedContent ? (
@@ -308,16 +290,13 @@ export const FileDiffTool = ({
 						</div>
 					)}
 				</div>
-			)}
-
-			{/* Streaming indicator */}
-			{isStreaming && !hasDiff && (
-				<div className="mt-0.5 px-2.5 py-1.5">
+			) : isStreaming ? (
+				<div className="px-2.5 py-1.5">
 					<span className="animate-pulse font-mono text-muted-foreground/50 text-xs">
 						...
 					</span>
 				</div>
-			)}
-		</div>
+			) : undefined}
+		</ToolCallRow>
 	);
 };

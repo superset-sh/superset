@@ -1,11 +1,14 @@
 import { chatServiceTrpc } from "@superset/chat/client";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
+import { claudeIcon } from "@superset/ui/icons/preset-icons";
 import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useEffect, useMemo, useState } from "react";
@@ -14,19 +17,17 @@ import { AnthropicOAuthDialog } from "renderer/components/Chat/ChatInterface/com
 import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/OpenAIOAuthDialog";
 import { useAnthropicOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useAnthropicOAuth";
 import { useOpenAIOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useOpenAIOAuth";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { AccountCard } from "./components/AccountCard";
 import { ConfigRow } from "./components/ConfigRow";
 import { SettingsSection } from "./components/SettingsSection";
 import {
 	buildAnthropicEnvText,
 	EMPTY_ANTHROPIC_FORM,
-	getProviderSubtitle,
+	getProviderAction,
 	getStatusBadge,
 	parseAnthropicForm,
 	resolveProviderStatus,
@@ -47,20 +48,11 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		visibleItems,
 	);
 	const showOpenAI = isItemVisible(SETTING_ITEM_ID.MODELS_OPENAI, visibleItems);
-	const [apiKeysOpen, setApiKeysOpen] = useState(true);
-	const [overrideOpen, setOverrideOpen] = useState(true);
+	const [advancedOpen, setAdvancedOpen] = useState(false);
 	const [openAIApiKeyInput, setOpenAIApiKeyInput] = useState("");
 	const [anthropicApiKeyInput, setAnthropicApiKeyInput] = useState("");
 	const [anthropicForm, setAnthropicForm] = useState(EMPTY_ANTHROPIC_FORM);
 
-	const { data: providerStatuses, refetch: refetchProviderStatuses } =
-		electronTrpc.modelProviders.getStatuses.useQuery();
-	const anthropicDiagnosticStatus = providerStatuses?.find(
-		(status) => status.providerId === "anthropic",
-	);
-	const openAIDiagnosticStatus = providerStatuses?.find(
-		(status) => status.providerId === "openai",
-	);
 	const { data: anthropicAuthStatus, refetch: refetchAnthropicAuthStatus } =
 		chatServiceTrpc.auth.getAnthropicStatus.useQuery();
 	const { data: openAIAuthStatus, refetch: refetchOpenAIAuthStatus } =
@@ -79,8 +71,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		chatServiceTrpc.auth.setOpenAIApiKey.useMutation();
 	const clearOpenAIApiKeyMutation =
 		chatServiceTrpc.auth.clearOpenAIApiKey.useMutation();
-	const clearProviderIssueMutation =
-		electronTrpc.modelProviders.clearIssue.useMutation();
 
 	const {
 		isStartingOAuth: isStartingAnthropicOAuth,
@@ -89,10 +79,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 	} = useAnthropicOAuth({
 		...DIALOG_CONTEXT,
 		onAuthStateChange: async () => {
-			await Promise.all([
-				refetchAnthropicAuthStatus(),
-				refetchProviderStatuses(),
-			]);
+			await refetchAnthropicAuthStatus();
 		},
 	});
 	const {
@@ -101,7 +88,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		oauthDialog: openAIOAuthDialog,
 	} = useOpenAIOAuth(DIALOG_CONTEXT);
 
-	const hasAnthropicConfig = !!anthropicEnvConfig?.envText.trim().length;
 	const isSavingAnthropicApiKey =
 		setAnthropicApiKeyMutation.isPending ||
 		clearAnthropicApiKeyMutation.isPending;
@@ -121,9 +107,8 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			resolveProviderStatus({
 				providerId: "anthropic",
 				authStatus: anthropicAuthStatus,
-				diagnosticStatus: anthropicDiagnosticStatus,
 			}),
-		[anthropicAuthStatus, anthropicDiagnosticStatus],
+		[anthropicAuthStatus],
 	);
 
 	const openAIStatus = useMemo(
@@ -131,19 +116,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			resolveProviderStatus({
 				providerId: "openai",
 				authStatus: openAIAuthStatus,
-				diagnosticStatus: openAIDiagnosticStatus,
 			}),
-		[openAIAuthStatus, openAIDiagnosticStatus],
+		[openAIAuthStatus],
 	);
 
-	const anthropicSubtitle = useMemo(
-		() => getProviderSubtitle("anthropic", anthropicStatus),
-		[anthropicStatus],
-	);
-	const openAISubtitle = useMemo(
-		() => getProviderSubtitle("openai", openAIStatus),
-		[openAIStatus],
-	);
 	const anthropicBadge = useMemo(
 		() => getStatusBadge(anthropicStatus),
 		[anthropicStatus],
@@ -152,9 +128,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		() => getStatusBadge(openAIStatus),
 		[openAIStatus],
 	);
-
-	const clearProviderIssue = (providerId: "anthropic" | "openai") =>
-		clearProviderIssueMutation.mutateAsync({ providerId });
 
 	const saveAnthropicForm = async (nextForm = anthropicForm) => {
 		const envText = buildAnthropicEnvText(nextForm);
@@ -167,8 +140,6 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			await Promise.all([
 				refetchAnthropicEnvConfig(),
 				refetchAnthropicAuthStatus(),
-				clearProviderIssue("anthropic"),
-				refetchProviderStatuses(),
 			]);
 			toast.success("Anthropic settings updated");
 			return true;
@@ -178,17 +149,36 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		}
 	};
 
+	const handleAnthropicFormBlur = () => {
+		const currentEnvText = anthropicEnvConfig?.envText ?? "";
+		const nextEnvText = buildAnthropicEnvText(anthropicForm);
+		if (currentEnvText.trim() === nextEnvText.trim()) return;
+		void saveAnthropicForm(anthropicForm);
+	};
+
+	const resetAnthropicAdvanced = () => {
+		const nextForm = {
+			...anthropicForm,
+			authToken: "",
+			baseUrl: "",
+			extraEnv: "",
+		};
+		setAnthropicForm(nextForm);
+		void saveAnthropicForm(nextForm);
+	};
+
+	const hasAdvancedContent =
+		anthropicForm.authToken.trim().length > 0 ||
+		anthropicForm.baseUrl.trim().length > 0 ||
+		anthropicForm.extraEnv.trim().length > 0;
+
 	const saveAnthropicApiKey = async () => {
 		const apiKey = anthropicApiKeyInput.trim();
 		if (!apiKey) return;
 		try {
 			await setAnthropicApiKeyMutation.mutateAsync({ apiKey });
 			setAnthropicApiKeyInput("");
-			await Promise.all([
-				refetchAnthropicAuthStatus(),
-				clearProviderIssue("anthropic"),
-				refetchProviderStatuses(),
-			]);
+			await refetchAnthropicAuthStatus();
 			toast.success("Anthropic API key updated");
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : "Failed to save");
@@ -201,11 +191,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		try {
 			await setOpenAIApiKeyMutation.mutateAsync({ apiKey });
 			setOpenAIApiKeyInput("");
-			await Promise.all([
-				refetchOpenAIAuthStatus(),
-				clearProviderIssue("openai"),
-				refetchProviderStatuses(),
-			]);
+			await refetchOpenAIAuthStatus();
 			toast.success("OpenAI API key updated");
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : "Failed to save");
@@ -216,63 +202,29 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		status,
 		startOAuth,
 		isStartingOAuth,
-		canDisconnect,
 		onDisconnect,
 	}: {
 		status: typeof anthropicStatus | typeof openAIStatus;
 		startOAuth: () => Promise<void>;
 		isStartingOAuth: boolean;
-		canDisconnect: boolean;
 		onDisconnect: () => void;
 	}) => {
-		if (!status || status.connectionState === "disconnected") {
+		const action = getProviderAction(status);
+		if (!action) return null;
+		if (action.kind === "logout") {
 			return (
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => {
-						void startOAuth();
-					}}
-					disabled={isStartingOAuth}
-				>
-					Connect
+				<Button variant="outline" size="sm" onClick={onDisconnect}>
+					Sign out
 				</Button>
 			);
 		}
-
-		if (status.issue?.remediation === "reconnect") {
-			return (
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => {
-						void startOAuth();
-					}}
-					disabled={isStartingOAuth}
-				>
-					Reconnect
-				</Button>
-			);
-		}
-
-		if (canDisconnect) {
-			return (
-				<Button variant="ghost" size="sm" onClick={onDisconnect}>
-					Logout
-				</Button>
-			);
-		}
-
 		return (
 			<Button
-				variant="outline"
 				size="sm"
-				onClick={() => {
-					void startOAuth();
-				}}
+				onClick={() => void startOAuth()}
 				disabled={isStartingOAuth}
 			>
-				Connect
+				{action.kind === "reconnect" ? "Reconnect" : "Sign in"}
 			</Button>
 		);
 	};
@@ -283,295 +235,269 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">Models</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						Manage your model accounts, API keys, and provider settings.
+						Manage provider accounts, API keys, and overrides.
 					</p>
 				</div>
 
 				<div className="space-y-8">
 					{showAnthropic ? (
-						<SettingsSection title="Anthropic Account">
-							<AccountCard
-								title="Claude"
-								subtitle={anthropicSubtitle}
-								badge={anthropicBadge?.label}
-								badgeVariant={anthropicBadge?.variant}
-								muted={anthropicStatus?.connectionState !== "connected"}
-								actions={renderProviderAction({
-									status: anthropicStatus,
-									startOAuth: startAnthropicOAuth,
-									isStartingOAuth: isStartingAnthropicOAuth,
-									canDisconnect: anthropicOAuthDialog.canDisconnect,
-									onDisconnect: anthropicOAuthDialog.onDisconnect,
-								})}
+						<SettingsSection
+							title="Anthropic"
+							icon={<img alt="" className="size-4" src={claudeIcon} />}
+							description="Sign in with Claude or use an API key."
+							action={
+								<div className="flex items-center gap-2">
+									{anthropicBadge ? (
+										<Badge variant={anthropicBadge.variant}>
+											{anthropicBadge.label}
+										</Badge>
+									) : null}
+									{renderProviderAction({
+										status: anthropicStatus,
+										startOAuth: startAnthropicOAuth,
+										isStartingOAuth: isStartingAnthropicOAuth,
+										onDisconnect: async () => {
+											if (anthropicStatus?.authMethod === "oauth") {
+												anthropicOAuthDialog.onDisconnect();
+											} else {
+												await clearAnthropicApiKeyMutation.mutateAsync();
+												setAnthropicApiKeyInput("");
+											}
+											await refetchAnthropicAuthStatus();
+										},
+									})}
+								</div>
+							}
+						>
+							<ConfigRow
+								title="API key"
+								htmlFor="anthropic-api-key"
+								field={
+									<Input
+										id="anthropic-api-key"
+										type="password"
+										value={anthropicApiKeyInput}
+										onChange={(event) => {
+											setAnthropicApiKeyInput(event.target.value);
+										}}
+										placeholder={
+											anthropicStatus?.authMethod === "api_key"
+												? "Saved Anthropic API key"
+												: "sk-ant-..."
+										}
+										className="font-mono"
+										disabled={isSavingAnthropicApiKey}
+									/>
+								}
+								onSave={() => {
+									void saveAnthropicApiKey();
+								}}
+								onClear={() => {
+									const nextForm = { ...anthropicForm, apiKey: "" };
+									void (async () => {
+										try {
+											await clearAnthropicApiKeyMutation.mutateAsync();
+											setAnthropicApiKeyInput("");
+											setAnthropicForm(nextForm);
+											await refetchAnthropicAuthStatus();
+											toast.success("Anthropic API key cleared");
+										} catch (error) {
+											toast.error(
+												error instanceof Error
+													? error.message
+													: "Failed to clear",
+											);
+										}
+									})();
+								}}
+								showSave={anthropicApiKeyInput.trim().length > 0}
+								disableSave={isSavingAnthropicApiKey}
+								showClear={anthropicStatus?.authMethod === "api_key"}
+								disableClear={isSavingAnthropicApiKey}
 							/>
+
+							<Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+								<div className="flex items-center justify-between">
+									<CollapsibleTrigger asChild>
+										<button
+											type="button"
+											className="flex items-center gap-1.5 text-left text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+										>
+											<HiChevronDown
+												className={`size-3.5 transition-transform ${advancedOpen ? "" : "-rotate-90"}`}
+											/>
+											Advanced
+										</button>
+									</CollapsibleTrigger>
+									{advancedOpen && hasAdvancedContent ? (
+										<button
+											type="button"
+											onClick={resetAnthropicAdvanced}
+											disabled={isSavingAnthropicConfig}
+											className="text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+										>
+											Reset
+										</button>
+									) : null}
+								</div>
+								<CollapsibleContent className="mt-3 space-y-3">
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="anthropic-auth-token"
+											className="text-sm font-medium"
+										>
+											Auth token
+										</Label>
+										<Input
+											id="anthropic-auth-token"
+											type="password"
+											value={anthropicForm.authToken}
+											onChange={(event) => {
+												setAnthropicForm((current) => ({
+													...current,
+													authToken: event.target.value,
+												}));
+											}}
+											onBlur={handleAnthropicFormBlur}
+											placeholder="ANTHROPIC_AUTH_TOKEN"
+											className="font-mono"
+											disabled={isSavingAnthropicConfig}
+										/>
+									</div>
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="anthropic-base-url"
+											className="text-sm font-medium"
+										>
+											Base URL
+										</Label>
+										<Input
+											id="anthropic-base-url"
+											value={anthropicForm.baseUrl}
+											onChange={(event) => {
+												setAnthropicForm((current) => ({
+													...current,
+													baseUrl: event.target.value,
+												}));
+											}}
+											onBlur={handleAnthropicFormBlur}
+											placeholder="https://api.anthropic.com"
+											className="font-mono"
+											disabled={isSavingAnthropicConfig}
+										/>
+									</div>
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="anthropic-extra-env"
+											className="text-sm font-medium"
+										>
+											Additional env vars
+										</Label>
+										<Textarea
+											id="anthropic-extra-env"
+											value={anthropicForm.extraEnv}
+											onChange={(event) => {
+												setAnthropicForm((current) => ({
+													...current,
+													extraEnv: event.target.value,
+												}));
+											}}
+											onBlur={handleAnthropicFormBlur}
+											placeholder={
+												"CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1"
+											}
+											className="min-h-24 font-mono text-xs"
+											disabled={isSavingAnthropicConfig}
+										/>
+									</div>
+									<p className="text-xs text-muted-foreground">
+										Saved on blur.
+									</p>
+								</CollapsibleContent>
+							</Collapsible>
 						</SettingsSection>
 					) : null}
 
 					{showOpenAI ? (
-						<SettingsSection title="Codex Account">
-							<AccountCard
-								title="ChatGPT"
-								subtitle={openAISubtitle}
-								badge={openAIBadge?.label}
-								badgeVariant={openAIBadge?.variant}
-								muted={openAIStatus?.connectionState !== "connected"}
-								actions={renderProviderAction({
-									status: openAIStatus,
-									startOAuth: startOpenAIOAuth,
-									isStartingOAuth: isStartingOpenAIOAuth,
-									canDisconnect: openAIOAuthDialog.canDisconnect,
-									onDisconnect: openAIOAuthDialog.onDisconnect,
-								})}
+						<SettingsSection
+							title="OpenAI"
+							icon={
+								<img
+									alt=""
+									className="size-4 dark:invert"
+									src="https://models.dev/logos/openai.svg"
+								/>
+							}
+							description="Sign in with ChatGPT or use an API key."
+							action={
+								<div className="flex items-center gap-2">
+									{openAIBadge ? (
+										<Badge variant={openAIBadge.variant}>
+											{openAIBadge.label}
+										</Badge>
+									) : null}
+									{renderProviderAction({
+										status: openAIStatus,
+										startOAuth: startOpenAIOAuth,
+										isStartingOAuth: isStartingOpenAIOAuth,
+										onDisconnect: async () => {
+											if (openAIStatus?.authMethod === "oauth") {
+												openAIOAuthDialog.onDisconnect();
+											} else {
+												await clearOpenAIApiKeyMutation.mutateAsync();
+												setOpenAIApiKeyInput("");
+											}
+											await refetchOpenAIAuthStatus();
+										},
+									})}
+								</div>
+							}
+						>
+							<ConfigRow
+								title="API key"
+								htmlFor="openai-api-key"
+								field={
+									<Input
+										id="openai-api-key"
+										type="password"
+										value={openAIApiKeyInput}
+										onChange={(event) => {
+											setOpenAIApiKeyInput(event.target.value);
+										}}
+										placeholder={
+											openAIStatus?.authMethod === "api_key"
+												? "Saved OpenAI API key"
+												: "sk-..."
+										}
+										className="font-mono"
+										disabled={isSavingOpenAIConfig}
+									/>
+								}
+								onSave={() => {
+									void saveOpenAIApiKey();
+								}}
+								onClear={() => {
+									void (async () => {
+										try {
+											await clearOpenAIApiKeyMutation.mutateAsync();
+											setOpenAIApiKeyInput("");
+											await refetchOpenAIAuthStatus();
+											toast.success("OpenAI API key cleared");
+										} catch (error) {
+											toast.error(
+												error instanceof Error
+													? error.message
+													: "Failed to clear",
+											);
+										}
+									})();
+								}}
+								showSave={openAIApiKeyInput.trim().length > 0}
+								disableSave={isSavingOpenAIConfig}
+								showClear={openAIStatus?.authMethod === "api_key"}
+								disableClear={isSavingOpenAIConfig}
 							/>
 						</SettingsSection>
-					) : null}
-
-					<Collapsible open={apiKeysOpen} onOpenChange={setApiKeysOpen}>
-						<div className="space-y-3">
-							<CollapsibleTrigger asChild>
-								<button
-									type="button"
-									className="flex items-center gap-2 text-left text-sm font-semibold"
-								>
-									<HiChevronDown
-										className={`size-4 transition-transform ${apiKeysOpen ? "" : "-rotate-90"}`}
-									/>
-									API Keys
-								</button>
-							</CollapsibleTrigger>
-							<CollapsibleContent className="space-y-3">
-								{showAnthropic ? (
-									<ConfigRow
-										title="Anthropic API Key"
-										field={
-											<Input
-												type="password"
-												value={anthropicApiKeyInput}
-												onChange={(event) => {
-													setAnthropicApiKeyInput(event.target.value);
-												}}
-												placeholder={
-													anthropicStatus?.authMethod === "api_key"
-														? "Saved Anthropic API key"
-														: "sk-ant-..."
-												}
-												className="font-mono"
-												disabled={isSavingAnthropicApiKey}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicApiKey();
-										}}
-										onClear={() => {
-											const nextForm = { ...anthropicForm, apiKey: "" };
-											void (async () => {
-												try {
-													await clearAnthropicApiKeyMutation.mutateAsync();
-													setAnthropicApiKeyInput("");
-													setAnthropicForm(nextForm);
-													await Promise.all([
-														refetchAnthropicAuthStatus(),
-														clearProviderIssue("anthropic"),
-														refetchProviderStatuses(),
-													]);
-													toast.success("Anthropic API key cleared");
-												} catch (error) {
-													toast.error(
-														error instanceof Error
-															? error.message
-															: "Failed to clear",
-													);
-												}
-											})();
-										}}
-										disableSave={
-											isSavingAnthropicApiKey ||
-											anthropicApiKeyInput.trim().length === 0
-										}
-										disableClear={
-											isSavingAnthropicApiKey ||
-											anthropicStatus?.authMethod !== "api_key"
-										}
-									/>
-								) : null}
-								{showOpenAI ? (
-									<ConfigRow
-										title="OpenAI API Key"
-										field={
-											<Input
-												type="password"
-												value={openAIApiKeyInput}
-												onChange={(event) => {
-													setOpenAIApiKeyInput(event.target.value);
-												}}
-												placeholder={
-													openAIStatus?.authMethod === "api_key"
-														? "Saved OpenAI API key"
-														: "sk-..."
-												}
-												className="font-mono"
-												disabled={isSavingOpenAIConfig}
-											/>
-										}
-										onSave={() => {
-											void saveOpenAIApiKey();
-										}}
-										onClear={() => {
-											void (async () => {
-												try {
-													await clearOpenAIApiKeyMutation.mutateAsync();
-													setOpenAIApiKeyInput("");
-													await Promise.all([
-														refetchOpenAIAuthStatus(),
-														clearProviderIssue("openai"),
-														refetchProviderStatuses(),
-													]);
-													toast.success("OpenAI API key cleared");
-												} catch (error) {
-													toast.error(
-														error instanceof Error
-															? error.message
-															: "Failed to clear",
-													);
-												}
-											})();
-										}}
-										disableSave={
-											isSavingOpenAIConfig ||
-											openAIApiKeyInput.trim().length === 0
-										}
-										disableClear={
-											isSavingOpenAIConfig ||
-											openAIStatus?.authMethod !== "api_key"
-										}
-									/>
-								) : null}
-							</CollapsibleContent>
-						</div>
-					</Collapsible>
-
-					{showAnthropic ? (
-						<Collapsible open={overrideOpen} onOpenChange={setOverrideOpen}>
-							<div className="space-y-3">
-								<CollapsibleTrigger asChild>
-									<button
-										type="button"
-										className="flex items-center gap-2 text-left text-sm font-semibold"
-									>
-										<HiChevronDown
-											className={`size-4 transition-transform ${overrideOpen ? "" : "-rotate-90"}`}
-										/>
-										Override Provider
-									</button>
-								</CollapsibleTrigger>
-								<CollapsibleContent className="space-y-3">
-									<ConfigRow
-										title="API token"
-										description="Anthropic auth token"
-										field={
-											<Input
-												type="password"
-												value={anthropicForm.authToken}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														authToken: event.target.value,
-													}));
-												}}
-												placeholder="sk-ant-..."
-												className="font-mono"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={() => {
-											const nextForm = { ...anthropicForm, authToken: "" };
-											setAnthropicForm(nextForm);
-											void saveAnthropicForm(nextForm);
-										}}
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.authToken.length === 0
-										}
-									/>
-									<ConfigRow
-										title="Base URL"
-										description="Custom API base URL"
-										field={
-											<Input
-												value={anthropicForm.baseUrl}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														baseUrl: event.target.value,
-													}));
-												}}
-												placeholder="https://api.anthropic.com"
-												className="font-mono"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={() => {
-											const nextForm = { ...anthropicForm, baseUrl: "" };
-											setAnthropicForm(nextForm);
-											void saveAnthropicForm(nextForm);
-										}}
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.baseUrl.length === 0
-										}
-									/>
-									<ConfigRow
-										title="Additional env"
-										description="Extra variables to keep with Anthropic config"
-										field={
-											<Textarea
-												value={anthropicForm.extraEnv}
-												onChange={(event) => {
-													setAnthropicForm((current) => ({
-														...current,
-														extraEnv: event.target.value,
-													}));
-												}}
-												placeholder={
-													"CLAUDE_CODE_USE_BEDROCK=1\nAWS_REGION=us-east-1"
-												}
-												className="min-h-24 font-mono text-xs"
-												disabled={isSavingAnthropicConfig}
-											/>
-										}
-										onSave={() => {
-											void saveAnthropicForm();
-										}}
-										onClear={
-											hasAnthropicConfig
-												? () => {
-														const nextForm = {
-															...anthropicForm,
-															extraEnv: "",
-														};
-														setAnthropicForm(nextForm);
-														void saveAnthropicForm(nextForm);
-													}
-												: undefined
-										}
-										clearLabel="Clear"
-										disableSave={isSavingAnthropicConfig}
-										disableClear={
-											isSavingAnthropicConfig ||
-											anthropicForm.extraEnv.length === 0
-										}
-									/>
-								</CollapsibleContent>
-							</div>
-						</Collapsible>
 					) : null}
 				</div>
 			</div>

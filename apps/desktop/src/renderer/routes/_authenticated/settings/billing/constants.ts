@@ -1,5 +1,6 @@
-export const PLAN_TIERS = ["free", "pro", "enterprise"] as const;
-export type PlanTier = (typeof PLAN_TIERS)[number];
+import { PLAN_TIERS, type PlanTier } from "@superset/shared/billing";
+
+export { PLAN_TIERS, type PlanTier };
 
 export interface PlanFeature {
 	id: string;

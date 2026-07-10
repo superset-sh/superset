@@ -1,39 +1,154 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
-import { env } from "renderer/env.renderer";
-import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useRef } from "react";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
-import { usePendingWorkspace } from "renderer/stores/new-workspace-modal";
-import { MOCK_ORG_ID } from "shared/constants";
+import {
+	getVisibleSidebarWorkspaces,
+	isAutoIncludedLocalMainWorkspace,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarProject,
-	DashboardSidebarProjectChild,
-	DashboardSidebarSection,
 	DashboardSidebarWorkspace,
 } from "../../types";
+import { buildDashboardSidebarProjects } from "./buildDashboardSidebarProjects";
+import {
+	derivePullRequestQueryTargets,
+	getDashboardSidebarPullRequestQueryKey,
+	type PullRequestQueryTarget,
+} from "./derivePullRequestQueryTargets";
 
-// Pending workspaces are always rendered at the end of the project's workspace list
-const PENDING_WORKSPACE_TAB_ORDER = Number.MAX_SAFE_INTEGER;
+const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
+
+type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
+type PullRequestWorkspaceRow = {
+	workspaceId: string;
+	pullRequest: SidebarPullRequest;
+};
+
+function haveSameProjects(
+	left: DashboardSidebarProject[],
+	right: DashboardSidebarProject[],
+): boolean {
+	return (
+		left.length === right.length &&
+		left.every((project, index) => project === right[index])
+	);
+}
+
+function getPullRequestRowsFingerprint(
+	rows: PullRequestWorkspaceRow[],
+): string {
+	return JSON.stringify(
+		rows
+			.map((row) => [row.workspaceId, row.pullRequest] as const)
+			.sort(([leftWorkspaceId], [rightWorkspaceId]) =>
+				leftWorkspaceId.localeCompare(rightWorkspaceId),
+			),
+	);
+}
+
+function getDashboardSidebarProjectFingerprint(
+	project: DashboardSidebarProject,
+): string {
+	return JSON.stringify(project);
+}
+
+function useStablePullRequestsByWorkspaceId(
+	rows: PullRequestWorkspaceRow[] | undefined,
+): Map<string, SidebarPullRequest> {
+	const previousRef = useRef<{
+		fingerprint: string;
+		map: Map<string, SidebarPullRequest>;
+	} | null>(null);
+
+	return useMemo(() => {
+		const nextRows = rows ?? [];
+		const fingerprint = getPullRequestRowsFingerprint(nextRows);
+		const previous = previousRef.current;
+		if (previous?.fingerprint === fingerprint) {
+			return previous.map;
+		}
+
+		const map = new Map(
+			nextRows.map((workspace) => [
+				workspace.workspaceId,
+				workspace.pullRequest,
+			]),
+		);
+		previousRef.current = { fingerprint, map };
+		return map;
+	}, [rows]);
+}
+
+function useStableDashboardSidebarProjects(
+	projects: DashboardSidebarProject[],
+): DashboardSidebarProject[] {
+	const previousRef = useRef<{
+		projects: DashboardSidebarProject[];
+		byId: Map<
+			string,
+			{ fingerprint: string; project: DashboardSidebarProject }
+		>;
+	} | null>(null);
+
+	return useMemo(() => {
+		const previous = previousRef.current;
+		const nextById = new Map<
+			string,
+			{ fingerprint: string; project: DashboardSidebarProject }
+		>();
+		const nextProjects = projects.map((project) => {
+			const fingerprint = getDashboardSidebarProjectFingerprint(project);
+			const previousProject = previous?.byId.get(project.id);
+			const stableProject =
+				previousProject?.fingerprint === fingerprint
+					? previousProject.project
+					: project;
+
+			nextById.set(project.id, { fingerprint, project: stableProject });
+			return stableProject;
+		});
+
+		if (previous && haveSameProjects(previous.projects, nextProjects)) {
+			previousRef.current = { projects: previous.projects, byId: nextById };
+			return previous.projects;
+		}
+
+		previousRef.current = { projects: nextProjects, byId: nextById };
+		return nextProjects;
+	}, [projects]);
+}
 
 export function useDashboardSidebarData() {
-	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const { services } = useHostService();
+	const { machineId, activeHostUrl } = useLocalHostService();
+	const relayUrl = useRelayUrl();
 	const { toggleProjectCollapsed } = useDashboardSidebarState();
-	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
-	const pendingWorkspace = usePendingWorkspace();
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
-	const activeHostService =
-		activeOrganizationId !== null
-			? (services.get(activeOrganizationId) ?? null)
-			: null;
+	const queryClient = useQueryClient();
+	const workspaceTransactionsById = useWorkspaceTransactionsStore(
+		(state) => state.byWorkspaceId,
+	);
+
+	const { data: hosts = [] } = useLiveQuery(
+		(q) =>
+			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
+				organizationId: hosts.organizationId,
+				machineId: hosts.machineId,
+				isOnline: hosts.isOnline,
+			})),
+		[collections],
+	);
+	const hostsByMachineId = useMemo(
+		() => new Map(hosts.map((host) => [host.machineId, host])),
+		[hosts],
+	);
 
 	const { data: rawSidebarProjects = [] } = useLiveQuery(
 		(q) =>
@@ -56,6 +171,7 @@ export function useDashboardSidebarData() {
 					githubRepositoryId: projects.githubRepositoryId,
 					githubOwner: repos?.owner ?? null,
 					githubRepoName: repos?.name ?? null,
+					iconUrl: projects.iconUrl,
 					createdAt: projects.createdAt,
 					updatedAt: projects.updatedAt,
 					isCollapsed: sidebarProjects.isCollapsed,
@@ -90,254 +206,209 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
-	const { data: sidebarWorkspaces = [] } = useLiveQuery(
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const hostWorkspacesById = useMemo(
+		() => new Map(hostWorkspaces.map((workspace) => [workspace.id, workspace])),
+		[hostWorkspaces],
+	);
+
+	const { data: sidebarLocalStateRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
-				.innerJoin(
-					{ workspaces: collections.v2Workspaces },
-					({ sidebarWorkspaces, workspaces }) =>
-						eq(sidebarWorkspaces.workspaceId, workspaces.id),
-				)
-				.leftJoin(
-					{ devices: collections.v2Devices },
-					({ workspaces, devices }) => eq(workspaces.deviceId, devices.id),
-				)
 				.orderBy(
 					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
 					"asc",
 				)
-				.select(({ sidebarWorkspaces, workspaces, devices }) => ({
-					id: workspaces.id,
+				.select(({ sidebarWorkspaces }) => ({
+					workspaceId: sidebarWorkspaces.workspaceId,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
-					deviceId: workspaces.deviceId,
-					deviceType: devices?.type ?? null,
-					deviceClientId: devices?.clientId ?? null,
-					name: workspaces.name,
-					branch: workspaces.branch,
-					createdAt: workspaces.createdAt,
-					updatedAt: workspaces.updatedAt,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
+					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 				})),
 		[collections],
 	);
-
-	const localWorkspaceIds = useMemo(
+	const rawSidebarWorkspaces = useMemo(
 		() =>
-			sidebarWorkspaces
-				.filter(
-					(workspace) =>
-						workspace.deviceType !== "cloud" &&
-						workspace.deviceClientId === deviceInfo?.deviceId,
-				)
-				.map((workspace) => workspace.id)
-				.sort(),
-		[deviceInfo?.deviceId, sidebarWorkspaces],
-	);
-
-	const { data: pullRequestData, refetch: refetchPullRequests } = useQuery({
-		queryKey: [
-			"dashboard-sidebar",
-			"pull-requests",
-			activeOrganizationId,
-			localWorkspaceIds,
-		],
-		enabled: activeHostService !== null && localWorkspaceIds.length > 0,
-		refetchInterval: 15_000,
-		queryFn: () =>
-			activeHostService?.client.pullRequests.getByWorkspaces.query({
-				workspaceIds: localWorkspaceIds,
-			}) ?? Promise.resolve({ workspaces: [] }),
-	});
-
-	const refreshWorkspacePullRequest = useCallback(
-		async (workspaceId: string) => {
-			if (!activeHostService || !localWorkspaceIds.includes(workspaceId)) {
-				return;
-			}
-
-			await activeHostService.client.pullRequests.refreshByWorkspaces.mutate({
-				workspaceIds: [workspaceId],
-			});
-			await refetchPullRequests();
-		},
-		[activeHostService, localWorkspaceIds, refetchPullRequests],
-	);
-
-	const localPullRequestsByWorkspaceId = useMemo(
-		() =>
-			new Map(
-				(pullRequestData?.workspaces ?? []).map((workspace) => [
-					workspace.workspaceId,
-					workspace.pullRequest,
-				]),
-			),
-		[pullRequestData?.workspaces],
-	);
-
-	const groups = useMemo<DashboardSidebarProject[]>(() => {
-		const projectsById = new Map<
-			string,
-			DashboardSidebarProject & {
-				sectionMap: Map<string, DashboardSidebarSection>;
-				childEntries: Array<{
-					tabOrder: number;
-					child: DashboardSidebarProjectChild;
-				}>;
-			}
-		>();
-
-		for (const project of sidebarProjects) {
-			projectsById.set(project.id, {
-				...project,
-				children: [],
-				sectionMap: new Map(),
-				childEntries: [],
-			});
-		}
-
-		for (const section of sidebarSections) {
-			const project = projectsById.get(section.projectId);
-			if (!project) continue;
-
-			const sidebarSection: DashboardSidebarSection = {
-				...section,
-				workspaces: [],
-			};
-
-			project.sectionMap.set(section.id, sidebarSection);
-			project.childEntries.push({
-				tabOrder: section.tabOrder,
-				child: {
-					type: "section",
-					section: sidebarSection,
-				},
-			});
-		}
-
-		for (const workspace of sidebarWorkspaces) {
-			const project = projectsById.get(workspace.projectId);
-			if (!project) continue;
-
-			const hostType: DashboardSidebarWorkspace["hostType"] =
-				workspace.deviceType === "cloud"
-					? "cloud"
-					: workspace.deviceClientId === deviceInfo?.deviceId
-						? "local-device"
-						: "remote-device";
-
-			const sidebarWorkspace: DashboardSidebarWorkspace = {
-				id: workspace.id,
-				projectId: workspace.projectId,
-				deviceId: workspace.deviceId,
-				hostType,
-				accentColor: null,
-				name: workspace.name,
-				branch: workspace.branch,
-				pullRequest:
-					hostType === "local-device"
-						? (localPullRequestsByWorkspaceId.get(workspace.id) ?? null)
-						: null,
-				repoUrl:
-					project.githubOwner && project.githubRepoName
-						? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
-						: null,
-				branchExistsOnRemote:
-					project.githubOwner !== null && project.githubRepoName !== null,
-				previewUrl: null,
-				needsRebase: null,
-				behindCount: null,
-				createdAt: workspace.createdAt,
-				updatedAt: workspace.updatedAt,
-			};
-
-			if (workspace.sectionId) {
-				const section = project.sectionMap.get(workspace.sectionId);
-				if (section) {
-					section.workspaces.push({
-						...sidebarWorkspace,
-						accentColor: section.color,
-					});
-				}
-				continue;
-			}
-
-			project.childEntries.push({
-				tabOrder: workspace.tabOrder,
-				child: {
-					type: "workspace",
-					workspace: sidebarWorkspace,
-				},
-			});
-		}
-
-		// Inject pending workspace if it exists
-		if (pendingWorkspace && deviceInfo?.deviceId) {
-			const project = projectsById.get(pendingWorkspace.projectId);
-			if (!project) {
-				// Log warning if pending workspace references non-existent project
-				console.warn(
-					`Pending workspace ${pendingWorkspace.id} references non-existent project ${pendingWorkspace.projectId}`,
-				);
-			} else {
-				const pendingItem: DashboardSidebarWorkspace = {
-					id: pendingWorkspace.id,
-					projectId: pendingWorkspace.projectId,
-					deviceId: deviceInfo.deviceId,
-					hostType: "local-device",
-					accentColor: null,
-					name: pendingWorkspace.name,
-					branch: "",
-					pullRequest: null,
-					repoUrl:
-						project.githubOwner && project.githubRepoName
-							? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
-							: null,
-					branchExistsOnRemote: false,
-					previewUrl: null,
-					needsRebase: null,
-					behindCount: null,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-					creationStatus: pendingWorkspace.status,
-				};
-
-				project.childEntries.push({
-					tabOrder: PENDING_WORKSPACE_TAB_ORDER,
-					child: {
-						type: "workspace",
-						workspace: pendingItem,
+			sidebarLocalStateRows.flatMap((localState) => {
+				const workspace = hostWorkspacesById.get(localState.workspaceId);
+				if (!workspace) return [];
+				return [
+					{
+						id: workspace.id,
+						projectId: localState.projectId,
+						hostId: workspace.hostId,
+						type: workspace.type,
+						name: workspace.name,
+						branch: workspace.branch,
+						taskId: workspace.taskId,
+						createdAt: workspace.createdAt,
+						updatedAt: workspace.updatedAt,
+						tabOrder: localState.tabOrder,
+						sectionId: localState.sectionId,
+						isHidden: localState.isHidden,
 					},
-				});
-			}
-		}
+				];
+			}),
+		[hostWorkspacesById, sidebarLocalStateRows],
+	);
+	const rawSidebarWorkspacesWithHostStatus = useMemo(
+		() =>
+			rawSidebarWorkspaces.map((workspace) => ({
+				...workspace,
+				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+				pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
+			})),
+		[hostsByMachineId, rawSidebarWorkspaces, workspaceTransactionsById],
+	);
 
-		return sidebarProjects.flatMap((project) => {
-			const resolvedProject = projectsById.get(project.id);
-			if (!resolvedProject) return [];
-			const {
-				childEntries,
-				sectionMap: _sectionMap,
-				...sidebarProject
-			} = resolvedProject;
-			sidebarProject.children = childEntries
-				.sort((left, right) => left.tabOrder - right.tabOrder)
-				.map(({ child }) => child);
-			return [sidebarProject];
-		});
+	const sidebarWorkspaces = useMemo(
+		() => getVisibleSidebarWorkspaces(rawSidebarWorkspacesWithHostStatus),
+		[rawSidebarWorkspacesWithHostStatus],
+	);
+
+	const localStateWorkspaceIds = useMemo(
+		() => new Set(rawSidebarWorkspaces.map((workspace) => workspace.id)),
+		[rawSidebarWorkspaces],
+	);
+
+	const rawLocalMainWorkspaces = useMemo(
+		() =>
+			hostWorkspaces
+				.filter((workspace) => workspace.type === "main")
+				.map((workspace) => ({
+					id: workspace.id,
+					projectId: workspace.projectId,
+					hostId: workspace.hostId,
+					type: workspace.type,
+					name: workspace.name,
+					branch: workspace.branch,
+					taskId: workspace.taskId,
+					createdAt: workspace.createdAt,
+					updatedAt: workspace.updatedAt,
+					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
+					sectionId: null as string | null,
+				})),
+		[hostWorkspaces],
+	);
+	const localMainWorkspaces = useMemo(
+		() =>
+			rawLocalMainWorkspaces.map((workspace) => ({
+				...workspace,
+				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+				pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
+			})),
+		[hostsByMachineId, rawLocalMainWorkspaces, workspaceTransactionsById],
+	);
+
+	const visibleSidebarWorkspaces = useMemo(() => {
+		const sidebarProjectIds = new Set(
+			sidebarProjects.map((project) => project.id),
+		);
+		const autoLocalMainWorkspaces = localMainWorkspaces.filter((workspace) =>
+			isAutoIncludedLocalMainWorkspace(workspace, {
+				localStateWorkspaceIds,
+				sidebarProjectIds,
+				machineId,
+			}),
+		);
+
+		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
 	}, [
-		deviceInfo?.deviceId,
-		localPullRequestsByWorkspaceId,
-		pendingWorkspace,
+		localMainWorkspaces,
+		localStateWorkspaceIds,
+		machineId,
 		sidebarProjects,
-		sidebarSections,
 		sidebarWorkspaces,
 	]);
 
+	const pullRequestQueryTargets = useMemo<PullRequestQueryTarget[]>(
+		() =>
+			derivePullRequestQueryTargets({
+				activeHostUrl,
+				hosts,
+				machineId,
+				relayUrl,
+				workspaces: visibleSidebarWorkspaces,
+			}),
+		[activeHostUrl, hosts, machineId, relayUrl, visibleSidebarWorkspaces],
+	);
+
+	const pullRequestQueries = useQueries({
+		queries: pullRequestQueryTargets.map((target) => ({
+			queryKey: getDashboardSidebarPullRequestQueryKey(target),
+			refetchInterval: 10_000,
+			queryFn: async () => {
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				return client.pullRequests.getByWorkspaces.query({
+					workspaceIds: target.workspaceIds,
+				});
+			},
+		})),
+	});
+
+	const pullRequestRows = useMemo<PullRequestWorkspaceRow[]>(() => {
+		const rows: PullRequestWorkspaceRow[] = [];
+		for (const query of pullRequestQueries) {
+			const data = query.data;
+			if (!data) continue;
+			for (const row of data.workspaces) {
+				rows.push({
+					workspaceId: row.workspaceId,
+					pullRequest: row.pullRequest,
+				});
+			}
+		}
+		return rows;
+	}, [pullRequestQueries]);
+
+	const refreshWorkspacePullRequest = useCallback(
+		async (workspaceId: string) => {
+			const workspace = visibleSidebarWorkspaces.find(
+				(candidate) => candidate.id === workspaceId,
+			);
+			if (!workspace) return;
+			const target = pullRequestQueryTargets.find(
+				(candidate) => candidate.machineId === workspace.hostId,
+			);
+			if (!target) return;
+
+			const client = getHostServiceClientByUrl(target.hostUrl);
+			await client.pullRequests.refreshByWorkspaces.mutate({
+				workspaceIds: [workspaceId],
+			});
+			await queryClient.invalidateQueries({
+				queryKey: getDashboardSidebarPullRequestQueryKey(target),
+			});
+		},
+		[pullRequestQueryTargets, queryClient, visibleSidebarWorkspaces],
+	);
+
+	const pullRequestsByWorkspaceId =
+		useStablePullRequestsByWorkspaceId(pullRequestRows);
+
+	const computedGroups = useMemo<DashboardSidebarProject[]>(
+		() =>
+			buildDashboardSidebarProjects({
+				sidebarProjects,
+				sidebarSections,
+				visibleSidebarWorkspaces,
+				machineId,
+				pullRequestsByWorkspaceId,
+			}),
+		[
+			machineId,
+			pullRequestsByWorkspaceId,
+			sidebarProjects,
+			sidebarSections,
+			visibleSidebarWorkspaces,
+		],
+	);
+	const groups = useStableDashboardSidebarProjects(computedGroups);
+
 	return {
 		groups,
-		refetchPullRequests,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};

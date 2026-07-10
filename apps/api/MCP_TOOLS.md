@@ -161,12 +161,10 @@ const listTaskStatusesOutput = z.object({
 These tools write to `agent_commands` table and poll for results.
 
 #### `list_devices`
-List online devices in the organization.
+List registered devices in the organization.
 
 ```typescript
-const listDevicesInput = z.object({
-  includeOffline: z.boolean().default(false).describe("Include recently offline devices"),
-});
+const listDevicesInput = z.object({});
 
 const listDevicesOutput = z.object({
   devices: z.array(z.object({
@@ -176,7 +174,6 @@ const listDevicesOutput = z.object({
     ownerId: z.string().uuid().describe("User who owns this device"),
     ownerName: z.string().describe("Name of device owner"),
     lastSeenAt: z.string().datetime(),
-    isOnline: z.boolean(),
   })),
 });
 ```

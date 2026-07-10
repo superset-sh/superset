@@ -1,0 +1,87 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useLocation, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { LuArrowLeft, LuArrowRight, LuSearch } from "react-icons/lu";
+import { useFrameStackStore } from "renderer/commandPalette/core/frames";
+import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
+import { HistoryDropdown } from "./components/HistoryDropdown";
+
+export function NavigationControls() {
+	const router = useRouter();
+	const location = useLocation();
+	const openCommandPalette = useFrameStackStore((s) => s.setOpen);
+
+	const canGoBack = router.history.canGoBack();
+	const canGoForward = location.state.__TSR_index < router.history.length - 1;
+
+	useHotkey("NAVIGATE_BACK", () => router.history.back());
+	useHotkey("NAVIGATE_FORWARD", () => router.history.forward());
+
+	useEffect(() => {
+		const handleMouseUp = (event: MouseEvent) => {
+			if (event.button === 3) {
+				event.preventDefault();
+				router.history.back();
+			} else if (event.button === 4) {
+				event.preventDefault();
+				router.history.forward();
+			}
+		};
+
+		window.addEventListener("mouseup", handleMouseUp);
+		return () => window.removeEventListener("mouseup", handleMouseUp);
+	}, [router]);
+
+	return (
+		<div className="flex items-center">
+			<Tooltip delayDuration={300}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={() => router.history.back()}
+						disabled={!canGoBack}
+						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+					>
+						<LuArrowLeft className="size-4" strokeWidth={1.5} />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">
+					<HotkeyLabel label="Go back" id="NAVIGATE_BACK" />
+				</TooltipContent>
+			</Tooltip>
+
+			<Tooltip delayDuration={300}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={() => router.history.forward()}
+						disabled={!canGoForward}
+						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+					>
+						<LuArrowRight className="size-4" strokeWidth={1.5} />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">
+					<HotkeyLabel label="Go forward" id="NAVIGATE_FORWARD" />
+				</TooltipContent>
+			</Tooltip>
+
+			<HistoryDropdown />
+
+			<Tooltip delayDuration={300}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={() => openCommandPalette(true)}
+						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+					>
+						<LuSearch className="size-3.5" strokeWidth={1.5} />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">
+					<HotkeyLabel label="Command palette" id="OPEN_COMMAND_PALETTE" />
+				</TooltipContent>
+			</Tooltip>
+		</div>
+	);
+}

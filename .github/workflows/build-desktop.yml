@@ -41,16 +41,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.bun/install/cache
@@ -104,7 +104,9 @@ jobs:
           NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          RELAY_URL: ${{ secrets.RELAY_URL }}
           SUPERSET_WORKSPACE_NAME: superset
+          TARGET_ARCH: ${{ matrix.arch }}
         run: bun run compile:app
 
       - name: Build Electron app
@@ -133,9 +135,28 @@ jobs:
             echo "::error::app-update.yml missing from $APP_DIR/Contents/Resources/ — auto-update will be broken"
             exit 1
           }
+          CLI_BIN="$APP_DIR/Contents/Resources/resources/bin/superset"
+          test -x "$CLI_BIN" || {
+            echo "::error::Bundled Superset CLI missing or not executable at $CLI_BIN"
+            exit 1
+          }
+          "$CLI_BIN" --version
+
+      - name: Verify native bindings packaged
+        working-directory: apps/desktop
+        run: |
+          APP_DIR=$(find release -maxdepth 2 -name "*.app" -type d | head -1)
+          UNPACKED="$APP_DIR/Contents/Resources/app.asar.unpacked/node_modules"
+          BINDING="$UNPACKED/@duckdb/node-bindings-darwin-${{ matrix.arch }}/duckdb.node"
+          test -f "$BINDING" || {
+            echo "::error::DuckDB native binding missing from packaged app — Intel/arm launch will crash. Expected: $BINDING"
+            ls -la "$UNPACKED/@duckdb" 2>/dev/null || echo "  (no @duckdb directory in app.asar.unpacked)"
+            exit 1
+          }
+          echo "OK: bundled $BINDING ($(du -h "$BINDING" | cut -f1))"
 
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-dmg
           path: apps/desktop/release/*.dmg
@@ -143,7 +164,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload ZIP artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-zip
           path: apps/desktop/release/*.zip
@@ -151,7 +172,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload auto-update manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-update-manifest
           path: apps/desktop/release/*-mac.yml
@@ -165,16 +186,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Bun
         id: setup-bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.bun/install/cache
@@ -184,6 +205,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
+
+      - name: Install Linux native build deps
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxkbfile-dev
 
       - name: Install desktop native dependencies
         working-directory: apps/desktop
@@ -226,7 +250,9 @@ jobs:
           NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          RELAY_URL: ${{ secrets.RELAY_URL }}
           SUPERSET_WORKSPACE_NAME: superset
+          TARGET_ARCH: x64
         run: bun run compile:app
 
       - name: Build Electron app
@@ -245,9 +271,15 @@ jobs:
             echo "::error::No Linux auto-update manifest generated in apps/desktop/release"
             exit 1
           }
+          CLI_BIN=$(find release -path "*/resources/resources/bin/superset" -type f -perm -111 | head -1)
+          if [ -z "$CLI_BIN" ]; then
+            echo "::error::Bundled Superset CLI missing or not executable in packaged Linux output"
+            exit 1
+          fi
+          "$CLI_BIN" --version
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ inputs.artifact_prefix }}-linux-appimage
           path: apps/desktop/release/*.AppImage
@@ -255,7 +287,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Linux auto-update manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ inputs.artifact_prefix }}-linux-update-manifest
           path: apps/desktop/release/*-linux.yml

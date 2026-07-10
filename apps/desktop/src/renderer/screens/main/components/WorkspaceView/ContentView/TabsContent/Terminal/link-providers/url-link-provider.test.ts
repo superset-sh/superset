@@ -760,7 +760,7 @@ describe("UrlLinkProvider", () => {
 	});
 
 	describe("handleActivation", () => {
-		it("should require metaKey (Cmd) or ctrlKey for activation", async () => {
+		it("should forward activation regardless of modifier (gate lives in consumer)", async () => {
 			const terminal = createMockTerminal([{ text: "https://example.com" }]);
 			const onOpen = mock();
 			const provider = new UrlLinkProvider(terminal, onOpen);
@@ -774,7 +774,7 @@ describe("UrlLinkProvider", () => {
 
 			links[0].activate(mockEvent, "https://example.com");
 
-			expect(onOpen).not.toHaveBeenCalled();
+			expect(onOpen).toHaveBeenCalled();
 		});
 
 		it("should activate with metaKey (Cmd)", async () => {

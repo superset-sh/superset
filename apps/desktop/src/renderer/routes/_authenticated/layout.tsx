@@ -1,4 +1,4 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { WorkerPoolContextProvider } from "@pierre/diffs/react";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import {
@@ -8,7 +8,6 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
@@ -16,14 +15,17 @@ import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
-import { migrateHotkeyOverrides } from "renderer/hotkeys/migrate";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
+import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
+import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
+import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -32,10 +34,16 @@ import { setPaneWorkspaceRunState } from "renderer/stores/tabs/workspace-run";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID, NOTIFICATION_EVENTS } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
-import { GlobalTerminalLifecycle } from "./components/GlobalTerminalLifecycle";
+import { DockBadgeController } from "./components/DockBadgeController";
+import { FileMenuListener } from "./components/FileMenuListener";
+import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
+import { V2NotificationController } from "./components/V2NotificationController";
+import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
-import { HostServiceProvider } from "./providers/HostServiceProvider";
+import { DeletingWorkspacesProvider } from "./providers/DeletingWorkspacesProvider";
+import { HostWorkspacesProvider } from "./providers/HostWorkspacesProvider";
+import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
 
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
@@ -55,8 +63,7 @@ function AuthenticatedLayout() {
 	const setOriginRoute = useSettingsStore((s) => s.setOriginRoute);
 	const utils = electronTrpc.useUtils();
 	const shownWorkspaceInitWarningsRef = useRef(new Set<string>());
-	const isV2CloudEnabled =
-		useFeatureFlagEnabled(FEATURE_FLAGS.V2_CLOUD) ?? false;
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -66,16 +73,32 @@ function AuthenticatedLayout() {
 	useAgentHookListener();
 	useUpdateListener();
 
-	// One-time migration from old hotkey storage to new localStorage-based store
-	useEffect(() => {
-		void migrateHotkeyOverrides().catch((error) => {
-			console.error("[hotkeys] Migration failed:", error);
-		});
-	}, []);
-
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
+			if (
+				event.type === NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE &&
+				event.data
+			) {
+				localStorage.setItem("lastViewedWorkspaceId", event.data.workspaceId);
+				const source = event.data.source;
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: event.data.workspaceId },
+					search:
+						source.type === "terminal"
+							? {
+									terminalId: source.id,
+									focusRequestId: crypto.randomUUID(),
+								}
+							: {
+									chatSessionId: source.id,
+									focusRequestId: crypto.randomUUID(),
+								},
+				});
+				return;
+			}
+
 			if (
 				event.type !== NOTIFICATION_EVENTS.TERMINAL_EXIT ||
 				!event.data?.paneId
@@ -178,23 +201,46 @@ function AuthenticatedLayout() {
 		return <Navigate to="/create-organization" replace />;
 	}
 
+	if (
+		session?.user &&
+		!session.user.onboardedAt &&
+		!location.pathname.startsWith("/onboarding")
+	) {
+		return <Navigate to="/onboarding" replace />;
+	}
+
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
-				<GlobalTerminalLifecycle />
-				<HostServiceProvider>
-					<AgentHooks />
-					<Outlet />
-					<WorkspaceInitEffects />
-					{isV2CloudEnabled ? (
-						<DashboardNewWorkspaceModal />
-					) : (
-						<NewWorkspaceModal />
-					)}
-					<InitGitDialog />
-					<TeardownLogsDialog />
-					<Paywall />
-				</HostServiceProvider>
+				<GlobalBrowserLifecycle />
+				<LocalHostServiceProvider>
+					<HostWorkspacesProvider>
+						<DeletingWorkspacesProvider>
+							<WorkerPoolContextProvider
+								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
+								highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
+							>
+								<DiffThemeSync />
+								<AgentHooks />
+								<FileMenuListener />
+								<V2NotificationController />
+								<DockBadgeController />
+								<DaemonAutoUpdateFailureDialog />
+								<Outlet />
+								<V1ImportModal />
+								<WorkspaceInitEffects />
+								{isV2CloudEnabled ? (
+									<DashboardNewWorkspaceModal />
+								) : (
+									<NewWorkspaceModal />
+								)}
+								<InitGitDialog />
+								<TeardownLogsDialog />
+								<Paywall />
+							</WorkerPoolContextProvider>
+						</DeletingWorkspacesProvider>
+					</HostWorkspacesProvider>
+				</LocalHostServiceProvider>
 			</CollectionsProvider>
 		</DndProvider>
 	);

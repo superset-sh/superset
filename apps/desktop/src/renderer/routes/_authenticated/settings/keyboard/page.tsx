@@ -9,22 +9,27 @@ import {
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
+import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
-	formatHotkeyDisplay,
 	HOTKEYS,
 	type HotkeyCategory,
 	type HotkeyId,
-	PLATFORM,
+	type ShortcutBinding,
+	useFormatBinding,
 	useHotkeyDisplay,
 	useHotkeyOverridesStore,
+	useKeyboardPreferencesStore,
 	useRecordHotkeys,
 } from "renderer/hotkeys";
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
+	"Navigation",
 	"Workspace",
 	"Terminal",
 	"Layout",
@@ -50,7 +55,12 @@ function HotkeyRow({
 	const { keys } = useHotkeyDisplay(id);
 
 	return (
-		<div className="flex items-center justify-between gap-4 py-3 px-4">
+		<div
+			className={cn(
+				"flex items-center justify-between gap-4 py-3 px-4 transition-colors",
+				isRecording && "bg-destructive/5",
+			)}
+		>
 			<div className="flex flex-col">
 				<span className="text-sm text-foreground">{label}</span>
 				{description && (
@@ -61,10 +71,15 @@ function HotkeyRow({
 				<button
 					type="button"
 					onClick={onStartRecording}
-					className="h-7 px-3 rounded-md border border-border bg-accent/20 text-xs text-foreground hover:bg-accent/40 transition-colors"
+					className={cn(
+						"h-7 px-3 rounded-md border text-xs transition-colors",
+						isRecording
+							? "border-destructive/50 bg-destructive/10 text-destructive ring-2 ring-destructive/20"
+							: "border-border bg-accent/20 text-foreground hover:bg-accent/40",
+					)}
 				>
 					{isRecording ? (
-						<span className="text-xs text-muted-foreground">Recording…</span>
+						<span>Press a key…</span>
 					) : (
 						<KbdGroup>
 							{keys.map((key) => (
@@ -117,7 +132,7 @@ function KeyboardShortcutsPage() {
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
 		targetId: HotkeyId;
-		keys: string;
+		binding: ShortcutBinding;
 		conflictId: HotkeyId;
 	} | null>(null);
 
@@ -125,15 +140,26 @@ function KeyboardShortcutsPage() {
 	const resetAll = useHotkeyOverridesStore((s) => s.resetAll);
 	const setOverride = useHotkeyOverridesStore((s) => s.setOverride);
 
+	const adaptiveLayoutEnabled = useKeyboardPreferencesStore(
+		(s) => s.adaptiveLayoutEnabled,
+	);
+	const setAdaptiveLayoutEnabled = useKeyboardPreferencesStore(
+		(s) => s.setAdaptiveLayoutEnabled,
+	);
+
 	useRecordHotkeys(recordingId, {
+		// New printable bindings follow the printed character (matches what the
+		// user sees on their keyboard). F-keys / named keys are forced to
+		// "named" by the recorder regardless of this preference.
+		preferredMode: "logical",
 		onSave: () => setRecordingId(null),
 		onCancel: () => setRecordingId(null),
 		onUnassign: () => setRecordingId(null),
-		onConflict: (targetId, keys, conflictId) => {
-			setPendingConflict({ targetId, keys, conflictId });
+		onConflict: (targetId, binding, conflictId) => {
+			setPendingConflict({ targetId, binding, conflictId });
 			setRecordingId(null);
 		},
-		onReserved: (_keys, info) => {
+		onReserved: (_binding, info) => {
 			if (info.severity === "error") {
 				toast.error(info.reason);
 				setRecordingId(null);
@@ -165,16 +191,18 @@ function KeyboardShortcutsPage() {
 	const handleConflictReassign = () => {
 		if (!pendingConflict) return;
 		setOverride(pendingConflict.conflictId, null);
-		setOverride(pendingConflict.targetId, pendingConflict.keys);
+		setOverride(pendingConflict.targetId, pendingConflict.binding);
 		setPendingConflict(null);
 	};
 
+	const conflictDisplay = useFormatBinding(pendingConflict?.binding ?? null);
+
 	return (
-		<div className="p-6 w-full max-w-4xl">
+		<div className="p-6 max-w-4xl w-full">
 			{/* Header */}
 			<div className="mb-6 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-lg font-semibold">Keyboard Shortcuts</h2>
+					<h2 className="text-xl font-semibold">Keyboard shortcuts</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						Customize keyboard shortcuts for your workflow. Press{" "}
 						<KbdGroup>
@@ -185,18 +213,36 @@ function KeyboardShortcutsPage() {
 						to open this page anytime.
 					</p>
 				</div>
-				<div className="flex items-center gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => {
-							setRecordingId(null);
-							resetAll();
-						}}
-					>
-						Reset all
-					</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						setRecordingId(null);
+						resetAll();
+					}}
+				>
+					Reset all
+				</Button>
+			</div>
+
+			{/* Preferences */}
+			<div className="mb-8 flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="adaptive-layout" className="text-sm font-medium">
+						Adaptive layout mapping
+					</Label>
+					<p className="text-xs text-muted-foreground">
+						Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires
+						on the key labeled "Z" — physical KeyY on QWERTZ). When off,
+						shortcuts are anchored to physical key positions and ignore the
+						current input source.
+					</p>
 				</div>
+				<Switch
+					id="adaptive-layout"
+					checked={adaptiveLayoutEnabled}
+					onCheckedChange={setAdaptiveLayoutEnabled}
+				/>
 			</div>
 
 			{/* Search */}
@@ -212,7 +258,7 @@ function KeyboardShortcutsPage() {
 			</div>
 
 			{/* Tables by Category */}
-			<div className="max-h-[calc(100vh-320px)] overflow-y-auto space-y-6">
+			<div className="space-y-6">
 				{CATEGORY_ORDER.map((category) => {
 					const hotkeys = filteredHotkeysByCategory[category] ?? [];
 					if (hotkeys.length === 0) return null;
@@ -222,33 +268,23 @@ function KeyboardShortcutsPage() {
 							<h3 className="text-sm font-medium text-muted-foreground mb-2">
 								{category}
 							</h3>
-							<div className="rounded-lg border border-border overflow-hidden">
-								<div className="flex items-center justify-between py-2 px-4 bg-accent/10 border-b border-border">
-									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-										Command
-									</span>
-									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-										Shortcut
-									</span>
-								</div>
-								<div className="divide-y divide-border">
-									{hotkeys.map((hotkey) => (
-										<HotkeyRow
-											key={hotkey.id}
-											id={hotkey.id}
-											label={hotkey.label}
-											description={hotkey.description}
-											isRecording={recordingId === hotkey.id}
-											onStartRecording={() => handleStartRecording(hotkey.id)}
-											onReset={() => {
-												setRecordingId((current) =>
-													current === hotkey.id ? null : current,
-												);
-												resetOverride(hotkey.id);
-											}}
-										/>
-									))}
-								</div>
+							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+								{hotkeys.map((hotkey) => (
+									<HotkeyRow
+										key={hotkey.id}
+										id={hotkey.id}
+										label={hotkey.label}
+										description={hotkey.description}
+										isRecording={recordingId === hotkey.id}
+										onStartRecording={() => handleStartRecording(hotkey.id)}
+										onReset={() => {
+											setRecordingId((current) =>
+												current === hotkey.id ? null : current,
+											);
+											resetOverride(hotkey.id);
+										}}
+									/>
+								))}
 							</div>
 						</div>
 					);
@@ -277,7 +313,7 @@ function KeyboardShortcutsPage() {
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
 									{pendingConflict
-										? `${formatHotkeyDisplay(pendingConflict.keys, PLATFORM).text} is already assigned to "${
+										? `${conflictDisplay.text} is already assigned to "${
 												HOTKEYS[pendingConflict.conflictId].label
 											}".`
 										: ""}

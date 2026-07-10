@@ -21,6 +21,14 @@ function getClient(): PostHog | null {
 	return posthog;
 }
 
+export function getPosthogClient(): PostHog | null {
+	return getClient();
+}
+
+export function getUserId(): string | null {
+	return userId;
+}
+
 function isTelemetryEnabled(): boolean {
 	return DEFAULT_TELEMETRY_ENABLED;
 }

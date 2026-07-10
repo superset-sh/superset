@@ -1,0 +1,1 @@
+export { OverflowFadeText } from "./OverflowFadeText";

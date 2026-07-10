@@ -658,9 +658,9 @@ describe("env", () => {
 		});
 
 		describe("terminal metadata", () => {
-			it("should set TERM_PROGRAM to Superset", () => {
+			it("should set TERM_PROGRAM to vscode", () => {
 				const result = buildTerminalEnv(baseParams);
-				expect(result.TERM_PROGRAM).toBe("Superset");
+				expect(result.TERM_PROGRAM).toBe("vscode");
 			});
 
 			it("should set COLORTERM to truecolor", () => {
@@ -763,6 +763,23 @@ describe("env", () => {
 					themeType: "light",
 				});
 				expect(result.COLORFGBG).toBe("0;15");
+			});
+		});
+
+		describe("TERM_THEME hint for TUI light/dark detection", () => {
+			it("should set TERM_THEME to dark by default", () => {
+				const result = buildTerminalEnv(baseParams);
+				expect(result.TERM_THEME).toBe("dark");
+			});
+
+			it("should set TERM_THEME to dark when themeType is dark", () => {
+				const result = buildTerminalEnv({ ...baseParams, themeType: "dark" });
+				expect(result.TERM_THEME).toBe("dark");
+			});
+
+			it("should set TERM_THEME to light when themeType is light", () => {
+				const result = buildTerminalEnv({ ...baseParams, themeType: "light" });
+				expect(result.TERM_THEME).toBe("light");
 			});
 		});
 	});

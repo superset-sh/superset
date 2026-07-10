@@ -1,6 +1,6 @@
 [mcp_servers.superset]
 type = "sse"
-url = "https://api.superset.sh/api/agent/mcp"
+url = "https://api.superset.sh/api/v2/agent/mcp"
 
 [mcp_servers.expo-mcp]
 type = "sse"
@@ -22,8 +22,3 @@ url = "https://mcp.linear.app/mcp"
 [mcp_servers.sentry]
 type = "sse"
 url = "https://mcp.sentry.dev/mcp"
-
-
-[mcp_servers.desktop-automation]
-command = "bun"
-args = ["run", "packages/desktop-mcp/src/bin.ts"]

@@ -13,9 +13,11 @@ import {
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
 	handleAuthCallback,
+	loadToken,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
+import { env as mainEnv } from "main/env.main";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	PLATFORM,
@@ -24,19 +26,30 @@ import {
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
-import { setupAutoUpdater } from "./lib/auto-updater";
+import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
+import { installBundledCliShim } from "./lib/bundled-cli";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
-import { getHostServiceManager } from "./lib/host-service-manager";
+import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
 import { localDb } from "./lib/local-db";
+import { requestLocalNetworkAccess } from "./lib/local-network-permission";
+import {
+	initTanstackDbPersistence,
+	shutdownTanstackDbPersistence,
+} from "./lib/persistence/persistence";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
 	reconcileDaemonSessions,
 } from "./lib/terminal";
+import {
+	disposeTerminalHostClient,
+	getTerminalHostClient,
+} from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
+import { startNetworkLogger, stopNetworkLogger } from "./network-logger";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -150,26 +163,27 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
-export type QuitMode = "release" | "stop";
-let pendingQuitMode: QuitMode | null = null;
 let isQuitting = false;
+let skipQuitConfirmation = false;
+let forceFullCleanup = false;
 
-/** Request the app to quit.
- *  - "release": keep services running (re-adoptable on next launch)
- *  - "stop": terminate all services before exit */
-export function requestQuit(mode: QuitMode): void {
-	pendingQuitMode = mode;
+export function setSkipQuitConfirmation(): void {
+	skipQuitConfirmation = true;
+}
+
+export function quitApp(): void {
+	setSkipQuitConfirmation();
 	app.quit();
 }
 
-/** Set quit mode without triggering quit.
- *  Use when another API (e.g. autoUpdater.quitAndInstall) triggers quit internally. */
-export function prepareQuit(mode: QuitMode): void {
-	pendingQuitMode = mode;
+/** Quit + also stop background services. Tray "Quit Completely". */
+export function quitAppCompletely(): void {
+	forceFullCleanup = true;
+	setSkipQuitConfirmation();
+	app.quit();
 }
 
-/** Exit the process immediately, bypassing before-quit.
- *  Services are left running for adoption on next launch. */
+/** Bypasses before-quit. Host-service children self-exit via the parent watchdog. */
 export function exitImmediately(): void {
 	app.exit(0);
 }
@@ -186,12 +200,8 @@ function getConfirmOnQuitSetting(): boolean {
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
-	// Consume the quit mode so it doesn't persist across aborted quits
-	const quitMode = pendingQuitMode;
-	pendingQuitMode = null;
-
 	const isDev = process.env.NODE_ENV === "development";
-	if (quitMode === null && !isDev && getConfirmOnQuitSetting()) {
+	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
 
 		try {
@@ -213,15 +223,36 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
-	const manager = getHostServiceManager();
-	if (quitMode === "stop") {
-		manager.stopAll();
-	} else {
-		manager.releaseAll();
+	try {
+		getHostServiceCoordinator().stopAll();
+		if (isDev || forceFullCleanup) {
+			await teardownTerminalHost();
+		} else if (isUpdateReadyToInstall()) {
+			disposeTerminalHostClient();
+		}
+		shutdownTanstackDbPersistence();
+		disposeTray();
+	} catch (error) {
+		console.error("[main] Cleanup during quit failed:", error);
+	} finally {
+		await stopNetworkLogger();
 	}
-	disposeTray();
 	app.exit(0);
 });
+
+/**
+ * Fully stop the v1 terminal-host process. Do not call this for update
+ * installs: terminal-host owns the PTY subprocesses, so shutdown is
+ * destructive and prevents reattach on next launch.
+ */
+async function teardownTerminalHost(): Promise<void> {
+	try {
+		await getTerminalHostClient().shutdownIfRunning({ killSessions: true });
+	} catch (err) {
+		console.warn("[main] terminal-host dev shutdown failed:", err);
+	}
+	disposeTerminalHostClient();
+}
 
 process.on("uncaughtException", (error) => {
 	if (isQuitting) return;
@@ -235,9 +266,16 @@ process.on("unhandledRejection", (reason) => {
 
 // Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
+	let signalHandled = false;
 	const handleTerminationSignal = (signal: string) => {
+		if (signalHandled) return;
+		signalHandled = true;
 		console.log(`[main] Received ${signal}, quitting...`);
-		app.exit(0);
+		getHostServiceCoordinator().stopAll();
+		void Promise.allSettled([
+			teardownTerminalHost(),
+			stopNetworkLogger(),
+		]).finally(() => app.exit(0));
 	};
 
 	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
@@ -258,7 +296,7 @@ if (process.env.NODE_ENV === "development") {
 		if (!isParentAlive()) {
 			console.log("[main] Parent process exited, quitting...");
 			clearInterval(parentCheckInterval);
-			app.exit(0);
+			handleTerminationSignal("parent-exit");
 		}
 	}, 1000);
 	parentCheckInterval.unref();
@@ -303,6 +341,7 @@ if (!gotTheLock) {
 		await app.whenReady();
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
+		requestLocalNetworkAccess();
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
@@ -353,6 +392,13 @@ if (!gotTheLock) {
 		setWorkspaceDockIcon();
 		initSentry();
 		await initAppState();
+		initTanstackDbPersistence();
+
+		try {
+			await startNetworkLogger();
+		} catch (error) {
+			console.error("[main] Failed to start network logger:", error);
+		}
 
 		await loadWebviewBrowserExtension();
 
@@ -365,10 +411,19 @@ if (!gotTheLock) {
 		} catch (error) {
 			console.error("[main] Failed to set up agent hooks:", error);
 		}
+		try {
+			installBundledCliShim();
+		} catch (error) {
+			console.error("[main] Failed to install bundled CLI shim:", error);
+		}
 
-		// Discover and adopt host-services that survived a previous quit
-		// before the tray initializes, so it shows accurate status immediately.
-		await getHostServiceManager().discoverAndAdoptAll();
+		if (IS_DEV) {
+			getHostServiceCoordinator().enableDevReload(async () => {
+				const { token } = await loadToken();
+				if (!token) return null;
+				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+			});
+		}
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();

@@ -25,6 +25,11 @@ export interface UseChatDisplayOptions {
 	fps?: number;
 }
 
+// Retention window for an inactive session's cached messages/display state.
+// Overrides the global 30-min gcTime so visited sessions' data is freed shortly
+// after their pane unmounts instead of accumulating on the heap.
+const CHAT_QUERY_GC_TIME_MS = 60_000;
+
 function toRefetchIntervalMs(fps: number): number {
 	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
 	return Math.max(16, Math.floor(1000 / fps));
@@ -32,7 +37,15 @@ function toRefetchIntervalMs(fps: number): number {
 
 function findLastUserMessageIndex(messages: ListMessagesOutput): number {
 	for (let index = messages.length - 1; index >= 0; index -= 1) {
-		if (messages[index]?.role === "user") return index;
+		const message = messages[index];
+		// INVARIANT: optimistic user messages use the "optimistic-" ID prefix
+		// (both the use-chat-display internal channel and the ChatPaneInterface
+		// setData injection). Skipping them here keeps the turn-boundary anchored
+		// to the real committed user message so withoutActiveTurnAssistantHistory
+		// can dedupe the in-flight assistant message — see SUPER-753.
+		if (message?.role === "user" && !message.id?.startsWith("optimistic-")) {
+			return index;
+		}
 	}
 	return -1;
 }
@@ -76,11 +89,24 @@ export function withoutActiveTurnAssistantHistory({
 
 	const turnStartIndex = findLastUserMessageIndex(messages) + 1;
 	const previousTurns = messages.slice(0, turnStartIndex);
-	const activeTurnNonAssistant = messages
-		.slice(turnStartIndex)
-		.filter((message: HistoryMessage) => message.role !== "assistant");
+	const activeTurnMessages = messages.slice(turnStartIndex);
 
-	return [...previousTurns, ...activeTurnNonAssistant];
+	// Keep a historical assistant message only when it is both:
+	//   1. Fully completed (has a stopReason) — a completed prior phase such as
+	//      the read-file + ask_user message before a question answer.
+	//   2. Not the message currently being streamed (different id from currentMessage)
+	//      — guards the brief transition window where the same message is committed
+	//      to history while currentMessage still references it.
+	const currentMessageId = (currentMessage as { id?: string }).id;
+	const deduped = activeTurnMessages.filter((message: HistoryMessage) => {
+		if (message.role !== "assistant") return true;
+		const stopReason = (message as unknown as { stopReason?: string })
+			.stopReason;
+		const messageId = (message as unknown as { id?: string }).id;
+		return !!stopReason && messageId !== currentMessageId;
+	});
+
+	return [...previousTurns, ...deduped];
 }
 
 function hasFileOrImagePart(message: HistoryMessage): boolean {
@@ -113,7 +139,7 @@ function getLegacyImagePayload(
 }
 
 export function useChatDisplay(options: UseChatDisplayOptions) {
-	const { sessionId, cwd, enabled = true, fps = 60 } = options;
+	const { sessionId, cwd, enabled = true, fps = 4 } = options;
 	const utils = chatRuntimeServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
 	const sessionCommandInput =
@@ -126,8 +152,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 		refetchInterval: refetchIntervalMs,
 		refetchIntervalInBackground: true,
 		refetchOnWindowFocus: false,
-		staleTime: 0,
-		gcTime: 0,
+		gcTime: CHAT_QUERY_GC_TIME_MS,
 	} as const;
 
 	const displayQuery = chatRuntimeServiceTrpc.session.getDisplayState.useQuery(

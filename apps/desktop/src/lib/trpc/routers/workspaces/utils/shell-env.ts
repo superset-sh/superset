@@ -181,17 +181,15 @@ export async function getProcessEnvWithShellPath(
 	const env = await getProcessEnvWithShellEnv(baseEnv, shellEnvResult);
 
 	const shellPath = shellEnvResult.PATH || shellEnvResult.Path;
-	if (!shellPath) {
-		return env;
-	}
-
-	env.PATH = shellPath;
-	if (
-		process.platform === "win32" ||
-		"Path" in baseEnv ||
-		"Path" in shellEnvResult
-	) {
-		env.Path = shellPath;
+	if (shellPath) {
+		env.PATH = shellPath;
+		if (
+			process.platform === "win32" ||
+			"Path" in baseEnv ||
+			"Path" in shellEnvResult
+		) {
+			env.Path = shellPath;
+		}
 	}
 
 	return env;

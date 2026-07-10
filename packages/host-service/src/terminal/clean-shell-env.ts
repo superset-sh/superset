@@ -1,8 +1,12 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import * as os from "node:os";
+import { signalProcessTreeAndGroups } from "@superset/pty-daemon/process-tree";
+import { resolveConfiguredShell } from "./user-shell.ts";
 
 const SHELL_ENV_TIMEOUT_MS = 8_000;
 const CACHE_TTL_MS = 60_000;
 const DELIMITER = "__SUPERSET_SHELL_ENV__";
+const DIAGNOSTIC_OUTPUT_LIMIT = 200;
 
 const SHELL_BOOTSTRAP_KEYS = [
 	"HOME",
@@ -20,6 +24,28 @@ const SHELL_BOOTSTRAP_KEYS = [
 	"COMSPEC",
 	"USERPROFILE",
 	"SYSTEMROOT",
+	// macOS launchd sets SSH_AUTH_SOCK in the GUI session env, not via shell
+	// rc files. Without these in the bootstrap, terminals lose the SSH agent
+	// and git pushes over SSH fail. (#4238)
+	"SSH_AUTH_SOCK",
+	"SSH_AGENT_PID",
+	// Proxy config — typically injected via `launchctl setenv` (corp networks),
+	// not by rc files. Without these, git/curl/npm in terminals bypass the proxy.
+	"HTTP_PROXY",
+	"HTTPS_PROXY",
+	"NO_PROXY",
+	"ALL_PROXY",
+	"http_proxy",
+	"https_proxy",
+	"no_proxy",
+	"all_proxy",
+	// Corporate CA bundles — same launchd-injected vector as proxies.
+	"SSL_CERT_FILE",
+	"SSL_CERT_DIR",
+	"NODE_EXTRA_CA_CERTS",
+	"REQUESTS_CA_BUNDLE",
+	// System-level timezone override.
+	"TZ",
 ];
 
 const COMMON_MACOS_PATHS = [
@@ -29,7 +55,7 @@ const COMMON_MACOS_PATHS = [
 	"/usr/local/sbin",
 ];
 
-function augmentPathForMacOS(
+export function augmentPathForMacOS(
 	env: Record<string, string>,
 	platform: NodeJS.Platform = process.platform,
 ): void {
@@ -44,7 +70,7 @@ function augmentPathForMacOS(
 	env.PATH = [...missingPaths, currentPath].filter(Boolean).join(":");
 }
 
-function buildMinimalEnv(): Record<string, string> {
+export function buildMinimalEnv(): Record<string, string> {
 	const env: Record<string, string> = {
 		DISABLE_AUTO_UPDATE: "true",
 		ZSH_TMUX_AUTOSTARTED: "true",
@@ -61,24 +87,22 @@ function buildMinimalEnv(): Record<string, string> {
 }
 
 function resolveShellForEnv(): string {
-	if (process.platform === "win32") {
-		return process.env.COMSPEC || "cmd.exe";
-	}
-	return process.env.SHELL || "/bin/sh";
+	return resolveConfiguredShell(process.env);
 }
 
-function parseEnvOutput(stdout: string): Record<string, string> {
+const ENV_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
+
+export function parseEnvOutput(stdout: string): Record<string, string> {
 	const envSection = stdout.split(DELIMITER)[1];
 	if (!envSection) {
 		throw new Error("Failed to parse shell env output - delimiter not found");
 	}
 
 	const result: Record<string, string> = {};
-	for (const line of envSection.split("\n").filter(Boolean)) {
+	for (const line of envSection.split("\n")) {
+		if (!ENV_KEY_RE.test(line)) continue;
 		const idx = line.indexOf("=");
-		if (idx > 0) {
-			result[line.slice(0, idx)] = line.slice(idx + 1);
-		}
+		result[line.slice(0, idx)] = line.slice(idx + 1);
 	}
 
 	if (Object.keys(result).length === 0) {
@@ -90,11 +114,29 @@ function parseEnvOutput(stdout: string): Record<string, string> {
 	return result;
 }
 
+function truncateForDiagnostics(value: string): string {
+	const trimmed = value.trim();
+	if (trimmed.length <= DIAGNOSTIC_OUTPUT_LIMIT) return trimmed;
+	return `${trimmed.slice(0, DIAGNOSTIC_OUTPUT_LIMIT)}…`;
+}
+
 function spawnCleanShellEnv(): Promise<Record<string, string>> {
 	return new Promise((resolve, reject) => {
 		const shell = resolveShellForEnv();
 		const env = buildMinimalEnv();
+		if (process.platform === "win32") {
+			env.COMSPEC = shell;
+		} else {
+			env.SHELL = shell;
+		}
 		const command = `echo -n "${DELIMITER}"; command env; echo -n "${DELIMITER}"; exit`;
+
+		// Anchor at $HOME so the snapshot shell doesn't inherit a cwd
+		// host-service has no control over. Tools called from interactive
+		// rc files — brew is the recurring offender (#4025) — abort when
+		// pwd isn't readable to the invoking user, and Electron helpers
+		// can land at /private/var/... or similar at launch.
+		const cwd = env.HOME || os.homedir();
 
 		let child: ChildProcess;
 		try {
@@ -102,6 +144,7 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 				detached: true,
 				stdio: ["ignore", "pipe", "pipe"],
 				env,
+				cwd,
 			});
 		} catch (error) {
 			return reject(
@@ -118,10 +161,14 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 		child.stderr?.on("data", (data: Buffer) => stderrBuffers.push(data));
 
 		const timeout = setTimeout(() => {
-			try {
-				child.kill("SIGKILL");
-			} catch {
-				// Already exited.
+			if (child.pid) {
+				signalProcessTreeAndGroups(child.pid, "SIGKILL");
+			} else {
+				try {
+					child.kill("SIGKILL");
+				} catch {
+					// Already exited.
+				}
 			}
 
 			reject(
@@ -139,6 +186,7 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 		child.on("close", (code, signal) => {
 			clearTimeout(timeout);
 
+			const stdout = Buffer.concat(stdoutBuffers).toString("utf8");
 			const stderr = Buffer.concat(stderrBuffers).toString("utf8").trim();
 			if (stderr) {
 				console.debug("[terminal-clean-shell-env] stderr:", stderr);
@@ -147,15 +195,25 @@ function spawnCleanShellEnv(): Promise<Record<string, string>> {
 			if (code !== 0 && code !== null) {
 				return reject(
 					new Error(
-						`Shell ${shell} exited with code ${code}${signal ? `, signal ${signal}` : ""}`,
+						`Shell ${shell} exited with code ${code}${signal ? `, signal ${signal}` : ""}` +
+							(stderr ? ` stderr=${truncateForDiagnostics(stderr)}` : "") +
+							(stdout ? ` stdout=${truncateForDiagnostics(stdout)}` : ""),
 					),
 				);
 			}
 
 			try {
-				resolve(parseEnvOutput(Buffer.concat(stdoutBuffers).toString("utf8")));
+				resolve(parseEnvOutput(stdout));
 			} catch (error) {
-				reject(error);
+				const detail = error instanceof Error ? error.message : String(error);
+				reject(
+					new Error(
+						`${detail} (shell=${shell}` +
+							` stdout=${truncateForDiagnostics(stdout)}` +
+							(stderr ? ` stderr=${truncateForDiagnostics(stderr)}` : "") +
+							")",
+					),
+				);
 			}
 		});
 

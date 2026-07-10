@@ -9,7 +9,24 @@ export default function HomeLayout() {
 			}}
 		>
 			<Stack.Screen name="index" options={{ title: "" }} />
-			<Stack.Screen name="workspaces/[id]" options={{ title: "Workspace" }} />
+			<Stack.Screen
+				name="filter"
+				options={{
+					presentation: "formSheet",
+					headerShown: false,
+					sheetAllowedDetents: [1.0],
+					sheetGrabberVisible: true,
+				}}
+			/>
+			<Stack.Screen
+				name="new-chat"
+				options={{
+					presentation: "formSheet",
+					headerShown: false,
+					sheetAllowedDetents: [1.0],
+					sheetGrabberVisible: true,
+				}}
+			/>
 		</Stack>
 	);
 }

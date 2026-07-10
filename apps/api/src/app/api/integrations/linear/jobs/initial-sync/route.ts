@@ -1,12 +1,7 @@
-import { LinearClient } from "@linear/sdk";
+import type { LinearClient } from "@linear/sdk";
 import { buildConflictUpdateColumns, db } from "@superset/db";
-import {
-	integrationConnections,
-	members,
-	taskStatuses,
-	tasks,
-	users,
-} from "@superset/db/schema";
+import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import { getLinearClient } from "@superset/trpc/integrations/linear";
 import { Receiver } from "@upstash/qstash";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import chunk from "lodash.chunk";
@@ -57,18 +52,14 @@ export async function POST(request: Request) {
 
 	const { organizationId, creatorUserId } = parsed.data;
 
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "linear"),
-		),
-	});
-
-	if (!connection) {
-		return Response.json({ error: "No connection found", skipped: true });
+	const client = await getLinearClient(organizationId);
+	if (!client) {
+		return Response.json({
+			error: "No Linear connection or connection disconnected",
+			skipped: true,
+		});
 	}
 
-	const client = new LinearClient({ accessToken: connection.accessToken });
 	await performInitialSync(client, organizationId, creatorUserId);
 
 	return Response.json({ success: true });

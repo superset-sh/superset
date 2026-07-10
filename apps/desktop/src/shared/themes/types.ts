@@ -150,6 +150,13 @@ export interface UIColors {
 	// Search highlight colors (CSS Custom Highlight API)
 	highlightMatch: string;
 	highlightActive: string;
+
+	// Brand highlight (e.g. PRO badge). Theme-defining color used for accents
+	// that should pop against muted UI chrome. Optional so existing stored
+	// themes without this token still typecheck — globals.css supplies a
+	// fallback value.
+	highlight?: string;
+	highlightForeground?: string;
 }
 
 /**

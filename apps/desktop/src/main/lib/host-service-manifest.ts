@@ -1,7 +1,6 @@
 import {
 	existsSync,
 	mkdirSync,
-	readdirSync,
 	readFileSync,
 	unlinkSync,
 	writeFileSync,
@@ -9,17 +8,10 @@ import {
 import { join } from "node:path";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 
-/** Protocol version for the IPC contract between manager and host-service.
- *  Bump when the ready message shape, env contract, or health API
- *  changes in a backwards-incompatible way. */
-export const HOST_SERVICE_PROTOCOL_VERSION = 1;
-
 export interface HostServiceManifest {
 	pid: number;
 	endpoint: string;
 	authToken: string;
-	serviceVersion: string;
-	protocolVersion: number;
 	startedAt: number;
 	organizationId: string;
 }
@@ -61,8 +53,6 @@ export function readManifest(
 			typeof data.pid !== "number" ||
 			typeof data.endpoint !== "string" ||
 			typeof data.authToken !== "string" ||
-			typeof data.serviceVersion !== "string" ||
-			typeof data.protocolVersion !== "number" ||
 			typeof data.startedAt !== "number" ||
 			typeof data.organizationId !== "string"
 		) {
@@ -73,26 +63,6 @@ export function readManifest(
 	} catch {
 		return null;
 	}
-}
-
-/** Scan the host directory for all valid manifests on disk. */
-export function listManifests(): HostServiceManifest[] {
-	const hostDir = join(SUPERSET_HOME_DIR, "host");
-	if (!existsSync(hostDir)) return [];
-
-	const manifests: HostServiceManifest[] = [];
-	try {
-		for (const entry of readdirSync(hostDir, { withFileTypes: true })) {
-			if (!entry.isDirectory()) continue;
-			const manifest = readManifest(entry.name);
-			if (manifest) {
-				manifests.push(manifest);
-			}
-		}
-	} catch {
-		// Best-effort scan
-	}
-	return manifests;
 }
 
 export function removeManifest(organizationId: string): void {
@@ -108,10 +78,27 @@ export function removeManifest(organizationId: string): void {
 
 /** Check whether a process with the given PID is alive. */
 export function isProcessAlive(pid: number): boolean {
+	if (!isSignalablePid(pid)) return false;
+
 	try {
 		process.kill(pid, 0);
 		return true;
 	} catch {
 		return false;
 	}
+}
+
+export function killProcess(
+	pid: number,
+	signal: NodeJS.Signals | number,
+): void {
+	if (!isSignalablePid(pid)) {
+		throw new Error(`Refusing to signal invalid pid: ${pid}`);
+	}
+
+	process.kill(pid, signal);
+}
+
+function isSignalablePid(pid: number): boolean {
+	return Number.isInteger(pid) && Number.isFinite(pid) && pid > 1;
 }

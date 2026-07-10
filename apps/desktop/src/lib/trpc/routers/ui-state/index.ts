@@ -173,6 +173,8 @@ const uiColorsSchema = z.object({
 	chart5: z.string(),
 	highlightMatch: z.string(),
 	highlightActive: z.string(),
+	highlight: z.string().optional(),
+	highlightForeground: z.string().optional(),
 });
 
 /**
@@ -204,6 +206,19 @@ const terminalColorsSchema = z.object({
 });
 
 /**
+ * Zod schema for editor/diff color + syntax overrides (Theme.editor).
+ *
+ * Persisted faithfully via record() so imported custom themes keep their
+ * editor/diff syntax colors across reloads. Omitting this previously stripped
+ * `editor` on save (Zod drops unknown keys), so on reload getEditorTheme fell
+ * back to the derived terminal palette and diff/editor syntax lost its theme.
+ */
+const editorThemeSchema = z.object({
+	colors: z.record(z.string(), z.string()).optional(),
+	syntax: z.record(z.string(), z.string()).optional(),
+});
+
+/**
  * Zod schema for Theme
  */
 const themeSchema = z.object({
@@ -215,6 +230,7 @@ const themeSchema = z.object({
 	type: z.enum(["dark", "light"]),
 	ui: uiColorsSchema,
 	terminal: terminalColorsSchema,
+	editor: editorThemeSchema.optional(),
 	isBuiltIn: z.boolean().optional(),
 	isCustom: z.boolean().optional(),
 });

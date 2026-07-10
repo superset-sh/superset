@@ -110,6 +110,9 @@ export function createChatServiceRouter(service: ChatService) {
 			cancelOpenAIOAuth: t.procedure.mutation(() => {
 				return service.cancelOpenAIOAuth();
 			}),
+			consumeOpenAIOAuthCallback: t.procedure.query(() => {
+				return service.consumeOpenAIOAuthCallback();
+			}),
 			disconnectOpenAIOAuth: t.procedure.mutation(() => {
 				return service.disconnectOpenAIOAuth();
 			}),

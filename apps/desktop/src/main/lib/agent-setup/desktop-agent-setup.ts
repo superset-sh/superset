@@ -1,5 +1,6 @@
 import {
 	cleanupGlobalOpenCodePlugin,
+	createAmpPlugin,
 	createAmpWrapper,
 	createClaudeSettingsJson,
 	createClaudeWrapper,
@@ -19,6 +20,9 @@ import {
 	createMastraWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
+	createPiExtension,
+	createVibeHooksToml,
+	createVibeWrapper,
 } from "./agent-wrappers";
 import {
 	DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS,
@@ -31,6 +35,7 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 	{
 		"notify-script": createNotifyScript,
 		"cleanup-global-opencode-plugin": cleanupGlobalOpenCodePlugin,
+		"amp-plugin": createAmpPlugin,
 		"amp-wrapper": createAmpWrapper,
 		"claude-settings-json": createClaudeSettingsJson,
 		"claude-wrapper": createClaudeWrapper,
@@ -40,6 +45,7 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 		"droid-settings-json": createDroidSettingsJson,
 		"opencode-plugin": createOpenCodePlugin,
 		"opencode-wrapper": createOpenCodeWrapper,
+		"pi-extension": createPiExtension,
 		"cursor-hook-script": createCursorHookScript,
 		"cursor-agent-wrapper": createCursorAgentWrapper,
 		"cursor-hooks-json": createCursorHooksJson,
@@ -50,6 +56,8 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 		"mastra-hooks-json": createMastraHooksJson,
 		"copilot-hook-script": createCopilotHookScript,
 		"copilot-wrapper": createCopilotWrapper,
+		"vibe-hooks-toml": createVibeHooksToml,
+		"vibe-wrapper": createVibeWrapper,
 	};
 
 export function setupDesktopAgentCapabilities(): void {
@@ -62,4 +70,21 @@ export function setupDesktopAgentCapabilities(): void {
 			DESKTOP_AGENT_SETUP_RUNNERS[action]();
 		}
 	}
+}
+
+/**
+ * Re-run setupActions for one agent. Bootstrap actions run first because
+ * per-agent hooks reference the shared notify script — without them the
+ * per-agent setup isn't self-sufficient. Returns `false` for unknown ids.
+ */
+export function setupSingleAgent(agentId: string): boolean {
+	const target = DESKTOP_AGENT_SETUP_TARGETS.find((t) => t.id === agentId);
+	if (!target) return false;
+	for (const action of DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS) {
+		DESKTOP_AGENT_SETUP_RUNNERS[action]();
+	}
+	for (const action of target.setupActions) {
+		DESKTOP_AGENT_SETUP_RUNNERS[action]();
+	}
+	return true;
 }

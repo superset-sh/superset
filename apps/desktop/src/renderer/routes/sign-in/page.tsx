@@ -1,11 +1,19 @@
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
+import {
+	DEV_EMAIL,
+	DEV_NAME,
+	DEV_PASSWORD,
+} from "@superset/shared/dev-credentials";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
+import { setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SupersetLogo } from "./components/SupersetLogo";
 import { useSessionRecovery } from "./hooks/useSessionRecovery";
@@ -14,8 +22,24 @@ export const Route = createFileRoute("/sign-in/")({
 	component: SignInPage,
 });
 
+const LAST_USED_METHOD_KEY = "superset-last-auth-method";
+
+type AuthMethod = AuthProvider | "dev";
+
+function readLastUsedMethod(): AuthMethod | null {
+	const stored = window.localStorage.getItem(LAST_USED_METHOD_KEY);
+	return stored === "github" || stored === "google" || stored === "dev"
+		? stored
+		: null;
+}
+
 function SignInPage() {
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
+	const persistToken = electronTrpc.auth.persistToken.useMutation();
+	const navigate = useNavigate();
+	const [isLoadingDev, setIsLoadingDev] = useState(false);
+	const [devError, setDevError] = useState<string | null>(null);
+	const [lastUsedMethod, setLastUsedMethod] = useState(readLastUsedMethod);
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
 
 	// Dev bypass: skip sign-in entirely
@@ -37,10 +61,80 @@ function SignInPage() {
 		return <Navigate to="/workspace" replace />;
 	}
 
+	const rememberLastUsedMethod = (method: AuthMethod) => {
+		window.localStorage.setItem(LAST_USED_METHOD_KEY, method);
+		setLastUsedMethod(method);
+	};
+
 	const signIn = (provider: AuthProvider) => {
 		track("auth_started", { provider });
+		rememberLastUsedMethod(provider);
 		signInMutation.mutate({ provider });
 	};
+
+	const signInAsDev = async () => {
+		setIsLoadingDev(true);
+		setDevError(null);
+		rememberLastUsedMethod("dev");
+
+		const postAuth = async (path: string, body: Record<string, unknown>) => {
+			const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "omit",
+				body: JSON.stringify(body),
+			});
+			const data = (await response.json().catch(() => ({}))) as {
+				token?: string;
+				code?: string;
+				message?: string;
+			};
+			return { ok: response.ok, status: response.status, data };
+		};
+
+		try {
+			let result = await postAuth("/api/auth/sign-in/email", {
+				email: DEV_EMAIL,
+				password: DEV_PASSWORD,
+			});
+			if (!result.ok && result.data.code === "INVALID_EMAIL_OR_PASSWORD") {
+				const signUp = await postAuth("/api/auth/sign-up/email", {
+					email: DEV_EMAIL,
+					password: DEV_PASSWORD,
+					name: DEV_NAME,
+				});
+				if (!signUp.ok) {
+					throw new Error(
+						signUp.data.message ?? `Sign-up failed (${signUp.status})`,
+					);
+				}
+				result = await postAuth("/api/auth/sign-in/email", {
+					email: DEV_EMAIL,
+					password: DEV_PASSWORD,
+				});
+			}
+			if (!result.ok) {
+				throw new Error(
+					result.data.message ?? `Sign-in failed (${result.status})`,
+				);
+			}
+			const token = result.data.token;
+			if (!token) throw new Error("Sign-in did not return a token");
+			const expiresAt = new Date(
+				Date.now() + 1000 * 60 * 60 * 24 * 30,
+			).toISOString();
+			await persistToken.mutateAsync({ token, expiresAt });
+			setAuthToken(token);
+			await navigate({ to: "/workspace", replace: true });
+		} catch (error) {
+			setDevError(
+				error instanceof Error ? error.message : "Dev sign-in failed",
+			);
+			setIsLoadingDev(false);
+		}
+	};
+
+	const lastUsedBadge = <Badge variant="secondary">Last used</Badge>;
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
@@ -64,6 +158,25 @@ function SignInPage() {
 					</div>
 
 					<div className="flex flex-col gap-3 w-full max-w-xs">
+						{env.NODE_ENV === "development" && (
+							<Button
+								variant="outline"
+								size="lg"
+								onClick={signInAsDev}
+								className="w-full gap-3"
+								disabled={isLoadingDev}
+							>
+								{isLoadingDev
+									? "Signing in..."
+									: "Sign in as Local Admin (dev)"}
+								{lastUsedMethod === "dev" && lastUsedBadge}
+							</Button>
+						)}
+						{devError && (
+							<p className="text-xs text-destructive text-center select-text cursor-text">
+								{devError}
+							</p>
+						)}
 						<Button
 							variant="outline"
 							size="lg"
@@ -73,6 +186,7 @@ function SignInPage() {
 						>
 							<FaGithub className="size-5" />
 							Continue with GitHub
+							{lastUsedMethod === "github" && lastUsedBadge}
 						</Button>
 
 						<Button
@@ -84,6 +198,7 @@ function SignInPage() {
 						>
 							<FcGoogle className="size-5" />
 							Continue with Google
+							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
 					</div>
 

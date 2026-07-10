@@ -11,12 +11,13 @@ function readComponent(relativePath: string): string {
 }
 
 describe("Tasks table delete wiring", () => {
-	test("TaskContextMenu deletes tasks through the collections API", () => {
+	test("TaskContextMenu deletes tasks through optimistic task actions", () => {
 		const source = readComponent(
 			"components/TaskContextMenu/TaskContextMenu.tsx",
 		);
 
-		expect(source).toContain("collections.tasks.delete(task.id)");
+		expect(source).toContain("useOptimisticCollectionActions");
+		expect(source).toContain("taskActions.deleteTask(task.id)");
 		expect(source).toContain("onSelect={handleDelete}");
 	});
 

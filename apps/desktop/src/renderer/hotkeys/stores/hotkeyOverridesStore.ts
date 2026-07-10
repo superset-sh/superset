@@ -1,9 +1,13 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { ShortcutBinding } from "../types";
 
 interface HotkeyOverridesState {
-	overrides: Record<string, string | null>;
-	setOverride: (id: string, keys: string | null) => void;
+	/** Per-hotkey-id override. `null` = explicit unassignment. Stored as the
+	 *  ShortcutBinding shape: bare string for physical-mode bindings (legacy
+	 *  + shipped defaults), v2 object for logical / named modes. */
+	overrides: Record<string, ShortcutBinding | null>;
+	setOverride: (id: string, binding: ShortcutBinding | null) => void;
 	resetOverride: (id: string) => void;
 	resetAll: () => void;
 }

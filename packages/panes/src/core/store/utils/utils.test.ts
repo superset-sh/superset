@@ -4,8 +4,12 @@ import {
 	equalizeAllSplits,
 	findFirstPaneId,
 	findPaneInLayout,
+	getActiveIdAfterRemoval,
 	getNodeAtPath,
 	getOtherBranch,
+	getPaneIdsInLayout,
+	getSpatialNeighborPaneId,
+	graftSubtreeAtPane,
 	positionToDirection,
 	removePaneFromLayout,
 	replacePaneIdInLayout,
@@ -81,6 +85,21 @@ describe("findFirstPaneId", () => {
 
 	it("returns the first pane in nested splits", () => {
 		expect(findFirstPaneId(NESTED)).toBe("a");
+	});
+});
+
+describe("getPaneIdsInLayout", () => {
+	it("returns pane ids in layout order", () => {
+		expect(getPaneIdsInLayout(NESTED)).toEqual(["a", "b", "c"]);
+	});
+});
+
+describe("getActiveIdAfterRemoval", () => {
+	it("preserves inactive focus, otherwise selects next then previous", () => {
+		expect(getActiveIdAfterRemoval(["a", "b", "c"], "a", "b")).toBe("a");
+		expect(getActiveIdAfterRemoval(["a", "b", "c"], "b", "b")).toBe("c");
+		expect(getActiveIdAfterRemoval(["a", "b", "c"], "c", "c")).toBe("b");
+		expect(getActiveIdAfterRemoval(["a"], "a", "a")).toBeNull();
 	});
 });
 
@@ -215,6 +234,56 @@ describe("splitPaneInLayout", () => {
 	});
 });
 
+describe("graftSubtreeAtPane", () => {
+	it("grafts a whole subtree next to the target pane, preserving its shape", () => {
+		const subtree: LayoutNode = {
+			type: "split",
+			direction: "vertical",
+			first: { type: "pane", paneId: "x" },
+			second: { type: "pane", paneId: "y" },
+		};
+
+		const result = graftSubtreeAtPane(SINGLE, "a", subtree, "right");
+
+		expect(result).toEqual({
+			type: "split",
+			direction: "horizontal",
+			first: { type: "pane", paneId: "a" },
+			second: subtree,
+		});
+	});
+
+	it("places the subtree first for left/top positions", () => {
+		const subtree: LayoutNode = { type: "pane", paneId: "x" };
+		const result = graftSubtreeAtPane(SINGLE, "a", subtree, "top");
+
+		expect(result).toEqual({
+			type: "split",
+			direction: "vertical",
+			first: subtree,
+			second: { type: "pane", paneId: "a" },
+		});
+	});
+
+	it("grafts at a nested target pane and leaves siblings untouched", () => {
+		const subtree: LayoutNode = { type: "pane", paneId: "x" };
+		const result = graftSubtreeAtPane(NESTED, "c", subtree, "right");
+
+		// a stays as-is; the b/c vertical split keeps b, c becomes c|x
+		if (result.type !== "split") throw new Error("expected split");
+		expect(result.first).toEqual({ type: "pane", paneId: "a" });
+		const inner = result.second;
+		if (inner.type !== "split") throw new Error("expected nested split");
+		expect(inner.first).toEqual({ type: "pane", paneId: "b" });
+		expect(inner.second).toEqual({
+			type: "split",
+			direction: "horizontal",
+			first: { type: "pane", paneId: "c" },
+			second: subtree,
+		});
+	});
+});
+
 describe("getNodeAtPath", () => {
 	it("returns root for empty path", () => {
 		expect(getNodeAtPath(TWO_SPLIT, [])).toEqual(TWO_SPLIT);
@@ -318,5 +387,137 @@ describe("positionToDirection", () => {
 	it("maps top/bottom to vertical", () => {
 		expect(positionToDirection("top")).toBe("vertical");
 		expect(positionToDirection("bottom")).toBe("vertical");
+	});
+});
+
+describe("getSpatialNeighborPaneId", () => {
+	//   +---+
+	//   | a |
+	//   +---+
+	it("returns null when there is only one pane", () => {
+		const layout: LayoutNode = { type: "pane", paneId: "a" };
+		expect(getSpatialNeighborPaneId(layout, "a", "left")).toBeNull();
+		expect(getSpatialNeighborPaneId(layout, "a", "right")).toBeNull();
+		expect(getSpatialNeighborPaneId(layout, "a", "up")).toBeNull();
+		expect(getSpatialNeighborPaneId(layout, "a", "down")).toBeNull();
+	});
+
+	//   +---+---+
+	//   | a | b |
+	//   +---+---+
+	it("moves between siblings in a horizontal split", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			first: { type: "pane", paneId: "a" },
+			second: { type: "pane", paneId: "b" },
+		};
+		expect(getSpatialNeighborPaneId(layout, "a", "right")).toBe("b");
+		expect(getSpatialNeighborPaneId(layout, "b", "left")).toBe("a");
+		expect(getSpatialNeighborPaneId(layout, "a", "up")).toBeNull();
+		expect(getSpatialNeighborPaneId(layout, "a", "down")).toBeNull();
+	});
+
+	//   +---+
+	//   | a |
+	//   +---+
+	//   | b |
+	//   +---+
+	it("moves between siblings in a vertical split", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "vertical",
+			first: { type: "pane", paneId: "a" },
+			second: { type: "pane", paneId: "b" },
+		};
+		expect(getSpatialNeighborPaneId(layout, "a", "down")).toBe("b");
+		expect(getSpatialNeighborPaneId(layout, "b", "up")).toBe("a");
+		expect(getSpatialNeighborPaneId(layout, "a", "right")).toBeNull();
+	});
+
+	//   +---+---+
+	//   | a | b |
+	//   +---+---+
+	it("does not wrap around at the layout edge", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			first: { type: "pane", paneId: "a" },
+			second: { type: "pane", paneId: "b" },
+		};
+		expect(getSpatialNeighborPaneId(layout, "a", "left")).toBeNull();
+		expect(getSpatialNeighborPaneId(layout, "b", "right")).toBeNull();
+	});
+
+	// 2x2 grid built "rows first":
+	//   outer = vertical split { top row / bot row }
+	//     top row = horizontal split { a | b }
+	//     bot row = horizontal split { c | d }
+	//
+	//   +---+---+
+	//   | a | b |
+	//   +---+---+
+	//   | c | d |
+	//   +---+---+
+	it("preserves column alignment in a rows-first 2x2", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "vertical",
+			first: {
+				type: "split",
+				direction: "horizontal",
+				first: { type: "pane", paneId: "a" },
+				second: { type: "pane", paneId: "b" },
+			},
+			second: {
+				type: "split",
+				direction: "horizontal",
+				first: { type: "pane", paneId: "c" },
+				second: { type: "pane", paneId: "d" },
+			},
+		};
+		expect(getSpatialNeighborPaneId(layout, "b", "down")).toBe("d");
+		expect(getSpatialNeighborPaneId(layout, "d", "up")).toBe("b");
+		expect(getSpatialNeighborPaneId(layout, "c", "up")).toBe("a");
+		expect(getSpatialNeighborPaneId(layout, "a", "down")).toBe("c");
+		expect(getSpatialNeighborPaneId(layout, "a", "right")).toBe("b");
+		expect(getSpatialNeighborPaneId(layout, "d", "left")).toBe("c");
+		expect(getSpatialNeighborPaneId(layout, "a", "left")).toBeNull();
+		expect(getSpatialNeighborPaneId(layout, "b", "up")).toBeNull();
+	});
+
+	// 2x2 grid built "columns first":
+	//   outer = horizontal split { left col / right col }
+	//     left col = vertical split { a / c }
+	//     right col = vertical split { b / d }
+	//
+	//   +---+---+
+	//   | a | b |
+	//   +---+---+
+	//   | c | d |
+	//   +---+---+
+	it("preserves row alignment in a columns-first 2x2", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			first: {
+				type: "split",
+				direction: "vertical",
+				first: { type: "pane", paneId: "a" },
+				second: { type: "pane", paneId: "c" },
+			},
+			second: {
+				type: "split",
+				direction: "vertical",
+				first: { type: "pane", paneId: "b" },
+				second: { type: "pane", paneId: "d" },
+			},
+		};
+		expect(getSpatialNeighborPaneId(layout, "c", "right")).toBe("d");
+		expect(getSpatialNeighborPaneId(layout, "d", "left")).toBe("c");
+		expect(getSpatialNeighborPaneId(layout, "a", "right")).toBe("b");
+		expect(getSpatialNeighborPaneId(layout, "b", "left")).toBe("a");
+		expect(getSpatialNeighborPaneId(layout, "a", "down")).toBe("c");
+		expect(getSpatialNeighborPaneId(layout, "b", "down")).toBe("d");
 	});
 });

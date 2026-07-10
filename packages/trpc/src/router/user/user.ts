@@ -11,7 +11,7 @@ export const userRouter = {
 	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
 
 	myOrganization: protectedProcedure.query(async ({ ctx }) => {
-		const activeOrganizationId = ctx.session.session.activeOrganizationId;
+		const activeOrganizationId = ctx.activeOrganizationId;
 
 		const membership = await db.query.members.findFirst({
 			where: activeOrganizationId
@@ -51,6 +51,15 @@ export const userRouter = {
 				.returning();
 			return updatedUser;
 		}),
+
+	completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+		const [updatedUser] = await db
+			.update(users)
+			.set({ onboardedAt: new Date() })
+			.where(eq(users.id, ctx.session.user.id))
+			.returning();
+		return updatedUser;
+	}),
 
 	uploadAvatar: protectedProcedure
 		.input(

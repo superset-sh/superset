@@ -25,6 +25,7 @@ export interface ChangedFile {
 	status: FileStatus;
 	additions: number;
 	deletions: number;
+	isBinary?: boolean;
 }
 
 /** A commit summary for the committed changes section */

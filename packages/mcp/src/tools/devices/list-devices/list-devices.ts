@@ -5,20 +5,12 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
 
-const DEVICE_ONLINE_WINDOW_MS = 60_000;
-
 export function register(server: McpServer) {
 	server.registerTool(
 		"list_devices",
 		{
-			description:
-				"List devices in the organization. By default, only devices seen within the last 60 seconds are returned.",
-			inputSchema: {
-				includeOffline: z
-					.boolean()
-					.default(false)
-					.describe("Include devices that have not checked in recently"),
-			},
+			description: "List registered devices in the organization.",
+			inputSchema: {},
 			outputSchema: {
 				devices: z.array(
 					z.object({
@@ -29,15 +21,12 @@ export function register(server: McpServer) {
 						ownerId: z.string(),
 						ownerName: z.string().nullable(),
 						ownerEmail: z.string(),
-						isOnline: z.boolean(),
 					}),
 				),
 			},
 		},
-		async (args, extra) => {
+		async (_args, extra) => {
 			const ctx = getMcpContext(extra);
-			const includeOffline = args.includeOffline === true;
-			const onlineCutoff = Date.now() - DEVICE_ONLINE_WINDOW_MS;
 
 			const devices = await db
 				.select({
@@ -54,17 +43,10 @@ export function register(server: McpServer) {
 				.where(eq(devicePresence.organizationId, ctx.organizationId))
 				.orderBy(desc(devicePresence.lastSeenAt));
 
-			const result = devices
-				.map((d) => {
-					const isOnline = d.lastSeenAt.getTime() >= onlineCutoff;
-
-					return {
-						...d,
-						lastSeenAt: d.lastSeenAt.toISOString(),
-						isOnline,
-					};
-				})
-				.filter((device) => includeOffline || device.isOnline);
+			const result = devices.map((d) => ({
+				...d,
+				lastSeenAt: d.lastSeenAt.toISOString(),
+			}));
 
 			return {
 				structuredContent: { devices: result },

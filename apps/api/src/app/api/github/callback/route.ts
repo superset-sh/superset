@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { githubInstallations, members } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
@@ -87,6 +87,26 @@ export async function GET(request: Request) {
 			account && "login" in account ? account.login : (account?.name ?? "");
 		const accountType =
 			account && "type" in account ? account.type : "Organization";
+
+		// If another organization already owns this installation_id, refuse to
+		// silently take it over — we'd otherwise either crash on the
+		// installation_id UNIQUE constraint or sever the other org's integration
+		// without notice. Ask the user to disconnect on the existing org (or
+		// uninstall in GitHub, which fires our uninstall webhook) first.
+		const existingForInstallation =
+			await db.query.githubInstallations.findFirst({
+				where: and(
+					eq(githubInstallations.installationId, String(installation.id)),
+					ne(githubInstallations.organizationId, organizationId),
+				),
+				columns: { id: true },
+			});
+
+		if (existingForInstallation) {
+			return Response.redirect(
+				`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=already_connected`,
+			);
+		}
 
 		// Save the installation to our database
 		const [savedInstallation] = await db

@@ -4,7 +4,7 @@ import { ExternalIdePopup } from "./components/ExternalIdePopup";
 import { LeftSidebar } from "./components/LeftSidebar";
 import { MainPanel } from "./components/MainPanel";
 import { RightSidebar } from "./components/RightSidebar";
-import { WindowChrome } from "./components/WindowChrome";
+import { TabBar } from "./components/TabBar";
 import type { AppMockupProps } from "./types";
 
 export type { ActiveDemo } from "./types";
@@ -12,28 +12,17 @@ export type { ActiveDemo } from "./types";
 export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 	return (
 		<div
-			className="relative w-full min-w-[700px] overflow-hidden rounded-2xl bg-black/60 shadow-[0_8px_60px_-12px_rgba(0,0,0,0.7)] backdrop-blur-xl"
+			className="relative w-full min-w-[700px] overflow-hidden rounded-md border border-border bg-background shadow-[0_30px_80px_-24px_rgba(0,0,0,0.7)]"
 			style={{ aspectRatio: "16/10" }}
 		>
-			<div
-				className="pointer-events-none absolute inset-0 z-10 rounded-2xl"
-				style={{
-					background:
-						"linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.15) 100%)",
-					mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-					WebkitMask:
-						"linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-					maskComposite: "exclude",
-					WebkitMaskComposite: "xor",
-					padding: "1.5px",
-				}}
-			/>
+			<div className="pointer-events-none absolute inset-0 z-20 rounded-md ring-1 ring-inset ring-white/[0.04]" />
 
-			<WindowChrome />
-
-			<div className="flex h-[calc(100%-40px)]">
+			<div className="flex h-full">
 				<LeftSidebar activeDemo={activeDemo} />
-				<MainPanel activeDemo={activeDemo} />
+				<div className="flex min-w-0 flex-1 flex-col">
+					<TabBar activeDemo={activeDemo} />
+					<MainPanel activeDemo={activeDemo} />
+				</div>
 				<RightSidebar activeDemo={activeDemo} />
 			</div>
 

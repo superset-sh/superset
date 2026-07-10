@@ -129,6 +129,34 @@ export const createBrowserRouter = () => {
 				});
 			}),
 
+		onClosePane: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<void>((emit) => {
+					const handler = () => {
+						emit.next();
+					};
+					browserManager.on(`close-pane:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`close-pane:${input.paneId}`, handler);
+					};
+				});
+			}),
+
+		onReloadPane: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<void>((emit) => {
+					const handler = () => {
+						emit.next();
+					};
+					browserManager.on(`reload-pane:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`reload-pane:${input.paneId}`, handler);
+					};
+				});
+			}),
+
 		openDevTools: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {

@@ -76,6 +76,7 @@ export default defineConfig({
 			"process.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
+			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
 			// Must match renderer for analytics in main process
 			"process.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_KEY,
@@ -110,6 +111,9 @@ export default defineConfig({
 					"git-task-worker": resolve("src/main/git-task-worker.ts"),
 					// Workspace service - local HTTP/tRPC server per org
 					"host-service": resolve("src/main/host-service/index.ts"),
+					// pty-daemon - long-lived per-org Unix-socket server that owns PTYs.
+					// Spawned by PtyDaemonCoordinator; survives host-service restarts.
+					"pty-daemon": resolve("src/main/pty-daemon/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),
@@ -196,6 +200,7 @@ export default defineConfig({
 			"import.meta.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
+			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
 			"process.env.STREAMS_URL": defineEnv(
 				process.env.STREAMS_URL,
 				"https://superset-stream.fly.dev",

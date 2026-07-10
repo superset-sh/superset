@@ -40,7 +40,7 @@ export function PendingInvitations({
 		visibleItems,
 	);
 
-	const { data: invitationsData, isLoading } = useLiveQuery(
+	const { data: invitationsData, isReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ invitations: collections.invitations })
@@ -81,7 +81,7 @@ export function PendingInvitations({
 		visibleItems,
 	);
 
-	if (isLoading) {
+	if (!isReady && invitations.length === 0) {
 		return (
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">

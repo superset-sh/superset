@@ -39,7 +39,10 @@ export function BaseBranchSelector({
 					<ChevronDown className="size-3" />
 				</button>
 			</PopoverTrigger>
-			<PopoverContent className="w-64 p-0" align="start">
+			<PopoverContent
+				className="flex w-64 max-h-96 flex-col p-0 overflow-hidden"
+				align="start"
+			>
 				<div className="border-b px-3 py-2">
 					<input
 						placeholder="Search branches..."
@@ -48,7 +51,7 @@ export function BaseBranchSelector({
 						className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
 					/>
 				</div>
-				<ScrollArea className="max-h-[200px]">
+				<ScrollArea className="flex-1 overflow-y-auto">
 					<div className="p-1">
 						{filtered.map((branch) => (
 							<button

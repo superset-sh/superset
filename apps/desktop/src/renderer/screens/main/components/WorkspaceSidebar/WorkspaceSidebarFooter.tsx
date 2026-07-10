@@ -7,10 +7,18 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useNavigate } from "@tanstack/react-router";
-import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
+import {
+	LuFolderOpen,
+	LuFolderPlus,
+	LuGitBranch,
+	LuLayoutTemplate,
+} from "react-icons/lu";
 import { useOpenProject } from "renderer/react-query/projects";
 import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
+import {
+	useOpenNewProjectModal,
+	useOpenTemplateGalleryModal,
+} from "renderer/stores/add-repository-modal";
 import { STROKE_WIDTH } from "./constants";
 
 interface WorkspaceSidebarFooterProps {
@@ -20,9 +28,10 @@ interface WorkspaceSidebarFooterProps {
 export function WorkspaceSidebarFooter({
 	isCollapsed = false,
 }: WorkspaceSidebarFooterProps) {
-	const navigate = useNavigate();
 	const { openNew, isPending: isOpenPending } = useOpenProject();
 	const openMainRepoWorkspace = useOpenMainRepoWorkspace();
+	const openNewProject = useOpenNewProjectModal();
+	const openTemplateGallery = useOpenTemplateGalleryModal();
 
 	const handleOpenProject = async () => {
 		try {
@@ -46,6 +55,27 @@ export function WorkspaceSidebarFooter({
 					error instanceof Error ? error.message : "An unknown error occurred",
 			});
 		}
+	};
+
+	const openMainWorkspaceForProject = async (projectId: string) => {
+		try {
+			await openMainRepoWorkspace.mutateAsync({ projectId });
+		} catch (err) {
+			toast.error("Failed to open project", {
+				description:
+					err instanceof Error ? err.message : "Failed to create workspace",
+			});
+		}
+	};
+
+	const handleCloneProject = async () => {
+		const result = await openNewProject();
+		if (result) await openMainWorkspaceForProject(result.projectId);
+	};
+
+	const handleTemplateProject = async () => {
+		const result = await openTemplateGallery();
+		if (result) await openMainWorkspaceForProject(result.projectId);
 	};
 
 	const isLoading = isOpenPending || openMainRepoWorkspace.isPending;
@@ -74,9 +104,13 @@ export function WorkspaceSidebarFooter({
 							<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
 							Open project
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => navigate({ to: "/new-project" })}>
-							<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
-							New project
+						<DropdownMenuItem onClick={handleCloneProject}>
+							<LuGitBranch className="size-4" strokeWidth={STROKE_WIDTH} />
+							Clone from URL
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={handleTemplateProject}>
+							<LuLayoutTemplate className="size-4" strokeWidth={STROKE_WIDTH} />
+							Start from a template
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -103,9 +137,13 @@ export function WorkspaceSidebarFooter({
 						<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
 						Open project
 					</DropdownMenuItem>
-					<DropdownMenuItem onClick={() => navigate({ to: "/new-project" })}>
-						<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
-						New project
+					<DropdownMenuItem onClick={handleCloneProject}>
+						<LuGitBranch className="size-4" strokeWidth={STROKE_WIDTH} />
+						Clone from URL
+					</DropdownMenuItem>
+					<DropdownMenuItem onClick={handleTemplateProject}>
+						<LuLayoutTemplate className="size-4" strokeWidth={STROKE_WIDTH} />
+						Start from a template
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

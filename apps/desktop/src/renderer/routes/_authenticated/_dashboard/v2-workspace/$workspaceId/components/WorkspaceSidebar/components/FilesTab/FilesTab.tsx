@@ -1,562 +1,325 @@
-import { alert } from "@superset/ui/atoms/Alert";
-import { Button } from "@superset/ui/button";
+import type {
+	FileTreeRenameEvent,
+	FileTreeRowDecoration,
+	FileTreeRowDecorationContext,
+	ContextMenuItem as PierreContextMenuItem,
+	ContextMenuOpenContext as PierreContextMenuOpenContext,
+} from "@pierre/trees";
+import {
+	FileTree as PierreFileTree,
+	useFileTree as usePierreFileTree,
+} from "@pierre/trees/react";
+import type { AppRouter } from "@superset/host-service";
 import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { workspaceTrpc } from "@superset/workspace-client";
+import type { inferRouterOutputs } from "@trpc/server";
 import {
-	type FileTreeNode,
-	useFileTree,
-	useWorkspaceFsEventBridge,
-	useWorkspaceFsEvents,
-	workspaceTrpc,
-} from "@superset/workspace-client";
-import { FilePlus, FolderPlus, FoldVertical, RefreshCw } from "lucide-react";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+	FilePlus,
+	FolderPlus,
+	FoldVertical,
+	Loader2,
+	RefreshCw,
+} from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
+import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
 import {
-	ROW_HEIGHT,
-	TREE_INDENT,
-} from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/constants";
-import { NewItemInput } from "./components/NewItemInput";
-import { WorkspaceFilesTreeItem } from "./components/WorkspaceFilesTreeItem";
+	ShadowClickHint,
+	usePierreRowClickPolicy,
+	useSidebarFilePolicy,
+} from "renderer/lib/clickPolicy";
+import { useFallthroughIcons } from "renderer/lib/fileIcons";
+import { createPierreTreeStyle } from "renderer/lib/pierreTree";
+import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
+import { PierreRowContextMenu } from "../PierreRowContextMenu";
+import { FileMenuItems } from "./components/FileMenuItems";
+import { FilesTabDropOverlay } from "./components/FilesTabDropOverlay";
+import { FilesTabHeaderButton } from "./components/FilesTabHeaderButton";
+import { FolderMenuItems } from "./components/FolderMenuItems";
+import {
+	FILE_EXPLORER_INDENT,
+	FILE_EXPLORER_OVERSCAN,
+	FILE_EXPLORER_ROW_HEIGHT,
+} from "./constants";
+import { useFilesTabActions } from "./hooks/useFilesTabActions";
+import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
+import { useFilesTabDrop } from "./hooks/useFilesTabDrop";
+import { buildPierreGitStatus } from "./utils/buildPierreGitStatus";
+import { stripTrailingSlash, toAbs, toRel } from "./utils/treePath";
 
-type InlineEditState =
-	| { kind: "create"; mode: "file" | "folder"; parentPath: string }
-	| { kind: "rename"; absolutePath: string; name: string; isDirectory: boolean }
-	| null;
+const TREE_STYLE = createPierreTreeStyle({
+	rowHeight: FILE_EXPLORER_ROW_HEIGHT,
+	levelIndent: FILE_EXPLORER_INDENT,
+	withSearchChrome: true,
+});
+
+type GitStatusData = inferRouterOutputs<AppRouter>["git"]["getStatus"];
 
 interface FilesTabProps {
-	onSelectFile: (absolutePath: string) => void;
+	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 	selectedFilePath?: string;
+	pendingReveal?: {
+		path: string;
+		isDirectory: boolean;
+	} | null;
 	workspaceId: string;
-	workspaceName?: string;
-}
-
-function TreeNode({
-	node,
-	depth,
-	indent,
-	rowHeight,
-	selectedFilePath,
-	hoveredPath,
-	inlineEdit,
-	onSelectFile,
-	onToggleDirectory,
-	onInlineEditSubmit,
-	onInlineEditCancel,
-	onNewFile,
-	onNewFolder,
-	onRename,
-	onDelete,
-}: {
-	node: FileTreeNode;
-	depth: number;
-	indent: number;
-	rowHeight: number;
-	selectedFilePath?: string;
-	hoveredPath?: string | null;
-	inlineEdit: InlineEditState;
-	onSelectFile: (absolutePath: string) => void;
-	onToggleDirectory: (absolutePath: string) => void;
-	onInlineEditSubmit: (name: string) => void;
-	onInlineEditCancel: () => void;
-	onNewFile: (parentPath: string) => void;
-	onNewFolder: (parentPath: string) => void;
-	onRename: (absolutePath: string, name: string, isDirectory: boolean) => void;
-	onDelete: (absolutePath: string, name: string, isDirectory: boolean) => void;
-}) {
-	const isCreating = inlineEdit?.kind === "create";
-	const isCreatingHere =
-		isCreating && inlineEdit.parentPath === node.absolutePath;
-	const isCreatingFile = isCreatingHere && inlineEdit.mode === "file";
-	const isRenaming =
-		inlineEdit?.kind === "rename" &&
-		inlineEdit.absolutePath === node.absolutePath;
-	const lastFolderIndex = node.children.findLastIndex(
-		(n) => n.kind === "directory",
-	);
-
-	return (
-		<div>
-			{isRenaming ? (
-				<NewItemInput
-					mode={node.kind === "directory" ? "folder" : "file"}
-					depth={depth}
-					initialValue={inlineEdit.name}
-					onSubmit={onInlineEditSubmit}
-					onCancel={onInlineEditCancel}
-				/>
-			) : (
-				<WorkspaceFilesTreeItem
-					node={node}
-					depth={depth}
-					indent={indent}
-					rowHeight={rowHeight}
-					selectedFilePath={selectedFilePath}
-					isHovered={hoveredPath === node.absolutePath}
-					onSelectFile={onSelectFile}
-					onToggleDirectory={onToggleDirectory}
-					onNewFile={onNewFile}
-					onNewFolder={onNewFolder}
-					onRename={onRename}
-					onDelete={onDelete}
-				/>
-			)}
-			{node.kind === "directory" && node.isExpanded && (
-				<>
-					{isCreatingHere && inlineEdit.mode === "folder" && (
-						<NewItemInput
-							mode="folder"
-							depth={depth + 1}
-							onSubmit={onInlineEditSubmit}
-							onCancel={onInlineEditCancel}
-						/>
-					)}
-					{node.children.map((child, index) => (
-						<Fragment key={child.absolutePath}>
-							<TreeNode
-								node={child}
-								depth={depth + 1}
-								indent={indent}
-								rowHeight={rowHeight}
-								selectedFilePath={selectedFilePath}
-								hoveredPath={hoveredPath}
-								inlineEdit={inlineEdit}
-								onSelectFile={onSelectFile}
-								onToggleDirectory={onToggleDirectory}
-								onInlineEditSubmit={onInlineEditSubmit}
-								onInlineEditCancel={onInlineEditCancel}
-								onNewFile={onNewFile}
-								onNewFolder={onNewFolder}
-								onRename={onRename}
-								onDelete={onDelete}
-							/>
-							{isCreatingFile && index === lastFolderIndex && (
-								<NewItemInput
-									mode="file"
-									depth={depth + 1}
-									onSubmit={onInlineEditSubmit}
-									onCancel={onInlineEditCancel}
-								/>
-							)}
-						</Fragment>
-					))}
-					{isCreatingFile && lastFolderIndex === -1 && (
-						<NewItemInput
-							mode="file"
-							depth={depth + 1}
-							onSubmit={onInlineEditSubmit}
-							onCancel={onInlineEditCancel}
-						/>
-					)}
-				</>
-			)}
-		</div>
-	);
+	gitStatus: GitStatusData | undefined;
 }
 
 export function FilesTab({
 	onSelectFile,
 	selectedFilePath,
+	pendingReveal,
 	workspaceId,
-	workspaceName,
+	gitStatus,
 }: FilesTabProps) {
-	const [_isRefreshing, setIsRefreshing] = useState(false);
-	const [hoveredPath, setHoveredPath] = useState<string | null>(null);
-	const [inlineEdit, setInlineEdit] = useState<InlineEditState>(null);
-	const utils = workspaceTrpc.useUtils();
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
-	});
+	// Shares the query cache with V2WorkspacePage's workspace.get query, so
+	// the first render after a workspace switch typically already has cached
+	// data from React Query (the parent route resolves it first). staleTime
+	// is set high enough that intra-session switches to a previously-visited
+	// workspace render instantly without a refetch.
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspaceId },
+		{ staleTime: 30_000 },
+	);
 	const rootPath = workspaceQuery.data?.worktreePath ?? "";
 
-	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
-	const createDirectory =
-		workspaceTrpc.filesystem.createDirectory.useMutation();
-	const movePath = workspaceTrpc.filesystem.movePath.useMutation();
+	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+	const filePolicy = useSidebarFilePolicy();
 
-	useWorkspaceFsEventBridge(
-		workspaceId,
-		Boolean(workspaceId && workspaceQuery.data?.worktreePath),
+	const { fileStatusByPath, folderStatusByPath, ignoredPaths } =
+		useGitStatusMap(gitStatus);
+
+	// Pierre's `gitStatus` is consumed only at construction; live updates
+	// flow via model.setGitStatus in an effect below.
+	const initialGitStatusEntriesRef = useRef(
+		buildPierreGitStatus(fileStatusByPath, folderStatusByPath, ignoredPaths),
 	);
 
-	const fileTree = useFileTree({ workspaceId, rootPath });
+	// Selection feedback loop guard: when the parent re-renders after we
+	// fired onSelectFile, syncing selectedFilePath back into the model would
+	// retrigger our onSelectionChange. Skip the next selection echo.
+	const lastSelectedFromUserRef = useRef<string | null>(null);
 
-	useWorkspaceFsEvents(
-		workspaceId,
-		() => void utils.filesystem.searchFiles.invalidate(),
-		Boolean(workspaceId),
-	);
-
-	const scrollContainerRef = useRef<HTMLDivElement>(null);
-	const lastMousePos = useRef<{ x: number; y: number } | null>(null);
-	const prevSelectedRef = useRef(selectedFilePath);
-
-	const updateHoverFromPoint = useCallback((x: number, y: number) => {
-		const el = document.elementFromPoint(x, y)?.closest("[data-filepath]");
-		setHoveredPath(el?.getAttribute("data-filepath") ?? null);
-	}, []);
-
-	const handleMouseMove = useCallback(
-		(e: React.MouseEvent) => {
-			lastMousePos.current = { x: e.clientX, y: e.clientY };
-			updateHoverFromPoint(e.clientX, e.clientY);
+	// `useFileTree` constructs the model once and never re-reads its options,
+	// so any callback we pass directly would close over stale state. Route
+	// every callback through a ref so we can update it on each render while
+	// keeping a stable function identity for Pierre.
+	const handlersRef = useRef({
+		onSelect(_path: string) {},
+		onRename(_event: FileTreeRenameEvent) {},
+		renderRowDecoration(
+			_ctx: FileTreeRowDecorationContext,
+		): FileTreeRowDecoration | null {
+			return null;
 		},
-		[updateHoverFromPoint],
-	);
+	});
 
-	const handleScroll = useCallback(() => {
-		if (lastMousePos.current)
-			updateHoverFromPoint(lastMousePos.current.x, lastMousePos.current.y);
-	}, [updateHoverFromPoint]);
-
-	const handleMouseLeave = useCallback(() => {
-		lastMousePos.current = null;
-		setHoveredPath(null);
-	}, []);
-
-	useEffect(() => {
-		if (
-			selectedFilePath &&
-			selectedFilePath !== prevSelectedRef.current &&
-			rootPath
-		) {
-			void fileTree.reveal(selectedFilePath).then(() => {
-				requestAnimationFrame(() => {
-					scrollContainerRef.current
-						?.querySelector(`[data-filepath="${CSS.escape(selectedFilePath)}"]`)
-						?.scrollIntoView({ block: "center" });
-				});
-			});
-		}
-		prevSelectedRef.current = selectedFilePath;
-	}, [selectedFilePath, rootPath, fileTree]);
-
-	const handleRefresh = useCallback(async () => {
-		setIsRefreshing(true);
-		try {
-			await fileTree.refreshAll();
-		} finally {
-			setIsRefreshing(false);
-		}
-	}, [fileTree]);
-
-	const getParentForCreation = useCallback((): string => {
-		if (!selectedFilePath || !rootPath) return rootPath;
-		// Walk tree to check if selected is a directory
-		function isDirectory(nodes: FileTreeNode[]): boolean {
-			for (const n of nodes) {
-				if (n.absolutePath === selectedFilePath) return n.kind === "directory";
-				if (n.children.length > 0 && isDirectory(n.children)) return true;
-			}
-			return false;
-		}
-		if (isDirectory(fileTree.rootEntries)) return selectedFilePath;
-		const lastSlash = selectedFilePath.lastIndexOf("/");
-		return lastSlash > 0 ? selectedFilePath.slice(0, lastSlash) : rootPath;
-	}, [selectedFilePath, rootPath, fileTree.rootEntries]);
-
-	const startCreating = useCallback(
-		async (mode: "file" | "folder", targetPath?: string) => {
-			const parentPath = targetPath ?? getParentForCreation();
-			if (parentPath !== rootPath) await fileTree.expand(parentPath);
-			setInlineEdit({ kind: "create", mode, parentPath });
-
-			scrollContainerRef.current
-				?.querySelector("[data-new-item-input]")
-				?.scrollIntoView({ block: "nearest" });
-			setTimeout(() => {
-				scrollContainerRef.current
-					?.querySelector<HTMLInputElement>("[data-new-item-input] input")
-					?.focus();
-			}, 200);
+	const { model } = usePierreFileTree({
+		paths: [],
+		initialExpansion: "closed",
+		search: false,
+		renaming: {
+			onRename: (event) => handlersRef.current.onRename(event),
+			onError: (message) => toast.error(message),
 		},
-		[getParentForCreation, rootPath, fileTree],
-	);
-
-	const startRenaming = useCallback(
-		(absolutePath: string, name: string, isDirectory: boolean) => {
-			setInlineEdit({ kind: "rename", absolutePath, name, isDirectory });
-			setTimeout(() => {
-				scrollContainerRef.current
-					?.querySelector<HTMLInputElement>("[data-new-item-input] input")
-					?.focus();
-			}, 200);
+		gitStatus: initialGitStatusEntriesRef.current,
+		icons: { set: "complete", colored: true },
+		itemHeight: FILE_EXPLORER_ROW_HEIGHT,
+		overscan: FILE_EXPLORER_OVERSCAN,
+		stickyFolders: true,
+		onSelectionChange: (paths) => {
+			const last = paths[paths.length - 1];
+			if (!last) return;
+			// Pierre uses trailing-slash paths for directories; we only fire
+			// onSelectFile for files (clicking a folder toggles expansion).
+			if (last.endsWith("/")) return;
+			handlersRef.current.onSelect(last);
 		},
-		[],
-	);
+		renderRowDecoration: (ctx) => handlersRef.current.renderRowDecoration(ctx),
+	});
 
-	const handleInlineEditSubmit = useCallback(
-		async (name: string) => {
-			if (!inlineEdit || !rootPath) return;
-
-			try {
-				if (inlineEdit.kind === "create") {
-					const { mode, parentPath } = inlineEdit;
-					const segments = name.split("/").filter(Boolean);
-					if (segments.length === 0) return;
-
-					const absolutePath = `${parentPath}/${name}`;
-
-					if (mode === "folder") {
-						await createDirectory.mutateAsync({
-							workspaceId,
-							absolutePath,
-							recursive: true,
-						});
-					} else {
-						if (segments.length > 1) {
-							const dirPath = `${parentPath}/${segments.slice(0, -1).join("/")}`;
-							await createDirectory.mutateAsync({
-								workspaceId,
-								absolutePath: dirPath,
-								recursive: true,
-							});
-						}
-						await writeFile.mutateAsync({
-							workspaceId,
-							absolutePath,
-							content: "",
-							options: { create: true, overwrite: false },
-						});
-						onSelectFile(absolutePath);
-					}
-				} else {
-					const { absolutePath } = inlineEdit;
-					const parentDir = absolutePath.slice(
-						0,
-						absolutePath.lastIndexOf("/"),
-					);
-					const destinationPath = `${parentDir}/${name}`;
-					await movePath.mutateAsync({
-						workspaceId,
-						sourceAbsolutePath: absolutePath,
-						destinationAbsolutePath: destinationPath,
-					});
-				}
-			} catch (error) {
-				toast.error(
-					inlineEdit.kind === "create"
-						? "Failed to create item"
-						: "Failed to rename",
-					{
-						description: error instanceof Error ? error.message : undefined,
-					},
-				);
-			}
-			setInlineEdit(null);
-		},
-		[
-			inlineEdit,
+	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
+	const { reveal, startCreating, handleRename, handleDelete, collapseAll } =
+		useFilesTabActions({
+			model,
+			bridge,
 			rootPath,
 			workspaceId,
-			writeFile,
-			createDirectory,
-			movePath,
+			selectedFilePath,
 			onSelectFile,
+		});
+	const drop = useFilesTabDrop({ model, bridge, rootPath, workspaceId });
+
+	// Push live git status updates into Pierre.
+	useEffect(() => {
+		model.setGitStatus(
+			buildPierreGitStatus(fileStatusByPath, folderStatusByPath, ignoredPaths),
+		);
+	}, [model, fileStatusByPath, folderStatusByPath, ignoredPaths]);
+
+	useFallthroughIcons(model);
+
+	// Reflect external selection changes (e.g. tab switch) back into the model.
+	useEffect(() => {
+		if (!selectedFilePath || !rootPath) return;
+		if (lastSelectedFromUserRef.current === selectedFilePath) {
+			lastSelectedFromUserRef.current = null;
+			return;
+		}
+		const rel = toRel(rootPath, selectedFilePath);
+		if (!bridge.knownPaths.has(rel)) return;
+		model.focusPath(rel);
+	}, [model, selectedFilePath, rootPath, bridge.knownPaths]);
+
+	useEffect(() => {
+		if (!pendingReveal || !rootPath) return;
+		void reveal(pendingReveal.path, pendingReveal.isDirectory);
+	}, [pendingReveal, rootPath, reveal]);
+
+	// Wire the ref-based handlers so Pierre's stable callbacks always reach
+	// the latest closures. Updated on every render — no diffing needed.
+	handlersRef.current.onRename = (event) => void handleRename(event);
+	handlersRef.current.onSelect = (treePath) => {
+		const abs = toAbs(rootPath, treePath);
+		// Skip the reveal-induced echo. The reveal flow programmatically
+		// selects the just-opened file's row, which fires onSelectionChange
+		// synchronously. Without this guard, the echo re-enters onSelectFile
+		// → openFilePaneFromTreeClick, which sees active === target and
+		// pins the pane we just opened. Real keyboard nav (selection moves
+		// to a different file) still gets through.
+		if (selectedFilePath === abs) return;
+		lastSelectedFromUserRef.current = abs;
+		onSelectFile(abs);
+	};
+	// No-op: Pierre's setGitStatus already renders its own per-row status
+	// indicator (and tints the row text), so a custom decoration here would
+	// duplicate it. Kept the wiring in place in case we want to layer
+	// something Pierre doesn't show (e.g. lock icons, debug markers).
+	handlersRef.current.renderRowDecoration = () => null;
+
+	// Hint tooltip uses ShadowClickHint to anchor a single shadcn Tooltip
+	// over the hovered row's bounding rect — Pierre owns the row DOM inside
+	// an open shadow root, so per-row Tooltip wrappers aren't possible.
+	// Folders are excluded since folder intents are hardcoded.
+	// The hook fires Pierre's relative path; this surface's external
+	// contract is absolute, so wrap each callback to join with `rootPath`.
+	const { onClickCapture: handleClickCapture, findFileRow } =
+		usePierreRowClickPolicy({
+			filePolicy,
+			onSelectFile: (rel, openInNewTab) =>
+				onSelectFile(toAbs(rootPath, rel), openInNewTab),
+			openInExternalEditor: (rel) => openInExternalEditor(toAbs(rootPath, rel)),
+		});
+
+	const renderContextMenu = useCallback(
+		(item: PierreContextMenuItem, ctx: PierreContextMenuOpenContext) => {
+			const isFolder = item.kind === "directory";
+			const treePath = isFolder
+				? `${stripTrailingSlash(item.path)}/`
+				: item.path;
+			const abs = toAbs(rootPath, item.path);
+			const rel = stripTrailingSlash(item.path);
+			return (
+				<PierreRowContextMenu
+					anchorRect={ctx.anchorRect}
+					onClose={ctx.close}
+					data-file-tree-context-menu-root="true"
+				>
+					{isFolder ? (
+						<FolderMenuItems
+							absolutePath={abs}
+							relativePath={rel}
+							onNewFile={() => void startCreating("file", abs)}
+							onNewFolder={() => void startCreating("folder", abs)}
+							onRename={() => model.startRenaming(treePath)}
+							onDelete={() => handleDelete(abs, item.name, true)}
+						/>
+					) : (
+						<FileMenuItems
+							absolutePath={abs}
+							relativePath={rel}
+							onOpen={() => onSelectFile(abs)}
+							onOpenInNewTab={() => onSelectFile(abs, true)}
+							onOpenInEditor={() => openInExternalEditor(abs)}
+							onRename={() => model.startRenaming(treePath)}
+							onDelete={() => handleDelete(abs, item.name, false)}
+						/>
+					)}
+				</PierreRowContextMenu>
+			);
+		},
+		[
+			model,
+			rootPath,
+			startCreating,
+			handleDelete,
+			onSelectFile,
+			openInExternalEditor,
 		],
 	);
 
-	const handleInlineEditCancel = useCallback(() => setInlineEdit(null), []);
-
-	const deletePath = workspaceTrpc.filesystem.deletePath.useMutation();
-
-	const handleDelete = useCallback(
-		(absolutePath: string, name: string, isDirectory: boolean) => {
-			const itemType = isDirectory ? "folder" : "file";
-			alert({
-				title: `Delete ${name}?`,
-				description: `Are you sure you want to delete this ${itemType}? This action cannot be undone.`,
-				actions: [
-					{
-						label: "Delete",
-						variant: "destructive",
-						onClick: () => {
-							toast.promise(
-								deletePath.mutateAsync({
-									workspaceId,
-									absolutePath,
-								}),
-								{
-									loading: `Deleting ${name}...`,
-									success: `Deleted ${name}`,
-									error: `Failed to delete ${name}`,
-								},
-							);
-						},
-					},
-					{
-						label: "Cancel",
-						variant: "ghost",
-					},
-				],
-			});
-		},
-		[workspaceId, deletePath],
-	);
-
-	if (!workspaceQuery.data?.worktreePath) {
+	if (!rootPath) {
 		return (
-			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Workspace worktree not available
+			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+				{workspaceQuery.isLoading ? (
+					<>
+						<Loader2 className="size-3.5 animate-spin" />
+						<span>Loading files...</span>
+					</>
+				) : (
+					"Workspace worktree not available"
+				)}
 			</div>
 		);
 	}
 
-	const isCreatingAtRoot =
-		inlineEdit?.kind === "create" && inlineEdit.parentPath === rootPath;
-	const isCreatingFileAtRoot =
-		isCreatingAtRoot &&
-		inlineEdit?.kind === "create" &&
-		inlineEdit.mode === "file";
-	const isCreatingFolderAtRoot =
-		isCreatingAtRoot &&
-		inlineEdit?.kind === "create" &&
-		inlineEdit.mode === "folder";
-	const rootLastFolderIndex = fileTree.rootEntries.findLastIndex(
-		(n) => n.kind === "directory",
-	);
-
 	return (
-		<div className="flex h-full min-h-0 flex-col overflow-hidden">
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: mouse tracking for hover state */}
-			<div
-				ref={scrollContainerRef}
-				className="min-h-0 flex-1 overflow-y-auto"
-				onMouseMove={handleMouseMove}
-				onMouseLeave={handleMouseLeave}
-				onScroll={handleScroll}
-			>
-				<div
-					className="group flex items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-					style={{
-						height: ROW_HEIGHT,
-						position: "sticky",
-						top: 0,
-						zIndex: 20,
-					}}
-				>
-					<span className="truncate">{workspaceName ?? "Explorer"}</span>
-					<div className="flex items-center gap-0.5">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5"
+		// biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external file upload
+		<div
+			className="relative flex h-full min-h-0 flex-col overflow-hidden"
+			onClickCapture={handleClickCapture}
+			onDragOver={drop.onDragOver}
+			onDragLeave={drop.onDragLeave}
+			onDrop={drop.onDrop}
+		>
+			<ShadowClickHint hint={filePolicy.hint} findRow={findFileRow}>
+				<PierreFileTree
+					model={model}
+					className="flex-1 min-h-0"
+					style={TREE_STYLE}
+					header={
+						<div className="group flex h-7 items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+							<span className="truncate">Explorer</span>
+							<div className="flex items-center gap-0.5">
+								<FilesTabHeaderButton
+									icon={FilePlus}
+									label="New File"
 									onClick={() => void startCreating("file")}
-								>
-									<FilePlus className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">New File</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5"
-									onClick={() => void startCreating("folder")}
-								>
-									<FolderPlus className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">New Folder</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5"
-									onClick={() => void handleRefresh()}
-								>
-									<RefreshCw className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Refresh</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5"
-									onClick={fileTree.collapseAll}
-								>
-									<FoldVertical className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Collapse All</TooltipContent>
-						</Tooltip>
-					</div>
-				</div>
-
-				{fileTree.isLoadingRoot && fileTree.rootEntries.length === 0 ? (
-					<div className="px-2 py-3 text-sm text-muted-foreground">
-						Loading files...
-					</div>
-				) : fileTree.rootEntries.length === 0 && !isCreatingAtRoot ? (
-					<div className="px-2 py-3 text-sm text-muted-foreground">
-						No files found
-					</div>
-				) : (
-					<>
-						{isCreatingFolderAtRoot && (
-							<NewItemInput
-								mode="folder"
-								depth={1}
-								onSubmit={handleInlineEditSubmit}
-								onCancel={handleInlineEditCancel}
-							/>
-						)}
-						{fileTree.rootEntries.map((node, index) => (
-							<Fragment key={node.absolutePath}>
-								<TreeNode
-									node={node}
-									depth={1}
-									indent={TREE_INDENT}
-									rowHeight={ROW_HEIGHT}
-									selectedFilePath={selectedFilePath}
-									hoveredPath={hoveredPath}
-									inlineEdit={inlineEdit}
-									onSelectFile={onSelectFile}
-									onToggleDirectory={(absolutePath) =>
-										void fileTree.toggle(absolutePath)
-									}
-									onInlineEditSubmit={handleInlineEditSubmit}
-									onInlineEditCancel={handleInlineEditCancel}
-									onNewFile={(parentPath) =>
-										void startCreating("file", parentPath)
-									}
-									onNewFolder={(parentPath) =>
-										void startCreating("folder", parentPath)
-									}
-									onRename={(absolutePath, name, isDirectory) =>
-										startRenaming(absolutePath, name, isDirectory)
-									}
-									onDelete={handleDelete}
 								/>
-								{isCreatingFileAtRoot && index === rootLastFolderIndex && (
-									<NewItemInput
-										mode="file"
-										depth={1}
-										onSubmit={handleInlineEditSubmit}
-										onCancel={handleInlineEditCancel}
-									/>
-								)}
-							</Fragment>
-						))}
-						{isCreatingFileAtRoot && rootLastFolderIndex === -1 && (
-							<NewItemInput
-								mode="file"
-								depth={1}
-								onSubmit={handleInlineEditSubmit}
-								onCancel={handleInlineEditCancel}
-							/>
-						)}
-					</>
-				)}
-			</div>
+								<FilesTabHeaderButton
+									icon={FolderPlus}
+									label="New Folder"
+									onClick={() => void startCreating("folder")}
+								/>
+								<FilesTabHeaderButton
+									icon={RefreshCw}
+									label="Refresh"
+									loading={bridge.isRefreshing}
+									onClick={() => void bridge.doRefresh()}
+								/>
+								<FilesTabHeaderButton
+									icon={FoldVertical}
+									label="Collapse All"
+									onClick={collapseAll}
+								/>
+							</div>
+						</div>
+					}
+					renderContextMenu={renderContextMenu}
+				/>
+			</ShadowClickHint>
+
+			{drop.dropTarget && <FilesTabDropOverlay target={drop.dropTarget} />}
 		</div>
 	);
 }

@@ -22,6 +22,48 @@
       "when": 1775239013772,
       "tag": "0002_add_terminal_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1776814372609,
+      "tag": "0003_workspace_upstream_ref",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1777572778580,
+      "tag": "0004_mean_blacklash",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1779922528385,
+      "tag": "0005_host_settings_and_project_overrides",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1782705692725,
+      "tag": "0006_ambitious_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1783034111888,
+      "tag": "0007_host_agent_icon_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1783213515635,
+      "tag": "0008_workspace_full_fields",
+      "breakpoints": true
     }
   ]
 }

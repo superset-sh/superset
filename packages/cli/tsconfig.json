@@ -8,6 +8,6 @@
 		"emitDeclarationOnly": false,
 		"noEmit": true
 	},
-	"include": ["src"],
+	"include": ["src", "scripts", "cli.config.ts"],
 	"exclude": ["node_modules", "dist"]
 }

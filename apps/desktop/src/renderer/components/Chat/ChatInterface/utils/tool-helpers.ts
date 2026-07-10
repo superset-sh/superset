@@ -29,10 +29,13 @@ const TOOL_NAME_ALIASES: Record<string, string> = {
 
 	// Keep explicit passthroughs for newer Mastra tool names
 	ast_smart_edit: "ast_smart_edit",
-	request_sandbox_access: "request_sandbox_access",
+	request_access: "request_access",
+	request_sandbox_access: "request_access",
 	task_write: "task_write",
 	task_check: "task_check",
 	submit_plan: "submit_plan",
+	lsp_inspect: "lsp_inspect",
+	mastra_workspace_lsp_inspect: "lsp_inspect",
 
 	// Legacy Superset MCP names
 	create_worktree: "create_workspace",

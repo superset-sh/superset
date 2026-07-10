@@ -1,6 +1,6 @@
 {
-  "id": "3a904c4f-8486-477c-94fa-f7b31fb58788",
-  "prevId": "e2171726-c316-49d0-83ea-068b112cfa78",
+  "id": "23f7159b-4d98-4245-9fd6-87789de09467",
+  "prevId": "63275fc3-cff1-47ba-b1a6-89d96d92c9ae",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1162,6 +1162,12 @@
         },
         "revoked": {
           "name": "revoked",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "auth_time": {
+          "name": "auth_time",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
@@ -3983,30 +3989,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "external_project_id": {
-          "name": "external_project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_project_name": {
-          "name": "external_project_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_cycle_id": {
-          "name": "external_cycle_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_cycle_name": {
-          "name": "external_cycle_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -4120,51 +4102,6 @@
           "columns": [
             {
               "expression": "assignee_external_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_external_project_id_idx": {
-          "name": "tasks_external_project_id_idx",
-          "columns": [
-            {
-              "expression": "external_project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_external_cycle_id_idx": {
-          "name": "tasks_external_cycle_id_idx",
-          "columns": [
-            {
-              "expression": "external_cycle_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tasks_external_project_name_idx": {
-          "name": "tasks_external_project_name_idx",
-          "columns": [
-            {
-              "expression": "external_project_name",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4383,15 +4320,16 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.v2_device_presence": {
-      "name": "v2_device_presence",
+    "public.v2_clients": {
+      "name": "v2_clients",
       "schema": "",
       "columns": {
-        "device_id": {
-          "name": "device_id",
+        "id": {
+          "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "organization_id": {
           "name": "organization_id",
@@ -4399,12 +4337,24 @@
           "primaryKey": false,
           "notNull": true
         },
-        "last_seen_at": {
-          "name": "last_seen_at",
-          "type": "timestamp with time zone",
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "notNull": true
+        },
+        "machine_id": {
+          "name": "machine_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "v2_client_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -4422,8 +4372,8 @@
         }
       },
       "indexes": {
-        "v2_device_presence_organization_id_idx": {
-          "name": "v2_device_presence_organization_id_idx",
+        "v2_clients_organization_id_idx": {
+          "name": "v2_clients_organization_id_idx",
           "columns": [
             {
               "expression": "organization_id",
@@ -4437,11 +4387,11 @@
           "method": "btree",
           "with": {}
         },
-        "v2_device_presence_last_seen_idx": {
-          "name": "v2_device_presence_last_seen_idx",
+        "v2_clients_user_id_idx": {
+          "name": "v2_clients_user_id_idx",
           "columns": [
             {
-              "expression": "last_seen_at",
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4454,22 +4404,9 @@
         }
       },
       "foreignKeys": {
-        "v2_device_presence_device_id_v2_devices_id_fk": {
-          "name": "v2_device_presence_device_id_v2_devices_id_fk",
-          "tableFrom": "v2_device_presence",
-          "tableTo": "v2_devices",
-          "columnsFrom": [
-            "device_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "v2_device_presence_organization_id_organizations_id_fk": {
-          "name": "v2_device_presence_organization_id_organizations_id_fk",
-          "tableFrom": "v2_device_presence",
+        "v2_clients_organization_id_organizations_id_fk": {
+          "name": "v2_clients_organization_id_organizations_id_fk",
+          "tableFrom": "v2_clients",
           "tableTo": "organizations",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -4480,16 +4417,40 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "v2_clients_user_id_users_id_fk": {
+          "name": "v2_clients_user_id_users_id_fk",
+          "tableFrom": "v2_clients",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "v2_clients_org_user_machine_unique": {
+          "name": "v2_clients_org_user_machine_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "user_id",
+            "machine_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.v2_devices": {
-      "name": "v2_devices",
+    "public.v2_hosts": {
+      "name": "v2_hosts",
       "schema": "",
       "columns": {
         "id": {
@@ -4505,11 +4466,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "client_id": {
-          "name": "client_id",
+        "machine_id": {
+          "name": "machine_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
@@ -4517,12 +4478,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "v2_device_type",
-          "typeSchema": "public",
+        "is_online": {
+          "name": "is_online",
+          "type": "boolean",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": false
         },
         "created_by_user_id": {
           "name": "created_by_user_id",
@@ -4546,8 +4507,8 @@
         }
       },
       "indexes": {
-        "v2_devices_organization_id_idx": {
-          "name": "v2_devices_organization_id_idx",
+        "v2_hosts_organization_id_idx": {
+          "name": "v2_hosts_organization_id_idx",
           "columns": [
             {
               "expression": "organization_id",
@@ -4563,9 +4524,9 @@
         }
       },
       "foreignKeys": {
-        "v2_devices_organization_id_organizations_id_fk": {
-          "name": "v2_devices_organization_id_organizations_id_fk",
-          "tableFrom": "v2_devices",
+        "v2_hosts_organization_id_organizations_id_fk": {
+          "name": "v2_hosts_organization_id_organizations_id_fk",
+          "tableFrom": "v2_hosts",
           "tableTo": "organizations",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -4577,9 +4538,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "v2_devices_created_by_user_id_users_id_fk": {
-          "name": "v2_devices_created_by_user_id_users_id_fk",
-          "tableFrom": "v2_devices",
+        "v2_hosts_created_by_user_id_users_id_fk": {
+          "name": "v2_hosts_created_by_user_id_users_id_fk",
+          "tableFrom": "v2_hosts",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -4594,12 +4555,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "v2_devices_org_client_id_unique": {
-          "name": "v2_devices_org_client_id_unique",
+        "v2_hosts_org_machine_id_unique": {
+          "name": "v2_hosts_org_machine_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "organization_id",
-            "client_id"
+            "machine_id"
           ]
         }
       },
@@ -4718,8 +4679,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.v2_users_devices": {
-      "name": "v2_users_devices",
+    "public.v2_users_hosts": {
+      "name": "v2_users_hosts",
       "schema": "",
       "columns": {
         "id": {
@@ -4741,15 +4702,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "device_id": {
-          "name": "device_id",
+        "host_id": {
+          "name": "host_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "role": {
           "name": "role",
-          "type": "v2_users_device_role",
+          "type": "v2_users_host_role",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -4771,8 +4732,8 @@
         }
       },
       "indexes": {
-        "v2_users_devices_organization_id_idx": {
-          "name": "v2_users_devices_organization_id_idx",
+        "v2_users_hosts_organization_id_idx": {
+          "name": "v2_users_hosts_organization_id_idx",
           "columns": [
             {
               "expression": "organization_id",
@@ -4786,8 +4747,8 @@
           "method": "btree",
           "with": {}
         },
-        "v2_users_devices_user_id_idx": {
-          "name": "v2_users_devices_user_id_idx",
+        "v2_users_hosts_user_id_idx": {
+          "name": "v2_users_hosts_user_id_idx",
           "columns": [
             {
               "expression": "user_id",
@@ -4801,11 +4762,11 @@
           "method": "btree",
           "with": {}
         },
-        "v2_users_devices_device_id_idx": {
-          "name": "v2_users_devices_device_id_idx",
+        "v2_users_hosts_host_id_idx": {
+          "name": "v2_users_hosts_host_id_idx",
           "columns": [
             {
-              "expression": "device_id",
+              "expression": "host_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4818,9 +4779,9 @@
         }
       },
       "foreignKeys": {
-        "v2_users_devices_organization_id_organizations_id_fk": {
-          "name": "v2_users_devices_organization_id_organizations_id_fk",
-          "tableFrom": "v2_users_devices",
+        "v2_users_hosts_organization_id_organizations_id_fk": {
+          "name": "v2_users_hosts_organization_id_organizations_id_fk",
+          "tableFrom": "v2_users_hosts",
           "tableTo": "organizations",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -4832,9 +4793,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "v2_users_devices_user_id_users_id_fk": {
-          "name": "v2_users_devices_user_id_users_id_fk",
-          "tableFrom": "v2_users_devices",
+        "v2_users_hosts_user_id_users_id_fk": {
+          "name": "v2_users_hosts_user_id_users_id_fk",
+          "tableFrom": "v2_users_hosts",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -4846,12 +4807,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "v2_users_devices_device_id_v2_devices_id_fk": {
-          "name": "v2_users_devices_device_id_v2_devices_id_fk",
-          "tableFrom": "v2_users_devices",
-          "tableTo": "v2_devices",
+        "v2_users_hosts_host_id_v2_hosts_id_fk": {
+          "name": "v2_users_hosts_host_id_v2_hosts_id_fk",
+          "tableFrom": "v2_users_hosts",
+          "tableTo": "v2_hosts",
           "columnsFrom": [
-            "device_id"
+            "host_id"
           ],
           "columnsTo": [
             "id"
@@ -4862,12 +4823,13 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "v2_users_devices_user_device_unique": {
-          "name": "v2_users_devices_user_device_unique",
+        "v2_users_hosts_org_user_host_unique": {
+          "name": "v2_users_hosts_org_user_host_unique",
           "nullsNotDistinct": false,
           "columns": [
+            "organization_id",
             "user_id",
-            "device_id"
+            "host_id"
           ]
         }
       },
@@ -4898,8 +4860,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "device_id": {
-          "name": "device_id",
+        "host_id": {
+          "name": "host_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -4968,11 +4930,11 @@
           "method": "btree",
           "with": {}
         },
-        "v2_workspaces_device_id_idx": {
-          "name": "v2_workspaces_device_id_idx",
+        "v2_workspaces_host_id_idx": {
+          "name": "v2_workspaces_host_id_idx",
           "columns": [
             {
-              "expression": "device_id",
+              "expression": "host_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -5012,12 +4974,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "v2_workspaces_device_id_v2_devices_id_fk": {
-          "name": "v2_workspaces_device_id_v2_devices_id_fk",
+        "v2_workspaces_host_id_v2_hosts_id_fk": {
+          "name": "v2_workspaces_host_id_v2_hosts_id_fk",
           "tableFrom": "v2_workspaces",
-          "tableTo": "v2_devices",
+          "tableTo": "v2_hosts",
           "columnsFrom": [
-            "device_id"
+            "host_id"
           ],
           "columnsTo": [
             "id"
@@ -5260,22 +5222,21 @@
         "canceled"
       ]
     },
-    "public.v2_device_type": {
-      "name": "v2_device_type",
+    "public.v2_client_type": {
+      "name": "v2_client_type",
       "schema": "public",
       "values": [
-        "host",
-        "cloud",
-        "viewer"
+        "desktop",
+        "mobile",
+        "web"
       ]
     },
-    "public.v2_users_device_role": {
-      "name": "v2_users_device_role",
+    "public.v2_users_host_role": {
+      "name": "v2_users_host_role",
       "schema": "public",
       "values": [
         "owner",
-        "member",
-        "viewer"
+        "member"
       ]
     },
     "public.workspace_type": {

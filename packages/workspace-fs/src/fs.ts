@@ -12,10 +12,7 @@ import type {
 	FsWriteResult,
 } from "./types";
 
-export type WorkspaceFsPathErrorCode =
-	| "OUTSIDE_ROOT"
-	| "INVALID_TARGET"
-	| "SYMLINK_ESCAPE";
+export type WorkspaceFsPathErrorCode = "INVALID_TARGET" | "SYMLINK_ESCAPE";
 
 export class WorkspaceFsPathError extends Error {
 	constructor(
@@ -368,36 +365,54 @@ async function writeAtomically({
 	}
 }
 
+// Symlink-resolution batch size. Node's fs.readdir and fs.stat ignore
+// AbortSignal, so we can only check it between operations — batching the
+// per-entry stat calls bounds how much zombie work continues after an abort.
+const LIST_DIRECTORY_STAT_BATCH_SIZE = 16;
+
+// Read-only operations (listDirectory, readFile, getMetadata) are not
+// confined to the workspace root: terminals and agents routinely reference
+// files anywhere on the host, and viewing them is within the caller's trust
+// model (statPath/browseHost already expose arbitrary host paths). Mutations
+// remain strictly confined to the root.
 export async function listDirectory({
-	rootPath,
 	absolutePath,
+	signal,
 }: {
-	rootPath: string;
 	absolutePath: string;
+	signal?: AbortSignal;
 }): Promise<FsEntry[]> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	const targetPath = normalizeAbsolutePath(absolutePath);
+	signal?.throwIfAborted();
 	const entries = await fs.readdir(targetPath, { withFileTypes: true });
 
-	const mapped = await Promise.all(
-		entries.map(async (entry) => {
-			let kind = direntToKind(entry);
-			// Resolve symlinks to determine target type (e.g. symlinked dirs in node_modules)
-			if (kind === "symlink") {
-				try {
-					const stats = await fs.stat(path.join(targetPath, entry.name));
-					if (stats.isDirectory()) kind = "directory";
-					else if (stats.isFile()) kind = "file";
-				} catch {
-					// Dangling symlink or permission error — keep as "symlink"
-				}
-			}
-			return {
-				absolutePath: path.join(targetPath, entry.name),
-				name: entry.name,
-				kind,
-			};
-		}),
-	);
+	const mapped: FsEntry[] = [];
+	for (let i = 0; i < entries.length; i += LIST_DIRECTORY_STAT_BATCH_SIZE) {
+		signal?.throwIfAborted();
+		const batch = await Promise.all(
+			entries
+				.slice(i, i + LIST_DIRECTORY_STAT_BATCH_SIZE)
+				.map(async (entry) => {
+					let kind = direntToKind(entry);
+					// Resolve symlinks to determine target type (e.g. symlinked dirs in node_modules)
+					if (kind === "symlink") {
+						try {
+							const stats = await fs.stat(path.join(targetPath, entry.name));
+							if (stats.isDirectory()) kind = "directory";
+							else if (stats.isFile()) kind = "file";
+						} catch {
+							// Dangling symlink or permission error — keep as "symlink"
+						}
+					}
+					return {
+						absolutePath: path.join(targetPath, entry.name),
+						name: entry.name,
+						kind,
+					};
+				}),
+		);
+		mapped.push(...batch);
+	}
 
 	return mapped.sort((left, right) => {
 		const leftIsDir = left.kind === "directory";
@@ -422,8 +437,14 @@ export async function readFile({
 	maxBytes?: number;
 	encoding?: string;
 }): Promise<FsReadResult> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
-	await assertRealpathWithinRoot(rootPath, targetPath);
+	const targetPath = normalizeAbsolutePath(absolutePath);
+	// Explicit outside-root paths are readable, but a path that lexically sits
+	// inside the workspace must also physically resolve there — otherwise a
+	// malicious repo symlink (docs/config.yml -> ~/.ssh/id_rsa) could disguise
+	// a sensitive host file as a workspace file.
+	if (isPathWithinRoot(rootPath, targetPath)) {
+		await assertRealpathWithinRoot(rootPath, targetPath);
+	}
 
 	const fileHandle = await fs.open(targetPath, "r");
 	try {
@@ -493,13 +514,11 @@ export async function readFile({
 }
 
 export async function getMetadata({
-	rootPath,
 	absolutePath,
 }: {
-	rootPath: string;
 	absolutePath: string;
 }): Promise<FsMetadata | null> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	const targetPath = normalizeAbsolutePath(absolutePath);
 
 	try {
 		const stats = await fs.lstat(targetPath);
@@ -626,6 +645,10 @@ export async function createDirectory({
 	recursive?: boolean;
 }): Promise<{ absolutePath: string; kind: "directory" }> {
 	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	// Lexical containment isn't enough: a symlinked ancestor (e.g. `link ->
+	// /outside`) would let `mkdir` create directories outside the workspace.
+	// Resolve the real path / ancestry the same way writes do before creating.
+	await assertRealpathWithinRoot(rootPath, targetPath);
 	try {
 		await fs.mkdir(targetPath, { recursive });
 	} catch (error) {

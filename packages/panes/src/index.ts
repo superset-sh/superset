@@ -5,17 +5,25 @@ export type {
 	WorkspaceStore,
 } from "./core/store";
 export { createWorkspaceStore } from "./core/store";
+export type { FocusDirection } from "./core/store/utils";
+export {
+	getActiveIdAfterRemoval,
+	getPaneParentDirection,
+	getSpatialNeighborPaneId,
+} from "./core/store/utils";
 export type {
 	ContextMenuActionConfig,
 	PaneActionConfig,
 	PaneContext,
 	PaneDefinition,
 	PaneRegistry,
+	PaneTitleSource,
 	RendererContext,
 	TabContext,
+	WorkspaceInteractionState,
 	WorkspaceProps,
 } from "./react";
-export { Workspace } from "./react";
+export { resolveTabTitle, useTabTitle, Workspace } from "./react";
 export type {
 	LayoutNode,
 	Pane,

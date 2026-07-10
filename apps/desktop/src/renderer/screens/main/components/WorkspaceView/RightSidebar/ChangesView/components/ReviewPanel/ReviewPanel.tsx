@@ -20,6 +20,7 @@ import {
 import { VscChevronRight } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import {
 	ALL_COMMENTS_COPY_ACTION_KEY,
 	buildAllCommentsClipboardText,
@@ -68,6 +69,20 @@ export function ReviewPanel({
 	const copyToClipboardMutation = electronTrpc.external.copyText.useMutation();
 	const resolveThreadMutation =
 		electronTrpc.workspaces.resolveReviewThread.useMutation();
+	const openCommentPane = useTabsStore((s) => s.openCommentPane);
+
+	const handleOpenComment = (comment: PullRequestComment) => {
+		if (!workspaceId) return;
+		openCommentPane(workspaceId, {
+			commentId: comment.id,
+			authorLogin: comment.authorLogin,
+			avatarUrl: comment.avatarUrl,
+			body: comment.body,
+			url: comment.url,
+			path: comment.path,
+			line: comment.line,
+		});
+	};
 
 	useEffect(() => {
 		return () => {
@@ -278,20 +293,14 @@ export function ReviewPanel({
 					key={comment.id}
 					className="group relative flex items-start gap-1 rounded-sm px-1.5 py-1 transition-colors hover:bg-accent/50"
 				>
-					{comment.url ? (
-						<a
-							href={comment.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex min-w-0 flex-1 items-start gap-2"
-						>
-							{content}
-						</a>
-					) : (
-						<div className="flex min-w-0 flex-1 items-start gap-2">
-							{content}
-						</div>
-					)}
+					<button
+						type="button"
+						onClick={() => handleOpenComment(comment)}
+						className="flex min-w-0 flex-1 items-start gap-2 text-left"
+						aria-label={`View comment by ${comment.authorLogin}`}
+					>
+						{content}
+					</button>
 					<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded-sm bg-background/90 px-0.5 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
 						{comment.threadId && workspaceId ? (
 							<button

@@ -16,9 +16,9 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight, HiOutlinePaperClip, HiXMark } from "react-icons/hi2";
+import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { PLATFORM } from "renderer/hotkeys";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { TaskMarkdownRenderer } from "renderer/routes/_authenticated/_dashboard/tasks/$taskId/components/TaskMarkdownRenderer";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
 import type { TabValue } from "../../TasksTopBar";
@@ -125,7 +125,7 @@ export function CreateTaskDialog({
 		setIsCreating(true);
 
 		try {
-			const result = await apiTrpcClient.task.createFromUi.mutate({
+			const result = await apiTrpcClient.task.create.mutate({
 				title: title.trim(),
 				description: description.trim() || null,
 				statusId,
@@ -212,7 +212,7 @@ export function CreateTaskDialog({
 					/>
 
 					<div className="mt-5 flex-1">
-						<TaskMarkdownRenderer
+						<MarkdownEditor
 							content={description}
 							onChange={setDescription}
 							placeholder="Add description..."

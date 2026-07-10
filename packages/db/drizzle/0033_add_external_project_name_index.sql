@@ -1,1 +1,0 @@
-CREATE INDEX "tasks_external_project_name_idx" ON "tasks" USING btree ("external_project_name");

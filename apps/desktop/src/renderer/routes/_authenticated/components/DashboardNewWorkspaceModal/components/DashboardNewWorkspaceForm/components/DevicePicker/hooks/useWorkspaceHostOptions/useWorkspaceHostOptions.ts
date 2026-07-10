@@ -3,81 +3,79 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	type OrgService,
-	useHostService,
-} from "renderer/routes/_authenticated/providers/HostServiceProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
-export interface WorkspaceHostDeviceOption {
+export interface WorkspaceHostOption {
 	id: string;
 	name: string;
-	type: "host" | "cloud" | "viewer";
+	isOnline: boolean;
 }
 
 interface UseWorkspaceHostOptionsResult {
 	currentDeviceName: string | null;
-	localHostService: OrgService | null;
-	otherDevices: WorkspaceHostDeviceOption[];
+	/** machineId of the current device (the one running this desktop app). */
+	localHostId: string | null;
+	activeHostUrl: string | null;
+	otherHosts: WorkspaceHostOption[];
 }
 
 export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const { services } = useHostService();
-	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+	const { machineId, activeHostUrl } = useLocalHostService();
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
 
-	const localHostService =
-		activeOrganizationId !== null
-			? (services.get(activeOrganizationId) ?? null)
-			: null;
-
-	const { data: accessibleDevices = [] } = useLiveQuery(
+	const { data: accessibleHosts = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ userDevices: collections.v2UsersDevices })
-				.innerJoin(
-					{ devices: collections.v2Devices },
-					({ userDevices, devices }) => eq(userDevices.deviceId, devices.id),
+				.from({ userHosts: collections.v2UsersHosts })
+				.innerJoin({ hosts: collections.v2Hosts }, ({ userHosts, hosts }) =>
+					eq(userHosts.hostId, hosts.machineId),
 				)
-				.where(({ userDevices, devices }) =>
+				.where(({ userHosts, hosts }) =>
 					and(
-						eq(userDevices.userId, currentUserId ?? ""),
-						eq(devices.organizationId, activeOrganizationId ?? ""),
+						eq(userHosts.userId, currentUserId ?? ""),
+						eq(hosts.organizationId, activeOrganizationId ?? ""),
 					),
 				)
-				.select(({ devices }) => ({
-					id: devices.id,
-					clientId: devices.clientId,
-					name: devices.name,
-					type: devices.type,
+				.select(({ hosts }) => ({
+					machineId: hosts.machineId,
+					name: hosts.name,
+					isOnline: hosts.isOnline,
 				})),
 		[activeOrganizationId, collections, currentUserId],
 	);
 
-	const otherDevices = useMemo(
-		() =>
-			accessibleDevices
-				.filter((device) => device.clientId !== deviceInfo?.deviceId)
-				.map((device) => ({
-					id: device.id,
-					name: device.name,
-					type: device.type,
-				}))
-				.sort((a, b) => a.name.localeCompare(b.name)),
-		[accessibleDevices, deviceInfo?.deviceId],
+	const localHost = useMemo(
+		() => accessibleHosts.find((host) => host.machineId === machineId) ?? null,
+		[accessibleHosts, machineId],
 	);
 
+	const otherHosts = useMemo(
+		() =>
+			accessibleHosts
+				.filter((host) => host.machineId !== machineId)
+				.map((host) => ({
+					id: host.machineId,
+					name: host.name,
+					isOnline: host.isOnline ?? false,
+				}))
+				.sort((a, b) => a.name.localeCompare(b.name)),
+		[accessibleHosts, machineId],
+	);
+
+	// Always surface the local device, even if its v2Hosts row hasn't synced
+	// via Electric — the picker is useless without "this device" present.
 	return {
-		currentDeviceName: deviceInfo?.deviceName ?? null,
-		localHostService,
-		otherDevices,
+		currentDeviceName: localHost?.name ?? (machineId ? "This device" : null),
+		localHostId: localHost?.machineId ?? machineId,
+		activeHostUrl,
+		otherHosts,
 	};
 }

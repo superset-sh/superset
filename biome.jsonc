@@ -11,7 +11,10 @@
 			"!**/drizzle",
 			"!**/*.template.js",
 			"!**/*.template.sh",
-			"!apps/mobile/uniwind-types.d.ts"
+			"!**/*.template.ts",
+			"!**/plans",
+			"!apps/mobile/uniwind-types.d.ts",
+			"!packages/sdk/src"
 		]
 	},
 	"formatter": {

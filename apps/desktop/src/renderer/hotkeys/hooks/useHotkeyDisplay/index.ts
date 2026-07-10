@@ -1,1 +1,1 @@
-export { useHotkeyDisplay } from "./useHotkeyDisplay";
+export { useFormatBinding, useHotkeyDisplay } from "./useHotkeyDisplay";

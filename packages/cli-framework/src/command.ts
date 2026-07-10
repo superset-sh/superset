@@ -5,18 +5,28 @@ export type CommandResult =
 	| unknown[]
 	| undefined;
 
+// When `skipMiddleware: true`, the middleware doesn't run, so `ctx` is empty.
+// When false/omitted, the middleware runs and `ctx` is the app's `TContext`.
+type CtxOf<TContext, TSkip extends boolean> = TSkip extends true
+	? Record<string, never>
+	: TContext;
+
 export type CommandConfig<
+	TContext = Record<string, unknown>,
 	TOpts extends Record<string, GenericBuilderInternals> = Record<string, never>,
 	TArgs extends GenericBuilderInternals[] = [],
+	TSkip extends boolean = false,
 > = {
 	description: string;
+	aliases?: string[];
+	skipMiddleware?: TSkip;
 	options?: TOpts;
 	args?: TArgs;
 	display?: (data: unknown) => string;
 	run: (opts: {
 		options: TypeOf<TOpts>;
 		args: InferArgs<TArgs>;
-		ctx: Record<string, unknown>;
+		ctx: CtxOf<TContext, TSkip>;
 		signal: AbortSignal;
 	}) => Promise<CommandResult>;
 };
@@ -38,9 +48,23 @@ type InferArgs<T extends GenericBuilderInternals[]> = T extends []
 			: Record<string, never>
 		: Record<string, never>;
 
-export function command<
-	TOpts extends Record<string, GenericBuilderInternals>,
-	TArgs extends GenericBuilderInternals[],
->(config: CommandConfig<TOpts, TArgs>): CommandConfig<TOpts, TArgs> {
-	return config;
+/**
+ * Build a typed `command()` factory. `TContext` is the shape the root
+ * middleware installs on `ctx`; commands that declare `skipMiddleware: true`
+ * automatically get an empty `ctx` type so `opts.ctx.api` etc. is a
+ * compile-time error in unauthenticated commands.
+ */
+export function createCommand<TContext>() {
+	return function command<
+		const TSkip extends boolean = false,
+		TOpts extends Record<string, GenericBuilderInternals> = Record<
+			string,
+			never
+		>,
+		TArgs extends GenericBuilderInternals[] = [],
+	>(
+		config: CommandConfig<TContext, TOpts, TArgs, TSkip>,
+	): CommandConfig<TContext, TOpts, TArgs, TSkip> {
+		return config;
+	};
 }

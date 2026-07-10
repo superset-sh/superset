@@ -1,4 +1,11 @@
-export { createAmpWrapper } from "./agent-wrappers-amp";
+export {
+	AMP_PLUGIN_FILE,
+	AMP_PLUGIN_MARKER,
+	createAmpPlugin,
+	createAmpWrapper,
+	getAmpGlobalPluginPath,
+	getAmpPluginContent,
+} from "./agent-wrappers-amp";
 export {
 	buildCodexWrapperExecLine,
 	cleanupGlobalOpenCodePlugin,
@@ -68,3 +75,19 @@ export {
 	getMastraGlobalHooksJsonPath,
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
+export {
+	createPiExtension,
+	getPiExtensionContent,
+	getPiExtensionPath,
+	PI_EXTENSION_FILE,
+	PI_EXTENSION_MARKER,
+} from "./agent-wrappers-pi";
+export {
+	createVibeHooksToml,
+	createVibeWrapper,
+	getVibeHooksTomlContent,
+	getVibeHooksTomlPath,
+	getVibeWrapperScript,
+	VIBE_HOOKS_MARKER_END,
+	VIBE_HOOKS_MARKER_START,
+} from "./agent-wrappers-vibe";

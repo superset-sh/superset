@@ -1,15 +1,16 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { statSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { BranchPrefixMode } from "@superset/local-db";
-import friendlyWords from "friendly-words";
 import {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
-} from "shared/utils/branch";
+} from "@superset/shared/workspace-launch";
+import friendlyWords from "friendly-words";
 import type { StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
 import { execGitWithShellPath, getSimpleGitWithShellPath } from "./git-client";
@@ -23,6 +24,46 @@ export class NotGitRepoError extends Error {
 		super(`Not a git repository: ${repoPath}`);
 		this.name = "NotGitRepoError";
 	}
+}
+
+function getPathCreatedAt(path: string): number | null {
+	const stats = statSync(path);
+	const birthtimeMs = Math.trunc(stats.birthtimeMs);
+	if (Number.isFinite(birthtimeMs) && birthtimeMs > 0) {
+		return birthtimeMs;
+	}
+
+	const ctimeMs = Math.trunc(stats.ctimeMs);
+	if (Number.isFinite(ctimeMs) && ctimeMs > 0) {
+		return ctimeMs;
+	}
+
+	return null;
+}
+
+export function getWorktreeCreatedAt(worktreePath: string): number {
+	try {
+		const gitMetadataCreatedAt = getPathCreatedAt(join(worktreePath, ".git"));
+		if (gitMetadataCreatedAt !== null) {
+			return gitMetadataCreatedAt;
+		}
+	} catch {
+		// Fall back to the worktree directory for non-standard layouts.
+	}
+
+	try {
+		const worktreeDirectoryCreatedAt = getPathCreatedAt(worktreePath);
+		if (worktreeDirectoryCreatedAt !== null) {
+			return worktreeDirectoryCreatedAt;
+		}
+	} catch (error) {
+		console.warn("[git] Failed to read worktree created time", {
+			worktreePath,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
+	return Date.now();
 }
 
 const UNBORN_HEAD_ERROR_PATTERNS = [
@@ -555,13 +596,13 @@ export async function createWorktree(
 				mainRepoPath,
 				"worktree",
 				"add",
-				worktreePath,
+				// --no-track prevents the new branch from tracking the remote ref
+				// (e.g. origin/main); push.autoSetupRemote handles first-push tracking.
+				"--no-track",
 				"-b",
 				branch,
-				// Append ^{commit} to force Git to treat the startPoint as a commit,
-				// not a branch ref. This prevents implicit upstream tracking when
-				// creating a new branch from a remote branch like origin/main.
-				`${startPoint}^{commit}`,
+				worktreePath,
+				startPoint,
 			],
 			worktreePath,
 		});
@@ -1777,18 +1818,46 @@ export async function createWorktreeFromPr({
 			});
 		}
 
-		await execWithShellEnv(
-			"gh",
-			[
-				"pr",
-				"checkout",
-				String(prInfo.number),
-				"--branch",
-				localBranchName,
-				"--force",
-			],
-			{ cwd: worktreePath, timeout: 120_000 },
-		);
+		try {
+			await execWithShellEnv(
+				"gh",
+				[
+					"pr",
+					"checkout",
+					String(prInfo.number),
+					"--branch",
+					localBranchName,
+					"--force",
+				],
+				{ cwd: worktreePath, timeout: 120_000 },
+			);
+		} catch (ghError) {
+			const ghMsg =
+				ghError instanceof Error ? ghError.message : String(ghError);
+			// `gh pr checkout` can fail with "is not a branch" when the branch name
+			// contains '/' (e.g. "user/feature-branch"). Git has trouble resolving
+			// "origin/user/feature-branch" as a tracking ref inside a worktree.
+			// gh already fetched the remote successfully, so FETCH_HEAD points to
+			// the right commit — fall back to creating the branch without tracking.
+			if (!ghMsg.includes("is not a branch")) {
+				throw ghError;
+			}
+			console.log(
+				`[git] gh pr checkout failed with tracking error for PR #${prInfo.number}, falling back to FETCH_HEAD checkout`,
+			);
+			await execGitWithShellPath(
+				[
+					"-C",
+					worktreePath,
+					"checkout",
+					"-B",
+					localBranchName,
+					"--no-track",
+					"FETCH_HEAD",
+				],
+				{ timeout: 30_000 },
+			);
+		}
 
 		// Enable autoSetupRemote so `git push` just works without -u flag.
 		await execGitWithShellPath(

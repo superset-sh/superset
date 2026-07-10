@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:17
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: main
+    ports:
+      - "${LOCAL_PG_PORT:-5432}:5432"
+    volumes:
+      - superset_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  neon-proxy:
+    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+    environment:
+      PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/main
+    ports:
+      - "${LOCAL_NEON_PROXY_PORT:-4444}:4444"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  electric:
+    image: electricsql/electric:1.7.4
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/main?sslmode=disable
+      ELECTRIC_SECRET: local_electric_dev_secret
+    ports:
+      - "${LOCAL_ELECTRIC_PORT:-3100}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Backs the relay's host directory (apps/relay/src/directory.ts). No volume:
+  # the directory is TTL-scoped presence data and is meant to be lost on restart.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${LOCAL_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # @upstash/redis speaks Upstash's HTTP REST protocol, not the Redis wire
+  # protocol, so a plain redis-server cannot answer it. SRH is the HTTP shim in
+  # front — the same role neon-proxy plays for Postgres above. Local dev only.
+  serverless-redis-http:
+    image: hiett/serverless-redis-http:latest
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: local_dev_token
+      SRH_CONNECTION_STRING: "redis://redis:6379"
+    ports:
+      - "${LOCAL_SRH_PORT:-8079}:80"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  superset_db_data:

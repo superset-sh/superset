@@ -1,3 +1,4 @@
+import { auth } from "@superset/auth/server";
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, organizations } from "@superset/db/schema";
@@ -6,15 +7,15 @@ import {
 	invitations,
 	verifications,
 } from "@superset/db/schema/auth";
-import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { protectedProcedure, publicProcedure } from "../../trpc";
+import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
+import { organizationMembersRouter } from "./members";
 
 async function getInvitationById(invitationId: string) {
 	const invitation = await db.query.invitations.findFirst({
@@ -55,6 +56,65 @@ function verificationMatchesInvitation({
 }
 
 export const organizationRouter = {
+	members: organizationMembersRouter,
+
+	getActive: protectedProcedure.query(async ({ ctx }) => {
+		const orgId = ctx.activeOrganizationId;
+		if (!orgId) return null;
+
+		const membership = await db.query.members.findFirst({
+			where: and(
+				eq(members.userId, ctx.session.user.id),
+				eq(members.organizationId, orgId),
+			),
+		});
+		if (!membership) return null;
+
+		const org = await db.query.organizations.findFirst({
+			where: eq(organizations.id, orgId),
+			columns: { id: true, name: true, slug: true },
+		});
+		return org ?? null;
+	}),
+
+	getActiveFromJwt: jwtProcedure.query(async ({ ctx }) => {
+		if (!ctx.activeOrganizationId) return null;
+
+		const membership = await db.query.members.findFirst({
+			where: and(
+				eq(members.userId, ctx.userId),
+				eq(members.organizationId, ctx.activeOrganizationId),
+			),
+		});
+		if (!membership) return null;
+
+		const org = await db.query.organizations.findFirst({
+			where: eq(organizations.id, ctx.activeOrganizationId),
+			columns: { id: true, name: true, slug: true },
+		});
+		return org ?? null;
+	}),
+
+	getByIdFromJwt: jwtProcedure
+		.input(z.object({ id: z.string() }))
+		.query(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.id)) return null;
+
+			const membership = await db.query.members.findFirst({
+				where: and(
+					eq(members.userId, ctx.userId),
+					eq(members.organizationId, input.id),
+				),
+			});
+			if (!membership) return null;
+
+			const org = await db.query.organizations.findFirst({
+				where: eq(organizations.id, input.id),
+				columns: { id: true, name: true, slug: true },
+			});
+			return org ?? null;
+		}),
+
 	getInvitation: protectedProcedure
 		.input(z.uuid())
 		.query(async ({ ctx, input }) => {
@@ -154,23 +214,20 @@ export const organizationRouter = {
 				}
 			}
 
-			const [organization] = await db
-				.insert(organizations)
-				.values({
+			const organization = await auth.api.createOrganization({
+				body: {
 					name: input.name,
 					slug: input.slug,
 					logo: input.logo,
-				})
-				.returning();
-
-			if (organization) {
-				await db.insert(members).values({
-					organizationId: organization.id,
 					userId: ctx.session.user.id,
-					role: "owner",
-				});
+				},
+			});
 
-				await seedDefaultStatuses(organization.id);
+			if (!organization) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to create organization",
+				});
 			}
 
 			return organization;

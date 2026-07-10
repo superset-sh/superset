@@ -14,18 +14,34 @@ import {
 // ── resolveLaunchShell ───────────────────────────────────────────────
 
 describe("resolveLaunchShell", () => {
-	test("returns SHELL from base env on non-Windows", () => {
-		expect(resolveLaunchShell({ SHELL: "/usr/local/bin/fish" })).toBe(
-			"/usr/local/bin/fish",
-		);
+	test("prefers the configured account shell over inherited SHELL", () => {
+		expect(
+			resolveLaunchShell(
+				{ SHELL: "/bin/bash" },
+				{ accountShell: "/opt/homebrew/bin/fish", platform: "darwin" },
+			),
+		).toBe("/opt/homebrew/bin/fish");
+	});
+
+	test("falls back to SHELL from base env when account shell is unavailable", () => {
+		expect(
+			resolveLaunchShell(
+				{ SHELL: "/usr/local/bin/fish" },
+				{ accountShell: null, platform: "darwin" },
+			),
+		).toBe("/usr/local/bin/fish");
 	});
 
 	test("falls back to /bin/sh when SHELL is absent", () => {
-		expect(resolveLaunchShell({})).toBe("/bin/sh");
+		expect(
+			resolveLaunchShell({}, { accountShell: null, platform: "darwin" }),
+		).toBe("/bin/sh");
 	});
 
 	test("does not default to /bin/zsh", () => {
-		expect(resolveLaunchShell({})).not.toBe("/bin/zsh");
+		expect(
+			resolveLaunchShell({}, { accountShell: null, platform: "darwin" }),
+		).not.toBe("/bin/zsh");
 	});
 });
 
@@ -64,17 +80,18 @@ describe("stripTerminalRuntimeEnv", () => {
 	const secretsEnv: Record<string, string> = {
 		// Host-service runtime keys that must not leak
 		AUTH_TOKEN: "secret-token",
+		SUPERSET_AUTH_CONFIG_PATH: "/Users/test/.superset/config.json",
 		HOST_SERVICE_SECRET: "secret",
 		ORGANIZATION_ID: "org-123",
-		DEVICE_CLIENT_ID: "device-abc",
-		DEVICE_NAME: "My Mac",
+		HOST_CLIENT_ID: "device-abc",
+		HOST_NAME: "My Mac",
 		ELECTRON_RUN_AS_NODE: "1",
 		HOST_DB_PATH: "/tmp/host.db",
 		HOST_MANIFEST_DIR: "/tmp/manifests",
 		HOST_MIGRATIONS_PATH: "/tmp/migrations",
 		HOST_SERVICE_VERSION: "1.2.3",
 		KEEP_ALIVE_AFTER_PARENT: "1",
-		CLOUD_API_URL: "https://api.example.com",
+		SUPERSET_API_URL: "https://api.example.com",
 		DESKTOP_VITE_PORT: "5173",
 		// Node/app keys
 		NODE_ENV: "development",
@@ -95,6 +112,9 @@ describe("stripTerminalRuntimeEnv", () => {
 		SUPERSET_PORT: "51741",
 		SUPERSET_HOOK_VERSION: "2",
 		SUPERSET_WORKSPACE_NAME: "my-ws",
+		// Auth refresh tokens inherited from parent (CLI/desktop) env
+		OAUTH_REFRESH_TOKEN: "oauth-refresh-secret",
+		SUPERSET_REFRESH_TOKEN: "superset-refresh-secret",
 		// Keys that SHOULD survive
 		HOME: "/Users/test",
 		PATH: "/usr/bin:/usr/local/bin",
@@ -108,12 +128,13 @@ describe("stripTerminalRuntimeEnv", () => {
 	test("app/runtime secrets do not reach PTY env", () => {
 		const result = stripTerminalRuntimeEnv(secretsEnv);
 		expect(result.AUTH_TOKEN).toBeUndefined();
+		expect(result.SUPERSET_AUTH_CONFIG_PATH).toBeUndefined();
 		expect(result.HOST_SERVICE_SECRET).toBeUndefined();
 		expect(result.ORGANIZATION_ID).toBeUndefined();
-		expect(result.DEVICE_CLIENT_ID).toBeUndefined();
+		expect(result.HOST_CLIENT_ID).toBeUndefined();
 		expect(result.ELECTRON_RUN_AS_NODE).toBeUndefined();
 		expect(result.HOST_DB_PATH).toBeUndefined();
-		expect(result.CLOUD_API_URL).toBeUndefined();
+		expect(result.SUPERSET_API_URL).toBeUndefined();
 		expect(result.DESKTOP_VITE_PORT).toBeUndefined();
 	});
 
@@ -123,7 +144,7 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.HOST_MIGRATIONS_PATH).toBeUndefined();
 		expect(result.HOST_SERVICE_VERSION).toBeUndefined();
 		expect(result.KEEP_ALIVE_AFTER_PARENT).toBeUndefined();
-		expect(result.DEVICE_NAME).toBeUndefined();
+		expect(result.HOST_NAME).toBeUndefined();
 	});
 
 	test("Node/app keys are stripped", () => {
@@ -141,16 +162,22 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.ELECTRON_ENABLE_LOGGING).toBeUndefined();
 	});
 
-	test("HOST_* prefix is stripped, DESKTOP_*/DEVICE_* are exact-key only", () => {
+	test("refresh tokens do not reach PTY env", () => {
+		const result = stripTerminalRuntimeEnv(secretsEnv);
+		expect(result.OAUTH_REFRESH_TOKEN).toBeUndefined();
+		expect(result.SUPERSET_REFRESH_TOKEN).toBeUndefined();
+	});
+
+	test("HOST_* prefix is stripped, DESKTOP_* exact keys only", () => {
 		const env: Record<string, string> = {
-			// HOST_* prefix: all stripped
+			// HOST_* prefix: all stripped (including HOST_CLIENT_ID, HOST_NAME)
 			HOST_DB_PATH: "/tmp/db",
 			HOST_MANIFEST_DIR: "/tmp/manifests",
 			HOST_SERVICE_SECRET: "secret",
-			// DESKTOP_* / DEVICE_*: only our exact keys stripped
+			HOST_CLIENT_ID: "abc",
+			HOST_NAME: "Mac",
+			// DESKTOP_*: only our exact key stripped
 			DESKTOP_VITE_PORT: "5173",
-			DEVICE_CLIENT_ID: "abc",
-			DEVICE_NAME: "Mac",
 			// Legitimate Linux desktop vars: must survive
 			DESKTOP_SESSION: "gnome",
 			DESKTOP_STARTUP_ID: "startup-123",
@@ -161,8 +188,8 @@ describe("stripTerminalRuntimeEnv", () => {
 		expect(result.HOST_MANIFEST_DIR).toBeUndefined();
 		expect(result.HOST_SERVICE_SECRET).toBeUndefined();
 		expect(result.DESKTOP_VITE_PORT).toBeUndefined();
-		expect(result.DEVICE_CLIENT_ID).toBeUndefined();
-		expect(result.DEVICE_NAME).toBeUndefined();
+		expect(result.HOST_CLIENT_ID).toBeUndefined();
+		expect(result.HOST_NAME).toBeUndefined();
 		// Linux desktop vars preserved
 		expect(result.DESKTOP_SESSION).toBe("gnome");
 		expect(result.DESKTOP_STARTUP_ID).toBe("startup-123");
@@ -242,7 +269,7 @@ describe("getShellLaunchArgs", () => {
 		expect(args[0]).toBe("-l");
 		expect(args[1]).toBe("--init-command");
 		expect(args[2]).toContain("_superset_bin");
-		expect(args[2]).toContain("superset-shell-ready");
+		expect(args[2]).toContain("133;A");
 	});
 
 	test("sh launches as login shell", () => {
@@ -383,7 +410,6 @@ describe("buildV2TerminalEnv", () => {
 		workspaceId: "ws-1",
 		workspacePath: "/tmp/workspace",
 		rootPath: "/tmp/repo",
-		hostServiceVersion: "2.0.0",
 		supersetEnv: "production" as const,
 		agentHookPort: "51741",
 		agentHookVersion: "2",
@@ -393,8 +419,8 @@ describe("buildV2TerminalEnv", () => {
 		const env = buildV2TerminalEnv(baseParams);
 		expect(env).toMatchObject({
 			TERM: "xterm-256color",
-			TERM_PROGRAM: "Superset",
-			TERM_PROGRAM_VERSION: "2.0.0",
+			TERM_PROGRAM: "vscode",
+			TERM_PROGRAM_VERSION: "1.128.0",
 			COLORTERM: "truecolor",
 			PWD: "/tmp/workspace",
 			SUPERSET_TERMINAL_ID: "term-1",
@@ -405,8 +431,18 @@ describe("buildV2TerminalEnv", () => {
 			SUPERSET_AGENT_HOOK_PORT: "51741",
 			SUPERSET_AGENT_HOOK_VERSION: "2",
 		});
-		expect(env.TERM_PROGRAM).toBe("Superset");
+		expect(env.TERM_PROGRAM).toBe("vscode");
+		expect(env.SHELL).toBe("/bin/zsh");
 		expect(env.LANG).toContain("UTF-8");
+	});
+
+	test("sets SHELL to the selected launch shell even when base env was stale", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			baseEnv: { ...baseParams.baseEnv, SHELL: "/bin/bash" },
+			shell: "/opt/homebrew/bin/fish",
+		});
+		expect(env.SHELL).toBe("/opt/homebrew/bin/fish");
 	});
 
 	test("allows empty root path and alternate Superset env without breaking the contract", () => {
@@ -433,6 +469,27 @@ describe("buildV2TerminalEnv", () => {
 			themeType: "light",
 		});
 		expect(env.COLORFGBG).toBe("0;15");
+	});
+
+	test("defaults TERM_THEME to dark", () => {
+		const env = buildV2TerminalEnv(baseParams);
+		expect(env.TERM_THEME).toBe("dark");
+	});
+
+	test("sets TERM_THEME to dark when themeType is dark", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			themeType: "dark",
+		});
+		expect(env.TERM_THEME).toBe("dark");
+	});
+
+	test("sets TERM_THEME to light when themeType is light", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			themeType: "light",
+		});
+		expect(env.TERM_THEME).toBe("light");
 	});
 
 	test("drops removed v1 metadata while preserving user shell vars", () => {
@@ -485,7 +542,6 @@ describe("v2 env contract boundary", () => {
 			workspaceId: "w-1",
 			workspacePath: "/tmp/ws",
 			rootPath: "",
-			hostServiceVersion: "2.0.0",
 			supersetEnv: "production",
 			agentHookPort: "51741",
 			agentHookVersion: "2",

@@ -4,19 +4,14 @@ import {
 	LuPanelRightClose,
 	LuPanelRightOpen,
 } from "react-icons/lu";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel } from "renderer/hotkeys";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
-export function RightSidebarToggle({ workspaceId }: { workspaceId: string }) {
-	const collections = useCollections();
-	const localState = collections.v2WorkspaceLocalState.get(workspaceId);
-	const isOpen = localState?.rightSidebarOpen ?? false;
+export function RightSidebarToggle() {
+	const { preferences, setRightSidebarOpen } = useV2UserPreferences();
+	const isOpen = preferences.rightSidebarOpen;
 
-	const toggle = () => {
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.rightSidebarOpen = !draft.rightSidebarOpen;
-		});
-	};
+	const toggle = () => setRightSidebarOpen((prev) => !prev);
 
 	const getToggleIcon = (isHovering: boolean) => {
 		if (!isOpen) {

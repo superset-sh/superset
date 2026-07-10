@@ -10,4 +10,8 @@ export class DeviceKeyApiAuthProvider implements ApiAuthProvider {
 	async getHeaders(): Promise<Record<string, string>> {
 		return { "X-Device-Key": this.apiKey };
 	}
+
+	invalidateCache(): void {
+		// Device keys don't expire and aren't cached; nothing to drop.
+	}
 }

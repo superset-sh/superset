@@ -1,0 +1,1 @@
+export { AutomationDetailSidebar } from "./AutomationDetailSidebar";

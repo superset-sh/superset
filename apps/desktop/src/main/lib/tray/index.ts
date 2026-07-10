@@ -7,15 +7,15 @@ import {
 	nativeImage,
 	Tray,
 } from "electron";
-import { focusMainWindow, requestQuit } from "main/index";
+import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
+import { env } from "main/env.main";
+import { focusMainWindow, quitApp } from "main/index";
 import {
-	getHostServiceManager,
-	type HostServiceStatus,
+	getHostServiceCoordinator,
 	type HostServiceStatusEvent,
-} from "main/lib/host-service-manager";
+} from "main/lib/host-service-coordinator";
 import { menuEmitter } from "main/lib/menu-events";
-
-const POLL_INTERVAL_MS = 5000;
+import { confirmAndQuitCompletely } from "main/lib/quit-completely";
 
 /** Must have "Template" suffix for macOS dark/light mode support */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
@@ -50,7 +50,6 @@ function getTrayIconPath(): string | null {
 }
 
 let tray: Tray | null = null;
-let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
 function createTrayIcon(): Electron.NativeImage | null {
 	const iconPath = getTrayIconPath();
@@ -85,133 +84,130 @@ function openSettings(): void {
 	menuEmitter.emit("open-settings");
 }
 
-function formatStatusLabel(status: HostServiceStatus): string {
-	switch (status) {
-		case "running":
-			return "Running";
-		case "starting":
-			return "Starting...";
-		case "degraded":
-			return "Degraded";
-		case "restarting":
-			return "Restarting...";
-		case "stopped":
-			return "Stopped";
+interface HostInfo {
+	organizationName: string;
+	version: string;
+}
+
+async function fetchHostInfo(organizationId: string): Promise<HostInfo | null> {
+	const connection = getHostServiceCoordinator().getConnection(organizationId);
+	if (!connection) return null;
+
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 2000);
+	try {
+		const res = await fetch(
+			`http://127.0.0.1:${connection.port}/trpc/host.info`,
+			{
+				headers: { Authorization: `Bearer ${connection.secret}` },
+				signal: controller.signal,
+			},
+		);
+		if (!res.ok) return null;
+		const data = await res.json();
+		const info = data?.result?.data?.json;
+		if (!info?.organization?.name) return null;
+		return {
+			organizationName: info.organization.name,
+			version: info.version ?? "",
+		};
+	} catch {
+		return null;
+	} finally {
+		clearTimeout(timeout);
 	}
 }
 
-function buildHostServiceSubmenu(): MenuItemConstructorOptions[] {
-	const manager = getHostServiceManager();
-	const orgIds = manager.getActiveOrganizationIds();
+function buildHostServiceSubmenu(
+	orgIds: string[],
+	infos: Map<string, HostInfo>,
+): MenuItemConstructorOptions[] {
+	const coordinator = getHostServiceCoordinator();
 	const menuItems: MenuItemConstructorOptions[] = [];
 
 	if (orgIds.length === 0) {
 		menuItems.push({ label: "No active services", enabled: false });
-	} else {
-		let isFirst = true;
-		for (const orgId of orgIds) {
-			if (!isFirst) {
-				menuItems.push({ type: "separator" });
-			}
-			isFirst = false;
+		return menuItems;
+	}
 
-			const info = manager.getServiceInfo(orgId);
-			const orgName = info.organizationName ?? orgId.slice(0, 8);
-			const statusLabel = formatStatusLabel(info.status);
-			const versionSuffix = info.serviceVersion
-				? ` (v${info.serviceVersion})`
-				: "";
-			const isRunning = info.status === "running";
+	let isFirst = true;
+	for (const orgId of orgIds) {
+		if (!isFirst) {
+			menuItems.push({ type: "separator" });
+		}
+		isFirst = false;
 
-			menuItems.push({
-				label: orgName,
-				enabled: false,
-			});
+		const status = coordinator.getProcessStatus(orgId);
+		const info = infos.get(orgId);
+		const isRunning = status === "running";
+		const label = info?.organizationName ?? "Loading…";
+		const versionSuffix = info?.version ? ` (v${info.version})` : "";
 
-			menuItems.push({
-				label: `  ${statusLabel}${versionSuffix}`,
-				enabled: false,
-			});
-
-			if (info.uptime !== null) {
-				const uptimeStr = formatUptime(info.uptime);
-				menuItems.push({
-					label: `  Uptime: ${uptimeStr}`,
-					enabled: false,
-				});
-			}
-
-			if (info.restartCount > 0) {
-				menuItems.push({
-					label: `  Restarts: ${info.restartCount}`,
-					enabled: false,
-				});
-			}
-
-			if (info.pendingRestart) {
-				menuItems.push({
-					label: "  Update required — restart to apply",
-					enabled: false,
-				});
-			} else if (
-				info.compatibility &&
-				"updateAvailable" in info.compatibility &&
-				info.compatibility.updateAvailable
-			) {
-				menuItems.push({
-					label: "  Update available",
-					enabled: false,
-				});
-			}
-
-			menuItems.push({
-				label: "  Restart",
-				enabled: isRunning,
-				click: () => {
-					manager.restart(orgId).catch((err) => {
+		menuItems.push({ label, enabled: false });
+		menuItems.push({
+			label: `  ${status}${versionSuffix}`,
+			enabled: false,
+		});
+		menuItems.push({
+			// Enabled in "stopped" too — that's the state where users most need
+			// restart to work (host-service crashed or never came up). Disabled
+			// only while a start is in flight, to avoid racing the pending start.
+			label: "  Restart",
+			enabled: status !== "starting",
+			click: () => {
+				void (async () => {
+					try {
+						const { token } = await loadToken();
+						if (!token) return;
+						await coordinator.restart(orgId, {
+							authToken: token,
+							cloudApiUrl: env.NEXT_PUBLIC_API_URL,
+						});
+					} catch (error) {
 						console.error(
 							`[Tray] Failed to restart host-service for ${orgId}:`,
-							err,
+							error,
 						);
-					});
-					updateTrayMenu();
-				},
-			});
-
-			menuItems.push({
-				label: "  Stop",
-				enabled: isRunning,
-				click: () => {
-					manager.stop(orgId);
-					updateTrayMenu();
-				},
-			});
-		}
+					}
+					void updateTrayMenu();
+				})();
+			},
+		});
+		menuItems.push({
+			label: "  Stop",
+			enabled: isRunning,
+			click: () => {
+				coordinator.stop(orgId);
+				void updateTrayMenu();
+			},
+		});
 	}
 
 	return menuItems;
 }
 
-function formatUptime(seconds: number): string {
-	if (seconds < 60) return `${seconds}s`;
-	if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-	const hours = Math.floor(seconds / 3600);
-	const mins = Math.floor((seconds % 3600) / 60);
-	return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-}
-
-function updateTrayMenu(): void {
+async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
 
-	const manager = getHostServiceManager();
-	const orgIds = manager.getActiveOrganizationIds();
+	const coordinator = getHostServiceCoordinator();
+	const orgIds = coordinator.getActiveOrganizationIds();
+
+	const infoEntries = await Promise.all(
+		orgIds.map(async (orgId) => [orgId, await fetchHostInfo(orgId)] as const),
+	);
+	const infos = new Map<string, HostInfo>();
+	for (const [orgId, info] of infoEntries) {
+		if (info) infos.set(orgId, info);
+	}
+
+	if (!tray) return;
 
 	const hasActive = orgIds.length > 0;
 	const hostServiceLabel = hasActive
 		? `Host Service (${orgIds.length})`
 		: "Host Service";
 
-	const hostServiceSubmenu = buildHostServiceSubmenu();
+	const hostServiceSubmenu = buildHostServiceSubmenu(orgIds, infos);
 
 	const menu = Menu.buildFromTemplate([
 		{
@@ -236,23 +232,17 @@ function updateTrayMenu(): void {
 			},
 		},
 		{ type: "separator" },
-		...(hasActive
-			? [
-					{
-						label: "Quit (Keep Services Running)",
-						click: () => requestQuit("release"),
-					},
-					{
-						label: "Quit & Stop Services",
-						click: () => requestQuit("stop"),
-					},
-				]
-			: [
-					{
-						label: "Quit",
-						click: () => requestQuit("release"),
-					},
-				]),
+		{
+			label: "Close Superset",
+			click: () => quitApp(),
+		},
+		{ type: "separator" },
+		{
+			label: "Quit Superset Completely",
+			click: () => {
+				void confirmAndQuitCompletely();
+			},
+		},
 	]);
 
 	tray.setContextMenu(menu);
@@ -279,19 +269,16 @@ export function initTray(): void {
 		tray = new Tray(icon);
 		tray.setToolTip("Superset");
 
-		updateTrayMenu();
+		void updateTrayMenu();
 
-		const manager = getHostServiceManager();
+		const manager = getHostServiceCoordinator();
 		manager.on("status-changed", (_event: HostServiceStatusEvent) => {
-			updateTrayMenu();
+			void updateTrayMenu();
 		});
 
-		// Periodic refresh as a fallback
-		pollIntervalId = setInterval(() => {
-			updateTrayMenu();
-		}, POLL_INTERVAL_MS);
-		// Don't keep Electron alive just for tray updates
-		pollIntervalId.unref();
+		tray.on("mouse-enter", () => {
+			void updateTrayMenu();
+		});
 
 		console.log("[Tray] Initialized successfully");
 	} catch (error) {
@@ -301,11 +288,6 @@ export function initTray(): void {
 
 /** Call on app quit */
 export function disposeTray(): void {
-	if (pollIntervalId) {
-		clearInterval(pollIntervalId);
-		pollIntervalId = null;
-	}
-
 	if (tray) {
 		tray.destroy();
 		tray = null;

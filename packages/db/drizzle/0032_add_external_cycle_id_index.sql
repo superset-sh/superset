@@ -1,1 +1,0 @@
-CREATE INDEX "tasks_external_cycle_id_idx" ON "tasks" USING btree ("external_cycle_id");

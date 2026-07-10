@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import type { CellContext } from "@tanstack/react-table";
 import { useState } from "react";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { PriorityIcon } from "../../../../components/shared/PriorityIcon";
 import { ALL_PRIORITIES } from "../../../../utils/sorting";
 import type { TaskWithStatus } from "../../useTasksTable";
@@ -25,7 +25,7 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 };
 
 export function PriorityCell({ info }: PriorityCellProps) {
-	const collections = useCollections();
+	const { tasks: taskActions } = useOptimisticCollectionActions();
 	const [open, setOpen] = useState(false);
 
 	const task = info.row.original;
@@ -38,13 +38,9 @@ export function PriorityCell({ info }: PriorityCellProps) {
 			return;
 		}
 
-		try {
-			collections.tasks.update(task.id, (draft) => {
-				draft.priority = newPriority;
-			});
+		const transaction = taskActions.updatePriority(task.id, newPriority);
+		if (transaction) {
 			setOpen(false);
-		} catch (error) {
-			console.error("[PriorityCell] Failed to update priority:", error);
 		}
 	};
 

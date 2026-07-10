@@ -1,4 +1,4 @@
-import { sanitizeSegment } from "shared/utils/branch";
+import { sanitizeSegment } from "@superset/shared/workspace-launch";
 
 export function deriveBranchName({
 	slug,

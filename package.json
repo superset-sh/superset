@@ -6,23 +6,29 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
-		"dotenv-cli": "^11.0.0",
-		"sherif": "^1.10.0",
-		"turbo": "2.8.7"
+		"@types/bun": "1.3.14",
+		"@types/semver": "7.7.1",
+		"dotenv-cli": "11.0.0",
+		"semver": "7.7.4",
+		"sherif": "1.11.0",
+		"turbo": "2.9.14",
+		"typescript": "6.0.3"
 	},
 	"description": "Superset Monorepo",
 	"homepage": "https://superset.sh",
 	"license": "Elastic-2.0",
-	"packageManager": "bun@1.3.11",
+	"packageManager": "bun@1.3.14",
 	"private": true,
 	"scripts": {
 		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=electric-proxy --filter=//",
-		"dev:all": "turbo dev",
+		"dev:all": "turbo dev --concurrency=15",
+		"dev:desktop": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
+		"dev:relay": "turbo dev --filter=@superset/relay",
 		"build": "turbo build --filter=@superset/desktop",
-		"test": "turbo test",
+		"test": "turbo test --concurrency=2",
 		"lint": "./scripts/lint.sh",
 		"check:desktop-git-env": "./scripts/check-desktop-git-env.sh",
 		"lint:fix": "bunx @biomejs/biome@2.4.2 migrate --write && bunx @biomejs/biome@2.4.2 check --write --unsafe .",
@@ -33,10 +39,16 @@
 		"postinstall": "./scripts/postinstall.sh",
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean",
-		"release:desktop": "./apps/desktop/create-release.sh",
+		"release": "bun scripts/release/release.ts",
+		"release:desktop": "bun scripts/release/desktop.ts",
+		"release:cli": "bun scripts/release/cli.ts",
 		"release:canary": "./scripts/release-canary.sh",
+		"check:versions": "bun scripts/release/check-versions.ts",
+		"typecheck:release": "tsc -p scripts/release/tsconfig.json",
+		"test:release": "bun test scripts/release",
 		"db:push": "bun run --cwd packages/db push",
 		"db:migrate": "bun run --cwd packages/db migrate",
+		"db:seed-dev": "NODE_ENV=development bun run packages/auth/src/seed-dev.ts",
 		"db:generate:desktop": "bun run --cwd packages/local-db generate"
 	},
 	"type": "module",
@@ -46,10 +58,10 @@
 		"tooling/*"
 	],
 	"overrides": {
-		"axios": "1.14.0"
-	},
-	"patchedDependencies": {
-		"@durable-streams/state@0.2.1": "patches/@durable-streams%2Fstate@0.2.1.patch"
+		"axios": "1.14.0",
+		"hono": "4.12.25",
+		"kysely": "0.28.17",
+		"shell-quote": "1.8.4"
 	},
 	"trustedDependencies": [
 		"better-sqlite3",

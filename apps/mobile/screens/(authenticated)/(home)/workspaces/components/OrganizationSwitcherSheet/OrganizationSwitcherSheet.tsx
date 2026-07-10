@@ -2,13 +2,17 @@ import { BottomSheet, Group, Host, RNHostView } from "@expo/ui/swift-ui";
 import {
 	background,
 	environment,
+	presentationBackground,
 	presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
-import { OrganizationAvatar } from "./components/OrganizationAvatar";
+import { OrganizationAvatar } from "@/screens/(authenticated)/components/OrganizationAvatar";
+import { hslToHex } from "../../utils/hslToHex";
 
 export interface Organization {
 	id: string;
@@ -33,6 +37,18 @@ export function OrganizationSwitcherSheet({
 	width: number;
 }) {
 	const theme = useTheme();
+	const router = useRouter();
+	const { signOut, isSigningOut } = useSignOut();
+
+	const handleSignOut = () => {
+		onIsPresentedChange(false);
+		void signOut();
+	};
+
+	const handleOpenSettings = () => {
+		onIsPresentedChange(false);
+		router.push("/(authenticated)/settings");
+	};
 
 	return (
 		<Host style={{ position: "absolute", width }}>
@@ -46,6 +62,7 @@ export function OrganizationSwitcherSheet({
 						environment("colorScheme", "dark"),
 						presentationDragIndicator("visible"),
 						background(theme.background),
+						presentationBackground(hslToHex(theme.background)),
 					]}
 				>
 					<RNHostView matchContents>
@@ -83,7 +100,7 @@ export function OrganizationSwitcherSheet({
 														color: theme.mutedForeground,
 													}}
 												>
-													superset.sh/{organization.slug}
+													{organization.slug}
 												</Text>
 											) : null}
 										</View>
@@ -97,6 +114,43 @@ export function OrganizationSwitcherSheet({
 									</Pressable>
 								);
 							})}
+							<View
+								className="my-3 h-px"
+								style={{ backgroundColor: theme.border }}
+							/>
+							<Pressable
+								onPress={handleOpenSettings}
+								className="flex-row items-center gap-2.5 py-2.5"
+							>
+								<Ionicons
+									name="settings-outline"
+									size={28}
+									color={theme.mutedForeground}
+								/>
+								<Text
+									className="text-sm font-medium"
+									style={{ color: theme.foreground }}
+								>
+									Settings
+								</Text>
+							</Pressable>
+							<Pressable
+								onPress={handleSignOut}
+								disabled={isSigningOut}
+								className="flex-row items-center gap-2.5 py-2.5"
+							>
+								<Ionicons
+									name="log-out-outline"
+									size={28}
+									color={theme.destructive}
+								/>
+								<Text
+									className="text-sm font-medium"
+									style={{ color: theme.destructive }}
+								>
+									Log out
+								</Text>
+							</Pressable>
 						</View>
 					</RNHostView>
 				</Group>

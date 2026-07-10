@@ -3,6 +3,7 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
@@ -13,11 +14,16 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type RefObject, useMemo, useState } from "react";
-import { LuCopy, LuX } from "react-icons/lu";
+import { LuCopy, LuGitBranch, LuX } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
-import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
+import {
+	DeleteWorkspaceDialog,
+	RenameBranchDialog,
+	WorkspaceHoverCardContent,
+} from "./components";
 import { HOVER_CARD_CLOSE_DELAY, HOVER_CARD_OPEN_DELAY } from "./constants";
 import { WorkspaceIcon } from "./WorkspaceIcon";
 
@@ -36,6 +42,7 @@ interface CollapsedWorkspaceItemProps {
 	onClick: () => void;
 	onDeleteClick: () => void;
 	onCopyPath: () => void;
+	onCopyBranchName: () => void;
 }
 
 export function CollapsedWorkspaceItem({
@@ -53,6 +60,7 @@ export function CollapsedWorkspaceItem({
 	onClick,
 	onDeleteClick,
 	onCopyPath,
+	onCopyBranchName,
 }: CollapsedWorkspaceItemProps) {
 	const isBranchWorkspace = type === "branch";
 	const deleteDialogCoordinator = useMemo(
@@ -60,6 +68,11 @@ export function CollapsedWorkspaceItem({
 		[onDeleteClick],
 	);
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
+		null,
+	);
+	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
+	const showDeleteShortcut = isActive && deleteHotkeyText !== "Unassigned";
 
 	const collapsedButton = (
 		<button
@@ -75,8 +88,8 @@ export function CollapsedWorkspaceItem({
 			onMouseEnter={onMouseEnter}
 			className={cn(
 				"relative flex items-center justify-center size-8 rounded-md",
-				"hover:bg-muted/50 transition-colors",
-				isActive && "bg-muted",
+				"transition-colors",
+				isActive ? "bg-muted hover:bg-muted" : "hover:bg-muted/50",
 			)}
 		>
 			<WorkspaceIcon
@@ -92,15 +105,25 @@ export function CollapsedWorkspaceItem({
 	if (isBranchWorkspace) {
 		return (
 			<>
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
-					<TooltipContent side="right" className="flex flex-col gap-0.5">
-						<span className="font-medium">local</span>
-						<span className="text-xs text-muted-foreground font-mono">
-							{branch}
-						</span>
-					</TooltipContent>
-				</Tooltip>
+				<ContextMenu>
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<ContextMenuTrigger asChild>{collapsedButton}</ContextMenuTrigger>
+						</TooltipTrigger>
+						<TooltipContent side="right" className="flex flex-col gap-0.5">
+							<span className="font-medium">local</span>
+							<span className="text-xs text-muted-foreground font-mono">
+								{branch}
+							</span>
+						</TooltipContent>
+					</Tooltip>
+					<ContextMenuContent>
+						<ContextMenuItem onSelect={onCopyBranchName}>
+							<LuGitBranch className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Copy Branch Name
+						</ContextMenuItem>
+					</ContextMenuContent>
+				</ContextMenu>
 				<DeleteWorkspaceDialog
 					workspaceId={id}
 					workspaceName={name}
@@ -132,6 +155,10 @@ export function CollapsedWorkspaceItem({
 							<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Copy Path
 						</ContextMenuItem>
+						<ContextMenuItem onSelect={onCopyBranchName}>
+							<LuGitBranch className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Copy Branch Name
+						</ContextMenuItem>
 						<ContextMenuSeparator />
 						<ContextMenuItem
 							onSelect={() => {
@@ -140,11 +167,18 @@ export function CollapsedWorkspaceItem({
 						>
 							<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Close Workspace
+							{showDeleteShortcut && (
+								<ContextMenuShortcut>{deleteHotkeyText}</ContextMenuShortcut>
+							)}
 						</ContextMenuItem>
 					</ContextMenuContent>
 				</ContextMenu>
 				<HoverCardContent side="right" align="start" className="w-72">
-					<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
+					<WorkspaceHoverCardContent
+						workspaceId={id}
+						workspaceAlias={name}
+						onEditBranchClick={setRenameBranchTarget}
+					/>
 				</HoverCardContent>
 			</HoverCard>
 			<DeleteWorkspaceDialog
@@ -154,6 +188,16 @@ export function CollapsedWorkspaceItem({
 				open={showDeleteDialog}
 				onOpenChange={setShowDeleteDialog}
 			/>
+			{renameBranchTarget && (
+				<RenameBranchDialog
+					workspaceId={id}
+					currentBranchName={renameBranchTarget}
+					open={renameBranchTarget !== null}
+					onOpenChange={(open) => {
+						if (!open) setRenameBranchTarget(null);
+					}}
+				/>
+			)}
 		</>
 	);
 }

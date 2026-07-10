@@ -1,4 +1,3 @@
-import { Spinner } from "@superset/ui/spinner";
 import { useCallback, useEffect, useMemo } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
@@ -25,7 +24,7 @@ export function TableContent({
 	onTaskClick,
 	onSelectionChange,
 }: TableContentProps) {
-	const { table, isLoading, slugColumnWidth, rowSelection, setRowSelection } =
+	const { table, slugColumnWidth, rowSelection, setRowSelection } =
 		useTasksTable({
 			filterTab,
 			searchQuery,
@@ -43,14 +42,6 @@ export function TableContent({
 	useEffect(() => {
 		onSelectionChange?.(selectedTasks, clearSelection);
 	}, [selectedTasks, clearSelection, onSelectionChange]);
-
-	if (isLoading) {
-		return (
-			<div className="flex-1 flex items-center justify-center">
-				<Spinner className="size-5" />
-			</div>
-		);
-	}
 
 	if (table.getRowModel().rows.length === 0) {
 		return (

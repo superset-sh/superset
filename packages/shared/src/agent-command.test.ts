@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
+	AGENT_LABELS,
+	AGENT_TYPES,
 	buildAgentFileCommand,
 	buildAgentPromptCommand,
 } from "./agent-command";
@@ -13,7 +15,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toContain(
-			"model_supports_reasoning_summaries=true -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			"codex --dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
@@ -59,5 +61,12 @@ describe("buildAgentPromptCommand", () => {
 
 		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
 		expect(command).not.toContain("pi -p");
+	});
+});
+
+describe("vibe agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("vibe");
+		expect(AGENT_LABELS.vibe).toBe("Mistral Vibe");
 	});
 });

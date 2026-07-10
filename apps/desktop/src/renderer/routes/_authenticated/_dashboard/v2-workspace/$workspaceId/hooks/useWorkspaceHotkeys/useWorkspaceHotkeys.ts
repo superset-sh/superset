@@ -1,62 +1,101 @@
-import type { WorkspaceStore } from "@superset/panes";
-import { useCallback } from "react";
+import {
+	type FocusDirection,
+	getPaneParentDirection,
+	getSpatialNeighborPaneId,
+	type PaneRegistry,
+	type WorkspaceStore,
+} from "@superset/panes";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggle-intent";
 import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	DiffPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useWorkspaceHotkeys({
 	store,
-	workspaceId,
+	matchedPresets,
+	executePreset,
+	addTerminalTab,
+	paneRegistry,
+	launcher,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
-	workspaceId: string;
+	matchedPresets: V2TerminalPresetRow[];
+	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
+	addTerminalTab: () => Promise<void>;
+	paneRegistry: PaneRegistry<PaneViewerData>;
+	launcher: TerminalLauncher;
 }) {
-	const collections = useCollections();
+	const { setRightSidebarOpen, setRightSidebarTab } = useV2UserPreferences();
+	const visiblePresets = useMemo(
+		() => matchedPresets.filter((preset) => preset.pinnedToBar !== false),
+		[matchedPresets],
+	);
 
 	useHotkey("TOGGLE_SIDEBAR", () => {
-		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.rightSidebarOpen = !draft.rightSidebarOpen;
-		});
+		setRightSidebarOpen((prev) => !prev);
 	});
+
+	useEffect(
+		() =>
+			useRightSidebarToggleIntent.subscribe((state, prev) => {
+				if (state.tick !== prev.tick) setRightSidebarOpen((open) => !open);
+			}),
+		[setRightSidebarOpen],
+	);
 
 	// --- Tab creation ---
 
-	useHotkey("NEW_GROUP", () => {
-		store.getState().addTab({
-			titleOverride: "Terminal",
-			panes: [
-				{
-					kind: "terminal",
-					data: { terminalId: crypto.randomUUID() } as TerminalPaneData,
-				},
-			],
-		});
+	useHotkey("NEW_GROUP", async () => {
+		await addTerminalTab();
 	});
 
 	useHotkey("NEW_CHAT", () => {
 		store.getState().addTab({
-			titleOverride: "Chat",
 			panes: [{ kind: "chat", data: { sessionId: null } as ChatPaneData }],
 		});
 	});
 
 	useHotkey("NEW_BROWSER", () => {
 		store.getState().addTab({
-			titleOverride: "Browser",
 			panes: [
 				{
 					kind: "browser",
 					data: {
-						url: "http://localhost:3000",
-						mode: "preview",
+						url: "about:blank",
 					} as BrowserPaneData,
+				},
+			],
+		});
+	});
+
+	useHotkey("OPEN_DIFF_VIEWER", () => {
+		setRightSidebarOpen(true);
+		setRightSidebarTab("changes");
+
+		const state = store.getState();
+		for (const tab of state.tabs) {
+			for (const pane of Object.values(tab.panes)) {
+				if (pane.kind !== "diff") continue;
+				state.setActiveTab(tab.id);
+				state.setActivePane({ tabId: tab.id, paneId: pane.id });
+				return;
+			}
+		}
+		state.addTab({
+			panes: [
+				{
+					kind: "diff",
+					data: { path: "", collapsedFiles: [] } as DiffPaneData,
 				},
 			],
 		});
@@ -64,11 +103,22 @@ export function useWorkspaceHotkeys({
 
 	// --- Tab management ---
 
-	useHotkey("CLOSE_TERMINAL", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (active) {
+	const isClosingPaneRef = useRef(false);
+	useHotkey("CLOSE_PANE", async () => {
+		if (isClosingPaneRef.current) return;
+		isClosingPaneRef.current = true;
+		try {
+			const state = store.getState();
+			const active = state.getActivePane();
+			if (!active) return;
+			const definition = paneRegistry[active.pane.kind];
+			if (definition?.onBeforeClose) {
+				const allowed = await definition.onBeforeClose(active.pane);
+				if (!allowed) return;
+			}
 			state.closePane({ tabId: active.tabId, paneId: active.pane.id });
+		} finally {
+			isClosingPaneRef.current = false;
 		}
 	});
 
@@ -134,67 +184,75 @@ export function useWorkspaceHotkeys({
 
 	// --- Pane management ---
 
-	useHotkey("PREV_PANE", () => {
-		const state = store.getState();
-		const tab = state.getActiveTab();
-		if (!tab || !tab.activePaneId) return;
-		const paneIds = Object.keys(tab.panes);
-		const index = paneIds.indexOf(tab.activePaneId);
-		const prevIndex = index <= 0 ? paneIds.length - 1 : index - 1;
-		state.setActivePane({ tabId: tab.id, paneId: paneIds[prevIndex] });
-	});
+	const moveFocusDirectional = useCallback(
+		(dir: FocusDirection) => {
+			const state = store.getState();
+			const tab = state.getActiveTab();
+			if (!tab || !tab.activePaneId) return;
+			const neighbor = getSpatialNeighborPaneId(
+				tab.layout,
+				tab.activePaneId,
+				dir,
+			);
+			if (neighbor) state.setActivePane({ tabId: tab.id, paneId: neighbor });
+		},
+		[store],
+	);
 
-	useHotkey("NEXT_PANE", () => {
-		const state = store.getState();
-		const tab = state.getActiveTab();
-		if (!tab || !tab.activePaneId) return;
-		const paneIds = Object.keys(tab.panes);
-		const index = paneIds.indexOf(tab.activePaneId);
-		const nextIndex = index >= paneIds.length - 1 ? 0 : index + 1;
-		state.setActivePane({ tabId: tab.id, paneId: paneIds[nextIndex] });
-	});
+	useHotkey("FOCUS_PANE_LEFT", () => moveFocusDirectional("left"));
+	useHotkey("FOCUS_PANE_RIGHT", () => moveFocusDirectional("right"));
+	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
+	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
 
-	useHotkey("SPLIT_AUTO", () => {
+	useHotkey("SPLIT_AUTO", async () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
+		const tab = state.getActiveTab();
+		const parentDirection = tab
+			? getPaneParentDirection(tab.layout, active.pane.id)
+			: null;
+		const position = parentDirection === "horizontal" ? "bottom" : "right";
+		const terminalId = await launcher.create();
+		state.splitPane({
+			tabId: active.tabId,
+			paneId: active.pane.id,
+			position,
+			newPane: {
+				kind: "terminal",
+				data: { terminalId } as TerminalPaneData,
+			},
+		});
+	});
+
+	useHotkey("SPLIT_RIGHT", async () => {
+		const state = store.getState();
+		const active = state.getActivePane();
+		if (!active) return;
+		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "right",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId: crypto.randomUUID() } as TerminalPaneData,
+				data: { terminalId } as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_RIGHT", () => {
+	useHotkey("SPLIT_DOWN", async () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
-		state.splitPane({
-			tabId: active.tabId,
-			paneId: active.pane.id,
-			position: "right",
-			newPane: {
-				kind: "terminal",
-				data: { terminalId: crypto.randomUUID() } as TerminalPaneData,
-			},
-		});
-	});
-
-	useHotkey("SPLIT_DOWN", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (!active) return;
+		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "bottom",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId: crypto.randomUUID() } as TerminalPaneData,
+				data: { terminalId } as TerminalPaneData,
 			},
 		});
 	});
@@ -225,8 +283,7 @@ export function useWorkspaceHotkeys({
 			newPane: {
 				kind: "browser",
 				data: {
-					url: "http://localhost:3000",
-					mode: "preview",
+					url: "about:blank",
 				} as BrowserPaneData,
 			},
 		});
@@ -238,4 +295,24 @@ export function useWorkspaceHotkeys({
 		if (!tab) return;
 		state.equalizeTab({ tabId: tab.id });
 	});
+
+	// --- Preset hotkeys ---
+
+	const openPresetByIndex = useCallback(
+		(index: number) => {
+			const preset = visiblePresets[index];
+			if (preset) executePreset(preset);
+		},
+		[visiblePresets, executePreset],
+	);
+
+	useHotkey("OPEN_PRESET_1", () => openPresetByIndex(0));
+	useHotkey("OPEN_PRESET_2", () => openPresetByIndex(1));
+	useHotkey("OPEN_PRESET_3", () => openPresetByIndex(2));
+	useHotkey("OPEN_PRESET_4", () => openPresetByIndex(3));
+	useHotkey("OPEN_PRESET_5", () => openPresetByIndex(4));
+	useHotkey("OPEN_PRESET_6", () => openPresetByIndex(5));
+	useHotkey("OPEN_PRESET_7", () => openPresetByIndex(6));
+	useHotkey("OPEN_PRESET_8", () => openPresetByIndex(7));
+	useHotkey("OPEN_PRESET_9", () => openPresetByIndex(8));
 }

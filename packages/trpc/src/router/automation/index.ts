@@ -1,0 +1,1 @@
+export { automationRouter } from "./automation";

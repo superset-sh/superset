@@ -81,8 +81,7 @@ export interface ChatMessageListProps {
 		feedback?: string;
 	}) => Promise<void>;
 	pendingQuestion: ChatPendingQuestion;
-	isQuestionSubmitting: boolean;
-	onQuestionRespond: (questionId: string, answer: string) => Promise<void>;
+	answeredQuestionId: string | null;
 	editingUserMessageId: string | null;
 	isEditSubmitting: boolean;
 	onStartEditUserMessage: (messageId: string) => void;

@@ -3,7 +3,7 @@ import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
 import { getToolName } from "ai";
-import { FileIcon, FolderIcon } from "lucide-react";
+import { FileIcon, FolderIcon, GlobeIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { posthog } from "renderer/lib/posthog";
 import { useChangesStore } from "renderer/stores/changes";
@@ -35,10 +35,14 @@ import { ListProjectsToolCall } from "./components/ListProjectsToolCall";
 import { ListTaskStatusesToolCall } from "./components/ListTaskStatusesToolCall";
 import { ListTasksToolCall } from "./components/ListTasksToolCall";
 import { ListWorkspacesToolCall } from "./components/ListWorkspacesToolCall";
+import { LspInspectToolCall } from "./components/LspInspectToolCall";
+import { RequestSandboxAccessToolCall } from "./components/RequestSandboxAccessToolCall";
+import { SkillToolCall } from "./components/SkillToolCall";
 import { StartAgentSessionToolCall } from "./components/StartAgentSessionToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
 import { SupersetToolCall } from "./components/SupersetToolCall";
 import { SwitchWorkspaceToolCall } from "./components/SwitchWorkspaceToolCall";
+import { TaskWriteToolCall } from "./components/TaskWriteToolCall";
 import { UpdateTaskToolCall } from "./components/UpdateTaskToolCall";
 import { UpdateWorkspaceToolCall } from "./components/UpdateWorkspaceToolCall";
 import { getExecuteCommandViewModel } from "./utils/getExecuteCommandViewModel";
@@ -50,6 +54,8 @@ interface ToolCallBlockProps {
 	workspaceCwd?: string;
 	sessionId?: string | null;
 	organizationId?: string | null;
+	isStreaming?: boolean;
+	isInterrupted?: boolean;
 	onAnswer?: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -68,6 +74,8 @@ export function ToolCallBlock({
 	workspaceCwd,
 	sessionId,
 	organizationId,
+	isStreaming,
+	isInterrupted,
 	onAnswer,
 }: ToolCallBlockProps) {
 	const args = getArgs(part);
@@ -445,10 +453,20 @@ export function ToolCallBlock({
 		);
 	}
 
-	// --- Web search → WebSearchTool ---
-	if (toolName === "web_search") {
+	// --- Web search → WebSearchTool (with results) or GenericToolCall (without) ---
+	if (toolName === "web_search" || toolName.includes("web_search")) {
 		const { query, results } = getWebSearchViewModel({ args, result });
-		return <WebSearchTool query={query} results={results} state={state} />;
+		if (results.length > 0) {
+			return <WebSearchTool query={query} results={results} state={state} />;
+		}
+		return (
+			<GenericToolCall
+				part={part}
+				toolName="Web Search"
+				subtitle={query || undefined}
+				icon={GlobeIcon}
+			/>
+		);
 	}
 
 	// --- Web fetch → WebFetchTool ---
@@ -483,6 +501,8 @@ export function ToolCallBlock({
 				result={result}
 				outputObject={outputObject}
 				nestedResultObject={nestedResultObject}
+				isStreaming={isStreaming}
+				isInterrupted={isInterrupted}
 				onAnswer={onAnswer}
 			/>
 		);
@@ -568,7 +588,14 @@ export function ToolCallBlock({
 
 	// --- Read-only exploration tools ---
 	if (READ_ONLY_TOOLS.has(toolName)) {
-		return <ReadOnlyToolCall part={part} onOpenFileInPane={openFileInPane} />;
+		return (
+			<ReadOnlyToolCall
+				part={part}
+				workspaceId={workspaceId}
+				workspaceCwd={workspaceCwd}
+				onOpenFileInPane={openFileInPane}
+			/>
+		);
 	}
 
 	// --- Destructive workspace tools ---
@@ -588,12 +615,23 @@ export function ToolCallBlock({
 		);
 	}
 
-	if (toolName === "request_sandbox_access") {
-		return <SupersetToolCall part={part} toolName="Request sandbox access" />;
+	if (toolName === "request_access") {
+		return (
+			<RequestSandboxAccessToolCall
+				part={part}
+				args={args}
+				result={result}
+				isInterrupted={isInterrupted}
+			/>
+		);
+	}
+
+	if (toolName === "lsp_inspect") {
+		return <LspInspectToolCall part={part} />;
 	}
 
 	if (toolName === "task_write") {
-		return <SupersetToolCall part={part} toolName="Write task list" />;
+		return <TaskWriteToolCall part={part} />;
 	}
 
 	if (toolName === "task_check") {
@@ -605,7 +643,26 @@ export function ToolCallBlock({
 	}
 
 	if (toolName === "subagent") {
-		return <SubagentToolCall part={part} args={args} result={result} />;
+		return (
+			<SubagentToolCall
+				part={part}
+				args={args}
+				result={result}
+				workspaceId={workspaceId}
+				workspaceCwd={workspaceCwd}
+				onOpenFileInPane={openFileInPane}
+			/>
+		);
+	}
+
+	if (toolName === "skill" || toolName === "load_skill") {
+		const skillName =
+			typeof args.name === "string"
+				? args.name
+				: typeof args.command === "string"
+					? args.command
+					: toolDisplayName;
+		return <SkillToolCall part={part} skillName={skillName} />;
 	}
 
 	// --- Fallback: generic tool UI ---

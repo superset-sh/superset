@@ -470,6 +470,50 @@ function copyParcelWatcherPlatformPackages(nodeModulesDir: string): void {
 	}
 }
 
+function copyDuckdbPlatformPackages(nodeModulesDir: string): void {
+	const nodeBindingsPath = join(nodeModulesDir, "@duckdb", "node-bindings");
+	const nodeBindingsPkgJsonPath = join(nodeBindingsPath, "package.json");
+	if (!existsSync(nodeBindingsPkgJsonPath)) return;
+
+	type DuckdbBindingsPackageJson = {
+		optionalDependencies?: Record<string, string>;
+	};
+	const nodeBindingsPkg = JSON.parse(
+		readFileSync(nodeBindingsPkgJsonPath, "utf8"),
+	) as DuckdbBindingsPackageJson;
+	const optionalDeps = nodeBindingsPkg.optionalDependencies ?? {};
+
+	console.log("\nPreparing duckdb platform package...");
+
+	// The native binding is a `cpu`/`os`-gated optional dependency, so Bun only
+	// installs the host's. For the target arch, fetch it from npm when missing.
+	const targetSuffix = `${TARGET_PLATFORM}-${TARGET_ARCH}`;
+	const targetEntry = Object.entries(optionalDeps).find(([name]) =>
+		name.endsWith(targetSuffix),
+	);
+	if (!targetEntry) {
+		console.error(
+			`  [ERROR] No @duckdb/node-bindings optional dependency matched ${targetSuffix}`,
+		);
+		process.exit(1);
+	}
+
+	const [targetName, targetVersion] = targetEntry;
+	const destPath = join(nodeModulesDir, targetName);
+	if (existsSync(destPath)) {
+		copyModuleIfSymlink(nodeModulesDir, targetName, true);
+		return;
+	}
+
+	copyExactModuleVersion(
+		nodeModulesDir,
+		targetName,
+		targetVersion,
+		destPath,
+		true,
+	);
+}
+
 function prepareNativeModules() {
 	console.log("Preparing external runtime modules for electron-builder...");
 	console.log(
@@ -488,6 +532,7 @@ function prepareNativeModules() {
 	copyAstGrepPlatformPackages(nodeModulesDir);
 	copyParcelWatcherPlatformPackages(nodeModulesDir);
 	copyLibsqlDependencies(nodeModulesDir);
+	copyDuckdbPlatformPackages(nodeModulesDir);
 
 	console.log("\nDone!");
 }

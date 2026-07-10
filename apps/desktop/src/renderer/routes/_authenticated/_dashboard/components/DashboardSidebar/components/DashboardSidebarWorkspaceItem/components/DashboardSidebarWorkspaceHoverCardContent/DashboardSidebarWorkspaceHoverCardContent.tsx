@@ -2,23 +2,31 @@ import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
 import { FaGithub } from "react-icons/fa";
-import { LuExternalLink, LuGlobe, LuTriangleAlert } from "react-icons/lu";
+import {
+	LuExternalLink,
+	LuGlobe,
+	LuPencil,
+	LuTriangleAlert,
+} from "react-icons/lu";
+import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { DashboardSidebarWorkspace } from "../../../../types";
-import type { WorkspaceRowMockData } from "../../utils";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
+import { LinkedTaskSection } from "./components/LinkedTaskSection";
 import { PullRequestStatusBadge } from "./components/PullRequestStatusBadge";
 import { ReviewStatus } from "./components/ReviewStatus";
 
 interface DashboardSidebarWorkspaceHoverCardContentProps {
 	workspace: DashboardSidebarWorkspace;
-	mockData: WorkspaceRowMockData;
+	diffStats: DiffStats | null;
+	onEditBranchClick?: (branchName: string) => void;
 }
 
 export function DashboardSidebarWorkspaceHoverCardContent({
 	workspace,
-	mockData,
+	diffStats,
+	onEditBranchClick,
 }: DashboardSidebarWorkspaceHoverCardContentProps) {
 	const {
 		name,
@@ -30,6 +38,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 		needsRebase,
 		behindCount,
 		createdAt,
+		taskId,
 	} = workspace;
 	const { keys: openPRDisplay } = useHotkeyDisplay("OPEN_PR");
 	const hasOpenPRShortcut = !(
@@ -59,28 +68,44 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 					<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
 						Branch
 					</span>
-					{repoUrl && branchExistsOnRemote ? (
-						<a
-							href={`${repoUrl}/tree/${branch}`}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={`flex items-center gap-1 font-mono break-all hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
-						>
-							{branch}
-							<LuExternalLink className="size-3 shrink-0" />
-						</a>
-					) : (
-						<code
-							className={`font-mono break-all block ${hasCustomAlias ? "text-xs" : "text-sm"}`}
-						>
-							{branch}
-						</code>
-					)}
+					<div className="flex items-center gap-1.5">
+						{onEditBranchClick ? (
+							<button
+								type="button"
+								onClick={() => onEditBranchClick(branch)}
+								className={`group/branch flex min-w-0 flex-1 items-center gap-1 font-mono break-all text-left hover:text-foreground hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+								title="Rename branch"
+							>
+								<span className="break-all">{branch}</span>
+								<LuPencil className="size-3 shrink-0 opacity-0 group-hover/branch:opacity-100 transition-opacity" />
+							</button>
+						) : (
+							<code
+								className={`font-mono break-all block min-w-0 flex-1 ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+							>
+								{branch}
+							</code>
+						)}
+						{repoUrl && branchExistsOnRemote && (
+							<a
+								href={`${repoUrl}/tree/${branch}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="shrink-0 text-muted-foreground hover:text-foreground"
+								title="Open branch on GitHub"
+								onClick={(e) => e.stopPropagation()}
+							>
+								<LuExternalLink className="size-3" />
+							</a>
+						)}
+					</div>
 				</div>
 				<span className="text-xs text-muted-foreground block">
 					{formatDistanceToNow(createdAt, { addSuffix: true })}
 				</span>
 			</div>
+
+			{taskId && <LinkedTaskSection taskId={taskId} />}
 
 			{needsRebase && (
 				<div className="flex items-center gap-2 text-amber-500 text-xs bg-amber-500/10 px-2 py-1.5 rounded-md">
@@ -100,28 +125,30 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 								#{pullRequest.number}
 							</span>
 							<PullRequestStatusBadge state={pullRequest.state} />
-							{pullRequest.state === "open" && pullRequest.reviewDecision && (
-								<ReviewStatus
-									status={pullRequest.reviewDecision}
-									requestedReviewers={pullRequest.requestedReviewers}
-								/>
-							)}
+							{(pullRequest.state === "open" ||
+								pullRequest.state === "queued") &&
+								pullRequest.reviewDecision && (
+									<ReviewStatus
+										status={pullRequest.reviewDecision}
+										requestedReviewers={pullRequest.requestedReviewers}
+									/>
+								)}
 						</div>
-						<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
-							<span className="text-emerald-500">
-								+{mockData.diffStats.additions}
-							</span>
-							<span className="text-destructive-foreground">
-								-{mockData.diffStats.deletions}
-							</span>
-						</div>
+						{diffStats && (
+							<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
+								<span className="text-emerald-500">+{diffStats.additions}</span>
+								<span className="text-destructive-foreground">
+									-{diffStats.deletions}
+								</span>
+							</div>
+						)}
 					</div>
 
 					<p className="text-xs leading-relaxed line-clamp-2">
 						{pullRequest.title}
 					</p>
 
-					{pullRequest.state === "open" && (
+					{(pullRequest.state === "open" || pullRequest.state === "queued") && (
 						<div className="space-y-2 pt-1">
 							<div className="flex items-center gap-2 text-xs">
 								<ChecksSummary

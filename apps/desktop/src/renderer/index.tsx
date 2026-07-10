@@ -15,6 +15,7 @@ import {
 import { persistentHistory } from "./lib/persistent-hash-history";
 import { posthog } from "./lib/posthog";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
+import { NotFound } from "./routes/not-found";
 import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";
@@ -27,6 +28,7 @@ const router = createRouter({
 	routeTree,
 	history: persistentHistory,
 	defaultPreload: "intent",
+	defaultNotFoundComponent: NotFound,
 	context: {
 		queryClient: electronQueryClient,
 	},

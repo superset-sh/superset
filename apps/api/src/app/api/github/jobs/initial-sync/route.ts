@@ -223,6 +223,7 @@ export async function POST(request: Request) {
 						checks,
 						mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
 						closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
+						updatedAt: new Date(pr.updated_at),
 					})
 					.onConflictDoUpdate({
 						target: [
@@ -240,7 +241,7 @@ export async function POST(request: Request) {
 							mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
 							closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
 							lastSyncedAt: new Date(),
-							updatedAt: new Date(),
+							updatedAt: new Date(pr.updated_at),
 						},
 					});
 			}

@@ -1,17 +1,17 @@
-import { and, eq } from "@tanstack/db";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	getHostServiceHeaders,
-	getHostServiceWsToken,
-} from "renderer/lib/host-service-auth";
-import { getWorkspaceHostUrlForWorkspace } from "renderer/lib/v2-workspace-host";
+import { useEffect, useMemo, useRef } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useHostService } from "renderer/routes/_authenticated/providers/HostServiceProvider";
-import { WorkspaceTrpcProvider } from "./providers/WorkspaceTrpcProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
+import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
+import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
+import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
+import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
+import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
+import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
 	{
@@ -27,46 +27,34 @@ function V2WorkspaceLayout() {
 	const workspaceId =
 		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
 	const collections = useCollections();
-	const { services } = useHostService();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
-	const { data: deviceInfo, isPending: isDeviceInfoPending } =
-		electronTrpc.auth.getDeviceInfo.useQuery();
+	const pendingTransaction = useWorkspaceTransactionsStore((state) =>
+		workspaceId ? (state.byWorkspaceId[workspaceId] ?? null) : null,
+	);
+	// The create transaction clears when the workspaces.create mutation
+	// settles — not when the host-served row first arrives, which happens
+	// mid-create before agent/terminal panes are seeded.
+	const isCreatePending = pendingTransaction?.type === "insert";
 
-	const { data: workspaces = [] } = useLiveQuery(
+	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
+	const workspace = useMemo(
+		() =>
+			workspaceId != null
+				? (hostWorkspaces.find((candidate) => candidate.id === workspaceId) ??
+					null)
+				: null,
+		[hostWorkspaces, workspaceId],
+	);
+	const { data: failedEntries } = useLiveQuery(
 		(q) =>
 			q
-				.from({ v2Workspaces: collections.v2Workspaces })
-				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
+				.from({ failed: collections.failedWorkspaceCreates })
+				.where(({ failed }) => eq(failed.id, workspaceId ?? "")),
 		[collections, workspaceId],
 	);
-	const workspace = workspaces[0] ?? null;
-	const { data: currentDevices = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Devices: collections.v2Devices })
-				.where(({ v2Devices }) =>
-					and(
-						eq(v2Devices.clientId, deviceInfo?.deviceId ?? ""),
-						eq(v2Devices.organizationId, workspace?.organizationId ?? ""),
-					),
-				),
-		[collections, deviceInfo?.deviceId, workspace?.organizationId],
-	);
-	const currentDevice = currentDevices[0] ?? null;
-	const localHostUrl = workspace
-		? (services.get(workspace.organizationId)?.url ?? null)
-		: null;
-	const shouldWaitForDeviceInfo = workspace !== null && isDeviceInfoPending;
-	const isLocal = workspace?.deviceId === currentDevice?.id;
-	const hostUrl =
-		!workspace || shouldWaitForDeviceInfo
-			? null
-			: isLocal
-				? localHostUrl
-				: getWorkspaceHostUrlForWorkspace(workspace.id);
+	const failedEntry = failedEntries?.[0] ?? null;
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
-
 	useEffect(() => {
 		if (!workspace || lastEnsuredWorkspaceIdRef.current === workspace.id)
 			return;
@@ -74,35 +62,45 @@ function V2WorkspaceLayout() {
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [ensureWorkspaceInSidebar, workspace]);
 
-	if (!workspaceId || !workspace) {
-		return <Outlet />;
+	const hostStatus = useRemoteHostStatus(workspace);
+
+	if (!workspaceId || (!workspace && !isReady)) {
+		return <div className="flex h-full w-full" />;
 	}
 
-	if (shouldWaitForDeviceInfo) {
+	if (!workspace) {
+		if (failedEntry) {
+			return <WorkspaceCreateErrorState entry={failedEntry} />;
+		}
+		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
+	}
+
+	if (isCreatePending) {
 		return (
-			<div className="flex h-full items-center justify-center text-muted-foreground">
-				Resolving workspace host...
-			</div>
+			<WorkspaceCreatingState
+				name={workspace.name}
+				branch={workspace.branch}
+				startedAt={new Date(workspace.createdAt).getTime()}
+			/>
 		);
 	}
 
-	if (!hostUrl) {
+	if (hostStatus.status === "incompatible") {
 		return (
-			<div className="flex h-full items-center justify-center text-muted-foreground">
-				Workspace host service not available
-			</div>
+			<WorkspaceHostIncompatibleState
+				hostName={hostStatus.hostName}
+				hostVersion={hostStatus.hostVersion}
+				minVersion={hostStatus.minVersion}
+			/>
 		);
+	}
+	if (hostStatus.status === "loading") {
+		return <div className="flex h-full w-full" />;
 	}
 
 	return (
-		<WorkspaceTrpcProvider
-			cacheKey={workspace.id}
-			key={`${workspace.id}:${hostUrl}`}
-			hostUrl={hostUrl}
-			headers={() => getHostServiceHeaders(hostUrl)}
-			wsToken={() => getHostServiceWsToken(hostUrl)}
-		>
+		<WorkspaceProvider workspace={workspace}>
 			<Outlet />
-		</WorkspaceTrpcProvider>
+		</WorkspaceProvider>
 	);
 }

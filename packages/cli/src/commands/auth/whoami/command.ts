@@ -1,21 +1,20 @@
-import { CLIError, command } from "@superset/cli-framework";
-import { createApiClient } from "../../../lib/api-client";
-import { readConfig } from "../../../lib/config";
+import { CLIError } from "@superset/cli-framework";
+import { command } from "../../../lib/command";
 
 export default command({
-	description: "Show current user and organization",
+	description: "Show current user, organization, and auth source",
+	run: async ({ ctx }) => {
+		const user = await ctx.api.user.me.query();
+		const organization = await ctx.api.user.myOrganization.query();
+		if (!organization) throw new CLIError("No organization found");
 
-	run: async () => {
-		const config = readConfig();
-		if (!config.auth) {
-			throw new CLIError("Not logged in", "Run: superset auth login");
-		}
-		const api = createApiClient(config);
-		const user = await api.user.me.query();
-		const org = await api.user.myOrganization.query();
-
-		if (!org) {
-			throw new CLIError("No organization found");
+		let authLine: string;
+		if (ctx.authSource === "oauth") {
+			authLine = "Session";
+		} else if (ctx.authSource === "override") {
+			authLine = "API key (from --api-key flag or SUPERSET_API_KEY env)";
+		} else {
+			authLine = "API key (stored via auth login --api-key)";
 		}
 
 		return {
@@ -23,10 +22,15 @@ export default command({
 				userId: user.id,
 				email: user.email,
 				name: user.name,
-				organizationId: org.id,
-				organizationName: org.name,
+				organizationId: organization.id,
+				organizationName: organization.name,
+				authSource: ctx.authSource,
 			},
-			message: `${user.name} (${user.email})\nOrganization: ${org.name}`,
+			message: [
+				`Signed in as ${user.name} (${user.email})`,
+				`Organization: ${organization.name}`,
+				`Auth: ${authLine}`,
+			].join("\n"),
 		};
 	},
 });

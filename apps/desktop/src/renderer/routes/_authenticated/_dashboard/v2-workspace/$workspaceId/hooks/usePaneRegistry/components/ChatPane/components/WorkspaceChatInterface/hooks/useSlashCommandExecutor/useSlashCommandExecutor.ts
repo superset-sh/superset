@@ -9,6 +9,7 @@ import {
 	findModelByQuery,
 	normalizeModelQueryFromActionArgument,
 } from "./model-query";
+import { resolveSlashPromptResult } from "./prompt-result";
 
 interface UseSlashCommandExecutorOptions {
 	sessionId: string | null;
@@ -49,26 +50,13 @@ export function useSlashCommandExecutor({
 	onTrackEvent,
 }: UseSlashCommandExecutorOptions) {
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
+	const { mutateAsync: resolveSlashCommandMutateAsync } =
+		workspaceTrpc.chat.resolveSlashCommand.useMutation();
 
 	const resolveSlashCommandInput = useCallback(
 		async (inputText: string): Promise<ResolveSlashCommandResult> => {
 			const text = inputText.trim();
 			if (!text.startsWith("/")) {
-				return { handled: false, nextText: text };
-			}
-
-			if (!sessionId) {
-				if (text === "/new" || text === "/clear") {
-					onClearError();
-					await onResetSession();
-					toast.success(
-						text === "/clear"
-							? "Context cleared in a new chat session"
-							: "Started a new chat session",
-					);
-					return { handled: true, nextText: "" };
-				}
-
 				return { handled: false, nextText: text };
 			}
 
@@ -164,8 +152,41 @@ export function useSlashCommandExecutor({
 						});
 						return { handled: true, nextText: "" };
 					}
-					default:
-						return { handled: false, nextText: text };
+					default: {
+						// Custom slash command — resolve via host-service so prompts
+						// from .claude/commands and .agents/commands get substituted.
+						// Workspace-scoped: works whether or not a session exists yet.
+						const resolved = await resolveSlashCommandMutateAsync({
+							workspaceId,
+							text,
+						});
+						if (!resolved.handled) {
+							return { handled: false, nextText: text };
+						}
+						const promptResolution = resolveSlashPromptResult({
+							handled: resolved.handled,
+							prompt: resolved.prompt,
+							commandName: resolved.commandName,
+							invokedAs: resolved.invokedAs,
+						});
+						if (promptResolution.errorMessage) {
+							onSetErrorMessage(promptResolution.errorMessage);
+							toast.error(promptResolution.errorMessage);
+							return { handled: true, nextText: "" };
+						}
+						onClearError();
+						if (promptResolution.handled) {
+							onTrackEvent?.("chat_slash_command_used", {
+								command_name:
+									resolved.invokedAs ?? resolved.commandName ?? commandName,
+								command_type: "prompt",
+							});
+						}
+						return {
+							handled: promptResolution.handled,
+							nextText: promptResolution.nextText,
+						};
+					}
 				}
 			} catch (error) {
 				console.warn(
@@ -189,6 +210,7 @@ export function useSlashCommandExecutor({
 			loadMcpOverview,
 			onResetSession,
 			onStopActiveResponse,
+			resolveSlashCommandMutateAsync,
 			sessionId,
 			workspaceId,
 			workspaceTrpcUtils.chat.getMcpOverview,

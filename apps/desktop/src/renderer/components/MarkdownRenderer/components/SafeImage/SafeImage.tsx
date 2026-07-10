@@ -3,31 +3,32 @@ import { LuImageOff } from "react-icons/lu";
 /**
  * Check if an image source is safe to load.
  *
- * Uses strict ALLOWLIST approach - only data: URLs are safe.
- *
  * ALLOWED:
  * - data: URLs (embedded base64 images)
+ * - https:// URLs (GitHub user-attachments, avatars, etc.)
  *
  * BLOCKED (everything else):
- * - http://, https:// (tracking pixels, privacy leak)
+ * - http:// (cleartext / mixed-content)
  * - file:// URLs (arbitrary local file access)
  * - Absolute paths /... or \... (become file:// in Electron)
  * - Relative paths with .. (can escape repo boundary)
  * - UNC paths //server/share (Windows NTLM credential leak)
  * - Empty or malformed sources
  *
- * Security context: In Electron production, renderer loads via file://
- * protocol. Any non-data: image src could access local filesystem or
- * trigger network requests to attacker-controlled servers.
+ * Trade-off: https sources can phone home (tracking pixels). Acceptable
+ * here because the markdown comes from trusted sources (GitHub PR/issue
+ * bodies, user-authored task descriptions) where image embedding is part
+ * of the expected UX.
  */
 function isSafeImageSrc(src: string | undefined): boolean {
 	if (!src) return false;
 	const trimmed = src.trim();
 	if (trimmed.length === 0) return false;
+	const lower = trimmed.toLowerCase();
 
-	// Only allow data: URLs (embedded images)
-	// These are self-contained and can't access external resources
-	return trimmed.toLowerCase().startsWith("data:");
+	if (lower.startsWith("data:")) return true;
+	if (lower.startsWith("https://")) return true;
+	return false;
 }
 
 interface SafeImageProps {
@@ -37,15 +38,11 @@ interface SafeImageProps {
 }
 
 /**
- * Safe image component for untrusted markdown content.
+ * Safe image component for markdown content.
  *
- * Only renders embedded data: URLs. All other sources are blocked
- * to prevent local file access,  network requests, and path traversal
- * attacks from malicious repository content.
- *
- * Future: Could add opt-in support for repo-relative images via a
- * secure loader that validates paths through secureFs and serves
- * as blob: URLs.
+ * Renders data: and http(s):// images. file://, absolute paths, UNC paths,
+ * and traversal sources are blocked to prevent local-filesystem access from
+ * malicious markdown content.
  */
 export function SafeImage({ src, alt, className }: SafeImageProps) {
 	if (!isSafeImageSrc(src)) {

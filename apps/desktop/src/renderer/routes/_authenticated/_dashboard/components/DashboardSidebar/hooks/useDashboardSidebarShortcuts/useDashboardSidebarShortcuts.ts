@@ -1,41 +1,123 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useHotkey } from "renderer/hotkeys";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import type { DashboardSidebarProject } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
 
+interface WorkspaceLocation {
+	projectId: string;
+	projectIsCollapsed: boolean;
+	sectionId: string | null;
+	sectionIsCollapsed: boolean;
+}
+
 const MAX_SHORTCUT_COUNT = 9;
+
+function haveSameIds(left: string[], right: string[]): boolean {
+	return (
+		left.length === right.length &&
+		left.every((id, index) => id === right[index])
+	);
+}
+
+function useStableWorkspaceShortcutLabels(
+	workspaces: Array<{ id: string }>,
+): Map<string, string> {
+	const previousRef = useRef<{
+		workspaceIds: string[];
+		labels: Map<string, string>;
+	} | null>(null);
+
+	return useMemo(() => {
+		const workspaceIds = workspaces
+			.slice(0, MAX_SHORTCUT_COUNT)
+			.map((workspace) => workspace.id);
+		const previous = previousRef.current;
+		if (previous && haveSameIds(previous.workspaceIds, workspaceIds)) {
+			return previous.labels;
+		}
+
+		const labels = new Map(
+			workspaceIds.map((workspaceId, index) => [workspaceId, `⌘${index + 1}`]),
+		);
+		previousRef.current = { workspaceIds, labels };
+		return labels;
+	}, [workspaces]);
+}
 
 export function useDashboardSidebarShortcuts(
 	groups: DashboardSidebarProject[],
 ) {
 	const navigate = useNavigate();
+	const { toggleProjectCollapsed, toggleSectionCollapsed } =
+		useDashboardSidebarState();
+	const { isDeleting } = useDeletingWorkspaces();
 	const flattenedWorkspaces = useMemo(
 		() =>
 			groups
 				.flatMap((project) => getProjectChildrenWorkspaces(project.children))
-				.filter((workspace) => !workspace.creationStatus),
-		[groups],
+				.filter(
+					(workspace) =>
+						workspace.pendingTransaction?.type !== "insert" &&
+						!isDeleting(workspace.id),
+				),
+		[groups, isDeleting],
 	);
-	const workspaceShortcutLabels = useMemo(
-		() =>
-			new Map(
-				flattenedWorkspaces
-					.slice(0, MAX_SHORTCUT_COUNT)
-					.map((workspace, index) => [workspace.id, `⌘${index + 1}`]),
-			),
-		[flattenedWorkspaces],
+	const workspaceShortcutLabels =
+		useStableWorkspaceShortcutLabels(flattenedWorkspaces);
+
+	const workspaceLocations = useMemo(() => {
+		const map = new Map<string, WorkspaceLocation>();
+		for (const project of groups) {
+			for (const child of project.children) {
+				if (child.type === "workspace") {
+					map.set(child.workspace.id, {
+						projectId: project.id,
+						projectIsCollapsed: project.isCollapsed,
+						sectionId: null,
+						sectionIsCollapsed: false,
+					});
+					continue;
+				}
+				for (const workspace of child.section.workspaces) {
+					map.set(workspace.id, {
+						projectId: project.id,
+						projectIsCollapsed: project.isCollapsed,
+						sectionId: child.section.id,
+						sectionIsCollapsed: child.section.isCollapsed,
+					});
+				}
+			}
+		}
+		return map;
+	}, [groups]);
+
+	const revealWorkspace = useCallback(
+		(workspaceId: string) => {
+			const location = workspaceLocations.get(workspaceId);
+			if (!location) return;
+			if (location.projectIsCollapsed) {
+				toggleProjectCollapsed(location.projectId);
+			}
+			if (location.sectionId && location.sectionIsCollapsed) {
+				toggleSectionCollapsed(location.sectionId);
+			}
+		},
+		[workspaceLocations, toggleProjectCollapsed, toggleSectionCollapsed],
 	);
 
 	const switchToWorkspace = useCallback(
 		(index: number) => {
 			const workspace = flattenedWorkspaces[index];
 			if (workspace) {
+				revealWorkspace(workspace.id);
 				navigateToV2Workspace(workspace.id, navigate);
 			}
 		},
-		[flattenedWorkspaces, navigate],
+		[flattenedWorkspaces, navigate, revealWorkspace],
 	);
 
 	useHotkey("JUMP_TO_WORKSPACE_1", () => switchToWorkspace(0));
@@ -48,7 +130,6 @@ export function useDashboardSidebarShortcuts(
 	useHotkey("JUMP_TO_WORKSPACE_8", () => switchToWorkspace(7));
 	useHotkey("JUMP_TO_WORKSPACE_9", () => switchToWorkspace(8));
 
-	// Prev/next workspace navigation (cycles)
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
@@ -62,8 +143,11 @@ export function useDashboardSidebarShortcuts(
 		const index = flattenedWorkspaces.findIndex(
 			(w) => w.id === currentWorkspaceId,
 		);
+		if (index === -1) return;
 		const prevIndex = index <= 0 ? flattenedWorkspaces.length - 1 : index - 1;
-		navigateToV2Workspace(flattenedWorkspaces[prevIndex].id, navigate);
+		const target = flattenedWorkspaces[prevIndex];
+		revealWorkspace(target.id);
+		navigateToV2Workspace(target.id, navigate);
 	});
 
 	useHotkey("NEXT_WORKSPACE", () => {
@@ -71,9 +155,11 @@ export function useDashboardSidebarShortcuts(
 		const index = flattenedWorkspaces.findIndex(
 			(w) => w.id === currentWorkspaceId,
 		);
-		const nextIndex =
-			index >= flattenedWorkspaces.length - 1 || index === -1 ? 0 : index + 1;
-		navigateToV2Workspace(flattenedWorkspaces[nextIndex].id, navigate);
+		if (index === -1) return;
+		const nextIndex = index >= flattenedWorkspaces.length - 1 ? 0 : index + 1;
+		const target = flattenedWorkspaces[nextIndex];
+		revealWorkspace(target.id);
+		navigateToV2Workspace(target.id, navigate);
 	});
 
 	return workspaceShortcutLabels;

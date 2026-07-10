@@ -1,0 +1,1 @@
+export { ChatPaneTitle } from "./ChatPaneTitle";

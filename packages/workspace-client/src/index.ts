@@ -1,22 +1,25 @@
+export { useEventBus } from "./hooks/useEventBus";
+export { useGitChangeEvents } from "./hooks/useGitChangeEvents";
 export {
-	type UseFileDocumentParams,
-	type UseFileDocumentResult,
-	useFileDocument,
-} from "./hooks/useFileDocument";
+	type AgentIdentity,
+	type AgentLifecyclePayload,
+	type EventBusHandle,
+	type GitChangedPayload,
+	getEventBus,
+	type PortChangedPayload,
+	type TerminalLifecyclePayload,
+	type WorkspaceChangedPayload,
+	type WorkspaceSnapshotPayload,
+} from "./lib/eventBus";
 export {
-	type FileTreeNode,
-	type UseFileTreeParams,
-	type UseFileTreeResult,
-	useFileTree,
-} from "./hooks/useFileTree";
-export { useWorkspaceFsEventBridge } from "./hooks/useWorkspaceFsEventBridge";
-export { useWorkspaceFsEvents } from "./hooks/useWorkspaceFsEvents";
+	primeRelayAffinity,
+	type RelayAffinityProbe,
+} from "./lib/primeRelayAffinity";
 export {
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
 	useWorkspaceWsUrl,
 	type WorkspaceClientContextValue,
 	WorkspaceClientProvider,
-	type WorkspaceFsSubscriptionInput,
 } from "./providers/WorkspaceClientProvider";
 export { workspaceTrpc } from "./workspace-trpc";

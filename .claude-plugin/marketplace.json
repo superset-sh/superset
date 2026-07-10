@@ -1,0 +1,14 @@
+{
+	"name": "superset",
+	"owner": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"plugins": [
+		{
+			"name": "superset",
+			"source": "./plugins/superset",
+			"description": "Use Superset to spawn agents, create workspaces, manage tasks, and schedule automations from Claude Code."
+		}
+	]
+}

@@ -1,23 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import {
-	deriveModelProviderStatus,
-	type ProviderDiagnostic,
-} from "./provider-status";
+import { deriveModelProviderStatus } from "./provider-status";
 
 describe("deriveModelProviderStatus", () => {
-	it("keeps a connected provider connected when only capability diagnostics fail", () => {
-		const diagnostic: ProviderDiagnostic = {
-			providerId: "openai",
-			issue: {
-				code: "missing_scope",
-				capability: "small_model_tasks",
-				remediation: "check_permissions",
-				scope: "api.responses.write",
-				message: "OpenAI needs permission api.responses.write",
-			},
-			updatedAt: Date.now(),
-		};
-
+	it("marks an authenticated provider without issues as connected", () => {
 		const status = deriveModelProviderStatus({
 			providerId: "openai",
 			authStatus: {
@@ -26,14 +11,15 @@ describe("deriveModelProviderStatus", () => {
 				source: "managed",
 				issue: null,
 			},
-			diagnostic,
 		});
 
 		expect(status.connectionState).toBe("connected");
-		expect(status.issue?.code).toBe("missing_scope");
-		expect(status.capabilities.canUseChat).toBe(true);
-		expect(status.capabilities.canGenerateWorkspaceTitle).toBe(false);
-		expect(status.capabilities.canUseSmallModelTasks).toBe(false);
+		expect(status.issue).toBeNull();
+		expect(status.capabilities).toEqual({
+			canUseChat: true,
+			canGenerateWorkspaceTitle: true,
+			canUseSmallModelTasks: true,
+		});
 	});
 
 	it("treats expired auth as needs attention and disables all capabilities", () => {
@@ -54,5 +40,21 @@ describe("deriveModelProviderStatus", () => {
 			canGenerateWorkspaceTitle: false,
 			canUseSmallModelTasks: false,
 		});
+	});
+
+	it("reports disconnected for providers with no source and no auth", () => {
+		const status = deriveModelProviderStatus({
+			providerId: "openai",
+			authStatus: {
+				authenticated: false,
+				method: null,
+				source: null,
+				issue: null,
+			},
+		});
+
+		expect(status.connectionState).toBe("disconnected");
+		expect(status.issue).toBeNull();
+		expect(status.capabilities.canUseChat).toBe(false);
 	});
 });

@@ -11,8 +11,10 @@ import {
 	equalizeAllSplits,
 	findFirstPaneId,
 	findPaneInLayout,
-	findSiblingPaneId,
 	generateId,
+	getActiveIdAfterRemoval,
+	getPaneIdsInLayout,
+	graftSubtreeAtPane,
 	positionToDirection,
 	removePaneFromLayout,
 	replacePaneIdInLayout,
@@ -74,6 +76,21 @@ function buildTab<TData>(args: {
 	};
 }
 
+function getActivePaneIdAfterRemoval(
+	originalLayout: LayoutNode,
+	nextLayout: LayoutNode,
+	activePaneId: string | null | undefined,
+	removedPaneId: string,
+): string | null {
+	return (
+		getActiveIdAfterRemoval(
+			getPaneIdsInLayout(originalLayout),
+			activePaneId,
+			removedPaneId,
+		) ?? findFirstPaneId(nextLayout)
+	);
+}
+
 // --- Public types ---
 
 export type CreatePaneInput<TData> = {
@@ -121,7 +138,7 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 		newPane: CreatePaneInput<TData>;
 	}) => void;
 
-	openPane: (args: { pane: CreatePaneInput<TData>; tabTitle?: string }) => void;
+	openPane: (args: { pane: CreatePaneInput<TData> }) => void;
 
 	splitPane: (args: {
 		tabId: string;
@@ -151,7 +168,12 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	}) => void;
 
 	movePaneToTab: (args: { paneId: string; targetTabId: string }) => void;
-	movePaneToNewTab: (args: { paneId: string }) => void;
+	movePaneToNewTab: (args: { paneId: string; toIndex?: number }) => void;
+	moveTabToSplit: (args: {
+		sourceTabId: string;
+		targetPaneId: string;
+		position: SplitPosition;
+	}) => void;
 
 	reorderTab: (args: { tabId: string; toIndex: number }) => void;
 
@@ -182,7 +204,7 @@ export function createWorkspaceStore<TData>(
 			const tab = buildTab({ ...args, panes: builtPanes });
 			set((s) => ({
 				tabs: [...s.tabs, tab],
-				activeTabId: s.activeTabId ?? tab.id,
+				activeTabId: tab.id,
 			}));
 		},
 
@@ -191,8 +213,11 @@ export function createWorkspaceStore<TData>(
 				const nextTabs = s.tabs.filter((t) => t.id !== tabId);
 				return {
 					tabs: nextTabs,
-					activeTabId:
-						s.activeTabId === tabId ? (nextTabs[0]?.id ?? null) : s.activeTabId,
+					activeTabId: getActiveIdAfterRemoval(
+						s.tabs.map((tab) => tab.id),
+						s.activeTabId,
+						tabId,
+					),
 				};
 			});
 		},
@@ -266,10 +291,11 @@ export function createWorkspaceStore<TData>(
 					const nextTabs = s.tabs.filter((t) => t.id !== args.tabId);
 					return {
 						tabs: nextTabs,
-						activeTabId:
-							s.activeTabId === args.tabId
-								? (nextTabs[0]?.id ?? null)
-								: s.activeTabId,
+						activeTabId: getActiveIdAfterRemoval(
+							s.tabs.map((candidate) => candidate.id),
+							s.activeTabId,
+							args.tabId,
+						),
 					};
 				}
 
@@ -280,11 +306,12 @@ export function createWorkspaceStore<TData>(
 									...tab,
 									layout: nextLayout,
 									panes: nextPanes,
-									activePaneId:
-										tab.activePaneId === args.paneId
-											? (findSiblingPaneId(tab.layout, args.paneId) ??
-												findFirstPaneId(nextLayout))
-											: tab.activePaneId,
+									activePaneId: getActivePaneIdAfterRemoval(
+										tab.layout,
+										nextLayout,
+										tab.activePaneId,
+										args.paneId,
+									),
 								}
 							: t,
 					),
@@ -387,10 +414,7 @@ export function createWorkspaceStore<TData>(
 										newPane.id,
 									),
 									panes: { ...restPanes, [newPane.id]: newPane },
-									activePaneId:
-										tab.activePaneId === args.paneId
-											? newPane.id
-											: tab.activePaneId,
+									activePaneId: newPane.id,
 								}
 							: t,
 					),
@@ -406,7 +430,6 @@ export function createWorkspaceStore<TData>(
 			// No tab → create one
 			if (!tab || !activeTabId) {
 				get().addTab({
-					titleOverride: args.tabTitle,
 					panes: [args.pane],
 				});
 				return;
@@ -687,11 +710,12 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									t.activePaneId === args.sourcePaneId
-										? (findSiblingPaneId(sourceTab.layout, args.sourcePaneId) ??
-											findFirstPaneId(nextSourceLayout))
-										: t.activePaneId,
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.sourcePaneId,
+								),
 							};
 						}
 						if (t.id === targetTab.id) {
@@ -749,11 +773,12 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									t.activePaneId === args.paneId
-										? (findSiblingPaneId(sourceTab.layout, args.paneId) ??
-											findFirstPaneId(nextSourceLayout))
-										: t.activePaneId,
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.paneId,
+								),
 							};
 						}
 						if (t.id === targetTab.id) {
@@ -776,10 +801,12 @@ export function createWorkspaceStore<TData>(
 			set((s) => {
 				let sourceTab: Tab<TData> | undefined;
 				let pane: Pane<TData> | undefined;
-				for (const t of s.tabs) {
+				let sourceTabIndex = -1;
+				for (const [index, t] of s.tabs.entries()) {
 					if (t.panes[args.paneId]) {
 						sourceTab = t;
 						pane = t.panes[args.paneId];
+						sourceTabIndex = index;
 						break;
 					}
 				}
@@ -804,20 +831,70 @@ export function createWorkspaceStore<TData>(
 								...t,
 								layout: nextSourceLayout,
 								panes: nextSourcePanes,
-								activePaneId:
-									t.activePaneId === args.paneId
-										? (findSiblingPaneId(sourceTab.layout, args.paneId) ??
-											findFirstPaneId(nextSourceLayout))
-										: t.activePaneId,
+								activePaneId: getActivePaneIdAfterRemoval(
+									sourceTab.layout,
+									nextSourceLayout,
+									t.activePaneId,
+									args.paneId,
+								),
 							};
 						}
 						return t;
 					})
 					.filter((t): t is Tab<TData> => t !== null);
 
-				nextTabs.push(newTab);
+				const requestedIndex = args.toIndex ?? nextTabs.length;
+				const adjustedIndex =
+					args.toIndex !== undefined &&
+					!nextSourceLayout &&
+					sourceTabIndex < args.toIndex
+						? args.toIndex - 1
+						: requestedIndex;
+				const insertIndex = Math.max(
+					0,
+					Math.min(adjustedIndex, nextTabs.length),
+				);
+
+				nextTabs.splice(insertIndex, 0, newTab);
 
 				return { tabs: nextTabs, activeTabId: newTab.id };
+			});
+		},
+
+		moveTabToSplit: (args) => {
+			set((s) => {
+				const sourceTab = s.tabs.find((t) => t.id === args.sourceTabId);
+				if (!sourceTab || !sourceTab.layout) return s;
+
+				const targetTab = s.tabs.find((t) => t.panes[args.targetPaneId]);
+				if (!targetTab || !targetTab.layout) return s;
+				// Merging a tab into one of its own panes is a no-op.
+				if (sourceTab.id === targetTab.id) return s;
+				if (!findPaneInLayout(targetTab.layout, args.targetPaneId)) return s;
+
+				// Graft the source's whole layout subtree so its internal split
+				// arrangement is preserved, rather than re-adding panes one by one.
+				const nextTargetLayout = graftSubtreeAtPane(
+					targetTab.layout,
+					args.targetPaneId,
+					sourceTab.layout,
+					args.position,
+				);
+
+				const nextTabs = s.tabs
+					.filter((t) => t.id !== sourceTab.id)
+					.map((t) =>
+						t.id === targetTab.id
+							? {
+									...t,
+									layout: nextTargetLayout,
+									panes: { ...t.panes, ...sourceTab.panes },
+									activePaneId: sourceTab.activePaneId ?? t.activePaneId,
+								}
+							: t,
+					);
+
+				return { tabs: nextTabs, activeTabId: targetTab.id };
 			});
 		},
 

@@ -7,6 +7,7 @@ import {
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import type { ChatStatus, UIMessage } from "ai";
+import { isToolUIPart } from "ai";
 import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
@@ -18,6 +19,16 @@ import type { InterruptedMessagePreview } from "../../types";
 import { normalizeWorkspaceFilePath } from "../../utils/file-paths";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
+
+function hasRenderableParts(parts: UIMessage["parts"]): boolean {
+	return parts.some(
+		(p) =>
+			p.type === "text" ||
+			p.type === "reasoning" ||
+			(p as { type: string }).type === "error" || // "error" part type exists at runtime but is not yet in the UIMessage union
+			isToolUIPart(p),
+	);
+}
 
 interface MessageListProps {
 	messages: UIMessage[];
@@ -210,10 +221,14 @@ export function MessageList({
 							);
 						}
 
+						const showThinking =
+							isLastAssistant && isThinking && msg.parts.length === 0;
+						if (!showThinking && !hasRenderableParts(msg.parts)) return null;
+
 						return (
 							<Message key={msg.id} from={msg.role}>
 								<MessageContent>
-									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
+									{showThinking ? (
 										<ShimmerLabel className="text-sm text-muted-foreground">
 											Thinking...
 										</ShimmerLabel>
@@ -239,6 +254,7 @@ export function MessageList({
 								parts={interruptedMessage.parts}
 								isLastAssistant={false}
 								isStreaming={false}
+								isInterrupted
 								workspaceId={workspaceId}
 								workspaceCwd={workspaceCwd}
 								onAnswer={onAnswer}

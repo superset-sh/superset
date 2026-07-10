@@ -9,6 +9,7 @@ import {
 	resolveDesktopChatOrganizationId,
 } from "renderer/lib/dev-chat";
 import { posthog } from "renderer/lib/posthog";
+import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 interface SessionSelectorItem {
@@ -48,16 +49,6 @@ async function createSessionRecord(input: {
 	});
 }
 
-async function deleteSessionRecord(sessionId: string): Promise<void> {
-	if (isDesktopChatDevMode()) return;
-	const result = await apiTrpcClient.chat.deleteSession.mutate({
-		sessionId,
-	});
-	if (!result.deleted) {
-		throw new Error(`Failed to delete session ${sessionId}`);
-	}
-}
-
 export function useWorkspaceChatController({
 	sessionId,
 	onSessionIdChange,
@@ -72,6 +63,8 @@ export function useWorkspaceChatController({
 		session?.session?.activeOrganizationId,
 	);
 	const collections = useCollections();
+	const endSessionMutation = workspaceTrpc.chat.endSession.useMutation();
+	const { chatSessions: chatSessionActions } = useOptimisticCollectionActions();
 
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
 		{ id: workspaceId },
@@ -104,7 +97,16 @@ export function useWorkspaceChatController({
 
 	const handleDeleteSession = useCallback(
 		async (sessionIdToDelete: string) => {
-			await deleteSessionRecord(sessionIdToDelete);
+			const transaction = chatSessionActions.deleteSession(sessionIdToDelete);
+			if (!transaction && !isDesktopChatDevMode()) {
+				throw new Error("Failed to delete chat session");
+			}
+			// Tear down the host-service in-memory runtime so it doesn't leak.
+			// Failures here must not block the user-visible delete.
+			void endSessionMutation
+				.mutateAsync({ sessionId: sessionIdToDelete, workspaceId })
+				.catch(() => {});
+
 			posthog.capture("chat_session_deleted", {
 				workspace_id: workspaceId,
 				session_id: sessionIdToDelete,
@@ -114,7 +116,14 @@ export function useWorkspaceChatController({
 				onSessionIdChange(null);
 			}
 		},
-		[onSessionIdChange, organizationId, sessionId, workspaceId],
+		[
+			chatSessionActions,
+			endSessionMutation,
+			onSessionIdChange,
+			organizationId,
+			sessionId,
+			workspaceId,
+		],
 	);
 
 	const getOrCreateSession = useCallback(async (): Promise<string> => {

@@ -79,10 +79,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Codex",
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
-		command:
-			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
-		promptCommand:
-			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true --',
+		command: "codex --dangerously-bypass-approvals-and-sandbox",
+		promptCommand: "codex --dangerously-bypass-approvals-and-sandbox --",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -90,9 +88,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Gemini",
 		description:
 			"Google's open-source terminal agent for coding, problem-solving, and task work.",
-		command: "gemini --yolo",
-		promptCommand: "gemini",
-		promptCommandSuffix: "--yolo",
+		command: "gemini --approval-mode=auto_edit",
+		promptCommand: "gemini --approval-mode=auto_edit",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -101,7 +98,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Mastra's coding agent for building, debugging, and shipping code from the terminal.",
 		command: "mastracode",
-		includeInDefaultTerminalPresets: true,
+		promptCommand: "mastracode --prompt",
+		promptCommandSuffix: "; mastracode",
 	}),
 	createBuiltinTerminalAgent({
 		id: "opencode",
@@ -109,7 +107,6 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description: "Open-source coding agent for the terminal, IDE, and desktop.",
 		command: "opencode",
 		promptCommand: "opencode --prompt",
-		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
 		id: "pi",
@@ -117,16 +114,22 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Minimal terminal coding harness for flexible coding workflows.",
 		command: "pi",
-		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
 		id: "copilot",
 		label: "Copilot",
 		description:
 			"GitHub's coding agent for planning, editing, and building in your repo.",
-		command: "copilot --allow-all",
-		promptCommand: "copilot -i --allow-all",
-		promptCommandSuffix: "--yolo",
+		command: "copilot --allow-tool=write",
+		promptCommand: "copilot --allow-tool=write -i",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
+		id: "vibe",
+		label: "Mistral Vibe",
+		description:
+			"Mistral's coding agent for reading, editing, and running code from the terminal.",
+		command: "vibe --trust --auto-approve",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -135,7 +138,20 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Cursor's coding agent for editing, running, and debugging code in parallel.",
 		command: "cursor-agent",
-		promptCommandSuffix: "--yolo",
+	}),
+	createBuiltinTerminalAgent({
+		id: "droid",
+		label: "Droid",
+		description: "Factory's autonomous coding agent for terminal workflows.",
+		command: "droid",
+	}),
+	createBuiltinTerminalAgent({
+		id: "polygraph",
+		label: "Polygraph",
+		description:
+			"The meta-harness that gives agents cross-repo visibility and memory that survives every session.",
+		command: "polygraph session start",
+		promptCommand: "polygraph session start --",
 	}),
 ] as const;
 

@@ -1,5 +1,6 @@
-import { command, string } from "@superset/cli-framework";
-import type { ApiClient } from "../../../lib/api-client";
+import { CLIError, number, string } from "@superset/cli-framework";
+import { isValid, parseISO } from "date-fns";
+import { command } from "../../../lib/command";
 
 export default command({
 	description: "Create a task",
@@ -10,15 +11,37 @@ export default command({
 			.enum("urgent", "high", "medium", "low", "none")
 			.desc("Priority"),
 		assignee: string().desc("Assignee user ID"),
-		branch: string().desc("Git branch"),
+		statusId: string().desc("Status ID"),
+		estimate: number().int().min(1).desc("Story-point estimate"),
+		dueDate: string().desc("Due date (ISO 8601)"),
+		labels: string().desc("Comma-separated labels"),
 	},
-	run: async (opts) => {
-		const api = opts.ctx.api as ApiClient;
-		const result = await api.task.createFromUi.mutate({
-			title: opts.options.title,
-			description: opts.options.description ?? undefined,
-			priority: opts.options.priority as any,
-			assigneeId: opts.options.assignee ?? undefined,
+	run: async ({ ctx, options }) => {
+		const labels = options.labels
+			? options.labels
+					.split(",")
+					.map((label) => label.trim())
+					.filter(Boolean)
+			: undefined;
+		let dueDate: Date | undefined;
+		if (options.dueDate) {
+			const parsed = parseISO(options.dueDate);
+			if (!isValid(parsed)) {
+				throw new CLIError(
+					`--due-date: invalid ISO 8601 date "${options.dueDate}"`,
+				);
+			}
+			dueDate = parsed;
+		}
+		const result = await ctx.api.task.create.mutate({
+			title: options.title,
+			description: options.description ?? undefined,
+			priority: options.priority,
+			assigneeId: options.assignee ?? undefined,
+			statusId: options.statusId ?? undefined,
+			estimate: options.estimate ?? undefined,
+			dueDate,
+			labels,
 		});
 
 		const task = result.task;

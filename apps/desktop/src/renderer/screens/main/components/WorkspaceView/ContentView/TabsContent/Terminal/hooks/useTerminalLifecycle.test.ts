@@ -9,9 +9,8 @@
  *
  * When a user returns from an external browser to the Electron app, the
  * `window.focus` event fires and schedules reattach recovery. This recovery:
- *   1. Clears the stale WebGL texture atlas (`clearTextureAtlas`)
- *   2. Re-fits the terminal to its container (`fitAddon.fit()`)
- *   3. Forces a full repaint (`xterm.refresh()`)
+ *   1. Re-fits the terminal to its container (`fitAddon.fit()`)
+ *   2. Forces a full repaint (`xterm.refresh()`)
  *
  * If the user switches focus multiple times in rapid succession (within 120ms),
  * subsequent recovery calls hit the throttle and return early — without ever

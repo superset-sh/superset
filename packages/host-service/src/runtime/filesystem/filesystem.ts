@@ -5,8 +5,8 @@ import {
 	getSearchIndex,
 } from "@superset/workspace-fs/host";
 import { eq } from "drizzle-orm";
-import type { HostDb } from "../../db";
-import { workspaces } from "../../db/schema";
+import type { HostDb } from "../../db/index.ts";
+import { projects, workspaces } from "../../db/schema.ts";
 
 export interface WorkspaceFilesystemManagerOptions {
 	db: HostDb;
@@ -33,8 +33,27 @@ export class WorkspaceFilesystemManager {
 		return workspace.worktreePath;
 	}
 
+	resolveProjectRoot(projectId: string): string {
+		const project = this.db.query.projects
+			.findFirst({ where: eq(projects.id, projectId) })
+			.sync();
+
+		if (!project) {
+			throw new Error(`Project not found: ${projectId}`);
+		}
+
+		return project.repoPath;
+	}
+
 	getServiceForWorkspace(workspaceId: string): FsHostService {
-		const rootPath = this.resolveWorkspaceRoot(workspaceId);
+		return this.getServiceForRootPath(this.resolveWorkspaceRoot(workspaceId));
+	}
+
+	getServiceForProject(projectId: string): FsHostService {
+		return this.getServiceForRootPath(this.resolveProjectRoot(projectId));
+	}
+
+	private getServiceForRootPath(rootPath: string): FsHostService {
 		let service = this.serviceCache.get(rootPath);
 		if (!service) {
 			service = createFsHostService({

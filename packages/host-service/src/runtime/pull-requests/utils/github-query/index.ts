@@ -1,5 +1,18 @@
-export { fetchRepositoryPullRequests } from "./github-query";
+export {
+	fetchOpenPullRequests,
+	fetchOpenPullRequestsFromGh,
+	fetchPullRequestByHead,
+	fetchPullRequestByHeadFromGh,
+	fetchPullRequestChecks,
+	fetchPullRequestChecksFromGh,
+	fetchPullRequestMergeQueueState,
+	fetchPullRequestMergeQueueStateFromGh,
+	fetchPullRequestReviewDecision,
+	fetchPullRequestReviewDecisionFromGh,
+} from "./github-query";
 export type {
-	GraphQLCheckContextNode,
-	GraphQLPullRequestNode,
+	GitHubCheckContextNode,
+	GitHubPullRequestHeadRef,
+	GitHubPullRequestNode,
+	GitHubPullRequestReviewDecision,
 } from "./types";

@@ -3,15 +3,16 @@ import {
 	PromptInputAttachment,
 	PromptInputAttachments,
 	type PromptInputMessage,
-	PromptInputTextarea,
+	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
+import { workspaceTrpc } from "@superset/workspace-client";
 import type { ChatStatus, FileUIPart } from "ai";
 import type React from "react";
 import type { ReactNode } from "react";
-import { useCallback, useRef, useState } from "react";
-import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
-import { SlashCommandInput } from "renderer/components/Chat/ChatInterface/components/SlashCommandInput";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { QuestionInputOverlay } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/QuestionInputOverlay";
+import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor";
 import { useFocusPromptOnPane } from "renderer/components/Chat/ChatInterface/hooks/useFocusPromptOnPane";
 import type { SlashCommand } from "renderer/components/Chat/ChatInterface/hooks/useSlashCommands";
 import type {
@@ -19,7 +20,6 @@ import type {
 	PermissionMode,
 } from "renderer/components/Chat/ChatInterface/types";
 import { useHotkeyDisplay } from "renderer/hotkeys";
-import { MentionAnchor, MentionProvider } from "../MentionPopover";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
 import { ChatShortcuts } from "./components/ChatShortcuts";
@@ -30,7 +30,6 @@ import type { LinkedIssue } from "./types";
 import { getErrorMessage } from "./utils/getErrorMessage";
 
 interface ChatInputFooterProps {
-	sessionId: string | null;
 	workspaceId: string;
 	cwd: string;
 	isFocused: boolean;
@@ -53,11 +52,17 @@ interface ChatInputFooterProps {
 	onSubmitEnd?: () => void;
 	onSend: (message: PromptInputMessage) => Promise<void> | void;
 	onStop: (e: React.MouseEvent) => void;
-	onSlashCommandSend: (command: SlashCommand) => void;
+	pendingQuestion?: {
+		questionId: string;
+		question: string;
+		options?: { label: string; description?: string }[];
+	} | null;
+	isQuestionSubmitting?: boolean;
+	onQuestionRespond?: (questionId: string, answer: string) => Promise<void>;
+	onQuestionCancel?: () => void;
 }
 
 export function ChatInputFooter({
-	sessionId,
 	workspaceId,
 	cwd,
 	isFocused,
@@ -80,29 +85,52 @@ export function ChatInputFooter({
 	onSubmitEnd,
 	onSend,
 	onStop,
-	onSlashCommandSend,
+	pendingQuestion,
+	isQuestionSubmitting,
+	onQuestionRespond,
+	onQuestionCancel,
 }: ChatInputFooterProps) {
 	useFocusPromptOnPane(isFocused);
-	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
+
+	// Re-focus the editor when the question overlay dismisses.
+	const { textInput } = usePromptInputController();
+	const prevPendingQuestionRef = useRef(pendingQuestion);
+	useEffect(() => {
+		const prev = prevPendingQuestionRef.current;
+		prevPendingQuestionRef.current = pendingQuestion;
+		if (prev != null && pendingQuestion == null) {
+			const id = requestAnimationFrame(() => textInput.focus());
+			return () => cancelAnimationFrame(id);
+		}
+	}, [pendingQuestion, textInput]);
+
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);
 	const errorMessage = getErrorMessage(error);
 	const focusShortcutText = useHotkeyDisplay("FOCUS_CHAT_INPUT").text;
 	const showFocusHint = focusShortcutText !== "Unassigned";
 
-	const addLinkedIssue = useCallback(
-		(slug: string, title: string, taskId: string | undefined, url?: string) => {
-			setLinkedIssues((prev) => {
-				if (prev.some((issue) => issue.slug === slug)) return prev;
-				return [...prev, { slug, title, taskId, url }];
-			});
-		},
-		[],
-	);
-
 	const removeLinkedIssue = useCallback((slug: string) => {
 		setLinkedIssues((prev) => prev.filter((issue) => issue.slug !== slug));
 	}, []);
+
+	const trpcUtils = workspaceTrpc.useUtils();
+	const searchFiles = useCallback(
+		async (query: string) => {
+			const { matches } = await trpcUtils.filesystem.searchFiles.fetch({
+				workspaceId,
+				query,
+				includeHidden: false,
+				limit: 20,
+			});
+			return matches.map((m) => ({
+				id: m.absolutePath,
+				name: m.name,
+				relativePath: m.relativePath,
+			}));
+		},
+		[trpcUtils, workspaceId],
+	);
 
 	const handleSend = useCallback(
 		(message: PromptInputMessage) => {
@@ -133,83 +161,77 @@ export function ChatInputFooter({
 							{errorMessage}
 						</p>
 					)}
-					<SlashCommandInput
-						onCommandSend={onSlashCommandSend}
-						commands={slashCommands}
-					>
-						<MentionProvider cwd={cwd}>
-							<MentionAnchor>
-								<div
-									ref={inputRootRef}
-									className={
-										dragType === "path"
-											? "relative opacity-50 transition-opacity"
-											: "relative"
-									}
-								>
-									{showFocusHint && (
-										<span className="pointer-events-none absolute top-3 right-3 z-10 text-xs text-muted-foreground/50 [:focus-within>&]:hidden">
-											{focusShortcutText} to focus
-										</span>
-									)}
-									<PromptInput
-										className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
-										onSubmitStart={onSubmitStart}
-										onSubmitEnd={onSubmitEnd}
-										onSubmit={handleSend}
-										multiple
-										maxFiles={5}
-										maxFileSize={10 * 1024 * 1024}
-										globalDrop
-									>
-										<ChatShortcuts
-											isFocused={isFocused}
-											setIssueLinkOpen={setIssueLinkOpen}
-										/>
-										<IssueLinkCommand
-											open={issueLinkOpen}
-											onOpenChange={setIssueLinkOpen}
-											onSelect={addLinkedIssue}
-										/>
-										<FileDropOverlay visible={dragType === "files"} />
-										<PromptInputAttachments>
-											{renderAttachment ??
-												((file) => <PromptInputAttachment data={file} />)}
-										</PromptInputAttachments>
-										<LinkedIssues
-											issues={linkedIssues}
-											onRemove={removeLinkedIssue}
-										/>
-										<SlashCommandPreview
-											sessionId={sessionId}
-											workspaceId={workspaceId}
-											slashCommands={slashCommands}
-										/>
-										<PromptInputTextarea
-											placeholder="Ask to make changes, @mention files, run /commands"
-											className="min-h-10"
-										/>
-										<ChatComposerControls
-											availableModels={availableModels}
-											selectedModel={selectedModel}
-											setSelectedModel={setSelectedModel}
-											modelSelectorOpen={modelSelectorOpen}
-											setModelSelectorOpen={setModelSelectorOpen}
-											permissionMode={permissionMode}
-											setPermissionMode={setPermissionMode}
-											thinkingLevel={thinkingLevel}
-											setThinkingLevel={setThinkingLevel}
-											canAbort={canAbort}
-											submitStatus={submitStatus}
-											submitDisabled={submitDisabled}
-											onStop={onStop}
-											onLinkIssue={() => setIssueLinkOpen(true)}
-										/>
-									</PromptInput>
-								</div>
-							</MentionAnchor>
-						</MentionProvider>
-					</SlashCommandInput>
+					{pendingQuestion && onQuestionRespond && onQuestionCancel ? (
+						<QuestionInputOverlay
+							key={pendingQuestion.questionId}
+							question={pendingQuestion}
+							isSubmitting={isQuestionSubmitting ?? false}
+							onRespond={onQuestionRespond}
+							onCancel={onQuestionCancel}
+						/>
+					) : (
+						<div
+							ref={inputRootRef}
+							className={
+								dragType === "path"
+									? "relative opacity-50 transition-opacity"
+									: "relative"
+							}
+						>
+							{showFocusHint && (
+								<span className="pointer-events-none absolute top-3 right-3 z-10 text-xs text-muted-foreground/50 [:focus-within>&]:hidden">
+									{focusShortcutText} to focus
+								</span>
+							)}
+							<PromptInput
+								className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+								onSubmitStart={onSubmitStart}
+								onSubmitEnd={onSubmitEnd}
+								onSubmit={handleSend}
+								multiple
+								maxFiles={5}
+								maxFileSize={10 * 1024 * 1024}
+								globalDrop
+							>
+								<ChatShortcuts isFocused={isFocused} />
+								<FileDropOverlay visible={dragType === "files"} />
+								<PromptInputAttachments>
+									{renderAttachment ??
+										((file) => <PromptInputAttachment data={file} />)}
+								</PromptInputAttachments>
+								<LinkedIssues
+									issues={linkedIssues}
+									onRemove={removeLinkedIssue}
+								/>
+								<SlashCommandPreview
+									workspaceId={workspaceId}
+									slashCommands={slashCommands}
+								/>
+								<TiptapPromptEditor
+									cwd={cwd}
+									searchFiles={searchFiles}
+									slashCommands={slashCommands}
+									availableModels={availableModels}
+									placeholder="Ask to make changes, @mention files, run /commands"
+								/>
+								<ChatComposerControls
+									availableModels={availableModels}
+									selectedModel={selectedModel}
+									setSelectedModel={setSelectedModel}
+									modelSelectorOpen={modelSelectorOpen}
+									setModelSelectorOpen={setModelSelectorOpen}
+									permissionMode={permissionMode}
+									setPermissionMode={setPermissionMode}
+									thinkingLevel={thinkingLevel}
+									setThinkingLevel={setThinkingLevel}
+									canAbort={canAbort}
+									submitStatus={submitStatus}
+									submitDisabled={submitDisabled}
+									onStop={onStop}
+								/>
+							</PromptInput>
+						</div>
+					)}
 					<div className="py-1.5" />
 				</div>
 			)}

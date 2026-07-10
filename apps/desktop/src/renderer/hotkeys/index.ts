@@ -1,13 +1,34 @@
 export { HotkeyLabel } from "./components/HotkeyLabel";
 export { formatHotkeyDisplay } from "./display";
-export { useHotkey, useHotkeyDisplay, useRecordHotkeys } from "./hooks";
-export { getBinding } from "./hooks/useBinding";
+export {
+	getBinding,
+	getDispatchChord,
+	useBinding,
+	useFormatBinding,
+	useHotkey,
+	useHotkeyDisplay,
+	useRecordHotkeys,
+} from "./hooks";
 export { HOTKEYS, type HotkeyId, PLATFORM } from "./registry";
-export { useHotkeyOverridesStore } from "./stores/hotkeyOverridesStore";
+export {
+	useHotkeyOverridesStore,
+	useKeyboardPreferencesStore,
+} from "./stores";
 export type {
+	BindingMode,
 	HotkeyCategory,
 	HotkeyDefinition,
 	HotkeyDisplay,
+	ParsedBinding,
 	Platform,
+	ShortcutBinding,
 } from "./types";
-export { isTerminalReservedEvent } from "./utils";
+export {
+	bindingsEqual,
+	defaultModeForChord,
+	isTerminalReservedEvent,
+	matchesChord,
+	parseBinding,
+	resolveHotkeyFromEvent,
+	serializeBinding,
+} from "./utils";

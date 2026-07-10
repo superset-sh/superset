@@ -1,27 +1,49 @@
 import { FitAddon } from "@xterm/addon-fit";
+import type { ProgressAddon } from "@xterm/addon-progress";
+import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
-import type { TerminalAppearance } from "./appearance";
+import {
+	applyTerminalFontFamilyCssVariable,
+	type TerminalAppearance,
+} from "./appearance";
+import { scheduleFontSettleRefit } from "./font-settle";
+import {
+	cancelParserIdleWork,
+	createParserIdleGate,
+	type ParserIdleGate,
+	runWhenParserIdle,
+	wrapWrite,
+} from "./parser-idle-gate";
 import { loadAddons } from "./terminal-addons";
+import { installImagePasteFallback } from "./terminal-image-paste-fallback";
+import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
+import { getTerminalParkingContainer } from "./terminal-parking";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
 const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
+const RESIZE_DEBOUNCE_MS = 75;
 
 export interface TerminalRuntime {
 	terminalId: string;
 	terminal: XTerm;
 	fitAddon: FitAddon;
 	serializeAddon: SerializeAddon;
+	searchAddon: SearchAddon | null;
+	progressAddon: ProgressAddon | null;
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
+	gate: ParserIdleGate;
 	resizeObserver: ResizeObserver | null;
+	_disposeResizeObserver: (() => void) | null;
 	lastCols: number;
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
+	_disposeImagePasteFallback: (() => void) | null;
 }
 
 function createTerminal(
@@ -47,6 +69,7 @@ function createTerminal(
 		macOptionIsMeta: false,
 		cursorStyle: "block",
 		cursorInactiveStyle: "outline",
+		vtExtensions: { kittyKeyboard: true },
 		scrollbar: { showScrollbar: false },
 	});
 	terminal.loadAddon(fitAddon);
@@ -110,16 +133,85 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function measureAndResize(runtime: TerminalRuntime) {
+function measureAndResize(
+	runtime: TerminalRuntime,
+	onResize?: () => void,
+): void {
 	if (!hostIsVisible(runtime.container)) return;
-	runtime.fitAddon.fit();
-	runtime.lastCols = runtime.terminal.cols;
-	runtime.lastRows = runtime.terminal.rows;
+	const { terminal } = runtime;
+
+	runWhenParserIdle(runtime.gate, () => {
+		if (!hostIsVisible(runtime.container)) return;
+
+		const buffer = terminal.buffer.active;
+		const wasPinnedToBottom = buffer.viewportY >= buffer.baseY;
+		const savedViewportY = buffer.viewportY;
+		const prevCols = terminal.cols;
+		const prevRows = terminal.rows;
+
+		runtime.fitAddon.fit();
+		runtime.lastCols = terminal.cols;
+		runtime.lastRows = terminal.rows;
+
+		if (wasPinnedToBottom) {
+			terminal.scrollToBottom();
+		} else {
+			const targetY = Math.min(savedViewportY, terminal.buffer.active.baseY);
+			if (terminal.buffer.active.viewportY !== targetY) {
+				terminal.scrollToLine(targetY);
+			}
+		}
+
+		terminal.refresh(0, Math.max(0, terminal.rows - 1));
+
+		if (terminal.cols !== prevCols || terminal.rows !== prevRows) {
+			onResize?.();
+		}
+	});
+}
+
+function createResizeScheduler(
+	runtime: TerminalRuntime,
+	onResize?: () => void,
+): {
+	observe: ResizeObserverCallback;
+	dispose: () => void;
+} {
+	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+	const dispose = () => {
+		if (timeoutId !== null) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+	};
+
+	const run = () => {
+		timeoutId = null;
+		measureAndResize(runtime, onResize);
+	};
+
+	const observe: ResizeObserverCallback = (entries) => {
+		if (
+			entries.some(
+				(entry) =>
+					entry.contentRect.width <= 0 || entry.contentRect.height <= 0,
+			)
+		) {
+			dispose();
+			return;
+		}
+		dispose();
+		timeoutId = setTimeout(run, RESIZE_DEBOUNCE_MS);
+	};
+
+	return { observe, dispose };
 }
 
 export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
+	options: { initialBuffer?: string } = {},
 ): TerminalRuntime {
 	const savedDims = loadSavedDimensions(terminalId);
 	const cols = savedDims?.cols ?? DEFAULT_COLS;
@@ -131,25 +223,47 @@ export function createRuntime(
 		appearance,
 	);
 
+	const gate = createParserIdleGate();
+	terminal.write = wrapWrite(gate, terminal.write.bind(terminal));
+
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
+	applyTerminalFontFamilyCssVariable(wrapper, appearance.fontFamily);
 	terminal.open(wrapper);
-	restoreBuffer(terminalId, terminal);
 
-	const disposeAddons = loadAddons(terminal);
+	installTerminalKeyEventHandler(terminal);
+
+	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
+	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
+	const addonsResult = loadAddons(terminal);
+	if (options.initialBuffer !== undefined) {
+		terminal.write(options.initialBuffer);
+	} else {
+		restoreBuffer(terminalId, terminal);
+	}
+
+	const disposeImagePasteFallback = installImagePasteFallback(
+		terminal,
+		wrapper,
+	);
 
 	return {
 		terminalId,
 		terminal,
 		fitAddon,
 		serializeAddon,
+		searchAddon: addonsResult.searchAddon,
+		progressAddon: addonsResult.progressAddon,
 		wrapper,
 		container: null,
+		gate,
 		resizeObserver: null,
+		_disposeResizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
-		_disposeAddons: disposeAddons,
+		_disposeAddons: addonsResult.dispose,
+		_disposeImagePasteFallback: disposeImagePasteFallback,
 	};
 }
 
@@ -157,39 +271,61 @@ export function attachToContainer(
 	runtime: TerminalRuntime,
 	container: HTMLDivElement,
 	onResize?: () => void,
+	options: { focus?: boolean } = {},
 ) {
+	// If we're already attached to this exact container, do nothing. Prevents
+	// redundant refresh/fit from transient remounts during provider key
+	// churn — VSCode setVisible() is idempotent for the same host element.
+	const sameContainer =
+		runtime.container === container &&
+		runtime.wrapper.parentElement === container;
+	if (sameContainer && runtime.resizeObserver) {
+		return;
+	}
+
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	measureAndResize(runtime);
+	measureAndResize(runtime, onResize);
+	scheduleFontSettleRefit(
+		runtime.terminal,
+		() => hostIsVisible(runtime.container),
+		() => measureAndResize(runtime, onResize),
+	);
 
-	// Renderer may have skipped frames while the wrapper was detached.
-	runtime.terminal.refresh(0, runtime.terminal.rows - 1);
-
+	runtime._disposeResizeObserver?.();
+	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
-	const observer = new ResizeObserver(() => {
-		measureAndResize(runtime);
-		onResize?.();
-	});
+	const scheduler = createResizeScheduler(runtime, onResize);
+	const observer = new ResizeObserver(scheduler.observe);
 	observer.observe(container);
 	runtime.resizeObserver = observer;
+	runtime._disposeResizeObserver = scheduler.dispose;
 
-	runtime.terminal.focus();
+	if (options.focus !== false) {
+		runtime.terminal.focus();
+	}
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
 	persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+	runtime._disposeResizeObserver?.();
+	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
-	runtime.wrapper.remove();
+	cancelParserIdleWork(runtime.gate);
+	// Park instead of .remove() so xterm survives the React unmount —
+	// see getTerminalParkingContainer.
+	getTerminalParkingContainer().appendChild(runtime.wrapper);
 	runtime.container = null;
 }
 
 export function updateRuntimeAppearance(
 	runtime: TerminalRuntime,
 	appearance: TerminalAppearance,
+	onResize?: () => void,
 ) {
-	const { terminal, fitAddon } = runtime;
+	const { terminal } = runtime;
 	terminal.options.theme = appearance.theme;
 
 	const fontChanged =
@@ -197,23 +333,43 @@ export function updateRuntimeAppearance(
 		terminal.options.fontSize !== appearance.fontSize;
 
 	if (fontChanged) {
+		applyTerminalFontFamilyCssVariable(runtime.wrapper, appearance.fontFamily);
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
-		if (hostIsVisible(runtime.container)) {
-			fitAddon.fit();
-			runtime.lastCols = terminal.cols;
-			runtime.lastRows = terminal.rows;
-		}
+		measureAndResize(runtime, onResize);
+		// The freshly-selected font may still be loading — schedule a follow-up
+		// refit once it resolves so dimensions track the rendered glyphs.
+		scheduleFontSettleRefit(
+			runtime.terminal,
+			() => hostIsVisible(runtime.container),
+			() => measureAndResize(runtime, onResize),
+		);
 	}
 }
 
-export function disposeRuntime(runtime: TerminalRuntime) {
+export function disposeRuntime(
+	runtime: TerminalRuntime,
+	options: { clearPersistedState?: boolean } = {},
+) {
+	const clearPersistedState = options.clearPersistedState ?? true;
+	if (!clearPersistedState) {
+		persistBuffer(runtime.terminalId, runtime.serializeAddon);
+		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+	}
+	runtime._disposeImagePasteFallback?.();
+	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
+	runtime._disposeResizeObserver?.();
+	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	cancelParserIdleWork(runtime.gate);
+	runtime.container = null;
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
-	clearPersistedBuffer(runtime.terminalId);
-	clearPersistedDimensions(runtime.terminalId);
+	if (clearPersistedState) {
+		clearPersistedBuffer(runtime.terminalId);
+		clearPersistedDimensions(runtime.terminalId);
+	}
 }

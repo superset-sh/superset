@@ -1,4 +1,9 @@
-import type { ContextMenuActionConfig, RendererContext } from "@superset/panes";
+import {
+	type ContextMenuActionConfig,
+	type PaneRegistry,
+	type RendererContext,
+	resolveTabTitle,
+} from "@superset/panes";
 import { useMemo } from "react";
 import {
 	LuColumns2,
@@ -17,8 +22,15 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
-export function useDefaultContextMenuActions(): ContextMenuActionConfig<PaneViewerData>[] {
+export function useDefaultContextMenuActions({
+	paneRegistry,
+	launcher,
+}: {
+	paneRegistry: PaneRegistry<PaneViewerData>;
+	launcher: TerminalLauncher;
+}): ContextMenuActionConfig<PaneViewerData>[] {
 	const splitDownShortcut = useHotkeyDisplay("SPLIT_DOWN").text;
 	const splitRightShortcut = useHotkeyDisplay("SPLIT_RIGHT").text;
 	const splitWithChatShortcut = useHotkeyDisplay("SPLIT_WITH_CHAT").text;
@@ -26,7 +38,7 @@ export function useDefaultContextMenuActions(): ContextMenuActionConfig<PaneView
 	const equalizePaneSplitsShortcut = useHotkeyDisplay(
 		"EQUALIZE_PANE_SPLITS",
 	).text;
-	const closePaneShortcut = useHotkeyDisplay("CLOSE_TERMINAL").text;
+	const closePaneShortcut = useHotkeyDisplay("CLOSE_PANE").text;
 
 	return useMemo<ContextMenuActionConfig<PaneViewerData>[]>(
 		() => [
@@ -36,12 +48,11 @@ export function useDefaultContextMenuActions(): ContextMenuActionConfig<PaneView
 				icon: <LuRows2 />,
 				shortcut:
 					splitDownShortcut !== "Unassigned" ? splitDownShortcut : undefined,
-				onSelect: (ctx) => {
+				onSelect: async (ctx) => {
+					const terminalId = await launcher.create();
 					ctx.actions.split("down", {
 						kind: "terminal",
-						data: {
-							terminalId: crypto.randomUUID(),
-						} as TerminalPaneData,
+						data: { terminalId } as TerminalPaneData,
 					});
 				},
 			},
@@ -51,12 +62,11 @@ export function useDefaultContextMenuActions(): ContextMenuActionConfig<PaneView
 				icon: <LuColumns2 />,
 				shortcut:
 					splitRightShortcut !== "Unassigned" ? splitRightShortcut : undefined,
-				onSelect: (ctx) => {
+				onSelect: async (ctx) => {
+					const terminalId = await launcher.create();
 					ctx.actions.split("right", {
 						kind: "terminal",
-						data: {
-							terminalId: crypto.randomUUID(),
-						} as TerminalPaneData,
+						data: { terminalId } as TerminalPaneData,
 					});
 				},
 			},
@@ -87,8 +97,7 @@ export function useDefaultContextMenuActions(): ContextMenuActionConfig<PaneView
 					ctx.actions.split("right", {
 						kind: "browser",
 						data: {
-							url: "http://localhost:3000",
-							mode: "preview",
+							url: "about:blank",
 						} as BrowserPaneData,
 					});
 				},
@@ -116,7 +125,7 @@ export function useDefaultContextMenuActions(): ContextMenuActionConfig<PaneView
 					const items: ContextMenuActionConfig<PaneViewerData>[] =
 						otherTabs.map((tab) => ({
 							key: `move-to-${tab.id}`,
-							label: tab.titleOverride ?? tab.id,
+							label: resolveTabTitle(tab, tabs, paneRegistry),
 							onSelect: () => {
 								ctx.store
 									.getState()
@@ -155,6 +164,8 @@ export function useDefaultContextMenuActions(): ContextMenuActionConfig<PaneView
 			splitWithBrowserShortcut,
 			equalizePaneSplitsShortcut,
 			closePaneShortcut,
+			paneRegistry,
+			launcher,
 		],
 	);
 }

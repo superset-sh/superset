@@ -1,6 +1,6 @@
 # macOS Quit & Tray Lifecycle
 
-## Decision (2025-04-05)
+## Decision (2026-04-05)
 
 All quit paths fully exit the app. No background-to-tray behavior for now.
 
@@ -8,11 +8,9 @@ The tray exists while the app is running and provides host-service management an
 
 ### What shipped
 
-- **Lifecycle intents** (`exit_release`, `exit_stop`, `restart`) replace the overloaded `QuitMode` (`"release" | "stop"`). Explicit intents skip the confirm-on-quit dialog and route directly to the exit path.
-- **Updater fix**: `installUpdate()` uses `prepareIntent("exit_release")` so `before-quit` skips the confirm dialog and exits cleanly. The old `prepareQuit("release")` was intercepted by the macOS background-to-tray block when services were active, preventing updates from installing.
-- **Tray menu rename**: "Quit (Keep Services Running)" is now "Quit Superset" for clarity.
-- **Restart consolidation**: `restartApp` tRPC endpoint uses `requestExit("restart")` instead of manual `app.relaunch()` + `app.exit(0)`.
-- **Removed macOS background-to-tray block** from `before-quit`. The old block prevented quit and kept tray alive when `hasActiveInstances()` was true, but left the dock icon visible (confusing UX).
+- **Removed macOS background-to-tray block** from `before-quit` (#3205). The old block prevented quit and kept tray alive when `hasActiveInstances()` was true, but left the dock icon visible (confusing UX).
+- **Updater fix**: `installUpdate()` calls `quitAndInstall()` then `exitImmediately()`, bypassing the quit protocol entirely. The old `prepareQuit("release")` approach coupled the updater to the quit lifecycle unnecessarily.
+- **Hardened `before-quit` cleanup**: host-service cleanup wrapped in try/catch so `app.exit(0)` always runs. Without this, an exception in cleanup would skip `app.exit(0)`, and the macOS window close handler (`event.preventDefault()` + `hide()`, added in #3157) would block the quit.
 
 ### What was deferred
 
@@ -31,21 +29,19 @@ Background-to-tray on macOS (Cmd+Q destroys windows but keeps tray alive) is the
 | Dock right-click Quit | Same |
 | App menu Quit | Same |
 | Window close (red-X / Cmd+W) | macOS: hide window (standard behavior). Non-macOS: close window, then app quits. |
-| Tray "Quit Superset" | `requestExit("exit_release")` — release services, full exit |
-| Tray "Quit & Stop Services" | `requestExit("exit_stop")` — stop services, full exit |
+| Tray "Quit (Keep Services Running)" | `requestQuit("release")` — release services, full exit |
+| Tray "Quit & Stop Services" | `requestQuit("stop")` — stop services, full exit |
 | Tray host-service "Stop" | Stops individual service, app stays running |
-| Settings "Restart App" | `requestExit("restart")` — release services, relaunch, exit |
-| Update install | `prepareIntent("exit_release")` + `quitAndInstall()` — full exit, updater handles install |
+| Update install | `quitAndInstall()` + `exitImmediately()` — bypasses quit protocol |
 
 ### Host-service lifecycle on quit
 
-- **Release** (`exit_release`, implicit quit): services keep running as detached processes. On next app launch, they are re-adopted via manifest files.
-- **Stop** (`exit_stop`): services are terminated via `SIGTERM`.
+- **Release** (default): services keep running as detached processes. On next app launch, they are re-adopted via manifest files.
+- **Stop** (`requestQuit("stop")`): services are terminated via `SIGTERM`.
 
 ### Key files
 
-- `src/main/lib/lifecycle.ts` — lifecycle intent model
-- `src/main/index.ts` — `before-quit` handler
+- `src/main/index.ts` — `before-quit` handler, `requestQuit`, `exitImmediately`
 - `src/main/windows/main.ts` — window close behavior
 - `src/main/lib/tray/index.ts` — tray menu and actions
 - `src/main/lib/auto-updater.ts` — update install flow

@@ -3,6 +3,7 @@ import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { app, Notification, nativeTheme } from "electron";
+import log from "electron-log/main";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
@@ -16,6 +17,7 @@ import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
+import { attachEditContextMenu } from "../lib/edit-context-menu";
 import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
@@ -128,11 +130,47 @@ export async function MainWindow() {
 
 	createApplicationMenu();
 
+	attachEditContextMenu(window.webContents);
+
 	currentWindow = window;
 
 	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
 	if (PLATFORM.IS_MAC) {
 		window.webContents.setBackgroundThrottling(false);
+	}
+
+	if (isDev) {
+		window.webContents.on(
+			"console-message",
+			(_event, level, message, line, sourceId) => {
+				const shouldForward =
+					level >= 2 ||
+					message.includes("[stress]") ||
+					message.includes("[main]");
+				if (!shouldForward) return;
+
+				const details = sourceId ? ` (${sourceId}:${line})` : "";
+				const formatted = `[renderer-console] ${message}${details}`;
+				if (level >= 3) {
+					log.error(formatted);
+				} else if (level >= 2) {
+					log.warn(formatted);
+				} else {
+					log.info(formatted);
+				}
+			},
+		);
+
+		window.on("unresponsive", () => {
+			log.warn("[main-window] Renderer became unresponsive", {
+				url: window.webContents.getURL(),
+			});
+		});
+		window.on("responsive", () => {
+			log.info("[main-window] Renderer became responsive", {
+				url: window.webContents.getURL(),
+			});
+		});
 	}
 
 	if (ipcHandler) {
@@ -161,6 +199,16 @@ export async function MainWindow() {
 		onNotificationClick: (ids) => {
 			window.show();
 			window.focus();
+			if (ids.workspaceId && ids.terminalId) {
+				notificationsEmitter.emit(
+					NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE,
+					{
+						workspaceId: ids.workspaceId,
+						source: { type: "terminal", id: ids.terminalId },
+					},
+				);
+				return;
+			}
 			notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, ids);
 		},
 		getVisibilityContext: () => ({
@@ -289,6 +337,7 @@ export async function MainWindow() {
 
 	window.webContents.on("render-process-gone", (_event, details) => {
 		console.error("[main-window] Renderer process gone:", details);
+		log.error("[main-window] Renderer process gone", details);
 	});
 
 	window.webContents.on("preload-error", (_event, preloadPath, error) => {
@@ -297,7 +346,7 @@ export async function MainWindow() {
 		console.error(`  Error:`, error);
 	});
 
-	window.on("close", (event) => {
+	window.on("close", () => {
 		// Save window state first, before any cleanup
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
@@ -311,15 +360,6 @@ export async function MainWindow() {
 			zoomLevel,
 		});
 		persistedZoomLevel = zoomLevel;
-
-		// macOS: hide instead of destroy so "Open Superset" can reshow instantly.
-		// The quit flow uses app.exit(0) which bypasses close events entirely,
-		// so this hide path only runs for Cmd+W / red-X.
-		if (PLATFORM.IS_MAC) {
-			event.preventDefault();
-			window.hide();
-			return;
-		}
 
 		browserManager.unregisterAll();
 		server.close();

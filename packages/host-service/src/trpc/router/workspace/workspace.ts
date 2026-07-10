@@ -1,11 +1,15 @@
-import { existsSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import simpleGit from "simple-git";
 import { z } from "zod";
-import { projects, workspaces } from "../../../db/schema";
+import { workspaces } from "../../../db/schema";
+import { pushWorkspaceCreateToCloud } from "../../../runtime/workspace-cloud-sync";
+import {
+	toCloudShape,
+	updateLocalWorkspace,
+} from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
+import { destroyWorkspace } from "../workspace-cleanup";
 
 export const workspaceRouter = router({
 	get: protectedProcedure
@@ -22,115 +26,94 @@ export const workspaceRouter = router({
 				});
 			}
 
-			return localWorkspace;
+			return {
+				...localWorkspace,
+				worktreeExists: existsSync(localWorkspace.worktreePath),
+			};
 		}),
 
-	create: protectedProcedure
+	/**
+	 * Authoritative list of this host's workspaces, served entirely from
+	 * host.db — works with zero cloud availability. Rows are shaped like
+	 * cloud rows (plus local extras) so consumers of either read path agree.
+	 */
+	list: protectedProcedure.query(({ ctx }) => {
+		const rows = ctx.db.select().from(workspaces).all();
+		return rows.map((row) => ({
+			...toCloudShape(row, ctx.organizationId),
+			worktreePath: row.worktreePath,
+			worktreeExists: existsSync(row.worktreePath),
+		}));
+	}),
+
+	/**
+	 * Rename / branch-repoint / task-link update, local-first: the host.db
+	 * row commits and broadcasts immediately; the cloud mirror push is
+	 * best-effort (the reconciler retries when unreachable). `branch` only
+	 * re-points the record — callers rename the git branch themselves.
+	 */
+	update: protectedProcedure
 		.input(
 			z.object({
-				projectId: z.string(),
-				name: z.string().min(1),
-				branch: z.string().min(1),
+				id: z.string().uuid(),
+				name: z.string().min(1).optional(),
+				branch: z.string().min(1).optional(),
+				taskId: z.string().uuid().nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (!ctx.api) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Cloud API not configured",
-				});
-			}
-
-			let localProject = ctx.db.query.projects
-				.findFirst({ where: eq(projects.id, input.projectId) })
-				.sync();
-
-			if (!localProject) {
-				const cloudProject = await ctx.api.v2Project.get.query({
-					id: input.projectId,
-				});
-
-				if (!cloudProject.repoCloneUrl) {
+			const patch: { name?: string; branch?: string; taskId?: string | null } =
+				{};
+			if (input.name !== undefined) patch.name = input.name;
+			if (input.branch !== undefined) patch.branch = input.branch;
+			if (input.taskId !== undefined) patch.taskId = input.taskId;
+			if (Object.keys(patch).length === 0) {
+				const current = ctx.db.query.workspaces
+					.findFirst({ where: eq(workspaces.id, input.id) })
+					.sync();
+				if (!current) {
 					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Project has no linked GitHub repository — cannot clone",
+						code: "NOT_FOUND",
+						message: "Workspace not found",
 					});
 				}
-
-				const homeDir = process.env.HOME || process.env.USERPROFILE || "/tmp";
-				const repoPath = join(homeDir, ".superset", "repos", input.projectId);
-
-				if (!existsSync(repoPath)) {
-					mkdirSync(dirname(repoPath), { recursive: true });
-					await simpleGit().clone(cloudProject.repoCloneUrl, repoPath);
-				}
-
-				const inserted = ctx.db
-					.insert(projects)
-					.values({ id: input.projectId, repoPath })
-					.returning()
-					.get();
-
-				localProject = inserted;
+				return toCloudShape(current, ctx.organizationId);
 			}
-
-			const worktreePath = join(
-				localProject.repoPath,
-				".worktrees",
-				input.branch,
+			const updated = updateLocalWorkspace(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				input.id,
+				patch,
 			);
-			if (!ctx.deviceClientId || !ctx.deviceName) {
+			if (!updated) {
 				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Host device metadata not configured",
+					code: "NOT_FOUND",
+					message: "Workspace not found",
 				});
 			}
-
-			const git = await ctx.git(localProject.repoPath);
-			try {
-				await git.raw(["worktree", "add", worktreePath, input.branch]);
-			} catch {
-				await git.raw(["worktree", "add", "-b", input.branch, worktreePath]);
-			}
-
-			const device = await ctx.api.device.ensureV2Host.mutate({
-				clientId: ctx.deviceClientId,
-				name: ctx.deviceName,
-			});
-
-			const cloudRow = await ctx.api.v2Workspace.create
-				.mutate({
-					projectId: input.projectId,
-					name: input.name,
-					branch: input.branch,
-					deviceId: device.id,
-				})
-				.catch(async (err) => {
-					try {
-						await git.raw(["worktree", "remove", worktreePath]);
-					} catch (cleanupErr) {
-						console.warn("[workspace.create] failed to rollback worktree", {
-							worktreePath,
-							cleanupErr,
-						});
-					}
-					throw err;
-				});
-
-			if (cloudRow) {
-				ctx.db
-					.insert(workspaces)
-					.values({
-						id: cloudRow.id,
-						projectId: input.projectId,
-						worktreePath,
-						branch: input.branch,
-					})
-					.run();
-			}
-
-			return cloudRow;
+			void pushWorkspaceCreateToCloud(
+				{
+					api: ctx.api,
+					db: ctx.db,
+					eventBus: ctx.eventBus,
+					organizationId: ctx.organizationId,
+					clientMachineId: ctx.clientMachineId,
+				},
+				updated,
+			);
+			return toCloudShape(updated, ctx.organizationId);
 		}),
+
+	cloudList: protectedProcedure.query(async ({ ctx }) => {
+		const rows = await ctx.api.v2Workspace.list.query({
+			organizationId: ctx.organizationId,
+		});
+		return rows.map((row) => ({
+			id: row.id,
+			projectId: row.projectId,
+			branch: row.branch,
+			hostId: row.hostId,
+		}));
+	}),
 
 	gitStatus: protectedProcedure
 		.input(z.object({ id: z.string() }))
@@ -164,40 +147,12 @@ export const workspaceRouter = router({
 	delete: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			if (!ctx.api) {
-				throw new TRPCError({
-					code: "PRECONDITION_FAILED",
-					message: "Cloud API not configured",
-				});
-			}
-
-			await ctx.api.v2Workspace.delete.mutate({ id: input.id });
-
-			const localWorkspace = ctx.db.query.workspaces
-				.findFirst({ where: eq(workspaces.id, input.id) })
-				.sync();
-
-			if (localWorkspace) {
-				const localProject = ctx.db.query.projects
-					.findFirst({ where: eq(projects.id, localWorkspace.projectId) })
-					.sync();
-
-				if (localProject) {
-					try {
-						const git = await ctx.git(localProject.repoPath);
-						await git.raw(["worktree", "remove", localWorkspace.worktreePath]);
-					} catch (err) {
-						console.warn("[workspace.delete] failed to remove worktree", {
-							workspaceId: input.id,
-							worktreePath: localWorkspace.worktreePath,
-							err,
-						});
-					}
-				}
-			}
-
-			ctx.db.delete(workspaces).where(eq(workspaces.id, input.id)).run();
-
-			return { success: true };
+			// Legacy external surface used by CLI/SDK/MCP. Preserve its
+			// non-interactive contract while reusing the v2 cleanup path.
+			return destroyWorkspace(ctx, {
+				workspaceId: input.id,
+				deleteBranch: false,
+				force: true,
+			});
 		}),
 });

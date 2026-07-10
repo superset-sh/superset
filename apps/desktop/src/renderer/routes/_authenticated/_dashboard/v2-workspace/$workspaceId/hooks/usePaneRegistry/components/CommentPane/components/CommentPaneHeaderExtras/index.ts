@@ -1,0 +1,1 @@
+export { CommentPaneHeaderExtras } from "./CommentPaneHeaderExtras";

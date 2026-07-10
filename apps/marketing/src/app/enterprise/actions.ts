@@ -2,40 +2,31 @@
 
 import { EnterpriseInquiryEmail } from "@superset/email/emails/enterprise-inquiry";
 import { Resend } from "resend";
+import { z } from "zod";
 import { env } from "@/env";
+import { checkEmailFormRateLimit } from "@/lib/email-rate-limit";
+import { sanitizeSingleLine, validateEmail } from "@/lib/form-utils";
 
 const resend = new Resend(env.RESEND_API_KEY);
 
-interface EnterpriseFormData {
-	name: string;
-	role: string;
-	company: string;
-	email: string;
-	phone: string;
-	message: string;
-	honeypot?: string;
-}
+const enterpriseFormDataSchema = z.object({
+	name: z.string(),
+	role: z.string(),
+	company: z.string(),
+	email: z.string(),
+	phone: z.string().optional().default(""),
+	message: z.string().optional().default(""),
+	honeypot: z.string().optional(),
+});
 
-function validateEmail(email: string): boolean {
-	// Basic email validation - check for @ with text before and after
-	const parts = email.split("@");
-	return (
-		parts.length === 2 &&
-		parts[0] !== undefined &&
-		parts[0].length > 0 &&
-		parts[1] !== undefined &&
-		parts[1].length > 0 &&
-		parts[1].includes(".")
-	);
-}
+export async function submitEnterpriseInquiry(data: unknown) {
+	const parsedData = enterpriseFormDataSchema.safeParse(data);
+	if (!parsedData.success) {
+		return { success: false, error: "Invalid input detected." };
+	}
 
-function sanitizeInput(input: string): string {
-	// Remove control characters (CR, LF, null bytes) to prevent header injection
-	return input.replace(/[\r\n\0]/g, "").trim();
-}
-
-export async function submitEnterpriseInquiry(data: EnterpriseFormData) {
-	const { name, role, company, email, phone, message, honeypot } = data;
+	const { name, role, company, email, phone, message, honeypot } =
+		parsedData.data;
 
 	// Honeypot check - if filled, silently reject (don't leak that we detected a bot)
 	if (honeypot && honeypot.length > 0) {
@@ -48,12 +39,12 @@ export async function submitEnterpriseInquiry(data: EnterpriseFormData) {
 	}
 
 	// Sanitize inputs FIRST to prevent header injection
-	const sanitizedName = sanitizeInput(name);
-	const sanitizedRole = sanitizeInput(role);
-	const sanitizedCompany = sanitizeInput(company);
-	const sanitizedEmail = sanitizeInput(email);
-	const sanitizedPhone = phone ? sanitizeInput(phone) : "";
-	const sanitizedMessage = message ? sanitizeInput(message) : "";
+	const sanitizedName = sanitizeSingleLine(name);
+	const sanitizedRole = sanitizeSingleLine(role);
+	const sanitizedCompany = sanitizeSingleLine(company);
+	const sanitizedEmail = sanitizeSingleLine(email);
+	const sanitizedPhone = phone ? sanitizeSingleLine(phone) : "";
+	const sanitizedMessage = message ? sanitizeSingleLine(message) : "";
 
 	// Ensure sanitized values are not empty (trimming might have removed everything)
 	if (
@@ -71,6 +62,13 @@ export async function submitEnterpriseInquiry(data: EnterpriseFormData) {
 	}
 
 	try {
+		if (!(await checkEmailFormRateLimit(sanitizedEmail))) {
+			return {
+				success: false,
+				error: "Too many messages. Please try again later.",
+			};
+		}
+
 		const { error } = await resend.emails.send({
 			from: "Superset <noreply@superset.sh>",
 			to: "founders@superset.sh",

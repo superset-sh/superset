@@ -16,10 +16,13 @@ export function ErrorHandler() {
 
 	useEffect(() => {
 		const error = searchParams.get("error");
-		if (error) {
-			toast.error(ERROR_MESSAGES[error] ?? "Something went wrong.");
-			window.history.replaceState({}, "", "/integrations/linear");
-		}
+		if (!error) return;
+
+		const message = ERROR_MESSAGES[error] ?? "Something went wrong.";
+
+		window.history.replaceState({}, "", "/integrations/linear");
+		const id = setTimeout(() => toast.error(message), 0);
+		return () => clearTimeout(id);
 	}, [searchParams]);
 
 	return null;

@@ -22,8 +22,11 @@ export type PatchStatus =
 /** GitHub GraphQL: DiffSide */
 export type DiffSide = "LEFT" | "RIGHT";
 
-/** GitHub GraphQL: PullRequestState */
-export type PullRequestState = "open" | "closed" | "merged";
+/**
+ * GitHub GraphQL: PullRequestState, plus the Superset-derived "queued" state
+ * for PRs sitting in a repo's merge queue (not a GitHub PullRequestState value).
+ */
+export type PullRequestState = "open" | "closed" | "merged" | "queued";
 
 /** GitHub GraphQL: PullRequestReviewDecision */
 export type PullRequestReviewDecision =
@@ -72,6 +75,7 @@ export interface PullRequestReviewComment {
 export interface PullRequestReviewThread {
 	id: string;
 	isResolved: boolean;
+	isOutdated: boolean;
 	diffSide: DiffSide;
 	line: number | null;
 	path: string;
@@ -118,6 +122,7 @@ export interface ChangedFile {
 	status: FileStatus;
 	additions: number;
 	deletions: number;
+	isBinary?: boolean;
 }
 
 export interface Commit {

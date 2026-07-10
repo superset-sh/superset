@@ -1,9 +1,7 @@
 "use client";
 
-import posthog from "posthog-js";
-import { useEffect, useState } from "react";
-
-import { track } from "@/lib/analytics";
+import { useEffect } from "react";
+import { WaitlistForm } from "../WaitlistForm";
 
 interface WaitlistModalProps {
 	isOpen: boolean;
@@ -11,9 +9,6 @@ interface WaitlistModalProps {
 }
 
 export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
-	const [email, setEmail] = useState("");
-	const [submitted, setSubmitted] = useState(false);
-
 	useEffect(() => {
 		if (isOpen) {
 			document.body.style.overflow = "hidden";
@@ -26,32 +21,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 		};
 	}, [isOpen]);
 
-	useEffect(() => {
-		if (!isOpen) {
-			setEmail("");
-			setSubmitted(false);
-		}
-	}, [isOpen]);
-
 	if (!isOpen) return null;
-
-	function handleSubmit(e: React.FormEvent) {
-		e.preventDefault();
-		if (!email) return;
-
-		const wasOptedOut = posthog.has_opted_out_capturing();
-		if (wasOptedOut) {
-			posthog.opt_in_capturing();
-		}
-
-		track("waitlist_signup", { email, platform: "windows_linux" });
-
-		if (wasOptedOut) {
-			posthog.opt_out_capturing();
-		}
-
-		setSubmitted(true);
-	}
 
 	return (
 		<>
@@ -86,41 +56,10 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 						</svg>
 					</button>
 
-					{submitted ? (
-						<div className="text-center py-4">
-							<h2 className="text-xl font-medium text-foreground mb-2">
-								You're on the list!
-							</h2>
-							<p className="text-muted-foreground text-sm">
-								We'll notify you when Windows & Linux support is ready.
-							</p>
-						</div>
-					) : (
-						<>
-							<h2 className="text-xl font-medium text-foreground mb-2">
-								Join the waitlist
-							</h2>
-							<p className="text-muted-foreground text-sm mb-6">
-								Get notified when Superset is available on Windows & Linux.
-							</p>
-							<form onSubmit={handleSubmit} className="flex flex-col gap-3">
-								<input
-									type="email"
-									required
-									placeholder="you@example.com"
-									value={email}
-									onChange={(e) => setEmail(e.target.value)}
-									className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-								/>
-								<button
-									type="submit"
-									className="w-full rounded-lg bg-foreground text-background font-medium py-2.5 text-sm hover:opacity-90 transition-opacity"
-								>
-									Join waitlist
-								</button>
-							</form>
-						</>
-					)}
+					<WaitlistForm
+						heading="Join the waitlist"
+						description="Get notified when Superset is available on Windows & Linux."
+					/>
 				</div>
 			</div>
 		</>

@@ -4,8 +4,9 @@ import {
 	ConversationEmptyState,
 	ConversationLoadingState,
 	ConversationScrollButton,
+	useConversationContext,
 } from "@superset/ui/ai-elements/conversation";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import type {
 	ChatMessage,
@@ -17,8 +18,6 @@ import { InterruptedFooter } from "./components/InterruptedFooter";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
-import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
-import { SubagentExecutionMessage } from "./components/SubagentExecutionMessage";
 import { ThinkingMessage } from "./components/ThinkingMessage";
 import { ToolPreviewMessage } from "./components/ToolPreviewMessage";
 import { UserMessage } from "./components/UserMessage";
@@ -31,6 +30,21 @@ import {
 	removeInterruptedSourceMessage,
 	resolvePendingPlanToolCallId,
 } from "./utils/messageListHelpers";
+
+function ScrollAnchor({ trigger }: { trigger: number }) {
+	const { scrollToBottom, isAtBottom } = useConversationContext();
+	const isAtBottomRef = useRef(isAtBottom);
+	isAtBottomRef.current = isAtBottom;
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: trigger is an intentional re-run signal
+	useEffect(() => {
+		if (isAtBottomRef.current) {
+			scrollToBottom("instant");
+		}
+	}, [trigger, scrollToBottom]);
+
+	return null;
+}
 
 export function ChatMessageList({
 	messages,
@@ -46,22 +60,19 @@ export function ChatMessageList({
 	workspaceCwd,
 	activeTools,
 	toolInputBuffers,
-	activeSubagents,
 	pendingApproval,
 	isApprovalSubmitting,
 	onApprovalRespond,
 	pendingPlanApproval,
 	isPlanSubmitting,
 	onPlanRespond,
-	pendingQuestion,
-	isQuestionSubmitting,
-	onQuestionRespond,
 	editingUserMessageId,
 	isEditSubmitting,
 	onStartEditUserMessage,
 	onCancelEditUserMessage,
 	onSubmitEditedUserMessage,
 	onRestartUserMessage,
+	footerScrollTrigger = 0,
 }: ChatMessageListProps) {
 	const messageListRef = useRef<HTMLDivElement>(null);
 	const chatSearch = useChatMessageSearch({
@@ -105,12 +116,6 @@ export function ChatMessageList({
 			}),
 		[activeTools, toolInputBuffers],
 	);
-	const activeSubagentEntries = useMemo(
-		() => (activeSubagents ? [...activeSubagents.entries()] : []),
-		[activeSubagents],
-	);
-	const hasSubagentActivity = activeSubagentEntries.length > 0;
-
 	const pendingPlanToolCallId = useMemo(() => {
 		const anchorMessages: ChatMessage[] = [...renderedMessages];
 		if (interruptedPreview) {
@@ -142,11 +147,7 @@ export function ChatMessageList({
 	);
 
 	const canShowPendingAssistantUi =
-		isAwaitingAssistant &&
-		!currentMessage &&
-		!hasSubagentActivity &&
-		!pendingApproval &&
-		!pendingQuestion;
+		isAwaitingAssistant && !currentMessage && !pendingApproval;
 	const shouldShowThinking =
 		canShowPendingAssistantUi &&
 		!pendingPlanApproval &&
@@ -259,9 +260,6 @@ export function ChatMessageList({
 							onPlanRespond={onPlanRespond}
 						/>
 					) : null}
-					{hasSubagentActivity ? (
-						<SubagentExecutionMessage subagents={activeSubagentEntries} />
-					) : null}
 					{pendingApproval && (
 						<PendingApprovalMessage
 							approval={pendingApproval}
@@ -274,13 +272,6 @@ export function ChatMessageList({
 							planApproval={pendingPlanApproval}
 							isSubmitting={isPlanSubmitting}
 							onRespond={onPlanRespond}
-						/>
-					)}
-					{pendingQuestion && (
-						<PendingQuestionMessage
-							question={pendingQuestion}
-							isSubmitting={isQuestionSubmitting}
-							onRespond={onQuestionRespond}
 						/>
 					)}
 				</div>
@@ -297,6 +288,7 @@ export function ChatMessageList({
 				onFindPrevious={chatSearch.findPrevious}
 				onClose={chatSearch.closeSearch}
 			/>
+			<ScrollAnchor trigger={footerScrollTrigger} />
 			<MessageScrollbackRail messages={renderedMessages} />
 			<ConversationScrollButton />
 		</Conversation>

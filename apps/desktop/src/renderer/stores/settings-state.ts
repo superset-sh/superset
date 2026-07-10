@@ -4,6 +4,7 @@ import { devtools } from "zustand/middleware";
 export type SettingsSection =
 	| "account"
 	| "organization"
+	| "teams"
 	| "appearance"
 	| "ringtones"
 	| "keyboard"
@@ -11,12 +12,16 @@ export type SettingsSection =
 	| "git"
 	| "agents"
 	| "terminal"
+	| "links"
 	| "models"
+	| "experimental"
 	| "integrations"
 	| "billing"
 	| "apikeys"
 	| "permissions"
-	| "project";
+	| "security"
+	| "project"
+	| "hosts";
 
 interface SettingsState {
 	activeSection: SettingsSection;

@@ -21,6 +21,7 @@ type ChatPendingPlanApproval = UseChatDisplayReturn["pendingPlanApproval"];
 interface AssistantMessageProps {
 	message: ChatMessage;
 	isStreaming: boolean;
+	isInterrupted?: boolean;
 	workspaceId: string;
 	sessionId?: string | null;
 	organizationId?: string | null;
@@ -101,6 +102,7 @@ function toToolPartFromResult(part: ChatToolResult): ToolPart {
 export function AssistantMessage({
 	message,
 	isStreaming,
+	isInterrupted,
 	workspaceId,
 	sessionId,
 	organizationId,
@@ -261,6 +263,8 @@ export function AssistantMessage({
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={workspaceCwd}
+					isStreaming={isStreaming}
+					isInterrupted={isInterrupted}
 				/>,
 			);
 			nodes.push(...getInlineToolStateNodes(part.id));
@@ -284,6 +288,8 @@ export function AssistantMessage({
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={workspaceCwd}
+					isStreaming={isStreaming}
+					isInterrupted={isInterrupted}
 				/>,
 			);
 			nodes.push(...getInlineToolStateNodes(part.id));
@@ -313,9 +319,14 @@ export function AssistantMessage({
 				sessionId={sessionId}
 				organizationId={organizationId}
 				workspaceCwd={workspaceCwd}
+				isStreaming={isStreaming}
 			/>,
 		);
 		nodes.push(...getInlineToolStateNodes(previewPart.toolCallId));
+	}
+
+	if (nodes.length === 0 && !isStreaming && !footer) {
+		return null;
 	}
 
 	return (

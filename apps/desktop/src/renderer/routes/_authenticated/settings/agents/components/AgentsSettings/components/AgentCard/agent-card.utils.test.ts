@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { ResolvedAgentConfig } from "shared/utils/agent-settings";
+import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { buildAgentFieldPatch } from "./agent-card.utils";
 
 const BUILTIN_TERMINAL_PRESET: ResolvedAgentConfig = {
@@ -11,6 +11,8 @@ const BUILTIN_TERMINAL_PRESET: ResolvedAgentConfig = {
 	promptCommand: "claude --print",
 	promptTransport: "argv",
 	taskPromptTemplate: "Task {{slug}}",
+	contextPromptTemplateSystem: "",
+	contextPromptTemplateUser: "",
 	enabled: true,
 	overriddenFields: [],
 };
@@ -24,6 +26,8 @@ const CUSTOM_TERMINAL_PRESET: ResolvedAgentConfig = {
 	promptCommand: "team-agent --prompt",
 	promptTransport: "argv",
 	taskPromptTemplate: "Task {{slug}}",
+	contextPromptTemplateSystem: "",
+	contextPromptTemplateUser: "",
 	enabled: true,
 	overriddenFields: [],
 };

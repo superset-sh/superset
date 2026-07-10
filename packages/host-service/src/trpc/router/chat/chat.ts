@@ -8,6 +8,13 @@ const sessionInput = z.object({
 	workspaceId: z.uuid(),
 });
 
+// Slash-command discovery / preview / resolve are workspace-scoped, not
+// session-scoped — they only need a workspaceId so they work in fresh
+// chats before the first message creates a session.
+const workspaceSlashInput = z.object({
+	workspaceId: z.uuid(),
+});
+
 const sendMessagePayloadSchema = z.object({
 	content: z.string(),
 	files: z
@@ -41,6 +48,12 @@ export const chatRouter = router({
 			return ctx.runtime.chat.listMessages(input);
 		}),
 
+	getSnapshot: protectedProcedure
+		.input(sessionInput)
+		.query(({ ctx, input }) => {
+			return ctx.runtime.chat.getSnapshot(input);
+		}),
+
 	sendMessage: protectedProcedure
 		.input(
 			sessionInput.extend({
@@ -48,8 +61,22 @@ export const chatRouter = router({
 				metadata: messageMetadataSchema,
 			}),
 		)
-		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.sendMessage(input);
+		.mutation(async ({ ctx, input }) => {
+			const result = await ctx.runtime.chat.sendMessage(input);
+			// Fire-and-forget cloud lastActiveAt update so the session selector
+			// keeps reordering after activity. Failures here must not block the
+			// turn — the user already sees their message land via the snapshot.
+			void ctx.api.chat.updateSession
+				.mutate({ sessionId: input.sessionId, lastActiveAt: new Date() })
+				.catch(() => {});
+			return result;
+		}),
+
+	endSession: protectedProcedure
+		.input(sessionInput)
+		.mutation(async ({ ctx, input }) => {
+			await ctx.runtime.chat.disposeRuntime(input.sessionId, input.workspaceId);
+			return { ok: true };
 		}),
 
 	restartFromMessage: protectedProcedure
@@ -110,14 +137,14 @@ export const chatRouter = router({
 		}),
 
 	getSlashCommands: protectedProcedure
-		.input(sessionInput)
+		.input(workspaceSlashInput)
 		.query(({ ctx, input }) => {
 			return ctx.runtime.chat.getSlashCommands(input);
 		}),
 
 	resolveSlashCommand: protectedProcedure
 		.input(
-			sessionInput.extend({
+			workspaceSlashInput.extend({
 				text: z.string(),
 			}),
 		)
@@ -127,7 +154,7 @@ export const chatRouter = router({
 
 	previewSlashCommand: protectedProcedure
 		.input(
-			sessionInput.extend({
+			workspaceSlashInput.extend({
 				text: z.string(),
 			}),
 		)

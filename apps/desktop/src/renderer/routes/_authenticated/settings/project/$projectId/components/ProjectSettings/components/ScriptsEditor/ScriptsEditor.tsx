@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -37,7 +38,6 @@ function parseContentFromConfig(content: string | null): {
 }
 
 interface ScriptTextareaProps {
-	title: string;
 	description: string;
 	placeholder: string;
 	value: string;
@@ -46,7 +46,6 @@ interface ScriptTextareaProps {
 }
 
 function ScriptTextarea({
-	title,
 	description,
 	placeholder,
 	value,
@@ -110,15 +109,12 @@ function ScriptTextarea({
 
 	return (
 		<div className="space-y-2">
-			<div>
-				<h4 className="text-sm font-medium">{title}</h4>
-				<p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-			</div>
+			<p className="text-xs text-muted-foreground">{description}</p>
 
 			{/* biome-ignore lint/a11y/useSemanticElements: Drop zone wrapper for drag-and-drop functionality */}
 			<div
 				role="region"
-				aria-label={`${title} script editor with file drop support`}
+				aria-label="Script editor with file drop support"
 				className={cn(
 					"relative rounded-lg border transition-colors",
 					isDragOver
@@ -349,67 +345,69 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	}
 
 	return (
-		<div className={cn("space-y-5", className)}>
-			<div className="flex items-start justify-between">
-				<div className="space-y-1">
-					<div className="flex items-center gap-2">
-						<h3 className="text-base font-semibold text-foreground">Scripts</h3>
-						{saveStatus === "saving" && (
-							<span className="text-xs text-muted-foreground flex items-center gap-1">
-								<span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-								Saving...
-							</span>
-						)}
-						{saveStatus === "saved" && (
-							<span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-								<HiCheckCircle className="h-3.5 w-3.5" />
-								Saved
-							</span>
-						)}
-					</div>
-					<p className="text-sm text-muted-foreground">
-						Automate your workspace lifecycle with setup and teardown scripts.
-						Changes are saved automatically.
-					</p>
+		<div className={cn("space-y-3", className)}>
+			<div className="flex items-center justify-between gap-2">
+				<div className="flex items-center gap-2">
+					<h3 className="text-base font-semibold text-foreground">Scripts</h3>
+					{saveStatus === "saving" && (
+						<span className="text-xs text-muted-foreground flex items-center gap-1">
+							<span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+							Saving…
+						</span>
+					)}
+					{saveStatus === "saved" && (
+						<span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+							<HiCheckCircle className="h-3.5 w-3.5" />
+							Saved
+						</span>
+					)}
 				</div>
-				<Button variant="outline" size="sm" asChild>
+				<Button variant="ghost" size="sm" asChild>
 					<a
 						href={EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS}
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						Get started with setup scripts
+						Docs
 						<HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
 					</a>
 				</Button>
 			</div>
 
-			<ScriptTextarea
-				title="Setup"
-				description="Runs when a new workspace is created."
-				placeholder="e.g. bun install && bun run dev"
-				value={setupContent}
-				onChange={handleSetupChange}
-				onBlur={handleBlurSave}
-			/>
-
-			<ScriptTextarea
-				title="Teardown"
-				description="Runs when a workspace is deleted."
-				placeholder="e.g. docker compose down"
-				value={teardownContent}
-				onChange={handleTeardownChange}
-				onBlur={handleBlurSave}
-			/>
-
-			<ScriptTextarea
-				title="Run"
-				description="A command to start your dev server, triggered via keyboard shortcut."
-				placeholder="e.g. bun run dev"
-				value={runContent}
-				onChange={handleRunChange}
-				onBlur={handleBlurSave}
-			/>
+			<Tabs defaultValue="setup">
+				<TabsList>
+					<TabsTrigger value="setup">Setup</TabsTrigger>
+					<TabsTrigger value="teardown">Teardown</TabsTrigger>
+					<TabsTrigger value="run">Run</TabsTrigger>
+				</TabsList>
+				<TabsContent value="setup">
+					<ScriptTextarea
+						description="Runs when a new workspace is created."
+						placeholder="e.g. bun install && bun run dev"
+						value={setupContent}
+						onChange={handleSetupChange}
+						onBlur={handleBlurSave}
+					/>
+				</TabsContent>
+				<TabsContent value="teardown">
+					<ScriptTextarea
+						description="Runs when a workspace is deleted."
+						placeholder="e.g. docker compose down"
+						value={teardownContent}
+						onChange={handleTeardownChange}
+						onBlur={handleBlurSave}
+					/>
+				</TabsContent>
+				<TabsContent value="run">
+					<ScriptTextarea
+						description="Command to start your dev server, triggered via keyboard shortcut."
+						placeholder="e.g. bun run dev"
+						value={runContent}
+						onChange={handleRunChange}
+						onBlur={handleBlurSave}
+					/>
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 }

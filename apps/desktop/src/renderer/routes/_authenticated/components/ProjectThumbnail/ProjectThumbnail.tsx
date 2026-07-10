@@ -3,36 +3,32 @@ import { useState } from "react";
 
 interface ProjectThumbnailProps {
 	projectName: string;
-	githubOwner: string | null;
+	iconUrl?: string | null;
 	className?: string;
-}
-
-function getGitHubAvatarUrl(owner: string): string {
-	return `https://github.com/${owner}.png?size=64`;
 }
 
 export function ProjectThumbnail({
 	projectName,
-	githubOwner,
+	iconUrl,
 	className,
 }: ProjectThumbnailProps) {
-	const [imageError, setImageError] = useState(false);
+	const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
 	const firstLetter = projectName.charAt(0).toUpperCase();
 
-	if (githubOwner && !imageError) {
+	if (iconUrl && failedUrl !== iconUrl) {
 		return (
 			<div
 				className={cn(
-					"relative size-6 rounded overflow-hidden flex-shrink-0 bg-muted border-[1.5px] border-border",
+					"relative size-6 rounded-sm overflow-hidden flex-shrink-0 bg-muted border border-foreground/10",
 					className,
 				)}
 			>
 				<img
-					src={getGitHubAvatarUrl(githubOwner)}
-					alt={`${projectName} avatar`}
+					src={iconUrl}
+					alt={`${projectName} icon`}
 					className="size-full object-cover"
-					onError={() => setImageError(true)}
+					onError={() => setFailedUrl(iconUrl)}
 				/>
 			</div>
 		);
@@ -41,8 +37,8 @@ export function ProjectThumbnail({
 	return (
 		<div
 			className={cn(
-				"size-6 rounded flex items-center justify-center flex-shrink-0",
-				"text-xs font-medium bg-muted text-muted-foreground border-[1.5px] border-border",
+				"size-6 rounded-sm flex items-center justify-center flex-shrink-0",
+				"text-xs font-medium bg-muted text-muted-foreground border border-foreground/10",
 				className,
 			)}
 		>
