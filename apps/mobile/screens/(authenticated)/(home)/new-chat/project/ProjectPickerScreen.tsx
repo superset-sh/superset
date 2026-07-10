@@ -1,11 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useRouter } from "expo-router";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/components/ProjectAvatar";
-import { useNewChatTargets } from "@/screens/(authenticated)/(home)/workspaces/components/NewChatWidget/hooks/useNewChatTargets";
-import { useNewChatPreferencesStore } from "@/screens/(authenticated)/(home)/workspaces/components/NewChatWidget/stores/newChatPreferencesStore";
+import { useNewChatTargets } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
+import { useNewChatPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newChatPreferencesStore";
 
 export function ProjectPickerScreen() {
 	const router = useRouter();
@@ -53,20 +53,12 @@ export function ProjectPickerScreen() {
 							iconUrl={target.projectIconUrl}
 							size={32}
 						/>
-						<View className="flex-1">
-							<Text
-								className="text-sm font-medium"
-								style={{ color: theme.foreground }}
-							>
-								{target.projectName}
-							</Text>
-							<Text
-								className="text-xs"
-								style={{ color: theme.mutedForeground }}
-							>
-								{target.hostName}
-							</Text>
-						</View>
+						<Text
+							className="flex-1 text-sm font-medium"
+							style={{ color: theme.foreground }}
+						>
+							{target.projectName}
+						</Text>
 						{isSelected ? (
 							<Ionicons
 								name="checkmark-circle"

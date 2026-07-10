@@ -1,0 +1,1 @@
+export { useVoiceDictation } from "./useVoiceDictation";

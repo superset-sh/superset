@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
+	listTerminalSessions,
 } from "../../../terminal/terminal";
 import type {
 	TerminalAgentBinding,
@@ -37,7 +38,24 @@ const agentDefinitionIdSchema = z.union([
 
 const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 
+function withTerminalTitles(bindings: TerminalAgentBinding[]) {
+	const titlesByTerminalId = new Map(
+		listTerminalSessions({ includeExited: false }).map((session) => [
+			session.terminalId,
+			session.title,
+		]),
+	);
+	return bindings.map((binding) => ({
+		...binding,
+		title: titlesByTerminalId.get(binding.terminalId) ?? null,
+	}));
+}
+
 export const terminalAgentsRouter = router({
+	list: protectedProcedure.query(({ ctx }) => {
+		return withTerminalTitles(ctx.terminalAgentStore.list());
+	}),
+
 	listByWorkspace: protectedProcedure
 		.input(
 			z.object({
@@ -48,10 +66,12 @@ export const terminalAgentsRouter = router({
 		)
 		.query(({ ctx, input }) => {
 			const { workspaceId, agentId, definitionId } = input;
-			return ctx.terminalAgentStore.listByWorkspace(workspaceId, {
-				...(agentId ? { agentId } : {}),
-				...(definitionId ? { definitionId } : {}),
-			});
+			return withTerminalTitles(
+				ctx.terminalAgentStore.listByWorkspace(workspaceId, {
+					...(agentId ? { agentId } : {}),
+					...(definitionId ? { definitionId } : {}),
+				}),
+			);
 		}),
 
 	findActive: protectedProcedure

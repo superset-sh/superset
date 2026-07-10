@@ -1,0 +1,1 @@
+export { AttachmentsScreen } from "./AttachmentsScreen";

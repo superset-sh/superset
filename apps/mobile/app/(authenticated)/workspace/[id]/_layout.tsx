@@ -1,8 +1,7 @@
 import { Stack } from "expo-router";
 
-// Chat is the workspace's primary surface, so we render its sections in a plain
-// Stack rather than a floating Chat/Changes tab bar (which overlapped the chat
-// composer). `index` redirects to `chat`; `changes` is reachable via navigation.
+// Chat threads are the workspace's only surface — home lists workspaces with
+// their sessions inline, so `index` just falls back to home.
 export default function WorkspaceLayout() {
 	return <Stack screenOptions={{ headerShown: false }} />;
 }

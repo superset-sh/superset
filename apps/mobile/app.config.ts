@@ -62,6 +62,15 @@ export default ({ config }: ConfigContext) => ({
 					"Superset shows your recent photos so you can attach them to chats.",
 			},
 		],
+		[
+			"expo-speech-recognition",
+			{
+				microphonePermission:
+					"Superset uses the microphone so you can dictate chat messages.",
+				speechRecognitionPermission:
+					"Superset uses speech recognition to turn your voice into text.",
+			},
+		],
 	],
 	extra: {
 		router: {},

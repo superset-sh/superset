@@ -37,7 +37,13 @@ export function ProjectAvatar({
 		>
 			<Text
 				className="font-bold"
-				style={{ fontSize: size * 0.45, color: theme.mutedForeground }}
+				style={{
+					fontSize: size * 0.45,
+					lineHeight: size,
+					width: size,
+					textAlign: "center",
+					color: theme.mutedForeground,
+				}}
 			>
 				{initial}
 			</Text>

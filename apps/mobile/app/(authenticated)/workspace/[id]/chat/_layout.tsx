@@ -8,7 +8,6 @@ export default function WorkspaceChatLayout() {
 				headerShadowVisible: false,
 			}}
 		>
-			<Stack.Screen name="index" options={{ title: "Chats" }} />
 			{/* Glass, edge-to-edge header: the thread content scrolls UNDER a
 			    translucent blurred bar so it "extends nicely" behind it. The
 			    per-session title is set dynamically from ChatThreadScreen.
