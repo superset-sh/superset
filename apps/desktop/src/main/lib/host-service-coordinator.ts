@@ -231,6 +231,17 @@ export class HostServiceCoordinator extends EventEmitter {
 		};
 	}
 
+	/** Every currently-running local host-service connection, across all orgs. */
+	getConnections(): Connection[] {
+		return [...this.instances.values()]
+			.filter((instance) => instance.status === "running")
+			.map((instance) => ({
+				port: instance.port,
+				secret: instance.secret,
+				machineId: this.machineId,
+			}));
+	}
+
 	getProcessStatus(organizationId: string): HostServiceStatus {
 		if (this.pendingStarts.has(organizationId)) return "starting";
 		return this.instances.get(organizationId)?.status ?? "stopped";

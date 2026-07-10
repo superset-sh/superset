@@ -2,7 +2,6 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { disposeHostSessionsForWorkspace } from "renderer/lib/dispose-host-sessions";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { useLocalHostServiceOptional } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	getWorkspaceFocusTargetAfterRemoval,
 	removeWorkspaceFromGroups,
@@ -28,7 +27,6 @@ export function useDeleteWorkspace(
 	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
 	const params = useParams({ strict: false });
-	const activeHostUrl = useLocalHostServiceOptional()?.activeHostUrl ?? null;
 
 	return electronTrpc.workspaces.delete.useMutation({
 		...options,
@@ -93,7 +91,7 @@ export function useDeleteWorkspace(
 			// Delete succeeded on the electron path — dispose the workspace's
 			// host-service terminals so backgrounded sessions don't leak.
 			if (data.success) {
-				disposeHostSessionsForWorkspace(activeHostUrl, variables.id);
+				void disposeHostSessionsForWorkspace(utils, variables.id);
 			}
 			// tRPC treats { success: false } as a successful response, so roll back optimistic updates
 			if (!data.success) {

@@ -12,7 +12,6 @@ import { disposeHostSessionsForWorktreePath } from "renderer/lib/dispose-host-se
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
 import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
-import { useLocalHostServiceOptional } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface DeleteWorktreeDialogProps {
 	worktreeId: string;
@@ -30,13 +29,13 @@ export function DeleteWorktreeDialog({
 	open,
 	onOpenChange,
 }: DeleteWorktreeDialogProps) {
-	const activeHostUrl = useLocalHostServiceOptional()?.activeHostUrl ?? null;
+	const utils = electronTrpc.useUtils();
 	const deleteWorktree = useDeleteWorktree({
 		onSuccess: (data) => {
 			// Worktree removed — dispose its host-service terminals so backgrounded
 			// sessions don't leak in the daemon.
 			if (data.success) {
-				disposeHostSessionsForWorktreePath(activeHostUrl, worktreePath);
+				void disposeHostSessionsForWorktreePath(utils, worktreePath);
 			}
 		},
 	});

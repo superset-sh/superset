@@ -148,8 +148,3 @@ export function useLocalHostService(): LocalHostServiceContextValue {
 	}
 	return context;
 }
-
-/** Non-throwing variant for hooks that may render outside the provider (returns null). */
-export function useLocalHostServiceOptional(): LocalHostServiceContextValue | null {
-	return useContext(LocalHostServiceContext);
-}
