@@ -410,12 +410,20 @@ async function publishMatchingCli(
 	desktopTag: string,
 ): Promise<void> {
 	const cliTag = `cli-v${version}`;
-	if ((await exitCode($`git rev-parse ${cliTag}`)) === 0) {
-		warn(`${cliTag} already exists; skipping standalone CLI publish.`);
+	// Check origin, not a possibly-stale local tag: a leftover local cli-v tag
+	// would otherwise skip a publish that origin never received.
+	const remote = (
+		await $`git ls-remote --tags origin ${`refs/tags/${cliTag}`}`
+			.nothrow()
+			.text()
+	).trim();
+	if (remote) {
+		warn(`${cliTag} already on origin; skipping standalone CLI publish.`);
 		return;
 	}
 	info(`Publishing matching standalone CLI ${cliTag}...`);
-	await $`git tag ${cliTag} ${desktopTag}`;
+	// -f force-updates any stale local tag onto the desktop release commit.
+	await $`git tag -f ${cliTag} ${desktopTag}`;
 	await $`git push origin ${cliTag}`;
 	success(
 		`Tag ${cliTag} pushed — release-cli.yml will publish the standalone CLI ${version}`,

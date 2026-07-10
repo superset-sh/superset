@@ -183,6 +183,14 @@ export async function refreshLockfile(root: string): Promise<void> {
 	await $`bun install --lockfile-only`.cwd(root).quiet().nothrow();
 }
 
+/** Sync local tags with origin so tag-derived version checks reflect published
+ * state, not stale/local tags. Prune so deleted remote tags don't linger. */
+export async function fetchTags(root: string): Promise<void> {
+	await $`git -C ${root} fetch --tags --force --prune-tags origin`
+		.nothrow()
+		.quiet();
+}
+
 async function tagList(root: string, pattern: string): Promise<string[]> {
 	const out = await $`git -C ${root} tag -l ${pattern}`.nothrow().text();
 	return out

@@ -21,6 +21,7 @@ import {
 	bumpDaemonPatch,
 	DESKTOP_PACKAGE,
 	fail,
+	fetchTags,
 	findWorkflowRun,
 	green,
 	guardDaemonBump,
@@ -68,7 +69,9 @@ export async function runCli(argv: string[]): Promise<void> {
 	}
 
 	// The current CLI is the highest of package.json, the latest cli-v tag, and
-	// desktop — so a hotfix never lands below what's already published.
+	// desktop — so a hotfix never lands below what's already published. Fetch
+	// tags first so the tag check uses published state, not stale local tags.
+	await fetchTags(root);
 	const cliPkg = readVersion(root, "packages/cli");
 	const latestTag = await previousReleaseTag(root, "cli");
 	const latestTagVer = latestTag ? latestTag.replace(/^cli-v/, "") : "0.0.0";

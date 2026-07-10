@@ -11,7 +11,7 @@ The toolchain is TypeScript (run by Bun, no build step) under `scripts/release/`
 
 - `bun run release` — interactive menu (Desktop / CLI hotfix), TTY only
 - `bun run release desktop [version] [commit] [--publish] [--merge] [--daemon] [--republish]`
-- `bun run release cli [suffix] [--daemon] [--no-tag]`
+- `bun run release cli [version] [--daemon] [--no-tag]`
 - `bun run release check` — verify versions are unified (exit 1 on drift)
 
 All flows and the CI guard read **one** source of truth, `scripts/release/lib.ts`
@@ -48,10 +48,11 @@ min-version floor (`semver.satisfies` excludes prereleases —
 ## Desktop release (`scripts/release/desktop.ts`)
 
 Sets **desktop + host-service + cli** to the new version, commits, tags
-`desktop-v<version>`, builds, and leaves a **draft**. **On publish** (`--publish`,
-or the manual `--draft=false`) it also cuts a matching plain **`cli-v<version>`**
-so the standalone CLI ships with desktop. Draft mode ships nothing until you
-publish (it prints the `cli-v` command to run then).
+`desktop-v<version>`, builds, and leaves a **draft**. **With `--publish`** it also
+cuts a matching plain **`cli-v<version>`** so the standalone CLI ships with
+desktop. Draft mode ships nothing until you publish, and cutting the tag is *not*
+automatic on a manual `gh release edit --draft=false` — the script has already
+exited, so it prints the `cli-v` command for you to run then.
 
 ## CLI hotfix (`scripts/release/cli.ts`, `bun run release cli`)
 
