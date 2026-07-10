@@ -20,7 +20,7 @@ import type {
 	HostWorkspacesCacheOps,
 } from "@/hooks/useHostWorkspaces";
 import { useTheme } from "@/hooks/useTheme";
-import type { DiffStats } from "../../hooks/useVisibleDiffStats";
+import type { DiffStats } from "../../hooks/useWorkspaceDiffStats";
 import { WorkspaceRowMenu } from "./components/WorkspaceRowMenu";
 
 const PR_BADGE_CONFIG = {
