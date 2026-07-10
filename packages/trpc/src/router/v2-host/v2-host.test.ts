@@ -82,6 +82,7 @@ const createCaller = createCallerFactory(
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const ORGANIZATION_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_ORGANIZATION_ID = "33333333-3333-4333-8333-333333333333";
+const WORKSPACE_ID = "44444444-4444-4444-8444-444444444444";
 const MEMBERSHIP_ID = "55555555-5555-4555-8555-555555555555";
 const HOST_ID = "host-machine-id";
 
@@ -217,11 +218,41 @@ describe("v2Host.delete", () => {
 		expect(executeMock).not.toHaveBeenCalled();
 	});
 
-	it("deletes only the host row", async () => {
+	it("rejects a host that still has workspaces", async () => {
 		selectResults.push(
 			[{ id: MEMBERSHIP_ID }],
 			[{ machineId: HOST_ID }],
 			[{ role: "owner" }],
+			[{ id: WORKSPACE_ID }],
+		);
+		const caller = createCaller(createContext());
+
+		await expect(
+			caller.v2Host.delete({ hostId: HOST_ID }),
+		).rejects.toMatchObject({
+			code: "CONFLICT",
+			message: "This host still has workspaces and can’t be deleted",
+		});
+
+		expect(transactionMock).toHaveBeenCalledTimes(1);
+		expect(selectForMock).toHaveBeenNthCalledWith(1, "update");
+		expect(selectForMock).toHaveBeenNthCalledWith(2, "update");
+		expect(selectForMock).toHaveBeenNthCalledWith(3, "update");
+		expect(selectForMock).toHaveBeenNthCalledWith(4, "key share");
+		expect(selectFromMock).toHaveBeenNthCalledWith(
+			4,
+			realDbSchema.v2Workspaces,
+		);
+		expect(deleteMock).not.toHaveBeenCalled();
+		expect(executeMock).not.toHaveBeenCalled();
+	});
+
+	it("deletes only a host with no workspaces", async () => {
+		selectResults.push(
+			[{ id: MEMBERSHIP_ID }],
+			[{ machineId: HOST_ID }],
+			[{ role: "owner" }],
+			[],
 		);
 		hostDeleteResults = [{ machineId: HOST_ID }];
 		const caller = createCaller(createContext());
@@ -235,7 +266,8 @@ describe("v2Host.delete", () => {
 		expect(selectForMock).toHaveBeenNthCalledWith(1, "update");
 		expect(selectForMock).toHaveBeenNthCalledWith(2, "update");
 		expect(selectForMock).toHaveBeenNthCalledWith(3, "update");
-		expect(selectForMock).toHaveBeenCalledTimes(3);
+		expect(selectForMock).toHaveBeenNthCalledWith(4, "key share");
+		expect(selectForMock).toHaveBeenCalledTimes(4);
 		expect(deleteMock).toHaveBeenCalledTimes(1);
 		expect(deleteMock).toHaveBeenCalledWith(realDbSchema.v2Hosts);
 		expect(deleteReturningMock).toHaveBeenCalledWith({

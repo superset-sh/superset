@@ -20,12 +20,14 @@ import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/h
 interface DeleteHostSectionProps {
 	hostId: string;
 	hostName: string;
+	hasWorkspaces: boolean;
 	isLocalHost: boolean;
 }
 
 export function DeleteHostSection({
 	hostId,
 	hostName,
+	hasWorkspaces,
 	isLocalHost,
 }: DeleteHostSectionProps) {
 	const navigate = useNavigate();
@@ -34,16 +36,23 @@ export function DeleteHostSection({
 	const [isOpen, setIsOpen] = useState(false);
 	const [confirmation, setConfirmation] = useState("");
 	const confirmationInputRef = useRef<HTMLInputElement>(null);
+	const deleteHostDescriptionId = `delete-host-${hostId}-description`;
 	const localHostDescriptionId = `delete-host-${hostId}-local-description`;
 	const confirmationInputId = `delete-host-${hostId}-confirmation`;
 	const canDelete = confirmation === hostName;
+	const deleteButtonDescriptionIds = [
+		deleteHostDescriptionId,
+		isLocalHost ? localHostDescriptionId : null,
+	]
+		.filter(Boolean)
+		.join(" ");
 
 	useEffect(() => {
 		if (!isOpen) setConfirmation("");
 	}, [isOpen]);
 
 	const handleDelete = async () => {
-		if (isLocalHost || !canDelete) return;
+		if (isLocalHost || hasWorkspaces || !canDelete) return;
 
 		setIsDeleting(true);
 		const transaction = actions.v2Hosts.deleteHost(hostId);
@@ -68,8 +77,11 @@ export function DeleteHostSection({
 		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="min-w-0 flex-1">
 				<p className="text-sm font-medium">Delete host</p>
-				<p className="mt-0.5 text-xs text-muted-foreground">
-					Removes this host and its access. Workspaces, files, conversations,
+				<p
+					id={deleteHostDescriptionId}
+					className="mt-0.5 text-xs text-muted-foreground"
+				>
+					Only hosts without workspaces can be deleted. Files, conversations,
 					and automations stay.
 				</p>
 				{isLocalHost ? (
@@ -88,9 +100,9 @@ export function DeleteHostSection({
 						type="button"
 						variant="destructive"
 						size="sm"
-						aria-describedby={isLocalHost ? localHostDescriptionId : undefined}
+						aria-describedby={deleteButtonDescriptionIds}
 						className="shrink-0"
-						disabled={isLocalHost || isDeleting}
+						disabled={isLocalHost || hasWorkspaces || isDeleting}
 					>
 						Delete host
 					</Button>
@@ -104,9 +116,9 @@ export function DeleteHostSection({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete "{hostName}"?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This removes only the host and its access. Workspaces, files,
-							conversations, and automations stay. A running host may reappear.
-							This can’t be undone.
+							This deletes the host and its access. Hosts with workspaces can’t
+							be deleted. Files, conversations, and automations stay. A running
+							host may reappear. This can’t be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="space-y-2">

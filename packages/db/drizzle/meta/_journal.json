@@ -421,13 +421,6 @@
       "when": 1783632192405,
       "tag": "0059_add_host_wake_command",
       "breakpoints": true
-    },
-    {
-      "idx": 60,
-      "version": "7",
-      "when": 1783648997601,
-      "tag": "0060_drop_v2_workspaces_host_fk",
-      "breakpoints": true
     }
   ]
 }
