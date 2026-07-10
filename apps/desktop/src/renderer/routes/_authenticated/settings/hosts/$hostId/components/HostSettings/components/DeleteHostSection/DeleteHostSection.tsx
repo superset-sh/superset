@@ -14,7 +14,7 @@ import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 
 interface DeleteHostSectionProps {
@@ -33,6 +33,7 @@ export function DeleteHostSection({
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
 	const [confirmation, setConfirmation] = useState("");
+	const confirmationInputRef = useRef<HTMLInputElement>(null);
 	const localHostDescriptionId = `delete-host-${hostId}-local-description`;
 	const confirmationInputId = `delete-host-${hostId}-confirmation`;
 	const canDelete = confirmation === hostName;
@@ -96,7 +97,12 @@ export function DeleteHostSection({
 						Delete host
 					</Button>
 				</AlertDialogTrigger>
-				<AlertDialogContent>
+				<AlertDialogContent
+					onOpenAutoFocus={(event) => {
+						event.preventDefault();
+						confirmationInputRef.current?.focus();
+					}}
+				>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete "{hostName}"?</AlertDialogTitle>
 						<AlertDialogDescription>
@@ -114,8 +120,8 @@ export function DeleteHostSection({
 							to confirm
 						</Label>
 						<Input
+							ref={confirmationInputRef}
 							id={confirmationInputId}
-							autoFocus
 							value={confirmation}
 							onChange={(event) => setConfirmation(event.target.value)}
 							placeholder={hostName}

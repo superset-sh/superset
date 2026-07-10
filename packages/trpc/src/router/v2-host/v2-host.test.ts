@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import * as realDbSchema from "@superset/db/schema";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import type { TRPCRouterRecord } from "@trpc/server";
 import * as realDrizzle from "drizzle-orm";
 
 let selectResults: unknown[][] = [];
@@ -93,6 +93,7 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const ORGANIZATION_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_ORGANIZATION_ID = "33333333-3333-4333-8333-333333333333";
 const WORKSPACE_ID = "44444444-4444-4444-8444-444444444444";
+const MEMBERSHIP_ID = "55555555-5555-4555-8555-555555555555";
 const HOST_ID = "host-machine-id";
 
 function createContext(activeOrganizationId: string | null = ORGANIZATION_ID) {
@@ -162,12 +163,7 @@ describe("v2Host.delete", () => {
 	});
 
 	it("rejects a stale session whose user is no longer an organization member", async () => {
-		verifyOrgMembershipMock.mockRejectedValueOnce(
-			new TRPCError({
-				code: "FORBIDDEN",
-				message: "Not a member of this organization",
-			}),
-		);
+		selectResults.push([]);
 		const caller = createCaller(createContext());
 
 		await expect(
@@ -176,15 +172,23 @@ describe("v2Host.delete", () => {
 			code: "FORBIDDEN",
 			message: "Not a member of this organization",
 		});
-		expect(verifyOrgMembershipMock).toHaveBeenCalledWith(
-			USER_ID,
-			ORGANIZATION_ID,
-		);
-		expect(transactionMock).not.toHaveBeenCalled();
+		expect(transactionMock).toHaveBeenCalledTimes(1);
+		expect(selectFromMock).toHaveBeenCalledWith(realDbSchema.members);
+		expect(selectWhereMock.mock.calls[0]?.[0]).toMatchObject({
+			conditions: [
+				{ right: USER_ID, type: "eq" },
+				{ right: ORGANIZATION_ID, type: "eq" },
+			],
+			type: "and",
+		});
+		expect(selectForMock).toHaveBeenCalledWith("update");
+		expect(deleteMock).not.toHaveBeenCalled();
+		expect(updateMock).not.toHaveBeenCalled();
+		expect(executeMock).not.toHaveBeenCalled();
 	});
 
 	it("does not expose or delete a host from another organization", async () => {
-		selectResults.push([]);
+		selectResults.push([{ id: MEMBERSHIP_ID }], []);
 		const caller = createCaller(createContext(OTHER_ORGANIZATION_ID));
 
 		await expect(
@@ -194,8 +198,8 @@ describe("v2Host.delete", () => {
 			message: "Host not found in this organization",
 		});
 
-		expect(selectWhereMock).toHaveBeenCalledTimes(1);
-		expect(selectWhereMock.mock.calls[0]?.[0]).toMatchObject({
+		expect(selectWhereMock).toHaveBeenCalledTimes(2);
+		expect(selectWhereMock.mock.calls[1]?.[0]).toMatchObject({
 			conditions: [
 				{ right: OTHER_ORGANIZATION_ID, type: "eq" },
 				{ right: HOST_ID, type: "eq" },
@@ -208,7 +212,11 @@ describe("v2Host.delete", () => {
 	});
 
 	it("rejects a host member who is not an owner", async () => {
-		selectResults.push([{ machineId: HOST_ID }], [{ role: "member" }]);
+		selectResults.push(
+			[{ id: MEMBERSHIP_ID }],
+			[{ machineId: HOST_ID }],
+			[{ role: "member" }],
+		);
 		const caller = createCaller(createContext());
 
 		await expect(
@@ -220,6 +228,7 @@ describe("v2Host.delete", () => {
 
 		expect(selectForMock).toHaveBeenNthCalledWith(1, "update");
 		expect(selectForMock).toHaveBeenNthCalledWith(2, "update");
+		expect(selectForMock).toHaveBeenNthCalledWith(3, "update");
 		expect(deleteMock).not.toHaveBeenCalled();
 		expect(updateMock).not.toHaveBeenCalled();
 		expect(executeMock).not.toHaveBeenCalled();
@@ -227,6 +236,7 @@ describe("v2Host.delete", () => {
 
 	it("pauses direct and workspace-only automations before deleting the host", async () => {
 		selectResults.push(
+			[{ id: MEMBERSHIP_ID }],
 			[{ machineId: HOST_ID }],
 			[{ role: "owner" }],
 			[{ id: WORKSPACE_ID }],
@@ -243,8 +253,9 @@ describe("v2Host.delete", () => {
 		expect(selectForMock).toHaveBeenNthCalledWith(1, "update");
 		expect(selectForMock).toHaveBeenNthCalledWith(2, "update");
 		expect(selectForMock).toHaveBeenNthCalledWith(3, "update");
+		expect(selectForMock).toHaveBeenNthCalledWith(4, "update");
 		expect(selectFromMock).toHaveBeenNthCalledWith(
-			3,
+			4,
 			realDbSchema.v2Workspaces,
 		);
 		expect(deleteMock).toHaveBeenNthCalledWith(1, realDbSchema.v2Workspaces);
