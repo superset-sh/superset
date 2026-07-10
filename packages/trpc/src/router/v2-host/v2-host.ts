@@ -1,12 +1,21 @@
 import { db, dbWs } from "@superset/db/client";
 import { v2UsersHostRoleValues } from "@superset/db/enums";
-import { members, v2Hosts, v2UsersHosts } from "@superset/db/schema";
+import {
+	automations,
+	members,
+	v2Hosts,
+	v2UsersHosts,
+	v2Workspaces,
+} from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
-import { requireActiveOrgId } from "../utils/active-org";
+import {
+	requireActiveOrgId,
+	requireActiveOrgMembership,
+} from "../utils/active-org";
 
 async function requireHostOwner(
 	userId: string,
@@ -117,6 +126,116 @@ export const v2HostRouter = {
 						message: "Host not found in this organization",
 					});
 				}
+				return await getCurrentTxid(tx);
+			});
+
+			return { success: true, txid };
+		}),
+
+	delete: protectedProcedure
+		.input(z.object({ hostId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+
+			const txid = await dbWs.transaction(async (tx) => {
+				const [host] = await tx
+					.select({ machineId: v2Hosts.machineId })
+					.from(v2Hosts)
+					.where(
+						and(
+							eq(v2Hosts.organizationId, organizationId),
+							eq(v2Hosts.machineId, input.hostId),
+						),
+					)
+					.limit(1)
+					.for("update");
+
+				if (!host) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Host not found in this organization",
+					});
+				}
+
+				const [access] = await tx
+					.select({ role: v2UsersHosts.role })
+					.from(v2UsersHosts)
+					.where(
+						and(
+							eq(v2UsersHosts.organizationId, organizationId),
+							eq(v2UsersHosts.userId, ctx.session.user.id),
+							eq(v2UsersHosts.hostId, input.hostId),
+						),
+					)
+					.limit(1)
+					.for("update");
+
+				if (!access || access.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only host owners can delete this host",
+					});
+				}
+
+				const hostWorkspaces = await tx
+					.select({ id: v2Workspaces.id })
+					.from(v2Workspaces)
+					.where(
+						and(
+							eq(v2Workspaces.organizationId, organizationId),
+							eq(v2Workspaces.hostId, input.hostId),
+						),
+					)
+					.for("update");
+				const workspaceIds = hostWorkspaces.map((workspace) => workspace.id);
+
+				// Preserve both pins because the host-owned workspace may still exist
+				// if this machine returns. Legacy automations may only carry a workspace
+				// pin, so pause matches for either identifier before removing cloud rows.
+				await tx
+					.update(automations)
+					.set({ enabled: false })
+					.where(
+						and(
+							eq(automations.organizationId, organizationId),
+							workspaceIds.length > 0
+								? or(
+										eq(automations.targetHostId, input.hostId),
+										inArray(automations.v2WorkspaceId, workspaceIds),
+									)
+								: eq(automations.targetHostId, input.hostId),
+						),
+					);
+
+				// v2_workspaces intentionally has a restrictive host FK, so remove
+				// the legacy cloud registry rows before deleting the host. Any chat
+				// session links are nulled by their workspace FK.
+				await tx
+					.delete(v2Workspaces)
+					.where(
+						and(
+							eq(v2Workspaces.organizationId, organizationId),
+							eq(v2Workspaces.hostId, input.hostId),
+						),
+					);
+
+				const [deleted] = await tx
+					.delete(v2Hosts)
+					.where(
+						and(
+							eq(v2Hosts.organizationId, organizationId),
+							eq(v2Hosts.machineId, input.hostId),
+						),
+					)
+					.returning({ machineId: v2Hosts.machineId });
+
+				if (!deleted) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Host not found in this organization",
+					});
+				}
+
 				return await getCurrentTxid(tx);
 			});
 

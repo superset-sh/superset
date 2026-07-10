@@ -378,6 +378,13 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			// Composite PK on (organization_id, machine_id); within an
 			// org-scoped collection, machineId alone is unique.
 			getKey: (item) => item.machineId,
+			onDelete: async ({ transaction }) => {
+				const { original } = transaction.mutations[0];
+				const result = await apiClient.v2Host.delete.mutate({
+					hostId: original.machineId,
+				});
+				return electricTxidMatch(result.txid);
+			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				if (changes.name === undefined) {
