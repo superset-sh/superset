@@ -4,7 +4,7 @@ import { command } from "../../lib/command";
 import { SUPERSET_CONFIG_PATH } from "../../lib/config";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
 import { spawnHostService } from "../../lib/host/spawn";
-import { resolveOrganization } from "./resolveOrganization";
+import { resolveOrganization } from "../../lib/resolve-org";
 
 export default command({
 	description: "Start the host service",

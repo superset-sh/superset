@@ -3,7 +3,7 @@ import {
 	matchOrganization,
 	type OrgChoice,
 	resolveOrganization,
-} from "./resolveOrganization";
+} from "./resolve-org";
 
 const orgA: OrgChoice = { id: "org-a-uuid", name: "Acme", slug: "acme" };
 const orgB: OrgChoice = { id: "org-b-uuid", name: "Beta Co", slug: "beta" };
@@ -95,5 +95,25 @@ describe("resolveOrganization", () => {
 		await expect(resolveOrganization([orgA, orgB], undefined)).rejects.toThrow(
 			/Multiple organizations/,
 		);
+	});
+
+	it("falls back to the active org with multiple memberships and no --org", async () => {
+		clearAgentEnv();
+		setTTY(false); // would otherwise refuse — the active-org fallback wins
+		expect(await resolveOrganization([orgA, orgB], undefined, orgB.id)).toBe(
+			orgB,
+		);
+	});
+
+	it("prefers an explicit --org over the active org", async () => {
+		expect(await resolveOrganization([orgA, orgB], "acme", orgB.id)).toBe(orgA);
+	});
+
+	it("ignores a stale active org not in memberships and still refuses", async () => {
+		clearAgentEnv();
+		setTTY(false);
+		await expect(
+			resolveOrganization([orgA, orgB], undefined, "not-a-member-uuid"),
+		).rejects.toThrow(/Multiple organizations/);
 	});
 });
