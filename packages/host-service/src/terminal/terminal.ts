@@ -882,6 +882,16 @@ export async function disposeSessionsByWorktreePath(
 		const result = await disposeSessionsByWorkspaceId(id, db);
 		terminated += result.terminated;
 		failed += result.failed;
+		// Drop the now-disposed rows so the deleted worktree's session index dies
+		// with it; still-active rows are failed kills we keep for the reaper.
+		db.delete(terminalSessions)
+			.where(
+				and(
+					eq(terminalSessions.originWorkspaceId, id),
+					ne(terminalSessions.status, "active"),
+				),
+			)
+			.run();
 	}
 	return { terminated, failed };
 }

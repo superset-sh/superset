@@ -21,13 +21,13 @@ import { useHotkeyDisplay } from "renderer/hotkeys";
 import { FileIcon } from "renderer/lib/fileIcons";
 import { getBaseName } from "renderer/lib/pathBasename";
 import {
-	consumeTerminalBackgroundIntent,
-	hasTerminalBackgroundIntent,
-} from "renderer/lib/terminal/terminal-background-intents";
+	confirmCloseTerminals,
+	probeTerminalRunning,
+} from "renderer/lib/terminal/confirm-close-terminals";
+import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useTerminalCloseConfirmStore } from "renderer/stores/terminal-close-confirm/store";
 import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
@@ -326,58 +326,18 @@ export function usePaneRegistry({
 								?.trim() || undefined,
 					};
 				},
-				onBeforeClose: async (pane) => {
-					if (useTerminalCloseConfirmStore.getState().suppressed) return true;
+				onBeforeClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
-					// Backgrounded terminals stay alive on close, so nothing is killed.
-					if (hasTerminalBackgroundIntent(terminalId)) return true;
-					let running = false;
-					try {
-						running = (
-							await workspaceTrpcUtils.terminal.hasRunningProcess.fetch({
-								terminalId,
-								workspaceId,
-							})
-						).running;
-					} catch (error) {
-						// If we can't tell, don't block the user from closing.
-						console.warn("Failed to check for running process", {
-							terminalId,
-							workspaceId,
-							error,
-						});
-						return true;
-					}
-					if (!running) return true;
-					return new Promise<boolean>((resolve) => {
-						const shown = alert({
+					return confirmCloseTerminals(
+						[terminalId],
+						(id) => probeTerminalRunning(workspaceTrpcUtils, workspaceId, id),
+						{
 							title: "A process is still running in this terminal",
 							description:
 								"Closing this terminal will end the running process.",
-							checkbox: { label: "Don't ask again" },
-							onDismiss: () => resolve(false),
-							actions: [
-								{
-									label: "Close terminal",
-									variant: "destructive",
-									onClick: ({ checkboxChecked }) => {
-										if (checkboxChecked) {
-											useTerminalCloseConfirmStore.getState().suppress();
-										}
-										resolve(true);
-									},
-								},
-								{
-									label: "Cancel",
-									variant: "ghost",
-									onClick: () => resolve(false),
-								},
-							],
-						});
-						// Fail open if the dialog layer isn't available, so the
-						// close can't hang on an unresolved promise.
-						if (!shown) resolve(true);
-					});
+							confirmLabel: "Close terminal",
+						},
+					);
 				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
@@ -616,7 +576,7 @@ export function usePaneRegistry({
 			onOpenFile,
 			onRevealPath,
 			createNewAgentSession,
-			workspaceTrpcUtils.terminal.hasRunningProcess.fetch,
+			workspaceTrpcUtils,
 		],
 	);
 }
