@@ -23,6 +23,7 @@ export interface V2UserPreferencesApi {
 	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
 	setShowPresetsBar: (next: boolean) => void;
+	toggleShowPresetsBar: () => void;
 }
 
 export function useV2UserPreferences(): V2UserPreferencesApi {
@@ -190,6 +191,15 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		[collections],
 	);
 
+	// Reads the current value from the collection at call time (not the render
+	// closure), so back-to-back toggles can't act on a stale snapshot.
+	const toggleShowPresetsBar = useCallback(() => {
+		const current =
+			collections.v2UserPreferences.get(V2_USER_PREFERENCES_ID)
+				?.showPresetsBar ?? DEFAULT_V2_USER_PREFERENCES.showPresetsBar;
+		setShowPresetsBar(!current);
+	}, [collections, setShowPresetsBar]);
+
 	return {
 		preferences,
 		setFileLinks,
@@ -201,5 +211,6 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setRightSidebarWidth,
 		setDeleteLocalBranch,
 		setShowPresetsBar,
+		toggleShowPresetsBar,
 	};
 }

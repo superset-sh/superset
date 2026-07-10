@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { DEFAULT_SHOW_PRESETS_BAR } from "shared/constants";
 
 export function useShowPresetsBar() {
 	const utils = electronTrpc.useUtils();
@@ -27,9 +26,23 @@ export function useShowPresetsBar() {
 
 	const { mutate: mutateShowPresetsBar } = setShowPresetsBar;
 	const toggleShowPresetsBar = useCallback(() => {
-		const current =
-			utils.settings.getShowPresetsBar.getData() ?? DEFAULT_SHOW_PRESETS_BAR;
-		mutateShowPresetsBar({ enabled: !current });
+		// Read at call time (not from a render closure) so back-to-back toggles
+		// see each other's optimistic writes. On a cold cache, fetch the
+		// persisted value instead of assuming the default — otherwise the first
+		// toggle after mount could re-write the already-persisted state.
+		void (async () => {
+			try {
+				const current =
+					utils.settings.getShowPresetsBar.getData() ??
+					(await utils.settings.getShowPresetsBar.fetch());
+				mutateShowPresetsBar({ enabled: !current });
+			} catch (error) {
+				console.error(
+					"[useShowPresetsBar] Failed to resolve current setting for toggle",
+					error,
+				);
+			}
+		})();
 	}, [utils, mutateShowPresetsBar]);
 
 	return { showPresetsBar, setShowPresetsBar, toggleShowPresetsBar };

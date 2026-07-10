@@ -11,7 +11,7 @@ export function useSlotElement(id: string): HTMLElement | null {
 		typeof document !== "undefined" ? document.getElementById(id) : null,
 	);
 	useEffect(() => {
-		if (slotEl) return;
+		if (slotEl?.id === id) return;
 		setSlotEl(document.getElementById(id));
 	}, [slotEl, id]);
 	return slotEl;

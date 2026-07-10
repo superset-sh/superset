@@ -42,12 +42,11 @@ function V2WorkspaceLayout() {
 	// workspaceTrpc.Provider (inside it) shares @trpc/react-query's default
 	// context, so electronTrpc hooks below it would resolve the host-service
 	// HTTP client, which does not support subscriptions.
-	const { preferences: v2UserPreferences, setShowPresetsBar } =
-		useV2UserPreferences();
+	const { toggleShowPresetsBar } = useV2UserPreferences();
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "toggle-presets-bar") {
-				setShowPresetsBar(!v2UserPreferences.showPresetsBar);
+				toggleShowPresetsBar();
 			}
 		},
 	});
