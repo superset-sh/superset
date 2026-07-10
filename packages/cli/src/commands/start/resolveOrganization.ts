@@ -56,13 +56,11 @@ export async function resolveOrganization<T extends OrgChoice>(
 		);
 	}
 
-	const picked = await p.select({
+	const pickedId = await p.select({
 		message: "Which organization?",
 		options: orgs.map((o) => ({ value: o.id, label: o.name, hint: o.slug })),
 	});
-	if (p.isCancel(picked)) throw new CLIError("Cancelled");
-
-	const match = orgs.find((o) => o.id === picked);
-	if (!match) throw new CLIError("Cancelled");
-	return match;
+	if (p.isCancel(pickedId)) throw new CLIError("Cancelled");
+	// value came from the orgs' own ids, so the match is guaranteed.
+	return orgs.find((o) => o.id === pickedId) as T;
 }
