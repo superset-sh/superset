@@ -45,17 +45,20 @@ check but another membership passes, hint at `--org`.
 
 ## Bug 3 — relay `1008 Forbidden` is opaque (hides the real reason)
 
-- `apps/relay/src/access.ts:40` — `const ok = result.allowed && result.paidPlan;`
+- `apps/relay/src/access.ts:40` — now `const ok = result.allowed;` (the
+  `&& result.paidPlan` gate was removed by **#5571 "allow free plans to use the
+  relay"**, merged in). So the *paid-plan* blocker is gone; the remaining gate is
+  `allowed`, which is false until the host is claimed (Bug 4).
 - `apps/relay/src/index.ts:262` — `ws.close(1008, "Forbidden")` with no detail.
 
 Symptom: the daemon logs a bare `relay rejected connection (code=1008,
-reason=Forbidden)`. The real cause (not in org / host not claimed / org not on a
-paid plan) is invisible. This single opaque line cost hours.
+reason=Forbidden)`. The real cause (not in org / host not claimed) is invisible.
+This single opaque line cost hours.
 
-**Fix:** carry a reason from `checkHostAccess` (`not_in_org` | `not_allowed` |
-`not_paid`) into the close reason, and have `tunnel-client` log it plainly
-(e.g. "relay denied: organization is not on a paid plan"). No secrets leaked —
-these are the user's own memberships.
+**Fix:** carry a reason from `checkHostAccess` (`not_in_org` | `not_allowed`)
+into the close reason, and have `tunnel-client` log it plainly (e.g. "relay
+denied: host not yet claimed — open it in the desktop app or run `superset hosts
+claim`"). No secrets leaked — these are the user's own memberships.
 
 ## Bug 4 — a headless host stays unclaimed forever (no CLI path)
 
@@ -81,7 +84,9 @@ SUPERSET_API_KEY=sk_live_… superset start --daemon --org <paid-org>
 → host registers, relay accepts (no Forbidden), and it shows **online + named** in
 `superset hosts list` and desktop — with **no desktop interaction required**.
 
-## Out of scope
+## Already fixed upstream
 
-- The relay's `paidPlan` gate itself is intended (billing). We only make it
-  *legible* and *selectable*, not bypassable.
+- **#5571 "allow free plans to use the relay"** removed the `paidPlan` gate from
+  `access.ts` — free/unpaid orgs can now use the relay. Merged into this branch.
+  The remaining live blocker for a headless host is Bug 4 (`allowed:false` until
+  claimed), not billing.
