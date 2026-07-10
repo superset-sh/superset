@@ -4,6 +4,7 @@ import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { SidebarControl } from "../../SidebarControl";
 import { ContentHeader } from "./ContentHeader";
 import { PresetsBar } from "./components/PresetsBar";
+import { useShowPresetsBar } from "./hooks/useShowPresetsBar";
 import { TabsContent } from "./TabsContent";
 import { GroupStrip } from "./TabsContent/GroupStrip";
 
@@ -19,8 +20,15 @@ export function ContentView({
 	onOpenQuickOpen,
 }: ContentViewProps) {
 	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
-	const { data: showPresetsBar } =
-		electronTrpc.settings.getShowPresetsBar.useQuery();
+	const { showPresetsBar, toggleShowPresetsBar } = useShowPresetsBar();
+
+	electronTrpc.menu.subscribe.useSubscription(undefined, {
+		onData: (event) => {
+			if (event.type === "toggle-presets-bar") {
+				toggleShowPresetsBar();
+			}
+		},
+	});
 
 	return (
 		<div className="h-full flex flex-col overflow-hidden">
