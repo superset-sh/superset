@@ -31,6 +31,11 @@ describe("sanitizeColdRestoreScrollback", () => {
 			["urxvt mouse", `${CSI}?1015h`],
 			["SGR-pixels mouse", `${CSI}?1016h`],
 			["bracketed paste", `${CSI}?2004h`],
+			// The renderer xterm build implements DECSET 2031 (default-enabled
+			// vtExtensions.colorSchemeQuery) and emits unsolicited CSI ?997;{1|2}n
+			// on every theme change while it is armed — replaying the arming would
+			// poison the fresh PTY on the next dark/light toggle (#5519 S1).
+			["color-scheme update reports", `${CSI}?2031h`],
 		])("strips %s arming", (_name, sequence) => {
 			expect(sanitizeColdRestoreScrollback(`a${sequence}b`)).toBe("ab");
 		});
@@ -105,6 +110,10 @@ describe("sanitizeColdRestoreScrollback", () => {
 			["keypad application mode", `${ESC}=`],
 			["keypad numeric mode", `${ESC}>`],
 			["DECRQSS", `${ESC}P$qm${ST}`],
+			// xterm dispatches DECRQSS on {intermediate $, final q} regardless of
+			// params, so the param'd form is answered too (#5519 S2).
+			["DECRQSS with params", `${ESC}P1$qm${ST}`],
+			["DECRQSS with multiple params", `${ESC}P0;1$qr${ST}`],
 			["OSC 10 fg query BEL", `${OSC}10;?${BEL}`],
 			["OSC 11 bg query ST", `${OSC}11;?${ST}`],
 			["OSC 12 cursor color query", `${OSC}12;?${BEL}`],
@@ -185,15 +194,132 @@ describe("sanitizeColdRestoreScrollback", () => {
 	});
 
 	describe("ESC-terminated OSC/DCS (this xterm dispatches on bare ESC)", () => {
-		test("keeps a title set terminated by a following ESC sequence", () => {
+		test("re-terminates a kept title set that ended on a following ESC sequence", () => {
+			// The ESC that ended the OSC belongs to the *next* sequence. The kept
+			// OSC must gain its own ST or the emitted bytes leave it open.
 			const log = `${OSC}0;My Title${CSI}31mred`;
-			expect(sanitizeColdRestoreScrollback(log)).toBe(log);
+			expect(sanitizeColdRestoreScrollback(log)).toBe(
+				`${OSC}0;My Title${ST}${CSI}31mred`,
+			);
 		});
 
 		test("still drops an ESC-terminated clipboard query", () => {
 			expect(sanitizeColdRestoreScrollback(`${OSC}52;c;?${CSI}0m`)).toBe(
 				`${CSI}0m`,
 			);
+		});
+
+		test("re-terminates a kept OSC whose terminator belonged to a stripped sequence", () => {
+			// #5519 B5: the OSC's ending ESC introduced the DECSET that gets
+			// stripped. Without an appended ST the sanitized stream contains a
+			// still-open OSC that swallows everything after it — replaying this
+			// input produced a blank screen instead of the prompt line.
+			const raw = `${OSC}0;partial-title${CSI}?2004huser@host$ ls`;
+			expect(sanitizeColdRestoreScrollback(raw)).toBe(
+				`${OSC}0;partial-title${ST}user@host$ ls`,
+			);
+		});
+
+		test("re-terminates a kept DCS the same way", () => {
+			const raw = `${ESC}Pq#0;2;0;0;0${CSI}?2004hrest`;
+			expect(sanitizeColdRestoreScrollback(raw)).toBe(
+				`${ESC}Pq#0;2;0;0;0${ST}rest`,
+			);
+		});
+
+		test("re-terminates a kept APC string the same way", () => {
+			const raw = `${ESC}_payload${CSI}?uafter`;
+			expect(sanitizeColdRestoreScrollback(raw)).toBe(
+				`${ESC}_payload${ST}after`,
+			);
+		});
+
+		test("re-terminated output is idempotent", () => {
+			const raw = `${OSC}0;partial-title${CSI}?2004huser@host$ ls`;
+			const once = sanitizeColdRestoreScrollback(raw);
+			expect(sanitizeColdRestoreScrollback(once)).toBe(once);
+		});
+	});
+
+	describe("OSC color set+query mixes (xterm applies sets, answers queries)", () => {
+		// xterm walks OSC 4 payloads pair-wise: `?` entries are answered, color
+		// spec entries are applied. Dropping the whole sequence loses the sets
+		// and the restored scrollback renders with wrong 256-colors (#5519 D1).
+		test("keeps the set pairs of a mixed OSC 4, stripping only queries", () => {
+			expect(
+				sanitizeColdRestoreScrollback(`${OSC}4;1;rgb:aa/00/00;2;?${BEL}`),
+			).toBe(`${OSC}4;1;rgb:aa/00/00${BEL}`);
+		});
+
+		test("keeps set pairs regardless of pair order", () => {
+			expect(
+				sanitizeColdRestoreScrollback(`${OSC}4;2;?;1;rgb:aa/00/00${BEL}`),
+			).toBe(`${OSC}4;1;rgb:aa/00/00${BEL}`);
+		});
+
+		test("preserves the ST terminator when rewriting OSC 4", () => {
+			expect(sanitizeColdRestoreScrollback(`${OSC}4;1;red;2;?${ST}`)).toBe(
+				`${OSC}4;1;red${ST}`,
+			);
+		});
+
+		test("drops an OSC 4 made only of queries", () => {
+			expect(
+				sanitizeColdRestoreScrollback(`${OSC}4;5;?;6;?${BEL}`),
+			).toBe("");
+		});
+
+		// OSC 10-12 payloads advance positionally (10;fg;bg sets fg then bg), so
+		// a kept entry must be re-addressed to its effective color slot.
+		test("re-addresses the kept set when an OSC 10 mixes query and set", () => {
+			expect(
+				sanitizeColdRestoreScrollback(`${OSC}10;?;rgb:11/22/33${BEL}`),
+			).toBe(`${OSC}11;rgb:11/22/33${BEL}`);
+		});
+
+		test("keeps the leading set and strips the trailing query of an OSC 10", () => {
+			expect(
+				sanitizeColdRestoreScrollback(`${OSC}10;rgb:aa/bb/cc;?${BEL}`),
+			).toBe(`${OSC}10;rgb:aa/bb/cc${BEL}`);
+		});
+	});
+
+	describe("C0 controls embedded in a CSI (xterm executes and keeps collecting)", () => {
+		test("emits the C0 and keeps collecting the sequence", () => {
+			// Raw replay executes VT then applies SGR 34; dropping the head and
+			// re-emitting "4m" as text diverges from that (#5519 D2).
+			expect(sanitizeColdRestoreScrollback(`${CSI}3\x0b4mRED`)).toBe(
+				`\x0b${CSI}34mRED`,
+			);
+		});
+
+		test("still strips an input-arming DECSET reassembled around a C0", () => {
+			expect(sanitizeColdRestoreScrollback(`${CSI}?100\x0b2h`)).toBe("\x0b");
+		});
+
+		test("ignores DEL mid-collect like xterm", () => {
+			expect(sanitizeColdRestoreScrollback(`${CSI}3\x7f4mX`)).toBe(
+				`${CSI}34mX`,
+			);
+		});
+
+		test("CAN still cancels the sequence and keeps following text", () => {
+			expect(sanitizeColdRestoreScrollback(`${CSI}31\x18mX`)).toBe("mX");
+		});
+	});
+
+	describe("CSI sequences carrying intermediates are never rewritten", () => {
+		test("passes an unrecognized intermediate-bearing lookalike through verbatim", () => {
+			// `CSI ?1049;1002$h` has no xterm handler — a no-op on raw replay.
+			// Rewriting it to `CSI ?1049h` would manufacture an alt-screen switch
+			// that never executed (#5519 D3).
+			const seq = `${CSI}?1049;1002$h`;
+			expect(sanitizeColdRestoreScrollback(`a${seq}b`)).toBe(`a${seq}b`);
+		});
+
+		test("keeps DECSCUSR-style sequences with a space intermediate", () => {
+			const seq = `${CSI}4 q`;
+			expect(sanitizeColdRestoreScrollback(`a${seq}b`)).toBe(`a${seq}b`);
 		});
 	});
 
@@ -282,6 +408,7 @@ describe("INPUT_MODE_DISARM_SEQUENCE", () => {
 	test("disarms every tracked input-reporting mode", () => {
 		for (const mode of [
 			1, 9, 1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1015, 1016, 2004,
+			2031,
 		]) {
 			expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}?${mode}l`);
 		}

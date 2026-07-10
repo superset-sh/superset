@@ -39,6 +39,7 @@ export const INPUT_REPORTING_DECSET_PARAMS: ReadonlySet<number> = new Set([
 	1015, // urxvt mouse encoding
 	1016, // SGR-pixels mouse encoding
 	2004, // bracketed paste
+	2031, // color-scheme update reports (unsolicited CSI ?997;{1|2}n on theme change)
 ]);
 
 /**
@@ -84,6 +85,20 @@ function classifyCsi(
 	intermediates: string,
 	final: string,
 ): string {
+	// DECRQM (answered with a $y mode report) — the only intermediate-bearing
+	// form that is stripped.
+	if (
+		final === "p" &&
+		intermediates === "$" &&
+		(prefix === "" || prefix === "?")
+	) {
+		return "";
+	}
+	// Any other sequence carrying intermediates matches none of the forms
+	// below — xterm dispatches on prefix+intermediates+final together, so e.g.
+	// `CSI ?1049;1002$h` is a no-op. Rewriting it by prefix+final alone would
+	// manufacture an active `CSI ?1049h` that never executed. Keep verbatim.
+	if (intermediates !== "") return seq;
 	// DECSET/DECRST — drop input-reporting params, keep display ones. Handles
 	// colon sub-parameters (e.g. 1000:1006) by keying on the primary param.
 	if (prefix === "?" && (final === "h" || final === "l")) {
@@ -111,14 +126,6 @@ function classifyCsi(
 	if (final === "c" && (prefix === ">" || prefix === "=")) return "";
 	// DSR / DECXCPR (answered with cursor position / status).
 	if (final === "n" && (prefix === "" || prefix === "?")) return "";
-	// DECRQM (answered with a $y mode report).
-	if (
-		final === "p" &&
-		intermediates === "$" &&
-		(prefix === "" || prefix === "?")
-	) {
-		return "";
-	}
 	// XTVERSION (CSI > q). DECSCUSR is CSI SP q — different prefix, kept.
 	if (final === "q" && prefix === ">") return "";
 	// XTWINOPS (CSI Ps t): window size/position reports (answered) plus one-way
@@ -137,37 +144,61 @@ function readCsi(data: string, start: number): EscSpan {
 	const n = data.length;
 	let i = start + 2;
 	let prefix = "";
-	if (i < n && "<=>?".includes(data[i])) {
-		prefix = data[i];
-		i++;
+	let params = "";
+	let intermediates = "";
+	// C0 controls embedded in a CSI are executed by xterm while the sequence
+	// keeps collecting (CAN/SUB cancel it, ESC aborts it, DEL is ignored).
+	// Re-emit them ahead of whatever the sequence resolves to so replay
+	// preserves their effect without breaking the reassembled sequence.
+	let executed = "";
+	while (i < n) {
+		const ch = data[i];
+		const code = data.charCodeAt(i);
+		if (code === 0x18 || code === 0x1a) {
+			// CAN/SUB cancel the sequence; xterm returns to ground.
+			return { end: i + 1, emit: executed };
+		}
+		if (ch === ESC) {
+			// An ESC aborts the CSI and begins a new sequence — re-examine it.
+			return { end: i, emit: executed };
+		}
+		if (code === 0x7f) {
+			i++;
+			continue;
+		}
+		if (code < 0x20) {
+			executed += ch;
+			i++;
+			continue;
+		}
+		if (prefix === "" && params === "" && intermediates === "" && "<=>?".includes(ch)) {
+			prefix = ch;
+			i++;
+			continue;
+		}
+		if (intermediates === "" && isParamByte(code)) {
+			params += ch;
+			i++;
+			continue;
+		}
+		if (isIntermediateByte(code)) {
+			intermediates += ch;
+			i++;
+			continue;
+		}
+		if (isFinalByte(code)) {
+			const seq = `${ESC}[${prefix}${params}${intermediates}${ch}`;
+			return {
+				end: i + 1,
+				emit:
+					executed + classifyCsi(seq, prefix, params, intermediates, ch),
+			};
+		}
+		// A byte that fits nowhere in the CSI grammar (e.g. a stray C1).
+		// Drop the partial like xterm's ignore state and re-examine the byte.
+		return { end: i, emit: executed };
 	}
-	const paramStart = i;
-	while (i < n && isParamByte(data.charCodeAt(i))) i++;
-	const params = data.slice(paramStart, i);
-	const intermediateStart = i;
-	while (i < n && isIntermediateByte(data.charCodeAt(i))) i++;
-	const intermediates = data.slice(intermediateStart, i);
-	if (i >= n) return { end: n, emit: "" }; // incomplete at EOF — drop
-	if (!isFinalByte(data.charCodeAt(i))) {
-		// No valid final byte where one was expected. An ESC here begins a new
-		// sequence; an embedded C0 would be executed by xterm while the CSI
-		// kept collecting. We don't reproduce the latter — it only matters on
-		// malformed streams, and dropping the partial strictly favours not
-		// re-arming a mode. Re-examine the offending byte as a fresh start.
-		return { end: i, emit: "" };
-	}
-	const final = data[i];
-	i++;
-	return {
-		end: i,
-		emit: classifyCsi(
-			data.slice(start, i),
-			prefix,
-			params,
-			intermediates,
-			final,
-		),
-	};
+	return { end: n, emit: executed }; // incomplete at EOF — drop the partial
 }
 
 interface StringSeq {
@@ -175,6 +206,14 @@ interface StringSeq {
 	body: string;
 	raw: string;
 	aborted: boolean;
+	/**
+	 * True when the sequence ended on a bare ESC: the terminator belongs to the
+	 * *following* sequence, so `raw` carries no terminator of its own. A kept
+	 * sequence must then be re-terminated with ST — if the following sequence
+	 * is stripped, emitting `raw` as-is would leave an open OSC/DCS that
+	 * swallows everything after it as string payload.
+	 */
+	needsSt: boolean;
 }
 
 /**
@@ -196,7 +235,7 @@ function readStringSeq(
 		// ground state so following bytes render as text. Discard the partial
 		// and resume just after the control so that text isn't over-stripped.
 		if (code === 0x18 || code === 0x1a) {
-			return { end: i + 1, body: "", raw: "", aborted: true };
+			return { end: i + 1, body: "", raw: "", aborted: true, needsSt: false };
 		}
 		if (ch === "\x07") {
 			return {
@@ -204,6 +243,7 @@ function readStringSeq(
 				body: data.slice(start + introLen, i),
 				raw: data.slice(start, i + 1),
 				aborted: false,
+				needsSt: false,
 			};
 		}
 		if (ch === ESC) {
@@ -213,6 +253,7 @@ function readStringSeq(
 					body: data.slice(start + introLen, i),
 					raw: data.slice(start, i + 2),
 					aborted: false,
+					needsSt: false,
 				};
 			}
 			// A bare ESC ends the string with success in this xterm build (only
@@ -224,11 +265,65 @@ function readStringSeq(
 				body: data.slice(start + introLen, i),
 				raw: data.slice(start, i),
 				aborted: false,
+				needsSt: true,
 			};
 		}
 		i++;
 	}
-	return { end: n, body: "", raw: "", aborted: true }; // incomplete at EOF
+	// incomplete at EOF
+	return { end: n, body: "", raw: "", aborted: true, needsSt: false };
+}
+
+/** Emit a kept string sequence, re-terminating it if it ended on a bare ESC. */
+function keepStringSeq(s: StringSeq): string {
+	return s.needsSt ? `${s.raw}${ESC}\\` : s.raw;
+}
+
+/**
+ * Decide the fate of an OSC. Clipboard (52) is dropped whole. The color
+ * OSCs (4, 10-12) are answered per entry: `?` entries are queries this
+ * renderer's xterm would answer into the fresh PTY, while spec entries are
+ * display state — keep the sets, strip only the queries (mirroring xterm's
+ * own pair/slot walk). Everything else passes through.
+ */
+function classifyOsc(s: StringSeq): string {
+	// OSC 52 clipboard: the query form is answered with the user's clipboard
+	// contents, the set form clobbers their clipboard — drop both.
+	if (s.body.startsWith("52;")) return "";
+	const colorMatch = /^(4|1[0-2]);([\s\S]*)$/.exec(s.body);
+	if (!colorMatch) return keepStringSeq(s);
+	const ident = Number.parseInt(colorMatch[1], 10);
+	const entries = colorMatch[2].split(";");
+	const terminator = s.raw.endsWith("\x07") ? "\x07" : `${ESC}\\`;
+	if (ident === 4) {
+		// OSC 4 payload is idx;spec pairs; xterm answers `?` specs and applies
+		// the rest. A dangling final entry with no spec is inert in xterm; drop
+		// it if it looks like a query attempt, otherwise leave the sequence be.
+		const kept: string[] = [];
+		let dropped = false;
+		let i = 0;
+		for (; i + 1 < entries.length; i += 2) {
+			if (entries[i + 1] === "?") dropped = true;
+			else kept.push(entries[i], entries[i + 1]);
+		}
+		if (i < entries.length && entries[i].includes("?")) dropped = true;
+		if (!dropped) return keepStringSeq(s);
+		if (kept.length === 0) return "";
+		return `${ESC}]4;${kept.join(";")}${terminator}`;
+	}
+	// OSC 10-12 advance positionally: `10;fg;bg` sets fg then bg. A kept set
+	// must be re-addressed to the slot it would have landed on, or stripping
+	// the query ahead of it would shift it onto the wrong color.
+	const kept: Array<{ colorIdent: number; value: string }> = [];
+	let dropped = false;
+	entries.forEach((value, index) => {
+		if (value === "?") dropped = true;
+		else kept.push({ colorIdent: ident + index, value });
+	});
+	if (!dropped) return keepStringSeq(s);
+	return kept
+		.map(({ colorIdent, value }) => `${ESC}]${colorIdent};${value}${terminator}`)
+		.join("");
 }
 
 function readEscSequence(data: string, start: number): EscSpan {
@@ -239,29 +334,23 @@ function readEscSequence(data: string, start: number): EscSpan {
 	if (next === "]") {
 		const s = readStringSeq(data, start, 2);
 		if (s.aborted) return { end: s.end, emit: "" };
-		// OSC 52 clipboard: the query form is answered with the user's clipboard
-		// contents, the set form clobbers their clipboard — drop both.
-		if (s.body.startsWith("52;")) return { end: s.end, emit: "" };
-		// OSC 4 / 10 / 11 / 12 colour *queries* (payload contains "?") are
-		// answered; colour *sets* are display state and are kept.
-		if (/^(4|1[0-2]);/.test(s.body) && s.body.includes("?")) {
-			return { end: s.end, emit: "" };
-		}
-		return { end: s.end, emit: s.raw };
+		return { end: s.end, emit: classifyOsc(s) };
 	}
 	if (next === "P") {
 		const s = readStringSeq(data, start, 2);
 		if (s.aborted) return { end: s.end, emit: "" };
-		// DECRQSS (DCS $q … ST) is answered; other DCS (e.g. sixel) is kept.
-		if (s.body.startsWith("$q")) return { end: s.end, emit: "" };
-		return { end: s.end, emit: s.raw };
+		// DECRQSS (DCS [Ps] $q … ST) is answered; other DCS (e.g. sixel) is
+		// kept. xterm dispatches on the $q intermediate+final regardless of
+		// params, so a param'd request must not slip past the match.
+		if (/^[0-9:;]*\$q/.test(s.body)) return { end: s.end, emit: "" };
+		return { end: s.end, emit: keepStringSeq(s) };
 	}
 	if (next === "X" || next === "^" || next === "_") {
 		// SOS / PM / APC — never stripped, but consumed to their terminator so
 		// their payload is not re-scanned as nested sequences.
 		const s = readStringSeq(data, start, 2);
 		if (s.aborted) return { end: s.end, emit: "" };
-		return { end: s.end, emit: s.raw };
+		return { end: s.end, emit: keepStringSeq(s) };
 	}
 	// Keypad application / numeric mode (input-affecting) — drop.
 	if (next === "=" || next === ">") return { end: start + 2, emit: "" };
