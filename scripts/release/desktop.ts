@@ -380,9 +380,11 @@ async function monitorAndPublish(
 		return;
 	}
 
+	const version = tag.replace(/^desktop-v/, "");
 	if (opts.autoPublish) {
 		await $`gh release edit ${tag} --draft=false`;
 		success("Release published!");
+		await publishMatchingCli(version, tag);
 		if (opts.autoMerge && opts.prNumber) {
 			const r =
 				await $`gh pr merge ${opts.prNumber} --squash --delete-branch`.nothrow();
@@ -394,7 +396,30 @@ async function monitorAndPublish(
 		success("Draft release created!");
 		console.log(`\nReview: ${url}`);
 		console.log(`Publish with: gh release edit ${tag} --draft=false`);
+		console.log(
+			`Then ship the matching standalone CLI ${version}:\n  git tag cli-v${version} ${tag} && git push origin cli-v${version}`,
+		);
 	}
+}
+
+/** After the desktop release is published, cut the matching plain cli-v<version>
+ * (same commit) so the standalone CLI ships in lockstep with desktop. Skipped in
+ * draft mode — nothing ships until the desktop release is live. */
+async function publishMatchingCli(
+	version: string,
+	desktopTag: string,
+): Promise<void> {
+	const cliTag = `cli-v${version}`;
+	if ((await exitCode($`git rev-parse ${cliTag}`)) === 0) {
+		warn(`${cliTag} already exists; skipping standalone CLI publish.`);
+		return;
+	}
+	info(`Publishing matching standalone CLI ${cliTag}...`);
+	await $`git tag ${cliTag} ${desktopTag}`;
+	await $`git push origin ${cliTag}`;
+	success(
+		`Tag ${cliTag} pushed — release-cli.yml will publish the standalone CLI ${version}`,
+	);
 }
 
 if (import.meta.main) await runDesktop(process.argv.slice(2));

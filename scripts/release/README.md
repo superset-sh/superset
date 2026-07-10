@@ -6,19 +6,24 @@ step). One entry point: **`bun run release`**. Design/rationale lives in
 
 ## Model
 
-- **desktop == host-service == cli** — one unified version, enforced by
-  `bun run check:versions` (a CI-gated check).
+- **desktop == host-service == cli** at each desktop release — one unified plain
+  version, enforced by `bun run check:versions` (CI-gated). A desktop release also
+  publishes a matching plain `cli-v<version>`, so the standalone CLI ships in lockstep.
+- **CLI hotfixes lead by a patch.** Between desktop releases, a CLI-only fix bumps
+  a plain patch above the current CLI (`1.14.1 → 1.14.2`), within desktop's minor
+  line, until the next desktop release catches up.
+- **No prerelease suffixes.** A suffix sorts *below* the release (so `superset
+  update` won't deliver it) and fails the host-service min-version floor
+  (`semver.satisfies` excludes prereleases). Everything stays plain.
 - **pty-daemon** is on its own `0.x` track, bumped only with `--daemon`.
-- Interim CLI hotfixes ride a `<desktop>-N` prerelease (e.g. `1.14.0-1`), which
-  sorts **below** the desktop version, so the CLI never ships above desktop.
 
 ## Commands
 
 | Command | When |
 | --- | --- |
 | `bun run release` | Interactive menu (TTY only). |
-| `bun run release desktop [version]` | New app release. Moves desktop + host-service + cli together. Draft by default. |
-| `bun run release cli [suffix]` | CLI-only hotfix **between** desktop releases → `<desktop>-N`. |
+| `bun run release desktop [version]` | New app release. Moves desktop + host-service + cli together + publishes matching `cli-v`. Draft by default. |
+| `bun run release cli [version]` | CLI-only hotfix **between** desktop releases → plain patch above the current CLI. |
 | `… --daemon` | Also ship a pty-daemon fix (patch-bumps it on `0.x`). |
 | `bun run release check` | Verify versions are unified (exit 1 on drift). |
 

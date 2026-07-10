@@ -24,13 +24,21 @@ flags. Prompts only fire on a TTY; without one (e.g. an agent), the flow fails
 with guidance (pass a version, `--republish`) instead of hanging. Flows also
 export `runDesktop` / `runCli` for programmatic use.
 
-## Rules
+## Rules — everything plain, CLI leads by a patch
 
-- **Desktop is the ceiling.** It is always a plain `MAJOR.MINOR.PATCH` release.
-- `host-service` and `cli` **base** (strip any `-N` suffix) must equal desktop.
-- `host-service` **must equal** `cli` (they ship as one bundle).
-- Interim CLI releases add a prerelease suffix: `1.14.0-1`, `1.14.0-2`, … These
-  sort **below** `1.14.0` in semver, so the CLI never ships above desktop.
+**No prerelease suffixes anywhere.** A suffix (`1.14.1-N`) sorts *below* the
+release, so `superset update` won't deliver it, **and** it fails the host-service
+min-version floor (`semver.satisfies` excludes prereleases —
+`satisfies("1.14.1-1", ">=0.8.0") === false`). So:
+
+- **Desktop** is always a plain `MAJOR.MINOR.PATCH` release.
+- A desktop release sets `cli == host-service == desktop` **and** publishes a
+  matching plain `cli-v<version>` — the standalone CLI ships in lockstep.
+- **CLI hotfixes** between desktop releases bump a plain **patch** above the
+  current CLI (`1.14.1 → 1.14.2 → 1.14.3`), so the CLI *leads* desktop by a patch
+  within the same minor line until the next desktop release catches up.
+- `check:versions` enforces: `cli == host-service`, both plain, `cli >= desktop`,
+  same major.minor as desktop.
 
 ## One-time snap
 
@@ -39,25 +47,23 @@ export `runDesktop` / `runCli` for programmatic use.
 
 ## Desktop release (`scripts/release/desktop.ts`)
 
-Every desktop bump now sets **desktop + host-service + cli** to the same new
-version (was: desktop + host-service patch-bump). Both the normal and
-commit/worktree paths refresh `bun.lock` and commit all three package.jsons.
+Sets **desktop + host-service + cli** to the new version, commits, tags
+`desktop-v<version>`, builds, and leaves a **draft**. **On publish** (`--publish`,
+or the manual `--draft=false`) it also cuts a matching plain **`cli-v<version>`**
+so the standalone CLI ships with desktop. Draft mode ships nothing until you
+publish (it prints the `cli-v` command to run then).
 
-Commit: `chore(desktop): bump version to X (host-service a -> X, cli b -> X)`.
+## CLI hotfix (`scripts/release/cli.ts`, `bun run release cli`)
 
-## Interim CLI release (`scripts/release/cli.ts`, `bun run release cli`)
+Ship a CLI-side fix between desktop releases:
 
-Between desktop releases, ship a CLI-side fix without a desktop release:
+- Current CLI = highest of `packages/cli` version, latest `cli-v` tag, and desktop.
+- New version = plain patch above that (`1.14.2`), or an explicit `bun run release
+  cli <version>` (must be plain, `> current`, same minor as desktop).
+- Sets `cli` + `host-service` to it, refreshes lock, commits, tags `cli-v<version>`.
+- `--daemon` also patch-bumps `pty-daemon` on its own `0.x` track.
 
-- Base = current desktop version `D`.
-- Suffix auto-increments: if cli is `D-N` → `D-(N+1)`, else `D-1`.
-- Sets `cli` + `host-service` to `D-N`, refreshes lock, commits.
-- `--daemon` also **patch-bumps `pty-daemon`** on its own track (e.g. `0.2.5 →
-  0.2.6`) so the release can carry a daemon fix. The daemon never takes the
-  `D-N` version (see below).
-- Tags `cli-v D-N` → triggers `release-cli.yml` (bundles host-service).
-
-`bun run release cli [suffix] [--daemon] [--no-tag]`.
+`bun run release cli [version] [--daemon] [--no-tag]`.
 
 ## Why the daemon stays separate
 

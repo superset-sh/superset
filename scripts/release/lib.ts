@@ -51,21 +51,25 @@ export function isPlainRelease(v: string): boolean {
 	return PLAIN_SEMVER.test(v);
 }
 
-/** Next interim CLI version: `<desktop>-N`. Continues from N+1 if cli is already
- * `<desktop>-N`, else starts at 1. `forceSuffix` overrides. */
-export function nextInterimVersion(
-	desktop: string,
-	cliCurrent: string,
-	forceSuffix?: number,
-): string {
-	if (forceSuffix != null) return `${desktop}-${forceSuffix}`;
-	const m = cliCurrent.match(/^(.*)-(\d+)$/);
-	if (m && m[1] === desktop) return `${desktop}-${Number(m[2]) + 1}`;
-	return `${desktop}-1`;
+/** Highest of the given versions by semver precedence. */
+export function maxVersion(versions: string[]): string {
+	return versions.reduce((a, b) => (semver.gte(a, b) ? a : b));
 }
 
-/** Errors if UNIFIED entries don't share the desktop base or don't match each
- * other. Empty array = unified. */
+/** Next interim CLI hotfix: a plain patch above the current CLI. Between desktop
+ * releases the CLI leads desktop by patches (desktop 1.14.1 → cli 1.14.2, 1.14.3);
+ * the next desktop release catches up. PLAIN — no prerelease suffix — because a
+ * suffix would (a) sort BELOW the release so `superset update` won't deliver it
+ * and (b) fail the host-service min-version floor (semver.satisfies excludes
+ * prereleases). See plans/20260709-unified-version-bumping.md. */
+export function nextCliHotfix(current: string): string {
+	return incrementPatch(current);
+}
+
+/** Errors if the unified packages aren't plain, don't match each other, or drift
+ * from desktop. A desktop release sets cli == host == desktop; CLI hotfixes lead
+ * by plain patches within desktop's minor line (never a different minor, never
+ * below desktop). Empty array = valid. */
 export function unifiedErrors(
 	desktop: string,
 	entries: { name: string; version: string }[],
@@ -78,14 +82,27 @@ export function unifiedErrors(
 	}
 	let first: string | undefined;
 	for (const { name, version } of entries) {
-		const base = version.split("-")[0];
-		if (base !== desktop) {
-			errors.push(`${name} '${version}' base != desktop '${desktop}'`);
+		if (!isPlainRelease(version)) {
+			errors.push(
+				`${name} '${version}' must be plain MAJOR.MINOR.PATCH (no prerelease suffix — suffixes fail the host-service min-version floor)`,
+			);
 		}
 		if (first === undefined) first = version;
 		else if (version !== first) {
 			errors.push(
 				`${name} '${version}' != '${first}' (unified packages must match)`,
+			);
+		}
+	}
+	if (first && isPlainRelease(first) && isPlainRelease(desktop)) {
+		if (semver.lt(first, desktop)) {
+			errors.push(`cli/host '${first}' is below desktop '${desktop}'`);
+		} else if (
+			semver.major(first) !== semver.major(desktop) ||
+			semver.minor(first) !== semver.minor(desktop)
+		) {
+			errors.push(
+				`cli/host '${first}' must stay in desktop '${desktop}' minor line (patch-ahead only)`,
 			);
 		}
 	}

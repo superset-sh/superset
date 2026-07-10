@@ -1,17 +1,22 @@
 #!/usr/bin/env bun
 
-// Interim CLI release: bumps the CLI bundle (cli + host-service) to a prerelease
-// under the current desktop version — e.g. 1.14.0-1, 1.14.0-2, ... These sort
-// BELOW the desktop release, so the CLI never ships above desktop. Tags
-// cli-v<version> to trigger release-cli.yml (which bundles host-service).
+// Interim CLI hotfix: ships a CLI-side fix BETWEEN desktop releases by bumping
+// the CLI bundle (cli + host-service) a plain patch above the current CLI — e.g.
+// desktop 1.14.1 → cli 1.14.2, 1.14.3. The CLI leads desktop by a patch until the
+// next desktop release catches up. Tags cli-v<version> to trigger release-cli.yml
+// (which bundles host-service).
 //
-// pty-daemon stays on its OWN 0.x track and is only bumped with --daemon (a
-// prerelease daemon would sort below desktop's bundled one and churn on the
-// shared org socket). See plans/20260709-unified-version-bumping.md.
+// Plain versions (no prerelease suffix) on purpose: a suffix would sort BELOW the
+// release (so `superset update` wouldn't deliver it) AND fail the host-service
+// min-version floor (semver.satisfies excludes prereleases). See
+// plans/20260709-unified-version-bumping.md.
 //
-// Prefer `bun run release cli`. Usage: [suffix] [--daemon] [--no-tag]
+// pty-daemon stays on its OWN 0.x track and is only bumped with --daemon.
+//
+// Prefer `bun run release cli`. Usage: [version] [--daemon] [--no-tag]
 
 import { $ } from "bun";
+import semver from "semver";
 import {
 	bumpDaemonPatch,
 	DESKTOP_PACKAGE,
@@ -21,7 +26,9 @@ import {
 	guardDaemonBump,
 	info,
 	isPlainRelease,
-	nextInterimVersion,
+	maxVersion,
+	nextCliHotfix,
+	previousReleaseTag,
 	readVersion,
 	refreshLockfile,
 	releaseDiffReport,
@@ -34,7 +41,7 @@ import {
 } from "./lib.ts";
 
 export async function runCli(argv: string[]): Promise<void> {
-	let forceSuffix: number | undefined;
+	let explicitVersion: string | undefined;
 	let noTag = false;
 	let withDaemon = false;
 	for (const arg of argv) {
@@ -42,10 +49,10 @@ export async function runCli(argv: string[]): Promise<void> {
 		else if (arg === "--daemon") withDaemon = true;
 		else if (arg.startsWith("-"))
 			fail(
-				`Unknown option: ${arg}\nUsage: release cli [suffix] [--daemon] [--no-tag]`,
+				`Unknown option: ${arg}\nUsage: release cli [version] [--daemon] [--no-tag]`,
 			);
-		else if (/^\d+$/.test(arg)) forceSuffix = Number(arg);
-		else fail(`Suffix must be a positive integer, got: ${arg}`);
+		else if (isPlainRelease(arg)) explicitVersion = arg;
+		else fail(`Version must be a plain MAJOR.MINOR.PATCH, got: ${arg}`);
 	}
 
 	if (!Bun.which("gh")) fail("GitHub CLI (gh) is required but not installed.");
@@ -56,21 +63,41 @@ export async function runCli(argv: string[]): Promise<void> {
 	const desktop = readVersion(root, DESKTOP_PACKAGE);
 	if (!isPlainRelease(desktop)) {
 		fail(
-			`Desktop version '${desktop}' is not a plain MAJOR.MINOR.PATCH release; cannot base a CLI prerelease on it.`,
+			`Desktop version '${desktop}' is not a plain MAJOR.MINOR.PATCH release.`,
 		);
 	}
-	const cliCur = readVersion(root, "packages/cli");
-	const newVersion = nextInterimVersion(desktop, cliCur, forceSuffix);
+
+	// The current CLI is the highest of package.json, the latest cli-v tag, and
+	// desktop — so a hotfix never lands below what's already published.
+	const cliPkg = readVersion(root, "packages/cli");
+	const latestTag = await previousReleaseTag(root, "cli");
+	const latestTagVer = latestTag ? latestTag.replace(/^cli-v/, "") : "0.0.0";
+	const current = maxVersion([cliPkg, latestTagVer, desktop]);
+
+	const newVersion = explicitVersion ?? nextCliHotfix(current);
+	if (!semver.gt(newVersion, current)) {
+		fail(
+			`Version ${newVersion} must be greater than the current CLI ${current}.`,
+		);
+	}
+	if (
+		semver.major(newVersion) !== semver.major(desktop) ||
+		semver.minor(newVersion) !== semver.minor(desktop)
+	) {
+		fail(
+			`Version ${newVersion} must stay in desktop '${desktop}' minor line (a hotfix leads by patch). For a new minor/major, cut a desktop release.`,
+		);
+	}
 	const tag = `cli-v${newVersion}`;
 
-	info(`Desktop version (ceiling): ${desktop}`);
-	info(`Current CLI version:       ${cliCur}`);
-	info(`New CLI bundle version:    ${green(newVersion)}`);
+	info(`Desktop version:        ${desktop}`);
+	info(`Current CLI (published): ${current}`);
+	info(`New CLI hotfix version:  ${green(newVersion)}`);
 	console.log("");
 
 	if ((await $`git rev-parse ${tag}`.nothrow().quiet()).exitCode === 0) {
 		fail(
-			`Tag ${tag} already exists. Pass a higher suffix or delete the tag first.`,
+			`Tag ${tag} already exists. Pass a higher version or delete the tag first.`,
 		);
 	}
 
@@ -95,9 +122,9 @@ export async function runCli(argv: string[]): Promise<void> {
 
 	const addPkgs = UNIFIED_PACKAGES.map((p) => `${p}/package.json`);
 	await $`git add ${addPkgs} ${daemonAdd} bun.lock`;
-	const msg = `chore(cli): release ${newVersion} (cli + host-service ${cliCur} -> ${newVersion}${daemonMsg})`;
+	const msg = `chore(cli): release ${newVersion} (cli + host-service ${current} -> ${newVersion}${daemonMsg})`;
 	await $`git commit -m ${msg}`;
-	success(`Committed ${cliCur} -> ${newVersion}${daemonMsg}`);
+	success(`Committed ${current} -> ${newVersion}${daemonMsg}`);
 
 	if (noTag) {
 		warn(
@@ -117,7 +144,7 @@ export async function runCli(argv: string[]): Promise<void> {
 				.text()
 		).trim();
 		if (!existing) {
-			const body = `Interim CLI release ${newVersion} (cli + host-service). Under desktop ${desktop}.\n\nCreated by scripts/release/cli.ts.`;
+			const body = `Interim CLI hotfix ${newVersion} (cli + host-service), a patch above desktop ${desktop}.\n\nCreated by scripts/release/cli.ts.`;
 			const r =
 				await $`gh pr create --title ${`chore(cli): release ${newVersion}`} --body ${body} --base main --head ${branch}`
 					.nothrow()

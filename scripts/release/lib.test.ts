@@ -3,49 +3,57 @@ import {
 	incrementPatch,
 	isPlainRelease,
 	latestReleaseTag,
-	nextInterimVersion,
+	maxVersion,
+	nextCliHotfix,
 	unifiedErrors,
 } from "./lib.ts";
 
-describe("nextInterimVersion", () => {
-	test("plain desktop -> -1", () => {
-		expect(nextInterimVersion("1.14.0", "1.14.0")).toBe("1.14.0-1");
+describe("nextCliHotfix", () => {
+	test("plain patch above the current CLI", () => {
+		expect(nextCliHotfix("1.14.1")).toBe("1.14.2");
+		expect(nextCliHotfix("1.14.2")).toBe("1.14.3");
+		expect(nextCliHotfix("1.14.9")).toBe("1.14.10");
 	});
-	test("continues the suffix", () => {
-		expect(nextInterimVersion("1.14.0", "1.14.0-2")).toBe("1.14.0-3");
-		expect(nextInterimVersion("1.14.0", "1.14.0-9")).toBe("1.14.0-10");
+});
+
+describe("maxVersion", () => {
+	test("picks the highest by semver", () => {
+		expect(maxVersion(["1.14.1", "1.14.0-2", "1.14.1"])).toBe("1.14.1");
+		expect(maxVersion(["1.14.2", "1.14.1"])).toBe("1.14.2");
 	});
-	test("resets to -1 when base is stale (new ceiling)", () => {
-		expect(nextInterimVersion("1.15.0", "1.14.0-3")).toBe("1.15.0-1");
-	});
-	test("legacy independent version -> -1", () => {
-		expect(nextInterimVersion("1.14.0", "0.2.24")).toBe("1.14.0-1");
-	});
-	test("forceSuffix overrides", () => {
-		expect(nextInterimVersion("1.14.0", "1.14.0-2", 7)).toBe("1.14.0-7");
+	test("a plain release beats a prerelease of the same tuple", () => {
+		expect(maxVersion(["1.14.0-2", "1.14.1"])).toBe("1.14.1");
+		expect(maxVersion(["1.14.1-1", "1.14.1"])).toBe("1.14.1");
 	});
 });
 
 describe("unifiedErrors", () => {
-	const ok = (d: string, vs: string[]) =>
+	const check = (d: string, vs: string[]) =>
 		unifiedErrors(
 			d,
 			vs.map((v, i) => ({ name: `p${i}`, version: v })),
 		);
-	test("all equal to desktop -> no errors", () => {
-		expect(ok("1.14.0", ["1.14.0", "1.14.0"])).toEqual([]);
+	test("release state: cli == host == desktop", () => {
+		expect(check("1.14.1", ["1.14.1", "1.14.1"])).toEqual([]);
 	});
-	test("interim prerelease shared base -> no errors", () => {
-		expect(ok("1.14.0", ["1.14.0-1", "1.14.0-1"])).toEqual([]);
+	test("hotfix leads desktop by a plain patch", () => {
+		expect(check("1.14.1", ["1.14.2", "1.14.2"])).toEqual([]);
+		expect(check("1.14.1", ["1.14.5", "1.14.5"])).toEqual([]);
 	});
-	test("base mismatch flagged", () => {
-		expect(ok("1.14.0", ["1.15.0-1", "1.14.0"]).length).toBeGreaterThan(0);
+	test("rejects a prerelease suffix (fails the host floor)", () => {
+		expect(check("1.14.1", ["1.14.2-1", "1.14.2-1"]).length).toBeGreaterThan(0);
 	});
-	test("packages disagree -> flagged", () => {
-		expect(ok("1.14.0", ["1.14.0-1", "1.14.0-2"]).length).toBeGreaterThan(0);
+	test("rejects cli below desktop", () => {
+		expect(check("1.14.1", ["1.14.0", "1.14.0"]).length).toBeGreaterThan(0);
+	});
+	test("rejects a different minor line", () => {
+		expect(check("1.14.1", ["1.15.0", "1.15.0"]).length).toBeGreaterThan(0);
+	});
+	test("rejects packages that disagree", () => {
+		expect(check("1.14.1", ["1.14.2", "1.14.3"]).length).toBeGreaterThan(0);
 	});
 	test("desktop must be a plain release", () => {
-		expect(ok("1.14.0-1", ["1.14.0-1"]).length).toBeGreaterThan(0);
+		expect(check("1.14.1-1", ["1.14.1-1"]).length).toBeGreaterThan(0);
 	});
 });
 
@@ -59,12 +67,9 @@ describe("latestReleaseTag", () => {
 		];
 		expect(latestReleaseTag(tags, "desktop")).toBe("desktop-v1.14.0");
 	});
-	test("cli prerelease ordering (release > prerelease)", () => {
-		expect(latestReleaseTag(["cli-v1.14.0-1", "cli-v0.2.24"], "cli")).toBe(
-			"cli-v1.14.0-1",
-		);
-		expect(latestReleaseTag(["cli-v1.14.0-1", "cli-v1.14.0-2"], "cli")).toBe(
-			"cli-v1.14.0-2",
+	test("cli picks the highest (release > prerelease)", () => {
+		expect(latestReleaseTag(["cli-v1.14.0-2", "cli-v1.14.1"], "cli")).toBe(
+			"cli-v1.14.1",
 		);
 	});
 	test("no matching tags -> undefined", () => {
