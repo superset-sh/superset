@@ -473,6 +473,15 @@ export class Session {
 		while (this.subprocessStdinQueue.length > 0) {
 			const buf = this.subprocessStdinQueue[0];
 			const canWrite = this.subprocess.stdin.write(buf);
+
+			// A `false` return is backpressure, not rejection: the stream has
+			// already accepted and buffered these bytes. Remove the frame from
+			// our queue unconditionally — leaving it here would resend the same
+			// buffer on the next flush/drain, duplicating bytes and corrupting
+			// the length-prefixed frame stream ("IPC frame too large"). See #5569.
+			this.subprocessStdinQueue.shift();
+			this.subprocessStdinQueuedBytes -= buf.length;
+
 			if (!canWrite) {
 				if (!this.subprocessStdinDrainArmed) {
 					this.subprocessStdinDrainArmed = true;
@@ -483,9 +492,6 @@ export class Session {
 				}
 				return;
 			}
-
-			this.subprocessStdinQueue.shift();
-			this.subprocessStdinQueuedBytes -= buf.length;
 		}
 	}
 
