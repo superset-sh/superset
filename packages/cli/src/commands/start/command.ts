@@ -1,20 +1,21 @@
 import * as p from "@clack/prompts";
-import { boolean, CLIError, number } from "@superset/cli-framework";
+import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../lib/command";
 import { SUPERSET_CONFIG_PATH } from "../../lib/config";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
 import { spawnHostService } from "../../lib/host/spawn";
+import { resolveOrganization } from "./resolveOrganization";
 
 export default command({
 	description: "Start the host service",
 	options: {
 		daemon: boolean().desc("Run in background"),
 		port: number().desc("Port to listen on"),
+		org: string().desc("Organization to register under (id, slug, or name)"),
 	},
 	run: async ({ ctx, options, signal }) => {
-		const organization = await ctx.api.user.myOrganization.query();
-		if (!organization)
-			throw new CLIError("No active organization", "Run: superset auth login");
+		const orgs = await ctx.api.user.myOrganizations.query();
+		const organization = await resolveOrganization(orgs, options.org);
 
 		const existing = readManifest(organization.id);
 		if (existing && isProcessAlive(existing.pid)) {
