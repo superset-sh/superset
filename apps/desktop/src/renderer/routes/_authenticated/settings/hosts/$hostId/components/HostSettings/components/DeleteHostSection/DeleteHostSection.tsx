@@ -62,7 +62,7 @@ export function DeleteHostSection({
 				Danger zone
 			</h3>
 
-			<div className="flex items-center justify-between gap-6 rounded-lg border bg-card px-4 py-3.5">
+			<div className="flex items-center justify-between gap-6 rounded-lg border px-4 py-3.5">
 				<div className="min-w-0 flex-1">
 					<p className="text-sm font-medium">Delete host</p>
 					<p className="mt-0.5 text-xs text-muted-foreground">
