@@ -57,88 +57,61 @@ export function DeleteHostSection({
 	};
 
 	return (
-		<section aria-labelledby="delete-host-heading" className="space-y-3">
-			<h3 id="delete-host-heading" className="text-sm font-medium">
-				Danger zone
-			</h3>
-
-			<div className="flex items-center justify-between gap-6 rounded-lg border px-4 py-3.5">
-				<div className="min-w-0 flex-1">
-					<p className="text-sm font-medium">Delete host</p>
-					<p className="mt-0.5 text-xs text-muted-foreground">
-						Remove this host from the organization.
+		<div className="flex items-center justify-between gap-8 py-2.5">
+			<div className="min-w-0 flex-1">
+				<p className="text-sm font-medium">Delete host</p>
+				<p className="mt-0.5 text-xs text-muted-foreground">
+					Removes this host and synced workspace records for everyone.
+					Automations pause; device files stay.
+				</p>
+				{isLocalHost ? (
+					<p
+						id={localHostDescriptionId}
+						className="mt-0.5 text-xs text-muted-foreground"
+					>
+						Stop Superset here to delete from another device.
 					</p>
-					{isLocalHost ? (
-						<p
-							id={localHostDescriptionId}
-							className="mt-1.5 text-xs text-muted-foreground"
-						>
-							Stop Superset here to delete this host from another device.
-						</p>
-					) : null}
-				</div>
-
-				<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-					<AlertDialogTrigger asChild>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							aria-describedby={
-								isLocalHost ? localHostDescriptionId : undefined
-							}
-							className="shrink-0 border-destructive/30 text-destructive shadow-none hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive dark:border-destructive/30 dark:bg-transparent dark:hover:border-destructive/50 dark:hover:bg-destructive/10"
-							disabled={isLocalHost || isDeleting}
-						>
-							Delete host
-						</Button>
-					</AlertDialogTrigger>
-					<AlertDialogContent className="max-w-[400px] gap-4">
-						<AlertDialogHeader className="gap-1.5">
-							<AlertDialogTitle className="text-base font-medium tracking-tight">
-								Delete “{hostName}”?
-							</AlertDialogTitle>
-							<AlertDialogDescription asChild>
-								<div className="space-y-2 text-left text-sm text-muted-foreground">
-									<p>This removes the host for everyone.</p>
-									<ul className="list-disc space-y-0.5 pl-4 text-xs leading-5 marker:text-muted-foreground/50">
-										<li>Synced workspace records removed</li>
-										<li>Automations paused</li>
-										<li>Device files kept</li>
-									</ul>
-									<p className="text-xs">
-										Conversations stay; workspace links are removed. Running
-										hosts may reappear.
-									</p>
-									<p className="text-xs text-foreground">
-										This can’t be undone.
-									</p>
-								</div>
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-						<AlertDialogFooter className="pt-1">
-							<AlertDialogCancel
-								disabled={isDeleting}
-								className="h-8 border-transparent bg-transparent px-3 shadow-none hover:bg-accent dark:border-transparent dark:bg-transparent dark:hover:bg-accent/50"
-							>
-								Cancel
-							</AlertDialogCancel>
-							<AlertDialogAction
-								variant="destructive"
-								size="sm"
-								onClick={(event) => {
-									event.preventDefault();
-									void handleDelete();
-								}}
-								disabled={isDeleting}
-								aria-busy={isDeleting}
-							>
-								{isDeleting ? "Deleting…" : "Delete host"}
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
+				) : null}
 			</div>
-		</section>
+
+			<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+				<AlertDialogTrigger asChild>
+					<Button
+						type="button"
+						variant="destructive"
+						size="sm"
+						aria-describedby={isLocalHost ? localHostDescriptionId : undefined}
+						className="shrink-0"
+						disabled={isLocalHost || isDeleting}
+					>
+						Delete host
+					</Button>
+				</AlertDialogTrigger>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete "{hostName}"?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This removes the host and synced workspace records for everyone.
+							Automations pause; files and conversations stay. Workspace links
+							are removed. Running hosts may reappear. This can’t be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							variant="destructive"
+							onClick={(event) => {
+								event.preventDefault();
+								void handleDelete();
+							}}
+							disabled={isDeleting}
+							aria-busy={isDeleting}
+						>
+							{isDeleting ? "Deleting…" : "Delete"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</div>
 	);
 }
