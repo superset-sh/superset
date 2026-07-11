@@ -1,4 +1,3 @@
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { View } from "react-native";
@@ -17,9 +16,7 @@ const glassHeaderOptions = {
 	headerLargeTitle: false,
 	headerBackButtonDisplayMode: "minimal",
 	headerShadowVisible: false,
-	...(isLiquidGlassAvailable()
-		? {}
-		: { headerBlurEffect: "systemUltraThinMaterial" as const }),
+	headerBlurEffect: "systemUltraThinMaterial",
 	headerStyle: { backgroundColor: "transparent" },
 } as const;
 
@@ -35,7 +32,7 @@ export default function WorkspaceTabsLayout() {
 				options={{ ...glassHeaderOptions, title: workspace?.name ?? "" }}
 			>
 				<Stack.Title asChild>
-					<View className="max-w-52 items-center">
+					<View className="max-w-40 items-center">
 						<Text className="font-semibold text-[17px]" numberOfLines={1}>
 							{workspace?.name ?? ""}
 						</Text>
