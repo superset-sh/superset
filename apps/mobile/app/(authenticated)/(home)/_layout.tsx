@@ -34,7 +34,9 @@ export default function HomeLayout() {
 					options={{
 						presentation: "formSheet",
 						headerShown: false,
-						sheetAllowedDetents: [0.5, 1.0],
+						// Single detent: multi-detent resizes corrupt expo-image frames.
+						// Content (incl. the screenshots grid) is sized to fit 0.5.
+						sheetAllowedDetents: [0.5],
 						sheetGrabberVisible: true,
 					}}
 				/>

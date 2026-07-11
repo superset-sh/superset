@@ -63,10 +63,7 @@ export function SessionRow({
 	if (row.kind === "chat" && onPress) {
 		return (
 			<SessionRowMenu sessionId={row.id} title={row.title}>
-				<Pressable
-					className={cn(rowClassName, "active:bg-accent")}
-					onPress={onPress}
-				>
+				<Pressable className={rowClassName} onPress={onPress}>
 					{content}
 				</Pressable>
 			</SessionRowMenu>

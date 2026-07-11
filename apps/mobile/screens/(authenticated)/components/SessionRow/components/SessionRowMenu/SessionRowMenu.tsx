@@ -63,6 +63,14 @@ export function SessionRowMenu({
 				<Link.MenuAction icon="trash" onPress={deleteSession}>
 					Delete
 				</Link.MenuAction>
+				<Link.Menu inline>
+					<Link.MenuAction
+						icon="arrow.branch"
+						onPress={() => Alert.alert("Forking is not available yet")}
+					>
+						Fork
+					</Link.MenuAction>
+				</Link.Menu>
 			</Link.Menu>
 		</Link>
 	);

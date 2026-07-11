@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as MediaLibrary from "expo-media-library/legacy";
-import { useEffect, useState } from "react";
-import { Linking, Pressable, ScrollView, View } from "react-native";
-import { Button } from "@/components/ui/button";
+import { Pressable, ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { MediaPermissionCard } from "../MediaPermissionCard";
 
 const RECENT_PHOTOS_LIMIT = 30;
 const THUMBNAIL_SIZE = 96;
@@ -16,12 +15,7 @@ export function PhotoCarousel({
 	selected: MediaLibrary.Asset[];
 	onToggle: (asset: MediaLibrary.Asset) => void;
 }) {
-	const [permission, setPermission] =
-		useState<MediaLibrary.PermissionResponse | null>(null);
-
-	useEffect(() => {
-		void MediaLibrary.getPermissionsAsync().then(setPermission);
-	}, []);
+	const [permission, requestPermission] = MediaLibrary.usePermissions();
 
 	const granted = permission?.granted ?? false;
 
@@ -44,27 +38,12 @@ export function PhotoCarousel({
 	}
 
 	if (!granted) {
-		const mustUseSettings = !permission.canAskAgain;
 		return (
-			<View className="mx-5 items-center gap-3 rounded-xl bg-secondary px-4 py-5">
-				<Text className="text-center text-secondary-foreground text-sm">
-					Attach images from your photo library.
-				</Text>
-				<Button
-					size="sm"
-					variant="outline"
-					className="rounded-full"
-					onPress={() => {
-						if (mustUseSettings) {
-							void Linking.openSettings();
-							return;
-						}
-						void MediaLibrary.requestPermissionsAsync().then(setPermission);
-					}}
-				>
-					<Text>{mustUseSettings ? "Open Settings" : "Continue"}</Text>
-				</Button>
-			</View>
+			<MediaPermissionCard
+				permission={permission}
+				onRequest={() => void requestPermission()}
+				message="Attach images from your photo library."
+			/>
 		);
 	}
 

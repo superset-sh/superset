@@ -18,7 +18,8 @@ To see it working: run the app (`cd apps/mobile && bun dev`, or an existing dev 
 
 ## Open Questions
 
-- None blocking. Milestone 4 (per-workspace "+ new chat") is separable scope; ship Milestones 1–3 first and confirm appetite before starting 4.
+- Sessions per workspace are currently rendered uncapped, diverging from the cap-3 + "View all" decision below. The original rationale (long histories push other workspaces off screen) still stands, but the "View all" destination (`ChatSessionsScreen`) has since been deleted. Decide: reinstate a cap with an expand-in-place affordance, or accept uncapped and strike the decision.
+- Home lists every org member's chat sessions, but rename/delete are `createdBy`-scoped server-side and fail silently for teammates' sessions (review finding 1). Decide: hide Rename/Delete on sessions the user doesn't own, or surface the failure.
 
 ## Progress
 
@@ -30,8 +31,11 @@ To see it working: run the app (`cd apps/mobile && bun dev`, or an existing dev 
 - [x] (2026-07-09 15:55Z) Milestone 3: `TerminalAgentStore.list()` + `listLive` persistence read + `terminalAgents.list` router query (host-service tests 17/17); mobile `useHostTerminalAgents` (one 5s poll per selected host) merged into home groups.
 - [x] (2026-07-09 16:00Z) Final tidy: `screens/(authenticated)/(home)/workspaces/` → `home/` with `HomeScreen`; typecheck + lint clean.
 - [x] (2026-07-09 15:45Z) Simulator smoke test: dev client on iPhone 16e against this worktree's Metro (port 8083) + local api/relay/electric-proxy; local-admin sign-in works and the new `HomeScreen` mounts and renders its empty state without runtime errors. (Recovery notes: worklets `.worklets` files copied from a sibling worktree to beat the SHA-1 race; host-service `dist-types` must be generated in fresh worktrees.)
-- [ ] Manual verification with real data (grouped rows, one-tap thread open, back stack, search, live terminal rows) — needs a live host (normal desktop dev setup or a real account).
-- [ ] Milestone 4 (optional, deferred): "+ new chat" on a workspace header via `agents.run`.
+- [x] (2026-07-10) Manual verification with real data on the simulator against a live local host: grouped rows, one-tap thread open, back stack, search. (Terminal rows dropped from scope — see Decision Log.)
+- [x] (2026-07-10) Milestone 4 shipped in reduced form: ghost "+" button on the workspace row prompts for the first message (`Alert.prompt`) and starts the session via the host's `agents.run`, then pushes the thread route. No inline composer.
+- [x] (2026-07-10) Design iterations with Satya on-device: two-line workspace rows reinstated (title / `branch · +LOC −LOC`), date-group headers (Now/Today/Yesterday/This week/This month/Older) replacing per-row workspace timestamps, hairline separators + tighter gaps, attention dot in the icon slot, tappable PR icon, chat context menu (rename/delete/fork placeholder), light haptics on sheet-opening taps, `ChatSessionsScreen`/changes screen deleted with `workspace/[id]` now redirecting home.
+- [x] (2026-07-10) Full-diff code review run (8 finder angles + adversarial verification): 10 confirmed findings, folded in below as the remediation checklist.
+- [ ] Work through the review remediation checklist (see "Code review findings").
 - [ ] Move plan to `done/` when the PR is created.
 
 ## Surprises & Discoveries
@@ -70,7 +74,33 @@ To see it working: run the app (`cd apps/mobile && bun dev`, or an existing dev 
 - Decision (CONFIRMED via mock review, 2026-07-09): Session rows adopt the desktop dashboard sidebar's experimental activity-strip language (`DashboardSidebarWorkspaceAgentBadge` + `StatusIndicator`): the real agent logo (Claude, Codex, … from `packages/ui/src/assets/icons/preset-icons/`, dark/light variants via the `getPresetIcon` pattern) rendered inside a small muted circle chip, with the status dot overlaid on the chip's top-right corner using desktop's exact `STATUS_CONFIG` semantics — amber pulsing = working, red pulsing = needs input, green static = ready for review, no dot = idle. The dot carries ALL status: no "Needs input"/"Working" text labels anywhere (Satya explicitly cut them as redundant with the dots). Every session row's right column is a compact relative timestamp — last message for chats, last event for terminals. Chat rows show the session title; terminal rows show the agent label plus a small tty glyph marking them read-only. This replaces the earlier generic dot + "TERMINAL" chip + status pills from `ChatSessionsScreen`, which the shared `SessionRow` supersedes.
   Rationale: Reuses an established, user-approved visual language instead of inventing a mobile-only one, and the agent logo makes mixed chat/terminal groups scannable at a glance. Requires importing the preset-icon SVGs into the mobile bundle (they live in `packages/ui`, which mobile doesn't consume; copy the needed SVGs or expose them via a shared path during Milestone 1).
   Date/Author: 2026-07-09, Satya (direction: match desktop, agent logos, dots-only status) + Claude (specifics).
-- Decision (placeholder): Whether Milestone 4 ships in the same PR or a follow-up. To be decided after Milestones 1–3 are demoable.
+- Decision: Terminal agents are removed from the mobile app entirely — no terminal session rows anywhere.
+  Rationale: Product direction from Satya ("we're removing terminal agents from the mobile app"). The host-wide `terminalAgents.list` poll survives only to drive the workspace-row attention dot (status per workspace); everything that rendered terminal rows is now dead code slated for deletion (see review findings 7–8). Milestone 3's interleaving goal and acceptance criterion 5 are obsolete.
+  Date/Author: 2026-07-10, Satya.
+- Decision (REVERSES single-line header, 2026-07-09): Workspace rows are two lines again — title on the first line, `branch · +LOC −LOC` on the second — after Satya saw the single-line variant with real data and asked for the thicker row. Per-row timestamps were then removed entirely in favor of date-group section headers.
+  Date/Author: 2026-07-10, Satya (direction) + Claude (specifics).
+- Decision: `ChatSessionsScreen` and the per-workspace changes screen are deleted; `workspace/[id]/index` redirects to home. Home is the only surface listing workspaces and sessions; workspace headers are no longer tappable (long-press menu only).
+  Rationale: With every session one tap away on home, the intermediate screen lost its job. Consequence: the cap-3 "View all" target no longer exists (see Open Questions) and worktree-missing workspaces need a new recovery path (review finding 5).
+  Date/Author: 2026-07-10, Satya + the home-restructure agent.
+- Decision: Milestone 4 shipped as a prompt-first flow (`Alert.prompt` → `agents.run` → push thread) rather than an inline composer on the row.
+  Date/Author: 2026-07-10.
+
+## Code review findings (2026-07-10)
+
+Full-session diff reviewed at high effort (8 finder angles, 33 candidates, independent adversarial verification). Ten confirmed findings, most severe first — this is the remediation checklist:
+
+1. [ ] **Teammates' sessions: rename/delete silently no-op.** Home lists org-wide sessions (Electric shape filters on `organizationId` only), but `chat.updateSession`/`deleteSession` are scoped to `createdBy = caller` and return `{updated:false}`/`{deleted:false}` without throwing; `SessionRowMenu.tsx:26` never checks the result. Hide the actions on sessions the user doesn't own, or check the flag and alert. (See Open Questions.)
+2. [ ] **Idle agents show as working.** `useHostTerminalAgents.ts` `statusFromEvent` maps everything except Stop/PermissionRequest to `"working"`, including `"Attached"` — which `packages/host-service/src/events/map-event-type.ts` documents as *not* working, and which desktop's `deriveTerminalAgentStatus` maps to idle. A booted-but-idle CLI paints a permanent amber attention dot.
+3. [ ] **Attention dots freeze when a host goes offline.** The query flips `enabled:false` but react-query keeps the last data for the mounted query, so dots keep rendering statuses from the moment of disconnect — contradicting the hook's own "degrades to an empty map" comment.
+4. [ ] **Composer destroys the draft on partial failure.** `NewChatWidget.tsx:159` clears text/attachments/base-branch in `mutateAsync().then()`, but the mutation resolves even when the workspace was created and the first agent message failed (`agentResult.ok === false`) — the user gets "Chat failed to start" with their prompt already gone and an orphaned empty workspace. Clear only when `agentResult.ok`.
+5. [ ] **Worktree-missing workspaces are invisible and undeletable.** `HomeScreen.tsx:175` filters `worktreeExists === false` rows out of the only surface listing workspaces; previously they rendered with a "worktree missing" label and a long-press delete (`workspaceCleanup.destroy` is still wired in `WorkspaceRowMenu` but unreachable).
+6. [ ] **Uncapped session lists** (see Open Questions): decide cap vs. uncapped and update this plan either way.
+7. [ ] **Delete the dead terminal-row plumbing**: `buildSessionRows`' terminal arm, `SessionRow`'s terminal variant + `StatusDot`, the terminal search branch, the `label`/`AGENT_LABELS` plumbing in `useHostTerminalAgents`, the host-service `withTerminalTitles` join (no consumer reads `.title`), and ~170 unreachable lines of `AgentLogo` SVGs (only `"claude"` is ever passed). Keep only `workspaceId` + `status` for the attention dot.
+8. [ ] **Delete `WorkspaceBackButton`** — both consumers (ChangesScreen, ChatSessionsScreen) were deleted; zero references remain.
+9. [ ] **Deduplicate the Claude mark** — `ProviderLogo.tsx` re-declares a byte-identical private `ClaudeLogo` already in the shared `AgentLogo`; render `<AgentLogo agentId="claude"/>` or a single exported mark.
+10. [ ] **Per-keystroke SwiftUI re-render in the composer.** Every keystroke flows through `controller.textInput.setInput` → provider `useState` → new context value → `NewChatWidgetInner` re-renders the whole Host tree, when render only needs a `hasDraft` boolean; submit/dictation could read the text from a ref. Perf only, no correctness impact.
+
+Verified non-issues, so nobody re-litigates them: workspace long-press works with a plain `View` trigger (expo-router attaches `UIContextMenuInteraction` natively); the composer's hardcoded dark palette can't misrender (app is dark-locked at OS, uniwind, and SwiftUI levels, and the hexes are deliberate design values, not theme tokens); `CHAT_AGENT_ID="claude"` is accurate (chat_sessions has no agent/model column — GPT-backed sessions showing a Claude logo needs a schema change); `renderItem` closing over `listItems` has no measurable re-render cost under LegendList. The two composer voice bugs (send button during recording, replace-vs-append) are tracked separately as Milestones 1–2 of `plans/20260711-composer-voice-states.md`.
 
 ## Outcomes & Retrospective
 
@@ -112,6 +142,8 @@ At completion the grouped list feels finished: search matches session titles as 
 
 ### Milestone 3: terminal-agent rows on home via a host-wide list
 
+**Superseded (2026-07-10): terminal agents are removed from mobile — see Decision Log. The host-wide `terminalAgents.list` query shipped and now drives only the workspace attention dot; the row-interleaving described below will not be built, and its plumbing is slated for deletion (review finding 7).**
+
 At completion, live terminal agents appear under their workspace headers on home with the same status pills as the per-workspace screen, using one poll for the whole host.
 
 In `packages/host-service`, add a `list` method to `TerminalAgentStore` (`packages/host-service/src/terminal-agents/store.ts`) returning all live bindings (the store already holds them; mirror `listByWorkspace` without the workspace filter), and expose it as a `list` query on `terminalAgentsRouter` (`packages/host-service/src/trpc/router/terminal-agents/terminal-agents.ts`) taking no input and returning `TerminalAgentBinding[]` (each binding already carries `workspaceId`, `agentId`, `terminalId`, `lastEventType`, `lastEventAt`).
@@ -146,11 +178,13 @@ Milestone 3 additionally:
 
 Manual acceptance in the iOS simulator (see `reference_ios_simulator_driving` techniques if driving hands-free):
 
-1. Home shows workspace headers for the selected project with up to 3 session rows nested under each, newest first; a workspace with more sessions shows "View all N sessions".
+(Updated 2026-07-10 to match the decisions above.)
+
+1. Home shows workspace rows grouped under date headers (Now/Today/Yesterday/This week/This month/Older) for the selected project, each with its chat sessions nested beneath (currently uncapped — see Open Questions).
 2. Tapping a session row opens that conversation directly (one tap from home); back returns to home.
-3. Tapping a workspace header still opens the full per-workspace session list; its rows look identical to before the refactor.
+3. Workspace rows are not tappable; long-press opens the context menu (rename/delete/copy branch/open PR), and the ghost "+" starts a new chat in that workspace when the host is online.
 4. Searching by a session title surfaces the owning workspace group.
-5. (After Milestone 3) A running `claude` CLI session in a workspace on an online host shows a "Terminal / Working" row under that workspace on home within ~5s, without opening the workspace.
+5. ~~Terminal rows on home~~ — obsolete: terminal agents are removed from mobile. A running CLI agent surfaces only as the workspace attention dot (amber working / red needs-input), which must clear when the agent goes idle (review finding 2) and must not persist stale after the host disconnects (finding 3).
 6. Existing flows unchanged: filter sheet, org switcher, NewChatWidget creation (lands directly in the new thread), pull-to-refresh, host-offline placeholder.
 
 ## Idempotence and Recovery

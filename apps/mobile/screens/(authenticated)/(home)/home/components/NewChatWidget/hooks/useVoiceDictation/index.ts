@@ -1,1 +1,1 @@
-export { useVoiceDictation } from "./useVoiceDictation";
+export { useVoiceDictation, type VoiceDictation } from "./useVoiceDictation";

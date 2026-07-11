@@ -57,7 +57,7 @@ export function AddSelectedButton() {
 
 	return (
 		<BlurView
-			intensity={40}
+			intensity={15}
 			tint="dark"
 			style={{
 				position: "absolute",

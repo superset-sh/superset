@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as MediaLibrary from "expo-media-library/legacy";
-import { useEffect, useState } from "react";
 import { Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
@@ -13,6 +12,7 @@ const GRID_GAP = 6;
 const GRID_HORIZONTAL_PADDING = 20;
 const GRID_BOTTOM_PADDING = 12;
 
+/** Renders once photo permission is granted — the screen gates on it. */
 export function ScreenshotGrid({
 	selected,
 	onToggle,
@@ -22,18 +22,9 @@ export function ScreenshotGrid({
 }) {
 	const theme = useTheme();
 	const { width } = useWindowDimensions();
-	const [permission, setPermission] =
-		useState<MediaLibrary.PermissionResponse | null>(null);
-
-	useEffect(() => {
-		void MediaLibrary.getPermissionsAsync().then(setPermission);
-	}, []);
-
-	const granted = permission?.granted ?? false;
 
 	const { data: assets, isLoading } = useQuery({
 		queryKey: ["media-library", "screenshots"],
-		enabled: granted,
 		staleTime: 30_000,
 		queryFn: async () => {
 			const albums = await MediaLibrary.getAlbumsAsync({
@@ -52,17 +43,6 @@ export function ScreenshotGrid({
 			return page.assets;
 		},
 	});
-
-	if (!granted) {
-		return (
-			<Text
-				className="py-6 text-center text-sm"
-				style={{ color: theme.mutedForeground }}
-			>
-				Allow photo access to see screenshots
-			</Text>
-		);
-	}
 
 	const tileSize =
 		(width - GRID_HORIZONTAL_PADDING * 2 - GRID_GAP * (GRID_COLUMNS - 1)) /
@@ -97,7 +77,7 @@ export function ScreenshotGrid({
 							source={{ uri: asset.uri }}
 							style={{
 								borderRadius: 8,
-								height: tileSize * 1.8,
+								height: tileSize,
 								opacity: isSelected ? 0.45 : 1,
 								width: tileSize,
 							}}
