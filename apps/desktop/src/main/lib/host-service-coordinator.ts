@@ -479,6 +479,13 @@ export class HostServiceCoordinator extends EventEmitter {
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_AUTH_CONFIG_PATH: path.join(SUPERSET_HOME_DIR, "config.json"),
 			SUPERSET_API_URL: config.cloudApiUrl,
+			// Pre-release ACP session harness, governed by the off-by-default
+			// settings toggle (Settings → Security). The host gates its router
+			// and WS stream route on this; toggling restarts host children so
+			// buildEnv re-reads the row (same lifecycle as exposeViaRelay).
+			...((row?.acpSessionsEnabled ?? false)
+				? { SUPERSET_ACP_SESSIONS: "1" }
+				: {}),
 			// Read by the child's parent watchdog so it can self-exit if
 			// Electron crashes without sending SIGTERM (orphan reparenting).
 			HOST_PARENT_PID: String(process.pid),

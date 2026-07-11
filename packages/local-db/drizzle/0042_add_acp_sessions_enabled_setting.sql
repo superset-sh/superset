@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `acp_sessions_enabled` integer;

@@ -20,10 +20,16 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 		SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY,
 		visibleItems,
 	);
+	const showAcpSessionsToggle = isItemVisible(
+		SETTING_ITEM_ID.SECURITY_ACP_SESSIONS,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 	const { data: exposeEnabled, isLoading } =
 		electronTrpc.settings.getExposeHostServiceViaRelay.useQuery();
+	const { data: acpSessionsEnabled, isLoading: acpSessionsLoading } =
+		electronTrpc.settings.getAcpSessionsEnabled.useQuery();
 
 	const setExpose =
 		electronTrpc.settings.setExposeHostServiceViaRelay.useMutation({
@@ -43,6 +49,27 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 			},
 			onSettled: () => {
 				utils.settings.getExposeHostServiceViaRelay.invalidate();
+			},
+		});
+
+	const setAcpSessions =
+		electronTrpc.settings.setAcpSessionsEnabled.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getAcpSessionsEnabled.cancel();
+				const previous = utils.settings.getAcpSessionsEnabled.getData();
+				utils.settings.getAcpSessionsEnabled.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getAcpSessionsEnabled.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getAcpSessionsEnabled.invalidate();
 			},
 		});
 
@@ -103,6 +130,40 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 						checked={exposeEnabled ?? false}
 						onCheckedChange={handleChange}
 						disabled={isLoading || setExpose.isPending}
+					/>
+				</div>
+			)}
+
+			{showAcpSessionsToggle && (
+				<div className="flex items-start justify-between gap-6 mt-8">
+					<div className="space-y-1 flex-1">
+						<Label
+							htmlFor="acp-sessions-enabled"
+							className="text-sm font-medium"
+						>
+							Enable live agent sessions (experimental)
+						</Label>
+						<p className="text-xs text-muted-foreground">
+							Lets the mobile app start and drive coding agent sessions on this
+							device. Sessions still require relay access above. Toggling
+							restarts host services.
+						</p>
+					</div>
+					<Switch
+						id="acp-sessions-enabled"
+						checked={acpSessionsEnabled ?? false}
+						onCheckedChange={(enabled) => {
+							toast.promise(setAcpSessions.mutateAsync({ enabled }), {
+								loading: "Restarting host services…",
+								success: ({ restartedOrgCount }) =>
+									restartedOrgCount > 0
+										? `Restarted ${restartedOrgCount} host service${restartedOrgCount === 1 ? "" : "s"}`
+										: "Setting saved",
+								error: (err: Error) =>
+									err.message ?? "Failed to update setting",
+							});
+						}}
+						disabled={acpSessionsLoading || setAcpSessions.isPending}
 					/>
 				</div>
 			)}

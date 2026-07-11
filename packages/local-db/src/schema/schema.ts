@@ -234,6 +234,10 @@ export const settings = sqliteTable("settings", {
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",
 	}),
+	// Pre-release ACP live-session harness (plans/session-harness-acp.md).
+	// Off by default; the host-service coordinator turns this into the
+	// SUPERSET_ACP_SESSIONS env var at spawn.
+	acpSessionsEnabled: integer("acp_sessions_enabled", { mode: "boolean" }),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

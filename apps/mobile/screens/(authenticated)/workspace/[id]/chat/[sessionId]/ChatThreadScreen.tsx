@@ -14,6 +14,7 @@ import {
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Text } from "@/components/ui/text";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import { GlassHeaderTitle } from "../components/GlassHeaderTitle";
 import { ChatComposer } from "./components/ChatComposer";
 import { ChatMessageList } from "./components/ChatMessageList";
 import { ChatPendingActions } from "./components/ChatPendingActions";
@@ -76,7 +77,11 @@ export function ChatThreadScreen() {
 			behavior={Platform.OS === "ios" ? "padding" : undefined}
 			keyboardVerticalOffset={0}
 		>
-			<Stack.Screen options={{ title: sessionTitle }} />
+			<Stack.Screen
+				options={{
+					headerTitle: () => <GlassHeaderTitle title={sessionTitle} />,
+				}}
+			/>
 
 			{hasBanner ? (
 				// Banners sit below the transparent header (the message list scrolls

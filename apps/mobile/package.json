@@ -52,6 +52,8 @@
 		"@shikijs/themes": "4.2.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/host-client": "workspace:*",
+		"@superset/session-protocol": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@tanstack/db": "0.6.10",

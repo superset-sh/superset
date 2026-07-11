@@ -37,6 +37,7 @@
 		"test": "bun test"
 	},
 	"dependencies": {
+		"@agentclientprotocol/claude-agent-acp": "0.56.0",
 		"@ai-sdk/anthropic": "3.0.64",
 		"@ai-sdk/openai": "3.0.36",
 		"@ai-sdk/react": "3.0.143",
