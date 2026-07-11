@@ -170,17 +170,14 @@ describe("deriveHostPortQueryTargets", () => {
 			workspaces: [
 				{
 					id: "workspace-b",
-					name: "Workspace B",
 					hostId: "local-machine",
 				},
 				{
 					id: "workspace-a",
-					name: "Workspace A",
 					hostId: "local-machine",
 				},
 				{
 					id: "workspace-c",
-					name: "Workspace C",
 					hostId: "remote-machine",
 				},
 			],
@@ -211,7 +208,6 @@ describe("deriveHostPortQueryTargets", () => {
 			workspaces: [
 				{
 					id: "workspace-stale",
-					name: "Stale Local Workspace",
 					hostId: "old-host-id",
 				},
 			],
@@ -247,12 +243,10 @@ describe("deriveHostPortQueryTargets", () => {
 			workspaces: [
 				{
 					id: "workspace-remote",
-					name: "Remote",
 					hostId: "remote-machine",
 				},
 				{
 					id: "workspace-local",
-					name: "Local",
 					hostId: "local-machine",
 				},
 			],
@@ -308,11 +302,15 @@ describe("groupDashboardSidebarPorts", () => {
 				{
 					id: "workspace-b",
 					name: "Beta",
+					branch: "beta",
+					type: "worktree",
 					hostId: "host-1",
 				},
 				{
 					id: "workspace-a",
 					name: "Alpha",
+					branch: "alpha",
+					type: "worktree",
 					hostId: "host-1",
 				},
 			],
@@ -351,6 +349,8 @@ describe("groupDashboardSidebarPorts", () => {
 				{
 					id: "workspace-1",
 					name: "Workspace",
+					branch: "workspace",
+					type: "worktree",
 					hostId: "host-2",
 				},
 			],
@@ -367,5 +367,79 @@ describe("groupDashboardSidebarPorts", () => {
 			hostType: "local-device",
 			port: 5173,
 		});
+	});
+
+	// Repro for #5612 (tracker) / #2319 — the ports group must label workspaces
+	// with the same display name the sidebar uses (getV2WorkspaceDisplayName),
+	// not the raw stored name.
+	it("labels the main workspace group as 'local'", () => {
+		const groups = groupDashboardSidebarPorts({
+			hostPortResults: [
+				{
+					hostId: "host-1",
+					hostType: "local-device",
+					hostUrl: "http://127.0.0.1:4567",
+					ports: [
+						{
+							port: 5173,
+							pid: 100,
+							processName: "vite",
+							terminalId: "terminal-1",
+							workspaceId: "workspace-main",
+							detectedAt: 1,
+							address: "127.0.0.1",
+							label: "Frontend",
+						},
+					],
+				},
+			],
+			workspaces: [
+				{
+					id: "workspace-main",
+					// The main workspace's stored name tracks the checked-out branch.
+					name: "main",
+					branch: "main",
+					type: "main",
+					hostId: "host-1",
+				},
+			],
+		});
+
+		expect(groups[0]?.workspaceName).toBe("local");
+	});
+
+	it("falls back to the branch for an unnamed worktree workspace", () => {
+		const groups = groupDashboardSidebarPorts({
+			hostPortResults: [
+				{
+					hostId: "host-1",
+					hostType: "local-device",
+					hostUrl: "http://127.0.0.1:4567",
+					ports: [
+						{
+							port: 3000,
+							pid: 101,
+							processName: "next",
+							terminalId: "terminal-2",
+							workspaceId: "workspace-unnamed",
+							detectedAt: 1,
+							address: "127.0.0.1",
+							label: "Web",
+						},
+					],
+				},
+			],
+			workspaces: [
+				{
+					id: "workspace-unnamed",
+					name: "",
+					branch: "fix-login-bug",
+					type: "worktree",
+					hostId: "host-1",
+				},
+			],
+		});
+
+		expect(groups[0]?.workspaceName).toBe("fix-login-bug");
 	});
 });
