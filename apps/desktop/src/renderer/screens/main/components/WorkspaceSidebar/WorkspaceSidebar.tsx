@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { UpdatesRow } from "renderer/components/UpdatesRow";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
@@ -116,7 +115,6 @@ export function WorkspaceSidebar({
 				projectName={activeProjectName}
 			/>
 
-			<UpdatesRow isCollapsed={isCollapsed} />
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 			<MultiDragPreview />
 		</SidebarDropZone>

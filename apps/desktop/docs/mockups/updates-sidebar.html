@@ -432,8 +432,41 @@
   }
   .prow .ascii-bar { margin-left: auto; font-family: "Fragment Mono", monospace; font-size: 10px; color: #9a9889; flex-shrink: 0; letter-spacing: -0.06em; }
 
-  .spot.retire { animation: retire .5s cubic-bezier(.5, 0, .3, 1) .1s forwards; }
+  .retire { animation: retire .5s cubic-bezier(.5, 0, .3, 1) .1s forwards; }
   @keyframes retire { to { opacity: 0; transform: translateY(8px) scale(.96); } }
+
+  /* ============ V5 — settings-inline mini ============ */
+  .sb-bottomrow { display: flex; align-items: center; gap: 6px; padding-right: 4px; }
+  .sb-bottomrow .sb-item { flex: 1; min-width: 0; }
+
+  .mini {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+    padding: 3.5px 8px; border-radius: 999px; cursor: pointer;
+    font-family: "Fragment Mono", monospace; font-size: 10px; font-variant-numeric: tabular-nums;
+    animation: rise-in .32s cubic-bezier(.24, 1.2, .38, 1) both;
+    transition: background .15s;
+  }
+  .mini .ring { width: 11px; height: 11px; }
+  .mini .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  .mini.downloading { color: #8b897c; background: rgba(255,255,255,.05); cursor: default; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); }
+  .mini.ready {
+    color: var(--green-soft); background: rgba(63, 156, 82, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(94, 190, 115, 0.26);
+  }
+  .mini.ready:hover { background: rgba(63, 156, 82, 0.26); }
+  .mini.ready .dot { background: var(--green-soft); animation: pulse-green 2.6s ease-out .5s infinite; }
+  .mini.installing { color: #f2a860; background: rgba(255,255,255,.05); cursor: default; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); }
+  .mini.error {
+    color: #f5a99e; background: rgba(229, 54, 30, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(229, 54, 30, 0.26);
+    animation: rise-in .32s cubic-bezier(.24,1.2,.38,1) both, shake .4s ease .32s;
+  }
+  .mini.error:hover { background: rgba(229, 54, 30, 0.24); }
+  .mini.error .dot { background: var(--red); animation: pulse-red 2.2s ease-out .5s infinite; }
+  .mini .done-check { width: 11px; height: 11px; color: var(--green-soft); flex-shrink: 0; }
+
+  .circ.help { font-size: 9.5px; color: var(--txt-dim); font-weight: 500; }
 
   footer.small-print {
     margin-top: 96px; font-family: "Fragment Mono", monospace; font-size: 11px; color: var(--muted);
@@ -450,12 +483,11 @@
 <div class="grain"></div>
 
 <header class="page">
-  <div class="kicker">Superset Desktop · design exploration · rev 3</div>
+  <div class="kicker">Superset Desktop · design exploration · rev 4</div>
   <h1>Updates, moved <em>into the sidebar</em></h1>
   <p class="lede">
-    <b>04 up top is the new synthesis</b> — the morphing row in the flyout’s paper material, per your notes.
-    Originals 01–03 kept below for comparison. Each covers the full
-    <b>downloading → ready → error</b> machine of the existing auto-updater.
+    <b>05 up top is the newest idea</b> — the update folded into the bottom settings cluster as a tiny pill,
+    much smaller than a full row. 04 (the shipped morphing row) and originals 01–03 below for comparison.
   </p>
   <div class="hint">tip · select <b>Downloading</b> and wait — the download completes, verifies, and settles into <b>Ready</b> on its own</div>
 </header>
@@ -494,7 +526,10 @@ const TOTAL_MB = 48.2;
 const RING_C = (2 * Math.PI * 6.5).toFixed(2);
 
 /* ---------------- frame chrome ---------------- */
-function frameHtml(slotHtml) {
+function frameHtml(slotHtml, ownBottom = false) {
+  const defaultBottom = ownBottom ? "" : `
+      <div class="sb-item"><span class="circ">${I.plus}</span>Invite teammates</div>
+      <div class="sb-item"><span class="circ">${I.gear}</span>Settings</div>`;
   return `
   <div class="frame">
     <div class="sidebar">
@@ -503,9 +538,7 @@ function frameHtml(slotHtml) {
       <div class="sb-item">${I.layers}Tasks<span class="count">7</span></div>
       <div class="sb-item">${I.inbox}Inbox</div>
       <div class="sb-spacer"></div>
-      <div data-slot>${slotHtml}</div>
-      <div class="sb-item"><span class="circ">${I.plus}</span>Invite teammates</div>
-      <div class="sb-item"><span class="circ">${I.gear}</span>Settings</div>
+      <div data-slot>${slotHtml}</div>${defaultBottom}
       <div class="sb-divider"></div>
       <div class="sb-user"><span class="avatar">AP</span>Avi P.</div>
     </div>
@@ -641,7 +674,7 @@ function v3Complete(slot) {
 function v4Slot(state) {
   if (state === "downloading") {
     return `
-      <div class="spot"><div class="prow downloading">
+      <div class="spot" data-retire><div class="prow downloading">
         <svg class="ring paper" viewBox="0 0 17 17">
           <circle class="track" cx="8.5" cy="8.5" r="6.5" fill="none" stroke-width="2.2"/>
           <circle class="fill" data-ring cx="8.5" cy="8.5" r="6.5" fill="none" stroke-width="2.2"
@@ -654,7 +687,7 @@ function v4Slot(state) {
   }
   if (state === "ready") {
     return `
-      <div class="spot"><div class="prow ready" data-act="install" title="Install v${VERSION}">
+      <div class="spot" data-retire><div class="prow ready" data-act="install" title="Install v${VERSION}">
         <span class="status-dot green"></span>
         <span class="label">Install update</span>
         <span class="chip orange">↑ v${VERSION}</span>
@@ -662,14 +695,14 @@ function v4Slot(state) {
   }
   if (state === "installing") {
     return `
-      <div class="spot"><div class="prow installing">
+      <div class="spot" data-retire><div class="prow installing">
         <span class="ascii" data-ascii>⠋</span>
         <span class="label">Installing</span>
         <span class="ascii-bar" data-ascii-bar>[············]</span>
       </div></div>`;
   }
   return `
-    <div class="spot"><div class="prow error" data-act="retry" title="Retry download">
+    <div class="spot" data-retire><div class="prow error" data-act="retry" title="Retry download">
       <span class="status-dot red-solid"></span>
       <span class="label">Update failed</span>
       <span class="chip red">↻ retry</span>
@@ -682,8 +715,60 @@ function v4Complete(slot) {
   if (label) label.textContent = "Verified";
 }
 
+/* ---------------- V5: settings-inline mini ---------------- */
+function v5Bottom(miniHtml) {
+  return `
+    <div class="sb-item"><span class="circ">${I.plus}</span>Invite teammates</div>
+    <div class="sb-bottomrow">
+      <div class="sb-item"><span class="circ">${I.gear}</span>Settings</div>
+      ${miniHtml}
+      <span class="circ help">?</span>
+    </div>`;
+}
+function v5Slot(state) {
+  if (state === "downloading") {
+    return v5Bottom(`
+      <span class="mini downloading" data-retire>
+        <svg class="ring paper" viewBox="0 0 17 17">
+          <circle class="track" cx="8.5" cy="8.5" r="6.5" fill="none" stroke-width="2.4"/>
+          <circle class="fill" data-ring cx="8.5" cy="8.5" r="6.5" fill="none" stroke-width="2.4"
+            stroke-dasharray="${RING_C}" stroke-dashoffset="${RING_C}"/>
+        </svg>
+        <span data-pct>0%</span>
+      </span>`);
+  }
+  if (state === "ready") {
+    return v5Bottom(`
+      <span class="mini ready" data-act="install" data-retire title="Install v${VERSION} — sessions keep running">
+        <span class="dot"></span>↑ update
+      </span>`);
+  }
+  if (state === "installing") {
+    return v5Bottom(`
+      <span class="mini installing" data-retire>
+        <span data-ascii>⠋</span><span data-ascii-bar data-cells="6">[······]</span>
+      </span>`);
+  }
+  return v5Bottom(`
+    <span class="mini error" data-act="retry" data-retire title="ERR_CONNECTION_RESET · fetching delta">
+      <span class="dot"></span>↻ retry
+    </span>`);
+}
+function v5Complete(slot) {
+  const ring = slot.querySelector(".ring");
+  if (ring) ring.outerHTML = `<svg class="done-check check-draw" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4.5 12.5l5 5L20 6.5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const pct = slot.querySelector("[data-pct]");
+  if (pct) pct.textContent = "ok";
+}
+
 /* ---------------- panels ---------------- */
 const PANELS = [
+  {
+    id: "v5", num: "05", name: "Settings-inline mini", def: "ready",
+    desc: "Smallest possible footprint: the update lives inside the existing settings cluster as a tiny pill — no extra row, no layout shift anywhere. Ring + percent while downloading; a pulsing green “↑ v0.42.1” pill when ready (click to install); a micro ASCII loader while installing; red “↻ retry” on failure. Details on hover via tooltip.",
+    slot: v5Slot, complete: v5Complete,
+    states: ["downloading", "ready", "installing", "error"], interactive: true, ownBottom: true,
+  },
   {
     id: "v4", num: "04", name: "Morphing row", def: "downloading",
     desc: "The synthesis: 03’s zero-shift morphing row with 01’s detailing — dark and sidebar-native, no card surface. Progress ring while downloading; pulsing green dot, “Install update”, and the orange version chip when ready. Click the ready row — install runs as an ASCII loader (braille spinner + terminal progress bar), then the row retires itself. Click the error row to retry.",
@@ -727,7 +812,7 @@ for (const p of PANELS) {
   root.appendChild(el);
 
   const inst = { panel: p, el, stop: null };
-  el.querySelector("[data-frame]").innerHTML = frameHtml(p.slot(p.def));
+  el.querySelector("[data-frame]").innerHTML = frameHtml(p.slot(p.def), p.ownBottom);
   for (const btn of el.querySelectorAll(".seg button")) {
     btn.addEventListener("click", () => setState(inst, btn.dataset.state));
   }
@@ -768,12 +853,13 @@ function startInstall(inst) {
   let f = 0, t1, t2;
   const started = performance.now();
   const DURATION = 3400;
+  const cells = Number(barEl?.dataset.cells || BAR_CELLS);
   const iv = setInterval(() => {
     f++;
     const p = Math.min((performance.now() - started) / DURATION, 1);
-    const filled = Math.round(p * BAR_CELLS);
+    const filled = Math.round(p * cells);
     if (spinEl) spinEl.textContent = SPIN_FRAMES[f % SPIN_FRAMES.length];
-    if (barEl) barEl.textContent = `[${"#".repeat(filled)}${"·".repeat(BAR_CELLS - filled)}]`;
+    if (barEl) barEl.textContent = `[${"#".repeat(filled)}${"·".repeat(cells - filled)}]`;
     if (p >= 1) {
       clearInterval(iv);
       if (spinEl) spinEl.outerHTML = `<svg class="done-check check-draw" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4.5 12.5l5 5L20 6.5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -781,7 +867,7 @@ function startInstall(inst) {
       if (label) label.textContent = "Updated";
       if (barEl) barEl.textContent = `v${VERSION}`;
       t1 = setTimeout(() => {
-        const spot = slot.querySelector(".spot");
+        const spot = slot.querySelector("[data-retire]");
         if (spot) spot.classList.add("retire");
         t2 = setTimeout(() => {
           slot.innerHTML = "";

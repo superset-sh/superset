@@ -8,9 +8,11 @@ const INDETERMINATE_PERCENT = 25;
 interface DownloadRingProps {
 	/** 0-100, or null when the download hasn't reported progress yet */
 	percent: number | null;
+	/** Size override, e.g. "size-3" (defaults to size-4) */
+	className?: string;
 }
 
-export function DownloadRing({ percent }: DownloadRingProps) {
+export function DownloadRing({ percent, className }: DownloadRingProps) {
 	const isIndeterminate = percent === null;
 	const shownPercent = isIndeterminate ? INDETERMINATE_PERCENT : percent;
 
@@ -18,8 +20,9 @@ export function DownloadRing({ percent }: DownloadRingProps) {
 		<svg
 			viewBox="0 0 17 17"
 			className={cn(
-				"size-4 shrink-0 -rotate-90",
+				"shrink-0 -rotate-90",
 				isIndeterminate && "animate-spin",
+				className ?? "size-4",
 			)}
 			aria-hidden="true"
 		>

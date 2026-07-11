@@ -1,1 +1,0 @@
-export { UpdatesRow } from "./UpdatesRow";
