@@ -26,7 +26,6 @@ export default function WorkspaceTabsLayout() {
 		startNewChat,
 		renameWorkspace,
 		deleteWorkspace,
-		copyBranch,
 		copyId,
 		shareWorkspace,
 		creatingChat,
@@ -67,13 +66,12 @@ export default function WorkspaceTabsLayout() {
 						>
 							Rename
 						</Stack.Toolbar.MenuAction>
-						<Stack.Toolbar.Menu inline>
-							<Stack.Toolbar.MenuAction
-								icon="arrow.triangle.branch"
-								onPress={copyBranch}
-							>
-								Copy branch
+						{workspace?.type !== "main" ? (
+							<Stack.Toolbar.MenuAction icon="trash" onPress={deleteWorkspace}>
+								Delete
 							</Stack.Toolbar.MenuAction>
+						) : null}
+						<Stack.Toolbar.Menu inline>
 							<Stack.Toolbar.MenuAction icon="doc.on.doc" onPress={copyId}>
 								Copy ID
 							</Stack.Toolbar.MenuAction>
@@ -84,15 +82,6 @@ export default function WorkspaceTabsLayout() {
 								Share
 							</Stack.Toolbar.MenuAction>
 						</Stack.Toolbar.Menu>
-						{workspace?.type !== "main" ? (
-							<Stack.Toolbar.MenuAction
-								icon="trash"
-								destructive
-								onPress={deleteWorkspace}
-							>
-								Delete
-							</Stack.Toolbar.MenuAction>
-						) : null}
 					</Stack.Toolbar.Menu>
 				</Stack.Toolbar>
 			</Stack.Screen>

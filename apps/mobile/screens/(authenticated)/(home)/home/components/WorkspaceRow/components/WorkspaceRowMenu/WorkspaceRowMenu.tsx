@@ -117,13 +117,12 @@ export function WorkspaceRowMenu({
 				<Link.MenuAction icon="pencil" onPress={() => void renameWorkspace()}>
 					Rename
 				</Link.MenuAction>
-				<Link.Menu inline>
-					<Link.MenuAction
-						icon="arrow.triangle.branch"
-						onPress={() => void Clipboard.setStringAsync(workspace.branch)}
-					>
-						Copy branch
+				{workspace.type !== "main" ? (
+					<Link.MenuAction icon="trash" onPress={deleteWorkspace}>
+						Delete
 					</Link.MenuAction>
+				) : null}
+				<Link.Menu inline>
 					<Link.MenuAction
 						icon="doc.on.doc"
 						onPress={() => void Clipboard.setStringAsync(workspace.id)}
@@ -141,11 +140,6 @@ export function WorkspaceRowMenu({
 						Share
 					</Link.MenuAction>
 				</Link.Menu>
-				{workspace.type !== "main" ? (
-					<Link.MenuAction icon="trash" destructive onPress={deleteWorkspace}>
-						Delete
-					</Link.MenuAction>
-				) : null}
 			</Link.Menu>
 		</Link>
 	);

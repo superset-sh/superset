@@ -141,10 +141,6 @@ export function useWorkspaceHeaderActions(
 		);
 	};
 
-	const copyBranch = () => {
-		if (workspace) void Clipboard.setStringAsync(workspace.branch);
-	};
-
 	const copyId = () => {
 		if (workspace) void Clipboard.setStringAsync(workspace.id);
 	};
@@ -160,7 +156,6 @@ export function useWorkspaceHeaderActions(
 		startNewChat,
 		renameWorkspace,
 		deleteWorkspace,
-		copyBranch,
 		copyId,
 		shareWorkspace,
 		creatingChat,
