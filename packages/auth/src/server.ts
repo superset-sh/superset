@@ -885,7 +885,7 @@ export const auth = betterAuth({
 				) => {
 					if (plan.name === "enterprise") {
 						throw new Error(
-							"Enterprise subscriptions are managed by admins. Contact founders@superset.sh.",
+							"Enterprise subscriptions are managed by admins. Contact support@superset.sh.",
 						);
 					}
 
