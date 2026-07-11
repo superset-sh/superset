@@ -26,6 +26,7 @@ import { GlassHeaderTitle } from "@/screens/(authenticated)/workspace/[id]/chat/
 import { Composer } from "./components/Composer";
 import { PermissionStack } from "./components/PermissionStack";
 import { TimelineItemView } from "./components/TimelineItemView";
+import { getSessionThreadPresentation } from "./utils/getSessionThreadPresentation";
 
 export function SessionThread({
 	routingKey,
@@ -44,10 +45,6 @@ export function SessionThread({
 	const [actionError, setActionError] = useState<string | null>(null);
 
 	const status = session.state?.status;
-	const composerStatus =
-		status === "running" || status === "awaiting_permission"
-			? ("streaming" as const)
-			: ("ready" as const);
 
 	const handleSend = useCallback(
 		(text: string) => {
@@ -85,22 +82,30 @@ export function SessionThread({
 		[session.actions],
 	);
 
-	const isDead = status === "dead";
-	const canCompose =
-		status === "idle" ||
-		status === "running" ||
-		status === "awaiting_permission";
 	// lastError is cleared host-side when a new prompt starts, so anything
 	// here is about the current/most recent turn, not a stale failure.
 	const stateError = session.state?.lastError ?? null;
 	const errorText = actionError ?? session.error?.message ?? stateError;
+	const {
+		bannerError,
+		canCompose,
+		composerStatus,
+		emptyDescription,
+		emptyTitle,
+		isDead,
+		reconnecting,
+	} = getSessionThreadPresentation({
+		status,
+		streamStatus: session.streamStatus,
+		isLoading: session.isLoading,
+		errorText,
+	});
 
 	// Same glass-header geometry as the mastra ChatThreadScreen: the header is
 	// transparent so content is full-bleed (offset 0) and the list scrolls under
 	// the blurred bar, inset by the header height.
 	const headerHeight = useHeaderHeight();
-	const reconnecting = session.streamStatus === "reconnecting" && !isDead;
-	const hasBanner = reconnecting || isDead || Boolean(errorText);
+	const hasBanner = reconnecting || isDead || Boolean(bannerError);
 
 	// The adapter pushes the Claude-generated session title via
 	// session_info_update; the host parks it on session-scoped state (survives
@@ -134,10 +139,10 @@ export function SessionThread({
 							</Text>
 						</View>
 					) : null}
-					{errorText ? (
+					{bannerError ? (
 						<View className="bg-destructive/10 px-3 py-2">
 							<Text className="text-destructive select-text text-center text-xs">
-								{errorText}
+								{bannerError}
 							</Text>
 						</View>
 					) : null}
@@ -169,20 +174,8 @@ export function SessionThread({
 			>
 				{session.timeline.items.length === 0 ? (
 					<ConversationEmptyState
-						title={
-							session.isLoading
-								? "Connecting…"
-								: errorText
-									? "Session could not be resumed"
-									: "No messages yet"
-						}
-						description={
-							session.isLoading
-								? undefined
-								: errorText
-									? "The host kept the session pointer, but its native transcript could not be loaded."
-									: "Send a prompt to start the agent."
-						}
+						title={emptyTitle}
+						description={emptyDescription}
 					/>
 				) : null}
 				<ConversationScrollButton />

@@ -129,8 +129,9 @@ Completed:
   auth middleware, a temporary on-disk registry, and the fake adapter.
 - [x] Drive named operations through `@superset/host-client`, including
   SuperJSON, bearer auth, tRPC routing, WebSocket URL construction, concurrent
-  permissions, cursor reconnect, and load-error propagation. The transport unit
-  suite separately pins 401 refresh-once.
+  permissions, an `AskUserQuestion` answer, an in-flight cancellation, cursor
+  reconnect, and load-error propagation. The transport unit suite separately
+  pins 401 refresh-once.
 - [x] Close and rebuild the app, HTTP/WS server, adapter children, and SQLite
   handle against the same DB path; prove offline listing, resurrection, replay,
   and missing-native-transcript behavior.
@@ -266,7 +267,8 @@ Maestro scenario.
 - [x] multiple simultaneous permissions and ordered question cards
 - [x] single-select, multi-select, skip, arbitrary unsupported form, URL mode
 - [ ] set mode/config idle, mid-turn, during load, and from two clients
-- [ ] cancel idle, running, awaiting permission, twice, and after death
+- [x] cancel running and awaiting permission
+- [ ] cancel idle, twice, and after death
 - [ ] tool calls left open by cancel/crash/restart terminalize once
 
 ### Security and privacy

@@ -126,7 +126,7 @@ async function stopHostGeneration(generation: HostGeneration): Promise<void> {
 }
 
 describe("ACP real host + host-client boundary e2e", () => {
-	test("commands, concurrent permissions, reconnect, DB reopen, resume, and missing native transcript", async () => {
+	test("question, abort, concurrent permissions, reconnect, DB reopen, resume, and missing native transcript", async () => {
 		const workspaceDir = mkdtempSync(
 			path.join(os.tmpdir(), "acp-host-client-e2e-"),
 		);
@@ -135,6 +135,9 @@ describe("ACP real host + host-client boundary e2e", () => {
 		let generation: HostGeneration | null = null;
 		let subscription: SessionSubscription | null = null;
 		let relayUrl = "";
+		const streamStatuses: string[] = [];
+		const streamResets: string[] = [];
+		const streamGaps: Array<{ expected: number; received: number }> = [];
 
 		const openManager = () => {
 			sqlite = new BunDatabase(registryPath, { create: true, readwrite: true });
@@ -194,7 +197,101 @@ describe("ACP real host + host-client boundary e2e", () => {
 				streamUrl: client.streamUrl({ routingKey: ROUTING_KEY, sessionId }),
 				since: 0,
 				onEnvelope: (envelope) => beforeDisconnect.push(envelope),
+				onStatus: (status) => streamStatuses.push(status),
+				onReset: (reason) => streamResets.push(reason),
+				onGap: (gap) => streamGaps.push(gap),
 			});
+
+			// Drive an AskUserQuestion-shaped form through the public client. The
+			// question must arrive as a pending permission, accept the selected
+			// option, and finish through the live WebSocket stream.
+			expect(
+				await api.prompt({
+					sessionId,
+					prompt: [
+						{
+							type: "text",
+							text: "ask-single Pick a fixture color|red,blue",
+						},
+					],
+				}),
+			).toEqual({ accepted: true });
+			await waitFor(
+				async () =>
+					(await api.get({ sessionId })).pendingPermissions.length === 1,
+				10_000,
+				"the question through host-client",
+			);
+			const question = (await api.get({ sessionId })).pendingPermissions[0];
+			if (!question) throw new Error("question card disappeared");
+			expect(question.toolCall.title).toBe("Pick a fixture color");
+			const blue = question.options.find((option) => option.name === "blue");
+			if (!blue) throw new Error("blue question option disappeared");
+			expect(
+				await api.respondToPermission({
+					sessionId,
+					requestId: question.requestId,
+					outcome: { outcome: "selected", optionId: blue.optionId },
+				}),
+			).toEqual({ status: "resolved" });
+			await waitFor(
+				async () => (await api.get({ sessionId })).status === "idle",
+				10_000,
+				"the answered question turn to finish",
+			);
+			await waitFor(
+				() =>
+					foldEnvelopes(emptyTimeline(), beforeDisconnect).items.some(
+						(item) =>
+							item.kind === "message" &&
+							item.role === "agent" &&
+							item.blocks.some(
+								(block) =>
+									block.type === "text" && block.text.includes("picked:blue"),
+							),
+					),
+				10_000,
+				"the question answer on the relay WebSocket",
+			);
+
+			// Abort an in-flight tool after it has started. This crosses the same
+			// host-client command path the mobile Stop button uses and must leave no
+			// running tool or pending interaction behind.
+			expect(
+				await api.prompt({
+					sessionId,
+					prompt: [{ type: "text", text: "hang" }],
+				}),
+			).toEqual({ accepted: true });
+			await waitFor(
+				async () => (await api.get({ sessionId })).status === "running",
+				10_000,
+				"the cancellable turn to start",
+			);
+			await api.cancel({ sessionId });
+			await waitFor(
+				async () => {
+					const state = await api.get({ sessionId });
+					return (
+						state.status === "idle" && state.lastStopReason === "cancelled"
+					);
+				},
+				10_000,
+				"the host-client cancellation to settle",
+			);
+			const afterCancel = foldEnvelopes(
+				emptyTimeline(),
+				(await api.getMessages({ sessionId, limit: 200 })).items,
+			);
+			const cancelledTool = afterCancel.items.find(
+				(item) => item.kind === "tool_call" && item.call.title === "hang",
+			);
+			if (!cancelledTool || cancelledTool.kind !== "tool_call") {
+				throw new Error("cancelled tool call missing from timeline");
+			}
+			expect(cancelledTool.call.status).toBe("failed");
+			expect((await api.get({ sessionId })).pendingPermissions).toEqual([]);
+
 			expect(
 				await api.prompt({
 					sessionId,
@@ -209,14 +306,20 @@ describe("ACP real host + host-client boundary e2e", () => {
 				10_000,
 				"two permissions through host-client",
 			);
-			await waitFor(
-				() =>
-					beforeDisconnect.filter(
-						(envelope) => envelope.frame.kind === "permission_requested",
-					).length === 2,
-				10_000,
-				"both permission cards on the relay WebSocket",
-			);
+			try {
+				await waitFor(
+					() =>
+						beforeDisconnect.filter(
+							(envelope) => envelope.frame.kind === "permission_requested",
+						).length === 3,
+					10_000,
+					"the question and both permission cards on the relay WebSocket",
+				);
+			} catch (cause) {
+				throw new Error(
+					`${cause instanceof Error ? cause.message : String(cause)}; statuses=${JSON.stringify(streamStatuses)} resets=${JSON.stringify(streamResets)} gaps=${JSON.stringify(streamGaps)} frames=${JSON.stringify(beforeDisconnect.map((envelope) => [envelope.seq, envelope.frame.kind]))}`,
+				);
+			}
 			const pending = (await api.get({ sessionId })).pendingPermissions;
 			const [first, second] = pending;
 			if (!first || !second) throw new Error("permission cards disappeared");

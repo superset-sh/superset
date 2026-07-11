@@ -65,7 +65,8 @@ It currently:
    do not duplicate its serialization logic in the test.
 5. Drive named client methods only. Assertions may inspect the temporary
    filesystem/database after a step, but must not invoke manager methods to
-   advance the scenario.
+   advance the scenario. The shipped flow includes a question answer, an
+   in-flight cancellation, simultaneous permissions, and cursor reconnect.
 6. Shut down the whole server, close the database, and terminate adapter
    children.
 7. Starts a fresh app/server/manager generation against the same DB/workspace
@@ -81,19 +82,22 @@ Maestro lane.
 1. `listSessions` returns `enabled: true` and no rows.
 2. `createSession` returns idle/default-mode state and one registry row.
 3. Two WebSocket clients attach to the same session.
-4. A prompt requests permission; both clients receive identical gapless frames.
-5. One client answers. The other sees the same resolution and the turn ends.
-6. `getMessages` pagination folds to the same timeline as the live stream.
-7. One socket disconnects, more frames arrive, and cursor reconnect catches up
+4. A question prompt parks an interaction card; the client selects an answer
+   and observes the completed turn on the stream.
+5. A running tool is cancelled through the client and terminalizes once.
+6. A prompt requests permission; both clients receive identical gapless frames.
+7. One client answers. The other sees the same resolution and the turn ends.
+8. `getMessages` pagination folds to the same timeline as the live stream.
+9. One socket disconnects, more frames arrive, and cursor reconnect catches up
    without duplicates.
-8. A tiny catch-up ring forces `journal_evicted`; full resync succeeds from the
+10. A tiny catch-up ring forces `journal_evicted`; full resync succeeds from the
    disk-backed history source once that workstream lands.
-9. A 401 causes exactly one token refresh and retry. A second 401 surfaces.
-10. The host is fully stopped and restarted from the same on-disk DB.
-11. `listSessions` shows the session as offline without spawning an adapter.
-12. Opening history or the stream resurrects the same native session.
-13. A stale pre-restart cursor resets by journal incarnation.
-14. A post-restart prompt completes and appends to the same history.
+11. A 401 causes exactly one token refresh and retry. A second 401 surfaces.
+12. The host is fully stopped and restarted from the same on-disk DB.
+13. `listSessions` shows the session as offline without spawning an adapter.
+14. Opening history or the stream resurrects the same native session.
+15. A stale pre-restart cursor resets by journal incarnation.
+16. A post-restart prompt completes and appends to the same history.
 
 ## Negative Cases
 

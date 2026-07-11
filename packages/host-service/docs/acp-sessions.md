@@ -206,9 +206,17 @@ eviction resets, and registry-based manager resurrection.
 `acp-host-client.e2e.test.ts` also starts the real `createApp` HTTP/tRPC host
 behind a local relay-shaped prefix and drives it only through
 `@superset/host-client` plus the real WebSocket sync client. It closes the host,
-server, adapter children, and an on-disk SQLite registry; reopens that DB; proves
-offline listing and `session/load` resurrection; and deletes a native transcript
-to pin both the tRPC error and `session_load_failed` stream reset.
+server, adapter children, and an on-disk SQLite registry. Before restart it
+answers an `AskUserQuestion` form, cancels an in-flight tool, handles two
+simultaneous permissions, and catches up a disconnected stream. It then reopens
+the DB, proves offline listing and `session/load` resurrection, and deletes a
+native transcript to pin both the tRPC error and `session_load_failed` stream
+reset.
+
+The mobile presentation helper has a colocated test that pins the corresponding
+load-failure UX: the offline session cannot compose, the empty state says
+`Session could not be resumed`, and the explanatory copy identifies the missing
+native transcript. A full-device Maestro scenario is still required.
 
 The opt-in real-adapter lane defaults to Haiku with low effort. Captured runs
 cover a named token-free Workflow, `AskUserQuestion`, cancel after a real tool
@@ -238,5 +246,7 @@ Still required before treating the boundary as production-hardened:
 - Shared relay transport: `packages/host-client/`
 - Mobile binding: `apps/mobile/lib/host/client.ts`
 - Mobile UI: `apps/mobile/screens/(authenticated)/workspace/[id]/chat/acp/`
+- Mobile resume-failure presentation test:
+  `apps/mobile/screens/(authenticated)/workspace/[id]/chat/acp/[sessionId]/components/SessionThread/utils/getSessionThreadPresentation/`
 - Focused integration plan: `plans/host-integration-test.md`
 - All remaining work: `plans/acp-session-follow-ups.md`

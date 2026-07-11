@@ -11,6 +11,7 @@
 		"storybook:ios": "STORYBOOK_ENABLED=true expo start --ios",
 		"storybook:android": "STORYBOOK_ENABLED=true expo start --android",
 		"storybook-generate": "sb-rn-get-stories",
+		"test": "bun test --pass-with-no-tests",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write ."
