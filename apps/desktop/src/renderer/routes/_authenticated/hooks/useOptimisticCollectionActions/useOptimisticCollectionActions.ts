@@ -308,6 +308,10 @@ export function useOptimisticCollectionActions() {
 				},
 			},
 			v2Hosts: {
+				deleteHost: (hostId: string) =>
+					runHostsMutation("Failed to delete host", () =>
+						collections.v2Hosts.delete(hostId),
+					),
 				renameHost: (hostId: string, name: string) =>
 					runHostsMutation("Failed to rename host", () =>
 						collections.v2Hosts.update(hostId, (draft) => {

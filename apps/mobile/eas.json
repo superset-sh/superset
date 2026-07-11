@@ -12,6 +12,15 @@
 			"distribution": "internal",
 			"environment": "preview"
 		},
+		"e2e-test": {
+			"withoutCredentials": true,
+			"ios": {
+				"simulator": true
+			},
+			"env": {
+				"EXPO_PUBLIC_E2E": "1"
+			}
+		},
 		"production": {
 			"autoIncrement": true,
 			"environment": "production"

@@ -4,7 +4,8 @@ import { Stack, useRouter } from "expo-router";
 import { Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
-import { useNewChatPreferencesStore } from "@/screens/(authenticated)/(home)/workspaces/components/NewChatWidget/stores/newChatPreferencesStore";
+import { useNewChatPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newChatPreferencesStore";
+import { ProviderLogo } from "./components/ProviderLogo";
 
 export function ModelPickerScreen() {
 	const router = useRouter();
@@ -31,14 +32,12 @@ export function ModelPickerScreen() {
 						}}
 						className="flex-row items-center gap-2.5 py-2.5"
 					>
+						<ProviderLogo provider={model.provider} />
 						<Text
 							className="flex-1 text-sm font-medium"
 							style={{ color: theme.foreground }}
 						>
 							{model.label}
-						</Text>
-						<Text className="text-xs" style={{ color: theme.mutedForeground }}>
-							{model.provider}
 						</Text>
 						{isSelected ? (
 							<Ionicons

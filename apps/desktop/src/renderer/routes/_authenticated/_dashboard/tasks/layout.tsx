@@ -6,6 +6,7 @@ export type TasksSearch = {
 	search?: string;
 	type?: "tasks" | "prs" | "issues";
 	project?: string;
+	linearProject?: string;
 };
 
 export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
@@ -20,6 +21,10 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 			? (search.type as TasksSearch["type"])
 			: undefined,
 		project: typeof search.project === "string" ? search.project : undefined,
+		linearProject:
+			typeof search.linearProject === "string"
+				? search.linearProject
+				: undefined,
 	}),
 });
 

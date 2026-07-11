@@ -83,6 +83,8 @@ export interface TerminalAgentBinding {
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;
+	/** The terminal's live title (OSC title sequence), when it has set one. */
+	title: string | null;
 }
 
 /** The subset of host-service `chat.*` procedures mobile calls, shaped like a
@@ -126,6 +128,9 @@ export interface HostChatClient {
 		};
 	};
 	terminalAgents: {
+		list: {
+			query: () => Promise<TerminalAgentBinding[]>;
+		};
 		listByWorkspace: {
 			query: (input: {
 				workspaceId: string;

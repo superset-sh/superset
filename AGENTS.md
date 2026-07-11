@@ -61,7 +61,16 @@ bun run typecheck          # Type check all packages
 # Maintenance
 bun run clean              # Clean root node_modules
 bun run clean:workspaces   # Clean all workspace node_modules
+
+# Releases (desktop + host-service + cli share one version; see scripts/release/README.md)
+bun run release            # interactive: desktop release or CLI hotfix
+bun run release desktop    # desktop app release (draft by default)
+bun run release cli        # interim CLI hotfix (<desktop>-N prerelease)
+bun run check:versions     # assert versions are unified
 ```
+
+Cut releases on a dedicated release branch (not `main`); `bun run release desktop
+<version> <commit>` provisions one from a commit. Full runbook: `scripts/release/README.md`.
 
 ## Code Quality
 

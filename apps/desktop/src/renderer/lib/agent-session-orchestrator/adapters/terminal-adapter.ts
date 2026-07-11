@@ -34,6 +34,7 @@ async function writeTaskPromptFile(
 	await electronTrpcClient.filesystem.createDirectory.mutate({
 		workspaceId,
 		absolutePath: supersetDirectory,
+		recursive: true,
 	});
 	await electronTrpcClient.filesystem.writeFile.mutate({
 		workspaceId,
@@ -107,6 +108,8 @@ async function writeAttachmentFiles(
 		throw new Error(`Workspace path not found: ${workspaceId}`);
 	}
 
+	// `.superset` doesn't exist in a fresh worktree, so this must be
+	// recursive — a plain mkdir ENOENTs and kills the whole agent launch.
 	const attachmentsDirectory = joinAbsolutePath(
 		workspace.worktreePath,
 		".superset/attachments",
@@ -114,6 +117,7 @@ async function writeAttachmentFiles(
 	await electronTrpcClient.filesystem.createDirectory.mutate({
 		workspaceId,
 		absolutePath: attachmentsDirectory,
+		recursive: true,
 	});
 
 	// Track all used filenames to prevent collisions (includes user and generated names)

@@ -16,27 +16,33 @@ export function OrganizationAvatar({
 
 	if (logo) {
 		return (
-			<Image
-				source={{ uri: logo }}
-				style={{ width: size, height: size, borderRadius: size / 2 }}
-			/>
+			<View
+				className="overflow-hidden rounded-md border border-foreground/10 bg-muted"
+				style={{ width: size, height: size }}
+			>
+				<Image
+					source={{ uri: logo }}
+					style={{ width: "100%", height: "100%" }}
+				/>
+			</View>
 		);
 	}
 
 	const initial = (name ?? "O").charAt(0).toUpperCase();
 	return (
 		<View
-			className="items-center justify-center"
-			style={{
-				width: size,
-				height: size,
-				borderRadius: size / 2,
-				backgroundColor: theme.muted,
-			}}
+			className="items-center justify-center rounded-md border border-foreground/10 bg-muted"
+			style={{ width: size, height: size }}
 		>
 			<Text
 				className="font-bold"
-				style={{ fontSize: size * 0.45, color: theme.mutedForeground }}
+				style={{
+					fontSize: size * 0.45,
+					lineHeight: size,
+					width: size,
+					textAlign: "center",
+					color: theme.mutedForeground,
+				}}
 			>
 				{initial}
 			</Text>

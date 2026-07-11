@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
 import * as p from "@clack/prompts";
-import { boolean, CLIError, positional } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveHost } from "../../../lib/host/resolve";
+import { resolveOrganizationFromContext } from "../../../lib/resolve-org";
 
 /**
  * Run a command locally in a shell, streaming its output. Resolves the exit
@@ -35,12 +36,14 @@ export default command({
 	args: [positional("host").required().desc("Host name or id")],
 	options: {
 		yes: boolean().desc("Skip the confirmation prompt"),
+		org: string().desc("Organization (id, slug, or name); defaults to active"),
 	},
 	run: async ({ ctx, args, options, signal }) => {
-		const organizationId = ctx.config.organizationId;
-		if (!organizationId) {
-			throw new CLIError("No active organization", "Run: superset auth login");
-		}
+		const { id: organizationId } = await resolveOrganizationFromContext(
+			ctx.api,
+			ctx.config.organizationId,
+			options.org,
+		);
 
 		const host = await resolveHost(
 			ctx.api,

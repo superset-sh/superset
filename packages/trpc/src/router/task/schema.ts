@@ -1,4 +1,8 @@
 import { taskPriorityValues } from "@superset/db/enums";
+import {
+	taskListSortByValues,
+	taskListSortOrderValues,
+} from "@superset/db/task-list-query";
 import { z } from "zod";
 
 export const createTaskSchema = z.object({
@@ -35,6 +39,13 @@ export const taskListInputSchema = z
 		assigneeMe: z.boolean().nullish(),
 		creatorMe: z.boolean().nullish(),
 		search: z.string().min(1).nullish(),
+		externalProjectId: z.string().min(1).nullish(),
+		externalProjectName: z.string().min(1).nullish(),
+		externalCycleId: z.string().min(1).nullish(),
+		dueDateFrom: z.string().datetime({ offset: true }).nullish(),
+		dueDateTo: z.string().datetime({ offset: true }).nullish(),
+		sortBy: z.enum(taskListSortByValues).nullish(),
+		sortOrder: z.enum(taskListSortOrderValues).nullish(),
 		limit: z.number().int().positive().max(500).default(50),
 		offset: z.number().int().nonnegative().default(0),
 	})

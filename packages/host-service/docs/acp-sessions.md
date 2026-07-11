@@ -29,6 +29,10 @@ shared client code today
 The desktop app only owns the off-by-default security setting and starts the
 host-service. It does not render this ACP session UI yet.
 
+On the current unified mobile home, long-press a workspace and choose **Live
+sessions**. That opens the workspace-scoped ACP list; the old workspace chat
+index was removed by the unified-home work and is not an entry point anymore.
+
 ## Session Identity And Persistence
 
 The public Superset session id is different from the adapter's native ACP

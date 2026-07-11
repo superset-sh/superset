@@ -1,6 +1,7 @@
-import { Redirect, useLocalSearchParams } from "expo-router";
+import { Redirect } from "expo-router";
 
+// The workspace has no landing page of its own — home lists every workspace
+// with its chat sessions inline, so a bare workspace link falls back to home.
 export default function WorkspaceIndex() {
-	const { id } = useLocalSearchParams<{ id: string }>();
-	return <Redirect href={`/(authenticated)/workspace/${id}/chat`} />;
+	return <Redirect href="/(authenticated)/(home)" />;
 }

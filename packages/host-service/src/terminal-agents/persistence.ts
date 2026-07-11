@@ -98,6 +98,25 @@ export class SqliteTerminalAgentBindingPersistence
 		return rows.map(rowToBinding);
 	}
 
+	listLive(): TerminalAgentBinding[] {
+		const rows = this.db
+			.select(bindingColumns)
+			.from(terminalAgentBindings)
+			.innerJoin(
+				terminalSessions,
+				eq(terminalAgentBindings.terminalId, terminalSessions.id),
+			)
+			.where(
+				and(
+					eq(terminalSessions.status, "active"),
+					isNotNull(terminalSessions.originWorkspaceId),
+				),
+			)
+			.all();
+
+		return rows.map(rowToBinding);
+	}
+
 	findLiveActive(
 		workspaceId: string,
 		agentId: TerminalAgentId,

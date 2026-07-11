@@ -12,6 +12,7 @@ const envSchema = z.object({
 	EXPO_PUBLIC_DEEP_LINK_DOMAIN: z.string().optional(),
 	EXPO_PUBLIC_POSTHOG_KEY: z.string(),
 	EXPO_PUBLIC_POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
+	EXPO_PUBLIC_E2E: z.string().optional(),
 });
 
 export const env = envSchema.parse({
@@ -26,4 +27,5 @@ export const env = envSchema.parse({
 		.EXPO_PUBLIC_DEEP_LINK_DOMAIN as unknown,
 	EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY as unknown,
 	EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST as unknown,
+	EXPO_PUBLIC_E2E: process.env.EXPO_PUBLIC_E2E as unknown,
 });

@@ -240,10 +240,13 @@ const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 		// and a broken session backs off + trips a circuit instead of storming
 		// the endpoint into Vercel's firewall (issue #5513).
 		await refreshJwtAfterUnauthorized();
-	} else {
-		console.error("[collections] Electric sync error", error);
+		return {}; // retry once with the refreshed token
 	}
-	return {};
+	// 5xx/network/429 are retried inside Electric forever and never reach here, so
+	// a 4xx that does is terminal — return void to stop the stream instead of
+	// looping the same doomed request until Electric's 50-retry guard trips.
+	console.error("[collections] Electric sync stopped", error);
+	return;
 };
 
 const organizationsCollection = createPersistedElectricCollection(
@@ -378,6 +381,13 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			// Composite PK on (organization_id, machine_id); within an
 			// org-scoped collection, machineId alone is unique.
 			getKey: (item) => item.machineId,
+			onDelete: async ({ transaction }) => {
+				const { original } = transaction.mutations[0];
+				const result = await apiClient.v2Host.delete.mutate({
+					hostId: original.machineId,
+				});
+				return electricTxidMatch(result.txid);
+			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				if (changes.name === undefined) {

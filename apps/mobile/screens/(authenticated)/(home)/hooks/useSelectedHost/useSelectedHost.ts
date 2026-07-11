@@ -1,7 +1,7 @@
 import type { SelectV2Host } from "@superset/db/schema";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
-import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/workspaces/stores/workspacesFilterStore";
+import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 
 /**

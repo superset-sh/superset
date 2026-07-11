@@ -421,6 +421,13 @@
       "when": 1783632192405,
       "tag": "0059_add_host_wake_command",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1783703195912,
+      "tag": "0060_add_external_project_and_cycle_to_tasks",
+      "breakpoints": true
     }
   ]
 }
