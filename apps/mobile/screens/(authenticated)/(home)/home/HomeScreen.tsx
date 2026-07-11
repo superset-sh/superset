@@ -46,7 +46,13 @@ const NAVIGATION_BAR_HEIGHT = 44;
 type HomeListItem =
 	| { kind: "dateHeader"; label: string }
 	| { kind: "workspace"; workspace: HostWorkspaceItem }
-	| { kind: "session"; workspaceId: string; row: SessionRowData };
+	| {
+			kind: "session";
+			workspaceId: string;
+			row: SessionRowData;
+			groupFirst: boolean;
+			groupLast: boolean;
+	  };
 
 function homeListItemKey(item: HomeListItem): string {
 	switch (item.kind) {
@@ -210,9 +216,16 @@ export function HomeScreen() {
 				lastGroup = group;
 			}
 			items.push({ kind: "workspace", workspace });
-			for (const row of sessionRowsByWorkspace.get(workspace.id) ?? []) {
-				items.push({ kind: "session", workspaceId: workspace.id, row });
-			}
+			const rows = sessionRowsByWorkspace.get(workspace.id) ?? [];
+			rows.forEach((row, rowIndex) => {
+				items.push({
+					kind: "session",
+					workspaceId: workspace.id,
+					row,
+					groupFirst: rowIndex === 0,
+					groupLast: rowIndex === rows.length - 1,
+				});
+			});
 		}
 		return items;
 	}, [visibleWorkspaces, sessionRowsByWorkspace, activityTs]);
@@ -339,18 +352,28 @@ export function HomeScreen() {
 				}
 				case "session":
 					return (
-						<SessionRow
-							row={item.row}
-							className="pl-7"
-							onPress={
-								item.row.kind === "chat"
-									? () =>
-											router.push(
-												`/(authenticated)/workspace/${item.workspaceId}/chat/${item.row.id}`,
-											)
-									: undefined
-							}
-						/>
+						<View
+							className={cn(
+								"bg-foreground/5 overflow-hidden",
+								item.groupFirst && "rounded-t-2xl",
+								item.groupLast && "mb-3.5 rounded-b-2xl",
+							)}
+						>
+							{!item.groupFirst && (
+								<View className="border-border/40 mx-4 border-t" />
+							)}
+							<SessionRow
+								row={item.row}
+								onPress={
+									item.row.kind === "chat"
+										? () =>
+												router.push(
+													`/(authenticated)/workspace/${item.workspaceId}/chat/${item.row.id}`,
+												)
+										: undefined
+								}
+							/>
+						</View>
 					);
 			}
 		},

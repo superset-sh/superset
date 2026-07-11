@@ -31,16 +31,16 @@ export function SessionRow({
 }) {
 	const content = (
 		<>
-			<View className="size-[22px] items-center justify-center">
+			<View className="size-6 items-center justify-center">
 				<AgentLogo
 					agentId={row.kind === "chat" ? CHAT_AGENT_ID : row.agentId}
-					size={15}
+					size={16}
 				/>
 				{row.kind === "terminal" && <StatusDot status={row.status} />}
 			</View>
 			<View className="flex-1 flex-row items-center gap-1.5">
 				<Text
-					className="text-foreground/80 flex-shrink text-[13px]"
+					className="text-foreground/90 flex-shrink text-[15px]"
 					numberOfLines={1}
 				>
 					{row.kind === "chat" ? row.title : row.label}
@@ -53,13 +53,13 @@ export function SessionRow({
 					/>
 				)}
 			</View>
-			<Text className="text-muted-foreground text-[11px]">
+			<Text className="text-muted-foreground text-xs">
 				{compactTime(row.ts)}
 			</Text>
 		</>
 	);
 
-	const rowClassName = cn("flex-row items-center gap-2.5 px-4 py-2", className);
+	const rowClassName = cn("flex-row items-center gap-3 px-4 py-3", className);
 
 	if (row.kind === "chat" && onPress) {
 		return (

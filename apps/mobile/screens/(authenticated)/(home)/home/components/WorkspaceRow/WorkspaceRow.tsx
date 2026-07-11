@@ -104,7 +104,7 @@ export function WorkspaceRow({
 					</View>
 				)}
 				<View className="flex-1">
-					<Text className="font-medium" numberOfLines={1}>
+					<Text className="font-semibold text-base" numberOfLines={1}>
 						{workspace.name}
 					</Text>
 					<View className="flex-row items-center gap-2">
