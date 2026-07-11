@@ -160,6 +160,12 @@ export interface AcpSessionManagerOptions {
 	resolveWorkspaceCwd: (workspaceId: string) => string | Promise<string>;
 	/** Per-session journal ring size (default 5,000; tests use small rings). */
 	journalCapacity?: number;
+	/**
+	 * Absolute path of the adapter entry script the child process runs.
+	 * Defaults to the real claude-agent-acp dist entry; tests inject a
+	 * deterministic fake adapter speaking the same wire protocol.
+	 */
+	adapterEntry?: string;
 }
 
 /**
@@ -175,12 +181,14 @@ export interface AcpSessionManagerOptions {
 export class AcpSessionManager {
 	private readonly resolveWorkspaceCwd: AcpSessionManagerOptions["resolveWorkspaceCwd"];
 	private readonly journalCapacity: number;
+	private readonly adapterEntry: string | undefined;
 	private readonly runtimes = new Map<string, AcpSessionRuntime>();
 	private readonly creations = new Map<string, InflightCreation>();
 
 	constructor(options: AcpSessionManagerOptions) {
 		this.resolveWorkspaceCwd = options.resolveWorkspaceCwd;
 		this.journalCapacity = options.journalCapacity ?? 5_000;
+		this.adapterEntry = options.adapterEntry;
 	}
 
 	/**
@@ -534,11 +542,15 @@ export class AcpSessionManager {
 		};
 		delete env.ANTHROPIC_API_KEY;
 		delete env.ANTHROPIC_AUTH_TOKEN;
-		const child = spawn(process.execPath, [resolveAdapterEntry()], {
-			cwd,
-			env,
-			stdio: ["pipe", "pipe", "pipe"],
-		});
+		const child = spawn(
+			process.execPath,
+			[this.adapterEntry ?? resolveAdapterEntry()],
+			{
+				cwd,
+				env,
+				stdio: ["pipe", "pipe", "pipe"],
+			},
+		);
 		if (!child.stdin || !child.stdout) {
 			child.kill();
 			throw new Error("adapter child process is missing stdio pipes");

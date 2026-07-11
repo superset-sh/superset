@@ -156,7 +156,7 @@ describe.skipIf(!RUN)("acp-sessions manager (real adapter)", () => {
 		expect(manager.get(sessionId).pendingPermissions).toEqual([]);
 	}, 300_000);
 
-	test("list shows live sessions only; a killed adapter reports dead", async () => {
+	test("a killed adapter reports dead but stays listed", async () => {
 		expect(manager.list({}).items.map((state) => state.sessionId)).toContain(
 			sessionId,
 		);
@@ -176,9 +176,11 @@ describe.skipIf(!RUN)("acp-sessions manager (real adapter)", () => {
 			"the doomed session to report dead",
 		);
 
-		expect(
-			manager.list({}).items.map((state) => state.sessionId),
-		).not.toContain(doomedId);
+		// Dead sessions stay discoverable (read-only transcript) until the
+		// graveyard evicts them.
+		expect(manager.list({}).items.map((state) => state.sessionId)).toContain(
+			doomedId,
+		);
 		const dead = manager.get(doomedId);
 		expect(dead.status).toBe("dead");
 		expect(dead.lastError).toContain("adapter");
