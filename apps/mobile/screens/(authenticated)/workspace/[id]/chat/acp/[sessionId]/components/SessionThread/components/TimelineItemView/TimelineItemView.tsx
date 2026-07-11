@@ -26,5 +26,9 @@ export function TimelineItemView({
 			return <ToolCallItemView item={item} onRespond={onRespond} />;
 		case "plan":
 			return <PlanItemView item={item} />;
+		default:
+			// A new TimelineItem variant must fail typecheck here, not silently
+			// render nothing.
+			return item satisfies never;
 	}
 }

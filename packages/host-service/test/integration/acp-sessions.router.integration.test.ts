@@ -8,7 +8,7 @@
  * the exact call sequence a mobile client makes over the relay.
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -100,6 +100,11 @@ describe("acp-sessions router: manager injected (gate open)", () => {
 	afterAll(async () => {
 		// app dispose() also disposes the injected manager (and its children).
 		await host.dispose();
+		try {
+			rmSync(workspaceDir, { recursive: true, force: true });
+		} catch {
+			// best-effort
+		}
 	});
 
 	test("create → prompt → poll → getMessages round trip over real tRPC", async () => {
@@ -157,6 +162,14 @@ describe("acp-sessions router: manager injected (gate open)", () => {
 					sessionId: "router-missing",
 					cursor: "not-a-cursor",
 				}),
+			),
+		).toBe("BAD_REQUEST");
+
+		// Malformed list cursor → BAD_REQUEST from the shared input schema,
+		// instead of silently paginating to an empty page.
+		expect(
+			await trpcErrorCode(
+				host.trpc.acpSessions.list.query({ cursor: "not-a-cursor" }),
 			),
 		).toBe("BAD_REQUEST");
 

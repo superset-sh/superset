@@ -193,9 +193,11 @@ export function useAcpSession(
 				setTimeline(timelineRef.current);
 				setHasOlder(page.nextCursor !== null);
 			})
-			.catch(() => {
+			.catch((cause) => {
 				// Older history stays available for the next scroll attempt; the
-				// live thread is unaffected, so don't surface a blocking error.
+				// live thread is unaffected, so don't surface a blocking error —
+				// but leave a trace so a dead scrollback is diagnosable.
+				console.warn(`[acp-session] loadOlder failed (${sessionId})`, cause);
 			})
 			.finally(() => {
 				if (epoch !== epochRef.current) return;
@@ -204,14 +206,33 @@ export function useAcpSession(
 			});
 	}, [sessionId, pageSize]);
 
+	// The session currently reflected by the rendered state/timeline. When the
+	// route swaps sessionIds in place, the old session's thread (and its still-
+	// answerable permissions) must not stay visible while the new one loads —
+	// clear before resyncing. Same-session resyncs (refresh, reset) keep the
+	// existing data rendered during the round trip.
+	const renderedSessionIdRef = useRef(sessionId);
+
 	useEffect(() => {
+		if (renderedSessionIdRef.current !== sessionId) {
+			renderedSessionIdRef.current = sessionId;
+			envelopesRef.current = [];
+			olderCursorRef.current = null;
+			loadingOlderRef.current = false;
+			timelineRef.current = emptyTimeline();
+			setFetchedState(null);
+			setTimeline(timelineRef.current);
+			setHasOlder(false);
+			setIsLoadingOlder(false);
+			setStreamStatus("connecting");
+		}
 		void resync();
 		return () => {
 			epochRef.current += 1;
 			subscriptionRef.current?.close();
 			subscriptionRef.current = null;
 		};
-	}, [resync]);
+	}, [sessionId, resync]);
 
 	const actions = useMemo<AcpSessionActions>(
 		() => ({

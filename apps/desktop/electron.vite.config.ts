@@ -18,21 +18,7 @@ import {
 } from "./vite/helpers";
 
 // override: true ensures .env values take precedence over inherited env vars
-const ambientAnthropicEnv = {
-	ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-	ANTHROPIC_AUTH_TOKEN: process.env.ANTHROPIC_AUTH_TOKEN,
-};
 config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
-// …except Anthropic credentials. The repo .env carries Superset's SERVER key
-// (a fake placeholder locally), and this process env is inherited all the way
-// down to host-service's agent children, where an env API key overrides the
-// user's own OAuth login. Keep whatever the user's environment had — theirs
-// is intentional, ours is not for agent sessions. The desktop itself never
-// reads these vars.
-for (const [key, value] of Object.entries(ambientAnthropicEnv)) {
-	if (value === undefined) delete process.env[key];
-	else process.env[key] = value;
-}
 
 const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
 

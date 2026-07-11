@@ -2,7 +2,13 @@ import type { SessionScopedState } from "@superset/session-protocol";
 import * as Crypto from "expo-crypto";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Pressable, RefreshControl, View } from "react-native";
+import {
+	ActivityIndicator,
+	FlatList,
+	Pressable,
+	RefreshControl,
+	View,
+} from "react-native";
 import { Text } from "@/components/ui/text";
 import { createAcpSession, listAcpSessions } from "@/lib/host/client";
 import { useHostRoutingKey } from "../../../hooks/useHostRoutingKey";
@@ -123,7 +129,13 @@ export function AcpSessionsScreen() {
 								: "Live sessions are disabled on this host. Turn on “Enable live agent sessions” in the desktop app’s Settings → Security."}
 						</Text>
 					</View>
-				) : null
+				) : error ? null : (
+					// First load still in flight — a blank screen reads as broken.
+					// A failed first load renders its error in the header instead.
+					<View className="items-center justify-center py-20">
+						<ActivityIndicator />
+					</View>
+				)
 			}
 			renderItem={({ item }) => (
 				<Pressable

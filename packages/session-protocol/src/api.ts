@@ -53,7 +53,13 @@ export const permissionOutcomeSchema = z.custom<RequestPermissionOutcome>(
 
 export const listSessionsInput = z.object({
 	workspaceId: z.string().min(1).optional(),
-	cursor: z.string().optional(),
+	// `<createdAt>:<sessionId>` — the previous page's last row (a sort
+	// position; see AcpSessionManager.list). Rejecting malformed cursors here
+	// keeps list consistent with getMessages (BAD_REQUEST, not an empty page).
+	cursor: z
+		.string()
+		.regex(/^\d+:.+$/, "expected a <createdAt>:<sessionId> list cursor")
+		.optional(),
 	limit: limitSchema,
 });
 

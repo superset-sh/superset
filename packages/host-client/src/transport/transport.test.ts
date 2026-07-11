@@ -19,11 +19,15 @@ function makeTransport(
 ) {
 	const requests: { url: string; init: RequestInit | undefined }[] = [];
 	const tokens: ({ forceRefresh?: boolean } | undefined)[] = [];
+	// Realistic provider: a forced refresh updates the cache, so a later
+	// plain getToken() also sees "fresh".
+	let cachedToken = "cached";
 	const transport = createHostTransport({
 		getRelayUrl: () => "https://relay.test/",
 		getToken: (options) => {
 			tokens.push(options);
-			return Promise.resolve(options?.forceRefresh ? "fresh" : "cached");
+			if (options?.forceRefresh) cachedToken = "fresh";
+			return Promise.resolve(cachedToken);
 		},
 		fetch: ((url: string, init?: RequestInit) => {
 			requests.push({ url, init });
@@ -87,8 +91,16 @@ describe("createHostTransport", () => {
 			method: "GET",
 		});
 		expect(result).toBe("ok");
-		expect(tokens).toEqual([undefined, { forceRefresh: true }, undefined]);
+		// The refreshed token is used directly (no third getToken) and the
+		// retry actually carries it — not the rejected one.
+		expect(tokens).toEqual([undefined, { forceRefresh: true }]);
 		expect(requests).toHaveLength(2);
+		expect(new Headers(requests[0]?.init?.headers).get("authorization")).toBe(
+			"Bearer cached",
+		);
+		expect(new Headers(requests[1]?.init?.headers).get("authorization")).toBe(
+			"Bearer fresh",
+		);
 	});
 
 	test("a second 401 surfaces as an error instead of looping", async () => {

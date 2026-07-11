@@ -181,7 +181,7 @@ Structured product questions were the last functional difference between the col
 
 ### Architecture at a glance
 
-```
+```text
 mobile (RN)                      host-service (user machine)
 ┌───────────────────┐   tRPC     ┌──────────────────────────────────────────┐
 │ session list/state│──(relay)──▶│ acpSessions router                       │
@@ -203,7 +203,7 @@ Host-service is the ACP **client** of each adapter process, and a **fan-out prox
 
 Thin by design. Dependencies: `@agentclientprotocol/sdk`, `zod`; peer dependency `react` (for the `./react` export only). Never imports the adapter or the Claude SDK (Decision D7). Layout per repo conventions:
 
-```
+```text
 packages/session-protocol/
   package.json          # exports ".", "./client", "./react"
   tsconfig.json
@@ -290,7 +290,7 @@ Pagination: list endpoints take `{ limit (1..200, default 50), cursor?: string }
 
 New router namespace mounted beside (not touching) `chat`:
 
-```
+```text
 acpSessions.list({ workspaceId?, cursor?, limit })   → { items: SessionScopedState[], nextCursor }  // live only
 acpSessions.create({ sessionId, workspaceId })       → SessionScopedState
 acpSessions.get({ sessionId })                       → SessionScopedState
@@ -333,7 +333,7 @@ Verify before proceeding: the matrix covers every row above with observed eviden
 | AskUserQuestion | Adapter 0.56.0 contains an ACP form-elicitation bridge, but the spike client omitted `elicitation.form`; the adapter therefore disabled the tool and the model asked in plain text. *Since closed:* the host now advertises the capability and handles `elicitation/create` as pending-question cards (D14-a → D22), verified end-to-end on the phone. |
 | Plan mode / ExitPlanMode | Fully supported: `session/set_mode {modeId:"plan"}` → `{}` + `current_mode_update`; plan exit surfaces as `session/request_permission` with `toolCall.kind: "switch_mode"` ("Ready to code?"), plan markdown in `content`, and the target permission modes as options (`bypassPermissions`/`auto`/`acceptEdits`/`default` to accept; `plan` to keep planning). |
 | Modes | `auto` (classifier-approved), `default` (manual), `acceptEdits`, `plan`, `dontAsk`, `bypassPermissions`. Mirrored as the `mode` config option. |
-| Model selection | **Supported** via `session/set_config_option`: `configOptions` = `mode`, `model` (select: `default`/`opus`/`fable`/`sonnet`/`haiku`), `effort` (select: `default`/`low`/`medium`/`high`/`xhigh`/`max`). Set returns the full refreshed `configOptions` and emits `config_option_update`. |
+| Model selection | **Supported** via `session/set_config_option`: `configOptions` = `mode`, `model` (select: `default`/`opus`/`fable`/`sonnet`/`haiku`), `effort` (select: `default`/`low`/`medium`/`high`/`xhigh`/`max`). The refreshed `configOptions` arrive **in the RPC response** — against 0.56.0 no `config_option_update` notification followed, so the response is authoritative (see the M4 follow-through observation). |
 | `session/list` | Works, returns `{sessionId, cwd, title, updatedAt}` per session; **persists across adapter processes** (fresh process listed the session created by the previous one — backed by Claude's on-disk session store). |
 | `session/load` | Works from a fresh adapter process: replays the full timeline as ordinary `session/update` notifications (our run: 30 events — `user_message_chunk` 6, `agent_message_chunk` 4, `tool_call` 10, `tool_call_update` 10) before the response resolves; response carries current `modes`+`configOptions`; session fully usable afterwards (follow-up prompt → `end_turn`). |
 | `session/cancel` | Notification; in-flight `session/prompt` resolves with `stopReason: "cancelled"` — ack in ~13ms in the spike. |
@@ -404,7 +404,7 @@ Everything is additive; rollback at any milestone is deleting new files. `create
 
 ## Interfaces and Dependencies
 
-- `@agentclientprotocol/claude-agent-acp` (exact-pinned; 0.58.1 at time of writing) — host-service only, runtime dep, one child process per session. Supersedes `@zed-industries/claude-code-acp`, which is not used.
+- `@agentclientprotocol/claude-agent-acp` (exact-pinned; 0.56.0 installed, 0.58.1 upgrade pending) — host-service only, runtime dep, one child process per session. Supersedes `@zed-industries/claude-code-acp`, which is not used.
 - `@agentclientprotocol/sdk` `^1.2.x` — types + stdio client connection; dep of `packages/session-protocol` (full type re-export; the sdk's zod is unexportable, D14-b) and `packages/host-service` (connection machinery only — never named types; see D7).
 - `packages/session-protocol` — the sole source of ACP typing for **both sides**: mobile and host-service alike import the entire contract from here (D7). Also ships the `./client` transport helper and `./react` hooks (D16; peer dep `react` only).
 - Host-service gains one router namespace (`acpSessions`) and one WS route (`/acp-sessions/:id/stream`). Nothing in `packages/trpc` (cloud), `apps/relay`, or any mastra path changes.

@@ -9,7 +9,7 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -61,6 +61,13 @@ describe.skipIf(!RUN)("acp-sessions manager (real adapter)", () => {
 
 	afterAll(async () => {
 		await manager.dispose();
+		if (workspaceDir) {
+			try {
+				rmSync(workspaceDir, { recursive: true, force: true });
+			} catch {
+				// best-effort
+			}
+		}
 	});
 
 	test("create starts in default mode; prompt folds into getMessages; stream is gapless", async () => {

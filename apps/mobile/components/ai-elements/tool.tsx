@@ -101,6 +101,9 @@ export const ToolHeader = ({
 	const derivedName =
 		type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
 	const isRunning = state === "input-streaming" || state === "input-available";
+	// Screen readers get the status the pulse/error mark only shows visually.
+	const stateLabel =
+		state === "output-error" ? "failed" : isRunning ? "running" : "completed";
 
 	const progress = useDerivedValue(
 		() =>
@@ -138,6 +141,7 @@ export const ToolHeader = ({
 
 	return (
 		<CollapsibleTrigger
+			accessibilityLabel={`Tool ${title ?? derivedName}, ${stateLabel}`}
 			className={cn(
 				"w-full flex-row items-center justify-between gap-4 p-3",
 				className,

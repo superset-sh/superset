@@ -52,6 +52,22 @@ export interface SessionSubscription {
 
 const MAX_RECONNECT_DELAY_MS = 10_000;
 
+/**
+ * Structural check on a parsed frame. JSON.parse only proves syntax; a
+ * proxy/relay error payload is valid JSON but would crash the fold — treat it
+ * like a corrupt frame (resync from cursor) instead.
+ */
+function isEnvelope(value: unknown): value is SessionUpdateEnvelope {
+	if (typeof value !== "object" || value === null) return false;
+	const candidate = value as { seq?: unknown; frame?: unknown };
+	return (
+		typeof candidate.seq === "number" &&
+		typeof candidate.frame === "object" &&
+		candidate.frame !== null &&
+		typeof (candidate.frame as { kind?: unknown }).kind === "string"
+	);
+}
+
 export function subscribeToSession(
 	options: SubscribeToSessionOptions,
 ): SessionSubscription {
@@ -175,22 +191,35 @@ export function subscribeToSession(
 
 	function openSocket(url: string): void {
 		if (stopped) return;
-		const ws = createWebSocket(url);
+		let ws: WebSocketLike;
+		try {
+			ws = createWebSocket(url);
+		} catch {
+			// A throwing constructor (malformed URL, platform hiccup) inside the
+			// reconnect timer must not kill the retry loop — same backoff as a
+			// dropped socket.
+			scheduleReconnect();
+			return;
+		}
 		socket = ws;
 		ws.onopen = () => {
 			attempts = 0;
 			onStatus?.("open");
 		};
 		ws.onmessage = (event) => {
-			let envelope: SessionUpdateEnvelope;
+			let parsed: unknown;
 			try {
-				envelope = JSON.parse(String(event.data)) as SessionUpdateEnvelope;
+				parsed = JSON.parse(String(event.data));
 			} catch {
 				// Corrupt frame: resync from the last good cursor.
 				reconnectCurrentSocket();
 				return;
 			}
-			handleEnvelope(envelope);
+			if (!isEnvelope(parsed)) {
+				reconnectCurrentSocket();
+				return;
+			}
+			handleEnvelope(parsed);
 		};
 		ws.onerror = () => {
 			// The close event follows; reconnect is handled there.

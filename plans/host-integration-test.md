@@ -18,8 +18,8 @@ without driving the full app.
 
 Three layers, dependency arrows only point down:
 
-```
-host client   (packages/host-client — NEW; imported by mobile + desktop + web)
+```text
+host client   (packages/host-client — exists; mobile consumes it, desktop + web to follow)
     │  imports
 host protocol (packages/session-protocol — exists: envelope, fold, state, AcpSessionsApi)
     ▲  imports
@@ -30,13 +30,14 @@ host          (packages/host-service — exists: creates the server, satisfies t
   types, `foldEnvelopes`, `AcpSessionsApi` interface, `subscribeToSession`.
   No transport, no server. (Optional later rename to `host-protocol`; not
   worth the churn now.)
-- **host client** — NEW `packages/host-client`. Extract the transport that
-  currently lives in `apps/mobile/lib/host/client.ts` (SuperJSON GET/POST
-  envelope over `${RELAY_URL}/hosts/<routingKey>/trpc/*`, WS stream URL
-  builder, auth-retry) into a platform-neutral package (fetch + WebSocket
-  only, injected `getToken`/`baseUrl`). Mobile, desktop and
-  `apps/web/src/trpc/host-client.ts` all consume it. This also resolves the
-  known `apps/mobile/lib/host` vs `apps/mobile/lib/host-service` duplication.
+- **host client** — `packages/host-client` (extracted; shipped). The transport
+  that used to live only in `apps/mobile/lib/host/client.ts` (SuperJSON
+  GET/POST envelope over `${RELAY_URL}/hosts/<routingKey>/trpc/*`, WS stream
+  URL builder, auth-retry) is now a platform-neutral package (fetch +
+  WebSocket only, injected `getToken`/`baseUrl`), and mobile consumes it.
+  Still to do: migrate desktop and `apps/web/src/trpc/host-client.ts`, and
+  delete the `apps/mobile/lib/host` vs `apps/mobile/lib/host-service`
+  duplication.
 - **host** — `packages/host-service`. Already builds standalone (the desktop
   just bundles and spawns it). Add a type-level conformance check that the
   acpSessions router satisfies `AcpSessionsApi` so protocol drift fails
@@ -125,9 +126,10 @@ env helper.
 
 ## Milestones
 
-- **IT1 — extract `packages/host-client`** from `apps/mobile/lib/host/client.ts`;
-  mobile + web consume it; delete `apps/mobile/lib/host-service/client.ts`
-  duplication. No behavior change.
+- **IT1 — extract `packages/host-client`** from `apps/mobile/lib/host/client.ts` —
+  **done** (package exists; mobile consumes it). Remaining follow-up: web
+  consumption and deleting the `apps/mobile/lib/host-service/client.ts`
+  duplication.
 - **IT2 — fake adapter + adapterEntry injection**; tier-1 suite covering
   sequences 1–12 (bun test, no docker).
 - **IT3 — integration-env helper + tier-2 relay run** of the same suite

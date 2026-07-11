@@ -234,4 +234,43 @@ describe("subscribeToSession", () => {
 		expect(h.sockets[1]?.url).toBe("ws://test/stream?since=1");
 		h.subscription.close();
 	});
+
+	test("valid JSON that is not an envelope resyncs instead of crashing", async () => {
+		const h = harness({ since: 0 });
+		h.sockets[0]?.open();
+		h.sockets[0]?.message(env(1));
+		// A relay/proxy error payload: parses fine, has no seq/frame shape.
+		h.sockets[0]?.onmessage?.({ data: JSON.stringify({ error: "bad" }) });
+		expect(h.sockets[0]?.closedByClient).toBe(true);
+		expect(h.delivered.map((e) => e.seq)).toEqual([1]);
+		await tick();
+		expect(h.sockets).toHaveLength(2);
+		expect(h.sockets[1]?.url).toBe("ws://test/stream?since=1");
+		h.subscription.close();
+	});
+
+	test("a throwing createWebSocket during reconnect keeps the retry loop alive", async () => {
+		let calls = 0;
+		const sockets: FakeWebSocket[] = [];
+		const subscription = subscribeToSession({
+			streamUrl: "ws://test/stream",
+			since: 0,
+			onEnvelope: () => {},
+			createWebSocket: (url) => {
+				calls += 1;
+				if (calls === 2) throw new Error("socket construction failed");
+				const ws = new FakeWebSocket(url);
+				sockets.push(ws);
+				return ws;
+			},
+			reconnectDelayMs: 1,
+		});
+		sockets[0]?.open();
+		sockets[0]?.serverClose(); // attempt 2 throws in the reconnect timer
+		await tick(20);
+		// Attempt 3 recovered instead of the loop dying silently.
+		expect(calls).toBeGreaterThanOrEqual(3);
+		expect(sockets.length).toBeGreaterThanOrEqual(2);
+		subscription.close();
+	});
 });

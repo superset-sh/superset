@@ -37,6 +37,8 @@ export interface PermissionView {
 	requestId: string;
 	options: PermissionOption[];
 	requestedAt: number;
+	/** Mirrors PendingPermission.multiSelect: collect picks, answer on Done. */
+	multiSelect?: boolean;
 	/** null while a client answer is still pending. */
 	resolution: RequestPermissionOutcome | null;
 }
@@ -146,6 +148,7 @@ export function foldEnvelope(
 				requestId: pending.requestId,
 				options: pending.options,
 				requestedAt: pending.requestedAt,
+				multiSelect: pending.multiSelect,
 				resolution: null,
 			};
 			const attached = patchToolCall(

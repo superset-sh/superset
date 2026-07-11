@@ -1,6 +1,6 @@
 # Claude Agent SDK session persistence and privacy follow-up
 
-> **Status: future follow-up; not approved for implementation.** The active [direct Claude Agent SDK session plan](./session-harness-claude-agent-sdk.md) intentionally ships live host sessions only. This adjacent plan investigates persistence without adding it back to that v1 implementation prematurely.
+> **Status: hypothetical fallback; not approved for implementation.** This plan was written against the [direct Claude Agent SDK harness](./session-harness-claude-agent-sdk.md), which was **not** selected — the shipped implementation is the ACP harness ([session-harness-acp.md](./session-harness-acp.md)). The managers, routes, and screens named below do not exist in the codebase. Kept only in case the direct-SDK path is revisited.
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 

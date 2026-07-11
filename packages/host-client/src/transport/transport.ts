@@ -54,9 +54,10 @@ export function createHostTransport(config: HostClientConfig): HostTransport {
 	async function call<TOutput>(
 		options: HostCallOptions,
 		retryOnAuthFailure = true,
+		tokenOverride?: string,
 	): Promise<TOutput> {
 		const { routingKey, procedure, input, method } = options;
-		const token = await config.getToken();
+		const token = tokenOverride ?? (await config.getToken());
 		const base = `${relayUrl()}/hosts/${routingKey}/trpc/${procedure}`;
 		const encoded =
 			input === undefined ? undefined : SuperJSON.serialize(input);
@@ -77,8 +78,10 @@ export function createHostTransport(config: HostClientConfig): HostTransport {
 					: undefined,
 		});
 		if (response.status === 401 && retryOnAuthFailure) {
-			await config.getToken({ forceRefresh: true });
-			return call<TOutput>(options, false);
+			// Use the refreshed token directly — a provider that doesn't mutate
+			// its cache as a side effect would otherwise hand back the stale one.
+			const fresh = await config.getToken({ forceRefresh: true });
+			return call<TOutput>(options, false, fresh);
 		}
 		if (!response.ok) {
 			// tRPC error bodies carry the real message (SuperJSON envelope):

@@ -92,6 +92,8 @@ export function OptionPicker({
 								<ScrollView style={{ maxHeight: LIST_MAX_HEIGHT }}>
 									{options.map((option) => (
 										<Pressable
+											accessibilityRole="button"
+											accessibilityState={{ selected: option.id === activeId }}
 											className="flex-row items-center gap-2.5 py-2.5"
 											key={option.id}
 											onPress={() => handleSelect(option.id)}
