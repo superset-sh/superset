@@ -221,12 +221,17 @@ async function handleLinearWebhook(req: Request): Promise<Response> {
 		sig.length !== expected.length ||
 		!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))
 	) {
+		console.warn(`webhook rejected: bad signature (sig len ${sig.length})`);
 		return new Response("bad signature", { status: 401 });
 	}
 	const payload = JSON.parse(raw);
 	if (Math.abs(Date.now() - payload.webhookTimestamp) > 60_000) {
+		console.warn("webhook rejected: stale timestamp");
 		return new Response("stale", { status: 400 });
 	}
+	console.log(
+		`webhook: ${payload.type}/${payload.action} ${payload.data?.identifier ?? ""} -> ${payload.data?.state?.name ?? ""}`,
+	);
 	const stateChanged =
 		payload.type === "Issue" &&
 		payload.action === "update" &&
