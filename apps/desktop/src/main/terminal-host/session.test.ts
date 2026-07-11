@@ -617,9 +617,7 @@ describe("Terminal Host Session stale input modes after TUI death", () => {
 		sendPtyData(`\r\n${PROMPT_MARKER}$ `);
 
 		await waitFor(() => writes.some((message) => message.includes("?1003l")));
-		const disarmMessage = writes.find((message) =>
-			message.includes("?1003l"),
-		);
+		const disarmMessage = writes.find((message) => message.includes("?1003l"));
 		expect(disarmMessage).toBeDefined();
 		expect(disarmMessage).toContain("?1004l");
 		// Encodings stay exempt — the disarm never downgrades a suspended TUI.

@@ -264,9 +264,7 @@ describe("sanitizeColdRestoreScrollback", () => {
 		});
 
 		test("drops an OSC 4 made only of queries", () => {
-			expect(
-				sanitizeColdRestoreScrollback(`${OSC}4;5;?;6;?${BEL}`),
-			).toBe("");
+			expect(sanitizeColdRestoreScrollback(`${OSC}4;5;?;6;?${BEL}`)).toBe("");
 		});
 
 		// OSC 10-12 payloads advance positionally (10;fg;bg sets fg then bg), so

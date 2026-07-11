@@ -195,7 +195,12 @@ function readCsi(data: string, start: number): EscSpan {
 			i++;
 			continue;
 		}
-		if (prefix === "" && params === "" && intermediates === "" && "<=>?".includes(ch)) {
+		if (
+			prefix === "" &&
+			params === "" &&
+			intermediates === "" &&
+			"<=>?".includes(ch)
+		) {
 			prefix = ch;
 			i++;
 			continue;
@@ -214,8 +219,7 @@ function readCsi(data: string, start: number): EscSpan {
 			const seq = `${ESC}[${prefix}${params}${intermediates}${ch}`;
 			return {
 				end: i + 1,
-				emit:
-					executed + classifyCsi(seq, prefix, params, intermediates, ch),
+				emit: executed + classifyCsi(seq, prefix, params, intermediates, ch),
 			};
 		}
 		// A byte that fits nowhere in the CSI grammar (e.g. a stray C1).
@@ -346,7 +350,9 @@ function classifyOsc(s: StringSeq): string {
 	});
 	if (!dropped) return keepStringSeq(s);
 	return kept
-		.map(({ colorIdent, value }) => `${ESC}]${colorIdent};${value}${terminator}`)
+		.map(
+			({ colorIdent, value }) => `${ESC}]${colorIdent};${value}${terminator}`,
+		)
 		.join("");
 }
 

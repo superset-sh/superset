@@ -1,7 +1,6 @@
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
-import { INPUT_MODE_DISARM_SEQUENCE } from "shared/terminal-input-modes";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { coldRestoreState } from "../state";
 import type {
@@ -9,7 +8,7 @@ import type {
 	CreateOrAttachResult,
 	TerminalStreamEvent,
 } from "../types";
-import { scrollToBottom } from "../utils";
+import { disarmStaleInputModes, scrollToBottom } from "../utils";
 
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
@@ -181,10 +180,9 @@ export function useTerminalColdRestore({
 			});
 		});
 
-		// Disarm input-reporting modes before the fresh shell attaches: the
-		// replayed scrollback is sanitized, but the xterm may still carry
-		// armed modes from the pre-crash session (#5508).
-		xterm.write(INPUT_MODE_DISARM_SEQUENCE);
+		// The replayed scrollback is sanitized, but the xterm may still carry
+		// armed modes from the pre-crash session.
+		disarmStaleInputModes(xterm);
 
 		// Add visual separator
 		xterm.write("\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n");

@@ -15,7 +15,6 @@ import { installTerminalKeyEventHandler } from "renderer/lib/terminal/terminal-k
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
-import { INPUT_MODE_DISARM_SEQUENCE } from "shared/terminal-input-modes";
 import { isTerminalAttachCanceledMessage } from "../attach-cancel";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { isCommandEchoed, sanitizeForTitle } from "../commandBuffer";
@@ -33,9 +32,10 @@ import type {
 	TerminalCancelCreateOrAttachMutate,
 	TerminalClearScrollbackMutate,
 	TerminalResizeMutate,
+	TerminalStreamEvent,
 	TerminalWriteMutate,
 } from "../types";
-import { scrollToBottom } from "../utils";
+import { disarmStaleInputModes, scrollToBottom } from "../utils";
 import * as v1TerminalCache from "../v1-terminal-cache";
 import { createAttachRequestId } from "./attach-request-id";
 import {
@@ -125,6 +125,7 @@ export interface UseTerminalLifecycleOptions {
 	isStreamReadyRef: MutableRefObject<boolean>;
 	didFirstRenderRef: MutableRefObject<boolean>;
 	pendingInitialStateRef: MutableRefObject<CreateOrAttachResult | null>;
+	pendingEventsRef: MutableRefObject<TerminalStreamEvent[]>;
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
 	resetModes: () => void;
@@ -186,6 +187,7 @@ export function useTerminalLifecycle({
 	isStreamReadyRef,
 	didFirstRenderRef,
 	pendingInitialStateRef,
+	pendingEventsRef,
 	maybeApplyInitialState,
 	flushPendingEvents,
 	resetModes,
@@ -362,12 +364,15 @@ export function useTerminalLifecycle({
 				isExitedRef.current = false;
 				isStreamReadyRef.current = false;
 				wasKilledByUserRef.current = false;
+				// Drop any queued events from the pre-restore session. With
+				// forceRestart, a dying TUI's in-flight chunks (queued while the
+				// stream is not ready) would otherwise flush after the disarm — a
+				// redraw re-arming the modes just cleared — and a stale exit event
+				// would mark the brand-new session exited.
+				pendingEventsRef.current = [];
 				setExitStatus(null);
 				resetModes();
-				// The exited session may have left input-reporting modes armed
-				// (e.g. a TUI killed mid-run); disarm before the fresh session
-				// attaches (#5508). clear() only wipes the buffer, not modes.
-				xterm.write(INPUT_MODE_DISARM_SEQUENCE);
+				disarmStaleInputModes(xterm);
 				xterm.clear();
 				const attach = () => {
 					const requestId = nextAttachRequestId();
