@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
-import { LuCheck, LuCircleArrowUp, LuCircleCheck } from "react-icons/lu";
+import { LuCircleArrowUp, LuCircleCheck } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 import { DownloadRing } from "./DownloadRing";
@@ -175,12 +175,14 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						"font-mono text-[10px] tabular-nums leading-none",
 						"ring-1 ring-inset animate-in fade-in slide-in-from-bottom-1 duration-300",
 						isBusy && "cursor-default",
-						(isDownloading || isInstalling) &&
+						(isDownloading || isInstalling || (isReady && justDownloaded)) &&
 							"bg-foreground/[0.045] ring-foreground/[0.06]",
 						isDownloading && "text-muted-foreground",
 						isInstalling && "text-orange-600 dark:text-orange-300",
+						isReady && justDownloaded && "text-muted-foreground",
 						isReady &&
 							!isInstalling &&
+							!justDownloaded &&
 							"bg-emerald-500/15 ring-emerald-500/25 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300",
 						isError &&
 							"bg-destructive/10 ring-destructive/25 text-destructive hover:bg-destructive/20",
@@ -200,7 +202,25 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						</>
 					) : isReady && justDownloaded ? (
 						<>
-							<LuCheck className="size-3 shrink-0" strokeWidth={2.5} />
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								aria-hidden="true"
+								className="size-3 shrink-0 text-emerald-600 dark:text-emerald-400"
+							>
+								<path
+									d="M4.5 12.5l5 5L20 6.5"
+									strokeWidth={3}
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									style={{
+										strokeDasharray: 26,
+										animation:
+											"check-draw 0.45s cubic-bezier(0.5, 0, 0.25, 1) 0.05s both",
+									}}
+								/>
+							</svg>
 							<span>{version ? `v${version}` : "downloaded"}</span>
 						</>
 					) : isReady ? (

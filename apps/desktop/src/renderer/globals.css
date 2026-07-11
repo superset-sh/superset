@@ -298,6 +298,16 @@
 		background-color: var(--highlight-active);
 	}
 
+	/* UpdatesPill: checkmark draw-in on download-confirmed */
+	@keyframes check-draw {
+		from {
+			stroke-dashoffset: 26;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
 	/* Tiptap chat input placeholder */
 	.tiptap-chat-input p.is-editor-empty:first-child::before {
 		content: attr(data-placeholder);
