@@ -3,11 +3,11 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { Stack, useRouter } from "expo-router";
 import { View } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
-import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
-} from "@/screens/(authenticated)/(home)/workspaces/stores/workspacesFilterStore";
+} from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
+import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";

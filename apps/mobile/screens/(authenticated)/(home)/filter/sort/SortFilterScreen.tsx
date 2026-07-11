@@ -3,7 +3,7 @@ import { View } from "react-native";
 import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
-} from "@/screens/(authenticated)/(home)/workspaces/stores/workspacesFilterStore";
+} from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck";
 

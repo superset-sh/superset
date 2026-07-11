@@ -50,8 +50,10 @@ export default ({ config }: ConfigContext) => ({
 			{
 				photosPermission:
 					"Superset needs access to your photo library so you can attach images to chat messages.",
-				cameraPermission: false,
-				microphonePermission: false,
+				cameraPermission:
+					"Superset uses the camera so you can attach photos to chat messages.",
+				microphonePermission:
+					"Superset uses the microphone so you can dictate chat messages.",
 			},
 		],
 		"expo-document-picker",
@@ -60,6 +62,15 @@ export default ({ config }: ConfigContext) => ({
 			{
 				photosPermission:
 					"Superset shows your recent photos so you can attach them to chats.",
+			},
+		],
+		[
+			"expo-speech-recognition",
+			{
+				microphonePermission:
+					"Superset uses the microphone so you can dictate chat messages.",
+				speechRecognitionPermission:
+					"Superset uses speech recognition to turn your voice into text.",
 			},
 		],
 	],

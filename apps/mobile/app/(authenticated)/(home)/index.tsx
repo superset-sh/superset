@@ -1,3 +1,3 @@
-import { WorkspacesScreen } from "@/screens/(authenticated)/(home)/workspaces";
+import { HomeScreen } from "@/screens/(authenticated)/(home)/home";
 
-export default WorkspacesScreen;
+export default HomeScreen;

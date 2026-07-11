@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
 import { env } from "@/lib/env";
 
-import { DevSignInButton } from "./components/DevSignInButton";
+import { DevSignInOptions } from "./components/DevSignInOptions";
 import type { SocialProvider } from "./components/SocialButton";
 import { SocialButton } from "./components/SocialButton";
 
@@ -57,7 +57,7 @@ export function SignInScreen() {
 					onPress={() => handleSignIn("google")}
 					className="w-4/5"
 				/>
-				{(__DEV__ || env.EXPO_PUBLIC_E2E === "1") && <DevSignInButton />}
+				{(__DEV__ || env.EXPO_PUBLIC_E2E === "1") && <DevSignInOptions />}
 			</View>
 
 			{error && (

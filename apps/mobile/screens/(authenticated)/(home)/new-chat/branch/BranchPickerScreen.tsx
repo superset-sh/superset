@@ -8,8 +8,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { useNewChatTargets } from "@/screens/(authenticated)/(home)/workspaces/components/NewChatWidget/hooks/useNewChatTargets";
-import { useNewChatPreferencesStore } from "@/screens/(authenticated)/(home)/workspaces/components/NewChatWidget/stores/newChatPreferencesStore";
+import { useNewChatTargets } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
+import { useNewChatPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newChatPreferencesStore";
 
 function BranchRow({
 	name,
