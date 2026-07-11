@@ -107,3 +107,14 @@ export const FEATURE_FLAGS = {
 	 */
 	RELAY_URL_OVERRIDE: "relay-url-override",
 } as const;
+
+// Terminal identity presented to shell programs via TERM_PROGRAM. vscode, not
+// kitty: agent TUIs (claude-code especially) tune wheel-scroll compensation
+// and terminal quirks per TERM_PROGRAM, and the vscode assumptions match our
+// xterm.js terminals — notably that they send ~one throttled scroll event per
+// wheel notch, so TUIs apply their own scroll multiplier. Kitty *keyboard
+// protocol* support is advertised separately via the CSI-u capability probe.
+export const TERMINAL_TERM_PROGRAM = "vscode";
+// A plausible VS Code version: TUIs version-gate quirk handling against real
+// VS Code releases, so keep this roughly current when touching terminal code.
+export const TERMINAL_TERM_PROGRAM_VERSION = "1.128.0";

@@ -63,3 +63,11 @@ describe("settings search - font settings", () => {
 		expect(terminalFont?.section).toBe("appearance");
 	});
 });
+
+describe("settings search - hosts", () => {
+	it('searching "delete host" returns the host deletion setting', () => {
+		const ids = getIds(searchSettings("delete host"));
+
+		expect(ids).toContain(SETTING_ITEM_ID.HOST_DELETE);
+	});
+});

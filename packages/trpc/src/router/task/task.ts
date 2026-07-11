@@ -1,6 +1,12 @@
 import { db, dbWs } from "@superset/db/client";
 import { members, taskStatuses, tasks, users } from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
+import {
+	buildTaskListConditions,
+	buildTaskListOrderBy,
+	InvalidDueDateRangeError,
+	normalizeDueDateRange,
+} from "@superset/db/task-list-query";
 import { getCurrentTxid } from "@superset/db/utils";
 import {
 	generateBaseTaskSlug,
@@ -28,9 +34,6 @@ import { taskStatusesRouter } from "./statuses";
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
 
-function escapeLikePattern(value: string): string {
-	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
-}
 type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
 type Executor = typeof dbWs | DbWsTransaction;
 
@@ -309,25 +312,34 @@ export const taskRouter = {
 			const creator = alias(users, "creator");
 			const status = alias(taskStatuses, "status");
 
-			const filters = [
-				eq(tasks.organizationId, organizationId),
-				isNull(tasks.deletedAt),
-			];
-			if (input?.priority) filters.push(eq(tasks.priority, input.priority));
-			if (input?.statusId) filters.push(eq(tasks.statusId, input.statusId));
-			if (input?.assigneeMe) {
-				filters.push(eq(tasks.assigneeId, ctx.session.user.id));
-			} else if (input?.assigneeId) {
-				filters.push(eq(tasks.assigneeId, input.assigneeId));
-			}
-			if (input?.creatorMe) {
-				filters.push(eq(tasks.creatorId, ctx.session.user.id));
-			}
-			if (input?.search) {
-				filters.push(
-					ilike(tasks.title, `%${escapeLikePattern(input.search)}%`),
+			let dueDateRange: { from?: Date; to?: Date };
+			try {
+				dueDateRange = normalizeDueDateRange(
+					input?.dueDateFrom ?? undefined,
+					input?.dueDateTo ?? undefined,
 				);
+			} catch (error) {
+				if (error instanceof InvalidDueDateRangeError) {
+					throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+				}
+				throw error;
 			}
+
+			const filters = buildTaskListConditions({
+				organizationId,
+				statusId: input?.statusId ?? undefined,
+				priority: input?.priority ?? undefined,
+				assigneeId: input?.assigneeMe
+					? ctx.session.user.id
+					: (input?.assigneeId ?? undefined),
+				creatorId: input?.creatorMe ? ctx.session.user.id : undefined,
+				search: input?.search ?? undefined,
+				externalProjectId: input?.externalProjectId ?? undefined,
+				externalProjectName: input?.externalProjectName ?? undefined,
+				externalCycleId: input?.externalCycleId ?? undefined,
+				dueDateFrom: dueDateRange.from,
+				dueDateTo: dueDateRange.to,
+			});
 
 			return db
 				.select({
@@ -349,7 +361,12 @@ export const taskRouter = {
 				.leftJoin(creator, eq(tasks.creatorId, creator.id))
 				.leftJoin(status, eq(tasks.statusId, status.id))
 				.where(and(...filters))
-				.orderBy(desc(tasks.createdAt))
+				.orderBy(
+					...buildTaskListOrderBy(
+						input?.sortBy ?? undefined,
+						input?.sortOrder ?? undefined,
+					),
+				)
 				.limit(input?.limit ?? 50)
 				.offset(input?.offset ?? 0);
 		}),

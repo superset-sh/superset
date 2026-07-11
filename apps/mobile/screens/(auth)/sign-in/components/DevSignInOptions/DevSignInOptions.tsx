@@ -79,6 +79,7 @@ export function DevSignInOptions() {
 	return (
 		<View className="w-full items-center gap-2">
 			<Button
+				testID="dev-sign-in-button"
 				onPress={() => void signInWithEmail(DEV_EMAIL, DEV_PASSWORD)}
 				disabled={isLoading}
 				variant="outline"

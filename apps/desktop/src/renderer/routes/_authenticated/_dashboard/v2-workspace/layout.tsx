@@ -31,9 +31,9 @@ function V2WorkspaceLayout() {
 	const pendingTransaction = useWorkspaceTransactionsStore((state) =>
 		workspaceId ? (state.byWorkspaceId[workspaceId] ?? null) : null,
 	);
-	const clearWorkspaceTransaction = useWorkspaceTransactionsStore(
-		(state) => state.clear,
-	);
+	// The create transaction clears when the workspaces.create mutation
+	// settles — not when the host-served row first arrives, which happens
+	// mid-create before agent/terminal panes are seeded.
 	const isCreatePending = pendingTransaction?.type === "insert";
 
 	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
@@ -53,13 +53,6 @@ function V2WorkspaceLayout() {
 		[collections, workspaceId],
 	);
 	const failedEntry = failedEntries?.[0] ?? null;
-
-	useEffect(() => {
-		// A host-served row is the create confirmation (replaces Electric $synced).
-		if (workspace?.source === "host" && pendingTransaction?.type === "insert") {
-			clearWorkspaceTransaction(workspace.id);
-		}
-	}, [clearWorkspaceTransaction, pendingTransaction, workspace]);
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 	useEffect(() => {

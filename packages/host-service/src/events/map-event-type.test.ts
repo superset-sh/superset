@@ -38,4 +38,9 @@ describe("mapEventType", () => {
 		expect(mapEventType("")).toBeNull();
 		expect(mapEventType("totally-made-up")).toBeNull();
 	});
+
+	it("maps Vibe hook events", () => {
+		expect(mapEventType("before_tool")).toBe("Start");
+		expect(mapEventType("post_agent_turn")).toBe("Stop");
+	});
 });

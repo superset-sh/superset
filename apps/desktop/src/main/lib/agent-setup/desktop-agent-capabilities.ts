@@ -26,6 +26,8 @@ export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"mastra-hooks-json",
 	"copilot-hook-script",
 	"copilot-wrapper",
+	"vibe-hooks-toml",
+	"vibe-wrapper",
 ] as const;
 
 export type DesktopAgentSetupAction =
@@ -97,6 +99,11 @@ export const DESKTOP_AGENT_SETUP_TARGETS = [
 	{
 		id: "copilot",
 		setupActions: ["copilot-hook-script", "copilot-wrapper"],
+		managedBinary: true,
+	},
+	{
+		id: "vibe",
+		setupActions: ["vibe-hooks-toml", "vibe-wrapper"],
 		managedBinary: true,
 	},
 ] as const satisfies readonly DesktopAgentSetupTarget[];

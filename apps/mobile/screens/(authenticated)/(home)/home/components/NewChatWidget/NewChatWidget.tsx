@@ -286,7 +286,11 @@ export function NewChatWidget({
 	);
 
 	return (
-		<View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+		<View
+			testID="home-screen"
+			pointerEvents="box-none"
+			style={StyleSheet.absoluteFill}
+		>
 			<KeyboardAvoidingView
 				behavior="padding"
 				pointerEvents="box-none"

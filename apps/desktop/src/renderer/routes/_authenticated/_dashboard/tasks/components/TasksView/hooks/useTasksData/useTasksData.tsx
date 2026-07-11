@@ -20,12 +20,14 @@ interface UseTasksDataParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	linearProjectFilter: string | null;
 }
 
 export function useTasksData({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	linearProjectFilter,
 }: UseTasksDataParams): {
 	data: TaskWithStatus[];
 	allStatuses: SelectTaskStatus[];
@@ -87,6 +89,12 @@ export function useTasksData({
 	const filteredData = useMemo(() => {
 		let result = searchedData;
 
+		if (linearProjectFilter) {
+			result = result.filter(
+				(task) => task.externalProjectId === linearProjectFilter,
+			);
+		}
+
 		if (filterTab !== "all") {
 			result = result.filter((task) => {
 				const statusType = task.status.type;
@@ -113,7 +121,7 @@ export function useTasksData({
 		}
 
 		return result;
-	}, [searchedData, filterTab, assigneeFilter]);
+	}, [searchedData, filterTab, assigneeFilter, linearProjectFilter]);
 
 	return {
 		data: filteredData,

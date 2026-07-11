@@ -1,24 +1,26 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db } from "@superset/db/client";
+import { type TaskPriority, taskPriorityValues } from "@superset/db/enums";
 import { taskStatuses, tasks, users } from "@superset/db/schema";
-import type { SQL } from "drizzle-orm";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import {
+	buildTaskListConditions,
+	buildTaskListOrderBy,
+	InvalidDueDateRangeError,
+	normalizeDueDateRange,
+	type TaskListSortBy,
+	type TaskListSortOrder,
+	type TaskStatusType,
+	taskListSortByValues,
+	taskListSortOrderValues,
+	taskStatusTypeValues,
+} from "@superset/db/task-list-query";
+import { and, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
 
-type TaskStatusType =
-	| "backlog"
-	| "unstarted"
-	| "started"
-	| "completed"
-	| "canceled";
-
-const PRIORITIES = ["urgent", "high", "medium", "low", "none"] as const;
-type TaskPriority = (typeof PRIORITIES)[number];
-
 function isPriority(value: unknown): value is TaskPriority {
-	return PRIORITIES.includes(value as TaskPriority);
+	return (taskPriorityValues as readonly string[]).includes(value as string);
 }
 
 export function register(server: McpServer) {
@@ -29,7 +31,7 @@ export function register(server: McpServer) {
 			inputSchema: {
 				statusId: z.string().uuid().optional().describe("Filter by status ID"),
 				statusType: z
-					.enum(["backlog", "unstarted", "started", "completed", "canceled"])
+					.enum(taskStatusTypeValues)
 					.optional()
 					.describe("Filter by status type"),
 				assigneeId: z.string().uuid().optional().describe("Filter by assignee"),
@@ -42,14 +44,46 @@ export function register(server: McpServer) {
 					.boolean()
 					.optional()
 					.describe("Filter to tasks created by current user"),
-				priority: z
-					.enum(["urgent", "high", "medium", "low", "none"])
-					.optional(),
+				priority: z.enum(taskPriorityValues).optional(),
 				labels: z
 					.array(z.string())
 					.optional()
 					.describe("Filter by labels (tasks must have ALL specified labels)"),
 				search: z.string().optional().describe("Search in title/description"),
+				externalProjectId: z
+					.string()
+					.optional()
+					.describe("Filter by Linear project ID"),
+				externalProjectName: z
+					.string()
+					.optional()
+					.describe("Filter by Linear project name (prefix, case-insensitive)"),
+				externalCycleId: z
+					.string()
+					.optional()
+					.describe("Filter by Linear cycle ID"),
+				dueDateFrom: z
+					.string()
+					.datetime({ offset: true })
+					.optional()
+					.describe(
+						"Tasks due on or after this date (ISO datetime, normalized to UTC day start)",
+					),
+				dueDateTo: z
+					.string()
+					.datetime({ offset: true })
+					.optional()
+					.describe(
+						"Tasks due on or before this date (ISO datetime, normalized to UTC day end)",
+					),
+				sortBy: z
+					.enum(taskListSortByValues)
+					.optional()
+					.describe("Sort field (default: createdAt)"),
+				sortOrder: z
+					.enum(taskListSortOrderValues)
+					.optional()
+					.describe("Sort direction (default: desc)"),
 				includeDeleted: z
 					.boolean()
 					.optional()
@@ -78,6 +112,10 @@ export function register(server: McpServer) {
 						labels: z.array(z.string()),
 						dueDate: z.string().nullable(),
 						estimate: z.number().nullable(),
+						externalProjectId: z.string().nullable(),
+						externalProjectName: z.string().nullable(),
+						externalCycleId: z.string().nullable(),
+						externalCycleName: z.string().nullable(),
 						deletedAt: z.string().nullable(),
 					}),
 				),
@@ -96,89 +134,52 @@ export function register(server: McpServer) {
 			const priority = args.priority;
 			const labels = args.labels as string[] | undefined;
 			const search = args.search as string | undefined;
+			const externalProjectId = args.externalProjectId as string | undefined;
+			const externalProjectName = args.externalProjectName as
+				| string
+				| undefined;
+			const externalCycleId = args.externalCycleId as string | undefined;
+			const dueDateFrom = args.dueDateFrom as string | undefined;
+			const dueDateTo = args.dueDateTo as string | undefined;
+			const sortBy = args.sortBy as TaskListSortBy | undefined;
+			const sortOrder = args.sortOrder as TaskListSortOrder | undefined;
 			const includeDeleted = args.includeDeleted as boolean | undefined;
 			const limit = args.limit as number;
 			const offset = args.offset as number;
+
+			let dueDateRange: { from?: Date; to?: Date };
+			try {
+				dueDateRange = normalizeDueDateRange(dueDateFrom, dueDateTo);
+			} catch (error) {
+				if (error instanceof InvalidDueDateRangeError) {
+					return {
+						content: [{ type: "text", text: `Error: ${error.message}` }],
+						isError: true,
+					};
+				}
+				throw error;
+			}
 
 			const assignee = alias(users, "assignee");
 			const creator = alias(users, "creator");
 			const status = alias(taskStatuses, "status");
 
-			const conditions: SQL<unknown>[] = [
-				eq(tasks.organizationId, ctx.organizationId),
-			];
-
-			if (!includeDeleted) {
-				conditions.push(isNull(tasks.deletedAt));
-			}
-
-			if (statusId) {
-				conditions.push(eq(tasks.statusId, statusId));
-			}
-
-			if (assigneeId) {
-				conditions.push(eq(tasks.assigneeId, assigneeId));
-			} else if (assignedToMe) {
-				conditions.push(eq(tasks.assigneeId, ctx.userId));
-			}
-
-			if (creatorId) {
-				conditions.push(eq(tasks.creatorId, creatorId));
-			} else if (createdByMe) {
-				conditions.push(eq(tasks.creatorId, ctx.userId));
-			}
-
-			if (isPriority(priority)) {
-				conditions.push(eq(tasks.priority, priority));
-			}
-
-			if (labels && labels.length > 0) {
-				conditions.push(
-					sql`${tasks.labels} @> ${JSON.stringify(labels)}::jsonb`,
-				);
-			}
-
-			if (search) {
-				const searchCondition = or(
-					ilike(tasks.title, `%${search}%`),
-					ilike(tasks.description, `%${search}%`),
-				);
-				if (searchCondition) {
-					conditions.push(searchCondition);
-				}
-			}
-
-			if (statusType) {
-				const statusesOfType = await db
-					.select({ id: taskStatuses.id })
-					.from(taskStatuses)
-					.where(
-						and(
-							eq(taskStatuses.organizationId, ctx.organizationId),
-							eq(taskStatuses.type, statusType),
-						),
-					);
-				const statusIds = statusesOfType.map((s) => s.id);
-				if (statusIds.length > 0) {
-					const statusCondition = or(
-						...statusIds.map((id) => eq(tasks.statusId, id)),
-					);
-					if (statusCondition) {
-						conditions.push(statusCondition);
-					}
-				} else {
-					const data = { tasks: [], count: 0, hasMore: false };
-					return {
-						structuredContent: data,
-						content: [
-							{
-								type: "text",
-								text: JSON.stringify(data, null, 2),
-							},
-						],
-					};
-				}
-			}
+			const conditions = buildTaskListConditions({
+				organizationId: ctx.organizationId,
+				includeDeleted,
+				statusId,
+				statusType,
+				assigneeId: assigneeId ?? (assignedToMe ? ctx.userId : undefined),
+				creatorId: creatorId ?? (createdByMe ? ctx.userId : undefined),
+				priority: isPriority(priority) ? priority : undefined,
+				labels,
+				search,
+				externalProjectId,
+				externalProjectName,
+				externalCycleId,
+				dueDateFrom: dueDateRange.from,
+				dueDateTo: dueDateRange.to,
+			});
 
 			const tasksList = await db
 				.select({
@@ -202,6 +203,10 @@ export function register(server: McpServer) {
 					labels: tasks.labels,
 					dueDate: tasks.dueDate,
 					estimate: tasks.estimate,
+					externalProjectId: tasks.externalProjectId,
+					externalProjectName: tasks.externalProjectName,
+					externalCycleId: tasks.externalCycleId,
+					externalCycleName: tasks.externalCycleName,
 					deletedAt: tasks.deletedAt,
 				})
 				.from(tasks)
@@ -209,7 +214,7 @@ export function register(server: McpServer) {
 				.leftJoin(creator, eq(tasks.creatorId, creator.id))
 				.leftJoin(status, eq(tasks.statusId, status.id))
 				.where(and(...conditions))
-				.orderBy(desc(tasks.createdAt))
+				.orderBy(...buildTaskListOrderBy(sortBy, sortOrder))
 				.limit(limit)
 				.offset(offset);
 

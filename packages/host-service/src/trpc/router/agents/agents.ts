@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import {
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
+	buildAgentModelEnv,
 } from "@superset/shared/agent-models";
 import {
 	buildArgvCommand,
@@ -257,7 +258,8 @@ async function runTerminalAgent(
 		...modelArgs,
 		...effortArgs,
 	]);
-	const fullCommand = `${envOverlayPrefix(config.env)}${command}`;
+	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
+	const fullCommand = `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`;
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({

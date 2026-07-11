@@ -1,6 +1,10 @@
 import { exec } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
+import {
+	TERMINAL_TERM_PROGRAM,
+	TERMINAL_TERM_PROGRAM_VERSION,
+} from "@superset/shared/constants";
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
@@ -470,8 +474,8 @@ export function buildTerminalEnv(params: {
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
-		TERM_PROGRAM: "kitty",
-		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
+		TERM_PROGRAM: TERMINAL_TERM_PROGRAM,
+		TERM_PROGRAM_VERSION: TERMINAL_TERM_PROGRAM_VERSION,
 		COLORTERM: "truecolor",
 		COLORFGBG: colorFgBg,
 		TERM_THEME: termTheme,

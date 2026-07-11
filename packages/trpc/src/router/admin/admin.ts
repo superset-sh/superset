@@ -26,7 +26,13 @@ export const adminRouter = {
 	 * through Better Auth's hasher (scrypt, salted — never write the
 	 * accounts.password column directly), so OAuth-only accounts can also
 	 * sign in with a password (e.g. mobile dev builds where OAuth is
-	 * unavailable). */
+	 * unavailable).
+	 *
+	 * Hand-composed because Better Auth has no upsert for this:
+	 * `auth.api.setPassword` throws PASSWORD_ALREADY_SET on existing
+	 * credentials, and the admin plugin's `setUserPassword` is update-only
+	 * (and we don't run that plugin). Both endpoints internally use exactly
+	 * these `context.password.hash` + `internalAdapter` calls. */
 	setMyPassword: adminProcedure
 		.input(z.object({ password: z.string().min(8) }))
 		.mutation(async ({ ctx, input }) => {

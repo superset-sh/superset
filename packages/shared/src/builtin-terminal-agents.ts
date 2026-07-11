@@ -125,6 +125,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "vibe",
+		label: "Mistral Vibe",
+		description:
+			"Mistral's coding agent for reading, editing, and running code from the terminal.",
+		command: "vibe --trust --auto-approve",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "cursor-agent",
 		label: "Cursor Agent",
 		description:

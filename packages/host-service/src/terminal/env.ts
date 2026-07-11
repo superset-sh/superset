@@ -20,6 +20,10 @@ export {
 import fs from "node:fs";
 import os from "node:os";
 import {
+	TERMINAL_TERM_PROGRAM,
+	TERMINAL_TERM_PROGRAM_VERSION,
+} from "@superset/shared/constants";
+import {
 	augmentPathForMacOS,
 	clearStrictShellEnvCache,
 	getStrictShellEnvironment,
@@ -126,7 +130,6 @@ interface BuildV2TerminalEnvParams {
 	workspaceId: string;
 	workspacePath: string;
 	rootPath: string;
-	hostServiceVersion: string;
 	supersetEnv: "development" | "production";
 	agentHookPort: string;
 	agentHookVersion: string;
@@ -155,7 +158,6 @@ export function buildV2TerminalEnv(
 		workspaceId,
 		workspacePath,
 		rootPath,
-		hostServiceVersion,
 		supersetEnv,
 		agentHookPort,
 		agentHookVersion,
@@ -170,12 +172,12 @@ export function buildV2TerminalEnv(
 
 	env.TERM = "xterm-256color";
 	env.SHELL = shell;
-	// claude-code and similar chat TUIs only parse kitty CSI-u (e.g. Shift+Enter
-	// → \x1b[13;2u) when TERM_PROGRAM ∈ {ghostty, kitty, iTerm.app, WezTerm,
-	// WarpTerminal}. xterm.js already emits the right bytes — claim kitty so
-	// they're parsed instead of submitted as plain Enter.
-	env.TERM_PROGRAM = "kitty";
-	env.TERM_PROGRAM_VERSION = hostServiceVersion;
+	// See TERMINAL_TERM_PROGRAM for why we identify as vscode. The previous
+	// "kitty" claim made claude-code suppress its wheel-scroll compensation and
+	// transcript scrolling crawled at ~1/3 speed. Shift+Enter does NOT depend
+	// on this: line-edit-translations.ts sends ESC+CR directly.
+	env.TERM_PROGRAM = TERMINAL_TERM_PROGRAM;
+	env.TERM_PROGRAM_VERSION = TERMINAL_TERM_PROGRAM_VERSION;
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
 	// TERM_THEME is an explicit light/dark hint that cursor-agent (and other

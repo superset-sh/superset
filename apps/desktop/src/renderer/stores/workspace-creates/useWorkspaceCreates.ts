@@ -120,13 +120,6 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				hostUrl,
 			).workspaces.create.mutate(args.snapshot);
 
-			trackWorkspaceTransaction(workspaceId, {
-				id: workspaceId,
-				state: "persisting",
-				createdAt: now,
-				mutations: [{ type: "insert" }],
-				isPersisted: { promise: createPromise },
-			});
 			writeWorkspacePaneLayout(
 				collections,
 				{ id: workspaceId, projectId: args.snapshot.projectId },
@@ -160,6 +153,19 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					recordFailure(message);
 					return { ok: false, error: message };
 				});
+
+			// Track against `completed` (not the raw mutation promise) so the
+			// pending-create UI holds until the resolved pane layout — agent and
+			// terminal panes — has been written. The host broadcasts the workspace
+			// row mid-create, before agents/terminals launch, so clearing any
+			// earlier would drop the user into a briefly-empty workspace.
+			trackWorkspaceTransaction(workspaceId, {
+				id: workspaceId,
+				state: "persisting",
+				createdAt: now,
+				mutations: [{ type: "insert" }],
+				isPersisted: { promise: completed },
+			});
 
 			return { workspaceId, completed };
 		},

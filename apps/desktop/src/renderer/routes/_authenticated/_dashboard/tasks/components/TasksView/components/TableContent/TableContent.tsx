@@ -10,6 +10,7 @@ interface TableContentProps {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	linearProjectFilter: string | null;
 	onTaskClick: (task: TaskWithStatus) => void;
 	onSelectionChange?: (
 		selectedTasks: TaskWithStatus[],
@@ -21,6 +22,7 @@ export function TableContent({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	linearProjectFilter,
 	onTaskClick,
 	onSelectionChange,
 }: TableContentProps) {
@@ -29,6 +31,7 @@ export function TableContent({
 			filterTab,
 			searchQuery,
 			assigneeFilter,
+			linearProjectFilter,
 		});
 
 	const selectedTasks = useMemo(() => {
