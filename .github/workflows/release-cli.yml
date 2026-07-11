@@ -79,8 +79,18 @@ jobs:
           # version must not roll users or Homebrew back).
           set -euo pipefail
           NEW="${VERSION_TAG#cli-v}"
-          CURRENT=$(curl -fsSL "https://github.com/${{ github.repository }}/releases/download/cli-latest/version.txt" || true)
-          CURRENT=$(printf '%s' "$CURRENT" | tr -d '[:space:]')
+          # Fail CLOSED: only a genuinely absent pointer/manifest may skip the
+          # comparison. A transient fetch error aborts the job rather than
+          # letting an old re-cut move the pointer backward unverified.
+          CURRENT=""
+          if ASSETS=$(gh release view cli-latest --json assets --jq '.assets[].name' 2>&1); then
+            if printf '%s\n' "$ASSETS" | grep -qx 'version.txt'; then
+              CURRENT=$(gh release download cli-latest --pattern version.txt --output - | tr -d '[:space:]')
+            fi
+          elif ! printf '%s' "$ASSETS" | grep -qi 'release not found'; then
+            echo "::error::Could not verify cli-latest pointer: $ASSETS"
+            exit 1
+          fi
           if [ -n "$CURRENT" ] && [ "$(printf '%s\n%s\n' "$NEW" "$CURRENT" | sort -V | tail -n1)" != "$NEW" ]; then
             echo "is_newest=false" >> "$GITHUB_OUTPUT"
             echo "cli-latest already serves $CURRENT (newer than $NEW); leaving the pointer and Homebrew untouched."
