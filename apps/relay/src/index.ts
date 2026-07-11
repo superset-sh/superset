@@ -8,6 +8,7 @@ import { checkHostAccess } from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
 import * as directory from "./directory";
 import { env } from "./env";
+import { canProxyHostTrpcPath } from "./procedure-access";
 import { createProxyBridge, internalProxyUrl, PROXY_HOP_PARAM } from "./proxy";
 import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
@@ -319,6 +320,13 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const prefix = `/hosts/${hostId}`;
 	const url = new URL(c.req.url);
 	const path = `${url.pathname.slice(prefix.length) || "/"}${url.search}`;
+	if (!canProxyHostTrpcPath(c.get("auth"), hostId, path)) {
+		return trpcErrorResponse(
+			c,
+			"FORBIDDEN",
+			"Host updates require owner-authorized dispatch",
+		);
+	}
 	const body = (await c.req.text().catch(() => "")) || undefined;
 
 	const headers: Record<string, string> = {};

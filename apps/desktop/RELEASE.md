@@ -17,8 +17,8 @@ desktop-specific details (build output, signing, auto-update, troubleshooting).
 The flow will:
 1. Show current version and prompt for new version (patch/minor/major/custom)
 2. Set desktop, `host-service`, and `cli` all to the new version (unified) and refresh `bun.lock`
-3. Create and push a `desktop-v<version>` tag
-4. Monitor the GitHub Actions build
+3. Create and push `desktop-v<version>` and `cli-v<version>` tags
+4. Monitor both GitHub Actions builds
 5. Create a **draft release** for review
 
 > Desktop, `host-service`, and `cli` share one version, enforced by CI
@@ -76,10 +76,14 @@ If you prefer not to use the script:
 
 ```bash
 git tag desktop-v1.0.0
+git tag cli-v1.0.0
 git push origin desktop-v1.0.0
+git push origin cli-v1.0.0
 ```
 
-This creates a draft release. Publish it manually at GitHub Releases.
+The CLI tag publishes the exact standalone version that remote hosts can
+install. The desktop workflow creates a draft release; publish it manually at
+GitHub Releases.
 
 ## Auto-update
 

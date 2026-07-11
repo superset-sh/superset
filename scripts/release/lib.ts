@@ -92,8 +92,8 @@ export function unifiedErrors(
 	return errors;
 }
 
-/** Newest well-formed tag for a stream, filtering malformed historical tags
- * (e.g. desktop-vdesktop-v0.0.14). Uses semver ordering (prerelease < release). */
+/** Newest well-formed tag for a stream, filtering malformed historical tags.
+ * Numeric CLI `-N` hotfixes are chronological successors to their stable base. */
 export function latestReleaseTag(
 	tags: string[],
 	stream: Stream,
@@ -105,8 +105,30 @@ export function latestReleaseTag(
 			: /^cli-v\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/;
 	const versions = tags
 		.filter((t) => re.test(t))
-		.map((t) => t.slice(prefix.length))
-		.sort(semver.rcompare);
+		.map((t) => t.slice(prefix.length));
+	versions.sort((left, right) => {
+		if (stream === "desktop") return semver.rcompare(left, right);
+		const leftParsed = semver.parse(left);
+		const rightParsed = semver.parse(right);
+		if (!leftParsed || !rightParsed) return 0;
+		for (const key of ["major", "minor", "patch"] as const) {
+			const difference = rightParsed[key] - leftParsed[key];
+			if (difference !== 0) return difference;
+		}
+		const sequence = (version: semver.SemVer) => {
+			if (version.prerelease.length === 0) return 0;
+			return version.prerelease.length === 1 &&
+				typeof version.prerelease[0] === "number"
+				? version.prerelease[0]
+				: null;
+		};
+		const leftSequence = sequence(leftParsed);
+		const rightSequence = sequence(rightParsed);
+		if (leftSequence !== null && rightSequence !== null) {
+			return rightSequence - leftSequence;
+		}
+		return semver.rcompare(left, right);
+	});
 	return versions[0] ? `${prefix}${versions[0]}` : undefined;
 }
 

@@ -16,6 +16,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { hostUpdateProcedure } from "./update";
 
 export const hostRouter = {
 	list: jwtProcedure
@@ -300,4 +301,6 @@ export const hostRouter = {
 				);
 			return { success: true };
 		}),
+
+	update: hostUpdateProcedure,
 } satisfies TRPCRouterRecord;

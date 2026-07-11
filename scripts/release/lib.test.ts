@@ -59,12 +59,21 @@ describe("latestReleaseTag", () => {
 		];
 		expect(latestReleaseTag(tags, "desktop")).toBe("desktop-v1.14.0");
 	});
-	test("cli prerelease ordering (release > prerelease)", () => {
+	test("orders CLI tags by their publication sequence", () => {
 		expect(latestReleaseTag(["cli-v1.14.0-1", "cli-v0.2.24"], "cli")).toBe(
 			"cli-v1.14.0-1",
 		);
 		expect(latestReleaseTag(["cli-v1.14.0-1", "cli-v1.14.0-2"], "cli")).toBe(
 			"cli-v1.14.0-2",
+		);
+		expect(
+			latestReleaseTag(
+				["cli-v1.14.0", "cli-v1.14.0-1", "cli-v1.14.0-2"],
+				"cli",
+			),
+		).toBe("cli-v1.14.0-2");
+		expect(latestReleaseTag(["cli-v1.14.0-9", "cli-v1.15.0"], "cli")).toBe(
+			"cli-v1.15.0",
 		);
 	});
 	test("no matching tags -> undefined", () => {

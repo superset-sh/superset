@@ -88,6 +88,7 @@ function V2WorkspaceLayout() {
 	if (hostStatus.status === "incompatible") {
 		return (
 			<WorkspaceHostIncompatibleState
+				hostId={workspace.hostId}
 				hostName={hostStatus.hostName}
 				hostVersion={hostStatus.hostVersion}
 				minVersion={hostStatus.minVersion}

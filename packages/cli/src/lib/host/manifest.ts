@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { SUPERSET_HOME_DIR } from "../config";
+import { isProcessAlive } from "../process-state";
 
 /**
  * Manifest format matches the desktop app's HostServiceManifest
@@ -20,6 +21,7 @@ export interface HostServiceManifest {
 	authToken: string;
 	startedAt: number;
 	organizationId: string;
+	version?: string;
 }
 
 function manifestDir(organizationId: string): string {
@@ -62,15 +64,7 @@ export function removeManifest(organizationId: string): void {
 	if (existsSync(path)) rmSync(path);
 }
 
-export function isProcessAlive(pid: number): boolean {
-	if (!pid) return false;
-	try {
-		process.kill(pid, 0);
-		return true;
-	} catch {
-		return false;
-	}
-}
+export { isProcessAlive };
 
 export function hostDbPath(organizationId: string): string {
 	return join(manifestDir(organizationId), "host.db");

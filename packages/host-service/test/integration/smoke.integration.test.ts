@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { TRPCClientError } from "@trpc/client";
+import { HOST_SERVICE_VERSION } from "../../src/runtime/update";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
 
 describe("host-service smoke", () => {
@@ -49,6 +50,8 @@ describe("host-service smoke", () => {
 		});
 		expect(info.platform).toEqual(process.platform);
 		expect(typeof info.uptime).toBe("number");
+		expect(info.version).toBe(HOST_SERVICE_VERSION);
+		expect(info.supportsRemoteUpdate).toBe(false);
 		expect(host.apiCalls.map((c) => c.path)).toContain(
 			"organization.getByIdFromJwt.query",
 		);

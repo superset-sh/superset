@@ -4,8 +4,10 @@
  * Bundle layout (extracts into ~/superset/):
  *   bin/superset                 — Bun-compiled CLI binary
  *   bin/superset-host            — Shell wrapper to run the host-service
+ *   bin/superset-host-supervisor — Shell wrapper for the update supervisor
  *   lib/node                     — Standalone Node.js runtime
  *   lib/host-service.js          — Bundled host-service entry
+ *   lib/host-supervisor.js       — One-shot remote update supervisor
  *   lib/node_modules/            — Full native addon packages (JS wrappers + bindings)
  *     better-sqlite3/
  *     node-pty/
@@ -403,6 +405,22 @@ async function buildCli(target: Target, outputPath: string): Promise<void> {
 	);
 }
 
+async function buildHostSupervisor(outputPath: string): Promise<void> {
+	const cliDir = resolve(import.meta.dir, "..");
+	await exec(
+		"bun",
+		[
+			"build",
+			"--target=node",
+			"--format=esm",
+			"--outfile",
+			outputPath,
+			"src/supervisor/main.ts",
+		],
+		cliDir,
+	);
+}
+
 async function buildHostService(): Promise<string> {
 	const hostServiceDir = resolve(import.meta.dir, "../../host-service");
 	await exec("bun", ["run", "build:host"], hostServiceDir);
@@ -426,6 +444,16 @@ exec "$SCRIPT_DIR/../lib/node" "$SCRIPT_DIR/../lib/host-service.js" "$@"
 	chmodSync(wrapperPath, 0o755);
 }
 
+function writeHostSupervisorWrapper(binDir: string): void {
+	const wrapper = `#!/bin/sh
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$SCRIPT_DIR/../lib/node" "$SCRIPT_DIR/../lib/host-supervisor.js" "$@"
+`;
+	const wrapperPath = join(binDir, "superset-host-supervisor");
+	writeFileSync(wrapperPath, wrapper, { mode: 0o755 });
+	chmodSync(wrapperPath, 0o755);
+}
+
 async function main(): Promise<void> {
 	const { target } = parseArgs();
 	const cliDir = resolve(import.meta.dir, "..");
@@ -441,6 +469,9 @@ async function main(): Promise<void> {
 
 	console.log("[build-dist] building CLI binary");
 	await buildCli(target, join(stagingRoot, "bin", "superset"));
+
+	console.log("[build-dist] building host update supervisor");
+	await buildHostSupervisor(join(stagingRoot, "lib", "host-supervisor.js"));
 
 	console.log("[build-dist] building host-service bundle");
 	const hostServiceBundle = await buildHostService();
@@ -471,6 +502,7 @@ async function main(): Promise<void> {
 
 	console.log("[build-dist] writing host wrapper");
 	writeHostWrapper(join(stagingRoot, "bin"));
+	writeHostSupervisorWrapper(join(stagingRoot, "bin"));
 
 	const tarball = join(cliDir, "dist", `superset-${target}.tar.gz`);
 	console.log(`[build-dist] creating ${tarball}`);

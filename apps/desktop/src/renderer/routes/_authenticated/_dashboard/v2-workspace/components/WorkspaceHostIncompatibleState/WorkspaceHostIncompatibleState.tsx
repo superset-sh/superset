@@ -3,12 +3,14 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, ArrowUpCircle, Monitor } from "lucide-react";
 
 interface WorkspaceHostIncompatibleStateProps {
+	hostId: string;
 	hostName: string;
 	hostVersion: string;
 	minVersion: string;
 }
 
 export function WorkspaceHostIncompatibleState({
+	hostId,
 	hostName,
 	hostVersion,
 	minVersion,
@@ -82,8 +84,8 @@ export function WorkspaceHostIncompatibleState({
 					variant="ghost"
 					className="-ml-2 h-7 gap-1.5 px-2 text-[13px] font-medium text-foreground hover:bg-muted/60"
 				>
-					<Link to="/v2-workspaces">
-						Browse workspaces
+					<Link to="/settings/hosts/$hostId" params={{ hostId }}>
+						Open host settings
 						<ArrowRight
 							className="size-3.5"
 							strokeWidth={2}

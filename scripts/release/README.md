@@ -17,7 +17,7 @@ step). One entry point: **`bun run release`**. Design/rationale lives in
 | Command | When |
 | --- | --- |
 | `bun run release` | Interactive menu (TTY only). |
-| `bun run release desktop [version]` | New app release. Moves desktop + host-service + cli together. Draft by default. |
+| `bun run release desktop [version]` | New app release. Moves desktop + host-service + cli together and publishes the matching standalone CLI bundle. Draft by default. |
 | `bun run release cli [suffix]` | CLI-only hotfix **between** desktop releases → `<desktop>-N`. |
 | `… --daemon` | Also ship a pty-daemon fix (patch-bumps it on `0.x`). |
 | `bun run release check` | Verify versions are unified (exit 1 on drift). |
@@ -62,6 +62,10 @@ bun run release desktop 1.15.0 --publish [--merge] # auto-publish (+ merge the P
 
 Once published (non-draft), it becomes `/releases/latest`, which the desktop
 auto-updater reads.
+
+The desktop flow also pushes `cli-v<version>` and waits for `release-cli.yml`.
+That exact standalone bundle is what an owner-triggered remote host update
+installs; publishing it does not automatically update any host.
 
 ## When the daemon guard blocks
 

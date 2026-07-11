@@ -33,7 +33,7 @@ export default command({
 				organizationId: organization.id,
 				sessionToken: ctx.bearer,
 				authConfigPath:
-					ctx.authSource === "oauth" ? SUPERSET_CONFIG_PATH : undefined,
+					ctx.authSource === "override" ? undefined : SUPERSET_CONFIG_PATH,
 				api: ctx.api,
 				port: options.port,
 				daemon: options.daemon ?? false,

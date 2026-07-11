@@ -1,14 +1,15 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import { MIN_HOST_SERVICE_VERSION } from "@superset/shared/host-version";
+import {
+	isHostVersionAtLeast,
+	MIN_HOST_SERVICE_VERSION,
+} from "@superset/shared/host-version";
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
+import { useHostInfo } from "renderer/hooks/host-service/useHostInfo";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import semver from "semver";
 
 export type RemoteHostStatus =
 	| { status: "skip" }
@@ -20,8 +21,6 @@ export type RemoteHostStatus =
 			minVersion: string;
 	  }
 	| { status: "ready" };
-
-const HOST_INFO_STALE_MS = 30_000;
 
 export function useRemoteHostStatus(
 	workspace: SelectV2Workspace | null,
@@ -57,20 +56,17 @@ export function useRemoteHostStatus(
 		hostId,
 	)}`;
 
-	const infoQuery = useQuery({
-		queryKey: ["remoteHostInfo", organizationId, hostId],
-		queryFn: () => getHostServiceClientByUrl(hostUrl).host.info.query(),
-		enabled: workspace != null && !isLocal,
-		staleTime: HOST_INFO_STALE_MS,
-		retry: false,
-	});
+	const infoQuery = useHostInfo(
+		{ hostUrl, organizationId, machineId: hostId },
+		{ enabled: workspace != null && !isLocal },
+	);
 
 	if (!workspace) return { status: "loading" };
 	if (isLocal) return { status: "skip" };
 
 	if (infoQuery.isSuccess) {
 		const hostVersion = infoQuery.data.version;
-		if (!semver.satisfies(hostVersion, `>=${MIN_HOST_SERVICE_VERSION}`)) {
+		if (!isHostVersionAtLeast(hostVersion, MIN_HOST_SERVICE_VERSION)) {
 			return {
 				status: "incompatible",
 				hostName: hostRow?.name ?? "Unknown host",

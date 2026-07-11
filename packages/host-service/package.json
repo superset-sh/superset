@@ -40,6 +40,10 @@
 			"types": "./src/trpc/router/attachments/index.ts",
 			"default": "./src/trpc/router/attachments/index.ts"
 		},
+		"./update-protocol": {
+			"types": "./src/runtime/update/protocol.ts",
+			"default": "./src/runtime/update/protocol.ts"
+		},
 		"./router": {
 			"types": "./dist-types/trpc/router/router.d.ts"
 		},

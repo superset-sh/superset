@@ -43,6 +43,9 @@ Every desktop bump now sets **desktop + host-service + cli** to the same new
 version (was: desktop + host-service patch-bump). Both the normal and
 commit/worktree paths refresh `bun.lock` and commit all three package.jsons.
 
+The flow pushes both `desktop-vX` and `cli-vX`; the latter publishes the exact
+standalone bundle used by explicit remote host update requests.
+
 Commit: `chore(desktop): bump version to X (host-service a -> X, cli b -> X)`.
 
 ## Interim CLI release (`scripts/release/cli.ts`, `bun run release cli`)

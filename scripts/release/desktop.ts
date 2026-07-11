@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
 // Desktop app release: bumps desktop + host-service + cli to one unified version
-// (and, with --daemon, patch-bumps pty-daemon), tags desktop-v<version> to
-// trigger release-desktop.yml, monitors the build, and leaves a draft (or
-// publishes with --publish). See plans/20260709-unified-version-bumping.md and
+// (and, with --daemon, patch-bumps pty-daemon), tags desktop-v<version> and
+// cli-v<version> so both bundled and standalone hosts have the exact release,
+// monitors the builds, and leaves a desktop draft (or publishes with
+// --publish). See plans/20260709-unified-version-bumping.md and
 // apps/desktop/RELEASE.md.
 //
 // Usage: [version] [commit] [--publish] [--merge] [--daemon]
@@ -102,16 +103,19 @@ export async function runDesktop(argv: string[]): Promise<void> {
 	}
 
 	const tag = `desktop-v${version}`;
+	const cliTag = `cli-v${version}`;
 	info(`Starting release process for version ${version}`);
 	console.log("");
 
 	await handleExistingTag(tag, republish);
+	await handleExistingTag(cliTag, republish);
 
 	let prNumber = "";
 	if (commitInput) {
-		await releaseFromCommit(version, commitInput, tag, withDaemon);
+		await releaseFromCommit(version, commitInput, [tag, cliTag], withDaemon);
 	} else {
-		prNumber = (await releaseFromHead(root, version, tag, withDaemon)).prNumber;
+		prNumber = (await releaseFromHead(root, version, [tag, cliTag], withDaemon))
+			.prNumber;
 	}
 
 	await monitorAndPublish(root, tag, { autoPublish, autoMerge, prNumber });
@@ -227,7 +231,7 @@ async function bumpUnified(
 async function releaseFromHead(
 	root: string,
 	version: string,
-	tag: string,
+	tags: string[],
 	withDaemon: boolean,
 ): Promise<{ prNumber: string; branch: string }> {
 	const current = readVersion(root, DESKTOP_DIR);
@@ -276,17 +280,19 @@ async function releaseFromHead(
 		}
 	}
 
-	info(`Creating tag ${tag}...`);
-	await $`git tag ${tag}`;
-	await $`git push origin ${tag}`;
-	success("Tag pushed to remote");
+	for (const tag of tags) {
+		info(`Creating tag ${tag}...`);
+		await $`git tag ${tag}`;
+		await $`git push origin ${tag}`;
+		success(`Tag ${tag} pushed to remote`);
+	}
 	return { prNumber, branch };
 }
 
 async function releaseFromCommit(
 	version: string,
 	commitInput: string,
-	tag: string,
+	tags: string[],
 	withDaemon: boolean,
 ): Promise<void> {
 	const fullSha = (
@@ -327,9 +333,11 @@ async function releaseFromCommit(
 		}
 
 		await $`git push origin ${`HEAD:refs/heads/${tempBranch}`}`.cwd(worktree);
-		await $`git tag ${tag}`.cwd(worktree);
-		await $`git push origin ${tag}`.cwd(worktree);
-		success(`Tag ${tag} pushed from temp branch`);
+		for (const tag of tags) {
+			await $`git tag ${tag}`.cwd(worktree);
+			await $`git push origin ${tag}`.cwd(worktree);
+			success(`Tag ${tag} pushed from temp branch`);
+		}
 	} finally {
 		await $`git worktree remove --force ${worktree}`.nothrow().quiet();
 		rmSync(worktree, { recursive: true, force: true });
@@ -346,12 +354,15 @@ async function monitorAndPublish(
 	success("Release process initiated!");
 
 	const sha = (await $`git rev-list -n 1 ${tag}`.text()).trim();
-	info("Monitoring GitHub Actions workflow...");
-	const runId = await findWorkflowRun(root, "release-desktop.yml", sha);
-	if (!runId) {
-		warn("Could not find workflow run automatically.");
-		console.log(`  https://github.com/${repo}/actions`);
-	} else {
+	for (const workflow of ["release-desktop.yml", "release-cli.yml"]) {
+		info(`Monitoring ${workflow}...`);
+		const runId = await findWorkflowRun(root, workflow, sha);
+		if (!runId) {
+			warn(`Could not find ${workflow} run automatically.`);
+			console.log(`  https://github.com/${repo}/actions`);
+			continue;
+		}
+
 		console.log(`  https://github.com/${repo}/actions/runs/${runId}`);
 		await $`gh run watch ${runId}`.nothrow();
 		const conclusion = (
@@ -359,10 +370,13 @@ async function monitorAndPublish(
 				.nothrow()
 				.text()
 		).trim();
-		if (conclusion === "success") success("Workflow completed successfully!");
+		if (conclusion === "success")
+			success(`${workflow} completed successfully!`);
 		else if (conclusion === "failure")
-			fail(`Workflow failed: https://github.com/${repo}/actions/runs/${runId}`);
-		else warn(`Workflow ended with status: ${conclusion}`);
+			fail(
+				`${workflow} failed: https://github.com/${repo}/actions/runs/${runId}`,
+			);
+		else warn(`${workflow} ended with status: ${conclusion}`);
 	}
 
 	info("Waiting for draft release...");

@@ -13,6 +13,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import type { CandidateRow } from "./components/AddMemberDropdown";
 import { AddMemberDropdown } from "./components/AddMemberDropdown";
 import { HostHeader } from "./components/HostHeader";
+import { HostVersionSection } from "./components/HostVersionSection";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
@@ -170,6 +171,16 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 			/>
 
 			<div className="space-y-10">
+				<HostVersionSection
+					key={host.machineId}
+					hostUrl={hostUrl}
+					organizationId={host.organizationId}
+					machineId={host.machineId}
+					isRemoteTarget={isRemoteTarget}
+					isOnline={host.isOnline}
+					canUpdate={isOwner}
+				/>
+
 				<WorktreeLocationSection
 					hostUrl={hostUrl}
 					hostName={host.name}

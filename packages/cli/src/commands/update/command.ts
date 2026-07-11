@@ -99,7 +99,11 @@ function findExtractedRoot(extractDir: string): string {
 	return extractDir;
 }
 
-function atomicReplace(installRoot: string, newRoot: string): void {
+export function atomicReplace(
+	installRoot: string,
+	newRoot: string,
+	options: { keepBackup?: boolean } = {},
+): void {
 	const backupRoot = `${installRoot}.bak`;
 	if (existsSync(backupRoot)) {
 		rmSync(backupRoot, { recursive: true, force: true });
@@ -115,7 +119,9 @@ function atomicReplace(installRoot: string, newRoot: string): void {
 		}
 		throw error;
 	}
-	rmSync(backupRoot, { recursive: true, force: true });
+	if (!options.keepBackup) {
+		rmSync(backupRoot, { recursive: true, force: true });
+	}
 }
 
 function resolveInstallRoot(): string {
@@ -185,6 +191,7 @@ export default command({
 		}
 
 		const installRoot = resolveInstallRoot();
+		const keepBackup = process.env.SUPERSET_UPDATE_KEEP_BACKUP === "1";
 		// Stage as a sibling of the install root so the final renameSync()
 		// is an intra-filesystem move. tmpdir() is frequently a separate
 		// mount (tmpfs on Linux) — renaming across it fails with EXDEV.
@@ -203,7 +210,7 @@ export default command({
 			const newHostBin = join(newRoot, "bin", "superset-host");
 			if (existsSync(newHostBin)) chmodSync(newHostBin, 0o755);
 
-			atomicReplace(installRoot, newRoot);
+			atomicReplace(installRoot, newRoot, { keepBackup });
 
 			return {
 				data: {
@@ -211,6 +218,7 @@ export default command({
 					target: targetVersion,
 					updated: true,
 					installRoot,
+					...(keepBackup ? { backupRoot: `${installRoot}.bak` } : {}),
 				},
 				message: pinnedVersion
 					? `Installed ${targetVersion} (${installRoot})`

@@ -42,6 +42,7 @@ mock.module("node:child_process", () => ({
 }));
 
 const { SUPERSET_CONFIG_PATH } = await import("../config");
+const { readManifest } = await import("./manifest");
 const { spawnHostService } = await import("./spawn");
 
 function createApi(): ApiClient {
@@ -94,5 +95,47 @@ describe("spawnHostService", () => {
 			SUPERSET_CONFIG_PATH,
 		);
 		expect(spawnCalls[0]?.options.env?.AUTH_TOKEN).toBe("session-token");
+		expect(spawnCalls[0]?.options.env?.SUPERSET_HOST_LIFECYCLE_MODE).toBe(
+			"daemon",
+		);
+	});
+
+	test("marks an attached host as foreground-managed", async () => {
+		globalThis.fetch = mock(
+			async () => new Response("ok", { status: 200 }),
+		) as unknown as typeof fetch;
+
+		await spawnHostService({
+			organizationId: "00000000-0000-0000-0000-000000000002",
+			sessionToken: "session-token",
+			authConfigPath: SUPERSET_CONFIG_PATH,
+			api: createApi(),
+			port: 54881,
+			daemon: false,
+		});
+
+		expect(spawnCalls[0]?.options.env?.SUPERSET_HOST_LIFECYCLE_MODE).toBe(
+			"foreground",
+		);
+	});
+
+	test("includes the running bundle version in the child and manifest", async () => {
+		globalThis.fetch = mock(
+			async () => new Response("ok", { status: 200 }),
+		) as unknown as typeof fetch;
+
+		await spawnHostService({
+			organizationId: "00000000-0000-0000-0000-000000000001",
+			sessionToken: "session-token",
+			authConfigPath: SUPERSET_CONFIG_PATH,
+			api: createApi(),
+			port: 54880,
+			daemon: true,
+		});
+
+		expect(spawnCalls[0]?.options.env?.SUPERSET_VERSION).not.toBeEmpty();
+		expect(readManifest("00000000-0000-0000-0000-000000000001")?.version).toBe(
+			spawnCalls[0]?.options.env?.SUPERSET_VERSION,
+		);
 	});
 });
