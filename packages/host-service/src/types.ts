@@ -8,6 +8,7 @@ import type { ChatRuntimeManager } from "./runtime/chat";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider, GitFactory } from "./runtime/git";
 import type { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import type { ClaudeSessionManager } from "./runtime/sessions";
 import type { TerminalAgentStore } from "./terminal-agents";
 import type { ExecGh } from "./trpc/router/workspace-creation/utils/exec-gh";
 
@@ -18,6 +19,7 @@ export interface HostServiceRuntime {
 	chat: ChatRuntimeManager;
 	filesystem: WorkspaceFilesystemManager;
 	pullRequests: PullRequestRuntimeManager;
+	sessions: ClaudeSessionManager;
 }
 
 export interface HostServiceContext {

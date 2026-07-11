@@ -11,7 +11,7 @@
 		"storybook:ios": "STORYBOOK_ENABLED=true expo start --ios",
 		"storybook:android": "STORYBOOK_ENABLED=true expo start --android",
 		"storybook-generate": "sb-rn-get-stories",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write ."
 	},
@@ -52,6 +52,7 @@
 		"@shikijs/themes": "4.2.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/session-protocol": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@tanstack/db": "0.6.10",
@@ -124,6 +125,7 @@
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"babel-preset-expo": "56.0.11",
+		"bun-types": "1.3.14",
 		"expo-mcp": "0.2.4",
 		"storybook": "10.4.2",
 		"typescript": "6.0.3"

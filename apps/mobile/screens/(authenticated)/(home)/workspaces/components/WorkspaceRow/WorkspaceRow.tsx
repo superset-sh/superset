@@ -80,6 +80,7 @@ export function WorkspaceRow({
 	return (
 		<WorkspaceRowMenu workspace={workspace} cache={cache}>
 			<Pressable
+				accessibilityLabel={`Open workspace ${workspace.name}`}
 				className="bg-background flex-row items-center gap-3 px-4 py-3"
 				onPressIn={() => {
 					pressProgress.value = withTiming(1, { duration: 300 });

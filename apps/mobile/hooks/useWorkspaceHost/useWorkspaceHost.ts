@@ -20,7 +20,11 @@ export interface WorkspaceHostResult {
 }
 
 /**
- * Locate a workspace's row (and owning host) by asking each online host.
+ * Locate a workspace's row (and owning host) from every host's workspace
+ * cache, while only asking hosts that are currently online. Keeping offline
+ * hosts in `targets` is load-bearing: it preserves the cached workspace/host
+ * association so an open thread can render its history and offline state
+ * instead of collapsing to "Workspace unavailable" when presence changes.
  * Query keys match useHostWorkspaces, so navigating from the list resolves
  * straight from cache.
  */
@@ -36,19 +40,17 @@ export function useWorkspaceHost(
 
 	const targets = useMemo(
 		() =>
-			(hosts ?? [])
-				.filter((host) => host.isOnline)
-				.map((host) => ({
-					host,
-					hostUrl: buildRelayHostUrl(host.organizationId, host.machineId),
-				})),
+			(hosts ?? []).map((host) => ({
+				host,
+				hostUrl: buildRelayHostUrl(host.organizationId, host.machineId),
+			})),
 		[hosts],
 	);
 
 	const queries = useQueries({
 		queries: targets.map(({ host, hostUrl }) => ({
 			queryKey: getHostWorkspacesQueryKey(host.machineId, hostUrl),
-			enabled: workspaceId !== null,
+			enabled: workspaceId !== null && host.isOnline,
 			staleTime: 30_000,
 			retry: 1,
 			networkMode: "always" as const,

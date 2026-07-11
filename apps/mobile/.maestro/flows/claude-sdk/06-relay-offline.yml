@@ -1,0 +1,16 @@
+appId: sh.superset.mobile
+---
+# Run after stopping only this worktree's relay while its desktop host and
+# direct Claude runtime remain alive.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    # Relay presence drives the host-online projection. The session hook stops
+    # its stream while that projection is offline and recreates it on recovery.
+    visible: "Host offline — open Superset on your Mac to reconnect."
+    timeout: 60000
+- assertVisible:
+    id: "claude-session-screen"
+- assertVisible:
+    id: "claude-session-composer-submit"
+    enabled: false

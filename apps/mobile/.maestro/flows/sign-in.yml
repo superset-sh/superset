@@ -3,6 +3,17 @@ appId: sh.superset.mobile
 - launchApp:
     stopApp: true
     clearKeychain: true
+- runFlow:
+    # Expo shows this one-time tutorial on a freshly installed development
+    # build. Dismiss it without making established simulator runs depend on it.
+    when:
+      visible: "Continue"
+    commands:
+      - tapOn: "Continue"
+      # The tutorial hands off to the developer-menu sheet. Dismiss the sheet
+      # by tapping its backdrop before asserting on app content.
+      - tapOn:
+          point: "50%,20%"
 - extendedWaitUntil:
     visible: "Welcome to Superset"
     timeout: 60000

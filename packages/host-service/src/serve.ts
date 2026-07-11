@@ -10,7 +10,10 @@ import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
 import { installProcessSafetyNet } from "./safety";
-import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
+import {
+	initTerminalBaseEnv,
+	resolveTerminalBaseEnvWithProvenance,
+} from "./terminal/env";
 import { startTerminalReaper } from "./terminal/reaper";
 import { connectRelay } from "./tunnel";
 
@@ -19,8 +22,10 @@ async function main(): Promise<void> {
 		`[host-service] starting (org=${env.ORGANIZATION_ID}, port=${env.PORT}, NODE_ENV=${process.env.NODE_ENV ?? "unset"})`,
 	);
 
-	const terminalBaseEnv = await resolveTerminalBaseEnv();
-	initTerminalBaseEnv(terminalBaseEnv);
+	const terminalEnvironment = await resolveTerminalBaseEnvWithProvenance();
+	initTerminalBaseEnv(terminalEnvironment.baseEnv, {
+		provenance: terminalEnvironment.provenance,
+	});
 
 	// Fire-and-track: kick off pty-daemon spawn-or-adopt without blocking
 	// host-service startup. Terminal request handlers `await

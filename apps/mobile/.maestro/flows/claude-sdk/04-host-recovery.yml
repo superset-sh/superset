@@ -1,0 +1,41 @@
+appId: sh.superset.mobile
+---
+# Run after the desktop coordinator has restarted while the mobile app was
+# stopped. The new host process must expose an empty live-only SDK list.
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: "workspace-row-.*"
+    timeout: 60000
+- tapOn:
+    id: "workspace-row-.*"
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-list-ready"
+    timeout: 60000
+- assertNotVisible:
+    id: "claude-session-row-.*"
+- tapOn:
+    id: "claude-session-create"
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-screen"
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible: "Host offline — open Superset on your Mac to reconnect."
+    timeout: 60000
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Do not use tools. Reply with exactly MOBILE HOST RECOVERY OK and nothing else."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible: "MOBILE HOST RECOVERY OK"
+    timeout: 180000

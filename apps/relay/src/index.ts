@@ -8,6 +8,7 @@ import { checkHostAccess } from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
 import * as directory from "./directory";
 import { env } from "./env";
+import { pathAfterHostUrl } from "./host-path";
 import { createProxyBridge, internalProxyUrl, PROXY_HOP_PARAM } from "./proxy";
 import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
@@ -149,9 +150,7 @@ async function maybeReplay(hostId: string): Promise<{
 }
 
 function pathAfterHost(c: Context<AppContext>): string {
-	const hostId = c.req.param("hostId") ?? "";
-	const path = new URL(c.req.url).pathname;
-	return path.slice(`/hosts/${hostId}`.length);
+	return pathAfterHostUrl(c.req.url);
 }
 
 const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
@@ -316,9 +315,8 @@ app.use("/hosts/:hostId/*", authMiddleware);
 
 app.all("/hosts/:hostId/trpc/*", async (c) => {
 	const hostId = c.get("hostId");
-	const prefix = `/hosts/${hostId}`;
 	const url = new URL(c.req.url);
-	const path = `${url.pathname.slice(prefix.length) || "/"}${url.search}`;
+	const path = `${pathAfterHostUrl(c.req.url)}${url.search}`;
 	const body = (await c.req.text().catch(() => "")) || undefined;
 
 	const headers: Record<string, string> = {};
@@ -348,9 +346,8 @@ app.get(
 	"/hosts/:hostId/*",
 	upgradeWebSocket((c) => {
 		const url = new URL(c.req.url);
-		const hostId = url.pathname.split("/")[2] ?? "";
-		const prefix = `/hosts/${hostId}`;
-		const path = url.pathname.slice(prefix.length) || "/";
+		const hostId = c.get("hostId");
+		const path = pathAfterHostUrl(c.req.url);
 		const query = url.search.slice(1) || undefined;
 
 		// Cross-instance bridge: this node doesn't own the tunnel, so relay the

@@ -24,6 +24,7 @@
 		"check:pty-daemon-bundle": "bun run scripts/check-pty-daemon-bundle.ts",
 		"copy:native-modules": "bun run scripts/copy-native-modules.ts",
 		"validate:native-runtime": "bun run scripts/validate-native-runtime.ts",
+		"validate:packaged-host": "bun run scripts/validate-packaged-host.ts",
 		"prebuild": "bun run clean:dev && bun run generate:icons && bun run compile:app && bun run copy:native-modules && bun run validate:native-runtime",
 		"build": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
 		"prepackage": "bun run bundle:cli && bun run copy:native-modules && bun run validate:native-runtime",

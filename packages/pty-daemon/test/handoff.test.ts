@@ -36,9 +36,17 @@ function unlinkSafe(p: string): void {
 }
 
 function spawnDaemon(socketPath: string): childProcess.ChildProcess {
+	// Keep the native node-pty daemon on its declared Node runtime even when a
+	// broad `bun test` invocation discovers this integration file. Using Bun's
+	// process.execPath here invalidates node-pty's master fd (EBADF on write).
+	const invokedByBun = typeof process.versions.bun === "string";
 	return childProcess.spawn(
-		process.execPath,
-		[...process.execArgv, DAEMON_SCRIPT, `--socket=${socketPath}`],
+		invokedByBun ? "node" : process.execPath,
+		[
+			...(invokedByBun ? ["--experimental-strip-types"] : process.execArgv),
+			DAEMON_SCRIPT,
+			`--socket=${socketPath}`,
+		],
 		{ stdio: ["ignore", "inherit", "inherit"] },
 	);
 }

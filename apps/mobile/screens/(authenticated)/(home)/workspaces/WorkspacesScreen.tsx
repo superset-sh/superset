@@ -186,16 +186,20 @@ export function WorkspacesScreen() {
 		({ item }: { item: HostWorkspaceItem }) => {
 			const repositoryId = repositoryIdsByProject.get(item.projectId);
 			return (
-				<WorkspaceRow
-					workspace={item}
-					pullRequest={
-						repositoryId
-							? pullRequestsByRepoBranch.get(`${repositoryId}::${item.branch}`)
-							: undefined
-					}
-					diffStats={diffStats.get(item.id) ?? null}
-					cache={cache}
-				/>
+				<View collapsable={false} testID={`workspace-row-${item.id}`}>
+					<WorkspaceRow
+						workspace={item}
+						pullRequest={
+							repositoryId
+								? pullRequestsByRepoBranch.get(
+										`${repositoryId}::${item.branch}`,
+									)
+								: undefined
+						}
+						diffStats={diffStats.get(item.id) ?? null}
+						cache={cache}
+					/>
+				</View>
 			);
 		},
 		[pullRequestsByRepoBranch, repositoryIdsByProject, diffStats, cache],

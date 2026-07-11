@@ -264,6 +264,7 @@ local_write_env() {
     echo "# Mobile (Expo) — plain-HTTP electric-proxy; RN fetch rejects Caddy's self-signed cert"
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
     write_env_var "EXPO_PUBLIC_ELECTRIC_URL" "http://localhost:$WRANGLER_PORT"
+    write_env_var "EXPO_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "EXPO_PUBLIC_POSTHOG_KEY" "phc_local_dev_disabled"
   } >> .env
 

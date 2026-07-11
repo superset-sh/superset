@@ -45,6 +45,17 @@ function hasMacosSystemCertBundle(): boolean {
 // ── Shell snapshot preservation ──────────────────────────────────────
 
 let _terminalBaseEnv: Record<string, string> | null = null;
+let _trustedUserShellBaseEnv: Record<string, string> | null = null;
+
+export type TerminalBaseEnvProvenance =
+	| "user-shell"
+	| "process-fallback"
+	| "explicit";
+
+export interface ResolvedTerminalBaseEnv {
+	baseEnv: Record<string, string>;
+	provenance: Exclude<TerminalBaseEnvProvenance, "explicit">;
+}
 
 function snapshotStringEnv(
 	baseEnv: NodeJS.ProcessEnv | Record<string, string> = process.env,
@@ -66,11 +77,12 @@ function snapshotStringEnv(
  * probed — crashing host-service startup over a degraded PTY env strands
  * users on v2. v1 desktop main does the same in apps/desktop shell-env.ts.
  */
-export async function resolveTerminalBaseEnv(): Promise<
-	Record<string, string>
-> {
+export async function resolveTerminalBaseEnvWithProvenance(): Promise<ResolvedTerminalBaseEnv> {
 	try {
-		return await getStrictShellEnvironment();
+		return {
+			baseEnv: await getStrictShellEnvironment(),
+			provenance: "user-shell",
+		};
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		console.warn(
@@ -78,8 +90,14 @@ export async function resolveTerminalBaseEnv(): Promise<
 		);
 		const fallback = snapshotStringEnv(process.env);
 		augmentPathForMacOS(fallback);
-		return fallback;
+		return { baseEnv: fallback, provenance: "process-fallback" };
 	}
+}
+
+export async function resolveTerminalBaseEnv(): Promise<
+	Record<string, string>
+> {
+	return (await resolveTerminalBaseEnvWithProvenance()).baseEnv;
 }
 
 /**
@@ -88,8 +106,15 @@ export async function resolveTerminalBaseEnv(): Promise<
  * Accepts an explicit shell snapshot for the real startup path, but retains a
  * process.env fallback for tests and local helpers.
  */
-export function initTerminalBaseEnv(baseEnv?: Record<string, string>): void {
+export function initTerminalBaseEnv(
+	baseEnv?: Record<string, string>,
+	options: { provenance?: TerminalBaseEnvProvenance } = {},
+): void {
 	_terminalBaseEnv = stripTerminalRuntimeEnv(snapshotStringEnv(baseEnv));
+	const provenance =
+		options.provenance ?? (baseEnv ? "explicit" : "process-fallback");
+	_trustedUserShellBaseEnv =
+		provenance === "process-fallback" ? null : { ..._terminalBaseEnv };
 }
 
 export function getTerminalBaseEnv(): Record<string, string> {
@@ -101,8 +126,29 @@ export function getTerminalBaseEnv(): Record<string, string> {
 	return { ..._terminalBaseEnv };
 }
 
+/**
+ * Environment for subprocesses that must distinguish user shell variables
+ * from values injected into the host-service process (including Bun dotenv).
+ * A process.env fallback is valid for degraded PTYs but is intentionally not
+ * trusted for authentication-sensitive external tools.
+ */
+export function getTrustedUserShellBaseEnv(): Record<string, string> {
+	if (!_terminalBaseEnv) {
+		throw new Error(
+			"Terminal base env not initialized. Call initTerminalBaseEnv() at host-service startup.",
+		);
+	}
+	if (!_trustedUserShellBaseEnv) {
+		throw new Error(
+			"Superset could not read the user's login-shell environment, so Claude Code was not started with potentially injected process credentials. Fix the login shell startup error and restart Superset.",
+		);
+	}
+	return { ..._trustedUserShellBaseEnv };
+}
+
 export function resetTerminalBaseEnvForTests(): void {
 	_terminalBaseEnv = null;
+	_trustedUserShellBaseEnv = null;
 	cachedMacosSystemCertAvailable = null;
 	clearStrictShellEnvCache();
 }

@@ -1,0 +1,41 @@
+appId: sh.superset.mobile
+---
+# Run after externally killing the active system-Claude child process.
+- launchApp:
+    # Keep the errored thread on screen instead of cold-starting back at Home.
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-terminal-error"
+    timeout: 60000
+- tapOn:
+    id: "claude-session-retry"
+    enabled: true
+- extendedWaitUntil:
+    notVisible:
+      id: "claude-session-terminal-error"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-composer-input"
+      enabled: true
+    timeout: 120000
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Do not use tools. Reply exactly MOBILE RETRY OK and nothing else."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-composer-submit"
+      text: "Submit"
+    timeout: 180000
+- runFlow:
+    when:
+      visible: "Scroll to bottom"
+    commands:
+      - tapOn: "Scroll to bottom"
+- extendedWaitUntil:
+    visible: "MOBILE RETRY OK"
+    timeout: 180000

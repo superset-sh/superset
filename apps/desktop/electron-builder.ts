@@ -89,6 +89,13 @@ const config: Configuration = {
 		// The copy:native-modules script replaces symlinks with real files
 		// before building (required for Bun 1.3+ isolated installs).
 		...packagedNodeModuleCopies,
+		// The Claude Agent SDK source is bundled into dist/main/host-service.js.
+		// Its package (and especially its optional ~232 MB Claude executable) must
+		// not be collected again through the desktop -> host-service workspace
+		// dependency graph. The host always points the bundled SDK at the user's
+		// system Claude installation.
+		"!**/node_modules/@anthropic-ai/claude-agent-sdk{,/**/*}",
+		"!**/node_modules/@anthropic-ai/claude-agent-sdk-*/**/*",
 		"!**/.DS_Store",
 	],
 

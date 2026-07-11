@@ -1,0 +1,179 @@
+appId: sh.superset.mobile
+---
+# Full phone-driven acceptance over mobile -> relay -> desktop host -> system Claude.
+- runFlow: ../sign-in.yml
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: "workspace-row-.*"
+    timeout: 60000
+- tapOn:
+    id: "workspace-row-.*"
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-create"
+    timeout: 30000
+- tapOn:
+    id: "claude-session-create"
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-composer-input"
+    timeout: 60000
+- assertVisible:
+    id: "claude-session-screen"
+
+# Ordinary streamed response and second-turn admission on the same Query.
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Do not use tools. Reply with exactly MOBILE DIRECT SDK OK and nothing else."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible: "MOBILE DIRECT SDK OK"
+    timeout: 180000
+
+# Allow a real workspace file write. The shell harness verifies exact bytes.
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Create a file named claude-sdk-maestro-allow.txt containing exactly the 29 UTF-8 bytes hello from direct sdk maestro with no period and no trailing newline. Do not use any other tool. After it is created, reply exactly MOBILE TOOL ALLOWED."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: "claude-pending-actions"
+    timeout: 180000
+- tapOn:
+    id: "claude-permission-[0-9a-f-]+-allow"
+- extendedWaitUntil:
+    visible: "MOBILE TOOL ALLOWED"
+    timeout: 180000
+
+# Deny a second write; the shell harness verifies that the file never appears.
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Try exactly once to create claude-sdk-maestro-deny.txt containing forbidden. If permission is denied, do not retry and reply exactly MOBILE TOOL DENIED."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: "claude-pending-actions"
+    timeout: 180000
+- tapOn:
+    id: "claude-permission-.*-deny"
+- extendedWaitUntil:
+    visible: "MOBILE TOOL DENIED"
+    timeout: 180000
+
+# Native AskUserQuestion input and updatedInput.answers response.
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Call AskUserQuestion exactly once. Ask Which fruit should mobile select? with header Fruit and exactly the single-select options Mango, Papaya, and Lychee. Do not answer it yourself. After the answer, reply exactly FRUIT CHOSEN: followed by the answer."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible: "Which fruit should mobile select\\?"
+    timeout: 180000
+- tapOn:
+    id: "claude-question-option-Papaya"
+- tapOn:
+    id: "claude-question-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible: "FRUIT CHOSEN: Papaya"
+    timeout: 180000
+
+# SDK control surfaces: permission mode, ExitPlanMode approval, and model.
+- tapOn:
+    id: "claude-permission-mode-picker"
+    enabled: true
+- tapOn:
+    id: "claude-permission-mode-picker-option-plan"
+- waitForAnimationToEnd
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Create a one-step no-file-change plan whose only step is Report MOBILE PLAN OK. Then call ExitPlanMode for approval. After approval, use no other tool and reply exactly MOBILE PLAN OK."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible: "Claude wants to leave plan mode"
+    timeout: 180000
+- tapOn:
+    id: "claude-permission-[0-9a-f-]+-allow"
+- extendedWaitUntil:
+    visible: "MOBILE PLAN OK"
+    timeout: 180000
+- tapOn:
+    id: "claude-permission-mode-picker"
+    enabled: true
+- tapOn:
+    id: "claude-permission-mode-picker-option-default"
+- waitForAnimationToEnd
+- tapOn:
+    id: "claude-model-picker"
+    enabled: true
+- tapOn:
+    id: "claude-model-picker-option-haiku"
+- waitForAnimationToEnd
+
+# Interrupt a streaming turn, then prove the same Query accepts another turn.
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Without tools, write the integers 1 through 500, one per line, with a sentence after each integer."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible: "working…"
+    timeout: 180000
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-composer-submit"
+      text: "Submit"
+    timeout: 60000
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Do not use tools. Reply exactly MOBILE AFTER INTERRUPT OK and nothing else."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-composer-submit"
+      text: "Submit"
+    timeout: 180000
+
+# App restart path: the still-live host runtime repopulates the session list and
+# native Claude history hydrates the reopened thread.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 60000
+- tapOn:
+    id: "workspace-row-.*"
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-row-.*"
+    timeout: 60000
+- tapOn:
+    id: "claude-session-row-.*"
+- extendedWaitUntil:
+    visible: "Scroll to bottom"
+    timeout: 120000
+- tapOn: "Scroll to bottom"
+- extendedWaitUntil:
+    visible: "MOBILE AFTER INTERRUPT OK"
+    timeout: 120000

@@ -17,7 +17,7 @@ import {
 } from "@superset/host-service";
 import {
 	initTerminalBaseEnv,
-	resolveTerminalBaseEnv,
+	resolveTerminalBaseEnvWithProvenance,
 } from "@superset/host-service/terminal-env";
 import { connectRelay } from "@superset/host-service/tunnel";
 import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
@@ -73,8 +73,10 @@ async function main(): Promise<void> {
 		interval.unref();
 	}
 
-	const terminalBaseEnv = await resolveTerminalBaseEnv();
-	initTerminalBaseEnv(terminalBaseEnv);
+	const terminalEnvironment = await resolveTerminalBaseEnvWithProvenance();
+	initTerminalBaseEnv(terminalEnvironment.baseEnv, {
+		provenance: terminalEnvironment.provenance,
+	});
 
 	const authProvider = new JwtApiAuthProvider({
 		// Read fresh from disk every time we need to mint a new JWT, so that

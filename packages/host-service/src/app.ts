@@ -2,11 +2,13 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
 import { ChatService } from "@superset/chat/server/desktop";
+import { eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createDb, type HostDb } from "./db";
+import { workspaces } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
@@ -17,6 +19,10 @@ import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import {
+	ClaudeSessionManager,
+	registerSessionStreamRoute,
+} from "./runtime/sessions";
 import { runWorkspaceBackfill } from "./runtime/workspace-backfill";
 import { startWorkspaceCloudSync } from "./runtime/workspace-cloud-sync";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
@@ -59,6 +65,7 @@ export interface CreateAppOptions {
 	execGh?: ExecGh;
 	chatRuntime?: ChatRuntimeManager;
 	chatService?: ChatService;
+	sessions?: ClaudeSessionManager;
 }
 
 export interface CreateAppResult {
@@ -114,12 +121,26 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
 	// auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
+	const sessions =
+		options.sessions ??
+		new ClaudeSessionManager({
+			resolveWorkspaceCwd: (workspaceId) => {
+				const workspace = db.query.workspaces
+					.findFirst({ where: eq(workspaces.id, workspaceId) })
+					.sync();
+				if (!workspace) {
+					throw new Error(`Workspace not found: ${workspaceId}`);
+				}
+				return workspace.worktreePath;
+			},
+		});
 
 	const runtime = {
 		auth: chatService,
 		chat: chatRuntime,
 		filesystem,
 		pullRequests: pullRequestRuntime,
+		sessions,
 	};
 	const app = new Hono();
 	const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
@@ -200,12 +221,18 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
+	app.use("/sessions/*", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerWorkspaceTerminalRoute({
 		app,
 		db,
 		eventBus,
+		upgradeWebSocket,
+	});
+	registerSessionStreamRoute({
+		app,
+		sessions,
 		upgradeWebSocket,
 	});
 
@@ -248,6 +275,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			await sessions.dispose();
+		} catch (err) {
+			console.warn("[host-service] sessions.dispose failed:", err);
 		}
 		try {
 			eventBus.close();

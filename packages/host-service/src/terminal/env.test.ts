@@ -4,6 +4,7 @@ import {
 	getShellBootstrapEnv,
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
+	getTrustedUserShellBaseEnv,
 	initTerminalBaseEnv,
 	normalizeUtf8Locale,
 	resetTerminalBaseEnvForTests,
@@ -390,6 +391,46 @@ describe("terminal base env preservation", () => {
 		resetTerminalBaseEnvForTests();
 		// Without calling initTerminalBaseEnv(), getTerminalBaseEnv throws
 		expect(() => getTerminalBaseEnv()).toThrow();
+	});
+
+	test("trusted user-shell snapshots retain user credentials but strip runtime secrets", () => {
+		resetTerminalBaseEnvForTests();
+		initTerminalBaseEnv(
+			{
+				PATH: "/usr/bin",
+				ANTHROPIC_API_KEY: "user-shell-key",
+				ANTHROPIC_AUTH_TOKEN: "user-shell-token",
+				AUTH_TOKEN: "host-runtime-token",
+				HOST_SERVICE_SECRET: "host-runtime-secret",
+			},
+			{ provenance: "user-shell" },
+		);
+
+		expect(getTrustedUserShellBaseEnv()).toEqual({
+			PATH: "/usr/bin",
+			ANTHROPIC_API_KEY: "user-shell-key",
+			ANTHROPIC_AUTH_TOKEN: "user-shell-token",
+		});
+		resetTerminalBaseEnvForTests();
+	});
+
+	test("does not expose a process fallback as a trusted user-shell snapshot", () => {
+		resetTerminalBaseEnvForTests();
+		initTerminalBaseEnv(
+			{
+				PATH: "/usr/bin",
+				ANTHROPIC_API_KEY: "possibly-dotenv-injected",
+			},
+			{ provenance: "process-fallback" },
+		);
+
+		expect(getTerminalBaseEnv().ANTHROPIC_API_KEY).toBe(
+			"possibly-dotenv-injected",
+		);
+		expect(() => getTrustedUserShellBaseEnv()).toThrow(
+			"potentially injected process credentials",
+		);
+		resetTerminalBaseEnvForTests();
 	});
 });
 

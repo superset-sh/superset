@@ -41,6 +41,7 @@ export interface TestHostOptions {
 	execGh?: (args: string[], options?: unknown) => Promise<unknown>;
 	chatRuntime?: unknown;
 	chatService?: unknown;
+	sessions?: unknown;
 }
 
 export interface TestHost {
@@ -118,6 +119,7 @@ export async function createTestHost(
 				},
 		chatRuntime: options.chatRuntime as CreateAppOptions["chatRuntime"],
 		chatService: options.chatService as CreateAppOptions["chatService"],
+		sessions: options.sessions as CreateAppOptions["sessions"],
 	};
 
 	const result = createApp(createOptions);

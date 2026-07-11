@@ -1,0 +1,25 @@
+appId: sh.superset.mobile
+---
+# Leave the current direct-Claude thread actively streaming so the shell
+# harness can kill only its verified system-Claude child process.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-screen"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-composer-input"
+    timeout: 60000
+- tapOn:
+    id: "claude-session-composer-input"
+- inputText: "Without using tools, write the integers 1 through 2000, one per line, and after every integer write a unique full sentence. Do not summarize or stop early."
+- tapOn:
+    id: "claude-session-composer-submit"
+    enabled: true
+- extendedWaitUntil:
+    visible:
+      id: "claude-session-composer-submit"
+      text: "Stop"
+    timeout: 180000

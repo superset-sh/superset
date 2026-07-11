@@ -1,4 +1,8 @@
-import { spawn } from "node:child_process";
+import {
+	type ChildProcess,
+	type SpawnOptions,
+	spawn,
+} from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
@@ -29,6 +33,19 @@ export interface SpawnHostResult {
 	port: number;
 	secret: string;
 }
+
+type SpawnHostProcess = (
+	command: string,
+	args: readonly string[],
+	options: SpawnOptions,
+) => Pick<ChildProcess, "pid" | "kill" | "unref">;
+
+export interface SpawnHostDependencies {
+	spawnProcess?: SpawnHostProcess;
+}
+
+const defaultSpawnHostProcess: SpawnHostProcess = (command, args, options) =>
+	spawn(command, args, options);
 
 async function findFreePort(): Promise<number> {
 	return new Promise((resolve, reject) => {
@@ -91,6 +108,7 @@ function resolveMigrationsFolder(): string {
 
 export async function spawnHostService(
 	options: SpawnHostOptions,
+	dependencies: SpawnHostDependencies = {},
 ): Promise<SpawnHostResult> {
 	const hostBin = resolveHostBinary();
 	if (!existsSync(hostBin)) {
@@ -104,25 +122,29 @@ export async function spawnHostService(
 	const migrationsFolder = resolveMigrationsFolder();
 	const relayUrl = await getRelayUrl(options.api);
 
-	const child = spawn(hostBin, [], {
-		stdio: options.daemon ? "ignore" : "inherit",
-		detached: options.daemon,
-		env: {
-			...process.env,
-			ORGANIZATION_ID: options.organizationId,
-			AUTH_TOKEN: options.sessionToken,
-			...(options.authConfigPath
-				? { SUPERSET_AUTH_CONFIG_PATH: options.authConfigPath }
-				: {}),
-			SUPERSET_API_URL: env.SUPERSET_API_URL,
-			RELAY_URL: relayUrl,
-			PORT: String(port),
-			HOST_SERVICE_PORT: String(port),
-			HOST_SERVICE_SECRET: secret,
-			HOST_DB_PATH: hostDbPath(options.organizationId),
-			HOST_MIGRATIONS_FOLDER: migrationsFolder,
+	const child = (dependencies.spawnProcess ?? defaultSpawnHostProcess)(
+		hostBin,
+		[],
+		{
+			stdio: options.daemon ? "ignore" : "inherit",
+			detached: options.daemon,
+			env: {
+				...process.env,
+				ORGANIZATION_ID: options.organizationId,
+				AUTH_TOKEN: options.sessionToken,
+				...(options.authConfigPath
+					? { SUPERSET_AUTH_CONFIG_PATH: options.authConfigPath }
+					: {}),
+				SUPERSET_API_URL: env.SUPERSET_API_URL,
+				RELAY_URL: relayUrl,
+				PORT: String(port),
+				HOST_SERVICE_PORT: String(port),
+				HOST_SERVICE_SECRET: secret,
+				HOST_DB_PATH: hostDbPath(options.organizationId),
+				HOST_MIGRATIONS_FOLDER: migrationsFolder,
+			},
 		},
-	});
+	);
 
 	if (!child.pid) {
 		throw new Error("Failed to spawn host-service");

@@ -11,7 +11,7 @@ import { strict as assert } from "node:assert";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { after, before, describe, test } from "node:test";
+import { after, before, describe, test as nodeTest } from "node:test";
 import { encodeFrame } from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
 import {
@@ -21,6 +21,14 @@ import {
 	payloadAsString,
 } from "./helpers/client.ts";
 
+// These native node-pty integration tests are intentionally run by the
+// package's Node `test:integration` script. Broad `bun test` discovery also
+// finds this file, but node-pty master fds are not valid under Bun's test
+// worker. Skip only that accidental runner; the full assertions still execute
+// under their declared Node runtime.
+const IS_BUN_TEST_RUNNER = typeof process.versions.bun === "string";
+const test = IS_BUN_TEST_RUNNER ? nodeTest.skip : nodeTest;
+
 const sockPath = path.join(
 	os.tmpdir(),
 	`pty-daemon-control-${process.pid}.sock`,
@@ -28,6 +36,7 @@ const sockPath = path.join(
 let server: Server;
 
 before(async () => {
+	if (IS_BUN_TEST_RUNNER) return;
 	server = new Server({
 		socketPath: sockPath,
 		daemonVersion: "0.0.0-control",
@@ -37,6 +46,7 @@ before(async () => {
 });
 
 after(async () => {
+	if (IS_BUN_TEST_RUNNER) return;
 	await server.close();
 });
 

@@ -1,0 +1,15 @@
+appId: sh.superset.mobile
+---
+# Run after externally stopping this worktree's desktop host-service.
+- launchApp:
+    # Preserve the current Claude thread route; launchApp otherwise restarts the
+    # app by default and an offline host cannot repopulate the Home workspace list.
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Host offline — open Superset on your Mac to reconnect."
+    timeout: 60000
+- assertVisible:
+    id: "claude-session-screen"
+- assertVisible:
+    id: "claude-session-composer-submit"
+    enabled: false

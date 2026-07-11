@@ -155,6 +155,12 @@ jobs:
           }
           echo "OK: bundled $BINDING ($(du -h "$BINDING" | cut -f1))"
 
+      - name: Smoke test packaged host-service
+        working-directory: apps/desktop
+        run: |
+          APP_DIR=$(find release -maxdepth 2 -name "*.app" -type d | head -1)
+          bun run validate:packaged-host "$APP_DIR"
+
       - name: Upload DMG artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
