@@ -92,6 +92,10 @@ interface ListenerEntry {
 
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
+// Definitive access denial (preflight 403): the relay will keep saying no, so
+// exponential 1-30s retries just hammer it. Poll slowly instead of stopping
+// outright so access granted later (host sharing) is picked up eventually.
+const ACCESS_DENIED_RETRY_MS = 5 * 60_000;
 
 interface ConnectionState {
 	socket: WebSocket | null;
@@ -215,8 +219,12 @@ function connect(
 	// machine before the WS upgrade. fly-replay isn't transparent to all WS
 	// clients on the upgrade itself, but is on plain HTTP, so a quick GET
 	// avoids the connect → 1006 close → reconnect flicker.
-	void primeRelayAffinity(wsUrl).then(() => {
+	void primeRelayAffinity(wsUrl).then((probe) => {
 		if (state.disposed || state.socket) return;
+		if (probe?.status === 403) {
+			scheduleReconnect(state, hostUrl, getWsToken, ACCESS_DENIED_RETRY_MS);
+			return;
+		}
 		let socket: WebSocket;
 		try {
 			socket = new WebSocket(wsUrl);
@@ -255,13 +263,16 @@ function scheduleReconnect(
 	state: ConnectionState,
 	hostUrl: string,
 	getWsToken: () => string | null,
+	fixedDelayMs?: number,
 ): void {
 	if (state.disposed || state.reconnectTimer) return;
 
-	const delay = Math.min(
-		RECONNECT_BASE_MS * 2 ** state.reconnectAttempts,
-		RECONNECT_MAX_MS,
-	);
+	const delay =
+		fixedDelayMs ??
+		Math.min(
+			RECONNECT_BASE_MS * 2 ** state.reconnectAttempts,
+			RECONNECT_MAX_MS,
+		);
 	state.reconnectAttempts++;
 
 	state.reconnectTimer = setTimeout(() => {
