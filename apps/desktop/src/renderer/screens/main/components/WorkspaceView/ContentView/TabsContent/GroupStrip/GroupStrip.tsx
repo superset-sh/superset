@@ -25,6 +25,7 @@ import {
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
+import { useShowPresetsBar } from "../../hooks/useShowPresetsBar";
 import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
 
@@ -60,28 +61,9 @@ export function GroupStrip() {
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
 	const utils = electronTrpc.useUtils();
-	const { data: showPresetsBar } =
-		electronTrpc.settings.getShowPresetsBar.useQuery();
+	const { showPresetsBar, setShowPresetsBar } = useShowPresetsBar();
 	const { data: useCompactTerminalAddButton } =
 		electronTrpc.settings.getUseCompactTerminalAddButton.useQuery();
-	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
-		{
-			onMutate: async ({ enabled }) => {
-				await utils.settings.getShowPresetsBar.cancel();
-				const previous = utils.settings.getShowPresetsBar.getData();
-				utils.settings.getShowPresetsBar.setData(undefined, enabled);
-				return { previous };
-			},
-			onError: (_err, _vars, context) => {
-				if (context?.previous !== undefined) {
-					utils.settings.getShowPresetsBar.setData(undefined, context.previous);
-				}
-			},
-			onSettled: () => {
-				utils.settings.getShowPresetsBar.invalidate();
-			},
-		},
-	);
 	const setUseCompactTerminalAddButton =
 		electronTrpc.settings.setUseCompactTerminalAddButton.useMutation({
 			onMutate: async ({ enabled }) => {

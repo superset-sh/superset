@@ -22,7 +22,8 @@ export interface V2UserPreferencesApi {
 	setRightSidebarTab: (next: RightSidebarTab) => void;
 	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
-	setShowPresetsBar: (next: boolean) => void;
+	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
+	toggleShowPresetsBar: () => void;
 }
 
 export function useV2UserPreferences(): V2UserPreferencesApi {
@@ -172,23 +173,32 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 	);
 
 	const setShowPresetsBar = useCallback(
-		(next: boolean) => {
+		(next: boolean | ((prev: boolean) => boolean)) => {
 			const existing = collections.v2UserPreferences.get(
 				V2_USER_PREFERENCES_ID,
 			);
+			const prev =
+				existing?.showPresetsBar ?? DEFAULT_V2_USER_PREFERENCES.showPresetsBar;
+			const value = typeof next === "function" ? next(prev) : next;
 			if (!existing) {
 				collections.v2UserPreferences.insert({
 					...DEFAULT_V2_USER_PREFERENCES,
-					showPresetsBar: next,
+					showPresetsBar: value,
 				});
 				return;
 			}
 			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
-				draft.showPresetsBar = next;
+				draft.showPresetsBar = value;
 			});
 		},
 		[collections],
 	);
+
+	// Functional update reads the collection at write time, so back-to-back
+	// toggles can't act on a stale snapshot.
+	const toggleShowPresetsBar = useCallback(() => {
+		setShowPresetsBar((prev) => !prev);
+	}, [setShowPresetsBar]);
 
 	return {
 		preferences,
@@ -201,5 +211,6 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setRightSidebarWidth,
 		setDeleteLocalBranch,
 		setShowPresetsBar,
+		toggleShowPresetsBar,
 	};
 }

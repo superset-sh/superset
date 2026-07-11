@@ -84,6 +84,15 @@ export function TopBar() {
 						<span>Offline</span>
 					</div>
 				)}
+				{/* Portal target for the v2 run button when the presets bar is
+				    hidden (see v2-workspace page). empty:hidden keeps the flex
+				    gap from doubling while nothing is portaled in. */}
+				{isV2WorkspaceRoute && (
+					<div
+						id="workspace-topbar-run-slot"
+						className="no-drag flex items-center empty:hidden"
+					/>
+				)}
 				{isV2WorkspaceRoute ? (
 					<V2WorkspaceOpenInButton workspaceId={v2WorkspaceId} />
 				) : workspace?.worktreePath ? (
