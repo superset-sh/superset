@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { LuCircleArrowUp } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
-import { STROKE_WIDTH } from "../constants";
 import { DownloadRing } from "./DownloadRing";
 import { useAutoUpdateStatus } from "./useAutoUpdateStatus";
 
+const STROKE_WIDTH = 1.5;
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const BAR_CELLS = 10;
 const BAR_WINDOW = 3;
