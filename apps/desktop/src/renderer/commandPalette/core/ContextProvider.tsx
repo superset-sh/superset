@@ -17,6 +17,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import type { CommandContext } from "./types";
 
 const Context = createContext<CommandContext | null>(null);
@@ -51,7 +52,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 		if (!workspace) return null;
 		return {
 			id: workspace.id,
-			name: workspace.name,
+			name: getV2WorkspaceDisplayName(workspace),
 			projectId: workspace.projectId,
 			type: workspace.type,
 			hostId: workspace.hostId,
