@@ -9,6 +9,15 @@ Every chat row shows a fixed Claude mark (`screens/(authenticated)/(home)/compon
 - Then: `SessionRow` picks the mark by provider (`ClaudeLogo` vs the OpenAI mark that already exists in `new-chat/model/components/ProviderLogo/`), and the model picker/thread screens can show per-session model too.
 - Backfill: existing rows have no model — keep the Claude mark as the fallback.
 
+## Handle SVGs properly instead of hand-transcribed components
+
+Brand marks are hand-authored `react-native-svg` components with path data copied out of `packages/ui/src/assets/icons/preset-icons/*.svg` (`(home)/components/ClaudeLogo/`, `new-chat/model/components/ProviderLogo/components/OpenAILogo/`, sign-in's `SocialButton`) because Metro has no SVG transformer configured. Copies drift silently on the next brand refresh.
+
+- Add `react-native-svg-transformer` to `metro.config.js` (`babelTransformerPath` + move `svg` from `assetExts` to `sourceExts`) so `.svg` files import as components.
+- Import the marks from `packages/ui`'s preset-icons directly so mobile and desktop share one source; check monorepo `watchFolders` resolution for the cross-package import.
+- Desktop picks dark/light variants via `getPresetIcon(name, isDark)` — mirror that selection rather than baking one variant in.
+- Then delete the hand-transcribed components.
+
 ## Make the photo-permission card tappable as a whole
 
 `screens/(authenticated)/(home)/attachments/components/MediaPermissionCard/` renders the "allow photo access" card as a plain `View` with a small `Continue` / `Open Settings` button inside — only the button is tappable. The whole card should be one press target (Pressable/PressableScale as the card container triggering the same request-or-Settings action; keep the button as the visual affordance or drop it for a chevron).
