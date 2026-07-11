@@ -16,7 +16,6 @@ export default function AuthenticatedLayout() {
 		<CollectionsProvider>
 			<Stack screenOptions={{ headerShown: false }}>
 				<Stack.Screen name="(home)" />
-				<Stack.Screen name="workspace/[id]" />
 				<Stack.Screen
 					name="settings/index"
 					options={settingsScreenOptions("Settings")}
