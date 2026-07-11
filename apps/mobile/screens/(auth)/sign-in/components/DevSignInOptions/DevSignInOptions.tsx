@@ -15,7 +15,7 @@ const DEV_NAME = "Local Admin";
  * account — set a password on a real account via the admin dashboard's
  * "Set Password" action to use it here.
  */
-export function DevSignInButton() {
+export function DevSignInOptions() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 

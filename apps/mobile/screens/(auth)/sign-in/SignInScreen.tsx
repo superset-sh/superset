@@ -4,7 +4,7 @@ import { Image, Linking, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
 
-import { DevSignInButton } from "./components/DevSignInButton";
+import { DevSignInOptions } from "./components/DevSignInOptions";
 import type { SocialProvider } from "./components/SocialButton";
 import { SocialButton } from "./components/SocialButton";
 
@@ -56,7 +56,7 @@ export function SignInScreen() {
 					onPress={() => handleSignIn("google")}
 					className="w-4/5"
 				/>
-				{__DEV__ && <DevSignInButton />}
+				{__DEV__ && <DevSignInOptions />}
 			</View>
 
 			{error && (
