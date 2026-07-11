@@ -414,6 +414,12 @@ describe("INPUT_MODE_DISARM_SEQUENCE", () => {
 		}
 	});
 
+	test("resets insert, origin, and reverse-wraparound modes", () => {
+		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}4l`);
+		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}?6l`);
+		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}?45l`);
+	});
+
 	test("unwinds the kitty keyboard stack and zeroes its flags", () => {
 		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}<255u`);
 		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}=0;1u`);
@@ -427,9 +433,12 @@ describe("INPUT_MODE_DISARM_SEQUENCE", () => {
 		expect(INPUT_MODE_DISARM_SEQUENCE).not.toMatch(/\[\?[0-9;]+h/);
 	});
 
-	test("sanitizing the disarm sequence removes it entirely", () => {
-		// The disarm bundle is itself pure input-mode traffic, so the replay
-		// sanitizer must treat all of it as strippable.
-		expect(sanitizeColdRestoreScrollback(INPUT_MODE_DISARM_SEQUENCE)).toBe("");
+	test("sanitizing the disarm sequence strips all input-reporting traffic", () => {
+		// The input-reporting portion of the disarm bundle is strippable; the
+		// insert/origin/reverse-wrap resets are display state the sanitizer
+		// deliberately preserves (replayed content rendered under those modes).
+		expect(sanitizeColdRestoreScrollback(INPUT_MODE_DISARM_SEQUENCE)).toBe(
+			`${CSI}4l${CSI}?6l${CSI}?45l`,
+		);
 	});
 });

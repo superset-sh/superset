@@ -46,6 +46,12 @@ export interface TerminalModes {
 	originMode: boolean;
 	/** Auto-wrap mode (mode 7) */
 	autoWrap: boolean;
+	/** Insert/replace mode (ANSI mode 4, IRM — CSI 4 h/l, not a DECSET) */
+	insertMode: boolean;
+	/** Reverse wraparound (mode 45) */
+	reverseWraparound: boolean;
+	/** Color-scheme update reports (mode 2031 — unsolicited CSI ?997;{1|2}n) */
+	colorSchemeReporting: boolean;
 }
 
 /**
@@ -66,6 +72,9 @@ export const DEFAULT_MODES: TerminalModes = {
 	cursorVisible: true,
 	originMode: false,
 	autoWrap: true,
+	insertMode: false,
+	reverseWraparound: false,
+	colorSchemeReporting: false,
 };
 
 // =============================================================================

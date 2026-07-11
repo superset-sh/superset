@@ -491,7 +491,10 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 });
 
 describe("Terminal Host Session stale input modes after TUI death", () => {
-	const PROMPT_MARKER = "\x1b]133;A\x07";
+	// Both markers, as the shell wrappers emit them: OSC 777 drives the
+	// foreground reclaim (never stripped), OSC 133;A drives shell-ready
+	// detection (the scanner consumes the first one).
+	const PROMPT_MARKER = "\x1b]777;superset-shell-ready\x07\x1b]133;A\x07";
 
 	beforeEach(() => {
 		fakeChildProcess = new FakeChildProcess();
@@ -523,11 +526,38 @@ describe("Terminal Host Session stale input modes after TUI death", () => {
 	const fakeSocket = () =>
 		({ write: () => true }) as unknown as import("node:net").Socket;
 
+	function collectingSocket(): {
+		socket: import("node:net").Socket;
+		writes: string[];
+	} {
+		const writes: string[] = [];
+		const socket = {
+			write(message: string) {
+				writes.push(message);
+				return true;
+			},
+		} as unknown as import("node:net").Socket;
+		return { socket, writes };
+	}
+
+	async function waitFor(
+		predicate: () => boolean,
+		timeoutMs = 2_000,
+	): Promise<void> {
+		const start = Date.now();
+		while (!predicate()) {
+			if (Date.now() - start > timeoutMs) {
+				throw new Error("waitFor timed out");
+			}
+			await new Promise((resolve) => setTimeout(resolve, 10));
+		}
+	}
+
 	it("rehydrates mouse modes for a TUI still alive at attach", async () => {
 		const session = createZshSession("session-live-tui-modes");
 		spawnAndReadySession(session);
 
-		// First prompt: the shell-ready scanner consumes this marker.
+		// First prompt: the shell-ready scanner consumes the 133;A marker.
 		sendPtyData(`welcome\r\n${PROMPT_MARKER}$ `);
 		// A TUI armed mouse reporting and is still in the foreground.
 		sendPtyData("\x1b[?1002h\x1b[?1006h");
@@ -555,18 +585,64 @@ describe("Terminal Host Session stale input modes after TUI death", () => {
 
 		expect(snapshot.modes.mouseTrackingButtonEvent).toBe(false);
 		expect(snapshot.modes.mouseTrackingAnyEvent).toBe(false);
-		expect(snapshot.modes.mouseSgr).toBe(false);
 		expect(snapshot.rehydrateSequences).not.toContain("1002");
 		expect(snapshot.rehydrateSequences).not.toContain("1003");
-		expect(snapshot.rehydrateSequences).not.toContain("1006");
+		// The SGR encoding is exempt from reclaim: inert with no protocol
+		// armed, and clearing it would garble clicks after a suspend/fg cycle
+		// (the TUI re-arms only its protocol on fg).
+		expect(snapshot.modes.mouseSgr).toBe(true);
 		// The serialized snapshot is written to the renderer after the rehydrate
 		// sequences, so it must be clean too — else warm reattach re-arms the
 		// mouse the marker just cleared (#5508).
 		expect(snapshot.snapshotAnsi).not.toContain("?1002h");
 		expect(snapshot.snapshotAnsi).not.toContain("?1003h");
+		expect(snapshot.snapshotAnsi).not.toContain("?1006h");
 		// Bracketed paste is a shell line-editor mode, not a pointer report, so
 		// the marker leaves it armed and warm reattach still restores it.
 		expect(snapshot.modes.bracketedPaste).toBe(true);
 		expect(snapshot.rehydrateSequences).toContain("?2004h");
+	});
+
+	it("broadcasts a disarm to attached clients when the shell reclaims the foreground", async () => {
+		// The literal #4949 repro: the TUI is SIGKILLed while the pane is
+		// attached. The client received the arming as raw stream data and no
+		// snapshot is ever re-applied, so the disarm must arrive in-stream.
+		const session = createZshSession("session-reclaim-broadcast");
+		spawnAndReadySession(session);
+		const { socket, writes } = collectingSocket();
+		await session.attach(socket);
+
+		sendPtyData(`welcome\r\n${PROMPT_MARKER}$ `);
+		sendPtyData("\x1b[?1002h\x1b[?1006h\x1b[?1004h");
+		sendPtyData(`\r\n${PROMPT_MARKER}$ `);
+
+		await waitFor(() => writes.some((message) => message.includes("?1003l")));
+		const disarmMessage = writes.find((message) =>
+			message.includes("?1003l"),
+		);
+		expect(disarmMessage).toBeDefined();
+		expect(disarmMessage).toContain("?1004l");
+		// Encodings stay exempt — the disarm never downgrades a suspended TUI.
+		expect(disarmMessage).not.toContain("?1006l");
+	});
+
+	it("suppresses the broadcast when a new TUI re-arms before the pipeline settles", async () => {
+		const session = createZshSession("session-reclaim-rearm-race");
+		spawnAndReadySession(session);
+		const { socket, writes } = collectingSocket();
+		await session.attach(socket);
+
+		sendPtyData(`welcome\r\n${PROMPT_MARKER}$ `);
+		sendPtyData("\x1b[?1002h\x1b[?1006h");
+		// The marker chunk and a new TUI's re-arm land back to back: the
+		// re-arm is already broadcast to the client, so a trailing ?1003l
+		// would clear the whole protocol under the new TUI.
+		sendPtyData(`\r\n${PROMPT_MARKER}$ `);
+		sendPtyData("\x1b[?1003h");
+
+		// Let the reclaim settle-and-broadcast pipeline run to completion.
+		await new Promise((resolve) => setTimeout(resolve, 250));
+
+		expect(writes.some((message) => message.includes("?1003l"))).toBe(false);
 	});
 });

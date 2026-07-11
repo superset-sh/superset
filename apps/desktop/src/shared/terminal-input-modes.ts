@@ -43,22 +43,46 @@ export const INPUT_REPORTING_DECSET_PARAMS: ReadonlySet<number> = new Set([
 ]);
 
 /**
- * The subset cleared when a live shell reclaims the foreground from a TUI
- * (see the OSC 133;A handling in headless-emulator.ts). These are pointer and
- * focus reports — modes a shell at a prompt never wants and a dead TUI
- * commonly leaves latched.
+ * DECSET modes cleared when a live shell reclaims the foreground from a TUI
+ * (see the OSC 777 prompt-marker handling in headless-emulator.ts): the
+ * report generators (mouse protocols, focus, color-scheme updates) plus the
+ * terminal-behavior modes that corrupt typing at a prompt when a dead TUI
+ * leaks them (origin mode, reverse-wraparound; insert mode is the ANSI
+ * counterpart below).
  *
- * Application-cursor-keys (1) and bracketed paste (2004) are intentionally
- * excluded: zsh/bash/fish arm those for their own line editor, sometimes
- * before emitting the prompt marker, so clearing them on the marker could
- * drop a *live* shell's own state on the next warm reattach. They cause no
- * junk at a shell prompt (the shell wants them), unlike mouse/focus reports.
+ * Deliberately exempt:
+ * - 1 (DECCKM) and 2004 (bracketed paste): zsh/bash/fish arm those for their
+ *   own line editor, sometimes before emitting the prompt marker, so clearing
+ *   them on the marker could drop a *live* shell's own state on the next warm
+ *   reattach. They cause no junk at a shell prompt.
+ * - 66 (application keypad): shells arm it themselves via smkx (ESC =) each
+ *   time the line editor activates — same reasoning as DECCKM.
+ * - The mouse encodings (1005/1006/1015/1016) and alternate scroll (1007):
+ *   inert while no protocol is armed, and clearing them breaks suspend/fg —
+ *   ^Z leaves the encoding physically armed in the renderer, the TUI on fg
+ *   re-arms only its protocol, and SerializeAddon never serializes encodings,
+ *   so a reclaimed encoding would rehydrate X10 under an SGR-expecting TUI.
  */
-export const FOREGROUND_RECLAIM_RESET_PARAMS: ReadonlySet<number> = new Set(
-	[...INPUT_REPORTING_DECSET_PARAMS].filter(
-		(mode) => mode !== 1 && mode !== 2004,
-	),
-);
+export const FOREGROUND_RECLAIM_RESET_PARAMS: ReadonlySet<number> = new Set([
+	6, // DECOM — origin mode
+	9, // X10 mouse tracking
+	45, // reverse wraparound
+	1000, // normal mouse tracking
+	1001, // highlight mouse tracking
+	1002, // button-event mouse tracking
+	1003, // any-event mouse tracking
+	1004, // focus reporting
+	2031, // color-scheme update reports
+]);
+
+/**
+ * ANSI (non-DECSET) modes cleared on foreground reclaim. IRM makes typing at
+ * a prompt insert instead of overwrite — SerializeAddon re-emits it
+ * (`CSI 4 h`) on every snapshot, so a dead TUI's leak would otherwise
+ * survive every warm reattach.
+ */
+export const FOREGROUND_RECLAIM_RESET_ANSI_PARAMS: ReadonlySet<number> =
+	new Set([4]);
 
 // Byte-range helpers for the CSI grammar (ECMA-48).
 const isParamByte = (code: number) => code >= 0x30 && code <= 0x3f; // 0-9 : ; < = > ?
@@ -439,6 +463,13 @@ export function sanitizeColdRestoreScrollback(raw: string): string {
  */
 export const INPUT_MODE_DISARM_SEQUENCE = [
 	...[...INPUT_REPORTING_DECSET_PARAMS].map((mode) => `${ESC}[?${mode}l`),
+	// Terminal-behavior modes a dead TUI can leave latched. These stay in the
+	// replayed scrollback (the log rendered under them, so stripping them would
+	// hurt display fidelity) but a fresh shell must start clean: insert (IRM),
+	// origin, and reverse-wraparound.
+	`${ESC}[4l`,
+	`${ESC}[?6l`,
+	`${ESC}[?45l`,
 	`${ESC}>`,
 	`${ESC}[<255u`,
 	`${ESC}[=0;1u`,

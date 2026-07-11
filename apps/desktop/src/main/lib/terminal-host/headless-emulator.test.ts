@@ -525,9 +525,11 @@ describe("Edge Cases", () => {
 	});
 });
 
-describe("Prompt marker mode clearing (#5508)", () => {
-	// OSC 133;A — emitted by the shell wrappers before every prompt.
-	const PROMPT_MARKER = `${OSC}133;A${BEL}`;
+describe("Prompt marker foreground reclaim (#4949 / #5508)", () => {
+	// The shell wrappers print both markers before every prompt; OSC 777 is
+	// the reclaim trigger (app-private, never stripped by the shell-ready
+	// scanner), OSC 133;A feeds shell-ready detection.
+	const PROMPT_MARKER = `${OSC}777;superset-shell-ready${BEL}${OSC}133;A${BEL}`;
 	const ARM_TUI_MODES = [
 		ENABLE_MOUSE_NORMAL,
 		`${CSI}?1002h`,
@@ -549,6 +551,7 @@ describe("Prompt marker mode clearing (#5508)", () => {
 	});
 
 	test("clears pointer/focus modes when the shell prompts again", async () => {
+		await emulator.writeSync(PROMPT_MARKER); // the session's first prompt
 		await emulator.writeSync(ARM_TUI_MODES);
 		expect(emulator.getModes().mouseTrackingAnyEvent).toBe(true);
 
@@ -558,8 +561,11 @@ describe("Prompt marker mode clearing (#5508)", () => {
 		expect(modes.mouseTrackingNormal).toBe(false);
 		expect(modes.mouseTrackingButtonEvent).toBe(false);
 		expect(modes.mouseTrackingAnyEvent).toBe(false);
-		expect(modes.mouseSgr).toBe(false);
 		expect(modes.focusReporting).toBe(false);
+		// The SGR encoding is exempt from reclaim: it is inert with no protocol
+		// armed, and clearing it would break suspend/fg (the TUI re-arms only
+		// its protocol on fg while the terminal still has SGR latched).
+		expect(modes.mouseSgr).toBe(true);
 
 		// Both snapshot channels must be clean: rehydrateSequences comes from
 		// the shadow map, snapshotAnsi from SerializeAddon reading the live
@@ -567,7 +573,6 @@ describe("Prompt marker mode clearing (#5508)", () => {
 		// re-arms the modes on warm reattach (#5508).
 		const snapshot = emulator.getSnapshot();
 		expect(snapshot.rehydrateSequences).not.toContain("1002");
-		expect(snapshot.rehydrateSequences).not.toContain("1006");
 		expect(snapshot.snapshotAnsi).not.toContain("?1002h");
 		expect(snapshot.snapshotAnsi).not.toContain("?1003h");
 		expect(snapshot.snapshotAnsi).not.toContain("?1004h");
@@ -591,6 +596,33 @@ describe("Prompt marker mode clearing (#5508)", () => {
 		const snapshot = emulator.getSnapshot();
 		expect(snapshot.rehydrateSequences).toContain("?2004h");
 		expect(snapshot.snapshotAnsi).toContain("?2004h");
+	});
+
+	test("exempts modes armed by shell init from reclaim (shell-owned)", async () => {
+		// A .zshrc that runs `printf '\e[?1004h'` arms focus reporting before
+		// the first prompt marker; the shell owns it and never re-arms it, so
+		// a reclaim clearing it would lose it for the session's lifetime.
+		await emulator.writeSync(ENABLE_FOCUS_REPORTING);
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}?1002h`); // TUI arms mouse, dies
+		await emulator.writeSync(PROMPT_MARKER);
+
+		const modes = emulator.getModes();
+		expect(modes.mouseTrackingButtonEvent).toBe(false); // leaked → reclaimed
+		expect(modes.focusReporting).toBe(true); // shell-owned → survives
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.rehydrateSequences).toContain("?1004h");
+		expect(snapshot.snapshotAnsi).toContain("?1004h");
+	});
+
+	test("a DECRST releases shell ownership; the next arming is reclaimable", async () => {
+		await emulator.writeSync(ENABLE_FOCUS_REPORTING); // shell init arms
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}?1004l`); // owner releases it
+		await emulator.writeSync(ENABLE_FOCUS_REPORTING); // TUI arms, dies
+		await emulator.writeSync(PROMPT_MARKER);
+
+		expect(emulator.getModes().focusReporting).toBe(false);
 	});
 
 	test("keeps display modes across a prompt marker", async () => {
@@ -623,7 +655,7 @@ describe("Prompt marker mode clearing (#5508)", () => {
 		// any-event mouse — all in one chunk. Resetting any mouse level clears
 		// the whole protocol in the terminal, so the disarm must not fire.
 		await emulator.writeSync(
-			`${CSI}?1002h${PROMPT_MARKER}${CSI}?1003h${ENABLE_MOUSE_SGR}`,
+			`${PROMPT_MARKER}${CSI}?1002h${PROMPT_MARKER}${CSI}?1003h${ENABLE_MOUSE_SGR}`,
 		);
 
 		const snapshot = emulator.getSnapshot();
@@ -635,55 +667,141 @@ describe("Prompt marker mode clearing (#5508)", () => {
 	test("applies marker and mode changes in stream order within one chunk", async () => {
 		// TUI armed mouse, died, shell prompted, zle re-armed bracketed paste.
 		await emulator.writeSync(
-			`${CSI}?1002h${ENABLE_MOUSE_SGR}${PROMPT_MARKER}$ ${ENABLE_BRACKETED_PASTE}`,
+			`${PROMPT_MARKER}${CSI}?1002h${PROMPT_MARKER}$ ${ENABLE_BRACKETED_PASTE}`,
 		);
 
 		const modes = emulator.getModes();
 		expect(modes.mouseTrackingButtonEvent).toBe(false);
-		expect(modes.mouseSgr).toBe(false);
 		expect(modes.bracketedPaste).toBe(true);
 	});
 
+	test("preserves the mouse encoding across suspend/fg", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${ENABLE_MOUSE_NORMAL}${ENABLE_MOUSE_SGR}`);
+		await emulator.writeSync(PROMPT_MARKER); // ^Z — back at the prompt
+		await emulator.writeSync(`${CSI}?1002h`); // fg: TUI re-arms protocol only
+
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.modes.mouseTrackingButtonEvent).toBe(true);
+		// The encoding survived the reclaim, so reattach keeps SGR under the
+		// re-armed protocol instead of degrading to X10 and garbling clicks.
+		expect(snapshot.modes.mouseSgr).toBe(true);
+		expect(snapshot.rehydrateSequences).toContain("?1002h");
+		expect(snapshot.rehydrateSequences).toContain("?1006h");
+	});
+
+	test("reclaims leaked insert/origin/reverse-wrap modes but not the keypad", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}4h${CSI}?6h${CSI}?45h${CSI}?66h`);
+		await emulator.writeSync(PROMPT_MARKER);
+
+		const modes = emulator.getModes();
+		expect(modes.insertMode).toBe(false);
+		expect(modes.originMode).toBe(false);
+		expect(modes.reverseWraparound).toBe(false);
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.snapshotAnsi).not.toContain(`${CSI}4h`);
+		expect(snapshot.snapshotAnsi).not.toContain("?6h");
+		expect(snapshot.snapshotAnsi).not.toContain("?45h");
+		// Application keypad is shell-armed (smkx sends ESC = per line-editor
+		// activation), so the reclaim leaves it alone — like DECCKM.
+		expect(snapshot.snapshotAnsi).toContain("?66h");
+	});
+
+	test("keeps insert/origin/reverse-wrap armed for a live TUI", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}4h${CSI}?6h${CSI}?45h`);
+
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.modes.insertMode).toBe(true);
+		expect(snapshot.rehydrateSequences).toContain(`${CSI}4h`);
+		expect(snapshot.rehydrateSequences).toContain("?6h");
+		expect(snapshot.rehydrateSequences).toContain("?45h");
+		expect(snapshot.snapshotAnsi).toContain(`${CSI}4h`);
+		expect(snapshot.snapshotAnsi).toContain("?6h");
+	});
+
+	test("reclaims color-scheme reporting leaked by a dead TUI", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}?2031h`);
+		expect(emulator.getModes().colorSchemeReporting).toBe(true);
+
+		await emulator.writeSync(PROMPT_MARKER);
+		expect(emulator.getModes().colorSchemeReporting).toBe(false);
+
+		// A live TUI keeps it and warm reattach re-arms it.
+		await emulator.writeSync(`${CSI}?2031h`);
+		expect(emulator.getSnapshot().rehydrateSequences).toContain("?2031h");
+	});
+
+	test("reclaim never corrupts a sequence split across the marker chunk boundary", async () => {
+		// The chunk carrying the prompt marker ends mid-OSC (a title update the
+		// shell started); the tail arrives in the next chunk. The reclaim must
+		// not inject bytes between them — an injected disarm would abort the
+		// half-parsed OSC and bake its tail into every snapshot as junk text.
+		await emulator.writeSync(`${PROMPT_MARKER}${CSI}?1002h`);
+		await emulator.writeSync(
+			`${OSC}777;superset-shell-ready${BEL}${OSC}0;my-ti`,
+		);
+		await emulator.writeSync(`tle${BEL}prompt$`);
+
+		expect(emulator.getModes().mouseTrackingButtonEvent).toBe(false);
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.snapshotAnsi).toContain("prompt$");
+		expect(snapshot.snapshotAnsi).not.toContain("my-ti");
+		expect(snapshot.snapshotAnsi).not.toContain("?1002h");
+	});
+
 	test("clears modes when the marker is split across chunks", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
 		await emulator.writeSync(ARM_TUI_MODES);
 
 		await emulator.writeSync(`${OSC.slice(0, 1)}`);
-		await emulator.writeSync(`${OSC.slice(1)}133`);
-		await emulator.writeSync(`;A${BEL}`);
+		await emulator.writeSync(`${OSC.slice(1)}777;superset-`);
+		await emulator.writeSync(`shell-ready${BEL}`);
 
 		expect(emulator.getModes().mouseTrackingAnyEvent).toBe(false);
-		expect(emulator.getModes().mouseSgr).toBe(false);
+		expect(emulator.getModes().focusReporting).toBe(false);
 	});
 
 	test("clears modes when the split lands before the terminator", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
 		await emulator.writeSync(ARM_TUI_MODES);
 
-		await emulator.writeSync(`${OSC}133;A`);
+		await emulator.writeSync(`${OSC}777;superset-shell-ready`);
 		expect(emulator.getModes().mouseTrackingAnyEvent).toBe(true);
 
 		await emulator.writeSync(BEL);
 		expect(emulator.getModes().mouseTrackingAnyEvent).toBe(false);
 	});
 
-	test("clears modes for a marker carrying FinalTerm params", async () => {
+	test("ignores lookalikes that are not Superset prompt markers", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
 		await emulator.writeSync(ARM_TUI_MODES);
 
-		await emulator.writeSync(`${OSC}133;A;k=s${BEL}`);
-
-		expect(emulator.getModes().mouseTrackingAnyEvent).toBe(false);
-	});
-
-	test("ignores lookalikes that are not prompt-start markers", async () => {
-		await emulator.writeSync(ARM_TUI_MODES);
-
-		// Plain text, command-start marker, and a 133 payload not starting
-		// a prompt must all leave armed modes alone.
-		await emulator.writeSync("]133;A\x07 literal");
-		await emulator.writeSync(`${OSC}133;B${BEL}`);
-		await emulator.writeSync(`${OSC}133;AB${BEL}`);
+		// Plain text, a urxvt-style 777 notification, a 777 payload with a
+		// suffix, and a bare third-party 133;A (iTerm2/fish integrations emit
+		// those at prompts of shells we did not wrap — including inside a live
+		// tmux) must all leave armed modes alone.
+		await emulator.writeSync("]777;superset-shell-ready\x07 literal");
+		await emulator.writeSync(`${OSC}777;notify;title;body${BEL}`);
+		await emulator.writeSync(`${OSC}777;superset-shell-ready;k=s${BEL}`);
+		await emulator.writeSync(`${OSC}133;A${BEL}`);
 
 		expect(emulator.getModes().mouseTrackingAnyEvent).toBe(true);
 		expect(emulator.getModes().bracketedPaste).toBe(true);
+	});
+
+	test("does not reclaim on a tmux-passthrough-wrapped marker", async () => {
+		// `ESC Ptmux; ESC ESC ]133;A BEL ESC \` — a passthrough-wrapped inner
+		// prompt marker arriving while tmux is alive in the foreground with
+		// mouse armed must not clear tmux's modes (#5038-class regression).
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${ENABLE_MOUSE_NORMAL}${ENABLE_MOUSE_SGR}`);
+
+		await emulator.writeSync(`${ESC}Ptmux;${ESC}${ESC}]133;A${BEL}${ESC}\\`);
+
+		expect(emulator.getModes().mouseTrackingNormal).toBe(true);
 	});
 
 	test("disarm sequence returns an armed emulator to default modes", async () => {
@@ -692,6 +810,60 @@ describe("Prompt marker mode clearing (#5508)", () => {
 		await emulator.writeSync(INPUT_MODE_DISARM_SEQUENCE);
 
 		expect(modesEqual(emulator.getModes(), DEFAULT_MODES)).toBe(true);
+	});
+});
+
+describe("Foreground-reclaim client disarm", () => {
+	const PROMPT_MARKER = `${OSC}777;superset-shell-ready${BEL}${OSC}133;A${BEL}`;
+
+	let emulator: InstanceType<typeof HeadlessEmulator>;
+
+	beforeEach(() => {
+		emulator = new HeadlessEmulator({ cols: 80, rows: 24 });
+	});
+
+	afterEach(() => {
+		emulator.dispose();
+	});
+
+	test("emits DECRSTs for the cleared groups, once", async () => {
+		let reclaims = 0;
+		emulator.onForegroundReclaim(() => reclaims++);
+
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}?1002h${ENABLE_FOCUS_REPORTING}`);
+		await emulator.writeSync(PROMPT_MARKER);
+
+		expect(reclaims).toBe(1);
+		const disarm = emulator.takeForegroundReclaimClientDisarm();
+		expect(disarm).toContain("?1003l");
+		expect(disarm).toContain("?1004l");
+		expect(emulator.takeForegroundReclaimClientDisarm()).toBe("");
+	});
+
+	test("suppresses the disarm for a group re-armed before collection", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}?1002h${ENABLE_FOCUS_REPORTING}`);
+		await emulator.writeSync(PROMPT_MARKER);
+		// A new TUI re-armed the mouse before the session settled its pipeline;
+		// broadcasting ?1003l now would clear the whole protocol under it.
+		await emulator.writeSync(`${CSI}?1003h`);
+
+		const disarm = emulator.takeForegroundReclaimClientDisarm();
+		expect(disarm).not.toContain("?1003l");
+		expect(disarm).toContain("?1004l");
+	});
+
+	test("fires no reclaim when nothing leaked", async () => {
+		let reclaims = 0;
+		emulator.onForegroundReclaim(() => reclaims++);
+
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync("plain output\r\n");
+		await emulator.writeSync(PROMPT_MARKER);
+
+		expect(reclaims).toBe(0);
+		expect(emulator.takeForegroundReclaimClientDisarm()).toBe("");
 	});
 });
 
