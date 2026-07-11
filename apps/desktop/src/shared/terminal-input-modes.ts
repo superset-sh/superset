@@ -62,13 +62,17 @@ export const INPUT_REPORTING_DECSET_PARAMS: ReadonlySet<number> = new Set([
  *   ^Z leaves the encoding physically armed in the renderer, the TUI on fg
  *   re-arms only its protocol, and SerializeAddon never serializes encodings,
  *   so a reclaimed encoding would rehydrate X10 under an SGR-expecting TUI.
+ * - 1001 (highlight tracking): not a mode in this xterm build — DECSET/DECRST
+ *   1001 are no-ops, so there is never anything to reclaim (see the MODE_MAP
+ *   comment in headless-emulator.ts). It stays in the sanitizer/disarm lists
+ *   above, where stripping a no-op is free and covers terminals that do
+ *   implement it.
  */
 export const FOREGROUND_RECLAIM_RESET_PARAMS: ReadonlySet<number> = new Set([
 	6, // DECOM — origin mode
 	9, // X10 mouse tracking
 	45, // reverse wraparound
 	1000, // normal mouse tracking
-	1001, // highlight mouse tracking
 	1002, // button-event mouse tracking
 	1003, // any-event mouse tracking
 	1004, // focus reporting

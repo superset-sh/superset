@@ -60,6 +60,15 @@ const RECLAIM_MARKER_PAYLOAD = "superset-shell-ready";
 
 /**
  * DECSET/DECRST mode numbers we track
+ *
+ * 1001 (highlight mouse tracking) is deliberately absent: this xterm build
+ * implements no such mode — InputHandler has no 1001 case (set or reset),
+ * `modes.mouseTrackingMode` has no 'highlight' member, and SerializeAddon can
+ * never emit `?1001h` — so the internal terminal and the renderer both treat
+ * DECSET/DECRST 1001 as no-ops. Tracking it would make the shadow map diverge
+ * from them: `?1001h` would supersede a level (and its shell-owned grant)
+ * that physically stays armed, and `?1001l` would clear a protocol the
+ * terminal still has active.
  */
 const MODE_MAP: Record<number, keyof TerminalModes> = {
 	1: "applicationCursorKeys",
@@ -70,7 +79,6 @@ const MODE_MAP: Record<number, keyof TerminalModes> = {
 	45: "reverseWraparound",
 	47: "alternateScreen", // Legacy alternate screen
 	1000: "mouseTrackingNormal",
-	1001: "mouseTrackingHighlight",
 	1002: "mouseTrackingButtonEvent",
 	1003: "mouseTrackingAnyEvent",
 	1004: "focusReporting",
@@ -101,7 +109,6 @@ const RECLAIMABLE_MODE_NAMES: ReadonlySet<keyof TerminalModes> = new Set(
 const MOUSE_PROTOCOL_MODE_NAMES = [
 	"mouseTrackingX10",
 	"mouseTrackingNormal",
-	"mouseTrackingHighlight",
 	"mouseTrackingButtonEvent",
 	"mouseTrackingAnyEvent",
 ] as const satisfies readonly (keyof TerminalModes)[];
@@ -632,10 +639,9 @@ export class HeadlessEmulator {
 		// Reverse wraparound (mode 45)
 		addModeSequence(45, this.modes.reverseWraparound, false);
 
-		// Mouse tracking modes (mutually exclusive typically, but we track all)
+		// Mouse tracking modes (one exclusive protocol — at most one is armed)
 		addModeSequence(9, this.modes.mouseTrackingX10, false);
 		addModeSequence(1000, this.modes.mouseTrackingNormal, false);
-		addModeSequence(1001, this.modes.mouseTrackingHighlight, false);
 		addModeSequence(1002, this.modes.mouseTrackingButtonEvent, false);
 		addModeSequence(1003, this.modes.mouseTrackingAnyEvent, false);
 
@@ -692,7 +698,6 @@ export function modesEqual(a: TerminalModes, b: TerminalModes): boolean {
 		a.bracketedPaste === b.bracketedPaste &&
 		a.mouseTrackingX10 === b.mouseTrackingX10 &&
 		a.mouseTrackingNormal === b.mouseTrackingNormal &&
-		a.mouseTrackingHighlight === b.mouseTrackingHighlight &&
 		a.mouseTrackingButtonEvent === b.mouseTrackingButtonEvent &&
 		a.mouseTrackingAnyEvent === b.mouseTrackingAnyEvent &&
 		a.focusReporting === b.focusReporting &&

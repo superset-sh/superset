@@ -26,8 +26,6 @@ export interface TerminalModes {
 	mouseTrackingX10: boolean;
 	/** Normal mouse tracking - button events (mode 1000) */
 	mouseTrackingNormal: boolean;
-	/** Highlight mouse tracking (mode 1001) */
-	mouseTrackingHighlight: boolean;
 	/** Button-event mouse tracking (mode 1002) */
 	mouseTrackingButtonEvent: boolean;
 	/** Any-event mouse tracking (mode 1003) */
@@ -62,7 +60,6 @@ export const DEFAULT_MODES: TerminalModes = {
 	bracketedPaste: false,
 	mouseTrackingX10: false,
 	mouseTrackingNormal: false,
-	mouseTrackingHighlight: false,
 	mouseTrackingButtonEvent: false,
 	mouseTrackingAnyEvent: false,
 	focusReporting: false,

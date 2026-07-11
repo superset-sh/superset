@@ -876,6 +876,42 @@ describe("Mouse protocol exclusivity", () => {
 		expect(snapshot.rehydrateSequences).not.toContain("?1000h");
 		expect(emulator.takeForegroundReclaimClientDisarm()).toContain("?1003l");
 	});
+
+	// This xterm build implements no mode 1001 (highlight tracking): DECSET
+	// and DECRST 1001 are no-ops in the internal terminal and the renderer
+	// alike, so the shadow map must ignore them too — treating them as a real
+	// protocol level would clear modes the terminal still has armed.
+	test("DECSET 1001 does not displace the armed protocol", async () => {
+		await emulator.writeSync(`${CSI}?1002h${CSI}?1001h`);
+
+		expect(emulator.getModes().mouseTrackingButtonEvent).toBe(true);
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.snapshotAnsi).toContain("?1002h");
+		expect(snapshot.rehydrateSequences).toContain("?1002h");
+		expect(snapshot.rehydrateSequences).not.toContain("?1001h");
+	});
+
+	test("DECRST 1001 does not clear the armed protocol", async () => {
+		await emulator.writeSync(`${CSI}?1002h${CSI}?1001l`);
+
+		expect(emulator.getModes().mouseTrackingButtonEvent).toBe(true);
+		expect(emulator.getSnapshot().snapshotAnsi).toContain("?1002h");
+	});
+
+	test("a TUI's ?1001h cannot unseat a shell-owned level", async () => {
+		// Shell init armed ?1000h (shell-owned). A TUI sent ?1001h — a no-op
+		// in this xterm, so the shell's mode stayed physically armed — and
+		// died. The reclaim must leave the mode and its grant alone: nothing
+		// to disarm, snapshot intact.
+		await emulator.writeSync(`${CSI}?1000h`);
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}?1001h`);
+		await emulator.writeSync(PROMPT_MARKER);
+
+		expect(emulator.getModes().mouseTrackingNormal).toBe(true);
+		expect(emulator.getSnapshot().snapshotAnsi).toContain("?1000h");
+		expect(emulator.takeForegroundReclaimClientDisarm()).toBe("");
+	});
 });
 
 describe("Foreground-reclaim client disarm", () => {
