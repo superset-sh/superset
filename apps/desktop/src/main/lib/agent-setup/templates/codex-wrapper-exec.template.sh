@@ -121,7 +121,13 @@ fi
 
 # `hooks` (formerly `codex_hooks`) is stable and default-enabled in codex
 # >=0.129; the legacy `notify=...` callback remains the completion source.
-"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
+# `check_for_update_on_startup=false` suppresses Codex's built-in update prompt
+# (#5583): the wrapper intentionally runs Codex without `exec` so it can reap the
+# session watcher, which means when Codex exits after an update the user is
+# dropped to a bare shell. Left enabled, every launch is hijacked by the update
+# prompt and re-launching just repeats it — an infinite loop. Updates are managed
+# outside this session, so the startup check is pure noise here.
+"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks -c 'check_for_update_on_startup=false' -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
 SUPERSET_CODEX_STATUS=$?
 _superset_debug "codex exited status=$SUPERSET_CODEX_STATUS"
 

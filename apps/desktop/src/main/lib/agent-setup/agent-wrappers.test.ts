@@ -191,7 +191,7 @@ describe("agent-wrappers copilot", () => {
 		const wrapper = readFileSync(wrapperPath, "utf-8");
 
 		expect(wrapper).toContain(
-			`"$REAL_BIN" "\${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
+			`"$REAL_BIN" "\${_superset_codex_args[@]}" --enable hooks -c 'check_for_update_on_startup=false' -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
 
@@ -276,6 +276,8 @@ exit 0
 				"--enable",
 				"hooks",
 				"-c",
+				"check_for_update_on_startup=false",
+				"-c",
 				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
 			].join("\n")}\n`,
 		);
@@ -315,11 +317,55 @@ exit 0
 				"--enable",
 				"hooks",
 				"-c",
+				"check_for_update_on_startup=false",
+				"-c",
 				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
 				"exec",
 				"Reply with exactly OK.",
 			].join("\n")}\n`,
 		);
+	});
+
+	// Regression: #5583 — clicking Codex always shows the "Update available"
+	// prompt, and accepting it drops the user to a bare shell, so the next click
+	// shows the same prompt (infinite loop). The wrapper must suppress Codex's
+	// built-in startup update check via `check_for_update_on_startup=false` so a
+	// launch never gets hijacked by the update prompt.
+	it("suppresses codex's startup update check to avoid the update-prompt loop (#5583)", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realCodex = path.join(realBinDir, "codex");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const argsFile = path.join(TEST_ROOT, "codex-update-args.txt");
+
+		mkdirSync(realBinDir, { recursive: true });
+		writeFileSync(
+			realCodex,
+			`#!/bin/bash
+printf '%s\n' "$@" > "${argsFile}"
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(realCodex, 0o755);
+
+		createCodexWrapper();
+
+		execFileSync(wrapperPath, [], {
+			env: {
+				...process.env,
+				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+				SUPERSET_WORKSPACE_PATH: "",
+				SUPERSET_TERMINAL_ID: "terminal-1",
+			},
+			encoding: "utf-8",
+		});
+
+		const forwardedArgs = readFileSync(argsFile, "utf-8").split("\n");
+		const configFlagIndex = forwardedArgs.indexOf(
+			"check_for_update_on_startup=false",
+		);
+		expect(configFlagIndex).toBeGreaterThan(0);
+		expect(forwardedArgs[configFlagIndex - 1]).toBe("-c");
 	});
 
 	it("emits codex Start from the wrapper-owned TUI session log", () => {
