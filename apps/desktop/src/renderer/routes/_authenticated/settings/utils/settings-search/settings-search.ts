@@ -37,6 +37,8 @@ export const SETTING_ITEM_ID = {
 	AGENTS_COMMANDS: "agents-commands",
 	AGENTS_TASK_PROMPTS: "agents-task-prompts",
 
+	AGENT_LIBRARY_DEFINITIONS: "agent-library-definitions",
+
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
@@ -148,6 +150,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.AGENTS_ENABLED]: "shared",
 	[SETTING_ITEM_ID.AGENTS_COMMANDS]: "shared",
+	[SETTING_ITEM_ID.AGENT_LIBRARY_DEFINITIONS]: "shared",
 	[SETTING_ITEM_ID.AGENTS_TASK_PROMPTS]: "shared",
 
 	[SETTING_ITEM_ID.TERMINAL_PRESETS]: "shared",
@@ -627,6 +630,27 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.AGENT_LIBRARY_DEFINITIONS,
+		section: "agentLibrary",
+		title: "Agents & Skills",
+		description:
+			"Manage Claude Code subagent and skill definition files by scope: models, effort, instructions",
+		keywords: [
+			"agent",
+			"agents",
+			"subagent",
+			"skill",
+			"skills",
+			"library",
+			"definition",
+			"model",
+			"effort",
+			"instructions",
+			"claude",
+			"frontmatter",
 		],
 	},
 	{

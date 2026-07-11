@@ -11,6 +11,7 @@ export type SettingsSection =
 	| "behavior"
 	| "git"
 	| "agents"
+	| "agentLibrary"
 	| "terminal"
 	| "links"
 	| "models"

@@ -1,0 +1,1 @@
+export { getTrpcErrorCode } from "./getTrpcErrorCode";
