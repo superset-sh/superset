@@ -21,6 +21,8 @@ import type {
 	RequestPermissionRequest,
 	RequestPermissionResponse,
 	RespondToPermissionResult,
+	SessionConfigOption,
+	SessionModeState,
 	SessionNotification,
 	SessionScopedState,
 	SessionStatus,
@@ -34,6 +36,7 @@ import {
 	selectedOptionIds,
 } from "@superset/session-protocol";
 import { SessionJournal } from "./journal";
+import type { AcpSessionPersistence, AcpSessionRecord } from "./persistence";
 
 export class AcpSessionNotFoundError extends Error {}
 export class AcpSessionDeadError extends Error {}
@@ -166,6 +169,14 @@ export interface AcpSessionManagerOptions {
 	 * deterministic fake adapter speaking the same wire protocol.
 	 */
 	adapterEntry?: string;
+	/**
+	 * Durable session registry. When set, every session's binding row
+	 * (workspace, adapter session id, title, stop reason) is upserted on each
+	 * state emit, and rows found at construction are exposed as `offline`
+	 * sessions that `ensureLive` resurrects via the adapter's `session/load`.
+	 * Without it the manager is memory-only (sessions die with the host).
+	 */
+	persistence?: AcpSessionPersistence;
 }
 
 /**
@@ -177,18 +188,52 @@ export interface AcpSessionManagerOptions {
  * both read from that journal. Sessions are kept alive until the adapter
  * process dies or the manager is disposed; dead sessions keep their journal
  * (list/get/getMessages still serve them) until the graveyard evicts them.
+ *
+ * With `persistence`, session binding rows survive host restarts: a restarted
+ * manager lists them as `offline` (get/list are passive) and `ensureLive` —
+ * called by the router and stream route before every live-path operation —
+ * resurrects one on demand via the adapter's `session/load`, which replays
+ * the harness-stored transcript into a fresh journal. That new journal starts
+ * seqs at 1; numeric cursors do not yet carry an incarnation id, so callers
+ * must use the normal get + getMessages resync across a host restart.
  */
 export class AcpSessionManager {
 	private readonly resolveWorkspaceCwd: AcpSessionManagerOptions["resolveWorkspaceCwd"];
 	private readonly journalCapacity: number;
 	private readonly adapterEntry: string | undefined;
+	private readonly persistence: AcpSessionPersistence | undefined;
 	private readonly runtimes = new Map<string, AcpSessionRuntime>();
 	private readonly creations = new Map<string, InflightCreation>();
+	/**
+	 * Sessions known from the persisted registry with no adapter process
+	 * attached. Seeded once at construction; entries leave only by successful
+	 * resurrection. Disjoint from `runtimes` by construction.
+	 */
+	private readonly offline = new Map<string, AcpSessionRecord>();
 
 	constructor(options: AcpSessionManagerOptions) {
 		this.resolveWorkspaceCwd = options.resolveWorkspaceCwd;
-		this.journalCapacity = options.journalCapacity ?? 5_000;
+		const journalCapacity = options.journalCapacity ?? 5_000;
+		if (!Number.isInteger(journalCapacity) || journalCapacity < 1) {
+			throw new Error(
+				`journal capacity must be a positive integer: ${journalCapacity}`,
+			);
+		}
+		this.journalCapacity = journalCapacity;
 		this.adapterEntry = options.adapterEntry;
+		this.persistence = options.persistence;
+		if (this.persistence) {
+			try {
+				for (const record of this.persistence.loadAll()) {
+					this.offline.set(record.sessionId, record);
+				}
+			} catch (error) {
+				console.warn(
+					"[acp-sessions] failed to load persisted session registry",
+					error,
+				);
+			}
+		}
 	}
 
 	/**
@@ -207,16 +252,37 @@ export class AcpSessionManager {
 	}
 
 	get(sessionId: string): SessionScopedState {
-		return this.snapshotState(this.require(sessionId));
+		const runtime = this.runtimes.get(sessionId);
+		if (runtime) return this.snapshotState(runtime);
+		const record = this.offline.get(sessionId);
+		if (record) return this.offlineState(record);
+		throw new AcpSessionNotFoundError(`Unknown ACP session: ${sessionId}`);
 	}
 
 	/**
-	 * Sessions newest first, dead ones included — a crashed session's
-	 * transcript (and the error that killed it) must stay discoverable until
-	 * the graveyard evicts it; clients read `status === "dead"` off the state.
-	 * The cursor is `<createdAt>:<sessionId>` (the previous page's last row) —
-	 * a sort position, not an id, so pagination resumes correctly even if that
-	 * session was evicted between pages.
+	 * Resurrect a persisted-but-offline session before a live-path call: spawn
+	 * a fresh adapter and `session/load` the stored transcript back into a new
+	 * journal. Live and dead runtimes pass through untouched — dead sessions
+	 * stay dead within a host lifetime (read-only journal) and only become
+	 * resurrectable after a restart turns them offline. Unknown ids are a
+	 * no-op so the sync call that follows raises its usual NotFound. Failed
+	 * loads leave the record offline and propagate the adapter's error.
+	 */
+	async ensureLive(sessionId: string): Promise<void> {
+		if (this.runtimes.has(sessionId)) return;
+		const record = this.offline.get(sessionId);
+		if (!record) return;
+		await this.resurrectRuntime(record);
+	}
+
+	/**
+	 * Sessions newest first — dead ones included (a crashed session's
+	 * transcript, and the error that killed it, must stay discoverable until
+	 * the graveyard evicts it) and offline ones too (persisted rows from
+	 * before a host restart, resurrectable on demand); clients read the
+	 * status off the state. The cursor is `<createdAt>:<sessionId>` (the
+	 * previous page's last row) — a sort position, not an id, so pagination
+	 * resumes correctly even if that session was evicted between pages.
 	 */
 	list(input: {
 		workspaceId?: string;
@@ -224,15 +290,21 @@ export class AcpSessionManager {
 		limit?: number;
 	}): SessionsPage {
 		const limit = input.limit ?? 50;
-		const live = [...this.runtimes.values()]
+		const states = [
+			...[...this.runtimes.values()].map((runtime) =>
+				this.snapshotState(runtime),
+			),
+			...[...this.offline.values()]
+				.filter((record) => !this.runtimes.has(record.sessionId))
+				.map((record) => this.offlineState(record)),
+		]
 			.filter(
-				(runtime) =>
-					!input.workspaceId || runtime.state.workspaceId === input.workspaceId,
+				(state) =>
+					!input.workspaceId || state.workspaceId === input.workspaceId,
 			)
 			.sort(
 				(a, b) =>
-					b.state.createdAt - a.state.createdAt ||
-					a.state.sessionId.localeCompare(b.state.sessionId),
+					b.createdAt - a.createdAt || a.sessionId.localeCompare(b.sessionId),
 			);
 		let start = 0;
 		if (input.cursor) {
@@ -240,23 +312,23 @@ export class AcpSessionManager {
 			const createdAt = Number(input.cursor.slice(0, separator));
 			const sessionId = input.cursor.slice(separator + 1);
 			if (Number.isFinite(createdAt)) {
-				// First runtime strictly after the cursor position in sort order.
-				start = live.findIndex(
-					(runtime) =>
-						runtime.state.createdAt < createdAt ||
-						(runtime.state.createdAt === createdAt &&
-							runtime.state.sessionId.localeCompare(sessionId) > 0),
+				// First session strictly after the cursor position in sort order.
+				start = states.findIndex(
+					(state) =>
+						state.createdAt < createdAt ||
+						(state.createdAt === createdAt &&
+							state.sessionId.localeCompare(sessionId) > 0),
 				);
-				if (start === -1) start = live.length;
+				if (start === -1) start = states.length;
 			}
 		}
-		const pageRuntimes = live.slice(start, start + limit);
-		const last = pageRuntimes[pageRuntimes.length - 1];
+		const page = states.slice(start, start + limit);
+		const last = page[page.length - 1];
 		return {
-			items: pageRuntimes.map((runtime) => this.snapshotState(runtime)),
+			items: page,
 			nextCursor:
-				last && start + limit < live.length
-					? `${last.state.createdAt}:${last.state.sessionId}`
+				last && start + limit < states.length
+					? `${last.createdAt}:${last.sessionId}`
 					: null,
 			// Reaching the manager at all means the feature gate is open — the
 			// router answers `enabled: false` itself when the gate is closed.
@@ -516,6 +588,19 @@ export class AcpSessionManager {
 			return inflight.promise;
 		}
 
+		// A create() re-issued for a persisted session (the client's normal
+		// open-session flow after a host restart) resurrects instead of minting
+		// a fresh adapter session — same idempotency contract as the live case.
+		const record = this.offline.get(sessionId);
+		if (record) {
+			if (record.workspaceId !== workspaceId) {
+				throw new AcpWorkspaceMismatchError(
+					`Session ${sessionId} is already bound to workspace ${record.workspaceId}`,
+				);
+			}
+			return this.resurrectRuntime(record);
+		}
+
 		const promise = this.createRuntime(sessionId, workspaceId).finally(() => {
 			this.creations.delete(sessionId);
 		});
@@ -523,9 +608,35 @@ export class AcpSessionManager {
 		return promise;
 	}
 
+	/** Spawn + session/load for an offline record; deduped via `creations`. */
+	private resurrectRuntime(
+		record: AcpSessionRecord,
+	): Promise<AcpSessionRuntime> {
+		const inflight = this.creations.get(record.sessionId);
+		if (inflight) return inflight.promise;
+		const promise = this.createRuntime(
+			record.sessionId,
+			record.workspaceId,
+			record,
+		)
+			.then((runtime) => {
+				this.offline.delete(record.sessionId);
+				return runtime;
+			})
+			.finally(() => {
+				this.creations.delete(record.sessionId);
+			});
+		this.creations.set(record.sessionId, {
+			workspaceId: record.workspaceId,
+			promise,
+		});
+		return promise;
+	}
+
 	private async createRuntime(
 		sessionId: string,
 		workspaceId: string,
+		resume?: AcpSessionRecord,
 	): Promise<AcpSessionRuntime> {
 		const cwd = await this.resolveWorkspaceCwd(workspaceId);
 		// process.execPath instead of a PATH lookup for "node": inside the
@@ -560,7 +671,25 @@ export class AcpSessionManager {
 		// mutable slot; updates that race construction are buffered and folded
 		// once the runtime exists.
 		let runtime: AcpSessionRuntime | null = null;
-		const earlyUpdates: SessionNotification[] = [];
+		// session/load can replay an arbitrarily long native transcript before its
+		// response resolves. This fixed-size ring retains only the same recent
+		// window the journal can serve, with O(1) eviction even for huge sessions.
+		const earlyUpdates = new Array<SessionNotification | undefined>(
+			this.journalCapacity,
+		);
+		let earlyUpdatesStart = 0;
+		let earlyUpdatesSize = 0;
+		const bufferEarlyUpdate = (notification: SessionNotification) => {
+			if (earlyUpdatesSize < this.journalCapacity) {
+				earlyUpdates[
+					(earlyUpdatesStart + earlyUpdatesSize) % this.journalCapacity
+				] = notification;
+				earlyUpdatesSize += 1;
+				return;
+			}
+			earlyUpdates[earlyUpdatesStart] = notification;
+			earlyUpdatesStart = (earlyUpdatesStart + 1) % this.journalCapacity;
+		};
 		let stderrTail = "";
 		child.stderr?.on("data", (chunk: Buffer) => {
 			stderrTail = (stderrTail + chunk.toString()).slice(-STDERR_TAIL_LIMIT);
@@ -594,7 +723,7 @@ export class AcpSessionManager {
 			)
 			.onNotification("session/update", (context) => {
 				if (!runtime) {
-					earlyUpdates.push(context.params);
+					bufferEarlyUpdate(context.params);
 					return;
 				}
 				this.handleUpdate(runtime, context.params);
@@ -621,20 +750,45 @@ export class AcpSessionManager {
 					elicitation: { form: {} },
 				},
 			});
-			const session = await connection.agent.request("session/new", {
-				cwd,
-				mcpServers: [],
-			});
+			let acpSessionId: string;
+			let modes: SessionModeState | null;
+			let configOptions: SessionConfigOption[];
+			if (resume) {
+				// session/load replays the harness-stored transcript as ordinary
+				// session/update notifications before the response resolves — they
+				// buffer in earlyUpdates and land in the fresh journal from seq 1.
+				const loaded = await connection.agent.request("session/load", {
+					sessionId: resume.acpSessionId,
+					cwd,
+					mcpServers: [],
+				});
+				acpSessionId = resume.acpSessionId;
+				modes = loaded.modes ?? null;
+				configOptions = loaded.configOptions ?? [];
+			} else {
+				const session = await connection.agent.request("session/new", {
+					cwd,
+					mcpServers: [],
+				});
+				acpSessionId = session.sessionId;
+				modes = session.modes ?? null;
+				configOptions = session.configOptions ?? [];
+			}
 
-			// D14-c: the adapter starts sessions in bypassPermissions; Superset
-			// sessions must start in default (ask-before-tool) mode.
-			let modes = session.modes ?? null;
+			// D14-c: the adapter starts (and loads) sessions in bypassPermissions;
+			// a Superset session must never sit in bypass unless the user chose
+			// it. Fresh sessions are forced to default outright; resumed ones only
+			// override bypass, so a user-picked mode (plan, acceptEdits) survives
+			// the restart.
 			const hasDefaultMode = modes?.availableModes.some(
 				(mode) => mode.id === "default",
 			);
-			if (modes && hasDefaultMode && modes.currentModeId !== "default") {
+			const forceDefaultMode = resume
+				? modes?.currentModeId === "bypassPermissions"
+				: modes !== null && modes.currentModeId !== "default";
+			if (modes && hasDefaultMode && forceDefaultMode) {
 				await connection.agent.request("session/set_mode", {
-					sessionId: session.sessionId,
+					sessionId: acpSessionId,
 					modeId: "default",
 				});
 				modes = { ...modes, currentModeId: "default" };
@@ -647,18 +801,18 @@ export class AcpSessionManager {
 					workspaceId,
 					harness: "claude-agent-acp",
 					status: "idle",
-					title: null,
+					title: resume?.title ?? null,
 					currentMode: modes,
-					configOptions: session.configOptions ?? [],
+					configOptions,
 					pendingPermissions: [],
 					cwd,
 					lastSeq: 0,
-					lastStopReason: null,
+					lastStopReason: resume?.lastStopReason ?? null,
 					lastError: null,
-					createdAt: now,
+					createdAt: resume?.createdAt ?? now,
 					updatedAt: now,
 				},
-				acpSessionId: session.sessionId,
+				acpSessionId,
 				child,
 				connection,
 				journal: new SessionJournal(this.journalCapacity),
@@ -670,8 +824,16 @@ export class AcpSessionManager {
 				dead: false,
 			};
 			runtime = created;
-			for (const notification of earlyUpdates.splice(0)) {
-				this.handleUpdate(created, notification);
+			for (let index = 0; index < earlyUpdatesSize; index += 1) {
+				const notification =
+					earlyUpdates[(earlyUpdatesStart + index) % this.journalCapacity];
+				if (notification) this.handleUpdate(created, notification);
+			}
+			if (resume) {
+				// Nothing replayed can still be running — the process it ran in is
+				// gone. Terminalize whatever the stored transcript left open so it
+				// doesn't render as in-progress forever.
+				this.terminalizeOpenToolCalls(created);
 			}
 
 			child.on("exit", (code, signal) => {
@@ -1043,6 +1205,48 @@ export class AcpSessionManager {
 				lastSeq: runtime.journal.latestSeq + 1,
 			},
 		});
+		// Every state emit refreshes the registry row (create, title change,
+		// turn end, death) — best-effort; the live path never depends on it.
+		this.persistState(runtime);
+	}
+
+	private persistState(runtime: AcpSessionRuntime): void {
+		if (!this.persistence) return;
+		try {
+			this.persistence.upsert({
+				sessionId: runtime.state.sessionId,
+				workspaceId: runtime.state.workspaceId,
+				acpSessionId: runtime.acpSessionId,
+				harness: runtime.state.harness,
+				cwd: runtime.state.cwd,
+				title: runtime.state.title,
+				lastStopReason: runtime.state.lastStopReason,
+				createdAt: runtime.state.createdAt,
+				updatedAt: runtime.state.updatedAt,
+			});
+		} catch (error) {
+			console.warn("[acp-sessions] failed to persist session row", error);
+		}
+	}
+
+	/** Synthesized snapshot for a persisted session with no adapter attached. */
+	private offlineState(record: AcpSessionRecord): SessionScopedState {
+		return {
+			sessionId: record.sessionId,
+			workspaceId: record.workspaceId,
+			harness: record.harness,
+			status: "offline",
+			title: record.title,
+			currentMode: null,
+			configOptions: [],
+			pendingPermissions: [],
+			cwd: record.cwd,
+			lastSeq: 0,
+			lastStopReason: record.lastStopReason,
+			lastError: null,
+			createdAt: record.createdAt,
+			updatedAt: record.updatedAt,
+		};
 	}
 
 	private snapshotState(runtime: AcpSessionRuntime): SessionScopedState {

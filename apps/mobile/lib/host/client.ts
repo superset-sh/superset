@@ -1,4 +1,5 @@
 import {
+	type AcpHostClient,
 	createAcpHostClient,
 	createHostTransport,
 } from "@superset/host-client";
@@ -58,26 +59,31 @@ function expiresSoon(token: string): boolean {
 	}
 }
 
-const acp = createAcpHostClient(
-	createHostTransport({ getRelayUrl, getToken: getHostAuthToken }),
-);
+let acp: AcpHostClient | null = null;
+
+function getAcpClient(): AcpHostClient {
+	acp ??= createAcpHostClient(
+		createHostTransport({ getRelayUrl, getToken: getHostAuthToken }),
+	);
+	return acp;
+}
 
 export function listAcpSessions(
 	routingKey: string,
 	workspaceId: string,
 ): Promise<SessionsPage> {
-	return acp.listSessions(routingKey, workspaceId);
+	return getAcpClient().listSessions(routingKey, workspaceId);
 }
 
 export function createAcpSession(
 	routingKey: string,
 	input: { sessionId: string; workspaceId: string },
 ): Promise<SessionScopedState> {
-	return acp.createSession(routingKey, input);
+	return getAcpClient().createSession(routingKey, input);
 }
 
 export function createAcpSessionsApi(routingKey: string): AcpSessionsApi {
-	return acp.sessionsApi(routingKey);
+	return getAcpClient().sessionsApi(routingKey);
 }
 
 /** WS endpoint factory for the live update stream. */
@@ -85,5 +91,5 @@ export function createAcpStreamUrl(options: {
 	routingKey: string;
 	sessionId: string;
 }): () => Promise<string> {
-	return acp.streamUrl(options);
+	return getAcpClient().streamUrl(options);
 }

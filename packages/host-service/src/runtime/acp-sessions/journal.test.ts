@@ -76,6 +76,23 @@ describe("SessionJournal", () => {
 		expect(journal.after(0)).toBeNull();
 	});
 
+	test("preserves logical order after repeatedly wrapping the ring", () => {
+		const journal = new SessionJournal(3);
+		for (let i = 1; i <= 100; i += 1) {
+			journal.append("s", updateFrame(`${i}`));
+		}
+		expect(journal.oldestSeq).toBe(98);
+		expect(journal.after(97)?.map((entry) => entry.seq)).toEqual([98, 99, 100]);
+		expect(
+			journal
+				.page({
+					limit: 3,
+					matches: (envelope) => envelope.frame.kind === "update",
+				})
+				.items.map((entry) => entry.seq),
+		).toEqual([98, 99, 100]);
+	});
+
 	test("page() walks backwards, filters, and returns ascending items", () => {
 		const journal = new SessionJournal(20);
 		// alternate update and state frames: updates get seqs 1,3,5,7,9

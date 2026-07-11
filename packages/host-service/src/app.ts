@@ -16,6 +16,7 @@ import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
 import {
 	AcpSessionManager,
 	registerAcpSessionStreamRoute,
+	SqliteAcpSessionPersistence,
 } from "./runtime/acp-sessions";
 import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
@@ -121,7 +122,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
 	// auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
-	// ACP session harness (plans/session-harness-acp.md) — owns Claude Code
+	// ACP session harness (docs/acp-sessions.md) — owns Claude Code
 	// adapter child processes. Fully parallel to the mastra chat runtime.
 	// Pre-release, so gated OFF by default: the desktop app's security-settings
 	// toggle ("Enable live agent sessions") makes the coordinator spawn hosts
@@ -143,6 +144,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				}
 				return workspace.worktreePath;
 			},
+			// Registry rows only (workspace binding, adapter session id, title)
+			// — the journal stays in-memory; a restarted host lists these as
+			// `offline` and resurrects on demand via the adapter's session/load.
+			persistence: new SqliteAcpSessionPersistence(db),
 		});
 
 	const runtime = {

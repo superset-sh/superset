@@ -94,7 +94,7 @@ export function PermissionRequestView({
 							"text-sm",
 							answered && !selectedIds.has(option.optionId)
 								? "text-muted-foreground/50"
-								: !answered && picked.has(option.optionId)
+								: selectedIds.has(option.optionId)
 									? "text-primary font-medium"
 									: "text-foreground",
 						)}

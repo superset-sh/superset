@@ -1,6 +1,6 @@
 # Replace the mastra chat harness with a Claude Agent SDK session runtime
 
-> **Status: competing alternative — not currently selected.** This is approach **A** of two competing designs for replacing the mastra harness. Approach **B** — [ACP via an off-the-shelf adapter](./session-harness-acp.md) — was selected on 2026-07-09 and is the active plan. This document is preserved intact as the fallback: it is the design the ACP plan's "escape hatch" falls back to if the adapter path proves inadequate (its protocol/envelope thinking — seq/cursor delivery, unified permissions, pagination — carried over into the ACP plan largely unchanged).
+> **Status: archived alternative, not current implementation documentation.** The selected ACP harness is implemented; see [`packages/host-service/docs/acp-sessions.md`](../packages/host-service/docs/acp-sessions.md) for current behavior, [`plans/done/20260710-session-harness-acp.md`](./done/20260710-session-harness-acp.md) for the shipped outcome, and [`plans/acp-session-follow-ups.md`](./acp-session-follow-ups.md) for remaining work. This file is retained only as the direct-Claude-SDK fallback design.
 >
 > If this path is ever revived, note that four scope decisions were made *after* this draft and would apply here too: (1) ship **parallel to mastra**, not as a replacement — mastra is in production on desktop; the excision (Milestone 6) and desktop migration (Milestone 4) move to a later hard-swap plan; (2) **keep session processes alive forever** — no idle disposal (Q3 resolved); (3) list **live sessions only** — dead sessions just disappear, no resume-after-restart requirement (which also removes the need for the `agent_sessions` SQLite registry); (4) auth = the host machine's logged-in Claude account (Q1 resolved to option a).
 
@@ -119,7 +119,10 @@ Claude Agent SDK knowledge needed to implement this plan (verified against `sdk.
 
 ### Relationship to the selected ACP implementation
 
-The [canonical end-to-end comparison](./session-harness-acp.md#end-to-end-comparison-acp-vs-direct-claude-agent-sdk) lives in the selected ACP plan so the two documents do not carry duplicate matrices that drift. The direct design preserves the same user-facing topology and final v1 lifetime rules; it changes the host-local ownership boundary:
+The current comparison lives in
+[`apps/mobile/plans/acp-vs-claude-sdk.html`](../apps/mobile/plans/acp-vs-claude-sdk.html).
+The direct design preserves the same user-facing topology; it changes the
+host-local ownership boundary:
 
 | Dimension | Selected ACP implementation | This direct-SDK fallback |
 |---|---|---|
@@ -351,4 +354,4 @@ All milestones are additive until Milestone 6; the old mastra path keeps working
 
 Revision note (2026-07-09, initial): drafted from discovery of the mastra harness map, host-service/relay transport constraints, SDK 0.3.205 type audit, and Kirill's four scoping decisions (D1–D5 directional answers). Stream delivery mechanism (seq/cursor/journal) authored in response to the open "what if we miss stuff" question.
 
-Revision note (2026-07-09, restored): this file briefly ceased to exist when the working plan was rewritten in place around the ACP direction. Restored verbatim from the session transcript as the competing "direct Claude Agent SDK" alternative, renamed from its timestamped filename to `session-harness-claude-agent-sdk.md`, code blocks converted to fenced style, and the status banner at the top added. See `session-harness-acp.md` for the selected approach.
+Revision note (2026-07-09, restored): this file briefly ceased to exist when the working plan was rewritten in place around the ACP direction. Restored verbatim from the session transcript as the competing "direct Claude Agent SDK" alternative, renamed from its timestamped filename to `session-harness-claude-agent-sdk.md`, code blocks converted to fenced style, and the status banner at the top added. See `packages/host-service/docs/acp-sessions.md` for the selected implementation.

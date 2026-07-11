@@ -18,6 +18,7 @@ const STATUS_LABEL: Record<SessionScopedState["status"], string> = {
 	idle: "Idle",
 	running: "Running",
 	awaiting_permission: "Needs permission",
+	offline: "Ready to resume",
 	// Dead sessions stay listed (read-only transcript) until the host's
 	// graveyard evicts them — same wording as the thread's banner.
 	dead: "Ended",

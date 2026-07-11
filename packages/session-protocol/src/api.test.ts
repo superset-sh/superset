@@ -3,6 +3,7 @@ import {
 	decodeMessagesCursor,
 	encodeMessagesCursor,
 	getMessagesInput,
+	listSessionsInput,
 	promptInput,
 	respondToPermissionInput,
 } from "./api";
@@ -72,5 +73,19 @@ describe("router input schemas", () => {
 		expect(
 			getMessagesInput.safeParse({ sessionId: "s1", limit: 500 }).success,
 		).toBe(false);
+	});
+
+	test("listSessionsInput rejects malformed and unsafe numeric cursors", () => {
+		expect(
+			listSessionsInput.safeParse({ cursor: "1700000000000:session-1" })
+				.success,
+		).toBe(true);
+		for (const cursor of [
+			"not-a-cursor",
+			"1700000000000:",
+			"999999999999999999999999:session-1",
+		]) {
+			expect(listSessionsInput.safeParse({ cursor }).success).toBe(false);
+		}
 	});
 });

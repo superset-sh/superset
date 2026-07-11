@@ -1,157 +1,159 @@
-# Host integration test — drive the host through a shared client
+# Host Integration Test
 
-Status: **proposed / not started** (deliberately punted; plan only)
+Status: **active; first package-boundary suite shipped, process/Node/mobile lanes remain**.
 
-## Why
+This plan is the focused test workstream for ACP sessions. The complete runtime,
+packaging, persistence, state, and mobile backlog is in
+`plans/acp-session-follow-ups.md`. Current behavior is documented in
+`packages/host-service/docs/acp-sessions.md`.
 
-Today the only way to exercise the ACP session surface end to end is to boot
-the full app stack (desktop app → host-service child, relay, redis/SRH, api,
-mobile app or a hand-rolled script). That loop is minutes long and every layer
-adds its own failure modes (stale electron env, tunnel no-retry, Metro cache).
-During M4 of `plans/session-harness-acp.md` we effectively hand-built this
-test twice as scratchpad scripts — it caught real bugs (missing
-user_message_chunk journaling, env-injected fake API key, getMessages zod
-limits). It should be a checked-in integration test that runs in seconds,
-without driving the full app.
+## Goal
 
-## Target layering
-
-Three layers, dependency arrows only point down:
+Test the same boundary a product client uses:
 
 ```text
-host client   (packages/host-client — exists; mobile consumes it, desktop + web to follow)
-    │  imports
-host protocol (packages/session-protocol — exists: envelope, fold, state, AcpSessionsApi)
-    ▲  imports
-host          (packages/host-service — exists: creates the server, satisfies the protocol)
+@superset/host-client
+  -> authenticated host-service HTTP and WebSocket server
+  -> acpSessions router and stream route
+  -> AcpSessionManager
+  -> deterministic fake ACP adapter child
+  -> temporary on-disk native transcript fixture
 ```
 
-- **host protocol** — already `packages/session-protocol`: envelope/frame
-  types, `foldEnvelopes`, `AcpSessionsApi` interface, `subscribeToSession`.
-  No transport, no server. (Optional later rename to `host-protocol`; not
-  worth the churn now.)
-- **host client** — `packages/host-client` (extracted; shipped). The transport
-  that used to live only in `apps/mobile/lib/host/client.ts` (SuperJSON
-  GET/POST envelope over `${RELAY_URL}/hosts/<routingKey>/trpc/*`, WS stream
-  URL builder, auth-retry) is now a platform-neutral package (fetch +
-  WebSocket only, injected `getToken`/`baseUrl`), and mobile consumes it.
-  Still to do: migrate desktop and `apps/web/src/trpc/host-client.ts`, and
-  delete the `apps/mobile/lib/host` vs `apps/mobile/lib/host-service`
-  duplication.
-- **host** — `packages/host-service`. Already builds standalone (the desktop
-  just bundles and spawns it). Add a type-level conformance check that the
-  acpSessions router satisfies `AcpSessionsApi` so protocol drift fails
-  typecheck, not runtime.
+The always-run boundary suite at
+`packages/host-service/test/integration/acp-host-client.e2e.test.ts` now proves
+that the extracted host client and a real host server agree on procedure names,
+SuperJSON envelopes, auth, output shapes, WebSocket cursors, and in-process host
+restart behavior. The remaining work is a separate OS-process/Node lane and the
+iOS product lane.
 
-**The integration test is: host + client.** Boot the real host-service HTTP
-server in-process, point the real host client at it, and assert on what the
-client observes. Never call manager methods directly — if the client can't
-see it, it doesn't count.
+## Completed Prerequisites
 
-## Test doubles: fake agent adapter
+- [x] `@superset/host-client` is extracted from mobile and owns generic
+  fetch/SuperJSON transport, one-time 401 refresh, relay URL construction, and
+  stream URL construction.
+- [x] Mobile consumes `@superset/host-client` through
+  `apps/mobile/lib/host/client.ts`.
+- [x] The fake adapter is a real child process speaking ACP JSON-RPC over stdio
+  through the official SDK.
+- [x] Manager-level deterministic tests cover turns, tools, permissions,
+  elicitations, cancel, crash, journal eviction, and session/load replay.
+- [x] Router and WebSocket route tests cover feature gating, error mapping,
+  fan-out, reconnect, and malformed `since` cursors.
+- [x] A host-local SQLite registry maps the public session id to the native ACP
+  session id and harness for restart resurrection.
+- [x] The real `createApp` HTTP/tRPC host runs behind a relay-shaped prefix and
+  is driven through `@superset/host-client` plus the real WebSocket sync client.
+- [x] The boundary suite closes and reopens an on-disk registry, resurrects via
+  `session/load`, and verifies the client-visible error/reset after deleting the
+  harness-owned native transcript.
 
-Spawning the real `claude-agent-acp` needs credentials, a network, and a
-model — slow, flaky, non-deterministic. `AcpSessionManager` already takes
-`resolveWorkspaceCwd` + `journalCapacity` via options; add an injectable
-`adapterEntry` (path to the adapter JS spawned per session, defaulting to the
-real `resolveAdapterEntry()`).
+## Shipped Always-run Suite
 
-Write a **scripted ACP peer** (`packages/host-service/test/fake-adapter.ts`,
-~150 lines, JSON-RPC over stdio) that:
+The suite stays under `packages/host-service/test/integration/`. Keeping it with
+host-service avoids a dev-dependency cycle from host-client back to the server
+package.
 
-- answers `initialize` / `session/new`
-- on `session/prompt`, replays a scenario keyed by the prompt text:
-  - `scenario:simple` — N `agent_message_chunk`s → `end_turn`
-  - `scenario:permission` — tool_call update → `session/request_permission`
-    → honors the outcome (completed vs cancelled tool) → `end_turn`
-  - `scenario:slow` — streams until `session/cancel` (tests interrupt)
-  - `scenario:crash` — exits mid-turn (tests dead-session semantics)
-- never touches the network; writes to cwd only when the scenario says so
+It currently:
 
-Keep one opt-in **live smoke test** (`SUPERSET_LIVE_ACP=1`) that uses the real
-adapter + real Claude Code login for release confidence; CI skips it.
+1. Create a temporary workspace and an on-disk host database.
+2. Run host migrations through the normal test helper.
+3. Start the real `createApp` server on an ephemeral port with the ACP feature
+   enabled, the fake adapter injected, and production auth middleware active.
+4. Construct the real `@superset/host-client` against that endpoint. The
+   transport needs a direct-host URL mode or an in-process relay-shaped proxy;
+   do not duplicate its serialization logic in the test.
+5. Drive named client methods only. Assertions may inspect the temporary
+   filesystem/database after a step, but must not invoke manager methods to
+   advance the scenario.
+6. Shut down the whole server, close the database, and terminate adapter
+   children.
+7. Starts a fresh app/server/manager generation against the same DB/workspace
+   paths and proves offline listing, on-demand `session/load`, history, stream
+   attach, and client-visible load failure.
 
-## Environment tiers ("smart env setup")
+Still missing here: a separate OS process for the restarted host, the packaged
+Node entrypoint with `better-sqlite3`, canonical output parsers, and the iOS
+Maestro lane.
 
-Set up the *full* environment where it's cheap, fake only the model:
+## Canonical Flow
 
-- **Tier 1 — direct (default, every `bun test` run):** in-process
-  host-service HTTP server on an ephemeral port + fake adapter + temp git
-  worktree as the workspace cwd. No docker, no relay, no db. Client talks to
-  the host directly (same wire format the relay forwards verbatim). Auth:
-  host-service JWT validation gets a test-signed key (see open question 1).
-- **Tier 2 — tunneled (opt-in `SUPERSET_IT_RELAY=1`, CI nightly):** same
-  test suite, but the client goes through a real relay + redis/SRH
-  (docker compose services already exist per-worktree: redis :3076,
-  SRH :3077, relay :3073). A shared `integration-env.ts` helper starts —
-  or reuses, in dev — those services idempotently, registers the host
-  tunnel, and returns `{ baseUrl, routingKey, stop() }`. The suite is
-  transport-parametrized: the SAME sequences run against both tiers.
-- **Tier 3 — live smoke (`SUPERSET_LIVE_ACP=1`, manual):** tier 1 or 2 with
-  the real adapter and a one-liner prompt. Not in CI.
+1. `listSessions` returns `enabled: true` and no rows.
+2. `createSession` returns idle/default-mode state and one registry row.
+3. Two WebSocket clients attach to the same session.
+4. A prompt requests permission; both clients receive identical gapless frames.
+5. One client answers. The other sees the same resolution and the turn ends.
+6. `getMessages` pagination folds to the same timeline as the live stream.
+7. One socket disconnects, more frames arrive, and cursor reconnect catches up
+   without duplicates.
+8. A tiny catch-up ring forces `journal_evicted`; full resync succeeds from the
+   disk-backed history source once that workstream lands.
+9. A 401 causes exactly one token refresh and retry. A second 401 surfaces.
+10. The host is fully stopped and restarted from the same on-disk DB.
+11. `listSessions` shows the session as offline without spawning an adapter.
+12. Opening history or the stream resurrects the same native session.
+13. A stale pre-restart cursor resets by journal incarnation.
+14. A post-restart prompt completes and appends to the same history.
 
-The scratchpad script from M4 (`e2e-mobile-transport.ts`, now all-green) is
-the seed for the tier-2 suite — check it in, replacing hardcoded ids with the
-env helper.
+## Negative Cases
 
-## Test sequence (the canonical flow, per transport)
+- feature gate disabled: `list` is disabled/empty, commands fail, stream route
+  is absent, no child is spawned;
+- invalid/expired auth over HTTP and WebSocket;
+- session id bound to a different workspace;
+- unknown session and malformed list/history/stream cursors;
+- adapter fails initialize/new/load and exits during a turn;
+- transcript missing or corrupt after registry lookup;
+- host restart during a pending permission;
+- wrong-session or malformed server output rejected by the real client;
+- server close leaves no adapter process, socket, DB handle, or temp directory.
 
-1. `create` returns the caller's sessionId, `status=idle`; re-`create` with
-   the same id is idempotent; same id + different workspace → error.
-2. `list` includes the session; pagination cursor works; dead sessions drop
-   out of `list` but `get`/`getMessages` still serve them.
-3. Two independent `subscribeToSession` clients connect (since=0).
-4. `prompt` (scenario:permission): user message is journaled first
-   (adapter doesn't echo it — host synthesizes `user_message_chunk`).
-5. Both subscribers see `permission_requested`; `get` shows
-   `awaiting_permission`.
-6. `respondToPermission` (allow_once) → `permission_resolved`; tool_call
-   completes; turn ends with `end_turn`.
-7. Both subscribers: gapless seq from 1, identical folded timelines
-   (message / tool_call+resolved permission / message).
-8. Late joiner (since=0) replays an identical prefix; a since=N joiner gets
-   exactly the suffix.
-9. `getMessages` pages (walking beforeSeq backwards) reunion to the same
-   fold as the live stream — state frames are stream-only by design.
-10. `cancel` mid-turn (scenario:slow) → `stopReason=cancelled`, status back
-    to `idle`, composer-visible state consistent.
-11. Adapter crash mid-turn (scenario:crash) → session marked dead, in-flight
-    prompt rejects, journal retained, `list` drops it.
-12. Permission denied (reject_once) → tool_call ends
-    failed/cancelled, turn still terminates cleanly.
-13. Auth: bad/expired JWT → 401 from stream and trpc paths; client's
-    one-shot refresh-retry works.
-14. Journal ring overflow (tiny `journalCapacity`): late joiner past the
-    ring start gets `reset` frame and resyncs via `getMessages`.
+## Runtime Lanes
 
-## Milestones
+### Always-run deterministic lane
 
-- **IT1 — extract `packages/host-client`** from `apps/mobile/lib/host/client.ts` —
-  **done** (package exists; mobile consumes it). Remaining follow-up: web
-  consumption and deleting the `apps/mobile/lib/host-service/client.ts`
-  duplication.
-- **IT2 — fake adapter + adapterEntry injection**; tier-1 suite covering
-  sequences 1–12 (bun test, no docker).
-- **IT3 — integration-env helper + tier-2 relay run** of the same suite
-  (sequences 1–14); wire into CI as a separate job.
-- **IT4 — live smoke** behind `SUPERSET_LIVE_ACP=1`; document in
-  host-service README.
+- fake adapter;
+- no model, tokens, external network, or user credentials;
+- Bun test runner for the broad matrix;
+- a Node lane for the production `better-sqlite3` driver and packaged host
+  entrypoint.
 
-## Open questions
+### Opt-in compatibility lane
 
-1. **JWT validation in tier 1** — how does host-service verify tokens when
-   there's no api? Options: inject a JWKS/public key into host config and
-   sign test tokens locally (preferred), or boot the api in tier 2 only and
-   relax tier 1 to a test-mode verifier. Needs a look at
-   `packages/host-service` auth middleware before IT2.
-2. **Where the suite lives** — `packages/host-client/integration/` (tests the
-   contract from the consumer side, needs host-service as devDependency) vs
-   `packages/host-service/integration/` (avoids a dev-dep cycle). Decide at
-   IT1 based on which direction the dep graph allows.
-3. **tRPC vs raw envelope** — the mobile client hand-rolls the SuperJSON
-   envelope instead of using `createTRPCClient` (to avoid importing the host
-   AppRouter into mobile's typecheck). Keep hand-rolled in `host-client`
-   (typed by the protocol interface), or publish a slim router-type-only
-   entrypoint from host-service? Leaning hand-rolled — it's what runs today.
-4. **simctl/Maestro UI smoke** — out of scope here; UI-level flow stays a
-   dev-loop tool (see `plans/session-harness-acp.md` M4 evidence), not CI.
+Use the real pinned `claude-agent-acp` against a throwaway git workspace and the
+machine's existing Claude login. Gate it with `ACP_E2E=1`. Keep assertions
+semantic and small: initialize, create, one prompt, one permission, load in a
+fresh adapter, and cancel. This catches upstream adapter/SDK drift; it is not a
+CI substitute for the fake.
+
+### iOS product lane
+
+Maestro starts from the mobile session list and talks through the relay to the
+same test host. Cover create, permission, reconnect/background, host restart,
+offline row, resume, older-page loading, and load failure. Relaunch the app
+during restart scenarios so the result cannot pass through retained React
+state.
+
+## Contract Ownership
+
+The current `@superset/session-protocol` package mixes contracts, sync logic,
+and React hooks. The planned split is:
+
+- `@superset/host-service-sync`: schemas, types, fold, cursors, WebSocket sync,
+  framework-free store;
+- `@superset/host-service-react`: React bindings;
+- `@superset/host-client`: transport and named host clients.
+
+The integration suite should consume named operations with output parsers from
+`host-service-sync`; it must not import the host's full `AppRouter` into mobile
+or hand-maintain a second response facade.
+
+## Acceptance
+
+- The complete canonical flow passes through a real server and real
+  `@superset/host-client`.
+- Restart closes and reopens an on-disk DB in a new host process.
+- Bun and Node/`better-sqlite3` lanes pass.
+- Malformed outputs fail at the client parser, not later in the fold/UI.
+- Teardown leaves no process, socket, file handle, or temporary directory.
+- The suite is always-run, deterministic, and does not require cloud services.

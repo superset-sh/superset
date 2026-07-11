@@ -1,6 +1,6 @@
 /**
  * The single source of ACP typing for both sides of the wire (Decision D7 in
- * plans/session-harness-acp.md): host-service and every client import ACP
+ * packages/host-service/docs/acp-sessions.md): host-service and every client import ACP
  * types ONLY through this file — the ENTIRE generated surface, never a
  * hand-picked subset.
  *

@@ -92,6 +92,7 @@
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
+		"@superset/host-client": "workspace:*",
 		"@superset/typescript": "workspace:*",
 		"@types/better-sqlite3": "7.6.13",
 		"@types/mime-types": "3.0.1",

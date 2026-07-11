@@ -64,6 +64,13 @@
       "when": 1783213515635,
       "tag": "0008_workspace_full_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1783753971421,
+      "tag": "0009_add_acp_sessions",
+      "breakpoints": true
     }
   ]
 }

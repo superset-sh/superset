@@ -1,3 +1,7 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
 <title>ACP vs Claude SDK — as implemented</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -64,17 +68,19 @@
   .sec-note { color: var(--mut); margin: 0 0 20px; max-width: 96ch; }
 
   /* ---------- §1 difference index ---------- */
-  .difflist { display: flex; flex-direction: column; gap: 8px; max-width: 1080px; }
-  .drow { display: flex; gap: 14px; align-items: baseline; padding: 10px 16px;
-          border-radius: 10px; background: var(--card-sh); outline: 1px solid var(--edge-sh); }
-  .drow.crit { background: var(--card-dif); outline: 1px solid var(--edge-dif); }
-  .drow .dn { font: 700 11px/1 ui-monospace, monospace; color: var(--dif); flex: none; width: 18px; }
-  .drow .dt { flex: 1; min-width: 0; font-size: 13.5px; }
-  .drow .dt b { font-weight: 650; }
-  .drow .dt .a, .drow .dt .o { font-weight: 600; }
-  .drow .dt .a { color: var(--acp); } .drow .dt .o { color: var(--sdk); }
-  .drow .go { flex: none; font: 600 11px/1 ui-monospace, monospace; color: var(--mut);
-              text-decoration: none; padding: 4px 0; white-space: nowrap; }
+  .difflist { display: flex; flex-direction: column; gap: 24px; max-width: 1080px; }
+  .drow .dh { margin: 0 0 5px; font-size: 14.5px; font-weight: 700; line-height: 1.4; }
+  .drow .dh .dn { font: 700 12px/1 ui-monospace, monospace; color: var(--dif); margin-right: 2px; }
+  .drow.crit .dh::after { content: "critical"; font: 700 9.5px/1 ui-monospace, monospace;
+    letter-spacing: .07em; text-transform: uppercase; color: var(--dif); margin-left: 10px;
+    position: relative; top: -1px; }
+  .drow p { margin: 3px 0; font-size: 13.5px; max-width: 104ch; }
+  .drow p .tag { font: 700 11.5px/1.7 ui-monospace, monospace; margin-right: 4px; }
+  .drow p.la .tag { color: var(--acp); }
+  .drow p.lo .tag { color: var(--sdk); }
+  .drow p.dnote { color: var(--mut); font-size: 12.5px; }
+  .drow .go { font: 600 11px/1 ui-monospace, monospace; color: var(--mut);
+              text-decoration: none; white-space: nowrap; margin-left: 10px; }
   .drow .go:hover, .drow .go:focus-visible { color: var(--dif); }
   .dhint { margin: 14px 2px 0; font-size: 12.5px; color: var(--mut); max-width: 96ch; }
   .dhint .dchip { vertical-align: 1px; }
@@ -260,74 +266,134 @@
   footer.caveats p { font-size: 12.5px; color: var(--mut); max-width: 110ch; margin: 0 0 8px; }
   footer.caveats b { color: var(--tx); font-weight: 600; }
 
+  /* ---------- provenance badge + §6 fidelity matrix (added with phases ⑩–⑮) ---------- */
+  .prov { display: inline-block; font: 700 9.5px/1.4 ui-monospace, monospace; letter-spacing: .06em;
+          color: var(--mut); outline: 1px dashed var(--edge-sh); background: var(--card-sh);
+          padding: 3px 6px; border-radius: 5px; text-transform: uppercase; margin-right: 6px; }
+  .fidwrap { overflow-x: auto; }
+  table.fid { border-collapse: collapse; width: 100%; max-width: 1500px; min-width: 1000px; --cdx: #0f766e; }
+  @media (prefers-color-scheme: dark) { table.fid { --cdx: #5eead4; } }
+  :root[data-theme="light"] table.fid { --cdx: #0f766e; }
+  :root[data-theme="dark"] table.fid { --cdx: #5eead4; }
+  table.fid th, table.fid td { text-align: left; padding: 9px 12px; vertical-align: top;
+    font-size: 12.5px; line-height: 1.5; }
+  table.fid tbody tr { box-shadow: 0 1px 0 var(--card-sh); }
+  table.fid thead th { font: 600 10.5px/1.4 ui-monospace, monospace; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--mut); padding-bottom: 10px; box-shadow: 0 1px 0 var(--guide); }
+  table.fid thead th.h-nc { color: var(--sdk); }
+  table.fid thead th.h-ca { color: var(--acp); }
+  table.fid thead th.h-xc { color: var(--cdx); }
+  table.fid thead th.h-xa { color: var(--acp); }
+  table.fid td.metric { font: 650 12px/1.5 ui-monospace, monospace; white-space: nowrap; color: var(--tx); }
+  table.fid code { font: 430 11px/1.4 ui-monospace, monospace; }
+  table.fid .lost { color: var(--dif); font-weight: 600; font-style: normal; }
+  table.fid .unv { color: var(--mut); font-size: 11px; }
+
   @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 </style>
+</head>
+<body>
 
 <div class="wrap">
 <header class="page">
-  <p class="eyebrow">Protocol comparison · measured from both working trees · 2026-07-10</p>
+  <p class="eyebrow">Current ACP implementation compared with the direct Claude SDK design · complex interactions reconstructed from source</p>
   <h1><span class="id-acp">ACP-aligned protocol</span> <span class="vs">vs</span> <span class="id-sdk">Claude SDK harness</span></h1>
   <p class="subtitle">Both trees implement the same architecture — a seq-stamped envelope journal on the host, one WebSocket
   replayed with <code>?since=</code>, and a pure client-side fold into timeline items. What differs is the vocabulary riding
   inside the envelope, and who does the interpretive work. UI code is excluded from every number below.</p>
-  <p class="pins"><b>ACP</b> = uncommitted tree on main · claude-agent-acp 0.56.0 child process · @agentclientprotocol/sdk 1.2.0 &nbsp;·&nbsp;
-  <b>Claude SDK</b> = claude-sdk-session-harness worktree · @anthropic-ai/claude-agent-sdk 0.3.202 in-process</p>
+  <p class="pins"><b>ACP</b> = current PR implementation · claude-agent-acp 0.56.0 child process · @agentclientprotocol/sdk 1.2.0 &nbsp;·&nbsp;
+  <b>Claude SDK</b> = archived direct-SDK design · @anthropic-ai/claude-agent-sdk 0.3.202 in-process</p>
+  <p class="pins"><b>fidelity sources (⑩–⑮, §6)</b> = claude-agent-acp 0.56.0 dist · @anthropic-ai/claude-agent-sdk 0.3.201 types
+  (this tree) · @agentclientprotocol/codex-acp 1.1.2 npm tarball, source-inspected</p>
 </header>
 
 <section id="diffs" class="prose" style="max-width:1120px">
   <h2><span class="sno">1</span>Where they actually differ</h2>
-  <p class="sec-note">Seven divergences carry all the signal; everything else in the diagram is the same machine twice.
-  Ranked, roughly, by how much they should weigh on the decision.</p>
+  <p class="sec-note">Seven divergences (D1–D7) carry the wire-protocol signal; everything else in phases ①–⑨ is the same machine
+  twice. Ranked, roughly, by how much they should weigh on the decision. D8–D10 are a different species: not “who does the work”
+  but “can the vocabulary even say it” — covered in phases ⑩–⑮ and the §6 fidelity matrix.</p>
   <div class="difflist">
     <div class="drow crit">
-      <span class="dn">D1</span>
-      <span class="dt"><b>Where history lives.</b> <span class="a">ACP</span>: the in-memory ring journal <i>is</i> the history —
-      host restart loses every session and its transcript. <span class="o">SDK</span>: the journal is only a delivery buffer;
-      truth is Claude's native JSONL transcript on disk — survives restarts, powers <code>retry()</code> epochs.</span>
-      <a class="go" href="#ph-attach">hops ↓</a>
+      <h3 class="dh"><span class="dn">D1</span> — Where history lives <a class="go" href="#ph-attach">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> host SQLite keeps the public session → native ACP session binding. A restarted
+      host lists the row as offline and resurrects it on demand with <code>session/load</code>. The adapter replays its native
+      on-disk transcript into a fresh, bounded 5,000-frame journal.</p>
+      <p class="lo"><span class="tag">SDK:</span> the journal is only a delivery buffer; truth is Claude's native JSONL transcript
+      on disk — survives restarts, powers <code>retry()</code> epochs.</p>
+      <p class="dnote">Both sides recover completed history from Claude's native store. The ACP host owns registry metadata, not
+      a durable transcript. <code>getMessages</code> still pages the bounded ring, so content older than that retained window is
+      unavailable; disk-backed paging is required follow-up work. In-flight turns die with the host on both sides.</p>
     </div>
     <div class="drow">
-      <span class="dn">D2</span>
-      <span class="dt"><b>Stream vocabulary.</b> <span class="a">ACP</span> journals semantic, final chunks and UI-ready
-      <code>tool_call</code> frames (title/kind/status on the wire). <span class="o">SDK</span> journals every raw delta verbatim,
-      then replaces them with an authoritative message — ~10× the journal rows, interpretation deferred to the client fold.</span>
-      <a class="go" href="#ph-stream">hops ↓</a>
+      <h3 class="dh"><span class="dn">D2</span> — Stream vocabulary <a class="go" href="#ph-stream">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> streams too — one <code>agent_message_chunk</code> per text delta, live during
+      the turn; chunks accumulate into one message and are <b>never replaced</b> (the adapter diffs the SDK's consolidated
+      message against what already streamed and forwards only any un-streamed tail). Tool calls arrive as UI-ready
+      <code>tool_call</code> frames (title/kind/status on the wire).</p>
+      <p class="lo"><span class="tag">SDK:</span> journals the raw model stream verbatim (<code>message_start</code>,
+      <code>content_block_delta</code>, …) <b>and then</b> a complete assistant message that supersedes the accumulated deltas
+      at fold time — ~10× the journal rows, interpretation deferred to the client fold.</p>
+      <p class="dnote">Both sides stream token-by-token. The divergence is the vocabulary (semantic chunks vs raw stream events)
+      and whether a later authoritative message replaces what streamed — ACP: no; SDK: yes.</p>
     </div>
     <div class="drow">
-      <span class="dn">D3</span>
-      <span class="dt"><b>Permission contract.</b> <span class="a">ACP</span> ships the options on the wire; the client taps an
-      optionId back — zero decision logic on the device. <span class="o">SDK</span> ships raw input + rule suggestions; the client
-      must build a full <code>PermissionResult</code> and invent the Allow / Always / Deny UX.</span>
-      <a class="go" href="#ph-perm">hops ↓</a>
+      <h3 class="dh"><span class="dn">D3</span> — Permission contract <a class="go" href="#ph-perm">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> ships the options on the wire; the client taps an optionId back — zero decision
+      logic on the device.</p>
+      <p class="lo"><span class="tag">SDK:</span> ships raw input + rule suggestions; the client must build a full
+      <code>PermissionResult</code> and invent the Allow / Always / Deny UX.</p>
     </div>
     <div class="drow">
-      <span class="dn">D4</span>
-      <span class="dt"><b>Questions (AskUserQuestion).</b> Same tool, opposite ends do the work: the <span class="a">ACP</span> host
-      converts the elicitation form into ordinary permission cards — mobile has zero question code. The <span class="o">SDK</span>
-      host forwards the raw tool input and mobile special-cases it — the host has zero question code. SDK also carries
-      <b>3 parallel interaction channels</b> vs ACP's 1.</span>
-      <a class="go" href="#ph-ask">hops ↓</a>
+      <h3 class="dh"><span class="dn">D4</span> — Questions (AskUserQuestion) <a class="go" href="#ph-ask">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> the host converts the elicitation form into ordinary permission cards — mobile
+      has zero question code.</p>
+      <p class="lo"><span class="tag">SDK:</span> the host forwards the raw tool input and mobile special-cases it — the host has
+      zero question code; carries <b>3 parallel interaction channels</b> vs ACP's 1.</p>
+      <p class="dnote">Same tool, opposite ends do the work.</p>
     </div>
     <div class="drow">
-      <span class="dn">D5</span>
-      <span class="dt"><b>Process model.</b> <span class="a">ACP</span> boots a child process per session and needs 3 stdio
-      round-trips (initialize → session/new → set_mode) before it's usable. <span class="o">SDK</span> is one in-process
-      <code>query()</code> call whose options carry cwd, mode and model; its callbacks never cross a process boundary.</span>
-      <a class="go" href="#ph-create">hops ↓</a>
+      <h3 class="dh"><span class="dn">D5</span> — Process model <a class="go" href="#ph-create">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> boots a child process per session and needs 3 stdio round-trips
+      (initialize → session/new → set_mode) before it's usable.</p>
+      <p class="lo"><span class="tag">SDK:</span> one in-process <code>query()</code> call whose options carry cwd, mode and
+      model; its callbacks never cross a process boundary.</p>
     </div>
     <div class="drow">
-      <span class="dn">D6</span>
-      <span class="dt"><b>Sending a prompt.</b> <span class="a">ACP</span> takes plain ContentBlocks, allows mid-turn sends, and the
-      host echoes your bubble into the journal instantly. <span class="o">SDK</span> needs a client-built <code>SDKUserMessage</code>,
-      only accepts when idle, and your bubble waits for the CLI's echo.</span>
-      <a class="go" href="#ph-prompt">hops ↓</a>
+      <h3 class="dh"><span class="dn">D6</span> — Sending a prompt <a class="go" href="#ph-prompt">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> takes plain ContentBlocks, allows mid-turn sends, and the host echoes your
+      bubble into the journal instantly.</p>
+      <p class="lo"><span class="tag">SDK:</span> needs a client-built <code>SDKUserMessage</code>, only accepts when idle, and
+      your bubble waits for the CLI's echo.</p>
     </div>
     <div class="drow">
-      <span class="dn">D7</span>
-      <span class="dt"><b>Turn end.</b> <span class="a">ACP</span>'s turn-end is host-internal — a stopReason answering a parked RPC;
-      devices only ever see the state snapshot. <span class="o">SDK</span> journals an explicit <code>result</code> frame with
-      duration, cost and usage — billing telemetry for free.</span>
-      <a class="go" href="#ph-end">hops ↓</a>
+      <h3 class="dh"><span class="dn">D7</span> — Turn end <a class="go" href="#ph-end">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> turn-end is host-internal — a stopReason answering a parked RPC; devices only
+      ever see the state snapshot.</p>
+      <p class="lo"><span class="tag">SDK:</span> journals an explicit <code>result</code> frame with duration, cost and usage —
+      billing telemetry for free.</p>
+    </div>
+    <div class="drow crit">
+      <h3 class="dh"><span class="dn">D8</span> — Subagents <a class="go" href="#ph-subagents">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> the spawn becomes a generic <code>think</code> tool call, subagent <b>prose is
+      deliberately dropped</b>, and the tree survives only via the non-standard <code>_meta.claudeCode.parentToolUseId</code>
+      our fold happens to know about.</p>
+      <p class="lo"><span class="tag">SDK:</span> a typed spawn (<code>subagent_type</code>, model, isolation), every subagent
+      message tagged with <code>parent_tool_use_id</code>, transcript readable later by (sessionId, agentId).</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D9</span> — Task graph → flat checklist <a class="go" href="#ph-tasks">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> the four Task tools are suppressed; each mutation re-emits one flat
+      <code>plan</code> — content + status only, <code>priority</code> invented as <code>"medium"</code>, everything else
+      dropped on the adapter floor.</p>
+      <p class="lo"><span class="tag">SDK:</span> ID-addressed tasks with dependencies (<code>blocks</code>/<code>blockedBy</code>),
+      owner, metadata — a queryable graph.</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D10</span> — Workflows &amp; goals don't cross <a class="go" href="#ph-workflow">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> the workflow crosses as one opaque <code>kind:"other"</code> tool call; goals
+      don't cross at all — the adapter has no mapping for them.</p>
+      <p class="lo"><span class="tag">SDK:</span> a first-class <code>Workflow</code> tool (resumable runs, taskId/runId,
+      transcript dir) and an <code>active_goal</code> message type.</p>
     </div>
   </div>
   <p class="dhint">In the diagram below every diverging hop wears a magenta number — <span class="dchip">≠</span> — with a one-line
@@ -385,9 +451,13 @@
 
 <section id="sequence">
   <h2><span class="sno">3</span>Every packet, end to end</h2>
-  <p class="sec-note">create → attach → prompt → stream → permission → question → two devices → turn end → reset.
+  <p class="sec-note">create → attach → prompt → stream → permission → question → two devices → turn end → reset —
+  then the complex interactions: <a href="#ph-subagents">⑩ subagents</a> · <a href="#ph-tasks">⑪ task graphs</a> ·
+  <a href="#ph-planmode">⑫ plan mode</a> · <a href="#ph-terminal">⑬ terminal / background Bash</a> ·
+  <a href="#ph-workflow">⑭ workflows</a> · <a href="#ph-goal">⑮ goals</a>.
   One numbered arrow per hop; payloads sit under the actor that sends them. Blue is ACP-only, amber is SDK-only, grey exists on
-  both sides; dashed arrows are in-process calls that never touch a wire. Hops renumber automatically as you filter.</p>
+  both sides; dashed arrows are in-process calls that never touch a wire. Hops renumber automatically as you filter.
+  Phases ①–⑨ are captured traffic; ⑩–⑮ are reconstructed from adapter/SDK source and badged as such.</p>
 
   <div class="residency">
     <div class="res">
@@ -400,15 +470,15 @@
       <h4>Host — the only authority</h4>
       <p><code>SessionScopedState</code> mutates <b>only here</b>; every mutation is journaled as a full-snapshot
       <code>state</code> frame — clients receive status, never compute it.</p>
-      <p><code>SessionJournal</code>: per-session in-memory ring, gapless seq from 1, cap 5,000. Every append fans out to every
-      subscribed socket in the same call.</p>
+      <p><code>SessionJournal</code>: per-session in-memory catch-up ring, gapless within one runtime incarnation, cap 5,000.
+      Every append fans out to every subscribed socket in the same call.</p>
       <p>Parked asks: <span class="who-acp">ACP</span> <code>Map&lt;requestId, resolve&gt;</code> of unanswered JSON-RPC requests ·
       <span class="who-sdk">SDK</span> three Deferred maps (permissions / dialogs / elicitations).</p>
     </div>
     <div class="res">
       <h4>Agent — conversation truth</h4>
-      <p><span class="who-acp">ACP</span>: one <code>claude-agent-acp</code> child process per session; the conversation lives
-      inside its embedded SDK session. Host restart loses it.</p>
+      <p><span class="who-acp">ACP</span>: one <code>claude-agent-acp</code> child process per active session; its embedded SDK
+      persists the native transcript. Host SQLite stores the lookup key, and <code>session/load</code> restores completed history.</p>
       <p><span class="who-sdk">SDK</span>: in-process <code>query()</code> handle over a claude subprocess; history truth is
       Claude's <b>native JSONL transcript</b> on disk, which outlives the journal.</p>
     </div>
@@ -431,10 +501,10 @@
     <div class="top">
       <div class="bar">
         <div class="modes" role="group" aria-label="Show payloads for">
-          <button data-m="acp">ACP</button><button data-m="both" class="on">Both</button><button data-m="sdk">SDK</button>
+          <button type="button" data-m="acp" aria-pressed="false">ACP</button><button type="button" data-m="both" class="on" aria-pressed="true">Both</button><button type="button" data-m="sdk" aria-pressed="false">SDK</button>
         </div>
         <div class="modes fmode" role="group" aria-label="Filter hops">
-          <button data-f="all" class="on">All steps</button><button data-f="diff">Differences</button>
+          <button type="button" data-f="all" class="on" aria-pressed="true">All steps</button><button type="button" data-f="diff" aria-pressed="false">Differences</button>
         </div>
         <span class="sub spacer">magenta number = the sides diverge here</span>
       </div>
@@ -678,8 +748,8 @@ await runtime.acpSessions.create({ sessionId, workspaceId })
 
       <div class="hop diff">
         <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>GET history page <span class="who">— newest first, cursor walks backward</span></span></span><i class="ln"></i></div>
-        <div class="why"><span><b>≠ D1 · critical</b> — ACP pages its own ring journal (host restart = history gone);
-        SDK pages Claude's native JSONL transcript (survives restarts)</span></div>
+        <div class="why"><span><b>≠ D1 · critical</b> — ACP currently pages its bounded ring; an offline session first rebuilds
+        that ring through a full session/load replay. The direct SDK design pages Claude's native JSONL transcript.</span></div>
         <div class="cells">
           <div class="c1">
             <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span></div>
@@ -895,12 +965,13 @@ fold(bufferedEnvelopes)               // live rows on top
     <section class="ix">
       <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
       <h2 id="ph-stream">④ Text streams back</h2>
-      <p class="pnote">Divergence <b>D2</b>, in the flesh. Agent → host → journal → every socket, one call. ACP rows are semantic and
-      final; SDK rows are the raw model stream, later replaced by an authoritative message.</p>
+      <p class="pnote">Divergence <b>D2</b>, in the flesh. Agent → host → journal → every socket, one call. Both sides stream
+      live, token by token; ACP's rows are semantic chunks that are never replaced, the SDK's are the raw model stream, later
+      superseded by an authoritative message.</p>
 
       <div class="hop acp-only diff">
         <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>agent_message_chunk <span class="who">— journaled at host, fanned out same call</span></span></span><i class="ln"></i></div>
-        <div class="why"><span><b>≠ D2</b> — one row per semantic chunk; chunks are final on arrival, nothing gets replaced</span></div>
+        <div class="why"><span><b>≠ D2</b> — streamed live, one row per text delta; chunks accumulate and are never replaced</span></div>
         <div class="cells">
           <div class="c1">
             <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 4 · session/update notification, verbatim</span></div>
@@ -911,7 +982,9 @@ fold(bufferedEnvelopes)               // live rows on top
       "text": "I'll inspect the delivery path and existing tests." }
 } } }</pre>
               <p class="ft">⤷ fold <b>appendChunk</b>: last item is an agent message → <code>blocks[last].text += chunk</code> —
-              merged in place, no new item. <b>agent_thought_chunk</b> is identical, folds to role "thought".</p></div>
+              merged in place, no new item. <b>agent_thought_chunk</b> is identical, folds to role "thought".
+              The SDK's consolidated assistant message never crosses: the adapter diffs it against the already-streamed blocks
+              (acp-agent.js:658) and forwards only an un-streamed tail.</p></div>
           </div>
         </div>
       </div>
@@ -971,7 +1044,9 @@ fold(bufferedEnvelopes)               // live rows on top
       <h2 id="ph-perm">⑤ Tool call needs permission</h2>
       <p class="pnote">The parked-promise pattern both sides share: the agent asks, the host parks the ask + journals two rows
       (request, then state snapshot), the answer RPC resolves the parked promise back into the agent. Divergence <b>D3</b> is
-      what rides the wire and who constructs the decision.</p>
+      what rides the wire and who constructs the decision.<br><span class="prov">observed in the current real-adapter lane:
+      Claude can emit two Bash tool uses in parallel, but claude-agent-acp 0.56.0 exposes their permission callbacks to the
+      client one at a time. Superset supports a true multi-request stack; the deterministic ACP adapter pins that case.</span></p>
 
       <div class="hop acp-only diff">
         <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>tool_call frame <span class="who">— UI-ready at birth</span></span></span><i class="ln"></i></div>
@@ -1165,7 +1240,8 @@ fold(bufferedEnvelopes)               // live rows on top
     <section class="ix">
       <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
       <h2 id="ph-ask">⑥ The agent asks a question — AskUserQuestion</h2>
-      <p class="pnote">Claude asks: “Which failures should retry?” The turn stays parked — answering does <b>not</b> create a new
+      <p class="pnote"><span class="prov">captured against claude-agent-acp 0.56.0 with a Haiku/low smoke turn</span><br>
+      Claude asks: “Which failures should retry?” The turn stays parked — answering does <b>not</b> create a new
       prompt. Divergence <b>D4</b>: the interpretive work happens at opposite ends.</p>
 
       <div class="hop acp-only diff">
@@ -1472,8 +1548,8 @@ POST …/respondToPermission { "requestId": "q-3f7c9d2e-…", … }
     <section class="ix">
       <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
       <h2 id="ph-reset">⑨ Reconnect, gaps, reset</h2>
-      <p class="pnote">Identical cursor semantics both sides; the divergence is what a client rebuilds from after a terminal
-      reset — <b>D1</b> again, and where it bites hardest.</p>
+      <p class="pnote">Both sides use cursor replay inside one journal incarnation. The divergence is the history source used
+      for a full rebuild — <b>D1</b> again, and where it bites hardest.</p>
 
       <div class="hop">
         <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>redial after background <span class="who">— exponential backoff 250ms → 10s</span></span></span><i class="ln"></i></div>
@@ -1483,8 +1559,8 @@ POST …/respondToPermission { "requestId": "q-3f7c9d2e-…", … }
 <pre>WSS …/stream ?since=15        // lastSeq the device has folded
 // dedupe / gap rules as in ② — “exactly once, in order” is
 // enforced by the CLIENT with two integer comparisons;
-// the server just replays. SDK additionally zod-validates
-// every frame; an invalid frame forces a reconnect.</pre></div>
+// the server just replays. The current ACP client performs only
+// a shallow envelope check; full runtime parsing remains TODO.</pre></div>
           </div>
         </div>
       </div>
@@ -1498,7 +1574,7 @@ POST …/respondToPermission { "requestId": "q-3f7c9d2e-…", … }
 <pre>{ "seq": 0, "sessionId": "7d1e4a02-…", "ts": …,
   "frame": { "kind": "reset",
              "reason": "journal_evicted" } }
-// also: invalid_since, session_not_found
+// also: invalid_since, session_not_found, session_load_failed
 // not journaled — seq 0 is out-of-band by construction</pre></div>
             <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">ring evicted / host restarted / retry epoch</span></div>
 <pre>{ "seq": 0, "sessionId": "6f0d1c2e-…", "ts": …,
@@ -1514,8 +1590,8 @@ POST …/respondToPermission { "requestId": "q-3f7c9d2e-…", … }
 
       <div class="hop diff">
         <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>full resync</span></span><i class="ln"></i></div>
-        <div class="why"><span><b>≠ D1 · critical</b> — after a HOST RESTART: ACP's session and its entire history are gone;
-        the SDK rebuilds the whole conversation from the JSONL transcript</span></div>
+        <div class="why"><span><b>≠ D1 · critical</b> — after a host restart ACP resurrects from a registry row plus a full
+        session/load replay into a fresh ring; the direct SDK design reads pages from the JSONL transcript.</span></div>
         <div class="cells">
           <div class="c1">
             <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">useAcpSession.ts:113 — same reads as ②</span></div>
@@ -1523,8 +1599,10 @@ POST …/respondToPermission { "requestId": "q-3f7c9d2e-…", … }
 GET  …/acpSessions.getMessages     // newest journal page
 // refold from scratch (pure) → resubscribe ?since=folded.lastSeq
 // older pages on demand via cursor "s&lt;seq&gt;"</pre>
-              <p class="ft">⤷ if the host itself restarted there is nothing to resync <b>from</b>: sessions, journal and
-              history are gone (session_not_found). No restart-resume exists (ACP session/load unused).</p></div>
+              <p class="ft">⤷ the session lists as <b>"offline"</b> from its SQLite registry row. The first live call
+              (prompt / getMessages / stream attach) runs <code>session/load</code> and rebuilds a fresh journal. Numeric seqs
+              restart at 1; because the cursor has no incarnation id, an overlapping pre-restart cursor is not always detected.
+              Epoch-aware cursors are required follow-up work.</p></div>
             <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">useClaudeSessionThread.ts:178</span></div>
 <pre>GET  …/sessions.get                     // state, incl. lastSeq
 WSS  …/stream ?since=state.lastSeq      // open FIRST, buffer
@@ -1538,13 +1616,521 @@ GET  …/sessions.getMessages ×N          // drain full transcript
       </div>
     </section>
 
+    <!-- ══════════ ⑩ SUBAGENTS ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-subagents">⑩ Subagents</h2>
+      <p class="pnote"><span class="prov">captured with a named token-free workflow against claude-agent-acp 0.56.0; lifecycle details cross-checked against sdk 0.3.201 types</span><br>
+      Native: the <code>Agent</code> tool is a first-class spawn — the subagent has an id, a type, its own transcript file, and
+      every message it produces is tagged with the spawning tool_use. Over ACP: the adapter renames the spawn to a generic
+      <code>think</code> tool call, <b>deliberately drops subagent prose</b>, and tags nested tool calls with non-standard
+      <code>_meta</code> that our fold happens to understand — <b>D8</b>.</p>
+
+      <div class="hop diff">
+        <div class="ar dirL ac-sh" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>the spawn <span class="who">— Agent (a.k.a. Task) tool_use</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D8</b> — SDK: a typed spawn with subagent_type / model / isolation on the wire ·
+        ACP: a generic think call; the spawn options survive only because rawInput echoes the input</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">tools.js:19 — case "Agent"/"Task" → kind "think"</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_01TaskAa",
+    "title": "Audit retry edge cases",     // = input.description
+    "kind": "think",                       // ← a SPAWN, labelled a thought
+    "status": "pending",
+    "content": [ { "type": "content", "content": {
+        "type": "text", "text": "Find every call site that retries webhook delivery…" } } ],
+    "rawInput": { "description": "Audit retry edge cases",
+      "prompt": "Find every call site that retries webhook delivery…",
+      "subagent_type": "Explore", "model": "haiku" },
+    "_meta": { "claudeCode": { "toolName": "Task" } }
+} }</pre>
+              <p class="ft">⤷ <code>subagent_type</code> / <code>model</code> / <code>isolation</code> are not protocol fields —
+              no ACP client can rely on them; they ride only inside the untyped <code>rawInput</code> echo.</p></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">AgentInput — sdk-tools.d.ts:410</span></div>
+<pre>{ "kind": "sdk", "message": {
+    "type": "assistant", "uuid": "9e2f61bb-…",
+    "message": { "role": "assistant", "content": [
+      { "type": "tool_use", "id": "toolu_01TaskAa", "name": "Agent",
+        "input": {
+          "description": "Audit retry edge cases",
+          "prompt": "Find every call site that retries webhook delivery…",
+          "subagent_type": "Explore",
+          "model": "haiku",
+          "name": "recon-retries",
+          "run_in_background": false,
+          "isolation": "worktree"
+        } } ] }
+} }</pre>
+              <p class="ft">⤷ the input is a <b>typed spawn</b>: subagent_type · model · name · run_in_background · mode ·
+              isolation ("worktree"/"remote"). The client sees exactly what was launched, and with what powers.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>subagent stream <span class="who">— every message tagged with the spawning tool_use</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">parent_tool_use_id — first-class on every SDKMessage</span></div>
+<pre>{ "kind": "sdk", "message": {
+    "type": "assistant", "uuid": "b7c31d9a-…",
+    "session_id": "c1a2d3e4-…",
+    "parent_tool_use_id": "toolu_01TaskAa",   // ← the spawn
+    "message": { "role": "assistant", "content": [
+      { "type": "text", "text": "Scanning delivery/ for retry loops…" },
+      { "type": "tool_use", "id": "toolu_02Grep", "name": "Grep",
+        "input": { "pattern": "retry", "path": "src/delivery" } }
+    ] }
+} }</pre>
+              <p class="ft">⤷ prose AND tool calls arrive, all tagged. Identity outlives the stream:
+              <code>listSubagents(sessionId)</code> → <code>getSubagentMessages(sessionId, agentId)</code> replays the
+              subagent's own JSONL transcript (<code>…/&lt;sessionId&gt;/subagents/agent-&lt;agentId&gt;.jsonl</code>);
+              SubagentStart/SubagentStop hooks carry <code>agent_id</code> + <code>agent_type</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="self ac-acp" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">adapter drops subagent prose — by design</span></div>
+        <div class="why"><span><b>≠ D8 · critical</b> — text/thinking from a subagent never reaches ANY ACP client; there is no
+        frame for “subagent said something”</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:1729 — comment is verbatim from source</span></div>
+<pre class="ts">// subagent assistant message (parent_tool_use_id !== null):
+// "It is never streamed live and its text/thinking is internal
+//  to the tool call — keep dropping it so subagent prose
+//  doesn't leak into the top-level feed."
+content = message.message.content.filter(
+  (item) =&gt; item.type !== "text" &amp;&amp; item.type !== "thinking");</pre>
+              <p class="ft">⤷ only the tool_use blocks survive the filter and continue to the next hop.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>nested tool_call <span class="who">— nesting rides non-standard _meta</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:4085 — parentToolUseId stamped on every subagent-born update</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_02Grep",
+    "title": "grep \"retry\" src/delivery",
+    "kind": "search", "status": "pending",
+    "rawInput": { "pattern": "retry", "path": "src/delivery" },
+    "_meta": { "claudeCode": {
+        "toolName": "Grep",
+        "parentToolUseId": "toolu_01TaskAa" } }   // ← the whole tree
+} }</pre>
+              <p class="ft">⤷ <code>_meta</code> is ACP's sanctioned extension point, but nothing about this key is standard:
+              a generic ACP client renders this call <b>flat</b>, as a sibling of the Task it belongs to.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="self ac-sh" style="--l:0"><span class="no"></span><span class="dot"></span><span class="al">who can rebuild — and later re-read — the subagent</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">session-protocol fold.ts — upsertToolCall re-homing</span></div>
+<pre class="ts">// OUR fold knows the adapter's private key:
+claudeParentToolUseId(src) =&gt;
+  src._meta?.claudeCode?.parentToolUseId ?? null
+// a tagged frame re-homes the item under its Task — splice
+// from top level, re-insert as ToolCallItem.children[]
+// Different adapter → different key. Standard client → no tree.
+// session/load can rebuild retained tree frames from native history;
+// frames older than the host ring remain unavailable.</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sdk.d.ts:760 — any time later</span></div>
+<pre class="ts">// by (sessionId, agentId), long after the stream:
+getSubagentMessages("c1a2d3e4-…", "3f2b…")
+// → the subagent's full message history from its own
+//   transcript file; survives host restarts</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑪ TASK GRAPH ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-tasks">⑪ Native tasks — graph in, checklist out</h2>
+      <p class="pnote"><span class="prov">reconstructed from adapter source — claude-agent-acp 0.56.0 dist + sdk 0.3.201 types · not a captured run</span><br>
+      Native: an ID-addressed task graph (TaskCreate / TaskUpdate / TaskList / TaskGet) with dependencies, owner and metadata.
+      Over ACP: the four tools are suppressed and each mutation re-emits <b>one flat <code>plan</code> snapshot</b> —
+      content + status only — <b>D9</b>.</p>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>TaskCreate / TaskUpdate <span class="who">— building the graph, on the wire verbatim</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sdk-tools.d.ts:2381 — TaskCreateInput / TaskUpdateInput</span></div>
+<pre>{ "type": "tool_use", "name": "TaskCreate",
+  "input": { "subject": "Add retry queue",
+    "description": "Durable queue with exponential backoff",
+    "activeForm": "Adding retry queue",
+    "metadata": { "epic": "webhooks" } } }
+// → tool_result: { "task": { "id": "task-1", … } }   ← addressable
+
+{ "type": "tool_use", "name": "TaskUpdate",
+  "input": { "taskId": "task-2", "status": "in_progress",
+    "addBlockedBy": [ "task-1" ],          // dependency edges
+    "owner": "recon-retries" } }           // who's on it
+
+// TaskGet  → { task: { id, subject, description, status,
+//                      blocks: [], blockedBy: ["task-1"] } }
+// TaskList → { tasks: [ { id, subject, status, owner,
+//                         blockedBy: [] }, … ] }</pre>
+              <p class="ft">⤷ ids, dependency edges (<code>blocks</code>/<code>blockedBy</code>), owner, metadata — a real graph,
+              queryable mid-run. TodoWrite (content/status/activeForm) still exists alongside as the lightweight form.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="self ac-acp" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">adapter: suppress the tools, accumulate private state</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:3797 · tools.js:598</span></div>
+<pre class="ts">// no tool_call frame is ever emitted for these:
+shouldEmitToolCall = toolName !== "TodoWrite"
+                     &amp;&amp; !isTaskTool(toolName)   // TaskCreate/Update/List/Get
+// at tool_result, mutate an in-adapter Map instead:
+applyTaskCreate(state, input, output)  // keeps subject, status,
+applyTaskUpdate(state, input)          // activeForm, description
+// TaskList / TaskGet: invisible — reads never cross</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>one flat plan frame <span class="who">— re-emitted whole after every mutation</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D9</b> — ID-addressed graph in, flat checklist out; every entry's priority is invented
+        as "medium" by construction</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">tools.js:629 — taskStateToPlanEntries</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "plan",
+    "entries": [
+      { "content": "Add retry queue",
+        "status": "in_progress", "priority": "medium" },
+      { "content": "Wire dead-letter alerts",
+        "status": "pending",     "priority": "medium" }
+    ] } }</pre>
+              <p class="ft">⤷ entries carry <b>content + status only</b>; <code>priority</code> is hardcoded "medium".
+              Dropped on the adapter floor: <span style="color:var(--dif);font-weight:600">taskId · description · activeForm ·
+              blocks/blockedBy · owner · metadata</span>. TodoWrite takes the same door (tools.js:553) and loses its
+              activeForm too. Fold: PlanItem is replaced wholesale per frame — no diffing possible without ids.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑫ PLAN MODE ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-planmode">⑫ Plan mode — enter, plan, exit</h2>
+      <p class="pnote"><span class="prov">observed in the ACP spike · recorded in plans/done/20260710-session-harness-acp.md · shapes matched to adapter source 0.56.0</span><br>
+      The one complex interaction ACP handles <i>better</i> than raw: plan-exit crosses as an ordinary permission request wearing
+      <code>kind:"switch_mode"</code>, with the plan document as content and the target permission modes as tappable options.</p>
+
+      <div class="hop acp-only">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span><b>session/set_mode</b> <span class="who">— entering plan mode; echoed back as a notification</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">same RPC as phase ①'s third round-trip</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 12, "method": "session/set_mode",
+  "params": { "sessionId": "sess_9f3k…", "modeId": "plan" } }
+// ← { "id": 12, "result": {} }
+// then, as its own session/update notification:
+{ "sessionUpdate": "current_mode_update",
+  "currentModeId": "plan" }
+// → journaled inside the next state snapshot (currentMode)</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>plan exit <span class="who">— a permission request wearing kind "switch_mode"</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠</b> — the adapter turns ExitPlanMode into a ready-made mode-switch decision: optionIds ARE
+        permission modes, the plan document rides as ordinary content</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:2195 — options filtered by availableModes</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 19, "method": "session/request_permission",
+  "params": {
+    "sessionId": "sess_9f3k…",
+    "toolCall": {
+      "toolCallId": "toolu_01ExitPlan",
+      "title": "Ready to code?",
+      "kind": "switch_mode",
+      "content": [ { "type": "content", "content": {
+          "type": "text", "text": "## Plan\n1. Add retry queue…" } } ],
+      "rawInput": { "plan": "## Plan\n1. Add retry queue…" }
+    },
+    "options": [
+      { "optionId": "auto",        "name": "Yes, and use \"auto\" mode",       "kind": "allow_always" },
+      { "optionId": "acceptEdits", "name": "Yes, and auto-accept edits",      "kind": "allow_always" },
+      { "optionId": "default",     "name": "Yes, and manually approve edits", "kind": "allow_once"    },
+      { "optionId": "plan",        "name": "No, keep planning",               "kind": "reject_once"   }
+    ] } }</pre>
+              <p class="ft">⤷ crosses to devices via the exact phase-⑤ machinery: <code>permission_requested</code> row + state
+              snapshot; mobile renders option buttons it already knows how to render. A bypassPermissions option is prepended
+              only when the adapter allows bypass.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>accept <span class="who">— the mode actually changes, atomically with the answer</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:2195 — accept path</span></div>
+<pre>{ "id": 19, "result": { "outcome": {
+    "outcome": "selected", "optionId": "acceptEdits" } } }
+// adapter reacts: emits
+{ "sessionUpdate": "current_mode_update",
+  "currentModeId": "acceptEdits" }
+// and resolves ExitPlanMode inside the SDK as
+//   { behavior: "allow", updatedInput, updatedPermissions:
+//     [ { type: "setMode", mode: "acceptEdits",
+//         destination: "session" } ] }
+// tapping "plan" instead → deny:
+//   "User rejected request to exit plan mode."</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL dash ac-sdk" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>canUseTool("ExitPlanMode") <span class="who">— same tool, zero interpretation</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠</b> — the SDK forwards a plain permission ask; that accepting should ALSO flip
+        permissionMode is semantics the client must know by itself</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">journaled as phase ⑤'s permission_requested shape</span></div>
+<pre class="ts">canUseTool("ExitPlanMode",
+  { plan: "## Plan\n1. Add retry queue…" },
+  { requestId, toolUseID,
+    suggestions: [ /* setMode … */ ] })
+// the wire says "a tool wants permission" — nothing more.
+// Building "Ready to code?" UX, offering target modes, and
+// flipping permissionMode on accept is all client code.</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑬ TERMINAL / BACKGROUND BASH ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-terminal">⑬ Terminal &amp; background Bash</h2>
+      <p class="pnote"><span class="prov">reconstructed from adapter source — claude-agent-acp 0.56.0 dist + sdk 0.3.201 types · not a captured run</span><br>
+      ACP the spec has client-owned terminals (<code>terminal/create</code>, <code>terminal/output</code>, …) gated on
+      <code>clientCapabilities.terminal</code>. Our host says <b>false</b> — and this adapter wouldn't call them anyway:
+      it never invokes <code>terminal/*</code> and gates Bash output streaming on a <i>non-standard</i> <code>_meta</code>
+      capability instead.</p>
+
+      <div class="hop acp-only">
+        <div class="self ac-acp" style="--l:2"><span class="no"></span><span class="dot"></span><span class="al">what our host advertised back in phase ①</span></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-sessions.ts:612 — initialize</span></div>
+<pre>"clientCapabilities": {
+  "fs": { "readTextFile": false, "writeTextFile": false },
+  "terminal": false,          // ← no client-owned terminals
+  "elicitation": { "form": {} }
+}
+// and no _meta["terminal_output"] either — see below</pre>
+              <p class="ft">⤷ grep the adapter dist for <code>terminal/create</code>: zero calls. Standard ACP terminals are
+              simply not implemented by claude-agent-acp; its only terminal integration is its own <code>_meta</code> extension.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>Bash on the wire <span class="who">— adapter-owned "execute", output only at the end</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠</b> — long-running commands show a heartbeat, not output; stdout arrives in one lump at
+        completion. The SDK side can poll incremental output on demand</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">tools.js — case "Bash" → kind "execute" · acp-agent.js:1751 tool_progress</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_01Bash",
+    "title": "bun test --watch=false",
+    "kind": "execute", "status": "pending",
+    "content": [ { "type": "content", "content": {
+        "type": "text", "text": "Run the test suite" } } ],
+    "rawInput": { "command": "bun test --watch=false",
+      "description": "Run the test suite",
+      "run_in_background": true },
+    "_meta": { "claudeCode": { "toolName": "Bash" } } } }
+
+// long-running: heartbeat patches, NOT output
+{ "sessionUpdate": "tool_call_update",
+  "toolCallId": "toolu_01Bash", "status": "in_progress",
+  "_meta": { "claudeCode": { "toolResponse":
+      { "elapsedTimeSeconds": 45 } } } }
+
+// completion — stdout lands once, in one piece
+{ "sessionUpdate": "tool_call_update",
+  "toolCallId": "toolu_01Bash", "status": "completed",
+  "content": [ /* full output as text */ ], "rawOutput": { … } }</pre>
+              <p class="ft">⤷ a client that advertises <code>_meta["terminal_output"] = true</code> unlocks the adapter's own
+              lifecycle (<code>_meta.terminal_info / terminal_output / terminal_exit</code> on these same frames) — still
+              adapter-owned, still not ACP's <code>terminal/*</code> methods.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>native background shell <span class="who">— spawn, poll, kill — all addressable</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">BashInput.run_in_background — sdk-tools.d.ts:430 · TaskStop :2628</span></div>
+<pre>{ "type": "tool_use", "name": "Bash",
+  "input": { "command": "bun test --watch=false",
+             "run_in_background": true } }
+// → tool_result names the background task; from then on:
+//    TaskOutput { task_id }   — incremental output, on demand
+//    TaskStop   { task_id }   — kill it
+// result frames enumerate background_tasks:
+//    { id, type: "shell", command, status, … }</pre>
+              <p class="ft">⤷ over ACP those follow-ups have no special case in the adapter switch — TaskOutput / TaskStop
+              surface as generic <code>kind:"other"</code> tool calls (tools.js default arm).</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑭ WORKFLOWS ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-workflow">⑭ Workflows</h2>
+      <p class="pnote"><span class="prov">reconstructed from adapter source — claude-agent-acp 0.56.0 dist + sdk 0.3.201 types · not a captured run</span><br>
+      Native: a first-class <code>Workflow</code> tool runs a multi-agent <i>program</i> — <code>agent()</code> /
+      <code>parallel()</code> / <code>pipeline()</code> / <code>phase()</code> — with a run id and a resume path.
+      Over ACP: one opaque tool call — <b>D10</b>.</p>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>Workflow tool_use <span class="who">— a resumable multi-agent program</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">WorkflowInput — sdk-tools.d.ts:2462 · WorkflowOutput :3443</span></div>
+<pre>{ "type": "tool_use", "name": "Workflow",
+  "input": {
+    "script": "export const meta = { name: \"triage\", … }
+       const findings = await parallel([
+         agent(\"scan delivery/\"), agent(\"scan api/\") ])
+       await phase(\"fix\", () =&gt; pipeline(…))",
+    "args": { "area": "webhooks" } } }
+// → tool_result (WorkflowOutput):
+{ "status": "async_launched",
+  "taskId": "task-9", "taskType": "local_workflow",
+  "workflowName": "triage",
+  "runId": "run-01H…",              // ← resumeFromRunId target
+  "transcriptDir": "…/subagents/",
+  "scriptPath": "…/workflows/triage.ts" }</pre>
+              <p class="ft">⤷ the run is addressable (taskId/runId), its transcripts land on disk, and a re-run with
+              <code>resumeFromRunId</code> replays completed <code>agent()</code> calls from cache instead of re-executing.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>the same thing over ACP <span class="who">— one opaque tool call</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D10</b> — a resumable multi-agent program crosses as kind "other"; its lifecycle
+        events don't cross at all</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">tools.js default arm — no "Workflow" case exists</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_01Wf",
+    "title": "Workflow",            // default: title = tool name
+    "kind": "other", "status": "pending",
+    "rawInput": { "script": "export const meta = …", "args": { … } },
+    "_meta": { "claudeCode": { "toolName": "Workflow" } } } }
+// …then a single "completed" patch carrying the
+// WorkflowOutput as rawOutput. That's the whole story:
+// task_started / task_summary system frames → no case in the
+// adapter's system-subtype switch → dropped. Sub-run activity
+// crosses only as whatever agent() spawns emit (phase ⑩ rules).</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑮ GOALS ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-goal">⑮ Goal setting</h2>
+      <p class="pnote"><span class="prov">verified at type/dist level only — no captured frames exist for this one</span><br>
+      Goals exist in the SDK as a streamed message type — not a tool — and the ACP adapter has no mapping for them.
+      This is the cleanest example of <b>D10</b>: a capability that simply does not cross the wire.</p>
+
+      <div class="hop sdk-only">
+        <div class="self ac-sdk" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">active_goal — plumbed through the SDK stream</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sdk.mjs (0.3.201) · StdoutMessage union, sdk.d.ts:6406</span></div>
+<pre class="ts">// bundled sdk.mjs forwards it into the message stream:
+if (e.type === "active_goal") { this.inputStream.enqueue(e) }
+// StdoutMessage names coreTypes.SDKActiveGoalMessage
+// (alongside SDKTaskSummaryMessage, SDKPostTurnSummaryMessage)
+// — but 0.3.201 exports no shape for it and ships no Goal
+// tool in ToolInputSchemas: plumbing, not yet public API.</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="self ac-acp" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">adapter: no mapping — goals do not cross</span></div>
+        <div class="why"><span><b>≠ D10</b> — zero mentions of "goal" in claude-agent-acp 0.56.0; an active_goal message
+        falls through to the loop's catch-all</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:1787 message loop · utils.js:69 unreachable()</span></div>
+<pre class="ts">// known-but-ignored types get an explicit `break`:
+//   tool_use_summary · auth_status · prompt_suggestion ·
+//   conversation_reset · control_request_progress
+// anything else — active_goal included — hits:
+default: unreachable(message)   // logged, dropped, never emitted</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="self ac-sh" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">aside — codex-acp DOES map goals… via _meta again</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl sh"><div class="hd"><span class="chip sh">codex-acp 1.1.2</span><span class="cap">dist/index.js — createCodexSessionInfoUpdate</span></div>
+<pre>// thread/goal/updated crosses as:
+{ "sessionUpdate": "session_info_update",
+  "_meta": { "codex": { "goal": {
+      "objective": "…", "status": "…", "tokenBudget": … } } } }
+// thread/goal/cleared → _meta.codex.goal: null
+// standard ACP field? no — the extension point, again.
+// Two adapters, two private _meta dialects for the same idea.</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
   </div>
 </section>
 
 <section id="types">
   <h2><span class="sno">4</span>Types per layer</h2>
-  <p class="sec-note">The four load-bearing shapes, trimmed to essentials. Where the two sides are identical, the shape is shown once.</p>
+  <p class="sec-note">The four load-bearing shapes, trimmed to essentials. Where the two sides are identical, the shape is shown once.<br>
+  <b>Current ACP validation status:</b> the shared TypeScript surface is strict, but the runtime boundary is not fully Zod-checked.
+  tRPC scalar inputs are parsed; ACP content uses shallow checks; relay outputs, nested WS frames, adapter responses and SQLite
+  rows are still trusted after partial checks. The exact boundary matrix lives in <code>packages/host-service/docs/acp-sessions.md</code>.</p>
 
   <div class="layer">
     <p class="layer-title">L1 · wire envelope — what travels mobile ↔ host</p>
@@ -1605,8 +2191,9 @@ export interface SessionEventEnvelope {
   return envelope;  // fanned out to WS subscribers in the same call
 }</pre>
     </div>
-    <p class="refline"><span class="impl ia">ACP</span> — the journal <b>is also the history</b>: getMessages pages these rows
-    backwards (cursor <code>s&lt;seq&gt;</code>, message-frame kinds only). Host restart loses everything. ·
+    <p class="refline"><span class="impl ia">ACP</span> — the bounded journal currently serves <b>both catch-up and history</b>:
+    getMessages pages retained rows backwards (cursor <code>s&lt;seq&gt;</code>, message-frame kinds only). A restart uses the SQLite
+    registry and session/load to rebuild a fresh ring, but rows beyond the cap remain unavailable. ·
     <span class="impl is">Claude SDK</span> — the journal is <b>only a live-delivery buffer</b>: history truth is Claude's native
     JSONL transcript; <code>retry()</code> opens a new journal epoch (seq restarts at 1).</p>
   </div>
@@ -1699,7 +2286,7 @@ interface ToolCallItem { kind: "tool_call"; id: string;      // toolUseID
       <dt>append vs update</dt>
       <dd>Rows are immutable — everything appends. All merging is client-side at fold time: chunk concat, patch merge, resolution attach.</dd>
       <dt>history source</dt>
-      <dd>The journal is the history. <code>getMessages</code> walks the ring backwards (cursor <code>s&lt;seq&gt;</code>; state/reset frames excluded from pages).</dd>
+      <dd>Claude's native store survives; the host reaches it only through full <code>session/load</code> replay. <code>getMessages</code> then walks the bounded ring backwards (cursor <code>s&lt;seq&gt;</code>; state/reset frames excluded), so this is not complete disk-backed pagination yet.</dd>
       <dt>replay &amp; dedupe</dt>
       <dd>Server replays <code>(since, latest]</code>; client drops <code>seq ≤ lastSeq</code>, treats <code>seq &gt; lastSeq+1</code> as a gap (reconnect from cursor), treats reset as stop-and-resync. Backoff 250ms → 10s.</dd>
       <dt>fold hot spots</dt>
@@ -1760,15 +2347,115 @@ ToolCallItem { id: "toolu_9", name: "Bash", status: "completed",   // 43–46
   </div>
 </section>
 
+<section id="fidelity" class="prose">
+  <h2><span class="sno">6</span>Capability fidelity — four stacks, one matrix</h2>
+  <p class="sec-note">What each capability looks like natively, and what's left of it after crossing an ACP adapter.
+  Claude columns are verified against claude-agent-acp 0.56.0 dist + sdk 0.3.201 types in this tree; Codex columns against the
+  @agentclientprotocol/codex-acp 1.1.2 npm tarball (source-inspected). <span style="color:var(--dif);font-weight:600">Magenta</span>
+  marks fidelity lost in translation.</p>
+  <div class="fidwrap">
+  <table class="fid">
+    <thead><tr>
+      <th>capability</th>
+      <th class="h-nc">native claude sdk</th>
+      <th class="h-ca">claude → acp</th>
+      <th class="h-xc">native codex app-server</th>
+      <th class="h-xa">codex → acp</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td class="metric">conversation</td>
+        <td>session (uuid) + JSONL transcript on disk; resume, fork, retry epochs</td>
+        <td>conversation survives through native transcript + host registry + session/load; host paging is limited to the rebuilt ring (D1)</td>
+        <td>thread → turns → items; persisted, resumable, listable</td>
+        <td>full fidelity — resume / list / close / delete all advertised</td>
+      </tr>
+      <tr>
+        <td class="metric">plan</td>
+        <td>ExitPlanMode plan document + TodoWrite entries (content/status/activeForm)</td>
+        <td>flat <code>plan</code> entries; <span class="lost">activeForm dropped, priority invented "medium"</span>; plan doc rides the switch_mode permission (⑫)</td>
+        <td>turn plan items with step + status per step</td>
+        <td>flat <code>plan</code>; <span class="lost">every entry forced priority "medium"</span> (updatePlan maps status + step only)</td>
+      </tr>
+      <tr>
+        <td class="metric">workflow</td>
+        <td>first-class <code>Workflow</code> tool — script, taskId/runId, transcript dir, resumable (⑭)</td>
+        <td><span class="lost">one opaque kind:"other" tool call; lifecycle frames dropped</span></td>
+        <td>no equivalent first-class workflow entity</td>
+        <td>n/a — nothing to map</td>
+      </tr>
+      <tr>
+        <td class="metric">subagent identity</td>
+        <td>agent id + subagent_type + own transcript, readable by (sessionId, agentId) (⑩)</td>
+        <td><span class="lost">mostly lost</span> — a kind:"think" call; identity = the tool_use id; type only in untyped rawInput</td>
+        <td>child threads with collab-agent items carrying sender/receiver thread ids</td>
+        <td><span class="lost">not exposed</span> — child threads excluded from session/list (sourceKinds filter), fork not advertised; thread ids only inside rawInput</td>
+      </tr>
+      <tr>
+        <td class="metric">subagent activity</td>
+        <td>full message stream tagged parent_tool_use_id — prose + tools + hooks</td>
+        <td><span class="lost">prose deliberately dropped</span>; nested tool calls only via private <code>_meta.claudeCode</code></td>
+        <td>collaboration items + subAgentActivity events on the thread</td>
+        <td>collab calls become <code>kind:"other"</code>; <span class="lost">subAgentActivity explicitly ignored</span> (under the dist's "//ignored types" arm)</td>
+      </tr>
+      <tr>
+        <td class="metric">dependencies + owners</td>
+        <td>tasks carry blocks/blockedBy edges, owner, metadata (⑪)</td>
+        <td><span class="lost">all dropped</span> — the adapter never reads those fields</td>
+        <td>not represented in the item model</td>
+        <td>not represented</td>
+      </tr>
+      <tr>
+        <td class="metric">parallel execution</td>
+        <td><code>parallel()</code> in workflows, background agents/shells, task graph as coordination</td>
+        <td><span class="lost">opaque</span> — concurrent tool calls interleave with no grouping construct</td>
+        <td>agent collaboration primitives (spawn/send across threads)</td>
+        <td><span class="lost">opaque</span> — generic tool calls, relationships live only in rawInput</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="fine">ACP itself has no standard model for any row below "plan": no workflow entity, no task graph, no subagent
+  addressing — <code>_meta</code> is the protocol's sanctioned extension point, and both adapters lean on it in mutually
+  incompatible dialects (<code>_meta.claudeCode.parentToolUseId</code> vs <code>_meta.codex.goal</code>). Codex "native" cells
+  describe the app-server protocol as consumed by codex-acp's own handlers; we have not run a Codex app-server directly.</p>
+
+  <div class="verdict">
+    <div class="v-card">
+      <h4>ACP has no model for the hard rows</h4>
+      <p>Conversation, permissions, modes, plans: standardized. Workflows, task graphs, subagent identity: <b>not in the
+      protocol at all</b> — every adapter invents a private <code>_meta</code> dialect or silently flattens. The spike doc said
+      it early: “<code>_meta</code> fields are the sanctioned extension point on every type.”</p>
+    </div>
+    <div class="v-card v-acp">
+      <h4>Good chat plane, not a workflow plane</h4>
+      <p>As a common <b>chat/control plane</b> ACP earns its keep — one client vocabulary, permission options on the wire,
+      plan checklists for free. As a <b>portable workflow/multi-agent model</b> it isn't one: the richest capabilities of both
+      agents either flatten (tasks → checklist), go opaque (workflows), or vanish (subagent prose, goals).</p>
+    </div>
+    <div class="v-card v-sdk">
+      <h4>What a rich Superset UI would need</h4>
+      <p>Either <b>agent-specific <code>_meta</code> contracts</b> (we already parse <code>claudeCode.parentToolUseId</code>;
+      we'd add <code>codex.goal</code>, and re-do it per agent) or a <b>Superset-owned normalized layer</b> above the adapters —
+      native SDK/app-server in, one internal schema out. The waterfall above is the inventory of what that layer must preserve.</p>
+    </div>
+  </div>
+</section>
+
 <footer class="caveats">
   <p><b>Read the numbers with this in mind:</b> the ACP tree has had more UI iteration (plus an already-deleted MCP-bridge detour);
   the SDK tree carries heavier supporting infrastructure — a 978-line relay E2E script, packaged-host validation, 7 Maestro flows —
-  all excluded above. Both are dev-gated, in-memory, and restart-lossy by design at this stage (the SDK's transcript survives
-  restarts, but neither side resumes live sessions across a host-service restart).</p>
-  <p>Sources: two subagents measured the trees independently — ACP = staged/unstaged/untracked on main; Claude SDK = uncommitted
-  work in the claude-sdk-session-harness worktree. Payloads are reconstructed from the actual type definitions and handlers at the
+  all excluded above. Both are dev-gated. The ACP implementation persists a SQLite session registry and resurrects offline
+  sessions on demand through <code>session/load</code>; the direct design reads the same native transcript through SDK helpers.
+  In-flight turns still die with the host on both sides.</p>
+  <p>Sources: the current ACP PR implementation and the archived direct-SDK design. Payloads are reconstructed from the actual type definitions and handlers at the
   cited file:line locations; seq numbers are illustrative but consistent within each side. The adapter's initialize/session-new
   responses were never captured on the wire and are marked abbreviated rather than invented.</p>
+  <p><b>Phases ⑩–⑮ and §6</b> were added after the original capture and are <b>reconstructed from source, not from runs</b>
+  (each phase carries its own provenance badge): claude-agent-acp 0.56.0 dist + @anthropic-ai/claude-agent-sdk 0.3.201 types as
+  vendored in this tree, and the @agentclientprotocol/codex-acp 1.1.2 npm tarball. Exception: phase ⑫'s plan-mode shapes were
+  observed live in the ACP spike recorded in <code>plans/done/20260710-session-harness-acp.md</code>. Goal setting (⑮) is plumbing-level in sdk 0.3.201 —
+  a stream message type with no published shape — and has no adapter mapping; we state only what the dist shows.</p>
 </footer>
 </div>
 
@@ -1776,18 +2463,26 @@ ToolCallItem { id: "toolu_9", name: "Bash", status: "completed",   // 43–46
   const d = document.getElementById("d");
   document.querySelectorAll(".modes button[data-m]").forEach(b => b.onclick = () => {
     d.dataset.mode = b.dataset.m;
-    document.querySelectorAll(".modes button[data-m]").forEach(x => x.classList.toggle("on", x === b));
+    document.querySelectorAll(".modes button[data-m]").forEach(x => {
+      const selected = x === b;
+      x.classList.toggle("on", selected);
+      x.setAttribute("aria-pressed", String(selected));
+    });
   });
   document.querySelectorAll(".modes button[data-f]").forEach(b => b.onclick = () => {
     d.dataset.filter = b.dataset.f;
-    document.querySelectorAll(".modes button[data-f]").forEach(x => x.classList.toggle("on", x === b));
+    document.querySelectorAll(".modes button[data-f]").forEach(x => {
+      const selected = x === b;
+      x.classList.toggle("on", selected);
+      x.setAttribute("aria-pressed", String(selected));
+    });
   });
 
   // tiny highlighter — json-ish default, ts for pre.ts
   function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function hlJson(src) {
     return esc(src).replace(
-      /(\/\/[^\n]*)|("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(?<![\w."])(-?\d+(?:\.\d+)?)(?![\w."])|(^|\n)(POST|GET|WSS|spawn|query|await|journal\.append|subscribe|foldTimeline|fold|timelineFromSessionMessages|canUseTool|input\.push|sessionId = randomUUID\(\))/g,
+      /(\/\/[^\n]*)|("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?\b)|(^|\n)(POST|GET|WSS|spawn|query|await|journal\.append|subscribe|foldTimeline|fold|timelineFromSessionMessages|canUseTool|input\.push|sessionId = randomUUID\(\))/g,
       (m, com, str, colon, kw, num, nl, verb) => {
         if (com) return '<span class="c">' + com + '</span>';
         if (str) return '<span class="' + (colon ? 'k' : 's') + '">' + str + '</span>' + (colon || '');
@@ -1814,3 +2509,5 @@ ToolCallItem { id: "toolu_9", name: "Bash", status: "completed",   // 43–46
     pre.innerHTML = pre.classList.contains("ts") ? hlTs(pre.textContent) : hlJson(pre.textContent);
   });
 </script>
+</body>
+</html>

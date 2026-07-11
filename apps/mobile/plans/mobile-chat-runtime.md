@@ -1,6 +1,11 @@
 # [mobile] Live chat runtime
 
-Status: implemented in the current working tree; static validation has passed.
+> **Scope: legacy Mastra chat only.** This is not the ACP live-session design.
+> Current ACP behavior is documented in
+> `packages/host-service/docs/acp-sessions.md`; ACP follow-ups are in
+> `plans/acp-session-follow-ups.md`.
+
+Status: implemented for the Mastra-backed mobile chat path; static validation has passed.
 Repeat the live host/relay E2E before merge.
 
 ## Scope

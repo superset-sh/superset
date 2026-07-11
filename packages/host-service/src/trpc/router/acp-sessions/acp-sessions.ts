@@ -53,7 +53,7 @@ function rethrowMapped(error: unknown): never {
 }
 
 /**
- * ACP session surface (plans/session-harness-acp.md). Thin passthrough to
+ * ACP session surface (docs/acp-sessions.md). Thin passthrough to
  * `ctx.runtime.acpSessions` — inputs come from `@superset/session-protocol`
  * so mobile and host validate against the same schemas. Fully parallel to the
  * mastra `chat` router, which stays untouched.
@@ -84,9 +84,13 @@ export const acpSessionsRouter = router({
 		}
 	}),
 
+	// Every live-path procedure below awaits ensureLive first: a session
+	// persisted before a host restart is `offline` until something needs its
+	// adapter, at which point the manager resurrects it via session/load.
+	// `list` and `get` stay passive so browsing sessions spawns nothing.
 	getMessages: gatedProcedure
 		.input(getMessagesInput)
-		.query(({ ctx, input }) => {
+		.query(async ({ ctx, input }) => {
 			let beforeSeq: number | undefined;
 			if (input.cursor !== undefined) {
 				const decoded = decodeMessagesCursor(input.cursor);
@@ -99,6 +103,7 @@ export const acpSessionsRouter = router({
 				beforeSeq = decoded;
 			}
 			try {
+				await ctx.runtime.acpSessions.ensureLive(input.sessionId);
 				return ctx.runtime.acpSessions.getMessages({
 					sessionId: input.sessionId,
 					beforeSeq,
@@ -112,8 +117,9 @@ export const acpSessionsRouter = router({
 	// Acks admission only — turn progress and completion ride the WS stream.
 	// Never await the turn here: it can block on human permission decisions
 	// far beyond the relay's buffered-HTTP timeout.
-	prompt: gatedProcedure.input(promptInput).mutation(({ ctx, input }) => {
+	prompt: gatedProcedure.input(promptInput).mutation(async ({ ctx, input }) => {
 		try {
+			await ctx.runtime.acpSessions.ensureLive(input.sessionId);
 			const { accepted } = ctx.runtime.acpSessions.prompt(input);
 			return { accepted };
 		} catch (error) {
@@ -123,8 +129,9 @@ export const acpSessionsRouter = router({
 
 	respondToPermission: gatedProcedure
 		.input(respondToPermissionInput)
-		.mutation(({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			try {
+				await ctx.runtime.acpSessions.ensureLive(input.sessionId);
 				return ctx.runtime.acpSessions.respondToPermission(input);
 			} catch (error) {
 				rethrowMapped(error);
@@ -133,6 +140,7 @@ export const acpSessionsRouter = router({
 
 	cancel: gatedProcedure.input(cancelInput).mutation(async ({ ctx, input }) => {
 		try {
+			await ctx.runtime.acpSessions.ensureLive(input.sessionId);
 			await ctx.runtime.acpSessions.cancel(input);
 		} catch (error) {
 			rethrowMapped(error);
@@ -143,6 +151,7 @@ export const acpSessionsRouter = router({
 		.input(setModeInput)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				await ctx.runtime.acpSessions.ensureLive(input.sessionId);
 				await ctx.runtime.acpSessions.setMode(input);
 			} catch (error) {
 				rethrowMapped(error);
@@ -153,6 +162,7 @@ export const acpSessionsRouter = router({
 		.input(setConfigOptionInput)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				await ctx.runtime.acpSessions.ensureLive(input.sessionId);
 				await ctx.runtime.acpSessions.setConfigOption(input);
 			} catch (error) {
 				rethrowMapped(error);

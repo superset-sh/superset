@@ -14,6 +14,13 @@ export type SessionStatus =
 	| "idle"
 	| "running"
 	| "awaiting_permission"
+	/**
+	 * Known from the host's persisted session registry, but no adapter process
+	 * is attached (the host restarted since the session was created). Live-path
+	 * calls (prompt, getMessages, stream attach) resurrect it on demand via the
+	 * adapter's `session/load`.
+	 */
+	| "offline"
 	| "dead";
 
 export interface PendingPermission {

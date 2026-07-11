@@ -114,11 +114,22 @@ export function useAcpSession(
 		const epoch = ++epochRef.current;
 		subscriptionRef.current?.close();
 		subscriptionRef.current = null;
+		// Invalidate any older-page request from the previous epoch immediately.
+		// Its stale finally block is intentionally ignored, so leaving these set
+		// would permanently block loadOlder when this resync fails.
+		loadingOlderRef.current = false;
+		setIsLoadingOlder(false);
 		setIsLoading(true);
 		setError(null);
 		try {
 			const api = apiRef.current;
 			const state = await api.get({ sessionId });
+			if (epoch !== epochRef.current) return;
+			// Publish passive `offline` state before the live history read tries to
+			// resurrect it. If session/load fails, the UI can explain that this is a
+			// resumable registry row (and keep its composer disabled) alongside the
+			// actual load error instead of looking like a brand-new empty thread.
+			setFetchedState(state);
 			const page = await api.getMessages({ sessionId, limit: pageSize });
 			if (epoch !== epochRef.current) return;
 
@@ -127,7 +138,6 @@ export function useAcpSession(
 			loadingOlderRef.current = false;
 			const seeded = foldEnvelopes(emptyTimeline(), page.items);
 			timelineRef.current = seeded;
-			setFetchedState(state);
 			setTimeline(seeded);
 			setHasOlder(page.nextCursor !== null);
 			setIsLoadingOlder(false);

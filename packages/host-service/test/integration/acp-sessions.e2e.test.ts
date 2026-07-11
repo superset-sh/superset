@@ -7,8 +7,9 @@
  *
  * Covers the long-haul paths the ACP_E2E-gated real-adapter test can't
  * afford: a ~30-turn marathon with gapless streams and pagination folds,
- * permission allow/deny, single- and multi-select elicitations, cancel
- * mid-tool-call, adapter crash, host restart (fresh manager, dead cursors),
+ * permission allow/deny (including concurrent requests), single- and
+ * multi-select elicitations, cancel mid-tool-call/question, adapter crash,
+ * replacement of a memory-only manager,
  * stale-cursor eviction resyncs, non-fatal prompt rejection, create
  * idempotency, mode/config round-trips, elicitation edge modes, credential
  * scrubbing, concurrent turns, graveyard eviction, and list pagination.
@@ -329,6 +330,74 @@ describe("acp-sessions e2e (fake adapter)", () => {
 		expect(statuses).toEqual(["completed", "failed"]);
 	}, 30_000);
 
+	test("two simultaneous permissions stay independently correlated and awaiting until both resolve", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-concurrent-permissions";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "permissions write-report,delete-cache" }],
+		});
+		await waitFor(
+			() => manager.get(sessionId).pendingPermissions.length === 2,
+			10_000,
+			"both permission cards",
+		);
+		const [first, second] = manager.get(sessionId).pendingPermissions;
+		if (!first || !second)
+			throw new Error("concurrent permissions disappeared");
+		expect(first.requestId).not.toBe(second.requestId);
+		expect(first.toolCall.toolCallId).not.toBe(second.toolCall.toolCallId);
+		expect(manager.get(sessionId).status).toBe("awaiting_permission");
+
+		// Resolve in reverse tool order to prove request ids, not array positions,
+		// correlate the answers. One unresolved card must keep the session blocked.
+		expect(
+			manager.respondToPermission({
+				sessionId,
+				requestId: second.requestId,
+				outcome: { outcome: "selected", optionId: "reject" },
+			}),
+		).toEqual({ status: "resolved" });
+		expect(manager.get(sessionId).pendingPermissions).toHaveLength(1);
+		expect(manager.get(sessionId).pendingPermissions[0]?.requestId).toBe(
+			first.requestId,
+		);
+		expect(manager.get(sessionId).status).toBe("awaiting_permission");
+
+		expect(
+			manager.respondToPermission({
+				sessionId,
+				requestId: first.requestId,
+				outcome: { outcome: "selected", optionId: "allow" },
+			}),
+		).toEqual({ status: "resolved" });
+		expect((await turn).stopReason).toBe("end_turn");
+		expect(manager.get(sessionId).pendingPermissions).toEqual([]);
+		expect(manager.get(sessionId).status).toBe("idle");
+
+		const page = manager.getMessages({ sessionId, limit: 200 });
+		expect(
+			page.items.filter(
+				(envelope) => envelope.frame.kind === "permission_requested",
+			),
+		).toHaveLength(2);
+		expect(
+			page.items.filter(
+				(envelope) => envelope.frame.kind === "permission_resolved",
+			),
+		).toHaveLength(2);
+		const timeline = foldEnvelopes(emptyTimeline(), page.items);
+		expect(agentText(timeline)).toContain("allowed write-report");
+		expect(agentText(timeline)).toContain("denied delete-cache");
+		const tools = timeline.items.filter((item) => item.kind === "tool_call");
+		expect(tools.map((item) => item.call.status)).toEqual([
+			"completed",
+			"failed",
+		]);
+	}, 30_000);
+
 	test("elicitations: single-select answers by option, multi-select rides _meta", async () => {
 		const manager = newManager();
 		const sessionId = "e2e-elicitation";
@@ -486,7 +555,7 @@ describe("acp-sessions e2e (fake adapter)", () => {
 		expect((await siblingTurn).stopReason).toBe("end_turn");
 	}, 30_000);
 
-	test("host restart: stale cursors get session_not_found; re-create resyncs from seq 1", async () => {
+	test("a manager without persistence drops its runtime when replaced", async () => {
 		const manager = newManager();
 		const sessionId = "e2e-restart";
 		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
@@ -498,8 +567,8 @@ describe("acp-sessions e2e (fake adapter)", () => {
 		const preRestartSeq = manager.get(sessionId).lastSeq;
 		expect(preRestartSeq).toBeGreaterThan(0);
 
-		// "Restart": journals live in memory, so a new manager (fresh host
-		// process) knows nothing about the session.
+		// This manager deliberately has no persistence injection. Replacing it
+		// proves the optional memory-only mode does not fabricate recovery.
 		await manager.dispose();
 		const restarted = newManager();
 		const baseUrl = await startServer(restarted);
@@ -517,7 +586,8 @@ describe("acp-sessions e2e (fake adapter)", () => {
 		);
 		expect(staleStream.resets).toEqual(["session_not_found"]);
 
-		// …then re-creates it and resyncs from scratch: a fresh journal from 1.
+		// The caller can create a different native session under the same public id
+		// and resync from scratch with a fresh journal from 1.
 		await restarted.create({ sessionId, workspaceId: WORKSPACE_ID });
 		const fresh = connect({ baseUrl, sessionId, since: 0 });
 		const { turn: freshTurn } = restarted.prompt({
@@ -773,6 +843,85 @@ describe("acp-sessions e2e (fake adapter)", () => {
 			throw new Error("tool call missing from timeline");
 		}
 		expect(tool.call.status).toBe("failed");
+	}, 30_000);
+
+	test("cancel while two permission requests are pending settles and terminalizes both", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-cancel-concurrent-permissions";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "permissions first-op,second-op" }],
+		});
+		await waitFor(
+			() => manager.get(sessionId).pendingPermissions.length === 2,
+			10_000,
+			"both permission cards before cancel",
+		);
+		await manager.cancel({ sessionId });
+		expect((await turn).stopReason).toBe("cancelled");
+		expect(manager.get(sessionId).pendingPermissions).toEqual([]);
+		expect(manager.get(sessionId).status).toBe("idle");
+
+		const page = manager.getMessages({ sessionId, limit: 200 });
+		const resolved = page.items.filter(
+			(envelope) => envelope.frame.kind === "permission_resolved",
+		);
+		expect(resolved).toHaveLength(2);
+		expect(
+			resolved.every(
+				(envelope) =>
+					envelope.frame.kind === "permission_resolved" &&
+					envelope.frame.outcome.outcome === "cancelled",
+			),
+		).toBe(true);
+		const timeline = foldEnvelopes(emptyTimeline(), page.items);
+		const tools = timeline.items.filter((item) => item.kind === "tool_call");
+		expect(tools).toHaveLength(2);
+		expect(tools.every((item) => item.call.status === "failed")).toBe(true);
+	}, 30_000);
+
+	test("cancel during AskUserQuestion clears the card and never opens the next question", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-cancel-question";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [
+				{
+					type: "text",
+					text: "ask-two first question|yes, no;second question|left, right",
+				},
+			],
+		});
+		await waitFor(
+			() => manager.get(sessionId).pendingPermissions.length === 1,
+			10_000,
+			"the first question card",
+		);
+		expect(manager.get(sessionId).pendingPermissions[0]?.toolCall.title).toBe(
+			"first question",
+		);
+		await manager.cancel({ sessionId });
+		expect((await turn).stopReason).toBe("cancelled");
+		expect(manager.get(sessionId).pendingPermissions).toEqual([]);
+
+		const page = manager.getMessages({ sessionId, limit: 200 });
+		expect(
+			page.items.filter(
+				(envelope) => envelope.frame.kind === "permission_requested",
+			),
+		).toHaveLength(1);
+		const timeline = foldEnvelopes(emptyTimeline(), page.items);
+		const questionTool = timeline.items.find(
+			(item) => item.kind === "tool_call",
+		);
+		if (!questionTool || questionTool.kind !== "tool_call") {
+			throw new Error("question tool call missing from timeline");
+		}
+		expect(questionTool.call.status).toBe("failed");
 	}, 30_000);
 
 	test("adapter death with a pending card clears it; answering reports dead", async () => {

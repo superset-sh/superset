@@ -59,6 +59,10 @@ export const listSessionsInput = z.object({
 	cursor: z
 		.string()
 		.regex(/^\d+:.+$/, "expected a <createdAt>:<sessionId> list cursor")
+		.refine((cursor) => {
+			const separator = cursor.indexOf(":");
+			return Number.isSafeInteger(Number(cursor.slice(0, separator)));
+		}, "expected a safe-integer createdAt in the list cursor")
 		.optional(),
 	limit: limitSchema,
 });

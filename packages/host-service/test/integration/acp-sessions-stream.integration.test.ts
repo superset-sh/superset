@@ -1,5 +1,5 @@
 /**
- * M3 acceptance for plans/session-harness-acp.md: the WS stream route serving
+ * Real-adapter stream acceptance for docs/acp-sessions.md: the WS route serves
  * a real `claude-agent-acp` adapter, consumed through the real
  * `subscribeToSession` client (so the M1 helper is exercised end-to-end).
  *

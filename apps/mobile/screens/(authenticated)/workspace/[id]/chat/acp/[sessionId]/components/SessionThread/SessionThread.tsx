@@ -86,6 +86,10 @@ export function SessionThread({
 	);
 
 	const isDead = status === "dead";
+	const canCompose =
+		status === "idle" ||
+		status === "running" ||
+		status === "awaiting_permission";
 	// lastError is cleared host-side when a new prompt starts, so anything
 	// here is about the current/most recent turn, not a stale failure.
 	const stateError = session.state?.lastError ?? null;
@@ -165,11 +169,19 @@ export function SessionThread({
 			>
 				{session.timeline.items.length === 0 ? (
 					<ConversationEmptyState
-						title={session.isLoading ? "Connecting…" : "No messages yet"}
+						title={
+							session.isLoading
+								? "Connecting…"
+								: errorText
+									? "Session could not be resumed"
+									: "No messages yet"
+						}
 						description={
 							session.isLoading
 								? undefined
-								: "Send a prompt to start the agent."
+								: errorText
+									? "The host kept the session pointer, but its native transcript could not be loaded."
+									: "Send a prompt to start the agent."
 						}
 					/>
 				) : null}
@@ -183,10 +195,10 @@ export function SessionThread({
 				pending={permissions.pending}
 				onRespond={permissions.respond}
 			/>
-			{/* Dead sessions are read-only transcripts (the banner above says so);
-			    a live composer would only offer prompts that can never be
-			    delivered. */}
-			{isDead ? null : (
+			{/* Dead, offline, and not-yet-loaded sessions cannot accept prompts. In
+			    particular, keep the composer hidden after a failed session/load so the
+			    destructive banner is not paired with an action guaranteed to fail. */}
+			{canCompose ? (
 				<Composer
 					configOptions={session.state?.configOptions ?? []}
 					currentMode={session.state?.currentMode ?? null}
@@ -196,7 +208,7 @@ export function SessionThread({
 					onStop={handleStop}
 					status={composerStatus}
 				/>
-			)}
+			) : null}
 		</KeyboardAvoidingView>
 	);
 }

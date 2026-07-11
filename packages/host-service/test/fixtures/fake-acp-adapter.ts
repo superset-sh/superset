@@ -11,6 +11,8 @@
  *   tool <name>           tool_call pending → in_progress → completed + chunk
  *   permission <name>     tool_call + session/request_permission
  *                         (allow → completed, deny → failed), then a chunk
+ *   permissions <a>,<b>   two tool calls whose permission requests are parked
+ *                         concurrently; each result stays request-correlated
  *   ask-single <q>|a,b,c  form elicitation, one single-select question;
  *                         echoes `picked:<label>`
  *   ask-multi <q>|a,b,c   form elicitation, one multi-select question;
@@ -40,21 +42,43 @@
  * Like the real adapter, new sessions start in bypassPermissions so the
  * manager's D14-c default-mode override is exercised on every create.
  *
+ * Persistence, mirroring the real adapter's reliance on Claude Code's
+ * on-disk session store: session/new mints a unique session id and every
+ * update (including the user's prompt chunks, which the real store also
+ * keeps) is appended to `<cwd>/.fake-acp-store/<sessionId>.jsonl`. A later
+ * process — the manager's restart-resurrection path — replays that file
+ * verbatim via session/load before the response resolves, exactly like the
+ * real adapter's replay. Loaded sessions start back in bypassPermissions so
+ * the manager's on-load bypass override is exercised too.
+ *
  * Payload shapes are copied verbatim from the real adapter's construction
  * (claude-agent-acp dist: buildAvailableModes, buildConfigOptions,
  * describeAlwaysAllow's permission options, askUserQuestionsToCreateRequest —
  * including the per-question `question_<n>_custom` "Other" fields) so tests
  * exercise exactly what real runs put on the wire; only the values are canned.
  */
+import { randomUUID } from "node:crypto";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { Readable, Writable } from "node:stream";
 import {
 	agent,
 	ndJsonStream,
 	PROTOCOL_VERSION,
+	RequestError,
 	type schema,
 } from "@agentclientprotocol/sdk";
 
-const SESSION_ID = "fake-acp-session";
+/** Set by session/new (minted) or session/load (from the request). */
+let sessionId = "fake-acp-unset";
+
+const storePath = (id: string) =>
+	path.join(process.cwd(), ".fake-acp-store", `${id}.jsonl`);
+
+function recordUpdate(update: schema.SessionUpdate): void {
+	mkdirSync(path.dirname(storePath(sessionId)), { recursive: true });
+	appendFileSync(storePath(sessionId), `${JSON.stringify(update)}\n`);
+}
 
 /** Verbatim buildAvailableModes output (sans the model-gated "auto" mode). */
 const AVAILABLE_MODES = [
@@ -199,14 +223,48 @@ const app = agent({ name: "fake-acp-adapter" })
 	.onRequest("initialize", () => ({
 		protocolVersion: PROTOCOL_VERSION,
 	}))
-	.onRequest("session/new", () => ({
-		sessionId: SESSION_ID,
-		modes: {
-			currentModeId,
-			availableModes: AVAILABLE_MODES,
-		},
-		configOptions,
-	}))
+	.onRequest("session/new", () => {
+		sessionId = `fake-acp-${randomUUID()}`;
+		return {
+			sessionId,
+			modes: {
+				currentModeId,
+				availableModes: AVAILABLE_MODES,
+			},
+			configOptions,
+		};
+	})
+	.onRequest("session/load", async (context) => {
+		sessionId = context.params.sessionId;
+		// Like the real adapter: the stored transcript is replayed as ordinary
+		// session/update notifications BEFORE the response resolves; an unknown
+		// session id errors the request.
+		let stored: string;
+		try {
+			stored = readFileSync(storePath(sessionId), "utf8");
+		} catch {
+			// A plain throw would surface as an opaque "Internal error" on the
+			// client; RequestError carries the message across JSON-RPC.
+			throw new RequestError(
+				-32002, // resource not found
+				`No stored session to load: ${sessionId}`,
+			);
+		}
+		for (const line of stored.split("\n")) {
+			if (!line) continue;
+			await context.client.notify("session/update", {
+				sessionId,
+				update: JSON.parse(line) as schema.SessionUpdate,
+			});
+		}
+		return {
+			modes: {
+				currentModeId,
+				availableModes: AVAILABLE_MODES,
+			},
+			configOptions,
+		};
+	})
 	.onRequest("session/set_mode", (context) => {
 		currentModeId = context.params.modeId;
 		return {};
@@ -226,16 +284,23 @@ const app = agent({ name: "fake-acp-adapter" })
 		cancelActiveTurn?.();
 	})
 	.onRequest("session/prompt", async (context) => {
-		const notifyUpdate = (update: schema.SessionUpdate) =>
-			context.client.notify("session/update", {
-				sessionId: SESSION_ID,
+		const notifyUpdate = (update: schema.SessionUpdate) => {
+			recordUpdate(update);
+			return context.client.notify("session/update", {
+				sessionId,
 				update,
 			});
+		};
 		const say = (text: string) =>
 			notifyUpdate({
 				sessionUpdate: "agent_message_chunk",
 				content: { type: "text", text },
 			});
+		// Store-only, like the real session file: the live adapter never echoes
+		// the user's prompt (the host journals it), but replay must include it.
+		for (const block of context.params.prompt) {
+			recordUpdate({ sessionUpdate: "user_message_chunk", content: block });
+		}
 
 		const text = context.params.prompt
 			.map((block) => (block.type === "text" ? block.text : ""))
@@ -290,7 +355,7 @@ const app = agent({ name: "fake-acp-adapter" })
 				const response = await context.client.request(
 					"session/request_permission",
 					{
-						sessionId: SESSION_ID,
+						sessionId,
 						toolCall: { toolCallId },
 						options: [
 							{
@@ -327,6 +392,73 @@ const app = agent({ name: "fake-acp-adapter" })
 				return { stopReason: "end_turn" as const };
 			}
 
+			case "permissions": {
+				const names = rest
+					.split(",")
+					.map((name) => name.trim())
+					.filter(Boolean);
+				if (names.length < 2) {
+					throw new Error(
+						"permissions requires at least two comma-separated names",
+					);
+				}
+				const outcomes = await Promise.all(
+					names.map(async (name) => {
+						toolCallCounter += 1;
+						const toolCallId = `tool-${toolCallCounter}`;
+						await notifyUpdate({
+							sessionUpdate: "tool_call",
+							toolCallId,
+							title: name,
+							kind: "execute",
+							status: "pending",
+						});
+						const response = await context.client.request(
+							"session/request_permission",
+							{
+								sessionId,
+								toolCall: { toolCallId },
+								options: [
+									{
+										kind: "allow_always",
+										name: `Always Allow all ${name}`,
+										optionId: "allow_always",
+									},
+									{
+										kind: "allow_once",
+										name: "Allow",
+										optionId: "allow",
+									},
+									{
+										kind: "reject_once",
+										name: "Reject",
+										optionId: "reject",
+									},
+								],
+							},
+						);
+						if (response.outcome.outcome !== "selected") {
+							return "cancelled" as const;
+						}
+						const allowed =
+							response.outcome.optionId === "allow" ||
+							response.outcome.optionId === "allow_always";
+						await notifyUpdate({
+							sessionUpdate: "tool_call_update",
+							toolCallId,
+							status: allowed ? "completed" : "failed",
+						});
+						await say(`${allowed ? "allowed" : "denied"} ${name}`);
+						return allowed ? ("allowed" as const) : ("denied" as const);
+					}),
+				);
+				return {
+					stopReason: outcomes.includes("cancelled")
+						? ("cancelled" as const)
+						: ("end_turn" as const),
+				};
+			}
+
 			case "ask-single":
 			case "ask-multi": {
 				const form = buildAskForm([
@@ -334,7 +466,7 @@ const app = agent({ name: "fake-acp-adapter" })
 				]);
 				const response = await context.client.request("elicitation/create", {
 					mode: "form",
-					sessionId: SESSION_ID,
+					sessionId,
 					...form,
 				} as schema.CreateElicitationRequest);
 				if (response.action !== "accept") {
@@ -354,7 +486,7 @@ const app = agent({ name: "fake-acp-adapter" })
 				const form = buildAskForm(questionSpecs);
 				const response = await context.client.request("elicitation/create", {
 					mode: "form",
-					sessionId: SESSION_ID,
+					sessionId,
 					...form,
 				} as schema.CreateElicitationRequest);
 				if (response.action !== "accept") {
@@ -381,7 +513,7 @@ const app = agent({ name: "fake-acp-adapter" })
 				const form = buildAskForm([spec]);
 				const response = await context.client.request("elicitation/create", {
 					mode: "form",
-					sessionId: SESSION_ID,
+					sessionId,
 					toolCallId,
 					...form,
 				} as schema.CreateElicitationRequest);
@@ -404,7 +536,7 @@ const app = agent({ name: "fake-acp-adapter" })
 			case "ask-url": {
 				const response = await context.client.request("elicitation/create", {
 					mode: "url",
-					sessionId: SESSION_ID,
+					sessionId,
 					elicitationId: "url-elicitation-1",
 					url: "https://example.invalid/confirm",
 					message: "open this link",
@@ -416,7 +548,7 @@ const app = agent({ name: "fake-acp-adapter" })
 			case "ask-empty": {
 				const response = await context.client.request("elicitation/create", {
 					mode: "form",
-					sessionId: SESSION_ID,
+					sessionId,
 					message: "form with nothing to ask",
 					requestedSchema: { type: "object", properties: {} },
 				} as schema.CreateElicitationRequest);
