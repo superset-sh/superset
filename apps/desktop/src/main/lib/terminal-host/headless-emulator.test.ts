@@ -626,6 +626,10 @@ describe("Prompt marker foreground reclaim (#4949 / #5508)", () => {
 	});
 
 	test("keeps display modes across a prompt marker", async () => {
+		// Cursor visibility is never reclaimed; the alt screen here was armed
+		// before the first marker, so it is shell-owned and survives too (a
+		// post-marker alt-screen leak is exited by injection instead — see the
+		// buffer-exit suite).
 		await emulator.writeSync(`${ENTER_ALT_SCREEN}${HIDE_CURSOR}`);
 
 		await emulator.writeSync(PROMPT_MARKER);
@@ -805,7 +809,7 @@ describe("Prompt marker foreground reclaim (#4949 / #5508)", () => {
 	});
 
 	test("disarm sequence returns an armed emulator to default modes", async () => {
-		await emulator.writeSync(ARM_TUI_MODES);
+		await emulator.writeSync(`${ARM_TUI_MODES}${ENTER_ALT_SCREEN}`);
 
 		await emulator.writeSync(INPUT_MODE_DISARM_SEQUENCE);
 
@@ -965,6 +969,166 @@ describe("Foreground-reclaim client disarm", () => {
 
 		expect(reclaims).toBe(0);
 		expect(emulator.takeForegroundReclaimClientDisarm()).toBe("");
+	});
+});
+
+describe("Alt-screen foreground reclaim (buffer exit)", () => {
+	// A fullscreen TUI that dies uncleanly leaves the terminal switched to
+	// the alternate buffer. The buffer is content — the shell draws the
+	// post-kill prompt into it — so unlike the input modes above it cannot be
+	// reconciled out of snapshots at read time. Instead the marker records a
+	// pending exit and the session collects it once its pipeline settles,
+	// injecting the matching DECRST into the internal terminal and the
+	// client broadcast (the one amendment to the no-injected-bytes rule).
+	const PROMPT_MARKER = `${OSC}777;superset-shell-ready${BEL}${OSC}133;A${BEL}`;
+
+	let emulator: InstanceType<typeof HeadlessEmulator>;
+
+	beforeEach(() => {
+		emulator = new HeadlessEmulator({ cols: 80, rows: 24 });
+	});
+
+	afterEach(() => {
+		emulator.dispose();
+	});
+
+	test("exits the alt screen a dead TUI leaked, at the settled point", async () => {
+		let reclaims = 0;
+		emulator.onForegroundReclaim(() => reclaims++);
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${ENTER_ALT_SCREEN}${MOVE_CURSOR(1, 1)}tui`);
+
+		await emulator.writeSync(PROMPT_MARKER); // vi died; shell prompted
+
+		// A reclaim with only the buffer leaked still notifies the session.
+		expect(reclaims).toBe(1);
+		// Nothing is injected at the marker itself (mid-parse hazard): the
+		// exit waits for the settled collection.
+		expect(emulator.getModes().alternateScreen).toBe(true);
+
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe(`${CSI}?1049l`);
+		await emulator.flush();
+		expect(emulator.getModes().alternateScreen).toBe(false);
+		expect(emulator.getSnapshot().snapshotAnsi).not.toContain("?1049h");
+		// Consumed: a second collection has nothing to exit.
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe("");
+	});
+
+	test("emits the low matching the variant that armed the buffer", async () => {
+		// Only DECRST 1049 restores the cursor its DECSET saved; pairing a
+		// 47/1047 arm with ?1049l would restore a never-saved cursor.
+		for (const param of [47, 1047]) {
+			const variantEmulator = new HeadlessEmulator({ cols: 80, rows: 24 });
+			await variantEmulator.writeSync(PROMPT_MARKER);
+			await variantEmulator.writeSync(`${CSI}?${param}h`);
+			await variantEmulator.writeSync(PROMPT_MARKER);
+
+			expect(variantEmulator.takeForegroundReclaimBufferExit()).toBe(
+				`${CSI}?${param}l`,
+			);
+			variantEmulator.dispose();
+		}
+	});
+
+	test("output written after the exit lands in the normal buffer", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${ENTER_ALT_SCREEN}${MOVE_CURSOR(1, 1)}tui-junk`);
+		await emulator.writeSync(PROMPT_MARKER);
+
+		emulator.takeForegroundReclaimBufferExit();
+		await emulator.writeSync("\r\nnext-prompt$");
+
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.snapshotAnsi).toContain("next-prompt$");
+		expect(snapshot.snapshotAnsi).not.toContain("tui-junk");
+	});
+
+	test("shell-owned alt screen armed before the first prompt survives", async () => {
+		// The epoch rule is uniform: state armed before the first marker
+		// belongs to shell init and is never reclaimed until its DECRST.
+		await emulator.writeSync(ENTER_ALT_SCREEN);
+		await emulator.writeSync(PROMPT_MARKER);
+
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe("");
+		expect(emulator.getModes().alternateScreen).toBe(true);
+		expect(emulator.getSnapshot().snapshotAnsi).toContain("?1049h");
+	});
+
+	test("keeps the buffer while the shell has not prompted again", async () => {
+		// A live vi and a SIGKILLed-but-unproven vi are indistinguishable
+		// until the next prompt marker: the alt screen legitimately stays (a
+		// warm reattach of a live TUI must keep it — #5038), and the exit
+		// fires only once the shell proves it owns the foreground.
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${ENTER_ALT_SCREEN}${MOVE_CURSOR(2, 2)}vim`);
+
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe("");
+		expect(emulator.getSnapshot().snapshotAnsi).toContain("?1049h");
+	});
+
+	test("suspend/fg: the TUI's own exit leaves nothing to reclaim", async () => {
+		// ^Z — vim writes t_TE (exit alt) before suspending, the shell
+		// prompts, then fg re-arms. Neither point may emit a second low.
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${ENTER_ALT_SCREEN}vim body`);
+		await emulator.writeSync(EXIT_ALT_SCREEN); // t_TE on ^Z
+		await emulator.writeSync(PROMPT_MARKER); // suspend prompt
+
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe("");
+
+		await emulator.writeSync(ENTER_ALT_SCREEN); // fg: t_TI re-arms
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe("");
+		expect(emulator.getSnapshot().snapshotAnsi).toContain("?1049h");
+	});
+
+	test("a new TUI arming alt after the marker cancels the pending exit", async () => {
+		// Dead TUI leaked alt, the shell prompted, and a new TUI entered the
+		// alt screen before the pipeline settled. Emitting the exit now would
+		// kick the live TUI back to the normal buffer.
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(ENTER_ALT_SCREEN);
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(ENTER_ALT_SCREEN);
+
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe("");
+		expect(emulator.getSnapshot().snapshotAnsi).toContain("?1049h");
+	});
+
+	test("a trailing DECRST cancels the pending exit (nothing left to leave)", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(ENTER_ALT_SCREEN);
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(EXIT_ALT_SCREEN);
+
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe("");
+	});
+
+	test("RIS between the marker and the settle point suppresses the exit", async () => {
+		// ESC c resets to the normal buffer without a DECRST the shadow map
+		// would see. The physical-buffer re-check must keep the exit from
+		// being written while already in the normal buffer, where ?1049l
+		// would perform a cursor restore.
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(ENTER_ALT_SCREEN);
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${ESC}c`);
+
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe("");
+	});
+
+	test("mouse disarm and buffer exit reclaim together for a dead fullscreen TUI", async () => {
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(
+			`${ENTER_ALT_SCREEN}${CSI}?1002h${ENABLE_MOUSE_SGR}`,
+		);
+		await emulator.writeSync(PROMPT_MARKER);
+
+		expect(emulator.takeForegroundReclaimClientDisarm()).toContain("?1003l");
+		expect(emulator.takeForegroundReclaimBufferExit()).toBe(`${CSI}?1049l`);
+		await emulator.flush();
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.snapshotAnsi).not.toContain("?1049h");
+		expect(snapshot.snapshotAnsi).not.toContain("?1002h");
 	});
 });
 

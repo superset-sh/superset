@@ -713,6 +713,13 @@ export class Session {
 	 * re-check its shadow state and drop any group that got re-armed. Clients
 	 * then receive the disarm strictly after the data that re-armed it, so the
 	 * final state is right in every interleaving.
+	 *
+	 * A leaked alt screen is collected at the same settled point. Its exit is
+	 * written into the internal emulator too (the buffer is content, so
+	 * snapshots cannot reconcile it away at read time), and the settled
+	 * boundary is what keeps that injected write out of a half-parsed escape
+	 * sequence. Collect and broadcast stay in one synchronous block so no PTY
+	 * data can interleave between the re-check and either consumer.
 	 */
 	private async broadcastReclaimDisarmWhenSettled(): Promise<void> {
 		try {
@@ -728,7 +735,9 @@ export class Session {
 					this.emulatorWriteQueue.length === 0 &&
 					this.emulatorWriteProcessedItems === processedBefore;
 				if (!settled) continue;
-				const disarm = this.emulator.takeForegroundReclaimClientDisarm();
+				const disarm =
+					this.emulator.takeForegroundReclaimClientDisarm() +
+					this.emulator.takeForegroundReclaimBufferExit();
 				if (disarm) {
 					this.broadcastEvent("data", {
 						type: "data",

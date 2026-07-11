@@ -51,17 +51,18 @@ describe("sanitizeColdRestoreScrollback", () => {
 		});
 
 		test("keeps display params when filtering mixed multi-param sequences", () => {
-			expect(sanitizeColdRestoreScrollback(`${CSI}?1049;1002h`)).toBe(
-				`${CSI}?1049h`,
+			expect(sanitizeColdRestoreScrollback(`${CSI}?25;1002h`)).toBe(
+				`${CSI}?25h`,
 			);
 			expect(sanitizeColdRestoreScrollback(`${CSI}?25;1006;47l`)).toBe(
 				`${CSI}?25;47l`,
 			);
 		});
 
+		// The alt-screen enters (47/1047/1049) are display modes too — they
+		// replay verbatim, but a log ending inside the alt buffer gets the
+		// matching exit appended; see "alt-screen exit repair" below.
 		test.each([
-			["alt screen enter", `${CSI}?1049h`],
-			["legacy alt screen", `${CSI}?47h`],
 			["cursor hide", `${CSI}?25l`],
 			["auto-wrap", `${CSI}?7h`],
 			["synchronized output", `${CSI}?2026h`],
@@ -346,8 +347,16 @@ describe("sanitizeColdRestoreScrollback", () => {
 		});
 
 		test("keeps a display DECSET carrying a colon sub-parameter", () => {
+			expect(sanitizeColdRestoreScrollback(`${CSI}?25:1h`)).toBe(
+				`${CSI}?25:1h`,
+			);
+		});
+
+		test("pairs an alt-screen arm keyed on a colon sub-parameter", () => {
+			// xterm dispatches on the primary param, sub-parameters attached —
+			// `?1049:1h` still switches buffers, so it still owes an exit.
 			expect(sanitizeColdRestoreScrollback(`${CSI}?1049:1h`)).toBe(
-				`${CSI}?1049:1h`,
+				`${CSI}?1049:1h${CSI}?1049l`,
 			);
 		});
 	});
@@ -364,6 +373,78 @@ describe("sanitizeColdRestoreScrollback", () => {
 
 		test("keeps scroll-up (SU), which shares the S final without a prefix", () => {
 			expect(sanitizeColdRestoreScrollback(`a${CSI}3Sb`)).toBe(`a${CSI}3Sb`);
+		});
+	});
+
+	describe("alt-screen exit repair (dead fullscreen TUI)", () => {
+		test("appends the matching low when the log ends inside the alt screen", () => {
+			// Cold restore only replays sessions whose daemon died, so a log
+			// ending in the alt buffer means the TUI never wrote its rmcup —
+			// replaying it verbatim would strand the renderer there (wheel
+			// becomes arrow keys, scrollback unreachable).
+			const log = `before${CSI}?1049h${CSI}2Jtui content`;
+			expect(sanitizeColdRestoreScrollback(log)).toBe(`${log}${CSI}?1049l`);
+		});
+
+		test.each([
+			["47"],
+			["1047"],
+			["1049"],
+		])("repairs an unmatched ?%sh with its own variant's low", (param) => {
+			// Only DECRST 1049 restores the cursor its DECSET saved; pairing
+			// the wrong variant would restore a never-saved cursor.
+			const log = `x${CSI}?${param}h`;
+			expect(sanitizeColdRestoreScrollback(log)).toBe(`${log}${CSI}?${param}l`);
+		});
+
+		test("leaves a matched enter/exit pair verbatim with no append", () => {
+			const log = `a${CSI}?1049h tui ${CSI}?1049l b`;
+			expect(sanitizeColdRestoreScrollback(log)).toBe(log);
+		});
+
+		test("re-entry after a clean exit still gets the repair", () => {
+			const log = `a${CSI}?1049h${CSI}?1049l${CSI}?1049h`;
+			expect(sanitizeColdRestoreScrollback(log)).toBe(`${log}${CSI}?1049l`);
+		});
+
+		test("a cross-variant exit closes the pairing (single shared buffer)", () => {
+			// xterm has one alt buffer: any family low leaves it, whichever
+			// variant armed it.
+			const log = `a${CSI}?1049h${CSI}?47l`;
+			expect(sanitizeColdRestoreScrollback(log)).toBe(log);
+		});
+
+		test("keys pairing on the sanitized output, not the raw log", () => {
+			// The input-reporting param is stripped out of the mixed DECSET while
+			// the alt-screen arm survives the rewrite — and it is the surviving
+			// sequence that must be paired, since that is what replay executes.
+			const log = `a${CSI}?1049;1002h`;
+			expect(sanitizeColdRestoreScrollback(log)).toBe(
+				`a${CSI}?1049h${CSI}?1049l`,
+			);
+		});
+
+		test("tracks a C1-introduced arm (U+009B) after normalization", () => {
+			const c1Csi = String.fromCharCode(0x9b);
+			expect(sanitizeColdRestoreScrollback(`a${c1Csi}?1049h`)).toBe(
+				`a${CSI}?1049h${CSI}?1049l`,
+			);
+		});
+
+		test("discards an arm aborted at end-of-log instead of repairing it", () => {
+			// The crash cut the DECSET short: xterm never switched buffers, so
+			// no exit is owed.
+			expect(sanitizeColdRestoreScrollback(`a${CSI}?1049`)).toBe("a");
+		});
+
+		test("RIS resets the pairing (the terminal is back in the normal buffer)", () => {
+			const log = `a${CSI}?1049h tui${ESC}c after`;
+			expect(sanitizeColdRestoreScrollback(log)).toBe(log);
+		});
+
+		test("the appended exit keeps the sanitizer idempotent", () => {
+			const once = sanitizeColdRestoreScrollback(`a${CSI}?1049h`);
+			expect(sanitizeColdRestoreScrollback(once)).toBe(once);
 		});
 	});
 
@@ -418,6 +499,15 @@ describe("INPUT_MODE_DISARM_SEQUENCE", () => {
 		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}?45l`);
 	});
 
+	test("exits the alt screen with the one variant that is a no-op in the normal buffer", () => {
+		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}?47l`);
+		// ?1049l / ?1047l are not primary-buffer no-ops (?1049l performs a
+		// cursor restore), and one family low already leaves xterm's single
+		// shared alt buffer whichever variant armed it.
+		expect(INPUT_MODE_DISARM_SEQUENCE).not.toContain(`${CSI}?1049l`);
+		expect(INPUT_MODE_DISARM_SEQUENCE).not.toContain(`${CSI}?1047l`);
+	});
+
 	test("unwinds the kitty keyboard stack and zeroes its flags", () => {
 		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}<255u`);
 		expect(INPUT_MODE_DISARM_SEQUENCE).toContain(`${CSI}=0;1u`);
@@ -433,10 +523,11 @@ describe("INPUT_MODE_DISARM_SEQUENCE", () => {
 
 	test("sanitizing the disarm sequence strips all input-reporting traffic", () => {
 		// The input-reporting portion of the disarm bundle is strippable; the
-		// insert/origin/reverse-wrap resets are display state the sanitizer
-		// deliberately preserves (replayed content rendered under those modes).
+		// insert/origin/reverse-wrap resets and the alt-screen exit are display
+		// state the sanitizer deliberately preserves (replayed content rendered
+		// under those modes).
 		expect(sanitizeColdRestoreScrollback(INPUT_MODE_DISARM_SEQUENCE)).toBe(
-			`${CSI}4l${CSI}?6l${CSI}?45l`,
+			`${CSI}4l${CSI}?6l${CSI}?45l${CSI}?47l`,
 		);
 	});
 });

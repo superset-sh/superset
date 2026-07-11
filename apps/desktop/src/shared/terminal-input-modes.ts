@@ -21,9 +21,12 @@ const ESC = "\x1b";
 /**
  * DECSET/DECRST private mode numbers that make the terminal send input
  * (mouse/focus reports) or re-encode keystrokes (cursor keys, bracketed
- * paste). Display modes (alt screen 1049/47, cursor visibility 25,
- * auto-wrap 7) are deliberately absent — replay must keep those to render
- * the restored screen correctly.
+ * paste). Display modes (cursor visibility 25, auto-wrap 7, cursor
+ * save/restore 1048) are deliberately absent — replay must keep those to
+ * render the restored screen correctly. The alt-screen family (47/1047/1049)
+ * is also kept in the replay for the same reason, but a log that *ends*
+ * inside the alternate buffer gets the matching exit appended — see
+ * sanitizeColdRestoreScrollback.
  */
 export const INPUT_REPORTING_DECSET_PARAMS: ReadonlySet<number> = new Set([
 	1, // DECCKM — application cursor keys
@@ -67,6 +70,11 @@ export const INPUT_REPORTING_DECSET_PARAMS: ReadonlySet<number> = new Set([
  *   comment in headless-emulator.ts). It stays in the sanitizer/disarm lists
  *   above, where stripping a no-op is free and covers terminals that do
  *   implement it.
+ * - The alt-screen family (47/1047/1049): reclaimed, but not through this
+ *   set. The buffer switch is content, not a report generator — the shadow
+ *   map cannot simply forget it, and the exit must reach the internal
+ *   terminal too. See takeForegroundReclaimBufferExit in
+ *   headless-emulator.ts.
  */
 export const FOREGROUND_RECLAIM_RESET_PARAMS: ReadonlySet<number> = new Set([
 	6, // DECOM — origin mode
@@ -430,11 +438,33 @@ function normalizeC1(data: string): string {
 	return runStart === 0 ? data : result + data.slice(runStart);
 }
 
+/** DECSET params that switch to the alternate screen buffer. */
+const ALT_SCREEN_DECSET_PARAMS: ReadonlySet<number> = new Set([47, 1047, 1049]);
+
+/**
+ * A kept/rewritten DECSET or DECRST at the tail of an emitted span (the
+ * classifyCsi executed-C0 prefix never ends in one). Used to pair alt-screen
+ * switches without re-parsing the whole emit.
+ */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matches ESC-introduced sequences by design
+const TRAILING_PRIVATE_MODE_RE = /\x1b\[\?([0-9;:]+)([hl])$/;
+
 /**
  * Strip input-mode arming and query sequences from a raw PTY output log
  * before it is replayed into a live xterm for cold restore. Display
  * sequences (text, colours, cursor movement, alt screen, titles, OSC-7 cwd,
  * hyperlinks, sixel) pass through untouched.
+ *
+ * One repair is appended rather than stripped: when the log ends with the
+ * alternate screen still active, the matching exit (`?1049l` for `?1049h`,
+ * etc.) is added at end-of-log. Cold restore only replays sessions whose
+ * daemon died, so the TUI that armed the buffer is gone — without the exit
+ * the renderer replays into the alt buffer and stays there, where wheel
+ * events become arrow keys and the scrollback is unreachable. Matched
+ * high/low pairs replay verbatim; the variant must match because only DECRST
+ * 1049 restores the cursor its DECSET saved (and `?1049l` is not a no-op in
+ * the normal buffer). Callers that cap the sanitized log must keep its tail
+ * (daemon-manager truncates from the front) so the appended exit survives.
  *
  * A single left-to-right VT scan: it isolates each escape sequence, keeps or
  * drops it by type, and treats incomplete/aborted sequences the way xterm
@@ -445,6 +475,23 @@ function normalizeC1(data: string): string {
 export function sanitizeColdRestoreScrollback(raw: string): string {
 	const data = normalizeC1(raw);
 	const out: string[] = [];
+	// The alt-screen pairing tracker follows the *emitted* sequences, so it
+	// mirrors exactly what the replay will execute (a stripped or aborted
+	// sequence never counts). RIS resets to the normal buffer.
+	let altScreenArmParam: number | null = null;
+	const trackAltScreen = (emit: string) => {
+		if (emit.endsWith(`${ESC}c`)) {
+			altScreenArmParam = null;
+			return;
+		}
+		const match = TRAILING_PRIVATE_MODE_RE.exec(emit);
+		if (!match) return;
+		for (const group of match[1].split(";")) {
+			const primary = Number.parseInt(group.split(":")[0] ?? "", 10);
+			if (!ALT_SCREEN_DECSET_PARAMS.has(primary)) continue;
+			altScreenArmParam = match[2] === "h" ? primary : null;
+		}
+	};
 	let i = 0;
 	const n = data.length;
 	while (i < n) {
@@ -455,8 +502,14 @@ export function sanitizeColdRestoreScrollback(raw: string): string {
 		}
 		if (esc > i) out.push(data.slice(i, esc));
 		const seq = readEscSequence(data, esc);
-		if (seq.emit) out.push(seq.emit);
+		if (seq.emit) {
+			out.push(seq.emit);
+			trackAltScreen(seq.emit);
+		}
 		i = seq.end;
+	}
+	if (altScreenArmParam !== null) {
+		out.push(`${ESC}[?${altScreenArmParam}l`);
 	}
 	return out.join("");
 }
@@ -480,6 +533,13 @@ export const INPUT_MODE_DISARM_SEQUENCE = [
 	`${ESC}[4l`,
 	`${ESC}[?6l`,
 	`${ESC}[?45l`,
+	// Exit a stuck alternate screen (a dead fullscreen TUI never wrote its
+	// rmcup), where wheel events turn into arrow keys and the scrollback is
+	// unreachable. Any family low leaves xterm's single shared alt buffer
+	// regardless of which of 47/1047/1049 armed it, and ?47l is the one
+	// variant that is a pure no-op when the terminal is already in the
+	// normal buffer — ?1049l would perform a cursor restore there.
+	`${ESC}[?47l`,
 	`${ESC}>`,
 	`${ESC}[<255u`,
 	`${ESC}[=0;1u`,

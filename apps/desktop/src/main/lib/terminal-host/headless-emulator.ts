@@ -3,7 +3,9 @@
  *
  * Wraps @xterm/headless with:
  * - Mode tracking via parser handlers on the internal terminal
- * - Foreground-reclaim of TUI-leaked input modes at shell prompts (#4949)
+ * - Foreground-reclaim of TUI-leaked input modes at shell prompts (#4949),
+ *   including an injected alt-screen exit when a dead fullscreen TUI leaks
+ *   the alternate buffer
  * - Snapshot generation via @xterm/addon-serialize
  * - Rehydration sequence generation for mode restoration
  */
@@ -84,6 +86,7 @@ const MODE_MAP: Record<number, keyof TerminalModes> = {
 	1004: "focusReporting",
 	1005: "mouseUtf8",
 	1006: "mouseSgr",
+	1047: "alternateScreen", // Alternate screen without cursor save/restore
 	1049: "alternateScreen", // Modern alternate screen with save/restore
 	2004: "bracketedPaste",
 	2031: "colorSchemeReporting",
@@ -105,6 +108,17 @@ const RECLAIMABLE_MODE_NAMES: ReadonlySet<keyof TerminalModes> = new Set(
 		),
 	].filter((name): name is keyof TerminalModes => name !== undefined),
 );
+
+/**
+ * Shadow-map keys whose shell-owned epoch is tracked. RECLAIMABLE_MODE_NAMES
+ * are cleared in the shadow at the marker; the alternate screen is instead
+ * exited by injection at the settled point (takeForegroundReclaimBufferExit),
+ * but shell ownership gates both the same way.
+ */
+const RECLAIM_OWNED_MODE_NAMES: ReadonlySet<keyof TerminalModes> = new Set([
+	...RECLAIMABLE_MODE_NAMES,
+	"alternateScreen",
+]);
 
 const MOUSE_PROTOCOL_MODE_NAMES = [
 	"mouseTrackingX10",
@@ -159,6 +173,18 @@ export class HeadlessEmulator {
 	// Modes cleared by reclaims whose disarm still has to reach live-attached
 	// clients (see takeForegroundReclaimClientDisarm).
 	private pendingClientDisarmModes = new Set<keyof TerminalModes>();
+
+	// Alt-screen reclaim state. The buffer-switch family (47/1047/1049) is
+	// reclaimed by injecting the matching DECRST at the settled point instead
+	// of by clearing shadow flags: the alternate buffer is content, not
+	// metadata — the post-kill prompt is drawn into it, so a snapshot cannot
+	// be reconciled out of it at read time (see
+	// takeForegroundReclaimBufferExit). The arm param remembers which family
+	// variant armed the buffer, because only the matching low restores what
+	// its high saved (DECRST 1049 restores the cursor; 47/1047 must not, and
+	// `?1049l` is not a no-op while already in the normal buffer).
+	private altScreenArmParam: number | null = null;
+	private pendingBufferReclaimParam: number | null = null;
 
 	constructor(options: HeadlessEmulatorOptions = {}) {
 		const {
@@ -229,9 +255,11 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Set callback fired when a prompt marker clears leaked modes from the
-	 * shadow map. Fires mid-parse; consumers should settle their pipeline and
-	 * then collect takeForegroundReclaimClientDisarm().
+	 * Set callback fired when a prompt marker reclaims leaked state (shadow
+	 * modes cleared and/or a leaked alt screen recorded). Fires mid-parse;
+	 * consumers should settle their pipeline and then collect
+	 * takeForegroundReclaimClientDisarm() and
+	 * takeForegroundReclaimBufferExit().
 	 */
 	onForegroundReclaim(callback: () => void): void {
 		this.onForegroundReclaimCallback = callback;
@@ -428,6 +456,8 @@ export class HeadlessEmulator {
 		this.sawPromptMarker = false;
 		this.shellOwnedModes.clear();
 		this.pendingClientDisarmModes.clear();
+		this.altScreenArmParam = null;
+		this.pendingBufferReclaimParam = null;
 	}
 
 	/**
@@ -483,6 +513,39 @@ export class HeadlessEmulator {
 		return disarm;
 	}
 
+	/**
+	 * The alt-screen exit owed after a foreground reclaim: a fullscreen TUI
+	 * that died uncleanly leaves the buffer switched, the internal emulator
+	 * and every attached renderer stay in the alternate buffer, and at a
+	 * shell prompt that means wheel events turn into arrow keys (history
+	 * cycling) while the real scrollback is unreachable.
+	 *
+	 * Returns the matching DECRST (`?1049l` for a `?1049h` arm, etc.) and
+	 * writes it into the internal terminal, so the emulator's own buffer
+	 * state and the bytes broadcast to live clients cannot diverge. Consumes
+	 * the pending exit. Call only from a settled pipeline (like
+	 * takeForegroundReclaimClientDisarm): the write lands at a chunk boundary
+	 * there, which is what keeps the mid-sequence injection hazard out.
+	 *
+	 * Re-checked at the settled point: any explicit buffer switch since the
+	 * marker canceled the pending exit (a new TUI owns the buffer; a DECRST
+	 * means nothing is left to exit), so a still-armed shadow here is the
+	 * dead TUI's leak. The physical buffer is checked too because RIS resets
+	 * to the normal buffer without a DECRST the shadow would see — and
+	 * `?1049l` while already in the normal buffer is not a no-op (it performs
+	 * a cursor restore).
+	 */
+	takeForegroundReclaimBufferExit(): string {
+		const param = this.pendingBufferReclaimParam;
+		if (param === null) return "";
+		this.pendingBufferReclaimParam = null;
+		if (!this.modes.alternateScreen) return "";
+		if (this.terminal.buffer.active.type !== "alternate") return "";
+		const exit = `${ESC}[?${param}l`;
+		this.write(exit);
+		return exit;
+	}
+
 	// ===========================================================================
 	// Private Methods
 	// ===========================================================================
@@ -515,8 +578,15 @@ export class HeadlessEmulator {
 					this.shellOwnedModes.delete(sibling);
 				}
 			}
+			if (modeName === "alternateScreen") {
+				// An explicit buffer switch — either direction — supersedes a
+				// pending reclaim exit: a DECSET means a live program owns the
+				// buffer again, a DECRST means there is nothing left to exit.
+				this.pendingBufferReclaimParam = null;
+				this.altScreenArmParam = enable ? (primary ?? null) : null;
+			}
 			this.modes[modeName] = enable;
-			if (!RECLAIMABLE_MODE_NAMES.has(modeName)) continue;
+			if (!RECLAIM_OWNED_MODE_NAMES.has(modeName)) continue;
 			if (enable) {
 				// Armed before the first prompt marker → shell init owns it. A
 				// re-arm after a marker leaves an existing grant intact (the
@@ -536,25 +606,41 @@ export class HeadlessEmulator {
 	 * cleanly would have disarmed them itself. Shell-owned modes (armed during
 	 * shell init, before the first marker) survive.
 	 *
-	 * Only the shadow map changes here. The internal terminal is deliberately
-	 * left armed: writing disarm bytes into it can land inside an escape
-	 * sequence split across PTY chunks (session.ts hard-splits at 8192 chars),
-	 * aborting the half-parsed sequence and baking its tail into every future
-	 * snapshot as junk text. Snapshots reconcile at read time instead
-	 * (reconcileSnapshotModes), and live clients get a settled, re-checked
-	 * disarm (takeForegroundReclaimClientDisarm).
+	 * Only the shadow map changes here, at the marker's dispatch point.
+	 * Nothing is written into the internal terminal mid-parse: injected bytes
+	 * can land inside an escape sequence split across PTY chunks (session.ts
+	 * hard-splits at 8192 chars), aborting the half-parsed sequence and baking
+	 * its tail into every future snapshot as junk text. Snapshots reconcile
+	 * input modes at read time instead (reconcileSnapshotModes), and live
+	 * clients get a settled, re-checked disarm
+	 * (takeForegroundReclaimClientDisarm).
+	 *
+	 * The alt-screen family is the one exception to read-time reconciliation:
+	 * the alternate buffer is content, not metadata (the shell draws the
+	 * post-kill prompt into it), so it cannot be stripped from a serialized
+	 * snapshot. A leaked buffer switch is recorded here and exited by
+	 * injecting the matching DECRST at the session's settled point
+	 * (takeForegroundReclaimBufferExit) — the one place bytes are written
+	 * into the internal terminal.
 	 */
 	private handlePromptMarker(): void {
 		this.sawPromptMarker = true;
-		let cleared = false;
+		let reclaimed = false;
 		for (const modeName of RECLAIMABLE_MODE_NAMES) {
 			if (!this.modes[modeName]) continue;
 			if (this.shellOwnedModes.has(modeName)) continue;
 			this.modes[modeName] = DEFAULT_MODES[modeName];
 			this.pendingClientDisarmModes.add(modeName);
-			cleared = true;
+			reclaimed = true;
 		}
-		if (cleared) this.onForegroundReclaimCallback?.();
+		if (
+			this.modes.alternateScreen &&
+			!this.shellOwnedModes.has("alternateScreen")
+		) {
+			this.pendingBufferReclaimParam = this.altScreenArmParam ?? 1049;
+			reclaimed = true;
+		}
+		if (reclaimed) this.onForegroundReclaimCallback?.();
 	}
 
 	private isAnyMouseProtocolArmed(): boolean {

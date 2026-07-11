@@ -643,4 +643,44 @@ describe("Terminal Host Session stale input modes after TUI death", () => {
 
 		expect(writes.some((message) => message.includes("?1003l"))).toBe(false);
 	});
+
+	it("broadcasts an alt-screen exit and exits the emulator when a fullscreen TUI died", async () => {
+		const session = createZshSession("session-altscreen-reclaim");
+		spawnAndReadySession(session);
+		const { socket, writes } = collectingSocket();
+		await session.attach(socket);
+
+		sendPtyData(`welcome\r\n${PROMPT_MARKER}$ `);
+		// vi entered the alt screen, drew, and was SIGKILLed mid-run.
+		sendPtyData("\x1b[?1049h\x1b[2;2Hvi body");
+		// The shell prompts into the leaked alt buffer; the exit can only
+		// follow at the settled point, over the same stream (#4949-style).
+		sendPtyData(`\r\n${PROMPT_MARKER}$ `);
+
+		await waitFor(() => writes.some((message) => message.includes("?1049l")));
+
+		// The internal emulator took the same exit: a warm reattach now
+		// snapshots the normal buffer instead of re-arming the alt screen.
+		const snapshot = await session.attach(fakeSocket());
+		expect(snapshot.snapshotAnsi).not.toContain("?1049h");
+	});
+
+	it("keeps a live fullscreen TUI in the alt screen across reattach", async () => {
+		// #5038 invariant: the last marker preceded the TUI's launch, so no
+		// reclaim fires while it is alive — reattach must keep the buffer.
+		const session = createZshSession("session-altscreen-live");
+		spawnAndReadySession(session);
+		const { socket, writes } = collectingSocket();
+		await session.attach(socket);
+
+		sendPtyData(`welcome\r\n${PROMPT_MARKER}$ `);
+		sendPtyData("\x1b[?1049h\x1b[2;2Hvim is alive");
+
+		// Give a misfiring reclaim pipeline time to (wrongly) broadcast.
+		await new Promise((resolve) => setTimeout(resolve, 250));
+
+		expect(writes.some((message) => message.includes("?1049l"))).toBe(false);
+		const snapshot = await session.attach(fakeSocket());
+		expect(snapshot.snapshotAnsi).toContain("?1049h");
+	});
 });
