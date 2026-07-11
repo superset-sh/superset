@@ -84,6 +84,8 @@ function isNetworkError(error: Error | string): boolean {
 
 let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
 let currentVersion: string | undefined;
+let currentError: string | undefined;
+let currentProgress: AutoUpdateProgress | undefined;
 let isDismissed = false;
 let isInstalling = false;
 
@@ -95,6 +97,8 @@ function emitStatus(
 ): void {
 	currentStatus = status;
 	currentVersion = version;
+	currentError = error;
+	currentProgress = progress;
 
 	if (isDismissed && status === AUTO_UPDATE_STATUS.READY) {
 		return;
@@ -108,7 +112,12 @@ export function getUpdateStatus(): AutoUpdateStatusEvent {
 	if (isDismissed && currentStatus === AUTO_UPDATE_STATUS.READY) {
 		return { status: AUTO_UPDATE_STATUS.IDLE };
 	}
-	return { status: currentStatus, version: currentVersion };
+	return {
+		status: currentStatus,
+		version: currentVersion,
+		error: currentError,
+		progress: currentProgress,
+	};
 }
 
 export function isUpdateReadyToInstall(): boolean {
@@ -388,7 +397,9 @@ export function setupAutoUpdater(): void {
 	}
 	if (lastRunVersion !== currentAppVersion) {
 		appState.data.lastRunVersion = currentAppVersion;
-		void appState.write();
+		appState.write().catch((error) => {
+			log.error("[auto-updater] Failed to persist lastRunVersion:", error);
+		});
 	}
 
 	const interval = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
