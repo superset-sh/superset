@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useEffect, useState } from "react";
-import { LuCircleArrowUp } from "react-icons/lu";
+import { useEffect, useRef, useState } from "react";
+import { LuCheck, LuCircleArrowUp, LuCircleCheck } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 import { DownloadRing } from "./DownloadRing";
@@ -12,6 +12,8 @@ const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", 
 const BAR_CELLS = 6;
 const BAR_WINDOW = 2;
 const FRAME_INTERVAL_MS = 80;
+/** How long the "downloaded ✓ vX.Y.Z" confirmation shows before settling into "↑ update" */
+const CONFIRM_MS = 2400;
 
 function useAsciiFrame(active: boolean): number {
 	const [frame, setFrame] = useState(0);
@@ -50,16 +52,34 @@ interface UpdatesPillProps {
 export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	const event = useAutoUpdateStatus();
 	const [isInstalling, setIsInstalling] = useState(false);
+	const [justDownloaded, setJustDownloaded] = useState(false);
 	const installMutation = electronTrpc.autoUpdate.install.useMutation();
 	const checkMutation = electronTrpc.autoUpdate.check.useMutation();
 	const frame = useAsciiFrame(isInstalling);
 
 	const status = event?.status;
+	const prevStatusRef = useRef(status);
 
 	// If the status moves off READY (e.g. dev-mode install emits IDLE, or an
 	// install error surfaces), drop the local installing state.
 	useEffect(() => {
 		if (status !== AUTO_UPDATE_STATUS.READY) setIsInstalling(false);
+	}, [status]);
+
+	// Confirmation beat: when a download completes, show a check + the
+	// downloaded version briefly before settling into the install pill.
+	useEffect(() => {
+		const prev = prevStatusRef.current;
+		prevStatusRef.current = status;
+		if (
+			prev === AUTO_UPDATE_STATUS.DOWNLOADING &&
+			status === AUTO_UPDATE_STATUS.READY
+		) {
+			setJustDownloaded(true);
+			const timeout = setTimeout(() => setJustDownloaded(false), CONFIRM_MS);
+			return () => clearTimeout(timeout);
+		}
+		setJustDownloaded(false);
 	}, [status]);
 
 	if (
@@ -93,7 +113,9 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 			? `Downloading update${version ? ` v${version}` : ""}`
 			: isError
 				? `${event?.error ?? "Update failed"} — click to retry`
-				: `Install update${version ? ` v${version}` : ""} — sessions keep running`;
+				: justDownloaded
+					? `Downloaded${version ? ` v${version}` : ""} — click to install`
+					: `Install update${version ? ` v${version}` : ""} — sessions keep running`;
 
 	if (isCollapsed) {
 		return (
@@ -118,6 +140,11 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 							<span className="font-mono text-xs leading-none text-orange-600 dark:text-orange-300">
 								{spinnerGlyph}
 							</span>
+						) : justDownloaded ? (
+							<LuCircleCheck
+								strokeWidth={STROKE_WIDTH}
+								className="size-4 text-emerald-600 dark:text-emerald-400"
+							/>
 						) : (
 							<LuCircleArrowUp
 								strokeWidth={STROKE_WIDTH}
@@ -170,6 +197,11 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						<>
 							<DownloadRing percent={percent} className="size-3" />
 							<span>{percent !== null ? `${Math.floor(percent)}%` : "…"}</span>
+						</>
+					) : isReady && justDownloaded ? (
+						<>
+							<LuCheck className="size-3 shrink-0" strokeWidth={2.5} />
+							<span>{version ? `v${version}` : "downloaded"}</span>
 						</>
 					) : isReady ? (
 						<>
