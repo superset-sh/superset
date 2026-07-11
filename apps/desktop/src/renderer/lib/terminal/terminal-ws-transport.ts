@@ -79,6 +79,10 @@ export interface TerminalTransport {
 	_writeCoalescer: WriteCoalescer | null;
 	/** Internal: last `_whoowns` probe, used to explain a failed connection. */
 	_lastProbe: RelayAffinityProbe | null;
+	/** Internal: bumped per connect() so async preflight callbacks from a
+	 * superseded attempt (reconnectNow re-entering the same URL) can't open a
+	 * duplicate socket or fatally terminate the newer attempt. */
+	_connectEpoch: number;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -180,6 +184,7 @@ export function createTransport(): TerminalTransport {
 		_resumeListener: null,
 		_writeCoalescer: null,
 		_lastProbe: null,
+		_connectEpoch: 0,
 	};
 }
 
@@ -362,6 +367,7 @@ export function connect(
 	}
 
 	cancelReconnect(transport);
+	const epoch = ++transport._connectEpoch;
 	transport.currentUrl = wsUrl;
 	transport._terminal = terminal;
 	// Recreate per connect so the coalescer always targets the current
@@ -378,9 +384,11 @@ export function connect(
 		: wsUrl;
 
 	const openSocket = (targetUrl: string) => {
-		// Bail if the transport raced into a different URL or was disconnected
-		// while the pre-flight was in flight.
+		// Bail if the transport raced into a different URL, was disconnected, or
+		// a newer connect() superseded this attempt while the pre-flight was in
+		// flight.
 		if (
+			transport._connectEpoch !== epoch ||
 			transport.currentUrl !== wsUrl ||
 			transport.connectionState !== "connecting"
 		) {
@@ -429,6 +437,7 @@ export function connect(
 				// answer. Stop and surface it; a manual reconnect re-enters connect().
 				if (probe?.status === 403) {
 					if (
+						transport._connectEpoch !== epoch ||
 						transport.currentUrl !== wsUrl ||
 						transport.connectionState !== "connecting"
 					) {

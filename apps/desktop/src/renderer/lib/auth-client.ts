@@ -22,6 +22,7 @@ export function getAuthToken(): string | null {
 
 let jwt: string | null = null;
 let jwtExpiresAtMs: number | null = null;
+let jwtGeneration = 0;
 let jwtRefreshInFlight: Promise<string | null> | null = null;
 
 // Refresh ahead of expiry so a token handed to a WS URL is still valid by the
@@ -30,6 +31,7 @@ const JWT_REFRESH_LEEWAY_MS = 60_000;
 
 export function setJwt(token: string | null) {
 	jwt = token;
+	jwtGeneration++;
 	jwtExpiresAtMs = token ? decodeJwtExpiresAtMs(token) : null;
 }
 
@@ -56,14 +58,26 @@ export function getJwt(): string | null {
 export async function ensureFreshJwt(): Promise<string | null> {
 	if (jwtIsFresh()) return jwt;
 	if (!jwtRefreshInFlight) {
+		const generationAtStart = jwtGeneration;
 		jwtRefreshInFlight = authClient
 			.$fetch<{ token?: string }>("/token")
 			.then((res) => {
 				const token = res.data?.token;
-				if (typeof token === "string" && token) setJwt(token);
+				// Apply only if nothing (logout, a set-auth-jwt response header)
+				// replaced the cached token while this request was in flight.
+				if (
+					typeof token === "string" &&
+					token &&
+					jwtGeneration === generationAtStart
+				) {
+					setJwt(token);
+				}
 				return jwt;
 			})
-			.catch(() => jwt)
+			.catch((err) => {
+				console.warn("[auth] JWT refresh failed:", err);
+				return jwt;
+			})
 			.finally(() => {
 				jwtRefreshInFlight = null;
 			});
