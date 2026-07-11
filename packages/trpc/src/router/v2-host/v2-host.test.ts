@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import * as realDbSchema from "@superset/db/schema";
+import * as realDbUtils from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import * as realDrizzle from "drizzle-orm";
 
@@ -52,6 +53,22 @@ mock.module("@superset/db/client", () => ({
 }));
 
 mock.module("@superset/db/schema", () => ({ ...realDbSchema }));
+
+// Pin getCurrentTxid against other files' partial @superset/db/utils mocks
+// (bun's mock.module is global and never restored, and test-file discovery
+// order is filesystem-dependent). Mirrors the real txid query so the
+// executeMock assertions below keep exercising it.
+mock.module("@superset/db/utils", () => ({
+	...realDbUtils,
+	getCurrentTxid: async (txn: {
+		execute: (query: unknown) => Promise<{ rows: Array<{ txid: string }> }>;
+	}) => {
+		const result = await txn.execute(
+			realDrizzle.sql`SELECT pg_current_xact_id()::xid::text as txid`,
+		);
+		return Number.parseInt(result.rows[0]?.txid ?? "", 10);
+	},
+}));
 
 mock.module("../integration/utils", () => ({
 	verifyOrgAdmin: mock(async () => ({ membership: { role: "owner" } })),
