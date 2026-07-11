@@ -25,7 +25,6 @@ export default function WorkspaceChatLayout() {
 			}}
 		>
 			<Stack.Screen name="[sessionId]" options={glassHeaderOptions} />
-			<Stack.Screen name="acp/index" options={{ title: "Live sessions" }} />
 			{/* ACP threads share the exact same glass header treatment. */}
 			<Stack.Screen name="acp/[sessionId]" options={glassHeaderOptions} />
 		</Stack>

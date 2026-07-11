@@ -6,13 +6,14 @@ import * as Clipboard from "expo-clipboard";
 import * as Crypto from "expo-crypto";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Share } from "react-native";
 import type { HostWorkspaceRow } from "@/hooks/useHostWorkspaces";
 import { createAcpSession } from "@/lib/host/client";
 import {
 	buildRelayHostUrl,
 	getHostServiceClientByUrl,
 } from "@/lib/host-service/client";
+import { isTrpcErrorWithData } from "@/lib/host-service/errors";
 
 export function useWorkspaceHeaderActions(
 	workspace: HostWorkspaceRow | null,
@@ -79,9 +80,89 @@ export function useWorkspaceHeaderActions(
 		});
 	};
 
+	const destroyWorkspace = async (force: boolean) => {
+		if (!workspace || !host) return;
+		const hostUrl = buildRelayHostUrl(host.organizationId, host.machineId);
+		try {
+			await getHostServiceClientByUrl(hostUrl).workspaceCleanup.destroy.mutate({
+				workspaceId: workspace.id,
+				deleteBranch: false,
+				force,
+			});
+			void queryClient.invalidateQueries({
+				queryKey: ["host-service", "workspaces", "list"],
+			});
+			router.back();
+		} catch (error) {
+			if (isTrpcErrorWithData(error)) {
+				if (error.data.deleteInProgress) {
+					Alert.alert("Delete already in progress");
+					return;
+				}
+				if (error.data.code === "CONFLICT" || error.data.teardownFailure) {
+					Alert.alert(
+						error.data.teardownFailure
+							? "Teardown script failed"
+							: "Worktree has uncommitted changes",
+						undefined,
+						[
+							{ style: "cancel", text: "Cancel" },
+							{
+								onPress: () => void destroyWorkspace(true),
+								style: "destructive",
+								text: "Force delete",
+							},
+						],
+					);
+					return;
+				}
+			}
+			Alert.alert("Delete failed");
+		}
+	};
+
+	const deleteWorkspace = () => {
+		if (!workspace) return;
+		if (!host) {
+			Alert.alert("Host is not online");
+			return;
+		}
+		Alert.alert(
+			"Delete workspace",
+			`Delete "${workspace.name}"? This removes its worktree from the host.`,
+			[
+				{ style: "cancel", text: "Cancel" },
+				{
+					onPress: () => void destroyWorkspace(false),
+					style: "destructive",
+					text: "Delete",
+				},
+			],
+		);
+	};
+
 	const copyBranch = () => {
 		if (workspace) void Clipboard.setStringAsync(workspace.branch);
 	};
 
-	return { startNewChat, renameWorkspace, copyBranch, creatingChat };
+	const copyId = () => {
+		if (workspace) void Clipboard.setStringAsync(workspace.id);
+	};
+
+	const shareWorkspace = () => {
+		if (!workspace) return;
+		void Share.share({
+			url: `https://app.superset.sh/workspaces/${workspace.id}`,
+		});
+	};
+
+	return {
+		startNewChat,
+		renameWorkspace,
+		deleteWorkspace,
+		copyBranch,
+		copyId,
+		shareWorkspace,
+		creatingChat,
+	};
 }

@@ -22,8 +22,15 @@ const glassHeaderOptions = {
 export default function WorkspaceTabsLayout() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const { workspace, host } = useWorkspaceHost(id ?? null);
-	const { startNewChat, renameWorkspace, copyBranch, creatingChat } =
-		useWorkspaceHeaderActions(workspace, host);
+	const {
+		startNewChat,
+		renameWorkspace,
+		deleteWorkspace,
+		copyBranch,
+		copyId,
+		shareWorkspace,
+		creatingChat,
+	} = useWorkspaceHeaderActions(workspace, host);
 
 	return (
 		<>
@@ -54,15 +61,38 @@ export default function WorkspaceTabsLayout() {
 						accessibilityLabel="Workspace options"
 						hidden={!workspace}
 					>
-						<Stack.Toolbar.MenuAction icon="doc.on.doc" onPress={copyBranch}>
-							Copy branch
-						</Stack.Toolbar.MenuAction>
 						<Stack.Toolbar.MenuAction
 							icon="pencil"
 							onPress={() => void renameWorkspace()}
 						>
-							Rename workspace
+							Rename
 						</Stack.Toolbar.MenuAction>
+						<Stack.Toolbar.Menu inline>
+							<Stack.Toolbar.MenuAction
+								icon="arrow.triangle.branch"
+								onPress={copyBranch}
+							>
+								Copy branch
+							</Stack.Toolbar.MenuAction>
+							<Stack.Toolbar.MenuAction icon="doc.on.doc" onPress={copyId}>
+								Copy ID
+							</Stack.Toolbar.MenuAction>
+							<Stack.Toolbar.MenuAction
+								icon="square.and.arrow.up"
+								onPress={shareWorkspace}
+							>
+								Share
+							</Stack.Toolbar.MenuAction>
+						</Stack.Toolbar.Menu>
+						{workspace?.type !== "main" ? (
+							<Stack.Toolbar.MenuAction
+								icon="trash"
+								destructive
+								onPress={deleteWorkspace}
+							>
+								Delete
+							</Stack.Toolbar.MenuAction>
+						) : null}
 					</Stack.Toolbar.Menu>
 				</Stack.Toolbar>
 			</Stack.Screen>

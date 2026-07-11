@@ -1,6 +1,6 @@
 import { prompt } from "@superset/alert-prompt";
 import * as Clipboard from "expo-clipboard";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import type { ReactNode } from "react";
 import { Alert, Share } from "react-native";
 import type {
@@ -19,7 +19,6 @@ export function WorkspaceRowMenu({
 	cache: HostWorkspacesCacheOps;
 	children: ReactNode;
 }) {
-	const router = useRouter();
 	const renameWorkspace = async () => {
 		const hostUrl = cache.resolveHostUrl(workspace.hostId);
 		if (!hostUrl) {
@@ -105,9 +104,8 @@ export function WorkspaceRowMenu({
 		);
 	};
 
-	// The workspace has no screen of its own anymore — sessions are inline on
-	// home — so the row only long-presses into the menu; tap is a no-op (the
-	// Link exists solely because Link.Menu must be a direct child of Link).
+	// Tap navigation lives on the row itself; the Link exists solely because
+	// Link.Menu must be a direct child of Link, so tap is a no-op here.
 	return (
 		<Link
 			href="/(authenticated)/(home)"
@@ -116,14 +114,6 @@ export function WorkspaceRowMenu({
 		>
 			<Link.Trigger>{children}</Link.Trigger>
 			<Link.Menu>
-				<Link.MenuAction
-					icon="terminal"
-					onPress={() =>
-						router.push(`/(authenticated)/workspace/${workspace.id}/chat/acp`)
-					}
-				>
-					Live sessions
-				</Link.MenuAction>
 				<Link.MenuAction icon="pencil" onPress={() => void renameWorkspace()}>
 					Rename
 				</Link.MenuAction>
