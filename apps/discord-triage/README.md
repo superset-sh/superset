@@ -10,7 +10,8 @@ Gateway bot that auto-ingests Discord support messages into Linear Triage. Every
 | `DISCORD_CHANNEL_IDS` | Comma-separated channel IDs to watch |
 | `LINEAR_API_KEY` | Linear personal API key |
 | `LINEAR_TEAM_KEY` | Team key, default `SUPER` |
-| `LINEAR_SOURCE_LABEL` | Label name, default `Discord` |
+| `LINEAR_SOURCE_LABEL` | Label name, default `Discord`; must exist on the team (boot fails otherwise) |
+| `LINEAR_WEBHOOK_SECRET` | Signing secret of the Linear webhook; `/linear-webhook` (issue close → archive Discord thread) stays disabled when unset |
 
 ## One-time setup
 

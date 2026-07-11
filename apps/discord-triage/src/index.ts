@@ -28,8 +28,8 @@ async function resolveLinearIds() {
 	});
 	sourceLabelId = labels.nodes[0]?.id;
 	if (!sourceLabelId) {
-		console.warn(
-			`Label "${env.LINEAR_SOURCE_LABEL}" not found on team; issues will be unlabeled`,
+		throw new Error(
+			`Label "${env.LINEAR_SOURCE_LABEL}" not found on team ${env.LINEAR_TEAM_KEY}`,
 		);
 	}
 }
@@ -131,10 +131,11 @@ discord.once(Events.ClientReady, (client) => {
 
 const GUILD_ID = "1446776342577283114";
 const THREAD_LINK = new RegExp(
-	`https://discord\\.com/channels/${GUILD_ID}/(\\d+)`,
+	`https://discord\\.com/channels/${GUILD_ID}/(\\d+)(?:/(\\d+))?`,
 	"g",
 );
 const CLOSED_STATE_TYPES = new Set(["completed", "canceled", "duplicate"]);
+const THREAD_CHANNEL_TYPES = new Set([10, 11, 12]);
 
 async function discordRest(
 	path: string,
@@ -166,35 +167,44 @@ type LinearWebhookPayload = {
 async function handleIssueClosed(payload: LinearWebhookPayload) {
 	const issue = payload.data;
 	if (!issue) return;
-	const threadIds = [
-		...new Set(
-			[...String(issue.description ?? "").matchAll(THREAD_LINK)].map(
-				(m) => m[1],
-			),
-		),
-	];
-	if (threadIds.length === 0) return;
+	// Message links are /channels/<guild>/<channel>/<message>. For forum posts the
+	// channel segment IS the thread; for text channels the thread shares the
+	// message's ID. Try both segments and let the type check below disambiguate.
+	const candidateIds = new Set<string>();
+	for (const m of String(issue.description ?? "").matchAll(THREAD_LINK)) {
+		if (m[1]) candidateIds.add(m[1]);
+		if (m[2]) candidateIds.add(m[2]);
+	}
+	if (candidateIds.size === 0) return;
 	const done = issue.state?.type === "completed";
 	const message = done
 		? `✅ Fixed — closed in Linear as **${issue.identifier}** (${issue.state?.name}).`
 		: `Closed in Linear as **${issue.identifier}** (${issue.state?.name}).`;
-	for (const threadId of threadIds) {
+	for (const threadId of candidateIds) {
 		const t = await discordRest(`/channels/${threadId}`);
 		if (!t.ok) continue;
 		const thread = (await t.json()) as {
+			type?: number;
 			guild_id?: string;
 			thread_metadata?: { archived?: boolean };
 		};
+		if (!THREAD_CHANNEL_TYPES.has(thread.type ?? -1)) continue;
 		if (thread.guild_id !== GUILD_ID) continue;
 		if (thread.thread_metadata?.archived) continue;
-		await discordRest(`/channels/${threadId}/messages`, {
+		const post = await discordRest(`/channels/${threadId}/messages`, {
 			method: "POST",
 			body: JSON.stringify({ content: message }),
 		});
-		await discordRest(`/channels/${threadId}`, {
+		if (!post.ok) {
+			throw new Error(`post to thread ${threadId} failed: ${post.status}`);
+		}
+		const patch = await discordRest(`/channels/${threadId}`, {
 			method: "PATCH",
 			body: JSON.stringify({ archived: true }),
 		});
+		if (!patch.ok) {
+			throw new Error(`archive thread ${threadId} failed: ${patch.status}`);
+		}
 		console.log(`archived thread ${threadId} for ${issue.identifier}`);
 	}
 }
@@ -223,9 +233,14 @@ async function handleLinearWebhook(req: Request): Promise<Response> {
 		payload.updatedFrom &&
 		"stateId" in payload.updatedFrom;
 	if (stateChanged && CLOSED_STATE_TYPES.has(payload.data?.state?.type)) {
-		handleIssueClosed(payload).catch((err) =>
-			console.error("webhook handling failed", err),
-		);
+		// Await so failures return 5xx and Linear retries; archived threads are
+		// skipped above, which keeps retries idempotent.
+		try {
+			await handleIssueClosed(payload);
+		} catch (err) {
+			console.error("webhook handling failed", err);
+			return new Response("handling failed", { status: 500 });
+		}
 	}
 	return new Response("ok");
 }
