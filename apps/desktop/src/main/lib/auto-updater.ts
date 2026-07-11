@@ -116,8 +116,10 @@ export function isUpdateReadyToInstall(): boolean {
 
 export function installUpdate(): void {
 	if (env.NODE_ENV === "development") {
+		// Linger before going idle so the renderer's installing state can be
+		// previewed with the simulate* mutations.
 		log.info("[auto-updater] Install skipped in dev mode");
-		emitStatus(AUTO_UPDATE_STATUS.IDLE);
+		setTimeout(() => emitStatus(AUTO_UPDATE_STATUS.IDLE), 3500);
 		return;
 	}
 	// MacUpdater.quitAndInstall() registers a fresh native-updater
@@ -223,21 +225,51 @@ export function checkForUpdatesInteractive(): void {
 		});
 }
 
+const SIMULATED_VERSION = "99.0.0-test";
+let simulateDownloadInterval: NodeJS.Timeout | undefined;
+
+function clearSimulatedDownload(): void {
+	if (simulateDownloadInterval) {
+		clearInterval(simulateDownloadInterval);
+		simulateDownloadInterval = undefined;
+	}
+}
+
 export function simulateUpdateReady(): void {
 	if (env.NODE_ENV !== "development") return;
 	isDismissed = false;
-	emitStatus(AUTO_UPDATE_STATUS.READY, "99.0.0-test");
+	clearSimulatedDownload();
+	emitStatus(AUTO_UPDATE_STATUS.READY, SIMULATED_VERSION);
 }
 
 export function simulateDownloading(): void {
 	if (env.NODE_ENV !== "development") return;
 	isDismissed = false;
-	emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, "99.0.0-test");
+	clearSimulatedDownload();
+	emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, SIMULATED_VERSION);
+
+	// Stream fake progress so the renderer's ring/percent can be exercised,
+	// then land on READY like a real download.
+	const totalBytes = 48 * 1024 * 1024;
+	let percent = 0;
+	simulateDownloadInterval = setInterval(() => {
+		percent = Math.min(percent + 3 + Math.random() * 5, 100);
+		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, SIMULATED_VERSION, undefined, {
+			percent,
+			transferredBytes: Math.round((percent / 100) * totalBytes),
+			totalBytes,
+		});
+		if (percent >= 100) {
+			clearSimulatedDownload();
+			emitStatus(AUTO_UPDATE_STATUS.READY, SIMULATED_VERSION);
+		}
+	}, 300);
 }
 
 export function simulateError(): void {
 	if (env.NODE_ENV !== "development") return;
 	isDismissed = false;
+	clearSimulatedDownload();
 	emitStatus(
 		AUTO_UPDATE_STATUS.ERROR,
 		undefined,
