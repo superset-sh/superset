@@ -48,5 +48,10 @@ jobs:
           gh api "repos/${GH_REPO}/git/refs" -f ref="refs/tags/${CLI_TAG}" -f sha="${SHA}"
           echo "Created ${CLI_TAG} at ${SHA}"
 
-          gh workflow run release-cli.yml --ref "${CLI_TAG}"
+          # A rerun of this workflow can't recover a failed dispatch (the
+          # tag-exists check above exits early), so name the manual command.
+          if ! gh workflow run release-cli.yml --ref "${CLI_TAG}"; then
+            echo "::error::${CLI_TAG} was created but the dispatch failed. Recover with: gh workflow run release-cli.yml --ref ${CLI_TAG}"
+            exit 1
+          fi
           echo "Dispatched release-cli.yml on ${CLI_TAG}"
