@@ -6,6 +6,7 @@ import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
 import { SetupScriptCard } from "./SetupScriptCard";
 import { SidebarDropZone } from "./SidebarDropZone";
+import { UpdatesRow } from "./UpdatesRow";
 import { WorkspaceSidebarFooter } from "./WorkspaceSidebarFooter";
 import { WorkspaceSidebarHeader } from "./WorkspaceSidebarHeader";
 
@@ -115,6 +116,7 @@ export function WorkspaceSidebar({
 				projectName={activeProjectName}
 			/>
 
+			<UpdatesRow isCollapsed={isCollapsed} />
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 			<MultiDragPreview />
 		</SidebarDropZone>

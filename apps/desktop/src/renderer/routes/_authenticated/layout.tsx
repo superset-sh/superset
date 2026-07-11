@@ -13,7 +13,6 @@ import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
-import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
@@ -71,7 +70,6 @@ function AuthenticatedLayout() {
 		: session?.session?.activeOrganizationId;
 
 	useAgentHookListener();
-	useUpdateListener();
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {

@@ -298,11 +298,6 @@
 		background-color: var(--highlight-active);
 	}
 
-	/* Disable sonner toast hover animation for update toast only */
-	[data-sonner-toast]:has(.update-toast) {
-		transform: translateY(0);
-	}
-
 	/* Tiptap chat input placeholder */
 	.tiptap-chat-input p.is-editor-empty:first-child::before {
 		content: attr(data-placeholder);

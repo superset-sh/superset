@@ -5,7 +5,12 @@ import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
 import { gte, prerelease } from "semver";
-import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
+import {
+	AUTO_UPDATE_STATUS,
+	type AutoUpdateProgress,
+	type AutoUpdateStatus,
+	type AutoUpdateStatusEvent,
+} from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
 
 // electron-updater's internal cache only self-invalidates when the remote
@@ -52,11 +57,7 @@ const UPDATE_FEED_URL = IS_PRERELEASE
 	? "https://github.com/superset-sh/superset/releases/download/desktop-canary"
 	: "https://github.com/superset-sh/superset/releases/latest/download";
 
-export interface AutoUpdateStatusEvent {
-	status: AutoUpdateStatus;
-	version?: string;
-	error?: string;
-}
+export type { AutoUpdateStatusEvent } from "shared/auto-update";
 
 export const autoUpdateEmitter = new EventEmitter();
 
@@ -89,6 +90,7 @@ function emitStatus(
 	status: AutoUpdateStatus,
 	version?: string,
 	error?: string,
+	progress?: AutoUpdateProgress,
 ): void {
 	currentStatus = status;
 	currentVersion = version;
@@ -97,7 +99,8 @@ function emitStatus(
 		return;
 	}
 
-	autoUpdateEmitter.emit("status-changed", { status, version, error });
+	const event: AutoUpdateStatusEvent = { status, version, error, progress };
+	autoUpdateEmitter.emit("status-changed", event);
 }
 
 export function getUpdateStatus(): AutoUpdateStatusEvent {
@@ -310,10 +313,21 @@ export function setupAutoUpdater(): void {
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 	});
 
+	// Throttle renderer notifications; electron-updater emits per chunk.
+	const PROGRESS_EMIT_INTERVAL_MS = 500;
+	let lastProgressEmitAt = 0;
 	autoUpdater.on("download-progress", (progress) => {
 		log.info(
 			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}% (${(progress.transferred / 1024 / 1024).toFixed(1)}MB / ${(progress.total / 1024 / 1024).toFixed(1)}MB)`,
 		);
+		const now = Date.now();
+		if (now - lastProgressEmitAt < PROGRESS_EMIT_INTERVAL_MS) return;
+		lastProgressEmitAt = now;
+		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, currentVersion, undefined, {
+			percent: progress.percent,
+			transferredBytes: progress.transferred,
+			totalBytes: progress.total,
+		});
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
