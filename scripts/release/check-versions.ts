@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-// Enforces unified versioning: desktop is the ceiling (a plain MAJOR.MINOR.PATCH
-// release), and every UNIFIED_PACKAGES entry must share that base and equal each
-// other. Interim CLI releases add a -N suffix (e.g. 1.14.0-1) which sorts BELOW
-// the release, so the CLI never ships above desktop. pty-daemon is excluded.
+// Enforces unified versioning: every version is a plain MAJOR.MINOR.PATCH (no
+// prerelease suffixes), UNIFIED_PACKAGES entries must equal each other and sit
+// at or above desktop within its minor line — CLI hotfixes lead desktop by
+// patches until the next desktop release catches up. pty-daemon is excluded.
 
 import {
 	assertUnified,
@@ -23,7 +23,7 @@ export async function runCheck(): Promise<boolean> {
 			`\nVersion drift detected. Unified rule: ${DESKTOP_PACKAGE} == ${UNIFIED_PACKAGES.join(" == ")}`,
 		);
 		console.error(
-			`(interim CLI releases may add a -N suffix, e.g. ${desktop}-1).`,
+			"(CLI hotfixes may lead desktop by plain patches within its minor line).",
 		);
 		return false;
 	}

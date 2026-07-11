@@ -384,7 +384,9 @@ async function monitorAndPublish(
 	if (opts.autoPublish) {
 		await $`gh release edit ${tag} --draft=false`;
 		success("Release published!");
-		await publishMatchingCli(version, tag);
+		info(
+			`release-cli-lockstep.yml will tag cli-v${version} and ship the matching standalone CLI.`,
+		);
 		if (opts.autoMerge && opts.prNumber) {
 			const r =
 				await $`gh pr merge ${opts.prNumber} --squash --delete-branch`.nothrow();
@@ -397,37 +399,9 @@ async function monitorAndPublish(
 		console.log(`\nReview: ${url}`);
 		console.log(`Publish with: gh release edit ${tag} --draft=false`);
 		console.log(
-			`Then ship the matching standalone CLI ${version}:\n  git tag cli-v${version} ${tag} && git push origin cli-v${version}`,
+			`Publishing auto-tags cli-v${version} and ships the standalone CLI (release-cli-lockstep.yml).`,
 		);
 	}
-}
-
-/** After the desktop release is published, cut the matching plain cli-v<version>
- * (same commit) so the standalone CLI ships in lockstep with desktop. Skipped in
- * draft mode — nothing ships until the desktop release is live. */
-async function publishMatchingCli(
-	version: string,
-	desktopTag: string,
-): Promise<void> {
-	const cliTag = `cli-v${version}`;
-	// Check origin, not a possibly-stale local tag: a leftover local cli-v tag
-	// would otherwise skip a publish that origin never received.
-	const remote = (
-		await $`git ls-remote --tags origin ${`refs/tags/${cliTag}`}`
-			.nothrow()
-			.text()
-	).trim();
-	if (remote) {
-		warn(`${cliTag} already on origin; skipping standalone CLI publish.`);
-		return;
-	}
-	info(`Publishing matching standalone CLI ${cliTag}...`);
-	// -f force-updates any stale local tag onto the desktop release commit.
-	await $`git tag -f ${cliTag} ${desktopTag}`;
-	await $`git push origin ${cliTag}`;
-	success(
-		`Tag ${cliTag} pushed — release-cli.yml will publish the standalone CLI ${version}`,
-	);
 }
 
 if (import.meta.main) await runDesktop(process.argv.slice(2));
