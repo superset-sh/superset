@@ -3,6 +3,8 @@ export const AUTO_UPDATE_STATUS = {
 	CHECKING: "checking",
 	DOWNLOADING: "downloading",
 	READY: "ready",
+	/** Transient: the app just relaunched on a new version after an install */
+	UPDATED: "updated",
 	ERROR: "error",
 } as const;
 

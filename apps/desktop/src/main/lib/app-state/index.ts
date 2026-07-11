@@ -30,6 +30,7 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 				...(data.hotkeysState?.byPlatform ?? {}),
 			},
 		},
+		lastRunVersion: data.lastRunVersion,
 	};
 }
 

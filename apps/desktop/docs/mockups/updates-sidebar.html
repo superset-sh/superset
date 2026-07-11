@@ -755,10 +755,10 @@ function v5Slot(state) {
     </span>`);
 }
 function v5Complete(slot) {
-  const ring = slot.querySelector(".ring");
-  if (ring) ring.outerHTML = `<svg class="done-check check-draw" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4.5 12.5l5 5L20 6.5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  // No download confirmation — the "✓ vX" beat comes after the install,
+  // which startInstall's completion already renders before retiring.
   const pct = slot.querySelector("[data-pct]");
-  if (pct) pct.textContent = `v${VERSION}`;
+  if (pct) pct.textContent = "100%";
 }
 
 /* ---------------- panels ---------------- */

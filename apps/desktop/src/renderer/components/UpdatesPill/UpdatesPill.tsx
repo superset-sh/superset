@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { LuCircleArrowUp, LuCircleCheck } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
@@ -12,8 +12,8 @@ const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", 
 const BAR_CELLS = 6;
 const BAR_WINDOW = 2;
 const FRAME_INTERVAL_MS = 80;
-/** How long the "downloaded ✓ vX.Y.Z" confirmation shows before settling into "↑ update" */
-const CONFIRM_MS = 2400;
+/** How long the post-update "✓ vX.Y.Z" confirmation shows before hiding */
+const CONFIRM_MS = 5000;
 
 function useAsciiFrame(active: boolean): number {
 	const [frame, setFrame] = useState(0);
@@ -52,13 +52,12 @@ interface UpdatesPillProps {
 export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	const event = useAutoUpdateStatus();
 	const [isInstalling, setIsInstalling] = useState(false);
-	const [justDownloaded, setJustDownloaded] = useState(false);
+	const [confirmationDone, setConfirmationDone] = useState(false);
 	const installMutation = electronTrpc.autoUpdate.install.useMutation();
 	const checkMutation = electronTrpc.autoUpdate.check.useMutation();
 	const frame = useAsciiFrame(isInstalling);
 
 	const status = event?.status;
-	const prevStatusRef = useRef(status);
 
 	// If the status moves off READY (e.g. dev-mode install emits IDLE, or an
 	// install error surfaces), drop the local installing state.
@@ -66,26 +65,23 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 		if (status !== AUTO_UPDATE_STATUS.READY) setIsInstalling(false);
 	}, [status]);
 
-	// Confirmation beat: when a download completes, show a check + the
-	// downloaded version briefly before settling into the install pill.
+	// The post-update confirmation ("✓ vX.Y.Z" after relaunching on a new
+	// version) hides itself after a beat, even if the status lingers.
 	useEffect(() => {
-		const prev = prevStatusRef.current;
-		prevStatusRef.current = status;
-		if (
-			prev === AUTO_UPDATE_STATUS.DOWNLOADING &&
-			status === AUTO_UPDATE_STATUS.READY
-		) {
-			setJustDownloaded(true);
-			const timeout = setTimeout(() => setJustDownloaded(false), CONFIRM_MS);
+		if (status === AUTO_UPDATE_STATUS.UPDATED) {
+			setConfirmationDone(false);
+			const timeout = setTimeout(() => setConfirmationDone(true), CONFIRM_MS);
 			return () => clearTimeout(timeout);
 		}
-		setJustDownloaded(false);
 	}, [status]);
+
+	const isUpdated = status === AUTO_UPDATE_STATUS.UPDATED && !confirmationDone;
 
 	if (
 		status !== AUTO_UPDATE_STATUS.DOWNLOADING &&
 		status !== AUTO_UPDATE_STATUS.READY &&
-		status !== AUTO_UPDATE_STATUS.ERROR
+		status !== AUTO_UPDATE_STATUS.ERROR &&
+		!isUpdated
 	) {
 		return null;
 	}
@@ -93,7 +89,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	const isDownloading = status === AUTO_UPDATE_STATUS.DOWNLOADING;
 	const isError = status === AUTO_UPDATE_STATUS.ERROR;
 	const isReady = status === AUTO_UPDATE_STATUS.READY;
-	const isBusy = isDownloading || isInstalling;
+	const isBusy = isDownloading || isInstalling || isUpdated;
 	const version = event?.version;
 	const percent = event?.progress?.percent ?? null;
 	const spinnerGlyph = SPINNER_FRAMES[frame % SPINNER_FRAMES.length];
@@ -113,8 +109,8 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 			? `Downloading update${version ? ` v${version}` : ""}`
 			: isError
 				? `${event?.error ?? "Update failed"} — click to retry`
-				: justDownloaded
-					? `Downloaded${version ? ` v${version}` : ""} — click to install`
+				: isUpdated
+					? `Updated${version ? ` to v${version}` : ""}`
 					: `Install update${version ? ` v${version}` : ""} — sessions keep running`;
 
 	if (isCollapsed) {
@@ -140,7 +136,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 							<span className="font-mono text-xs leading-none text-orange-600 dark:text-orange-300">
 								{spinnerGlyph}
 							</span>
-						) : justDownloaded ? (
+						) : isUpdated ? (
 							<LuCircleCheck
 								strokeWidth={STROKE_WIDTH}
 								className="size-4 text-emerald-600 dark:text-emerald-400"
@@ -175,14 +171,12 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						"font-mono text-[10px] tabular-nums leading-none",
 						"ring-1 ring-inset animate-in fade-in slide-in-from-bottom-1 duration-300",
 						isBusy && "cursor-default",
-						(isDownloading || isInstalling || (isReady && justDownloaded)) &&
+						(isDownloading || isInstalling || isUpdated) &&
 							"bg-foreground/[0.045] ring-foreground/[0.06]",
-						isDownloading && "text-muted-foreground",
+						(isDownloading || isUpdated) && "text-muted-foreground",
 						isInstalling && "text-orange-600 dark:text-orange-300",
-						isReady && justDownloaded && "text-muted-foreground",
 						isReady &&
 							!isInstalling &&
-							!justDownloaded &&
 							"bg-emerald-500/15 ring-emerald-500/25 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300",
 						isError &&
 							"bg-destructive/10 ring-destructive/25 text-destructive hover:bg-destructive/20",
@@ -200,7 +194,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 							<DownloadRing percent={percent} className="size-3" />
 							<span>{percent !== null ? `${Math.floor(percent)}%` : "…"}</span>
 						</>
-					) : isReady && justDownloaded ? (
+					) : isUpdated ? (
 						<>
 							<svg
 								viewBox="0 0 24 24"

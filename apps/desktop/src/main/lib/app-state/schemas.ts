@@ -24,6 +24,8 @@ export interface AppState {
 	tabsState: BaseTabsState;
 	themeState: ThemeState;
 	hotkeysState: LegacyHotkeysState;
+	/** App version at last launch; a mismatch means an update was just installed */
+	lastRunVersion?: string;
 }
 
 export const defaultAppState: AppState = {

@@ -4,6 +4,7 @@ import log from "electron-log/main";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
+import { appState } from "main/lib/app-state";
 import { gte, prerelease } from "semver";
 import {
 	AUTO_UPDATE_STATUS,
@@ -116,10 +117,15 @@ export function isUpdateReadyToInstall(): boolean {
 
 export function installUpdate(): void {
 	if (env.NODE_ENV === "development") {
-		// Linger before going idle so the renderer's installing state can be
-		// previewed with the simulate* mutations.
+		// Simulate the real lifecycle so the renderer can be previewed with the
+		// simulate* mutations: installing lingers, then the post-update
+		// confirmation shows, then everything goes idle.
 		log.info("[auto-updater] Install skipped in dev mode");
-		setTimeout(() => emitStatus(AUTO_UPDATE_STATUS.IDLE), 3500);
+		const installedVersion = currentVersion;
+		setTimeout(() => {
+			emitStatus(AUTO_UPDATE_STATUS.UPDATED, installedVersion);
+			setTimeout(() => emitStatus(AUTO_UPDATE_STATUS.IDLE), 6000);
+		}, 3500);
 		return;
 	}
 	// MacUpdater.quitAndInstall() registers a fresh native-updater
@@ -369,15 +375,37 @@ export function setupAutoUpdater(): void {
 		emitStatus(AUTO_UPDATE_STATUS.READY, info.version);
 	});
 
+	// If the version changed since the last launch, an update was just
+	// installed — surface a transient confirmation before the first check.
+	const lastRunVersion = appState.data.lastRunVersion;
+	const currentAppVersion = app.getVersion();
+	const justUpdated = !!lastRunVersion && lastRunVersion !== currentAppVersion;
+	if (justUpdated) {
+		log.info(
+			`[auto-updater] Updated: ${lastRunVersion} → ${currentAppVersion}`,
+		);
+		emitStatus(AUTO_UPDATE_STATUS.UPDATED, currentAppVersion);
+	}
+	if (lastRunVersion !== currentAppVersion) {
+		appState.data.lastRunVersion = currentAppVersion;
+		void appState.write();
+	}
+
 	const interval = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
 	interval.unref();
 
+	// Delay the first check when just updated so the confirmation isn't
+	// immediately overwritten by CHECKING before the renderer sees it.
+	const firstCheckDelayMs = justUpdated ? 10_000 : 0;
+	const startChecks = () => {
+		setTimeout(checkForUpdates, firstCheckDelayMs);
+	};
 	if (app.isReady()) {
-		void checkForUpdates();
+		startChecks();
 	} else {
 		app
 			.whenReady()
-			.then(() => checkForUpdates())
+			.then(startChecks)
 			.catch((error) => {
 				log.error("[auto-updater] Failed to start update checks:", error);
 			});
