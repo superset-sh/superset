@@ -190,6 +190,26 @@ function upstreamKey(
 	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
+// Closed and merged PRs are historical: they should only stay attached to a
+// workspace whose HEAD still points at the PR's exact head commit. Reusing a
+// branch name (most commonly the default branch after someone opens a throwaway
+// PR *from* it — #4508, #4260, #4513) otherwise surfaces an old, unrelated PR.
+function isHistoricalPullRequestState(
+	state: GitHubPullRequestNode["state"],
+): boolean {
+	return state === "CLOSED" || state === "MERGED";
+}
+
+function headShaMatches(
+	workspaceHeadSha: string | null,
+	prHeadSha: string,
+): boolean {
+	if (!workspaceHeadSha) return false;
+	return (
+		workspaceHeadSha.trim().toLowerCase() === prHeadSha.trim().toLowerCase()
+	);
+}
+
 type RepoProvider = "github";
 
 export interface PullRequestStateSnapshot {
@@ -686,6 +706,24 @@ export class PullRequestRuntimeManager {
 			}
 			const match = keyToPullRequest.get(key);
 			if (match) {
+				// Historical (closed/merged) PRs only stay attached while the
+				// workspace HEAD still matches the PR head. Otherwise a reused
+				// branch name — e.g. the default branch after a throwaway PR was
+				// opened from it (#4508, #4260, #4513) — would show a stale PR.
+				if (
+					match.historical &&
+					!headShaMatches(workspace.headSha, match.headSha)
+				) {
+					if (workspace.pullRequestId) {
+						this.db
+							.update(workspaces)
+							.set({ pullRequestId: null })
+							.where(eq(workspaces.id, workspace.id))
+							.run();
+					}
+					continue;
+				}
+
 				this.db
 					.update(workspaces)
 					.set({ pullRequestId: match.id })
@@ -980,10 +1018,13 @@ export class PullRequestRuntimeManager {
 		wantedRefs: Map<string, GitHubPullRequestHeadRef>,
 		options: { bypassCache?: boolean } = {},
 	): Promise<{
-		matched: Map<string, { id: string }>;
+		matched: Map<string, { id: string; historical: boolean; headSha: string }>;
 		failedKeys: Set<string>;
 	}> {
-		const matched = new Map<string, { id: string }>();
+		const matched = new Map<
+			string,
+			{ id: string; historical: boolean; headSha: string }
+		>();
 		const failedKeys = new Set<string>();
 		if (wantedRefs.size === 0) return { matched, failedKeys };
 
@@ -1192,7 +1233,11 @@ export class PullRequestRuntimeManager {
 				now,
 			});
 
-			matched.set(key, { id: rowId });
+			matched.set(key, {
+				id: rowId,
+				historical: isHistoricalPullRequestState(node.state),
+				headSha: node.headRefOid,
+			});
 		}
 
 		return { matched, failedKeys };

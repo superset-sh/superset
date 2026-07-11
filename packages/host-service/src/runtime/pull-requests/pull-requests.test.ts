@@ -483,6 +483,157 @@ describe("PullRequestRuntimeManager refresh", () => {
 	});
 });
 
+// Builds a REST PR node with an explicit state (open/closed/merged), unlike
+// `makePrNode` which is always open.
+function makePrNodeWithState(pr: {
+	number: number;
+	headRef: string;
+	headSha: string;
+	state: "open" | "closed" | "merged";
+	title?: string;
+}) {
+	return {
+		...makePrNode({
+			number: pr.number,
+			headRef: pr.headRef,
+			headSha: pr.headSha,
+			title: pr.title,
+		}),
+		state: pr.state === "merged" ? "closed" : pr.state,
+		merged_at: pr.state === "merged" ? "2026-05-01T00:00:00Z" : null,
+	};
+}
+
+// Routes the per-head PR lookup plus its review/check detail fetches to a
+// single PR node, so a link is established iff the manager decides to.
+function routeSinglePr(node: unknown) {
+	return async (args: string[]): Promise<unknown> => {
+		if (args.includes("graphql")) {
+			return {
+				data: { repository: { pullRequest: { mergeQueueEntry: null } } },
+			};
+		}
+		const path = args.find(
+			(arg) => typeof arg === "string" && arg.startsWith("repos/"),
+		);
+		if (path?.endsWith("/reviews")) return [];
+		if (path?.endsWith("/check-runs")) return { check_runs: [] };
+		if (path?.endsWith("/statuses")) return [];
+		if (path === `repos/${REPO.owner}/${REPO.name}/pulls`) {
+			return [node];
+		}
+		throw new Error(`unexpected gh path: ${path}`);
+	};
+}
+
+describe("default branch stale PR isolation", () => {
+	// #4508 / #4260 / #4513.1: someone opened a throwaway PR *from* the default
+	// branch (head=main) and closed it. The default-branch workspace has since
+	// advanced past that PR's head commit, so the closed PR must not attach.
+	test("does not link the default branch to a closed PR it has advanced past", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws-main",
+			branch: "main",
+			headSha: "current-main-sha",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "main",
+		});
+		const manager = createManager(db, {
+			execGh: routeSinglePr(
+				makePrNodeWithState({
+					number: 10,
+					headRef: "main",
+					headSha: "old-main-sha",
+					state: "closed",
+					title: "Merge main into feature",
+				}),
+			),
+		});
+
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws-main"]),
+		);
+
+		expect(getWorkspace(db, "ws-main")?.pullRequestId).toBeNull();
+	});
+
+	// Guard against over-clearing: a merged/closed PR must still show while the
+	// workspace is still sitting on that exact head commit.
+	test("keeps a closed PR linked while the workspace HEAD still matches its head", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws-feature",
+			branch: "feature",
+			headSha: "feature-head-sha",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+		});
+		const manager = createManager(db, {
+			execGh: routeSinglePr(
+				makePrNodeWithState({
+					number: 11,
+					headRef: "feature",
+					headSha: "feature-head-sha",
+					state: "closed",
+					title: "Closed feature PR",
+				}),
+			),
+		});
+
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws-feature"]),
+		);
+
+		expect(getWorkspace(db, "ws-feature")?.pullRequestId).toBe(
+			getPrByNumber(db, 11)?.id,
+		);
+	});
+
+	// Also clears a stale link that a previous (buggy) run persisted.
+	test("clears an existing link to a closed PR once the workspace HEAD moves on", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedPullRequest(db, {
+			id: "pr-stale",
+			prNumber: 10,
+			headBranch: "main",
+			headSha: "old-main-sha",
+			state: "closed",
+		});
+		seedWorkspace(db, {
+			id: "ws-main",
+			branch: "main",
+			headSha: "current-main-sha",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "main",
+			pullRequestId: "pr-stale",
+		});
+		const manager = createManager(db, {
+			execGh: routeSinglePr(
+				makePrNodeWithState({
+					number: 10,
+					headRef: "main",
+					headSha: "old-main-sha",
+					state: "closed",
+					title: "Merge main into feature",
+				}),
+			),
+		});
+
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws-main"]),
+		);
+
+		expect(getWorkspace(db, "ws-main")?.pullRequestId).toBeNull();
+	});
+});
+
 // Routes gh REST/GraphQL calls to fixtures keyed by the exact head branch, so
 // a wrong-case cache hit or key collision surfaces as the wrong PR number.
 function routeGh(prsByHeadRef: Record<string, ReturnType<typeof makePrNode>>) {
