@@ -1,2 +1,6 @@
 export type { SearchRootIndex, SearchRootIndexCache } from "./textSearchDom";
-export { findTextRanges, getHighlightStyleContainers } from "./textSearchDom";
+export {
+	findTextRanges,
+	getHighlightStyleContainers,
+	getRefreshedActiveMatchIndex,
+} from "./textSearchDom";
