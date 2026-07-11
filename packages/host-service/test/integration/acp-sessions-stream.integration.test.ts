@@ -1,12 +1,15 @@
 /**
- * Real-adapter stream acceptance for docs/acp-sessions.md: the WS route serves
- * a real `claude-agent-acp` adapter, consumed through the real
- * `subscribeToSession` client (so the M1 helper is exercised end-to-end).
+ * PRIMARY ACP stream acceptance lane: the real WS route serves a real
+ * `claude-agent-acp` adapter and real Claude model, consumed through the real
+ * `subscribeToSession` client.
  *
- * Needs the host machine's logged-in Claude account and spends real tokens,
- * so it only runs when explicitly requested:
+ * Run this on an authenticated Mac whenever changing the ACP runtime, adapter
+ * bridge, stream route/client, reconnect, sequencing, or cancellation. It is
+ * gated only because CI does not have a Claude login and it spends real tokens;
+ * deterministic adapter tests are regression backup, not a substitute.
  *
- *   ACP_E2E=1 bun test test/integration/acp-sessions-stream.integration.test.ts
+ *   ACP_E2E=1 ACP_E2E_MODEL=sonnet ACP_E2E_EFFORT=low \
+ *     bun test test/integration/acp-sessions-stream.integration.test.ts
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
@@ -32,6 +35,8 @@ import {
 } from "../../src/runtime/acp-sessions";
 
 const RUN = process.env.ACP_E2E === "1";
+const E2E_MODEL = process.env.ACP_E2E_MODEL ?? "sonnet";
+const E2E_EFFORT = process.env.ACP_E2E_EFFORT ?? "low";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -99,6 +104,38 @@ describe.skipIf(!RUN)("acp-sessions WS stream (real adapter)", () => {
 		return { subscription, received };
 	}
 
+	async function configureRealModel(
+		source: AcpSessionManager,
+		id: string,
+	): Promise<void> {
+		const session = source.get(id);
+		const model = session.configOptions.find(
+			(option) => option.id === "model" && option.type === "select",
+		);
+		if (!model || !model.options.some((option) => option.value === E2E_MODEL)) {
+			throw new Error(
+				`ACP_E2E_MODEL=${E2E_MODEL} is unavailable; adapter offered ${model?.options.map((option) => option.value).join(", ") ?? "no model catalog"}`,
+			);
+		}
+		await source.setConfigOption({
+			sessionId: id,
+			configId: "model",
+			value: E2E_MODEL,
+		});
+		const effort = source
+			.get(id)
+			.configOptions.find(
+				(option) => option.id === "effort" && option.type === "select",
+			);
+		if (effort?.options.some((option) => option.value === E2E_EFFORT)) {
+			await source.setConfigOption({
+				sessionId: id,
+				configId: "effort",
+				value: E2E_EFFORT,
+			});
+		}
+	}
+
 	beforeAll(() => {
 		workspaceDir = mkdtempSync(path.join(os.tmpdir(), "acp-m3-"));
 		execSync(
@@ -132,6 +169,7 @@ describe.skipIf(!RUN)("acp-sessions WS stream (real adapter)", () => {
 
 	test("two concurrent WS subscribers see the identical gapless stream of a live turn", async () => {
 		await manager.create({ sessionId, workspaceId });
+		await configureRealModel(manager, sessionId);
 		const baseUrl = await startServer(manager);
 
 		const a = connect({ baseUrl, sessionId, since: 0 });
@@ -223,6 +261,7 @@ describe.skipIf(!RUN)("acp-sessions WS stream (real adapter)", () => {
 
 	test("an evicted cursor yields a reset frame; resyncing from current state re-attaches cleanly", async () => {
 		await evictManager.create({ sessionId: evictSessionId, workspaceId });
+		await configureRealModel(evictManager, evictSessionId);
 		const baseUrl = await startServer(evictManager);
 
 		// Push the 10-slot ring past seq 1 (evicted once latestSeq ≥ 12).

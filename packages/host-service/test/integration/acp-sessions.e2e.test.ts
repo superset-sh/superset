@@ -1,12 +1,16 @@
 /**
- * Full-stack ACP session e2e against the deterministic fake adapter
+ * Belt-and-suspenders ACP regression coverage against the deterministic fake
+ * adapter
  * (test/fixtures/fake-acp-adapter.ts): real AcpSessionManager, real child
  * processes over JSON-RPC/stdio, real Hono/node-ws stream route, real
- * `subscribeToSession` WS client — only the model is fake, so this runs in
- * every `bun test` with no tokens or network.
+ * `subscribeToSession` WS client — but the model and Claude adapter are fake.
+ * This runs in every `bun test` with no tokens or network, but does not prove
+ * compatibility with real Claude behavior. The ACP_E2E-gated authenticated
+ * real-adapter suites are the primary acceptance lane and must be run on a Mac
+ * after relevant ACP/runtime changes.
  *
- * Covers the long-haul paths the ACP_E2E-gated real-adapter test can't
- * afford: a ~30-turn marathon with gapless streams and pagination folds,
+ * This deterministic backup covers broad and long-haul paths cheaply: a
+ * ~30-turn marathon with gapless streams and pagination folds,
  * permission allow/deny (including concurrent requests), single- and
  * multi-select elicitations, cancel mid-tool-call/question, adapter crash,
  * replacement of a memory-only manager,

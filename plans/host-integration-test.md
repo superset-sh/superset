@@ -114,7 +114,27 @@ Maestro lane.
 
 ## Runtime Lanes
 
-### Always-run deterministic lane
+### Authenticated real-Claude lane (primary)
+
+Use the real pinned `claude-agent-acp`, a real Sonnet model, and the machine's
+existing Claude login in a throwaway git workspace. This is the primary
+acceptance evidence for model/adapter behavior, not an optional smoke. Run it on
+an authenticated Mac whenever ACP runtime, adapter/SDK, Workflow, permission,
+question, cancellation, stream, reconnect, or resurrection code changes:
+
+```bash
+ACP_E2E=1 ACP_E2E_MODEL=sonnet ACP_E2E_EFFORT=low \
+  bun test \
+    test/integration/acp-sessions.integration.test.ts \
+    test/integration/acp-sessions-stream.integration.test.ts
+```
+
+The lane is not in ordinary CI yet because it needs a Claude login and spends
+real tokens. Until a safe authenticated runner exists, the coding agent making
+a relevant change is responsible for running it locally and reporting the
+actual result.
+
+### Always-run deterministic lane (belt and suspenders)
 
 - fake adapter;
 - no model, tokens, external network, or user credentials;
@@ -122,13 +142,9 @@ Maestro lane.
 - a Node lane for the production `better-sqlite3` driver and packaged host
   entrypoint.
 
-### Opt-in compatibility lane
-
-Use the real pinned `claude-agent-acp` against a throwaway git workspace and the
-machine's existing Claude login. Gate it with `ACP_E2E=1`. Keep assertions
-semantic and small: initialize, create, one prompt, one permission, load in a
-fresh adapter, and cancel. This catches upstream adapter/SDK drift; it is not a
-CI substitute for the fake.
+This lane is valuable for broad matrices, exact fault injection, and fast CI
+feedback. It is not evidence that the real Claude adapter/model still behaves
+the same way, and it never substitutes for the authenticated lane.
 
 ### iOS product lane
 
@@ -158,6 +174,8 @@ or hand-maintain a second response facade.
   `@superset/host-client`.
 - Restart closes and reopens an on-disk DB in a new host process.
 - Bun and Node/`better-sqlite3` lanes pass.
+- The authenticated real-Claude suites pass on a Mac after every relevant
+  ACP/runtime change.
 - Malformed outputs fail at the client parser, not later in the fold/UI.
 - Teardown leaves no process, socket, file handle, or temporary directory.
-- The suite is always-run, deterministic, and does not require cloud services.
+- The deterministic backup remains always-run and requires no cloud services.

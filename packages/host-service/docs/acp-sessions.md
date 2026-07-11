@@ -198,10 +198,53 @@ host with `SUPERSET_ACP_SESSIONS=1` only when enabled.
 
 ## Test Coverage
 
-Always-run tests cover the journal, fold, reconnect client, generic host
-transport, router mapping, fake-adapter ACP flow, WebSocket fan-out, permissions,
-elicitations, concurrent permission requests, cancellation, adapter crash,
-eviction resets, and registry-based manager resurrection.
+### Authenticated real-Claude lane: primary evidence
+
+The `ACP_E2E=1` suites are the primary acceptance evidence for the ACP/model
+boundary. Nothing at that boundary is mocked: they use the machine's logged-in
+Claude account, a real Sonnet model, the pinned `claude-agent-acp` executable,
+real ACP JSON-RPC over stdio, `AcpSessionManager`, and the real WebSocket
+route/client. They are skipped in ordinary CI only because CI does not have a
+Claude login and the runs spend real tokens; the skip does not make them
+optional after relevant local changes.
+
+Run both suites on an authenticated Mac whenever changing the ACP runtime,
+adapter or SDK version, Workflow handling, permissions, questions,
+cancellation, streaming, reconnect, sequencing, or resurrection:
+
+```bash
+ACP_E2E=1 ACP_E2E_MODEL=sonnet ACP_E2E_EFFORT=low \
+  bun test \
+    test/integration/acp-sessions.integration.test.ts \
+    test/integration/acp-sessions-stream.integration.test.ts
+```
+
+The manager suite proves real initialize/create/prompt/fold behavior, a saved
+multi-agent Workflow, `AskUserQuestion`, real tool permissions, cancellation,
+duplicate permission resolution, parallel tool use, and adapter death. The
+Workflow test does not stop at the asynchronous launch acknowledgement: it
+waits for the persisted Workflow run to reach `completed`, then asserts five
+real Sonnet agents, non-zero token and tool usage, two parallel audits, and the
+final structured verdict.
+
+The stream suite puts the same real adapter/model behind the real WebSocket
+route and sync client. It proves identical gapless delivery to concurrent
+subscribers, mid-turn disconnect/cursor reconnect without gaps or duplicates,
+and eviction reset followed by a clean reattach.
+
+With `claude-agent-acp` 0.56.0, Claude emits two parallel tool uses together but
+the adapter exposes their permission callbacks to Superset one at a time. The
+manager and mobile stack still support truly simultaneous pending requests;
+that manager behavior is pinned by the deterministic backup lane below.
+
+### Deterministic lane: belt and suspenders
+
+The always-run deterministic tests provide cheap breadth and precise failure
+injection, but they do not prove real Claude or real-adapter compatibility. They
+cover the journal, fold, reconnect client, generic host transport, router
+mapping, fake-adapter ACP flow, WebSocket fan-out, permissions, elicitations,
+concurrent permission requests, cancellation, adapter crash, eviction resets,
+and registry-based manager resurrection.
 
 `acp-host-client.e2e.test.ts` also starts the real `createApp` HTTP/tRPC host
 behind a local relay-shaped prefix and drives it only through
@@ -218,14 +261,6 @@ load-failure UX: the offline session cannot compose, the empty state says
 `Session could not be resumed`, and the explanatory copy identifies the missing
 native transcript. A full-device Maestro scenario is still required.
 
-The opt-in real-adapter lane defaults to Haiku with low effort. Captured runs
-cover a named token-free Workflow, `AskUserQuestion`, cancel after a real tool
-permission, and parallel Bash tool uses. With `claude-agent-acp` 0.56.0, two
-parallel tool uses are emitted together by the model but their permission
-callbacks are exposed to Superset one at a time. The manager and mobile stack
-still support true simultaneous requests, which the deterministic adapter
-exercises directly.
-
 Still required before treating the boundary as production-hardened:
 
 - a separate host OS process kill/respawn (the current boundary test rebuilds
@@ -234,7 +269,8 @@ Still required before treating the boundary as production-hardened:
 - stale cursors across journal incarnations;
 - prompt/permission/cancel/config races;
 - slow-subscriber and retention limits;
-- real-adapter compatibility smoke tests;
+- a secure automated runner for the authenticated real-Claude lane, if CI can
+  provide isolated credentials and explicit usage accounting;
 - iOS Maestro flows for restart, background/reconnect, pagination, and failures.
 
 ## Source Map

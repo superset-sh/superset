@@ -1,15 +1,25 @@
 /**
- * Real-adapter acceptance for docs/acp-sessions.md: drives the real
- * `claude-agent-acp` adapter through AcpSessionManager in a temp worktree.
+ * PRIMARY ACP acceptance lane: drives the real `claude-agent-acp` adapter and
+ * real Claude models through AcpSessionManager in a temp worktree.
  *
- * Needs the host machine's logged-in Claude account and spends real tokens,
- * so it only runs when explicitly requested:
+ * Run this on an authenticated Mac whenever changing the ACP runtime, adapter
+ * bridge, workflows, permissions, questions, cancellation, or resurrection.
+ * It is gated only because CI does not have a Claude login and it spends real
+ * tokens; deterministic adapter tests are regression backup, not a substitute.
  *
- *   ACP_E2E=1 bun test test/integration/acp-sessions.integration.test.ts
+ *   ACP_E2E=1 ACP_E2E_MODEL=sonnet ACP_E2E_EFFORT=low \
+ *     bun test test/integration/acp-sessions.integration.test.ts
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -20,9 +30,7 @@ import {
 import { AcpSessionManager } from "../../src/runtime/acp-sessions";
 
 const RUN = process.env.ACP_E2E === "1";
-// Keep opt-in smoke runs cheap by default. Override explicitly when validating
-// a model-specific adapter regression.
-const E2E_MODEL = process.env.ACP_E2E_MODEL ?? "haiku";
+const E2E_MODEL = process.env.ACP_E2E_MODEL ?? "sonnet";
 const E2E_EFFORT = process.env.ACP_E2E_EFFORT ?? "low";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -52,7 +60,7 @@ describe.skipIf(!RUN)("acp-sessions manager (real adapter)", () => {
 		workspaceDir = mkdtempSync(path.join(os.tmpdir(), "acp-m2-"));
 		writeFileSync(
 			path.join(workspaceDir, "notes.txt"),
-			"m2 fixture file — safe to read\n",
+			"fixture_id=sonnet-workflow\nvalues=13,29\nexpected_sum=42\n",
 		);
 		const workflowsDir = path.join(workspaceDir, ".claude", "workflows");
 		mkdirSync(workflowsDir, { recursive: true });
@@ -60,12 +68,100 @@ describe.skipIf(!RUN)("acp-sessions manager (real adapter)", () => {
 			path.join(workflowsDir, "acp-e2e-dummy.js"),
 			`export const meta = {
   name: "acp-e2e-dummy",
-  description: "Token-free ACP workflow transport fixture",
-  phases: [{ title: "Complete", detail: "Return a fixed marker" }],
+  description: "Run a multi-agent inspect, analyze, audit, and verify workflow",
+  phases: [
+    { title: "Inspect", detail: "Parse the fixture through a subagent" },
+    { title: "Analyze", detail: "Derive an independent proof" },
+    { title: "Audit", detail: "Cross-check the source and proof in parallel" },
+    { title: "Verify", detail: "Converge on a structured verdict" },
+  ],
 }
 
-phase("Complete")
-return { marker: "ACP_WORKFLOW_OK" }
+phase("Inspect")
+const inspected = await agent(
+  "Read notes.txt. Return its fixture_id, the two integer values, and their computed sum. Do not modify files and do not use Bash.",
+  {
+    label: "inspect-fixture",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["fixtureId", "values", "sum"],
+      properties: {
+        fixtureId: { type: "string" },
+        values: { type: "array", items: { type: "integer" }, minItems: 2, maxItems: 2 },
+        sum: { type: "integer" },
+      },
+    },
+  },
+)
+
+phase("Analyze")
+const analyzed = await agent(
+  "Using this inspected data: " + JSON.stringify(inspected) +
+    ", independently read notes.txt, verify it matches, and derive the sum, product, and the exact equation 13 + 29 = 42. Do not modify files and do not use Bash.",
+  {
+    label: "derive-proof",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["fixtureId", "sum", "product", "equation"],
+      properties: {
+        fixtureId: { type: "string" },
+        sum: { type: "integer" },
+        product: { type: "integer" },
+        equation: { type: "string" },
+      },
+    },
+  },
+)
+
+phase("Audit")
+const audits = await pipeline(["source", "arithmetic"], angle =>
+  agent(
+    "Independently audit the " + angle +
+      " side of this fixture. Read notes.txt and cross-check inspected=" +
+      JSON.stringify(inspected) + ", analyzed=" + JSON.stringify(analyzed) +
+      ". Verify fixtureId sonnet-workflow, values 13 and 29, sum 42, product 377, and equation 13 + 29 = 42. Report concrete evidence. Do not modify files and do not use Bash.",
+    {
+      label: "audit-" + angle,
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["angle", "passed", "evidence"],
+        properties: {
+          angle: { type: "string" },
+          passed: { type: "boolean" },
+          evidence: { type: "string" },
+        },
+      },
+    },
+  ),
+)
+
+phase("Verify")
+const verified = await agent(
+  "Act as the final verifier. Read notes.txt. Cross-check these prior results: inspected=" +
+    JSON.stringify(inspected) + ", analyzed=" + JSON.stringify(analyzed) +
+    ", audits=" + JSON.stringify(audits) +
+    ". Return valid only when both audits passed, fixtureId is sonnet-workflow, values are 13 and 29, sum is 42, product is 377, and the equation is exact. When valid, set marker exactly WORKFLOW_VERIFIED. Do not modify files and do not use Bash.",
+  {
+    label: "verify-proof",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["valid", "fixtureId", "sum", "auditCount", "marker"],
+      properties: {
+        valid: { type: "boolean" },
+        fixtureId: { type: "string" },
+        sum: { type: "integer" },
+        auditCount: { type: "integer" },
+        marker: { type: "string" },
+      },
+    },
+  },
+)
+
+return { inspected, analyzed, audits, verified }
 `,
 		);
 		execSync(
@@ -168,13 +264,13 @@ return { marker: "ACP_WORKFLOW_OK" }
 		unsubscribe();
 	}, 300_000);
 
-	test("a named dummy Workflow crosses ACP as an opaque tool call", async () => {
+	test("a saved multi-agent Workflow executes all agents and produces a verified result", async () => {
 		const { turn } = manager.prompt({
 			sessionId,
 			prompt: [
 				{
 					type: "text",
-					text: "Run the named workflow acp-e2e-dummy exactly once with the Workflow tool. Do not use any other tool. After the Workflow tool returns, reply with exactly WORKFLOW_OK.",
+					text: "Launch the named workflow acp-e2e-dummy exactly once with the Workflow tool. Do not perform its work yourself and do not use another tool. The Workflow tool runs asynchronously; after it confirms the background launch, reply with exactly WORKFLOW_LAUNCHED and do not cancel it.",
 				},
 			],
 		});
@@ -228,7 +324,114 @@ return { marker: "ACP_WORKFLOW_OK" }
 			.flatMap((item) => (item.kind === "message" ? item.blocks : []))
 			.map((block) => (block.type === "text" ? block.text : ""))
 			.join("");
-		expect(agentText).toContain("WORKFLOW_OK");
+		expect(agentText).toContain("WORKFLOW_LAUNCHED");
+
+		type WorkflowLaunch = {
+			status?: string;
+			runId?: string;
+			transcriptDir?: string;
+			workflowName?: string;
+		};
+		const launch = page.items
+			.flatMap((envelope): WorkflowLaunch[] => {
+				if (
+					envelope.frame.kind !== "update" ||
+					envelope.frame.update.sessionUpdate !== "tool_call_update"
+				) {
+					return [];
+				}
+				const meta = envelope.frame.update._meta as
+					| { claudeCode?: { toolResponse?: WorkflowLaunch } }
+					| undefined;
+				const response = meta?.claudeCode?.toolResponse;
+				return response?.status === "async_launched" ? [response] : [];
+			})
+			.at(-1);
+		if (!launch?.runId || !launch.transcriptDir) {
+			throw new Error("Workflow launch metadata did not cross ACP");
+		}
+		expect(launch.workflowName).toBe("acp-e2e-dummy");
+
+		type WorkflowRunState = {
+			status?: string;
+			error?: string;
+			defaultModel?: string;
+			agentCount?: number;
+			totalTokens?: number;
+			totalToolCalls?: number;
+			result?: unknown;
+		};
+		const runStatePath = path.resolve(
+			launch.transcriptDir,
+			"..",
+			"..",
+			"..",
+			"workflows",
+			`${launch.runId}.json`,
+		);
+		let runState: WorkflowRunState | null = null;
+		await waitFor(
+			() => {
+				if (!existsSync(runStatePath)) return false;
+				try {
+					runState = JSON.parse(
+						readFileSync(runStatePath, "utf8"),
+					) as WorkflowRunState;
+				} catch {
+					return false;
+				}
+				if (["failed", "killed", "cancelled"].includes(runState.status ?? "")) {
+					throw new Error(
+						`Workflow run did not complete: ${readFileSync(runStatePath, "utf8")}`,
+					);
+				}
+				return runState.status === "completed";
+			},
+			240_000,
+			"all Sonnet Workflow agents to complete",
+		);
+		if (!runState) throw new Error("Workflow completed without run state");
+		expect(runState.status).toBe("completed");
+		expect(runState.defaultModel?.toLowerCase()).toContain(
+			E2E_MODEL.toLowerCase(),
+		);
+		expect(runState.agentCount).toBe(5);
+		expect(runState.totalTokens).toBeGreaterThan(0);
+		expect(runState.totalToolCalls).toBeGreaterThan(0);
+		const workflowResult = runState.result as {
+			inspected?: unknown;
+			analyzed?: unknown;
+			audits?: Array<{ passed?: boolean }>;
+			verified?: unknown;
+		};
+		expect(workflowResult.inspected).toEqual({
+			fixtureId: "sonnet-workflow",
+			values: [13, 29],
+			sum: 42,
+		});
+		expect(workflowResult.analyzed).toEqual({
+			fixtureId: "sonnet-workflow",
+			sum: 42,
+			product: 377,
+			equation: "13 + 29 = 42",
+		});
+		expect(workflowResult.audits).toHaveLength(2);
+		expect(workflowResult.audits?.every((audit) => audit.passed === true)).toBe(
+			true,
+		);
+		expect(workflowResult.verified).toEqual({
+			valid: true,
+			fixtureId: "sonnet-workflow",
+			sum: 42,
+			auditCount: 2,
+			marker: "WORKFLOW_VERIFIED",
+		});
+		console.info("[acp-e2e] real Workflow completed", {
+			model: runState.defaultModel,
+			agentCount: runState.agentCount,
+			totalTokens: runState.totalTokens,
+			totalToolCalls: runState.totalToolCalls,
+		});
 	}, 300_000);
 
 	test("AskUserQuestion parks a real adapter elicitation and resumes after the answer", async () => {

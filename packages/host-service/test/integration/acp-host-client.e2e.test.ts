@@ -1,8 +1,11 @@
 /**
- * Real host-service + @superset/host-client boundary E2E. A tiny local relay
+ * Belt-and-suspenders host-service + @superset/host-client boundary E2E. A tiny
+ * local relay
  * mount supplies the production `/hosts/:routingKey/*` prefix, while every
  * command still crosses actual HTTP/SuperJSON/tRPC and every update crosses
- * an actual WebSocket. The ACP model is the deterministic stdio adapter.
+ * an actual WebSocket. The ACP model is the deterministic stdio adapter, so
+ * this broad always-run suite complements but does not replace the
+ * ACP_E2E-gated authenticated real-Claude acceptance lane.
  */
 import { Database as BunDatabase } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";

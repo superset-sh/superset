@@ -16,9 +16,10 @@ work and completed prerequisites that explain the next boundaries.
    third `host-service-protocol` package.
 5. Runtime data crossing a process, network, persistence, or untyped JSON
    boundary must be parsed. TypeScript assertions are not validation.
-6. The deterministic fake adapter stays in the always-run suite, but it does
-   not replace the real host/client boundary suite or opt-in tests against the
-   real adapter.
+6. Authenticated real-Claude tests are the primary acceptance evidence for the
+   model/adapter boundary and must run on a Mac after relevant changes. The
+   deterministic fake adapter stays always-run as belt-and-suspenders breadth;
+   it does not replace the real adapter/model or real host/client boundaries.
 
 ## Current Gaps
 
@@ -135,9 +136,12 @@ Completed:
 - [x] Close and rebuild the app, HTTP/WS server, adapter children, and SQLite
   handle against the same DB path; prove offline listing, resurrection, replay,
   and missing-native-transcript behavior.
-- [x] Add an opt-in real-adapter lane using a throwaway workspace, Haiku/low by
-  default, and the machine's Claude login. Captured cases cover Workflow,
-  AskUserQuestion, serialized parallel-tool permissions, and cancel mid-turn.
+- [x] Add an authenticated real-adapter lane using a throwaway workspace,
+  Sonnet/low by default, and the machine's Claude login. Captured cases cover a
+  completed five-agent Workflow, `AskUserQuestion`, serialized parallel-tool
+  permissions, cancel mid-turn, real WebSocket fan-out, reconnect, and reset.
+  This is the primary compatibility lane; it is skipped in ordinary CI only
+  because CI lacks Claude credentials and the run spends real tokens.
 
 Remaining:
 

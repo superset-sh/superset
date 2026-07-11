@@ -1240,7 +1240,7 @@ fold(bufferedEnvelopes)               // live rows on top
     <section class="ix">
       <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
       <h2 id="ph-ask">⑥ The agent asks a question — AskUserQuestion</h2>
-      <p class="pnote"><span class="prov">captured against claude-agent-acp 0.56.0 with a Haiku/low smoke turn</span><br>
+      <p class="pnote"><span class="prov">captured against claude-agent-acp 0.56.0 with an authenticated Sonnet/low real-adapter run</span><br>
       Claude asks: “Which failures should retry?” The turn stays parked — answering does <b>not</b> create a new
       prompt. Divergence <b>D4</b>: the interpretive work happens at opposite ends.</p>
 
@@ -1620,7 +1620,7 @@ GET  …/sessions.getMessages ×N          // drain full transcript
     <section class="ix">
       <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
       <h2 id="ph-subagents">⑩ Subagents</h2>
-      <p class="pnote"><span class="prov">captured with a named token-free workflow against claude-agent-acp 0.56.0; lifecycle details cross-checked against sdk 0.3.201 types</span><br>
+      <p class="pnote"><span class="prov">captured against claude-agent-acp 0.56.0; the current acceptance fixture runs a named five-agent Sonnet Workflow to completion with real token and tool usage; lifecycle details cross-checked against sdk 0.3.201 types</span><br>
       Native: the <code>Agent</code> tool is a first-class spawn — the subagent has an id, a type, its own transcript file, and
       every message it produces is tagged with the spawning tool_use. Over ACP: the adapter renames the spawn to a generic
       <code>think</code> tool call, <b>deliberately drops subagent prose</b>, and tags nested tool calls with non-standard
