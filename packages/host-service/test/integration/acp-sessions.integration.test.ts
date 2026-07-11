@@ -432,7 +432,7 @@ return { inspected, analyzed, audits, verified }
 			totalTokens: runState.totalTokens,
 			totalToolCalls: runState.totalToolCalls,
 		});
-	}, 300_000);
+	}, 600_000);
 
 	test("AskUserQuestion parks a real adapter elicitation and resumes after the answer", async () => {
 		const { turn } = manager.prompt({

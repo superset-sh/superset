@@ -213,6 +213,7 @@ adapter or SDK version, Workflow handling, permissions, questions,
 cancellation, streaming, reconnect, sequencing, or resurrection:
 
 ```bash
+cd packages/host-service
 ACP_E2E=1 ACP_E2E_MODEL=sonnet ACP_E2E_EFFORT=low \
   bun test \
     test/integration/acp-sessions.integration.test.ts \
