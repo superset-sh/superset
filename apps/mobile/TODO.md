@@ -1,5 +1,14 @@
 # Mobile TODO
 
+## Record the agent/model on chat sessions
+
+Every chat row shows a fixed Claude mark (`screens/(authenticated)/(home)/components/ClaudeLogo/`, consumed by `home/components/SessionRow/`) because `chat_sessions` has no agent/model column (`packages/db/src/schema/schema.ts` — id/workspace/title/timestamps only). The model IS known at creation time — mobile passes `modelId` to `agents.run` / the `workspaces.create` agents sugar, and desktop does the same — it's just never persisted.
+
+- Add a `model` (and/or `agent`) column to `chat_sessions`; write it where the host-service creates the cloud session (`packages/host-service/src/trpc/router/agents/agents.ts`).
+- Electric already syncs the whole row, so mobile gets it for free once the column exists.
+- Then: `SessionRow` picks the mark by provider (`ClaudeLogo` vs the OpenAI mark that already exists in `new-chat/model/components/ProviderLogo/`), and the model picker/thread screens can show per-session model too.
+- Backfill: existing rows have no model — keep the Claude mark as the fallback.
+
 ## Fork a chat session
 
 The chat-row context menu (`screens/(authenticated)/components/SessionRow/components/SessionRowMenu/`) has a "Fork" action that currently shows a "not available yet" alert. Real implementation needs:

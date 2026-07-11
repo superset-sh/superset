@@ -17,25 +17,20 @@ import { cn } from "@/lib/utils";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import type { DiffStats } from "../../hooks/useVisibleDiffStats";
 import { useChatTargetStore } from "../../stores/chatTargetStore";
+import { type PrBadgeState, prStateFor } from "../../utils/prStateFor";
 import { WorkspaceRowMenu } from "./components/WorkspaceRowMenu";
 
 // PR state replaces the host icon in the icon slot — same treatment as
 // desktop's DashboardSidebarWorkspaceIcon.
-const PR_ICON_CONFIG = {
+const PR_ICON_CONFIG: Record<
+	PrBadgeState,
+	{ icon: typeof GitMerge; iconClassName: string }
+> = {
 	closed: { icon: GitPullRequestClosed, iconClassName: "text-destructive" },
 	draft: { icon: GitPullRequestDraft, iconClassName: "text-muted-foreground" },
 	merged: { icon: GitMerge, iconClassName: "text-purple-500" },
 	open: { icon: GitPullRequest, iconClassName: "text-emerald-500" },
-} as const;
-
-export type PrBadgeState = keyof typeof PR_ICON_CONFIG;
-
-export function prStateFor(pullRequest: SelectGithubPullRequest): PrBadgeState {
-	if (pullRequest.mergedAt != null) return "merged";
-	if (pullRequest.isDraft) return "draft";
-	if (pullRequest.state === "closed") return "closed";
-	return "open";
-}
+};
 
 export function WorkspaceRow({
 	workspace,

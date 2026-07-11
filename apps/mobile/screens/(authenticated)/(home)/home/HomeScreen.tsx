@@ -9,7 +9,6 @@ import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
-import { useHostTerminalAgents } from "@/hooks/useHostTerminalAgents";
 import {
 	type HostWorkspaceItem,
 	useHostWorkspaces,
@@ -17,22 +16,20 @@ import {
 import { THEME } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
-import { SessionRow } from "@/screens/(authenticated)/components/SessionRow";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
-import {
-	buildSessionRows,
-	type SessionRowData,
-	type TerminalAgentStatus,
-} from "@/screens/(authenticated)/utils/sessionRows";
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
-import { prStateFor, WorkspaceRow } from "./components/WorkspaceRow";
+import { SessionRow } from "./components/SessionRow";
+import { WorkspaceRow } from "./components/WorkspaceRow";
+import { useHostTerminalAgents } from "./hooks/useHostTerminalAgents";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import { useWorkspacesFilterStore } from "./stores/workspacesFilterStore";
 import { activityDateGroup } from "./utils/activityDateGroup";
+import { prStateFor } from "./utils/prStateFor";
+import { buildSessionRows, type SessionRowData } from "./utils/sessionRows";
 
 const VIEWABILITY_CONFIG = {
 	itemVisiblePercentThreshold: 50,
@@ -61,7 +58,7 @@ function homeListItemKey(item: HomeListItem): string {
 		case "workspace":
 			return `ws:${item.workspace.id}`;
 		case "session":
-			return `session:${item.row.kind}:${item.row.id}`;
+			return `session:${item.row.id}`;
 	}
 }
 
@@ -88,7 +85,7 @@ export function HomeScreen() {
 
 	const selectedHost = useSelectedHost();
 	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
-	const terminalRowsByWorkspace = useHostTerminalAgents(selectedHost);
+	const attentionByWorkspace = useHostTerminalAgents(selectedHost);
 
 	const { data: projects } = useLiveQuery(
 		(q) => q.from({ v2Projects: collections.v2Projects }),
@@ -129,28 +126,10 @@ export function HomeScreen() {
 		}
 		const rowsByWorkspace = new Map<string, SessionRowData[]>();
 		for (const [workspaceId, sessions] of chatSessionsByWorkspace) {
-			rowsByWorkspace.set(
-				workspaceId,
-				buildSessionRows({ chatSessions: sessions, terminalRows: [] }),
-			);
+			rowsByWorkspace.set(workspaceId, buildSessionRows(sessions));
 		}
 		return rowsByWorkspace;
 	}, [chatSessions]);
-
-	const attentionByWorkspace = useMemo(() => {
-		const map = new Map<string, Exclude<TerminalAgentStatus, "idle">>();
-		for (const [workspaceId, rows] of terminalRowsByWorkspace) {
-			for (const row of rows) {
-				if (row.status === "idle") continue;
-				if (row.status === "permission") {
-					map.set(workspaceId, "permission");
-					break;
-				}
-				map.set(workspaceId, "working");
-			}
-		}
-		return map;
-	}, [terminalRowsByWorkspace]);
 
 	// Recency ranks a group by its latest activity — the newest of the
 	// workspace's own update and its sessions' updates.
@@ -171,9 +150,7 @@ export function HomeScreen() {
 		const needle = searchQuery.trim().toLowerCase();
 		const sessionsMatch = (workspaceId: string) =>
 			(sessionRowsByWorkspace.get(workspaceId) ?? []).some((row) =>
-				(row.kind === "chat" ? row.title : row.label)
-					.toLowerCase()
-					.includes(needle),
+				row.title.toLowerCase().includes(needle),
 			);
 		// A record whose worktree folder is gone from the host's disk is a
 		// stale shell nothing can run in — not worth a list slot.
@@ -354,23 +331,20 @@ export function HomeScreen() {
 					return (
 						<View
 							className={cn(
-								"bg-foreground/5 overflow-hidden",
+								"bg-foreground/5 mx-3 overflow-hidden",
 								item.groupFirst && "rounded-t-2xl",
 								item.groupLast && "mb-3.5 rounded-b-2xl",
 							)}
 						>
 							{!item.groupFirst && (
-								<View className="border-border/40 mx-4 border-t" />
+								<View className="border-border/40 ml-10 border-t" />
 							)}
 							<SessionRow
 								row={item.row}
-								onPress={
-									item.row.kind === "chat"
-										? () =>
-												router.push(
-													`/(authenticated)/workspace/${item.workspaceId}/chat/${item.row.id}`,
-												)
-										: undefined
+								onPress={() =>
+									router.push(
+										`/(authenticated)/workspace/${item.workspaceId}/chat/${item.row.id}`,
+									)
 								}
 							/>
 						</View>

@@ -50,6 +50,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePromptInputController } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { useAfterTransitionEnd } from "@/screens/(authenticated)/(home)/hooks/useAfterTransitionEnd";
 import { useChatTargetStore } from "../../stores/chatTargetStore";
 import { VoiceControl } from "./components/VoiceControl";
 import { FOREGROUND, MUTED } from "./constants";
@@ -64,23 +65,6 @@ const PILL_RADIUS = 26;
 const EXPAND_SPRING = Animation.spring({ duration: 0.35 });
 
 export function NewChatWidget({
-	workspaces,
-	resolveHostUrl,
-}: {
-	workspaces: HostWorkspaceItem[];
-	resolveHostUrl: (hostId: string) => string | null;
-}) {
-	return (
-		<View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-			<NewChatWidgetInner
-				workspaces={workspaces}
-				resolveHostUrl={resolveHostUrl}
-			/>
-		</View>
-	);
-}
-
-function NewChatWidgetInner({
 	workspaces,
 	resolveHostUrl,
 }: {
@@ -155,15 +139,16 @@ function NewChatWidgetInner({
 
 	// Adding attachments happens in the attachments sheet, which steals focus —
 	// re-open the composer once the additions land instead of collapsing to the
-	// pill. Delayed so the keyboard doesn't fight the sheet's dismissal.
+	// pill. Waits for the sheet's dismissal to finish so the keyboard doesn't
+	// fight the transition.
+	const afterTransitionEnd = useAfterTransitionEnd();
 	const previousAttachmentCount = useRef(attachments.length);
 	useEffect(() => {
 		const added = attachments.length > previousAttachmentCount.current;
 		previousAttachmentCount.current = attachments.length;
 		if (!added) return;
-		const timer = setTimeout(() => void fieldRef.current?.focus(), 500);
-		return () => clearTimeout(timer);
-	}, [attachments.length]);
+		return afterTransitionEnd(() => void fieldRef.current?.focus());
+	}, [attachments.length, afterTransitionEnd]);
 
 	const dictation = useVoiceDictation({
 		read: () => draftRef.current,
@@ -301,275 +286,284 @@ function NewChatWidgetInner({
 	);
 
 	return (
-		<KeyboardAvoidingView
-			behavior="padding"
-			pointerEvents="box-none"
-			style={{ flex: 1, justifyContent: "flex-end" }}
-		>
-			{focused || keyboardShown ? (
-				<Animated.View
-					entering={FadeIn.duration(200)}
-					exiting={FadeOut.duration(150)}
-					style={[
-						StyleSheet.absoluteFill,
-						{ backgroundColor: "rgba(0, 0, 0, 0.45)" },
-					]}
-				>
-					<Pressable
-						accessibilityLabel="Dismiss keyboard"
-						onPress={dismiss}
-						style={StyleSheet.absoluteFill}
-					/>
-				</Animated.View>
-			) : null}
-			<View
-				className="px-3"
-				style={{ paddingBottom: focused ? 8 : insets.bottom + 8 }}
+		<View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+			<KeyboardAvoidingView
+				behavior="padding"
+				pointerEvents="box-none"
+				style={{ flex: 1, justifyContent: "flex-end" }}
 			>
-				<Host matchContents={{ vertical: true }} style={{ width: "100%" }}>
-					<VStack
-						spacing={0}
-						modifiers={[
-							environment("colorScheme", "dark"),
-							// SwiftUI stacks hug their content; stretch to the Host width.
-							frame({ maxWidth: 100_000 }),
-							glassEffect({
-								glass: { variant: "regular", interactive: true },
-								shape: "roundedRectangle",
-								cornerRadius: PILL_RADIUS,
-							}),
-							animation(EXPAND_SPRING, animationKey),
+				{focused || keyboardShown ? (
+					<Animated.View
+						entering={FadeIn.duration(200)}
+						exiting={FadeOut.duration(150)}
+						style={[
+							StyleSheet.absoluteFill,
+							{ backgroundColor: "rgba(0, 0, 0, 0.45)" },
 						]}
 					>
-						{/* Every row stays mounted and collapses via frame/opacity —
+						<Pressable
+							accessibilityLabel="Dismiss keyboard"
+							onPress={dismiss}
+							style={StyleSheet.absoluteFill}
+						/>
+					</Animated.View>
+				) : null}
+				<View
+					className="px-3"
+					style={{ paddingBottom: focused ? 8 : insets.bottom + 8 }}
+				>
+					<Host matchContents={{ vertical: true }} style={{ width: "100%" }}>
+						<VStack
+							spacing={0}
+							modifiers={[
+								environment("colorScheme", "dark"),
+								// SwiftUI stacks hug their content; stretch to the Host width.
+								frame({ maxWidth: 100_000 }),
+								glassEffect({
+									glass: { variant: "regular", interactive: true },
+									shape: "roundedRectangle",
+									cornerRadius: PILL_RADIUS,
+								}),
+								animation(EXPAND_SPRING, animationKey),
+							]}
+						>
+							{/* Every row stays mounted and collapses via frame/opacity —
 						    unmounting siblings shifts the TextField's position in the
 						    native children array, which recreates the SwiftUI field and
 						    kicks out the keyboard the moment the expand settles. */}
-						<HStack
-							spacing={6}
-							modifiers={[
-								padding({ horizontal: 16, top: expanded ? 12 : 0 }),
-								frame({ height: expanded ? undefined : 0 }),
-								opacity(expanded ? 1 : 0),
-								clipped(),
-							]}
-						>
-							{/* Collapse BOTH dimensions: a width-0 proposal makes Text wrap
+							<HStack
+								spacing={6}
+								modifiers={[
+									padding({ horizontal: 16, top: expanded ? 12 : 0 }),
+									frame({ height: expanded ? undefined : 0 }),
+									opacity(expanded ? 1 : 0),
+									clipped(),
+								]}
+							>
+								{/* Collapse BOTH dimensions: a width-0 proposal makes Text wrap
 							    one glyph per line, leaving a tall invisible column that
 							    clipped() hides but layout still counts. */}
-							<HStack
-								spacing={6}
-								modifiers={[
-									frame({
-										width: chatTarget ? undefined : 0,
-										height: chatTarget ? undefined : 0,
-									}),
-									opacity(chatTarget ? 1 : 0),
-									clipped(),
-								]}
-							>
-								<Text modifiers={[foregroundStyle(MUTED)]}>New chat in</Text>
-								<Text
+								<HStack
+									spacing={6}
 									modifiers={[
-										bold(),
-										foregroundStyle(FOREGROUND),
-										lineLimit(1),
-										truncationMode("tail"),
+										frame({
+											width: chatTarget ? undefined : 0,
+											height: chatTarget ? undefined : 0,
+										}),
+										opacity(chatTarget ? 1 : 0),
+										clipped(),
 									]}
 								>
-									{chatTarget?.workspaceName ?? ""}
-								</Text>
-								<Button
-									onPress={clearChatTarget}
-									modifiers={[buttonStyle("borderless"), tint(MUTED)]}
-								>
-									<Image systemName="xmark.circle.fill" size={14} />
-								</Button>
-							</HStack>
-							<HStack
-								spacing={6}
-								modifiers={[
-									frame({
-										width: chatTarget ? 0 : undefined,
-										height: chatTarget ? 0 : undefined,
-									}),
-									opacity(chatTarget ? 0 : 1),
-									clipped(),
-								]}
-							>
-								<Button
-									label={selectedTarget?.projectName ?? "No project"}
-									onPress={() => {
-										void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-										router.push("/(authenticated)/(home)/new-chat/project");
-									}}
-									modifiers={[
-										buttonStyle("borderless"),
-										tint(FOREGROUND),
-										disabled(targets.length === 0),
-									]}
-								/>
-								<Button
-									onPress={() => {
-										void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-										router.push("/(authenticated)/(home)/new-chat/branch");
-									}}
-									modifiers={[
-										buttonStyle("borderless"),
-										tint(MUTED),
-										disabled(!selectedTarget),
-									]}
-								>
-									<HStack spacing={4}>
-										<Text>{branchLabel}</Text>
-										<Image systemName="chevron.down" size={11} />
-									</HStack>
-								</Button>
-							</HStack>
-							<Spacer />
-						</HStack>
-						{/* Attachment thumbnails inside the glass, above the field —
-						    rendered natively (attachment uris are local files); tapping
-						    a thumbnail removes it. */}
-						<HStack
-							spacing={8}
-							modifiers={[
-								padding({ horizontal: 16, top: expanded ? 10 : 0 }),
-								frame({
-									height: expanded && attachments.length > 0 ? undefined : 0,
-								}),
-								opacity(expanded && attachments.length > 0 ? 1 : 0),
-								clipped(),
-							]}
-						>
-							{attachments.map((attachment) => (
-								<ZStack key={attachment.id} alignment="topTrailing">
-									<Image
-										uiImage={attachment.uri}
+									<Text modifiers={[foregroundStyle(MUTED)]}>New chat in</Text>
+									<Text
 										modifiers={[
-											resizable(),
-											aspectRatio({ contentMode: "fill" }),
-											frame({ width: 56, height: 56 }),
-											cornerRadius(10),
-											clipped(),
+											bold(),
+											foregroundStyle(FOREGROUND),
+											lineLimit(1),
+											truncationMode("tail"),
+										]}
+									>
+										{chatTarget?.workspaceName ?? ""}
+									</Text>
+									<Button
+										onPress={clearChatTarget}
+										modifiers={[buttonStyle("borderless"), tint(MUTED)]}
+									>
+										<Image systemName="xmark.circle.fill" size={14} />
+									</Button>
+								</HStack>
+								<HStack
+									spacing={6}
+									modifiers={[
+										frame({
+											width: chatTarget ? 0 : undefined,
+											height: chatTarget ? 0 : undefined,
+										}),
+										opacity(chatTarget ? 0 : 1),
+										clipped(),
+									]}
+								>
+									<Button
+										label={selectedTarget?.projectName ?? "No project"}
+										onPress={() => {
+											void Haptics.impactAsync(
+												Haptics.ImpactFeedbackStyle.Light,
+											);
+											router.push("/(authenticated)/(home)/new-chat/project");
+										}}
+										modifiers={[
+											buttonStyle("borderless"),
+											tint(FOREGROUND),
+											disabled(targets.length === 0),
 										]}
 									/>
-									<Image
-										systemName="xmark.circle.fill"
-										size={15}
-										color="#ffffff"
-										onPress={() => controller.attachments.remove(attachment.id)}
-										modifiers={[padding({ top: 3, trailing: 3 })]}
-									/>
-								</ZStack>
-							))}
-							<Spacer />
-						</HStack>
-						<HStack spacing={6} modifiers={[padding({ all: 6 })]}>
+									<Button
+										onPress={() => {
+											void Haptics.impactAsync(
+												Haptics.ImpactFeedbackStyle.Light,
+											);
+											router.push("/(authenticated)/(home)/new-chat/branch");
+										}}
+										modifiers={[
+											buttonStyle("borderless"),
+											tint(MUTED),
+											disabled(!selectedTarget),
+										]}
+									>
+										<HStack spacing={4}>
+											<Text>{branchLabel}</Text>
+											<Image systemName="chevron.down" size={11} />
+										</HStack>
+									</Button>
+								</HStack>
+								<Spacer />
+							</HStack>
+							{/* Attachment thumbnails inside the glass, above the field —
+						    rendered natively (attachment uris are local files); tapping
+						    a thumbnail removes it. */}
 							<HStack
+								spacing={8}
 								modifiers={[
-									frame({ width: expanded ? 0 : undefined }),
-									opacity(expanded ? 0 : 1),
+									padding({ horizontal: 16, top: expanded ? 10 : 0 }),
+									frame({
+										height: expanded && attachments.length > 0 ? undefined : 0,
+									}),
+									opacity(expanded && attachments.length > 0 ? 1 : 0),
+									clipped(),
+								]}
+							>
+								{attachments.map((attachment) => (
+									<ZStack key={attachment.id} alignment="topTrailing">
+										<Image
+											uiImage={attachment.uri}
+											modifiers={[
+												resizable(),
+												aspectRatio({ contentMode: "fill" }),
+												frame({ width: 56, height: 56 }),
+												cornerRadius(10),
+												clipped(),
+											]}
+										/>
+										<Image
+											systemName="xmark.circle.fill"
+											size={15}
+											color="#ffffff"
+											onPress={() =>
+												controller.attachments.remove(attachment.id)
+											}
+											modifiers={[padding({ top: 3, trailing: 3 })]}
+										/>
+									</ZStack>
+								))}
+								<Spacer />
+							</HStack>
+							<HStack spacing={6} modifiers={[padding({ all: 6 })]}>
+								<HStack
+									modifiers={[
+										frame({ width: expanded ? 0 : undefined }),
+										opacity(expanded ? 0 : 1),
+										clipped(),
+									]}
+								>
+									{plusButton}
+								</HStack>
+								{/* Collapsed draft indicator: first attachment as a mini
+							    thumbnail, +N badge for the rest. */}
+								<HStack
+									modifiers={[
+										frame({
+											width:
+												!expanded && attachments.length > 0 ? undefined : 0,
+										}),
+										opacity(!expanded && attachments.length > 0 ? 1 : 0),
+										clipped(),
+									]}
+								>
+									{attachments.length > 0 ? (
+										<ZStack>
+											<Image
+												uiImage={attachments[0]?.uri ?? ""}
+												modifiers={[
+													resizable(),
+													aspectRatio({ contentMode: "fill" }),
+													frame({ width: 30, height: 30 }),
+													cornerRadius(8),
+													clipped(),
+												]}
+											/>
+											{attachments.length > 1 ? (
+												<Text
+													modifiers={[
+														font({ size: 10, weight: "semibold" }),
+														foregroundStyle("#ffffff"),
+													]}
+												>
+													+{attachments.length - 1}
+												</Text>
+											) : null}
+										</ZStack>
+									) : null}
+								</HStack>
+								<TextField
+									ref={fieldRef}
+									axis="vertical"
+									placeholder="Plan, ask, build..."
+									onTextChange={writeDraft}
+									onFocusChange={setFocused}
+									modifiers={[
+										padding({ horizontal: expanded ? 12 : 4 }),
+										frame({ minHeight: expanded ? 56 : 38 }),
+										lineLimit(expanded ? 12 : 1),
+										truncationMode("tail"),
+									]}
+								/>
+								<HStack
+									spacing={0}
+									modifiers={[
+										frame({ width: expanded ? 0 : undefined }),
+										opacity(expanded ? 0 : 1),
+										clipped(),
+									]}
+								>
+									{voiceControl}
+									{showSend ? sendButton : null}
+								</HStack>
+							</HStack>
+							<HStack
+								spacing={10}
+								modifiers={[
+									padding({ horizontal: 6, bottom: expanded ? 6 : 0 }),
+									frame({ height: expanded ? undefined : 0 }),
+									opacity(expanded ? 1 : 0),
 									clipped(),
 								]}
 							>
 								{plusButton}
-							</HStack>
-							{/* Collapsed draft indicator: first attachment as a mini
-							    thumbnail, +N badge for the rest. */}
-							<HStack
-								modifiers={[
-									frame({
-										width: !expanded && attachments.length > 0 ? undefined : 0,
-									}),
-									opacity(!expanded && attachments.length > 0 ? 1 : 0),
-									clipped(),
-								]}
-							>
-								{attachments.length > 0 ? (
-									<ZStack>
-										<Image
-											uiImage={attachments[0]?.uri ?? ""}
-											modifiers={[
-												resizable(),
-												aspectRatio({ contentMode: "fill" }),
-												frame({ width: 30, height: 30 }),
-												cornerRadius(8),
-												clipped(),
-											]}
-										/>
-										{attachments.length > 1 ? (
-											<Text
-												modifiers={[
-													font({ size: 10, weight: "semibold" }),
-													foregroundStyle("#ffffff"),
-												]}
-											>
-												+{attachments.length - 1}
-											</Text>
-										) : null}
-									</ZStack>
-								) : null}
-							</HStack>
-							<TextField
-								ref={fieldRef}
-								axis="vertical"
-								placeholder="Plan, ask, build..."
-								onTextChange={writeDraft}
-								onFocusChange={setFocused}
-								modifiers={[
-									padding({ horizontal: expanded ? 12 : 4 }),
-									frame({ minHeight: expanded ? 56 : 38 }),
-									lineLimit(expanded ? 12 : 1),
-									truncationMode("tail"),
-								]}
-							/>
-							<HStack
-								spacing={0}
-								modifiers={[
-									frame({ width: expanded ? 0 : undefined }),
-									opacity(expanded ? 0 : 1),
-									clipped(),
-								]}
-							>
-								{voiceControl}
-								{showSend ? sendButton : null}
-							</HStack>
-						</HStack>
-						<HStack
-							spacing={10}
-							modifiers={[
-								padding({ horizontal: 6, bottom: expanded ? 6 : 0 }),
-								frame({ height: expanded ? undefined : 0 }),
-								opacity(expanded ? 1 : 0),
-								clipped(),
-							]}
-						>
-							{plusButton}
-							<Button
-								onPress={() => {
-									void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-									router.push("/(authenticated)/(home)/new-chat/model");
-								}}
-								modifiers={[buttonStyle("borderless"), tint(FOREGROUND)]}
-							>
-								<HStack spacing={4}>
-									<Text>{selectedModel?.label ?? "Model"}</Text>
-									<Image systemName="chevron.down" size={11} />
-								</HStack>
-							</Button>
-							<Spacer />
-							{/* Bordered buttons carry ~6pt of invisible tap-target inset
+								<Button
+									onPress={() => {
+										void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+										router.push("/(authenticated)/(home)/new-chat/model");
+									}}
+									modifiers={[buttonStyle("borderless"), tint(FOREGROUND)]}
+								>
+									<HStack spacing={4}>
+										<Text>{selectedModel?.label ?? "Model"}</Text>
+										<Image systemName="chevron.down" size={11} />
+									</HStack>
+								</Button>
+								<Spacer />
+								{/* Bordered buttons carry ~6pt of invisible tap-target inset
 							    around the visible circle, so spacing 0 still reads as a
 							    ~12pt visual gap between the circles. */}
-							<HStack spacing={0}>
-								{voiceControl}
-								{showSend ? sendButton : null}
+								<HStack spacing={0}>
+									{voiceControl}
+									{showSend ? sendButton : null}
+								</HStack>
 							</HStack>
-						</HStack>
-					</VStack>
-				</Host>
-			</View>
-		</KeyboardAvoidingView>
+						</VStack>
+					</Host>
+				</View>
+			</KeyboardAvoidingView>
+		</View>
 	);
 }

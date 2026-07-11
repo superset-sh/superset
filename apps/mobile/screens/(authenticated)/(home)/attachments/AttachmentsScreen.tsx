@@ -6,18 +6,16 @@ import { Alert, Pressable, View } from "react-native";
 import { usePromptInputAttachments } from "@/components/ai-elements/prompt-input";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { useAfterTransitionEnd } from "@/screens/(authenticated)/(home)/hooks/useAfterTransitionEnd";
 import { AddSelectedButton } from "./components/AddSelectedButton";
 import { PhotoCarousel } from "./components/PhotoCarousel";
 import { useAttachmentsSelectionStore } from "./stores/attachmentsSelectionStore";
-
-// Pickers present their own view controller; wait for the sheet's
-// dismissal animation or iOS drops the second presentation.
-const SHEET_DISMISS_DELAY_MS = 400;
 
 export function AttachmentsScreen() {
 	const router = useRouter();
 	const theme = useTheme();
 	const attachments = usePromptInputAttachments();
+	const afterTransitionEnd = useAfterTransitionEnd();
 	const selected = useAttachmentsSelectionStore((store) => store.selected);
 	const toggleAsset = useAttachmentsSelectionStore(
 		(store) => store.toggleAsset,
@@ -26,9 +24,11 @@ export function AttachmentsScreen() {
 
 	useEffect(() => clear, [clear]);
 
+	// Pickers present their own view controller; iOS drops the second
+	// presentation unless the sheet's dismissal has fully finished.
 	const runAfterDismiss = (action: () => void) => {
+		afterTransitionEnd(action);
 		router.back();
-		setTimeout(action, SHEET_DISMISS_DELAY_MS);
 	};
 
 	const openCamera = async () => {

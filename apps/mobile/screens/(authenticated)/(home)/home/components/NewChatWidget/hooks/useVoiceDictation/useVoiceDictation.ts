@@ -2,7 +2,7 @@ import {
 	ExpoSpeechRecognitionModule,
 	useSpeechRecognitionEvent,
 } from "expo-speech-recognition";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 
 export type VoiceDictation =
@@ -16,7 +16,6 @@ type DictationPhase =
 	| { status: "finalizing" };
 
 const FINALIZE_TIMEOUT_MS = 15_000;
-const SETTLE_GRACE_MS = 500;
 
 export function useVoiceDictation(draft: {
 	read: () => string;
@@ -28,22 +27,28 @@ export function useVoiceDictation(draft: {
 	const transcriptRef = useRef<string | null>(null);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const settle = (transcript: string | null) => {
-		if (phaseRef.current.status === "idle") return;
+	const clearBackstop = () => {
 		if (timeoutRef.current) {
 			clearTimeout(timeoutRef.current);
 			timeoutRef.current = null;
 		}
+	};
+
+	const settle = (transcript: string | null) => {
+		if (phaseRef.current.status === "idle") return;
+		const wasRecording = phaseRef.current.status === "recording";
+		clearBackstop();
 		phaseRef.current = { status: "idle" };
 		setPhase({ status: "idle" });
+		if (wasRecording) ExpoSpeechRecognitionModule.stop();
 		const trimmed = transcript?.trim();
 		if (!trimmed) return;
 		const base = draft.read().trimEnd();
 		draft.write(base ? `${base} ${trimmed}` : trimmed);
 	};
 
-	const armFinalizeTimeout = () => {
-		if (timeoutRef.current) clearTimeout(timeoutRef.current);
+	const armBackstop = () => {
+		clearBackstop();
 		timeoutRef.current = setTimeout(
 			() => settle(transcriptRef.current),
 			FINALIZE_TIMEOUT_MS,
@@ -57,15 +62,10 @@ export function useVoiceDictation(draft: {
 		settle(transcriptRef.current);
 	});
 
-	useSpeechRecognitionEvent("audioend", () => {
-		if (phaseRef.current.status === "idle") return;
-		setTimeout(() => settle(transcriptRef.current), SETTLE_GRACE_MS);
-	});
-
+	// The recognizer's own task end is authoritative: no more results can
+	// arrive after it, in any phase.
 	useSpeechRecognitionEvent("end", () => {
-		if (phaseRef.current.status !== "recording") return;
-		armFinalizeTimeout();
-		setPhase({ status: "finalizing" });
+		settle(transcriptRef.current);
 	});
 
 	useSpeechRecognitionEvent("error", (event) => {
@@ -78,11 +78,18 @@ export function useVoiceDictation(draft: {
 			Alert.alert("Microphone access is not allowed");
 			return;
 		}
-		if (phaseRef.current.status === "recording") {
-			armFinalizeTimeout();
-			setPhase({ status: "finalizing" });
-		}
+		settle(transcriptRef.current);
 	});
+
+	useEffect(
+		() => () => {
+			if (timeoutRef.current) clearTimeout(timeoutRef.current);
+			if (phaseRef.current.status !== "idle") {
+				ExpoSpeechRecognitionModule.abort();
+			}
+		},
+		[],
+	);
 
 	const start = async () => {
 		const permission =
@@ -91,6 +98,7 @@ export function useVoiceDictation(draft: {
 			Alert.alert("Microphone access is not allowed");
 			return;
 		}
+		clearBackstop();
 		transcriptRef.current = null;
 		setPhase({ status: "recording", startedAt: Date.now() });
 		ExpoSpeechRecognitionModule.start({
@@ -101,7 +109,7 @@ export function useVoiceDictation(draft: {
 	};
 
 	const stop = () => {
-		armFinalizeTimeout();
+		armBackstop();
 		setPhase({ status: "finalizing" });
 		ExpoSpeechRecognitionModule.stop();
 	};

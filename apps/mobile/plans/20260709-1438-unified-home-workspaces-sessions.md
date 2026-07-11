@@ -18,8 +18,7 @@ To see it working: run the app (`cd apps/mobile && bun dev`, or an existing dev 
 
 ## Open Questions
 
-- Sessions per workspace are currently rendered uncapped, diverging from the cap-3 + "View all" decision below. The original rationale (long histories push other workspaces off screen) still stands, but the "View all" destination (`ChatSessionsScreen`) has since been deleted. Decide: reinstate a cap with an expand-in-place affordance, or accept uncapped and strike the decision.
-- Home lists every org member's chat sessions, but rename/delete are `createdBy`-scoped server-side and fail silently for teammates' sessions (review finding 1). Decide: hide Rename/Delete on sessions the user doesn't own, or surface the failure.
+- None. Resolved by Satya 2026-07-10: sessions render **uncapped** (revisit if long histories become a problem — strikes the cap-3 decision below); worktree-missing workspaces stay **hidden** (cleanup is desktop-only, accepted tradeoff); teammates' chats are **editable org-wide** (`chat.updateSession`/`deleteSession` now scope to the organization, not `createdBy`).
 
 ## Progress
 
@@ -35,7 +34,8 @@ To see it working: run the app (`cd apps/mobile && bun dev`, or an existing dev 
 - [x] (2026-07-10) Milestone 4 shipped in reduced form: ghost "+" button on the workspace row prompts for the first message (`Alert.prompt`) and starts the session via the host's `agents.run`, then pushes the thread route. No inline composer.
 - [x] (2026-07-10) Design iterations with Satya on-device: two-line workspace rows reinstated (title / `branch · +LOC −LOC`), date-group headers (Now/Today/Yesterday/This week/This month/Older) replacing per-row workspace timestamps, hairline separators + tighter gaps, attention dot in the icon slot, tappable PR icon, chat context menu (rename/delete/fork placeholder), light haptics on sheet-opening taps, `ChatSessionsScreen`/changes screen deleted with `workspace/[id]` now redirecting home.
 - [x] (2026-07-10) Full-diff code review run (8 finder angles + adversarial verification): 10 confirmed findings, folded in below as the remediation checklist.
-- [ ] Work through the review remediation checklist (see "Code review findings").
+- [x] (2026-07-10) Review remediation shipped: voice settle rework (single tracked backstop, settle on the recognizer's `end`, unmount aborts recognition), org-wide chat rename/delete, attention dots mirror desktop (`Start`→working, `Attached`→idle) and clear when the host drops, dead terminal-row plumbing deleted (buildSessionRows terminal arm, SessionRow terminal variant, StatusDot, `withTerminalTitles`, AgentLogo → shared `ClaudeLogo`), WorkspaceBackButton deleted, structure moves (SessionRow/compactTime/useHostTerminalAgents/prStateFor down to `home/`, NewChatWidget wrapper collapsed), sheet-dismiss + keyboard-refocus timers replaced with a shared `useAfterTransitionEnd` hook. Lint + typecheck green; sim smoke-tested.
+- [ ] Milestone 6 device pass (voice), then PR (single PR, per Satya).
 - [ ] Move plan to `done/` when the PR is created.
 
 ## Surprises & Discoveries

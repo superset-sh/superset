@@ -1,0 +1,1 @@
+export { OpenAILogo } from "./OpenAILogo";
