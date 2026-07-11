@@ -9,7 +9,9 @@
  * afford: a ~30-turn marathon with gapless streams and pagination folds,
  * permission allow/deny, single- and multi-select elicitations, cancel
  * mid-tool-call, adapter crash, host restart (fresh manager, dead cursors),
- * and stale-cursor eviction resyncs.
+ * stale-cursor eviction resyncs, non-fatal prompt rejection, create
+ * idempotency, mode/config round-trips, elicitation edge modes, credential
+ * scrubbing, concurrent turns, graveyard eviction, and list pagination.
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
@@ -23,6 +25,7 @@ import {
 	emptyTimeline,
 	foldEnvelopes,
 	makeSelectedOutcome,
+	type SessionScopedState,
 	type SessionUpdateEnvelope,
 	type Timeline,
 } from "@superset/session-protocol";
@@ -33,6 +36,8 @@ import {
 import { Hono } from "hono";
 import {
 	AcpSessionManager,
+	AcpSessionNotFoundError,
+	AcpWorkspaceMismatchError,
 	registerAcpSessionStreamRoute,
 } from "../../src/runtime/acp-sessions";
 
@@ -64,6 +69,14 @@ function agentText(timeline: Timeline): string {
 		.flatMap((item) => (item.kind === "message" ? item.blocks : []))
 		.map((block) => (block.type === "text" ? block.text : ""))
 		.join("\n");
+}
+
+function configValue(
+	state: SessionScopedState,
+	configId: string,
+): string | boolean | undefined {
+	return state.configOptions.find((option) => option.id === configId)
+		?.currentValue;
 }
 
 function expectGapless(envelopes: SessionUpdateEnvelope[]): void {
@@ -262,9 +275,11 @@ describe("acp-sessions e2e (fake adapter)", () => {
 		expect(state.status).toBe("awaiting_permission");
 		const allowPending = state.pendingPermissions[0];
 		if (!allowPending) throw new Error("pending permission disappeared");
+		// The real adapter's option triple, exactly as real runs emit it.
 		expect(allowPending.options.map((option) => option.optionId)).toEqual([
+			"allow_always",
 			"allow",
-			"deny",
+			"reject",
 		]);
 		const first = manager.respondToPermission({
 			sessionId,
@@ -295,7 +310,7 @@ describe("acp-sessions e2e (fake adapter)", () => {
 		manager.respondToPermission({
 			sessionId,
 			requestId: denyPending.requestId,
-			outcome: { outcome: "selected", optionId: "deny" },
+			outcome: { outcome: "selected", optionId: "reject" },
 		});
 		expect((await denied.turn).stopReason).toBe("end_turn");
 
@@ -565,5 +580,600 @@ describe("acp-sessions e2e (fake adapter)", () => {
 		const text = agentText(foldEnvelopes(emptyTimeline(), live.received));
 		expect(text).toContain("after resync");
 		expect(text).not.toContain("filler-1");
+	}, 30_000);
+
+	test("prompt rejection is non-fatal: journaled, bubble marked failed, session recovers", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-reject";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "reject boom" }],
+		});
+		// The SDK maps a thrown handler error to a generic internal error on the
+		// requester's side (details ride error.data), so assert loosely here and
+		// precisely on the journaled frame below.
+		await expect(turn).rejects.toThrow();
+
+		const state = manager.get(sessionId);
+		expect(state.status).toBe("idle");
+		expect(state.lastError).toBeTruthy();
+
+		const page = manager.getMessages({ sessionId, limit: 200 });
+		const rejected = page.items.find(
+			(envelope) => envelope.frame.kind === "prompt_rejected",
+		);
+		if (!rejected || rejected.frame.kind !== "prompt_rejected") {
+			throw new Error("prompt_rejected frame missing from journal");
+		}
+		expect(rejected.frame.promptStartSeq).toBeGreaterThan(0);
+		expect(rejected.frame.reason.length).toBeGreaterThan(0);
+		// fold repaints the rejected prompt's user bubble as failed.
+		const timeline = foldEnvelopes(emptyTimeline(), page.items);
+		const bubble = timeline.items.find(
+			(item) => item.kind === "message" && item.role === "user",
+		);
+		if (!bubble || bubble.kind !== "message") {
+			throw new Error("user bubble missing from timeline");
+		}
+		expect(bubble.failed).toBe(true);
+
+		// The session is still alive and takes the next turn cleanly.
+		const { turn: recovery } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "say recovered" }],
+		});
+		expect((await recovery).stopReason).toBe("end_turn");
+		const after = manager.get(sessionId);
+		expect(after.lastError).toBeNull();
+		expect(after.lastStopReason).toBe("end_turn");
+		const text = agentText(
+			foldEnvelopes(
+				emptyTimeline(),
+				manager.getMessages({ sessionId, limit: 200 }).items,
+			),
+		);
+		expect(text).toContain("recovered");
+	}, 30_000);
+
+	test("create is idempotent per (sessionId, workspaceId); mismatches conflict", async () => {
+		const workspaceResolutions: string[] = [];
+		const manager = new AcpSessionManager({
+			resolveWorkspaceCwd: (workspaceId) => {
+				workspaceResolutions.push(workspaceId);
+				return workspaceDir;
+			},
+			adapterEntry: FAKE_ADAPTER,
+		});
+		managers.push(manager);
+		const sessionId = "e2e-idempotent";
+
+		// Two concurrent creates coalesce onto one spawn.
+		const [first, second] = await Promise.all([
+			manager.create({ sessionId, workspaceId: WORKSPACE_ID }),
+			manager.create({ sessionId, workspaceId: WORKSPACE_ID }),
+		]);
+		expect(workspaceResolutions).toEqual([WORKSPACE_ID]);
+		expect(second?.createdAt).toBe(first?.createdAt ?? Number.NaN);
+
+		// Replaying the create later returns the same session, no new spawn.
+		const replay = await manager.create({
+			sessionId,
+			workspaceId: WORKSPACE_ID,
+		});
+		expect(replay.createdAt).toBe(first?.createdAt ?? Number.NaN);
+		expect(workspaceResolutions).toEqual([WORKSPACE_ID]);
+		expect(manager.list({}).items).toHaveLength(1);
+
+		// Same id in a different workspace conflicts — against a live runtime…
+		await expect(
+			manager.create({ sessionId, workspaceId: "some-other-workspace" }),
+		).rejects.toThrow(AcpWorkspaceMismatchError);
+
+		// …and against a create still in flight.
+		const inflight = manager.create({
+			sessionId: "e2e-idempotent-race",
+			workspaceId: WORKSPACE_ID,
+		});
+		await expect(
+			manager.create({
+				sessionId: "e2e-idempotent-race",
+				workspaceId: "some-other-workspace",
+			}),
+		).rejects.toThrow(AcpWorkspaceMismatchError);
+		await inflight;
+	}, 30_000);
+
+	test("setMode and setConfigOption round-trip through the adapter", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-config";
+		const created = await manager.create({
+			sessionId,
+			workspaceId: WORKSPACE_ID,
+		});
+
+		// The real catalog rode session/new: mode + model + fast (fast as the
+		// two-value select fallback — our initialize never declares
+		// session.configOptions.boolean, so the boolean toggle shape can't occur
+		// against the real adapter either).
+		expect(created.configOptions.map((option) => option.id)).toEqual([
+			"mode",
+			"model",
+			"fast",
+		]);
+		expect(configValue(created, "model")).toBe("claude-opus-4-6");
+		expect(configValue(created, "fast")).toBe("off");
+
+		await manager.setMode({ sessionId, modeId: "acceptEdits" });
+		expect(manager.get(sessionId).currentMode?.currentModeId).toBe(
+			"acceptEdits",
+		);
+		// The switch reached the adapter process, not just local state.
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "mode" }],
+		});
+		await turn;
+		const text = agentText(
+			foldEnvelopes(
+				emptyTimeline(),
+				manager.getMessages({ sessionId, limit: 200 }).items,
+			),
+		);
+		expect(text).toContain("mode:acceptEdits");
+
+		// The refreshed catalog rides the set_config_option response into state.
+		await manager.setConfigOption({
+			sessionId,
+			configId: "model",
+			value: "claude-sonnet-4-5",
+		});
+		expect(configValue(manager.get(sessionId), "model")).toBe(
+			"claude-sonnet-4-5",
+		);
+		await manager.setConfigOption({ sessionId, configId: "fast", value: "on" });
+		expect(configValue(manager.get(sessionId), "fast")).toBe("on");
+	}, 30_000);
+
+	test("cancel with a pending permission card settles it cancelled", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-cancel-pending";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "permission risky-op" }],
+		});
+		await waitFor(
+			() => manager.get(sessionId).pendingPermissions.length > 0,
+			10_000,
+			"the permission card",
+		);
+		await manager.cancel({ sessionId });
+		expect((await turn).stopReason).toBe("cancelled");
+
+		const state = manager.get(sessionId);
+		expect(state.pendingPermissions).toEqual([]);
+		expect(state.status).toBe("idle");
+
+		const page = manager.getMessages({ sessionId, limit: 200 });
+		const resolved = page.items.find(
+			(envelope) => envelope.frame.kind === "permission_resolved",
+		);
+		if (!resolved || resolved.frame.kind !== "permission_resolved") {
+			throw new Error("permission_resolved frame missing from journal");
+		}
+		expect(resolved.frame.outcome).toEqual({ outcome: "cancelled" });
+		// The tool call behind the card never reached a terminal status on its
+		// own, so the turn end terminalized it.
+		const timeline = foldEnvelopes(emptyTimeline(), page.items);
+		const tool = timeline.items.find((item) => item.kind === "tool_call");
+		if (!tool || tool.kind !== "tool_call") {
+			throw new Error("tool call missing from timeline");
+		}
+		expect(tool.call.status).toBe("failed");
+	}, 30_000);
+
+	test("adapter death with a pending card clears it; answering reports dead", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-dead-pending";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "permission doomed-op" }],
+		});
+		await waitFor(
+			() => manager.get(sessionId).pendingPermissions.length > 0,
+			10_000,
+			"the permission card",
+		);
+		const requestId = manager.get(sessionId).pendingPermissions[0]?.requestId;
+		if (!requestId) throw new Error("pending permission disappeared");
+
+		const pid = manager.adapterPid(sessionId);
+		if (!pid) throw new Error("adapter pid unavailable");
+		process.kill(pid, "SIGKILL");
+
+		await expect(turn).rejects.toThrow();
+		await waitFor(
+			() => manager.get(sessionId).status === "dead",
+			10_000,
+			"the session to report dead",
+		);
+		expect(manager.get(sessionId).pendingPermissions).toEqual([]);
+		// A late answer errors loudly instead of pretending to be stale.
+		expect(() =>
+			manager.respondToPermission({
+				sessionId,
+				requestId,
+				outcome: { outcome: "selected", optionId: "allow" },
+			}),
+		).toThrow(/dead/);
+	}, 30_000);
+
+	test("elicitation edge modes: url is cancelled, empty form is declined — no cards", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-elicit-edge";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const url = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "ask-url" }],
+		});
+		expect((await url.turn).stopReason).toBe("end_turn");
+		const empty = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "ask-empty" }],
+		});
+		expect((await empty.turn).stopReason).toBe("end_turn");
+
+		const page = manager.getMessages({ sessionId, limit: 200 });
+		// Neither shape can render as a question card, so nothing may block.
+		expect(
+			page.items.some(
+				(envelope) => envelope.frame.kind === "permission_requested",
+			),
+		).toBe(false);
+		const text = agentText(foldEnvelopes(emptyTimeline(), page.items));
+		expect(text).toContain("url-elicit:cancel");
+		expect(text).toContain("empty-elicit:decline");
+	}, 30_000);
+
+	test("two-question form: sequential cards, Skip omits the answer, _custom fields ignored", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-two-questions";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [
+				{
+					type: "text",
+					text: "ask-two pick color|red, blue;pick size|small, large",
+				},
+			],
+		});
+		await waitFor(
+			() => manager.get(sessionId).pendingPermissions.length > 0,
+			10_000,
+			"the first question card",
+		);
+		const firstCard = manager.get(sessionId).pendingPermissions[0];
+		if (!firstCard) throw new Error("first card disappeared");
+		// Multi-question forms carry each question in its field description.
+		expect(firstCard.toolCall.title).toBe("pick color");
+		expect(firstCard.options.map((option) => option.name)).toEqual([
+			"red",
+			"blue",
+			"Skip",
+		]);
+		manager.respondToPermission({
+			sessionId,
+			requestId: firstCard.requestId,
+			outcome: { outcome: "selected", optionId: "option-0" },
+		});
+
+		// The second card only appears once the first resolves.
+		await waitFor(
+			() =>
+				manager.get(sessionId).pendingPermissions[0]?.toolCall.title ===
+				"pick size",
+			10_000,
+			"the second question card",
+		);
+		const secondCard = manager.get(sessionId).pendingPermissions[0];
+		if (!secondCard) throw new Error("second card disappeared");
+		manager.respondToPermission({
+			sessionId,
+			requestId: secondCard.requestId,
+			outcome: { outcome: "selected", optionId: "skip" },
+		});
+		expect((await turn).stopReason).toBe("end_turn");
+
+		const page = manager.getMessages({ sessionId, limit: 200 });
+		// A skipped question contributes no answer: the adapter sees the form
+		// content without its key at all.
+		const text = agentText(foldEnvelopes(emptyTimeline(), page.items));
+		expect(text).toContain("picked:red&skipped");
+		// Exactly two cards total: the question_<n>_custom "Other" fields the
+		// real adapter appends never become cards of their own.
+		expect(
+			page.items.filter(
+				(envelope) => envelope.frame.kind === "permission_requested",
+			),
+		).toHaveLength(2);
+	}, 30_000);
+
+	test("adapter-owned elicitation tool call gets exactly one terminal update", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-adapter-owned";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "ask-tool deploy now?|yes, no" }],
+		});
+		await waitFor(
+			() => manager.get(sessionId).pendingPermissions.length > 0,
+			10_000,
+			"the adapter-owned question card",
+		);
+		const card = manager.get(sessionId).pendingPermissions[0];
+		if (!card) throw new Error("question card disappeared");
+		// The card is bound to the adapter's real tool call, not a synthetic
+		// elicitation-<uuid> stand-in.
+		expect(card.toolCall.toolCallId).toMatch(/^tool-\d+$/);
+		manager.respondToPermission({
+			sessionId,
+			requestId: card.requestId,
+			outcome: { outcome: "selected", optionId: "option-0" },
+		});
+		expect((await turn).stopReason).toBe("end_turn");
+
+		const page = manager.getMessages({ sessionId, limit: 200 });
+		expect(agentText(foldEnvelopes(emptyTimeline(), page.items))).toContain(
+			"picked:yes",
+		);
+		// The adapter owns the terminal status; the host must not journal a
+		// second one of its own (it does for synthetic ids only).
+		const terminalUpdates = page.items.filter(
+			(envelope) =>
+				envelope.frame.kind === "update" &&
+				envelope.frame.update.sessionUpdate === "tool_call_update" &&
+				(envelope.frame.update.status === "completed" ||
+					envelope.frame.update.status === "failed"),
+		);
+		expect(terminalUpdates).toHaveLength(1);
+		const timeline = foldEnvelopes(emptyTimeline(), page.items);
+		const tool = timeline.items.find((item) => item.kind === "tool_call");
+		if (!tool || tool.kind !== "tool_call") {
+			throw new Error("tool call missing from timeline");
+		}
+		expect(tool.call.status).toBe("completed");
+	}, 30_000);
+
+	test("spawned adapters never see ambient Anthropic credentials", async () => {
+		const previousApiKey = process.env.ANTHROPIC_API_KEY;
+		const previousAuthToken = process.env.ANTHROPIC_AUTH_TOKEN;
+		process.env.ANTHROPIC_API_KEY = "sk-ambient-secret";
+		process.env.ANTHROPIC_AUTH_TOKEN = "ambient-token-secret";
+		try {
+			// The manager scrubs at spawn time, so the session must be created
+			// while the ambient credentials are set.
+			const manager = newManager();
+			const sessionId = "e2e-env-scrub";
+			await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+			for (const name of ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"]) {
+				const { turn } = manager.prompt({
+					sessionId,
+					prompt: [{ type: "text", text: `env ${name}` }],
+				});
+				await turn;
+			}
+			const text = agentText(
+				foldEnvelopes(
+					emptyTimeline(),
+					manager.getMessages({ sessionId, limit: 200 }).items,
+				),
+			);
+			expect(text).toContain("env:ANTHROPIC_API_KEY=<unset>");
+			expect(text).toContain("env:ANTHROPIC_AUTH_TOKEN=<unset>");
+			expect(text).not.toContain("secret");
+		} finally {
+			if (previousApiKey === undefined) {
+				delete process.env.ANTHROPIC_API_KEY;
+			} else {
+				process.env.ANTHROPIC_API_KEY = previousApiKey;
+			}
+			if (previousAuthToken === undefined) {
+				delete process.env.ANTHROPIC_AUTH_TOKEN;
+			} else {
+				process.env.ANTHROPIC_AUTH_TOKEN = previousAuthToken;
+			}
+		}
+	}, 30_000);
+
+	test("concurrent turns: one turn ending must not terminalize the other's open tool", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-concurrent";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		const hang = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "hang" }],
+		});
+		await waitFor(
+			() =>
+				manager
+					.getMessages({ sessionId, limit: 200 })
+					.items.some(
+						(envelope) =>
+							envelope.frame.kind === "update" &&
+							envelope.frame.update.sessionUpdate === "tool_call",
+					),
+			10_000,
+			"the hang tool call to journal",
+		);
+
+		// A second prompt while the first still runs.
+		const say = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "say concurrent hello" }],
+		});
+		expect((await say.turn).stopReason).toBe("end_turn");
+
+		// The say turn ended, but the hang turn is still active — its open tool
+		// call must NOT have been swept to a terminal status.
+		const midTimeline = foldEnvelopes(
+			emptyTimeline(),
+			manager.getMessages({ sessionId, limit: 200 }).items,
+		);
+		const midTool = midTimeline.items.find((item) => item.kind === "tool_call");
+		if (!midTool || midTool.kind !== "tool_call") {
+			throw new Error("hang tool call missing from timeline");
+		}
+		expect(midTool.call.status).toBe("in_progress");
+		expect(manager.get(sessionId).status).toBe("running");
+
+		// Only when the LAST active turn ends does the sweep run.
+		await manager.cancel({ sessionId });
+		expect((await hang.turn).stopReason).toBe("cancelled");
+		const endTimeline = foldEnvelopes(
+			emptyTimeline(),
+			manager.getMessages({ sessionId, limit: 200 }).items,
+		);
+		const endTool = endTimeline.items.find((item) => item.kind === "tool_call");
+		if (!endTool || endTool.kind !== "tool_call") {
+			throw new Error("hang tool call missing from timeline");
+		}
+		expect(endTool.call.status).toBe("failed");
+		expect(manager.get(sessionId).status).toBe("idle");
+	}, 30_000);
+
+	test("dead-session graveyard evicts the oldest beyond the cap", async () => {
+		const manager = newManager();
+		const sessionIds = Array.from(
+			{ length: 21 },
+			(_, index) => `e2e-grave-${index}`,
+		);
+		await Promise.all(
+			sessionIds.map((id) =>
+				manager.create({ sessionId: id, workspaceId: WORKSPACE_ID }),
+			),
+		);
+		// Kill in order, waiting out each death so updatedAt (the eviction
+		// order) is strictly increasing.
+		for (const id of sessionIds) {
+			const pid = manager.adapterPid(id);
+			if (!pid) throw new Error(`adapter pid unavailable for ${id}`);
+			process.kill(pid, "SIGKILL");
+			await waitFor(
+				() => manager.get(id).status === "dead",
+				10_000,
+				`${id} to report dead`,
+			);
+			await sleep(5);
+		}
+
+		// 21 dead > the 20-session graveyard: the first death was evicted.
+		const listed = manager.list({ limit: 50 }).items;
+		expect(listed).toHaveLength(20);
+		expect(listed.every((state) => state.status === "dead")).toBe(true);
+		expect(listed.map((state) => state.sessionId)).not.toContain("e2e-grave-0");
+		expect(() => manager.get("e2e-grave-0")).toThrow(AcpSessionNotFoundError);
+		expect(() => manager.get("e2e-grave-1")).not.toThrow();
+	}, 60_000);
+
+	test("list paginates by cursor and filters by workspace", async () => {
+		const manager = newManager();
+		const older = ["e2e-page-a0", "e2e-page-a1", "e2e-page-a2"];
+		const newer = ["e2e-page-b0", "e2e-page-b1"];
+		for (const id of older) {
+			await manager.create({ sessionId: id, workspaceId: "ws-list-a" });
+			await sleep(5);
+		}
+		for (const id of newer) {
+			await manager.create({ sessionId: id, workspaceId: "ws-list-b" });
+			await sleep(5);
+		}
+
+		// Newest first, two per page, cursors resuming exactly.
+		const pageOne = manager.list({ limit: 2 });
+		expect(pageOne.enabled).toBe(true);
+		expect(pageOne.items.map((state) => state.sessionId)).toEqual([
+			"e2e-page-b1",
+			"e2e-page-b0",
+		]);
+		if (!pageOne.nextCursor) throw new Error("expected a second page");
+		const pageTwo = manager.list({ limit: 2, cursor: pageOne.nextCursor });
+		expect(pageTwo.items.map((state) => state.sessionId)).toEqual([
+			"e2e-page-a2",
+			"e2e-page-a1",
+		]);
+		if (!pageTwo.nextCursor) throw new Error("expected a third page");
+		const pageThree = manager.list({ limit: 2, cursor: pageTwo.nextCursor });
+		expect(pageThree.items.map((state) => state.sessionId)).toEqual([
+			"e2e-page-a0",
+		]);
+		expect(pageThree.nextCursor).toBeNull();
+
+		const filtered = manager.list({ workspaceId: "ws-list-b" });
+		expect(filtered.items.map((state) => state.sessionId)).toEqual([
+			"e2e-page-b1",
+			"e2e-page-b0",
+		]);
+	}, 30_000);
+
+	test("session_info_update with title: null clears the title", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-title-clear";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		await manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "title temp-title" }],
+		}).turn;
+		expect(manager.get(sessionId).title).toBe("temp-title");
+
+		await manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "title-clear" }],
+		}).turn;
+		expect(manager.get(sessionId).title).toBeNull();
+	}, 30_000);
+
+	test("a throwing subscriber does not break the turn or its siblings", async () => {
+		const manager = newManager();
+		const sessionId = "e2e-subscriber-throw";
+		await manager.create({ sessionId, workspaceId: WORKSPACE_ID });
+
+		// Live-only (no since): its throws hit the journal fan-out, which must
+		// isolate them.
+		const unsubscribeThrowing = manager.subscribe({
+			sessionId,
+			onEnvelope: () => {
+				throw new Error("subscriber exploded");
+			},
+		});
+		const received: SessionUpdateEnvelope[] = [];
+		const unsubscribe = manager.subscribe({
+			sessionId,
+			since: 0,
+			onEnvelope: (envelope) => received.push(envelope),
+		});
+
+		const { turn } = manager.prompt({
+			sessionId,
+			prompt: [{ type: "text", text: "say unbothered" }],
+		});
+		expect((await turn).stopReason).toBe("end_turn");
+		expect(agentText(foldEnvelopes(emptyTimeline(), received))).toContain(
+			"unbothered",
+		);
+		expectGapless(received);
+		unsubscribeThrowing();
+		unsubscribe();
 	}, 30_000);
 });
