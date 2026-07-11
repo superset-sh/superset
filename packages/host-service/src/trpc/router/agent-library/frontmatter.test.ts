@@ -86,6 +86,17 @@ describe("applyDefinitionEdit", () => {
 		expect(next).toBe(`---\n${frontmatterText}---\n\nNew body.\n`);
 	});
 
+	it("refuses to patch non-map frontmatter instead of replacing it", () => {
+		const raw = "---\n- just\n- a list\n---\nBody\n";
+		expect(() =>
+			applyDefinitionEdit({ raw, patch: { model: "opus" } }),
+		).toThrow("not a key-value map");
+		// Body-only edits never touch the frontmatter, so they still work.
+		const next = applyDefinitionEdit({ raw, body: "New body\n" });
+		expect(next).toContain("- just");
+		expect(next).toContain("New body");
+	});
+
 	it("creates a frontmatter block on files that lack one", () => {
 		const next = applyDefinitionEdit({
 			raw: "Only instructions here.\n",

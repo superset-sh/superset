@@ -8,6 +8,14 @@ import { Document, isMap, parseDocument } from "yaml";
  * verbatim (not reserialized).
  */
 
+export class FrontmatterNotAMapError extends Error {
+	constructor() {
+		super(
+			"Frontmatter is not a key-value map — edit the raw file to fix it first",
+		);
+	}
+}
+
 export interface SplitFile {
 	/** Raw YAML between the `---` fences, or null when the file has none. */
 	frontmatterText: string | null;
@@ -86,7 +94,12 @@ export function applyDefinitionEdit({
 			: parseDocument(split.frontmatterText);
 
 	if (!isMap(doc.contents)) {
-		// Empty or scalar frontmatter — start from a fresh map, preserving nothing.
+		if (split.frontmatterText !== null && split.frontmatterText.trim() !== "") {
+			// Scalar/sequence frontmatter would be silently replaced by the
+			// patch — refuse instead of losing data; the raw editor still works.
+			throw new FrontmatterNotAMapError();
+		}
+		// No frontmatter or an empty block — start from a fresh map.
 		doc.contents = doc.createNode({}) as typeof doc.contents;
 	}
 

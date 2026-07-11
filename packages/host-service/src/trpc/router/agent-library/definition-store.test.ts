@@ -314,6 +314,63 @@ describe("transferDefinition", () => {
 		).rejects.toThrow();
 	});
 
+	it("round-trips binary skill assets byte-for-byte", async () => {
+		const bytes = new Uint8Array([0, 255, 137, 80, 78, 71, 13, 10, 26, 10]);
+		await writeFile(join(userDir, "skills", "orchestrate", "logo.png"), bytes);
+
+		await transferDefinition({
+			source: userRoot(),
+			target: projectRoot(),
+			kind: "skill",
+			name: "orchestrate",
+			mode: "copy",
+			overwrite: false,
+		});
+
+		const copied = await readFile(
+			join(projectDir, ".agents", "skills", "orchestrate", "logo.png"),
+		);
+		expect(new Uint8Array(copied)).toEqual(bytes);
+	});
+
+	it("keeps the existing target intact when an overwrite copy fails", async () => {
+		const target = projectRoot();
+		await transferDefinition({
+			source: userRoot(),
+			target,
+			kind: "skill",
+			name: "orchestrate",
+			mode: "copy",
+			overwrite: false,
+		});
+
+		// Oversized source asset makes the staged copy fail before the swap.
+		await writeFile(
+			join(userDir, "skills", "orchestrate", "huge.bin"),
+			Buffer.alloc(2 * 1024 * 1024 + 1),
+		);
+
+		await expect(
+			transferDefinition({
+				source: userRoot(),
+				target,
+				kind: "skill",
+				name: "orchestrate",
+				mode: "copy",
+				overwrite: true,
+			}),
+		).rejects.toMatchObject({ code: "TOO_LARGE" });
+
+		// Prior copy survives, including its assets; no staging dir left behind.
+		const asset = await readFile(
+			join(projectDir, ".agents", "skills", "orchestrate", "reference.txt"),
+			"utf8",
+		);
+		expect(asset).toBe("asset\n");
+		const items = await listDefinitions(target);
+		expect(items.map((i) => i.name)).toEqual(["orchestrate", "ticket-format"]);
+	});
+
 	it("rejects a transfer within the same scope", async () => {
 		await expect(
 			transferDefinition({

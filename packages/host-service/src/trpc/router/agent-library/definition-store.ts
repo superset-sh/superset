@@ -8,6 +8,7 @@ import type {
 import type { FsService } from "@superset/workspace-fs/core";
 import {
 	applyDefinitionEdit,
+	FrontmatterNotAMapError,
 	frontmatterString,
 	parseFrontmatter,
 	splitFrontmatter,
@@ -254,13 +255,21 @@ export async function saveDefinition(
 		);
 	}
 
-	const nextContent =
-		input.raw ??
-		applyDefinitionEdit({
-			raw: found.content,
-			patch: input.patch,
-			body: input.body,
-		});
+	let nextContent: string;
+	try {
+		nextContent =
+			input.raw ??
+			applyDefinitionEdit({
+				raw: found.content,
+				patch: input.patch,
+				body: input.body,
+			});
+	} catch (error) {
+		if (error instanceof FrontmatterNotAMapError) {
+			throw new DefinitionStoreError("INVALID", error.message);
+		}
+		throw error;
+	}
 
 	const result = await root.fs.writeFile({
 		absolutePath: found.filePath,
@@ -381,6 +390,30 @@ export async function transferDefinition(input: {
 	} else {
 		const sourceSkillDir = join(found.dir.absDir, name);
 		const targetSkillDir = join(targetDir.absDir, name);
+		// Stage the full copy first, then swap: a copy that fails midway
+		// (unreadable or oversized asset) must leave any existing target —
+		// and the target dir generally — untouched. The dot-prefixed staging
+		// dir is invisible to the scanner, which skips dot names.
+		const stagingDir = join(targetDir.absDir, `.${name}.transfer-staging`);
+		await target.fs.deletePath({ absolutePath: stagingDir, permanent: true });
+		try {
+			await copyDirectory({
+				source,
+				target,
+				sourceDir: sourceSkillDir,
+				targetDir: stagingDir,
+			});
+		} catch (error) {
+			try {
+				await target.fs.deletePath({
+					absolutePath: stagingDir,
+					permanent: true,
+				});
+			} catch {
+				// best-effort cleanup; surface the original copy error
+			}
+			throw error;
+		}
 		if (targetExisting) {
 			// Clean replace: a stale asset from the old copy must not survive.
 			await target.fs.deletePath({
@@ -388,11 +421,9 @@ export async function transferDefinition(input: {
 				permanent: true,
 			});
 		}
-		await copyDirectory({
-			source,
-			target,
-			sourceDir: sourceSkillDir,
-			targetDir: targetSkillDir,
+		await target.fs.movePath({
+			sourceAbsolutePath: stagingDir,
+			destinationAbsolutePath: targetSkillDir,
 		});
 	}
 

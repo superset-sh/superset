@@ -1,5 +1,6 @@
 import {
 	AGENT_EFFORT_LEVELS,
+	type DefinitionDetail as DefinitionDetailData,
 	type DefinitionSummary,
 } from "@superset/shared/agent-library";
 import { Badge } from "@superset/ui/badge";
@@ -64,27 +65,30 @@ export function DefinitionDetail({
 	const [body, setBody] = useState("");
 	const [raw, setRaw] = useState("");
 	const [hasConflict, setHasConflict] = useState(false);
-	const [loadedRevision, setLoadedRevision] = useState<string | null>(null);
+	const [baseline, setBaseline] = useState<DefinitionDetailData | null>(null);
 	const [isChatOpen, setIsChatOpen] = useState(false);
 
 	const isDirty =
-		detail !== null &&
+		baseline !== null &&
 		(mode === "raw"
-			? raw !== detail.raw
-			: model !== detail.model ||
-				effort !== detail.effort ||
-				description !== detail.description ||
-				body !== detail.body);
+			? raw !== baseline.raw
+			: model !== baseline.model ||
+				effort !== baseline.effort ||
+				description !== baseline.description ||
+				body !== baseline.body);
 	const isDirtyRef = useRef(isDirty);
 	isDirtyRef.current = isDirty;
 
-	// Initialize/reset the draft whenever a fresh detail arrives. If the file
+	// Initialize/reset the draft whenever a fresh detail arrives. `baseline`
+	// is the exact detail snapshot the draft was derived from — dirty checks,
+	// patch diffs, and `expectedRevision` all use it, so a background refetch
+	// can never silently rebase the draft onto newer file content. If the file
 	// changed underneath an unsaved draft (external edit or the AI agent),
 	// keep the draft and surface the conflict banner instead of clobbering.
 	useEffect(() => {
 		if (!detail) return;
-		if (loadedRevision === detail.revision) return;
-		if (loadedRevision !== null && isDirtyRef.current) {
+		if (baseline?.revision === detail.revision) return;
+		if (baseline !== null && isDirtyRef.current) {
 			setHasConflict(true);
 			return;
 		}
@@ -94,12 +98,12 @@ export function DefinitionDetail({
 		setBody(detail.body);
 		setRaw(detail.raw);
 		setHasConflict(false);
-		setLoadedRevision(detail.revision);
-	}, [detail, loadedRevision]);
+		setBaseline(detail);
+	}, [detail, baseline]);
 
 	const saveMutation = useMutation({
 		mutationFn: async () => {
-			if (!activeHostUrl || !detail) {
+			if (!activeHostUrl || !baseline) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
 						action: "save the definition",
@@ -113,7 +117,7 @@ export function DefinitionDetail({
 					kind: summary.kind,
 					name: summary.name,
 					raw,
-					expectedRevision: detail.revision,
+					expectedRevision: baseline.revision,
 				});
 			}
 			const patch: {
@@ -121,9 +125,9 @@ export function DefinitionDetail({
 				effort?: string | null;
 				description?: string | null;
 			} = {};
-			if (model !== detail.model) patch.model = model;
-			if (effort !== detail.effort) patch.effort = effort;
-			if (description !== detail.description) {
+			if (model !== baseline.model) patch.model = model;
+			if (effort !== baseline.effort) patch.effort = effort;
+			if (description !== baseline.description) {
 				patch.description = description === "" ? null : description;
 			}
 			return client.agentLibrary.save.mutate({
@@ -131,13 +135,13 @@ export function DefinitionDetail({
 				kind: summary.kind,
 				name: summary.name,
 				patch: Object.keys(patch).length > 0 ? patch : undefined,
-				body: body !== detail.body ? body : undefined,
-				expectedRevision: detail.revision,
+				body: body !== baseline.body ? body : undefined,
+				expectedRevision: baseline.revision,
 			});
 		},
 		onSuccess: () => {
 			toast.success(SAVED_TOAST);
-			setLoadedRevision(null); // force draft re-init from the refetched detail
+			setBaseline(null); // force draft re-init from the refetched detail
 			void detailQuery.refetch();
 			onMutated();
 		},
@@ -149,6 +153,11 @@ export function DefinitionDetail({
 			toast.error(err instanceof Error ? err.message : "Failed to save");
 		},
 	});
+
+	const isModelInvalid =
+		mode === "form" && model !== null && model.trim() === "";
+	const canSave =
+		isDirty && !hasConflict && !isModelInvalid && !saveMutation.isPending;
 
 	const scope = scopes.find((s) => s.scopeKey === summary.scopeKey) ?? null;
 	const scopeLabel =
@@ -224,7 +233,7 @@ export function DefinitionDetail({
 								variant="outline"
 								size="sm"
 								onClick={() => {
-									setLoadedRevision(null);
+									setBaseline(null);
 									setHasConflict(false);
 									void detailQuery.refetch();
 								}}
@@ -244,7 +253,7 @@ export function DefinitionDetail({
 										<ModelSelect
 											value={model}
 											onChange={setModel}
-											disabled={!detail}
+											disabled={!baseline}
 										/>
 									</div>
 									<div className="space-y-1.5">
@@ -252,7 +261,7 @@ export function DefinitionDetail({
 											Reasoning effort
 										</p>
 										<Select
-											disabled={!detail}
+											disabled={!baseline}
 											value={effort ?? EFFORT_DEFAULT}
 											onValueChange={(next) =>
 												setEffort(next === EFFORT_DEFAULT ? null : next)
@@ -285,7 +294,7 @@ export function DefinitionDetail({
 								</p>
 								<Textarea
 									value={description}
-									disabled={!detail}
+									disabled={!baseline}
 									onChange={(event) => setDescription(event.target.value)}
 									rows={3}
 								/>
@@ -320,8 +329,7 @@ export function DefinitionDetail({
 										fillHeight={false}
 										onChange={setBody}
 										onSave={() => {
-											if (isDirty && !saveMutation.isPending)
-												saveMutation.mutate();
+											if (canSave) saveMutation.mutate();
 										}}
 									/>
 								</div>
@@ -337,8 +345,7 @@ export function DefinitionDetail({
 									fillHeight={false}
 									onChange={setRaw}
 									onSave={() => {
-										if (isDirty && !saveMutation.isPending)
-											saveMutation.mutate();
+										if (canSave) saveMutation.mutate();
 									}}
 								/>
 							</div>
@@ -346,13 +353,15 @@ export function DefinitionDetail({
 					)}
 
 					<div className="flex items-center gap-3">
-						<Button
-							disabled={!isDirty || saveMutation.isPending || !detail}
-							onClick={() => saveMutation.mutate()}
-						>
+						<Button disabled={!canSave} onClick={() => saveMutation.mutate()}>
 							{saveMutation.isPending ? "Saving…" : "Save"}
 						</Button>
-						{isDirty && (
+						{isModelInvalid && (
+							<p className="text-xs text-destructive">
+								Enter a custom model id (or pick one) before saving.
+							</p>
+						)}
+						{isDirty && !isModelInvalid && (
 							<p className="text-xs text-muted-foreground">Unsaved changes</p>
 						)}
 					</div>

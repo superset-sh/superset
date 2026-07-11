@@ -143,6 +143,13 @@ function toTrpcError(error: unknown): unknown {
 			});
 		case "INVALID":
 			return new TRPCError({ code: "BAD_REQUEST", message: error.message });
+		default:
+			// Exhaustive today; keeps callers from ever seeing `undefined` if a
+			// new code is added without updating this mapping.
+			return new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: error.message,
+			});
 	}
 }
 
@@ -235,12 +242,22 @@ export const agentLibraryRouter = router({
 
 	save: protectedProcedure
 		.input(
-			refSchema.extend({
-				patch: patchSchema.optional(),
-				body: z.string().optional(),
-				raw: z.string().optional(),
-				expectedRevision: z.string(),
-			}),
+			refSchema
+				.extend({
+					patch: patchSchema.optional(),
+					body: z.string().optional(),
+					raw: z.string().optional(),
+					expectedRevision: z.string(),
+				})
+				.refine(
+					(input) =>
+						input.raw === undefined ||
+						(input.patch === undefined && input.body === undefined),
+					{
+						message:
+							"raw replaces the whole file and cannot be combined with patch/body",
+					},
+				),
 		)
 		.mutation(async ({ ctx, input }) => {
 			try {
