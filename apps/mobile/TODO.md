@@ -9,9 +9,13 @@ Every chat row shows a fixed Claude mark (`screens/(authenticated)/(home)/compon
 - Then: `SessionRow` picks the mark by provider (`ClaudeLogo` vs the OpenAI mark that already exists in `new-chat/model/components/ProviderLogo/`), and the model picker/thread screens can show per-session model too.
 - Backfill: existing rows have no model — keep the Claude mark as the fallback.
 
+## Make the photo-permission card tappable as a whole
+
+`screens/(authenticated)/(home)/attachments/components/MediaPermissionCard/` renders the "allow photo access" card as a plain `View` with a small `Continue` / `Open Settings` button inside — only the button is tappable. The whole card should be one press target (Pressable/PressableScale as the card container triggering the same request-or-Settings action; keep the button as the visual affordance or drop it for a chevron).
+
 ## Fork a chat session
 
-The chat-row context menu (`screens/(authenticated)/components/SessionRow/components/SessionRowMenu/`) has a "Fork" action that currently shows a "not available yet" alert. Real implementation needs:
+The chat-row context menu (`screens/(authenticated)/(home)/home/components/SessionRow/components/SessionRowMenu/`) has a "Fork" action that currently shows a "not available yet" alert. Real implementation needs:
 
 - A fork mutation — `packages/trpc/src/router/chat/chat.ts` has `createSession`/`updateSession`/`deleteSession` but nothing that copies a session's messages into a new session. Check whether desktop has (or plans) fork semantics before inventing them here.
 - Decide fork scope: copy full message history vs. fork-from-a-message; whether the fork stays in the same workspace.
