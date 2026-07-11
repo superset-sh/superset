@@ -4,7 +4,6 @@ import {
 	GitPullRequest,
 	GitPullRequestClosed,
 	GitPullRequestDraft,
-	Plus,
 } from "lucide-react-native";
 import { Linking, View } from "react-native";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,9 @@ import type {
 	HostWorkspacesCacheOps,
 } from "@/hooks/useHostWorkspaces";
 import { cn } from "@/lib/utils";
+import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import type { DiffStats } from "../../hooks/useVisibleDiffStats";
+import { useChatTargetStore } from "../../stores/chatTargetStore";
 import { WorkspaceRowMenu } from "./components/WorkspaceRowMenu";
 
 // PR state replaces the host icon in the icon slot — same treatment as
@@ -36,29 +37,43 @@ export function prStateFor(pullRequest: SelectGithubPullRequest): PrBadgeState {
 	return "open";
 }
 
-const ADDITIONS_COLOR = "#3fb950";
-const DELETIONS_COLOR = "#f85149";
-
 export function WorkspaceRow({
 	workspace,
 	pullRequest,
 	diffStats,
 	cache,
-	onNewChat,
 	attention,
 }: {
 	workspace: HostWorkspaceItem;
 	pullRequest?: SelectGithubPullRequest;
 	diffStats: DiffStats | null;
 	cache: HostWorkspacesCacheOps;
-	onNewChat?: () => void;
 	attention?: "permission" | "working" | null;
 }) {
 	const prIcon = pullRequest ? PR_ICON_CONFIG[prStateFor(pullRequest)] : null;
+	const setTarget = useChatTargetStore((state) => state.setTarget);
+	const targeted = useChatTargetStore(
+		(state) => state.target?.workspaceId === workspace.id,
+	);
+	const canChat = workspace.hostReachable && workspace.worktreeExists !== false;
 
 	return (
 		<WorkspaceRowMenu workspace={workspace} cache={cache}>
-			<View className="bg-background flex-row items-center gap-3 px-4 py-3">
+			<PressableScale
+				className={cn(
+					"flex-row items-center gap-3 rounded-xl px-4 py-3",
+					targeted ? "bg-foreground/5" : "bg-background",
+				)}
+				disabled={!canChat}
+				onPress={() =>
+					setTarget({
+						workspaceId: workspace.id,
+						workspaceName: workspace.name,
+						branch: workspace.branch,
+						hostId: workspace.hostId,
+					})
+				}
+			>
 				{prIcon && pullRequest ? (
 					<Button
 						accessibilityLabel={`Open pull request #${pullRequest.prNumber}`}
@@ -103,41 +118,14 @@ export function WorkspaceRow({
 						(diffStats.additions > 0 || diffStats.deletions > 0) ? (
 							<>
 								<Text className="text-muted-foreground text-xs">·</Text>
-								<Text className="font-mono text-xs">
-									<Text
-										className="font-mono text-xs"
-										style={{ color: ADDITIONS_COLOR }}
-									>
-										+{diffStats.additions}
-									</Text>{" "}
-									<Text
-										className="font-mono text-xs"
-										style={{ color: DELETIONS_COLOR }}
-									>
-										−{diffStats.deletions}
-									</Text>
+								<Text className="text-muted-foreground font-mono text-xs">
+									+{diffStats.additions} −{diffStats.deletions}
 								</Text>
 							</>
 						) : null}
 					</View>
 				</View>
-				{onNewChat ? (
-					<Button
-						accessibilityLabel="New chat"
-						variant="ghost"
-						size="icon"
-						className="size-7"
-						hitSlop={8}
-						onPress={onNewChat}
-					>
-						<Icon
-							as={Plus}
-							className="text-muted-foreground size-4"
-							strokeWidth={2}
-						/>
-					</Button>
-				) : null}
-			</View>
+			</PressableScale>
 		</WorkspaceRowMenu>
 	);
 }

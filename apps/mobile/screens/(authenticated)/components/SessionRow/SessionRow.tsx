@@ -1,9 +1,10 @@
 import { Terminal } from "lucide-react-native";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { AgentLogo } from "@/screens/(authenticated)/components/AgentLogo";
+import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { compactTime } from "@/screens/(authenticated)/utils/compactTime";
 import type { SessionRowData } from "@/screens/(authenticated)/utils/sessionRows";
 import { SessionRowMenu } from "./components/SessionRowMenu";
@@ -63,9 +64,9 @@ export function SessionRow({
 	if (row.kind === "chat" && onPress) {
 		return (
 			<SessionRowMenu sessionId={row.id} title={row.title}>
-				<Pressable className={rowClassName} onPress={onPress}>
+				<PressableScale className={rowClassName} onPress={onPress}>
 					{content}
-				</Pressable>
+				</PressableScale>
 			</SessionRowMenu>
 		);
 	}

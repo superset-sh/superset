@@ -30,7 +30,6 @@ import { NewChatWidget } from "./components/NewChatWidget";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
 import { prStateFor, WorkspaceRow } from "./components/WorkspaceRow";
-import { useStartWorkspaceChat } from "./hooks/useStartWorkspaceChat";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import { useWorkspacesFilterStore } from "./stores/workspacesFilterStore";
 import { activityDateGroup } from "./utils/activityDateGroup";
@@ -249,7 +248,6 @@ export function HomeScreen() {
 		workspacesById,
 		resolveHostUrl: cache.resolveHostUrl,
 	});
-	const { startChat } = useStartWorkspaceChat(cache.resolveHostUrl);
 
 	const onViewableItemsChanged = useCallback(
 		({
@@ -335,11 +333,6 @@ export function HomeScreen() {
 								diffStats={diffStats.get(workspace.id) ?? null}
 								cache={cache}
 								attention={attentionByWorkspace.get(workspace.id) ?? null}
-								onNewChat={
-									workspace.hostReachable && workspace.worktreeExists !== false
-										? () => startChat(workspace)
-										: undefined
-								}
 							/>
 						</View>
 					);
@@ -367,7 +360,6 @@ export function HomeScreen() {
 			diffStats,
 			cache,
 			router,
-			startChat,
 			attentionByWorkspace,
 			listItems,
 		],
@@ -450,7 +442,10 @@ export function HomeScreen() {
 					}
 				/>
 			)}
-			<NewChatWidget workspaces={workspaces} />
+			<NewChatWidget
+				workspaces={workspaces}
+				resolveHostUrl={cache.resolveHostUrl}
+			/>
 			<OrganizationSwitcherSheet
 				isPresented={sheetOpen}
 				onIsPresentedChange={setSheetOpen}

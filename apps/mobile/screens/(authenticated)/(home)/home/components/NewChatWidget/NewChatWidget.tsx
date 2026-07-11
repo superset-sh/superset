@@ -3,26 +3,32 @@ import {
 	Host,
 	HStack,
 	Image,
-	RNHostView,
 	Spacer,
 	Text,
 	TextField,
 	type TextFieldRef,
 	VStack,
+	ZStack,
 } from "@expo/ui/swift-ui";
 import {
 	Animation,
 	animation,
+	aspectRatio,
+	bold,
 	buttonBorderShape,
 	buttonStyle,
 	clipped,
+	cornerRadius,
 	disabled,
 	environment,
+	font,
+	foregroundStyle,
 	frame,
 	glassEffect,
 	lineLimit,
 	opacity,
 	padding,
+	resizable,
 	tint,
 	truncationMode,
 } from "@expo/ui/swift-ui/modifiers";
@@ -41,16 +47,15 @@ import {
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-	PromptInputAttachments,
-	usePromptInputController,
-} from "@/components/ai-elements/prompt-input";
+import { usePromptInputController } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { useChatTargetStore } from "../../stores/chatTargetStore";
 import { VoiceControl } from "./components/VoiceControl";
 import { FOREGROUND, MUTED } from "./constants";
 import { useCreateChatWorkspace } from "./hooks/useCreateChatWorkspace";
 import { useNewChatTargets } from "./hooks/useNewChatTargets";
+import { useStartWorkspaceChat } from "./hooks/useStartWorkspaceChat";
 import { useVoiceDictation } from "./hooks/useVoiceDictation";
 import { useNewChatPreferencesStore } from "./stores/newChatPreferencesStore";
 
@@ -60,20 +65,27 @@ const EXPAND_SPRING = Animation.spring({ duration: 0.35 });
 
 export function NewChatWidget({
 	workspaces,
+	resolveHostUrl,
 }: {
 	workspaces: HostWorkspaceItem[];
+	resolveHostUrl: (hostId: string) => string | null;
 }) {
 	return (
 		<View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
-			<NewChatWidgetInner workspaces={workspaces} />
+			<NewChatWidgetInner
+				workspaces={workspaces}
+				resolveHostUrl={resolveHostUrl}
+			/>
 		</View>
 	);
 }
 
 function NewChatWidgetInner({
 	workspaces,
+	resolveHostUrl,
 }: {
 	workspaces: HostWorkspaceItem[];
+	resolveHostUrl: (hostId: string) => string | null;
 }) {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
@@ -126,9 +138,32 @@ function NewChatWidgetInner({
 		draftRef.current = text;
 		setHasText(text.trim().length > 0);
 	};
-	const hasDraft = hasText || controller.attachments.attachments.length > 0;
+	const attachments = controller.attachments.attachments;
+	const hasDraft = hasText || attachments.length > 0;
+
+	const chatTarget = useChatTargetStore((state) => state.target);
+	const clearChatTarget = useChatTargetStore((state) => state.clearTarget);
+	const startWorkspaceChat = useStartWorkspaceChat(resolveHostUrl);
+
 	// Collapse whenever the keyboard is away — a draft just clamps to one line.
-	const expanded = focused;
+	// A workspace target keeps the composer open so its chip stays visible.
+	const expanded = focused || chatTarget !== null;
+
+	useEffect(() => {
+		if (chatTarget) void fieldRef.current?.focus();
+	}, [chatTarget]);
+
+	// Adding attachments happens in the attachments sheet, which steals focus —
+	// re-open the composer once the additions land instead of collapsing to the
+	// pill. Delayed so the keyboard doesn't fight the sheet's dismissal.
+	const previousAttachmentCount = useRef(attachments.length);
+	useEffect(() => {
+		const added = attachments.length > previousAttachmentCount.current;
+		previousAttachmentCount.current = attachments.length;
+		if (!added) return;
+		const timer = setTimeout(() => void fieldRef.current?.focus(), 500);
+		return () => clearTimeout(timer);
+	}, [attachments.length]);
 
 	const dictation = useVoiceDictation({
 		read: () => draftRef.current,
@@ -140,13 +175,16 @@ function NewChatWidgetInner({
 		},
 	});
 	const voiceActive = dictation.status !== "idle";
-	const showSend = (hasDraft || createChatWorkspace.isPending) && !voiceActive;
+	const isSending =
+		createChatWorkspace.isPending || startWorkspaceChat.isPending;
+	const showSend = (hasDraft || isSending) && !voiceActive;
 
 	const dismiss = () => {
 		// Reset state directly: if the native field already lost focus (e.g. the
 		// system hid the keyboard itself), blur() is a no-op and onFocusChange
 		// never fires again — without this the composer wedges open.
 		setFocused(false);
+		clearChatTarget();
 		void fieldRef.current?.blur();
 		Keyboard.dismiss();
 	};
@@ -169,10 +207,26 @@ function NewChatWidgetInner({
 		};
 	}, []);
 
+	const clearComposer = () => {
+		writeDraft("");
+		controller.attachments.clear();
+		void fieldRef.current?.clear();
+	};
+
 	const submit = () => {
 		const text = draftRef.current;
 		const attachments = controller.attachments.attachments;
 		if (text.trim().length === 0 && attachments.length === 0) return;
+		if (chatTarget) {
+			startWorkspaceChat
+				.mutateAsync({ target: chatTarget, message: { text, attachments } })
+				.then(() => {
+					clearChatTarget();
+					clearComposer();
+				})
+				.catch(() => {});
+			return;
+		}
 		if (!selectedTarget) {
 			Alert.alert("No project on an online host");
 			return;
@@ -187,9 +241,7 @@ function NewChatWidgetInner({
 			.then((result) => {
 				if (!result.agents[0]?.ok) return;
 				setBaseBranch(null);
-				writeDraft("");
-				controller.attachments.clear();
-				void fieldRef.current?.clear();
+				clearComposer();
 			})
 			.catch(() => {});
 	};
@@ -200,7 +252,8 @@ function NewChatWidgetInner({
 		(expanded ? 1 : 0) +
 		(showSend ? 2 : 0) +
 		(dictation.status === "recording" ? 4 : 0) +
-		(dictation.status === "finalizing" ? 8 : 0);
+		(dictation.status === "finalizing" ? 8 : 0) +
+		(chatTarget ? 16 : 0);
 
 	// The + and mic/send sit inline with the field when collapsed and drop to
 	// the toolbar row when expanded; only the TextField must never move.
@@ -235,7 +288,7 @@ function NewChatWidgetInner({
 				buttonStyle("borderedProminent"),
 				buttonBorderShape("circle"),
 				tint("#ffffff"),
-				disabled(createChatWorkspace.isPending),
+				disabled(isSending),
 			]}
 		>
 			<Image
@@ -301,46 +354,117 @@ function NewChatWidgetInner({
 								clipped(),
 							]}
 						>
-							<Button
-								label={selectedTarget?.projectName ?? "No project"}
-								onPress={() => {
-									void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-									router.push("/(authenticated)/(home)/new-chat/project");
-								}}
+							{/* Collapse BOTH dimensions: a width-0 proposal makes Text wrap
+							    one glyph per line, leaving a tall invisible column that
+							    clipped() hides but layout still counts. */}
+							<HStack
+								spacing={6}
 								modifiers={[
-									buttonStyle("borderless"),
-									tint(FOREGROUND),
-									disabled(targets.length === 0),
-								]}
-							/>
-							<Button
-								onPress={() => {
-									void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-									router.push("/(authenticated)/(home)/new-chat/branch");
-								}}
-								modifiers={[
-									buttonStyle("borderless"),
-									tint(MUTED),
-									disabled(!selectedTarget),
+									frame({
+										width: chatTarget ? undefined : 0,
+										height: chatTarget ? undefined : 0,
+									}),
+									opacity(chatTarget ? 1 : 0),
+									clipped(),
 								]}
 							>
-								<HStack spacing={4}>
-									<Text>{branchLabel}</Text>
-									<Image systemName="chevron.down" size={11} />
-								</HStack>
-							</Button>
+								<Text modifiers={[foregroundStyle(MUTED)]}>New chat in</Text>
+								<Text
+									modifiers={[
+										bold(),
+										foregroundStyle(FOREGROUND),
+										lineLimit(1),
+										truncationMode("tail"),
+									]}
+								>
+									{chatTarget?.workspaceName ?? ""}
+								</Text>
+								<Button
+									onPress={clearChatTarget}
+									modifiers={[buttonStyle("borderless"), tint(MUTED)]}
+								>
+									<Image systemName="xmark.circle.fill" size={14} />
+								</Button>
+							</HStack>
+							<HStack
+								spacing={6}
+								modifiers={[
+									frame({
+										width: chatTarget ? 0 : undefined,
+										height: chatTarget ? 0 : undefined,
+									}),
+									opacity(chatTarget ? 0 : 1),
+									clipped(),
+								]}
+							>
+								<Button
+									label={selectedTarget?.projectName ?? "No project"}
+									onPress={() => {
+										void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+										router.push("/(authenticated)/(home)/new-chat/project");
+									}}
+									modifiers={[
+										buttonStyle("borderless"),
+										tint(FOREGROUND),
+										disabled(targets.length === 0),
+									]}
+								/>
+								<Button
+									onPress={() => {
+										void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+										router.push("/(authenticated)/(home)/new-chat/branch");
+									}}
+									modifiers={[
+										buttonStyle("borderless"),
+										tint(MUTED),
+										disabled(!selectedTarget),
+									]}
+								>
+									<HStack spacing={4}>
+										<Text>{branchLabel}</Text>
+										<Image systemName="chevron.down" size={11} />
+									</HStack>
+								</Button>
+							</HStack>
 							<Spacer />
 						</HStack>
-						{/* Attachment thumbnails live inside the glass, above the field
-						    (RN content bridged into SwiftUI; the host view stays mounted
-						    so the TextField's sibling identity is stable). */}
-						<RNHostView matchContents>
-							<View>
-								{expanded ? (
-									<PromptInputAttachments className="px-4 pt-2" />
-								) : null}
-							</View>
-						</RNHostView>
+						{/* Attachment thumbnails inside the glass, above the field —
+						    rendered natively (attachment uris are local files); tapping
+						    a thumbnail removes it. */}
+						<HStack
+							spacing={8}
+							modifiers={[
+								padding({ horizontal: 16, top: expanded ? 10 : 0 }),
+								frame({
+									height: expanded && attachments.length > 0 ? undefined : 0,
+								}),
+								opacity(expanded && attachments.length > 0 ? 1 : 0),
+								clipped(),
+							]}
+						>
+							{attachments.map((attachment) => (
+								<ZStack key={attachment.id} alignment="topTrailing">
+									<Image
+										uiImage={attachment.uri}
+										modifiers={[
+											resizable(),
+											aspectRatio({ contentMode: "fill" }),
+											frame({ width: 56, height: 56 }),
+											cornerRadius(10),
+											clipped(),
+										]}
+									/>
+									<Image
+										systemName="xmark.circle.fill"
+										size={15}
+										color="#ffffff"
+										onPress={() => controller.attachments.remove(attachment.id)}
+										modifiers={[padding({ top: 3, trailing: 3 })]}
+									/>
+								</ZStack>
+							))}
+							<Spacer />
+						</HStack>
 						<HStack spacing={6} modifiers={[padding({ all: 6 })]}>
 							<HStack
 								modifiers={[
@@ -350,6 +474,42 @@ function NewChatWidgetInner({
 								]}
 							>
 								{plusButton}
+							</HStack>
+							{/* Collapsed draft indicator: first attachment as a mini
+							    thumbnail, +N badge for the rest. */}
+							<HStack
+								modifiers={[
+									frame({
+										width: !expanded && attachments.length > 0 ? undefined : 0,
+									}),
+									opacity(!expanded && attachments.length > 0 ? 1 : 0),
+									clipped(),
+								]}
+							>
+								{attachments.length > 0 ? (
+									<ZStack>
+										<Image
+											uiImage={attachments[0]?.uri ?? ""}
+											modifiers={[
+												resizable(),
+												aspectRatio({ contentMode: "fill" }),
+												frame({ width: 30, height: 30 }),
+												cornerRadius(8),
+												clipped(),
+											]}
+										/>
+										{attachments.length > 1 ? (
+											<Text
+												modifiers={[
+													font({ size: 10, weight: "semibold" }),
+													foregroundStyle("#ffffff"),
+												]}
+											>
+												+{attachments.length - 1}
+											</Text>
+										) : null}
+									</ZStack>
+								) : null}
 							</HStack>
 							<TextField
 								ref={fieldRef}
