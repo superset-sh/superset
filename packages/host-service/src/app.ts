@@ -124,11 +124,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const chatService = options.chatService ?? new ChatService();
 	// ACP session harness (docs/acp-sessions.md) — owns Claude Code
 	// adapter child processes. Fully parallel to the mastra chat runtime.
-	// Pre-release, so gated OFF by default: the desktop app's security-settings
-	// toggle ("Enable live agent sessions") makes the coordinator spawn hosts
-	// with SUPERSET_ACP_SESSIONS=1. Without it the harness is inert — no WS
-	// route, every RPC except the `list` capability probe rejected. Tests that
-	// inject a manager opt in implicitly.
+	// Pre-release, so internal-channel only: the desktop coordinator spawns
+	// hosts with SUPERSET_ACP_SESSIONS=1 on canary/dev builds, never on
+	// stable. Without it the harness is inert — no WS route, every RPC except
+	// the `list` capability probe rejected. Tests that inject a manager opt
+	// in implicitly.
 	const acpSessionsEnabled =
 		options.acpSessions !== undefined ||
 		process.env.SUPERSET_ACP_SESSIONS === "1";

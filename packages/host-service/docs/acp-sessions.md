@@ -26,8 +26,11 @@ shared client code today
     - React hooks under ./react
 ```
 
-The desktop app only owns the off-by-default security setting and starts the
-host-service. It does not render this ACP session UI yet.
+The desktop app only decides whether to enable the harness and starts the
+host-service: canary and dev builds spawn host children with
+`SUPERSET_ACP_SESSIONS=1`, stable builds never do (see
+`apps/desktop/src/main/lib/build-channel.ts`). There is no user-facing
+setting. The desktop app does not render this ACP session UI yet.
 
 On the current unified mobile home, long-press a workspace and choose **Live
 sessions**. That opens the workspace-scoped ACP list; the old workspace chat
@@ -187,8 +190,10 @@ state/frame/page shape and a deliberate strategy for ACP payload validation.
 
 ## Feature Gate
 
-The feature defaults off. Desktop stores the setting locally and starts the
-host with `SUPERSET_ACP_SESSIONS=1` only when enabled.
+The feature is internal-channel only. The desktop coordinator starts the host
+with `SUPERSET_ACP_SESSIONS=1` on canary and dev builds
+(`isInternalBuild()` in `apps/desktop/src/main/lib/build-channel.ts`); stable
+builds never set it and there is no user-facing setting.
 
 - When off, the WebSocket route is not mounted.
 - Every ACP tRPC procedure except `list` rejects with

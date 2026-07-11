@@ -30,7 +30,7 @@ const gatedProcedure = protectedProcedure.use(({ ctx, next }) => {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message:
-				"ACP sessions are disabled on this host (enable live agent sessions in the desktop app's security settings)",
+				"ACP sessions are disabled on this host (requires a canary build of the desktop app)",
 		});
 	}
 	return next();

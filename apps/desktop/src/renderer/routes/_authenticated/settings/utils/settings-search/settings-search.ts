@@ -82,7 +82,6 @@ export const SETTING_ITEM_ID = {
 
 	SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY:
 		"security-expose-host-service-via-relay",
-	SECURITY_ACP_SESSIONS: "security-acp-sessions",
 
 	HOST_MEMBERS: "host-members",
 	HOST_INVITE_MEMBER: "host-invite-member",
@@ -195,7 +194,6 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PERMISSIONS_LOCAL_NETWORK]: "shared",
 
 	[SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY]: "shared",
-	[SETTING_ITEM_ID.SECURITY_ACP_SESSIONS]: "shared",
 
 	[SETTING_ITEM_ID.HOST_MEMBERS]: "shared",
 	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
@@ -1337,24 +1335,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"host service",
 			"tunnel",
 			"attack surface",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.SECURITY_ACP_SESSIONS,
-		section: "security",
-		title: "Enable live agent sessions (experimental)",
-		description:
-			"Lets the mobile app start and drive coding agent sessions on this device through the host service",
-		keywords: [
-			"security",
-			"acp",
-			"agent",
-			"live session",
-			"mobile",
-			"experimental",
-			"claude",
-			"host service",
-			"remote control",
 		],
 	},
 	{

@@ -127,7 +127,7 @@ export function AcpSessionsScreen() {
 						<Text className="text-center text-muted-foreground">
 							{enabled
 								? "No live sessions yet"
-								: "Live sessions are disabled on this host. Turn on “Enable live agent sessions” in the desktop app’s Settings → Security."}
+								: "Live sessions are not available on this host. They require a canary build of the Superset desktop app."}
 						</Text>
 					</View>
 				) : error ? null : (
