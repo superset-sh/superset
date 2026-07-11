@@ -25,7 +25,9 @@ const SOCKET_OPEN = 1;
 // Same rationale as the terminal route: with no ACK flow control, a client
 // that stops draining would grow the host's send buffer without bound.
 // Envelopes are small, so blowing past this means the client is effectively
-// gone — drop it; reconnect-with-cursor replays what it missed.
+// gone — drop it; reconnect-with-cursor replays what it missed. The drop
+// path is intentionally untested: forcing 8MB of unread kernel buffer in a
+// test is flaky-by-construction, and a false trip only costs a reconnect.
 const WS_SEND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 
 // Structural slice of hono/ws's WSContext; `raw` is the underlying `ws`
