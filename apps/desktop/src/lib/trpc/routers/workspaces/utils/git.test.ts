@@ -7,6 +7,7 @@ import {
 	realpathSync,
 	rmSync,
 	statSync,
+	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -20,6 +21,7 @@ import {
 	isUnbornHeadError,
 	parsePorcelainStatusV2,
 	parsePrUrl,
+	worktreeExists,
 } from "./git";
 
 const TEST_DIR = join(
@@ -534,6 +536,54 @@ describe("createWorktree hook tolerance", () => {
 			.toString()
 			.trim();
 		expect(currentBranch).toBe("feature/new-workspace");
+	}, 10_000);
+});
+
+describe("worktreeExists path normalization", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	// Reproduces the deletion issues in the tracker #5611 (notably #2863 and
+	// #4555): worktreeExists compared the git porcelain path against the caller's
+	// path with an exact string match, so a semantically-equal but textually
+	// different path (trailing slash, "." segment, or a symlinked parent — e.g.
+	// macOS /var -> /private/var) reported the worktree as missing. That false
+	// negative makes the delete flow skip on-disk removal, orphaning worktree
+	// directories on disk while surfacing a misleading "not found in git" warning.
+	test("recognizes a registered worktree regardless of path formatting", async () => {
+		const repoPath = createTestRepo("worktree-exists-repo");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "worktree-exists-wt");
+		execSync(`git -C "${repoPath}" worktree add "${worktreePath}" -b feature`, {
+			stdio: "ignore",
+		});
+
+		// Sanity check: the canonical path is recognized.
+		expect(await worktreeExists(repoPath, worktreePath)).toBe(true);
+
+		// Trailing slash — same directory, different text.
+		expect(await worktreeExists(repoPath, `${worktreePath}/`)).toBe(true);
+
+		// A "." path segment — same directory, different text.
+		expect(
+			await worktreeExists(repoPath, join(TEST_DIR, ".", "worktree-exists-wt")),
+		).toBe(true);
+
+		// Symlinked parent directory — mirrors macOS /var -> /private/var, where
+		// the DB path and git's recorded path differ only by symlink resolution.
+		const linkDir = join(TEST_DIR, "link");
+		symlinkSync(TEST_DIR, linkDir);
+		expect(
+			await worktreeExists(repoPath, join(linkDir, "worktree-exists-wt")),
+		).toBe(true);
 	}, 10_000);
 });
 
