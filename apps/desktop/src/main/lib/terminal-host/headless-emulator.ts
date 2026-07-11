@@ -106,6 +106,10 @@ const MOUSE_PROTOCOL_MODE_NAMES = [
 	"mouseTrackingAnyEvent",
 ] as const satisfies readonly (keyof TerminalModes)[];
 
+const MOUSE_PROTOCOL_MODE_NAME_SET: ReadonlySet<keyof TerminalModes> = new Set(
+	MOUSE_PROTOCOL_MODE_NAMES,
+);
+
 /**
  * The exact single-mode sequences SerializeAddon emits for state this
  * emulator can reclaim (see reconcileSnapshotModes). Serialized cell content
@@ -491,6 +495,19 @@ export class HeadlessEmulator {
 			const primary = typeof param === "number" ? param : param[0];
 			const modeName = primary === undefined ? undefined : map[primary];
 			if (!modeName) continue;
+			// The mouse protocol is one mutually-exclusive unit in xterm:
+			// arming any level supersedes the previous one, and resetting any
+			// level clears the protocol entirely. Mirror that here, ownership
+			// included — a superseded shell-owned level is physically gone
+			// from the terminal, so its stale grant must not make the mouse
+			// group look armed and shield a dead TUI's protocol from reclaim.
+			if (MOUSE_PROTOCOL_MODE_NAME_SET.has(modeName)) {
+				for (const sibling of MOUSE_PROTOCOL_MODE_NAMES) {
+					if (enable && sibling === modeName) continue;
+					this.modes[sibling] = false;
+					this.shellOwnedModes.delete(sibling);
+				}
+			}
 			this.modes[modeName] = enable;
 			if (!RECLAIMABLE_MODE_NAMES.has(modeName)) continue;
 			if (enable) {

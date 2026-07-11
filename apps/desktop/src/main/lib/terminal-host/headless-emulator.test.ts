@@ -813,6 +813,71 @@ describe("Prompt marker foreground reclaim (#4949 / #5508)", () => {
 	});
 });
 
+describe("Mouse protocol exclusivity", () => {
+	// xterm's mouse protocol is one mutually-exclusive unit: arming any level
+	// supersedes the previous one, resetting any level clears the protocol
+	// entirely. The shadow map must mirror that or a stale flag can shield a
+	// dead TUI's protocol from reclaim.
+	const PROMPT_MARKER = `${OSC}777;superset-shell-ready${BEL}${OSC}133;A${BEL}`;
+
+	let emulator: InstanceType<typeof HeadlessEmulator>;
+
+	beforeEach(() => {
+		emulator = new HeadlessEmulator({ cols: 80, rows: 24 });
+	});
+
+	afterEach(() => {
+		emulator.dispose();
+	});
+
+	test("arming a level supersedes the previous one", async () => {
+		await emulator.writeSync(`${CSI}?1000h${CSI}?1002h`);
+
+		const modes = emulator.getModes();
+		expect(modes.mouseTrackingNormal).toBe(false);
+		expect(modes.mouseTrackingButtonEvent).toBe(true);
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.rehydrateSequences).toContain("?1002h");
+		expect(snapshot.rehydrateSequences).not.toContain("?1000h");
+	});
+
+	test("resetting any level clears the whole protocol", async () => {
+		await emulator.writeSync(`${CSI}?1002h${CSI}?1000l`);
+
+		const modes = emulator.getModes();
+		expect(modes.mouseTrackingButtonEvent).toBe(false);
+		expect(modes.mouseTrackingNormal).toBe(false);
+		expect(emulator.getSnapshot().rehydrateSequences).toBe("");
+	});
+
+	test("a downgraded protocol rehydrates at the downgraded level", async () => {
+		await emulator.writeSync(`${CSI}?1003h${CSI}?1000h`);
+
+		const rehydrate = emulator.getSnapshot().rehydrateSequences;
+		expect(rehydrate).toContain("?1000h");
+		expect(rehydrate).not.toContain("?1003h");
+	});
+
+	test("a superseded shell-owned level cannot shield a dead TUI's protocol", async () => {
+		// Shell init armed ?1000h (shell-owned). A TUI then armed ?1002h —
+		// physically replacing the shell's level — and died. The reclaim must
+		// clear the protocol, broadcast the disarm, and strip the snapshot;
+		// a stale shell-owned flag must not make the mouse group look armed.
+		await emulator.writeSync(`${CSI}?1000h`);
+		await emulator.writeSync(PROMPT_MARKER);
+		await emulator.writeSync(`${CSI}?1002h`);
+		await emulator.writeSync(PROMPT_MARKER);
+
+		const modes = emulator.getModes();
+		expect(modes.mouseTrackingButtonEvent).toBe(false);
+		expect(modes.mouseTrackingNormal).toBe(false);
+		const snapshot = emulator.getSnapshot();
+		expect(snapshot.snapshotAnsi).not.toContain("?1002h");
+		expect(snapshot.rehydrateSequences).not.toContain("?1000h");
+		expect(emulator.takeForegroundReclaimClientDisarm()).toContain("?1003l");
+	});
+});
+
 describe("Foreground-reclaim client disarm", () => {
 	const PROMPT_MARKER = `${OSC}777;superset-shell-ready${BEL}${OSC}133;A${BEL}`;
 
