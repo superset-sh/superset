@@ -341,13 +341,16 @@ export function NewChatWidget({
 				>
 					{/* The pill resizes natively (SwiftUI spring) while RN relayouts land
 			    in discrete jumps — the layout spring makes the chip glide between
-			    those jumps instead of teleporting against the pill's top edge. */}
+			    those jumps; z-10 keeps mid-animation frames above the glass. */}
 					{above ? (
-						<Animated.View layout={LinearTransition.springify().duration(350)}>
-							{/* Extra clearance while expanded: the settled glass renders a
-						    touch taller than the frame matchContents reports. */}
+						<Animated.View
+							className="z-10"
+							layout={LinearTransition.springify().duration(350)}
+						>
+							{/* Extra clearance while expanded: the settled glass renders
+						    taller than the frame matchContents reports. */}
 							<View
-								className={cn("flex-row pl-1", expanded ? "pb-6" : "pb-2.5")}
+								className={cn("flex-row pl-1", expanded ? "pb-7" : "pb-2.5")}
 							>
 								{above}
 							</View>
