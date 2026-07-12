@@ -6,6 +6,8 @@ import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileTerminalInput } from "../../../../../components/MobileTerminalInput";
+import { getAuthToken } from "../../../../../trpc/auth-token";
+import { getRelayUrl } from "../../../../../trpc/relay-url";
 import { TerminalConnection } from "./TerminalConnection";
 
 const TERMINAL_THEME: ITheme = {
@@ -143,6 +145,7 @@ export function WebTerminal({
 				},
 				onStateChange: (next) => setState(next),
 			},
+			{ getToken: getAuthToken, relayUrl: getRelayUrl },
 		);
 		connectionRef.current = connection;
 		connection.start();

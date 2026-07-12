@@ -2,8 +2,6 @@ import {
 	createRelaySocket,
 	type RelaySocket,
 } from "@superset/workspace-client/relay-socket";
-import { getAuthToken } from "../../../../../trpc/auth-token";
-import { getRelayUrl } from "../../../../../trpc/relay-url";
 
 export type TerminalConnectionState = "connecting" | "reconnecting" | "error";
 
@@ -31,6 +29,13 @@ interface TerminalConnectionHandlers {
 	onStateChange: (state: TerminalConnectionState) => void;
 }
 
+// Environment wiring injected by the caller so this class stays free of
+// env/posthog module-scope imports (and unit-testable).
+interface TerminalConnectionDeps {
+	getToken: () => Promise<string>;
+	relayUrl: () => string;
+}
+
 const BASE_RECONNECT_DELAY_MS = 500;
 const MAX_RECONNECT_DELAY_MS = 10_000;
 const MAX_RECONNECT_ATTEMPTS = 12;
@@ -45,6 +50,7 @@ const MAX_RECONNECT_ATTEMPTS = 12;
 export class TerminalConnection {
 	private readonly target: TerminalConnectionTarget;
 	private readonly handlers: TerminalConnectionHandlers;
+	private readonly deps: TerminalConnectionDeps;
 	private socket: RelaySocket | null = null;
 	private state: TerminalConnectionState = "connecting";
 	private failedAttempts = 0;
@@ -56,9 +62,11 @@ export class TerminalConnection {
 	constructor(
 		target: TerminalConnectionTarget,
 		handlers: TerminalConnectionHandlers,
+		deps: TerminalConnectionDeps,
 	) {
 		this.target = target;
 		this.handlers = handlers;
+		this.deps = deps;
 	}
 
 	start() {
@@ -73,7 +81,7 @@ export class TerminalConnection {
 
 		const socket = createRelaySocket({
 			buildUrl: () => this.buildUrl(),
-			getToken: () => getAuthToken(),
+			getToken: () => this.deps.getToken(),
 			// Definitive access denial: retrying can't change the answer.
 			onAccessDenied: () => {
 				this.terminated = true;
@@ -145,7 +153,7 @@ export class TerminalConnection {
 	}
 
 	private async buildUrl(): Promise<string> {
-		const base = getRelayUrl().replace(/\/$/, "");
+		const base = this.deps.relayUrl().replace(/\/$/, "");
 		const url = new URL(
 			`${base}/hosts/${this.target.routingKey}/terminal/${encodeURIComponent(
 				this.target.terminalId,
