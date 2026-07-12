@@ -25,7 +25,7 @@ export function ReviewOverlay({
 				{draftCount > 1 ? `Send to chat (${draftCount})` : "Send to chat"}
 			</Stack.Toolbar.Button>
 			<Stack.Toolbar.Button
-				icon="list.number"
+				icon="arrow.down.doc"
 				accessibilityLabel="Jump to file"
 				onPress={onJumpToFile}
 			/>
