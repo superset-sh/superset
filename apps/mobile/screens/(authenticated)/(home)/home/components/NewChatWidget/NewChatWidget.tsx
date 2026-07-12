@@ -350,7 +350,10 @@ export function NewChatWidget({
 							{/* Extra clearance while expanded: the settled glass renders
 						    taller than the frame matchContents reports. */}
 							<View
-								className={cn("flex-row pl-1", expanded ? "pb-[26px]" : "pb-2.5")}
+								className={cn(
+									"flex-row pl-1",
+									expanded ? "pb-[26px]" : "pb-2.5",
+								)}
 							>
 								{above}
 							</View>
