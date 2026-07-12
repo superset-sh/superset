@@ -68,11 +68,20 @@ export default function AuthenticatedLayout() {
 					/>
 					<Stack.Screen
 						name="workspace/[id]/files-changed"
-						options={{ ...glassHeaderOptions, title: "Files changed" }}
+						options={{
+							...glassHeaderOptions,
+							title: "Files changed",
+							// Right-swipes are horizontal diff scrolling — back stays edge-only.
+							fullScreenGestureEnabled: false,
+						}}
 					/>
 					<Stack.Screen
 						name="workspace/[id]/file"
-						options={{ ...glassHeaderOptions, title: "" }}
+						options={{
+							...glassHeaderOptions,
+							title: "",
+							fullScreenGestureEnabled: false,
+						}}
 					/>
 					<Stack.Screen
 						name="workspace/[id]/commits"

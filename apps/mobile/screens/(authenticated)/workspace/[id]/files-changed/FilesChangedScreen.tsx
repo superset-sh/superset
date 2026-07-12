@@ -254,7 +254,9 @@ export function FilesChangedScreen() {
 						clamp: [0, maxScrollX.value],
 					});
 				},
-				onPanResponderTerminationRequest: () => true,
+				// Keep an in-flight horizontal drag: grant is horizontal-intent gated,
+				// so the vertical list must not reclaim it mid-gesture.
+				onPanResponderTerminationRequest: () => false,
 			}),
 		[scrollX, maxScrollX],
 	);
