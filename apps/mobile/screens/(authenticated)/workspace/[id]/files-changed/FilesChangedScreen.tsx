@@ -35,6 +35,10 @@ import { computeFileDiff, type DiffRow } from "./utils/computeFileDiff";
 
 const AUTO_EXPAND_MAX_FILES = 15;
 
+// Stable fallback: an inline `?? []` makes the zustand snapshot a fresh array
+// every read, which useSyncExternalStore treats as an endless store change.
+const NO_VIEWED_PATHS: string[] = [];
+
 type ListItem =
 	| { kind: "summary" }
 	| { kind: "file"; file: ChangesetFile; expanded: boolean; viewed: boolean }
@@ -135,7 +139,7 @@ export function FilesChangedScreen() {
 	const [refreshing, setRefreshing] = useState(false);
 
 	const viewedPaths = useViewedFilesStore(
-		(state) => state.viewedByWorkspace[workspaceId ?? ""] ?? [],
+		(state) => state.viewedByWorkspace[workspaceId ?? ""] ?? NO_VIEWED_PATHS,
 	);
 	const toggleViewed = useViewedFilesStore((state) => state.toggleViewed);
 	const viewedSet = useMemo(() => new Set(viewedPaths), [viewedPaths]);
