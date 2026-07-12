@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	findTextRanges,
 	getHighlightStyleContainers,
+	getRefreshedActiveMatchIndex,
 	type SearchRootIndexCache,
 } from "./utils/textSearchDom";
 
@@ -151,7 +152,11 @@ export function useTextSearch({
 	}, []);
 
 	const performSearch = useCallback(
-		(searchQuery: string, isCaseSensitive: boolean) => {
+		(
+			searchQuery: string,
+			isCaseSensitive: boolean,
+			preserveActiveMatch = false,
+		) => {
 			clearHighlights();
 
 			const searchRoots = getResolvedSearchRoots();
@@ -173,19 +178,38 @@ export function useTextSearch({
 			rangesRef.current = ranges;
 			setMatchCount(ranges.length);
 
-			if (ranges.length > 0 && supportsCustomHighlights()) {
+			if (ranges.length === 0) {
+				setActiveMatchIndex(0);
+				return;
+			}
+
+			// A re-scan triggered by a DOM mutation (streaming diff, agent edit,
+			// or the virtualized diff re-rendering after we scroll a match into
+			// view) must keep the user's current match instead of snapping back to
+			// the first one and yanking the scroll position — the root cause of
+			// issue #3979.
+			const nextActiveIndex = preserveActiveMatch
+				? getRefreshedActiveMatchIndex(
+						activeMatchIndexRef.current,
+						ranges.length,
+					)
+				: 0;
+
+			if (supportsCustomHighlights()) {
 				const allHighlight = new Highlight();
 				for (const range of ranges) {
 					allHighlight.add(range);
 				}
 				CSS.highlights.set(highlightKeys.matches, allHighlight);
 
-				setActiveMatchIndex(0);
-				const activeHighlight = new Highlight(ranges[0]);
+				setActiveMatchIndex(nextActiveIndex);
+				const activeHighlight = new Highlight(ranges[nextActiveIndex]);
 				CSS.highlights.set(highlightKeys.active, activeHighlight);
-				scrollRangeIntoView(ranges[0]);
+				if (!preserveActiveMatch) {
+					scrollRangeIntoView(ranges[nextActiveIndex]);
+				}
 			} else {
-				setActiveMatchIndex(0);
+				setActiveMatchIndex(nextActiveIndex);
 			}
 		},
 		[
@@ -202,13 +226,14 @@ export function useTextSearch({
 		(
 			searchQuery = queryRef.current,
 			isCaseSensitive = caseSensitiveRef.current,
+			preserveActiveMatch = false,
 		) => {
 			if (searchTimerRef.current) {
 				clearTimeout(searchTimerRef.current);
 			}
 
 			searchTimerRef.current = setTimeout(() => {
-				performSearch(searchQuery, isCaseSensitive);
+				performSearch(searchQuery, isCaseSensitive, preserveActiveMatch);
 			}, SEARCH_DEBOUNCE_MS);
 		},
 		[performSearch],
@@ -285,7 +310,7 @@ export function useTextSearch({
 			frameId = requestAnimationFrame(() => {
 				clearSearchIndexCache();
 				observeTargets();
-				scheduleSearch();
+				scheduleSearch(queryRef.current, caseSensitiveRef.current, true);
 			});
 		});
 		const observeTargets = () => {

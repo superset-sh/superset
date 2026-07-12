@@ -134,6 +134,32 @@ export function findTextRanges({
 	return ranges;
 }
 
+/**
+ * Decides which match should stay active after the search index is rebuilt.
+ *
+ * The search is re-run whenever the diff DOM mutates (streaming diffs, an agent
+ * editing a file, or the virtualized diff re-rendering after we scroll a match
+ * into view). Rebuilding must NOT snap the user back to the first match — that
+ * was the cause of the "find keeps jumping back to the first instance" bug
+ * (issue #3979). We keep the currently-active match, clamping it in case the
+ * number of matches shrank.
+ */
+export function getRefreshedActiveMatchIndex(
+	previousIndex: number,
+	matchCount: number,
+): number {
+	if (matchCount <= 0) {
+		return 0;
+	}
+	if (previousIndex < 0) {
+		return 0;
+	}
+	if (previousIndex >= matchCount) {
+		return matchCount - 1;
+	}
+	return previousIndex;
+}
+
 export function getHighlightStyleContainers(
 	searchRoots: Array<Node & ParentNode>,
 	document: Document,
