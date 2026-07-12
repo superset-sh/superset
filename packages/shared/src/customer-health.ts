@@ -43,6 +43,9 @@ export function healthFromLastActive(
 }
 
 /** A paying customer that has gone dormant is a churn risk worth re-engaging. */
-export function isChurnRisk(health: CustomerHealth, isPaying: boolean): boolean {
+export function isChurnRisk(
+	health: CustomerHealth,
+	isPaying: boolean,
+): boolean {
 	return isPaying && health === "dormant";
 }
