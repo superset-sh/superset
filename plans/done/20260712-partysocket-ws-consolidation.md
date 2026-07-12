@@ -43,8 +43,29 @@ One `createRelaySocket(opts)` (~150 lines) wrapping partysocket's generic export
 
 ## Outcome (2026-07-12)
 
-Phases 1–3 shipped in one PR (SUPER-1469). Spike result: a rejecting async url
-provider surfaces as an error event and re-enters partysocket's backoff loop —
-verified against source (`ws.js` `_connect` catch) and empirically. Phase 4
-(desktop terminal transport) deferred as designed; revisit when that transport
-needs touching anyway.
+Phases 1–3 shipped in PR #5637 (SUPER-1469). Spike result: a rejecting async
+url provider surfaces as an error event and re-enters partysocket's backoff
+loop — verified against source (`ws.js` `_connect` catch) and empirically.
+Phase 4 (desktop terminal transport) deferred as designed; revisit when that
+transport needs touching anyway.
+
+### Verification record (details in PR #5637 comments)
+
+- **Tests**: 17 across wrapper / eventBus (first-ever suite) / web
+  TerminalConnection (DI'd `getToken`/`relayUrl` for testability). The
+  fresh-token-redial test fails if #5628's stale-URL bug is reintroduced
+  (mutation-verified).
+- **Perf bench**: partysocket's per-message clone+dispatch costs ~0.56µs/frame
+  (574k → 434k frames/sec on 512B binary frames) — noise at real terminal
+  rates; desktop hot path unmigrated.
+- **Live E2E (CDP)**: desktop eventBus connects; web terminal attached over a
+  local relay + tunnel, echoed output, and survived a mid-session relay
+  restart — preflight probed 5× (503, no WS dials) then 200 → reattach with
+  scrollback, ~15s, zero user action.
+- **Stress, branch vs revert** (150 conns, 15k-event flood, 3× flap): parity
+  on throughput/delivery/herd-size/cleanup. Deltas: +0.35ms per connect,
+  ~+5KB heap per connection, and backoff escalates under sub-5s flapping
+  (resets after 5s uptime — verified) — deliberate relay protection.
+- **Net behavior gains**: web terminals get fly-affinity preflight (blind
+  dials were the SUPER-1157 symptom surface), definitive 403s cost zero WS
+  dials (was 12 blind attempts), hung connects recover in 4s (was unbounded).
