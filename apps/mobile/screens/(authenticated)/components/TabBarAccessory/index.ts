@@ -1,1 +1,0 @@
-export { TabBarAccessory } from "./TabBarAccessory";

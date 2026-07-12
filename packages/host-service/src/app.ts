@@ -2,21 +2,30 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
 import { ChatService } from "@superset/chat/server/desktop";
+import { eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createDb, type HostDb } from "./db";
+import { workspaces } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
+import {
+	AcpSessionManager,
+	registerAcpSessionStreamRoute,
+	SqliteAcpSessionPersistence,
+} from "./runtime/acp-sessions";
 import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import { runWorkspaceBackfill } from "./runtime/workspace-backfill";
+import { startWorkspaceCloudSync } from "./runtime/workspace-cloud-sync";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import {
 	SqliteTerminalAgentBindingPersistence,
@@ -57,6 +66,7 @@ export interface CreateAppOptions {
 	execGh?: ExecGh;
 	chatRuntime?: ChatRuntimeManager;
 	chatService?: ChatService;
+	acpSessions?: AcpSessionManager;
 }
 
 export interface CreateAppResult {
@@ -112,8 +122,37 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
 	// auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
+	// ACP session harness (docs/acp-sessions.md) — owns Claude Code
+	// adapter child processes. Fully parallel to the mastra chat runtime.
+	// Pre-release, so internal-channel only: the desktop coordinator spawns
+	// hosts with SUPERSET_ACP_SESSIONS=1 on canary/dev builds, never on
+	// stable. Without it the harness is inert — no WS route, every RPC except
+	// the `list` capability probe rejected. Tests that inject a manager opt
+	// in implicitly.
+	const acpSessionsEnabled =
+		options.acpSessions !== undefined ||
+		process.env.SUPERSET_ACP_SESSIONS === "1";
+	const acpSessions =
+		options.acpSessions ??
+		new AcpSessionManager({
+			resolveWorkspaceCwd: (workspaceId) => {
+				const workspace = db.query.workspaces
+					.findFirst({ where: eq(workspaces.id, workspaceId) })
+					.sync();
+				if (!workspace) {
+					throw new Error(`Workspace not found: ${workspaceId}`);
+				}
+				return workspace.worktreePath;
+			},
+			// Registry rows only (workspace binding, adapter session id, title)
+			// — the journal stays in-memory; a restarted host lists these as
+			// `offline` and resurrects on demand via the adapter's session/load.
+			persistence: new SqliteAcpSessionPersistence(db),
+		});
 
 	const runtime = {
+		acpSessions,
+		acpSessionsEnabled,
 		auth: chatService,
 		chat: chatRuntime,
 		filesystem,
@@ -138,21 +177,55 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
 
-	const terminalAgentStore = new TerminalAgentStore(
-		new SqliteTerminalAgentBindingPersistence(db),
-	);
-
-	// Backfill `kind='main'` v2 workspaces for projects already set up before
-	// this column shipped. Idempotent; runs in the background so it doesn't
-	// block server startup.
-	void runMainWorkspaceSweep({
-		api,
+	const terminalAgentPersistence = new SqliteTerminalAgentBindingPersistence(
 		db,
-		git,
-		organizationId: config.organizationId,
-	}).catch((err) => {
-		console.warn("[host-service] main-workspace sweep failed:", err);
-	});
+	);
+	// Hygiene only — reads hide defunct bindings via the session-liveness
+	// join regardless, so a failure here must not block startup.
+	try {
+		terminalAgentPersistence.deleteDefunct();
+	} catch (error) {
+		console.warn(
+			"[terminal-agents] failed to prune defunct binding rows",
+			error,
+		);
+	}
+	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
+
+	// Startup sweeps + the dual-write reconciler run in the background so
+	// they don't block server startup. Ordering matters: the backfill fills
+	// cloud-only fields on pre-existing rows before the main-workspace sweep
+	// or reconciler touch them (the reconciler skips unbackfilled rows).
+	let workspaceCloudSync: ReturnType<typeof startWorkspaceCloudSync> | null =
+		null;
+	void (async () => {
+		await runWorkspaceBackfill({
+			api,
+			db,
+			eventBus,
+			organizationId: config.organizationId,
+		}).catch((err) => {
+			console.warn("[host-service] workspace backfill failed:", err);
+		});
+		// Backfill `kind='main'` workspaces for projects already set up before
+		// this column shipped. Idempotent — only does real work the first
+		// time after upgrade.
+		await runMainWorkspaceSweep({
+			api,
+			db,
+			git,
+			eventBus,
+			organizationId: config.organizationId,
+		}).catch((err) => {
+			console.warn("[host-service] main-workspace sweep failed:", err);
+		});
+		workspaceCloudSync = startWorkspaceCloudSync({
+			api,
+			db,
+			eventBus,
+			organizationId: config.organizationId,
+		});
+	})();
 
 	const wsAuth: MiddlewareHandler = async (c, next) => {
 		const token = c.req.query("token");
@@ -164,6 +237,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
+	app.use("/acp-sessions/*", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerWorkspaceTerminalRoute({
@@ -172,6 +246,13 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		upgradeWebSocket,
 	});
+	if (acpSessionsEnabled) {
+		registerAcpSessionStreamRoute({
+			app,
+			sessions: acpSessions,
+			upgradeWebSocket,
+		});
+	}
 
 	app.use(
 		"/trpc/*",
@@ -204,9 +285,19 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
 		try {
+			workspaceCloudSync?.stop();
+		} catch (err) {
+			console.warn("[host-service] workspaceCloudSync.stop failed:", err);
+		}
+		try {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			await acpSessions.dispose();
+		} catch (err) {
+			console.warn("[host-service] acpSessions.dispose failed:", err);
 		}
 		try {
 			eventBus.close();

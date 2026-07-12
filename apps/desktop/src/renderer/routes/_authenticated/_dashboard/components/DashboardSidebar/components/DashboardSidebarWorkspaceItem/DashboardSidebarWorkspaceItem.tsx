@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
+import { useV2WorkspaceNotificationStatus } from "renderer/hooks/host-service/useV2NotificationStatus";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
-import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
-import { useV2WorkspaceNotificationStatus } from "renderer/stores/v2-notifications";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
@@ -43,7 +42,6 @@ export function DashboardSidebarWorkspaceItem({
 	const isMainWorkspace = workspace.type === "main";
 	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
-	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
 	const {
 		cancelRename,
 		handleClearStatus,
@@ -169,7 +167,7 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
-							onRename={startRename}
+							onRename={isMainWorkspace ? undefined : startRename}
 							onDelete={
 								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 							}
@@ -211,6 +209,9 @@ export function DashboardSidebarWorkspaceItem({
 			ref={rowRef}
 			onMouseEnter={handleMouseEnter}
 			onMouseLeave={handleMouseLeave}
+			// Hover/focus scope for the details strip below the row: it swaps its
+			// summary cluster for the full badges while the item is hovered.
+			className="group/item"
 		>
 			<DashboardSidebarExpandedWorkspaceRow
 				workspace={workspace}
@@ -222,17 +223,18 @@ export function DashboardSidebarWorkspaceItem({
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
 				onClick={handleClick}
-				onDoubleClick={isPending ? undefined : startRename}
+				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
 			>
-				{!isPending && inlineWorkspacePortsEnabled && (
+				{!isPending && (
 					<DashboardSidebarWorkspaceDetails
 						workspaceId={id}
 						isInSection={isInSection}
+						onClick={handleClick}
 					/>
 				)}
 			</DashboardSidebarExpandedWorkspaceRow>
@@ -261,7 +263,7 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
-						onRename={startRename}
+						onRename={isMainWorkspace ? undefined : startRename}
 						onDelete={
 							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 						}

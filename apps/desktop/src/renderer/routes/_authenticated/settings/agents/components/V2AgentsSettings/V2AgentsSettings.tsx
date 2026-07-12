@@ -18,6 +18,10 @@ import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unav
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { AgentDetail } from "./components/AgentDetail";
 import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
+import {
+	type CreateCustomAgentInput,
+	NewCustomAgentDetail,
+} from "./components/NewCustomAgentDetail";
 
 const KNOWN_PRESETS: HostAgentPreset[] = HOST_AGENT_PRESETS.map((preset) => ({
 	...preset,
@@ -93,6 +97,29 @@ export function V2AgentsSettings({
 			return added;
 		},
 		onSuccess: (added) => {
+			setIsCreating(false);
+			invalidate();
+			if (added?.id) setSelectedAgentId(added.id);
+		},
+		onError: (err) =>
+			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
+	});
+
+	const addCustomMutation = useMutation({
+		mutationFn: async (input: CreateCustomAgentInput) => {
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "add an agent",
+					}),
+				);
+			}
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).settings.agentConfigs.add.mutate(input);
+		},
+		onSuccess: (added) => {
+			setIsCreating(false);
 			invalidate();
 			if (added?.id) setSelectedAgentId(added.id);
 		},
@@ -153,6 +180,7 @@ export function V2AgentsSettings({
 			).settings.agentConfigs.resetToDefaults.mutate();
 		},
 		onSuccess: () => {
+			setIsCreating(false);
 			setSelectedAgentId(null);
 			invalidate();
 		},
@@ -171,6 +199,7 @@ export function V2AgentsSettings({
 	);
 
 	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+	const [isCreating, setIsCreating] = useState(false);
 	const consumedInitialPresetIdRef = useRef(false);
 
 	// Auto-select first agent when none selected, and clear selection when the
@@ -220,8 +249,12 @@ export function V2AgentsSettings({
 					configs={configs}
 					presets={addablePresets}
 					selectedAgentId={selectedAgentId}
-					onSelectAgent={setSelectedAgentId}
+					onSelectAgent={(id) => {
+						setSelectedAgentId(id);
+						setIsCreating(false);
+					}}
 					onAddAgent={(preset) => addMutation.mutate(preset)}
+					onCreateCustomAgent={() => setIsCreating(true)}
 					onReorder={(ids) => reorderMutation.mutate(ids)}
 					onResetToDefaults={() => resetMutation.mutate()}
 					isAdding={addMutation.isPending}
@@ -229,7 +262,13 @@ export function V2AgentsSettings({
 				/>
 			)}
 			<div className="flex-1 overflow-y-auto">
-				{selectedAgent ? (
+				{isCreating ? (
+					<NewCustomAgentDetail
+						onCreate={(input) => addCustomMutation.mutate(input)}
+						onCancel={() => setIsCreating(false)}
+						isSubmitting={addCustomMutation.isPending}
+					/>
+				) : selectedAgent ? (
 					<AgentDetail
 						key={selectedAgent.id}
 						config={selectedAgent}

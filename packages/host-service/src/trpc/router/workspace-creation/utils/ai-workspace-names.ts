@@ -1,9 +1,11 @@
 import { Agent } from "@mastra/core/agent";
 import { getSmallModel } from "@superset/chat/server/shared";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
+import {
+	markWorkspaceCloudSynced,
+	updateLocalWorkspace,
+} from "../../../../workspaces/local-workspace-store";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -30,30 +32,36 @@ function trimTitle(raw: string): string {
 		.slice(0, WORKSPACE_TITLE_MAX);
 }
 
-// Forgiving transforms: coerce anything the model sends into shape
-// rather than failing the whole rename. The small model has been
-// reliable with `.describe()` guidance so hard bounds aren't needed.
-// Empty fields fall through to the caller, which skips the respective
-// rename step.
-const workspaceNamesSchema = z.object({
+const workspaceNamesOutputSchema = z.object({
 	title: z
 		.string()
-		.transform(trimTitle)
 		.describe(
 			`Short human-readable workspace title. Up to ${WORKSPACE_TITLE_MAX} characters. No trailing punctuation. Prefer whole words; never truncate mid-word.`,
 		),
 	branchName: z
 		.string()
-		.transform(sanitizeBranchCandidate)
 		.describe(
 			`Git branch name in kebab-case (lowercase, dashes). 2-4 words, up to ${BRANCH_NAME_MAX} characters. Only [a-z0-9-]. No leading/trailing dashes. No prefixes.`,
 		),
 });
 
+// Keep transforms out of the provider-facing schema: transformed Zod fields
+// lose their JSON Schema type in the current converter, which Anthropic's
+// native structured-output endpoint rejects. Coerce the validated response
+// locally instead. Empty fields still fall through to the caller, which skips
+// the respective rename step.
+const workspaceNamesSchema = workspaceNamesOutputSchema.transform(
+	({ title, branchName }) => ({
+		title: trimTitle(title),
+		branchName: sanitizeBranchCandidate(branchName),
+	}),
+);
+
 export type GeneratedWorkspaceNames = z.infer<typeof workspaceNamesSchema>;
 
 const INSTRUCTIONS = [
 	"You name new code workspaces from the user's initial prompt.",
+	"The prompt describes work to do in an existing repository. Name that work; do not answer the prompt, ask questions, or request more context. Always infer useful names, even when the prompt is vague.",
 	"Return a structured object with two fields:",
 	`- title: a short human-readable label (<= ${WORKSPACE_TITLE_MAX} chars). Full words only; never cut mid-word. No trailing punctuation.`,
 	`- branchName: a kebab-case git branch name (<= ${BRANCH_NAME_MAX} chars, 2-4 words). Only a-z 0-9 and dashes. No prefixes.`,
@@ -85,8 +93,7 @@ export async function generateWorkspaceNamesFromPrompt(
 		const { object } = await Promise.race([
 			agent.generate(cleaned, {
 				structuredOutput: {
-					schema: workspaceNamesSchema,
-					jsonPromptInjection: true,
+					schema: workspaceNamesOutputSchema,
 				},
 			}),
 			new Promise<never>((_, reject) =>
@@ -96,7 +103,7 @@ export async function generateWorkspaceNamesFromPrompt(
 				),
 			),
 		]);
-		return object;
+		return workspaceNamesSchema.parse(object);
 	} catch (error) {
 		console.warn(
 			"[generateWorkspaceNamesFromPrompt] generation failed:",
@@ -123,9 +130,9 @@ interface ApplyAiRenameArgs {
 /**
  * Generates an AI title+branch for a freshly-created workspace and
  * applies whichever side the caller asked for. Git rename runs first
- * (cheap to roll back); cloud update is source of truth; host-local
- * DB only writes after cloud confirms. On cloud failure the git
- * rename is reverted so git, host-local DB, and cloud stay in lockstep.
+ * (cheap to roll back); the host-local row is the source of truth and
+ * commits next; the cloud mirror is pushed best-effort afterwards (a
+ * failure leaves the row cloud-dirty for the reconciler).
  *
  * `renameTitle` / `renameBranch` let callers preserve user-typed
  * values: skip replacing whichever side the user supplied directly.
@@ -175,41 +182,39 @@ export async function applyAiWorkspaceRename(
 		}
 	}
 
-	const patch: {
-		id: string;
-		name?: string;
-		branch?: string;
-		expectedCurrentName?: string;
-	} = { id: workspaceId };
-	if (titleChanged) {
-		patch.name = aiNames.title;
-		patch.expectedCurrentName = oldWorkspaceName;
-	}
+	const patch: { name?: string; branch?: string } = {};
+	if (titleChanged) patch.name = aiNames.title;
 	if (gitRenamed) patch.branch = deduped;
 	if (patch.name === undefined && patch.branch === undefined) return;
 
-	try {
-		await ctx.api.v2Workspace.updateNameFromHost.mutate(patch);
-	} catch (err) {
-		if (gitRenamed) {
-			await ctx
-				.git(worktreePath)
-				.then((g) => g.raw(["branch", "-m", deduped, oldBranchName]))
-				.catch((rollbackErr) => {
-					console.warn(
-						`[applyAiWorkspaceRename] git branch rollback failed (workspace ${workspaceId}, ${deduped} → ${oldBranchName})`,
-						rollbackErr,
-					);
-				});
-		}
-		throw err;
+	const updated = updateLocalWorkspace(
+		{ db: ctx.db, eventBus: ctx.eventBus },
+		workspaceId,
+		patch,
+	);
+	if (!updated) {
+		// The git branch may already be renamed at this point; make the
+		// row-vs-git divergence observable instead of failing silently.
+		console.warn(
+			"[applyAiWorkspaceRename] workspace row missing after git rename",
+			{ workspaceId, patch },
+		);
+		return;
 	}
 
-	if (gitRenamed) {
-		ctx.db
-			.update(workspaces)
-			.set({ branch: deduped })
-			.where(eq(workspaces.id, workspaceId))
-			.run();
+	try {
+		await ctx.api.v2Workspace.updateNameFromHost.mutate({
+			id: workspaceId,
+			...patch,
+			...(titleChanged ? { expectedCurrentName: oldWorkspaceName } : {}),
+		});
+		markWorkspaceCloudSynced(ctx.db, workspaceId, {
+			expectedUpdatedAt: updated.updatedAt,
+		});
+	} catch (err) {
+		console.warn(
+			"[applyAiWorkspaceRename] cloud mirror push failed; reconciler will retry",
+			{ workspaceId, err },
+		);
 	}
 }

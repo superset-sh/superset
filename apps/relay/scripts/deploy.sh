@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP=superset-relay
-REGIONS=(sjc iad fra nrt sin gru)
+REGIONS=(sjc iad fra nrt sin syd gru)
 COUNT=${#REGIONS[@]}
 REGION_LIST=$(IFS=, ; echo "${REGIONS[*]}")
 

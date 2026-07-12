@@ -11,6 +11,7 @@ import { cn } from "@superset/ui/utils";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { LuCpu, LuGitBranch, LuHistory } from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
@@ -20,6 +21,7 @@ import {
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import {
 	type RecentlyViewedEntry,
 	useRecentlyViewed,
@@ -240,21 +242,26 @@ export function HistoryDropdown() {
 		})),
 	);
 
-	const { data: v2WorkspaceData } = useLiveQuery(
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const { data: v2ProjectData } = useLiveQuery(
 		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.innerJoin(
-					{ projects: collections.v2Projects },
-					({ workspaces, projects }) => eq(workspaces.projectId, projects.id),
-				)
-				.select(({ workspaces, projects }) => ({
-					id: workspaces.id,
-					projectName: projects.name,
-					branch: workspaces.branch,
-				})),
+			q.from({ projects: collections.v2Projects }).select(({ projects }) => ({
+				id: projects.id,
+				name: projects.name,
+			})),
 		[collections],
 	);
+	const v2WorkspaceData = useMemo(() => {
+		const projectNamesById = new Map(
+			(v2ProjectData ?? []).map((p) => [p.id, p.name]),
+		);
+		// Inner join: drop workspaces whose project isn't synced yet.
+		return hostWorkspaces.flatMap((workspace) => {
+			const projectName = projectNamesById.get(workspace.projectId);
+			if (projectName === undefined) return [];
+			return [{ id: workspace.id, projectName, branch: workspace.branch }];
+		});
+	}, [hostWorkspaces, v2ProjectData]);
 
 	const { data: automationData } = useLiveQuery(
 		(q) =>

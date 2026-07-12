@@ -5,11 +5,12 @@ import * as fs from "node:fs";
 import path from "node:path";
 import { settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
-import { app } from "electron";
+import { app, dialog } from "electron";
 import log from "electron-log/main";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
+import { isInternalBuild } from "./build-channel";
 import {
 	isProcessAlive,
 	killProcess,
@@ -405,16 +406,25 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		instance.pid = childPid;
-		child.on("exit", (code) => {
-			log.info(`[host-service:${organizationId}] exited with code ${code}`);
+		child.on("exit", (code, signal) => {
+			log.info(
+				`[host-service:${organizationId}] exited with code ${code} signal ${signal}`,
+			);
 			const current = this.instances.get(organizationId);
 			if (!current || current.pid !== childPid || current.status === "stopped")
 				return;
 
+			// Only alert a crash of a running child; startup deaths surface via
+			// start()'s rejection instead.
+			const previousStatus = current.status;
 			this.rememberPort(organizationId, current.port);
 			this.instances.delete(organizationId);
 			removeManifest(organizationId);
-			this.emitStatus(organizationId, "stopped", "running");
+			this.emitStatus(organizationId, "stopped", previousStatus);
+
+			if (previousStatus === "running") {
+				this.alertChildCrashed(organizationId, code, signal);
+			}
 		});
 		// Don't let the child block Electron's exit — stopAll() handles teardown.
 		child.unref();
@@ -470,6 +480,10 @@ export class HostServiceCoordinator extends EventEmitter {
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_AUTH_CONFIG_PATH: path.join(SUPERSET_HOME_DIR, "config.json"),
 			SUPERSET_API_URL: config.cloudApiUrl,
+			// Pre-release ACP session harness, internal-channel only: enabled on
+			// canary and dev builds, never on stable. The host gates its router
+			// and WS stream route on this env var.
+			...(isInternalBuild() ? { SUPERSET_ACP_SESSIONS: "1" } : {}),
 			// Read by the child's parent watchdog so it can self-exit if
 			// Electron crashes without sending SIGTERM (orphan reparenting).
 			HOST_PARENT_PID: String(process.pid),
@@ -503,6 +517,24 @@ export class HostServiceCoordinator extends EventEmitter {
 			status,
 			previousStatus,
 		} satisfies HostServiceStatusEvent);
+	}
+
+	/**
+	 * Alert on an unexpected crash of a running child. Recovery is the existing
+	 * tray > Host Service > Restart.
+	 */
+	private alertChildCrashed(
+		organizationId: string,
+		code: number | null,
+		signal: NodeJS.Signals | null,
+	): void {
+		const cause =
+			signal != null ? `signal ${signal}` : `exit code ${code ?? "unknown"}`;
+		log.error(`[host-service:${organizationId}] crashed (${cause})`);
+		dialog.showErrorBox(
+			"Host service crashed",
+			`The Superset host service stopped unexpectedly (${cause}). Workspaces and terminals for this organization are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.`,
+		);
 	}
 }
 

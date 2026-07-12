@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.11 AS base
+FROM oven/bun:1.3.14 AS base
 WORKDIR /app
 
 # Stage 1: Prune monorepo to relay's dependency graph

@@ -52,6 +52,55 @@ async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
 	}
 }
 
+/**
+ * Enumerate branch refnames as git stores them. Used instead of `rev-parse`
+ * probes because on a case-insensitive filesystem (macOS default) probing
+ * `refs/heads/foo` resolves the `refs/heads/Foo` file, hiding case drift.
+ */
+async function listBranchShortNames(
+	git: SimpleGit,
+	remote: string,
+): Promise<{ local: string[]; remoteTracking: string[] }> {
+	const local: string[] = [];
+	const remoteTracking: string[] = [];
+	let raw: string;
+	try {
+		// A real git failure must not be masked as "no branches" — that hides an
+		// existing branch and lets a case-twin be created. (An empty repo isn't
+		// a failure: for-each-ref exits 0 with no output.)
+		raw = await git.raw([
+			"for-each-ref",
+			"--format=%(refname)",
+			"refs/heads/",
+			`refs/remotes/${remote}/`,
+		]);
+	} catch (error) {
+		console.warn("[host-service:git] for-each-ref failed in resolveRef", {
+			remote,
+			error,
+		});
+		throw error;
+	}
+	const remotePrefix = `refs/remotes/${remote}/`;
+	for (const refname of raw.trim().split("\n").filter(Boolean)) {
+		if (refname.startsWith("refs/heads/")) {
+			local.push(refname.slice("refs/heads/".length));
+		} else if (refname.startsWith(remotePrefix)) {
+			const name = refname.slice(remotePrefix.length);
+			if (name !== "HEAD") remoteTracking.push(name);
+		}
+	}
+	return { local, remoteTracking };
+}
+
+function findCaseInsensitiveMatch(
+	names: string[],
+	input: string,
+): string | null {
+	const lower = input.toLowerCase();
+	return names.find((name) => name.toLowerCase() === lower) ?? null;
+}
+
 export interface ResolveRefOptions {
 	/**
 	 * Remote name to probe for remote-tracking refs. Defaults to "origin".
@@ -94,36 +143,58 @@ export async function resolveRef(
 		return options.headFallback ? { kind: "head" } : null;
 	}
 
-	// Local always wins: if a local branch literally named `<input>` exists
-	// (including names like `origin/foo`), it takes precedence. Probes against
-	// the full refname so the structural prefix removes any ambiguity.
-	const localRef = asLocalRef(trimmed);
-	if (await refExists(git, localRef)) {
-		return { kind: "local", fullRef: localRef, shortName: trimmed };
-	}
+	// Match against enumerated refnames so casing is authoritative. Exact
+	// matches keep precedence (local > remote-tracking); a case-insensitive
+	// match is a fallback tier that adopts the existing branch's canonical
+	// casing rather than minting a case-twin sharing its loose-ref file.
+	const branches = await listBranchShortNames(git, remote);
 
-	// For the remote probe, accept both bare names (`foo`) and the natural
+	// For the remote form, accept both bare names (`foo`) and the natural
 	// short form (`origin/foo`). Strip the `<remote>/` prefix only if it's
-	// present in the input — without this, `origin/foo` would probe
+	// present in the input — without this, `origin/foo` would look up
 	// `refs/remotes/origin/origin/foo` and miss.
 	const remotePrefix = `${remote}/`;
 	const remoteShortName = trimmed.startsWith(remotePrefix)
 		? trimmed.slice(remotePrefix.length)
 		: trimmed;
-	const remoteRef = asRemoteRef(remote, remoteShortName);
-	if (await refExists(git, remoteRef)) {
-		return {
-			kind: "remote-tracking",
-			fullRef: remoteRef,
-			shortName: remoteShortName,
-			remote,
-			remoteShortName: `${remote}/${remoteShortName}`,
-		};
+
+	const asLocal = (name: string): ResolvedRef => ({
+		kind: "local",
+		fullRef: asLocalRef(name),
+		shortName: name,
+	});
+	const asRemoteTracking = (name: string): ResolvedRef => ({
+		kind: "remote-tracking",
+		fullRef: asRemoteRef(remote, name),
+		shortName: name,
+		remote,
+		remoteShortName: `${remote}/${name}`,
+	});
+
+	if (branches.local.includes(trimmed)) {
+		return asLocal(trimmed);
+	}
+
+	if (branches.remoteTracking.includes(remoteShortName)) {
+		return asRemoteTracking(remoteShortName);
 	}
 
 	const tagRef: `refs/tags/${string}` = `refs/tags/${trimmed}`;
 	if (await refExists(git, tagRef)) {
 		return { kind: "tag", fullRef: tagRef, shortName: trimmed };
+	}
+
+	const localTwin = findCaseInsensitiveMatch(branches.local, trimmed);
+	if (localTwin) {
+		return asLocal(localTwin);
+	}
+
+	const remoteTwin = findCaseInsensitiveMatch(
+		branches.remoteTracking,
+		remoteShortName,
+	);
+	if (remoteTwin) {
+		return asRemoteTracking(remoteTwin);
 	}
 
 	return options.headFallback ? { kind: "head" } : null;

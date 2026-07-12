@@ -18,6 +18,7 @@ import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
+import { attachEditContextMenu } from "../lib/edit-context-menu";
 import { createApplicationMenu } from "../lib/menu";
 import { menuEmitter } from "../lib/menu-events";
 import { playNotificationSound } from "../lib/notification-sound";
@@ -368,6 +369,8 @@ export async function createPlatformWindow({
 
 	registerWindow({ window, orgId });
 	window.on("focus", () => markFocused(window.id));
+
+	attachEditContextMenu(window.webContents);
 
 	if (wasEmpty) {
 		startSharedServices();

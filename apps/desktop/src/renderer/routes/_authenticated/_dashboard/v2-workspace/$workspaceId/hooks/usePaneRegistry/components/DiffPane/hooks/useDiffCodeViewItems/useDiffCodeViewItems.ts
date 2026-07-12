@@ -10,7 +10,10 @@ import { useQueries } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import type { inferRouterInputs } from "@trpc/server";
 import { useMemo } from "react";
-import type { ChangesetFile } from "../../../../../useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+} from "../../../../../useChangeset";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 type GetDiffInput = inferRouterInputs<AppRouter>["git"]["getDiff"];
@@ -34,7 +37,6 @@ interface UseDiffCodeViewItemsOptions {
 interface UseDiffCodeViewItemsResult {
 	items: CodeViewItem<DiffAnnotationMetadata>[];
 	fileByItemId: Map<string, ChangesetFile>;
-	pathToItemId: Map<string, string>;
 	hasPendingDiff: boolean;
 	hasDiffError: boolean;
 }
@@ -75,16 +77,6 @@ export function useDiffCodeViewItems({
 		return map;
 	}, [files]);
 
-	const pathToItemId = useMemo(() => {
-		const map = new Map<string, string>();
-		for (const file of files) {
-			const itemId = getDiffItemId(file);
-			if (!map.has(file.path)) map.set(file.path, itemId);
-			if (file.oldPath && !map.has(file.oldPath)) map.set(file.oldPath, itemId);
-		}
-		return map;
-	}, [files]);
-
 	const items = useMemo<CodeViewItem<DiffAnnotationMetadata>[]>(() => {
 		const nextItems: CodeViewItem<DiffAnnotationMetadata>[] = [];
 		const queryByItemId = new Map(
@@ -96,7 +88,7 @@ export function useDiffCodeViewItems({
 
 		for (const file of files) {
 			const itemId = getDiffItemId(file);
-			const collapsed = collapsedSet.has(file.path);
+			const collapsed = collapsedSet.has(getChangesetFileKey(file));
 
 			if (file.isBinary) {
 				// The placeholder item only has a single line, so re-anchor any
@@ -207,7 +199,6 @@ export function useDiffCodeViewItems({
 	return {
 		items,
 		fileByItemId,
-		pathToItemId,
 		hasPendingDiff: diffQueries.some((query) => query.isPending),
 		hasDiffError: diffQueries.some((query) => query.isError),
 	};
@@ -243,14 +234,7 @@ function createGetDiffInput(
 }
 
 function getDiffItemId(file: ChangesetFile): string {
-	const { source } = file;
-	if (source.kind === "against-base") {
-		return `diff:against-base:${source.baseBranch ?? ""}:${file.path}`;
-	}
-	if (source.kind === "commit") {
-		return `diff:commit:${source.fromHash ?? ""}:${source.commitHash}:${file.path}`;
-	}
-	return `diff:${source.kind}:${file.path}`;
+	return `diff:${getChangesetFileKey(file)}`;
 }
 
 function getAnnotationsForFile(

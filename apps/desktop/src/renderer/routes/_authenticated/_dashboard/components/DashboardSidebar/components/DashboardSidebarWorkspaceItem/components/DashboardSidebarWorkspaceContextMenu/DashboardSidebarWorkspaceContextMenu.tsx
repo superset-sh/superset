@@ -43,7 +43,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onCopyPath: () => void;
 	onCopyBranchName: () => void;
 	onRemoveFromSidebar: () => void;
-	onRename: () => void;
+	onRename?: () => void;
 	onDelete?: () => void;
 	onToggleUnread: () => void;
 	onClearStatus: () => void;
@@ -95,13 +95,15 @@ export function DashboardSidebarWorkspaceContextMenu({
 		<ContextMenu onOpenChange={setContextMenuOpen}>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
-				<ContextMenuItem onSelect={onRename}>
-					<LuPencil className="size-4 mr-2" />
-					Rename
-				</ContextMenuItem>
+				{onRename && (
+					<ContextMenuItem onSelect={onRename}>
+						<LuPencil className="size-4 mr-2" />
+						Rename
+					</ContextMenuItem>
+				)}
 				{isLocalWorkspace && (
 					<>
-						<ContextMenuSeparator />
+						{onRename && <ContextMenuSeparator />}
 						<ContextMenuItem onSelect={onOpenInFinder}>
 							<LuFolderOpen className="size-4 mr-2" />
 							Open in Finder
@@ -112,7 +114,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 						</ContextMenuItem>
 					</>
 				)}
-				{!isLocalWorkspace && <ContextMenuSeparator />}
+				{!isLocalWorkspace && onRename && <ContextMenuSeparator />}
 				<ContextMenuItem onSelect={onCopyBranchName}>
 					<LuGitBranch className="size-4 mr-2" />
 					Copy Branch Name

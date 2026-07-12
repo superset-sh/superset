@@ -12,10 +12,7 @@ import type {
 	FsWriteResult,
 } from "./types";
 
-export type WorkspaceFsPathErrorCode =
-	| "OUTSIDE_ROOT"
-	| "INVALID_TARGET"
-	| "SYMLINK_ESCAPE";
+export type WorkspaceFsPathErrorCode = "INVALID_TARGET" | "SYMLINK_ESCAPE";
 
 export class WorkspaceFsPathError extends Error {
 	constructor(
@@ -373,16 +370,19 @@ async function writeAtomically({
 // per-entry stat calls bounds how much zombie work continues after an abort.
 const LIST_DIRECTORY_STAT_BATCH_SIZE = 16;
 
+// Read-only operations (listDirectory, readFile, getMetadata) are not
+// confined to the workspace root: terminals and agents routinely reference
+// files anywhere on the host, and viewing them is within the caller's trust
+// model (statPath/browseHost already expose arbitrary host paths). Mutations
+// remain strictly confined to the root.
 export async function listDirectory({
-	rootPath,
 	absolutePath,
 	signal,
 }: {
-	rootPath: string;
 	absolutePath: string;
 	signal?: AbortSignal;
 }): Promise<FsEntry[]> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	const targetPath = normalizeAbsolutePath(absolutePath);
 	signal?.throwIfAborted();
 	const entries = await fs.readdir(targetPath, { withFileTypes: true });
 
@@ -437,8 +437,14 @@ export async function readFile({
 	maxBytes?: number;
 	encoding?: string;
 }): Promise<FsReadResult> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
-	await assertRealpathWithinRoot(rootPath, targetPath);
+	const targetPath = normalizeAbsolutePath(absolutePath);
+	// Explicit outside-root paths are readable, but a path that lexically sits
+	// inside the workspace must also physically resolve there — otherwise a
+	// malicious repo symlink (docs/config.yml -> ~/.ssh/id_rsa) could disguise
+	// a sensitive host file as a workspace file.
+	if (isPathWithinRoot(rootPath, targetPath)) {
+		await assertRealpathWithinRoot(rootPath, targetPath);
+	}
 
 	const fileHandle = await fs.open(targetPath, "r");
 	try {
@@ -508,13 +514,11 @@ export async function readFile({
 }
 
 export async function getMetadata({
-	rootPath,
 	absolutePath,
 }: {
-	rootPath: string;
 	absolutePath: string;
 }): Promise<FsMetadata | null> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+	const targetPath = normalizeAbsolutePath(absolutePath);
 
 	try {
 		const stats = await fs.lstat(targetPath);

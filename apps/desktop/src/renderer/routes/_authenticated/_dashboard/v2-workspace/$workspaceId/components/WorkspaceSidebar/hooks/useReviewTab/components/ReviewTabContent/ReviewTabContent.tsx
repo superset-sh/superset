@@ -62,6 +62,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 			<div className="my-1 border-b border-border/70" />
 
 			<ChecksSection
+				workspaceId={workspaceId}
 				checks={pr.checks}
 				checksStatus={pr.checksStatus}
 				prUrl={pr.url}

@@ -1,5 +1,6 @@
 import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
+import { ZoomStable } from "renderer/components/ZoomStable";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
@@ -55,15 +56,15 @@ export function TopBar() {
 			style={barStyle}
 		>
 			<div
-				className="flex items-center gap-1.5 h-full"
+				className="flex items-center h-full"
 				style={{ paddingLeft: trafficLightInset }}
 			>
 				{!sidebarHostsChrome && (
-					<>
+					<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 						<SidebarToggle />
 						<NavigationControls />
 						{!isV2CloudEnabled && <ResourceConsumption surface="v1" />}
-					</>
+					</ZoomStable>
 				)}
 			</div>
 
@@ -82,6 +83,15 @@ export function TopBar() {
 						<HiOutlineWifi className="size-3.5" />
 						<span>Offline</span>
 					</div>
+				)}
+				{/* Portal target for the v2 run button when the presets bar is
+				    hidden (see v2-workspace page). empty:hidden keeps the flex
+				    gap from doubling while nothing is portaled in. */}
+				{isV2WorkspaceRoute && (
+					<div
+						id="workspace-topbar-run-slot"
+						className="no-drag flex items-center empty:hidden"
+					/>
 				)}
 				{isV2WorkspaceRoute ? (
 					<V2WorkspaceOpenInButton workspaceId={v2WorkspaceId} />

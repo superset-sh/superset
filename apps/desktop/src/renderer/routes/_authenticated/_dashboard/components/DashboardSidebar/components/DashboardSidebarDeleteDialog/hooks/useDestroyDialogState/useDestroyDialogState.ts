@@ -10,9 +10,8 @@ import {
 } from "renderer/hooks/host-service/useDestroyWorkspace";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { waitForWorkspaceDeleted } from "renderer/routes/_authenticated/providers/CollectionsProvider/workspaceSyncWaits";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface UseDestroyDialogStateOptions {
 	workspaceId: string;
@@ -36,7 +35,8 @@ export function useDestroyDialogState({
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
-	const collections = useCollections();
+	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
+		useHostWorkspaces();
 	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
@@ -99,7 +99,6 @@ export function useDestroyDialogState({
 		async (force: boolean) => {
 			if (inFlight.current) return;
 			inFlight.current = true;
-			let keepDeleting = false;
 
 			setError(null);
 			onOpenChange(false);
@@ -108,6 +107,10 @@ export function useDestroyDialogState({
 			// active route, so a later user navigation won't be hijacked.
 			navigateAwayFromWorkspace(workspaceId);
 			toast(`Deleting "${workspaceName}"...`);
+
+			const hostId = hostWorkspaces.find(
+				(item) => item.id === workspaceId,
+			)?.hostId;
 
 			try {
 				let result: DestroyWorkspaceSuccess;
@@ -127,19 +130,11 @@ export function useDestroyDialogState({
 						throw firstErr;
 					}
 				}
-				try {
-					await waitForWorkspaceDeleted(collections.v2Workspaces, workspaceId);
-				} catch (syncErr) {
-					keepDeleting = true;
-					onDeleted?.();
-					console.warn("[workspace-delete] delete synced slowly", {
-						workspaceId,
-						err: syncErr,
-					});
-					toast.warning(
-						`Deleted ${workspaceName}, but sync is taking longer than expected.`,
-					);
-					return;
+				// The host's local delete is the commit point; its
+				// workspace:changed broadcast normally beats this, but drop the
+				// row explicitly so the UI never depends on the socket.
+				if (hostId) {
+					hostWorkspacesCache.removeWorkspace(hostId, workspaceId);
 				}
 				for (const warning of result.warnings) toast.warning(warning);
 				onDeleted?.();
@@ -156,9 +151,7 @@ export function useDestroyDialogState({
 					);
 				}
 			} finally {
-				if (!keepDeleting) {
-					clearDeleting(workspaceId);
-				}
+				clearDeleting(workspaceId);
 				inFlight.current = false;
 			}
 		},
@@ -172,7 +165,8 @@ export function useDestroyDialogState({
 			markDeleting,
 			clearDeleting,
 			navigateAwayFromWorkspace,
-			collections,
+			hostWorkspaces,
+			hostWorkspacesCache,
 		],
 	);
 

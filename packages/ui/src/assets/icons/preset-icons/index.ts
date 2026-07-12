@@ -14,7 +14,10 @@ import opencodeIcon from "./opencode.svg";
 import opencodeWhiteIcon from "./opencode-white.svg";
 import piIcon from "./pi.svg";
 import piWhiteIcon from "./pi-white.svg";
+import polygraphIcon from "./polygraph.svg";
+import polygraphWhiteIcon from "./polygraph-white.svg";
 import supersetIcon from "./superset.svg";
+import vibeIcon from "./vibe.svg";
 
 export interface PresetIconSet {
 	light: string;
@@ -28,17 +31,28 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
+	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	droid: { light: droidIcon, dark: droidWhiteIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
+	vibe: { light: vibeIcon, dark: vibeIcon },
 };
+
+/** True when a value is an inline `data:` image URI rather than a preset key. */
+export function isDataImageUri(value: string): boolean {
+	return value.startsWith("data:image/");
+}
 
 export function getPresetIcon(
 	presetName: string,
 	isDark: boolean,
 ): string | undefined {
+	// A user-uploaded icon is stored as a `data:` URI rather than a preset key.
+	// Return it as-is (before normalizing — base64 is case-sensitive) so every
+	// icon render site handles uploaded images without extra branching.
+	if (isDataImageUri(presetName)) return presetName;
 	const normalizedName = presetName.toLowerCase().trim();
 	const iconSet = PRESET_ICONS[normalizedName];
 	if (!iconSet) return undefined;
@@ -62,5 +76,8 @@ export {
 	opencodeWhiteIcon,
 	piIcon,
 	piWhiteIcon,
+	polygraphIcon,
+	polygraphWhiteIcon,
 	supersetIcon,
+	vibeIcon,
 };

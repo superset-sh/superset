@@ -1,4 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
+import { Spinner } from "@superset/ui/spinner";
 import type { inferRouterOutputs } from "@trpc/server";
 import { memo, useCallback, useState } from "react";
 import type {
@@ -31,7 +32,11 @@ interface ChangesTabContentProps {
 	totalDeletions: number;
 	worktreePath?: string;
 	selectedFilePath?: string;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 	onFilterChange: (filter: ChangesFilter) => void;
@@ -85,8 +90,9 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 
 	if (status.isLoading) {
 		return (
-			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Loading changes...
+			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+				<Spinner className="size-3.5" />
+				<span>Loading changes...</span>
 			</div>
 		);
 	}

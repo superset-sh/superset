@@ -18,6 +18,7 @@ export type TerminalAgentBinding = TerminalAgentBindings[number];
  */
 export function useTerminalAgentBindings(
 	workspaceId: string,
+	options?: { enabled?: boolean },
 ): Map<string, TerminalAgentBinding> {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
@@ -26,7 +27,8 @@ export function useTerminalAgentBindings(
 		[hostUrl, workspaceId],
 	);
 
-	const enabled = Boolean(workspaceId) && Boolean(hostUrl);
+	const enabled =
+		(options?.enabled ?? true) && Boolean(workspaceId) && Boolean(hostUrl);
 
 	const { data } = useQuery({
 		queryKey,
@@ -37,8 +39,10 @@ export function useTerminalAgentBindings(
 				hostUrl,
 			).terminalAgents.listByWorkspace.query({ workspaceId });
 		},
-		refetchOnWindowFocus: false,
-		staleTime: Number.POSITIVE_INFINITY,
+		// Lifecycle events invalidate for instant updates; the finite
+		// staleTime lets focus/remount refetches self-heal any staleness
+		// from events missed while the WS was down (host restart, sleep).
+		staleTime: 30_000,
 	});
 
 	const invalidate = useCallback(() => {

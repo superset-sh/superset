@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
+	DIFF_POOL_RENDER_OPTIONS,
 	getDiffsTheme,
 	getDiffViewerStyle,
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
@@ -69,12 +70,13 @@ export function useDiffCodeViewTheme() {
 				paddingBottom: 8,
 				gap: 0,
 			},
-			// Degrade gracefully on lockfiles / minified bundles instead of
-			// blocking the worker. Pierre's defaults are 100k for whole-file
-			// tokenization and unbounded for the rest.
-			tokenizeMaxLineLength: 5_000,
+			// Diff/tokenize options shared with the diff worker pool
+			// (DIFF_POOL_RENDER_OPTIONS / buildDiffPoolRenderOptions) so the
+			// per-item and pool configs can't diverge. They degrade gracefully
+			// on lockfiles / minified bundles instead of blocking the worker.
+			...DIFF_POOL_RENDER_OPTIONS,
+			// tokenizeMaxLength is not a pool option, so it stays per-item.
 			tokenizeMaxLength: 200_000,
-			maxLineDiffLength: 5_000,
 			unsafeCSS: `
 				* { user-select: text; -webkit-user-select: text; }
 				/* Query container for slotted PR-comment bubbles
@@ -95,6 +97,20 @@ export function useDiffCodeViewTheme() {
 				 * FileIcon in the prefix slot instead. */
 				[data-diffs-header='default'] [data-change-icon] {
 					display: none;
+				}
+				/* Match the file header bar to the DiffSectionBar background
+				 * (bg-muted/40 flattened over the pane background) so the
+				 * pinned section strip and the file title strip read as one.
+				 * Pierre paints these with --diffs-bg (the diff surface
+				 * color); the [data-sticky] selector is needed to out-rank
+				 * Pierre's own two-attribute sticky rule. */
+				[data-diffs-header='default'],
+				[data-diffs-header='default'][data-sticky] {
+					background-color: color-mix(
+						in srgb,
+						var(--muted) 40%,
+						var(--background)
+					);
 				}
 				[data-diffs-header='default'] [data-additions-count] {
 					color: ${additionColor};

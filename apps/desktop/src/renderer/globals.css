@@ -6,6 +6,17 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/ui/node_modules/streamdown/dist/*.js";
 
+/*
+ * Active when the sidebar workspace activity strip should show its expanded
+ * (pill) state: the workspace item (`group/item`) is hovered or keyboard
+ * focused, or one of the strip's own dropdown menus (`group/details` scope)
+ * is open so it can't collapse under the pointer.
+ */
+@custom-variant details-expanded (&:is(
+		:where(.group\/item:hover, .group\/item:focus-within) *,
+		.group\/details:has([data-state="open"]) *
+	));
+
 /**
  * Theme CSS Variables
  *
@@ -287,9 +298,14 @@
 		background-color: var(--highlight-active);
 	}
 
-	/* Disable sonner toast hover animation for update toast only */
-	[data-sonner-toast]:has(.update-toast) {
-		transform: translateY(0);
+	/* UpdatesPill: checkmark draw-in on download-confirmed */
+	@keyframes check-draw {
+		from {
+			stroke-dashoffset: 26;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
 	}
 
 	/* Tiptap chat input placeholder */

@@ -13,7 +13,7 @@ import type { ChangesetFile } from "../../../../../useChangeset";
 interface DiffHeaderMetadataProps {
 	file: ChangesetFile;
 	workspaceId: string;
-	onSetCollapsed: (path: string, value: boolean) => void;
+	onSetCollapsed: (value: boolean) => void;
 	viewed: boolean;
 	onSetViewed: (path: string, next: boolean) => void;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
@@ -36,7 +36,7 @@ export function DiffHeaderMetadata({
 	const handleToggleViewed = useCallback(() => {
 		const next = !viewed;
 		onSetViewed(file.path, next);
-		onSetCollapsed(file.path, next);
+		onSetCollapsed(next);
 	}, [viewed, file.path, onSetViewed, onSetCollapsed]);
 
 	const showDeletedFileToast = useCallback(() => {

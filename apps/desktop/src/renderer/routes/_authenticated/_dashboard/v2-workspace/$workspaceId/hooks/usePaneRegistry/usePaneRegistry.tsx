@@ -24,10 +24,7 @@ import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	clearV2TerminalRunStatus,
-	getV2NotificationSourcesForPane,
-} from "renderer/stores/v2-notifications";
+import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
@@ -55,6 +52,7 @@ import { DiffPaneHeaderExtras } from "./components/DiffPane/components/DiffPaneH
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
+import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
@@ -330,7 +328,6 @@ export function usePaneRegistry({
 						terminalRuntimeRegistry.release(terminalId);
 						return;
 					}
-					clearV2TerminalRunStatus(terminalId, workspaceId);
 					clearWorkspaceRunTerminal(terminalId);
 					terminalRuntimeRegistry.dispose(terminalId);
 					killTerminalSessionSilently({ terminalId, workspaceId });
@@ -347,6 +344,7 @@ export function usePaneRegistry({
 						/>
 					</div>
 				),
+				renderHeaderExtras: () => <TerminalPaneHeaderExtras />,
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane
 						ctx={ctx}

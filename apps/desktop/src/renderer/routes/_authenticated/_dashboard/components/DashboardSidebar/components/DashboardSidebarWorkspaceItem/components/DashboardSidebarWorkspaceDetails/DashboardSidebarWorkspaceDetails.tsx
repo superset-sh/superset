@@ -1,119 +1,160 @@
-import { Fragment, type ReactNode } from "react";
-import { LuX } from "react-icons/lu";
+import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
+import { cn } from "@superset/ui/utils";
+import type { CSSProperties } from "react";
+import { LuRadioTower, LuX } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
-import { useWorkspaceDetailsStore } from "renderer/stores";
+import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
+import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
+import { DashboardSidebarPortBadge } from "../../../DashboardSidebarPortsList/components/DashboardSidebarPortBadge";
 import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/hooks/useDashboardSidebarPortKill";
-import { DashboardSidebarWorkspacePortsRow } from "../DashboardSidebarWorkspacePortsRow";
+import { DashboardSidebarWorkspaceAgentBadge } from "./components/DashboardSidebarWorkspaceAgentBadge";
 import { DashboardSidebarWorkspaceDetailsAction } from "./components/DashboardSidebarWorkspaceDetailsAction";
-import { DashboardSidebarWorkspaceDetailsToggle } from "./components/DashboardSidebarWorkspaceDetailsToggle";
-
-interface WorkspaceDetailSection {
-	/** Stable id, also used as the React key. */
-	key: string;
-	/** Short text shown in the toggle, e.g. "2 ports". */
-	summary: string;
-	/** Optional header action shown on hover, e.g. "close all ports". */
-	headerAction?: ReactNode;
-	/** Expanded content for this section. */
-	content: ReactNode;
-}
+import { useDashboardSidebarWorkspaceRunningAgents } from "./hooks/useDashboardSidebarWorkspaceRunningAgents";
 
 interface DashboardSidebarWorkspaceDetailsProps {
 	workspaceId: string;
 	isInSection?: boolean;
+	/** Invoked when the strip itself (not one of its chips) is clicked. */
+	onClick?: () => void;
 }
 
 /**
- * Collapsible area rendered beneath a workspace row. It hosts the per-workspace
- * "detail" rows (ports today, running agents / other status rows in future).
+ * Wraps one element that unfolds when the strip is `details-expanded`: its
+ * max-width, margin and opacity animate from zero, so the content slides out
+ * of the cluster and retracts back into it (rather than fading in place).
+ * `visibility` rides the transition so collapsed content isn't interactive.
+ */
+const UNFOLD_WRAPPER = cn(
+	"invisible max-w-0 shrink-0 overflow-hidden opacity-0",
+	"transition-[max-width,margin,opacity,visibility] duration-500 ease-out motion-reduce:transition-none",
+	"details-expanded:visible details-expanded:ml-1.5 details-expanded:opacity-100 details-expanded:duration-200",
+);
+
+/** Cap the port-pill stagger so long lists don't drag the animation out. */
+const MAX_STAGGERED_PORTS = 8;
+const STAGGER_STEP_MS = 25;
+
+/**
+ * Single activity line rendered beneath a workspace row, left-aligned with
+ * the workspace title. At rest it's a compact cluster: overlapping agent
+ * circles plus a port-count pill. When the workspace item is hovered or
+ * focused (`details-expanded`, defined in globals.css), the cluster morphs
+ * open — agent circles grow into labeled pills and the count pill unfolds
+ * into the individual port pills with a slight stagger — and retracts the
+ * same way in reverse. Everything is one layer, so the motion is real
+ * geometry, not a cross-fade.
  *
- * To add a new detail row: call its data hook unconditionally in the section
- * registry below, then push a {@link WorkspaceDetailSection} when it has
- * something to show. Everything else — the toggle, summary, header actions,
- * persisted collapse state — is handled here.
+ * Agent chips appear only when more than one agent is running; a lone agent
+ * is the norm for a workspace and showing it adds no signal.
  */
 export function DashboardSidebarWorkspaceDetails({
 	workspaceId,
 	isInSection = false,
+	onClick,
 }: DashboardSidebarWorkspaceDetailsProps) {
-	const isCollapsed = useWorkspaceDetailsStore(
-		(state) => !!state.collapsedWorkspaceIds[workspaceId],
-	);
-	const toggleExpanded = useWorkspaceDetailsStore(
-		(state) => state.toggleExpanded,
-	);
+	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
+	const workspaceAgentsRowEnabled = useWorkspaceAgentsRowEnabled();
 	const { isPending: isKillingPorts, killPorts } =
 		useDashboardSidebarPortKill();
 
-	// --- Section registry -----------------------------------------------------
-	const sections: WorkspaceDetailSection[] = [];
-
 	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
-	const portCount = portGroup?.ports.length ?? 0;
-	if (portGroup && portCount > 0) {
-		sections.push({
-			key: "ports",
-			summary: `${portCount} ${portCount === 1 ? "port" : "ports"}`,
-			headerAction: (
-				<DashboardSidebarWorkspaceDetailsAction
-					label="Close all ports"
-					icon={<LuX className="size-3" strokeWidth={STROKE_WIDTH} />}
-					busy={isKillingPorts}
-					onClick={() => void killPorts(portGroup.ports)}
-				/>
-			),
-			content: (
-				<DashboardSidebarWorkspacePortsRow
-					workspaceId={workspaceId}
-					isInSection={isInSection}
-				/>
-			),
-		});
-	}
+	const ports = inlineWorkspacePortsEnabled ? (portGroup?.ports ?? []) : [];
+	const runningAgents = useDashboardSidebarWorkspaceRunningAgents(
+		workspaceId,
+		workspaceAgentsRowEnabled,
+	);
+	const hasMultipleAgents = runningAgents.length > 1;
+	const showAgentChips = workspaceAgentsRowEnabled && hasMultipleAgents;
+	const agents = showAgentChips ? runningAgents : [];
 
-	// Add more detail rows here (e.g. running agents).
-	// --------------------------------------------------------------------------
-
-	if (sections.length === 0) {
+	if (ports.length === 0 && agents.length === 0) {
 		return null;
 	}
 
-	const isExpanded = !isCollapsed;
-	const headerActions = sections.filter((section) => section.headerAction);
-
 	return (
 		// Stop pointer/touch starts from bubbling to the sortable workspace item's
-		// drag listeners, so scrolling overflowing ports or pressing a port control
-		// isn't captured as a workspace-reorder gesture.
-		// biome-ignore lint/a11y/noStaticElementInteractions: guards DnD only; no new interactive semantics
-		<div
-			className="pb-1"
+		// drag listeners, so scrolling overflowing badges or pressing a badge
+		// control isn't captured as a workspace-reorder gesture.
+		<OverflowFadeContainer
+			observeChildren
+			className={cn(
+				// group/details scopes the menu-open half of `details-expanded`.
+				"group/details flex h-[22px] items-center overflow-x-auto hide-scrollbar pr-2",
+				isInSection ? "pl-[58px]" : "pl-[50px]",
+				onClick && "cursor-pointer",
+			)}
 			onMouseDown={(event) => event.stopPropagation()}
 			onTouchStart={(event) => event.stopPropagation()}
+			onClick={(event) => {
+				if (!onClick) return;
+				const target = event.target as HTMLElement;
+				// Radix dropdown selections render in a portal; React bubbling still
+				// reaches this handler but the target isn't inside the strip's DOM.
+				if (!event.currentTarget.contains(target)) return;
+				// Chips handle their own clicks (open agent, open port, menus);
+				// only clicks on the strip's empty area open the workspace.
+				if (target.closest("button, a, [role='button'], [role='menuitem']"))
+					return;
+				onClick();
+			}}
 		>
-			<div className="group/details flex items-center">
-				<DashboardSidebarWorkspaceDetailsToggle
-					isExpanded={isExpanded}
-					summary={sections.map((section) => section.summary).join(" · ")}
-					isInSection={isInSection}
-					onToggle={() => toggleExpanded(workspaceId)}
+			{agents.map((agent) => (
+				<DashboardSidebarWorkspaceAgentBadge
+					key={agent.sourceKey}
+					workspaceId={workspaceId}
+					agent={agent}
 				/>
-				{headerActions.length > 0 && (
-					<div className="ml-auto flex items-center gap-0.5 pr-2 opacity-0 transition-opacity group-hover/details:opacity-100 group-focus-within/details:opacity-100">
-						{headerActions.map((section) => (
-							<Fragment key={section.key}>{section.headerAction}</Fragment>
-						))}
-					</div>
-				)}
-			</div>
-			{isExpanded && (
-				<div className="mt-1 space-y-1">
-					{sections.map((section) => (
-						<div key={section.key}>{section.content}</div>
-					))}
+			))}
+
+			{ports.length > 0 && (
+				<span
+					className={cn(
+						"flex h-[18px] shrink-0 items-center gap-1 overflow-hidden rounded-full bg-muted/60",
+						"text-[9px] font-medium tabular-nums text-muted-foreground",
+						"max-w-14 px-1.5 opacity-100",
+						agents.length > 0 && "ml-2",
+						"transition-[max-width,margin,padding,opacity] duration-500 ease-out motion-reduce:transition-none",
+						"details-expanded:ml-0 details-expanded:max-w-0 details-expanded:px-0 details-expanded:opacity-0 details-expanded:duration-200",
+					)}
+				>
+					<LuRadioTower
+						className="size-2.5 shrink-0"
+						strokeWidth={STROKE_WIDTH}
+					/>
+					{ports.length}
+				</span>
+			)}
+
+			{ports.map((port, index) => (
+				<div
+					key={`${port.hostId}:${port.terminalId}:${port.port}`}
+					// The stagger delay only applies while expanding; retraction is
+					// uniform so the strip clears in one motion.
+					className={cn(
+						UNFOLD_WRAPPER,
+						"details-expanded:max-w-44 details-expanded:[transition-delay:var(--unfold-delay)]",
+					)}
+					style={
+						{
+							"--unfold-delay": `${Math.min(index, MAX_STAGGERED_PORTS) * STAGGER_STEP_MS}ms`,
+						} as CSSProperties
+					}
+				>
+					<DashboardSidebarPortBadge port={port} />
+				</div>
+			))}
+
+			{ports.length > 1 && (
+				<div className={cn(UNFOLD_WRAPPER, "details-expanded:max-w-8")}>
+					<DashboardSidebarWorkspaceDetailsAction
+						label="Close all ports"
+						icon={<LuX className="size-3" strokeWidth={STROKE_WIDTH} />}
+						busy={isKillingPorts}
+						onClick={() => void killPorts(ports)}
+					/>
 				</div>
 			)}
-		</div>
+		</OverflowFadeContainer>
 	);
 }

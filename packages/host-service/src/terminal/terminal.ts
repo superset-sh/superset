@@ -160,6 +160,12 @@ type TerminalServerMessage =
 	| { type: "title"; title: string | null };
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+// Dim separator delivered ahead of a respawned shell's output so users can
+// tell restored scrollback from the fresh session (cf. VS Code's "History
+// restored" line).
+const SESSION_RESTORED_NOTICE = new TextEncoder().encode(
+	"\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n",
+);
 // Cap on a single renderer socket's unflushed WebSocket send buffer. With no
 // ACK flow control, a renderer that stops draining (slow paint, pinned main
 // thread, dead tab) would let this buffer grow without bound → host OOM (the
@@ -219,6 +225,12 @@ interface TerminalSession {
 	 */
 	buffer: Uint8Array[];
 	bufferBytes: number;
+	/**
+	 * Deliver SESSION_RESTORED_NOTICE ahead of the next replay. Kept out of
+	 * the FIFO so MAX_BUFFER_BYTES eviction can't drop it before a client
+	 * attaches. Cleared on first replay.
+	 */
+	restoredNoticePending: boolean;
 	createdAt: number;
 	exited: boolean;
 	exitCode: number;
@@ -226,6 +238,12 @@ interface TerminalSession {
 	listed: boolean;
 	title: string | null;
 	titleScanState: TerminalTitleScanState;
+	/**
+	 * Bus for lifecycle broadcasts. Kept on the session so dispose (which
+	 * unsubscribes daemon callbacks before the pty dies, muting onExit) can
+	 * still announce the exit to renderers.
+	 */
+	eventBus: EventBus | undefined;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -538,27 +556,38 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 	return sent;
 }
 
-function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	// Preamble first, then FIFO. Mode-setting escapes (kitty keyboard,
-	// bracketed paste, focus, …) are typically emitted once at startup and
-	// broadcast away rather than buffered, so a fresh xterm needs them
-	// re-asserted on every attach — even when the FIFO is empty.
+export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
+	// sendBytes below no-ops on a non-open socket — bail before clearing the
+	// buffer/notice so the next attach can still replay them.
+	if (socket.readyState !== SOCKET_OPEN) return;
+	// Preamble first, then the restored notice, then FIFO. Mode-setting
+	// escapes (kitty keyboard, bracketed paste, focus, …) are typically
+	// emitted once at startup and broadcast away rather than buffered, so a
+	// fresh xterm needs them re-asserted on every attach — even when the
+	// FIFO is empty.
 	const preamble = session.modeTracker.buildPreamble();
+	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
 	let bufferTotal = 0;
 	for (const b of session.buffer) bufferTotal += b.byteLength;
 	const preambleLen = preamble?.byteLength ?? 0;
-	if (preambleLen === 0 && bufferTotal === 0) return;
+	const noticeLen = notice?.byteLength ?? 0;
+	if (preambleLen === 0 && noticeLen === 0 && bufferTotal === 0) return;
 
-	const combined = new Uint8Array(preambleLen + bufferTotal);
+	const combined = new Uint8Array(preambleLen + noticeLen + bufferTotal);
 	let offset = 0;
 	if (preamble) {
 		combined.set(preamble, offset);
 		offset += preamble.byteLength;
 	}
+	if (notice) {
+		combined.set(notice, offset);
+		offset += notice.byteLength;
+	}
 	for (const b of session.buffer) {
 		combined.set(b, offset);
 		offset += b.byteLength;
 	}
+	session.restoredNoticePending = false;
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
 	sendBytes(socket, combined);
@@ -750,10 +779,26 @@ export async function disposeSessionAndWait(
 		: { attempted: false, succeeded: true };
 
 	if (closeResult.succeeded) {
+		const endedAt = Date.now();
 		db.update(terminalSessions)
-			.set({ status: "disposed", endedAt: Date.now() })
+			.set({ status: "disposed", endedAt })
 			.where(eq(terminalSessions.id, terminalId))
 			.run();
+
+		// Dispose unsubscribed the daemon callbacks above, so onExit will
+		// never fire for this session — announce the exit here (after the
+		// row flips to disposed, so refetching readers see it dead). Skip
+		// sessions whose pty already exited: onExit broadcast that one.
+		if (session && !session.exited) {
+			session.eventBus?.broadcastTerminalLifecycle({
+				workspaceId: session.workspaceId,
+				terminalId,
+				eventType: "exit",
+				exitCode: 0,
+				signal: 0,
+				occurredAt: endedAt,
+			});
+		}
 	}
 
 	return {
@@ -820,6 +865,12 @@ interface CreateTerminalSessionOptions {
 	 * the WS-down window are dropped (sub-second on a daemon swap).
 	 */
 	replayOnAdoption?: boolean;
+	/**
+	 * Deliver a "session restored" separator ahead of the first replay. Set on
+	 * the cold-restore respawn path, where the renderer paints stale scrollback
+	 * above a brand-new shell.
+	 */
+	restoredNotice?: boolean;
 }
 
 function resolveTerminalCwd(
@@ -867,6 +918,7 @@ export async function createTerminalSessionInternal({
 	rows: requestedRows,
 	adoptOnly = false,
 	replayOnAdoption = true,
+	restoredNotice = false,
 }: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
@@ -941,7 +993,6 @@ export async function createTerminalSessionInternal({
 		workspaceId,
 		workspacePath: workspace.worktreePath,
 		rootPath,
-		hostServiceVersion: process.env.HOST_SERVICE_VERSION || "unknown",
 		supersetEnv:
 			process.env.NODE_ENV === "development" ? "development" : "production",
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
@@ -1051,6 +1102,8 @@ export async function createTerminalSessionInternal({
 		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
+		// Adopted sessions kept a live shell — nothing was restored.
+		restoredNoticePending: restoredNotice && !isAdopted,
 		createdAt,
 		exited: false,
 		exitCode: 0,
@@ -1058,6 +1111,7 @@ export async function createTerminalSessionInternal({
 		listed,
 		title: null,
 		titleScanState: createTerminalTitleScanState(),
+		eventBus,
 		shellReadyState: shellSupportsReady
 			? "pending"
 			: isAdopted
@@ -1352,6 +1406,7 @@ export function registerWorkspaceTerminalRoute({
 					themeType,
 					db,
 					eventBus,
+					restoredNotice: true,
 				});
 			};
 

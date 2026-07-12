@@ -12,7 +12,7 @@ interface RecordEventInput {
 	occurredAt: number;
 }
 
-interface ListFilter {
+export interface TerminalAgentBindingListFilter {
 	agentId?: TerminalAgentId;
 	definitionId?: AgentDefinitionId;
 }
@@ -23,6 +23,22 @@ export interface TerminalAgentBindingPersistence {
 	load(): TerminalAgentBinding[];
 	upsert(binding: TerminalAgentBinding): void;
 	delete(terminalId: string): void;
+	/**
+	 * Liveness-joined reads (session `active` + workspace-owned). When
+	 * provided, the store serves list/find from here so dead-terminal
+	 * bindings are unrepresentable; the in-memory map then only backs
+	 * `get()` (the fresh-launch wait path).
+	 */
+	listLiveByWorkspace?(
+		workspaceId: string,
+		filter?: TerminalAgentBindingListFilter,
+	): TerminalAgentBinding[];
+	listLive?(): TerminalAgentBinding[];
+	findLiveActive?(
+		workspaceId: string,
+		agentId: TerminalAgentId,
+		definitionId?: AgentDefinitionId,
+	): TerminalAgentBinding | undefined;
 }
 
 /**
@@ -107,8 +123,11 @@ export class TerminalAgentStore extends EventEmitter {
 
 	listByWorkspace(
 		workspaceId: string,
-		filter?: ListFilter,
+		filter?: TerminalAgentBindingListFilter,
 	): TerminalAgentBinding[] {
+		if (this.persistence?.listLiveByWorkspace) {
+			return this.persistence.listLiveByWorkspace(workspaceId, filter);
+		}
 		const out: TerminalAgentBinding[] = [];
 		for (const binding of this.byTerminal.values()) {
 			if (binding.workspaceId !== workspaceId) continue;
@@ -120,11 +139,25 @@ export class TerminalAgentStore extends EventEmitter {
 		return out;
 	}
 
+	list(): TerminalAgentBinding[] {
+		if (this.persistence?.listLive) {
+			return this.persistence.listLive();
+		}
+		return [...this.byTerminal.values()];
+	}
+
 	findActive(
 		workspaceId: string,
 		agentId: TerminalAgentId,
 		definitionId?: AgentDefinitionId,
 	): TerminalAgentBinding | undefined {
+		if (this.persistence?.findLiveActive) {
+			return this.persistence.findLiveActive(
+				workspaceId,
+				agentId,
+				definitionId,
+			);
+		}
 		let best: TerminalAgentBinding | undefined;
 		for (const binding of this.byTerminal.values()) {
 			if (binding.workspaceId !== workspaceId) continue;

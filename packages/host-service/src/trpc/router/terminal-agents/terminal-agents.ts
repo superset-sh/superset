@@ -3,7 +3,6 @@ import {
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import {
 	createTerminalSessionInternal,
@@ -39,6 +38,10 @@ const agentDefinitionIdSchema = z.union([
 const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 
 export const terminalAgentsRouter = router({
+	list: protectedProcedure.query(({ ctx }) => {
+		return ctx.terminalAgentStore.list();
+	}),
+
 	listByWorkspace: protectedProcedure
 		.input(
 			z.object({
@@ -159,34 +162,6 @@ export const terminalAgentsRouter = router({
 			} finally {
 				inflight.delete(key);
 			}
-		}),
-
-	/**
-	 * Snapshot-then-deltas stream of bindings for a workspace. For host-side
-	 * consumers; the renderer reads via `listByWorkspace` since its tRPC
-	 * client is httpLink-only.
-	 */
-	onWorkspaceChange: protectedProcedure
-		.input(z.object({ workspaceId: z.string() }))
-		.subscription(({ ctx, input }) => {
-			return observable<{
-				kind: "snapshot" | "change";
-				bindings: TerminalAgentBinding[];
-			}>((emit) => {
-				const snapshot = () => ({
-					bindings: ctx.terminalAgentStore.listByWorkspace(input.workspaceId),
-				});
-				emit.next({ kind: "snapshot", ...snapshot() });
-
-				const handler = (workspaceId: string) => {
-					if (workspaceId !== input.workspaceId) return;
-					emit.next({ kind: "change", ...snapshot() });
-				};
-				ctx.terminalAgentStore.on("change", handler);
-				return () => {
-					ctx.terminalAgentStore.off("change", handler);
-				};
-			});
 		}),
 });
 

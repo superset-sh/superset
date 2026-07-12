@@ -1,0 +1,1 @@
+export { useHostRoutingKey } from "./useHostRoutingKey";

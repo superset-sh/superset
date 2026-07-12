@@ -176,6 +176,74 @@ describe("agentConfigsRouter", () => {
 			expect(created.presetId).toBe("my-bespoke-tag");
 		});
 
+		it("defaults iconId to null and stores a supplied iconId", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const withoutIcon = await caller.add({
+				label: "No Icon",
+				command: "no-icon",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+			expect(withoutIcon.iconId).toBeNull();
+
+			const withIcon = await caller.add({
+				label: "Iconic",
+				command: "iconic",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+				presetId: "custom",
+				iconId: "claude",
+			});
+			expect(withIcon.iconId).toBe("claude");
+		});
+
+		it("stores an uploaded data-URI icon", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANS";
+			const created = await caller.add({
+				label: "Uploaded",
+				command: "uploaded",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+				iconId: dataUrl,
+			});
+
+			expect(created.iconId).toBe(dataUrl);
+		});
+
+		it("rejects an oversized iconId", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			await expect(
+				caller.add({
+					label: "Too Big",
+					command: "too-big",
+					args: [],
+					promptTransport: "argv",
+					promptArgs: [],
+					env: {},
+					iconId: `data:image/png;base64,${"A".repeat(256 * 1024)}`,
+				}),
+			).rejects.toThrow();
+		});
+
+		it("seeds bundled defaults with a null iconId", async () => {
+			const caller = createCaller();
+			const rows = await caller.list();
+			expect(rows.every((row) => row.iconId === null)).toBe(true);
+		});
+
 		it("rejects empty label or command", async () => {
 			const caller = createCaller();
 			await expect(
@@ -224,6 +292,31 @@ describe("agentConfigsRouter", () => {
 			expect(updated.promptTransport).toBe("stdin");
 			expect(updated.promptArgs).toEqual(["-X"]);
 			expect(updated.env).toEqual({ ANTHROPIC_API_KEY: "test" });
+		});
+
+		it("sets and clears iconId", async () => {
+			const caller = createCaller();
+			const created = await caller.add({
+				label: "Custom",
+				command: "custom",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+			expect(created.iconId).toBeNull();
+
+			const set = await caller.update({
+				id: created.id,
+				patch: { iconId: "codex" },
+			});
+			expect(set.iconId).toBe("codex");
+
+			const cleared = await caller.update({
+				id: created.id,
+				patch: { iconId: null },
+			});
+			expect(cleared.iconId).toBeNull();
 		});
 
 		it("rejects invalid promptTransport", async () => {

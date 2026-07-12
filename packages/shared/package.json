@@ -155,7 +155,7 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/friendly-words": "1.2.2",
-		"bun-types": "1.3.11",
+		"bun-types": "1.3.14",
 		"typescript": "6.0.3"
 	}
 }

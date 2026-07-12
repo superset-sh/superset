@@ -1,5 +1,5 @@
 import type { CheckItem } from "@superset/local-db";
-import { and, eq } from "@tanstack/db";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
@@ -13,6 +13,7 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
@@ -226,76 +227,148 @@ export function useAccessibleV2Workspaces(
 		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
 
-	const { data: rows = [] } = useLiveQuery(
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+
+	const { data: hostRows = [] } = useLiveQuery(
+		(q) =>
+			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
+				machineId: hosts.machineId,
+				name: hosts.name,
+				isOnline: hosts.isOnline,
+			})),
+		[collections],
+	);
+
+	const { data: userHostRows = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ workspaces: collections.v2Workspaces })
-				.innerJoin({ hosts: collections.v2Hosts }, ({ workspaces, hosts }) =>
-					eq(workspaces.hostId, hosts.machineId),
-				)
-				.innerJoin(
-					{ userHosts: collections.v2UsersHosts },
-					({ hosts, userHosts }) => eq(userHosts.hostId, hosts.machineId),
-				)
-				.innerJoin(
-					{ projects: collections.v2Projects },
-					({ workspaces, projects }) => eq(workspaces.projectId, projects.id),
-				)
-				.leftJoin(
-					{ sidebarState: collections.v2WorkspaceLocalState },
-					({ workspaces, sidebarState }) =>
-						eq(sidebarState.workspaceId, workspaces.id),
-				)
-				.leftJoin(
-					{ sidebarProject: collections.v2SidebarProjects },
-					({ projects, sidebarProject }) =>
-						eq(sidebarProject.projectId, projects.id),
-				)
-				.leftJoin(
-					{ repos: collections.githubRepositories },
-					({ projects, repos }) => eq(projects.githubRepositoryId, repos.id),
-				)
-				.leftJoin({ creators: collections.users }, ({ workspaces, creators }) =>
-					eq(workspaces.createdByUserId, creators.id),
-				)
-				.where(({ workspaces, userHosts }) =>
-					and(
-						eq(workspaces.organizationId, activeOrganizationId ?? ""),
-						eq(userHosts.userId, currentUserId ?? ""),
-					),
-				)
-				.select(
-					({
-						workspaces,
-						hosts,
-						projects,
-						sidebarState,
-						sidebarProject,
-						repos,
-						creators,
-					}) => ({
-						id: workspaces.id,
-						name: workspaces.name,
-						branch: workspaces.branch,
-						type: workspaces.type,
-						createdAt: workspaces.createdAt,
-						createdByUserId: workspaces.createdByUserId,
-						createdByName: creators?.name ?? null,
-						createdByImage: creators?.image ?? null,
-						projectId: projects.id,
-						projectName: projects.name,
-						projectRepoId: projects.githubRepositoryId,
-						projectGithubOwner: repos?.owner ?? null,
-						hostId: workspaces.hostId,
-						hostName: hosts.name,
-						hostIsOnline: hosts.isOnline,
-						sidebarProjectId: sidebarProject?.projectId ?? null,
-						sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
-						sidebarIsHidden: sidebarState?.sidebarState.isHidden ?? false,
-					}),
-				),
-		[activeOrganizationId, collections, currentUserId],
+				.from({ userHosts: collections.v2UsersHosts })
+				.where(({ userHosts }) => eq(userHosts.userId, currentUserId ?? ""))
+				.select(({ userHosts }) => ({ hostId: userHosts.hostId })),
+		[collections, currentUserId],
 	);
+
+	const { data: projectRows = [] } = useLiveQuery(
+		(q) =>
+			q.from({ projects: collections.v2Projects }).select(({ projects }) => ({
+				id: projects.id,
+				name: projects.name,
+				githubRepositoryId: projects.githubRepositoryId,
+			})),
+		[collections],
+	);
+
+	const { data: sidebarStateRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ sidebarState: collections.v2WorkspaceLocalState })
+				.select(({ sidebarState }) => ({
+					workspaceId: sidebarState.workspaceId,
+					isHidden: sidebarState.sidebarState.isHidden,
+				})),
+		[collections],
+	);
+
+	const { data: sidebarProjectRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ sidebarProject: collections.v2SidebarProjects })
+				.select(({ sidebarProject }) => ({
+					projectId: sidebarProject.projectId,
+				})),
+		[collections],
+	);
+
+	const { data: repoRows = [] } = useLiveQuery(
+		(q) =>
+			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
+				id: repos.id,
+				owner: repos.owner,
+			})),
+		[collections],
+	);
+
+	const { data: creatorRows = [] } = useLiveQuery(
+		(q) =>
+			q.from({ creators: collections.users }).select(({ creators }) => ({
+				id: creators.id,
+				name: creators.name,
+				image: creators.image,
+			})),
+		[collections],
+	);
+
+	// Reproduces the former Electric join: workspaces scoped to the active org,
+	// inner-joined to hosts the current user can access (v2UsersHosts), their
+	// project, and left-joined sidebar/repo/creator metadata.
+	const rows = useMemo(() => {
+		if (activeOrganizationId == null || currentUserId == null) return [];
+		const hostsById = new Map(hostRows.map((host) => [host.machineId, host]));
+		const accessibleHostIds = new Set(userHostRows.map((row) => row.hostId));
+		const projectsById = new Map(
+			projectRows.map((project) => [project.id, project]),
+		);
+		const sidebarStateByWorkspaceId = new Map(
+			sidebarStateRows.map((row) => [row.workspaceId, row]),
+		);
+		const sidebarProjectIds = new Set(
+			sidebarProjectRows.map((row) => row.projectId),
+		);
+		const reposById = new Map(repoRows.map((repo) => [repo.id, repo]));
+		const creatorsById = new Map(
+			creatorRows.map((creator) => [creator.id, creator]),
+		);
+
+		return hostWorkspaces.flatMap((workspace) => {
+			if (workspace.organizationId !== activeOrganizationId) return [];
+			const host = hostsById.get(workspace.hostId);
+			if (!host || !accessibleHostIds.has(workspace.hostId)) return [];
+			const project = projectsById.get(workspace.projectId);
+			if (!project) return [];
+			const sidebarState = sidebarStateByWorkspaceId.get(workspace.id);
+			const repo = project.githubRepositoryId
+				? reposById.get(project.githubRepositoryId)
+				: undefined;
+			const creator = workspace.createdByUserId
+				? creatorsById.get(workspace.createdByUserId)
+				: undefined;
+			return [
+				{
+					id: workspace.id,
+					name: workspace.name,
+					branch: workspace.branch,
+					type: workspace.type,
+					createdAt: workspace.createdAt,
+					createdByUserId: workspace.createdByUserId,
+					createdByName: creator?.name ?? null,
+					createdByImage: creator?.image ?? null,
+					projectId: project.id,
+					projectName: project.name,
+					projectRepoId: project.githubRepositoryId,
+					projectGithubOwner: repo?.owner ?? null,
+					hostId: workspace.hostId,
+					hostName: host.name,
+					hostIsOnline: host.isOnline,
+					sidebarProjectId: sidebarProjectIds.has(project.id)
+						? project.id
+						: null,
+					sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
+					sidebarIsHidden: sidebarState?.isHidden ?? false,
+				},
+			];
+		});
+	}, [
+		activeOrganizationId,
+		currentUserId,
+		hostWorkspaces,
+		hostRows,
+		userHostRows,
+		projectRows,
+		sidebarStateRows,
+		sidebarProjectRows,
+		repoRows,
+		creatorRows,
+	]);
 
 	const { data: prRows = [] } = useLiveQuery(
 		(q) =>

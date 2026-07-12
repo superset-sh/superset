@@ -1,8 +1,4 @@
 import type { Pane, Tab } from "@superset/panes";
-import {
-	type ActivePaneStatus,
-	getHighestPriorityStatus,
-} from "shared/tabs-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
@@ -11,205 +7,130 @@ export type V2NotificationTabLike = Pick<Tab<unknown>, "panes">;
 
 export type V2NotificationSource =
 	| { type: "terminal"; id: string }
-	| { type: "chat"; id: string }
-	| { type: "manual"; id: string };
+	| { type: "chat"; id: string };
 
-export type V2NotificationSourceType = V2NotificationSource["type"];
-export type V2NotificationSourceKey = `${V2NotificationSourceType}:${string}`;
+export type V2NotificationSourceKey =
+	`${V2NotificationSource["type"]}:${string}`;
 export type V2NotificationSourceInput =
 	| V2NotificationSource
 	| V2NotificationSourceKey;
 
-export interface V2NotificationStatusEntry {
-	sourceKey: V2NotificationSourceKey;
-	source: V2NotificationSource;
-	workspaceId: string;
-	status: ActivePaneStatus;
-	occurredAt: number;
-}
-
+/**
+ * Renderer-local notification state. Terminal agent statuses
+ * (working/permission/idle/review) are DERIVED from host agent bindings —
+ * see `renderer/hooks/host-service/useV2NotificationStatus` — so the only
+ * facts stored here are about the user, not the agents:
+ * manual unread marks and per-terminal seen timestamps.
+ */
 export interface V2NotificationState {
-	sources: Record<string, V2NotificationStatusEntry>;
-	setSourceStatus: (
-		source: V2NotificationSource,
-		workspaceId: string,
-		status: ActivePaneStatus,
-		occurredAt?: number,
-	) => void;
-	setTerminalStatus: (
-		terminalId: string,
-		workspaceId: string,
-		status: ActivePaneStatus,
-		occurredAt?: number,
-	) => void;
-	setChatStatus: (
-		chatId: string,
-		workspaceId: string,
-		status: ActivePaneStatus,
-		occurredAt?: number,
-	) => void;
+	/** Workspaces manually marked unread from the sidebar. */
+	manualUnread: Record<string, true>;
+	/**
+	 * terminalId → last agent event the user has seen for that terminal.
+	 * Compared to the host binding's lastEventAt to derive `review` (unseen
+	 * Stop). `at` must be a HOST-clock value (event occurredAt or binding
+	 * lastEventAt) — never the renderer clock, which can drift either way
+	 * and, with the monotonic guard, poison the comparison.
+	 */
+	terminalSeenAt: Record<string, number>;
 	setManualUnread: (workspaceId: string) => void;
-	clearSourceStatus: (
-		source: V2NotificationSourceInput,
-		workspaceId?: string,
-	) => void;
-	clearSourceStatuses: (
-		sources: Iterable<V2NotificationSourceInput>,
-		workspaceId?: string,
-	) => void;
-	clearSourceAttention: (
-		source: V2NotificationSourceInput,
-		workspaceId?: string,
-	) => void;
-	clearWorkspaceStatuses: (workspaceId: string) => void;
-	clearWorkspaceAttention: (workspaceId: string) => void;
+	clearManualUnread: (workspaceId: string) => void;
+	markTerminalSeen: (terminalId: string, at: number) => void;
+	pruneTerminalSeen: (terminalId: string) => void;
 }
 
 export const useV2NotificationStore = create<V2NotificationState>()(
 	devtools(
 		persist(
 			(set) => ({
-				sources: {},
-				setSourceStatus: (
-					source,
-					workspaceId,
-					status,
-					occurredAt = Date.now(),
-				) => {
-					const sourceKey = getV2NotificationSourceKey(source);
+				manualUnread: {},
+				terminalSeenAt: {},
+				setManualUnread: (workspaceId) => {
 					set((state) => ({
-						sources: {
-							...state.sources,
-							[sourceKey]: {
-								sourceKey,
-								source,
-								workspaceId,
-								status,
-								occurredAt,
-							},
-						},
+						manualUnread: { ...state.manualUnread, [workspaceId]: true },
 					}));
 				},
-				setTerminalStatus: (terminalId, workspaceId, status, occurredAt) => {
-					useV2NotificationStore
-						.getState()
-						.setSourceStatus(
-							getV2TerminalNotificationSource(terminalId),
-							workspaceId,
-							status,
-							occurredAt,
-						);
-				},
-				setChatStatus: (chatId, workspaceId, status, occurredAt) => {
-					useV2NotificationStore
-						.getState()
-						.setSourceStatus(
-							getV2ChatNotificationSource(chatId),
-							workspaceId,
-							status,
-							occurredAt,
-						);
-				},
-				setManualUnread: (workspaceId) => {
-					useV2NotificationStore
-						.getState()
-						.setSourceStatus(
-							getV2ManualNotificationSource(workspaceId),
-							workspaceId,
-							"review",
-						);
-				},
-				clearSourceStatus: (source, workspaceId) => {
-					const sourceKey = getV2NotificationSourceKey(source);
+				clearManualUnread: (workspaceId) => {
 					set((state) => {
-						const entry = state.sources[sourceKey];
-						if (!entry || (workspaceId && entry.workspaceId !== workspaceId)) {
-							return state;
-						}
-						const { [sourceKey]: _removed, ...sources } = state.sources;
-						return { sources };
+						if (!(workspaceId in state.manualUnread)) return state;
+						const { [workspaceId]: _removed, ...manualUnread } =
+							state.manualUnread;
+						return { manualUnread };
 					});
 				},
-				clearSourceStatuses: (sourceInputs, workspaceId) => {
+				markTerminalSeen: (terminalId, at) => {
 					set((state) => {
-						const sourceKeys = new Set(
-							[...sourceInputs].map(getV2NotificationSourceKey),
-						);
-						const sources: Record<string, V2NotificationStatusEntry> = {};
-						let changed = false;
-						for (const [sourceKey, source] of Object.entries(state.sources)) {
-							if (
-								sourceKeys.has(sourceKey as V2NotificationSourceKey) &&
-								(!workspaceId || source.workspaceId === workspaceId)
-							) {
-								changed = true;
-								continue;
-							}
-							sources[sourceKey] = source;
-						}
-						return changed ? { sources } : state;
+						const prev = state.terminalSeenAt[terminalId];
+						// Monotonic: a late event must not roll the seen mark back.
+						if (prev !== undefined && prev >= at) return state;
+						return {
+							terminalSeenAt: { ...state.terminalSeenAt, [terminalId]: at },
+						};
 					});
 				},
-				clearSourceAttention: (source, workspaceId) => {
-					const sourceKey = getV2NotificationSourceKey(source);
+				pruneTerminalSeen: (terminalId) => {
 					set((state) => {
-						const entry = state.sources[sourceKey];
-						if (
-							!entry ||
-							entry.status !== "review" ||
-							(workspaceId && entry.workspaceId !== workspaceId)
-						) {
-							return state;
-						}
-						const { [sourceKey]: _removed, ...sources } = state.sources;
-						return { sources };
-					});
-				},
-				clearWorkspaceStatuses: (workspaceId) => {
-					set((state) => {
-						const sources: Record<string, V2NotificationStatusEntry> = {};
-						let changed = false;
-						for (const [sourceKey, source] of Object.entries(state.sources)) {
-							if (source.workspaceId === workspaceId) {
-								changed = true;
-								continue;
-							}
-							sources[sourceKey] = source;
-						}
-						return changed ? { sources } : state;
-					});
-				},
-				clearWorkspaceAttention: (workspaceId) => {
-					set((state) => {
-						const sources: Record<string, V2NotificationStatusEntry> = {};
-						let changed = false;
-						for (const [sourceKey, source] of Object.entries(state.sources)) {
-							if (
-								source.workspaceId === workspaceId &&
-								source.status === "review"
-							) {
-								changed = true;
-								continue;
-							}
-							sources[sourceKey] = source;
-						}
-						return changed ? { sources } : state;
+						if (!(terminalId in state.terminalSeenAt)) return state;
+						const { [terminalId]: _removed, ...terminalSeenAt } =
+							state.terminalSeenAt;
+						return { terminalSeenAt };
 					});
 				},
 			}),
 			{
 				name: "v2-notifications-v1",
-				version: 1,
-				// Persist only the status map; methods are re-supplied by the
-				// initializer on rehydrate. Survives restart so sidebar agent
-				// status dots (working/permission/review) are restored
-				// immediately; live lifecycle events reconcile from there.
-				partialize: (state) => ({ sources: state.sources }),
+				version: 2,
+				partialize: (state) => ({
+					manualUnread: state.manualUnread,
+					terminalSeenAt: state.terminalSeenAt,
+				}),
+				migrate: migrateV2NotificationState,
 			},
 		),
 		{ name: "V2Notifications" },
 	),
 );
+
+type PersistedV2NotificationState = Pick<
+	V2NotificationState,
+	"manualUnread" | "terminalSeenAt"
+>;
+
+/**
+ * v1 persisted a per-source status map. Terminal statuses are now derived
+ * from host bindings (carrying them forward would resurrect the stale-dot
+ * bug) and chat statuses never shipped, so only manual unread marks survive.
+ */
+export function migrateV2NotificationState(
+	persisted: unknown,
+	version: number,
+): PersistedV2NotificationState {
+	if (version >= 2) {
+		const state = persisted as
+			| Partial<PersistedV2NotificationState>
+			| undefined;
+		return {
+			manualUnread: state?.manualUnread ?? {},
+			terminalSeenAt: state?.terminalSeenAt ?? {},
+		};
+	}
+	const legacy = persisted as
+		| {
+				sources?: Record<string, { workspaceId?: string; status?: string }>;
+		  }
+		| undefined;
+	const manualUnread: Record<string, true> = {};
+	for (const [sourceKey, entry] of Object.entries(legacy?.sources ?? {})) {
+		if (
+			sourceKey.startsWith("manual:") &&
+			entry.status === "review" &&
+			entry.workspaceId
+		) {
+			manualUnread[entry.workspaceId] = true;
+		}
+	}
+	return { manualUnread, terminalSeenAt: {} };
+}
 
 export function getV2NotificationSourceKey(
 	source: V2NotificationSourceInput,
@@ -224,25 +145,13 @@ export function getV2TerminalNotificationSource(
 	return { type: "terminal", id: terminalId };
 }
 
-export function getV2ChatNotificationSource(
-	chatId: string,
-): V2NotificationSource {
-	return { type: "chat", id: chatId };
-}
-
-export function getV2ManualNotificationSource(
-	workspaceId: string,
-): V2NotificationSource {
-	return { type: "manual", id: workspaceId };
-}
-
 export function getV2NotificationSourcesForPane(
 	pane: V2NotificationPaneLike | null | undefined,
 ): V2NotificationSource[] {
 	const terminalId = getTerminalIdForPane(pane);
 	if (terminalId) return [getV2TerminalNotificationSource(terminalId)];
 	const chatId = getChatIdForPane(pane);
-	if (chatId) return [getV2ChatNotificationSource(chatId)];
+	if (chatId) return [{ type: "chat", id: chatId }];
 	return [];
 }
 
@@ -257,166 +166,6 @@ export function getV2NotificationSourcesForTab(
 		}
 	}
 	return [...sources.values()];
-}
-
-/**
- * Used by close (races against host exit) and interrupt (pty stays alive,
- * no host exit) — neither can rely on the `terminal:lifecycle` exit path.
- */
-export function clearV2TerminalRunStatus(
-	terminalId: string,
-	workspaceId: string,
-): void {
-	useV2NotificationStore
-		.getState()
-		.clearSourceStatus(
-			getV2TerminalNotificationSource(terminalId),
-			workspaceId,
-		);
-}
-
-export function selectV2WorkspaceNotificationStatus(workspaceId: string) {
-	return (state: V2NotificationState) => {
-		function* statuses() {
-			for (const source of Object.values(state.sources)) {
-				if (source.workspaceId === workspaceId) {
-					yield source.status;
-				}
-			}
-		}
-		return getHighestPriorityStatus(statuses());
-	};
-}
-
-export function selectV2TabNotificationStatus(
-	workspaceId: string,
-	tab: V2NotificationTabLike | null | undefined,
-) {
-	return selectV2SourcesNotificationStatus(
-		workspaceId,
-		getV2NotificationSourcesForTab(tab),
-	);
-}
-
-export function selectV2PaneNotificationStatus(
-	workspaceId: string,
-	pane: V2NotificationPaneLike | null | undefined,
-) {
-	return selectV2SourcesNotificationStatus(
-		workspaceId,
-		getV2NotificationSourcesForPane(pane),
-	);
-}
-
-export function selectV2TerminalNotificationStatus(
-	workspaceId: string,
-	terminalId: string | null | undefined,
-) {
-	return selectV2SourcesNotificationStatus(
-		workspaceId,
-		terminalId ? [getV2TerminalNotificationSource(terminalId)] : [],
-	);
-}
-
-export function selectV2ChatNotificationStatus(
-	workspaceId: string,
-	chatId: string | null | undefined,
-) {
-	return selectV2SourcesNotificationStatus(
-		workspaceId,
-		chatId ? [getV2ChatNotificationSource(chatId)] : [],
-	);
-}
-
-export function selectV2SourcesNotificationStatus(
-	workspaceId: string,
-	sources: Iterable<V2NotificationSourceInput>,
-) {
-	const sourceKeys = [...new Set([...sources].map(getV2NotificationSourceKey))];
-	return (state: V2NotificationState) =>
-		selectStatusForSourceKeys(state, workspaceId, sourceKeys);
-}
-
-export function useV2WorkspaceNotificationStatus(workspaceId: string) {
-	return useV2NotificationStore(
-		selectV2WorkspaceNotificationStatus(workspaceId),
-	);
-}
-
-export function selectV2WorkspaceIsUnread(workspaceId: string) {
-	return (state: V2NotificationState) => {
-		for (const entry of Object.values(state.sources)) {
-			if (entry.workspaceId === workspaceId && entry.status === "review") {
-				return true;
-			}
-		}
-		return false;
-	};
-}
-
-export function useV2WorkspaceIsUnread(workspaceId: string) {
-	return useV2NotificationStore(selectV2WorkspaceIsUnread(workspaceId));
-}
-
-export function useV2TabNotificationStatus(
-	workspaceId: string,
-	tab: V2NotificationTabLike | null | undefined,
-) {
-	return useV2NotificationStore(
-		selectV2TabNotificationStatus(workspaceId, tab),
-	);
-}
-
-export function useV2PaneNotificationStatus(
-	workspaceId: string,
-	pane: V2NotificationPaneLike | null | undefined,
-) {
-	return useV2NotificationStore(
-		selectV2PaneNotificationStatus(workspaceId, pane),
-	);
-}
-
-export function useV2TerminalNotificationStatus(
-	workspaceId: string,
-	terminalId: string | null | undefined,
-) {
-	return useV2NotificationStore(
-		selectV2TerminalNotificationStatus(workspaceId, terminalId),
-	);
-}
-
-export function useV2ChatNotificationStatus(
-	workspaceId: string,
-	chatId: string | null | undefined,
-) {
-	return useV2NotificationStore(
-		selectV2ChatNotificationStatus(workspaceId, chatId),
-	);
-}
-
-export function useV2SourcesNotificationStatus(
-	workspaceId: string,
-	sources: Iterable<V2NotificationSourceInput>,
-) {
-	return useV2NotificationStore(
-		selectV2SourcesNotificationStatus(workspaceId, sources),
-	);
-}
-
-function selectStatusForSourceKeys(
-	state: V2NotificationState,
-	workspaceId: string,
-	sourceKeys: Iterable<V2NotificationSourceKey>,
-) {
-	function* statuses() {
-		for (const sourceKey of sourceKeys) {
-			const source = state.sources[sourceKey];
-			if (source?.workspaceId === workspaceId) {
-				yield source.status;
-			}
-		}
-	}
-	return getHighestPriorityStatus(statuses());
 }
 
 function getTerminalIdForPane(

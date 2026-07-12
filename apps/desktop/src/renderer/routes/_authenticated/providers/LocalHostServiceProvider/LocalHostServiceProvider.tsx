@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createContext,
@@ -36,7 +37,17 @@ export function LocalHostServiceProvider({
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const { mutate: startHostService } =
-		electronTrpc.hostServiceCoordinator.start.useMutation();
+		electronTrpc.hostServiceCoordinator.start.useMutation({
+			onError: (error) => {
+				// Surface the failure — React Query otherwise settles it silently.
+				console.error("[host-service] start failed:", error);
+				// Auth preconditions resolve once the token lands; not a real failure.
+				if (error.data?.code === "UNAUTHORIZED") return;
+				toast.error("Host service failed to start", {
+					description: error.message,
+				});
+			},
+		});
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID

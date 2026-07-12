@@ -1,5 +1,6 @@
 import type { SimpleGit } from "simple-git";
 import type { Branch, ChangedFile } from "../types";
+import { scheduleBaseRefFetch } from "./base-ref-freshness";
 import {
 	buildBranch,
 	countUntrackedFileLines,
@@ -34,6 +35,12 @@ export async function getGitStatusSnapshot({
 	const base = await resolveBaseComparison(git, baseBranch);
 	const defaultBranchName = base?.branchName ?? null;
 	const baseRef = base?.baseRef ?? "HEAD";
+
+	// Non-blocking refresh so the against-base diff stops ballooning after a
+	// rebase; see base-ref-freshness.
+	if (base?.fetchTarget) {
+		scheduleBaseRefFetch(git, worktreePath, base.fetchTarget);
+	}
 
 	const [currentBranch, defaultBranch, status, ignoredRaw] = await Promise.all([
 		buildBranch(git, currentBranchName, true, baseRef),

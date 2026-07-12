@@ -28,6 +28,10 @@
 			"types": "./src/seed-default-statuses.ts",
 			"default": "./src/seed-default-statuses.ts"
 		},
+		"./task-list-query": {
+			"types": "./src/task-list-query.ts",
+			"default": "./src/task-list-query.ts"
+		},
 		"./utils": {
 			"types": "./src/utils/index.ts",
 			"default": "./src/utils/index.ts"
@@ -51,7 +55,7 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
-		"bun-types": "1.3.11",
+		"bun-types": "1.3.14",
 		"drizzle-kit": "0.31.8",
 		"typescript": "6.0.3"
 	}

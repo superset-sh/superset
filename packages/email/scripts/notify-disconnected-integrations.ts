@@ -33,7 +33,7 @@ import { aliasedTable, and, eq, isNull } from "drizzle-orm";
 import { Resend } from "resend";
 
 const FROM = "Superset <noreply@superset.sh>";
-const REPLY_TO = "founders@superset.sh";
+const REPLY_TO = "support@superset.sh";
 
 function parseArgs() {
 	const args = process.argv.slice(2);

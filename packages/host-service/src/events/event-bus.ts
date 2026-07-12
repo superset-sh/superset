@@ -183,6 +183,20 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out workspace lifecycle changes (create/rename/delete) from the
+	 * host-owned workspaces table. Broadcast to all clients — list consumers
+	 * subscribe host-wide rather than per-workspace.
+	 */
+	broadcastWorkspaceChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "workspace:changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "workspace:changed", ...message });
+	}
+
+	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while
 	 * keeping a slow refetch as a reconnect fallback.
@@ -275,6 +289,13 @@ export class EventBus {
 					const next = await iterator.next();
 					if (disposed || next.done) return;
 
+					if (process.env.SUPERSET_FS_EVENTS_DEBUG === "1") {
+						console.log("[fs:debug] event-bus send", {
+							workspaceId,
+							count: next.value.events.length,
+							kinds: next.value.events.map((e) => e.kind),
+						});
+					}
 					sendMessage(socket, {
 						type: "fs:events",
 						workspaceId,

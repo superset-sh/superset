@@ -1,7 +1,7 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -10,6 +10,7 @@ import {
 	getVisibleSidebarWorkspaces,
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
@@ -134,9 +135,6 @@ export function useDashboardSidebarData() {
 	const workspaceTransactionsById = useWorkspaceTransactionsStore(
 		(state) => state.byWorkspaceId,
 	);
-	const clearWorkspaceTransaction = useWorkspaceTransactionsStore(
-		(state) => state.clear,
-	);
 
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
@@ -208,35 +206,52 @@ export function useDashboardSidebarData() {
 		[collections],
 	);
 
-	const { data: rawSidebarWorkspaces = [] } = useLiveQuery(
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const hostWorkspacesById = useMemo(
+		() => new Map(hostWorkspaces.map((workspace) => [workspace.id, workspace])),
+		[hostWorkspaces],
+	);
+
+	const { data: sidebarLocalStateRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
-				.innerJoin(
-					{ workspaces: collections.v2Workspaces },
-					({ sidebarWorkspaces, workspaces }) =>
-						eq(sidebarWorkspaces.workspaceId, workspaces.id),
-				)
 				.orderBy(
 					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
 					"asc",
 				)
-				.select(({ sidebarWorkspaces, workspaces }) => ({
-					id: workspaces.id,
+				.select(({ sidebarWorkspaces }) => ({
+					workspaceId: sidebarWorkspaces.workspaceId,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
-					hostId: workspaces.hostId,
-					type: workspaces.type,
-					name: workspaces.name,
-					branch: workspaces.branch,
-					taskId: workspaces.taskId,
-					createdAt: workspaces.createdAt,
-					updatedAt: workspaces.updatedAt,
-					isSynced: workspaces.$synced,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 				})),
 		[collections],
+	);
+	const rawSidebarWorkspaces = useMemo(
+		() =>
+			sidebarLocalStateRows.flatMap((localState) => {
+				const workspace = hostWorkspacesById.get(localState.workspaceId);
+				if (!workspace) return [];
+				return [
+					{
+						id: workspace.id,
+						projectId: localState.projectId,
+						hostId: workspace.hostId,
+						type: workspace.type,
+						name: workspace.name,
+						branch: workspace.branch,
+						taskId: workspace.taskId,
+						createdAt: workspace.createdAt,
+						updatedAt: workspace.updatedAt,
+						tabOrder: localState.tabOrder,
+						sectionId: localState.sectionId,
+						isHidden: localState.isHidden,
+					},
+				];
+			}),
+		[hostWorkspacesById, sidebarLocalStateRows],
 	);
 	const rawSidebarWorkspacesWithHostStatus = useMemo(
 		() =>
@@ -258,26 +273,24 @@ export function useDashboardSidebarData() {
 		[rawSidebarWorkspaces],
 	);
 
-	const { data: rawLocalMainWorkspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.type, "main"))
-				.select(({ workspaces }) => ({
-					id: workspaces.id,
-					projectId: workspaces.projectId,
-					hostId: workspaces.hostId,
-					type: workspaces.type,
-					name: workspaces.name,
-					branch: workspaces.branch,
-					taskId: workspaces.taskId,
-					createdAt: workspaces.createdAt,
-					updatedAt: workspaces.updatedAt,
-					isSynced: workspaces.$synced,
+	const rawLocalMainWorkspaces = useMemo(
+		() =>
+			hostWorkspaces
+				.filter((workspace) => workspace.type === "main")
+				.map((workspace) => ({
+					id: workspace.id,
+					projectId: workspace.projectId,
+					hostId: workspace.hostId,
+					type: workspace.type,
+					name: workspace.name,
+					branch: workspace.branch,
+					taskId: workspace.taskId,
+					createdAt: workspace.createdAt,
+					updatedAt: workspace.updatedAt,
 					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
 					sectionId: null as string | null,
 				})),
-		[collections],
+		[hostWorkspaces],
 	);
 	const localMainWorkspaces = useMemo(
 		() =>
@@ -288,23 +301,6 @@ export function useDashboardSidebarData() {
 			})),
 		[hostsByMachineId, rawLocalMainWorkspaces, workspaceTransactionsById],
 	);
-
-	useEffect(() => {
-		for (const workspace of [
-			...rawSidebarWorkspaces,
-			...rawLocalMainWorkspaces,
-		]) {
-			const transaction = workspaceTransactionsById[workspace.id];
-			if (workspace.isSynced && transaction?.type === "insert") {
-				clearWorkspaceTransaction(workspace.id);
-			}
-		}
-	}, [
-		clearWorkspaceTransaction,
-		rawLocalMainWorkspaces,
-		rawSidebarWorkspaces,
-		workspaceTransactionsById,
-	]);
 
 	const visibleSidebarWorkspaces = useMemo(() => {
 		const sidebarProjectIds = new Set(

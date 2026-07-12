@@ -3,6 +3,12 @@
  * defend against. A passing test = defense holds; a failing test = real
  * bug worth fixing.
  *
+ * The filesystem section also pins the intended sandbox policy in both
+ * directions: reads are host-wide (viewing files a terminal/agent referenced
+ * outside the workspace), mutations are confined to the workspace root. An
+ * "allows" test failing means the read policy regressed, not that a defense
+ * appeared.
+ *
  * Categories:
  *   - sandbox / path traversal in workspace-fs operations
  *   - shell-arg / git-flag injection through user-controlled refs
@@ -13,7 +19,13 @@
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
@@ -21,7 +33,7 @@ import { projects, workspaces } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
 import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
 
-describe("bug-hunt: filesystem sandbox", () => {
+describe("bug-hunt: filesystem sandbox (mutations confined, reads host-wide)", () => {
 	let host: TestHost;
 	let repo: GitFixture;
 	const projectId = randomUUID();
@@ -64,15 +76,39 @@ describe("bug-hunt: filesystem sandbox", () => {
 		expect(existsSync(escapeWritePath)).toBe(false);
 	});
 
-	test("readFile rejects paths outside the workspace root", async () => {
-		// Try to read the test repo's parent /etc/hostname-equivalent
-		await expect(
-			host.trpc.filesystem.readFile.query({
+	test("readFile allows viewing paths outside the workspace root", async () => {
+		const sibling = join(repo.repoPath, "..", `outside-read-${randomUUID()}`);
+		writeFileSync(sibling, "outside content");
+		try {
+			const result = await host.trpc.filesystem.readFile.query({
 				workspaceId,
-				absolutePath: `${repo.repoPath}/../../../etc/hosts`,
+				absolutePath: sibling,
 				encoding: "utf8",
-			}),
-		).rejects.toThrow();
+			});
+			expect(result.kind).toBe("text");
+			expect(result.content).toBe("outside content");
+		} finally {
+			rmSync(sibling, { force: true });
+		}
+	});
+
+	test("readFile still rejects in-workspace symlinks that escape the root", async () => {
+		const outside = join(repo.repoPath, "..", `symlink-target-${randomUUID()}`);
+		writeFileSync(outside, "secret");
+		const link = join(repo.repoPath, "innocent-looking.txt");
+		symlinkSync(outside, link);
+		try {
+			await expect(
+				host.trpc.filesystem.readFile.query({
+					workspaceId,
+					absolutePath: link,
+					encoding: "utf8",
+				}),
+			).rejects.toThrow();
+		} finally {
+			rmSync(link, { force: true });
+			rmSync(outside, { force: true });
+		}
 	});
 
 	test("deletePath rejects targets outside the workspace root", async () => {
@@ -89,8 +125,6 @@ describe("bug-hunt: filesystem sandbox", () => {
 		).rejects.toThrow();
 		expect(existsSync(join(sibling, "marker"))).toBe(true);
 
-		// Cleanup
-		const { rmSync } = await import("node:fs");
 		rmSync(sibling, { recursive: true, force: true });
 	});
 
@@ -128,13 +162,14 @@ describe("bug-hunt: filesystem sandbox", () => {
 		}
 	});
 
-	test("listDirectory rejects absolute paths outside workspace root", async () => {
-		await expect(
-			host.trpc.filesystem.listDirectory.query({
-				workspaceId,
-				absolutePath: "/etc",
-			}),
-		).rejects.toThrow();
+	test("listDirectory allows absolute paths outside workspace root", async () => {
+		const { entries } = await host.trpc.filesystem.listDirectory.query({
+			workspaceId,
+			absolutePath: join(repo.repoPath, ".."),
+		});
+		expect(entries.some((entry) => entry.absolutePath === repo.repoPath)).toBe(
+			true,
+		);
 	});
 });
 

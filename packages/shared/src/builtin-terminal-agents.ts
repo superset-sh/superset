@@ -125,6 +125,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "vibe",
+		label: "Mistral Vibe",
+		description:
+			"Mistral's coding agent for reading, editing, and running code from the terminal.",
+		command: "vibe --trust --auto-approve",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "cursor-agent",
 		label: "Cursor Agent",
 		description:
@@ -136,6 +144,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Droid",
 		description: "Factory's autonomous coding agent for terminal workflows.",
 		command: "droid",
+	}),
+	createBuiltinTerminalAgent({
+		id: "polygraph",
+		label: "Polygraph",
+		description:
+			"The meta-harness that gives agents cross-repo visibility and memory that survives every session.",
+		command: "polygraph session start",
+		promptCommand: "polygraph session start --",
 	}),
 ] as const;
 

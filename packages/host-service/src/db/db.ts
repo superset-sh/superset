@@ -12,6 +12,7 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 
 	const sqlite = new Database(dbPath);
 	sqlite.pragma("journal_mode = WAL");
+	sqlite.pragma("busy_timeout = 5000");
 	sqlite.pragma("foreign_keys = ON");
 
 	const db = drizzle(sqlite, { schema });
@@ -20,11 +21,8 @@ export function createDb(dbPath: string, migrationsFolder: string) {
 		`[host-service:db] Initialized at ${dbPath}, migrations from ${migrationsFolder}`,
 	);
 
-	try {
-		migrate(db, { migrationsFolder });
-	} catch (error) {
-		console.error("[host-service:db] Migration failed:", error);
-	}
+	// Let a failed migration throw — never serve a half-migrated DB.
+	migrate(db, { migrationsFolder });
 
 	return db;
 }

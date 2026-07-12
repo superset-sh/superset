@@ -1,3 +1,7 @@
+import {
+	buildArgvCommand,
+	envOverlayPrefix,
+} from "@superset/shared/agent-prompt-launch";
 import SuperJSON from "superjson";
 import { getAuthToken } from "./auth-token";
 import { getRelayUrl } from "./relay-url";
@@ -100,21 +104,6 @@ export function listHostAgentConfigs(routingKey: string) {
 		undefined,
 		"GET",
 	);
-}
-
-function quoteSingleShell(value: string): string {
-	return `'${value.replaceAll("'", "'\\''")}'`;
-}
-
-function buildArgvCommand(argv: string[]): string {
-	return argv.map(quoteSingleShell).join(" ");
-}
-
-function envOverlayPrefix(env: Record<string, string>): string {
-	const assignments = Object.entries(env).map(
-		([key, value]) => `${key}=${quoteSingleShell(value)}`,
-	);
-	return assignments.length > 0 ? `${assignments.join(" ")} ` : "";
 }
 
 export function buildHostAgentLaunchCommand(config: {

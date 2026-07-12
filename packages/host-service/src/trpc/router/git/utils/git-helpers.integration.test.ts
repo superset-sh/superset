@@ -133,7 +133,11 @@ describe("resolveBaseComparison (integration)", () => {
 
 	test("falls back to origin/<default> when no upstream configured", async () => {
 		const result = await resolveBaseComparison(git);
-		expect(result).toEqual({ branchName: "main", baseRef: "origin/main" });
+		expect(result).toEqual({
+			branchName: "main",
+			baseRef: "origin/main",
+			fetchTarget: { remote: "origin", branch: "main" },
+		});
 	});
 
 	test("honors configured upstream remote (fork workflow)", async () => {
@@ -143,6 +147,7 @@ describe("resolveBaseComparison (integration)", () => {
 		expect(await resolveBaseComparison(git)).toEqual({
 			branchName: "main",
 			baseRef: "upstream/main",
+			fetchTarget: { remote: "upstream", branch: "main" },
 		});
 	});
 
@@ -153,6 +158,7 @@ describe("resolveBaseComparison (integration)", () => {
 		expect(await resolveBaseComparison(git, "integration")).toEqual({
 			branchName: "integration",
 			baseRef: "main",
+			fetchTarget: null,
 		});
 	});
 
@@ -163,6 +169,7 @@ describe("resolveBaseComparison (integration)", () => {
 		expect(await resolveBaseComparison(git, "main")).toEqual({
 			branchName: "main",
 			baseRef: "upstream/main",
+			fetchTarget: { remote: "upstream", branch: "main" },
 		});
 	});
 

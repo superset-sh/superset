@@ -12,6 +12,7 @@ const AGENTS = [
 	{ name: "Codex", icon: "/app-icons/codex.svg", size: 18 },
 	{ name: "Gemini", icon: "/app-icons/gemini.svg", size: 18 },
 	{ name: "Cursor Agent", icon: "/app-icons/cursor-agent.svg", size: 18 },
+	{ name: "Mistral Vibe", icon: "/app-icons/vibe.svg", size: 18 },
 ];
 
 export function UniversalCompatibilityDemo() {

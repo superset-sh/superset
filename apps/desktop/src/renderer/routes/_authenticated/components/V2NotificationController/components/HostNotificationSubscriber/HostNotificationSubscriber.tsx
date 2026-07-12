@@ -57,10 +57,7 @@ export function HostNotificationSubscriber({
 		(workspaceId: string, payload: TerminalLifecyclePayload) => {
 			const workspace = workspacesById.get(workspaceId);
 			if (!workspace) return;
-			handleV2TerminalLifecycleEvent({
-				workspaceId,
-				payload,
-			});
+			handleV2TerminalLifecycleEvent({ payload });
 		},
 	);
 

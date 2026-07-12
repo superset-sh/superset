@@ -1,1 +1,0 @@
-export { DashboardSidebarWorkspaceDetailsToggle } from "./DashboardSidebarWorkspaceDetailsToggle";

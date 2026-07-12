@@ -1,6 +1,7 @@
 import { CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveHostTarget } from "../../../lib/host-target";
+import { findHostWorkspace } from "../../../lib/host-workspaces";
 import { uploadAttachments } from "../../../lib/upload-attachments";
 
 export default command({
@@ -28,16 +29,23 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
-			organizationId,
-			id: options.workspace,
-		});
-		if (!cloudWorkspace) {
-			throw new CLIError(`Workspace not found: ${options.workspace}`);
+		// Workspace records are host-owned: resolve the id across the org's
+		// reachable hosts.
+		const { workspace, warnings } = await findHostWorkspace(
+			{ api: ctx.api, organizationId, userJwt: ctx.bearer },
+			options.workspace,
+		);
+		for (const warning of warnings) {
+			process.stderr.write(`Warning: ${warning}\n`);
+		}
+		if (!workspace) {
+			throw new CLIError(
+				`Workspace not found on any reachable host: ${options.workspace}`,
+			);
 		}
 
 		const target = resolveHostTarget({
-			requestedHostId: cloudWorkspace.hostId,
+			requestedHostId: workspace.hostId,
 			organizationId,
 			userJwt: ctx.bearer,
 		});

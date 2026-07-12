@@ -310,7 +310,7 @@ describe("workspaces.create PR checkout integration", () => {
 		);
 	});
 
-	test("removes a materialized PR branch when registration fails after worktree add", async () => {
+	test("keeps the PR worktree and registers locally when cloud create fails", async () => {
 		const prNumber = 6062;
 		let prHeadOid = "";
 
@@ -384,27 +384,26 @@ describe("workspaces.create PR checkout integration", () => {
 		await scenario.repo.git.checkout("main");
 		await scenario.repo.git.deleteLocalBranch("feature/rollback", true);
 
-		const error = await scenario.host.trpc.workspaces.create
-			.mutate({
-				projectId: scenario.projectId,
-				name: "Rollback PR workspace",
-				pr: prNumber,
-			})
-			.catch((err: unknown) => err);
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "Rollback PR workspace",
+			pr: prNumber,
+		});
 
-		expect(error).toBeInstanceOf(TRPCClientError);
-		expect(String((error as Error).message)).toContain(
-			"cloud workspace create failed",
-		);
-		expect(getWorkspaceRow(scenario, expectedBranch)).toBeUndefined();
-		expect(existsSync(expectedWorktreePath)).toBe(false);
+		// Cloud create failing no longer rolls anything back — the local row
+		// is authoritative and stays cloud-dirty for the reconciler.
+		expect(result.workspace.id).toBeDefined();
+		const persisted = getWorkspaceRow(scenario, expectedBranch);
+		expect(persisted).toBeDefined();
+		expect(persisted?.cloudSyncedAt).toBeNull();
+		expect(existsSync(expectedWorktreePath)).toBe(true);
 		const branchStillExists = await scenario.repo.git
 			.raw(["rev-parse", "--verify", `refs/heads/${expectedBranch}`])
 			.then(
 				() => true,
 				() => false,
 			);
-		expect(branchStillExists).toBe(false);
+		expect(branchStillExists).toBe(true);
 	});
 
 	test("reports PR head verification failures as internal errors", async () => {

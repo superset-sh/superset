@@ -1,0 +1,36 @@
+{
+	"configVersion": 0,
+	"apple": {
+		"copyright": "2026 Superset",
+		"categories": ["DEVELOPER_TOOLS", "PRODUCTIVITY"],
+		"info": {
+			"en-US": {
+				"title": "Superset Mobile",
+				"subtitle": "Run AI agents from anywhere",
+				"description": "Superset lets you run and manage AI coding agents from anywhere. Kick off tasks, review progress, and chat with agents working across your projects — all from your phone.\n\n- Start and monitor agent sessions in isolated workspaces\n- Chat with agents and attach images to your messages\n- Track tasks and pull requests across your organization\n- Stay in sync with your team in real time",
+				"keywords": [
+					"coding agents",
+					"AI",
+					"developer tools",
+					"claude",
+					"codex",
+					"vibe",
+					"mistral",
+					"pair programming",
+					"automation"
+				],
+				"marketingUrl": "https://superset.sh",
+				"supportUrl": "https://superset.sh",
+				"privacyPolicyUrl": "https://superset.sh/privacy"
+			}
+		},
+		"review": {
+			"firstName": "Satya",
+			"lastName": "Patel",
+			"email": "support@superset.sh",
+			"phone": "+1 000 000 0000",
+			"demoRequired": false,
+			"notes": "Sign in requires a GitHub or Google account. TODO: provide a demo account before App Store review."
+		}
+	}
+}

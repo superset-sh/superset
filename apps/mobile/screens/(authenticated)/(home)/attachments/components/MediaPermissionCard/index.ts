@@ -1,0 +1,1 @@
+export { MediaPermissionCard } from "./MediaPermissionCard";
