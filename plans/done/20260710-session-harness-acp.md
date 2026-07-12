@@ -2,7 +2,7 @@
 
 Status: **implemented**. Current runtime behavior is maintained in
 `packages/host-service/docs/acp-sessions.md`. Remaining hardening and
-architecture work is tracked in `plans/acp-session-follow-ups.md`.
+architecture work is tracked in `plans/host-sessions-rollout.md`.
 
 ## Outcome
 
@@ -126,4 +126,4 @@ suite.
 - Rich adapter-specific semantics such as native task graphs, workflows,
   subagent prose, and goals are flattened or absent on the ACP wire.
 
-All of these are explicit workstreams in `plans/acp-session-follow-ups.md`.
+All of these are explicit workstreams in `plans/host-sessions-rollout.md`.

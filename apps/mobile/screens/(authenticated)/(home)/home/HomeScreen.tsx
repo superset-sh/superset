@@ -1,5 +1,6 @@
 import { LegendList } from "@legendapp/list/react-native";
 import type { SelectGithubPullRequest } from "@superset/db/schema";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
@@ -24,7 +25,7 @@ import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton"
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
 import { SessionRow } from "./components/SessionRow";
 import { WorkspaceRow } from "./components/WorkspaceRow";
-import { useHostAcpSessions } from "./hooks/useHostAcpSessions";
+import { useHostSessions } from "./hooks/useHostSessions";
 import { useHostTerminalAgents } from "./hooks/useHostTerminalAgents";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import { useWorkspacesFilterStore } from "./stores/workspacesFilterStore";
@@ -96,7 +97,12 @@ export function HomeScreen() {
 		(q) => q.from({ githubPullRequests: collections.githubPullRequests }),
 		[collections],
 	);
-	const { sessionsByWorkspace } = useHostAcpSessions(selectedHost);
+	const { sessionsByWorkspace } = useHostSessions(selectedHost);
+	// Every listed session lives on the selected host; its rows' menu actions
+	// (rename/archive) go through the canonical sessions surface on that host.
+	const hostRoutingKey = selectedHost
+		? buildHostRoutingKey(selectedHost.organizationId, selectedHost.machineId)
+		: null;
 
 	const sortedProjects = useMemo(
 		() => [...(projects ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
@@ -249,7 +255,7 @@ export function HomeScreen() {
 		void queryClient.invalidateQueries({
 			queryKey: ["host-service", "workspaces", "list"],
 		});
-		void queryClient.invalidateQueries({ queryKey: ["acp-sessions", "list"] });
+		void queryClient.invalidateQueries({ queryKey: ["sessions", "list"] });
 		void queryClient.invalidateQueries({ queryKey: ["diff-stats"] });
 	}, [queryClient]);
 
@@ -320,10 +326,11 @@ export function HomeScreen() {
 							/>
 							<SessionRow
 								row={item.row}
+								routingKey={hostRoutingKey}
 								className="gap-2.5 py-2 pr-4 pl-4"
 								onPress={() =>
 									router.push(
-										`/(authenticated)/workspace/${item.workspaceId}/chat/acp/${item.row.id}`,
+										`/(authenticated)/workspace/${item.workspaceId}/chat/${item.row.id}`,
 									)
 								}
 							/>
@@ -338,6 +345,7 @@ export function HomeScreen() {
 			cache,
 			router,
 			attentionByWorkspace,
+			hostRoutingKey,
 		],
 	);
 

@@ -7,14 +7,6 @@
 		".": {
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
-		},
-		"./client": {
-			"types": "./src/client/index.ts",
-			"default": "./src/client/index.ts"
-		},
-		"./react": {
-			"types": "./src/react/index.ts",
-			"default": "./src/react/index.ts"
 		}
 	},
 	"scripts": {
@@ -25,19 +17,10 @@
 		"@agentclientprotocol/sdk": "1.2.0",
 		"zod": "4.3.6"
 	},
-	"peerDependencies": {
-		"react": "19.2.3"
-	},
-	"peerDependenciesMeta": {
-		"react": {
-			"optional": true
-		}
-	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/bun": "1.3.14",
 		"@types/node": "24.12.0",
-		"@types/react": "19.2.14",
 		"typescript": "6.0.3"
 	}
 }

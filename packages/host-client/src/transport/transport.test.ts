@@ -45,14 +45,14 @@ describe("createHostTransport", () => {
 		);
 		const result = await transport.call<{ ok: boolean }>({
 			routingKey: "rk",
-			procedure: "acpSessions.list",
+			procedure: "sessions.list",
 			input: { workspaceId: "ws" },
 			method: "GET",
 		});
 		expect(result).toEqual({ ok: true });
 		const url = new URL(requests[0]?.url ?? "");
 		// Trailing slash on the relay URL must not double up in the path.
-		expect(url.pathname).toBe("/hosts/rk/trpc/acpSessions.list");
+		expect(url.pathname).toBe("/hosts/rk/trpc/sessions.list");
 		expect(JSON.parse(url.searchParams.get("input") ?? "")).toEqual(
 			SuperJSON.serialize({ workspaceId: "ws" }),
 		);
@@ -65,7 +65,7 @@ describe("createHostTransport", () => {
 		);
 		await transport.call({
 			routingKey: "rk",
-			procedure: "acpSessions.prompt",
+			procedure: "sessions.submitTurn",
 			input: { sessionId: "s1" },
 			method: "POST",
 		});
@@ -135,7 +135,7 @@ describe("createHostTransport", () => {
 		expect(
 			await transport.call({
 				routingKey: "rk",
-				procedure: "acpSessions.cancel",
+				procedure: "sessions.cancelTurn",
 				input: { sessionId: "s1" },
 				method: "POST",
 			}),

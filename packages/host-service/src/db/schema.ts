@@ -210,7 +210,7 @@ export const workspaces = sqliteTable(
 );
 
 /**
- * Registry of ACP agent sessions (docs/acp-sessions.md). One row per
+ * Registry of ACP agent sessions (legacy ACP surface; target: plans/host-sessions-sync.md). One row per
  * session, kept fresh on every state emit. Rows survive host restarts so the
  * manager can list them as `offline` and resurrect on demand via the
  * adapter's `session/load` — the journal itself is not persisted; transcript
@@ -232,6 +232,26 @@ export const acpSessions = sqliteTable(
 	},
 	(table) => [index("acp_sessions_workspace_id_idx").on(table.workspaceId)],
 );
+
+/**
+ * Top-level canonical session metadata (plans/host-sessions-sync.md): the
+ * host-side edits the canonical `sessions.*` layer owns and the adapter has
+ * no notion of — title override, archive, close. Deliberately NO message or
+ * event content: the vendor transcript is the source of truth for
+ * conversation content, resumed via the native session id in
+ * `acp_sessions`. `title_overridden` distinguishes "no override" from an
+ * explicit null (cleared) title.
+ */
+export const sessionMeta = sqliteTable("session_meta", {
+	sessionId: text("session_id").primaryKey(),
+	titleOverridden: integer("title_overridden", { mode: "boolean" })
+		.notNull()
+		.default(false),
+	title: text(),
+	archivedAt: integer("archived_at"),
+	closedAt: integer("closed_at"),
+	updatedAt: integer("updated_at").notNull(),
+});
 
 /**
  * Tombstones for workspaces deleted while the cloud was unreachable. The

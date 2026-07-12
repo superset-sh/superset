@@ -4,7 +4,7 @@ import SuperJSON from "superjson";
  * Framework-free client transport for talking to a host-service through the
  * relay (`/hosts/:routingKey/...`). The relay proxies tRPC as plain HTTP and
  * WebSockets as raw sockets, so this is fetch + SuperJSON, not a tRPC client:
- * consumers type the boundary via @superset/session-protocol (or
+ * consumers type the boundary via @superset/host-service-sync (or
  * `import type { AppRouter } from "@superset/host-service/router"`) instead of
  * dragging host-only modules into their type-check.
  *
@@ -25,7 +25,7 @@ export interface HostClientConfig {
 
 export interface HostCallOptions {
 	routingKey: string;
-	/** Dotted tRPC path, e.g. "acpSessions.list". */
+	/** Dotted tRPC path, e.g. "sessions.list". */
 	procedure: string;
 	input?: unknown;
 	method: "GET" | "POST";

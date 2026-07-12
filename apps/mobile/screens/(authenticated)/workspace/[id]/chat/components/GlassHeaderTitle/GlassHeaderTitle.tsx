@@ -1,8 +1,12 @@
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { Text } from "@/components/ui/text";
 
 const GLASS = isLiquidGlassAvailable();
+
+/** How much of the screen the title pill may claim before truncating — the
+ * back button is a compact floating circle, so the title gets most of it. */
+const TITLE_MAX_WIDTH_FRACTION = 0.7;
 
 /**
  * Floating glass title pill for the chat thread headers. The nav bar itself is
@@ -12,11 +16,13 @@ const GLASS = isLiquidGlassAvailable();
  * older iOS / Android / Reduce Transparency.
  */
 export function GlassHeaderTitle({ title }: { title: string | null }) {
+	const { width } = useWindowDimensions();
 	if (!title) return null;
 	const label = (
 		<Text
-			className="max-w-56 font-medium text-foreground text-sm"
+			className="font-medium text-foreground text-sm"
 			numberOfLines={1}
+			style={{ maxWidth: width * TITLE_MAX_WIDTH_FRACTION }}
 		>
 			{title}
 		</Text>

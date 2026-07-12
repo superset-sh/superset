@@ -520,7 +520,8 @@
         "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",
         "@superset/host-client": "workspace:*",
-        "@superset/session-protocol": "workspace:*",
+        "@superset/host-service-react": "workspace:*",
+        "@superset/host-service-sync": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",
         "@tanstack/db": "0.6.14",
@@ -827,7 +828,7 @@
       "name": "@superset/host-client",
       "version": "0.0.1",
       "dependencies": {
-        "@superset/session-protocol": "workspace:*",
+        "@superset/host-service-sync": "workspace:*",
         "superjson": "2.2.6",
       },
       "devDependencies": {
@@ -850,6 +851,7 @@
         "@mastra/memory": "1.18.0",
         "@octokit/rest": "22.0.1",
         "@superset/chat": "workspace:*",
+        "@superset/host-service-sync": "workspace:*",
         "@superset/port-scanner": "workspace:*",
         "@superset/pty-daemon": "workspace:*",
         "@superset/session-protocol": "workspace:*",
@@ -885,6 +887,39 @@
       },
       "optionalDependencies": {
         "@anush008/tokenizers-linux-arm64-gnu": "0.6.0",
+      },
+    },
+    "packages/host-service-react": {
+      "name": "@superset/host-service-react",
+      "version": "0.0.1",
+      "dependencies": {
+        "@superset/host-service-sync": "workspace:*",
+        "zustand": "5.0.12",
+      },
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "@types/bun": "1.3.14",
+        "@types/react": "19.2.3",
+        "@types/react-dom": "19.2.3",
+        "react": "19.2.3",
+        "react-dom": "19.2.3",
+        "typescript": "6.0.3",
+      },
+      "peerDependencies": {
+        "react": ">=19",
+      },
+    },
+    "packages/host-service-sync": {
+      "name": "@superset/host-service-sync",
+      "version": "0.0.1",
+      "dependencies": {
+        "zod": "4.3.6",
+        "zustand": "5.0.12",
+      },
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "@types/bun": "1.3.14",
+        "typescript": "6.0.3",
       },
     },
     "packages/local-db": {
@@ -1018,15 +1053,8 @@
         "@superset/typescript": "workspace:*",
         "@types/bun": "1.3.14",
         "@types/node": "24.12.0",
-        "@types/react": "19.2.14",
         "typescript": "6.0.3",
       },
-      "peerDependencies": {
-        "react": "19.2.3",
-      },
-      "optionalPeers": [
-        "react",
-      ],
     },
     "packages/shared": {
       "name": "@superset/shared",
@@ -2893,6 +2921,10 @@
     "@superset/host-client": ["@superset/host-client@workspace:packages/host-client"],
 
     "@superset/host-service": ["@superset/host-service@workspace:packages/host-service"],
+
+    "@superset/host-service-react": ["@superset/host-service-react@workspace:packages/host-service-react"],
+
+    "@superset/host-service-sync": ["@superset/host-service-sync@workspace:packages/host-service-sync"],
 
     "@superset/local-db": ["@superset/local-db@workspace:packages/local-db"],
 
@@ -7181,6 +7213,8 @@
     "@storybook/mcp/valibot": ["valibot@1.2.0", "", { "peerDependencies": { "typescript": ">=5" }, "optionalPeers": ["typescript"] }, "sha512-mm1rxUsmOxzrwnX5arGS+U4T25RdvpPjPN4yR0u9pUBov9+zGVtO84tif1eY4r6zWxVxu3KzIyknJy3rxfRZZg=="],
 
     "@storybook/react-native/commander": ["commander@14.0.3", "", {}, "sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw=="],
+
+    "@superset/host-service-react/@types/react": ["@types/react@19.2.3", "", { "dependencies": { "csstype": "^3.0.2" } }, "sha512-k5dJVszUiNr1DSe8Cs+knKR6IrqhqdhpUwzqhkS8ecQTSf3THNtbfIp/umqHMpX2bv+9dkx3fwDv/86LcSfvSg=="],
 
     "@tailwindcss/node/jiti": ["jiti@2.6.1", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ=="],
 

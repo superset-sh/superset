@@ -1,13 +1,14 @@
+import type { ContentBlock } from "@superset/host-service-sync/protocol";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
 import { File } from "expo-file-system";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { createSession, submitTurn } from "@/lib/host/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { resolveChatModelId } from "@/screens/(authenticated)/(home)/utils/chatModels";
 import type { NewChatTarget } from "../useNewChatTargets";
-
-const FALLBACK_MEDIA_TYPE = "application/octet-stream";
 
 interface CreateChatWorkspaceArgs {
 	target: NewChatTarget;
@@ -17,9 +18,11 @@ interface CreateChatWorkspaceArgs {
 }
 
 /**
- * Creates a workspace on the target host with the "superset" agent sugar —
- * the host creates the cloud chat session and fires the first message
- * itself. Attachments upload to the same host first (they're host-local).
+ * Creates a workspace on the target host, then starts a canonical
+ * `sessions.*` chat in it (sessions.create + submitTurn — the same plane
+ * `useStartWorkspaceChat` uses for existing workspaces) and navigates to the
+ * live thread. Image attachments ride the first turn as canonical image
+ * blocks; there is no host-side upload on this plane.
  */
 export function useCreateChatWorkspace() {
 	const router = useRouter();
@@ -32,50 +35,35 @@ export function useCreateChatWorkspace() {
 			modelId,
 			message,
 		}: CreateChatWorkspaceArgs) => {
+			const content = await buildTurnContent(message);
+
 			const client = getHostServiceClientByUrl(target.hostUrl);
-
-			const attachmentIds = await Promise.all(
-				message.attachments.map(async (attachment) => {
-					const base64 = await new File(attachment.uri).base64();
-					const uploaded = await client.attachments.upload.mutate({
-						data: { kind: "base64", data: base64 },
-						mediaType: attachment.mediaType ?? FALLBACK_MEDIA_TYPE,
-						originalFilename: attachment.name,
-					});
-					return uploaded.attachmentId;
-				}),
-			);
-
-			return client.workspaces.create.mutate({
+			const created = await client.workspaces.create.mutate({
 				id: randomUUID(),
 				projectId: target.projectId,
 				baseBranch: baseBranch ?? undefined,
-				agents: [
-					{
-						agent: "superset",
-						prompt: message.text.trim(),
-						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
-						model: modelId,
-					},
-				],
 			});
+			const workspaceId = created.workspace.id;
+
+			const session = await createSession(target.routingKey, {
+				workspaceId,
+				activeModel: resolveChatModelId(modelId),
+			});
+			await submitTurn(target.routingKey, {
+				sessionId: session.session.id,
+				threadId: session.session.mainThreadId,
+				content,
+			});
+			return { workspaceId, sessionId: session.session.id };
 		},
-		onSuccess: (result) => {
+		onSuccess: ({ workspaceId, sessionId }) => {
 			void queryClient.invalidateQueries({
 				queryKey: ["host-service", "workspaces", "list"],
 			});
-			const workspaceId = result.workspace.id;
-			const agentResult = result.agents[0];
-			if (agentResult?.ok && agentResult.kind === "chat") {
-				router.push(
-					`/(authenticated)/workspace/${workspaceId}/chat/${agentResult.sessionId}`,
-				);
-				return;
-			}
-			// No thread to open — the new workspace appears in the home list.
-			if (agentResult && !agentResult.ok) {
-				Alert.alert("Chat failed to start", agentResult.error);
-			}
+			void queryClient.invalidateQueries({ queryKey: ["sessions", "list"] });
+			router.push(
+				`/(authenticated)/workspace/${workspaceId}/chat/${sessionId}`,
+			);
 		},
 		onError: (error) => {
 			Alert.alert(
@@ -84,4 +72,31 @@ export function useCreateChatWorkspace() {
 			);
 		},
 	});
+}
+
+/**
+ * First-turn content: the prompt text plus any image attachments as base64
+ * image blocks. Rejecting non-images up front (before the workspace is
+ * created) keeps a doomed submit from leaving an empty workspace behind.
+ */
+async function buildTurnContent(
+	message: PromptInputMessage,
+): Promise<ContentBlock[]> {
+	const content: ContentBlock[] = [];
+	const text = message.text.trim();
+	if (text.length > 0) content.push({ type: "text", text });
+	for (const attachment of message.attachments) {
+		const mimeType = attachment.mediaType;
+		if (!mimeType?.startsWith("image/")) {
+			throw new Error(
+				"Only image attachments are supported in live sessions yet",
+			);
+		}
+		const data = await new File(attachment.uri).base64();
+		content.push({ type: "image", mimeType, data });
+	}
+	if (content.length === 0) {
+		throw new Error("Nothing to send");
+	}
+	return content;
 }

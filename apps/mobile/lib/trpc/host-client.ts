@@ -2,9 +2,36 @@ import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import { authClient, getJwt, setJwt } from "../auth/client";
 import { env } from "../env";
-import type { HostChatClient } from "./host-chat-types";
+/** A live terminal-agent binding (read-only status), mirroring the host's
+ * `TerminalAgentBinding` (packages/host-service/src/terminal-agents/types.ts).
+ * Only live agent-bound sessions are returned (dead ones filtered server-side).
+ * Requires the agent lifecycle hooks to reach this host, so it can be empty
+ * even when PTY terminals exist. */
+export interface TerminalAgentBinding {
+	terminalId: string;
+	workspaceId: string;
+	agentId: string;
+	agentSessionId?: string;
+	definitionId?: string;
+	startedAt: number;
+	lastEventAt: number;
+	lastEventType: string;
+	/** The terminal's live title (OSC title sequence), when it has set one. */
+	title: string | null;
+}
 
-export type HostClient = HostChatClient;
+/** The subset of host-service procedures mobile still calls over the plain
+ * relay tRPC path, shaped like a tRPC proxy client (`.query`/`.mutate`).
+ * Chat rides the canonical `sessions.*` surface in lib/host/client instead.
+ * Typed as a local facade rather than the server's `AppRouter` so the RN
+ * typecheck never pulls in the server type graph (db, daemon, node-pty). */
+export interface HostServiceFacade {
+	terminalAgents: {
+		list: {
+			query: () => Promise<TerminalAgentBinding[]>;
+		};
+	};
+}
 
 /**
  * Routing key the relay uses to identify a host-service tunnel:
@@ -30,17 +57,15 @@ export function getHostRelayTrpcUrl(
 
 /**
  * A tRPC client bound to one workspace's host-service, reached over the relay
- * tunnel and authenticated with the user's JWT (the relay path accepts the same
- * JWT the app already manages). We type it against a local `HostChatClient`
- * facade rather than the server's `AppRouter` — an interim tradeoff, not a hard
- * constraint; see host-chat-types.ts for the verified reasoning.
+ * tunnel and authenticated with the user's JWT (the relay path accepts the
+ * same JWT the app already manages).
  */
 export function createHostClient(params: {
 	organizationId: string;
 	hostId: string;
-}): HostChatClient {
+}): HostServiceFacade {
 	const url = getHostRelayTrpcUrl(params.organizationId, params.hostId);
-	// biome-ignore lint/suspicious/noExplicitAny: proxy client is retyped to the local HostChatClient facade.
+	// biome-ignore lint/suspicious/noExplicitAny: proxy client is retyped to the local HostServiceFacade.
 	const client = createTRPCProxyClient<any>({
 		links: [
 			httpBatchLink({
@@ -66,5 +91,5 @@ export function createHostClient(params: {
 			}),
 		],
 	});
-	return client as unknown as HostChatClient;
+	return client as unknown as HostServiceFacade;
 }
