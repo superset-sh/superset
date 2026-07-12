@@ -2,7 +2,6 @@ import type {
 	SelectAutomation,
 	SelectUser,
 	SelectV2Host,
-	SelectV2Workspace,
 } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
 import { describeSchedule } from "@superset/shared/rrule";
@@ -44,6 +43,7 @@ import {
 	type SortDirection,
 } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { AutomationRow } from "./components/AutomationRow";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
@@ -121,13 +121,7 @@ function AutomationsPage() {
 		[collections.users],
 	);
 	const recentProjects = useRecentProjects();
-	const { data: workspaceRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ w: collections.v2Workspaces })
-				.select(({ w }) => ({ id: w.id, name: w.name })),
-		[collections.v2Workspaces],
-	);
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const { data: hostRows = [] } = useLiveQuery(
 		(q) =>
 			q
@@ -152,13 +146,8 @@ function AutomationsPage() {
 		[recentProjects],
 	);
 	const workspacesById = useMemo(
-		() =>
-			new Map(
-				(workspaceRows as Pick<SelectV2Workspace, "id" | "name">[])
-					.filter((w) => w != null)
-					.map((w) => [w.id, w]),
-			),
-		[workspaceRows],
+		() => new Map(hostWorkspaces.map((w) => [w.id, w])),
+		[hostWorkspaces],
 	);
 	const hostsById = useMemo(
 		() =>

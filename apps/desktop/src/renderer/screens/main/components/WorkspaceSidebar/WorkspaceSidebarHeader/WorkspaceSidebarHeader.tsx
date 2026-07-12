@@ -40,6 +40,7 @@ export function WorkspaceSidebarHeader({
 		search: lastSearch,
 		typeTab: lastTypeTab,
 		projectFilter: lastProjectFilter,
+		linearProjectFilter: lastLinearProjectFilter,
 	} = useTasksFilterStore();
 
 	const handleTasksClick = () => {
@@ -52,6 +53,7 @@ export function WorkspaceSidebarHeader({
 					search: lastSearch,
 					typeTab: lastTypeTab,
 					projectFilter: lastProjectFilter,
+					linearProjectFilter: lastLinearProjectFilter,
 				}),
 			});
 		});

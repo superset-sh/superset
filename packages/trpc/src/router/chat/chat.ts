@@ -102,7 +102,6 @@ export const chatRouter = {
 					and(
 						eq(chatSessions.id, input.sessionId),
 						eq(chatSessions.organizationId, organizationId),
-						eq(chatSessions.createdBy, ctx.session.user.id),
 					),
 				)
 				.returning({ id: chatSessions.id });
@@ -129,7 +128,6 @@ export const chatRouter = {
 						and(
 							eq(chatSessions.id, input.sessionId),
 							eq(chatSessions.organizationId, organizationId),
-							eq(chatSessions.createdBy, ctx.session.user.id),
 						),
 					)
 					.returning({ id: chatSessions.id });

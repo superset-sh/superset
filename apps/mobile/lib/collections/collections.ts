@@ -10,12 +10,12 @@ import type {
 	SelectMember,
 	SelectOrganization,
 	SelectProject,
+	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
 	SelectUser,
 	SelectV2Host,
 	SelectV2Project,
-	SelectV2Workspace,
 } from "@superset/db/schema";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import type { Collection } from "@tanstack/react-db";
@@ -53,10 +53,13 @@ const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 		} catch (refreshError) {
 			console.error("[collections] JWT refresh after 401 failed", refreshError);
 		}
-	} else {
-		console.error("[collections] Electric sync error", error);
+		return {}; // retry once with the refreshed token
 	}
-	return {};
+	// 5xx/network/429 are retried inside Electric forever and never reach here, so
+	// a 4xx that does is terminal — return void to stop the stream instead of
+	// looping the same doomed request until Electric's 50-retry guard trips.
+	console.error("[collections] Electric sync stopped", error);
+	return;
 };
 
 interface OrgCollections {
@@ -67,8 +70,8 @@ interface OrgCollections {
 	users: Collection<SelectUser>;
 	invitations: Collection<SelectInvitation>;
 	v2Projects: Collection<SelectV2Project>;
-	v2Workspaces: Collection<SelectV2Workspace>;
 	v2Hosts: Collection<SelectV2Host>;
+	subscriptions: Collection<SelectSubscription>;
 	chatSessions: Collection<SelectChatSession>;
 	githubPullRequests: Collection<SelectGithubPullRequest>;
 }
@@ -209,21 +212,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const v2Workspaces = createCollection(
-		electricCollectionOptions<SelectV2Workspace>({
-			id: `v2-workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "v2_workspaces", organizationId },
-				headers: electricHeaders,
-				columnMapper,
-				parser,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
 	const v2Hosts = createCollection(
 		electricCollectionOptions<SelectV2Host>({
 			id: `v2-hosts-${organizationId}`,
@@ -236,6 +224,21 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.machineId,
+		}),
+	);
+
+	const subscriptions = createCollection(
+		electricCollectionOptions<SelectSubscription>({
+			id: `subscriptions-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: { table: "subscriptions", organizationId },
+				headers: electricHeaders,
+				columnMapper,
+				parser,
+				onError: handleElectricSyncError,
+			},
+			getKey: (item) => item.id,
 		}),
 	);
 
@@ -277,8 +280,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		users,
 		invitations,
 		v2Projects,
-		v2Workspaces,
 		v2Hosts,
+		subscriptions,
 		chatSessions,
 		githubPullRequests,
 	};

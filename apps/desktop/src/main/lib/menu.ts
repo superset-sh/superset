@@ -78,6 +78,13 @@ export function createApplicationMenu() {
 				{ role: "zoomIn" },
 				{ role: "zoomOut" },
 				{ type: "separator" },
+				{
+					label: "Toggle Presets Bar",
+					click: () => {
+						menuEmitter.emit("toggle-presets-bar");
+					},
+				},
+				{ type: "separator" },
 				{ role: "togglefullscreen" },
 			],
 		},

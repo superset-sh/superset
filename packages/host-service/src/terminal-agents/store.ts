@@ -33,6 +33,7 @@ export interface TerminalAgentBindingPersistence {
 		workspaceId: string,
 		filter?: TerminalAgentBindingListFilter,
 	): TerminalAgentBinding[];
+	listLive?(): TerminalAgentBinding[];
 	findLiveActive?(
 		workspaceId: string,
 		agentId: TerminalAgentId,
@@ -136,6 +137,13 @@ export class TerminalAgentStore extends EventEmitter {
 			out.push(binding);
 		}
 		return out;
+	}
+
+	list(): TerminalAgentBinding[] {
+		if (this.persistence?.listLive) {
+			return this.persistence.listLive();
+		}
+		return [...this.byTerminal.values()];
 	}
 
 	findActive(

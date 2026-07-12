@@ -2,32 +2,47 @@ import type { APIPromise } from "../core/api-promise";
 import { SupersetError } from "../core/error";
 import { APIResource } from "../core/resource";
 import type { RequestOptions } from "../internal/request-options";
+import {
+	findWorkspaceHostId,
+	type HostWorkspaceRow,
+	listHostWorkspaces,
+} from "./host-workspaces";
 
 /**
  * Workspaces are physical artifacts (git worktrees / clones) on a developer's
- * machine. Their lifecycle (create / delete) is managed by the host service
- * running on that machine, reached through the relay tunnel. The cloud API
- * holds the metadata index — used here for listing and to look up which host
- * a workspace lives on so we can route delete calls to it.
+ * machine. Their records are host-owned: each host service serves its own
+ * rows, and lifecycle operations (create / update / delete) are routed to the
+ * owning host through the relay tunnel. The cloud only supplies host
+ * discovery, so reads reflect the hosts that were reachable at call time.
  *
  * Mirrors the CLI's `superset workspaces …` commands.
  */
 export class Workspaces extends APIResource {
 	/**
-	 * List workspaces in the organization (cloud index). Optionally scope to a
-	 * single host.
+	 * List workspaces in the organization by querying each online host's
+	 * `workspace.list` and merging. Hosts that fail to answer are skipped, so
+	 * results reflect reachable hosts only. Optionally scope to a single host.
 	 *
 	 * Mirrors `superset workspaces list`.
 	 */
-	list(
-		params?: WorkspaceListParams,
-		options?: RequestOptions,
-	): APIPromise<WorkspaceListResponse> {
-		return this._client.query<WorkspaceListResponse>(
-			"v2Workspace.list",
-			{ organizationId: this._requireOrgId(), ...params },
-			options,
+	async list(params?: WorkspaceListParams): Promise<WorkspaceListResponse> {
+		const workspaces = await listHostWorkspaces(
+			this._client,
+			this._requireOrgId(),
+			params?.hostId,
 		);
+		const search = params?.search?.toLowerCase();
+		return workspaces
+			.filter(
+				(workspace) =>
+					!params?.projectId || workspace.projectId === params.projectId,
+			)
+			.filter(
+				(workspace) =>
+					!search ||
+					workspace.name.toLowerCase().includes(search) ||
+					workspace.branch.toLowerCase().includes(search),
+			);
 	}
 
 	/**
@@ -66,24 +81,31 @@ export class Workspaces extends APIResource {
 	 * orchestration and aren't safe to set directly. Pass `taskId: null` to
 	 * unlink the workspace from its current task.
 	 *
+	 * Looks up the host the workspace lives on (by fanning out across
+	 * reachable hosts) and routes the update to that host's service through
+	 * the relay. Pass an explicit `hostId` to skip the lookup.
+	 *
 	 * Mirrors `superset workspaces update`.
 	 */
-	update(
+	async update(
 		id: string,
 		params: WorkspaceUpdateParams,
-		options?: RequestOptions,
-	): APIPromise<WorkspaceUpdateResult> {
-		return this._client.mutation<WorkspaceUpdateResult>(
-			"v2Workspace.update",
+		options?: { hostId?: string },
+	): Promise<WorkspaceUpdateResult> {
+		const hostId =
+			options?.hostId ??
+			(await findWorkspaceHostId(this._client, this._requireOrgId(), id));
+		return this._client.hostMutation<WorkspaceUpdateResult>(
+			hostId,
+			"workspace.update",
 			{ id, ...params },
-			options,
 		);
 	}
 
 	/**
-	 * Delete a workspace by id. Looks up the host the workspace lives on (via
-	 * the cloud index) and routes the delete to that host's service through
-	 * the relay. Pass an explicit `hostId` to skip the lookup.
+	 * Delete a workspace by id. Looks up the host the workspace lives on (by
+	 * fanning out across reachable hosts) and routes the delete to that host's
+	 * service through the relay. Pass an explicit `hostId` to skip the lookup.
 	 *
 	 * Mirrors `superset workspaces delete`.
 	 */
@@ -91,15 +113,9 @@ export class Workspaces extends APIResource {
 		id: string,
 		options?: { hostId?: string },
 	): Promise<WorkspaceDeleteResult> {
-		let hostId = options?.hostId;
-		if (!hostId) {
-			const cloud = await this._client.query<HostLookup | null>(
-				"v2Workspace.getFromHost",
-				{ organizationId: this._requireOrgId(), id },
-			);
-			if (!cloud) throw new SupersetError(`Workspace not found: ${id}`);
-			hostId = cloud.hostId;
-		}
+		const hostId =
+			options?.hostId ??
+			(await findWorkspaceHostId(this._client, this._requireOrgId(), id));
 		return this._client.hostMutation<WorkspaceDeleteResult>(
 			hostId,
 			"workspace.delete",
@@ -117,15 +133,8 @@ export class Workspaces extends APIResource {
 	}
 }
 
-/** Cloud-index workspace row (from the API). */
-export interface Workspace {
-	id: string;
-	name: string;
-	branch: string;
-	projectId: string;
-	projectName: string;
-	hostId: string;
-}
+/** Workspace row as served by the owning host's `workspace.list`. */
+export type Workspace = HostWorkspaceRow;
 
 /** Workspace as returned by the host service (slightly different fields). */
 export interface HostWorkspace {
@@ -138,10 +147,6 @@ export interface HostWorkspace {
 	type?: "main" | "worktree";
 }
 
-interface HostLookup {
-	hostId: string;
-}
-
 export type WorkspaceListResponse = Array<Workspace>;
 
 export interface WorkspaceListParams {
@@ -149,8 +154,6 @@ export interface WorkspaceListParams {
 	hostId?: string;
 	/** Restrict the listing to a single project by UUID. */
 	projectId?: string;
-	/** Restrict the listing by project name (case-insensitive exact match). */
-	projectName?: string;
 	/** Substring match against workspace name or branch. */
 	search?: string;
 }
@@ -228,7 +231,6 @@ export interface WorkspaceUpdateResult {
 	taskId: string | null;
 	createdAt: Date;
 	updatedAt: Date;
-	txid: number;
 }
 
 export interface WorkspaceDeleteResult {

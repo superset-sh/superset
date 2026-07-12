@@ -17,7 +17,7 @@ interface PullRequestResult {
 	authorLogin: string | null;
 }
 
-interface PullRequestsPage {
+export interface PullRequestsPage {
 	pullRequests: PullRequestResult[];
 	totalCount: number;
 	hasNextPage: boolean;

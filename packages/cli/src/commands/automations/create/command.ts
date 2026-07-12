@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
-import { string } from "@superset/cli-framework";
+import { CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveWorkspacePin } from "../../../lib/host-workspaces";
 import { formatAutomationDate } from "../format";
 
 const DEFAULT_TIMEZONE =
@@ -44,12 +45,34 @@ export default command({
 			throw new Error("Provide --project or --workspace");
 		}
 
+		// Workspace records are host-owned: resolve --workspace across the
+		// org's hosts so the mutation carries the denormalized pin
+		// (targetHostId + v2ProjectId) alongside the workspace id.
+		let pin: { targetHostId?: string; v2ProjectId?: string } = {};
+		if (options.workspace) {
+			const organizationId = ctx.config.organizationId;
+			if (!organizationId) {
+				throw new CLIError(
+					"No active organization",
+					"Run: superset auth login",
+				);
+			}
+			pin = await resolveWorkspacePin(
+				{ api: ctx.api, organizationId, userJwt: ctx.bearer },
+				{
+					workspaceId: options.workspace,
+					hostId: options.host ?? undefined,
+					projectId: options.project ?? undefined,
+				},
+			);
+		}
+
 		const result = await ctx.api.automation.create.mutate({
 			name: options.name,
 			prompt,
 			agent: options.agent,
-			targetHostId: options.host ?? null,
-			v2ProjectId: options.project ?? undefined,
+			targetHostId: pin.targetHostId ?? options.host ?? null,
+			v2ProjectId: pin.v2ProjectId ?? options.project ?? undefined,
 			v2WorkspaceId: options.workspace ?? undefined,
 			rrule: options.rrule,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,

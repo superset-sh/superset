@@ -19,6 +19,7 @@ import type { SelectedIssue } from "../GitHubIssuesContent";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
 import { AssigneeFilter } from "./components/AssigneeFilter";
 import { CreateTaskDialog } from "./components/CreateTaskDialog";
+import { LinearProjectFilter } from "./components/LinearProjectFilter";
 import { ProjectFilter } from "./components/ProjectFilter";
 import { RunInWorkspacePopover } from "./components/RunInWorkspacePopover";
 import { RunInWorkspacePopoverV2 } from "./components/RunInWorkspacePopoverV2";
@@ -44,6 +45,8 @@ interface TasksTopBarProps {
 	onTypeTabChange: (typeTab: TypeTab) => void;
 	projectFilter: string | null;
 	onProjectFilterChange: (projectId: string) => void;
+	linearProjectFilter: string | null;
+	onLinearProjectFilterChange: (projectId: string | null) => void;
 }
 
 const TYPE_TABS = [
@@ -69,6 +72,8 @@ export function TasksTopBar({
 	onTypeTabChange,
 	projectFilter,
 	onProjectFilterChange,
+	linearProjectFilter,
+	onLinearProjectFilterChange,
 }: TasksTopBarProps) {
 	const showTaskOnlyControls = typeTab === "tasks";
 	const showIssues = typeTab === "issues";
@@ -129,10 +134,17 @@ export function TasksTopBar({
 						</>
 					) : (
 						<>
-							<ProjectFilter
-								value={projectFilter}
-								onChange={onProjectFilterChange}
-							/>
+							{showTaskOnlyControls ? (
+								<LinearProjectFilter
+									value={linearProjectFilter}
+									onChange={onLinearProjectFilterChange}
+								/>
+							) : (
+								<ProjectFilter
+									value={projectFilter}
+									onChange={onProjectFilterChange}
+								/>
+							)}
 
 							<div className="h-4 w-px bg-border" />
 

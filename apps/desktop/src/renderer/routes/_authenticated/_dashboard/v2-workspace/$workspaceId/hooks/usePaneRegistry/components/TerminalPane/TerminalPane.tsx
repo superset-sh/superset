@@ -77,7 +77,7 @@ export function TerminalPane({
 	// button and the ⌘I hotkey toggle the same overlay, and the state survives
 	// the mounted pane being re-pointed across terminals (tab switch, session
 	// dropdown).
-	const isRichInputOpen = useTerminalRichInputOpen(terminalId);
+	const isRichInputOpen = useTerminalRichInputOpen();
 
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
@@ -357,12 +357,12 @@ export function TerminalPane({
 
 	useHotkey(
 		"TOGGLE_TERMINAL_RICH_INPUT",
-		() => terminalRichInputOpenStore.toggle(terminalId),
+		() => terminalRichInputOpenStore.toggle(),
 		{ enabled: ctx.isActive, preventDefault: true },
 	);
 
 	const closeRichInput = useCallback(() => {
-		terminalRichInputOpenStore.close(terminalId);
+		terminalRichInputOpenStore.close();
 		terminalRuntimeRegistry
 			.getTerminal(terminalId, terminalInstanceId)
 			?.focus();

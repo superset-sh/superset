@@ -25,7 +25,7 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 
 ### CLI Options
 
-<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI"]}>
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe"]}>
 <Tab value="Claude Code">
 ```bash title="terminal"
 claude mcp add superset --transport http https://api.superset.sh/api/v2/agent/mcp
@@ -75,13 +75,23 @@ opencode mcp add
 amp mcp add --workspace superset https://api.superset.sh/api/v2/agent/mcp
 ```
 </Tab>
+<Tab value="Mistral Vibe">
+Add to your `.vibe/config.toml`:
+
+```toml title=".vibe/config.toml"
+[[mcp_servers]]
+name = "superset"
+transport = "http"
+url = "https://api.superset.sh/api/v2/agent/mcp"
+```
+</Tab>
 </Tabs>
 
 ### Manual Configuration
 
 Alternatively, you can manually configure the MCP server for each client:
 
-<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code", "Amp CLI"]}>
+<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe"]}>
 <Tab value="Claude Code">
 Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and handles OAuth authentication.
 
@@ -170,6 +180,16 @@ Add to `.amp/settings.json` in your project root:
     }
   }
 }
+```
+</Tab>
+<Tab value="Mistral Vibe">
+Add to `.vibe/config.toml` in your project root (or `~/.vibe/config.toml` for global config):
+
+```toml title=".vibe/config.toml"
+[[mcp_servers]]
+name = "superset"
+transport = "http"
+url = "https://api.superset.sh/api/v2/agent/mcp"
 ```
 </Tab>
 </Tabs>

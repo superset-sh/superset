@@ -13,7 +13,6 @@ import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
-import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
@@ -42,6 +41,7 @@ import { V2NotificationController } from "./components/V2NotificationController"
 import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { DeletingWorkspacesProvider } from "./providers/DeletingWorkspacesProvider";
+import { HostWorkspacesProvider } from "./providers/HostWorkspacesProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -70,7 +70,6 @@ function AuthenticatedLayout() {
 		: session?.session?.activeOrganizationId;
 
 	useAgentHookListener();
-	useUpdateListener();
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
@@ -213,30 +212,32 @@ function AuthenticatedLayout() {
 			<CollectionsProvider>
 				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
-					<DeletingWorkspacesProvider>
-						<WorkerPoolContextProvider
-							poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
-							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
-						>
-							<DiffThemeSync />
-							<AgentHooks />
-							<FileMenuListener />
-							<V2NotificationController />
-							<DockBadgeController />
-							<DaemonAutoUpdateFailureDialog />
-							<Outlet />
-							<V1ImportModal />
-							<WorkspaceInitEffects />
-							{isV2CloudEnabled ? (
-								<DashboardNewWorkspaceModal />
-							) : (
-								<NewWorkspaceModal />
-							)}
-							<InitGitDialog />
-							<TeardownLogsDialog />
-							<Paywall />
-						</WorkerPoolContextProvider>
-					</DeletingWorkspacesProvider>
+					<HostWorkspacesProvider>
+						<DeletingWorkspacesProvider>
+							<WorkerPoolContextProvider
+								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
+								highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
+							>
+								<DiffThemeSync />
+								<AgentHooks />
+								<FileMenuListener />
+								<V2NotificationController />
+								<DockBadgeController />
+								<DaemonAutoUpdateFailureDialog />
+								<Outlet />
+								<V1ImportModal />
+								<WorkspaceInitEffects />
+								{isV2CloudEnabled ? (
+									<DashboardNewWorkspaceModal />
+								) : (
+									<NewWorkspaceModal />
+								)}
+								<InitGitDialog />
+								<TeardownLogsDialog />
+								<Paywall />
+							</WorkerPoolContextProvider>
+						</DeletingWorkspacesProvider>
+					</HostWorkspacesProvider>
 				</LocalHostServiceProvider>
 			</CollectionsProvider>
 		</DndProvider>

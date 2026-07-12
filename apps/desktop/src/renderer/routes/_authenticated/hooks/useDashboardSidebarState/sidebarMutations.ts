@@ -1,6 +1,12 @@
+import type { SelectV2Workspace } from "@superset/db/schema";
 import type { WorkspaceState } from "@superset/panes";
 import type { PaneLifecycleRow } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
+
+export type SidebarWorkspaceRow = Pick<
+	SelectV2Workspace,
+	"id" | "projectId" | "type" | "hostId"
+>;
 
 /**
  * Pure sidebar local-state mutations, kept free of React/Electron imports so
@@ -78,17 +84,15 @@ export function tombstoneSidebarWorkspaceRecord(
 export function removeProjectFromSidebarState(
 	collections: Pick<
 		AppCollections,
-		| "v2WorkspaceLocalState"
-		| "v2Workspaces"
-		| "v2SidebarSections"
-		| "v2SidebarProjects"
+		"v2WorkspaceLocalState" | "v2SidebarSections" | "v2SidebarProjects"
 	>,
+	workspaces: SidebarWorkspaceRow[],
 	projectId: string,
 	machineId: string,
 	cleanupPaneRuntimes: CleanupPaneRuntimes,
 ): void {
 	const mainWorkspaceIds = new Set(
-		Array.from(collections.v2Workspaces.state.values())
+		workspaces
 			.filter((ws) => ws.projectId === projectId && ws.type === "main")
 			.map((ws) => ws.id),
 	);
@@ -102,7 +106,7 @@ export function removeProjectFromSidebarState(
 			worktreeIds.add(row.workspaceId);
 		}
 	}
-	for (const ws of collections.v2Workspaces.state.values()) {
+	for (const ws of workspaces) {
 		if (
 			ws.projectId === projectId &&
 			ws.type === "worktree" &&

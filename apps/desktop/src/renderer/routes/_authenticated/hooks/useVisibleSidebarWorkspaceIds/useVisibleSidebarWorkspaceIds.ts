@@ -6,6 +6,7 @@ import {
 	getSidebarWorkspaceIsHidden,
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 /**
@@ -34,37 +35,29 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 		[collections],
 	);
 
-	const { data: localStateWorkspaces = [] } = useLiveQuery(
+	const { data: localStateRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
-				.innerJoin(
-					{ workspaces: collections.v2Workspaces },
-					({ sidebarWorkspaces, workspaces }) =>
-						eq(sidebarWorkspaces.workspaceId, workspaces.id),
-				)
-				.select(({ sidebarWorkspaces, workspaces }) => ({
-					id: workspaces.id,
+				.select(({ sidebarWorkspaces }) => ({
+					id: sidebarWorkspaces.workspaceId,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 				})),
 		[collections],
 	);
 
-	const { data: mainWorkspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.type, "main"))
-				.select(({ workspaces }) => ({
-					id: workspaces.id,
-					projectId: workspaces.projectId,
-					hostId: workspaces.hostId,
-				})),
-		[collections],
-	);
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 
 	return useMemo(() => {
+		const workspaceIds = new Set(
+			hostWorkspaces.map((workspace) => workspace.id),
+		);
+		// Local-state rows only count when the workspace still exists (the old
+		// query inner-joined against the workspaces table for the same reason).
+		const localStateWorkspaces = localStateRows.filter((workspace) =>
+			workspaceIds.has(workspace.id),
+		);
 		const sidebarProjectIds = new Set(
 			sidebarProjects.map((project) => project.id),
 		);
@@ -79,7 +72,8 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 			visibleIds.add(workspace.id);
 		}
 
-		for (const workspace of mainWorkspaces) {
+		for (const workspace of hostWorkspaces) {
+			if (workspace.type !== "main") continue;
 			if (
 				isAutoIncludedLocalMainWorkspace(workspace, {
 					localStateWorkspaceIds,
@@ -92,5 +86,5 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 		}
 
 		return visibleIds;
-	}, [sidebarProjects, localStateWorkspaces, mainWorkspaces, machineId]);
+	}, [sidebarProjects, localStateRows, hostWorkspaces, machineId]);
 }

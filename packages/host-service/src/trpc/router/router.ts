@@ -1,4 +1,5 @@
 import { router } from "../index";
+import { acpSessionsRouter } from "./acp-sessions";
 import { agentsRouter } from "./agents";
 import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
@@ -24,6 +25,7 @@ import { workspaceCreationRouter } from "./workspace-creation";
 import { workspacesRouter } from "./workspaces";
 
 export const appRouter = router({
+	acpSessions: acpSessionsRouter,
 	agents: agentsRouter,
 	attachments: attachmentsRouter,
 	auth: authRouter,

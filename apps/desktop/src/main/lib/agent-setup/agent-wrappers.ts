@@ -82,3 +82,12 @@ export {
 	PI_EXTENSION_FILE,
 	PI_EXTENSION_MARKER,
 } from "./agent-wrappers-pi";
+export {
+	createVibeHooksToml,
+	createVibeWrapper,
+	getVibeHooksTomlContent,
+	getVibeHooksTomlPath,
+	getVibeWrapperScript,
+	VIBE_HOOKS_MARKER_END,
+	VIBE_HOOKS_MARKER_START,
+} from "./agent-wrappers-vibe";

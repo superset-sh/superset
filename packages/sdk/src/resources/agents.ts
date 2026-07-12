@@ -1,6 +1,7 @@
 import { SupersetError } from "../core/error";
 import { APIResource } from "../core/resource";
 import type { RequestOptions } from "../internal/request-options";
+import { findWorkspaceHostId } from "./host-workspaces";
 
 /**
  * Configured terminal-agent rows live on each developer's host service —
@@ -31,9 +32,10 @@ export class Agents extends APIResource {
 
 	/**
 	 * Create (launch) an agent session inside an existing workspace. Looks up
-	 * the host that owns the workspace (cloud index) and starts the named
-	 * preset (or HostAgentConfig instance) in a fresh terminal session on that
-	 * host. Pass an explicit `hostId` to skip the lookup.
+	 * the host that owns the workspace (by fanning out across reachable hosts)
+	 * and starts the named preset (or HostAgentConfig instance) in a fresh
+	 * terminal session on that host. Pass an explicit `hostId` to skip the
+	 * lookup.
 	 *
 	 * Mirrors `superset agents create`.
 	 */
@@ -41,21 +43,13 @@ export class Agents extends APIResource {
 		params: AgentCreateParams,
 		options?: { hostId?: string },
 	): Promise<AgentCreateResult> {
-		this._requireOrgId();
-		let hostId = options?.hostId;
-		if (!hostId) {
-			const cloud = await this._client.query<HostLookup | null>(
-				"v2Workspace.getFromHost",
-				{
-					organizationId: this._client.organizationId,
-					id: params.workspaceId,
-				},
-			);
-			if (!cloud) {
-				throw new SupersetError(`Workspace not found: ${params.workspaceId}`);
-			}
-			hostId = cloud.hostId;
-		}
+		const hostId =
+			options?.hostId ??
+			(await findWorkspaceHostId(
+				this._client,
+				this._requireOrgId(),
+				params.workspaceId,
+			));
 		return this._client.hostMutation<AgentCreateResult>(hostId, "agents.run", {
 			workspaceId: params.workspaceId,
 			agent: params.agent,
@@ -105,10 +99,6 @@ export interface AgentCreateParams {
 	prompt: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
 	attachmentIds?: string[];
-}
-
-interface HostLookup {
-	hostId: string;
 }
 
 export type AgentCreateResult =

@@ -298,9 +298,14 @@
 		background-color: var(--highlight-active);
 	}
 
-	/* Disable sonner toast hover animation for update toast only */
-	[data-sonner-toast]:has(.update-toast) {
-		transform: translateY(0);
+	/* UpdatesPill: checkmark draw-in on download-confirmed */
+	@keyframes check-draw {
+		from {
+			stroke-dashoffset: 26;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
 	}
 
 	/* Tiptap chat input placeholder */

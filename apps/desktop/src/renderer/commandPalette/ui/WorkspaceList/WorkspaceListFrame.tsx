@@ -16,6 +16,7 @@ import {
 	navigateToWorkspace,
 } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useAccessibleV2Workspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
+import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import { useFrameStackStore } from "../../core/frames";
 import { useCommandPaletteQuery } from "../CommandPalette/CommandPalette";
 
@@ -177,7 +178,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 					{group.workspaces.map((workspace) => {
 						const HostIcon =
 							workspace.hostType === "local-device" ? LuLaptop : LuMonitor;
-						const displayName = workspace.name || workspace.branch;
+						const displayName = getV2WorkspaceDisplayName(workspace);
 						return (
 							<CommandItem
 								key={workspace.id}

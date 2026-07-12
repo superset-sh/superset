@@ -19,7 +19,10 @@ export async function resolveAuth(
 ): Promise<ResolvedAuth> {
 	let config = readConfig();
 
-	const overrideKey = apiKeyOption?.trim();
+	// An explicit --api-key wins; otherwise SUPERSET_API_KEY env acts as an
+	// override for this invocation (headless/CI). Both beat stored config/OAuth.
+	const overrideKey =
+		apiKeyOption?.trim() || process.env.SUPERSET_API_KEY?.trim();
 	let bearer: string | undefined;
 	let authSource: AuthSource;
 

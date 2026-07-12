@@ -47,13 +47,8 @@ import {
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
-import {
-	authClient,
-	getAuthToken,
-	getJwt,
-	setJwt,
-} from "renderer/lib/auth-client";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getAuthToken, getJwt } from "renderer/lib/auth-client";
+import { refreshJwtAfterUnauthorized } from "renderer/lib/jwt-refresh";
 import superjson from "superjson";
 import { z } from "zod";
 import {
@@ -241,18 +236,17 @@ type ElectricSyncErrorHandler = NonNullable<ShapeStreamOptions["onError"]>;
 
 const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 	if (error instanceof FetchError && error.status === 401) {
-		try {
-			const result = await authClient.token();
-			if (result.data?.token) {
-				setJwt(result.data.token);
-			}
-		} catch (refreshError) {
-			console.error("[collections] JWT refresh after 401 failed", refreshError);
-		}
-	} else {
-		console.error("[collections] Electric sync error", error);
+		// Shared gate: concurrent shape 401s dedupe to one /api/auth/token call,
+		// and a broken session backs off + trips a circuit instead of storming
+		// the endpoint into Vercel's firewall (issue #5513).
+		await refreshJwtAfterUnauthorized();
+		return {}; // retry once with the refreshed token
 	}
-	return {};
+	// 5xx/network/429 are retried inside Electric forever and never reach here, so
+	// a 4xx that does is terminal — return void to stop the stream instead of
+	// looping the same doomed request until Electric's 50-retry guard trips.
+	console.error("[collections] Electric sync stopped", error);
+	return;
 };
 
 const organizationsCollection = createPersistedElectricCollection(
@@ -387,6 +381,13 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			// Composite PK on (organization_id, machine_id); within an
 			// org-scoped collection, machineId alone is unique.
 			getKey: (item) => item.machineId,
+			onDelete: async ({ transaction }) => {
+				const { original } = transaction.mutations[0];
+				const result = await apiClient.v2Host.delete.mutate({
+					hostId: original.machineId,
+				});
+				return electricTxidMatch(result.txid);
+			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				if (changes.name === undefined) {
@@ -483,26 +484,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
-			onInsert: async ({ transaction }) => {
-				const metadata = transaction.mutations[0]
-					.metadata as WorkspaceCreateMutationMetadata;
-				const client = getHostServiceClientByUrl(metadata.hostUrl);
-				const result = await client.workspaces.create.mutate(metadata.input);
-				metadata.result = result;
-				return electricTxidMatch(result.txid);
-			},
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const { branch, hostId, name, taskId } = changes;
-				const result = await apiClient.v2Workspace.update.mutate({
-					id: original.id,
-					branch,
-					hostId,
-					name,
-					taskId,
-				});
-				return electricTxidMatch(result.txid);
-			},
+			// Read-only: workspace records are host-owned now. This collection
+			// is only the R2 read-through fallback for hosts still on pre-R1
+			// builds and is deleted in R3 — writes go through the owning host
+			// (workspaces.create / workspace.update via useHostWorkspaces).
 		}),
 	);
 	v2Workspaces.createIndex((workspace) => workspace.hostId, basicIndexConfig);
