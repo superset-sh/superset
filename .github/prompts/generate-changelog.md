@@ -99,6 +99,19 @@ the full `pointerdown/mousedown/pointerup/mouseup/click` sequence) and
 model picker, the Automations/Workspaces tables, etc.). Quit the dev stack when done —
 it shares a pty-daemon with other dev instances, so keep uptime short.
 
+**Shoot small and sharp — the feature must read big in a blog post.** Full-desktop
+captures make the feature a tiny sliver of the frame. Before capturing, shrink the
+renderer to a compact viewport and bump the pixel density with
+`Emulation.setDeviceMetricsOverride` (e.g. `{width: 1120, height: 720,
+deviceScaleFactor: 2}`), so UI text renders large and crisp relative to the frame.
+Collapse the sidebar and close side panels unless they're the subject — this also keeps
+internal workspace/branch names out of frame. Two gotchas: the override only lives as
+long as the CDP session that set it, so do size → interact → capture over one WebSocket
+connection; and applying/clearing the override fires a resize that dismisses open
+dropdowns/popovers and reflows terminal TUIs (set the size first, then open the menu /
+render the TUI content). Note the beautify script's crop is cover-fit — very tall,
+narrow crops get over-zoomed, so prefer landscape-ish crops.
+
 **2. Beautify** with `.github/prompts/beautify-screenshot.ts` (local headless-Chrome
 render — no upload, unlike Shots.so/Screely/Pika, which matters because these shots can
 contain teammate names and internal branch names). Use **`tilt`** for the header/hero
