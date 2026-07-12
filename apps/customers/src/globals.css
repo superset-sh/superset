@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@import "@superset/ui/globals.css";
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
+
+@theme {
+	--font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
