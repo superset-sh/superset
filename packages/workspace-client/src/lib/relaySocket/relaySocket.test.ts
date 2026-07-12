@@ -107,10 +107,10 @@ describe("createRelaySocket", () => {
 		server.stop(true);
 	});
 
-	it("dials local (non-/hosts) URLs without a preflight", async () => {
+	it("dials local (non-/hosts) URLs without a preflight, converting http to ws", async () => {
 		const { server, tokensSeen, port } = makeServer(() => 503);
 		socket = createRelaySocket({
-			buildUrl: () => `ws://localhost:${port}/events`,
+			buildUrl: () => `http://localhost:${port}/events`,
 			getToken: () => "psk-1",
 			minReconnectionDelay: 20,
 			maxReconnectionDelay: 40,

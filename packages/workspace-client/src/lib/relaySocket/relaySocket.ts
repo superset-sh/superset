@@ -25,10 +25,13 @@ export interface RelaySocketOptions {
 
 export type RelaySocket = ReconnectingWebSocket;
 
+// Accepts http(s) host URLs and converts to ws(s), so consumers can pass
+// their host URL straight through without scheme juggling.
 function signUrl(url: string, token: string | null): string {
-	if (!token) return url;
 	const u = new URL(url);
-	u.searchParams.set("token", token);
+	if (u.protocol === "http:") u.protocol = "ws:";
+	if (u.protocol === "https:") u.protocol = "wss:";
+	if (token) u.searchParams.set("token", token);
 	return u.toString();
 }
 

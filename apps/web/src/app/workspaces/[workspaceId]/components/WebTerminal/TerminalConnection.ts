@@ -122,10 +122,6 @@ export class TerminalConnection {
 			}
 			this.emitState(this.everAttached ? "reconnecting" : "connecting");
 		});
-
-		socket.addEventListener("error", () => {
-			// close fires after error; partysocket owns the retry loop.
-		});
 	}
 
 	dispose() {
@@ -149,7 +145,7 @@ export class TerminalConnection {
 	}
 
 	private async buildUrl(): Promise<string> {
-		const base = getRelayUrl().replace(/^http/, "ws").replace(/\/$/, "");
+		const base = getRelayUrl().replace(/\/$/, "");
 		const url = new URL(
 			`${base}/hosts/${this.target.routingKey}/terminal/${encodeURIComponent(
 				this.target.terminalId,

@@ -106,12 +106,6 @@ interface ConnectionState {
 
 const connections = new Map<string, ConnectionState>();
 
-function buildEventBusUrl(hostUrl: string): string {
-	const base = hostUrl.replace(/\/$/, "");
-	const wsBase = base.replace(/^http/, "ws");
-	return `${wsBase}/events`;
-}
-
 function sendCommand(state: ConnectionState, message: ClientMessage): void {
 	if (state.socket.readyState === WebSocket.OPEN) {
 		state.socket.send(JSON.stringify(message));
@@ -216,7 +210,7 @@ function getOrCreateConnection(
 	// inside partysocket. Buffering is disabled so command semantics stay
 	// "send only while open" — watches are replayed from state on each open.
 	const socket = createRelaySocket({
-		buildUrl: () => buildEventBusUrl(hostUrl),
+		buildUrl: () => `${hostUrl.replace(/\/$/, "")}/events`,
 		getToken: getWsToken,
 		accessDeniedRetryMs: ACCESS_DENIED_RETRY_MS,
 		minReconnectionDelay: RECONNECT_BASE_MS,
@@ -239,10 +233,6 @@ function getOrCreateConnection(
 	});
 	socket.addEventListener("message", (event) => {
 		handleMessage(state, event.data);
-	});
-	socket.addEventListener("error", () => {
-		// partysocket reconnects on its own; suppress the default unhandled-
-		// error console noise when a host bounces offline.
 	});
 
 	connections.set(key, state);
