@@ -20,6 +20,8 @@ export interface RelaySocketOptions {
 	maxReconnectionDelay?: number;
 	maxRetries?: number;
 	connectionTimeout?: number;
+	/** Defaults to 0: send() is a no-op unless the socket is open. Opt into
+	 * partysocket's buffer-and-replay only when stale sends are safe. */
 	maxEnqueuedMessages?: number;
 }
 
@@ -70,7 +72,7 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 		maxReconnectionDelay: opts.maxReconnectionDelay,
 		maxRetries: opts.maxRetries,
 		connectionTimeout: opts.connectionTimeout,
-		maxEnqueuedMessages: opts.maxEnqueuedMessages,
+		maxEnqueuedMessages: opts.maxEnqueuedMessages ?? 0,
 	});
 	return socket;
 }
