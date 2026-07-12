@@ -52,7 +52,7 @@ export function CountdownBorder({
 					strokeLinecap="round"
 					pathLength={100}
 					strokeDasharray={100}
-					className="stroke-emerald-500/60"
+					className="stroke-emerald-500/35"
 					style={{
 						x: STROKE_WIDTH / 2,
 						y: STROKE_WIDTH / 2,
