@@ -20,8 +20,9 @@ function githubAvatarUrl(email: string): string | null {
 }
 
 /**
- * Commit-author avatar resolved from the author email: an org member's
- * Superset avatar first, then GitHub noreply-derived URLs, else an initial.
+ * Commit-author avatar: an org member's Superset avatar matched by email,
+ * then by exact display name (git emails rarely match account emails), then
+ * GitHub noreply-derived URLs, else an initial.
  */
 export function AuthorAvatar({
 	name,
@@ -41,13 +42,25 @@ export function AuthorAvatar({
 	const [failed, setFailed] = useState(false);
 
 	const url = useMemo(() => {
-		const normalized = (email ?? "").trim().toLowerCase();
-		if (!normalized) return null;
-		const member = (users ?? []).find(
-			(user) => user.email.toLowerCase() === normalized,
+		const normalizedEmail = (email ?? "").trim().toLowerCase();
+		const normalizedName = name.trim().toLowerCase();
+		const byEmail = normalizedEmail
+			? (users ?? []).find(
+					(user) => user.email.toLowerCase() === normalizedEmail,
+				)
+			: undefined;
+		const byName =
+			normalizedName.length > 0
+				? (users ?? []).find(
+						(user) => user.name.trim().toLowerCase() === normalizedName,
+					)
+				: undefined;
+		return (
+			byEmail?.image ??
+			byName?.image ??
+			(normalizedEmail ? githubAvatarUrl(normalizedEmail) : null)
 		);
-		return member?.image ?? githubAvatarUrl(normalized);
-	}, [users, email]);
+	}, [users, email, name]);
 
 	const dimensions = { width: size, height: size, borderRadius: size / 2 };
 
