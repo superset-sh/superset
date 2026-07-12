@@ -81,6 +81,36 @@ export default function AuthenticatedLayout() {
 							title: "Commits",
 						}}
 					/>
+					<Stack.Screen
+						name="workspace/[id]/line-comment"
+						options={{
+							presentation: "formSheet",
+							sheetAllowedDetents: [0.75],
+							sheetGrabberVisible: true,
+							...glassHeaderOptions,
+							title: "Add comment",
+						}}
+					/>
+					<Stack.Screen
+						name="workspace/[id]/finish-review"
+						options={{
+							presentation: "formSheet",
+							sheetAllowedDetents: [0.75],
+							sheetGrabberVisible: true,
+							...glassHeaderOptions,
+							title: "Finish review",
+						}}
+					/>
+					<Stack.Screen
+						name="workspace/[id]/jump-to-file"
+						options={{
+							presentation: "formSheet",
+							sheetAllowedDetents: [0.75],
+							sheetGrabberVisible: true,
+							...glassHeaderOptions,
+							title: "Jump to file",
+						}}
+					/>
 				</Stack>
 			</PromptInputProvider>
 		</CollectionsProvider>
