@@ -4,7 +4,7 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -113,11 +113,18 @@ function SettingsLayout() {
 	const originRoute = useSettingsOriginRoute();
 	const location = useLocation();
 	const navigate = useNavigate();
+	const contentRef = useRef<HTMLDivElement>(null);
 	const normalizedSearchQuery = searchQuery.trim();
 	const isSearchActive = normalizedSearchQuery.length > 0;
 	const totalMatches = isSearchActive
 		? searchSettings(normalizedSearchQuery).length
 		: 0;
+
+	// Reset scroll to top when navigating to a different settings page.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger, not read in the body
+	useEffect(() => {
+		contentRef.current?.scrollTo({ top: 0 });
+	}, [location.pathname]);
 
 	useEffect(() => {
 		if (!isSearchActive) return;
@@ -175,9 +182,9 @@ function SettingsLayout() {
 				<NavigationControls />
 			</div>
 
-			<div className="flex flex-1 overflow-hidden">
+			<div className="flex flex-1 overflow-hidden bg-background">
 				<SettingsSidebar />
-				<div className="flex-1 m-3 bg-background rounded overflow-auto">
+				<div ref={contentRef} className="flex-1 overflow-auto">
 					{isSearchActive && (
 						<SearchResultsBanner
 							query={normalizedSearchQuery}

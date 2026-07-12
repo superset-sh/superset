@@ -249,7 +249,7 @@ export function DashboardSidebar({
 									"border-t border-border",
 									isCollapsed
 										? "flex flex-col items-center gap-1 py-1"
-										: "flex items-center gap-1 px-2 py-1",
+										: "flex items-center gap-1 p-3",
 								)}
 							>
 								{isCollapsed ? (
