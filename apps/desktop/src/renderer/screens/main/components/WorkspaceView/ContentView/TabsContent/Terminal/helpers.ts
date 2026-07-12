@@ -1,7 +1,3 @@
-import {
-	getCellDimensions,
-	installTerminalWheelEventHandler,
-} from "@superset/shared/terminal-wheel-handler";
 import { toast } from "@superset/ui/sonner";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
@@ -163,7 +159,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	});
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
-	const uninstallWheelHandler = installTerminalWheelEventHandler(xterm);
 
 	const linkManager = new TerminalLinkManager(xterm);
 	linkManager.setHandlers({
@@ -229,7 +224,6 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			disposed = true;
 			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
-			uninstallWheelHandler();
 			linkManager.dispose();
 			try {
 				webglAddon?.dispose();
@@ -317,15 +311,28 @@ function getTerminalCoordsFromEvent(
 	const x = event.clientX - rect.left;
 	const y = event.clientY - rect.top;
 
-	const cell = getCellDimensions(xterm);
-	if (!cell) return null;
+	// Note: xterm.js does not expose a public API for mouse-to-coords conversion,
+	// so we must access internal _core._renderService.dimensions. This is fragile
+	// and may break in future xterm.js versions.
+	const dimensions = (
+		xterm as unknown as {
+			_core?: {
+				_renderService?: {
+					dimensions?: { css: { cell: { width: number; height: number } } };
+				};
+			};
+		}
+	)._core?._renderService?.dimensions;
+	if (!dimensions?.css?.cell) return null;
+
+	const cellWidth = dimensions.css.cell.width;
+	const cellHeight = dimensions.css.cell.height;
+
+	if (cellWidth <= 0 || cellHeight <= 0) return null;
 
 	// Clamp to valid terminal grid range to prevent excessive delta calculations
-	const col = Math.max(0, Math.min(xterm.cols - 1, Math.floor(x / cell.width)));
-	const row = Math.max(
-		0,
-		Math.min(xterm.rows - 1, Math.floor(y / cell.height)),
-	);
+	const col = Math.max(0, Math.min(xterm.cols - 1, Math.floor(x / cellWidth)));
+	const row = Math.max(0, Math.min(xterm.rows - 1, Math.floor(y / cellHeight)));
 
 	return { col, row };
 }
