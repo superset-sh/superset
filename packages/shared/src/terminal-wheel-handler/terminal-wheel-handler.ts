@@ -178,18 +178,20 @@ function getReportCoords(
 }
 
 /**
- * Custom wheel handler restoring full-fidelity scrolling for alt-buffer TUIs
- * (vim, less, htop, tmux).
+ * Custom wheel handler restoring full-fidelity scrolling for TUIs that
+ * capture the wheel: mouse-tracking apps in any buffer (Claude Code, vim
+ * with mouse=a, htop, tmux) and alt-buffer apps without tracking (less).
  *
  * Stock xterm.js damps trackpad wheel deltas to 30% and emits at most one
  * report/arrow per DOM wheel event ("scrolling samples every third tick").
- * This handler takes over only when the alternate buffer is active and
- * converts pixels to lines at full fidelity, emitting one sequence per line.
+ * This handler converts pixels to lines at full fidelity and emits one
+ * sequence per line — the report stream a native terminal (kitty, iTerm,
+ * Ghostty) produces.
  *
- * Deliberately out of scope: normal-buffer mouse tracking (Claude Code). The
- * TERM_PROGRAM=vscode masquerade makes Claude apply its own scroll
- * compensation tuned for xterm's damped reports, so full-fidelity reports
- * there would over-scroll ~3x. See plans/20260709-term-program-vscode-migration.md.
+ * Coupled to terminal identity: TERM_PROGRAM must claim a kitty-class
+ * terminal (see TERMINAL_TERM_PROGRAM in @superset/shared/constants).
+ * Under a vscode identity Claude Code amplifies each report to compensate
+ * for xterm's damped stream, so full-fidelity reports would over-scroll ~3x.
  */
 export function createTerminalWheelEventHandler(
 	xterm: XTerm,
@@ -201,18 +203,21 @@ export function createTerminalWheelEventHandler(
 		// Shift is xterm's mouse-capture bypass (selection); keep stock behavior.
 		if (event.deltaY === 0 || event.shiftKey) return true;
 
-		// Normal buffer: viewport scrollback (no mouse mode) or Claude's
-		// compensated mouse tracking — stock path handles both correctly.
-		if (xterm.buffer.active.type !== "alternate") return true;
-
+		const bufferType = xterm.buffer.active.type;
 		const tracking = xterm.modes.mouseTrackingMode;
-		// x10 tracking never reports wheel, so it falls through to arrows below.
+		// x10 tracking never reports wheel; in the alt buffer it falls through
+		// to arrows below, in the normal buffer to viewport scrollback.
 		const wantsMouseReports =
 			tracking === "vt200" || tracking === "drag" || tracking === "any";
 
-		// Without SGR encoding we cannot safely synthesize reports — legacy X10
-		// byte encoding breaks past column 223. Let stock xterm handle it.
-		if (wantsMouseReports && !isSgrMouseModeActive()) return true;
+		if (wantsMouseReports) {
+			// Without SGR encoding we cannot safely synthesize reports — legacy
+			// X10 byte encoding breaks past column 223. Let stock xterm handle it.
+			if (!isSgrMouseModeActive()) return true;
+		} else if (bufferType !== "alternate") {
+			// Normal buffer without mouse tracking: viewport scrollback.
+			return true;
+		}
 
 		const cell = getCellDimensions(xterm);
 		if (!cell) return true;
@@ -231,7 +236,7 @@ export function createTerminalWheelEventHandler(
 				rows: xterm.rows,
 				scrollSensitivity: xterm.options.scrollSensitivity ?? 1,
 				fastScrollSensitivity: xterm.options.fastScrollSensitivity ?? 5,
-				contextKey: `alternate:${tracking}:${applicationCursorKeys}`,
+				contextKey: `${bufferType}:${tracking}:${applicationCursorKeys}`,
 			},
 		);
 

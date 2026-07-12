@@ -1,3 +1,7 @@
+import {
+	getCellDimensions,
+	installTerminalWheelEventHandler,
+} from "@superset/shared/terminal-wheel-handler";
 import { toast } from "@superset/ui/sonner";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
@@ -9,7 +13,6 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
-import { getCellDimensions } from "renderer/lib/terminal/cell-dimensions";
 import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import {
@@ -18,7 +21,6 @@ import {
 	wrapWrite,
 } from "renderer/lib/terminal/parser-idle-gate";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
-import { installTerminalWheelEventHandler } from "renderer/lib/terminal/terminal-wheel-handler";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {

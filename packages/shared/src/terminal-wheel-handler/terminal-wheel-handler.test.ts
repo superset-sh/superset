@@ -211,8 +211,29 @@ describe("createTerminalWheelEventHandler", () => {
 		sgrActive = false;
 	});
 
-	it("defers to stock xterm in the normal buffer (scrollback + Claude)", () => {
+	it("defers to stock xterm in the normal buffer without mouse tracking (scrollback)", () => {
 		const { terminal, input } = makeFakeTerminal({ bufferType: "normal" });
+		const handler = createTerminalWheelEventHandler(terminal, isSgrActive);
+		expect(handler(wheelEvent(40))).toBe(true);
+		expect(input).not.toHaveBeenCalled();
+	});
+
+	it("sends SGR reports for normal-buffer mouse tracking (Claude Code)", () => {
+		sgrActive = true;
+		const { terminal, input } = makeFakeTerminal({
+			bufferType: "normal",
+			mouseTrackingMode: "any",
+		});
+		const handler = createTerminalWheelEventHandler(terminal, isSgrActive);
+		expect(handler(wheelEvent(34))).toBe(false);
+		expect(input).toHaveBeenCalledWith("\x1b[<65;1;1M\x1b[<65;1;1M", true);
+	});
+
+	it("defers to viewport scrollback for x10 tracking in the normal buffer", () => {
+		const { terminal, input } = makeFakeTerminal({
+			bufferType: "normal",
+			mouseTrackingMode: "x10",
+		});
 		const handler = createTerminalWheelEventHandler(terminal, isSgrActive);
 		expect(handler(wheelEvent(40))).toBe(true);
 		expect(input).not.toHaveBeenCalled();

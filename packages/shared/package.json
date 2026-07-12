@@ -8,6 +8,10 @@
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
 		},
+		"./terminal-wheel-handler": {
+			"types": "./src/terminal-wheel-handler/index.ts",
+			"default": "./src/terminal-wheel-handler/index.ts"
+		},
 		"./dev-credentials": {
 			"types": "./src/dev-credentials.ts",
 			"default": "./src/dev-credentials.ts"
@@ -155,6 +159,7 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/friendly-words": "1.2.2",
+		"@xterm/xterm": "6.1.0-beta.220",
 		"bun-types": "1.3.14",
 		"typescript": "6.0.3"
 	}

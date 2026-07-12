@@ -172,10 +172,11 @@ export function buildV2TerminalEnv(
 
 	env.TERM = "xterm-256color";
 	env.SHELL = shell;
-	// See TERMINAL_TERM_PROGRAM for why we identify as vscode. The previous
-	// "kitty" claim made claude-code suppress its wheel-scroll compensation and
-	// transcript scrolling crawled at ~1/3 speed. Shift+Enter does NOT depend
-	// on this: line-edit-translations.ts sends ESC+CR directly.
+	// See TERMINAL_TERM_PROGRAM for why we identify as kitty: the client's
+	// full-fidelity wheel handler produces a native-grade report stream that
+	// TUIs must trust as-is, not amplify with vscode-style compensation.
+	// Shift+Enter does NOT depend on this: line-edit-translations.ts sends
+	// ESC+CR directly.
 	env.TERM_PROGRAM = TERMINAL_TERM_PROGRAM;
 	env.TERM_PROGRAM_VERSION = TERMINAL_TERM_PROGRAM_VERSION;
 	env.COLORTERM = "truecolor";

@@ -1,5 +1,6 @@
 "use client";
 
+import { installTerminalWheelEventHandler } from "@superset/shared/terminal-wheel-handler";
 import { FitAddon } from "@xterm/addon-fit";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal } from "@xterm/xterm";
@@ -81,6 +82,10 @@ export function WebTerminal({
 		const fitAddon = new FitAddon();
 		terminal.loadAddon(fitAddon);
 		terminal.open(container);
+		// PTYs identify as TERM_PROGRAM=kitty (host-service env), which tells
+		// TUIs to expect a native-fidelity wheel report stream — this handler
+		// provides it. See @superset/shared/terminal-wheel-handler.
+		installTerminalWheelEventHandler(terminal);
 		if (window.matchMedia("(pointer: coarse)").matches) {
 			const xtermInput = terminal.textarea;
 			if (xtermInput) {
