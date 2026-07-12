@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { LuSearch, LuX } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { WorkspacesEmptyState } from "./components/WorkspacesEmptyState";
 import type { FilterMode, ProjectGroup, WorkspaceItem } from "./types";
 import { WorkspaceRow } from "./WorkspaceRow";
 
@@ -25,7 +26,7 @@ export function WorkspacesListView() {
 	// Fetch all data
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
-	const { data: allProjects = [] } =
+	const { data: allProjects = [], isLoading: isLoadingProjects } =
 		electronTrpc.projects.getRecents.useQuery();
 
 	// Fetch worktrees for all projects
@@ -178,6 +179,12 @@ export function WorkspacesListView() {
 	// Count stats for filter badges
 	const activeCount = allItems.filter((w) => w.isOpen).length;
 	const closedCount = allItems.filter((w) => !w.isOpen).length;
+
+	// No projects at all: show the clean drag-to-open empty state instead of the
+	// filter/search chrome. Wait for the query so it doesn't flash on first load.
+	if (!isLoadingProjects && allProjects.length === 0) {
+		return <WorkspacesEmptyState />;
+	}
 
 	return (
 		<div className="flex-1 flex flex-col bg-card overflow-hidden">

@@ -1061,61 +1061,82 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				},
 			),
 
-		openNew: publicProcedure.mutation(async (): Promise<OpenNewMultiResult> => {
-			const window = getWindow();
-			if (!window) {
-				return { canceled: false, error: "No window available" };
-			}
-			const result = await dialog.showOpenDialog(window, {
-				properties: ["openDirectory", "multiSelections"],
-				title: "Open Project",
-			});
+		openNew: publicProcedure
+			.input(
+				z
+					.object({
+						// When false, register the project without auto-creating its
+						// default workspace — the caller lands on the project page and
+						// creates a workspace explicitly.
+						createWorkspace: z.boolean().default(true),
+					})
+					.optional(),
+			)
+			.mutation(async ({ input }): Promise<OpenNewMultiResult> => {
+				const createWorkspace = input?.createWorkspace ?? true;
+				const window = getWindow();
+				if (!window) {
+					return { canceled: false, error: "No window available" };
+				}
+				const result = await dialog.showOpenDialog(window, {
+					properties: ["openDirectory", "multiSelections"],
+					title: "Open Project",
+				});
 
-			if (result.canceled || result.filePaths.length === 0) {
-				return { canceled: true };
-			}
+				if (result.canceled || result.filePaths.length === 0) {
+					return { canceled: true };
+				}
 
-			const outcomes: FolderOutcome[] = [];
+				const outcomes: FolderOutcome[] = [];
 
-			for (const selectedPath of result.filePaths) {
-				try {
-					const mainRepoPath = await getGitRoot(selectedPath);
-					const defaultBranch = await getDefaultBranch(mainRepoPath);
+				for (const selectedPath of result.filePaths) {
+					try {
+						const mainRepoPath = await getGitRoot(selectedPath);
+						const defaultBranch = await getDefaultBranch(mainRepoPath);
 
-					const project = upsertProject(mainRepoPath, defaultBranch);
-					await ensureMainWorkspace(project);
+						const project = upsertProject(mainRepoPath, defaultBranch);
+						if (createWorkspace) {
+							await ensureMainWorkspace(project);
+						} else {
+							activateProject(project);
+						}
 
-					track("project_opened", {
-						project_id: project.id,
-						method: "open",
-					});
-
-					outcomes.push({ status: "success", project });
-				} catch (gitError) {
-					if (gitError instanceof NotGitRepoError) {
-						outcomes.push({ status: "needsGitInit", selectedPath });
-					} else {
-						const msg =
-							gitError instanceof Error ? gitError.message : String(gitError);
-						console.error(
-							"[projects/openNew] Failed to open project:",
-							selectedPath,
-							gitError,
-						);
-						outcomes.push({
-							status: "error",
-							selectedPath,
-							error: msg,
+						track("project_opened", {
+							project_id: project.id,
+							method: "open",
 						});
+
+						outcomes.push({ status: "success", project });
+					} catch (gitError) {
+						if (gitError instanceof NotGitRepoError) {
+							outcomes.push({ status: "needsGitInit", selectedPath });
+						} else {
+							const msg =
+								gitError instanceof Error ? gitError.message : String(gitError);
+							console.error(
+								"[projects/openNew] Failed to open project:",
+								selectedPath,
+								gitError,
+							);
+							outcomes.push({
+								status: "error",
+								selectedPath,
+								error: msg,
+							});
+						}
 					}
 				}
-			}
 
-			return { canceled: false, multi: true, results: outcomes };
-		}),
+				return { canceled: false, multi: true, results: outcomes };
+			}),
 
 		openFromPath: publicProcedure
-			.input(z.object({ path: z.string() }))
+			.input(
+				z.object({
+					path: z.string(),
+					createWorkspace: z.boolean().default(true),
+				}),
+			)
 			.mutation(async ({ input }): Promise<OpenNewResult> => {
 				const selectedPath = input.path;
 
@@ -1155,7 +1176,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				const defaultBranch = await getDefaultBranch(mainRepoPath);
 
 				const project = upsertProject(mainRepoPath, defaultBranch);
-				await ensureMainWorkspace(project);
+				if (input.createWorkspace) {
+					await ensureMainWorkspace(project);
+				} else {
+					activateProject(project);
+				}
 
 				track("project_opened", {
 					project_id: project.id,
@@ -1169,12 +1194,21 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			}),
 
 		initGitAndOpen: publicProcedure
-			.input(z.object({ path: z.string() }))
+			.input(
+				z.object({
+					path: z.string(),
+					createWorkspace: z.boolean().default(true),
+				}),
+			)
 			.mutation(async ({ input }) => {
 				const { defaultBranch } = await initGitRepo(input.path);
 
 				const project = upsertProject(input.path, defaultBranch);
-				await ensureMainWorkspace(project);
+				if (input.createWorkspace) {
+					await ensureMainWorkspace(project);
+				} else {
+					activateProject(project);
+				}
 
 				track("project_opened", {
 					project_id: project.id,

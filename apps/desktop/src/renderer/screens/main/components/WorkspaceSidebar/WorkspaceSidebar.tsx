@@ -5,7 +5,6 @@ import { MultiDragPreview } from "./MultiDragPreview";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
 import { SetupScriptCard } from "./SetupScriptCard";
-import { SidebarDropZone } from "./SidebarDropZone";
 import { WorkspaceSidebarFooter } from "./WorkspaceSidebarFooter";
 import { WorkspaceSidebarHeader } from "./WorkspaceSidebarHeader";
 
@@ -70,7 +69,7 @@ export function WorkspaceSidebar({
 	);
 
 	return (
-		<SidebarDropZone className="flex flex-col h-full bg-muted/45 dark:bg-muted/35">
+		<div className="flex flex-col h-full bg-muted/45 dark:bg-muted/35">
 			<WorkspaceSidebarHeader isCollapsed={isCollapsed} />
 
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: mousedown on empty sidebar space clears selection */}
@@ -117,6 +116,6 @@ export function WorkspaceSidebar({
 
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 			<MultiDragPreview />
-		</SidebarDropZone>
+		</div>
 	);
 }

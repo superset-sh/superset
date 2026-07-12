@@ -131,6 +131,17 @@ const config: Configuration = {
 			// Required for Apple Events / Automation permission prompt
 			NSAppleEventsUsageDescription:
 				"Superset needs to interact with other applications to run terminal commands and development tools.",
+			// Let macOS route folder drops on the Dock/app icon (and "Open With")
+			// to the app via the `open-file` event. Matched by UTI, not extension,
+			// so extensions is intentionally empty. Mirrors VS Code's "Folder" type.
+			CFBundleDocumentTypes: [
+				{
+					CFBundleTypeName: "Folder",
+					CFBundleTypeRole: "Editor",
+					LSItemContentTypes: ["public.folder"],
+					CFBundleTypeExtensions: [],
+				},
+			],
 		},
 	},
 

@@ -171,10 +171,19 @@ export function Pane<TData>({
 		() => ({
 			accept: [PANE_DRAG_TYPE, TAB_DRAG_TYPE],
 			canDrop: (item: PaneDropItem, monitor) => {
-				// Can't drop a tab onto a pane it already owns, or a pane onto itself.
 				if (monitor.getItemType() === TAB_DRAG_TYPE) {
-					return "tabId" in item && item.tabId !== tab.id;
+					if (!("tabId" in item)) return false;
+					// A different tab merges its panes in as a split.
+					if (item.tabId !== tab.id) return true;
+					// Dragging this tab's OWN view (you can only see the active
+					// tab's panes) merges it into the previously selected tab.
+					const s = store.getState();
+					const previous = s.previousTabId
+						? s.tabs.find((t) => t.id === s.previousTabId)
+						: null;
+					return !!previous && previous.id !== tab.id && !!previous.layout;
 				}
+				// Can't drop a pane onto itself.
 				return "paneId" in item && item.paneId !== pane.id;
 			},
 			hover: (_item, monitor) => {
@@ -192,6 +201,15 @@ export function Pane<TData>({
 				const pos = dropPositionRef.current;
 				if (!pos) return;
 				if (monitor.getItemType() === TAB_DRAG_TYPE && "tabId" in item) {
+					// Dropping a tab onto its own pane merges its layout into the
+					// previously selected tab (self-merge would be a no-op).
+					if (item.tabId === tab.id) {
+						store.getState().moveTabToPreviousSplit({
+							sourceTabId: tab.id,
+							position: pos,
+						});
+						return;
+					}
 					store.getState().moveTabToSplit({
 						sourceTabId: item.tabId,
 						targetPaneId: pane.id,
