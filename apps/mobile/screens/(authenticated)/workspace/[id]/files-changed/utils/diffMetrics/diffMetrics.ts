@@ -1,6 +1,6 @@
-export const DIFF_FONT_SIZE = 13;
-export const DIFF_LINE_HEIGHT = 20;
-export const GUTTER_WIDTH = 48;
+export const DIFF_FONT_SIZE = 14;
+export const DIFF_LINE_HEIGHT = 21;
+export const GUTTER_WIDTH = 52;
 export const SIGN_WIDTH = 18;
 export const CODE_PADDING_RIGHT = 16;
 
