@@ -213,15 +213,20 @@ async function handleLinearWebhook(req: Request): Promise<Response> {
 	if (!env.LINEAR_WEBHOOK_SECRET) {
 		return new Response("webhook not configured", { status: 503 });
 	}
-	const raw = await req.text();
-	const hasher = new Bun.CryptoHasher("sha256", env.LINEAR_WEBHOOK_SECRET);
-	const expected = hasher.update(raw).digest("hex");
+	// Verify over the exact received bytes; string round-trips can break HMAC.
+	const rawBytes = new Uint8Array(await req.arrayBuffer());
+	const raw = new TextDecoder().decode(rawBytes);
 	const sig = req.headers.get("linear-signature") ?? "";
+	const expected = new Bun.CryptoHasher("sha256", env.LINEAR_WEBHOOK_SECRET)
+		.update(rawBytes)
+		.digest("hex");
 	if (
 		sig.length !== expected.length ||
 		!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))
 	) {
-		console.warn(`webhook rejected: bad signature (sig len ${sig.length})`);
+		console.warn(
+			`webhook rejected: bad signature (len ${rawBytes.length}, enc ${req.headers.get("content-encoding")}, type ${req.headers.get("content-type")})`,
+		);
 		return new Response("bad signature", { status: 401 });
 	}
 	const payload = JSON.parse(raw);
