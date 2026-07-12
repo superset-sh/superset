@@ -1,22 +1,15 @@
 import * as Crypto from "expo-crypto";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, TextInput, useWindowDimensions, View } from "react-native";
+import { ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
-import { DiffLineRow } from "../files-changed/components/DiffLineRow";
-import {
-	contentWidthForChars,
-	ESTIMATED_CHAR_WIDTH,
-	GUTTER_WIDTH,
-	SIGN_WIDTH,
-} from "../files-changed/utils/diffMetrics";
 import { useCommentComposerStore } from "../stores/commentComposerStore";
 import { useDraftCommentsStore } from "../stores/draftCommentsStore";
+import { AnchorLineRow } from "./components/AnchorLineRow";
 
 export function LineCommentSheet() {
 	const router = useRouter();
-	const { width } = useWindowDimensions();
 	const anchor = useCommentComposerStore((state) => state.anchor);
 	const closeComposer = useCommentComposerStore((state) => state.closeComposer);
 	const addComment = useDraftCommentsStore((state) => state.addComment);
@@ -43,8 +36,6 @@ export function LineCommentSheet() {
 		closeComposer();
 		router.back();
 	};
-
-	const codeViewportWidth = width - GUTTER_WIDTH - SIGN_WIDTH;
 
 	return (
 		// The scroll view must stay the sheet's only layout child (formSheet
@@ -73,21 +64,11 @@ export function LineCommentSheet() {
 			>
 				{anchor && anchor.lineType !== "file" ? (
 					<View className="border-border mx-3 mb-3 overflow-hidden rounded-xl border">
-						<DiffLineRow
-							row={{
-								kind: "line",
-								key: "anchor",
-								type: anchor.lineType,
-								oldLineNumber: anchor.side === "old" ? anchor.line : null,
-								newLineNumber: anchor.side === "new" ? anchor.line : null,
-								text: anchor.lineText,
-								tokens: anchor.tokens,
-							}}
-							contentWidth={contentWidthForChars(
-								anchor.lineText.length,
-								ESTIMATED_CHAR_WIDTH,
-							)}
-							codeViewportWidth={codeViewportWidth}
+						<AnchorLineRow
+							type={anchor.lineType}
+							lineNumber={anchor.line}
+							text={anchor.lineText}
+							tokens={anchor.tokens}
 						/>
 					</View>
 				) : anchor ? (

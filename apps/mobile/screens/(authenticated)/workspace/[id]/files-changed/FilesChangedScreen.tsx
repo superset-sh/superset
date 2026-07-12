@@ -1,9 +1,9 @@
-import type { LegendListRef } from "@legendapp/list/react-native";
-import { AnimatedLegendList } from "@legendapp/list/reanimated";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useQueries } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/build/react-navigation/elements/Header/useHeaderHeight";
 import { FileDiff } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -37,83 +37,39 @@ import {
 } from "../stores/draftCommentsStore";
 import { languageForPath } from "../utils/languageForPath";
 import { CommentCardRow } from "./components/CommentCardRow";
-import { DiffLineRow } from "./components/DiffLineRow";
 import { ExpanderRow } from "./components/ExpanderRow";
 import { FileHeaderRow } from "./components/FileHeaderRow";
+import { HunkSegmentCell } from "./components/HunkSegmentCell";
 import { ReviewOverlay } from "./components/ReviewOverlay";
+import { useChangesetListItems } from "./hooks/useChangesetListItems";
 import { useViewedFilesStore } from "./stores/viewedFilesStore";
-import { buildDisplayRows } from "./utils/buildDisplayRows";
+import type { LineRow, ListItem } from "./utils/buildListItems";
 import {
 	attachDiffTokens,
 	computeFileDiff,
-	type DiffRow,
 	expandTabs,
 	type FileDiffData,
 } from "./utils/computeFileDiff";
 import {
 	CharWidthProbe,
 	contentWidthForChars,
-	DIFF_LINE_HEIGHT,
 	ESTIMATED_CHAR_WIDTH,
-	EXPANDER_ROW_HEIGHT,
-	FILE_HEADER_HEIGHT,
 	GUTTER_WIDTH,
 	HUNK_ROW_HEIGHT,
-	NOTE_ROW_HEIGHT,
-	SIGN_WIDTH,
 } from "./utils/diffMetrics";
 
 const MAX_HIGHLIGHT_BYTES = 200_000;
 const NO_VIEWED_PATHS: string[] = [];
-// Whole diff loads at mount through a small pipeline (GitHub-style: everything
-// in memory, no load-as-you-scroll) without stampeding the relay.
-const FETCH_PIPELINE_START = 6;
-const FETCH_PIPELINE_STEP = 4;
-const FETCH_PIPELINE_LOOKAHEAD = 2;
-
-type LineRow = Extract<DiffRow, { kind: "line" }>;
-
-type ListItem =
-	| { kind: "file"; file: ChangesetFile; expanded: boolean; viewed: boolean }
-	| { kind: "diff-row"; path: string; row: DiffRow }
-	| {
-			kind: "comment";
-			comment: DraftComment;
-			stale: boolean;
-			orphaned: boolean;
-	  }
-	| {
-			kind: "note";
-			path: string;
-			key: string;
-			note: "loading" | "error" | "binary";
-			height: number;
-	  };
-
-/** Loading placeholders occupy ~their final height so nothing shifts. */
-function placeholderHeight(file: ChangesetFile): number {
-	const lines = file.additions + file.deletions + 8;
-	return Math.min(Math.max(lines * DIFF_LINE_HEIGHT, NOTE_ROW_HEIGHT), 2_400);
-}
-
-function itemKey(item: ListItem): string {
-	switch (item.kind) {
-		case "file":
-			return `file:${item.file.path}`;
-		case "diff-row":
-			return item.row.key;
-		case "comment":
-			return `comment:${item.comment.id}`;
-		case "note":
-			return item.key;
-	}
-}
+const FETCH_PIPELINE_START = 10;
+const FETCH_PIPELINE_STEP = 6;
+const FETCH_PIPELINE_LOOKAHEAD = 3;
 
 export function FilesChangedScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const workspaceId = id ?? null;
 	const { width: windowWidth } = useWindowDimensions();
+	const headerInset = useHeaderHeight();
 
 	const changeset = useWorkspaceChangeset(workspaceId);
 	const { workspace } = useWorkspaceHost(workspaceId);
@@ -148,7 +104,7 @@ export function FilesChangedScreen() {
 	const jumpTarget = useDiffViewStore((state) => state.jumpTarget);
 	const clearJump = useDiffViewStore((state) => state.clearJump);
 
-	const listRef = useRef<LegendListRef | null>(null);
+	const listRef = useRef<FlashListRef<ListItem> | null>(null);
 
 	const isExpanded = useCallback(
 		(file: ChangesetFile) => {
@@ -216,7 +172,6 @@ export function FilesChangedScreen() {
 		})),
 	});
 
-	// Advance the fetch pipeline as in-flight queries settle.
 	const settledCount = diffQueries.reduce(
 		(count, query, index) =>
 			index < enabledCount && (query.isSuccess || query.isError)
@@ -248,146 +203,29 @@ export function FilesChangedScreen() {
 		return map;
 	}, [fetchableFiles, diffQueries]);
 
-	const commentsByPath = useMemo(() => {
-		const map = new Map<string, DraftComment[]>();
-		for (const comment of comments) {
-			const group = map.get(comment.path);
-			if (group) group.push(comment);
-			else map.set(comment.path, [comment]);
-		}
-		return map;
-	}, [comments]);
-
-	const items = useMemo<ListItem[]>(() => {
-		const result: ListItem[] = [];
-		const placedCommentIds = new Set<string>();
-		for (const file of changeset.files) {
-			const expanded = isExpanded(file);
-			result.push({
-				kind: "file",
-				file,
-				expanded,
-				viewed: viewedSet.has(file.path),
-			});
-			const fileComments = commentsByPath.get(file.path) ?? [];
-			if (!expanded) {
-				for (const comment of fileComments) {
-					placedCommentIds.add(comment.id);
-					result.push({
-						kind: "comment",
-						comment,
-						stale: false,
-						orphaned: false,
-					});
-				}
-				continue;
-			}
-			if (file.isBinary === true) {
-				result.push({
-					kind: "note",
-					path: file.path,
-					key: `${file.path}:binary`,
-					note: "binary",
-					height: NOTE_ROW_HEIGHT,
-				});
-				continue;
-			}
-			const entry = dataByPath.get(file.path);
-			if (!entry?.data) {
-				const isError = entry?.isError ?? false;
-				result.push({
-					kind: "note",
-					path: file.path,
-					key: `${file.path}:${isError ? "error" : "loading"}`,
-					note: isError ? "error" : "loading",
-					height: isError ? NOTE_ROW_HEIGHT : placeholderHeight(file),
-				});
-				for (const comment of fileComments) {
-					placedCommentIds.add(comment.id);
-					result.push({
-						kind: "comment",
-						comment,
-						stale: false,
-						orphaned: false,
-					});
-				}
-				continue;
-			}
-			const rows = buildDisplayRows(
-				file.path,
-				entry.data,
-				expansions[file.path] ?? [],
-			);
-			for (const comment of fileComments) {
-				if (comment.line === 0) {
-					placedCommentIds.add(comment.id);
-					result.push({
-						kind: "comment",
-						comment,
-						stale: false,
-						orphaned: false,
-					});
-				}
-			}
-			for (const row of rows) {
-				result.push({ kind: "diff-row", path: file.path, row });
-				if (row.kind !== "line") continue;
-				for (const comment of fileComments) {
-					if (placedCommentIds.has(comment.id) || comment.line === 0) continue;
-					const lineNumber =
-						comment.side === "old" ? row.oldLineNumber : row.newLineNumber;
-					if (lineNumber === comment.line) {
-						placedCommentIds.add(comment.id);
-						result.push({
-							kind: "comment",
-							comment,
-							stale: comment.lineText !== row.text,
-							orphaned: false,
-						});
-					}
-				}
-			}
-			for (const comment of fileComments) {
-				if (placedCommentIds.has(comment.id)) continue;
-				placedCommentIds.add(comment.id);
-				result.push({ kind: "comment", comment, stale: true, orphaned: false });
-			}
-		}
-		for (const comment of comments) {
-			if (placedCommentIds.has(comment.id)) continue;
-			result.push({ kind: "comment", comment, stale: true, orphaned: true });
-		}
-		return result;
-	}, [
-		changeset.files,
+	const { items, stickyHeaderIndices } = useChangesetListItems({
+		files: changeset.files,
+		dataByPath,
+		expansions,
+		comments,
 		isExpanded,
 		viewedSet,
-		dataByPath,
-		commentsByPath,
-		comments,
-		expansions,
-	]);
+	});
 
-	const stickyHeaderIndices = useMemo(
-		() =>
-			items.reduce<number[]>((indices, item, index) => {
-				if (item.kind === "file") indices.push(index);
-				return indices;
-			}, []),
-		[items],
-	);
-
-	// Horizontal pan: one shared value, per-row clamping in DiffLineRow.
+	// Horizontal pan: one shared value, per-segment clamping in HunkSegmentCell.
 	const scrollX = useSharedValue(0);
 	const maxScrollX = useSharedValue(0);
-	const codeViewportWidth = windowWidth - GUTTER_WIDTH - SIGN_WIDTH;
+	const codeViewportWidth = windowWidth - GUTTER_WIDTH;
 
 	const contentWidthByPath = useMemo(() => {
 		const map = new Map<string, number>();
 		let maxOffset = 0;
 		for (const [path, entry] of dataByPath) {
 			if (!entry.data) continue;
-			const width = contentWidthForChars(entry.data.maxLineChars, charWidth);
+			const width = contentWidthForChars(
+				entry.data.maxLineChars + 2,
+				charWidth,
+			);
 			map.set(path, width);
 			maxOffset = Math.max(maxOffset, width - codeViewportWidth);
 		}
@@ -395,10 +233,6 @@ export function FilesChangedScreen() {
 		return map;
 	}, [dataByPath, charWidth, codeViewportWidth, maxScrollX]);
 
-	// Core-RN PanResponder instead of gesture-handler's Gesture API: the
-	// installed dev client's native worklets predate the serialization calls
-	// gesture-handler makes at load. Shared-value writes from JS still animate
-	// rows on the UI thread.
 	const panStartX = useRef(0);
 	const panResponder = useMemo(
 		() =>
@@ -554,8 +388,6 @@ export function FilesChangedScreen() {
 		[router, workspaceId, openComposer, deleteFile],
 	);
 
-	// Jump-to-file: force-expand, enable fetch, then land on the header (twice —
-	// estimated heights above the target settle after the first pass).
 	useEffect(() => {
 		if (!jumpTarget) return;
 		const { path } = jumpTarget;
@@ -577,13 +409,14 @@ export function FilesChangedScreen() {
 			(item) => item.kind === "file" && item.file.path === path,
 		);
 		if (index >= 0) {
-			void listRef.current
-				?.scrollToIndex({ index, animated: true })
-				.then(() => listRef.current?.scrollToIndex({ index, animated: false }))
-				.catch(() => {});
+			listRef.current?.scrollToIndex({
+				index,
+				animated: true,
+				viewOffset: headerInset,
+			});
 		}
 		clearJump();
-	}, [jumpTarget, items, viewedSet, clearJump]);
+	}, [jumpTarget, items, viewedSet, clearJump, headerInset]);
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
@@ -610,51 +443,46 @@ export function FilesChangedScreen() {
 							}}
 						/>
 					);
-				case "diff-row": {
-					const row = item.row;
-					if (row.kind === "hunk") {
-						return (
-							<View
-								className="bg-sky-500/10 justify-center px-3"
-								style={{ height: HUNK_ROW_HEIGHT }}
-							>
-								<Text className="text-sky-300/80 font-mono text-[12px]">
-									{row.header}
-								</Text>
-							</View>
-						);
-					}
-					if (row.kind === "truncated") {
-						return (
-							<View className="items-center px-3 py-2">
-								<Text className="text-muted-foreground text-xs">
-									Diff truncated — {row.hiddenCount} more lines on the host
-								</Text>
-							</View>
-						);
-					}
-					if (row.kind === "expander") {
-						return (
-							<ExpanderRow
-								row={row}
-								onExpand={(path, range) => {
-									if (workspaceId) addExpansion(workspaceId, path, range);
-								}}
-							/>
-						);
-					}
+				case "hunk":
 					return (
-						<DiffLineRow
-							row={row}
+						<View
+							className="bg-sky-500/10 justify-center px-3"
+							style={{ height: HUNK_ROW_HEIGHT }}
+						>
+							<Text className="text-sky-300/80 font-mono text-[12px]">
+								{item.header}
+							</Text>
+						</View>
+					);
+				case "segment":
+					return (
+						<HunkSegmentCell
+							segment={item.segment}
 							contentWidth={
 								contentWidthByPath.get(item.path) ?? codeViewportWidth
 							}
 							codeViewportWidth={codeViewportWidth}
 							scrollX={scrollX}
-							onPress={(lineRow) => openLineComposer(item.path, lineRow)}
+							onPressLine={openLineComposer}
 						/>
 					);
-				}
+				case "expander":
+					return (
+						<ExpanderRow
+							row={item.row}
+							onExpand={(path, range) => {
+								if (workspaceId) addExpansion(workspaceId, path, range);
+							}}
+						/>
+					);
+				case "truncated":
+					return (
+						<View className="items-center px-3 py-2">
+							<Text className="text-muted-foreground text-xs">
+								Diff truncated — {item.hiddenCount} more lines on the host
+							</Text>
+						</View>
+					);
 				case "comment":
 					return (
 						<CommentCardRow
@@ -692,8 +520,8 @@ export function FilesChangedScreen() {
 			codeViewportWidth,
 			scrollX,
 			openLineComposer,
-			onCommentMenu,
 			addExpansion,
+			onCommentMenu,
 		],
 	);
 
@@ -740,37 +568,22 @@ export function FilesChangedScreen() {
 			</Stack.Screen>
 			<CharWidthProbe onMeasure={setCharWidth} />
 			<View className="flex-1" {...panResponder.panHandlers}>
-				<AnimatedLegendList
+				<FlashList
 					ref={listRef}
-					className="flex-1"
-					contentInsetAdjustmentBehavior="automatic"
-					contentContainerStyle={{ paddingBottom: 96, paddingTop: 8 }}
 					data={items}
-					extraData={renderItem}
-					keyExtractor={itemKey}
 					renderItem={renderItem}
-					stickyHeaderIndices={stickyHeaderIndices}
-					maintainVisibleContentPosition
+					keyExtractor={(item) => item.key}
 					getItemType={(item) => item.kind}
-					getFixedItemSize={(item) => {
-						switch (item.kind) {
-							case "file":
-								return FILE_HEADER_HEIGHT;
-							case "note":
-								return item.height;
-							case "diff-row":
-								if (item.row.kind === "line") return DIFF_LINE_HEIGHT;
-								if (item.row.kind === "hunk") return HUNK_ROW_HEIGHT;
-								if (item.row.kind === "expander") return EXPANDER_ROW_HEIGHT;
-								return undefined;
-							default:
-								return undefined;
-						}
+					stickyHeaderIndices={stickyHeaderIndices}
+					stickyHeaderConfig={{ offset: headerInset, hideRelatedCell: true }}
+					contentContainerStyle={{
+						paddingTop: headerInset + 8,
+						paddingBottom: 96,
 					}}
+					scrollIndicatorInsets={{ top: headerInset }}
 					refreshControl={
 						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 					}
-					ListEmptyComponent={null}
 					ListFooterComponent={
 						changeset.isReady && changeset.files.length === 0 ? (
 							<View className="items-center gap-2 px-10 py-20">
