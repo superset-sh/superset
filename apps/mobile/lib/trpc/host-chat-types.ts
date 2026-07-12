@@ -1,6 +1,7 @@
 /**
  * Minimal local types for the host-service chat runtime surface that mobile
- * uses over the relay. INTERIM — see `plans/mobile-chat-runtime.md` (D2).
+ * uses over the relay. INTERIM — legacy Mastra chat surface, kept frozen for
+ * existing users; mobile's replacement is plans/host-sessions-sync.md.
  *
  * We do NOT import `@superset/host-service`'s `AppRouter`. Note this is a choice,
  * not a hard block: setting `allowImportingTsExtensions: true` + node types in the

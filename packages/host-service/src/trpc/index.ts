@@ -119,5 +119,8 @@ export type {
 	ProjectNotSetupCause,
 	TeardownFailureCause,
 } from "./error-types";
-// INTERIM cross-runtime types via dist-types — see docs/interim-router-types.md
+// INTERIM: AppRouter is re-exported from compiled dist-types declarations so
+// non-Node clients (Expo/RN mobile) can consume it without typechecking this
+// package's Node-flavored source. Goes away when the wire contract moves to a
+// neutral package.
 export type { AppRouter } from "./router";

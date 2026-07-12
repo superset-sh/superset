@@ -210,7 +210,7 @@ export const workspaces = sqliteTable(
 );
 
 /**
- * Registry of ACP agent sessions (docs/acp-sessions.md). One row per
+ * Registry of ACP agent sessions (legacy ACP surface; target: plans/host-sessions-sync.md). One row per
  * session, kept fresh on every state emit. Rows survive host restarts so the
  * manager can list them as `offline` and resurrect on demand via the
  * adapter's `session/load` — the journal itself is not persisted; transcript

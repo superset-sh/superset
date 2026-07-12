@@ -2,6 +2,7 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
 import { ChatService } from "@superset/chat/server/desktop";
+import { SESSIONS_SYNC_PATH } from "@superset/host-service-sync/protocol";
 import { eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -24,6 +25,11 @@ import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import {
+	CanonicalSessionsRuntime,
+	registerSessionsSyncRoute,
+	SessionsSyncHub,
+} from "./runtime/sessions";
 import { runWorkspaceBackfill } from "./runtime/workspace-backfill";
 import { startWorkspaceCloudSync } from "./runtime/workspace-cloud-sync";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
@@ -122,7 +128,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
 	// auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
-	// ACP session harness (docs/acp-sessions.md) — owns Claude Code
+	// ACP session harness (legacy ACP surface; target: plans/host-sessions-sync.md) — owns Claude Code
 	// adapter child processes. Fully parallel to the mastra chat runtime.
 	// Pre-release, so internal-channel only: the desktop coordinator spawns
 	// hosts with SUPERSET_ACP_SESSIONS=1 on canary/dev builds, never on
@@ -150,6 +156,20 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			persistence: new SqliteAcpSessionPersistence(db),
 		});
 
+	// Canonical Host Sessions projection over the ACP manager: serves the
+	// `sessions.*` router and /sessions/sync. Constructing it is inert —
+	// it only tracks a session once a canonical call touches it — so it is
+	// safe to build even when the gate is off; the router gate keeps it idle.
+	const canonicalSessions = new CanonicalSessionsRuntime({ port: acpSessions });
+	// The hub attaches live listeners to the runtime, so gate its existence
+	// too — an idle runtime with listeners would still schedule flush work.
+	const sessionsSyncHub = acpSessionsEnabled
+		? new SessionsSyncHub({
+				runtime: canonicalSessions,
+				hostId: config.organizationId,
+			})
+		: null;
+
 	const runtime = {
 		acpSessions,
 		acpSessionsEnabled,
@@ -157,6 +177,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		chat: chatRuntime,
 		filesystem,
 		pullRequests: pullRequestRuntime,
+		sessions: canonicalSessions,
+		sessionsSyncHub,
 	};
 	const app = new Hono();
 	const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
@@ -238,6 +260,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
 	app.use("/acp-sessions/*", wsAuth);
+	app.use(SESSIONS_SYNC_PATH, wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerWorkspaceTerminalRoute({
@@ -250,6 +273,13 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		registerAcpSessionStreamRoute({
 			app,
 			sessions: acpSessions,
+			upgradeWebSocket,
+		});
+	}
+	if (sessionsSyncHub) {
+		registerSessionsSyncRoute({
+			app,
+			hub: sessionsSyncHub,
 			upgradeWebSocket,
 		});
 	}
@@ -293,6 +323,16 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			sessionsSyncHub?.dispose();
+		} catch (err) {
+			console.warn("[host-service] sessionsSyncHub.dispose failed:", err);
+		}
+		try {
+			canonicalSessions.dispose();
+		} catch (err) {
+			console.warn("[host-service] canonicalSessions.dispose failed:", err);
 		}
 		try {
 			await acpSessions.dispose();

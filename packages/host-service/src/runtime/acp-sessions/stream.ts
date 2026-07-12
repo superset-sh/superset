@@ -79,7 +79,7 @@ function sendReset(socket: StreamSocket, sessionId: string, reason: string) {
 
 /**
  * `/acp-sessions/:sessionId/stream?since=<seq>` — one JSON
- * `SessionUpdateEnvelope` per WS message (docs/acp-sessions.md).
+ * `SessionUpdateEnvelope` per WS message (legacy ACP surface; target: plans/host-sessions-sync.md).
  * With `since`, the retained journal tail is replayed before going live; an
  * unservable cursor gets a single `reset` frame and the socket closes — the
  * client resyncs via get/getMessages and reconnects. The route is

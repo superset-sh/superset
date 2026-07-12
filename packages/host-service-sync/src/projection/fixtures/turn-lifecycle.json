@@ -1,0 +1,284 @@
+{
+	"name": "turn-lifecycle",
+	"description": "A fresh idle session runs one assistant turn with a host tool call to completion.",
+	"inputs": [
+		{
+			"type": "snapshot",
+			"cursor": "cursor-0",
+			"value": {
+				"sessionId": "session-1",
+				"cursor": "cursor-0",
+				"session": {
+					"id": "session-1",
+					"workspaceId": "workspace-1",
+					"title": "Reconnect investigation",
+					"mainThreadId": "thread-main",
+					"agent": {
+						"id": "claude-code",
+						"displayName": "Claude Code"
+					},
+					"runState": "idle",
+					"capabilities": {
+						"threadModel": "nested",
+						"threadFidelity": "partial",
+						"canResume": true,
+						"supportsPermissions": true,
+						"supportsModes": true,
+						"supportsModels": true
+					},
+					"settings": {
+						"activeModel": "anthropic/claude-sonnet-4-6",
+						"activeMode": "default",
+						"effort": "low",
+						"configuration": {}
+					},
+					"eventHead": "cursor-0",
+					"createdAt": 1783772200000,
+					"updatedAt": 1783772200000,
+					"lastActivityAt": 1783772200000,
+					"archivedAt": null,
+					"closedAt": null,
+					"error": null
+				},
+				"threadsById": {
+					"thread-main": {
+						"id": "thread-main",
+						"sessionId": "session-1",
+						"kind": "main",
+						"parentThreadId": null,
+						"origin": {
+							"type": "sessionCreated"
+						},
+						"fidelity": "full",
+						"title": null,
+						"runState": "idle",
+						"eventHead": null,
+						"createdAt": 1783772200000,
+						"updatedAt": 1783772200000,
+						"lastActivityAt": 1783772200000
+					}
+				},
+				"activeTurnsById": {},
+				"pendingPermissionsById": {},
+				"activeToolCallsById": {},
+				"plan": []
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-1",
+			"value": {
+				"id": "event-1",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-1",
+				"occurredAt": 1783772200001,
+				"causationId": "request-turn-1",
+				"payload": {
+					"type": "turnStarted",
+					"turn": {
+						"id": "turn-1",
+						"sessionId": "session-1",
+						"threadId": "thread-main",
+						"status": "running",
+						"originatingClientInstanceId": "client-1",
+						"createdAt": 1783772200001,
+						"updatedAt": 1783772200001
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-2",
+			"value": {
+				"id": "event-2",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-2",
+				"occurredAt": 1783772200002,
+				"causationId": null,
+				"payload": {
+					"type": "messageStarted",
+					"message": {
+						"id": "message-1",
+						"sessionId": "session-1",
+						"threadId": "thread-main",
+						"turnId": "turn-1",
+						"role": "assistant",
+						"content": [],
+						"createdAt": 1783772200002
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-3",
+			"value": {
+				"id": "event-3",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-3",
+				"occurredAt": 1783772200003,
+				"causationId": null,
+				"payload": {
+					"type": "toolCallStarted",
+					"toolCall": {
+						"id": "tool-1",
+						"sessionId": "session-1",
+						"threadId": "thread-main",
+						"turnId": "turn-1",
+						"parentToolCallId": null,
+						"tool": {
+							"name": "fs.read",
+							"version": 1
+						},
+						"title": "Read README.md",
+						"input": {
+							"path": "README.md"
+						},
+						"resolver": {
+							"type": "host"
+						},
+						"state": "running",
+						"createdAt": 1783772200003,
+						"updatedAt": 1783772200003,
+						"expiresAt": null
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-4",
+			"value": {
+				"id": "event-4",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-4",
+				"occurredAt": 1783772200004,
+				"causationId": null,
+				"payload": {
+					"type": "toolCallUpdated",
+					"toolCallId": "tool-1",
+					"update": {
+						"state": "succeeded",
+						"updatedAt": 1783772200004
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-5",
+			"value": {
+				"id": "event-5",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-5",
+				"occurredAt": 1783772200005,
+				"causationId": null,
+				"payload": {
+					"type": "messageDelta",
+					"messageId": "message-1",
+					"content": {
+						"type": "text",
+						"text": "Done."
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-6",
+			"value": {
+				"id": "event-6",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-6",
+				"occurredAt": 1783772200006,
+				"causationId": null,
+				"payload": {
+					"type": "messageCompleted",
+					"messageId": "message-1"
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-7",
+			"value": {
+				"id": "event-7",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-7",
+				"occurredAt": 1783772200007,
+				"causationId": null,
+				"payload": {
+					"type": "turnCompleted",
+					"turnId": "turn-1",
+					"stopReason": "endTurn"
+				}
+			}
+		}
+	],
+	"expected": {
+		"sessionId": "session-1",
+		"cursor": "cursor-7",
+		"session": {
+			"id": "session-1",
+			"workspaceId": "workspace-1",
+			"title": "Reconnect investigation",
+			"mainThreadId": "thread-main",
+			"agent": {
+				"id": "claude-code",
+				"displayName": "Claude Code"
+			},
+			"runState": "idle",
+			"capabilities": {
+				"threadModel": "nested",
+				"threadFidelity": "partial",
+				"canResume": true,
+				"supportsPermissions": true,
+				"supportsModes": true,
+				"supportsModels": true
+			},
+			"settings": {
+				"activeModel": "anthropic/claude-sonnet-4-6",
+				"activeMode": "default",
+				"effort": "low",
+				"configuration": {}
+			},
+			"eventHead": "cursor-7",
+			"createdAt": 1783772200000,
+			"updatedAt": 1783772200007,
+			"lastActivityAt": 1783772200007,
+			"archivedAt": null,
+			"closedAt": null,
+			"error": null
+		},
+		"threadsById": {
+			"thread-main": {
+				"id": "thread-main",
+				"sessionId": "session-1",
+				"kind": "main",
+				"parentThreadId": null,
+				"origin": {
+					"type": "sessionCreated"
+				},
+				"fidelity": "full",
+				"title": null,
+				"runState": "completed",
+				"eventHead": "cursor-7",
+				"createdAt": 1783772200000,
+				"updatedAt": 1783772200007,
+				"lastActivityAt": 1783772200007
+			}
+		},
+		"activeTurnsById": {},
+		"pendingPermissionsById": {},
+		"activeToolCallsById": {},
+		"plan": []
+	}
+}

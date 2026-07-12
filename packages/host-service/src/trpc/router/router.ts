@@ -16,6 +16,7 @@ import { notificationsRouter } from "./notifications";
 import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
+import { sessionsRouter } from "./sessions";
 import { settingsRouter } from "./settings";
 import { terminalRouter } from "./terminal";
 import { terminalAgentsRouter } from "./terminal-agents";
@@ -42,6 +43,7 @@ export const appRouter = router({
 	pullRequests: pullRequestsRouter,
 	project: projectRouter,
 	ports: portsRouter,
+	sessions: sessionsRouter,
 	settings: settingsRouter,
 	terminal: terminalRouter,
 	terminalAgents: terminalAgentsRouter,

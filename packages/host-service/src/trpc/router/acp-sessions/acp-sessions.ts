@@ -53,7 +53,7 @@ function rethrowMapped(error: unknown): never {
 }
 
 /**
- * ACP session surface (docs/acp-sessions.md). Thin passthrough to
+ * ACP session surface (legacy ACP surface; target: plans/host-sessions-sync.md). Thin passthrough to
  * `ctx.runtime.acpSessions` — inputs come from `@superset/session-protocol`
  * so mobile and host validate against the same schemas. Fully parallel to the
  * mastra `chat` router, which stays untouched.

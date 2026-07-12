@@ -48,6 +48,8 @@ export interface TestHostOptions {
 export interface TestHost {
 	app: CreateAppResult["app"];
 	api: CreateAppResult["api"];
+	/** Attach the app's WebSocket routes to a real `node:http` server. */
+	injectWebSocket: CreateAppResult["injectWebSocket"];
 	db: HostDb;
 	dispose: () => Promise<void>;
 	psk: string;
@@ -178,6 +180,7 @@ export async function createTestHost(
 	return {
 		app: result.app,
 		api: fakeApi.client,
+		injectWebSocket: result.injectWebSocket,
 		db: db as unknown as HostDb,
 		dispose,
 		psk,

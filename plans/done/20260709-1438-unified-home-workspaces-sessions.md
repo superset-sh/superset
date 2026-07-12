@@ -44,7 +44,7 @@ To see it working: run the app (`cd apps/mobile && bun dev`, or an existing dev 
   Evidence: `useCreateChatWorkspace.ts` only calls `client.workspaces.create.mutate`; `grep agents.run apps/mobile` has no hits.
 - Observation: The native `modules/tab-bar` module exists but is unused; the app has no bottom tab bar. Home is a plain stack, so this redesign does not fight any tab structure.
   Evidence: `grep -rn "tab-bar" apps/mobile/app apps/mobile/screens` returns nothing.
-- Observation: `chat_sessions` has no status or agent column (only id/workspace/title/timestamps), so chat rows cannot show a live status dot yet — dots appear on terminal rows only, and chat rows use a fixed Claude logo. Syncing session status via Electric (see plans/cross-client-session-tab-sync.md) would light them up.
+- Observation: `chat_sessions` has no status or agent column (only id/workspace/title/timestamps), so chat rows cannot show a live status dot yet. Canonical live status now belongs to the host session sync tracked in `plans/host-sessions-rollout.md`, not a separate Electric terminal/session proposal.
   Evidence: `packages/db/src/schema/schema.ts:670`.
 - Observation: Mobile typecheck in a fresh worktree fails on every `HostWorkspaceRow` property because `@superset/host-service/router` types resolve from generated `dist-types/` that don't exist until `bun run build:types` runs in `packages/host-service`. Separately, mobile's tsc reports pre-existing errors in `packages/port-scanner`/`pty-daemon`/`workspace-fs` (bun-flavored `.ts` imports) — identical on clean HEAD, not caused by this change.
   Evidence: stash-and-typecheck comparison, 2026-07-09.

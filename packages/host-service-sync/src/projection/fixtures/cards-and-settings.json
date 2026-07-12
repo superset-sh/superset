@@ -1,0 +1,404 @@
+{
+	"name": "cards-and-settings",
+	"description": "A snapshot-seeded running session folds permission and client-tool cards, settings, plan, and a cancelled turn.",
+	"inputs": [
+		{
+			"type": "snapshot",
+			"cursor": "cursor-10",
+			"value": {
+				"sessionId": "session-1",
+				"cursor": "cursor-10",
+				"session": {
+					"id": "session-1",
+					"workspaceId": "workspace-1",
+					"title": "Storage migration",
+					"mainThreadId": "thread-main",
+					"agent": {
+						"id": "claude-code",
+						"displayName": "Claude Code"
+					},
+					"runState": "running",
+					"capabilities": {
+						"threadModel": "nested",
+						"threadFidelity": "partial",
+						"canResume": true,
+						"supportsPermissions": true,
+						"supportsModes": true,
+						"supportsModels": true
+					},
+					"settings": {
+						"activeModel": "anthropic/claude-sonnet-4-6",
+						"activeMode": "default",
+						"effort": "low",
+						"configuration": {}
+					},
+					"eventHead": "cursor-10",
+					"createdAt": 1783772200000,
+					"updatedAt": 1783772200010,
+					"lastActivityAt": 1783772200010,
+					"archivedAt": null,
+					"closedAt": null,
+					"error": null
+				},
+				"threadsById": {
+					"thread-main": {
+						"id": "thread-main",
+						"sessionId": "session-1",
+						"kind": "main",
+						"parentThreadId": null,
+						"origin": {
+							"type": "sessionCreated"
+						},
+						"fidelity": "full",
+						"title": null,
+						"runState": "running",
+						"eventHead": "cursor-9",
+						"createdAt": 1783772200000,
+						"updatedAt": 1783772200009,
+						"lastActivityAt": 1783772200009
+					}
+				},
+				"activeTurnsById": {
+					"turn-9": {
+						"id": "turn-9",
+						"sessionId": "session-1",
+						"threadId": "thread-main",
+						"status": "running",
+						"originatingClientInstanceId": null,
+						"createdAt": 1783772200009,
+						"updatedAt": 1783772200009
+					}
+				},
+				"pendingPermissionsById": {},
+				"activeToolCallsById": {
+					"tool-9": {
+						"id": "tool-9",
+						"sessionId": "session-1",
+						"threadId": "thread-main",
+						"turnId": "turn-9",
+						"parentToolCallId": null,
+						"tool": {
+							"name": "fs.write",
+							"version": 1
+						},
+						"title": "Write config.json",
+						"input": {
+							"path": "config.json"
+						},
+						"resolver": {
+							"type": "host"
+						},
+						"state": "awaitingPermission",
+						"createdAt": 1783772200009,
+						"updatedAt": 1783772200010,
+						"expiresAt": null
+					}
+				},
+				"plan": []
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-11",
+			"value": {
+				"id": "event-11",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-11",
+				"occurredAt": 1783772200011,
+				"causationId": null,
+				"payload": {
+					"type": "permissionRequested",
+					"permission": {
+						"id": "permission-1",
+						"sessionId": "session-1",
+						"threadId": "thread-main",
+						"toolCallId": "tool-9",
+						"options": [
+							{
+								"id": "allow_once",
+								"name": "Allow once",
+								"kind": "allowOnce"
+							},
+							{
+								"id": "reject_once",
+								"name": "Reject",
+								"kind": "rejectOnce"
+							}
+						],
+						"multiSelect": false,
+						"requestedAt": 1783772200011
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-12",
+			"value": {
+				"id": "event-12",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-12",
+				"occurredAt": 1783772200012,
+				"causationId": null,
+				"payload": {
+					"type": "toolCallStarted",
+					"toolCall": {
+						"id": "tool-11",
+						"sessionId": "session-1",
+						"threadId": "thread-main",
+						"turnId": "turn-9",
+						"parentToolCallId": null,
+						"tool": {
+							"name": "ui.ask_user",
+							"version": 1
+						},
+						"title": "Choose storage",
+						"input": {
+							"question": "Which store?"
+						},
+						"resolver": {
+							"type": "client",
+							"capability": "ui.ask_user",
+							"routing": "anyCapableClient"
+						},
+						"state": "available",
+						"createdAt": 1783772200012,
+						"updatedAt": 1783772200012,
+						"expiresAt": null
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-13",
+			"value": {
+				"id": "event-13",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-13",
+				"occurredAt": 1783772200013,
+				"causationId": "request-permission-1",
+				"payload": {
+					"type": "permissionResolved",
+					"permissionId": "permission-1",
+					"outcome": {
+						"type": "selected",
+						"optionIds": ["allow_once"]
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-14",
+			"value": {
+				"id": "event-14",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-14",
+				"occurredAt": 1783772200014,
+				"causationId": null,
+				"payload": {
+					"type": "toolCallUpdated",
+					"toolCallId": "tool-9",
+					"update": {
+						"state": "running",
+						"updatedAt": 1783772200014
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-15",
+			"value": {
+				"id": "event-15",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-15",
+				"occurredAt": 1783772200015,
+				"causationId": "request-claim-1",
+				"payload": {
+					"type": "toolCallUpdated",
+					"toolCallId": "tool-11",
+					"update": {
+						"state": "available",
+						"updatedAt": 1783772200015
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-16",
+			"value": {
+				"id": "event-16",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-16",
+				"occurredAt": 1783772200016,
+				"causationId": "request-resolve-1",
+				"payload": {
+					"type": "toolCallUpdated",
+					"toolCallId": "tool-11",
+					"update": {
+						"state": "succeeded",
+						"updatedAt": 1783772200016
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-17",
+			"value": {
+				"id": "event-17",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-17",
+				"occurredAt": 1783772200017,
+				"causationId": null,
+				"payload": {
+					"type": "toolCallUpdated",
+					"toolCallId": "tool-9",
+					"update": {
+						"state": "succeeded",
+						"updatedAt": 1783772200017
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-18",
+			"value": {
+				"id": "event-18",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-18",
+				"occurredAt": 1783772200018,
+				"causationId": "request-settings-1",
+				"payload": {
+					"type": "settingsUpdated",
+					"settings": {
+						"activeModel": "anthropic/claude-opus-4-8",
+						"activeMode": "acceptEdits",
+						"effort": "high",
+						"configuration": {
+							"sandbox": true
+						}
+					}
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-19",
+			"value": {
+				"id": "event-19",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-19",
+				"occurredAt": 1783772200019,
+				"causationId": null,
+				"payload": {
+					"type": "planUpdated",
+					"plan": [
+						{
+							"id": "step-1",
+							"content": "Ship the sync server",
+							"status": "inProgress",
+							"priority": "high"
+						}
+					]
+				}
+			}
+		},
+		{
+			"type": "event",
+			"cursor": "cursor-20",
+			"value": {
+				"id": "event-20",
+				"sessionId": "session-1",
+				"threadId": "thread-main",
+				"cursor": "cursor-20",
+				"occurredAt": 1783772200020,
+				"causationId": "request-cancel-1",
+				"payload": {
+					"type": "turnCancelled",
+					"turnId": "turn-9"
+				}
+			}
+		}
+	],
+	"expected": {
+		"sessionId": "session-1",
+		"cursor": "cursor-20",
+		"session": {
+			"id": "session-1",
+			"workspaceId": "workspace-1",
+			"title": "Storage migration",
+			"mainThreadId": "thread-main",
+			"agent": {
+				"id": "claude-code",
+				"displayName": "Claude Code"
+			},
+			"runState": "idle",
+			"capabilities": {
+				"threadModel": "nested",
+				"threadFidelity": "partial",
+				"canResume": true,
+				"supportsPermissions": true,
+				"supportsModes": true,
+				"supportsModels": true
+			},
+			"settings": {
+				"activeModel": "anthropic/claude-opus-4-8",
+				"activeMode": "acceptEdits",
+				"effort": "high",
+				"configuration": {
+					"sandbox": true
+				}
+			},
+			"eventHead": "cursor-20",
+			"createdAt": 1783772200000,
+			"updatedAt": 1783772200020,
+			"lastActivityAt": 1783772200020,
+			"archivedAt": null,
+			"closedAt": null,
+			"error": null
+		},
+		"threadsById": {
+			"thread-main": {
+				"id": "thread-main",
+				"sessionId": "session-1",
+				"kind": "main",
+				"parentThreadId": null,
+				"origin": {
+					"type": "sessionCreated"
+				},
+				"fidelity": "full",
+				"title": null,
+				"runState": "cancelled",
+				"eventHead": "cursor-20",
+				"createdAt": 1783772200000,
+				"updatedAt": 1783772200020,
+				"lastActivityAt": 1783772200020
+			}
+		},
+		"activeTurnsById": {},
+		"pendingPermissionsById": {},
+		"activeToolCallsById": {},
+		"plan": [
+			{
+				"id": "step-1",
+				"content": "Ship the sync server",
+				"status": "inProgress",
+				"priority": "high"
+			}
+		]
+	}
+}
