@@ -41,10 +41,11 @@ export interface OrgActivityIndex {
 }
 
 /**
+ * Just under the HogQL API's 65535-row cap; measured 90d volume is ~56k ids.
  * Result rows are ordered by last activity, so if the LIMIT ever truncates,
  * only the longest-dormant users are dropped.
  */
-const SNAPSHOT_ROW_LIMIT = 50_000;
+const SNAPSHOT_ROW_LIMIT = 65_000;
 
 /**
  * distinct_ids are our users.id UUIDs (posthog.identify), but anonymous
