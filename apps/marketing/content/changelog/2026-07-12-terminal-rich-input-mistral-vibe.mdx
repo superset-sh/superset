@@ -1,5 +1,5 @@
 ---
-title: Rich input for terminal agents and Mistral Vibe
+title: Rich input for terminal agents, Ghostty-speed scrolling, and Mistral Vibe
 date: 2026-07-12
 image: /changelog/2026-07-12-rich-input-hero.png
 ---
@@ -10,13 +10,17 @@ Press **⌘I** over a terminal running Claude Code, Codex, OpenCode, or any CLI 
 
 ![Rich input overlay floating over a Claude Code terminal, with a multiline prompt drafted](/changelog/2026-07-12-rich-input.png)
 
-- Enter sends, Shift+Enter adds a newline — multiline prompts land as one block instead of executing line-by-line
+- Enter sends, Shift+Enter adds a newline, and multiline prompts land as one block instead of executing line-by-line
 - @file mentions work, powered by the same editor as workspace chat
 - One global toggle covers every pane and persists across restarts <PRBadge url="https://github.com/superset-sh/superset/pull/5522" />
 
+## Terminal Scrolling at Ghostty Speed <PRBadge url="https://github.com/superset-sh/superset/pull/5563" />
+
+Claude Code transcript scrolling in Superset terminals used to crawl at about a third of native speed. Agent TUIs now compensate correctly for our terminal, and scrolling matches Ghostty.
+
 ## Mistral Vibe Joins the Agent Roster <PRBadge url="https://github.com/superset-sh/superset/pull/5552" />
 
-Mistral Vibe is now a first-class terminal agent — pick it in any agent picker, choose a model, and get the same working indicator and completion chime as the built-ins.
+Mistral Vibe is now a first-class terminal agent, contributed by the Mistral team. Pick it in any agent picker, choose a model, and get the same working indicator and completion chime as the built-ins.
 
 ![Add agent menu in Settings → Agents showing Mistral Vibe alongside Amp, Gemini, OpenCode, Copilot, and more](/changelog/2026-07-12-mistral-vibe.png)
 
@@ -25,7 +29,6 @@ Mistral Vibe is now a first-class terminal agent — pick it in any agent picker
 
 ## Improvements
 
-- **Smoother Claude Code scrolling** - Transcript scrolling in Superset terminals now matches Ghostty speed (previously ~3x slower) <PRBadge url="https://github.com/superset-sh/superset/pull/5563" />
 - **Wake offline hosts** - Attach a wake command to any host and run `superset hosts wake <host>` to power it back on <PRBadge url="https://github.com/superset-sh/superset/pull/5557" />
 - **Remote hosts on every plan** - Connecting to remote hosts through the relay no longer requires a paid plan <PRBadge url="https://github.com/superset-sh/superset/pull/5571" />
 - **Sydney relay region** - Australian users get a local relay for lower latency and fewer dropped connections <PRBadge url="https://github.com/superset-sh/superset/pull/5544" />
@@ -38,7 +41,7 @@ Mistral Vibe is now a first-class terminal agent — pick it in any agent picker
 - **CLI workspace lookup** - `superset ws get` prints a workspace's details, with `--field` for scripting <PRBadge url="https://github.com/superset-sh/superset/pull/5549" />
 - **The main workspace is "local"** - The repo checkout always displays as "local" and can no longer be renamed <PRBadge url="https://github.com/superset-sh/superset/pull/5586" />
 
-**Experimental: live agent sessions on iOS** — an early build of driving a coding agent running on your desktop from the iOS app; the agent and your code stay on your machine. Off by default under Desktop → Settings → Security. <PRBadge url="https://github.com/superset-sh/superset/pull/5580" />
+**Experimental: live agent sessions on iOS** - an early build of driving a coding agent running on your desktop from the iOS app; the agent and your code stay on your machine. Off by default under Desktop → Settings → Security. <PRBadge url="https://github.com/superset-sh/superset/pull/5580" />
 
 ---
 

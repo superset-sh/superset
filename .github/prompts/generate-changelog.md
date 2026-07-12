@@ -66,6 +66,7 @@ Brief description of the feature and its benefit to users.
    - Bug fixes should use bullet points, one fix per line, same as Improvements
 
 7. **Writing style**
+   - **No em dashes** - never use em dashes (—) in the changelog or the launch thread; use commas, colons, or separate sentences instead
    - **Be brief** - Users scan changelogs, they don't read every word
    - **Lead with value** - What can users do now that they couldn't before?
    - **One sentence per feature** - If you need more, use 2-3 bullet points max
