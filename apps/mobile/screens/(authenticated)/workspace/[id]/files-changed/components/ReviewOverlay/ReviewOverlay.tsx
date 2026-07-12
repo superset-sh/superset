@@ -22,9 +22,7 @@ export function ReviewOverlay({
 				tintColor="#16a34a"
 				onPress={onFinishReview}
 			>
-				{/* Typographic chevron: bar buttons have no trailing-icon slot, and
-			    custom toolbar views get squeezed in bottom placements. */}
-				{draftCount > 1 ? `Send to chat (${draftCount})  ▾` : "Send to chat  ▾"}
+				{draftCount > 1 ? `Send to chat (${draftCount})` : "Send to chat"}
 			</Stack.Toolbar.Button>
 			<Stack.Toolbar.Button
 				icon="text.line.first.and.arrowtriangle.forward"
