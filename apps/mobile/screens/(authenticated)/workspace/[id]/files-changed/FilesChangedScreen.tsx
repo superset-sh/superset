@@ -11,13 +11,13 @@ import {
 	ActivityIndicator,
 	Alert,
 	Linking,
+	PanResponder,
 	RefreshControl,
 	Share,
 	useWindowDimensions,
 	View,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { clamp, useSharedValue, withDecay } from "react-native-reanimated";
+import { useSharedValue, withDecay } from "react-native-reanimated";
 import { tokenizeCode } from "@/components/ai-elements/code-block";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -400,27 +400,33 @@ export function FilesChangedScreen() {
 		return map;
 	}, [dataByPath, charWidth, codeViewportWidth, maxScrollX]);
 
-	const panGesture = useMemo(
+	// Core-RN PanResponder instead of gesture-handler's Gesture API: the
+	// installed dev client's native worklets predate the serialization calls
+	// gesture-handler makes at load. Shared-value writes from JS still animate
+	// rows on the UI thread.
+	const panStartX = useRef(0);
+	const panResponder = useMemo(
 		() =>
-			Gesture.Pan()
-				.activeOffsetX([-14, 14])
-				.failOffsetY([-12, 12])
-				.onStart(() => {
-					scrollX.value = clamp(scrollX.value, 0, maxScrollX.value);
-				})
-				.onChange((event) => {
-					scrollX.value = clamp(
-						scrollX.value - event.changeX,
-						0,
+			PanResponder.create({
+				onMoveShouldSetPanResponder: (_, gesture) =>
+					Math.abs(gesture.dx) > 14 && Math.abs(gesture.dy) < 12,
+				onPanResponderGrant: () => {
+					panStartX.current = Math.min(scrollX.value, maxScrollX.value);
+				},
+				onPanResponderMove: (_, gesture) => {
+					scrollX.value = Math.min(
+						Math.max(panStartX.current - gesture.dx, 0),
 						maxScrollX.value,
 					);
-				})
-				.onEnd((event) => {
+				},
+				onPanResponderRelease: (_, gesture) => {
 					scrollX.value = withDecay({
-						velocity: -event.velocityX,
+						velocity: -gesture.vx * 1000,
 						clamp: [0, maxScrollX.value],
 					});
-				}),
+				},
+				onPanResponderTerminationRequest: () => true,
+			}),
 		[scrollX, maxScrollX],
 	);
 
@@ -746,7 +752,7 @@ export function FilesChangedScreen() {
 				</Stack.Toolbar>
 			</Stack.Screen>
 			<CharWidthProbe onMeasure={setCharWidth} />
-			<GestureDetector gesture={panGesture}>
+			<View className="flex-1" {...panResponder.panHandlers}>
 				<AnimatedLegendList
 					ref={listRef}
 					className="flex-1"
@@ -782,7 +788,7 @@ export function FilesChangedScreen() {
 						) : null
 					}
 				/>
-			</GestureDetector>
+			</View>
 			<ReviewOverlay
 				draftCount={comments.length}
 				onFinishReview={() =>
