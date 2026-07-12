@@ -75,7 +75,9 @@ async function fileIssue(opts: {
 		id: issue.id,
 		identifier: issue.identifier,
 		url: issue.url,
-		description,
+		// Linear normalizes markdown on write; the edited-since-filing check must
+		// compare against the stored form, not the submitted string.
+		description: issue.description ?? description,
 	};
 }
 
