@@ -16,6 +16,11 @@ export {
 	type RelayAffinityProbe,
 } from "./lib/primeRelayAffinity";
 export {
+	createRelaySocket,
+	type RelaySocket,
+	type RelaySocketOptions,
+} from "./lib/relaySocket";
+export {
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
 	useWorkspaceWsUrl,

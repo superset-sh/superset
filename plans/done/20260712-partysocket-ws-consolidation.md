@@ -40,3 +40,11 @@ One `createRelaySocket(opts)` (~150 lines) wrapping partysocket's generic export
 - React Native: cloudflare/partykit#401 (Hermes lacks `MessageEvent`) — check before any apps/mobile use.
 - Relay semantics (post-#5628): 401 = expired/invalid JWT (retry with fresh token), 403 = definitive access denial (stop/slow-poll). The wrapper must never treat 401 as fatal.
 - New WS consumers should use the wrapper from day one.
+
+## Outcome (2026-07-12)
+
+Phases 1–3 shipped in one PR (SUPER-1469). Spike result: a rejecting async url
+provider surfaces as an error event and re-enters partysocket's backoff loop —
+verified against source (`ws.js` `_connect` catch) and empirically. Phase 4
+(desktop terminal transport) deferred as designed; revisit when that transport
+needs touching anyway.

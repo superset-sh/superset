@@ -1,0 +1,73 @@
+import { WebSocket as ReconnectingWebSocket } from "partysocket";
+import { primeRelayAffinity } from "../primeRelayAffinity";
+
+export interface RelaySocketOptions {
+	/** URL for this attempt, WITHOUT the auth token — the wrapper signs it. */
+	buildUrl: () => string | Promise<string>;
+	/** Fresh token per attempt (user JWT for relay hosts, PSK for local). */
+	getToken: () => string | null | Promise<string | null>;
+	/**
+	 * Definitive access denial: the `_whoowns` preflight returned 403 (the
+	 * relay only 403s a verified-valid token, so retrying with a fresher one
+	 * can't change the answer; expired tokens surface as 401 and self-heal via
+	 * `getToken`). Without `accessDeniedRetryMs` the socket closes permanently
+	 * — call `reconnect()` to try again after access changes.
+	 */
+	onAccessDenied?: () => void;
+	/** Keep re-probing at this cadence after a 403 instead of closing. */
+	accessDeniedRetryMs?: number;
+	minReconnectionDelay?: number;
+	maxReconnectionDelay?: number;
+	maxRetries?: number;
+	connectionTimeout?: number;
+	maxEnqueuedMessages?: number;
+}
+
+export type RelaySocket = ReconnectingWebSocket;
+
+function signUrl(url: string, token: string | null): string {
+	if (!token) return url;
+	const u = new URL(url);
+	u.searchParams.set("token", token);
+	return u.toString();
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Reconnecting WebSocket for host-service endpoints (direct or relay-fronted).
+ * partysocket evaluates the async URL provider before EVERY attempt, so each
+ * dial carries a fresh token — the class of bug where a reconnect loop reuses
+ * a URL signed with an hourly-rotated JWT (PR #5628) can't recur here. The
+ * provider also runs the `_whoowns` preflight (fly edge affinity + the only
+ * place a browser client can observe the upgrade's real HTTP status).
+ */
+export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
+	let socket: ReconnectingWebSocket | null = null;
+
+	const provider = async (): Promise<string> => {
+		const url = signUrl(await opts.buildUrl(), await opts.getToken());
+		const probe = await primeRelayAffinity(url);
+		if (probe?.status === 403) {
+			opts.onAccessDenied?.();
+			if (opts.accessDeniedRetryMs == null) {
+				socket?.close(1000, "relay access denied");
+			} else {
+				await sleep(opts.accessDeniedRetryMs);
+			}
+			// Rejecting aborts this attempt; partysocket surfaces it as an error
+			// event and re-enters its backoff loop (no-op once close() was called).
+			throw new Error("relay access denied");
+		}
+		return url;
+	};
+
+	socket = new ReconnectingWebSocket(provider, [], {
+		minReconnectionDelay: opts.minReconnectionDelay,
+		maxReconnectionDelay: opts.maxReconnectionDelay,
+		maxRetries: opts.maxRetries,
+		connectionTimeout: opts.connectionTimeout,
+		maxEnqueuedMessages: opts.maxEnqueuedMessages,
+	});
+	return socket;
+}

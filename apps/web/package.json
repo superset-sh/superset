@@ -17,6 +17,7 @@
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@superset/ui": "workspace:*",
+		"@superset/workspace-client": "workspace:*",
 		"@t3-oss/env-nextjs": "0.13.11",
 		"@tanstack/react-query": "5.101.1",
 		"@tanstack/react-query-devtools": "5.101.1",
