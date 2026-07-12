@@ -20,7 +20,10 @@
  * under streaming load, and a full host reboot with recovery.
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
 import type { AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { type ServerType, serve } from "@hono/node-server";
 import {
 	createSessionsSyncClient,
@@ -67,6 +70,10 @@ describe("sessions sync client against a real host", () => {
 	let client: SessionsSyncClient;
 	const logs: SessionsSyncLogEvent[] = [];
 	const extraClients: SessionsSyncClient[] = [];
+	// One durable dir for the whole suite: reboots reuse the same SQLite
+	// file, so persisted top-level session metadata (titles, archive state)
+	// survives across hosts like it does across real restarts.
+	let durableDir: string;
 
 	let sessionA: Session;
 	let mainThreadA: Thread;
@@ -93,7 +100,10 @@ describe("sessions sync client against a real host", () => {
 	}
 
 	async function bootServer(): Promise<void> {
-		host = await createTestHost({ acpSessions: port });
+		host = await createTestHost({
+			acpSessions: port,
+			dbPath: join(durableDir, "host.db"),
+		});
 		server = await new Promise<ServerType>((resolve) => {
 			const instance = serve({ fetch: host.app.fetch, port: 0 }, () =>
 				resolve(instance),
@@ -105,6 +115,7 @@ describe("sessions sync client against a real host", () => {
 	}
 
 	beforeAll(async () => {
+		durableDir = mkdtempSync(join(tmpdir(), "sessions-sync-durable-"));
 		port = new DisposableFakeAcpPort();
 		await bootServer();
 		client = makeClient("client-parity-1");
@@ -118,6 +129,7 @@ describe("sessions sync client against a real host", () => {
 		// even after every TCP connection is gone (they all close within
 		// ~10ms of the clients disconnecting).
 		server?.close();
+		rmSync(durableDir, { recursive: true, force: true });
 	});
 
 	/** The client's ordered event list for one session. */
@@ -183,29 +195,6 @@ describe("sessions sync client against a real host", () => {
 			(pending) => pending.sessionId === sessionId,
 		);
 		expect(byId(clientPendings)).toEqual(byId(snapshot.pendingPermissions));
-	}
-
-	/**
-	 * Post-reboot parity: the rebuilt log is event-for-event identical EXCEPT
-	 * causationId. Request attribution lives in the serving process (translator
-	 * arming at mutation time), not in the adapter journal, so a rebuild
-	 * cannot recover it — a documented limitation the durable canonical store
-	 * (#10) removes by persisting events instead of re-deriving them.
-	 */
-	async function expectSessionParityIgnoringCausation(
-		target: SessionsSyncClient,
-		sessionId: string,
-	): Promise<void> {
-		const strip = (event: SessionEvent) => ({ ...event, causationId: null });
-		const log = await hostFullLog(sessionId);
-		const window = clientEvents(target, sessionId);
-		expect(window.map(strip)).toEqual(
-			log.slice(log.length - window.length).map(strip),
-		);
-		const snapshot = await host.trpc.sessions.get.query({ sessionId });
-		expect(target.store.getState().sessionsById[sessionId]).toEqual(
-			snapshot.session,
-		);
 	}
 
 	/** `sessions.list` IS the host snapshot; the client mirrors it exactly. */
@@ -562,15 +551,29 @@ describe("sessions sync client against a real host", () => {
 		releaseB();
 	});
 
-	test("host reboot: registry survives, host stream resets, sessions recover", async () => {
+	test("host reboot: session metadata survives, rebuilt logs are a new generation, cold path recovers", async () => {
+		// Pin B as an explicitly retained second stream so the reboot's blast
+		// radius is deterministic: every session subscription resets, once.
+		client.retainSession(sessionB.id, "focused");
+		await waitFor(
+			() =>
+				client.store.getState().streamsBySessionId[sessionB.id]?.status ===
+				"live",
+			"session B to go live before the reboot",
+		);
 		const eventsBefore = clientEvents(client, sessionA.id);
 		expect(eventsBefore.length).toBeGreaterThan(0);
 		const hostCursorBefore =
 			client.store.getState().hostSubscription.latestCursor;
 		expect(hostCursorBefore).not.toBeNull();
+		const sessionCursorBefore =
+			client.store.getState().streamsBySessionId[sessionA.id]?.latestCursor;
+		expect(sessionCursorBefore).not.toBeNull();
 
 		// Kill the host process (dispose the app + server) and boot a fresh
-		// one over the SAME session state — a new hub incarnation.
+		// one over the SAME SQLite file — a new hub incarnation. The fake
+		// port's journal stands in for the vendor transcript, the only place
+		// conversation content survives.
 		const oldHost = host;
 		const oldServer = server;
 		client.disconnect();
@@ -584,9 +587,10 @@ describe("sessions sync client against a real host", () => {
 		oldServer.close();
 		await bootServer();
 
-		// The client reconnects: its host cursor belongs to the dead boot →
-		// reset → tRPC list refetch; its session cursor still resolves because
-		// the deterministic fake journal rebuilds the identical canonical log.
+		// The client reconnects: the host cursor belongs to the dead boot, and
+		// each session cursor belongs to a dead log generation (the log is
+		// rebuilt from vendor replay — content is deliberately not persisted).
+		// Every stream resets CURSOR_INVALID and re-seeds via the cold path.
 		client.connect();
 		await waitFor(
 			() =>
@@ -599,14 +603,16 @@ describe("sessions sync client against a real host", () => {
 		await waitFor(
 			() =>
 				client.store.getState().streamsBySessionId[sessionA.id]?.status ===
-				"live",
-			"session A to recover after the reboot",
+					"live" &&
+				client.store.getState().streamsBySessionId[sessionB.id]?.status ===
+					"live",
+			"both session streams to recover after the reboot",
 		);
 
 		const resets = logs.filter(
 			(event) => event.event === "sessions_sync.stream_reset",
 		);
-		expect(resets).toEqual([
+		expect(resets.filter((reset) => reset.sessionId === null)).toEqual([
 			{
 				event: "sessions_sync.stream_reset",
 				sessionId: null,
@@ -614,19 +620,41 @@ describe("sessions sync client against a real host", () => {
 				recovery: "refetchSnapshot",
 			},
 		]);
+		const sessionResets = resets.filter((reset) => reset.sessionId !== null);
+		expect(sessionResets.map((reset) => reset.sessionId).sort()).toEqual(
+			[sessionA.id, sessionB.id].sort(),
+		);
+		for (const reset of sessionResets) {
+			expect(reset.code).toBe("CURSOR_INVALID");
+			expect(reset.recovery).toBe("refetchSnapshot");
+		}
 
-		// Nothing was lost or duplicated across the reboot.
+		// Top-level session metadata survived the reboot: the canonical titles
+		// live in the host DB, not in the dead process.
+		const listed = await host.trpc.sessions.list.query();
+		expect(
+			listed.sessions.find((session) => session.id === sessionA.id)?.title,
+		).toBe("Parity A");
+		expect(
+			listed.sessions.find((session) => session.id === sessionB.id)?.title,
+		).toBe("Parity B");
+
+		// The re-seeded replica converges on the rebuilt log: fresh cursors,
+		// no duplicated ids, and scrollback stitches it end to end.
+		expect(
+			client.store.getState().streamsBySessionId[sessionA.id]?.latestCursor,
+		).not.toBe(sessionCursorBefore ?? "");
 		const ids = clientEvents(client, sessionA.id).map((event) => event.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		expect(ids).toEqual(
-			expect.arrayContaining(eventsBefore.map((event) => event.id)),
-		);
-		await expectSessionParityIgnoringCausation(client, sessionA.id);
+		await expectSessionParity(client, sessionA.id);
 		await expectListParity(client);
-		// The rebuild really did lose attribution — this assertion pins the
-		// documented limitation so its eventual fix (#10) must update it.
+		// The rebuild really did lose attribution — content is re-derived from
+		// the vendor journal, which never carried request ids. Pinned as the
+		// deliberate for-now trade-off of keeping messages out of SQLite
+		// (plans/host-sessions-sync.md).
 		const rebuilt = await hostFullLog(sessionA.id);
 		expect(rebuilt.every((event) => event.causationId === null)).toBe(true);
+		expect(rebuilt.length).toBeGreaterThanOrEqual(eventsBefore.length);
 
 		// The host keeps streaming on the new boot.
 		port.emitUpdate(sessionA.id, {
@@ -643,18 +671,21 @@ describe("sessions sync client against a real host", () => {
 				),
 			"post-reboot activity to stream to the client",
 		);
-		await expectSessionParityIgnoringCausation(client, sessionA.id);
+		await expectSessionParity(client, sessionA.id);
 	});
 
-	test("the wire stayed clean: no drops, and only the reboot's one reset", () => {
+	test("the wire stayed clean: no drops, and only the reboots' expected resets", () => {
 		const drops = logs.filter(
 			(event) => event.event === "sessions_sync.socket_dropped",
 		);
 		expect(drops).toEqual([]);
+		// The reboot's one host reset (new hub incarnation) plus one reset per
+		// session stream (new log generation) — nothing else ever reset.
 		const resets = logs.filter(
 			(event) => event.event === "sessions_sync.stream_reset",
 		);
-		expect(resets).toHaveLength(1);
+		expect(resets).toHaveLength(3);
+		expect(resets.filter((reset) => reset.sessionId === null)).toHaveLength(1);
 		expect(client.store.getState().connection.error).toBeNull();
 	});
 });

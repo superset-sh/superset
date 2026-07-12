@@ -446,16 +446,17 @@ export class SessionsSyncHub {
 	): void {
 		const replay = this.runtime.sessionReplay(sessionId, packet.after);
 		if (!replay.ok) {
-			if (replay.reason === "unknown_cursor") {
-				// A cursor from a previous host process (or beyond a truncated
-				// head) is irrecoverable per-cursor; the client rebuilds from the
-				// tRPC snapshot.
+			if (replay.reason === "foreign_cursor") {
+				// Like a host cursor from a dead hub incarnation: a cursor from a
+				// dead log generation (a previous tracking, usually a previous
+				// host process) is irrecoverable per-cursor; the client rebuilds
+				// from the tRPC snapshot.
 				this.send(connection, {
 					type: "reset",
 					subscriptionId: packet.subscriptionId,
 					stream: "session",
 					sessionId,
-					code: "CURSOR_EXPIRED",
+					code: "CURSOR_INVALID",
 					recovery: "refetchSnapshot",
 				});
 				return;

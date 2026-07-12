@@ -116,8 +116,9 @@ first domain riding it.
 | Store | Durability | Owns | Rebuilt from |
 |---|---|---|---|
 | SQLite registry (host) | survives host death | which sessions exist: id → workspace, native session id, harness | — (truth) |
-| Vendor transcript (`~/.claude/...` JSONL) | survives host death | conversation content | — (truth) |
-| Host RAM: canonical event log (ring, 5k events/session) + projection | dies with host | live event stream, cursors, pending cards | registry + vendor replay (`session/load`) |
+| SQLite canonical session meta (host) | survives host death | top-level host-side session edits: title override, archivedAt, closedAt | — (truth) |
+| Vendor transcript (`~/.claude/...` JSONL) | survives host death | conversation content — deliberately the ONLY place messages persist | — (truth) |
+| Host RAM: canonical event log + projection | dies with host | live event stream, cursors, pending cards | registry + vendor replay (`session/load`), under a fresh log generation |
 | Client store | disposable | rendered replica | tRPC snapshot + WS replay |
 
 The invariant that keeps recovery simple: **every layer is rebuildable from
@@ -166,8 +167,10 @@ admission-acks.
 `EventsWindow`: `{ items ≤ 100 ascending, range: { oldest, newest,
 hasMoreBefore, truncatedBefore }, head }`. Boundaries are full
 `{eventId, cursor, occurredAt}` triples, schema-verified against the actual
-first/last items. `truncatedBefore: true` = older history existed but the
-ring lost it (goes away with the durable store).
+first/last items. Pages come from the in-memory log (messages are
+deliberately not persisted on the host); `truncatedBefore: true` = older
+history existed but the source journal evicted it before the host observed
+it.
 
 ### Sync socket — 12 packet types, all small
 
@@ -204,15 +207,19 @@ Events:
 | Cursor | Format | Minted by |
 |---|---|---|
 | host stream | `h<boot-id>-<serial>` | SyncHub, per host boot |
-| session events | `c<serial>` per session; same value in live stream, snapshot `head`, `getEvents` boundaries | CanonicalSessionsRuntime |
+| session events | `c<generation>-<serial>` per session; same value in live stream, snapshot `head`, `getEvents` boundaries | CanonicalSessionsRuntime |
 
-An *incarnation* is one lifetime of a log's owner (host boot; session
-tracking lifetime). Host cursors embed it today, so a restarted host
-deterministically rejects stale cursors. Session cursors get their
-incarnation tag together with the durable store (they must persist to be
-meaningful across restarts); until then a resurrected session recovers via
-reset frames. Session-list paging cursors were **deleted** along with list
-pagination.
+An *incarnation* is one lifetime of a log's owner. Host cursors embed the
+boot id, so a restarted host deterministically rejects stale cursors
+(`CURSOR_INVALID`). Session cursors embed the log *generation*, minted
+fresh on every tracking: the canonical log is rebuilt from vendor replay
+each time (content is deliberately not persisted host-side), so a cursor
+from a previous tracking — usually a dead host process — fails the same
+deterministic way (`CURSOR_INVALID` → snapshot rebuild) instead of
+silently aliasing a serial in the new log. The bare zero cursor
+`c000000000000` stays generation-less: it is the head of a never-tracked
+session's snapshot and means "from the very beginning". Session-list
+paging cursors were **deleted** along with list pagination.
 
 ### Recovery model — two paths, one guard
 
@@ -220,11 +227,13 @@ pagination.
    (client slept), host restart, session resurrection, upstream adapter
    resync. `reset` names one stream; only it re-fetches. Handler = the
    first-connect code path, literally.
-2. **Host restart (human hammer).** Already a desktop button. Registry and
-   vendor transcripts survive; sessions come back `offline`; the first live
+2. **Host restart (human hammer).** Already a desktop button. The registry,
+   the canonical session meta (titles, archive/close state), and the vendor
+   transcripts survive; sessions come back `offline`; the first live
    mutation resurrects (spawn adapter → `session/load` → vendor replays its
-   own disk → canonical log rebuilt). Reads never resurrect — listing 50
-   dead sessions spawns 0 children.
+   own disk → canonical log rebuilt under a fresh generation). Old session
+   cursors reset `CURSOR_INVALID` into the snapshot cold path. Reads never
+   resurrect — listing 50 dead sessions spawns 0 children.
 
 Guard: **reset circuit breaker** — N resets on one stream within a window →
 stream status `error`, stop auto-resubscribing, surface to UI. A reset loop
@@ -236,9 +245,17 @@ Humans re-read user messages, attachments, and each turn's final assistant
 response. Old turns' tool calls and deltas are write-only in practice.
 Consequences: client eviction drops old-turn tool events/deltas first,
 keeping a meaningful "skeleton"; tool payloads are already separable
-(nullable, capped); the durable store indexes by event class so a future
-condensed/skeleton `getEvents` mode is an additive parameter. **Not in v1**
-— plain backwards paging at 100 events/page is enough.
+(nullable, capped); a future condensed/skeleton `getEvents` mode is an
+additive parameter. **Not in v1** — plain backwards paging at 100
+events/page is enough.
+
+Decision (2026-07-12): the host SQLite persists **no messages or events** —
+only top-level session metadata (title/archive/close, in
+`session_meta`) plus the existing registry. Conversation content has
+exactly one durable home, the vendor's own transcript, resumed via the
+native session id. Delete semantics follow: metadata rows whose session
+left the registry are swept at startup; archive/close never delete
+anything — sessions reopen.
 
 ### What was cut from the previous draft (and why)
 
@@ -257,17 +274,25 @@ condensed/skeleton `getEvents` mode is an additive parameter. **Not in v1**
 ### Test evidence and work needed
 
 Already proven on THIS surface (all automated, `bun test`, green on
-`feat/sessions-v1-simplified-api`):
+`feat/sessions-v1-simplified-api` + `feat/sessions-durable-store`):
 - **Realistic-scenario suite** (`sessions-sync-client.integration.test.ts`,
   11 tests, real host + real WebSocket, fake adapter): cold connect via
   tRPC snapshots, streaming turns with causation receipts, permission
   cards, offline replay across a mid-stream disconnect, a fresh client
   converging from nothing, archiving, scrollback paging until the store
   equals the host's full journal, session switching under load, and a
-  **host reboot** — old cursors rejected under the new boot, exactly one
-  `reset(CURSOR_INVALID, refetchSnapshot)` per stream, cold path re-seeds,
-  no duplicated or lost event ids, streaming resumes. The reboot test also
-  pins the causationId-loss gap (Layer 3, step 5).
+  **host reboot** over the same host DB — canonical titles survive via the
+  metadata table, every cursor (host boot id, session log generation) is
+  rejected with exactly one `reset(CURSOR_INVALID, refetchSnapshot)` per
+  stream, the cold path re-seeds each replica from the rebuilt log, no
+  duplicated event ids, streaming resumes. The reboot test also pins the
+  causationId-loss trade-off of the no-messages-in-SQLite decision.
+- **Session metadata store** (`canonical-sessions.durable.test.ts`):
+  title/archive/close overrides survive host reboots (archived rows stay
+  out of the host snapshot scope), createSession titles persist, rebuilt
+  logs mint a new generation whose foreign cursors reject
+  deterministically while the zero cursor stays servable, and the startup
+  orphan sweep drops metadata for sessions the registry no longer knows.
 - Circuit breaker: >3 resets in 30 s parks the stream in `error`
   (`RESET_LOOP`) and stops auto-resubscribe; cleared on reconnect.
 - Hub: foreign/evicted cursor → reset → cold path; two-hub restart
@@ -286,8 +311,6 @@ Already proven on THIS surface (all automated, `bun test`, green on
   the client fold; zero drops, zero resets).
 
 Work needed (details in the Rollout section below):
-- Durable history store (#10): disk-backed `getEvents`, session-cursor
-  incarnations, lossless resurrection, persisted `causationId`.
 - React bindings package; mobile rewire (keep chat UI, kill
   `session-protocol` data plane); Maestro phone replay (execution 4).
 - Real OS-process host kill/respawn journey test.
@@ -433,23 +456,26 @@ shows a retry affordance, nothing spins.
 
 **5 — Host reboot.** User restarts the host (desktop button). The socket
 closes; the phone's store keeps rendering its replica. On reconnect,
-`sessions.list` still shows `ses_01` — the SQLite registry survived — with
-`runState: "offline"`. The phone's old cursors belong to the dead boot:
-host-stream cursor `h1734-…` fails parsing under boot `h1802` → `reset` →
-cold path. User types a new message → `submitTurn` → the host spawns a fresh
-adapter child, issues `session/load` with the stored native session id, the
-vendor replays its own on-disk transcript, the canonical log is rebuilt
-(new event ids, fresh cursors), and events flow again. A turn that was
+`sessions.list` still shows `ses_01` — the SQLite registry survived, and
+its canonical title/archive state survived in `session_meta` — with
+`runState: "offline"`. The phone's cursors all belong to dead incarnations:
+the host-stream cursor `h1734-…` fails parsing under boot `h1802`, and the
+session cursor's log generation died with the old process (the canonical
+log is rebuilt from the vendor's `session/load` replay, never from host
+disk) → `reset(CURSOR_INVALID)` → cold path per stream. User types a new
+message → `submitTurn` → the host spawns a fresh adapter child, issues
+`session/load` with the stored native session id, the vendor replays its
+own on-disk transcript, the canonical log is rebuilt (new generation, new
+event ids, fresh cursors), and events flow again. A turn that was
 mid-flight when the host died is terminalized (`turnFailed`), not silently
 resumed — the user resubmits.
 
-Known gap, pinned by the reboot test: the rebuilt canonical log loses
-`causationId` attribution. Request→event linkage is armed in the translator
-process; the vendor journal doesn't record it, so every rebuilt event
-carries `causationId: null`. Receipts and UI still work (they key on
-entities, not causation); only "which request produced this event"
-archaeology degrades until the durable store (#10) persists the canonical
-log itself.
+Known, deliberate limitation (pinned by the reboot test): the rebuilt
+canonical log loses `causationId` attribution. Request→event linkage is
+armed in the serving process; the vendor journal doesn't record it, so
+every rebuilt event carries `causationId: null`. Receipts and UI still
+work (they key on entities, not causation) — the trade for keeping
+messages out of host SQLite entirely.
 
 ---
 
@@ -460,10 +486,15 @@ log itself.
 2. Circuit-breaker N and window — shipped default: 3 resets / 30 s
    (`maxStreamResetsPerWindow` / `streamResetWindowMs`, overridable per
    client).
-3. Session-cursor incarnation tag ships with the durable store (#10), or
-   block v1 on it? Proposal: ship v1 with reset-frame recovery; #10 adds
-   the tag.
+3. ~~Session-cursor incarnation tag ships with the durable store (#10), or
+   block v1 on it?~~ Resolved: shipped as the log generation tag
+   (`c<generation>-<serial>`), minted per tracking — no persistence
+   needed, since the log itself is never persisted.
 4. Condensed/skeleton history mode: v1.1+ (taxonomy already supports it).
+5. Should a durable event log ever ship (restoring causationId across
+   reboots, scrollback beyond the vendor replay window)? Decided against
+   for now — no messages in host SQLite; revisit alongside the direct SDK
+   adapter if its native store changes the calculus.
 
 ---
 
@@ -478,6 +509,20 @@ client store with reset circuit breaker, the 11-test realistic-scenario
 suite (disconnect, scrollback parity, session switching, host reboot), and
 the gym story 10/10 with a real Opus instance.
 
+**Done** (on `feat/sessions-durable-store`, stacked): rollout item 1,
+rescoped by decision (2026-07-12) to **durable session metadata, not a
+durable event log** — messages/events are deliberately kept OUT of host
+SQLite; the vendor transcript stays the only content store, resumed via
+the native session id. Shipped: the `session_meta` metadata table
+(title/archive/close overrides survive host restarts, write-through,
+loaded at construction, orphan-swept at startup) and generation-tagged
+session cursors (`c<generation>-<serial>`, minted per tracking) so a
+rebooted host deterministically rejects stale session cursors with
+`CURSOR_INVALID` → cold path, exactly like host cursors. Deferred with
+the event log: causationId parity across reboots and scrollback beyond
+the vendor replay window (both pinned as for-now limitations in the
+reboot test).
+
 **Direction:** ACP and the Mastra chat stack are both being retired from
 this path. The host serves this surface; the ACP bridge behind it gets
 replaced by a direct Claude SDK adapter with no client-visible change, then
@@ -486,8 +531,8 @@ working — frozen, no new features, and never used by mobile.
 
 **Next, in order:**
 
-1. Durable history store: disk-backed `getEvents`, session-cursor
-   incarnations, persisted `causationId`, delete/retention.
+1. ~~Durable history store~~ — done as durable session metadata +
+   cursor generations, see above.
 2. React bindings (`host-service-react`) and the mobile rewire: keep the
    shipped chat-screen UI, replace the `session-protocol` data plane with
    this client, then delete `packages/session-protocol`.

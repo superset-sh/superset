@@ -29,6 +29,7 @@ import {
 	CanonicalSessionsRuntime,
 	registerSessionsSyncRoute,
 	SessionsSyncHub,
+	SqliteSessionMetaStore,
 } from "./runtime/sessions";
 import { runWorkspaceBackfill } from "./runtime/workspace-backfill";
 import { startWorkspaceCloudSync } from "./runtime/workspace-cloud-sync";
@@ -160,7 +161,13 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// `sessions.*` router and /sessions/sync. Constructing it is inert —
 	// it only tracks a session once a canonical call touches it — so it is
 	// safe to build even when the gate is off; the router gate keeps it idle.
-	const canonicalSessions = new CanonicalSessionsRuntime({ port: acpSessions });
+	// The meta store persists top-level session metadata (title/archive/
+	// close) only — conversation content stays in the vendor's own
+	// transcript, resumed via the native session id in the registry.
+	const canonicalSessions = new CanonicalSessionsRuntime({
+		port: acpSessions,
+		metaStore: new SqliteSessionMetaStore(db),
+	});
 	// The hub attaches live listeners to the runtime, so gate its existence
 	// too — an idle runtime with listeners would still schedule flush work.
 	const sessionsSyncHub = acpSessionsEnabled
@@ -169,6 +176,15 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				hostId: config.organizationId,
 			})
 		: null;
+	if (acpSessionsEnabled) {
+		// The delete side of the metadata store: drop rows whose session left
+		// the registry. Hygiene only — a failure must not block startup.
+		try {
+			canonicalSessions.sweepOrphanedSessionMeta();
+		} catch (error) {
+			console.warn("[sessions] failed to sweep orphaned session meta", error);
+		}
+	}
 
 	const runtime = {
 		acpSessions,

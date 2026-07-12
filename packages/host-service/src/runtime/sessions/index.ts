@@ -9,6 +9,11 @@ export {
 	type SessionReplay,
 } from "./canonical-sessions";
 export {
+	type SessionMetaRecord,
+	type SessionMetaStore,
+	SqliteSessionMetaStore,
+} from "./session-meta-store";
+export {
 	type SessionsSyncConnection,
 	SessionsSyncHub,
 	type SessionsSyncHubOptions,

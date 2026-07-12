@@ -37,9 +37,11 @@ import type {
 	SessionUpdateEnvelope,
 } from "@superset/session-protocol";
 import { makeSelectedOutcome } from "@superset/session-protocol";
+import type { SessionMetaStore } from "./session-meta-store";
 import {
 	AcpSessionEventTranslator,
 	acpMainThreadId,
+	type SessionEventDraft,
 	settingsFromScopedState,
 } from "./translate-acp";
 
@@ -107,6 +109,16 @@ export interface CanonicalSessionsRuntimeOptions {
 	now?: () => number;
 	/** Injectable for deterministic tests; mints createSession ids. */
 	mintSessionId?: () => string;
+	/**
+	 * Durable top-level session metadata (title/archive/close overrides).
+	 * Deliberately metadata-only: conversation content is NEVER persisted
+	 * here — the vendor transcript is the source of truth, resumed via the
+	 * native session id — so the canonical event log stays in memory and is
+	 * rebuilt from vendor replay under a fresh generation on every track.
+	 */
+	metaStore?: SessionMetaStore;
+	/** Injectable for deterministic tests; mints log generation tags. */
+	mintGeneration?: () => string;
 }
 
 /**
@@ -130,10 +142,15 @@ export type HostChange =
 	  }
 	| { type: "permissionResolved"; sessionId: string; permissionId: string };
 
-/** Result of a cursor-based catch-up read against one session's event log. */
+/**
+ * Result of a cursor-based catch-up read against one session's event log.
+ * `foreign_cursor` = the cursor belongs to a dead log generation (or a
+ * future serial) — irrecoverable per-cursor, the client rebuilds from the
+ * snapshot cold path.
+ */
 export type SessionReplay =
 	| { ok: true; events: SessionEvent[]; head: string }
-	| { ok: false; reason: "untracked" | "unknown_cursor" };
+	| { ok: false; reason: "untracked" | "foreign_cursor" };
 
 /** The tRPC host snapshot minus `head`, which the sync hub owns. */
 export type HostSnapshotData = Omit<HostSnapshot, "head">;
@@ -142,9 +159,16 @@ interface TrackedSession {
 	sessionId: string;
 	workspaceId: string;
 	translator: AcpSessionEventTranslator;
-	/** The canonical log, cursor-stamped. In-memory until the durable store. */
+	/**
+	 * Cursor namespace tag for one lifetime of this in-memory log. Minted
+	 * fresh on every track: the log is rebuilt from vendor replay each time,
+	 * so cursors from a previous tracking (a dead host process) must fail
+	 * deterministically instead of aliasing serials in the new log.
+	 */
+	generation: string;
+	/** The canonical log, cursor-stamped. In-memory; content is never
+	 *  persisted — the vendor transcript is the source of truth. */
 	events: SessionEvent[];
-	eventIndexById: Map<string, number>;
 	projection: SessionProjection;
 	cursorSerial: number;
 	lastSeq: number;
@@ -182,8 +206,36 @@ const DEFAULT_PAGE_LIMIT = 50;
 const SNAPSHOT_TAIL_LIMIT = 50;
 const DEFAULT_EVENT_PAGE_LIMIT = 100;
 
-function cursorFor(serial: number): string {
-	return `c${String(serial).padStart(12, "0")}`;
+/**
+ * The generation-less "from the very beginning" cursor. It is the head of a
+ * never-tracked session's synthesized snapshot, and subscribing after it is
+ * always servable when the log's own start is still retained.
+ */
+const ZERO_CURSOR = "c000000000000";
+
+/**
+ * Minted cursors are `c<generation>-<serial>`: the generation tags one
+ * lifetime of the log, so a cursor from a dead generation fails parsing
+ * deterministically (reset → snapshot rebuild) instead of silently aliasing
+ * a serial in the new log. Within a generation the padded serial keeps
+ * lexicographic order = numeric order, which the sync hub's replay/live
+ * handoff compare relies on.
+ */
+function mintCursor(generation: string, serial: number): string {
+	return `c${generation}-${String(serial).padStart(12, "0")}`;
+}
+
+const CURSOR_PATTERN = /^c([a-z0-9]{1,32})-(\d{12})$/;
+
+function parseCursor(
+	cursor: string,
+): { generation: string; serial: number } | "zero" | null {
+	if (cursor === ZERO_CURSOR) return "zero";
+	const match = CURSOR_PATTERN.exec(cursor);
+	const generation = match?.[1];
+	const serial = match?.[2];
+	if (generation === undefined || serial === undefined) return null;
+	return { generation, serial: Number(serial) };
 }
 
 function mapStatusToRunState(
@@ -263,8 +315,11 @@ function toAcpContentBlock(block: ContentBlock): AcpContentBlock {
  *
  * Mutation outputs are admission receipts, never completion; completion
  * arrives as events whose `causationId` echoes the requestId. The event log
- * lives in memory for now — the durable store replaces `events[]` without
- * changing this surface.
+ * lives in memory only — content is deliberately never persisted (the
+ * vendor transcript is the source of truth, resumed via the native session
+ * id); what persists is the top-level session metadata in the
+ * {@link SessionMetaStore} (title/archive/close overrides), so
+ * sidebar state survives host restarts.
  *
  * Tracking is lazy. Sessions the manager knows but this runtime has not yet
  * touched (offline rows from before a restart, sessions created through the
@@ -276,6 +331,8 @@ export class CanonicalSessionsRuntime {
 	private readonly port: AcpSessionsPort;
 	private readonly now: () => number;
 	private readonly mintSessionId: () => string;
+	private readonly metaStore: SessionMetaStore | undefined;
+	private readonly mintGeneration: () => string;
 
 	private readonly tracked = new Map<string, TrackedSession>();
 	private readonly incarnations = new Map<string, number>();
@@ -300,6 +357,25 @@ export class CanonicalSessionsRuntime {
 		this.now = options.now ?? Date.now;
 		this.mintSessionId =
 			options.mintSessionId ?? (() => `session-${randomUUID()}`);
+		this.metaStore = options.metaStore;
+		this.mintGeneration =
+			options.mintGeneration ?? (() => randomUUID().slice(0, 8));
+		if (this.metaStore) {
+			try {
+				for (const record of this.metaStore.loadAll()) {
+					this.overrides.set(record.sessionId, {
+						...(record.titleOverridden ? { title: record.title } : {}),
+						archivedAt: record.archivedAt,
+						closedAt: record.closedAt,
+					});
+				}
+			} catch (error) {
+				console.warn(
+					"[sessions] failed to load persisted session metadata",
+					error,
+				);
+			}
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -323,7 +399,7 @@ export class CanonicalSessionsRuntime {
 				openToolCalls: [],
 				recentEvents: [],
 				hasOlderEvents: false,
-				head: cursorFor(0),
+				head: ZERO_CURSOR,
 			};
 		}
 		const recentEvents = tracked.events.slice(-SNAPSHOT_TAIL_LIMIT);
@@ -341,14 +417,14 @@ export class CanonicalSessionsRuntime {
 			recentEvents,
 			hasOlderEvents:
 				tracked.events.length > recentEvents.length || tracked.resetSeen,
-			head: tracked.events[tracked.events.length - 1]?.cursor ?? cursorFor(0),
+			head: this.headCursor(tracked),
 		};
 	}
 
 	/**
-	 * Backwards-only scrollback. No cursor = the newest window; page older by
-	 * passing `range.oldest.cursor` back. Forward catch-up is the sync
-	 * socket's job, never this query's.
+	 * Backwards-only scrollback over the in-memory log. No cursor = the
+	 * newest window; page older by passing `range.oldest.cursor` back.
+	 * Forward catch-up is the sync socket's job, never this query's.
 	 */
 	async getEvents(input: GetEventsInput): Promise<EventsWindow> {
 		const tracked = await this.requireTracked(input.sessionId);
@@ -400,7 +476,7 @@ export class CanonicalSessionsRuntime {
 				// explicitly instead of passing off partial history as complete.
 				truncatedBefore: tracked.resetSeen && start === 0,
 			},
-			head: tracked.events[tracked.events.length - 1]?.cursor ?? cursorFor(0),
+			head: this.headCursor(tracked),
 		};
 	}
 
@@ -423,7 +499,7 @@ export class CanonicalSessionsRuntime {
 			});
 			const tracked = this.tracked.get(sessionId) ?? this.track(state);
 			if (input.title !== null) {
-				this.overrides.set(sessionId, {
+				this.setOverrides(sessionId, {
 					...(this.overrides.get(sessionId) ?? {
 						archivedAt: null,
 						closedAt: null,
@@ -468,7 +544,7 @@ export class CanonicalSessionsRuntime {
 				? await this.requireTracked(input.sessionId)
 				: await this.ensureTracked(input.sessionId, { resurrect: false });
 			const previous = this.overrides.get(input.sessionId);
-			this.overrides.set(input.sessionId, {
+			this.setOverrides(input.sessionId, {
 				title: input.title !== undefined ? input.title : previous?.title,
 				archivedAt:
 					input.archived === undefined
@@ -660,25 +736,34 @@ export class CanonicalSessionsRuntime {
 	sessionHead(sessionId: string): string | null {
 		const tracked = this.tracked.get(sessionId);
 		if (!tracked) return null;
-		return tracked.events[tracked.events.length - 1]?.cursor ?? cursorFor(0);
+		return this.headCursor(tracked);
 	}
 
 	/**
 	 * Events strictly after `after` (null or the zero cursor = everything).
-	 * `unknown_cursor` covers cursors from a previous host process or beyond
-	 * our truncated head — the caller answers with a protocol reset.
+	 * A cursor from a dead log generation — a previous tracking of this
+	 * session, in this process or a dead one — or beyond the head is
+	 * `foreign_cursor`: the caller answers with a protocol reset and the
+	 * client re-runs the snapshot cold path.
 	 */
 	sessionReplay(sessionId: string, after: string | null): SessionReplay {
 		const tracked = this.tracked.get(sessionId);
 		if (!tracked) return { ok: false, reason: "untracked" };
-		const head =
-			tracked.events[tracked.events.length - 1]?.cursor ?? cursorFor(0);
-		if (after === null || after === cursorFor(0)) {
+		const head = this.headCursor(tracked);
+		if (after === null || after === ZERO_CURSOR) {
 			return { ok: true, events: [...tracked.events], head };
 		}
-		const index = tracked.events.findIndex((event) => event.cursor === after);
-		if (index === -1) return { ok: false, reason: "unknown_cursor" };
-		return { ok: true, events: tracked.events.slice(index + 1), head };
+		const parsed = parseCursor(after);
+		if (
+			parsed === null ||
+			parsed === "zero" ||
+			parsed.generation !== tracked.generation ||
+			parsed.serial > tracked.cursorSerial
+		) {
+			return { ok: false, reason: "foreign_cursor" };
+		}
+		// Serials are 1-based and gapless, so the slice index IS the serial.
+		return { ok: true, events: tracked.events.slice(parsed.serial), head };
 	}
 
 	/**
@@ -711,6 +796,53 @@ export class CanonicalSessionsRuntime {
 			cursor = page.nextCursor ?? undefined;
 		} while (cursor !== undefined);
 		return { sessions, pendingPermissions, openClientToolCalls: [] };
+	}
+
+	/**
+	 * Garbage-collect persisted session metadata whose session no longer
+	 * exists in the manager's registry — the delete side of the metadata
+	 * store. Run once at startup (app.ts); sessions deleted while the host
+	 * runs are collected on the next boot. Best-effort by contract: a
+	 * failure must never block serving.
+	 */
+	sweepOrphanedSessionMeta(): void {
+		if (!this.metaStore) return;
+		const known = new Set<string>();
+		let cursor: string | undefined;
+		do {
+			const page = this.port.list({ cursor, limit: DEFAULT_PAGE_LIMIT });
+			for (const state of page.items) {
+				known.add(state.sessionId);
+			}
+			cursor = page.nextCursor ?? undefined;
+		} while (cursor !== undefined);
+		for (const sessionId of [...this.overrides.keys()]) {
+			if (known.has(sessionId)) continue;
+			this.overrides.delete(sessionId);
+			this.metaStore.delete(sessionId);
+		}
+	}
+
+	/** Write an overrides entry through to the metadata store (best-effort). */
+	private setOverrides(sessionId: string, overrides: SessionOverrides): void {
+		this.overrides.set(sessionId, overrides);
+		if (!this.metaStore) return;
+		try {
+			this.metaStore.upsert({
+				sessionId,
+				// Same test composeSession applies: undefined = no override
+				// (adapter title shows through), null = explicitly cleared.
+				titleOverridden: overrides.title !== undefined,
+				title: overrides.title ?? null,
+				archivedAt: overrides.archivedAt,
+				closedAt: overrides.closedAt,
+			});
+		} catch (error) {
+			console.warn(
+				`[sessions] failed to persist session metadata for ${sessionId}`,
+				error,
+			);
+		}
 	}
 
 	private outOfScope(sessionId: string): boolean {
@@ -794,8 +926,9 @@ export class CanonicalSessionsRuntime {
 	 * `resurrect` is false (reads synthesize instead); unknown ids throw the
 	 * manager's NotFound. Resurrection loads the stored transcript into a
 	 * fresh journal for the new translator incarnation — but session/load
-	 * buffers only a bounded tail, so a long transcript replays truncated;
-	 * the durable canonical store is what eventually makes rebuilds lossless.
+	 * buffers only a bounded tail, so a long transcript replays truncated.
+	 * The rebuilt log is a new generation: cursors from the previous
+	 * tracking reset deterministically into the snapshot cold path.
 	 */
 	private async ensureTracked(
 		sessionId: string,
@@ -835,8 +968,11 @@ export class CanonicalSessionsRuntime {
 				sessionId: state.sessionId,
 				idScope: `${state.sessionId}-${incarnation}`,
 			}),
+			// Fresh namespace per tracking: the log is rebuilt from vendor
+			// replay, so cursors minted by any previous tracking are foreign
+			// by construction and reset deterministically.
+			generation: this.mintGeneration(),
 			events: [],
-			eventIndexById: new Map(),
 			projection: this.baselineProjection(state),
 			cursorSerial: 0,
 			lastSeq: 0,
@@ -881,49 +1017,57 @@ export class CanonicalSessionsRuntime {
 			return;
 		}
 		for (const draft of drafts) {
-			tracked.cursorSerial += 1;
-			const event: SessionEvent = {
-				...draft,
-				cursor: cursorFor(tracked.cursorSerial),
-			};
-			tracked.events.push(event);
-			tracked.eventIndexById.set(event.id, tracked.events.length - 1);
-			try {
-				tracked.projection = reduceProjection(tracked.projection, {
-					type: "event",
-					cursor: event.cursor,
-					value: event,
-				});
-			} catch (error) {
-				tracked.foldError =
-					error instanceof Error ? error.message : String(error);
-			}
-			// The event is in the log regardless of local projection health —
-			// clients fold with their own reducer, so they still get it.
-			for (const listener of [...this.sessionEventListeners]) {
-				try {
-					listener(event);
-				} catch {
-					// Listener faults must not corrupt the journal fan-out this
-					// callback runs inside.
-				}
-			}
-			if (event.payload.type === "permissionRequested") {
-				this.emitHostChange({
-					type: "permissionAvailable",
-					sessionId: event.sessionId,
-					threadId: event.payload.permission.threadId,
-					permission: event.payload.permission,
-				});
-			} else if (event.payload.type === "permissionResolved") {
-				this.emitHostChange({
-					type: "permissionResolved",
-					sessionId: event.sessionId,
-					permissionId: event.payload.permissionId,
-				});
-			}
-			this.markDirty(tracked.sessionId);
+			this.appendEvent(tracked, draft);
 		}
+	}
+
+	/** Mint the cursor, fold, and fan out one canonical event. */
+	private appendEvent(tracked: TrackedSession, draft: SessionEventDraft): void {
+		tracked.cursorSerial += 1;
+		const event: SessionEvent = {
+			...draft,
+			cursor: mintCursor(tracked.generation, tracked.cursorSerial),
+		};
+		tracked.events.push(event);
+		try {
+			tracked.projection = reduceProjection(tracked.projection, {
+				type: "event",
+				cursor: event.cursor,
+				value: event,
+			});
+		} catch (error) {
+			tracked.foldError =
+				error instanceof Error ? error.message : String(error);
+		}
+		// The event is in the log regardless of local projection health —
+		// clients fold with their own reducer, so they still get it.
+		for (const listener of [...this.sessionEventListeners]) {
+			try {
+				listener(event);
+			} catch {
+				// Listener faults must not corrupt the journal fan-out this
+				// callback runs inside.
+			}
+		}
+		if (event.payload.type === "permissionRequested") {
+			this.emitHostChange({
+				type: "permissionAvailable",
+				sessionId: event.sessionId,
+				threadId: event.payload.permission.threadId,
+				permission: event.payload.permission,
+			});
+		} else if (event.payload.type === "permissionResolved") {
+			this.emitHostChange({
+				type: "permissionResolved",
+				sessionId: event.sessionId,
+				permissionId: event.payload.permissionId,
+			});
+		}
+		this.markDirty(tracked.sessionId);
+	}
+
+	private headCursor(tracked: TrackedSession): string {
+		return mintCursor(tracked.generation, tracked.cursorSerial);
 	}
 
 	// -------------------------------------------------------------------------
@@ -934,7 +1078,7 @@ export class CanonicalSessionsRuntime {
 		const mainThreadId = acpMainThreadId(state.sessionId);
 		return {
 			sessionId: state.sessionId,
-			cursor: cursorFor(0),
+			cursor: ZERO_CURSOR,
 			session: {
 				id: state.sessionId,
 				workspaceId: state.workspaceId,

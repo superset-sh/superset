@@ -261,11 +261,14 @@ describe("SessionsSyncHub", () => {
 		expect(bySubscription).toEqual(new Set(["sub-resume", "sub-at-head"]));
 	});
 
-	test("session subscribe with an unknown cursor answers reset and does not register", async () => {
+	test("session subscribe with a foreign-generation cursor answers reset and does not register", async () => {
 		const { port, hub } = makeHub();
 		seedLive(port, "session-a");
 		const { socket, client } = await openClient(hub);
 
+		// A legacy pre-generation cursor and a cursor minted by another log
+		// generation are both foreign — CURSOR_INVALID, like host cursors from
+		// a dead hub incarnation.
 		await client.handleMessage(
 			subscribeFrame({
 				subscriptionId: "sub-stale",
@@ -276,7 +279,7 @@ describe("SessionsSyncHub", () => {
 		const reset = expectPacket(socket.take()[0], "reset");
 		expect(reset.stream).toBe("session");
 		expect(reset.sessionId).toBe("session-a");
-		expect(reset.code).toBe("CURSOR_EXPIRED");
+		expect(reset.code).toBe("CURSOR_INVALID");
 		expect(reset.recovery).toBe("refetchSnapshot");
 
 		port.emitUpdate("session-a", chunk("not delivered"));

@@ -1,7 +1,7 @@
 import { Database as BunDatabase } from "bun:sqlite";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
@@ -43,6 +43,13 @@ export interface TestHostOptions {
 	chatService?: unknown;
 	/** Injecting a manager also opens the acpSessions feature gate (app.ts). */
 	acpSessions?: unknown;
+	/**
+	 * Reuse a specific SQLite file instead of a throwaway temp dir. Reboot
+	 * tests point successive hosts at the same path so durable state
+	 * (session registry, canonical session metadata) survives; dispose()
+	 * then leaves the file in place and the caller owns cleanup.
+	 */
+	dbPath?: string;
 }
 
 export interface TestHost {
@@ -82,8 +89,15 @@ export async function createTestHost(
 	options: TestHostOptions = {},
 ): Promise<TestHost> {
 	const psk = options.psk ?? "test-psk-secret";
-	const dataDir = mkdtempSync(join(tmpdir(), "host-service-test-db-"));
-	const dbPath = join(dataDir, "host.db");
+	// A caller-provided dbPath is durable across hosts (reboot tests); only a
+	// temp dir we minted ourselves is removed on dispose.
+	const dataDir = options.dbPath
+		? null
+		: mkdtempSync(join(tmpdir(), "host-service-test-db-"));
+	const dbPath = options.dbPath ?? join(dataDir ?? "", "host.db");
+	if (options.dbPath) {
+		mkdirSync(dirname(options.dbPath), { recursive: true });
+	}
 
 	const sqlite = new BunDatabase(dbPath, { create: true, readwrite: true });
 	sqlite.exec("PRAGMA journal_mode = WAL");
@@ -169,10 +183,12 @@ export async function createTestHost(
 			} catch {
 				// best-effort
 			}
-			try {
-				rmSync(dataDir, { recursive: true, force: true });
-			} catch {
-				// best-effort
+			if (dataDir) {
+				try {
+					rmSync(dataDir, { recursive: true, force: true });
+				} catch {
+					// best-effort
+				}
 			}
 		}
 	};
