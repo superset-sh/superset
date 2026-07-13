@@ -148,6 +148,7 @@ function topSurface(activity: UserActivity | undefined): Surface | null {
 const healthFilterSchema = z.enum([
 	"all",
 	"active",
+	"idle",
 	"cooling",
 	"dormant",
 	"churnRisk",

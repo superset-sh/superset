@@ -3,13 +3,19 @@
  * tracking portal (apps/customers).
  */
 
-export const CUSTOMER_HEALTH_TIERS = ["active", "cooling", "dormant"] as const;
+export const CUSTOMER_HEALTH_TIERS = [
+	"active",
+	"idle",
+	"cooling",
+	"dormant",
+] as const;
 export type CustomerHealth = (typeof CUSTOMER_HEALTH_TIERS)[number];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const HEALTH_ACTIVE_MAX_DAYS = 7;
-export const HEALTH_COOLING_MAX_DAYS = 21;
+export const HEALTH_IDLE_MAX_DAYS = 14;
+export const HEALTH_COOLING_MAX_DAYS = 30;
 
 /**
  * Curated set of PostHog events that indicate real product engagement.
@@ -38,6 +44,7 @@ export function healthFromLastActive(
 	if (!lastActiveAt) return "dormant";
 	const days = (now.getTime() - lastActiveAt.getTime()) / DAY_MS;
 	if (days <= HEALTH_ACTIVE_MAX_DAYS) return "active";
+	if (days <= HEALTH_IDLE_MAX_DAYS) return "idle";
 	if (days <= HEALTH_COOLING_MAX_DAYS) return "cooling";
 	return "dormant";
 }

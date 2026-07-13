@@ -67,6 +67,7 @@ export function CompanyFilters({
 				<SelectContent>
 					<SelectItem value="all">All health</SelectItem>
 					<SelectItem value="active">Active</SelectItem>
+					<SelectItem value="idle">Idle</SelectItem>
 					<SelectItem value="cooling">Cooling</SelectItem>
 					<SelectItem value="dormant">Dormant</SelectItem>
 					<SelectItem value="churnRisk">Churn risk</SelectItem>

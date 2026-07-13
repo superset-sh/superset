@@ -18,13 +18,18 @@ describe("healthFromLastActive", () => {
 		expect(healthFromLastActive(daysAgo(7), NOW)).toBe("active");
 	});
 
-	test("returns cooling between 8 and 21 days", () => {
-		expect(healthFromLastActive(daysAgo(8), NOW)).toBe("cooling");
-		expect(healthFromLastActive(daysAgo(21), NOW)).toBe("cooling");
+	test("returns idle between 8 and 14 days", () => {
+		expect(healthFromLastActive(daysAgo(8), NOW)).toBe("idle");
+		expect(healthFromLastActive(daysAgo(14), NOW)).toBe("idle");
 	});
 
-	test("returns dormant beyond 21 days", () => {
-		expect(healthFromLastActive(daysAgo(22), NOW)).toBe("dormant");
+	test("returns cooling between 15 and 30 days", () => {
+		expect(healthFromLastActive(daysAgo(15), NOW)).toBe("cooling");
+		expect(healthFromLastActive(daysAgo(30), NOW)).toBe("cooling");
+	});
+
+	test("returns dormant beyond 30 days", () => {
+		expect(healthFromLastActive(daysAgo(31), NOW)).toBe("dormant");
 		expect(healthFromLastActive(daysAgo(365), NOW)).toBe("dormant");
 	});
 });
