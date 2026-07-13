@@ -465,11 +465,6 @@ export function TerminalPane({
 					isDropActive ? "opacity-75" : "opacity-0",
 				)}
 			/>
-			{connectionState === "closed" && (
-				<div className="flex items-center gap-2 border-t border-border px-3 py-1.5 text-xs text-muted-foreground">
-					<span>Disconnected</span>
-				</div>
-			)}
 			<LinkHoverHint
 				hoverLabel={resolveHoverLabel(hoveredLink, filePolicy, urlPolicy)}
 				hoverPosition={hoveredLink}
