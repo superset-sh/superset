@@ -246,7 +246,6 @@ export const createFilesystemRouter = () => {
 				z.object({
 					workspaceId: z.string(),
 					absolutePath: z.string(),
-					recursive: z.boolean().optional(),
 				}),
 			)
 			.subscription(({ input }) => {
@@ -255,7 +254,6 @@ export const createFilesystemRouter = () => {
 					let isDisposed = false;
 					const stream = service.watchPath({
 						absolutePath: input.absolutePath,
-						recursive: input.recursive,
 					});
 					const iterator = stream[Symbol.asyncIterator]();
 

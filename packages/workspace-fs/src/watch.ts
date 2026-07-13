@@ -32,9 +32,9 @@ const MAX_WORK_CHUNK_SIZE = 500;
 const THROTTLE_DELAY_MS = 200;
 const MAX_BUFFERED_EVENTS = 30_000;
 
+// Watches are always recursive — @parcel/watcher offers no shallow mode.
 export interface WatchPathOptions {
 	absolutePath: string;
-	recursive?: boolean;
 }
 
 export interface InternalWatchEvent {
