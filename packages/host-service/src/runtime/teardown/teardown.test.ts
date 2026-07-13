@@ -110,6 +110,7 @@ describe("resolveTeardownCommand", () => {
 			const resolved = resolveTeardownCommand({
 				repoPath: sb.repoPath,
 				projectId: "proj-1",
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
 				homeDir: sb.homeDir,
 			});
 
@@ -134,6 +135,7 @@ describe("resolveTeardownCommand", () => {
 			const resolved = resolveTeardownCommand({
 				repoPath: sb.repoPath,
 				projectId: "proj-1",
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
 				homeDir: sb.homeDir,
 			});
 
@@ -158,10 +160,38 @@ describe("resolveTeardownCommand", () => {
 			const resolved = resolveTeardownCommand({
 				repoPath: sb.repoPath,
 				projectId: "proj-1",
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
 				homeDir: sb.homeDir,
 			});
 
 			expect(resolved).toEqual({ initialCommand: `exec bash '${scriptPath}'` });
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("worktree teardown.sh wins over the main repo copy", () => {
+		const sb = makeSandbox();
+		try {
+			writeFileSync(
+				join(sb.repoPath, ".superset", "teardown.sh"),
+				"#!/usr/bin/env bash\n",
+			);
+			const worktreePath = join(sb.repoPath, ".worktrees", "feature");
+			mkdirSync(join(worktreePath, ".superset"), { recursive: true });
+			const worktreeScript = join(worktreePath, ".superset", "teardown.sh");
+			writeFileSync(worktreeScript, "#!/usr/bin/env bash\n");
+
+			const resolved = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				worktreePath,
+				homeDir: sb.homeDir,
+			});
+
+			expect(resolved).toEqual({
+				initialCommand: `exec bash '${worktreeScript}'`,
+			});
 		} finally {
 			sb.cleanup();
 		}
@@ -178,6 +208,7 @@ describe("resolveTeardownCommand", () => {
 			const resolved = resolveTeardownCommand({
 				repoPath: sb.repoPath,
 				projectId: "proj-1",
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
 				homeDir: sb.homeDir,
 			});
 
@@ -196,6 +227,7 @@ describe("resolveTeardownCommand", () => {
 			const resolved = resolveTeardownCommand({
 				repoPath: sb.repoPath,
 				projectId: "proj-1",
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
 				homeDir: sb.homeDir,
 			});
 

@@ -237,10 +237,12 @@ export type ResolvedScript =
  * Every key gets the same posture:
  *
  *   1. Configured commands from `.superset/config.json` (+ user override and
- *      `config.local.json` overlay), resolved against the main repo path.
- *   2. Fallback: `<repoPath>/.superset/<key>.sh`. The main repo is the single
- *      source of truth — worktrees skip gitignored files and are
- *      agent-writable, so they are never consulted.
+ *      `config.local.json` overlay), resolved against the main repo path —
+ *      worktrees are never consulted for config.
+ *   2. Fallback: `.superset/<key>.sh` from each of `scriptRoots` in order,
+ *      then the main repo. Callers that want a workspace-local script to win
+ *      (teardown) pass the worktree path; setup/run resolve from the main
+ *      repo only, since worktrees skip gitignored files.
  *
  * `cwd` from the same config rides along either way. Returns null when no
  * source resolves to anything runnable.
@@ -250,6 +252,8 @@ export function resolveScript(
 	args: {
 		repoPath: string;
 		projectId: string;
+		/** Extra roots to check for `<key>.sh` before the main repo. */
+		scriptRoots?: string[];
 		/** Override $HOME for tests. Defaults to `os.homedir()`. */
 		homeDir?: string;
 	},
@@ -261,13 +265,11 @@ export function resolveScript(
 		return { kind: "commands", commands, ...(cwd && { cwd }) };
 	}
 
-	const scriptPath = join(
-		args.repoPath,
-		PROJECT_SUPERSET_DIR_NAME,
-		`${key}.sh`,
-	);
-	if (existsSync(scriptPath)) {
-		return { kind: "script", scriptPath, ...(cwd && { cwd }) };
+	for (const root of [...(args.scriptRoots ?? []), args.repoPath]) {
+		const scriptPath = join(root, PROJECT_SUPERSET_DIR_NAME, `${key}.sh`);
+		if (existsSync(scriptPath)) {
+			return { kind: "script", scriptPath, ...(cwd && { cwd }) };
+		}
 	}
 
 	return null;

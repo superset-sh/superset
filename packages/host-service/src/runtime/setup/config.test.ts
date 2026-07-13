@@ -389,6 +389,35 @@ describe("resolveScript", () => {
 		expect(resolve("run")).toBeNull();
 	});
 
+	it("checks extra scriptRoots before the main repo", () => {
+		writeFallbackScript("teardown");
+		const extraRoot = join(sandbox.repoPath, ".worktrees", "feature");
+		mkdirSync(join(extraRoot, ".superset"), { recursive: true });
+		const extraScript = join(extraRoot, ".superset", "teardown.sh");
+		writeFileSync(extraScript, "#!/usr/bin/env bash\n", "utf-8");
+
+		expect(
+			resolveScript("teardown", {
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				scriptRoots: [extraRoot],
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({ kind: "script", scriptPath: extraScript });
+	});
+
+	it("falls back to the main repo when scriptRoots have no script", () => {
+		const teardownScript = writeFallbackScript("teardown");
+		expect(
+			resolveScript("teardown", {
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				scriptRoots: [join(sandbox.repoPath, ".worktrees", "feature")],
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({ kind: "script", scriptPath: teardownScript });
+	});
+
 	it("configured commands win over the fallback script", () => {
 		writeRepoConfig(sandbox.repoPath, { setup: ["bun install"] });
 		writeFallbackScript("setup");

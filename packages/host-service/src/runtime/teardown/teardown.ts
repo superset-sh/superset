@@ -28,6 +28,7 @@ export type TeardownResult =
 interface RunTeardownOptions {
 	db: HostDb;
 	workspaceId: string;
+	worktreePath: string;
 	/** Main repo path — source of truth for `.superset/config.json`. */
 	repoPath: string;
 	projectId: string;
@@ -44,9 +45,8 @@ interface RunTeardownOptions {
  *
  * The teardown to run is resolved by {@link resolveTeardownCommand}: the
  * configured `teardown` commands from `.superset/config.json` take precedence,
- * falling back to `<repoPath>/.superset/teardown.sh` — the shared lifecycle
- * posture (see `resolveScript`). Skipped (as a success) when no source
- * resolves to anything runnable.
+ * falling back to a `.superset/teardown.sh` script (worktree first, then main
+ * repo). Skipped (as a success) when no source resolves to anything runnable.
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
@@ -54,12 +54,18 @@ interface RunTeardownOptions {
 export async function runTeardown({
 	db,
 	workspaceId,
+	worktreePath,
 	repoPath,
 	projectId,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
 	homeDir,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const resolved = resolveTeardownCommand({ repoPath, projectId, homeDir });
+	const resolved = resolveTeardownCommand({
+		repoPath,
+		projectId,
+		worktreePath,
+		homeDir,
+	});
 	if (resolved === null) return { status: "skipped" };
 
 	const terminalId = randomUUID();
@@ -150,8 +156,10 @@ export async function runTeardown({
 /**
  * Resolve the teardown command for a workspace, if any. Uses the shared
  * lifecycle-script posture (see `resolveScript`): configured `teardown`
- * commands — joined with ` && ` so a failing command short-circuits — then
- * `<repoPath>/.superset/teardown.sh`.
+ * commands — joined with ` && ` so a failing command short-circuits — then a
+ * `teardown.sh` script, worktree first (scripts generated during the session
+ * must win) and main repo second (gitignored scripts don't exist in
+ * worktrees).
  *
  * Returns null when no source resolves to anything runnable, which the
  * caller treats as a skipped (successful) teardown.
@@ -161,10 +169,16 @@ export async function runTeardown({
 export function resolveTeardownCommand(args: {
 	repoPath: string;
 	projectId: string;
+	worktreePath: string;
 	/** Override $HOME for tests. */
 	homeDir?: string;
 }): { initialCommand: string; cwd?: string } | null {
-	const resolved = resolveScript("teardown", args);
+	const resolved = resolveScript("teardown", {
+		repoPath: args.repoPath,
+		projectId: args.projectId,
+		scriptRoots: [args.worktreePath],
+		homeDir: args.homeDir,
+	});
 	if (!resolved) return null;
 
 	const initialCommand =
