@@ -35,9 +35,7 @@ describe("teardown initial command", () => {
 			"docker compose down && rm -rf .cache",
 		);
 
-		expect(command).toBe(
-			"exec bash -c 'docker compose down && rm -rf .cache'",
-		);
+		expect(command).toBe("exec bash -c 'docker compose down && rm -rf .cache'");
 		expect(command).not.toContain("$?");
 	});
 
@@ -74,7 +72,11 @@ describe("teardown initial command", () => {
 });
 
 describe("resolveTeardownCommand", () => {
-	function makeSandbox(): { repoPath: string; homeDir: string; cleanup: () => void } {
+	function makeSandbox(): {
+		repoPath: string;
+		homeDir: string;
+		cleanup: () => void;
+	} {
 		const root = mkdtempSync(join(tmpdir(), "host-service-teardown-resolve-"));
 		const repoPath = join(root, "repo");
 		const homeDir = join(root, "home");
@@ -164,6 +166,52 @@ describe("resolveTeardownCommand", () => {
 			});
 
 			expect(command).toBe(`exec bash ${`'${scriptPath}'`}`);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("falls back to <repoPath>/.superset/teardown.sh when the worktree has none", () => {
+		const sb = makeSandbox();
+		try {
+			// Gitignored scripts don't exist in worktrees — the main repo copy
+			// must still run, mirroring the setup.sh fallback.
+			const scriptPath = join(sb.repoPath, ".superset", "teardown.sh");
+			writeFileSync(scriptPath, "#!/usr/bin/env bash\n");
+
+			const command = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
+				homeDir: sb.homeDir,
+			});
+
+			expect(command).toBe(`exec bash '${scriptPath}'`);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("worktree teardown.sh wins over the main repo copy", () => {
+		const sb = makeSandbox();
+		try {
+			writeFileSync(
+				join(sb.repoPath, ".superset", "teardown.sh"),
+				"#!/usr/bin/env bash\n",
+			);
+			const worktreePath = join(sb.repoPath, ".worktrees", "feature");
+			mkdirSync(join(worktreePath, ".superset"), { recursive: true });
+			const worktreeScript = join(worktreePath, ".superset", "teardown.sh");
+			writeFileSync(worktreeScript, "#!/usr/bin/env bash\n");
+
+			const command = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				worktreePath,
+				homeDir: sb.homeDir,
+			});
+
+			expect(command).toBe(`exec bash '${worktreeScript}'`);
 		} finally {
 			sb.cleanup();
 		}

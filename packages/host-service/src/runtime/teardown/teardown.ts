@@ -7,10 +7,7 @@ import {
 	createTerminalSessionInternal,
 	disposeSession,
 } from "../../terminal/terminal";
-import {
-	getResolvedTeardownCommands,
-	loadSetupConfig,
-} from "../setup/config";
+import { getResolvedTeardownCommands, loadSetupConfig } from "../setup/config";
 
 export { TEARDOWN_TIMEOUT_MS };
 
@@ -51,8 +48,8 @@ interface RunTeardownOptions {
  *
  * The teardown to run is resolved by {@link resolveTeardownCommand}: the
  * configured `teardown` commands from `.superset/config.json` take precedence,
- * falling back to a `<worktree>/.superset/teardown.sh` script. Skipped (as a
- * success) when neither source resolves to anything runnable.
+ * falling back to a `.superset/teardown.sh` script (worktree first, then main
+ * repo). Skipped (as a success) when no source resolves to anything runnable.
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
@@ -167,8 +164,11 @@ export async function runTeardown({
  *      repo path — joined with ` && ` so a failing command short-circuits.
  *   2. Fallback: `<worktreePath>/.superset/teardown.sh`, preserved for
  *      projects that ship a teardown script instead of config commands.
+ *   3. Fallback: `<repoPath>/.superset/teardown.sh` — gitignored scripts don't
+ *      exist in worktrees, so the main repo is checked last (mirroring the
+ *      setup fallback, which reads `setup.sh` from the main repo).
  *
- * Returns null when neither source resolves to anything runnable, which the
+ * Returns null when no source resolves to anything runnable, which the
  * caller treats as a skipped (successful) teardown.
  *
  * Exported for tests.
@@ -190,9 +190,9 @@ export function resolveTeardownCommand(args: {
 		return buildTeardownCommandFromShell(commands.join(" && "));
 	}
 
-	const fallbackScript = join(args.worktreePath, TEARDOWN_SCRIPT_REL_PATH);
-	if (existsSync(fallbackScript)) {
-		return buildTeardownInitialCommand(fallbackScript);
+	for (const root of [args.worktreePath, args.repoPath]) {
+		const script = join(root, TEARDOWN_SCRIPT_REL_PATH);
+		if (existsSync(script)) return buildTeardownInitialCommand(script);
 	}
 
 	return null;
